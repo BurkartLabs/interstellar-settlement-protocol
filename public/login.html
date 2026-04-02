@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ISP Login Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="scripts/starfield.js" defer></script>
+    <script src="scripts/login-page.js" defer></script>
+  </head>
+  <body>
+    <canvas id="starfield-canvas" aria-hidden="true"></canvas>
+    <div class="app-bg" aria-hidden="true"></div>
+
+    <main class="auth-shell login-shell">
+      <section class="login-card" aria-labelledby="login-title">
+        <p class="hero-overline">EARTH ASSEMBLY ACT 2147</p>
+        <h1 id="login-title" class="login-title">Protocol Access Gate</h1>
+        <p class="hero-tagline">"Humanity did not conquer space. It privatized it."</p>
+        <p class="login-copy">
+          Authentication has been delegated to the ISP prototype command gateway.
+          Enter your credentials below to use the standard login flow, or use temporary
+          prototype access with the dummy account button.
+        </p>
+
+        <form id="login-form" class="login-form" novalidate>
+          <label for="login-email">Email</label>
+          <input id="login-email" name="email" type="email" autocomplete="email" required placeholder="ceo@corporation.com" />
+
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="Enter your password" />
+
+          <p id="login-status" class="login-status" aria-live="polite"></p>
+
+          <div class="login-actions">
+            <button id="credential-login-btn" class="btn-hero btn-hero-fill" type="submit">Log In</button>
+            <button id="dummy-login-btn" class="btn-hero btn-hero-outline" type="button">Temporary: Log In To Dummy Account</button>
+            <a href="/" class="btn-hero btn-hero-outline">Return To Landing Page</a>
+          </div>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

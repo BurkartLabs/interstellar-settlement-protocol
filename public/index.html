@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Interstellar Settlement Protocol</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="scripts/starfield.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+    <script src="/socket.io/socket.io.js" defer></script>
+    <script type="module" src="scripts/app.js" defer></script>
+  </head>
+  <body>
+    <canvas id="starfield-canvas" aria-hidden="true"></canvas>
+    <div class="app-bg" aria-hidden="true"></div>
+    <section id="auth-shell" class="auth-shell">
+      <article class="auth-card">
+        <section class="landing-hero landing-section">
+          <div class="hero-inner">
+            <!-- Logo mark: orbital ring SVG -->
+            <div class="hero-logo" aria-hidden="true">
+              <svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+                <defs>
+                  <radialGradient id="rg1" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#00f7ff" stop-opacity="0.18"/>
+                    <stop offset="100%" stop-color="#00f7ff" stop-opacity="0"/>
+                  </radialGradient>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
+                    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+                <!-- Outer ambient glow -->
+                <circle cx="110" cy="110" r="105" fill="url(#rg1)"/>
+                <!-- Orbital ring — tilted ellipse (behind text via z layering) -->
+                <ellipse cx="110" cy="110" rx="96" ry="32" fill="none"
+                  stroke="#00f7ff" stroke-width="2.2" opacity="0.85" filter="url(#glow)"
+                  transform="rotate(-18 110 110)"/>
+                <!-- Secondary thin ring -->
+                <ellipse cx="110" cy="110" rx="96" ry="32" fill="none"
+                  stroke="#00f7ff" stroke-width="0.6" opacity="0.35"
+                  transform="rotate(-18 110 110) translate(0 6)"/>
+                <!-- Planet body -->
+                <circle cx="110" cy="110" r="38" fill="#0a1520" stroke="#00f7ff" stroke-width="1.4"
+                  opacity="0.9" filter="url(#glow)"/>
+                <!-- Planet surface gradient hint -->
+                <circle cx="110" cy="110" r="38" fill="none"
+                  stroke="rgba(0,247,255,0.12)" stroke-width="16"/>
+                <!-- Constellation dots -->
+                <circle cx="44" cy="76" r="1.8" fill="#00f7ff" opacity="0.7"/>
+                <circle cx="172" cy="148" r="1.4" fill="#00f7ff" opacity="0.55"/>
+                <circle cx="160" cy="58" r="1.2" fill="#ffaa33" opacity="0.6"/>
+                <circle cx="58" cy="162" r="1.2" fill="#00f7ff" opacity="0.5"/>
+              </svg>
+            </div>
+
+            <p class="hero-overline">EARTH ASSEMBLY ACT 2147</p>
+
+            <h1 class="hero-title">
+              <span class="hero-title-top">The Interstellar</span>
+              <span class="hero-title-bottom">Settlement Protocol</span>
+            </h1>
+
+            <div class="hero-divider" aria-hidden="true">
+              <span class="divider-line"></span>
+              <span class="divider-diamond"></span>
+              <span class="divider-line"></span>
+            </div>
+
+            <p class="hero-tagline">"Humanity did not conquer space. It privatized it."</p>
+
+            <p class="hero-desc">
+              ISP is a long-horizon online strategy simulation where you operate as CEO of a corporate colonization firm
+              navigating industrial logistics, legal conflict, interstellar finance, and deterministic warfare at a
+              civilizational scale. A true slow-burn universe &mdash; level progression is milestone-based and full
+              corporate maturity unfolds over years of real-world play.
+            </p>
+
+            <div class="hero-actions">
+              <a href="/login.html" class="btn-hero btn-hero-outline">Log In</a>
+              <button id="show-register-btn" class="btn-hero btn-hero-fill">Register Corporation</button>
+            </div>
+
+            <section id="register-panel" class="auth-panel-hero" hidden>
+              <form id="register-form" class="inline-form">
+                <label>
+                  CEO Name
+                  <input name="ceoName" required maxlength="40" value="New CEO" />
+                </label>
+                <label>
+                  Corporation Name
+                  <input name="corpName" required maxlength="80" value="Frontier Protocol Ventures" />
+                </label>
+                <div class="choice-row">
+                  <button class="btn btn-accent" type="submit">Register And Continue</button>
+                  <button id="register-cancel-btn" class="btn btn-outline" type="button">Cancel</button>
+                </div>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <section class="landing-section">
+          <h2>What ISP Is</h2>
+          <div class="landing-grid-3">
+            <article class="data-card">
+              <h3>Persistent Economic Civilization</h3>
+              <p class="muted">Every resource chain, market order, and investment contributes to a persistent economy.</p>
+            </article>
+            <article class="data-card">
+              <h3>Corporate Power Strategy</h3>
+              <p class="muted">Scale your corporation through hiring, infrastructure, R&D, and sector expansion.</p>
+            </article>
+            <article class="data-card">
+              <h3>Hybrid Conflict Layer</h3>
+              <p class="muted">Compete militarily, politically, and financially across multiple star systems.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="landing-section">
+          <h2>Core Gameplay Pillars</h2>
+          <div class="landing-grid-2">
+            <article class="data-card">
+              <h3>Milestone Progression</h3>
+              <p>Corporation Level 1-40 is unlocked through business milestones: first refined output, first off-world mining, employee targets, R&D completions, and strategic expansion checkpoints.</p>
+            </article>
+            <article class="data-card">
+              <h3>Industrial Refinement Chains</h3>
+              <p>Raw materials become strategic products through multi-step pipelines gated by Corporate R&D. Supply chain planning and throughput optimization become long-term differentiators.</p>
+            </article>
+            <article class="data-card">
+              <h3>Financial Command</h3>
+              <p>Run full corporate finance: cash flow, liabilities, valuation, debt instruments, bond strategy, and inter-corporate investment plays driven by performance and risk.</p>
+            </article>
+            <article class="data-card">
+              <h3>Conglomerate Politics</h3>
+              <p>Join or build alliances with expanding membership caps, pooled resources, shared intel, station co-ownership, and coordinated policy pressure.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="landing-section">
+          <h2>Map, Warfare, And Discovery</h2>
+          <div class="landing-grid-3">
+            <article class="data-card">
+              <h3>System-Scale Starmap</h3>
+              <p class="muted">Navigate from cluster view to system and body-level detail for strategic planning.</p>
+            </article>
+            <article class="data-card">
+              <h3>Deterministic Combat Core</h3>
+              <p class="muted">Outcomes are numbers-driven with counters, modifiers, and doctrine effects.</p>
+            </article>
+            <article class="data-card">
+              <h3>Scouting Intelligence</h3>
+              <p class="muted">Resource composition is unknown until surveyed, creating real exploration pressure.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="landing-section">
+          <h2>Economic Engine In Detail</h2>
+          <div class="landing-grid-2">
+            <article class="data-card">
+              <h3>Raw Resource Genesis</h3>
+              <p>Every new corporation begins in a raw-material economy. Silicates, metals, isotopes, and volatile compounds become the industrial substrate for every advanced product in the game.</p>
+            </article>
+            <article class="data-card">
+              <h3>Refining As Competitive Edge</h3>
+              <p>Refineries are not decoration. Throughput, downtime control, and process sequencing determine your cost basis and export strength as regional demand shifts.</p>
+            </article>
+            <article class="data-card">
+              <h3>Market Signals And Arbitrage</h3>
+              <p>Use local scarcity and congestion to set pricing, absorb volatility, and arbitrage between systems while balancing freight risk and liquidity windows.</p>
+            </article>
+            <article class="data-card">
+              <h3>Capital And Leverage</h3>
+              <p>Scale by issuing debt, taking strategic loans, and investing in rival corporations. Your capital strategy can outperform brute extraction alone.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="landing-section">
+          <h2>Long-Horizon Campaign Structure</h2>
+          <div class="landing-grid-3">
+            <article class="data-card">
+              <h3>Phase I: Establishment</h3>
+              <p class="muted">Build initial facilities, stabilize payroll, and secure first extraction contracts.</p>
+            </article>
+            <article class="data-card">
+              <h3>Phase II: Industrial Scale</h3>
+              <p class="muted">Expand refining chains, automate logistics, and begin controlled fleet growth.</p>
+            </article>
+            <article class="data-card">
+              <h3>Phase III: Sector Influence</h3>
+              <p class="muted">Enter legal and political contests for tariff regimes, patent constraints, and territorial leverage.</p>
+            </article>
+            <article class="data-card">
+              <h3>Phase IV: Conglomerate Politics</h3>
+              <p class="muted">Coordinate with allied corporations to project force, protect trade lanes, and co-own key stations.</p>
+            </article>
+            <article class="data-card">
+              <h3>Phase V: Interstellar Governance</h3>
+              <p class="muted">Compete in system-wide influence wars where law, capital, and fleet math decide civilization-scale outcomes.</p>
+            </article>
+            <article class="data-card">
+              <h3>Designed For Years, Not Weeks</h3>
+              <p class="muted">ISP intentionally resists short-loop progression so strategic planning and institutional momentum matter.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="landing-section">
+          <h2>Why This Prototype Exists</h2>
+          <div class="landing-grid-2">
+            <article class="data-card">
+              <h3>Accessible, Text-First Core</h3>
+              <p>Gameplay systems are intentionally text-dominant for readability, speed, and accessibility with or without heavy visuals.</p>
+            </article>
+            <article class="data-card">
+              <h3>Expandable Architecture</h3>
+              <p>Current modules are structured so economy, warfare, diplomacy, and missions can be expanded into full production domains.</p>
+            </article>
+            <article class="data-card">
+              <h3>Real-Time Multiplayer Backbone</h3>
+              <p>Market, communication, and conflict signals are already shaped for live state synchronization and persistent world updates.</p>
+            </article>
+            <article class="data-card">
+              <h3>Strategic Depth Over Flash</h3>
+              <p>The prototype prioritizes decision quality and long-term outcomes over superficial visual noise.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="landing-section cta-section">
+          <h2>Enter The Protocol</h2>
+          <p class="muted">Access is granted through the hero panel above.</p>
+        </section>
+      </article>
+    </section>
+
+    <div id="game-shell" hidden>
+      <header class="app-header">
+        <div>
+          <p class="overline">Interstellar Settlement Protocol, est. 2147</p>
+          <h1>The Interstellar Settlement Protocol</h1>
+        </div>
+        <div class="header-actions">
+          <button id="replay-onboarding-btn" class="btn btn-outline" type="button">Replay Onboarding</button>
+          <button id="text-mode-toggle" class="btn btn-outline" aria-pressed="false">Text-only fallback: Off</button>
+          <button id="refresh-btn" class="btn btn-accent">Sync Live State</button>
+        </div>
+      </header>
+
+      <main class="layout-grid">
+        <aside class="side-panel">
+          <section class="panel-block">
+            <h2>Corporation Identity</h2>
+            <dl id="corp-identity" class="kv-list"></dl>
+          </section>
+
+          <section class="panel-block">
+            <h2>Level Milestones</h2>
+            <ul id="milestone-list" class="text-list"></ul>
+          </section>
+
+          <section class="panel-block">
+            <h2>Quick Actions</h2>
+            <div class="action-stack">
+              <button class="btn btn-outline" data-jump="finance">Finance</button>
+              <button class="btn btn-outline" data-jump="starmap">Starmap</button>
+              <button class="btn btn-outline" data-jump="market">Market</button>
+              <button class="btn btn-outline" data-jump="chat">Comms</button>
+            </div>
+          </section>
+        </aside>
+
+        <section class="main-panel">
+          <nav class="tab-nav" aria-label="Game modules">
+            <button class="tab-btn active" data-tab="overview">Overview</button>
+            <button class="tab-btn" data-tab="finance">Financial Core</button>
+            <button class="tab-btn" data-tab="rnd">Corporate R&D</button>
+            <button class="tab-btn" data-tab="ceo">CEO Insight</button>
+            <button class="tab-btn" data-tab="refinery">Refinery Chains</button>
+            <button class="tab-btn" data-tab="market">Galactic Market</button>
+            <button class="tab-btn" data-tab="chat">Comms</button>
+            <button class="tab-btn" data-tab="forums">Forums</button>
+            <button class="tab-btn" data-tab="missions">Missions</button>
+            <button class="tab-btn" data-tab="combat">Combat Reports</button>
+            <button class="tab-btn" data-tab="starmap">Starmap</button>
+          </nav>
+
+          <article id="overview" class="tab-panel active">
+            <h2>Executive Situation Brief</h2>
+            <p class="lede">
+              ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated,
+              and each unlock expands market access, infrastructure depth, and interstellar reach.
+            </p>
+            <div id="overview-cards" class="card-grid"></div>
+
+            <section class="form-card">
+              <h3>Corp Level 2 Progression Program</h3>
+              <p class="muted">Complete all requirements below to unlock Corporation Level 2.</p>
+              <div id="level2-requirements" class="card-grid"></div>
+
+              <div class="split-grid">
+                <form id="level2-hire-form" class="inline-form">
+                  <label>
+                    Hire Employees
+                    <input id="level2-hire-count" type="number" min="1" value="1" />
+                  </label>
+                  <button class="btn btn-accent" type="submit">Hire Team</button>
+                  <p id="hire-action-hint" class="muted action-hint"></p>
+                </form>
+
+                <form id="level2-mine-form" class="inline-form">
+                  <label>
+                    Mine Silicates
+                    <input id="level2-mine-amount" type="number" min="10" step="10" value="40" />
+                  </label>
+                  <button class="btn btn-accent" type="submit">Run Mining Cycle</button>
+                  <p id="mine-action-hint" class="muted action-hint"></p>
+                </form>
+              </div>
+
+              <div class="choice-row">
+                <button id="level2-build-btn" class="btn btn-outline" type="button">Construct Basic Extractor Yard</button>
+                <button id="level2-rnd-btn" class="btn btn-outline" type="button">Complete Basic Extraction Analytics</button>
+              </div>
+
+              <div class="split-grid">
+                <section class="data-card compact-card">
+                  <h3>Extractor Requirements</h3>
+                  <p id="build-action-hint" class="muted"></p>
+                </section>
+                <section class="data-card compact-card">
+                  <h3>R&D Requirements</h3>
+                  <p id="level2-rnd-hint" class="muted"></p>
+                </section>
+              </div>
+
+              <p id="level2-status" class="muted"></p>
+
+              <section class="data-card feedback-panel">
+                <h3>Command Feedback</h3>
+                <ul id="feedback-log" class="text-list"></ul>
+              </section>
+            </section>
+          </article>
+
+          <article id="finance" class="tab-panel">
+            <h2>Financial Control Board</h2>
+            <p class="muted">
+              Tracks cash flow, liabilities, asset valuation, ROI timelines, and inflation by system. Built to support
+              loans, bonds, and direct corporate investment mechanics.
+            </p>
+            <div class="chart-grid">
+              <section class="chart-card">
+                <h3>Cash Flow (30-day projection)</h3>
+                <canvas id="cashflow-chart" aria-label="Cash flow chart"></canvas>
+              </section>
+              <section class="chart-card">
+                <h3>Asset vs Liability Profile</h3>
+                <canvas id="asset-chart" aria-label="Asset and liability chart"></canvas>
+              </section>
+              <section class="chart-card">
+                <h3>Sector Exposure</h3>
+                <canvas id="sector-chart" aria-label="Sector exposure chart"></canvas>
+              </section>
+              <section class="chart-card">
+                <h3>Bond Yield Candles</h3>
+                <canvas id="yield-chart" aria-label="Bond yield chart"></canvas>
+              </section>
+            </div>
+
+            <section class="form-card">
+              <h3>Direct Investment Panel</h3>
+              <form id="investment-form" class="inline-form">
+                <label>
+                  Target Corporation
+                  <input name="targetCorp" required placeholder="Apex Helion PLC" />
+                </label>
+                <label>
+                  Instrument
+                  <select name="instrument" required>
+                    <option value="Equity">Equity Stake</option>
+                    <option value="Convertible Loan">Convertible Loan</option>
+                    <option value="Silent Partnership">Silent Partnership</option>
+                  </select>
+                </label>
+                <label>
+                  Amount (Credits)
+                  <input type="number" name="amount" required min="1000" step="1000" value="100000" />
+                </label>
+                <button class="btn btn-accent" type="submit">Execute Investment</button>
+              </form>
+              <ul id="investment-log" class="text-list"></ul>
+            </section>
+          </article>
+
+          <article id="rnd" class="tab-panel">
+            <h2>Corporate R&D Queue</h2>
+            <p class="muted">Queue permanent unlocks from your tech tree. Advanced nodes require prerequisites.</p>
+            <div id="rnd-tech-tree" class="card-grid"></div>
+            <section class="form-card">
+              <h3>Add Research To Queue</h3>
+              <form id="rnd-form" class="inline-form">
+                <label>
+                  Available Research
+                  <select id="rnd-select" required></select>
+                </label>
+                <button class="btn btn-accent" type="submit">Add To Corporate R&D Queue</button>
+              </form>
+              <p id="rnd-selected-details" class="muted action-hint"></p>
+              <p id="rnd-status" class="muted"></p>
+            </section>
+            <div id="rnd-queue" class="queue-list"></div>
+          </article>
+
+          <article id="ceo" class="tab-panel">
+            <h2>CEO Insight Program</h2>
+            <div id="ceo-queue" class="queue-list"></div>
+          </article>
+
+          <article id="refinery" class="tab-panel">
+            <h2>Refinery Chains</h2>
+            <p class="muted">
+              Raw materials spawn first; finished goods require multi-stage transformation and R&D-gated intermediates.
+            </p>
+            <div id="resource-catalog" class="pill-grid"></div>
+            <div id="refinery-chains" class="card-grid"></div>
+          </article>
+
+          <article id="market" class="tab-panel">
+            <h2>Galactic Exchange</h2>
+            <section class="form-card">
+              <h3>Your Inventory</h3>
+              <ul id="inventory-list" class="text-list"></ul>
+            </section>
+            <section class="form-card">
+              <h3>Create Sell Listing</h3>
+              <form id="listing-form" class="inline-form">
+                <label>
+                  Inventory Item
+                  <select id="listing-item" name="item" required></select>
+                </label>
+                <label>
+                  Quantity
+                  <input type="number" id="listing-quantity" name="quantity" required min="1" value="1" />
+                </label>
+                <label>
+                  Unit Price
+                  <input type="number" name="unitPrice" required min="1" value="50" />
+                </label>
+                <button class="btn btn-accent" id="listing-submit" type="submit">Create Listing</button>
+              </form>
+              <p id="listing-status" class="muted"></p>
+            </section>
+            <section class="form-card">
+              <h3>Submit Buy Order</h3>
+              <form id="order-form" class="inline-form">
+                <label>
+                  Item
+                  <input name="item" required placeholder="Silicates" />
+                </label>
+                <label>
+                  Quantity
+                  <input type="number" name="quantity" required min="1" value="100" />
+                </label>
+                <label>
+                  Unit Price
+                  <input type="number" name="unitPrice" required min="1" value="50" />
+                </label>
+                <button class="btn btn-outline" type="submit">Submit Buy Order</button>
+              </form>
+            </section>
+            <div class="split-grid">
+              <section>
+                <h3>Order Book</h3>
+                <ul id="order-book" class="text-list"></ul>
+              </section>
+              <section>
+                <h3>Mercenary Rentals</h3>
+                <ul id="mercenary-book" class="text-list"></ul>
+              </section>
+            </div>
+          </article>
+
+          <article id="chat" class="tab-panel">
+            <h2>Real-time Communications</h2>
+            <div class="split-grid">
+              <section>
+                <label for="chat-channel">Channel</label>
+                <select id="chat-channel">
+                  <option value="global">Global</option>
+                  <option value="local">Local</option>
+                  <option value="trade">Trade</option>
+                  <option value="private">Private</option>
+                </select>
+                <ul id="chat-log" class="chat-log"></ul>
+                <form id="chat-form" class="inline-form">
+                  <label class="sr-only" for="chat-input">Message</label>
+                  <input id="chat-input" name="message" required maxlength="300" placeholder="Transmit message" />
+                  <button class="btn btn-accent" type="submit">Send</button>
+                </form>
+              </section>
+              <section>
+                <h3>Comms Notes</h3>
+                <p class="muted">Private channel currently broadcasts only to your client as a placeholder.</p>
+                <p class="muted">Server events are prepared for future user accounts and moderation tools.</p>
+              </section>
+            </div>
+          </article>
+
+          <article id="forums" class="tab-panel">
+            <h2>Corporate Forums</h2>
+            <div id="forum-categories" class="pill-grid"></div>
+            <div id="forum-threads" class="card-grid"></div>
+          </article>
+
+          <article id="missions" class="tab-panel">
+            <h2>Mission Board</h2>
+            <div id="mission-list" class="card-grid"></div>
+          </article>
+
+          <article id="combat" class="tab-panel">
+            <h2>Deterministic Combat Simulator</h2>
+            <p class="muted">
+              Hybrid warfare starts with deterministic armed math: raw totals + counters + research modifiers.
+            </p>
+            <section class="form-card">
+              <form id="combat-form" class="inline-form">
+                <label>
+                  Attacker
+                  <input name="attackerName" required value="ISP Foundry Holdings" />
+                </label>
+                <label>
+                  Attack Value
+                  <input name="attackerAttack" type="number" required value="280" />
+                </label>
+                <label>
+                  Defense Value
+                  <input name="attackerDefense" type="number" required value="200" />
+                </label>
+                <label>
+                  Defender
+                  <input name="defenderName" required value="Pirate Bastion 9" />
+                </label>
+                <label>
+                  Attack Value
+                  <input name="defenderAttack" type="number" required value="250" />
+                </label>
+                <label>
+                  Defense Value
+                  <input name="defenderDefense" type="number" required value="230" />
+                </label>
+                <label>
+                  Counter Modifier
+                  <input name="counterModifier" type="number" min="0.5" step="0.05" value="1.0" />
+                </label>
+                <button class="btn btn-accent" type="submit">Generate Report</button>
+              </form>
+            </section>
+            <ul id="combat-reports" class="text-list"></ul>
+          </article>
+
+          <article id="starmap" class="tab-panel">
+            <h2>Interstellar Starmap</h2>
+            <p class="muted">
+              Smooth pan/zoom canvas map from nearby-star cluster to intra-system detail. Includes overlays for
+              resources, GDP, activity, dominance, and pirate density.
+            </p>
+            <div class="toolbar">
+              <label>
+                Overlay
+                <select id="map-overlay">
+                  <option value="none">None</option>
+                  <option value="resource">Resource Concentration</option>
+                  <option value="gdp">GDP Index</option>
+                  <option value="activity">Activity Level</option>
+                  <option value="pirates">Pirate Density</option>
+                </select>
+              </label>
+              <button id="map-reset" class="btn btn-outline">Reset View</button>
+            </div>
+            <canvas id="starmap-canvas" width="1200" height="680" aria-label="Interactive starmap"></canvas>
+            <div id="starmap-fallback" class="starmap-fallback" hidden></div>
+            <div id="map-details" class="panel-block"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <section id="dialogue-modal" class="modal-backdrop" hidden>
+      <article class="modal-card">
+        <p class="overline" id="dialogue-speaker">Assembly Liaison</p>
+        <h2 id="dialogue-title">Corporate Confirmation</h2>
+        <p id="dialogue-text" class="lede"></p>
+        <div id="dialogue-choices" class="choice-row"></div>
+        <button id="dialogue-continue" class="btn btn-accent" hidden>Continue</button>
+      </article>
+    </section>
+
+    <section id="walkthrough-modal" class="modal-backdrop" hidden>
+      <article class="modal-card">
+        <p class="overline">New CEO Walkthrough</p>
+        <h2 id="walkthrough-title">Guided Tour</h2>
+        <p id="walkthrough-text" class="lede"></p>
+        <div class="choice-row">
+          <button id="walkthrough-prev" class="btn btn-outline">Previous</button>
+          <button id="walkthrough-next" class="btn btn-accent">Next</button>
+          <button id="walkthrough-end" class="btn btn-outline">End Walkthrough</button>
+        </div>
+      </article>
+    </section>
+  </body>
+</html>
