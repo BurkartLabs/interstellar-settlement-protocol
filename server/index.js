@@ -10,6 +10,7 @@ import {
   addAccountNotification,
   appendChatMessage,
   createAccount,
+  saveAccountsNow,
   createCombatReport,
   authenticateAccount,
   getAccountById,
@@ -166,6 +167,7 @@ function fundingRequirementMessage(actionLabel, corp, requiredCredits, extra = "
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const { version: APP_VERSION } = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -177,8 +179,34 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "..", "public")));
 
+// ─── NPC buy-order daily reset ────────────────────────────────────────────────
+function getESTDateString() {
+  // "sv-SE" locale produces YYYY-MM-DD which is unambiguous
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "America/New_York" });
+}
+
+function checkAndResetNpcBuyOrders() {
+  const today = getESTDateString();
+  const orders = getState().market?.npcBuyOrders || [];
+  if (!orders.some((o) => o.lastResetDate !== today)) return;
+
+  mutateState((draft) => {
+    (draft.market.npcBuyOrders || []).forEach((order) => {
+      if (order.lastResetDate !== today) {
+        order.remainingQty = order.totalQtyPerDay;
+        order.lastResetDate = today;
+      }
+    });
+  });
+  io.emit("market:updated", getState().market);
+}
+
+// Check on startup and every minute thereafter
+checkAndResetNpcBuyOrders();
+setInterval(checkAndResetNpcBuyOrders, 60_000);
+
 app.get("/api/bootstrap", (_req, res) => {
-  res.json(getState());
+  res.json({ ...getState(), version: APP_VERSION });
 });
 
 app.get("/api/stations", (_req, res) => {
@@ -505,6 +533,289 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
     type: "administration",
     title: "Office Lease Confirmed",
     body: `Your corporation now maintains a registered operational office at ${stationName}.`
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
+  res.json(account);
+});
+
+// ─── ISA Claims & Leases Division: Purchase a mining lease ─────────────────
+app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
+  const requestedBody = String(req.body?.body || "").trim();
+  if (!requestedBody) {
+    res.status(400).json({ error: "A celestial body must be specified." });
+    return;
+  }
+
+  const LEASE_COSTS = { Mars: 25000, Luna: 30000 };
+  const leaseCost = LEASE_COSTS[requestedBody] ?? 25000;
+  const EMPLOYEES_PER_LEASE = 5;
+  let outcome = "ok";
+  let existingLeaseOnBody = false;
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+
+    if (!corp.officeRented) {
+      outcome = "no-office";
+      return;
+    }
+
+    if (!Array.isArray(corp.miningLeases)) corp.miningLeases = [];
+
+    existingLeaseOnBody = corp.miningLeases.some((l) => (l.body || l) === requestedBody);
+    if (existingLeaseOnBody) {
+      outcome = "duplicate-lease";
+      return;
+    }
+
+    const requiredEmployees = (corp.miningLeases.length + 1) * EMPLOYEES_PER_LEASE;
+    if ((corp.employeeCount || 0) < requiredEmployees) {
+      outcome = "insufficient-employees";
+      return;
+    }
+
+    if ((corp.finances.credits || 0) < leaseCost) {
+      outcome = "insufficient-credits";
+      return;
+    }
+
+    const now = Date.now();
+    const leaseId = `lease-${now}-${Math.random().toString(36).slice(2, 8)}`;
+    corp.miningLeases.push({
+      id: leaseId,
+      body: requestedBody,
+      leaseType: "Silicate Extraction",
+      issuedAt: now,
+      cost: leaseCost,
+      buildingSlots: 2,
+      extractorIds: []
+    });
+
+    corp.finances.credits -= leaseCost;
+    corp.buildingSlots = (corp.buildingSlots || 2) + 2;
+  });
+
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  if (outcome !== "ok") {
+    const corp = account.state.corp;
+    const requiredEmployees = ((corp.miningLeases || []).length + 1) * EMPLOYEES_PER_LEASE;
+    const messageMap = {
+      "no-office": "You must lease a corporate office before filing extraction claims with the ISA.",
+      "duplicate-lease": `Your corporation already holds an active mining lease on ${requestedBody}.`,
+      "insufficient-employees": `ISA regulations require at least ${requiredEmployees} employees on payroll before issuing an additional mining lease. Current headcount: ${corp.employeeCount || 0}.`,
+      "insufficient-credits": fundingRequirementMessage(`${requestedBody} mining lease acquisition`, corp, leaseCost)
+    };
+    res.status(400).json({ error: messageMap[outcome] || "Lease application failed." });
+    return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "administration",
+    title: "Mining Lease Approved",
+    body: `ISA Claims & Leases has approved your extraction rights application for ${requestedBody}. Two building slots have been allocated to your lease.`
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
+  // Commit to disk immediately — critical state that must survive server restarts.
+  saveAccountsNow();
+
+  res.json(account);
+});
+
+// ─── Lease-scoped: Build an extractor yard on a specific lease ──────────────
+app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (req, res) => {
+  const { leaseId } = req.params;
+  const BUILD_COST = 50000;
+  const ASSET_VALUE = 36000;
+  let outcome = "ok";
+  let slotInfo = "";
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+
+    if (!Array.isArray(corp.miningLeases)) corp.miningLeases = [];
+    const lease = corp.miningLeases.find((l) => l.id === leaseId);
+    if (!lease) {
+      outcome = "no-lease";
+      return;
+    }
+
+    if (!Array.isArray(lease.extractorIds)) lease.extractorIds = [];
+    if (lease.extractorIds.length >= lease.buildingSlots) {
+      outcome = "lease-slots-full";
+      slotInfo = `${lease.extractorIds.length}/${lease.buildingSlots}`;
+      return;
+    }
+
+    if ((corp.buildings || []).length >= (corp.buildingSlots || 2)) {
+      outcome = "no-corp-slot";
+      slotInfo = `${corp.buildings.length}/${corp.buildingSlots}`;
+      return;
+    }
+
+    if ((corp.finances.credits || 0) < BUILD_COST) {
+      outcome = "insufficient-credits";
+      return;
+    }
+
+    if (!Array.isArray(corp.buildings)) corp.buildings = [];
+    if (!corp.mining || typeof corp.mining !== "object") corp.mining = {};
+    if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];
+
+    const nextIndex = corp.mining.silicateExtractors.length + 1;
+    const newExtractorId = `ext-basic-${nextIndex}`;
+
+    corp.buildings.push({ name: "Basic Extractor Yard", tier: 1, status: "Operational" });
+    corp.mining.silicateExtractors.push({
+      id: newExtractorId,
+      name: `Basic Extractor Yard #${nextIndex}`,
+      tier: 1,
+      active: false,
+      startedAt: null,
+      lastTickAt: null,
+      endsAt: null,
+      throughputPerHour: 0,
+      operationCostPerHour: 0,
+      totalMined: 0,
+      totalSpent: 0,
+      lastCompletedAt: null,
+      leaseId
+    });
+
+    lease.extractorIds.push(newExtractorId);
+    corp.finances.credits -= BUILD_COST;
+    corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
+  });
+
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  if (outcome !== "ok") {
+    const corp = account.state.corp;
+    const messageMap = {
+      "no-lease": "The specified lease could not be found on your account.",
+      "lease-slots-full": `This lease has used all ${slotInfo} building slots. Upgrade your lease tier or acquire an additional claim to expand capacity.`,
+      "no-corp-slot": `No corporation building slots available. Current usage: ${slotInfo}. Upgrade your headquarters or release an existing building.`,
+      "insufficient-credits": fundingRequirementMessage("Basic Extractor Yard construction", corp, BUILD_COST)
+    };
+    res.status(400).json({ error: messageMap[outcome] || "Build action failed." });
+    return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "infrastructure",
+    title: "Extractor Commissioned",
+    body: "Basic Extractor Yard is now operational and linked to your mining lease."
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
+  res.json(account);
+});
+
+// ─── Lease-scoped: Start a mining cycle on a lease extractor ───────────────
+app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, res) => {
+  const { leaseId } = req.params;
+  const amount = Math.max(10, Number(req.body?.amount || 40));
+  const requestedHours = Math.max(1, Math.min(72, Number(req.body?.hours || 24)));
+  const requestedExtractorId = String(req.body?.extractorId || "").trim();
+  let outcome = "ok";
+  let targetExtractorLabel = "";
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+
+    if (!Array.isArray(corp.miningLeases)) corp.miningLeases = [];
+    const lease = corp.miningLeases.find((l) => l.id === leaseId);
+    if (!lease) {
+      outcome = "no-lease";
+      return;
+    }
+
+    if (!Array.isArray(corp.mining?.silicateExtractors) || corp.mining.silicateExtractors.length === 0) {
+      outcome = "missing-extractor";
+      return;
+    }
+
+    const leaseExtractors = corp.mining.silicateExtractors.filter((ex) => ex.leaseId === leaseId);
+    if (leaseExtractors.length === 0) {
+      outcome = "no-lease-extractors";
+      return;
+    }
+
+    const extractorCycle = requestedExtractorId
+      ? leaseExtractors.find((ex) => ex.id === requestedExtractorId)
+      : leaseExtractors[0];
+
+    targetExtractorLabel = extractorCycle?.name || requestedExtractorId || "Extractor";
+
+    if (!extractorCycle) {
+      outcome = "missing-extractor-target";
+      return;
+    }
+
+    if (extractorCycle.active) {
+      outcome = "already-active";
+      return;
+    }
+
+    const throughputPerHour = Math.max(10, Math.min(250, amount));
+    const operationCostPerHour = Math.max(600, Math.round(throughputPerHour * 16));
+    const startupCost = Math.max(500, Math.round(operationCostPerHour * 0.35));
+
+    if ((corp.finances.credits || 0) < startupCost) {
+      outcome = "insufficient-credits";
+      return;
+    }
+
+    const now = Date.now();
+    corp.finances.credits -= startupCost;
+
+    extractorCycle.active = true;
+    extractorCycle.startedAt = now;
+    extractorCycle.lastTickAt = now;
+    extractorCycle.endsAt = now + requestedHours * 60 * 60 * 1000;
+    extractorCycle.throughputPerHour = throughputPerHour;
+    extractorCycle.operationCostPerHour = operationCostPerHour;
+    extractorCycle.totalSpent += startupCost;
+
+    corp.mining.silicateExtractor = corp.mining.silicateExtractors[0];
+  });
+
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  if (outcome !== "ok") {
+    const messageMap = {
+      "no-lease": "The specified lease could not be found on your account.",
+      "missing-extractor": "No extraction facilities are available.",
+      "no-lease-extractors": "No extraction facilities are assigned to this lease.",
+      "missing-extractor-target": `Extractor "${requestedExtractorId}" not found on this lease.`,
+      "already-active": `${targetExtractorLabel} already has an active mining cycle in progress.`,
+      "insufficient-credits": `Insufficient credits to start the mining cycle. Check your finances.`
+    };
+    res.status(400).json({ error: messageMap[outcome] || "Mining cycle failed to start." });
+    return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "mining",
+    title: "Mining Cycle Started",
+    body: `${targetExtractorLabel} has begun silicate extraction operations.`
   });
   if (notification) {
     io.emit("notifications:new", { accountId: req.params.accountId, notification });
@@ -947,6 +1258,19 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
       delete inventory[item];
     }
     state.corp.inventory = inventory;
+
+    if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
+    state.corp.tradeHistory.unshift({
+      id: `th-${Date.now()}`,
+      type: "listed",
+      item,
+      quantity: normalizedQty,
+      unitPrice: normalizedUnitPrice,
+      total: normalizedQty * normalizedUnitPrice,
+      counterparty: "Market",
+      at: Date.now()
+    });
+    state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
   });
 
   if (!updatedSeller || rejectReason) {
@@ -1024,6 +1348,19 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
       corp.inventory[order.item] = 0;
     }
     corp.inventory[order.item] += tradeQuantity;
+
+    if (!Array.isArray(corp.tradeHistory)) corp.tradeHistory = [];
+    corp.tradeHistory.unshift({
+      id: `th-${Date.now()}`,
+      type: "bought",
+      item: order.item,
+      quantity: tradeQuantity,
+      unitPrice: Number(order.unitPrice || 0),
+      total: tradeTotal,
+      counterparty: order.seller || "Unknown",
+      at: Date.now()
+    });
+    corp.tradeHistory = corp.tradeHistory.slice(0, 200);
   });
 
   if (!buyer || rejectReason) {
@@ -1035,6 +1372,19 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
     mutateAccountState(order.sellerAccountId, (state) => {
       state.corp.finances.credits += tradeTotal;
       state.corp.finances.dailyRevenue += Math.round(tradeTotal / 24);
+
+      if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
+      state.corp.tradeHistory.unshift({
+        id: `th-${Date.now() + 1}`,
+        type: "sold",
+        item: order.item,
+        quantity: tradeQuantity,
+        unitPrice: Number(order.unitPrice || 0),
+        total: tradeTotal,
+        counterparty: buyerAccount.state?.corp?.corporationName || buyerAccount.email || "Anonymous",
+        at: Date.now()
+      });
+      state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
     });
   }
 
@@ -1060,6 +1410,84 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
       total: tradeTotal
     },
     account: buyer
+  });
+});
+
+// ─── Sell player resources into an NPC standing buy order ────────────────────
+app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
+  const orderId = String(req.params.orderId || "").trim();
+  const requestedQty = Math.max(1, Math.floor(Number(req.body?.quantity || 1)));
+
+  checkAndResetNpcBuyOrders();
+
+  const npcOrder = (getState().market?.npcBuyOrders || []).find((o) => o.id === orderId);
+  if (!npcOrder) {
+    res.status(404).json({ error: "Standing buy order not found." });
+    return;
+  }
+
+  if (npcOrder.remainingQty <= 0) {
+    res.status(400).json({ error: "This order has been fully filled for today. It resets at midnight EST." });
+    return;
+  }
+
+  if (requestedQty > npcOrder.remainingQty) {
+    res.status(400).json({ error: `Only ${Number(npcOrder.remainingQty).toLocaleString()} units remaining in today's order.` });
+    return;
+  }
+
+  const tradeTotal = requestedQty * npcOrder.unitPrice;
+  let rejectReason = "";
+
+  const seller = mutateAccountState(req.auth.accountId, (state) => {
+    const inventory = state.corp.inventory || {};
+    const available = Number(inventory[npcOrder.item] || 0);
+    if (available < requestedQty) {
+      rejectReason = `Insufficient ${npcOrder.item} in inventory (have ${available.toLocaleString()}, need ${requestedQty.toLocaleString()}).`;
+      return;
+    }
+
+    inventory[npcOrder.item] = available - requestedQty;
+    if (inventory[npcOrder.item] <= 0) delete inventory[npcOrder.item];
+    state.corp.inventory = inventory;
+
+    state.corp.finances.credits = (state.corp.finances.credits || 0) + tradeTotal;
+    state.corp.finances.dailyRevenue = (state.corp.finances.dailyRevenue || 0) + Math.round(tradeTotal / 24);
+
+    if (!state.corp.stats) state.corp.stats = {};
+    state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
+
+    if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
+    state.corp.tradeHistory.unshift({
+      id: `th-${Date.now()}`,
+      type: "sold-npc",
+      item: npcOrder.item,
+      quantity: requestedQty,
+      unitPrice: npcOrder.unitPrice,
+      total: tradeTotal,
+      counterparty: npcOrder.buyer,
+      at: Date.now()
+    });
+    state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
+  });
+
+  if (!seller || rejectReason) {
+    res.status(400).json({ error: rejectReason || "Trade failed." });
+    return;
+  }
+
+  mutateState((draft) => {
+    const target = (draft.market.npcBuyOrders || []).find((o) => o.id === orderId);
+    if (target) {
+      target.remainingQty = Math.max(0, target.remainingQty - requestedQty);
+    }
+  });
+
+  io.emit("market:updated", getState().market);
+  res.json({
+    ok: true,
+    traded: { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice: npcOrder.unitPrice, total: tradeTotal },
+    account: seller
   });
 });
 

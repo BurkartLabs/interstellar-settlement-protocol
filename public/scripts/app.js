@@ -32,6 +32,8 @@ const appState = {
   miningUiTicker: null,
   stationRegistry: [],
   buildingRegistry: [],
+  stationActiveLease: null,
+  exchangeFilter: "",
   inbox: {
     messages: [],
     folder: "inbox",          // active folder tab
@@ -708,6 +710,7 @@ function showStationOverview() {
   const detailEl = document.getElementById("station-building-view");
   if (overviewEl) overviewEl.hidden = false;
   if (detailEl) detailEl.hidden = true;
+  appState.stationActiveLease = null;
 }
 
 function showStationBuilding(buildingId) {
@@ -732,6 +735,22 @@ function renderBuildingDetail(building, data) {
   if (building.id === "orbital-executive-suites") {
     contentEl.innerHTML = renderOrbitalExecutiveSuites(building, data);
     bindOfficeActions(building, data);
+  } else if (building.id === "isa-claims-leases") {
+    if (appState.stationActiveLease) {
+      const lease = (data.corp?.miningLeases || []).find((l) => l.id === appState.stationActiveLease);
+      if (lease) {
+        contentEl.innerHTML = renderLeaseManagement(building, lease, data);
+        bindLeaseManagementActions(building, lease, data);
+      } else {
+        // Lease no longer found — fall back to list view
+        appState.stationActiveLease = null;
+        contentEl.innerHTML = renderISAClaimsLeases(building, data);
+        bindISAClaimsLeasesActions(building, data);
+      }
+    } else {
+      contentEl.innerHTML = renderISAClaimsLeases(building, data);
+      bindISAClaimsLeasesActions(building, data);
+    }
   } else {
     contentEl.innerHTML = `
       <div class="building-detail-header">
@@ -813,9 +832,8 @@ function renderOrbitalExecutiveSuites(building, data) {
     </section>
 
     <section class="form-card" style="margin-top:1rem;">
-      <h3>ISA Claims &amp; Leases Division</h3>
-      <p class="muted">Purchase mining extraction rights for registered bodies within the Sol system. Leases are issued by the ISA and required before beginning off-world extraction operations.</p>
-      <p class="muted" style="margin-top:0.6rem;"><em>ISA lease applications are not yet operational. This service will be available in a future update.</em></p>
+      <h3>Station Services</h3>
+      <p class="muted">Visit the ISA Claims &amp; Leases Division to file extraction rights applications for registered bodies in the Sol system.</p>
     </section>
   `;
 }
@@ -916,6 +934,412 @@ function bindOfficeActions(building, data) {
   }
 }
 
+// ─── ISA Claims & Leases Division ──────────────────────────────────────────
+
+function renderISAClaimsLeases(building, data) {
+  const corp = data.corp;
+  const leases = corp?.miningLeases || [];
+
+  const headerHtml = `
+    <div class="building-detail-header">
+      <span class="faction-code-badge">${escapeHtml(building.factionCode)}</span>
+      <h2>${escapeHtml(building.name)}</h2>
+    </div>
+    <p class="muted lede">${escapeHtml(building.description)}</p>
+    <p class="building-flavor">${escapeHtml(building.flavor)}</p>
+  `;
+
+  const hasOffice = Boolean(corp?.officeRented || (corp?.offices || []).length > 0);
+  const EMPLOYEES_PER_LEASE = 5;
+  const requiredForNext = (leases.length + 1) * EMPLOYEES_PER_LEASE;
+  const currentEmployees = corp?.employeeCount || 0;
+
+  // Active leases section
+  let leasesHtml = "";
+  if (leases.length === 0) {
+    leasesHtml = `<p class="muted" style="margin-top:0.4rem;">No active extraction claims on file. Submit a lease application below to begin.</p>`;
+  } else {
+    leasesHtml = `<div class="lease-card-grid">`;
+    for (const lease of leases) {
+      const extractorCount = (lease.extractorIds || []).length;
+      const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
+        year: "numeric", month: "short", day: "numeric"
+      });
+      leasesHtml += `
+        <div class="lease-card">
+          <div class="lease-card-header">
+            <span class="lease-body-badge">${escapeHtml(lease.body)}</span>
+            <span class="lease-type-label">${escapeHtml(lease.leaseType || "Silicate Extraction")}</span>
+          </div>
+          <dl class="kv-list kv-list--compact" style="margin:0.6rem 0;">
+            <dt>Claim ID</dt><dd><code>${escapeHtml(lease.id)}</code></dd>
+            <dt>Issued</dt><dd>${issuedDate}</dd>
+            <dt>Building Slots</dt><dd>${extractorCount} / ${lease.buildingSlots || 2} used</dd>
+          </dl>
+          <button class="btn btn-outline btn-sm lease-manage-btn" data-lease-id="${escapeHtml(lease.id)}" type="button">
+            Manage Lease
+          </button>
+        </div>
+      `;
+    }
+    leasesHtml += `</div>`;
+  }
+
+  // Purchase section — Mars is always the first available body
+  const hasMarsLease = leases.some((l) => l.body === "Mars");
+  const marsLeaseCost = 25000;
+  const canAffordMars = (corp?.finances?.credits || 0) >= marsLeaseCost;
+  const hasEnoughStaffForMars = currentEmployees >= requiredForNext;
+
+  let purchaseHtml = "";
+  if (hasMarsLease) {
+    purchaseHtml = `<p class="muted">Mars extraction rights are already registered to your corporation.</p>`;
+  } else if (!hasOffice) {
+    purchaseHtml = `<p class="muted">A registered corporate office is required before the ISA will process lease applications. Visit the Orbital Executive Suites first.</p>`;
+  } else {
+    purchaseHtml = `
+      <div class="lease-purchase-block">
+        <h4 style="margin:0 0 0.5rem;">Mars — Silicate Extraction Lease</h4>
+        <p class="muted" style="margin-bottom:0.8rem;">Grants two (2) on-surface building slots for Basic Extractor Yard construction. Required before beginning any off-Mars extraction operations.</p>
+        <dl class="kv-list kv-list--compact" style="max-width:380px;margin-bottom:0.9rem;">
+          <dt>Lease Cost</dt><dd>${toCurrency(marsLeaseCost)} credits (one-time)</dd>
+          <dt>Employee Requirement</dt><dd>${requiredForNext} on payroll (current: ${currentEmployees})</dd>
+          <dt>Building Slots Granted</dt><dd>2 on-surface slots</dd>
+        </dl>
+        ${!hasEnoughStaffForMars ? `<p class="muted action-hint" style="color:var(--warn,#f0ad4e);">Hire at least ${requiredForNext - currentEmployees} more employee(s) before filing this application.</p>` : ""}
+        <button id="purchase-lease-btn" class="btn btn-accent" type="button" ${!hasEnoughStaffForMars || !canAffordMars ? "disabled" : ""}>
+          File Lease Application — Mars
+        </button>
+        <p id="purchase-lease-status" class="muted action-hint"></p>
+      </div>
+    `;
+  }
+
+  return `
+    ${headerHtml}
+    <section class="form-card" style="margin-top:1.5rem;">
+      <h3>Active Mining Claims</h3>
+      ${leasesHtml}
+    </section>
+    <section class="form-card action-surface" style="margin-top:1rem;">
+      <h3>File Extraction Lease Application</h3>
+      ${purchaseHtml}
+    </section>
+  `;
+}
+
+function bindISAClaimsLeasesActions(building, data) {
+  const purchaseBtn = document.getElementById("purchase-lease-btn");
+  if (purchaseBtn) {
+    purchaseBtn.addEventListener("click", async () => {
+      const statusEl = document.getElementById("purchase-lease-status");
+      purchaseBtn.disabled = true;
+      if (statusEl) statusEl.textContent = "Submitting lease application to ISA...";
+
+      try {
+        if (appState.accountId) {
+          const response = await apiFetch(
+            `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/purchase-lease`,
+            { method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ body: "Mars" }) }
+          );
+          const account = await parseJsonResponse(response);
+          appState.data = deepClone(account.state);
+          appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+          updateAllViews();
+          showStationBuilding(building.id);
+        } else {
+          // Demo account fallback
+          const corp = appState.data.corp;
+          const cost = 25000;
+          if ((corp.finances.credits || 0) < cost) {
+            throw new Error(`Lease application requires ${toCurrency(cost)} credits.`);
+          }
+          if (!Array.isArray(corp.miningLeases)) corp.miningLeases = [];
+          const now = Date.now();
+          const leaseId = `lease-${now}-demo`;
+          corp.miningLeases.push({
+            id: leaseId,
+            body: "Mars",
+            leaseType: "Silicate Extraction",
+            issuedAt: now,
+            cost,
+            buildingSlots: 2,
+            extractorIds: []
+          });
+          corp.finances.credits -= cost;
+          corp.buildingSlots = (corp.buildingSlots || 2) + 2;
+          updateAllViews();
+          showStationBuilding(building.id);
+        }
+        pushFeedback("Mars mining lease approved by the ISA.", "success");
+      } catch (err) {
+        purchaseBtn.disabled = false;
+        const statusEl = document.getElementById("purchase-lease-status");
+        if (statusEl) statusEl.textContent = err.message || "Lease application failed.";
+      }
+    });
+  }
+
+  // Manage buttons for each lease card
+  const contentEl = document.getElementById("station-building-content");
+  if (contentEl) {
+    contentEl.querySelectorAll(".lease-manage-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const leaseId = btn.getAttribute("data-lease-id");
+        if (leaseId) {
+          appState.stationActiveLease = leaseId;
+          renderBuildingDetail(building, appState.data || data);
+        }
+      });
+    });
+  }
+}
+
+function renderLeaseManagement(building, lease, data) {
+  const corp = data.corp;
+  const extractors = (corp?.mining?.silicateExtractors || []).filter((ex) => ex.leaseId === lease.id);
+  const usedSlots = extractors.length;
+  const totalSlots = lease.buildingSlots || 2;
+  const hasSlotAvailable = usedSlots < totalSlots;
+  const buildCost = 50000;
+  const canAffordBuild = (corp?.finances?.credits || 0) >= buildCost;
+
+  const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
+    year: "numeric", month: "long", day: "numeric"
+  });
+
+  // Extractor list
+  let extractorRows = "";
+  for (const ex of extractors) {
+    const activeClass = ex.active ? "active" : "idle";
+    let cycleInfo = "";
+    let progressBarHtml = "";
+
+    if (ex.active && ex.endsAt && ex.startedAt) {
+      const now = Date.now();
+      const remaining = Math.max(0, ex.endsAt - now);
+      const cycleDuration = ex.endsAt - ex.startedAt;
+      const elapsed = Math.min(now - ex.startedAt, cycleDuration);
+      const pct = cycleDuration > 0 ? Math.min(100, Math.round((elapsed / cycleDuration) * 100)) : 0;
+      const hrs = Math.floor(remaining / 3_600_000);
+      const mins = Math.floor((remaining % 3_600_000) / 60_000);
+      const elapsedHours = elapsed / 3_600_000;
+      const estimatedFees = Math.round(elapsedHours * (ex.operationCostPerHour || 0));
+
+      cycleInfo = `<span class="extractor-cycle-status">${ex.throughputPerHour} t/h &mdash; ${hrs}h ${mins}m remaining</span>`;
+      progressBarHtml = `
+        <div class="extractor-progress-wrap">
+          <div class="extractor-progress-header">
+            <span class="extractor-progress-pct">${pct}%</span>
+            <span class="extractor-progress-time">${hrs}h ${mins}m left</span>
+          </div>
+          <div class="extractor-progress-track">
+            <div class="extractor-progress-fill" style="width:${pct}%"></div>
+          </div>
+          <div class="extractor-stat-row">
+            <span class="extractor-stat"><span class="extractor-stat-label">Mined this cycle</span><span class="extractor-stat-value">${(ex.totalMined || 0).toLocaleString()}</span></span>
+            <span class="extractor-stat"><span class="extractor-stat-label">Fees incurred</span><span class="extractor-stat-value">${toCurrency(estimatedFees)}</span></span>
+            <span class="extractor-stat"><span class="extractor-stat-label">Rate</span><span class="extractor-stat-value">${ex.throughputPerHour} t/h</span></span>
+          </div>
+        </div>
+      `;
+    } else if (ex.totalMined > 0) {
+      cycleInfo = `<span class="extractor-cycle-status idle">Idle &mdash; ${ex.totalMined.toLocaleString()} t extracted lifetime</span>`;
+    } else {
+      cycleInfo = `<span class="extractor-cycle-status idle">Idle &mdash; no cycle history</span>`;
+    }
+
+    const mineFormId = `mine-form-${ex.id}`;
+    const mineFormHtml = !ex.active
+      ? `<form class="inline-form compact-action-form lease-mine-form" id="${escapeHtml(mineFormId)}" data-extractor-id="${escapeHtml(ex.id)}" style="margin-top:0.5rem;">
+          <label>Throughput (t/h)<input type="number" name="amount" min="10" max="250" value="40" style="width:72px;" /></label>
+          <label>Duration (hrs)<input type="number" name="hours" min="1" max="72" value="24" style="width:60px;" /></label>
+          <button class="btn btn-accent btn-sm" type="submit">Start Cycle</button>
+        </form>
+        <p class="muted action-hint lease-mine-status" data-for="${escapeHtml(ex.id)}"></p>`
+      : "";
+
+    extractorRows += `
+      <div class="extractor-row ${activeClass}">
+        <div class="extractor-row-header">
+          <strong>${escapeHtml(ex.name)}</strong>
+          <span class="building-status-badge ${activeClass}">${ex.active ? "Active" : "Idle"}</span>
+        </div>
+        ${ex.active ? "" : cycleInfo}
+        ${progressBarHtml}
+        ${mineFormHtml}
+      </div>
+    `;
+  }
+
+  const extractorSection = extractors.length === 0
+    ? `<p class="muted" style="margin-top:0.4rem;">No extraction facilities on this claim yet. Commission a yard below to begin operations.</p>`
+    : `<div class="extractor-list">${extractorRows}</div>`;
+
+  const buildSection = hasSlotAvailable
+    ? `<div class="lease-purchase-block" style="margin-top:0.6rem;">
+        <h4 style="margin:0 0 0.4rem;">Commission Basic Extractor Yard</h4>
+        <p class="muted" style="margin-bottom:0.7rem;">Deploys an extraction facility to this lease's surface allocation. Slot usage: ${usedSlots}/${totalSlots}.</p>
+        <dl class="kv-list kv-list--compact" style="max-width:360px;margin-bottom:0.8rem;">
+          <dt>Construction Cost</dt><dd>${toCurrency(buildCost)} credits</dd>
+          <dt>Asset Value</dt><dd>${toCurrency(36000)} credits</dd>
+        </dl>
+        <button id="lease-build-extractor-btn" class="btn btn-accent" type="button" ${!canAffordBuild ? "disabled" : ""}>
+          Commission Extractor Yard
+        </button>
+        <p id="lease-build-extractor-status" class="muted action-hint"></p>
+      </div>`
+    : `<p class="muted" style="margin-top:0.6rem;">This lease's building slots are fully allocated (${usedSlots}/${totalSlots}).</p>`;
+
+  return `
+    <div class="building-detail-header">
+      <span class="faction-code-badge">${escapeHtml(building.factionCode)}</span>
+      <h2>Mining Lease — ${escapeHtml(lease.body)}</h2>
+    </div>
+    <button id="lease-back-btn" class="btn btn-outline btn-sm" type="button" style="margin-bottom:1.2rem;">&#8592; Back to Claims &amp; Leases</button>
+
+    <section class="form-card lease-management-card" style="margin-top:0;">
+      <h3>Lease Details</h3>
+      <dl class="kv-list kv-list--compact">
+        <dt>Claim ID</dt><dd><code>${escapeHtml(lease.id)}</code></dd>
+        <dt>Body</dt><dd>${escapeHtml(lease.body)}</dd>
+        <dt>Lease Type</dt><dd>${escapeHtml(lease.leaseType || "Silicate Extraction")}</dd>
+        <dt>Issued</dt><dd>${issuedDate}</dd>
+        <dt>Building Slots</dt><dd>${usedSlots} / ${totalSlots} used</dd>
+      </dl>
+    </section>
+
+    <section class="form-card lease-management-card" style="margin-top:1rem;">
+      <h3>Extraction Facilities</h3>
+      ${extractorSection}
+    </section>
+
+    <section class="form-card action-surface lease-management-card" style="margin-top:1rem;">
+      <h3>Commission Infrastructure</h3>
+      ${buildSection}
+    </section>
+  `;
+}
+
+function bindLeaseManagementActions(building, lease, data) {
+  const backBtn = document.getElementById("lease-back-btn");
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      appState.stationActiveLease = null;
+      renderBuildingDetail(building, appState.data || data);
+    });
+  }
+
+  const buildBtn = document.getElementById("lease-build-extractor-btn");
+  if (buildBtn) {
+    buildBtn.addEventListener("click", async () => {
+      const statusEl = document.getElementById("lease-build-extractor-status");
+      buildBtn.disabled = true;
+      if (statusEl) statusEl.textContent = "Commissioning extraction facility...";
+
+      try {
+        if (appState.accountId) {
+          const response = await apiFetch(
+            `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/lease/${encodeURIComponent(lease.id)}/build-extractor`,
+            { method: "POST" }
+          );
+          const account = await parseJsonResponse(response);
+          appState.data = deepClone(account.state);
+          appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+          updateAllViews();
+          renderBuildingDetail(building, appState.data);
+        } else {
+          // Demo account fallback
+          const corp = appState.data.corp;
+          const cost = 50000;
+          if ((corp.finances.credits || 0) < cost) throw new Error(`Construction requires ${toCurrency(cost)} credits.`);
+          if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];
+          const nextIndex = corp.mining.silicateExtractors.length + 1;
+          const newId = `ext-basic-${nextIndex}`;
+          corp.buildings.push({ name: "Basic Extractor Yard", tier: 1, status: "Operational" });
+          corp.mining.silicateExtractors.push({
+            id: newId, name: `Basic Extractor Yard #${nextIndex}`, tier: 1, active: false,
+            startedAt: null, lastTickAt: null, endsAt: null, throughputPerHour: 0,
+            operationCostPerHour: 0, totalMined: 0, totalSpent: 0, lastCompletedAt: null, leaseId: lease.id
+          });
+          const leaseObj = corp.miningLeases.find((l) => l.id === lease.id);
+          if (leaseObj) { if (!Array.isArray(leaseObj.extractorIds)) leaseObj.extractorIds = []; leaseObj.extractorIds.push(newId); }
+          corp.finances.credits -= cost;
+          corp.finances.assets = (corp.finances.assets || 0) + 36000;
+          updateAllViews();
+          const updatedLease = corp.miningLeases.find((l) => l.id === lease.id);
+          renderBuildingDetail(building, appState.data);
+        }
+        pushFeedback("Basic Extractor Yard commissioned and linked to lease.", "success");
+      } catch (err) {
+        buildBtn.disabled = false;
+        // If the server can't find the lease (e.g. server restarted and lost in-memory state),
+        // the client state is stale. Clear it and send the user back to the list view.
+        if (err.message && err.message.includes("could not be found")) {
+          appState.stationActiveLease = null;
+          pushFeedback("Session state out of sync — please re-purchase your lease.", "error");
+          renderBuildingDetail(building, appState.data);
+          return;
+        }
+        if (statusEl) statusEl.textContent = err.message || "Construction failed.";
+      }
+    });
+  }
+
+  // Mining cycle forms
+  document.querySelectorAll(".lease-mine-form").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const extractorId = form.getAttribute("data-extractor-id");
+      const amount = Number(form.querySelector('[name="amount"]')?.value || 40);
+      const hours = Number(form.querySelector('[name="hours"]')?.value || 24);
+      const statusEl = document.querySelector(`.lease-mine-status[data-for="${CSS.escape(extractorId)}"]`);
+      const submitBtn = form.querySelector("button[type=submit]");
+      if (submitBtn) submitBtn.disabled = true;
+      if (statusEl) statusEl.textContent = "Initiating mining cycle...";
+
+      try {
+        if (appState.accountId) {
+          const response = await apiFetch(
+            `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/lease/${encodeURIComponent(lease.id)}/start-mining`,
+            { method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ extractorId, amount, hours }) }
+          );
+          const account = await parseJsonResponse(response);
+          appState.data = deepClone(account.state);
+          appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+          updateAllViews();
+          renderBuildingDetail(building, appState.data);
+        } else {
+          // Demo fallback
+          const corp = appState.data.corp;
+          const throughputPerHour = Math.max(10, Math.min(250, amount));
+          const operationCostPerHour = Math.max(600, Math.round(throughputPerHour * 16));
+          const startupCost = Math.max(500, Math.round(operationCostPerHour * 0.35));
+          if ((corp.finances.credits || 0) < startupCost) throw new Error(`Startup requires ${toCurrency(startupCost)} credits.`);
+          const ex = corp.mining.silicateExtractors.find((e) => e.id === extractorId);
+          if (!ex) throw new Error("Extractor not found.");
+          if (ex.active) throw new Error("Extractor already has an active cycle.");
+          const now = Date.now();
+          corp.finances.credits -= startupCost;
+          ex.active = true; ex.startedAt = now; ex.lastTickAt = now;
+          ex.endsAt = now + hours * 3_600_000;
+          ex.throughputPerHour = throughputPerHour;
+          ex.operationCostPerHour = operationCostPerHour;
+          ex.totalSpent += startupCost;
+          updateAllViews();
+          renderBuildingDetail(building, appState.data);
+        }
+        pushFeedback("Mining cycle started.", "success");
+      } catch (err) {
+        if (submitBtn) submitBtn.disabled = false;
+        if (statusEl) statusEl.textContent = err.message || "Mining cycle failed to start.";
+      }
+    });
+  });
+}
+
 function renderStation(data) {
   const header = document.getElementById("station-location-header");
   const npcGrid = document.getElementById("station-npc-buildings");
@@ -942,7 +1366,7 @@ function renderStation(data) {
     .map((id) => appState.buildingRegistry.find((b) => b.id === id))
     .filter(Boolean);
 
-  const npcBuildings = stationBuildings.filter((b) => b.owner === "npc");
+  const npcBuildings = stationBuildings.filter((b) => b.owner === "npc" && b.available);
 
   npcGrid.innerHTML = npcBuildings
     .map((b) => {
@@ -1073,6 +1497,45 @@ function renderLevel2Progress(data) {
     return;
   }
 
+  // Map requirement IDs to the tab they should navigate to
+  const REQ_TAB = {
+    officeRented:               "station",
+    hire5:                      "ceo",
+    hire10:                     "ceo",
+    hire15:                     "ceo",
+    hire25:                     "ceo",
+    marsLease:                  "station",
+    secondLease:                "station",
+    lunaLease:                  "station",
+    asteroidBeltLease:          "station",
+    extractor:                  "station",
+    extractor2:                 "station",
+    extractor3:                 "station",
+    ferricMiningComplex:        "station",
+    refineryComplex:            "station",
+    cryoExtractorArray:         "station",
+    mine300:                    "station",
+    beltMiningOp:               "station",
+    researchBasicExtraction:    "rnd",
+    researchIndustrialSafety:   "rnd",
+    researchEnergyRouting:      "rnd",
+    researchFerricCore:         "rnd",
+    researchMultiStageRefinery: "rnd",
+    researchCryoVapor:          "rnd",
+    researchCarbonSlurry:       "rnd",
+    researchBeltMining:         "rnd",
+    researchExtrasolar:         "rnd",
+    sell300Silicate:            "market",
+    sell50000Silicate:          "market",
+    sell500CryoFoam:            "market",
+    sell500HydratedFerric:      "market",
+    sell500CarbonSilicate:      "market",
+    sell500CarboIron:           "market",
+    sell500HydroCarbon:         "market",
+    manufacture5000Alloys:      "refinery",
+    missions25:                 "missions"
+  };
+
   const level = Number(data?.corp?.level || 0);
   const nextLevel = level + 1;
   const nextKey = `level${nextLevel}`;
@@ -1103,11 +1566,14 @@ function renderLevel2Progress(data) {
       if (req.complete) {
         appState.completedRequirementIds.add(reqId);
       }
+      const targetTab = REQ_TAB[req.id];
+      const jumpAttr = targetTab ? ` data-jump="${targetTab}"` : "";
+      const clickable = targetTab && !req.complete ? " requirement-clickable" : "";
       return `
-      <section class="data-card requirement-card${doneClass}${justCompletedClass}">
+      <section class="data-card requirement-card${doneClass}${justCompletedClass}${clickable}"${jumpAttr}>
         <h3 class="requirement-title">${req.title}</h3>
         <p><strong>${req.progress} / ${req.target}</strong></p>
-        <p class="muted requirement-state">${req.complete ? "Completed" : "In Progress"}</p>
+        <p class="muted requirement-state">${req.complete ? "Completed" : targetTab ? `Go to ${targetTab.charAt(0).toUpperCase() + targetTab.slice(1)} →` : "In Progress"}</p>
       </section>
       `;
     })
@@ -1321,6 +1787,14 @@ function renderQueue(elId, queue, subtitle) {
   el.innerHTML = queue
     .map((item) => {
       const progress = queueProgress(item);
+      let progressMeta = "";
+      if (item.startedAt) {
+        const remainingMs = Math.max(0, (item.startedAt + item.durationHours * 3_600_000) - Date.now());
+        const rHrs = Math.floor(remainingMs / 3_600_000);
+        const rMins = Math.floor((remainingMs % 3_600_000) / 60_000);
+        const timeStr = remainingMs > 0 ? `${rHrs}h ${rMins}m remaining` : "Completing...";
+        progressMeta = `<div class="queue-progress-meta"><span>${progress.toFixed(1)}%</span><span>${timeStr}</span></div>`;
+      }
       return `
       <article class="queue-item">
         <h3>${item.name}</h3>
@@ -1328,6 +1802,7 @@ function renderQueue(elId, queue, subtitle) {
         <p>${item.effect}</p>
         <p class="muted">Duration: ${item.durationHours}h | ${item.startedAt ? "In progress" : "Queued"}</p>
         ${item.costCredits ? `<p class="muted">Committed funding: ${toCurrency(item.costCredits)} credits</p>` : ""}
+        ${progressMeta}
         <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
       </article>
       `;
@@ -1360,6 +1835,8 @@ function renderMarket(data) {
   const sellEmpty = document.getElementById("market-sell-empty");
   const mySellOrdersTable = document.getElementById("my-sell-orders-table");
   const mySellOrdersEmpty = document.getElementById("my-sell-orders-empty");
+  const npcBuyTable = document.getElementById("npc-buy-table");
+  const npcBuyEmpty = document.getElementById("npc-buy-empty");
   const myCorpName = String(data?.corp?.corporationName || "").trim().toLowerCase();
   const myEmail = String(appState.accountEmail || "").trim().toLowerCase();
   const isOwnSellOrder = (order) => {
@@ -1373,13 +1850,34 @@ function renderMarket(data) {
     return Boolean((myCorpName && seller === myCorpName) || (myEmail && seller === myEmail));
   };
 
-  const sellOrders = (data.market.orderBook || []).filter((order) => order.type === "sell" && !isOwnSellOrder(order)).slice(0, 30);
+  const allSellOrders = (data.market.orderBook || []).filter((order) => order.type === "sell" && !isOwnSellOrder(order));
   const mySellOrders = (data.market.orderBook || [])
     .filter((order) => order.type === "sell" && isOwnSellOrder(order))
     .slice(0, 50);
+  const npcBuyOrders = data.market.npcBuyOrders || [];
 
+  // Build resource filter pills from all visible resources
+  const resourceSet = new Set();
+  allSellOrders.forEach((o) => o.item && resourceSet.add(o.item));
+  npcBuyOrders.forEach((o) => o.item && resourceSet.add(o.item));
+  const resources = Array.from(resourceSet).sort();
+
+  const filterBar = document.getElementById("exchange-filter-bar");
+  if (filterBar) {
+    const cur = appState.exchangeFilter || "";
+    filterBar.innerHTML =
+      `<button class="exchange-filter-pill${!cur ? " active" : ""}" data-filter="">All</button>` +
+      resources.map((r) => `<button class="exchange-filter-pill${cur === r ? " active" : ""}" data-filter="${escapeHtml(r)}">${escapeHtml(r)}</button>`).join("");
+  }
+
+  // Apply filter
+  const filter = appState.exchangeFilter || "";
+  const filteredSellOrders = (filter ? allSellOrders.filter((o) => o.item === filter) : allSellOrders).slice(0, 30);
+  const filteredNpcOrders = filter ? npcBuyOrders.filter((o) => o.item === filter) : npcBuyOrders;
+
+  // Sell Orders table (player can buy from these)
   if (buyTable) {
-    buyTable.innerHTML = sellOrders
+    buyTable.innerHTML = filteredSellOrders
       .map(
         (order) => `
           <tr>
@@ -1394,11 +1892,37 @@ function renderMarket(data) {
       )
       .join("");
   }
+  if (buyEmpty) buyEmpty.hidden = filteredSellOrders.length > 0;
 
-  if (buyEmpty) {
-    buyEmpty.hidden = sellOrders.length > 0;
+  // NPC Standing Buy Orders table (player can sell into these)
+  if (npcBuyTable) {
+    npcBuyTable.innerHTML = filteredNpcOrders
+      .map((order) => {
+        const exhausted = order.remainingQty <= 0;
+        const fillPct = Math.round(((order.totalQtyPerDay - order.remainingQty) / order.totalQtyPerDay) * 100);
+        return `
+          <tr class="${exhausted ? "npc-order-exhausted" : ""}">
+            <td>${escapeHtml(order.item)}</td>
+            <td>${escapeHtml(order.buyer)}</td>
+            <td>${toCurrency(order.unitPrice)}</td>
+            <td>
+              <div class="npc-order-remaining">${Number(order.remainingQty).toLocaleString()} <span class="npc-order-of-total">/ ${Number(order.totalQtyPerDay).toLocaleString()}</span></div>
+              <div class="npc-order-track"><div class="npc-order-fill" style="width:${fillPct}%"></div></div>
+            </td>
+            <td>
+              <input class="sell-input" type="number" min="1" max="${Number(order.remainingQty)}" value="1" data-npc-sell-qty="${order.id}" ${exhausted ? "disabled" : ""} />
+            </td>
+            <td>
+              <button class="btn btn-accent npc-sell-btn" type="button" data-npc-order-id="${order.id}" data-npc-item="${escapeHtml(order.item)}" data-npc-price="${Number(order.unitPrice)}" ${exhausted ? "disabled" : ""}>Sell</button>
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
   }
+  if (npcBuyEmpty) npcBuyEmpty.hidden = filteredNpcOrders.length > 0;
 
+  // Mercenary book
   const mercBook = document.getElementById("mercenary-book");
   mercBook.innerHTML = data.market.mercenaryContracts
     .map(
@@ -1407,6 +1931,7 @@ function renderMarket(data) {
     )
     .join("");
 
+  // Inventory snapshot
   const inventory = getInventory();
   const entries = Object.entries(inventory).filter(([, qty]) => Number(qty) > 0);
   const inventoryList = document.getElementById("inventory-list");
@@ -1414,6 +1939,7 @@ function renderMarket(data) {
     ? entries.map(([name, qty]) => `<li>${escapeHtml(name)}: ${Number(qty).toLocaleString()}</li>`).join("")
     : "<li>No inventory available yet. Begin mining and refining to generate tradable stock.</li>";
 
+  // Create Listing grid
   if (sellGrid) {
     sellGrid.innerHTML = entries
       .map(
@@ -1429,11 +1955,9 @@ function renderMarket(data) {
       )
       .join("");
   }
+  if (sellEmpty) sellEmpty.hidden = entries.length > 0;
 
-  if (sellEmpty) {
-    sellEmpty.hidden = entries.length > 0;
-  }
-
+  // My Active Listings
   if (mySellOrdersTable) {
     mySellOrdersTable.innerHTML = mySellOrders
       .map(
@@ -1448,10 +1972,32 @@ function renderMarket(data) {
       )
       .join("");
   }
+  if (mySellOrdersEmpty) mySellOrdersEmpty.hidden = mySellOrders.length > 0;
 
-  if (mySellOrdersEmpty) {
-    mySellOrdersEmpty.hidden = mySellOrders.length > 0;
+  // Trade History
+  const tradeHistoryTable = document.getElementById("trade-history-table");
+  const tradeHistoryEmpty = document.getElementById("trade-history-empty");
+  const tradeHistory = data?.corp?.tradeHistory || [];
+  const typeLabel = { listed: "Listed", sold: "Sold", "sold-npc": "Sold (NPC)", bought: "Bought" };
+  const typeClass = { listed: "trade-type-listed", sold: "trade-type-sold", "sold-npc": "trade-type-sold", bought: "trade-type-bought" };
+  if (tradeHistoryTable) {
+    tradeHistoryTable.innerHTML = tradeHistory
+      .map(
+        (t) => `
+          <tr>
+            <td class="trade-time">${t.at ? formatTime(t.at) : "-"}</td>
+            <td><span class="trade-type-badge ${typeClass[t.type] || ""}">${typeLabel[t.type] || t.type}</span></td>
+            <td>${escapeHtml(t.item || "-")}</td>
+            <td>${Number(t.quantity || 0).toLocaleString()}</td>
+            <td>${toCurrency(t.unitPrice || 0)}</td>
+            <td>${toCurrency(t.total || 0)}</td>
+            <td class="trade-counterparty">${escapeHtml(t.counterparty || "-")}</td>
+          </tr>
+        `
+      )
+      .join("");
   }
+  if (tradeHistoryEmpty) tradeHistoryEmpty.hidden = tradeHistory.length > 0;
 }
 
 function renderForums(data) {
@@ -1842,6 +2388,15 @@ function bindTabs() {
   document.querySelectorAll("[data-jump]").forEach((button) => {
     button.addEventListener("click", () => setTab(button.dataset.jump));
   });
+
+  // Delegated handler for dynamically-rendered requirement cards
+  const requirementsWrap = document.getElementById("level2-requirements");
+  if (requirementsWrap) {
+    requirementsWrap.addEventListener("click", (e) => {
+      const card = e.target.closest("[data-jump]");
+      if (card) setTab(card.dataset.jump);
+    });
+  }
 }
 
 function clearWalkthroughFocus() {
@@ -2024,6 +2579,15 @@ async function loadBootstrap() {
     throw new Error("Failed to load bootstrap state.");
   }
   appState.serverData = await response.json();
+
+  const version = appState.serverData?.version;
+  if (version) {
+    const versionLine = document.getElementById("app-version-line");
+    if (versionLine) {
+      versionLine.textContent = `Interstellar Settlement Protocol v${version}, est. 2147`;
+    }
+  }
+
   return appState.serverData;
 }
 
@@ -2431,6 +2995,51 @@ function bindForms() {
         buyStatus.textContent = `Buy order failed: ${error.message}`;
       }
       pushFeedback(`Buy order rejected. ${error.message}`, "error");
+    }
+  });
+
+  // Resource filter pills
+  const filterBarEl = document.getElementById("exchange-filter-bar");
+  filterBarEl?.addEventListener("click", (event) => {
+    const pill = event.target.closest(".exchange-filter-pill");
+    if (!pill) return;
+    appState.exchangeFilter = pill.getAttribute("data-filter") || "";
+    renderMarket(appState.data);
+  });
+
+  // NPC standing buy order — sell buttons
+  const npcBuyTableEl = document.getElementById("npc-buy-table");
+  npcBuyTableEl?.addEventListener("click", async (event) => {
+    const button = event.target.closest(".npc-sell-btn");
+    if (!button) return;
+    const row = button.closest("tr");
+    const orderId = String(button.getAttribute("data-npc-order-id") || "");
+    const item = button.getAttribute("data-npc-item");
+    const price = Number(button.getAttribute("data-npc-price"));
+    const qtyInput = row?.querySelector(`[data-npc-sell-qty="${orderId}"]`);
+    const qty = Math.max(1, Number(qtyInput?.value || 1));
+    const npcStatus = document.getElementById("npc-buy-status");
+
+    try {
+      const response = await apiFetch(`/api/market/npc-orders/${encodeURIComponent(orderId)}/sell`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity: qty })
+      });
+
+      const payload = await parseJsonResponse(response);
+      appState.data = deepClone(payload.account.state);
+      if (npcStatus) {
+        npcStatus.textContent = `Sold ${qty.toLocaleString()} × ${escapeHtml(item)} at ${toCurrency(price)}/unit — ${toCurrency(qty * price)} credited.`;
+      }
+      pushFeedback(`Sold ${item} × ${qty} @ ${toCurrency(price)}/unit to ${escapeHtml(button.closest("tr")?.children[1]?.textContent || "NPC")}.`, "success");
+      flashButtonSuccess(button);
+      await refreshFromServer();
+    } catch (error) {
+      if (npcStatus) {
+        npcStatus.textContent = `Sale failed: ${error.message}`;
+      }
+      pushFeedback(`NPC sell rejected. ${error.message}`, "error");
     }
   });
 }

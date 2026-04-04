@@ -1,6 +1,6 @@
 {
   "name": "interstellar-settlement-protocol",
-  "version": "0.1.0",
+  "version": "0.1",
   "description": "Prototype for The Interstellar Settlement Protocol (ISP) browser-based multiplayer strategy game",
   "type": "module",
   "scripts": {

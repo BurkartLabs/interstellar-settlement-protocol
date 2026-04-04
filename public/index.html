@@ -237,7 +237,7 @@
     <div id="game-shell" hidden>
       <header class="app-header">
         <div>
-          <p class="overline">Interstellar Settlement Protocol, est. 2147</p>
+          <p class="overline" id="app-version-line">Interstellar Settlement Protocol, est. 2147</p>
           <h1>The Interstellar Settlement Protocol</h1>
         </div>
         <div class="header-actions">
@@ -316,48 +316,6 @@
               <h3 id="level-requirements-title">Corporation Advancement Requirements</h3>
               <p id="level-requirements-lede" class="muted">Complete your next level requirements below.</p>
               <div id="level2-requirements" class="card-grid"></div>
-
-              <div class="split-grid">
-                <form id="level2-hire-form" class="inline-form compact-action-form">
-                  <label>
-                    Hire Employees
-                    <input id="level2-hire-count" type="number" min="1" value="1" />
-                  </label>
-                  <button class="btn btn-accent" type="submit">Hire Team</button>
-                  <p id="hire-action-hint" class="muted action-hint"></p>
-                </form>
-              </div>
-
-              <div class="choice-row">
-                <button id="level2-build-btn" class="btn btn-outline" type="button">Construct Basic Extractor Yard</button>
-              </div>
-
-              <div class="split-grid">
-                <section class="data-card compact-card">
-                  <h3>Extractor Requirements</h3>
-                  <p id="build-action-hint" class="muted"></p>
-                </section>
-                <section class="data-card compact-card">
-                  <h3>Mining Cycle Control</h3>
-                  <form id="mine-form" class="inline-form compact-action-form">
-                    <label>
-                      Extractor Yard
-                      <select id="mine-extractor-id"></select>
-                    </label>
-                    <label>
-                      Throughput / Hour
-                      <input id="mine-amount" type="number" min="10" max="250" step="5" value="80" />
-                    </label>
-                    <label>
-                      Cycle Length (hours)
-                      <input id="mine-hours" type="number" min="1" max="72" step="1" value="24" />
-                    </label>
-                    <button id="mine-btn" class="btn btn-accent" type="submit">Start Mining Cycle</button>
-                  </form>
-                  <p id="mine-action-hint" class="muted action-hint"></p>
-                  <div id="mine-cycle-list" class="queue-list"></div>
-                </section>
-              </div>
 
               <p id="level2-status" class="muted"></p>
 
@@ -482,11 +440,16 @@
 
           <article id="market" class="tab-panel">
             <h2>Galactic Exchange</h2>
+
+            <!-- Resource filter bar -->
+            <div class="exchange-filter-bar" id="exchange-filter-bar" aria-label="Filter by resource"></div>
+
             <div class="split-grid exchange-layout">
+              <!-- Left: Sell Orders (others' items you can buy) -->
               <section class="form-card exchange-section">
-                <h3>Buying</h3>
-                <p class="muted">Current public sell orders available on the exchange. Choose exactly how many units to buy from each listing.</p>
-                <p id="exchange-buy-empty" class="muted" hidden>No public sell orders are currently available.</p>
+                <h3>Sell Orders</h3>
+                <p class="muted">Public sell orders available on the exchange. You will never see your own listings here.</p>
+                <p id="exchange-buy-empty" class="muted" hidden>No sell orders match the current filter.</p>
                 <p id="buy-status" class="muted"></p>
                 <div class="table-wrap">
                   <table class="data-table">
@@ -504,16 +467,18 @@
                   </table>
                 </div>
               </section>
+
+              <!-- Right: Create a new sell listing -->
               <section class="form-card exchange-section action-surface">
-                <h3>Selling</h3>
-                <p class="muted">List resources straight from inventory. Set your sell quantity and asking price for each item you want to place on the exchange.</p>
-                <p id="market-sell-empty" class="muted" hidden>You have no items you can sell on the Galactic Exchange.</p>
+                <h3>Create Listing</h3>
+                <p class="muted">List resources from your inventory as a public sell order.</p>
+                <p id="market-sell-empty" class="muted" hidden>You have no items in inventory to list.</p>
                 <div class="table-wrap">
                   <table class="data-table">
                     <thead>
                       <tr>
                         <th>Item</th>
-                        <th>Available</th>
+                        <th>In Stock</th>
                         <th>Sell Quantity</th>
                         <th>Unit Price</th>
                         <th>Action</th>
@@ -523,22 +488,51 @@
                   </table>
                 </div>
                 <p id="listing-status" class="muted"></p>
-                <p id="my-sell-orders-empty" class="muted" hidden>You have no active sell orders on the exchange.</p>
-                <div class="table-wrap">
-                  <table class="data-table">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th>Remaining Qty</th>
-                        <th>Unit Price</th>
-                        <th>Listed At</th>
-                      </tr>
-                    </thead>
-                    <tbody id="my-sell-orders-table"></tbody>
-                  </table>
-                </div>
               </section>
             </div>
+
+            <!-- Standing NPC Buy Orders -->
+            <section class="form-card" style="margin-top:1.6rem">
+              <h3>Standing Buy Orders</h3>
+              <p class="muted">These are recurring NPC buy orders. Sell your resources directly into them at the listed price — no waiting for a buyer. Quantities reset daily at midnight EST.</p>
+              <p id="npc-buy-empty" class="muted" hidden>No standing buy orders match the current filter.</p>
+              <p id="npc-buy-status" class="muted"></p>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Buyer</th>
+                      <th>Price / Unit</th>
+                      <th>Remaining Today</th>
+                      <th>Sell Qty</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="npc-buy-table"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <!-- My Active Listings -->
+            <section class="form-card" style="margin-top:1.6rem">
+              <h3>My Active Listings</h3>
+              <p id="my-sell-orders-empty" class="muted" hidden>You have no active sell orders on the exchange.</p>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Remaining Qty</th>
+                      <th>Unit Price</th>
+                      <th>Listed At</th>
+                    </tr>
+                  </thead>
+                  <tbody id="my-sell-orders-table"></tbody>
+                </table>
+              </div>
+            </section>
+
             <div class="split-grid">
               <section class="form-card">
                 <h3>Exchange Inventory Snapshot</h3>
@@ -549,6 +543,29 @@
                 <ul id="mercenary-book" class="text-list"></ul>
               </section>
             </div>
+
+            <!-- Trade History -->
+            <section class="form-card" style="margin-top:1.6rem">
+              <h3>Trade History</h3>
+              <p class="muted">A record of all your market activity — listings, purchases, and sales.</p>
+              <p id="trade-history-empty" class="muted" hidden>No trade activity recorded yet.</p>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Type</th>
+                      <th>Item</th>
+                      <th>Qty</th>
+                      <th>Unit Price</th>
+                      <th>Total</th>
+                      <th>Counterparty</th>
+                    </tr>
+                  </thead>
+                  <tbody id="trade-history-table"></tbody>
+                </table>
+              </div>
+            </section>
           </article>
 
           <article id="chat" class="tab-panel">

@@ -18,15 +18,12 @@ Each version represents a meaningful, playable milestone. Items marked [x] are c
 
 ## Version 0.2 — Walkthrough, Office Rental, Mining Leases, Silicate Mining, Exchange, Persistent Accounts
 
-### Starting Corporation Parameters (spec — code must match)
 - [ ] Starting credits: **$250,000** (currently $150,000 in code — needs correction)
 - [ ] Starting assets: $0
 - [ ] Hire cost: **$2,000/employee** one-time (currently $1,200 — needs correction)
 - [ ] Payroll: **$150/day per employee** (currently $36 — needs correction)
 - [ ] Office cost: **$1,000/day, 30-day minimum** rental (currently flat $20,000 one-time — needs rework to recurring model)
 - [ ] Basic Extractor Yard cost: **$50,000 + logistics fees** (currently $65,000 — needs correction)
-
-### Walkthrough
 - [ ] Interactive walkthrough — guided first-session onboarding following the sequence in NEW_PLAYER_EXPERIENCE.md:
   1. Mailbox with ISA licence message
   2. UI orientation (most tabs locked until office rented)
@@ -39,22 +36,15 @@ Each version represents a meaningful, playable milestone. Items marked [x] are c
   9. Queue Basic Extraction Analytics in Corporate R&D
   10. Sell silicates on the Galactic Exchange against an NPC buy order
   11. Navigate to Missions board; suggest accepting first mission
-
-### Office & Leases
+- [ ] Office interior view — after renting, entering the Orbital Executive Suites shows a dedicated office panel with: lease status and expiry, hire employees form, active headcount and payroll summary, and quick-nav links to related tabs
 - [ ] Office rental cost model — switch from one-time fee to **$1,000/day recurring** with a **30-day minimum** commitment; deduct on lease; track `rentedUntil` timestamp; lock office benefits if lease lapses
 - [ ] Mining rights leasing system — lease extraction rights in Sol before building extractors; each lease grants **2 building slots on that body**; requires **5 employees per active lease** (e.g. 23 employees → max 4 leases); ISA Claims & Leases Division building in station
-
-### Economy & Progression
 - [ ] Silicate mining refinements — facility downtime risk mechanic (per-second shutdown probability ~0.005%, recovery ~0.0276%/s; R&D modifiers reduce risk; automatic resume; extractor panel visibility)
 - [ ] Corporation level-up system (Levels 1–10) with full reward grants (employee caps, building slots, fleet caps, market sector unlocks)
 - [ ] Full milestone roadmap wired to level-up system
-
-### Market
 - [ ] Market order matching engine — buy orders meet sell orders
 - [ ] Players can purchase from existing sell orders on the exchange
 - [ ] NPC corporations populate the exchange with sell orders for price anchoring and supply volume
-
-### Infrastructure
 - [ ] Persistent game state — all corp and world state survives server restart across sessions
 - [ ] Local chat tied to player's current solar system
 - [ ] Persistent chat history

@@ -203,6 +203,20 @@ function normalizeStateShape(rawState) {
     rawState.corp.offices = [];
   }
 
+  if (!Array.isArray(rawState.corp.miningLeases)) {
+    rawState.corp.miningLeases = [];
+  }
+
+  if (!Array.isArray(rawState.corp.tradeHistory)) {
+    rawState.corp.tradeHistory = [];
+  }
+
+  // Normalize each lease: ensure extractorIds array exists
+  rawState.corp.miningLeases = rawState.corp.miningLeases.map((l) => ({
+    ...l,
+    extractorIds: Array.isArray(l.extractorIds) ? l.extractorIds : []
+  }));
+
   rawState.corp.milestoneRoadmap = LEVEL_10_MILESTONE_ROADMAP.slice();
 
   return rawState;
@@ -270,7 +284,8 @@ function ensureCorpMiningModel(corp) {
       operationCostPerHour: Number(extractor.operationCostPerHour || 0),
       totalMined: Number(extractor.totalMined || 0),
       totalSpent: Number(extractor.totalSpent || 0),
-      lastCompletedAt: extractor.lastCompletedAt || null
+      lastCompletedAt: extractor.lastCompletedAt || null,
+      leaseId: extractor.leaseId || null
     };
     return normalized;
   });
@@ -710,7 +725,9 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
     },
     investments: [],
     unlockedTech: [],
-    offices: []
+    offices: [],
+    miningLeases: [],
+    tradeHistory: []
   };
 
   next.queues = {
@@ -988,6 +1005,17 @@ function getSeedState() {
         { id: "ord-001", type: "sell", item: "Silicates", quantity: 1200, unitPrice: 58, seller: "Nova Ridge LLC" },
         { id: "ord-002", type: "buy", item: "Helium-3", quantity: 500, unitPrice: 185, buyer: "Tau Vector Inc." }
       ],
+      npcBuyOrders: [
+        {
+          id: "npc-buy-silicates-daily",
+          item: "Silicates",
+          buyer: "GEX Commodities Authority",
+          unitPrice: 8,
+          totalQtyPerDay: 1000000,
+          remainingQty: 1000000,
+          lastResetDate: ""
+        }
+      ],
       mercenaryContracts: [
         {
           id: "merc-001",
@@ -1086,6 +1114,23 @@ function ensureStateFile() {
   const raw = fs.readFileSync(statePath, "utf8");
   const parsed = JSON.parse(raw);
   const normalized = normalizeStateShape(parsed);
+
+  // Ensure NPC buy orders exist in global market state
+  if (!normalized.market) normalized.market = {};
+  if (!Array.isArray(normalized.market.npcBuyOrders)) {
+    normalized.market.npcBuyOrders = [
+      {
+        id: "npc-buy-silicates-daily",
+        item: "Silicates",
+        buyer: "GEX Commodities Authority",
+        unitPrice: 8,
+        totalQtyPerDay: 1000000,
+        remainingQty: 1000000,
+        lastResetDate: ""
+      }
+    ];
+  }
+
   fs.writeFileSync(statePath, JSON.stringify(normalized, null, 2), "utf8");
   return normalized;
 }
@@ -1217,6 +1262,14 @@ function scheduleAccountsSave() {
     fs.writeFileSync(accountsPath, JSON.stringify(accountsStore, null, 2), "utf8");
     accountsSaveTimer = null;
   }, 300);
+}
+
+export function saveAccountsNow() {
+  if (accountsSaveTimer) {
+    clearTimeout(accountsSaveTimer);
+    accountsSaveTimer = null;
+  }
+  fs.writeFileSync(accountsPath, JSON.stringify(accountsStore, null, 2), "utf8");
 }
 
 export function getState() {
@@ -1743,6 +1796,13 @@ export function resetDummyAccountProgress() {
   dummy.messages = [];
   dummy.walkthroughCompleted = false;
   dummy.state.playerProfile.walkthroughCompleted = false;
+
+  // Strip any market sell orders belonging to the dummy account from global state
+  const dummyId = dummy.id;
+  state.market.orderBook = (state.market.orderBook || []).filter(
+    (order) => order.type !== "sell" || order.sellerAccountId !== dummyId
+  );
+  scheduleSave();
 
   scheduleAccountsSave();
   return sanitizeAccount(dummy);
