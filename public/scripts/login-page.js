@@ -1,9 +1,47 @@
 const loginForm = document.getElementById("login-form");
 const loginStatus = document.getElementById("login-status");
 const dummyLoginButton = document.getElementById("dummy-login-btn");
+const IS_DEV_ACCESS =
+  new URL(window.location.href).searchParams.get("dev") === "1" ||
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
 
-function goToDummyProfile() {
-  window.location.href = "/?dummy=1";
+const STORAGE_KEYS = {
+  accountId: "isp.accountId",
+  accessToken: "isp.accessToken",
+  refreshToken: "isp.refreshToken"
+};
+
+async function goToDummyProfile() {
+  if (!IS_DEV_ACCESS) {
+    return;
+  }
+
+  loginStatus.textContent = "Authorizing temporary sandbox access...";
+
+  try {
+    const response = await fetch("/api/auth/dummy-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+
+    if (!response.ok) {
+      loginStatus.textContent = "Dummy access is currently unavailable.";
+      return;
+    }
+
+    const payload = await response.json();
+    localStorage.setItem(STORAGE_KEYS.accountId, payload.account.id);
+    localStorage.setItem(STORAGE_KEYS.accessToken, payload.accessToken);
+    localStorage.setItem(STORAGE_KEYS.refreshToken, payload.refreshToken);
+    window.location.href = `/?account=${encodeURIComponent(payload.account.id)}`;
+  } catch {
+    loginStatus.textContent = "Dummy access failed. Try again.";
+  }
+}
+
+if (dummyLoginButton) {
+  dummyLoginButton.hidden = !IS_DEV_ACCESS;
 }
 
 if (loginForm) {
@@ -38,8 +76,11 @@ if (loginForm) {
         return;
       }
 
-      const account = await response.json();
-      window.location.href = `/?account=${encodeURIComponent(account.id)}`;
+      const payload = await response.json();
+      localStorage.setItem(STORAGE_KEYS.accountId, payload.account.id);
+      localStorage.setItem(STORAGE_KEYS.accessToken, payload.accessToken);
+      localStorage.setItem(STORAGE_KEYS.refreshToken, payload.refreshToken);
+      window.location.href = `/?account=${encodeURIComponent(payload.account.id)}`;
     } catch {
       loginStatus.textContent = "Login service unavailable. Try again or use temporary dummy access.";
     }

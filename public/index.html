@@ -82,27 +82,16 @@
               corporate maturity unfolds over years of real-world play.
             </p>
 
-            <div class="hero-actions">
-              <a href="/login.html" class="btn-hero btn-hero-outline">Log In</a>
-              <button id="show-register-btn" class="btn-hero btn-hero-fill">Register Corporation</button>
+            <div class="hero-metrics" aria-label="Core play promises">
+              <span class="pill">Persistent multiplayer state</span>
+              <span class="pill">Milestone progression, not XP grind</span>
+              <span class="pill">Text-first command interface</span>
             </div>
 
-            <section id="register-panel" class="auth-panel-hero" hidden>
-              <form id="register-form" class="inline-form">
-                <label>
-                  CEO Name
-                  <input name="ceoName" required maxlength="40" value="New CEO" />
-                </label>
-                <label>
-                  Corporation Name
-                  <input name="corpName" required maxlength="80" value="Frontier Protocol Ventures" />
-                </label>
-                <div class="choice-row">
-                  <button class="btn btn-accent" type="submit">Register And Continue</button>
-                  <button id="register-cancel-btn" class="btn btn-outline" type="button">Cancel</button>
-                </div>
-              </form>
-            </section>
+            <div class="hero-actions">
+              <a href="/login.html" class="btn-hero btn-hero-outline">Log In</a>
+              <a href="/register.html" id="show-register-btn" class="btn-hero btn-hero-fill">Register Corporation</a>
+            </div>
           </div>
         </section>
 
@@ -252,31 +241,48 @@
           <h1>The Interstellar Settlement Protocol</h1>
         </div>
         <div class="header-actions">
+          <div class="notification-dropdown">
+            <button id="notification-toggle" class="btn btn-outline" type="button" aria-expanded="false" aria-controls="notification-panel">
+              Notifications <span id="notification-count" class="badge-count">0</span>
+            </button>
+            <section id="notification-panel" class="notification-panel" hidden>
+              <div class="notification-head">
+                <h2>Command Notifications</h2>
+                <button id="notification-read-all" class="btn btn-outline" type="button">Mark All Read</button>
+              </div>
+              <ul id="notification-list" class="text-list"></ul>
+            </section>
+          </div>
           <button id="replay-onboarding-btn" class="btn btn-outline" type="button">Replay Onboarding</button>
-          <button id="text-mode-toggle" class="btn btn-outline" aria-pressed="false">Text-only fallback: Off</button>
-          <button id="refresh-btn" class="btn btn-accent">Sync Live State</button>
+          <button id="logout-btn" class="btn btn-outline" type="button">Log Out</button>
         </div>
       </header>
 
       <main class="layout-grid">
         <aside class="side-panel">
-          <section class="panel-block">
-            <h2>Corporation Identity</h2>
-            <dl id="corp-identity" class="kv-list"></dl>
+          <section class="panel-block collapsible-block">
+            <button class="section-toggle" type="button" aria-expanded="true" aria-controls="sidebar-identity">
+              <span>Corporation Identity</span>
+              <span class="toggle-arrow" aria-hidden="true">▾</span>
+            </button>
+            <div id="sidebar-identity" class="collapsible-content">
+              <dl id="corp-identity" class="kv-list"></dl>
+            </div>
           </section>
 
-          <section class="panel-block">
-            <h2>Level Milestones</h2>
-            <ul id="milestone-list" class="text-list"></ul>
-          </section>
-
-          <section class="panel-block">
-            <h2>Quick Actions</h2>
-            <div class="action-stack">
-              <button class="btn btn-outline" data-jump="finance">Finance</button>
-              <button class="btn btn-outline" data-jump="starmap">Starmap</button>
-              <button class="btn btn-outline" data-jump="market">Market</button>
-              <button class="btn btn-outline" data-jump="chat">Comms</button>
+          <section class="panel-block collapsible-block">
+            <button class="section-toggle" type="button" aria-expanded="true" aria-controls="sidebar-actions">
+              <span>Quick Actions</span>
+              <span class="toggle-arrow" aria-hidden="true">▾</span>
+            </button>
+            <div id="sidebar-actions" class="collapsible-content">
+              <div class="action-stack">
+                <button class="btn btn-outline" data-jump="inbox">Inbox</button>
+                <button class="btn btn-outline" data-jump="finance">Finance</button>
+                <button class="btn btn-outline" data-jump="starmap">Starmap</button>
+                <button class="btn btn-outline" data-jump="market">Exchange</button>
+                <button class="btn btn-outline" data-jump="chat">Comms</button>
+              </div>
             </div>
           </section>
         </aside>
@@ -284,11 +290,13 @@
         <section class="main-panel">
           <nav class="tab-nav" aria-label="Game modules">
             <button class="tab-btn active" data-tab="overview">Overview</button>
+            <button class="tab-btn" data-tab="inbox">Inbox</button>
+            <button class="tab-btn" data-tab="station">Station</button>
             <button class="tab-btn" data-tab="finance">Financial Core</button>
             <button class="tab-btn" data-tab="rnd">Corporate R&D</button>
             <button class="tab-btn" data-tab="ceo">CEO Insight</button>
             <button class="tab-btn" data-tab="refinery">Refinery Chains</button>
-            <button class="tab-btn" data-tab="market">Galactic Market</button>
+            <button class="tab-btn" data-tab="market">Galactic Exchange</button>
             <button class="tab-btn" data-tab="chat">Comms</button>
             <button class="tab-btn" data-tab="forums">Forums</button>
             <button class="tab-btn" data-tab="missions">Missions</button>
@@ -304,13 +312,13 @@
             </p>
             <div id="overview-cards" class="card-grid"></div>
 
-            <section class="form-card">
-              <h3>Corp Level 2 Progression Program</h3>
-              <p class="muted">Complete all requirements below to unlock Corporation Level 2.</p>
+            <section class="form-card action-surface">
+              <h3 id="level-requirements-title">Corporation Advancement Requirements</h3>
+              <p id="level-requirements-lede" class="muted">Complete your next level requirements below.</p>
               <div id="level2-requirements" class="card-grid"></div>
 
               <div class="split-grid">
-                <form id="level2-hire-form" class="inline-form">
+                <form id="level2-hire-form" class="inline-form compact-action-form">
                   <label>
                     Hire Employees
                     <input id="level2-hire-count" type="number" min="1" value="1" />
@@ -318,20 +326,10 @@
                   <button class="btn btn-accent" type="submit">Hire Team</button>
                   <p id="hire-action-hint" class="muted action-hint"></p>
                 </form>
-
-                <form id="level2-mine-form" class="inline-form">
-                  <label>
-                    Mine Silicates
-                    <input id="level2-mine-amount" type="number" min="10" step="10" value="40" />
-                  </label>
-                  <button class="btn btn-accent" type="submit">Run Mining Cycle</button>
-                  <p id="mine-action-hint" class="muted action-hint"></p>
-                </form>
               </div>
 
               <div class="choice-row">
                 <button id="level2-build-btn" class="btn btn-outline" type="button">Construct Basic Extractor Yard</button>
-                <button id="level2-rnd-btn" class="btn btn-outline" type="button">Complete Basic Extraction Analytics</button>
               </div>
 
               <div class="split-grid">
@@ -340,8 +338,24 @@
                   <p id="build-action-hint" class="muted"></p>
                 </section>
                 <section class="data-card compact-card">
-                  <h3>R&D Requirements</h3>
-                  <p id="level2-rnd-hint" class="muted"></p>
+                  <h3>Mining Cycle Control</h3>
+                  <form id="mine-form" class="inline-form compact-action-form">
+                    <label>
+                      Extractor Yard
+                      <select id="mine-extractor-id"></select>
+                    </label>
+                    <label>
+                      Throughput / Hour
+                      <input id="mine-amount" type="number" min="10" max="250" step="5" value="80" />
+                    </label>
+                    <label>
+                      Cycle Length (hours)
+                      <input id="mine-hours" type="number" min="1" max="72" step="1" value="24" />
+                    </label>
+                    <button id="mine-btn" class="btn btn-accent" type="submit">Start Mining Cycle</button>
+                  </form>
+                  <p id="mine-action-hint" class="muted action-hint"></p>
+                  <div id="mine-cycle-list" class="queue-list"></div>
                 </section>
               </div>
 
@@ -352,6 +366,33 @@
                 <ul id="feedback-log" class="text-list"></ul>
               </section>
             </section>
+          </article>
+
+          <article id="station" class="tab-panel">
+            <!-- Station overview -->
+            <div id="station-overview-view">
+              <div id="station-location-header"></div>
+
+              <section class="station-district">
+                <h3>Authority &amp; Regulatory Offices</h3>
+                <p class="muted lede">Government bodies, regulatory agencies, and institutional services present at this station. Access is open to all registered corporations.</p>
+                <div id="station-npc-buildings" class="building-grid"></div>
+              </section>
+
+              <section class="station-district">
+                <h3>Licensed Corporate Holdings</h3>
+                <p class="muted lede">Buildings owned or leased by your corporation at this station.</p>
+                <div id="station-player-buildings" class="building-grid"></div>
+              </section>
+            </div>
+
+            <!-- Building detail view -->
+            <div id="station-building-view" hidden>
+              <div class="building-detail-nav">
+                <button id="station-back-btn" class="btn btn-outline" type="button">&#8592; Back to Station</button>
+              </div>
+              <div id="station-building-content"></div>
+            </div>
           </article>
 
           <article id="finance" class="tab-panel">
@@ -379,8 +420,9 @@
               </section>
             </div>
 
-            <section class="form-card">
+            <section class="form-card action-surface">
               <h3>Direct Investment Panel</h3>
+              <p id="investment-lock-message" class="muted"></p>
               <form id="investment-form" class="inline-form">
                 <label>
                   Target Corporation
@@ -400,6 +442,7 @@
                 </label>
                 <button class="btn btn-accent" type="submit">Execute Investment</button>
               </form>
+              <p id="investment-status" class="muted"></p>
               <ul id="investment-log" class="text-list"></ul>
             </section>
           </article>
@@ -408,7 +451,7 @@
             <h2>Corporate R&D Queue</h2>
             <p class="muted">Queue permanent unlocks from your tech tree. Advanced nodes require prerequisites.</p>
             <div id="rnd-tech-tree" class="card-grid"></div>
-            <section class="form-card">
+            <section class="form-card action-surface research-panel">
               <h3>Add Research To Queue</h3>
               <form id="rnd-form" class="inline-form">
                 <label>
@@ -439,53 +482,69 @@
 
           <article id="market" class="tab-panel">
             <h2>Galactic Exchange</h2>
-            <section class="form-card">
-              <h3>Your Inventory</h3>
-              <ul id="inventory-list" class="text-list"></ul>
-            </section>
-            <section class="form-card">
-              <h3>Create Sell Listing</h3>
-              <form id="listing-form" class="inline-form">
-                <label>
-                  Inventory Item
-                  <select id="listing-item" name="item" required></select>
-                </label>
-                <label>
-                  Quantity
-                  <input type="number" id="listing-quantity" name="quantity" required min="1" value="1" />
-                </label>
-                <label>
-                  Unit Price
-                  <input type="number" name="unitPrice" required min="1" value="50" />
-                </label>
-                <button class="btn btn-accent" id="listing-submit" type="submit">Create Listing</button>
-              </form>
-              <p id="listing-status" class="muted"></p>
-            </section>
-            <section class="form-card">
-              <h3>Submit Buy Order</h3>
-              <form id="order-form" class="inline-form">
-                <label>
-                  Item
-                  <input name="item" required placeholder="Silicates" />
-                </label>
-                <label>
-                  Quantity
-                  <input type="number" name="quantity" required min="1" value="100" />
-                </label>
-                <label>
-                  Unit Price
-                  <input type="number" name="unitPrice" required min="1" value="50" />
-                </label>
-                <button class="btn btn-outline" type="submit">Submit Buy Order</button>
-              </form>
-            </section>
-            <div class="split-grid">
-              <section>
-                <h3>Order Book</h3>
-                <ul id="order-book" class="text-list"></ul>
+            <div class="split-grid exchange-layout">
+              <section class="form-card exchange-section">
+                <h3>Buying</h3>
+                <p class="muted">Current public sell orders available on the exchange. Choose exactly how many units to buy from each listing.</p>
+                <p id="exchange-buy-empty" class="muted" hidden>No public sell orders are currently available.</p>
+                <p id="buy-status" class="muted"></p>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Available</th>
+                        <th>Unit Price</th>
+                        <th>Seller</th>
+                        <th>Buy Qty</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="exchange-buy-table"></tbody>
+                  </table>
+                </div>
               </section>
-              <section>
+              <section class="form-card exchange-section action-surface">
+                <h3>Selling</h3>
+                <p class="muted">List resources straight from inventory. Set your sell quantity and asking price for each item you want to place on the exchange.</p>
+                <p id="market-sell-empty" class="muted" hidden>You have no items you can sell on the Galactic Exchange.</p>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Available</th>
+                        <th>Sell Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="market-sell-grid"></tbody>
+                  </table>
+                </div>
+                <p id="listing-status" class="muted"></p>
+                <p id="my-sell-orders-empty" class="muted" hidden>You have no active sell orders on the exchange.</p>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Remaining Qty</th>
+                        <th>Unit Price</th>
+                        <th>Listed At</th>
+                      </tr>
+                    </thead>
+                    <tbody id="my-sell-orders-table"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+            <div class="split-grid">
+              <section class="form-card">
+                <h3>Exchange Inventory Snapshot</h3>
+                <ul id="inventory-list" class="text-list"></ul>
+              </section>
+              <section class="form-card">
                 <h3>Mercenary Rentals</h3>
                 <ul id="mercenary-book" class="text-list"></ul>
               </section>
@@ -496,17 +555,17 @@
             <h2>Real-time Communications</h2>
             <div class="split-grid">
               <section>
-                <label for="chat-channel">Channel</label>
-                <select id="chat-channel">
-                  <option value="global">Global</option>
-                  <option value="local">Local</option>
-                  <option value="trade">Trade</option>
-                  <option value="private">Private</option>
-                </select>
+                <p class="muted" style="margin-bottom:0.45rem">Channel</p>
+                <div id="chat-channel-tabs" class="chat-channel-tabs" role="tablist" aria-label="Comms Channels">
+                  <button class="chat-channel-tab active" type="button" role="tab" aria-selected="true" data-chat-channel-tab="global">Global</button>
+                  <button class="chat-channel-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="local">Local</button>
+                  <button class="chat-channel-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="trade">Trade</button>
+                  <button class="chat-channel-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="private">Private</button>
+                </div>
                 <ul id="chat-log" class="chat-log"></ul>
                 <form id="chat-form" class="inline-form">
                   <label class="sr-only" for="chat-input">Message</label>
-                  <input id="chat-input" name="message" required maxlength="300" placeholder="Transmit message" />
+                  <input id="chat-input" name="message" required maxlength="300" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
                   <button class="btn btn-accent" type="submit">Send</button>
                 </form>
               </section>
@@ -519,14 +578,55 @@
           </article>
 
           <article id="forums" class="tab-panel">
-            <h2>Corporate Forums</h2>
-            <div id="forum-categories" class="pill-grid"></div>
-            <div id="forum-threads" class="card-grid"></div>
+            <!-- Overview: category filter + thread list -->
+            <div id="forum-overview-view">
+              <h2>Corporate Forums</h2>
+              <div class="forums-nav">
+                <div id="forum-categories" class="forum-category-nav"></div>
+                <button id="forum-recent-btn" class="btn btn-outline" type="button">Recent Threads</button>
+              </div>
+              <div id="forum-threads" class="forum-thread-list"></div>
+            </div>
+            <!-- Thread detail: full-page view -->
+            <div id="forum-thread-view" hidden>
+              <div class="forum-thread-header">
+                <button id="forum-back-btn" class="btn btn-outline" type="button">&#8592; Back to Forums</button>
+              </div>
+              <div id="forum-thread-detail-body" class="forum-thread-full"></div>
+            </div>
           </article>
 
           <article id="missions" class="tab-panel">
-            <h2>Mission Board</h2>
-            <div id="mission-list" class="card-grid"></div>
+            <!-- Board view: available + active missions -->
+            <div id="missions-board-view">
+              <h2>Mission Board</h2>
+              <p class="muted lede">Available field operations and intelligence contracts. Click a mission to view the full briefing and accept it.</p>
+              <div id="mission-list" class="card-grid"></div>
+              <section class="form-card" id="active-missions-section">
+                <h3>Active Operations</h3>
+                <p id="active-missions-empty" class="muted">No active operations. Accept a mission from the board above.</p>
+                <div id="active-mission-list" class="card-grid"></div>
+              </section>
+            </div>
+            <!-- Detail view: single mission briefing -->
+            <div id="mission-detail-view" hidden>
+              <button id="mission-back-btn" class="btn btn-outline" type="button">&#8592; Back to Mission Board</button>
+              <div class="mission-detail-layout">
+                <div class="mission-img-placeholder">
+                  <span>MISSION<br/>BRIEFING</span>
+                </div>
+                <div class="mission-detail-content">
+                  <p class="overline" id="mission-detail-type"></p>
+                  <h2 id="mission-detail-title"></h2>
+                  <p id="mission-detail-reward" class="muted"></p>
+                  <p id="mission-detail-text"></p>
+                  <p id="mission-detail-risk" class="muted"></p>
+                  <div class="choice-row mission-detail-actions">
+                    <button id="mission-accept-btn" class="btn btn-accent btn-command" type="button">Accept Mission</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </article>
 
           <article id="combat" class="tab-panel">
@@ -568,6 +668,72 @@
               </form>
             </section>
             <ul id="combat-reports" class="text-list"></ul>
+          </article>
+
+          <article id="inbox" class="tab-panel">
+            <h2>Inbox</h2>
+
+            <!-- Folder tabs -->
+            <nav class="inbox-folder-nav" aria-label="Mail folders">
+              <button class="inbox-folder-btn active" data-folder="inbox">Inbox</button>
+              <button class="inbox-folder-btn" data-folder="sent">Outbox</button>
+              <button class="inbox-folder-btn" data-folder="draft">Drafts</button>
+              <button class="inbox-folder-btn" data-folder="archive">Archive</button>
+              <button class="inbox-folder-btn" data-folder="trash">Trash</button>
+              <button class="inbox-compose-btn btn btn-primary" id="inbox-compose-trigger">+ Compose</button>
+            </nav>
+
+            <!-- Inbox sub-tabs (visible only when folder = inbox) -->
+            <nav class="inbox-subtab-nav" id="inbox-subtab-nav" aria-label="Inbox sub-tabs">
+              <button class="inbox-subtab-btn active" data-subtype="official">System &amp; NPC</button>
+              <button class="inbox-subtab-btn" data-subtype="players">Players</button>
+            </nav>
+
+            <!-- Message list -->
+            <div id="inbox-list-view">
+              <ul id="inbox-message-list" class="inbox-message-list"></ul>
+              <p id="inbox-empty-notice" class="muted" style="display:none;">No messages here.</p>
+            </div>
+
+            <!-- Message detail view (hidden until a message is opened) -->
+            <div id="inbox-detail-view" style="display:none;">
+              <button class="btn btn-ghost inbox-back-btn" id="inbox-back-btn">&#8592; Back</button>
+              <div class="inbox-detail-card card">
+                <div class="inbox-detail-meta">
+                  <span class="inbox-detail-from" id="inbox-detail-from"></span>
+                  <span class="inbox-detail-date" id="inbox-detail-date"></span>
+                </div>
+                <h3 class="inbox-detail-subject" id="inbox-detail-subject"></h3>
+                <pre class="inbox-detail-body" id="inbox-detail-body"></pre>
+                <div class="inbox-detail-actions">
+                  <button class="btn btn-ghost" id="inbox-action-archive" style="display:none;">Archive</button>
+                  <button class="btn btn-ghost" id="inbox-action-restore" style="display:none;">Move to Inbox</button>
+                  <button class="btn btn-danger" id="inbox-action-trash" style="display:none;">Move to Trash</button>
+                  <button class="btn btn-ghost" id="inbox-action-delete-draft" style="display:none;">Delete Draft</button>
+                  <button class="btn btn-primary" id="inbox-action-edit-draft" style="display:none;">Edit Draft</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Compose view (hidden until triggered) -->
+            <div id="inbox-compose-view" style="display:none;">
+              <button class="btn btn-ghost inbox-back-btn" id="inbox-compose-back-btn">&#8592; Back</button>
+              <form class="card inbox-compose-form" id="inbox-compose-form" autocomplete="off">
+                <h3>New Message</h3>
+                <input type="hidden" id="compose-draft-id" value="" />
+                <label for="compose-to">To (Corporation Name)</label>
+                <input type="text" id="compose-to" placeholder="Exact corporation name…" required />
+                <label for="compose-subject">Subject</label>
+                <input type="text" id="compose-subject" placeholder="Subject…" maxlength="200" required />
+                <label for="compose-body">Message</label>
+                <textarea id="compose-body" class="compose-body-area" rows="10" maxlength="8000" placeholder="Write your message…" required></textarea>
+                <div class="inbox-compose-actions">
+                  <button type="submit" class="btn btn-primary">Send</button>
+                  <button type="button" class="btn btn-ghost" id="compose-save-draft-btn">Save Draft</button>
+                  <span class="inbox-compose-status" id="compose-status"></span>
+                </div>
+              </form>
+            </div>
           </article>
 
           <article id="starmap" class="tab-panel">

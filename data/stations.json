@@ -1,0 +1,32 @@
+{
+  "stations": [
+    {
+      "id": "earth-station-prime",
+      "name": "Earth Station Prime",
+      "designation": "SOL-STATION-001",
+      "systemId": "sol",
+      "body": "Earth",
+      "tier": 1,
+      "officeCost": 20000,
+      "description": "The principal orbital installation above Earth. Houses the primary offices of the Interstellar Settlement Authority and the major regulatory institutions governing colonization, commerce, and security across the Sol system. All new corporations registered under the ISP framework maintain a mandatory operational presence here.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "earth-assembly",
+        "interstellar-settlement-authority",
+        "solar-defense-security-directorate",
+        "galactic-arbitration-council",
+        "isa-regulatory-compliance",
+        "corporate-registry-charters",
+        "interplanetary-trade-commission",
+        "conglomerate-affairs-bureau",
+        "risk-assessment-insurance",
+        "orbital-visa-personnel",
+        "deep-space-development-bank",
+        "isa-enforcement-division",
+        "galactic-exchange-hub",
+        "intergalactic-stock-exchange"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "nodes": [
+    {
+      "id": "tt-basic-extraction",
+      "name": "Basic Extraction Analytics",
+      "effect": "+10% raw extraction throughput",
+      "description": "Installs automated throughput monitoring and predictive calibration across all active extractor yards. Reduces waste cycles and improves output consistency.",
+      "durationHours": 2,
+      "costCredits": 18000,
+      "prereqs": [],
+      "tier": 1,
+      "category": "Extraction"
+    },
+    {
+      "id": "tt-industrial-safety",
+      "name": "Industrial Safety Protocols",
+      "effect": "-8% facility downtime risk",
+      "description": "Mandates standardized hazard containment procedures and automated shutdown trip lines across all facilities. Reduces the probability of unplanned extraction outages.",
+      "durationHours": 3,
+      "costCredits": 26000,
+      "prereqs": ["tt-basic-extraction"],
+      "tier": 1,
+      "category": "Operations"
+    },
+    {
+      "id": "tt-supply-forecast",
+      "name": "Supply Forecast Engine",
+      "effect": "+6% logistics efficiency",
+      "description": "Deploys a predictive resource flow model across your logistics network. Identifies bottlenecks before they emerge and pre-positions inventory at optimal distribution nodes.",
+      "durationHours": 4,
+      "costCredits": 32000,
+      "prereqs": ["tt-basic-extraction"],
+      "tier": 1,
+      "category": "Logistics"
+    },
+    {
+      "id": "tt-energy-routing",
+      "name": "High-Density Energy Routing",
+      "effect": "+1 advanced manufacturing lane",
+      "description": "Redesigns power distribution architecture to support a dedicated high-load manufacturing lane. Required for Tier 2 refinery output and advanced material synthesis.",
+      "durationHours": 6,
+      "costCredits": 54000,
+      "prereqs": ["tt-industrial-safety", "tt-supply-forecast"],
+      "tier": 2,
+      "category": "Manufacturing"
+    },
+    {
+      "id": "tt-material-compression",
+      "name": "Material Compression I",
+      "effect": "+8% refining throughput",
+      "description": "Applies high-pressure compression staging to raw silicate inputs before refinery processing. Increases yield per cycle without expanding physical footprint.",
+      "durationHours": 9,
+      "costCredits": 62000,
+      "prereqs": ["tt-energy-routing"],
+      "tier": 2,
+      "category": "Refining"
+    },
+    {
+      "id": "tt-nano-lattice",
+      "name": "Nano-Lattice Weaving",
+      "effect": "Unlocks Aerogel and Quantum Insulator refinery chains",
+      "description": "Licenses nano-scale lattice assembly techniques from the Pan-System Research Compact. Required for Aerogel and Quantum Insulator output from silicate chains.",
+      "durationHours": 12,
+      "costCredits": 80000,
+      "prereqs": ["tt-material-compression"],
+      "tier": 3,
+      "category": "Refining"
+    },
+    {
+      "id": "tt-containment-physics",
+      "name": "Containment Physics I",
+      "effect": "Unlocks Helium-3 refinery chain",
+      "description": "Establishes magnetic confinement field generation standards. Required before Helium-3 can be safely processed into Plasma Conduits at refinery scale.",
+      "durationHours": 10,
+      "costCredits": 75000,
+      "prereqs": ["tt-energy-routing"],
+      "tier": 2,
+      "category": "Refining"
+    },
+    {
+      "id": "tt-exotic-energy-routing",
+      "name": "Exotic Energy Routing",
+      "effect": "Unlocks Dark-Matter Capacitor synthesis",
+      "description": "Extends power routing standards to handle exotic-state matter demands. Gate technology for Dark-Matter Capacitor production from processed Helium-3.",
+      "durationHours": 16,
+      "costCredits": 110000,
+      "prereqs": ["tt-containment-physics"],
+      "tier": 3,
+      "category": "Refining"
+    },
+    {
+      "id": "tt-fleet-coordination",
+      "name": "Fleet Coordination Matrix",
+      "effect": "+12 fleet cap",
+      "description": "Integrates command-layer coordination software across all vessel classes. Expands the effective fleet size your corporation can sustain in active deployment.",
+      "durationHours": 16,
+      "costCredits": 95000,
+      "prereqs": ["tt-energy-routing"],
+      "tier": 2,
+      "category": "Military"
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "programs": [
+    {
+      "id": "ceo-executive-negotiation",
+      "name": "Executive Negotiation Lab",
+      "effect": "+6% trade spread efficiency",
+      "description": "Intensive negotiation strategy program covering counterpart psychology, contract structuring, and galactic trade law. Directly improves the spreads achieved on market contracts.",
+      "durationHours": 6,
+      "costCredits": 14000,
+      "prereqs": [],
+      "tier": 1,
+      "category": "Trade"
+    },
+    {
+      "id": "ceo-leadership-cohesion",
+      "name": "Leadership Cohesion Seminar",
+      "effect": "+4% morale multiplier",
+      "description": "A facilitated executive retreat focused on organizational trust, decision velocity, and cross-department alignment. Improves workforce efficiency through elevated morale.",
+      "durationHours": 8,
+      "costCredits": 18000,
+      "prereqs": [],
+      "tier": 1,
+      "category": "Operations"
+    },
+    {
+      "id": "ceo-strategic-capital",
+      "name": "Strategic Capital Allocation",
+      "effect": "+5% return on direct investments",
+      "description": "Executive training in capital deployment strategy, risk-adjusted return frameworks, and liquidity-aware portfolio management. Improves the yield efficiency of active investments.",
+      "durationHours": 10,
+      "costCredits": 22000,
+      "prereqs": ["ceo-executive-negotiation"],
+      "tier": 2,
+      "category": "Finance"
+    },
+    {
+      "id": "ceo-crisis-command",
+      "name": "Crisis Command Simulation",
+      "effect": "-15% downtime recovery time",
+      "description": "High-fidelity simulation of multi-failure operational scenarios. Trains executive decision-making under pressure, reducing the time to restore facility operations after an unplanned shutdown.",
+      "durationHours": 12,
+      "costCredits": 30000,
+      "prereqs": ["ceo-leadership-cohesion"],
+      "tier": 2,
+      "category": "Operations"
+    },
+    {
+      "id": "ceo-diplomatic-protocol",
+      "name": "Diplomatic Protocol Certification",
+      "effect": "Unlocks diplomacy mission tier",
+      "description": "Formal certification in inter-corporate and inter-system diplomatic engagement. Required to accept and execute diplomacy-class field missions.",
+      "durationHours": 14,
+      "costCredits": 38000,
+      "prereqs": ["ceo-strategic-capital"],
+      "tier": 2,
+      "category": "Diplomacy"
+    },
+    {
+      "id": "ceo-expansion-doctrine",
+      "name": "Corporate Expansion Doctrine",
+      "effect": "+1 building slot",
+      "description": "A long-form executive strategy program examining scaling frameworks, off-world operational governance, and conglomerate integration. Directly expands your corporation's infrastructure capacity.",
+      "durationHours": 20,
+      "costCredits": 55000,
+      "prereqs": ["ceo-diplomatic-protocol", "ceo-crisis-command"],
+      "tier": 3,
+      "category": "Infrastructure"
+    },
+    {
+      "id": "ceo-logistics-mastery",
+      "name": "Logistics Mastery Program",
+      "effect": "+10% logistics efficiency",
+      "description": "Deep operational immersion in multi-system supply chain design, route optimization, and contract fulfillment. Stacks additively with Supply Forecast Engine.",
+      "durationHours": 18,
+      "costCredits": 48000,
+      "prereqs": ["ceo-strategic-capital"],
+      "tier": 3,
+      "category": "Logistics"
+    },
+    {
+      "id": "ceo-military-doctrine",
+      "name": "Executive Military Doctrine",
+      "effect": "+8% fleet attack value",
+      "description": "Structured study of fleet engagement doctrine, chain of command efficiency, and asymmetric warfare theory at the executive level. Improves coordinated strike effectiveness.",
+      "durationHours": 16,
+      "costCredits": 42000,
+      "prereqs": ["ceo-crisis-command"],
+      "tier": 3,
+      "category": "Military"
+    }
+  ]
+}

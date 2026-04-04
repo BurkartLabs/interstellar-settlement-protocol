@@ -1,20 +1,38 @@
 import express from "express";
+import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
 import {
+  accountExists,
+  addAccountNotification,
   appendChatMessage,
+  createAccount,
   createCombatReport,
   authenticateAccount,
   getAccountById,
   getDummyAccount,
   getState,
+  hasRefreshToken,
+  listAccountNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
   markWalkthroughCompleted,
+  revokeRefreshToken,
   resetDummyAccountProgress,
   resetWalkthroughCompletion,
+  storeRefreshToken,
   mutateAccountState,
-  mutateState
+  mutateState,
+  listAccountMessages,
+  markMessageRead,
+  moveMessage,
+  sendPlayerMessage,
+  saveDraft,
+  deleteDraft,
+  addSystemMessageToAccount
 } from "./gameState.js";
 
 const RESEARCH_LIBRARY = {
@@ -24,7 +42,6 @@ const RESEARCH_LIBRARY = {
     effect: "+10% raw extraction throughput",
     durationHours: 2,
     costCredits: 18000,
-    costLiquidity: 12000,
     prereqs: []
   },
   "tt-industrial-safety": {
@@ -33,7 +50,6 @@ const RESEARCH_LIBRARY = {
     effect: "-8% facility downtime risk",
     durationHours: 3,
     costCredits: 26000,
-    costLiquidity: 18000,
     prereqs: ["tt-basic-extraction"]
   },
   "tt-supply-forecast": {
@@ -42,7 +58,6 @@ const RESEARCH_LIBRARY = {
     effect: "+6% logistics efficiency",
     durationHours: 4,
     costCredits: 32000,
-    costLiquidity: 22000,
     prereqs: ["tt-basic-extraction"]
   },
   "tt-energy-routing": {
@@ -51,19 +66,95 @@ const RESEARCH_LIBRARY = {
     effect: "+1 advanced manufacturing lane",
     durationHours: 6,
     costCredits: 54000,
-    costLiquidity: 36000,
     prereqs: ["tt-industrial-safety", "tt-supply-forecast"]
   }
 };
+
+const ACCESS_TOKEN_SECONDS = 7 * 24 * 60 * 60;
+const DUMMY_ACCESS_TOKEN_SECONDS = 2 * 60 * 60; // 2 hours
+const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
+const JWT_SECRET = process.env.JWT_SECRET || "isp-dev-insecure-secret-change-me";
+const ALLOW_DUMMY_AUTH = process.env.NODE_ENV !== "production" || process.env.ALLOW_DUMMY_AUTH === "1";
+const DIRECT_INVESTMENT_UNLOCK_LEVEL = 2;
+
+function stripHtml(input) {
+  return String(input || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
+
+function signAccessToken(accountId) {
+  const expiresIn = accountId === "dummy" ? DUMMY_ACCESS_TOKEN_SECONDS : ACCESS_TOKEN_SECONDS;
+  return jwt.sign({ sub: accountId, kind: "access" }, JWT_SECRET, { expiresIn });
+}
+
+function signRefreshToken(accountId) {
+  return jwt.sign({ sub: accountId, kind: "refresh" }, JWT_SECRET, { expiresIn: REFRESH_TOKEN_SECONDS });
+}
+
+function issueTokens(accountId) {
+  const accessExpiry = accountId === "dummy" ? DUMMY_ACCESS_TOKEN_SECONDS : ACCESS_TOKEN_SECONDS;
+  const accessToken = signAccessToken(accountId);
+  const refreshToken = signRefreshToken(accountId);
+  const refreshExpiresAt = Date.now() + REFRESH_TOKEN_SECONDS * 1000;
+  storeRefreshToken(accountId, refreshToken, refreshExpiresAt);
+  return {
+    accessToken,
+    refreshToken,
+    accessTokenExpiresAt: Date.now() + accessExpiry * 1000,
+    refreshTokenExpiresAt: refreshExpiresAt
+  };
+}
+
+function getBearerToken(req) {
+  const authHeader = String(req.headers.authorization || "");
+  if (!authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+  return authHeader.slice(7).trim();
+}
+
+function requireAuth(req, res, next) {
+  const token = getBearerToken(req);
+  if (!token) {
+    res.status(401).json({ error: "Missing bearer token." });
+    return;
+  }
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (payload.kind !== "access") {
+      res.status(401).json({ error: "Invalid token type." });
+      return;
+    }
+
+    req.auth = { accountId: payload.sub };
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid or expired access token." });
+  }
+}
+
+function requireAccountAccess(req, res, next) {
+  if (!req.auth?.accountId || req.auth.accountId !== req.params.accountId) {
+    res.status(403).json({ error: "Forbidden account scope." });
+    return;
+  }
+
+  if (!accountExists(req.params.accountId)) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  next();
+}
 
 function formatCredits(amount) {
   return `${Math.round(Number(amount || 0)).toLocaleString("en-US")} credits`;
 }
 
-function fundingRequirementMessage(actionLabel, corp, requiredCredits, requiredLiquidity, extra = "") {
+function fundingRequirementMessage(actionLabel, corp, requiredCredits, extra = "") {
   const parts = [
-    `${actionLabel} requires ${formatCredits(requiredCredits)} and ${formatCredits(requiredLiquidity)} liquidity.`,
-    `Current reserves: ${formatCredits(corp.finances.credits)} credits, ${formatCredits(corp.finances.liquidity)} liquidity.`
+    `${actionLabel} requires ${formatCredits(requiredCredits)}.`,
+    `Current reserves: ${formatCredits(corp.finances.credits)} credits.`
   ];
 
   if (extra) {
@@ -90,11 +181,55 @@ app.get("/api/bootstrap", (_req, res) => {
   res.json(getState());
 });
 
+app.get("/api/stations", (_req, res) => {
+  try {
+    const raw = fs.readFileSync(path.join(__dirname, "..", "data", "stations.json"), "utf8");
+    res.json(JSON.parse(raw));
+  } catch {
+    res.status(500).json({ error: "Stations data unavailable." });
+  }
+});
+
+app.get("/api/buildings", (_req, res) => {
+  try {
+    const raw = fs.readFileSync(path.join(__dirname, "..", "data", "buildings.json"), "utf8");
+    res.json(JSON.parse(raw));
+  } catch {
+    res.status(500).json({ error: "Buildings data unavailable." });
+  }
+});
+
+app.post("/api/auth/register", (req, res) => {
+  const { email, password, ceoName, corpName } = req.body ?? {};
+  const result = createAccount({ email, password, ceoName, corpName });
+
+  if (result.error) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+
+  const account = result.account;
+  const tokens = issueTokens(account.id);
+  res.status(201).json({ account, ...tokens });
+});
+
 app.post("/api/auth/dummy-login", (_req, res) => {
-  res.json(getDummyAccount());
+  if (!ALLOW_DUMMY_AUTH) {
+    res.status(403).json({ error: "Dummy access is disabled." });
+    return;
+  }
+
+  const account = getDummyAccount();
+  const tokens = issueTokens(account.id);
+  res.json({ account, ...tokens });
 });
 
 app.post("/api/auth/dummy-reset", (_req, res) => {
+  if (!ALLOW_DUMMY_AUTH) {
+    res.status(403).json({ error: "Dummy access is disabled." });
+    return;
+  }
+
   const account = resetDummyAccountProgress();
   if (!account) {
     res.status(404).json({ error: "Dummy account not found." });
@@ -113,8 +248,58 @@ app.post("/api/auth/login", (req, res) => {
     return;
   }
 
-  res.json(account);
+  const tokens = issueTokens(account.id);
+  res.json({ account, ...tokens });
 });
+
+app.post("/api/auth/refresh", (req, res) => {
+  const token = String(req.body?.refreshToken || "").trim();
+  if (!token) {
+    res.status(400).json({ error: "Refresh token is required." });
+    return;
+  }
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (payload.kind !== "refresh") {
+      res.status(401).json({ error: "Invalid token type." });
+      return;
+    }
+
+    if (!hasRefreshToken(payload.sub, token)) {
+      res.status(401).json({ error: "Refresh token has been revoked." });
+      return;
+    }
+
+    revokeRefreshToken(payload.sub, token);
+    const tokens = issueTokens(payload.sub);
+    const account = getAccountById(payload.sub);
+    res.json({ account, ...tokens });
+  } catch {
+    res.status(401).json({ error: "Invalid or expired refresh token." });
+  }
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  const token = String(req.body?.refreshToken || "").trim();
+  const accountId = String(req.body?.accountId || "").trim();
+  if (token && accountId) {
+    revokeRefreshToken(accountId, token);
+  }
+  res.json({ ok: true });
+});
+
+app.get("/api/auth/session", requireAuth, (req, res) => {
+  const account = getAccountById(req.auth.accountId);
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  res.json({ account });
+});
+
+app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess);
 
 app.get("/api/accounts/:accountId", (req, res) => {
   const account = getAccountById(req.params.accountId);
@@ -133,6 +318,15 @@ app.post("/api/accounts/:accountId/walkthrough-complete", (req, res) => {
     return;
   }
 
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "onboarding",
+    title: "Walkthrough Completed",
+    body: "Onboarding has been marked complete for this profile."
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
   res.json(account);
 });
 
@@ -143,12 +337,52 @@ app.post("/api/accounts/:accountId/walkthrough-reset", (req, res) => {
     return;
   }
 
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "onboarding",
+    title: "Walkthrough Reset",
+    body: "Onboarding flow has been reset and can be replayed."
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
   res.json(account);
+});
+
+app.get("/api/accounts/:accountId/notifications", (req, res) => {
+  const payload = listAccountNotifications(req.params.accountId);
+  if (!payload) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  res.json(payload);
+});
+
+app.post("/api/accounts/:accountId/notifications/:notificationId/read", (req, res) => {
+  const updated = markNotificationRead(req.params.accountId, req.params.notificationId);
+  if (!updated) {
+    res.status(404).json({ error: "Notification not found." });
+    return;
+  }
+
+  res.json({ notification: updated });
+});
+
+app.post("/api/accounts/:accountId/notifications/read-all", (req, res) => {
+  const payload = markAllNotificationsRead(req.params.accountId);
+  if (!payload) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  res.json(payload);
 });
 
 app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
   const count = Math.max(1, Number(req.body?.count || 1));
   let outcome = "ok";
+  let hiredCount = 0;
 
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
@@ -166,15 +400,10 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
       return;
     }
 
-    if (corp.finances.liquidity < hireCost) {
-      outcome = "insufficient-liquidity";
-      return;
-    }
-
     corp.employeeCount += hired;
     corp.finances.credits -= hireCost;
-    corp.finances.liquidity -= hireCost;
     corp.finances.dailyCosts += hired * 36;
+    hiredCount = hired;
   });
 
   if (!account) {
@@ -186,11 +415,99 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
     const corp = account.state.corp;
     const messageMap = {
       "no-capacity": `Employee cap reached. Current staffing is ${corp.employeeCount}/${corp.employeeCap}.`,
-      "insufficient-credits": fundingRequirementMessage("Hiring", corp, count * 1200, count * 1200),
-      "insufficient-liquidity": fundingRequirementMessage("Hiring", corp, count * 1200, count * 1200)
+      "insufficient-credits": fundingRequirementMessage("Hiring", corp, count * 1200)
     };
     res.status(400).json({ error: messageMap[outcome] || "Hire action failed." });
     return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "workforce",
+    title: "Hiring Order Confirmed",
+    body: `${hiredCount} employee(s) were added to your workforce.`
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
+  res.json(account);
+});
+
+app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
+  const requestedStationId = String(req.body?.stationId || "earth-station-prime").trim();
+  let outcome = "ok";
+  let officeCost = 20000;
+  let stationName = "Earth Station Prime";
+
+  let stationsData;
+  try {
+    stationsData = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "stations.json"), "utf8")).stations;
+  } catch {
+    res.status(500).json({ error: "Station registry unavailable." });
+    return;
+  }
+
+  const station = stationsData.find((s) => s.id === requestedStationId);
+  if (!station) {
+    res.status(400).json({ error: "Station not found." });
+    return;
+  }
+
+  officeCost = Number(station.officeCost || 20000);
+  stationName = station.name;
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+
+    if (!Array.isArray(corp.offices)) {
+      corp.offices = [];
+    }
+
+    if (corp.offices.some((o) => o.stationId === station.id)) {
+      outcome = "already-rented";
+      return;
+    }
+
+    if (corp.finances.credits < officeCost) {
+      outcome = "insufficient-credits";
+      return;
+    }
+
+    corp.finances.credits -= officeCost;
+    corp.finances.assets += Math.round(officeCost * 0.5);
+    corp.offices.push({
+      stationId: station.id,
+      name: station.name,
+      body: station.body,
+      systemId: station.systemId,
+      tier: station.tier,
+      rentedAt: Date.now()
+    });
+    corp.officeRented = true;
+  });
+
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  if (outcome !== "ok") {
+    const corp = account.state.corp;
+    const messageMap = {
+      "already-rented": `Your corporation already maintains an office at ${stationName}.`,
+      "insufficient-credits": `Leasing an office at ${stationName} requires ${formatCredits(officeCost)}. Current reserves: ${formatCredits(corp.finances.credits)} credits.`
+    };
+    res.status(400).json({ error: messageMap[outcome] || "Office rental failed." });
+    return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "administration",
+    title: "Office Lease Confirmed",
+    body: `Your corporation now maintains a registered operational office at ${stationName}.`
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -198,14 +515,20 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
 
 app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
   let outcome = "ok";
+  let currentExtractorCount = 0;
+  let extractorCap = 1;
 
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
-    const alreadyBuilt = corp.buildings.some((b) => b.name === "Basic Extractor Yard");
+    if (!corp.unlocks || typeof corp.unlocks !== "object") {
+      corp.unlocks = {};
+    }
+    extractorCap = Number(corp.unlocks.maxBasicExtractorYards || 1);
+    currentExtractorCount = (corp.buildings || []).filter((b) => b.name === "Basic Extractor Yard").length;
     const buildCost = 65000;
 
-    if (alreadyBuilt) {
-      outcome = "already-built";
+    if (currentExtractorCount >= extractorCap) {
+      outcome = "extractor-cap";
       return;
     }
 
@@ -219,14 +542,31 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
       return;
     }
 
-    if (corp.finances.liquidity < buildCost) {
-      outcome = "insufficient-liquidity";
-      return;
-    }
-
     corp.buildings.push({ name: "Basic Extractor Yard", tier: 1, status: "Operational" });
+
+    if (!corp.mining || typeof corp.mining !== "object") {
+      corp.mining = {};
+    }
+    if (!Array.isArray(corp.mining.silicateExtractors)) {
+      corp.mining.silicateExtractors = [];
+    }
+    const nextExtractorIndex = corp.mining.silicateExtractors.length + 1;
+    corp.mining.silicateExtractors.push({
+      id: `ext-basic-${nextExtractorIndex}`,
+      name: `Basic Extractor Yard #${nextExtractorIndex}`,
+      tier: 1,
+      active: false,
+      startedAt: null,
+      lastTickAt: null,
+      endsAt: null,
+      throughputPerHour: 0,
+      operationCostPerHour: 0,
+      totalMined: 0,
+      totalSpent: 0,
+      lastCompletedAt: null
+    });
+
     corp.finances.credits -= buildCost;
-    corp.finances.liquidity -= buildCost;
     corp.finances.assets += 42000;
   });
 
@@ -238,19 +578,11 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
   if (outcome !== "ok") {
     const corp = account.state.corp;
     const messageMap = {
-      "already-built": "Basic Extractor Yard is already operational.",
+      "extractor-cap": `Basic Extractor Yard cap reached (${currentExtractorCount}/${extractorCap}). Additional capacity requires future corporation perks.`,
       "no-slot": `Basic Extractor Yard requires 1 open building slot. Current usage: ${corp.buildings.length}/${corp.buildingSlots}.`,
       "insufficient-credits": fundingRequirementMessage(
         "Basic Extractor Yard construction",
         corp,
-        65000,
-        65000,
-        `It also requires 1 open building slot. Current usage: ${corp.buildings.length}/${corp.buildingSlots}.`
-      ),
-      "insufficient-liquidity": fundingRequirementMessage(
-        "Basic Extractor Yard construction",
-        corp,
-        65000,
         65000,
         `It also requires 1 open building slot. Current usage: ${corp.buildings.length}/${corp.buildingSlots}.`
       )
@@ -259,41 +591,68 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
     return;
   }
 
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "infrastructure",
+    title: "Extractor Commissioned",
+    body: "Basic Extractor Yard is now operational."
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
   res.json(account);
 });
 
 app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
   const amount = Math.max(10, Number(req.body?.amount || 40));
+  const requestedHours = Math.max(1, Math.min(72, Number(req.body?.hours || 24)));
+  const requestedExtractorId = String(req.body?.extractorId || "").trim();
   let outcome = "ok";
+  let targetExtractorLabel = "";
 
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
     const hasExtractor = corp.buildings.some((b) => b.name === "Basic Extractor Yard");
-    const cycleHours = 8;
+    const cycleHours = requestedHours;
     const throughputPerHour = Math.max(10, Math.min(250, amount));
     const operationCostPerHour = Math.max(600, Math.round(throughputPerHour * 16));
     const startupCost = Math.max(500, Math.round(operationCostPerHour * 0.35));
 
-    if (!corp.mining?.silicateExtractor) {
-      corp.mining = {
-        silicateExtractor: {
-          active: false,
-          startedAt: null,
-          lastTickAt: null,
-          endsAt: null,
-          throughputPerHour: 0,
-          operationCostPerHour: 0,
-          totalMined: 0,
-          totalSpent: 0,
-          lastCompletedAt: null
-        }
-      };
-    }
-
-    const extractorCycle = corp.mining.silicateExtractor;
-
     if (!hasExtractor) {
       outcome = "missing-extractor";
+      return;
+    }
+
+    if (!corp.mining || typeof corp.mining !== "object") {
+      corp.mining = {};
+    }
+    if (!Array.isArray(corp.mining.silicateExtractors)) {
+      corp.mining.silicateExtractors = [];
+    }
+    if (!corp.mining.silicateExtractors.length) {
+      corp.mining.silicateExtractors.push({
+        id: "ext-basic-1",
+        name: "Basic Extractor Yard #1",
+        tier: 1,
+        active: false,
+        startedAt: null,
+        lastTickAt: null,
+        endsAt: null,
+        throughputPerHour: 0,
+        operationCostPerHour: 0,
+        totalMined: 0,
+        totalSpent: 0,
+        lastCompletedAt: null
+      });
+    }
+
+    const extractorCycle = requestedExtractorId
+      ? corp.mining.silicateExtractors.find((ex) => ex.id === requestedExtractorId)
+      : corp.mining.silicateExtractors[0];
+    targetExtractorLabel = extractorCycle?.name || requestedExtractorId || "Extractor";
+
+    if (!extractorCycle) {
+      outcome = "missing-extractor-target";
       return;
     }
 
@@ -307,14 +666,8 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
       return;
     }
 
-    if (corp.finances.liquidity < startupCost) {
-      outcome = "insufficient-liquidity";
-      return;
-    }
-
     const now = Date.now();
     corp.finances.credits -= startupCost;
-    corp.finances.liquidity -= startupCost;
 
     extractorCycle.active = true;
     extractorCycle.startedAt = now;
@@ -323,6 +676,9 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
     extractorCycle.throughputPerHour = throughputPerHour;
     extractorCycle.operationCostPerHour = operationCostPerHour;
     extractorCycle.totalSpent += startupCost;
+
+    // Keep legacy mirror for compatibility
+    corp.mining.silicateExtractor = corp.mining.silicateExtractors[0];
   });
 
   if (!account) {
@@ -337,24 +693,26 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
     const startupCost = Math.max(500, Math.round(operationCostPerHour * 0.35));
     const messageMap = {
       "missing-extractor": "Build a Basic Extractor Yard before mining.",
-      "already-active": "Silicate extraction cycle is already active. Wait for completion before launching another cycle.",
+      "missing-extractor-target": "Selected extractor yard was not found.",
+      "already-active": `${targetExtractorLabel} already has an active cycle. Wait for completion before launching another cycle on that yard.`,
       "insufficient-credits": fundingRequirementMessage(
         "Silicate extraction cycle launch",
         corp,
         startupCost,
-        startupCost,
-        `Requested throughput: ${throughputPerHour}/hour over 8 hours, with ${formatCredits(operationCostPerHour)}/hour operating spend.`
-      ),
-      "insufficient-liquidity": fundingRequirementMessage(
-        "Silicate extraction cycle launch",
-        corp,
-        startupCost,
-        startupCost,
-        `Requested throughput: ${throughputPerHour}/hour over 8 hours, with ${formatCredits(operationCostPerHour)}/hour operating spend.`
+        `Requested throughput: ${throughputPerHour}/hour over ${requestedHours} hours, with ${formatCredits(operationCostPerHour)}/hour operating spend.`
       )
     };
     res.status(400).json({ error: messageMap[outcome] || "Mining action failed." });
     return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "operations",
+    title: "Mining Cycle Started",
+    body: `${targetExtractorLabel} started a ${requestedHours}h silicate cycle with current throughput settings.`
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -378,13 +736,7 @@ app.post("/api/accounts/:accountId/gameplay/complete-rnd", (req, res) => {
       return;
     }
 
-    if (corp.finances.liquidity < rdCost) {
-      outcome = "insufficient-liquidity";
-      return;
-    }
-
     corp.finances.credits -= rdCost;
-    corp.finances.liquidity -= rdCost;
     corp.unlockedTech.push(techId);
     corp.military.modifiers.rdBonusPct = Math.max(corp.military.modifiers.rdBonusPct || 0, 4);
   });
@@ -398,11 +750,19 @@ app.post("/api/accounts/:accountId/gameplay/complete-rnd", (req, res) => {
     const corp = account.state.corp;
     const messageMap = {
       "already-unlocked": "This R&D project has already been completed.",
-      "insufficient-credits": fundingRequirementMessage("Basic Extraction Analytics", corp, 40000, 40000),
-      "insufficient-liquidity": fundingRequirementMessage("Basic Extraction Analytics", corp, 40000, 40000)
+      "insufficient-credits": fundingRequirementMessage("Basic Extraction Analytics", corp, 40000)
     };
     res.status(400).json({ error: messageMap[outcome] || "R&D action failed." });
     return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "research",
+    title: "R&D Completed",
+    body: "Basic Extraction Analytics has been completed and applied."
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -444,13 +804,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
       return;
     }
 
-    if (corp.finances.liquidity < tech.costLiquidity) {
-      outcome = "insufficient-liquidity";
-      return;
-    }
-
     corp.finances.credits -= tech.costCredits;
-    corp.finances.liquidity -= tech.costLiquidity;
     state.queues.corporateRnD.push({
       id: `rnd-${Date.now()}`,
       techId: tech.id,
@@ -458,8 +812,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
       effect: tech.effect,
       durationHours: tech.durationHours,
       startedAt: Date.now(),
-      costCredits: tech.costCredits,
-      costLiquidity: tech.costLiquidity
+      costCredits: tech.costCredits
     });
   });
 
@@ -474,21 +827,130 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
       "already-unlocked": `${tech.name} has already been completed.`,
       "already-queued": `${tech.name} is already in the corporate R&D queue.`,
       "missing-prereq": `${tech.name} requires: ${tech.prereqs.join(", ")}.`,
-      "insufficient-credits": fundingRequirementMessage(`${tech.name} queueing`, corp, tech.costCredits, tech.costLiquidity),
-      "insufficient-liquidity": fundingRequirementMessage(`${tech.name} queueing`, corp, tech.costCredits, tech.costLiquidity)
+      "insufficient-credits": fundingRequirementMessage(`${tech.name} queueing`, corp, tech.costCredits)
     };
     res.status(400).json({ error: messageMap[outcome] || "Unable to queue research." });
     return;
   }
 
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "research",
+    title: "R&D Queued",
+    body: `${tech.name} has been queued in corporate research.`
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
   res.json(account);
 });
 
-app.post("/api/market/orders", (req, res) => {
-  const { type, item, quantity, unitPrice, actor } = req.body ?? {};
+// ─── Messages ────────────────────────────────────────────────────────────────
 
-  if (!type || !item || !quantity || !unitPrice) {
+app.get("/api/accounts/:accountId/messages", (req, res) => {
+  const messages = listAccountMessages(req.params.accountId);
+  if (!messages) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+  res.json({ messages });
+});
+
+// Specific named routes FIRST (before :messageId wildcards)
+app.post("/api/accounts/:accountId/messages/send", (req, res) => {
+  const { toCorpName, subject, body } = req.body ?? {};
+  const result = sendPlayerMessage(req.params.accountId, {
+    toCorpName: String(toCorpName || "").trim(),
+    subject: String(subject || "").trim(),
+    body: String(body || "").trim()
+  });
+  if (result.error) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  // Delete the draft if a draftId was provided
+  if (req.body?.draftId) {
+    deleteDraft(req.params.accountId, String(req.body.draftId));
+  }
+  const messages = listAccountMessages(req.params.accountId);
+  res.json({ ok: true, toName: result.toName, messages });
+});
+
+app.post("/api/accounts/:accountId/messages/draft", (req, res) => {
+  const { draftId, toCorpName, subject, body } = req.body ?? {};
+  const draft = saveDraft(req.params.accountId, {
+    draftId: draftId ? String(draftId).trim() : null,
+    toCorpName: String(toCorpName || "").trim(),
+    subject: String(subject || "").trim(),
+    body: String(body || "").trim()
+  });
+  if (!draft) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+  res.json({ draft });
+});
+
+app.delete("/api/accounts/:accountId/messages/draft/:draftId", (req, res) => {
+  const deleted = deleteDraft(req.params.accountId, req.params.draftId);
+  res.json({ ok: deleted });
+});
+
+// Parameterised routes AFTER named routes
+app.post("/api/accounts/:accountId/messages/:messageId/read", (req, res) => {
+  const msg = markMessageRead(req.params.accountId, req.params.messageId);
+  if (!msg) {
+    res.status(404).json({ error: "Message not found." });
+    return;
+  }
+  res.json({ message: msg });
+});
+
+app.post("/api/accounts/:accountId/messages/:messageId/move", (req, res) => {
+  const folder = String(req.body?.folder || "").trim();
+  const msg = moveMessage(req.params.accountId, req.params.messageId, folder);
+  if (!msg) {
+    res.status(400).json({ error: "Invalid folder or message not found." });
+    return;
+  }
+  res.json({ message: msg });
+});
+
+app.post("/api/market/orders", requireAuth, (req, res) => {
+  const { type, item, quantity, unitPrice } = req.body ?? {};
+
+  const account = getAccountById(req.auth.accountId);
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  if (!type || !item || !quantity || !unitPrice || type !== "sell") {
     res.status(400).json({ error: "Missing required order fields." });
+    return;
+  }
+
+  const normalizedQty = Math.max(1, Number(quantity));
+  const normalizedUnitPrice = Math.max(1, Number(unitPrice));
+
+  let rejectReason = "";
+  const updatedSeller = mutateAccountState(req.auth.accountId, (state) => {
+    const inventory = state.corp.inventory || {};
+    const available = Number(inventory[item] || 0);
+    if (available < normalizedQty) {
+      rejectReason = "Quantity exceeds available inventory.";
+      return;
+    }
+
+    inventory[item] = available - normalizedQty;
+    if (inventory[item] <= 0) {
+      delete inventory[item];
+    }
+    state.corp.inventory = inventory;
+  });
+
+  if (!updatedSeller || rejectReason) {
+    res.status(400).json({ error: rejectReason || "Unable to create sell order." });
     return;
   }
 
@@ -496,10 +958,11 @@ app.post("/api/market/orders", (req, res) => {
     id: `ord-${Date.now()}`,
     type,
     item,
-    quantity: Number(quantity),
-    unitPrice: Number(unitPrice),
-    seller: type === "sell" ? actor || "Anonymous" : undefined,
-    buyer: type === "buy" ? actor || "Anonymous" : undefined
+    quantity: normalizedQty,
+    unitPrice: normalizedUnitPrice,
+    seller: updatedSeller.state?.corp?.corporationName || updatedSeller.email || "Anonymous",
+    sellerAccountId: updatedSeller.id,
+    createdAt: Date.now()
   };
 
   mutateState((draft) => {
@@ -508,10 +971,99 @@ app.post("/api/market/orders", (req, res) => {
   });
 
   io.emit("market:updated", getState().market);
-  res.json({ ok: true, order });
+  res.json({ ok: true, order, account: updatedSeller });
 });
 
-app.post("/api/investments", (req, res) => {
+app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
+  const orderId = String(req.params.orderId || "").trim();
+  const requestedQty = Math.max(1, Number(req.body?.quantity || 1));
+  const normalizeIdentity = (value) => String(value || "").trim().toLowerCase();
+
+  const buyerAccount = getAccountById(req.auth.accountId);
+  if (!buyerAccount) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  const market = getState().market;
+  const order = (market.orderBook || []).find((entry) => entry.id === orderId && entry.type === "sell");
+  if (!order) {
+    res.status(404).json({ error: "Sell order not found." });
+    return;
+  }
+
+  if (requestedQty > Number(order.quantity || 0)) {
+    res.status(400).json({ error: "Requested quantity exceeds available sell order volume." });
+    return;
+  }
+
+  const buyerCorpName = normalizeIdentity(buyerAccount.state?.corp?.corporationName);
+  const buyerEmail = normalizeIdentity(buyerAccount.email);
+  const sellerName = normalizeIdentity(order.seller);
+  const isOwnOrderByAccount = Boolean(order.sellerAccountId) && order.sellerAccountId === req.auth.accountId;
+  const isOwnOrderByIdentity = !order.sellerAccountId && Boolean(sellerName) && (sellerName === buyerCorpName || sellerName === buyerEmail);
+
+  if (isOwnOrderByAccount || isOwnOrderByIdentity) {
+    res.status(400).json({ error: "You cannot buy your own sell order." });
+    return;
+  }
+
+  const tradeQuantity = requestedQty;
+  const tradeTotal = tradeQuantity * Number(order.unitPrice || 0);
+  let rejectReason = "";
+
+  const buyer = mutateAccountState(req.auth.accountId, (state) => {
+    const corp = state.corp;
+    if (Number(corp.finances.credits || 0) < tradeTotal) {
+      rejectReason = "Insufficient credits to execute this buy order.";
+      return;
+    }
+
+    corp.finances.credits -= tradeTotal;
+    if (!corp.inventory[order.item]) {
+      corp.inventory[order.item] = 0;
+    }
+    corp.inventory[order.item] += tradeQuantity;
+  });
+
+  if (!buyer || rejectReason) {
+    res.status(400).json({ error: rejectReason || "Unable to execute buy order." });
+    return;
+  }
+
+  if (order.sellerAccountId) {
+    mutateAccountState(order.sellerAccountId, (state) => {
+      state.corp.finances.credits += tradeTotal;
+      state.corp.finances.dailyRevenue += Math.round(tradeTotal / 24);
+    });
+  }
+
+  mutateState((draft) => {
+    const target = draft.market.orderBook.find((entry) => entry.id === orderId && entry.type === "sell");
+    if (!target) {
+      return;
+    }
+    target.quantity = Math.max(0, Number(target.quantity || 0) - tradeQuantity);
+    if (target.quantity <= 0) {
+      draft.market.orderBook = draft.market.orderBook.filter((entry) => entry.id !== target.id);
+    }
+  });
+
+  io.emit("market:updated", getState().market);
+  res.json({
+    ok: true,
+    traded: {
+      orderId,
+      item: order.item,
+      quantity: tradeQuantity,
+      unitPrice: Number(order.unitPrice || 0),
+      total: tradeTotal
+    },
+    account: buyer
+  });
+});
+
+app.post("/api/investments", requireAuth, (req, res) => {
   const { targetCorp, amount, instrument } = req.body ?? {};
 
   if (!targetCorp || !amount || !instrument) {
@@ -527,19 +1079,19 @@ app.post("/api/investments", (req, res) => {
     createdAt: Date.now()
   };
 
-  let accepted = false;
   let rejectReason = "";
 
-  mutateState((draft) => {
+  const account = mutateAccountState(req.auth.accountId, (state) => {
+    const draft = state;
     const spend = Number(amount);
 
-    if (draft.corp.finances.credits < spend) {
-      rejectReason = "Insufficient credits to place investment.";
+    if (Number(draft.corp.level || 0) < DIRECT_INVESTMENT_UNLOCK_LEVEL) {
+      rejectReason = `Direct investments unlock at Corporation Level ${DIRECT_INVESTMENT_UNLOCK_LEVEL}.`;
       return;
     }
 
-    if ((draft.corp.finances.liquidity || 0) < spend) {
-      rejectReason = "Insufficient liquidity to place investment.";
+    if (draft.corp.finances.credits < spend) {
+      rejectReason = "Insufficient credits to place investment.";
       return;
     }
 
@@ -549,17 +1101,15 @@ app.post("/api/investments", (req, res) => {
 
     draft.corp.investments.unshift(investment);
     draft.corp.finances.credits -= spend;
-    draft.corp.finances.liquidity = Math.max(0, (draft.corp.finances.liquidity || 0) - spend);
-    accepted = true;
   });
 
-  if (!accepted) {
+  if (!account || rejectReason) {
     res.status(400).json({ error: rejectReason || "Investment request rejected." });
     return;
   }
 
-  io.emit("finance:updated", getState().corp.finances);
-  res.json({ ok: true, investment });
+  io.emit("finance:updated", account.state.corp.finances);
+  res.json({ ok: true, investment, account });
 });
 
 app.post("/api/combat/simulate", (req, res) => {
@@ -597,11 +1147,16 @@ io.on("connection", (socket) => {
   socket.emit("state:init", getState());
 
   socket.on("chat:send", (payload) => {
+    const content = stripHtml(payload?.content || "");
+    if (!content) {
+      return;
+    }
+
     const message = {
       id: `msg-${Date.now()}`,
       channel: payload?.channel || "global",
-      author: payload?.author || "Anonymous",
-      content: payload?.content || "",
+      author: stripHtml(payload?.author || "Anonymous") || "Anonymous",
+      content,
       createdAt: Date.now()
     };
 

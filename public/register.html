@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ISP Registration Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="scripts/starfield.js" defer></script>
+    <script src="scripts/register-page.js" defer></script>
+  </head>
+  <body>
+    <canvas id="starfield-canvas" aria-hidden="true"></canvas>
+    <div class="app-bg" aria-hidden="true"></div>
+
+    <main class="auth-shell login-shell">
+      <section class="login-card" aria-labelledby="register-title">
+        <p class="hero-overline">EARTH ASSEMBLY ACT 2147</p>
+        <h1 id="register-title" class="login-title">Corporate Charter Portal</h1>
+        <p class="hero-tagline">"Every empire begins as approved paperwork."</p>
+        <p class="login-copy">
+          File your corporation charter below to establish a new command identity, register a secure account,
+          and enter the Interstellar Settlement Protocol under your own executive authority.
+        </p>
+
+        <form id="register-form" class="login-form" novalidate>
+          <label for="register-email">Email</label>
+          <input id="register-email" name="email" type="email" autocomplete="email" required placeholder="ceo@corporation.com" />
+
+          <label for="register-password">Password</label>
+          <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="Minimum 8 characters" />
+
+          <label for="register-ceo">CEO Name</label>
+          <input id="register-ceo" name="ceoName" required maxlength="40" value="New CEO" />
+
+          <label for="register-corp">Corporation Name</label>
+          <input id="register-corp" name="corpName" required maxlength="80" value="Frontier Protocol Ventures" />
+
+          <p id="register-status" class="login-status" aria-live="polite"></p>
+
+          <div class="login-actions">
+            <button class="btn-hero btn-hero-fill" type="submit">Register And Continue</button>
+            <a href="/login.html" class="btn-hero btn-hero-outline">Back To Login</a>
+            <a href="/" class="btn-hero btn-hero-outline">Return To Landing Page</a>
+          </div>
+        </form>
+      </section>
+    </main>
+  </body>
+  </html>

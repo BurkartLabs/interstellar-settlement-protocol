@@ -7,10 +7,21 @@ const CLUSTER_LAYOUT = {
   "epsilon-eridani": { x: 0.83, y: 0.3 }
 };
 
-const BODY_COLORS = {
-  Planet: "rgba(216, 235, 245, 0.95)",
-  Moon: "rgba(150, 190, 230, 0.95)",
-  Field: "rgba(0, 247, 255, 0.68)"
+const FALLBACK_PLANET_STYLE = {
+  base: "#9bb4c8",
+  shadow: "#2a3d4f",
+  glow: "rgba(120, 200, 255, 0.35)"
+};
+
+const PLANET_STYLE = {
+  mercury: { base: "#a39b8f", shadow: "#645e58", glow: "rgba(200, 180, 150, 0.35)" },
+  venus: { base: "#d8b56a", shadow: "#8e6f3d", glow: "rgba(240, 190, 100, 0.4)" },
+  earth: { base: "#3f84d8", shadow: "#24508d", glow: "rgba(70, 150, 255, 0.45)" },
+  mars: { base: "#d97852", shadow: "#8f3f2b", glow: "rgba(240, 125, 86, 0.45)" },
+  jupiter: { base: "#d1a97e", shadow: "#7d6248", glow: "rgba(230, 185, 135, 0.35)" },
+  saturn: { base: "#d7c58a", shadow: "#82754d", glow: "rgba(230, 210, 140, 0.35)" },
+  uranus: { base: "#7ec9d6", shadow: "#3d7a84", glow: "rgba(130, 220, 230, 0.35)" },
+  neptune: { base: "#5478d6", shadow: "#32488a", glow: "rgba(96, 130, 230, 0.4)" }
 };
 
 function overlayColor(system, overlay) {
@@ -58,6 +69,90 @@ function generatedComposition(body) {
   }));
 }
 
+function styleForBody(body) {
+  return PLANET_STYLE[body.id] || FALLBACK_PLANET_STYLE;
+}
+
+function drawPlanet(ctx, body, x, y, radius) {
+  const style = styleForBody(body);
+  const gradient = ctx.createRadialGradient(x - radius * 0.35, y - radius * 0.35, 1, x, y, radius * 1.1);
+  gradient.addColorStop(0, style.base);
+  gradient.addColorStop(1, style.shadow);
+
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(x - radius * 0.32, y - radius * 0.28, radius * 0.2, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(x, y, radius + 3, 0, Math.PI * 2);
+  ctx.strokeStyle = style.glow;
+  ctx.stroke();
+
+  if (body.id === "saturn") {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-0.28);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, radius * 1.75, radius * 0.68, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(220, 200, 140, 0.7)";
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawAsteroidBelt(ctx, cx, cy, radius) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(155, 185, 205, 0.25)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  for (let i = 0; i < 120; i += 1) {
+    const t = (i / 120) * Math.PI * 2;
+    const jitter = ((i * 37) % 13) - 6;
+    const r = radius + jitter;
+    const x = cx + Math.cos(t) * r;
+    const y = cy + Math.sin(t) * r;
+    const s = (i % 3) + 1;
+    ctx.fillStyle = i % 7 === 0 ? "rgba(190, 210, 230, 0.72)" : "rgba(145, 170, 195, 0.58)";
+    ctx.fillRect(x, y, s, s);
+  }
+}
+
+function asteroidKey(systemId, bodyId, index) {
+  return `${systemId}:${bodyId}:ast-${index}`;
+}
+
+function asteroidPoint(systemId, bodyId, index, cx, cy, radius) {
+  const seed = hashSeed(asteroidKey(systemId, bodyId, index));
+  const angle = ((seed % 3600) / 3600) * Math.PI * 2;
+  const radialOffset = ((seed >> 4) % 13) - 6;
+  const ringRadius = Math.max(8, radius + radialOffset);
+  const x = cx + Math.cos(angle) * ringRadius;
+  const y = cy + Math.sin(angle) * ringRadius;
+  const size = ((seed >> 8) % 3) + 1;
+  return { x, y, size, angle, ringRadius };
+}
+
+function asteroidComposition(seedKey) {
+  const seed = hashSeed(seedKey);
+  const profiles = [
+    "Silicate-rich",
+    "Nickel-iron",
+    "Carbonaceous",
+    "Volatile-rich",
+    "Mixed ore"
+  ];
+  return profiles[seed % profiles.length];
+}
+
 export function createStarmapController({
   canvas,
   fallbackEl,
@@ -74,6 +169,7 @@ export function createStarmapController({
     view: "cluster",
     selectedSystemId: null,
     selectedBodyId: null,
+    selectedAsteroidId: null,
     clickTargets: []
   };
 
@@ -190,31 +286,60 @@ export function createStarmapController({
     renderDetails();
   }
 
+  function drawBackButton(label = "Back", x = 88, y = 36) {
+    const paddingX = 12;
+    const height = 30;
+    const textWidth = ctx.measureText(label).width;
+    const width = Math.max(88, Math.ceil(textWidth + paddingX * 2));
+
+    ctx.fillStyle = "rgba(17, 34, 51, 0.92)";
+    ctx.strokeStyle = "rgba(0, 247, 255, 0.42)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x - width / 2, y - height / 2, width, height, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(216, 235, 245, 0.94)";
+    ctx.font = "11px Inter";
+    ctx.fillText(label, x - textWidth / 2, y + 4);
+
+    return width;
+  }
+
   function drawSystemView(system) {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
     const cx = width / 2;
     const cy = height / 2;
 
-    state.clickTargets = [
-      {
-        type: "back",
-        x: 76,
-        y: 36,
-        radius: 32
-      }
-    ];
+    state.clickTargets = [];
 
-    ctx.fillStyle = "rgba(255, 170, 51, 0.9)";
+    const backWidth = drawBackButton("Back To Cluster", 102, 36);
+    state.clickTargets.push({
+      type: "back",
+      x: 102,
+      y: 36,
+      radius: Math.max(36, backWidth * 0.55)
+    });
+
     ctx.beginPath();
-    ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255, 170, 51, 0.92)";
     ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 24, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255, 170, 51, 0.35)";
+    ctx.stroke();
 
-    const bodies = system?.bodies || [];
-    const maxOrbit = Math.max(1, ...bodies.map((body) => Math.abs(body.x) + Math.abs(body.y)));
+    const bodies = (system?.bodies || []).filter((body) => body.type === "Planet" || body.type === "Field");
+    const moons = (system?.bodies || []).filter((body) => body.type === "Moon");
+    const bodyPositions = new Map();
+    const maxOrbitX = Math.max(1, ...bodies.map((body) => Number(body.x || 0)));
+    const orbitLimit = Math.min(width, height) * 0.42;
 
     bodies.forEach((body, index) => {
-      const orbit = ((Math.abs(body.x) + Math.abs(body.y)) / maxOrbit) * (Math.min(width, height) * 0.34) + 42;
+      const orbit = ((Number(body.x || 0) / maxOrbitX) * orbitLimit) + 56;
       const angle = (index / Math.max(1, bodies.length)) * Math.PI * 2;
       const x = cx + Math.cos(angle) * orbit;
       const y = cy + Math.sin(angle) * orbit;
@@ -222,19 +347,31 @@ export function createStarmapController({
       ctx.beginPath();
       ctx.arc(cx, cy, orbit, 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(120, 180, 220, 0.14)";
+      ctx.lineWidth = 1;
       ctx.stroke();
 
-      ctx.beginPath();
-      ctx.arc(x, y, Math.max(3, body.radius), 0, Math.PI * 2);
-      ctx.fillStyle = BODY_COLORS[body.type] || "rgba(216, 235, 245, 0.9)";
-      ctx.fill();
+      if (body.type === "Field") {
+        const beltRadius = Math.max(10, body.radius + 5);
+        drawAsteroidBelt(ctx, x, y, beltRadius);
 
-      if (body.type === "Planet") {
-        ctx.beginPath();
-        ctx.arc(x, y, Math.max(3, body.radius) + 5, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255, 170, 51, 0.28)";
-        ctx.stroke();
+        // Create individual clickable asteroid targets within the belt.
+        for (let i = 0; i < 36; i += 1) {
+          const pt = asteroidPoint(system.id, body.id, i, x, y, beltRadius);
+          state.clickTargets.push({
+            type: "asteroid",
+            systemId: system.id,
+            bodyId: body.id,
+            asteroidId: asteroidKey(system.id, body.id, i),
+            x: pt.x,
+            y: pt.y,
+            radius: Math.max(5, pt.size + 2)
+          });
+        }
+      } else {
+        drawPlanet(ctx, body, x, y, Math.max(4, body.radius));
       }
+
+      bodyPositions.set(body.id, { x, y, radius: Math.max(4, body.radius) });
 
       ctx.fillStyle = "rgba(216, 235, 245, 0.92)";
       ctx.font = "11px Inter";
@@ -246,11 +383,46 @@ export function createStarmapController({
         bodyId: body.id,
         x,
         y,
-        radius: Math.max(8, body.radius + 8)
+        radius: Math.max(10, body.radius + 8)
       });
     });
 
-    drawBackButton();
+    moons.forEach((moon, idx) => {
+      const parent = bodyPositions.get(moon.parentId);
+      if (!parent) {
+        return;
+      }
+
+      const moonOrbit = parent.radius + 16 + (idx % 3) * 9;
+      const angle = ((idx * 97) % 360) * (Math.PI / 180);
+      const x = parent.x + Math.cos(angle) * moonOrbit;
+      const y = parent.y + Math.sin(angle) * moonOrbit;
+      const moonRadius = Math.max(2, moon.radius || 2);
+
+      ctx.beginPath();
+      ctx.arc(parent.x, parent.y, moonOrbit, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(120, 180, 220, 0.11)";
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(x, y, moonRadius, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(158, 194, 224, 0.95)";
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(216, 235, 245, 0.9)";
+      ctx.font = "10px Inter";
+      ctx.fillText(moon.name, x + 6, y - 4);
+
+      state.clickTargets.push({
+        type: "body",
+        systemId: system.id,
+        bodyId: moon.id,
+        x,
+        y,
+        radius: Math.max(8, moonRadius + 6)
+      });
+    });
+
     renderDetails();
   }
 
@@ -260,56 +432,103 @@ export function createStarmapController({
     const cx = width / 2;
     const cy = height / 2;
 
-    state.clickTargets = [
-      { type: "back-to-system", x: 96, y: 36, radius: 36 },
-      { type: "back-to-cluster", x: 228, y: 36, radius: 40 }
-    ];
+    state.clickTargets = [];
+    const backSysWidth = drawBackButton("Back To System", 108, 36);
+    const backClusterWidth = drawBackButton("Back To Cluster", 250, 36);
 
-    const radius = Math.min(width, height) * 0.16;
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fillStyle = body.type === "Moon" ? "rgba(150, 190, 230, 0.92)" : "rgba(216, 235, 245, 0.95)";
-    ctx.fill();
+    state.clickTargets.push({ type: "back-to-system", x: 108, y: 36, radius: Math.max(40, backSysWidth * 0.55) });
+    state.clickTargets.push({ type: "back-to-cluster", x: 250, y: 36, radius: Math.max(42, backClusterWidth * 0.55) });
 
-    const moons = (system.bodies || []).filter((item) => item.type === "Moon" && item.id !== body.id);
-    moons.forEach((moon, idx) => {
-      const orbit = radius + 42 + idx * 24;
-      const angle = (idx / Math.max(1, moons.length)) * Math.PI * 2;
-      const x = cx + Math.cos(angle) * orbit;
-      const y = cy + Math.sin(angle) * orbit;
+    if (body.type === "Field") {
+      const beltRadius = Math.min(width, height) * 0.2;
+      drawAsteroidBelt(ctx, cx, cy, beltRadius);
 
-      ctx.beginPath();
-      ctx.arc(cx, cy, orbit, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(120, 180, 220, 0.15)";
-      ctx.stroke();
+      for (let i = 0; i < 64; i += 1) {
+        const pt = asteroidPoint(system.id, body.id, i, cx, cy, beltRadius);
+        state.clickTargets.push({
+          type: "asteroid",
+          systemId: system.id,
+          bodyId: body.id,
+          asteroidId: asteroidKey(system.id, body.id, i),
+          x: pt.x,
+          y: pt.y,
+          radius: Math.max(5, pt.size + 2)
+        });
+      }
+    } else {
+      const radius = Math.min(width, height) * 0.15;
+      drawPlanet(ctx, body, cx, cy, radius);
 
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(150, 190, 230, 0.95)";
-      ctx.fill();
+      const moons = (system.bodies || []).filter((item) => item.type === "Moon" && item.parentId === body.id);
+      moons.forEach((moon, idx) => {
+        const orbit = radius + 36 + idx * 26;
+        const angle = (idx / Math.max(1, moons.length)) * Math.PI * 2;
+        const x = cx + Math.cos(angle) * orbit;
+        const y = cy + Math.sin(angle) * orbit;
 
-      ctx.fillStyle = "rgba(216, 235, 245, 0.92)";
-      ctx.font = "11px Inter";
-      ctx.fillText(moon.name, x + 8, y - 4);
-    });
+        ctx.beginPath();
+        ctx.arc(cx, cy, orbit, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(120, 180, 220, 0.16)";
+        ctx.stroke();
 
-    drawBackButton("Back To System", 96, 36);
-    drawBackButton("Back To Cluster", 228, 36);
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(3, moon.radius), 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(158, 194, 224, 0.94)";
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(216, 235, 245, 0.9)";
+        ctx.font = "11px Inter";
+        ctx.fillText(moon.name, x + 8, y - 4);
+
+        state.clickTargets.push({
+          type: "body",
+          systemId: system.id,
+          bodyId: moon.id,
+          x,
+          y,
+          radius: Math.max(8, moon.radius + 6)
+        });
+      });
+    }
+
     renderDetails();
   }
 
-  function drawBackButton(label = "Back", x = 76, y = 36) {
-    ctx.fillStyle = "rgba(17, 34, 51, 0.9)";
-    ctx.strokeStyle = "rgba(0, 247, 255, 0.42)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.roundRect(x - 46, y - 15, 92, 30, 8);
-    ctx.fill();
-    ctx.stroke();
+  function drawAsteroidView(system, body, asteroidId) {
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    const cx = width / 2;
+    const cy = height / 2;
 
-    ctx.fillStyle = "rgba(216, 235, 245, 0.94)";
-    ctx.font = "11px Inter";
-    ctx.fillText(label, x - 30, y + 4);
+    state.clickTargets = [];
+    const backBodyWidth = drawBackButton("Back To Belt", 98, 36);
+    const backSystemWidth = drawBackButton("Back To System", 228, 36);
+
+    state.clickTargets.push({ type: "back-to-body", x: 98, y: 36, radius: Math.max(38, backBodyWidth * 0.55) });
+    state.clickTargets.push({ type: "back-to-system", x: 228, y: 36, radius: Math.max(38, backSystemWidth * 0.55) });
+
+    const seed = hashSeed(asteroidId || `${system.id}:${body.id}:ast-0`);
+    const radius = Math.min(width, height) * 0.11;
+
+    const rockGradient = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, 1, cx, cy, radius * 1.2);
+    rockGradient.addColorStop(0, "rgba(186, 198, 211, 0.96)");
+    rockGradient.addColorStop(1, "rgba(92, 108, 126, 0.96)");
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = rockGradient;
+    ctx.fill();
+
+    for (let i = 0; i < 6; i += 1) {
+      const t = ((seed >> (i + 2)) % 360) * (Math.PI / 180);
+      const r = radius * (0.32 + ((seed >> (i + 5)) % 28) / 100);
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(t) * r, cy + Math.sin(t) * r, 3 + (i % 3), 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(56, 72, 88, 0.72)";
+      ctx.fill();
+    }
+
+    renderDetails();
   }
 
   function getSelectedSystem() {
@@ -335,13 +554,14 @@ export function createStarmapController({
     if (state.view === "cluster") {
       detailsEl.innerHTML = `
         <h3>Star Cluster</h3>
-        <p class="muted">Select a system to enter fixed solar view mode. Mouse wheel and drag are disabled for stable navigation.</p>
+        <p class="muted">Select a system to enter solar view mode.</p>
       `;
       return;
     }
 
     if (state.view === "system" && system) {
       const bodyLines = (system.bodies || [])
+        .filter((entry) => entry.type === "Planet" || entry.type === "Field")
         .map((entry) => `<li>${entry.name} (${entry.type})</li>`)
         .join("");
       detailsEl.innerHTML = `
@@ -379,6 +599,16 @@ export function createStarmapController({
           render();
         });
       }
+    }
+
+    if (state.view === "asteroid" && system && body) {
+      const asteroidId = state.selectedAsteroidId || `${system.id}:${body.id}:ast-0`;
+      const profile = asteroidComposition(asteroidId);
+      detailsEl.innerHTML = `
+        <h3>Asteroid Sample - ${body.name}</h3>
+        <p class="muted">Catalog ID: ${asteroidId.split(":").slice(-1)[0]} | Composition class: ${profile}</p>
+        <p class="muted">Detailed yield simulation and claim mechanics can be added to this body-level asteroid selector.</p>
+      `;
     }
   }
 
@@ -424,6 +654,11 @@ export function createStarmapController({
       return;
     }
 
+    if (state.view === "asteroid" && system && body) {
+      drawAsteroidView(system, body, state.selectedAsteroidId);
+      return;
+    }
+
     state.view = "cluster";
     drawClusterView();
   }
@@ -453,7 +688,17 @@ export function createStarmapController({
     if (hit.type === "body") {
       state.selectedSystemId = hit.systemId;
       state.selectedBodyId = hit.bodyId;
+      state.selectedAsteroidId = null;
       state.view = "body";
+      render();
+      return;
+    }
+
+    if (hit.type === "asteroid") {
+      state.selectedSystemId = hit.systemId;
+      state.selectedBodyId = hit.bodyId;
+      state.selectedAsteroidId = hit.asteroidId;
+      state.view = "asteroid";
       render();
       return;
     }
@@ -461,6 +706,7 @@ export function createStarmapController({
     if (hit.type === "back") {
       state.view = "cluster";
       state.selectedBodyId = null;
+      state.selectedAsteroidId = null;
       render();
       return;
     }
@@ -468,6 +714,14 @@ export function createStarmapController({
     if (hit.type === "back-to-system") {
       state.view = "system";
       state.selectedBodyId = null;
+      state.selectedAsteroidId = null;
+      render();
+      return;
+    }
+
+    if (hit.type === "back-to-body") {
+      state.view = "body";
+      state.selectedAsteroidId = null;
       render();
       return;
     }
@@ -475,6 +729,7 @@ export function createStarmapController({
     if (hit.type === "back-to-cluster") {
       state.view = "cluster";
       state.selectedBodyId = null;
+      state.selectedAsteroidId = null;
       render();
     }
   }
@@ -536,6 +791,7 @@ export function createStarmapController({
       if (!state.systems.some((item) => item.id === state.selectedSystemId)) {
         state.selectedSystemId = state.systems[0]?.id || null;
         state.selectedBodyId = null;
+        state.selectedAsteroidId = null;
         state.view = "cluster";
       }
       render();
@@ -546,6 +802,10 @@ export function createStarmapController({
       render();
     },
     rerender() {
+      render();
+    },
+    resize() {
+      setCanvasSize();
       render();
     }
   };
