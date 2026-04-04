@@ -416,7 +416,7 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
     const corp = state.corp;
     const available = Math.max(0, corp.employeeCap - corp.employeeCount);
     const hired = Math.min(count, available);
-    const hireCost = hired * 1200;
+    const hireCost = hired * 2000;
 
     if (hired <= 0) {
       outcome = "no-capacity";
@@ -430,7 +430,7 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
 
     corp.employeeCount += hired;
     corp.finances.credits -= hireCost;
-    corp.finances.dailyCosts += hired * 36;
+    corp.finances.dailyCosts += hired * 150;
     hiredCount = hired;
   });
 
@@ -443,7 +443,7 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
     const corp = account.state.corp;
     const messageMap = {
       "no-capacity": `Employee cap reached. Current staffing is ${corp.employeeCount}/${corp.employeeCap}.`,
-      "insufficient-credits": fundingRequirementMessage("Hiring", corp, count * 1200)
+      "insufficient-credits": fundingRequirementMessage("Hiring", corp, count * 2000)
     };
     res.status(400).json({ error: messageMap[outcome] || "Hire action failed." });
     return;
@@ -836,7 +836,7 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
     }
     extractorCap = Number(corp.unlocks.maxBasicExtractorYards || 1);
     currentExtractorCount = (corp.buildings || []).filter((b) => b.name === "Basic Extractor Yard").length;
-    const buildCost = 65000;
+    const buildCost = 50000;
 
     if (currentExtractorCount >= extractorCap) {
       outcome = "extractor-cap";
@@ -894,7 +894,7 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
       "insufficient-credits": fundingRequirementMessage(
         "Basic Extractor Yard construction",
         corp,
-        65000,
+        50000,
         `It also requires 1 open building slot. Current usage: ${corp.buildings.length}/${corp.buildingSlots}.`
       )
     };

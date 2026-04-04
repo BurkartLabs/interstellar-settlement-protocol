@@ -694,9 +694,9 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
     },
     finances: {
       ...next.corp.finances,
-      credits: 150000,
+      credits: 250000,
       liabilities: 0,
-      assets: 150000,
+      assets: 0,
       dailyRevenue: 0,
       dailyCosts: 0,
       taxRatePct: 14,

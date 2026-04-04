@@ -406,22 +406,25 @@
           </article>
 
           <article id="rnd" class="tab-panel">
-            <h2>Corporate R&D Queue</h2>
-            <p class="muted">Queue permanent unlocks from your tech tree. Advanced nodes require prerequisites.</p>
-            <div id="rnd-tech-tree" class="card-grid"></div>
-            <section class="form-card action-surface research-panel">
-              <h3>Add Research To Queue</h3>
-              <form id="rnd-form" class="inline-form">
-                <label>
-                  Available Research
-                  <select id="rnd-select" required></select>
-                </label>
-                <button class="btn btn-accent" type="submit">Add To Corporate R&D Queue</button>
-              </form>
-              <p id="rnd-selected-details" class="muted action-hint"></p>
-              <p id="rnd-status" class="muted"></p>
-            </section>
-            <div id="rnd-queue" class="queue-list"></div>
+            <h2>Corporate R&D</h2>
+            <p class="muted">One technology researches at a time. Queue additional nodes — they activate automatically when the active slot clears.</p>
+            <div class="rnd-panel">
+              <div class="rnd-panel__section rnd-panel__section--queue">
+                <p class="rnd-panel__label">ACTIVE &amp; QUEUED</p>
+                <div id="rnd-queue" class="queue-list"></div>
+              </div>
+              <div class="rnd-panel__section rnd-panel__section--available">
+                <p class="rnd-panel__label">AVAILABLE RESEARCH</p>
+                <div id="rnd-tech-tree"></div>
+                <p id="rnd-status" class="muted rnd-status-note"></p>
+              </div>
+            </div>
+            <!-- Ghost form: submit logic only, visually hidden -->
+            <form id="rnd-form" class="rnd-form-ghost">
+              <select id="rnd-select" required></select>
+              <button class="btn btn-accent" type="submit"></button>
+              <p id="rnd-selected-details"></p>
+            </form>
           </article>
 
           <article id="ceo" class="tab-panel">

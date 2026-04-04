@@ -546,9 +546,9 @@ function createNewPlayerState(baseState, ceoName, corpName) {
     },
     finances: {
       ...next.corp.finances,
-      credits: 150000,
+      credits: 250000,
       liabilities: 0,
-      assets: 150000,
+      assets: 0,
       dailyRevenue: 0,
       dailyCosts: 0,
       taxRatePct: 14,
@@ -639,24 +639,7 @@ function renderTechTree(data) {
   const done = new Set(data.corp.unlockedTech || []);
   const inQueue = new Set((data.queues.corporateRnD || []).map((item) => item.techId).filter(Boolean));
 
-  treeWrap.innerHTML = techTree
-    .map((node) => {
-      const prereqLabel = node.prereqs.length ? node.prereqs.map((id) => techTree.find((it) => it.id === id)?.name).join(", ") : "None";
-      const lockedByReq = !node.prereqs.every((req) => done.has(req));
-      const status = done.has(node.id) ? "Unlocked" : inQueue.has(node.id) ? "Queued" : lockedByReq ? "Locked" : "Available";
-      return `
-      <article class="data-card">
-        <h3>${node.name}</h3>
-        <p>${node.effect}</p>
-        <p class="muted">Duration: ${node.durationHours}h</p>
-        <p class="muted">Funding: ${toCurrency(node.costCredits)} credits</p>
-        <p class="muted">Prerequisites: ${prereqLabel}</p>
-        <p class="muted">Status: ${status}</p>
-      </article>
-    `;
-    })
-    .join("");
-
+  // Still populate the ghost #rnd-select so the existing submit handler can read it
   const select = document.getElementById("rnd-select");
   const options = availableTechNodes(data);
   if (!options.length) {
@@ -664,8 +647,74 @@ function renderTechTree(data) {
     select.disabled = true;
   } else {
     select.disabled = false;
-    select.innerHTML = options.map((node) => `<option value="${node.id}">${node.name} (${node.durationHours}h)</option>`).join("");
+    select.innerHTML = options.map((node) => `<option value="${node.id}">${node.name}</option>`).join("");
   }
+
+  // Render tech rows grouped by status: available → queued → locked → done
+  const rows = techTree
+    .map((node) => {
+      const prereqLabel = node.prereqs.length ? node.prereqs.map((id) => techTree.find((it) => it.id === id)?.name || id).join(", ") : "None";
+      const isDone = done.has(node.id);
+      const isQueued = inQueue.has(node.id);
+      const isLocked = !node.prereqs.every((req) => done.has(req));
+
+      if (isDone) {
+        return `<div class="rnd-row rnd-row--done">
+          <div class="rnd-row__info">
+            <span class="rnd-row__name">${escapeHtml(node.name)}</span>
+            <span class="rnd-row__effect">${escapeHtml(node.effect)}</span>
+          </div>
+          <span class="rnd-row__badge rnd-row__badge--done">✓ COMPLETE</span>
+        </div>`;
+      }
+
+      if (isQueued) {
+        return `<div class="rnd-row rnd-row--queued">
+          <div class="rnd-row__info">
+            <span class="rnd-row__name">${escapeHtml(node.name)}</span>
+            <span class="rnd-row__effect">${escapeHtml(node.effect)}</span>
+            <span class="rnd-row__meta">${node.durationHours}h &middot; ${toCurrency(node.costCredits)}</span>
+          </div>
+          <span class="rnd-row__badge rnd-row__badge--queued">IN QUEUE</span>
+        </div>`;
+      }
+
+      if (isLocked) {
+        return `<div class="rnd-row rnd-row--locked">
+          <div class="rnd-row__info">
+            <span class="rnd-row__name">${escapeHtml(node.name)}</span>
+            <span class="rnd-row__effect">${escapeHtml(node.effect)}</span>
+            <span class="rnd-row__meta">Requires: ${escapeHtml(prereqLabel)}</span>
+          </div>
+          <span class="rnd-row__badge rnd-row__badge--locked">LOCKED</span>
+        </div>`;
+      }
+
+      // Available — show enqueue button
+      return `<div class="rnd-row rnd-row--available">
+        <div class="rnd-row__info">
+          <span class="rnd-row__name">${escapeHtml(node.name)}</span>
+          <span class="rnd-row__effect">${escapeHtml(node.effect)}</span>
+          <span class="rnd-row__meta">${node.durationHours}h &middot; ${toCurrency(node.costCredits)} &middot; Prereqs: ${escapeHtml(prereqLabel)}</span>
+        </div>
+        <button class="btn btn-accent rnd-enqueue-btn" type="button" data-tech-id="${node.id}">+ Enqueue</button>
+      </div>`;
+    })
+    .join("");
+
+  treeWrap.innerHTML = rows || '<p class="muted">No research nodes configured.</p>';
+
+  // Event delegation — reassignment avoids listener stacking across re-renders
+  treeWrap.onclick = (e) => {
+    const btn = e.target.closest(".rnd-enqueue-btn");
+    if (!btn) return;
+    const techId = btn.getAttribute("data-tech-id");
+    const rndSelect = document.getElementById("rnd-select");
+    const rndForm = document.getElementById("rnd-form");
+    if (!rndSelect || !rndForm || !techId) return;
+    rndSelect.value = techId;
+    rndForm.requestSubmit();
+  };
 
   renderResearchSelectionDetails(data);
 }
@@ -819,7 +868,7 @@ function renderOrbitalExecutiveSuites(building, data) {
 
     <section class="form-card action-surface" style="margin-top:1rem;">
       <h3>Workforce — Hire Personnel</h3>
-      <p class="muted">Recruit employees through your registered office. Each hire costs ${toCurrency(1200)} credits and adds ${toCurrency(36)}/day to operational payroll.</p>
+      <p class="muted">Recruit employees through your registered office. Each hire costs ${toCurrency(2000)} credits and adds ${toCurrency(150)}/day to operational payroll.</p>
       <form id="office-hire-form" class="inline-form compact-action-form">
         <label>
           Head Count
@@ -916,12 +965,12 @@ function bindOfficeActions(building, data) {
           const corp = appState.data.corp;
           const available = Math.max(0, corp.employeeCap - corp.employeeCount);
           const hired = Math.min(count, available);
-          const cost = hired * 1200;
+          const cost = hired * 2000;
           if (hired <= 0) throw new Error("No available headroom to hire additional personnel.");
           if (corp.finances.credits < cost) throw new Error(`Hiring requires ${toCurrency(cost)} credits.`);
           corp.employeeCount += hired;
           corp.finances.credits -= cost;
-          corp.finances.dailyCosts += hired * 36;
+          corp.finances.dailyCosts += hired * 150;
           updateAllViews();
           showStationBuilding(building.id);
         }
@@ -1700,18 +1749,18 @@ function renderActionHints(data) {
   const availableStaffCapacity = Math.max(1, corp.employeeCap - corp.employeeCount);
   const hireCount = Math.max(1, Number(hireInput.value || 1));
   const adjustedHireCount = Math.min(hireCount, availableStaffCapacity);
-  const hireCost = adjustedHireCount * 1200;
+  const hireCost = adjustedHireCount * 2000;
 
   hireInput.max = String(availableStaffCapacity);
   if (Number(hireInput.value || 1) !== adjustedHireCount) {
     hireInput.value = String(adjustedHireCount);
   }
 
-  hireHint.textContent = `Immediate funding: ${toCurrency(hireCost)} credits. Ongoing payroll impact: ${toCurrency(adjustedHireCount * 36)}/day. Available headroom: ${corp.employeeCap - corp.employeeCount} employee(s).`;
+  hireHint.textContent = `Immediate funding: ${toCurrency(hireCost)} credits. Ongoing payroll impact: ${toCurrency(adjustedHireCount * 150)}/day. Available headroom: ${corp.employeeCap - corp.employeeCount} employee(s).`;
 
   const extractorCount = (corp.buildings || []).filter((b) => b.name === "Basic Extractor Yard").length;
   const extractorCap = Number(corp.unlocks?.maxBasicExtractorYards || 1);
-  buildHint.textContent = `Requires 1 free building slot and ${toCurrency(65000)} credits. Current slots: ${corp.buildings.length}/${corp.buildingSlots}. Extractor cap: ${extractorCount}/${extractorCap}.`;
+  buildHint.textContent = `Requires 1 free building slot and ${toCurrency(50000)} credits. Current slots: ${corp.buildings.length}/${corp.buildingSlots}. Extractor cap: ${extractorCount}/${extractorCap}.`;
 
   const throughputPerHour = Math.max(10, Math.min(250, Number(mineInput.value || 80)));
   if (Number(mineInput.value || 80) !== throughputPerHour) {
@@ -2288,7 +2337,7 @@ function bindLevel2Controls() {
     try {
       const account = await runLevel2Action("/gameplay/hire", { count });
       pushFeedback(
-        `Hiring order confirmed. ${count} employee(s) onboarded for ${toCurrency(count * 1200)}. Payroll burn increased by ${toCurrency(count * 36)}/day.`,
+        `Hiring order confirmed. ${count} employee(s) onboarded for ${toCurrency(count * 2000)}. Payroll burn increased by ${toCurrency(count * 150)}/day.`,
         "success"
       );
       flashButtonSuccess(hireForm.querySelector(".btn-accent"));
@@ -2307,7 +2356,7 @@ function bindLevel2Controls() {
     try {
       await runLevel2Action("/gameplay/build-extractor");
       pushFeedback(
-        `Basic Extractor Yard commissioned. ${toCurrency(65000)} capital deployed and your first persistent mining line is now available.`,
+        `Basic Extractor Yard commissioned. ${toCurrency(50000)} capital deployed and your first persistent mining line is now available.`,
         "success"
       );
       flashButtonSuccess(buildBtn);
