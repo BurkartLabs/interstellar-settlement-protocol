@@ -92,6 +92,21 @@ const techTree = [
   }
 ];
 
+const insightPrograms = [
+  { id: "ceo-negotiation-fundamentals", name: "Negotiation Fundamentals", effect: "-2% GEX sales tax", description: "Reduces sales tax on Galactic Exchange sales by 2% (max reduction 6%).", durationHours: 4, costCredits: 10000, prereqs: [], tier: 1, maxLevels: 3, category: "Trade" },
+  { id: "ceo-employee-motivation", name: "Employee Motivation Techniques", effect: "-10% morale decay", description: "Reduces global employee morale decay rate by 10%.", durationHours: 6, costCredits: 14000, prereqs: [], tier: 1, maxLevels: 1, category: "Operations" },
+  { id: "ceo-basic-market-analysis", name: "Basic Market Analysis", effect: "Daily price trend hint", description: "Once per day, reveals a short-term silicate price trend hint.", durationHours: 5, costCredits: 12000, prereqs: [], tier: 1, maxLevels: 1, category: "Trade" },
+  { id: "ceo-isa-regulatory-navigation", name: "ISA Regulatory Navigation", effect: "-5% lease renewal cost", description: "Reduces office lease renewal cost by 5%.", durationHours: 6, costCredits: 15000, prereqs: [], tier: 1, maxLevels: 1, category: "Finance" },
+  { id: "ceo-crisis-management", name: "Crisis Management Protocols", effect: "-25% extractor repair time", description: "Reduces extractor repair time by 25% when downtime occurs.", durationHours: 8, costCredits: 18000, prereqs: ["ceo-employee-motivation"], tier: 2, maxLevels: 1, category: "Operations" },
+  { id: "ceo-team-efficiency", name: "Team Efficiency Protocols", effect: "+3% productivity per employee", description: "+3% productivity per employee (global).", durationHours: 10, costCredits: 22000, prereqs: ["ceo-employee-motivation"], tier: 2, maxLevels: 1, category: "Operations" },
+  { id: "ceo-contract-law", name: "Contract Law Essentials", effect: "+8% mission reward bonus", description: "+8% reward bonus on Logistics Agent missions.", durationHours: 8, costCredits: 20000, prereqs: ["ceo-negotiation-fundamentals"], tier: 2, maxLevels: 1, category: "Trade" },
+  { id: "ceo-risk-assessment", name: "Risk Assessment Framework", effect: "-12% extractor downtime chance", description: "Reduces extractor downtime chance by 12%.", durationHours: 10, costCredits: 25000, prereqs: ["ceo-crisis-management"], tier: 2, maxLevels: 1, category: "Operations" },
+  { id: "ceo-strategic-delegation", name: "Strategic Delegation", effect: "Unlock: Middle Manager", description: "Unlocks ability to hire your first Middle Manager.", durationHours: 14, costCredits: 35000, prereqs: ["ceo-team-efficiency"], tier: 3, maxLevels: 1, category: "Management" },
+  { id: "ceo-bureaucratic-persuasion", name: "Bureaucratic Persuasion", effect: "+15% ISA reputation gains", description: "Increases ISA reputation gains by 15%.", durationHours: 12, costCredits: 30000, prereqs: ["ceo-isa-regulatory-navigation"], tier: 3, maxLevels: 1, category: "Diplomacy" },
+  { id: "ceo-decision-fatigue-reduction", name: "Executive Decision Fatigue Reduction", effect: "+1 max Focus", description: "Increases maximum Focus by +1.", durationHours: 16, costCredits: 40000, prereqs: ["ceo-contract-law", "ceo-risk-assessment"], tier: 3, maxLevels: 1, category: "Leadership" },
+  { id: "ceo-leadership-presence", name: "Leadership Presence", effect: "Focus → morale boost", description: "Focus reports grant a small temporary morale boost to all employees.", durationHours: 18, costCredits: 50000, prereqs: ["ceo-strategic-delegation", "ceo-decision-fatigue-reduction"], tier: 3, maxLevels: 1, category: "Leadership" }
+];
+
 const walkthroughSteps = [
   {
     selector: '.tab-btn[data-tab="inbox"]',
@@ -337,6 +352,48 @@ function deepClone(input) {
     return structuredClone(input);
   }
   return JSON.parse(JSON.stringify(input));
+}
+
+// ─── Trade confirmation modal ────────────────────────────────────────────────
+function getClientExchangeTaxPct() {
+  return Number(appState.data?.corp?.finances?.exchangeSalesTaxPct ?? 8);
+}
+
+function showTradeConfirmation({ heading, title, rows, confirmLabel = "Confirm" }) {
+  const modal = document.getElementById("trade-confirm-modal");
+  const headingEl = document.getElementById("trade-confirm-heading");
+  const titleEl = document.getElementById("trade-confirm-title");
+  const bodyEl = document.getElementById("trade-confirm-body");
+  const okBtn = document.getElementById("trade-confirm-ok");
+  const cancelBtn = document.getElementById("trade-confirm-cancel");
+
+  headingEl.textContent = heading || "Order Confirmation";
+  titleEl.textContent = title || "Confirm Trade";
+  okBtn.textContent = confirmLabel;
+
+  bodyEl.innerHTML = `<table class="trade-confirm-table"><tbody>${rows
+    .map((r) => {
+      const cls = r.highlight ? ` class="trade-confirm-highlight"` : r.muted ? ` class="trade-confirm-muted"` : "";
+      return `<tr${cls}><td>${r.label}</td><td class="trade-confirm-value">${r.value}</td></tr>`;
+    })
+    .join("")}</tbody></table>`;
+
+  modal.hidden = false;
+
+  return new Promise((resolve) => {
+    function cleanup() {
+      modal.hidden = true;
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+      modal.removeEventListener("click", onBackdrop);
+    }
+    function onOk() { cleanup(); resolve(true); }
+    function onCancel() { cleanup(); resolve(false); }
+    function onBackdrop(e) { if (e.target === modal) { cleanup(); resolve(false); } }
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+    modal.addEventListener("click", onBackdrop);
+  });
 }
 
 function getTechNode(techId) {
@@ -759,6 +816,103 @@ function renderTechTree(data) {
   };
 
   renderResearchSelectionDetails(data);
+}
+
+function renderInsightTree(data) {
+  const treeWrap = document.getElementById("ceo-insight-tree");
+  if (!treeWrap) return;
+
+  const completed = data.corp.completedInsights || [];
+  const queue = data.queues?.ceoInsight || [];
+  const queuedIds = queue.map((item) => item.programId).filter(Boolean);
+
+  const rows = insightPrograms
+    .map((prog) => {
+      const completionCount = completed.filter((id) => id === prog.id).length;
+      const queuedCount = queuedIds.filter((id) => id === prog.id).length;
+      const maxLevels = prog.maxLevels || 1;
+      const isDone = completionCount >= maxLevels;
+      const isQueued = queuedCount > 0 && (completionCount + queuedCount >= maxLevels);
+      const isLocked = !prog.prereqs.every((req) => completed.includes(req));
+      const canEnqueue = !isDone && !isQueued && !isLocked && (completionCount + queuedCount < maxLevels);
+      const prereqLabel = prog.prereqs.length
+        ? prog.prereqs.map((id) => insightPrograms.find((p) => p.id === id)?.name || id).join(", ")
+        : "None";
+
+      const levelLabel = maxLevels > 1 ? ` (${completionCount}/${maxLevels})` : "";
+
+      if (isDone) {
+        return `<div class="rnd-row rnd-row--done">
+          <div class="rnd-row__info">
+            <span class="rnd-row__name">${escapeHtml(prog.name)}${levelLabel}</span>
+            <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
+          </div>
+          <span class="rnd-row__badge rnd-row__badge--done">\u2713 COMPLETE</span>
+        </div>`;
+      }
+
+      if (isQueued || queuedCount > 0) {
+        return `<div class="rnd-row rnd-row--queued">
+          <div class="rnd-row__info">
+            <span class="rnd-row__name">${escapeHtml(prog.name)}${levelLabel}</span>
+            <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
+            <span class="rnd-row__meta">${prog.durationHours}h &middot; ${toCurrency(prog.costCredits)}</span>
+          </div>
+          <span class="rnd-row__badge rnd-row__badge--queued">IN QUEUE</span>
+        </div>`;
+      }
+
+      if (isLocked) {
+        return `<div class="rnd-row rnd-row--locked">
+          <div class="rnd-row__info">
+            <span class="rnd-row__name">${escapeHtml(prog.name)}</span>
+            <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
+            <span class="rnd-row__meta">Requires: ${escapeHtml(prereqLabel)}</span>
+          </div>
+          <span class="rnd-row__badge rnd-row__badge--locked">LOCKED</span>
+        </div>`;
+      }
+
+      // Available
+      return `<div class="rnd-row rnd-row--available">
+        <div class="rnd-row__info">
+          <span class="rnd-row__name">${escapeHtml(prog.name)}${levelLabel}</span>
+          <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
+          <span class="rnd-row__meta">${prog.durationHours}h &middot; ${toCurrency(prog.costCredits)} &middot; Prereqs: ${escapeHtml(prereqLabel)}</span>
+        </div>
+        <button class="btn btn-accent ceo-enqueue-btn" type="button" data-program-id="${prog.id}">+ Enroll</button>
+      </div>`;
+    })
+    .join("");
+
+  treeWrap.innerHTML = rows || '<p class="muted">No insight programs configured.</p>';
+
+  treeWrap.onclick = async (e) => {
+    const btn = e.target.closest(".ceo-enqueue-btn");
+    if (!btn) return;
+    const programId = btn.getAttribute("data-program-id");
+    if (!programId || !appState.accountId) return;
+
+    btn.disabled = true;
+    btn.textContent = "Enrolling\u2026";
+
+    try {
+      const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/queue-ceo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programId })
+      });
+
+      const account = await parseJsonResponse(response);
+      appState.data = deepClone(account.state);
+      appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+      updateAllViews();
+    } catch (error) {
+      btn.disabled = false;
+      btn.textContent = "+ Enroll";
+      showFeedback(`CEO Insight error: ${error.message}`, "warn");
+    }
+  };
 }
 
 function updateCorpIdentity(data) {
@@ -2218,17 +2372,23 @@ function renderMarket(data) {
   if (tradeHistoryTable) {
     tradeHistoryTable.innerHTML = tradeHistory
       .map(
-        (t) => `
+        (t) => {
+          const hasTax = typeof t.taxAmount === "number" && t.taxAmount > 0;
+          const totalCell = hasTax
+            ? `${toCurrency(t.proceeds)} <span class="trade-tax-note">(${toCurrency(t.taxAmount)} tax)</span>`
+            : toCurrency(t.total || 0);
+          return `
           <tr>
             <td class="trade-time">${t.at ? formatTime(t.at) : "-"}</td>
             <td><span class="trade-type-badge ${typeClass[t.type] || ""}">${typeLabel[t.type] || t.type}</span></td>
             <td>${escapeHtml(t.item || "-")}</td>
             <td>${Number(t.quantity || 0).toLocaleString()}</td>
             <td>${toCurrency(t.unitPrice || 0)}</td>
-            <td>${toCurrency(t.total || 0)}</td>
+            <td>${totalCell}</td>
             <td class="trade-counterparty">${escapeHtml(t.counterparty || "-")}</td>
           </tr>
-        `
+        `;
+        }
       )
       .join("");
   }
@@ -2466,6 +2626,7 @@ function updateAllViews() {
   renderQueue("rnd-queue", data.queues.corporateRnD, "Permanent corporate unlock track");
   renderQueue("ceo-queue", data.queues.ceoInsight, "CEO-centric growth track");
   renderTechTree(data);
+  renderInsightTree(data);
   renderRefinery(data);
   renderMarket(data);
   renderForums(data);
@@ -3215,6 +3376,22 @@ function bindForms() {
     const qty = Math.max(1, Math.min(maxQty, Number(qtyInput?.value || 1)));
     const listingStatus = document.getElementById("listing-status");
     const buyStatus = document.getElementById("buy-status");
+    const seller = row?.children[3]?.textContent || "Anonymous";
+
+    const totalCost = qty * price;
+    const confirmed = await showTradeConfirmation({
+      heading: "Buy from Sell Order",
+      title: `Buy ${escapeHtml(item)}`,
+      confirmLabel: "Buy",
+      rows: [
+        { label: "Item", value: escapeHtml(item) },
+        { label: "Quantity", value: qty.toLocaleString() },
+        { label: "Unit Price", value: toCurrency(price) },
+        { label: "Seller", value: escapeHtml(seller) },
+        { label: "Total Cost", value: toCurrency(totalCost), highlight: true }
+      ]
+    });
+    if (!confirmed) return;
 
     try {
       const response = await apiFetch(`/api/market/orders/${encodeURIComponent(orderId)}/buy`, {
@@ -3264,6 +3441,28 @@ function bindForms() {
     const qty = Math.max(1, Number(qtyInput?.value || 1));
     const npcStatus = document.getElementById("npc-buy-status");
 
+    const grossTotal = qty * price;
+    const taxPct = getClientExchangeTaxPct();
+    const taxAmount = Math.round(grossTotal * taxPct / 100);
+    const netProceeds = grossTotal - taxAmount;
+    const buyer = row?.children[1]?.textContent || "NPC";
+
+    const confirmed = await showTradeConfirmation({
+      heading: "Sell to Standing Buy Order",
+      title: `Sell ${escapeHtml(item)}`,
+      confirmLabel: "Sell",
+      rows: [
+        { label: "Item", value: escapeHtml(item) },
+        { label: "Quantity", value: qty.toLocaleString() },
+        { label: "Unit Price", value: toCurrency(price) },
+        { label: "Buyer", value: escapeHtml(buyer) },
+        { label: "Gross Total", value: toCurrency(grossTotal) },
+        { label: `GEX Sales Tax (${taxPct}%)`, value: `− ${toCurrency(taxAmount)}`, muted: true },
+        { label: "You Receive", value: toCurrency(netProceeds), highlight: true }
+      ]
+    });
+    if (!confirmed) return;
+
     try {
       const response = await apiFetch(`/api/market/npc-orders/${encodeURIComponent(orderId)}/sell`, {
         method: "POST",
@@ -3273,10 +3472,14 @@ function bindForms() {
 
       const payload = await parseJsonResponse(response);
       appState.data = deepClone(payload.account.state);
+      const traded = payload.traded || {};
+      const proceeds = traded.proceeds != null ? traded.proceeds : qty * price;
+      const taxAmt = traded.taxAmount || 0;
       if (npcStatus) {
-        npcStatus.textContent = `Sold ${qty.toLocaleString()} × ${escapeHtml(item)} at ${toCurrency(price)}/unit — ${toCurrency(qty * price)} credited.`;
+        const taxNote = taxAmt > 0 ? ` (${toCurrency(taxAmt)} tax)` : "";
+        npcStatus.textContent = `Sold ${qty.toLocaleString()} × ${escapeHtml(item)} at ${toCurrency(price)}/unit — ${toCurrency(proceeds)} credited${taxNote}.`;
       }
-      pushFeedback(`Sold ${item} × ${qty} @ ${toCurrency(price)}/unit to ${escapeHtml(button.closest("tr")?.children[1]?.textContent || "NPC")}.`, "success");
+      pushFeedback(`Sold ${item} × ${qty} @ ${toCurrency(price)}/unit to ${escapeHtml(button.closest("tr")?.children[1]?.textContent || "NPC")}. ${toCurrency(proceeds)} credited.`, "success");
       flashButtonSuccess(button);
       await refreshFromServer();
     } catch (error) {

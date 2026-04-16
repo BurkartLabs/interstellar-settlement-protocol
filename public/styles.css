@@ -2919,6 +2919,68 @@ tr.npc-order-exhausted {
   background: color-mix(in srgb, var(--warn) 8%, transparent);
 }
 
+.trade-tax-note {
+  font-size: 0.72rem;
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+/* ─── Trade Confirmation Modal ─── */
+.trade-confirm-card {
+  width: min(480px, 94vw);
+}
+
+.trade-confirm-body {
+  margin: 1rem 0;
+}
+
+.trade-confirm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.trade-confirm-table td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.trade-confirm-table td:first-child {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.trade-confirm-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.trade-confirm-highlight td {
+  border-top: 1px solid rgba(0, 247, 255, 0.25);
+  border-bottom: none;
+  font-weight: 700;
+  padding-top: 0.55rem;
+}
+
+.trade-confirm-highlight td:first-child {
+  color: var(--foreground);
+}
+
+.trade-confirm-highlight .trade-confirm-value {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.trade-confirm-muted td {
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.trade-confirm-muted .trade-confirm-value {
+  color: var(--warn);
+}
+
 .trade-time,
 .trade-counterparty {
   font-size: 0.8rem;

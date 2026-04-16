@@ -429,7 +429,11 @@
 
           <article id="ceo" class="tab-panel">
             <h2>CEO Insight Program</h2>
+            <p class="muted">Personal executive development programs that grant permanent corporate bonuses.</p>
+            <h3>Active Research</h3>
             <div id="ceo-queue" class="queue-list"></div>
+            <h3 style="margin-top:1.5rem">Programs</h3>
+            <div id="ceo-insight-tree"></div>
           </article>
 
           <article id="refinery" class="tab-panel">
@@ -782,6 +786,18 @@
         </section>
       </main>
     </div>
+
+    <section id="trade-confirm-modal" class="modal-backdrop" hidden>
+      <article class="modal-card trade-confirm-card">
+        <p class="overline" id="trade-confirm-heading">Order Confirmation</p>
+        <h2 id="trade-confirm-title">Confirm Trade</h2>
+        <div id="trade-confirm-body" class="trade-confirm-body"></div>
+        <div class="choice-row">
+          <button id="trade-confirm-cancel" class="btn btn-outline">Cancel</button>
+          <button id="trade-confirm-ok" class="btn btn-accent">Confirm</button>
+        </div>
+      </article>
+    </section>
 
     <section id="dialogue-modal" class="modal-backdrop" hidden>
       <article class="modal-card">

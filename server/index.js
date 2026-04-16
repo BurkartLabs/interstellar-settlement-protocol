@@ -36,7 +36,9 @@ import {
   deleteDraft,
   addSystemMessageToAccount,
   flushPendingPersist,
-  rehydrateFromSupabase
+  rehydrateFromSupabase,
+  getEffectiveExchangeTaxRate,
+  CEO_INSIGHT_LIBRARY
 } from "./gameState.js";
 
 const RESEARCH_LIBRARY = {
@@ -345,6 +347,55 @@ function processRndCompletions() {
 }
 
 setInterval(processRndCompletions, 30_000);
+
+function processCeoInsightCompletions() {
+  const now = Date.now();
+  for (const accountId of getAllAccountIds()) {
+    let completedItems = [];
+
+    mutateAccountState(accountId, (state) => {
+      const queue = state.queues?.ceoInsight;
+      if (!Array.isArray(queue) || queue.length === 0) return;
+
+      completedItems = queue.filter(
+        (item) => item.startedAt && item.durationHours &&
+          now >= item.startedAt + item.durationHours * 3_600_000
+      );
+      if (completedItems.length === 0) return;
+
+      if (!Array.isArray(state.corp.completedInsights)) state.corp.completedInsights = [];
+      for (const item of completedItems) {
+        if (item.programId) {
+          state.corp.completedInsights.push(item.programId);
+        }
+      }
+
+      // Recalculate effective tax rate after insight completions
+      state.corp.finances.exchangeSalesTaxPct = getEffectiveExchangeTaxRate(state);
+
+      state.queues.ceoInsight = queue.filter(
+        (item) => !completedItems.some((c) => c.id === item.id)
+      );
+    });
+
+    if (completedItems.length === 0) continue;
+
+    io.emit("ceo:completed", { accountId });
+
+    for (const item of completedItems) {
+      const notification = addAccountNotification(accountId, {
+        type: "insight",
+        title: "CEO Insight Complete",
+        body: `${item.name} has been completed.`
+      });
+      if (notification) {
+        io.emit("notifications:new", { accountId, notification });
+      }
+    }
+  }
+}
+
+setInterval(processCeoInsightCompletions, 30_000);
 
 app.get("/api/bootstrap", (_req, res) => {
   res.json({ ...getState(), version: APP_VERSION });
@@ -1420,6 +1471,85 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
   res.json(account);
 });
 
+// ─── CEO Insight ─────────────────────────────────────────────────────────────
+
+app.post("/api/accounts/:accountId/gameplay/queue-ceo", (req, res) => {
+  const programId = String(req.body?.programId || "").trim();
+  const prog = CEO_INSIGHT_LIBRARY[programId];
+  let outcome = "ok";
+
+  if (!prog) {
+    res.status(400).json({ error: "Unknown insight program." });
+    return;
+  }
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+    const queue = state.queues?.ceoInsight || [];
+    const completed = corp.completedInsights || [];
+    const queued = new Set(queue.map((item) => item.programId).filter(Boolean));
+
+    // For multi-level programs, count completions + queued towards max
+    const completionCount = completed.filter((id) => id === prog.id).length;
+    const queuedCount = queue.filter((item) => item.programId === prog.id).length;
+    const maxLevels = prog.maxLevels || 1;
+
+    if (completionCount + queuedCount >= maxLevels) {
+      outcome = completionCount >= maxLevels ? "max-level" : "already-queued";
+      return;
+    }
+
+    if (!prog.prereqs.every((prereq) => completed.includes(prereq))) {
+      outcome = "missing-prereq";
+      return;
+    }
+
+    if (corp.finances.credits < prog.costCredits) {
+      outcome = "insufficient-credits";
+      return;
+    }
+
+    corp.finances.credits -= prog.costCredits;
+    state.queues.ceoInsight.push({
+      id: `ceo-${Date.now()}`,
+      programId: prog.id,
+      name: prog.name,
+      effect: prog.effect,
+      durationHours: prog.durationHours,
+      startedAt: Date.now(),
+      costCredits: prog.costCredits
+    });
+  });
+
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  if (outcome !== "ok") {
+    const corp = account.state.corp;
+    const messageMap = {
+      "max-level": `${prog.name} is already at maximum level.`,
+      "already-queued": `${prog.name} is already in the CEO Insight queue.`,
+      "missing-prereq": `${prog.name} requires: ${prog.prereqs.map((id) => CEO_INSIGHT_LIBRARY[id]?.name || id).join(", ")}.`,
+      "insufficient-credits": fundingRequirementMessage(`${prog.name} enrollment`, corp, prog.costCredits)
+    };
+    res.status(400).json({ error: messageMap[outcome] || "Unable to enqueue insight program." });
+    return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "insight",
+    title: "CEO Insight Queued",
+    body: `${prog.name} has been enrolled in the CEO Insight Program.`
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
+  res.json(account);
+});
+
 // ─── Messages ────────────────────────────────────────────────────────────────
 
 app.get("/api/accounts/:accountId/messages", (req, res) => {
@@ -1634,8 +1764,11 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
 
   if (order.sellerAccountId) {
     mutateAccountState(order.sellerAccountId, (state) => {
-      state.corp.finances.credits += tradeTotal;
-      state.corp.finances.dailyRevenue += Math.round(tradeTotal / 24);
+      const taxPct = getEffectiveExchangeTaxRate(state);
+      const taxAmount = Math.round(tradeTotal * taxPct / 100);
+      const sellerProceeds = tradeTotal - taxAmount;
+      state.corp.finances.credits += sellerProceeds;
+      state.corp.finances.dailyRevenue += Math.round(sellerProceeds / 24);
 
       if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
       state.corp.tradeHistory.unshift({
@@ -1645,6 +1778,9 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
         quantity: tradeQuantity,
         unitPrice: Number(order.unitPrice || 0),
         total: tradeTotal,
+        taxPct,
+        taxAmount,
+        proceeds: sellerProceeds,
         counterparty: buyerAccount.state?.corp?.corporationName || buyerAccount.email || "Anonymous",
         at: Date.now()
       });
@@ -1702,6 +1838,9 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
 
   const tradeTotal = requestedQty * npcOrder.unitPrice;
   let rejectReason = "";
+  let tradeTaxPct = 0;
+  let tradeTaxAmount = 0;
+  let tradeProceeds = tradeTotal;
 
   const seller = mutateAccountState(req.auth.accountId, (state) => {
     const inventory = state.corp.inventory || {};
@@ -1715,8 +1854,14 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
     if (inventory[npcOrder.item] <= 0) delete inventory[npcOrder.item];
     state.corp.inventory = inventory;
 
-    state.corp.finances.credits = (state.corp.finances.credits || 0) + tradeTotal;
-    state.corp.finances.dailyRevenue = (state.corp.finances.dailyRevenue || 0) + Math.round(tradeTotal / 24);
+    const taxPct = getEffectiveExchangeTaxRate(state);
+    const taxAmount = Math.round(tradeTotal * taxPct / 100);
+    const sellerProceeds = tradeTotal - taxAmount;
+    tradeTaxPct = taxPct;
+    tradeTaxAmount = taxAmount;
+    tradeProceeds = sellerProceeds;
+    state.corp.finances.credits = (state.corp.finances.credits || 0) + sellerProceeds;
+    state.corp.finances.dailyRevenue = (state.corp.finances.dailyRevenue || 0) + Math.round(sellerProceeds / 24);
 
     if (!state.corp.stats) state.corp.stats = {};
     state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
@@ -1729,6 +1874,9 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
       quantity: requestedQty,
       unitPrice: npcOrder.unitPrice,
       total: tradeTotal,
+      taxPct,
+      taxAmount,
+      proceeds: sellerProceeds,
       counterparty: npcOrder.buyer,
       at: Date.now()
     });
@@ -1750,7 +1898,7 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
   io.emit("market:updated", getState().market);
   res.json({
     ok: true,
-    traded: { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice: npcOrder.unitPrice, total: tradeTotal },
+    traded: { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice: npcOrder.unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, proceeds: tradeProceeds },
     account: seller
   });
 });

@@ -45,6 +45,14 @@ const MILESTONES_DATA = JSON.parse(fs.readFileSync(milestonesPath, "utf8"));
 const MILESTONE_LEVELS = MILESTONES_DATA.levels;           // [{level, requirements, unlocks}, ...]
 const MILESTONE_ROADMAP = MILESTONES_DATA.roadmap;          // ["Rent an Office", ...]
 
+// ─── CEO Insight programs ────────────────────────────────────────────────────
+const ceoInsightPath = path.join(dataDir, "ceo-insight.json");
+const CEO_INSIGHT_DATA = JSON.parse(fs.readFileSync(ceoInsightPath, "utf8"));
+const CEO_INSIGHT_LIBRARY = {};
+for (const prog of CEO_INSIGHT_DATA.programs) {
+  CEO_INSIGHT_LIBRARY[prog.id] = prog;
+}
+
 // Build a lookup from requirement id → display title (for milestonesCompleted tracking)
 const REQ_ID_TO_TITLE = {};
 for (const lvl of MILESTONE_LEVELS) {
@@ -204,6 +212,20 @@ function normalizeStateShape(rawState) {
 
   if (!Array.isArray(rawState.corp.tradeHistory)) {
     rawState.corp.tradeHistory = [];
+  }
+
+  if (!rawState.corp.finances) rawState.corp.finances = {};
+  if (typeof rawState.corp.finances.exchangeSalesTaxPct !== "number") {
+    rawState.corp.finances.exchangeSalesTaxPct = 8;
+  }
+
+  if (!Array.isArray(rawState.corp.completedInsights)) {
+    rawState.corp.completedInsights = [];
+  }
+
+  if (!rawState.queues) rawState.queues = {};
+  if (!Array.isArray(rawState.queues.ceoInsight)) {
+    rawState.queues.ceoInsight = [];
   }
 
   // Normalize each lease: ensure extractorIds array exists
@@ -447,6 +469,25 @@ export function applyMiningOperations(corp, now = Date.now()) {
   corp.mining.silicateExtractor = extractors[0];
 }
 
+// ─── Exchange sales tax ──────────────────────────────────────────────────────
+const BASE_EXCHANGE_SALES_TAX_PCT = 8;
+
+export function getEffectiveExchangeTaxRate(state) {
+  let taxPct = BASE_EXCHANGE_SALES_TAX_PCT;
+
+  // CEO Insight: Negotiation Fundamentals reduces tax by 2% per completion (max 3 completions = 6%)
+  const completedInsights = state.corp.completedInsights || [];
+  const negLevels = completedInsights.filter((id) => id === "ceo-negotiation-fundamentals").length;
+  if (negLevels > 0) {
+    const prog = CEO_INSIGHT_LIBRARY["ceo-negotiation-fundamentals"];
+    const maxLevels = prog?.maxLevels || 3;
+    const effectiveLevels = Math.min(negLevels, maxLevels);
+    taxPct -= effectiveLevels * 2; // 2% per level
+  }
+
+  return Math.max(0, taxPct);
+}
+
 function deepClone(input) {
   return JSON.parse(JSON.stringify(input));
 }
@@ -600,7 +641,8 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
       dailyRevenue: 0,
       dailyCosts: 0,
       taxRatePct: 14,
-      bondYieldPct: 0
+      bondYieldPct: 0,
+      exchangeSalesTaxPct: 8
     },
     inventory: {},
     mining: {
@@ -625,6 +667,7 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
     },
     investments: [],
     unlockedTech: [],
+    completedInsights: [],
     offices: [],
     miningLeases: [],
     tradeHistory: []
@@ -1367,6 +1410,8 @@ export async function rehydrateFromSupabase() {
 export function getState() {
   return state;
 }
+
+export { CEO_INSIGHT_LIBRARY };
 
 export function mutateState(mutator) {
   mutator(state);
