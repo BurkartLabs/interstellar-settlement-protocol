@@ -222,6 +222,14 @@ const io = new Server(server, {
   }
 });
 
+process.on("uncaughtException", (error) => {
+  console.error("[fatal] uncaughtException", error);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[fatal] unhandledRejection", reason);
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "..", "public")));
 
@@ -1790,6 +1798,11 @@ app.post("/api/combat/simulate", (req, res) => {
 
   io.emit("combat:newReport", report);
   res.json({ ok: true, report });
+});
+
+app.use((error, _req, res, _next) => {
+  console.error("[http] unhandled route error", error);
+  res.status(500).json({ error: "Internal server error." });
 });
 
 io.on("connection", (socket) => {

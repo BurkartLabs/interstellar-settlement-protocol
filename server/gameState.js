@@ -10,6 +10,20 @@ const statePath = path.join(dataDir, "state.json");
 const accountsPath = path.join(dataDir, "accounts.json");
 const milestonesPath = path.join(dataDir, "milestones.json");
 const PASSWORD_SALT_ROUNDS = 10;
+const IS_SERVERLESS = Boolean(process.env.VERCEL);
+
+function safeWriteFile(filePath, data, contextLabel = "write") {
+  try {
+    fs.writeFileSync(filePath, data, "utf8");
+    return true;
+  } catch (error) {
+    // Vercel filesystem is read-only for deployed source paths; keep running in-memory.
+    if (IS_SERVERLESS && (error?.code === "EROFS" || error?.code === "EPERM" || error?.code === "EACCES")) {
+      return false;
+    }
+    throw error;
+  }
+}
 
 // ─── Milestones: single source of truth from data/milestones.json ──────────
 const MILESTONES_DATA = JSON.parse(fs.readFileSync(milestonesPath, "utf8"));
@@ -972,13 +986,15 @@ function getSeedState() {
 }
 
 function ensureStateFile() {
-  if (!fs.existsSync(dataDir)) {
+  if (!IS_SERVERLESS && !fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
   if (!fs.existsSync(statePath)) {
     const seed = normalizeStateShape(getSeedState());
-    fs.writeFileSync(statePath, JSON.stringify(seed, null, 2), "utf8");
+    if (!IS_SERVERLESS) {
+      safeWriteFile(statePath, JSON.stringify(seed, null, 2), "state init");
+    }
     return seed;
   }
 
@@ -1002,7 +1018,9 @@ function ensureStateFile() {
     ];
   }
 
-  fs.writeFileSync(statePath, JSON.stringify(normalized, null, 2), "utf8");
+  if (!IS_SERVERLESS) {
+    safeWriteFile(statePath, JSON.stringify(normalized, null, 2), "state normalize");
+  }
   return normalized;
 }
 
@@ -1011,7 +1029,7 @@ let saveTimer = null;
 let accountsSaveTimer = null;
 
 function ensureAccountsFile() {
-  if (!fs.existsSync(dataDir)) {
+  if (!IS_SERVERLESS && !fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
@@ -1034,7 +1052,9 @@ function ensureAccountsFile() {
       }
     };
 
-    try { fs.writeFileSync(accountsPath, JSON.stringify(seedAccounts, null, 2), "utf8"); } catch (e) { console.warn("[warn] Could not write accounts file on init:", e.code); }
+    if (!IS_SERVERLESS) {
+      safeWriteFile(accountsPath, JSON.stringify(seedAccounts, null, 2), "accounts init");
+    }
     return seedAccounts;
   }
 
@@ -1107,40 +1127,54 @@ function ensureAccountsFile() {
     }
   }
 
-  try { fs.writeFileSync(accountsPath, JSON.stringify(parsed, null, 2), "utf8"); } catch (e) { console.warn("[warn] Could not write accounts file on init:", e.code); }
+  if (!IS_SERVERLESS) {
+    safeWriteFile(accountsPath, JSON.stringify(parsed, null, 2), "accounts normalize");
+  }
   return parsed;
 }
 
 let accountsStore = ensureAccountsFile();
 
 function scheduleSave() {
+  if (IS_SERVERLESS) {
+    return;
+  }
+
   if (saveTimer) {
     clearTimeout(saveTimer);
   }
 
   saveTimer = setTimeout(() => {
-    fs.writeFileSync(statePath, JSON.stringify(state, null, 2), "utf8");
+    safeWriteFile(statePath, JSON.stringify(state, null, 2), "state save");
     saveTimer = null;
   }, 300);
 }
 
 function scheduleAccountsSave() {
+  if (IS_SERVERLESS) {
+    return;
+  }
+
   if (accountsSaveTimer) {
     clearTimeout(accountsSaveTimer);
   }
 
   accountsSaveTimer = setTimeout(() => {
-    fs.writeFileSync(accountsPath, JSON.stringify(accountsStore, null, 2), "utf8");
+    safeWriteFile(accountsPath, JSON.stringify(accountsStore, null, 2), "accounts save");
     accountsSaveTimer = null;
   }, 300);
 }
 
 export function saveAccountsNow() {
+  if (IS_SERVERLESS) {
+    return;
+  }
+
   if (accountsSaveTimer) {
     clearTimeout(accountsSaveTimer);
     accountsSaveTimer = null;
   }
-  fs.writeFileSync(accountsPath, JSON.stringify(accountsStore, null, 2), "utf8");
+  safeWriteFile(accountsPath, JSON.stringify(accountsStore, null, 2), "accounts save immediate");
 }
 
 export function getState() {
