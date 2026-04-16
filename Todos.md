@@ -22,8 +22,8 @@ GitHub Copilot should read this file at the start of every session and reference
 - [x] Extractor yard cost: two conflicting values in `index.js` (`$50,000` and `$65,000`) — reconcile both to `$50,000`
 
 ### Office Rental Model *(significant rework)*
-- [ ] Switch office from flat `$20,000` one-time fee to `$1,000/day` recurring with a **30-day minimum** (`$30,000` committed upfront at point of rental)
-- [ ] Track `rentedUntil` timestamp on corp state; lock office benefits (hiring, leases) if lease lapses
+- [x] Switch office from flat `$20,000` one-time fee to `$1,000/day` recurring with a **7-day minimum** (`$7,000` committed upfront at point of rental)
+- [ ] Track `rentedUntil` timestamp on corp state; lock office benefits (hiring, leases) if lease lapses. Existing mining cycles should be paused if the lease runs out. 
 - [ ] Office interior view — show lease status, days remaining, renewal option, payroll summary, and quick-nav links to related tabs
 
 ### Walkthrough *(full overhaul)*

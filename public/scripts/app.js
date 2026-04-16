@@ -94,34 +94,76 @@ const techTree = [
 
 const walkthroughSteps = [
   {
-    selector: '.tab-btn[data-tab="overview"]',
-    title: "Overview",
-    text: "This panel tracks your corporation status and long-term milestone path.",
-    tab: "overview"
+    selector: '.tab-btn[data-tab="inbox"]',
+    title: "Welcome, Agent",
+    text: "You\u2019ve just received your ISA settlement license. Check your mailbox for the official charter from the Interstellar Settlement Authority.",
+    tab: "inbox"
   },
   {
-    selector: '.tab-btn[data-tab="finance"]',
-    title: "Financial Core",
-    text: "Use this to monitor liabilities and strategic investment activity.",
-    tab: "finance"
+    selector: '.tab-btn[data-tab="starmap"]',
+    title: "Explore the Starmap",
+    text: "The starmap shows every system, planet, moon, and station. You\u2019ll manage operations across multiple locations. Let\u2019s find a station where you can establish your first office.",
+    tab: "starmap"
+  },
+  {
+    selector: '.tab-btn[data-tab="station"]',
+    title: "Station Overview",
+    text: "Stations are your base of operations. Here you\u2019ll rent offices, hire personnel, file mining leases, and manage extraction. Your corporation needs a registered office to operate.",
+    tab: "station"
+  },
+  {
+    selector: '[data-building-action="building:orbital-executive-suites"]',
+    title: "Rent Your First Office",
+    text: "Enter the Orbital Executive Suites and lease an office. It costs $1,000/day with a 30-day minimum ($30,000 upfront). This establishes your corporate presence at the station.",
+    tab: "station"
+  },
+  {
+    selector: '.tab-btn[data-tab="ceo"]',
+    title: "Hire Employees",
+    text: "With an office established, hire personnel. Each employee costs $2,000 to recruit and $150/day in payroll. Hire at least 5 employees \u2014 you\u2019ll need them for your first mining lease.",
+    tab: "ceo"
+  },
+  {
+    selector: '[data-building-action="building:isa-claims-leases"]',
+    title: "File a Mining Lease",
+    text: "Visit the ISA Claims & Leases Division to file an extraction rights application. Mars is recommended for your first lease. Each lease requires 5 employees on payroll.",
+    tab: "station"
+  },
+  {
+    selector: '.tab-btn[data-tab="station"]',
+    title: "Commission an Extractor Yard",
+    text: "Open your new Mars mining lease and commission a Basic Extractor Yard for $50,000. This gives you the equipment needed to mine silicates from the surface.",
+    tab: "station"
+  },
+  {
+    selector: '.tab-btn[data-tab="station"]',
+    title: "Start Your First Mining Cycle",
+    text: "Set your extraction parameters \u2014 throughput (tons/hour) and duration (hours) \u2014 then launch the cycle. Your extractor will begin mining silicates automatically.",
+    tab: "station"
   },
   {
     selector: '.tab-btn[data-tab="rnd"]',
-    title: "Corporate R&D",
-    text: "Queue permanent upgrades from your tech tree to scale extraction and infrastructure.",
+    title: "Research Basic Extraction",
+    text: "Queue \u2018Basic Extraction Analytics\u2019 in your Corporate R&D lab. This 2-hour research project gives a permanent 10% boost to all extraction throughput.",
     tab: "rnd"
   },
   {
     selector: '.tab-btn[data-tab="market"]',
-    title: "Galactic Market",
-    text: "Create listings from inventory and evaluate market pricing before expanding output.",
+    title: "Sell on the Galactic Market",
+    text: "Once your mining cycle completes, head to the Galactic Market. Sell your mined silicates by creating a listing or filling an existing NPC buy order for immediate credits.",
     tab: "market"
   },
   {
-    selector: '.tab-btn[data-tab="rnd"]',
-    title: "First Recommended Action",
-    text: "Start by adding Basic Extraction Analytics to your Corporate R&D queue.",
-    tab: "rnd"
+    selector: '.tab-btn[data-tab="missions"]',
+    title: "Accept a Mission",
+    text: "Check the Missions board for field operations. Completing missions earns rewards and accelerates your progress through Corporation Milestones.",
+    tab: "missions"
+  },
+  {
+    selector: '.tab-btn[data-tab="overview"]',
+    title: "You\u2019re Ready!",
+    text: "You now know the core loop: mine resources, research upgrades, trade on the market, and climb the corporate ladder. Keep expanding, keep researching, and check your milestones. Good luck, Agent.",
+    tab: "overview"
   }
 ];
 
@@ -757,8 +799,10 @@ function updateReplayOnboardingVisibility(data) {
 function showStationOverview() {
   const overviewEl = document.getElementById("station-overview-view");
   const detailEl = document.getElementById("station-building-view");
+  const contentEl = document.getElementById("station-building-content");
   if (overviewEl) overviewEl.hidden = false;
   if (detailEl) detailEl.hidden = true;
+  if (contentEl) contentEl.classList.remove("ge-bg", "icl-bg", "oes-bg");
   appState.stationActiveLease = null;
 }
 
@@ -780,6 +824,16 @@ function showStationBuilding(buildingId) {
 function renderBuildingDetail(building, data) {
   const contentEl = document.getElementById("station-building-content");
   if (!contentEl) return;
+
+  // Apply building-specific background classes
+  contentEl.classList.remove("ge-bg", "icl-bg", "oes-bg");
+  if (building.id === "orbital-executive-suites") {
+    contentEl.classList.add("oes-bg");
+  } else if (building.id === "isa-claims-leases") {
+    contentEl.classList.add("icl-bg");
+  } else if (building.id === "galactic-exchange") {
+    contentEl.classList.add("ge-bg");
+  }
 
   if (building.id === "orbital-executive-suites") {
     contentEl.innerHTML = renderOrbitalExecutiveSuites(building, data);
@@ -1161,11 +1215,57 @@ function renderLeaseManagement(building, lease, data) {
   // Extractor list
   let extractorRows = "";
   for (const ex of extractors) {
-    const activeClass = ex.active ? "active" : "idle";
+    let statusClass = "idle";
+    if (ex.downtimeActive) {
+      statusClass = "downtime";
+    } else if (ex.active) {
+      statusClass = "active";
+    }
     let cycleInfo = "";
     let progressBarHtml = "";
 
-    if (ex.active && ex.endsAt && ex.startedAt) {
+    if (ex.downtimeActive) {
+      const downtimeStart = Number(ex.downtimeStartedAt || Date.now());
+      const now = Date.now();
+      const downtimeDur = now - downtimeStart;
+      const dtHrs = Math.floor(downtimeDur / 3_600_000);
+      const dtMins = Math.floor((downtimeDur % 3_600_000) / 60_000);
+
+      // Show where the mining cycle was paused
+      let cyclePct = 0;
+      let cycleRemaining = "";
+      let cycleElapsed = "";
+      if (ex.endsAt && ex.startedAt) {
+        const cycleDuration = ex.endsAt - ex.startedAt;
+        const elapsedBeforeDowntime = Math.min(downtimeStart - ex.startedAt, cycleDuration);
+        cyclePct = cycleDuration > 0 ? Math.min(100, Math.round((elapsedBeforeDowntime / cycleDuration) * 100)) : 0;
+        const remainMs = Math.max(0, cycleDuration - elapsedBeforeDowntime);
+        const remHrs = Math.floor(remainMs / 3_600_000);
+        const remMins = Math.floor((remainMs % 3_600_000) / 60_000);
+        const elapHrs = Math.floor(elapsedBeforeDowntime / 3_600_000);
+        const elapMins = Math.floor((elapsedBeforeDowntime % 3_600_000) / 60_000);
+        cycleRemaining = `${remHrs}h ${remMins}m remaining when halted`;
+        cycleElapsed = `${elapHrs}h ${elapMins}m elapsed before shutdown`;
+      }
+
+      cycleInfo = `<span class="extractor-cycle-status downtime">Equipment Offline &mdash; Down for ${dtHrs}h ${dtMins}m</span>`;
+      progressBarHtml = `
+        <div class="extractor-progress-wrap">
+          <div class="extractor-progress-header">
+            <span class="extractor-progress-pct">${cyclePct}% (paused)</span>
+            <span class="extractor-progress-time">${cycleRemaining}</span>
+          </div>
+          <div class="extractor-progress-track">
+            <div class="extractor-progress-fill downtime" style="width:${cyclePct}%"></div>
+          </div>
+          <div class="extractor-stat-row">
+            <span class="extractor-stat"><span class="extractor-stat-label">Cycle progress</span><span class="extractor-stat-value">${cycleElapsed}</span></span>
+            <span class="extractor-stat"><span class="extractor-stat-label">Downtime elapsed</span><span class="extractor-stat-value">${dtHrs}h ${dtMins}m</span></span>
+            <span class="extractor-stat"><span class="extractor-stat-label">Mined before halt</span><span class="extractor-stat-value">${(ex.totalMined || 0).toLocaleString()}</span></span>
+          </div>
+        </div>
+      `;
+    } else if (ex.active && ex.endsAt && ex.startedAt) {
       const now = Date.now();
       const remaining = Math.max(0, ex.endsAt - now);
       const cycleDuration = ex.endsAt - ex.startedAt;
@@ -1209,15 +1309,16 @@ function renderLeaseManagement(building, lease, data) {
         <p class="muted action-hint lease-mine-status" data-for="${escapeHtml(ex.id)}"></p>`
       : "";
 
+    const mineFormVisible = !ex.active && !ex.downtimeActive;
     extractorRows += `
-      <div class="extractor-row ${activeClass}">
+      <div class="extractor-row ${statusClass}">
         <div class="extractor-row-header">
           <strong>${escapeHtml(ex.name)}</strong>
-          <span class="building-status-badge ${activeClass}">${ex.active ? "Active" : "Idle"}</span>
+          <span class="building-status-badge ${statusClass}">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : "Idle")}</span>
         </div>
-        ${ex.active ? "" : cycleInfo}
+        ${ex.downtimeActive ? cycleInfo : (ex.active ? "" : cycleInfo)}
         ${progressBarHtml}
-        ${mineFormHtml}
+        ${mineFormVisible ? mineFormHtml : ""}
       </div>
     `;
   }

@@ -267,25 +267,36 @@ function ensureCorpMiningModel(corp) {
       operationCostPerHour: 0,
       totalMined: 0,
       totalSpent: 0,
-      lastCompletedAt: null
+      lastCompletedAt: null,
+      downtimeActive: false,
+      downtimeStartedAt: null,
+      downtimeRecoveredAt: null
     });
   }
 
   corp.mining.silicateExtractors = corp.mining.silicateExtractors.map((extractor, index) => {
+    // Bulletproof downtime: if downtimeActive is true and downtimeStartedAt is missing, set it to now
+    let downtimeStartedAt = extractor.downtimeStartedAt;
+    if (extractor.downtimeActive && (!downtimeStartedAt || downtimeStartedAt === 0)) {
+      downtimeStartedAt = Date.now();
+    }
     const normalized = {
       id: String(extractor.id || `ext-basic-${index + 1}`),
       name: String(extractor.name || `Basic Extractor Yard #${index + 1}`),
       tier: Number(extractor.tier || 1),
       active: Boolean(extractor.active),
-      startedAt: extractor.startedAt || null,
-      lastTickAt: extractor.lastTickAt || null,
-      endsAt: extractor.endsAt || null,
+      startedAt: extractor.startedAt ?? null,
+      lastTickAt: extractor.lastTickAt ?? null,
+      endsAt: extractor.endsAt ?? null,
       throughputPerHour: Number(extractor.throughputPerHour || 0),
       operationCostPerHour: Number(extractor.operationCostPerHour || 0),
       totalMined: Number(extractor.totalMined || 0),
       totalSpent: Number(extractor.totalSpent || 0),
-      lastCompletedAt: extractor.lastCompletedAt || null,
-      leaseId: extractor.leaseId || null
+      lastCompletedAt: extractor.lastCompletedAt ?? null,
+      leaseId: extractor.leaseId ?? null,
+      downtimeActive: Boolean(extractor.downtimeActive),
+      downtimeStartedAt: downtimeStartedAt ?? null,
+      downtimeRecoveredAt: (extractor.downtimeRecoveredAt !== undefined ? extractor.downtimeRecoveredAt : null)
     };
     return normalized;
   });
@@ -321,7 +332,7 @@ function stopExtractorCycle(extractor, timestamp) {
   extractor.lastCompletedAt = timestamp;
 }
 
-function applyMiningOperations(corp, now = Date.now()) {
+export function applyMiningOperations(corp, now = Date.now()) {
   ensureCorpMiningModel(corp);
 
   const extractors = corp.mining.silicateExtractors || [];
@@ -330,6 +341,47 @@ function applyMiningOperations(corp, now = Date.now()) {
       return;
     }
 
+    // --- Downtime logic ---
+    if (extractor.downtimeActive) {
+      // If downtimeStartedAt is not a valid timestamp, forcibly set it to now (first tick only)
+      if (!Number.isFinite(Number(extractor.downtimeStartedAt)) || Number(extractor.downtimeStartedAt) <= 0) {
+        extractor.downtimeStartedAt = now;
+      }
+      // Enforce minimum downtime duration (15 minutes = 900,000 ms)
+      const minDowntimeMs = 15 * 60 * 1000;
+      const nowMs = now;
+      const startedAt = Number(extractor.downtimeStartedAt);
+      if (nowMs - startedAt < minDowntimeMs) {
+        // Still within minimum downtime, cannot recover yet
+        return;
+      }
+      // Per-tick recovery probability (default: 0.0276% per second)
+      const lastTick = Number(extractor.lastTickAt || extractor.downtimeStartedAt || now);
+      const intervalEnd = now;
+      const elapsedMs = Math.max(0, intervalEnd - lastTick);
+      const recoveryProbPerSec = 0.000276; // 0.0276% per second
+      const tickSeconds = elapsedMs / 1000;
+      const tickProb = 1 - Math.pow(1 - recoveryProbPerSec, tickSeconds);
+      if (Math.random() < tickProb) {
+        // Recovery!
+        extractor.downtimeActive = false;
+        extractor.downtimeRecoveredAt = now;
+        extractor.downtimeStartedAt = null;
+        // Resume mining: update lastTickAt so mining resumes from now
+        extractor.lastTickAt = now;
+        if (typeof console !== 'undefined' && console.log) {
+          console.log(`[Downtime Recovery] Extractor ${extractor.id} recovered at ${now}.`);
+        }
+      }
+      // If not recovered, remain in downtime (mining paused)
+      return;
+    } else {
+      // If not in downtime, always clear downtimeStartedAt
+      extractor.downtimeStartedAt = null;
+    }
+
+    // Per-tick downtime probability (default: 0.005% per second)
+    // If tick is longer than 1s, scale probability accordingly
     const lastTick = Number(extractor.lastTickAt || extractor.startedAt || now);
     const maxEnd = Number(extractor.endsAt || now);
     const intervalEnd = Math.min(now, maxEnd);
@@ -342,6 +394,24 @@ function applyMiningOperations(corp, now = Date.now()) {
       return;
     }
 
+    // Calculate downtime probability for this tick
+    const baseProbPerSec = 0.00005; // 0.005% per second
+    let probPerSec = baseProbPerSec;
+    if ((corp.unlockedTech || []).includes("tt-industrial-safety")) {
+      probPerSec *= 0.92; // -8% risk
+    }
+    const tickSeconds = elapsedMs / 1000;
+    // Probability of at least one event in tickSeconds: P = 1 - (1 - p)^n
+    const tickProb = 1 - Math.pow(1 - probPerSec, tickSeconds);
+    if (Math.random() < tickProb) {
+      // Trigger downtime
+      extractor.downtimeActive = true;
+      extractor.downtimeStartedAt = now;
+      extractor.downtimeRecoveredAt = null;
+      return; // Mining is paused this tick
+    }
+
+    // --- Normal mining logic ---
     const elapsedHours = elapsedMs / (60 * 60 * 1000);
     const throughput = Math.max(0, Number(extractor.throughputPerHour || 0));
     const efficiency = (corp.unlockedTech || []).includes("tt-basic-extraction") ? 1.2 : 1;
@@ -1010,7 +1080,7 @@ function getSeedState() {
           id: "npc-buy-silicates-daily",
           item: "Silicates",
           buyer: "GEX Commodities Authority",
-          unitPrice: 8,
+          unitPrice: 24,
           totalQtyPerDay: 1000000,
           remainingQty: 1000000,
           lastResetDate: ""
@@ -1123,7 +1193,7 @@ function ensureStateFile() {
         id: "npc-buy-silicates-daily",
         item: "Silicates",
         buyer: "GEX Commodities Authority",
-        unitPrice: 8,
+        unitPrice: 24,
         totalQtyPerDay: 1000000,
         remainingQty: 1000000,
         lastResetDate: ""
@@ -1706,6 +1776,10 @@ export function addSystemMessageToAccount(accountId, { subject, body, fromName =
 
 export function accountExists(accountId) {
   return Boolean(accountsStore.accounts?.[accountId]);
+}
+
+export function getAllAccountIds() {
+  return Object.keys(accountsStore.accounts || {});
 }
 
 export function storeRefreshToken(accountId, token, expiresAt) {

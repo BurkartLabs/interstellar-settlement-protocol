@@ -15,6 +15,7 @@ import {
   authenticateAccount,
   getAccountById,
   getDummyAccount,
+  getAllAccountIds,
   getState,
   hasRefreshToken,
   listAccountNotifications,
@@ -42,7 +43,7 @@ const RESEARCH_LIBRARY = {
     name: "Basic Extraction Analytics",
     effect: "+10% raw extraction throughput",
     durationHours: 2,
-    costCredits: 18000,
+    costCredits: 2000,
     prereqs: []
   },
   "tt-industrial-safety": {
@@ -50,7 +51,7 @@ const RESEARCH_LIBRARY = {
     name: "Industrial Safety Protocols",
     effect: "-8% facility downtime risk",
     durationHours: 3,
-    costCredits: 26000,
+    costCredits: 2000,
     prereqs: ["tt-basic-extraction"]
   },
   "tt-supply-forecast": {
@@ -58,7 +59,7 @@ const RESEARCH_LIBRARY = {
     name: "Supply Forecast Engine",
     effect: "+6% logistics efficiency",
     durationHours: 4,
-    costCredits: 32000,
+    costCredits: 3000,
     prereqs: ["tt-basic-extraction"]
   },
   "tt-energy-routing": {
@@ -66,8 +67,48 @@ const RESEARCH_LIBRARY = {
     name: "High-Density Energy Routing",
     effect: "+1 advanced manufacturing lane",
     durationHours: 6,
-    costCredits: 54000,
+    costCredits: 4000,
     prereqs: ["tt-industrial-safety", "tt-supply-forecast"]
+  },
+  "tt-material-compression": {
+    id: "tt-material-compression",
+    name: "Material Compression I",
+    effect: "+8% refining throughput",
+    durationHours: 9,
+    costCredits: 6000,
+    prereqs: ["tt-energy-routing"]
+  },
+  "tt-nano-lattice": {
+    id: "tt-nano-lattice",
+    name: "Nano-Lattice Weaving",
+    effect: "Unlocks Aerogel and Quantum Insulator refinery chains",
+    durationHours: 12,
+    costCredits: 8000,
+    prereqs: ["tt-material-compression"]
+  },
+  "tt-containment-physics": {
+    id: "tt-containment-physics",
+    name: "Containment Physics I",
+    effect: "Unlocks Helium-3 refinery chain",
+    durationHours: 10,
+    costCredits: 8000,
+    prereqs: ["tt-energy-routing"]
+  },
+  "tt-exotic-energy-routing": {
+    id: "tt-exotic-energy-routing",
+    name: "Exotic Energy Routing",
+    effect: "Unlocks Dark-Matter Capacitor synthesis",
+    durationHours: 16,
+    costCredits: 12000,
+    prereqs: ["tt-containment-physics"]
+  },
+  "tt-fleet-coordination": {
+    id: "tt-fleet-coordination",
+    name: "Fleet Coordination Matrix",
+    effect: "+12 fleet cap",
+    durationHours: 16,
+    costCredits: 12000,
+    prereqs: ["tt-energy-routing"]
   }
 };
 
@@ -75,7 +116,7 @@ const ACCESS_TOKEN_SECONDS = 7 * 24 * 60 * 60;
 const DUMMY_ACCESS_TOKEN_SECONDS = 2 * 60 * 60; // 2 hours
 const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
 const JWT_SECRET = process.env.JWT_SECRET || "isp-dev-insecure-secret-change-me";
-const ALLOW_DUMMY_AUTH = process.env.NODE_ENV !== "production" || process.env.ALLOW_DUMMY_AUTH === "1";
+const ALLOW_DUMMY_AUTH = true;
 const DIRECT_INVESTMENT_UNLOCK_LEVEL = 2;
 
 function stripHtml(input) {
@@ -107,15 +148,20 @@ function issueTokens(accountId) {
 
 function getBearerToken(req) {
   const authHeader = String(req.headers.authorization || "");
+  console.log('[requireAuth] Incoming Authorization header:', authHeader);
   if (!authHeader.startsWith("Bearer ")) {
+    console.log('[requireAuth] No Bearer token found in header.');
     return null;
   }
-  return authHeader.slice(7).trim();
+  const token = authHeader.slice(7).trim();
+  console.log('[requireAuth] Extracted Bearer token:', token);
+  return token;
 }
 
 function requireAuth(req, res, next) {
   const token = getBearerToken(req);
   if (!token) {
+    console.log('[requireAuth] Missing bearer token for request:', req.method, req.originalUrl, req.headers);
     res.status(401).json({ error: "Missing bearer token." });
     return;
   }
@@ -205,6 +251,68 @@ function checkAndResetNpcBuyOrders() {
 checkAndResetNpcBuyOrders();
 setInterval(checkAndResetNpcBuyOrders, 60_000);
 
+// ─── R&D auto-completion tick ────────────────────────────────────────────────
+// ─── Mining tick: process downtime, recovery, and mining progress ─────────────
+import { applyMiningOperations } from "./gameState.js";
+
+function miningTick() {
+  const now = Date.now();
+  for (const accountId of getAllAccountIds()) {
+    mutateAccountState(accountId, (state) => {
+      if (state && state.corp) {
+        applyMiningOperations(state.corp, now);
+      }
+    });
+  }
+  // Optionally emit updated mining state to clients here if needed
+}
+
+setInterval(miningTick, 5000); // Every 5 seconds
+function processRndCompletions() {
+  const now = Date.now();
+  for (const accountId of getAllAccountIds()) {
+    let completedItems = [];
+
+    mutateAccountState(accountId, (state) => {
+      const queue = state.queues?.corporateRnD;
+      if (!Array.isArray(queue) || queue.length === 0) return;
+
+      completedItems = queue.filter(
+        (item) => item.startedAt && item.durationHours &&
+          now >= item.startedAt + item.durationHours * 3_600_000
+      );
+      if (completedItems.length === 0) return;
+
+      if (!Array.isArray(state.corp.unlockedTech)) state.corp.unlockedTech = [];
+      for (const item of completedItems) {
+        if (item.techId && !state.corp.unlockedTech.includes(item.techId)) {
+          state.corp.unlockedTech.push(item.techId);
+        }
+      }
+      state.queues.corporateRnD = queue.filter(
+        (item) => !completedItems.some((c) => c.id === item.id)
+      );
+    });
+
+    if (completedItems.length === 0) continue;
+
+    io.emit("rnd:completed", { accountId });
+
+    for (const item of completedItems) {
+      const notification = addAccountNotification(accountId, {
+        type: "research",
+        title: "R&D Complete",
+        body: `${item.name} has been completed and applied to your corporation.`
+      });
+      if (notification) {
+        io.emit("notifications:new", { accountId, notification });
+      }
+    }
+  }
+}
+
+setInterval(processRndCompletions, 30_000);
+
 app.get("/api/bootstrap", (_req, res) => {
   res.json({ ...getState(), version: APP_VERSION });
 });
@@ -265,6 +373,30 @@ app.post("/api/auth/dummy-reset", (_req, res) => {
   }
 
   res.json(account);
+});
+
+app.post("/api/dev/set-credits", (req, res) => {
+  if (!ALLOW_DUMMY_AUTH) {
+    res.status(403).json({ error: "Dev endpoints are disabled in production." });
+    return;
+  }
+
+  const { accountId = "dummy", credits } = req.body ?? {};
+  if (typeof credits !== "number" || !isFinite(credits)) {
+    res.status(400).json({ error: "credits must be a finite number." });
+    return;
+  }
+
+  const account = mutateAccountState(accountId, (state) => {
+    state.corp.finances.credits = credits;
+  });
+
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  res.json({ ok: true, credits: account.state.corp.finances.credits });
 });
 
 app.post("/api/auth/login", (req, res) => {
@@ -463,8 +595,10 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
 
 app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
   const requestedStationId = String(req.body?.stationId || "earth-station-prime").trim();
+  const VALID_DURATIONS = [7, 14, 21, 28];
+  const durationDays = VALID_DURATIONS.includes(Number(req.body?.durationDays)) ? Number(req.body.durationDays) : 7;
+  const officeCost = durationDays * 1000;
   let outcome = "ok";
-  let officeCost = 20000;
   let stationName = "Earth Station Prime";
 
   let stationsData;
@@ -481,7 +615,6 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
     return;
   }
 
-  officeCost = Number(station.officeCost || 20000);
   stationName = station.name;
 
   const account = mutateAccountState(req.params.accountId, (state) => {
@@ -491,7 +624,7 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
       corp.offices = [];
     }
 
-    if (corp.offices.some((o) => o.stationId === station.id)) {
+    if (corp.offices.some((o) => o.stationId === station.id && o.rentedUntil > Date.now())) {
       outcome = "already-rented";
       return;
     }
@@ -502,14 +635,16 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
     }
 
     corp.finances.credits -= officeCost;
-    corp.finances.assets += Math.round(officeCost * 0.5);
+    const now = Date.now();
     corp.offices.push({
       stationId: station.id,
       name: station.name,
       body: station.body,
       systemId: station.systemId,
       tier: station.tier,
-      rentedAt: Date.now()
+      rentedAt: now,
+      rentedUntil: now + durationDays * 86_400_000,
+      durationDays
     });
     corp.officeRented = true;
   });
@@ -523,7 +658,7 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
     const corp = account.state.corp;
     const messageMap = {
       "already-rented": `Your corporation already maintains an office at ${stationName}.`,
-      "insufficient-credits": `Leasing an office at ${stationName} requires ${formatCredits(officeCost)}. Current reserves: ${formatCredits(corp.finances.credits)} credits.`
+      "insufficient-credits": `Leasing an office at ${stationName} for ${durationDays} days requires ${formatCredits(officeCost)}. Current reserves: ${formatCredits(corp.finances.credits)} credits.`
     };
     res.status(400).json({ error: messageMap[outcome] || "Office rental failed." });
     return;
@@ -737,6 +872,18 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
 
+    // Check for expired office lease
+    if (!Array.isArray(corp.offices) || corp.offices.length === 0) {
+      outcome = "no-office";
+      return;
+    }
+    const now = Date.now();
+    const activeOffice = corp.offices.find((o) => o.rentedUntil > now);
+    if (!activeOffice) {
+      outcome = "office-lease-expired";
+      return;
+    }
+
     if (!Array.isArray(corp.miningLeases)) corp.miningLeases = [];
     const lease = corp.miningLeases.find((l) => l.id === leaseId);
     if (!lease) {
@@ -780,7 +927,6 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
       return;
     }
 
-    const now = Date.now();
     corp.finances.credits -= startupCost;
 
     extractorCycle.active = true;
@@ -801,6 +947,8 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
 
   if (outcome !== "ok") {
     const messageMap = {
+      "no-office": "You must have an active office lease to operate mining facilities.",
+      "office-lease-expired": "Your office lease has expired. Renew your lease to resume mining operations.",
       "no-lease": "The specified lease could not be found on your account.",
       "missing-extractor": "No extraction facilities are available.",
       "no-lease-extractors": "No extraction facilities are assigned to this lease.",

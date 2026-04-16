@@ -258,3 +258,5 @@ Combined with the investment system (where players can buy equity stakes in othe
 `Todos.md` (at the project root) is the living task list for this project. At the start of every session, read it and keep it in mind throughout. Reference it when deciding what to work on or when a task from it is relevant to the current request. **Never mark an item complete and never add new items to `Todos.md` without first asking the user for explicit permission.**
 
 Last Updated: April 2026 — New Player Experience section added based on NEW_PLAYER_EXPERIENCE.md
+
+`DESIGN_DOCUMENT.md` (at the project root) should be considered in every prompt 
