@@ -37,13 +37,6 @@ Each version represents a meaningful, playable milestone. Items marked [x] are c
 - [x] Server-side R&D queue auto-completion — server tick scans `queues.corporateRnD`, computes elapsed time from `startedAt + durationHours`, marks completions, applies tech effects to authoritative state, emits websocket and notification events
 - [x] Interactive walkthrough — guided first-session onboarding following the sequence in NEW_PLAYER_EXPERIENCE.md
 
-## Version 0.2.x — Testing Automation
-
-- [ ] Implement automated testing framework (unit, integration, and end-to-end tests)
-- [ ] Add test coverage reporting to CI pipeline
-- [ ] Write tests for core game logic (mining, leasing, exchange, R&D)
-- [ ] Ensure all new features include corresponding tests
-
 ## Version 0.3 — Tier 1 Research, Refinery Chains, Asteroid Mining, Missions
 
 - [ ] Full Corporate R&D tree (all Tier 1 and Tier 2 nodes) with effects applied to live gameplay values
@@ -56,8 +49,12 @@ Each version represents a meaningful, playable milestone. Items marked [x] are c
 - [ ] Playable mission board with reward payouts
 - [ ] Mission types: bounty, rescue, salvage, story
 
-## Version 0.4 — Publishable MVP, Station Building
+## Version 0.4 — Testing Automation, Publishable MVP, Station Building
 
+- [ ] Implement automated testing framework (unit, integration, and end-to-end tests)
+- [ ] Add test coverage reporting to CI pipeline
+- [ ] Write tests for core game logic (mining, leasing, exchange, R&D)
+- [ ] Ensure all new features include corresponding tests
 - [ ] Full buildable building catalogue (all types)
 - [ ] Building upgrade (tier) system
 - [ ] Orbital shipyard building

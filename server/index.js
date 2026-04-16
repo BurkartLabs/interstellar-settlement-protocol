@@ -676,6 +676,79 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
   res.json(account);
 });
 
+// ─── Orbital Executive Suites: Renew an office lease ───────────────────────
+app.post("/api/accounts/:accountId/gameplay/renew-office", (req, res) => {
+  const requestedStationId = String(req.body?.stationId || "earth-station-prime").trim();
+  const VALID_DURATIONS = [7, 14, 21, 28];
+  const durationDays = VALID_DURATIONS.includes(Number(req.body?.durationDays)) ? Number(req.body.durationDays) : 7;
+  const renewalCost = durationDays * 1000;
+  let outcome = "ok";
+  let stationName = "Earth Station Prime";
+
+  let stationsData;
+  try {
+    stationsData = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "stations.json"), "utf8")).stations;
+  } catch {
+    res.status(500).json({ error: "Station registry unavailable." });
+    return;
+  }
+
+  const station = stationsData.find((s) => s.id === requestedStationId);
+  if (!station) {
+    res.status(400).json({ error: "Station not found." });
+    return;
+  }
+  stationName = station.name;
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+    if (!Array.isArray(corp.offices)) {
+      outcome = "no-office";
+      return;
+    }
+    const office = corp.offices.find((o) => o.stationId === station.id);
+    if (!office) {
+      outcome = "no-office";
+      return;
+    }
+    if (corp.finances.credits < renewalCost) {
+      outcome = "insufficient-credits";
+      return;
+    }
+    corp.finances.credits -= renewalCost;
+    const extensionMs = durationDays * 86_400_000;
+    const now = Date.now();
+    office.rentedUntil = Math.max(office.rentedUntil || now, now) + extensionMs;
+    office.durationDays = (office.durationDays || 0) + durationDays;
+  });
+
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  if (outcome !== "ok") {
+    const corp = account.state.corp;
+    const messageMap = {
+      "no-office": `Your corporation does not have an office at ${stationName} to renew.`,
+      "insufficient-credits": `Renewing for ${durationDays} days requires ${formatCredits(renewalCost)}. Current reserves: ${formatCredits(corp.finances.credits)} credits.`
+    };
+    res.status(400).json({ error: messageMap[outcome] || "Lease renewal failed." });
+    return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "administration",
+    title: "Office Lease Renewed",
+    body: `Your office lease at ${stationName} has been extended by ${durationDays} days.`
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
+  res.json(account);
+});
+
 // ─── ISA Claims & Leases Division: Purchase a mining lease ─────────────────
 app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
   const requestedBody = String(req.body?.body || "").trim();
@@ -1746,7 +1819,11 @@ io.on("connection", (socket) => {
 });
 
 const port = Number(process.env.PORT || 3000);
-server.listen(port, () => {
-  // eslint-disable-next-line no-console
-  console.log(`ISP prototype server running on http://localhost:${port}`);
-});
+if (!process.env.VERCEL) {
+  server.listen(port, () => {
+    // eslint-disable-next-line no-console
+    console.log(`ISP prototype server running on http://localhost:${port}`);
+  });
+}
+
+export default app;

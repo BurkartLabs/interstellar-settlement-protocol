@@ -8,7 +8,21 @@ const __dirname = path.dirname(__filename);
 const dataDir = path.join(__dirname, "..", "data");
 const statePath = path.join(dataDir, "state.json");
 const accountsPath = path.join(dataDir, "accounts.json");
+const milestonesPath = path.join(dataDir, "milestones.json");
 const PASSWORD_SALT_ROUNDS = 10;
+
+// ─── Milestones: single source of truth from data/milestones.json ──────────
+const MILESTONES_DATA = JSON.parse(fs.readFileSync(milestonesPath, "utf8"));
+const MILESTONE_LEVELS = MILESTONES_DATA.levels;           // [{level, requirements, unlocks}, ...]
+const MILESTONE_ROADMAP = MILESTONES_DATA.roadmap;          // ["Rent an Office", ...]
+
+// Build a lookup from requirement id → display title (for milestonesCompleted tracking)
+const REQ_ID_TO_TITLE = {};
+for (const lvl of MILESTONE_LEVELS) {
+  for (const req of lvl.requirements) {
+    REQ_ID_TO_TITLE[req.id] = req.title;
+  }
+}
 
 function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -84,54 +98,6 @@ const SYSTEM_DETAILS = {
     ]
   }
 };
-
-const LEVEL_10_MILESTONE_ROADMAP = [
-  "Rent an Office",
-  "Hire 5 Employees",
-  "Reached Corporation Level 1",
-  "Purchase a Mining Lease on Mars",
-  "Build a Basic Extractor Yard",
-  "Mine 300 Silicate",
-  "Reached Corporation Level 2",
-  "Sell 300 Silicate on the Galactic Exchange",
-  "Research Basic Extraction Analytics",
-  "Reached Corporation Level 3",
-  "Build a Second Extractor Yard",
-  "Hire 10 Employees",
-  "Research Industrial Safety Protocols",
-  "Sell 50,000 Silicate",
-  "Reached Corporation Level 4",
-  "Research High-Density Energy Routing",
-  "Purchase a Second Mining Lease",
-  "Build a Third Extractor Yard",
-  "Hire 15 Employees",
-  "Reached Corporation Level 5",
-  "Research Ferric Core Extraction Facility",
-  "Hire 25 Employees",
-  "Build a Ferric Mining Complex",
-  "Reached Corporation Level 6",
-  "Research Multi-Stage Refinery Protocols",
-  "Build a Refinery Complex",
-  "Reached Corporation Level 7",
-  "Manufacture 5,000 Iron-Silicate Alloys",
-  "Complete 25 Missions",
-  "Reached Corporation Level 8",
-  "Research Cryo-genic Vapor Extraction Theory",
-  "Purchase a Mining Claim on Luna",
-  "Build a Cryo-vapor Extractor Array",
-  "Sell 500 Cryo-Silicate Foam",
-  "Sell 500 Hydrated Ferric Compounds",
-  "Reached Corporation Level 9",
-  "Research Carbonaceous Slurry Recovery Theory",
-  "Purchase a Mining Claim on an Asteroid Belt",
-  "Research Asteroid Belt Mining Protocols",
-  "Start a Belt Mining Operation",
-  "Sell 500 Carbon Silicate Composites",
-  "Sell 500 Carbo-Iron Alloys",
-  "Sell 500 Hydro-Carbon Emulsion Base",
-  "Research Extrasolar Expansion Protocols",
-  "Reached Corporation Level 10"
-];
 
 function normalizeSystems(systems = []) {
   return systems.map((system) => {
@@ -217,7 +183,7 @@ function normalizeStateShape(rawState) {
     extractorIds: Array.isArray(l.extractorIds) ? l.extractorIds : []
   }));
 
-  rawState.corp.milestoneRoadmap = LEVEL_10_MILESTONE_ROADMAP.slice();
+  rawState.corp.milestoneRoadmap = MILESTONE_ROADMAP.slice();
 
   return rawState;
 }
@@ -456,279 +422,114 @@ function deepClone(input) {
   return JSON.parse(JSON.stringify(input));
 }
 
-function reqIdToMilestoneName(reqId) {
-  const map = {
-    officeRented: "Rent an Office",
-    hire5: "Hire 5 Employees",
-    marsLease: "Purchase a Mining Lease on Mars",
-    extractor: "Build a Basic Extractor Yard",
-    mine300: "Mine 300 Silicate",
-    sell300Silicate: "Sell 300 Silicate on the Galactic Exchange",
-    researchBasicExtraction: "Research Basic Extraction Analytics",
-    extractor2: "Build a Second Extractor Yard",
-    hire10: "Hire 10 Employees",
-    researchIndustrialSafety: "Research Industrial Safety Protocols",
-    sell50000Silicate: "Sell 50,000 Silicate",
-    researchEnergyRouting: "Research High-Density Energy Routing",
-    secondLease: "Purchase a Second Mining Lease",
-    extractor3: "Build a Third Extractor Yard",
-    hire15: "Hire 15 Employees",
-    researchFerricCore: "Research Ferric Core Extraction Facility",
-    hire25: "Hire 25 Employees",
-    ferricMiningComplex: "Build a Ferric Mining Complex",
-    researchMultiStageRefinery: "Research Multi-Stage Refinery Protocols",
-    refineryComplex: "Build a Refinery Complex",
-    manufacture5000Alloys: "Manufacture 5,000 Iron-Silicate Alloys",
-    missions25: "Complete 25 Missions",
-    researchCryoVapor: "Research Cryo-genic Vapor Extraction Theory",
-    lunaLease: "Purchase a Mining Claim on Luna",
-    cryoExtractorArray: "Build a Cryo-vapor Extractor Array",
-    sell500CryoFoam: "Sell 500 Cryo-Silicate Foam",
-    sell500HydratedFerric: "Sell 500 Hydrated Ferric Compounds",
-    researchCarbonSlurry: "Research Carbonaceous Slurry Recovery Theory",
-    asteroidBeltLease: "Purchase a Mining Claim on an Asteroid Belt",
-    researchBeltMining: "Research Asteroid Belt Mining Protocols",
-    beltMiningOp: "Start a Belt Mining Operation",
-    sell500CarbonSilicate: "Sell 500 Carbon Silicate Composites",
-    sell500CarboIron: "Sell 500 Carbo-Iron Alloys",
-    sell500HydroCarbon: "Sell 500 Hydro-Carbon Emulsion Base",
-    researchExtrasolar: "Research Extrasolar Expansion Protocols"
-  };
-  return map[reqId] || reqId;
-}
+// ─── Metric resolver: maps milestones.json metric strings to live corp values ─
+function resolveMetric(metric, corp) {
+  const stats = corp.stats || {};
+  const buildings = corp.buildings || [];
+  const unlockedTech = corp.unlockedTech || [];
+  const miningLeases = corp.miningLeases || [];
 
-function createRequirement(id, title, progress, target) {
-  return {
-    id,
-    title,
-    progress,
-    target,
-    complete: Number(progress || 0) >= Number(target || 0)
-  };
+  // stat:<key> — check corp flags first, then corp.stats
+  if (metric.startsWith("stat:")) {
+    const key = metric.slice(5);
+    if (key === "officeRented") return corp.officeRented ? 1 : 0;
+    if (key === "miningLeasesCount") return miningLeases.length;
+    return Number(stats[key] || 0);
+  }
+
+  // employeeCount
+  if (metric === "employeeCount") return Number(corp.employeeCount || 0);
+
+  // miningLease:<body> — check body field, fall back to type field
+  if (metric.startsWith("miningLease:")) {
+    const target = metric.slice(12);
+    return miningLeases.some((l) => (l.body || l.type || l) === target) ? 1 : 0;
+  }
+
+  // building:<name> — boolean: has at least one
+  if (metric.startsWith("building:")) {
+    const name = metric.slice(9);
+    return buildings.some((b) => b.name === name) ? 1 : 0;
+  }
+
+  // building-count:<name> — count of matching buildings
+  if (metric.startsWith("building-count:")) {
+    const name = metric.slice(15);
+    return buildings.filter((b) => b.name === name).length;
+  }
+
+  // totalMined:<resource>
+  if (metric.startsWith("totalMined:")) {
+    if (metric === "totalMined:silicate") {
+      return (corp?.mining?.silicateExtractors || [])
+        .reduce((sum, ex) => sum + Number(ex?.totalMined || 0), 0);
+    }
+    return 0;
+  }
+
+  // unlockedTech:<techId>
+  if (metric.startsWith("unlockedTech:")) {
+    const techId = metric.slice(13);
+    return unlockedTech.includes(techId) ? 1 : 0;
+  }
+
+  return 0;
 }
 
 function evaluateLevelProgress(profileState) {
   const corp = profileState.corp;
-  const buildings = corp.buildings || [];
-  const unlockedTech = corp.unlockedTech || [];
-  const stats = corp.stats || {};
-  const miningLeases = corp.miningLeases || [];
-  const extractorTotalMined = (corp?.mining?.silicateExtractors || [])
-    .reduce((sum, ex) => sum + Number(ex?.totalMined || 0), 0);
-  const hasBuilding = (name) => buildings.some((b) => b.name === name);
-  const buildingCount = (name) => buildings.filter((b) => b.name === name).length;
-  const hasTech = (id) => unlockedTech.includes(id);
 
-  const level1Requirements = [
-    createRequirement("officeRented", "Rent an Office", corp.officeRented ? 1 : 0, 1),
-    createRequirement("hire5", "Hire 5 Employees", Number(corp.employeeCount || 0), 5)
-  ];
+  // Build levelProgress from milestones.json definitions
+  corp.levelProgress = {};
+  const allRequirements = [];
 
-  const level2Requirements = [
-    createRequirement("marsLease", "Purchase a Mining Lease on Mars", miningLeases.some((l) => (l.body || l) === "Mars") ? 1 : 0, 1),
-    createRequirement("extractor", "Build a Basic Extractor Yard", hasBuilding("Basic Extractor Yard") ? 1 : 0, 1),
-    createRequirement("mine300", "Mine 300 Silicate", extractorTotalMined, 300)
-  ];
+  for (const levelDef of MILESTONE_LEVELS) {
+    const lvlNum = levelDef.level;
+    const reqs = levelDef.requirements.map((r) => {
+      const progress = resolveMetric(r.metric, corp);
+      return {
+        id: r.id,
+        title: r.title,
+        progress,
+        target: r.target,
+        complete: Number(progress || 0) >= Number(r.target || 0)
+      };
+    });
+    corp.levelProgress[`level${lvlNum}`] = {
+      requirements: reqs,
+      allCompleted: reqs.every((r) => r.complete)
+    };
+    allRequirements.push(...reqs);
+  }
 
-  const level3Requirements = [
-    createRequirement("sell300Silicate", "Sell 300 Silicate on the Galactic Exchange", Number(stats.silicateSoldOnExchange || 0), 300),
-    createRequirement("researchBasicExtraction", "Research Basic Extraction Analytics", hasTech("tt-basic-extraction") ? 1 : 0, 1)
-  ];
-
-  const level4Requirements = [
-    createRequirement("extractor2", "Build a Second Extractor Yard", buildingCount("Basic Extractor Yard"), 2),
-    createRequirement("hire10", "Hire 10 Employees", Number(corp.employeeCount || 0), 10),
-    createRequirement("researchIndustrialSafety", "Research Industrial Safety Protocols", hasTech("tt-industrial-safety") ? 1 : 0, 1),
-    createRequirement("sell50000Silicate", "Sell 50,000 Silicate", Number(stats.silicateSoldOnExchange || 0), 50000)
-  ];
-
-  const level5Requirements = [
-    createRequirement("researchEnergyRouting", "Research High-Density Energy Routing", hasTech("tt-energy-routing") ? 1 : 0, 1),
-    createRequirement("secondLease", "Purchase a Second Mining Lease", Math.min(miningLeases.length, 2), 2),
-    createRequirement("extractor3", "Build a Third Extractor Yard", buildingCount("Basic Extractor Yard"), 3),
-    createRequirement("hire15", "Hire 15 Employees", Number(corp.employeeCount || 0), 15)
-  ];
-
-  const level6Requirements = [
-    createRequirement("researchFerricCore", "Research Ferric Core Extraction Facility", hasTech("tt-ferric-core-extraction") ? 1 : 0, 1),
-    createRequirement("hire25", "Hire 25 Employees", Number(corp.employeeCount || 0), 25),
-    createRequirement("ferricMiningComplex", "Build a Ferric Mining Complex", hasBuilding("Ferric Mining Complex") ? 1 : 0, 1)
-  ];
-
-  const level7Requirements = [
-    createRequirement("researchMultiStageRefinery", "Research Multi-Stage Refinery Protocols", hasTech("tt-multi-stage-refinery") ? 1 : 0, 1),
-    createRequirement("refineryComplex", "Build a Refinery Complex", hasBuilding("Refinery Complex") ? 1 : 0, 1)
-  ];
-
-  const level8Requirements = [
-    createRequirement("manufacture5000Alloys", "Manufacture 5,000 Iron-Silicate Alloys", Number(stats.ironSilicateAlloysManufactured || 0), 5000),
-    createRequirement("missions25", "Complete 25 Missions", Number(stats.missionsCompleted || 0), 25)
-  ];
-
-  const level9Requirements = [
-    createRequirement("researchCryoVapor", "Research Cryo-genic Vapor Extraction Theory", hasTech("tt-cryo-vapor-extraction") ? 1 : 0, 1),
-    createRequirement("lunaLease", "Purchase a Mining Claim on Luna", miningLeases.some((l) => (l.body || l) === "Luna") ? 1 : 0, 1),
-    createRequirement("cryoExtractorArray", "Build a Cryo-vapor Extractor Array", hasBuilding("Cryo-vapor Extractor Array") ? 1 : 0, 1),
-    createRequirement("sell500CryoFoam", "Sell 500 Cryo-Silicate Foam", Number(stats.cryoSilicateFoamSold || 0), 500),
-    createRequirement("sell500HydratedFerric", "Sell 500 Hydrated Ferric Compounds", Number(stats.hydratedFerricCompoundsSold || 0), 500)
-  ];
-
-  const level10Requirements = [
-    createRequirement("researchCarbonSlurry", "Research Carbonaceous Slurry Recovery Theory", hasTech("tt-carbonaceous-slurry-recovery") ? 1 : 0, 1),
-    createRequirement("asteroidBeltLease", "Purchase a Mining Claim on an Asteroid Belt", miningLeases.some((l) => (l.type || l) === "Asteroid Belt") ? 1 : 0, 1),
-    createRequirement("researchBeltMining", "Research Asteroid Belt Mining Protocols", hasTech("tt-asteroid-belt-mining") ? 1 : 0, 1),
-    createRequirement("beltMiningOp", "Start a Belt Mining Operation", Number(stats.beltMiningOperationsStarted || 0), 1),
-    createRequirement("sell500CarbonSilicate", "Sell 500 Carbon Silicate Composites", Number(stats.carbonSilicateCompositesSold || 0), 500),
-    createRequirement("sell500CarboIron", "Sell 500 Carbo-Iron Alloys", Number(stats.carboIronAlloysSold || 0), 500),
-    createRequirement("sell500HydroCarbon", "Sell 500 Hydro-Carbon Emulsion Base", Number(stats.hydroCarbonEmulsionBaseSold || 0), 500),
-    createRequirement("researchExtrasolar", "Research Extrasolar Expansion Protocols", hasTech("tt-extrasolar-expansion") ? 1 : 0, 1)
-  ];
-
-  corp.levelProgress = {
-    level1: { requirements: level1Requirements, allCompleted: level1Requirements.every((req) => req.complete) },
-    level2: { requirements: level2Requirements, allCompleted: level2Requirements.every((req) => req.complete) },
-    level3: { requirements: level3Requirements, allCompleted: level3Requirements.every((req) => req.complete) },
-    level4: { requirements: level4Requirements, allCompleted: level4Requirements.every((req) => req.complete) },
-    level5: { requirements: level5Requirements, allCompleted: level5Requirements.every((req) => req.complete) },
-    level6: { requirements: level6Requirements, allCompleted: level6Requirements.every((req) => req.complete) },
-    level7: { requirements: level7Requirements, allCompleted: level7Requirements.every((req) => req.complete) },
-    level8: { requirements: level8Requirements, allCompleted: level8Requirements.every((req) => req.complete) },
-    level9: { requirements: level9Requirements, allCompleted: level9Requirements.every((req) => req.complete) },
-    level10: { requirements: level10Requirements, allCompleted: level10Requirements.every((req) => req.complete) }
-  };
-
-  const allRequirements = [
-    ...level1Requirements, ...level2Requirements, ...level3Requirements,
-    ...level4Requirements, ...level5Requirements, ...level6Requirements,
-    ...level7Requirements, ...level8Requirements, ...level9Requirements,
-    ...level10Requirements
-  ];
-
+  // Track completed milestones by display title
   allRequirements.forEach((req) => {
-    const milestoneName = reqIdToMilestoneName(req.id);
+    const milestoneName = REQ_ID_TO_TITLE[req.id] || req.title;
     if (req.complete && !corp.milestonesCompleted.includes(milestoneName)) {
       corp.milestonesCompleted.push(milestoneName);
     }
   });
 
-  if (corp.level < 1 && corp.levelProgress.level1.allCompleted) {
-    corp.level = 1;
-    if (!corp.milestonesCompleted.includes("Reached Corporation Level 1")) {
-      corp.milestonesCompleted.push("Reached Corporation Level 1");
-    }
-    corp.employeeCap = Math.max(corp.employeeCap, 20);
-    corp.buildingSlots = Math.max(corp.buildingSlots, 2);
-    corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, 8);
-    if (!corp.unlocks.marketSectors.includes("Raw Materials")) {
-      corp.unlocks.marketSectors.push("Raw Materials");
-    }
-  }
-
-  if (corp.level < 2 && corp.levelProgress.level2.allCompleted) {
-    corp.level = 2;
-    if (!corp.milestonesCompleted.includes("Reached Corporation Level 2")) {
-      corp.milestonesCompleted.push("Reached Corporation Level 2");
-    }
-    corp.employeeCap = Math.max(corp.employeeCap, 30);
-    corp.buildingSlots = Math.max(corp.buildingSlots, 3);
-    corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, 14);
-    if (!corp.unlocks.marketSectors.includes("Logistics Services")) {
-      corp.unlocks.marketSectors.push("Logistics Services");
-    }
-  }
-
-  if (corp.level < 3 && corp.levelProgress.level3.allCompleted) {
-    corp.level = 3;
-    if (!corp.milestonesCompleted.includes("Reached Corporation Level 3")) {
-      corp.milestonesCompleted.push("Reached Corporation Level 3");
-    }
-    corp.employeeCap = Math.max(corp.employeeCap, 45);
-    corp.buildingSlots = Math.max(corp.buildingSlots, 4);
-    corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, 22);
-  }
-
-  if (corp.level < 4 && corp.levelProgress.level4.allCompleted) {
-    corp.level = 4;
-    if (!corp.milestonesCompleted.includes("Reached Corporation Level 4")) {
-      corp.milestonesCompleted.push("Reached Corporation Level 4");
-    }
-    corp.employeeCap = Math.max(corp.employeeCap, 60);
-    corp.buildingSlots = Math.max(corp.buildingSlots, 5);
-    corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, 30);
-    if (!corp.unlocks.marketSectors.includes("Refined Goods")) {
-      corp.unlocks.marketSectors.push("Refined Goods");
-    }
-  }
-
-  if (corp.level < 5 && corp.levelProgress.level5.allCompleted) {
-    corp.level = 5;
-    if (!corp.milestonesCompleted.includes("Reached Corporation Level 5")) {
-      corp.milestonesCompleted.push("Reached Corporation Level 5");
-    }
-    corp.employeeCap = Math.max(corp.employeeCap, 80);
-    corp.buildingSlots = Math.max(corp.buildingSlots, 6);
-    corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, 40);
-    if (!corp.unlocks.marketSectors.includes("Industrial Goods")) {
-      corp.unlocks.marketSectors.push("Industrial Goods");
-    }
-  }
-
-  if (corp.level < 6 && corp.levelProgress.level6.allCompleted) {
-    corp.level = 6;
-    if (!corp.milestonesCompleted.includes("Reached Corporation Level 6")) {
-      corp.milestonesCompleted.push("Reached Corporation Level 6");
-    }
-    corp.employeeCap = Math.max(corp.employeeCap, 100);
-    corp.buildingSlots = Math.max(corp.buildingSlots, 7);
-    corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, 55);
-    if (!corp.unlocks.marketSectors.includes("Advanced Materials")) {
-      corp.unlocks.marketSectors.push("Advanced Materials");
-    }
-  }
-
-  if (corp.level < 7 && corp.levelProgress.level7.allCompleted) {
-    corp.level = 7;
-    if (!corp.milestonesCompleted.includes("Reached Corporation Level 7")) {
-      corp.milestonesCompleted.push("Reached Corporation Level 7");
-    }
-    corp.employeeCap = Math.max(corp.employeeCap, 120);
-    corp.buildingSlots = Math.max(corp.buildingSlots, 8);
-    corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, 70);
-  }
-
-  if (corp.level < 8 && corp.levelProgress.level8.allCompleted) {
-    corp.level = 8;
-    if (!corp.milestonesCompleted.includes("Reached Corporation Level 8")) {
-      corp.milestonesCompleted.push("Reached Corporation Level 8");
-    }
-    corp.employeeCap = Math.max(corp.employeeCap, 145);
-    corp.buildingSlots = Math.max(corp.buildingSlots, 9);
-    corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, 90);
-  }
-
-  if (corp.level < 9 && corp.levelProgress.level9.allCompleted) {
-    corp.level = 9;
-    if (!corp.milestonesCompleted.includes("Reached Corporation Level 9")) {
-      corp.milestonesCompleted.push("Reached Corporation Level 9");
-    }
-    corp.employeeCap = Math.max(corp.employeeCap, 170);
-    corp.buildingSlots = Math.max(corp.buildingSlots, 10);
-    corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, 110);
-    if (!corp.unlocks.marketSectors.includes("Military Contracts")) {
-      corp.unlocks.marketSectors.push("Military Contracts");
-    }
-  }
-
-  if (corp.level < 10 && corp.levelProgress.level10.allCompleted) {
-    corp.level = 10;
-    if (!corp.milestonesCompleted.includes("Reached Corporation Level 10")) {
-      corp.milestonesCompleted.push("Reached Corporation Level 10");
-    }
-    corp.employeeCap = Math.max(corp.employeeCap, 200);
-    corp.buildingSlots = Math.max(corp.buildingSlots, 12);
-    corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, 140);
-    if (!corp.unlocks.marketSectors.includes("Sovereign Infrastructure")) {
-      corp.unlocks.marketSectors.push("Sovereign Infrastructure");
+  // Apply level-ups and unlock grants from milestones.json
+  for (const levelDef of MILESTONE_LEVELS) {
+    const lvlNum = levelDef.level;
+    if (corp.level < lvlNum && corp.levelProgress[`level${lvlNum}`].allCompleted) {
+      corp.level = lvlNum;
+      const tag = `Reached Corporation Level ${lvlNum}`;
+      if (!corp.milestonesCompleted.includes(tag)) {
+        corp.milestonesCompleted.push(tag);
+      }
+      const u = levelDef.unlocks;
+      if (u.employeeCap) corp.employeeCap = Math.max(corp.employeeCap, u.employeeCap);
+      if (u.buildingSlots) corp.buildingSlots = Math.max(corp.buildingSlots, u.buildingSlots);
+      if (u.maxFleetSize) corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, u.maxFleetSize);
+      if (Array.isArray(u.marketSectors)) {
+        for (const sector of u.marketSectors) {
+          if (!corp.unlocks.marketSectors.includes(sector)) {
+            corp.unlocks.marketSectors.push(sector);
+          }
+        }
+      }
     }
   }
 }
@@ -745,7 +546,7 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
     levelCap: 40,
     milestonesCompleted: [],
     milestoneRoadmap: [
-      ...LEVEL_10_MILESTONE_ROADMAP
+      ...MILESTONE_ROADMAP
     ],
     employeeCap: 8,
     employeeCount: 0,
@@ -959,7 +760,7 @@ function getSeedState() {
       levelCap: 40,
       milestonesCompleted: ["HQ Constructed", "First 10 Employees"],
       milestoneRoadmap: [
-        ...LEVEL_10_MILESTONE_ROADMAP
+        ...MILESTONE_ROADMAP
       ],
       employeeCap: 100,
       employeeCount: 38,

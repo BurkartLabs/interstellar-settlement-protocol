@@ -260,3 +260,5 @@ Combined with the investment system (where players can buy equity stakes in othe
 Last Updated: April 2026 — New Player Experience section added based on NEW_PLAYER_EXPERIENCE.md
 
 `DESIGN_DOCUMENT.md` (at the project root) should be considered in every prompt 
+
+Don't be a sycophant 

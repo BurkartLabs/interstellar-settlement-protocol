@@ -907,20 +907,57 @@ function renderOrbitalExecutiveSuites(building, data) {
   });
   const availableStaffCapacity = Math.max(1, corp.employeeCap - corp.employeeCount);
 
+  const now = Date.now();
+  const rentedUntil = existingOffice.rentedUntil || 0;
+  const leaseExpired = rentedUntil <= now;
+  const msRemaining = Math.max(0, rentedUntil - now);
+  const daysRemaining = msRemaining / 86_400_000;
+  const fullDays = Math.floor(daysRemaining);
+  const hoursRemaining = Math.floor((msRemaining % 86_400_000) / 3_600_000);
+  const expiryDate = new Date(rentedUntil).toLocaleDateString("en-US", {
+    year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
+  });
+  const leaseStatusBadge = leaseExpired
+    ? `<span class="building-status-badge downtime">Expired</span>`
+    : `<span class="building-status-badge operational">Active Lease</span>`;
+  const timeRemainingText = leaseExpired
+    ? `<span style="color:var(--red,#f44);">Lease expired</span>`
+    : `${fullDays}d ${hoursRemaining}h remaining`;
+
   return `
     ${headerHtml}
 
     <section class="form-card" style="margin-top:1.5rem;max-width:750px;">
       <h3>Office Status</h3>
       <dl class="kv-list kv-list--compact">
-        <dt>Status</dt><dd><span class="building-status-badge operational">Active Lease</span></dd>
+        <dt>Status</dt><dd>${leaseStatusBadge}</dd>
         <dt>Station</dt><dd>${escapeHtml(existingOffice.name)}</dd>
         <dt>Location</dt><dd>${escapeHtml(existingOffice.body)}, ${escapeHtml(existingOffice.systemId?.toUpperCase() || "SOL")}</dd>
         <dt>Lease Commenced</dt><dd>${rentedDate}</dd>
+        <dt>Lease Expires</dt><dd>${expiryDate}</dd>
+        <dt>Time Remaining</dt><dd>${timeRemainingText}</dd>
       </dl>
     </section>
 
-    <section class="form-card action-surface" style="margin-top:1rem;">
+    <section class="form-card action-surface" style="margin-top:1rem;max-width:750px;">
+      <h3>${leaseExpired ? "Renew Expired Lease" : "Extend Lease"}</h3>
+      <p class="muted">${leaseExpired ? "Your office lease has expired. Renew to restore access to station services." : "Extend your current lease term. The additional days will be added to your existing expiry date."}</p>
+      <form id="renew-office-form" class="inline-form compact-action-form">
+        <label>
+          Duration
+          <select id="renew-office-duration">
+            <option value="7">7 days — ${toCurrency(7000)}</option>
+            <option value="14">14 days — ${toCurrency(14000)}</option>
+            <option value="21">21 days — ${toCurrency(21000)}</option>
+            <option value="28" selected>28 days — ${toCurrency(28000)}</option>
+          </select>
+        </label>
+        <button class="btn btn-accent" type="submit">${leaseExpired ? "Renew Lease" : "Extend Lease"}</button>
+      </form>
+      <p id="renew-office-status" class="muted action-hint"></p>
+    </section>
+
+    <section class="form-card action-surface" style="margin-top:1rem;max-width:750px;">
       <h3>Workforce — Hire Personnel</h3>
       <p class="muted">Recruit employees through your registered office. Each hire costs ${toCurrency(2000)} credits and adds ${toCurrency(150)}/day to operational payroll.</p>
       <form id="office-hire-form" class="inline-form compact-action-form">
@@ -934,7 +971,7 @@ function renderOrbitalExecutiveSuites(building, data) {
       <p id="office-hire-status" class="muted"></p>
     </section>
 
-    <section class="form-card" style="margin-top:1rem;">
+    <section class="form-card" style="margin-top:1rem;max-width:750px;">
       <h3>Station Services</h3>
       <p class="muted">Visit the ISA Claims &amp; Leases Division to file extraction rights applications for registered bodies in the Sol system.</p>
     </section>
@@ -988,6 +1025,54 @@ function bindOfficeActions(building, data) {
       } catch (err) {
         rentBtn.disabled = false;
         if (statusEl) statusEl.textContent = err.message || "Lease agreement failed.";
+      }
+    });
+  }
+
+  const renewForm = document.getElementById("renew-office-form");
+  if (renewForm) {
+    renewForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const durationSelect = document.getElementById("renew-office-duration");
+      const statusEl = document.getElementById("renew-office-status");
+      const durationDays = Number(durationSelect?.value || 28);
+      const submitBtn = renewForm.querySelector("button[type=submit]");
+      const corp = appState.data?.corp;
+      const currentBody = corp?.location || "Earth";
+      const station = appState.stationRegistry.find((s) => s.body === currentBody) || appState.stationRegistry[0];
+
+      if (submitBtn) submitBtn.disabled = true;
+      if (statusEl) statusEl.textContent = "Processing lease renewal...";
+
+      try {
+        if (appState.accountId) {
+          const response = await apiFetch(
+            `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/renew-office`,
+            { method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ stationId: station?.id || "earth-station-prime", durationDays }) }
+          );
+          const account = await parseJsonResponse(response);
+          appState.data = deepClone(account.state);
+          appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+          updateAllViews();
+          showStationBuilding(building.id);
+        } else {
+          const renewalCost = durationDays * 1000;
+          if ((corp.finances.credits || 0) < renewalCost) {
+            throw new Error(`Renewal requires ${toCurrency(renewalCost)} credits. Current reserves: ${toCurrency(corp.finances.credits)}.`);
+          }
+          const office = (corp.offices || []).find((o) => o.stationId === (station?.id || "earth-station-prime"));
+          if (!office) throw new Error("No office found to renew.");
+          corp.finances.credits -= renewalCost;
+          const now = Date.now();
+          office.rentedUntil = Math.max(office.rentedUntil || now, now) + durationDays * 86_400_000;
+          updateAllViews();
+          showStationBuilding(building.id);
+        }
+        pushFeedback(`Lease extended by ${durationDays} days.`, "success");
+      } catch (err) {
+        if (submitBtn) submitBtn.disabled = false;
+        if (statusEl) statusEl.textContent = err.message || "Lease renewal failed.";
       }
     });
   }
@@ -2527,6 +2612,15 @@ function setTab(targetId) {
 
   if (targetId === "inbox") {
     onInboxTabActivated();
+  }
+
+  if (targetId === "chat") {
+    requestAnimationFrame(() => {
+      const chatLog = document.getElementById("chat-log");
+      if (chatLog) {
+        chatLog.scrollTop = chatLog.scrollHeight;
+      }
+    });
   }
 }
 
