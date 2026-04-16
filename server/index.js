@@ -34,7 +34,8 @@ import {
   sendPlayerMessage,
   saveDraft,
   deleteDraft,
-  addSystemMessageToAccount
+  addSystemMessageToAccount,
+  flushPendingPersist
 } from "./gameState.js";
 
 const RESEARCH_LIBRARY = {
@@ -231,6 +232,24 @@ process.on("unhandledRejection", (reason) => {
 });
 
 app.use(express.json());
+
+// ─── Serverless persistence flush ─────────────────────────────────────────────
+// On Vercel, setTimeout-based persistence never completes because the function
+// freezes after the response is sent.  This middleware intercepts res.json so
+// any pending Supabase writes are flushed *before* the HTTP response leaves,
+// guaranteeing persistence on every request.
+if (process.env.VERCEL) {
+  app.use((req, res, next) => {
+    const origJson = res.json.bind(res);
+    res.json = function (body) {
+      flushPendingPersist()
+        .catch(() => {})
+        .then(() => origJson(body));
+    };
+    next();
+  });
+}
+
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────

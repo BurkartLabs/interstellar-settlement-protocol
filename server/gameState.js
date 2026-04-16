@@ -1287,8 +1287,17 @@ function scheduleSave() {
   }, 300);
 }
 
+let _persistDirty = false;
+
 function scheduleAccountsSave() {
   if (USE_SUPABASE) {
+    if (IS_SERVERLESS) {
+      // On serverless, just mark dirty — the flush middleware will persist before responding
+      _persistDirty = true;
+      return;
+    }
+
+    // Non-serverless: debounce as before
     if (accountsSaveTimer) {
       clearTimeout(accountsSaveTimer);
     }
@@ -1316,11 +1325,10 @@ function scheduleAccountsSave() {
   }, 300);
 }
 
-export function saveAccountsNow() {
+export async function saveAccountsNow() {
   if (USE_SUPABASE) {
-    persistAccountsStoreToSupabase().catch((error) => {
-      console.error("[supabase] Immediate account persist failed:", error?.message || error);
-    });
+    _persistDirty = false;
+    await persistAccountsStoreToSupabase();
     return;
   }
 
@@ -1333,6 +1341,17 @@ export function saveAccountsNow() {
     accountsSaveTimer = null;
   }
   safeWriteFile(accountsPath, JSON.stringify(accountsStore, null, 2), "accounts save immediate");
+}
+
+export async function flushPendingPersist() {
+  if (_persistDirty && USE_SUPABASE) {
+    _persistDirty = false;
+    try {
+      await persistAccountsStoreToSupabase();
+    } catch (error) {
+      console.error("[supabase] Flush persist failed:", error?.message || error);
+    }
+  }
 }
 
 export function getState() {
