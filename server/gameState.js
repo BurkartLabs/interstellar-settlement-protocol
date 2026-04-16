@@ -1354,6 +1354,16 @@ export async function flushPendingPersist() {
   }
 }
 
+export async function rehydrateFromSupabase() {
+  if (!USE_SUPABASE || !supabaseAdmin) return;
+  try {
+    const fresh = await hydrateAccountsStoreFromSupabaseOrFallback(accountsStore);
+    accountsStore.accounts = fresh.accounts;
+  } catch (err) {
+    console.error("[supabase] rehydrate failed, keeping in-memory state:", err?.message || err);
+  }
+}
+
 export function getState() {
   return state;
 }

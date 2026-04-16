@@ -35,7 +35,8 @@ import {
   saveDraft,
   deleteDraft,
   addSystemMessageToAccount,
-  flushPendingPersist
+  flushPendingPersist,
+  rehydrateFromSupabase
 } from "./gameState.js";
 
 const RESEARCH_LIBRARY = {
@@ -233,17 +234,22 @@ process.on("unhandledRejection", (reason) => {
 
 app.use(express.json());
 
-// ─── Serverless persistence flush ─────────────────────────────────────────────
-// On Vercel, setTimeout-based persistence never completes because the function
-// freezes after the response is sent.  This middleware intercepts res.json so
-// any pending Supabase writes are flushed *before* the HTTP response leaves,
-// guaranteeing persistence on every request.
+// ─── Serverless Supabase sync ─────────────────────────────────────────────────
+// On Vercel, each request may land on a different instance with stale in-memory
+// state.  This middleware reloads the full accountsStore from Supabase before
+// every API request, and flushes any dirty writes before the response leaves.
 if (process.env.VERCEL) {
-  app.use((req, res, next) => {
+  app.use("/api", async (req, res, next) => {
+    try {
+      await rehydrateFromSupabase();
+    } catch (err) {
+      console.error("[middleware] rehydrate failed:", err?.message || err);
+    }
+
     const origJson = res.json.bind(res);
     res.json = function (body) {
       flushPendingPersist()
-        .catch(() => {})
+        .catch((err) => { console.error("[middleware] flush failed:", err?.message || err); })
         .then(() => origJson(body));
     };
     next();
