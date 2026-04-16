@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
+import { createClient } from "@supabase/supabase-js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,20 @@ const accountsPath = path.join(dataDir, "accounts.json");
 const milestonesPath = path.join(dataDir, "milestones.json");
 const PASSWORD_SALT_ROUNDS = 10;
 const IS_SERVERLESS = Boolean(process.env.VERCEL);
+const SUPABASE_URL = String(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
+const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+const SUPABASE_ANON_KEY = String(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
+const USE_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+const USE_SUPABASE_AUTH = Boolean(USE_SUPABASE && SUPABASE_ANON_KEY);
+const SUPABASE_MANAGED_PASSWORD_HASH = "__supabase_auth_managed__";
+
+const supabaseAdmin = USE_SUPABASE
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  : null;
+
+const supabaseAuthClient = USE_SUPABASE_AUTH
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } })
+  : null;
 
 function safeWriteFile(filePath, data, contextLabel = "write") {
   try {
@@ -1028,6 +1043,128 @@ let state = ensureStateFile();
 let saveTimer = null;
 let accountsSaveTimer = null;
 
+function stateWithAccountMeta(account) {
+  const stateCopy = deepClone(account.state || {});
+  stateCopy.__accountMeta = {
+    refreshTokens: Array.isArray(account.refreshTokens) ? account.refreshTokens : [],
+    notifications: Array.isArray(account.notifications) ? account.notifications : [],
+    messages: Array.isArray(account.messages) ? account.messages : []
+  };
+  return stateCopy;
+}
+
+function splitAccountStateAndMeta(rawState) {
+  const stateCopy = deepClone(rawState || {});
+  const meta = stateCopy.__accountMeta || {};
+  delete stateCopy.__accountMeta;
+  return {
+    state: normalizeStateShape(stateCopy),
+    refreshTokens: Array.isArray(meta.refreshTokens) ? meta.refreshTokens : [],
+    notifications: Array.isArray(meta.notifications) ? meta.notifications : [],
+    messages: Array.isArray(meta.messages) ? meta.messages : []
+  };
+}
+
+async function persistAccountsStoreToSupabase(snapshot = accountsStore) {
+  if (!USE_SUPABASE || !supabaseAdmin) {
+    return;
+  }
+
+  const allAccounts = Object.values(snapshot.accounts || {});
+  if (!allAccounts.length) {
+    return;
+  }
+
+  const accountRows = allAccounts.map((account) => ({
+    id: account.id,
+    email: String(account.email || "").toLowerCase(),
+    password_hash: String(account.passwordHash || SUPABASE_MANAGED_PASSWORD_HASH),
+    walkthrough_completed: Boolean(account.walkthroughCompleted),
+    created_at: new Date(Number(account.createdAt || Date.now())).toISOString(),
+    last_login_at: account.lastLoginAt ? new Date(Number(account.lastLoginAt)).toISOString() : null
+  }));
+
+  const stateRows = allAccounts.map((account) => ({
+    account_id: account.id,
+    state_json: stateWithAccountMeta(account),
+    updated_at: new Date().toISOString()
+  }));
+
+  const { error: accountError } = await supabaseAdmin
+    .from("accounts")
+    .upsert(accountRows, { onConflict: "id" });
+
+  if (accountError) {
+    throw accountError;
+  }
+
+  const { error: stateError } = await supabaseAdmin
+    .from("account_state")
+    .upsert(stateRows, { onConflict: "account_id" });
+
+  if (stateError) {
+    throw stateError;
+  }
+}
+
+async function hydrateAccountsStoreFromSupabaseOrFallback(fallbackStore) {
+  if (!USE_SUPABASE || !supabaseAdmin) {
+    return fallbackStore;
+  }
+
+  try {
+    const { data: accountRows, error: accountError } = await supabaseAdmin
+      .from("accounts")
+      .select("id, email, password_hash, walkthrough_completed, created_at, last_login_at");
+
+    if (accountError) {
+      throw accountError;
+    }
+
+    if (!Array.isArray(accountRows) || accountRows.length === 0) {
+      await persistAccountsStoreToSupabase(fallbackStore);
+      return fallbackStore;
+    }
+
+    const { data: stateRows, error: stateError } = await supabaseAdmin
+      .from("account_state")
+      .select("account_id, state_json");
+
+    if (stateError) {
+      throw stateError;
+    }
+
+    const stateByAccountId = new Map((stateRows || []).map((row) => [row.account_id, row.state_json]));
+    const hydrated = { accounts: {} };
+    const seedState = normalizeStateShape(getSeedState());
+
+    for (const row of accountRows) {
+      const rawState = stateByAccountId.get(row.id) || createStarterCorporationState(seedState, "New CEO", "Frontier Protocol Ventures");
+      const parsed = splitAccountStateAndMeta(rawState);
+      parsed.state.playerProfile.walkthroughCompleted = Boolean(row.walkthrough_completed);
+      evaluateLevelProgress(parsed.state);
+
+      hydrated.accounts[row.id] = {
+        id: row.id,
+        email: String(row.email || "").toLowerCase(),
+        passwordHash: String(row.password_hash || SUPABASE_MANAGED_PASSWORD_HASH),
+        walkthroughCompleted: Boolean(row.walkthrough_completed),
+        createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+        lastLoginAt: row.last_login_at ? new Date(row.last_login_at).getTime() : null,
+        refreshTokens: parsed.refreshTokens,
+        notifications: parsed.notifications,
+        messages: parsed.messages,
+        state: parsed.state
+      };
+    }
+
+    return hydrated;
+  } catch (error) {
+    console.error("[supabase] Failed to hydrate accounts store, using local fallback:", error?.message || error);
+    return fallbackStore;
+  }
+}
+
 function ensureAccountsFile() {
   if (!IS_SERVERLESS && !fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
@@ -1133,7 +1270,7 @@ function ensureAccountsFile() {
   return parsed;
 }
 
-let accountsStore = ensureAccountsFile();
+let accountsStore = await hydrateAccountsStoreFromSupabaseOrFallback(ensureAccountsFile());
 
 function scheduleSave() {
   if (IS_SERVERLESS) {
@@ -1151,6 +1288,20 @@ function scheduleSave() {
 }
 
 function scheduleAccountsSave() {
+  if (USE_SUPABASE) {
+    if (accountsSaveTimer) {
+      clearTimeout(accountsSaveTimer);
+    }
+
+    accountsSaveTimer = setTimeout(() => {
+      persistAccountsStoreToSupabase().catch((error) => {
+        console.error("[supabase] Failed to persist account snapshot:", error?.message || error);
+      });
+      accountsSaveTimer = null;
+    }, 300);
+    return;
+  }
+
   if (IS_SERVERLESS) {
     return;
   }
@@ -1166,6 +1317,13 @@ function scheduleAccountsSave() {
 }
 
 export function saveAccountsNow() {
+  if (USE_SUPABASE) {
+    persistAccountsStoreToSupabase().catch((error) => {
+      console.error("[supabase] Immediate account persist failed:", error?.message || error);
+    });
+    return;
+  }
+
   if (IS_SERVERLESS) {
     return;
   }
@@ -1280,17 +1438,33 @@ export function getAccountById(accountId) {
   return sanitizeAccount(account);
 }
 
-export function authenticateAccount(email, password) {
+export async function authenticateAccount(email, password) {
+  const normalizedEmail = String(email || "").toLowerCase();
+  const normalizedPassword = String(password || "");
   const account = Object.values(accountsStore.accounts || {}).find(
-    (item) => item.email?.toLowerCase() === String(email || "").toLowerCase()
+    (item) => item.email?.toLowerCase() === normalizedEmail
   );
 
-  if (!account) {
-    return null;
+  if (USE_SUPABASE_AUTH && supabaseAuthClient) {
+    const { error } = await supabaseAuthClient.auth.signInWithPassword({
+      email: normalizedEmail,
+      password: normalizedPassword
+    });
+    if (error) {
+      return null;
+    }
+  } else {
+    if (!account) {
+      return null;
+    }
+
+    const isValidPassword = bcrypt.compareSync(normalizedPassword, String(account.passwordHash || ""));
+    if (!isValidPassword) {
+      return null;
+    }
   }
 
-  const isValidPassword = bcrypt.compareSync(String(password || ""), String(account.passwordHash || ""));
-  if (!isValidPassword) {
+  if (!account) {
     return null;
   }
 
@@ -1306,7 +1480,7 @@ export function authenticateAccount(email, password) {
   return sanitizeAccount(account);
 }
 
-export function createAccount({ email, password, ceoName, corpName }) {
+export async function createAccount({ email, password, ceoName, corpName }) {
   const normalizedEmail = String(email || "").trim().toLowerCase();
   const normalizedPassword = String(password || "");
 
@@ -1323,7 +1497,28 @@ export function createAccount({ email, password, ceoName, corpName }) {
     return { error: "An account with this email already exists." };
   }
 
-  const accountId = createId("acc");
+  let accountId = createId("acc");
+  let passwordHash = bcrypt.hashSync(normalizedPassword, PASSWORD_SALT_ROUNDS);
+
+  if (USE_SUPABASE_AUTH && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email: normalizedEmail,
+      password: normalizedPassword,
+      email_confirm: true
+    });
+
+    if (error) {
+      const message = String(error.message || "").toLowerCase();
+      if (message.includes("already") || message.includes("registered")) {
+        return { error: "An account with this email already exists." };
+      }
+      return { error: `Supabase auth registration failed: ${error.message}` };
+    }
+
+    accountId = data?.user?.id || accountId;
+    passwordHash = SUPABASE_MANAGED_PASSWORD_HASH;
+  }
+
   const seedState = normalizeStateShape(getSeedState());
   const nextState = createStarterCorporationState(
     seedState,
@@ -1334,7 +1529,7 @@ export function createAccount({ email, password, ceoName, corpName }) {
   const account = {
     id: accountId,
     email: normalizedEmail,
-    passwordHash: bcrypt.hashSync(normalizedPassword, PASSWORD_SALT_ROUNDS),
+    passwordHash,
     walkthroughCompleted: false,
     createdAt: Date.now(),
     lastLoginAt: Date.now(),

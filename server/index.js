@@ -343,18 +343,23 @@ app.get("/api/buildings", (_req, res) => {
   }
 });
 
-app.post("/api/auth/register", (req, res) => {
-  const { email, password, ceoName, corpName } = req.body ?? {};
-  const result = createAccount({ email, password, ceoName, corpName });
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const { email, password, ceoName, corpName } = req.body ?? {};
+    const result = await createAccount({ email, password, ceoName, corpName });
 
-  if (result.error) {
-    res.status(400).json({ error: result.error });
-    return;
+    if (result.error) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+
+    const account = result.account;
+    const tokens = issueTokens(account.id);
+    res.status(201).json({ account, ...tokens });
+  } catch (error) {
+    console.error("[auth/register]", error);
+    res.status(500).json({ error: "Registration failed." });
   }
-
-  const account = result.account;
-  const tokens = issueTokens(account.id);
-  res.status(201).json({ account, ...tokens });
 });
 
 app.post("/api/auth/dummy-login", (_req, res) => {
@@ -407,17 +412,22 @@ app.post("/api/dev/set-credits", (req, res) => {
   res.json({ ok: true, credits: account.state.corp.finances.credits });
 });
 
-app.post("/api/auth/login", (req, res) => {
-  const { email, password } = req.body ?? {};
-  const account = authenticateAccount(email, password);
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body ?? {};
+    const account = await authenticateAccount(email, password);
 
-  if (!account) {
-    res.status(401).json({ error: "Invalid account credentials." });
-    return;
+    if (!account) {
+      res.status(401).json({ error: "Invalid account credentials." });
+      return;
+    }
+
+    const tokens = issueTokens(account.id);
+    res.json({ account, ...tokens });
+  } catch (error) {
+    console.error("[auth/login]", error);
+    res.status(500).json({ error: "Login failed." });
   }
-
-  const tokens = issueTokens(account.id);
-  res.json({ account, ...tokens });
 });
 
 app.post("/api/auth/refresh", (req, res) => {
