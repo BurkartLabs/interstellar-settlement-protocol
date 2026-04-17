@@ -322,7 +322,7 @@ setInterval(checkAndResetNpcBuyOrders, 60_000);
 
 // ─── R&D auto-completion tick ────────────────────────────────────────────────
 // ─── Mining tick: process downtime, recovery, and mining progress ─────────────
-import { applyMiningOperations } from "./gameState.js";
+import { applyMiningOperations, getStationInventory } from "./gameState.js";
 
 function miningTick() {
   const now = Date.now();
@@ -330,10 +330,15 @@ function miningTick() {
     mutateAccountState(accountId, (state) => {
       if (state && state.corp) {
         applyMiningOperations(state.corp, now);
+        io.emit("mining:updated", {
+          accountId,
+          extractors: state.corp.mining?.silicateExtractors || [],
+          inventory: state.corp.inventory || {},
+          credits: state.corp.finances?.credits ?? 0
+        });
       }
     });
   }
-  // Optionally emit updated mining state to clients here if needed
 }
 
 setInterval(miningTick, 5000); // Every 5 seconds
@@ -941,7 +946,7 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
     return;
   }
 
-  const LEASE_COSTS = { Mars: 25000, Luna: 30000 };
+  const LEASE_COSTS = { Earth: 20000, Mars: 25000, Luna: 30000 };
   const leaseCost = LEASE_COSTS[requestedBody] ?? 25000;
   const EMPLOYEES_PER_LEASE = 5;
   let outcome = "ok";
@@ -950,7 +955,8 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
 
-    if (!corp.officeRented) {
+    const hasOffice = corp.officeRented || (Array.isArray(corp.offices) && corp.offices.length > 0);
+    if (!hasOffice) {
       outcome = "no-office";
       return;
     }
@@ -1019,6 +1025,74 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
 
   // Commit to disk immediately — critical state that must survive server restarts.
   saveAccountsNow();
+
+  res.json(account);
+});
+
+// ─── Logistics: transfer resources between stations ──────────────────────────
+const LOGISTICS_FEE_PER_UNIT = 2;
+
+app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
+  const fromStationId = String(req.body?.fromStationId || "").trim();
+  const item = String(req.body?.item || "").trim();
+  const quantity = Math.max(1, Math.floor(Number(req.body?.quantity || 0)));
+
+  if (!fromStationId || !STATION_REGISTRY[fromStationId]) {
+    res.status(400).json({ error: "Invalid source station." });
+    return;
+  }
+  if (!item) {
+    res.status(400).json({ error: "Item must be specified." });
+    return;
+  }
+
+  let outcome = "ok";
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+    const toStationId = corp.currentStationId || "earth-station-prime";
+
+    if (fromStationId === toStationId) {
+      outcome = "same-station";
+      return;
+    }
+
+    const fromInv = getStationInventory(corp, fromStationId);
+    const available = Number(fromInv[item] || 0);
+    if (available < quantity) {
+      outcome = "insufficient";
+      return;
+    }
+
+    const fee = LOGISTICS_FEE_PER_UNIT * quantity;
+    if ((corp.finances.credits || 0) < fee) {
+      outcome = "insufficient-credits";
+      return;
+    }
+
+    // Deduct from source, add to destination, charge fee
+    fromInv[item] = available - quantity;
+    if (fromInv[item] <= 0) delete fromInv[item];
+
+    const toInv = getStationInventory(corp, toStationId);
+    toInv[item] = (toInv[item] || 0) + quantity;
+
+    corp.finances.credits -= fee;
+  });
+
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  if (outcome !== "ok") {
+    const messages = {
+      "same-station": "Cannot transfer to the same station you are docked at.",
+      "insufficient": `Insufficient ${item} at the source station.`,
+      "insufficient-credits": `Not enough credits. Transfer fee: ${(LOGISTICS_FEE_PER_UNIT * quantity).toLocaleString()} credits (${LOGISTICS_FEE_PER_UNIT}/unit).`
+    };
+    res.status(400).json({ error: messages[outcome] || "Transfer failed." });
+    return;
+  }
 
   res.json(account);
 });
@@ -1243,8 +1317,10 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
       return;
     }
 
-    const throughputPerHour = Math.max(10, Math.min(250, amount));
-    const operationCostPerHour = Math.max(600, Math.round(throughputPerHour * 16));
+    let throughputPerHour = Math.max(10, Math.min(250, amount));
+    if (!Number.isFinite(throughputPerHour) || throughputPerHour <= 0) throughputPerHour = 40;
+    let operationCostPerHour = Math.max(600, Math.round(throughputPerHour * 16));
+    if (!Number.isFinite(operationCostPerHour) || operationCostPerHour <= 0) operationCostPerHour = 640;
     const startupCost = Math.max(500, Math.round(operationCostPerHour * 0.35));
 
     if ((corp.finances.credits || 0) < startupCost) {
@@ -1508,16 +1584,19 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
       return;
     }
 
-    // Check input material availability
+    // Check input material availability at current station
     const inputQty = chain.inputQuantityPerCycle;
-    const available = Number(corp.inventory?.[chain.input] || 0);
+    const refStationId = corp.currentStationId || "earth-station-prime";
+    const refInv = getStationInventory(corp, refStationId);
+    const available = Number(refInv[chain.input] || 0);
     if (available < inputQty) {
       outcome = "insufficient-input";
       return;
     }
 
     // Consume input
-    corp.inventory[chain.input] -= inputQty;
+    refInv[chain.input] -= inputQty;
+    if (refInv[chain.input] <= 0) delete refInv[chain.input];
 
     const now = Date.now();
     refinery.active = true;
@@ -1540,7 +1619,7 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
       "refinery-not-found": `Refinery "${refineryId}" was not found.`,
       "all-busy": "All refineries are currently running cycles.",
       "already-active": `${targetLabel} already has an active production cycle.`,
-      "insufficient-input": `Not enough ${chain.input}. Need ${chain.inputQuantityPerCycle} but only have ${Number(account.state.corp.inventory?.[chain.input] || 0)}.`
+      "insufficient-input": `Not enough ${chain.input} at this station. Need ${chain.inputQuantityPerCycle} but only have ${Number(getStationInventory(account.state.corp, account.state.corp.currentStationId || "earth-station-prime")[chain.input] || 0)}.`
     };
     res.status(400).json({ error: messageMap[outcome] || "Refinery cycle failed to start." });
     return;
@@ -1981,10 +2060,11 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
 
   let rejectReason = "";
   const updatedSeller = mutateAccountState(req.auth.accountId, (state) => {
-    const inventory = state.corp.inventory || {};
+    const stationId = state.corp.currentStationId || "earth-station-prime";
+    const inventory = getStationInventory(state.corp, stationId);
     const available = Number(inventory[item] || 0);
     if (available < normalizedQty) {
-      rejectReason = "Quantity exceeds available inventory.";
+      rejectReason = "Quantity exceeds available inventory at this station.";
       return;
     }
 
@@ -1992,7 +2072,6 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
     if (inventory[item] <= 0) {
       delete inventory[item];
     }
-    state.corp.inventory = inventory;
 
     if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
     state.corp.tradeHistory.unshift({
@@ -2079,10 +2158,9 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
     }
 
     corp.finances.credits -= tradeTotal;
-    if (!corp.inventory[order.item]) {
-      corp.inventory[order.item] = 0;
-    }
-    corp.inventory[order.item] += tradeQuantity;
+    const buyerStationId = corp.currentStationId || "earth-station-prime";
+    const buyerInv = getStationInventory(corp, buyerStationId);
+    buyerInv[order.item] = (buyerInv[order.item] || 0) + tradeQuantity;
 
     if (!Array.isArray(corp.tradeHistory)) corp.tradeHistory = [];
     corp.tradeHistory.unshift({
@@ -2184,16 +2262,16 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
   let tradeProceeds = tradeTotal;
 
   const seller = mutateAccountState(req.auth.accountId, (state) => {
-    const inventory = state.corp.inventory || {};
+    const npcStationId = state.corp.currentStationId || "earth-station-prime";
+    const inventory = getStationInventory(state.corp, npcStationId);
     const available = Number(inventory[npcOrder.item] || 0);
     if (available < requestedQty) {
-      rejectReason = `Insufficient ${npcOrder.item} in inventory (have ${available.toLocaleString()}, need ${requestedQty.toLocaleString()}).`;
+      rejectReason = `Insufficient ${npcOrder.item} at this station (have ${available.toLocaleString()}, need ${requestedQty.toLocaleString()}).`;
       return;
     }
 
     inventory[npcOrder.item] = available - requestedQty;
     if (inventory[npcOrder.item] <= 0) delete inventory[npcOrder.item];
-    state.corp.inventory = inventory;
 
     const taxPct = getEffectiveExchangeTaxRate(state);
     const taxAmount = Math.round(tradeTotal * taxPct / 100);

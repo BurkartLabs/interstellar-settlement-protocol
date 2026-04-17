@@ -298,6 +298,8 @@
             <button class="tab-btn" data-tab="ceo">CEO Insight</button>
             <button class="tab-btn" data-tab="refinery">Refinery Chains</button>
             <button class="tab-btn" data-tab="market">Galactic Exchange</button>
+            <button class="tab-btn" data-tab="assets">Assets</button>
+            <button class="tab-btn" data-tab="logistics">Logistics</button>
             <button class="tab-btn" data-tab="chat">Comms</button>
             <button class="tab-btn" data-tab="forums">Forums</button>
             <button class="tab-btn" data-tab="missions">Missions</button>
@@ -338,13 +340,6 @@
             <!-- Station overview -->
             <div id="station-overview-view">
               <div id="station-location-header"></div>
-
-              <!-- Travel / Undock controls -->
-              <section class="station-district" id="station-travel-section">
-                <h3>Navigation &amp; Travel</h3>
-                <p class="muted lede">Undock and set course for another station. Travel time depends on distance.</p>
-                <div id="station-travel-destinations"></div>
-              </section>
 
               <section class="station-district">
                 <h3>Authority &amp; Regulatory Offices</h3>
@@ -469,6 +464,7 @@
 
           <article id="market" class="tab-panel">
             <h2>Galactic Exchange</h2>
+            <div id="market-station-banner"></div>
 
             <!-- Resource filter bar -->
             <div class="exchange-filter-bar" id="exchange-filter-bar" aria-label="Filter by resource"></div>
@@ -595,6 +591,19 @@
                 </table>
               </div>
             </section>
+          </article>
+
+          <article id="assets" class="tab-panel">
+            <h2>Corporate Assets</h2>
+            <div id="assets-station-banner"></div>
+            <div id="assets-content"></div>
+          </article>
+
+          <article id="logistics" class="tab-panel">
+            <h2>Interstellar Logistics</h2>
+            <div id="logistics-station-banner"></div>
+            <p class="lede muted">Transfer resources between stations for a logistics fee.</p>
+            <div id="logistics-content"></div>
           </article>
 
           <article id="chat" class="tab-panel">

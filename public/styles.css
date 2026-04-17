@@ -2387,6 +2387,120 @@ textarea {
   margin: 0;
 }
 
+.station-location-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.8rem;
+  margin-bottom: 0.75rem;
+  background: color-mix(in srgb, var(--accent, #0ff) 8%, var(--surface, #1a1a2e));
+  border: 1px solid color-mix(in srgb, var(--accent, #0ff) 25%, transparent);
+  border-radius: 4px;
+  font-size: 0.82rem;
+  width: fit-content;
+}
+
+.station-location-icon {
+  color: var(--accent, #0ff);
+  font-size: 0.7rem;
+}
+
+.station-location-text {
+  color: var(--muted, #aab);
+}
+
+.station-location-text strong {
+  color: var(--fg, #eef);
+}
+
+/* ─── Logistics ─────────────────────────────────────────────────────────── */
+#logistics-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.logistics-station-card {
+  background: var(--surface, #1a1a2e);
+  border: 1px solid var(--border, #333);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.logistics-station-card--current {
+  border-color: var(--accent, #0ff);
+  background: color-mix(in srgb, var(--accent, #0ff) 5%, var(--surface, #1a1a2e));
+}
+
+.logistics-station-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.logistics-station-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logistics-current-badge {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  background: var(--accent, #0ff);
+  color: var(--bg, #0a0a1a);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.logistics-transfer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.logistics-qty-input {
+  width: 70px;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.78rem;
+  background: var(--bg, #0a0a1a);
+  border: 1px solid var(--border, #333);
+  border-radius: 3px;
+  color: var(--fg, #eef);
+}
+
+/* ─── Assets ────────────────────────────────────────────────────────────── */
+#assets-content > .form-card {
+  margin-bottom: 1rem;
+}
+
+.assets-resource-group {
+  margin-bottom: 1rem;
+}
+
+.assets-resource-group:last-child {
+  margin-bottom: 0;
+}
+
+.assets-resource-group h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.9rem;
+}
+
+.assets-office-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  font-size: 0.85rem;
+}
+
 .action-surface {
   background: color-mix(in srgb, var(--accent) 5%, var(--surface));
   border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);

@@ -19,6 +19,13 @@ const USE_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const USE_SUPABASE_AUTH = Boolean(USE_SUPABASE && SUPABASE_ANON_KEY);
 const SUPABASE_MANAGED_PASSWORD_HASH = "__supabase_auth_managed__";
 
+// Load station data for body→station mapping
+const STATIONS_RAW = JSON.parse(fs.readFileSync(path.join(dataDir, "stations.json"), "utf8"));
+const BODY_TO_STATION = {};
+for (const s of STATIONS_RAW.stations) {
+  BODY_TO_STATION[s.body] = s.id;
+}
+
 const supabaseAdmin = USE_SUPABASE
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
   : null;
@@ -178,8 +185,16 @@ function normalizeStateShape(rawState) {
 
   ensureCorpMiningModel(rawState.corp);
 
-  if (!rawState.corp.inventory) {
+  if (!rawState.corp.inventory || typeof rawState.corp.inventory !== "object") {
     rawState.corp.inventory = {};
+  }
+
+  // Migrate flat inventory { item: qty } → per-station { stationId: { item: qty } }
+  const invKeys = Object.keys(rawState.corp.inventory);
+  const isFlat = invKeys.length > 0 && invKeys.some((k) => typeof rawState.corp.inventory[k] === "number");
+  if (isFlat) {
+    const stationId = rawState.corp.currentStationId || "earth-station-prime";
+    rawState.corp.inventory = { [stationId]: { ...rawState.corp.inventory } };
   }
 
   if (!Array.isArray(rawState.corp.unlockedTech)) {
@@ -314,6 +329,13 @@ function ensureCorpMiningModel(corp) {
     if (extractor.downtimeActive && (!downtimeStartedAt || downtimeStartedAt === 0)) {
       downtimeStartedAt = Date.now();
     }
+    let throughput = Number(extractor.throughputPerHour || 0);
+    let operationCost = Number(extractor.operationCostPerHour || 0);
+    // Only auto-fix throughput/cost if NOT active
+    if (!extractor.active) {
+      if (throughput <= 0) throughput = 40;
+      if (operationCost <= 0) operationCost = Math.max(600, Math.round(throughput * 16));
+    }
     const normalized = {
       id: String(extractor.id || `ext-basic-${index + 1}`),
       name: String(extractor.name || `Basic Extractor Yard #${index + 1}`),
@@ -322,8 +344,8 @@ function ensureCorpMiningModel(corp) {
       startedAt: extractor.startedAt ?? null,
       lastTickAt: extractor.lastTickAt ?? null,
       endsAt: extractor.endsAt ?? null,
-      throughputPerHour: Number(extractor.throughputPerHour || 0),
-      operationCostPerHour: Number(extractor.operationCostPerHour || 0),
+      throughputPerHour: throughput,
+      operationCostPerHour: operationCost,
       totalMined: Number(extractor.totalMined || 0),
       totalSpent: Number(extractor.totalSpent || 0),
       lastCompletedAt: extractor.lastCompletedAt ?? null,
@@ -466,10 +488,11 @@ export function applyMiningOperations(corp, now = Date.now()) {
     }
 
     if (actualMined > 0) {
-      if (!corp.inventory.Silicates) {
-        corp.inventory.Silicates = 0;
-      }
-      corp.inventory.Silicates += actualMined;
+      // Deposit at the station orbiting the extractor's lease body
+      const lease = (corp.miningLeases || []).find((l) => l.id === extractor.leaseId);
+      const depositStation = (lease && BODY_TO_STATION[lease.body]) || corp.currentStationId || "earth-station-prime";
+      const stationInv = getStationInventory(corp, depositStation);
+      stationInv.Silicates = (stationInv.Silicates || 0) + actualMined;
       extractor.totalMined += actualMined;
       corp.finances.dailyRevenue += Math.round(actualMined * 2.4);
     }
@@ -540,10 +563,12 @@ export function applyRefineryOperations(corp, now = Date.now()) {
     const endsAt = Number(ref.endsAt || 0);
     if (!endsAt || now < endsAt) return;
 
-    // Cycle complete — produce outputs
+    // Cycle complete — produce outputs at current station
     if (!corp.inventory) corp.inventory = {};
+    const refStationId = corp.currentStationId || "earth-station-prime";
+    const refStationInv = getStationInventory(corp, refStationId);
     for (const output of chain.outputs) {
-      corp.inventory[output.item] = (corp.inventory[output.item] || 0) + output.quantityPerCycle;
+      refStationInv[output.item] = (refStationInv[output.item] || 0) + output.quantityPerCycle;
       ref.totalOutputProduced += output.quantityPerCycle;
     }
 
@@ -1496,6 +1521,13 @@ export async function rehydrateFromSupabase() {
 
 export function getState() {
   return state;
+}
+
+/** Get/create station-scoped inventory sub-object for a corp */
+export function getStationInventory(corp, stationId) {
+  if (!corp.inventory || typeof corp.inventory !== "object") corp.inventory = {};
+  if (!corp.inventory[stationId]) corp.inventory[stationId] = {};
+  return corp.inventory[stationId];
 }
 
 export { CEO_INSIGHT_LIBRARY };

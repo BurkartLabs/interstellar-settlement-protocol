@@ -751,6 +751,18 @@ function getInventory() {
   if (!appState.data?.corp?.inventory) {
     appState.data.corp.inventory = {};
   }
+  const stationId = appState.data.corp.currentStationId || "earth-station-prime";
+  if (!appState.data.corp.inventory[stationId]) {
+    appState.data.corp.inventory[stationId] = {};
+  }
+  return appState.data.corp.inventory[stationId];
+}
+
+/** Get full per-station inventory map */
+function getAllInventory() {
+  if (!appState.data?.corp?.inventory) {
+    appState.data.corp.inventory = {};
+  }
   return appState.data.corp.inventory;
 }
 
@@ -1090,11 +1102,13 @@ function renderBuildingDetail(building, data) {
       bindISAClaimsLeasesActions(building, data);
     }
   } else {
+    const station = getCurrentStationInfo(data);
     contentEl.innerHTML = `
       <div class="building-detail-header">
         <span class="faction-code-badge">${escapeHtml(building.factionCode)}</span>
         <h2>${escapeHtml(building.name)}</h2>
       </div>
+      ${stationLocationBanner(station)}
       <p class="muted lede">${escapeHtml(building.description)}</p>
       <p class="building-flavor">${escapeHtml(building.flavor)}</p>
       <p class="muted" style="margin-top:1.5rem;">This office is not yet operational. Check back in a future update.</p>
@@ -1102,10 +1116,25 @@ function renderBuildingDetail(building, data) {
   }
 }
 
+function getCurrentStationInfo(data) {
+  const corp = data.corp || {};
+  const stationId = corp.currentStationId || "earth-station-prime";
+  const station = appState.stationRegistry.find((s) => s.id === stationId) || appState.stationRegistry[0];
+  return station;
+}
+
+function stationLocationBanner(station) {
+  if (!station) return "";
+  return `<div class="station-location-banner">
+    <span class="station-location-icon">&#9670;</span>
+    <span class="station-location-text">Docked at <strong>${escapeHtml(station.name)}</strong> &mdash; ${escapeHtml(station.body)}, ${escapeHtml(station.systemId?.toUpperCase() || "SOL")}</span>
+  </div>`;
+}
+
 function renderOrbitalExecutiveSuites(building, data) {
   const corp = data.corp;
-  const currentStationId = corp?.currentStationId || "earth-station-prime";
-  const station = appState.stationRegistry.find((s) => s.id === currentStationId) || appState.stationRegistry[0];
+  const station = getCurrentStationInfo(data);
+  const currentStationId = station?.id || "earth-station-prime";
   const currentBody = station?.body || corp?.location || "Earth";
   const stationId = station?.id || "earth-station-prime";
   const officeCost = station?.officeCost || 20000;
@@ -1117,6 +1146,7 @@ function renderOrbitalExecutiveSuites(building, data) {
       <span class="faction-code-badge">${escapeHtml(building.factionCode)}</span>
       <h2>${escapeHtml(building.name)}</h2>
     </div>
+    ${stationLocationBanner(station)}
     <p class="muted lede">${escapeHtml(building.description)}</p>
     <p class="building-flavor">${escapeHtml(building.flavor)}</p>
   `;
@@ -1362,20 +1392,25 @@ function bindOfficeActions(building, data) {
 
 function renderISAClaimsLeases(building, data) {
   const corp = data.corp;
-  const leases = corp?.miningLeases || [];
+  const station = getCurrentStationInfo(data);
+  const stationBody = station?.body || "Earth";
+  const allLeases = corp?.miningLeases || [];
+  const leases = allLeases.filter((l) => l.body === stationBody);
 
   const headerHtml = `
     <div class="building-detail-header">
       <span class="faction-code-badge">${escapeHtml(building.factionCode)}</span>
       <h2>${escapeHtml(building.name)}</h2>
     </div>
+    ${stationLocationBanner(station)}
     <p class="muted lede">${escapeHtml(building.description)}</p>
     <p class="building-flavor">${escapeHtml(building.flavor)}</p>
   `;
 
   const hasOffice = Boolean(corp?.officeRented || (corp?.offices || []).length > 0);
   const EMPLOYEES_PER_LEASE = 5;
-  const requiredForNext = (leases.length + 1) * EMPLOYEES_PER_LEASE;
+  const totalLeaseCount = allLeases.length;
+  const requiredForNext = (totalLeaseCount + 1) * EMPLOYEES_PER_LEASE;
   const currentEmployees = corp?.employeeCount || 0;
 
   // Active leases section
@@ -1409,20 +1444,25 @@ function renderISAClaimsLeases(building, data) {
     leasesHtml += `</div>`;
   }
 
-  // Purchase section — show all available bodies
+  // Purchase section — only show bodies accessible from this station
   const LEASE_BODIES = [
+    { body: "Earth", cost: 20000, description: "Grants two (2) on-surface building slots for Basic Extractor Yard construction. Abundant mineral and silicate deposits across diverse terrain." },
     { body: "Mars", cost: 25000, description: "Grants two (2) on-surface building slots for Basic Extractor Yard construction. Primary source of silicate deposits." },
     { body: "Luna", cost: 30000, description: "Grants two (2) on-surface building slots. Lunar regolith operations with access to Helium-3 deposits." }
   ];
 
   const ownedBodies = new Set(leases.map((l) => l.body));
-  const availableBodies = LEASE_BODIES.filter((b) => !ownedBodies.has(b.body));
+  const availableBodies = LEASE_BODIES.filter((b) => b.body === stationBody && !ownedBodies.has(b.body));
 
   let purchaseHtml = "";
+  const hasLocalBodies = LEASE_BODIES.some((b) => b.body === stationBody);
+
   if (!hasOffice) {
     purchaseHtml = `<p class="muted">A registered corporate office is required before the ISA will process lease applications. Visit the Orbital Executive Suites first.</p>`;
+  } else if (!hasLocalBodies) {
+    purchaseHtml = `<p class="muted">No extraction zones are available at ${escapeHtml(station?.name || "this station")}. Travel to a station orbiting a resource-bearing body to file new lease applications.</p>`;
   } else if (availableBodies.length === 0) {
-    purchaseHtml = `<p class="muted">All currently available extraction zones have been claimed by your corporation.</p>`;
+    purchaseHtml = `<p class="muted">All extraction zones available from this station have been claimed by your corporation.</p>`;
   } else {
     purchaseHtml = availableBodies.map((entry) => {
       const canAfford = (corp?.finances?.credits || 0) >= entry.cost;
@@ -1647,11 +1687,14 @@ function renderLeaseManagement(building, lease, data) {
       </div>`
     : `<p class="muted" style="margin-top:0.6rem;">This lease's building slots are fully allocated (${usedSlots}/${totalSlots}).</p>`;
 
+  const station = getCurrentStationInfo(data);
+
   return `
     <div class="building-detail-header">
       <span class="faction-code-badge">${escapeHtml(building.factionCode)}</span>
       <h2>Mining Lease — ${escapeHtml(lease.body)}</h2>
     </div>
+    ${stationLocationBanner(station)}
     <button id="lease-back-btn" class="btn btn-outline btn-sm" type="button" style="margin-bottom:1.2rem;">&#8592; Back to Claims &amp; Leases</button>
 
     <section class="form-card lease-management-card" style="margin-top:0;">
@@ -1907,8 +1950,6 @@ function renderStation(data) {
   const npcGrid = document.getElementById("station-npc-buildings");
   const playerGrid = document.getElementById("station-player-buildings");
   const travelBanner = document.getElementById("station-travel-banner");
-  const travelDest = document.getElementById("station-travel-destinations");
-  const travelSection = document.getElementById("station-travel-section");
   const overviewView = document.getElementById("station-overview-view");
   if (!header || !npcGrid || !playerGrid) return;
 
@@ -1933,32 +1974,6 @@ function renderStation(data) {
     <h2>${escapeHtml(station.name)}</h2>
     <p class="muted lede">${escapeHtml(station.description)}</p>
   `;
-
-  // ── Travel destinations ──
-  if (travelDest && travelSection) {
-    const otherStations = appState.stationRegistry.filter((s) => s.id !== currentStationId);
-    if (otherStations.length === 0) {
-      travelDest.innerHTML = `<p class="muted">No other stations are accessible at this time.</p>`;
-    } else {
-      travelDest.innerHTML = otherStations.map((dest) => {
-        const travelMs = travelTimeBetween(station, dest);
-        return `
-          <div class="travel-dest-card data-card" style="margin-bottom:0.75rem;padding:0.8rem 1rem;">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
-              <div>
-                <strong>${escapeHtml(dest.name)}</strong>
-                <span class="muted" style="margin-left:0.5rem;">${escapeHtml(dest.body)}, ${escapeHtml(dest.systemId.toUpperCase())}</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:0.75rem;">
-                <span class="muted" style="font-size:0.85rem;">Travel time: ${formatDuration(travelMs)}</span>
-                <button class="btn btn-outline travel-btn" data-station-id="${escapeHtml(dest.id)}">Undock &amp; Travel</button>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-  }
 
   // ── Station buildings ──
   const stationBuildings = station.buildingIds
@@ -2053,36 +2068,6 @@ function bindBuildingActions() {
 
   document.getElementById("station-back-btn")?.addEventListener("click", () => {
     showStationOverview();
-  });
-
-  // Travel destination buttons (delegated)
-  document.getElementById("station-travel-destinations")?.addEventListener("click", async (event) => {
-    const btn = event.target.closest(".travel-btn");
-    if (!btn) return;
-    const toStationId = btn.dataset.stationId;
-    if (!toStationId) return;
-
-    btn.disabled = true;
-    btn.textContent = "Undocking...";
-
-    try {
-      if (appState.accountId) {
-        const response = await apiFetch(
-          `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/travel`,
-          { method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ toStationId }) }
-        );
-        const account = await parseJsonResponse(response);
-        appState.data = deepClone(account.state);
-        appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
-        updateAllViews();
-        setTab("travel");
-      }
-    } catch (err) {
-      btn.disabled = false;
-      btn.textContent = "Undock & Travel";
-      pushFeedback(err.message || "Travel request failed.", "warn");
-    }
   });
 }
 
@@ -2592,7 +2577,236 @@ function renderRefinery(data) {
   };
 }
 
+// ─── Assets ──────────────────────────────────────────────────────────────────
+function renderAssets(data) {
+  const bannerEl = document.getElementById("assets-station-banner");
+  if (bannerEl) bannerEl.innerHTML = "";
+
+  const contentEl = document.getElementById("assets-content");
+  if (!contentEl) return;
+
+  const allInventory = getAllInventory();
+  const stationRegistry = appState.stationRegistry || [];
+  const corp = data.corp || {};
+
+  // ── Inventory: group by resource, then by station ──
+  const resourceMap = {}; // { resourceName: { stationId: qty } }
+  for (const st of stationRegistry) {
+    const inv = allInventory[st.id] || {};
+    for (const [item, qty] of Object.entries(inv)) {
+      const q = Number(qty);
+      if (q <= 0) continue;
+      if (!resourceMap[item]) resourceMap[item] = {};
+      resourceMap[item][st.id] = q;
+    }
+  }
+
+  const resourceNames = Object.keys(resourceMap).sort();
+  let inventoryHtml;
+  if (resourceNames.length === 0) {
+    inventoryHtml = `<p class="muted">No resources in inventory.</p>`;
+  } else {
+    inventoryHtml = "";
+    for (const resource of resourceNames) {
+      const stations = resourceMap[resource];
+      const total = Object.values(stations).reduce((s, q) => s + q, 0);
+      inventoryHtml += `<div class="assets-resource-group">
+        <h4>${escapeHtml(resource)} <span class="muted" style="font-weight:400;font-size:0.78rem;">— ${total.toLocaleString()} total</span></h4>
+        <table class="data-table data-table--compact"><thead><tr><th>Station</th><th>Quantity</th></tr></thead><tbody>`;
+      for (const st of stationRegistry) {
+        const qty = stations[st.id];
+        if (!qty) continue;
+        inventoryHtml += `<tr><td>${escapeHtml(st.name)}</td><td>${qty.toLocaleString()}</td></tr>`;
+      }
+      inventoryHtml += `</tbody></table></div>`;
+    }
+  }
+
+  // ── Offices ──
+  const offices = corp.offices || [];
+  // Deduplicate by stationId
+  const seenStations = new Set();
+  let officesHtml;
+  if (offices.length === 0) {
+    officesHtml = `<p class="muted">No office leases on record.</p>`;
+  } else {
+    officesHtml = offices
+      .filter((o) => {
+        if (seenStations.has(o.stationId)) return false;
+        seenStations.add(o.stationId);
+        return true;
+      })
+      .map((o) => {
+        const st = stationRegistry.find((s) => s.id === o.stationId);
+        const expired = o.rentedUntil && o.rentedUntil <= Date.now();
+        const badge = expired
+          ? `<span class="building-status-badge downtime">Expired</span>`
+          : `<span class="building-status-badge operational">Active</span>`;
+        return `<div class="assets-office-row">${badge} ${escapeHtml(st?.name || o.stationId)} — ${escapeHtml(o.body || "")}</div>`;
+      })
+      .join("");
+  }
+
+  // ── Mining Leases ──
+  const leases = corp.miningLeases || [];
+  const extractors = corp.mining?.silicateExtractors || [];
+  let leasesHtml;
+  if (leases.length === 0) {
+    leasesHtml = `<p class="muted">No mining leases on record.</p>`;
+  } else {
+    leasesHtml = `<table class="data-table data-table--compact"><thead><tr><th>Body</th><th>Type</th><th>Extractors</th><th>Total Mined</th></tr></thead><tbody>`;
+    for (const l of leases) {
+      const exCount = (l.extractorIds || []).length;
+      // Sum totalMined for all extractors assigned to this lease
+      const leaseExtractors = extractors.filter((ex) => ex.leaseId === l.id);
+      const totalMined = leaseExtractors.reduce((sum, ex) => sum + Number(ex.totalMined || 0), 0);
+      leasesHtml += `<tr><td>${escapeHtml(l.body)}</td><td>${escapeHtml(l.leaseType || "Silicate Extraction")}</td><td>${exCount} / ${l.buildingSlots || 2}</td><td>${totalMined.toLocaleString()}</td></tr>`;
+    }
+    leasesHtml += `</tbody></table>`;
+  }
+
+  // ── Extractors ──
+  let extractorHtml;
+  if (extractors.length === 0) {
+    extractorHtml = `<p class="muted">No extractors commissioned.</p>`;
+  } else {
+    extractorHtml = `<table class="data-table data-table--compact"><thead><tr><th>Name</th><th>Status</th><th>Lease</th><th>Total Mined</th></tr></thead><tbody>`;
+    for (const ex of extractors) {
+      const status = ex.downtimeActive ? "Downtime" : ex.active ? "Active" : "Idle";
+      const statusClass = ex.downtimeActive ? "downtime" : ex.active ? "active" : "idle";
+      // Find lease for this extractor
+      const lease = leases.find((l) => l.id === ex.leaseId);
+      extractorHtml += `<tr><td>${escapeHtml(ex.name || ex.id)}</td><td><span class="building-status-badge ${statusClass}">${status}</span></td><td>${lease ? escapeHtml(lease.body) : "-"}</td><td>${Number(ex.totalMined || 0).toLocaleString()}</td></tr>`;
+    }
+    extractorHtml += `</tbody></table>`;
+  }
+
+  contentEl.innerHTML = `
+    <section class="form-card">
+      <h3>Inventory</h3>
+      ${inventoryHtml}
+    </section>
+
+    <section class="form-card">
+      <h3>Offices</h3>
+      ${officesHtml}
+    </section>
+
+    <section class="form-card">
+      <h3>Mining Leases</h3>
+      ${leasesHtml}
+    </section>
+
+    <section class="form-card">
+      <h3>Extractors</h3>
+      ${extractorHtml}
+    </section>
+  `;
+}
+
+// ─── Logistics ───────────────────────────────────────────────────────────────
+const LOGISTICS_FEE_PER_UNIT = 2; // credits per unit transferred
+
+function renderLogistics(data) {
+  const station = getCurrentStationInfo(data);
+  const bannerEl = document.getElementById("logistics-station-banner");
+  if (bannerEl) bannerEl.innerHTML = stationLocationBanner(station);
+
+  const contentEl = document.getElementById("logistics-content");
+  if (!contentEl) return;
+
+  const allInventory = getAllInventory();
+  const stationRegistry = appState.stationRegistry || [];
+  const currentStationId = data.corp?.currentStationId || "earth-station-prime";
+
+  // Build per-station asset cards
+  let cardsHtml = "";
+  for (const st of stationRegistry) {
+    const inv = allInventory[st.id] || {};
+    const entries = Object.entries(inv).filter(([, qty]) => Number(qty) > 0);
+    const isCurrent = st.id === currentStationId;
+    const badge = isCurrent ? `<span class="logistics-current-badge">Current</span>` : "";
+
+    let itemsHtml;
+    if (entries.length === 0) {
+      itemsHtml = `<p class="muted" style="font-size:0.82rem;">No assets stored here.</p>`;
+    } else {
+      itemsHtml = `<table class="data-table data-table--compact"><thead><tr><th>Resource</th><th>Quantity</th>${!isCurrent ? "<th>Transfer</th>" : ""}</tr></thead><tbody>`;
+      for (const [item, qty] of entries) {
+        const fee = LOGISTICS_FEE_PER_UNIT * Number(qty);
+        if (isCurrent) {
+          itemsHtml += `<tr><td>${escapeHtml(item)}</td><td>${Number(qty).toLocaleString()}</td></tr>`;
+        } else {
+          itemsHtml += `<tr>
+            <td>${escapeHtml(item)}</td>
+            <td>${Number(qty).toLocaleString()}</td>
+            <td>
+              <div class="logistics-transfer-row">
+                <input type="number" class="logistics-qty-input" min="1" max="${Number(qty)}" value="${Number(qty)}" data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}" />
+                <button class="btn btn-outline btn-sm logistics-transfer-btn" type="button" data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}">
+                  Transfer here
+                </button>
+              </div>
+              <span class="muted" style="font-size:0.72rem;">Fee: ${toCurrency(LOGISTICS_FEE_PER_UNIT)}/unit</span>
+            </td>
+          </tr>`;
+        }
+      }
+      itemsHtml += `</tbody></table>`;
+    }
+
+    cardsHtml += `
+      <div class="logistics-station-card ${isCurrent ? "logistics-station-card--current" : ""}">
+        <div class="logistics-station-header">
+          <h3>${escapeHtml(st.name)} ${badge}</h3>
+          <span class="muted" style="font-size:0.78rem;">${escapeHtml(st.body)}, ${escapeHtml(st.systemId?.toUpperCase() || "SOL")}</span>
+        </div>
+        ${itemsHtml}
+      </div>
+    `;
+  }
+
+  contentEl.innerHTML = cardsHtml;
+
+  // Bind transfer buttons
+  contentEl.querySelectorAll(".logistics-transfer-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const fromStation = btn.getAttribute("data-from-station");
+      const item = btn.getAttribute("data-item");
+      const qtyInput = contentEl.querySelector(`.logistics-qty-input[data-from-station="${fromStation}"][data-item="${item}"]`);
+      const quantity = Math.max(1, parseInt(qtyInput?.value || "1", 10));
+
+      btn.disabled = true;
+      btn.textContent = "Transferring...";
+
+      try {
+        const response = await apiFetch(
+          `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/transfer-resources`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fromStationId: fromStation, item, quantity })
+          }
+        );
+        const account = await parseJsonResponse(response);
+        appState.data = deepClone(account.state);
+        appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+        updateAllViews();
+        pushFeedback(`Transferred ${quantity.toLocaleString()} ${item} to ${station?.name || "current station"}.`, "success");
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = "Transfer here";
+        pushFeedback(err.message || "Transfer failed.", "warn");
+      }
+    });
+  });
+}
+
 function renderMarket(data) {
+  const station = getCurrentStationInfo(data);
+  const bannerEl = document.getElementById("market-station-banner");
+  if (bannerEl) bannerEl.innerHTML = stationLocationBanner(station);
+
   const buyTable = document.getElementById("exchange-buy-table");
   const buyEmpty = document.getElementById("exchange-buy-empty");
   const sellGrid = document.getElementById("market-sell-grid");
@@ -3006,6 +3220,8 @@ function updateAllViews() {
   renderInsightTree(data);
   renderRefinery(data);
   renderMarket(data);
+  renderAssets(data);
+  renderLogistics(data);
   renderForums(data);
   renderMissions(data);
   renderCombatReports(data);
@@ -3972,6 +4188,26 @@ function bindRealtimeEvents() {
         setTab("station");
       }
     });
+  });
+
+  socket.on("mining:updated", (payload) => {
+    if (!appState.data || !appState.accountId || payload?.accountId !== appState.accountId) {
+      return;
+    }
+    const corp = appState.data.corp;
+    if (!corp) return;
+    if (payload.extractors && corp.mining) {
+      corp.mining.silicateExtractors = payload.extractors;
+      corp.mining.silicateExtractor = payload.extractors[0] || corp.mining.silicateExtractor;
+    }
+    if (payload.inventory) {
+      corp.inventory = payload.inventory;
+    }
+    if (typeof payload.credits === "number") {
+      corp.finances.credits = payload.credits;
+    }
+    renderAssets(appState.data);
+    updateCorpIdentity(appState.data);
   });
 }
 
