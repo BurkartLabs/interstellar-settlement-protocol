@@ -38,7 +38,9 @@ import {
   flushPendingPersist,
   rehydrateFromSupabase,
   getEffectiveExchangeTaxRate,
-  CEO_INSIGHT_LIBRARY
+  CEO_INSIGHT_LIBRARY,
+  applyRefineryOperations,
+  REFINERY_CHAINS
 } from "./gameState.js";
 
 const RESEARCH_LIBRARY = {
@@ -152,20 +154,15 @@ function issueTokens(accountId) {
 
 function getBearerToken(req) {
   const authHeader = String(req.headers.authorization || "");
-  console.log('[requireAuth] Incoming Authorization header:', authHeader);
   if (!authHeader.startsWith("Bearer ")) {
-    console.log('[requireAuth] No Bearer token found in header.');
     return null;
   }
-  const token = authHeader.slice(7).trim();
-  console.log('[requireAuth] Extracted Bearer token:', token);
-  return token;
+  return authHeader.slice(7).trim();
 }
 
 function requireAuth(req, res, next) {
   const token = getBearerToken(req);
   if (!token) {
-    console.log('[requireAuth] Missing bearer token for request:', req.method, req.originalUrl, req.headers);
     res.status(401).json({ error: "Missing bearer token." });
     return;
   }
@@ -303,6 +300,20 @@ function miningTick() {
 }
 
 setInterval(miningTick, 5000); // Every 5 seconds
+
+function refineryTick() {
+  const now = Date.now();
+  for (const accountId of getAllAccountIds()) {
+    mutateAccountState(accountId, (state) => {
+      if (state && state.corp) {
+        applyRefineryOperations(state.corp, now);
+      }
+    });
+  }
+}
+
+setInterval(refineryTick, 10_000); // Every 10 seconds
+
 function processRndCompletions() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
@@ -1229,6 +1240,177 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
   res.json(account);
 });
 
+// ─── Refinery ────────────────────────────────────────────────────────────────
+
+app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
+  const BUILD_COST = 75000;
+  const ASSET_VALUE = 55000;
+  let outcome = "ok";
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+    const unlockedTech = corp.unlockedTech || [];
+
+    // Require both Material Compression I and Nano-Lattice Weaving
+    if (!unlockedTech.includes("tt-material-compression") || !unlockedTech.includes("tt-nano-lattice")) {
+      outcome = "missing-research";
+      return;
+    }
+
+    if ((corp.buildings || []).length >= (corp.buildingSlots || 2)) {
+      outcome = "no-slot";
+      return;
+    }
+
+    if ((corp.finances.credits || 0) < BUILD_COST) {
+      outcome = "insufficient-credits";
+      return;
+    }
+
+    if (!Array.isArray(corp.buildings)) corp.buildings = [];
+    corp.buildings.push({ name: "Refinery", tier: 1, status: "Operational" });
+
+    if (!Array.isArray(corp.refineries)) corp.refineries = [];
+    const nextIndex = corp.refineries.length + 1;
+    corp.refineries.push({
+      id: `ref-${nextIndex}`,
+      name: `Refinery #${nextIndex}`,
+      tier: 1,
+      active: false,
+      chainId: null,
+      startedAt: null,
+      lastTickAt: null,
+      endsAt: null,
+      cyclesCompleted: 0,
+      totalInputConsumed: 0,
+      totalOutputProduced: 0
+    });
+
+    corp.finances.credits -= BUILD_COST;
+    corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
+  });
+
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  if (outcome !== "ok") {
+    const corp = account.state.corp;
+    const messageMap = {
+      "missing-research": "Refinery construction requires Material Compression I and Nano-Lattice Weaving research.",
+      "no-slot": `Refinery requires 1 open building slot. Current usage: ${corp.buildings.length}/${corp.buildingSlots}.`,
+      "insufficient-credits": fundingRequirementMessage("Refinery construction", corp, BUILD_COST)
+    };
+    res.status(400).json({ error: messageMap[outcome] || "Build action failed." });
+    return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "infrastructure",
+    title: "Refinery Commissioned",
+    body: "A new Refinery is now operational and ready for production runs."
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
+  res.json(account);
+});
+
+app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
+  const refineryId = String(req.body?.refineryId || "").trim();
+  const chainId = String(req.body?.chainId || "").trim();
+  let outcome = "ok";
+  let targetLabel = "";
+
+  const chain = REFINERY_CHAINS[chainId];
+  if (!chain) {
+    res.status(400).json({ error: "Unknown refinery chain." });
+    return;
+  }
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+    const unlockedTech = corp.unlockedTech || [];
+
+    // Check tech prerequisites for this chain
+    if (Array.isArray(chain.requiresTechIds) && !chain.requiresTechIds.every((t) => unlockedTech.includes(t))) {
+      outcome = "missing-research";
+      return;
+    }
+
+    if (!Array.isArray(corp.refineries) || !corp.refineries.length) {
+      outcome = "no-refinery";
+      return;
+    }
+
+    const refinery = refineryId
+      ? corp.refineries.find((r) => r.id === refineryId)
+      : corp.refineries.find((r) => !r.active);
+    targetLabel = refinery?.name || refineryId || "Refinery";
+
+    if (!refinery) {
+      outcome = refineryId ? "refinery-not-found" : "all-busy";
+      return;
+    }
+
+    if (refinery.active) {
+      outcome = "already-active";
+      return;
+    }
+
+    // Check input material availability
+    const inputQty = chain.inputQuantityPerCycle;
+    const available = Number(corp.inventory?.[chain.input] || 0);
+    if (available < inputQty) {
+      outcome = "insufficient-input";
+      return;
+    }
+
+    // Consume input
+    corp.inventory[chain.input] -= inputQty;
+
+    const now = Date.now();
+    refinery.active = true;
+    refinery.chainId = chain.id;
+    refinery.startedAt = now;
+    refinery.lastTickAt = now;
+    refinery.endsAt = now + chain.cycleDurationHours * 60 * 60 * 1000;
+    refinery.totalInputConsumed += inputQty;
+  });
+
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  if (outcome !== "ok") {
+    const messageMap = {
+      "missing-research": `This chain requires: ${chain.requiresResearch.join(", ")}.`,
+      "no-refinery": "Build a Refinery before starting a production run.",
+      "refinery-not-found": `Refinery "${refineryId}" was not found.`,
+      "all-busy": "All refineries are currently running cycles.",
+      "already-active": `${targetLabel} already has an active production cycle.`,
+      "insufficient-input": `Not enough ${chain.input}. Need ${chain.inputQuantityPerCycle} but only have ${Number(account.state.corp.inventory?.[chain.input] || 0)}.`
+    };
+    res.status(400).json({ error: messageMap[outcome] || "Refinery cycle failed to start." });
+    return;
+  }
+
+  const outputNames = chain.outputs.map((o) => `${o.quantityPerCycle} ${o.item}`).join(", ");
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "operations",
+    title: "Refinery Cycle Started",
+    body: `${targetLabel} processing ${chain.inputQuantityPerCycle} ${chain.input} → ${outputNames} (${chain.cycleDurationHours}h).`
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
+  res.json(account);
+});
+
 app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
   const amount = Math.max(10, Number(req.body?.amount || 40));
   const requestedHours = Math.max(1, Math.min(72, Number(req.body?.hours || 24)));
@@ -1487,15 +1669,19 @@ app.post("/api/accounts/:accountId/gameplay/queue-ceo", (req, res) => {
     const corp = state.corp;
     const queue = state.queues?.ceoInsight || [];
     const completed = corp.completedInsights || [];
-    const queued = new Set(queue.map((item) => item.programId).filter(Boolean));
 
-    // For multi-level programs, count completions + queued towards max
+    // Only one CEO Insight program can be in progress at a time
+    if (queue.length > 0) {
+      outcome = "queue-full";
+      return;
+    }
+
+    // For multi-level programs, count completions towards max
     const completionCount = completed.filter((id) => id === prog.id).length;
-    const queuedCount = queue.filter((item) => item.programId === prog.id).length;
     const maxLevels = prog.maxLevels || 1;
 
-    if (completionCount + queuedCount >= maxLevels) {
-      outcome = completionCount >= maxLevels ? "max-level" : "already-queued";
+    if (completionCount >= maxLevels) {
+      outcome = "max-level";
       return;
     }
 
@@ -1530,7 +1716,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-ceo", (req, res) => {
     const corp = account.state.corp;
     const messageMap = {
       "max-level": `${prog.name} is already at maximum level.`,
-      "already-queued": `${prog.name} is already in the CEO Insight queue.`,
+      "queue-full": "Only one CEO Insight program can be in progress at a time.",
       "missing-prereq": `${prog.name} requires: ${prog.prereqs.map((id) => CEO_INSIGHT_LIBRARY[id]?.name || id).join(", ")}.`,
       "insufficient-credits": fundingRequirementMessage(`${prog.name} enrollment`, corp, prog.costCredits)
     };

@@ -89,6 +89,22 @@ const techTree = [
     durationHours: 6,
     costCredits: 54000,
     prereqs: ["tt-industrial-safety", "tt-supply-forecast"]
+  },
+  {
+    id: "tt-material-compression",
+    name: "Material Compression I",
+    effect: "+8% refining throughput",
+    durationHours: 9,
+    costCredits: 6000,
+    prereqs: ["tt-energy-routing"]
+  },
+  {
+    id: "tt-nano-lattice",
+    name: "Nano-Lattice Weaving",
+    effect: "Unlocks Aerogel & Quantum Insulator refinery chains",
+    durationHours: 12,
+    costCredits: 8000,
+    prereqs: ["tt-material-compression"]
   }
 ];
 
@@ -834,7 +850,8 @@ function renderInsightTree(data) {
       const isDone = completionCount >= maxLevels;
       const isQueued = queuedCount > 0 && (completionCount + queuedCount >= maxLevels);
       const isLocked = !prog.prereqs.every((req) => completed.includes(req));
-      const canEnqueue = !isDone && !isQueued && !isLocked && (completionCount + queuedCount < maxLevels);
+      const anyQueued = queue.length > 0;
+      const canEnqueue = !isDone && !isQueued && !isLocked && !anyQueued && (completionCount + queuedCount < maxLevels);
       const prereqLabel = prog.prereqs.length
         ? prog.prereqs.map((id) => insightPrograms.find((p) => p.id === id)?.name || id).join(", ")
         : "None";
@@ -880,7 +897,10 @@ function renderInsightTree(data) {
           <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
           <span class="rnd-row__meta">${prog.durationHours}h &middot; ${toCurrency(prog.costCredits)} &middot; Prereqs: ${escapeHtml(prereqLabel)}</span>
         </div>
-        <button class="btn btn-accent ceo-enqueue-btn" type="button" data-program-id="${prog.id}">+ Enroll</button>
+        ${canEnqueue
+          ? `<button class="btn btn-accent ceo-enqueue-btn" type="button" data-program-id="${prog.id}">+ Enroll</button>`
+          : `<span class="rnd-row__badge rnd-row__badge--locked">AWAITING SLOT</span>`
+        }
       </div>`;
     })
     .join("");
@@ -910,7 +930,7 @@ function renderInsightTree(data) {
     } catch (error) {
       btn.disabled = false;
       btn.textContent = "+ Enroll";
-      showFeedback(`CEO Insight error: ${error.message}`, "warn");
+      pushFeedback(`CEO Insight error: ${error.message}`, "warn");
     }
   };
 }
@@ -2022,11 +2042,15 @@ function startMiningUiTicker() {
     renderQueue("rnd-queue", appState.data.queues?.corporateRnD || [], "Permanent corporate unlock track");
     renderQueue("ceo-queue", appState.data.queues?.ceoInsight || [], "CEO-centric growth track");
 
-    // Refresh from server every 60 seconds if any extractor is active
+    // Re-render refinery active runs for live progress
+    renderRefinery(appState.data);
+
+    // Refresh from server every 60 seconds if any extractor or refinery is active
     tickCount += 1;
     if (tickCount % 60 === 0) {
       const hasActiveCycle = (appState.data?.corp?.mining?.silicateExtractors || []).some((ex) => ex.active);
-      if (hasActiveCycle) {
+      const hasActiveRefinery = (appState.data?.corp?.refineries || []).some((r) => r.active);
+      if (hasActiveCycle || hasActiveRefinery) {
         refreshFromServer();
       }
     }
@@ -2201,20 +2225,119 @@ function renderQueue(elId, queue, subtitle) {
 
 function renderRefinery(data) {
   const catalog = document.getElementById("resource-catalog");
-  catalog.innerHTML = data.world.resourceCatalog.map((res) => `<span class="pill">${res}</span>`).join("");
+  catalog.innerHTML = data.world.resourceCatalog.map((res) => `<span class="pill">${escapeHtml(res)}</span>`).join("");
 
-  const chains = document.getElementById("refinery-chains");
-  chains.innerHTML = data.world.refineryChains
-    .map(
-      (chain) => `
-      <section class="data-card">
-        <h3>${chain.input}</h3>
-        <p class="muted">Outputs: ${chain.outputs.join(" -> ")}</p>
-        <p class="muted">R&D Gate: ${chain.requiresResearch.join(", ")}</p>
-      </section>
-    `
-    )
+  const refineries = data.corp?.refineries || [];
+  const unlockedTech = new Set(data.corp?.unlockedTech || []);
+  const inventory = data.corp?.inventory || {};
+  const hasRefinery = refineries.length > 0;
+  const canBuildRefinery = unlockedTech.has("tt-material-compression") && unlockedTech.has("tt-nano-lattice");
+
+  // ── Active Runs ──
+  const activeEl = document.getElementById("refinery-active-runs");
+  const activeRefineries = refineries.filter((r) => r.active);
+  if (!activeRefineries.length) {
+    activeEl.innerHTML = `<article class="queue-item"><p class="muted">${hasRefinery ? "No active refinery cycles. Start a production run below." : "Build a Refinery to begin processing raw materials."}</p></article>`;
+  } else {
+    activeEl.innerHTML = activeRefineries.map((ref) => {
+      const chain = data.world.refineryChains.find((c) => c.id === ref.chainId);
+      const progress = cycleProgressPercent(ref);
+      const remainingMs = Math.max(0, Number(ref.endsAt || 0) - Date.now());
+      const outputLabel = chain ? chain.outputs.map((o) => `${o.quantityPerCycle} ${o.item}`).join(", ") : "Unknown";
+      return `
+        <article class="queue-item">
+          <h3>${escapeHtml(ref.name)}</h3>
+          <p class="muted">Processing: ${chain ? escapeHtml(chain.input) : "Unknown"} → ${escapeHtml(outputLabel)}</p>
+          <p class="muted">Remaining: ${formatDurationHours(remainingMs)} (${progress.toFixed(1)}%)</p>
+          <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
+        </article>
+      `;
+    }).join("");
+  }
+
+  // ── Available Chains ──
+  const chainsEl = document.getElementById("refinery-chains");
+  chainsEl.innerHTML = data.world.refineryChains
+    .map((chain) => {
+      const techGated = Array.isArray(chain.requiresTechIds) && !chain.requiresTechIds.every((t) => unlockedTech.has(t));
+      const outputLabel = Array.isArray(chain.outputs)
+        ? chain.outputs.map((o) => typeof o === "string" ? o : `${o.quantityPerCycle} ${o.item}`).join(", ")
+        : String(chain.outputs);
+      const inputAvailable = Number(inventory[chain.input] || 0);
+      const inputNeeded = chain.inputQuantityPerCycle || 0;
+      const hasInput = inputAvailable >= inputNeeded;
+      const idleRefinery = refineries.find((r) => !r.active);
+      const canStart = hasRefinery && !techGated && hasInput && idleRefinery;
+
+      return `
+        <section class="data-card">
+          <h3>${escapeHtml(chain.input)} Refining</h3>
+          <p class="muted">${inputNeeded} ${escapeHtml(chain.input)} → ${escapeHtml(outputLabel)}</p>
+          <p class="muted">Cycle: ${chain.cycleDurationHours || "?"}h</p>
+          ${techGated
+            ? `<p class="muted" style="color:var(--color-warn)">Requires: ${escapeHtml((chain.requiresResearch || []).join(", "))}</p>`
+            : `<p class="muted" style="color:var(--color-accent)">Research: ✓ Unlocked</p>`
+          }
+          <p class="muted">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(chain.input)}${!hasInput && !techGated ? ` (need ${inputNeeded})` : ""}</p>
+          ${canStart
+            ? `<button class="btn btn-accent refinery-start-btn" data-chain-id="${chain.id}" data-refinery-id="${idleRefinery.id}">Start Run</button>`
+            : !hasRefinery && canBuildRefinery
+              ? `<button class="btn btn-outline refinery-build-btn">Build Refinery</button>`
+              : !hasRefinery && !canBuildRefinery
+                ? `<p class="muted" style="color:var(--color-warn)">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>`
+                : ""
+          }
+        </section>
+      `;
+    })
     .join("");
+
+  // ── Event delegation for start/build ──
+  chainsEl.onclick = async (e) => {
+    const startBtn = e.target.closest(".refinery-start-btn");
+    if (startBtn && appState.accountId) {
+      const chainId = startBtn.getAttribute("data-chain-id");
+      const refineryId = startBtn.getAttribute("data-refinery-id");
+      startBtn.disabled = true;
+      startBtn.textContent = "Starting…";
+      try {
+        const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/start-refinery`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chainId, refineryId })
+        });
+        const account = await parseJsonResponse(response);
+        appState.data = deepClone(account.state);
+        appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+        updateAllViews();
+      } catch (error) {
+        startBtn.disabled = false;
+        startBtn.textContent = "Start Run";
+        pushFeedback(`Refinery error: ${error.message}`, "warn");
+      }
+      return;
+    }
+
+    const buildBtn = e.target.closest(".refinery-build-btn");
+    if (buildBtn && appState.accountId) {
+      buildBtn.disabled = true;
+      buildBtn.textContent = "Building…";
+      try {
+        const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/build-refinery`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+        const account = await parseJsonResponse(response);
+        appState.data = deepClone(account.state);
+        appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+        updateAllViews();
+      } catch (error) {
+        buildBtn.disabled = false;
+        buildBtn.textContent = "Build Refinery";
+        pushFeedback(`Build error: ${error.message}`, "warn");
+      }
+    }
+  };
 }
 
 function renderMarket(data) {
@@ -3562,6 +3685,20 @@ function bindRealtimeEvents() {
     appState.notifications = appState.notifications.slice(0, 120);
     appState.unreadNotifications += 1;
     renderNotifications();
+  });
+
+  socket.on("ceo:completed", (payload) => {
+    if (!appState.accountId || payload?.accountId !== appState.accountId) {
+      return;
+    }
+    refreshFromServer();
+  });
+
+  socket.on("rnd:completed", (payload) => {
+    if (!appState.accountId || payload?.accountId !== appState.accountId) {
+      return;
+    }
+    refreshFromServer();
   });
 }
 

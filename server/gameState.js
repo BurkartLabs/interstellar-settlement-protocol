@@ -53,6 +53,14 @@ for (const prog of CEO_INSIGHT_DATA.programs) {
   CEO_INSIGHT_LIBRARY[prog.id] = prog;
 }
 
+// ─── Refinery chains ────────────────────────────────────────────────────────
+const refineryChainsPath = path.join(dataDir, "refinery-chains.json");
+const REFINERY_CHAINS_DATA = JSON.parse(fs.readFileSync(refineryChainsPath, "utf8"));
+const REFINERY_CHAINS = {};
+for (const chain of REFINERY_CHAINS_DATA.chains) {
+  REFINERY_CHAINS[chain.id] = chain;
+}
+
 // Build a lookup from requirement id → display title (for milestonesCompleted tracking)
 const REQ_ID_TO_TITLE = {};
 for (const lvl of MILESTONE_LEVELS) {
@@ -215,13 +223,12 @@ function normalizeStateShape(rawState) {
   }
 
   if (!rawState.corp.finances) rawState.corp.finances = {};
-  if (typeof rawState.corp.finances.exchangeSalesTaxPct !== "number") {
-    rawState.corp.finances.exchangeSalesTaxPct = 8;
-  }
-
   if (!Array.isArray(rawState.corp.completedInsights)) {
     rawState.corp.completedInsights = [];
   }
+
+  // Always reconcile tax rate from completedInsights (authoritative source)
+  rawState.corp.finances.exchangeSalesTaxPct = getEffectiveExchangeTaxRate(rawState);
 
   if (!rawState.queues) rawState.queues = {};
   if (!Array.isArray(rawState.queues.ceoInsight)) {
@@ -235,6 +242,8 @@ function normalizeStateShape(rawState) {
   }));
 
   rawState.corp.milestoneRoadmap = MILESTONE_ROADMAP.slice();
+
+  ensureCorpRefineryModel(rawState.corp);
 
   return rawState;
 }
@@ -386,9 +395,6 @@ export function applyMiningOperations(corp, now = Date.now()) {
         extractor.downtimeStartedAt = null;
         // Resume mining: update lastTickAt so mining resumes from now
         extractor.lastTickAt = now;
-        if (typeof console !== 'undefined' && console.log) {
-          console.log(`[Downtime Recovery] Extractor ${extractor.id} recovered at ${now}.`);
-        }
       }
       // If not recovered, remain in downtime (mining paused)
       return;
@@ -467,6 +473,77 @@ export function applyMiningOperations(corp, now = Date.now()) {
   });
 
   corp.mining.silicateExtractor = extractors[0];
+}
+
+// ─── Refinery model ──────────────────────────────────────────────────────────
+function ensureCorpRefineryModel(corp) {
+  if (!Array.isArray(corp.refineries)) {
+    corp.refineries = [];
+  }
+
+  // Sync refineries array with built Refinery buildings
+  const builtCount = (corp.buildings || []).filter((b) => b.name === "Refinery").length;
+  while (corp.refineries.length < builtCount) {
+    const idx = corp.refineries.length + 1;
+    corp.refineries.push({
+      id: `ref-${idx}`,
+      name: `Refinery #${idx}`,
+      tier: 1,
+      active: false,
+      chainId: null,
+      startedAt: null,
+      lastTickAt: null,
+      endsAt: null,
+      cyclesCompleted: 0,
+      totalInputConsumed: 0,
+      totalOutputProduced: 0
+    });
+  }
+
+  corp.refineries = corp.refineries.map((ref, i) => ({
+    id: String(ref.id || `ref-${i + 1}`),
+    name: String(ref.name || `Refinery #${i + 1}`),
+    tier: Number(ref.tier || 1),
+    active: Boolean(ref.active),
+    chainId: ref.chainId ?? null,
+    startedAt: ref.startedAt ?? null,
+    lastTickAt: ref.lastTickAt ?? null,
+    endsAt: ref.endsAt ?? null,
+    cyclesCompleted: Number(ref.cyclesCompleted || 0),
+    totalInputConsumed: Number(ref.totalInputConsumed || 0),
+    totalOutputProduced: Number(ref.totalOutputProduced || 0)
+  }));
+}
+
+export function applyRefineryOperations(corp, now = Date.now()) {
+  ensureCorpRefineryModel(corp);
+
+  corp.refineries.forEach((ref) => {
+    if (!ref.active || !ref.chainId) return;
+
+    const chain = REFINERY_CHAINS[ref.chainId];
+    if (!chain) {
+      ref.active = false;
+      return;
+    }
+
+    const endsAt = Number(ref.endsAt || 0);
+    if (!endsAt || now < endsAt) return;
+
+    // Cycle complete — produce outputs
+    if (!corp.inventory) corp.inventory = {};
+    for (const output of chain.outputs) {
+      corp.inventory[output.item] = (corp.inventory[output.item] || 0) + output.quantityPerCycle;
+      ref.totalOutputProduced += output.quantityPerCycle;
+    }
+
+    ref.cyclesCompleted += 1;
+    ref.active = false;
+    ref.chainId = null;
+    ref.startedAt = null;
+    ref.lastTickAt = null;
+    ref.endsAt = null;
+  });
 }
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
@@ -686,6 +763,7 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
 
   evaluateLevelProgress(next);
   ensureCorpMiningModel(next.corp);
+  ensureCorpRefineryModel(next.corp);
   return next;
 }
 
@@ -809,20 +887,17 @@ function getSeedState() {
         "Uranium",
         "Exotic Matter"
       ],
-      refineryChains: [
-        {
-          id: "silicates-chain",
-          input: "Silicates",
-          outputs: ["Aerogel", "Quantum Insulators"],
-          requiresResearch: ["Material Compression I", "Nano-Lattice Weaving"]
-        },
-        {
-          id: "he3-chain",
-          input: "Helium-3",
-          outputs: ["Plasma Conduits", "Dark-Matter Capacitors"],
-          requiresResearch: ["Containment Physics I", "Exotic Energy Routing"]
-        }
-      ]
+      refineryChains: REFINERY_CHAINS_DATA.chains.map((c) => ({
+        id: c.id,
+        input: c.input,
+        inputQuantityPerCycle: c.inputQuantityPerCycle,
+        outputs: c.outputs,
+        cycleDurationHours: c.cycleDurationHours,
+        requiresResearch: c.requiresResearch,
+        requiresTechIds: c.requiresTechIds,
+        tier: c.tier,
+        category: c.category
+      }))
     },
     corp: {
       id: "corp-001",
@@ -1412,6 +1487,7 @@ export function getState() {
 }
 
 export { CEO_INSIGHT_LIBRARY };
+export { REFINERY_CHAINS };
 
 export function mutateState(mutator) {
   mutator(state);

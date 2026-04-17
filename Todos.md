@@ -23,8 +23,8 @@ GitHub Copilot should read this file at the start of every session and reference
 
 ### Office Rental Model *(significant rework)*
 - [x] Switch office from flat `$20,000` one-time fee to `$1,000/day` recurring with a **7-day minimum** (`$7,000` committed upfront at point of rental)
-- [ ] Track `rentedUntil` timestamp on corp state; lock office benefits (hiring, leases) if lease lapses. Existing mining cycles should be paused if the lease runs out. 
-- [ ] Office interior view — show lease status, days remaining, renewal option, payroll summary, and quick-nav links to related tabs
+- [x] Track `rentedUntil` timestamp on corp state; lock office benefits (hiring, leases) if lease lapses. Existing mining cycles should be paused if the lease runs out. 
+- [x] Office interior view — show lease status, days remaining, renewal option, payroll summary, and quick-nav links to related tabs
 
 ### Walkthrough *(full overhaul)*
 - [ ] Overhaul the guided first-session walkthrough to fully conform to the 11-step sequence defined in `NEW_PLAYER_EXPERIENCE.md`

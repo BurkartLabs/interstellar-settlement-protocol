@@ -40,8 +40,8 @@ Each version represents a meaningful, playable milestone. Items marked [x] are c
 ## Version 0.3 — Tier 1 Research, Refinery Chains, Asteroid Mining, Missions
 
 - [ ] Full Corporate R&D tree (all Tier 1 and Tier 2 nodes) with effects applied to live gameplay values
-- [ ] CEO Insight Program — full node library, queue processing, and bonus application (morale, negotiation, charisma, leadership)
-- [ ] Server-side CEO Insight queue auto-completion — same authoritative pipeline as R&D with idempotent double-award guards
+- [x] CEO Insight Program — full node library, queue processing, and bonus application (morale, negotiation, charisma, leadership)
+- [x] Server-side CEO Insight queue auto-completion — same authoritative pipeline as R&D with idempotent double-award guards
 - [ ] Refinery Annex building and operational controls
 - [ ] Refinery Chains — operational UI, input/output display, cycle management, chain unlocking via R&D
 - [ ] Asteroid mining — off-world extraction ops tied to specific starmap bodies

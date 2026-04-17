@@ -758,7 +758,7 @@ h1 {
   border: 1px solid rgba(0, 247, 255, 0.14);
   border-radius: 10px;
   background: rgba(12, 28, 44, 0.52);
-  padding: 1rem 1.1rem;
+  padding: 1.3rem;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
