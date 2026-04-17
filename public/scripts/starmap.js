@@ -73,8 +73,74 @@ function styleForBody(body) {
   return PLANET_STYLE[body.id] || FALLBACK_PLANET_STYLE;
 }
 
+// ─── Planet image assets ─────────────────────────────────────────────────────
+const PLANET_IMAGES = {};
+const PLANET_IMAGE_PATHS = {
+  earth: "/images/planets/earth.png",
+  mars: "/images/planets/mars.png",
+  luna: "/images/planets/moon.png"
+};
+
+function loadPlanetImage(bodyId) {
+  if (PLANET_IMAGES[bodyId]) return PLANET_IMAGES[bodyId];
+  const path = PLANET_IMAGE_PATHS[bodyId];
+  if (!path) return null;
+  const img = new Image();
+  img.src = path;
+  img.onload = () => {
+    if (typeof _starmapRender === "function") _starmapRender();
+  };
+  PLANET_IMAGES[bodyId] = img;
+  return img;
+}
+
+let _starmapRender = null;
+
+// Preload all planet images
+Object.keys(PLANET_IMAGE_PATHS).forEach(loadPlanetImage);
+
 function drawPlanet(ctx, body, x, y, radius) {
   const style = styleForBody(body);
+
+  // Try image-based rendering first
+  const img = PLANET_IMAGES[body.id];
+  if (img && img.complete && img.naturalWidth > 0) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Draw image with aspect-ratio preservation (cover-fit into circle)
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    const diam = radius * 2;
+    const scale = Math.max(diam / iw, diam / ih);
+    const drawW = iw * scale;
+    const drawH = ih * scale;
+    ctx.drawImage(img, x - drawW / 2, y - drawH / 2, drawW, drawH);
+    ctx.restore();
+
+    // Glow ring
+    ctx.beginPath();
+    ctx.arc(x, y, radius + 3, 0, Math.PI * 2);
+    ctx.strokeStyle = style.glow;
+    ctx.stroke();
+
+    // Saturn rings
+    if (body.id === "saturn") {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(-0.28);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radius * 1.75, radius * 0.68, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(220, 200, 140, 0.7)";
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      ctx.restore();
+    }
+    return;
+  }
+
   const gradient = ctx.createRadialGradient(x - radius * 0.35, y - radius * 0.35, 1, x, y, radius * 1.1);
   gradient.addColorStop(0, style.base);
   gradient.addColorStop(1, style.shadow);
@@ -160,11 +226,14 @@ export function createStarmapController({
   overlaySelect,
   resetButton,
   onScoutBody,
-  isBodyScouted
+  isBodyScouted,
+  onTravelToStation
 }) {
   const ctx = canvas?.getContext?.("2d");
   const state = {
     systems: [],
+    stations: [],
+    currentStationId: null,
     overlay: "none",
     view: "cluster",
     selectedSystemId: null,
@@ -307,6 +376,26 @@ export function createStarmapController({
     return width;
   }
 
+  function drawStationMarker(x, y, isCurrent) {
+    const size = 4;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = isCurrent ? "rgba(0, 247, 255, 0.95)" : "rgba(255, 210, 80, 0.85)";
+    ctx.fillRect(-size, -size, size * 2, size * 2);
+    ctx.strokeStyle = isCurrent ? "rgba(0, 247, 255, 0.5)" : "rgba(255, 210, 80, 0.4)";
+    ctx.strokeRect(-size - 2, -size - 2, size * 2 + 4, size * 2 + 4);
+    ctx.restore();
+  }
+
+  function bodyHasStation(systemId, bodyName) {
+    return state.stations.some((s) => s.systemId === systemId && s.body === bodyName);
+  }
+
+  function bodyHasCurrentStation(systemId, bodyName) {
+    return state.stations.some((s) => s.systemId === systemId && s.body === bodyName && s.id === state.currentStationId);
+  }
+
   function drawSystemView(system) {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
@@ -404,10 +493,26 @@ export function createStarmapController({
       ctx.strokeStyle = "rgba(120, 180, 220, 0.11)";
       ctx.stroke();
 
-      ctx.beginPath();
-      ctx.arc(x, y, moonRadius, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(158, 194, 224, 0.95)";
-      ctx.fill();
+      const moonImg = PLANET_IMAGES[moon.id];
+      if (moonImg && moonImg.complete && moonImg.naturalWidth > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, moonRadius, 0, Math.PI * 2);
+        ctx.clip();
+        const miw = moonImg.naturalWidth;
+        const mih = moonImg.naturalHeight;
+        const md = moonRadius * 2;
+        const ms = Math.max(md / miw, md / mih);
+        const mdw = miw * ms;
+        const mdh = mih * ms;
+        ctx.drawImage(moonImg, x - mdw / 2, y - mdh / 2, mdw, mdh);
+        ctx.restore();
+      } else {
+        ctx.beginPath();
+        ctx.arc(x, y, moonRadius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(158, 194, 224, 0.95)";
+        ctx.fill();
+      }
 
       ctx.fillStyle = "rgba(216, 235, 245, 0.9)";
       ctx.font = "10px Inter";
@@ -459,6 +564,25 @@ export function createStarmapController({
       const radius = Math.min(width, height) * 0.15;
       drawPlanet(ctx, body, cx, cy, radius);
 
+      // Draw station markers on the planet surface
+      const planetStations = state.stations.filter(
+        (s) => s.systemId === system.id && s.body === body.name
+      );
+      planetStations.forEach((station, idx) => {
+        const angle = (-Math.PI / 4) + (idx * Math.PI / 6);
+        const markerX = cx + Math.cos(angle) * (radius * 0.7);
+        const markerY = cy + Math.sin(angle) * (radius * 0.7);
+        const isCurrent = station.id === state.currentStationId;
+        drawStationMarker(markerX, markerY, isCurrent);
+        state.clickTargets.push({
+          type: "station",
+          stationId: station.id,
+          x: markerX,
+          y: markerY,
+          radius: 10
+        });
+      });
+
       const moons = (system.bodies || []).filter((item) => item.type === "Moon" && item.parentId === body.id);
       moons.forEach((moon, idx) => {
         const orbit = radius + 36 + idx * 26;
@@ -471,14 +595,31 @@ export function createStarmapController({
         ctx.strokeStyle = "rgba(120, 180, 220, 0.16)";
         ctx.stroke();
 
-        ctx.beginPath();
-        ctx.arc(x, y, Math.max(3, moon.radius), 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(158, 194, 224, 0.94)";
-        ctx.fill();
+        const bmr = Math.max(8, moon.radius * 3);
+        const bmImg = PLANET_IMAGES[moon.id];
+        if (bmImg && bmImg.complete && bmImg.naturalWidth > 0) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(x, y, bmr, 0, Math.PI * 2);
+          ctx.clip();
+          const bmiw = bmImg.naturalWidth;
+          const bmih = bmImg.naturalHeight;
+          const bmd = bmr * 2;
+          const bms = Math.max(bmd / bmiw, bmd / bmih);
+          const bmdw = bmiw * bms;
+          const bmdh = bmih * bms;
+          ctx.drawImage(bmImg, x - bmdw / 2, y - bmdh / 2, bmdw, bmdh);
+          ctx.restore();
+        } else {
+          ctx.beginPath();
+          ctx.arc(x, y, bmr, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(158, 194, 224, 0.94)";
+          ctx.fill();
+        }
 
         ctx.fillStyle = "rgba(216, 235, 245, 0.9)";
         ctx.font = "11px Inter";
-        ctx.fillText(moon.name, x + 8, y - 4);
+        ctx.fillText(moon.name, x + bmr + 5, y - 4);
 
         state.clickTargets.push({
           type: "body",
@@ -486,7 +627,7 @@ export function createStarmapController({
           bodyId: moon.id,
           x,
           y,
-          radius: Math.max(8, moon.radius + 6)
+          radius: Math.max(8, bmr + 6)
         });
       });
     }
@@ -579,6 +720,22 @@ export function createStarmapController({
         .map((part) => `<li>${part.name}: ${part.pct}%</li>`)
         .join("");
 
+      // Find stations orbiting this body
+      const bodyStations = state.stations.filter(
+        (s) => s.systemId === system.id && s.body === body.name
+      );
+      const stationListHtml = bodyStations.length
+        ? `<h4 style="margin-top:1rem;">Stations</h4><ul class="text-list">${bodyStations.map((s) => {
+            const isCurrent = s.id === state.currentStationId;
+            const dockLabel = isCurrent
+              ? `<span style="color:rgba(0,247,255,0.85);font-size:0.8rem;margin-left:0.4rem;">[DOCKED]</span>`
+              : onTravelToStation
+                ? `<button class="btn btn-outline starmap-travel-btn" data-station-id="${s.id}" style="margin-left:0.5rem;font-size:0.75rem;padding:0.15em 0.5em;">Travel</button>`
+                : "";
+            return `<li><strong>${s.name}</strong> <span style="opacity:0.6;">${s.designation}</span>${dockLabel}</li>`;
+          }).join("")}</ul>`
+        : "";
+
       detailsEl.innerHTML = `
         <h3>${body.name} - ${system.name}</h3>
         <p class="muted">Type: ${body.type} | Scouting Status: ${scouted ? "Completed" : "Unscouted"}</p>
@@ -588,6 +745,7 @@ export function createStarmapController({
             : `<p class="muted">Resource composition is unknown. You must scout this body first.</p>
                <button id="scout-body-btn" class="btn btn-accent">Scout Body</button>`
         }
+        ${stationListHtml}
       `;
 
       if (!scouted) {
@@ -599,6 +757,16 @@ export function createStarmapController({
           render();
         });
       }
+
+      // Bind travel buttons in starmap details
+      detailsEl.querySelectorAll(".starmap-travel-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const stationId = btn.getAttribute("data-station-id");
+          if (stationId && onTravelToStation) {
+            onTravelToStation(stationId);
+          }
+        });
+      });
     }
 
     if (state.view === "asteroid" && system && body) {
@@ -731,7 +899,137 @@ export function createStarmapController({
       state.selectedBodyId = null;
       state.selectedAsteroidId = null;
       render();
+      return;
     }
+
+    if (hit.type === "station") {
+      openStationModal(hit.stationId);
+      return;
+    }
+  }
+
+  // ─── Station tooltip ───────────────────────────────────────────────────────
+  let tooltip = null;
+
+  function ensureTooltip() {
+    if (tooltip) return tooltip;
+    tooltip = document.createElement("div");
+    tooltip.className = "starmap-tooltip";
+    tooltip.style.display = "none";
+    document.body.appendChild(tooltip);
+    return tooltip;
+  }
+
+  function handleMouseMove(event) {
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const hit = state.clickTargets.find(
+      (t) => t.type === "station" && Math.hypot(t.x - x, t.y - y) <= t.radius
+    );
+
+    const tip = ensureTooltip();
+    if (hit) {
+      const station = state.stations.find((s) => s.id === hit.stationId);
+      tip.textContent = station ? station.name : hit.stationId;
+      tip.style.display = "block";
+      tip.style.left = `${event.clientX + 12}px`;
+      tip.style.top = `${event.clientY - 8}px`;
+      canvas.style.cursor = "pointer";
+    } else {
+      tip.style.display = "none";
+      canvas.style.cursor = "";
+    }
+  }
+
+  // ─── Station detail modal ─────────────────────────────────────────────────
+  function openStationModal(stationId) {
+    const station = state.stations.find((s) => s.id === stationId);
+    if (!station) return;
+
+    // Remove any existing modal
+    closeStationModal();
+
+    const isCurrent = station.id === state.currentStationId;
+
+    const overlay = document.createElement("div");
+    overlay.className = "starmap-modal-overlay";
+    overlay.id = "starmap-station-modal";
+
+    const buildingCount = station.buildings ? station.buildings.length : 0;
+    const officeRent = station.officeRentPerCycle
+      ? `¤${Number(station.officeRentPerCycle).toLocaleString()} / cycle`
+      : "—";
+
+    overlay.innerHTML = `
+      <div class="starmap-modal-card">
+        <button class="starmap-modal-close" aria-label="Close">&times;</button>
+        <p class="overline starmap-modal-overline">${escapeHtmlAttr(station.designation || "")} // ${escapeHtmlAttr((station.systemId || "").toUpperCase())}</p>
+        <h2 class="starmap-modal-title">${escapeHtmlAttr(station.name)}</h2>
+        <p class="muted" style="margin-bottom:1rem;">${escapeHtmlAttr(station.body)} &mdash; ${escapeHtmlAttr(station.ownership || "NPC")}-controlled</p>
+
+        <div class="starmap-modal-stats">
+          <div class="starmap-modal-stat">
+            <span class="starmap-modal-stat-label">Buildings</span>
+            <span class="starmap-modal-stat-value">${buildingCount}</span>
+          </div>
+          <div class="starmap-modal-stat">
+            <span class="starmap-modal-stat-label">Office Rent</span>
+            <span class="starmap-modal-stat-value">${officeRent}</span>
+          </div>
+          <div class="starmap-modal-stat">
+            <span class="starmap-modal-stat-label">Status</span>
+            <span class="starmap-modal-stat-value">${isCurrent ? "Docked" : "Not docked"}</span>
+          </div>
+        </div>
+
+        ${station.description ? `<p class="muted" style="margin-top:1rem;font-size:0.85rem;">${escapeHtmlAttr(station.description)}</p>` : ""}
+
+        <div class="starmap-modal-actions">
+          ${isCurrent
+            ? `<span class="muted" style="font-size:0.85rem;">You are currently docked at this station.</span>`
+            : onTravelToStation
+              ? `<button class="btn btn-accent starmap-modal-travel-btn" data-station-id="${escapeHtmlAttr(station.id)}">Undock &amp; Travel Here</button>`
+              : ""
+          }
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Bind close
+    overlay.querySelector(".starmap-modal-close")?.addEventListener("click", closeStationModal);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeStationModal();
+    });
+
+    // Bind travel
+    const travelBtn = overlay.querySelector(".starmap-modal-travel-btn");
+    if (travelBtn) {
+      travelBtn.addEventListener("click", () => {
+        const sid = travelBtn.getAttribute("data-station-id");
+        if (sid && onTravelToStation) {
+          closeStationModal();
+          onTravelToStation(sid);
+        }
+      });
+    }
+  }
+
+  function closeStationModal() {
+    const existing = document.getElementById("starmap-station-modal");
+    if (existing) existing.remove();
+  }
+
+  function escapeHtmlAttr(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   function bindEvents() {
@@ -740,6 +1038,11 @@ export function createStarmapController({
     }
 
     canvas.addEventListener("click", handleClick);
+    canvas.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("mouseleave", () => {
+      if (tooltip) tooltip.style.display = "none";
+      canvas.style.cursor = "";
+    });
 
     overlaySelect?.addEventListener("change", () => {
       state.overlay = overlaySelect.value;
@@ -756,6 +1059,8 @@ export function createStarmapController({
       setCanvasSize();
       render();
     });
+
+    _starmapRender = render;
   }
 
   function setGraphicsMode(enabled) {
@@ -794,6 +1099,11 @@ export function createStarmapController({
         state.selectedAsteroidId = null;
         state.view = "cluster";
       }
+      render();
+    },
+    setStations(nextStations, currentStationId) {
+      state.stations = nextStations || [];
+      state.currentStationId = currentStationId || null;
       render();
     },
     setGraphicsMode,

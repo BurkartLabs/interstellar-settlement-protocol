@@ -202,6 +202,14 @@ function normalizeStateShape(rawState) {
     rawState.corp.location = "Earth";
   }
 
+  if (!rawState.corp.currentStationId) {
+    rawState.corp.currentStationId = "earth-station-prime";
+  }
+
+  if (rawState.corp.travel === undefined) {
+    rawState.corp.travel = null;
+  }
+
   if (!Array.isArray(rawState.corp.milestonesCompleted)) {
     rawState.corp.milestonesCompleted = [];
   }
@@ -437,7 +445,9 @@ export function applyMiningOperations(corp, now = Date.now()) {
     // --- Normal mining logic ---
     const elapsedHours = elapsedMs / (60 * 60 * 1000);
     const throughput = Math.max(0, Number(extractor.throughputPerHour || 0));
-    const efficiency = (corp.unlockedTech || []).includes("tt-basic-extraction") ? 1.2 : 1;
+    let efficiency = 1;
+    if ((corp.unlockedTech || []).includes("tt-basic-extraction")) efficiency *= 1.1;
+    if ((corp.unlockedTech || []).includes("tt-supply-forecast")) efficiency *= 1.06;
     const projectedMined = elapsedHours * throughput * efficiency;
     const projectedCost = elapsedHours * Math.max(0, Number(extractor.operationCostPerHour || 0));
 
@@ -689,6 +699,8 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
     ceo: ceoName,
     corporationName: corpName,
     location: "Earth",
+    currentStationId: "earth-station-prime",
+    travel: null,
     level: 0,
     levelCap: 40,
     milestonesCompleted: [],

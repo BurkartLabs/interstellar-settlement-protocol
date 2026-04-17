@@ -291,6 +291,7 @@
           <nav class="tab-nav" aria-label="Game modules">
             <button class="tab-btn active" data-tab="overview">Overview</button>
             <button class="tab-btn" data-tab="inbox">Inbox</button>
+            <button class="tab-btn" data-tab="travel" hidden>Travel</button>
             <button class="tab-btn" data-tab="station">Station</button>
             <button class="tab-btn" data-tab="finance">Financial Core</button>
             <button class="tab-btn" data-tab="rnd">Corporate R&D</button>
@@ -326,10 +327,24 @@
             </section>
           </article>
 
+          <article id="travel" class="tab-panel">
+            <div id="travel-page"></div>
+          </article>
+
           <article id="station" class="tab-panel">
+            <!-- Travel in-progress banner -->
+            <div id="station-travel-banner" class="travel-banner" hidden></div>
+
             <!-- Station overview -->
             <div id="station-overview-view">
               <div id="station-location-header"></div>
+
+              <!-- Travel / Undock controls -->
+              <section class="station-district" id="station-travel-section">
+                <h3>Navigation &amp; Travel</h3>
+                <p class="muted lede">Undock and set course for another station. Travel time depends on distance.</p>
+                <div id="station-travel-destinations"></div>
+              </section>
 
               <section class="station-district">
                 <h3>Authority &amp; Regulatory Offices</h3>

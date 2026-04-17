@@ -25,8 +25,8 @@
     {
       "id": "tt-supply-forecast",
       "name": "Supply Forecast Engine",
-      "effect": "+6% logistics efficiency",
-      "description": "Deploys a predictive resource flow model across your logistics network. Identifies bottlenecks before they emerge and pre-positions inventory at optimal distribution nodes.",
+      "effect": "-6% extractor build cost, +6% mining yield",
+      "description": "Deploys a predictive resource flow model across your logistics network. Reduces extractor construction costs by 6% and improves mining yield by 6%.",
       "durationHours": 4,
       "costCredits": 3000,
       "prereqs": ["tt-basic-extraction"],

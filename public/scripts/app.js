@@ -33,6 +33,7 @@ const appState = {
   stationRegistry: [],
   buildingRegistry: [],
   stationActiveLease: null,
+  _travelTimer: null,
   exchangeFilter: "",
   inbox: {
     messages: [],
@@ -63,32 +64,36 @@ const techTree = [
     name: "Basic Extraction Analytics",
     effect: "+10% raw extraction throughput",
     durationHours: 2,
-    costCredits: 18000,
-    prereqs: []
+    costCredits: 2000,
+    prereqs: [],
+    tier: 1
   },
   {
     id: "tt-industrial-safety",
     name: "Industrial Safety Protocols",
     effect: "-8% facility downtime risk",
     durationHours: 3,
-    costCredits: 26000,
-    prereqs: ["tt-basic-extraction"]
+    costCredits: 2000,
+    prereqs: ["tt-basic-extraction"],
+    tier: 1
   },
   {
     id: "tt-supply-forecast",
     name: "Supply Forecast Engine",
-    effect: "+6% logistics efficiency",
+    effect: "-6% extractor build cost, +6% mining yield",
     durationHours: 4,
-    costCredits: 32000,
-    prereqs: ["tt-basic-extraction"]
+    costCredits: 3000,
+    prereqs: ["tt-basic-extraction"],
+    tier: 1
   },
   {
     id: "tt-energy-routing",
     name: "High-Density Energy Routing",
     effect: "+1 advanced manufacturing lane",
     durationHours: 6,
-    costCredits: 54000,
-    prereqs: ["tt-industrial-safety", "tt-supply-forecast"]
+    costCredits: 4000,
+    prereqs: ["tt-industrial-safety", "tt-supply-forecast"],
+    tier: 2
   },
   {
     id: "tt-material-compression",
@@ -96,7 +101,26 @@ const techTree = [
     effect: "+8% refining throughput",
     durationHours: 9,
     costCredits: 6000,
-    prereqs: ["tt-energy-routing"]
+    prereqs: ["tt-energy-routing"],
+    tier: 2
+  },
+  {
+    id: "tt-containment-physics",
+    name: "Containment Physics I",
+    effect: "Unlocks Helium-3 refinery chain",
+    durationHours: 10,
+    costCredits: 8000,
+    prereqs: ["tt-energy-routing"],
+    tier: 2
+  },
+  {
+    id: "tt-fleet-coordination",
+    name: "Fleet Coordination Matrix",
+    effect: "+12 fleet cap",
+    durationHours: 16,
+    costCredits: 12000,
+    prereqs: ["tt-energy-routing"],
+    tier: 2
   },
   {
     id: "tt-nano-lattice",
@@ -104,7 +128,17 @@ const techTree = [
     effect: "Unlocks Aerogel & Quantum Insulator refinery chains",
     durationHours: 12,
     costCredits: 8000,
-    prereqs: ["tt-material-compression"]
+    prereqs: ["tt-material-compression"],
+    tier: 3
+  },
+  {
+    id: "tt-exotic-energy-routing",
+    name: "Exotic Energy Routing",
+    effect: "Unlocks Dark-Matter Capacitor synthesis",
+    durationHours: 16,
+    costCredits: 12000,
+    prereqs: ["tt-containment-physics"],
+    tier: 3
   }
 ];
 
@@ -244,6 +278,23 @@ const starmap = createStarmapController({
   },
   isBodyScouted(systemId, bodyId) {
     return appState.scoutedBodies.has(`${systemId}:${bodyId}`);
+  },
+  async onTravelToStation(stationId) {
+    if (!appState.accountId) return;
+    try {
+      const response = await apiFetch(
+        `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/travel`,
+        { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ toStationId: stationId }) }
+      );
+      const account = await parseJsonResponse(response);
+      appState.data = deepClone(account.state);
+      appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+      updateAllViews();
+      setTab("travel");
+    } catch (err) {
+      pushFeedback(err.message || "Travel request failed.", "warn");
+    }
   }
 });
 
@@ -740,12 +791,14 @@ function renderInventoryPanel() {
 function availableTechNodes(data) {
   const done = new Set(data.corp.unlockedTech || []);
   const inQueue = new Set((data.queues.corporateRnD || []).map((item) => item.techId).filter(Boolean));
+  const tier1Ids = techTree.filter((n) => n.tier === 1).map((n) => n.id);
+  const allTier1Done = tier1Ids.every((id) => done.has(id));
 
   return techTree.filter((node) => {
-    if (done.has(node.id) || inQueue.has(node.id)) {
-      return false;
-    }
-    return node.prereqs.every((req) => done.has(req));
+    if (done.has(node.id) || inQueue.has(node.id)) return false;
+    if (!node.prereqs.every((req) => done.has(req))) return false;
+    if (node.tier >= 2 && !allTier1Done) return false;
+    return true;
   });
 }
 
@@ -765,13 +818,18 @@ function renderTechTree(data) {
     select.innerHTML = options.map((node) => `<option value="${node.id}">${node.name}</option>`).join("");
   }
 
-  // Render tech rows grouped by status: available → queued → locked → done
+  // Render tech rows grouped by tier, then by status
+  const tier1Ids = techTree.filter((n) => n.tier === 1).map((n) => n.id);
+  const allTier1Done = tier1Ids.every((id) => done.has(id));
+
   const rows = techTree
     .map((node) => {
       const prereqLabel = node.prereqs.length ? node.prereqs.map((id) => techTree.find((it) => it.id === id)?.name || id).join(", ") : "None";
       const isDone = done.has(node.id);
       const isQueued = inQueue.has(node.id);
-      const isLocked = !node.prereqs.every((req) => done.has(req));
+      const prereqsMet = node.prereqs.every((req) => done.has(req));
+      const tierGated = node.tier >= 2 && !allTier1Done;
+      const isLocked = !prereqsMet || tierGated;
 
       if (isDone) {
         return `<div class="rnd-row rnd-row--done">
@@ -795,11 +853,14 @@ function renderTechTree(data) {
       }
 
       if (isLocked) {
+        const lockReason = tierGated
+          ? "Complete all Tier 1 research first"
+          : `Requires: ${escapeHtml(prereqLabel)}`;
         return `<div class="rnd-row rnd-row--locked">
           <div class="rnd-row__info">
-            <span class="rnd-row__name">${escapeHtml(node.name)}</span>
+            <span class="rnd-row__name">${escapeHtml(node.name)} <span class="rnd-tier-badge">T${node.tier}</span></span>
             <span class="rnd-row__effect">${escapeHtml(node.effect)}</span>
-            <span class="rnd-row__meta">Requires: ${escapeHtml(prereqLabel)}</span>
+            <span class="rnd-row__meta">${lockReason}</span>
           </div>
           <span class="rnd-row__badge rnd-row__badge--locked">LOCKED</span>
         </div>`;
@@ -808,7 +869,7 @@ function renderTechTree(data) {
       // Available — show enqueue button
       return `<div class="rnd-row rnd-row--available">
         <div class="rnd-row__info">
-          <span class="rnd-row__name">${escapeHtml(node.name)}</span>
+          <span class="rnd-row__name">${escapeHtml(node.name)} <span class="rnd-tier-badge">T${node.tier}</span></span>
           <span class="rnd-row__effect">${escapeHtml(node.effect)}</span>
           <span class="rnd-row__meta">${node.durationHours}h &middot; ${toCurrency(node.costCredits)} &middot; Prereqs: ${escapeHtml(prereqLabel)}</span>
         </div>
@@ -1043,8 +1104,9 @@ function renderBuildingDetail(building, data) {
 
 function renderOrbitalExecutiveSuites(building, data) {
   const corp = data.corp;
-  const currentBody = corp?.location || "Earth";
-  const station = appState.stationRegistry.find((s) => s.body === currentBody) || appState.stationRegistry[0];
+  const currentStationId = corp?.currentStationId || "earth-station-prime";
+  const station = appState.stationRegistry.find((s) => s.id === currentStationId) || appState.stationRegistry[0];
+  const currentBody = station?.body || corp?.location || "Earth";
   const stationId = station?.id || "earth-station-prime";
   const officeCost = station?.officeCost || 20000;
 
@@ -1158,8 +1220,8 @@ function bindOfficeActions(building, data) {
     rentBtn.addEventListener("click", async () => {
       const statusEl = document.getElementById("rent-office-status");
       const corp = appState.data?.corp;
-      const currentBody = corp?.location || "Earth";
-      const station = appState.stationRegistry.find((s) => s.body === currentBody) || appState.stationRegistry[0];
+      const currentStationId = corp?.currentStationId || "earth-station-prime";
+      const station = appState.stationRegistry.find((s) => s.id === currentStationId) || appState.stationRegistry[0];
 
       rentBtn.disabled = true;
       if (statusEl) statusEl.textContent = "Processing lease agreement...";
@@ -1212,8 +1274,8 @@ function bindOfficeActions(building, data) {
       const durationDays = Number(durationSelect?.value || 28);
       const submitBtn = renewForm.querySelector("button[type=submit]");
       const corp = appState.data?.corp;
-      const currentBody = corp?.location || "Earth";
-      const station = appState.stationRegistry.find((s) => s.body === currentBody) || appState.stationRegistry[0];
+      const currentStationId = corp?.currentStationId || "earth-station-prime";
+      const station = appState.stationRegistry.find((s) => s.id === currentStationId) || appState.stationRegistry[0];
 
       if (submitBtn) submitBtn.disabled = true;
       if (statusEl) statusEl.textContent = "Processing lease renewal...";
@@ -1347,34 +1409,40 @@ function renderISAClaimsLeases(building, data) {
     leasesHtml += `</div>`;
   }
 
-  // Purchase section — Mars is always the first available body
-  const hasMarsLease = leases.some((l) => l.body === "Mars");
-  const marsLeaseCost = 25000;
-  const canAffordMars = (corp?.finances?.credits || 0) >= marsLeaseCost;
-  const hasEnoughStaffForMars = currentEmployees >= requiredForNext;
+  // Purchase section — show all available bodies
+  const LEASE_BODIES = [
+    { body: "Mars", cost: 25000, description: "Grants two (2) on-surface building slots for Basic Extractor Yard construction. Primary source of silicate deposits." },
+    { body: "Luna", cost: 30000, description: "Grants two (2) on-surface building slots. Lunar regolith operations with access to Helium-3 deposits." }
+  ];
+
+  const ownedBodies = new Set(leases.map((l) => l.body));
+  const availableBodies = LEASE_BODIES.filter((b) => !ownedBodies.has(b.body));
 
   let purchaseHtml = "";
-  if (hasMarsLease) {
-    purchaseHtml = `<p class="muted">Mars extraction rights are already registered to your corporation.</p>`;
-  } else if (!hasOffice) {
+  if (!hasOffice) {
     purchaseHtml = `<p class="muted">A registered corporate office is required before the ISA will process lease applications. Visit the Orbital Executive Suites first.</p>`;
+  } else if (availableBodies.length === 0) {
+    purchaseHtml = `<p class="muted">All currently available extraction zones have been claimed by your corporation.</p>`;
   } else {
-    purchaseHtml = `
-      <div class="lease-purchase-block">
-        <h4 style="margin:0 0 0.5rem;">Mars — Silicate Extraction Lease</h4>
-        <p class="muted" style="margin-bottom:0.8rem;">Grants two (2) on-surface building slots for Basic Extractor Yard construction. Required before beginning any off-Mars extraction operations.</p>
-        <dl class="kv-list kv-list--compact" style="max-width:380px;margin-bottom:0.9rem;">
-          <dt>Lease Cost</dt><dd>${toCurrency(marsLeaseCost)} credits (one-time)</dd>
-          <dt>Employee Requirement</dt><dd>${requiredForNext} on payroll (current: ${currentEmployees})</dd>
-          <dt>Building Slots Granted</dt><dd>2 on-surface slots</dd>
-        </dl>
-        ${!hasEnoughStaffForMars ? `<p class="muted action-hint" style="color:var(--warn,#f0ad4e);">Hire at least ${requiredForNext - currentEmployees} more employee(s) before filing this application.</p>` : ""}
-        <button id="purchase-lease-btn" class="btn btn-accent" type="button" ${!hasEnoughStaffForMars || !canAffordMars ? "disabled" : ""}>
-          File Lease Application — Mars
-        </button>
-        <p id="purchase-lease-status" class="muted action-hint"></p>
-      </div>
-    `;
+    purchaseHtml = availableBodies.map((entry) => {
+      const canAfford = (corp?.finances?.credits || 0) >= entry.cost;
+      const hasEnoughStaff = currentEmployees >= requiredForNext;
+      return `
+        <div class="lease-purchase-block" style="margin-bottom:1.2rem;">
+          <h4 style="margin:0 0 0.5rem;">${escapeHtml(entry.body)} — Silicate Extraction Lease</h4>
+          <p class="muted" style="margin-bottom:0.8rem;">${escapeHtml(entry.description)}</p>
+          <dl class="kv-list kv-list--compact" style="max-width:380px;margin-bottom:0.9rem;">
+            <dt>Lease Cost</dt><dd>${toCurrency(entry.cost)} credits (one-time)</dd>
+            <dt>Employee Requirement</dt><dd>${requiredForNext} on payroll (current: ${currentEmployees})</dd>
+            <dt>Building Slots Granted</dt><dd>2 on-surface slots</dd>
+          </dl>
+          ${!hasEnoughStaff ? `<p class="muted action-hint" style="color:var(--warn,#f0ad4e);">Hire at least ${requiredForNext - currentEmployees} more employee(s) before filing this application.</p>` : ""}
+          <button class="purchase-lease-btn btn btn-accent" type="button" data-body="${escapeHtml(entry.body)}" ${!hasEnoughStaff || !canAfford ? "disabled" : ""}>
+            File Lease Application — ${escapeHtml(entry.body)}
+          </button>
+        </div>
+      `;
+    }).join("");
   }
 
   return `
@@ -1391,71 +1459,49 @@ function renderISAClaimsLeases(building, data) {
 }
 
 function bindISAClaimsLeasesActions(building, data) {
-  const purchaseBtn = document.getElementById("purchase-lease-btn");
-  if (purchaseBtn) {
-    purchaseBtn.addEventListener("click", async () => {
-      const statusEl = document.getElementById("purchase-lease-status");
-      purchaseBtn.disabled = true;
-      if (statusEl) statusEl.textContent = "Submitting lease application to ISA...";
+  const contentEl = document.getElementById("station-building-content");
+  if (!contentEl) return;
+
+  // Purchase lease buttons (one per available body)
+  contentEl.querySelectorAll(".purchase-lease-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const body = btn.getAttribute("data-body");
+      if (!body) return;
+      btn.disabled = true;
+      btn.textContent = "Submitting lease application to ISA...";
 
       try {
         if (appState.accountId) {
           const response = await apiFetch(
             `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/purchase-lease`,
             { method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ body: "Mars" }) }
+              body: JSON.stringify({ body }) }
           );
           const account = await parseJsonResponse(response);
           appState.data = deepClone(account.state);
           appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
           updateAllViews();
           showStationBuilding(building.id);
-        } else {
-          // Demo account fallback
-          const corp = appState.data.corp;
-          const cost = 25000;
-          if ((corp.finances.credits || 0) < cost) {
-            throw new Error(`Lease application requires ${toCurrency(cost)} credits.`);
-          }
-          if (!Array.isArray(corp.miningLeases)) corp.miningLeases = [];
-          const now = Date.now();
-          const leaseId = `lease-${now}-demo`;
-          corp.miningLeases.push({
-            id: leaseId,
-            body: "Mars",
-            leaseType: "Silicate Extraction",
-            issuedAt: now,
-            cost,
-            buildingSlots: 2,
-            extractorIds: []
-          });
-          corp.finances.credits -= cost;
-          corp.buildingSlots = (corp.buildingSlots || 2) + 2;
-          updateAllViews();
-          showStationBuilding(building.id);
         }
-        pushFeedback("Mars mining lease approved by the ISA.", "success");
+        pushFeedback(`${body} mining lease approved by the ISA.`, "success");
       } catch (err) {
-        purchaseBtn.disabled = false;
-        const statusEl = document.getElementById("purchase-lease-status");
-        if (statusEl) statusEl.textContent = err.message || "Lease application failed.";
+        btn.disabled = false;
+        btn.textContent = `File Lease Application — ${body}`;
+        pushFeedback(err.message || "Lease application failed.", "warn");
       }
     });
-  }
+  });
 
   // Manage buttons for each lease card
-  const contentEl = document.getElementById("station-building-content");
-  if (contentEl) {
-    contentEl.querySelectorAll(".lease-manage-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const leaseId = btn.getAttribute("data-lease-id");
-        if (leaseId) {
-          appState.stationActiveLease = leaseId;
-          renderBuildingDetail(building, appState.data || data);
-        }
-      });
+  contentEl.querySelectorAll(".lease-manage-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const leaseId = btn.getAttribute("data-lease-id");
+      if (leaseId) {
+        appState.stationActiveLease = leaseId;
+        renderBuildingDetail(building, appState.data || data);
+      }
     });
-  }
+  });
 }
 
 function renderLeaseManagement(building, lease, data) {
@@ -1749,16 +1795,133 @@ function bindLeaseManagementActions(building, lease, data) {
   });
 }
 
+// ─── Tabs allowed during travel ──────────────────────────────────────────────
+const TRAVEL_ALLOWED_TABS = new Set(["overview", "inbox", "chat", "forums", "starmap", "travel"]);
+
+function isPlayerTraveling(data) {
+  const travel = data?.corp?.travel;
+  return Boolean(travel && travel.arrivesAt);
+}
+
+function enforceTravelTabLockdown(data) {
+  const traveling = isPlayerTraveling(data);
+  const travelTabBtn = document.querySelector('.tab-btn[data-tab="travel"]');
+
+  // Show/hide the Travel tab button
+  if (travelTabBtn) travelTabBtn.hidden = !traveling;
+
+  // Enable/disable tabs
+  tabButtons.forEach((btn) => {
+    const tabId = btn.dataset.tab;
+    if (traveling && !TRAVEL_ALLOWED_TABS.has(tabId)) {
+      btn.disabled = true;
+      btn.classList.add("tab-btn--locked");
+    } else {
+      btn.disabled = false;
+      btn.classList.remove("tab-btn--locked");
+    }
+  });
+
+  // If currently on a locked tab, switch to travel
+  if (traveling) {
+    const activeTab = document.querySelector(".tab-btn.active");
+    const activeId = activeTab?.dataset?.tab;
+    if (!activeId || !TRAVEL_ALLOWED_TABS.has(activeId)) {
+      setTab("travel");
+    }
+  }
+}
+
+function renderTravelPage(data) {
+  const container = document.getElementById("travel-page");
+  if (!container) return;
+
+  const travel = data.corp?.travel;
+  if (!travel || !travel.arrivesAt) {
+    container.innerHTML = `<p class="muted">You are not currently in transit.</p>`;
+    clearTravelTimer();
+    return;
+  }
+
+  const dest = appState.stationRegistry.find((s) => s.id === travel.toStationId);
+  const from = appState.stationRegistry.find((s) => s.id === travel.fromStationId);
+  const totalMs = travel.arrivesAt - travel.departedAt;
+  const remaining = Math.max(0, travel.arrivesAt - Date.now());
+
+  container.innerHTML = `
+    <div class="travel-page-outer">
+      <div class="travel-page-card">
+        <p class="overline travel-page-overline">NAVIGATION COMPUTER</p>
+        <h2 class="travel-page-heading">In Transit</h2>
+
+        <div class="travel-route">
+          <div class="travel-route-node">
+            <span class="travel-route-label">Origin</span>
+            <span class="travel-route-station">${escapeHtml(from?.name || travel.fromStationId)}</span>
+            <span class="travel-route-body">${escapeHtml(from?.body || "—")}, ${escapeHtml(from?.systemId?.toUpperCase() || "—")}</span>
+          </div>
+          <div class="travel-route-arrow">&#10140;</div>
+          <div class="travel-route-node">
+            <span class="travel-route-label">Destination</span>
+            <span class="travel-route-station">${escapeHtml(dest?.name || travel.toStationId)}</span>
+            <span class="travel-route-body">${escapeHtml(dest?.body || "—")}, ${escapeHtml(dest?.systemId?.toUpperCase() || "—")}</span>
+          </div>
+        </div>
+
+        <div class="travel-progress-bar travel-progress-bar--large">
+          <div class="travel-progress-fill" id="travel-progress-fill"></div>
+        </div>
+        <p class="travel-eta" id="travel-eta">ETA: ${formatDuration(remaining)}</p>
+
+        <p class="muted" style="margin-top:1.5rem;font-size:0.82rem;">Station services, R&amp;D operations, and market access are suspended during transit.<br/>Comms, Inbox, Forums, and the Starmap remain available.</p>
+      </div>
+    </div>
+  `;
+
+  // Start/restart countdown timer
+  clearTravelTimer();
+  appState._travelTimer = setInterval(() => updateTravelProgress(travel), 1000);
+  updateTravelProgress(travel);
+}
+
+// ─── Travel time labels (must match server constants) ────────────────────────
+function travelTimeBetween(fromStation, toStation) {
+  if (!fromStation || !toStation) return 0;
+  if (fromStation.body === toStation.body) return 1 * 60 * 1000;
+  if (fromStation.systemId === toStation.systemId) return 1 * 60 * 1000;
+  return 2 * 60 * 60 * 1000;
+}
+
+function formatDuration(ms) {
+  const totalSec = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
 function renderStation(data) {
   const header = document.getElementById("station-location-header");
   const npcGrid = document.getElementById("station-npc-buildings");
   const playerGrid = document.getElementById("station-player-buildings");
-  if (!header || !npcGrid || !playerGrid) {
-    return;
-  }
+  const travelBanner = document.getElementById("station-travel-banner");
+  const travelDest = document.getElementById("station-travel-destinations");
+  const travelSection = document.getElementById("station-travel-section");
+  const overviewView = document.getElementById("station-overview-view");
+  if (!header || !npcGrid || !playerGrid) return;
 
-  const currentBody = data.corp?.location || "Earth";
-  const station = appState.stationRegistry.find((s) => s.body === currentBody) || appState.stationRegistry[0];
+  const corp = data.corp || {};
+  const currentStationId = corp.currentStationId || "earth-station-prime";
+  const station = appState.stationRegistry.find((s) => s.id === currentStationId) || appState.stationRegistry[0];
+
+  // Always show station content (travel lockdown handled by tab system now)
+  if (travelBanner) travelBanner.hidden = true;
+  // Only restore overview if no building detail is currently open
+  const buildingDetailView = document.getElementById("station-building-view");
+  const buildingDetailOpen = buildingDetailView && !buildingDetailView.hidden;
+  if (overviewView && !buildingDetailOpen) overviewView.hidden = false;
 
   if (!station) {
     header.innerHTML = `<h2>Station</h2><p class="muted">No station data available for your current location.</p>`;
@@ -1771,6 +1934,33 @@ function renderStation(data) {
     <p class="muted lede">${escapeHtml(station.description)}</p>
   `;
 
+  // ── Travel destinations ──
+  if (travelDest && travelSection) {
+    const otherStations = appState.stationRegistry.filter((s) => s.id !== currentStationId);
+    if (otherStations.length === 0) {
+      travelDest.innerHTML = `<p class="muted">No other stations are accessible at this time.</p>`;
+    } else {
+      travelDest.innerHTML = otherStations.map((dest) => {
+        const travelMs = travelTimeBetween(station, dest);
+        return `
+          <div class="travel-dest-card data-card" style="margin-bottom:0.75rem;padding:0.8rem 1rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+              <div>
+                <strong>${escapeHtml(dest.name)}</strong>
+                <span class="muted" style="margin-left:0.5rem;">${escapeHtml(dest.body)}, ${escapeHtml(dest.systemId.toUpperCase())}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <span class="muted" style="font-size:0.85rem;">Travel time: ${formatDuration(travelMs)}</span>
+                <button class="btn btn-outline travel-btn" data-station-id="${escapeHtml(dest.id)}">Undock &amp; Travel</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+  }
+
+  // ── Station buildings ──
   const stationBuildings = station.buildingIds
     .map((id) => appState.buildingRegistry.find((b) => b.id === id))
     .filter(Boolean);
@@ -1817,6 +2007,38 @@ function renderStation(data) {
   }
 }
 
+function clearTravelTimer() {
+  if (appState._travelTimer) {
+    clearInterval(appState._travelTimer);
+    appState._travelTimer = null;
+  }
+}
+
+function updateTravelProgress(travel) {
+  if (!travel || !travel.arrivesAt || !travel.departedAt) return;
+  const now = Date.now();
+  const total = travel.arrivesAt - travel.departedAt;
+  const elapsed = now - travel.departedAt;
+  const pct = Math.min(100, Math.max(0, (elapsed / total) * 100));
+  const remaining = Math.max(0, travel.arrivesAt - now);
+
+  const fill = document.getElementById("travel-progress-fill");
+  const eta = document.getElementById("travel-eta");
+  if (fill) fill.style.width = `${pct}%`;
+  if (eta) eta.textContent = remaining > 0 ? `ETA: ${formatDuration(remaining)}` : "Arriving...";
+
+  // If time is up, refresh from server to get the docked state
+  if (remaining <= 0) {
+    clearTravelTimer();
+    refreshFromServer().then(() => {
+      const activeTab = document.querySelector(".tab-btn.active");
+      if (activeTab?.dataset?.tab === "travel") {
+        setTab("station");
+      }
+    });
+  }
+}
+
 function bindBuildingActions() {
   document.getElementById("station-npc-buildings")?.addEventListener("click", (event) => {
     const btn = event.target.closest("[data-building-action]");
@@ -1831,6 +2053,36 @@ function bindBuildingActions() {
 
   document.getElementById("station-back-btn")?.addEventListener("click", () => {
     showStationOverview();
+  });
+
+  // Travel destination buttons (delegated)
+  document.getElementById("station-travel-destinations")?.addEventListener("click", async (event) => {
+    const btn = event.target.closest(".travel-btn");
+    if (!btn) return;
+    const toStationId = btn.dataset.stationId;
+    if (!toStationId) return;
+
+    btn.disabled = true;
+    btn.textContent = "Undocking...";
+
+    try {
+      if (appState.accountId) {
+        const response = await apiFetch(
+          `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/travel`,
+          { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ toStationId }) }
+        );
+        const account = await parseJsonResponse(response);
+        appState.data = deepClone(account.state);
+        appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+        updateAllViews();
+        setTab("travel");
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = "Undock & Travel";
+      pushFeedback(err.message || "Travel request failed.", "warn");
+    }
   });
 }
 
@@ -2743,6 +2995,8 @@ function updateAllViews() {
   updateCorpIdentity(data);
   updateOverview(data);
   updateReplayOnboardingVisibility(data);
+  enforceTravelTabLockdown(data);
+  renderTravelPage(data);
   renderStation(data);
   renderLevel2Progress(data);
   renderActionHints(data);
@@ -2761,6 +3015,7 @@ function updateAllViews() {
   renderFeedbackLog();
   updateInvestmentPanel(data);
   starmap.setSystems(data.world.systems);
+  starmap.setStations(appState.stationRegistry, data.corp?.currentStationId || "earth-station-prime");
   renderInboxMessageList();
 }
 
@@ -2882,6 +3137,10 @@ function bindLevel2Controls() {
 }
 
 function setTab(targetId) {
+  // Block navigation to locked tabs during travel
+  const traveling = isPlayerTraveling(appState.data || {});
+  if (traveling && !TRAVEL_ALLOWED_TABS.has(targetId)) return;
+
   tabButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.tab === targetId);
   });
@@ -3699,6 +3958,20 @@ function bindRealtimeEvents() {
       return;
     }
     refreshFromServer();
+  });
+
+  socket.on("travel:arrived", (payload) => {
+    if (!appState.accountId || payload?.accountId !== appState.accountId) {
+      return;
+    }
+    clearTravelTimer();
+    refreshFromServer().then(() => {
+      // Switch to station tab on arrival
+      const activeTab = document.querySelector(".tab-btn.active");
+      if (activeTab?.dataset?.tab === "travel") {
+        setTab("station");
+      }
+    });
   });
 }
 

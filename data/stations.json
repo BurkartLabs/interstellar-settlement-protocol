@@ -8,6 +8,7 @@
       "body": "Earth",
       "tier": 1,
       "officeCost": 20000,
+      "owner": "npc",
       "description": "The principal orbital installation above Earth. Houses the primary offices of the Interstellar Settlement Authority and the major regulatory institutions governing colonization, commerce, and security across the Sol system. All new corporations registered under the ISP framework maintain a mandatory operational presence here.",
       "buildingIds": [
         "orbital-executive-suites",
@@ -26,6 +27,38 @@
         "isa-enforcement-division",
         "galactic-exchange-hub",
         "intergalactic-stock-exchange"
+      ]
+    },
+    {
+      "id": "luna-gateway",
+      "name": "Luna Gateway",
+      "designation": "SOL-STATION-002",
+      "systemId": "sol",
+      "body": "Luna",
+      "tier": 1,
+      "officeCost": 15000,
+      "owner": "npc",
+      "description": "A compact orbital hub anchored above Luna's near side. Originally constructed as a waypoint for deep-space freight operations, it has since become a secondary administrative centre for Sol-based corporations seeking lower overhead and proximity to Helium-3 extraction zones.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "mars-orbital-dock",
+      "name": "Mars Orbital Dock",
+      "designation": "SOL-STATION-003",
+      "systemId": "sol",
+      "body": "Mars",
+      "tier": 1,
+      "officeCost": 18000,
+      "owner": "npc",
+      "description": "The primary docking facility in Mars orbit. Serves as the logistical backbone for all silicate mining operations on the Martian surface and a growing hub for refinery infrastructure. The ISA maintains a Claims & Leases office here for expedited lease processing.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
       ]
     }
   ]

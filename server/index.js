@@ -50,7 +50,8 @@ const RESEARCH_LIBRARY = {
     effect: "+10% raw extraction throughput",
     durationHours: 2,
     costCredits: 2000,
-    prereqs: []
+    prereqs: [],
+    tier: 1
   },
   "tt-industrial-safety": {
     id: "tt-industrial-safety",
@@ -58,15 +59,17 @@ const RESEARCH_LIBRARY = {
     effect: "-8% facility downtime risk",
     durationHours: 3,
     costCredits: 2000,
-    prereqs: ["tt-basic-extraction"]
+    prereqs: ["tt-basic-extraction"],
+    tier: 1
   },
   "tt-supply-forecast": {
     id: "tt-supply-forecast",
     name: "Supply Forecast Engine",
-    effect: "+6% logistics efficiency",
+    effect: "-6% extractor build cost, +6% mining yield",
     durationHours: 4,
     costCredits: 3000,
-    prereqs: ["tt-basic-extraction"]
+    prereqs: ["tt-basic-extraction"],
+    tier: 1
   },
   "tt-energy-routing": {
     id: "tt-energy-routing",
@@ -74,7 +77,8 @@ const RESEARCH_LIBRARY = {
     effect: "+1 advanced manufacturing lane",
     durationHours: 6,
     costCredits: 4000,
-    prereqs: ["tt-industrial-safety", "tt-supply-forecast"]
+    prereqs: ["tt-industrial-safety", "tt-supply-forecast"],
+    tier: 2
   },
   "tt-material-compression": {
     id: "tt-material-compression",
@@ -82,7 +86,8 @@ const RESEARCH_LIBRARY = {
     effect: "+8% refining throughput",
     durationHours: 9,
     costCredits: 6000,
-    prereqs: ["tt-energy-routing"]
+    prereqs: ["tt-energy-routing"],
+    tier: 2
   },
   "tt-nano-lattice": {
     id: "tt-nano-lattice",
@@ -90,7 +95,8 @@ const RESEARCH_LIBRARY = {
     effect: "Unlocks Aerogel and Quantum Insulator refinery chains",
     durationHours: 12,
     costCredits: 8000,
-    prereqs: ["tt-material-compression"]
+    prereqs: ["tt-material-compression"],
+    tier: 3
   },
   "tt-containment-physics": {
     id: "tt-containment-physics",
@@ -98,7 +104,8 @@ const RESEARCH_LIBRARY = {
     effect: "Unlocks Helium-3 refinery chain",
     durationHours: 10,
     costCredits: 8000,
-    prereqs: ["tt-energy-routing"]
+    prereqs: ["tt-energy-routing"],
+    tier: 2
   },
   "tt-exotic-energy-routing": {
     id: "tt-exotic-energy-routing",
@@ -106,7 +113,8 @@ const RESEARCH_LIBRARY = {
     effect: "Unlocks Dark-Matter Capacitor synthesis",
     durationHours: 16,
     costCredits: 12000,
-    prereqs: ["tt-containment-physics"]
+    prereqs: ["tt-containment-physics"],
+    tier: 3
   },
   "tt-fleet-coordination": {
     id: "tt-fleet-coordination",
@@ -114,9 +122,30 @@ const RESEARCH_LIBRARY = {
     effect: "+12 fleet cap",
     durationHours: 16,
     costCredits: 12000,
-    prereqs: ["tt-energy-routing"]
+    prereqs: ["tt-energy-routing"],
+    tier: 2
   }
 };
+
+const TIER_1_TECH_IDS = Object.values(RESEARCH_LIBRARY).filter((t) => t.tier === 1).map((t) => t.id);
+
+// Travel time in ms between two stations (station registry loaded after __dirname is defined)
+function getTravelTimeMs(fromId, toId) {
+  const from = STATION_REGISTRY[fromId];
+  const to = STATION_REGISTRY[toId];
+  if (!from || !to) return 0;
+
+  if (from.body === to.body) {
+    // Same body: 1 minute
+    return 1 * 60 * 1000;
+  }
+  if (from.systemId === to.systemId) {
+    // Same system, different body: 1 minute
+    return 1 * 60 * 1000;
+  }
+  // Different system: 2 hours
+  return 2 * 60 * 60 * 1000;
+}
 
 const ACCESS_TOKEN_SECONDS = 7 * 24 * 60 * 60;
 const DUMMY_ACCESS_TOKEN_SECONDS = 2 * 60 * 60; // 2 hours
@@ -215,6 +244,14 @@ function fundingRequirementMessage(actionLabel, corp, requiredCredits, extra = "
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const { version: APP_VERSION } = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
+
+// ─── Station & Travel constants ──────────────────────────────────────────────
+const STATIONS_DATA = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "stations.json"), "utf8"));
+const STATION_REGISTRY = {};
+for (const s of STATIONS_DATA.stations) {
+  STATION_REGISTRY[s.id] = s;
+}
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -313,6 +350,48 @@ function refineryTick() {
 }
 
 setInterval(refineryTick, 10_000); // Every 10 seconds
+
+// ─── Travel arrival tick ─────────────────────────────────────────────────────
+function travelTick() {
+  const now = Date.now();
+  for (const accountId of getAllAccountIds()) {
+    let arrived = false;
+    let arrivedStationId = null;
+
+    mutateAccountState(accountId, (state) => {
+      const travel = state.corp?.travel;
+      if (!travel || !travel.arrivesAt) return;
+      if (now < travel.arrivesAt) return;
+
+      // Arrive
+      const dest = STATION_REGISTRY[travel.toStationId];
+      if (dest) {
+        state.corp.currentStationId = travel.toStationId;
+        state.corp.location = dest.body;
+        arrivedStationId = travel.toStationId;
+      }
+      state.corp.travel = null;
+      arrived = true;
+    });
+
+    if (arrived && arrivedStationId) {
+      const station = STATION_REGISTRY[arrivedStationId];
+      if (station) {
+        const notification = addAccountNotification(accountId, {
+          type: "travel",
+          title: "Docking Complete",
+          body: `Your ship has arrived at ${station.name} (${station.body}, ${station.systemId.toUpperCase()}).`
+        });
+        if (notification) {
+          io.emit("notifications:new", { accountId, notification });
+        }
+        io.emit("travel:arrived", { accountId, stationId: arrivedStationId });
+      }
+    }
+  }
+}
+
+setInterval(travelTick, 5000); // Every 5 seconds
 
 function processRndCompletions() {
   const now = Date.now();
@@ -944,16 +1023,84 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
   res.json(account);
 });
 
+// ─── Travel: undock and travel to another station ────────────────────────────
+app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
+  const toStationId = String(req.body?.toStationId || "").trim();
+  if (!toStationId || !STATION_REGISTRY[toStationId]) {
+    res.status(400).json({ error: "Invalid destination station." });
+    return;
+  }
+
+  let outcome = "ok";
+  let travelInfo = null;
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+
+    if (corp.travel) {
+      outcome = "already-traveling";
+      return;
+    }
+
+    const fromStationId = corp.currentStationId || "earth-station-prime";
+    if (fromStationId === toStationId) {
+      outcome = "already-docked";
+      return;
+    }
+
+    const durationMs = getTravelTimeMs(fromStationId, toStationId);
+    const now = Date.now();
+
+    corp.travel = {
+      fromStationId,
+      toStationId,
+      departedAt: now,
+      arrivesAt: now + durationMs
+    };
+
+    travelInfo = { ...corp.travel };
+  });
+
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  if (outcome !== "ok") {
+    const messageMap = {
+      "already-traveling": "Your ship is already in transit. Wait for arrival before initiating a new course.",
+      "already-docked": "You are already docked at this station."
+    };
+    res.status(400).json({ error: messageMap[outcome] || "Travel request failed." });
+    return;
+  }
+
+  const dest = STATION_REGISTRY[toStationId];
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "travel",
+    title: "Undocking — Course Set",
+    body: `Undocking and setting course for ${dest.name} (${dest.body}, ${dest.systemId.toUpperCase()}). Estimated arrival in ${Math.round((travelInfo.arrivesAt - travelInfo.departedAt) / 60000)} minutes.`
+  });
+  if (notification) {
+    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  }
+
+  saveAccountsNow();
+  res.json(account);
+});
+
 // ─── Lease-scoped: Build an extractor yard on a specific lease ──────────────
 app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (req, res) => {
   const { leaseId } = req.params;
-  const BUILD_COST = 50000;
+  const BASE_BUILD_COST = 50000;
   const ASSET_VALUE = 36000;
   let outcome = "ok";
   let slotInfo = "";
 
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
+    const hasSupplyForecast = (corp.unlockedTech || []).includes("tt-supply-forecast");
+    const buildCost = hasSupplyForecast ? Math.round(BASE_BUILD_COST * 0.94) : BASE_BUILD_COST;
 
     if (!Array.isArray(corp.miningLeases)) corp.miningLeases = [];
     const lease = corp.miningLeases.find((l) => l.id === leaseId);
@@ -975,7 +1122,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
       return;
     }
 
-    if ((corp.finances.credits || 0) < BUILD_COST) {
+    if ((corp.finances.credits || 0) < buildCost) {
       outcome = "insufficient-credits";
       return;
     }
@@ -1005,7 +1152,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
     });
 
     lease.extractorIds.push(newExtractorId);
-    corp.finances.credits -= BUILD_COST;
+    corp.finances.credits -= buildCost;
     corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
   });
 
@@ -1020,7 +1167,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
       "no-lease": "The specified lease could not be found on your account.",
       "lease-slots-full": `This lease has used all ${slotInfo} building slots. Upgrade your lease tier or acquire an additional claim to expand capacity.`,
       "no-corp-slot": `No corporation building slots available. Current usage: ${slotInfo}. Upgrade your headquarters or release an existing building.`,
-      "insufficient-credits": fundingRequirementMessage("Basic Extractor Yard construction", corp, BUILD_COST)
+      "insufficient-credits": fundingRequirementMessage("Basic Extractor Yard construction", corp, BASE_BUILD_COST)
     };
     res.status(400).json({ error: messageMap[outcome] || "Build action failed." });
     return;
@@ -1162,7 +1309,8 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
     }
     extractorCap = Number(corp.unlocks.maxBasicExtractorYards || 1);
     currentExtractorCount = (corp.buildings || []).filter((b) => b.name === "Basic Extractor Yard").length;
-    const buildCost = 50000;
+    const hasSupplyForecast = (corp.unlockedTech || []).includes("tt-supply-forecast");
+    const buildCost = hasSupplyForecast ? Math.round(50000 * 0.94) : 50000;
 
     if (currentExtractorCount >= extractorCap) {
       outcome = "extractor-cap";
@@ -1607,6 +1755,12 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
       return;
     }
 
+    // Tier 2+ requires all Tier 1 research to be completed
+    if (tech.tier >= 2 && !TIER_1_TECH_IDS.every((id) => unlocked.has(id))) {
+      outcome = "tier-gate";
+      return;
+    }
+
     if (corp.finances.credits < tech.costCredits) {
       outcome = "insufficient-credits";
       return;
@@ -1634,7 +1788,8 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
     const messageMap = {
       "already-unlocked": `${tech.name} has already been completed.`,
       "already-queued": `${tech.name} is already in the corporate R&D queue.`,
-      "missing-prereq": `${tech.name} requires: ${tech.prereqs.join(", ")}.`,
+      "missing-prereq": `${tech.name} requires: ${tech.prereqs.map((id) => RESEARCH_LIBRARY[id]?.name || id).join(", ")}.`,
+      "tier-gate": `${tech.name} is Tier ${tech.tier} research. All Tier 1 research must be completed first.`,
       "insufficient-credits": fundingRequirementMessage(`${tech.name} queueing`, corp, tech.costCredits)
     };
     res.status(400).json({ error: messageMap[outcome] || "Unable to queue research." });
