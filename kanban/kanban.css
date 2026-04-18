@@ -1,0 +1,749 @@
+.kanban-header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 1.2em;
+}
+
+#kanban-title {
+    letter-spacing:0.2em;
+    font-size:2.7em;
+}
+
+.kanban-title-glow {
+  color: #6fffff;
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+  font-size: 3.2em;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-align: center;
+  text-shadow:
+    0 0 6px #6fffff,
+    0 0 12px #00f7ff88;
+  filter: brightness(1.25);
+  background: none;
+  -webkit-background-clip: border-box;
+  -webkit-text-fill-color: #6fffff;
+  margin: 0.2em 0 0.5em 0;
+}
+.kanban-column-footer {
+  width: 100%;
+  min-height: 2.8em;
+  background: linear-gradient(0deg, #181c24 90%, transparent 100%);
+  border-radius: 0 0 10px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 -2px 12px #00f7ff11;
+  margin-top: auto;
+  padding: 0.7em 0 0.5em 0;
+  position: relative;
+  z-index: 1;
+}
+.kanban-card.drag-over {
+  outline: 2.5px solid var(--accent);
+  box-shadow: 0 0 0 4px #00f7ff33;
+  z-index: 3;
+}
+.kanban-board-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: stretch;
+  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 0 1.2em 0;
+  background: transparent;
+  z-index: 10;
+}
+    --column-border: #00f7ff33;
+.kanban-board-btn-col {
+    --header-glow: 0 0 16px #00f7ff, 0 0 32px #00f7ff99;
+    --header-bg: transparent;
+  flex: 1 1 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.kanban-board-btn-col .kanban-add-card-btn {
+  position: static;
+  width: auto;
+  margin-top: 0.5em;
+  margin-bottom: 0;
+  z-index: 1;
+}
+.kanban-comment-delete-btn {
+  .kanban-column {
+    border-radius: 16px;
+    border: 1.5px solid var(--column-border);
+    box-shadow: 0 0 0 2px #00f7ff22, 0 2px 24px #00f7ff11;
+    padding: 0 0 0.5em 0;
+    min-width: 320px;
+    background: rgba(18,22,32,0.98);
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+    overflow: hidden;
+    position: relative;
+    margin: 0 0.7em;
+  }
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.1em;
+  padding: 2px 8px;
+  margin-left: auto;
+  cursor: pointer;
+  transition: background 0.15s;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  height: 2em;
+}
+.kanban-comment-delete-btn:hover {
+  background: #c0392b;
+}
+.kanban-modal-readonly {
+  .kanban-column-header {
+    font-size: 2.1em;
+    font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.2em;
+    margin-top: 0.7em;
+    padding: 0.2em 0 0.2em 0;
+    color: var(--accent);
+    background: var(--header-bg);
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    text-shadow: var(--header-glow);
+    text-align: center;
+    position: relative;
+    z-index: 2;
+  }
+  background: #181c24;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  padding: 8px 10px;
+  color: var(--text-main);
+  font-size: 1em;
+  margin-bottom: 0.5em;
+  min-height: 2.2em;
+  word-break: break-word;
+}
+.kanban-modal-comments-scroll {
+  .kanban-card {
+    background: #23283a;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    padding: 12px 18px 10px 18px;
+    box-shadow: 0 2px 12px #00f7ff22, 0 1.5px 8px #000a;
+    border: 1.5px solid #00f7ff44;
+    cursor: grab;
+    transition: box-shadow 0.2s, border 0.2s;
+    color: var(--text-main);
+  }
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 18px 18px 8px 18px;
+  margin-bottom: 0.5em;
+  background: transparent;
+  border: none;
+  font-size: 1.08em;
+  min-height: 0;
+  .kanban-card-title {
+    font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+    font-weight: 700;
+    margin-bottom: 2px;
+    color: var(--accent);
+    font-size: 1.18em;
+    text-shadow: 0 0 8px #00f7ff99;
+  }
+  max-height: none;
+}
+.kanban-modal-add-comment-row {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  padding: 0 18px 0 18px;
+  margin-bottom: 0.5em;
+}
+.kanban-modal-add-comment-row input[type="text"] {
+  flex: 1 1 auto;
+  padding: 0.5em 0.7em;
+  border-radius: 6px;
+  border: 1.2px solid var(--accent);
+  background: #10131b;
+  color: var(--text-main);
+  .kanban-card-desc {
+    font-size: 1em;
+    margin-bottom: 6px;
+    color: #b6c2e0;
+    font-family: 'Rajdhani', 'Segoe UI', Arial, sans-serif;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 3.4em;
+    line-height: 1.28em;
+    white-space: normal;
+    padding-bottom: 2px;
+  }
+  font-size: 1em;
+  font-family: inherit;
+}
+.kanban-modal-add-comment-row button {
+  background: var(--accent);
+  color: #10131b;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5em 1.1em;
+  font-size: 1em;
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 8px #00f7ff22;
+  transition: background 0.15s;
+  .kanban-column-footer {
+    width: 100%;
+    min-height: 3.2em;
+    background: transparent;
+    border-radius: 0 0 16px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+    margin-top: auto;
+    padding: 1.1em 0 1.1em 0;
+    position: relative;
+    z-index: 1;
+  }
+}
+.kanban-modal-add-comment-row button:hover {
+  background: #00e0e0;
+}
+.kanban-modal-btn-row-bottom {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 0 0 0.5em 0;
+  margin: 0;
+  z-index: 2;
+  flex: 0 0 auto;
+}
+.kanban-modal-content {
+  display: block !important;
+  position: relative;
+  min-width: 60vw;
+  max-width: 120vw;
+  background: var(--card-bg);
+  .kanban-add-card-btn {
+    background: var(--accent);
+    color: #10131b;
+    border: none;
+    border-radius: 10px;
+    padding: 0.9em 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    width: 92%;
+    cursor: pointer;
+    font-size: 1.18em;
+    font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    box-shadow: 0 0 16px #00f7ff, 0 2px 16px #00f7ff33;
+    border: 2.5px solid #00f7ff;
+    background: linear-gradient(90deg, #00f7ff 0%, #00b6d6 100%);
+    text-shadow: 0 0 8px #00f7ff99;
+    transition: background 0.18s, color 0.18s, border 0.18s, box-shadow 0.18s;
+  }
+  .kanban-add-card-btn:hover {
+    background: #00b6d6;
+    color: #fff;
+    box-shadow: 0 0 32px #00f7ff, 0 2px 24px #00f7ff55;
+    border-color: #00f7ff;
+  }
+  border-radius: 18px;
+  box-shadow: 0 8px 48px #00f7ff55, 0 1.5px 8px #000a;
+  padding: 40px 36px 32px 36px;
+  max-height: 66vh;
+  color: var(--text-main);
+  margin: 0 auto;
+  gap: 2.5em;
+}
+.kanban-modal-left {
+  float: left;
+  width: 56%;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  gap: 1.2em;
+  height: 100%;
+}
+.kanban-modal-left .kanban-modal-left-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2em;
+  height:66vh;
+}
+.kanban-modal-right {
+  float: right;
+  width: 41%;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  background: #181c24;
+  border-radius: 12px;
+  border: 1px solid var(--accent);
+  padding: 0 0 0.5em 0;
+  height: 66vh;
+  margin-left: 2em;
+}
+.kanban-modal-comments-scroll .kanban-comment {
+  background: #23283a;
+  border-radius: 6px;
+  border: 1px solid #2a2f40;
+  margin-bottom: 12px;
+  padding: 10px 16px 10px 16px;
+  color: var(--text-main);
+  font-size: 1.08em;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+}
+.kanban-modal-comments-scroll .kanban-comment:last-child {
+  margin-bottom: 0;
+}
+.kanban-modal-content button#kanban-delete-card-btn {
+  background: #e74c3c !important;
+  color: #fff !important;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6em 1.2em;
+  font-size: 1.08em;
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 8px #e74c3c33;
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+}
+.kanban-modal-content button#kanban-delete-card-btn:hover {
+  background: #c0392b;
+  color: #fff;
+}
+.kanban-card {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  transition: box-shadow 0.2s, border 0.2s;
+  height: 100px;
+  box-sizing: border-box;
+  overflow: visible;
+  padding-bottom: 2px;
+}
+.kanban-card-hover-right {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.18s;
+  z-index: 2;
+}
+.kanban-card-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.kanban-card-edit-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 1.3em;
+  cursor: pointer;
+  padding: 0 8px;
+  opacity: 0.85;
+  transition: color 0.15s;
+}
+.kanban-card-edit-btn:hover {
+  color: #fff;
+}
+.kanban-edit-icon {
+  font-family: inherit;
+  pointer-events: none;
+}
+.kanban-card:hover .kanban-card-hover-right {
+  opacity: 1;
+}
+.kanban-card:hover {
+  box-shadow: 0 4px 24px #00f7ff55;
+  border: 2px solid var(--accent);
+}
+/* Kanban Modal Styles */
+.kanban-modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(10, 18, 32, 0.72);
+  z-index: 1000;
+  display: none;
+}
+.kanban-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1010;
+}
+.kanban-modal-content {
+  display: none;
+  background: var(--card-bg);
+  border-radius: 18px;
+  box-shadow: 0 8px 48px #00f7ff55, 0 1.5px 8px #000a;
+  padding: 40px 36px 32px 36px;
+  width: 50em;
+  max-height: 88vh;
+  overflow-y: auto;
+  color: var(--text-main);
+  position: relative;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 1.2rem;
+  transition: box-shadow 0.18s, transform 0.18s;
+}
+.kanban-modal:not([hidden]) .kanban-modal-content {
+  display: flex;
+  animation: kanbanModalIn 0.18s cubic-bezier(.4,1.4,.6,1) both;
+}
+
+@keyframes kanbanModalIn {
+  0% {
+    opacity: 0;
+    transform: translateY(32px) scale(0.98);
+    box-shadow: 0 2px 12px #00f7ff22, 0 1.5px 8px #000a;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow: 0 8px 48px #00f7ff55, 0 1.5px 8px #000a;
+  }
+}
+
+@media (max-width: 600px) {
+  .kanban-modal-content {
+    max-width: 98vw;
+    padding: 22px 8px 18px 8px;
+    border-radius: 12px;
+  }
+}
+
+.kanban-modal:not([hidden]) .kanban-modal-content {
+  display: flex;
+}
+.kanban-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 2.1em;
+  cursor: pointer;
+  z-index: 1020;
+}
+.kanban-modal-content label {
+  display: block;
+  margin-top: 1.2em;
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+  font-size: 1.08em;
+  color: var(--accent);
+}
+.kanban-modal-content input,
+.kanban-modal-content textarea {
+  width: 100%;
+  margin-top: 0.3em;
+  margin-bottom: 0.8em;
+  padding: 0.5em 0.7em;
+  border-radius: 6px;
+  border: 1.2px solid var(--accent);
+  background: #10131b;
+  color: var(--text-main);
+  font-size: 1em;
+  font-family: inherit;
+  resize: vertical;
+}
+.kanban-modal:not([hidden]) {
+  display: flex;
+}
+.kanban-modal-content button[type="submit"] {
+  background: var(--accent);
+  color: #10131b;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6em 1.2em;
+  font-size: 1.08em;
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+  font-weight: 700;
+  margin-top: 1em;
+  cursor: pointer;
+  box-shadow: 0 1px 8px #00f7ff22;
+  transition: background 0.15s;
+}
+.kanban-modal-content button[type="submit"]:hover {
+  background: #00e0e0;
+}
+/* ISP Kanban Board Styles - matches game UI */
+
+body {
+  background: rgba(5, 5, 15, 0.86);
+  color: var(--accent, #00f7ff);
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#kanban-app {
+  background: rgba(5, 5, 15, 0.86);
+  color: var(--accent, #00f7ff);
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  margin: 0;
+  padding: 40px 32px 32px 32px;
+  display: flex;
+  gap: 24px;
+}
+
+:root {
+  --accent: #00f7ff;
+  --header-bg: #10131b;
+  --header-border: #00f7ff44;
+  --card-bg: #181c24;
+  --card-shadow: 0 2px 8px #00f7ff22;
+  --column-bg: #23283a;
+  --column-border: #00f7ff33;
+  --muted-amber: #ffb547;
+  --text-main: #e0e6ef;
+}
+
+.app-header {
+  background: var(--header-bg);
+  border-bottom: 2px solid var(--header-border);
+  padding: 18px 32px 10px 32px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  box-shadow: 0 2px 12px #00f7ff11;
+}
+.app-header .overline {
+  font-size: 0.95em;
+  letter-spacing: 0.12em;
+  color: var(--muted-amber);
+  opacity: 0.92;
+  margin: 0 0 2px 0;
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+}
+.app-header h1 {
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+  font-size: 2.1em;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+#kanban-app {
+  display: flex;
+  gap: 24px;
+  padding: 40px 32px 32px 32px;
+  min-height: 90vh;
+}
+.kanban-column {
+  border-radius: 10px;
+  border: 1.5px solid var(--column-border);
+  box-shadow: var(--card-shadow);
+  padding: 16px;
+  min-width: 280px;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.kanban-card-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+.kanban-column-header {
+  font-size: 1.28em;
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+  padding: 0.5em 0 0.5em 0;
+  color: var(--accent);
+  background: linear-gradient(90deg, #00f7ff22 0%, #23283a 100%);
+  border-radius: 8px 8px 0 0;
+  border-bottom: 2.5px solid var(--accent);
+  box-shadow: 0 2px 12px #00f7ff22, 0 1.5px 8px #000a;
+  text-shadow: 0 2px 12px #00f7ff66, 0 1px 8px #00f7ff33;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+.kanban-card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  padding: 12px;
+  box-shadow: 0 1px 8px #00f7ff22;
+  border: 1.2px solid var(--accent);
+  cursor: grab;
+  transition: box-shadow 0.2s, border 0.2s;
+}
+.kanban-card.dragging {
+  opacity: 0.7;
+  box-shadow: 0 4px 24px #00f7ff55;
+  border: 2px solid var(--accent);
+}
+.kanban-add-card-btn {
+  background: var(--accent);
+  color: #10131b;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  margin-top: 8px;
+  cursor: pointer;
+  font-size: 1em;
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  box-shadow: 0 1px 8px #00f7ff33;
+  transition: background 0.2s, color 0.2s;
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 2;
+  margin-bottom: 0;
+}
+.kanban-add-card-btn:hover {
+  background: #00b6d6;
+  color: #fff;
+}
+.kanban-card-title {
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-size: 1.08em;
+}
+.kanban-card-desc {
+  font-size: 1em;
+  margin-bottom: 10px;
+  color: #b6c2e0;
+  font-family: 'Rajdhani', 'Segoe UI', Arial, sans-serif;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 3.4em;
+  line-height: 1.28em;
+  white-space: normal;
+  padding-bottom: 3px;
+}
+.kanban-card-comments {
+  margin-top: 8px;
+  padding-left: 8px;
+  border-left: 2px solid var(--accent);
+}
+.kanban-column {
+  border-radius: 10px;
+  padding: 18px 10px 24px 10px;
+  margin: 0 8px;
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 12px #00f7ff11;
+}
+
+.kanban-board {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  width: 100%;
+  justify-content: stretch;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .kanban-column {
+    padding: 12px 2px 16px 2px;
+    margin: 0 2px;
+  }
+}
+.kanban-move-btn:hover {
+  background: var(--accent);
+  color: #10131b;
+}
+.kanban-add-comment {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.kanban-add-comment input {
+  flex: 1;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--accent);
+  background: var(--header-bg);
+  color: var(--accent);
+  font-family: 'Rajdhani', 'Segoe UI', Arial, sans-serif;
+}
+.kanban-add-comment button {
+  background: var(--accent);
+  color: #10131b;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 0.95em;
+  font-family: "Orbitron", 'Segoe UI', Arial, sans-serif;
+  font-weight: 600;
+}
+.kanban-add-comment button:hover {
+  background: #00b6d6;
+  color: #fff;
+}

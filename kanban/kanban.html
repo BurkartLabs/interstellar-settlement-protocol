@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ISP Kanban Board</title>
+  <link rel="stylesheet" href="/kanban/kanban.css">
+</head>
+  <body>
+    <header class="app-header">
+      <div class="kanban-header-center">
+        <p class="overline" id="app-version-line">
+          Interstellar Settlement Protocol, est. 2147 <span id="kanban-version" class="version"></span>
+        </p>
+        <h1 id="kanban-title" class="kanban-title-glow">Kanban Board</h1>
+      </div>
+    </header>
+    <div id="kanban-app"></div>
+      <div id="kanban-board-buttons" class="kanban-board-buttons"></div>
+
+    <!-- Kanban Modals -->
+    <div id="kanban-modal-backdrop" class="kanban-modal-backdrop" hidden></div>
+    <div id="kanban-modal" class="kanban-modal" hidden>
+      <div class="kanban-modal-content">
+        <button class="kanban-modal-close" id="kanban-modal-close">&times;</button>
+        <div id="kanban-modal-body"></div>
+      </div>
+    </div>
+    <script>
+      // Fetch version from /package.json or hardcode for now
+      fetch('/package.json').then(r => r.json()).then(pkg => {
+        document.getElementById('kanban-version').textContent = 'v' + (pkg.version || '0.1.0');
+      }).catch(() => {
+        document.getElementById('kanban-version').textContent = 'v0.1.0';
+      });
+    </script>
+    <script src="/kanban/kanban.js"></script>
+  </body>
+</html>

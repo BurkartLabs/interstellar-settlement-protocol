@@ -1,0 +1,233 @@
+{
+  "columns": [
+    {
+      "id": "todo",
+      "name": "To Do",
+      "cards": [
+        {
+          "id": "card-1776497108594-858754",
+          "title": "Mission Agents",
+          "description": "Implement the first mission agent, Logistics Agent Elara Voss ",
+          "comments": []
+        },
+        {
+          "id": "card-1776497465819-237552",
+          "title": "R&D Tree",
+          "description": "Finish implementation of Tier 1 and Tier 2 research",
+          "comments": []
+        },
+        {
+          "id": "card-1776497495441-475409",
+          "title": "Employee Management",
+          "description": "We should be able to manage our employees more closely, rather than just having them be a simple resource which certain gated unlocks require the player to meet certain thresholds of.\n\nFor example, we should be able to assign employees to specific positions. Initially, the only thing that employees can work on is managing extractor yards.\n\nEach Extractor Yard should have a manpower requirement (e.g 3 employees) which if not met will result in a production penalty. Each extractor yard will also h",
+          "comments": []
+        },
+        {
+          "id": "card-1776497701197-598632",
+          "title": "Resource Refinery",
+          "description": "Add the ability to refine resources into tier 1 manufactured goods",
+          "comments": []
+        },
+        {
+          "id": "card-1776498010969-496254",
+          "title": "Asteroid Mining",
+          "description": "Add the ability for players to launch mining operations targeting local asteroid belts",
+          "comments": []
+        },
+        {
+          "id": "card-1776498090679-494061",
+          "title": "Week 1 Gameplay Overview",
+          "description": "Analyze the first week of gameplay from the player's perspective",
+          "comments": []
+        },
+        {
+          "id": "card-1776498381252-523173",
+          "title": "Skill System",
+          "description": "Implement a Basic Player Skill System",
+          "comments": []
+        },
+        {
+          "id": "card-1776498391318-361955",
+          "title": "Character Customization",
+          "description": "Explore Character Customization options",
+          "comments": []
+        },
+        {
+          "id": "card-1776498422466-951260",
+          "title": "Player Profiles",
+          "description": "Add the ability to look at other player's profiles",
+          "comments": [
+            "<b>Paul:</b> test"
+          ]
+        },
+        {
+          "id": "card-1776501303271-347029",
+          "title": "Organization Charts",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501309437-442674",
+          "title": "Testing Automation",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501314753-388543",
+          "title": "Building Upgrades",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501322251-906734",
+          "title": "Orbital Shipyard",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501328637-722219",
+          "title": "Level 1-40 Milestones",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501332673-492068",
+          "title": "Loan System",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501341741-21726",
+          "title": "Corporation Investing",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501348977-877250",
+          "title": "Financial Core Realtime Data",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501357142-516185",
+          "title": "Expand Starmap to 20+ Systems",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501368969-793745",
+          "title": "Unit Development (Attack, Defense, Logistics, Diplomacy, etc)",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501379197-260044",
+          "title": "Rats",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501383633-236787",
+          "title": "Forums",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501387129-746769",
+          "title": "PvP",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501392045-995487",
+          "title": "Mercenaries",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501404389-442999",
+          "title": "Station Management",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501421295-772791",
+          "title": "CEO Focus Functionality",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501426282-914612",
+          "title": "Conglomerates",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501431997-440291",
+          "title": "Corporation Warfare",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501437273-926866",
+          "title": "UI Overhaul",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501443529-501074",
+          "title": "Employee Morale",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501449867-843999",
+          "title": "Galactic Exchange Events",
+          "description": "",
+          "comments": []
+        },
+        {
+          "id": "card-1776501461421-304109",
+          "title": "Middle Managers",
+          "description": "Middle Managers will allow the CEO to delegate management of employees to an autonomous manager which will determine how best to dedicate human resources. This has the benefit of reducing the amount of direct management the CEO has to do of their workforce.",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "id": "doing",
+      "name": "Doing",
+      "cards": [
+        {
+          "id": "card-1776501399013-433948",
+          "title": "Off-world Mining",
+          "description": "",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "id": "qa",
+      "name": "QA",
+      "cards": [
+        {
+          "id": "card-1776500931386-469884",
+          "title": "Create Vercel Project w/ Supabase Integration",
+          "description": "Upload the project to vercel and configure a supabase integration so we can test this application in a persistent environment",
+          "comments": []
+        },
+        {
+          "id": "card-1776500940898-961858",
+          "title": "CEO Insigh Program",
+          "description": "The CEO Insight Program, similar to Corporate R&D, is a research program which unlocks various benefits. However, unlike the Corporate R&D program, these benefits apply specifically to the “CEO”. Benefits like bonuses to mining rates, research time, employee morale, etc. Certain options under the CEO Insight Program will provide temporary benefits, rather than permanent bonuses.",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "id": "done",
+      "name": "Done",
+      "cards": []
+    }
+  ]
+}

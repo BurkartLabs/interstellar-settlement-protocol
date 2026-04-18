@@ -1,4 +1,5 @@
 import express from "express";
+import kanbanRouter from "./kanban.js";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -293,6 +294,15 @@ if (process.env.VERCEL) {
 }
 
 app.use(express.static(path.join(__dirname, "..", "public")));
+// Serve /kanban as the Kanban board root, defaulting to kanban.html
+app.use("/kanban", (req, res, next) => {
+  if (req.path === "/" || req.path === "") {
+    res.sendFile(path.join(__dirname, "..", "kanban", "kanban.html"));
+  } else {
+    express.static(path.join(__dirname, "..", "kanban"))(req, res, next);
+  }
+});
+app.use("/kanban", kanbanRouter);
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
 function getESTDateString() {
