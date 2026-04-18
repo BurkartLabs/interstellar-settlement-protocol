@@ -244,6 +244,7 @@ function createCardElement(card, colId, colIdx, state, render) {
 function renderKanban(state) {
   const app = document.getElementById('kanban-app');
   app.innerHTML = '';
+  const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   state.columns.forEach((col, colIdx) => {
     const colDiv = document.createElement('div');
     colDiv.className = 'kanban-column';
@@ -255,35 +256,37 @@ function renderKanban(state) {
       cardList.appendChild(createCardElement(card, col.id, colIdx, state, () => renderKanban(state)));
     });
     colDiv.appendChild(cardList);
-    // Add card
-    const addBtn = document.createElement('button');
-    addBtn.className = 'kanban-add-card-btn';
-    addBtn.textContent = '+ Add Card';
-    addBtn.onclick = () => {
-      const closeModal = showKanbanModal(`
-        <h2>Add Card</h2>
-        <form id="kanban-add-card-form">
-          <label>Title
-            <input name="title" required maxlength="100" />
-          </label>
-          <label>Description
-            <textarea name="description" rows="3" maxlength="500"></textarea>
-          </label>
-          <button type="submit">Add Card</button>
-        </form>
-      `, null);
-      document.getElementById('kanban-add-card-form').onsubmit = function(ev) {
-        ev.preventDefault();
-        const title = this.title.value.trim();
-        if (title) {
-          const description = this.description.value.trim();
-          const id = 'card-' + Date.now() + '-' + Math.floor(Math.random()*1000000);
-          col.cards.push({ id, title, description, comments: [] });
-          saveState(state).then(() => { closeModal(); renderKanban(state); });
-        }
+    // Add card (only on localhost)
+    if (isLocalhost) {
+      const addBtn = document.createElement('button');
+      addBtn.className = 'kanban-add-card-btn';
+      addBtn.textContent = '+ Add Card';
+      addBtn.onclick = () => {
+        const closeModal = showKanbanModal(`
+          <h2>Add Card</h2>
+          <form id="kanban-add-card-form">
+            <label>Title
+              <input name="title" required maxlength="100" />
+            </label>
+            <label>Description
+              <textarea name="description" rows="3" maxlength="500"></textarea>
+            </label>
+            <button type="submit">Add Card</button>
+          </form>
+        `, null);
+        document.getElementById('kanban-add-card-form').onsubmit = function(ev) {
+          ev.preventDefault();
+          const title = this.title.value.trim();
+          if (title) {
+            const description = this.description.value.trim();
+            const id = 'card-' + Date.now() + '-' + Math.floor(Math.random()*1000000);
+            col.cards.push({ id, title, description, comments: [] });
+            saveState(state).then(() => { closeModal(); renderKanban(state); });
+          }
+        };
       };
-    };
-    colDiv.appendChild(addBtn);
+      colDiv.appendChild(addBtn);
+    }
     // Drag & drop target
     cardList.ondragover = e => e.preventDefault();
     cardList.ondrop = e => {
