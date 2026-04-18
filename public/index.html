@@ -302,7 +302,7 @@
             <button class="tab-btn" data-tab="logistics">Logistics</button>
             <button class="tab-btn" data-tab="chat">Comms</button>
             <button class="tab-btn" data-tab="forums">Forums</button>
-            <button class="tab-btn" data-tab="missions">Missions</button>
+            <button class="tab-btn" data-tab="missions">Assignments</button>
             <button class="tab-btn" data-tab="combat">Combat Reports</button>
             <button class="tab-btn" data-tab="starmap">Starmap</button>
           </nav>
@@ -652,35 +652,95 @@
           </article>
 
           <article id="missions" class="tab-panel">
-            <!-- Board view: available + active missions -->
+            <!-- Bureau hub: list of mission agents -->
             <div id="missions-board-view">
-              <h2>Mission Board</h2>
-              <p class="muted lede">Available field operations and intelligence contracts. Click a mission to view the full briefing and accept it.</p>
-              <div id="mission-list" class="card-grid"></div>
+              <h2>ISA Contracting &amp; Assignments Bureau</h2>
+              <p class="muted lede">Registered mission agents maintain offices within this bureau. Select an agent to enter their office and review available contracts.</p>
+              <div id="agent-list" class="card-grid"></div>
               <section class="form-card" id="active-missions-section">
-                <h3>Active Operations</h3>
-                <p id="active-missions-empty" class="muted">No active operations. Accept a mission from the board above.</p>
+                <h3>Active Contracts</h3>
+                <p id="active-missions-empty" class="muted">No active contracts. Visit an agent's office to accept assignments.</p>
                 <div id="active-mission-list" class="card-grid"></div>
               </section>
-            </div>
-            <!-- Detail view: single mission briefing -->
-            <div id="mission-detail-view" hidden>
-              <button id="mission-back-btn" class="btn btn-outline" type="button">&#8592; Back to Mission Board</button>
-              <div class="mission-detail-layout">
-                <div class="mission-img-placeholder">
-                  <span>MISSION<br/>BRIEFING</span>
+              <section class="form-card mission-log-section" id="completed-missions-section" hidden>
+                <div class="mission-log-header">
+                  <h3>Mission Log</h3>
+                  <span class="mission-log-count" id="mission-log-count"></span>
                 </div>
-                <div class="mission-detail-content">
-                  <p class="overline" id="mission-detail-type"></p>
-                  <h2 id="mission-detail-title"></h2>
-                  <p id="mission-detail-reward" class="muted"></p>
-                  <p id="mission-detail-text"></p>
-                  <p id="mission-detail-risk" class="muted"></p>
-                  <div class="choice-row mission-detail-actions">
-                    <button id="mission-accept-btn" class="btn btn-accent btn-command" type="button">Accept Mission</button>
+                <div class="mission-log-list" id="completed-mission-log"></div>
+              </section>
+            </div>
+
+            <!-- Agent office view -->
+            <div id="agent-office-view" hidden>
+              <button id="agent-back-btn" class="btn btn-outline" type="button">&#8592; Back to Assignments Bureau</button>
+              <div class="agent-office-layout">
+                <div class="agent-portrait-section">
+                  <img id="agent-portrait" class="agent-portrait" src="" alt="" />
+                  <div class="agent-nameplate">
+                    <p class="agent-title overline" id="agent-title"></p>
+                    <h2 id="agent-name"></h2>
                   </div>
+                  <div class="agent-reputation-section" id="agent-reputation"></div>
+                </div>
+                <div class="agent-info-section">
+                  <div class="agent-bio form-card" id="agent-bio"></div>
+                  <div class="agent-dialogue form-card" id="agent-dialogue"></div>
+                  <div class="agent-missions-section">
+                    <h3>Available Contracts</h3>
+                    <p class="muted" id="agent-missions-empty">No contracts currently available from this agent.</p>
+                    <div id="agent-mission-list" class="card-grid"></div>
+                    <p class="contract-refresh-timer muted" id="contract-refresh-timer" hidden></p>
+                  </div>
+                  <div class="agent-completed-section form-card" id="agent-completed-missions" hidden></div>
                 </div>
               </div>
+            </div>
+
+            <!-- Mission detail modal (rendered dynamically) -->
+            <div id="mission-detail-modal" class="mission-modal-backdrop" hidden>
+              <article class="mission-modal-card">
+                <button id="mission-modal-close" class="mission-modal-close" type="button" aria-label="Close">&times;</button>
+                <div class="mission-modal-header">
+                  <div class="mission-modal-img-placeholder">
+                    <span>CONTRACT<br/>BRIEFING</span>
+                  </div>
+                  <div class="mission-modal-meta">
+                    <p class="overline" id="mission-detail-type"></p>
+                    <h2 id="mission-detail-title"></h2>
+                    <div class="mission-modal-badges">
+                      <span id="mission-detail-risk-badge" class="mission-card-risk"></span>
+                      <span id="mission-detail-reward-badge" class="mission-modal-reward-badge"></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="mission-modal-body">
+                  <div class="mission-modal-section">
+                    <h4>Briefing</h4>
+                    <p id="mission-detail-text"></p>
+                  </div>
+                  <div id="mission-quota-section" class="mission-modal-section" hidden>
+                    <h4>Quota Progress</h4>
+                    <div class="mission-quota-info">
+                      <div class="mission-quota-bar-container">
+                        <div id="mission-quota-bar" class="mission-quota-bar"></div>
+                      </div>
+                      <p id="mission-quota-text" class="mission-quota-text"></p>
+                    </div>
+                  </div>
+                  <div id="mission-location-section" class="mission-modal-section" hidden>
+                    <div id="mission-location-warning" class="mission-location-warning"></div>
+                  </div>
+                  <div class="mission-modal-section">
+                    <h4>Intelligence</h4>
+                    <p id="mission-detail-risk" class="muted"></p>
+                  </div>
+                </div>
+                <div class="mission-modal-actions">
+                  <button id="mission-accept-btn" class="btn btn-accent btn-command" type="button">Accept Contract</button>
+                  <button id="mission-complete-btn" class="btn btn-accent btn-command" type="button" hidden>Complete Contract</button>
+                </div>
+              </article>
             </div>
           </article>
 

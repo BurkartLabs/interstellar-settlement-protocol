@@ -3120,26 +3120,81 @@ textarea {
   background: rgba(7, 24, 37, 0.7);
 }
 
-/* ─── Mission detail ─────────────────────────────────────── */
-#mission-detail-view {
-  padding-top: 0.2rem;
-}
-
-#mission-back-btn {
-  margin-bottom: 1.2rem;
-}
-
-.mission-detail-layout {
+/* ─── Mission detail modal ───────────────────────────────── */
+.mission-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(3, 8, 16, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: grid;
-  grid-template-columns: min(280px, 36%) 1fr;
-  gap: 1.8rem;
-  align-items: start;
+  place-items: center;
+  padding: 1rem;
+  animation: modalFadeIn 0.2s ease;
 }
 
-.mission-img-placeholder {
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.mission-modal-card {
+  position: relative;
+  width: min(640px, 94vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid rgba(0, 247, 255, 0.25);
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(0, 247, 255, 0.04), transparent 60%),
+    rgba(8, 24, 38, 0.97);
+  padding: 0;
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.55), 0 0 1px rgba(0, 247, 255, 0.2);
+  animation: modalSlideIn 0.25s ease;
+}
+
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.mission-modal-close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.75rem;
+  z-index: 2;
+  background: rgba(8, 24, 38, 0.7);
+  border: 1px solid rgba(0, 247, 255, 0.18);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.mission-modal-close:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.mission-modal-header {
+  display: flex;
+  gap: 1.4rem;
+  padding: 1.4rem 1.6rem 0;
+  align-items: flex-start;
+}
+
+.mission-modal-img-placeholder {
+  flex-shrink: 0;
+  width: 120px;
+  aspect-ratio: 1;
   border: 1px solid rgba(0, 247, 255, 0.22);
   border-radius: 12px;
-  aspect-ratio: 4 / 3;
   background:
     radial-gradient(circle at 32% 40%, rgba(0, 247, 255, 0.1), transparent 52%),
     radial-gradient(circle at 70% 72%, rgba(255, 170, 51, 0.07), transparent 42%),
@@ -3149,37 +3204,856 @@ textarea {
   justify-content: center;
   text-align: center;
   font-family: "Orbitron", "Inter", sans-serif;
-  font-size: 0.68rem;
+  font-size: 0.55rem;
   letter-spacing: 0.18em;
   color: rgba(0, 247, 255, 0.32);
   text-transform: uppercase;
   line-height: 1.8;
-  position: relative;
+}
+
+.mission-modal-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.mission-modal-meta .overline {
+  margin-bottom: 0.3rem;
+}
+
+.mission-modal-meta h2 {
+  font-size: 1.15rem;
+  margin-bottom: 0.6rem;
+  line-height: 1.35;
+}
+
+.mission-modal-badges {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.mission-modal-reward-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted-amber);
+  padding: 0.15rem 0.6rem;
+  border: 1px solid rgba(255, 170, 51, 0.25);
+  border-radius: 6px;
+  background: rgba(255, 170, 51, 0.08);
+  letter-spacing: 0.04em;
+}
+
+.mission-modal-body {
+  padding: 1.2rem 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mission-modal-section h4 {
+  font-family: "Orbitron", "Inter", sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.4rem;
+  opacity: 0.7;
+}
+
+.mission-modal-section p {
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.mission-modal-section .muted {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.mission-modal-actions {
+  padding: 0 1.6rem 1.4rem;
+  display: flex;
+  gap: 0.8rem;
+  justify-content: flex-end;
+}
+
+/* ─── Mission quota bar ──────────────────────────────────── */
+.mission-quota-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.mission-quota-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 247, 255, 0.08);
+  border-radius: 4px;
   overflow: hidden;
+  border: 1px solid rgba(0, 247, 255, 0.12);
 }
 
-.mission-img-placeholder::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(0, 247, 255, 0.08);
+.mission-quota-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+  opacity: 0.7;
 }
 
-.mission-detail-content h2 {
-  margin-bottom: 0.55rem;
+.mission-quota-bar.quota-fulfilled {
+  background: var(--success, #22c55e);
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
 }
 
-.mission-detail-content p + p {
-  margin-top: 0.65rem;
+.mission-quota-text {
+  font-size: 0.82rem;
+  color: var(--muted);
 }
 
-.mission-detail-actions {
-  margin-top: 1.3rem;
+.mission-quota-text strong {
+  color: var(--text);
+}
+
+/* ─── Mission location tags ──────────────────────────────── */
+.mission-location-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.12rem 0.5rem;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.mission-location-local {
+  color: var(--success, #22c55e);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.mission-location-remote {
+  color: var(--muted-amber);
+  border: 1px solid rgba(255, 170, 51, 0.25);
+  background: rgba(255, 170, 51, 0.08);
+}
+
+.mission-location-warning {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--muted-amber);
+  padding: 0.6rem 0.8rem;
+  border: 1px solid rgba(255, 170, 51, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 170, 51, 0.05);
+}
+
+.mission-location-warning strong {
+  color: var(--text);
 }
 
 #active-missions-section {
   margin-top: 1.6rem;
+}
+
+/* ─── Agent card (bureau hub) ────────────────────────────── */
+.agent-card {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 30em;
+}
+
+.agent-card:hover,
+.agent-card:focus-visible {
+  border-color: rgba(0, 247, 255, 0.45);
+  box-shadow: 0 0 16px rgba(0, 247, 255, 0.08);
+}
+
+.agent-card-inner {
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
+}
+
+.agent-card-thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(0, 247, 255, 0.25);
+  flex-shrink: 0;
+}
+
+.agent-card-info .overline {
+  margin-bottom: 0.15rem;
+}
+
+.agent-card-info h3 {
+  margin-bottom: 0.2rem;
+}
+
+/* ─── Agent office view ──────────────────────────────────── */
+#agent-office-view {
+  max-width: 50vw;
+}
+
+#agent-back-btn {
+  margin-bottom: 1.2rem;
+}
+
+.agent-office-layout {
+  display: grid;
+  grid-template-columns: min(300px, 36%) 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.agent-portrait-section {
+  text-align: center;
+}
+
+.agent-portrait {
+  width: 100%;
+  max-width: 280px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 247, 255, 0.22);
+  object-fit: cover;
+  aspect-ratio: 3 / 4;
+  background:
+    radial-gradient(circle at 32% 40%, rgba(0, 247, 255, 0.1), transparent 52%),
+    linear-gradient(135deg, rgba(8, 22, 36, 0.94), rgba(14, 34, 54, 0.86));
+}
+
+.agent-nameplate {
+  margin-top: 1rem;
+}
+
+.agent-nameplate .overline {
+  margin-bottom: 0.15rem;
+  font-size: 0.72rem;
+}
+
+.agent-nameplate h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.agent-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.agent-bio h3 {
+  margin-bottom: 0.7rem;
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent, #00f7ff);
+}
+
+.agent-bio p {
+  color: var(--foreground, #d0d8e0);
+  line-height: 1.7;
+  font-size: 0.88rem;
+}
+
+.agent-bio p + p {
+  margin-top: 0.7rem;
+}
+
+/* ─── Agent dialogue bubble ──────────────────────────────── */
+.agent-dialogue {
+  position: relative;
+}
+
+.agent-dialogue-bubble {
+  padding: 0.2rem 0;
+}
+
+.agent-dialogue-speaker {
+  display: block;
+  font-family: "Orbitron", "Inter", sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent, #00f7ff);
+  margin-bottom: 0.5rem;
+  opacity: 0.7;
+}
+
+.agent-dialogue-text {
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--foreground, #d0d8e0);
+  font-style: italic;
+  border-left: 3px solid rgba(0, 247, 255, 0.3);
+  padding-left: 1rem;
+  margin: 0;
+}
+
+/* ─── Agent missions section ─────────────────────────────── */
+.agent-missions-section {
+  margin-top: 0.4rem;
+}
+
+.agent-missions-section h3 {
+  margin-bottom: 0.6rem;
+}
+
+.contract-refresh-timer {
+  margin-top: 0.7rem;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.contract-refresh-timer::before {
+  content: "⏱";
+  font-size: 0.82rem;
+  opacity: 0.65;
+}
+
+/* ─── Agent reputation display ───────────────────────────── */
+.agent-reputation-section {
+  margin-top: 1.2rem;
+  padding: 0.8rem 0.9rem;
+  background: rgba(10, 31, 46, 0.45);
+  border: 1px solid rgba(0, 247, 255, 0.1);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.agent-reputation-section h3,
+.agent-completed-section h3 {
+  margin-bottom: 0.7rem;
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.agent-reputation-section h3 {
+  font-size: 0.68rem;
+  margin-bottom: 0.45rem;
+  opacity: 0.6;
+}
+
+.agent-rep-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  margin-bottom: 0.45rem;
+}
+
+.agent-rep-title {
+  font-family: "Orbitron", "Inter", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+
+.agent-rep-level {
+  font-size: 0.66rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+
+.agent-rep-stars {
+  display: flex;
+  justify-content: center;
+  gap: 0.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.rep-star {
+  font-size: 0.9rem;
+  color: rgba(0, 247, 255, 0.15);
+  transition: color 0.3s;
+}
+
+.rep-star--filled {
+  color: var(--accent);
+  text-shadow: 0 0 6px rgba(0, 247, 255, 0.4);
+}
+
+.agent-rep-bar-container {
+  width: 100%;
+  height: 4px;
+  background: rgba(0, 247, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 247, 255, 0.08);
+  margin-bottom: 0.35rem;
+}
+
+.agent-rep-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), rgba(0, 247, 255, 0.6));
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.agent-rep-detail {
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.agent-card-standing {
+  font-size: 0.72rem;
+  margin-top: 0.15rem;
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+/* ─── Mission Log section ────────────────────────────────── */
+.mission-log-section {
+  margin-top: 1.2rem;
+}
+
+#missions-board-view {
+  max-width:25vw;
+}
+
+.mission-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.mission-log-header h3 {
+  margin: 0;
+}
+
+.mission-log-count {
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mission-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* ─── Completed mission entries ──────────────────────────── */
+.completed-mission-entry {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 0.7rem;
+  row-gap: 0.1rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 6px;
+  background: rgba(10, 31, 46, 0.35);
+  border: 1px solid rgba(0, 247, 255, 0.05);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.completed-mission-entry:hover {
+  background: rgba(10, 31, 46, 0.55);
+  border-color: rgba(0, 247, 255, 0.12);
+}
+
+.completed-mission-icon {
+  grid-row: 1 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 247, 255, 0.08);
+  color: var(--accent);
+  font-size: 0.78rem;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.completed-mission-title {
+  grid-column: 2;
+  font-size: 0.84rem;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.completed-mission-reward {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  align-self: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted-amber);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.completed-mission-meta {
+  grid-column: 2;
+  font-size: 0.68rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.completed-mission-type {
+  display: inline-block;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.1em 0.45em;
+  border-radius: 3px;
+  background: rgba(0, 247, 255, 0.08);
+  color: var(--accent);
+  margin-right: 0.4em;
+  vertical-align: middle;
+  font-weight: 600;
+}
+
+#completed-missions-section {
+  margin-top: 1.2rem;
+}
+
+/* ─── Mission complete celebration overlay ───────────────── */
+.mission-complete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(3, 8, 16, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  animation: modalFadeIn 0.25s ease;
+}
+
+.mission-complete-overlay--exit {
+  animation: modalFadeOut 0.3s ease forwards;
+}
+
+@keyframes modalFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.mission-complete-card {
+  position: relative;
+  text-align: center;
+  max-width: 440px;
+  width: 94vw;
+  padding: 2.4rem 2rem 2rem;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 16px;
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(34, 197, 94, 0.08), transparent 60%),
+    rgba(8, 24, 38, 0.97);
+  box-shadow:
+    0 0 60px rgba(34, 197, 94, 0.12),
+    0 8px 40px rgba(0, 0, 0, 0.5);
+  animation: completePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes completePop {
+  0%   { opacity: 0; transform: scale(0.7) translateY(20px); }
+  60%  { opacity: 1; transform: scale(1.04) translateY(-4px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.mission-complete-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  border: 2px solid rgba(34, 197, 94, 0.6);
+  background: rgba(34, 197, 94, 0.12);
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+  color: #22c55e;
+  animation: checkPulse 0.6s ease 0.3s both;
+}
+
+@keyframes checkPulse {
+  0%   { transform: scale(0); opacity: 0; }
+  50%  { transform: scale(1.25); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.mission-complete-heading {
+  font-family: "Orbitron", "Inter", sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #22c55e;
+  margin-bottom: 0.4rem;
+}
+
+.mission-complete-title {
+  font-size: 0.92rem;
+  color: var(--text);
+  margin-bottom: 1.4rem;
+  line-height: 1.4;
+}
+
+.mission-complete-reward,
+.mission-complete-rep {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-top: 1px solid rgba(0, 247, 255, 0.08);
+}
+
+.mission-complete-reward-label,
+.mission-complete-rep-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mission-complete-reward-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--muted-amber);
+}
+
+.mission-complete-rep-value {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.mission-complete-levelup {
+  margin-top: 0.8rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 215, 0, 0.06);
+  font-size: 0.84rem;
+  color: #ffd700;
+  animation: levelGlow 1.2s ease infinite alternate;
+}
+
+@keyframes levelGlow {
+  from { box-shadow: 0 0 8px rgba(255, 215, 0, 0.1); }
+  to   { box-shadow: 0 0 20px rgba(255, 215, 0, 0.25); }
+}
+
+.mission-complete-dismiss {
+  margin-top: 1.4rem;
+}
+
+/* Celebration particles */
+.mission-complete-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: hsl(var(--hue, 180), 85%, 60%);
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+  animation: particleBurst 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) var(--delay, 0s) forwards;
+  opacity: 0;
+}
+
+@keyframes particleBurst {
+  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
+/* ─── Mission cards ──────────────────────────────────────── */
+.mission-card {
+  position: relative;
+  border: 1px solid rgba(0, 247, 255, 0.12);
+  border-radius: 10px;
+  background:
+    linear-gradient(168deg, rgba(10, 26, 42, 0.85) 0%, rgba(8, 20, 34, 0.92) 100%);
+  padding: 1.2rem 1.4rem 1.1rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, transform 0.18s ease;
+  overflow: hidden;
+  max-width:25vw;
+}
+
+.mission-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(135deg, rgba(0, 247, 255, 0.04) 0%, transparent 40%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.mission-card:hover,
+.mission-card:focus-visible {
+  border-color: rgba(0, 247, 255, 0.38);
+  box-shadow:
+    0 0 18px rgba(0, 247, 255, 0.08),
+    0 4px 24px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+}
+
+.mission-card:hover::before,
+.mission-card:focus-visible::before {
+  opacity: 1;
+}
+
+.mission-card:focus-visible {
+  outline: 2px solid var(--accent, #00f7ff);
+  outline-offset: 2px;
+}
+
+/* Header row: type badge + risk badge */
+.mission-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+
+.mission-card-type {
+  font-family: "Orbitron", "Inter", sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent, #00f7ff);
+  opacity: 0.72;
+}
+
+.mission-card-risk {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.mission-card-risk.risk-low {
+  color: #5cffab;
+  background: rgba(92, 255, 171, 0.1);
+  border: 1px solid rgba(92, 255, 171, 0.22);
+}
+
+.mission-card-risk.risk-med {
+  color: #ffd866;
+  background: rgba(255, 216, 102, 0.1);
+  border: 1px solid rgba(255, 216, 102, 0.22);
+}
+
+.mission-card-risk.risk-high {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.22);
+}
+
+/* Title */
+.mission-card-title {
+  font-family: "Orbitron", "Inter", sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground, #e0e8f0);
+  margin: 0 0 0.55rem;
+  line-height: 1.35;
+}
+
+/* Description text */
+.mission-card-text {
+  color: var(--text-muted, #8a9bb0);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin: 0 0 0.9rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Footer row: reward + CTA */
+.mission-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(0, 247, 255, 0.08);
+}
+
+.mission-card-reward {
+  font-family: "Orbitron", "Inter", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #5cffab;
+  letter-spacing: 0.03em;
+}
+
+.mission-card-cta {
+  font-size: 0.78rem;
+  color: var(--accent, #00f7ff);
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.mission-card:hover .mission-card-cta {
+  opacity: 1;
+}
+
+/* Active contract variant */
+.mission-card--active {
+  border-color: rgba(92, 255, 171, 0.18);
+  background:
+    linear-gradient(168deg, rgba(12, 32, 24, 0.7) 0%, rgba(8, 20, 34, 0.92) 100%);
+}
+
+.mission-card--active:hover {
+  border-color: rgba(92, 255, 171, 0.35);
+  box-shadow:
+    0 0 18px rgba(92, 255, 171, 0.06),
+    0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+.mission-card--active .mission-card-type {
+  color: #5cffab;
+}
+
+@media (max-width: 700px) {
+  .agent-office-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-portrait {
+    max-width: 180px;
+  }
+
+  .agent-card-thumb {
+    width: 56px;
+    height: 56px;
+  }
 }
 
 /* ─── Exchange buy button ─────────────────────────────────── */
@@ -3351,11 +4225,12 @@ tr.npc-order-exhausted {
 }
 
 @media (max-width: 700px) {
-  .mission-detail-layout {
-    grid-template-columns: 1fr;
+  .mission-modal-header {
+    flex-direction: column;
+    gap: 0.8rem;
   }
 
-  .mission-img-placeholder {
-    aspect-ratio: 16 / 7;
+  .mission-modal-img-placeholder {
+    width: 80px;
   }
 }

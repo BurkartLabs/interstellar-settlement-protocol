@@ -28,6 +28,7 @@ const appState = {
   selectedForumCategory: null,
   missionsView: "board",
   selectedMissionId: null,
+  selectedAgentId: null,
   activeMissions: [],
   miningUiTicker: null,
   stationRegistry: [],
@@ -220,8 +221,8 @@ const walkthroughSteps = [
   },
   {
     selector: '.tab-btn[data-tab="missions"]',
-    title: "Accept a Mission",
-    text: "Check the Missions board for field operations. Completing missions earns rewards and accelerates your progress through Corporation Milestones.",
+    title: "Visit the Assignments Bureau",
+    text: "The ISA Contracting & Assignments Bureau is where mission agents post field contracts. Visit Coordinator Voss in her office to review available logistics assignments.",
     tab: "missions"
   },
   {
@@ -1064,6 +1065,11 @@ function showStationBuilding(buildingId) {
 
   overviewEl.hidden = true;
   detailEl.hidden = false;
+  // For ISA Contracting & Assignments Bureau, renderBuildingDetail switches tab to 'missions' and returns early
+  if (building.id === "isa-contracting-assignments") {
+    renderBuildingDetail(building, appState.data);
+    return;
+  }
   renderBuildingDetail(building, appState.data);
   setTab("station");
 }
@@ -1080,6 +1086,15 @@ function renderBuildingDetail(building, data) {
     contentEl.classList.add("icl-bg");
   } else if (building.id === "galactic-exchange") {
     contentEl.classList.add("ge-bg");
+  }
+
+  // ISA Contracting & Assignments Bureau → redirect to Missions tab
+  if (building.id === "isa-contracting-assignments") {
+    showStationOverview();
+    appState.missionsView = "board";
+    setTab("missions");
+    renderMissions(data);
+    return;
   }
 
   if (building.id === "orbital-executive-suites") {
@@ -2282,6 +2297,21 @@ function startMiningUiTicker() {
     // Re-render refinery active runs for live progress
     renderRefinery(appState.data);
 
+    // Live-update contract refresh timer
+    const timerEl = document.getElementById("contract-refresh-timer");
+    if (timerEl && !timerEl.hidden) {
+      const nextRefresh = appState.data?.corp?.contractOfferings?.nextRefreshAt || 0;
+      const remaining = nextRefresh - Date.now();
+      if (remaining > 0) {
+        const hrs = Math.floor(remaining / 3600000);
+        const mins = Math.floor((remaining % 3600000) / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        timerEl.textContent = `New contracts in ${hrs}h ${String(mins).padStart(2, "0")}m ${String(secs).padStart(2, "0")}s`;
+      } else {
+        timerEl.textContent = "New contracts available — refresh to update";
+      }
+    }
+
     // Refresh from server every 60 seconds if any extractor or refinery is active
     tickCount += 1;
     if (tickCount % 60 === 0) {
@@ -3066,65 +3096,359 @@ function renderForums(data) {
   }
 }
 
+// ─── Mission Reputation System ─────────────────────────────────────────────
+const REPUTATION_THRESHOLDS = [0, 1, 3, 7, 15, 30, 60, 120, 250, 500, 1000];
+const REPUTATION_TITLES = [
+  "Unknown",
+  "Registered",
+  "Recognized",
+  "Reliable",
+  "Trusted",
+  "Valued",
+  "Distinguished",
+  "Esteemed",
+  "Elite",
+  "Legendary",
+  "Exalted"
+];
+
+function getAgentRepLevel(agentId) {
+  const rep = appState.data?.corp?.agentReputation?.[agentId];
+  const count = rep?.completedCount || 0;
+  let level = 0;
+  for (let i = REPUTATION_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (count >= REPUTATION_THRESHOLDS[i]) { level = i; break; }
+  }
+  const nextThreshold = level < 10 ? REPUTATION_THRESHOLDS[level + 1] : REPUTATION_THRESHOLDS[10];
+  return { level, count, title: REPUTATION_TITLES[level], nextThreshold, maxLevel: 10 };
+}
+
+// ─── Mission Agent Registry ────────────────────────────────────────────────
+const MISSION_AGENTS = [
+  {
+    id: "elara-voss",
+    name: "Elara Voss",
+    title: "Senior Logistics Coordinator",
+    faction: "Interstellar Settlement Authority",
+    factionCode: "ISA",
+    portrait: "/images/elara_voss.jpg",
+    stationId: "earth-station-prime",
+    bio: `Coordinator Voss has served the ISA's logistics division for over fourteen years, beginning as a junior freight auditor on Luna Gateway before transferring to Earth Station Prime's newly established Contracting & Assignments Bureau. She earned her Senior Coordinator designation after managing the emergency redistribution of silicate reserves during the Ceres Supply Crisis of 2139 — an operation that required coordinating seventeen independent mining corporations under a 72-hour ISA directive.
+
+Her management style is precise, documented, and unapologetically procedural. Contractors who deliver on time and within specification earn her trust. Those who miss deadlines or falsify manifests do not get second contracts.
+
+She maintains a small but well-organised office on Deck 7 of the Bureau. The filing cabinets are alphabetised. The coffee is adequate. The contracts are real.`,
+    dialogue: [
+      "Good. You're here. I have contracts that need competent operators — not speculators who think logistics is a side business.",
+      "The ISA needs resources moved, extracted, and delivered on schedule. If you can handle that, we'll get along fine.",
+      "Review the available contracts below. Each one has a deadline and a quota. Meet the terms, sell directly to me, and you'll be compensated. Miss the terms, and I file an incomplete. Your record is your reputation."
+    ],
+    missionType: "Logistics",
+    available: true
+  }
+];
+
+function openMissionModal(missionId, data) {
+  const activeMissions = appState.activeMissions || [];
+  const activeIds = new Set(activeMissions.map((m) => m.id));
+  const offerings = data.corp?.contractOfferings?.missions || [];
+  const allMissions = [...offerings, ...activeMissions];
+  const mission = allMissions.find((m) => m.id === missionId);
+  if (!mission) return;
+
+  const isActive = activeIds.has(mission.id);
+  const currentStationId = (data.corp || {}).currentStationId || "earth-station-prime";
+  const agent = MISSION_AGENTS.find(a => a.id === mission.agentId);
+  const agentStationId = agent ? agent.stationId : null;
+  const isAtAgentStation = !agentStationId || agentStationId === currentStationId;
+
+  const modal = document.getElementById("mission-detail-modal");
+  const typeEl = document.getElementById("mission-detail-type");
+  const titleEl = document.getElementById("mission-detail-title");
+  const textEl = document.getElementById("mission-detail-text");
+  const riskEl = document.getElementById("mission-detail-risk");
+  const riskBadge = document.getElementById("mission-detail-risk-badge");
+  const rewardBadge = document.getElementById("mission-detail-reward-badge");
+  const acceptBtn = document.getElementById("mission-accept-btn");
+  const completeBtn = document.getElementById("mission-complete-btn");
+  const quotaSection = document.getElementById("mission-quota-section");
+  const quotaBar = document.getElementById("mission-quota-bar");
+  const quotaText = document.getElementById("mission-quota-text");
+  const locationSection = document.getElementById("mission-location-section");
+  const locationWarning = document.getElementById("mission-location-warning");
+
+  if (typeEl) typeEl.textContent = `${mission.type} Contract`;
+  if (titleEl) titleEl.textContent = mission.title;
+  if (textEl) textEl.textContent = mission.text;
+  if (riskEl) {
+    riskEl.textContent = mission.canShiftControl
+      ? "Control Shift Potential: Yes \u2014 completing this mission may alter territorial influence."
+      : "Control Shift Potential: None \u2014 this mission does not affect territorial control.";
+  }
+  if (riskBadge) {
+    const riskClass = mission.risk === "Low" ? "risk-low" : mission.risk === "Medium" ? "risk-med" : "risk-high";
+    riskBadge.className = `mission-card-risk ${riskClass}`;
+    riskBadge.textContent = `${mission.risk} Risk`;
+  }
+  if (rewardBadge) rewardBadge.textContent = mission.reward;
+
+  // Accept button: only for non-active missions
+  if (acceptBtn) {
+    acceptBtn.hidden = isActive;
+  }
+
+  // Quota progress (only for active missions with a quota)
+  let canComplete = false;
+  if (isActive && mission.quota && quotaSection) {
+    const inv = getInventory(); // current station inventory
+    const resource = mission.quota.resource || "";
+    const required = mission.quota.amount || 0;
+    const have = inv[resource] || 0;
+    const pct = required > 0 ? Math.min(100, Math.round((have / required) * 100)) : 100;
+    const isFulfilled = have >= required;
+    canComplete = isFulfilled && isAtAgentStation;
+
+    quotaSection.hidden = false;
+    if (quotaBar) {
+      quotaBar.style.width = pct + "%";
+      quotaBar.className = "mission-quota-bar" + (isFulfilled ? " quota-fulfilled" : "");
+    }
+    const currentStation = appState.stationRegistry.find(s => s.id === currentStationId);
+    const stationLabel = currentStation ? currentStation.name : "this station";
+    if (quotaText) {
+      const displayResource = resource.charAt(0).toUpperCase() + resource.slice(1);
+      quotaText.innerHTML = `<strong>${have.toLocaleString()}</strong> / ${required.toLocaleString()} ${escapeHtml(displayResource)} at ${escapeHtml(stationLabel)}`;
+    }
+  } else if (quotaSection) {
+    quotaSection.hidden = true;
+  }
+
+  // Location warning (active + remote)
+  if (isActive && !isAtAgentStation && locationSection && locationWarning) {
+    const agentStation = appState.stationRegistry.find(s => s.id === agentStationId);
+    const agentStationLabel = agentStation ? agentStation.name : "another station";
+    locationSection.hidden = false;
+    locationWarning.innerHTML = `⚠ You must be docked at <strong>${escapeHtml(agentStationLabel)}</strong> to complete this contract.`;
+  } else if (locationSection) {
+    locationSection.hidden = true;
+  }
+
+  // Complete button: only for active missions at the agent's station with quota met
+  if (completeBtn) {
+    completeBtn.hidden = !canComplete;
+  }
+
+  appState.selectedMissionId = missionId;
+  if (modal) modal.hidden = false;
+}
+
+function closeMissionModal() {
+  const modal = document.getElementById("mission-detail-modal");
+  if (modal) modal.hidden = true;
+  appState.selectedMissionId = null;
+}
+
+function showMissionCompleteOverlay(mission, rep, agentName) {
+  closeMissionModal();
+
+  // Check if this completion crossed a reputation threshold
+  const prevCount = rep.count - 1;
+  let prevLevel = 0;
+  for (let i = REPUTATION_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (prevCount >= REPUTATION_THRESHOLDS[i]) { prevLevel = i; break; }
+  }
+  const leveledUp = rep.level > prevLevel;
+
+  const overlay = document.createElement("div");
+  overlay.className = "mission-complete-overlay";
+  overlay.innerHTML = `
+    <div class="mission-complete-card">
+      <div class="mission-complete-icon">\u2713</div>
+      <h2 class="mission-complete-heading">Contract Fulfilled</h2>
+      <p class="mission-complete-title">${escapeHtml(mission.title)}</p>
+      <div class="mission-complete-reward">
+        <span class="mission-complete-reward-label">Reward Credited</span>
+        <span class="mission-complete-reward-value">${escapeHtml(mission.reward)}</span>
+      </div>
+      <div class="mission-complete-rep">
+        <span class="mission-complete-rep-label">Standing with ${escapeHtml(agentName)}</span>
+        <span class="mission-complete-rep-value">${escapeHtml(rep.title)} (Level ${rep.level})</span>
+      </div>
+      ${leveledUp ? `<div class="mission-complete-levelup">\u2B50 Reputation Level Up! You are now <strong>${escapeHtml(rep.title)}</strong> with ${escapeHtml(agentName)}.</div>` : ""}
+      <button class="btn btn-accent btn-command mission-complete-dismiss" type="button">Dismiss</button>
+    </div>
+  `;
+
+  // Spawn celebration particles
+  const particleCount = leveledUp ? 40 : 16;
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement("span");
+    particle.className = "mission-complete-particle";
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 60 + Math.random() * 120;
+    particle.style.setProperty("--tx", `${Math.cos(angle) * dist}px`);
+    particle.style.setProperty("--ty", `${Math.sin(angle) * dist}px`);
+    particle.style.setProperty("--delay", `${Math.random() * 0.3}s`);
+    particle.style.setProperty("--hue", `${Math.random() * 60 + 160}`);
+    overlay.querySelector(".mission-complete-card").appendChild(particle);
+  }
+
+  document.body.appendChild(overlay);
+
+  const dismiss = () => {
+    overlay.classList.add("mission-complete-overlay--exit");
+    setTimeout(() => overlay.remove(), 300);
+  };
+  overlay.querySelector(".mission-complete-dismiss").addEventListener("click", dismiss);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) dismiss(); });
+}
+
 function renderMissions(data) {
   const boardView = document.getElementById("missions-board-view");
-  const detailView = document.getElementById("mission-detail-view");
+  const agentView = document.getElementById("agent-office-view");
 
   const activeMissions = appState.activeMissions || [];
   const activeIds = new Set(activeMissions.map((m) => m.id));
-  const available = (data.missions || []).filter((m) => !activeIds.has(m.id));
+  const offerings = data.corp?.contractOfferings || { missions: [], nextRefreshAt: 0 };
+  const available = (offerings.missions || []).filter((m) => !activeIds.has(m.id));
 
-  if (appState.missionsView === "detail") {
+  // ── Agent office view ──
+  if (appState.missionsView === "agent") {
     if (boardView) boardView.hidden = true;
-    if (detailView) detailView.hidden = false;
+    if (agentView) agentView.hidden = false;
 
-    const mission = (data.missions || []).find((m) => m.id === appState.selectedMissionId);
-    if (mission) {
-      const typeEl = document.getElementById("mission-detail-type");
-      const titleEl = document.getElementById("mission-detail-title");
-      const rewardEl = document.getElementById("mission-detail-reward");
-      const textEl = document.getElementById("mission-detail-text");
-      const riskEl = document.getElementById("mission-detail-risk");
-      const acceptBtn = document.getElementById("mission-accept-btn");
+    const agent = MISSION_AGENTS.find((a) => a.id === appState.selectedAgentId);
+    if (!agent) return;
 
-      if (typeEl) typeEl.textContent = `${mission.type} \u2014 Risk Level: ${mission.risk}`;
-      if (titleEl) titleEl.textContent = mission.title;
-      if (rewardEl) rewardEl.textContent = `Reward: ${mission.reward}`;
-      if (textEl) textEl.textContent = mission.text;
-      if (riskEl) {
-        riskEl.textContent = mission.canShiftControl
-          ? "Control Shift Potential: Yes \u2014 completing this mission may alter territorial influence."
-          : "Control Shift Potential: None \u2014 this mission does not affect territorial control.";
-      }
-      if (acceptBtn) {
-        acceptBtn.hidden = activeIds.has(mission.id);
-        acceptBtn.textContent = "Accept Mission";
+    const portraitEl = document.getElementById("agent-portrait");
+    const titleEl = document.getElementById("agent-title");
+    const nameEl = document.getElementById("agent-name");
+    const bioEl = document.getElementById("agent-bio");
+    const dialogueEl = document.getElementById("agent-dialogue");
+    const missionListEl = document.getElementById("agent-mission-list");
+    const missionsEmptyEl = document.getElementById("agent-missions-empty");
+
+    if (portraitEl) { portraitEl.src = agent.portrait; portraitEl.alt = agent.name; }
+    if (titleEl) titleEl.textContent = `${agent.factionCode} // ${agent.title}`;
+    if (nameEl) nameEl.textContent = agent.name;
+    if (bioEl) bioEl.innerHTML = `<h3>Personnel Dossier</h3>` + agent.bio.split("\n\n").map(p => `<p>${escapeHtml(p)}</p>`).join("");
+
+    // Reputation display
+    const repEl = document.getElementById("agent-reputation");
+    if (repEl) {
+      const rep = getAgentRepLevel(agent.id);
+      const pct = rep.level >= rep.maxLevel ? 100 : rep.nextThreshold > 0
+        ? Math.round(((rep.count - REPUTATION_THRESHOLDS[rep.level]) / (rep.nextThreshold - REPUTATION_THRESHOLDS[rep.level])) * 100)
+        : 0;
+      const starsHtml = Array.from({ length: rep.maxLevel }, (_, i) =>
+        `<span class="rep-star ${i < rep.level ? "rep-star--filled" : ""}">\u2726</span>`
+      ).join("");
+      repEl.innerHTML = `
+        <h3>Standing</h3>
+        <div class="agent-rep-header">
+          <span class="agent-rep-title">${escapeHtml(rep.title)}</span>
+        </div>
+        <div class="agent-rep-stars">${starsHtml}</div>
+        <div class="agent-rep-bar-container">
+          <div class="agent-rep-bar" style="width: ${pct}%"></div>
+        </div>
+        <p class="muted agent-rep-detail">${rep.level < rep.maxLevel ? `${(rep.nextThreshold - rep.count).toLocaleString()} more to next level` : "Maximum standing"}</p>
+      `;
+    }
+
+    // Completed mission history for this agent
+    const historyEl = document.getElementById("agent-completed-missions");
+    if (historyEl) {
+      const completed = (data.corp?.completedMissions || []).filter(m => m.agentId === agent.id);
+      
+    }
+
+    if (dialogueEl) {
+      const randomLine = agent.dialogue[Math.floor(Math.random() * agent.dialogue.length)];
+      dialogueEl.innerHTML = `
+        <div class="agent-dialogue-bubble">
+          <span class="agent-dialogue-speaker">${escapeHtml(agent.name)}</span>
+          <p class="agent-dialogue-text">\u201C${escapeHtml(randomLine)}\u201D</p>
+        </div>
+      `;
+    }
+
+    // Render agent's available missions
+    const agentMissions = available.filter((m) => m.agentId === agent.id || m.type === agent.missionType);
+    if (missionListEl) {
+      if (agentMissions.length) {
+        if (missionsEmptyEl) missionsEmptyEl.hidden = true;
+        missionListEl.innerHTML = agentMissions.map((mission) => {
+          const riskClass = mission.risk === "Low" ? "risk-low" : mission.risk === "Medium" ? "risk-med" : "risk-high";
+          return `
+          <section class="mission-card" data-mission-id="${mission.id}" role="button" tabindex="0">
+            <div class="mission-card-header">
+              <span class="mission-card-type">${escapeHtml(mission.type)}</span>
+              <span class="mission-card-risk ${riskClass}">${escapeHtml(mission.risk)} Risk</span>
+            </div>
+            <h3 class="mission-card-title">${escapeHtml(mission.title)}</h3>
+            <p class="mission-card-text">${escapeHtml(mission.text)}</p>
+            <div class="mission-card-footer">
+              <span class="mission-card-reward">${escapeHtml(mission.reward)}</span>
+              <span class="mission-card-cta">View Briefing \u2192</span>
+            </div>
+          </section>`;
+        }).join("");
+      } else {
+        if (missionsEmptyEl) missionsEmptyEl.hidden = false;
+        missionListEl.innerHTML = "";
       }
     }
+
+    // Contract refresh countdown timer
+    const timerEl = document.getElementById("contract-refresh-timer");
+    if (timerEl) {
+      const nextRefresh = offerings.nextRefreshAt || 0;
+      const remaining = nextRefresh - Date.now();
+      if (remaining > 0) {
+        const hrs = Math.floor(remaining / 3600000);
+        const mins = Math.floor((remaining % 3600000) / 60000);
+        timerEl.textContent = `New contracts in ${hrs}h ${mins}m`;
+        timerEl.hidden = false;
+      } else {
+        timerEl.textContent = "New contracts available soon";
+        timerEl.hidden = false;
+      }
+    }
+
     return;
   }
 
+  // ── Bureau hub view (default) ──
   if (boardView) boardView.hidden = false;
-  if (detailView) detailView.hidden = true;
+  if (agentView) agentView.hidden = true;
 
-  const missionList = document.getElementById("mission-list");
-  if (missionList) {
-    missionList.innerHTML = available.length
-      ? available
-          .map(
-            (mission) => `
-          <section class="data-card mission-card" data-mission-id="${mission.id}" role="button" tabindex="0" style="cursor:pointer">
-            <h3>${escapeHtml(mission.title)}</h3>
-            <p class="muted">${escapeHtml(mission.type)} | Risk: ${escapeHtml(mission.risk)}</p>
-            <p>${escapeHtml(mission.text)}</p>
-            <p class="muted">Reward: ${escapeHtml(mission.reward)}</p>
-            <p class="muted" style="margin-top:0.55rem;font-size:0.82rem">View briefing \u2192</p>
-          </section>`
-          )
-          .join("")
-      : `<section class="data-card"><p class="muted">No missions currently available. Check back for new field operations.</p></section>`;
+  const currentStationId = (data.corp || {}).currentStationId || "earth-station-prime";
+
+  const agentListEl = document.getElementById("agent-list");
+  if (agentListEl) {
+    const localAgents = MISSION_AGENTS.filter(a => a.available && a.stationId === currentStationId);
+    agentListEl.innerHTML = localAgents.length
+      ? localAgents.map((agent) => {
+          const station = appState.stationRegistry.find(s => s.id === agent.stationId);
+          const stationLabel = station ? station.name : agent.stationId;
+          return `
+      <section class="data-card agent-card" data-agent-id="${agent.id}" role="button" tabindex="0" style="cursor:pointer">
+        <div class="agent-card-inner">
+          <img class="agent-card-thumb" src="${escapeHtml(agent.portrait)}" alt="${escapeHtml(agent.name)}" />
+          <div class="agent-card-info">
+            <p class="overline">${escapeHtml(agent.factionCode)} // ${escapeHtml(agent.title)}</p>
+            <h3>${escapeHtml(agent.name)}</h3>
+            <p class="muted">${escapeHtml(agent.missionType)} Contracts &middot; ${escapeHtml(stationLabel)}</p>
+            <p class="agent-card-standing muted">Standing: ${escapeHtml(getAgentRepLevel(agent.id).title)}</p>
+          </div>
+        </div>
+      </section>`;
+        }).join("")
+      : `<p class="muted">No contracting agents are stationed here.</p>`;
   }
 
+  // Render active contracts
   const activeMissionList = document.getElementById("active-mission-list");
   const activeEmpty = document.getElementById("active-missions-empty");
   if (activeMissions.length) {
@@ -3132,21 +3456,63 @@ function renderMissions(data) {
     if (activeMissionList) {
       activeMissionList.innerHTML = activeMissions
         .map(
-          (mission) => `
-          <section class="data-card">
-            <h3>${escapeHtml(mission.title)}</h3>
-            <p class="muted">${escapeHtml(mission.type)} | Risk: ${escapeHtml(mission.risk)}</p>
-            <p class="muted">Reward: ${escapeHtml(mission.reward)}</p>
-            <div style="margin-top:0.7rem">
-              <button class="btn btn-outline" type="button" data-abandon-mission="${mission.id}">Abandon Mission</button>
+          (mission) => {
+            const riskClass = mission.risk === "Low" ? "risk-low" : mission.risk === "Medium" ? "risk-med" : "risk-high";
+            const agent = MISSION_AGENTS.find(a => a.id === mission.agentId);
+            const agentStation = agent ? agent.stationId : null;
+            const isRemote = agentStation && agentStation !== currentStationId;
+            const stationObj = isRemote ? appState.stationRegistry.find(s => s.id === agentStation) : null;
+            const locationTag = isRemote && stationObj
+              ? `<span class="mission-location-tag mission-location-remote" title="Agent is at ${escapeHtml(stationObj.name)}">⚠ ${escapeHtml(stationObj.body || stationObj.name)}</span>`
+              : isRemote
+                ? `<span class="mission-location-tag mission-location-remote">⚠ Remote</span>`
+                : `<span class="mission-location-tag mission-location-local">● Local</span>`;
+            return `
+          <section class="mission-card mission-card--active" data-mission-id="${mission.id}" role="button" tabindex="0" style="cursor:pointer">
+            <div class="mission-card-header">
+              <span class="mission-card-type">${escapeHtml(mission.type)}</span>
+              <span class="mission-card-risk ${riskClass}">${escapeHtml(mission.risk)} Risk</span>
+              ${locationTag}
             </div>
-          </section>`
+            <h3 class="mission-card-title">${escapeHtml(mission.title)}</h3>
+            <div class="mission-card-footer">
+              <span class="mission-card-reward">${escapeHtml(mission.reward)}</span>
+              <button class="btn btn-outline btn-sm" type="button" data-abandon-mission="${mission.id}">Abandon</button>
+            </div>
+          </section>`;
+          }
         )
         .join("");
     }
   } else {
     if (activeEmpty) activeEmpty.hidden = false;
     if (activeMissionList) activeMissionList.innerHTML = "";
+  }
+
+  // Render completed mission log
+  const completedSection = document.getElementById("completed-missions-section");
+  const completedLog = document.getElementById("completed-mission-log");
+  const completedMissions = data.corp?.completedMissions || [];
+  const logCountEl = document.getElementById("mission-log-count");
+  if (completedSection && completedLog) {
+    if (completedMissions.length) {
+      completedSection.hidden = false;
+      if (logCountEl) logCountEl.textContent = `${completedMissions.length} completed`;
+      completedLog.innerHTML = completedMissions.slice(0, 30).map(m => {
+        const agent = MISSION_AGENTS.find(a => a.id === m.agentId);
+        const agentLabel = agent ? agent.name : "Unknown Agent";
+        return `
+          <div class="completed-mission-entry">
+            <div class="completed-mission-icon">✓</div>
+            <span class="completed-mission-title"><span class="completed-mission-type">${escapeHtml(m.type || "Mission")}</span>${escapeHtml(m.title)}</span>
+            <span class="completed-mission-reward">${escapeHtml(m.reward)}</span>
+            <span class="completed-mission-meta">${escapeHtml(agentLabel)} &middot; ${formatTime(m.completedAt)}</span>
+          </div>`;
+      }).join("");
+    } else {
+      completedSection.hidden = true;
+      completedLog.innerHTML = "";
+    }
   }
 }
 
@@ -3524,6 +3890,7 @@ function enterGame(mode, data, options = {}) {
   }
   appState.walkthroughCompleted = Boolean(options.walkthroughCompleted);
   appState.data = deepClone(data);
+  appState.activeMissions = appState.data.corp?.activeMissions || [];
 
   if (appState.serverData) {
     applySharedState(appState.serverData);
@@ -3570,7 +3937,6 @@ function applySharedState(serverState) {
   appState.data.world = deepClone(serverState.world);
   appState.data.market = deepClone(serverState.market);
   appState.data.forums = deepClone(serverState.forums);
-  appState.data.missions = deepClone(serverState.missions);
   appState.data.chatLog = deepClone(serverState.chatLog);
   appState.data.combatReports = deepClone(serverState.combatReports);
   appState.data.conglomerates = deepClone(serverState.conglomerates);
@@ -3638,6 +4004,7 @@ async function refreshFromServer() {
     appState.accountEmail = account.email || appState.accountEmail;
     applySharedState(serverState);
     appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+    appState.activeMissions = appState.data.corp?.activeMissions || [];
     updateAllViews();
     return;
   }
@@ -3646,6 +4013,7 @@ async function refreshFromServer() {
 
   if (appState.profileMode === "dummy") {
     appState.data = deepClone(serverState);
+    appState.activeMissions = appState.data.corp?.activeMissions || [];
   } else {
     applySharedState(serverState);
   }
@@ -3918,46 +4286,167 @@ function bindForms() {
     renderForums(appState.data);
   });
 
-  // Mission board interactions
-  const missionListEl = document.getElementById("mission-list");
-  const missionBackBtn = document.getElementById("mission-back-btn");
+  // Assignments Bureau (mission agent hub) interactions
+  const agentListEl = document.getElementById("agent-list");
+  const agentBackBtn = document.getElementById("agent-back-btn");
+  const agentMissionListEl = document.getElementById("agent-mission-list");
+  const missionModalCloseBtn = document.getElementById("mission-modal-close");
+  const missionModal = document.getElementById("mission-detail-modal");
   const missionAcceptBtn = document.getElementById("mission-accept-btn");
+  const missionCompleteBtn = document.getElementById("mission-complete-btn");
   const activeMissionListEl = document.getElementById("active-mission-list");
 
-  missionListEl?.addEventListener("click", (event) => {
+  // Click agent card → open agent office
+  agentListEl?.addEventListener("click", (event) => {
+    const card = event.target.closest("[data-agent-id]");
+    if (!card) return;
+    appState.selectedAgentId = card.getAttribute("data-agent-id");
+    appState.missionsView = "agent";
+    renderMissions(appState.data);
+  });
+
+  // Back from agent office → bureau hub
+  agentBackBtn?.addEventListener("click", () => {
+    appState.missionsView = "board";
+    appState.selectedAgentId = null;
+    renderMissions(appState.data);
+  });
+
+  // Click mission in agent office → open mission modal
+  agentMissionListEl?.addEventListener("click", (event) => {
     const card = event.target.closest("[data-mission-id]");
     if (!card) return;
-    appState.selectedMissionId = card.getAttribute("data-mission-id");
-    appState.missionsView = "detail";
-    renderMissions(appState.data);
+    openMissionModal(card.getAttribute("data-mission-id"), appState.data);
   });
 
-  missionBackBtn?.addEventListener("click", () => {
-    appState.missionsView = "board";
-    renderMissions(appState.data);
+  // Close mission modal
+  missionModalCloseBtn?.addEventListener("click", closeMissionModal);
+
+  // Click backdrop to close
+  missionModal?.addEventListener("click", (event) => {
+    if (event.target === missionModal) closeMissionModal();
   });
 
-  missionAcceptBtn?.addEventListener("click", () => {
-    const mission = (appState.data?.missions || []).find((m) => m.id === appState.selectedMissionId);
+  missionAcceptBtn?.addEventListener("click", async () => {
+    const offerings = appState.data?.corp?.contractOfferings?.missions || [];
+    const mission = offerings.find((m) => m.id === appState.selectedMissionId);
     if (!mission) return;
     const alreadyActive = appState.activeMissions.some((m) => m.id === mission.id);
-    if (!alreadyActive) {
+    if (alreadyActive) return;
+
+    if (appState.profileMode === "account" && appState.accountId) {
+      const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/accept-mission`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ missionId: mission.id })
+      });
+      if (!response.ok) return;
+      const account = await parseJsonResponse(response);
+      appState.data = deepClone(account.state);
+      appState.activeMissions = appState.data.corp?.activeMissions || [];
+    } else {
       appState.activeMissions.push(mission);
-      pushFeedback(`Mission accepted: "${mission.title}". Track it in Active Operations.`, "success");
-      const btn = document.getElementById("mission-accept-btn");
-      if (btn) flashButtonSuccess(btn);
+      if (appState.data?.corp) {
+        appState.data.corp.activeMissions = appState.activeMissions;
+      }
     }
-    appState.missionsView = "board";
+
+    pushFeedback(`Contract accepted: "${mission.title}". Track it in Active Contracts.`, "success");
+    const btn = document.getElementById("mission-accept-btn");
+    if (btn) flashButtonSuccess(btn);
+    closeMissionModal();
     renderMissions(appState.data);
   });
 
-  activeMissionListEl?.addEventListener("click", (event) => {
+  activeMissionListEl?.addEventListener("click", async (event) => {
+    // Abandon button
     const btn = event.target.closest("[data-abandon-mission]");
-    if (!btn) return;
-    const missionId = btn.getAttribute("data-abandon-mission");
-    appState.activeMissions = appState.activeMissions.filter((m) => m.id !== missionId);
-    pushFeedback("Mission abandoned and removed from Active Operations.", "info");
+    if (btn) {
+      const missionId = btn.getAttribute("data-abandon-mission");
+      if (appState.profileMode === "account" && appState.accountId) {
+        const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/abandon-mission`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ missionId })
+        });
+        if (!response.ok) return;
+        const account = await parseJsonResponse(response);
+        appState.data = deepClone(account.state);
+        appState.activeMissions = appState.data.corp?.activeMissions || [];
+      } else {
+        appState.activeMissions = appState.activeMissions.filter((m) => m.id !== missionId);
+        if (appState.data?.corp) {
+          appState.data.corp.activeMissions = appState.activeMissions;
+        }
+      }
+      pushFeedback("Contract abandoned and removed from Active Contracts.", "info");
+      renderMissions(appState.data);
+      return;
+    }
+    // Click card → open modal
+    const card = event.target.closest("[data-mission-id]");
+    if (card) {
+      openMissionModal(card.getAttribute("data-mission-id"), appState.data);
+    }
+  });
+
+  // Complete contract: deduct resources and remove from active
+  missionCompleteBtn?.addEventListener("click", async () => {
+    const mission = (appState.activeMissions || []).find((m) => m.id === appState.selectedMissionId);
+    if (!mission || !mission.quota) return;
+
+    if (appState.profileMode === "account" && appState.accountId) {
+      const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/complete-mission`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ missionId: mission.id })
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: "Failed to complete mission." }));
+        pushFeedback(err.error || "Failed to complete mission.", "danger");
+        return;
+      }
+      const account = await parseJsonResponse(response);
+      appState.data = deepClone(account.state);
+      appState.activeMissions = appState.data.corp?.activeMissions || [];
+    } else {
+      const inv = getInventory();
+      const resource = mission.quota.resource || "";
+      const required = mission.quota.amount || 0;
+      const have = inv[resource] || 0;
+      if (have < required) return;
+
+      // Deduct resources
+      inv[resource] = have - required;
+      if (inv[resource] <= 0) delete inv[resource];
+
+      // Remove from active
+      appState.activeMissions = appState.activeMissions.filter((m) => m.id !== mission.id);
+      if (appState.data?.corp) {
+        appState.data.corp.activeMissions = appState.activeMissions;
+      }
+
+      // Credit reward
+      const rewardCredits = parseInt(String(mission.reward).replace(/[^0-9]/g, ""), 10);
+      if (rewardCredits && appState.data?.corp) {
+        appState.data.corp.credits = (appState.data.corp.credits || 0) + rewardCredits;
+      }
+    }
+
+    pushFeedback(`Contract completed: "${mission.title}". ${mission.reward} credited.`, "success");
+
+    // Check for reputation level-up
+    const agentId = mission.agentId || "unknown";
+    const rep = getAgentRepLevel(agentId);
+    const agent = MISSION_AGENTS.find(a => a.id === agentId);
+    const agentName = agent ? agent.name : "Agent";
+
+    // Show completion celebration overlay
+    showMissionCompleteOverlay(mission, rep, agentName);
+
     renderMissions(appState.data);
+    renderInventoryPanel();
+    updateAllViews();
   });
 
   // Exchange buy buttons

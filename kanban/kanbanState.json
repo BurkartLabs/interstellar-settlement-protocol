@@ -5,12 +5,6 @@
       "name": "To Do",
       "cards": [
         {
-          "id": "card-1776497108594-858754",
-          "title": "Mission Agents",
-          "description": "Implement the first mission agent, Logistics Agent Elara Voss ",
-          "comments": []
-        },
-        {
           "id": "card-1776497465819-237552",
           "title": "R&D Tree",
           "description": "Finish implementation of Tier 1 and Tier 2 research",
@@ -201,7 +195,7 @@
         {
           "id": "card-1776501399013-433948",
           "title": "Off-world Mining",
-          "description": "",
+          "description": "We need to move beyond Earth and allow ourselves to mine across the universe. We will start by expanding mining to each planetary body within the Sol system",
           "comments": []
         }
       ]
@@ -220,6 +214,12 @@
           "id": "card-1776500940898-961858",
           "title": "CEO Insigh Program",
           "description": "The CEO Insight Program, similar to Corporate R&D, is a research program which unlocks various benefits. However, unlike the Corporate R&D program, these benefits apply specifically to the “CEO”. Benefits like bonuses to mining rates, research time, employee morale, etc. Certain options under the CEO Insight Program will provide temporary benefits, rather than permanent bonuses.",
+          "comments": []
+        },
+        {
+          "id": "card-1776497108594-858754",
+          "title": "Mission Agents",
+          "description": "Implement the first mission agent, Logistics Agent Elara Voss ",
           "comments": []
         }
       ]

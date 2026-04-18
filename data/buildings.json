@@ -197,6 +197,20 @@
       "available": false
     },
     {
+      "id": "isa-contracting-assignments",
+      "name": "ISA Contracting & Assignments Bureau",
+      "shortName": "Assignments Bureau",
+      "faction": "Interstellar Settlement Authority",
+      "factionCode": "ISA",
+      "owner": "npc",
+      "category": "administrative",
+      "description": "The ISA's centralised contract operations facility. All registered mission agents maintain offices within this bureau. Corporations access field contracts, logistics assignments, and specialist operations through the agents stationed here.",
+      "flavor": "The Bureau does not post contracts on a wall. It assigns them through credentialed agents who evaluate your operational record before offering work. Walk in, find your agent, and ask what needs doing.",
+      "imageFile": "buildings/isa-assignments-bureau.png",
+      "action": "building:isa-contracting-assignments",
+      "available": true
+    },
+    {
       "id": "galactic-exchange-hub",
       "name": "Galactic Exchange Hub",
       "shortName": "Exchange Hub",

@@ -41,7 +41,9 @@ import {
   getEffectiveExchangeTaxRate,
   CEO_INSIGHT_LIBRARY,
   applyRefineryOperations,
-  REFINERY_CHAINS
+  REFINERY_CHAINS,
+  MISSION_TEMPLATES,
+  refreshContractOfferings
 } from "./gameState.js";
 
 const RESEARCH_LIBRARY = {
@@ -1648,6 +1650,116 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
   res.json(account);
 });
 
+// ── Mission contract endpoints ──────────────────────────────
+
+app.post("/api/accounts/:accountId/gameplay/accept-mission", (req, res) => {
+  const missionId = String(req.body?.missionId || "").trim();
+  if (!missionId) return res.status(400).json({ error: "Missing missionId." });
+
+  let outcome = "ok";
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    if (!Array.isArray(state.corp.activeMissions)) state.corp.activeMissions = [];
+    if (state.corp.activeMissions.some((m) => m.id === missionId)) { outcome = "already-active"; return; }
+
+    // Look up mission from the account's current contract offerings
+    const offerings = refreshContractOfferings(state.corp);
+    const mission = offerings.missions.find((m) => m.id === missionId);
+    if (!mission) {
+      // Also check the full template pool as fallback
+      const template = MISSION_TEMPLATES.find((m) => m.id === missionId);
+      if (!template) { outcome = "not-found"; return; }
+      state.corp.activeMissions.push({ ...template });
+    } else {
+      state.corp.activeMissions.push({ ...mission });
+      // Remove from current offerings so it can't be double-accepted
+      offerings.missions = offerings.missions.filter((m) => m.id !== missionId);
+    }
+  });
+
+  if (!account) return res.status(404).json({ error: "Account not found." });
+  if (outcome === "not-found") return res.status(400).json({ error: "Mission not found in current offerings." });
+  if (outcome === "already-active") return res.status(400).json({ error: "Mission already accepted." });
+  res.json(account);
+});
+
+app.post("/api/accounts/:accountId/gameplay/abandon-mission", (req, res) => {
+  const missionId = String(req.body?.missionId || "").trim();
+  if (!missionId) return res.status(400).json({ error: "Missing missionId." });
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    if (!Array.isArray(state.corp.activeMissions)) state.corp.activeMissions = [];
+    state.corp.activeMissions = state.corp.activeMissions.filter((m) => m.id !== missionId);
+  });
+
+  if (!account) return res.status(404).json({ error: "Account not found." });
+  res.json(account);
+});
+
+app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
+  const missionId = String(req.body?.missionId || "").trim();
+  if (!missionId) return res.status(400).json({ error: "Missing missionId." });
+
+  let outcome = "ok";
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    if (!Array.isArray(state.corp.activeMissions)) state.corp.activeMissions = [];
+    const mission = state.corp.activeMissions.find((m) => m.id === missionId);
+    if (!mission) { outcome = "not-active"; return; }
+    if (!mission.quota) { outcome = "no-quota"; return; }
+
+    const stationId = state.corp.currentStationId || "earth-station-prime";
+    if (!state.corp.inventory) state.corp.inventory = {};
+    if (!state.corp.inventory[stationId]) state.corp.inventory[stationId] = {};
+    const stationInv = state.corp.inventory[stationId];
+
+    const resource = mission.quota.resource || "";
+    const required = mission.quota.amount || 0;
+    const have = stationInv[resource] || 0;
+    if (have < required) { outcome = "insufficient"; return; }
+
+    // Deduct resources
+    stationInv[resource] = have - required;
+    if (stationInv[resource] <= 0) delete stationInv[resource];
+
+    // Credit reward
+    const rewardCredits = parseInt(String(mission.reward).replace(/[^0-9]/g, ""), 10);
+    if (rewardCredits) {
+      state.corp.credits = (state.corp.credits || 0) + rewardCredits;
+    }
+
+    // Remove from active
+    state.corp.activeMissions = state.corp.activeMissions.filter((m) => m.id !== missionId);
+
+    // Remove from current offerings so it doesn't reappear until next rotation
+    if (state.corp.contractOfferings && Array.isArray(state.corp.contractOfferings.missions)) {
+      state.corp.contractOfferings.missions = state.corp.contractOfferings.missions.filter((m) => m.id !== missionId);
+    }
+
+    // Record completion
+    if (!Array.isArray(state.corp.completedMissions)) state.corp.completedMissions = [];
+    state.corp.completedMissions.unshift({
+      id: mission.id,
+      title: mission.title,
+      type: mission.type,
+      agentId: mission.agentId || null,
+      reward: mission.reward,
+      completedAt: Date.now()
+    });
+    state.corp.completedMissions = state.corp.completedMissions.slice(0, 200);
+
+    // Update agent reputation
+    if (!state.corp.agentReputation || typeof state.corp.agentReputation !== "object") state.corp.agentReputation = {};
+    const agentId = mission.agentId || "unknown";
+    if (!state.corp.agentReputation[agentId]) state.corp.agentReputation[agentId] = { completedCount: 0 };
+    state.corp.agentReputation[agentId].completedCount += 1;
+  });
+
+  if (!account) return res.status(404).json({ error: "Account not found." });
+  if (outcome === "not-active") return res.status(400).json({ error: "Mission is not active." });
+  if (outcome === "no-quota") return res.status(400).json({ error: "Mission has no quota to complete." });
+  if (outcome === "insufficient") return res.status(400).json({ error: "Insufficient resources at this station." });
+  res.json(account);
+});
+
 app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
   const amount = Math.max(10, Number(req.body?.amount || 40));
   const requestedHours = Math.max(1, Math.min(72, Number(req.body?.hours || 24)));
@@ -2449,6 +2561,14 @@ if (!process.env.VERCEL) {
     // eslint-disable-next-line no-console
     console.log(`ISP prototype server running on http://localhost:${port}`);
   });
+
+  // Flush pending debounced saves on graceful shutdown (e.g. node --watch restart)
+  function onShutdown() {
+    saveAccountsNow();
+    process.exit(0);
+  }
+  process.on("SIGTERM", onShutdown);
+  process.on("SIGINT", onShutdown);
 }
 
 export default app;
