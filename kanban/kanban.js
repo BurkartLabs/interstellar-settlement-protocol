@@ -109,10 +109,6 @@ function createCardElement(card, colId, colIdx, state, render) {
         if (name) {
           const b = document.createElement('b');
           b.textContent = name + ': ';
-            const boardButtons = document.getElementById('kanban-board-buttons');
-            boardButtons.innerHTML = '';
-            const columnsRow = document.createElement('div');
-            columnsRow.className = 'kanban-board';
           p.appendChild(b);
         }
         p.appendChild(document.createTextNode(text));
@@ -171,7 +167,6 @@ function createCardElement(card, colId, colIdx, state, render) {
           <input type="text" id="kanban-modal-add-comment-input" maxlength="200" placeholder="Add a comment..." autocomplete="off" />
           <button type="button" id="kanban-modal-add-comment-btn">Add</button>
         </div>
-            app.appendChild(columnsRow);
       </div>
     `;
     const closeModal = showKanbanModal(modalHtml, null);
@@ -237,38 +232,12 @@ function createCardElement(card, colId, colIdx, state, render) {
     };
   });
   // Add comment (now only in modal)
-  // Drag & drop for intra-column reordering
+  // Drag & drop
   cardDiv.ondragstart = e => {
-    e.dataTransfer.setData('text/plain', JSON.stringify({card, colIdx, cardId: card.id}));
+    e.dataTransfer.setData('text/plain', JSON.stringify({card, colIdx}));
     setTimeout(() => cardDiv.classList.add('dragging'), 0);
   };
   cardDiv.ondragend = () => cardDiv.classList.remove('dragging');
-
-  cardDiv.ondragover = e => {
-    e.preventDefault();
-    cardDiv.classList.add('drag-over');
-  };
-  cardDiv.ondragleave = e => {
-    cardDiv.classList.remove('drag-over');
-  };
-  cardDiv.ondrop = e => {
-    e.preventDefault();
-    cardDiv.classList.remove('drag-over');
-    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-    if (data.cardId === card.id) return; // Don't drop onto itself
-    if (data.colIdx === colIdx) {
-      // Reorder within same column
-      const cards = state.columns[colIdx].cards;
-      const fromIdx = cards.findIndex(c => c.id === data.cardId);
-      const toIdx = cards.findIndex(c => c.id === card.id);
-      if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
-        const [moved] = cards.splice(fromIdx, 1);
-        cards.splice(toIdx, 0, moved);
-        saveState(state).then(render);
-      }
-    }
-    // else: handled by column drop for inter-column
-  };
   return cardDiv;
 }
 
@@ -280,13 +249,13 @@ function renderKanban(state) {
     colDiv.className = 'kanban-column';
     colDiv.innerHTML = `<div class="kanban-column-header">${col.name}</div>`;
     // Card list wrapper
-    const cardListDiv = document.createElement('div');
-    cardListDiv.className = 'kanban-card-list';
+    const cardList = document.createElement('div');
+    cardList.className = 'kanban-card-list';
     col.cards.forEach(card => {
-      cardListDiv.appendChild(createCardElement(card, col.id, colIdx, state, () => renderKanban(state)));
+      cardList.appendChild(createCardElement(card, col.id, colIdx, state, () => renderKanban(state)));
     });
-    colDiv.appendChild(cardListDiv);
-    // Add card button in a visually distinct footer
+    colDiv.appendChild(cardList);
+    // Add card
     const addBtn = document.createElement('button');
     addBtn.className = 'kanban-add-card-btn';
     addBtn.textContent = '+ Add Card';
@@ -314,15 +283,12 @@ function renderKanban(state) {
         }
       };
     };
-    const footer = document.createElement('div');
-    footer.className = 'kanban-column-footer';
-    footer.appendChild(addBtn);
-    colDiv.appendChild(footer);
-    // Drag & drop target for inter-column only
-    colDiv.ondragover = e => e.preventDefault();
-    colDiv.ondrop = e => {
+    colDiv.appendChild(addBtn);
+    // Drag & drop target
+    cardList.ondragover = e => e.preventDefault();
+    cardList.ondrop = e => {
       e.preventDefault();
-      const {card, colIdx: fromIdx, cardId} = JSON.parse(e.dataTransfer.getData('text/plain'));
+      const {card, colIdx: fromIdx} = JSON.parse(e.dataTransfer.getData('text/plain'));
       if (fromIdx !== colIdx) {
         // Remove by id, not object reference
         state.columns[fromIdx].cards = state.columns[fromIdx].cards.filter(c => c.id !== card.id);
