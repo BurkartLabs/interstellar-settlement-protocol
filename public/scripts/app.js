@@ -37,7 +37,6 @@ const appState = {
   _travelTimer: null,
   exchangeFilter: "",
   beltCompositions: {},
-  refineryStatus: null,
   inbox: {
     messages: [],
     folder: "inbox",          // active folder tab
@@ -54,8 +53,6 @@ const STORAGE_KEYS = {
   refreshToken: "isp.refreshToken",
   walkthroughOfferSeenPrefix: "isp.walkthrough-offer-seen:"
 };
-
-const LOGIN_PAGE_PATH = "/login.html";
 
 const IS_DEV_ACCESS =
   new URL(window.location.href).searchParams.get("dev") === "1" ||
@@ -2982,26 +2979,6 @@ function renderRefinery(data) {
   const catalog = document.getElementById("resource-catalog");
   catalog.innerHTML = RESOURCE_CATALOG.map((res) => `<span class="pill">${escapeHtml(res)}</span>`).join("");
 
-  const formatRefineryOutputs = (outputs) => {
-    if (!Array.isArray(outputs) || outputs.length === 0) {
-      return "Unknown";
-    }
-
-    return outputs.map((output) => {
-      if (typeof output === "string") {
-        return output;
-      }
-
-      if (!output || typeof output !== "object") {
-        return "Unknown";
-      }
-
-      const item = output.item || output.name || output.resource || "Unknown";
-      const quantity = output.quantityPerCycle ?? output.quantity ?? output.amount;
-      return Number.isFinite(Number(quantity)) ? `${Number(quantity)} ${item}` : String(item);
-    }).join(", ");
-  };
-
   const refineries = data.corp?.refineries || [];
   const corp = data.corp || {};
   const unlockedTech = new Set(data.corp?.unlockedTech || []);
@@ -3027,7 +3004,7 @@ function renderRefinery(data) {
       const chain = refineryChains.find((c) => c.id === ref.chainId);
       const progress = cycleProgressPercent(ref);
       const remainingMs = Math.max(0, Number(ref.endsAt || 0) - Date.now());
-      const outputLabel = chain ? formatRefineryOutputs(chain.outputs) : "Unknown";
+      const outputLabel = chain ? chain.outputs.map((o) => `${o.quantityPerCycle} ${o.item}`).join(", ") : "Unknown";
       return `
         <article class="queue-item">
           <h3>${escapeHtml(ref.name)}</h3>
@@ -3048,7 +3025,9 @@ function renderRefinery(data) {
   chainsEl.innerHTML = statusHtml + refineryChains
     .map((chain) => {
       const techGated = Array.isArray(chain.requiresTechIds) && !chain.requiresTechIds.every((t) => unlockedTech.has(t));
-      const outputLabel = formatRefineryOutputs(chain.outputs);
+      const outputLabel = Array.isArray(chain.outputs)
+        ? chain.outputs.map((o) => typeof o === "string" ? o : `${o.quantityPerCycle} ${o.item}`).join(", ")
+        : String(chain.outputs);
       const inputAvailable = Number(inventory[chain.input] || 0);
       const inputNeeded = chain.inputQuantityPerCycle || 0;
       const hasInput = inputAvailable >= inputNeeded;
@@ -3183,73 +3162,6 @@ function renderRefinery(data) {
       }
     }
   };
-}
-
-// ─── Expeditions (Asteroid Mining) ───────────────────────────────────────────
-function renderExpeditions(data) {
-  const container = document.getElementById("expedition-panel");
-  if (!container) return;
-
-  const am = data?.corp?.asteroidMining || {};
-  const active = am.activeExpeditions || [];
-  const completed = (am.completedExpeditions || []).slice(-5).reverse();
-  const hasProspecting = (data?.corp?.unlockedTech || []).includes("tt-asteroid-prospecting");
-
-  if (!hasProspecting) {
-    container.innerHTML = `<p class="muted">Research <em>Asteroid Prospecting Arrays</em> to unlock mining expeditions.</p>`;
-    container.hidden = false;
-    return;
-  }
-
-  const probeCount = am.probeCount || 0;
-  const maxProbes = am.maxProbes || 2;
-  const maxDeploy = am.maxDeployments || 1;
-
-  let html = `<div class="expedition-summary">
-    <span>Probes: <strong>${probeCount}/${maxProbes}</strong></span>
-    <span style="margin-left:1rem;">Deployments: <strong>${active.length}/${maxDeploy}</strong></span>
-  </div>`;
-
-  if (active.length > 0) {
-    html += `<h4 style="margin-top:0.75rem;">Active Expeditions</h4>`;
-    for (const exp of active) {
-      const elapsed = Date.now() - exp.deployedAt;
-      const total = exp.completesAt - exp.deployedAt;
-      const pct = Math.min(100, Math.max(0, (elapsed / total) * 100));
-      const remainMs = Math.max(0, exp.completesAt - Date.now());
-      const yieldEntries = Object.entries(exp.yields || {});
-      const yieldText = yieldEntries.length ? yieldEntries.map(([resource, quantity]) => `${quantity} ${resource}`).join(", ") : "Scanning...";
-      const beltLabel = exp.beltKey || "Unknown Belt";
-      html += `<div class="expedition-card">
-        <div class="expedition-card-header">
-          <span class="expedition-belt-label">${escapeHtml(beltLabel)}</span>
-          <span class="muted" style="font-size:0.78rem;">${escapeHtml(exp.duration || "standard")} — ${formatDuration(remainMs)} remaining</span>
-        </div>
-        <div class="progress-wrap"><div class="progress-bar expedition-bar" style="width:${pct.toFixed(1)}%"></div></div>
-        <p class="muted expedition-yields">Yields: ${escapeHtml(yieldText)}</p>
-      </div>`;
-    }
-  }
-
-  if (completed.length > 0) {
-    html += `<h4 style="margin-top:0.75rem;">Recent Returns</h4>`;
-    for (const exp of completed) {
-      const yieldEntries = Object.entries(exp.yields || {});
-      const yieldText = yieldEntries.length ? yieldEntries.map(([resource, quantity]) => `${quantity} ${resource}`).join(", ") : "None";
-      html += `<div class="expedition-card completed">
-        <span class="expedition-belt-label">${escapeHtml(exp.beltKey || "")}</span>
-        <span class="muted" style="font-size:0.78rem;">${escapeHtml(exp.duration || "standard")} — Completed</span>
-        <p class="muted expedition-yields">Total yield: ${escapeHtml(yieldText)}</p>
-      </div>`;
-    }
-  }
-
-  if (active.length === 0 && completed.length === 0) {
-    html += `<p class="muted">No expeditions yet. Launch probes from the Starmap asteroid belt view.</p>`;
-  }
-
-  container.innerHTML = html;
-  container.hidden = false;
 }
 
 // ─── Assets ──────────────────────────────────────────────────────────────────

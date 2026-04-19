@@ -193,33 +193,22 @@
       "name": "Doing",
       "cards": [
         {
-          "id": "card-1776498010969-496254",
-          "title": "Asteroid Mining",
-          "description": "Add the ability for players to launch mining operations targeting local asteroid belts",
-          "comments": []
-        },
-        {
-          "id": "card-1776501399013-433948",
-          "title": "Off-world Mining",
-          "description": "We need to move beyond Earth and allow ourselves to mine across the universe. We will start by expanding mining to each planetary body within the Sol system",
-          "comments": []
-        },
-        {
           "id": "card-1776555950944-656642",
           "title": "Add Detailed Planetary Models for All \"Active\" Systems",
           "description": "Currently we only have detailed planet models for Earth, Luna, and Mars. We'll expand this to the rest of the Sol system as well as Alpha Centauri and Bernard's Star.",
           "comments": []
         },
-        {
-          "id": "card-1776556443277-245504",
-          "title": "Remove Local Account Data (accounts.json)",
-          "description": "Up until this point we have been relying on a massive accounts.json data file which stores all parameters affecting the dummy account. We are now going to remove this and rely solely on our supabase integration.",
-          "comments": []
-        },
+
         {
           "id": "card-1776564107315-241750",
           "title": "Add Different Backgrounds for Different Stations",
           "description": "Currently, the background in the Executive Suites, Lease division, and exchange, are the same no matter what station we are in. It'd look better if we changed it up a bit",
+          "comments": []
+        },
+        {
+          "id": "card-1776570840154-392066",
+          "title": "Bug Sweep",
+          "description": "There are currently a lot of bugs present throughout the application. Do a sweep to ensure that all of the bugs are fixed.",
           "comments": []
         }
       ]
@@ -244,6 +233,18 @@
           "id": "card-1776497108594-858754",
           "title": "Logistics Mission Agent",
           "description": "Implement the first mission agent, Logistics Agent Elara Voss ",
+          "comments": []
+        },
+        {
+          "id": "card-1776498010969-496254",
+          "title": "Asteroid Mining",
+          "description": "Add the ability for players to launch mining operations targeting local asteroid belts",
+          "comments": []
+        },
+        {
+          "id": "card-1776501399013-433948",
+          "title": "Off-world Mining",
+          "description": "We need to move beyond Earth and allow ourselves to mine across the universe. We will start by expanding mining to each planetary body within the Sol system",
           "comments": []
         }
       ]

@@ -1,3 +1,4 @@
+import "./loadEnv.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +9,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dataDir = path.join(__dirname, "..", "data");
 const statePath = path.join(dataDir, "state.json");
-const accountsPath = path.join(dataDir, "accounts.json");
 const milestonesPath = path.join(dataDir, "milestones.json");
 const PASSWORD_SALT_ROUNDS = 10;
 const IS_SERVERLESS = Boolean(process.env.VERCEL);
@@ -354,6 +354,7 @@ function ensureCorpMiningModel(corp) {
       throughputPerHour: 0,
       operationCostPerHour: 0,
       totalMined: 0,
+      minedRemainder: 0,
       totalSpent: 0,
       lastCompletedAt: null,
       downtimeActive: false,
@@ -386,6 +387,7 @@ function ensureCorpMiningModel(corp) {
       throughputPerHour: throughput,
       operationCostPerHour: operationCost,
       totalMined: Number(extractor.totalMined || 0),
+      minedRemainder: Math.max(0, Number(extractor.minedRemainder || 0)),
       totalSpent: Number(extractor.totalSpent || 0),
       lastCompletedAt: extractor.lastCompletedAt ?? null,
       leaseId: extractor.leaseId ?? null,
@@ -408,6 +410,7 @@ function ensureCorpMiningModel(corp) {
     throughputPerHour: 0,
     operationCostPerHour: 0,
     totalMined: 0,
+    minedRemainder: 0,
     totalSpent: 0,
     lastCompletedAt: null
   };
@@ -518,7 +521,9 @@ export function applyMiningOperations(corp, now = Date.now()) {
       affordabilityRatio = Math.max(0, Math.min(1, byCredits));
     }
 
-    const actualMined = Math.floor(projectedMined * affordabilityRatio);
+    const minedWithCarry = projectedMined * affordabilityRatio + Math.max(0, Number(extractor.minedRemainder || 0));
+    const actualMined = Math.floor(minedWithCarry);
+    extractor.minedRemainder = minedWithCarry - actualMined;
     const actualCost = Math.round(projectedCost * affordabilityRatio);
 
     if (actualCost > 0) {
@@ -1430,6 +1435,7 @@ async function persistAccountsStoreToSupabase(snapshot = accountsStore) {
 
 async function hydrateAccountsStoreFromSupabaseOrFallback(fallbackStore) {
   if (!USE_SUPABASE || !supabaseAdmin) {
+    console.warn("[accounts] Supabase disabled at startup; using seeded in-memory account store.");
     return fallbackStore;
   }
 
@@ -1443,6 +1449,7 @@ async function hydrateAccountsStoreFromSupabaseOrFallback(fallbackStore) {
     }
 
     if (!Array.isArray(accountRows) || accountRows.length === 0) {
+      console.error("[accounts] Failed to load any rows from the Supabase accounts table; seeding fallback store into Supabase.");
       await persistAccountsStoreToSupabase(fallbackStore);
       return fallbackStore;
     }
@@ -1460,7 +1467,14 @@ async function hydrateAccountsStoreFromSupabaseOrFallback(fallbackStore) {
     const seedState = normalizeStateShape(getSeedState());
 
     for (const row of accountRows) {
-      const rawState = stateByAccountId.get(row.id) || createStarterCorporationState(seedState, "New CEO", "Frontier Protocol Ventures");
+      const hasStateRow = stateByAccountId.has(row.id);
+      if (!hasStateRow) {
+        console.error(`[accounts] Failed to load account_state.state_json for account ${row.id}; using generated starter state fallback.`);
+      }
+
+      const rawState = hasStateRow
+        ? stateByAccountId.get(row.id)
+        : createStarterCorporationState(seedState, "New CEO", "Frontier Protocol Ventures");
       const parsed = splitAccountStateAndMeta(rawState);
       parsed.state.playerProfile.walkthroughCompleted = Boolean(row.walkthrough_completed);
       evaluateLevelProgress(parsed.state);
@@ -1479,6 +1493,11 @@ async function hydrateAccountsStoreFromSupabaseOrFallback(fallbackStore) {
       };
     }
 
+    if (!stateByAccountId.size) {
+      console.error("[accounts] account_state query returned zero rows; all hydrated accounts are using fallback state.");
+    }
+
+    console.info(`[accounts] Hydrated ${accountRows.length} account(s) from Supabase.`);
     return hydrated;
   } catch (error) {
     console.error("[supabase] Failed to hydrate accounts store, using local fallback:", error?.message || error);
@@ -1486,124 +1505,37 @@ async function hydrateAccountsStoreFromSupabaseOrFallback(fallbackStore) {
   }
 }
 
-function ensureAccountsFile() {
-  if (!IS_SERVERLESS && !fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-
+/**
+ * Create a fresh in-memory seed accounts store with a dummy dev account.
+ * This is used as the initial/fallback store when Supabase has no data yet.
+ */
+function createSeedAccountsStore() {
   const seedState = normalizeStateShape(getSeedState());
-
-  if (!fs.existsSync(accountsPath)) {
-    const dummyState = createStarterCorporationState(seedState, "Test Director", "Protocol Sandbox Dynamics");
-    // Grant dummy account all research + nav techs for testing
-    dummyState.corp.unlockedTech = [
-      "tt-basic-extraction", "tt-industrial-safety", "tt-supply-forecast",
-      "tt-energy-routing", "tt-fleet-coordination",
-      "tt-proxima-navigation", "tt-deep-star-navigation"
-    ];
-    const seedAccounts = {
-      accounts: {
-        dummy: {
-          id: "dummy",
-          email: "dummy@isp.local",
-          passwordHash: bcrypt.hashSync("dummy-password", PASSWORD_SALT_ROUNDS),
-          createdAt: Date.now(),
-          refreshTokens: [],
-          notifications: [],
-          walkthroughCompleted: false,
-          state: dummyState
-        }
+  const dummyState = createStarterCorporationState(seedState, "Test Director", "Protocol Sandbox Dynamics");
+  // Grant dummy account all research + nav techs for testing
+  dummyState.corp.unlockedTech = [
+    "tt-basic-extraction", "tt-industrial-safety", "tt-supply-forecast",
+    "tt-energy-routing", "tt-fleet-coordination",
+    "tt-proxima-navigation", "tt-deep-star-navigation"
+  ];
+  return {
+    accounts: {
+      dummy: {
+        id: "dummy",
+        email: "dummy@isp.local",
+        passwordHash: bcrypt.hashSync("dummy-password", PASSWORD_SALT_ROUNDS),
+        createdAt: Date.now(),
+        refreshTokens: [],
+        notifications: [],
+        messages: [],
+        walkthroughCompleted: false,
+        state: dummyState
       }
-    };
-
-    if (!IS_SERVERLESS) {
-      safeWriteFile(accountsPath, JSON.stringify(seedAccounts, null, 2), "accounts init");
     }
-    return seedAccounts;
-  }
-
-  const raw = fs.readFileSync(accountsPath, "utf8");
-  const parsed = JSON.parse(raw);
-
-  if (!parsed.accounts || typeof parsed.accounts !== "object") {
-    parsed.accounts = {};
-  }
-
-  if (!parsed.accounts.dummy) {
-    const dummyState2 = createStarterCorporationState(seedState, "Test Director", "Protocol Sandbox Dynamics");
-    dummyState2.corp.unlockedTech = [
-      "tt-basic-extraction", "tt-industrial-safety", "tt-supply-forecast",
-      "tt-energy-routing", "tt-fleet-coordination",
-      "tt-proxima-navigation", "tt-deep-star-navigation"
-    ];
-    parsed.accounts.dummy = {
-      id: "dummy",
-      email: "dummy@isp.local",
-      passwordHash: bcrypt.hashSync("dummy-password", PASSWORD_SALT_ROUNDS),
-      createdAt: Date.now(),
-      refreshTokens: [],
-      notifications: [],
-      walkthroughCompleted: false,
-      state: dummyState2
-    };
-  }
-
-  Object.values(parsed.accounts).forEach((account) => {
-    if (!account.id) {
-      account.id = createId("acc");
-    }
-
-    account.email = String(account.email || "").toLowerCase();
-
-    if (!account.passwordHash) {
-      const legacyPassword = String(account.password || "dummy-password");
-      account.passwordHash = bcrypt.hashSync(legacyPassword, PASSWORD_SALT_ROUNDS);
-    }
-
-    if (account.password) {
-      delete account.password;
-    }
-
-    if (typeof account.createdAt !== "number") {
-      account.createdAt = Date.now();
-    }
-
-    if (!Array.isArray(account.refreshTokens)) {
-      account.refreshTokens = [];
-    }
-
-    if (!Array.isArray(account.notifications)) {
-      account.notifications = [];
-    }
-
-    if (!Array.isArray(account.messages)) {
-      account.messages = [];
-    }
-
-    account.state = normalizeStateShape(account.state || createStarterCorporationState(seedState, "New CEO", "Frontier Protocol Ventures"));
-    if (typeof account.walkthroughCompleted !== "boolean") {
-      account.walkthroughCompleted = Boolean(account.state.playerProfile?.walkthroughCompleted);
-    }
-    account.state.playerProfile.walkthroughCompleted = account.walkthroughCompleted;
-    evaluateLevelProgress(account.state);
-  });
-
-  // On startup: normalize dummy account state to pick up any new fields, but preserve
-  // all progress and active sessions. Progress and tokens are only reset on explicit request.
-  if (parsed.accounts.dummy) {
-    if (parsed.accounts.dummy.state) {
-      parsed.accounts.dummy.state = normalizeStateShape(parsed.accounts.dummy.state);
-      evaluateLevelProgress(parsed.accounts.dummy.state);
-    }
-  }
-
-  if (!IS_SERVERLESS) {
-    safeWriteFile(accountsPath, JSON.stringify(parsed, null, 2), "accounts normalize");
-  }
-  return parsed;
+  };
 }
 
-let accountsStore = await hydrateAccountsStoreFromSupabaseOrFallback(ensureAccountsFile());
+let accountsStore = await hydrateAccountsStoreFromSupabaseOrFallback(createSeedAccountsStore());
 
 function scheduleSave() {
   if (IS_SERVERLESS) {
@@ -1623,57 +1555,35 @@ function scheduleSave() {
 let _persistDirty = false;
 
 function scheduleAccountsSave() {
-  if (USE_SUPABASE) {
-    if (IS_SERVERLESS) {
-      // On serverless, just mark dirty — the flush middleware will persist before responding
-      _persistDirty = true;
-      return;
-    }
-
-    // Non-serverless: debounce as before
-    if (accountsSaveTimer) {
-      clearTimeout(accountsSaveTimer);
-    }
-
-    accountsSaveTimer = setTimeout(() => {
-      persistAccountsStoreToSupabase().catch((error) => {
-        console.error("[supabase] Failed to persist account snapshot:", error?.message || error);
-      });
-      accountsSaveTimer = null;
-    }, 300);
-    return;
-  }
+  if (!USE_SUPABASE) return; // No persistence without Supabase
 
   if (IS_SERVERLESS) {
+    // On serverless, just mark dirty — the flush middleware will persist before responding
+    _persistDirty = true;
     return;
   }
 
+  // Non-serverless: debounce Supabase writes
   if (accountsSaveTimer) {
     clearTimeout(accountsSaveTimer);
   }
 
   accountsSaveTimer = setTimeout(() => {
-    safeWriteFile(accountsPath, JSON.stringify(accountsStore, null, 2), "accounts save");
+    persistAccountsStoreToSupabase().catch((error) => {
+      console.error("[supabase] Failed to persist account snapshot:", error?.message || error);
+    });
     accountsSaveTimer = null;
   }, 300);
 }
 
 export async function saveAccountsNow() {
-  if (USE_SUPABASE) {
-    _persistDirty = false;
-    await persistAccountsStoreToSupabase();
-    return;
-  }
-
-  if (IS_SERVERLESS) {
-    return;
-  }
-
+  if (!USE_SUPABASE) return; // No persistence without Supabase
+  _persistDirty = false;
   if (accountsSaveTimer) {
     clearTimeout(accountsSaveTimer);
     accountsSaveTimer = null;
   }
-  safeWriteFile(accountsPath, JSON.stringify(accountsStore, null, 2), "accounts save immediate");
+  await persistAccountsStoreToSupabase();
 }
 
 export async function flushPendingPersist() {

@@ -16,7 +16,7 @@ Each version represents a meaningful, playable milestone. Items marked [x] are c
 - [x] Station tab — Earth Station Prime with NPC building grid (16 buildings, faction badges, coming-soon states)
 - [x] Orbital Executive Suites — first accessible building; rent-office flow with milestone tracking (`corp.officeRented`), office status view, in-office hire form, ISA lease placeholder
 
-## Version 0.2 — Current
+## Version 0.2
 
 - [x] Starting credits: **$250,000** (currently $150,000 in code — needs correction)
 - [x] Starting assets: $0
@@ -37,7 +37,7 @@ Each version represents a meaningful, playable milestone. Items marked [x] are c
 - [x] Server-side R&D queue auto-completion — server tick scans `queues.corporateRnD`, computes elapsed time from `startedAt + durationHours`, marks completions, applies tech effects to authoritative state, emits websocket and notification events
 - [x] Interactive walkthrough — guided first-session onboarding following the sequence in NEW_PLAYER_EXPERIENCE.md
 
-## Version 0.3 — Tier 1 Research, Refinery Chains, Asteroid Mining, Missions
+## Version 0.3 — Current — Tier 1 Research, Refinery Chains, Asteroid Mining, Missions
 
 - [x] Full Corporate R&D tree (all Tier 1 and Tier 2 nodes) with effects applied to live gameplay values
 - [x] CEO Insight Program — full node library, queue processing, and bonus application (morale, negotiation, charisma, leadership)
@@ -47,7 +47,7 @@ Each version represents a meaningful, playable milestone. Items marked [x] are c
 - [x] Asteroid mining — off-world extraction ops tied to specific starmap bodies
 - [x] System access gated by corporation level
 - [x] 1st Mission Agent - Logistics 
-- [ ] Remove the requirement for Accounts.json and rely on supabase integration 
+- [x] Remove the requirement for Accounts.json and rely on supabase integration 
 
 ## Version 0.4 — Testing Automation, Publishable MVP, Station Building
 

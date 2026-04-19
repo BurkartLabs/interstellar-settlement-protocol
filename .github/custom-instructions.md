@@ -253,7 +253,7 @@ Combined with the investment system (where players can buy equity stakes in othe
 
 **Use these instructions as the single source of truth unless specifically asked to violate something in this document** when generating or modifying any part of the project.
 
-**Important:** Never manually edit `data/accounts.json` while the server is running. The server periodically persists game state to this file and will overwrite any manual changes. Stop the server first, make your edits, then restart.
+**Important:** Account data is persisted to Supabase. The in-memory account store is hydrated from Supabase at startup and periodically flushed back. Do not modify Supabase rows while the server is running unless you also trigger a rehydration.
 
 `DEVELOPMENT_PHASES.md` should always be included in the context of any command or code change made to this project.
 

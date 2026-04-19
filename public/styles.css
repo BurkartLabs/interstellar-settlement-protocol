@@ -900,6 +900,10 @@ h1 {
   z-index: 20;
 }
 
+#game-shell {
+  height:100vh;
+}
+
 .header-actions {
   display: flex;
   align-items: stretch;

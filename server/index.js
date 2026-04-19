@@ -1,3 +1,4 @@
+import "./loadEnv.js";
 import express from "express";
 import kanbanRouter from "./kanban.js";
 import fs from "node:fs";

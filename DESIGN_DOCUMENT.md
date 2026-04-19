@@ -17,7 +17,7 @@ A browser-based, text-heavy multiplayer sci-fi corporate strategy game set in 21
 | Runtime | Node.js (ESM, `"type": "module"`) |
 | Server | Express 4 + `http.createServer` + Socket.io 4 |
 | Auth | JWT (access + refresh tokens) + bcryptjs password hashing |
-| Persistence | Flat JSON files: `data/accounts.json` (per-player), `data/state.json` (global market/world) |
+| Persistence | Supabase (per-player accounts & state), `data/state.json` (global market/world) |
 | Frontend | Vanilla JS (ES modules), no framework, no bundler |
 | Charts | Chart.js 4 (CDN) |
 | Starmap | Custom canvas renderer (`starmap.js`) |
@@ -33,7 +33,6 @@ server/
   index.js        — Express routes, Socket.io, all gameplay API endpoints
   gameState.js    — In-memory store, all data mutation functions, persistence scheduling
 data/
-  accounts.json   — All player accounts + per-corp game state
   state.json      — Global world state (market, chat logs, combat reports, systems)
   stations.json   — Station registry (Earth Station Prime, etc.)
   buildings.json  — Building catalogue (16 NPC + player types)
@@ -53,9 +52,7 @@ public/
 
 ## Server Architecture (`server/gameState.js`)
 
-**In-memory store** — entire `accounts.json` and `state.json` are loaded at startup into module-level objects (`accountsStore`, `globalState`). All reads/writes happen in-memory; a debounced `scheduleAccountsSave()` / `scheduleSave()` flushes to disk.
-
-**Critical implication**: any direct file edit while the server is running will be overwritten by the next save tick. Always stop the server before editing JSON data files.
+**In-memory store** — account data is hydrated from Supabase at startup into `accountsStore`; `state.json` is loaded into `globalState`. All reads/writes happen in-memory; a debounced `scheduleAccountsSave()` persists to Supabase and `scheduleSave()` flushes global state to disk.
 
 ### Key Functions
 
@@ -311,7 +308,7 @@ Server-side auto-completion (marking done and applying effects) is not yet imple
 
 | Issue | Status |
 |---|---|
-| "Lease Expires" shows Unknown after server restart | Root cause: server overwrites accounts.json from in-memory state on startup. Fix: stop server → edit file → restart. |
+| "Lease Expires" shows Unknown after server restart | Root cause: in-memory state may lag behind Supabase on restart. Investigate hydration timing. |
 | Financial charts show fake/placeholder data | By design for now; tracked for v0.4 |
 | R&D queue completion is client-display-only | Server-side auto-completion not yet implemented |
 | `rentedUntil` lapse enforcement not implemented | Office benefits not locked when lease expires |
@@ -336,7 +333,7 @@ See `DEVELOPMENT_PHASES.md` for the full version-by-version plan.
 |---|---|
 | 0.1 | Core systems — auth, mining, exchange, station, R&D ✅ |
 | 0.2 | Walkthrough, office rental, mining leases, downtime, exchange, persistent accounts ✅ |
-| 0.3 | Full R&D tree, CEO Insight, refinery chains, asteroid mining, missions |
+| 0.3 | Full R&D tree, CEO Insight, refinery chains, asteroid mining, missions ✅ |
 | 0.4 | Publishable MVP — full building catalogue, financial statements, real chart data, bonds, loans |
 | 0.5 | Energy and metals (He-3, nickel-iron, rare metals) |
 | 0.6 | Warfare — attack/defense, fleet, station raiding |

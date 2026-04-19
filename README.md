@@ -89,8 +89,8 @@ For the background, factions, and world history behind ISP, see [LORE.md](LORE.m
 
 See [DEVELOPMENT_PHASES.md](DEVELOPMENT_PHASES.md) for the full version-by-version plan from current prototype to v1.0 public release.
 
-**Current version:** `0.1` (prototype — core systems functional)  
-**Next milestone:** `0.2` — walkthrough, refined economy, persistent accounts, market matching engine
+**Current version:** `0.3` (R&D tree, CEO Insight, refinery chains, asteroid mining, missions, Supabase persistence)  
+**Next milestone:** `0.4` — Testing Automation, Publishable MVP, Station Building
 
 ---
 
@@ -126,7 +126,7 @@ npm start
 
 Then open [http://localhost:3000](http://localhost:3000).
 
-A demo account is available at the login screen. You can also register a real account — all data is persisted in `data/accounts.json` and `data/state.json` locally.
+A demo account is available at the login screen. You can also register a real account — all account data is persisted in Supabase; global world state is stored in `data/state.json` locally.
 
 ---
 
@@ -148,7 +148,6 @@ public/
 
 data/
   state.json      — Auto-generated global game state (market, world, forums)
-  accounts.json   — Auto-generated player account store (⚠️ do not edit while server is running — it will be overwritten)
   buildings.json  — NPC building definitions for station districts
   milestones.json — Milestone definitions for level progression
 ```
