@@ -36,6 +36,7 @@ const appState = {
   stationActiveLease: null,
   _travelTimer: null,
   exchangeFilter: "",
+  beltCompositions: {},
   inbox: {
     messages: [],
     folder: "inbox",          // active folder tab
@@ -140,6 +141,44 @@ const techTree = [
     costCredits: 12000,
     prereqs: ["tt-containment-physics"],
     tier: 3
+  },
+  {
+    id: "tt-proxima-navigation",
+    name: "Near-Star Navigation Array",
+    effect: "Enables travel to Alpha Centauri and Barnard's Star",
+    durationHours: 8,
+    costCredits: 10000,
+    prereqs: ["tt-fleet-coordination"],
+    tier: 2,
+    requiresCorpLevel: 5
+  },
+  {
+    id: "tt-deep-star-navigation",
+    name: "Deep-Star Cartography Suite",
+    effect: "Enables travel to all charted star systems",
+    durationHours: 14,
+    costCredits: 20000,
+    prereqs: ["tt-proxima-navigation"],
+    tier: 3,
+    requiresCorpLevel: 10
+  },
+  {
+    id: "tt-assembly-fabrication",
+    name: "Assembly & Fabrication Systems",
+    effect: "Unlocks Assembly Facility construction",
+    durationHours: 6,
+    costCredits: 5000,
+    prereqs: ["tt-energy-routing"],
+    tier: 2
+  },
+  {
+    id: "tt-asteroid-prospecting",
+    name: "Asteroid Prospecting Arrays",
+    effect: "Unlocks Mining Probe fabrication",
+    durationHours: 8,
+    costCredits: 8000,
+    prereqs: ["tt-assembly-fabrication", "tt-supply-forecast"],
+    tier: 2
   }
 ];
 
@@ -280,7 +319,24 @@ const starmap = createStarmapController({
   isBodyScouted(systemId, bodyId) {
     return appState.scoutedBodies.has(`${systemId}:${bodyId}`);
   },
-  async onTravelToStation(stationId) {
+  async onTravelToSystem(systemId) {
+    if (!appState.accountId) return;
+    try {
+      const response = await apiFetch(
+        `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/travel`,
+        { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ toSystemId: systemId }) }
+      );
+      const account = await parseJsonResponse(response);
+      appState.data = deepClone(account.state);
+      appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+      updateAllViews();
+      setTab("travel");
+    } catch (err) {
+      pushFeedback(err.message || "Interstellar travel request failed.", "warn");
+    }
+  },
+  async onDockAtStation(stationId) {
     if (!appState.accountId) return;
     try {
       const response = await apiFetch(
@@ -294,7 +350,40 @@ const starmap = createStarmapController({
       updateAllViews();
       setTab("travel");
     } catch (err) {
-      pushFeedback(err.message || "Travel request failed.", "warn");
+      pushFeedback(err.message || "Docking request failed.", "warn");
+    }
+  },
+  async onScoutBelt(systemId, bodyId, beltKey) {
+    if (!appState.accountId) return;
+    try {
+      const response = await apiFetch(
+        `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/scout-belt`,
+        { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beltKey }) }
+      );
+      const account = await parseJsonResponse(response);
+      appState.data = deepClone(account.state);
+      await refreshBeltCompositions();
+      updateAllViews();
+      pushFeedback(`Asteroid belt scouted: ${beltKey}`, "ok");
+    } catch (err) {
+      pushFeedback(err.message || "Belt scouting failed.", "warn");
+    }
+  },
+  async onLaunchExpedition(beltKey, duration) {
+    if (!appState.accountId) return;
+    try {
+      const response = await apiFetch(
+        `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/launch-expedition`,
+        { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beltKey, duration }) }
+      );
+      const account = await parseJsonResponse(response);
+      appState.data = deepClone(account.state);
+      updateAllViews();
+      pushFeedback("Mining expedition launched!", "ok");
+    } catch (err) {
+      pushFeedback(err.message || "Expedition launch failed.", "warn");
     }
   }
 });
@@ -420,6 +509,17 @@ function deepClone(input) {
     return structuredClone(input);
   }
   return JSON.parse(JSON.stringify(input));
+}
+
+async function refreshBeltCompositions() {
+  if (!appState.accountId) return;
+  try {
+    const res = await apiFetch(
+      `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/belt-compositions`
+    );
+    const data = await parseJsonResponse(res);
+    appState.beltCompositions = data.compositions || {};
+  } catch (_) { /* silent */ }
 }
 
 // ─── Trade confirmation modal ────────────────────────────────────────────────
@@ -1024,7 +1124,7 @@ function updateCorpIdentity(data) {
 
   const milestones = document.getElementById("milestone-list");
   if (milestones) {
-    milestones.innerHTML = corp.milestoneRoadmap
+    milestones.innerHTML = MILESTONE_ROADMAP
       .map((item) => {
         const done = corp.milestonesCompleted.includes(item);
         return `
@@ -1298,7 +1398,6 @@ function bindOfficeActions(building, data) {
             tier: station?.tier || 1,
             rentedAt: Date.now()
           });
-          appState.data.corp.officeRented = true;
           updateAllViews();
           showStationBuilding(building.id);
         }
@@ -1422,7 +1521,7 @@ function renderISAClaimsLeases(building, data) {
     <p class="building-flavor">${escapeHtml(building.flavor)}</p>
   `;
 
-  const hasOffice = Boolean(corp?.officeRented || (corp?.offices || []).length > 0);
+  const hasOffice = Boolean((corp?.offices || []).length > 0);
   const EMPLOYEES_PER_LEASE = 5;
   const totalLeaseCount = allLeases.length;
   const requiredForNext = (totalLeaseCount + 1) * EMPLOYEES_PER_LEASE;
@@ -1861,12 +1960,18 @@ function isPlayerTraveling(data) {
   return Boolean(travel && travel.arrivesAt);
 }
 
+function isPlayerInSpace(data) {
+  return !data?.corp?.currentStationId && !isPlayerTraveling(data);
+}
+
 function enforceTravelTabLockdown(data) {
   const traveling = isPlayerTraveling(data);
+  const inSpace = isPlayerInSpace(data);
+  const showTravelTab = traveling || inSpace;
   const travelTabBtn = document.querySelector('.tab-btn[data-tab="travel"]');
 
   // Show/hide the Travel tab button
-  if (travelTabBtn) travelTabBtn.hidden = !traveling;
+  if (travelTabBtn) travelTabBtn.hidden = !showTravelTab;
 
   // Enable/disable tabs
   tabButtons.forEach((btn) => {
@@ -1888,6 +1993,19 @@ function enforceTravelTabLockdown(data) {
       setTab("travel");
     }
   }
+
+  // If in space (just arrived in system), switch to travel to show docking options
+  if (inSpace) {
+    const activeTab = document.querySelector(".tab-btn.active");
+    const activeId = activeTab?.dataset?.tab;
+    if (activeId === "station") {
+      setTab("travel");
+    }
+  }
+}
+
+function formatSystemLabel(systemId) {
+  return (systemId || "").replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function renderTravelPage(data) {
@@ -1896,34 +2014,107 @@ function renderTravelPage(data) {
 
   const travel = data.corp?.travel;
   if (!travel || !travel.arrivesAt) {
+    // Not traveling — check if player is in space (not docked)
+    const stationId = data.corp?.currentStationId;
+    const systemId = data.corp?.currentSystemId || "sol";
+    if (!stationId) {
+      // In space — show system arrival / docking options
+      const systemStations = (appState.stationRegistry || []).filter(s => s.systemId === systemId);
+      const stationButtons = systemStations.map(s =>
+        `<button class="btn btn-accent travel-dock-btn" data-station-id="${escapeHtml(s.id)}" style="margin:0.3rem;">${escapeHtml(s.name)}<br><span class="muted" style="font-size:0.72rem;">${escapeHtml(s.body)} — ${escapeHtml(s.designation)}</span></button>`
+      ).join("");
+
+      container.innerHTML = `
+        <div class="travel-page-outer">
+          <div class="travel-page-card">
+            <p class="overline travel-page-overline">NAVIGATION COMPUTER</p>
+            <h2 class="travel-page-heading">In Open Space</h2>
+            <p class="travel-system-label">${escapeHtml(formatSystemLabel(systemId))} System</p>
+            <p class="muted" style="margin:1rem 0 1.5rem;font-size:0.85rem;">Your ship is in open space. Select a station to initiate docking approach.</p>
+            <div class="travel-dock-options">${stationButtons || '<p class="muted">No stations found in this system.</p>'}</div>
+          </div>
+        </div>
+      `;
+
+      container.querySelectorAll(".travel-dock-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const sid = btn.getAttribute("data-station-id");
+          if (!sid || !appState.accountId) return;
+          try {
+            const response = await apiFetch(
+              `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/travel`,
+              { method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ toStationId: sid }) }
+            );
+            const account = await parseJsonResponse(response);
+            appState.data = deepClone(account.state);
+            appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+            updateAllViews();
+            setTab("travel");
+          } catch (err) {
+            pushFeedback(err.message || "Docking request failed.", "warn");
+          }
+        });
+      });
+
+      clearTravelTimer();
+      return;
+    }
+
     container.innerHTML = `<p class="muted">You are not currently in transit.</p>`;
     clearTravelTimer();
     return;
   }
 
-  const dest = appState.stationRegistry.find((s) => s.id === travel.toStationId);
-  const from = appState.stationRegistry.find((s) => s.id === travel.fromStationId);
-  const totalMs = travel.arrivesAt - travel.departedAt;
+  const isInterstellar = travel.travelType === "interstellar";
   const remaining = Math.max(0, travel.arrivesAt - Date.now());
+
+  let originHtml, destHtml, heading, overline;
+
+  if (isInterstellar) {
+    const fromLabel = formatSystemLabel(travel.fromSystemId);
+    const toLabel = formatSystemLabel(travel.toSystemId);
+    overline = "INTERSTELLAR NAVIGATION";
+    heading = "Jump In Progress";
+    originHtml = `
+      <div class="travel-route-node">
+        <span class="travel-route-label">Origin System</span>
+        <span class="travel-route-station">${escapeHtml(fromLabel)}</span>
+      </div>`;
+    destHtml = `
+      <div class="travel-route-node">
+        <span class="travel-route-label">Destination System</span>
+        <span class="travel-route-station">${escapeHtml(toLabel)}</span>
+      </div>`;
+  } else {
+    const from = appState.stationRegistry.find((s) => s.id === travel.fromStationId);
+    const dest = appState.stationRegistry.find((s) => s.id === travel.toStationId);
+    overline = "NAVIGATION COMPUTER";
+    heading = "Docking Approach";
+    originHtml = `
+      <div class="travel-route-node">
+        <span class="travel-route-label">Origin</span>
+        <span class="travel-route-station">${escapeHtml(from?.name || "Open Space")}</span>
+        <span class="travel-route-body">${escapeHtml(from?.body || "—")}</span>
+      </div>`;
+    destHtml = `
+      <div class="travel-route-node">
+        <span class="travel-route-label">Destination</span>
+        <span class="travel-route-station">${escapeHtml(dest?.name || travel.toStationId)}</span>
+        <span class="travel-route-body">${escapeHtml(dest?.body || "—")}</span>
+      </div>`;
+  }
 
   container.innerHTML = `
     <div class="travel-page-outer">
-      <div class="travel-page-card">
-        <p class="overline travel-page-overline">NAVIGATION COMPUTER</p>
-        <h2 class="travel-page-heading">In Transit</h2>
+      <div class="travel-page-card ${isInterstellar ? "travel-page-card--interstellar" : ""}">
+        <p class="overline travel-page-overline">${overline}</p>
+        <h2 class="travel-page-heading">${heading}</h2>
 
         <div class="travel-route">
-          <div class="travel-route-node">
-            <span class="travel-route-label">Origin</span>
-            <span class="travel-route-station">${escapeHtml(from?.name || travel.fromStationId)}</span>
-            <span class="travel-route-body">${escapeHtml(from?.body || "—")}, ${escapeHtml(from?.systemId?.toUpperCase() || "—")}</span>
-          </div>
-          <div class="travel-route-arrow">&#10140;</div>
-          <div class="travel-route-node">
-            <span class="travel-route-label">Destination</span>
-            <span class="travel-route-station">${escapeHtml(dest?.name || travel.toStationId)}</span>
-            <span class="travel-route-body">${escapeHtml(dest?.body || "—")}, ${escapeHtml(dest?.systemId?.toUpperCase() || "—")}</span>
-          </div>
+          ${originHtml}
+          <div class="travel-route-arrow">${isInterstellar ? "⟫" : "➔"}</div>
+          ${destHtml}
         </div>
 
         <div class="travel-progress-bar travel-progress-bar--large">
@@ -1931,12 +2122,16 @@ function renderTravelPage(data) {
         </div>
         <p class="travel-eta" id="travel-eta">ETA: ${formatDuration(remaining)}</p>
 
-        <p class="muted" style="margin-top:1.5rem;font-size:0.82rem;">Station services, R&amp;D operations, and market access are suspended during transit.<br/>Comms, Inbox, Forums, and the Starmap remain available.</p>
+        <p class="muted" style="margin-top:1.5rem;font-size:0.82rem;">
+          ${isInterstellar
+            ? "Interstellar jump drive engaged. All station services suspended until arrival."
+            : "Station services suspended during docking approach. Comms and Starmap remain available."
+          }
+        </p>
       </div>
     </div>
   `;
 
-  // Start/restart countdown timer
   clearTravelTimer();
   appState._travelTimer = setInterval(() => updateTravelProgress(travel), 1000);
   updateTravelProgress(travel);
@@ -1947,7 +2142,7 @@ function travelTimeBetween(fromStation, toStation) {
   if (!fromStation || !toStation) return 0;
   if (fromStation.body === toStation.body) return 1 * 60 * 1000;
   if (fromStation.systemId === toStation.systemId) return 1 * 60 * 1000;
-  return 2 * 60 * 60 * 1000;
+  return 1 * 60 * 1000;
 }
 
 function formatDuration(ms) {
@@ -1969,7 +2164,23 @@ function renderStation(data) {
   if (!header || !npcGrid || !playerGrid) return;
 
   const corp = data.corp || {};
-  const currentStationId = corp.currentStationId || "earth-station-prime";
+  const currentStationId = corp.currentStationId;
+
+  // If player is not docked, show an in-space message
+  if (!currentStationId) {
+    const systemId = corp.currentSystemId || "sol";
+    header.innerHTML = `
+      <p class="overline">IN OPEN SPACE</p>
+      <h2>${escapeHtml(formatSystemLabel(systemId))} System</h2>
+      <p class="muted lede">You are not docked at any station. Use the Travel tab or Starmap to dock at a station in this system.</p>
+    `;
+    npcGrid.innerHTML = "";
+    playerGrid.innerHTML = "";
+    if (travelBanner) travelBanner.hidden = true;
+    if (overviewView) overviewView.hidden = false;
+    return;
+  }
+
   const station = appState.stationRegistry.find((s) => s.id === currentStationId) || appState.stationRegistry[0];
 
   // Always show station content (travel lockdown handled by tab system now)
@@ -2017,23 +2228,135 @@ function renderStation(data) {
     .join("");
 
   const corpBuildings = (data.corp?.buildings || []).filter((b) => b.status === "Operational");
+  const hasAssemblyTech = (data.corp?.unlockedTech || []).includes("tt-assembly-fabrication");
+  const hasAssembly = corpBuildings.some((b) => b.name === "Assembly Facility");
+  const buildAssemblyHtml = (hasAssemblyTech && !hasAssembly)
+    ? `<article class="building-card data-card" style="border:1px dashed rgba(0,247,255,0.3);">
+         <header class="building-card-header"><span class="faction-code-badge corp-badge">NEW</span><h3>Assembly Facility</h3></header>
+         <p class="muted">Modular manufacturing bay for fabricating deployable units.</p>
+         <footer class="building-card-footer"><button id="build-assembly-btn" class="btn btn-accent">Construct (¤60,000)</button></footer>
+       </article>`
+    : "";
+
   if (!corpBuildings.length) {
-    playerGrid.innerHTML = `<p class="muted">No corporate holdings registered at this station. Buildings constructed through your Corporation Overview will appear here once commissioned.</p>`;
+    playerGrid.innerHTML = `<p class="muted">No corporate holdings registered at this station. Buildings constructed through your Corporation Overview will appear here once commissioned.</p>${buildAssemblyHtml}`;
   } else {
     playerGrid.innerHTML = corpBuildings
       .map(
-        (b) => `
-        <article class="building-card data-card">
-          <header class="building-card-header">
-            <span class="faction-code-badge corp-badge">CORP</span>
-            <h3>${escapeHtml(b.name)}</h3>
-          </header>
-          <p class="muted">Tier ${b.tier || 1} &mdash; ${escapeHtml(b.status)}</p>
-          <footer class="building-card-footer"><span class="building-status-badge operational">Operational</span></footer>
-        </article>
-      `
+        (b) => {
+          const isAssembly = b.name === "Assembly Facility";
+          const actionBtn = isAssembly
+            ? `<button class="btn btn-outline" data-corp-building="${escapeHtml(b.name)}">Enter</button>`
+            : `<span class="building-status-badge operational">Operational</span>`;
+          return `
+            <article class="building-card data-card">
+              <header class="building-card-header">
+                <span class="faction-code-badge corp-badge">CORP</span>
+                <h3>${escapeHtml(b.name)}</h3>
+              </header>
+              <p class="muted">Tier ${b.tier || 1} &mdash; ${escapeHtml(b.status)}</p>
+              <footer class="building-card-footer">${actionBtn}</footer>
+            </article>
+          `;
+        }
       )
-      .join("");
+      .join("") + buildAssemblyHtml;
+
+    // Bind Assembly Facility enter button
+    playerGrid.querySelectorAll("[data-corp-building]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const name = btn.getAttribute("data-corp-building");
+        if (name === "Assembly Facility") {
+          renderAssemblyFacility(data);
+        }
+      });
+    });
+  }
+
+  // Bind build Assembly Facility button
+  const buildAssemblyBtn = playerGrid.querySelector("#build-assembly-btn");
+  if (buildAssemblyBtn) {
+    buildAssemblyBtn.addEventListener("click", async () => {
+      if (!appState.accountId) return;
+      try {
+        const res = await apiFetch(
+          `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/build-assembly-facility`,
+          { method: "POST", headers: { "Content-Type": "application/json" } }
+        );
+        const account = await parseJsonResponse(res);
+        appState.data = deepClone(account.state);
+        updateAllViews();
+        pushFeedback("Assembly Facility constructed!", "ok");
+      } catch (err) {
+        pushFeedback(err.message || "Construction failed.", "warn");
+      }
+    });
+  }
+}
+
+function renderAssemblyFacility(data) {
+  const overviewView = document.getElementById("station-overview-view");
+  const buildingView = document.getElementById("station-building-view");
+  const contentEl = document.getElementById("station-building-content");
+  if (!contentEl || !buildingView) return;
+
+  if (overviewView) overviewView.hidden = true;
+  buildingView.hidden = false;
+  contentEl.classList.remove("ge-bg", "icl-bg", "oes-bg");
+
+  const am = data.corp?.asteroidMining || {};
+  const probeCount = am.probeCount || 0;
+  const maxProbes = am.maxProbes || 2;
+  const hasProspecting = (data.corp?.unlockedTech || []).includes("tt-asteroid-prospecting");
+  const station = getCurrentStationInfo(data);
+
+  let probeSection = "";
+  if (!hasProspecting) {
+    probeSection = `<p class="muted">Research <em>Asteroid Prospecting Arrays</em> to unlock Mining Probe fabrication.</p>`;
+  } else {
+    const canBuild = probeCount < maxProbes;
+    probeSection = `
+      <div class="assembly-probe-status">
+        <img src="/images/mining_probe.png" alt="Mining Probe" class="assembly-probe-img" />
+        <div>
+          <p>Mining Probes: <strong>${probeCount} / ${maxProbes}</strong></p>
+          ${canBuild
+            ? `<button id="build-probe-btn" class="btn btn-accent">Fabricate Mining Probe (¤8,000)</button>`
+            : `<p class="muted">Probe hangar full. Research upgrades to increase capacity.</p>`
+          }
+        </div>
+      </div>
+    `;
+  }
+
+  contentEl.innerHTML = `
+    <div class="building-detail-header">
+      <span class="faction-code-badge corp-badge">CORP</span>
+      <h2>Assembly Facility</h2>
+    </div>
+    ${stationLocationBanner(station)}
+    <p class="muted lede">A modular manufacturing bay capable of fabricating autonomous mining probes and other deployable units.</p>
+    ${probeSection}
+  `;
+
+  const buildProbeBtn = contentEl.querySelector("#build-probe-btn");
+  if (buildProbeBtn) {
+    buildProbeBtn.addEventListener("click", async () => {
+      if (!appState.accountId) return;
+      try {
+        const res = await apiFetch(
+          `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/build-mining-probe`,
+          { method: "POST", headers: { "Content-Type": "application/json" } }
+        );
+        const account = await parseJsonResponse(res);
+        appState.data = deepClone(account.state);
+        updateAllViews();
+        renderAssemblyFacility(appState.data);
+        pushFeedback("Mining Probe fabricated.", "ok");
+      } catch (err) {
+        pushFeedback(err.message || "Probe fabrication failed.", "warn");
+      }
+    });
   }
 }
 
@@ -2057,14 +2380,29 @@ function updateTravelProgress(travel) {
   if (fill) fill.style.width = `${pct}%`;
   if (eta) eta.textContent = remaining > 0 ? `ETA: ${formatDuration(remaining)}` : "Arriving...";
 
-  // If time is up, refresh from server to get the docked state
+  // If time is up, refresh from server to get the docked/arrived state
   if (remaining <= 0) {
     clearTravelTimer();
     refreshFromServer().then(() => {
       const activeTab = document.querySelector(".tab-btn.active");
       if (activeTab?.dataset?.tab === "travel") {
-        setTab("station");
+        // Check if server resolved the travel
+        const stillTraveling = isPlayerTraveling(appState.data || {});
+        if (stillTraveling) {
+          // Server hasn't resolved yet — retry in 2 seconds
+          appState._travelTimer = setTimeout(() => updateTravelProgress(travel), 2000);
+          return;
+        }
+        // For interstellar arrival, stay on travel tab (shows docking options)
+        // For local arrival, switch to station tab
+        const isInSpace = !appState.data?.corp?.currentStationId;
+        if (!isInSpace) {
+          setTab("station");
+        }
       }
+    }).catch(() => {
+      // Network error — retry in 3 seconds
+      appState._travelTimer = setTimeout(() => updateTravelProgress(travel), 3000);
     });
   }
 }
@@ -2297,6 +2635,9 @@ function startMiningUiTicker() {
     // Re-render refinery active runs for live progress
     renderRefinery(appState.data);
 
+    // Live-update expedition progress bars
+    renderExpeditions(appState.data);
+
     // Live-update contract refresh timer
     const timerEl = document.getElementById("contract-refresh-timer");
     if (timerEl && !timerEl.hidden) {
@@ -2317,7 +2658,8 @@ function startMiningUiTicker() {
     if (tickCount % 60 === 0) {
       const hasActiveCycle = (appState.data?.corp?.mining?.silicateExtractors || []).some((ex) => ex.active);
       const hasActiveRefinery = (appState.data?.corp?.refineries || []).some((r) => r.active);
-      if (hasActiveCycle || hasActiveRefinery) {
+      const hasActiveExpedition = (appState.data?.corp?.asteroidMining?.activeExpeditions || []).length > 0;
+      if (hasActiveCycle || hasActiveRefinery || hasActiveExpedition) {
         refreshFromServer();
       }
     }
@@ -2490,9 +2832,38 @@ function renderQueue(elId, queue, subtitle) {
     .join("");
 }
 
+const RESOURCE_CATALOG = [
+  "Silicates", "Helium-3", "Nickel", "Titanium", "Carbon",
+  "Water Ice", "Rare Earths", "Thorium", "Hydrogen", "Lithium",
+  "Cobalt", "Uranium", "Exotic Matter"
+];
+
+const MILESTONE_ROADMAP = [
+  "Rent an Office", "Hire 5 Employees", "Reached Corporation Level 1",
+  "Purchase a Mining Lease on Mars", "Build a Basic Extractor Yard", "Mine 300 Silicate",
+  "Reached Corporation Level 2", "Sell 300 Silicate on the Galactic Exchange",
+  "Research Basic Extraction Analytics", "Reached Corporation Level 3",
+  "Build a Second Extractor Yard", "Hire 10 Employees", "Research Industrial Safety Protocols",
+  "Sell 50,000 Silicate", "Reached Corporation Level 4", "Research High-Density Energy Routing",
+  "Purchase a Second Mining Lease", "Build a Third Extractor Yard", "Hire 15 Employees",
+  "Reached Corporation Level 5", "Research Ferric Core Extraction Facility", "Hire 25 Employees",
+  "Build a Ferric Mining Complex", "Reached Corporation Level 6",
+  "Research Multi-Stage Refinery Protocols", "Build a Refinery Complex",
+  "Reached Corporation Level 7", "Manufacture 5,000 Iron-Silicate Alloys",
+  "Complete 25 Missions", "Reached Corporation Level 8",
+  "Research Cryo-genic Vapor Extraction Theory", "Purchase a Mining Claim on Luna",
+  "Build a Cryo-vapor Extractor Array", "Sell 500 Cryo-Silicate Foam",
+  "Sell 500 Hydrated Ferric Compounds", "Reached Corporation Level 9",
+  "Research Carbonaceous Slurry Recovery Theory", "Purchase a Mining Claim on an Asteroid Belt",
+  "Research Asteroid Belt Mining Protocols", "Start a Belt Mining Operation",
+  "Sell 500 Carbon Silicate Composites", "Sell 500 Carbo-Iron Alloys",
+  "Sell 500 Hydro-Carbon Emulsion Base", "Research Extrasolar Expansion Protocols",
+  "Reached Corporation Level 10"
+];
+
 function renderRefinery(data) {
   const catalog = document.getElementById("resource-catalog");
-  catalog.innerHTML = data.world.resourceCatalog.map((res) => `<span class="pill">${escapeHtml(res)}</span>`).join("");
+  catalog.innerHTML = RESOURCE_CATALOG.map((res) => `<span class="pill">${escapeHtml(res)}</span>`).join("");
 
   const refineries = data.corp?.refineries || [];
   const unlockedTech = new Set(data.corp?.unlockedTech || []);
@@ -2605,6 +2976,75 @@ function renderRefinery(data) {
       }
     }
   };
+}
+
+// ─── Expeditions (Asteroid Mining) ───────────────────────────────────────────
+function renderExpeditions(data) {
+  const container = document.getElementById("expedition-panel");
+  if (!container) return;
+
+  const am = data?.corp?.asteroidMining || {};
+  const active = am.activeExpeditions || [];
+  const completed = (am.completedExpeditions || []).slice(-5).reverse();
+  const hasProspecting = (data?.corp?.unlockedTech || []).includes("tt-asteroid-prospecting");
+
+  if (!hasProspecting) {
+    container.innerHTML = `<p class="muted">Research <em>Asteroid Prospecting Arrays</em> to unlock mining expeditions.</p>`;
+    container.hidden = false;
+    return;
+  }
+
+  const probeCount = am.probeCount || 0;
+  const maxProbes = am.maxProbes || 2;
+  const maxDeploy = am.maxDeployments || 1;
+
+  let html = `<div class="expedition-summary">
+    <span>Probes: <strong>${probeCount}/${maxProbes}</strong></span>
+    <span style="margin-left:1rem;">Deployments: <strong>${active.length}/${maxDeploy}</strong></span>
+  </div>`;
+
+  if (active.length > 0) {
+    html += `<h4 style="margin-top:0.75rem;">Active Expeditions</h4>`;
+    for (const exp of active) {
+      const elapsed = Date.now() - exp.deployedAt;
+      const total = exp.completesAt - exp.deployedAt;
+      const pct = Math.min(100, Math.max(0, (elapsed / total) * 100));
+      const remainMs = Math.max(0, exp.completesAt - Date.now());
+      const mins = Math.floor(remainMs / 60000);
+      const secs = Math.floor((remainMs % 60000) / 1000);
+      const yieldEntries = Object.entries(exp.yields || {});
+      const yieldText = yieldEntries.length ? yieldEntries.map(([r, q]) => `${q} ${r}`).join(", ") : "Scanning...";
+      const beltLabel = exp.beltKey || "Unknown Belt";
+      html += `<div class="expedition-card">
+        <div class="expedition-card-header">
+          <span class="expedition-belt-label">${escapeHtml(beltLabel)}</span>
+          <span class="muted" style="font-size:0.78rem;">${exp.duration} — ${mins}m ${String(secs).padStart(2, "0")}s</span>
+        </div>
+        <div class="progress-wrap"><div class="progress-bar expedition-bar" style="width:${pct.toFixed(1)}%"></div></div>
+        <p class="muted expedition-yields">Yields: ${escapeHtml(yieldText)}</p>
+      </div>`;
+    }
+  }
+
+  if (completed.length > 0) {
+    html += `<h4 style="margin-top:0.75rem;">Recent Returns</h4>`;
+    for (const exp of completed) {
+      const yieldEntries = Object.entries(exp.yields || {});
+      const yieldText = yieldEntries.length ? yieldEntries.map(([r, q]) => `${q} ${r}`).join(", ") : "None";
+      html += `<div class="expedition-card completed">
+        <span class="expedition-belt-label">${escapeHtml(exp.beltKey || "")}</span>
+        <span class="muted" style="font-size:0.78rem;">${exp.duration} — Completed</span>
+        <p class="muted expedition-yields">Total yield: ${escapeHtml(yieldText)}</p>
+      </div>`;
+    }
+  }
+
+  if (active.length === 0 && completed.length === 0) {
+    html += `<p class="muted">No expeditions yet. Launch probes from the Starmap asteroid belt view.</p>`;
+  }
+
+  container.innerHTML = html;
+  container.hidden = false;
 }
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -3597,7 +4037,18 @@ function updateAllViews() {
   renderFeedbackLog();
   updateInvestmentPanel(data);
   starmap.setSystems(data.world.systems);
-  starmap.setStations(appState.stationRegistry, data.corp?.currentStationId || "earth-station-prime");
+  starmap.setStations(appState.stationRegistry, data.corp?.currentStationId, data.corp?.currentSystemId || "sol");
+  starmap.setUnlockedTech(new Set(data.corp?.unlockedTech || []));
+  const am = data.corp?.asteroidMining || {};
+  starmap.setAsteroidMining({
+    probeCount: am.probeCount || 0,
+    maxProbes: am.maxProbes || 2,
+    maxDeployments: am.maxDeployments || 1,
+    activeExpeditions: am.activeExpeditions || [],
+    scoutedBelts: am.scoutedBelts || [],
+    beltCompositions: appState.beltCompositions || {}
+  });
+  renderExpeditions(data);
   renderInboxMessageList();
 }
 
@@ -4005,6 +4456,7 @@ async function refreshFromServer() {
     applySharedState(serverState);
     appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
     appState.activeMissions = appState.data.corp?.activeMissions || [];
+    refreshBeltCompositions();
     updateAllViews();
     return;
   }
@@ -4697,6 +5149,11 @@ function bindRealtimeEvents() {
     }
     renderAssets(appState.data);
     updateCorpIdentity(appState.data);
+  });
+
+  socket.on("expedition:completed", (payload) => {
+    if (!appState.data || !appState.accountId || payload?.accountId !== appState.accountId) return;
+    refreshFromServer();
   });
 }
 

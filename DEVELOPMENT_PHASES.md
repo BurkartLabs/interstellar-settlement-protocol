@@ -46,7 +46,8 @@ Each version represents a meaningful, playable milestone. Items marked [x] are c
 - [x] Refinery Chains — operational UI, input/output display, cycle management, chain unlocking via R&D
 - [ ] Asteroid mining — off-world extraction ops tied to specific starmap bodies
 - [ ] System access gated by corporation level
-- [ ] 1st Mission Agent - Logistics 
+- [x] 1st Mission Agent - Logistics 
+- [ ] Remove the requirement for Accounts.json and rely on supabase integration 
 
 ## Version 0.4 — Testing Automation, Publishable MVP, Station Building
 

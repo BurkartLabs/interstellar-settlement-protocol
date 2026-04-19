@@ -43,8 +43,11 @@ import {
   applyRefineryOperations,
   REFINERY_CHAINS,
   MISSION_TEMPLATES,
-  refreshContractOfferings
+  refreshContractOfferings,
+  SYSTEM_DETAILS
 } from "./gameState.js";
+
+const IS_DEV = !process.env.NODE_ENV || process.env.NODE_ENV !== "production";
 
 const RESEARCH_LIBRARY = {
   "tt-basic-extraction": {
@@ -127,6 +130,44 @@ const RESEARCH_LIBRARY = {
     costCredits: 12000,
     prereqs: ["tt-energy-routing"],
     tier: 2
+  },
+  "tt-proxima-navigation": {
+    id: "tt-proxima-navigation",
+    name: "Near-Star Navigation Array",
+    effect: "Enables travel to Alpha Centauri and Barnard's Star",
+    durationHours: 8,
+    costCredits: 10000,
+    prereqs: ["tt-fleet-coordination"],
+    tier: 2,
+    requiresCorpLevel: 5
+  },
+  "tt-deep-star-navigation": {
+    id: "tt-deep-star-navigation",
+    name: "Deep-Star Cartography Suite",
+    effect: "Enables travel to all charted star systems",
+    durationHours: 14,
+    costCredits: 20000,
+    prereqs: ["tt-proxima-navigation"],
+    tier: 3,
+    requiresCorpLevel: 10
+  },
+  "tt-assembly-fabrication": {
+    id: "tt-assembly-fabrication",
+    name: "Assembly & Fabrication Systems",
+    effect: "Unlocks Assembly Facility construction",
+    durationHours: 6,
+    costCredits: 5000,
+    prereqs: ["tt-energy-routing"],
+    tier: 2
+  },
+  "tt-asteroid-prospecting": {
+    id: "tt-asteroid-prospecting",
+    name: "Asteroid Prospecting Arrays",
+    effect: "Unlocks Mining Probe fabrication",
+    durationHours: 8,
+    costCredits: 8000,
+    prereqs: ["tt-assembly-fabrication", "tt-supply-forecast"],
+    tier: 2
   }
 };
 
@@ -146,9 +187,11 @@ function getTravelTimeMs(fromId, toId) {
     // Same system, different body: 1 minute
     return 1 * 60 * 1000;
   }
-  // Different system: 2 hours
-  return 2 * 60 * 60 * 1000;
+  // Different system: 1 minute (placeholder — will increase later)
+  return 1 * 60 * 1000;
 }
+
+const NEAR_STAR_SYSTEMS = new Set(["alpha-centauri", "barnards-star"]);
 
 const ACCESS_TOKEN_SECONDS = 7 * 24 * 60 * 60;
 const DUMMY_ACCESS_TOKEN_SECONDS = 2 * 60 * 60; // 2 hours
@@ -335,6 +378,7 @@ setInterval(checkAndResetNpcBuyOrders, 60_000);
 // ─── R&D auto-completion tick ────────────────────────────────────────────────
 // ─── Mining tick: process downtime, recovery, and mining progress ─────────────
 import { applyMiningOperations, getStationInventory } from "./gameState.js";
+import { applyAsteroidExpeditions, BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_ASSET_VALUE, BASE_MAX_PROBES, BASE_MAX_DEPLOYMENTS } from "./gameState.js";
 
 function miningTick() {
   const now = Date.now();
@@ -368,41 +412,98 @@ function refineryTick() {
 
 setInterval(refineryTick, 10_000); // Every 10 seconds
 
+// ─── Asteroid expedition tick ────────────────────────────────────────────────
+function asteroidExpeditionTick() {
+  const now = Date.now();
+  for (const accountId of getAllAccountIds()) {
+    let completedExpeditions = [];
+    mutateAccountState(accountId, (state) => {
+      if (!state?.corp) return;
+      const prevActive = (state.corp.asteroidMining?.activeExpeditions || []).length;
+      applyAsteroidExpeditions(state.corp, now);
+      const afterActive = (state.corp.asteroidMining?.activeExpeditions || []).length;
+      if (afterActive < prevActive) {
+        // Some expeditions completed — gather details for notifications
+        completedExpeditions = (state.corp.asteroidMining?.completedExpeditions || [])
+          .filter(e => e.completedAt && e.completedAt >= now - 15000);
+      }
+    });
+
+    for (const exp of completedExpeditions) {
+      const yieldSummary = Object.entries(exp.yields || {}).map(([r, q]) => `${q} ${r}`).join(", ") || "no resources";
+      const notification = addAccountNotification(accountId, {
+        type: "mining",
+        title: "Expedition Complete",
+        body: `Mining probe has returned from ${exp.beltKey.split(":")[1] || "asteroid belt"}. Yields: ${yieldSummary}. Resources deposited at ${exp.depositStationId || "nearest station"}.`
+      });
+      if (notification) {
+        io.emit("notifications:new", { accountId, notification });
+      }
+    }
+
+    if (completedExpeditions.length > 0) {
+      io.emit("expedition:completed", { accountId });
+    }
+  }
+}
+
+setInterval(asteroidExpeditionTick, 10_000); // Every 10 seconds
+
 // ─── Travel arrival tick ─────────────────────────────────────────────────────
 function travelTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
     let arrived = false;
-    let arrivedStationId = null;
+    let travelResult = null;
 
     mutateAccountState(accountId, (state) => {
       const travel = state.corp?.travel;
       if (!travel || !travel.arrivesAt) return;
       if (now < travel.arrivesAt) return;
 
-      // Arrive
-      const dest = STATION_REGISTRY[travel.toStationId];
-      if (dest) {
-        state.corp.currentStationId = travel.toStationId;
-        state.corp.location = dest.body;
-        arrivedStationId = travel.toStationId;
+      if (travel.travelType === "interstellar") {
+        // Arrive in a new system — not docked at any station
+        state.corp.currentSystemId = travel.toSystemId;
+        state.corp.currentStationId = null;
+        state.corp.location = travel.toSystemId;
+        travelResult = { type: "interstellar", systemId: travel.toSystemId };
+      } else {
+        // Local dock — arrive at station
+        const dest = STATION_REGISTRY[travel.toStationId];
+        if (dest) {
+          state.corp.currentStationId = travel.toStationId;
+          state.corp.currentSystemId = dest.systemId;
+          state.corp.location = dest.body;
+          travelResult = { type: "local", stationId: travel.toStationId };
+        }
       }
       state.corp.travel = null;
       arrived = true;
     });
 
-    if (arrived && arrivedStationId) {
-      const station = STATION_REGISTRY[arrivedStationId];
-      if (station) {
-        const notification = addAccountNotification(accountId, {
+    if (arrived && travelResult) {
+      let notification;
+      if (travelResult.type === "interstellar") {
+        const sysLabel = travelResult.systemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+        notification = addAccountNotification(accountId, {
           type: "travel",
-          title: "Docking Complete",
-          body: `Your ship has arrived at ${station.name} (${station.body}, ${station.systemId.toUpperCase()}).`
+          title: "System Arrival",
+          body: `Your ship has arrived in the ${sysLabel} system. You are in open space — select a station to dock.`
         });
-        if (notification) {
-          io.emit("notifications:new", { accountId, notification });
+        io.emit("travel:arrived", { accountId, systemId: travelResult.systemId });
+      } else {
+        const station = STATION_REGISTRY[travelResult.stationId];
+        if (station) {
+          notification = addAccountNotification(accountId, {
+            type: "travel",
+            title: "Docking Complete",
+            body: `Your ship has arrived at ${station.name} (${station.body}, ${station.systemId.toUpperCase()}).`
+          });
+          io.emit("travel:arrived", { accountId, stationId: travelResult.stationId });
         }
-        io.emit("travel:arrived", { accountId, stationId: arrivedStationId });
+      }
+      if (notification) {
+        io.emit("notifications:new", { accountId, notification });
       }
     }
   }
@@ -847,7 +948,6 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
       rentedUntil: now + durationDays * 86_400_000,
       durationDays
     });
-    corp.officeRented = true;
   });
 
   if (!account) {
@@ -967,7 +1067,7 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
 
-    const hasOffice = corp.officeRented || (Array.isArray(corp.offices) && corp.offices.length > 0);
+    const hasOffice = Array.isArray(corp.offices) && corp.offices.length > 0;
     if (!hasOffice) {
       outcome = "no-office";
       return;
@@ -1109,11 +1209,26 @@ app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
   res.json(account);
 });
 
-// ─── Travel: undock and travel to another station ────────────────────────────
+// ─── Travel: interstellar (system-to-system) or local (dock at station) ──────
 app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
+  const toSystemId = String(req.body?.toSystemId || "").trim();
   const toStationId = String(req.body?.toStationId || "").trim();
-  if (!toStationId || !STATION_REGISTRY[toStationId]) {
+
+  // Must specify exactly one destination type
+  const isInterstellar = Boolean(toSystemId);
+  const isLocal = Boolean(toStationId);
+  if ((!isInterstellar && !isLocal) || (isInterstellar && isLocal)) {
+    res.status(400).json({ error: "Specify either toSystemId (interstellar) or toStationId (dock)." });
+    return;
+  }
+
+  if (isLocal && !STATION_REGISTRY[toStationId]) {
     res.status(400).json({ error: "Invalid destination station." });
+    return;
+  }
+
+  if (isInterstellar && !SYSTEM_DETAILS[toSystemId]) {
+    res.status(400).json({ error: "Invalid destination system." });
     return;
   }
 
@@ -1128,23 +1243,69 @@ app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
       return;
     }
 
-    const fromStationId = corp.currentStationId || "earth-station-prime";
-    if (fromStationId === toStationId) {
-      outcome = "already-docked";
-      return;
+    if (isInterstellar) {
+      // ── Interstellar jump ──
+      const fromSystemId = corp.currentSystemId || "sol";
+      if (fromSystemId === toSystemId) {
+        outcome = "already-in-system";
+        return;
+      }
+
+      // Research gate
+      const unlocked = new Set(corp.unlockedTech || []);
+      if (NEAR_STAR_SYSTEMS.has(toSystemId)) {
+        if (!unlocked.has("tt-proxima-navigation")) { outcome = "missing-research"; return; }
+      } else {
+        if (!unlocked.has("tt-deep-star-navigation")) { outcome = "missing-research"; return; }
+      }
+
+      const durationMs = IS_DEV ? 5 * 1000 : 1 * 60 * 1000;
+      const now = Date.now();
+
+      corp.travel = {
+        travelType: "interstellar",
+        fromSystemId,
+        toSystemId,
+        fromStationId: corp.currentStationId || null,
+        departedAt: now,
+        arrivesAt: now + durationMs
+      };
+
+      // Undock from current station
+      corp.currentStationId = null;
+      travelInfo = { ...corp.travel };
+
+    } else {
+      // ── Local docking ──
+      const station = STATION_REGISTRY[toStationId];
+      const currentSystemId = corp.currentSystemId || "sol";
+
+      if (station.systemId !== currentSystemId) {
+        outcome = "wrong-system";
+        return;
+      }
+
+      if (corp.currentStationId === toStationId) {
+        outcome = "already-docked";
+        return;
+      }
+
+      const durationMs = IS_DEV ? 5 * 1000 : 1 * 60 * 1000;
+      const now = Date.now();
+
+      corp.travel = {
+        travelType: "local",
+        fromStationId: corp.currentStationId || null,
+        toStationId,
+        toSystemId: currentSystemId,
+        departedAt: now,
+        arrivesAt: now + durationMs
+      };
+
+      // Undock from current station (if docked)
+      corp.currentStationId = null;
+      travelInfo = { ...corp.travel };
     }
-
-    const durationMs = getTravelTimeMs(fromStationId, toStationId);
-    const now = Date.now();
-
-    corp.travel = {
-      fromStationId,
-      toStationId,
-      departedAt: now,
-      arrivesAt: now + durationMs
-    };
-
-    travelInfo = { ...corp.travel };
   });
 
   if (!account) {
@@ -1155,17 +1316,29 @@ app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
   if (outcome !== "ok") {
     const messageMap = {
       "already-traveling": "Your ship is already in transit. Wait for arrival before initiating a new course.",
-      "already-docked": "You are already docked at this station."
+      "already-docked": "You are already docked at this station.",
+      "already-in-system": "You are already in this system.",
+      "missing-research": "You lack the required navigation research to travel to that system.",
+      "wrong-system": "That station is in a different system. Travel to the system first."
     };
     res.status(400).json({ error: messageMap[outcome] || "Travel request failed." });
     return;
   }
 
-  const dest = STATION_REGISTRY[toStationId];
+  // Notification
+  let notifBody;
+  if (travelInfo.travelType === "interstellar") {
+    const sysName = SYSTEM_DETAILS[travelInfo.toSystemId]?.bodies?.[0]?.name || travelInfo.toSystemId;
+    notifBody = `Initiating interstellar jump to the ${travelInfo.toSystemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())} system. ETA ${Math.round((travelInfo.arrivesAt - travelInfo.departedAt) / 60000)} minute(s).`;
+  } else {
+    const dest = STATION_REGISTRY[travelInfo.toStationId];
+    notifBody = `Setting course for ${dest.name} (${dest.body}). ETA ${Math.round((travelInfo.arrivesAt - travelInfo.departedAt) / 60000)} minute(s).`;
+  }
+
   const notification = addAccountNotification(req.params.accountId, {
     type: "travel",
-    title: "Undocking — Course Set",
-    body: `Undocking and setting course for ${dest.name} (${dest.body}, ${dest.systemId.toUpperCase()}). Estimated arrival in ${Math.round((travelInfo.arrivesAt - travelInfo.departedAt) / 60000)} minutes.`
+    title: travelInfo.travelType === "interstellar" ? "Interstellar Jump Initiated" : "Undocking — Course Set",
+    body: notifBody
   });
   if (notification) {
     io.emit("notifications:new", { accountId: req.params.accountId, notification });
@@ -1474,6 +1647,271 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
   }
 
   res.json(account);
+});
+
+// ─── Asteroid Mining: Assembly Facility, Probes, Expeditions ─────────────────
+
+app.post("/api/accounts/:accountId/gameplay/build-assembly-facility", (req, res) => {
+  const BUILD_COST = 60000;
+  const ASSET_VALUE = 40000;
+  let outcome = "ok";
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+
+    if (!(corp.unlockedTech || []).includes("tt-assembly-fabrication")) {
+      outcome = "missing-research";
+      return;
+    }
+
+    const hasOne = (corp.buildings || []).some((b) => b.name === "Assembly Facility");
+    if (hasOne) {
+      outcome = "already-built";
+      return;
+    }
+
+    if ((corp.buildings || []).length >= (corp.buildingSlots || 2)) {
+      outcome = "no-slot";
+      return;
+    }
+
+    if ((corp.finances.credits || 0) < BUILD_COST) {
+      outcome = "insufficient-credits";
+      return;
+    }
+
+    if (!Array.isArray(corp.buildings)) corp.buildings = [];
+    corp.buildings.push({ name: "Assembly Facility", tier: 1, status: "Operational" });
+    corp.finances.credits -= BUILD_COST;
+    corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
+  });
+
+  if (!account) { res.status(404).json({ error: "Account not found." }); return; }
+
+  if (outcome !== "ok") {
+    const msgs = {
+      "missing-research": "Assembly & Fabrication Systems research is required before constructing an Assembly Facility.",
+      "already-built": "Your corporation already operates an Assembly Facility.",
+      "no-slot": `No building slots available (${account.state.corp.buildings.length}/${account.state.corp.buildingSlots}).`,
+      "insufficient-credits": fundingRequirementMessage("Assembly Facility construction", account.state.corp, BUILD_COST)
+    };
+    res.status(400).json({ error: msgs[outcome] || "Build failed." });
+    return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "infrastructure",
+    title: "Assembly Facility Online",
+    body: "Your Assembly Facility is now operational. You may begin fabricating units."
+  });
+  if (notification) io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  saveAccountsNow();
+  res.json(account);
+});
+
+app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
+  let outcome = "ok";
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+
+    if (!(corp.unlockedTech || []).includes("tt-asteroid-prospecting")) {
+      outcome = "missing-research";
+      return;
+    }
+
+    const hasAssembly = (corp.buildings || []).some((b) => b.name === "Assembly Facility");
+    if (!hasAssembly) {
+      outcome = "no-assembly";
+      return;
+    }
+
+    if (!corp.asteroidMining) corp.asteroidMining = {};
+    const am = corp.asteroidMining;
+    if (typeof am.probeCount !== "number") am.probeCount = 0;
+    if (typeof am.maxProbes !== "number") am.maxProbes = BASE_MAX_PROBES;
+
+    if (am.probeCount >= am.maxProbes) {
+      outcome = "probe-cap";
+      return;
+    }
+
+    if ((corp.finances.credits || 0) < PROBE_BUILD_COST) {
+      outcome = "insufficient-credits";
+      return;
+    }
+
+    corp.finances.credits -= PROBE_BUILD_COST;
+    corp.finances.assets = (corp.finances.assets || 0) + PROBE_ASSET_VALUE;
+    am.probeCount += 1;
+  });
+
+  if (!account) { res.status(404).json({ error: "Account not found." }); return; }
+
+  if (outcome !== "ok") {
+    const am = account.state.corp.asteroidMining || {};
+    const msgs = {
+      "missing-research": "Asteroid Prospecting Arrays research is required before fabricating mining probes.",
+      "no-assembly": "You must construct an Assembly Facility before fabricating probes.",
+      "probe-cap": `Probe hangar is full (${am.probeCount || 0}/${am.maxProbes || BASE_MAX_PROBES}). Research or level up to increase capacity.`,
+      "insufficient-credits": fundingRequirementMessage("Mining Probe fabrication", account.state.corp, PROBE_BUILD_COST)
+    };
+    res.status(400).json({ error: msgs[outcome] || "Probe fabrication failed." });
+    return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "infrastructure",
+    title: "Mining Probe Fabricated",
+    body: "A new Mining Probe has been manufactured and is ready for deployment."
+  });
+  if (notification) io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  saveAccountsNow();
+  res.json(account);
+});
+
+app.post("/api/accounts/:accountId/gameplay/scout-belt", (req, res) => {
+  const beltKey = String(req.body?.beltKey || "").trim();
+  if (!beltKey || !BELT_COMPOSITIONS[beltKey]) {
+    res.status(400).json({ error: "Invalid asteroid belt identifier." });
+    return;
+  }
+
+  let outcome = "ok";
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+    if (!corp.asteroidMining) corp.asteroidMining = {};
+    if (!Array.isArray(corp.asteroidMining.scoutedBelts)) corp.asteroidMining.scoutedBelts = [];
+
+    if (corp.asteroidMining.scoutedBelts.includes(beltKey)) {
+      outcome = "already-scouted";
+      return;
+    }
+
+    corp.asteroidMining.scoutedBelts.push(beltKey);
+  });
+
+  if (!account) { res.status(404).json({ error: "Account not found." }); return; }
+  if (outcome === "already-scouted") {
+    res.json(account); // Idempotent — no error, just return current state
+    return;
+  }
+
+  res.json(account);
+});
+
+app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
+  const beltKey = String(req.body?.beltKey || "").trim();
+  const duration = String(req.body?.duration || "standard").trim();
+
+  if (!beltKey || !BELT_COMPOSITIONS[beltKey]) {
+    res.status(400).json({ error: "Invalid asteroid belt identifier." });
+    return;
+  }
+
+  if (!EXPEDITION_DURATIONS[duration]) {
+    res.status(400).json({ error: "Invalid expedition duration. Choose: short, standard, or extended." });
+    return;
+  }
+
+  let outcome = "ok";
+  let launchCost = EXPEDITION_LAUNCH_COST;
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+
+    if (!(corp.unlockedTech || []).includes("tt-asteroid-prospecting")) {
+      outcome = "missing-research";
+      return;
+    }
+
+    if (!corp.asteroidMining) corp.asteroidMining = {};
+    const am = corp.asteroidMining;
+    if (typeof am.probeCount !== "number") am.probeCount = 0;
+    if (typeof am.maxDeployments !== "number") am.maxDeployments = BASE_MAX_DEPLOYMENTS;
+    if (!Array.isArray(am.activeExpeditions)) am.activeExpeditions = [];
+
+    if (am.probeCount <= 0) {
+      outcome = "no-probes";
+      return;
+    }
+
+    if (am.activeExpeditions.length >= am.maxDeployments) {
+      outcome = "deployment-cap";
+      return;
+    }
+
+    // Player must be in the same system as the belt
+    const beltSystemId = beltKey.split(":")[0];
+    if ((corp.currentSystemId || "sol") !== beltSystemId) {
+      outcome = "wrong-system";
+      return;
+    }
+
+    if ((corp.finances.credits || 0) < launchCost) {
+      outcome = "insufficient-credits";
+      return;
+    }
+
+    corp.finances.credits -= launchCost;
+    am.probeCount -= 1;
+
+    const now = Date.now();
+    const durationMs = EXPEDITION_DURATIONS[duration].ms;
+
+    am.activeExpeditions.push({
+      id: `exp-${now}-${Math.random().toString(36).slice(2, 8)}`,
+      beltKey,
+      systemId: beltSystemId,
+      duration,
+      deployedAt: now,
+      completesAt: now + durationMs,
+      lastTickAt: now,
+      launchCost,
+      yields: {},
+      status: "active"
+    });
+  });
+
+  if (!account) { res.status(404).json({ error: "Account not found." }); return; }
+
+  if (outcome !== "ok") {
+    const am = account.state.corp.asteroidMining || {};
+    const msgs = {
+      "missing-research": "Asteroid Prospecting Arrays research must be completed before launching expeditions.",
+      "no-probes": "No mining probes available. Fabricate probes at your Assembly Facility.",
+      "deployment-cap": `All deployment slots are occupied (${am.activeExpeditions?.length || 0}/${am.maxDeployments || BASE_MAX_DEPLOYMENTS}). Wait for a probe to return or research additional capacity.`,
+      "wrong-system": "You must be in the same system as the asteroid belt to launch an expedition.",
+      "insufficient-credits": fundingRequirementMessage("Expedition launch", account.state.corp, launchCost)
+    };
+    res.status(400).json({ error: msgs[outcome] || "Expedition launch failed." });
+    return;
+  }
+
+  const durationLabel = EXPEDITION_DURATIONS[duration]?.label || duration;
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "mining",
+    title: "Expedition Launched",
+    body: `Mining probe deployed to ${beltKey.split(":")[1] || "asteroid belt"} on a ${durationLabel} mission. Resources will be deposited upon return.`
+  });
+  if (notification) io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  saveAccountsNow();
+  res.json(account);
+});
+
+// Provide belt compositions to the client (only scouted belts return data)
+app.get("/api/accounts/:accountId/gameplay/belt-compositions", (req, res) => {
+  const account = getAccountById(req.params.accountId);
+  if (!account) { res.status(404).json({ error: "Account not found." }); return; }
+
+  const scouted = account.state?.corp?.asteroidMining?.scoutedBelts || [];
+  const result = {};
+  for (const key of scouted) {
+    if (BELT_COMPOSITIONS[key]) {
+      result[key] = BELT_COMPOSITIONS[key];
+    }
+  }
+  res.json({ compositions: result, allBeltKeys: Object.keys(BELT_COMPOSITIONS) });
 });
 
 // ─── Refinery ────────────────────────────────────────────────────────────────
@@ -1956,6 +2394,12 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
       return;
     }
 
+    // Corp level gate for certain research
+    if (tech.requiresCorpLevel && (corp.level || 0) < tech.requiresCorpLevel) {
+      outcome = "corp-level-too-low";
+      return;
+    }
+
     // Tier 2+ requires all Tier 1 research to be completed
     if (tech.tier >= 2 && !TIER_1_TECH_IDS.every((id) => unlocked.has(id))) {
       outcome = "tier-gate";
@@ -1973,7 +2417,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
       techId: tech.id,
       name: tech.name,
       effect: tech.effect,
-      durationHours: tech.durationHours,
+      durationHours: IS_DEV ? 0 : tech.durationHours,
       startedAt: Date.now(),
       costCredits: tech.costCredits
     });
@@ -1990,6 +2434,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
       "already-unlocked": `${tech.name} has already been completed.`,
       "already-queued": `${tech.name} is already in the corporate R&D queue.`,
       "missing-prereq": `${tech.name} requires: ${tech.prereqs.map((id) => RESEARCH_LIBRARY[id]?.name || id).join(", ")}.`,
+      "corp-level-too-low": `${tech.name} requires Corp Level ${tech.requiresCorpLevel}.`,
       "tier-gate": `${tech.name} is Tier ${tech.tier} research. All Tier 1 research must be completed first.`,
       "insufficient-credits": fundingRequirementMessage(`${tech.name} queueing`, corp, tech.costCredits)
     };
@@ -2057,7 +2502,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-ceo", (req, res) => {
       programId: prog.id,
       name: prog.name,
       effect: prog.effect,
-      durationHours: prog.durationHours,
+      durationHours: IS_DEV ? 0 : prog.durationHours,
       startedAt: Date.now(),
       costCredits: prog.costCredits
     });

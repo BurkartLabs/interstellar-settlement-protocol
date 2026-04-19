@@ -2171,6 +2171,45 @@ textarea {
   border-radius: 6px;
 }
 
+/* Interstellar travel variant */
+.travel-page-card--interstellar {
+  border-color: rgba(180, 120, 255, 0.35);
+  background: rgba(20, 10, 50, 0.9);
+}
+.travel-page-card--interstellar .travel-page-overline,
+.travel-page-card--interstellar .travel-page-heading {
+  color: rgba(180, 140, 255, 0.95);
+}
+.travel-page-card--interstellar .travel-route-arrow {
+  color: rgba(180, 140, 255, 0.7);
+}
+.travel-page-card--interstellar .travel-progress-fill {
+  background: linear-gradient(90deg, rgba(120, 80, 220, 0.8), rgba(180, 140, 255, 0.95));
+}
+
+/* In-space system label */
+.travel-system-label {
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.1rem;
+  color: rgba(0, 247, 255, 0.7);
+  margin-bottom: 0.5rem;
+}
+
+/* Dock options grid */
+.travel-dock-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+.travel-dock-btn {
+  min-width: 180px;
+  padding: 0.7rem 1rem;
+  text-align: center;
+  line-height: 1.4;
+}
+
 /* ─── Starmap station tooltip ────────────────────────────── */
 .starmap-tooltip {
   position: fixed;
@@ -4233,4 +4272,96 @@ tr.npc-order-exhausted {
   .mission-modal-img-placeholder {
     width: 80px;
   }
+}
+
+/* ─── Asteroid Belt Mining / Expeditions ─────────────────── */
+.expedition-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  margin-bottom: 0.5rem;
+}
+
+.expedition-card {
+  background: rgba(10, 31, 46, 0.5);
+  border: 1px solid rgba(0, 247, 255, 0.12);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.expedition-card.completed {
+  opacity: 0.7;
+  border-color: rgba(0, 247, 255, 0.06);
+}
+
+.expedition-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.expedition-belt-label {
+  font-family: "Rajdhani", "Inter", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.expedition-bar {
+  background: linear-gradient(90deg, rgba(0, 247, 255, 0.7), rgba(255, 170, 51, 0.65));
+  transition: width 0.5s ease;
+}
+
+.expedition-yields {
+  font-size: 0.78rem;
+  margin-top: 0.3rem;
+}
+
+.starmap-expedition-card {
+  background: rgba(10, 31, 46, 0.5);
+  border: 1px solid rgba(0, 247, 255, 0.1);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  margin-bottom: 0.4rem;
+}
+
+.starmap-exp-select {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+  padding: 0.35rem 0.5rem;
+  background: rgba(5, 5, 15, 0.8);
+  border: 1px solid rgba(0, 247, 255, 0.2);
+  border-radius: 5px;
+  color: var(--foreground);
+  font-size: 0.84rem;
+}
+
+.starmap-mining-panel h4 {
+  font-size: 0.92rem;
+  margin-bottom: 0.4rem;
+}
+
+/* ─── Assembly Facility ──────────────────────────────────── */
+.assembly-probe-status {
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.assembly-probe-img {
+  width: 120px;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 247, 255, 0.18);
+  background: rgba(5, 5, 15, 0.6);
+}
+
+.assembly-probe-status p {
+  margin-bottom: 0.5rem;
 }

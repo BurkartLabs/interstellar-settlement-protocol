@@ -253,6 +253,8 @@ Combined with the investment system (where players can buy equity stakes in othe
 
 **Use these instructions as the single source of truth unless specifically asked to violate something in this document** when generating or modifying any part of the project.
 
+**Important:** Never manually edit `data/accounts.json` while the server is running. The server periodically persists game state to this file and will overwrite any manual changes. Stop the server first, make your edits, then restart.
+
 `DEVELOPMENT_PHASES.md` should always be included in the context of any command or code change made to this project.
 
 `Todos.md` (at the project root) is the living task list for this project. At the start of every session, read it and keep it in mind throughout. Reference it when deciding what to work on or when a task from it is relevant to the current request. **Never mark an item complete and never add new items to `Todos.md` without first asking the user for explicit permission.**

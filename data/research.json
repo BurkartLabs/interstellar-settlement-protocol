@@ -98,6 +98,52 @@
       "prereqs": ["tt-energy-routing"],
       "tier": 2,
       "category": "Military"
+    },
+    {
+      "id": "tt-proxima-navigation",
+      "name": "Near-Star Navigation Array",
+      "effect": "Enables travel to Alpha Centauri and Barnard's Star",
+      "description": "Commissions a calibrated navigation array tuned to the nearest stellar neighbours. Required before any vessel in your fleet can plot an interstellar course to Alpha Centauri or Barnard's Star.",
+      "durationHours": 8,
+      "costCredits": 10000,
+      "prereqs": ["tt-fleet-coordination"],
+      "tier": 2,
+      "category": "Navigation",
+      "requiresCorpLevel": 5
+    },
+    {
+      "id": "tt-deep-star-navigation",
+      "name": "Deep-Star Cartography Suite",
+      "effect": "Enables travel to all charted star systems",
+      "description": "Deploys a full deep-space cartography suite capable of plotting routes to any charted system within the local stellar neighbourhood. Unlocks Wolf 359, Tau Ceti, Epsilon Eridani, and all future systems.",
+      "durationHours": 14,
+      "costCredits": 20000,
+      "prereqs": ["tt-proxima-navigation"],
+      "tier": 3,
+      "category": "Navigation",
+      "requiresCorpLevel": 10
+    },
+    {
+      "id": "tt-assembly-fabrication",
+      "name": "Assembly & Fabrication Systems",
+      "effect": "Unlocks Assembly Facility construction",
+      "description": "Licenses modular assembly line blueprints from the Pan-System Engineering Bureau. Required before your corporation can construct an Assembly Facility capable of manufacturing units such as mining probes, drones, and defensive platforms.",
+      "durationHours": 6,
+      "costCredits": 5000,
+      "prereqs": ["tt-energy-routing"],
+      "tier": 2,
+      "category": "Manufacturing"
+    },
+    {
+      "id": "tt-asteroid-prospecting",
+      "name": "Asteroid Prospecting Arrays",
+      "effect": "Unlocks Mining Probe fabrication",
+      "description": "Deploys long-range mineral scanning arrays and autonomous probe guidance firmware. Enables the Assembly Facility to fabricate Mining Probes for asteroid belt expedition operations.",
+      "durationHours": 8,
+      "costCredits": 8000,
+      "prereqs": ["tt-assembly-fabrication", "tt-supply-forecast"],
+      "tier": 2,
+      "category": "Extraction"
     }
   ]
 }

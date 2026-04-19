@@ -61,6 +61,86 @@
         "isa-claims-leases",
         "galactic-exchange-hub"
       ]
+    },
+    {
+      "id": "centauri-prime-station",
+      "name": "Centauri Prime Orbital",
+      "designation": "ACE-STATION-001",
+      "systemId": "alpha-centauri",
+      "body": "Centauri Prime",
+      "tier": 2,
+      "officeCost": 35000,
+      "owner": "npc",
+      "description": "The first permanent orbital installation in the Alpha Centauri system. Administered jointly by the ISA and the Centauri Colonial Authority, it serves as the primary trade and administrative hub for all corporate operations beyond Sol. Lease processing, exchange access, and frontier logistics are all available.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "ironwell-depot",
+      "name": "Ironwell Mining Depot",
+      "designation": "BNS-STATION-001",
+      "systemId": "barnards-star",
+      "body": "Ironwell",
+      "tier": 2,
+      "officeCost": 30000,
+      "owner": "npc",
+      "description": "A rugged frontier depot in orbit above Ironwell, the mineral-rich inner world of Barnard's Star. Built to service the heavy extraction industry that defines the system, it operates under a low-regulation charter that attracts independent mining corporations.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "halo-anchorage",
+      "name": "Halo Anchorage",
+      "designation": "W35-STATION-001",
+      "systemId": "wolf-359",
+      "body": "Halo",
+      "tier": 3,
+      "officeCost": 45000,
+      "owner": "npc",
+      "description": "A fortified orbital anchorage above Halo in the contested Wolf 359 system. Serves as a neutral staging point for corporate and military operations in the region. ISA arbitration services and exchange access are maintained despite the system's volatile security profile.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "verde-trade-hub",
+      "name": "Verde Trade Hub",
+      "designation": "TCE-STATION-001",
+      "systemId": "tau-ceti",
+      "body": "Verde",
+      "tier": 3,
+      "officeCost": 40000,
+      "owner": "npc",
+      "description": "The commercial heart of the Tau Ceti system, positioned in orbit above the temperate world of Verde. A treaty-governed station operating under strict tariff controls, it functions as the primary trade corridor between the inner colonies and the frontier systems.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "kestrel-platform",
+      "name": "Kestrel Platform",
+      "designation": "EER-STATION-001",
+      "systemId": "epsilon-eridani",
+      "body": "Kestrel",
+      "tier": 3,
+      "officeCost": 42000,
+      "owner": "npc",
+      "description": "A semi-private orbital platform licensed by the Eridani Station Authority above the resource-rich world of Kestrel. Corporate tenants enjoy reduced regulatory overhead in exchange for annual licensing fees. Exchange and lease services are available.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
     }
   ]
 }

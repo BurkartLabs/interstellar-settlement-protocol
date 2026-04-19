@@ -148,7 +148,7 @@ public/
 
 data/
   state.json      — Auto-generated global game state (market, world, forums)
-  accounts.json   — Auto-generated player account store
+  accounts.json   — Auto-generated player account store (⚠️ do not edit while server is running — it will be overwritten)
   buildings.json  — NPC building definitions for station districts
   milestones.json — Milestone definitions for level progression
 ```

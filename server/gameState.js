@@ -22,8 +22,10 @@ const SUPABASE_MANAGED_PASSWORD_HASH = "__supabase_auth_managed__";
 // Load station data for body→station mapping
 const STATIONS_RAW = JSON.parse(fs.readFileSync(path.join(dataDir, "stations.json"), "utf8"));
 const BODY_TO_STATION = {};
+const STATION_REGISTRY_CACHE = {};
 for (const s of STATIONS_RAW.stations) {
   BODY_TO_STATION[s.body] = s.id;
+  STATION_REGISTRY_CACHE[s.id] = s;
 }
 
 const supabaseAdmin = USE_SUPABASE
@@ -34,9 +36,22 @@ const supabaseAuthClient = USE_SUPABASE_AUTH
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } })
   : null;
 
+// Clean up any leftover .tmp files from interrupted atomic writes
+if (!IS_SERVERLESS) {
+  for (const f of fs.readdirSync(dataDir)) {
+    if (f.endsWith(".tmp")) {
+      try { fs.unlinkSync(path.join(dataDir, f)); } catch {}
+    }
+  }
+}
+
 function safeWriteFile(filePath, data, contextLabel = "write") {
   try {
-    fs.writeFileSync(filePath, data, "utf8");
+    // Atomic write: write to a temp file then rename, so a mid-write kill
+    // (e.g. double Ctrl+C or node --watch termination) never truncates the real file.
+    const tmpPath = filePath + ".tmp";
+    fs.writeFileSync(tmpPath, data, "utf8");
+    fs.renameSync(tmpPath, filePath);
     return true;
   } catch (error) {
     // Vercel filesystem is read-only for deployed source paths; keep running in-memory.
@@ -59,6 +74,9 @@ const CEO_INSIGHT_LIBRARY = {};
 for (const prog of CEO_INSIGHT_DATA.programs) {
   CEO_INSIGHT_LIBRARY[prog.id] = prog;
 }
+
+// ─── Systems: single source of truth from data/systems.json ────────────────
+const SYSTEMS_DATA = JSON.parse(fs.readFileSync(path.join(dataDir, "systems.json"), "utf8"));
 
 // ─── Refinery chains ────────────────────────────────────────────────────────
 const refineryChainsPath = path.join(dataDir, "refinery-chains.json");
@@ -174,10 +192,9 @@ function normalizeSystems(systems = []) {
 }
 
 function normalizeStateShape(rawState) {
-  if (!rawState.world) {
-    rawState.world = {};
+  if (rawState.world) {
+    rawState.world.systems = normalizeSystems(rawState.world.systems || []);
   }
-  rawState.world.systems = normalizeSystems(rawState.world.systems || []);
 
   if (!rawState.corp) {
     rawState.corp = {};
@@ -221,16 +238,23 @@ function normalizeStateShape(rawState) {
     rawState.corp.currentStationId = "earth-station-prime";
   }
 
+  if (!rawState.corp.currentSystemId) {
+    // Derive from current station if possible
+    const stationId = rawState.corp.currentStationId;
+    if (stationId && STATION_REGISTRY_CACHE) {
+      const station = STATION_REGISTRY_CACHE[stationId];
+      rawState.corp.currentSystemId = station?.systemId || "sol";
+    } else {
+      rawState.corp.currentSystemId = "sol";
+    }
+  }
+
   if (rawState.corp.travel === undefined) {
     rawState.corp.travel = null;
   }
 
   if (!Array.isArray(rawState.corp.milestonesCompleted)) {
     rawState.corp.milestonesCompleted = [];
-  }
-
-  if (!Array.isArray(rawState.corp.milestoneRoadmap)) {
-    rawState.corp.milestoneRoadmap = [];
   }
 
   if (!Array.isArray(rawState.corp.offices)) {
@@ -280,9 +304,8 @@ function normalizeStateShape(rawState) {
     extractorIds: Array.isArray(l.extractorIds) ? l.extractorIds : []
   }));
 
-  rawState.corp.milestoneRoadmap = MILESTONE_ROADMAP.slice();
-
   ensureCorpRefineryModel(rawState.corp);
+  ensureCorpAsteroidMiningModel(rawState.corp);
 
   return rawState;
 }
@@ -597,6 +620,186 @@ export function applyRefineryOperations(corp, now = Date.now()) {
   });
 }
 
+// ─── Asteroid Belt Mining ────────────────────────────────────────────────────
+
+// Deterministic belt compositions per system — scoutable
+const BELT_COMPOSITIONS = {
+  "sol:belt":          { "Silicates": 35, "Carbon": 25, "Nickel": 20, "Water Ice": 15, "Titanium": 5 },
+  "alpha-centauri:ac-belt": { "Silicates": 25, "Nickel": 22, "Titanium": 18, "Carbon": 15, "Hydrogen": 12, "Lithium": 8 },
+  "barnards-star:bn-rift":  { "Nickel": 25, "Titanium": 22, "Carbon": 18, "Silicates": 15, "Hydrogen": 12, "Cobalt": 8 },
+  "wolf-359:wf-shards":     { "Titanium": 20, "Nickel": 18, "Rare Earths": 16, "Lithium": 14, "Carbon": 12, "Cobalt": 10, "Thorium": 10 },
+  "tau-ceti:tc-cloud":      { "Rare Earths": 18, "Cobalt": 16, "Thorium": 14, "Titanium": 14, "Nickel": 12, "Helium-3": 10, "Lithium": 8, "Uranium": 8 },
+  "epsilon-eridani:ee-crown":{ "Rare Earths": 15, "Thorium": 14, "Uranium": 12, "Cobalt": 12, "Exotic Matter": 8, "Helium-3": 10, "Titanium": 10, "Lithium": 10, "Nickel": 9 }
+};
+
+// Rarity tiers control yield multiplier and the chance of bonus "jackpot" drops
+const SYSTEM_RARITY = {
+  sol:                "common",
+  "alpha-centauri":   "uncommon",
+  "barnards-star":    "uncommon",
+  "wolf-359":         "rare",
+  "tau-ceti":         "rare",
+  "epsilon-eridani":  "exotic"
+};
+
+const RARITY_YIELD_MULTIPLIER = { common: 1.0, uncommon: 1.15, rare: 1.35, exotic: 1.6 };
+
+// Expedition durations (ms) — short, standard, extended
+const EXPEDITION_DURATIONS = {
+  short:    { label: "Short Sweep (30 min)",   ms: 30 * 60 * 1000, tickYieldMultiplier: 0.7 },
+  standard: { label: "Standard Survey (1 hr)", ms: 60 * 60 * 1000, tickYieldMultiplier: 1.0 },
+  extended: { label: "Deep Core Drill (2 hr)", ms: 2 * 60 * 60 * 1000, tickYieldMultiplier: 1.4 }
+};
+
+const EXPEDITION_LAUNCH_COST = 3000;   // credits per expedition launch
+const PROBE_BUILD_COST = 8000;         // credits to fabricate one mining probe
+const PROBE_ASSET_VALUE = 5000;
+const BASE_MAX_PROBES = 2;
+const BASE_MAX_DEPLOYMENTS = 1;        // concurrent expedition slots
+
+function ensureCorpAsteroidMiningModel(corp) {
+  if (!corp.asteroidMining || typeof corp.asteroidMining !== "object") {
+    corp.asteroidMining = {};
+  }
+  const am = corp.asteroidMining;
+
+  if (typeof am.probeCount !== "number") am.probeCount = 0;
+  if (typeof am.maxProbes !== "number") am.maxProbes = BASE_MAX_PROBES;
+  if (typeof am.maxDeployments !== "number") am.maxDeployments = BASE_MAX_DEPLOYMENTS;
+  if (!Array.isArray(am.activeExpeditions)) am.activeExpeditions = [];
+  if (!Array.isArray(am.completedExpeditions)) am.completedExpeditions = [];
+  if (!Array.isArray(am.scoutedBelts)) am.scoutedBelts = [];
+
+  // Normalize each active expedition
+  am.activeExpeditions = am.activeExpeditions.map((exp) => ({
+    id: exp.id || createId("exp"),
+    beltKey: exp.beltKey || "sol:belt",
+    systemId: exp.systemId || "sol",
+    duration: exp.duration || "standard",
+    deployedAt: exp.deployedAt || Date.now(),
+    completesAt: exp.completesAt || Date.now(),
+    lastTickAt: exp.lastTickAt || exp.deployedAt || Date.now(),
+    launchCost: Number(exp.launchCost || EXPEDITION_LAUNCH_COST),
+    yields: exp.yields || {},
+    status: exp.status || "active"
+  }));
+}
+
+/**
+ * Seeded pseudo-random for deterministic-per-tick asteroid loot.
+ * Returns value in [0, 1).
+ */
+function seededRand(seed) {
+  let h = seed | 0;
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+  h = Math.imul(h ^ (h >>> 13), 0x45d9f3b);
+  h ^= h >>> 16;
+  return (h >>> 0) / 0xFFFFFFFF;
+}
+
+function weightedPick(pool, seed) {
+  const total = Object.values(pool).reduce((a, b) => a + b, 0);
+  let roll = seededRand(seed) * total;
+  for (const [resource, weight] of Object.entries(pool)) {
+    roll -= weight;
+    if (roll <= 0) return resource;
+  }
+  // Fallback
+  return Object.keys(pool)[0];
+}
+
+export function applyAsteroidExpeditions(corp, now = Date.now()) {
+  ensureCorpAsteroidMiningModel(corp);
+
+  const am = corp.asteroidMining;
+  const expeditionsToRemove = [];
+
+  am.activeExpeditions.forEach((exp) => {
+    if (exp.status !== "active") return;
+
+    const lastTick = Number(exp.lastTickAt || exp.deployedAt);
+    const completesAt = Number(exp.completesAt);
+    const intervalEnd = Math.min(now, completesAt);
+    const elapsedMs = Math.max(0, intervalEnd - lastTick);
+
+    if (elapsedMs <= 0 && now < completesAt) return;
+
+    // Determine belt composition
+    const composition = BELT_COMPOSITIONS[exp.beltKey];
+    if (!composition) {
+      exp.status = "completed";
+      expeditionsToRemove.push(exp.id);
+      return;
+    }
+
+    const rarity = SYSTEM_RARITY[exp.systemId] || "common";
+    const rarityMult = RARITY_YIELD_MULTIPLIER[rarity];
+    const durationDef = EXPEDITION_DURATIONS[exp.duration] || EXPEDITION_DURATIONS.standard;
+    const tickMult = durationDef.tickYieldMultiplier;
+
+    // Roll resources for this tick interval
+    const tickMinutes = elapsedMs / (60 * 1000);
+    // Base: ~2-5 units per resource per tick minute
+    const baseYieldPerMin = 3;
+    const totalYield = Math.floor(tickMinutes * baseYieldPerMin * rarityMult * tickMult);
+
+    if (totalYield > 0) {
+      // Generate a tick-unique seed from expedition id + tick timestamp
+      const tickSeed = (hashSeedStr(exp.id) + Math.floor(now / 5000)) | 0;
+
+      // Roll 1–3 resources per tick
+      const dropCount = 1 + Math.floor(seededRand(tickSeed) * 3);
+      for (let i = 0; i < dropCount; i++) {
+        const resource = weightedPick(composition, tickSeed + i * 7919);
+        const qty = Math.max(1, Math.floor((totalYield / dropCount) * (0.6 + seededRand(tickSeed + i * 3571) * 0.8)));
+        exp.yields[resource] = (exp.yields[resource] || 0) + qty;
+      }
+    }
+
+    exp.lastTickAt = now;
+
+    // Check completion
+    if (now >= completesAt) {
+      exp.status = "completed";
+
+      // Deposit yields into nearest station in the expedition's system
+      const stationsInSystem = Object.values(STATION_REGISTRY_CACHE).filter(s => s.systemId === exp.systemId);
+      const depositStationId = (stationsInSystem.length > 0)
+        ? (stationsInSystem.find(s => s.id === corp.currentStationId)?.id || stationsInSystem[0].id)
+        : (corp.currentStationId || "earth-station-prime");
+
+      const stationInv = getStationInventory(corp, depositStationId);
+      for (const [resource, qty] of Object.entries(exp.yields)) {
+        stationInv[resource] = (stationInv[resource] || 0) + qty;
+      }
+
+      // Return the probe
+      am.probeCount = Math.min(am.maxProbes, (am.probeCount || 0) + 1);
+
+      // Move to completed log (keep last 20)
+      am.completedExpeditions.unshift({ ...exp, completedAt: now, depositStationId });
+      if (am.completedExpeditions.length > 20) am.completedExpeditions.length = 20;
+
+      expeditionsToRemove.push(exp.id);
+    }
+  });
+
+  // Remove completed expeditions from active list
+  if (expeditionsToRemove.length > 0) {
+    am.activeExpeditions = am.activeExpeditions.filter((e) => !expeditionsToRemove.includes(e.id));
+  }
+}
+
+function hashSeedStr(input) {
+  let h = 0;
+  const text = String(input || "x");
+  for (let i = 0; i < text.length; i++) {
+    h = (h << 5) - h + text.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
 const BASE_EXCHANGE_SALES_TAX_PCT = 8;
 
@@ -630,7 +833,7 @@ function resolveMetric(metric, corp) {
   // stat:<key> — check corp flags first, then corp.stats
   if (metric.startsWith("stat:")) {
     const key = metric.slice(5);
-    if (key === "officeRented") return corp.officeRented ? 1 : 0;
+    if (key === "officeRented") return (Array.isArray(corp.offices) && corp.offices.length > 0) ? 1 : 0;
     if (key === "miningLeasesCount") return miningLeases.length;
     return Number(stats[key] || 0);
   }
@@ -741,13 +944,11 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
     corporationName: corpName,
     location: "Earth",
     currentStationId: "earth-station-prime",
+    currentSystemId: "sol",
     travel: null,
     level: 0,
     levelCap: 40,
     milestonesCompleted: [],
-    milestoneRoadmap: [
-      ...MILESTONE_ROADMAP
-    ],
     employeeCap: 8,
     employeeCount: 0,
     buildingSlots: 2,
@@ -970,121 +1171,7 @@ function getSeedState() {
     world: {
       lawName: "Interstellar Settlement Protocol",
       lawYear: 2147,
-      systems: [
-        {
-          id: "sol",
-          name: "Sol",
-          gdpIndex: 98,
-          pirateDensity: 11,
-          activityLevel: 95,
-          ownerRule: "No direct ownership. Mining rights are leased.",
-          bodies: [
-            { id: "mercury", name: "Mercury", type: "Planet", x: 58, y: 0, radius: 4 },
-            { id: "venus", name: "Venus", type: "Planet", x: 90, y: 0, radius: 6 },
-            { id: "earth", name: "Earth", type: "Planet", x: 122, y: 0, radius: 7 },
-            { id: "mars", name: "Mars", type: "Planet", x: 156, y: 0, radius: 5 },
-            { id: "belt", name: "Asteroid Belt", type: "Field", x: 196, y: 0, radius: 13 },
-            { id: "jupiter", name: "Jupiter", type: "Planet", x: 238, y: 0, radius: 12 },
-            { id: "saturn", name: "Saturn", type: "Planet", x: 284, y: 0, radius: 11 },
-            { id: "uranus", name: "Uranus", type: "Planet", x: 326, y: 0, radius: 9 },
-            { id: "neptune", name: "Neptune", type: "Planet", x: 366, y: 0, radius: 9 },
-            { id: "luna", name: "Luna", type: "Moon", parentId: "earth", x: 0, y: 0, radius: 2 },
-            { id: "phobos", name: "Phobos", type: "Moon", parentId: "mars", x: 0, y: 0, radius: 2 },
-            { id: "deimos", name: "Deimos", type: "Moon", parentId: "mars", x: 0, y: 0, radius: 2 },
-            { id: "io", name: "Io", type: "Moon", parentId: "jupiter", x: 0, y: 0, radius: 2 },
-            { id: "europa", name: "Europa", type: "Moon", parentId: "jupiter", x: 0, y: 0, radius: 2 },
-            { id: "ganymede", name: "Ganymede", type: "Moon", parentId: "jupiter", x: 0, y: 0, radius: 3 },
-            { id: "callisto", name: "Callisto", type: "Moon", parentId: "jupiter", x: 0, y: 0, radius: 3 },
-            { id: "titan", name: "Titan", type: "Moon", parentId: "saturn", x: 0, y: 0, radius: 3 },
-            { id: "enceladus", name: "Enceladus", type: "Moon", parentId: "saturn", x: 0, y: 0, radius: 2 }
-          ]
-        },
-        {
-          id: "alpha-centauri",
-          name: "Alpha Centauri",
-          gdpIndex: 84,
-          pirateDensity: 15,
-          activityLevel: 77,
-          ownerRule: "Neutral authority oversight with corporate lease competition.",
-          bodies: [
-            { id: "ac-prime", name: "Centauri Prime", type: "Planet", x: 50, y: 0, radius: 7 },
-            { id: "ac-ii", name: "Centauri II", type: "Planet", x: 86, y: 0, radius: 5 },
-            { id: "ac-haven", name: "Haven", type: "Moon", x: 102, y: 0, radius: 3 },
-            { id: "ac-belt", name: "Centauri Belt", type: "Field", x: 126, y: 0, radius: 10 }
-          ]
-        },
-        {
-          id: "barnards-star",
-          name: "Barnard's Star",
-          gdpIndex: 66,
-          pirateDensity: 22,
-          activityLevel: 59,
-          ownerRule: "Frontier charter system with low-regulation extraction rights.",
-          bodies: [
-            { id: "bn-iron", name: "Ironwell", type: "Planet", x: 48, y: 0, radius: 6 },
-            { id: "bn-cinder", name: "Cinder", type: "Planet", x: 82, y: 0, radius: 4 },
-            { id: "bn-arc", name: "Arcadia", type: "Moon", x: 103, y: 0, radius: 3 },
-            { id: "bn-rift", name: "Rift Debris Ring", type: "Field", x: 132, y: 0, radius: 11 }
-          ]
-        },
-        {
-          id: "wolf-359",
-          name: "Wolf 359",
-          gdpIndex: 58,
-          pirateDensity: 31,
-          activityLevel: 51,
-          ownerRule: "High-risk conflict zone with arbitration-based claims.",
-          bodies: [
-            { id: "wf-halo", name: "Halo", type: "Planet", x: 44, y: 0, radius: 5 },
-            { id: "wf-garnet", name: "Garnet", type: "Planet", x: 77, y: 0, radius: 6 },
-            { id: "wf-veil", name: "Veil", type: "Moon", x: 92, y: 0, radius: 3 },
-            { id: "wf-shards", name: "Shard Belt", type: "Field", x: 126, y: 0, radius: 10 }
-          ]
-        },
-        {
-          id: "tau-ceti",
-          name: "Tau Ceti",
-          gdpIndex: 71,
-          pirateDensity: 18,
-          activityLevel: 64,
-          ownerRule: "Treaty-governed commercial corridor with tariff controls.",
-          bodies: [
-            { id: "tc-verde", name: "Verde", type: "Planet", x: 47, y: 0, radius: 7 },
-            { id: "tc-lumen", name: "Lumen", type: "Planet", x: 84, y: 0, radius: 5 },
-            { id: "tc-aqua", name: "Aqua Minor", type: "Moon", x: 101, y: 0, radius: 3 },
-            { id: "tc-cloud", name: "Tau Ice Cloud", type: "Field", x: 128, y: 0, radius: 11 }
-          ]
-        },
-        {
-          id: "epsilon-eridani",
-          name: "Epsilon Eridani",
-          gdpIndex: 62,
-          pirateDensity: 25,
-          activityLevel: 55,
-          ownerRule: "Semi-private jurisdiction with licensed station authorities.",
-          bodies: [
-            { id: "ee-kestrel", name: "Kestrel", type: "Planet", x: 46, y: 0, radius: 6 },
-            { id: "ee-orion", name: "Orion Reach", type: "Planet", x: 78, y: 0, radius: 5 },
-            { id: "ee-lyra", name: "Lyra", type: "Moon", x: 95, y: 0, radius: 3 },
-            { id: "ee-crown", name: "Crown Belt", type: "Field", x: 124, y: 0, radius: 10 }
-          ]
-        }
-      ],
-      resourceCatalog: [
-        "Silicates",
-        "Helium-3",
-        "Nickel",
-        "Titanium",
-        "Carbon",
-        "Water Ice",
-        "Rare Earths",
-        "Thorium",
-        "Hydrogen",
-        "Lithium",
-        "Cobalt",
-        "Uranium",
-        "Exotic Matter"
-      ],
+      systems: deepClone(SYSTEMS_DATA),
       refineryChains: REFINERY_CHAINS_DATA.chains.map((c) => ({
         id: c.id,
         input: c.input,
@@ -1104,9 +1191,6 @@ function getSeedState() {
       level: 1,
       levelCap: 40,
       milestonesCompleted: ["HQ Constructed", "First 10 Employees"],
-      milestoneRoadmap: [
-        ...MILESTONE_ROADMAP
-      ],
       employeeCap: 100,
       employeeCount: 38,
       buildingSlots: 3,
@@ -1132,11 +1216,6 @@ function getSeedState() {
         assets: 6050000,
         dailyRevenue: 210000,
         dailyCosts: 156000,
-        inflationBySystem: {
-          Sol: 2.1,
-          "Alpha Centauri": 1.8,
-          "Barnard's Star": 1.1
-        },
         taxRatePct: 14,
         bondYieldPct: 4.8
       },
@@ -1216,76 +1295,6 @@ function getSeedState() {
         }
       ]
     },
-    market: {
-      orderBook: [
-        { id: "ord-001", type: "sell", item: "Silicates", quantity: 1200, unitPrice: 58, seller: "Nova Ridge LLC" },
-        { id: "ord-002", type: "buy", item: "Helium-3", quantity: 500, unitPrice: 185, buyer: "Tau Vector Inc." }
-      ],
-      npcBuyOrders: [
-        {
-          id: "npc-buy-silicates-daily",
-          item: "Silicates",
-          buyer: "GEX Commodities Authority",
-          unitPrice: 24,
-          totalQtyPerDay: 1000000,
-          remainingQty: 1000000,
-          lastResetDate: ""
-        }
-      ],
-      mercenaryContracts: [
-        {
-          id: "merc-001",
-          provider: "Black Orbit Security",
-          unitType: "Destroyer Wing",
-          strength: 340,
-          durationHours: 48,
-          ratePerHour: 5200
-        }
-      ]
-    },
-    conglomerates: [
-      {
-        id: "cong-001",
-        name: "Helios Combine",
-        level: 2,
-        memberCount: 5,
-        maxMembers: 8,
-        pooledResources: {
-          credits: 8200000,
-          titanium: 14000,
-          helium3: 2300
-        }
-      }
-    ],
-    forums: {
-      categories: [
-        "General Discussion",
-        "Trading",
-        "Conglomerate Recruitment",
-        "Off-Topic",
-        "Politics & Law",
-        "Tutorials & Guides"
-      ],
-      threads: [
-        {
-          id: "thr-001",
-          category: "Politics & Law",
-          title: "Legal strategies against predatory mineral leases",
-          author: "LexNova",
-          likes: 14,
-          createdAt: Date.now() - 18 * 60 * 60 * 1000,
-          replies: [
-            {
-              id: "rep-001",
-              author: "Iron Meridian",
-              content: "Arbitration timing matters more than filing volume in Sol jurisdiction.",
-              likes: 4,
-              createdAt: Date.now() - 12 * 60 * 60 * 1000
-            }
-          ]
-        }
-      ]
-    },
     missions: [
       {
         id: "ms-log-001",
@@ -1299,13 +1308,7 @@ function getSeedState() {
         quota: { resource: "Silicates", amount: 400 }
       }
     ],
-    combatReports: [],
-    chatLog: {
-      global: [],
-      local: [],
-      trade: [],
-      private: []
-    }
+    combatReports: []
   };
 }
 
@@ -1483,6 +1486,12 @@ function ensureAccountsFile() {
 
   if (!fs.existsSync(accountsPath)) {
     const dummyState = createStarterCorporationState(seedState, "Test Director", "Protocol Sandbox Dynamics");
+    // Grant dummy account all research + nav techs for testing
+    dummyState.corp.unlockedTech = [
+      "tt-basic-extraction", "tt-industrial-safety", "tt-supply-forecast",
+      "tt-energy-routing", "tt-fleet-coordination",
+      "tt-proxima-navigation", "tt-deep-star-navigation"
+    ];
     const seedAccounts = {
       accounts: {
         dummy: {
@@ -1512,6 +1521,12 @@ function ensureAccountsFile() {
   }
 
   if (!parsed.accounts.dummy) {
+    const dummyState2 = createStarterCorporationState(seedState, "Test Director", "Protocol Sandbox Dynamics");
+    dummyState2.corp.unlockedTech = [
+      "tt-basic-extraction", "tt-industrial-safety", "tt-supply-forecast",
+      "tt-energy-routing", "tt-fleet-coordination",
+      "tt-proxima-navigation", "tt-deep-star-navigation"
+    ];
     parsed.accounts.dummy = {
       id: "dummy",
       email: "dummy@isp.local",
@@ -1520,7 +1535,7 @@ function ensureAccountsFile() {
       refreshTokens: [],
       notifications: [],
       walkthroughCompleted: false,
-      state: createStarterCorporationState(seedState, "Test Director", "Protocol Sandbox Dynamics")
+      state: dummyState2
     };
   }
 
@@ -1687,6 +1702,8 @@ export function getStationInventory(corp, stationId) {
 export { CEO_INSIGHT_LIBRARY };
 export { REFINERY_CHAINS };
 export { MISSION_TEMPLATES, refreshContractOfferings };
+export { SYSTEM_DETAILS };
+export { BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_ASSET_VALUE, BASE_MAX_PROBES, BASE_MAX_DEPLOYMENTS };
 
 export function mutateState(mutator) {
   mutator(state);
