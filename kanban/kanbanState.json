@@ -179,6 +179,12 @@
           "title": "Middle Managers",
           "description": "Middle Managers will allow the CEO to delegate management of employees to an autonomous manager which will determine how best to dedicate human resources. This has the benefit of reducing the amount of direct management the CEO has to do of their workforce.",
           "comments": []
+        },
+        {
+          "id": "card-1776566944640-241926",
+          "title": "Notification Popup",
+          "description": "Add a notification popup so the user is alerted when they receive a new message, when a research option is complete, ceo insight program, manufacturing, etc",
+          "comments": []
         }
       ]
     },
@@ -208,6 +214,12 @@
           "id": "card-1776556443277-245504",
           "title": "Remove Local Account Data (accounts.json)",
           "description": "Up until this point we have been relying on a massive accounts.json data file which stores all parameters affecting the dummy account. We are now going to remove this and rely solely on our supabase integration.",
+          "comments": []
+        },
+        {
+          "id": "card-1776564107315-241750",
+          "title": "Add Different Backgrounds for Different Stations",
+          "description": "Currently, the background in the Executive Suites, Lease division, and exchange, are the same no matter what station we are in. It'd look better if we changed it up a bit",
           "comments": []
         }
       ]

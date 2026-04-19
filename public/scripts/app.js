@@ -37,6 +37,7 @@ const appState = {
   _travelTimer: null,
   exchangeFilter: "",
   beltCompositions: {},
+  refineryStatus: null,
   inbox: {
     messages: [],
     folder: "inbox",          // active folder tab
@@ -53,6 +54,8 @@ const STORAGE_KEYS = {
   refreshToken: "isp.refreshToken",
   walkthroughOfferSeenPrefix: "isp.walkthrough-offer-seen:"
 };
+
+const LOGIN_PAGE_PATH = "/login.html";
 
 const IS_DEV_ACCESS =
   new URL(window.location.href).searchParams.get("dev") === "1" ||
@@ -415,6 +418,36 @@ function clearSession() {
   localStorage.removeItem(STORAGE_KEYS.refreshToken);
 }
 
+let _sessionExpiredHandled = false;
+function redirectToLoginPage(reason = "expired") {
+  const loginUrl = new URL(LOGIN_PAGE_PATH, window.location.origin);
+  if (reason) {
+    loginUrl.searchParams.set("reason", reason);
+  }
+  window.location.replace(`${loginUrl.pathname}${loginUrl.search}${loginUrl.hash}`);
+}
+
+function handleSessionExpired(reason = "expired") {
+  if (_sessionExpiredHandled) return;
+  _sessionExpiredHandled = true;
+  clearSession();
+  appState.authenticated = false;
+  appState.data = null;
+  appState.profileMode = null;
+  stopMiningUiTicker();
+  showAuthScreen();
+  redirectToLoginPage(reason);
+  setTimeout(() => {
+    _sessionExpiredHandled = false;
+  }, 1000);
+}
+
+function createInvalidSessionError(message) {
+  const error = new Error(message || "Session is invalid.");
+  error.code = "AUTH_SESSION_INVALID";
+  return error;
+}
+
 function walkthroughOfferKey(accountId) {
   if (!accountId) {
     return null;
@@ -446,6 +479,7 @@ function hydrateSession() {
 
 async function refreshSessionToken() {
   if (!appState.refreshToken) {
+    handleSessionExpired();
     return false;
   }
 
@@ -456,7 +490,7 @@ async function refreshSessionToken() {
   });
 
   if (!response.ok) {
-    clearSession();
+    handleSessionExpired();
     return false;
   }
 
@@ -477,10 +511,14 @@ async function apiFetch(url, options = {}, allowRetry = true) {
   }
 
   const response = await fetch(url, { ...options, headers });
-  if (response.status === 401 && allowRetry && appState.refreshToken) {
-    const refreshed = await refreshSessionToken();
-    if (refreshed) {
-      return apiFetch(url, options, false);
+  if (response.status === 401 && allowRetry) {
+    if (appState.refreshToken) {
+      const refreshed = await refreshSessionToken();
+      if (refreshed) {
+        return apiFetch(url, options, false);
+      }
+    } else if (appState.authenticated) {
+      handleSessionExpired();
     }
   }
 
@@ -2176,6 +2214,8 @@ function renderStation(data) {
     `;
     npcGrid.innerHTML = "";
     playerGrid.innerHTML = "";
+    const facSection = document.getElementById("station-facilities-section");
+    if (facSection) facSection.hidden = true;
     if (travelBanner) travelBanner.hidden = true;
     if (overviewView) overviewView.hidden = false;
     return;
@@ -2230,40 +2270,48 @@ function renderStation(data) {
   const corpBuildings = (data.corp?.buildings || []).filter((b) => b.status === "Operational");
   const hasAssemblyTech = (data.corp?.unlockedTech || []).includes("tt-assembly-fabrication");
   const hasAssembly = corpBuildings.some((b) => b.name === "Assembly Facility");
+
+  // ── Operational Facilities (Assembly, Refinery — prominent usable cards) ──
+  const facilitySection = document.getElementById("station-facilities-section");
+  const facilityGrid = document.getElementById("station-facility-buildings");
+  const facilityBuildings = corpBuildings.filter((b) => b.name === "Assembly Facility" || b.name === "Refinery");
   const buildAssemblyHtml = (hasAssemblyTech && !hasAssembly)
-    ? `<article class="building-card data-card" style="border:1px dashed rgba(0,247,255,0.3);">
-         <header class="building-card-header"><span class="faction-code-badge corp-badge">NEW</span><h3>Assembly Facility</h3></header>
+    ? `<article class="facility-card data-card" style="border:1px dashed rgba(0,247,255,0.3);">
+         <header class="facility-card-header"><span class="faction-code-badge corp-badge">NEW</span><h3>Assembly Facility</h3></header>
          <p class="muted">Modular manufacturing bay for fabricating deployable units.</p>
-         <footer class="building-card-footer"><button id="build-assembly-btn" class="btn btn-accent">Construct (¤60,000)</button></footer>
+         <footer class="facility-card-footer"><button id="build-assembly-btn" class="btn btn-accent">Construct (¤60,000)</button></footer>
        </article>`
     : "";
 
-  if (!corpBuildings.length) {
-    playerGrid.innerHTML = `<p class="muted">No corporate holdings registered at this station. Buildings constructed through your Corporation Overview will appear here once commissioned.</p>${buildAssemblyHtml}`;
-  } else {
-    playerGrid.innerHTML = corpBuildings
-      .map(
-        (b) => {
-          const isAssembly = b.name === "Assembly Facility";
-          const actionBtn = isAssembly
-            ? `<button class="btn btn-outline" data-corp-building="${escapeHtml(b.name)}">Enter</button>`
-            : `<span class="building-status-badge operational">Operational</span>`;
-          return `
-            <article class="building-card data-card">
-              <header class="building-card-header">
-                <span class="faction-code-badge corp-badge">CORP</span>
-                <h3>${escapeHtml(b.name)}</h3>
-              </header>
-              <p class="muted">Tier ${b.tier || 1} &mdash; ${escapeHtml(b.status)}</p>
-              <footer class="building-card-footer">${actionBtn}</footer>
-            </article>
-          `;
-        }
-      )
-      .join("") + buildAssemblyHtml;
+  if (facilityGrid && facilitySection) {
+    const facilityHtml = facilityBuildings.map((b) => {
+      const actionBtn = `<button class="btn btn-accent" data-corp-building="${escapeHtml(b.name)}">Enter</button>`;
+      const desc = b.name === "Assembly Facility"
+        ? "Modular manufacturing bay for fabricating deployable units and equipment."
+        : "Industrial refinery complex for processing raw minerals into advanced materials.";
+      return `
+        <article class="facility-card data-card">
+          <header class="facility-card-header">
+            <span class="faction-code-badge corp-badge">CORP</span>
+            <h3>${escapeHtml(b.name)}</h3>
+          </header>
+          <p class="muted facility-desc">${desc}</p>
+          <p class="facility-tier">Tier ${b.tier || 1} &mdash; ${escapeHtml(b.status)}</p>
+          <footer class="facility-card-footer">${actionBtn}</footer>
+        </article>
+      `;
+    }).join("") + buildAssemblyHtml;
 
-    // Bind Assembly Facility enter button
-    playerGrid.querySelectorAll("[data-corp-building]").forEach((btn) => {
+    if (facilityHtml) {
+      facilitySection.hidden = false;
+      facilityGrid.innerHTML = facilityHtml;
+    } else {
+      facilitySection.hidden = true;
+      facilityGrid.innerHTML = "";
+    }
+
+    // Bind facility enter buttons
+    facilityGrid.querySelectorAll("[data-corp-building]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const name = btn.getAttribute("data-corp-building");
         if (name === "Assembly Facility") {
@@ -2271,6 +2319,45 @@ function renderStation(data) {
         }
       });
     });
+  }
+
+  // ── Licensed Corporate Holdings (Extractor Yards — filtered to current station body) ──
+  const stationBody = station.body;
+  const leases = data.corp?.miningLeases || [];
+  const leasesAtStation = leases.filter((l) => l.body === stationBody);
+  const leaseIdsAtStation = new Set(leasesAtStation.map((l) => l.id));
+
+  // Count extractors at this station via their lease linkage
+  const allExtractors = data.corp?.mining?.silicateExtractors || [];
+  const extractorsHere = allExtractors.filter((ex) => ex.leaseId && leaseIdsAtStation.has(ex.leaseId));
+  // Extractors without leaseId are legacy/generic — show at home station only
+  const legacyExtractors = allExtractors.filter((ex) => !ex.leaseId);
+  const isHomeStation = currentStationId === "earth-station-prime";
+  const displayExtractors = [...extractorsHere, ...(isHomeStation ? legacyExtractors : [])];
+
+  const extractorBuildingCount = displayExtractors.length;
+
+  if (!extractorBuildingCount) {
+    playerGrid.innerHTML = `<p class="muted">No extractor yards deployed at ${escapeHtml(station.name)}. Yards are linked to mining leases on ${escapeHtml(stationBody)}.</p>`;
+  } else {
+    playerGrid.innerHTML = displayExtractors
+      .map(
+        (ex) => {
+          const statusText = ex.active ? "Active" : "Idle";
+          const statusClass = ex.active ? "operational" : "idle";
+          return `
+            <article class="building-card data-card">
+              <header class="building-card-header">
+                <span class="faction-code-badge corp-badge">CORP</span>
+                <h3>${escapeHtml(ex.name || "Basic Extractor Yard")}</h3>
+              </header>
+              <p class="muted">Tier ${ex.tier || 1} &mdash; <span class="building-status-badge ${statusClass}">${statusText}</span></p>
+              <footer class="building-card-footer"></footer>
+            </article>
+          `;
+        }
+      )
+      .join("");
   }
 
   // Bind build Assembly Facility button
@@ -2314,16 +2401,37 @@ function renderAssemblyFacility(data) {
   if (!hasProspecting) {
     probeSection = `<p class="muted">Research <em>Asteroid Prospecting Arrays</em> to unlock Mining Probe fabrication.</p>`;
   } else {
-    const canBuild = probeCount < maxProbes;
+    const fabQueue = am.fabricationQueue || [];
+    const activeFab = fabQueue[0] || null;
+    const pendingCount = fabQueue.length;
+    const canBuild = (probeCount + pendingCount) < maxProbes && !activeFab;
+
+    let fabProgressHtml = "";
+    if (activeFab) {
+      const elapsed = Date.now() - activeFab.startedAt;
+      const total = activeFab.completesAt - activeFab.startedAt;
+      const pct = Math.min(100, Math.max(0, (elapsed / total) * 100));
+      const remainMs = Math.max(0, activeFab.completesAt - Date.now());
+      fabProgressHtml = `
+        <div class="assembly-fab-progress" style="margin-top:0.75rem;">
+          <p class="muted" style="font-size:0.8rem;">Fabricating Mining Probe &mdash; ${formatDuration(remainMs)} remaining</p>
+          <div class="progress-wrap"><div class="progress-bar" id="fab-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
+        </div>
+      `;
+    }
+
     probeSection = `
       <div class="assembly-probe-status">
         <img src="/images/mining_probe.png" alt="Mining Probe" class="assembly-probe-img" />
         <div>
-          <p>Mining Probes: <strong>${probeCount} / ${maxProbes}</strong></p>
+          <p>Mining Probes: <strong>${probeCount} / ${maxProbes}</strong>${pendingCount > 0 ? ` <span class="muted">(${pendingCount} in fabrication)</span>` : ""}</p>
           ${canBuild
             ? `<button id="build-probe-btn" class="btn btn-accent">Fabricate Mining Probe (¤8,000)</button>`
-            : `<p class="muted">Probe hangar full. Research upgrades to increase capacity.</p>`
+            : activeFab
+              ? ""
+              : `<p class="muted">Probe hangar full. Research upgrades to increase capacity.</p>`
           }
+          ${fabProgressHtml}
         </div>
       </div>
     `;
@@ -2635,8 +2743,17 @@ function startMiningUiTicker() {
     // Re-render refinery active runs for live progress
     renderRefinery(appState.data);
 
+    const buildingView = document.getElementById("station-building-view");
+    const buildingTitle = document.querySelector("#station-building-content .building-detail-header h2");
+    if (buildingView && !buildingView.hidden && buildingTitle?.textContent === "Assembly Facility") {
+      renderAssemblyFacility(appState.data);
+    }
+
     // Live-update expedition progress bars
     renderExpeditions(appState.data);
+
+    // Live-update starmap belt detail panel expedition progress bars
+    starmap.updateExpeditionProgress();
 
     // Live-update contract refresh timer
     const timerEl = document.getElementById("contract-refresh-timer");
@@ -2865,23 +2982,52 @@ function renderRefinery(data) {
   const catalog = document.getElementById("resource-catalog");
   catalog.innerHTML = RESOURCE_CATALOG.map((res) => `<span class="pill">${escapeHtml(res)}</span>`).join("");
 
+  const formatRefineryOutputs = (outputs) => {
+    if (!Array.isArray(outputs) || outputs.length === 0) {
+      return "Unknown";
+    }
+
+    return outputs.map((output) => {
+      if (typeof output === "string") {
+        return output;
+      }
+
+      if (!output || typeof output !== "object") {
+        return "Unknown";
+      }
+
+      const item = output.item || output.name || output.resource || "Unknown";
+      const quantity = output.quantityPerCycle ?? output.quantity ?? output.amount;
+      return Number.isFinite(Number(quantity)) ? `${Number(quantity)} ${item}` : String(item);
+    }).join(", ");
+  };
+
   const refineries = data.corp?.refineries || [];
+  const corp = data.corp || {};
   const unlockedTech = new Set(data.corp?.unlockedTech || []);
-  const inventory = data.corp?.inventory || {};
+  const stationId = data.corp?.currentStationId || "earth-station-prime";
+  const inventoryByStation = data.corp?.inventory || {};
+  const inventory = inventoryByStation[stationId] || {};
+  const buildings = Array.isArray(corp.buildings) ? corp.buildings : [];
+  const buildingSlots = Number(corp.buildingSlots || 2);
+  const hasOpenBuildingSlot = buildings.length < buildingSlots;
   const hasRefinery = refineries.length > 0;
   const canBuildRefinery = unlockedTech.has("tt-material-compression") && unlockedTech.has("tt-nano-lattice");
+  const refineryStatus = appState.refineryStatus;
 
   // ── Active Runs ──
+  const refineryChains = data.world?.refineryChains || [];
+
   const activeEl = document.getElementById("refinery-active-runs");
   const activeRefineries = refineries.filter((r) => r.active);
   if (!activeRefineries.length) {
     activeEl.innerHTML = `<article class="queue-item"><p class="muted">${hasRefinery ? "No active refinery cycles. Start a production run below." : "Build a Refinery to begin processing raw materials."}</p></article>`;
   } else {
     activeEl.innerHTML = activeRefineries.map((ref) => {
-      const chain = data.world.refineryChains.find((c) => c.id === ref.chainId);
+      const chain = refineryChains.find((c) => c.id === ref.chainId);
       const progress = cycleProgressPercent(ref);
       const remainingMs = Math.max(0, Number(ref.endsAt || 0) - Date.now());
-      const outputLabel = chain ? chain.outputs.map((o) => `${o.quantityPerCycle} ${o.item}`).join(", ") : "Unknown";
+      const outputLabel = chain ? formatRefineryOutputs(chain.outputs) : "Unknown";
       return `
         <article class="queue-item">
           <h3>${escapeHtml(ref.name)}</h3>
@@ -2895,12 +3041,14 @@ function renderRefinery(data) {
 
   // ── Available Chains ──
   const chainsEl = document.getElementById("refinery-chains");
-  chainsEl.innerHTML = data.world.refineryChains
+  const statusHtml = refineryStatus?.text
+    ? `<article class="queue-item"><p class="muted" style="color:${refineryStatus.type === "ok" ? "var(--color-accent)" : "var(--color-warn)"}">${escapeHtml(refineryStatus.text)}</p></article>`
+    : "";
+
+  chainsEl.innerHTML = statusHtml + refineryChains
     .map((chain) => {
       const techGated = Array.isArray(chain.requiresTechIds) && !chain.requiresTechIds.every((t) => unlockedTech.has(t));
-      const outputLabel = Array.isArray(chain.outputs)
-        ? chain.outputs.map((o) => typeof o === "string" ? o : `${o.quantityPerCycle} ${o.item}`).join(", ")
-        : String(chain.outputs);
+      const outputLabel = formatRefineryOutputs(chain.outputs);
       const inputAvailable = Number(inventory[chain.input] || 0);
       const inputNeeded = chain.inputQuantityPerCycle || 0;
       const hasInput = inputAvailable >= inputNeeded;
@@ -2920,7 +3068,7 @@ function renderRefinery(data) {
           ${canStart
             ? `<button class="btn btn-accent refinery-start-btn" data-chain-id="${chain.id}" data-refinery-id="${idleRefinery.id}">Start Run</button>`
             : !hasRefinery && canBuildRefinery
-              ? `<button class="btn btn-outline refinery-build-btn">Build Refinery</button>`
+              ? `<button class="btn btn-outline refinery-build-btn"${!hasOpenBuildingSlot ? ` data-disabled-reason="${escapeHtml(`Refinery requires 1 open building slot. Current usage: ${buildings.length}/${buildingSlots}.`)}` : ""}>Build Refinery</button>${!hasOpenBuildingSlot ? `<p class="muted" style="color:var(--color-warn)">No open building slots. Current usage: ${buildings.length}/${buildingSlots}.</p>` : ""}`
               : !hasRefinery && !canBuildRefinery
                 ? `<p class="muted" style="color:var(--color-warn)">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>`
                 : ""
@@ -2957,21 +3105,80 @@ function renderRefinery(data) {
     }
 
     const buildBtn = e.target.closest(".refinery-build-btn");
-    if (buildBtn && appState.accountId) {
+    if (buildBtn) {
+      const disabledReason = buildBtn.getAttribute("data-disabled-reason");
+      if (disabledReason) {
+        appState.refineryStatus = { type: "warn", text: disabledReason };
+        updateAllViews();
+        pushFeedback(`Build error: ${disabledReason}`, "warn");
+        return;
+      }
+
       buildBtn.disabled = true;
       buildBtn.textContent = "Building…";
       try {
-        const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/build-refinery`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" }
-        });
-        const account = await parseJsonResponse(response);
-        appState.data = deepClone(account.state);
-        appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+        if (appState.accountId) {
+          const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/build-refinery`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+          });
+          const account = await parseJsonResponse(response);
+          appState.data = deepClone(account.state);
+          appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+        } else {
+          const corp = appState.data?.corp;
+          if (!corp) {
+            throw new Error("Corporation state is unavailable.");
+          }
+
+          const unlockedTechSet = new Set(corp.unlockedTech || []);
+          if (!unlockedTechSet.has("tt-material-compression") || !unlockedTechSet.has("tt-nano-lattice")) {
+            throw new Error("Refinery construction requires Material Compression I and Nano-Lattice Weaving research.");
+          }
+
+          const buildings = Array.isArray(corp.buildings) ? corp.buildings : (corp.buildings = []);
+          const buildingSlots = Number(corp.buildingSlots || 2);
+          if (buildings.length >= buildingSlots) {
+            throw new Error(`Refinery requires 1 open building slot. Current usage: ${buildings.length}/${buildingSlots}.`);
+          }
+
+          if (!corp.finances || typeof corp.finances !== "object") {
+            corp.finances = { credits: 0, assets: 0 };
+          }
+          const buildCost = 75000;
+          const assetValue = 55000;
+          if (Number(corp.finances.credits || 0) < buildCost) {
+            throw new Error(`Refinery construction requires ${toCurrency(buildCost)} credits.`);
+          }
+
+          buildings.push({ name: "Refinery", tier: 1, status: "Operational" });
+
+          if (!Array.isArray(corp.refineries)) corp.refineries = [];
+          const nextIndex = corp.refineries.length + 1;
+          corp.refineries.push({
+            id: `ref-${nextIndex}`,
+            name: `Refinery #${nextIndex}`,
+            tier: 1,
+            active: false,
+            chainId: null,
+            startedAt: null,
+            lastTickAt: null,
+            endsAt: null,
+            cyclesCompleted: 0,
+            totalInputConsumed: 0,
+            totalOutputProduced: 0
+          });
+
+          corp.finances.credits -= buildCost;
+          corp.finances.assets = Number(corp.finances.assets || 0) + assetValue;
+        }
+
+        appState.refineryStatus = { type: "ok", text: "Refinery commissioned." };
         updateAllViews();
+        pushFeedback("Refinery commissioned.", "ok");
       } catch (error) {
-        buildBtn.disabled = false;
-        buildBtn.textContent = "Build Refinery";
+        appState.refineryStatus = { type: "warn", text: error.message };
+        updateAllViews();
         pushFeedback(`Build error: ${error.message}`, "warn");
       }
     }
@@ -3010,15 +3217,13 @@ function renderExpeditions(data) {
       const total = exp.completesAt - exp.deployedAt;
       const pct = Math.min(100, Math.max(0, (elapsed / total) * 100));
       const remainMs = Math.max(0, exp.completesAt - Date.now());
-      const mins = Math.floor(remainMs / 60000);
-      const secs = Math.floor((remainMs % 60000) / 1000);
       const yieldEntries = Object.entries(exp.yields || {});
-      const yieldText = yieldEntries.length ? yieldEntries.map(([r, q]) => `${q} ${r}`).join(", ") : "Scanning...";
+      const yieldText = yieldEntries.length ? yieldEntries.map(([resource, quantity]) => `${quantity} ${resource}`).join(", ") : "Scanning...";
       const beltLabel = exp.beltKey || "Unknown Belt";
       html += `<div class="expedition-card">
         <div class="expedition-card-header">
           <span class="expedition-belt-label">${escapeHtml(beltLabel)}</span>
-          <span class="muted" style="font-size:0.78rem;">${exp.duration} — ${mins}m ${String(secs).padStart(2, "0")}s</span>
+          <span class="muted" style="font-size:0.78rem;">${escapeHtml(exp.duration || "standard")} — ${formatDuration(remainMs)} remaining</span>
         </div>
         <div class="progress-wrap"><div class="progress-bar expedition-bar" style="width:${pct.toFixed(1)}%"></div></div>
         <p class="muted expedition-yields">Yields: ${escapeHtml(yieldText)}</p>
@@ -3030,10 +3235,10 @@ function renderExpeditions(data) {
     html += `<h4 style="margin-top:0.75rem;">Recent Returns</h4>`;
     for (const exp of completed) {
       const yieldEntries = Object.entries(exp.yields || {});
-      const yieldText = yieldEntries.length ? yieldEntries.map(([r, q]) => `${q} ${r}`).join(", ") : "None";
+      const yieldText = yieldEntries.length ? yieldEntries.map(([resource, quantity]) => `${quantity} ${resource}`).join(", ") : "None";
       html += `<div class="expedition-card completed">
         <span class="expedition-belt-label">${escapeHtml(exp.beltKey || "")}</span>
-        <span class="muted" style="font-size:0.78rem;">${exp.duration} — Completed</span>
+        <span class="muted" style="font-size:0.78rem;">${escapeHtml(exp.duration || "standard")} — Completed</span>
         <p class="muted expedition-yields">Total yield: ${escapeHtml(yieldText)}</p>
       </div>`;
     }
@@ -3059,7 +3264,11 @@ function renderAssets(data) {
   const stationRegistry = appState.stationRegistry || [];
   const corp = data.corp || {};
 
-  // ── Inventory: group by resource, then by station ──
+  // ── Active sub-tab ──
+  const activeTab = contentEl.dataset.activeTab || "inventory";
+
+  // ── Inventory: single consolidated table ──
+  // Build flat rows: resource, station, qty  — then aggregate totals
   const resourceMap = {}; // { resourceName: { stationId: qty } }
   for (const st of stationRegistry) {
     const inv = allInventory[st.id] || {};
@@ -3072,106 +3281,140 @@ function renderAssets(data) {
   }
 
   const resourceNames = Object.keys(resourceMap).sort();
-  let inventoryHtml;
+  let inventoryRows = "";
+  let grandTotal = 0;
   if (resourceNames.length === 0) {
-    inventoryHtml = `<p class="muted">No resources in inventory.</p>`;
+    inventoryRows = `<tr><td colspan="3" class="assets-empty">No resources in inventory.</td></tr>`;
   } else {
-    inventoryHtml = "";
     for (const resource of resourceNames) {
       const stations = resourceMap[resource];
-      const total = Object.values(stations).reduce((s, q) => s + q, 0);
-      inventoryHtml += `<div class="assets-resource-group">
-        <h4>${escapeHtml(resource)} <span class="muted" style="font-weight:400;font-size:0.78rem;">— ${total.toLocaleString()} total</span></h4>
-        <table class="data-table data-table--compact"><thead><tr><th>Station</th><th>Quantity</th></tr></thead><tbody>`;
-      for (const st of stationRegistry) {
-        const qty = stations[st.id];
-        if (!qty) continue;
-        inventoryHtml += `<tr><td>${escapeHtml(st.name)}</td><td>${qty.toLocaleString()}</td></tr>`;
+      const stationEntries = Object.entries(stations);
+      const total = stationEntries.reduce((s, [, q]) => s + q, 0);
+      grandTotal += total;
+
+      // First station row includes the resource name with rowspan
+      let first = true;
+      for (const [stId, qty] of stationEntries) {
+        const st = stationRegistry.find(s => s.id === stId);
+        const stName = st?.name || stId;
+        if (first) {
+          inventoryRows += `<tr>
+            <td class="assets-resource-name" rowspan="${stationEntries.length}">${escapeHtml(resource)}</td>
+            <td>${escapeHtml(stName)}</td>
+            <td class="num">${qty.toLocaleString()}</td>
+          </tr>`;
+          first = false;
+        } else {
+          inventoryRows += `<tr>
+            <td>${escapeHtml(stName)}</td>
+            <td class="num">${qty.toLocaleString()}</td>
+          </tr>`;
+        }
       }
-      inventoryHtml += `</tbody></table></div>`;
     }
   }
 
-  // ── Offices ──
-  const offices = corp.offices || [];
-  // Deduplicate by stationId
-  const seenStations = new Set();
-  let officesHtml;
-  if (offices.length === 0) {
-    officesHtml = `<p class="muted">No office leases on record.</p>`;
-  } else {
-    officesHtml = offices
-      .filter((o) => {
-        if (seenStations.has(o.stationId)) return false;
-        seenStations.add(o.stationId);
-        return true;
-      })
-      .map((o) => {
-        const st = stationRegistry.find((s) => s.id === o.stationId);
-        const expired = o.rentedUntil && o.rentedUntil <= Date.now();
-        const badge = expired
-          ? `<span class="building-status-badge downtime">Expired</span>`
-          : `<span class="building-status-badge operational">Active</span>`;
-        return `<div class="assets-office-row">${badge} ${escapeHtml(st?.name || o.stationId)} — ${escapeHtml(o.body || "")}</div>`;
-      })
-      .join("");
-  }
+  const inventoryPanel = `
+    <table class="assets-table">
+      <thead><tr><th>Resource</th><th>Location</th><th class="num">Qty</th></tr></thead>
+      <tbody>${inventoryRows}</tbody>
+      ${grandTotal > 0 ? `<tfoot><tr><td colspan="2">Total</td><td class="num">${grandTotal.toLocaleString()}</td></tr></tfoot>` : ""}
+    </table>`;
 
-  // ── Mining Leases ──
+  // ── Infrastructure: offices + leases + extractors in one table ──
+  const offices = corp.offices || [];
   const leases = corp.miningLeases || [];
   const extractors = corp.mining?.silicateExtractors || [];
-  let leasesHtml;
-  if (leases.length === 0) {
-    leasesHtml = `<p class="muted">No mining leases on record.</p>`;
-  } else {
-    leasesHtml = `<table class="data-table data-table--compact"><thead><tr><th>Body</th><th>Type</th><th>Extractors</th><th>Total Mined</th></tr></thead><tbody>`;
-    for (const l of leases) {
-      const exCount = (l.extractorIds || []).length;
-      // Sum totalMined for all extractors assigned to this lease
-      const leaseExtractors = extractors.filter((ex) => ex.leaseId === l.id);
-      const totalMined = leaseExtractors.reduce((sum, ex) => sum + Number(ex.totalMined || 0), 0);
-      leasesHtml += `<tr><td>${escapeHtml(l.body)}</td><td>${escapeHtml(l.leaseType || "Silicate Extraction")}</td><td>${exCount} / ${l.buildingSlots || 2}</td><td>${totalMined.toLocaleString()}</td></tr>`;
-    }
-    leasesHtml += `</tbody></table>`;
+
+  let infraRows = "";
+  // Offices
+  const seenStations = new Set();
+  for (const o of offices) {
+    if (seenStations.has(o.stationId)) continue;
+    seenStations.add(o.stationId);
+    const st = stationRegistry.find(s => s.id === o.stationId);
+    const expired = o.rentedUntil && o.rentedUntil <= Date.now();
+    const statusCls = expired ? "expired" : "operational";
+    const statusText = expired ? "Expired" : "Active";
+    infraRows += `<tr>
+      <td>Office Lease</td>
+      <td>${escapeHtml(st?.name || o.stationId)}</td>
+      <td><span class="building-status-badge ${statusCls}">${statusText}</span></td>
+      <td class="muted">—</td>
+    </tr>`;
   }
 
-  // ── Extractors ──
-  let extractorHtml;
-  if (extractors.length === 0) {
-    extractorHtml = `<p class="muted">No extractors commissioned.</p>`;
-  } else {
-    extractorHtml = `<table class="data-table data-table--compact"><thead><tr><th>Name</th><th>Status</th><th>Lease</th><th>Total Mined</th></tr></thead><tbody>`;
-    for (const ex of extractors) {
-      const status = ex.downtimeActive ? "Downtime" : ex.active ? "Active" : "Idle";
-      const statusClass = ex.downtimeActive ? "downtime" : ex.active ? "active" : "idle";
-      // Find lease for this extractor
-      const lease = leases.find((l) => l.id === ex.leaseId);
-      extractorHtml += `<tr><td>${escapeHtml(ex.name || ex.id)}</td><td><span class="building-status-badge ${statusClass}">${status}</span></td><td>${lease ? escapeHtml(lease.body) : "-"}</td><td>${Number(ex.totalMined || 0).toLocaleString()}</td></tr>`;
-    }
-    extractorHtml += `</tbody></table>`;
+  // Mining leases
+  for (const l of leases) {
+    const exCount = (l.extractorIds || []).length;
+    const leaseExtractors = extractors.filter(ex => ex.leaseId === l.id);
+    const totalMined = leaseExtractors.reduce((sum, ex) => sum + Number(ex.totalMined || 0), 0);
+    infraRows += `<tr>
+      <td>Mining Lease</td>
+      <td>${escapeHtml(l.body)}</td>
+      <td><span class="building-status-badge operational">Active</span></td>
+      <td class="num">${exCount}/${l.buildingSlots || 2} slots · ${totalMined.toLocaleString()} mined</td>
+    </tr>`;
   }
+
+  // Extractors
+  for (const ex of extractors) {
+    const status = ex.downtimeActive ? "Downtime" : ex.active ? "Active" : "Idle";
+    const statusCls = ex.downtimeActive ? "downtime" : ex.active ? "operational" : "idle";
+    const lease = leases.find(l => l.id === ex.leaseId);
+    infraRows += `<tr>
+      <td>Extractor</td>
+      <td>${escapeHtml(ex.name || ex.id)}</td>
+      <td><span class="building-status-badge ${statusCls}">${status}</span></td>
+      <td class="num">${Number(ex.totalMined || 0).toLocaleString()} mined${lease ? " · " + escapeHtml(lease.body) : ""}</td>
+    </tr>`;
+  }
+
+  if (!infraRows) {
+    infraRows = `<tr><td colspan="4" class="assets-empty">No infrastructure registered.</td></tr>`;
+  }
+
+  const infraPanel = `
+    <table class="assets-table">
+      <thead><tr><th>Asset</th><th>Location / ID</th><th>Status</th><th class="num">Details</th></tr></thead>
+      <tbody>${infraRows}</tbody>
+    </table>`;
+
+  // ── Summary bar ──
+  const totalResources = resourceNames.length;
+  const totalOffices = seenStations.size;
+  const totalLeases = leases.length;
+  const totalExtractors = extractors.length;
 
   contentEl.innerHTML = `
-    <section class="form-card">
-      <h3>Inventory</h3>
-      ${inventoryHtml}
-    </section>
+    <div class="assets-summary-bar">
+      <div class="assets-stat"><span class="assets-stat-value">${grandTotal.toLocaleString()}</span><span class="assets-stat-label">Units Stored</span></div>
+      <div class="assets-stat"><span class="assets-stat-value">${totalResources}</span><span class="assets-stat-label">Resource Types</span></div>
+      <div class="assets-stat"><span class="assets-stat-value">${totalOffices}</span><span class="assets-stat-label">Offices</span></div>
+      <div class="assets-stat"><span class="assets-stat-value">${totalLeases}</span><span class="assets-stat-label">Leases</span></div>
+      <div class="assets-stat"><span class="assets-stat-value">${totalExtractors}</span><span class="assets-stat-label">Extractors</span></div>
+    </div>
 
-    <section class="form-card">
-      <h3>Offices</h3>
-      ${officesHtml}
-    </section>
+    <nav class="assets-tab-nav">
+      <button class="assets-tab-btn${activeTab === "inventory" ? " active" : ""}" data-assets-tab="inventory">Inventory</button>
+      <button class="assets-tab-btn${activeTab === "infrastructure" ? " active" : ""}" data-assets-tab="infrastructure">Infrastructure</button>
+    </nav>
 
-    <section class="form-card">
-      <h3>Mining Leases</h3>
-      ${leasesHtml}
-    </section>
-
-    <section class="form-card">
-      <h3>Extractors</h3>
-      ${extractorHtml}
-    </section>
+    <div class="assets-panel-body">
+      <div class="assets-panel${activeTab === "inventory" ? " active" : ""}" data-assets-panel="inventory">${inventoryPanel}</div>
+      <div class="assets-panel${activeTab === "infrastructure" ? " active" : ""}" data-assets-panel="infrastructure">${infraPanel}</div>
+    </div>
   `;
+
+  // Bind tab switching
+  contentEl.querySelectorAll(".assets-tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.assetsTab;
+      contentEl.dataset.activeTab = tab;
+      contentEl.querySelectorAll(".assets-tab-btn").forEach(b => b.classList.toggle("active", b.dataset.assetsTab === tab));
+      contentEl.querySelectorAll(".assets-panel").forEach(p => p.classList.toggle("active", p.dataset.assetsPanel === tab));
+    });
+  });
 }
 
 // ─── Logistics ───────────────────────────────────────────────────────────────
@@ -3298,11 +3541,12 @@ function renderMarket(data) {
     return Boolean((myCorpName && seller === myCorpName) || (myEmail && seller === myEmail));
   };
 
-  const allSellOrders = (data.market.orderBook || []).filter((order) => order.type === "sell" && !isOwnSellOrder(order));
-  const mySellOrders = (data.market.orderBook || [])
+  const market = data.market || {};
+  const allSellOrders = (market.orderBook || []).filter((order) => order.type === "sell" && !isOwnSellOrder(order));
+  const mySellOrders = (market.orderBook || [])
     .filter((order) => order.type === "sell" && isOwnSellOrder(order))
     .slice(0, 50);
-  const npcBuyOrders = data.market.npcBuyOrders || [];
+  const npcBuyOrders = market.npcBuyOrders || [];
 
   // Build resource filter pills from all visible resources
   const resourceSet = new Set();
@@ -3372,7 +3616,7 @@ function renderMarket(data) {
 
   // Mercenary book
   const mercBook = document.getElementById("mercenary-book");
-  mercBook.innerHTML = data.market.mercenaryContracts
+  mercBook.innerHTML = (market.mercenaryContracts || [])
     .map(
       (item) =>
         `<li><strong>${item.provider}</strong> renting ${item.unitType} (Power ${item.strength}) for ${toCurrency(item.ratePerHour)}/hour over ${item.durationHours}h.</li>`
@@ -3462,7 +3706,7 @@ function renderForums(data) {
     if (overviewView) overviewView.hidden = true;
     if (threadView) threadView.hidden = false;
 
-    const selected = (data.forums.threads || []).find((t) => t.id === appState.selectedForumThreadId);
+    const selected = (data.forums?.threads || []).find((t) => t.id === appState.selectedForumThreadId);
     const detailBody = document.getElementById("forum-thread-detail-body");
     if (detailBody && selected) {
       const repliesHtml = selected.replies.length
@@ -3505,7 +3749,7 @@ function renderForums(data) {
   if (categoriesEl) {
     categoriesEl.innerHTML =
       `<button class="forum-category-btn${!appState.selectedForumCategory ? " active" : ""}" type="button" data-category="">All</button>` +
-      (data.forums.categories || [])
+      (data.forums?.categories || [])
         .map(
           (cat) =>
             `<button class="forum-category-btn${appState.selectedForumCategory === cat ? " active" : ""}" type="button" data-category="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`
@@ -3514,8 +3758,8 @@ function renderForums(data) {
   }
 
   const filtered = appState.selectedForumCategory
-    ? (data.forums.threads || []).filter((t) => t.category === appState.selectedForumCategory)
-    : (data.forums.threads || []);
+    ? (data.forums?.threads || []).filter((t) => t.category === appState.selectedForumCategory)
+    : (data.forums?.threads || []);
 
   const threadsEl = document.getElementById("forum-threads");
   if (threadsEl) {
@@ -3938,7 +4182,7 @@ function renderMissions(data) {
     if (completedMissions.length) {
       completedSection.hidden = false;
       if (logCountEl) logCountEl.textContent = `${completedMissions.length} completed`;
-      completedLog.innerHTML = completedMissions.slice(0, 30).map(m => {
+      completedLog.innerHTML = completedMissions.map(m => {
         const agent = MISSION_AGENTS.find(a => a.id === m.agentId);
         const agentLabel = agent ? agent.name : "Unknown Agent";
         return `
@@ -3958,14 +4202,15 @@ function renderMissions(data) {
 
 function renderCombatReports(data) {
   const reports = document.getElementById("combat-reports");
-  reports.innerHTML = data.combatReports
+  const combatReports = data.combatReports || [];
+  reports.innerHTML = combatReports
     .map(
       (report) =>
         `<li><strong>${report.winner}</strong> won. ${report.summary} <span class="muted">${formatTime(report.createdAt)}</span></li>`
     )
     .join("");
 
-  if (!data.combatReports.length) {
+  if (!combatReports.length) {
     reports.innerHTML = "<li>No combat reports yet. Simulate a battle to generate one.</li>";
   }
 }
@@ -4007,6 +4252,9 @@ function renderChatChannelTabs() {
 }
 
 function updateAllViews() {
+  if (appState.serverData) {
+    applySharedState(appState.serverData);
+  }
   const data = appState.data;
   if (!data || !appState.authenticated) {
     return;
@@ -4036,7 +4284,7 @@ function updateAllViews() {
   renderFinanceCharts(data.corp.finances);
   renderFeedbackLog();
   updateInvestmentPanel(data);
-  starmap.setSystems(data.world.systems);
+  if (data.world?.systems) starmap.setSystems(data.world.systems);
   starmap.setStations(appState.stationRegistry, data.corp?.currentStationId, data.corp?.currentSystemId || "sol");
   starmap.setUnlockedTech(new Set(data.corp?.unlockedTech || []));
   const am = data.corp?.asteroidMining || {};
@@ -4356,7 +4604,7 @@ function enterGame(mode, data, options = {}) {
   setTab("overview");
 
   if (!appState.mapMounted) {
-    starmap.mount(appState.data.world.systems);
+    starmap.mount(appState.data.world?.systems || []);
     appState.mapMounted = true;
   } else {
     starmap.rerender();
@@ -4430,9 +4678,48 @@ async function loadStationRegistry() {
   }
 }
 
-async function loadAccountById(accountId) {
-  const response = await apiFetch(`/api/accounts/${encodeURIComponent(accountId)}`);
-  return parseJsonResponse(response);
+async function loadAuthenticatedAccount() {
+  const response = await apiFetch("/api/auth/session");
+  if (!response.ok) {
+    const fallback = { error: "Session validation failed." };
+    let payload = fallback;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = fallback;
+    }
+
+    if ([401, 403, 404].includes(response.status)) {
+      throw createInvalidSessionError(payload.error || "Session validation failed.");
+    }
+
+    throw new Error(payload.error || "Session validation failed.");
+  }
+
+  const payload = await response.json();
+  return payload.account;
+}
+
+async function restoreAuthenticatedSession() {
+  if (!appState.accountId) {
+    return null;
+  }
+
+  if (!appState.accessToken && !appState.refreshToken) {
+    handleSessionExpired("expired");
+    return null;
+  }
+
+  const account = await loadAuthenticatedAccount();
+  enterGame("account", account.state, {
+    accountId: account.id,
+    accountEmail: account.email,
+    accessToken: appState.accessToken,
+    refreshToken: appState.refreshToken,
+    walkthroughCompleted: account.walkthroughCompleted,
+    autoPromptWalkthrough: true
+  });
+  return account;
 }
 
 async function loginDummyAccount() {
@@ -4450,7 +4737,7 @@ async function refreshFromServer() {
   }
 
   if (appState.profileMode === "account" && appState.accountId) {
-    const [account, serverState] = await Promise.all([loadAccountById(appState.accountId), loadBootstrap()]);
+    const [account, serverState] = await Promise.all([loadAuthenticatedAccount(), loadBootstrap()]);
     appState.data = deepClone(account.state);
     appState.accountEmail = account.email || appState.accountEmail;
     applySharedState(serverState);
@@ -4876,6 +5163,32 @@ function bindForms() {
       appState.activeMissions = appState.activeMissions.filter((m) => m.id !== mission.id);
       if (appState.data?.corp) {
         appState.data.corp.activeMissions = appState.activeMissions;
+
+        if (appState.data.corp.contractOfferings && Array.isArray(appState.data.corp.contractOfferings.missions)) {
+          appState.data.corp.contractOfferings.missions = appState.data.corp.contractOfferings.missions.filter((m) => m.id !== mission.id);
+        }
+
+        if (!Array.isArray(appState.data.corp.completedMissions)) {
+          appState.data.corp.completedMissions = [];
+        }
+        appState.data.corp.completedMissions.unshift({
+          id: mission.id,
+          title: mission.title,
+          type: mission.type,
+          agentId: mission.agentId || null,
+          reward: mission.reward,
+          completedAt: Date.now()
+        });
+        appState.data.corp.completedMissions = appState.data.corp.completedMissions.slice(0, 200);
+
+        if (!appState.data.corp.agentReputation || typeof appState.data.corp.agentReputation !== "object") {
+          appState.data.corp.agentReputation = {};
+        }
+        const localAgentId = mission.agentId || "unknown";
+        if (!appState.data.corp.agentReputation[localAgentId]) {
+          appState.data.corp.agentReputation[localAgentId] = { completedCount: 0 };
+        }
+        appState.data.corp.agentReputation[localAgentId].completedCount += 1;
       }
 
       // Credit reward
@@ -5054,6 +5367,7 @@ function bindRealtimeEvents() {
       return;
     }
 
+    if (!appState.data.chatLog) appState.data.chatLog = {};
     if (!appState.data.chatLog[msg.channel]) {
       appState.data.chatLog[msg.channel] = [];
     }
@@ -5088,6 +5402,7 @@ function bindRealtimeEvents() {
       return;
     }
 
+    if (!appState.data.combatReports) appState.data.combatReports = [];
     appState.data.combatReports.unshift(report);
     renderCombatReports(appState.data);
   });
@@ -5152,6 +5467,12 @@ function bindRealtimeEvents() {
   });
 
   socket.on("expedition:completed", (payload) => {
+    if (!appState.data || !appState.accountId || payload?.accountId !== appState.accountId) return;
+    refreshFromServer();
+    loadMessages();
+  });
+
+  socket.on("fabrication:completed", (payload) => {
     if (!appState.data || !appState.accountId || payload?.accountId !== appState.accountId) return;
     refreshFromServer();
   });
@@ -5713,22 +6034,25 @@ async function boot() {
     }
 
     if (accountId) {
+      if (!appState.accountId) {
+        appState.accountId = accountId;
+      }
+
       try {
-        const account = await loadAccountById(accountId);
+        await restoreAuthenticatedSession();
         url.searchParams.delete("account");
         const cleanUrl = `${url.pathname}${url.search}${url.hash}`;
         window.history.replaceState({}, "", cleanUrl || "/");
-
-        enterGame("account", account.state, {
-          accountId: account.id,
-          accountEmail: account.email,
-          walkthroughCompleted: account.walkthroughCompleted,
-          autoPromptWalkthrough: true
-        });
         return;
       } catch (error) {
-        clearSession();
-        // Session was stale/invalid — just stay on the landing page
+        if (error?.code === "AUTH_SESSION_INVALID") {
+          clearSession();
+          redirectToLoginPage("expired");
+          return;
+        }
+
+        console.error("[boot/restoreAuthenticatedSession]", error);
+        authShell.innerHTML = `<article class="auth-card"><p class="alert">Session restore failed: ${escapeHtml(error.message || "Unknown error")}</p></article>`;
         return;
       }
     }

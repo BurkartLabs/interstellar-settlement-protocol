@@ -173,28 +173,104 @@ const RESEARCH_LIBRARY = {
 
 const TIER_1_TECH_IDS = Object.values(RESEARCH_LIBRARY).filter((t) => t.tier === 1).map((t) => t.id);
 
-// Travel time in ms between two stations (station registry loaded after __dirname is defined)
+// ── System adjacency graph (for hop-distance calculation) ──
+const SYSTEM_ADJACENCY = {
+  "sol":              ["alpha-centauri", "barnards-star"],
+  "alpha-centauri":   ["sol", "wolf-359"],
+  "barnards-star":    ["sol", "tau-ceti"],
+  "wolf-359":         ["alpha-centauri", "tau-ceti", "epsilon-eridani"],
+  "tau-ceti":         ["barnards-star", "wolf-359", "epsilon-eridani"],
+  "epsilon-eridani":  ["wolf-359", "tau-ceti"]
+};
+
+function getSystemHops(fromId, toId) {
+  if (fromId === toId) return 0;
+  const visited = new Set([fromId]);
+  let frontier = [fromId];
+  let depth = 0;
+  while (frontier.length > 0) {
+    depth++;
+    const next = [];
+    for (const sys of frontier) {
+      for (const neighbor of SYSTEM_ADJACENCY[sys] || []) {
+        if (neighbor === toId) return depth;
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          next.push(neighbor);
+        }
+      }
+    }
+    frontier = next;
+  }
+  return 99; // unreachable fallback
+}
+
+// ── Planet ordering within each system (for intra-system hop distance) ──
+// Only planets/fields count as "orbital positions"; moons inherit their parent's index.
+const BODY_ORBITAL_INDEX = {}; // bodyName → positional index within its system
+const BODY_PARENT = {};        // moonName → parentPlanetName
+const _earlyDir = path.dirname(fileURLToPath(import.meta.url));
+for (const sys of JSON.parse(fs.readFileSync(path.join(_earlyDir, "..", "data", "systems.json"), "utf8"))) {
+  let idx = 0;
+  for (const b of sys.bodies) {
+    if (b.type === "Moon") {
+      BODY_PARENT[b.name] = sys.bodies.find(p => p.id === b.parentId)?.name || b.name;
+    } else {
+      BODY_ORBITAL_INDEX[b.name] = idx;
+      idx++;
+    }
+  }
+}
+
+// Travel time in ms between two stations
 function getTravelTimeMs(fromId, toId) {
   const from = STATION_REGISTRY[fromId];
   const to = STATION_REGISTRY[toId];
   if (!from || !to) return 0;
 
-  if (from.body === to.body) {
-    // Same body: 1 minute
-    return 1 * 60 * 1000;
-  }
+  if (IS_DEV) return 5 * 1000; // 5 seconds in dev
+
+  // Same body: 1 minute
+  if (from.body === to.body) return 1 * 60 * 1000;
+
+  // Resolve to parent planet if the body is a moon
+  const fromPlanet = BODY_PARENT[from.body] || from.body;
+  const toPlanet = BODY_PARENT[to.body] || to.body;
+
   if (from.systemId === to.systemId) {
-    // Same system, different body: 1 minute
-    return 1 * 60 * 1000;
+    // Planet ↔ its own moon: 3 minutes
+    if (fromPlanet === to.body || toPlanet === from.body || fromPlanet === toPlanet) {
+      // One is a moon of the other, or both orbit the same planet
+      const isMoonHop = (from.body !== fromPlanet || to.body !== toPlanet);
+      if (isMoonHop && fromPlanet === toPlanet) return 3 * 60 * 1000;
+    }
+
+    // Different planets in the same system: 10 min base + 5 min per extra hop
+    const fromIdx = BODY_ORBITAL_INDEX[fromPlanet];
+    const toIdx = BODY_ORBITAL_INDEX[toPlanet];
+    if (fromIdx !== undefined && toIdx !== undefined) {
+      const hops = Math.abs(toIdx - fromIdx);
+      return (10 + hops * 5) * 60 * 1000; // 10 + 5n minutes
+    }
+    return 10 * 60 * 1000; // fallback
   }
-  // Different system: 1 minute (placeholder — will increase later)
-  return 1 * 60 * 1000;
+
+  // Different systems: 1 hr per hop along the adjacency graph
+  const hops = getSystemHops(from.systemId, to.systemId);
+  return Math.max(1, hops) * 60 * 60 * 1000;
+}
+
+// Interstellar travel time (system-to-system, no station context)
+function getInterstellarTravelTimeMs(fromSystemId, toSystemId) {
+  if (IS_DEV) return 5 * 1000;
+  const hops = getSystemHops(fromSystemId, toSystemId);
+  return Math.max(1, hops) * 60 * 60 * 1000;
 }
 
 const NEAR_STAR_SYSTEMS = new Set(["alpha-centauri", "barnards-star"]);
 
 const ACCESS_TOKEN_SECONDS = 7 * 24 * 60 * 60;
-const DUMMY_ACCESS_TOKEN_SECONDS = 2 * 60 * 60; // 2 hours
+const DUMMY_ACCESS_TOKEN_SECONDS = IS_DEV ? 7 * 24 * 60 * 60 : 2 * 60 * 60;
 const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
 const JWT_SECRET = process.env.JWT_SECRET || "isp-dev-insecure-secret-change-me";
 const ALLOW_DUMMY_AUTH = true;
@@ -378,7 +454,7 @@ setInterval(checkAndResetNpcBuyOrders, 60_000);
 // ─── R&D auto-completion tick ────────────────────────────────────────────────
 // ─── Mining tick: process downtime, recovery, and mining progress ─────────────
 import { applyMiningOperations, getStationInventory } from "./gameState.js";
-import { applyAsteroidExpeditions, BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_ASSET_VALUE, BASE_MAX_PROBES, BASE_MAX_DEPLOYMENTS } from "./gameState.js";
+import { applyAsteroidExpeditions, BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_ASSET_VALUE, PROBE_FABRICATION_MS, BASE_MAX_PROBES, BASE_MAX_DEPLOYMENTS } from "./gameState.js";
 
 function miningTick() {
   const now = Date.now();
@@ -416,9 +492,11 @@ setInterval(refineryTick, 10_000); // Every 10 seconds
 function asteroidExpeditionTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
+    let corpName = "";
     let completedExpeditions = [];
     mutateAccountState(accountId, (state) => {
       if (!state?.corp) return;
+      corpName = state.corp.corporationName || "";
       const prevActive = (state.corp.asteroidMining?.activeExpeditions || []).length;
       applyAsteroidExpeditions(state.corp, now);
       const afterActive = (state.corp.asteroidMining?.activeExpeditions || []).length;
@@ -439,6 +517,37 @@ function asteroidExpeditionTick() {
       if (notification) {
         io.emit("notifications:new", { accountId, notification });
       }
+
+      // Send detailed expedition report to inbox
+      const beltId = exp.beltKey.split(":")[1] || "asteroid belt";
+      const beltLabel = beltId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const systemLabel = (exp.systemId || "sol").replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const stationName = STATION_REGISTRY[exp.depositStationId]?.name || exp.depositStationId || "nearest station";
+      const durationLabel = EXPEDITION_DURATIONS[exp.duration]?.label || exp.duration;
+      const yieldLines = Object.entries(exp.yields || {});
+      const yieldBlock = yieldLines.length
+        ? yieldLines.map(([r, q]) => `  ${String(q).padStart(6)} units — ${r}`).join("\n")
+        : "  No recoverable material extracted.";
+      const totalUnits = yieldLines.reduce((sum, [, q]) => sum + q, 0);
+      const refNo = `MPR-${(exp.systemId || "sol").slice(0, 3).toUpperCase()}-${String(exp.completedAt || Date.now()).slice(-8)}`;
+
+      addSystemMessageToAccount(accountId, {
+        subject: `Mining Probe Return — ${beltLabel} [${refNo}]`,
+        fromName: "ISA Mineral Survey Division",
+        body:
+          `Attn: ${corpName || "Registered Operator"},\n\n` +
+          `This report confirms the return of one (1) mining probe from the ${beltLabel} asteroid field, ${systemLabel} system. ` +
+          `The probe completed a ${durationLabel} operation and has been recovered intact.\n\n` +
+          `RECOVERED MATERIAL MANIFEST\n` +
+          `${"─".repeat(40)}\n` +
+          `${yieldBlock}\n` +
+          `${"─".repeat(40)}\n` +
+          `  Total: ${totalUnits} units\n\n` +
+          `All extracted material has been deposited into your registered inventory at ${stationName}. Standard ISA handling fees have been waived under current extraction licence terms.\n\n` +
+          `Probe status: Operational. Returned to available inventory.\n\n` +
+          `This record is filed under your active extraction licence and may be subject to ISA audit. Retain for your records.\n\n` +
+          `Ref: ${refNo}\nISA Mineral Survey Division — ${systemLabel} Sector Office`
+      });
     }
 
     if (completedExpeditions.length > 0) {
@@ -448,6 +557,41 @@ function asteroidExpeditionTick() {
 }
 
 setInterval(asteroidExpeditionTick, 10_000); // Every 10 seconds
+
+// ─── Fabrication queue tick ──────────────────────────────────────────────────
+function fabricationTick() {
+  const now = Date.now();
+  for (const accountId of getAllAccountIds()) {
+    let completed = false;
+    mutateAccountState(accountId, (state) => {
+      if (!state?.corp?.asteroidMining?.fabricationQueue?.length) return;
+      const am = state.corp.asteroidMining;
+      const done = am.fabricationQueue.filter(j => now >= j.completesAt);
+      if (!done.length) return;
+
+      for (const job of done) {
+        if (job.type === "mining-probe") {
+          am.probeCount = Math.min(am.maxProbes || BASE_MAX_PROBES, (am.probeCount || 0) + 1);
+          state.corp.finances.assets = (state.corp.finances.assets || 0) + PROBE_ASSET_VALUE;
+        }
+      }
+      am.fabricationQueue = am.fabricationQueue.filter(j => now < j.completesAt);
+      completed = true;
+    });
+
+    if (completed) {
+      const notification = addAccountNotification(accountId, {
+        type: "infrastructure",
+        title: "Mining Probe Fabricated",
+        body: "A new Mining Probe has been manufactured and is ready for deployment."
+      });
+      if (notification) io.emit("notifications:new", { accountId, notification });
+      io.emit("fabrication:completed", { accountId });
+    }
+  }
+}
+
+setInterval(fabricationTick, 5_000); // Every 5 seconds
 
 // ─── Travel arrival tick ─────────────────────────────────────────────────────
 function travelTick() {
@@ -520,10 +664,14 @@ function processRndCompletions() {
       const queue = state.queues?.corporateRnD;
       if (!Array.isArray(queue) || queue.length === 0) return;
 
-      completedItems = queue.filter(
-        (item) => item.startedAt && item.durationHours &&
-          now >= item.startedAt + item.durationHours * 3_600_000
-      );
+      completedItems = queue.filter((item) => {
+        const startedAt = Number(item?.startedAt || 0);
+        const durationHours = Number(item?.durationHours ?? NaN);
+        if (!startedAt || !Number.isFinite(durationHours) || durationHours < 0) {
+          return false;
+        }
+        return now >= startedAt + durationHours * 3_600_000;
+      });
       if (completedItems.length === 0) return;
 
       if (!Array.isArray(state.corp.unlockedTech)) state.corp.unlockedTech = [];
@@ -554,7 +702,7 @@ function processRndCompletions() {
   }
 }
 
-setInterval(processRndCompletions, 30_000);
+setInterval(processRndCompletions, 5_000);
 
 function processCeoInsightCompletions() {
   const now = Date.now();
@@ -565,10 +713,14 @@ function processCeoInsightCompletions() {
       const queue = state.queues?.ceoInsight;
       if (!Array.isArray(queue) || queue.length === 0) return;
 
-      completedItems = queue.filter(
-        (item) => item.startedAt && item.durationHours &&
-          now >= item.startedAt + item.durationHours * 3_600_000
-      );
+      completedItems = queue.filter((item) => {
+        const startedAt = Number(item?.startedAt || 0);
+        const durationHours = Number(item?.durationHours ?? NaN);
+        if (!startedAt || !Number.isFinite(durationHours) || durationHours < 0) {
+          return false;
+        }
+        return now >= startedAt + durationHours * 3_600_000;
+      });
       if (completedItems.length === 0) return;
 
       if (!Array.isArray(state.corp.completedInsights)) state.corp.completedInsights = [];
@@ -603,7 +755,7 @@ function processCeoInsightCompletions() {
   }
 }
 
-setInterval(processCeoInsightCompletions, 30_000);
+setInterval(processCeoInsightCompletions, 5_000);
 
 app.get("/api/bootstrap", (_req, res) => {
   res.json({ ...getState(), version: APP_VERSION });
@@ -1259,7 +1411,7 @@ app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
         if (!unlocked.has("tt-deep-star-navigation")) { outcome = "missing-research"; return; }
       }
 
-      const durationMs = IS_DEV ? 5 * 1000 : 1 * 60 * 1000;
+      const durationMs = getInterstellarTravelTimeMs(fromSystemId, toSystemId);
       const now = Date.now();
 
       corp.travel = {
@@ -1290,7 +1442,9 @@ app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
         return;
       }
 
-      const durationMs = IS_DEV ? 5 * 1000 : 1 * 60 * 1000;
+      const durationMs = corp.currentStationId
+        ? getTravelTimeMs(corp.currentStationId, toStationId)
+        : (IS_DEV ? 5 * 1000 : 10 * 60 * 1000); // from open space: dev 5s, prod 10 min
       const now = Date.now();
 
       corp.travel = {
@@ -1326,13 +1480,19 @@ app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
   }
 
   // Notification
+  const etaMs = travelInfo.arrivesAt - travelInfo.departedAt;
+  const etaMin = Math.round(etaMs / 60000);
+  const etaText = etaMin >= 60
+    ? `${Math.floor(etaMin / 60)}h ${etaMin % 60 ? etaMin % 60 + "m" : ""}`
+    : etaMin < 1 ? "< 1 minute" : `${etaMin} minute(s)`;
+
   let notifBody;
   if (travelInfo.travelType === "interstellar") {
     const sysName = SYSTEM_DETAILS[travelInfo.toSystemId]?.bodies?.[0]?.name || travelInfo.toSystemId;
-    notifBody = `Initiating interstellar jump to the ${travelInfo.toSystemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())} system. ETA ${Math.round((travelInfo.arrivesAt - travelInfo.departedAt) / 60000)} minute(s).`;
+    notifBody = `Initiating interstellar jump to the ${travelInfo.toSystemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())} system. ETA ${etaText}.`;
   } else {
     const dest = STATION_REGISTRY[travelInfo.toStationId];
-    notifBody = `Setting course for ${dest.name} (${dest.body}). ETA ${Math.round((travelInfo.arrivesAt - travelInfo.departedAt) / 60000)} minute(s).`;
+    notifBody = `Setting course for ${dest.name} (${dest.body}). ETA ${etaText}.`;
   }
 
   const notification = addAccountNotification(req.params.accountId, {
@@ -1730,9 +1890,18 @@ app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
     const am = corp.asteroidMining;
     if (typeof am.probeCount !== "number") am.probeCount = 0;
     if (typeof am.maxProbes !== "number") am.maxProbes = BASE_MAX_PROBES;
+    if (!Array.isArray(am.fabricationQueue)) am.fabricationQueue = [];
 
-    if (am.probeCount >= am.maxProbes) {
+    // Count probes in hangar + probes currently being fabricated
+    const pendingCount = am.fabricationQueue.length;
+    if (am.probeCount + pendingCount >= am.maxProbes) {
       outcome = "probe-cap";
+      return;
+    }
+
+    // Only one fabrication at a time
+    if (pendingCount > 0) {
+      outcome = "already-fabricating";
       return;
     }
 
@@ -1742,18 +1911,27 @@ app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
     }
 
     corp.finances.credits -= PROBE_BUILD_COST;
-    corp.finances.assets = (corp.finances.assets || 0) + PROBE_ASSET_VALUE;
-    am.probeCount += 1;
+
+    const now = Date.now();
+    am.fabricationQueue.push({
+      id: `fab-${now}-${Math.random().toString(36).slice(2, 8)}`,
+      type: "mining-probe",
+      startedAt: now,
+      completesAt: now + PROBE_FABRICATION_MS,
+      cost: PROBE_BUILD_COST
+    });
   });
 
   if (!account) { res.status(404).json({ error: "Account not found." }); return; }
 
   if (outcome !== "ok") {
     const am = account.state.corp.asteroidMining || {};
+    const pendingCount = (am.fabricationQueue || []).length;
     const msgs = {
       "missing-research": "Asteroid Prospecting Arrays research is required before fabricating mining probes.",
       "no-assembly": "You must construct an Assembly Facility before fabricating probes.",
-      "probe-cap": `Probe hangar is full (${am.probeCount || 0}/${am.maxProbes || BASE_MAX_PROBES}). Research or level up to increase capacity.`,
+      "probe-cap": `Probe hangar is full (${(am.probeCount || 0) + pendingCount}/${am.maxProbes || BASE_MAX_PROBES}). Research or level up to increase capacity.`,
+      "already-fabricating": "A probe is already being fabricated. Wait for it to complete before starting another.",
       "insufficient-credits": fundingRequirementMessage("Mining Probe fabrication", account.state.corp, PROBE_BUILD_COST)
     };
     res.status(400).json({ error: msgs[outcome] || "Probe fabrication failed." });
@@ -1762,8 +1940,8 @@ app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
 
   const notification = addAccountNotification(req.params.accountId, {
     type: "infrastructure",
-    title: "Mining Probe Fabricated",
-    body: "A new Mining Probe has been manufactured and is ready for deployment."
+    title: "Probe Fabrication Started",
+    body: `Mining Probe fabrication has begun. Estimated completion: ${PROBE_FABRICATION_MS >= 60000 ? Math.round(PROBE_FABRICATION_MS / 60000) + " minute(s)" : Math.round(PROBE_FABRICATION_MS / 1000) + " second(s)"}.`
   });
   if (notification) io.emit("notifications:new", { accountId: req.params.accountId, notification });
   saveAccountsNow();
@@ -1831,6 +2009,12 @@ app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
     if (typeof am.maxDeployments !== "number") am.maxDeployments = BASE_MAX_DEPLOYMENTS;
     if (!Array.isArray(am.activeExpeditions)) am.activeExpeditions = [];
 
+    if (!Array.isArray(am.scoutedBelts)) am.scoutedBelts = [];
+    if (!am.scoutedBelts.includes(beltKey)) {
+      outcome = "not-scouted";
+      return;
+    }
+
     if (am.probeCount <= 0) {
       outcome = "no-probes";
       return;
@@ -1879,6 +2063,7 @@ app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
     const am = account.state.corp.asteroidMining || {};
     const msgs = {
       "missing-research": "Asteroid Prospecting Arrays research must be completed before launching expeditions.",
+      "not-scouted": "This asteroid belt has not been scouted. Scout the belt first to reveal its composition before launching an expedition.",
       "no-probes": "No mining probes available. Fabricate probes at your Assembly Facility.",
       "deployment-cap": `All deployment slots are occupied (${am.activeExpeditions?.length || 0}/${am.maxDeployments || BASE_MAX_DEPLOYMENTS}). Wait for a probe to return or research additional capacity.`,
       "wrong-system": "You must be in the same system as the asteroid belt to launch an expedition.",

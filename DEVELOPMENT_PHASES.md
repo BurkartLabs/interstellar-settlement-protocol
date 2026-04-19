@@ -44,8 +44,8 @@ Each version represents a meaningful, playable milestone. Items marked [x] are c
 - [x] Server-side CEO Insight queue auto-completion — same authoritative pipeline as R&D with idempotent double-award guards
 - [x] Refinery Annex building and operational controls
 - [x] Refinery Chains — operational UI, input/output display, cycle management, chain unlocking via R&D
-- [ ] Asteroid mining — off-world extraction ops tied to specific starmap bodies
-- [ ] System access gated by corporation level
+- [x] Asteroid mining — off-world extraction ops tied to specific starmap bodies
+- [x] System access gated by corporation level
 - [x] 1st Mission Agent - Logistics 
 - [ ] Remove the requirement for Accounts.json and rely on supabase integration 
 
@@ -57,7 +57,8 @@ Each version represents a meaningful, playable milestone. Items marked [x] are c
 - [ ] Ensure all new features include corresponding tests
 - [ ] Full buildable building catalogue (all types)
 - [ ] Building upgrade (tier) system
-- [ ] Orbital shipyard building
+- [ ] Orbital shipyard building 
+- [ ] Resource Transporation (move resources between Stations for logistics fee) 
 - [ ] Full milestone roadmap (Levels 11–40)
 - [ ] Market price history and trend display
 - [ ] Corporate bond issuance system

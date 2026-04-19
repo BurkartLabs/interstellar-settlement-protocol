@@ -12,6 +12,13 @@ const STORAGE_KEYS = {
   refreshToken: "isp.refreshToken"
 };
 
+const loginPageUrl = new URL(window.location.href);
+const loginReason = loginPageUrl.searchParams.get("reason");
+
+if (loginReason === "expired" && loginStatus) {
+  loginStatus.textContent = "Your session expired. Log in again to continue.";
+}
+
 async function goToDummyProfile() {
   if (!IS_DEV_ACCESS) {
     return;

@@ -644,16 +644,24 @@ const SYSTEM_RARITY = {
 
 const RARITY_YIELD_MULTIPLIER = { common: 1.0, uncommon: 1.15, rare: 1.35, exotic: 1.6 };
 
+const IS_DEV = !process.env.NODE_ENV || process.env.NODE_ENV !== "production";
+
 // Expedition durations (ms) — short, standard, extended
-const EXPEDITION_DURATIONS = {
-  short:    { label: "Short Sweep (30 min)",   ms: 30 * 60 * 1000, tickYieldMultiplier: 0.7 },
-  standard: { label: "Standard Survey (1 hr)", ms: 60 * 60 * 1000, tickYieldMultiplier: 1.0 },
-  extended: { label: "Deep Core Drill (2 hr)", ms: 2 * 60 * 60 * 1000, tickYieldMultiplier: 1.4 }
+// In dev mode: 10s with scaled-up yield multipliers for quick testing
+const EXPEDITION_DURATIONS = IS_DEV ? {
+  short:    { label: "Short Sweep (10s)",      ms: 10 * 1000, tickYieldMultiplier: 126 },
+  standard: { label: "Standard Survey (10s)",  ms: 10 * 1000, tickYieldMultiplier: 360 },
+  extended: { label: "Deep Core Drill (10s)",  ms: 10 * 1000, tickYieldMultiplier: 1008 }
+} : {
+  short:    { label: "Short Sweep (30 min)",       ms: 30 * 60 * 1000, tickYieldMultiplier: 1 },
+  standard: { label: "Standard Survey (1 hr)",     ms: 60 * 60 * 1000, tickYieldMultiplier: 1 },
+  extended: { label: "Deep Core Drill (2 hr)",     ms: 2 * 60 * 60 * 1000, tickYieldMultiplier: 1 }
 };
 
 const EXPEDITION_LAUNCH_COST = 3000;   // credits per expedition launch
 const PROBE_BUILD_COST = 8000;         // credits to fabricate one mining probe
 const PROBE_ASSET_VALUE = 5000;
+const PROBE_FABRICATION_MS = IS_DEV ? 10 * 1000 : 30 * 60 * 1000; // 10s dev, 30 min prod
 const BASE_MAX_PROBES = 2;
 const BASE_MAX_DEPLOYMENTS = 1;        // concurrent expedition slots
 
@@ -666,6 +674,7 @@ function ensureCorpAsteroidMiningModel(corp) {
   if (typeof am.probeCount !== "number") am.probeCount = 0;
   if (typeof am.maxProbes !== "number") am.maxProbes = BASE_MAX_PROBES;
   if (typeof am.maxDeployments !== "number") am.maxDeployments = BASE_MAX_DEPLOYMENTS;
+  if (!Array.isArray(am.fabricationQueue)) am.fabricationQueue = [];
   if (!Array.isArray(am.activeExpeditions)) am.activeExpeditions = [];
   if (!Array.isArray(am.completedExpeditions)) am.completedExpeditions = [];
   if (!Array.isArray(am.scoutedBelts)) am.scoutedBelts = [];
@@ -1703,7 +1712,7 @@ export { CEO_INSIGHT_LIBRARY };
 export { REFINERY_CHAINS };
 export { MISSION_TEMPLATES, refreshContractOfferings };
 export { SYSTEM_DETAILS };
-export { BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_ASSET_VALUE, BASE_MAX_PROBES, BASE_MAX_DEPLOYMENTS };
+export { BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_ASSET_VALUE, PROBE_FABRICATION_MS, BASE_MAX_PROBES, BASE_MAX_DEPLOYMENTS };
 
 export function mutateState(mutator) {
   mutator(state);

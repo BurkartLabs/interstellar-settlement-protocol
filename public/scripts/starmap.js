@@ -933,7 +933,7 @@ export function createStarmapController({
           const probeCount = am.probeCount || 0;
           const maxDeployments = am.maxDeployments || 1;
           const activeCount = (am.activeExpeditions || []).length;
-          const canLaunch = probeCount > 0 && activeCount < maxDeployments && inSameSystem;
+          const canLaunch = isBeltScouted && probeCount > 0 && activeCount < maxDeployments && inSameSystem;
 
           let activeExpHtml = "";
           if (activeExps.length > 0) {
@@ -969,7 +969,9 @@ export function createStarmapController({
                   </select>
                   <button id="launch-expedition-btn" class="btn btn-accent" style="margin-top:0.5rem;">Launch Expedition (¤3,000)</button>
                 </div>
-              ` : !inSameSystem
+              ` : !isBeltScouted
+                ? `<p class="muted" style="margin-top:0.5rem;">Scout this asteroid belt before launching expeditions.</p>`
+                : !inSameSystem
                 ? `<p class="muted" style="margin-top:0.5rem;">You must be in this system to launch expeditions.</p>`
                 : probeCount <= 0
                   ? `<p class="muted" style="margin-top:0.5rem;">No probes available. Fabricate probes at your Assembly Facility.</p>`
@@ -1424,6 +1426,31 @@ export function createStarmapController({
       if (state.view === "body" || state.view === "asteroid") {
         renderDetails();
       }
+    },
+    updateExpeditionProgress() {
+      if (!detailsEl || (state.view !== "body" && state.view !== "asteroid")) return;
+      const am = state.asteroidMining;
+      if (!am) return;
+      const system = getSelectedSystem();
+      const body = getSelectedBody();
+      if (!system || !body || body.type !== "Field") return;
+      const beltKey = `${system.id}:${body.id}`;
+      const activeExps = (am.activeExpeditions || []).filter(e => e.beltKey === beltKey);
+      const cards = detailsEl.querySelectorAll(".starmap-expedition-card");
+      cards.forEach((card, i) => {
+        const exp = activeExps[i];
+        if (!exp) return;
+        const elapsed = Date.now() - exp.deployedAt;
+        const total = exp.completesAt - exp.deployedAt;
+        const pct = Math.min(100, Math.max(0, (elapsed / total) * 100));
+        const remainMs = Math.max(0, exp.completesAt - Date.now());
+        const mins = Math.floor(remainMs / 60000);
+        const secs = Math.floor((remainMs % 60000) / 1000);
+        const bar = card.querySelector(".progress-bar");
+        if (bar) bar.style.width = pct.toFixed(1) + "%";
+        const timeEl = card.querySelector("p.muted");
+        if (timeEl) timeEl.textContent = `${exp.duration} expedition — ${mins}m ${secs}s remaining`;
+      });
     },
     resize() {
       setCanvasSize();
