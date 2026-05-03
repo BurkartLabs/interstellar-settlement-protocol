@@ -187,6 +187,7 @@ const techTree = [
   }
 ];
 
+// TODO: Store in DB or fetch from insight.json
 const insightPrograms = [
   { id: "ceo-negotiation-fundamentals", name: "Negotiation Fundamentals", effect: "-2% GEX sales tax", description: "Reduces sales tax on Galactic Exchange sales by 2% (max reduction 6%).", durationHours: 4, costCredits: 10000, prereqs: [], tier: 1, maxLevels: 3, category: "Trade" },
   { id: "ceo-employee-motivation", name: "Employee Motivation Techniques", effect: "-10% morale decay", description: "Reduces global employee morale decay rate by 10%.", durationHours: 6, costCredits: 14000, prereqs: [], tier: 1, maxLevels: 1, category: "Operations" },
@@ -202,6 +203,7 @@ const insightPrograms = [
   { id: "ceo-leadership-presence", name: "Leadership Presence", effect: "Focus → morale boost", description: "Focus reports grant a small temporary morale boost to all employees.", durationHours: 18, costCredits: 50000, prereqs: ["ceo-strategic-delegation", "ceo-decision-fatigue-reduction"], tier: 3, maxLevels: 1, category: "Leadership" }
 ];
 
+// TODO: Move to dedicated file
 const walkthroughSteps = [
   {
     selector: '.tab-btn[data-tab="inbox"]',
@@ -277,6 +279,7 @@ const walkthroughSteps = [
   }
 ];
 
+// ------------- ELEMENTS ------------- //
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
 const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
 
@@ -527,6 +530,7 @@ async function apiFetch(url, options = {}, allowRetry = true) {
   return response;
 }
 
+// TODO: Ensure all helper functions are consolidated into a single function
 function toCurrency(number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -551,6 +555,7 @@ function deepClone(input) {
   return JSON.parse(JSON.stringify(input));
 }
 
+// TODO: Ensure this function is updated when we make asteroid belts dynamic
 async function refreshBeltCompositions() {
   if (!appState.accountId) return;
   try {
@@ -793,6 +798,7 @@ function closeDialogue() {
   dialogueContinue.hidden = true;
 }
 
+// TODO: Expand design of intro dialogue
 function runIntroDialogue() {
   return new Promise((resolve) => {
     showDialogue({
@@ -828,6 +834,7 @@ function runIntroDialogue() {
   });
 }
 
+// TODO: Remove, we have a duplicate function in gameState.json, and this should be extrapolated based on values in the DB
 function createNewPlayerState(baseState, ceoName, corpName) {
   const next = deepClone(baseState);
   next.corp = {
@@ -1338,6 +1345,12 @@ function stationLocationBanner(station) {
   </div>`;
 }
 
+/*
+  TODO: Move the rendering and functionality of each building to their own dedicated file. Ensure that relevant information is being fetched from the 
+  database where applicable.
+*/
+
+// ─── Orbital Executive Suites ──────────────────────────────────────────
 function renderOrbitalExecutiveSuites(building, data) {
   const corp = data.corp;
   const station = getCurrentStationInfo(data);
@@ -2045,6 +2058,7 @@ function bindLeaseManagementActions(building, lease, data) {
 }
 
 // ─── Tabs allowed during travel ──────────────────────────────────────────────
+// TODO: Overhaul Travel Page design
 const TRAVEL_ALLOWED_TABS = new Set(["overview", "inbox", "chat", "forums", "starmap", "travel"]);
 
 function isPlayerTraveling(data) {
@@ -2237,6 +2251,7 @@ function travelTimeBetween(fromStation, toStation) {
   return 1 * 60 * 1000;
 }
 
+// TODO: Consolidate all helper functions to singular file
 function formatDuration(ms) {
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
   const h = Math.floor(totalSec / 3600);
@@ -2588,6 +2603,7 @@ function bindBuildingActions() {
 }
 
 // ─── Financial Control Board (CORP-FIN-1) — KPI strip and ledger tables ─────
+// TODO: Consolidate helper functions to singular file
 
 function fmtCredits(n) {
   const v = Math.round(Number(n) || 0);
@@ -2821,6 +2837,7 @@ function renderLevel2Progress(data) {
   }
 
   // Map requirement IDs to the tab they should navigate to
+  // TODO: This information should be stored in the database OR in milestones.json
   const REQ_TAB = {
     officeRented:               "station",
     hire5:                      "station",
@@ -3164,13 +3181,13 @@ function renderQueue(elId, queue, subtitle) {
     })
     .join("");
 }
-
+// TODO: Remove duplicate. This should be stored in the database
 const RESOURCE_CATALOG = [
   "Silicates", "Helium-3", "Nickel", "Titanium", "Carbon",
   "Water Ice", "Rare Earths", "Thorium", "Hydrogen", "Lithium",
   "Cobalt", "Uranium", "Exotic Matter"
 ];
-
+// TODO: Remove. This is defined within gameState.js but should be fetched from the DB or from milestones.json
 const MILESTONE_ROADMAP = [
   "Rent an Office", "Hire 5 Employees", "Reached Corporation Level 1",
   "Purchase a Mining Lease on Mars", "Build a Basic Extractor Yard", "Mine 300 Silicate",
@@ -3865,6 +3882,7 @@ function renderMarket(data) {
   if (npcBuyEmpty) npcBuyEmpty.hidden = filteredNpcOrders.length > 0;
 
   // Mercenary book
+  // TODO: Remove mercenary references. Functionality isn't built yet.
   const mercBook = document.getElementById("mercenary-book");
   mercBook.innerHTML = (market.mercenaryContracts || [])
     .map(
@@ -4286,6 +4304,7 @@ function renderForums(data) {
   }
 }
 
+// TODO: This should be defined in the database 
 // ─── Mission Reputation System ─────────────────────────────────────────────
 const REPUTATION_THRESHOLDS = [0, 1, 3, 7, 15, 30, 60, 120, 250, 500, 1000];
 const REPUTATION_TITLES = [
@@ -4314,6 +4333,7 @@ function getAgentRepLevel(agentId) {
 }
 
 // ─── Mission Agent Registry ────────────────────────────────────────────────
+// TODO: This should be in the database 
 const MISSION_AGENTS = [
   {
     id: "elara-voss",
@@ -4469,6 +4489,7 @@ function showMissionCompleteOverlay(mission, rep, agentName) {
     </div>
   `;
 
+  // TODO: Should visual effects be moved to their own file?
   // Spawn celebration particles
   const particleCount = leveledUp ? 40 : 16;
   for (let i = 0; i < particleCount; i++) {
@@ -4764,6 +4785,7 @@ function renderChatChannelTabs() {
   });
 }
 
+// TODO: Can this be refactored to improve performance? Where is this function called? Do we always need to update every single view? 
 function updateAllViews() {
   if (appState.serverData) {
     applySharedState(appState.serverData);
@@ -5020,6 +5042,7 @@ function stopWalkthrough() {
   clearWalkthroughFocus();
 }
 
+// TODO: Duplicate function found in gameState.js
 async function completeWalkthroughForAccount() {
   if (!appState.accountId || appState.walkthroughCompleted) {
     return;
@@ -5038,6 +5061,7 @@ async function completeWalkthroughForAccount() {
   }
 }
 
+// TODO: Duplicate function?
 async function resetWalkthroughForAccount() {
   if (!appState.accountId) {
     appState.walkthroughCompleted = false;
@@ -5258,6 +5282,7 @@ async function restoreAuthenticatedSession() {
   return account;
 }
 
+// TODO: Duplicate function possibly exists in gameState.js
 async function loginDummyAccount() {
   const response = await apiFetch("/api/auth/dummy-login", {
     method: "POST",
@@ -5467,6 +5492,7 @@ function bindForms() {
     chatInput.value = "";
   });
 
+  // TODO: Move all functionality for the forums to its own dedicated file
   const forumThreadListEl = document.getElementById("forum-threads");
   const forumCategoriesEl = document.getElementById("forum-categories");
   const forumRecentBtn = document.getElementById("forum-recent-btn");
@@ -5828,6 +5854,8 @@ function bindRealtimeEvents() {
     return;
   }
 
+  // TODO: Investigate current socket.io implementation 
+  
   socket.on("state:init", (serverState) => {
     appState.serverData = serverState;
     if (!appState.authenticated) {
