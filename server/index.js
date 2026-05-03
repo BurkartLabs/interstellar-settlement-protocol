@@ -48,8 +48,10 @@ import {
   SYSTEM_DETAILS
 } from "./gameState.js";
 
+// TODO: Move this to a single file so that we aren't redefining it everywhere
 const IS_DEV = !process.env.NODE_ENV || process.env.NODE_ENV !== "production";
 
+// TODO: This should be extracted from the DB or from research.json
 const RESEARCH_LIBRARY = {
   "tt-basic-extraction": {
     id: "tt-basic-extraction",
@@ -175,6 +177,7 @@ const RESEARCH_LIBRARY = {
 const TIER_1_TECH_IDS = Object.values(RESEARCH_LIBRARY).filter((t) => t.tier === 1).map((t) => t.id);
 
 // ── System adjacency graph (for hop-distance calculation) ──
+// TODO: Store in DB
 const SYSTEM_ADJACENCY = {
   "sol":              ["alpha-centauri", "barnards-star"],
   "alpha-centauri":   ["sol", "wolf-359"],
@@ -268,6 +271,7 @@ function getInterstellarTravelTimeMs(fromSystemId, toSystemId) {
   return Math.max(1, hops) * 60 * 60 * 1000;
 }
 
+// TODO: Remove this, we can simply check for these values when travel beyond is gated
 const NEAR_STAR_SYSTEMS = new Set(["alpha-centauri", "barnards-star"]);
 
 const ACCESS_TOKEN_SECONDS = 7 * 24 * 60 * 60;
@@ -493,6 +497,8 @@ function refineryTick() {
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(refineryTick, 10_000); // Every 10 seconds
 
 // ─── Asteroid expedition tick ────────────────────────────────────────────────
+// TODO: Consider implementation of unified tick system where all tick based actions are performed at once, rather than a separate ticker calculation
+//       for each function.
 function asteroidExpeditionTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
@@ -791,6 +797,7 @@ if (!process.env.ISP_DISABLE_TICKERS) {
   setInterval(financialSnapshotTick, FINANCIAL_SNAPSHOT_INTERVAL_MS);
 }
 
+// TODO: Consider moving API to a dedicated api.js file
 
 app.get("/api/bootstrap", (_req, res) => {
   res.json({ ...getState(), version: APP_VERSION });
@@ -1245,6 +1252,7 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
     return;
   }
 
+  // TODO: Should we be storing the lease costs here? And why are we only specifying for Earth, Mars, and Luna?
   const LEASE_COSTS = { Earth: 20000, Mars: 25000, Luna: 30000 };
   const leaseCost = LEASE_COSTS[requestedBody] ?? 25000;
   const EMPLOYEES_PER_LEASE = 5;
