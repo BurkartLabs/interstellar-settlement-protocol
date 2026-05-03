@@ -34,9 +34,9 @@ import {
 const STATIONS_RAW = JSON.parse(fs.readFileSync(path.join(dataDir, "stations.json"), "utf8"));
 const BODY_TO_STATION = {};
 const STATION_REGISTRY_CACHE = {};
-for (const s of STATIONS_RAW.stations) {
-  BODY_TO_STATION[s.body] = s.id;
-  STATION_REGISTRY_CACHE[s.id] = s;
+for (const station of STATIONS_RAW.stations) {
+  BODY_TO_STATION[station.body] = station.id;
+  STATION_REGISTRY_CACHE[station.id] = station;
 }
 
 const supabaseAdmin = USE_SUPABASE
@@ -49,9 +49,9 @@ const supabaseAuthClient = USE_SUPABASE_AUTH
 
 // Clean up any leftover .tmp files from interrupted atomic writes
 if (!IS_SERVERLESS) {
-  for (const f of fs.readdirSync(dataDir)) {
-    if (f.endsWith(".tmp")) {
-      try { fs.unlinkSync(path.join(dataDir, f)); } catch {}
+  for (const file of fs.readdirSync(dataDir)) {
+    if (file.endsWith(".tmp")) {
+      try { fs.unlinkSync(path.join(dataDir, file)); } catch {}
     }
   }
 }
