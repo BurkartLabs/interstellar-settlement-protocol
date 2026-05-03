@@ -64,6 +64,7 @@ const IS_DEV_ACCESS =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1";
 
+// TODO: This should be fetched from db or research.json
 const techTree = [
   {
     id: "tt-basic-extraction",
