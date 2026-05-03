@@ -68,6 +68,10 @@ Scope kept tight: testing infrastructure, server-authoritative finance charts, a
 
 The first publishable beta release. No new major systems — only the polish, persistence, and trust work needed to put the current game in front of real players.
 
+**QoL Fixes**
+- [ ] Action current set of TODOs
+- [ ] Refactor gameState.js and app.js. Split various sections into their own file. Update design documentation to discourage amalgamating all code into a singular file
+
 **Persistence & Reporting**
 - [ ] Full balance sheet / P&L / cash flow statements stored server-side (currently only active-session data in browser)
 - [ ] Market price history and trend display (per-item rolling chart on the Galactic Exchange)
