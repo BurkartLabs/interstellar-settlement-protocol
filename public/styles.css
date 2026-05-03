@@ -1,8 +1,50 @@
 /* TODO: Organize CSS */
 
-/* --- Silicate Extractor Downtime/Inactive Styling --- */
-/* --- Silicate Extractor Downtime/Inactive Styling --- */
-/* --- Silicate Extractor Downtime/Inactive Styling --- */
+/* ROOT */
+:root {
+  --void-black: #05050f;
+  --cold-navy: #0a1f2e;
+  --dark-steel: #112233;
+  --electric-cyan: #00f7ff;
+  --muted-amber: #ffaa33;
+  --text-main: #d8ebf5;
+  --text-muted: #89a7bd;
+  --panel: rgba(10, 31, 46, 0.68);
+  --panel-border: rgba(0, 247, 255, 0.18);
+  --danger: #f06a77;
+
+  /* Semantic aliases used throughout the stylesheet */
+  --accent: var(--electric-cyan);
+  --text: var(--text-main);
+  --muted: var(--text-muted);
+  --surface: var(--cold-navy);
+  --border: rgba(0, 247, 255, 0.18);
+  --warn: var(--muted-amber);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--void-black);
+  color: var(--text-main);
+  font-family: "Inter", "Segoe UI", Tahoma, sans-serif;
+}
+
+body {
+  position: relative;
+  overflow-x: hidden;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* --- Extractor Downtime/Inactive Styling --- */
 .extractor-row.downtime {
   background: linear-gradient(90deg, #2a0a0a 0%, #5a1818 100%);
   border: 1.5px solid #f06a77;
@@ -30,20 +72,6 @@
   padding: 2em;
 }
 
-/* Make Create Listing and Sell Orders the same height */
-.exchange-layout {
-  align-items: stretch;
-}
-.exchange-layout > .exchange-section {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-.exchange-layout > .exchange-section .table-wrap {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-}
 /* Galactic Exchange background for #market */
 #market {
   background: url("/images/galactic_exchange.jpg") center center/cover no-repeat;
@@ -88,6 +116,20 @@
   position: relative;
   z-index: 2;
 }
+/* Make Create Listing and Sell Orders the same height */
+.exchange-layout {
+  align-items: stretch;
+}
+.exchange-layout > .exchange-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.exchange-layout > .exchange-section .table-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
 /* Galactic Exchange background */
 #station-building-content.ge-bg {
   background: url("/images/galactic_exchange.jpg") center center/cover no-repeat;
@@ -110,6 +152,7 @@
   position: relative;
   z-index: 2;
 }
+
 /* ISA Claims & Leases Division: Responsive .form-card width */
 #station-building-content.icl-bg .form-card {
   width: 900px;
@@ -182,48 +225,6 @@
 
 #station-building-content {
   padding: 2em;
-}
-:root {
-  --void-black: #05050f;
-  --cold-navy: #0a1f2e;
-  --dark-steel: #112233;
-  --electric-cyan: #00f7ff;
-  --muted-amber: #ffaa33;
-  --text-main: #d8ebf5;
-  --text-muted: #89a7bd;
-  --panel: rgba(10, 31, 46, 0.68);
-  --panel-border: rgba(0, 247, 255, 0.18);
-  --danger: #f06a77;
-
-  /* Semantic aliases used throughout the stylesheet */
-  --accent: var(--electric-cyan);
-  --text: var(--text-main);
-  --muted: var(--text-muted);
-  --surface: var(--cold-navy);
-  --border: rgba(0, 247, 255, 0.18);
-  --warn: var(--muted-amber);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  min-height: 100%;
-  background: var(--void-black);
-  color: var(--text-main);
-  font-family: "Inter", "Segoe UI", Tahoma, sans-serif;
-}
-
-body {
-  position: relative;
-  overflow-x: hidden;
-}
-
-[hidden] {
-  display: none !important;
 }
 
 /* ─── Starfield canvas ─── */
