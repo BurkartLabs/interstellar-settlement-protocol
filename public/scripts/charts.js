@@ -57,6 +57,7 @@ let _lastFinances = null;
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function baseOptions(extra = {}) {
+  const { beginAtZero = false, ...rest } = extra;
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -75,6 +76,7 @@ function baseOptions(extra = {}) {
     scales: {
       x: { ticks: { color: COLOR.muted, font: { size: 10 } }, grid: { color: COLOR.grid } },
       y: {
+        beginAtZero,
         ticks: {
           color: COLOR.muted,
           font: { size: 10 },
@@ -83,7 +85,7 @@ function baseOptions(extra = {}) {
         grid: { color: COLOR.grid }
       }
     },
-    ...extra
+    ...rest
   };
 }
 
@@ -178,7 +180,7 @@ function renderCashReserves(snaps) {
           pointHoverRadius: 4
         }]
       },
-      options: baseOptions()
+      options: baseOptions({ beginAtZero: true })
     });
   } else {
     const c = chartRegistry.cashflow;
@@ -212,7 +214,7 @@ function renderNetFlow(snaps) {
           pointHoverRadius: 4
         }]
       },
-      options: baseOptions()
+      options: baseOptions({ beginAtZero: true })
     });
   } else {
     const c = chartRegistry.netflow;
@@ -308,7 +310,7 @@ function renderIncomeBySource(finances) {
               label(ctx) {
                 const total = ctx.dataset.data.reduce((a, b) => a + b, 0) || 1;
                 const pct = ((ctx.parsed / total) * 100).toFixed(1);
-                return `${ctx.label}: ${formatCompact(ctx.parsed)}¢ (${pct}%)`;
+                return `${ctx.label}: $${formatCompact(ctx.parsed)} (${pct}%)`;
               }
             }
           }

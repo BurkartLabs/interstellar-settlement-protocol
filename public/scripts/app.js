@@ -2636,7 +2636,7 @@ function describeTrend(curr, prev) {
   if (delta === 0) return { text: "▬ no change", direction: "flat" };
   const sign = delta > 0 ? "▲" : "▼";
   return {
-    text: `${sign} ${Math.abs(Math.round(delta)).toLocaleString()}¢`,
+    text: `${sign} $${Math.abs(Math.round(delta)).toLocaleString()}`,
     direction: delta > 0 ? "up" : "down"
   };
 }
@@ -2653,15 +2653,15 @@ function renderFinanceDashboard(finances) {
   const liabilities = latest ? latest.liabilities : Math.round(dailyCosts * 7);
   const netWorth = credits + assets - liabilities;
 
-  setKpi("kpi-net-worth", `${fmtCredits(netWorth)}¢`);
-  setKpi("kpi-credits", `${fmtCredits(credits)}¢`);
+  setKpi("kpi-net-worth", `$${fmtCredits(netWorth)}`);
+  setKpi("kpi-credits", `$${fmtCredits(credits)}`);
   setKpi(
     "kpi-net-flow",
-    `${fmtSignedCredits(netFlow)}¢/day`,
+    `${netFlow >= 0 ? "+" : "-"}$${Math.abs(Math.round(netFlow)).toLocaleString()}/day`,
     { tone: netFlow >= 0 ? "positive" : "negative" }
   );
-  setKpi("kpi-revenue", `${fmtCredits(dailyRevenue)}¢`);
-  setKpi("kpi-costs", `${fmtCredits(dailyCosts)}¢`);
+  setKpi("kpi-revenue", `$${fmtCredits(dailyRevenue)}`);
+  setKpi("kpi-costs", `$${fmtCredits(dailyCosts)}`);
 
   let runwayLabel;
   if (dailyCosts <= 0) runwayLabel = "∞";
