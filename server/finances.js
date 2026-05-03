@@ -17,18 +17,17 @@ export function ensureFinanceTracking(corp) {
   if (!corp.finances || typeof corp.finances !== "object") {
     corp.finances = {};
   }
-  const f = corp.finances;
-  if (!f.incomeBySource || typeof f.incomeBySource !== "object") {
-    f.incomeBySource = {};
+  if (!corp.finances.incomeBySource || typeof corp.finances.incomeBySource !== "object") {
+    corp.finances.incomeBySource = {};
   }
-  if (!f.expensesByCategory || typeof f.expensesByCategory !== "object") {
-    f.expensesByCategory = {};
+  if (!corp.finances.expensesByCategory || typeof corp.finances.expensesByCategory !== "object") {
+    corp.finances.expensesByCategory = {};
   }
-  if (!Array.isArray(f.snapshots)) {
-    f.snapshots = [];
+  if (!Array.isArray(corp.finances.snapshots)) {
+    corp.finances.snapshots = [];
   }
-  if (typeof f.lifetimeRevenue !== "number") f.lifetimeRevenue = 0;
-  if (typeof f.lifetimeCosts !== "number") f.lifetimeCosts = 0;
+  if (typeof corp.finances.lifetimeRevenue !== "number") corp.finances.lifetimeRevenue = 0;
+  if (typeof corp.finances.lifetimeCosts !== "number") corp.finances.lifetimeCosts = 0;
 }
 
 export function recordIncome(corp, source, amount) {
