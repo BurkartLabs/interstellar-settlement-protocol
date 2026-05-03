@@ -17,7 +17,6 @@ This project has a deliberate roadmap in [DEVELOPMENT_PHASES.md](DEVELOPMENT_PHA
 
 **Out of scope now:**
 - Frontend framework migration (React, Vue, etc. — the no-build-step constraint is deliberate)
-- Database migration (PostgreSQL/Supabase is planned but not yet; don't pre-empt it)
 - New resource types or game systems beyond the current roadmap version
 - UI visual redesigns (the v1.0 facelift is a planned, coordinated effort)
 
