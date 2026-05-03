@@ -421,6 +421,15 @@
                 <header class="chart-card__head">
                   <h3>Cash Reserves</h3>
                   <span class="chart-card__sub">Live snapshot series</span>
+                  <select class="chart-duration-picker" data-chart-duration="cashflow" aria-label="Cash Reserves duration">
+                    <option value="3600000">1 hour</option>
+                    <option value="86400000">1 day</option>
+                    <option value="604800000">1 week</option>
+                    <option value="2592000000">1 month</option>
+                    <option value="31536000000">1 year</option>
+                    <option value="157680000000">5 years</option>
+                    <option value="all" selected>All</option>
+                  </select>
                 </header>
                 <canvas id="cashflow-chart" aria-label="Cash reserves over time"></canvas>
               </section>
@@ -428,6 +437,15 @@
                 <header class="chart-card__head">
                   <h3>Net Cash Flow</h3>
                   <span class="chart-card__sub">Revenue − Costs per snapshot</span>
+                  <select class="chart-duration-picker" data-chart-duration="netflow" aria-label="Net Cash Flow duration">
+                    <option value="3600000">1 hour</option>
+                    <option value="86400000">1 day</option>
+                    <option value="604800000">1 week</option>
+                    <option value="2592000000">1 month</option>
+                    <option value="31536000000">1 year</option>
+                    <option value="157680000000">5 years</option>
+                    <option value="all" selected>All</option>
+                  </select>
                 </header>
                 <canvas id="netflow-chart" aria-label="Net cash flow"></canvas>
               </section>
@@ -435,6 +453,15 @@
                 <header class="chart-card__head">
                   <h3>Assets vs Liabilities</h3>
                   <span class="chart-card__sub">Balance sheet trend</span>
+                  <select class="chart-duration-picker" data-chart-duration="asset" aria-label="Assets vs Liabilities duration">
+                    <option value="3600000">1 hour</option>
+                    <option value="86400000">1 day</option>
+                    <option value="604800000">1 week</option>
+                    <option value="2592000000">1 month</option>
+                    <option value="31536000000">1 year</option>
+                    <option value="157680000000">5 years</option>
+                    <option value="all" selected>All</option>
+                  </select>
                 </header>
                 <canvas id="asset-chart" aria-label="Assets vs liabilities"></canvas>
               </section>

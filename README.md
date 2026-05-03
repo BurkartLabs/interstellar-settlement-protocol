@@ -89,8 +89,8 @@ For the background, factions, and world history behind ISP, see [LORE.md](LORE.m
 
 See [DEVELOPMENT_PHASES.md](DEVELOPMENT_PHASES.md) for the full version-by-version plan from current prototype to v1.0 public release.
 
-**Current version:** `0.3` (R&D tree, CEO Insight, refinery chains, asteroid mining, missions, Supabase persistence)  
-**Next milestone:** `0.4` — Testing Automation, Publishable MVP, Station Building
+**Current version:** `0.4` (Testing automation, server-authoritative financial core, system-scoped local chat, interactive forums)  
+**Next milestone:** `0.5` — Beta MVP: Polish & Publish (first publishable beta)
 
 ---
 

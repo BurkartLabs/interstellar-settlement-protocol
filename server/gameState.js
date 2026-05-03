@@ -1841,29 +1841,36 @@ function logPersistError(prefix, error) {
 // save is requested while one is already running, mark dirty so the
 // in-progress save's callback re-schedules another pass once it completes.
 let _persistInFlight = false;
+let _persistInFlightPromise = null;
 let _persistRequeueAfterFlight = false;
 
 async function _runPersistAccountsToSupabaseSerially() {
   if (_persistInFlight) {
     _persistRequeueAfterFlight = true;
-    return;
+    // Allow callers to await the in-flight save instead of returning early.
+    return _persistInFlightPromise;
   }
   _persistInFlight = true;
-  try {
-    await persistAccountsStoreToSupabase();
-  } catch (error) {
-    logPersistError("[supabase] Failed to persist account snapshot", error);
-    _persistDirty = true;
-    // Disk fallback so local progress isn't lost while Supabase is down.
-    try { writeAccountsSnapshotToDisk(); } catch (_) {}
-  } finally {
-    _persistInFlight = false;
-    if (_persistRequeueAfterFlight) {
+  _persistInFlightPromise = (async () => {
+    try {
+      await persistAccountsStoreToSupabase();
+    } catch (error) {
+      logPersistError("[supabase] Failed to persist account snapshot", error);
+      _persistDirty = true;
+      // Disk fallback so local progress isn't lost while Supabase is down.
+      try { writeAccountsSnapshotToDisk(); } catch (_) {}
+    } finally {
+      _persistInFlight = false;
+      const requeue = _persistRequeueAfterFlight;
       _persistRequeueAfterFlight = false;
-      // Yield to event loop, then run again with the latest state.
-      setTimeout(() => { _runPersistAccountsToSupabaseSerially().catch(() => {}); }, 0);
+      _persistInFlightPromise = null;
+      if (requeue) {
+        // Yield to event loop, then run again with the latest state.
+        setTimeout(() => { _runPersistAccountsToSupabaseSerially().catch(() => {}); }, 0);
+      }
     }
-  }
+  })();
+  return _persistInFlightPromise;
 }
 
 function scheduleAccountsSave() {
@@ -1873,24 +1880,27 @@ function scheduleAccountsSave() {
     return;
   }
 
+  // Mark dirty so flushPendingPersist (called before every API response) will
+  // await the write. Also kick off the persist immediately so the flush in
+  // most cases finds it already complete instead of having to wait.
+  _persistDirty = true;
+
   if (IS_SERVERLESS) {
-    // On serverless, just mark dirty — the flush middleware will persist before responding
-    _persistDirty = true;
+    // On serverless, the flush middleware will await before responding.
     return;
   }
 
-  // Always also mirror to disk so a Supabase outage doesn't lose progress.
+  // Mirror to disk too so a Supabase outage doesn't lose progress.
   writeAccountsSnapshotToDisk();
 
-  // Non-serverless: debounce Supabase writes
+  // Cancel any outstanding debounce timer (legacy) and start the persist now.
   if (accountsSaveTimer) {
     clearTimeout(accountsSaveTimer);
-  }
-
-  accountsSaveTimer = setTimeout(() => {
-    _runPersistAccountsToSupabaseSerially().catch(() => {});
     accountsSaveTimer = null;
-  }, 300);
+  }
+  _runPersistAccountsToSupabaseSerially()
+    .then(() => { _persistDirty = false; })
+    .catch(() => { /* error already logged; _persistDirty stays true */ });
 }
 
 export async function saveAccountsNow() {
@@ -1916,12 +1926,21 @@ export async function saveAccountsNow() {
 }
 
 export async function flushPendingPersist() {
-  if (_persistDirty && USE_SUPABASE) {
+  if (!USE_SUPABASE) return;
+  // Wait for any in-flight save to finish first; that save may already cover
+  // the current dirty state.
+  if (_persistInFlightPromise) {
+    try { await _persistInFlightPromise; } catch (_) { /* logged elsewhere */ }
+  }
+  // If still dirty (new mutation arrived after the in-flight save started, or
+  // there was no in-flight save), run another pass and await it.
+  if (_persistDirty) {
     _persistDirty = false;
     try {
       await _runPersistAccountsToSupabaseSerially();
     } catch (error) {
       console.error("[supabase] Flush persist failed:", error?.message || error);
+      _persistDirty = true;
     }
   }
 }

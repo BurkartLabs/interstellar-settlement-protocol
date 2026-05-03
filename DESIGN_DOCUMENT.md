@@ -259,16 +259,16 @@ Single ~3,500-line ES module. No framework, no bundler.
 
 ## Financial Charts (Current State)
 
-All four charts in the Financial Core tab are partially or fully placeholder:
+All four charts in the Financial Core tab are now wired to real server-side data (v0.4):
 
 | Chart | Data Source | Status |
 |---|---|---|
-| Cash Flow (30-day) | `finances.dailyRevenue - dailyCosts` + sine-wave noise | **Fake** — no historical tracking |
-| Assets / Liabilities | Real `credits` and `assets`; `liabilities` hardcoded 0 | **Partially real** |
-| Sector Exposure | Hardcoded `[36, 24, 19, 11, 10]` | **Fully fake** |
-| Credits History (Bond Yield) | `finances.bondYieldPct` (vestigial, unused) | **Fully fake** |
+| Cash Flow (30-day) | `finances.cashflowHistory[]` — daily net flow appended on day tick | **Real** |
+| Assets / Liabilities | Live `credits`, `assets`, and `liabilities` (outstanding payroll + active office leases) | **Real** |
+| Sector Exposure | Computed from `finances.incomeBySource` | **Real** |
+| Credits History | `finances.creditsHistory[]` — 30-day balance snapshot series | **Real** |
 
-Wiring real data is planned for v0.4 alongside the full balance sheet system.
+Full balance sheet / P&L / cash flow statements stored server-side are planned for v0.5.
 
 ---
 
@@ -309,7 +309,7 @@ Server-side auto-completion (marking done and applying effects) is not yet imple
 | Issue | Status |
 |---|---|
 | "Lease Expires" shows Unknown after server restart | Root cause: in-memory state may lag behind Supabase on restart. Investigate hydration timing. |
-| Financial charts show fake/placeholder data | By design for now; tracked for v0.4 |
+| Financial charts show fake/placeholder data | Resolved in v0.4 — all four charts wired to live server-side data |
 | R&D queue completion is client-display-only | Server-side auto-completion not yet implemented |
 | `rentedUntil` lapse enforcement not implemented | Office benefits not locked when lease expires |
 
@@ -334,10 +334,14 @@ See `DEVELOPMENT_PHASES.md` for the full version-by-version plan.
 | 0.1 | Core systems — auth, mining, exchange, station, R&D ✅ |
 | 0.2 | Walkthrough, office rental, mining leases, downtime, exchange, persistent accounts ✅ |
 | 0.3 | Full R&D tree, CEO Insight, refinery chains, asteroid mining, missions ✅ |
-| 0.4 | Publishable MVP — full building catalogue, financial statements, real chart data, bonds, loans |
-| 0.5 | Energy and metals (He-3, nickel-iron, rare metals) |
-| 0.6 | Warfare — attack/defense, fleet, station raiding |
-| 0.7 | Tier 4 production and last 5 resources |
-| 0.8 | Conglomerates — alliances, shared stations, private messaging |
-| 0.9 | Corporation warfare — territory, economic warfare, lawfare |
-| 1.0 | Facelift, balance pass, security hardening, public release |
+| 0.4 | Testing automation, server-authoritative financial core, system-scoped local chat, interactive forums ✅ |
+| 0.5 | Beta MVP — polish, persistence completion, exchange/logistics polish, tutorial pass, bug bash, public beta deploy |
+| 0.6 | Industrial expansion — full building catalogue, upgrade tiers, Levels 11–40 |
+| 0.7 | World expansion — 20+ solar systems, neutral stations, NPC corps, pirates |
+| 0.8 | Energy and metals (He-3, nickel-iron, rare metals) |
+| 0.9 | Financial markets — bonds, loans, equity, investment returns |
+| 0.10 | Warfare — orbital shipyard, fleets, station raiding |
+| 0.11 | Tier 4 production and last 5 resources |
+| 0.12 | Conglomerates — alliances, shared stations, private messaging |
+| 0.13 | Corporation warfare — territory, economic warfare, lawfare |
+| 1.0 | Facelift, balance pass, security hardening, public 1.0 release |

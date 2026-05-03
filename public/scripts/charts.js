@@ -43,6 +43,17 @@ const chartRegistry = {
   pnl: null
 };
 
+// Per-chart selected duration window (ms). null = "all".
+const chartDurations = {
+  cashflow: null,
+  netflow: null,
+  asset: null
+};
+
+// Most-recent finances object so duration changes can re-render without
+// requiring the caller to repush the data.
+let _lastFinances = null;
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function baseOptions(extra = {}) {
@@ -129,13 +140,26 @@ function getSnapshots(finances) {
   return projectFromCurrentState(finances);
 }
 
+// Filter snapshots to the rolling window the user has picked for `chartId`.
+// `null`/missing = no filter (show everything).
+function filterSnapsForChart(snaps, chartId) {
+  const windowMs = chartDurations[chartId];
+  if (!windowMs || !Number.isFinite(windowMs)) return snaps;
+  const cutoff = Date.now() - windowMs;
+  const filtered = snaps.filter((s) => Number(s?.t) >= cutoff);
+  // If the window is too narrow to show anything, fall back to full series
+  // rather than rendering an empty chart.
+  return filtered.length >= 2 ? filtered : snaps;
+}
+
 // ─── Chart builders ─────────────────────────────────────────────────────────
 
 function renderCashReserves(snaps) {
   const canvas = ensureCanvas("cashflow-chart");
   if (!canvas) return;
-  const labels = snaps.map(snapshotLabel);
-  const data = snaps.map((s) => s.credits);
+  const filtered = filterSnapsForChart(snaps, "cashflow");
+  const labels = filtered.map(snapshotLabel);
+  const data = filtered.map((s) => s.credits);
 
   if (!chartRegistry.cashflow) {
     chartRegistry.cashflow = new Chart(canvas, {
@@ -167,8 +191,9 @@ function renderCashReserves(snaps) {
 function renderNetFlow(snaps) {
   const canvas = ensureCanvas("netflow-chart");
   if (!canvas) return;
-  const labels = snaps.map(snapshotLabel);
-  const data = snaps.map((s) => s.netFlow);
+  const filtered = filterSnapsForChart(snaps, "netflow");
+  const labels = filtered.map(snapshotLabel);
+  const data = filtered.map((s) => s.netFlow);
 
   if (!chartRegistry.netflow) {
     chartRegistry.netflow = new Chart(canvas, {
@@ -200,9 +225,10 @@ function renderNetFlow(snaps) {
 function renderAssetVsLiability(snaps) {
   const canvas = ensureCanvas("asset-chart");
   if (!canvas) return;
-  const labels = snaps.map(snapshotLabel);
-  const assets = snaps.map((s) => s.assets + s.credits);
-  const liabilities = snaps.map((s) => s.liabilities);
+  const filtered = filterSnapsForChart(snaps, "asset");
+  const labels = filtered.map(snapshotLabel);
+  const assets = filtered.map((s) => s.assets + s.credits);
+  const liabilities = filtered.map((s) => s.liabilities);
 
   if (!chartRegistry.asset) {
     chartRegistry.asset = new Chart(canvas, {
@@ -378,6 +404,7 @@ function prettifySource(key) {
 
 export function renderFinanceCharts(finances) {
   if (typeof Chart === "undefined" || !finances) return;
+  _lastFinances = finances;
   const snaps = getSnapshots(finances);
   renderCashReserves(snaps);
   renderNetFlow(snaps);
@@ -385,4 +412,35 @@ export function renderFinanceCharts(finances) {
   renderIncomeBySource(finances);
   renderAssetComposition(finances);
   renderDailyPnL(finances);
+}
+
+// Set the rolling-window duration for a single time-series chart and
+// immediately re-render it with the cached finances. `windowMs` may be a
+// number of milliseconds, or null/'all' for no filter.
+export function setChartDuration(chartId, windowMs) {
+  if (!Object.prototype.hasOwnProperty.call(chartDurations, chartId)) return;
+  chartDurations[chartId] = windowMs === "all" || windowMs == null
+    ? null
+    : Number(windowMs);
+  if (!_lastFinances) return;
+  const snaps = getSnapshots(_lastFinances);
+  if (chartId === "cashflow") renderCashReserves(snaps);
+  else if (chartId === "netflow") renderNetFlow(snaps);
+  else if (chartId === "asset") renderAssetVsLiability(snaps);
+}
+
+// Wire up the per-chart <select data-chart-duration> pickers in the DOM.
+// Safe to call multiple times — listeners are attached idempotently via a
+// dataset flag.
+export function bindChartDurationPickers(root = document) {
+  const pickers = root.querySelectorAll("[data-chart-duration]");
+  pickers.forEach((picker) => {
+    if (picker.dataset.durationBound === "1") return;
+    picker.dataset.durationBound = "1";
+    picker.addEventListener("change", () => {
+      const chartId = picker.getAttribute("data-chart-duration");
+      const value = picker.value;
+      setChartDuration(chartId, value === "all" ? "all" : Number(value));
+    });
+  });
 }

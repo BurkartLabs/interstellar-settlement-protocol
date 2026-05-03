@@ -393,10 +393,13 @@ process.on("unhandledRejection", (reason) => {
 
 app.use(express.json());
 
-// ─── Serverless Supabase sync ─────────────────────────────────────────────────
-// On Vercel, each request may land on a different instance with stale in-memory
-// state.  This middleware reloads the full accountsStore from Supabase before
-// every API request, and flushes any dirty writes before the response leaves.
+// ─── Persist-before-respond middleware (serverless only) ────────────────────
+// On Vercel, each request may land on a different cold instance with stale
+// in-memory state. We rehydrate from Supabase before each request and flush
+// any pending writes before the response leaves. On long-running local/Node
+// servers the in-memory state is already authoritative, so we don't need
+// (and can't afford — see ticker storms) to await the persist on every API
+// response; `scheduleAccountsSave` already kicks the write off immediately.
 if (process.env.VERCEL) {
   app.use("/api", async (req, res, next) => {
     try {

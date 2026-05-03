@@ -1,4 +1,4 @@
-import { renderFinanceCharts } from "./charts.js";
+import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { createStarmapController } from "./starmap.js";
 
 const appState = {
@@ -2822,10 +2822,10 @@ function renderLevel2Progress(data) {
   // Map requirement IDs to the tab they should navigate to
   const REQ_TAB = {
     officeRented:               "station",
-    hire5:                      "ceo",
-    hire10:                     "ceo",
-    hire15:                     "ceo",
-    hire25:                     "ceo",
+    hire5:                      "station",
+    hire10:                     "station",
+    hire15:                     "station",
+    hire25:                     "station",
     marsLease:                  "station",
     secondLease:                "station",
     lunaLease:                  "station",
@@ -4707,8 +4707,19 @@ function renderMissions(data) {
 
 function renderCombatReports() { /* removed: combat reports tab deprecated */ }
 
+// The "local" comms tab is scoped to the player's current solar system, so
+// every system has its own isolated chat history. The UI tab name stays
+// "local", but it resolves to a per-system channel key like "local:sol".
+function resolveChatChannel(tab, data = appState.data) {
+  if (tab === "local") {
+    const sys = data?.corp?.currentSystemId || "sol";
+    return `local:${sys}`;
+  }
+  return tab || "global";
+}
+
 function renderChatLog(data) {
-  const channel = appState.chatChannel;
+  const channel = resolveChatChannel(appState.chatChannel, data);
   const messages = data?.chatLog?.[channel] || [];
   const chatLog = document.getElementById("chat-log");
 
@@ -4737,9 +4748,18 @@ function renderChatLog(data) {
 function renderChatChannelTabs() {
   const tabs = Array.from(document.querySelectorAll("[data-chat-channel-tab]"));
   tabs.forEach((tab) => {
-    const selected = tab.getAttribute("data-chat-channel-tab") === appState.chatChannel;
+    const tabKey = tab.getAttribute("data-chat-channel-tab");
+    const selected = tabKey === appState.chatChannel;
     tab.classList.toggle("active", selected);
     tab.setAttribute("aria-selected", String(selected));
+    // Decorate the Local tab with the player's current system name so it
+    // is obvious that comms only reach corporations in that system.
+    if (tabKey === "local") {
+      const sysId = appState.data?.corp?.currentSystemId || "sol";
+      const sysName = (appState.data?.world?.systems || []).find((s) => s.id === sysId)?.name
+        || sysId.replace(/\b\w/g, (c) => c.toUpperCase());
+      tab.textContent = `Local — ${sysName}`;
+    }
   });
 }
 
@@ -5438,7 +5458,7 @@ function bindForms() {
     }
 
     socket?.emit("chat:send", {
-      channel: appState.chatChannel,
+      channel: resolveChatChannel(appState.chatChannel),
       author: appState.data?.corp?.corporationName || "Anonymous",
       content
     });
@@ -5832,7 +5852,7 @@ function bindRealtimeEvents() {
     }
 
     appState.data.chatLog[msg.channel].push(msg);
-    if (msg.channel === appState.chatChannel) {
+    if (msg.channel === resolveChatChannel(appState.chatChannel)) {
       renderChatLog(appState.data);
     }
   });
@@ -6530,6 +6550,7 @@ async function boot() {
   bindRippleEffect();
   bindBuildingActions();
   bindInboxControls();
+  bindChartDurationPickers();
 
   try {
     await Promise.all([loadBootstrap(), loadStationRegistry()]);

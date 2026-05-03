@@ -1425,6 +1425,30 @@ h1 {
   color: var(--text-muted);
 }
 
+.chart-duration-picker {
+  margin-left: auto;
+  background: rgba(0, 247, 255, 0.05);
+  border: 1px solid rgba(0, 247, 255, 0.25);
+  color: var(--color-text, #d8ebf5);
+  font-family: "Share Tech Mono", "Roboto Mono", ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  padding: 0.18rem 0.4rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chart-duration-picker:hover,
+.chart-duration-picker:focus {
+  border-color: rgba(0, 247, 255, 0.6);
+  outline: none;
+}
+
+.chart-duration-picker option {
+  background: #05050f;
+  color: var(--color-text, #d8ebf5);
+}
+
 .finance-tables {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
