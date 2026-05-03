@@ -129,7 +129,7 @@ for (const lvl of MILESTONE_LEVELS) {
 function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
-
+/* TODO: This should be fetched from systems.json, see SYSTEMS_DATA */
 const SYSTEM_DETAILS = {
   sol: {
     ownerRule: "No direct ownership. Mining rights are leased.",
@@ -203,7 +203,7 @@ const SYSTEM_DETAILS = {
 
 function normalizeSystems(systems = []) {
   return systems.map((system) => {
-    const defaults = SYSTEM_DETAILS[system.id];
+    const defaults = SYSTEM_DETAILS[system.id]; // TODO: Update to use SYSTEMS_DATA
     if (!defaults) {
       return system;
     }
@@ -366,6 +366,7 @@ function ensureCorpMiningModel(corp) {
   }
 
   // Migrate legacy single extractor model into the multi-extractor array only if it has real data.
+  // TODO: Is this still needed?
   const legacyExtractor = corp.mining.silicateExtractor;
   const legacyHasData = Boolean(
     legacyExtractor &&
@@ -527,6 +528,7 @@ function ensureCorpMiningModel(corp) {
   }
 }
 
+// TODO: Add force-stop functionality
 function stopExtractorCycle(extractor, timestamp) {
   extractor.active = false;
   extractor.endsAt = timestamp;
@@ -740,6 +742,12 @@ export function applyRefineryOperations(corp, now = Date.now()) {
 // ─── Asteroid Belt Mining ────────────────────────────────────────────────────
 
 // Deterministic belt compositions per system — scoutable
+/* 
+  TODO: Asteroid Belts should be more dynamic. Once they spawn, there is a limited amount of ore to be mined. 
+  Asteroid Belts should yield more resources than extractor yards. Once the ore has been mined, the asteroid belt disappears. 
+  If no asteroid belt is present, it will have a 20% chance of spawning each hour at xx:00. The specific composition of the belt
+  should be random. 
+*/
 const BELT_COMPOSITIONS = {
   "sol:belt":          { "Silicates": 35, "Carbon": 25, "Nickel": 20, "Water Ice": 15, "Titanium": 5 },
   "alpha-centauri:ac-belt": { "Silicates": 25, "Nickel": 22, "Titanium": 18, "Carbon": 15, "Hydrogen": 12, "Lithium": 8 },
@@ -750,6 +758,11 @@ const BELT_COMPOSITIONS = {
 };
 
 // Rarity tiers control yield multiplier and the chance of bonus "jackpot" drops
+/* 
+  TODO: Rarity should be more dynamic. It shouldn't be impossible for an exotic Asteroid Belt to spawn within Sol, but it 
+  should be less common than say Epsilon Eridani
+*/
+
 const SYSTEM_RARITY = {
   sol:                "common",
   "alpha-centauri":   "uncommon",
@@ -759,6 +772,7 @@ const SYSTEM_RARITY = {
   "epsilon-eridani":  "exotic"
 };
 
+// TODO: In addition to rarity improving yields, it should also determine what types of raw resources are available
 const RARITY_YIELD_MULTIPLIER = { common: 1.0, uncommon: 1.15, rare: 1.35, exotic: 1.6 };
 
 const IS_DEV = !process.env.NODE_ENV || process.env.NODE_ENV !== "production";
@@ -858,7 +872,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
       return;
     }
 
-    const rarity = SYSTEM_RARITY[exp.systemId] || "common";
+    const rarity = SYSTEM_RARITY[exp.systemId] || "common"; // TODO: Should we really be defaulting to common? In what circumstances is SYSTEM_RARITY[exp.systemId] null?
     const rarityMult = RARITY_YIELD_MULTIPLIER[rarity];
     const durationDef = EXPEDITION_DURATIONS[exp.duration] || EXPEDITION_DURATIONS.standard;
     const tickMult = durationDef.tickYieldMultiplier;
