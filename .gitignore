@@ -3,3 +3,12 @@ data/state.json
 
 obsidian/
 npm-debug.log*
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+
+# Test/debug output artifacts
+test_output*
+*.log

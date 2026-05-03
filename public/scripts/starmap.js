@@ -858,12 +858,34 @@ export function createStarmapController({
         .filter((entry) => entry.type === "Planet" || entry.type === "Field")
         .map((entry) => `<li>${entry.name} (${entry.type})</li>`)
         .join("");
+      const currentSystemId = state.currentSystemId || "sol";
+      const isCurrentSystem = system.id === currentSystemId;
+      const reachable = canTravelToSystem(system.id);
+      let jumpHtml = "";
+      if (isCurrentSystem) {
+        jumpHtml = `<p class="muted" style="color:rgba(0,247,255,0.85);margin-top:0.5rem;">Currently in this system. Select a body to view stations.</p>`;
+      } else if (!reachable) {
+        jumpHtml = `<p class="muted" style="color:rgba(255,180,60,0.85);margin-top:0.5rem;">🔒 Navigation research required to jump here.</p>`;
+      } else if (onTravelToSystem) {
+        jumpHtml = `<button class="btn btn-accent starmap-travel-system-btn" data-system-id="${system.id}" style="margin-top:0.75rem;">Jump to ${escapeHtmlAttr(system.name)}</button>
+          <p class="muted" style="font-size:0.78rem;margin-top:0.4rem;">Stations can only be docked from inside the destination system.</p>`;
+      }
       detailsEl.innerHTML = `
         <h3>${system.name}</h3>
         <p class="muted">GDP ${system.gdpIndex} | Activity ${system.activityLevel} | Pirates ${system.pirateDensity}</p>
         <p>${system.ownerRule || "Ownership available via territorial dominance and treaties."}</p>
         <ul class="text-list">${bodyLines}</ul>
+        ${jumpHtml}
       `;
+      // Bind the jump button rendered in the system view.
+      detailsEl.querySelectorAll(".starmap-travel-system-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const systemId = btn.getAttribute("data-system-id");
+          if (systemId && onTravelToSystem) {
+            onTravelToSystem(systemId);
+          }
+        });
+      });
       return;
     }
 
@@ -888,8 +910,8 @@ export function createStarmapController({
                 ? `<span style="color:rgba(255,180,60,0.85);font-size:0.75rem;margin-left:0.4rem;">🔒 Navigation research required</span>`
               : inSameSystem && onDockAtStation
                 ? `<button class="btn btn-outline starmap-dock-btn" data-station-id="${s.id}" style="margin-left:0.5rem;font-size:0.75rem;padding:0.15em 0.5em;">Dock</button>`
-              : !inSameSystem && onTravelToSystem
-                ? `<button class="btn btn-outline starmap-travel-system-btn" data-system-id="${s.systemId}" style="margin-left:0.5rem;font-size:0.75rem;padding:0.15em 0.5em;">Travel to System</button>`
+              : !inSameSystem
+                ? `<span style="color:rgba(180,180,180,0.7);font-size:0.75rem;margin-left:0.4rem;">Jump to ${escapeHtmlAttr(s.systemId)} system first</span>`
                 : "";
             return `<li><strong>${s.name}</strong> <span style="opacity:0.6;">${s.designation}</span>${dockLabel}</li>`;
           }).join("")}</ul>`
@@ -1284,7 +1306,7 @@ export function createStarmapController({
               ? `<span class="muted" style="font-size:0.85rem;color:rgba(255,180,60,0.85);">🔒 Navigation research required to travel here.</span>`
             : (state.currentSystemId || "sol") === station.systemId
               ? `<button class="btn btn-accent starmap-modal-dock-btn" data-station-id="${escapeHtmlAttr(station.id)}">Dock at Station</button>`
-              : `<button class="btn btn-accent starmap-modal-system-btn" data-system-id="${escapeHtmlAttr(station.systemId)}">Travel to ${escapeHtmlAttr(station.systemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()))} System</button>`
+              : `<span class="muted" style="font-size:0.85rem;">Jump to <strong>${escapeHtmlAttr(station.systemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()))}</strong> from the system view, then dock here.</span>`
           }
         </div>
       </div>

@@ -450,7 +450,7 @@ function checkAndResetNpcBuyOrders() {
 
 // Check on startup and every minute thereafter
 checkAndResetNpcBuyOrders();
-setInterval(checkAndResetNpcBuyOrders, 60_000);
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(checkAndResetNpcBuyOrders, 60_000);
 
 // ─── R&D auto-completion tick ────────────────────────────────────────────────
 // ─── Mining tick: process downtime, recovery, and mining progress ─────────────
@@ -474,7 +474,7 @@ function miningTick() {
   }
 }
 
-setInterval(miningTick, 5000); // Every 5 seconds
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(miningTick, 5000); // Every 5 seconds
 
 function refineryTick() {
   const now = Date.now();
@@ -487,7 +487,7 @@ function refineryTick() {
   }
 }
 
-setInterval(refineryTick, 10_000); // Every 10 seconds
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(refineryTick, 10_000); // Every 10 seconds
 
 // ─── Asteroid expedition tick ────────────────────────────────────────────────
 function asteroidExpeditionTick() {
@@ -557,7 +557,7 @@ function asteroidExpeditionTick() {
   }
 }
 
-setInterval(asteroidExpeditionTick, 10_000); // Every 10 seconds
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(asteroidExpeditionTick, 10_000); // Every 10 seconds
 
 // ─── Fabrication queue tick ──────────────────────────────────────────────────
 function fabricationTick() {
@@ -592,7 +592,7 @@ function fabricationTick() {
   }
 }
 
-setInterval(fabricationTick, 5_000); // Every 5 seconds
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(fabricationTick, 5_000); // Every 5 seconds
 
 // ─── Travel arrival tick ─────────────────────────────────────────────────────
 function travelTick() {
@@ -654,7 +654,7 @@ function travelTick() {
   }
 }
 
-setInterval(travelTick, 5000); // Every 5 seconds
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(travelTick, 5000); // Every 5 seconds
 
 function processRndCompletions() {
   const now = Date.now();
@@ -703,7 +703,7 @@ function processRndCompletions() {
   }
 }
 
-setInterval(processRndCompletions, 5_000);
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(processRndCompletions, 5_000);
 
 function processCeoInsightCompletions() {
   const now = Date.now();
@@ -756,7 +756,38 @@ function processCeoInsightCompletions() {
   }
 }
 
-setInterval(processCeoInsightCompletions, 5_000);
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(processCeoInsightCompletions, 5_000);
+
+// ─── Financial snapshot tick ─────────────────────────────────────────────────
+// Captures a rolling balance/flow snapshot for every active corp so the
+// Financial Core dashboard can render real historical series (cash reserves,
+// net flow, assets vs liabilities) instead of synthesised projections.
+import { buildSnapshot, pushSnapshot } from "./finances.js";
+
+const FINANCIAL_SNAPSHOT_INTERVAL_MS = 30_000;
+
+function financialSnapshotTick() {
+  const now = Date.now();
+  for (const accountId of getAllAccountIds()) {
+    let finances = null;
+    mutateAccountState(accountId, (state) => {
+      if (!state || !state.corp) return;
+      const snap = buildSnapshot(state.corp, now);
+      pushSnapshot(state.corp, snap);
+      finances = state.corp.finances;
+    });
+    if (finances) {
+      // Reuse the existing finance:updated channel so clients refresh
+      // their snapshot-driven dashboard without a separate handler path.
+      io.emit("finance:updated", finances);
+    }
+  }
+}
+
+if (!process.env.ISP_DISABLE_TICKERS) {
+  setInterval(financialSnapshotTick, FINANCIAL_SNAPSHOT_INTERVAL_MS);
+}
+
 
 app.get("/api/bootstrap", (_req, res) => {
   res.json({ ...getState(), version: APP_VERSION });
@@ -1568,7 +1599,10 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
       totalMined: 0,
       totalSpent: 0,
       lastCompletedAt: null,
-      leaseId
+      leaseId,
+      // Record the lease body directly on the yard so the location survives
+      // any future leaseId namespacing or reference loss.
+      body: lease?.body || null
     });
 
     lease.extractorIds.push(newExtractorId);
@@ -1758,6 +1792,11 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
       corp.mining.silicateExtractors = [];
     }
     const nextExtractorIndex = corp.mining.silicateExtractors.length + 1;
+    // If the corp has exactly one mining lease, the new yard must live there.
+    // For multi-lease corps the yard is left unassigned and the player picks
+    // a placement explicitly via the lease panel.
+    const leases = Array.isArray(corp.miningLeases) ? corp.miningLeases : [];
+    const autoLease = leases.length === 1 ? leases[0] : null;
     corp.mining.silicateExtractors.push({
       id: `ext-basic-${nextExtractorIndex}`,
       name: `Basic Extractor Yard #${nextExtractorIndex}`,
@@ -1770,8 +1809,14 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
       operationCostPerHour: 0,
       totalMined: 0,
       totalSpent: 0,
-      lastCompletedAt: null
+      lastCompletedAt: null,
+      leaseId: autoLease?.id || null,
+      body: autoLease?.body || null
     });
+    if (autoLease) {
+      if (!Array.isArray(autoLease.extractorIds)) autoLease.extractorIds = [];
+      autoLease.extractorIds.push(`ext-basic-${nextExtractorIndex}`);
+    }
 
     corp.finances.credits -= buildCost;
     corp.finances.assets += 42000;
@@ -2117,6 +2162,14 @@ app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
       return;
     }
 
+    // Cap concurrent refineries (each lets you run one chain in parallel).
+    const MAX_REFINERIES = 2;
+    const existingRefineries = (corp.buildings || []).filter((b) => b.name === "Refinery").length;
+    if (existingRefineries >= MAX_REFINERIES) {
+      outcome = "max-refineries";
+      return;
+    }
+
     if ((corp.buildings || []).length >= (corp.buildingSlots || 2)) {
       outcome = "no-slot";
       return;
@@ -2159,6 +2212,7 @@ app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
     const corp = account.state.corp;
     const messageMap = {
       "missing-research": "Refinery construction requires Material Compression I and Nano-Lattice Weaving research.",
+      "max-refineries": "You already operate the maximum of 2 refineries.",
       "no-slot": `Refinery requires 1 open building slot. Current usage: ${corp.buildings.length}/${corp.buildingSlots}.`,
       "insufficient-credits": fundingRequirementMessage("Refinery construction", corp, BUILD_COST)
     };
@@ -2181,8 +2235,15 @@ app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
 app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
   const refineryId = String(req.body?.refineryId || "").trim();
   const chainId = String(req.body?.chainId || "").trim();
+  // Optional: number of input units the player wants to refine in this run.
+  // Defaults to chain.inputQuantityPerCycle. Floored to a multiple of the
+  // chain's per-cycle input. Effective minimum is max(100, perCycle).
+  const requestedQuantity = Math.floor(Number(req.body?.inputQuantity || 0));
   let outcome = "ok";
   let targetLabel = "";
+  let actualQuantity = 0;
+  let actualScale = 1;
+  let actualDurationHours = 0;
 
   const chain = REFINERY_CHAINS[chainId];
   if (!chain) {
@@ -2220,13 +2281,28 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
       return;
     }
 
+    // Resolve the run size. Player may pass `inputQuantity`; we round it down
+    // to the chain's per-cycle multiple. Default = one cycle. Hard minimum =
+    // 100 input units, capped per chain in case the per-cycle base is
+    // smaller than 100 (e.g. He-3 at 50/cycle requires at least two cycles).
+    const perCycle = Math.max(1, Number(chain.inputQuantityPerCycle));
+    const minQuantity = Math.max(100, perCycle);
+    const requested = requestedQuantity > 0 ? requestedQuantity : perCycle;
+    const scale = Math.max(1, Math.floor(requested / perCycle));
+    const inputQty = scale * perCycle;
+    if (inputQty < minQuantity) {
+      outcome = "below-minimum";
+      actualQuantity = inputQty;
+      return;
+    }
+
     // Check input material availability at current station
-    const inputQty = chain.inputQuantityPerCycle;
     const refStationId = corp.currentStationId || "earth-station-prime";
     const refInv = getStationInventory(corp, refStationId);
     const available = Number(refInv[chain.input] || 0);
     if (available < inputQty) {
       outcome = "insufficient-input";
+      actualQuantity = inputQty;
       return;
     }
 
@@ -2235,11 +2311,16 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
     if (refInv[chain.input] <= 0) delete refInv[chain.input];
 
     const now = Date.now();
+    actualQuantity = inputQty;
+    actualScale = scale;
+    actualDurationHours = chain.cycleDurationHours * scale;
+
     refinery.active = true;
     refinery.chainId = chain.id;
+    refinery.cycleScale = scale;
     refinery.startedAt = now;
     refinery.lastTickAt = now;
-    refinery.endsAt = now + chain.cycleDurationHours * 60 * 60 * 1000;
+    refinery.endsAt = now + actualDurationHours * 60 * 60 * 1000;
     refinery.totalInputConsumed += inputQty;
   });
 
@@ -2255,17 +2336,20 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
       "refinery-not-found": `Refinery "${refineryId}" was not found.`,
       "all-busy": "All refineries are currently running cycles.",
       "already-active": `${targetLabel} already has an active production cycle.`,
-      "insufficient-input": `Not enough ${chain.input} at this station. Need ${chain.inputQuantityPerCycle} but only have ${Number(getStationInventory(account.state.corp, account.state.corp.currentStationId || "earth-station-prime")[chain.input] || 0)}.`
+      "below-minimum": `Minimum refine quantity is 100 units (one batch of ${chain.inputQuantityPerCycle} ${chain.input}).`,
+      "insufficient-input": `Not enough ${chain.input} at this station. Need ${actualQuantity || chain.inputQuantityPerCycle} but only have ${Number(getStationInventory(account.state.corp, account.state.corp.currentStationId || "earth-station-prime")[chain.input] || 0)}.`
     };
     res.status(400).json({ error: messageMap[outcome] || "Refinery cycle failed to start." });
     return;
   }
 
-  const outputNames = chain.outputs.map((o) => `${o.quantityPerCycle} ${o.item}`).join(", ");
+  const outputNames = chain.outputs
+    .map((o) => `${o.quantityPerCycle * actualScale} ${o.item}`)
+    .join(", ");
   const notification = addAccountNotification(req.params.accountId, {
     type: "operations",
     title: "Refinery Cycle Started",
-    body: `${targetLabel} processing ${chain.inputQuantityPerCycle} ${chain.input} → ${outputNames} (${chain.cycleDurationHours}h).`
+    body: `${targetLabel} processing ${actualQuantity} ${chain.input} → ${outputNames} (${actualDurationHours}h, ${actualScale} batch${actualScale === 1 ? "" : "es"}).`
   });
   if (notification) {
     io.emit("notifications:new", { accountId: req.params.accountId, notification });
@@ -2794,6 +2878,143 @@ app.post("/api/accounts/:accountId/messages/:messageId/move", (req, res) => {
   res.json({ message: msg });
 });
 
+// ─── Forums ──────────────────────────────────────────────────────────────────
+// Player-authored corporate forum threads & replies. Stored on the global
+// state.json under `forums.threads`, broadcast via socket so every connected
+// client sees new posts immediately.
+app.post("/api/forums/threads", requireAuth, (req, res) => {
+  const { category, title, body } = req.body ?? {};
+  const trimmedCategory = String(category || "").trim();
+  const trimmedTitle = String(title || "").trim().slice(0, 200);
+  const trimmedBody = String(body || "").trim().slice(0, 8000);
+  if (!trimmedCategory || !trimmedTitle || !trimmedBody) {
+    res.status(400).json({ error: "category, title, and body are required." });
+    return;
+  }
+
+  const account = getAccountById(req.auth.accountId);
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+  const author = account.state?.corp?.corporationName || account.email || "Anonymous";
+
+  // Validate the category against the global allowlist before mutating.
+  const currentForums = getState().forums || {};
+  if (Array.isArray(currentForums.categories) && currentForums.categories.length
+      && !currentForums.categories.includes(trimmedCategory)) {
+    res.status(400).json({ error: "Unknown forum category." });
+    return;
+  }
+
+  const newThread = {
+    id: `thr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    category: trimmedCategory,
+    title: trimmedTitle,
+    author,
+    authorAccountId: account.id,
+    body: trimmedBody,
+    likes: 0,
+    createdAt: Date.now(),
+    replies: []
+  };
+
+  const updated = mutateState((draft) => {
+    if (!draft.forums || typeof draft.forums !== "object") draft.forums = { categories: [], threads: [] };
+    if (!Array.isArray(draft.forums.threads)) draft.forums.threads = [];
+    draft.forums.threads.unshift(newThread);
+  });
+
+  io.emit("forums:updated", updated.forums);
+  res.json({ thread: newThread });
+});
+
+app.post("/api/forums/threads/:threadId/replies", requireAuth, (req, res) => {
+  const content = String(req.body?.content || "").trim().slice(0, 4000);
+  if (!content) {
+    res.status(400).json({ error: "Reply content is required." });
+    return;
+  }
+
+  const account = getAccountById(req.auth.accountId);
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+  const author = account.state?.corp?.corporationName || account.email || "Anonymous";
+
+  const reply = {
+    id: `rep-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    author,
+    authorAccountId: account.id,
+    content,
+    likes: 0,
+    createdAt: Date.now()
+  };
+
+  let foundThread = null;
+  const updated = mutateState((draft) => {
+    const thread = (draft.forums?.threads || []).find((t) => t.id === req.params.threadId);
+    if (!thread) return;
+    if (!Array.isArray(thread.replies)) thread.replies = [];
+    thread.replies.push(reply);
+    foundThread = thread;
+  });
+
+  if (!foundThread) {
+    res.status(404).json({ error: "Thread not found." });
+    return;
+  }
+
+  io.emit("forums:updated", updated.forums);
+  res.json({ reply, thread: foundThread });
+});
+
+// Toggle a like on a thread or reply. Tracks `likedBy` (account IDs) so each
+// account can only like once; clicking again unlikes. `likes` is always
+// derived from `likedBy.length` to stay consistent.
+app.post("/api/forums/threads/:threadId/like", requireAuth, (req, res) => {
+  const replyId = req.body?.replyId ? String(req.body.replyId) : null;
+  const accountId = req.auth.accountId;
+
+  let result = null;
+  let foundThread = null;
+  const updated = mutateState((draft) => {
+    const thread = (draft.forums?.threads || []).find((t) => t.id === req.params.threadId);
+    if (!thread) return;
+    foundThread = thread;
+
+    const target = replyId
+      ? (Array.isArray(thread.replies) ? thread.replies.find((r) => r.id === replyId) : null)
+      : thread;
+    if (!target) {
+      result = { error: "not-found" };
+      return;
+    }
+    if (!Array.isArray(target.likedBy)) target.likedBy = [];
+    const idx = target.likedBy.indexOf(accountId);
+    if (idx >= 0) {
+      target.likedBy.splice(idx, 1);
+    } else {
+      target.likedBy.push(accountId);
+    }
+    target.likes = target.likedBy.length;
+    result = { likes: target.likes, liked: idx < 0 };
+  });
+
+  if (!foundThread) {
+    res.status(404).json({ error: "Thread not found." });
+    return;
+  }
+  if (result?.error === "not-found") {
+    res.status(404).json({ error: "Reply not found." });
+    return;
+  }
+
+  io.emit("forums:updated", updated.forums);
+  res.json({ ...result, thread: foundThread });
+});
+
 app.post("/api/market/orders", requireAuth, (req, res) => {
   const { type, item, quantity, unitPrice } = req.body ?? {};
 
@@ -3203,3 +3424,15 @@ if (!process.env.VERCEL) {
 }
 
 export default app;
+export { app, server, io };
+export {
+  miningTick,
+  refineryTick,
+  asteroidExpeditionTick,
+  fabricationTick,
+  travelTick,
+  processRndCompletions,
+  processCeoInsightCompletions,
+  checkAndResetNpcBuyOrders,
+  financialSnapshotTick
+};

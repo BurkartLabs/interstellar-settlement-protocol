@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch-path=./server --watch-path=./public server/index.js",
-    "check": "node --check server/index.js"
+    "check": "node --check server/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.3",
@@ -14,5 +17,10 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.3",
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.5",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.5"
   }
 }

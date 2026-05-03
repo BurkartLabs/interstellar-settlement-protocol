@@ -244,6 +244,34 @@ Combined with the investment system (where players can buy equity stakes in othe
 5. Performance: Must run smoothly on mid-range devices and browsers.
 6. Extensibility: Easy to add new resource chains, unit types, research items, and solar systems later.
 
+## Test Driven Development (TDD) Methodology
+
+From this point forward, development in this project must follow a strict test-first workflow.
+
+1. Red-Green-Refactor is required.
+  - Red: Write a failing test that captures the desired behavior or reproduces the bug.
+  - Green: Implement the smallest possible code change to make the test pass.
+  - Refactor: Clean up implementation while keeping all tests green.
+
+2. No feature work without tests.
+  - Every new feature must include tests that verify the behavior.
+  - At minimum, add unit tests for core logic and integration tests for relevant API routes.
+
+3. Bug fixes must start with a regression test.
+  - Before fixing a bug, add or update a test that fails because of the bug.
+  - The bug fix is complete only when that test passes.
+
+4. Behavior changes require test updates.
+  - If requirements change, update tests first to reflect the new expected behavior, then update code.
+
+5. Passing tests are a completion gate.
+  - Consider work complete only when relevant tests pass locally.
+  - Before finalizing meaningful changes, run the full test suite.
+
+6. Prefer deterministic tests.
+  - Keep tests stable and reproducible by controlling randomness, time, and external dependencies.
+  - Mock network/service dependencies where appropriate.
+
 ## Key Tone & Feel
 - Cold, professional, slightly ominous corporate sci-fi.
 - Emphasis on long-term planning, careful resource management, strategic alliances, and calculated risk.

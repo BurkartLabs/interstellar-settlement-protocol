@@ -9,6 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dataDir = path.join(__dirname, "..", "data");
 const statePath = path.join(dataDir, "state.json");
+const accountsSnapshotPath = path.join(dataDir, "accounts-snapshot.json");
 const milestonesPath = path.join(dataDir, "milestones.json");
 const PASSWORD_SALT_ROUNDS = 10;
 const IS_SERVERLESS = Boolean(process.env.VERCEL);
@@ -18,6 +19,16 @@ const SUPABASE_ANON_KEY = String(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 const USE_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const USE_SUPABASE_AUTH = Boolean(USE_SUPABASE && SUPABASE_ANON_KEY);
 const SUPABASE_MANAGED_PASSWORD_HASH = "__supabase_auth_managed__";
+
+import { recordIncome, recordExpense, ensureFinanceTracking } from "./finances.js";
+import {
+  persistAccountsPhase1,
+  hydrateOverlayPhase1,
+  persistAccountsPhase2,
+  hydrateOverlayPhase2,
+  persistAccountsPhase3,
+  hydrateOverlayPhase3
+} from "./db/repositories/index.js";
 
 // Load station data for body→station mapping
 const STATIONS_RAW = JSON.parse(fs.readFileSync(path.join(dataDir, "stations.json"), "utf8"));
@@ -51,8 +62,29 @@ function safeWriteFile(filePath, data, contextLabel = "write") {
     // (e.g. double Ctrl+C or node --watch termination) never truncates the real file.
     const tmpPath = filePath + ".tmp";
     fs.writeFileSync(tmpPath, data, "utf8");
-    fs.renameSync(tmpPath, filePath);
-    return true;
+    // On Windows + OneDrive, the destination is occasionally locked by the sync
+    // client which triggers EPERM/EBUSY on rename. Retry briefly, then fall back
+    // to a direct in-place write so we don't lose the snapshot entirely.
+    let lastErr = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        fs.renameSync(tmpPath, filePath);
+        return true;
+      } catch (err) {
+        lastErr = err;
+        if (err?.code !== "EPERM" && err?.code !== "EBUSY" && err?.code !== "EACCES") break;
+        // Tight retry — OneDrive's destination lock usually clears in a few ms.
+      }
+    }
+    // Final fallback: direct overwrite (non-atomic but better than nothing).
+    try {
+      fs.writeFileSync(filePath, data, "utf8");
+      try { fs.unlinkSync(tmpPath); } catch (_) {}
+      return true;
+    } catch (writeErr) {
+      try { fs.unlinkSync(tmpPath); } catch (_) {}
+      throw lastErr || writeErr;
+    }
   } catch (error) {
     // Vercel filesystem is read-only for deployed source paths; keep running in-memory.
     if (IS_SERVERLESS && (error?.code === "EROFS" || error?.code === "EPERM" || error?.code === "EACCES")) {
@@ -194,6 +226,19 @@ function normalizeSystems(systems = []) {
 function normalizeStateShape(rawState) {
   if (rawState.world) {
     rawState.world.systems = normalizeSystems(rawState.world.systems || []);
+    // Always rebuild refineryChains from the canonical data file so that
+    // older persisted shapes (e.g. outputs as plain strings) are upgraded.
+    rawState.world.refineryChains = REFINERY_CHAINS_DATA.chains.map((c) => ({
+      id: c.id,
+      input: c.input,
+      inputQuantityPerCycle: c.inputQuantityPerCycle,
+      outputs: c.outputs,
+      cycleDurationHours: c.cycleDurationHours,
+      requiresResearch: c.requiresResearch,
+      requiresTechIds: c.requiresTechIds,
+      tier: c.tier,
+      category: c.category
+    }));
   }
 
   if (!rawState.corp) {
@@ -286,6 +331,7 @@ function normalizeStateShape(rawState) {
   }
 
   if (!rawState.corp.finances) rawState.corp.finances = {};
+  ensureFinanceTracking(rawState.corp);
   if (!Array.isArray(rawState.corp.completedInsights)) {
     rawState.corp.completedInsights = [];
   }
@@ -391,6 +437,10 @@ function ensureCorpMiningModel(corp) {
       totalSpent: Number(extractor.totalSpent || 0),
       lastCompletedAt: extractor.lastCompletedAt ?? null,
       leaseId: extractor.leaseId ?? null,
+      // Authoritative location string (planet/moon name). Persisted on the
+      // extractor row directly so we don't have to chase leaseId references
+      // across hydrations to know where the yard physically lives.
+      body: extractor.body ?? null,
       downtimeActive: Boolean(extractor.downtimeActive),
       downtimeStartedAt: downtimeStartedAt ?? null,
       downtimeRecoveredAt: (extractor.downtimeRecoveredAt !== undefined ? extractor.downtimeRecoveredAt : null)
@@ -420,6 +470,60 @@ function ensureCorpMiningModel(corp) {
   }
   if (typeof corp.unlocks.maxBasicExtractorYards !== "number") {
     corp.unlocks.maxBasicExtractorYards = 1;
+  }
+
+  // Backfill leaseId/body for legacy extractors built before location was
+  // tracked on the row itself.
+  // Strategy:
+  //   1. If a lease references the extractor in extractorIds, link it.
+  //   2. If a leaseId points to a lease whose id only differs by an `accountId::`
+  //      namespace prefix (legacy hydration mismatch), rewire to the unwrapped id.
+  //   3. If there's exactly one lease, assume the extractor lives there.
+  //   4. Otherwise leave it unassigned — the UI will surface "Unassigned" so
+  //      the player can tell which yards still need to be placed, instead of
+  //      silently defaulting them all to whichever lease happens to be first.
+  const leases = Array.isArray(corp.miningLeases) ? corp.miningLeases : [];
+  if (leases.length) {
+    for (const ex of corp.mining.silicateExtractors) {
+      if (ex.leaseId) {
+        const direct = leases.find((l) => l.id === ex.leaseId);
+        if (direct) {
+          if (!ex.body) ex.body = direct.body || null;
+          continue;
+        }
+        // Try matching by raw suffix in case of stale namespace prefixes.
+        const stripped = String(ex.leaseId).split("::").pop();
+        const fuzzy = leases.find((l) => String(l.id).split("::").pop() === stripped);
+        if (fuzzy) {
+          ex.leaseId = fuzzy.id;
+          if (!ex.body) ex.body = fuzzy.body || null;
+          continue;
+        }
+        // leaseId points nowhere; fall through to reassignment.
+      }
+      const owning = leases.find((l) => Array.isArray(l.extractorIds) && l.extractorIds.includes(ex.id));
+      if (owning) {
+        ex.leaseId = owning.id;
+        if (!ex.body) ex.body = owning.body || null;
+        continue;
+      }
+      // Single-lease shortcut: only one lease means there's only one place
+      // the yard could be — safe to attach without ambiguity.
+      if (leases.length === 1) {
+        const target = leases[0];
+        ex.leaseId = target.id;
+        if (!ex.body) ex.body = target.body || null;
+        if (!Array.isArray(target.extractorIds)) target.extractorIds = [];
+        if (!target.extractorIds.includes(ex.id)) target.extractorIds.push(ex.id);
+      }
+      // Multiple leases + no link → leave unassigned (ex.leaseId stays null).
+    }
+    // Rebuild extractorIds lists from the now-authoritative leaseId pointers.
+    for (const lease of leases) {
+      lease.extractorIds = corp.mining.silicateExtractors
+        .filter((ex) => ex.leaseId === lease.id)
+        .map((ex) => ex.id);
+    }
   }
 }
 
@@ -529,6 +633,7 @@ export function applyMiningOperations(corp, now = Date.now()) {
     if (actualCost > 0) {
       corp.finances.credits = Math.max(0, corp.finances.credits - actualCost);
       extractor.totalSpent += actualCost;
+      recordExpense(corp, "mining-ops", actualCost);
     }
 
     if (actualMined > 0) {
@@ -538,7 +643,9 @@ export function applyMiningOperations(corp, now = Date.now()) {
       const stationInv = getStationInventory(corp, depositStation);
       stationInv.Silicates = (stationInv.Silicates || 0) + actualMined;
       extractor.totalMined += actualMined;
-      corp.finances.dailyRevenue += Math.round(actualMined * 2.4);
+      const revenue = Math.round(actualMined * 2.4);
+      corp.finances.dailyRevenue += revenue;
+      recordIncome(corp, "mining", revenue);
     }
 
     const consumedMs = Math.round(elapsedMs * affordabilityRatio);
@@ -583,6 +690,7 @@ function ensureCorpRefineryModel(corp) {
     tier: Number(ref.tier || 1),
     active: Boolean(ref.active),
     chainId: ref.chainId ?? null,
+    cycleScale: Math.max(1, Number(ref.cycleScale || 1)),
     startedAt: ref.startedAt ?? null,
     lastTickAt: ref.lastTickAt ?? null,
     endsAt: ref.endsAt ?? null,
@@ -607,18 +715,22 @@ export function applyRefineryOperations(corp, now = Date.now()) {
     const endsAt = Number(ref.endsAt || 0);
     if (!endsAt || now < endsAt) return;
 
-    // Cycle complete — produce outputs at current station
+    // Cycle complete — produce outputs at current station, scaled by the
+    // number of batches the player queued (refinery `cycleScale`, default 1).
     if (!corp.inventory) corp.inventory = {};
     const refStationId = corp.currentStationId || "earth-station-prime";
     const refStationInv = getStationInventory(corp, refStationId);
+    const scale = Math.max(1, Number(ref.cycleScale || 1));
     for (const output of chain.outputs) {
-      refStationInv[output.item] = (refStationInv[output.item] || 0) + output.quantityPerCycle;
-      ref.totalOutputProduced += output.quantityPerCycle;
+      const produced = output.quantityPerCycle * scale;
+      refStationInv[output.item] = (refStationInv[output.item] || 0) + produced;
+      ref.totalOutputProduced += produced;
     }
 
-    ref.cyclesCompleted += 1;
+    ref.cyclesCompleted += scale;
     ref.active = false;
     ref.chainId = null;
+    ref.cycleScale = 1;
     ref.startedAt = null;
     ref.lastTickAt = null;
     ref.endsAt = null;
@@ -987,7 +1099,12 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
       dailyCosts: 0,
       taxRatePct: 14,
       bondYieldPct: 0,
-      exchangeSalesTaxPct: 8
+      exchangeSalesTaxPct: 8,
+      lifetimeRevenue: 0,
+      lifetimeCosts: 0,
+      incomeBySource: {},
+      expensesByCategory: {},
+      snapshots: []
     },
     inventory: {},
     mining: {
@@ -1343,20 +1460,34 @@ function ensureStateFile() {
   const parsed = JSON.parse(raw);
   const normalized = normalizeStateShape(parsed);
 
-  // Ensure NPC buy orders exist in global market state
+  // Ensure NPC buy orders exist in global market state. NPC buyers exist for
+  // every raw resource that currently has a refinery chain so newly mined
+  // materials always have a guaranteed sink.
   if (!normalized.market) normalized.market = {};
+  const NPC_BUY_SEED = [
+    { item: "Silicates",   buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
+    { item: "Helium-3",    buyer: "Lunar Helium Consortium",   unitPrice: 92, dailyQty: 250000 },
+    { item: "Nickel",      buyer: "Belt Refining Cooperative", unitPrice: 18, dailyQty: 750000 },
+    { item: "Titanium",    buyer: "Olympus Heavy Industries",  unitPrice: 64, dailyQty: 400000 },
+    { item: "Carbon",      buyer: "ISA Materials Exchange",    unitPrice: 12, dailyQty: 1500000 },
+    { item: "Rare Earths", buyer: "Synthorium Trading House",  unitPrice: 140, dailyQty: 120000 }
+  ];
   if (!Array.isArray(normalized.market.npcBuyOrders)) {
-    normalized.market.npcBuyOrders = [
-      {
-        id: "npc-buy-silicates-daily",
-        item: "Silicates",
-        buyer: "GEX Commodities Authority",
-        unitPrice: 24,
-        totalQtyPerDay: 1000000,
-        remainingQty: 1000000,
+    normalized.market.npcBuyOrders = [];
+  }
+  for (const seed of NPC_BUY_SEED) {
+    const id = `npc-buy-${seed.item.toLowerCase().replace(/\s+/g, "-")}-daily`;
+    if (!normalized.market.npcBuyOrders.some((o) => o.id === id)) {
+      normalized.market.npcBuyOrders.push({
+        id,
+        item: seed.item,
+        buyer: seed.buyer,
+        unitPrice: seed.unitPrice,
+        totalQtyPerDay: seed.dailyQty,
+        remainingQty: seed.dailyQty,
         lastResetDate: ""
-      }
-    ];
+      });
+    }
   }
 
   if (!IS_SERVERLESS) {
@@ -1431,10 +1562,74 @@ async function persistAccountsStoreToSupabase(snapshot = accountsStore) {
   if (stateError) {
     throw stateError;
   }
+
+  // Phase 1 dual-write to the normalized tables. No-op unless
+  // USE_NORMALIZED_TABLES is on. Failures are logged but don't break the
+  // legacy persist path while the cutover is in flight.
+  try {
+    await persistAccountsPhase1(allAccounts);
+  } catch (phase1Error) {
+    logPersistError("[supabase][phase1] Failed to dual-write normalized tables", phase1Error);
+  }
+
+  // Phase 2 dual-write: buildings, offices, leases, extractors.
+  try {
+    await persistAccountsPhase2(allAccounts);
+  } catch (phase2Error) {
+    logPersistError("[supabase][phase2] Failed to dual-write normalized tables", phase2Error);
+  }
+
+  // Phase 3 dual-write: remaining normalized domains.
+  try {
+    await persistAccountsPhase3(allAccounts);
+  } catch (phase3Error) {
+    logPersistError("[supabase][phase3] Failed to dual-write normalized tables", phase3Error);
+  }
+}
+
+function loadAccountsSnapshotFromDisk() {
+  if (IS_SERVERLESS) return null;
+  try {
+    if (!fs.existsSync(accountsSnapshotPath)) return null;
+    const raw = fs.readFileSync(accountsSnapshotPath, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || !parsed.accounts) return null;
+    return parsed;
+  } catch (error) {
+    console.warn("[accounts] Failed to load local accounts-snapshot.json:", error?.message || error);
+    return null;
+  }
+}
+
+function writeAccountsSnapshotToDiskNow() {
+  if (IS_SERVERLESS) return;
+  try {
+    safeWriteFile(accountsSnapshotPath, JSON.stringify(accountsStore, null, 2), "accounts snapshot");
+  } catch (error) {
+    logPersistError("[accounts] Failed to write local accounts snapshot", error);
+  }
+}
+
+// Debounce disk snapshot writes so high-frequency mutations don't block the
+// event loop with synchronous I/O (especially painful on OneDrive folders).
+let _diskSnapshotTimer = null;
+function writeAccountsSnapshotToDisk() {
+  if (IS_SERVERLESS) return;
+  if (_diskSnapshotTimer) return;
+  _diskSnapshotTimer = setTimeout(() => {
+    _diskSnapshotTimer = null;
+    writeAccountsSnapshotToDiskNow();
+  }, 500);
+  if (typeof _diskSnapshotTimer?.unref === "function") _diskSnapshotTimer.unref();
 }
 
 async function hydrateAccountsStoreFromSupabaseOrFallback(fallbackStore) {
   if (!USE_SUPABASE || !supabaseAdmin) {
+    const local = loadAccountsSnapshotFromDisk();
+    if (local) {
+      console.warn("[accounts] Supabase disabled at startup; restored accounts from local snapshot.");
+      return mergeDummyAccount(local, fallbackStore);
+    }
     console.warn("[accounts] Supabase disabled at startup; using seeded in-memory account store.");
     return fallbackStore;
   }
@@ -1497,12 +1692,69 @@ async function hydrateAccountsStoreFromSupabaseOrFallback(fallbackStore) {
       console.error("[accounts] account_state query returned zero rows; all hydrated accounts are using fallback state.");
     }
 
+    // Phase 1 cutover: overlay corporations / finances / military / unlocks /
+    // sets from their normalized tables on top of the state_json blob.
+    // No-op unless USE_NORMALIZED_TABLES is on. Failures are logged but never
+    // block startup — we fall back to the blob values that are already in
+    // place.
+    try {
+      await hydrateOverlayPhase1(hydrated.accounts);
+    } catch (phase1Error) {
+      console.error(
+        "[supabase][phase1] Failed to overlay normalized tables:",
+        phase1Error?.message || phase1Error
+      );
+    }
+
+    // Phase 2 cutover: overlay buildings, offices, leases, and extractors.
+    try {
+      await hydrateOverlayPhase2(hydrated.accounts);
+    } catch (phase2Error) {
+      console.error(
+        "[supabase][phase2] Failed to overlay normalized tables:",
+        phase2Error?.message || phase2Error
+      );
+    }
+
+    // Phase 3 cutover: overlay remaining normalized domains.
+    try {
+      await hydrateOverlayPhase3(hydrated.accounts);
+    } catch (phase3Error) {
+      console.error(
+        "[supabase][phase3] Failed to overlay normalized tables:",
+        phase3Error?.message || phase3Error
+      );
+    }
+
     console.info(`[accounts] Hydrated ${accountRows.length} account(s) from Supabase.`);
-    return hydrated;
+    return mergeDummyAccount(hydrated, fallbackStore);
   } catch (error) {
     console.error("[supabase] Failed to hydrate accounts store, using local fallback:", error?.message || error);
+    const local = loadAccountsSnapshotFromDisk();
+    if (local) {
+      console.warn("[accounts] Restored accounts from local snapshot after Supabase hydrate failure.");
+      return mergeDummyAccount(local, fallbackStore);
+    }
     return fallbackStore;
   }
+}
+
+/**
+ * Ensure the in-memory `dummy` dev account survives Supabase hydration.
+ * The dummy account is never persisted to Supabase, so a successful hydrate
+ * would otherwise wipe it from the in-memory store. Mutates and returns
+ * `hydrated` for chaining.
+ */
+export function mergeDummyAccount(hydrated, fallbackStore) {
+  if (!hydrated || typeof hydrated !== "object") return hydrated;
+  if (!hydrated.accounts || typeof hydrated.accounts !== "object") {
+    hydrated.accounts = {};
+  }
+  const fallbackDummy = fallbackStore?.accounts?.dummy;
+  if (fallbackDummy && !hydrated.accounts.dummy) {
+    hydrated.accounts.dummy = fallbackDummy;
+  }
+  return hydrated;
 }
 
 /**
@@ -1553,9 +1805,73 @@ function scheduleSave() {
 }
 
 let _persistDirty = false;
+let _lastPersistErrorAt = 0;
+let _lastPersistErrorSig = "";
+
+function summarizePersistError(error) {
+  const raw = String(error?.message || error || "unknown error");
+  // Cloudflare / proxy HTML error pages dump an entire document into the
+  // message. Detect them and surface just the upstream status when possible.
+  if (raw.startsWith("<!DOCTYPE") || raw.startsWith("<html")) {
+    const titleMatch = raw.match(/<title>([^<]+)<\/title>/i);
+    return titleMatch ? `upstream HTML error: ${titleMatch[1].trim()}` : "upstream HTML error page";
+  }
+  // Cap any other oversized message.
+  return raw.length > 400 ? `${raw.slice(0, 400)}\u2026 (truncated)` : raw;
+}
+
+function logPersistError(prefix, error) {
+  const message = summarizePersistError(error);
+  // Signature ignores the message tail so transient outages collapse into
+  // a single line per prefix instead of spamming.
+  const signature = `${prefix}:${message.slice(0, 80)}`;
+  const now = Date.now();
+  // Keep the first error visible, but suppress duplicate spam bursts.
+  if (signature === _lastPersistErrorSig && now - _lastPersistErrorAt < 15000) {
+    return;
+  }
+  _lastPersistErrorSig = signature;
+  _lastPersistErrorAt = now;
+  console.error(`${prefix}:`, message);
+}
+
+// Mutex: never run two persistAccountsStoreToSupabase concurrently. Two
+// in-flight writes were causing duplicate-key errors against corp_extractors /
+// corp_buildings (the second insert raced ahead of the first delete). When a
+// save is requested while one is already running, mark dirty so the
+// in-progress save's callback re-schedules another pass once it completes.
+let _persistInFlight = false;
+let _persistRequeueAfterFlight = false;
+
+async function _runPersistAccountsToSupabaseSerially() {
+  if (_persistInFlight) {
+    _persistRequeueAfterFlight = true;
+    return;
+  }
+  _persistInFlight = true;
+  try {
+    await persistAccountsStoreToSupabase();
+  } catch (error) {
+    logPersistError("[supabase] Failed to persist account snapshot", error);
+    _persistDirty = true;
+    // Disk fallback so local progress isn't lost while Supabase is down.
+    try { writeAccountsSnapshotToDisk(); } catch (_) {}
+  } finally {
+    _persistInFlight = false;
+    if (_persistRequeueAfterFlight) {
+      _persistRequeueAfterFlight = false;
+      // Yield to event loop, then run again with the latest state.
+      setTimeout(() => { _runPersistAccountsToSupabaseSerially().catch(() => {}); }, 0);
+    }
+  }
+}
 
 function scheduleAccountsSave() {
-  if (!USE_SUPABASE) return; // No persistence without Supabase
+  if (!USE_SUPABASE) {
+    // Local-only mode: mirror to disk so state survives restarts.
+    writeAccountsSnapshotToDisk();
+    return;
+  }
 
   if (IS_SERVERLESS) {
     // On serverless, just mark dirty — the flush middleware will persist before responding
@@ -1563,34 +1879,47 @@ function scheduleAccountsSave() {
     return;
   }
 
+  // Always also mirror to disk so a Supabase outage doesn't lose progress.
+  writeAccountsSnapshotToDisk();
+
   // Non-serverless: debounce Supabase writes
   if (accountsSaveTimer) {
     clearTimeout(accountsSaveTimer);
   }
 
   accountsSaveTimer = setTimeout(() => {
-    persistAccountsStoreToSupabase().catch((error) => {
-      console.error("[supabase] Failed to persist account snapshot:", error?.message || error);
-    });
+    _runPersistAccountsToSupabaseSerially().catch(() => {});
     accountsSaveTimer = null;
   }, 300);
 }
 
 export async function saveAccountsNow() {
-  if (!USE_SUPABASE) return; // No persistence without Supabase
+  if (!USE_SUPABASE) {
+    writeAccountsSnapshotToDisk();
+    return true;
+  }
   _persistDirty = false;
   if (accountsSaveTimer) {
     clearTimeout(accountsSaveTimer);
     accountsSaveTimer = null;
   }
-  await persistAccountsStoreToSupabase();
+  // Always mirror to disk before/after Supabase.
+  try { writeAccountsSnapshotToDisk(); } catch (_) {}
+  try {
+    await _runPersistAccountsToSupabaseSerially();
+    return true;
+  } catch (error) {
+    logPersistError("[supabase] saveAccountsNow failed", error);
+    _persistDirty = true;
+    return false;
+  }
 }
 
 export async function flushPendingPersist() {
   if (_persistDirty && USE_SUPABASE) {
     _persistDirty = false;
     try {
-      await persistAccountsStoreToSupabase();
+      await _runPersistAccountsToSupabaseSerially();
     } catch (error) {
       console.error("[supabase] Flush persist failed:", error?.message || error);
     }
@@ -1983,8 +2312,9 @@ export function sendPlayerMessage(fromAccountId, { toCorpName, subject, body }) 
   const normalizedTarget = String(toCorpName || "").trim().toLowerCase();
   if (!normalizedTarget) return { error: "Recipient corporation name is required." };
 
+  // Allow self-send by name (used for testing / drafts to self).
   const recipient = Object.values(accountsStore.accounts || {}).find(
-    (a) => a.id !== fromAccountId && String(a.state?.corp?.corporationName || "").trim().toLowerCase() === normalizedTarget
+    (a) => String(a.state?.corp?.corporationName || "").trim().toLowerCase() === normalizedTarget
   );
   if (!recipient) return { error: `No corporation found matching \"${toCorpName}\".` };
 

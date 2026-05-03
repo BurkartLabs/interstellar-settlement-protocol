@@ -51,10 +51,10 @@ Each version represents a meaningful, playable milestone. Items marked [x] are c
 
 ## Version 0.4 — Testing Automation, Publishable MVP, Station Building
 
-- [ ] Implement automated testing framework (unit, integration, and end-to-end tests)
-- [ ] Add test coverage reporting to CI pipeline
-- [ ] Write tests for core game logic (mining, leasing, exchange, R&D).
-- [ ] Ensure all new features include corresponding tests
+- [x] Implement automated testing framework (unit, integration, and end-to-end tests)
+- [x] Add test coverage reporting to CI pipeline
+- [x] Write tests for core game logic (mining, leasing, exchange, R&D).
+- [x] Ensure all new features include corresponding tests
 - [ ] Full buildable building catalogue (all types)
 - [ ] Building upgrade (tier) system
 - [ ] Orbital shipyard building 

@@ -303,7 +303,7 @@
             <button class="tab-btn" data-tab="chat">Comms</button>
             <button class="tab-btn" data-tab="forums">Forums</button>
             <button class="tab-btn" data-tab="missions">Assignments</button>
-            <button class="tab-btn" data-tab="combat">Combat Reports</button>
+
             <button class="tab-btn" data-tab="starmap">Starmap</button>
           </nav>
 
@@ -374,55 +374,121 @@
           </article>
 
           <article id="finance" class="tab-panel">
-            <h2>Financial Control Board</h2>
-            <p class="muted">
-              Tracks cash flow, liabilities, asset valuation, ROI timelines, and inflation by system. Built to support
-              loans, bonds, and direct corporate investment mechanics.
-            </p>
-            <div class="chart-grid">
-              <section class="chart-card">
-                <h3>Cash Flow (30-day projection)</h3>
-                <canvas id="cashflow-chart" aria-label="Cash flow chart"></canvas>
+            <header class="finance-header">
+              <div>
+                <h2>Financial Control Board</h2>
+                <p class="muted finance-header__doc">CORP-FIN-1 // Real-time consolidation of corporate balance sheet, cash flow, and revenue exposure.</p>
+              </div>
+              <div class="finance-header__meta">
+                <span class="finance-meta__label">LAST SNAPSHOT</span>
+                <span id="finance-last-snapshot" class="finance-meta__value">—</span>
+              </div>
+            </header>
+
+            <section class="kpi-strip" aria-label="Key financial indicators">
+              <div class="kpi-tile kpi-tile--primary">
+                <span class="kpi-tile__label">Net Worth</span>
+                <span id="kpi-net-worth" class="kpi-tile__value">—</span>
+                <span id="kpi-net-worth-trend" class="kpi-tile__trend"></span>
+              </div>
+              <div class="kpi-tile">
+                <span class="kpi-tile__label">Liquid Credits</span>
+                <span id="kpi-credits" class="kpi-tile__value">—</span>
+                <span id="kpi-credits-trend" class="kpi-tile__trend"></span>
+              </div>
+              <div class="kpi-tile">
+                <span class="kpi-tile__label">Daily Net Flow</span>
+                <span id="kpi-net-flow" class="kpi-tile__value">—</span>
+                <span class="kpi-tile__sub">revenue − costs</span>
+              </div>
+              <div class="kpi-tile">
+                <span class="kpi-tile__label">Daily Revenue</span>
+                <span id="kpi-revenue" class="kpi-tile__value">—</span>
+              </div>
+              <div class="kpi-tile">
+                <span class="kpi-tile__label">Daily Costs</span>
+                <span id="kpi-costs" class="kpi-tile__value">—</span>
+              </div>
+              <div class="kpi-tile">
+                <span class="kpi-tile__label">Cash Runway</span>
+                <span id="kpi-runway" class="kpi-tile__value">—</span>
+                <span class="kpi-tile__sub">days at current burn</span>
+              </div>
+            </section>
+
+            <div class="chart-grid finance-chart-grid">
+              <section class="chart-card chart-card--wide">
+                <header class="chart-card__head">
+                  <h3>Cash Reserves</h3>
+                  <span class="chart-card__sub">Live snapshot series</span>
+                </header>
+                <canvas id="cashflow-chart" aria-label="Cash reserves over time"></canvas>
               </section>
               <section class="chart-card">
-                <h3>Asset vs Liability Profile</h3>
-                <canvas id="asset-chart" aria-label="Asset and liability chart"></canvas>
+                <header class="chart-card__head">
+                  <h3>Net Cash Flow</h3>
+                  <span class="chart-card__sub">Revenue − Costs per snapshot</span>
+                </header>
+                <canvas id="netflow-chart" aria-label="Net cash flow"></canvas>
+              </section>
+              <section class="chart-card chart-card--wide">
+                <header class="chart-card__head">
+                  <h3>Assets vs Liabilities</h3>
+                  <span class="chart-card__sub">Balance sheet trend</span>
+                </header>
+                <canvas id="asset-chart" aria-label="Assets vs liabilities"></canvas>
               </section>
               <section class="chart-card">
-                <h3>Sector Exposure</h3>
-                <canvas id="sector-chart" aria-label="Sector exposure chart"></canvas>
+                <header class="chart-card__head">
+                  <h3>Income by Source</h3>
+                  <span class="chart-card__sub">Lifetime revenue split</span>
+                </header>
+                <canvas id="sector-chart" aria-label="Income by source"></canvas>
               </section>
               <section class="chart-card">
-                <h3>Bond Yield Candles</h3>
-                <canvas id="yield-chart" aria-label="Bond yield chart"></canvas>
+                <header class="chart-card__head">
+                  <h3>Asset Composition</h3>
+                  <span class="chart-card__sub">Liquid · Facilities · Inventory</span>
+                </header>
+                <canvas id="composition-chart" aria-label="Asset composition"></canvas>
+              </section>
+              <section class="chart-card">
+                <header class="chart-card__head">
+                  <h3>Daily P&amp;L</h3>
+                  <span class="chart-card__sub">Today's revenue vs costs</span>
+                </header>
+                <canvas id="pnl-chart" aria-label="Daily profit and loss"></canvas>
               </section>
             </div>
 
-            <section class="form-card action-surface">
-              <h3>Direct Investment Panel</h3>
-              <p id="investment-lock-message" class="muted"></p>
-              <form id="investment-form" class="inline-form">
-                <label>
-                  Target Corporation
-                  <input name="targetCorp" required placeholder="Apex Helion PLC" />
-                </label>
-                <label>
-                  Instrument
-                  <select name="instrument" required>
-                    <option value="Equity">Equity Stake</option>
-                    <option value="Convertible Loan">Convertible Loan</option>
-                    <option value="Silent Partnership">Silent Partnership</option>
-                  </select>
-                </label>
-                <label>
-                  Amount (Credits)
-                  <input type="number" name="amount" required min="1000" step="1000" value="100000" />
-                </label>
-                <button class="btn btn-accent" type="submit">Execute Investment</button>
-              </form>
-              <p id="investment-status" class="muted"></p>
-              <ul id="investment-log" class="text-list"></ul>
-            </section>
+            <div class="finance-tables">
+              <section class="finance-table-card">
+                <header class="chart-card__head">
+                  <h3>Profit &amp; Loss Statement</h3>
+                  <span class="chart-card__sub">Lifetime ledger</span>
+                </header>
+                <table id="finance-pnl-table" class="finance-table">
+                  <thead>
+                    <tr><th>Category</th><th class="num">Amount (¢)</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                  <tfoot></tfoot>
+                </table>
+              </section>
+              <section class="finance-table-card">
+                <header class="chart-card__head">
+                  <h3>Balance Sheet</h3>
+                  <span class="chart-card__sub">Current position</span>
+                </header>
+                <table id="finance-balance-table" class="finance-table">
+                  <thead>
+                    <tr><th>Line Item</th><th class="num">Value (¢)</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                  <tfoot></tfoot>
+                </table>
+              </section>
+            </div>
           </article>
 
           <article id="rnd" class="tab-panel">
@@ -643,13 +709,35 @@
               <h2>Corporate Forums</h2>
               <div class="forums-nav">
                 <div id="forum-categories" class="forum-category-nav"></div>
+                <button id="forum-new-thread-btn" class="btn btn-accent" type="button">+ New Thread</button>
                 <button id="forum-recent-btn" class="btn btn-outline" type="button">Recent Threads</button>
               </div>
+              <!-- Inline composer revealed by the New Thread button. -->
+              <form id="forum-new-thread-form" class="form-card" hidden>
+                <h3>Start a New Thread</h3>
+                <label>
+                  <span>Category</span>
+                  <select id="forum-new-thread-category" required></select>
+                </label>
+                <label>
+                  <span>Title</span>
+                  <input id="forum-new-thread-title" type="text" maxlength="200" required>
+                </label>
+                <label>
+                  <span>Body</span>
+                  <textarea id="forum-new-thread-body" rows="6" maxlength="8000" required></textarea>
+                </label>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-accent">Post Thread</button>
+                  <button type="button" id="forum-new-thread-cancel" class="btn btn-outline">Cancel</button>
+                </div>
+                <p id="forum-new-thread-status" class="muted"></p>
+              </form>
               <div id="forum-threads" class="forum-thread-list"></div>
             </div>
             <!-- Thread detail: full-page view -->
             <div id="forum-thread-view" hidden>
-              <div class="forum-thread-header">
+              <div class="forum-thread-header" hidden>
                 <button id="forum-back-btn" class="btn btn-outline" type="button">&#8592; Back to Forums</button>
               </div>
               <div id="forum-thread-detail-body" class="forum-thread-full"></div>
@@ -747,47 +835,6 @@
                 </div>
               </article>
             </div>
-          </article>
-
-          <article id="combat" class="tab-panel">
-            <h2>Deterministic Combat Simulator</h2>
-            <p class="muted">
-              Hybrid warfare starts with deterministic armed math: raw totals + counters + research modifiers.
-            </p>
-            <section class="form-card">
-              <form id="combat-form" class="inline-form">
-                <label>
-                  Attacker
-                  <input name="attackerName" required value="ISP Foundry Holdings" />
-                </label>
-                <label>
-                  Attack Value
-                  <input name="attackerAttack" type="number" required value="280" />
-                </label>
-                <label>
-                  Defense Value
-                  <input name="attackerDefense" type="number" required value="200" />
-                </label>
-                <label>
-                  Defender
-                  <input name="defenderName" required value="Pirate Bastion 9" />
-                </label>
-                <label>
-                  Attack Value
-                  <input name="defenderAttack" type="number" required value="250" />
-                </label>
-                <label>
-                  Defense Value
-                  <input name="defenderDefense" type="number" required value="230" />
-                </label>
-                <label>
-                  Counter Modifier
-                  <input name="counterModifier" type="number" min="0.5" step="0.05" value="1.0" />
-                </label>
-                <button class="btn btn-accent" type="submit">Generate Report</button>
-              </form>
-            </section>
-            <ul id="combat-reports" class="text-list"></ul>
           </article>
 
           <article id="inbox" class="tab-panel">

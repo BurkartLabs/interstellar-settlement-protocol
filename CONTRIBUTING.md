@@ -49,6 +49,23 @@ This project has a deliberate roadmap in [DEVELOPMENT_PHASES.md](DEVELOPMENT_PHA
 
 ---
 
+## TDD Checklist
+
+ISP now follows a strict Test Driven Development workflow.
+
+Before opening a PR, ensure all of the following are true:
+- You wrote the failing test first for new behavior (Red).
+- You implemented the smallest code change needed to pass (Green).
+- You refactored only after tests were passing, and kept them green (Refactor).
+- Every bug fix includes a regression test that fails before the fix and passes after it.
+- Behavior changes update tests first, then implementation.
+- You ran the full test suite locally (`npm test`) and it passes.
+- New functionality includes appropriate test coverage (unit for logic, integration for routes/workflows).
+
+If a change cannot be tested reasonably, explain why in the PR description and propose a follow-up test plan.
+
+---
+
 ## Branching
 
 - `main` — stable. Only merge when something works end-to-end.

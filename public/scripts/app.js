@@ -30,6 +30,9 @@ const appState = {
   selectedMissionId: null,
   selectedAgentId: null,
   activeMissions: [],
+  // Persists user-edited refinery quantity so re-renders (every tick) don't
+  // overwrite what the user is typing.
+  refineQuantityOverrides: {},
   miningUiTicker: null,
   stationRegistry: [],
   buildingRegistry: [],
@@ -54,11 +57,12 @@ const STORAGE_KEYS = {
   walkthroughOfferSeenPrefix: "isp.walkthrough-offer-seen:"
 };
 
+const LOGIN_PAGE_PATH = "/login.html";
+
 const IS_DEV_ACCESS =
   new URL(window.location.href).searchParams.get("dev") === "1" ||
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1";
-const DIRECT_INVESTMENT_UNLOCK_LEVEL = 2;
 
 const techTree = [
   {
@@ -900,6 +904,58 @@ function getAllInventory() {
     appState.data.corp.inventory = {};
   }
   return appState.data.corp.inventory;
+}
+
+/**
+ * Compute the average market unit price per item across:
+ *   - active player sell listings on the order book
+ *   - active NPC buy orders
+ *   - the most recent trade history entries
+ * Returns a map keyed by item name. Items with no signal are absent so callers
+ * can fall back to a hard-coded default.
+ */
+function computeAverageMarketPrice(data) {
+  const totals = {};
+  const counts = {};
+  const accumulate = (item, price, weight = 1) => {
+    const p = Number(price);
+    if (!item || !Number.isFinite(p) || p <= 0) return;
+    totals[item] = (totals[item] || 0) + p * weight;
+    counts[item] = (counts[item] || 0) + weight;
+  };
+
+  // Weight NPC buy orders heavily — they're the published "fair value" floor
+  // set by the GEX commodities authority. Player sell listings (which can be
+  // dumped low to undercut competitors) and recent trades nudge the average,
+  // but should not drag the suggested price below the standing NPC bid.
+  const orderBook = data?.market?.orderBook || [];
+  for (const o of orderBook) accumulate(o.item, o.unitPrice, 1);
+
+  const npcBuy = data?.market?.npcBuyOrders || [];
+  for (const o of npcBuy) accumulate(o.item, o.unitPrice, 5);
+
+  const trades = (data?.corp?.tradeHistory || []).slice(0, 50);
+  for (const t of trades) accumulate(t.item, t.unitPrice, 1);
+
+  // Build the weighted average, then floor it at the best NPC bid so the
+  // suggested price never undercuts the guaranteed buyer.
+  const npcFloorByItem = {};
+  for (const o of npcBuy) {
+    const p = Number(o.unitPrice);
+    if (!o.item || !Number.isFinite(p) || p <= 0) continue;
+    npcFloorByItem[o.item] = Math.max(npcFloorByItem[o.item] || 0, p);
+  }
+
+  const result = {};
+  for (const item of Object.keys(totals)) {
+    const avg = totals[item] / counts[item];
+    result[item] = Math.max(avg, npcFloorByItem[item] || 0);
+  }
+  // Items that only have an NPC bid (no trades / no listings) still surface.
+  for (const item of Object.keys(npcFloorByItem)) {
+    if (result[item] == null) result[item] = npcFloorByItem[item];
+  }
+  return result;
 }
 
 function renderInventoryPanel() {
@@ -2313,6 +2369,8 @@ function renderStation(data) {
         const name = btn.getAttribute("data-corp-building");
         if (name === "Assembly Facility") {
           renderAssemblyFacility(data);
+        } else if (name === "Refinery") {
+          setTab("refinery");
         }
       });
     });
@@ -2324,13 +2382,12 @@ function renderStation(data) {
   const leasesAtStation = leases.filter((l) => l.body === stationBody);
   const leaseIdsAtStation = new Set(leasesAtStation.map((l) => l.id));
 
-  // Count extractors at this station via their lease linkage
+  // Count extractors at this station via their lease linkage. Only show
+  // extractors whose lease body matches the current station's body.
   const allExtractors = data.corp?.mining?.silicateExtractors || [];
-  const extractorsHere = allExtractors.filter((ex) => ex.leaseId && leaseIdsAtStation.has(ex.leaseId));
-  // Extractors without leaseId are legacy/generic — show at home station only
-  const legacyExtractors = allExtractors.filter((ex) => !ex.leaseId);
-  const isHomeStation = currentStationId === "earth-station-prime";
-  const displayExtractors = [...extractorsHere, ...(isHomeStation ? legacyExtractors : [])];
+  const displayExtractors = allExtractors.filter(
+    (ex) => ex.leaseId && leaseIdsAtStation.has(ex.leaseId)
+  );
 
   const extractorBuildingCount = displayExtractors.length;
 
@@ -2529,21 +2586,182 @@ function bindBuildingActions() {
   });
 }
 
-function updateInvestmentPanel(data) {
-  const form = document.getElementById("investment-form");
-  const status = document.getElementById("investment-lock-message");
-  if (!form || !status) {
-    return;
-  }
+// ─── Financial Control Board (CORP-FIN-1) — KPI strip and ledger tables ─────
 
-  const unlocked = Number(data.corp.level || 0) >= DIRECT_INVESTMENT_UNLOCK_LEVEL;
-  Array.from(form.elements).forEach((field) => {
-    field.disabled = !unlocked;
-  });
-  status.textContent = unlocked
-    ? "Direct investment channels are available. Use them carefully; capital committed here is illiquid."
-    : `Direct corporation investments unlock at Corporation Level ${DIRECT_INVESTMENT_UNLOCK_LEVEL}.`;
+function fmtCredits(n) {
+  const v = Math.round(Number(n) || 0);
+  return v.toLocaleString();
 }
+
+function fmtSignedCredits(n) {
+  const v = Math.round(Number(n) || 0);
+  if (v > 0) return "+" + v.toLocaleString();
+  return v.toLocaleString();
+}
+
+function fmtTimestamp(t) {
+  if (!t) return "—";
+  const d = new Date(t);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function prettifyLedgerLabel(key) {
+  return String(key)
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function setKpi(id, value, options = {}) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  el.classList.remove("kpi-tile__value--positive", "kpi-tile__value--negative");
+  if (options.tone === "positive") el.classList.add("kpi-tile__value--positive");
+  else if (options.tone === "negative") el.classList.add("kpi-tile__value--negative");
+}
+
+function setTrend(id, deltaText, direction) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = deltaText;
+  el.classList.remove("kpi-tile__trend--up", "kpi-tile__trend--down", "kpi-tile__trend--flat");
+  if (direction === "up") el.classList.add("kpi-tile__trend--up");
+  else if (direction === "down") el.classList.add("kpi-tile__trend--down");
+  else el.classList.add("kpi-tile__trend--flat");
+}
+
+function describeTrend(curr, prev) {
+  if (!Number.isFinite(prev)) return { text: "", direction: "flat" };
+  const delta = curr - prev;
+  if (delta === 0) return { text: "▬ no change", direction: "flat" };
+  const sign = delta > 0 ? "▲" : "▼";
+  return {
+    text: `${sign} ${Math.abs(Math.round(delta)).toLocaleString()}¢`,
+    direction: delta > 0 ? "up" : "down"
+  };
+}
+
+function renderFinanceDashboard(finances) {
+  if (!finances) return;
+  const credits = Number(finances.credits) || 0;
+  const assets = Number(finances.assets) || 0;
+  const dailyRevenue = Number(finances.dailyRevenue) || 0;
+  const dailyCosts = Number(finances.dailyCosts) || 0;
+  const netFlow = dailyRevenue - dailyCosts;
+  const snaps = Array.isArray(finances.snapshots) ? finances.snapshots : [];
+  const latest = snaps.length ? snaps[snaps.length - 1] : null;
+  const liabilities = latest ? latest.liabilities : Math.round(dailyCosts * 7);
+  const netWorth = credits + assets - liabilities;
+
+  setKpi("kpi-net-worth", `${fmtCredits(netWorth)}¢`);
+  setKpi("kpi-credits", `${fmtCredits(credits)}¢`);
+  setKpi(
+    "kpi-net-flow",
+    `${fmtSignedCredits(netFlow)}¢/day`,
+    { tone: netFlow >= 0 ? "positive" : "negative" }
+  );
+  setKpi("kpi-revenue", `${fmtCredits(dailyRevenue)}¢`);
+  setKpi("kpi-costs", `${fmtCredits(dailyCosts)}¢`);
+
+  let runwayLabel;
+  if (dailyCosts <= 0) runwayLabel = "∞";
+  else runwayLabel = `${(credits / dailyCosts).toFixed(1)} d`;
+  setKpi("kpi-runway", runwayLabel);
+
+  const prev = snaps.length >= 2 ? snaps[snaps.length - 2] : null;
+  const nwTrend = describeTrend(netWorth, prev ? prev.netWorth : NaN);
+  setTrend("kpi-net-worth-trend", nwTrend.text, nwTrend.direction);
+  const credTrend = describeTrend(credits, prev ? prev.credits : NaN);
+  setTrend("kpi-credits-trend", credTrend.text, credTrend.direction);
+
+  const meta = document.getElementById("finance-last-snapshot");
+  if (meta) meta.textContent = latest ? fmtTimestamp(latest.t) : "no snapshots yet";
+
+  renderPnlTable(finances);
+  renderBalanceTable(finances, { credits, assets, liabilities, netWorth });
+}
+
+function renderPnlTable(finances) {
+  const table = document.getElementById("finance-pnl-table");
+  if (!table) return;
+  const tbody = table.querySelector("tbody");
+  const tfoot = table.querySelector("tfoot");
+  if (!tbody || !tfoot) return;
+
+  const income = finances.incomeBySource || {};
+  const expenses = finances.expensesByCategory || {};
+  const lifetimeRevenue = Number(finances.lifetimeRevenue) || 0;
+  const lifetimeCosts = Number(finances.lifetimeCosts) || 0;
+  const net = lifetimeRevenue - lifetimeCosts;
+
+  const incomeRows = Object.entries(income)
+    .filter(([, v]) => Number(v) > 0)
+    .sort((a, b) => Number(b[1]) - Number(a[1]));
+  const expenseRows = Object.entries(expenses)
+    .filter(([, v]) => Number(v) > 0)
+    .sort((a, b) => Number(b[1]) - Number(a[1]));
+
+  const rowsHtml = [];
+  rowsHtml.push(`<tr><th colspan="2" style="color:#6cf0c2">Revenue</th></tr>`);
+  if (incomeRows.length === 0) {
+    rowsHtml.push(`<tr><td>—</td><td class="num">0</td></tr>`);
+  } else {
+    for (const [k, v] of incomeRows) {
+      rowsHtml.push(`<tr><td>${escapeHtml(prettifyLedgerLabel(k))}</td><td class="num num--positive">+${fmtCredits(v)}</td></tr>`);
+    }
+  }
+  rowsHtml.push(`<tr><th colspan="2" style="color:#f0a06a">Expenses</th></tr>`);
+  if (expenseRows.length === 0) {
+    rowsHtml.push(`<tr><td>—</td><td class="num">0</td></tr>`);
+  } else {
+    for (const [k, v] of expenseRows) {
+      rowsHtml.push(`<tr><td>${escapeHtml(prettifyLedgerLabel(k))}</td><td class="num num--negative">−${fmtCredits(v)}</td></tr>`);
+    }
+  }
+  tbody.innerHTML = rowsHtml.join("");
+
+  const netClass = net >= 0 ? "num--positive" : "num--negative";
+  tfoot.innerHTML = `
+    <tr><td>Lifetime Revenue</td><td class="num num--positive">+${fmtCredits(lifetimeRevenue)}</td></tr>
+    <tr><td>Lifetime Costs</td><td class="num num--negative">−${fmtCredits(lifetimeCosts)}</td></tr>
+    <tr><td><strong>Net Position</strong></td><td class="num ${netClass}"><strong>${fmtSignedCredits(net)}</strong></td></tr>
+  `;
+}
+
+function renderBalanceTable(finances, derived) {
+  const table = document.getElementById("finance-balance-table");
+  if (!table) return;
+  const tbody = table.querySelector("tbody");
+  const tfoot = table.querySelector("tfoot");
+  if (!tbody || !tfoot) return;
+
+  const { credits, assets, liabilities, netWorth } = derived;
+  const dailyRevenue = Number(finances.dailyRevenue) || 0;
+  const dailyCosts = Number(finances.dailyCosts) || 0;
+  const forwardOps = Math.round(dailyCosts * 7);
+  const leaseShare = Math.max(0, liabilities - forwardOps);
+
+  tbody.innerHTML = `
+    <tr><th colspan="2" style="color:#6cf0c2">Assets</th></tr>
+    <tr><td>Liquid Credits</td><td class="num">${fmtCredits(credits)}</td></tr>
+    <tr><td>Facilities &amp; Probes</td><td class="num">${fmtCredits(assets)}</td></tr>
+    <tr><th colspan="2" style="color:#f0a06a">Liabilities</th></tr>
+    <tr><td>Forward Operating (7d)</td><td class="num">${fmtCredits(forwardOps)}</td></tr>
+    <tr><td>Lease Commitments</td><td class="num">${fmtCredits(leaseShare)}</td></tr>
+    <tr><th colspan="2" style="color:#89a7bd">Operating Profile</th></tr>
+    <tr><td>Daily Revenue</td><td class="num num--positive">+${fmtCredits(dailyRevenue)}</td></tr>
+    <tr><td>Daily Costs</td><td class="num num--negative">−${fmtCredits(dailyCosts)}</td></tr>
+  `;
+
+  const nwClass = netWorth >= 0 ? "num--positive" : "num--negative";
+  tfoot.innerHTML = `
+    <tr><td>Total Assets</td><td class="num num--positive">${fmtCredits(credits + assets)}</td></tr>
+    <tr><td>Total Liabilities</td><td class="num num--negative">−${fmtCredits(liabilities)}</td></tr>
+    <tr><td><strong>Net Worth</strong></td><td class="num ${nwClass}"><strong>${fmtSignedCredits(netWorth)}</strong></td></tr>
+  `;
+}
+
+function updateInvestmentPanel() { /* removed: direct investment panel deprecated */ }
 
 function updateOverview(data) {
   const cards = [
@@ -2747,7 +2965,7 @@ function startMiningUiTicker() {
     }
 
     // Live-update expedition progress bars
-    renderExpeditions(appState.data);
+    renderExpeditionPanel(appState.data);
 
     // Live-update starmap belt detail panel expedition progress bars
     starmap.updateExpeditionProgress();
@@ -2989,6 +3207,8 @@ function renderRefinery(data) {
   const buildingSlots = Number(corp.buildingSlots || 2);
   const hasOpenBuildingSlot = buildings.length < buildingSlots;
   const hasRefinery = refineries.length > 0;
+  const MAX_REFINERIES = 2;
+  const belowRefineryCap = refineries.length < MAX_REFINERIES;
   const canBuildRefinery = unlockedTech.has("tt-material-compression") && unlockedTech.has("tt-nano-lattice");
   const refineryStatus = appState.refineryStatus;
 
@@ -3004,11 +3224,15 @@ function renderRefinery(data) {
       const chain = refineryChains.find((c) => c.id === ref.chainId);
       const progress = cycleProgressPercent(ref);
       const remainingMs = Math.max(0, Number(ref.endsAt || 0) - Date.now());
-      const outputLabel = chain ? chain.outputs.map((o) => `${o.quantityPerCycle} ${o.item}`).join(", ") : "Unknown";
+      const scale = Math.max(1, Number(ref.cycleScale || 1));
+      const totalInput = chain ? Number(chain.inputQuantityPerCycle || 100) * scale : 0;
+      const outputLabel = chain
+        ? chain.outputs.map((o) => `${(Number(o.quantityPerCycle) || 0) * scale} ${o.item}`).join(", ")
+        : "Unknown";
       return `
         <article class="queue-item">
           <h3>${escapeHtml(ref.name)}</h3>
-          <p class="muted">Processing: ${chain ? escapeHtml(chain.input) : "Unknown"} → ${escapeHtml(outputLabel)}</p>
+          <p class="muted">Processing: ${chain ? `${totalInput.toLocaleString()} ${escapeHtml(chain.input)}` : "Unknown"} → ${escapeHtml(outputLabel)}</p>
           <p class="muted">Remaining: ${formatDurationHours(remainingMs)} (${progress.toFixed(1)}%)</p>
           <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
         </article>
@@ -3018,6 +3242,15 @@ function renderRefinery(data) {
 
   // ── Available Chains ──
   const chainsEl = document.getElementById("refinery-chains");
+  // Capture which refine-quantity input has focus (and its caret) so we can
+  // restore it after re-rendering — otherwise periodic re-renders steal focus.
+  const focusedInput = document.activeElement && document.activeElement.classList?.contains("refine-quantity-input")
+    ? {
+        id: document.activeElement.id,
+        selStart: document.activeElement.selectionStart,
+        selEnd: document.activeElement.selectionEnd
+      }
+    : null;
   const statusHtml = refineryStatus?.text
     ? `<article class="queue-item"><p class="muted" style="color:${refineryStatus.type === "ok" ? "var(--color-accent)" : "var(--color-warn)"}">${escapeHtml(refineryStatus.text)}</p></article>`
     : "";
@@ -3029,28 +3262,49 @@ function renderRefinery(data) {
         ? chain.outputs.map((o) => typeof o === "string" ? o : `${o.quantityPerCycle} ${o.item}`).join(", ")
         : String(chain.outputs);
       const inputAvailable = Number(inventory[chain.input] || 0);
-      const inputNeeded = chain.inputQuantityPerCycle || 0;
-      const hasInput = inputAvailable >= inputNeeded;
+      const perCycle = Number(chain.inputQuantityPerCycle || 100);
+      // Effective minimum batch is at least 100 units, rounded up to a
+      // multiple of the chain's per-cycle base.
+      const minQty = Math.max(perCycle, Math.ceil(100 / perCycle) * perCycle);
+      const hasInput = inputAvailable >= minQty;
       const idleRefinery = refineries.find((r) => !r.active);
       const canStart = hasRefinery && !techGated && hasInput && idleRefinery;
+      // Default the quantity input to whichever is larger: the minimum, or as
+      // much of the player's stock as fits in whole batches.
+      const computedDefault = Math.max(minQty, Math.floor(inputAvailable / perCycle) * perCycle || minQty);
+      // Honor any user-typed value, but clamp it to the legal min.
+      const overrideRaw = appState.refineQuantityOverrides[chain.id];
+      const override = Number.isFinite(Number(overrideRaw)) ? Math.max(minQty, Math.floor(Number(overrideRaw))) : null;
+      const defaultQty = override != null ? override : computedDefault;
+      const inputId = `refine-qty-${chain.id}`;
 
       return `
         <section class="data-card">
           <h3>${escapeHtml(chain.input)} Refining</h3>
-          <p class="muted">${inputNeeded} ${escapeHtml(chain.input)} → ${escapeHtml(outputLabel)}</p>
-          <p class="muted">Cycle: ${chain.cycleDurationHours || "?"}h</p>
+          <p class="muted">${perCycle} ${escapeHtml(chain.input)} per batch → ${escapeHtml(outputLabel)}</p>
+          <p class="muted">Cycle: ${chain.cycleDurationHours || "?"}h per batch</p>
           ${techGated
             ? `<p class="muted" style="color:var(--color-warn)">Requires: ${escapeHtml((chain.requiresResearch || []).join(", "))}</p>`
             : `<p class="muted" style="color:var(--color-accent)">Research: ✓ Unlocked</p>`
           }
-          <p class="muted">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(chain.input)}${!hasInput && !techGated ? ` (need ${inputNeeded})` : ""}</p>
+          <p class="muted">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(chain.input)}${!hasInput && !techGated ? ` (need ${minQty})` : ""}</p>
           ${canStart
-            ? `<button class="btn btn-accent refinery-start-btn" data-chain-id="${chain.id}" data-refinery-id="${idleRefinery.id}">Start Run</button>`
-            : !hasRefinery && canBuildRefinery
-              ? `<button class="btn btn-outline refinery-build-btn"${!hasOpenBuildingSlot ? ` data-disabled-reason="${escapeHtml(`Refinery requires 1 open building slot. Current usage: ${buildings.length}/${buildingSlots}.`)}` : ""}>Build Refinery</button>${!hasOpenBuildingSlot ? `<p class="muted" style="color:var(--color-warn)">No open building slots. Current usage: ${buildings.length}/${buildingSlots}.</p>` : ""}`
+            ? `<div class="refine-quantity-row" style="display:flex;gap:0.5rem;align-items:center;margin:0.5rem 0;">
+                <label for="${inputId}" class="muted" style="font-size:0.85rem;">Quantity</label>
+                <input id="${inputId}" class="refine-quantity-input" type="number"
+                  min="${minQty}" step="${perCycle}" value="${defaultQty}"
+                  data-chain-id="${chain.id}"
+                  style="width:9rem;padding:0.3rem 0.5rem;background:var(--color-bg-deep);border:1px solid var(--color-border);color:var(--color-text);border-radius:4px;" />
+                <span class="muted" style="font-size:0.8rem;">min ${minQty}, step ${perCycle}</span>
+              </div>
+              <button class="btn btn-accent refinery-start-btn" data-chain-id="${chain.id}" data-refinery-id="${idleRefinery.id}" data-quantity-input="${inputId}">Start Run</button>`
+            : belowRefineryCap && canBuildRefinery
+              ? `<button class="btn btn-outline refinery-build-btn"${!hasOpenBuildingSlot ? ` data-disabled-reason="${escapeHtml(`Refinery requires 1 open building slot. Current usage: ${buildings.length}/${buildingSlots}.`)}` : ""}>${hasRefinery ? "Build 2nd Refinery" : "Build Refinery"}</button>${!hasOpenBuildingSlot ? `<p class="muted" style="color:var(--color-warn)">No open building slots. Current usage: ${buildings.length}/${buildingSlots}.</p>` : ""}`
               : !hasRefinery && !canBuildRefinery
                 ? `<p class="muted" style="color:var(--color-warn)">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>`
-                : ""
+                : hasRefinery && !idleRefinery
+                  ? `<p class="muted" style="color:var(--color-warn)">All refineries busy.</p>`
+                  : ""
           }
         </section>
       `;
@@ -3058,18 +3312,45 @@ function renderRefinery(data) {
     .join("");
 
   // ── Event delegation for start/build ──
+  // Track quantity edits so re-renders (every few seconds) don't blow them away.
+  chainsEl.oninput = (e) => {
+    const qty = e.target.closest(".refine-quantity-input");
+    if (!qty) return;
+    const chainId = qty.getAttribute("data-chain-id");
+    if (!chainId) return;
+    appState.refineQuantityOverrides[chainId] = qty.value;
+  };
+
+  // Restore focus/caret on the quantity input that was being edited.
+  if (focusedInput?.id) {
+    const restored = document.getElementById(focusedInput.id);
+    if (restored && typeof restored.focus === "function") {
+      restored.focus();
+      try {
+        if (focusedInput.selStart != null && typeof restored.setSelectionRange === "function") {
+          restored.setSelectionRange(focusedInput.selStart, focusedInput.selEnd ?? focusedInput.selStart);
+        }
+      } catch (_) { /* ignore — number inputs don't always allow selection */ }
+    }
+  }
+
   chainsEl.onclick = async (e) => {
     const startBtn = e.target.closest(".refinery-start-btn");
     if (startBtn && appState.accountId) {
       const chainId = startBtn.getAttribute("data-chain-id");
       const refineryId = startBtn.getAttribute("data-refinery-id");
+      const qtyInputId = startBtn.getAttribute("data-quantity-input");
+      const qtyInput = qtyInputId ? document.getElementById(qtyInputId) : null;
+      const inputQuantity = qtyInput ? Math.max(0, Math.floor(Number(qtyInput.value) || 0)) : 0;
+      // Clear the override now that we've consumed it.
+      delete appState.refineQuantityOverrides[chainId];
       startBtn.disabled = true;
       startBtn.textContent = "Starting…";
       try {
         const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/start-refinery`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chainId, refineryId })
+          body: JSON.stringify({ chainId, refineryId, inputQuantity })
         });
         const account = await parseJsonResponse(response);
         appState.data = deepClone(account.state);
@@ -3269,16 +3550,36 @@ function renderAssets(data) {
     </tr>`;
   }
 
-  // Extractors
+  // Extractors — show actual location (lease body) in the location column
   for (const ex of extractors) {
     const status = ex.downtimeActive ? "Downtime" : ex.active ? "Active" : "Idle";
     const statusCls = ex.downtimeActive ? "downtime" : ex.active ? "operational" : "idle";
-    const lease = leases.find(l => l.id === ex.leaseId);
+    // Resolve location with the most authoritative source first:
+    //   1. ex.body — stored directly on the extractor (post-fix)
+    //   2. lease.body when leaseId resolves
+    //   3. lease whose extractorIds list contains us (legacy linkage)
+    //   4. nothing → show "Unassigned" rather than silently defaulting to the
+    //      first lease, which masks broken leaseId links and frustrates the
+    //      player when a yard "moves" between hydrations.
+    let locationBody = ex.body || null;
+    if (!locationBody) {
+      let lease = ex.leaseId ? leases.find(l => l.id === ex.leaseId) : null;
+      if (!lease) {
+        const stripped = ex.leaseId ? String(ex.leaseId).split("::").pop() : null;
+        if (stripped) lease = leases.find(l => String(l.id).split("::").pop() === stripped);
+      }
+      if (!lease) lease = leases.find(l => Array.isArray(l.extractorIds) && l.extractorIds.includes(ex.id));
+      if (lease?.body) locationBody = lease.body;
+    }
+    const yardName = ex.name || ex.id;
+    const locationLabel = locationBody
+      ? `${escapeHtml(yardName)} <span class="muted">— ${escapeHtml(locationBody)}</span>`
+      : `${escapeHtml(yardName)} <span class="muted" style="color:var(--color-warn)">— Unassigned</span>`;
     infraRows += `<tr>
       <td>Extractor</td>
-      <td>${escapeHtml(ex.name || ex.id)}</td>
+      <td>${locationLabel}</td>
       <td><span class="building-status-badge ${statusCls}">${status}</span></td>
-      <td class="num">${Number(ex.totalMined || 0).toLocaleString()} mined${lease ? " · " + escapeHtml(lease.body) : ""}</td>
+      <td class="num">${Number(ex.totalMined || 0).toLocaleString()} mined</td>
     </tr>`;
   }
 
@@ -3343,55 +3644,90 @@ function renderLogistics(data) {
   const allInventory = getAllInventory();
   const stationRegistry = appState.stationRegistry || [];
   const currentStationId = data.corp?.currentStationId || "earth-station-prime";
+  const credits = Number(data.corp?.finances?.credits || 0);
+  const currentName = station?.name || "current station";
 
-  // Build per-station asset cards
+  // Summary tiles
+  const totalRemoteUnits = stationRegistry
+    .filter((st) => st.id !== currentStationId)
+    .reduce((sum, st) => {
+      const inv = allInventory[st.id] || {};
+      return sum + Object.values(inv).reduce((s, q) => s + Number(q || 0), 0);
+    }, 0);
+
+  const summary = `
+    <div class="logistics-summary">
+      <div class="logistics-summary-tile">
+        <span class="logistics-summary-label">Docked at</span>
+        <span class="logistics-summary-value">${escapeHtml(currentName)}</span>
+      </div>
+      <div class="logistics-summary-tile">
+        <span class="logistics-summary-label">Remote units</span>
+        <span class="logistics-summary-value">${totalRemoteUnits.toLocaleString()}</span>
+      </div>
+      <div class="logistics-summary-tile">
+        <span class="logistics-summary-label">Transfer fee</span>
+        <span class="logistics-summary-value">${toCurrency(LOGISTICS_FEE_PER_UNIT)} / unit</span>
+      </div>
+      <div class="logistics-summary-tile">
+        <span class="logistics-summary-label">Credits</span>
+        <span class="logistics-summary-value">${toCurrency(credits)}</span>
+      </div>
+    </div>`;
+
+  // Build per-station cards. Current station uses an inventory list; remote
+  // stations use an item-row layout with an inline transfer control per item.
   let cardsHtml = "";
   for (const st of stationRegistry) {
     const inv = allInventory[st.id] || {};
     const entries = Object.entries(inv).filter(([, qty]) => Number(qty) > 0);
     const isCurrent = st.id === currentStationId;
-    const badge = isCurrent ? `<span class="logistics-current-badge">Current</span>` : "";
+    const badge = isCurrent ? `<span class="logistics-current-badge">Docked</span>` : "";
+    const subhead = `${escapeHtml(st.body || "")}${st.systemId ? ` · ${escapeHtml(String(st.systemId).toUpperCase())}` : ""}`;
 
-    let itemsHtml;
-    if (entries.length === 0) {
-      itemsHtml = `<p class="muted" style="font-size:0.82rem;">No assets stored here.</p>`;
+    let itemsHtml = "";
+    if (!entries.length) {
+      itemsHtml = `<p class="logistics-empty">No assets stored at this station.</p>`;
+    } else if (isCurrent) {
+      itemsHtml = `<ul class="logistics-item-list">` + entries
+        .map(([item, qty]) => `<li class="logistics-item-row">
+          <span class="logistics-item-name">${escapeHtml(item)}</span>
+          <span class="logistics-item-qty">${Number(qty).toLocaleString()}</span>
+        </li>`).join("") + `</ul>`;
     } else {
-      itemsHtml = `<table class="data-table data-table--compact"><thead><tr><th>Resource</th><th>Quantity</th>${!isCurrent ? "<th>Transfer</th>" : ""}</tr></thead><tbody>`;
-      for (const [item, qty] of entries) {
-        const fee = LOGISTICS_FEE_PER_UNIT * Number(qty);
-        if (isCurrent) {
-          itemsHtml += `<tr><td>${escapeHtml(item)}</td><td>${Number(qty).toLocaleString()}</td></tr>`;
-        } else {
-          itemsHtml += `<tr>
-            <td>${escapeHtml(item)}</td>
-            <td>${Number(qty).toLocaleString()}</td>
-            <td>
-              <div class="logistics-transfer-row">
-                <input type="number" class="logistics-qty-input" min="1" max="${Number(qty)}" value="${Number(qty)}" data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}" />
-                <button class="btn btn-outline btn-sm logistics-transfer-btn" type="button" data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}">
-                  Transfer here
-                </button>
-              </div>
-              <span class="muted" style="font-size:0.72rem;">Fee: ${toCurrency(LOGISTICS_FEE_PER_UNIT)}/unit</span>
-            </td>
-          </tr>`;
-        }
-      }
-      itemsHtml += `</tbody></table>`;
+      itemsHtml = `<ul class="logistics-item-list">` + entries.map(([item, qty]) => {
+        const maxQty = Number(qty);
+        return `<li class="logistics-item-row logistics-item-row--transfer">
+          <div class="logistics-item-meta">
+            <span class="logistics-item-name">${escapeHtml(item)}</span>
+            <span class="logistics-item-qty muted">${maxQty.toLocaleString()} avail</span>
+          </div>
+          <div class="logistics-transfer-controls">
+            <input type="number" class="logistics-qty-input" min="1" max="${maxQty}" value="${maxQty}"
+              data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}" aria-label="Transfer quantity" />
+            <button class="btn btn-outline btn-sm logistics-transfer-btn" type="button"
+              data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}">
+              → ${escapeHtml(currentName)}
+            </button>
+          </div>
+        </li>`;
+      }).join("") + `</ul>`;
     }
 
     cardsHtml += `
-      <div class="logistics-station-card ${isCurrent ? "logistics-station-card--current" : ""}">
-        <div class="logistics-station-header">
-          <h3>${escapeHtml(st.name)} ${badge}</h3>
-          <span class="muted" style="font-size:0.78rem;">${escapeHtml(st.body)}, ${escapeHtml(st.systemId?.toUpperCase() || "SOL")}</span>
-        </div>
+      <section class="logistics-station-card ${isCurrent ? "logistics-station-card--current" : ""}">
+        <header class="logistics-station-header">
+          <div class="logistics-station-title">
+            <h3>${escapeHtml(st.name)}</h3>
+            ${badge}
+          </div>
+          <span class="logistics-station-sub muted">${subhead}</span>
+        </header>
         ${itemsHtml}
-      </div>
-    `;
+      </section>`;
   }
 
-  contentEl.innerHTML = cardsHtml;
+  contentEl.innerHTML = summary + `<div class="logistics-grid">${cardsHtml}</div>`;
 
   // Bind transfer buttons
   contentEl.querySelectorAll(".logistics-transfer-btn").forEach((btn) => {
@@ -3402,7 +3738,8 @@ function renderLogistics(data) {
       const quantity = Math.max(1, parseInt(qtyInput?.value || "1", 10));
 
       btn.disabled = true;
-      btn.textContent = "Transferring...";
+      const original = btn.textContent;
+      btn.textContent = "Transferring…";
 
       try {
         const response = await apiFetch(
@@ -3417,10 +3754,10 @@ function renderLogistics(data) {
         appState.data = deepClone(account.state);
         appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
         updateAllViews();
-        pushFeedback(`Transferred ${quantity.toLocaleString()} ${item} to ${station?.name || "current station"}.`, "success");
+        pushFeedback(`Transferred ${quantity.toLocaleString()} ${item} to ${currentName}.`, "success");
       } catch (err) {
         btn.disabled = false;
-        btn.textContent = "Transfer here";
+        btn.textContent = original;
         pushFeedback(err.message || "Transfer failed.", "warn");
       }
     });
@@ -3543,19 +3880,23 @@ function renderMarket(data) {
     ? entries.map(([name, qty]) => `<li>${escapeHtml(name)}: ${Number(qty).toLocaleString()}</li>`).join("")
     : "<li>No inventory available yet. Begin mining and refining to generate tradable stock.</li>";
 
-  // Create Listing grid
+  // Create Listing grid — default unit price to AVG market price for the item.
+  const avgPriceByItem = computeAverageMarketPrice(data);
   if (sellGrid) {
     sellGrid.innerHTML = entries
       .map(
-        ([name, qty]) => `
+        ([name, qty]) => {
+          const defaultPrice = Math.max(1, Math.round(avgPriceByItem[name] || 50));
+          return `
           <tr>
             <td>${escapeHtml(name)}</td>
             <td>${Number(qty).toLocaleString()}</td>
             <td><input class="sell-input" type="number" min="1" max="${Number(qty)}" value="1" data-sell-qty="${escapeHtml(name)}" /></td>
-            <td><input class="sell-input" type="number" min="1" value="50" data-sell-price="${escapeHtml(name)}" /></td>
+            <td><input class="sell-input" type="number" min="1" value="${defaultPrice}" data-sell-price="${escapeHtml(name)}" /></td>
             <td><button class="btn btn-accent" type="button" data-sell-item="${escapeHtml(name)}">Create Listing</button></td>
           </tr>
-        `
+        `;
+        }
       )
       .join("");
   }
@@ -3621,34 +3962,201 @@ function renderForums(data) {
     const selected = (data.forums?.threads || []).find((t) => t.id === appState.selectedForumThreadId);
     const detailBody = document.getElementById("forum-thread-detail-body");
     if (detailBody && selected) {
-      const repliesHtml = selected.replies.length
-        ? `<ul class="thread-reply-list">
-            ${selected.replies
-              .map(
-                (reply) => `
-                <li class="thread-reply">
-                  <p><strong>${escapeHtml(reply.author)}</strong></p>
-                  <p>${escapeHtml(reply.content)}</p>
-                  <p class="notification-meta">${formatTime(reply.createdAt)} | ${Number(reply.likes)} likes</p>
-                </li>`
-              )
-              .join("")}
-          </ul>`
-        : `<p class="muted">No replies yet.</p>`;
+      const author = selected.author || "Anonymous";
+      const opLikes = Number(selected.likes) || 0;
+      const replies = Array.isArray(selected.replies) ? selected.replies : [];
+      const myAccountId = appState.accountId || null;
+      const opLiked = Array.isArray(selected.likedBy) && myAccountId ? selected.likedBy.includes(myAccountId) : false;
+      const initials = (str) => String(str || "?")
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((p) => p[0])
+        .join("")
+        .toUpperCase() || "?";
+      const avatarHue = (str) => {
+        let h = 0;
+        for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 360;
+        return h;
+      };
+      const opHue = avatarHue(author);
+      const opBody = selected.body
+        || selected.summary
+        || `Filing this thread to consolidate strategy on predatory mineral leases. Recent ISA arbitration cases suggest a narrow window for procedural objections — particularly when the lessor has failed to publish quarterly extraction reports. Would appreciate input from any corporation that has successfully challenged a Tier-2 lease auction in the last 18 months. I am compiling a citation pack for the Sol jurisdiction sub-forum and will share the redacted draft with anyone willing to co-sign.`;
+
+      const repliesHtml = replies.length
+        ? replies.map((reply) => {
+            const author = reply.author || "Anonymous";
+            const hue = avatarHue(author);
+            const replyLiked = Array.isArray(reply.likedBy) && myAccountId ? reply.likedBy.includes(myAccountId) : false;
+            return `
+              <li class="thread-reply">
+                <div class="thread-reply__connector" aria-hidden="true"></div>
+                <article class="thread-card thread-card--reply">
+                  <header class="thread-card__head">
+                    <div class="thread-avatar" style="--avatar-hue:${hue};">${escapeHtml(initials(author))}</div>
+                    <div class="thread-card__head-meta">
+                      <span class="thread-card__author">${escapeHtml(author)}</span>
+                      <span class="thread-card__timestamp">${formatTime(reply.createdAt)}</span>
+                    </div>
+                    <span class="thread-badge thread-badge--reply">Reply</span>
+                  </header>
+                  <div class="thread-card__body">
+                    <p>${escapeHtml(reply.content || "")}</p>
+                  </div>
+                  <footer class="thread-card__actions">
+                    <button class="thread-action-btn" type="button" data-action="reply">↩ Reply</button>
+                    <button class="thread-action-btn" type="button" data-action="quote">❝ Quote</button>
+                    <button class="thread-action-btn thread-action-btn--like${replyLiked ? " is-liked" : ""}" type="button" data-action="like" data-target="reply" data-reply-id="${escapeHtml(reply.id)}" aria-pressed="${replyLiked}">▲ ${replyLiked ? "Liked" : "Like"} <span class="thread-action-count">${Number(reply.likes) || 0}</span></button>
+                  </footer>
+                </article>
+              </li>`;
+          }).join("")
+        : `<li class="thread-reply thread-reply--empty"><p class="muted">No replies yet. Be the first to weigh in.</p></li>`;
 
       detailBody.innerHTML = `
-        <article class="form-card">
-          <p class="overline">${escapeHtml(selected.category)}</p>
-          <h2>${escapeHtml(selected.title)}</h2>
-          <p class="muted">Started by <strong>${escapeHtml(selected.author)}</strong> &mdash; ${Number(selected.likes)} likes &mdash; ${selected.replies.length} repl${selected.replies.length === 1 ? "y" : "ies"}</p>
-          <section class="thread-op-block">
-            <p class="overline">Thread Summary</p>
-            <p class="muted">Discussion entry point by ${escapeHtml(selected.author)}. Reply log begins below.</p>
+        <div class="thread-detail">
+          <div class="thread-detail__topbar">
+            <button id="forum-back-btn-inline" class="thread-back-btn" type="button">← Back to Forums</button>
+            <span class="thread-badge thread-badge--category">${escapeHtml((selected.category || "general").toUpperCase())}</span>
+          </div>
+
+          <header class="thread-detail__header">
+            <h1 class="thread-detail__title">${escapeHtml(selected.title || "Untitled Thread")}</h1>
+            <div class="thread-detail__meta">
+              <span>Started ${formatTime(selected.createdAt)}</span>
+              <span class="thread-meta-dot">•</span>
+              <span>${replies.length} repl${replies.length === 1 ? "y" : "ies"}</span>
+              <span class="thread-meta-dot">•</span>
+              <span>${opLikes} like${opLikes === 1 ? "" : "s"}</span>
+            </div>
+          </header>
+
+          <article class="thread-card thread-card--op">
+            <div class="thread-card__op-tag">Original Post</div>
+            <header class="thread-card__head">
+              <div class="thread-avatar thread-avatar--op" style="--avatar-hue:${opHue};">${escapeHtml(initials(author))}</div>
+              <div class="thread-card__head-meta">
+                <span class="thread-card__author">${escapeHtml(author)}</span>
+                <span class="thread-card__timestamp">${formatTime(selected.createdAt)}</span>
+              </div>
+              <span class="thread-badge thread-badge--op">OP</span>
+            </header>
+            <div class="thread-card__body thread-card__body--op">
+              ${opBody.split(/\n+/).map((para) => `<p>${escapeHtml(para)}</p>`).join("")}
+            </div>
+            <footer class="thread-card__actions">
+              <button class="thread-action-btn thread-action-btn--primary" type="button" data-action="reply">↩ Reply</button>
+              <button class="thread-action-btn" type="button" data-action="quote">❝ Quote</button>
+              <button class="thread-action-btn thread-action-btn--like${opLiked ? " is-liked" : ""}" type="button" data-action="like" data-target="thread" aria-pressed="${opLiked}">▲ ${opLiked ? "Liked" : "Like"} <span class="thread-action-count">${opLikes}</span></button>
+            </footer>
+          </article>
+
+          <section class="thread-replies">
+            <h2 class="thread-replies__heading">${replies.length} Repl${replies.length === 1 ? "y" : "ies"}</h2>
+            <ol class="thread-reply-list">${repliesHtml}</ol>
           </section>
-          <p class="overline" style="margin-top:1rem">Replies</p>
-          ${repliesHtml}
-        </article>
+
+          <!-- Reply composer at the bottom of the thread. -->
+          <form id="forum-reply-form" class="form-card" data-thread-id="${escapeHtml(selected.id)}">
+            <h3>Post a Reply</h3>
+            <label>
+              <span>Your Reply</span>
+              <textarea id="forum-reply-content" rows="4" maxlength="4000" required placeholder="Write your reply..."></textarea>
+            </label>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-accent">Post Reply</button>
+            </div>
+            <p id="forum-reply-status" class="muted"></p>
+          </form>
+        </div>
       `;
+
+      const inlineBack = detailBody.querySelector("#forum-back-btn-inline");
+      if (inlineBack) {
+        inlineBack.addEventListener("click", () => {
+          appState.forumsView = "overview";
+          appState.selectedForumThreadId = null;
+          renderForums(appState.data);
+        });
+      }
+
+      // Like buttons (delegated). Toggles a like for the current account on
+      // either the OP thread or a specific reply. Server enforces one-like-
+      // per-account by tracking `likedBy`.
+      detailBody.addEventListener("click", async (event) => {
+        const likeBtn = event.target.closest('[data-action="like"]');
+        if (!likeBtn) return;
+        if (!appState.accountId) {
+          pushFeedback("Sign in to like posts.", "warn");
+          return;
+        }
+        const target = likeBtn.getAttribute("data-target") || "thread";
+        const replyId = target === "reply" ? likeBtn.getAttribute("data-reply-id") : null;
+        likeBtn.disabled = true;
+        try {
+          const response = await apiFetch(`/api/forums/threads/${encodeURIComponent(selected.id)}/like`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(replyId ? { replyId } : {})
+          });
+          const payload = await parseJsonResponse(response);
+          if (payload?.thread && Array.isArray(appState.data?.forums?.threads)) {
+            const idx = appState.data.forums.threads.findIndex((t) => t.id === payload.thread.id);
+            if (idx >= 0) appState.data.forums.threads[idx] = payload.thread;
+          }
+          renderForums(appState.data);
+        } catch (err) {
+          likeBtn.disabled = false;
+          pushFeedback(`Like failed: ${err.message}`, "warn");
+        }
+      });
+
+      // Reply submission — POST to the server, then re-render with the
+      // updated thread payload returned by the API.
+      const replyForm = detailBody.querySelector("#forum-reply-form");
+      if (replyForm) {
+        replyForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const threadId = replyForm.dataset.threadId;
+          const contentEl = replyForm.querySelector("#forum-reply-content");
+          const statusEl = replyForm.querySelector("#forum-reply-status");
+          const content = String(contentEl?.value || "").trim();
+          if (!content) {
+            if (statusEl) {
+              statusEl.textContent = "Reply cannot be empty.";
+              statusEl.style.color = "var(--color-warn)";
+            }
+            return;
+          }
+          const submitBtn = replyForm.querySelector('button[type="submit"]');
+          if (submitBtn) submitBtn.disabled = true;
+          try {
+            const response = await apiFetch(`/api/forums/threads/${encodeURIComponent(threadId)}/replies`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content })
+            });
+            const payload = await parseJsonResponse(response);
+            // Splice the updated thread into the local cache so re-render
+            // shows the new reply immediately (the socket broadcast will
+            // also fire, but we don't want to wait for it).
+            if (payload?.thread && Array.isArray(appState.data?.forums?.threads)) {
+              const idx = appState.data.forums.threads.findIndex((t) => t.id === payload.thread.id);
+              if (idx >= 0) appState.data.forums.threads[idx] = payload.thread;
+            }
+            if (contentEl) contentEl.value = "";
+            renderForums(appState.data);
+          } catch (err) {
+            if (statusEl) {
+              statusEl.textContent = `Failed to post reply: ${err.message}`;
+              statusEl.style.color = "var(--color-warn)";
+            }
+          } finally {
+            if (submitBtn) submitBtn.disabled = false;
+          }
+        });
+      }
     }
     return;
   }
@@ -3679,16 +4187,101 @@ function renderForums(data) {
       threadsEl.innerHTML = `<p class="muted">No threads in this category yet.</p>`;
     } else {
       threadsEl.innerHTML = filtered
-        .map(
-          (thread) => `
-          <button class="forum-thread-card" type="button" data-thread-id="${thread.id}">
-            <p class="overline" style="margin-bottom:0.3rem">${escapeHtml(thread.category)}</p>
-            <h3>${escapeHtml(thread.title)}</h3>
-            <p class="muted">by ${escapeHtml(thread.author)} &mdash; ${Number(thread.likes)} likes &mdash; ${thread.replies.length} repl${thread.replies.length === 1 ? "y" : "ies"}</p>
-          </button>`
-        )
+        .map((thread) => {
+          const replies = Array.isArray(thread.replies) ? thread.replies : [];
+          const lastActivity = replies.length
+            ? Math.max(...replies.map((r) => Number(r.createdAt) || 0), Number(thread.createdAt) || 0)
+            : Number(thread.createdAt) || 0;
+          const lastAuthor = replies.length ? replies[replies.length - 1]?.author : thread.author;
+          const excerpt = String(thread.body || replies[0]?.body || "").slice(0, 240);
+          return `
+          <button class="forum-thread-card" type="button" data-thread-id="${escapeHtml(thread.id)}">
+            <div class="forum-thread-card__head">
+              <span class="forum-thread-card__category">${escapeHtml(thread.category)}</span>
+              <span class="forum-thread-card__stat" title="Likes">▲ ${Number(thread.likes) || 0}</span>
+            </div>
+            <h3 class="forum-thread-card__title">${escapeHtml(thread.title)}</h3>
+            ${excerpt ? `<p class="forum-thread-card__excerpt">${escapeHtml(excerpt)}</p>` : ""}
+            <div class="forum-thread-card__meta">
+              <span>Started by <strong>${escapeHtml(thread.author)}</strong></span>
+              <span class="forum-thread-card__stat">💬 ${replies.length} ${replies.length === 1 ? "reply" : "replies"}</span>
+              ${lastActivity ? `<span style="margin-left:auto">Last by <strong>${escapeHtml(lastAuthor || thread.author)}</strong> · ${formatTime(lastActivity)}</span>` : ""}
+            </div>
+          </button>`;
+        })
         .join("");
     }
+  }
+
+  // Populate the new-thread category dropdown with the same allowlist used
+  // server-side, then bind the form/button (idempotent — guarded via dataset
+  // flag so re-renders don't stack listeners).
+  const categories = data.forums?.categories || [];
+  const categorySelect = document.getElementById("forum-new-thread-category");
+  if (categorySelect) {
+    const preselected = appState.selectedForumCategory || categories[0] || "";
+    categorySelect.innerHTML = categories
+      .map((c) => `<option value="${escapeHtml(c)}"${c === preselected ? " selected" : ""}>${escapeHtml(c)}</option>`)
+      .join("");
+  }
+
+  const newThreadBtn = document.getElementById("forum-new-thread-btn");
+  const newThreadForm = document.getElementById("forum-new-thread-form");
+  const cancelBtn = document.getElementById("forum-new-thread-cancel");
+  if (newThreadBtn && newThreadForm && !newThreadBtn.dataset.bound) {
+    newThreadBtn.dataset.bound = "1";
+    newThreadBtn.addEventListener("click", () => {
+      newThreadForm.hidden = !newThreadForm.hidden;
+      if (!newThreadForm.hidden) {
+        newThreadForm.querySelector("#forum-new-thread-title")?.focus();
+      }
+    });
+    cancelBtn?.addEventListener("click", () => {
+      newThreadForm.hidden = true;
+      newThreadForm.reset();
+    });
+    newThreadForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const category = String(document.getElementById("forum-new-thread-category")?.value || "").trim();
+      const title = String(document.getElementById("forum-new-thread-title")?.value || "").trim();
+      const body = String(document.getElementById("forum-new-thread-body")?.value || "").trim();
+      const statusEl = document.getElementById("forum-new-thread-status");
+      if (!category || !title || !body) {
+        if (statusEl) {
+          statusEl.textContent = "Category, title, and body are all required.";
+          statusEl.style.color = "var(--color-warn)";
+        }
+        return;
+      }
+      const submitBtn = newThreadForm.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+      try {
+        const response = await apiFetch("/api/forums/threads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category, title, body })
+        });
+        const payload = await parseJsonResponse(response);
+        if (payload?.thread) {
+          if (!Array.isArray(appState.data?.forums?.threads)) {
+            if (!appState.data.forums) appState.data.forums = { categories: [], threads: [] };
+            appState.data.forums.threads = [];
+          }
+          appState.data.forums.threads.unshift(payload.thread);
+        }
+        newThreadForm.reset();
+        newThreadForm.hidden = true;
+        if (statusEl) statusEl.textContent = "";
+        renderForums(appState.data);
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = `Failed to post thread: ${err.message}`;
+          statusEl.style.color = "var(--color-warn)";
+        }
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
   }
 }
 
@@ -4112,20 +4705,7 @@ function renderMissions(data) {
   }
 }
 
-function renderCombatReports(data) {
-  const reports = document.getElementById("combat-reports");
-  const combatReports = data.combatReports || [];
-  reports.innerHTML = combatReports
-    .map(
-      (report) =>
-        `<li><strong>${report.winner}</strong> won. ${report.summary} <span class="muted">${formatTime(report.createdAt)}</span></li>`
-    )
-    .join("");
-
-  if (!combatReports.length) {
-    reports.innerHTML = "<li>No combat reports yet. Simulate a battle to generate one.</li>";
-  }
-}
+function renderCombatReports() { /* removed: combat reports tab deprecated */ }
 
 function renderChatLog(data) {
   const channel = appState.chatChannel;
@@ -4190,12 +4770,11 @@ function updateAllViews() {
   renderLogistics(data);
   renderForums(data);
   renderMissions(data);
-  renderCombatReports(data);
   renderChatLog(data);
   renderChatChannelTabs();
   renderFinanceCharts(data.corp.finances);
+  renderFinanceDashboard(data.corp.finances);
   renderFeedbackLog();
-  updateInvestmentPanel(data);
   if (data.world?.systems) starmap.setSystems(data.world.systems);
   starmap.setStations(appState.stationRegistry, data.corp?.currentStationId, data.corp?.currentSystemId || "sol");
   starmap.setUnlockedTech(new Set(data.corp?.unlockedTech || []));
@@ -4208,8 +4787,38 @@ function updateAllViews() {
     scoutedBelts: am.scoutedBelts || [],
     beltCompositions: appState.beltCompositions || {}
   });
-  renderExpeditions(data);
+  renderExpeditionPanel(data);
   renderInboxMessageList();
+}
+
+// Render the overview Asteroid Belt Expeditions panel. The starmap belt-detail
+// view is rendered separately via starmap.updateExpeditionProgress().
+function renderExpeditionPanel(data) {
+  const panel = document.getElementById("expedition-panel");
+  if (!panel) return;
+  const active = data?.corp?.asteroidMining?.activeExpeditions || [];
+  if (!active.length) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  const now = Date.now();
+  const rows = active
+    .map((exp) => {
+      const total = Math.max(1, Number(exp.endsAt || 0) - Number(exp.startedAt || 0));
+      const elapsed = Math.max(0, Math.min(total, now - Number(exp.startedAt || 0)));
+      const progress = (elapsed / total) * 100;
+      const remainingMs = Math.max(0, Number(exp.endsAt || 0) - now);
+      const beltName = exp.beltName || exp.beltKey || "Unknown Belt";
+      return `
+        <article class="queue-item">
+          <h4 style="margin:0 0 .25rem">${escapeHtml(beltName)}</h4>
+          <p class="muted" style="margin:0 0 .35rem">Remaining: ${formatDurationHours(remainingMs)} (${progress.toFixed(1)}%)</p>
+          <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
+        </article>`;
+    })
+    .join("");
+  panel.innerHTML = `<h3>Asteroid Belt Expeditions</h3>${rows}`;
 }
 
 async function runLevel2Action(endpoint, payload = null) {
@@ -4522,12 +5131,6 @@ function enterGame(mode, data, options = {}) {
     starmap.rerender();
   }
 
-  const investmentLog = document.getElementById("investment-log");
-  investmentLog.innerHTML =
-    (appState.data.corp.investments || [])
-      .map((inv) => `<li>${inv.instrument} in ${inv.targetCorp} (${toCurrency(inv.amount)})</li>`)
-      .join("") || "<li>No active investments yet.</li>";
-
   if (
     options.autoPromptWalkthrough !== false &&
     (mode === "new" || mode === "account") &&
@@ -4673,55 +5276,6 @@ async function refreshFromServer() {
 }
 
 function bindForms() {
-  const investmentForm = document.getElementById("investment-form");
-  investmentForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if ((appState.data?.corp?.level || 0) < DIRECT_INVESTMENT_UNLOCK_LEVEL) {
-      const investmentStatus = document.getElementById("investment-status");
-      if (investmentStatus) {
-        investmentStatus.textContent = `Direct investments unlock at Corporation Level ${DIRECT_INVESTMENT_UNLOCK_LEVEL}.`;
-      }
-      return;
-    }
-
-    const form = new FormData(investmentForm);
-    const payload = {
-      targetCorp: String(form.get("targetCorp")),
-      instrument: String(form.get("instrument")),
-      amount: Number(form.get("amount"))
-    };
-
-    const response = await apiFetch("/api/investments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      const investmentStatus = document.getElementById("investment-status");
-      if (investmentStatus) {
-        const payload = await response.json().catch(() => ({ error: "Investment request rejected." }));
-        investmentStatus.textContent = payload.error || "Investment request rejected.";
-      }
-      return;
-    }
-
-    const result = await response.json();
-    appState.data = deepClone(result.account.state);
-    if (!appState.data.corp.investments) {
-      appState.data.corp.investments = [];
-    }
-
-    appState.data.corp.investments.unshift(result.investment);
-    const log = document.getElementById("investment-log");
-    const line = document.createElement("li");
-    line.textContent = `${payload.instrument} in ${payload.targetCorp} for ${toCurrency(payload.amount)} submitted.`;
-    log.prepend(line);
-
-    await refreshFromServer();
-    investmentForm.reset();
-  });
-
   const sellGrid = document.getElementById("market-sell-grid");
   const listingStatus = document.getElementById("listing-status");
   const buyStatus = document.getElementById("buy-status");
@@ -4853,21 +5407,6 @@ function bindForms() {
     }
   });
 
-  const combatForm = document.getElementById("combat-form");
-  combatForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const form = new FormData(combatForm);
-    const payload = Object.fromEntries(form.entries());
-
-    await apiFetch("/api/combat/simulate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    await refreshFromServer();
-  });
-
   const chatForm = document.getElementById("chat-form");
   const chatInput = document.getElementById("chat-input");
   const chatTabs = document.getElementById("chat-channel-tabs");
@@ -4991,7 +5530,11 @@ function bindForms() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ missionId: mission.id })
       });
-      if (!response.ok) return;
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: "Failed to accept contract." }));
+        pushFeedback(err.error || "Failed to accept contract.", "warn");
+        return;
+      }
       const account = await parseJsonResponse(response);
       appState.data = deepClone(account.state);
       appState.activeMissions = appState.data.corp?.activeMissions || [];
@@ -5020,7 +5563,11 @@ function bindForms() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ missionId })
         });
-        if (!response.ok) return;
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({ error: "Failed to abandon contract." }));
+          pushFeedback(err.error || "Failed to abandon contract.", "warn");
+          return;
+        }
         const account = await parseJsonResponse(response);
         appState.data = deepClone(account.state);
         appState.activeMissions = appState.data.corp?.activeMissions || [];
@@ -5299,6 +5846,19 @@ function bindRealtimeEvents() {
     renderMarket(appState.data);
   });
 
+  socket.on("forums:updated", (forumsState) => {
+    // Forums are global state; refresh the local copy and re-render whichever
+    // forum view is currently visible so new threads/replies appear in real
+    // time across all sessions without requiring a manual refresh.
+    if (!appState.data) return;
+    appState.data.forums = forumsState;
+    if (appState.serverData) appState.serverData.forums = forumsState;
+    const forumsPanel = document.getElementById("forums");
+    if (forumsPanel?.classList.contains("active")) {
+      renderForums(appState.data);
+    }
+  });
+
   socket.on("finance:updated", (financeState) => {
     if (!appState.data || appState.profileMode !== "dummy") {
       return;
@@ -5306,17 +5866,26 @@ function bindRealtimeEvents() {
 
     appState.data.corp.finances = financeState;
     renderFinanceCharts(financeState);
+    renderFinanceDashboard(financeState);
     updateCorpIdentity(appState.data);
   });
 
-  socket.on("combat:newReport", (report) => {
-    if (!appState.data) {
-      return;
-    }
+  socket.on("finance:snapshot", () => {
+    if (!appState.data?.corp?.finances) return;
+    // Snapshot tick fires server-side every 30s. We don't ship the snapshot
+    // payload over the wire (it's already in finances.snapshots on next
+    // state refresh); just re-render whatever the client currently holds.
+    renderFinanceCharts(appState.data.corp.finances);
+    renderFinanceDashboard(appState.data.corp.finances);
+  });
 
-    if (!appState.data.combatReports) appState.data.combatReports = [];
-    appState.data.combatReports.unshift(report);
-    renderCombatReports(appState.data);
+  socket.on("finance:snapshot", () => {
+    if (!appState.data?.corp?.finances) return;
+    // Snapshot tick fires server-side every 30s. We don't ship the snapshot
+    // payload over the wire (it's already in finances.snapshots on next
+    // state refresh); just re-render whatever the client currently holds.
+    renderFinanceCharts(appState.data.corp.finances);
+    renderFinanceDashboard(appState.data.corp.finances);
   });
 
   socket.on("notifications:new", (payload) => {
@@ -5501,9 +6070,47 @@ async function loadMessages() {
     if (data.messages) {
       appState.inbox.messages = data.messages;
       appState.inbox.loaded = true;
+      // First load: if the user has unread player messages but no unread
+      // official messages, default the inbox subtab to "players" so
+      // self-sent and incoming player mail isn't hidden behind the default
+      // official subtab.
+      if (!appState.inbox.subtypeChosenByUser && appState.inbox.folder === "inbox") {
+        const inboxMsgs = data.messages.filter((m) => m.folder === "inbox");
+        const unreadPlayer = inboxMsgs.some((m) => m.fromType === "player" && !m.readAt);
+        const unreadOfficial = inboxMsgs.some((m) => (m.fromType === "system" || m.fromType === "npc") && !m.readAt);
+        if (unreadPlayer && !unreadOfficial) {
+          appState.inbox.subtype = "players";
+          document.querySelectorAll(".inbox-subtab-btn").forEach((b) => {
+            b.classList.toggle("active", b.dataset.subtype === "players");
+          });
+        }
+      }
+      updateInboxSubtabBadges();
       renderInboxMessageList();
     }
   } catch (_) { /* silently ignore */ }
+}
+
+// Counts unread inbox messages per subtype and renders a small "(n)" badge in
+// each subtab button so the user can see at a glance which tab has new mail.
+function updateInboxSubtabBadges() {
+  const msgs = (appState.inbox.messages || []).filter((m) => m.folder === "inbox");
+  const counts = {
+    official: msgs.filter((m) => (m.fromType === "system" || m.fromType === "npc") && !m.readAt).length,
+    players: msgs.filter((m) => m.fromType === "player" && !m.readAt).length
+  };
+  document.querySelectorAll(".inbox-subtab-btn").forEach((btn) => {
+    const subtype = btn.dataset.subtype;
+    const baseLabel = btn.dataset.baseLabel || (() => {
+      // Cache the original label text once so re-renders don't accumulate
+      // badge counts in the button text.
+      const stripped = btn.textContent.replace(/\s*\(\d+\)\s*$/, "").trim();
+      btn.dataset.baseLabel = stripped;
+      return stripped;
+    })();
+    const n = counts[subtype] || 0;
+    btn.textContent = n > 0 ? `${baseLabel} (${n})` : baseLabel;
+  });
 }
 
 function inboxMsgsForView() {
@@ -5532,6 +6139,9 @@ function formatInboxDate(ts) {
 function renderInboxMessageList() {
   const panel = document.getElementById("inbox");
   if (!panel || !panel.classList.contains("active")) return;
+
+  // Keep subtab badge counts in sync with the latest message state.
+  updateInboxSubtabBadges();
 
   const list = document.getElementById("inbox-message-list");
   const emptyNotice = document.getElementById("inbox-empty-notice");
@@ -5631,7 +6241,10 @@ function showInboxView(view) {
   document.getElementById("inbox-detail-view").style.display = view === "detail" ? "" : "none";
   document.getElementById("inbox-compose-view").style.display = view === "compose" ? "" : "none";
   const subtabNav = document.getElementById("inbox-subtab-nav");
-  if (subtabNav) subtabNav.style.display = view === "compose" ? "none" : (appState.inbox.folder === "inbox" ? "" : "none");
+  // Subtabs (System & NPC / Players) only make sense on the inbox-folder list view.
+  if (subtabNav) {
+    subtabNav.style.display = (view === "list" && appState.inbox.folder === "inbox") ? "" : "none";
+  }
 }
 
 function bindInboxControls() {
@@ -5655,6 +6268,8 @@ function bindInboxControls() {
       document.querySelectorAll(".inbox-subtab-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       appState.inbox.subtype = btn.dataset.subtype;
+      // Once the user picks a subtab, stop auto-switching it on reload.
+      appState.inbox.subtypeChosenByUser = true;
       renderInboxMessageList();
     });
   });
