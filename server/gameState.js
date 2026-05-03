@@ -762,7 +762,6 @@ const BELT_COMPOSITIONS = {
   TODO: Rarity should be more dynamic. It shouldn't be impossible for an exotic Asteroid Belt to spawn within Sol, but it 
   should be less common than say Epsilon Eridani
 */
-
 const SYSTEM_RARITY = {
   sol:                "common",
   "alpha-centauri":   "uncommon",
@@ -941,6 +940,7 @@ function hashSeedStr(input) {
 }
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
+// TODO: Should this be hardcoded? Or should we store it in the database?
 const BASE_EXCHANGE_SALES_TAX_PCT = 8;
 
 export function getEffectiveExchangeTaxRate(state) {
@@ -1075,6 +1075,7 @@ function evaluateLevelProgress(profileState) {
   }
 }
 
+/* TODO: Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
 function createStarterCorporationState(baseState, ceoName, corpName) {
   const next = deepClone(baseState);
 
@@ -1171,6 +1172,9 @@ const CONTRACT_REFRESH_MS = 2 * 60 * 60 * 1000; // 2 hours
 const CONTRACTS_PER_AGENT = 2;
 const COMPLETED_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4h before a completed mission can reappear
 
+/*
+  TODO: This shouldn't be hardcoded in this way. The values should be more random. 
+*/
 const MISSION_TEMPLATES = [
   {
     id: "ms-log-001",
@@ -1315,7 +1319,7 @@ function getSeedState() {
   return {
     world: {
       lawName: "Interstellar Settlement Protocol",
-      lawYear: 2147,
+      lawYear: 2147, // TOOD: Should we set this value to increment on Jan 1st?
       systems: deepClone(SYSTEMS_DATA),
       refineryChains: REFINERY_CHAINS_DATA.chains.map((c) => ({
         id: c.id,
@@ -1329,6 +1333,7 @@ function getSeedState() {
         category: c.category
       }))
     },
+    /* TODO: Remove legacy data */
     corp: {
       id: "corp-001",
       ceo: "You",
@@ -1478,6 +1483,7 @@ function ensureStateFile() {
   // every raw resource that currently has a refinery chain so newly mined
   // materials always have a guaranteed sink.
   if (!normalized.market) normalized.market = {};
+  // TODO: Reevaluate how we are storing the below information. Should it be hardcoded? Should it be more dynamic?
   const NPC_BUY_SEED = [
     { item: "Silicates",   buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
     { item: "Helium-3",    buyer: "Lunar Helium Consortium",   unitPrice: 92, dailyQty: 250000 },
@@ -1577,6 +1583,11 @@ async function persistAccountsStoreToSupabase(snapshot = accountsStore) {
     throw stateError;
   }
 
+  /*
+    TODO: Evaluate below account persistance functionality. We are frequently having connection issues which trigger the below errors. Despite there
+    being no downtime with the server itself. 
+  */
+  
   // Phase 1 dual-write to the normalized tables. No-op unless
   // USE_NORMALIZED_TABLES is on. Failures are logged but don't break the
   // legacy persist path while the cutover is in flight.
@@ -1601,6 +1612,7 @@ async function persistAccountsStoreToSupabase(snapshot = accountsStore) {
   }
 }
 
+// TODO: Remove all local disk account snapshots. All operations should go through the DB
 function loadAccountsSnapshotFromDisk() {
   if (IS_SERVERLESS) return null;
   try {
@@ -1774,6 +1786,8 @@ export function mergeDummyAccount(hydrated, fallbackStore) {
 /**
  * Create a fresh in-memory seed accounts store with a dummy dev account.
  * This is used as the initial/fallback store when Supabase has no data yet.
+ *
+ * TODO: Evaluate if this is needed
  */
 function createSeedAccountsStore() {
   const seedState = normalizeStateShape(getSeedState());
@@ -2462,6 +2476,7 @@ export function getAllAccountIds() {
   return Object.keys(accountsStore.accounts || {});
 }
 
+// TODO: Evaluate usage of Refresh Tokens
 export function storeRefreshToken(accountId, token, expiresAt) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) {
