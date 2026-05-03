@@ -1,6 +1,7 @@
 const loginForm = document.getElementById("login-form");
 const loginStatus = document.getElementById("login-status");
 const dummyLoginButton = document.getElementById("dummy-login-btn");
+// TODO: Move IS_DEV_ACCESS duplicate to a single file
 const IS_DEV_ACCESS =
   new URL(window.location.href).searchParams.get("dev") === "1" ||
   window.location.hostname === "localhost" ||
