@@ -70,8 +70,13 @@ advantage in a player-versus-player economy. Selling power in a market game brea
 - **The public kanban disagrees with the docs.** `kanban/kanbanState.json` (38 cards, also served on
   burkart.dev) lists R&D and refineries as outstanding where `DEVELOPMENT_PHASES.md` marks them complete in v0.3.
   The roadmap file is treated as the source of truth here; the board needs reconciling or retiring.
-- **`data/accounts-snapshot.json`** is in the repository. The Board confirmed (decision #354) that it is not real
-  user data. It is now gitignored so that it cannot quietly become real.
+- **`data/accounts-snapshot.json` holds two real accounts** (Orchestrata AB#415, severity 1). Decision #354 had
+  answered "not real user data", and that is true for 127 of the 129 records — but two are real addresses, and
+  all 129 carry a password hash, with 106 carrying refresh tokens. The file is now untracked and gitignored, and
+  `server/gameState.js` recreates it locally and copes with its absence. **Untracking does not remove it from
+  history**: the passwords behind those two accounts need changing, every refresh token needs invalidating, and
+  the file needs purging from the public history. The code already carried a TODO to stop writing account
+  snapshots to disk at all.
 - **Dormant since 2026-05-03.** Nothing has been verified against a running instance in four months; ISP-7 and
   ISP-9 exist partly to find out what has rotted.
 
