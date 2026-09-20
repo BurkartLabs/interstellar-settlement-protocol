@@ -61,8 +61,12 @@ advantage in a player-versus-player economy. Selling power in a market game brea
 
 ## Known gaps, recorded at onboarding
 
-- **No licence file.** The repository is public with no licence, which means nobody may legally contribute or
-  fork it. Needs a Board decision on which licence before any outside contribution is invited.
+- **Licence: proprietary, all rights reserved** (Board decision #416, 2026-09-20: *"this needs to be protected.
+  It's not a project I want anyone taking"*). A LICENSE file now says so explicitly, because "no licence file"
+  and "all rights reserved" mean the same thing legally but not to a reader, and CONTRIBUTING.md no longer
+  invites pull requests the licence cannot accept. **Still open for the Board:** making the GitHub repository
+  private is the stronger protection and costs nothing — a public repository can be read, scraped and trained on
+  whatever the licence says.
 - **The public kanban disagrees with the docs.** `kanban/kanbanState.json` (38 cards, also served on
   burkart.dev) lists R&D and refineries as outstanding where `DEVELOPMENT_PHASES.md` marks them complete in v0.3.
   The roadmap file is treated as the source of truth here; the board needs reconciling or retiring.

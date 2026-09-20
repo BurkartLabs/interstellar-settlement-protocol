@@ -1,0 +1,35 @@
+Interstellar Settlement Protocol
+Copyright (c) 2026 Paul Burkart. All rights reserved.
+
+This software and its associated documentation, game data, lore and artwork (the "Work") are proprietary.
+No licence is granted to any person or organisation, by the publication of this repository or otherwise.
+
+Specifically, and without limiting the above, you may NOT:
+
+  - copy, fork, mirror or redistribute the Work, in whole or in part;
+  - modify the Work or create derivative works from it;
+  - run the Work, or any modified version of it, as a public or private service;
+  - use the Work, or any part of it, to train a machine learning model;
+  - use the names, lore, worldbuilding or visual identity of the Work.
+
+You MAY read the source, in this repository, for the purpose of understanding or evaluating it. That is the
+only permission granted, and it is revocable.
+
+WHY THIS REPOSITORY IS PUBLIC AND STILL NOT OPEN SOURCE
+-------------------------------------------------------
+Being readable is not the same as being reusable. This repository is public so that the work can be seen; it is
+not open source, and adding a permissive licence later would be easy while removing one would not.
+
+CONTRIBUTIONS
+-------------
+CONTRIBUTING.md describes the standards a contribution would have to meet. Because no licence is granted, any
+contribution can only be accepted under a separate written agreement assigning copyright in that contribution to
+the copyright holder. Please open an issue to discuss before writing code, so that nobody spends an evening on
+something that cannot be merged.
+
+THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM, OUT OF OR IN CONNECTION WITH
+THE WORK OR THE USE OR OTHER DEALINGS IN THE WORK.
+
+For permission beyond the scope of this notice, contact the copyright holder.

@@ -1,6 +1,14 @@
 # Contributing to ISP
 
-ISP is in active prototype development. Contributions are welcome, but please read this document before opening a PR — the project has strong opinions about scope and code style.
+ISP is in active prototype development.
+
+**Read [LICENSE](LICENSE) first.** This project is **not open source**. It is proprietary, all rights reserved,
+and the repository is public so the work can be read — not so it can be copied, forked, modified or run.
+
+That has a direct consequence for contributions: because no licence is granted, a contribution can only be
+accepted under a separate written agreement assigning copyright in it to the copyright holder. **Open an issue
+to discuss before writing any code**, so nobody spends an evening on something that cannot be merged. The rest
+of this document describes the standards a contribution would have to meet if that agreement is in place.
 
 ---
 
