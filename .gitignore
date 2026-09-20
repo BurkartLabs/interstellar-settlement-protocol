@@ -12,3 +12,9 @@ npm-debug.log*
 # Test/debug output artifacts
 test_output*
 *.log
+
+# Local account snapshots. Never commit these: the copy that was in git history held 129 accounts with
+# password hashes and refresh tokens, including two real addresses, in a public repository (Orchestrata AB#415).
+# server/gameState.js recreates this file locally when it needs it and copes with it being absent.
+data/accounts-snapshot.json
+data/*accounts*.json
