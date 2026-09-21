@@ -75,6 +75,24 @@ function styleForBody(body) {
   return PLANET_STYLE[body.id] || FALLBACK_PLANET_STYLE;
 }
 
+/** The belt panel for an unscouted belt. Bug #1285: the Scout button is offered only to a corporation the server
+ * will let scout (Asteroid Prospecting Arrays, in the belt's system: AB#1256); anyone else is told what to do instead
+ * of meeting a button whose refusal only shows on the Overview tab. */
+export function unscoutedBeltHtml({ hasProspecting, inSameSystem, systemName }) {
+  const unknown = `<p class="muted">Material composition unknown. Scout this belt to reveal resource data.</p>`;
+  if (!hasProspecting) {
+    return `${unknown}
+            <p class="muted" style="margin-top:0.5rem;">🔒 Research <em>Asteroid Prospecting Arrays</em> in Corporate R&amp;D to scout this belt.</p>`;
+  }
+  if (!inSameSystem) {
+    const name = String(systemName || "this system").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return `${unknown}
+            <p class="muted" style="margin-top:0.5rem;">Travel to ${name} to scout this belt.</p>`;
+  }
+  return `${unknown}
+            <button id="scout-belt-btn" class="btn btn-accent" style="margin-top:0.5rem;">Scout Asteroid Belt</button>`;
+}
+
 // ─── Planet image assets ─────────────────────────────────────────────────────
 // TODO(AB#741): Add detailed images for outstanding planets
 const PLANET_IMAGES = {};
@@ -933,8 +951,7 @@ export function createStarmapController({
             Object.entries(comp).map(([name, pct]) => `<li>${name}: ${pct}%</li>`).join("")
           }</ul>`;
         } else if (!isBeltScouted) {
-          compositionHtml = `<p class="muted">Material composition unknown. Scout this belt to reveal resource data.</p>
-            <button id="scout-belt-btn" class="btn btn-accent" style="margin-top:0.5rem;">Scout Asteroid Belt</button>`;
+          compositionHtml = unscoutedBeltHtml({ hasProspecting, inSameSystem, systemName: system.name });
         }
 
         let miningHtml = "";
