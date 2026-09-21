@@ -8,7 +8,6 @@ import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
 import { missionRewardCredits } from "./ceoEffects.js"; // Bug #1009: its own line, after the others, so parallel branches adding imports do not collide
-import { renderStationFacilities } from "./stationFacilities.js"; // Bug #1253
 
 /** localStorage, or null where reading the property itself throws (sandboxed frames, some private modes). */
 function viewerStorage() {
@@ -2171,6 +2170,9 @@ function formatDuration(ms) {
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
 }
+
+// Next to its one caller, not in the block at the top, where every branch adding an import collides (Bug #1253).
+import { renderStationFacilities } from "./stationFacilities.js";
 
 function renderStation(data) {
   const header = document.getElementById("station-location-header");
