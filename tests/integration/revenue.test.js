@@ -5,23 +5,10 @@ import { mutateAccountState, getAccountById, mutateState, getState } from "../..
 
 // Bug #984: a sale added proceeds / 24 to dailyRevenue and nothing to incomeBySource, so a unit that put about 22
 // credits in the bank read as about 1. Revenue is now booked where the cash arrives, at the price actually paid.
-
-// The test process has no data/state.json, so the market the server seeds on load is absent (Bug #975). Seed the
-// same Silicates buy order the server does (server/gameState.js NPC_BUY_SEED).
-function seedMarket() {
-  mutateState((draft) => {
-    if (!draft.market) draft.market = {};
-    if (!Array.isArray(draft.market.orderBook)) draft.market.orderBook = [];
-    if (!Array.isArray(draft.market.npcBuyOrders)) draft.market.npcBuyOrders = [];
-    if (!draft.market.npcBuyOrders.some((o) => o.id === "npc-buy-silicates-daily")) {
-      draft.market.npcBuyOrders.push({ id: "npc-buy-silicates-daily", item: "Silicates", buyer: "GEX Commodities Authority",
-        unitPrice: 24, totalQtyPerDay: 1000000, remainingQty: 1000000, lastResetDate: "" });
-    }
-  });
-}
+// The market (order book and standing buy orders) is the server's own seed: since Bug #588 a process with no
+// data/state.json gets it too, so these tests need no setup of their own.
 
 async function corpWith(silicates) {
-  seedMarket();
   const { app } = await getApp();
   const { account, accessToken } = await registerAccount(app);
   mutateAccountState(account.id, (state) => {
