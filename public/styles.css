@@ -5134,6 +5134,73 @@ textarea {
   margin-bottom: 1.2rem;
 }
 
+/* AB#402: the resource pills, with the order-type filter and sort beside them. */
+.exchange-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem 1.2rem;
+  margin-bottom: 1.2rem;
+}
+
+.exchange-controls .exchange-filter-bar {
+  margin-bottom: 0;
+  flex: 1 1 18rem;
+}
+
+.exchange-view-selects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.exchange-view-selects label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.exchange-view-selects select {
+  width: auto;
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* A filter hid every order: unlike the muted "nothing listed" line, this names the filter and offers a way out. */
+.exchange-filtered-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0.6rem 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px dashed rgba(255, 180, 60, 0.55);
+  border-radius: 8px;
+  background: rgba(255, 180, 60, 0.06);
+  color: var(--text-main);
+  font-size: 0.85rem;
+}
+
+.exchange-filtered-empty p {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .exchange-view-selects,
+  .exchange-view-selects label {
+    width: 100%;
+  }
+
+  .exchange-view-selects select {
+    flex: 1;
+  }
+}
+
 .exchange-filter-pill {
   border: 1px solid rgba(0, 247, 255, 0.24);
   border-radius: 999px;
