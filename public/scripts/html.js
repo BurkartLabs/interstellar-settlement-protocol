@@ -28,3 +28,25 @@ export function notificationItemsHtml(items, formatTime) {
     })
     .join("");
 }
+
+/**
+ * The inbox message list's rows. Every field is escaped (Bug #754: a draft's recipient name went into innerHTML raw,
+ * and on the shared dummy account a draft addressed to "<img onerror=...>" ran script for every later visitor).
+ */
+export function messageListItemsHtml(msgs, formatDate) {
+  return msgs
+    .map((m) => {
+      const unread = !m.readAt && m.folder !== "sent" && m.folder !== "draft";
+      const toLine = m.folder === "draft"
+        ? `<span class="inbox-msg-to">To: ${escapeHtml(m.toCorpName || "(no recipient)")}</span>`
+        : `<span class="inbox-msg-from">${escapeHtml(m.fromName || "Unknown")}</span>`;
+      return `<li class="inbox-msg-item${unread ? " unread" : ""}" data-msg-id="${escapeHtml(m.id)}">
+      <div class="inbox-msg-top">
+        ${toLine}
+        <span class="inbox-msg-date">${escapeHtml(formatDate(m.sentAt))}</span>
+      </div>
+      <div class="inbox-msg-subject">${escapeHtml(m.subject || "(no subject)")}${unread ? ' <span class="inbox-unread-dot"></span>' : ""}</div>
+    </li>`;
+    })
+    .join("");
+}

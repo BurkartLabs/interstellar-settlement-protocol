@@ -1,6 +1,6 @@
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { createStarmapController } from "./starmap.js";
-import { escapeHtml, notificationItemsHtml } from "./html.js";
+import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
 
 const appState = {
   serverData: null,
@@ -6200,20 +6200,8 @@ function renderInboxMessageList() {
   }
   emptyNotice.style.display = "none";
 
-  list.innerHTML = msgs.map((m) => {
-    const unread = !m.readAt && m.folder !== "sent" && m.folder !== "draft";
-    const isDraft = m.folder === "draft";
-    const toLine = isDraft
-      ? `<span class="inbox-msg-to">To: ${m.toCorpName || "(no recipient)"}</span>`
-      : `<span class="inbox-msg-from">${escapeHtml(m.fromName || "Unknown")}</span>`;
-    return `<li class="inbox-msg-item${unread ? " unread" : ""}" data-msg-id="${m.id}">
-      <div class="inbox-msg-top">
-        ${toLine}
-        <span class="inbox-msg-date">${formatInboxDate(m.sentAt)}</span>
-      </div>
-      <div class="inbox-msg-subject">${escapeHtml(m.subject || "(no subject)")}${unread ? ' <span class="inbox-unread-dot"></span>' : ""}</div>
-    </li>`;
-  }).join("");
+  // Bug #754: every field escaped (public/scripts/html.js, tested in tests/unit/inboxList.test.js).
+  list.innerHTML = messageListItemsHtml(msgs, formatInboxDate);
 
   list.querySelectorAll(".inbox-msg-item").forEach((el) => {
     el.addEventListener("click", () => openMessage(el.dataset.msgId));
