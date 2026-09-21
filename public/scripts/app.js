@@ -3722,12 +3722,13 @@ function renderLogistics(data) {
           <span class="logistics-item-qty">${Number(qty).toLocaleString()}</span>
         </li>`).join("") + `</ul>`;
     } else {
-      itemsHtml = `<ul class="logistics-item-list">` + entries.map(([item, qty]) => {
+      itemsHtml = `<ul class="logistics-item-list">` + entries.map(([item, qty], index) => {
         const maxQty = Number(qty);
         const kept = draft[`${st.id}|${item}`] || {};
+        const pickId = `logistics-pick-${escapeHtml(st.id)}-${index}`;
         return `<li class="logistics-item-row logistics-item-row--transfer">
-          <label class="logistics-item-meta">
-            <input type="checkbox" class="logistics-pick" data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}"${kept.picked ? " checked" : ""} aria-label="Pick ${escapeHtml(item)}" />
+          <input type="checkbox" id="${pickId}" class="logistics-pick" data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}"${kept.picked ? " checked" : ""} />
+          <label class="logistics-item-meta" for="${pickId}">
             <span class="logistics-item-name">${escapeHtml(item)}</span>
             <span class="logistics-item-qty muted">${maxQty.toLocaleString()} avail</span>
           </label>
@@ -3770,16 +3771,12 @@ function renderLogistics(data) {
     <section class="form-card logistics-history">
       <h3>Transfer History</h3>
       ${history.length
-        ? `<div class="table-wrap"><table class="data-table">
-            <thead><tr><th>Time</th><th>From</th><th>To</th><th>Moved</th><th>Fee</th></tr></thead>
-            <tbody>${history.map((h) => `<tr>
-              <td>${escapeHtml(new Date(h.time).toLocaleString())}</td>
-              <td>${escapeHtml(stationName(h.from))}</td>
-              <td>${escapeHtml(stationName(h.to))}</td>
-              <td>${escapeHtml(describeLines(h.lines))}</td>
-              <td>${toCurrency(h.fee)}</td>
-            </tr>`).join("")}</tbody>
-          </table></div>`
+        ? `<ol class="logistics-history-list">${history.map((h) => `<li class="logistics-history-item">
+              <span class="logistics-history-route">${escapeHtml(stationName(h.from))} → ${escapeHtml(stationName(h.to))}</span>
+              <span class="logistics-history-fee">${toCurrency(h.fee)}</span>
+              <span class="logistics-history-lines">${escapeHtml(describeLines(h.lines))}</span>
+              <time class="logistics-history-time muted" datetime="${escapeHtml(new Date(h.time).toISOString())}">${escapeHtml(new Date(h.time).toLocaleString())}</time>
+            </li>`).join("")}</ol>`
         : `<p class="muted">No transfers yet. Goods held at another station can be moved here from its card above.</p>`}
     </section>`;
 

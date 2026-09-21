@@ -3036,13 +3036,21 @@ textarea {
   text-overflow: ellipsis;
 }
 /* AB#717: pick boxes, the bulk move, each card's last outcome, and the transfer history */
-.logistics-item-meta {
+.logistics-item-row--transfer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.logistics-item-row--transfer .logistics-item-meta {
   cursor: pointer;
 }
 
 .logistics-pick {
   accent-color: var(--accent);
-  margin-right: 0.35rem;
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
 }
 
 .logistics-bulk {
@@ -3073,6 +3081,45 @@ textarea {
 
 .logistics-history {
   margin-top: 1.4rem;
+}
+
+.logistics-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.logistics-history-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.15rem 0.8rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.logistics-history-route {
+  font-weight: 600;
+}
+
+.logistics-history-lines,
+.logistics-history-time {
+  grid-column: 1 / -1;
+}
+
+.logistics-history-time {
+  font-size: 0.78rem;
+}
+
+@media (max-width: 480px) {
+  .logistics-item-row--transfer {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .logistics-item-row--transfer .logistics-transfer-controls {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 480px) {
