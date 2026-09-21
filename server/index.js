@@ -284,6 +284,9 @@ const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
 const JWT_SECRET = process.env.JWT_SECRET || "isp-dev-insecure-secret-change-me";
 const ALLOW_DUMMY_AUTH = true;
 
+/** Characters in one chat line: the chat input's maxlength (Bug #1127). */
+const CHAT_MAX_LENGTH = 300;
+
 function stripHtml(input) {
   return String(input || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
@@ -3422,8 +3425,10 @@ io.on("connection", (socket) => {
     if (!corp) return;
     const channel = resolveChatChannel(payload?.channel, corp);
     if (!channel) return;
-    const content = stripHtml(payload?.content || "");
-    if (!content) return;
+    // Bug #1127: kept as typed (the client renders it as text; stripping tags garbled "10 < price < 30"), and at most
+    // CHAT_MAX_LENGTH characters, the chat box's own limit: a longer line is dropped like an empty one.
+    const content = typeof payload?.content === "string" ? payload.content.trim() : "";
+    if (!content || content.length > CHAT_MAX_LENGTH) return;
 
     // The author is the sender's own corporation; payload.author is ignored. No account id goes in the broadcast.
     const message = {
