@@ -104,14 +104,13 @@ describe("hostile quantities and prices are refused before anything changes (Bug
     });
   }
 
-  it("floors a fractional quantity and price on both paths", async () => {
+  it("refuses a fractional quantity or price on both paths, and nothing moves (AB#731)", async () => {
     const s = await seller(100);
-    const listed = await s.list({ quantity: 2.5, unitPrice: 10.9 });
-    expect(listed.status).toBe(200);
-    expect(listed.body.order).toMatchObject({ quantity: 2, unitPrice: 10 });
+    expect((await s.list({ quantity: 2.5, unitPrice: 10 })).status).toBe(400);
+    expect((await s.list({ quantity: 2, unitPrice: 10.9 })).status).toBe(400);
     const npc = getState().market.npcBuyOrders.find((o) => o.item === "Silicates");
-    expect((await s.api.post(`/api/market/npc-orders/${npc.id}/sell`).send({ quantity: 3.7 })).status).toBe(200);
-    expect(s.stock()).toBe(100 - 2 - 3);
+    expect((await s.api.post(`/api/market/npc-orders/${npc.id}/sell`).send({ quantity: 3.7 })).status).toBe(400);
+    expect(s.stock()).toBe(100);
   });
 });
 

@@ -17,11 +17,11 @@ export function bodyNumber(value, { fallback, min = -Infinity, max = Infinity, i
 }
 
 /**
- * A count of things from a request body: a finite number floored to a whole number, at least 1; anything else is null,
- * so the route refuses it rather than assuming a default (Bug #425: a sell order or NPC sale with quantity "abc", 0 or
- * -5 must change nothing).
+ * A count of things from a request body: a whole number of at least 1; anything else is null, so the route refuses it
+ * rather than assuming a default (Bug #425: a sell order or NPC sale with quantity "abc", 0 or -5 must change nothing).
+ * A fraction is refused, not floored, like every other count the game takes (AB#731, AB#732).
  */
 export function bodyCount(value) {
-  const n = bodyNumber(value, { fallback: null, integer: true });
-  return n !== null && n >= 1 ? n : null;
+  const n = bodyNumber(value, { fallback: null });
+  return n !== null && Number.isInteger(n) && n >= 1 ? n : null;
 }

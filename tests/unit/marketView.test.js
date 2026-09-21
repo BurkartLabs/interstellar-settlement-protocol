@@ -24,7 +24,7 @@ describe("marketView (Bug #425)", () => {
 describe("bodyCount (Bug #425)", () => {
   it("is a whole number of at least 1, or null", () => {
     expect(bodyCount(3)).toBe(3);
-    expect(bodyCount("2.9")).toBe(2);
-    for (const v of ["abc", "NaN", "Infinity", -5, 0, 0.5, null, undefined, "", {}]) expect(bodyCount(v), String(v)).toBeNull();
+    expect(bodyCount("7")).toBe(7);
+    for (const v of ["abc", "NaN", "Infinity", -5, 0, 0.5, 2.5, "2.9", null, undefined, "", {}]) expect(bodyCount(v), String(v)).toBeNull();
   });
 });
