@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { freshGlobalState, normalizeGlobalState, CHAT_CHANNELS } from "../../server/gameState.js";
+import { freshGlobalState, normalizeGlobalState, CHAT_CHANNELS, storedCombatReportSummary } from "../../server/gameState.js";
 
 // Bug #588 (and #574): the shape of the global state is tested where it is made, not by reading data/state.json,
 // which is gitignored runtime output. A fresh install used to get the bare seed with no market at all: no order book
@@ -33,5 +33,17 @@ describe("normalizeGlobalState repairs an older state and changes nothing it doe
   it("is the same applied twice as once", () => {
     const once = normalizeGlobalState(freshGlobalState());
     expect(JSON.parse(JSON.stringify(normalizeGlobalState(structuredClone(once))))).toEqual(JSON.parse(JSON.stringify(once)));
+  });
+});
+
+describe("combat reports left by the removed simulate route are reported, not deleted (Bug #1036)", () => {
+  it("counts them and their size, and names nothing from inside them", () => {
+    expect(storedCombatReportSummary({ combatReports: [] })).toBeNull();
+    expect(storedCombatReportSummary({})).toBeNull();
+    const summary = storedCombatReportSummary({ combatReports: [{ attackerName: "x".repeat(1000) }, { attackerName: "<b>" }] });
+    expect(summary.count).toBe(2);
+    expect(summary.bytes).toBeGreaterThan(1000);
+    expect(JSON.stringify(summary)).not.toContain("xxx");
+    expect(JSON.stringify(summary)).not.toContain("<b>");
   });
 });
