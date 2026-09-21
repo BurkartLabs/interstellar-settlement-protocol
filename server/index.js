@@ -1,6 +1,7 @@
 import "./loadEnv.js";
 import express from "express";
 import kanbanRouter from "./kanban.js";
+import { resolveJwtSecret } from "./jwtSecret.js";
 import { bodyNumber } from "./bodyNumber.js";
 import fs from "node:fs";
 import http from "node:http";
@@ -280,11 +281,12 @@ function getInterstellarTravelTimeMs(fromSystemId, toSystemId) {
 const ACCESS_TOKEN_SECONDS = 7 * 24 * 60 * 60;
 const DUMMY_ACCESS_TOKEN_SECONDS = IS_DEV ? 7 * 24 * 60 * 60 : 2 * 60 * 60;
 const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
-const JWT_SECRET = process.env.JWT_SECRET || "isp-dev-insecure-secret-change-me";
 // The developer surface (the shared demo account's login and reset, and the kanban board) exists only when the
 // environment asks for it: ISP_DEV=1, and never in production. It used to be a literal true, so it was live on every
 // server (Bug #423, Bug #1069). Unset, the routes are not registered at all.
 const DEV_SURFACE = process.env.ISP_DEV === "1" && process.env.NODE_ENV !== "production";
+// Refuses to start without a real secret, except on the dev surface (Bug #589: it fell back to a string in the source).
+const JWT_SECRET = resolveJwtSecret(process.env, { devSurface: DEV_SURFACE });
 
 function stripHtml(input) {
   return String(input || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
