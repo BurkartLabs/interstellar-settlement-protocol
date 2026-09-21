@@ -1931,13 +1931,21 @@ function pushSystemNotification(account, payload) {
   account.notifications = account.notifications.slice(0, 120);
 }
 
-// Bug #1097: payroll, settled at the same moments as the mining step. Imported beside its use.
+// Bug #1097: payroll, settled by the mining ticker (server/index.js) for every account. Imported beside its use.
 import { settlePayroll, payrollNotice } from "./payroll.js";
 
-/** Charge payroll up to now, and tell the player when wages go unpaid or are paid again. */
-function settleAccountPayroll(account, now = Date.now()) {
-  const notice = payrollNotice(account.state.corp, settlePayroll(account.state.corp, now));
+/**
+ * Charge an account's payroll up to `now`, and tell the player when wages go unpaid or are paid again. Only the
+ * ticker calls it, so reading an account, or a request that is refused, never changes it.
+ */
+export function settleAccountPayroll(accountId, now = Date.now()) {
+  const account = accountsStore.accounts?.[accountId];
+  if (!account?.state?.corp) return null;
+  const result = settlePayroll(account.state.corp, now);
+  const notice = payrollNotice(account.state.corp, result);
   if (notice) pushSystemNotification(account, notice);
+  if (result.paid > 0 || notice) scheduleAccountsSave();
+  return result;
 }
 
 export function getAccountById(accountId) {
@@ -1947,7 +1955,6 @@ export function getAccountById(accountId) {
   }
 
   applyMiningOperations(account.state.corp);
-  settleAccountPayroll(account);
   refreshContractOfferings(account.state.corp);
   evaluateLevelProgress(account.state);
   scheduleAccountsSave();
@@ -2486,10 +2493,7 @@ export function mutateAccountState(accountId, mutator) {
   }
 
   applyMiningOperations(account.state.corp);
-  // Bug #1097: settled before the change, so time already passed is paid at the headcount it had (a hire starts now).
-  settleAccountPayroll(account);
   mutator(account.state);
-  settleAccountPayroll(account); // starts the clock at a first hire; otherwise nothing has passed since the line above
   applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
   ensureCorpMiningModel(account.state.corp);

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState, getAccountById } from "../../server/gameState.js";
@@ -28,9 +28,6 @@ describe("POST /api/accounts/:id/gameplay/purchase-lease (Bug #691)", () => {
   ]) {
     it(`rejects ${label} with 400 and changes nothing`, async () => {
       const { lease, snapshot } = await readyCorp();
-      // Bug #1097: this corporation has 20 staff, whose wages accrue with every millisecond. Hold the clock still (Date
-      // only), so the comparison is of what the refused request did, not of the time it took.
-      vi.useFakeTimers({ toFake: ["Date"], now: Date.now() });
       const before = snapshot();
       const res = await lease(body);
       expect(res.status).toBe(400);
@@ -39,7 +36,6 @@ describe("POST /api/accounts/:id/gameplay/purchase-lease (Bug #691)", () => {
       expect(snapshot()).toBe(before);
     });
   }
-  afterEach(() => { vi.useRealTimers(); });
 
   it("leases a catalog body at its catalog price and stores the catalog's name", async () => {
     const { id, lease } = await readyCorp();

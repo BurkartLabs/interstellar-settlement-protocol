@@ -1,10 +1,10 @@
 // Payroll (Bug #1097). Hiring promised $150 a day per employee and nothing ever charged it. The Board answered
 // Decision #1147 ("turn payroll on now?") with "Yes", read by the PM as option A: charge it as designed, now.
 //
-// Payroll is settled whenever the corporation is read or changed (the same moments the mining step runs, including
-// the 5-second mining ticker), for the time since it was last settled, at the headcount of that time. So the same
-// day costs the same whether it arrives in one slice or in thousands: the unpaid fraction of a credit is carried to
-// the next settlement, as the extractor costs carry theirs (Bug #1138).
+// Payroll is settled by the 5-second mining ticker, for every account, online or not, for the time since it was last
+// settled. Only the ticker settles it, so reading an account or a refused request never changes it; a new hire
+// starts costing at the next tick. A day costs the same whether it arrives in one slice or in thousands: the unpaid
+// fraction of a credit is carried to the next settlement, as the extractor costs carry theirs (Bug #1138).
 //
 // A corporation that cannot cover it pays what it has: its balance stops at 0, never below, and the rest is owed to
 // its staff (finances.payrollArrears), paid first from the next credits it has. Nobody is let go. The Financial Core
@@ -35,7 +35,7 @@ export function settlePayroll(corp, now = Date.now()) {
   if (!f) return none;
   const owedBefore = Math.max(0, Number(f.payrollArrears) || 0);
   // No staff and nothing owed: nothing runs, and the corporation is left exactly as it is (the clock starts at the
-  // first hire, which is settled right after the change).
+  // first tick after the first hire).
   if (dailyPayroll(corp) === 0 && owedBefore === 0) {
     delete f.payrollPaidThrough;
     delete f.payrollRemainder;
