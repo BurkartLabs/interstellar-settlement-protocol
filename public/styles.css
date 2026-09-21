@@ -4605,7 +4605,10 @@ body.walkthrough-open {
 /* ─── Agent card (bureau hub) ────────────────────────────── */
 .agent-card {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  width: 30em;
+  /* AB#1055: a fixed 30em ran out of the Assignments board (320 px on desktop, 94 px on a phone); now it fills the
+     board up to 30em */
+  width: 100%;
+  max-width: 30em;
 }
 
 .agent-card:hover,
@@ -5665,6 +5668,118 @@ tr.npc-order-exhausted {
 .compose-candidate.is-selected {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* ─── Start here (AB#1056) ─── */
+/* The Station's first action, shown above the station description until the corporation has an office. */
+.start-here {
+  margin: 0.8rem 0 1rem;
+  border: 1px solid var(--accent);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+.start-here .overline,
+.start-here p {
+  margin: 0;
+}
+.start-here p:not(.overline) {
+  flex: 1 1 22rem;
+}
+
+/* ─── Phone: one row of tabs (AB#1056) ─── */
+/* At phone width the fifteen tabs wrapped into six rows and pushed every panel's first action below the fold. One row
+   that scrolls sideways; the tab cut off at the right edge says there is more. 767px matches NARROW_MAX_WIDTH in
+   public/scripts/firstAction.js. */
+@media (max-width: 767px) {
+  .tab-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: thin;
+  }
+  .tab-btn {
+    flex: 0 0 auto;
+  }
+}
+
+/* ─── Overview: milestones first (AB#1056) ─── */
+/* At levels 0 to 2 the milestones are moved to the top of the Overview; the gap a card gets between siblings is not
+   wanted above the first one, and a heading after it needs the gap instead. */
+#overview > .form-card:first-child {
+  margin-top: 0;
+}
+#overview > .form-card:first-child + h2 {
+  margin-top: 1.6rem;
+}
+
+/* ─── Galactic Exchange: tables side by side only when they fit (AB#1055, AB#1165) ─── */
+/* Sell Orders and Create Listing sat side by side from 500 px of panel, while each table needs about 520 px: at
+   1280x800 the Buy and Create Listing buttons were outside their cards. Two columns only when each card can hold its
+   table; below that they stack full width. */
+.exchange-layout {
+  grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr));
+}
+
+/* ─── Phone: panels fill the screen (AB#1055) ─── */
+/* Whole panels were capped with vw max-widths, a design choice on a desktop that a phone turns into a column 94 to
+   188 px wide. At phone width they fill the space they are given. tests/unit/phonePanels.test.js derives the list of
+   capped rules from this stylesheet, so a new one added above without a line here fails the suite. 767px is
+   NARROW_MAX_WIDTH in public/scripts/firstAction.js. */
+@media (max-width: 767px) {
+  #inbox,
+  #chat,
+  #map-details,
+  #forum-overview-view,
+  #agent-office-view,
+  #missions-board-view,
+  .mission-card {
+    max-width: none;
+  }
+  /* the ISA Claims lease cards: a 280 px minimum and 300 px columns ran past a 309 px view */
+  .lease-card-grid {
+    grid-template-columns: 1fr;
+  }
+  #station-building-content.icl-bg .form-card .lease-card {
+    min-width: 0;
+  }
+  /* The Exchange tables with an action in every row: a six-column table does not fit 280 px, and the Buy and Create
+     Listing buttons were off to the right. One card per row; each cell names its column (tableLabels.js). */
+  .data-table--stack thead {
+    display: none;
+  }
+  .data-table--stack,
+  .data-table--stack tbody,
+  .data-table--stack tr,
+  .data-table--stack td {
+    display: block;
+    width: 100%;
+    min-width: 0; /* .data-table sets 520px, which is the width this layout exists to escape */
+  }
+  .data-table--stack tr {
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table--stack td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.2rem 0;
+    border: 0;
+    text-align: right;
+  }
+  .data-table--stack td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    text-align: left;
+    font-size: 0.8rem;
+  }
+  .data-table--stack .sell-input {
+    width: 7rem;
+    min-width: 0;
+  }
 }
 
 /* Bug #1132: a quoted post inside a forum reply, as Quote writes it ("> " lines). */

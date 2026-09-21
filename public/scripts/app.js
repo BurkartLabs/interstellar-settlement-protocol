@@ -7,6 +7,8 @@ import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft } from "./forumA
 import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml, forumPostBodyHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
+import { stationStartPromptHtml, milestonesFirst, sidebarStartsCollapsed, revealScroll } from "./firstAction.js"; // AB#1056
+import { labelTableCells } from "./tableLabels.js"; // AB#1055
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
 import { missionRewardCredits } from "./ceoEffects.js"; // Bug #1009: its own line, after the others, so parallel branches adding imports do not collide
 
@@ -573,7 +575,17 @@ function bindRippleEffect() {
   });
 }
 
-function bindCollapsibleSections() {  document.querySelectorAll(".section-toggle").forEach((button) => {
+function bindCollapsibleSections() {
+  // AB#1056: at phone width the sidebar filled the first screen, so it starts collapsed there; its toggles still open it
+  if (sidebarStartsCollapsed(window.innerWidth)) {
+    document.querySelectorAll(".side-panel .section-toggle").forEach((button) => {
+      const content = document.getElementById(button.getAttribute("aria-controls") || "");
+      if (!content) return;
+      button.setAttribute("aria-expanded", "false");
+      content.hidden = true;
+    });
+  }
+  document.querySelectorAll(".section-toggle").forEach((button) => {
     button.addEventListener("click", () => {
       const controlsId = button.getAttribute("aria-controls");
       const content = controlsId ? document.getElementById(controlsId) : null;
@@ -1398,6 +1410,8 @@ function bindOfficeActions(building, data) {
           appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
           updateAllViews();
           showStationBuilding(building.id);
+          // AB#1056: hiring is the next thing to do, and on a phone its form sat a screen and a half down
+          revealUnderHeader(document.getElementById("office-hire-form")?.closest(".form-card"));
         } else {
           const cost = station?.officeCost || 20000;
           if ((appState.data.corp.finances.credits || 0) < cost) {
@@ -2217,6 +2231,7 @@ function renderStation(data) {
   header.innerHTML = `
     <p class="overline">${escapeHtml(station.designation)} &#47;&#47; ${escapeHtml(station.systemId.toUpperCase())}</p>
     <h2>${escapeHtml(station.name)}</h2>
+    ${stationStartPromptHtml(corp)}
     <p class="muted lede">${escapeHtml(station.description)}</p>
   `;
 
@@ -2492,6 +2507,15 @@ function bindBuildingActions() {
   document.getElementById("station-back-btn")?.addEventListener("click", () => {
     showStationOverview();
   });
+
+  // AB#1056: the Start here prompt opens the Suites; it has its own attribute so the walkthrough's highlight, which
+  // finds the Suites card by data-building-action, still lands on the card.
+  document.getElementById("station-location-header")?.addEventListener("click", (event) => {
+    if (!event.target.closest("[data-start-office]")) return;
+    showStationBuilding("orbital-executive-suites");
+    // straight to the lease form, which sits under the Suites' description and was below the fold on a phone
+    revealUnderHeader(document.getElementById("rent-office-btn")?.closest(".form-card") || document.getElementById("station-building-view"));
+  });
 }
 
 // ─── Financial Control Board (CORP-FIN-1) — KPI strip and ledger tables ─────
@@ -2731,6 +2755,17 @@ function renderLevel2Progress(data) {
 
   if (!requirementsWrap || !status) {
     return;
+  }
+
+  // AB#1056: early on, the next milestones are the first thing on the Overview, above the brief and the stat cards
+  const milestonesSection = requirementsWrap.closest("section.form-card");
+  const overviewPanel = document.getElementById("overview");
+  const expeditionPanel = document.getElementById("expedition-panel");
+  if (milestonesSection && overviewPanel && expeditionPanel) {
+    const first = milestonesFirst(data?.corp?.level);
+    const isFirst = overviewPanel.firstElementChild === milestonesSection;
+    if (first && !isFirst) overviewPanel.prepend(milestonesSection);
+    if (!first && isFirst) expeditionPanel.after(milestonesSection);
   }
 
   // Map requirement IDs to the tab they should navigate to
@@ -3956,6 +3991,9 @@ function renderMarket(data) {
       .join("");
   }
   if (tradeHistoryEmpty) tradeHistoryEmpty.hidden = tradeHistory.length > 0;
+
+  // AB#1055: the action tables stack into one card per row at phone width; each cell carries its column's name
+  document.querySelectorAll("#market .data-table--stack").forEach(labelTableCells);
 }
 
 function renderForums(data) {
@@ -5029,13 +5067,32 @@ function setTab(targetId) {
   noteWalkthroughEvent(`tab:${targetId}`);
 }
 
+/**
+ * AB#1056: a panel the player chose is brought on screen. At phone width the panels sit below the sidebar and the tab
+ * bar, so a tap used to change something nobody could see. Only for the player's own choices, not for automatic tab
+ * changes, and only when the panel's top is not already in the upper part of the screen.
+ */
+function goToTab(targetId) {
+  setTab(targetId);
+  const panel = document.getElementById(targetId);
+  if (panel?.classList.contains("active")) revealUnderHeader(panel);
+}
+
+/** Scroll `el` to just under the pinned header when it is not already in view below it (AB#1056). */
+function revealUnderHeader(el) {
+  if (!el) return;
+  const headerBottom = document.querySelector(".app-header")?.getBoundingClientRect().bottom ?? 0;
+  const delta = revealScroll(el.getBoundingClientRect().top, headerBottom, window.innerHeight);
+  if (delta) window.scrollBy(0, delta);
+}
+
 function bindTabs() {
   tabButtons.forEach((button) => {
-    button.addEventListener("click", () => setTab(button.dataset.tab));
+    button.addEventListener("click", () => goToTab(button.dataset.tab));
   });
 
   document.querySelectorAll("[data-jump]").forEach((button) => {
-    button.addEventListener("click", () => setTab(button.dataset.jump));
+    button.addEventListener("click", () => goToTab(button.dataset.jump));
   });
 
   // Delegated handler for dynamically-rendered requirement cards
@@ -5043,7 +5100,7 @@ function bindTabs() {
   if (requirementsWrap) {
     requirementsWrap.addEventListener("click", (e) => {
       const card = e.target.closest("[data-jump]");
-      if (card) setTab(card.dataset.jump);
+      if (card) goToTab(card.dataset.jump);
     });
   }
 }
