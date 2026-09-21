@@ -557,6 +557,8 @@ async function refreshBeltCompositions() {
   } catch (_) { /* silent */ }
 }
 
+import { tradeConfirmRowsHtml, queueItemsHtml } from "./html.js"; // Bug #1002
+
 // ─── Trade confirmation modal ────────────────────────────────────────────────
 function getClientExchangeTaxPct() {
   return Number(appState.data?.corp?.finances?.exchangeSalesTaxPct ?? 8);
@@ -574,12 +576,7 @@ function showTradeConfirmation({ heading, title, rows, confirmLabel = "Confirm" 
   titleEl.textContent = title || "Confirm Trade";
   okBtn.textContent = confirmLabel;
 
-  bodyEl.innerHTML = `<table class="trade-confirm-table"><tbody>${rows
-    .map((r) => {
-      const cls = r.highlight ? ` class="trade-confirm-highlight"` : r.muted ? ` class="trade-confirm-muted"` : "";
-      return `<tr${cls}><td>${r.label}</td><td class="trade-confirm-value">${r.value}</td></tr>`;
-    })
-    .join("")}</tbody></table>`;
+  bodyEl.innerHTML = `<table class="trade-confirm-table"><tbody>${tradeConfirmRowsHtml(rows)}</tbody></table>`;
 
   modal.hidden = false;
 
@@ -3145,34 +3142,20 @@ function queueProgress(item) {
 function renderQueue(elId, queue, subtitle) {
   const el = document.getElementById(elId);
   if (!queue.length) {
-    el.innerHTML = `<article class="queue-item"><p>No queued items yet.</p><p class="muted">${subtitle}</p></article>`;
+    el.innerHTML = `<article class="queue-item"><p>No queued items yet.</p><p class="muted">${escapeHtml(subtitle)}</p></article>`;
     return;
   }
 
-  el.innerHTML = queue
-    .map((item) => {
-      const progress = queueProgress(item);
-      let progressMeta = "";
-      if (item.startedAt) {
-        const remainingMs = Math.max(0, (item.startedAt + item.durationHours * 3_600_000) - Date.now());
-        const rHrs = Math.floor(remainingMs / 3_600_000);
-        const rMins = Math.floor((remainingMs % 3_600_000) / 60_000);
-        const timeStr = remainingMs > 0 ? `${rHrs}h ${rMins}m remaining` : "Completing...";
-        progressMeta = `<div class="queue-progress-meta"><span>${progress.toFixed(1)}%</span><span>${timeStr}</span></div>`;
-      }
-      return `
-      <article class="queue-item">
-        <h3>${item.name}</h3>
-        <p class="muted">${subtitle}</p>
-        <p>${item.effect}</p>
-        <p class="muted">Duration: ${item.durationHours}h | ${item.startedAt ? "In progress" : "Queued"}</p>
-        ${item.costCredits ? `<p class="muted">Committed funding: ${toCurrency(item.costCredits)} credits</p>` : ""}
-        ${progressMeta}
-        <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
-      </article>
-      `;
-    })
-    .join("");
+  el.innerHTML = queueItemsHtml(queue, subtitle, {
+    progressOf: queueProgress,
+    remainingLabel: (item) => {
+      const remainingMs = Math.max(0, (item.startedAt + item.durationHours * 3_600_000) - Date.now());
+      const rHrs = Math.floor(remainingMs / 3_600_000);
+      const rMins = Math.floor((remainingMs % 3_600_000) / 60_000);
+      return remainingMs > 0 ? `${rHrs}h ${rMins}m remaining` : "Completing...";
+    },
+    formatCredits: toCurrency
+  });
 }
 // TODO: Remove duplicate. This should be stored in the database
 const RESOURCE_CATALOG = [
@@ -3305,14 +3288,14 @@ function renderRefinery(data) {
           <p class="muted">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(chain.input)}${!hasInput && !techGated ? ` (need ${minQty})` : ""}</p>
           ${canStart
             ? `<div class="refine-quantity-row" style="display:flex;gap:0.5rem;align-items:center;margin:0.5rem 0;">
-                <label for="${inputId}" class="muted" style="font-size:0.85rem;">Quantity</label>
-                <input id="${inputId}" class="refine-quantity-input" type="number"
+                <label for="${escapeHtml(inputId)}" class="muted" style="font-size:0.85rem;">Quantity</label>
+                <input id="${escapeHtml(inputId)}" class="refine-quantity-input" type="number"
                   min="${minQty}" step="${perCycle}" value="${defaultQty}"
-                  data-chain-id="${chain.id}"
+                  data-chain-id="${escapeHtml(chain.id)}"
                   style="width:9rem;padding:0.3rem 0.5rem;background:var(--color-bg-deep);border:1px solid var(--color-border);color:var(--color-text);border-radius:4px;" />
                 <span class="muted" style="font-size:0.8rem;">min ${minQty}, step ${perCycle}</span>
               </div>
-              <button class="btn btn-accent refinery-start-btn" data-chain-id="${chain.id}" data-refinery-id="${idleRefinery.id}" data-quantity-input="${inputId}">Start Run</button>`
+              <button class="btn btn-accent refinery-start-btn" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}">Start Run</button>`
             : belowRefineryCap && canBuildRefinery
               ? `<button class="btn btn-outline refinery-build-btn"${!hasOpenBuildingSlot ? ` data-disabled-reason="${escapeHtml(`Refinery requires 1 open building slot. Current usage: ${buildings.length}/${buildingSlots}.`)}` : ""}>${hasRefinery ? "Build 2nd Refinery" : "Build Refinery"}</button>${!hasOpenBuildingSlot ? `<p class="muted" style="color:var(--color-warn)">No open building slots. Current usage: ${buildings.length}/${buildingSlots}.</p>` : ""}`
               : !hasRefinery && !canBuildRefinery
@@ -5743,13 +5726,13 @@ function bindForms() {
     const totalCost = qty * price;
     const confirmed = await showTradeConfirmation({
       heading: "Buy from Sell Order",
-      title: `Buy ${escapeHtml(item)}`,
+      title: `Buy ${item}`,
       confirmLabel: "Buy",
       rows: [
-        { label: "Item", value: escapeHtml(item) },
+        { label: "Item", value: item },
         { label: "Quantity", value: qty.toLocaleString() },
         { label: "Unit Price", value: toCurrency(price) },
-        { label: "Seller", value: escapeHtml(seller) },
+        { label: "Seller", value: seller },
         { label: "Total Cost", value: toCurrency(totalCost), highlight: true }
       ]
     });
@@ -5811,13 +5794,13 @@ function bindForms() {
 
     const confirmed = await showTradeConfirmation({
       heading: "Sell to Standing Buy Order",
-      title: `Sell ${escapeHtml(item)}`,
+      title: `Sell ${item}`,
       confirmLabel: "Sell",
       rows: [
-        { label: "Item", value: escapeHtml(item) },
+        { label: "Item", value: item },
         { label: "Quantity", value: qty.toLocaleString() },
         { label: "Unit Price", value: toCurrency(price) },
-        { label: "Buyer", value: escapeHtml(buyer) },
+        { label: "Buyer", value: buyer },
         { label: "Gross Total", value: toCurrency(grossTotal) },
         { label: `GEX Sales Tax (${taxPct}%)`, value: `− ${toCurrency(taxAmount)}`, muted: true },
         { label: "You Receive", value: toCurrency(netProceeds), highlight: true }
