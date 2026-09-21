@@ -62,3 +62,16 @@ export function quoteDraft(existing, post, { maxLines = 4, maxChars = 300 } = {}
   const before = String(existing || "").replace(/\s+$/, "");
   return `${before ? `${before}\n\n` : ""}${quote}\n\n`.slice(0, REPLY_MAX_LENGTH);
 }
+
+// Bug #1133: a new thread arrives twice, in the POST response and in the forums:updated broadcast, which the server
+// sends first. The response path added it with unshift even when the broadcast had already put it in the list, so the
+// poster saw it twice until a reload. Every path that puts one thread into the list goes through this, keyed by id.
+
+/** `threads` with `thread` in it once: replacing the copy with the same id where it is, or at the top if new. */
+export function mergeThread(threads, thread) {
+  const list = Array.isArray(threads) ? threads.filter((t) => t) : [];
+  if (!thread?.id) return list;
+  const at = list.findIndex((t) => t.id === thread.id);
+  if (at >= 0) return list.map((t, i) => (i === at ? thread : t));
+  return [thread, ...list];
+}

@@ -3,7 +3,7 @@ import { chooseHighlight, nextStepIndex } from "./walkthrough.js";
 import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
-import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft } from "./forumActions.js";
+import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft, mergeThread } from "./forumActions.js";
 import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml, forumPostBodyHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
@@ -3958,6 +3958,19 @@ function renderMarket(data) {
   if (tradeHistoryEmpty) tradeHistoryEmpty.hidden = tradeHistory.length > 0;
 }
 
+/**
+ * Bug #1133: the one way a thread from a response enters the client's forums, once, by id (mergeThread). Both copies
+ * are updated: updateAllViews copies serverData.forums over data.forums, so a thread added to data alone vanished.
+ */
+function putForumThread(thread) {
+  if (!thread?.id || !appState.data) return;
+  for (const holder of [appState.data, appState.serverData]) {
+    if (!holder) continue;
+    if (!holder.forums) holder.forums = { categories: [], threads: [] };
+    holder.forums.threads = mergeThread(holder.forums.threads, thread);
+  }
+}
+
 function renderForums(data) {
   const overviewView = document.getElementById("forum-overview-view");
   const threadView = document.getElementById("forum-thread-view");
@@ -4125,10 +4138,7 @@ function renderForums(data) {
             body: JSON.stringify(request.body)
           });
           const payload = await parseJsonResponse(response);
-          if (payload?.thread && Array.isArray(appState.data?.forums?.threads)) {
-            const idx = appState.data.forums.threads.findIndex((t) => t.id === payload.thread.id);
-            if (idx >= 0) appState.data.forums.threads[idx] = payload.thread;
-          }
+          putForumThread(payload?.thread);
           renderForums(appState.data);
         } catch (err) {
           likeBtn.disabled = false;
@@ -4179,10 +4189,7 @@ function renderForums(data) {
             // Splice the updated thread into the local cache so re-render
             // shows the new reply immediately (the socket broadcast will
             // also fire, but we don't want to wait for it).
-            if (payload?.thread && Array.isArray(appState.data?.forums?.threads)) {
-              const idx = appState.data.forums.threads.findIndex((t) => t.id === payload.thread.id);
-              if (idx >= 0) appState.data.forums.threads[idx] = payload.thread;
-            }
+            putForumThread(payload?.thread);
             // Bug #1222: clear the box on the page now, not contentEl: if the socket update re-rendered the thread first,
             // contentEl is the old, detached box and the sent text would come back as a kept draft.
             const liveBox = document.getElementById("forum-reply-content");
@@ -4303,13 +4310,8 @@ function renderForums(data) {
           body: JSON.stringify({ category, title, body })
         });
         const payload = await parseJsonResponse(response);
-        if (payload?.thread) {
-          if (!Array.isArray(appState.data?.forums?.threads)) {
-            if (!appState.data.forums) appState.data.forums = { categories: [], threads: [] };
-            appState.data.forums.threads = [];
-          }
-          appState.data.forums.threads.unshift(payload.thread);
-        }
+        // Bug #1133: the forums:updated broadcast usually lands first with this thread already in it.
+        putForumThread(payload?.thread);
         newThreadForm.reset();
         newThreadForm.hidden = true;
         if (statusEl) statusEl.textContent = "";
