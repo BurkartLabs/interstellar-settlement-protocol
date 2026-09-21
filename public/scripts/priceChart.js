@@ -107,8 +107,9 @@ export function bindPriceChart({ fetchHistory, formatCredits }) {
         plugins: { legend: { labels: { color: COLOR.muted, boxWidth: 12 } } },
         scales: {
           x: { ticks: { color: COLOR.muted, maxRotation: 0, autoSkip: true }, grid: { color: COLOR.grid } },
-          price: { position: "left", ticks: { color: COLOR.muted, callback: (v) => formatCredits(v) }, grid: { color: COLOR.grid } },
-          volume: { position: "right", beginAtZero: true, ticks: { color: COLOR.muted }, grid: { display: false } }
+          // Whole credits and whole units: fractional ticks printed as rounded money repeated their labels ($25, $25).
+          price: { position: "left", ticks: { color: COLOR.muted, precision: 0, callback: (v) => formatCredits(v) }, grid: { color: COLOR.grid } },
+          volume: { position: "right", beginAtZero: true, ticks: { color: COLOR.muted, precision: 0 }, grid: { display: false } }
         }
       }
     });
