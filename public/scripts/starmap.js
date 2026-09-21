@@ -261,6 +261,17 @@ function asteroidComposition(seedKey) {
   return profiles[seed % profiles.length];
 }
 
+/** The Starmap canvas's backing store for a CSS box and devicePixelRatio (clamped to 1..2): one CSS pixel is dpr
+ * backing pixels in both directions, so what is drawn at (x, y) is where a click at (x, y) lands. */
+export function canvasBackingSize(cssWidth, cssHeight, devicePixelRatio) {
+  const dpr = Math.max(1, Math.min(2, devicePixelRatio || 1));
+  return {
+    width: Math.max(1, Math.round(cssWidth * dpr)),
+    height: Math.max(1, Math.round(cssHeight * dpr)),
+    dpr
+  };
+}
+
 export function createStarmapController({
   canvas,
   fallbackEl,
@@ -302,16 +313,18 @@ export function createStarmapController({
     }
 
     const rect = canvas.getBoundingClientRect();
-    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    const width = Math.max(500, Math.floor(rect.width));
     const availableHeight = Math.max(320, Math.floor(window.innerHeight - rect.top - 34));
     const targetHeight = Math.min(560, availableHeight);
 
     canvas.style.height = `${targetHeight}px`;
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(targetHeight * dpr);
+    // Bug #1286: the backing store follows the box the map is drawn and clicked in (clientWidth x clientHeight, the
+    // units every draw function and clickTargets use). A 500px floor here squeezed the drawing into the left half of
+    // a phone's 292px canvas while taps were still tested at full scale, so tapping a star missed it.
+    const size = canvasBackingSize(canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio);
+    canvas.width = size.width;
+    canvas.height = size.height;
     if (ctx) {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
     }
   }
 
