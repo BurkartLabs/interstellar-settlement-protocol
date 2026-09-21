@@ -2365,6 +2365,13 @@ export function listAccountMessages(accountId) {
 /** The name a player's mail is signed with. Never the email address. */
 const senderName = (account) => String(account?.state?.corp?.corporationName || "").trim() || "Unregistered corporation";
 
+/** Bug #754: the longest corporation name there is (register.html's maxlength), so a longer recipient is none. */
+export const CORP_NAME_MAX_LENGTH = 80;
+// Control characters (C0 and DEL). Written with escapes so the source holds no raw control bytes.
+const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/g;
+/** A draft's recipient as typed, made safe to keep: control characters removed, trimmed, capped. */
+const draftRecipientName = (value) => String(value || "").replace(CONTROL_CHARACTERS, "").trim().slice(0, CORP_NAME_MAX_LENGTH);
+
 /** Give every corporation that lacks one a publicId. Returns how many were added. */
 export function backfillCorpPublicIds() {
   let added = 0;
@@ -2405,8 +2412,15 @@ export function resolveMailRecipient({ toCorpId, toCorpName } = {}) {
     const account = accounts.find((a) => a.state.corp.publicId === id);
     return account ? { account } : { status: 404, error: "That corporation no longer exists." };
   }
-  const name = String(toCorpName || "").trim().toLowerCase();
-  if (!name) return { status: 400, error: "Recipient corporation is required." };
+  const typed = String(toCorpName || "").trim();
+  if (!typed) return { status: 400, error: "Recipient corporation is required." };
+  // Bug #754: no corporation name is longer than this or contains a control character, so such a name is refused
+  // outright rather than truncated into something that might match a real corporation.
+  CONTROL_CHARACTERS.lastIndex = 0;
+  if (typed.length > CORP_NAME_MAX_LENGTH || CONTROL_CHARACTERS.test(typed)) {
+    return { status: 400, error: "That is not a corporation name." };
+  }
+  const name = typed.toLowerCase();
   const matches = accounts.filter((a) => String(a.state.corp.corporationName || "").trim().toLowerCase() === name);
   if (matches.length === 1) return { account: matches[0] };
   if (!matches.length) return { status: 404, error: "No corporation has that name." };
@@ -2515,7 +2529,7 @@ export function saveDraft(accountId, { draftId, toCorpId, toCorpName, subject, b
     const existing = account.messages.find((m) => m.id === draftId && m.folder === "draft");
     if (existing) {
       existing.toCorpId = draftCorpId;
-      existing.toCorpName = String(toCorpName || "").trim();
+      existing.toCorpName = draftRecipientName(toCorpName); // Bug #754: capped, no control characters
       existing.subject = String(subject || "").trim().slice(0, 200);
       existing.body = String(body || "").trim().slice(0, 8000);
       existing.updatedAt = Date.now();
@@ -2531,7 +2545,7 @@ export function saveDraft(accountId, { draftId, toCorpId, toCorpName, subject, b
     fromName: senderName(account),
     toAccountId: null,
     toCorpId: draftCorpId,
-    toCorpName: String(toCorpName || "").trim(),
+    toCorpName: draftRecipientName(toCorpName), // Bug #754: capped, no control characters
     toName: "",
     subject: String(subject || "").trim().slice(0, 200),
     body: String(body || "").trim().slice(0, 8000),
