@@ -2843,6 +2843,19 @@ body.walkthrough-open {
   gap: 0.5rem;
 }
 
+/* Bug #1253: why Construct cannot be used yet, and a button that looks as unusable as it is. */
+.facility-blocked {
+  margin: 0;
+  color: var(--warn);
+  font-size: 0.9rem;
+}
+
+.facility-card .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .building-card {
   display: flex;
   flex-direction: column;

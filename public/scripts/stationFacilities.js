@@ -44,7 +44,7 @@ export function facilityCardsHtml(corp = {}) {
     construct = `<article class="facility-card data-card" style="border:1px dashed rgba(0,247,255,0.3);">
          <header class="facility-card-header"><span class="faction-code-badge corp-badge">NEW</span><h3>Assembly Facility</h3></header>
          <p class="muted">Modular manufacturing bay for fabricating deployable units.</p>
-         ${blocked ? `<p class="muted facility-blocked" style="color:var(--color-warn)">${escapeHtml(blocked)}</p>` : ""}
+         ${blocked ? `<p class="facility-blocked">${escapeHtml(blocked)}</p>` : ""}
          <footer class="facility-card-footer"><button id="build-assembly-btn" class="btn btn-accent" data-facility-action="construct-assembly"${blocked ? " disabled" : ""}>Construct (¤${ASSEMBLY_BUILD_COST.toLocaleString("en-US")})</button></footer>
        </article>`;
   }
