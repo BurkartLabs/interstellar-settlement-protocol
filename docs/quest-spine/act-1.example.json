@@ -1,0 +1,213 @@
+{
+  "$schema": "./quest.schema.json",
+  "id": "act-1",
+  "act": 1,
+  "title": "The Charter",
+  "narrator": "coordinator",
+  "ladder": { "from": 0, "to": 3 },
+  "opensWhen": [
+    { "metric": "walkthroughCompleted", "atLeast": 1 },
+    { "metric": "level", "atLeast": 1 }
+  ],
+  "steps": [
+    {
+      "id": "established",
+      "brief": {
+        "title": "Established",
+        "text": "Before I can put your name on a requisition, the Bureau needs to see an operating corporation: a registered office on this station and five people on your payroll. The Charter Round is judged on production, {{ceoName}}, not on paperwork alone."
+      },
+      "objective": {
+        "label": "Reach Corporation Level 1: an office and five employees",
+        "all": [{ "metric": "level", "atLeast": 1 }]
+      },
+      "guide": { "tab": "station", "selector": "[data-building-action=\"building:orbital-executive-suites\"]" },
+      "uses": {
+        "routes": ["gameplay/rent-office", "gameplay/hire"],
+        "data": ["data/milestones.json"]
+      },
+      "skipIfAlreadyMet": true,
+      "done": { "text": "Good. {{corpName}} exists on paper and in the corridors. Come up to Deck 7." }
+    },
+    {
+      "id": "deck-7",
+      "brief": {
+        "title": "Deck 7",
+        "text": "Every corporation chartered this year was chartered for a reason: the incumbents hold leases and leave them idle while the ISA's construction depots wait on material. I have a silicate requisition that has been open for eleven days. Take it, and show the Bureau that the Round was not a mistake."
+      },
+      "objective": {
+        "label": "Accept the Silicate Requisition Order in the Assignments Bureau",
+        "all": [{ "metric": "missionActive:ms-log-001", "atLeast": 1 }]
+      },
+      "guide": { "tab": "missions", "selector": ".tab-btn[data-tab=\"missions\"]" },
+      "uses": {
+        "routes": ["gameplay/accept-mission"],
+        "data": ["server/gameState.js MISSION_TEMPLATES ms-log-001"]
+      },
+      "done": { "text": "It is on your books. Four hundred units of silicates, delivered to my office. There is no deadline on it; there is a record." }
+    },
+    {
+      "id": "claim",
+      "brief": {
+        "title": "A claim and a yard",
+        "text": "Silicates come out of the ground, and the ground needs a lease. The Claims & Leases Division will file an Earth claim for a corporation with five employees. Put a Basic Extractor Yard on it."
+      },
+      "objective": {
+        "label": "Hold a mining lease on Earth and build a Basic Extractor Yard",
+        "all": [
+          { "metric": "miningLease:Earth", "atLeast": 1 },
+          { "metric": "building:Basic Extractor Yard", "atLeast": 1 }
+        ]
+      },
+      "guide": { "tab": "station", "selector": "[data-building-action=\"building:isa-claims-leases\"]" },
+      "uses": {
+        "routes": ["gameplay/purchase-lease", "gameplay/lease/:leaseId/build-extractor"],
+        "data": ["data/systems.json Earth leaseCost"]
+      },
+      "skipIfAlreadyMet": true,
+      "done": { "text": "A claim and equipment. Now make it produce." }
+    },
+    {
+      "id": "first-cycle",
+      "brief": {
+        "title": "Production",
+        "text": "Start a cycle on the Earth yard. The throughput is your decision: run it hard and the requisition fills sooner, but the operating cost comes out of your reserves every hour. I would rather you delivered late than went insolvent on my contract."
+      },
+      "objective": {
+        "label": "Start a mining cycle",
+        "all": [{ "metric": "extractorsRunning", "atLeast": 1 }]
+      },
+      "guide": { "tab": "station", "selector": "[data-building-action=\"building:isa-claims-leases\"]" },
+      "uses": { "routes": ["gameplay/lease/:leaseId/start-mining"], "data": [] },
+      "pending": [
+        { "source": "extractor.endsAt", "label": "Your Earth cycle ends", "payoff": "Silicates in your Earth Station Prime stock" }
+      ],
+      "done": { "text": "It is running. Silicates will accrue at Earth Station Prime while you do other things." }
+    },
+    {
+      "id": "analytics",
+      "brief": {
+        "title": "While it runs",
+        "text": "A cycle is a wait. Spend it. Queue Basic Extraction Analytics in Corporate R&D: two hours, and every yard you ever run extracts ten percent more. It is also one of the two things the ISA wants to see before it confirms your charter at Level 3."
+      },
+      "objective": {
+        "label": "Queue Basic Extraction Analytics",
+        "any": [
+          { "metric": "techQueued:tt-basic-extraction", "atLeast": 1 },
+          { "metric": "unlockedTech:tt-basic-extraction", "atLeast": 1 }
+        ]
+      },
+      "guide": { "tab": "rnd", "selector": ".tab-btn[data-tab=\"rnd\"]" },
+      "uses": { "routes": ["gameplay/queue-rnd"], "data": ["data/research.json tt-basic-extraction"] },
+      "skipIfAlreadyMet": true,
+      "pending": [
+        { "source": "rnd.completion", "label": "Basic Extraction Analytics completes", "payoff": "+10% extraction on every yard" },
+        { "source": "extractor.endsAt", "label": "Your Earth cycle ends", "payoff": "Silicates toward the requisition" }
+      ],
+      "done": { "text": "Queued. You now have two things finishing without you. That is how this job works." }
+    },
+    {
+      "id": "deliver",
+      "brief": {
+        "title": "Delivery",
+        "text": "When four hundred units are in your Earth Station Prime stock, bring them to the Bureau. Deliver from the station where the silicates are."
+      },
+      "objective": {
+        "label": "Deliver 400 Silicates on the Silicate Requisition Order",
+        "all": [{ "metric": "missionCompleted:ms-log-001", "atLeast": 1 }]
+      },
+      "progress": { "metric": "stationStock:earth-station-prime:Silicates", "target": 400 },
+      "guide": { "tab": "missions", "selector": ".tab-btn[data-tab=\"missions\"]" },
+      "uses": { "routes": ["gameplay/complete-mission"], "data": ["server/gameState.js MISSION_TEMPLATES ms-log-001 quota"] },
+      "pending": [
+        { "source": "extractor.endsAt", "label": "Your Earth cycle ends", "payoff": "The last of the 400 units" }
+      ],
+      "done": {
+        "text": "Received, counted and logged. Twelve thousand credits are on their way to your account, and your name is on the Bureau's list of corporations that deliver.",
+        "letter": {
+          "subject": "Requisition 4-7A: delivery confirmed",
+          "body": "To the CEO of {{corpName}},\n\nThe Bureau confirms receipt of 400 units of silicates against Requisition Order 4-7A. Payment of 12,000 credits has been released.\n\nThe Charter Round review looks at three things: production, delivery and trade. You have shown the first two. Sell what you do not need on the Galactic Exchange.\n\n{{speaker.name}}\n{{speaker.title}}"
+        }
+      }
+    },
+    {
+      "id": "first-sale",
+      "brief": {
+        "title": "Trade",
+        "text": "A corporation that only delivers to the ISA is a contractor. Sell silicates on the Galactic Exchange: the GEX standing order settles at once at its posted price, or you can list for another corporation to buy."
+      },
+      "objective": {
+        "label": "Sell 300 Silicates on the Galactic Exchange",
+        "all": [{ "metric": "stat:silicateSoldOnExchange", "atLeast": 300 }]
+      },
+      "guide": { "tab": "market", "selector": ".tab-btn[data-tab=\"market\"]" },
+      "uses": { "routes": ["market/npc-orders/:orderId/sell"], "data": ["data/milestones.json level 3"] },
+      "skipIfAlreadyMet": true,
+      "pending": [
+        { "source": "contracts.nextRefreshAt", "label": "The Bureau posts new requisitions", "payoff": "A second contract" }
+      ],
+      "done": { "text": "Production, delivery, trade. One more thing before I can file your confirmation." }
+    },
+    {
+      "id": "mars",
+      "brief": {
+        "title": "Mars",
+        "text": "The Charter Round counts production on Mars, where the ISA wants new capacity. The Mars Orbital Dock files Mars claims, and the claims office there will want five more employees on your payroll for a second lease. Travel takes about fifteen minutes from here."
+      },
+      "objective": {
+        "label": "Hold a mining lease on Mars (Corporation Level 2)",
+        "all": [
+          { "metric": "miningLease:Mars", "atLeast": 1 },
+          { "metric": "level", "atLeast": 2 }
+        ]
+      },
+      "hints": [
+        { "when": { "metric": "employeeCount", "below": 10 }, "text": "Hire to ten first: five per lease." },
+        { "when": { "metric": "dockedAt:mars-orbital-dock", "below": 1 }, "text": "Travel to the Mars Orbital Dock." }
+      ],
+      "guide": { "tab": "starmap", "selector": ".tab-btn[data-tab=\"starmap\"]" },
+      "uses": {
+        "routes": ["gameplay/hire", "gameplay/travel", "gameplay/purchase-lease"],
+        "data": ["data/stations.json mars-orbital-dock", "data/systems.json Mars leaseCost", "data/milestones.json level 2"]
+      },
+      "skipIfAlreadyMet": true,
+      "pending": [
+        { "source": "travel.arrivesAt", "label": "You arrive at the Mars Orbital Dock", "payoff": "The Mars claims office" }
+      ],
+      "done": { "text": "Two claims on two worlds. That is a corporation." }
+    },
+    {
+      "id": "charter-confirmed",
+      "brief": {
+        "title": "Confirmation",
+        "text": "The review needs your corporation at Level 3: the silicates sold and the analytics researched. When both are on your record, I file."
+      },
+      "objective": {
+        "label": "Reach Corporation Level 3",
+        "all": [{ "metric": "level", "atLeast": 3 }]
+      },
+      "guide": { "tab": "overview", "selector": ".tab-btn[data-tab=\"overview\"]" },
+      "uses": { "routes": [], "data": ["data/milestones.json level 3"] },
+      "skipIfAlreadyMet": true,
+      "pending": [
+        { "source": "rnd.completion", "label": "Basic Extraction Analytics completes", "payoff": "Corporation Level 3" }
+      ],
+      "done": {
+        "text": "Filed. {{corpName}} is a confirmed charter of the 2147 Round. I have more requisitions than I have operators I trust. Come and see me when the next ones post.",
+        "letter": {
+          "subject": "Charter Round 2147: confirmation of {{corpName}}",
+          "body": "To the CEO of {{corpName}},\n\nThe Contracting & Assignments Bureau has filed your corporation's confirmation under the 2147 Charter Round. Your charter is no longer probationary.\n\nThe Bureau's next requisitions post on the schedule shown in your Assignments tab. Your next corporate milestones are on your Overview.\n\n{{speaker.name}}\n{{speaker.title}}"
+        }
+      }
+    }
+  ],
+  "closes": {
+    "handoff": {
+      "nextAct": "act-2",
+      "shows": [
+        { "kind": "objective", "text": "Corporation Level 4 requirements, from data/milestones.json" },
+        { "kind": "pending", "source": "contracts.nextRefreshAt", "label": "The Bureau posts new requisitions", "payoff": "Your next contract" },
+        { "kind": "pending", "source": "extractor.endsAt", "label": "Your cycles end", "payoff": "Stock to sell or deliver" }
+      ]
+    }
+  }
+}
