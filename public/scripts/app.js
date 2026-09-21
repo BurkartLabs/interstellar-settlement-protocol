@@ -4,7 +4,6 @@ import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { createStarmapController } from "./starmap.js";
-import { starmapMiningState } from "./beltCompositions.js"; // Bug #1264
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
@@ -484,6 +483,8 @@ function deepClone(input) {
   }
   return JSON.parse(JSON.stringify(input));
 }
+
+import { starmapMiningState } from "./beltCompositions.js"; // Bug #1264 (placed here, apart from the imports at the top that parallel PRs edit)
 
 // TODO(AB#1050): Ensure this function is updated when we make asteroid belts dynamic
 async function refreshBeltCompositions() {
