@@ -39,15 +39,15 @@ describe("price history from settled trades (AB#715)", () => {
     expect(todays("Aerogel")).toMatchObject({ close: 310, volume: before.aerogel + 15 });
     expect(todays("Silicates")).toMatchObject({ close: npc.unitPrice, volume: before.silicates + 200 });
 
-    const res = await request(seller.app).get("/api/market/history/Aerogel");
+    const res = await seller.api.get("/api/market/history/Aerogel");
     expect(res.status).toBe(200);
     expect(res.body.item).toBe("Aerogel");
     expect(res.body.buckets.at(-1)).toMatchObject({ day: dayKey(Date.now()), close: 310 });
-    const multiWord = await request(seller.app).get(`/api/market/history/${encodeURIComponent("Rare Earths")}`);
+    const multiWord = await seller.api.get(`/api/market/history/${encodeURIComponent("Rare Earths")}`);
     expect(multiWord.status).toBe(200);
 
     // Prices and volumes only: nobody who traded appears anywhere in the response.
-    const silicates = await request(seller.app).get("/api/market/history/Silicates");
+    const silicates = await seller.api.get("/api/market/history/Silicates");
     const text = JSON.stringify([res.body, silicates.body]);
     const who = [seller.id, buyer.id, npcSeller.id, seller.name, buyer.name, npcSeller.name, npc.buyer];
     expect(who.every(Boolean)).toBe(true);
@@ -60,19 +60,24 @@ describe("price history from settled trades (AB#715)", () => {
     const npc = getState().market.npcBuyOrders.find((o) => o.item === "Silicates");
     expect((await seller.api.post(`/api/market/npc-orders/${npc.id}/sell`).send({ quantity: 10 })).status).toBe(200);
     mutateState((draft) => { draft.market.priceHistory.Silicates.at(-1).lastSeller = seller.name; });
-    const res = await request(seller.app).get("/api/market/history/Silicates");
+    const res = await seller.api.get("/api/market/history/Silicates");
     expect(JSON.stringify(res.body)).not.toContain(seller.name);
     for (const b of res.body.buckets) expect(Object.keys(b).sort()).toEqual(["close", "day", "high", "low", "open", "trades", "volume"]);
   });
 
   it("refuses an item not in the catalog, and never repeats it back", async () => {
-    const { app } = await getApp();
+    const { api } = await corpWith({});
     for (const input of ["Unobtainium", "<script>alert(1)</script>", "__proto__", "constructor", "silicates", "..%2F..%2Fdata%2Fstate"]) {
-      const res = await request(app).get(`/api/market/history/${encodeURIComponent(input)}`);
+      const res = await api.get(`/api/market/history/${encodeURIComponent(input)}`);
       expect(res.status, input).toBe(400);
       expect(JSON.stringify(res.body), input).not.toContain(input);
       expect(res.body).toEqual({ error: "Unknown item." });
     }
+  });
+
+  it("asks for a login, like every other route (Bug #423)", async () => {
+    const { app } = await getApp();
+    expect((await request(app).get("/api/market/history/Silicates")).status).toBe(401);
   });
 
   // The server writes getState() to data/state.json as JSON and loads it back through normalizeGlobalState; this is

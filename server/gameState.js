@@ -1546,14 +1546,11 @@ const NPC_BUY_SEED = [
   { item: "Rare Earths", buyer: "Synthorium Trading House",  unitPrice: 140, dailyQty: 120000 }
 ];
 
-// AB#715: imported here, beside its one use, rather than in the import block that parallel pull requests all edit.
-import { normalizePriceHistory } from "./priceHistory.js";
-
-/** Give the global state a market: an order book, every standing buy order it lacks, and its price history. Keeps what exists. */
+/** Give the global state a market: an order book, and every standing buy order it lacks. Keeps what exists. */
 function ensureMarketState(globalState) {
   if (!globalState.market || typeof globalState.market !== "object") globalState.market = {};
   if (!Array.isArray(globalState.market.orderBook)) globalState.market.orderBook = [];
-  globalState.market.priceHistory = normalizePriceHistory(globalState.market.priceHistory);
+  globalState.market.priceHistory = normalizePriceHistory(globalState.market.priceHistory); // AB#715, and cleans a saved one
   if (!Array.isArray(globalState.market.npcBuyOrders)) globalState.market.npcBuyOrders = [];
   for (const seed of NPC_BUY_SEED) {
     const id = `npc-buy-${seed.item.toLowerCase().replace(/\s+/g, "-")}-daily`;
@@ -1571,6 +1568,9 @@ function ensureMarketState(globalState) {
   }
   return globalState;
 }
+
+// AB#715: imported beside its use in ensureMarketState, rather than in the import block that parallel pull requests all edit.
+import { normalizePriceHistory } from "./priceHistory.js";
 
 /** Everything the server needs in its global state, from a saved state or the seed. Idempotent. */
 export function normalizeGlobalState(raw) {

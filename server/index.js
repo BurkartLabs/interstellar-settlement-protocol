@@ -3318,10 +3318,11 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
 
 // ─── Daily price history per item (AB#715) ───────────────────────────────────
 // Global and non-personal: open, high, low, close, volume and trade count per UTC day, the last 90 days. The item is
-// matched against the catalog, and an unknown one is refused without repeating it back.
+// matched against the catalog, and an unknown one is refused without repeating it back. Behind a login like every
+// other route (Bug #423), although nothing in it is personal.
 import { recordTrade, historyFor, PRICE_HISTORY_ITEMS, PRICE_HISTORY_DAYS } from "./priceHistory.js";
 
-app.get("/api/market/history/:item", (req, res) => {
+app.get("/api/market/history/:item", requireAuth, (req, res) => {
   const item = String(req.params.item || "");
   if (!PRICE_HISTORY_ITEMS.has(item)) {
     res.status(400).json({ error: "Unknown item." });
