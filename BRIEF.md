@@ -49,6 +49,33 @@ advantage in a player-versus-player economy. Selling power in a market game brea
 - Combat. It is v0.10 and deliberately late: an economy has to be worth raiding before raiding is interesting.
 - Mobile. It is a desktop browser game and pretending otherwise would cost the density that makes it work.
 
+## Player-to-player text in the playtest (Board ruling, AB#696)
+
+Global chat, local chat, the forums and player mail ship to the playtest as they are, with **no word filter, no
+report button, no block or mute, no moderator tool, no removal script and no age statement**. That is the Board's
+accepted risk. The Board's ruling on Decision AB#696, 2026-09-21, verbatim:
+
+> *"no safety measures. And yes ship in playtest"*
+
+That is option C, "ship as is", of the three the Decision set out. The Decision recommended A (turn player text
+off for the playtest); B was a minimal safety kit.
+
+What that means in the build (AB#733):
+
+- Nothing is hidden and nothing is behind a flag: there is no social feature flag.
+- Player text is stored and relayed as it was typed, and every screen renders it as text, never as HTML: chat
+  lines and forum posts escape every field, and a mail's subject and body are set as text. Chat used to delete
+  anything between < and >; it no longer does (AB#1127).
+- The author is always the logged-in account's corporation, never a name the request supplies. The defects that
+  made this untrue were fixed before this ruling was applied: chat took unauthenticated posts and trusted the
+  client's author (AB#710), mail was routed by corporation name (AB#711), and chat was dead on a fresh install
+  (AB#749).
+- Length is bounded where the input boxes already bound it: 300 characters for a chat line, 200 for a title or
+  subject, 8,000 for a post or message body, 4,000 for a reply. Every route refuses other input before it changes
+  state (AB#731, AB#732, AB#1127). Those limits are input safety, not moderation.
+
+If the playtest widens beyond invited players, AB#696's option B is the shape to revisit.
+
 ## Acceptance for Preview (v0.5, AB#389)
 
 - [ ] A stranger can register, rent an office, hire, lease a body, build an extractor and sell on the exchange

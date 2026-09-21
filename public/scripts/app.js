@@ -4733,6 +4733,9 @@ function resolveChatChannel(tab, data = appState.data) {
   return tab || "global";
 }
 
+// AB#733: the chat line template lives in html.js, where it is tested; imported beside its one use.
+import { chatLineHtml } from "./html.js";
+
 function renderChatLog(data) {
   const channel = resolveChatChannel(appState.chatChannel, data);
   const messages = data?.chatLog?.[channel] || [];
@@ -4744,14 +4747,7 @@ function renderChatLog(data) {
 
   chatLog.innerHTML = messages
     .slice(-120)
-    .map(
-      (msg) => `
-      <li class="chat-msg">
-        <div class="chat-meta">${escapeHtml(msg.author)} | ${formatTime(msg.createdAt)}</div>
-        <div>${escapeHtml(msg.content)}</div>
-      </li>
-      `
-    )
+    .map((msg) => chatLineHtml(msg, formatTime))
     .join("");
 
   if (appState.chatAutoScrollOnNextRender) {
