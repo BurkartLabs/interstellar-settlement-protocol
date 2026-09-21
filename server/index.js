@@ -480,7 +480,7 @@ function miningTick() {
     mutateAccountState(accountId, (state) => {
       if (state && state.corp) {
         applyMiningOperations(state.corp, now);
-        io.emit("mining:updated", {
+        emitToAccount(accountId, "mining:updated", {
           accountId,
           extractors: state.corp.mining?.silicateExtractors || [],
           inventory: state.corp.inventory || {},
@@ -535,7 +535,7 @@ function asteroidExpeditionTick() {
         body: `Mining probe has returned from ${exp.beltKey.split(":")[1] || "asteroid belt"}. Yields: ${yieldSummary}. Resources deposited at ${exp.depositStationId || "nearest station"}.`
       });
       if (notification) {
-        io.emit("notifications:new", { accountId, notification });
+        emitToAccount(accountId, "notifications:new", { accountId, notification });
       }
 
       // Send detailed expedition report to inbox
@@ -571,7 +571,7 @@ function asteroidExpeditionTick() {
     }
 
     if (completedExpeditions.length > 0) {
-      io.emit("expedition:completed", { accountId });
+      emitToAccount(accountId, "expedition:completed", { accountId });
     }
   }
 }
@@ -605,8 +605,8 @@ function fabricationTick() {
         title: "Mining Probe Fabricated",
         body: "A new Mining Probe has been manufactured and is ready for deployment."
       });
-      if (notification) io.emit("notifications:new", { accountId, notification });
-      io.emit("fabrication:completed", { accountId });
+      if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
+      emitToAccount(accountId, "fabrication:completed", { accountId });
     }
   }
 }
@@ -654,7 +654,7 @@ function travelTick() {
           title: "System Arrival",
           body: `Your ship has arrived in the ${sysLabel} system. You are in open space — select a station to dock.`
         });
-        io.emit("travel:arrived", { accountId, systemId: travelResult.systemId });
+        emitToAccount(accountId, "travel:arrived", { accountId, systemId: travelResult.systemId });
       } else {
         const station = STATION_REGISTRY[travelResult.stationId];
         if (station) {
@@ -663,11 +663,11 @@ function travelTick() {
             title: "Docking Complete",
             body: `Your ship has arrived at ${station.name} (${station.body}, ${station.systemId.toUpperCase()}).`
           });
-          io.emit("travel:arrived", { accountId, stationId: travelResult.stationId });
+          emitToAccount(accountId, "travel:arrived", { accountId, stationId: travelResult.stationId });
         }
       }
       if (notification) {
-        io.emit("notifications:new", { accountId, notification });
+        emitToAccount(accountId, "notifications:new", { accountId, notification });
       }
     }
   }
@@ -707,7 +707,7 @@ function processRndCompletions() {
 
     if (completedItems.length === 0) continue;
 
-    io.emit("rnd:completed", { accountId });
+    emitToAccount(accountId, "rnd:completed", { accountId });
 
     for (const item of completedItems) {
       const notification = addAccountNotification(accountId, {
@@ -716,7 +716,7 @@ function processRndCompletions() {
         body: `${item.name} has been completed and applied to your corporation.`
       });
       if (notification) {
-        io.emit("notifications:new", { accountId, notification });
+        emitToAccount(accountId, "notifications:new", { accountId, notification });
       }
     }
   }
@@ -760,7 +760,7 @@ function processCeoInsightCompletions() {
 
     if (completedItems.length === 0) continue;
 
-    io.emit("ceo:completed", { accountId });
+    emitToAccount(accountId, "ceo:completed", { accountId });
 
     for (const item of completedItems) {
       const notification = addAccountNotification(accountId, {
@@ -769,7 +769,7 @@ function processCeoInsightCompletions() {
         body: `${item.name} has been completed.`
       });
       if (notification) {
-        io.emit("notifications:new", { accountId, notification });
+        emitToAccount(accountId, "notifications:new", { accountId, notification });
       }
     }
   }
@@ -797,9 +797,9 @@ function financialSnapshotTick() {
       finances = state.corp.finances;
     });
     if (finances) {
-      // Reuse the existing finance:updated channel so clients refresh
-      // their snapshot-driven dashboard without a separate handler path.
-      io.emit("finance:updated", finances);
+      // Reuse the existing finance:updated channel so clients refresh their snapshot-driven dashboard. Only this
+      // account's sockets get it, with the account id so the client can check it (Bug #1021).
+      emitToAccount(accountId, "finance:updated", { accountId, finances });
     }
   }
 }
@@ -996,7 +996,7 @@ app.post("/api/accounts/:accountId/walkthrough-complete", (req, res) => {
     body: "Onboarding has been marked complete for this profile."
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1015,7 +1015,7 @@ app.post("/api/accounts/:accountId/walkthrough-reset", (req, res) => {
     body: "Onboarding flow has been reset and can be replayed."
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1099,7 +1099,7 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
     body: `${hiredCount} employee(s) were added to your workforce.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1181,7 +1181,7 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
     body: `Your corporation now maintains a registered operational office at ${stationName}.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1256,7 +1256,7 @@ app.post("/api/accounts/:accountId/gameplay/renew-office", (req, res) => {
     body: `Your office lease at ${stationName} has been extended by ${durationDays} days.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1354,7 +1354,7 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
     body: `ISA Claims & Leases has approved your extraction rights application for ${requestedBody}. Two building slots have been allocated to your lease.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   // Commit to disk immediately — critical state that must survive server restarts.
@@ -1566,7 +1566,7 @@ app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
     body: notifBody
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   saveAccountsNow();
@@ -1666,7 +1666,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
     body: "Basic Extractor Yard is now operational and linked to your mining lease."
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1780,7 +1780,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
     body: `${targetExtractorLabel} has begun silicate extraction operations.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1882,7 +1882,7 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
     body: "Basic Extractor Yard is now operational."
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1943,7 +1943,7 @@ app.post("/api/accounts/:accountId/gameplay/build-assembly-facility", (req, res)
     title: "Assembly Facility Online",
     body: "Your Assembly Facility is now operational. You may begin fabricating units."
   });
-  if (notification) io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   saveAccountsNow();
   res.json(account);
 });
@@ -2022,7 +2022,7 @@ app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
     title: "Probe Fabrication Started",
     body: `Mining Probe fabrication has begun. Estimated completion: ${PROBE_FABRICATION_MS >= 60000 ? Math.round(PROBE_FABRICATION_MS / 60000) + " minute(s)" : Math.round(PROBE_FABRICATION_MS / 1000) + " second(s)"}.`
   });
-  if (notification) io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   saveAccountsNow();
   res.json(account);
 });
@@ -2158,7 +2158,7 @@ app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
     title: "Expedition Launched",
     body: `Mining probe deployed to ${beltKey.split(":")[1] || "asteroid belt"} on a ${durationLabel} mission. Resources will be deposited upon return.`
   });
-  if (notification) io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   saveAccountsNow();
   res.json(account);
 });
@@ -2259,7 +2259,7 @@ app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
     body: "A new Refinery is now operational and ready for production runs."
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -2387,7 +2387,7 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
     body: `${targetLabel} processing ${actualQuantity} ${chain.input} → ${outputNames} (${actualDurationHours}h, ${actualScale} batch${actualScale === 1 ? "" : "es"}).`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -2612,7 +2612,7 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
     body: `${targetExtractorLabel} started a ${requestedHours}h silicate cycle with current throughput settings.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -2662,7 +2662,7 @@ app.post("/api/accounts/:accountId/gameplay/complete-rnd", (req, res) => {
     body: "Basic Extraction Analytics has been completed and applied."
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -2753,7 +2753,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
     body: `${tech.name} has been queued in corporate research.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -2842,7 +2842,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-ceo", (req, res) => {
     body: `${prog.name} has been enrolled in the CEO Insight Program.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -3392,6 +3392,20 @@ app.use((error, _req, res, _next) => {
 
 // Bug #710: a socket carries the same access token as the HTTP API (socket.handshake.auth.token). Anyone may still
 // connect to read public state, but only a verified socket may chat, and the server decides who is speaking.
+/** The socket.io room for one account's sockets. */
+function accountRoom(accountId) {
+  return `account:${accountId}`;
+}
+
+/**
+ * Send an event about one account to that account's sockets only (Bug #1021: these used to be io.emit broadcasts, so
+ * every connected client received every corporation's finances, mining, inventory and notification text). Global
+ * events (market, forums, chat) still use io.emit; tests/integration/socket-rooms.test.js checks there are no others.
+ */
+function emitToAccount(accountId, event, payload) {
+  if (accountId) io.to(accountRoom(accountId)).emit(event, payload);
+}
+
 io.use((socket, next) => {
   const verified = verifyAccessToken(socket.handshake.auth?.token);
   if (verified.accountId) socket.data.accountId = verified.accountId;
@@ -3414,6 +3428,8 @@ function resolveChatChannel(requested, corp) {
 }
 
 io.on("connection", (socket) => {
+  // Bug #1021: an authenticated socket joins its account's room, so per-account events reach only its owner.
+  if (socket.data.accountId) socket.join(accountRoom(socket.data.accountId));
   socket.emit("state:init", getState());
 
   socket.on("chat:send", (payload) => {
