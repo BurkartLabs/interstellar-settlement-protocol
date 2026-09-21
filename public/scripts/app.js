@@ -1,7 +1,8 @@
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
+import { missionRewardCredits } from "./ceoEffects.js"; // Bug #1009; kept apart so parallel branches do not collide
 import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
-import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from "./ceoEffects.js";
+import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
 
 const appState = {
   serverData: null,
