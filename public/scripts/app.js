@@ -3765,8 +3765,9 @@ function renderMarket(data) {
   const myCorpName = String(data?.corp?.corporationName || "").trim().toLowerCase();
   const myEmail = String(appState.accountEmail || "").trim().toLowerCase();
   const isOwnSellOrder = (order) => {
-    if (order?.sellerAccountId && appState.accountId && order.sellerAccountId === appState.accountId) {
-      return true;
+    // Bug #1145: the server marks the caller's own listings; it no longer sends anyone's account id.
+    if (typeof order?.mine === "boolean") {
+      return order.mine;
     }
     const seller = String(order?.seller || "").trim().toLowerCase();
     if (!seller) {
@@ -3971,7 +3972,7 @@ function renderForums(data) {
       const opLikes = Number(selected.likes) || 0;
       const replies = Array.isArray(selected.replies) ? selected.replies : [];
       const myAccountId = appState.accountId || null;
-      const opLiked = Array.isArray(selected.likedBy) && myAccountId ? selected.likedBy.includes(myAccountId) : false;
+      const opLiked = Boolean(myAccountId && selected.likedByMe); // the server says only whether this account liked it (Bug #1134)
       const initials = (str) => String(str || "?")
         .split(/\s+/)
         .filter(Boolean)
@@ -3993,7 +3994,7 @@ function renderForums(data) {
         ? replies.map((reply) => {
             const author = reply.author || "Anonymous";
             const hue = avatarHue(author);
-            const replyLiked = Array.isArray(reply.likedBy) && myAccountId ? reply.likedBy.includes(myAccountId) : false;
+            const replyLiked = Boolean(myAccountId && reply.likedByMe);
             return `
               <li class="thread-reply">
                 <div class="thread-reply__connector" aria-hidden="true"></div>
@@ -4088,7 +4089,7 @@ function renderForums(data) {
 
       // Like buttons (delegated). Toggles a like for the current account on
       // either the OP thread or a specific reply. Server enforces one-like-
-      // per-account by tracking `likedBy`.
+      // per-account by tracking `likedBy`, which it keeps to itself (Bug #1134).
       detailBody.addEventListener("click", async (event) => {
         const likeBtn = event.target.closest('[data-action="like"]');
         if (!likeBtn) return;
