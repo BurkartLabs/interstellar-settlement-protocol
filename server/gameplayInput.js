@@ -1,6 +1,6 @@
 // server/gameplayInput.js
-// Hostile input on the gameplay routes (AB#731, ISP-45). Every route under /api/accounts/:accountId/gameplay is
-// described here: each number is a whole number in a stated range, and each id is in the catalog it names or in the
+// Hostile input on every route that changes state (AB#731 for /gameplay, AB#732 for the market, account and forum
+// routes). Every such route is described here: each number is a whole number in a stated range, and each id is in the catalog it names or in the
 // caller's own state. One middleware checks a request against its entry before any handler runs, so a refusal (400)
 // never follows a partial write. Messages say what to enter and never repeat the request back.
 //
@@ -15,6 +15,15 @@ const MAX_TRANSFER_LINES = 10;
 const int = (min, max, label, extra = {}) => ({ kind: "int", min, max, label, ...extra });
 const choice = (values, label, extra = {}) => ({ kind: "choice", values, label, ...extra });
 const id = (catalog, label, extra = {}) => ({ kind: "id", catalog, label, ...extra });
+/** Free text: a string of at most `max` characters (AB#732). The client's own maxlength is the same. */
+const text = (max, label, extra = {}) => ({ kind: "text", max, label, ...extra });
+/** One of a fixed list of words. */
+const word = (values, label, extra = {}) => ({ kind: "word", values, label, ...extra });
+/**
+ * An id the route itself looks up and answers 404 for when it is not found (a message, a draft, a notification, a
+ * forum thread, an order), without changing anything. Checked here for shape only: a string of sensible length.
+ */
+const ref = (label, extra = {}) => ({ kind: "ref", label, ...extra });
 
 // Accepting takes a contract from the Bureau's list; abandoning or completing one takes it from the caller's own.
 const ACCEPT_MISSION = { body: { missionId: id("missions", "a contract") } };
@@ -80,6 +89,77 @@ export const GAMEPLAY_INPUT = {
   "POST /queue-ceo": { body: { programId: id("programs", "a CEO Insight program") } }
 };
 
+/** Routes under /api/accounts/:accountId outside /gameplay (AB#732): the caller's account, notifications and mail. */
+export const ACCOUNT_INPUT = {
+  "GET /": NOTHING,
+  "POST /walkthrough-complete": NOTHING,
+  "POST /walkthrough-reset": NOTHING,
+  "GET /notifications": NOTHING,
+  "POST /notifications/read-all": NOTHING,
+  "POST /notifications/:notificationId/read": { params: { notificationId: ref("a notification") } },
+  "GET /messages": NOTHING,
+  "GET /corporations": { query: { name: text(64, "a corporation name to search for", { optional: true }) } },
+  "POST /messages/send": {
+    body: {
+      draftId: ref("a draft", { optional: true }),
+      toCorpId: ref("a recipient", { optional: true }),
+      toCorpName: text(200, "a recipient's name", { optional: true }),
+      subject: text(200, "a subject of at most 200 characters", { optional: true }),
+      body: text(8000, "a message of at most 8,000 characters", { optional: true })
+    }
+  },
+  "POST /messages/draft": {
+    body: {
+      draftId: ref("a draft", { optional: true }),
+      toCorpId: ref("a recipient", { optional: true }),
+      // A draft keeps whatever was typed, trimmed to 80 by the route (Bug #754); only sending refuses a long name.
+      toCorpName: text(1000, "a recipient's name of at most 1,000 characters", { optional: true }),
+      subject: text(200, "a subject of at most 200 characters", { optional: true }),
+      body: text(8000, "a message of at most 8,000 characters", { optional: true })
+    }
+  },
+  "DELETE /messages/draft/:draftId": { params: { draftId: ref("a draft") } },
+  "POST /messages/:messageId/read": { params: { messageId: ref("a message") } },
+  "POST /messages/:messageId/move": {
+    params: { messageId: ref("a message") },
+    body: { folder: word(["inbox", "archive", "trash"], "a folder: inbox, archive or trash") }
+  }
+};
+
+/** Routes under /api/market (AB#732). The history route and cancel come from other open pull requests (!165, !154). */
+export const MARKET_INPUT = {
+  "POST /orders": {
+    body: {
+      type: word(["sell"], "an order type: sell"),
+      item: id("tradeItems", "a resource or refined good"),
+      quantity: int(1, 1_000_000_000, "a quantity to list"),
+      unitPrice: int(1, 1_000_000_000, "a price per unit in whole credits")
+    }
+  },
+  "POST /orders/:orderId/buy": { params: { orderId: ref("a sell order") }, body: { quantity: int(1, 1_000_000_000, "a quantity to buy") } },
+  "POST /orders/:orderId/cancel": { params: { orderId: ref("one of your listings") }, elsewhere: "!154" },
+  "POST /npc-orders/:orderId/sell": {
+    params: { orderId: id("npcOrders", "a standing buy order") },
+    // !154's words for this refusal, which its tests pin.
+    body: { quantity: int(1, 1_000_000_000, "a quantity to sell", { message: "Quantity must be a whole number of at least 1." }) }
+  },
+  // !165's words: an item not in the catalog is refused without repeating it.
+  "GET /history/:item": { params: { item: id("tradeItems", "a resource or refined good", { message: "Unknown item." }) }, elsewhere: "!165" }
+};
+
+/** Routes under /api/forums (AB#732). */
+export const FORUM_INPUT = {
+  "POST /threads": {
+    body: {
+      category: id("forumCategories", "a forum category"),
+      title: text(200, "a title of at most 200 characters"),
+      body: text(8000, "a post of at most 8,000 characters")
+    }
+  },
+  "POST /threads/:threadId/replies": { params: { threadId: ref("a thread") }, body: { content: text(4000, "a reply of at most 4,000 characters") } },
+  "POST /threads/:threadId/like": { params: { threadId: ref("a thread") }, body: { replyId: ref("a reply", { optional: true }) } }
+};
+
 const refuse = (error) => ({ ok: false, error });
 // Not sent: left out, or empty. An explicit null is sent, and refused: JSON turns NaN and Infinity into null.
 const isAbsent = (v) => v === undefined || v === "";
@@ -100,8 +180,22 @@ export function idString(value) {
 
 /** Check one field against its spec. `has(catalog, value)` answers catalog and own-state membership. */
 export function checkField(spec, value, has) {
+  const result = checkFieldOnce(spec, value, has);
+  return !result.ok && spec.message ? refuse(spec.message) : result;
+}
+
+function checkFieldOnce(spec, value, has) {
   if (isAbsent(value)) return spec.optional ? { ok: true } : refuse(`Enter ${spec.label}.`);
   if (value === null) return refuse(`Enter ${spec.label}.`);
+  if (spec.kind === "text") {
+    return typeof value === "string" && value.length <= spec.max ? { ok: true } : refuse(`Enter ${spec.label}.`);
+  }
+  if (spec.kind === "word") {
+    return typeof value === "string" && spec.values.includes(value.trim()) ? { ok: true } : refuse(`Choose ${spec.label}.`);
+  }
+  if (spec.kind === "ref") {
+    return idString(value) !== null ? { ok: true } : refuse(`Choose ${spec.label}.`);
+  }
   if (spec.kind === "int") {
     const n = wholeNumber(value);
     if (n === null || n < spec.min || n > spec.max) return refuse(`Enter ${spec.label}: a whole number from ${spec.min.toLocaleString()} to ${spec.max.toLocaleString()}.`);
@@ -139,11 +233,15 @@ function checkTransfer(body, has, stationName) {
 }
 
 /** Validate one request against its route's entry: { ok: true } or { ok: false, error }. */
-export function validateGameplayRequest(entry, { body, params }, has, stationName = (id) => id) {
+export function validateGameplayRequest(entry, { body, params, query }, has, stationName = (id) => id) {
   const b = body && typeof body === "object" && !Array.isArray(body) ? body : {};
   if (entry.custom === "transfer") return checkTransfer(b, has, stationName);
   for (const [name, spec] of Object.entries(entry.params || {})) {
     const r = checkField(spec, params?.[name], has);
+    if (!r.ok) return r;
+  }
+  for (const [name, spec] of Object.entries(entry.query || {})) {
+    const r = checkField(spec, query?.[name], has);
     if (!r.ok) return r;
   }
   if (entry.oneOf) {
@@ -172,13 +270,15 @@ export function matchRoute(pattern, path) {
 }
 
 /**
- * The middleware. `catalogs` maps a catalog name to a Set of ids; `stationNames` maps a station id to its name;
- * `corpOf(accountId)` returns the caller's corporation
+ * The middleware, for one table (`routes`, default the gameplay table). `catalogs` maps a catalog name to a Set of ids;
+ * `stationNames` maps a station id to its name; `callerOf(req)` gives the caller's account id, or null when the request
+ * has no valid login, in which case the route's own requireAuth answers 401 first (AB#732: the market and forum
+ * routes check the login per route, so this must not answer before it). `corpOf(accountId)` returns the caller's corporation
  * for the own-state checks (their leases, extractors, refineries and stock). Mounted after requireAccountAccess, so the
  * account is the caller's own.
  */
-export function gameplayInputMiddleware({ catalogs, corpOf, stationNames }) {
-  const entries = Object.entries(GAMEPLAY_INPUT).map(([key, entry]) => {
+export function gameplayInputMiddleware({ catalogs, corpOf, stationNames, routes = GAMEPLAY_INPUT, callerOf = (req) => req.params.accountId }) {
+  const entries = Object.entries(routes).map(([key, entry]) => {
     const [method, pattern] = key.split(" ");
     return { method, pattern, entry };
   });
@@ -189,9 +289,11 @@ export function gameplayInputMiddleware({ catalogs, corpOf, stationNames }) {
       const params = matchRoute(e.pattern, req.path);
       if (params) { match = { ...e, params }; break; }
     }
-    if (!match) return next(); // not a gameplay route: Express answers 404
+    if (!match) return next(); // not a route in this table: another mount, or Express's 404
+    const caller = callerOf(req);
+    if (!caller) return next(); // no valid login: the route's own requireAuth answers
     let corp = null;
-    const own = () => (corp ??= corpOf(req.params.accountId) || {});
+    const own = () => (corp ??= corpOf(caller) || {});
     const has = (catalog, value) => {
       if (catalog === "ownLeases") return (own().miningLeases || []).some((l) => l?.id === value);
       if (catalog === "ownExtractors") return (own().mining?.silicateExtractors || []).some((x) => x?.id === value);
@@ -206,7 +308,7 @@ export function gameplayInputMiddleware({ catalogs, corpOf, stationNames }) {
       if (catalog === "leaseBodies") return catalogs.leaseBodies?.has(value.toLowerCase()) === true;
       return catalogs[catalog]?.has(value) === true;
     };
-    const result = validateGameplayRequest(match.entry, { body: req.body, params: match.params }, has, (sid) => stationNames?.[sid] || "That station");
+    const result = validateGameplayRequest(match.entry, { body: req.body, params: match.params, query: req.query }, has, (sid) => stationNames?.[sid] || "That station");
     if (!result.ok) return res.status(400).json({ error: result.error });
     return next();
   };
