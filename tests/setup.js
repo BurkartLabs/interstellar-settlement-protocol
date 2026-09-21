@@ -19,6 +19,11 @@ process.env.USE_NORMALIZED_TABLES = "";
 // `process.env.VERCEL` at module load to set IS_SERVERLESS = true.)
 process.env.VERCEL = "1";
 
+// Never read the developer's data/state.json: it is gitignored runtime output, so a suite that read it passed or
+// failed on what the local server last wrote (Bug #588). A path that does not exist gives every run the fresh seed,
+// and in serverless mode nothing is written to it.
+process.env.ISP_STATE_PATH = `${process.env.TEMP || process.env.TMPDIR || "/tmp"}/isp-test-state-${process.pid}-${Date.now()}-absent.json`;
+
 process.env.NODE_ENV = "test";
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-jwt-secret-do-not-use-in-prod";
 // Tests import server/index.js for supertest / socket tests. This flag stops

@@ -10,7 +10,10 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.resolve(__dirname, "..", "..", "data");
 
+const loaded = new Set();
+
 function load(file) {
+  loaded.add(file);
   const raw = fs.readFileSync(path.join(dataDir, file), "utf8");
   return JSON.parse(raw);
 }
@@ -216,11 +219,16 @@ describe("data/milestones.json", () => {
   });
 });
 
-describe("data/state.json", () => {
-  const data = load("state.json");
-
-  it("contains market and chatLog sections", () => {
-    expect(data.market).toBeDefined();
-    expect(data.chatLog).toBeDefined();
+// Bug #588: this file used to check data/state.json too. That file is the server's gitignored runtime output, so on a
+// fresh clone this whole file failed to load and none of the catalog checks ran. The global state's shape is tested
+// where it is made, in tests/unit/globalState.test.js; this file reads committed catalogs only.
+describe("the schema tests read committed catalogs only (Bug #588)", () => {
+  it("loads no file that .gitignore excludes", () => {
+    const ignored = fs.readFileSync(path.resolve(dataDir, "..", ".gitignore"), "utf8")
+      .split(/\r?\n/).map((line) => line.trim()).filter((line) => line.startsWith("data/"));
+    expect(ignored).toContain("data/state.json");
+    const patterns = ignored.map((glob) => new RegExp(`^${glob.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*")}$`));
+    expect(patterns.some((p) => p.test("data/accounts-snapshot.json"))).toBe(true);
+    expect([...loaded].filter((file) => patterns.some((p) => p.test(`data/${file}`)))).toEqual([]);
   });
 });
