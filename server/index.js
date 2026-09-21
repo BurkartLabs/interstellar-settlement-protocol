@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
+import { resolveLeaseBody } from "./leases.js";
 import {
   accountExists,
   addAccountNotification,
@@ -214,7 +215,9 @@ function getSystemHops(fromId, toId) {
 const BODY_ORBITAL_INDEX = {}; // bodyName → positional index within its system
 const BODY_PARENT = {};        // moonName → parentPlanetName
 const _earlyDir = path.dirname(fileURLToPath(import.meta.url));
-for (const sys of JSON.parse(fs.readFileSync(path.join(_earlyDir, "..", "data", "systems.json"), "utf8"))) {
+/** The body catalog. Also what a mining lease is resolved against (server/leases.js, Bug #691). */
+const SYSTEMS_CATALOG = JSON.parse(fs.readFileSync(path.join(_earlyDir, "..", "data", "systems.json"), "utf8"));
+for (const sys of SYSTEMS_CATALOG) {
   let idx = 0;
   for (const b of sys.bodies) {
     if (b.type === "Moon") {
@@ -1246,21 +1249,28 @@ app.post("/api/accounts/:accountId/gameplay/renew-office", (req, res) => {
 
 // ─── ISA Claims & Leases Division: Purchase a mining lease ─────────────────
 app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
-  const requestedBody = String(req.body?.body || "").trim();
-  if (!requestedBody) {
-    res.status(400).json({ error: "A celestial body must be specified." });
-    return;
-  }
-
-  // TODO: Should we be storing the lease costs here? And why are we only specifying for Earth, Mars, and Luna?
-  const LEASE_COSTS = { Earth: 20000, Mars: 25000, Luna: 30000 };
-  const leaseCost = LEASE_COSTS[requestedBody] ?? 25000;
+  // Bug #691: the body is resolved against data/systems.json, which holds the only lease prices. Unknown bodies,
+  // unpriced bodies, unreachable systems, markup and oversized strings are refused before any state changes, and
+  // from here on only the catalog's own name is used: in the lease, the error messages and the notification.
+  let requestedBody = null;
+  let leaseCost = 0;
+  let bodyError = null;
   const EMPLOYEES_PER_LEASE = 5;
   let outcome = "ok";
   let existingLeaseOnBody = false;
 
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
+
+    // Resolved against the corporation itself, because reachability depends on its research and location.
+    const resolved = resolveLeaseBody(SYSTEMS_CATALOG, corp, req.body?.body);
+    if (!resolved.ok) {
+      outcome = "invalid-body";
+      bodyError = resolved.error;
+      return;
+    }
+    requestedBody = resolved.body;
+    leaseCost = resolved.cost;
 
     const hasOffice = Array.isArray(corp.offices) && corp.offices.length > 0;
     if (!hasOffice) {
@@ -1270,7 +1280,8 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
 
     if (!Array.isArray(corp.miningLeases)) corp.miningLeases = [];
 
-    existingLeaseOnBody = corp.miningLeases.some((l) => (l.body || l) === requestedBody);
+    // Case-insensitive, so a lease stored before Bug #691 as "mars" still blocks a second one on Mars.
+    existingLeaseOnBody = corp.miningLeases.some((l) => String(l.body || l).toLowerCase() === requestedBody.toLowerCase());
     if (existingLeaseOnBody) {
       outcome = "duplicate-lease";
       return;
@@ -1312,6 +1323,7 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
     const corp = account.state.corp;
     const requiredEmployees = ((corp.miningLeases || []).length + 1) * EMPLOYEES_PER_LEASE;
     const messageMap = {
+      "invalid-body": bodyError,
       "no-office": "You must lease a corporate office before filing extraction claims with the ISA.",
       "duplicate-lease": `Your corporation already holds an active mining lease on ${requestedBody}.`,
       "insufficient-employees": `ISA regulations require at least ${requiredEmployees} employees on payroll before issuing an additional mining lease. Current headcount: ${corp.employeeCount || 0}.`,
