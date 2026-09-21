@@ -5398,7 +5398,7 @@ function bindForms() {
     try {
       const response = await apiFetch(`/api/market/orders/${encodeURIComponent(orderId)}/cancel`, { method: "POST" });
       const payload = await parseJsonResponse(response);
-      const previousMarket = deepClone(appState.data?.market || { orderBook: [] }); // AB#576 retires mercenaryContracts
+      const previousMarket = deepClone(appState.data?.market || { orderBook: [] }); // the order book is all this handler restores (AB#576)
       appState.data = deepClone(payload.account.state);
       appState.data.market = { ...previousMarket, orderBook: (previousMarket.orderBook || []).filter((order) => order.id !== orderId) };
       renderMarket(appState.data);
