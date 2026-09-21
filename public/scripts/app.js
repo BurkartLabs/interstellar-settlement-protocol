@@ -6358,7 +6358,9 @@ function openMessage(messageId) {
     clearComposeCandidates();
     document.getElementById("compose-subject").value = msg.subject || "";
     document.getElementById("compose-body").value = msg.body || "";
+    document.getElementById("compose-status").textContent = "";
     appState.inbox.composeDraftId = msg.id;
+    syncComposeDraftControls();
     return;
   }
 
@@ -6373,13 +6375,9 @@ function openMessage(messageId) {
   const archiveBtn = document.getElementById("inbox-action-archive");
   const restoreBtn = document.getElementById("inbox-action-restore");
   const trashBtn = document.getElementById("inbox-action-trash");
-  const deleteDraftBtn = document.getElementById("inbox-action-delete-draft");
-  const editDraftBtn = document.getElementById("inbox-action-edit-draft");
   archiveBtn.style.display = "none";
   restoreBtn.style.display = "none";
   trashBtn.style.display = "none";
-  deleteDraftBtn.style.display = "none";
-  editDraftBtn.style.display = "none";
 
   if (msg.folder === "inbox") {
     archiveBtn.style.display = "";
@@ -6389,9 +6387,6 @@ function openMessage(messageId) {
     trashBtn.style.display = "";
   } else if (msg.folder === "trash") {
     restoreBtn.style.display = "";
-  } else if (msg.folder === "draft") {
-    editDraftBtn.style.display = "";
-    deleteDraftBtn.style.display = "";
   }
 
   // Mark read
@@ -6403,6 +6398,12 @@ function openMessage(messageId) {
       })
       .catch(() => {});
   }
+}
+
+/** Bug #1137: Delete Draft shows in the compose view whenever a saved draft is open there (opened, or just saved). */
+function syncComposeDraftControls() {
+  const btn = document.getElementById("compose-delete-draft-btn");
+  if (btn) btn.hidden = !appState.inbox.composeDraftId;
 }
 
 function showInboxView(view) {
@@ -6451,6 +6452,7 @@ function bindInboxControls() {
   });
   document.getElementById("inbox-compose-back-btn")?.addEventListener("click", () => {
     appState.inbox.composeDraftId = null;
+    syncComposeDraftControls();
     showInboxView("list");
     renderInboxMessageList();
   });
@@ -6465,6 +6467,7 @@ function bindInboxControls() {
     document.getElementById("compose-subject").value = "";
     document.getElementById("compose-body").value = "";
     document.getElementById("compose-status").textContent = "";
+    syncComposeDraftControls();
     showInboxView("compose");
   });
 
@@ -6478,19 +6481,30 @@ function bindInboxControls() {
   document.getElementById("inbox-action-archive")?.addEventListener("click", () => moveCurrentMessage("archive"));
   document.getElementById("inbox-action-restore")?.addEventListener("click", () => moveCurrentMessage("inbox"));
   document.getElementById("inbox-action-trash")?.addEventListener("click", () => moveCurrentMessage("trash"));
-  document.getElementById("inbox-action-delete-draft")?.addEventListener("click", async () => {
-    const id = appState.inbox.openMessageId;
+  // Bug #1137: delete the draft open in the compose view, then show Drafts without it.
+  document.getElementById("compose-delete-draft-btn")?.addEventListener("click", async () => {
+    const id = appState.inbox.composeDraftId;
     if (!id) return;
-    await apiFetch(`/api/accounts/${appState.accountId}/messages/draft/${id}`, { method: "DELETE" });
+    const status = document.getElementById("compose-status");
+    status.textContent = "Deleting…";
+    try {
+      const res = await apiFetch(`/api/accounts/${appState.accountId}/messages/draft/${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "the server refused");
+    } catch (err) {
+      status.textContent = `The draft was not deleted: ${err.message}.`;
+      return;
+    }
     appState.inbox.messages = appState.inbox.messages.filter((m) => m.id !== id);
+    appState.inbox.composeDraftId = null;
     appState.inbox.openMessageId = null;
+    document.getElementById("compose-draft-id").value = "";
+    status.textContent = "";
+    syncComposeDraftControls();
+    appState.inbox.folder = "draft";
+    document.querySelectorAll(".inbox-folder-btn").forEach((b) => b.classList.toggle("active", b.dataset.folder === "draft"));
     showInboxView("list");
     renderInboxMessageList();
-  });
-  document.getElementById("inbox-action-edit-draft")?.addEventListener("click", () => {
-    const id = appState.inbox.openMessageId;
-    if (!id) return;
-    openMessage(id);
+    pushFeedback("Draft deleted.", "success");
   });
 
   // Compose form
@@ -6523,6 +6537,7 @@ function bindInboxControls() {
       appState.inbox.messages = data.messages;
       appState.inbox.folder = "sent";
       appState.inbox.composeDraftId = null;
+      syncComposeDraftControls();
       document.querySelectorAll(".inbox-folder-btn").forEach((b) => {
         b.classList.toggle("active", b.dataset.folder === "sent");
       });
@@ -6556,6 +6571,7 @@ function bindInboxControls() {
       if (data.draft) {
         document.getElementById("compose-draft-id").value = data.draft.id;
         appState.inbox.composeDraftId = data.draft.id;
+        syncComposeDraftControls();
         // Upsert in local list
         const idx = appState.inbox.messages.findIndex((m) => m.id === data.draft.id);
         if (idx >= 0) appState.inbox.messages[idx] = data.draft;
