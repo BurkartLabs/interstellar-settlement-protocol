@@ -35,6 +35,7 @@ import {
   markMessageRead,
   moveMessage,
   sendPlayerMessage,
+  findCorporations,
   saveDraft,
   deleteDraft,
   addSystemMessageToAccount,
@@ -2848,16 +2849,29 @@ app.get("/api/accounts/:accountId/messages", (req, res) => {
   res.json({ messages });
 });
 
+// Bug #711: find a mail recipient. Behind requireAuth + requireAccountAccess (the /api/accounts/:accountId mount), and
+// it returns only what a sender needs to tell same-named corporations apart - never an account id or an email.
+app.get("/api/accounts/:accountId/corporations", (req, res) => {
+  const name = typeof req.query?.name === "string" ? req.query.name.trim() : "";
+  if (!name || name.length > 64) {
+    res.status(400).json({ error: "Give between 1 and 64 characters of a corporation name." });
+    return;
+  }
+  res.json({ corporations: findCorporations(name, 10) });
+});
+
 // Specific named routes FIRST (before :messageId wildcards)
 app.post("/api/accounts/:accountId/messages/send", (req, res) => {
-  const { toCorpName, subject, body } = req.body ?? {};
+  const { toCorpId, toCorpName, subject, body } = req.body ?? {};
   const result = sendPlayerMessage(req.params.accountId, {
-    toCorpName: String(toCorpName || "").trim(),
+    toCorpId: String(toCorpId || "").trim().slice(0, 64),
+    toCorpName: String(toCorpName || "").trim().slice(0, 200),
     subject: String(subject || "").trim(),
     body: String(body || "").trim()
   });
   if (result.error) {
-    res.status(400).json({ error: result.error });
+    // 404 no such corporation, 409 a name several share (with the candidates to choose from), 400 otherwise.
+    res.status(result.status || 400).json({ error: result.error, ...(result.candidates ? { candidates: result.candidates } : {}) });
     return;
   }
   // Delete the draft if a draftId was provided
@@ -2869,9 +2883,10 @@ app.post("/api/accounts/:accountId/messages/send", (req, res) => {
 });
 
 app.post("/api/accounts/:accountId/messages/draft", (req, res) => {
-  const { draftId, toCorpName, subject, body } = req.body ?? {};
+  const { draftId, toCorpId, toCorpName, subject, body } = req.body ?? {};
   const draft = saveDraft(req.params.accountId, {
     draftId: draftId ? String(draftId).trim() : null,
+    toCorpId: String(toCorpId || "").trim(),
     toCorpName: String(toCorpName || "").trim(),
     subject: String(subject || "").trim(),
     body: String(body || "").trim()

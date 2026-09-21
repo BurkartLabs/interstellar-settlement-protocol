@@ -915,8 +915,10 @@
               <form class="card inbox-compose-form" id="inbox-compose-form" autocomplete="off">
                 <h3>New Message</h3>
                 <input type="hidden" id="compose-draft-id" value="" />
+                <input type="hidden" id="compose-to-id" value="" />
                 <label for="compose-to">To (Corporation Name)</label>
                 <input type="text" id="compose-to" placeholder="Exact corporation name…" required />
+                <div id="compose-candidates" class="compose-candidates" hidden></div>
                 <label for="compose-subject">Subject</label>
                 <input type="text" id="compose-subject" placeholder="Subject…" maxlength="200" required />
                 <label for="compose-body">Message</label>
