@@ -219,6 +219,38 @@ describe("data/milestones.json", () => {
   });
 });
 
+// Bug #424: levels 6 to 10 named research, buildings and statistics this build does not have, so the resolver returned
+// 0 for them and nobody could pass Level 5. Every requirement must name something the build contains.
+describe("data/milestones.json names only what this build has (Bug #424)", async () => {
+  const { STAT_KEYS, PLAYER_BUILDINGS } = await import("../../server/gameState.js");
+  const milestones = load("milestones.json");
+  const researchIds = new Set(load("research.json").nodes.map((t) => t.id));
+  const leasable = new Set(load("systems.json").flatMap((s) => (s.bodies || []).filter((b) => b.leaseCost).map((b) => b.name)));
+  const requirements = milestones.levels.flatMap((l) => l.requirements.map((r) => ({ level: l.level, ...r })));
+
+  const problem = ({ metric }) => {
+    const [kind, ...rest] = metric.split(":");
+    const arg = rest.join(":");
+    if (metric === "employeeCount") return null;
+    if (kind === "stat") return STAT_KEYS.includes(arg) ? null : `no server code keeps the statistic "${arg}"`;
+    if (kind === "unlockedTech") return researchIds.has(arg) ? null : `research "${arg}" is not in research.json`;
+    if (kind === "building" || kind === "building-count") return PLAYER_BUILDINGS.includes(arg) ? null : `players cannot build "${arg}"`;
+    if (kind === "miningLease") return leasable.has(arg) ? null : `"${arg}" cannot be leased (no leaseCost in systems.json)`;
+    if (kind === "totalMined") return arg === "silicate" ? null : `the resolver counts only silicate mined, not "${arg}"`;
+    return `unknown metric "${metric}"`;
+  };
+
+  it("every requirement resolves to something a player can do", () => {
+    const broken = requirements.map((r) => ({ r, why: problem(r) })).filter((x) => x.why).map((x) => `L${x.r.level} ${x.r.id}: ${x.why}`);
+    expect(broken).toEqual([]);
+  });
+
+  it("the research every refinery chain needs exists", () => {
+    const chains = load("refinery-chains.json").chains;
+    expect(chains.flatMap((c) => (c.requiresTechIds || []).filter((id) => !researchIds.has(id)))).toEqual([]);
+  });
+});
+
 // Bug #588: this file used to check data/state.json too. That file is the server's gitignored runtime output, so on a
 // fresh clone this whole file failed to load and none of the catalog checks ran. The global state's shape is tested
 // where it is made, in tests/unit/globalState.test.js; this file reads committed catalogs only.

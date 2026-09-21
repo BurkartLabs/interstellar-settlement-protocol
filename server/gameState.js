@@ -100,7 +100,9 @@ function safeWriteFile(filePath, data, contextLabel = "write") {
 
 // ─── Milestones: single source of truth from data/milestones.json ──────────
 const MILESTONES_DATA = JSON.parse(fs.readFileSync(milestonesPath, "utf8"));
-const MILESTONE_LEVELS = MILESTONES_DATA.levels;           // [{level, requirements, unlocks}, ...]
+const MILESTONE_LEVELS = MILESTONES_DATA.levels;
+// The top of the ladder is the highest level the data defines (Bug #424: the cap shown to players was a literal 40).
+export const MAX_DEFINED_LEVEL = Math.max(...MILESTONE_LEVELS.map((l) => l.level));           // [{level, requirements, unlocks}, ...]
 const MILESTONE_ROADMAP = MILESTONES_DATA.roadmap;          // ["Rent an Office", ...]
 
 // ─── CEO Insight programs ────────────────────────────────────────────────────
@@ -302,6 +304,7 @@ function normalizeStateShape(rawState) {
     rawState.corp.travel = null;
   }
 
+  rawState.corp.levelCap = MAX_DEFINED_LEVEL; // Bug #424
   if (!Array.isArray(rawState.corp.milestonesCompleted)) {
     rawState.corp.milestonesCompleted = [];
   }
@@ -745,6 +748,7 @@ export function applyRefineryOperations(corp, now = Date.now()) {
     const scale = Math.max(1, Number(ref.cycleScale || 1));
     for (const output of chain.outputs) {
       const produced = output.quantityPerCycle * scale;
+      bumpStat(corp, "refinedUnitsProduced", produced); // Bug #424: levels 9 and 10
       refStationInv[output.item] = (refStationInv[output.item] || 0) + produced;
       ref.totalOutputProduced += produced;
     }
@@ -938,6 +942,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
 
       // Move to completed log (keep last 20)
       am.completedExpeditions.unshift({ ...exp, completedAt: now, depositStationId });
+      bumpStat(corp, "asteroidExpeditionsCompleted", 1); // Bug #424: levels 7 and 10
       if (am.completedExpeditions.length > 20) am.completedExpeditions.length = 20;
 
       expeditionsToRemove.push(exp.id);
@@ -984,6 +989,24 @@ function deepClone(input) {
   return JSON.parse(JSON.stringify(input));
 }
 
+// ─── What the level ladder may name (Bug #424) ────────────────────────────────
+// Levels 6 to 10 named statistics no code kept and buildings no one could build, so nobody passed Level 5. The
+// schema test (tests/schema/data-files.test.js) fails when a milestone names anything outside these lists.
+/** Statistics the resolver works out from other state. */
+const DERIVED_STATS = ["officeRented", "miningLeasesCount", "missionsCompleted"];
+/** Statistics kept as counters in corp.stats, through bumpStat. */
+const COUNTED_STATS = ["silicateSoldOnExchange", "refinedUnitsProduced", "asteroidExpeditionsCompleted"];
+export const STAT_KEYS = Object.freeze([...DERIVED_STATS, ...COUNTED_STATS]);
+/** Buildings a player can build (the construction routes in server/index.js; a test checks the two agree). */
+export const PLAYER_BUILDINGS = Object.freeze(["Basic Extractor Yard", "Assembly Facility", "Refinery"]);
+
+/** Add `n` to a counted statistic. Refuses a key nothing reads, so a typo cannot quietly start a new counter. */
+export function bumpStat(corp, key, n = 1) {
+  if (!COUNTED_STATS.includes(key)) throw new Error(`Unknown statistic "${key}": add it to COUNTED_STATS first.`);
+  if (!corp.stats || typeof corp.stats !== "object") corp.stats = {};
+  corp.stats[key] = (Number(corp.stats[key]) || 0) + (Number(n) || 0);
+}
+
 // ─── Metric resolver: maps milestones.json metric strings to live corp values ─
 function resolveMetric(metric, corp) {
   const stats = corp.stats || {};
@@ -996,6 +1019,8 @@ function resolveMetric(metric, corp) {
     const key = metric.slice(5);
     if (key === "officeRented") return (Array.isArray(corp.offices) && corp.offices.length > 0) ? 1 : 0;
     if (key === "miningLeasesCount") return miningLeases.length;
+    // Bug #424: counted from the missions already recorded (kept to the last 200), so old saves get credit too.
+    if (key === "missionsCompleted") return Array.isArray(corp.completedMissions) ? corp.completedMissions.length : 0;
     return Number(stats[key] || 0);
   }
 
@@ -1040,6 +1065,7 @@ function resolveMetric(metric, corp) {
 
 export function evaluateLevelProgress(profileState) {
   const corp = profileState.corp;
+  corp.levelCap = MAX_DEFINED_LEVEL; // Bug #424: saves carried a literal 40
 
   // Build levelProgress from milestones.json definitions
   corp.levelProgress = {};
@@ -1120,7 +1146,7 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
     currentSystemId: "sol",
     travel: null,
     level: 0,
-    levelCap: 40,
+    levelCap: MAX_DEFINED_LEVEL,
     milestonesCompleted: [],
     employeeCap: 8,
     employeeCount: 0,
@@ -1371,7 +1397,7 @@ function getSeedState() {
       ceo: "You",
       corporationName: "ISP Foundry Holdings",
       level: 1,
-      levelCap: 40,
+      levelCap: MAX_DEFINED_LEVEL,
       milestonesCompleted: ["HQ Constructed", "First 10 Employees"],
       employeeCap: 100,
       employeeCount: 38,
