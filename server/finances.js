@@ -30,7 +30,15 @@ export function ensureFinanceTracking(corp) {
   if (typeof corp.finances.lifetimeCosts !== "number") corp.finances.lifetimeCosts = 0;
 }
 
-export function recordIncome(corp, source, amount) {
+/** How far back dailyRevenue looks: it is the income booked in the last 24 hours (Bug #984). */
+export const REVENUE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Book income where the cash arrives, at the amount actually received. This is the only thing that moves
+ * incomeBySource, lifetimeRevenue and dailyRevenue, so the three cannot describe different economies (Bug #984: mining
+ * booked 2.4 a unit on production and sales booked proceeds / 24, and dailyRevenue only ever grew).
+ */
+export function recordIncome(corp, source, amount, now = Date.now()) {
   if (!source || typeof source !== "string") return;
   ensureFinanceTracking(corp);
   const value = Math.round(Number(amount) || 0);
@@ -38,6 +46,21 @@ export function recordIncome(corp, source, amount) {
   const bucket = corp.finances.incomeBySource;
   bucket[source] = (bucket[source] || 0) + value;
   corp.finances.lifetimeRevenue = (corp.finances.lifetimeRevenue || 0) + value;
+  if (!Array.isArray(corp.finances.revenueLog)) corp.finances.revenueLog = [];
+  corp.finances.revenueLog.push({ t: now, amount: value });
+  refreshDailyRevenue(corp, now);
+}
+
+/**
+ * dailyRevenue is the income booked in the last 24 hours. Drops older entries from the log, so the figure falls when
+ * nothing is sold. A save from before Bug #984 has no log, and its ever-growing total becomes 0.
+ */
+export function refreshDailyRevenue(corp, now = Date.now()) {
+  ensureFinanceTracking(corp);
+  const since = now - REVENUE_WINDOW_MS;
+  const log = (Array.isArray(corp.finances.revenueLog) ? corp.finances.revenueLog : []).filter((e) => Number(e?.t) > since);
+  corp.finances.revenueLog = log;
+  corp.finances.dailyRevenue = log.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 }
 
 export function recordExpense(corp, category, amount) {
