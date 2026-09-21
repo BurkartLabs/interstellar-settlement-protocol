@@ -53,6 +53,7 @@ import {
   REFINERY_CHAINS,
   MISSION_TEMPLATES,
   refreshContractOfferings,
+  COMPLETED_COOLDOWN_MS, // Bug #1268
   SYSTEM_DETAILS
 } from "./gameState.js";
 
@@ -2382,27 +2383,37 @@ app.post("/api/accounts/:accountId/gameplay/accept-mission", (req, res) => {
   if (!missionId) return res.status(400).json({ error: "Missing missionId." });
 
   let outcome = "ok";
+  let refusalHours = 2;
   const account = mutateAccountState(req.params.accountId, (state) => {
     if (!Array.isArray(state.corp.activeMissions)) state.corp.activeMissions = [];
     if (state.corp.activeMissions.some((m) => m.id === missionId)) { outcome = "already-active"; return; }
 
-    // Look up mission from the account's current contract offerings
+    // Bug #1268: only a contract the Bureau is offering this corporation now can be accepted. A fallback to the whole
+    // template pool let any contract be taken, all ten at once, and one completed a moment ago taken again, past the
+    // offerings (two at a time, refreshed every 2 hours) and the 4-hour cooldown that refreshContractOfferings applies.
     const offerings = refreshContractOfferings(state.corp);
     const mission = offerings.missions.find((m) => m.id === missionId);
     if (!mission) {
-      // Also check the full template pool as fallback
-      const template = MISSION_TEMPLATES.find((m) => m.id === missionId);
-      if (!template) { outcome = "not-found"; return; }
-      state.corp.activeMissions.push({ ...template });
-    } else {
-      state.corp.activeMissions.push({ ...mission });
-      // Remove from current offerings so it can't be double-accepted
-      offerings.missions = offerings.missions.filter((m) => m.id !== missionId);
+      if (!MISSION_TEMPLATES.some((m) => m.id === missionId)) { outcome = "not-found"; return; }
+      const done = (state.corp.completedMissions || []).find((m) => m.id === missionId);
+      outcome = done && Date.now() - Number(done.completedAt || 0) < COMPLETED_COOLDOWN_MS ? "cooling-down" : "not-offered";
+      refusalHours = Math.max(1, Math.ceil((offerings.nextRefreshAt - Date.now()) / 3_600_000));
+      return;
     }
+    state.corp.activeMissions.push({ ...mission });
+    // Remove from current offerings so it can't be double-accepted
+    offerings.missions = offerings.missions.filter((m) => m.id !== missionId);
   });
 
   if (!account) return res.status(404).json({ error: "Account not found." });
   if (outcome === "not-found") return res.status(400).json({ error: "Mission not found in current offerings." });
+  const nextOffers = `New contracts are offered in about ${refusalHours} hour${refusalHours === 1 ? "" : "s"}.`;
+  if (outcome === "not-offered") {
+    return res.status(400).json({ error: `That contract is not on offer to you. Accept one of the contracts listed in the agent's office on Assignments. ${nextOffers}` });
+  }
+  if (outcome === "cooling-down") {
+    return res.status(400).json({ error: `You completed that contract recently; it can be offered to you again 4 hours after completion. Accept one of the contracts listed in the agent's office on Assignments. ${nextOffers}` });
+  }
   if (outcome === "already-active") return res.status(400).json({ error: "Mission already accepted." });
   res.json(account);
 });
