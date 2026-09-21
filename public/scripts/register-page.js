@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
   refreshToken: "isp.refreshToken"
 };
 
-// TODO: Implement email verification
+// TODO(AB#987): Implement email verification
 if (registerForm) {
   registerForm.addEventListener("submit", async (event) => {
     event.preventDefault();

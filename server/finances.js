@@ -100,7 +100,7 @@ export function computeLiveLiabilities(corp) {
  * constructed buildings, etc.); `inventoryEstimate` valuates raw stock
  * at a flat baseline price until a live market lookup is wired in.
  *
- * TODO: Save a snapshot of financial data every x minutes to Supabase
+ * TODO(AB#713): Save a snapshot of financial data every x minutes to Supabase
  */
 export function computeAssetBreakdown(corp) {
   const credits = Math.max(0, Math.round(Number(corp?.finances?.credits) || 0));
