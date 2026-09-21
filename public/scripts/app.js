@@ -51,6 +51,7 @@ const appState = {
   // Persists user-edited refinery quantity so re-renders (every tick) don't
   // overwrite what the user is typing.
   refineQuantityOverrides: {},
+  refineQuantityErrors: {}, // AB#1255: why Start Run refused a chain's quantity, shown under its field until it is edited
   miningUiTicker: null,
   stationRegistry: [],
   buildingRegistry: [],
@@ -3070,6 +3071,10 @@ function renderQueue(elId, queue, subtitle) {
     formatCredits: toCurrency
   });
 }
+
+// The Refinery Chains form's run-size rule, shared with start-refinery (AB#1255); here, clear of other branches' imports.
+import { refineMinimum, refineQuantityCheck, refineQuantityFieldValue } from "./refineQuantity.js";
+
 // TODO(AB#824): Remove duplicate. This should be stored in the database
 const RESOURCE_CATALOG = [
   "Silicates", "Helium-3", "Nickel", "Titanium", "Carbon",
@@ -3174,19 +3179,17 @@ function renderRefinery(data) {
         : String(chain.outputs);
       const inputAvailable = Number(inventory[chain.input] || 0);
       const perCycle = Number(chain.inputQuantityPerCycle || 100);
-      // Effective minimum batch is at least 100 units, rounded up to a
-      // multiple of the chain's per-cycle base.
-      const minQty = Math.max(perCycle, Math.ceil(100 / perCycle) * perCycle);
+      // Whole batches, at least 100 units: the rule start-refinery checks too (refineQuantity.js).
+      const minQty = refineMinimum(perCycle);
       const hasInput = inputAvailable >= minQty;
       const idleRefinery = refineries.find((r) => !r.active);
       const canStart = hasRefinery && !techGated && hasInput && idleRefinery;
       // Default the quantity input to whichever is larger: the minimum, or as
       // much of the player's stock as fits in whole batches.
       const computedDefault = Math.max(minQty, Math.floor(inputAvailable / perCycle) * perCycle || minQty);
-      // Honor any user-typed value, but clamp it to the legal min.
-      const overrideRaw = appState.refineQuantityOverrides[chain.id];
-      const override = Number.isFinite(Number(overrideRaw)) ? Math.max(minQty, Math.floor(Number(overrideRaw))) : null;
-      const defaultQty = override != null ? override : computedDefault;
+      // What the player typed stays as typed, blank included (AB#1255); Start Run checks it and refuses, not the render.
+      const fieldValue = refineQuantityFieldValue(appState.refineQuantityOverrides[chain.id], computedDefault);
+      const quantityError = appState.refineQuantityErrors[chain.id];
       const inputId = `refine-qty-${chain.id}`;
 
       return `
@@ -3203,12 +3206,13 @@ function renderRefinery(data) {
             ? `<div class="refine-quantity-row" style="display:flex;gap:0.5rem;align-items:center;margin:0.5rem 0;">
                 <label for="${escapeHtml(inputId)}" class="muted" style="font-size:0.85rem;">Quantity</label>
                 <input id="${escapeHtml(inputId)}" class="refine-quantity-input" type="number"
-                  min="${minQty}" step="${perCycle}" value="${defaultQty}"
+                  min="${minQty}" step="${perCycle}" value="${escapeHtml(fieldValue)}"
                   data-chain-id="${escapeHtml(chain.id)}"
                   style="width:9rem;padding:0.3rem 0.5rem;background:var(--color-bg-deep);border:1px solid var(--color-border);color:var(--color-text);border-radius:4px;" />
                 <span class="muted" style="font-size:0.8rem;">min ${minQty}, step ${perCycle}</span>
               </div>
-              <button class="btn btn-accent refinery-start-btn" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}">Start Run</button>`
+              ${quantityError ? `<p class="refine-quantity-error" role="alert" style="color:var(--warn);margin:0 0 0.5rem;">${escapeHtml(quantityError)}</p>` : ""}
+              <button class="btn btn-accent refinery-start-btn" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}" data-per-cycle="${perCycle}" data-input="${escapeHtml(chain.input)}" data-available="${inputAvailable}" data-hours="${Number(chain.cycleDurationHours) || 0}">Start Run</button>`
             : belowRefineryCap && canBuildRefinery
               ? `<button class="btn btn-outline refinery-build-btn"${!hasOpenBuildingSlot ? ` data-disabled-reason="${escapeHtml(`Refinery requires 1 open building slot. Current usage: ${buildings.length}/${buildingSlots}.`)}` : ""}>${hasRefinery ? "Build 2nd Refinery" : "Build Refinery"}</button>${!hasOpenBuildingSlot ? `<p class="muted" style="color:var(--color-warn)">No open building slots. Current usage: ${buildings.length}/${buildingSlots}.</p>` : ""}`
               : !hasRefinery && !canBuildRefinery
@@ -3230,6 +3234,7 @@ function renderRefinery(data) {
     const chainId = qty.getAttribute("data-chain-id");
     if (!chainId) return;
     appState.refineQuantityOverrides[chainId] = qty.value;
+    delete appState.refineQuantityErrors[chainId]; // the reason was about the old value
   };
 
   // Restore focus/caret on the quantity input that was being edited.
@@ -3252,25 +3257,42 @@ function renderRefinery(data) {
       const refineryId = startBtn.getAttribute("data-refinery-id");
       const qtyInputId = startBtn.getAttribute("data-quantity-input");
       const qtyInput = qtyInputId ? document.getElementById(qtyInputId) : null;
-      const inputQuantity = qtyInput ? Math.max(0, Math.floor(Number(qtyInput.value) || 0)) : 0;
-      // Clear the override now that we've consumed it.
-      delete appState.refineQuantityOverrides[chainId];
+      const input = startBtn.getAttribute("data-input");
+      // AB#1255: what is in the field, checked and sent as it is, or refused beside it; never replaced by a default.
+      const check = refineQuantityCheck(qtyInput ? qtyInput.value : "", {
+        perCycle: Number(startBtn.getAttribute("data-per-cycle")),
+        input,
+        available: Number(startBtn.getAttribute("data-available"))
+      });
+      if (!check.ok) {
+        appState.refineQuantityErrors[chainId] = check.reason;
+        updateAllViews();
+        return;
+      }
       startBtn.disabled = true;
       startBtn.textContent = "Starting…";
       try {
         const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/start-refinery`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chainId, refineryId, inputQuantity })
+          body: JSON.stringify({ chainId, refineryId, inputQuantity: check.quantity })
         });
         const account = await parseJsonResponse(response);
+        delete appState.refineQuantityOverrides[chainId];
+        delete appState.refineQuantityErrors[chainId];
+        const hours = Number(startBtn.getAttribute("data-hours")) * check.batches;
+        const started = `Refinery run started: ${check.quantity.toLocaleString("en-US")} ${input}, ready in ${hours}h.`;
+        appState.refineryStatus = { type: "ok", text: started };
+        pushFeedback(started, "ok");
         appState.data = deepClone(account.state);
         appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
         updateAllViews();
       } catch (error) {
         startBtn.disabled = false;
         startBtn.textContent = "Start Run";
+        appState.refineQuantityErrors[chainId] = error.message;
         pushFeedback(`Refinery error: ${error.message}`, "warn");
+        updateAllViews();
       }
       return;
     }

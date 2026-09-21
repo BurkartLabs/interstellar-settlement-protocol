@@ -2247,18 +2247,21 @@ app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
   res.json(account);
 });
 
+// AB#1255: the run-size rule the Refinery Chains form uses too; imported here beside its use.
+import { refineQuantityCheck } from "../public/scripts/refineQuantity.js";
+
 app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
   const refineryId = String(req.body?.refineryId || "").trim();
   const chainId = String(req.body?.chainId || "").trim();
-  // Optional: number of input units the player wants to refine in this run.
-  // Defaults to chain.inputQuantityPerCycle. Floored to a multiple of the
-  // chain's per-cycle input. Effective minimum is max(100, perCycle).
-  const requestedQuantity = bodyNumber(req.body?.inputQuantity, { fallback: 0, integer: true });
+  // The input units to refine: whole batches of the chain's per-cycle input, at least 100 (refineQuantity.js).
+  // Checked as sent; nothing is rounded or defaulted.
+  const requestedQuantity = req.body?.inputQuantity;
   let outcome = "ok";
   let targetLabel = "";
   let actualQuantity = 0;
   let actualScale = 1;
   let actualDurationHours = 0;
+  let quantityRefusal = "";
 
   const chain = REFINERY_CHAINS[chainId];
   if (!chain) {
@@ -2296,20 +2299,17 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
       return;
     }
 
-    // Resolve the run size. Player may pass `inputQuantity`; we round it down
-    // to the chain's per-cycle multiple. Default = one cycle. Hard minimum =
-    // 100 input units, capped per chain in case the per-cycle base is
-    // smaller than 100 (e.g. He-3 at 50/cycle requires at least two cycles).
+    // The run is exactly what was asked for, or refused (AB#1255): it used to raise anything below one batch to a batch
+    // and round the rest down, spending materials the player never chose. The rule is shared with the form.
     const perCycle = Math.max(1, Number(chain.inputQuantityPerCycle));
-    const minQuantity = Math.max(100, perCycle);
-    const requested = requestedQuantity > 0 ? requestedQuantity : perCycle;
-    const scale = Math.max(1, Math.floor(requested / perCycle));
-    const inputQty = scale * perCycle;
-    if (inputQty < minQuantity) {
-      outcome = "below-minimum";
-      actualQuantity = inputQty;
+    const check = refineQuantityCheck(requestedQuantity, { perCycle, input: chain.input });
+    if (!check.ok) {
+      outcome = "bad-quantity";
+      quantityRefusal = check.reason;
       return;
     }
+    const scale = check.batches;
+    const inputQty = check.quantity;
 
     // Check input material availability at current station
     const refStationId = corp.currentStationId || "earth-station-prime";
@@ -2353,7 +2353,7 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
       "refinery-not-found": `Refinery "${refineryId}" was not found.`,
       "all-busy": "All refineries are currently running cycles.",
       "already-active": `${targetLabel} already has an active production cycle.`,
-      "below-minimum": `Minimum refine quantity is 100 units (one batch of ${chain.inputQuantityPerCycle} ${chain.input}).`,
+      "bad-quantity": quantityRefusal,
       "insufficient-input": `Not enough ${chain.input} at this station. Need ${actualQuantity || chain.inputQuantityPerCycle} but only have ${Number(getStationInventory(account.state.corp, account.state.corp.currentStationId || "earth-station-prime")[chain.input] || 0)}.`
     };
     res.status(400).json({ error: messageMap[outcome] || "Refinery cycle failed to start." });
