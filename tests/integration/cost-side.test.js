@@ -27,7 +27,7 @@ describe("Net Daily Flow's cost side (Bug #1022)", () => {
   it("renting an office books its rent as a cost the day it is paid", async () => {
     const { app } = await getApp();
     const { account, accessToken } = await registerAccount(app);
-    const res = await authed(app, accessToken).post(`/api/accounts/${account.id}/gameplay/rent-office`).send({ durationDays: 28 });
+    const res = await authed(app, accessToken).post(`/api/accounts/${account.id}/gameplay/rent-office`).send({ stationId: "earth-station-prime", durationDays: 28 });
     expect(res.status).toBe(200);
     const finances = getAccountById(account.id).state.corp.finances;
     expect(finances.expensesByCategory["office-rent"]).toBe(28_000);
