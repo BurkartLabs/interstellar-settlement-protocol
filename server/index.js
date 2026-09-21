@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import { resolveLeaseBody } from "./leases.js";
+import { isInsightProgramLive, officeRenewalCost } from "../public/scripts/ceoEffects.js";
 import {
   accountExists,
   addAccountNotification,
@@ -823,6 +824,11 @@ app.get("/api/stations", (_req, res) => {
   }
 });
 
+// The CEO Insight catalogue, with each program's live or planned status: the client's only copy (Bug #983).
+app.get("/api/ceo-insight", (_req, res) => {
+  res.json({ programs: Object.values(CEO_INSIGHT_LIBRARY) });
+});
+
 app.get("/api/buildings", (_req, res) => {
   try {
     const raw = fs.readFileSync(path.join(__dirname, "..", "data", "buildings.json"), "utf8");
@@ -1187,7 +1193,8 @@ app.post("/api/accounts/:accountId/gameplay/renew-office", (req, res) => {
   const requestedStationId = String(req.body?.stationId || "earth-station-prime").trim();
   const VALID_DURATIONS = [7, 14, 21, 28];
   const durationDays = VALID_DURATIONS.includes(Number(req.body?.durationDays)) ? Number(req.body.durationDays) : 7;
-  const renewalCost = durationDays * 1000;
+  // Priced inside the mutation: the CEO program that discounts it is part of the corporation's state (Bug #983).
+  let renewalCost = officeRenewalCost([], durationDays);
   let outcome = "ok";
   let stationName = "Earth Station Prime";
 
@@ -1217,6 +1224,7 @@ app.post("/api/accounts/:accountId/gameplay/renew-office", (req, res) => {
       outcome = "no-office";
       return;
     }
+    renewalCost = officeRenewalCost(corp.completedInsights, durationDays);
     if (corp.finances.credits < renewalCost) {
       outcome = "insufficient-credits";
       return;
@@ -2764,6 +2772,12 @@ app.post("/api/accounts/:accountId/gameplay/queue-ceo", (req, res) => {
 
   if (!prog) {
     res.status(400).json({ error: "Unknown insight program." });
+    return;
+  }
+
+  // Bug #983: a planned program has no effect in the game yet, so it is not sold.
+  if (!isInsightProgramLive(prog)) {
+    res.status(400).json({ error: `${prog.name} is not available yet: its effect is planned for a later version.` });
     return;
   }
 

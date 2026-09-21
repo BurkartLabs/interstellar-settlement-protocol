@@ -537,6 +537,17 @@ function stopExtractorCycle(extractor, timestamp) {
   extractor.lastCompletedAt = timestamp;
 }
 
+/**
+ * An extractor's chance of breaking down per second: 0.005%, 8% less with Industrial Safety research and 12% less
+ * again with the Risk Assessment Framework CEO program (Bug #983: that program used to change nothing).
+ */
+export function extractorDowntimeProbPerSec(corp) {
+  let probPerSec = 0.00005;
+  if ((corp.unlockedTech || []).includes("tt-industrial-safety")) probPerSec *= 0.92;
+  if ((corp.completedInsights || []).includes("ceo-risk-assessment")) probPerSec *= 0.88;
+  return probPerSec;
+}
+
 export function applyMiningOperations(corp, now = Date.now()) {
   ensureCorpMiningModel(corp);
 
@@ -597,11 +608,7 @@ export function applyMiningOperations(corp, now = Date.now()) {
     }
 
     // Calculate downtime probability for this tick
-    const baseProbPerSec = 0.00005; // 0.005% per second
-    let probPerSec = baseProbPerSec;
-    if ((corp.unlockedTech || []).includes("tt-industrial-safety")) {
-      probPerSec *= 0.92; // -8% risk
-    }
+    const probPerSec = extractorDowntimeProbPerSec(corp);
     const tickSeconds = elapsedMs / 1000;
     // Probability of at least one event in tickSeconds: P = 1 - (1 - p)^n
     const tickProb = 1 - Math.pow(1 - probPerSec, tickSeconds);
