@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import { resolveLeaseBody } from "./leases.js";
+import { bodyNumber } from "./bodyNumber.js";
 import { canReachSystem } from "../public/scripts/navigation.js";
 import {
   accountExists,
@@ -1044,7 +1045,7 @@ app.post("/api/accounts/:accountId/notifications/read-all", (req, res) => {
 });
 
 app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
-  const count = Math.max(1, Number(req.body?.count || 1));
+  const count = bodyNumber(req.body?.count, { fallback: 1, min: 1, integer: true });
   let outcome = "ok";
   let hiredCount = 0;
 
@@ -1359,7 +1360,7 @@ const LOGISTICS_FEE_PER_UNIT = 2;
 app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
   const fromStationId = String(req.body?.fromStationId || "").trim();
   const item = String(req.body?.item || "").trim();
-  const quantity = Math.max(1, Math.floor(Number(req.body?.quantity || 0)));
+  const quantity = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
 
   if (!fromStationId || !STATION_REGISTRY[fromStationId]) {
     res.status(400).json({ error: "Invalid source station." });
@@ -1665,8 +1666,8 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
 // ─── Lease-scoped: Start a mining cycle on a lease extractor ───────────────
 app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, res) => {
   const { leaseId } = req.params;
-  const amount = Math.max(10, Number(req.body?.amount || 40));
-  const requestedHours = Math.max(1, Math.min(72, Number(req.body?.hours || 24)));
+  const amount = bodyNumber(req.body?.amount, { fallback: 40, min: 10 });
+  const requestedHours = bodyNumber(req.body?.hours, { fallback: 24, min: 1, max: 72 });
   const requestedExtractorId = String(req.body?.extractorId || "").trim();
   let outcome = "ok";
   let targetExtractorLabel = "";
@@ -2261,7 +2262,7 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
   // Optional: number of input units the player wants to refine in this run.
   // Defaults to chain.inputQuantityPerCycle. Floored to a multiple of the
   // chain's per-cycle input. Effective minimum is max(100, perCycle).
-  const requestedQuantity = Math.floor(Number(req.body?.inputQuantity || 0));
+  const requestedQuantity = bodyNumber(req.body?.inputQuantity, { fallback: 0, integer: true });
   let outcome = "ok";
   let targetLabel = "";
   let actualQuantity = 0;
@@ -2492,8 +2493,8 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
 });
 
 app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
-  const amount = Math.max(10, Number(req.body?.amount || 40));
-  const requestedHours = Math.max(1, Math.min(72, Number(req.body?.hours || 24)));
+  const amount = bodyNumber(req.body?.amount, { fallback: 40, min: 10 });
+  const requestedHours = bodyNumber(req.body?.hours, { fallback: 24, min: 1, max: 72 });
   const requestedExtractorId = String(req.body?.extractorId || "").trim();
   let outcome = "ok";
   let targetExtractorLabel = "";
@@ -3061,13 +3062,12 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
     return;
   }
 
-  if (!type || !item || !quantity || !unitPrice || type !== "sell") {
+  const normalizedQty = bodyNumber(quantity, { fallback: null, min: 1, integer: true });
+  const normalizedUnitPrice = bodyNumber(unitPrice, { fallback: null, min: 1 });
+  if (!type || !item || normalizedQty === null || normalizedUnitPrice === null || type !== "sell") {
     res.status(400).json({ error: "Missing required order fields." });
     return;
   }
-
-  const normalizedQty = Math.max(1, Number(quantity));
-  const normalizedUnitPrice = Math.max(1, Number(unitPrice));
 
   let rejectReason = "";
   const updatedSeller = mutateAccountState(req.auth.accountId, (state) => {
@@ -3125,7 +3125,7 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
 
 app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
-  const requestedQty = Math.max(1, Number(req.body?.quantity || 1));
+  const requestedQty = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
   const normalizeIdentity = (value) => String(value || "").trim().toLowerCase();
 
   const buyerAccount = getAccountById(req.auth.accountId);
@@ -3246,7 +3246,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
 // ─── Sell player resources into an NPC standing buy order ────────────────────
 app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
-  const requestedQty = Math.max(1, Math.floor(Number(req.body?.quantity || 1)));
+  const requestedQty = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
 
   checkAndResetNpcBuyOrders();
 
