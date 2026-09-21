@@ -30,5 +30,5 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-jwt-secret-do-not-use-i
 // the 8 setInterval ticker registrations so the test process can exit cleanly.
 process.env.ISP_DISABLE_TICKERS = "1";
 // Allow the dummy-login routes during tests.
-process.env.ALLOW_DUMMY_AUTH = "1";
+process.env.ISP_DEV = "1";
 

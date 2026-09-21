@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { freshAgent, registerAccount, authed } from "../helpers/api.js";
+import { getAccountById } from "../../server/gameState.js";
 
 describe("Auth routes", () => {
   describe("POST /api/auth/register", () => {
@@ -167,7 +168,7 @@ describe("Auth routes", () => {
   });
 
   describe("Dummy account routes", () => {
-    it("POST /api/auth/dummy-login returns tokens when ALLOW_DUMMY_AUTH is on", async () => {
+    it("POST /api/auth/dummy-login returns tokens when ISP_DEV is on (tests/setup.js)", async () => {
       const { app } = await getApp();
       const res = await freshAgent(app).post("/api/auth/dummy-login").send({});
       expect(res.status).toBe(200);
@@ -231,33 +232,15 @@ describe("Auth routes", () => {
     });
   });
 
-  describe("POST /api/dev/set-credits", () => {
-    it("updates account credits when given a finite number", async () => {
+  // Bug #423: this route set any corporation's balance for anyone; it is removed. Tests that need credits set them
+  // through gameState's mutateAccountState.
+  describe("POST /api/dev/set-credits is gone (Bug #423)", () => {
+    it("answers 404 and changes no balance", async () => {
       const { app } = await getApp();
-      const res = await freshAgent(app).post("/api/dev/set-credits").send({
-        accountId: "dummy",
-        credits: 1234
-      });
-      expect(res.status).toBe(200);
-      expect(res.body.credits).toBe(1234);
-    });
-
-    it("rejects non-numeric credits with 400", async () => {
-      const { app } = await getApp();
-      const res = await freshAgent(app).post("/api/dev/set-credits").send({
-        accountId: "dummy",
-        credits: "many"
-      });
-      expect(res.status).toBe(400);
-    });
-
-    it("returns 404 for unknown account", async () => {
-      const { app } = await getApp();
-      const res = await freshAgent(app).post("/api/dev/set-credits").send({
-        accountId: "nope-not-a-real-account",
-        credits: 100
-      });
+      const before = getAccountById("dummy")?.state?.corp?.finances?.credits;
+      const res = await freshAgent(app).post("/api/dev/set-credits").send({ accountId: "dummy", credits: 999999999 });
       expect(res.status).toBe(404);
+      expect(getAccountById("dummy")?.state?.corp?.finances?.credits).toBe(before);
     });
   });
 });

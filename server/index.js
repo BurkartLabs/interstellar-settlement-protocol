@@ -281,7 +281,10 @@ const ACCESS_TOKEN_SECONDS = 7 * 24 * 60 * 60;
 const DUMMY_ACCESS_TOKEN_SECONDS = IS_DEV ? 7 * 24 * 60 * 60 : 2 * 60 * 60;
 const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
 const JWT_SECRET = process.env.JWT_SECRET || "isp-dev-insecure-secret-change-me";
-const ALLOW_DUMMY_AUTH = true;
+// The developer surface (the shared demo account's login and reset, and the kanban board) exists only when the
+// environment asks for it: ISP_DEV=1, and never in production. It used to be a literal true, so it was live on every
+// server (Bug #423, Bug #1069). Unset, the routes are not registered at all.
+const DEV_SURFACE = process.env.ISP_DEV === "1" && process.env.NODE_ENV !== "production";
 
 function stripHtml(input) {
   return String(input || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
@@ -432,15 +435,18 @@ if (process.env.VERCEL) {
 }
 
 app.use(express.static(path.join(__dirname, "..", "public")));
-// Serve /kanban as the Kanban board root, defaulting to kanban.html
-app.use("/kanban", (req, res, next) => {
-  if (req.path === "/" || req.path === "") {
-    res.sendFile(path.join(__dirname, "..", "kanban", "kanban.html"));
-  } else {
-    express.static(path.join(__dirname, "..", "kanban"))(req, res, next);
-  }
-});
-app.use("/kanban", kanbanRouter);
+// Serve /kanban as the Kanban board root, defaulting to kanban.html. A developer tool: its API writes any request body
+// to disk, so it exists only on the dev surface (Bug #1069).
+if (DEV_SURFACE) {
+  app.use("/kanban", (req, res, next) => {
+    if (req.path === "/" || req.path === "") {
+      res.sendFile(path.join(__dirname, "..", "kanban", "kanban.html"));
+    } else {
+      express.static(path.join(__dirname, "..", "kanban"))(req, res, next);
+    }
+  });
+  app.use("/kanban", kanbanRouter);
+}
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
 function getESTDateString() {
@@ -855,55 +861,26 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-app.post("/api/auth/dummy-login", (_req, res) => {
-  if (!ALLOW_DUMMY_AUTH) {
-    res.status(403).json({ error: "Dummy access is disabled." });
-    return;
-  }
-
-  const account = getDummyAccount();
-  const tokens = issueTokens(account.id);
-  res.json({ account, ...tokens });
-});
-
-app.post("/api/auth/dummy-reset", (_req, res) => {
-  if (!ALLOW_DUMMY_AUTH) {
-    res.status(403).json({ error: "Dummy access is disabled." });
-    return;
-  }
-
-  const account = resetDummyAccountProgress();
-  if (!account) {
-    res.status(404).json({ error: "Dummy account not found." });
-    return;
-  }
-
-  res.json(account);
-});
-
-app.post("/api/dev/set-credits", (req, res) => {
-  if (!ALLOW_DUMMY_AUTH) {
-    res.status(403).json({ error: "Dev endpoints are disabled in production." });
-    return;
-  }
-
-  const { accountId = "dummy", credits } = req.body ?? {};
-  if (typeof credits !== "number" || !isFinite(credits)) {
-    res.status(400).json({ error: "credits must be a finite number." });
-    return;
-  }
-
-  const account = mutateAccountState(accountId, (state) => {
-    state.corp.finances.credits = credits;
+if (DEV_SURFACE) {
+  app.post("/api/auth/dummy-login", (_req, res) => {
+    const account = getDummyAccount();
+    const tokens = issueTokens(account.id);
+    res.json({ account, ...tokens });
   });
 
-  if (!account) {
-    res.status(404).json({ error: "Account not found." });
-    return;
-  }
+  app.post("/api/auth/dummy-reset", (_req, res) => {
+    const account = resetDummyAccountProgress();
+    if (!account) {
+      res.status(404).json({ error: "Dummy account not found." });
+      return;
+    }
 
-  res.json({ ok: true, credits: account.state.corp.finances.credits });
-});
+    res.json(account);
+  });
+}
+
+// POST /api/dev/set-credits is gone (Bug #423): it set any corporation's balance for anyone, and a credit-granting
+// route has no safe form in a shared economy. Tests set credits through gameState's mutateAccountState.
 
 app.post("/api/auth/login", async (req, res) => {
   try {
