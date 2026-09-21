@@ -68,6 +68,12 @@
               <span class="hero-title-bottom">Settlement Protocol</span>
             </h1>
 
+            <!-- AB#1056: the two things a visitor can do, straight under the title, inside the first screen at 1280x800 -->
+            <div class="hero-actions">
+              <a href="/login.html" class="btn-hero btn-hero-outline">Log In</a>
+              <a href="/register.html" id="show-register-btn" class="btn-hero btn-hero-fill">Register Corporation</a>
+            </div>
+
             <div class="hero-divider" aria-hidden="true">
               <span class="divider-line"></span>
               <span class="divider-diamond"></span>
@@ -87,11 +93,6 @@
               <span class="pill">Persistent multiplayer state</span>
               <span class="pill">Milestone progression, not XP grind</span>
               <span class="pill">Text-first command interface</span>
-            </div>
-
-            <div class="hero-actions">
-              <a href="/login.html" class="btn-hero btn-hero-outline">Log In</a>
-              <a href="/register.html" id="show-register-btn" class="btn-hero btn-hero-fill">Register Corporation</a>
             </div>
           </div>
         </section>
@@ -617,7 +618,7 @@
                 <div id="exchange-buy-filtered" class="exchange-filtered-empty" hidden></div>
                 <p id="buy-status" class="muted"></p>
                 <div class="table-wrap">
-                  <table class="data-table">
+                  <table class="data-table data-table--stack">
                     <thead>
                       <tr>
                         <th>Item</th>
@@ -639,7 +640,7 @@
                 <p class="muted">List resources from your inventory as a public sell order.</p>
                 <p id="market-sell-empty" class="muted" hidden>You have no items in inventory to list.</p>
                 <div class="table-wrap">
-                  <table class="data-table">
+                  <table class="data-table data-table--stack">
                     <thead>
                       <tr>
                         <th>Item</th>
@@ -664,7 +665,7 @@
               <div id="npc-buy-filtered" class="exchange-filtered-empty" hidden></div>
               <p id="npc-buy-status" class="muted"></p>
               <div class="table-wrap">
-                <table class="data-table">
+                <table class="data-table data-table--stack">
                   <thead>
                     <tr>
                       <th>Item</th>
@@ -686,7 +687,7 @@
               <p id="my-sell-orders-empty" class="muted" hidden>You have no active sell orders on the exchange.</p>
               <div id="my-sell-orders-filtered" class="exchange-filtered-empty" hidden></div>
               <div class="table-wrap">
-                <table class="data-table">
+                <table class="data-table data-table--stack">
                   <thead>
                     <tr>
                       <th>Item</th>
