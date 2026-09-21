@@ -126,7 +126,7 @@ npm start
 
 Then open [http://localhost:3000](http://localhost:3000).
 
-A demo account is available at the login screen. You can also register a real account — all account data is persisted in Supabase; global world state is stored in `data/state.json` locally.
+The shared demo account (the "Log In To Dummy Account" button, shown on localhost) and the developer kanban board at `/kanban` exist only when `ISP_DEV=1` is set, in `.env` or the environment, and never when `NODE_ENV=production`. Without it their routes answer 404. You can also register a real account — all account data is persisted in Supabase; global world state is stored in `data/state.json` locally.
 
 ---
 
