@@ -11,6 +11,11 @@
 // already are: office, staff, claim, yard, cycle, sale. The Starmap comes last, as orientation for later - travel is
 // open from the start (no ship or fleet gate), it is simply not what the first hour is about.
 //
+// AB#581: the walkthrough watches the game. Each step is complete when WALKTHROUGH_COMPLETION (below) says so - a
+// fact about the corporation, or a named UI event - and it advances by itself when the player does the thing. Next is
+// Skip. `actionSelectors` name the control that does the step, most specific first, for when the player is inside a
+// building; the card or tab named by `selector` is the way in.
+//
 // `id` is stable for code and tests; titles are copy and may change. `renderedBy` names where the highlighted element
 // comes from: "index.html" for static markup, or the exported render function in html.js that draws it.
 // tests/unit/walkthrough.test.js renders each one and fails if a selector matches nothing, so a moved element fails
@@ -31,7 +36,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.tab-btn[data-tab="station"]',
     renderedBy: "index.html",
     title: "Earth Station Prime",
-    text: "You are docked at Earth Station Prime, above Earth, and your first day happens here. The station houses the offices you will need: the executive suites, the claims office, the Exchange hub, and my Bureau. The claims office will not file a lease for a corporation with no registered office here. We fix that first.",
+    text: "You are docked at Earth Station Prime, above Earth, and your first day happens here. Open the Station tab: it houses the offices you will need: the executive suites, the claims office, the Exchange hub, and my Bureau. The claims office will not file a lease for a corporation with no registered office here. We fix that first.",
     tab: "station"
   },
   {
@@ -40,7 +45,8 @@ export const WALKTHROUGH_STEPS = [
     renderedBy: "stationBuildingCardsHtml",
     title: "An office",
     text: "Enter the Orbital Executive Suites and execute a lease. Suites cost $1,000 a day: your first lease runs 7 days ($7,000), and you can extend it by 7, 14, 21 or 28 days from the same office. Do not let it lapse. Without an active office you cannot start a mining cycle.",
-    tab: "station"
+    tab: "station",
+    actionSelectors: ['[id="rent-office-btn"]']
   },
   {
     id: "hire",
@@ -48,7 +54,8 @@ export const WALKTHROUGH_STEPS = [
     renderedBy: "stationBuildingCardsHtml",
     title: "Staff",
     text: "With the lease active, hire in the Workforce panel of the same suites. Each hire costs $2,000 and adds $150 a day to payroll. The ISA requires five employees on payroll for each mining lease you hold, so hire at least five.",
-    tab: "station"
+    tab: "station",
+    actionSelectors: ['[id="office-hire-form"]']
   },
   {
     id: "lease",
@@ -56,7 +63,8 @@ export const WALKTHROUGH_STEPS = [
     renderedBy: "stationBuildingCardsHtml",
     title: "A mining claim",
     text: "Next, the ISA Claims & Leases Division. From Earth Station Prime the lease on offer is Earth, Silicate Extraction, for $20,000. The Division checks your headcount before it files anything, so the five come first.",
-    tab: "station"
+    tab: "station",
+    actionSelectors: [".purchase-lease-btn"]
   },
   {
     id: "yard",
@@ -64,7 +72,8 @@ export const WALKTHROUGH_STEPS = [
     renderedBy: "stationBuildingCardsHtml",
     title: "Equipment",
     text: "In the same office, open your Earth lease with Manage Lease and commission a Basic Extractor Yard for $50,000. A lease without equipment is paperwork.",
-    tab: "station"
+    tab: "station",
+    actionSelectors: ['[id="lease-build-extractor-btn"]', ".lease-manage-btn"]
   },
   {
     id: "cycle",
@@ -72,7 +81,8 @@ export const WALKTHROUGH_STEPS = [
     renderedBy: "stationBuildingCardsHtml",
     title: "Your first cycle",
     text: "On that lease, set a throughput in tons per hour and a duration in hours, then start the cycle. Silicates accrue to your Earth Station Prime inventory while it runs. You do not have to wait for it to finish to sell them.",
-    tab: "station"
+    tab: "station",
+    actionSelectors: [".lease-mine-form", ".lease-manage-btn"]
   },
   {
     id: "sell",
@@ -80,7 +90,8 @@ export const WALKTHROUGH_STEPS = [
     renderedBy: "index.html",
     title: "Your first sale",
     text: "When you have silicates in stock, take them to the Galactic Exchange. You can list them for other corporations to buy, or sell straight into a Standing Buy Order from an NPC buyer at the posted price. The standing order settles at once; a listing waits for a buyer.",
-    tab: "market"
+    tab: "market",
+    actionSelectors: ['.npc-sell-btn[data-npc-item="Silicates"]']
   },
   {
     id: "research",
@@ -88,14 +99,15 @@ export const WALKTHROUGH_STEPS = [
     renderedBy: "index.html",
     title: "Research",
     text: "Queue Basic Extraction Analytics in Corporate R&D. It is a 2-hour project, and the result is a permanent 10% boost to extraction throughput on every yard you run. It is the first research I would fund.",
-    tab: "rnd"
+    tab: "rnd",
+    actionSelectors: ['.rnd-enqueue-btn[data-tech-id="tt-basic-extraction"]']
   },
   {
     id: "bureau",
     selector: '.tab-btn[data-tab="missions"]',
     renderedBy: "index.html",
     title: "My Bureau",
-    text: "This is the Contracting & Assignments Bureau, where I work. Agents here issue contracts, each with a quota and a deadline. I keep a record of which corporations meet their terms, and I remember it.",
+    text: "Open Assignments: the Contracting & Assignments Bureau, where I work. Agents here issue contracts, each with a quota and a deadline. I keep a record of which corporations meet their terms, and I remember it.",
     tab: "missions"
   },
   {
@@ -103,7 +115,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.tab-btn[data-tab="overview"]',
     renderedBy: "index.html",
     title: "Your milestones",
-    text: "This Overview is where the ISA tells you what it expects next: your milestones, and the requirements for your next corporation level. When you are unsure what to do, start here.",
+    text: "Open your Overview. It is where the ISA tells you what it expects next: your milestones, and the requirements for your next corporation level. When you are unsure what to do, start here.",
     tab: "overview"
   },
   {
@@ -111,8 +123,82 @@ export const WALKTHROUGH_STEPS = [
     selector: '.tab-btn[data-tab="starmap"]',
     renderedBy: "index.html",
     title: "From here",
-    text: "That is the procedure, and you can take it from here. This is the starmap: every system, body and station the ISA administers. When your corporation outgrows Earth Station Prime, this is where you look next. Before that, once your corporation is established, come and see me on Deck 7. I have a Silicate Requisition Order — Batch 4-7A that needs an operator who delivers on schedule.",
+    text: "That is the procedure, and you can take it from here. Open the starmap: every system, body and station the ISA administers. When your corporation outgrows Earth Station Prime, this is where you look next. Before that, once your corporation is established, come and see me on Deck 7. I have a Silicate Requisition Order — Batch 4-7A that needs an operator who delivers on schedule.",
     tab: "starmap",
     handoffContractId: "ms-log-001"
   }
 ];
+
+// AB#581: what completes each step, in one table beside the steps. A `state` predicate reads the corporation state the
+// client already holds (appState.data), so a returning player who has already done a thing skips its step; an
+// `event` names something the player does in the UI that leaves no trace in state (app.js reports "tab:<id>" when a
+// tab opens). `means` is the sentence the tests and the PR use for it. tests/integration/walkthrough-predicates.test.js
+// performs each action through the real route on a freshly registered corporation and checks its predicate either side.
+const FIRST_LEASE_EMPLOYEES = 5; // EMPLOYEES_PER_LEASE in server/index.js
+const FIRST_RESEARCH_ID = "tt-basic-extraction";
+const extractorsOf = (state) => state?.corp?.mining?.silicateExtractors || [];
+
+export const WALKTHROUGH_COMPLETION = {
+  licence: { means: "the inbox was opened", event: "tab:inbox" },
+  station: { means: "the Station tab was opened", event: "tab:station" },
+  office: {
+    means: "an office lease is active at the station the corporation is docked at",
+    state: (state, now) => (state?.corp?.offices || []).some(
+      (o) => o.stationId === state.corp.currentStationId && Number(o.rentedUntil) > now
+    )
+  },
+  hire: {
+    means: `at least ${FIRST_LEASE_EMPLOYEES} employees on payroll`,
+    state: (state) => Number(state?.corp?.employeeCount || 0) >= FIRST_LEASE_EMPLOYEES
+  },
+  lease: { means: "a mining lease is filed", state: (state) => (state?.corp?.miningLeases || []).length > 0 },
+  yard: { means: "an extractor yard is commissioned", state: (state) => extractorsOf(state).length > 0 },
+  cycle: {
+    means: "a mining cycle is running, or has run",
+    state: (state) => extractorsOf(state).some((e) => e.active || e.lastCompletedAt || Number(e.totalMined) > 0)
+  },
+  sell: {
+    means: "a sale has settled (to a standing buy order or a player), not merely listed",
+    state: (state) => (state?.corp?.tradeHistory || []).some((t) => t.type === "sold" || t.type === "sold-npc")
+  },
+  research: {
+    means: "Basic Extraction Analytics is queued or researched",
+    state: (state) => (state?.queues?.corporateRnD || []).some((q) => q.techId === FIRST_RESEARCH_ID)
+      || (state?.corp?.unlockedTech || []).includes(FIRST_RESEARCH_ID)
+  },
+  bureau: { means: "Assignments was opened", event: "tab:missions" },
+  overview: { means: "the Overview was opened", event: "tab:overview" },
+  starmap: { means: "the Starmap was opened", event: "tab:starmap" }
+};
+
+/** Whether the player has done what a step asks. `events` holds the UI events seen since the walkthrough started. */
+export function isStepComplete(step, state, events = new Set(), now = Date.now()) {
+  const done = WALKTHROUGH_COMPLETION[step.id];
+  if (!done) return false;
+  if (done.event) return events.has(done.event);
+  return Boolean(done.state(state, now));
+}
+
+/** The first step at or after `from` that is not yet done; WALKTHROUGH_STEPS.length when every one is. */
+export function nextStepIndex(from, state, events = new Set(), now = Date.now()) {
+  let i = Math.max(0, from);
+  while (i < WALKTHROUGH_STEPS.length && isStepComplete(WALKTHROUGH_STEPS[i], state, events, now)) i += 1;
+  return i;
+}
+
+/**
+ * What to highlight for a step. `find(selector)` returns { exists, visible } for the live page. The step's own
+ * `selector` must exist or the step has drifted: then nothing is highlighted and `missing` is true, for app.js to
+ * warn about. Otherwise the first visible of: the control that does it, the way in, the way back out of another
+ * station building, and the tab it lives on.
+ */
+export function chooseHighlight(step, find) {
+  if (!find(step.selector).exists) return { selector: null, missing: true };
+  const candidates = [
+    ...(step.actionSelectors || []),
+    step.selector,
+    ...(step.renderedBy === "stationBuildingCardsHtml" ? ['[id="station-back-btn"]'] : []),
+    `.tab-btn[data-tab="${step.tab}"]`
+  ];
+  return { selector: candidates.find((c) => find(c).visible) || null, missing: false };
+}

@@ -1,4 +1,5 @@
 import { WALKTHROUGH_STEPS as walkthroughSteps } from "./walkthrough.js";
+import { chooseHighlight, nextStepIndex } from "./walkthrough.js";
 import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
@@ -4925,6 +4926,8 @@ function setTab(targetId) {
       }
     });
   }
+
+  noteWalkthroughEvent(`tab:${targetId}`);
 }
 
 function bindTabs() {
@@ -4955,6 +4958,81 @@ function clearWalkthroughFocus() {
 function stopWalkthrough() {
   walkthroughModal.hidden = true;
   clearWalkthroughFocus();
+  clearInterval(walkthroughWatch);
+  walkthroughTarget = null;
+}
+
+// AB#581: the walkthrough advances when the player does what a step asks (walkthrough.js, WALKTHROUGH_COMPLETION).
+// State predicates are checked on a one-second watch and after every click, because an action's response and the
+// building views it opens arrive after the click; tab changes are reported by setTab as "tab:<id>" events.
+const walkthroughEvents = new Set();
+const walkthroughWarned = new Set();
+let walkthroughWatch = null;
+let walkthroughTarget = null; // the selector highlighted now: views re-render, so the element itself is not stable
+let walkthroughHeld = false; // the player stepped back to reread: stay put until they press Skip
+let walkthroughFinished = false;
+let walkthroughOfferPending = false;
+
+/** A real dialogue is open (a trade confirmation, a mission, a dialogue). The briefing never moves or appears over one. */
+function otherModalOpen() {
+  return [...document.querySelectorAll(".modal-backdrop, .mission-modal-backdrop")].some(
+    (modal) => modal !== walkthroughModal && !modal.hidden
+  );
+}
+
+function noteWalkthroughEvent(name) {
+  if (walkthroughModal.hidden || walkthroughFinished) return;
+  walkthroughEvents.add(name);
+  checkWalkthroughProgress();
+}
+
+function checkWalkthroughProgress() {
+  if (walkthroughModal.hidden || walkthroughFinished || otherModalOpen()) return;
+  if (!walkthroughHeld) {
+    const next = nextStepIndex(appState.walkthroughIndex, appState.data, walkthroughEvents);
+    if (next >= walkthroughSteps.length) {
+      finishWalkthrough();
+      return;
+    }
+    if (next !== appState.walkthroughIndex) {
+      appState.walkthroughIndex = next;
+      renderWalkthroughStep();
+      return;
+    }
+  }
+  refreshWalkthroughHighlight();
+}
+
+/** Every step done: stay on the last one, which carries the handoff, until the player closes it. */
+function finishWalkthrough() {
+  walkthroughFinished = true;
+  appState.walkthroughIndex = walkthroughSteps.length - 1;
+  renderWalkthroughStep();
+  completeWalkthroughForAccount();
+}
+
+function refreshWalkthroughHighlight() {
+  const step = walkthroughSteps[appState.walkthroughIndex];
+  if (!step || walkthroughModal.hidden) return;
+  const { selector, missing } = chooseHighlight(step, (candidate) => {
+    const el = document.querySelector(candidate);
+    return { exists: Boolean(el), visible: Boolean(el && el.getClientRects().length) };
+  });
+  if (missing && !walkthroughWarned.has(step.id)) {
+    walkthroughWarned.add(step.id);
+    console.warn(`[walkthrough] step "${step.id}": ${step.selector} matches nothing on the page, so it is shown without a highlight.`);
+  }
+  const target = selector ? document.querySelector(selector) : null;
+  if (target?.classList.contains("walkthrough-focus") || (!target && !walkthroughTarget)) return;
+  clearWalkthroughFocus();
+  if (!target) {
+    walkthroughTarget = null;
+    return;
+  }
+  target.classList.add("walkthrough-focus");
+  // Scroll only when the thing to do changes, not when a re-render redraws the same control under the player.
+  if (selector !== walkthroughTarget) target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+  walkthroughTarget = selector;
 }
 
 // TODO: Duplicate function found in gameState.js
@@ -5002,17 +5080,6 @@ function renderWalkthroughStep() {
     return;
   }
 
-  if (step.tab) {
-    setTab(step.tab);
-  }
-
-  clearWalkthroughFocus();
-  const target = document.querySelector(step.selector);
-  if (target) {
-    target.classList.add("walkthrough-focus");
-    target.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-  }
-
   // AB#579: a briefing from the assigned coordinator. The step count is a small mark under the text, not the heading.
   const portrait = document.getElementById("walkthrough-portrait");
   if (portrait) {
@@ -5024,18 +5091,44 @@ function renderWalkthroughStep() {
   walkthroughTitle.textContent = step.title;
   walkthroughText.textContent = step.text;
   const progress = document.getElementById("walkthrough-progress");
-  if (progress) progress.textContent = `${appState.walkthroughIndex + 1} of ${walkthroughSteps.length}`;
+  if (progress) {
+    progress.textContent = walkthroughFinished
+      ? "Briefing complete"
+      : `${appState.walkthroughIndex + 1} of ${walkthroughSteps.length}`;
+  }
+  // AB#581: the steps advance on what the player does, so the button is a way past a step, not the way through.
   walkthroughPrev.disabled = appState.walkthroughIndex === 0;
-  walkthroughNext.textContent = appState.walkthroughIndex === walkthroughSteps.length - 1 ? "Finish" : "Next";
+  walkthroughPrev.hidden = walkthroughFinished;
+  walkthroughEnd.hidden = walkthroughFinished;
+  walkthroughNext.textContent = walkthroughFinished ? "Close" : "Skip";
+  walkthroughTarget = null;
+  refreshWalkthroughHighlight();
 }
 
 function startWalkthrough() {
+  walkthroughEvents.clear();
+  walkthroughWarned.clear();
+  walkthroughHeld = false;
+  walkthroughFinished = false;
   appState.walkthroughIndex = 0;
   walkthroughModal.hidden = false;
   renderWalkthroughStep();
+  clearInterval(walkthroughWatch);
+  walkthroughWatch = setInterval(checkWalkthroughProgress, 1000);
 }
 
 function promptWalkthroughOffer() {
+  // AB#581: never over another dialogue, such as an open trade confirmation (Builder #1 saw this once).
+  if (otherModalOpen()) {
+    if (!walkthroughOfferPending) {
+      walkthroughOfferPending = true;
+      setTimeout(() => {
+        walkthroughOfferPending = false;
+        promptWalkthroughOffer();
+      }, 500);
+    }
+    return;
+  }
   markWalkthroughOfferSeen(appState.accountId);
   showDialogue({
     speaker: COORDINATOR_BYLINE,
@@ -6480,19 +6573,34 @@ function bindGlobalControls() {
 
   walkthroughPrev.addEventListener("click", () => {
     appState.walkthroughIndex = Math.max(0, appState.walkthroughIndex - 1);
+    walkthroughHeld = true;
     renderWalkthroughStep();
   });
 
+  // Skip always works: past this step, then past any the player has already done.
   walkthroughNext.addEventListener("click", () => {
+    if (walkthroughFinished) {
+      stopWalkthrough();
+      return;
+    }
     if (appState.walkthroughIndex >= walkthroughSteps.length - 1) {
       stopWalkthrough();
       completeWalkthroughForAccount();
       setTab("rnd");
       return;
     }
-    appState.walkthroughIndex += 1;
+    walkthroughHeld = false;
+    const next = nextStepIndex(appState.walkthroughIndex + 1, appState.data, walkthroughEvents);
+    if (next >= walkthroughSteps.length) {
+      finishWalkthrough();
+      return;
+    }
+    appState.walkthroughIndex = next;
     renderWalkthroughStep();
   });
+
+  // An action's result, or a building view it opens, lands after the click that caused it.
+  document.addEventListener("click", () => setTimeout(checkWalkthroughProgress, 0));
 
   walkthroughEnd.addEventListener("click", () => {
     stopWalkthrough();
