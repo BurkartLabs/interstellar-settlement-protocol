@@ -133,7 +133,7 @@ for (const lvl of MILESTONE_LEVELS) {
 function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
-/* TODO: This should be fetched from systems.json, see SYSTEMS_DATA */
+/* TODO(AB#804): This should be fetched from systems.json, see SYSTEMS_DATA */
 const SYSTEM_DETAILS = {
   sol: {
     ownerRule: "No direct ownership. Mining rights are leased.",
@@ -207,7 +207,7 @@ const SYSTEM_DETAILS = {
 
 function normalizeSystems(systems = []) {
   return systems.map((system) => {
-    const defaults = SYSTEM_DETAILS[system.id]; // TODO: Update to use SYSTEMS_DATA
+    const defaults = SYSTEM_DETAILS[system.id]; // TODO(AB#804): Update to use SYSTEMS_DATA
     if (!defaults) {
       return system;
     }
@@ -370,7 +370,7 @@ function ensureCorpMiningModel(corp) {
   }
 
   // Migrate legacy single extractor model into the multi-extractor array only if it has real data.
-  // TODO: Is this still needed?
+  // TODO(AB#737): Is this still needed?
   const legacyExtractor = corp.mining.silicateExtractor;
   const legacyHasData = Boolean(
     legacyExtractor &&
@@ -532,7 +532,7 @@ function ensureCorpMiningModel(corp) {
   }
 }
 
-// TODO: Add force-stop functionality
+// TODO(AB#1052): Add force-stop functionality
 function stopExtractorCycle(extractor, timestamp) {
   extractor.active = false;
   extractor.endsAt = timestamp;
@@ -764,7 +764,7 @@ export function applyRefineryOperations(corp, now = Date.now()) {
 
 // Deterministic belt compositions per system — scoutable
 /* 
-  TODO: Asteroid Belts should be more dynamic. Once they spawn, there is a limited amount of ore to be mined. 
+  TODO(AB#1050): Asteroid Belts should be more dynamic. Once they spawn, there is a limited amount of ore to be mined. 
   Asteroid Belts should yield more resources than extractor yards. Once the ore has been mined, the asteroid belt disappears. 
   If no asteroid belt is present, it will have a 20% chance of spawning each hour at xx:00. The specific composition of the belt
   should be random. 
@@ -780,7 +780,7 @@ const BELT_COMPOSITIONS = {
 
 // Rarity tiers control yield multiplier and the chance of bonus "jackpot" drops
 /* 
-  TODO: Rarity should be more dynamic. It shouldn't be impossible for an exotic Asteroid Belt to spawn within Sol, but it 
+  TODO(AB#1050): Rarity should be more dynamic. It shouldn't be impossible for an exotic Asteroid Belt to spawn within Sol, but it 
   should be less common than say Epsilon Eridani
 */
 const SYSTEM_RARITY = {
@@ -792,7 +792,7 @@ const SYSTEM_RARITY = {
   "epsilon-eridani":  "exotic"
 };
 
-// TODO: In addition to rarity improving yields, it should also determine what types of raw resources are available
+// TODO(AB#822): In addition to rarity improving yields, it should also determine what types of raw resources are available
 const RARITY_YIELD_MULTIPLIER = { common: 1.0, uncommon: 1.15, rare: 1.35, exotic: 1.6 };
 
 const IS_DEV = !process.env.NODE_ENV || process.env.NODE_ENV !== "production";
@@ -892,7 +892,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
       return;
     }
 
-    const rarity = SYSTEM_RARITY[exp.systemId] || "common"; // TODO: Should we really be defaulting to common? In what circumstances is SYSTEM_RARITY[exp.systemId] null?
+    const rarity = SYSTEM_RARITY[exp.systemId] || "common"; // TODO(AB#804): Should we really be defaulting to common? In what circumstances is SYSTEM_RARITY[exp.systemId] null?
     const rarityMult = RARITY_YIELD_MULTIPLIER[rarity];
     const durationDef = EXPEDITION_DURATIONS[exp.duration] || EXPEDITION_DURATIONS.standard;
     const tickMult = durationDef.tickYieldMultiplier;
@@ -961,7 +961,7 @@ function hashSeedStr(input) {
 }
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
-// TODO: Should this be hardcoded? Or should we store it in the database?
+// TODO(AB#726): Should this be hardcoded? Or should we store it in the database?
 const BASE_EXCHANGE_SALES_TAX_PCT = 8;
 
 export function getEffectiveExchangeTaxRate(state) {
@@ -1104,7 +1104,7 @@ export function evaluateLevelProgress(profileState) {
   }
 }
 
-/* TODO: Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
+/* TODO(AB#726): Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
 function createStarterCorporationState(baseState, ceoName, corpName) {
   const next = deepClone(baseState);
 
@@ -1205,7 +1205,7 @@ const CONTRACTS_PER_AGENT = 2;
 const COMPLETED_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4h before a completed mission can reappear
 
 /*
-  TODO: This shouldn't be hardcoded in this way. The values should be more random. 
+  TODO(AB#1051): This shouldn't be hardcoded in this way. The values should be more random. 
 */
 const MISSION_TEMPLATES = [
   {
@@ -1365,7 +1365,7 @@ function getSeedState() {
         category: c.category
       }))
     },
-    /* TODO: Remove legacy data */
+    /* TODO(AB#737): Remove legacy data */
     corp: {
       id: "corp-001",
       ceo: "You",
@@ -1536,7 +1536,7 @@ function ensureStateFile() {
 
 // NPC buyers exist for every raw resource that currently has a refinery chain, so newly mined materials always have
 // a guaranteed sink.
-// TODO: Reevaluate how we are storing the below information. Should it be hardcoded? Should it be more dynamic?
+// TODO(AB#777): Reevaluate how we are storing the below information. Should it be hardcoded? Should it be more dynamic?
 const NPC_BUY_SEED = [
   { item: "Silicates",   buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
   { item: "Helium-3",    buyer: "Lunar Helium Consortium",   unitPrice: 92, dailyQty: 250000 },
@@ -1651,7 +1651,7 @@ async function persistAccountsStoreToSupabase(snapshot = accountsStore) {
   }
 
   /*
-    TODO: Evaluate below account persistance functionality. We are frequently having connection issues which trigger the below errors. Despite there
+    TODO(AB#578): Evaluate below account persistance functionality. We are frequently having connection issues which trigger the below errors. Despite there
     being no downtime with the server itself. 
   */
   
@@ -1679,7 +1679,7 @@ async function persistAccountsStoreToSupabase(snapshot = accountsStore) {
   }
 }
 
-// TODO: Remove all local disk account snapshots. All operations should go through the DB
+// TODO(AB#578): Remove all local disk account snapshots. All operations should go through the DB
 function loadAccountsSnapshotFromDisk() {
   if (IS_SERVERLESS) return null;
   try {
@@ -1854,7 +1854,6 @@ export function mergeDummyAccount(hydrated, fallbackStore) {
  * Create a fresh in-memory seed accounts store with a dummy dev account.
  * This is used as the initial/fallback store when Supabase has no data yet.
  *
- * TODO: Evaluate if this is needed
  */
 function createSeedAccountsStore() {
   const seedState = normalizeStateShape(getSeedState());
@@ -2642,7 +2641,7 @@ export function getAllAccountIds() {
   return Object.keys(accountsStore.accounts || {});
 }
 
-// TODO: Evaluate usage of Refresh Tokens
+// TODO(AB#757): Evaluate usage of Refresh Tokens
 export function storeRefreshToken(accountId, token, expiresAt) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) {

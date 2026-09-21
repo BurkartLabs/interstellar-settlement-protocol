@@ -80,7 +80,7 @@ const IS_DEV_ACCESS =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1";
 
-// TODO: This should be fetched from db or research.json
+// TODO(AB#1049): This should be fetched from db or research.json
 const techTree = [
   {
     id: "tt-basic-extraction",
@@ -465,7 +465,7 @@ async function apiFetch(url, options = {}, allowRetry = true) {
   return response;
 }
 
-// TODO: Ensure all helper functions are consolidated into a single function
+// TODO(AB#738): Ensure all helper functions are consolidated into a single function
 function toCurrency(number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -482,7 +482,7 @@ function deepClone(input) {
   return JSON.parse(JSON.stringify(input));
 }
 
-// TODO: Ensure this function is updated when we make asteroid belts dynamic
+// TODO(AB#1050): Ensure this function is updated when we make asteroid belts dynamic
 async function refreshBeltCompositions() {
   if (!appState.accountId) return;
   try {
@@ -714,7 +714,7 @@ function closeDialogue() {
   dialogueContinue.hidden = true;
 }
 
-// TODO: Expand design of intro dialogue
+// TODO(AB#585): Expand design of intro dialogue
 function runIntroDialogue() {
   return new Promise((resolve) => {
     showDialogue({
@@ -750,7 +750,7 @@ function runIntroDialogue() {
   });
 }
 
-// TODO: Remove, we have a duplicate function in gameState.json, and this should be extrapolated based on values in the DB
+// TODO(AB#738): Remove, we have a duplicate function in gameState.json, and this should be extrapolated based on values in the DB
 function createNewPlayerState(baseState, ceoName, corpName) {
   const next = deepClone(baseState);
   next.corp = {
@@ -1245,7 +1245,7 @@ function stationLocationBanner(station) {
 }
 
 /*
-  TODO: Move the rendering and functionality of each building to their own dedicated file. Ensure that relevant information is being fetched from the 
+  TODO(AB#739): Move the rendering and functionality of each building to their own dedicated file. Ensure that relevant information is being fetched from the 
   database where applicable.
 */
 
@@ -1954,7 +1954,7 @@ function bindLeaseManagementActions(building, lease, data) {
 }
 
 // ─── Tabs allowed during travel ──────────────────────────────────────────────
-// TODO: Overhaul Travel Page design
+// TODO(AB#1053): Overhaul Travel Page design
 const TRAVEL_ALLOWED_TABS = new Set(["overview", "inbox", "chat", "forums", "starmap", "travel"]);
 
 function isPlayerTraveling(data) {
@@ -2147,7 +2147,7 @@ function travelTimeBetween(fromStation, toStation) {
   return 1 * 60 * 1000;
 }
 
-// TODO: Consolidate all helper functions to singular file
+// TODO(AB#738): Consolidate all helper functions to singular file
 function formatDuration(ms) {
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
   const h = Math.floor(totalSec / 3600);
@@ -2480,7 +2480,7 @@ function bindBuildingActions() {
 }
 
 // ─── Financial Control Board (CORP-FIN-1) — KPI strip and ledger tables ─────
-// TODO: Consolidate helper functions to singular file
+// TODO(AB#738): Consolidate helper functions to singular file
 
 function fmtCredits(n) {
   const v = Math.round(Number(n) || 0);
@@ -2714,7 +2714,7 @@ function renderLevel2Progress(data) {
   }
 
   // Map requirement IDs to the tab they should navigate to
-  // TODO: This information should be stored in the database OR in milestones.json
+  // TODO(AB#798): This information should be stored in the database OR in milestones.json
   const REQ_TAB = {
     officeRented:               "station",
     hire5:                      "station",
@@ -3058,13 +3058,13 @@ function renderQueue(elId, queue, subtitle) {
     })
     .join("");
 }
-// TODO: Remove duplicate. This should be stored in the database
+// TODO(AB#824): Remove duplicate. This should be stored in the database
 const RESOURCE_CATALOG = [
   "Silicates", "Helium-3", "Nickel", "Titanium", "Carbon",
   "Water Ice", "Rare Earths", "Thorium", "Hydrogen", "Lithium",
   "Cobalt", "Uranium", "Exotic Matter"
 ];
-// TODO: Remove. This is defined within gameState.js but should be fetched from the DB or from milestones.json
+// TODO(AB#798): Remove. This is defined within gameState.js but should be fetched from the DB or from milestones.json
 const MILESTONE_ROADMAP = [
   "Rent an Office", "Hire 5 Employees", "Reached Corporation Level 1",
   "Purchase a Mining Lease on Mars", "Build a Basic Extractor Yard", "Mine 300 Silicate",
@@ -3791,7 +3791,7 @@ function renderMarket(data) {
   showEmpty(npcBuyEmpty, "npc-buy-filtered", npcBuyOrders.length, filteredNpcOrders.length, "standing buy orders");
 
   // Mercenary book
-  // TODO: Remove mercenary references. Functionality isn't built yet.
+  // TODO(AB#576): Remove mercenary references. Functionality isn't built yet.
   const mercBook = document.getElementById("mercenary-book");
   mercBook.innerHTML = (market.mercenaryContracts || [])
     .map(
@@ -4213,7 +4213,7 @@ function renderForums(data) {
   }
 }
 
-// TODO: This should be defined in the database 
+// TODO(AB#1051): This should be defined in the database 
 // ─── Mission Reputation System ─────────────────────────────────────────────
 const REPUTATION_THRESHOLDS = [0, 1, 3, 7, 15, 30, 60, 120, 250, 500, 1000];
 const REPUTATION_TITLES = [
@@ -4242,7 +4242,7 @@ function getAgentRepLevel(agentId) {
 }
 
 // ─── Mission Agent Registry ────────────────────────────────────────────────
-// TODO: This should be in the database 
+// TODO(AB#1051): This should be in the database 
 const MISSION_AGENTS = [
   {
     id: "elara-voss",
@@ -4399,7 +4399,7 @@ function showMissionCompleteOverlay(mission, rep, agentName, creditedAmount) {
     </div>
   `;
 
-  // TODO: Should visual effects be moved to their own file?
+  // TODO(AB#738): Should visual effects be moved to their own file?
   // Spawn celebration particles
   const particleCount = leveledUp ? 40 : 16;
   for (let i = 0; i < particleCount; i++) {
@@ -4695,7 +4695,7 @@ function renderChatChannelTabs() {
   });
 }
 
-// TODO: Can this be refactored to improve performance? Where is this function called? Do we always need to update every single view? 
+// TODO(AB#730): Can this be refactored to improve performance? Where is this function called? Do we always need to update every single view? 
 function updateAllViews() {
   if (appState.serverData) {
     applySharedState(appState.serverData);
@@ -4952,7 +4952,6 @@ function stopWalkthrough() {
   clearWalkthroughFocus();
 }
 
-// TODO: Duplicate function found in gameState.js
 async function completeWalkthroughForAccount() {
   if (!appState.accountId || appState.walkthroughCompleted) {
     return;
@@ -4971,7 +4970,6 @@ async function completeWalkthroughForAccount() {
   }
 }
 
-// TODO: Duplicate function?
 async function resetWalkthroughForAccount() {
   if (!appState.accountId) {
     appState.walkthroughCompleted = false;
@@ -5199,7 +5197,6 @@ async function restoreAuthenticatedSession() {
   return account;
 }
 
-// TODO: Duplicate function possibly exists in gameState.js
 async function loginDummyAccount() {
   const response = await apiFetch("/api/auth/dummy-login", {
     method: "POST",
@@ -5409,7 +5406,7 @@ function bindForms() {
     chatInput.value = "";
   });
 
-  // TODO: Move all functionality for the forums to its own dedicated file
+  // TODO(AB#739): Move all functionality for the forums to its own dedicated file
   const forumThreadListEl = document.getElementById("forum-threads");
   const forumCategoriesEl = document.getElementById("forum-categories");
   const forumRecentBtn = document.getElementById("forum-recent-btn");
@@ -5781,7 +5778,6 @@ function bindRealtimeEvents() {
     return;
   }
 
-  // TODO: Investigate current socket.io implementation 
   
   socket.on("state:init", (serverState) => {
     appState.serverData = serverState;

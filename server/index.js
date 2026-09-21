@@ -52,10 +52,10 @@ import {
   SYSTEM_DETAILS
 } from "./gameState.js";
 
-// TODO: Move this to a single file so that we aren't redefining it everywhere
+// TODO(AB#737): Move this to a single file so that we aren't redefining it everywhere
 const IS_DEV = !process.env.NODE_ENV || process.env.NODE_ENV !== "production";
 
-// TODO: This should be extracted from the DB or from research.json
+// TODO(AB#1049): This should be extracted from the DB or from research.json
 const RESEARCH_LIBRARY = {
   "tt-basic-extraction": {
     id: "tt-basic-extraction",
@@ -181,7 +181,7 @@ const RESEARCH_LIBRARY = {
 const TIER_1_TECH_IDS = Object.values(RESEARCH_LIBRARY).filter((t) => t.tier === 1).map((t) => t.id);
 
 // ── System adjacency graph (for hop-distance calculation) ──
-// TODO: Store in DB
+// TODO(AB#804): Store in DB
 const SYSTEM_ADJACENCY = {
   "sol":              ["alpha-centauri", "barnards-star"],
   "alpha-centauri":   ["sol", "wolf-359"],
@@ -506,7 +506,7 @@ function refineryTick() {
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(refineryTick, 10_000); // Every 10 seconds
 
 // ─── Asteroid expedition tick ────────────────────────────────────────────────
-// TODO: Consider implementation of unified tick system where all tick based actions are performed at once, rather than a separate ticker calculation
+// TODO(AB#729): Consider implementation of unified tick system where all tick based actions are performed at once, rather than a separate ticker calculation
 //       for each function.
 function asteroidExpeditionTick() {
   const now = Date.now();
@@ -807,7 +807,7 @@ if (!process.env.ISP_DISABLE_TICKERS) {
   setInterval(financialSnapshotTick, FINANCIAL_SNAPSHOT_INTERVAL_MS);
 }
 
-// TODO: Consider moving API to a dedicated api.js file
+// TODO(AB#737): Consider moving API to a dedicated api.js file
 
 app.get("/api/bootstrap", (_req, res) => {
   res.json({ ...getState(), version: APP_VERSION });
