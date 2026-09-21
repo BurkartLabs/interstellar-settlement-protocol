@@ -3268,6 +3268,9 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
   }
 
   mutateState((draft) => {
+    // AB#715: the day's price history takes the trade whether or not the listing is still in the book.
+    if (!draft.market.priceHistory) draft.market.priceHistory = {};
+    recordTrade(draft.market.priceHistory, order.item, Number(order.unitPrice || 0), tradeQuantity);
     const target = draft.market.orderBook.find((entry) => entry.id === orderId && entry.type === "sell");
     if (!target) {
       return;
@@ -3290,6 +3293,21 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
     },
     account: buyer
   });
+});
+
+// ─── Daily price history per item (AB#715) ───────────────────────────────────
+// Global and non-personal: open, high, low, close, volume and trade count per UTC day, the last 90 days. The item is
+// matched against the catalog, and an unknown one is refused without repeating it back. Behind a login like every
+// other route (Bug #423), although nothing in it is personal.
+import { recordTrade, historyFor, PRICE_HISTORY_ITEMS, PRICE_HISTORY_DAYS } from "./priceHistory.js";
+
+app.get("/api/market/history/:item", requireAuth, (req, res) => {
+  const item = String(req.params.item || "");
+  if (!PRICE_HISTORY_ITEMS.has(item)) {
+    res.status(400).json({ error: "Unknown item." });
+    return;
+  }
+  res.json({ item, days: PRICE_HISTORY_DAYS, buckets: historyFor(getState().market?.priceHistory, item) });
 });
 
 // ─── Sell player resources into an NPC standing buy order ────────────────────
@@ -3379,6 +3397,8 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
     if (target) {
       target.remainingQty = Math.max(0, target.remainingQty - requestedQty);
     }
+    if (!draft.market.priceHistory) draft.market.priceHistory = {};
+    recordTrade(draft.market.priceHistory, npcOrder.item, Number(npcOrder.unitPrice || 0), requestedQty); // AB#715
   });
 
   emitMarketUpdated();
