@@ -17,7 +17,6 @@ import jwt from "jsonwebtoken";
 import { resolveLeaseBody } from "./leases.js";
 import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from "../public/scripts/ceoEffects.js";
 import { canReachSystem } from "../public/scripts/navigation.js";
-import { scheduleRndQueue, nextRndStart, rndItemStatus } from "../public/scripts/rndQueue.js"; // Bug #1258
 import {
   accountExists,
   addAccountNotification,
@@ -668,6 +667,9 @@ function travelTick() {
 
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(travelTick, 5000); // Every 5 seconds
 
+// The R&D schedule lives in public/scripts/rndQueue.js, which the R&D panel reads too; imported here beside its use
+// (Bug #1258), away from the import block other branches edit.
+import { scheduleRndQueue, nextRndStart, rndItemStatus } from "../public/scripts/rndQueue.js"; // Bug #1258
 function processRndCompletions() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
