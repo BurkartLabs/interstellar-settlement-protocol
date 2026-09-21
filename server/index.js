@@ -471,6 +471,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(checkAndResetNpcBuyOrders, 60_
 
 // ─── R&D auto-completion tick ────────────────────────────────────────────────
 // ─── Mining tick: process downtime, recovery, and mining progress ─────────────
+import { startExtractorCycle } from "./gameState.js"; // AB#575
 import { applyMiningOperations, getStationInventory } from "./gameState.js";
 import { applyAsteroidExpeditions, BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_ASSET_VALUE, PROBE_FABRICATION_MS, BASE_MAX_PROBES, BASE_MAX_DEPLOYMENTS } from "./gameState.js";
 
@@ -782,7 +783,6 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(processCeoInsightCompletions, 
 // Financial Core dashboard can render real historical series (cash reserves,
 // net flow, assets vs liabilities) instead of synthesised projections.
 import { buildSnapshot, pushSnapshot, recordIncome, recordExpense, refreshDailyRevenue } from "./finances.js";
-import { startExtractorCycle } from "./gameState.js";
 
 const FINANCIAL_SNAPSHOT_INTERVAL_MS = 30_000;
 
