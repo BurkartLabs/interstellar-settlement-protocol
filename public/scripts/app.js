@@ -3,6 +3,7 @@ import { chooseHighlight, nextStepIndex } from "./walkthrough.js";
 import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
+import { bindOnce, likeRequest } from "./forumActions.js";
 import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
@@ -4090,21 +4091,23 @@ function renderForums(data) {
       // Like buttons (delegated). Toggles a like for the current account on
       // either the OP thread or a specific reply. Server enforces one-like-
       // per-account by tracking `likedBy`, which it keeps to itself (Bug #1134).
-      detailBody.addEventListener("click", async (event) => {
+      // Bug #1131: detailBody outlives its innerHTML, so the listener is added once, not on every render, and reads the
+      // open thread when clicked (forumActions.js).
+      bindOnce(detailBody, "likeBound", "click", async (event) => {
         const likeBtn = event.target.closest('[data-action="like"]');
-        if (!likeBtn) return;
+        if (!likeBtn || likeBtn.disabled) return;
         if (!appState.accountId) {
           pushFeedback("Sign in to like posts.", "warn");
           return;
         }
-        const target = likeBtn.getAttribute("data-target") || "thread";
-        const replyId = target === "reply" ? likeBtn.getAttribute("data-reply-id") : null;
+        const request = likeRequest(likeBtn, appState.selectedForumThreadId);
+        if (!request) return;
         likeBtn.disabled = true;
         try {
-          const response = await apiFetch(`/api/forums/threads/${encodeURIComponent(selected.id)}/like`, {
+          const response = await apiFetch(request.path, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(replyId ? { replyId } : {})
+            body: JSON.stringify(request.body)
           });
           const payload = await parseJsonResponse(response);
           if (payload?.thread && Array.isArray(appState.data?.forums?.threads)) {
