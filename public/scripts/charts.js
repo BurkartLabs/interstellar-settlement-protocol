@@ -233,7 +233,7 @@ function renderAssetVsLiability(snaps) {
   if (!canvas) return;
   const filtered = filterSnapsForChart(snaps, "asset");
   const labels = filtered.map(snapshotLabel);
-  const assets = filtered.map((s) => s.assets + s.credits);
+  const assets = filtered.map((s) => s.assets + s.credits + (Number(s.inventory) || 0)); // Bug #1022: as Total Assets
   const liabilities = filtered.map((s) => s.liabilities);
 
   if (!chartRegistry.asset) {
