@@ -2786,7 +2786,7 @@ body.walkthrough-open {
 /* ── Prominent Facility Cards (Assembly, Refinery) ── */
 #station-facility-buildings {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); /* Bug #1283: a phone leaves the grid ~309px */
   gap: 1rem;
 }
 
