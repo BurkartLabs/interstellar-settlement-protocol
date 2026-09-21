@@ -6,6 +6,8 @@ The build is the reference for every figure below. The walkthrough's own copy li
 
 The walkthrough is a briefing from Elara Voss, the Contracting & Assignments Bureau coordinator assigned to every new corporation (AB#579). It follows what a new CEO does first (AB#580): the whole first session happens at Earth Station Prime, where they already are, so the station work comes first and the starmap comes last, as orientation.
 
+The walkthrough watches what the player does (AB#581). Each step is done when the player does the thing it asks: opens the tab, leases the office, hires the five, and so on, and then it moves on by itself. It highlights the control that does the step, or the way to it, and never changes tab for the player. Its card sits in the bottom-right corner and lets the game be played around it. Skip moves past a step; a step the corporation has already done is skipped, so a returning player starts where they left off. What completes each step is the `WALKTHROUGH_COMPLETION` table in `public/scripts/walkthrough.js`.
+
 When a player first joins the game, the walkthrough starts on their mailbox, highlighting a message they had just received from the "Interstellar Settlement Authority" granting them a license to begin off-world operations. 
 
 The player is then guided to the station, where a new corporation starts docked (Earth Station Prime, above Earth), and shown how to rent an office in the Orbital Executive Suites. The claims office will not file a lease until the corporation has an office there.
