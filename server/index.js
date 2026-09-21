@@ -1358,71 +1358,53 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
 });
 
 // ─── Logistics: transfer resources between stations ──────────────────────────
-const LOGISTICS_FEE_PER_UNIT = 2;
+
+// AB#717: transfers carry up to 10 lines, all or nothing, into corp.logisticsHistory. The rules, the fee and the
+// error copy live in public/scripts/logistics.js, which the Logistics tab reads too; imported here beside its use.
+import { parseTransferRequest, planTransfer, recordTransfer } from "../public/scripts/logistics.js";
 
 app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
-  const fromStationId = String(req.body?.fromStationId || "").trim();
-  const item = String(req.body?.item || "").trim();
-  const quantity = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
-
-  if (!fromStationId || !STATION_REGISTRY[fromStationId]) {
-    res.status(400).json({ error: "Invalid source station." });
-    return;
-  }
-  if (!item) {
-    res.status(400).json({ error: "Item must be specified." });
+  const request = parseTransferRequest(req.body);
+  if (!request.ok) {
+    res.status(400).json({ error: request.error });
     return;
   }
 
-  let outcome = "ok";
+  let refusal = null;
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
-    const toStationId = corp.currentStationId || "earth-station-prime";
-
-    if (fromStationId === toStationId) {
-      outcome = "same-station";
+    const toStationId = corp.currentStationId || null;
+    const plan = planTransfer({
+      fromStationId: request.fromStationId, toStationId, lines: request.lines,
+      inventory: corp.inventory, credits: corp.finances.credits, stations: STATION_REGISTRY
+    });
+    if (!plan.ok) {
+      refusal = plan.error; // nothing has moved
       return;
     }
 
-    const fromInv = getStationInventory(corp, fromStationId);
-    const available = Number(fromInv[item] || 0);
-    if (available < quantity) {
-      outcome = "insufficient";
-      return;
-    }
-
-    const fee = LOGISTICS_FEE_PER_UNIT * quantity;
-    if ((corp.finances.credits || 0) < fee) {
-      outcome = "insufficient-credits";
-      return;
-    }
-
-    // Deduct from source, add to destination, charge fee
-    fromInv[item] = available - quantity;
-    if (fromInv[item] <= 0) delete fromInv[item];
-
+    const fromInv = getStationInventory(corp, request.fromStationId);
     const toInv = getStationInventory(corp, toStationId);
-    toInv[item] = (toInv[item] || 0) + quantity;
-
-    corp.finances.credits -= fee;
-    recordExpense(corp, "transfer-fees", fee); // Bug #1022
+    for (const { item, quantity } of request.lines) {
+      fromInv[item] -= quantity;
+      if (fromInv[item] <= 0) delete fromInv[item];
+      toInv[item] = (toInv[item] || 0) + quantity;
+    }
+    corp.finances.credits -= plan.fee;
+    recordExpense(corp, "transfer-fees", plan.fee); // Bug #1022
+    corp.logisticsHistory = recordTransfer(corp.logisticsHistory, {
+      time: Date.now(), from: request.fromStationId, to: toStationId, lines: request.lines, fee: plan.fee
+    });
   });
 
   if (!account) {
     res.status(404).json({ error: "Account not found." });
     return;
   }
-
-  if (outcome !== "ok") {
-    const messages = {
-      "same-station": "Cannot transfer to the same station you are docked at.",
-      "insufficient": `Insufficient ${item} at the source station.`,
-      "insufficient-credits": `Not enough credits. Transfer fee: ${(LOGISTICS_FEE_PER_UNIT * quantity).toLocaleString()} credits (${LOGISTICS_FEE_PER_UNIT}/unit).`
-    };
-    res.status(400).json({ error: messages[outcome] || "Transfer failed." });
+  if (refusal) {
+    res.status(400).json({ error: refusal });
     return;
   }
-
   res.json(account);
 });
 
