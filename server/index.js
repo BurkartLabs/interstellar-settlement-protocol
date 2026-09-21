@@ -319,25 +319,29 @@ function getBearerToken(req) {
   return authHeader.slice(7).trim();
 }
 
-function requireAuth(req, res, next) {
-  const token = getBearerToken(req);
-  if (!token) {
-    res.status(401).json({ error: "Missing bearer token." });
-    return;
-  }
-
+/**
+ * Verify an access token. Returns { accountId } or { error }. The one check behind both HTTP routes (requireAuth)
+ * and sockets (io.use, Bug #710), so the two cannot drift apart.
+ */
+function verifyAccessToken(token) {
+  if (!token) return { error: "Missing bearer token." };
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    if (payload.kind !== "access") {
-      res.status(401).json({ error: "Invalid token type." });
-      return;
-    }
-
-    req.auth = { accountId: payload.sub };
-    next();
+    if (payload.kind !== "access") return { error: "Invalid token type." };
+    return { accountId: payload.sub };
   } catch {
-    res.status(401).json({ error: "Invalid or expired access token." });
+    return { error: "Invalid or expired access token." };
   }
+}
+
+function requireAuth(req, res, next) {
+  const verified = verifyAccessToken(getBearerToken(req));
+  if (!verified.accountId) {
+    res.status(401).json({ error: verified.error });
+    return;
+  }
+  req.auth = { accountId: verified.accountId };
+  next();
 }
 
 function requireAccountAccess(req, res, next) {
@@ -384,9 +388,12 @@ for (const s of STATIONS_DATA.stations) {
 
 const app = express();
 const server = http.createServer(app);
+// Bug #710: sockets were open to every origin. The game is served by this same server, so same-origin needs no CORS
+// at all; ISP_APP_ORIGIN (comma-separated) names any other origin allowed in. Unset means none: fail closed.
+const SOCKET_ORIGINS = String(process.env.ISP_APP_ORIGIN || "").split(",").map((o) => o.trim()).filter(Boolean);
 const io = new Server(server, {
   cors: {
-    origin: "*"
+    origin: SOCKET_ORIGINS.length ? SOCKET_ORIGINS : false
   }
 });
 
@@ -3404,25 +3411,63 @@ app.use((error, _req, res, _next) => {
   res.status(500).json({ error: "Internal server error." });
 });
 
+// Bug #710: a socket carries the same access token as the HTTP API (socket.handshake.auth.token). Anyone may still
+// connect to read public state, but only a verified socket may chat, and the server decides who is speaking.
+io.use((socket, next) => {
+  const verified = verifyAccessToken(socket.handshake.auth?.token);
+  if (verified.accountId) socket.data.accountId = verified.accountId;
+  next();
+});
+
+/** The chat channels anyone may post to. "private" is gone: it was a public broadcast wearing the name (D-0.12-1). */
+const PUBLIC_CHAT_CHANNELS = new Set(["global", "trade"]);
+
+/**
+ * Where a message goes, decided by the server: "global" and "trade" as asked; "local" (or "local:<own system>") is the
+ * sender's current system as the server knows it. Anything else, including another system's local channel, is null.
+ */
+function resolveChatChannel(requested, corp) {
+  if (typeof requested !== "string") return null;
+  if (PUBLIC_CHAT_CHANNELS.has(requested)) return requested;
+  const home = `local:${corp?.currentSystemId || "sol"}`;
+  if (requested === "local" || requested === home) return home;
+  return null;
+}
+
 io.on("connection", (socket) => {
   socket.emit("state:init", getState());
 
   socket.on("chat:send", (payload) => {
+    // Fail closed: no verified account, no account, no allowed channel or no content means nothing is stored or sent.
+    const accountId = socket.data.accountId;
+    if (!accountId) return;
+    const corp = getAccountById(accountId)?.state?.corp;
+    if (!corp) return;
+    const channel = resolveChatChannel(payload?.channel, corp);
+    if (!channel) return;
     const content = stripHtml(payload?.content || "");
-    if (!content) {
-      return;
-    }
+    if (!content) return;
 
+    // The author is the sender's own corporation; payload.author is ignored. No account id goes in the broadcast.
     const message = {
-      id: `msg-${Date.now()}`,
-      channel: payload?.channel || "global",
-      author: stripHtml(payload?.author || "Anonymous") || "Anonymous",
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      channel,
+      author: stripHtml(corp.corporationName || "") || "Unnamed Corporation",
       content,
       createdAt: Date.now()
     };
 
-    appendChatMessage(message.channel, message);
-    io.emit("chat:new", message);
+    appendChatMessage(channel, message);
+    if (channel.startsWith("local:")) {
+      // Local chat reaches the corporations in that system now, read at send time so travel needs no bookkeeping.
+      const systemId = channel.slice("local:".length);
+      for (const peer of io.of("/").sockets.values()) {
+        const peerCorp = peer.data.accountId ? getAccountById(peer.data.accountId)?.state?.corp : null;
+        if (peerCorp && (peerCorp.currentSystemId || "sol") === systemId) peer.emit("chat:new", message);
+      }
+    } else {
+      io.emit("chat:new", message);
+    }
   });
 
   socket.on("disconnect", () => {
