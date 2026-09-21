@@ -1256,6 +1256,49 @@ h1 {
   max-height: 210px !important;
 }
 
+/* ─── Exchange price chart (AB#716) ─── */
+.price-chart {
+  margin-bottom: 1.2rem;
+}
+
+.price-chart__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.price-chart__ranges {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.price-chart__ranges [aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.price-chart__canvas {
+  position: relative;
+  height: 240px;
+}
+
+.price-chart--empty .price-chart__canvas {
+  display: none;
+}
+
+.price-chart__hint {
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+}
+
+@media (max-width: 600px) {
+  .price-chart__canvas {
+    height: 200px;
+  }
+}
+
 /* ─── Financial Control Board (CORP-FIN-1) ───────────────────────────────── */
 
 .finance-header {
