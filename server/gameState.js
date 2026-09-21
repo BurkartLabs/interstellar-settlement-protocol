@@ -819,7 +819,9 @@ const EXPEDITION_LAUNCH_COST = 3000;   // credits per expedition launch
 const PROBE_BUILD_COST = 8000;         // credits to fabricate one mining probe
 const PROBE_ASSET_VALUE = 5000;
 const PROBE_FABRICATION_MS = IS_DEV ? 10 * 1000 : 30 * 60 * 1000; // 10s dev, 30 min prod
-const BASE_MAX_PROBES = 2;
+const BASE_MAX_PROBES = 2;             // Fleet Cap before Level 1 grants one (Bug #586)
+const FLEET_COORDINATION_TECH = "tt-fleet-coordination";
+const FLEET_COORDINATION_BONUS = 12;   // "+12 fleet cap" (data/research.json)
 const BASE_MAX_DEPLOYMENTS = 1;        // concurrent expedition slots
 
 function ensureCorpAsteroidMiningModel(corp) {
@@ -829,7 +831,6 @@ function ensureCorpAsteroidMiningModel(corp) {
   const am = corp.asteroidMining;
 
   if (typeof am.probeCount !== "number") am.probeCount = 0;
-  if (typeof am.maxProbes !== "number") am.maxProbes = BASE_MAX_PROBES;
   if (typeof am.maxDeployments !== "number") am.maxDeployments = BASE_MAX_DEPLOYMENTS;
   if (!Array.isArray(am.fabricationQueue)) am.fabricationQueue = [];
   if (!Array.isArray(am.activeExpeditions)) am.activeExpeditions = [];
@@ -940,7 +941,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
       }
 
       // Return the probe
-      am.probeCount = Math.min(am.maxProbes, (am.probeCount || 0) + 1);
+      am.probeCount = (am.probeCount || 0) + 1; // it counted against the Fleet Cap while away
 
       // Move to completed log (keep last 20)
       am.completedExpeditions.unshift({ ...exp, completedAt: now, depositStationId });
@@ -1065,6 +1066,33 @@ function resolveMetric(metric, corp) {
   return 0;
 }
 
+// Bug #586: the Fleet Cap the sidebar shows is the cap fabrication enforces. It is the maxFleetSize
+// granted by levels reached (never below the pre-Level-1 floor), plus Fleet Coordination Matrix.
+// Every vessel counts: in the hangar, in fabrication, or out on an expedition.
+export function fleetStatus(corp) {
+  const am = corp?.asteroidMining || {};
+  const granted = Math.max(BASE_MAX_PROBES, Number(corp?.unlocks?.maxFleetSize || 0));
+  const coordinated = (corp?.unlockedTech || []).includes(FLEET_COORDINATION_TECH);
+  const bonus = coordinated ? FLEET_COORDINATION_BONUS : 0;
+  const cap = granted + bonus;
+  const vessels = Number(am.probeCount || 0) + (am.fabricationQueue || []).length + (am.activeExpeditions || []).length;
+  const raises = [];
+  const nextLevel = [...MILESTONE_LEVELS]
+    .sort((a, b) => a.level - b.level)
+    .find((l) => l.level > Number(corp?.level || 0) && Number(l.unlocks?.maxFleetSize || 0) > granted);
+  if (nextLevel) raises.push({ kind: "level", level: nextLevel.level, cap: nextLevel.unlocks.maxFleetSize + bonus });
+  if (!coordinated) raises.push({ kind: "research", techId: FLEET_COORDINATION_TECH, name: "Fleet Coordination Matrix", bonus: FLEET_COORDINATION_BONUS });
+  return { cap, vessels, full: vessels >= cap, raises, raiseText: fleetRaiseText(raises) };
+}
+
+// What raises the Fleet Cap next, in words; empty when nothing in this build does.
+export function fleetRaiseText(raises) {
+  const parts = raises.map((r) => r.kind === "level"
+    ? `Reaching Corporation Level ${r.level} raises it to ${r.cap}`
+    : `${r.name} research adds ${r.bonus}`);
+  return parts.length ? `${parts.join("; ")}.` : "This is the highest Fleet Cap in this build.";
+}
+
 export function evaluateLevelProgress(profileState) {
   const corp = profileState.corp;
   corp.levelCap = MAX_DEFINED_LEVEL; // Bug #424: saves carried a literal 40
@@ -1130,6 +1158,8 @@ export function evaluateLevelProgress(profileState) {
       }
     }
   }
+
+  corp.fleet = fleetStatus(corp); // Bug #586: derived every evaluation, like levelProgress
 }
 
 /* TODO(AB#726): Should this all be hardcoded? Or should some of it be based upon completed research, etc? */

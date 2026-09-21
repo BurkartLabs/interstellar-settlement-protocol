@@ -1132,7 +1132,7 @@ function updateCorpIdentity(data) {
     <dt>Level</dt><dd>${corp.level} / ${corp.levelCap}</dd>
     <dt>Employees</dt><dd>${corp.employeeCount} / ${corp.employeeCap}</dd>
     <dt>Building Slots</dt><dd>${corp.buildingSlots}</dd>
-    <dt>Fleet Cap</dt><dd>${corp.unlocks.maxFleetSize}</dd>
+    <dt>Fleet Cap</dt><dd>${corp.fleet?.cap ?? corp.unlocks.maxFleetSize}</dd>
   `;
 
   const milestones = document.getElementById("milestone-list");
@@ -2355,7 +2355,7 @@ function renderAssemblyFacility(data) {
 
   const am = data.corp?.asteroidMining || {};
   const probeCount = am.probeCount || 0;
-  const maxProbes = am.maxProbes || 2;
+  const fleet = data.corp?.fleet || { cap: 2, vessels: probeCount, full: probeCount >= 2, raiseText: "" }; // Bug #586
   const hasProspecting = (data.corp?.unlockedTech || []).includes("tt-asteroid-prospecting");
   const station = getCurrentStationInfo(data);
 
@@ -2366,7 +2366,8 @@ function renderAssemblyFacility(data) {
     const fabQueue = am.fabricationQueue || [];
     const activeFab = fabQueue[0] || null;
     const pendingCount = fabQueue.length;
-    const canBuild = (probeCount + pendingCount) < maxProbes && !activeFab;
+    const canBuild = !fleet.full && !activeFab;
+    const deployedCount = (am.activeExpeditions || []).length;
 
     let fabProgressHtml = "";
     if (activeFab) {
@@ -2386,12 +2387,12 @@ function renderAssemblyFacility(data) {
       <div class="assembly-probe-status">
         <img src="/images/mining_probe.png" alt="Mining Probe" class="assembly-probe-img" />
         <div>
-          <p>Mining Probes: <strong>${probeCount} / ${maxProbes}</strong>${pendingCount > 0 ? ` <span class="muted">(${pendingCount} in fabrication)</span>` : ""}</p>
+          <p>Mining Probes: <strong>${fleet.vessels} / ${fleet.cap}</strong> Fleet Cap <span class="muted">(${probeCount} in hangar${deployedCount > 0 ? `, ${deployedCount} on expedition` : ""}${pendingCount > 0 ? `, ${pendingCount} in fabrication` : ""})</span></p>
           ${canBuild
             ? `<button id="build-probe-btn" class="btn btn-accent">Fabricate Mining Probe (¤8,000)</button>`
             : activeFab
               ? ""
-              : `<p class="muted">Probe hangar full. Research upgrades to increase capacity.</p>`
+              : `<p class="muted">Your fleet is at its Fleet Cap. ${fleet.raiseText}</p>`
           }
           ${fabProgressHtml}
         </div>
@@ -4752,7 +4753,7 @@ function updateAllViews() {
   const am = data.corp?.asteroidMining || {};
   starmap.setAsteroidMining({
     probeCount: am.probeCount || 0,
-    maxProbes: am.maxProbes || 2,
+    maxProbes: data.corp?.fleet?.cap ?? 2,
     maxDeployments: am.maxDeployments || 1,
     activeExpeditions: am.activeExpeditions || [],
     scoutedBelts: am.scoutedBelts || [],
