@@ -4,6 +4,7 @@ import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { createStarmapController } from "./starmap.js";
+import { starmapMiningState } from "./beltCompositions.js"; // Bug #1264
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
@@ -4801,15 +4802,7 @@ function updateAllViews() {
   if (data.world?.systems) starmap.setSystems(data.world.systems);
   starmap.setStations(appState.stationRegistry, data.corp?.currentStationId, data.corp?.currentSystemId || "sol");
   starmap.setUnlockedTech(new Set(data.corp?.unlockedTech || []));
-  const am = data.corp?.asteroidMining || {};
-  starmap.setAsteroidMining({
-    probeCount: am.probeCount || 0,
-    maxProbes: data.corp?.fleet?.cap ?? 2,
-    maxDeployments: am.maxDeployments || 1,
-    activeExpeditions: am.activeExpeditions || [],
-    scoutedBelts: am.scoutedBelts || [],
-    beltCompositions: appState.beltCompositions || {}
-  });
+  starmap.setAsteroidMining(starmapMiningState(data, appState.beltCompositions));
   renderExpeditionPanel(data);
   renderInboxMessageList();
 }
@@ -5401,7 +5394,9 @@ async function refreshFromServer() {
     applySharedState(serverState);
     appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
     appState.activeMissions = appState.data.corp?.activeMissions || [];
-    refreshBeltCompositions();
+    // Bug #1264: the compositions arrive after the first draw, so hand them to the Starmap when they land; before,
+    // a scouted belt showed neither its composition nor a Scout button until something else redrew the map.
+    refreshBeltCompositions().then(() => starmap.setAsteroidMining(starmapMiningState(appState.data, appState.beltCompositions)));
     updateAllViews();
     return;
   }

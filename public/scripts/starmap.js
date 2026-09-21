@@ -54,6 +54,11 @@ function hashSeed(input) {
   return Math.abs(h);
 }
 
+/** A scouted belt whose composition has not reached the page yet (Bug #1264): say so rather than show nothing. */
+export function scoutedBeltLoadingHtml() {
+  return `<p class="muted" data-belt-composition="loading">Scouted. Loading composition…</p>`;
+}
+
 function generatedComposition(body) {
   const seed = hashSeed(body.id);
   const entries = [
@@ -926,7 +931,8 @@ export function createStarmapController({
         const inSameSystem = (state.currentSystemId || "sol") === system.id;
         const activeExps = (am.activeExpeditions || []).filter(e => e.beltKey === beltKey);
 
-        let compositionHtml = "";
+        // Bug #1264: scouted, but the composition has not arrived from the server yet (it is fetched after a load).
+        let compositionHtml = isBeltScouted && !beltComps[beltKey] ? scoutedBeltLoadingHtml() : "";
         if (isBeltScouted && beltComps[beltKey]) {
           const comp = beltComps[beltKey];
           compositionHtml = `<h4 style="margin-top:0.75rem;">Material Composition</h4><ul class="text-list">${
