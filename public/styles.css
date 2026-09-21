@@ -2897,7 +2897,7 @@ textarea {
 
 .logistics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr)); /* AB#717: no sideways scroll below 360px */
   gap: 1rem;
 }
 
