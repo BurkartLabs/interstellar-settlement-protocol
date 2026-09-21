@@ -8,21 +8,14 @@
 /** Longer than any real body name, short enough that nothing unbounded is ever looked up. */
 export const LEASE_BODY_MAX_LENGTH = 64;
 
-/** Systems a corporation can reach by research, the same gate interstellar travel uses. */
-const NEAR_STAR_SYSTEMS = new Set(["alpha-centauri", "barnards-star"]);
-const NEAR_STAR_TECH = "tt-proxima-navigation";
-const DEEP_STAR_TECH = "tt-deep-star-navigation";
+import { canReachSystem } from "../public/scripts/navigation.js";
 
-/** The research a jump to `systemId` needs, or null for Sol. Shared with the travel route. */
-export function researchForSystem(systemId) {
-  if (systemId === "sol") return null;
-  return NEAR_STAR_SYSTEMS.has(systemId) ? NEAR_STAR_TECH : DEEP_STAR_TECH;
-}
+// The travel gate lives in public/scripts/navigation.js, shared with the travel route and the starmap (Bug #976).
+export { researchForSystem } from "../public/scripts/navigation.js";
 
 /** A corporation can reach Sol, the system it is in, and any system its research opens. */
 export function systemAccessible(corp, systemId) {
-  if (systemId === "sol" || corp?.currentSystemId === systemId) return true;
-  return new Set(corp?.unlockedTech || []).has(researchForSystem(systemId));
+  return canReachSystem(corp?.unlockedTech, corp?.currentSystemId, systemId);
 }
 
 /**

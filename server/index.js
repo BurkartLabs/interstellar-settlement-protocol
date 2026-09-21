@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import { resolveLeaseBody } from "./leases.js";
+import { canReachSystem } from "../public/scripts/navigation.js";
 import {
   accountExists,
   addAccountNotification,
@@ -274,9 +275,6 @@ function getInterstellarTravelTimeMs(fromSystemId, toSystemId) {
   const hops = getSystemHops(fromSystemId, toSystemId);
   return Math.max(1, hops) * 60 * 60 * 1000;
 }
-
-// TODO: Remove this, we can simply check for these values when travel beyond is gated
-const NEAR_STAR_SYSTEMS = new Set(["alpha-centauri", "barnards-star"]);
 
 const ACCESS_TOKEN_SECONDS = 7 * 24 * 60 * 60;
 const DUMMY_ACCESS_TOKEN_SECONDS = IS_DEV ? 7 * 24 * 60 * 60 : 2 * 60 * 60;
@@ -1466,13 +1464,8 @@ app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
         return;
       }
 
-      // Research gate
-      const unlocked = new Set(corp.unlockedTech || []);
-      if (NEAR_STAR_SYSTEMS.has(toSystemId)) {
-        if (!unlocked.has("tt-proxima-navigation")) { outcome = "missing-research"; return; }
-      } else {
-        if (!unlocked.has("tt-deep-star-navigation")) { outcome = "missing-research"; return; }
-      }
+      // Research gate: Sol needs none, so a corporation can always come home (Bug #976).
+      if (!canReachSystem(corp.unlockedTech, fromSystemId, toSystemId)) { outcome = "missing-research"; return; }
 
       const durationMs = getInterstellarTravelTimeMs(fromSystemId, toSystemId);
       const now = Date.now();
