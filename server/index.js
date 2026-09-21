@@ -1747,8 +1747,8 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
       return;
     }
 
-    corp.finances.credits -= startupCost;
     recordExpense(corp, "mining-startup", startupCost); // Bug #1022
+    corp.finances.credits -= startupCost;
 
     extractorCycle.active = true;
     extractorCycle.startedAt = now;
@@ -2575,8 +2575,8 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
     }
 
     const now = Date.now();
-    corp.finances.credits -= startupCost;
     recordExpense(corp, "mining-startup", startupCost); // Bug #1022
+    corp.finances.credits -= startupCost;
 
     extractorCycle.active = true;
     extractorCycle.startedAt = now;
