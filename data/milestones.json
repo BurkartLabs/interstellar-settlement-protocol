@@ -73,9 +73,9 @@
     {
       "level": 6,
       "requirements": [
-        { "id": "researchFerricCore", "title": "Research Ferric Core Extraction Facility", "target": 1, "metric": "unlockedTech:tt-ferric-core-extraction" },
-        { "id": "hire25", "title": "Hire 25 Employees", "target": 25, "metric": "employeeCount" },
-        { "id": "ferricMiningComplex", "title": "Build a Ferric Mining Complex", "target": 1, "metric": "building:Ferric Mining Complex" }
+        { "id": "researchAssemblyFabrication", "title": "Research Assembly & Fabrication Systems", "target": 1, "metric": "unlockedTech:tt-assembly-fabrication" },
+        { "id": "assemblyFacility", "title": "Build an Assembly Facility", "target": 1, "metric": "building:Assembly Facility" },
+        { "id": "hire25", "title": "Hire 25 Employees", "target": 25, "metric": "employeeCount" }
       ],
       "unlocks": {
         "employeeCap": 100,
@@ -87,8 +87,8 @@
     {
       "level": 7,
       "requirements": [
-        { "id": "researchMultiStageRefinery", "title": "Research Multi-Stage Refinery Protocols", "target": 1, "metric": "unlockedTech:tt-multi-stage-refinery" },
-        { "id": "refineryComplex", "title": "Build a Refinery Complex", "target": 1, "metric": "building:Refinery Complex" }
+        { "id": "researchAsteroidProspecting", "title": "Research Asteroid Prospecting Arrays", "target": 1, "metric": "unlockedTech:tt-asteroid-prospecting" },
+        { "id": "expeditions3", "title": "Complete 3 Asteroid Expeditions", "target": 3, "metric": "stat:asteroidExpeditionsCompleted" }
       ],
       "unlocks": {
         "employeeCap": 120,
@@ -100,7 +100,8 @@
     {
       "level": 8,
       "requirements": [
-        { "id": "manufacture5000Alloys", "title": "Manufacture 5,000 Iron-Silicate Alloys", "target": 5000, "metric": "stat:ironSilicateAlloysManufactured" },
+        { "id": "researchMaterialCompression", "title": "Research Material Compression I", "target": 1, "metric": "unlockedTech:tt-material-compression" },
+        { "id": "refinery", "title": "Build a Refinery", "target": 1, "metric": "building:Refinery" },
         { "id": "missions25", "title": "Complete 25 Missions", "target": 25, "metric": "stat:missionsCompleted" }
       ],
       "unlocks": {
@@ -113,11 +114,9 @@
     {
       "level": 9,
       "requirements": [
-        { "id": "researchCryoVapor", "title": "Research Cryo-genic Vapor Extraction Theory", "target": 1, "metric": "unlockedTech:tt-cryo-vapor-extraction" },
-        { "id": "lunaLease", "title": "Purchase a Mining Claim on Luna", "target": 1, "metric": "miningLease:Luna" },
-        { "id": "cryoExtractorArray", "title": "Build a Cryo-vapor Extractor Array", "target": 1, "metric": "building:Cryo-vapor Extractor Array" },
-        { "id": "sell500CryoFoam", "title": "Sell 500 Cryo-Silicate Foam", "target": 500, "metric": "stat:cryoSilicateFoamSold" },
-        { "id": "sell500HydratedFerric", "title": "Sell 500 Hydrated Ferric Compounds", "target": 500, "metric": "stat:hydratedFerricCompoundsSold" }
+        { "id": "researchNanoLattice", "title": "Research Nano-Lattice Weaving", "target": 1, "metric": "unlockedTech:tt-nano-lattice" },
+        { "id": "refine1000", "title": "Refine 1,000 Units of Goods", "target": 1000, "metric": "stat:refinedUnitsProduced" },
+        { "id": "lunaLease", "title": "Purchase a Mining Claim on Luna", "target": 1, "metric": "miningLease:Luna" }
       ],
       "unlocks": {
         "employeeCap": 170,
@@ -129,14 +128,10 @@
     {
       "level": 10,
       "requirements": [
-        { "id": "researchCarbonSlurry", "title": "Research Carbonaceous Slurry Recovery Theory", "target": 1, "metric": "unlockedTech:tt-carbonaceous-slurry-recovery" },
-        { "id": "asteroidBeltLease", "title": "Purchase a Mining Claim on an Asteroid Belt", "target": 1, "metric": "miningLease:Asteroid Belt" },
-        { "id": "researchBeltMining", "title": "Research Asteroid Belt Mining Protocols", "target": 1, "metric": "unlockedTech:tt-asteroid-belt-mining" },
-        { "id": "beltMiningOp", "title": "Start a Belt Mining Operation", "target": 1, "metric": "stat:beltMiningOperationsStarted" },
-        { "id": "sell500CarbonSilicate", "title": "Sell 500 Carbon Silicate Composites", "target": 500, "metric": "stat:carbonSilicateCompositesSold" },
-        { "id": "sell500CarboIron", "title": "Sell 500 Carbo-Iron Alloys", "target": 500, "metric": "stat:carboIronAlloysSold" },
-        { "id": "sell500HydroCarbon", "title": "Sell 500 Hydro-Carbon Emulsion Base", "target": 500, "metric": "stat:hydroCarbonEmulsionBaseSold" },
-        { "id": "researchExtrasolar", "title": "Research Extrasolar Expansion Protocols", "target": 1, "metric": "unlockedTech:tt-extrasolar-expansion" }
+        { "id": "researchNearStarNavigation", "title": "Research Near-Star Navigation Array", "target": 1, "metric": "unlockedTech:tt-proxima-navigation" },
+        { "id": "expeditions10", "title": "Complete 10 Asteroid Expeditions", "target": 10, "metric": "stat:asteroidExpeditionsCompleted" },
+        { "id": "refine10000", "title": "Refine 10,000 Units of Goods", "target": 10000, "metric": "stat:refinedUnitsProduced" },
+        { "id": "sell100000Silicate", "title": "Sell 100,000 Silicate", "target": 100000, "metric": "stat:silicateSoldOnExchange" }
       ],
       "unlocks": {
         "employeeCap": 200,

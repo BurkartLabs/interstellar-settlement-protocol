@@ -40,7 +40,7 @@ The tone is deliberately bureaucratic. The ISA has forms for everything.
 ### Corporation Management
 - Real account registration with email/password (bcrypt-hashed)
 - JWT authentication with refresh token rotation
-- Corporation identity, level (1–40 cap), and milestone-gated progression
+- Corporation identity, level (1 to 10 in this build; 11 to 40 are planned for v0.6), and milestone-gated progression
 
 ### Earth Station Prime
 - 16-building NPC district with faction badges and lore descriptions
