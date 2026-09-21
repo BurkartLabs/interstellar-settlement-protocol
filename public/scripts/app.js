@@ -1,6 +1,7 @@
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
+import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
 
 const appState = {
   serverData: null,
@@ -37,6 +38,7 @@ const appState = {
   miningUiTicker: null,
   stationRegistry: [],
   buildingRegistry: [],
+  insightPrograms: [], // loaded from /api/ceo-insight (Bug #983)
   stationActiveLease: null,
   _travelTimer: null,
   exchangeFilter: "",
@@ -186,22 +188,6 @@ const techTree = [
     prereqs: ["tt-assembly-fabrication", "tt-supply-forecast"],
     tier: 2
   }
-];
-
-// TODO: Store in DB or fetch from insight.json
-const insightPrograms = [
-  { id: "ceo-negotiation-fundamentals", name: "Negotiation Fundamentals", effect: "-2% GEX sales tax", description: "Reduces sales tax on Galactic Exchange sales by 2% (max reduction 6%).", durationHours: 4, costCredits: 10000, prereqs: [], tier: 1, maxLevels: 3, category: "Trade" },
-  { id: "ceo-employee-motivation", name: "Employee Motivation Techniques", effect: "-10% morale decay", description: "Reduces global employee morale decay rate by 10%.", durationHours: 6, costCredits: 14000, prereqs: [], tier: 1, maxLevels: 1, category: "Operations" },
-  { id: "ceo-basic-market-analysis", name: "Basic Market Analysis", effect: "Daily price trend hint", description: "Once per day, reveals a short-term silicate price trend hint.", durationHours: 5, costCredits: 12000, prereqs: [], tier: 1, maxLevels: 1, category: "Trade" },
-  { id: "ceo-isa-regulatory-navigation", name: "ISA Regulatory Navigation", effect: "-5% lease renewal cost", description: "Reduces office lease renewal cost by 5%.", durationHours: 6, costCredits: 15000, prereqs: [], tier: 1, maxLevels: 1, category: "Finance" },
-  { id: "ceo-crisis-management", name: "Crisis Management Protocols", effect: "-25% extractor repair time", description: "Reduces extractor repair time by 25% when downtime occurs.", durationHours: 8, costCredits: 18000, prereqs: ["ceo-employee-motivation"], tier: 2, maxLevels: 1, category: "Operations" },
-  { id: "ceo-team-efficiency", name: "Team Efficiency Protocols", effect: "+3% productivity per employee", description: "+3% productivity per employee (global).", durationHours: 10, costCredits: 22000, prereqs: ["ceo-employee-motivation"], tier: 2, maxLevels: 1, category: "Operations" },
-  { id: "ceo-contract-law", name: "Contract Law Essentials", effect: "+8% mission reward bonus", description: "+8% reward bonus on Logistics Agent missions.", durationHours: 8, costCredits: 20000, prereqs: ["ceo-negotiation-fundamentals"], tier: 2, maxLevels: 1, category: "Trade" },
-  { id: "ceo-risk-assessment", name: "Risk Assessment Framework", effect: "-12% extractor downtime chance", description: "Reduces extractor downtime chance by 12%.", durationHours: 10, costCredits: 25000, prereqs: ["ceo-crisis-management"], tier: 2, maxLevels: 1, category: "Operations" },
-  { id: "ceo-strategic-delegation", name: "Strategic Delegation", effect: "Unlock: Middle Manager", description: "Unlocks ability to hire your first Middle Manager.", durationHours: 14, costCredits: 35000, prereqs: ["ceo-team-efficiency"], tier: 3, maxLevels: 1, category: "Management" },
-  { id: "ceo-bureaucratic-persuasion", name: "Bureaucratic Persuasion", effect: "+15% ISA reputation gains", description: "Increases ISA reputation gains by 15%.", durationHours: 12, costCredits: 30000, prereqs: ["ceo-isa-regulatory-navigation"], tier: 3, maxLevels: 1, category: "Diplomacy" },
-  { id: "ceo-decision-fatigue-reduction", name: "Executive Decision Fatigue Reduction", effect: "+1 max Focus", description: "Increases maximum Focus by +1.", durationHours: 16, costCredits: 40000, prereqs: ["ceo-contract-law", "ceo-risk-assessment"], tier: 3, maxLevels: 1, category: "Leadership" },
-  { id: "ceo-leadership-presence", name: "Leadership Presence", effect: "Focus → morale boost", description: "Focus reports grant a small temporary morale boost to all employees.", durationHours: 18, costCredits: 50000, prereqs: ["ceo-strategic-delegation", "ceo-decision-fatigue-reduction"], tier: 3, maxLevels: 1, category: "Leadership" }
 ];
 
 // TODO: Move to dedicated file
@@ -1108,7 +1094,8 @@ function renderInsightTree(data) {
   const queue = data.queues?.ceoInsight || [];
   const queuedIds = queue.map((item) => item.programId).filter(Boolean);
 
-  const rows = insightPrograms
+  const programs = appState.insightPrograms;
+  const rows = programs
     .map((prog) => {
       const completionCount = completed.filter((id) => id === prog.id).length;
       const queuedCount = queuedIds.filter((id) => id === prog.id).length;
@@ -1116,10 +1103,13 @@ function renderInsightTree(data) {
       const isDone = completionCount >= maxLevels;
       const isQueued = queuedCount > 0 && (completionCount + queuedCount >= maxLevels);
       const isLocked = !prog.prereqs.every((req) => completed.includes(req));
+      // Bug #983: a planned program has no effect yet; the server refuses it, so it is shown but not offered.
+      const isPlanned = !isInsightProgramLive(prog);
+      const plannedNote = isPlanned ? `<span class="rnd-row__meta">No effect yet: planned for a later version.</span>` : "";
       const anyQueued = queue.length > 0;
-      const canEnqueue = !isDone && !isQueued && !isLocked && !anyQueued && (completionCount + queuedCount < maxLevels);
+      const canEnqueue = !isPlanned && !isDone && !isQueued && !isLocked && !anyQueued && (completionCount + queuedCount < maxLevels);
       const prereqLabel = prog.prereqs.length
-        ? prog.prereqs.map((id) => insightPrograms.find((p) => p.id === id)?.name || id).join(", ")
+        ? prog.prereqs.map((id) => programs.find((p) => p.id === id)?.name || id).join(", ")
         : "None";
 
       const levelLabel = maxLevels > 1 ? ` (${completionCount}/${maxLevels})` : "";
@@ -1129,6 +1119,7 @@ function renderInsightTree(data) {
           <div class="rnd-row__info">
             <span class="rnd-row__name">${escapeHtml(prog.name)}${levelLabel}</span>
             <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
+            ${plannedNote}
           </div>
           <span class="rnd-row__badge rnd-row__badge--done">\u2713 COMPLETE</span>
         </div>`;
@@ -1140,8 +1131,20 @@ function renderInsightTree(data) {
             <span class="rnd-row__name">${escapeHtml(prog.name)}${levelLabel}</span>
             <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
             <span class="rnd-row__meta">${prog.durationHours}h &middot; ${toCurrency(prog.costCredits)}</span>
+            ${plannedNote}
           </div>
           <span class="rnd-row__badge rnd-row__badge--queued">IN QUEUE</span>
+        </div>`;
+      }
+
+      if (isPlanned) {
+        return `<div class="rnd-row rnd-row--locked rnd-row--planned">
+          <div class="rnd-row__info">
+            <span class="rnd-row__name">${escapeHtml(prog.name)}</span>
+            <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
+            ${plannedNote}
+          </div>
+          <span class="rnd-row__badge rnd-row__badge--locked">PLANNED</span>
         </div>`;
       }
 
@@ -1425,10 +1428,7 @@ function renderOrbitalExecutiveSuites(building, data) {
         <label>
           Duration
           <select id="renew-office-duration">
-            <option value="7">7 days — ${toCurrency(7000)}</option>
-            <option value="14">14 days — ${toCurrency(14000)}</option>
-            <option value="21">21 days — ${toCurrency(21000)}</option>
-            <option value="28" selected>28 days — ${toCurrency(28000)}</option>
+            ${[7, 14, 21, 28].map((days) => `<option value="${days}"${days === 28 ? " selected" : ""}>${days} days — ${toCurrency(officeRenewalCost(corp.completedInsights, days))}</option>`).join("")}
           </select>
         </label>
         <button class="btn btn-accent" type="submit">${leaseExpired ? "Renew Lease" : "Extend Lease"}</button>
@@ -1535,7 +1535,7 @@ function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         } else {
-          const renewalCost = durationDays * 1000;
+          const renewalCost = officeRenewalCost(corp.completedInsights, durationDays);
           if ((corp.finances.credits || 0) < renewalCost) {
             throw new Error(`Renewal requires ${toCurrency(renewalCost)} credits. Current reserves: ${toCurrency(corp.finances.credits)}.`);
           }
@@ -2771,7 +2771,6 @@ function renderBalanceTable(finances, derived) {
   `;
 }
 
-function updateInvestmentPanel() { /* removed: direct investment panel deprecated */ }
 
 function updateOverview(data) {
   const cards = [
@@ -5217,9 +5216,10 @@ async function loadBootstrap() {
 
 async function loadStationRegistry() {
   try {
-    const [stationsRes, buildingsRes] = await Promise.all([
+    const [stationsRes, buildingsRes, insightRes] = await Promise.all([
       fetch("/api/stations"),
-      fetch("/api/buildings")
+      fetch("/api/buildings"),
+      fetch("/api/ceo-insight")
     ]);
     if (stationsRes.ok) {
       const data = await stationsRes.json();
@@ -5228,6 +5228,10 @@ async function loadStationRegistry() {
     if (buildingsRes.ok) {
       const data = await buildingsRes.json();
       appState.buildingRegistry = data.buildings || [];
+    }
+    if (insightRes.ok) {
+      const data = await insightRes.json();
+      appState.insightPrograms = data.programs || [];
     }
   } catch {
     // Station registry is best-effort; game works without it.

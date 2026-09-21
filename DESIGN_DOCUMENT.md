@@ -274,7 +274,7 @@ Full balance sheet / P&L / cash flow statements stored server-side are planned f
 
 ## Level Progression System
 
-Levels 1–10 defined. Each level has a set of requirements that must all be met simultaneously. `evaluateLevelProgress()` runs on every account read and auto-advances level when all requirements are complete.
+Levels 1–10 defined. Each level has a set of requirements that must all be met simultaneously. `evaluateLevelProgress()` runs on every account read and auto-advances level when all requirements are complete. Levels are climbed in order: level N is granted only from level N-1, so meeting a later level first waits for the one below it. Every level at or below the current one keeps its unlocks and its "Reached Corporation Level N" milestone.
 
 | Level | Key Requirements |
 |---|---|

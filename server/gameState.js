@@ -22,6 +22,7 @@ const SUPABASE_MANAGED_PASSWORD_HASH = "__supabase_auth_managed__";
 
 import { recordExpense, ensureFinanceTracking } from "./finances.js";
 import { unknownLeaseBodies } from "./leases.js";
+import { directInvestmentRecords } from "./legacyInvestments.js";
 import {
   persistAccountsPhase1,
   hydrateOverlayPhase1,
@@ -537,6 +538,17 @@ function stopExtractorCycle(extractor, timestamp) {
   extractor.lastCompletedAt = timestamp;
 }
 
+/**
+ * An extractor's chance of breaking down per second: 0.005%, 8% less with Industrial Safety research and 12% less
+ * again with the Risk Assessment Framework CEO program (Bug #983: that program used to change nothing).
+ */
+export function extractorDowntimeProbPerSec(corp) {
+  let probPerSec = 0.00005;
+  if ((corp.unlockedTech || []).includes("tt-industrial-safety")) probPerSec *= 0.92;
+  if ((corp.completedInsights || []).includes("ceo-risk-assessment")) probPerSec *= 0.88;
+  return probPerSec;
+}
+
 export function applyMiningOperations(corp, now = Date.now()) {
   ensureCorpMiningModel(corp);
 
@@ -597,11 +609,7 @@ export function applyMiningOperations(corp, now = Date.now()) {
     }
 
     // Calculate downtime probability for this tick
-    const baseProbPerSec = 0.00005; // 0.005% per second
-    let probPerSec = baseProbPerSec;
-    if ((corp.unlockedTech || []).includes("tt-industrial-safety")) {
-      probPerSec *= 0.92; // -8% risk
-    }
+    const probPerSec = extractorDowntimeProbPerSec(corp);
     const tickSeconds = elapsedMs / 1000;
     // Probability of at least one event in tickSeconds: P = 1 - (1 - p)^n
     const tickProb = 1 - Math.pow(1 - probPerSec, tickSeconds);
@@ -1016,7 +1024,7 @@ function resolveMetric(metric, corp) {
   return 0;
 }
 
-function evaluateLevelProgress(profileState) {
+export function evaluateLevelProgress(profileState) {
   const corp = profileState.corp;
 
   // Build levelProgress from milestones.json definitions
@@ -1050,24 +1058,32 @@ function evaluateLevelProgress(profileState) {
     }
   });
 
-  // Apply level-ups and unlock grants from milestones.json
-  for (const levelDef of MILESTONE_LEVELS) {
+  // Climb one level at a time: level N is granted only from level N-1, so a later level met
+  // first waits for the one below it instead of skipping it (AB#690).
+  const ordered = [...MILESTONE_LEVELS].sort((a, b) => a.level - b.level);
+  for (const levelDef of ordered) {
     const lvlNum = levelDef.level;
-    if (corp.level < lvlNum && corp.levelProgress[`level${lvlNum}`].allCompleted) {
-      corp.level = lvlNum;
-      const tag = `Reached Corporation Level ${lvlNum}`;
-      if (!corp.milestonesCompleted.includes(tag)) {
-        corp.milestonesCompleted.push(tag);
-      }
-      const u = levelDef.unlocks;
-      if (u.employeeCap) corp.employeeCap = Math.max(corp.employeeCap, u.employeeCap);
-      if (u.buildingSlots) corp.buildingSlots = Math.max(corp.buildingSlots, u.buildingSlots);
-      if (u.maxFleetSize) corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, u.maxFleetSize);
-      if (Array.isArray(u.marketSectors)) {
-        for (const sector of u.marketSectors) {
-          if (!corp.unlocks.marketSectors.includes(sector)) {
-            corp.unlocks.marketSectors.push(sector);
-          }
+    if (lvlNum <= corp.level) continue;
+    if (lvlNum !== corp.level + 1 || !corp.levelProgress[`level${lvlNum}`].allCompleted) break;
+    corp.level = lvlNum;
+  }
+
+  // Every level at or below the current one holds its tag and unlocks. Idempotent, so it also
+  // repairs corporations the old loop promoted past a level without granting it (AB#690).
+  for (const levelDef of ordered) {
+    if (levelDef.level > corp.level) break;
+    const tag = `Reached Corporation Level ${levelDef.level}`;
+    if (!corp.milestonesCompleted.includes(tag)) {
+      corp.milestonesCompleted.push(tag);
+    }
+    const u = levelDef.unlocks;
+    if (u.employeeCap) corp.employeeCap = Math.max(corp.employeeCap, u.employeeCap);
+    if (u.buildingSlots) corp.buildingSlots = Math.max(corp.buildingSlots, u.buildingSlots);
+    if (u.maxFleetSize) corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, u.maxFleetSize);
+    if (Array.isArray(u.marketSectors)) {
+      for (const sector of u.marketSectors) {
+        if (!corp.unlocks.marketSectors.includes(sector)) {
+          corp.unlocks.marketSectors.push(sector);
         }
       }
     }
@@ -1852,6 +1868,11 @@ let accountsStore = await hydrateAccountsStoreFromSupabaseOrFallback(createSeedA
 }
 // Bug #711: saves from before corporations had a public id get one on load, so they can be addressed by mail.
 backfillCorpPublicIds();
+// Bug #689: POST /api/investments is removed. Report what it stored, for the PM, and leave it in place.
+{
+  const records = directInvestmentRecords(Object.values(accountsStore.accounts || {}));
+  if (records.length) console.warn(`[investments] ${records.length} direct investment(s) from the removed route (Bug #689), left in place:`, JSON.stringify(records));
+}
 
 function scheduleSave() {
   if (IS_SERVERLESS) {
