@@ -3,6 +3,9 @@ import express from "express";
 import kanbanRouter from "./kanban.js";
 import { resolveJwtSecret } from "./jwtSecret.js";
 import { bodyNumber } from "./bodyNumber.js";
+import { bodyCount } from "./bodyNumber.js";
+import { marketView } from "./marketView.js";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -288,6 +291,9 @@ const DEV_SURFACE = process.env.ISP_DEV === "1" && process.env.NODE_ENV !== "pro
 // Refuses to start without a real secret, except on the dev surface (Bug #589: it fell back to a string in the source).
 const JWT_SECRET = resolveJwtSecret(process.env, { devSurface: DEV_SURFACE });
 
+/** How many sell listings one seller may have open at once (Bug #425). */
+const MAX_OPEN_LISTINGS = 50;
+
 function stripHtml(input) {
   return String(input || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
@@ -469,7 +475,7 @@ function checkAndResetNpcBuyOrders() {
       }
     });
   });
-  io.emit("market:updated", getState().market);
+  emitMarketUpdated();
 }
 
 // Check on startup and every minute thereafter
@@ -817,8 +823,10 @@ if (!process.env.ISP_DISABLE_TICKERS) {
 
 // TODO(AB#737): Consider moving API to a dedicated api.js file
 
-app.get("/api/bootstrap", (_req, res) => {
-  res.json({ ...getState(), version: APP_VERSION });
+app.get("/api/bootstrap", (req, res) => {
+  // Public, but a signed-in caller also gets their own older orders (Bug #425: the book is capped when read).
+  const viewer = verifyAccessToken(getBearerToken(req)).accountId || null;
+  res.json({ ...getState(), market: marketView(getState().market, viewer), version: APP_VERSION });
 });
 
 app.get("/api/stations", (_req, res) => {
@@ -3059,14 +3067,16 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
     return;
   }
 
-  const normalizedQty = bodyNumber(quantity, { fallback: null, min: 1, integer: true });
-  const normalizedUnitPrice = bodyNumber(unitPrice, { fallback: null, min: 1 });
+  // Bug #425: whole numbers of at least 1, or refused (they used to be clamped up to 1).
+  const normalizedQty = bodyCount(quantity);
+  const normalizedUnitPrice = bodyCount(unitPrice);
   if (!type || !item || normalizedQty === null || normalizedUnitPrice === null || type !== "sell") {
     res.status(400).json({ error: "Missing required order fields." });
     return;
   }
 
   let rejectReason = "";
+  let order = null;
   const updatedSeller = mutateAccountState(req.auth.accountId, (state) => {
     const stationId = state.corp.currentStationId || "earth-station-prime";
     const inventory = getStationInventory(state.corp, stationId);
@@ -3075,7 +3085,31 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
       rejectReason = "Quantity exceeds available inventory at this station.";
       return;
     }
+    // Bug #425: a limit per seller, checked before any goods move, instead of cutting the shared book (which deleted
+    // the oldest listings, goods and all).
+    const openListings = (getState().market.orderBook || []).filter((o) => o.sellerAccountId === req.auth.accountId).length;
+    if (openListings >= MAX_OPEN_LISTINGS) {
+      rejectReason = `You have ${MAX_OPEN_LISTINGS} open listings; cancel one to list more.`;
+      return;
+    }
 
+    // The order goes into the book first and the goods come out after, in the same step: if the insert throws, the
+    // goods have not moved. stationId records where they came from, so a cancel returns them there.
+    order = {
+      id: `ord-${randomUUID()}`,
+      type,
+      item,
+      quantity: normalizedQty,
+      unitPrice: normalizedUnitPrice,
+      seller: state.corp.corporationName || "Anonymous",
+      sellerAccountId: req.auth.accountId,
+      stationId,
+      createdAt: Date.now()
+    };
+    mutateState((draft) => {
+      if (!Array.isArray(draft.market.orderBook)) draft.market.orderBook = [];
+      draft.market.orderBook.unshift(order);
+    });
     inventory[item] = available - normalizedQty;
     if (inventory[item] <= 0) {
       delete inventory[item];
@@ -3095,29 +3129,46 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
     state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
   });
 
-  if (!updatedSeller || rejectReason) {
+  if (!updatedSeller || rejectReason || !order) {
     res.status(400).json({ error: rejectReason || "Unable to create sell order." });
     return;
   }
 
-  const order = {
-    id: `ord-${Date.now()}`,
-    type,
-    item,
-    quantity: normalizedQty,
-    unitPrice: normalizedUnitPrice,
-    seller: updatedSeller.state?.corp?.corporationName || updatedSeller.email || "Anonymous",
-    sellerAccountId: updatedSeller.id,
-    createdAt: Date.now()
-  };
-
-  mutateState((draft) => {
-    draft.market.orderBook.unshift(order);
-    draft.market.orderBook = draft.market.orderBook.slice(0, 200);
-  });
-
-  io.emit("market:updated", getState().market);
+  emitMarketUpdated();
   res.json({ ok: true, order, account: updatedSeller });
+});
+
+// Bug #425: a seller can take a listing down, getting the unsold goods back at the station they were listed from.
+// Only the seller: anyone else gets 404, so the route says nothing about orders that are not theirs.
+app.post("/api/market/orders/:orderId/cancel", requireAuth, (req, res) => {
+  const orderId = String(req.params.orderId || "").trim();
+  const order = (getState().market.orderBook || []).find((o) => o.id === orderId && o.sellerAccountId === req.auth.accountId);
+  if (!order) {
+    res.status(404).json({ error: "You have no listing with that id." });
+    return;
+  }
+
+  const account = mutateAccountState(req.auth.accountId, (state) => {
+    mutateState((draft) => {
+      draft.market.orderBook = (draft.market.orderBook || []).filter((o) => o.id !== order.id);
+    });
+    const stationId = order.stationId || state.corp.currentStationId || "earth-station-prime";
+    const inventory = getStationInventory(state.corp, stationId);
+    inventory[order.item] = Number(inventory[order.item] || 0) + Number(order.quantity || 0);
+    if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
+    state.corp.tradeHistory.unshift({
+      id: `th-${randomUUID()}`, type: "cancelled", item: order.item, quantity: order.quantity, unitPrice: order.unitPrice,
+      total: order.quantity * order.unitPrice, counterparty: "Market", at: Date.now()
+    });
+    state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
+  });
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  emitMarketUpdated();
+  res.json({ ok: true, cancelled: order.id, account });
 });
 
 app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
@@ -3228,7 +3279,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
     }
   });
 
-  io.emit("market:updated", getState().market);
+  emitMarketUpdated();
   res.json({
     ok: true,
     traded: {
@@ -3245,7 +3296,12 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
 // ─── Sell player resources into an NPC standing buy order ────────────────────
 app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
-  const requestedQty = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
+  // Bug #425: a whole number of at least 1, or refused; it used to fall back to 1 for "abc", 0 or -5.
+  const requestedQty = bodyCount(req.body?.quantity);
+  if (requestedQty === null) {
+    res.status(400).json({ error: "Quantity must be a whole number of at least 1." });
+    return;
+  }
 
   checkAndResetNpcBuyOrders();
 
@@ -3326,7 +3382,7 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
     }
   });
 
-  io.emit("market:updated", getState().market);
+  emitMarketUpdated();
   res.json({
     ok: true,
     traded: { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice: npcOrder.unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, proceeds: tradeProceeds },
@@ -3355,6 +3411,15 @@ function emitToAccount(accountId, event, payload) {
   if (accountId) io.to(accountRoom(accountId)).emit(event, payload);
 }
 
+/**
+ * Send the market to every connected socket as that socket's account should see it: the newest orders plus its own
+ * (Bug #425: the book is never cut, so what is sent is capped here instead).
+ */
+function emitMarketUpdated() {
+  const market = getState().market;
+  for (const peer of io.of("/").sockets.values()) peer.emit("market:updated", marketView(market, peer.data.accountId));
+}
+
 io.use((socket, next) => {
   const verified = verifyAccessToken(socket.handshake.auth?.token);
   if (verified.accountId) socket.data.accountId = verified.accountId;
@@ -3379,7 +3444,7 @@ function resolveChatChannel(requested, corp) {
 io.on("connection", (socket) => {
   // Bug #1021: an authenticated socket joins its account's room, so per-account events reach only its owner.
   if (socket.data.accountId) socket.join(accountRoom(socket.data.accountId));
-  socket.emit("state:init", getState());
+  socket.emit("state:init", { ...getState(), market: marketView(getState().market, socket.data.accountId) });
 
   socket.on("chat:send", (payload) => {
     // Fail closed: no verified account, no account, no allowed channel or no content means nothing is stored or sent.

@@ -15,3 +15,13 @@ export function bodyNumber(value, { fallback, min = -Infinity, max = Infinity, i
   if (integer) n = Math.floor(n);
   return Math.min(max, Math.max(min, n));
 }
+
+/**
+ * A count of things from a request body: a whole number of at least 1; anything else is null, so the route refuses it
+ * rather than assuming a default (Bug #425: a sell order or NPC sale with quantity "abc", 0 or -5 must change nothing).
+ * A fraction is refused, not floored, like every other count the game takes (AB#731, AB#732).
+ */
+export function bodyCount(value) {
+  const n = bodyNumber(value, { fallback: null });
+  return n !== null && Number.isInteger(n) && n >= 1 ? n : null;
+}
