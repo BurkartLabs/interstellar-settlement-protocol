@@ -31,7 +31,7 @@ const BASELINE = {
   "POST /launch-expedition": { body: { beltKey: "sol:belt", duration: "short" } },
   "POST /start-refinery": { body: { refineryId: "ref-731", chainId: "silicates-chain", inputQuantity: 100 } },
   "POST /accept-mission": { body: { missionId: "ms-log-001" } },
-  "POST /abandon-mission": { body: { missionId: "ms-log-001" } },
+  "POST /abandon-mission": { body: { missionId: "ms-log-002" } },
   "POST /complete-mission": { body: { missionId: "ms-log-001" } },
   "POST /mine": { body: { amount: 40, hours: 24, extractorId: "ext-731" } },
   "POST /queue-rnd": { body: { techId: "tt-basic-extraction" } },
@@ -41,7 +41,7 @@ const BASELINE = {
 /** What the input check says when it refuses this field: the refusal must be its, not a game rule's. */
 function refusalFor(key, name, label) {
   const entry = GAMEPLAY_INPUT[key];
-  if (entry.custom === "transfer") return { fromStationId: "Choose a station to move goods from", "lines.0.item": "Line 1: pick an item held at that station.", "lines.0.quantity": "a quantity for line 1" }[name];
+  if (entry.custom === "transfer") return { fromStationId: label === "a missing field" ? "Choose the station to move goods from." : "That source station does not exist.", "lines.0.item": /Line 1 has no item|holds none of that item/, "lines.0.quantity": "Line 1: enter a whole number of at least 1 to move." }[name];
   if (entry.oneOf) return label === "a missing field" ? "Choose one destination" : entry.oneOf[name].label;
   return (entry.params?.[name] || entry.body?.[name]).label;
 }
@@ -90,6 +90,11 @@ async function playerWithEverything() {
     corp.mining = { ...(corp.mining || {}), silicateExtractors: [{ id: "ext-731", leaseId: "lease-731", active: false, totalMined: 0, totalSpent: 0 }] };
     corp.refineries = [{ id: "ref-731", name: "Refinery #1", tier: 1, active: false, chainId: null }];
     corp.inventory = { "mars-orbital-dock": { Silicates: 50 } };
+    // Two active contracts: the abandon baseline gives one up, and complete still has the other.
+    corp.activeMissions = [
+      { id: "ms-log-001", title: "Silicate Requisition Order", quota: { resource: "Silicates", amount: 400 }, reward: "12,000 Credits" },
+      { id: "ms-log-002", title: "Nickel Freight Manifest", quota: { resource: "Nickel", amount: 300 }, reward: "15,000 Credits" }
+    ];
   });
   const api = authed(app, accessToken);
   const state = () => JSON.stringify(getAccountById(account.id).state);
@@ -138,7 +143,8 @@ describe("hostile input is refused before anything changes (AB#731)", async () =
     const before = player.state();
     const res = await player.send(key, withField(BASELINE[key], where, name, value));
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain(refusalFor(key, name, label));
+    const expected = refusalFor(key, name, label);
+    if (expected instanceof RegExp) expect(res.body.error).toMatch(expected); else expect(res.body.error).toContain(expected);
     expect(res.body.error).not.toContain("xxxxxxxxxx");
     expect(player.state()).toBe(before);
   });

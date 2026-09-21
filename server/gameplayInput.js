@@ -16,7 +16,9 @@ const int = (min, max, label, extra = {}) => ({ kind: "int", min, max, label, ..
 const choice = (values, label, extra = {}) => ({ kind: "choice", values, label, ...extra });
 const id = (catalog, label, extra = {}) => ({ kind: "id", catalog, label, ...extra });
 
-const MISSION = { body: { missionId: id("missions", "a contract") } };
+// Accepting takes a contract from the Bureau's list; abandoning or completing one takes it from the caller's own.
+const ACCEPT_MISSION = { body: { missionId: id("missions", "a contract") } };
+const OWN_MISSION = { body: { missionId: id("ownMissions", "one of your active contracts") } };
 const NOTHING = {};
 
 /**
@@ -63,9 +65,9 @@ export const GAMEPLAY_INPUT = {
       inputQuantity: int(1, 10_000_000, "an input quantity of at least 1")
     }
   },
-  "POST /accept-mission": MISSION,
-  "POST /abandon-mission": MISSION,
-  "POST /complete-mission": MISSION,
+  "POST /accept-mission": ACCEPT_MISSION,
+  "POST /abandon-mission": OWN_MISSION,
+  "POST /complete-mission": OWN_MISSION,
   "POST /mine": {
     body: {
       amount: int(10, 250, "a throughput from 10 to 250 tons per hour"),
@@ -116,25 +118,30 @@ export function checkField(spec, value, has) {
   return { ok: true };
 }
 
-function checkTransfer(body, has) {
+// Transfers (AB#717) refuse in the same words the transfer route uses, so a player sees one message whichever answers.
+function checkTransfer(body, has, stationName) {
+  if (isAbsent(body?.fromStationId)) return refuse("Choose the station to move goods from.");
   const from = idString(body?.fromStationId);
-  if (from === null || !has("stations", from)) return refuse("Choose a station to move goods from, from the Logistics tab.");
+  if (from === null || !has("stations", from)) return refuse("That source station does not exist. Choose one from the Logistics tab.");
   const lines = Array.isArray(body?.lines) ? body.lines : body && "item" in body ? [{ item: body.item, quantity: body.quantity }] : null;
   if (!lines || lines.length === 0) return refuse("Add at least one item to move.");
-  if (lines.length > MAX_TRANSFER_LINES) return refuse(`A transfer carries at most ${MAX_TRANSFER_LINES} lines. Split it into two transfers.`);
+  if (lines.length > MAX_TRANSFER_LINES) return refuse(`A transfer carries at most ${MAX_TRANSFER_LINES} lines; you sent ${lines.length}. Split it into two transfers.`);
   for (let i = 0; i < lines.length; i += 1) {
     const item = idString(lines[i]?.item);
-    if (item === null || !has("ownStock", `${from}|${item}`)) return refuse(`Line ${i + 1}: pick an item held at that station.`);
-    const qty = checkField(int(1, 1_000_000_000, `a quantity for line ${i + 1}`), lines[i]?.quantity, has);
-    if (!qty.ok) return qty;
+    if (item === null) return refuse(`Line ${i + 1} has no item. Pick one from the station's list.`);
+    const n = wholeNumber(lines[i]?.quantity);
+    if (n === null || n < 1 || n > 1_000_000_000) return refuse(`Line ${i + 1}: enter a whole number of at least 1 to move.`);
+  }
+  for (const line of lines) {
+    if (!has("ownStock", `${from}|${idString(line.item)}`)) return refuse(`${stationName(from)} holds none of that item. Pick one from its list.`);
   }
   return { ok: true };
 }
 
 /** Validate one request against its route's entry: { ok: true } or { ok: false, error }. */
-export function validateGameplayRequest(entry, { body, params }, has) {
+export function validateGameplayRequest(entry, { body, params }, has, stationName = (id) => id) {
   const b = body && typeof body === "object" && !Array.isArray(body) ? body : {};
-  if (entry.custom === "transfer") return checkTransfer(b, has);
+  if (entry.custom === "transfer") return checkTransfer(b, has, stationName);
   for (const [name, spec] of Object.entries(entry.params || {})) {
     const r = checkField(spec, params?.[name], has);
     if (!r.ok) return r;
@@ -165,11 +172,12 @@ export function matchRoute(pattern, path) {
 }
 
 /**
- * The middleware. `catalogs` maps a catalog name to a Set of ids; `corpOf(accountId)` returns the caller's corporation
+ * The middleware. `catalogs` maps a catalog name to a Set of ids; `stationNames` maps a station id to its name;
+ * `corpOf(accountId)` returns the caller's corporation
  * for the own-state checks (their leases, extractors, refineries and stock). Mounted after requireAccountAccess, so the
  * account is the caller's own.
  */
-export function gameplayInputMiddleware({ catalogs, corpOf }) {
+export function gameplayInputMiddleware({ catalogs, corpOf, stationNames }) {
   const entries = Object.entries(GAMEPLAY_INPUT).map(([key, entry]) => {
     const [method, pattern] = key.split(" ");
     return { method, pattern, entry };
@@ -188,6 +196,7 @@ export function gameplayInputMiddleware({ catalogs, corpOf }) {
       if (catalog === "ownLeases") return (own().miningLeases || []).some((l) => l?.id === value);
       if (catalog === "ownExtractors") return (own().mining?.silicateExtractors || []).some((x) => x?.id === value);
       if (catalog === "ownRefineries") return (own().refineries || []).some((r) => r?.id === value);
+      if (catalog === "ownMissions") return (own().activeMissions || []).some((m) => m?.id === value);
       if (catalog === "ownStock") {
         const [station, item] = [value.slice(0, value.indexOf("|")), value.slice(value.indexOf("|") + 1)];
         const held = own().inventory?.[station];
@@ -197,7 +206,7 @@ export function gameplayInputMiddleware({ catalogs, corpOf }) {
       if (catalog === "leaseBodies") return catalogs.leaseBodies?.has(value.toLowerCase()) === true;
       return catalogs[catalog]?.has(value) === true;
     };
-    const result = validateGameplayRequest(match.entry, { body: req.body, params: match.params }, has);
+    const result = validateGameplayRequest(match.entry, { body: req.body, params: match.params }, has, (sid) => stationNames?.[sid] || "That station");
     if (!result.ok) return res.status(400).json({ error: result.error });
     return next();
   };

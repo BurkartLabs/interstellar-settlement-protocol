@@ -988,6 +988,7 @@ app.use("/api/accounts/:accountId/gameplay", gameplayInputMiddleware({
     expeditionDurations: new Set(Object.keys(EXPEDITION_DURATIONS)),
     refineryChains: new Set(Object.keys(REFINERY_CHAINS))
   },
+  stationNames: Object.fromEntries(Object.entries(STATION_REGISTRY).map(([sid, st]) => [sid, st.name])),
   corpOf: (accountId) => getAccountById(accountId)?.state?.corp
 }));
 
