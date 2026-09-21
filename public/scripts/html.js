@@ -30,6 +30,19 @@ export function notificationItemsHtml(items, formatTime) {
 }
 
 /**
+ * One chat line. The author and the text are escaped: chat is stored as the player typed it (Bug #1127) and is only
+ * ever rendered as text (AB#733).
+ */
+export function chatLineHtml(msg, formatTime) {
+  return `
+      <li class="chat-msg">
+        <div class="chat-meta">${escapeHtml(msg.author)} | ${escapeHtml(formatTime(msg.createdAt))}</div>
+        <div>${escapeHtml(msg.content)}</div>
+      </li>
+      `;
+}
+
+/**
  * The inbox message list's rows. Every field is escaped (Bug #754: a draft's recipient name went into innerHTML raw,
  * and on the shared dummy account a draft addressed to "<img onerror=...>" ran script for every later visitor).
  */
