@@ -2018,6 +2018,10 @@ app.post("/api/accounts/:accountId/gameplay/scout-belt", (req, res) => {
   let outcome = "ok";
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
+    // Bug #1256: scouting takes the research the Starmap names and a presence in the belt's system, as
+    // launch-expedition does. Without these a new corporation could read every belt's composition from Sol.
+    if (!(corp.unlockedTech || []).includes("tt-asteroid-prospecting")) { outcome = "missing-research"; return; }
+    if ((corp.currentSystemId || "sol") !== beltKey.split(":")[0]) { outcome = "wrong-system"; return; }
     if (!corp.asteroidMining) corp.asteroidMining = {};
     if (!Array.isArray(corp.asteroidMining.scoutedBelts)) corp.asteroidMining.scoutedBelts = [];
 
@@ -2030,6 +2034,14 @@ app.post("/api/accounts/:accountId/gameplay/scout-belt", (req, res) => {
   });
 
   if (!account) { res.status(404).json({ error: "Account not found." }); return; }
+  if (outcome === "missing-research") {
+    res.status(400).json({ error: "Research Asteroid Prospecting Arrays in Corporate R&D to scout asteroid belts." });
+    return;
+  }
+  if (outcome === "wrong-system") {
+    res.status(400).json({ error: "You must be in the same system as the asteroid belt to scout it. Travel there first." });
+    return;
+  }
   if (outcome === "already-scouted") {
     res.json(account); // Idempotent — no error, just return current state
     return;
