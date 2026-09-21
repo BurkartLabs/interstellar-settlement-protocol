@@ -782,6 +782,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(processCeoInsightCompletions, 
 // Financial Core dashboard can render real historical series (cash reserves,
 // net flow, assets vs liabilities) instead of synthesised projections.
 import { buildSnapshot, pushSnapshot, recordIncome, recordExpense, refreshDailyRevenue } from "./finances.js";
+import { startExtractorCycle } from "./gameState.js";
 
 const FINANCIAL_SNAPSHOT_INTERVAL_MS = 30_000;
 
@@ -1743,13 +1744,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
 
     corp.finances.credits -= startupCost;
 
-    extractorCycle.active = true;
-    extractorCycle.startedAt = now;
-    extractorCycle.lastTickAt = now;
-    extractorCycle.endsAt = now + requestedHours * 60 * 60 * 1000;
-    extractorCycle.throughputPerHour = throughputPerHour;
-    extractorCycle.operationCostPerHour = operationCostPerHour;
-    extractorCycle.totalSpent += startupCost;
+    startExtractorCycle(extractorCycle, { now, hours: requestedHours, throughputPerHour, operationCostPerHour, startupCost });
 
     corp.mining.silicateExtractor = corp.mining.silicateExtractors[0];
   });
@@ -2569,13 +2564,7 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
     const now = Date.now();
     corp.finances.credits -= startupCost;
 
-    extractorCycle.active = true;
-    extractorCycle.startedAt = now;
-    extractorCycle.lastTickAt = now;
-    extractorCycle.endsAt = now + cycleHours * 60 * 60 * 1000;
-    extractorCycle.throughputPerHour = throughputPerHour;
-    extractorCycle.operationCostPerHour = operationCostPerHour;
-    extractorCycle.totalSpent += startupCost;
+    startExtractorCycle(extractorCycle, { now, hours: cycleHours, throughputPerHour, operationCostPerHour, startupCost });
 
     // Keep legacy mirror for compatibility
     corp.mining.silicateExtractor = corp.mining.silicateExtractors[0];

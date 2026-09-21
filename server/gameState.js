@@ -436,6 +436,8 @@ function ensureCorpMiningModel(corp) {
       throughputPerHour: throughput,
       operationCostPerHour: operationCost,
       totalMined: Number(extractor.totalMined || 0),
+      // AB#575: this cycle's output, zeroed by startExtractorCycle; totalMined is the lifetime.
+      minedThisCycle: Math.max(0, Number(extractor.minedThisCycle || 0)),
       minedRemainder: Math.max(0, Number(extractor.minedRemainder || 0)),
       totalSpent: Number(extractor.totalSpent || 0),
       lastCompletedAt: extractor.lastCompletedAt ?? null,
@@ -536,6 +538,21 @@ function stopExtractorCycle(extractor, timestamp) {
   extractor.endsAt = timestamp;
   extractor.lastTickAt = timestamp;
   extractor.lastCompletedAt = timestamp;
+}
+
+/**
+ * Start a mining cycle on an extractor: the one place both start routes go through (AB#575). It zeroes the
+ * per-cycle count the extractor panel shows as "Mined this cycle"; totalMined stays the lifetime figure.
+ */
+export function startExtractorCycle(extractor, { now, hours, throughputPerHour, operationCostPerHour, startupCost }) {
+  extractor.active = true;
+  extractor.startedAt = now;
+  extractor.lastTickAt = now;
+  extractor.endsAt = now + hours * 60 * 60 * 1000;
+  extractor.throughputPerHour = throughputPerHour;
+  extractor.operationCostPerHour = operationCostPerHour;
+  extractor.totalSpent = Number(extractor.totalSpent || 0) + startupCost;
+  extractor.minedThisCycle = 0;
 }
 
 /**
@@ -654,6 +671,7 @@ export function applyMiningOperations(corp, now = Date.now()) {
       const stationInv = getStationInventory(corp, depositStation);
       stationInv.Silicates = (stationInv.Silicates || 0) + actualMined;
       extractor.totalMined += actualMined;
+      extractor.minedThisCycle = Number(extractor.minedThisCycle || 0) + actualMined;
       // Bug #984: mined silicates are inventory, not income; revenue is booked when they are sold.
     }
 
