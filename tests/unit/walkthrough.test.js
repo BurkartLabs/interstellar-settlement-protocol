@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { WALKTHROUGH_STEPS } from "../../public/scripts/walkthrough.js";
+import { WALKTHROUGH_COMPLETION, isStepComplete, nextStepIndex, chooseHighlight } from "../../public/scripts/walkthrough.js";
 import * as html from "../../public/scripts/html.js";
 
 // AB#404: each walkthrough step highlights one element. Nothing failed when an element moved or a step pointed at the
@@ -134,5 +135,91 @@ describe("walkthrough steps (AB#404)", () => {
     expect(step.text).toContain(`${node.durationHours}-hour`);
     expect(node.effect).toContain("+10%");
     expect(step.text).toContain("10% boost");
+  });
+});
+
+// AB#581: the walkthrough advances on what the player does. The predicates are exercised against the real routes in
+// tests/integration/walkthrough-predicates.test.js; these cover the table's shape and the page-side choices.
+describe("interactive walkthrough (AB#581)", () => {
+  const APP_JS = read("public/scripts/app.js");
+
+  it("every step has exactly one completion rule, a state predicate or a UI event, and says what it means", () => {
+    expect(Object.keys(WALKTHROUGH_COMPLETION).sort()).toEqual(WALKTHROUGH_STEPS.map((s) => s.id).sort());
+    for (const step of WALKTHROUGH_STEPS) {
+      const rule = WALKTHROUGH_COMPLETION[step.id];
+      expect(typeof rule.means, step.id).toBe("string");
+      expect(Boolean(rule.event) !== Boolean(rule.state), `${step.id} has exactly one of event and state`).toBe(true);
+      // An event step is done by opening the tab it highlights, so what it points at is what completes it.
+      if (rule.event) expect(rule.event, step.id).toBe(`tab:${step.tab}`);
+    }
+  });
+
+  it("an event step is complete only once its event is seen", () => {
+    const licence = WALKTHROUGH_STEPS.find((s) => s.id === "licence");
+    expect(isStepComplete(licence, {}, new Set())).toBe(false);
+    expect(isStepComplete(licence, {}, new Set(["tab:station"]))).toBe(false);
+    expect(isStepComplete(licence, {}, new Set(["tab:inbox"]))).toBe(true);
+  });
+
+  it("skips what a returning player has already done, and reports the end when everything is done", () => {
+    const now = Date.now();
+    const returning = {
+      corp: {
+        currentStationId: "earth-station-prime",
+        offices: [{ stationId: "earth-station-prime", rentedUntil: now + 86_400_000 }],
+        employeeCount: 6,
+        miningLeases: [{ id: "lease-1", body: "Earth" }],
+        mining: { silicateExtractors: [{ id: "ext-1", active: false, totalMined: 0 }] },
+        tradeHistory: []
+      },
+      queues: { corporateRnD: [] }
+    };
+    const seen = new Set(["tab:inbox", "tab:station"]);
+    expect(WALKTHROUGH_STEPS[nextStepIndex(0, returning, seen, now)].id).toBe("cycle");
+    expect(nextStepIndex(0, returning, new Set(), now), "the licence step still waits for the inbox").toBe(0);
+
+    const everything = new Set(WALKTHROUGH_STEPS.map((s) => WALKTHROUGH_COMPLETION[s.id].event).filter(Boolean));
+    returning.corp.mining.silicateExtractors[0].active = true;
+    returning.corp.tradeHistory.push({ type: "sold-npc" });
+    returning.corp.unlockedTech = ["tt-basic-extraction"];
+    expect(nextStepIndex(0, returning, everything, now)).toBe(WALKTHROUGH_STEPS.length);
+  });
+
+  describe("what it highlights", () => {
+    const office = WALKTHROUGH_STEPS.find((s) => s.id === "office");
+    const page = (visible, present = visible) => (selector) => ({ exists: present.includes(selector), visible: visible.includes(selector) });
+
+    it("the control that does the step, when the player is where it is", () => {
+      const all = [...office.actionSelectors, office.selector, '.tab-btn[data-tab="station"]'];
+      expect(chooseHighlight(office, page(all))).toEqual({ selector: '[id="rent-office-btn"]', missing: false });
+    });
+
+    it("the way in, then the way out of another building, then the tab", () => {
+      expect(chooseHighlight(office, page([office.selector, '.tab-btn[data-tab="station"]'])).selector).toBe(office.selector);
+      const inAnotherBuilding = page(['[id="station-back-btn"]', '.tab-btn[data-tab="station"]'], [office.selector, '[id="station-back-btn"]']);
+      expect(chooseHighlight(office, inAnotherBuilding).selector).toBe('[id="station-back-btn"]');
+      const onAnotherTab = page(['.tab-btn[data-tab="station"]'], [office.selector, '.tab-btn[data-tab="station"]']);
+      expect(chooseHighlight(office, onAnotherTab).selector).toBe('.tab-btn[data-tab="station"]');
+    });
+
+    it("nothing, and reports it missing, when the step's own selector is not on the page", () => {
+      expect(chooseHighlight(office, page(['.tab-btn[data-tab="station"]']))).toEqual({ selector: null, missing: true });
+    });
+
+    // A source check, weaker than rendering: these controls are drawn by app.js render functions the test cannot call.
+    it("every action selector names markup that app.js writes", () => {
+      for (const step of WALKTHROUGH_STEPS) {
+        for (const selector of step.actionSelectors || []) {
+          const { classes, attrs } = parseSelector(selector);
+          for (const c of classes) expect(APP_JS, `${step.id}: class ${c}`).toMatch(new RegExp(`class="[^"]*\\b${c}\\b`));
+          for (const [name, value] of attrs) {
+            if (name === "id") expect(APP_JS, `${step.id}: id ${value}`).toContain(`id="${value}"`);
+            else expect(APP_JS, `${step.id}: attribute ${name}`).toContain(`${name}="`);
+          }
+        }
+      }
+      // The way back out of a building, which chooseHighlight offers for station steps.
+      expect(matches(INDEX_HTML, '[id="station-back-btn"]')).toBe(1);
+    });
   });
 });

@@ -2129,9 +2129,43 @@ textarea {
   letter-spacing: 0.08em;
 }
 
+/* AB#581: the briefing sits beside the game instead of over it. Its backdrop lets clicks through, so the player can do
+   what a step asks, and it sits below real dialogues (z-index 60), so it never covers a confirmation or its own target
+   (Bug 1083). The highlighted control needs no z-index now that nothing dims the page, and must not rise above a dialogue. */
+#walkthrough-modal {
+  z-index: 55;
+  background: none;
+  pointer-events: none;
+  place-items: end end;
+}
+
+#walkthrough-modal .modal-card {
+  pointer-events: auto;
+  width: min(420px, 100%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+#walkthrough-modal .modal-card.has-portrait {
+  padding-left: calc(1.5rem + 52px);
+}
+
+#walkthrough-modal .dialogue-portrait {
+  width: 52px;
+  height: 52px;
+}
+
+#walkthrough-modal .lede {
+  font-size: 0.95rem;
+}
+
+/* While the briefing is up the page can scroll anything clear of the card (app.js sets the height it measures), so the
+   card never hides for good what it is describing. */
+body.walkthrough-open {
+  padding-bottom: var(--walkthrough-card-height, 22rem);
+}
+
 .walkthrough-focus {
   position: relative;
-  z-index: 61;
   outline: 2px solid var(--muted-amber);
   box-shadow: 0 0 18px rgba(255, 170, 51, 0.35);
   border-radius: 8px;
