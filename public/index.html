@@ -1009,15 +1009,18 @@
     </section>
 
     <section id="walkthrough-modal" class="modal-backdrop" hidden>
-      <article class="modal-card">
-        <p class="overline">New CEO Walkthrough</p>
-        <h2 id="walkthrough-title">Guided Tour</h2>
+      <article class="modal-card has-portrait">
+        <!-- AB#579: a briefing from the assigned coordinator; app.js fills the portrait and byline from liaison.js. -->
+        <img id="walkthrough-portrait" class="dialogue-portrait" alt="" />
+        <p class="overline" id="walkthrough-speaker"></p>
+        <h2 id="walkthrough-title"></h2>
         <p id="walkthrough-text" class="lede"></p>
         <div class="choice-row">
           <button id="walkthrough-prev" class="btn btn-outline">Previous</button>
           <button id="walkthrough-next" class="btn btn-accent">Next</button>
-          <button id="walkthrough-end" class="btn btn-outline">End Walkthrough</button>
+          <button id="walkthrough-end" class="btn btn-outline">End briefing</button>
         </div>
+        <p id="walkthrough-progress" class="walkthrough-progress muted"></p>
       </article>
     </section>
   </body>

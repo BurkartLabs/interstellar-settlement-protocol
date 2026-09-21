@@ -744,7 +744,7 @@ function runIntroDialogue() {
               speaker: COORDINATOR_BYLINE,
               portrait: ASSIGNED_COORDINATOR.portrait,
               title: "Starting Advice",
-              text: "Hire your initial employees, queue your first Corporate R&D project, and establish your first mining operation before overcommitting to military spend. Use market contracts to smooth bottlenecks.",
+              text: "In order: an office, then staff, then a mining claim with a yard on it. Sell what you mine before you spend on anything you do not yet need. Research can wait until the yard is running. I will walk you through each of those next.",
               continueText: "Proceed To Command Interface",
               onContinue: () => {
                 closeDialogue();
@@ -5018,8 +5018,18 @@ function renderWalkthroughStep() {
     target.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
   }
 
-  walkthroughTitle.textContent = `Step ${appState.walkthroughIndex + 1}/${walkthroughSteps.length}: ${step.title}`;
+  // AB#579: a briefing from the assigned coordinator. The step count is a small mark under the text, not the heading.
+  const portrait = document.getElementById("walkthrough-portrait");
+  if (portrait) {
+    portrait.src = ASSIGNED_COORDINATOR.portrait;
+    portrait.alt = ASSIGNED_COORDINATOR.name;
+  }
+  const speaker = document.getElementById("walkthrough-speaker");
+  if (speaker) speaker.textContent = COORDINATOR_BYLINE;
+  walkthroughTitle.textContent = step.title;
   walkthroughText.textContent = step.text;
+  const progress = document.getElementById("walkthrough-progress");
+  if (progress) progress.textContent = `${appState.walkthroughIndex + 1} of ${walkthroughSteps.length}`;
   walkthroughPrev.disabled = appState.walkthroughIndex === 0;
   walkthroughNext.textContent = appState.walkthroughIndex === walkthroughSteps.length - 1 ? "Finish" : "Next";
 }
@@ -5033,12 +5043,13 @@ function startWalkthrough() {
 function promptWalkthroughOffer() {
   markWalkthroughOfferSeen(appState.accountId);
   showDialogue({
-    speaker: "Operations AI",
-    title: "Optional Walkthrough",
-    text: "Would you like a quick guided tour and first-action recommendation?",
+    speaker: COORDINATOR_BYLINE,
+    portrait: ASSIGNED_COORDINATOR.portrait,
+    title: "Your first day",
+    text: "I can take you through your first day on the station: an office, staff, a mining claim, and your first sale. It takes a few minutes. If you would rather find your own way, the milestones on your Overview say what the ISA expects next.",
     choices: [
       {
-        label: "Start Walkthrough",
+        label: "Brief me",
         accent: true,
         onClick: () => {
           closeDialogue();
@@ -5046,7 +5057,7 @@ function promptWalkthroughOffer() {
         }
       },
       {
-        label: "Skip For Now",
+        label: "I'll find my own way",
         onClick: () => {
           closeDialogue();
         }

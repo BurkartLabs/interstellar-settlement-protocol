@@ -71,9 +71,19 @@ describe("walkthrough steps (AB#404)", () => {
     expect(WALKTHROUGH_STEPS).toHaveLength(12);
     for (const step of WALKTHROUGH_STEPS) {
       expect(step).toEqual(expect.objectContaining({
-        selector: expect.any(String), tab: expect.any(String), title: expect.any(String), text: expect.any(String), renderedBy: expect.any(String)
+        id: expect.any(String), selector: expect.any(String), tab: expect.any(String), title: expect.any(String), text: expect.any(String), renderedBy: expect.any(String)
       }));
     }
+    expect(new Set(WALKTHROUGH_STEPS.map((s) => s.id)).size).toBe(WALKTHROUGH_STEPS.length);
+  });
+
+  // AB#579: the briefing is in Elara Voss's voice; the old step-counter framing and the "Agent" address are gone.
+  it("reads as her briefing: no step counter, no 'Agent', and the first step introduces her", () => {
+    for (const step of WALKTHROUGH_STEPS) {
+      expect(step.title).not.toMatch(/^Step \d/);
+      expect(step.text).not.toMatch(/\bAgent\b/);
+    }
+    expect(WALKTHROUGH_STEPS[0].text.startsWith("Elara Voss, Contracting & Assignments Bureau.")).toBe(true);
   });
 
   for (const [i, step] of WALKTHROUGH_STEPS.entries()) {
@@ -97,14 +107,14 @@ describe("walkthrough steps (AB#404)", () => {
   // here. (The office and extractor prices live in server/index.js route handlers; see the PR for their lines.)
   it("quotes the Earth lease price from data/systems.json", () => {
     const earth = SYSTEMS.flatMap((s) => s.bodies || []).find((b) => b.id === "earth");
-    const step = WALKTHROUGH_STEPS.find((s) => s.title === "File a Mining Lease");
+    const step = WALKTHROUGH_STEPS.find((s) => s.id === "lease");
     expect(step.text).toContain(`Earth, Silicate Extraction, for $${earth.leaseCost.toLocaleString("en-US")}`);
   });
 
   it("quotes Basic Extraction Analytics' duration and effect from data/research.json", () => {
     const list = Array.isArray(RESEARCH) ? RESEARCH : Object.values(RESEARCH).flat();
     const node = list.find((n) => n && n.id === "tt-basic-extraction");
-    const step = WALKTHROUGH_STEPS.find((s) => s.title === "Research Basic Extraction");
+    const step = WALKTHROUGH_STEPS.find((s) => s.id === "research");
     expect(step.text).toContain(node.name);
     expect(step.text).toContain(`${node.durationHours}-hour`);
     expect(node.effect).toContain("+10%");

@@ -2079,6 +2079,13 @@ textarea {
   .dialogue-portrait { width: 48px; height: 48px; left: 0.75rem; }
 }
 
+/* AB#579: the walkthrough's step count, a small mark under the briefing rather than its heading. */
+.walkthrough-progress {
+  margin: 0.6rem 0 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
 .walkthrough-focus {
   position: relative;
   z-index: 61;

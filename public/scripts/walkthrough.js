@@ -3,92 +3,111 @@
 // AB#404: every figure here was checked against the server, not against NEW_PLAYER_EXPERIENCE.md, which had drifted
 // with it. If a price or a place changes in the build, change it here in the same commit.
 //
-// `renderedBy` names where the highlighted element comes from: "index.html" for static markup, or the exported
-// render function in html.js that draws it. tests/unit/walkthrough.test.js renders each one and fails if a selector
-// matches nothing, so a moved element fails the suite instead of silently highlighting nothing.
+// AB#579: it is a briefing from Elara Voss, the coordinator the Bureau assigns every new corporation
+// (public/scripts/liaison.js). Her voice follows her bio in MISSION_AGENTS: precise, procedural, unsentimental.
+// Nothing here promises what the build does not do.
+//
+// `id` is stable for code and tests; titles are copy and may change. `renderedBy` names where the highlighted element
+// comes from: "index.html" for static markup, or the exported render function in html.js that draws it.
+// tests/unit/walkthrough.test.js renders each one and fails if a selector matches nothing, so a moved element fails
+// the suite instead of silently highlighting nothing. The last step's `handoffContractId` is the contract she
+// promises; server/gameState.js FIRST_CONTRACT_ID guarantees a new corporation is offered it.
 export const WALKTHROUGH_STEPS = [
   {
+    id: "licence",
     selector: '.tab-btn[data-tab="inbox"]',
     renderedBy: "index.html",
-    title: "Welcome, Agent",
-    text: "You’ve just received your ISA settlement license. Check your mailbox for the official charter from the Interstellar Settlement Authority.",
+    title: "Your licence",
+    text: "Elara Voss, Contracting & Assignments Bureau. I have been assigned to your corporation, and I will take you through your first day on the station. Start with your inbox: your settlement licence is there, with your Founding Charter reference. Keep it. The ISA will ask for it.",
     tab: "inbox"
   },
   {
+    id: "starmap",
     selector: '.tab-btn[data-tab="starmap"]',
     renderedBy: "index.html",
-    title: "Explore the Starmap",
-    text: "The starmap shows every system, planet, moon, and station. You’ll manage operations across multiple locations. You start docked at Earth Station Prime, above Earth, which is where you’ll establish your first office.",
+    title: "Where you are",
+    text: "This is the starmap: every system, body and station the ISA administers. In time you will operate across several of them. Today you are docked at Earth Station Prime, above Earth, and that is where you will establish your office.",
     tab: "starmap"
   },
   {
+    id: "station",
     selector: '.tab-btn[data-tab="station"]',
     renderedBy: "index.html",
-    title: "Station Overview",
-    text: "Stations are your base of operations. Here you’ll rent offices, hire personnel, file mining leases, and manage extraction. Your corporation needs a registered office to operate.",
+    title: "Earth Station Prime",
+    text: "The station houses the offices you will need: the executive suites, the claims office, the Exchange hub, and my Bureau. The claims office will not file a lease for a corporation with no registered office here. We fix that first.",
     tab: "station"
   },
   {
+    id: "office",
     selector: '[data-building-action="building:orbital-executive-suites"]',
     renderedBy: "stationBuildingCardsHtml",
-    title: "Rent Your First Office",
-    text: "Enter the Orbital Executive Suites and lease an office. Suites cost $1,000 a day: your first lease runs 7 days ($7,000), and you can extend it by 7, 14, 21 or 28 days from the same office. This establishes your corporate presence at the station.",
+    title: "An office",
+    text: "Enter the Orbital Executive Suites and execute a lease. Suites cost $1,000 a day: your first lease runs 7 days ($7,000), and you can extend it by 7, 14, 21 or 28 days from the same office. Do not let it lapse. Without an active office you cannot start a mining cycle.",
     tab: "station"
   },
   {
+    id: "hire",
     selector: '[data-building-action="building:orbital-executive-suites"]',
     renderedBy: "stationBuildingCardsHtml",
-    title: "Hire Employees",
-    text: "With an office lease active, hire personnel in the Workforce panel of the Orbital Executive Suites. Each employee costs $2,000 to recruit and $150/day in payroll. Hire at least 5 employees — you’ll need them for your first mining lease.",
+    title: "Staff",
+    text: "With the lease active, hire in the Workforce panel of the same suites. Each hire costs $2,000 and adds $150 a day to payroll. The ISA requires five employees on payroll for each mining lease you hold, so hire at least five.",
     tab: "station"
   },
   {
+    id: "lease",
     selector: '[data-building-action="building:isa-claims-leases"]',
     renderedBy: "stationBuildingCardsHtml",
-    title: "File a Mining Lease",
-    text: "Visit the ISA Claims & Leases Division to file an extraction rights application. From Earth Station Prime the lease on offer is Earth, Silicate Extraction, for $20,000. Each lease requires 5 employees on payroll.",
+    title: "A mining claim",
+    text: "Next, the ISA Claims & Leases Division. From Earth Station Prime the lease on offer is Earth, Silicate Extraction, for $20,000. The Division checks your headcount before it files anything, so the five come first.",
     tab: "station"
   },
   {
+    id: "yard",
     selector: '[data-building-action="building:isa-claims-leases"]',
     renderedBy: "stationBuildingCardsHtml",
-    title: "Commission an Extractor Yard",
-    text: "In the ISA Claims & Leases Division, open your Earth lease with Manage Lease and commission a Basic Extractor Yard for $50,000. This gives you the equipment needed to mine silicates from the surface.",
+    title: "Equipment",
+    text: "In the same office, open your Earth lease with Manage Lease and commission a Basic Extractor Yard for $50,000. A lease without equipment is paperwork.",
     tab: "station"
   },
   {
+    id: "cycle",
     selector: '[data-building-action="building:isa-claims-leases"]',
     renderedBy: "stationBuildingCardsHtml",
-    title: "Start Your First Mining Cycle",
-    text: "On the same lease, set your extraction parameters — throughput (tons/hour) and duration (hours) — then start the cycle. Your extractor mines silicates into your Earth Station Prime inventory as it runs.",
+    title: "Your first cycle",
+    text: "On that lease, set a throughput in tons per hour and a duration in hours, then start the cycle. Silicates accrue to your Earth Station Prime inventory while it runs. You do not have to wait for it to finish to sell them.",
     tab: "station"
   },
   {
+    id: "research",
     selector: '.tab-btn[data-tab="rnd"]',
     renderedBy: "index.html",
-    title: "Research Basic Extraction",
-    text: "Queue ‘Basic Extraction Analytics’ in your Corporate R&D lab. This 2-hour research project gives a permanent 10% boost to all extraction throughput.",
+    title: "Research",
+    text: "Queue Basic Extraction Analytics in Corporate R&D. It is a 2-hour project, and the result is a permanent 10% boost to extraction throughput on every yard you run. It is the first research I would fund.",
     tab: "rnd"
   },
   {
+    id: "sell",
     selector: '.tab-btn[data-tab="market"]',
     renderedBy: "index.html",
-    title: "Sell on the Galactic Exchange",
-    text: "Once you have silicates in stock, head to the Galactic Exchange. Sell them by creating a listing, or into a Standing Buy Order from an NPC buyer for immediate credits.",
+    title: "Your first sale",
+    text: "When you have silicates in stock, take them to the Galactic Exchange. You can list them for other corporations to buy, or sell straight into a Standing Buy Order from an NPC buyer at the posted price. The standing order settles at once; a listing waits for a buyer.",
     tab: "market"
   },
   {
+    id: "bureau",
     selector: '.tab-btn[data-tab="missions"]',
     renderedBy: "index.html",
-    title: "Visit the Assignments Bureau",
-    text: "The ISA Contracting & Assignments Bureau is where mission agents post field contracts. Visit Coordinator Voss in her office to review available logistics assignments.",
+    title: "My Bureau",
+    text: "This is the Contracting & Assignments Bureau, where I work. Agents here issue contracts, each with a quota and a deadline. I keep a record of which corporations meet their terms, and I remember it.",
     tab: "missions"
   },
   {
+    id: "handoff",
     selector: '.tab-btn[data-tab="overview"]',
     renderedBy: "index.html",
-    title: "You’re Ready!",
-    text: "You now know the core loop: mine resources, research upgrades, trade on the market, and climb the corporate ladder. Keep expanding, keep researching, and check your milestones. Good luck, Agent.",
-    tab: "overview"
+    title: "From here",
+    text: "That is the procedure. You can take it from here: your milestones are on this Overview, and they tell you what the ISA expects next. Once your corporation is established, come and see me on Deck 7. I have a Silicate Requisition Order — Batch 4-7A that needs an operator who delivers on schedule.",
+    tab: "overview",
+    handoffContractId: "ms-log-001"
   }
 ];
