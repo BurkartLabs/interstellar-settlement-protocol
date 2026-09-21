@@ -2350,6 +2350,8 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
 
     refinery.active = true;
     refinery.chainId = chain.id;
+    // Outputs are delivered where the inputs came from, not wherever the corporation is at completion (Bug #692).
+    refinery.stationId = refStationId;
     refinery.cycleScale = scale;
     refinery.startedAt = now;
     refinery.lastTickAt = now;
