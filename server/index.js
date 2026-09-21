@@ -591,7 +591,7 @@ function fabricationTick() {
 
       for (const job of done) {
         if (job.type === "mining-probe") {
-          am.probeCount = Math.min(am.maxProbes || BASE_MAX_PROBES, (am.probeCount || 0) + 1);
+          am.probeCount = (am.probeCount || 0) + 1; // the gate already counted it against the Fleet Cap
           state.corp.finances.assets = (state.corp.finances.assets || 0) + PROBE_ASSET_VALUE;
         }
       }
@@ -782,6 +782,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(processCeoInsightCompletions, 
 // Financial Core dashboard can render real historical series (cash reserves,
 // net flow, assets vs liabilities) instead of synthesised projections.
 import { buildSnapshot, pushSnapshot, recordIncome, recordExpense, refreshDailyRevenue } from "./finances.js";
+import { fleetStatus } from "./gameState.js"; // Bug #586
 
 const FINANCIAL_SNAPSHOT_INTERVAL_MS = 30_000;
 
@@ -1968,12 +1969,11 @@ app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
     if (!corp.asteroidMining) corp.asteroidMining = {};
     const am = corp.asteroidMining;
     if (typeof am.probeCount !== "number") am.probeCount = 0;
-    if (typeof am.maxProbes !== "number") am.maxProbes = BASE_MAX_PROBES;
     if (!Array.isArray(am.fabricationQueue)) am.fabricationQueue = [];
 
-    // Count probes in hangar + probes currently being fabricated
+    // Bug #586: the Fleet Cap the player is shown, counting every vessel they own
     const pendingCount = am.fabricationQueue.length;
-    if (am.probeCount + pendingCount >= am.maxProbes) {
+    if (fleetStatus(corp).full) {
       outcome = "probe-cap";
       return;
     }
@@ -2009,7 +2009,7 @@ app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
     const msgs = {
       "missing-research": "Asteroid Prospecting Arrays research is required before fabricating mining probes.",
       "no-assembly": "You must construct an Assembly Facility before fabricating probes.",
-      "probe-cap": `Probe hangar is full (${(am.probeCount || 0) + pendingCount}/${am.maxProbes || BASE_MAX_PROBES}). Research or level up to increase capacity.`,
+      "probe-cap": (() => { const fleet = fleetStatus(account.state.corp); return `Your fleet is at its Fleet Cap (${fleet.vessels}/${fleet.cap}). ${fleet.raiseText}`; })(),
       "already-fabricating": "A probe is already being fabricated. Wait for it to complete before starting another.",
       "insufficient-credits": fundingRequirementMessage("Mining Probe fabrication", account.state.corp, PROBE_BUILD_COST)
     };
