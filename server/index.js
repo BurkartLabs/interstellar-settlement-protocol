@@ -281,7 +281,6 @@ const DUMMY_ACCESS_TOKEN_SECONDS = IS_DEV ? 7 * 24 * 60 * 60 : 2 * 60 * 60;
 const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
 const JWT_SECRET = process.env.JWT_SECRET || "isp-dev-insecure-secret-change-me";
 const ALLOW_DUMMY_AUTH = true;
-const DIRECT_INVESTMENT_UNLOCK_LEVEL = 2;
 
 function stripHtml(input) {
   return String(input || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
@@ -3332,55 +3331,6 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
     traded: { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice: npcOrder.unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, proceeds: tradeProceeds },
     account: seller
   });
-});
-
-app.post("/api/investments", requireAuth, (req, res) => {
-  const { targetCorp, amount, instrument } = req.body ?? {};
-
-  if (!targetCorp || !amount || !instrument) {
-    res.status(400).json({ error: "Missing investment fields." });
-    return;
-  }
-
-  const investment = {
-    id: `inv-${Date.now()}`,
-    targetCorp,
-    amount: Number(amount),
-    instrument,
-    createdAt: Date.now()
-  };
-
-  let rejectReason = "";
-
-  const account = mutateAccountState(req.auth.accountId, (state) => {
-    const draft = state;
-    const spend = Number(amount);
-
-    if (Number(draft.corp.level || 0) < DIRECT_INVESTMENT_UNLOCK_LEVEL) {
-      rejectReason = `Direct investments unlock at Corporation Level ${DIRECT_INVESTMENT_UNLOCK_LEVEL}.`;
-      return;
-    }
-
-    if (draft.corp.finances.credits < spend) {
-      rejectReason = "Insufficient credits to place investment.";
-      return;
-    }
-
-    if (!draft.corp.investments) {
-      draft.corp.investments = [];
-    }
-
-    draft.corp.investments.unshift(investment);
-    draft.corp.finances.credits -= spend;
-  });
-
-  if (!account || rejectReason) {
-    res.status(400).json({ error: rejectReason || "Investment request rejected." });
-    return;
-  }
-
-  io.emit("finance:updated", account.state.corp.finances);
-  res.json({ ok: true, investment, account });
 });
 
 app.post("/api/combat/simulate", (req, res) => {
