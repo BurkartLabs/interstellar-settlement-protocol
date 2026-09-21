@@ -7,6 +7,7 @@ import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
+import { officeLeaseCost, OFFICE_TERMS_DAYS } from "./ceoEffects.js";
 import { missionRewardCredits } from "./ceoEffects.js"; // Bug #1009: its own line, after the others, so parallel branches adding imports do not collide
 
 /** localStorage, or null where reading the property itself throws (sandboxed frames, some private modes). */
@@ -1269,8 +1270,6 @@ function renderOrbitalExecutiveSuites(building, data) {
   const currentStationId = station?.id || "earth-station-prime";
   const currentBody = station?.body || corp?.location || "Earth";
   const stationId = station?.id || "earth-station-prime";
-  const officeCost = station?.officeCost || 20000;
-
   const existingOffice = (corp.offices || []).find((o) => o.stationId === stationId);
 
   const headerHtml = `
@@ -1290,11 +1289,20 @@ function renderOrbitalExecutiveSuites(building, data) {
         <h3>Lease an Office Suite</h3>
         <p class="muted">Establish a registered corporate presence at ${escapeHtml(station?.name || "this station")} by leasing a suite. This is required before your corporation can hire personnel or engage with station services.</p>
         <dl class="kv-list" style="margin:0.9rem 0;">
-          <dt>Lease Cost</dt><dd>${toCurrency(officeCost)} credits (one-time)</dd>
+          <dt>Lease Cost</dt><dd>${toCurrency(officeLeaseCost(1))} credits a day</dd>
           <dt>Station</dt><dd>${escapeHtml(station?.name || stationId)}</dd>
           <dt>Location</dt><dd>${escapeHtml(currentBody)}, ${escapeHtml(station?.systemId?.toUpperCase() || "SOL")}</dd>
         </dl>
-        <button id="rent-office-btn" class="btn btn-accent" type="button">Execute Lease Agreement</button>
+        <p class="muted">The lease runs for the term you choose and can be extended from this office before or after it ends. Without an active office you cannot start a mining cycle.</p>
+        <div class="inline-form compact-action-form">
+          <label>
+            Term
+            <select id="rent-office-duration">
+              ${OFFICE_TERMS_DAYS.map((days) => `<option value="${days}">${days} days — ${toCurrency(officeLeaseCost(days))}</option>`).join("")}
+            </select>
+          </label>
+          <button id="rent-office-btn" class="btn btn-accent" type="button">Execute Lease Agreement</button>
+        </div>
         <p id="rent-office-status" class="muted action-hint"></p>
       </section>
     `;
@@ -1381,6 +1389,7 @@ function bindOfficeActions(building, data) {
       const corp = appState.data?.corp;
       const currentStationId = corp?.currentStationId || "earth-station-prime";
       const station = appState.stationRegistry.find((s) => s.id === currentStationId) || appState.stationRegistry[0];
+      const durationDays = Number(document.getElementById("rent-office-duration")?.value) || OFFICE_TERMS_DAYS[0];
 
       rentBtn.disabled = true;
       if (statusEl) statusEl.textContent = "Processing lease agreement...";
@@ -1390,7 +1399,7 @@ function bindOfficeActions(building, data) {
           const response = await apiFetch(
             `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/rent-office`,
             { method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ stationId: station?.id || "earth-station-prime" }) }
+              body: JSON.stringify({ stationId: station?.id || "earth-station-prime", durationDays }) }
           );
           const account = await parseJsonResponse(response);
           appState.data = deepClone(account.state);
@@ -1398,7 +1407,7 @@ function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         } else {
-          const cost = station?.officeCost || 20000;
+          const cost = officeLeaseCost(durationDays);
           if ((appState.data.corp.finances.credits || 0) < cost) {
             throw new Error(`Leasing requires ${toCurrency(cost)} credits. Current reserves: ${toCurrency(appState.data.corp.finances.credits)}.`);
           }
@@ -1410,7 +1419,9 @@ function bindOfficeActions(building, data) {
             body: currentBody,
             systemId: station?.systemId || "sol",
             tier: station?.tier || 1,
-            rentedAt: Date.now()
+            rentedAt: Date.now(),
+            rentedUntil: Date.now() + durationDays * 86_400_000,
+            durationDays
           });
           updateAllViews();
           showStationBuilding(building.id);
