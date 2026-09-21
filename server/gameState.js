@@ -1082,6 +1082,9 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
 
   next.corp = {
     ...next.corp,
+    // Bug #711: how other players address this corporation. Opaque and random, never the account id (a Supabase
+    // user id in Supabase mode), because names are not unique and mail was routed by name.
+    publicId: createId("corp"),
     ceo: ceoName,
     corporationName: corpName,
     location: "Earth",
@@ -1824,6 +1827,8 @@ let accountsStore = await hydrateAccountsStoreFromSupabaseOrFallback(createSeedA
   const unknown = unknownLeaseBodies(SYSTEMS_DATA, Object.values(accountsStore.accounts || {}));
   if (unknown) console.warn(`[leases] ${unknown} stored mining lease(s) name a body that is not in data/systems.json (Bug #691); left in place.`);
 }
+// Bug #711: saves from before corporations had a public id get one on load, so they can be addressed by mail.
+backfillCorpPublicIds();
 
 function scheduleSave() {
   if (IS_SERVERLESS) {
@@ -2331,7 +2336,68 @@ export function listAccountMessages(accountId) {
   if (!account) return null;
   purgeExpiredTrash(account);
   scheduleAccountsSave();
-  return (account.messages || []).map((m) => ({ ...m }));
+  // Bug #711: fromId and toAccountId are account ids (Supabase user ids in Supabase mode). They stay in storage, where
+  // the normalized tables use them, but never leave the server: a player's mail names other corporations by publicId.
+  return (account.messages || []).map(({ fromId, toAccountId, ...m }) => ({ ...m }));
+}
+
+// ─── Mail recipients (Bug #711) ──────────────────────────────────────────────
+// Mail was addressed by corporation name and delivered to the first account whose name matched. Names are not unique
+// (the registration default made collisions common), so it is now addressed by each corporation's publicId.
+
+/** The name a player's mail is signed with. Never the email address. */
+const senderName = (account) => String(account?.state?.corp?.corporationName || "").trim() || "Unregistered corporation";
+
+/** Give every corporation that lacks one a publicId. Returns how many were added. */
+export function backfillCorpPublicIds() {
+  let added = 0;
+  for (const account of Object.values(accountsStore.accounts || {})) {
+    const corp = account?.state?.corp;
+    if (corp && !corp.publicId) { corp.publicId = createId("corp"); added++; }
+  }
+  if (added) scheduleAccountsSave();
+  return added;
+}
+
+const corpCard = (account) => {
+  const corp = account.state.corp;
+  return { publicId: corp.publicId, corporationName: corp.corporationName || "", ceo: corp.ceo || "", location: corp.location || "" };
+};
+
+/** Up to `limit` corporations whose name contains `query` (case-insensitive), described without anything private. */
+export function findCorporations(query, limit = 10) {
+  const wanted = String(query || "").trim().toLowerCase();
+  if (!wanted) return [];
+  backfillCorpPublicIds();
+  return Object.values(accountsStore.accounts || {})
+    .filter((a) => String(a?.state?.corp?.corporationName || "").toLowerCase().includes(wanted))
+    .slice(0, limit)
+    .map(corpCard);
+}
+
+/**
+ * Who a message goes to: the corporation with publicId `toCorpId`, or - for drafts and older clients - the one
+ * corporation named exactly `toCorpName`. Returns { account } or { status, error, candidates? }; nothing is delivered
+ * on an error, so an ambiguous name can never reach the wrong player.
+ */
+export function resolveMailRecipient({ toCorpId, toCorpName } = {}) {
+  backfillCorpPublicIds();
+  const accounts = Object.values(accountsStore.accounts || {}).filter((a) => a?.state?.corp);
+  const id = String(toCorpId || "").trim();
+  if (id) {
+    const account = accounts.find((a) => a.state.corp.publicId === id);
+    return account ? { account } : { status: 404, error: "That corporation no longer exists." };
+  }
+  const name = String(toCorpName || "").trim().toLowerCase();
+  if (!name) return { status: 400, error: "Recipient corporation is required." };
+  const matches = accounts.filter((a) => String(a.state.corp.corporationName || "").trim().toLowerCase() === name);
+  if (matches.length === 1) return { account: matches[0] };
+  if (!matches.length) return { status: 404, error: "No corporation has that name." };
+  return {
+    status: 409,
+    error: `${matches.length} corporations share that name. Choose which one you mean.`,
+    candidates: matches.slice(0, 10).map(corpCard)
+  };
 }
 
 export function markMessageRead(accountId, messageId) {
@@ -2360,26 +2426,24 @@ export function moveMessage(accountId, messageId, folder) {
   return { ...msg };
 }
 
-export function sendPlayerMessage(fromAccountId, { toCorpName, subject, body }) {
+export function sendPlayerMessage(fromAccountId, { toCorpId, toCorpName, subject, body }) {
   const sender = accountsStore.accounts?.[fromAccountId];
   if (!sender) return { error: "Sender not found." };
 
-  const normalizedTarget = String(toCorpName || "").trim().toLowerCase();
-  if (!normalizedTarget) return { error: "Recipient corporation name is required." };
-
-  // Allow self-send by name (used for testing / drafts to self).
-  const recipient = Object.values(accountsStore.accounts || {}).find(
-    (a) => String(a.state?.corp?.corporationName || "").trim().toLowerCase() === normalizedTarget
-  );
-  if (!recipient) return { error: `No corporation found matching \"${toCorpName}\".` };
-
   const trimmedSubject = String(subject || "").trim().slice(0, 200) || "(no subject)";
   const trimmedBody = String(body || "").trim().slice(0, 8000);
-  if (!trimmedBody) return { error: "Message body cannot be empty." };
+  if (!trimmedBody) return { status: 400, error: "Message body cannot be empty." };
+
+  // Bug #711: by publicId, or by a name only when exactly one corporation has it. Self-send is still allowed.
+  const resolved = resolveMailRecipient({ toCorpId, toCorpName });
+  if (!resolved.account) return resolved;
+  const recipient = resolved.account;
 
   const sentAt = Date.now();
-  const fromName = sender.state?.corp?.corporationName || sender.email;
+  const fromName = senderName(sender); // never the email address (Bug #711)
   const toName = recipient.state?.corp?.corporationName || "";
+  const fromCorpId = sender.state?.corp?.publicId || null;
+  const recipientCorpId = recipient.state?.corp?.publicId || null;
 
   // Delivered copy in recipient inbox
   if (!Array.isArray(recipient.messages)) recipient.messages = [];
@@ -2388,8 +2452,10 @@ export function sendPlayerMessage(fromAccountId, { toCorpName, subject, body }) 
     fromType: "player",
     fromId: fromAccountId,
     fromName,
+    fromCorpId,
     toAccountId: recipient.id,
     toName,
+    toCorpId: recipientCorpId,
     subject: trimmedSubject,
     body: trimmedBody,
     sentAt,
@@ -2405,8 +2471,10 @@ export function sendPlayerMessage(fromAccountId, { toCorpName, subject, body }) 
     fromType: "player",
     fromId: fromAccountId,
     fromName,
+    fromCorpId,
     toAccountId: recipient.id,
     toName,
+    toCorpId: recipientCorpId,
     subject: trimmedSubject,
     body: trimmedBody,
     sentAt,
@@ -2419,14 +2487,17 @@ export function sendPlayerMessage(fromAccountId, { toCorpName, subject, body }) 
   return { ok: true, toName };
 }
 
-export function saveDraft(accountId, { draftId, toCorpName, subject, body }) {
+export function saveDraft(accountId, { draftId, toCorpId, toCorpName, subject, body }) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) return null;
   if (!Array.isArray(account.messages)) account.messages = [];
+  // Bug #711: a draft keeps the recipient's publicId, so it is sent to the corporation it was written for.
+  const draftCorpId = String(toCorpId || "").trim().slice(0, 64) || null;
 
   if (draftId) {
     const existing = account.messages.find((m) => m.id === draftId && m.folder === "draft");
     if (existing) {
+      existing.toCorpId = draftCorpId;
       existing.toCorpName = String(toCorpName || "").trim();
       existing.subject = String(subject || "").trim().slice(0, 200);
       existing.body = String(body || "").trim().slice(0, 8000);
@@ -2440,8 +2511,9 @@ export function saveDraft(accountId, { draftId, toCorpName, subject, body }) {
     id: createId("msg"),
     fromType: "player",
     fromId: accountId,
-    fromName: account.state?.corp?.corporationName || "",
+    fromName: senderName(account),
     toAccountId: null,
+    toCorpId: draftCorpId,
     toCorpName: String(toCorpName || "").trim(),
     toName: "",
     subject: String(subject || "").trim().slice(0, 200),
