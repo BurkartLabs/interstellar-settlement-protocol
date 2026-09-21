@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { bindOnce, likeRequest } from "../../public/scripts/forumActions.js";
+import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft, REPLY_MAX_LENGTH } from "../../public/scripts/forumActions.js";
 
 // Bug #1131: one Like click sent one request per render of the thread, because each render added another listener
 // to a container that survives it. A stand-in element that dispatches clicks to every listener it holds, as the DOM does.
@@ -47,5 +47,45 @@ describe("forum Like sends one request per click (Bug #1131)", () => {
     expect(app).toMatch(/bindOnce\(detailBody, "likeBound", "click"/);
     expect(app).not.toMatch(/detailBody\.addEventListener\("click"/);
     expect(app).toMatch(/likeRequest\(likeBtn, appState\.selectedForumThreadId\)/);
+  });
+});
+
+// Bug #1132: Reply and Quote had no handler. They now fill the reply box; these are the pure parts.
+describe("forum Reply and Quote (Bug #1132)", () => {
+  const thread = { author: "Halcyon Ore", body: "Is anyone else seeing 22 a ton?\nOn the standing order.", replies: [{ id: "rep-1", author: "Kestrel Freight", content: "Yes, 22 here too." }] };
+
+  it("finds the post a button belongs to: the thread, or the reply its id names", () => {
+    expect(postFor(button({}), thread)).toEqual({ author: "Halcyon Ore", text: thread.body, isReply: false });
+    expect(postFor(button({ "data-reply-id": "rep-1" }), thread)).toEqual({ author: "Kestrel Freight", text: "Yes, 22 here too.", isReply: true });
+    expect(postFor(button({ "data-reply-id": "gone" }), thread)).toBeNull();
+    expect(postFor(button({}), null)).toBeNull();
+  });
+
+  it("Reply to a reply starts the box with @Author, and never overwrites what is written", () => {
+    const reply = postFor(button({ "data-reply-id": "rep-1" }), thread);
+    expect(replyDraft("", reply)).toBe("@Kestrel Freight ");
+    expect(replyDraft("Half a thought", reply)).toBe("Half a thought");
+    expect(replyDraft("", postFor(button({}), thread))).toBe("");
+  });
+
+  it("Quote adds the author and the lines, each prefixed, below what is written", () => {
+    const op = postFor(button({}), thread);
+    expect(quoteDraft("", op)).toBe("> Halcyon Ore wrote:\n> Is anyone else seeing 22 a ton?\n> On the standing order.\n\n");
+    expect(quoteDraft("I agree.", op).startsWith("I agree.\n\n> Halcyon Ore wrote:")).toBe(true);
+  });
+
+  it("Quote keeps a long post short and the box within the reply limit", () => {
+    const long = { author: "A", text: "x".repeat(2000), isReply: false };
+    expect(quoteDraft("", long).length).toBeLessThan(330);
+    const many = { author: "A", text: "1\n2\n3\n4\n5\n6", isReply: false };
+    expect(quoteDraft("", many)).toBe("> A wrote:\n> 1\n> 2\n> 3\n> 4 …\n\n");
+    expect(quoteDraft("y".repeat(REPLY_MAX_LENGTH), long)).toHaveLength(REPLY_MAX_LENGTH);
+  });
+
+  it("app.js binds Reply and Quote once and gives the buttons on each reply its id (a source check)", () => {
+    const app = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+    expect(app).toMatch(/bindOnce\(detailBody, "composeBound", "click"/);
+    expect(app).toMatch(/data-action="reply" data-reply-id=/);
+    expect(app).toMatch(/data-action="quote" data-reply-id=/);
   });
 });

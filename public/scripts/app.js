@@ -3,7 +3,7 @@ import { chooseHighlight, nextStepIndex } from "./walkthrough.js";
 import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
-import { bindOnce, likeRequest } from "./forumActions.js";
+import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft } from "./forumActions.js";
 import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
@@ -4012,8 +4012,8 @@ function renderForums(data) {
                     <p>${escapeHtml(reply.content || "")}</p>
                   </div>
                   <footer class="thread-card__actions">
-                    <button class="thread-action-btn" type="button" data-action="reply">↩ Reply</button>
-                    <button class="thread-action-btn" type="button" data-action="quote">❝ Quote</button>
+                    <button class="thread-action-btn" type="button" data-action="reply" data-reply-id="${escapeHtml(reply.id)}">↩ Reply</button>
+                    <button class="thread-action-btn" type="button" data-action="quote" data-reply-id="${escapeHtml(reply.id)}">❝ Quote</button>
                     <button class="thread-action-btn thread-action-btn--like${replyLiked ? " is-liked" : ""}" type="button" data-action="like" data-target="reply" data-reply-id="${escapeHtml(reply.id)}" aria-pressed="${replyLiked}">▲ ${replyLiked ? "Liked" : "Like"} <span class="thread-action-count">${Number(reply.likes) || 0}</span></button>
                   </footer>
                 </article>
@@ -4119,6 +4119,20 @@ function renderForums(data) {
           likeBtn.disabled = false;
           pushFeedback(`Like failed: ${err.message}`, "warn");
         }
+      });
+
+      // Bug #1132: Reply and Quote work on the reply box at the foot of the thread. Bound once, like Like (Bug #1131).
+      bindOnce(detailBody, "composeBound", "click", (event) => {
+        const btn = event.target.closest('[data-action="reply"], [data-action="quote"]');
+        if (!btn) return;
+        const box = detailBody.querySelector("#forum-reply-content");
+        const thread = (appState.data?.forums?.threads || []).find((t) => t.id === appState.selectedForumThreadId);
+        const post = postFor(btn, thread);
+        if (!box || !post) return;
+        box.value = btn.dataset.action === "quote" ? quoteDraft(box.value, post) : replyDraft(box.value, post);
+        box.scrollIntoView({ behavior: "smooth", block: "center" });
+        box.focus({ preventScroll: true });
+        box.setSelectionRange(box.value.length, box.value.length);
       });
 
       // Reply submission — POST to the server, then re-render with the
