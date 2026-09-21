@@ -716,7 +716,7 @@ function closeDialogue() {
   dialogueContinue.hidden = true;
 }
 
-// The first thing a new CEO reads: the assigned coordinator's confirmation (AB#585), then her briefing (AB#579).
+// TODO: Expand design of intro dialogue
 function runIntroDialogue() {
   return new Promise((resolve) => {
     showDialogue({
