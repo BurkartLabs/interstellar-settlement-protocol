@@ -10,6 +10,7 @@
       "prereqs": [],
       "tier": 1,
       "category": "Trade",
+      "status": "live",
       "maxLevels": 3,
       "mechanic": "negotiation-tax-reduction"
     },
@@ -23,6 +24,7 @@
       "prereqs": [],
       "tier": 1,
       "category": "Operations",
+      "status": "planned",
       "maxLevels": 1
     },
     {
@@ -35,6 +37,7 @@
       "prereqs": [],
       "tier": 1,
       "category": "Trade",
+      "status": "planned",
       "maxLevels": 1
     },
     {
@@ -47,6 +50,7 @@
       "prereqs": [],
       "tier": 1,
       "category": "Finance",
+      "status": "live",
       "maxLevels": 1
     },
     {
@@ -59,6 +63,7 @@
       "prereqs": ["ceo-employee-motivation"],
       "tier": 2,
       "category": "Operations",
+      "status": "planned",
       "maxLevels": 1
     },
     {
@@ -71,6 +76,7 @@
       "prereqs": ["ceo-employee-motivation"],
       "tier": 2,
       "category": "Operations",
+      "status": "planned",
       "maxLevels": 1
     },
     {
@@ -83,6 +89,7 @@
       "prereqs": ["ceo-negotiation-fundamentals"],
       "tier": 2,
       "category": "Trade",
+      "status": "planned",
       "maxLevels": 1
     },
     {
@@ -92,9 +99,10 @@
       "description": "Reduces extractor downtime chance by 12%.",
       "durationHours": 10,
       "costCredits": 25000,
-      "prereqs": ["ceo-crisis-management"],
+      "prereqs": [],
       "tier": 2,
       "category": "Operations",
+      "status": "live",
       "maxLevels": 1
     },
     {
@@ -107,6 +115,7 @@
       "prereqs": ["ceo-team-efficiency"],
       "tier": 3,
       "category": "Management",
+      "status": "planned",
       "maxLevels": 1
     },
     {
@@ -119,6 +128,7 @@
       "prereqs": ["ceo-isa-regulatory-navigation"],
       "tier": 3,
       "category": "Diplomacy",
+      "status": "planned",
       "maxLevels": 1
     },
     {
@@ -131,6 +141,7 @@
       "prereqs": ["ceo-contract-law", "ceo-risk-assessment"],
       "tier": 3,
       "category": "Leadership",
+      "status": "planned",
       "maxLevels": 1
     },
     {
@@ -143,6 +154,7 @@
       "prereqs": ["ceo-strategic-delegation", "ceo-decision-fatigue-reduction"],
       "tier": 3,
       "category": "Leadership",
+      "status": "planned",
       "maxLevels": 1
     }
   ]

@@ -1690,6 +1690,11 @@ textarea {
   border-color: rgba(185, 214, 228, 0.1);
 }
 
+/* Bug #983: a planned CEO program is shown with its promised effect struck through, and not sold. */
+.rnd-row--planned .rnd-row__effect {
+  text-decoration: line-through;
+}
+
 .rnd-row--done {
   opacity: 0.28;
   border-color: rgba(185, 214, 228, 0.08);
