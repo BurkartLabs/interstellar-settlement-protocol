@@ -1463,13 +1463,38 @@ function getSeedState() {
   };
 }
 
+// ─── Global social state: chat and forums (Bug #749) ─────────────────────────
+// Neither was ever created, so on any install without an old data/state.json every chat message threw inside
+// appendChatMessage and was dropped, and the forum's category list was empty. They are seeded here rather than in
+// normalizeStateShape, because that function also shapes every player's account state, which has no chat.
+
+/** The chat channels. "private" is deliberately absent: isp-bug-5 removes it from the channel allowlist. */
+export const CHAT_CHANNELS = ["global", "local", "trade"];
+
+/** The forum categories: the one list the client's picker and the thread route's allowlist both read. */
+export const FORUM_CATEGORIES = ["General", "Trade & Exchange", "Mining & Industry", "Conglomerates & Diplomacy", "Help & Guides"];
+
+/** Give the global state its chat channels and forums, keeping whatever is already there. Returns the same object. */
+export function ensureGlobalSocialState(globalState) {
+  if (!globalState.chatLog || typeof globalState.chatLog !== "object" || Array.isArray(globalState.chatLog)) {
+    globalState.chatLog = {};
+  }
+  for (const channel of CHAT_CHANNELS) {
+    if (!Array.isArray(globalState.chatLog[channel])) globalState.chatLog[channel] = [];
+  }
+  if (!globalState.forums || typeof globalState.forums !== "object") globalState.forums = {};
+  globalState.forums.categories = [...FORUM_CATEGORIES];
+  if (!Array.isArray(globalState.forums.threads)) globalState.forums.threads = [];
+  return globalState;
+}
+
 function ensureStateFile() {
   if (!IS_SERVERLESS && !fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
   if (!fs.existsSync(statePath)) {
-    const seed = normalizeStateShape(getSeedState());
+    const seed = ensureGlobalSocialState(normalizeStateShape(getSeedState()));
     if (!IS_SERVERLESS) {
       safeWriteFile(statePath, JSON.stringify(seed, null, 2), "state init");
     }
@@ -1478,7 +1503,7 @@ function ensureStateFile() {
 
   const raw = fs.readFileSync(statePath, "utf8");
   const parsed = JSON.parse(raw);
-  const normalized = normalizeStateShape(parsed);
+  const normalized = ensureGlobalSocialState(normalizeStateShape(parsed));
 
   // Ensure NPC buy orders exist in global market state. NPC buyers exist for
   // every raw resource that currently has a refinery chain so newly mined
@@ -2016,7 +2041,9 @@ export function mutateState(mutator) {
 
 export function appendChatMessage(channel, message) {
   mutateState((draft) => {
-    if (!draft.chatLog[channel]) {
+    // Backstop for Bug #749: the seed is the fix, but a message must never be dropped because a migration lost this.
+    if (!draft.chatLog || typeof draft.chatLog !== "object") draft.chatLog = {};
+    if (!Array.isArray(draft.chatLog[channel])) {
       draft.chatLog[channel] = [];
     }
 
@@ -2028,16 +2055,6 @@ export function appendChatMessage(channel, message) {
   });
 }
 
-export function resetChatHistory() {
-  mutateState((draft) => {
-    draft.chatLog = {
-      global: [],
-      local: [],
-      trade: [],
-      private: []
-    };
-  });
-}
 
 export function createCombatReport(payload) {
   const report = {
