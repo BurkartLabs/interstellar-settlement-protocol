@@ -5384,3 +5384,20 @@ tr.npc-order-exhausted {
 .assembly-probe-status p {
   margin-bottom: 0.5rem;
 }
+
+/* ─── Mail recipient chooser (Bug #711) ─── */
+.compose-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.compose-candidate {
+  text-align: left;
+}
+
+.compose-candidate.is-selected {
+  border-color: var(--accent);
+  color: var(--accent);
+}

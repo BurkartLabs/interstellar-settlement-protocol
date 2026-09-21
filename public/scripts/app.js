@@ -6218,6 +6218,8 @@ function openMessage(messageId) {
     showInboxView("compose");
     document.getElementById("compose-draft-id").value = msg.id;
     document.getElementById("compose-to").value = msg.toCorpName || "";
+    document.getElementById("compose-to-id").value = msg.toCorpId || ""; // Bug #711: the corporation it was written for
+    clearComposeCandidates();
     document.getElementById("compose-subject").value = msg.subject || "";
     document.getElementById("compose-body").value = msg.body || "";
     appState.inbox.composeDraftId = msg.id;
@@ -6322,10 +6324,18 @@ function bindInboxControls() {
     appState.inbox.composeDraftId = null;
     document.getElementById("compose-draft-id").value = "";
     document.getElementById("compose-to").value = "";
+    document.getElementById("compose-to-id").value = "";
+    clearComposeCandidates();
     document.getElementById("compose-subject").value = "";
     document.getElementById("compose-body").value = "";
     document.getElementById("compose-status").textContent = "";
     showInboxView("compose");
+  });
+
+  // Bug #711: typing a different name means the chosen corporation no longer applies.
+  document.getElementById("compose-to")?.addEventListener("input", () => {
+    document.getElementById("compose-to-id").value = "";
+    clearComposeCandidates();
   });
 
   // Detail action buttons
@@ -6354,6 +6364,7 @@ function bindInboxControls() {
     const status = document.getElementById("compose-status");
     status.textContent = "Sending…";
     const body = {
+      toCorpId: document.getElementById("compose-to-id").value.trim() || undefined,
       toCorpName: document.getElementById("compose-to").value.trim(),
       subject: document.getElementById("compose-subject").value.trim(),
       body: document.getElementById("compose-body").value.trim()
@@ -6369,6 +6380,8 @@ function bindInboxControls() {
       const data = await res.json();
       if (data.error) {
         status.textContent = data.error;
+        // Bug #711: several corporations share the name. Nothing was sent; the player picks which one they mean.
+        if (Array.isArray(data.candidates)) showComposeCandidates(data.candidates);
         return;
       }
       appState.inbox.messages = data.messages;
@@ -6390,6 +6403,7 @@ function bindInboxControls() {
     const status = document.getElementById("compose-status");
     status.textContent = "Saving…";
     const body = {
+      toCorpId: document.getElementById("compose-to-id").value.trim() || undefined,
       toCorpName: document.getElementById("compose-to").value.trim(),
       subject: document.getElementById("compose-subject").value.trim(),
       body: document.getElementById("compose-body").value.trim()
@@ -6622,3 +6636,30 @@ async function boot() {
 }
 
 window.addEventListener("DOMContentLoaded", boot);
+
+// ─── Mail recipients (Bug #711) ──────────────────────────────────────────────
+// When several corporations share the name typed into To, the server sends nothing and returns them as candidates.
+// The player picks one (told apart by CEO and location); the message is then addressed by that corporation's publicId.
+function clearComposeCandidates() {
+  const box = document.getElementById("compose-candidates");
+  if (!box) return;
+  box.hidden = true;
+  box.innerHTML = "";
+}
+
+function showComposeCandidates(candidates) {
+  const box = document.getElementById("compose-candidates");
+  if (!box) return;
+  box.innerHTML = `<p class="muted">Choose which corporation you mean, then press Send:</p>` + candidates
+    .map((c) => `<button type="button" class="btn btn-outline compose-candidate" data-corp-id="${escapeHtml(c.publicId)}" data-corp-name="${escapeHtml(c.corporationName)}">`
+      + `${escapeHtml(c.corporationName)} · CEO ${escapeHtml(c.ceo || "unknown")} · ${escapeHtml(c.location || "unknown")}</button>`)
+    .join("");
+  box.hidden = false;
+  box.querySelectorAll(".compose-candidate").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.getElementById("compose-to-id").value = btn.dataset.corpId;
+      box.querySelectorAll(".compose-candidate").forEach((b) => b.classList.toggle("is-selected", b === btn));
+      document.getElementById("compose-status").textContent = `Addressed to ${btn.textContent}. Press Send.`;
+    });
+  });
+}
