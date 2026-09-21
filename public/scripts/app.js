@@ -1,7 +1,8 @@
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { createStarmapController } from "./starmap.js";
-import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
+import { escapeHtml, notificationItemsHtml, messageListItemsHtml, stationBuildingCardsHtml } from "./html.js";
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
+import { WALKTHROUGH_STEPS as walkthroughSteps } from "./walkthrough.js";
 
 const appState = {
   serverData: null,
@@ -187,82 +188,6 @@ const techTree = [
     costCredits: 8000,
     prereqs: ["tt-assembly-fabrication", "tt-supply-forecast"],
     tier: 2
-  }
-];
-
-// TODO: Move to dedicated file
-const walkthroughSteps = [
-  {
-    selector: '.tab-btn[data-tab="inbox"]',
-    title: "Welcome, Agent",
-    text: "You\u2019ve just received your ISA settlement license. Check your mailbox for the official charter from the Interstellar Settlement Authority.",
-    tab: "inbox"
-  },
-  {
-    selector: '.tab-btn[data-tab="starmap"]',
-    title: "Explore the Starmap",
-    text: "The starmap shows every system, planet, moon, and station. You\u2019ll manage operations across multiple locations. Let\u2019s find a station where you can establish your first office.",
-    tab: "starmap"
-  },
-  {
-    selector: '.tab-btn[data-tab="station"]',
-    title: "Station Overview",
-    text: "Stations are your base of operations. Here you\u2019ll rent offices, hire personnel, file mining leases, and manage extraction. Your corporation needs a registered office to operate.",
-    tab: "station"
-  },
-  {
-    selector: '[data-building-action="building:orbital-executive-suites"]',
-    title: "Rent Your First Office",
-    text: "Enter the Orbital Executive Suites and lease an office. It costs $1,000/day with a 30-day minimum ($30,000 upfront). This establishes your corporate presence at the station.",
-    tab: "station"
-  },
-  {
-    selector: '.tab-btn[data-tab="ceo"]',
-    title: "Hire Employees",
-    text: "With an office established, hire personnel. Each employee costs $2,000 to recruit and $150/day in payroll. Hire at least 5 employees \u2014 you\u2019ll need them for your first mining lease.",
-    tab: "ceo"
-  },
-  {
-    selector: '[data-building-action="building:isa-claims-leases"]',
-    title: "File a Mining Lease",
-    text: "Visit the ISA Claims & Leases Division to file an extraction rights application. Mars is recommended for your first lease. Each lease requires 5 employees on payroll.",
-    tab: "station"
-  },
-  {
-    selector: '.tab-btn[data-tab="station"]',
-    title: "Commission an Extractor Yard",
-    text: "Open your new Mars mining lease and commission a Basic Extractor Yard for $50,000. This gives you the equipment needed to mine silicates from the surface.",
-    tab: "station"
-  },
-  {
-    selector: '.tab-btn[data-tab="station"]',
-    title: "Start Your First Mining Cycle",
-    text: "Set your extraction parameters \u2014 throughput (tons/hour) and duration (hours) \u2014 then launch the cycle. Your extractor will begin mining silicates automatically.",
-    tab: "station"
-  },
-  {
-    selector: '.tab-btn[data-tab="rnd"]',
-    title: "Research Basic Extraction",
-    text: "Queue \u2018Basic Extraction Analytics\u2019 in your Corporate R&D lab. This 2-hour research project gives a permanent 10% boost to all extraction throughput.",
-    tab: "rnd"
-  },
-  {
-    selector: '.tab-btn[data-tab="market"]',
-    title: "Sell on the Galactic Market",
-    text: "Once your mining cycle completes, head to the Galactic Market. Sell your mined silicates by creating a listing or filling an existing NPC buy order for immediate credits.",
-    tab: "market"
-  },
-  {
-    selector: '.tab-btn[data-tab="missions"]',
-    title: "Visit the Assignments Bureau",
-    text: "The ISA Contracting & Assignments Bureau is where mission agents post field contracts. Visit Coordinator Voss in her office to review available logistics assignments.",
-    tab: "missions"
-  },
-  {
-    selector: '.tab-btn[data-tab="overview"]',
-    title: "You\u2019re Ready!",
-    text: "You now know the core loop: mine resources, research upgrades, trade on the market, and climb the corporate ladder. Keep expanding, keep researching, and check your milestones. Good luck, Agent.",
-    tab: "overview"
   }
 ];
 
@@ -2308,26 +2233,7 @@ function renderStation(data) {
     .map((id) => appState.buildingRegistry.find((b) => b.id === id))
     .filter(Boolean);
 
-  const npcBuildings = stationBuildings.filter((b) => b.owner === "npc" && b.available);
-
-  npcGrid.innerHTML = npcBuildings
-    .map((b) => {
-      const actionBtn = b.available
-        ? `<button class="btn btn-outline" data-building-action="${escapeHtml(b.action)}">Enter</button>`
-        : `<span class="building-status-badge">Coming Soon</span>`;
-      return `
-        <article class="building-card data-card">
-          <header class="building-card-header">
-            <span class="faction-code-badge">${escapeHtml(b.factionCode)}</span>
-            <h3>${escapeHtml(b.name)}</h3>
-          </header>
-          <p class="muted building-description">${escapeHtml(b.description)}</p>
-          <p class="building-flavor">${escapeHtml(b.flavor)}</p>
-          <footer class="building-card-footer">${actionBtn}</footer>
-        </article>
-      `;
-    })
-    .join("");
+  npcGrid.innerHTML = stationBuildingCardsHtml(stationBuildings);
 
   const corpBuildings = (data.corp?.buildings || []).filter((b) => b.status === "Operational");
   const hasAssemblyTech = (data.corp?.unlockedTech || []).includes("tt-assembly-fabrication");
