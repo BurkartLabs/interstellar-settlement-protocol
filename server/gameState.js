@@ -1026,7 +1026,7 @@ function resolveMetric(metric, corp) {
   return 0;
 }
 
-function evaluateLevelProgress(profileState) {
+export function evaluateLevelProgress(profileState) {
   const corp = profileState.corp;
 
   // Build levelProgress from milestones.json definitions
@@ -1060,24 +1060,32 @@ function evaluateLevelProgress(profileState) {
     }
   });
 
-  // Apply level-ups and unlock grants from milestones.json
-  for (const levelDef of MILESTONE_LEVELS) {
+  // Climb one level at a time: level N is granted only from level N-1, so a later level met
+  // first waits for the one below it instead of skipping it (AB#690).
+  const ordered = [...MILESTONE_LEVELS].sort((a, b) => a.level - b.level);
+  for (const levelDef of ordered) {
     const lvlNum = levelDef.level;
-    if (corp.level < lvlNum && corp.levelProgress[`level${lvlNum}`].allCompleted) {
-      corp.level = lvlNum;
-      const tag = `Reached Corporation Level ${lvlNum}`;
-      if (!corp.milestonesCompleted.includes(tag)) {
-        corp.milestonesCompleted.push(tag);
-      }
-      const u = levelDef.unlocks;
-      if (u.employeeCap) corp.employeeCap = Math.max(corp.employeeCap, u.employeeCap);
-      if (u.buildingSlots) corp.buildingSlots = Math.max(corp.buildingSlots, u.buildingSlots);
-      if (u.maxFleetSize) corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, u.maxFleetSize);
-      if (Array.isArray(u.marketSectors)) {
-        for (const sector of u.marketSectors) {
-          if (!corp.unlocks.marketSectors.includes(sector)) {
-            corp.unlocks.marketSectors.push(sector);
-          }
+    if (lvlNum <= corp.level) continue;
+    if (lvlNum !== corp.level + 1 || !corp.levelProgress[`level${lvlNum}`].allCompleted) break;
+    corp.level = lvlNum;
+  }
+
+  // Every level at or below the current one holds its tag and unlocks. Idempotent, so it also
+  // repairs corporations the old loop promoted past a level without granting it (AB#690).
+  for (const levelDef of ordered) {
+    if (levelDef.level > corp.level) break;
+    const tag = `Reached Corporation Level ${levelDef.level}`;
+    if (!corp.milestonesCompleted.includes(tag)) {
+      corp.milestonesCompleted.push(tag);
+    }
+    const u = levelDef.unlocks;
+    if (u.employeeCap) corp.employeeCap = Math.max(corp.employeeCap, u.employeeCap);
+    if (u.buildingSlots) corp.buildingSlots = Math.max(corp.buildingSlots, u.buildingSlots);
+    if (u.maxFleetSize) corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, u.maxFleetSize);
+    if (Array.isArray(u.marketSectors)) {
+      for (const sector of u.marketSectors) {
+        if (!corp.unlocks.marketSectors.includes(sector)) {
+          corp.unlocks.marketSectors.push(sector);
         }
       }
     }
