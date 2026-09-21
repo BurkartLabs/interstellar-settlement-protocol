@@ -543,6 +543,14 @@ export function createStarmapController({
     return width;
   }
 
+  // Bug #1286: the right-hand of two back buttons sits at preferredX, or further left when that would run past the
+  // canvas's right edge (a phone's canvas is 292px wide; "Back To Cluster" at 250 ended at about 300).
+  function rightBackButtonX(label, preferredX, canvasWidth) {
+    ctx.font = '10px "Inter", sans-serif';
+    const buttonWidth = Math.max(88, Math.ceil(ctx.measureText(label).width + 28));
+    return Math.min(preferredX, canvasWidth - 6 - buttonWidth / 2);
+  }
+
   function drawStationMarker(x, y, isCurrent) {
     const size = isCurrent ? 5 : 4;
     ctx.save();
@@ -702,10 +710,11 @@ export function createStarmapController({
 
     state.clickTargets = [];
     const backSysWidth = drawBackButton("Back To System", 108, 36);
-    const backClusterWidth = drawBackButton("Back To Cluster", 250, 36);
+    const backClusterX = rightBackButtonX("Back To Cluster", 250, width);
+    const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, 36);
 
     state.clickTargets.push({ type: "back-to-system", x: 108, y: 36, radius: Math.max(40, backSysWidth * 0.55) });
-    state.clickTargets.push({ type: "back-to-cluster", x: 250, y: 36, radius: Math.max(42, backClusterWidth * 0.55) });
+    state.clickTargets.push({ type: "back-to-cluster", x: backClusterX, y: 36, radius: Math.max(42, backClusterWidth * 0.55) });
 
     if (body.type === "Field") {
       const beltRadius = Math.min(width, height) * 0.2;
@@ -806,10 +815,11 @@ export function createStarmapController({
 
     state.clickTargets = [];
     const backBodyWidth = drawBackButton("Back To Belt", 98, 36);
-    const backSystemWidth = drawBackButton("Back To System", 228, 36);
+    const backSystemX = rightBackButtonX("Back To System", 228, width);
+    const backSystemWidth = drawBackButton("Back To System", backSystemX, 36);
 
     state.clickTargets.push({ type: "back-to-body", x: 98, y: 36, radius: Math.max(38, backBodyWidth * 0.55) });
-    state.clickTargets.push({ type: "back-to-system", x: 228, y: 36, radius: Math.max(38, backSystemWidth * 0.55) });
+    state.clickTargets.push({ type: "back-to-system", x: backSystemX, y: 36, radius: Math.max(38, backSystemWidth * 0.55) });
 
     const seed = hashSeed(asteroidId || `${system.id}:${body.id}:ast-0`);
     const radius = Math.min(width, height) * 0.11;
