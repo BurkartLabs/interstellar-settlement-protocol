@@ -396,7 +396,16 @@ const starmap = createStarmapController({
   }
 });
 
-const socket = typeof io !== "undefined" ? io() : null;
+// Bug #710: the socket carries the access token, so the server knows who is chatting. The callback runs on every
+// (re)connect, so a refreshed token is picked up; the page's own origin needs no CORS.
+const socket = typeof io !== "undefined"
+  ? io({ auth: (cb) => cb({ token: appState.accessToken || localStorage.getItem(STORAGE_KEYS.accessToken) }) })
+  : null;
+
+/** Reconnect so the socket authenticates with the current token (after a refresh or a login on this page). */
+function reauthenticateSocket() {
+  if (socket?.connected) socket.disconnect().connect();
+}
 
 function persistSession() {
   if (appState.accountId) {
@@ -506,6 +515,8 @@ async function refreshSessionToken() {
     appState.accountId = payload.account.id;
   }
   persistSession();
+  // A socket that connected with the expired token is unauthenticated, and its chat would be dropped (Bug #710).
+  reauthenticateSocket();
   return true;
 }
 
@@ -5148,7 +5159,9 @@ function enterGame(mode, data, options = {}) {
   appState.accountId = options.accountId || null;
   appState.accountEmail = options.accountEmail || appState.accountEmail || null;
   if (options.accessToken) {
+    const changed = appState.accessToken !== options.accessToken;
     appState.accessToken = options.accessToken;
+    if (changed) reauthenticateSocket(); // Bug #710: chat must run on the token this page now holds
   }
   if (options.refreshToken) {
     appState.refreshToken = options.refreshToken;
@@ -5483,9 +5496,9 @@ function bindForms() {
       appState.chatAutoScrollOnNextRender = false;
     }
 
+    // The server names the author from the logged-in account (Bug #710); the client no longer sends one.
     socket?.emit("chat:send", {
       channel: resolveChatChannel(appState.chatChannel),
-      author: appState.data?.corp?.corporationName || "Anonymous",
       content
     });
 
