@@ -668,7 +668,7 @@ export function applyMiningOperations(corp, now = Date.now()) {
     if (actualCost > 0) {
       corp.finances.credits = Math.max(0, corp.finances.credits - actualCost);
       extractor.totalSpent += actualCost;
-      recordExpense(corp, "mining-ops", actualCost);
+      recordExpense(corp, "mining-ops", actualCost, now); // Bug #1022: at the tick's time, for the 24-hour window
     }
 
     if (actualMined > 0) {

@@ -10,6 +10,13 @@ import {
   MAX_SNAPSHOTS
 } from "../../server/finances.js";
 import { makeCorp } from "../fixtures/makeCorp.js";
+import { refreshDailyExpenses } from "../../server/finances.js";
+
+// The standing buy orders a fresh install seeds (server/gameState.js NPC_BUY_SEED), as far as valuation reads them.
+const MARKET = { npcBuyOrders: [
+  { item: "Silicates", unitPrice: 24 }, { item: "Helium-3", unitPrice: 92 }, { item: "Nickel", unitPrice: 18 },
+  { item: "Titanium", unitPrice: 64 }, { item: "Carbon", unitPrice: 12 }, { item: "Rare Earths", unitPrice: 140 }
+] };
 
 describe("ensureFinanceTracking", () => {
   it("initialises tracking fields when missing", () => {
@@ -101,6 +108,30 @@ describe("recordExpense", () => {
   });
 });
 
+// Bug #1022: every cost booked reaches the cost side of Net Daily Flow, and leaves it after 24 hours.
+describe("dailyExpenses", () => {
+  const HOUR = 60 * 60 * 1000;
+  it("moves with every expense booked, whatever its category", () => {
+    const corp = makeCorp();
+    recordExpense(corp, "mining-ops", 600, 0);
+    recordExpense(corp, "exchange-tax", 45, HOUR);
+    recordExpense(corp, "office-rent", 30_000, 2 * HOUR);
+    expect(corp.finances.dailyExpenses).toBe(30_645);
+    expect(corp.finances.expensesByCategory["mining-ops"]).toBe(600);
+  });
+
+  it("drops costs older than 24 hours, so it falls when nothing is spent", () => {
+    const corp = makeCorp();
+    recordExpense(corp, "mining-ops", 600, 0);
+    recordExpense(corp, "mining-ops", 600, 12 * HOUR);
+    refreshDailyExpenses(corp, 25 * HOUR);
+    expect(corp.finances.dailyExpenses).toBe(600);
+    refreshDailyExpenses(corp, 37 * HOUR);
+    expect(corp.finances.dailyExpenses).toBe(0);
+    expect(corp.finances.lifetimeCosts).toBe(1200);
+  });
+});
+
 describe("computeLiveLiabilities", () => {
   it("returns 0 for an empty corp", () => {
     const corp = makeCorp();
@@ -151,17 +182,19 @@ describe("computeAssetBreakdown", () => {
     expect(breakdown.total).toBe(2000);
   });
 
-  it("estimates inventory value at a flat per-unit market price", () => {
+  // Bug #1022: stock was valued at a flat 2 a unit, a twelfth of the Silicates bid.
+  it("values inventory at the standing NPC bid for each item, and 0 where nothing bids", () => {
     const corp = makeCorp({
       finances: { credits: 0, assets: 0 },
       inventory: {
-        "earth-station-prime": { silicates: 100, refined: 50 }
+        "earth-station-prime": { Silicates: 500, "Nano-Lattice": 50 },
+        "mars-orbital-dock": { "Rare Earths": 10 }
       }
     });
-    const breakdown = computeAssetBreakdown(corp);
-    // 150 units * 2 credits/unit baseline = 300
-    expect(breakdown.inventoryEstimate).toBe(300);
-    expect(breakdown.total).toBe(300);
+    const breakdown = computeAssetBreakdown(corp, MARKET);
+    expect(breakdown.inventoryEstimate).toBe(500 * 24 + 10 * 140);
+    expect(breakdown.total).toBe(500 * 24 + 10 * 140);
+    expect(computeAssetBreakdown(corp).inventoryEstimate).toBe(0);
   });
 });
 
@@ -173,7 +206,8 @@ describe("buildSnapshot", () => {
         assets: 10_000,
         liabilities: 0,
         dailyRevenue: 1200,
-        dailyCosts: 800
+        dailyCosts: 800,
+        dailyExpenses: 300
       }
     });
     const snap = buildSnapshot(corp, 1_700_000_000_000);
@@ -182,7 +216,17 @@ describe("buildSnapshot", () => {
     expect(snap.assets).toBe(10_000);
     expect(snap.dailyRevenue).toBe(1200);
     expect(snap.dailyCosts).toBe(800);
-    expect(snap.netFlow).toBe(400);
+    // Bug #1022: net flow is income minus costs booked in the last 24 hours, not minus the payroll rate
+    expect(snap.dailyExpenses).toBe(300);
+    expect(snap.netFlow).toBe(900);
+  });
+
+  it("counts inventory toward net worth at the standing bids, and publishes the value (Bug #1022)", () => {
+    const corp = makeCorp({ finances: { credits: 1000, assets: 0, dailyCosts: 0 }, inventory: { "earth-station-prime": { Silicates: 500 } } });
+    const snap = buildSnapshot(corp, 1, MARKET);
+    expect(snap.inventory).toBe(12_000);
+    expect(snap.netWorth).toBe(13_000);
+    expect(corp.finances.inventoryValue).toBe(12_000);
   });
 
   it("computes liabilities live (does not trust stale finances.liabilities)", () => {
