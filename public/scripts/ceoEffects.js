@@ -14,3 +14,14 @@ export function officeRenewalCost(completedInsights, durationDays) {
   const base = durationDays * OFFICE_RENEWAL_PER_DAY;
   return (completedInsights || []).includes(ISA_REGULATORY_NAVIGATION) ? Math.round(base * 0.95) : base;
 }
+
+const CONTRACT_LAW = "ceo-contract-law";
+
+/**
+ * What a completed mission pays, in credits: the number in its reward text ("12,000 Credits"), 8% more with Contract
+ * Law Essentials, rounded. The server credits this and the client reports it, so the two cannot differ (Bug #1009).
+ */
+export function missionRewardCredits(reward, completedInsights) {
+  const base = parseInt(String(reward ?? "").replace(/[^0-9]/g, ""), 10) || 0;
+  return (completedInsights || []).includes(CONTRACT_LAW) ? Math.round(base * 1.08) : base;
+}
