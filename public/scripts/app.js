@@ -8,6 +8,7 @@ import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
 import { missionRewardCredits } from "./ceoEffects.js"; // Bug #1009: its own line, after the others, so parallel branches adding imports do not collide
+import { renderStationFacilities } from "./stationFacilities.js"; // Bug #1253
 
 /** localStorage, or null where reading the property itself throws (sandboxed frames, some private modes). */
 function viewerStorage() {
@@ -2226,61 +2227,22 @@ function renderStation(data) {
 
   npcGrid.innerHTML = stationBuildingCardsHtml(stationBuildings);
 
-  const corpBuildings = (data.corp?.buildings || []).filter((b) => b.status === "Operational");
-  const hasAssemblyTech = (data.corp?.unlockedTech || []).includes("tt-assembly-fabrication");
-  const hasAssembly = corpBuildings.some((b) => b.name === "Assembly Facility");
-
-  // ── Operational Facilities (Assembly, Refinery — prominent usable cards) ──
-  const facilitySection = document.getElementById("station-facilities-section");
-  const facilityGrid = document.getElementById("station-facility-buildings");
-  const facilityBuildings = corpBuildings.filter((b) => b.name === "Assembly Facility" || b.name === "Refinery");
-  const buildAssemblyHtml = (hasAssemblyTech && !hasAssembly)
-    ? `<article class="facility-card data-card" style="border:1px dashed rgba(0,247,255,0.3);">
-         <header class="facility-card-header"><span class="faction-code-badge corp-badge">NEW</span><h3>Assembly Facility</h3></header>
-         <p class="muted">Modular manufacturing bay for fabricating deployable units.</p>
-         <footer class="facility-card-footer"><button id="build-assembly-btn" class="btn btn-accent">Construct (¤60,000)</button></footer>
-       </article>`
-    : "";
-
-  if (facilityGrid && facilitySection) {
-    const facilityHtml = facilityBuildings.map((b) => {
-      const actionBtn = `<button class="btn btn-accent" data-corp-building="${escapeHtml(b.name)}">Enter</button>`;
-      const desc = b.name === "Assembly Facility"
-        ? "Modular manufacturing bay for fabricating deployable units and equipment."
-        : "Industrial refinery complex for processing raw minerals into advanced materials.";
-      return `
-        <article class="facility-card data-card">
-          <header class="facility-card-header">
-            <span class="faction-code-badge corp-badge">CORP</span>
-            <h3>${escapeHtml(b.name)}</h3>
-          </header>
-          <p class="muted facility-desc">${desc}</p>
-          <p class="facility-tier">Tier ${b.tier || 1} &mdash; ${escapeHtml(b.status)}</p>
-          <footer class="facility-card-footer">${actionBtn}</footer>
-        </article>
-      `;
-    }).join("") + buildAssemblyHtml;
-
-    if (facilityHtml) {
-      facilitySection.hidden = false;
-      facilityGrid.innerHTML = facilityHtml;
-    } else {
-      facilitySection.hidden = true;
-      facilityGrid.innerHTML = "";
-    }
-
-    // Bind facility enter buttons
-    facilityGrid.querySelectorAll("[data-corp-building]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const name = btn.getAttribute("data-corp-building");
-        if (name === "Assembly Facility") {
-          renderAssemblyFacility(data);
-        } else if (name === "Refinery") {
-          setTab("refinery");
-        }
-      });
-    });
-  }
+  // ── Operational Facilities (Assembly, Refinery — prominent usable cards, and Construct) ──
+  // Bug #1253: rendered and bound in one place, stationFacilities.js.
+  renderStationFacilities(document, data.corp, {
+    accountId: () => appState.accountId,
+    request: async (path, init) => parseJsonResponse(await apiFetch(path, init)),
+    onEnter: (name) => {
+      if (name === "Assembly Facility") renderAssemblyFacility(data);
+      else if (name === "Refinery") setTab("refinery");
+    },
+    onBuilt: (account) => {
+      appState.data = deepClone(account.state);
+      updateAllViews();
+      pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok");
+    },
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
+  });
 
   // ── Licensed Corporate Holdings (Extractor Yards — filtered to current station body) ──
   const stationBody = station.body;
@@ -2318,26 +2280,6 @@ function renderStation(data) {
         }
       )
       .join("");
-  }
-
-  // Bind build Assembly Facility button
-  const buildAssemblyBtn = playerGrid.querySelector("#build-assembly-btn");
-  if (buildAssemblyBtn) {
-    buildAssemblyBtn.addEventListener("click", async () => {
-      if (!appState.accountId) return;
-      try {
-        const res = await apiFetch(
-          `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/build-assembly-facility`,
-          { method: "POST", headers: { "Content-Type": "application/json" } }
-        );
-        const account = await parseJsonResponse(res);
-        appState.data = deepClone(account.state);
-        updateAllViews();
-        pushFeedback("Assembly Facility constructed!", "ok");
-      } catch (err) {
-        pushFeedback(err.message || "Construction failed.", "warn");
-      }
-    });
   }
 }
 
