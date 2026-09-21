@@ -15,3 +15,13 @@ export function bodyNumber(value, { fallback, min = -Infinity, max = Infinity, i
   if (integer) n = Math.floor(n);
   return Math.min(max, Math.max(min, n));
 }
+
+/**
+ * A count of things from a request body: a finite number floored to a whole number, at least 1; anything else is null,
+ * so the route refuses it rather than assuming a default (Bug #425: a sell order or NPC sale with quantity "abc", 0 or
+ * -5 must change nothing).
+ */
+export function bodyCount(value) {
+  const n = bodyNumber(value, { fallback: null, integer: true });
+  return n !== null && n >= 1 ? n : null;
+}
