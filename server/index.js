@@ -975,8 +975,10 @@ app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess);
 
 // AB#731: every gameplay route's numbers and ids are checked against server/gameplayInput.js here, after the login and
 // ownership checks and before any handler, so a refused request has touched nothing. Imported beside its one use.
-import { gameplayInputMiddleware } from "./gameplayInput.js";
-app.use("/api/accounts/:accountId/gameplay", gameplayInputMiddleware({
+import { gameplayInputMiddleware, ACCOUNT_INPUT, MARKET_INPUT, FORUM_INPUT } from "./gameplayInput.js";
+import { FORUM_CATEGORIES } from "./gameState.js";
+const REFINERY_CHAINS_DATA_FOR_INPUT = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "refinery-chains.json"), "utf8"));
+const INPUT_CHECKS = {
   catalogs: {
     stations: new Set(Object.keys(STATION_REGISTRY)),
     systems: new Set(Object.keys(SYSTEM_DETAILS)),
@@ -986,11 +988,22 @@ app.use("/api/accounts/:accountId/gameplay", gameplayInputMiddleware({
     missions: new Set(MISSION_TEMPLATES.map((m) => m.id)),
     belts: new Set(Object.keys(BELT_COMPOSITIONS)),
     expeditionDurations: new Set(Object.keys(EXPEDITION_DURATIONS)),
-    refineryChains: new Set(Object.keys(REFINERY_CHAINS))
+    refineryChains: new Set(Object.keys(REFINERY_CHAINS)),
+    // AB#732: what can be listed or charted (every raw resource and refinery output), standing orders, forum categories.
+    tradeItems: new Set([...REFINERY_CHAINS_DATA_FOR_INPUT.resourceCatalog, ...REFINERY_CHAINS_DATA_FOR_INPUT.chains.flatMap((c) => [c.input, ...c.outputs.map((o) => o.item)])]),
+    npcOrders: { has: (orderId) => (getState().market?.npcBuyOrders || []).some((o) => o.id === orderId) },
+    forumCategories: new Set(FORUM_CATEGORIES)
   },
   stationNames: Object.fromEntries(Object.entries(STATION_REGISTRY).map(([sid, st]) => [sid, st.name])),
   corpOf: (accountId) => getAccountById(accountId)?.state?.corp
-}));
+};
+app.use("/api/accounts/:accountId/gameplay", gameplayInputMiddleware(INPUT_CHECKS));
+// AB#732: the same checks for the caller's account and mail routes, and for the market and forum routes, whose login
+// is checked per route: there the caller comes from a verified token, and a request without one is left to that check.
+const callerFromToken = (req) => verifyAccessToken(getBearerToken(req)).accountId || null;
+app.use("/api/accounts/:accountId", gameplayInputMiddleware({ ...INPUT_CHECKS, routes: ACCOUNT_INPUT }));
+app.use("/api/market", gameplayInputMiddleware({ ...INPUT_CHECKS, routes: MARKET_INPUT, callerOf: callerFromToken }));
+app.use("/api/forums", gameplayInputMiddleware({ ...INPUT_CHECKS, routes: FORUM_INPUT, callerOf: callerFromToken }));
 
 app.get("/api/accounts/:accountId", (req, res) => {
   const account = getAccountById(req.params.accountId);
