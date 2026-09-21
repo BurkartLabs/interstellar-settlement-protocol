@@ -50,3 +50,30 @@ export function messageListItemsHtml(msgs, formatDate) {
     })
     .join("");
 }
+
+/**
+ * The Station tab's institutional office cards: the NPC buildings of the station the corporation is docked at, each
+ * with its Enter button. `stationBuildings` is the station's buildingIds resolved against data/buildings.json.
+ * The walkthrough highlights these buttons by their data-building-action (AB#404), so its test renders this.
+ */
+export function stationBuildingCardsHtml(stationBuildings) {
+  return stationBuildings
+    .filter((b) => b.owner === "npc" && b.available)
+    .map((b) => {
+      const actionBtn = b.available
+        ? `<button class="btn btn-outline" data-building-action="${escapeHtml(b.action)}">Enter</button>`
+        : `<span class="building-status-badge">Coming Soon</span>`;
+      return `
+        <article class="building-card data-card">
+          <header class="building-card-header">
+            <span class="faction-code-badge">${escapeHtml(b.factionCode)}</span>
+            <h3>${escapeHtml(b.name)}</h3>
+          </header>
+          <p class="muted building-description">${escapeHtml(b.description)}</p>
+          <p class="building-flavor">${escapeHtml(b.flavor)}</p>
+          <footer class="building-card-footer">${actionBtn}</footer>
+        </article>
+      `;
+    })
+    .join("");
+}
