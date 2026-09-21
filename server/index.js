@@ -780,7 +780,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(processCeoInsightCompletions, 
 // Captures a rolling balance/flow snapshot for every active corp so the
 // Financial Core dashboard can render real historical series (cash reserves,
 // net flow, assets vs liabilities) instead of synthesised projections.
-import { buildSnapshot, pushSnapshot } from "./finances.js";
+import { buildSnapshot, pushSnapshot, recordIncome, recordExpense, refreshDailyRevenue } from "./finances.js";
 
 const FINANCIAL_SNAPSHOT_INTERVAL_MS = 30_000;
 
@@ -790,6 +790,7 @@ function financialSnapshotTick() {
     let finances = null;
     mutateAccountState(accountId, (state) => {
       if (!state || !state.corp) return;
+      refreshDailyRevenue(state.corp, now); // Bug #984: income older than 24 hours leaves the daily figure
       const snap = buildSnapshot(state.corp, now);
       pushSnapshot(state.corp, snap);
       finances = state.corp.finances;
@@ -3199,7 +3200,9 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
       const taxAmount = Math.round(tradeTotal * taxPct / 100);
       const sellerProceeds = tradeTotal - taxAmount;
       state.corp.finances.credits += sellerProceeds;
-      state.corp.finances.dailyRevenue += Math.round(sellerProceeds / 24);
+      // Bug #984: book the gross the buyer paid as income and the tax as an expense.
+      recordIncome(state.corp, "exchange", tradeTotal);
+      recordExpense(state.corp, "exchange-tax", taxAmount);
 
       if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
       state.corp.tradeHistory.unshift({
@@ -3292,7 +3295,9 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
     tradeTaxAmount = taxAmount;
     tradeProceeds = sellerProceeds;
     state.corp.finances.credits = (state.corp.finances.credits || 0) + sellerProceeds;
-    state.corp.finances.dailyRevenue = (state.corp.finances.dailyRevenue || 0) + Math.round(sellerProceeds / 24);
+    // Bug #984: book the gross the NPC paid as income and the tax as an expense.
+    recordIncome(state.corp, "exchange", tradeTotal);
+    recordExpense(state.corp, "exchange-tax", taxAmount);
 
     if (!state.corp.stats) state.corp.stats = {};
     state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;

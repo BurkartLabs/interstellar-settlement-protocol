@@ -20,7 +20,7 @@ const USE_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const USE_SUPABASE_AUTH = Boolean(USE_SUPABASE && SUPABASE_ANON_KEY);
 const SUPABASE_MANAGED_PASSWORD_HASH = "__supabase_auth_managed__";
 
-import { recordIncome, recordExpense, ensureFinanceTracking } from "./finances.js";
+import { recordExpense, ensureFinanceTracking } from "./finances.js";
 import { unknownLeaseBodies } from "./leases.js";
 import {
   persistAccountsPhase1,
@@ -646,9 +646,7 @@ export function applyMiningOperations(corp, now = Date.now()) {
       const stationInv = getStationInventory(corp, depositStation);
       stationInv.Silicates = (stationInv.Silicates || 0) + actualMined;
       extractor.totalMined += actualMined;
-      const revenue = Math.round(actualMined * 2.4);
-      corp.finances.dailyRevenue += revenue;
-      recordIncome(corp, "mining", revenue);
+      // Bug #984: mined silicates are inventory, not income; revenue is booked when they are sold.
     }
 
     const consumedMs = Math.round(elapsedMs * affordabilityRatio);
