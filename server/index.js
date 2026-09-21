@@ -17,7 +17,6 @@ import {
   appendChatMessage,
   createAccount,
   saveAccountsNow,
-  createCombatReport,
   authenticateAccount,
   getAccountById,
   getDummyAccount,
@@ -3352,37 +3351,6 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
     traded: { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice: npcOrder.unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, proceeds: tradeProceeds },
     account: seller
   });
-});
-
-app.post("/api/combat/simulate", (req, res) => {
-  const {
-    attackerName,
-    attackerAttack,
-    attackerDefense,
-    defenderName,
-    defenderAttack,
-    defenderDefense,
-    counterModifier = 1
-  } = req.body ?? {};
-
-  const atkTotal = Number(attackerAttack) + Number(attackerDefense);
-  const defTotal = (Number(defenderAttack) + Number(defenderDefense)) * Number(counterModifier);
-  const attackerWin = atkTotal >= defTotal;
-
-  const report = createCombatReport({
-    attackerName,
-    defenderName,
-    attackerPower: atkTotal,
-    defenderPower: defTotal,
-    counterModifier: Number(counterModifier),
-    winner: attackerWin ? attackerName : defenderName,
-    summary: attackerWin
-      ? `${attackerName} overwhelms ${defenderName} after modifiers.`
-      : `${defenderName} holds position and repels ${attackerName}.`
-  });
-
-  io.emit("combat:newReport", report);
-  res.json({ ok: true, report });
 });
 
 app.use((error, _req, res, _next) => {
