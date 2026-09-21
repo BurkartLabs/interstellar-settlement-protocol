@@ -1,3 +1,5 @@
+import { canReachSystem } from "./navigation.js";
+
 const CLUSTER_LAYOUT = {
   sol: { x: 0.16, y: 0.5 },
   "alpha-centauri": { x: 0.35, y: 0.26 },
@@ -289,15 +291,9 @@ export function createStarmapController({
     asteroidMining: null  // { probeCount, maxProbes, maxDeployments, activeExpeditions, scoutedBelts, beltCompositions }
   };
 
-  const NEAR_STAR_SYSTEMS = new Set(["alpha-centauri", "barnards-star"]);
-
+  // The same gate as the server's travel route (public/scripts/navigation.js, Bug #976).
   function canTravelToSystem(targetSystemId) {
-    const currentSystemId = state.currentSystemId || "sol";
-    if (currentSystemId === targetSystemId) return true;
-    if (NEAR_STAR_SYSTEMS.has(targetSystemId)) {
-      return state.unlockedTech.has("tt-proxima-navigation");
-    }
-    return state.unlockedTech.has("tt-deep-star-navigation");
+    return canReachSystem(state.unlockedTech, state.currentSystemId, targetSystemId);
   }
 
   function setCanvasSize() {
