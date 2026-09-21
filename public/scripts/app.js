@@ -6598,6 +6598,9 @@ function bindGlobalControls() {
   });
 }
 
+// AB#716: imported beside its one use, away from the import block that parallel pull requests edit.
+import { bindPriceChart } from "./priceChart.js";
+
 async function boot() {
   hydrateSession();
   showAuthScreen();
@@ -6612,6 +6615,11 @@ async function boot() {
   bindBuildingActions();
   bindInboxControls();
   bindChartDurationPickers();
+  bindPriceChart({
+    fetchHistory: async (item) => parseJsonResponse(await apiFetch(`/api/market/history/${encodeURIComponent(item)}`)),
+    selectedItem: () => appState.exchangeFilter,
+    formatCredits: toCurrency
+  });
 
   try {
     await Promise.all([loadBootstrap(), loadStationRegistry()]);
