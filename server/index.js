@@ -1,6 +1,7 @@
 import "./loadEnv.js";
 import express from "express";
 import kanbanRouter from "./kanban.js";
+import { bodyNumber } from "./bodyNumber.js";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -8,7 +9,6 @@ import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import { resolveLeaseBody } from "./leases.js";
-import { bodyNumber } from "./bodyNumber.js";
 import { canReachSystem } from "../public/scripts/navigation.js";
 import {
   accountExists,
