@@ -11,7 +11,7 @@ describe("transferQuantity (AB#717)", () => {
   it.each([
     ["abc", null], [NaN, null], ["NaN", null], [-5, null], [0, null], [undefined, null], [null, null], ["", null],
     [Infinity, null], [true, null], [{}, null], [[3], null], [0.5, null],
-    [2.5, 2], [1, 1], ["7", 7], [60, 60]
+    [2.5, null], ["2.5", null], [1, 1], ["7", 7], [60, 60]
   ])("%s gives %s", (input, expected) => {
     expect(transferQuantity(input)).toBe(expected);
   });

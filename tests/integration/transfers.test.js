@@ -70,7 +70,7 @@ describe("bulk transfers (AB#717)", () => {
 
 describe("transfer input is refused before anything changes (AB#717)", () => {
   it.each([
-    ["abc", "abc"], ["NaN", "NaN"], ["-5", -5], ["0", 0], ["a missing field", undefined], ["an object", { $gt: 0 }], ["Infinity", "Infinity"]
+    ["abc", "abc"], ["NaN", "NaN"], ["-5", -5], ["0", 0], ["2.5", 2.5], ["a missing field", undefined], ["an object", { $gt: 0 }], ["Infinity", "Infinity"]
   ])("quantity %s: 400, and nothing moves", async (_label, quantity) => {
     const { corp, transfer } = await corpAtEarthWithMarsStock();
     const before = snapshot(corp());
@@ -79,13 +79,6 @@ describe("transfer input is refused before anything changes (AB#717)", () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("Line 1: enter a whole number of at least 1 to move.");
     expect(snapshot(corp())).toBe(before);
-  });
-
-  it("floors 2.5 to 2", async () => {
-    const { corp, transfer } = await corpAtEarthWithMarsStock();
-    expect((await transfer({ fromStationId: "mars-orbital-dock", lines: [{ item: "Nickel", quantity: 2.5 }] })).status).toBe(200);
-    expect(corp().inventory["earth-station-prime"].Nickel).toBe(2);
-    expect(corp().logisticsHistory[0].lines).toEqual([{ item: "Nickel", quantity: 2 }]);
   });
 
   it.each([

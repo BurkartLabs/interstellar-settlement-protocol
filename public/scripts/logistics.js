@@ -16,11 +16,11 @@ export function transferFee(lines) {
   return (lines || []).reduce((sum, l) => sum + LOGISTICS_FEE_PER_UNIT * Number(l.quantity || 0), 0);
 }
 
-/** A quantity from a request: finite, floored, at least 1; null for anything else ("abc", NaN, -5, 0, missing). */
+/** A quantity from a request: a whole number of at least 1; null for anything else ("abc", NaN, -5, 0, 2.5, missing). AB#731 refuses fractions on every gameplay route. */
 export function transferQuantity(value) {
   if (value === undefined || value === null || value === "" || typeof value === "object" || typeof value === "boolean") return null;
-  const n = Math.floor(Number(value));
-  return Number.isFinite(n) && n >= 1 ? n : null;
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 ? n : null;
 }
 
 /**
