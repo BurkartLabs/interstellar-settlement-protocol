@@ -8,7 +8,9 @@ import { createClient } from "@supabase/supabase-js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dataDir = path.join(__dirname, "..", "data");
-const statePath = path.join(dataDir, "state.json");
+// ISP_STATE_PATH lets the test process use a state file of its own (it points at one that does not exist, so every
+// run starts from the seed) instead of whatever the local server last wrote to data/state.json (Bug #588).
+const statePath = process.env.ISP_STATE_PATH || path.join(dataDir, "state.json");
 const accountsSnapshotPath = path.join(dataDir, "accounts-snapshot.json");
 const milestonesPath = path.join(dataDir, "milestones.json");
 const PASSWORD_SALT_ROUNDS = 10;
@@ -1522,38 +1524,37 @@ function ensureStateFile() {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  if (!fs.existsSync(statePath)) {
-    const seed = ensureGlobalSocialState(normalizeStateShape(getSeedState()));
-    if (!IS_SERVERLESS) {
-      safeWriteFile(statePath, JSON.stringify(seed, null, 2), "state init");
-    }
-    return seed;
+  // Bug #588, #574: a missing file used to return the bare seed early, skipping the market setup below, so a fresh
+  // install (and every test process) had no order book and no standing buy orders. Both paths now take the same route.
+  const exists = fs.existsSync(statePath);
+  const normalized = normalizeGlobalState(exists ? JSON.parse(fs.readFileSync(statePath, "utf8")) : getSeedState());
+  if (!IS_SERVERLESS) {
+    safeWriteFile(statePath, JSON.stringify(normalized, null, 2), exists ? "state normalize" : "state init");
   }
+  return normalized;
+}
 
-  const raw = fs.readFileSync(statePath, "utf8");
-  const parsed = JSON.parse(raw);
-  const normalized = ensureGlobalSocialState(normalizeStateShape(parsed));
+// NPC buyers exist for every raw resource that currently has a refinery chain, so newly mined materials always have
+// a guaranteed sink.
+// TODO: Reevaluate how we are storing the below information. Should it be hardcoded? Should it be more dynamic?
+const NPC_BUY_SEED = [
+  { item: "Silicates",   buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
+  { item: "Helium-3",    buyer: "Lunar Helium Consortium",   unitPrice: 92, dailyQty: 250000 },
+  { item: "Nickel",      buyer: "Belt Refining Cooperative", unitPrice: 18, dailyQty: 750000 },
+  { item: "Titanium",    buyer: "Olympus Heavy Industries",  unitPrice: 64, dailyQty: 400000 },
+  { item: "Carbon",      buyer: "ISA Materials Exchange",    unitPrice: 12, dailyQty: 1500000 },
+  { item: "Rare Earths", buyer: "Synthorium Trading House",  unitPrice: 140, dailyQty: 120000 }
+];
 
-  // Ensure NPC buy orders exist in global market state. NPC buyers exist for
-  // every raw resource that currently has a refinery chain so newly mined
-  // materials always have a guaranteed sink.
-  if (!normalized.market) normalized.market = {};
-  // TODO: Reevaluate how we are storing the below information. Should it be hardcoded? Should it be more dynamic?
-  const NPC_BUY_SEED = [
-    { item: "Silicates",   buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
-    { item: "Helium-3",    buyer: "Lunar Helium Consortium",   unitPrice: 92, dailyQty: 250000 },
-    { item: "Nickel",      buyer: "Belt Refining Cooperative", unitPrice: 18, dailyQty: 750000 },
-    { item: "Titanium",    buyer: "Olympus Heavy Industries",  unitPrice: 64, dailyQty: 400000 },
-    { item: "Carbon",      buyer: "ISA Materials Exchange",    unitPrice: 12, dailyQty: 1500000 },
-    { item: "Rare Earths", buyer: "Synthorium Trading House",  unitPrice: 140, dailyQty: 120000 }
-  ];
-  if (!Array.isArray(normalized.market.npcBuyOrders)) {
-    normalized.market.npcBuyOrders = [];
-  }
+/** Give the global state a market: an order book, and every standing buy order it lacks. Keeps what exists. */
+function ensureMarketState(globalState) {
+  if (!globalState.market || typeof globalState.market !== "object") globalState.market = {};
+  if (!Array.isArray(globalState.market.orderBook)) globalState.market.orderBook = [];
+  if (!Array.isArray(globalState.market.npcBuyOrders)) globalState.market.npcBuyOrders = [];
   for (const seed of NPC_BUY_SEED) {
     const id = `npc-buy-${seed.item.toLowerCase().replace(/\s+/g, "-")}-daily`;
-    if (!normalized.market.npcBuyOrders.some((o) => o.id === id)) {
-      normalized.market.npcBuyOrders.push({
+    if (!globalState.market.npcBuyOrders.some((o) => o.id === id)) {
+      globalState.market.npcBuyOrders.push({
         id,
         item: seed.item,
         buyer: seed.buyer,
@@ -1564,11 +1565,17 @@ function ensureStateFile() {
       });
     }
   }
+  return globalState;
+}
 
-  if (!IS_SERVERLESS) {
-    safeWriteFile(statePath, JSON.stringify(normalized, null, 2), "state normalize");
-  }
-  return normalized;
+/** Everything the server needs in its global state, from a saved state or the seed. Idempotent. */
+export function normalizeGlobalState(raw) {
+  return ensureMarketState(ensureGlobalSocialState(normalizeStateShape(raw)));
+}
+
+/** The global state a fresh install starts with: what tests check the shape of, instead of data/state.json. */
+export function freshGlobalState() {
+  return normalizeGlobalState(getSeedState());
 }
 
 let state = ensureStateFile();
