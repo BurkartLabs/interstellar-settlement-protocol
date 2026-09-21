@@ -3928,6 +3928,7 @@ function renderMarket(data) {
             <td>${Number(order.quantity).toLocaleString()}</td>
             <td>${toCurrency(order.unitPrice)}</td>
             <td>${order.createdAt ? formatTime(order.createdAt) : "-"}</td>
+            <td><button class="btn btn-ghost exchange-cancel-btn" type="button" data-cancel-order-id="${escapeHtml(order.id)}">Cancel</button></td>
           </tr>
         `
       )
@@ -5385,6 +5386,27 @@ function bindForms() {
       await refreshFromServer();
     } catch (error) {
       listingStatus.textContent = `Sell listing failed: ${error.message}`;
+    }
+  });
+
+  // Bug #425: take a listing down and get the unsold goods back at the station they were listed from.
+  document.getElementById("my-sell-orders-table")?.addEventListener("click", async (event) => {
+    const button = event.target.closest(".exchange-cancel-btn");
+    if (!button) return;
+    const orderId = button.getAttribute("data-cancel-order-id");
+    button.disabled = true;
+    try {
+      const response = await apiFetch(`/api/market/orders/${encodeURIComponent(orderId)}/cancel`, { method: "POST" });
+      const payload = await parseJsonResponse(response);
+      const previousMarket = deepClone(appState.data?.market || { orderBook: [], mercenaryContracts: [] });
+      appState.data = deepClone(payload.account.state);
+      appState.data.market = { ...previousMarket, orderBook: (previousMarket.orderBook || []).filter((order) => order.id !== orderId) };
+      renderMarket(appState.data);
+      if (listingStatus) listingStatus.textContent = ""; // a refusal shown before the cancel no longer applies
+      pushFeedback("Listing cancelled; the goods are back in your station inventory.", "success");
+    } catch (error) {
+      button.disabled = false;
+      pushFeedback(`Could not cancel the listing: ${error.message}`, "warn");
     }
   });
 
