@@ -1,7 +1,7 @@
 // Before the server module loads (vitest gives each test file its own copy): tests/setup.js turns the dev surface on.
 process.env.ISP_DEV = "";
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import fs from "node:fs";
 import request from "supertest";
 import { getApp } from "../helpers/app.js";
@@ -10,6 +10,8 @@ import { getApp } from "../helpers/app.js";
 // only when ISP_DEV=1 and NODE_ENV is not production; everywhere else they are not registered at all.
 describe("the dev surface does not exist with ISP_DEV unset (Bug #423, #1069)", () => {
   const kanbanFile = new URL("../../kanban/kanbanState.json", import.meta.url);
+  // Bug #1221: load the server in a hook (10 s), so the first test's 5 s is its own request and not the module import.
+  beforeAll(async () => { await getApp(); });
 
   for (const [method, path] of [["post", "/api/auth/dummy-login"], ["post", "/api/auth/dummy-reset"], ["get", "/kanban/api"], ["post", "/kanban/api"], ["get", "/kanban/"]]) {
     it(`${method.toUpperCase()} ${path} answers 404`, async () => {
