@@ -11,6 +11,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
+import { SYSTEM_SENDERS } from "./corporationName.js";
 import jwt from "jsonwebtoken";
 import { resolveLeaseBody } from "./leases.js";
 import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from "../public/scripts/ceoEffects.js";
@@ -566,7 +567,7 @@ function asteroidExpeditionTick() {
 
       addSystemMessageToAccount(accountId, {
         subject: `Mining Probe Return — ${beltLabel} [${refNo}]`,
-        fromName: "ISA Mineral Survey Division",
+        fromName: SYSTEM_SENDERS.MINERAL_SURVEY,
         body:
           `Attn: ${corpName || "Registered Operator"},\n\n` +
           `This report confirms the return of one (1) mining probe from the ${beltLabel} asteroid field, ${systemLabel} system. ` +

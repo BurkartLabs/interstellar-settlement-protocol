@@ -40,7 +40,7 @@
           <input id="register-ceo" name="ceoName" required maxlength="40" placeholder="New CEO" />
 
           <label for="register-corp">Corporation Name</label>
-          <input id="register-corp" name="corpName" required maxlength="80" placeholder="Frontier Protocol Ventures" />
+          <input id="register-corp" name="corpName" required minlength="3" maxlength="40" pattern="[A-Za-z0-9 \-'.&amp;]+" title="3 to 40 letters, digits, spaces and - ' . &amp;" placeholder="Frontier Protocol Ventures" />
 
           <p id="register-status" class="login-status" aria-live="polite"></p>
 
