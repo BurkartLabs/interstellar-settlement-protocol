@@ -21,6 +21,7 @@ const USE_SUPABASE_AUTH = Boolean(USE_SUPABASE && SUPABASE_ANON_KEY);
 const SUPABASE_MANAGED_PASSWORD_HASH = "__supabase_auth_managed__";
 
 import { recordIncome, recordExpense, ensureFinanceTracking } from "./finances.js";
+import { unknownLeaseBodies } from "./leases.js";
 import {
   persistAccountsPhase1,
   hydrateOverlayPhase1,
@@ -1816,6 +1817,13 @@ function createSeedAccountsStore() {
 }
 
 let accountsStore = await hydrateAccountsStoreFromSupabaseOrFallback(createSeedAccountsStore());
+
+// Bug #691: leases used to accept any string as a body. Say how many stored leases name a body the catalog does not
+// have, as a count only (no account, no name), and leave them in place: deleting a player's lease is a Board call.
+{
+  const unknown = unknownLeaseBodies(SYSTEMS_DATA, Object.values(accountsStore.accounts || {}));
+  if (unknown) console.warn(`[leases] ${unknown} stored mining lease(s) name a body that is not in data/systems.json (Bug #691); left in place.`);
+}
 
 function scheduleSave() {
   if (IS_SERVERLESS) {
