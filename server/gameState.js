@@ -1202,6 +1202,9 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
 const CONTRACT_REFRESH_MS = 2 * 60 * 60 * 1000; // 2 hours
 const CONTRACTS_PER_AGENT = 2;
 const COMPLETED_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4h before a completed mission can reappear
+// AB#579: the walkthrough closes with Elara Voss promising a new corporation this contract, so a corporation that has
+// never accepted or completed one is always offered it. public/scripts/walkthrough.js names it (handoffContractId).
+export const FIRST_CONTRACT_ID = "ms-log-001";
 
 /*
   TODO: This shouldn't be hardcoded in this way. The values should be more random. 
@@ -1338,9 +1341,12 @@ function refreshContractOfferings(corpState) {
   // Filter eligible templates
   const eligible = MISSION_TEMPLATES.filter(t => !cooldownIds.has(t.id) && !activeIds.has(t.id));
 
-  // Shuffle and pick
+  // Shuffle and pick; a corporation's first offering always includes the contract the walkthrough promised it.
   const shuffled = eligible.slice().sort(() => Math.random() - 0.5);
-  offerings.missions = shuffled.slice(0, CONTRACTS_PER_AGENT).map(t => ({ ...t }));
+  const neverContracted = !completedMissions.length && !activeIds.size;
+  const promised = neverContracted ? shuffled.find((t) => t.id === FIRST_CONTRACT_ID) : null;
+  const picked = promised ? [promised, ...shuffled.filter((t) => t !== promised)] : shuffled;
+  offerings.missions = picked.slice(0, CONTRACTS_PER_AGENT).map(t => ({ ...t }));
   offerings.nextRefreshAt = now + CONTRACT_REFRESH_MS;
 
   return offerings;
