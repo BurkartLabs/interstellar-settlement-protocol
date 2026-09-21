@@ -5912,11 +5912,15 @@ function bindRealtimeEvents() {
     }
   });
 
-  socket.on("finance:updated", (financeState) => {
-    if (!appState.data || appState.profileMode !== "dummy") {
+  // Bug #1021: this used to take whatever arrived, and the server sent every corporation's finances to every socket,
+  // so it was limited to dummy mode and still showed the last corporation's numbers there. The server now sends only
+  // this account's, with its id, and the check below matches the other per-account events.
+  socket.on("finance:updated", (payload) => {
+    if (!appState.data?.corp || !appState.accountId || payload?.accountId !== appState.accountId || !payload.finances) {
       return;
     }
 
+    const financeState = payload.finances;
     appState.data.corp.finances = financeState;
     renderFinanceCharts(financeState);
     renderFinanceDashboard(financeState);
