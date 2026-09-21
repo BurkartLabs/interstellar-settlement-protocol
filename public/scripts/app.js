@@ -945,40 +945,6 @@ function computeAverageMarketPrice(data) {
   return result;
 }
 
-function renderInventoryPanel() {
-  const inventory = getInventory();
-  const inventoryList = document.getElementById("inventory-list");
-  const listingItem = document.getElementById("listing-item");
-  const listingQuantity = document.getElementById("listing-quantity");
-  const listingSubmit = document.getElementById("listing-submit");
-  const status = document.getElementById("listing-status");
-
-  const entries = Object.entries(inventory).filter(([, qty]) => Number(qty) > 0);
-
-  if (!entries.length) {
-    inventoryList.innerHTML = "<li>No inventory available yet. Begin mining and refining to generate tradable stock.</li>";
-    listingItem.innerHTML = '<option value="">No inventory</option>';
-    listingSubmit.disabled = true;
-    listingQuantity.value = "1";
-    listingQuantity.max = "1";
-    status.textContent = "No listing can be created until inventory exists.";
-    return;
-  }
-
-  inventoryList.innerHTML = entries
-    .map(([name, qty]) => `<li>${name}: ${qty}</li>`)
-    .join("");
-
-  listingItem.innerHTML = entries
-    .map(([name, qty]) => `<option value="${name}">${name} (${qty} available)</option>`)
-    .join("");
-
-  const selectedQty = entries.find(([name]) => name === listingItem.value)?.[1] || entries[0][1];
-  listingQuantity.max = String(selectedQty);
-  listingSubmit.disabled = false;
-  status.textContent = "";
-}
-
 function availableTechNodes(data) {
   const done = new Set(data.corp.unlockedTech || []);
   const inQueue = new Set((data.queues.corporateRnD || []).map((item) => item.techId).filter(Boolean));
@@ -5720,7 +5686,7 @@ function bindForms() {
     showMissionCompleteOverlay(mission, rep, agentName);
 
     renderMissions(appState.data);
-    renderInventoryPanel();
+    // Bug #1043: renderInventoryPanel was called here and threw (its form is gone), so updateAllViews never ran.
     updateAllViews();
   });
 
