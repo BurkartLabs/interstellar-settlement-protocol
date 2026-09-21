@@ -411,6 +411,7 @@ function ensureCorpMiningModel(corp) {
       operationCostPerHour: 0,
       totalMined: 0,
       minedRemainder: 0,
+      costRemainder: 0,
       totalSpent: 0,
       lastCompletedAt: null,
       downtimeActive: false,
@@ -446,6 +447,8 @@ function ensureCorpMiningModel(corp) {
       // AB#575: this cycle's output, zeroed by startExtractorCycle; totalMined is the lifetime.
       minedThisCycle: Math.max(0, Number(extractor.minedThisCycle || 0)),
       minedRemainder: Math.max(0, Number(extractor.minedRemainder || 0)),
+      // Bug #1138: the running cost's unpaid fraction of a credit, carried like minedRemainder.
+      costRemainder: Math.max(0, Number(extractor.costRemainder || 0)),
       totalSpent: Number(extractor.totalSpent || 0),
       lastCompletedAt: extractor.lastCompletedAt ?? null,
       leaseId: extractor.leaseId ?? null,
@@ -473,6 +476,7 @@ function ensureCorpMiningModel(corp) {
     operationCostPerHour: 0,
     totalMined: 0,
     minedRemainder: 0,
+    costRemainder: 0,
     totalSpent: 0,
     lastCompletedAt: null
   };
@@ -573,6 +577,17 @@ export function extractorDowntimeProbPerSec(corp) {
   return probPerSec;
 }
 
+// Bug #1138: whole units now, the fraction carried to the next call, for yield and running cost alike. The mining step
+// runs on every account read and around every write as well as on the ticker, so the same hour can arrive in one
+// slice or in thousands; it must come to the same totals either way. The tolerance absorbs floating-point drift:
+// 36,000 slices of 1/900 add up to 39.99999..., which floored to 39 and lost the last ton of every cycle.
+const CARRY_TOLERANCE = 1e-6;
+function takeWhole(amount, carried) {
+  const total = amount + Math.max(0, Number(carried) || 0);
+  const whole = Math.floor(total + CARRY_TOLERANCE);
+  return { whole, rest: Math.max(0, total - whole) };
+}
+
 export function applyMiningOperations(corp, now = Date.now()) {
   ensureCorpMiningModel(corp);
 
@@ -660,10 +675,12 @@ export function applyMiningOperations(corp, now = Date.now()) {
       affordabilityRatio = Math.max(0, Math.min(1, byCredits));
     }
 
-    const minedWithCarry = projectedMined * affordabilityRatio + Math.max(0, Number(extractor.minedRemainder || 0));
-    const actualMined = Math.floor(minedWithCarry);
-    extractor.minedRemainder = minedWithCarry - actualMined;
-    const actualCost = Math.round(projectedCost * affordabilityRatio);
+    const mined = takeWhole(projectedMined * affordabilityRatio, extractor.minedRemainder);
+    const actualMined = mined.whole;
+    extractor.minedRemainder = mined.rest;
+    const cost = takeWhole(projectedCost * affordabilityRatio, extractor.costRemainder);
+    const actualCost = cost.whole;
+    extractor.costRemainder = cost.rest;
 
     if (actualCost > 0) {
       corp.finances.credits = Math.max(0, corp.finances.credits - actualCost);
