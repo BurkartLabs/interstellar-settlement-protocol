@@ -3035,6 +3035,45 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* AB#717: pick boxes, the bulk move, each card's last outcome, and the transfer history */
+.logistics-item-meta {
+  cursor: pointer;
+}
+
+.logistics-pick {
+  accent-color: var(--accent);
+  margin-right: 0.35rem;
+}
+
+.logistics-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+
+.logistics-status {
+  margin: 0.7rem 0 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.logistics-status--error {
+  border: 1px solid var(--warn);
+  color: var(--warn);
+}
+
+.logistics-status--ok {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.logistics-history {
+  margin-top: 1.4rem;
+}
 
 @media (max-width: 480px) {
   .logistics-item-row--transfer {

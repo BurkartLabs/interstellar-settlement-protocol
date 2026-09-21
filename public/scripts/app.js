@@ -3651,7 +3651,8 @@ function renderAssets(data) {
 }
 
 // ─── Logistics ───────────────────────────────────────────────────────────────
-const LOGISTICS_FEE_PER_UNIT = 2; // credits per unit transferred
+// AB#717: the transfer rules, fee and history limit come from the module the server enforces them with.
+import { LOGISTICS_FEE_PER_UNIT, MAX_TRANSFER_LINES, transferFee, describeLines } from "./logistics.js";
 
 function renderLogistics(data) {
   const station = getCurrentStationInfo(data);
@@ -3666,6 +3667,12 @@ function renderLogistics(data) {
   const currentStationId = data.corp?.currentStationId || "earth-station-prime";
   const credits = Number(data.corp?.finances?.credits || 0);
   const currentName = station?.name || "current station";
+  const stationName = (id) => stationRegistry.find((st) => st.id === id)?.name || id;
+  // The last outcome on a station card (AB#717): errors name the fix, and survive the re-renders a tick causes.
+  const status = appState.logisticsStatus || null;
+  // Picks and typed quantities survive those re-renders too, until the transfer goes through.
+  if (!appState.logisticsDraft) appState.logisticsDraft = {};
+  const draft = appState.logisticsDraft;
 
   // Summary tiles
   const totalRemoteUnits = stationRegistry
@@ -3695,8 +3702,8 @@ function renderLogistics(data) {
       </div>
     </div>`;
 
-  // Build per-station cards. Current station uses an inventory list; remote
-  // stations use an item-row layout with an inline transfer control per item.
+  // Build per-station cards. Current station uses an inventory list; remote stations use an item-row layout with a
+  // pick box and quantity per item, a Move button per row, and one button that moves every picked row together.
   let cardsHtml = "";
   for (const st of stationRegistry) {
     const inv = allInventory[st.id] || {};
@@ -3717,22 +3724,31 @@ function renderLogistics(data) {
     } else {
       itemsHtml = `<ul class="logistics-item-list">` + entries.map(([item, qty]) => {
         const maxQty = Number(qty);
+        const kept = draft[`${st.id}|${item}`] || {};
         return `<li class="logistics-item-row logistics-item-row--transfer">
-          <div class="logistics-item-meta">
+          <label class="logistics-item-meta">
+            <input type="checkbox" class="logistics-pick" data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}"${kept.picked ? " checked" : ""} aria-label="Pick ${escapeHtml(item)}" />
             <span class="logistics-item-name">${escapeHtml(item)}</span>
             <span class="logistics-item-qty muted">${maxQty.toLocaleString()} avail</span>
-          </div>
+          </label>
           <div class="logistics-transfer-controls">
-            <input type="number" class="logistics-qty-input" min="1" max="${maxQty}" value="${maxQty}"
-              data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}" aria-label="Transfer quantity" />
+            <input type="number" class="logistics-qty-input" min="1" step="1" max="${maxQty}" value="${escapeHtml(kept.qty ?? maxQty)}"
+              data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}" aria-label="Quantity of ${escapeHtml(item)} to move" />
             <button class="btn btn-outline btn-sm logistics-transfer-btn" type="button"
               data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}">
-              → ${escapeHtml(currentName)}
+              Move → ${escapeHtml(currentName)}
             </button>
           </div>
         </li>`;
-      }).join("") + `</ul>`;
+      }).join("") + `</ul>
+        <div class="logistics-bulk">
+          <button class="btn btn-accent btn-sm logistics-bulk-btn" type="button" data-from-station="${escapeHtml(st.id)}" disabled>Move picked items</button>
+          <span class="logistics-bulk-fee muted" data-from-station="${escapeHtml(st.id)}">Pick up to ${MAX_TRANSFER_LINES} items to move together.</span>
+        </div>`;
     }
+    const cardStatus = status && status.stationId === st.id
+      ? `<p class="logistics-status logistics-status--${status.tone === "ok" ? "ok" : "error"}" role="${status.tone === "ok" ? "status" : "alert"}">${escapeHtml(status.text)}</p>`
+      : "";
 
     cardsHtml += `
       <section class="logistics-station-card ${isCurrent ? "logistics-station-card--current" : ""}">
@@ -3744,42 +3760,104 @@ function renderLogistics(data) {
           <span class="logistics-station-sub muted">${subhead}</span>
         </header>
         ${itemsHtml}
+        ${cardStatus}
       </section>`;
   }
 
-  contentEl.innerHTML = summary + `<div class="logistics-grid">${cardsHtml}</div>`;
+  // Transfer history, newest first (corp.logisticsHistory keeps the last 100).
+  const history = Array.isArray(data.corp?.logisticsHistory) ? data.corp.logisticsHistory : [];
+  const historyHtml = `
+    <section class="form-card logistics-history">
+      <h3>Transfer History</h3>
+      ${history.length
+        ? `<div class="table-wrap"><table class="data-table">
+            <thead><tr><th>Time</th><th>From</th><th>To</th><th>Moved</th><th>Fee</th></tr></thead>
+            <tbody>${history.map((h) => `<tr>
+              <td>${escapeHtml(new Date(h.time).toLocaleString())}</td>
+              <td>${escapeHtml(stationName(h.from))}</td>
+              <td>${escapeHtml(stationName(h.to))}</td>
+              <td>${escapeHtml(describeLines(h.lines))}</td>
+              <td>${toCurrency(h.fee)}</td>
+            </tr>`).join("")}</tbody>
+          </table></div>`
+        : `<p class="muted">No transfers yet. Goods held at another station can be moved here from its card above.</p>`}
+    </section>`;
 
-  // Bind transfer buttons
+  contentEl.innerHTML = summary + `<div class="logistics-grid">${cardsHtml}</div>` + historyHtml;
+
+  const lineFor = (fromStation, item) => {
+    const input = [...contentEl.querySelectorAll(".logistics-qty-input")]
+      .find((el) => el.getAttribute("data-from-station") === fromStation && el.getAttribute("data-item") === item);
+    // Sent as typed: the server refuses anything but a whole number of at least 1, and says so.
+    return { item, quantity: input?.value ?? "" };
+  };
+  const picked = (fromStation) => [...contentEl.querySelectorAll(".logistics-pick")]
+    .filter((box) => box.checked && box.getAttribute("data-from-station") === fromStation)
+    .map((box) => lineFor(fromStation, box.getAttribute("data-item")));
+
+  // Keep each card's bulk button and fee preview in step with what is picked.
+  const refreshBulk = (fromStation) => {
+    const btn = [...contentEl.querySelectorAll(".logistics-bulk-btn")].find((b) => b.getAttribute("data-from-station") === fromStation);
+    const feeEl = [...contentEl.querySelectorAll(".logistics-bulk-fee")].find((b) => b.getAttribute("data-from-station") === fromStation);
+    if (!btn || !feeEl) return;
+    const lines = picked(fromStation);
+    const units = lines.reduce((s, l) => s + Math.max(0, Math.floor(Number(l.quantity) || 0)), 0);
+    btn.disabled = lines.length === 0;
+    btn.textContent = lines.length ? `Move ${lines.length} picked → ${currentName}` : "Move picked items";
+    feeEl.textContent = lines.length
+      ? `${units.toLocaleString()} units, fee ${toCurrency(transferFee([{ quantity: units }]))}${lines.length > MAX_TRANSFER_LINES ? `. At most ${MAX_TRANSFER_LINES} items per transfer.` : ""}`
+      : `Pick up to ${MAX_TRANSFER_LINES} items to move together.`;
+  };
+  const remember = (el) => {
+    const key = `${el.getAttribute("data-from-station")}|${el.getAttribute("data-item")}`;
+    draft[key] = { ...(draft[key] || {}), ...(el.type === "checkbox" ? { picked: el.checked } : { qty: el.value }) };
+    refreshBulk(el.getAttribute("data-from-station"));
+  };
+  contentEl.querySelectorAll(".logistics-pick, .logistics-qty-input").forEach((el) => {
+    el.addEventListener("input", () => remember(el));
+    el.addEventListener("change", () => remember(el));
+  });
+  new Set([...contentEl.querySelectorAll(".logistics-bulk-btn")].map((b) => b.getAttribute("data-from-station"))).forEach(refreshBulk);
+
+  const send = async (btn, fromStation, lines) => {
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = "Transferring…";
+    try {
+      const response = await apiFetch(
+        `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/transfer-resources`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fromStationId: fromStation, lines })
+        }
+      );
+      const account = await parseJsonResponse(response);
+      const moved = account.state?.corp?.logisticsHistory?.[0];
+      appState.logisticsStatus = { stationId: fromStation, tone: "ok", text: `Moved ${describeLines(moved?.lines || [])} to ${currentName} for ${toCurrency(moved?.fee || 0)}.` };
+      for (const key of Object.keys(draft)) if (key.startsWith(`${fromStation}|`)) delete draft[key];
+      appState.data = deepClone(account.state);
+      appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+      updateAllViews();
+      pushFeedback(appState.logisticsStatus.text, "success");
+    } catch (err) {
+      appState.logisticsStatus = { stationId: fromStation, tone: "error", text: err.message || "Transfer failed." };
+      btn.textContent = original;
+      renderLogistics(appState.data);
+      pushFeedback(appState.logisticsStatus.text, "warn");
+    }
+  };
+
   contentEl.querySelectorAll(".logistics-transfer-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       const fromStation = btn.getAttribute("data-from-station");
-      const item = btn.getAttribute("data-item");
-      const qtyInput = contentEl.querySelector(`.logistics-qty-input[data-from-station="${fromStation}"][data-item="${item}"]`);
-      const quantity = Math.max(1, parseInt(qtyInput?.value || "1", 10));
-
-      btn.disabled = true;
-      const original = btn.textContent;
-      btn.textContent = "Transferring…";
-
-      try {
-        const response = await apiFetch(
-          `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/transfer-resources`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fromStationId: fromStation, item, quantity })
-          }
-        );
-        const account = await parseJsonResponse(response);
-        appState.data = deepClone(account.state);
-        appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
-        updateAllViews();
-        pushFeedback(`Transferred ${quantity.toLocaleString()} ${item} to ${currentName}.`, "success");
-      } catch (err) {
-        btn.disabled = false;
-        btn.textContent = original;
-        pushFeedback(err.message || "Transfer failed.", "warn");
-      }
+      send(btn, fromStation, [lineFor(fromStation, btn.getAttribute("data-item"))]);
+    });
+  });
+  contentEl.querySelectorAll(".logistics-bulk-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const fromStation = btn.getAttribute("data-from-station");
+      send(btn, fromStation, picked(fromStation));
     });
   });
 }
