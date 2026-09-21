@@ -1,5 +1,6 @@
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { createStarmapController } from "./starmap.js";
+import { escapeHtml, notificationItemsHtml } from "./html.js";
 
 const appState = {
   serverData: null,
@@ -539,14 +540,6 @@ function toCurrency(number) {
   }).format(number);
 }
 
-function escapeHtml(value) {
-  return String(value || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
 
 function deepClone(input) {
   if (typeof structuredClone === "function") {
@@ -689,19 +682,8 @@ function renderNotifications() {
     return;
   }
 
-  notificationList.innerHTML = appState.notifications
-    .slice(0, 30)
-    .map((item) => {
-      const unreadClass = item.readAt ? "" : " unread";
-      return `
-        <li class="notification-item${unreadClass}" data-notification-id="${item.id}">
-          <p><strong>${item.title}</strong></p>
-          <p class="muted">${item.body}</p>
-          <p class="notification-meta">${formatTime(item.createdAt)} | ${item.type}</p>
-        </li>
-      `;
-    })
-    .join("");
+  // Bug #691: every field escaped (public/scripts/html.js, tested in tests/unit/html.test.js).
+  notificationList.innerHTML = notificationItemsHtml(appState.notifications.slice(0, 30), formatTime);
 }
 
 async function loadNotifications() {
@@ -2815,11 +2797,12 @@ function updateOverview(data) {
   const wrap = document.getElementById("overview-cards");
   wrap.innerHTML = cards
     .map(
+      // Bug #691 audit: the Conglomerate card's value carries a player-chosen conglomerate name.
       (card) => `
       <section class="data-card">
-        <h3>${card.title}</h3>
-        <p><strong>${card.value}</strong></p>
-        <p class="muted">${card.body}</p>
+        <h3>${escapeHtml(card.title)}</h3>
+        <p><strong>${escapeHtml(card.value)}</strong></p>
+        <p class="muted">${escapeHtml(card.body)}</p>
       </section>
     `
     )
