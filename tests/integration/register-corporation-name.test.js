@@ -55,14 +55,20 @@ describe("POST /api/auth/register validates the corporation name (Bug #433)", ()
   });
 });
 
-// A new system sender written as a string literal would not be reserved. Every sender name comes from SYSTEM_SENDERS.
-describe("system senders are named in one place (Bug #433)", () => {
-  it("has no fromName string literal in the server", () => {
-    const literals = [];
-    for (const file of ["server/index.js", "server/gameState.js"]) {
-      const source = fs.readFileSync(new URL(`../../${file}`, import.meta.url), "utf8");
-      for (const m of source.matchAll(/fromName\s*[:=]\s*["'`]([^"'`]+)["'`]/g)) literals.push(`${file}: ${m[1]}`);
+// A sender name written out as a string could be one nobody reserved. Every fromName literal in the server and the
+// client scripts must be a reserved name; new senders belong in SYSTEM_SENDERS, which reserves them.
+describe("every name the game signs messages with is reserved (Bug #433)", () => {
+  it("finds no fromName literal that a player could register", () => {
+    const dirs = ["server", "public/scripts"];
+    const unreserved = [];
+    for (const dir of dirs) {
+      for (const file of fs.readdirSync(new URL(`../../${dir}`, import.meta.url)).filter((f) => f.endsWith(".js"))) {
+        const source = fs.readFileSync(new URL(`../../${dir}/${file}`, import.meta.url), "utf8");
+        for (const m of source.matchAll(/fromName\s*[:=]\s*["'`]([^"'`$]+)["'`]/g)) {
+          if (!RESERVED_CORPORATION_NAMES.includes(m[1])) unreserved.push(`${dir}/${file}: ${m[1]}`);
+        }
+      }
     }
-    expect(literals).toEqual([]);
+    expect(unreserved).toEqual([]);
   });
 });

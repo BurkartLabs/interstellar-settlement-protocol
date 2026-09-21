@@ -1538,7 +1538,7 @@ function ensureStateFile() {
 // NPC buyers exist for every raw resource that currently has a refinery chain, so newly mined materials always have
 // a guaranteed sink.
 // TODO: Reevaluate how we are storing the below information. Should it be hardcoded? Should it be more dynamic?
-export const NPC_BUY_SEED = [
+const NPC_BUY_SEED = [
   { item: "Silicates",   buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
   { item: "Helium-3",    buyer: "Lunar Helium Consortium",   unitPrice: 92, dailyQty: 250000 },
   { item: "Nickel",      buyer: "Belt Refining Cooperative", unitPrice: 18, dailyQty: 750000 },
@@ -1551,6 +1551,7 @@ export const NPC_BUY_SEED = [
  * Names no player may take (Bug #433): every name the game's own messages are signed with, and every NPC buyer on the
  * exchange, derived from the lists the server uses so a new sender or buyer is reserved without anyone retyping it.
  */
+export { NPC_BUY_SEED };
 export const RESERVED_CORPORATION_NAMES = Object.freeze([
   ...Object.values(SYSTEM_SENDERS),
   ...NPC_BUY_SEED.map((seed) => seed.buyer)
@@ -2299,7 +2300,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
 
   pushSystemMessage(account, {
     subject: `ISA Settlement Licence — Ref. ISP-2147-${accountId.toUpperCase()}-AUTH`,
-    fromName: SYSTEM_SENDERS.AUTHORITY,
+    fromName: "Interstellar Settlement Authority",
     body:
       `To the registered CEO of ${String(corpName || "Frontier Protocol Ventures").trim()},\n\n` +
       `Your corporation has been assessed and approved under the provisions of the Interstellar Settlement Protocol (Earth Assembly Act, 2147).\n\n` +
