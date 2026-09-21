@@ -42,7 +42,7 @@ describe("slot errors name only what the game can do (Bug #1057)", () => {
     expect(res.body.error).not.toMatch(MISSING_VERBS);
   });
 
-  it("the station panel's second yard is sent to the leases (Bug #1195)", async () => {
+  it("a second yard outside a lease is sent to the leases (Bug #1195)", async () => {
     const c = await corporation((corp) => {
       corp.buildings = [{ name: "Basic Extractor Yard" }];
       corp.buildingSlots = 4;
@@ -50,6 +50,6 @@ describe("slot errors name only what the game can do (Bug #1057)", () => {
     });
     const res = await c.api.post(`/api/accounts/${c.id}/gameplay/build-extractor`).send({});
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("The station panel builds one Basic Extractor Yard (1/1). Build more on a mining lease: each lease holds 2, and the ISA Claims & Leases Division files them.");
+    expect(res.body.error).toBe("Only one Basic Extractor Yard can be built outside a mining lease (1/1). Build more on a lease: each lease holds 2, and the ISA Claims & Leases Division files them.");
   });
 });

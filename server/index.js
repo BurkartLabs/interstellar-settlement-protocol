@@ -1853,8 +1853,9 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
   if (outcome !== "ok") {
     const corp = account.state.corp;
     const messageMap = {
-      // Bug #1195: no perk raises this cap; leases are where more extractors go.
-      "extractor-cap": `The station panel builds ${extractorCap === 1 ? "one Basic Extractor Yard" : `${extractorCap} Basic Extractor Yards`} (${currentExtractorCount}/${extractorCap}). Build more on a mining lease: each lease holds 2, and the ISA Claims & Leases Division files them.`,
+      // Bug #1195: no perk raises this cap; leases are where more extractors go. (No page button calls this route any
+      // more; the lease-scoped route below is the one players use.)
+      "extractor-cap": `Only ${extractorCap === 1 ? "one Basic Extractor Yard" : `${extractorCap} Basic Extractor Yards`} can be built outside a mining lease (${currentExtractorCount}/${extractorCap}). Build more on a lease: each lease holds 2, and the ISA Claims & Leases Division files them.`,
       "no-slot": `A Basic Extractor Yard needs a free building slot. ${corpSlotsFull(corp)}`,
       "insufficient-credits": fundingRequirementMessage(
         "Basic Extractor Yard construction",
