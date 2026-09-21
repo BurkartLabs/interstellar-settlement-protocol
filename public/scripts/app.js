@@ -1,6 +1,7 @@
 import { WALKTHROUGH_STEPS as walkthroughSteps } from "./walkthrough.js";
 import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
+import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
@@ -683,9 +684,21 @@ function typeDialogueText(text, onDone) {
   }, 14);
 }
 
-function showDialogue({ speaker, title, text, choices = [], continueText = "", onContinue }) {
+function showDialogue({ speaker, title, text, choices = [], continueText = "", onContinue, portrait = "" }) {
   dialogueSpeaker.textContent = speaker;
   dialogueTitle.textContent = title;
+  // A speaker with a portrait shows it (AB#585); every other dialogue keeps the text-only card.
+  const dialoguePortrait = document.getElementById("dialogue-portrait");
+  if (dialoguePortrait) {
+    dialoguePortrait.hidden = !portrait;
+    dialoguePortrait.closest(".modal-card")?.classList.toggle("has-portrait", Boolean(portrait));
+    if (portrait) {
+      dialoguePortrait.src = portrait;
+      dialoguePortrait.alt = speaker;
+    } else {
+      dialoguePortrait.removeAttribute("src");
+    }
+  }
   dialogueChoices.innerHTML = "";
   dialogueContinue.hidden = true;
   dialogueModal.hidden = false;
@@ -718,16 +731,18 @@ function closeDialogue() {
 function runIntroDialogue() {
   return new Promise((resolve) => {
     showDialogue({
-      speaker: "Assembly Liaison Aria Voss",
+      speaker: COORDINATOR_BYLINE,
+      portrait: ASSIGNED_COORDINATOR.portrait,
       title: "Corporate Confirmation",
-      text: "Registration complete. Your corporation is officially chartered under the Interstellar Settlement Protocol. Command authority has been transferred to you as Founder and CEO.",
+      text: "Registration complete. Your corporation is officially chartered under the Interstellar Settlement Protocol, and command authority is yours as Founder and CEO. The Bureau assigns every new charter a coordinator. I have been assigned to yours.",
       choices: [
         {
           label: "Any advice for me?",
           accent: true,
           onClick: () => {
             showDialogue({
-              speaker: "Assembly Liaison Aria Voss",
+              speaker: COORDINATOR_BYLINE,
+              portrait: ASSIGNED_COORDINATOR.portrait,
               title: "Starting Advice",
               text: "Hire your initial employees, queue your first Corporate R&D project, and establish your first mining operation before overcommitting to military spend. Use market contracts to smooth bottlenecks.",
               continueText: "Proceed To Command Interface",
@@ -4245,12 +4260,8 @@ function getAgentRepLevel(agentId) {
 // TODO(AB#1051): This should be in the database 
 const MISSION_AGENTS = [
   {
-    id: "elara-voss",
-    name: "Elara Voss",
-    title: "Senior Logistics Coordinator",
-    faction: "Interstellar Settlement Authority",
-    factionCode: "ISA",
-    portrait: "/images/elara_voss.jpg",
+    // Name, title and portrait come from the one record the welcome letter and intro dialogue use (AB#585).
+    ...ASSIGNED_COORDINATOR,
     stationId: "earth-station-prime",
     bio: `Coordinator Voss has served the ISA's logistics division for over fourteen years, beginning as a junior freight auditor on Luna Gateway before transferring to Earth Station Prime's newly established Contracting & Assignments Bureau. She earned her Senior Coordinator designation after managing the emergency redistribution of silicate reserves during the Ceres Supply Crisis of 2139 — an operation that required coordinating seventeen independent mining corporations under a 72-hour ISA directive.
 

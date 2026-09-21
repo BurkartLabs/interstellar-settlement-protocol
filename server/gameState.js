@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import { createClient } from "@supabase/supabase-js";
+import { welcomeLetter } from "../public/scripts/liaison.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -2292,20 +2293,8 @@ export async function createAccount({ email, password, ceoName, corpName }) {
     body: "Your corporation charter is now active under the Interstellar Settlement Protocol."
   });
 
-  pushSystemMessage(account, {
-    subject: `ISA Settlement Licence — Ref. ISP-2147-${accountId.toUpperCase()}-AUTH`,
-    fromName: "Interstellar Settlement Authority",
-    body:
-      `To the registered CEO of ${String(corpName || "Frontier Protocol Ventures").trim()},\n\n` +
-      `Your corporation has been assessed and approved under the provisions of the Interstellar Settlement Protocol (Earth Assembly Act, 2147).\n\n` +
-      `This licence grants your corporation the legal right to:\n` +
-      `  — Establish a registered operational presence at any ISA-recognised station\n` +
-      `  — Apply for extraction rights across approved bodies within the Sol system\n` +
-      `  — Engage in commerce on the Galactic Exchange under your registered charter\n\n` +
-      `Your first recommended action is to secure office space at Earth Station Prime. Enclosed is your Founding Charter reference number for all future ISA correspondence.\n\n` +
-      `Founding Charter Ref: ISP/${accountId.toUpperCase()}/FC-001\n\n` +
-      `Liaison Officer Aria Voss\nInterstellar Settlement Authority — Sol Division`
-  });
+  // The letter's text lives in public/scripts/liaison.js with the coordinator who signs it (AB#585).
+  pushSystemMessage(account, welcomeLetter(corpName, accountId));
 
   accountsStore.accounts[accountId] = account;
   scheduleAccountsSave();
