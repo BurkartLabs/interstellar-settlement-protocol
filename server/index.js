@@ -1,6 +1,7 @@
 import "./loadEnv.js";
 import express from "express";
 import kanbanRouter from "./kanban.js";
+import { bodyNumber } from "./bodyNumber.js";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -282,7 +283,6 @@ const DUMMY_ACCESS_TOKEN_SECONDS = IS_DEV ? 7 * 24 * 60 * 60 : 2 * 60 * 60;
 const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
 const JWT_SECRET = process.env.JWT_SECRET || "isp-dev-insecure-secret-change-me";
 const ALLOW_DUMMY_AUTH = true;
-const DIRECT_INVESTMENT_UNLOCK_LEVEL = 2;
 
 function stripHtml(input) {
   return String(input || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
@@ -1051,7 +1051,7 @@ app.post("/api/accounts/:accountId/notifications/read-all", (req, res) => {
 });
 
 app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
-  const count = Math.max(1, Number(req.body?.count || 1));
+  const count = bodyNumber(req.body?.count, { fallback: 1, min: 1, integer: true });
   let outcome = "ok";
   let hiredCount = 0;
 
@@ -1368,7 +1368,7 @@ const LOGISTICS_FEE_PER_UNIT = 2;
 app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
   const fromStationId = String(req.body?.fromStationId || "").trim();
   const item = String(req.body?.item || "").trim();
-  const quantity = Math.max(1, Math.floor(Number(req.body?.quantity || 0)));
+  const quantity = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
 
   if (!fromStationId || !STATION_REGISTRY[fromStationId]) {
     res.status(400).json({ error: "Invalid source station." });
@@ -1674,8 +1674,8 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
 // ─── Lease-scoped: Start a mining cycle on a lease extractor ───────────────
 app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, res) => {
   const { leaseId } = req.params;
-  const amount = Math.max(10, Number(req.body?.amount || 40));
-  const requestedHours = Math.max(1, Math.min(72, Number(req.body?.hours || 24)));
+  const amount = bodyNumber(req.body?.amount, { fallback: 40, min: 10 });
+  const requestedHours = bodyNumber(req.body?.hours, { fallback: 24, min: 1, max: 72 });
   const requestedExtractorId = String(req.body?.extractorId || "").trim();
   let outcome = "ok";
   let targetExtractorLabel = "";
@@ -2270,7 +2270,7 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
   // Optional: number of input units the player wants to refine in this run.
   // Defaults to chain.inputQuantityPerCycle. Floored to a multiple of the
   // chain's per-cycle input. Effective minimum is max(100, perCycle).
-  const requestedQuantity = Math.floor(Number(req.body?.inputQuantity || 0));
+  const requestedQuantity = bodyNumber(req.body?.inputQuantity, { fallback: 0, integer: true });
   let outcome = "ok";
   let targetLabel = "";
   let actualQuantity = 0;
@@ -2501,8 +2501,8 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
 });
 
 app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
-  const amount = Math.max(10, Number(req.body?.amount || 40));
-  const requestedHours = Math.max(1, Math.min(72, Number(req.body?.hours || 24)));
+  const amount = bodyNumber(req.body?.amount, { fallback: 40, min: 10 });
+  const requestedHours = bodyNumber(req.body?.hours, { fallback: 24, min: 1, max: 72 });
   const requestedExtractorId = String(req.body?.extractorId || "").trim();
   let outcome = "ok";
   let targetExtractorLabel = "";
@@ -3076,13 +3076,12 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
     return;
   }
 
-  if (!type || !item || !quantity || !unitPrice || type !== "sell") {
+  const normalizedQty = bodyNumber(quantity, { fallback: null, min: 1, integer: true });
+  const normalizedUnitPrice = bodyNumber(unitPrice, { fallback: null, min: 1 });
+  if (!type || !item || normalizedQty === null || normalizedUnitPrice === null || type !== "sell") {
     res.status(400).json({ error: "Missing required order fields." });
     return;
   }
-
-  const normalizedQty = Math.max(1, Number(quantity));
-  const normalizedUnitPrice = Math.max(1, Number(unitPrice));
 
   let rejectReason = "";
   const updatedSeller = mutateAccountState(req.auth.accountId, (state) => {
@@ -3140,7 +3139,7 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
 
 app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
-  const requestedQty = Math.max(1, Number(req.body?.quantity || 1));
+  const requestedQty = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
   const normalizeIdentity = (value) => String(value || "").trim().toLowerCase();
 
   const buyerAccount = getAccountById(req.auth.accountId);
@@ -3261,7 +3260,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
 // ─── Sell player resources into an NPC standing buy order ────────────────────
 app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
-  const requestedQty = Math.max(1, Math.floor(Number(req.body?.quantity || 1)));
+  const requestedQty = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
 
   checkAndResetNpcBuyOrders();
 
@@ -3346,55 +3345,6 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
     traded: { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice: npcOrder.unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, proceeds: tradeProceeds },
     account: seller
   });
-});
-
-app.post("/api/investments", requireAuth, (req, res) => {
-  const { targetCorp, amount, instrument } = req.body ?? {};
-
-  if (!targetCorp || !amount || !instrument) {
-    res.status(400).json({ error: "Missing investment fields." });
-    return;
-  }
-
-  const investment = {
-    id: `inv-${Date.now()}`,
-    targetCorp,
-    amount: Number(amount),
-    instrument,
-    createdAt: Date.now()
-  };
-
-  let rejectReason = "";
-
-  const account = mutateAccountState(req.auth.accountId, (state) => {
-    const draft = state;
-    const spend = Number(amount);
-
-    if (Number(draft.corp.level || 0) < DIRECT_INVESTMENT_UNLOCK_LEVEL) {
-      rejectReason = `Direct investments unlock at Corporation Level ${DIRECT_INVESTMENT_UNLOCK_LEVEL}.`;
-      return;
-    }
-
-    if (draft.corp.finances.credits < spend) {
-      rejectReason = "Insufficient credits to place investment.";
-      return;
-    }
-
-    if (!draft.corp.investments) {
-      draft.corp.investments = [];
-    }
-
-    draft.corp.investments.unshift(investment);
-    draft.corp.finances.credits -= spend;
-  });
-
-  if (!account || rejectReason) {
-    res.status(400).json({ error: rejectReason || "Investment request rejected." });
-    return;
-  }
-
-  io.emit("finance:updated", account.state.corp.finances);
-  res.json({ ok: true, investment, account });
 });
 
 app.post("/api/combat/simulate", (req, res) => {

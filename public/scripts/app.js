@@ -2771,7 +2771,6 @@ function renderBalanceTable(finances, derived) {
   `;
 }
 
-function updateInvestmentPanel() { /* removed: direct investment panel deprecated */ }
 
 function updateOverview(data) {
   const cards = [

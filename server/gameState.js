@@ -22,6 +22,7 @@ const SUPABASE_MANAGED_PASSWORD_HASH = "__supabase_auth_managed__";
 
 import { recordIncome, recordExpense, ensureFinanceTracking } from "./finances.js";
 import { unknownLeaseBodies } from "./leases.js";
+import { directInvestmentRecords } from "./legacyInvestments.js";
 import {
   persistAccountsPhase1,
   hydrateOverlayPhase1,
@@ -1861,6 +1862,11 @@ let accountsStore = await hydrateAccountsStoreFromSupabaseOrFallback(createSeedA
 }
 // Bug #711: saves from before corporations had a public id get one on load, so they can be addressed by mail.
 backfillCorpPublicIds();
+// Bug #689: POST /api/investments is removed. Report what it stored, for the PM, and leave it in place.
+{
+  const records = directInvestmentRecords(Object.values(accountsStore.accounts || {}));
+  if (records.length) console.warn(`[investments] ${records.length} direct investment(s) from the removed route (Bug #689), left in place:`, JSON.stringify(records));
+}
 
 function scheduleSave() {
   if (IS_SERVERLESS) {
