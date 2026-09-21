@@ -137,7 +137,7 @@ export function computeLiveLiabilities(corp) {
  * constructed buildings, etc.); `inventoryEstimate` values stock at the
  * standing NPC bids in `market` (valueInventory).
  *
- * TODO(AB#713): Save a snapshot of financial data every x minutes to Supabase
+ * TODO(AB#713): Save a snapshot of financial data every x minutes to storage
  */
 export function computeAssetBreakdown(corp, market) {
   const credits = Math.max(0, Math.round(Number(corp?.finances?.credits) || 0));

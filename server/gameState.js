@@ -3,41 +3,28 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
-import { createClient } from "@supabase/supabase-js";
 import { welcomeLetter } from "../public/scripts/liaison.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const dataDir = path.join(__dirname, "..", "data");
-// ISP_STATE_PATH lets the test process use a state file of its own (it points at one that does not exist, so every
-// run starts from the seed) instead of whatever the local server last wrote to data/state.json (Bug #588).
-const statePath = process.env.ISP_STATE_PATH || path.join(dataDir, "state.json");
+// Bug #578: two directories. The game's catalogues (stations, systems, research and the rest) ship with the code in
+// data/. What the server writes, state.json and accounts-snapshot.json, goes to ISP_DATA_DIR: a mounted volume in the
+// container, data/ when it is not set. The test process points it at an empty directory of its own, so every run
+// starts from the seed and never reads what a local server last wrote (Bug #588).
+const catalogueDir = path.join(__dirname, "..", "data");
+export const dataDir = process.env.ISP_DATA_DIR ? path.resolve(process.env.ISP_DATA_DIR) : catalogueDir;
+const statePath = path.join(dataDir, "state.json");
 const accountsSnapshotPath = path.join(dataDir, "accounts-snapshot.json");
-const milestonesPath = path.join(dataDir, "milestones.json");
+const milestonesPath = path.join(catalogueDir, "milestones.json");
 const PASSWORD_SALT_ROUNDS = 10;
-const IS_SERVERLESS = Boolean(process.env.VERCEL);
-const SUPABASE_URL = String(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
-const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
-const SUPABASE_ANON_KEY = String(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
-const USE_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
-const USE_SUPABASE_AUTH = Boolean(USE_SUPABASE && SUPABASE_ANON_KEY);
-const SUPABASE_MANAGED_PASSWORD_HASH = "__supabase_auth_managed__";
 
 import { recordExpense, ensureFinanceTracking } from "./finances.js";
 import { unknownLeaseBodies } from "./leases.js";
 import { directInvestmentRecords } from "./legacyInvestments.js";
 import { validateCorporationName, SYSTEM_SENDERS, CORPORATION_NAME_MAX_LENGTH } from "./corporationName.js";
-import {
-  persistAccountsPhase1,
-  hydrateOverlayPhase1,
-  persistAccountsPhase2,
-  hydrateOverlayPhase2,
-  persistAccountsPhase3,
-  hydrateOverlayPhase3
-} from "./db/repositories/index.js";
 
 // Load station data for body→station mapping
-const STATIONS_RAW = JSON.parse(fs.readFileSync(path.join(dataDir, "stations.json"), "utf8"));
+const STATIONS_RAW = JSON.parse(fs.readFileSync(path.join(catalogueDir, "stations.json"), "utf8"));
 const BODY_TO_STATION = {};
 const STATION_REGISTRY_CACHE = {};
 for (const station of STATIONS_RAW.stations) {
@@ -45,25 +32,16 @@ for (const station of STATIONS_RAW.stations) {
   STATION_REGISTRY_CACHE[station.id] = station;
 }
 
-const supabaseAdmin = USE_SUPABASE
-  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
-  : null;
-
-const supabaseAuthClient = USE_SUPABASE_AUTH
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } })
-  : null;
-
-// Clean up any leftover .tmp files from interrupted atomic writes
-if (!IS_SERVERLESS) {
-  for (const file of fs.readdirSync(dataDir)) {
-    if (file.endsWith(".tmp")) {
-      try { fs.unlinkSync(path.join(dataDir, file)); } catch {}
-    }
+// The data directory may be a new, empty volume. Clean up any leftover .tmp files from interrupted atomic writes.
+fs.mkdirSync(dataDir, { recursive: true });
+for (const file of fs.readdirSync(dataDir)) {
+  if (file.endsWith(".tmp")) {
+    try { fs.unlinkSync(path.join(dataDir, file)); } catch {}
   }
 }
 
-function safeWriteFile(filePath, data, contextLabel = "write") {
-  try {
+function safeWriteFile(filePath, data) {
+  {
     // Atomic write: write to a temp file then rename, so a mid-write kill
     // (e.g. double Ctrl+C or node --watch termination) never truncates the real file.
     const tmpPath = filePath + ".tmp";
@@ -91,12 +69,6 @@ function safeWriteFile(filePath, data, contextLabel = "write") {
       try { fs.unlinkSync(tmpPath); } catch (_) {}
       throw lastErr || writeErr;
     }
-  } catch (error) {
-    // Vercel filesystem is read-only for deployed source paths; keep running in-memory.
-    if (IS_SERVERLESS && (error?.code === "EROFS" || error?.code === "EPERM" || error?.code === "EACCES")) {
-      return false;
-    }
-    throw error;
   }
 }
 
@@ -108,7 +80,7 @@ export const MAX_DEFINED_LEVEL = Math.max(...MILESTONE_LEVELS.map((l) => l.level
 const MILESTONE_ROADMAP = MILESTONES_DATA.roadmap;          // ["Rent an Office", ...]
 
 // ─── CEO Insight programs ────────────────────────────────────────────────────
-const ceoInsightPath = path.join(dataDir, "ceo-insight.json");
+const ceoInsightPath = path.join(catalogueDir, "ceo-insight.json");
 const CEO_INSIGHT_DATA = JSON.parse(fs.readFileSync(ceoInsightPath, "utf8"));
 const CEO_INSIGHT_LIBRARY = {};
 for (const prog of CEO_INSIGHT_DATA.programs) {
@@ -116,10 +88,10 @@ for (const prog of CEO_INSIGHT_DATA.programs) {
 }
 
 // ─── Systems: single source of truth from data/systems.json ────────────────
-const SYSTEMS_DATA = JSON.parse(fs.readFileSync(path.join(dataDir, "systems.json"), "utf8"));
+const SYSTEMS_DATA = JSON.parse(fs.readFileSync(path.join(catalogueDir, "systems.json"), "utf8"));
 
 // ─── Refinery chains ────────────────────────────────────────────────────────
-const refineryChainsPath = path.join(dataDir, "refinery-chains.json");
+const refineryChainsPath = path.join(catalogueDir, "refinery-chains.json");
 const REFINERY_CHAINS_DATA = JSON.parse(fs.readFileSync(refineryChainsPath, "utf8"));
 const REFINERY_CHAINS = {};
 for (const chain of REFINERY_CHAINS_DATA.chains) {
@@ -1186,8 +1158,8 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
 
   next.corp = {
     ...next.corp,
-    // Bug #711: how other players address this corporation. Opaque and random, never the account id (a Supabase
-    // user id in Supabase mode), because names are not unique and mail was routed by name.
+    // Bug #711: how other players address this corporation. Opaque and random, never the account id, because names
+    // are not unique and mail was routed by name.
     publicId: createId("corp"),
     ceo: ceoName,
     corporationName: corpName,
@@ -1602,17 +1574,11 @@ export function ensureGlobalSocialState(globalState) {
 }
 
 function ensureStateFile() {
-  if (!IS_SERVERLESS && !fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-
   // Bug #588, #574: a missing file used to return the bare seed early, skipping the market setup below, so a fresh
   // install (and every test process) had no order book and no standing buy orders. Both paths now take the same route.
   const exists = fs.existsSync(statePath);
   const normalized = normalizeGlobalState(exists ? JSON.parse(fs.readFileSync(statePath, "utf8")) : getSeedState());
-  if (!IS_SERVERLESS) {
-    safeWriteFile(statePath, JSON.stringify(normalized, null, 2), exists ? "state normalize" : "state init");
-  }
+  safeWriteFile(statePath, JSON.stringify(normalized, null, 2));
   return normalized;
 }
 
@@ -1683,101 +1649,9 @@ let state = ensureStateFile();
 let saveTimer = null;
 let accountsSaveTimer = null;
 
-function stateWithAccountMeta(account) {
-  const stateCopy = deepClone(account.state || {});
-  stateCopy.__accountMeta = {
-    refreshTokens: Array.isArray(account.refreshTokens) ? account.refreshTokens : [],
-    notifications: Array.isArray(account.notifications) ? account.notifications : [],
-    messages: Array.isArray(account.messages) ? account.messages : []
-  };
-  return stateCopy;
-}
-
-function splitAccountStateAndMeta(rawState) {
-  const stateCopy = deepClone(rawState || {});
-  const meta = stateCopy.__accountMeta || {};
-  delete stateCopy.__accountMeta;
-  return {
-    state: normalizeStateShape(stateCopy),
-    refreshTokens: Array.isArray(meta.refreshTokens) ? meta.refreshTokens : [],
-    notifications: Array.isArray(meta.notifications) ? meta.notifications : [],
-    messages: Array.isArray(meta.messages) ? meta.messages : []
-  };
-}
-
-async function persistAccountsStoreToSupabase(snapshot = accountsStore) {
-  if (!USE_SUPABASE || !supabaseAdmin) {
-    return;
-  }
-
-  const allAccounts = Object.values(snapshot.accounts || {});
-  if (!allAccounts.length) {
-    return;
-  }
-
-  const accountRows = allAccounts.map((account) => ({
-    id: account.id,
-    email: String(account.email || "").toLowerCase(),
-    password_hash: String(account.passwordHash || SUPABASE_MANAGED_PASSWORD_HASH),
-    walkthrough_completed: Boolean(account.walkthroughCompleted),
-    created_at: new Date(Number(account.createdAt || Date.now())).toISOString(),
-    last_login_at: account.lastLoginAt ? new Date(Number(account.lastLoginAt)).toISOString() : null
-  }));
-
-  const stateRows = allAccounts.map((account) => ({
-    account_id: account.id,
-    state_json: stateWithAccountMeta(account),
-    updated_at: new Date().toISOString()
-  }));
-
-  const { error: accountError } = await supabaseAdmin
-    .from("accounts")
-    .upsert(accountRows, { onConflict: "id" });
-
-  if (accountError) {
-    throw accountError;
-  }
-
-  const { error: stateError } = await supabaseAdmin
-    .from("account_state")
-    .upsert(stateRows, { onConflict: "account_id" });
-
-  if (stateError) {
-    throw stateError;
-  }
-
-  /*
-    TODO(AB#578): Evaluate below account persistance functionality. We are frequently having connection issues which trigger the below errors. Despite there
-    being no downtime with the server itself. 
-  */
-  
-  // Phase 1 dual-write to the normalized tables. No-op unless
-  // USE_NORMALIZED_TABLES is on. Failures are logged but don't break the
-  // legacy persist path while the cutover is in flight.
-  try {
-    await persistAccountsPhase1(allAccounts);
-  } catch (phase1Error) {
-    logPersistError("[supabase][phase1] Failed to dual-write normalized tables", phase1Error);
-  }
-
-  // Phase 2 dual-write: buildings, offices, leases, extractors.
-  try {
-    await persistAccountsPhase2(allAccounts);
-  } catch (phase2Error) {
-    logPersistError("[supabase][phase2] Failed to dual-write normalized tables", phase2Error);
-  }
-
-  // Phase 3 dual-write: remaining normalized domains.
-  try {
-    await persistAccountsPhase3(allAccounts);
-  } catch (phase3Error) {
-    logPersistError("[supabase][phase3] Failed to dual-write normalized tables", phase3Error);
-  }
-}
-
-// TODO(AB#578): Remove all local disk account snapshots. All operations should go through the DB
+// Bug #578: the accounts live in memory and in accounts-snapshot.json in the data directory, the only store until
+// Postgres in v0.6 (Decision #591).
 function loadAccountsSnapshotFromDisk() {
-  if (IS_SERVERLESS) return null;
   try {
     if (!fs.existsSync(accountsSnapshotPath)) return null;
     const raw = fs.readFileSync(accountsSnapshotPath, "utf8");
@@ -1791,9 +1665,12 @@ function loadAccountsSnapshotFromDisk() {
 }
 
 function writeAccountsSnapshotToDiskNow() {
-  if (IS_SERVERLESS) return;
+  if (_diskSnapshotTimer) {
+    clearTimeout(_diskSnapshotTimer);
+    _diskSnapshotTimer = null;
+  }
   try {
-    safeWriteFile(accountsSnapshotPath, JSON.stringify(accountsStore, null, 2), "accounts snapshot");
+    safeWriteFile(accountsSnapshotPath, JSON.stringify(accountsStore, null, 2));
   } catch (error) {
     logPersistError("[accounts] Failed to write local accounts snapshot", error);
   }
@@ -1803,7 +1680,6 @@ function writeAccountsSnapshotToDiskNow() {
 // event loop with synchronous I/O (especially painful on OneDrive folders).
 let _diskSnapshotTimer = null;
 function writeAccountsSnapshotToDisk() {
-  if (IS_SERVERLESS) return;
   if (_diskSnapshotTimer) return;
   _diskSnapshotTimer = setTimeout(() => {
     _diskSnapshotTimer = null;
@@ -1812,126 +1688,19 @@ function writeAccountsSnapshotToDisk() {
   if (typeof _diskSnapshotTimer?.unref === "function") _diskSnapshotTimer.unref();
 }
 
-async function hydrateAccountsStoreFromSupabaseOrFallback(fallbackStore) {
-  if (!USE_SUPABASE || !supabaseAdmin) {
-    const local = loadAccountsSnapshotFromDisk();
-    if (local) {
-      console.warn("[accounts] Supabase disabled at startup; restored accounts from local snapshot.");
-      return mergeDummyAccount(local, fallbackStore);
-    }
-    console.warn("[accounts] Supabase disabled at startup; using seeded in-memory account store.");
-    return fallbackStore;
+/** The accounts from the snapshot in the data directory, or the seed on a fresh install. */
+function loadAccountsStore(fallbackStore) {
+  const local = loadAccountsSnapshotFromDisk();
+  if (local) {
+    console.warn(`[accounts] Restored ${Object.keys(local.accounts).length} account(s) from the snapshot in the data directory.`);
+    return mergeDummyAccount(local, fallbackStore);
   }
-
-  try {
-    const { data: accountRows, error: accountError } = await supabaseAdmin
-      .from("accounts")
-      .select("id, email, password_hash, walkthrough_completed, created_at, last_login_at");
-
-    if (accountError) {
-      throw accountError;
-    }
-
-    if (!Array.isArray(accountRows) || accountRows.length === 0) {
-      console.error("[accounts] Failed to load any rows from the Supabase accounts table; seeding fallback store into Supabase.");
-      await persistAccountsStoreToSupabase(fallbackStore);
-      return fallbackStore;
-    }
-
-    const { data: stateRows, error: stateError } = await supabaseAdmin
-      .from("account_state")
-      .select("account_id, state_json");
-
-    if (stateError) {
-      throw stateError;
-    }
-
-    const stateByAccountId = new Map((stateRows || []).map((row) => [row.account_id, row.state_json]));
-    const hydrated = { accounts: {} };
-    const seedState = normalizeStateShape(getSeedState());
-
-    for (const row of accountRows) {
-      const hasStateRow = stateByAccountId.has(row.id);
-      if (!hasStateRow) {
-        console.error(`[accounts] Failed to load account_state.state_json for account ${row.id}; using generated starter state fallback.`);
-      }
-
-      const rawState = hasStateRow
-        ? stateByAccountId.get(row.id)
-        : createStarterCorporationState(seedState, "New CEO", "Frontier Protocol Ventures");
-      const parsed = splitAccountStateAndMeta(rawState);
-      parsed.state.playerProfile.walkthroughCompleted = Boolean(row.walkthrough_completed);
-      evaluateLevelProgress(parsed.state);
-
-      hydrated.accounts[row.id] = {
-        id: row.id,
-        email: String(row.email || "").toLowerCase(),
-        passwordHash: String(row.password_hash || SUPABASE_MANAGED_PASSWORD_HASH),
-        walkthroughCompleted: Boolean(row.walkthrough_completed),
-        createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
-        lastLoginAt: row.last_login_at ? new Date(row.last_login_at).getTime() : null,
-        refreshTokens: parsed.refreshTokens,
-        notifications: parsed.notifications,
-        messages: parsed.messages,
-        state: parsed.state
-      };
-    }
-
-    if (!stateByAccountId.size) {
-      console.error("[accounts] account_state query returned zero rows; all hydrated accounts are using fallback state.");
-    }
-
-    // Phase 1 cutover: overlay corporations / finances / military / unlocks /
-    // sets from their normalized tables on top of the state_json blob.
-    // No-op unless USE_NORMALIZED_TABLES is on. Failures are logged but never
-    // block startup — we fall back to the blob values that are already in
-    // place.
-    try {
-      await hydrateOverlayPhase1(hydrated.accounts);
-    } catch (phase1Error) {
-      console.error(
-        "[supabase][phase1] Failed to overlay normalized tables:",
-        phase1Error?.message || phase1Error
-      );
-    }
-
-    // Phase 2 cutover: overlay buildings, offices, leases, and extractors.
-    try {
-      await hydrateOverlayPhase2(hydrated.accounts);
-    } catch (phase2Error) {
-      console.error(
-        "[supabase][phase2] Failed to overlay normalized tables:",
-        phase2Error?.message || phase2Error
-      );
-    }
-
-    // Phase 3 cutover: overlay remaining normalized domains.
-    try {
-      await hydrateOverlayPhase3(hydrated.accounts);
-    } catch (phase3Error) {
-      console.error(
-        "[supabase][phase3] Failed to overlay normalized tables:",
-        phase3Error?.message || phase3Error
-      );
-    }
-
-    console.info(`[accounts] Hydrated ${accountRows.length} account(s) from Supabase.`);
-    return mergeDummyAccount(hydrated, fallbackStore);
-  } catch (error) {
-    console.error("[supabase] Failed to hydrate accounts store, using local fallback:", error?.message || error);
-    const local = loadAccountsSnapshotFromDisk();
-    if (local) {
-      console.warn("[accounts] Restored accounts from local snapshot after Supabase hydrate failure.");
-      return mergeDummyAccount(local, fallbackStore);
-    }
-    return fallbackStore;
-  }
+  console.warn("[accounts] No accounts snapshot in the data directory; starting from the seed.");
+  return fallbackStore;
 }
 
 /**
- * Ensure the in-memory `dummy` dev account survives Supabase hydration.
- * The dummy account is never persisted to Supabase, so a successful hydrate
- * would otherwise wipe it from the in-memory store. Mutates and returns
+ * Ensure the in-memory `dummy` dev account survives loading a snapshot that lacks it. Mutates and returns
  * `hydrated` for chaining.
  */
 export function mergeDummyAccount(hydrated, fallbackStore) {
@@ -1948,7 +1717,7 @@ export function mergeDummyAccount(hydrated, fallbackStore) {
 
 /**
  * Create a fresh in-memory seed accounts store with a dummy dev account.
- * This is used as the initial/fallback store when Supabase has no data yet.
+ * This is the store a fresh install starts with.
  *
  */
 function createSeedAccountsStore() {
@@ -1977,7 +1746,7 @@ function createSeedAccountsStore() {
   };
 }
 
-let accountsStore = await hydrateAccountsStoreFromSupabaseOrFallback(createSeedAccountsStore());
+let accountsStore = loadAccountsStore(createSeedAccountsStore());
 
 // Bug #691: leases used to accept any string as a body. Say how many stored leases name a body the catalog does not
 // have, as a count only (no account, no name), and leave them in place: deleting a player's lease is a Board call.
@@ -1994,33 +1763,30 @@ backfillCorpPublicIds();
 }
 
 function scheduleSave() {
-  if (IS_SERVERLESS) {
-    return;
-  }
-
   if (saveTimer) {
     clearTimeout(saveTimer);
   }
 
   saveTimer = setTimeout(() => {
-    safeWriteFile(statePath, JSON.stringify(state, null, 2), "state save");
+    safeWriteFile(statePath, JSON.stringify(state, null, 2));
     saveTimer = null;
   }, 300);
 }
 
-let _persistDirty = false;
+/** Write the global state now, cancelling a pending debounced save. */
+function saveStateNow() {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  safeWriteFile(statePath, JSON.stringify(state, null, 2));
+}
+
 let _lastPersistErrorAt = 0;
 let _lastPersistErrorSig = "";
 
 function summarizePersistError(error) {
   const raw = String(error?.message || error || "unknown error");
-  // Cloudflare / proxy HTML error pages dump an entire document into the
-  // message. Detect them and surface just the upstream status when possible.
-  if (raw.startsWith("<!DOCTYPE") || raw.startsWith("<html")) {
-    const titleMatch = raw.match(/<title>([^<]+)<\/title>/i);
-    return titleMatch ? `upstream HTML error: ${titleMatch[1].trim()}` : "upstream HTML error page";
-  }
-  // Cap any other oversized message.
   return raw.length > 400 ? `${raw.slice(0, 400)}\u2026 (truncated)` : raw;
 }
 
@@ -2039,124 +1805,22 @@ function logPersistError(prefix, error) {
   console.error(`${prefix}:`, message);
 }
 
-// Mutex: never run two persistAccountsStoreToSupabase concurrently. Two
-// in-flight writes were causing duplicate-key errors against corp_extractors /
-// corp_buildings (the second insert raced ahead of the first delete). When a
-// save is requested while one is already running, mark dirty so the
-// in-progress save's callback re-schedules another pass once it completes.
-let _persistInFlight = false;
-let _persistInFlightPromise = null;
-let _persistRequeueAfterFlight = false;
-
-async function _runPersistAccountsToSupabaseSerially() {
-  if (_persistInFlight) {
-    _persistRequeueAfterFlight = true;
-    // Allow callers to await the in-flight save instead of returning early.
-    return _persistInFlightPromise;
-  }
-  _persistInFlight = true;
-  _persistInFlightPromise = (async () => {
-    try {
-      await persistAccountsStoreToSupabase();
-    } catch (error) {
-      logPersistError("[supabase] Failed to persist account snapshot", error);
-      _persistDirty = true;
-      // Disk fallback so local progress isn't lost while Supabase is down.
-      try { writeAccountsSnapshotToDisk(); } catch (_) {}
-    } finally {
-      _persistInFlight = false;
-      const requeue = _persistRequeueAfterFlight;
-      _persistRequeueAfterFlight = false;
-      _persistInFlightPromise = null;
-      if (requeue) {
-        // Yield to event loop, then run again with the latest state.
-        setTimeout(() => { _runPersistAccountsToSupabaseSerially().catch(() => {}); }, 0);
-      }
-    }
-  })();
-  return _persistInFlightPromise;
-}
-
 function scheduleAccountsSave() {
-  if (!USE_SUPABASE) {
-    // Local-only mode: mirror to disk so state survives restarts.
-    writeAccountsSnapshotToDisk();
-    return;
-  }
-
-  // Mark dirty so flushPendingPersist (called before every API response) will
-  // await the write. Also kick off the persist immediately so the flush in
-  // most cases finds it already complete instead of having to wait.
-  _persistDirty = true;
-
-  if (IS_SERVERLESS) {
-    // On serverless, the flush middleware will await before responding.
-    return;
-  }
-
-  // Mirror to disk too so a Supabase outage doesn't lose progress.
   writeAccountsSnapshotToDisk();
-
-  // Cancel any outstanding debounce timer (legacy) and start the persist now.
-  if (accountsSaveTimer) {
-    clearTimeout(accountsSaveTimer);
-    accountsSaveTimer = null;
-  }
-  _runPersistAccountsToSupabaseSerially()
-    .then(() => { _persistDirty = false; })
-    .catch(() => { /* error already logged; _persistDirty stays true */ });
 }
 
+/**
+ * Write the accounts and the global state to the data directory now. The graceful shutdown calls it, so a container
+ * stopped for a new revision keeps the last changes (Bug #1153: the debounced writes it used to start never ran).
+ */
 export async function saveAccountsNow() {
-  if (!USE_SUPABASE) {
-    writeAccountsSnapshotToDisk();
-    return true;
-  }
-  _persistDirty = false;
-  if (accountsSaveTimer) {
-    clearTimeout(accountsSaveTimer);
-    accountsSaveTimer = null;
-  }
-  // Always mirror to disk before/after Supabase.
-  try { writeAccountsSnapshotToDisk(); } catch (_) {}
+  writeAccountsSnapshotToDiskNow();
   try {
-    await _runPersistAccountsToSupabaseSerially();
-    return true;
+    saveStateNow();
   } catch (error) {
-    logPersistError("[supabase] saveAccountsNow failed", error);
-    _persistDirty = true;
-    return false;
+    logPersistError("[state] Failed to write the global state", error);
   }
-}
-
-export async function flushPendingPersist() {
-  if (!USE_SUPABASE) return;
-  // Wait for any in-flight save to finish first; that save may already cover
-  // the current dirty state.
-  if (_persistInFlightPromise) {
-    try { await _persistInFlightPromise; } catch (_) { /* logged elsewhere */ }
-  }
-  // If still dirty (new mutation arrived after the in-flight save started, or
-  // there was no in-flight save), run another pass and await it.
-  if (_persistDirty) {
-    _persistDirty = false;
-    try {
-      await _runPersistAccountsToSupabaseSerially();
-    } catch (error) {
-      console.error("[supabase] Flush persist failed:", error?.message || error);
-      _persistDirty = true;
-    }
-  }
-}
-
-export async function rehydrateFromSupabase() {
-  if (!USE_SUPABASE || !supabaseAdmin) return;
-  try {
-    const fresh = await hydrateAccountsStoreFromSupabaseOrFallback(accountsStore);
-    accountsStore.accounts = fresh.accounts;
-  } catch (err) {
-    console.error("[supabase] rehydrate failed, keeping in-memory state:", err?.message || err);
-  }
+  return true;
 }
 
 export function getState() {
@@ -2287,26 +1951,12 @@ export async function authenticateAccount(email, password) {
     (item) => item.email?.toLowerCase() === normalizedEmail
   );
 
-  if (USE_SUPABASE_AUTH && supabaseAuthClient) {
-    const { error } = await supabaseAuthClient.auth.signInWithPassword({
-      email: normalizedEmail,
-      password: normalizedPassword
-    });
-    if (error) {
-      return null;
-    }
-  } else {
-    if (!account) {
-      return null;
-    }
-
-    const isValidPassword = bcrypt.compareSync(normalizedPassword, String(account.passwordHash || ""));
-    if (!isValidPassword) {
-      return null;
-    }
+  if (!account) {
+    return null;
   }
 
-  if (!account) {
+  const isValidPassword = bcrypt.compareSync(normalizedPassword, String(account.passwordHash || ""));
+  if (!isValidPassword) {
     return null;
   }
 
@@ -2341,7 +1991,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
   }
 
   // Bug #433: the name is the only trust signal on the order book, the forums and in mail. Checked before anything is
-  // created, here or in Supabase: 3 to 40 plain characters, unique ignoring case and spacing, and not the name of
+  // created: 3 to 40 plain characters, unique ignoring case and spacing, and not the name of
   // anything the game itself speaks as.
   const corporation = validateCorporationName(corpName, {
     existingNames: Object.values(accountsStore.accounts || {}).map((item) => item?.state?.corp?.corporationName).filter(Boolean),
@@ -2351,27 +2001,8 @@ export async function createAccount({ email, password, ceoName, corpName }) {
     return { error: corporation.error };
   }
 
-  let accountId = createId("acc");
-  let passwordHash = bcrypt.hashSync(normalizedPassword, PASSWORD_SALT_ROUNDS);
-
-  if (USE_SUPABASE_AUTH && supabaseAdmin) {
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email: normalizedEmail,
-      password: normalizedPassword,
-      email_confirm: true
-    });
-
-    if (error) {
-      const message = String(error.message || "").toLowerCase();
-      if (message.includes("already") || message.includes("registered")) {
-        return { error: "An account with this email already exists." };
-      }
-      return { error: `Supabase auth registration failed: ${error.message}` };
-    }
-
-    accountId = data?.user?.id || accountId;
-    passwordHash = SUPABASE_MANAGED_PASSWORD_HASH;
-  }
+  const accountId = createId("acc");
+  const passwordHash = bcrypt.hashSync(normalizedPassword, PASSWORD_SALT_ROUNDS);
 
   const seedState = normalizeStateShape(getSeedState());
   const nextState = createStarterCorporationState(
@@ -2502,8 +2133,8 @@ export function listAccountMessages(accountId) {
   if (!account) return null;
   purgeExpiredTrash(account);
   scheduleAccountsSave();
-  // Bug #711: fromId and toAccountId are account ids (Supabase user ids in Supabase mode). They stay in storage, where
-  // the normalized tables use them, but never leave the server: a player's mail names other corporations by publicId.
+  // Bug #711: fromId and toAccountId are account ids. They stay in storage but never leave the server: a player's
+  // mail names other corporations by publicId.
   return (account.messages || []).map(({ fromId, toAccountId, ...m }) => ({ ...m }));
 }
 

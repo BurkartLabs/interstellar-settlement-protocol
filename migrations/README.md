@@ -1,5 +1,7 @@
 # Migrations
 
+Not used by the server. Supabase was retired in AB#578 (Decision #591): accounts and the world are files in the data directory until v0.6, which plans Postgres. These files are kept as the starting point for that schema.
+
 Run each `.sql` file in numerical order in the Supabase SQL editor (one file per submission).
 Each file contains a single `create table` (plus its indexes) so it works with clients that
 require single-statement input. All files are idempotent (`create table if not exists`,
