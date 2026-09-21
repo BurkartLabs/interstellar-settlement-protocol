@@ -1275,8 +1275,8 @@ h1 {
 }
 
 .price-chart__ranges [aria-pressed="true"] {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .price-chart__canvas {
