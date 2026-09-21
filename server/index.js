@@ -5,6 +5,7 @@ import { resolveJwtSecret } from "./jwtSecret.js";
 import { bodyNumber } from "./bodyNumber.js";
 import { bodyCount } from "./bodyNumber.js";
 import { marketView } from "./marketView.js";
+import { forumsView, postView, threadView, UNNAMED_CORPORATION } from "./publicViews.js";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
@@ -833,9 +834,10 @@ if (!process.env.ISP_DISABLE_TICKERS) {
 // TODO(AB#737): Consider moving API to a dedicated api.js file
 
 app.get("/api/bootstrap", (req, res) => {
-  // Public, but a signed-in caller also gets their own older orders (Bug #425: the book is capped when read).
+  // Public, but a signed-in caller also gets their own older orders (Bug #425: the book is capped when read), and is
+  // told which posts and listings are theirs. Nobody is sent an account id (Bugs #1134, #1145).
   const viewer = verifyAccessToken(getBearerToken(req)).accountId || null;
-  res.json({ ...getState(), market: marketView(getState().market, viewer), version: APP_VERSION });
+  res.json({ ...sharedStateView(viewer), version: APP_VERSION });
 });
 
 app.get("/api/stations", (_req, res) => {
@@ -2906,7 +2908,7 @@ app.post("/api/forums/threads", requireAuth, (req, res) => {
     res.status(404).json({ error: "Account not found." });
     return;
   }
-  const author = account.state?.corp?.corporationName || account.email || "Anonymous";
+  const author = String(account.state?.corp?.corporationName || "").trim() || UNNAMED_CORPORATION; // never the email (Bug #1134)
 
   // Validate the category against the global allowlist before mutating.
   const currentForums = getState().forums || {};
@@ -2934,8 +2936,8 @@ app.post("/api/forums/threads", requireAuth, (req, res) => {
     draft.forums.threads.unshift(newThread);
   });
 
-  io.emit("forums:updated", updated.forums);
-  res.json({ thread: newThread });
+  emitForumsUpdated(updated.forums);
+  res.json({ thread: threadView(newThread, account.id) });
 });
 
 app.post("/api/forums/threads/:threadId/replies", requireAuth, (req, res) => {
@@ -2950,7 +2952,7 @@ app.post("/api/forums/threads/:threadId/replies", requireAuth, (req, res) => {
     res.status(404).json({ error: "Account not found." });
     return;
   }
-  const author = account.state?.corp?.corporationName || account.email || "Anonymous";
+  const author = String(account.state?.corp?.corporationName || "").trim() || UNNAMED_CORPORATION; // never the email (Bug #1134)
 
   const reply = {
     id: `rep-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -2975,13 +2977,14 @@ app.post("/api/forums/threads/:threadId/replies", requireAuth, (req, res) => {
     return;
   }
 
-  io.emit("forums:updated", updated.forums);
-  res.json({ reply, thread: foundThread });
+  emitForumsUpdated(updated.forums);
+  res.json({ reply: postView(reply, account.id), thread: threadView(foundThread, account.id) });
 });
 
 // Toggle a like on a thread or reply. Tracks `likedBy` (account IDs) so each
 // account can only like once; clicking again unlikes. `likes` is always
-// derived from `likedBy.length` to stay consistent.
+// derived from `likedBy.length` to stay consistent. `likedBy` never leaves the
+// server: clients get `likedByMe` (Bug #1134).
 app.post("/api/forums/threads/:threadId/like", requireAuth, (req, res) => {
   const replyId = req.body?.replyId ? String(req.body.replyId) : null;
   const accountId = req.auth.accountId;
@@ -3020,8 +3023,8 @@ app.post("/api/forums/threads/:threadId/like", requireAuth, (req, res) => {
     return;
   }
 
-  io.emit("forums:updated", updated.forums);
-  res.json({ ...result, thread: foundThread });
+  emitForumsUpdated(updated.forums);
+  res.json({ ...result, thread: threadView(foundThread, accountId) });
 });
 
 app.post("/api/market/orders", requireAuth, (req, res) => {
@@ -3406,6 +3409,17 @@ function emitMarketUpdated() {
   for (const peer of io.of("/").sockets.values()) peer.emit("market:updated", marketView(market, peer.data.accountId));
 }
 
+/** Send the forums to every connected socket as that socket's account should see them: no account ids (Bug #1134). */
+function emitForumsUpdated(forums) {
+  for (const peer of io.of("/").sockets.values()) peer.emit("forums:updated", forumsView(forums, peer.data.accountId));
+}
+
+/** The shared state as `viewer` (an account id, or null) should see it: the bootstrap and a socket's state:init. */
+function sharedStateView(viewer) {
+  const state = getState();
+  return { ...state, market: marketView(state.market, viewer), forums: forumsView(state.forums, viewer) };
+}
+
 io.use((socket, next) => {
   const verified = verifyAccessToken(socket.handshake.auth?.token);
   if (verified.accountId) socket.data.accountId = verified.accountId;
@@ -3430,7 +3444,7 @@ function resolveChatChannel(requested, corp) {
 io.on("connection", (socket) => {
   // Bug #1021: an authenticated socket joins its account's room, so per-account events reach only its owner.
   if (socket.data.accountId) socket.join(accountRoom(socket.data.accountId));
-  socket.emit("state:init", { ...getState(), market: marketView(getState().market, socket.data.accountId) });
+  socket.emit("state:init", sharedStateView(socket.data.accountId || null));
 
   socket.on("chat:send", (payload) => {
     // Fail closed: no verified account, no account, no allowed channel or no content means nothing is stored or sent.

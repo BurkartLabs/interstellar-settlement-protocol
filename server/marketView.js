@@ -2,7 +2,10 @@
 //
 // The order book on the server is never cut: cutting it used to delete the oldest listings, goods and all. What goes
 // to a client is capped when it is read instead: the newest orders, plus every order of the caller's own, so a
-// seller always sees their listings however busy the book is.
+// seller always sees their listings however busy the book is. Each order goes without its sellerAccountId, marked
+// `mine` for its seller instead (Bug #1145).
+
+import { orderView } from "./publicViews.js";
 
 export const ORDER_BOOK_VIEW_LIMIT = 200;
 
@@ -12,5 +15,5 @@ export function marketView(market, accountId = null) {
   const book = Array.isArray(market.orderBook) ? market.orderBook : [];
   const newest = book.slice(0, ORDER_BOOK_VIEW_LIMIT);
   const own = accountId ? book.slice(ORDER_BOOK_VIEW_LIMIT).filter((o) => o?.sellerAccountId === accountId) : [];
-  return { ...market, orderBook: newest.concat(own) };
+  return { ...market, orderBook: newest.concat(own).map((order) => orderView(order, accountId)) };
 }
