@@ -5,7 +5,7 @@ import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft } from "./forumActions.js";
 import { createStarmapController } from "./starmap.js";
-import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
+import { escapeHtml, notificationItemsHtml, messageListItemsHtml, forumPostBodyHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
 import { missionRewardCredits } from "./ceoEffects.js"; // Bug #1009: its own line, after the others, so parallel branches adding imports do not collide
@@ -4009,7 +4009,7 @@ function renderForums(data) {
                     <span class="thread-badge thread-badge--reply">Reply</span>
                   </header>
                   <div class="thread-card__body">
-                    <p>${escapeHtml(reply.content || "")}</p>
+                    ${forumPostBodyHtml(reply.content || "")}
                   </div>
                   <footer class="thread-card__actions">
                     <button class="thread-action-btn" type="button" data-action="reply" data-reply-id="${escapeHtml(reply.id)}">↩ Reply</button>
@@ -4021,6 +4021,12 @@ function renderForums(data) {
           }).join("")
         : `<li class="thread-reply thread-reply--empty"><p class="muted">No replies yet. Be the first to weigh in.</p></li>`;
 
+      // Bug #1222: the reply box is part of this HTML, so a re-render (any forum update) emptied a half-written reply.
+      // Keep what is in it, where the cursor is and whether it had focus, for the same thread, and put them back below.
+      const oldBox = detailBody.querySelector("#forum-reply-content");
+      const keptDraft = oldBox && oldBox.closest("form")?.dataset.threadId === selected.id
+        ? { value: oldBox.value, start: oldBox.selectionStart, end: oldBox.selectionEnd, focused: document.activeElement === oldBox }
+        : null;
       detailBody.innerHTML = `
         <div class="thread-detail">
           <div class="thread-detail__topbar">
@@ -4050,7 +4056,7 @@ function renderForums(data) {
               <span class="thread-badge thread-badge--op">OP</span>
             </header>
             <div class="thread-card__body thread-card__body--op">
-              ${opBody.split(/\n+/).map((para) => `<p>${escapeHtml(para)}</p>`).join("")}
+              ${forumPostBodyHtml(opBody)}
             </div>
             <footer class="thread-card__actions">
               <button class="thread-action-btn thread-action-btn--primary" type="button" data-action="reply">↩ Reply</button>
@@ -4078,6 +4084,15 @@ function renderForums(data) {
           </form>
         </div>
       `;
+
+      const newBox = detailBody.querySelector("#forum-reply-content");
+      if (keptDraft && newBox && keptDraft.value) {
+        newBox.value = keptDraft.value;
+        if (keptDraft.focused) {
+          newBox.focus({ preventScroll: true });
+          newBox.setSelectionRange(keptDraft.start, keptDraft.end);
+        }
+      }
 
       const inlineBack = detailBody.querySelector("#forum-back-btn-inline");
       if (inlineBack) {
@@ -4168,7 +4183,10 @@ function renderForums(data) {
               const idx = appState.data.forums.threads.findIndex((t) => t.id === payload.thread.id);
               if (idx >= 0) appState.data.forums.threads[idx] = payload.thread;
             }
-            if (contentEl) contentEl.value = "";
+            // Bug #1222: clear the box on the page now, not contentEl: if the socket update re-rendered the thread first,
+            // contentEl is the old, detached box and the sent text would come back as a kept draft.
+            const liveBox = document.getElementById("forum-reply-content");
+            if (liveBox) liveBox.value = "";
             renderForums(appState.data);
           } catch (err) {
             if (statusEl) {

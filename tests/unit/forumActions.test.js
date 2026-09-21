@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { forumPostBodyHtml } from "../../public/scripts/html.js";
 import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft, REPLY_MAX_LENGTH } from "../../public/scripts/forumActions.js";
 
 // Bug #1131: one Like click sent one request per render of the thread, because each render added another listener
@@ -87,5 +88,39 @@ describe("forum Reply and Quote (Bug #1132)", () => {
     expect(app).toMatch(/bindOnce\(detailBody, "composeBound", "click"/);
     expect(app).toMatch(/data-action="reply" data-reply-id=/);
     expect(app).toMatch(/data-action="quote" data-reply-id=/);
+  });
+});
+
+// Bug #1132: a quote only reads as a quote if the thread shows it as one; reply bodies were a single paragraph.
+describe("forum post bodies show quotes and line breaks (Bug #1132)", () => {
+  it("renders a run of '> ' lines as one blockquote and keeps the other lines' breaks", () => {
+    expect(forumPostBodyHtml("> Halcyon Ore wrote:\n> 22 here too.\n\nSame here.\nSince Monday."))
+      .toBe('<blockquote class="forum-quote">Halcyon Ore wrote:<br>22 here too.</blockquote><p>Same here.<br>Since Monday.</p>');
+  });
+
+  it("separates paragraphs on blank lines and escapes every line", () => {
+    expect(forumPostBodyHtml("One\n\nTwo")).toBe("<p>One</p><p>Two</p>");
+    expect(forumPostBodyHtml("> <img src=x onerror=alert(1)>\n<b>hi</b>"))
+      .toBe('<blockquote class="forum-quote">&lt;img src=x onerror=alert(1)&gt;</blockquote><p>&lt;b&gt;hi&lt;/b&gt;</p>');
+    expect(forumPostBodyHtml("")).toBe("");
+    expect(forumPostBodyHtml(undefined)).toBe("");
+  });
+
+  it("a quote written by quoteDraft renders back as that quote", () => {
+    const draft = quoteDraft("", { author: "Kestrel", text: "Line A\nLine B", isReply: true }) + "My answer.";
+    expect(forumPostBodyHtml(draft)).toBe('<blockquote class="forum-quote">Kestrel wrote:<br>Line A<br>Line B</blockquote><p>My answer.</p>');
+  });
+});
+
+// Bug #1222: a forum update re-rendered the thread and emptied a half-written reply. A source check: app.js keeps the
+// box's value across the render, and after posting clears the box on the page rather than a possibly detached one.
+describe("a half-written reply survives forum updates (Bug #1222)", () => {
+  const app = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+  it("keeps the draft for the same thread and puts it back after the render", () => {
+    expect(app).toMatch(/const keptDraft = oldBox && oldBox\.closest\("form"\)\?\.dataset\.threadId === selected\.id/);
+    expect(app).toMatch(/newBox\.value = keptDraft\.value/);
+  });
+  it("clears the live box after a reply is posted", () => {
+    expect(app).toMatch(/const liveBox = document\.getElementById\("forum-reply-content"\);\s+if \(liveBox\) liveBox\.value = "";/);
   });
 });
