@@ -2296,7 +2296,9 @@ export function sendPlayerMessage(fromAccountId, { toCorpId, toCorpName, subject
   });
 
   scheduleAccountsSave();
-  return { ok: true, toName };
+  // recipientAccountId is for the server alone: the send route uses it to pick the recipient's socket room (Bug #1130)
+  // and must never put it in a response or an event (Bug #1134).
+  return { ok: true, toName, recipientAccountId: recipient.id };
 }
 
 export function saveDraft(accountId, { draftId, toCorpId, toCorpName, subject, body }) {

@@ -5261,6 +5261,7 @@ function enterGame(mode, data, options = {}) {
 
   updateAllViews();
   setTab("overview");
+  loadMessages(); // Bug #1130: the Inbox tab's unread count is right from the start, before the Inbox is opened
 
   if (!appState.mapMounted) {
     starmap.mount(appState.data.world?.systems || []);
@@ -6079,6 +6080,11 @@ function bindRealtimeEvents() {
     renderNotifications();
   });
 
+  // Bug #1130: mail for this account arrived (the server sends it to this account's room only, with no payload).
+  socket.on("messages:new", () => {
+    loadMessages();
+  });
+
   socket.on("ceo:completed", (payload) => {
     if (!appState.accountId || payload?.accountId !== appState.accountId) {
       return;
@@ -6291,6 +6297,12 @@ function updateInboxSubtabBadges() {
     const n = counts[subtype] || 0;
     btn.textContent = n > 0 ? `${baseLabel} (${n})` : baseLabel;
   });
+  // Bug #1130: the Inbox tab carries the unread count too, so a player on any other tab is told that mail has arrived.
+  const inboxTab = document.querySelector('.tab-btn[data-tab="inbox"]');
+  if (inboxTab) {
+    const unread = counts.official + counts.players;
+    inboxTab.textContent = unread > 0 ? `Inbox (${unread})` : "Inbox";
+  }
 }
 
 function inboxMsgsForView() {
@@ -6592,11 +6604,9 @@ async function moveCurrentMessage(folder) {
 
 // Called when the Inbox tab becomes active (via tab switching logic)
 function onInboxTabActivated() {
-  if (!appState.inbox.loaded) {
-    loadMessages();
-  } else {
-    renderInboxMessageList();
-  }
+  // Bug #1130: fetch every time the Inbox opens, not once per page load; show what is already held meanwhile.
+  if (appState.inbox.loaded) renderInboxMessageList();
+  loadMessages();
   const subtabNav = document.getElementById("inbox-subtab-nav");
   if (subtabNav) subtabNav.style.display = appState.inbox.folder === "inbox" ? "" : "none";
 }
