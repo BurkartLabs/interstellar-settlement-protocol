@@ -1,15 +1,20 @@
 import "./loadEnv.js";
 import express from "express";
 import kanbanRouter from "./kanban.js";
+import { resolveJwtSecret } from "./jwtSecret.js";
 import { bodyNumber } from "./bodyNumber.js";
+import { bodyCount } from "./bodyNumber.js";
+import { marketView } from "./marketView.js";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
+import { SYSTEM_SENDERS } from "./corporationName.js";
 import jwt from "jsonwebtoken";
 import { resolveLeaseBody } from "./leases.js";
-import { isInsightProgramLive, officeRenewalCost } from "../public/scripts/ceoEffects.js";
+import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from "../public/scripts/ceoEffects.js";
 import { canReachSystem } from "../public/scripts/navigation.js";
 import {
   accountExists,
@@ -17,7 +22,6 @@ import {
   appendChatMessage,
   createAccount,
   saveAccountsNow,
-  createCombatReport,
   authenticateAccount,
   getAccountById,
   getDummyAccount,
@@ -53,10 +57,10 @@ import {
   SYSTEM_DETAILS
 } from "./gameState.js";
 
-// TODO: Move this to a single file so that we aren't redefining it everywhere
+// TODO(AB#737): Move this to a single file so that we aren't redefining it everywhere
 const IS_DEV = !process.env.NODE_ENV || process.env.NODE_ENV !== "production";
 
-// TODO: This should be extracted from the DB or from research.json
+// TODO(AB#1049): This should be extracted from the DB or from research.json
 const RESEARCH_LIBRARY = {
   "tt-basic-extraction": {
     id: "tt-basic-extraction",
@@ -182,7 +186,7 @@ const RESEARCH_LIBRARY = {
 const TIER_1_TECH_IDS = Object.values(RESEARCH_LIBRARY).filter((t) => t.tier === 1).map((t) => t.id);
 
 // ── System adjacency graph (for hop-distance calculation) ──
-// TODO: Store in DB
+// TODO(AB#804): Store in DB
 const SYSTEM_ADJACENCY = {
   "sol":              ["alpha-centauri", "barnards-star"],
   "alpha-centauri":   ["sol", "wolf-359"],
@@ -281,8 +285,18 @@ function getInterstellarTravelTimeMs(fromSystemId, toSystemId) {
 const ACCESS_TOKEN_SECONDS = 7 * 24 * 60 * 60;
 const DUMMY_ACCESS_TOKEN_SECONDS = IS_DEV ? 7 * 24 * 60 * 60 : 2 * 60 * 60;
 const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
-const JWT_SECRET = process.env.JWT_SECRET || "isp-dev-insecure-secret-change-me";
-const ALLOW_DUMMY_AUTH = true;
+// The developer surface (the shared demo account's login and reset, and the kanban board) exists only when the
+// environment asks for it: ISP_DEV=1, and never in production. It used to be a literal true, so it was live on every
+// server (Bug #423, Bug #1069). Unset, the routes are not registered at all.
+const DEV_SURFACE = process.env.ISP_DEV === "1" && process.env.NODE_ENV !== "production";
+// Refuses to start without a real secret, except on the dev surface (Bug #589: it fell back to a string in the source).
+const JWT_SECRET = resolveJwtSecret(process.env, { devSurface: DEV_SURFACE });
+
+/** How many sell listings one seller may have open at once (Bug #425). */
+const MAX_OPEN_LISTINGS = 50;
+
+/** Characters in one chat line: the chat input's maxlength (Bug #1127). */
+const CHAT_MAX_LENGTH = 300;
 
 function stripHtml(input) {
   return String(input || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
@@ -433,15 +447,18 @@ if (process.env.VERCEL) {
 }
 
 app.use(express.static(path.join(__dirname, "..", "public")));
-// Serve /kanban as the Kanban board root, defaulting to kanban.html
-app.use("/kanban", (req, res, next) => {
-  if (req.path === "/" || req.path === "") {
-    res.sendFile(path.join(__dirname, "..", "kanban", "kanban.html"));
-  } else {
-    express.static(path.join(__dirname, "..", "kanban"))(req, res, next);
-  }
-});
-app.use("/kanban", kanbanRouter);
+// Serve /kanban as the Kanban board root, defaulting to kanban.html. A developer tool: its API writes any request body
+// to disk, so it exists only on the dev surface (Bug #1069).
+if (DEV_SURFACE) {
+  app.use("/kanban", (req, res, next) => {
+    if (req.path === "/" || req.path === "") {
+      res.sendFile(path.join(__dirname, "..", "kanban", "kanban.html"));
+    } else {
+      express.static(path.join(__dirname, "..", "kanban"))(req, res, next);
+    }
+  });
+  app.use("/kanban", kanbanRouter);
+}
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
 function getESTDateString() {
@@ -462,7 +479,7 @@ function checkAndResetNpcBuyOrders() {
       }
     });
   });
-  io.emit("market:updated", getState().market);
+  emitMarketUpdated();
 }
 
 // Check on startup and every minute thereafter
@@ -471,6 +488,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(checkAndResetNpcBuyOrders, 60_
 
 // ─── R&D auto-completion tick ────────────────────────────────────────────────
 // ─── Mining tick: process downtime, recovery, and mining progress ─────────────
+import { startExtractorCycle } from "./gameState.js"; // AB#575
 import { applyMiningOperations, getStationInventory } from "./gameState.js";
 import { applyAsteroidExpeditions, BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_ASSET_VALUE, PROBE_FABRICATION_MS, BASE_MAX_PROBES, BASE_MAX_DEPLOYMENTS } from "./gameState.js";
 
@@ -480,7 +498,7 @@ function miningTick() {
     mutateAccountState(accountId, (state) => {
       if (state && state.corp) {
         applyMiningOperations(state.corp, now);
-        io.emit("mining:updated", {
+        emitToAccount(accountId, "mining:updated", {
           accountId,
           extractors: state.corp.mining?.silicateExtractors || [],
           inventory: state.corp.inventory || {},
@@ -507,7 +525,7 @@ function refineryTick() {
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(refineryTick, 10_000); // Every 10 seconds
 
 // ─── Asteroid expedition tick ────────────────────────────────────────────────
-// TODO: Consider implementation of unified tick system where all tick based actions are performed at once, rather than a separate ticker calculation
+// TODO(AB#729): Consider implementation of unified tick system where all tick based actions are performed at once, rather than a separate ticker calculation
 //       for each function.
 function asteroidExpeditionTick() {
   const now = Date.now();
@@ -535,7 +553,7 @@ function asteroidExpeditionTick() {
         body: `Mining probe has returned from ${exp.beltKey.split(":")[1] || "asteroid belt"}. Yields: ${yieldSummary}. Resources deposited at ${exp.depositStationId || "nearest station"}.`
       });
       if (notification) {
-        io.emit("notifications:new", { accountId, notification });
+        emitToAccount(accountId, "notifications:new", { accountId, notification });
       }
 
       // Send detailed expedition report to inbox
@@ -553,7 +571,7 @@ function asteroidExpeditionTick() {
 
       addSystemMessageToAccount(accountId, {
         subject: `Mining Probe Return — ${beltLabel} [${refNo}]`,
-        fromName: "ISA Mineral Survey Division",
+        fromName: SYSTEM_SENDERS.MINERAL_SURVEY,
         body:
           `Attn: ${corpName || "Registered Operator"},\n\n` +
           `This report confirms the return of one (1) mining probe from the ${beltLabel} asteroid field, ${systemLabel} system. ` +
@@ -571,7 +589,7 @@ function asteroidExpeditionTick() {
     }
 
     if (completedExpeditions.length > 0) {
-      io.emit("expedition:completed", { accountId });
+      emitToAccount(accountId, "expedition:completed", { accountId });
     }
   }
 }
@@ -591,7 +609,7 @@ function fabricationTick() {
 
       for (const job of done) {
         if (job.type === "mining-probe") {
-          am.probeCount = Math.min(am.maxProbes || BASE_MAX_PROBES, (am.probeCount || 0) + 1);
+          am.probeCount = (am.probeCount || 0) + 1; // the gate already counted it against the Fleet Cap
           state.corp.finances.assets = (state.corp.finances.assets || 0) + PROBE_ASSET_VALUE;
         }
       }
@@ -605,8 +623,8 @@ function fabricationTick() {
         title: "Mining Probe Fabricated",
         body: "A new Mining Probe has been manufactured and is ready for deployment."
       });
-      if (notification) io.emit("notifications:new", { accountId, notification });
-      io.emit("fabrication:completed", { accountId });
+      if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
+      emitToAccount(accountId, "fabrication:completed", { accountId });
     }
   }
 }
@@ -654,7 +672,7 @@ function travelTick() {
           title: "System Arrival",
           body: `Your ship has arrived in the ${sysLabel} system. You are in open space — select a station to dock.`
         });
-        io.emit("travel:arrived", { accountId, systemId: travelResult.systemId });
+        emitToAccount(accountId, "travel:arrived", { accountId, systemId: travelResult.systemId });
       } else {
         const station = STATION_REGISTRY[travelResult.stationId];
         if (station) {
@@ -663,11 +681,11 @@ function travelTick() {
             title: "Docking Complete",
             body: `Your ship has arrived at ${station.name} (${station.body}, ${station.systemId.toUpperCase()}).`
           });
-          io.emit("travel:arrived", { accountId, stationId: travelResult.stationId });
+          emitToAccount(accountId, "travel:arrived", { accountId, stationId: travelResult.stationId });
         }
       }
       if (notification) {
-        io.emit("notifications:new", { accountId, notification });
+        emitToAccount(accountId, "notifications:new", { accountId, notification });
       }
     }
   }
@@ -707,7 +725,7 @@ function processRndCompletions() {
 
     if (completedItems.length === 0) continue;
 
-    io.emit("rnd:completed", { accountId });
+    emitToAccount(accountId, "rnd:completed", { accountId });
 
     for (const item of completedItems) {
       const notification = addAccountNotification(accountId, {
@@ -716,7 +734,7 @@ function processRndCompletions() {
         body: `${item.name} has been completed and applied to your corporation.`
       });
       if (notification) {
-        io.emit("notifications:new", { accountId, notification });
+        emitToAccount(accountId, "notifications:new", { accountId, notification });
       }
     }
   }
@@ -760,7 +778,7 @@ function processCeoInsightCompletions() {
 
     if (completedItems.length === 0) continue;
 
-    io.emit("ceo:completed", { accountId });
+    emitToAccount(accountId, "ceo:completed", { accountId });
 
     for (const item of completedItems) {
       const notification = addAccountNotification(accountId, {
@@ -769,7 +787,7 @@ function processCeoInsightCompletions() {
         body: `${item.name} has been completed.`
       });
       if (notification) {
-        io.emit("notifications:new", { accountId, notification });
+        emitToAccount(accountId, "notifications:new", { accountId, notification });
       }
     }
   }
@@ -777,11 +795,14 @@ function processCeoInsightCompletions() {
 
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(processCeoInsightCompletions, 5_000);
 
+import { refreshDailyExpenses } from "./finances.js"; // Bug #1022 (placed apart from the import below, which parallel PRs append to)
+
 // ─── Financial snapshot tick ─────────────────────────────────────────────────
 // Captures a rolling balance/flow snapshot for every active corp so the
 // Financial Core dashboard can render real historical series (cash reserves,
 // net flow, assets vs liabilities) instead of synthesised projections.
 import { buildSnapshot, pushSnapshot, recordIncome, recordExpense, refreshDailyRevenue } from "./finances.js";
+import { fleetStatus } from "./gameState.js"; // Bug #586
 
 const FINANCIAL_SNAPSHOT_INTERVAL_MS = 30_000;
 
@@ -792,14 +813,15 @@ function financialSnapshotTick() {
     mutateAccountState(accountId, (state) => {
       if (!state || !state.corp) return;
       refreshDailyRevenue(state.corp, now); // Bug #984: income older than 24 hours leaves the daily figure
-      const snap = buildSnapshot(state.corp, now);
+      refreshDailyExpenses(state.corp, now); // Bug #1022: and so do costs
+      const snap = buildSnapshot(state.corp, now, getState().market);
       pushSnapshot(state.corp, snap);
       finances = state.corp.finances;
     });
     if (finances) {
-      // Reuse the existing finance:updated channel so clients refresh
-      // their snapshot-driven dashboard without a separate handler path.
-      io.emit("finance:updated", finances);
+      // Reuse the existing finance:updated channel so clients refresh their snapshot-driven dashboard. Only this
+      // account's sockets get it, with the account id so the client can check it (Bug #1021).
+      emitToAccount(accountId, "finance:updated", { accountId, finances });
     }
   }
 }
@@ -808,10 +830,12 @@ if (!process.env.ISP_DISABLE_TICKERS) {
   setInterval(financialSnapshotTick, FINANCIAL_SNAPSHOT_INTERVAL_MS);
 }
 
-// TODO: Consider moving API to a dedicated api.js file
+// TODO(AB#737): Consider moving API to a dedicated api.js file
 
-app.get("/api/bootstrap", (_req, res) => {
-  res.json({ ...getState(), version: APP_VERSION });
+app.get("/api/bootstrap", (req, res) => {
+  // Public, but a signed-in caller also gets their own older orders (Bug #425: the book is capped when read).
+  const viewer = verifyAccessToken(getBearerToken(req)).accountId || null;
+  res.json({ ...getState(), market: marketView(getState().market, viewer), version: APP_VERSION });
 });
 
 app.get("/api/stations", (_req, res) => {
@@ -856,55 +880,26 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-app.post("/api/auth/dummy-login", (_req, res) => {
-  if (!ALLOW_DUMMY_AUTH) {
-    res.status(403).json({ error: "Dummy access is disabled." });
-    return;
-  }
-
-  const account = getDummyAccount();
-  const tokens = issueTokens(account.id);
-  res.json({ account, ...tokens });
-});
-
-app.post("/api/auth/dummy-reset", (_req, res) => {
-  if (!ALLOW_DUMMY_AUTH) {
-    res.status(403).json({ error: "Dummy access is disabled." });
-    return;
-  }
-
-  const account = resetDummyAccountProgress();
-  if (!account) {
-    res.status(404).json({ error: "Dummy account not found." });
-    return;
-  }
-
-  res.json(account);
-});
-
-app.post("/api/dev/set-credits", (req, res) => {
-  if (!ALLOW_DUMMY_AUTH) {
-    res.status(403).json({ error: "Dev endpoints are disabled in production." });
-    return;
-  }
-
-  const { accountId = "dummy", credits } = req.body ?? {};
-  if (typeof credits !== "number" || !isFinite(credits)) {
-    res.status(400).json({ error: "credits must be a finite number." });
-    return;
-  }
-
-  const account = mutateAccountState(accountId, (state) => {
-    state.corp.finances.credits = credits;
+if (DEV_SURFACE) {
+  app.post("/api/auth/dummy-login", (_req, res) => {
+    const account = getDummyAccount();
+    const tokens = issueTokens(account.id);
+    res.json({ account, ...tokens });
   });
 
-  if (!account) {
-    res.status(404).json({ error: "Account not found." });
-    return;
-  }
+  app.post("/api/auth/dummy-reset", (_req, res) => {
+    const account = resetDummyAccountProgress();
+    if (!account) {
+      res.status(404).json({ error: "Dummy account not found." });
+      return;
+    }
 
-  res.json({ ok: true, credits: account.state.corp.finances.credits });
-});
+    res.json(account);
+  });
+}
+
+// POST /api/dev/set-credits is gone (Bug #423): it set any corporation's balance for anyone, and a credit-granting
+// route has no safe form in a shared economy. Tests set credits through gameState's mutateAccountState.
 
 app.post("/api/auth/login", async (req, res) => {
   try {
@@ -973,6 +968,38 @@ app.get("/api/auth/session", requireAuth, (req, res) => {
 
 app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess);
 
+// AB#731: every gameplay route's numbers and ids are checked against server/gameplayInput.js here, after the login and
+// ownership checks and before any handler, so a refused request has touched nothing. Imported beside its one use.
+import { gameplayInputMiddleware, ACCOUNT_INPUT, MARKET_INPUT, FORUM_INPUT } from "./gameplayInput.js";
+import { FORUM_CATEGORIES } from "./gameState.js";
+const REFINERY_CHAINS_DATA_FOR_INPUT = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "refinery-chains.json"), "utf8"));
+const INPUT_CHECKS = {
+  catalogs: {
+    stations: new Set(Object.keys(STATION_REGISTRY)),
+    systems: new Set(Object.keys(SYSTEM_DETAILS)),
+    leaseBodies: new Set(SYSTEMS_CATALOG.flatMap((s) => (s.bodies || []).filter((b) => Number(b.leaseCost) > 0).flatMap((b) => [b.name, b.id])).map((x) => String(x).toLowerCase())),
+    techs: new Set(Object.keys(RESEARCH_LIBRARY)),
+    programs: new Set(Object.keys(CEO_INSIGHT_LIBRARY)),
+    missions: new Set(MISSION_TEMPLATES.map((m) => m.id)),
+    belts: new Set(Object.keys(BELT_COMPOSITIONS)),
+    expeditionDurations: new Set(Object.keys(EXPEDITION_DURATIONS)),
+    refineryChains: new Set(Object.keys(REFINERY_CHAINS)),
+    // AB#732: what can be listed or charted (every raw resource and refinery output), standing orders, forum categories.
+    tradeItems: new Set([...REFINERY_CHAINS_DATA_FOR_INPUT.resourceCatalog, ...REFINERY_CHAINS_DATA_FOR_INPUT.chains.flatMap((c) => [c.input, ...c.outputs.map((o) => o.item)])]),
+    npcOrders: { has: (orderId) => (getState().market?.npcBuyOrders || []).some((o) => o.id === orderId) },
+    forumCategories: new Set(FORUM_CATEGORIES)
+  },
+  stationNames: Object.fromEntries(Object.entries(STATION_REGISTRY).map(([sid, st]) => [sid, st.name])),
+  corpOf: (accountId) => getAccountById(accountId)?.state?.corp
+};
+app.use("/api/accounts/:accountId/gameplay", gameplayInputMiddleware(INPUT_CHECKS));
+// AB#732: the same checks for the caller's account and mail routes, and for the market and forum routes, whose login
+// is checked per route: there the caller comes from a verified token, and a request without one is left to that check.
+const callerFromToken = (req) => verifyAccessToken(getBearerToken(req)).accountId || null;
+app.use("/api/accounts/:accountId", gameplayInputMiddleware({ ...INPUT_CHECKS, routes: ACCOUNT_INPUT }));
+app.use("/api/market", gameplayInputMiddleware({ ...INPUT_CHECKS, routes: MARKET_INPUT, callerOf: callerFromToken }));
+app.use("/api/forums", gameplayInputMiddleware({ ...INPUT_CHECKS, routes: FORUM_INPUT, callerOf: callerFromToken }));
+
 app.get("/api/accounts/:accountId", (req, res) => {
   const account = getAccountById(req.params.accountId);
   if (!account) {
@@ -996,7 +1023,7 @@ app.post("/api/accounts/:accountId/walkthrough-complete", (req, res) => {
     body: "Onboarding has been marked complete for this profile."
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1015,7 +1042,7 @@ app.post("/api/accounts/:accountId/walkthrough-reset", (req, res) => {
     body: "Onboarding flow has been reset and can be replayed."
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1099,7 +1126,7 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
     body: `${hiredCount} employee(s) were added to your workforce.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1147,6 +1174,7 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
     }
 
     corp.finances.credits -= officeCost;
+    recordExpense(corp, "office-rent", officeCost); // Bug #1022
     const now = Date.now();
     corp.offices.push({
       stationId: station.id,
@@ -1181,7 +1209,7 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
     body: `Your corporation now maintains a registered operational office at ${stationName}.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1229,6 +1257,7 @@ app.post("/api/accounts/:accountId/gameplay/renew-office", (req, res) => {
       return;
     }
     corp.finances.credits -= renewalCost;
+    recordExpense(corp, "office-rent", renewalCost); // Bug #1022
     const extensionMs = durationDays * 86_400_000;
     const now = Date.now();
     office.rentedUntil = Math.max(office.rentedUntil || now, now) + extensionMs;
@@ -1256,7 +1285,7 @@ app.post("/api/accounts/:accountId/gameplay/renew-office", (req, res) => {
     body: `Your office lease at ${stationName} has been extended by ${durationDays} days.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1354,7 +1383,7 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
     body: `ISA Claims & Leases has approved your extraction rights application for ${requestedBody}. Two building slots have been allocated to your lease.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   // Commit to disk immediately — critical state that must survive server restarts.
@@ -1364,70 +1393,53 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
 });
 
 // ─── Logistics: transfer resources between stations ──────────────────────────
-const LOGISTICS_FEE_PER_UNIT = 2;
+
+// AB#717: transfers carry up to 10 lines, all or nothing, into corp.logisticsHistory. The rules, the fee and the
+// error copy live in public/scripts/logistics.js, which the Logistics tab reads too; imported here beside its use.
+import { parseTransferRequest, planTransfer, recordTransfer } from "../public/scripts/logistics.js";
 
 app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
-  const fromStationId = String(req.body?.fromStationId || "").trim();
-  const item = String(req.body?.item || "").trim();
-  const quantity = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
-
-  if (!fromStationId || !STATION_REGISTRY[fromStationId]) {
-    res.status(400).json({ error: "Invalid source station." });
-    return;
-  }
-  if (!item) {
-    res.status(400).json({ error: "Item must be specified." });
+  const request = parseTransferRequest(req.body);
+  if (!request.ok) {
+    res.status(400).json({ error: request.error });
     return;
   }
 
-  let outcome = "ok";
+  let refusal = null;
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
-    const toStationId = corp.currentStationId || "earth-station-prime";
-
-    if (fromStationId === toStationId) {
-      outcome = "same-station";
+    const toStationId = corp.currentStationId || null;
+    const plan = planTransfer({
+      fromStationId: request.fromStationId, toStationId, lines: request.lines,
+      inventory: corp.inventory, credits: corp.finances.credits, stations: STATION_REGISTRY
+    });
+    if (!plan.ok) {
+      refusal = plan.error; // nothing has moved
       return;
     }
 
-    const fromInv = getStationInventory(corp, fromStationId);
-    const available = Number(fromInv[item] || 0);
-    if (available < quantity) {
-      outcome = "insufficient";
-      return;
-    }
-
-    const fee = LOGISTICS_FEE_PER_UNIT * quantity;
-    if ((corp.finances.credits || 0) < fee) {
-      outcome = "insufficient-credits";
-      return;
-    }
-
-    // Deduct from source, add to destination, charge fee
-    fromInv[item] = available - quantity;
-    if (fromInv[item] <= 0) delete fromInv[item];
-
+    const fromInv = getStationInventory(corp, request.fromStationId);
     const toInv = getStationInventory(corp, toStationId);
-    toInv[item] = (toInv[item] || 0) + quantity;
-
-    corp.finances.credits -= fee;
+    for (const { item, quantity } of request.lines) {
+      fromInv[item] -= quantity;
+      if (fromInv[item] <= 0) delete fromInv[item];
+      toInv[item] = (toInv[item] || 0) + quantity;
+    }
+    corp.finances.credits -= plan.fee;
+    recordExpense(corp, "transfer-fees", plan.fee); // Bug #1022
+    corp.logisticsHistory = recordTransfer(corp.logisticsHistory, {
+      time: Date.now(), from: request.fromStationId, to: toStationId, lines: request.lines, fee: plan.fee
+    });
   });
 
   if (!account) {
     res.status(404).json({ error: "Account not found." });
     return;
   }
-
-  if (outcome !== "ok") {
-    const messages = {
-      "same-station": "Cannot transfer to the same station you are docked at.",
-      "insufficient": `Insufficient ${item} at the source station.`,
-      "insufficient-credits": `Not enough credits. Transfer fee: ${(LOGISTICS_FEE_PER_UNIT * quantity).toLocaleString()} credits (${LOGISTICS_FEE_PER_UNIT}/unit).`
-    };
-    res.status(400).json({ error: messages[outcome] || "Transfer failed." });
+  if (refusal) {
+    res.status(400).json({ error: refusal });
     return;
   }
-
   res.json(account);
 });
 
@@ -1566,7 +1578,7 @@ app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
     body: notifBody
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   saveAccountsNow();
@@ -1666,7 +1678,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
     body: "Basic Extractor Yard is now operational and linked to your mining lease."
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1741,15 +1753,10 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
       return;
     }
 
+    recordExpense(corp, "mining-startup", startupCost); // Bug #1022
     corp.finances.credits -= startupCost;
 
-    extractorCycle.active = true;
-    extractorCycle.startedAt = now;
-    extractorCycle.lastTickAt = now;
-    extractorCycle.endsAt = now + requestedHours * 60 * 60 * 1000;
-    extractorCycle.throughputPerHour = throughputPerHour;
-    extractorCycle.operationCostPerHour = operationCostPerHour;
-    extractorCycle.totalSpent += startupCost;
+    startExtractorCycle(extractorCycle, { now, hours: requestedHours, throughputPerHour, operationCostPerHour, startupCost });
 
     corp.mining.silicateExtractor = corp.mining.silicateExtractors[0];
   });
@@ -1780,7 +1787,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
     body: `${targetExtractorLabel} has begun silicate extraction operations.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1882,7 +1889,7 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
     body: "Basic Extractor Yard is now operational."
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -1943,7 +1950,7 @@ app.post("/api/accounts/:accountId/gameplay/build-assembly-facility", (req, res)
     title: "Assembly Facility Online",
     body: "Your Assembly Facility is now operational. You may begin fabricating units."
   });
-  if (notification) io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   saveAccountsNow();
   res.json(account);
 });
@@ -1968,12 +1975,11 @@ app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
     if (!corp.asteroidMining) corp.asteroidMining = {};
     const am = corp.asteroidMining;
     if (typeof am.probeCount !== "number") am.probeCount = 0;
-    if (typeof am.maxProbes !== "number") am.maxProbes = BASE_MAX_PROBES;
     if (!Array.isArray(am.fabricationQueue)) am.fabricationQueue = [];
 
-    // Count probes in hangar + probes currently being fabricated
+    // Bug #586: the Fleet Cap the player is shown, counting every vessel they own
     const pendingCount = am.fabricationQueue.length;
-    if (am.probeCount + pendingCount >= am.maxProbes) {
+    if (fleetStatus(corp).full) {
       outcome = "probe-cap";
       return;
     }
@@ -2009,7 +2015,7 @@ app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
     const msgs = {
       "missing-research": "Asteroid Prospecting Arrays research is required before fabricating mining probes.",
       "no-assembly": "You must construct an Assembly Facility before fabricating probes.",
-      "probe-cap": `Probe hangar is full (${(am.probeCount || 0) + pendingCount}/${am.maxProbes || BASE_MAX_PROBES}). Research or level up to increase capacity.`,
+      "probe-cap": (() => { const fleet = fleetStatus(account.state.corp); return `Your fleet is at its Fleet Cap (${fleet.vessels}/${fleet.cap}). ${fleet.raiseText}`; })(),
       "already-fabricating": "A probe is already being fabricated. Wait for it to complete before starting another.",
       "insufficient-credits": fundingRequirementMessage("Mining Probe fabrication", account.state.corp, PROBE_BUILD_COST)
     };
@@ -2022,7 +2028,7 @@ app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
     title: "Probe Fabrication Started",
     body: `Mining Probe fabrication has begun. Estimated completion: ${PROBE_FABRICATION_MS >= 60000 ? Math.round(PROBE_FABRICATION_MS / 60000) + " minute(s)" : Math.round(PROBE_FABRICATION_MS / 1000) + " second(s)"}.`
   });
-  if (notification) io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   saveAccountsNow();
   res.json(account);
 });
@@ -2117,6 +2123,7 @@ app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
     }
 
     corp.finances.credits -= launchCost;
+    recordExpense(corp, "expeditions", launchCost); // Bug #1022
     am.probeCount -= 1;
 
     const now = Date.now();
@@ -2158,7 +2165,7 @@ app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
     title: "Expedition Launched",
     body: `Mining probe deployed to ${beltKey.split(":")[1] || "asteroid belt"} on a ${durationLabel} mission. Resources will be deposited upon return.`
   });
-  if (notification) io.emit("notifications:new", { accountId: req.params.accountId, notification });
+  if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   saveAccountsNow();
   res.json(account);
 });
@@ -2259,7 +2266,7 @@ app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
     body: "A new Refinery is now operational and ready for production runs."
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -2387,7 +2394,7 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
     body: `${targetLabel} processing ${actualQuantity} ${chain.input} → ${outputNames} (${actualDurationHours}h, ${actualScale} batch${actualScale === 1 ? "" : "es"}).`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -2463,10 +2470,12 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
     stationInv[resource] = have - required;
     if (stationInv[resource] <= 0) delete stationInv[resource];
 
-    // Credit reward
-    const rewardCredits = parseInt(String(mission.reward).replace(/[^0-9]/g, ""), 10);
+    // Credit reward into the balance the player spends, and book it as income (Bug #1009: it went to corp.credits,
+    // which nothing reads). Contract Law Essentials adds 8%.
+    const rewardCredits = missionRewardCredits(mission.reward, state.corp.completedInsights);
     if (rewardCredits) {
-      state.corp.credits = (state.corp.credits || 0) + rewardCredits;
+      state.corp.finances.credits = (state.corp.finances.credits || 0) + rewardCredits;
+      recordIncome(state.corp, "missions", rewardCredits);
     }
 
     // Remove from active
@@ -2567,15 +2576,10 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
     }
 
     const now = Date.now();
+    recordExpense(corp, "mining-startup", startupCost); // Bug #1022
     corp.finances.credits -= startupCost;
 
-    extractorCycle.active = true;
-    extractorCycle.startedAt = now;
-    extractorCycle.lastTickAt = now;
-    extractorCycle.endsAt = now + cycleHours * 60 * 60 * 1000;
-    extractorCycle.throughputPerHour = throughputPerHour;
-    extractorCycle.operationCostPerHour = operationCostPerHour;
-    extractorCycle.totalSpent += startupCost;
+    startExtractorCycle(extractorCycle, { now, hours: cycleHours, throughputPerHour, operationCostPerHour, startupCost });
 
     // Keep legacy mirror for compatibility
     corp.mining.silicateExtractor = corp.mining.silicateExtractors[0];
@@ -2612,57 +2616,7 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
     body: `${targetExtractorLabel} started a ${requestedHours}h silicate cycle with current throughput settings.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
-  }
-
-  res.json(account);
-});
-
-app.post("/api/accounts/:accountId/gameplay/complete-rnd", (req, res) => {
-  let outcome = "ok";
-
-  const account = mutateAccountState(req.params.accountId, (state) => {
-    const corp = state.corp;
-    const techId = "tt-basic-extraction";
-    const rdCost = 40000;
-
-    if ((corp.unlockedTech || []).includes(techId)) {
-      outcome = "already-unlocked";
-      return;
-    }
-
-    if (corp.finances.credits < rdCost) {
-      outcome = "insufficient-credits";
-      return;
-    }
-
-    corp.finances.credits -= rdCost;
-    corp.unlockedTech.push(techId);
-    corp.military.modifiers.rdBonusPct = Math.max(corp.military.modifiers.rdBonusPct || 0, 4);
-  });
-
-  if (!account) {
-    res.status(404).json({ error: "Account not found." });
-    return;
-  }
-
-  if (outcome !== "ok") {
-    const corp = account.state.corp;
-    const messageMap = {
-      "already-unlocked": "This R&D project has already been completed.",
-      "insufficient-credits": fundingRequirementMessage("Basic Extraction Analytics", corp, 40000)
-    };
-    res.status(400).json({ error: messageMap[outcome] || "R&D action failed." });
-    return;
-  }
-
-  const notification = addAccountNotification(req.params.accountId, {
-    type: "research",
-    title: "R&D Completed",
-    body: "Basic Extraction Analytics has been completed and applied."
-  });
-  if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -2753,7 +2707,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
     body: `${tech.name} has been queued in corporate research.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -2842,7 +2796,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-ceo", (req, res) => {
     body: `${prog.name} has been enrolled in the CEO Insight Program.`
   });
   if (notification) {
-    io.emit("notifications:new", { accountId: req.params.accountId, notification });
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
   }
 
   res.json(account);
@@ -3079,14 +3033,16 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
     return;
   }
 
-  const normalizedQty = bodyNumber(quantity, { fallback: null, min: 1, integer: true });
-  const normalizedUnitPrice = bodyNumber(unitPrice, { fallback: null, min: 1 });
+  // Bug #425: whole numbers of at least 1, or refused (they used to be clamped up to 1).
+  const normalizedQty = bodyCount(quantity);
+  const normalizedUnitPrice = bodyCount(unitPrice);
   if (!type || !item || normalizedQty === null || normalizedUnitPrice === null || type !== "sell") {
     res.status(400).json({ error: "Missing required order fields." });
     return;
   }
 
   let rejectReason = "";
+  let order = null;
   const updatedSeller = mutateAccountState(req.auth.accountId, (state) => {
     const stationId = state.corp.currentStationId || "earth-station-prime";
     const inventory = getStationInventory(state.corp, stationId);
@@ -3095,7 +3051,31 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
       rejectReason = "Quantity exceeds available inventory at this station.";
       return;
     }
+    // Bug #425: a limit per seller, checked before any goods move, instead of cutting the shared book (which deleted
+    // the oldest listings, goods and all).
+    const openListings = (getState().market.orderBook || []).filter((o) => o.sellerAccountId === req.auth.accountId).length;
+    if (openListings >= MAX_OPEN_LISTINGS) {
+      rejectReason = `You have ${MAX_OPEN_LISTINGS} open listings; cancel one to list more.`;
+      return;
+    }
 
+    // The order goes into the book first and the goods come out after, in the same step: if the insert throws, the
+    // goods have not moved. stationId records where they came from, so a cancel returns them there.
+    order = {
+      id: `ord-${randomUUID()}`,
+      type,
+      item,
+      quantity: normalizedQty,
+      unitPrice: normalizedUnitPrice,
+      seller: state.corp.corporationName || "Anonymous",
+      sellerAccountId: req.auth.accountId,
+      stationId,
+      createdAt: Date.now()
+    };
+    mutateState((draft) => {
+      if (!Array.isArray(draft.market.orderBook)) draft.market.orderBook = [];
+      draft.market.orderBook.unshift(order);
+    });
     inventory[item] = available - normalizedQty;
     if (inventory[item] <= 0) {
       delete inventory[item];
@@ -3115,29 +3095,46 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
     state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
   });
 
-  if (!updatedSeller || rejectReason) {
+  if (!updatedSeller || rejectReason || !order) {
     res.status(400).json({ error: rejectReason || "Unable to create sell order." });
     return;
   }
 
-  const order = {
-    id: `ord-${Date.now()}`,
-    type,
-    item,
-    quantity: normalizedQty,
-    unitPrice: normalizedUnitPrice,
-    seller: updatedSeller.state?.corp?.corporationName || updatedSeller.email || "Anonymous",
-    sellerAccountId: updatedSeller.id,
-    createdAt: Date.now()
-  };
-
-  mutateState((draft) => {
-    draft.market.orderBook.unshift(order);
-    draft.market.orderBook = draft.market.orderBook.slice(0, 200);
-  });
-
-  io.emit("market:updated", getState().market);
+  emitMarketUpdated();
   res.json({ ok: true, order, account: updatedSeller });
+});
+
+// Bug #425: a seller can take a listing down, getting the unsold goods back at the station they were listed from.
+// Only the seller: anyone else gets 404, so the route says nothing about orders that are not theirs.
+app.post("/api/market/orders/:orderId/cancel", requireAuth, (req, res) => {
+  const orderId = String(req.params.orderId || "").trim();
+  const order = (getState().market.orderBook || []).find((o) => o.id === orderId && o.sellerAccountId === req.auth.accountId);
+  if (!order) {
+    res.status(404).json({ error: "You have no listing with that id." });
+    return;
+  }
+
+  const account = mutateAccountState(req.auth.accountId, (state) => {
+    mutateState((draft) => {
+      draft.market.orderBook = (draft.market.orderBook || []).filter((o) => o.id !== order.id);
+    });
+    const stationId = order.stationId || state.corp.currentStationId || "earth-station-prime";
+    const inventory = getStationInventory(state.corp, stationId);
+    inventory[order.item] = Number(inventory[order.item] || 0) + Number(order.quantity || 0);
+    if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
+    state.corp.tradeHistory.unshift({
+      id: `th-${randomUUID()}`, type: "cancelled", item: order.item, quantity: order.quantity, unitPrice: order.unitPrice,
+      total: order.quantity * order.unitPrice, counterparty: "Market", at: Date.now()
+    });
+    state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
+  });
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  emitMarketUpdated();
+  res.json({ ok: true, cancelled: order.id, account });
 });
 
 app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
@@ -3238,6 +3235,9 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
   }
 
   mutateState((draft) => {
+    // AB#715: the day's price history takes the trade whether or not the listing is still in the book.
+    if (!draft.market.priceHistory) draft.market.priceHistory = {};
+    recordTrade(draft.market.priceHistory, order.item, Number(order.unitPrice || 0), tradeQuantity);
     const target = draft.market.orderBook.find((entry) => entry.id === orderId && entry.type === "sell");
     if (!target) {
       return;
@@ -3248,7 +3248,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
     }
   });
 
-  io.emit("market:updated", getState().market);
+  emitMarketUpdated();
   res.json({
     ok: true,
     traded: {
@@ -3262,10 +3262,30 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
   });
 });
 
+// ─── Daily price history per item (AB#715) ───────────────────────────────────
+// Global and non-personal: open, high, low, close, volume and trade count per UTC day, the last 90 days. The item is
+// matched against the catalog, and an unknown one is refused without repeating it back. Behind a login like every
+// other route (Bug #423), although nothing in it is personal.
+import { recordTrade, historyFor, PRICE_HISTORY_ITEMS, PRICE_HISTORY_DAYS } from "./priceHistory.js";
+
+app.get("/api/market/history/:item", requireAuth, (req, res) => {
+  const item = String(req.params.item || "");
+  if (!PRICE_HISTORY_ITEMS.has(item)) {
+    res.status(400).json({ error: "Unknown item." });
+    return;
+  }
+  res.json({ item, days: PRICE_HISTORY_DAYS, buckets: historyFor(getState().market?.priceHistory, item) });
+});
+
 // ─── Sell player resources into an NPC standing buy order ────────────────────
 app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
-  const requestedQty = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
+  // Bug #425: a whole number of at least 1, or refused; it used to fall back to 1 for "abc", 0 or -5.
+  const requestedQty = bodyCount(req.body?.quantity);
+  if (requestedQty === null) {
+    res.status(400).json({ error: "Quantity must be a whole number of at least 1." });
+    return;
+  }
 
   checkAndResetNpcBuyOrders();
 
@@ -3344,45 +3364,16 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
     if (target) {
       target.remainingQty = Math.max(0, target.remainingQty - requestedQty);
     }
+    if (!draft.market.priceHistory) draft.market.priceHistory = {};
+    recordTrade(draft.market.priceHistory, npcOrder.item, Number(npcOrder.unitPrice || 0), requestedQty); // AB#715
   });
 
-  io.emit("market:updated", getState().market);
+  emitMarketUpdated();
   res.json({
     ok: true,
     traded: { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice: npcOrder.unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, proceeds: tradeProceeds },
     account: seller
   });
-});
-
-app.post("/api/combat/simulate", (req, res) => {
-  const {
-    attackerName,
-    attackerAttack,
-    attackerDefense,
-    defenderName,
-    defenderAttack,
-    defenderDefense,
-    counterModifier = 1
-  } = req.body ?? {};
-
-  const atkTotal = Number(attackerAttack) + Number(attackerDefense);
-  const defTotal = (Number(defenderAttack) + Number(defenderDefense)) * Number(counterModifier);
-  const attackerWin = atkTotal >= defTotal;
-
-  const report = createCombatReport({
-    attackerName,
-    defenderName,
-    attackerPower: atkTotal,
-    defenderPower: defTotal,
-    counterModifier: Number(counterModifier),
-    winner: attackerWin ? attackerName : defenderName,
-    summary: attackerWin
-      ? `${attackerName} overwhelms ${defenderName} after modifiers.`
-      : `${defenderName} holds position and repels ${attackerName}.`
-  });
-
-  io.emit("combat:newReport", report);
-  res.json({ ok: true, report });
 });
 
 app.use((error, _req, res, _next) => {
@@ -3392,6 +3383,29 @@ app.use((error, _req, res, _next) => {
 
 // Bug #710: a socket carries the same access token as the HTTP API (socket.handshake.auth.token). Anyone may still
 // connect to read public state, but only a verified socket may chat, and the server decides who is speaking.
+/** The socket.io room for one account's sockets. */
+function accountRoom(accountId) {
+  return `account:${accountId}`;
+}
+
+/**
+ * Send an event about one account to that account's sockets only (Bug #1021: these used to be io.emit broadcasts, so
+ * every connected client received every corporation's finances, mining, inventory and notification text). Global
+ * events (market, forums, chat) still use io.emit; tests/integration/socket-rooms.test.js checks there are no others.
+ */
+function emitToAccount(accountId, event, payload) {
+  if (accountId) io.to(accountRoom(accountId)).emit(event, payload);
+}
+
+/**
+ * Send the market to every connected socket as that socket's account should see it: the newest orders plus its own
+ * (Bug #425: the book is never cut, so what is sent is capped here instead).
+ */
+function emitMarketUpdated() {
+  const market = getState().market;
+  for (const peer of io.of("/").sockets.values()) peer.emit("market:updated", marketView(market, peer.data.accountId));
+}
+
 io.use((socket, next) => {
   const verified = verifyAccessToken(socket.handshake.auth?.token);
   if (verified.accountId) socket.data.accountId = verified.accountId;
@@ -3414,7 +3428,9 @@ function resolveChatChannel(requested, corp) {
 }
 
 io.on("connection", (socket) => {
-  socket.emit("state:init", getState());
+  // Bug #1021: an authenticated socket joins its account's room, so per-account events reach only its owner.
+  if (socket.data.accountId) socket.join(accountRoom(socket.data.accountId));
+  socket.emit("state:init", { ...getState(), market: marketView(getState().market, socket.data.accountId) });
 
   socket.on("chat:send", (payload) => {
     // Fail closed: no verified account, no account, no allowed channel or no content means nothing is stored or sent.
@@ -3424,8 +3440,10 @@ io.on("connection", (socket) => {
     if (!corp) return;
     const channel = resolveChatChannel(payload?.channel, corp);
     if (!channel) return;
-    const content = stripHtml(payload?.content || "");
-    if (!content) return;
+    // Bug #1127: kept as typed (the client renders it as text; stripping tags garbled "10 < price < 30"), and at most
+    // CHAT_MAX_LENGTH characters, the chat box's own limit: a longer line is dropped like an empty one.
+    const content = typeof payload?.content === "string" ? payload.content.trim() : "";
+    if (!content || content.length > CHAT_MAX_LENGTH) return;
 
     // The author is the sender's own corporation; payload.author is ignored. No account id goes in the broadcast.
     const message = {

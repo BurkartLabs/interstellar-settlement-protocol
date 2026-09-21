@@ -26,8 +26,9 @@ describe("bodyNumber (Bug #1014)", () => {
 // tests/integration/body-numbers.test.js exercise the routes where a bad number corrupted state.
 const SAFE_WITHOUT_BODY_NUMBER = {
   "/api/accounts/:accountId/gameplay/rent-office": "durationDays is only used if VALID_DURATIONS includes it",
-  "/api/accounts/:accountId/gameplay/renew-office": "durationDays is only used if VALID_DURATIONS includes it",
-  "/api/combat/simulate": "writes no state; returns a report"
+  "/api/accounts/:accountId/gameplay/renew-office": "durationDays is only used if VALID_DURATIONS includes it"
+  // "/api/combat/simulate" was listed here as "writes no state", which was wrong: it wrote the global combat report
+  // feed. The route is removed (Bug #1036).
 };
 
 function routesReadingBodyNumbers(source) {

@@ -40,7 +40,7 @@ The tone is deliberately bureaucratic. The ISA has forms for everything.
 ### Corporation Management
 - Real account registration with email/password (bcrypt-hashed)
 - JWT authentication with refresh token rotation
-- Corporation identity, level (1–40 cap), and milestone-gated progression
+- Corporation identity, level (1 to 10 in this build; 11 to 40 are planned for v0.6), and milestone-gated progression
 
 ### Earth Station Prime
 - 16-building NPC district with faction badges and lore descriptions
@@ -126,7 +126,9 @@ npm start
 
 Then open [http://localhost:3000](http://localhost:3000).
 
-A demo account is available at the login screen. You can also register a real account — all account data is persisted in Supabase; global world state is stored in `data/state.json` locally.
+The server will not start without a token-signing secret. Set `JWT_SECRET` to at least 32 bytes, in `.env` or the environment, for example the output of `openssl rand -base64 48`. For local development only, `ISP_DEV=1` lets it start on a built-in development secret, with a warning on every start; that never applies when `NODE_ENV=production`. Changing `JWT_SECRET` signs every player out, because existing tokens stop verifying, which is what you want if it may have leaked.
+
+The shared demo account (the "Log In To Dummy Account" button, shown on localhost) and the developer kanban board at `/kanban` exist only when `ISP_DEV=1` is set, in `.env` or the environment, and never when `NODE_ENV=production`. Without it their routes answer 404. You can also register a real account — all account data is persisted in Supabase; global world state is stored in `data/state.json` locally.
 
 ---
 

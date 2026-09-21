@@ -33,6 +33,10 @@ function meet(corp, req) {
     if (corp.offices.length === 0) corp.offices.push({ stationId: "earth-station-prime" });
   } else if (metric === "stat:miningLeasesCount") {
     while (corp.miningLeases.length < target) corp.miningLeases.push({ body: `Filler-${corp.miningLeases.length}` });
+  } else if (metric === "stat:missionsCompleted") {
+    // Counted from the completed missions themselves since Bug #424, like the two derived stats above.
+    if (!Array.isArray(corp.completedMissions)) corp.completedMissions = [];
+    while (corp.completedMissions.length < target) corp.completedMissions.push({ id: `m-${corp.completedMissions.length}` });
   } else if (metric.startsWith("stat:")) {
     const key = metric.slice(5);
     corp.stats[key] = Math.max(Number(corp.stats[key] || 0), target);

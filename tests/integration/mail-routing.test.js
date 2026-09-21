@@ -8,9 +8,12 @@ import { mutateAccountState, getAccountById, backfillCorpPublicIds, listAccountM
 // first one received mail meant for all of them.
 const SHARED = "Frontier Protocol Ventures";
 
+// Registration refuses a name another corporation has (Bug #433), but saves from before that rule can hold duplicates,
+// which is what these tests model: each corporation registers under a unique name and is then given the name it needs.
 async function corp(corpName) {
   const { app } = await getApp();
-  const { account, accessToken } = await registerAccount(app, { corpName });
+  const { account, accessToken } = await registerAccount(app);
+  mutateAccountState(account.id, (state) => { state.corp.corporationName = corpName; });
   return { id: account.id, api: authed(app, accessToken), publicId: getAccountById(account.id).state.corp.publicId };
 }
 // Read mail the way the game does (getAccountById returns a sanitised account without messages).

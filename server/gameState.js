@@ -4,11 +4,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import { createClient } from "@supabase/supabase-js";
+import { welcomeLetter } from "../public/scripts/liaison.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dataDir = path.join(__dirname, "..", "data");
-const statePath = path.join(dataDir, "state.json");
+// ISP_STATE_PATH lets the test process use a state file of its own (it points at one that does not exist, so every
+// run starts from the seed) instead of whatever the local server last wrote to data/state.json (Bug #588).
+const statePath = process.env.ISP_STATE_PATH || path.join(dataDir, "state.json");
 const accountsSnapshotPath = path.join(dataDir, "accounts-snapshot.json");
 const milestonesPath = path.join(dataDir, "milestones.json");
 const PASSWORD_SALT_ROUNDS = 10;
@@ -23,6 +26,7 @@ const SUPABASE_MANAGED_PASSWORD_HASH = "__supabase_auth_managed__";
 import { recordExpense, ensureFinanceTracking } from "./finances.js";
 import { unknownLeaseBodies } from "./leases.js";
 import { directInvestmentRecords } from "./legacyInvestments.js";
+import { validateCorporationName, SYSTEM_SENDERS, CORPORATION_NAME_MAX_LENGTH } from "./corporationName.js";
 import {
   persistAccountsPhase1,
   hydrateOverlayPhase1,
@@ -98,7 +102,9 @@ function safeWriteFile(filePath, data, contextLabel = "write") {
 
 // ─── Milestones: single source of truth from data/milestones.json ──────────
 const MILESTONES_DATA = JSON.parse(fs.readFileSync(milestonesPath, "utf8"));
-const MILESTONE_LEVELS = MILESTONES_DATA.levels;           // [{level, requirements, unlocks}, ...]
+const MILESTONE_LEVELS = MILESTONES_DATA.levels;
+// The top of the ladder is the highest level the data defines (Bug #424: the cap shown to players was a literal 40).
+export const MAX_DEFINED_LEVEL = Math.max(...MILESTONE_LEVELS.map((l) => l.level));           // [{level, requirements, unlocks}, ...]
 const MILESTONE_ROADMAP = MILESTONES_DATA.roadmap;          // ["Rent an Office", ...]
 
 // ─── CEO Insight programs ────────────────────────────────────────────────────
@@ -131,7 +137,7 @@ for (const lvl of MILESTONE_LEVELS) {
 function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
-/* TODO: This should be fetched from systems.json, see SYSTEMS_DATA */
+/* TODO(AB#804): This should be fetched from systems.json, see SYSTEMS_DATA */
 const SYSTEM_DETAILS = {
   sol: {
     ownerRule: "No direct ownership. Mining rights are leased.",
@@ -205,7 +211,7 @@ const SYSTEM_DETAILS = {
 
 function normalizeSystems(systems = []) {
   return systems.map((system) => {
-    const defaults = SYSTEM_DETAILS[system.id]; // TODO: Update to use SYSTEMS_DATA
+    const defaults = SYSTEM_DETAILS[system.id]; // TODO(AB#804): Update to use SYSTEMS_DATA
     if (!defaults) {
       return system;
     }
@@ -300,6 +306,7 @@ function normalizeStateShape(rawState) {
     rawState.corp.travel = null;
   }
 
+  rawState.corp.levelCap = MAX_DEFINED_LEVEL; // Bug #424
   if (!Array.isArray(rawState.corp.milestonesCompleted)) {
     rawState.corp.milestonesCompleted = [];
   }
@@ -368,7 +375,7 @@ function ensureCorpMiningModel(corp) {
   }
 
   // Migrate legacy single extractor model into the multi-extractor array only if it has real data.
-  // TODO: Is this still needed?
+  // TODO(AB#737): Is this still needed?
   const legacyExtractor = corp.mining.silicateExtractor;
   const legacyHasData = Boolean(
     legacyExtractor &&
@@ -436,6 +443,8 @@ function ensureCorpMiningModel(corp) {
       throughputPerHour: throughput,
       operationCostPerHour: operationCost,
       totalMined: Number(extractor.totalMined || 0),
+      // AB#575: this cycle's output, zeroed by startExtractorCycle; totalMined is the lifetime.
+      minedThisCycle: Math.max(0, Number(extractor.minedThisCycle || 0)),
       minedRemainder: Math.max(0, Number(extractor.minedRemainder || 0)),
       totalSpent: Number(extractor.totalSpent || 0),
       lastCompletedAt: extractor.lastCompletedAt ?? null,
@@ -530,12 +539,27 @@ function ensureCorpMiningModel(corp) {
   }
 }
 
-// TODO: Add force-stop functionality
+// TODO(AB#1052): Add force-stop functionality
 function stopExtractorCycle(extractor, timestamp) {
   extractor.active = false;
   extractor.endsAt = timestamp;
   extractor.lastTickAt = timestamp;
   extractor.lastCompletedAt = timestamp;
+}
+
+/**
+ * Start a mining cycle on an extractor: the one place both start routes go through (AB#575). It zeroes the
+ * per-cycle count the extractor panel shows as "Mined this cycle"; totalMined stays the lifetime figure.
+ */
+export function startExtractorCycle(extractor, { now, hours, throughputPerHour, operationCostPerHour, startupCost }) {
+  extractor.active = true;
+  extractor.startedAt = now;
+  extractor.lastTickAt = now;
+  extractor.endsAt = now + hours * 60 * 60 * 1000;
+  extractor.throughputPerHour = throughputPerHour;
+  extractor.operationCostPerHour = operationCostPerHour;
+  extractor.totalSpent = Number(extractor.totalSpent || 0) + startupCost;
+  extractor.minedThisCycle = 0;
 }
 
 /**
@@ -644,7 +668,7 @@ export function applyMiningOperations(corp, now = Date.now()) {
     if (actualCost > 0) {
       corp.finances.credits = Math.max(0, corp.finances.credits - actualCost);
       extractor.totalSpent += actualCost;
-      recordExpense(corp, "mining-ops", actualCost);
+      recordExpense(corp, "mining-ops", actualCost, now); // Bug #1022: at the tick's time, for the 24-hour window
     }
 
     if (actualMined > 0) {
@@ -654,6 +678,7 @@ export function applyMiningOperations(corp, now = Date.now()) {
       const stationInv = getStationInventory(corp, depositStation);
       stationInv.Silicates = (stationInv.Silicates || 0) + actualMined;
       extractor.totalMined += actualMined;
+      extractor.minedThisCycle = Number(extractor.minedThisCycle || 0) + actualMined;
       // Bug #984: mined silicates are inventory, not income; revenue is booked when they are sold.
     }
 
@@ -743,6 +768,7 @@ export function applyRefineryOperations(corp, now = Date.now()) {
     const scale = Math.max(1, Number(ref.cycleScale || 1));
     for (const output of chain.outputs) {
       const produced = output.quantityPerCycle * scale;
+      bumpStat(corp, "refinedUnitsProduced", produced); // Bug #424: levels 9 and 10
       refStationInv[output.item] = (refStationInv[output.item] || 0) + produced;
       ref.totalOutputProduced += produced;
     }
@@ -762,7 +788,7 @@ export function applyRefineryOperations(corp, now = Date.now()) {
 
 // Deterministic belt compositions per system — scoutable
 /* 
-  TODO: Asteroid Belts should be more dynamic. Once they spawn, there is a limited amount of ore to be mined. 
+  TODO(AB#1050): Asteroid Belts should be more dynamic. Once they spawn, there is a limited amount of ore to be mined. 
   Asteroid Belts should yield more resources than extractor yards. Once the ore has been mined, the asteroid belt disappears. 
   If no asteroid belt is present, it will have a 20% chance of spawning each hour at xx:00. The specific composition of the belt
   should be random. 
@@ -778,7 +804,7 @@ const BELT_COMPOSITIONS = {
 
 // Rarity tiers control yield multiplier and the chance of bonus "jackpot" drops
 /* 
-  TODO: Rarity should be more dynamic. It shouldn't be impossible for an exotic Asteroid Belt to spawn within Sol, but it 
+  TODO(AB#1050): Rarity should be more dynamic. It shouldn't be impossible for an exotic Asteroid Belt to spawn within Sol, but it 
   should be less common than say Epsilon Eridani
 */
 const SYSTEM_RARITY = {
@@ -790,7 +816,7 @@ const SYSTEM_RARITY = {
   "epsilon-eridani":  "exotic"
 };
 
-// TODO: In addition to rarity improving yields, it should also determine what types of raw resources are available
+// TODO(AB#822): In addition to rarity improving yields, it should also determine what types of raw resources are available
 const RARITY_YIELD_MULTIPLIER = { common: 1.0, uncommon: 1.15, rare: 1.35, exotic: 1.6 };
 
 const IS_DEV = !process.env.NODE_ENV || process.env.NODE_ENV !== "production";
@@ -811,7 +837,9 @@ const EXPEDITION_LAUNCH_COST = 3000;   // credits per expedition launch
 const PROBE_BUILD_COST = 8000;         // credits to fabricate one mining probe
 const PROBE_ASSET_VALUE = 5000;
 const PROBE_FABRICATION_MS = IS_DEV ? 10 * 1000 : 30 * 60 * 1000; // 10s dev, 30 min prod
-const BASE_MAX_PROBES = 2;
+const BASE_MAX_PROBES = 2;             // Fleet Cap before Level 1 grants one (Bug #586)
+const FLEET_COORDINATION_TECH = "tt-fleet-coordination";
+const FLEET_COORDINATION_BONUS = 12;   // "+12 fleet cap" (data/research.json)
 const BASE_MAX_DEPLOYMENTS = 1;        // concurrent expedition slots
 
 function ensureCorpAsteroidMiningModel(corp) {
@@ -821,7 +849,6 @@ function ensureCorpAsteroidMiningModel(corp) {
   const am = corp.asteroidMining;
 
   if (typeof am.probeCount !== "number") am.probeCount = 0;
-  if (typeof am.maxProbes !== "number") am.maxProbes = BASE_MAX_PROBES;
   if (typeof am.maxDeployments !== "number") am.maxDeployments = BASE_MAX_DEPLOYMENTS;
   if (!Array.isArray(am.fabricationQueue)) am.fabricationQueue = [];
   if (!Array.isArray(am.activeExpeditions)) am.activeExpeditions = [];
@@ -890,7 +917,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
       return;
     }
 
-    const rarity = SYSTEM_RARITY[exp.systemId] || "common"; // TODO: Should we really be defaulting to common? In what circumstances is SYSTEM_RARITY[exp.systemId] null?
+    const rarity = SYSTEM_RARITY[exp.systemId] || "common"; // TODO(AB#804): Should we really be defaulting to common? In what circumstances is SYSTEM_RARITY[exp.systemId] null?
     const rarityMult = RARITY_YIELD_MULTIPLIER[rarity];
     const durationDef = EXPEDITION_DURATIONS[exp.duration] || EXPEDITION_DURATIONS.standard;
     const tickMult = durationDef.tickYieldMultiplier;
@@ -932,10 +959,11 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
       }
 
       // Return the probe
-      am.probeCount = Math.min(am.maxProbes, (am.probeCount || 0) + 1);
+      am.probeCount = (am.probeCount || 0) + 1; // it counted against the Fleet Cap while away
 
       // Move to completed log (keep last 20)
       am.completedExpeditions.unshift({ ...exp, completedAt: now, depositStationId });
+      bumpStat(corp, "asteroidExpeditionsCompleted", 1); // Bug #424: levels 7 and 10
       if (am.completedExpeditions.length > 20) am.completedExpeditions.length = 20;
 
       expeditionsToRemove.push(exp.id);
@@ -959,7 +987,7 @@ function hashSeedStr(input) {
 }
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
-// TODO: Should this be hardcoded? Or should we store it in the database?
+// TODO(AB#726): Should this be hardcoded? Or should we store it in the database?
 const BASE_EXCHANGE_SALES_TAX_PCT = 8;
 
 export function getEffectiveExchangeTaxRate(state) {
@@ -982,6 +1010,24 @@ function deepClone(input) {
   return JSON.parse(JSON.stringify(input));
 }
 
+// ─── What the level ladder may name (Bug #424) ────────────────────────────────
+// Levels 6 to 10 named statistics no code kept and buildings no one could build, so nobody passed Level 5. The
+// schema test (tests/schema/data-files.test.js) fails when a milestone names anything outside these lists.
+/** Statistics the resolver works out from other state. */
+const DERIVED_STATS = ["officeRented", "miningLeasesCount", "missionsCompleted"];
+/** Statistics kept as counters in corp.stats, through bumpStat. */
+const COUNTED_STATS = ["silicateSoldOnExchange", "refinedUnitsProduced", "asteroidExpeditionsCompleted"];
+export const STAT_KEYS = Object.freeze([...DERIVED_STATS, ...COUNTED_STATS]);
+/** Buildings a player can build (the construction routes in server/index.js; a test checks the two agree). */
+export const PLAYER_BUILDINGS = Object.freeze(["Basic Extractor Yard", "Assembly Facility", "Refinery"]);
+
+/** Add `n` to a counted statistic. Refuses a key nothing reads, so a typo cannot quietly start a new counter. */
+export function bumpStat(corp, key, n = 1) {
+  if (!COUNTED_STATS.includes(key)) throw new Error(`Unknown statistic "${key}": add it to COUNTED_STATS first.`);
+  if (!corp.stats || typeof corp.stats !== "object") corp.stats = {};
+  corp.stats[key] = (Number(corp.stats[key]) || 0) + (Number(n) || 0);
+}
+
 // ─── Metric resolver: maps milestones.json metric strings to live corp values ─
 function resolveMetric(metric, corp) {
   const stats = corp.stats || {};
@@ -994,6 +1040,8 @@ function resolveMetric(metric, corp) {
     const key = metric.slice(5);
     if (key === "officeRented") return (Array.isArray(corp.offices) && corp.offices.length > 0) ? 1 : 0;
     if (key === "miningLeasesCount") return miningLeases.length;
+    // Bug #424: counted from the missions already recorded (kept to the last 200), so old saves get credit too.
+    if (key === "missionsCompleted") return Array.isArray(corp.completedMissions) ? corp.completedMissions.length : 0;
     return Number(stats[key] || 0);
   }
 
@@ -1036,8 +1084,36 @@ function resolveMetric(metric, corp) {
   return 0;
 }
 
+// Bug #586: the Fleet Cap the sidebar shows is the cap fabrication enforces. It is the maxFleetSize
+// granted by levels reached (never below the pre-Level-1 floor), plus Fleet Coordination Matrix.
+// Every vessel counts: in the hangar, in fabrication, or out on an expedition.
+export function fleetStatus(corp) {
+  const am = corp?.asteroidMining || {};
+  const granted = Math.max(BASE_MAX_PROBES, Number(corp?.unlocks?.maxFleetSize || 0));
+  const coordinated = (corp?.unlockedTech || []).includes(FLEET_COORDINATION_TECH);
+  const bonus = coordinated ? FLEET_COORDINATION_BONUS : 0;
+  const cap = granted + bonus;
+  const vessels = Number(am.probeCount || 0) + (am.fabricationQueue || []).length + (am.activeExpeditions || []).length;
+  const raises = [];
+  const nextLevel = [...MILESTONE_LEVELS]
+    .sort((a, b) => a.level - b.level)
+    .find((l) => l.level > Number(corp?.level || 0) && Number(l.unlocks?.maxFleetSize || 0) > granted);
+  if (nextLevel) raises.push({ kind: "level", level: nextLevel.level, cap: nextLevel.unlocks.maxFleetSize + bonus });
+  if (!coordinated) raises.push({ kind: "research", techId: FLEET_COORDINATION_TECH, name: "Fleet Coordination Matrix", bonus: FLEET_COORDINATION_BONUS });
+  return { cap, vessels, full: vessels >= cap, raises, raiseText: fleetRaiseText(raises) };
+}
+
+// What raises the Fleet Cap next, in words; empty when nothing in this build does.
+export function fleetRaiseText(raises) {
+  const parts = raises.map((r) => r.kind === "level"
+    ? `Reaching Corporation Level ${r.level} raises it to ${r.cap}`
+    : `${r.name} research adds ${r.bonus}`);
+  return parts.length ? `${parts.join("; ")}.` : "This is the highest Fleet Cap in this build.";
+}
+
 export function evaluateLevelProgress(profileState) {
   const corp = profileState.corp;
+  corp.levelCap = MAX_DEFINED_LEVEL; // Bug #424: saves carried a literal 40
 
   // Build levelProgress from milestones.json definitions
   corp.levelProgress = {};
@@ -1100,9 +1176,11 @@ export function evaluateLevelProgress(profileState) {
       }
     }
   }
+
+  corp.fleet = fleetStatus(corp); // Bug #586: derived every evaluation, like levelProgress
 }
 
-/* TODO: Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
+/* TODO(AB#726): Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
 function createStarterCorporationState(baseState, ceoName, corpName) {
   const next = deepClone(baseState);
 
@@ -1118,7 +1196,7 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
     currentSystemId: "sol",
     travel: null,
     level: 0,
-    levelCap: 40,
+    levelCap: MAX_DEFINED_LEVEL,
     milestonesCompleted: [],
     employeeCap: 8,
     employeeCount: 0,
@@ -1201,9 +1279,12 @@ function createStarterCorporationState(baseState, ceoName, corpName) {
 const CONTRACT_REFRESH_MS = 2 * 60 * 60 * 1000; // 2 hours
 const CONTRACTS_PER_AGENT = 2;
 const COMPLETED_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4h before a completed mission can reappear
+// AB#579: the walkthrough closes with Elara Voss promising a new corporation this contract, so a corporation that has
+// never accepted or completed one is always offered it. public/scripts/walkthrough.js names it (handoffContractId).
+export const FIRST_CONTRACT_ID = "ms-log-001";
 
 /*
-  TODO: This shouldn't be hardcoded in this way. The values should be more random. 
+  TODO(AB#1051): This shouldn't be hardcoded in this way. The values should be more random. 
 */
 const MISSION_TEMPLATES = [
   {
@@ -1337,9 +1418,12 @@ function refreshContractOfferings(corpState) {
   // Filter eligible templates
   const eligible = MISSION_TEMPLATES.filter(t => !cooldownIds.has(t.id) && !activeIds.has(t.id));
 
-  // Shuffle and pick
+  // Shuffle and pick; a corporation's first offering always includes the contract the walkthrough promised it.
   const shuffled = eligible.slice().sort(() => Math.random() - 0.5);
-  offerings.missions = shuffled.slice(0, CONTRACTS_PER_AGENT).map(t => ({ ...t }));
+  const neverContracted = !completedMissions.length && !activeIds.size;
+  const promised = neverContracted ? shuffled.find((t) => t.id === FIRST_CONTRACT_ID) : null;
+  const picked = promised ? [promised, ...shuffled.filter((t) => t !== promised)] : shuffled;
+  offerings.missions = picked.slice(0, CONTRACTS_PER_AGENT).map(t => ({ ...t }));
   offerings.nextRefreshAt = now + CONTRACT_REFRESH_MS;
 
   return offerings;
@@ -1363,13 +1447,13 @@ function getSeedState() {
         category: c.category
       }))
     },
-    /* TODO: Remove legacy data */
+    /* TODO(AB#737): Remove legacy data */
     corp: {
       id: "corp-001",
       ceo: "You",
       corporationName: "ISP Foundry Holdings",
       level: 1,
-      levelCap: 40,
+      levelCap: MAX_DEFINED_LEVEL,
       milestonesCompleted: ["HQ Constructed", "First 10 Employees"],
       employeeCap: 100,
       employeeCount: 38,
@@ -1522,38 +1606,48 @@ function ensureStateFile() {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  if (!fs.existsSync(statePath)) {
-    const seed = ensureGlobalSocialState(normalizeStateShape(getSeedState()));
-    if (!IS_SERVERLESS) {
-      safeWriteFile(statePath, JSON.stringify(seed, null, 2), "state init");
-    }
-    return seed;
+  // Bug #588, #574: a missing file used to return the bare seed early, skipping the market setup below, so a fresh
+  // install (and every test process) had no order book and no standing buy orders. Both paths now take the same route.
+  const exists = fs.existsSync(statePath);
+  const normalized = normalizeGlobalState(exists ? JSON.parse(fs.readFileSync(statePath, "utf8")) : getSeedState());
+  if (!IS_SERVERLESS) {
+    safeWriteFile(statePath, JSON.stringify(normalized, null, 2), exists ? "state normalize" : "state init");
   }
+  return normalized;
+}
 
-  const raw = fs.readFileSync(statePath, "utf8");
-  const parsed = JSON.parse(raw);
-  const normalized = ensureGlobalSocialState(normalizeStateShape(parsed));
+// NPC buyers exist for every raw resource that currently has a refinery chain, so newly mined materials always have
+// a guaranteed sink.
+// TODO(AB#777): Reevaluate how we are storing the below information. Should it be hardcoded? Should it be more dynamic?
+const NPC_BUY_SEED = [
+  { item: "Silicates",   buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
+  { item: "Helium-3",    buyer: "Lunar Helium Consortium",   unitPrice: 92, dailyQty: 250000 },
+  { item: "Nickel",      buyer: "Belt Refining Cooperative", unitPrice: 18, dailyQty: 750000 },
+  { item: "Titanium",    buyer: "Olympus Heavy Industries",  unitPrice: 64, dailyQty: 400000 },
+  { item: "Carbon",      buyer: "ISA Materials Exchange",    unitPrice: 12, dailyQty: 1500000 },
+  { item: "Rare Earths", buyer: "Synthorium Trading House",  unitPrice: 140, dailyQty: 120000 }
+];
 
-  // Ensure NPC buy orders exist in global market state. NPC buyers exist for
-  // every raw resource that currently has a refinery chain so newly mined
-  // materials always have a guaranteed sink.
-  if (!normalized.market) normalized.market = {};
-  // TODO: Reevaluate how we are storing the below information. Should it be hardcoded? Should it be more dynamic?
-  const NPC_BUY_SEED = [
-    { item: "Silicates",   buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
-    { item: "Helium-3",    buyer: "Lunar Helium Consortium",   unitPrice: 92, dailyQty: 250000 },
-    { item: "Nickel",      buyer: "Belt Refining Cooperative", unitPrice: 18, dailyQty: 750000 },
-    { item: "Titanium",    buyer: "Olympus Heavy Industries",  unitPrice: 64, dailyQty: 400000 },
-    { item: "Carbon",      buyer: "ISA Materials Exchange",    unitPrice: 12, dailyQty: 1500000 },
-    { item: "Rare Earths", buyer: "Synthorium Trading House",  unitPrice: 140, dailyQty: 120000 }
-  ];
-  if (!Array.isArray(normalized.market.npcBuyOrders)) {
-    normalized.market.npcBuyOrders = [];
-  }
+/**
+ * Names no player may take (Bug #433): every name the game's own messages are signed with, and every NPC buyer on the
+ * exchange, derived from the lists the server uses so a new sender or buyer is reserved without anyone retyping it.
+ */
+export { NPC_BUY_SEED };
+export const RESERVED_CORPORATION_NAMES = Object.freeze([
+  ...Object.values(SYSTEM_SENDERS),
+  ...NPC_BUY_SEED.map((seed) => seed.buyer)
+]);
+
+/** Give the global state a market: an order book, and every standing buy order it lacks. Keeps what exists. */
+function ensureMarketState(globalState) {
+  if (!globalState.market || typeof globalState.market !== "object") globalState.market = {};
+  if (!Array.isArray(globalState.market.orderBook)) globalState.market.orderBook = [];
+  globalState.market.priceHistory = normalizePriceHistory(globalState.market.priceHistory); // AB#715, and cleans a saved one
+  if (!Array.isArray(globalState.market.npcBuyOrders)) globalState.market.npcBuyOrders = [];
   for (const seed of NPC_BUY_SEED) {
     const id = `npc-buy-${seed.item.toLowerCase().replace(/\s+/g, "-")}-daily`;
-    if (!normalized.market.npcBuyOrders.some((o) => o.id === id)) {
-      normalized.market.npcBuyOrders.push({
+    if (!globalState.market.npcBuyOrders.some((o) => o.id === id)) {
+      globalState.market.npcBuyOrders.push({
         id,
         item: seed.item,
         buyer: seed.buyer,
@@ -1564,14 +1658,28 @@ function ensureStateFile() {
       });
     }
   }
+  return globalState;
+}
 
-  if (!IS_SERVERLESS) {
-    safeWriteFile(statePath, JSON.stringify(normalized, null, 2), "state normalize");
-  }
-  return normalized;
+// AB#715: imported beside its use in ensureMarketState, rather than in the import block that parallel pull requests all edit.
+import { normalizePriceHistory } from "./priceHistory.js";
+
+/** Everything the server needs in its global state, from a saved state or the seed. Idempotent. */
+export function normalizeGlobalState(raw) {
+  return ensureMarketState(ensureGlobalSocialState(normalizeStateShape(raw)));
+}
+
+/** The global state a fresh install starts with: what tests check the shape of, instead of data/state.json. */
+export function freshGlobalState() {
+  return normalizeGlobalState(getSeedState());
 }
 
 let state = ensureStateFile();
+// Bug #1036: report what the removed combat simulate route left in the global state, as a count and a size only.
+{
+  const summary = storedCombatReportSummary(state);
+  if (summary) console.warn(`[combat] ${summary.count} stored combat report(s), ${summary.bytes} bytes, from the removed POST /api/combat/simulate (Bug #1036); left in place.`);
+}
 let saveTimer = null;
 let accountsSaveTimer = null;
 
@@ -1639,7 +1747,7 @@ async function persistAccountsStoreToSupabase(snapshot = accountsStore) {
   }
 
   /*
-    TODO: Evaluate below account persistance functionality. We are frequently having connection issues which trigger the below errors. Despite there
+    TODO(AB#578): Evaluate below account persistance functionality. We are frequently having connection issues which trigger the below errors. Despite there
     being no downtime with the server itself. 
   */
   
@@ -1667,7 +1775,7 @@ async function persistAccountsStoreToSupabase(snapshot = accountsStore) {
   }
 }
 
-// TODO: Remove all local disk account snapshots. All operations should go through the DB
+// TODO(AB#578): Remove all local disk account snapshots. All operations should go through the DB
 function loadAccountsSnapshotFromDisk() {
   if (IS_SERVERLESS) return null;
   try {
@@ -1842,7 +1950,6 @@ export function mergeDummyAccount(hydrated, fallbackStore) {
  * Create a fresh in-memory seed accounts store with a dummy dev account.
  * This is used as the initial/fallback store when Supabase has no data yet.
  *
- * TODO: Evaluate if this is needed
  */
 function createSeedAccountsStore() {
   const seedState = normalizeStateShape(getSeedState());
@@ -2092,6 +2199,18 @@ export function appendChatMessage(channel, message) {
 }
 
 
+/**
+ * How many combat reports the global state holds, and how big they are, without anything from inside them. Every one
+ * was written by POST /api/combat/simulate, removed for Bug #1036 (no login, unbounded strings, sent to every client);
+ * they are reported at startup for the PM rather than deleted. Null when there are none.
+ */
+export function storedCombatReportSummary(globalState) {
+  const reports = Array.isArray(globalState?.combatReports) ? globalState.combatReports : [];
+  if (!reports.length) return null;
+  return { count: reports.length, bytes: Buffer.byteLength(JSON.stringify(reports)) };
+}
+
+// Kept for the combat system to come: nothing calls it since POST /api/combat/simulate was removed (Bug #1036).
 export function createCombatReport(payload) {
   const report = {
     id: `cmb-${Date.now()}`,
@@ -2221,6 +2340,17 @@ export async function createAccount({ email, password, ceoName, corpName }) {
     return { error: "An account with this email already exists." };
   }
 
+  // Bug #433: the name is the only trust signal on the order book, the forums and in mail. Checked before anything is
+  // created, here or in Supabase: 3 to 40 plain characters, unique ignoring case and spacing, and not the name of
+  // anything the game itself speaks as.
+  const corporation = validateCorporationName(corpName, {
+    existingNames: Object.values(accountsStore.accounts || {}).map((item) => item?.state?.corp?.corporationName).filter(Boolean),
+    reservedNames: RESERVED_CORPORATION_NAMES
+  });
+  if (corporation.error) {
+    return { error: corporation.error };
+  }
+
   let accountId = createId("acc");
   let passwordHash = bcrypt.hashSync(normalizedPassword, PASSWORD_SALT_ROUNDS);
 
@@ -2247,7 +2377,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
   const nextState = createStarterCorporationState(
     seedState,
     String(ceoName || "New CEO").trim() || "New CEO",
-    String(corpName || "Frontier Protocol Ventures").trim() || "Frontier Protocol Ventures"
+    corporation.name
   );
 
   const account = {
@@ -2269,20 +2399,8 @@ export async function createAccount({ email, password, ceoName, corpName }) {
     body: "Your corporation charter is now active under the Interstellar Settlement Protocol."
   });
 
-  pushSystemMessage(account, {
-    subject: `ISA Settlement Licence — Ref. ISP-2147-${accountId.toUpperCase()}-AUTH`,
-    fromName: "Interstellar Settlement Authority",
-    body:
-      `To the registered CEO of ${String(corpName || "Frontier Protocol Ventures").trim()},\n\n` +
-      `Your corporation has been assessed and approved under the provisions of the Interstellar Settlement Protocol (Earth Assembly Act, 2147).\n\n` +
-      `This licence grants your corporation the legal right to:\n` +
-      `  — Establish a registered operational presence at any ISA-recognised station\n` +
-      `  — Apply for extraction rights across approved bodies within the Sol system\n` +
-      `  — Engage in commerce on the Galactic Exchange under your registered charter\n\n` +
-      `Your first recommended action is to secure office space at Earth Station Prime. Enclosed is your Founding Charter reference number for all future ISA correspondence.\n\n` +
-      `Founding Charter Ref: ISP/${accountId.toUpperCase()}/FC-001\n\n` +
-      `Liaison Officer Aria Voss\nInterstellar Settlement Authority — Sol Division`
-  });
+  // The letter's text lives in public/scripts/liaison.js with the coordinator who signs it (AB#585).
+  pushSystemMessage(account, welcomeLetter(corpName, accountId));
 
   accountsStore.accounts[accountId] = account;
   scheduleAccountsSave();
@@ -2354,7 +2472,7 @@ export function markAllNotificationsRead(accountId) {
 
 const TRASH_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-function pushSystemMessage(account, { subject, body, fromName = "ISA System" }) {
+function pushSystemMessage(account, { subject, body, fromName = SYSTEM_SENDERS.SYSTEM }) {
   if (!Array.isArray(account.messages)) account.messages = [];
   account.messages.unshift({
     id: createId("msg"),
@@ -2397,7 +2515,8 @@ export function listAccountMessages(accountId) {
 const senderName = (account) => String(account?.state?.corp?.corporationName || "").trim() || "Unregistered corporation";
 
 /** Bug #754: the longest corporation name there is (register.html's maxlength), so a longer recipient is none. */
-export const CORP_NAME_MAX_LENGTH = 80;
+// A mail recipient name longer than any corporation name cannot match one (Bug #754); the maximum is Bug #433's.
+export const CORP_NAME_MAX_LENGTH = CORPORATION_NAME_MAX_LENGTH;
 // Control characters (C0 and DEL). Written with escapes so the source holds no raw control bytes.
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/g;
 /** A draft's recipient as typed, made safe to keep: control characters removed, trimmed, capped. */
@@ -2602,7 +2721,7 @@ export function deleteDraft(accountId, draftId) {
   return false;
 }
 
-export function addSystemMessageToAccount(accountId, { subject, body, fromName = "ISA System" }) {
+export function addSystemMessageToAccount(accountId, { subject, body, fromName = SYSTEM_SENDERS.SYSTEM }) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) return null;
   pushSystemMessage(account, { subject, body, fromName });
@@ -2618,7 +2737,7 @@ export function getAllAccountIds() {
   return Object.keys(accountsStore.accounts || {});
 }
 
-// TODO: Evaluate usage of Refresh Tokens
+// TODO(AB#757): Evaluate usage of Refresh Tokens
 export function storeRefreshToken(accountId, token, expiresAt) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) {

@@ -10,7 +10,10 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.resolve(__dirname, "..", "..", "data");
 
+const loaded = new Set();
+
 function load(file) {
+  loaded.add(file);
   const raw = fs.readFileSync(path.join(dataDir, file), "utf8");
   return JSON.parse(raw);
 }
@@ -216,11 +219,48 @@ describe("data/milestones.json", () => {
   });
 });
 
-describe("data/state.json", () => {
-  const data = load("state.json");
+// Bug #424: levels 6 to 10 named research, buildings and statistics this build does not have, so the resolver returned
+// 0 for them and nobody could pass Level 5. Every requirement must name something the build contains.
+describe("data/milestones.json names only what this build has (Bug #424)", async () => {
+  const { STAT_KEYS, PLAYER_BUILDINGS } = await import("../../server/gameState.js");
+  const milestones = load("milestones.json");
+  const researchIds = new Set(load("research.json").nodes.map((t) => t.id));
+  const leasable = new Set(load("systems.json").flatMap((s) => (s.bodies || []).filter((b) => b.leaseCost).map((b) => b.name)));
+  const requirements = milestones.levels.flatMap((l) => l.requirements.map((r) => ({ level: l.level, ...r })));
 
-  it("contains market and chatLog sections", () => {
-    expect(data.market).toBeDefined();
-    expect(data.chatLog).toBeDefined();
+  const problem = ({ metric }) => {
+    const [kind, ...rest] = metric.split(":");
+    const arg = rest.join(":");
+    if (metric === "employeeCount") return null;
+    if (kind === "stat") return STAT_KEYS.includes(arg) ? null : `no server code keeps the statistic "${arg}"`;
+    if (kind === "unlockedTech") return researchIds.has(arg) ? null : `research "${arg}" is not in research.json`;
+    if (kind === "building" || kind === "building-count") return PLAYER_BUILDINGS.includes(arg) ? null : `players cannot build "${arg}"`;
+    if (kind === "miningLease") return leasable.has(arg) ? null : `"${arg}" cannot be leased (no leaseCost in systems.json)`;
+    if (kind === "totalMined") return arg === "silicate" ? null : `the resolver counts only silicate mined, not "${arg}"`;
+    return `unknown metric "${metric}"`;
+  };
+
+  it("every requirement resolves to something a player can do", () => {
+    const broken = requirements.map((r) => ({ r, why: problem(r) })).filter((x) => x.why).map((x) => `L${x.r.level} ${x.r.id}: ${x.why}`);
+    expect(broken).toEqual([]);
+  });
+
+  it("the research every refinery chain needs exists", () => {
+    const chains = load("refinery-chains.json").chains;
+    expect(chains.flatMap((c) => (c.requiresTechIds || []).filter((id) => !researchIds.has(id)))).toEqual([]);
+  });
+});
+
+// Bug #588: this file used to check data/state.json too. That file is the server's gitignored runtime output, so on a
+// fresh clone this whole file failed to load and none of the catalog checks ran. The global state's shape is tested
+// where it is made, in tests/unit/globalState.test.js; this file reads committed catalogs only.
+describe("the schema tests read committed catalogs only (Bug #588)", () => {
+  it("loads no file that .gitignore excludes", () => {
+    const ignored = fs.readFileSync(path.resolve(dataDir, "..", ".gitignore"), "utf8")
+      .split(/\r?\n/).map((line) => line.trim()).filter((line) => line.startsWith("data/"));
+    expect(ignored).toContain("data/state.json");
+    const patterns = ignored.map((glob) => new RegExp(`^${glob.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*")}$`));
+    expect(patterns.some((p) => p.test("data/accounts-snapshot.json"))).toBe(true);
+    expect([...loaded].filter((file) => patterns.some((p) => p.test(`data/${file}`)))).toEqual([]);
   });
 });

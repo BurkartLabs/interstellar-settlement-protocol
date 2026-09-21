@@ -1,7 +1,22 @@
+import { WALKTHROUGH_STEPS as walkthroughSteps } from "./walkthrough.js";
+import { chooseHighlight, nextStepIndex } from "./walkthrough.js";
+import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
+import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
+import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
+import { missionRewardCredits } from "./ceoEffects.js"; // Bug #1009: its own line, after the others, so parallel branches adding imports do not collide
+
+/** localStorage, or null where reading the property itself throws (sandboxed frames, some private modes). */
+function viewerStorage() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 const appState = {
   serverData: null,
@@ -41,7 +56,7 @@ const appState = {
   insightPrograms: [], // loaded from /api/ceo-insight (Bug #983)
   stationActiveLease: null,
   _travelTimer: null,
-  exchangeFilter: "",
+  exchangeView: loadExchangeView(viewerStorage()), // resource, order type and sort, remembered per viewer (AB#402)
   beltCompositions: {},
   inbox: {
     messages: [],
@@ -67,7 +82,7 @@ const IS_DEV_ACCESS =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1";
 
-// TODO: This should be fetched from db or research.json
+// TODO(AB#1049): This should be fetched from db or research.json
 const techTree = [
   {
     id: "tt-basic-extraction",
@@ -187,82 +202,6 @@ const techTree = [
     costCredits: 8000,
     prereqs: ["tt-assembly-fabrication", "tt-supply-forecast"],
     tier: 2
-  }
-];
-
-// TODO: Move to dedicated file
-const walkthroughSteps = [
-  {
-    selector: '.tab-btn[data-tab="inbox"]',
-    title: "Welcome, Agent",
-    text: "You\u2019ve just received your ISA settlement license. Check your mailbox for the official charter from the Interstellar Settlement Authority.",
-    tab: "inbox"
-  },
-  {
-    selector: '.tab-btn[data-tab="starmap"]',
-    title: "Explore the Starmap",
-    text: "The starmap shows every system, planet, moon, and station. You\u2019ll manage operations across multiple locations. Let\u2019s find a station where you can establish your first office.",
-    tab: "starmap"
-  },
-  {
-    selector: '.tab-btn[data-tab="station"]',
-    title: "Station Overview",
-    text: "Stations are your base of operations. Here you\u2019ll rent offices, hire personnel, file mining leases, and manage extraction. Your corporation needs a registered office to operate.",
-    tab: "station"
-  },
-  {
-    selector: '[data-building-action="building:orbital-executive-suites"]',
-    title: "Rent Your First Office",
-    text: "Enter the Orbital Executive Suites and lease an office. It costs $1,000/day with a 30-day minimum ($30,000 upfront). This establishes your corporate presence at the station.",
-    tab: "station"
-  },
-  {
-    selector: '.tab-btn[data-tab="ceo"]',
-    title: "Hire Employees",
-    text: "With an office established, hire personnel. Each employee costs $2,000 to recruit and $150/day in payroll. Hire at least 5 employees \u2014 you\u2019ll need them for your first mining lease.",
-    tab: "ceo"
-  },
-  {
-    selector: '[data-building-action="building:isa-claims-leases"]',
-    title: "File a Mining Lease",
-    text: "Visit the ISA Claims & Leases Division to file an extraction rights application. Mars is recommended for your first lease. Each lease requires 5 employees on payroll.",
-    tab: "station"
-  },
-  {
-    selector: '.tab-btn[data-tab="station"]',
-    title: "Commission an Extractor Yard",
-    text: "Open your new Mars mining lease and commission a Basic Extractor Yard for $50,000. This gives you the equipment needed to mine silicates from the surface.",
-    tab: "station"
-  },
-  {
-    selector: '.tab-btn[data-tab="station"]',
-    title: "Start Your First Mining Cycle",
-    text: "Set your extraction parameters \u2014 throughput (tons/hour) and duration (hours) \u2014 then launch the cycle. Your extractor will begin mining silicates automatically.",
-    tab: "station"
-  },
-  {
-    selector: '.tab-btn[data-tab="rnd"]',
-    title: "Research Basic Extraction",
-    text: "Queue \u2018Basic Extraction Analytics\u2019 in your Corporate R&D lab. This 2-hour research project gives a permanent 10% boost to all extraction throughput.",
-    tab: "rnd"
-  },
-  {
-    selector: '.tab-btn[data-tab="market"]',
-    title: "Sell on the Galactic Market",
-    text: "Once your mining cycle completes, head to the Galactic Market. Sell your mined silicates by creating a listing or filling an existing NPC buy order for immediate credits.",
-    tab: "market"
-  },
-  {
-    selector: '.tab-btn[data-tab="missions"]',
-    title: "Visit the Assignments Bureau",
-    text: "The ISA Contracting & Assignments Bureau is where mission agents post field contracts. Visit Coordinator Voss in her office to review available logistics assignments.",
-    tab: "missions"
-  },
-  {
-    selector: '.tab-btn[data-tab="overview"]',
-    title: "You\u2019re Ready!",
-    text: "You now know the core loop: mine resources, research upgrades, trade on the market, and climb the corporate ladder. Keep expanding, keep researching, and check your milestones. Good luck, Agent.",
-    tab: "overview"
   }
 ];
 
@@ -528,7 +467,7 @@ async function apiFetch(url, options = {}, allowRetry = true) {
   return response;
 }
 
-// TODO: Ensure all helper functions are consolidated into a single function
+// TODO(AB#738): Ensure all helper functions are consolidated into a single function
 function toCurrency(number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -545,7 +484,7 @@ function deepClone(input) {
   return JSON.parse(JSON.stringify(input));
 }
 
-// TODO: Ensure this function is updated when we make asteroid belts dynamic
+// TODO(AB#1050): Ensure this function is updated when we make asteroid belts dynamic
 async function refreshBeltCompositions() {
   if (!appState.accountId) return;
   try {
@@ -556,6 +495,8 @@ async function refreshBeltCompositions() {
     appState.beltCompositions = data.compositions || {};
   } catch (_) { /* silent */ }
 }
+
+import { tradeConfirmRowsHtml, queueItemsHtml } from "./html.js"; // Bug #1002
 
 // ─── Trade confirmation modal ────────────────────────────────────────────────
 function getClientExchangeTaxPct() {
@@ -574,12 +515,7 @@ function showTradeConfirmation({ heading, title, rows, confirmLabel = "Confirm" 
   titleEl.textContent = title || "Confirm Trade";
   okBtn.textContent = confirmLabel;
 
-  bodyEl.innerHTML = `<table class="trade-confirm-table"><tbody>${rows
-    .map((r) => {
-      const cls = r.highlight ? ` class="trade-confirm-highlight"` : r.muted ? ` class="trade-confirm-muted"` : "";
-      return `<tr${cls}><td>${r.label}</td><td class="trade-confirm-value">${r.value}</td></tr>`;
-    })
-    .join("")}</tbody></table>`;
+  bodyEl.innerHTML = `<table class="trade-confirm-table"><tbody>${tradeConfirmRowsHtml(rows)}</tbody></table>`;
 
   modal.hidden = false;
 
@@ -746,9 +682,21 @@ function typeDialogueText(text, onDone) {
   }, 14);
 }
 
-function showDialogue({ speaker, title, text, choices = [], continueText = "", onContinue }) {
+function showDialogue({ speaker, title, text, choices = [], continueText = "", onContinue, portrait = "" }) {
   dialogueSpeaker.textContent = speaker;
   dialogueTitle.textContent = title;
+  // A speaker with a portrait shows it (AB#585); every other dialogue keeps the text-only card.
+  const dialoguePortrait = document.getElementById("dialogue-portrait");
+  if (dialoguePortrait) {
+    dialoguePortrait.hidden = !portrait;
+    dialoguePortrait.closest(".modal-card")?.classList.toggle("has-portrait", Boolean(portrait));
+    if (portrait) {
+      dialoguePortrait.src = portrait;
+      dialoguePortrait.alt = speaker;
+    } else {
+      dialoguePortrait.removeAttribute("src");
+    }
+  }
   dialogueChoices.innerHTML = "";
   dialogueContinue.hidden = true;
   dialogueModal.hidden = false;
@@ -777,22 +725,24 @@ function closeDialogue() {
   dialogueContinue.hidden = true;
 }
 
-// TODO: Expand design of intro dialogue
+// TODO(AB#585): Expand design of intro dialogue
 function runIntroDialogue() {
   return new Promise((resolve) => {
     showDialogue({
-      speaker: "Assembly Liaison Aria Voss",
+      speaker: COORDINATOR_BYLINE,
+      portrait: ASSIGNED_COORDINATOR.portrait,
       title: "Corporate Confirmation",
-      text: "Registration complete. Your corporation is officially chartered under the Interstellar Settlement Protocol. Command authority has been transferred to you as Founder and CEO.",
+      text: "Registration complete. Your corporation is officially chartered under the Interstellar Settlement Protocol, and command authority is yours as Founder and CEO. The Bureau assigns every new charter a coordinator. I have been assigned to yours.",
       choices: [
         {
           label: "Any advice for me?",
           accent: true,
           onClick: () => {
             showDialogue({
-              speaker: "Assembly Liaison Aria Voss",
+              speaker: COORDINATOR_BYLINE,
+              portrait: ASSIGNED_COORDINATOR.portrait,
               title: "Starting Advice",
-              text: "Hire your initial employees, queue your first Corporate R&D project, and establish your first mining operation before overcommitting to military spend. Use market contracts to smooth bottlenecks.",
+              text: "In order: an office, then staff, then a mining claim with a yard on it. Sell what you mine before you spend on anything you do not yet need. Research can wait until the yard is running. I will walk you through each of those next.",
               continueText: "Proceed To Command Interface",
               onContinue: () => {
                 closeDialogue();
@@ -813,7 +763,7 @@ function runIntroDialogue() {
   });
 }
 
-// TODO: Remove, we have a duplicate function in gameState.json, and this should be extrapolated based on values in the DB
+// TODO(AB#738): Remove, we have a duplicate function in gameState.json, and this should be extrapolated based on values in the DB
 function createNewPlayerState(baseState, ceoName, corpName) {
   const next = deepClone(baseState);
   next.corp = {
@@ -943,40 +893,6 @@ function computeAverageMarketPrice(data) {
     if (result[item] == null) result[item] = npcFloorByItem[item];
   }
   return result;
-}
-
-function renderInventoryPanel() {
-  const inventory = getInventory();
-  const inventoryList = document.getElementById("inventory-list");
-  const listingItem = document.getElementById("listing-item");
-  const listingQuantity = document.getElementById("listing-quantity");
-  const listingSubmit = document.getElementById("listing-submit");
-  const status = document.getElementById("listing-status");
-
-  const entries = Object.entries(inventory).filter(([, qty]) => Number(qty) > 0);
-
-  if (!entries.length) {
-    inventoryList.innerHTML = "<li>No inventory available yet. Begin mining and refining to generate tradable stock.</li>";
-    listingItem.innerHTML = '<option value="">No inventory</option>';
-    listingSubmit.disabled = true;
-    listingQuantity.value = "1";
-    listingQuantity.max = "1";
-    status.textContent = "No listing can be created until inventory exists.";
-    return;
-  }
-
-  inventoryList.innerHTML = entries
-    .map(([name, qty]) => `<li>${name}: ${qty}</li>`)
-    .join("");
-
-  listingItem.innerHTML = entries
-    .map(([name, qty]) => `<option value="${name}">${name} (${qty} available)</option>`)
-    .join("");
-
-  const selectedQty = entries.find(([name]) => name === listingItem.value)?.[1] || entries[0][1];
-  listingQuantity.max = String(selectedQty);
-  listingSubmit.disabled = false;
-  status.textContent = "";
 }
 
 function availableTechNodes(data) {
@@ -1214,7 +1130,7 @@ function updateCorpIdentity(data) {
     <dt>Level</dt><dd>${corp.level} / ${corp.levelCap}</dd>
     <dt>Employees</dt><dd>${corp.employeeCount} / ${corp.employeeCap}</dd>
     <dt>Building Slots</dt><dd>${corp.buildingSlots}</dd>
-    <dt>Fleet Cap</dt><dd>${corp.unlocks.maxFleetSize}</dd>
+    <dt>Fleet Cap</dt><dd>${corp.fleet?.cap ?? corp.unlocks.maxFleetSize}</dd>
   `;
 
   const milestones = document.getElementById("milestone-list");
@@ -1342,7 +1258,7 @@ function stationLocationBanner(station) {
 }
 
 /*
-  TODO: Move the rendering and functionality of each building to their own dedicated file. Ensure that relevant information is being fetched from the 
+  TODO(AB#739): Move the rendering and functionality of each building to their own dedicated file. Ensure that relevant information is being fetched from the 
   database where applicable.
 */
 
@@ -1818,7 +1734,7 @@ function renderLeaseManagement(building, lease, data) {
           <div class="extractor-stat-row">
             <span class="extractor-stat"><span class="extractor-stat-label">Cycle progress</span><span class="extractor-stat-value">${cycleElapsed}</span></span>
             <span class="extractor-stat"><span class="extractor-stat-label">Downtime elapsed</span><span class="extractor-stat-value">${dtHrs}h ${dtMins}m</span></span>
-            <span class="extractor-stat"><span class="extractor-stat-label">Mined before halt</span><span class="extractor-stat-value">${(ex.totalMined || 0).toLocaleString()}</span></span>
+            <span class="extractor-stat"><span class="extractor-stat-label">Mined before halt</span><span class="extractor-stat-value">${(ex.minedThisCycle || 0).toLocaleString()}</span></span>
           </div>
         </div>
       `;
@@ -1844,7 +1760,7 @@ function renderLeaseManagement(building, lease, data) {
             <div class="extractor-progress-fill" style="width:${pct}%"></div>
           </div>
           <div class="extractor-stat-row">
-            <span class="extractor-stat"><span class="extractor-stat-label">Mined this cycle</span><span class="extractor-stat-value">${(ex.totalMined || 0).toLocaleString()}</span></span>
+            <span class="extractor-stat"><span class="extractor-stat-label">Mined this cycle</span><span class="extractor-stat-value">${(ex.minedThisCycle || 0).toLocaleString()}</span></span>
             <span class="extractor-stat"><span class="extractor-stat-label">Fees incurred</span><span class="extractor-stat-value">${toCurrency(estimatedFees)}</span></span>
             <span class="extractor-stat"><span class="extractor-stat-label">Rate</span><span class="extractor-stat-value">${ex.throughputPerHour} t/h</span></span>
           </div>
@@ -2051,7 +1967,7 @@ function bindLeaseManagementActions(building, lease, data) {
 }
 
 // ─── Tabs allowed during travel ──────────────────────────────────────────────
-// TODO: Overhaul Travel Page design
+// TODO(AB#1053): Overhaul Travel Page design
 const TRAVEL_ALLOWED_TABS = new Set(["overview", "inbox", "chat", "forums", "starmap", "travel"]);
 
 function isPlayerTraveling(data) {
@@ -2244,7 +2160,7 @@ function travelTimeBetween(fromStation, toStation) {
   return 1 * 60 * 1000;
 }
 
-// TODO: Consolidate all helper functions to singular file
+// TODO(AB#738): Consolidate all helper functions to singular file
 function formatDuration(ms) {
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
   const h = Math.floor(totalSec / 3600);
@@ -2308,26 +2224,7 @@ function renderStation(data) {
     .map((id) => appState.buildingRegistry.find((b) => b.id === id))
     .filter(Boolean);
 
-  const npcBuildings = stationBuildings.filter((b) => b.owner === "npc" && b.available);
-
-  npcGrid.innerHTML = npcBuildings
-    .map((b) => {
-      const actionBtn = b.available
-        ? `<button class="btn btn-outline" data-building-action="${escapeHtml(b.action)}">Enter</button>`
-        : `<span class="building-status-badge">Coming Soon</span>`;
-      return `
-        <article class="building-card data-card">
-          <header class="building-card-header">
-            <span class="faction-code-badge">${escapeHtml(b.factionCode)}</span>
-            <h3>${escapeHtml(b.name)}</h3>
-          </header>
-          <p class="muted building-description">${escapeHtml(b.description)}</p>
-          <p class="building-flavor">${escapeHtml(b.flavor)}</p>
-          <footer class="building-card-footer">${actionBtn}</footer>
-        </article>
-      `;
-    })
-    .join("");
+  npcGrid.innerHTML = stationBuildingCardsHtml(stationBuildings);
 
   const corpBuildings = (data.corp?.buildings || []).filter((b) => b.status === "Operational");
   const hasAssemblyTech = (data.corp?.unlockedTech || []).includes("tt-assembly-fabrication");
@@ -2456,7 +2353,7 @@ function renderAssemblyFacility(data) {
 
   const am = data.corp?.asteroidMining || {};
   const probeCount = am.probeCount || 0;
-  const maxProbes = am.maxProbes || 2;
+  const fleet = data.corp?.fleet || { cap: 2, vessels: probeCount, full: probeCount >= 2, raiseText: "" }; // Bug #586
   const hasProspecting = (data.corp?.unlockedTech || []).includes("tt-asteroid-prospecting");
   const station = getCurrentStationInfo(data);
 
@@ -2467,7 +2364,8 @@ function renderAssemblyFacility(data) {
     const fabQueue = am.fabricationQueue || [];
     const activeFab = fabQueue[0] || null;
     const pendingCount = fabQueue.length;
-    const canBuild = (probeCount + pendingCount) < maxProbes && !activeFab;
+    const canBuild = !fleet.full && !activeFab;
+    const deployedCount = (am.activeExpeditions || []).length;
 
     let fabProgressHtml = "";
     if (activeFab) {
@@ -2487,12 +2385,12 @@ function renderAssemblyFacility(data) {
       <div class="assembly-probe-status">
         <img src="/images/mining_probe.png" alt="Mining Probe" class="assembly-probe-img" />
         <div>
-          <p>Mining Probes: <strong>${probeCount} / ${maxProbes}</strong>${pendingCount > 0 ? ` <span class="muted">(${pendingCount} in fabrication)</span>` : ""}</p>
+          <p>Mining Probes: <strong>${fleet.vessels} / ${fleet.cap}</strong> Fleet Cap <span class="muted">(${probeCount} in hangar${deployedCount > 0 ? `, ${deployedCount} on expedition` : ""}${pendingCount > 0 ? `, ${pendingCount} in fabrication` : ""})</span></p>
           ${canBuild
             ? `<button id="build-probe-btn" class="btn btn-accent">Fabricate Mining Probe (¤8,000)</button>`
             : activeFab
               ? ""
-              : `<p class="muted">Probe hangar full. Research upgrades to increase capacity.</p>`
+              : `<p class="muted">Your fleet is at its Fleet Cap. ${fleet.raiseText}</p>`
           }
           ${fabProgressHtml}
         </div>
@@ -2596,7 +2494,7 @@ function bindBuildingActions() {
 }
 
 // ─── Financial Control Board (CORP-FIN-1) — KPI strip and ledger tables ─────
-// TODO: Consolidate helper functions to singular file
+// TODO(AB#738): Consolidate helper functions to singular file
 
 function fmtCredits(n) {
   const v = Math.round(Number(n) || 0);
@@ -2657,11 +2555,14 @@ function renderFinanceDashboard(finances) {
   const assets = Number(finances.assets) || 0;
   const dailyRevenue = Number(finances.dailyRevenue) || 0;
   const dailyCosts = Number(finances.dailyCosts) || 0;
-  const netFlow = dailyRevenue - dailyCosts;
+  // Bug #1022: the cost side is what was booked in the last 24 hours, not the payroll rate.
+  const dailyExpenses = Number(finances.dailyExpenses) || 0;
+  const inventory = Number(finances.inventoryValue) || 0;
+  const netFlow = dailyRevenue - dailyExpenses;
   const snaps = Array.isArray(finances.snapshots) ? finances.snapshots : [];
   const latest = snaps.length ? snaps[snaps.length - 1] : null;
   const liabilities = latest ? latest.liabilities : Math.round(dailyCosts * 7);
-  const netWorth = credits + assets - liabilities;
+  const netWorth = credits + assets + inventory - liabilities;
 
   setKpi("kpi-net-worth", `$${fmtCredits(netWorth)}`);
   setKpi("kpi-credits", `$${fmtCredits(credits)}`);
@@ -2671,11 +2572,11 @@ function renderFinanceDashboard(finances) {
     { tone: netFlow >= 0 ? "positive" : "negative" }
   );
   setKpi("kpi-revenue", `$${fmtCredits(dailyRevenue)}`);
-  setKpi("kpi-costs", `$${fmtCredits(dailyCosts)}`);
+  setKpi("kpi-costs", `$${fmtCredits(dailyExpenses)}`);
 
   let runwayLabel;
-  if (dailyCosts <= 0) runwayLabel = "∞";
-  else runwayLabel = `${(credits / dailyCosts).toFixed(1)} d`;
+  if (dailyExpenses <= 0) runwayLabel = "∞";
+  else runwayLabel = `${(credits / dailyExpenses).toFixed(1)} d`;
   setKpi("kpi-runway", runwayLabel);
 
   const prev = snaps.length >= 2 ? snaps[snaps.length - 2] : null;
@@ -2688,7 +2589,7 @@ function renderFinanceDashboard(finances) {
   if (meta) meta.textContent = latest ? fmtTimestamp(latest.t) : "no snapshots yet";
 
   renderPnlTable(finances);
-  renderBalanceTable(finances, { credits, assets, liabilities, netWorth });
+  renderBalanceTable(finances, { credits, assets, inventory, liabilities, netWorth });
 }
 
 function renderPnlTable(finances) {
@@ -2745,9 +2646,10 @@ function renderBalanceTable(finances, derived) {
   const tfoot = table.querySelector("tfoot");
   if (!tbody || !tfoot) return;
 
-  const { credits, assets, liabilities, netWorth } = derived;
+  const { credits, assets, inventory, liabilities, netWorth } = derived;
   const dailyRevenue = Number(finances.dailyRevenue) || 0;
   const dailyCosts = Number(finances.dailyCosts) || 0;
+  const dailyExpenses = Number(finances.dailyExpenses) || 0;
   const forwardOps = Math.round(dailyCosts * 7);
   const leaseShare = Math.max(0, liabilities - forwardOps);
 
@@ -2755,17 +2657,18 @@ function renderBalanceTable(finances, derived) {
     <tr><th colspan="2" style="color:#6cf0c2">Assets</th></tr>
     <tr><td>Liquid Credits</td><td class="num">${fmtCredits(credits)}</td></tr>
     <tr><td>Facilities &amp; Probes</td><td class="num">${fmtCredits(assets)}</td></tr>
+    <tr><td>Inventory (at standing bids)</td><td class="num">${fmtCredits(inventory)}</td></tr>
     <tr><th colspan="2" style="color:#f0a06a">Liabilities</th></tr>
     <tr><td>Forward Operating (7d)</td><td class="num">${fmtCredits(forwardOps)}</td></tr>
     <tr><td>Lease Commitments</td><td class="num">${fmtCredits(leaseShare)}</td></tr>
     <tr><th colspan="2" style="color:#89a7bd">Operating Profile</th></tr>
     <tr><td>Daily Revenue</td><td class="num num--positive">+${fmtCredits(dailyRevenue)}</td></tr>
-    <tr><td>Daily Costs</td><td class="num num--negative">−${fmtCredits(dailyCosts)}</td></tr>
+    <tr><td>Daily Costs</td><td class="num num--negative">−${fmtCredits(dailyExpenses)}</td></tr>
   `;
 
   const nwClass = netWorth >= 0 ? "num--positive" : "num--negative";
   tfoot.innerHTML = `
-    <tr><td>Total Assets</td><td class="num num--positive">${fmtCredits(credits + assets)}</td></tr>
+    <tr><td>Total Assets</td><td class="num num--positive">${fmtCredits(credits + assets + inventory)}</td></tr>
     <tr><td>Total Liabilities</td><td class="num num--negative">−${fmtCredits(liabilities)}</td></tr>
     <tr><td><strong>Net Worth</strong></td><td class="num ${nwClass}"><strong>${fmtSignedCredits(netWorth)}</strong></td></tr>
   `;
@@ -2781,8 +2684,8 @@ function updateOverview(data) {
     },
     {
       title: "Net Daily Flow",
-      value: toCurrency(data.corp.finances.dailyRevenue - data.corp.finances.dailyCosts),
-      body: "Daily revenue minus operational burn. This drives long-horizon compounding over years."
+      value: toCurrency((Number(data.corp.finances.dailyRevenue) || 0) - (Number(data.corp.finances.dailyExpenses) || 0)),
+      body: "Income minus costs booked in the last 24 hours. This drives long-horizon compounding over years."
     },
     {
       title: "Conglomerate Status",
@@ -2830,7 +2733,7 @@ function renderLevel2Progress(data) {
   }
 
   // Map requirement IDs to the tab they should navigate to
-  // TODO: This information should be stored in the database OR in milestones.json
+  // TODO(AB#798): This information should be stored in the database OR in milestones.json
   const REQ_TAB = {
     officeRented:               "station",
     hire5:                      "station",
@@ -2840,39 +2743,45 @@ function renderLevel2Progress(data) {
     marsLease:                  "station",
     secondLease:                "station",
     lunaLease:                  "station",
-    asteroidBeltLease:          "station",
     extractor:                  "station",
     extractor2:                 "station",
     extractor3:                 "station",
-    ferricMiningComplex:        "station",
-    refineryComplex:            "station",
-    cryoExtractorArray:         "station",
     mine300:                    "station",
-    beltMiningOp:               "station",
     researchBasicExtraction:    "rnd",
     researchIndustrialSafety:   "rnd",
     researchEnergyRouting:      "rnd",
-    researchFerricCore:         "rnd",
-    researchMultiStageRefinery: "rnd",
-    researchCryoVapor:          "rnd",
-    researchCarbonSlurry:       "rnd",
-    researchBeltMining:         "rnd",
-    researchExtrasolar:         "rnd",
     sell300Silicate:            "market",
     sell50000Silicate:          "market",
-    sell500CryoFoam:            "market",
-    sell500HydratedFerric:      "market",
-    sell500CarbonSilicate:      "market",
-    sell500CarboIron:           "market",
-    sell500HydroCarbon:         "market",
-    manufacture5000Alloys:      "refinery",
-    missions25:                 "missions"
+    missions25:                 "missions",
+    // Levels 6 to 10 since Bug #424
+    assemblyFacility:           "station",
+    refinery:                   "refinery",
+    expeditions3:               "starmap",
+    expeditions10:              "starmap",
+    refine1000:                 "refinery",
+    refine10000:                "refinery",
+    sell100000Silicate:         "market",
+    researchAssemblyFabrication: "rnd",
+    researchAsteroidProspecting: "rnd",
+    researchMaterialCompression: "rnd",
+    researchNanoLattice:        "rnd",
+    researchNearStarNavigation: "rnd"
   };
 
   const level = Number(data?.corp?.level || 0);
   const nextLevel = level + 1;
   const nextKey = `level${nextLevel}`;
   const nextProgress = data?.corp?.levelProgress?.[nextKey];
+
+  // Bug #424: the top of the ladder is reachable now, so say it is the top rather than offer a level that does not exist.
+  const levelCap = Number(data?.corp?.levelCap || 0);
+  if (levelCap && level >= levelCap) {
+    if (title) title.textContent = `Corporation Level ${level}: the top of this build`;
+    if (lede) lede.textContent = `You have reached the highest level this build defines. Levels ${levelCap + 1} to 40 are planned for a later version.`;
+    requirementsWrap.innerHTML = "";
+    status.textContent = "";
+    return;
+  }
 
   if (title) {
     title.textContent = `Corporation Level ${nextLevel} Milestones`;
@@ -3145,42 +3054,28 @@ function queueProgress(item) {
 function renderQueue(elId, queue, subtitle) {
   const el = document.getElementById(elId);
   if (!queue.length) {
-    el.innerHTML = `<article class="queue-item"><p>No queued items yet.</p><p class="muted">${subtitle}</p></article>`;
+    el.innerHTML = `<article class="queue-item"><p>No queued items yet.</p><p class="muted">${escapeHtml(subtitle)}</p></article>`;
     return;
   }
 
-  el.innerHTML = queue
-    .map((item) => {
-      const progress = queueProgress(item);
-      let progressMeta = "";
-      if (item.startedAt) {
-        const remainingMs = Math.max(0, (item.startedAt + item.durationHours * 3_600_000) - Date.now());
-        const rHrs = Math.floor(remainingMs / 3_600_000);
-        const rMins = Math.floor((remainingMs % 3_600_000) / 60_000);
-        const timeStr = remainingMs > 0 ? `${rHrs}h ${rMins}m remaining` : "Completing...";
-        progressMeta = `<div class="queue-progress-meta"><span>${progress.toFixed(1)}%</span><span>${timeStr}</span></div>`;
-      }
-      return `
-      <article class="queue-item">
-        <h3>${item.name}</h3>
-        <p class="muted">${subtitle}</p>
-        <p>${item.effect}</p>
-        <p class="muted">Duration: ${item.durationHours}h | ${item.startedAt ? "In progress" : "Queued"}</p>
-        ${item.costCredits ? `<p class="muted">Committed funding: ${toCurrency(item.costCredits)} credits</p>` : ""}
-        ${progressMeta}
-        <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
-      </article>
-      `;
-    })
-    .join("");
+  el.innerHTML = queueItemsHtml(queue, subtitle, {
+    progressOf: queueProgress,
+    remainingLabel: (item) => {
+      const remainingMs = Math.max(0, (item.startedAt + item.durationHours * 3_600_000) - Date.now());
+      const rHrs = Math.floor(remainingMs / 3_600_000);
+      const rMins = Math.floor((remainingMs % 3_600_000) / 60_000);
+      return remainingMs > 0 ? `${rHrs}h ${rMins}m remaining` : "Completing...";
+    },
+    formatCredits: toCurrency
+  });
 }
-// TODO: Remove duplicate. This should be stored in the database
+// TODO(AB#824): Remove duplicate. This should be stored in the database
 const RESOURCE_CATALOG = [
   "Silicates", "Helium-3", "Nickel", "Titanium", "Carbon",
   "Water Ice", "Rare Earths", "Thorium", "Hydrogen", "Lithium",
   "Cobalt", "Uranium", "Exotic Matter"
 ];
-// TODO: Remove. This is defined within gameState.js but should be fetched from the DB or from milestones.json
+// TODO(AB#798): Remove. This is defined within gameState.js but should be fetched from the DB or from milestones.json
 const MILESTONE_ROADMAP = [
   "Rent an Office", "Hire 5 Employees", "Reached Corporation Level 1",
   "Purchase a Mining Lease on Mars", "Build a Basic Extractor Yard", "Mine 300 Silicate",
@@ -3305,14 +3200,14 @@ function renderRefinery(data) {
           <p class="muted">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(chain.input)}${!hasInput && !techGated ? ` (need ${minQty})` : ""}</p>
           ${canStart
             ? `<div class="refine-quantity-row" style="display:flex;gap:0.5rem;align-items:center;margin:0.5rem 0;">
-                <label for="${inputId}" class="muted" style="font-size:0.85rem;">Quantity</label>
-                <input id="${inputId}" class="refine-quantity-input" type="number"
+                <label for="${escapeHtml(inputId)}" class="muted" style="font-size:0.85rem;">Quantity</label>
+                <input id="${escapeHtml(inputId)}" class="refine-quantity-input" type="number"
                   min="${minQty}" step="${perCycle}" value="${defaultQty}"
-                  data-chain-id="${chain.id}"
+                  data-chain-id="${escapeHtml(chain.id)}"
                   style="width:9rem;padding:0.3rem 0.5rem;background:var(--color-bg-deep);border:1px solid var(--color-border);color:var(--color-text);border-radius:4px;" />
                 <span class="muted" style="font-size:0.8rem;">min ${minQty}, step ${perCycle}</span>
               </div>
-              <button class="btn btn-accent refinery-start-btn" data-chain-id="${chain.id}" data-refinery-id="${idleRefinery.id}" data-quantity-input="${inputId}">Start Run</button>`
+              <button class="btn btn-accent refinery-start-btn" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}">Start Run</button>`
             : belowRefineryCap && canBuildRefinery
               ? `<button class="btn btn-outline refinery-build-btn"${!hasOpenBuildingSlot ? ` data-disabled-reason="${escapeHtml(`Refinery requires 1 open building slot. Current usage: ${buildings.length}/${buildingSlots}.`)}` : ""}>${hasRefinery ? "Build 2nd Refinery" : "Build Refinery"}</button>${!hasOpenBuildingSlot ? `<p class="muted" style="color:var(--color-warn)">No open building slots. Current usage: ${buildings.length}/${buildingSlots}.</p>` : ""}`
               : !hasRefinery && !canBuildRefinery
@@ -3646,7 +3541,8 @@ function renderAssets(data) {
 }
 
 // ─── Logistics ───────────────────────────────────────────────────────────────
-const LOGISTICS_FEE_PER_UNIT = 2; // credits per unit transferred
+// AB#717: the transfer rules, fee and history limit come from the module the server enforces them with.
+import { LOGISTICS_FEE_PER_UNIT, MAX_TRANSFER_LINES, transferFee, describeLines } from "./logistics.js";
 
 function renderLogistics(data) {
   const station = getCurrentStationInfo(data);
@@ -3661,6 +3557,12 @@ function renderLogistics(data) {
   const currentStationId = data.corp?.currentStationId || "earth-station-prime";
   const credits = Number(data.corp?.finances?.credits || 0);
   const currentName = station?.name || "current station";
+  const stationName = (id) => stationRegistry.find((st) => st.id === id)?.name || id;
+  // The last outcome on a station card (AB#717): errors name the fix, and survive the re-renders a tick causes.
+  const status = appState.logisticsStatus || null;
+  // Picks and typed quantities survive those re-renders too, until the transfer goes through.
+  if (!appState.logisticsDraft) appState.logisticsDraft = {};
+  const draft = appState.logisticsDraft;
 
   // Summary tiles
   const totalRemoteUnits = stationRegistry
@@ -3690,8 +3592,8 @@ function renderLogistics(data) {
       </div>
     </div>`;
 
-  // Build per-station cards. Current station uses an inventory list; remote
-  // stations use an item-row layout with an inline transfer control per item.
+  // Build per-station cards. Current station uses an inventory list; remote stations use an item-row layout with a
+  // pick box and quantity per item, a Move button per row, and one button that moves every picked row together.
   let cardsHtml = "";
   for (const st of stationRegistry) {
     const inv = allInventory[st.id] || {};
@@ -3710,24 +3612,34 @@ function renderLogistics(data) {
           <span class="logistics-item-qty">${Number(qty).toLocaleString()}</span>
         </li>`).join("") + `</ul>`;
     } else {
-      itemsHtml = `<ul class="logistics-item-list">` + entries.map(([item, qty]) => {
+      itemsHtml = `<ul class="logistics-item-list">` + entries.map(([item, qty], index) => {
         const maxQty = Number(qty);
+        const kept = draft[`${st.id}|${item}`] || {};
+        const pickId = `logistics-pick-${escapeHtml(st.id)}-${index}`;
         return `<li class="logistics-item-row logistics-item-row--transfer">
-          <div class="logistics-item-meta">
+          <input type="checkbox" id="${pickId}" class="logistics-pick" data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}"${kept.picked ? " checked" : ""} />
+          <label class="logistics-item-meta" for="${pickId}">
             <span class="logistics-item-name">${escapeHtml(item)}</span>
             <span class="logistics-item-qty muted">${maxQty.toLocaleString()} avail</span>
-          </div>
+          </label>
           <div class="logistics-transfer-controls">
-            <input type="number" class="logistics-qty-input" min="1" max="${maxQty}" value="${maxQty}"
-              data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}" aria-label="Transfer quantity" />
+            <input type="number" class="logistics-qty-input" min="1" step="1" max="${maxQty}" value="${escapeHtml(kept.qty ?? maxQty)}"
+              data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}" aria-label="Quantity of ${escapeHtml(item)} to move" />
             <button class="btn btn-outline btn-sm logistics-transfer-btn" type="button"
               data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}">
-              → ${escapeHtml(currentName)}
+              Move → ${escapeHtml(currentName)}
             </button>
           </div>
         </li>`;
-      }).join("") + `</ul>`;
+      }).join("") + `</ul>
+        <div class="logistics-bulk">
+          <button class="btn btn-accent btn-sm logistics-bulk-btn" type="button" data-from-station="${escapeHtml(st.id)}" disabled>Move picked items</button>
+          <span class="logistics-bulk-fee muted" data-from-station="${escapeHtml(st.id)}">Pick up to ${MAX_TRANSFER_LINES} items to move together.</span>
+        </div>`;
     }
+    const cardStatus = status && status.stationId === st.id
+      ? `<p class="logistics-status logistics-status--${status.tone === "ok" ? "ok" : "error"}" role="${status.tone === "ok" ? "status" : "alert"}">${escapeHtml(status.text)}</p>`
+      : "";
 
     cardsHtml += `
       <section class="logistics-station-card ${isCurrent ? "logistics-station-card--current" : ""}">
@@ -3739,42 +3651,100 @@ function renderLogistics(data) {
           <span class="logistics-station-sub muted">${subhead}</span>
         </header>
         ${itemsHtml}
+        ${cardStatus}
       </section>`;
   }
 
-  contentEl.innerHTML = summary + `<div class="logistics-grid">${cardsHtml}</div>`;
+  // Transfer history, newest first (corp.logisticsHistory keeps the last 100).
+  const history = Array.isArray(data.corp?.logisticsHistory) ? data.corp.logisticsHistory : [];
+  const historyHtml = `
+    <section class="form-card logistics-history">
+      <h3>Transfer History</h3>
+      ${history.length
+        ? `<ol class="logistics-history-list">${history.map((h) => `<li class="logistics-history-item">
+              <span class="logistics-history-route">${escapeHtml(stationName(h.from))} → ${escapeHtml(stationName(h.to))}</span>
+              <span class="logistics-history-fee">${toCurrency(h.fee)}</span>
+              <span class="logistics-history-lines">${escapeHtml(describeLines(h.lines))}</span>
+              <time class="logistics-history-time muted" datetime="${escapeHtml(new Date(h.time).toISOString())}">${escapeHtml(new Date(h.time).toLocaleString())}</time>
+            </li>`).join("")}</ol>`
+        : `<p class="muted">No transfers yet. Goods held at another station can be moved here from its card above.</p>`}
+    </section>`;
 
-  // Bind transfer buttons
+  contentEl.innerHTML = summary + `<div class="logistics-grid">${cardsHtml}</div>` + historyHtml;
+
+  const lineFor = (fromStation, item) => {
+    const input = [...contentEl.querySelectorAll(".logistics-qty-input")]
+      .find((el) => el.getAttribute("data-from-station") === fromStation && el.getAttribute("data-item") === item);
+    // Sent as typed: the server refuses anything but a whole number of at least 1, and says so.
+    return { item, quantity: input?.value ?? "" };
+  };
+  const picked = (fromStation) => [...contentEl.querySelectorAll(".logistics-pick")]
+    .filter((box) => box.checked && box.getAttribute("data-from-station") === fromStation)
+    .map((box) => lineFor(fromStation, box.getAttribute("data-item")));
+
+  // Keep each card's bulk button and fee preview in step with what is picked.
+  const refreshBulk = (fromStation) => {
+    const btn = [...contentEl.querySelectorAll(".logistics-bulk-btn")].find((b) => b.getAttribute("data-from-station") === fromStation);
+    const feeEl = [...contentEl.querySelectorAll(".logistics-bulk-fee")].find((b) => b.getAttribute("data-from-station") === fromStation);
+    if (!btn || !feeEl) return;
+    const lines = picked(fromStation);
+    const units = lines.reduce((s, l) => s + Math.max(0, Math.floor(Number(l.quantity) || 0)), 0);
+    btn.disabled = lines.length === 0;
+    btn.textContent = lines.length ? `Move ${lines.length} picked → ${currentName}` : "Move picked items";
+    feeEl.textContent = lines.length
+      ? `${units.toLocaleString()} units, fee ${toCurrency(transferFee([{ quantity: units }]))}${lines.length > MAX_TRANSFER_LINES ? `. At most ${MAX_TRANSFER_LINES} items per transfer.` : ""}`
+      : `Pick up to ${MAX_TRANSFER_LINES} items to move together.`;
+  };
+  const remember = (el) => {
+    const key = `${el.getAttribute("data-from-station")}|${el.getAttribute("data-item")}`;
+    draft[key] = { ...(draft[key] || {}), ...(el.type === "checkbox" ? { picked: el.checked } : { qty: el.value }) };
+    refreshBulk(el.getAttribute("data-from-station"));
+  };
+  contentEl.querySelectorAll(".logistics-pick, .logistics-qty-input").forEach((el) => {
+    el.addEventListener("input", () => remember(el));
+    el.addEventListener("change", () => remember(el));
+  });
+  new Set([...contentEl.querySelectorAll(".logistics-bulk-btn")].map((b) => b.getAttribute("data-from-station"))).forEach(refreshBulk);
+
+  const send = async (btn, fromStation, lines) => {
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = "Transferring…";
+    try {
+      const response = await apiFetch(
+        `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/transfer-resources`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fromStationId: fromStation, lines })
+        }
+      );
+      const account = await parseJsonResponse(response);
+      const moved = account.state?.corp?.logisticsHistory?.[0];
+      appState.logisticsStatus = { stationId: fromStation, tone: "ok", text: `Moved ${describeLines(moved?.lines || [])} to ${currentName} for ${toCurrency(moved?.fee || 0)}.` };
+      for (const key of Object.keys(draft)) if (key.startsWith(`${fromStation}|`)) delete draft[key];
+      appState.data = deepClone(account.state);
+      appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+      updateAllViews();
+      pushFeedback(appState.logisticsStatus.text, "success");
+    } catch (err) {
+      appState.logisticsStatus = { stationId: fromStation, tone: "error", text: err.message || "Transfer failed." };
+      btn.textContent = original;
+      renderLogistics(appState.data);
+      pushFeedback(appState.logisticsStatus.text, "warn");
+    }
+  };
+
   contentEl.querySelectorAll(".logistics-transfer-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       const fromStation = btn.getAttribute("data-from-station");
-      const item = btn.getAttribute("data-item");
-      const qtyInput = contentEl.querySelector(`.logistics-qty-input[data-from-station="${fromStation}"][data-item="${item}"]`);
-      const quantity = Math.max(1, parseInt(qtyInput?.value || "1", 10));
-
-      btn.disabled = true;
-      const original = btn.textContent;
-      btn.textContent = "Transferring…";
-
-      try {
-        const response = await apiFetch(
-          `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/transfer-resources`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fromStationId: fromStation, item, quantity })
-          }
-        );
-        const account = await parseJsonResponse(response);
-        appState.data = deepClone(account.state);
-        appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
-        updateAllViews();
-        pushFeedback(`Transferred ${quantity.toLocaleString()} ${item} to ${currentName}.`, "success");
-      } catch (err) {
-        btn.disabled = false;
-        btn.textContent = original;
-        pushFeedback(err.message || "Transfer failed.", "warn");
-      }
+      send(btn, fromStation, [lineFor(fromStation, btn.getAttribute("data-item"))]);
+    });
+  });
+  contentEl.querySelectorAll(".logistics-bulk-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const fromStation = btn.getAttribute("data-from-station");
+      send(btn, fromStation, picked(fromStation));
     });
   });
 }
@@ -3807,29 +3777,57 @@ function renderMarket(data) {
 
   const market = data.market || {};
   const allSellOrders = (market.orderBook || []).filter((order) => order.type === "sell" && !isOwnSellOrder(order));
-  const mySellOrders = (market.orderBook || [])
-    .filter((order) => order.type === "sell" && isOwnSellOrder(order))
-    .slice(0, 50);
+  const allMySellOrders = (market.orderBook || []).filter((order) => order.type === "sell" && isOwnSellOrder(order));
   const npcBuyOrders = market.npcBuyOrders || [];
 
-  // Build resource filter pills from all visible resources
+  const view = appState.exchangeView;
+
+  // Build resource filter pills from all visible resources, keeping a remembered resource that has no orders today so
+  // the viewer can see which filter is on
   const resourceSet = new Set();
   allSellOrders.forEach((o) => o.item && resourceSet.add(o.item));
   npcBuyOrders.forEach((o) => o.item && resourceSet.add(o.item));
+  allMySellOrders.forEach((o) => o.item && resourceSet.add(o.item));
+  if (view.resource) resourceSet.add(view.resource);
   const resources = Array.from(resourceSet).sort();
 
   const filterBar = document.getElementById("exchange-filter-bar");
   if (filterBar) {
-    const cur = appState.exchangeFilter || "";
+    const cur = view.resource;
     filterBar.innerHTML =
       `<button class="exchange-filter-pill${!cur ? " active" : ""}" data-filter="">All</button>` +
       resources.map((r) => `<button class="exchange-filter-pill${cur === r ? " active" : ""}" data-filter="${escapeHtml(r)}">${escapeHtml(r)}</button>`).join("");
   }
+  const typeSelect = document.getElementById("exchange-type-filter");
+  if (typeSelect) typeSelect.value = view.type;
+  const sortSelect = document.getElementById("exchange-sort");
+  if (sortSelect) sortSelect.value = view.sort;
 
-  // Apply filter
-  const filter = appState.exchangeFilter || "";
-  const filteredSellOrders = (filter ? allSellOrders.filter((o) => o.item === filter) : allSellOrders).slice(0, 30);
-  const filteredNpcOrders = filter ? npcBuyOrders.filter((o) => o.item === filter) : npcBuyOrders;
+  // Order-type filter: one table, or all of them (AB#402)
+  const showSection = (id, type) => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = view.type !== "all" && view.type !== type;
+  };
+  showSection("exchange-sell-section", "sell");
+  showSection("exchange-standing-section", "standing");
+  showSection("exchange-mine-section", "mine");
+
+  // Filter by resource and sort, then cap: the cap applies to what the viewer asked to see (AB#402)
+  const filteredSellOrders = viewOrders(allSellOrders, view).slice(0, 30);
+  const filteredNpcOrders = viewOrders(npcBuyOrders, view);
+  const mySellOrders = viewOrders(allMySellOrders, view).slice(0, 50);
+
+  // "Nothing listed yet" and "your filter hid it" are different states, shown differently (AB#402)
+  const showEmpty = (emptyEl, filteredId, total, shown, label) => {
+    if (emptyEl) emptyEl.hidden = total > 0;
+    const filteredEl = document.getElementById(filteredId);
+    if (!filteredEl) return;
+    // No rows: hide the table too, so its headers do not sit over an empty body
+    const tableWrap = filteredEl.parentElement?.querySelector(".table-wrap");
+    if (tableWrap) tableWrap.hidden = shown === 0;
+    filteredEl.hidden = !(total > 0 && shown === 0);
+    filteredEl.innerHTML = filteredEl.hidden ? "" : filteredEmptyHtml(label, view.resource, total);
+  };
 
   // Sell Orders table (player can buy from these)
   if (buyTable) {
@@ -3848,7 +3846,7 @@ function renderMarket(data) {
       )
       .join("");
   }
-  if (buyEmpty) buyEmpty.hidden = filteredSellOrders.length > 0;
+  showEmpty(buyEmpty, "exchange-buy-filtered", allSellOrders.length, filteredSellOrders.length, "player sell orders");
 
   // NPC Standing Buy Orders table (player can sell into these)
   if (npcBuyTable) {
@@ -3876,7 +3874,7 @@ function renderMarket(data) {
       })
       .join("");
   }
-  if (npcBuyEmpty) npcBuyEmpty.hidden = filteredNpcOrders.length > 0;
+  showEmpty(npcBuyEmpty, "npc-buy-filtered", npcBuyOrders.length, filteredNpcOrders.length, "standing buy orders");
 
   // Inventory snapshot
   const inventory = getInventory();
@@ -3918,12 +3916,13 @@ function renderMarket(data) {
             <td>${Number(order.quantity).toLocaleString()}</td>
             <td>${toCurrency(order.unitPrice)}</td>
             <td>${order.createdAt ? formatTime(order.createdAt) : "-"}</td>
+            <td><button class="btn btn-ghost exchange-cancel-btn" type="button" data-cancel-order-id="${escapeHtml(order.id)}">Cancel</button></td>
           </tr>
         `
       )
       .join("");
   }
-  if (mySellOrdersEmpty) mySellOrdersEmpty.hidden = mySellOrders.length > 0;
+  showEmpty(mySellOrdersEmpty, "my-sell-orders-filtered", allMySellOrders.length, mySellOrders.length, "active listings");
 
   // Trade History
   const tradeHistoryTable = document.getElementById("trade-history-table");
@@ -4291,7 +4290,7 @@ function renderForums(data) {
   }
 }
 
-// TODO: This should be defined in the database 
+// TODO(AB#1051): This should be defined in the database 
 // ─── Mission Reputation System ─────────────────────────────────────────────
 const REPUTATION_THRESHOLDS = [0, 1, 3, 7, 15, 30, 60, 120, 250, 500, 1000];
 const REPUTATION_TITLES = [
@@ -4320,15 +4319,11 @@ function getAgentRepLevel(agentId) {
 }
 
 // ─── Mission Agent Registry ────────────────────────────────────────────────
-// TODO: This should be in the database 
+// TODO(AB#1051): This should be in the database 
 const MISSION_AGENTS = [
   {
-    id: "elara-voss",
-    name: "Elara Voss",
-    title: "Senior Logistics Coordinator",
-    faction: "Interstellar Settlement Authority",
-    factionCode: "ISA",
-    portrait: "/images/elara_voss.jpg",
+    // Name, title and portrait come from the one record the welcome letter and intro dialogue use (AB#585).
+    ...ASSIGNED_COORDINATOR,
     stationId: "earth-station-prime",
     bio: `Coordinator Voss has served the ISA's logistics division for over fourteen years, beginning as a junior freight auditor on Luna Gateway before transferring to Earth Station Prime's newly established Contracting & Assignments Bureau. She earned her Senior Coordinator designation after managing the emergency redistribution of silicate reserves during the Ceres Supply Crisis of 2139 — an operation that required coordinating seventeen independent mining corporations under a 72-hour ISA directive.
 
@@ -4445,7 +4440,8 @@ function closeMissionModal() {
   appState.selectedMissionId = null;
 }
 
-function showMissionCompleteOverlay(mission, rep, agentName) {
+/** creditedAmount: what was actually paid (Bug #1009), which Contract Law Essentials can make more than the listed reward. */
+function showMissionCompleteOverlay(mission, rep, agentName, creditedAmount) {
   closeMissionModal();
 
   // Check if this completion crossed a reputation threshold
@@ -4465,7 +4461,7 @@ function showMissionCompleteOverlay(mission, rep, agentName) {
       <p class="mission-complete-title">${escapeHtml(mission.title)}</p>
       <div class="mission-complete-reward">
         <span class="mission-complete-reward-label">Reward Credited</span>
-        <span class="mission-complete-reward-value">${escapeHtml(mission.reward)}</span>
+        <span class="mission-complete-reward-value">${creditedAmount ? toCurrency(creditedAmount) : escapeHtml(mission.reward)}</span>
       </div>
       <div class="mission-complete-rep">
         <span class="mission-complete-rep-label">Standing with ${escapeHtml(agentName)}</span>
@@ -4476,7 +4472,7 @@ function showMissionCompleteOverlay(mission, rep, agentName) {
     </div>
   `;
 
-  // TODO: Should visual effects be moved to their own file?
+  // TODO(AB#738): Should visual effects be moved to their own file?
   // Spawn celebration particles
   const particleCount = leveledUp ? 40 : 16;
   for (let i = 0; i < particleCount; i++) {
@@ -4727,6 +4723,9 @@ function resolveChatChannel(tab, data = appState.data) {
   return tab || "global";
 }
 
+// AB#733: the chat line template lives in html.js, where it is tested; imported beside its one use.
+import { chatLineHtml } from "./html.js";
+
 function renderChatLog(data) {
   const channel = resolveChatChannel(appState.chatChannel, data);
   const messages = data?.chatLog?.[channel] || [];
@@ -4738,14 +4737,7 @@ function renderChatLog(data) {
 
   chatLog.innerHTML = messages
     .slice(-120)
-    .map(
-      (msg) => `
-      <li class="chat-msg">
-        <div class="chat-meta">${escapeHtml(msg.author)} | ${formatTime(msg.createdAt)}</div>
-        <div>${escapeHtml(msg.content)}</div>
-      </li>
-      `
-    )
+    .map((msg) => chatLineHtml(msg, formatTime))
     .join("");
 
   if (appState.chatAutoScrollOnNextRender) {
@@ -4772,7 +4764,7 @@ function renderChatChannelTabs() {
   });
 }
 
-// TODO: Can this be refactored to improve performance? Where is this function called? Do we always need to update every single view? 
+// TODO(AB#730): Can this be refactored to improve performance? Where is this function called? Do we always need to update every single view? 
 function updateAllViews() {
   if (appState.serverData) {
     applySharedState(appState.serverData);
@@ -4811,7 +4803,7 @@ function updateAllViews() {
   const am = data.corp?.asteroidMining || {};
   starmap.setAsteroidMining({
     probeCount: am.probeCount || 0,
-    maxProbes: am.maxProbes || 2,
+    maxProbes: data.corp?.fleet?.cap ?? 2,
     maxDeployments: am.maxDeployments || 1,
     activeExpeditions: am.activeExpeditions || [],
     scoutedBelts: am.scoutedBelts || [],
@@ -4997,6 +4989,8 @@ function setTab(targetId) {
       }
     });
   }
+
+  noteWalkthroughEvent(`tab:${targetId}`);
 }
 
 function bindTabs() {
@@ -5026,10 +5020,91 @@ function clearWalkthroughFocus() {
 
 function stopWalkthrough() {
   walkthroughModal.hidden = true;
+  document.body.classList.remove("walkthrough-open");
   clearWalkthroughFocus();
+  clearInterval(walkthroughWatch);
+  walkthroughTarget = null;
 }
 
-// TODO: Duplicate function found in gameState.js
+// AB#581: the walkthrough advances when the player does what a step asks (walkthrough.js, WALKTHROUGH_COMPLETION).
+// State predicates are checked on a one-second watch and after every click, because an action's response and the
+// building views it opens arrive after the click; tab changes are reported by setTab as "tab:<id>" events.
+const walkthroughEvents = new Set();
+const walkthroughWarned = new Set();
+let walkthroughWatch = null;
+let walkthroughTarget = null; // the selector highlighted now: views re-render, so the element itself is not stable
+let walkthroughHeld = false; // the player stepped back to reread: stay put until they press Skip
+let walkthroughFinished = false;
+let walkthroughOfferPending = false;
+
+/** A real dialogue is open (a trade confirmation, a mission, a dialogue). The briefing never moves or appears over one. */
+function otherModalOpen() {
+  return [...document.querySelectorAll(".modal-backdrop, .mission-modal-backdrop")].some(
+    (modal) => modal !== walkthroughModal && !modal.hidden
+  );
+}
+
+function noteWalkthroughEvent(name) {
+  if (walkthroughModal.hidden || walkthroughFinished) return;
+  walkthroughEvents.add(name);
+  checkWalkthroughProgress();
+}
+
+function checkWalkthroughProgress() {
+  if (walkthroughModal.hidden || walkthroughFinished || otherModalOpen()) return;
+  if (!walkthroughHeld) {
+    const next = nextStepIndex(appState.walkthroughIndex, appState.data, walkthroughEvents);
+    if (next >= walkthroughSteps.length) {
+      finishWalkthrough();
+      return;
+    }
+    if (next !== appState.walkthroughIndex) {
+      appState.walkthroughIndex = next;
+      renderWalkthroughStep();
+      return;
+    }
+  }
+  refreshWalkthroughHighlight();
+}
+
+/** Every step done: stay on the last one, which carries the handoff, until the player closes it. */
+function finishWalkthrough() {
+  walkthroughFinished = true;
+  appState.walkthroughIndex = walkthroughSteps.length - 1;
+  renderWalkthroughStep();
+  completeWalkthroughForAccount();
+}
+
+function refreshWalkthroughHighlight() {
+  const step = walkthroughSteps[appState.walkthroughIndex];
+  if (!step || walkthroughModal.hidden) return;
+  if (walkthroughFinished) {
+    // Nothing left to do, so nothing to point at: the card is only the handoff now.
+    clearWalkthroughFocus();
+    walkthroughTarget = null;
+    return;
+  }
+  const { selector, missing } = chooseHighlight(step, (candidate) => {
+    const el = document.querySelector(candidate);
+    return { exists: Boolean(el), visible: Boolean(el && el.getClientRects().length) };
+  });
+  if (missing && !walkthroughWarned.has(step.id)) {
+    walkthroughWarned.add(step.id);
+    console.warn(`[walkthrough] step "${step.id}": ${step.selector} matches nothing on the page, so it is shown without a highlight.`);
+  }
+  const target = selector ? document.querySelector(selector) : null;
+  if (target?.classList.contains("walkthrough-focus") || (!target && !walkthroughTarget)) return;
+  clearWalkthroughFocus();
+  if (!target) {
+    walkthroughTarget = null;
+    return;
+  }
+  target.classList.add("walkthrough-focus");
+  // Scroll only when the thing to do changes, not when a re-render redraws the same control under the player.
+  if (selector !== walkthroughTarget) target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+  walkthroughTarget = selector;
+}
+
 async function completeWalkthroughForAccount() {
   if (!appState.accountId || appState.walkthroughCompleted) {
     return;
@@ -5048,7 +5123,6 @@ async function completeWalkthroughForAccount() {
   }
 }
 
-// TODO: Duplicate function?
 async function resetWalkthroughForAccount() {
   if (!appState.accountId) {
     appState.walkthroughCompleted = false;
@@ -5074,38 +5148,67 @@ function renderWalkthroughStep() {
     return;
   }
 
-  if (step.tab) {
-    setTab(step.tab);
+  // AB#579: a briefing from the assigned coordinator. The step count is a small mark under the text, not the heading.
+  const portrait = document.getElementById("walkthrough-portrait");
+  if (portrait) {
+    portrait.src = ASSIGNED_COORDINATOR.portrait;
+    portrait.alt = ASSIGNED_COORDINATOR.name;
   }
-
-  clearWalkthroughFocus();
-  const target = document.querySelector(step.selector);
-  if (target) {
-    target.classList.add("walkthrough-focus");
-    target.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-  }
-
-  walkthroughTitle.textContent = `Step ${appState.walkthroughIndex + 1}/${walkthroughSteps.length}: ${step.title}`;
+  const speaker = document.getElementById("walkthrough-speaker");
+  if (speaker) speaker.textContent = COORDINATOR_BYLINE;
+  walkthroughTitle.textContent = step.title;
   walkthroughText.textContent = step.text;
+  const progress = document.getElementById("walkthrough-progress");
+  if (progress) {
+    progress.textContent = walkthroughFinished
+      ? "Briefing complete"
+      : `${appState.walkthroughIndex + 1} of ${walkthroughSteps.length}`;
+  }
+  // AB#581: the steps advance on what the player does, so the button is a way past a step, not the way through.
   walkthroughPrev.disabled = appState.walkthroughIndex === 0;
-  walkthroughNext.textContent = appState.walkthroughIndex === walkthroughSteps.length - 1 ? "Finish" : "Next";
+  walkthroughPrev.hidden = walkthroughFinished;
+  walkthroughEnd.hidden = walkthroughFinished;
+  walkthroughNext.textContent = walkthroughFinished ? "Close" : "Skip";
+  const card = walkthroughModal.querySelector(".modal-card");
+  if (card) document.body.style.setProperty("--walkthrough-card-height", `${card.offsetHeight + 24}px`);
+  walkthroughTarget = null;
+  refreshWalkthroughHighlight();
 }
 
 function startWalkthrough() {
+  walkthroughEvents.clear();
+  walkthroughWarned.clear();
+  walkthroughHeld = false;
+  walkthroughFinished = false;
   appState.walkthroughIndex = 0;
   walkthroughModal.hidden = false;
+  document.body.classList.add("walkthrough-open");
   renderWalkthroughStep();
+  clearInterval(walkthroughWatch);
+  walkthroughWatch = setInterval(checkWalkthroughProgress, 1000);
 }
 
 function promptWalkthroughOffer() {
+  // AB#581: never over another dialogue, such as an open trade confirmation (Builder #1 saw this once).
+  if (otherModalOpen()) {
+    if (!walkthroughOfferPending) {
+      walkthroughOfferPending = true;
+      setTimeout(() => {
+        walkthroughOfferPending = false;
+        promptWalkthroughOffer();
+      }, 500);
+    }
+    return;
+  }
   markWalkthroughOfferSeen(appState.accountId);
   showDialogue({
-    speaker: "Operations AI",
-    title: "Optional Walkthrough",
-    text: "Would you like a quick guided tour and first-action recommendation?",
+    speaker: COORDINATOR_BYLINE,
+    portrait: ASSIGNED_COORDINATOR.portrait,
+    title: "Your first day",
+    text: "I can take you through your first day on the station: an office, staff, a mining claim, and your first sale. It takes a few minutes. If you would rather find your own way, the milestones on your Overview say what the ISA expects next.",
     choices: [
       {
-        label: "Start Walkthrough",
+        label: "Brief me",
         accent: true,
         onClick: () => {
           closeDialogue();
@@ -5113,7 +5216,7 @@ function promptWalkthroughOffer() {
         }
       },
       {
-        label: "Skip For Now",
+        label: "I'll find my own way",
         onClick: () => {
           closeDialogue();
         }
@@ -5276,7 +5379,6 @@ async function restoreAuthenticatedSession() {
   return account;
 }
 
-// TODO: Duplicate function possibly exists in gameState.js
 async function loginDummyAccount() {
   const response = await apiFetch("/api/auth/dummy-login", {
     method: "POST",
@@ -5375,6 +5477,27 @@ function bindForms() {
       await refreshFromServer();
     } catch (error) {
       listingStatus.textContent = `Sell listing failed: ${error.message}`;
+    }
+  });
+
+  // Bug #425: take a listing down and get the unsold goods back at the station they were listed from.
+  document.getElementById("my-sell-orders-table")?.addEventListener("click", async (event) => {
+    const button = event.target.closest(".exchange-cancel-btn");
+    if (!button) return;
+    const orderId = button.getAttribute("data-cancel-order-id");
+    button.disabled = true;
+    try {
+      const response = await apiFetch(`/api/market/orders/${encodeURIComponent(orderId)}/cancel`, { method: "POST" });
+      const payload = await parseJsonResponse(response);
+      const previousMarket = deepClone(appState.data?.market || { orderBook: [] }); // the order book is all this handler restores (AB#576)
+      appState.data = deepClone(payload.account.state);
+      appState.data.market = { ...previousMarket, orderBook: (previousMarket.orderBook || []).filter((order) => order.id !== orderId) };
+      renderMarket(appState.data);
+      if (listingStatus) listingStatus.textContent = ""; // a refusal shown before the cancel no longer applies
+      pushFeedback("Listing cancelled; the goods are back in your station inventory.", "success");
+    } catch (error) {
+      button.disabled = false;
+      pushFeedback(`Could not cancel the listing: ${error.message}`, "warn");
     }
   });
 
@@ -5486,7 +5609,7 @@ function bindForms() {
     chatInput.value = "";
   });
 
-  // TODO: Move all functionality for the forums to its own dedicated file
+  // TODO(AB#739): Move all functionality for the forums to its own dedicated file
   const forumThreadListEl = document.getElementById("forum-threads");
   const forumCategoriesEl = document.getElementById("forum-categories");
   const forumRecentBtn = document.getElementById("forum-recent-btn");
@@ -5633,6 +5756,8 @@ function bindForms() {
   missionCompleteBtn?.addEventListener("click", async () => {
     const mission = (appState.activeMissions || []).find((m) => m.id === appState.selectedMissionId);
     if (!mission || !mission.quota) return;
+    // Bug #1009: the same rule the server pays by, so the message says what actually arrived.
+    const rewardCredits = missionRewardCredits(mission.reward, appState.data?.corp?.completedInsights);
 
     if (appState.profileMode === "account" && appState.accountId) {
       const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/complete-mission`, {
@@ -5691,14 +5816,13 @@ function bindForms() {
         appState.data.corp.agentReputation[localAgentId].completedCount += 1;
       }
 
-      // Credit reward
-      const rewardCredits = parseInt(String(mission.reward).replace(/[^0-9]/g, ""), 10);
-      if (rewardCredits && appState.data?.corp) {
-        appState.data.corp.credits = (appState.data.corp.credits || 0) + rewardCredits;
+      // Credit reward into the spendable balance (Bug #1009: it went to corp.credits, which nothing reads)
+      if (rewardCredits && appState.data?.corp?.finances) {
+        appState.data.corp.finances.credits = (appState.data.corp.finances.credits || 0) + rewardCredits;
       }
     }
 
-    pushFeedback(`Contract completed: "${mission.title}". ${mission.reward} credited.`, "success");
+    pushFeedback(`Contract completed: "${mission.title}". ${toCurrency(rewardCredits)} credited.`, "success");
 
     // Check for reputation level-up
     const agentId = mission.agentId || "unknown";
@@ -5707,10 +5831,10 @@ function bindForms() {
     const agentName = agent ? agent.name : "Agent";
 
     // Show completion celebration overlay
-    showMissionCompleteOverlay(mission, rep, agentName);
+    showMissionCompleteOverlay(mission, rep, agentName, rewardCredits);
 
     renderMissions(appState.data);
-    renderInventoryPanel();
+    // Bug #1043: renderInventoryPanel was called here and threw (its form is gone), so updateAllViews never ran.
     updateAllViews();
   });
 
@@ -5733,13 +5857,13 @@ function bindForms() {
     const totalCost = qty * price;
     const confirmed = await showTradeConfirmation({
       heading: "Buy from Sell Order",
-      title: `Buy ${escapeHtml(item)}`,
+      title: `Buy ${item}`,
       confirmLabel: "Buy",
       rows: [
-        { label: "Item", value: escapeHtml(item) },
+        { label: "Item", value: item },
         { label: "Quantity", value: qty.toLocaleString() },
         { label: "Unit Price", value: toCurrency(price) },
-        { label: "Seller", value: escapeHtml(seller) },
+        { label: "Seller", value: seller },
         { label: "Total Cost", value: toCurrency(totalCost), highlight: true }
       ]
     });
@@ -5771,13 +5895,22 @@ function bindForms() {
     }
   });
 
-  // Resource filter pills
-  const filterBarEl = document.getElementById("exchange-filter-bar");
-  filterBarEl?.addEventListener("click", (event) => {
-    const pill = event.target.closest(".exchange-filter-pill");
-    if (!pill) return;
-    appState.exchangeFilter = pill.getAttribute("data-filter") || "";
+  // Resource pills, order type, sort and Clear filters: change the view, remember it, redraw (AB#402)
+  const setExchangeView = (changes) => {
+    appState.exchangeView = { ...appState.exchangeView, ...changes };
+    saveExchangeView(viewerStorage(), appState.exchangeView);
     renderMarket(appState.data);
+  };
+  document.getElementById("exchange-filter-bar")?.addEventListener("click", (event) => {
+    const pill = event.target.closest(".exchange-filter-pill");
+    if (pill) setExchangeView({ resource: pill.getAttribute("data-filter") || "" });
+  });
+  document.getElementById("exchange-type-filter")?.addEventListener("change", (event) => setExchangeView({ type: event.target.value }));
+  document.getElementById("exchange-sort")?.addEventListener("change", (event) => setExchangeView({ sort: event.target.value }));
+  document.getElementById("market")?.addEventListener("click", (event) => {
+    if (event.target.closest(".exchange-clear-filters")) {
+      setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, type: DEFAULT_EXCHANGE_VIEW.type });
+    }
   });
 
   // NPC standing buy order — sell buttons
@@ -5801,13 +5934,13 @@ function bindForms() {
 
     const confirmed = await showTradeConfirmation({
       heading: "Sell to Standing Buy Order",
-      title: `Sell ${escapeHtml(item)}`,
+      title: `Sell ${item}`,
       confirmLabel: "Sell",
       rows: [
-        { label: "Item", value: escapeHtml(item) },
+        { label: "Item", value: item },
         { label: "Quantity", value: qty.toLocaleString() },
         { label: "Unit Price", value: toCurrency(price) },
-        { label: "Buyer", value: escapeHtml(buyer) },
+        { label: "Buyer", value: buyer },
         { label: "Gross Total", value: toCurrency(grossTotal) },
         { label: `GEX Sales Tax (${taxPct}%)`, value: `− ${toCurrency(taxAmount)}`, muted: true },
         { label: "You Receive", value: toCurrency(netProceeds), highlight: true }
@@ -5848,7 +5981,6 @@ function bindRealtimeEvents() {
     return;
   }
 
-  // TODO: Investigate current socket.io implementation 
   
   socket.on("state:init", (serverState) => {
     appState.serverData = serverState;
@@ -5902,11 +6034,15 @@ function bindRealtimeEvents() {
     }
   });
 
-  socket.on("finance:updated", (financeState) => {
-    if (!appState.data || appState.profileMode !== "dummy") {
+  // Bug #1021: this used to take whatever arrived, and the server sent every corporation's finances to every socket,
+  // so it was limited to dummy mode and still showed the last corporation's numbers there. The server now sends only
+  // this account's, with its id, and the check below matches the other per-account events.
+  socket.on("finance:updated", (payload) => {
+    if (!appState.data?.corp || !appState.accountId || payload?.accountId !== appState.accountId || !payload.finances) {
       return;
     }
 
+    const financeState = payload.finances;
     appState.data.corp.finances = financeState;
     renderFinanceCharts(financeState);
     renderFinanceDashboard(financeState);
@@ -6541,19 +6677,34 @@ function bindGlobalControls() {
 
   walkthroughPrev.addEventListener("click", () => {
     appState.walkthroughIndex = Math.max(0, appState.walkthroughIndex - 1);
+    walkthroughHeld = true;
     renderWalkthroughStep();
   });
 
+  // Skip always works: past this step, then past any the player has already done.
   walkthroughNext.addEventListener("click", () => {
+    if (walkthroughFinished) {
+      stopWalkthrough();
+      return;
+    }
     if (appState.walkthroughIndex >= walkthroughSteps.length - 1) {
       stopWalkthrough();
       completeWalkthroughForAccount();
       setTab("rnd");
       return;
     }
-    appState.walkthroughIndex += 1;
+    walkthroughHeld = false;
+    const next = nextStepIndex(appState.walkthroughIndex + 1, appState.data, walkthroughEvents);
+    if (next >= walkthroughSteps.length) {
+      finishWalkthrough();
+      return;
+    }
+    appState.walkthroughIndex = next;
     renderWalkthroughStep();
   });
+
+  // An action's result, or a building view it opens, lands after the click that caused it.
+  document.addEventListener("click", () => setTimeout(checkWalkthroughProgress, 0));
 
   walkthroughEnd.addEventListener("click", () => {
     stopWalkthrough();
@@ -6561,6 +6712,9 @@ function bindGlobalControls() {
     setTab("rnd");
   });
 }
+
+// AB#716: imported beside its one use, away from the import block that parallel pull requests edit.
+import { bindPriceChart } from "./priceChart.js";
 
 async function boot() {
   hydrateSession();
@@ -6576,6 +6730,10 @@ async function boot() {
   bindBuildingActions();
   bindInboxControls();
   bindChartDurationPickers();
+  bindPriceChart({
+    fetchHistory: async (item) => parseJsonResponse(await apiFetch(`/api/market/history/${encodeURIComponent(item)}`)),
+    formatCredits: toCurrency
+  });
 
   try {
     await Promise.all([loadBootstrap(), loadStationRegistry()]);

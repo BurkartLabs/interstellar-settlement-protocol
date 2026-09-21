@@ -76,7 +76,7 @@ function styleForBody(body) {
 }
 
 // ─── Planet image assets ─────────────────────────────────────────────────────
-// TODO: Add detailed images for outstanding planets
+// TODO(AB#741): Add detailed images for outstanding planets
 const PLANET_IMAGES = {};
 const PLANET_IMAGE_PATHS = {
   earth: "/images/planets/earth.png",
