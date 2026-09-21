@@ -3876,16 +3876,6 @@ function renderMarket(data) {
   }
   showEmpty(npcBuyEmpty, "npc-buy-filtered", npcBuyOrders.length, filteredNpcOrders.length, "standing buy orders");
 
-  // Mercenary book
-  // TODO(AB#576): Remove mercenary references. Functionality isn't built yet.
-  const mercBook = document.getElementById("mercenary-book");
-  mercBook.innerHTML = (market.mercenaryContracts || [])
-    .map(
-      (item) =>
-        `<li><strong>${item.provider}</strong> renting ${item.unitType} (Power ${item.strength}) for ${toCurrency(item.ratePerHour)}/hour over ${item.durationHours}h.</li>`
-    )
-    .join("");
-
   // Inventory snapshot
   const inventory = getInventory();
   const entries = Object.entries(inventory).filter(([, qty]) => Number(qty) > 0);
@@ -5470,7 +5460,7 @@ function bindForms() {
       });
 
       const payload = await parseJsonResponse(response);
-      const previousMarket = deepClone(appState.data?.market || { orderBook: [], mercenaryContracts: [] });
+      const previousMarket = deepClone(appState.data?.market || { orderBook: [] });
 
       appState.data = deepClone(payload.account.state);
       appState.data.market = previousMarket;
