@@ -2840,39 +2840,45 @@ function renderLevel2Progress(data) {
     marsLease:                  "station",
     secondLease:                "station",
     lunaLease:                  "station",
-    asteroidBeltLease:          "station",
     extractor:                  "station",
     extractor2:                 "station",
     extractor3:                 "station",
-    ferricMiningComplex:        "station",
-    refineryComplex:            "station",
-    cryoExtractorArray:         "station",
     mine300:                    "station",
-    beltMiningOp:               "station",
     researchBasicExtraction:    "rnd",
     researchIndustrialSafety:   "rnd",
     researchEnergyRouting:      "rnd",
-    researchFerricCore:         "rnd",
-    researchMultiStageRefinery: "rnd",
-    researchCryoVapor:          "rnd",
-    researchCarbonSlurry:       "rnd",
-    researchBeltMining:         "rnd",
-    researchExtrasolar:         "rnd",
     sell300Silicate:            "market",
     sell50000Silicate:          "market",
-    sell500CryoFoam:            "market",
-    sell500HydratedFerric:      "market",
-    sell500CarbonSilicate:      "market",
-    sell500CarboIron:           "market",
-    sell500HydroCarbon:         "market",
-    manufacture5000Alloys:      "refinery",
-    missions25:                 "missions"
+    missions25:                 "missions",
+    // Levels 6 to 10 since Bug #424
+    assemblyFacility:           "station",
+    refinery:                   "refinery",
+    expeditions3:               "starmap",
+    expeditions10:              "starmap",
+    refine1000:                 "refinery",
+    refine10000:                "refinery",
+    sell100000Silicate:         "market",
+    researchAssemblyFabrication: "rnd",
+    researchAsteroidProspecting: "rnd",
+    researchMaterialCompression: "rnd",
+    researchNanoLattice:        "rnd",
+    researchNearStarNavigation: "rnd"
   };
 
   const level = Number(data?.corp?.level || 0);
   const nextLevel = level + 1;
   const nextKey = `level${nextLevel}`;
   const nextProgress = data?.corp?.levelProgress?.[nextKey];
+
+  // Bug #424: the top of the ladder is reachable now, so say it is the top rather than offer a level that does not exist.
+  const levelCap = Number(data?.corp?.levelCap || 0);
+  if (levelCap && level >= levelCap) {
+    if (title) title.textContent = `Corporation Level ${level}: the top of this build`;
+    if (lede) lede.textContent = `You have reached the highest level this build defines. Levels ${levelCap + 1} to 40 are planned for a later version.`;
+    requirementsWrap.innerHTML = "";
+    status.textContent = "";
+    return;
+  }
 
   if (title) {
     title.textContent = `Corporation Level ${nextLevel} Milestones`;
