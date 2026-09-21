@@ -1546,10 +1546,14 @@ const NPC_BUY_SEED = [
   { item: "Rare Earths", buyer: "Synthorium Trading House",  unitPrice: 140, dailyQty: 120000 }
 ];
 
-/** Give the global state a market: an order book, and every standing buy order it lacks. Keeps what exists. */
+// AB#715: imported here, beside its one use, rather than in the import block that parallel pull requests all edit.
+import { normalizePriceHistory } from "./priceHistory.js";
+
+/** Give the global state a market: an order book, every standing buy order it lacks, and its price history. Keeps what exists. */
 function ensureMarketState(globalState) {
   if (!globalState.market || typeof globalState.market !== "object") globalState.market = {};
   if (!Array.isArray(globalState.market.orderBook)) globalState.market.orderBook = [];
+  globalState.market.priceHistory = normalizePriceHistory(globalState.market.priceHistory);
   if (!Array.isArray(globalState.market.npcBuyOrders)) globalState.market.npcBuyOrders = [];
   for (const seed of NPC_BUY_SEED) {
     const id = `npc-buy-${seed.item.toLowerCase().replace(/\s+/g, "-")}-daily`;
