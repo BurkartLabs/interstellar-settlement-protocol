@@ -5,6 +5,7 @@ import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
+import { missionRewardCredits } from "./ceoEffects.js"; // Bug #1009: its own line, after the others, so parallel branches adding imports do not collide
 
 /** localStorage, or null where reading the property itself throws (sandboxed frames, some private modes). */
 function viewerStorage() {
@@ -879,40 +880,6 @@ function computeAverageMarketPrice(data) {
     if (result[item] == null) result[item] = npcFloorByItem[item];
   }
   return result;
-}
-
-function renderInventoryPanel() {
-  const inventory = getInventory();
-  const inventoryList = document.getElementById("inventory-list");
-  const listingItem = document.getElementById("listing-item");
-  const listingQuantity = document.getElementById("listing-quantity");
-  const listingSubmit = document.getElementById("listing-submit");
-  const status = document.getElementById("listing-status");
-
-  const entries = Object.entries(inventory).filter(([, qty]) => Number(qty) > 0);
-
-  if (!entries.length) {
-    inventoryList.innerHTML = "<li>No inventory available yet. Begin mining and refining to generate tradable stock.</li>";
-    listingItem.innerHTML = '<option value="">No inventory</option>';
-    listingSubmit.disabled = true;
-    listingQuantity.value = "1";
-    listingQuantity.max = "1";
-    status.textContent = "No listing can be created until inventory exists.";
-    return;
-  }
-
-  inventoryList.innerHTML = entries
-    .map(([name, qty]) => `<li>${name}: ${qty}</li>`)
-    .join("");
-
-  listingItem.innerHTML = entries
-    .map(([name, qty]) => `<option value="${name}">${name} (${qty} available)</option>`)
-    .join("");
-
-  const selectedQty = entries.find(([name]) => name === listingItem.value)?.[1] || entries[0][1];
-  listingQuantity.max = String(selectedQty);
-  listingSubmit.disabled = false;
-  status.textContent = "";
 }
 
 function availableTechNodes(data) {
@@ -4400,7 +4367,8 @@ function closeMissionModal() {
   appState.selectedMissionId = null;
 }
 
-function showMissionCompleteOverlay(mission, rep, agentName) {
+/** creditedAmount: what was actually paid (Bug #1009), which Contract Law Essentials can make more than the listed reward. */
+function showMissionCompleteOverlay(mission, rep, agentName, creditedAmount) {
   closeMissionModal();
 
   // Check if this completion crossed a reputation threshold
@@ -4420,7 +4388,7 @@ function showMissionCompleteOverlay(mission, rep, agentName) {
       <p class="mission-complete-title">${escapeHtml(mission.title)}</p>
       <div class="mission-complete-reward">
         <span class="mission-complete-reward-label">Reward Credited</span>
-        <span class="mission-complete-reward-value">${escapeHtml(mission.reward)}</span>
+        <span class="mission-complete-reward-value">${creditedAmount ? toCurrency(creditedAmount) : escapeHtml(mission.reward)}</span>
       </div>
       <div class="mission-complete-rep">
         <span class="mission-complete-rep-label">Standing with ${escapeHtml(agentName)}</span>
@@ -5588,6 +5556,8 @@ function bindForms() {
   missionCompleteBtn?.addEventListener("click", async () => {
     const mission = (appState.activeMissions || []).find((m) => m.id === appState.selectedMissionId);
     if (!mission || !mission.quota) return;
+    // Bug #1009: the same rule the server pays by, so the message says what actually arrived.
+    const rewardCredits = missionRewardCredits(mission.reward, appState.data?.corp?.completedInsights);
 
     if (appState.profileMode === "account" && appState.accountId) {
       const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/complete-mission`, {
@@ -5646,14 +5616,13 @@ function bindForms() {
         appState.data.corp.agentReputation[localAgentId].completedCount += 1;
       }
 
-      // Credit reward
-      const rewardCredits = parseInt(String(mission.reward).replace(/[^0-9]/g, ""), 10);
-      if (rewardCredits && appState.data?.corp) {
-        appState.data.corp.credits = (appState.data.corp.credits || 0) + rewardCredits;
+      // Credit reward into the spendable balance (Bug #1009: it went to corp.credits, which nothing reads)
+      if (rewardCredits && appState.data?.corp?.finances) {
+        appState.data.corp.finances.credits = (appState.data.corp.finances.credits || 0) + rewardCredits;
       }
     }
 
-    pushFeedback(`Contract completed: "${mission.title}". ${mission.reward} credited.`, "success");
+    pushFeedback(`Contract completed: "${mission.title}". ${toCurrency(rewardCredits)} credited.`, "success");
 
     // Check for reputation level-up
     const agentId = mission.agentId || "unknown";
@@ -5662,10 +5631,10 @@ function bindForms() {
     const agentName = agent ? agent.name : "Agent";
 
     // Show completion celebration overlay
-    showMissionCompleteOverlay(mission, rep, agentName);
+    showMissionCompleteOverlay(mission, rep, agentName, rewardCredits);
 
     renderMissions(appState.data);
-    renderInventoryPanel();
+    // Bug #1043: renderInventoryPanel was called here and threw (its form is gone), so updateAllViews never ran.
     updateAllViews();
   });
 

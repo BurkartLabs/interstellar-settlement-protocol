@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import { resolveLeaseBody } from "./leases.js";
-import { isInsightProgramLive, officeRenewalCost } from "../public/scripts/ceoEffects.js";
+import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from "../public/scripts/ceoEffects.js";
 import { canReachSystem } from "../public/scripts/navigation.js";
 import {
   accountExists,
@@ -2463,10 +2463,12 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
     stationInv[resource] = have - required;
     if (stationInv[resource] <= 0) delete stationInv[resource];
 
-    // Credit reward
-    const rewardCredits = parseInt(String(mission.reward).replace(/[^0-9]/g, ""), 10);
+    // Credit reward into the balance the player spends, and book it as income (Bug #1009: it went to corp.credits,
+    // which nothing reads). Contract Law Essentials adds 8%.
+    const rewardCredits = missionRewardCredits(mission.reward, state.corp.completedInsights);
     if (rewardCredits) {
-      state.corp.credits = (state.corp.credits || 0) + rewardCredits;
+      state.corp.finances.credits = (state.corp.finances.credits || 0) + rewardCredits;
+      recordIncome(state.corp, "missions", rewardCredits);
     }
 
     // Remove from active
