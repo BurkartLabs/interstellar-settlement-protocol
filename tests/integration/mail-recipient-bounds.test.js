@@ -11,8 +11,8 @@ async function sender() {
 }
 
 describe("mail recipient names are bounded (Bug #754)", () => {
-  it("uses the registration form's corporation-name maximum", () => {
-    expect(CORP_NAME_MAX_LENGTH).toBe(80);
+  it("uses the corporation-name maximum (40 since Bug #433)", () => {
+    expect(CORP_NAME_MAX_LENGTH).toBe(40);
   });
 
   it("stores a draft's recipient at no more than 80 characters, with control characters removed", async () => {
@@ -20,7 +20,7 @@ describe("mail recipient names are bounded (Bug #754)", () => {
     const res = await s.api.post(`/api/accounts/${s.id}/messages/draft`).send({ toCorpName: `A\u0000B\u0007${"x".repeat(200)}`, subject: "s", body: "b" });
     expect(res.status).toBe(200);
     const stored = listAccountMessages(s.id).find((m) => m.id === res.body.draft.id).toCorpName;
-    expect(stored.length).toBeLessThanOrEqual(80);
+    expect(stored.length).toBeLessThanOrEqual(CORP_NAME_MAX_LENGTH);
     expect(stored).not.toMatch(/[\u0000-\u001f\u007f]/);
     expect(stored.startsWith("AB")).toBe(true);
   });

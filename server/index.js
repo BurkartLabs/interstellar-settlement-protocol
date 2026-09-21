@@ -2,6 +2,7 @@ import "./loadEnv.js";
 import express from "express";
 import kanbanRouter from "./kanban.js";
 import { bodyNumber } from "./bodyNumber.js";
+import { SYSTEM_SENDERS } from "./corporationName.js";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -553,7 +554,7 @@ function asteroidExpeditionTick() {
 
       addSystemMessageToAccount(accountId, {
         subject: `Mining Probe Return — ${beltLabel} [${refNo}]`,
-        fromName: "ISA Mineral Survey Division",
+        fromName: SYSTEM_SENDERS.MINERAL_SURVEY,
         body:
           `Attn: ${corpName || "Registered Operator"},\n\n` +
           `This report confirms the return of one (1) mining probe from the ${beltLabel} asteroid field, ${systemLabel} system. ` +

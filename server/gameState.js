@@ -25,6 +25,7 @@ const SUPABASE_MANAGED_PASSWORD_HASH = "__supabase_auth_managed__";
 import { recordExpense, ensureFinanceTracking } from "./finances.js";
 import { unknownLeaseBodies } from "./leases.js";
 import { directInvestmentRecords } from "./legacyInvestments.js";
+import { validateCorporationName, SYSTEM_SENDERS, CORPORATION_NAME_MAX_LENGTH } from "./corporationName.js";
 import {
   persistAccountsPhase1,
   hydrateOverlayPhase1,
@@ -1537,7 +1538,7 @@ function ensureStateFile() {
 // NPC buyers exist for every raw resource that currently has a refinery chain, so newly mined materials always have
 // a guaranteed sink.
 // TODO: Reevaluate how we are storing the below information. Should it be hardcoded? Should it be more dynamic?
-const NPC_BUY_SEED = [
+export const NPC_BUY_SEED = [
   { item: "Silicates",   buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
   { item: "Helium-3",    buyer: "Lunar Helium Consortium",   unitPrice: 92, dailyQty: 250000 },
   { item: "Nickel",      buyer: "Belt Refining Cooperative", unitPrice: 18, dailyQty: 750000 },
@@ -1545,6 +1546,15 @@ const NPC_BUY_SEED = [
   { item: "Carbon",      buyer: "ISA Materials Exchange",    unitPrice: 12, dailyQty: 1500000 },
   { item: "Rare Earths", buyer: "Synthorium Trading House",  unitPrice: 140, dailyQty: 120000 }
 ];
+
+/**
+ * Names no player may take (Bug #433): every name the game's own messages are signed with, and every NPC buyer on the
+ * exchange, derived from the lists the server uses so a new sender or buyer is reserved without anyone retyping it.
+ */
+export const RESERVED_CORPORATION_NAMES = Object.freeze([
+  ...Object.values(SYSTEM_SENDERS),
+  ...NPC_BUY_SEED.map((seed) => seed.buyer)
+]);
 
 /** Give the global state a market: an order book, and every standing buy order it lacks. Keeps what exists. */
 function ensureMarketState(globalState) {
@@ -2228,6 +2238,17 @@ export async function createAccount({ email, password, ceoName, corpName }) {
     return { error: "An account with this email already exists." };
   }
 
+  // Bug #433: the name is the only trust signal on the order book, the forums and in mail. Checked before anything is
+  // created, here or in Supabase: 3 to 40 plain characters, unique ignoring case and spacing, and not the name of
+  // anything the game itself speaks as.
+  const corporation = validateCorporationName(corpName, {
+    existingNames: Object.values(accountsStore.accounts || {}).map((item) => item?.state?.corp?.corporationName).filter(Boolean),
+    reservedNames: RESERVED_CORPORATION_NAMES
+  });
+  if (corporation.error) {
+    return { error: corporation.error };
+  }
+
   let accountId = createId("acc");
   let passwordHash = bcrypt.hashSync(normalizedPassword, PASSWORD_SALT_ROUNDS);
 
@@ -2254,7 +2275,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
   const nextState = createStarterCorporationState(
     seedState,
     String(ceoName || "New CEO").trim() || "New CEO",
-    String(corpName || "Frontier Protocol Ventures").trim() || "Frontier Protocol Ventures"
+    corporation.name
   );
 
   const account = {
@@ -2278,7 +2299,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
 
   pushSystemMessage(account, {
     subject: `ISA Settlement Licence — Ref. ISP-2147-${accountId.toUpperCase()}-AUTH`,
-    fromName: "Interstellar Settlement Authority",
+    fromName: SYSTEM_SENDERS.AUTHORITY,
     body:
       `To the registered CEO of ${String(corpName || "Frontier Protocol Ventures").trim()},\n\n` +
       `Your corporation has been assessed and approved under the provisions of the Interstellar Settlement Protocol (Earth Assembly Act, 2147).\n\n` +
@@ -2361,7 +2382,7 @@ export function markAllNotificationsRead(accountId) {
 
 const TRASH_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-function pushSystemMessage(account, { subject, body, fromName = "ISA System" }) {
+function pushSystemMessage(account, { subject, body, fromName = SYSTEM_SENDERS.SYSTEM }) {
   if (!Array.isArray(account.messages)) account.messages = [];
   account.messages.unshift({
     id: createId("msg"),
@@ -2404,7 +2425,8 @@ export function listAccountMessages(accountId) {
 const senderName = (account) => String(account?.state?.corp?.corporationName || "").trim() || "Unregistered corporation";
 
 /** Bug #754: the longest corporation name there is (register.html's maxlength), so a longer recipient is none. */
-export const CORP_NAME_MAX_LENGTH = 80;
+// A mail recipient name longer than any corporation name cannot match one (Bug #754); the maximum is Bug #433's.
+export const CORP_NAME_MAX_LENGTH = CORPORATION_NAME_MAX_LENGTH;
 // Control characters (C0 and DEL). Written with escapes so the source holds no raw control bytes.
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/g;
 /** A draft's recipient as typed, made safe to keep: control characters removed, trimmed, capped. */
@@ -2609,7 +2631,7 @@ export function deleteDraft(accountId, draftId) {
   return false;
 }
 
-export function addSystemMessageToAccount(accountId, { subject, body, fromName = "ISA System" }) {
+export function addSystemMessageToAccount(accountId, { subject, body, fromName = SYSTEM_SENDERS.SYSTEM }) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) return null;
   pushSystemMessage(account, { subject, body, fromName });
