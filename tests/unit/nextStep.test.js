@@ -37,8 +37,10 @@ describe("a contract's delivery (Bug #1058)", () => {
     expect(msg).toBe("This contract needs 400 Silicates delivered where you are docked, Earth Station Prime; you have 120 here. Mine, refine or buy the rest on the Galactic Exchange.");
   });
 
-  it("points to the station holding the most of it elsewhere, and both ways to use it", () => {
+  it("points to the station holding the most of it elsewhere, and how to bring it here", () => {
     const msg = missionShortMessage({ resource: "Silicates", required: 400, stationId: "earth-station-prime", inventory: { "earth-station-prime": { Silicates: 120 }, "luna-gateway": { Silicates: 50 }, "mars-orbital-dock": { Silicates: 900 } }, stationName });
-    expect(msg).toMatch(/You hold 900 at Mars Orbital Dock: move it here with a Logistics transfer, or travel there and complete the contract from that station\.$/);
+    expect(msg).toMatch(/You hold 900 at Mars Orbital Dock: move it here with a Logistics transfer\.$/);
+    // The page completes a contract only at the agent's station, so the advice never sends the player elsewhere.
+    expect(msg).not.toMatch(/travel|complete the contract from/);
   });
 });

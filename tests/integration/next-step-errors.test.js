@@ -39,7 +39,7 @@ describe("refusals say what to do next (Bug #1058)", () => {
     });
     const res = await c.api.post(`/api/accounts/${c.id}/gameplay/complete-mission`).send({ missionId: "m-1058" });
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("This contract needs 400 Silicates delivered where you are docked, Earth Station Prime; you have 120 here. You hold 300 at Mars Orbital Dock: move it here with a Logistics transfer, or travel there and complete the contract from that station.");
+    expect(res.body.error).toBe("This contract needs 400 Silicates delivered where you are docked, Earth Station Prime; you have 120 here. You hold 300 at Mars Orbital Dock: move it here with a Logistics transfer.");
   });
 
   it("a funding refusal says 'credits' once (Bug #1201)", async () => {

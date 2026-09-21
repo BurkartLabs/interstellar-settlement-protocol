@@ -1,7 +1,7 @@
 // What a refused gameplay action should tell the player to do next (Bug #1058): the employee cap, a mining cycle's
 // start-up cost and a contract's delivery. Each names only actions the game has (Bug #1057's lesson): the level
 // requirements on the Overview, the throughput field on the lease page, the Galactic Exchange's standing buy orders,
-// travel between stations and Logistics transfers.
+// and Logistics transfers.
 
 /**
  * The next corporation level whose `key` unlock is higher than `have`, as { level, value }, or null. Levels apply
@@ -35,23 +35,8 @@ export function miningCreditsAdvice(startupCost) {
   return `${cheaper}Selling stock to the standing buy orders on the Galactic Exchange raises credits.`;
 }
 
-/**
- * A contract's delivery falls short at the station the corporation is docked at. `inventory` is corp.inventory
- * ({ stationId: { item: qty } }); `stationName(id)` names a station.
- */
-export function missionShortMessage({ resource, required, stationId, inventory, stationName }) {
-  const here = Number(inventory?.[stationId]?.[resource] || 0);
-  const head = `This contract needs ${required.toLocaleString("en-US")} ${resource} delivered where you are docked, ${stationName(stationId)}; you have ${here.toLocaleString("en-US")} here.`;
-  const elsewhere = Object.entries(inventory || {})
-    .filter(([id, items]) => id !== stationId && Number(items?.[resource]) > 0)
-    .map(([id, items]) => ({ id, qty: Number(items[resource]) }))
-    .sort((a, b) => b.qty - a.qty);
-  if (elsewhere.length) {
-    const best = elsewhere[0];
-    return `${head} You hold ${best.qty.toLocaleString("en-US")} at ${stationName(best.id)}: move it here with a Logistics transfer, or travel there and complete the contract from that station.`;
-  }
-  return `${head} Mine, refine or buy the rest on the Galactic Exchange.`;
-}
+// A contract's delivery: worded in public/scripts/contractAdvice.js, which the contract window shares.
+export { missionShortMessage } from "../public/scripts/contractAdvice.js";
 
 import fs from "node:fs";
 import path from "node:path";

@@ -4341,6 +4341,9 @@ She maintains a small but well-organised office on Deck 7 of the Bureau. The fil
   }
 ];
 
+// Bug #1058: the next step under a short quota. Imported beside its use, away from the import block.
+import { missionShortAdvice } from "./contractAdvice.js";
+
 function openMissionModal(missionId, data) {
   const activeMissions = appState.activeMissions || [];
   const activeIds = new Set(activeMissions.map((m) => m.id));
@@ -4411,6 +4414,13 @@ function openMissionModal(missionId, data) {
     if (quotaText) {
       const displayResource = resource.charAt(0).toUpperCase() + resource.slice(1);
       quotaText.innerHTML = `<strong>${have.toLocaleString()}</strong> / ${required.toLocaleString()} ${escapeHtml(displayResource)} at ${escapeHtml(stationLabel)}`;
+      // Bug #1058: Complete stays hidden until the quota is met, so say how to meet it. Away from the agent's station the
+      // location warning below says where to go instead.
+      if (!isFulfilled && isAtAgentStation) {
+        const stationName = (id) => appState.stationRegistry.find((s) => s.id === id)?.name || id;
+        const advice = missionShortAdvice({ resource, stationId: currentStationId, inventory: data?.corp?.inventory, stationName });
+        quotaText.innerHTML += `<span class="mission-quota-hint">${escapeHtml(advice)}</span>`;
+      }
     }
   } else if (quotaSection) {
     quotaSection.hidden = true;
