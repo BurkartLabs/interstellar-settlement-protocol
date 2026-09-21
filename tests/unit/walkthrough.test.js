@@ -77,6 +77,21 @@ describe("walkthrough steps (AB#404)", () => {
     expect(new Set(WALKTHROUGH_STEPS.map((s) => s.id)).size).toBe(WALKTHROUGH_STEPS.length);
   });
 
+  // AB#580: the order is the tutorial's argument about what matters. A new CEO's first session is at Earth Station
+  // Prime, so the station work comes first and the Starmap closes it as orientation. Moving a step fails here.
+  it("follows what a new CEO does first, with the Starmap last as orientation", () => {
+    expect(WALKTHROUGH_STEPS.map((s) => s.id)).toEqual([
+      "licence", "station", "office", "hire", "lease", "yard", "cycle", "sell", "research", "bureau", "overview", "starmap"
+    ]);
+    expect(WALKTHROUGH_STEPS.at(-1).tab).toBe("starmap");
+  });
+
+  it("presents neither travel nor the Starmap as locked or unavailable", () => {
+    for (const step of WALKTHROUGH_STEPS) {
+      expect(step.text).not.toMatch(/\b(locked|unavailable|cannot travel|can't travel|not (yet )?available)\b/i);
+    }
+  });
+
   // AB#579: the briefing is in Elara Voss's voice; the old step-counter framing and the "Agent" address are gone.
   it("reads as her briefing: no step counter, no 'Agent', and the first step introduces her", () => {
     for (const step of WALKTHROUGH_STEPS) {
