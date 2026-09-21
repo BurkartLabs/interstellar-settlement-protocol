@@ -6412,6 +6412,7 @@ function openMessage(messageId) {
       .then(() => {
         const m = appState.inbox.messages.find((x) => x.id === messageId);
         if (m) m.readAt = Date.now();
+        updateInboxSubtabBadges(); // Bug #1130: the Inbox tab's count is on screen while the message is open
       })
       .catch(() => {});
   }
