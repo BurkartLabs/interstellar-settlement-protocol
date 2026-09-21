@@ -5666,3 +5666,47 @@ tr.npc-order-exhausted {
   border-color: var(--accent);
   color: var(--accent);
 }
+
+/* ─── Start here (AB#1056) ─── */
+/* The Station's first action, shown above the station description until the corporation has an office. */
+.start-here {
+  margin: 0.8rem 0 1rem;
+  border: 1px solid var(--accent);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+.start-here .overline,
+.start-here p {
+  margin: 0;
+}
+.start-here p:not(.overline) {
+  flex: 1 1 22rem;
+}
+
+/* ─── Phone: one row of tabs (AB#1056) ─── */
+/* At phone width the fifteen tabs wrapped into six rows and pushed every panel's first action below the fold. One row
+   that scrolls sideways; the tab cut off at the right edge says there is more. 767px matches NARROW_MAX_WIDTH in
+   public/scripts/firstAction.js. */
+@media (max-width: 767px) {
+  .tab-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: thin;
+  }
+  .tab-btn {
+    flex: 0 0 auto;
+  }
+}
+
+/* ─── Overview: milestones first (AB#1056) ─── */
+/* At levels 0 to 2 the milestones are moved to the top of the Overview; the gap a card gets between siblings is not
+   wanted above the first one, and a heading after it needs the gap instead. */
+#overview > .form-card:first-child {
+  margin-top: 0;
+}
+#overview > .form-card:first-child + h2 {
+  margin-top: 1.6rem;
+}
