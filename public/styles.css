@@ -2056,6 +2056,27 @@ textarea {
   padding: 1rem;
 }
 
+/* The speaker's portrait in a dialogue (AB#585): a left column, so the text never wraps under it.
+   No display rule on the image, so the hidden attribute keeps working. */
+.modal-card.has-portrait {
+  position: relative;
+  padding-left: calc(2rem + 72px);
+}
+.dialogue-portrait {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 247, 255, 0.35);
+  object-fit: cover;
+}
+@media (max-width: 480px) {
+  .modal-card.has-portrait { padding-left: calc(1.5rem + 48px); }
+  .dialogue-portrait { width: 48px; height: 48px; left: 0.75rem; }
+}
+
 .walkthrough-focus {
   position: relative;
   z-index: 61;
