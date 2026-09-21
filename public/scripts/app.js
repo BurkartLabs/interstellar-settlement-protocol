@@ -3240,10 +3240,14 @@ function renderRefinery(data) {
       const outputLabel = chain
         ? chain.outputs.map((o) => `${(Number(o.quantityPerCycle) || 0) * scale} ${o.item}`).join(", ")
         : "Unknown";
+      // Bug #692: outputs land where the inputs came from, whatever station the corporation is at when the cycle ends.
+      const deliveryStation = (appState.stationRegistry || []).find((s) => s.id === ref.stationId);
+      const deliveryLabel = deliveryStation?.name || ref.stationId || "an unknown station";
       return `
         <article class="queue-item">
           <h3>${escapeHtml(ref.name)}</h3>
           <p class="muted">Processing: ${chain ? `${totalInput.toLocaleString()} ${escapeHtml(chain.input)}` : "Unknown"} → ${escapeHtml(outputLabel)}</p>
+          <p class="muted">Delivers to: ${escapeHtml(deliveryLabel)}</p>
           <p class="muted">Remaining: ${formatDurationHours(remainingMs)} (${progress.toFixed(1)}%)</p>
           <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
         </article>
