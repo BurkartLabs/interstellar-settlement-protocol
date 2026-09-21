@@ -160,6 +160,10 @@ export function applyInfrastructureRowsToAccount(account, rows) {
 
   const leaseById = new Map(account.state.corp.miningLeases.map((lease) => [lease.id, lease]));
   const corpId = account?.id;
+  // AB#575: minedThisCycle has no column; it lives in the state blob, so carry it over from the in-memory extractor
+  // with the same id (the way applyOperationsRowsToAccount keeps blob-only refinery fields).
+  const priorExtractors = account.state.corp.mining?.silicateExtractors || [];
+  const priorById = new Map(priorExtractors.map((ex) => [String(ex?.id), ex]));
   const mappedExtractors = extractors.map((row, index) => {
     const mapped = {
       id: unwrapExtractorRowId(corpId, row.id),
@@ -173,6 +177,7 @@ export function applyInfrastructureRowsToAccount(account, rows) {
       throughputPerHour: toNum(row.throughput_per_hour, 0),
       operationCostPerHour: toNum(row.operation_cost_per_hour, 0),
       totalMined: toNum(row.total_mined, 0),
+      minedThisCycle: toNum(priorById.get(unwrapExtractorRowId(corpId, row.id))?.minedThisCycle, 0),
       totalSpent: toNum(row.total_spent, 0),
       minedRemainder: toNum(row.mined_remainder, 0),
       leaseId: row.lease_id ? unwrapRowId(corpId, row.lease_id) : null,
