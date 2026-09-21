@@ -4328,13 +4328,13 @@ const MISSION_AGENTS = [
     stationId: "earth-station-prime",
     bio: `Coordinator Voss has served the ISA's logistics division for over fourteen years, beginning as a junior freight auditor on Luna Gateway before transferring to Earth Station Prime's newly established Contracting & Assignments Bureau. She earned her Senior Coordinator designation after managing the emergency redistribution of silicate reserves during the Ceres Supply Crisis of 2139 — an operation that required coordinating seventeen independent mining corporations under a 72-hour ISA directive.
 
-Her management style is precise, documented, and unapologetically procedural. Contractors who deliver on time and within specification earn her trust. Those who miss deadlines or falsify manifests do not get second contracts.
+Her management style is precise, documented, and unapologetically procedural. Contractors who deliver what they sign for, to specification, earn her trust, and she keeps count.
 
 She maintains a small but well-organised office on Deck 7 of the Bureau. The filing cabinets are alphabetised. The coffee is adequate. The contracts are real.`,
     dialogue: [
       "Good. You're here. I have contracts that need competent operators — not speculators who think logistics is a side business.",
-      "The ISA needs resources moved, extracted, and delivered on schedule. If you can handle that, we'll get along fine.",
-      "Review the available contracts below. Each one has a deadline and a quota. Meet the terms, sell directly to me, and you'll be compensated. Miss the terms, and I file an incomplete. Your record is your reputation."
+      "The ISA needs resources moved, extracted, and delivered to specification. If you can handle that, we'll get along fine.",
+      "Review the available contracts below. Each one has a quota and a reward. Deliver the quota to me and you'll be paid; every contract you complete raises your standing with me. Walk away from one and it costs you nothing but the standing you would have earned."
     ],
     missionType: "Logistics",
     available: true

@@ -1265,7 +1265,7 @@ const MISSION_TEMPLATES = [
     type: "Logistics",
     risk: "Low",
     reward: "12,000 Credits",
-    text: "Coordinator Voss requires 400 units of raw silicates delivered to her office for redistribution to ISA-contracted construction projects. Mine the quota from any active extraction lease and sell directly to the agent within the deadline.",
+    text: "The Bureau requires 400 units of raw silicates for redistribution to ISA-contracted construction projects. Mine the quota from any active extraction lease and deliver it to the Bureau when you have it.",
     agentId: "elara-voss",
     quota: { resource: "Silicates", amount: 400 }
   },
@@ -1305,7 +1305,7 @@ const MISSION_TEMPLATES = [
     type: "Logistics",
     risk: "Medium",
     reward: "20,000 Credits",
-    text: "Station expansion projects require titanium for structural framework assembly. Deliver 250 units to satisfy this month's allotment schedule.",
+    text: "Station expansion projects require titanium for structural framework assembly. Deliver 250 units to satisfy this standing allotment.",
     agentId: "elara-voss",
     quota: { resource: "Titanium", amount: 250 }
   },
@@ -1538,7 +1538,7 @@ function getSeedState() {
         type: "Logistics",
         risk: "Low",
         reward: "12,000 Credits",
-        text: "Coordinator Voss requires 400 units of raw silicates delivered to her office for redistribution to ISA-contracted construction projects. Mine the quota from any active extraction lease and sell directly to the agent within the deadline.",
+        text: "The Bureau requires 400 units of raw silicates for redistribution to ISA-contracted construction projects. Mine the quota from any active extraction lease and deliver it to the Bureau when you have it.",
         canShiftControl: false,
         agentId: "elara-voss",
         quota: { resource: "Silicates", amount: 400 }
