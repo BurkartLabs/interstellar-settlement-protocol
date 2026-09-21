@@ -1,7 +1,7 @@
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
-import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
+import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from "./ceoEffects.js";
 
 const appState = {
   serverData: null,
@@ -4421,7 +4421,8 @@ function closeMissionModal() {
   appState.selectedMissionId = null;
 }
 
-function showMissionCompleteOverlay(mission, rep, agentName) {
+/** creditedAmount: what was actually paid (Bug #1009), which Contract Law Essentials can make more than the listed reward. */
+function showMissionCompleteOverlay(mission, rep, agentName, creditedAmount) {
   closeMissionModal();
 
   // Check if this completion crossed a reputation threshold
@@ -4441,7 +4442,7 @@ function showMissionCompleteOverlay(mission, rep, agentName) {
       <p class="mission-complete-title">${escapeHtml(mission.title)}</p>
       <div class="mission-complete-reward">
         <span class="mission-complete-reward-label">Reward Credited</span>
-        <span class="mission-complete-reward-value">${escapeHtml(mission.reward)}</span>
+        <span class="mission-complete-reward-value">${creditedAmount ? toCurrency(creditedAmount) : escapeHtml(mission.reward)}</span>
       </div>
       <div class="mission-complete-rep">
         <span class="mission-complete-rep-label">Standing with ${escapeHtml(agentName)}</span>
@@ -5609,6 +5610,8 @@ function bindForms() {
   missionCompleteBtn?.addEventListener("click", async () => {
     const mission = (appState.activeMissions || []).find((m) => m.id === appState.selectedMissionId);
     if (!mission || !mission.quota) return;
+    // Bug #1009: the same rule the server pays by, so the message says what actually arrived.
+    const rewardCredits = missionRewardCredits(mission.reward, appState.data?.corp?.completedInsights);
 
     if (appState.profileMode === "account" && appState.accountId) {
       const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/complete-mission`, {
@@ -5667,14 +5670,13 @@ function bindForms() {
         appState.data.corp.agentReputation[localAgentId].completedCount += 1;
       }
 
-      // Credit reward
-      const rewardCredits = parseInt(String(mission.reward).replace(/[^0-9]/g, ""), 10);
-      if (rewardCredits && appState.data?.corp) {
-        appState.data.corp.credits = (appState.data.corp.credits || 0) + rewardCredits;
+      // Credit reward into the spendable balance (Bug #1009: it went to corp.credits, which nothing reads)
+      if (rewardCredits && appState.data?.corp?.finances) {
+        appState.data.corp.finances.credits = (appState.data.corp.finances.credits || 0) + rewardCredits;
       }
     }
 
-    pushFeedback(`Contract completed: "${mission.title}". ${mission.reward} credited.`, "success");
+    pushFeedback(`Contract completed: "${mission.title}". ${toCurrency(rewardCredits)} credited.`, "success");
 
     // Check for reputation level-up
     const agentId = mission.agentId || "unknown";
@@ -5683,7 +5685,7 @@ function bindForms() {
     const agentName = agent ? agent.name : "Agent";
 
     // Show completion celebration overlay
-    showMissionCompleteOverlay(mission, rep, agentName);
+    showMissionCompleteOverlay(mission, rep, agentName, rewardCredits);
 
     renderMissions(appState.data);
     // Bug #1043: renderInventoryPanel was called here and threw (its form is gone), so updateAllViews never ran.
