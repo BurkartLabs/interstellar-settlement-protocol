@@ -118,6 +118,8 @@ export function computeLiveLiabilities(corp) {
   if (!corp) return 0;
   const dailyCosts = Math.max(0, Number(corp?.finances?.dailyCosts) || 0);
   let total = dailyCosts * FORWARD_OPERATING_DAYS;
+  // Bug #1097: wages the corporation could not cover and still owes its staff.
+  total += Math.max(0, Number(corp?.finances?.payrollArrears) || 0);
 
   const offices = Array.isArray(corp.offices) ? corp.offices : [];
   for (const office of offices) {

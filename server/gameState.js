@@ -1931,6 +1931,15 @@ function pushSystemNotification(account, payload) {
   account.notifications = account.notifications.slice(0, 120);
 }
 
+// Bug #1097: payroll, settled at the same moments as the mining step. Imported beside its use.
+import { settlePayroll, payrollNotice } from "./payroll.js";
+
+/** Charge payroll up to now, and tell the player when wages go unpaid or are paid again. */
+function settleAccountPayroll(account, now = Date.now()) {
+  const notice = payrollNotice(account.state.corp, settlePayroll(account.state.corp, now));
+  if (notice) pushSystemNotification(account, notice);
+}
+
 export function getAccountById(accountId) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) {
@@ -1938,6 +1947,7 @@ export function getAccountById(accountId) {
   }
 
   applyMiningOperations(account.state.corp);
+  settleAccountPayroll(account);
   refreshContractOfferings(account.state.corp);
   evaluateLevelProgress(account.state);
   scheduleAccountsSave();
@@ -2476,7 +2486,10 @@ export function mutateAccountState(accountId, mutator) {
   }
 
   applyMiningOperations(account.state.corp);
+  // Bug #1097: settled before the change, so time already passed is paid at the headcount it had (a hire starts now).
+  settleAccountPayroll(account);
   mutator(account.state);
+  settleAccountPayroll(account); // starts the clock at a first hire; otherwise nothing has passed since the line above
   applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
   ensureCorpMiningModel(account.state.corp);

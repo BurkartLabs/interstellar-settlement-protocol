@@ -2651,7 +2651,10 @@ function renderBalanceTable(finances, derived) {
   const dailyCosts = Number(finances.dailyCosts) || 0;
   const dailyExpenses = Number(finances.dailyExpenses) || 0;
   const forwardOps = Math.round(dailyCosts * 7);
-  const leaseShare = Math.max(0, liabilities - forwardOps);
+  // Bug #1097: wages owed are their own line, not part of the lease figure; payroll is charged, at this rate.
+  const payrollOwed = Math.max(0, Math.round(Number(finances.payrollArrears) || 0));
+  const leaseShare = Math.max(0, liabilities - forwardOps - payrollOwed);
+  const staff = Math.max(0, Math.floor(Number(appState.data?.corp?.employeeCount) || 0));
 
   tbody.innerHTML = `
     <tr><th colspan="2" style="color:#6cf0c2">Assets</th></tr>
@@ -2661,9 +2664,11 @@ function renderBalanceTable(finances, derived) {
     <tr><th colspan="2" style="color:#f0a06a">Liabilities</th></tr>
     <tr><td>Forward Operating (7d)</td><td class="num">${fmtCredits(forwardOps)}</td></tr>
     <tr><td>Lease Commitments</td><td class="num">${fmtCredits(leaseShare)}</td></tr>
+    ${payrollOwed > 0 ? `<tr><td>Payroll Owed</td><td class="num num--negative">${fmtCredits(payrollOwed)}</td></tr>` : ""}
     <tr><th colspan="2" style="color:#89a7bd">Operating Profile</th></tr>
     <tr><td>Daily Revenue</td><td class="num num--positive">+${fmtCredits(dailyRevenue)}</td></tr>
     <tr><td>Daily Costs</td><td class="num num--negative">−${fmtCredits(dailyExpenses)}</td></tr>
+    <tr><td>Payroll (${staff} staff × 150 a day)</td><td class="num num--negative">−${fmtCredits(staff * 150)}</td></tr>
   `;
 
   const nwClass = netWorth >= 0 ? "num--positive" : "num--negative";
