@@ -53,9 +53,10 @@ const COLOR = { line: "#00f7ff", lineFill: "rgba(0, 247, 255, 0.12)", bar: "rgba
 /**
  * Wire the chart to the Exchange: the filter bar picks the item, the 7/30 buttons pick the range, and the chart
  * refreshes when the Exchange is shown and every 30 seconds while it is open (a trade anywhere changes the history).
- * `fetchHistory(item)` resolves to the route's JSON; `selectedItem()` reads the filter; `formatCredits(n)` prints money.
+ * `fetchHistory(item)` resolves to the route's JSON; `formatCredits(n)` prints money. The selected resource is read from
+ * the filter bar's active pill, so the chart follows it however it changes (a click, a remembered view, a reset).
  */
-export function bindPriceChart({ fetchHistory, selectedItem, formatCredits }) {
+export function bindPriceChart({ fetchHistory, formatCredits }) {
   const card = document.getElementById("exchange-price-chart");
   if (!card) return;
   const title = document.getElementById("price-chart-title");
@@ -67,6 +68,9 @@ export function bindPriceChart({ fetchHistory, selectedItem, formatCredits }) {
   let range = 7;
   let chart = null;
   let latest = 0;
+  let charted = null;
+  const filterBar = document.getElementById("exchange-filter-bar");
+  const selectedItem = () => filterBar?.querySelector(".exchange-filter-pill.active")?.getAttribute("data-filter") || "";
 
   const draw = (item, buckets) => {
     const shaped = shapePriceHistory(buckets, range);
@@ -112,6 +116,7 @@ export function bindPriceChart({ fetchHistory, selectedItem, formatCredits }) {
 
   const refresh = async () => {
     const item = selectedItem() || DEFAULT_CHART_ITEM;
+    charted = item;
     const ticket = ++latest;
     try {
       const res = await fetchHistory(item);
@@ -130,10 +135,12 @@ export function bindPriceChart({ fetchHistory, selectedItem, formatCredits }) {
     rangeButtons.forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
     refresh();
   }));
-  // The app's own handler sets the filter first; this one runs after it and charts the new selection.
-  document.getElementById("exchange-filter-bar")?.addEventListener("click", (event) => {
-    if (event.target.closest(".exchange-filter-pill")) refresh();
-  });
+  // The bar is redrawn on every market update; chart again only when the selected resource has changed.
+  if (filterBar) {
+    new MutationObserver(() => {
+      if (panel.classList.contains("active") && (selectedItem() || DEFAULT_CHART_ITEM) !== charted) refresh();
+    }).observe(filterBar, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  }
   // Whenever the Exchange is shown, from its tab or from anywhere else that opens it.
   let shown = false;
   new MutationObserver(() => {

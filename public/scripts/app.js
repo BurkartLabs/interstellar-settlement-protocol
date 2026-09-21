@@ -6617,7 +6617,6 @@ async function boot() {
   bindChartDurationPickers();
   bindPriceChart({
     fetchHistory: async (item) => parseJsonResponse(await apiFetch(`/api/market/history/${encodeURIComponent(item)}`)),
-    selectedItem: () => appState.exchangeFilter,
     formatCredits: toCurrency
   });
 
