@@ -28,7 +28,7 @@ async function corpAfterOneCycle() {
 describe("starting a second mining cycle (AB#575)", () => {
   it("POST /gameplay/lease/:leaseId/start-mining zeroes minedThisCycle and keeps totalMined", async () => {
     const c = await corpAfterOneCycle();
-    const res = await c.api.post(`/api/accounts/${c.id}/gameplay/lease/${c.leaseId}/start-mining`).send({ hours: 1 });
+    const res = await c.api.post(`/api/accounts/${c.id}/gameplay/lease/${c.leaseId}/start-mining`).send({ hours: 1, amount: 250, extractorId: "ext-basic-1" });
     expect(res.status).toBe(200);
     expect(c.extractor()).toMatchObject({ active: true, minedThisCycle: 0, totalMined: 600 });
   });
