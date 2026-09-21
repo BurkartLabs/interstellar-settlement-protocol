@@ -14,3 +14,10 @@ export async function getApp() {
   cached = mod;
   return cached;
 }
+
+/** The address of the server the app module started (it always listens; tests/setup.js sets PORT=0, any free port). */
+export async function serverUrl() {
+  const { server } = await getApp();
+  if (!server.listening) await new Promise((resolve) => server.once("listening", resolve));
+  return `http://127.0.0.1:${server.address().port}`;
+}

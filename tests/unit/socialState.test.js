@@ -5,7 +5,7 @@ import {
 
 // Bug #749: on any install without a data/state.json, chatLog and forums were never created, so every chat message
 // threw inside appendChatMessage and was dropped, and the forum's category list was empty. The test environment has
-// no state file (tests/setup.js sets VERCEL=1 and the file is gitignored), so getState() here IS a fresh install.
+// no state file (tests/setup.js gives each test file an empty data directory), so getState() here IS a fresh install.
 describe("global social state on a fresh install (Bug #749)", () => {
   it("seeds every chat channel as an empty array, and no private channel", () => {
     const { chatLog } = getState();

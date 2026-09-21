@@ -281,7 +281,7 @@ From this point forward, development in this project must follow a strict test-f
 
 **Use these instructions as the single source of truth unless specifically asked to violate something in this document** when generating or modifying any part of the project.
 
-**Important:** Account data is persisted to Supabase. The in-memory account store is hydrated from Supabase at startup and periodically flushed back. Do not modify Supabase rows while the server is running unless you also trigger a rehydration.
+**Important:** Account data lives in memory and is written to `accounts-snapshot.json` in the data directory (`ISP_DATA_DIR`, default `data/`); the shared world is `state.json` beside it. Both are read once at startup, so do not edit them while the server is running: it overwrites them. Supabase and the Vercel deployment were removed in AB#578; Postgres is planned for v0.6 (Decision #591).
 
 `DEVELOPMENT_PHASES.md` should always be included in the context of any command or code change made to this project.
 

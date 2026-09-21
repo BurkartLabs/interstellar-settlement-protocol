@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { readFileSync, readdirSync, statSync } from "fs";
 import { io as connect } from "socket.io-client";
 import request from "supertest";
-import { getApp } from "../helpers/app.js";
+import { getApp, serverUrl } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { getAccountById, getState } from "../../server/gameState.js";
 import { chatLineHtml, messageListItemsHtml } from "../../public/scripts/html.js";
@@ -45,8 +45,7 @@ function heard(s, content, ms = 1500) {
 
 beforeAll(async () => {
   ({ app, server } = await getApp());
-  await new Promise((resolve) => server.listen(0, resolve));
-  url = `http://127.0.0.1:${server.address().port}`;
+  url = await serverUrl();
   a = await player();
   b = await player();
 });

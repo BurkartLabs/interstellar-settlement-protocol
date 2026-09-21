@@ -128,7 +128,9 @@ Then open [http://localhost:3000](http://localhost:3000).
 
 The server will not start without a token-signing secret. Set `JWT_SECRET` to at least 32 bytes, in `.env` or the environment, for example the output of `openssl rand -base64 48`. For local development only, `ISP_DEV=1` lets it start on a built-in development secret, with a warning on every start; that never applies when `NODE_ENV=production`. Changing `JWT_SECRET` signs every player out, because existing tokens stop verifying, which is what you want if it may have leaked.
 
-The shared demo account (the "Log In To Dummy Account" button, shown on localhost) and the developer kanban board at `/kanban` exist only when `ISP_DEV=1` is set, in `.env` or the environment, and never when `NODE_ENV=production`. Without it their routes answer 404. You can also register a real account — all account data is persisted in Supabase; global world state is stored in `data/state.json` locally.
+The shared demo account (the "Log In To Dummy Account" button, shown on localhost) and the developer kanban board at `/kanban` exist only when `ISP_DEV=1` is set, in `.env` or the environment, and never when `NODE_ENV=production`. Without it their routes answer 404. You can also register a real account.
+
+Everything the server writes goes in one data directory: the accounts in `accounts-snapshot.json` and the shared world (market, forums, chat) in `state.json`. It is `data/` by default; set `ISP_DATA_DIR` to put it elsewhere, which is how the container keeps it on a mounted volume. The game's catalogues (stations, systems, research and the rest) are read from `data/` in the code either way. The server is one long-lived process: it always listens, on `PORT` (default 3000), and its sockets and tickers run for as long as it does. A graceful stop (Ctrl+C, or the SIGTERM a container platform sends) writes both files before it exits.
 
 ---
 

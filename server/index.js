@@ -46,8 +46,6 @@ import {
   saveDraft,
   deleteDraft,
   addSystemMessageToAccount,
-  flushPendingPersist,
-  rehydrateFromSupabase,
   getEffectiveExchangeTaxRate,
   CEO_INSIGHT_LIBRARY,
   applyRefineryOperations,
@@ -420,31 +418,6 @@ process.on("unhandledRejection", (reason) => {
 });
 
 app.use(express.json());
-
-// ─── Persist-before-respond middleware (serverless only) ────────────────────
-// On Vercel, each request may land on a different cold instance with stale
-// in-memory state. We rehydrate from Supabase before each request and flush
-// any pending writes before the response leaves. On long-running local/Node
-// servers the in-memory state is already authoritative, so we don't need
-// (and can't afford — see ticker storms) to await the persist on every API
-// response; `scheduleAccountsSave` already kicks the write off immediately.
-if (process.env.VERCEL) {
-  app.use("/api", async (req, res, next) => {
-    try {
-      await rehydrateFromSupabase();
-    } catch (err) {
-      console.error("[middleware] rehydrate failed:", err?.message || err);
-    }
-
-    const origJson = res.json.bind(res);
-    res.json = function (body) {
-      flushPendingPersist()
-        .catch((err) => { console.error("[middleware] flush failed:", err?.message || err); })
-        .then(() => origJson(body));
-    };
-    next();
-  });
-}
 
 app.use(express.static(path.join(__dirname, "..", "public")));
 // Serve /kanban as the Kanban board root, defaulting to kanban.html. A developer tool: its API writes any request body
@@ -3472,21 +3445,22 @@ io.on("connection", (socket) => {
   });
 });
 
-const port = Number(process.env.PORT || 3000);
-if (!process.env.VERCEL) {
-  server.listen(port, () => {
-    // eslint-disable-next-line no-console
-    console.log(`ISP prototype server running on http://localhost:${port}`);
-  });
+// Bug #578: the server is one long-lived process and always listens: socket.io, the tickers and the data directory all
+// depend on it (Decision #591). PORT=0 takes any free port, which is what the test process uses.
+const port = Number(process.env.PORT ?? 3000);
+server.listen(port, () => {
+  // eslint-disable-next-line no-console
+  console.log(`ISP server listening on port ${server.address().port}`);
+});
 
-  // Flush pending debounced saves on graceful shutdown (e.g. node --watch restart)
-  function onShutdown() {
-    saveAccountsNow();
-    process.exit(0);
-  }
-  process.on("SIGTERM", onShutdown);
-  process.on("SIGINT", onShutdown);
+// Save everything before exiting on a graceful stop: Ctrl+C, node --watch, or the container platform's SIGTERM when it
+// replaces a revision (Bug #1153).
+async function onShutdown() {
+  await saveAccountsNow();
+  process.exit(0);
 }
+process.on("SIGTERM", onShutdown);
+process.on("SIGINT", onShutdown);
 
 export default app;
 export { app, server, io };

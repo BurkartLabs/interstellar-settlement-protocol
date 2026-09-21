@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { applyRefineryOperations, REFINERY_CHAINS, getStationInventory } from "../../server/gameState.js";
-import { mapAccountToRefineryRows, applyOperationsRowsToAccount } from "../../server/db/repositories/operationsRepo.js";
 import { makeCorp } from "../fixtures/makeCorp.js";
 
 // Bug #692: a refinery cycle delivered its outputs to wherever the corporation was when the cycle ended - free
@@ -88,14 +87,5 @@ describe("refinery output station (Bug #692)", () => {
     const corp = makeCorp({ refineries: [running({ active: false, chainId: null, endsAt: null })] });
     applyRefineryOperations(corp, START);
     expect(corp.refineries[0].stationId).toBeNull();
-  });
-
-  it("keeps a running cycle's station through a Supabase row round trip", () => {
-    const account = { id: "user-692", state: { corp: makeCorp({ refineries: [running({ stationId: "mars-orbital-dock" })] }) } };
-    const rows = mapAccountToRefineryRows(account);
-    const reloaded = { id: "user-692", state: JSON.parse(JSON.stringify(account.state)) };
-    applyOperationsRowsToAccount(reloaded, { refineries: rows });
-    expect(reloaded.state.corp.refineries[0].stationId).toBe("mars-orbital-dock");
-    expect(reloaded.state.corp.refineries[0].active).toBe(true);
   });
 });

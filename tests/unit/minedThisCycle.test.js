@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { applyMiningOperations, startExtractorCycle } from "../../server/gameState.js";
-import { mapAccountToExtractorRows, applyInfrastructureRowsToAccount } from "../../server/db/repositories/infrastructureRepo.js";
 import { makeCorp, makeExtractor } from "../fixtures/makeCorp.js";
 
 // AB#575: the extractor panel's "Mined this cycle" showed the lifetime total. It was right on a player's first cycle
@@ -43,16 +42,5 @@ describe("mined this cycle (AB#575)", () => {
       active: true, startedAt: T0, lastTickAt: T0, endsAt: T0 + 4 * HOUR,
       throughputPerHour: 250, operationCostPerHour: 4000, minedThisCycle: 0, totalMined: 5000, totalSpent: 1500
     });
-  });
-
-  it("keeps the per-cycle count through a Supabase row round trip, where the rows carry no such column", () => {
-    const corp = makeCorp({ mining: { silicateExtractors: [makeExtractor({ id: "ext-1", totalMined: 900, minedThisCycle: 300 })] }, miningLeases: [] });
-    const account = { id: "user-575", state: { corp } };
-    const rows = mapAccountToExtractorRows(account);
-    const reloaded = { id: "user-575", state: { corp: JSON.parse(JSON.stringify(corp)) } };
-    applyInfrastructureRowsToAccount(reloaded, { extractors: rows });
-    const ex = reloaded.state.corp.mining.silicateExtractors[0];
-    expect(ex.totalMined).toBe(900);
-    expect(ex.minedThisCycle).toBe(300);
   });
 });

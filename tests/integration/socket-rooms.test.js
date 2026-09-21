@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs";
 import { io as connect } from "socket.io-client";
-import { getApp } from "../helpers/app.js";
+import { getApp, serverUrl } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState, mutateState } from "../../server/gameState.js";
 
@@ -14,8 +14,7 @@ const sockets = [];
 beforeAll(async () => {
   mod = await getApp();
   ({ server } = mod);
-  await new Promise((resolve) => server.listen(0, resolve));
-  url = `http://127.0.0.1:${server.address().port}`;
+  url = await serverUrl();
 });
 afterAll(async () => {
   for (const s of sockets) s.close();
