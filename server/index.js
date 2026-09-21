@@ -777,12 +777,13 @@ function processCeoInsightCompletions() {
 
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(processCeoInsightCompletions, 5_000);
 
+import { refreshDailyExpenses } from "./finances.js"; // Bug #1022 (placed apart from the import below, which parallel PRs append to)
+
 // ─── Financial snapshot tick ─────────────────────────────────────────────────
 // Captures a rolling balance/flow snapshot for every active corp so the
 // Financial Core dashboard can render real historical series (cash reserves,
 // net flow, assets vs liabilities) instead of synthesised projections.
 import { buildSnapshot, pushSnapshot, recordIncome, recordExpense, refreshDailyRevenue } from "./finances.js";
-import { refreshDailyExpenses } from "./finances.js"; // Bug #1022
 
 const FINANCIAL_SNAPSHOT_INTERVAL_MS = 30_000;
 
