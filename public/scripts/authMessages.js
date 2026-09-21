@@ -2,15 +2,16 @@
 // next, with a link when the next step is another page. Nothing here mentions the demo account: it exists only on a
 // developer's machine (ISP_DEV=1, never in production), so a real player is never sent to it.
 
-export const LOGIN_LINK = { href: "/login.html", text: "Log in instead" };
-export const REGISTER_LINK = { href: "/register.html", text: "Register a corporation" };
+// A message's link finishes its sentence: "... already exists. Log in instead", "... or register a new corporation."
+export const LOGIN_LINK = { href: "/login.html", text: "Log in instead." };
+export const REGISTER_LINK = { href: "/register.html", text: "register a new corporation." };
 
 const TRY_AGAIN = "Try again in a minute.";
 
 /** The message for a failed login: `status` is the HTTP status (0 when the server could not be reached). */
 export function loginErrorMessage(status, payload = {}) {
   if (status === 401) {
-    return { text: "That email and password do not match. Check them, or register a new corporation.", link: REGISTER_LINK };
+    return { text: "That email and password do not match. Check them and try again, or", link: REGISTER_LINK };
   }
   if (status === 400 && payload?.error) return { text: payload.error };
   if (status === 429) return { text: `Too many attempts. ${TRY_AGAIN}` };

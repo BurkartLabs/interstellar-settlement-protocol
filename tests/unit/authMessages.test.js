@@ -15,7 +15,9 @@ const code = (f) => read(f).split(/\r?\n/).filter((l) => !l.trim().startsWith("/
 
 describe("login errors (Bug #1059)", () => {
   it("a wrong email or password says so, and offers registering", () => {
-    expect(loginErrorMessage(401)).toEqual({ text: "That email and password do not match. Check them, or register a new corporation.", link: REGISTER_LINK });
+    expect(loginErrorMessage(401)).toEqual({ text: "That email and password do not match. Check them and try again, or", link: REGISTER_LINK });
+    expect(REGISTER_LINK).toEqual({ href: "/register.html", text: "register a new corporation." });
+    expect(LOGIN_LINK).toEqual({ href: "/login.html", text: "Log in instead." });
   });
 
   it("a refused request shows the server's reason; a server or network failure says to try again in a minute", () => {
