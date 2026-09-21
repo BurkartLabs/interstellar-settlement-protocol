@@ -2657,11 +2657,14 @@ function renderFinanceDashboard(finances) {
   const assets = Number(finances.assets) || 0;
   const dailyRevenue = Number(finances.dailyRevenue) || 0;
   const dailyCosts = Number(finances.dailyCosts) || 0;
-  const netFlow = dailyRevenue - dailyCosts;
+  // Bug #1022: the cost side is what was booked in the last 24 hours, not the payroll rate.
+  const dailyExpenses = Number(finances.dailyExpenses) || 0;
+  const inventory = Number(finances.inventoryValue) || 0;
+  const netFlow = dailyRevenue - dailyExpenses;
   const snaps = Array.isArray(finances.snapshots) ? finances.snapshots : [];
   const latest = snaps.length ? snaps[snaps.length - 1] : null;
   const liabilities = latest ? latest.liabilities : Math.round(dailyCosts * 7);
-  const netWorth = credits + assets - liabilities;
+  const netWorth = credits + assets + inventory - liabilities;
 
   setKpi("kpi-net-worth", `$${fmtCredits(netWorth)}`);
   setKpi("kpi-credits", `$${fmtCredits(credits)}`);
@@ -2671,11 +2674,11 @@ function renderFinanceDashboard(finances) {
     { tone: netFlow >= 0 ? "positive" : "negative" }
   );
   setKpi("kpi-revenue", `$${fmtCredits(dailyRevenue)}`);
-  setKpi("kpi-costs", `$${fmtCredits(dailyCosts)}`);
+  setKpi("kpi-costs", `$${fmtCredits(dailyExpenses)}`);
 
   let runwayLabel;
-  if (dailyCosts <= 0) runwayLabel = "∞";
-  else runwayLabel = `${(credits / dailyCosts).toFixed(1)} d`;
+  if (dailyExpenses <= 0) runwayLabel = "∞";
+  else runwayLabel = `${(credits / dailyExpenses).toFixed(1)} d`;
   setKpi("kpi-runway", runwayLabel);
 
   const prev = snaps.length >= 2 ? snaps[snaps.length - 2] : null;
@@ -2688,7 +2691,7 @@ function renderFinanceDashboard(finances) {
   if (meta) meta.textContent = latest ? fmtTimestamp(latest.t) : "no snapshots yet";
 
   renderPnlTable(finances);
-  renderBalanceTable(finances, { credits, assets, liabilities, netWorth });
+  renderBalanceTable(finances, { credits, assets, inventory, liabilities, netWorth });
 }
 
 function renderPnlTable(finances) {
@@ -2745,9 +2748,10 @@ function renderBalanceTable(finances, derived) {
   const tfoot = table.querySelector("tfoot");
   if (!tbody || !tfoot) return;
 
-  const { credits, assets, liabilities, netWorth } = derived;
+  const { credits, assets, inventory, liabilities, netWorth } = derived;
   const dailyRevenue = Number(finances.dailyRevenue) || 0;
   const dailyCosts = Number(finances.dailyCosts) || 0;
+  const dailyExpenses = Number(finances.dailyExpenses) || 0;
   const forwardOps = Math.round(dailyCosts * 7);
   const leaseShare = Math.max(0, liabilities - forwardOps);
 
@@ -2755,17 +2759,18 @@ function renderBalanceTable(finances, derived) {
     <tr><th colspan="2" style="color:#6cf0c2">Assets</th></tr>
     <tr><td>Liquid Credits</td><td class="num">${fmtCredits(credits)}</td></tr>
     <tr><td>Facilities &amp; Probes</td><td class="num">${fmtCredits(assets)}</td></tr>
+    <tr><td>Inventory (at standing bids)</td><td class="num">${fmtCredits(inventory)}</td></tr>
     <tr><th colspan="2" style="color:#f0a06a">Liabilities</th></tr>
     <tr><td>Forward Operating (7d)</td><td class="num">${fmtCredits(forwardOps)}</td></tr>
     <tr><td>Lease Commitments</td><td class="num">${fmtCredits(leaseShare)}</td></tr>
     <tr><th colspan="2" style="color:#89a7bd">Operating Profile</th></tr>
     <tr><td>Daily Revenue</td><td class="num num--positive">+${fmtCredits(dailyRevenue)}</td></tr>
-    <tr><td>Daily Costs</td><td class="num num--negative">−${fmtCredits(dailyCosts)}</td></tr>
+    <tr><td>Daily Costs</td><td class="num num--negative">−${fmtCredits(dailyExpenses)}</td></tr>
   `;
 
   const nwClass = netWorth >= 0 ? "num--positive" : "num--negative";
   tfoot.innerHTML = `
-    <tr><td>Total Assets</td><td class="num num--positive">${fmtCredits(credits + assets)}</td></tr>
+    <tr><td>Total Assets</td><td class="num num--positive">${fmtCredits(credits + assets + inventory)}</td></tr>
     <tr><td>Total Liabilities</td><td class="num num--negative">−${fmtCredits(liabilities)}</td></tr>
     <tr><td><strong>Net Worth</strong></td><td class="num ${nwClass}"><strong>${fmtSignedCredits(netWorth)}</strong></td></tr>
   `;
@@ -2781,8 +2786,8 @@ function updateOverview(data) {
     },
     {
       title: "Net Daily Flow",
-      value: toCurrency(data.corp.finances.dailyRevenue - data.corp.finances.dailyCosts),
-      body: "Daily revenue minus operational burn. This drives long-horizon compounding over years."
+      value: toCurrency((Number(data.corp.finances.dailyRevenue) || 0) - (Number(data.corp.finances.dailyExpenses) || 0)),
+      body: "Income minus costs booked in the last 24 hours. This drives long-horizon compounding over years."
     },
     {
       title: "Conglomerate Status",

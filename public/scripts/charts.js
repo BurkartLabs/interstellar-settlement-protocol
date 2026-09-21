@@ -3,7 +3,7 @@
 // driven entirely by server-side snapshots and ledger data on `corp.finances`.
 //
 // Snapshot shape (server/finances.js → buildSnapshot):
-//   { t, credits, assets, liabilities, dailyRevenue, dailyCosts, netFlow, netWorth }
+//   { t, credits, assets, liabilities, dailyRevenue, dailyCosts, dailyExpenses, inventory, netFlow, netWorth }
 
 const COLOR = {
   cyan: "#00f7ff",
@@ -118,6 +118,8 @@ function projectFromCurrentState(finances) {
   const credits = Number(finances?.credits) || 0;
   const revenue = Number(finances?.dailyRevenue) || 0;
   const costs = Number(finances?.dailyCosts) || 0;
+  const expenses = Number(finances?.dailyExpenses) || 0; // Bug #1022: booked in the last 24 hours
+  const inventory = Number(finances?.inventoryValue) || 0;
   const assets = Number(finances?.assets) || 0;
   const now = Date.now();
   const synth = [];
@@ -129,8 +131,10 @@ function projectFromCurrentState(finances) {
       liabilities: Math.round(costs * 7),
       dailyRevenue: revenue,
       dailyCosts: costs,
-      netFlow: revenue - costs,
-      netWorth: credits + assets - Math.round(costs * 7)
+      dailyExpenses: expenses,
+      inventory,
+      netFlow: revenue - expenses,
+      netWorth: credits + assets + inventory - Math.round(costs * 7)
     });
   }
   return synth;
@@ -331,8 +335,8 @@ function renderAssetComposition(finances) {
   if (!canvas) return;
   const credits = Math.max(0, Number(finances?.credits) || 0);
   const facilities = Math.max(0, Number(finances?.assets) || 0);
-  // Inventory estimate: client doesn't have full inventory here, fall back to 0.
-  const inventory = 0;
+  // Bug #1022: valued by the server at the standing NPC bids, refreshed with each snapshot.
+  const inventory = Math.max(0, Number(finances?.inventoryValue) || 0);
 
   if (!chartRegistry.composition) {
     chartRegistry.composition = new Chart(canvas, {
@@ -367,7 +371,7 @@ function renderDailyPnL(finances) {
   const canvas = ensureCanvas("pnl-chart");
   if (!canvas) return;
   const revenue = Math.max(0, Number(finances?.dailyRevenue) || 0);
-  const costs = Math.max(0, Number(finances?.dailyCosts) || 0);
+  const costs = Math.max(0, Number(finances?.dailyExpenses) || 0); // Bug #1022: booked in the last 24 hours
   const net = revenue - costs;
 
   if (!chartRegistry.pnl) {

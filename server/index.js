@@ -782,6 +782,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(processCeoInsightCompletions, 
 // Financial Core dashboard can render real historical series (cash reserves,
 // net flow, assets vs liabilities) instead of synthesised projections.
 import { buildSnapshot, pushSnapshot, recordIncome, recordExpense, refreshDailyRevenue } from "./finances.js";
+import { refreshDailyExpenses } from "./finances.js"; // Bug #1022
 
 const FINANCIAL_SNAPSHOT_INTERVAL_MS = 30_000;
 
@@ -792,7 +793,8 @@ function financialSnapshotTick() {
     mutateAccountState(accountId, (state) => {
       if (!state || !state.corp) return;
       refreshDailyRevenue(state.corp, now); // Bug #984: income older than 24 hours leaves the daily figure
-      const snap = buildSnapshot(state.corp, now);
+      refreshDailyExpenses(state.corp, now); // Bug #1022: and so do costs
+      const snap = buildSnapshot(state.corp, now, getState().market);
       pushSnapshot(state.corp, snap);
       finances = state.corp.finances;
     });
@@ -1147,6 +1149,7 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
     }
 
     corp.finances.credits -= officeCost;
+    recordExpense(corp, "office-rent", officeCost); // Bug #1022
     const now = Date.now();
     corp.offices.push({
       stationId: station.id,
@@ -1229,6 +1232,7 @@ app.post("/api/accounts/:accountId/gameplay/renew-office", (req, res) => {
       return;
     }
     corp.finances.credits -= renewalCost;
+    recordExpense(corp, "office-rent", renewalCost); // Bug #1022
     const extensionMs = durationDays * 86_400_000;
     const now = Date.now();
     office.rentedUntil = Math.max(office.rentedUntil || now, now) + extensionMs;
@@ -1411,6 +1415,7 @@ app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
     toInv[item] = (toInv[item] || 0) + quantity;
 
     corp.finances.credits -= fee;
+    recordExpense(corp, "transfer-fees", fee); // Bug #1022
   });
 
   if (!account) {
@@ -1742,6 +1747,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
     }
 
     corp.finances.credits -= startupCost;
+    recordExpense(corp, "mining-startup", startupCost); // Bug #1022
 
     extractorCycle.active = true;
     extractorCycle.startedAt = now;
@@ -2117,6 +2123,7 @@ app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
     }
 
     corp.finances.credits -= launchCost;
+    recordExpense(corp, "expeditions", launchCost); // Bug #1022
     am.probeCount -= 1;
 
     const now = Date.now();
@@ -2568,6 +2575,7 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
 
     const now = Date.now();
     corp.finances.credits -= startupCost;
+    recordExpense(corp, "mining-startup", startupCost); // Bug #1022
 
     extractorCycle.active = true;
     extractorCycle.startedAt = now;
