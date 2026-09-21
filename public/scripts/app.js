@@ -1,8 +1,9 @@
+import { WALKTHROUGH_STEPS as walkthroughSteps } from "./walkthrough.js";
+import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { createStarmapController } from "./starmap.js";
-import { escapeHtml, notificationItemsHtml, messageListItemsHtml, stationBuildingCardsHtml } from "./html.js";
+import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
-import { WALKTHROUGH_STEPS as walkthroughSteps } from "./walkthrough.js";
 
 const appState = {
   serverData: null,
