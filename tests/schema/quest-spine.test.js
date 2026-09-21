@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, readdirSync } from "fs";
 
 // AB#584: the quest spine is a design, but its worked example is written against the build. This keeps it honest:
 // the example must fit its schema, and every route, id, tab, metric and timer it names must exist in the build, so a
@@ -13,7 +13,9 @@ const act = json("docs/quest-spine/act-1.example.json");
 const server = read("server/index.js");
 const gameState = read("server/gameState.js");
 const indexHtml = read("public/index.html");
-const client = read("public/scripts/app.js") + read("public/scripts/html.js");
+// Where a highlighted element can come from: static markup, any client script, or building data the cards are drawn from.
+const client = readdirSync(new URL("public/scripts/", root)).filter((f) => f.endsWith(".js")).map((f) => read(`public/scripts/${f}`)).join("\n") +
+  (existsSync(new URL("data/buildings.json", root)) ? read("data/buildings.json") : "");
 const research = json("data/research.json");
 const stations = json("data/stations.json").stations;
 const systems = json("data/systems.json");
