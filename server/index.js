@@ -973,6 +973,24 @@ app.get("/api/auth/session", requireAuth, (req, res) => {
 
 app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess);
 
+// AB#731: every gameplay route's numbers and ids are checked against server/gameplayInput.js here, after the login and
+// ownership checks and before any handler, so a refused request has touched nothing. Imported beside its one use.
+import { gameplayInputMiddleware } from "./gameplayInput.js";
+app.use("/api/accounts/:accountId/gameplay", gameplayInputMiddleware({
+  catalogs: {
+    stations: new Set(Object.keys(STATION_REGISTRY)),
+    systems: new Set(Object.keys(SYSTEM_DETAILS)),
+    leaseBodies: new Set(SYSTEMS_CATALOG.flatMap((s) => (s.bodies || []).filter((b) => Number(b.leaseCost) > 0).flatMap((b) => [b.name, b.id])).map((x) => String(x).toLowerCase())),
+    techs: new Set(Object.keys(RESEARCH_LIBRARY)),
+    programs: new Set(Object.keys(CEO_INSIGHT_LIBRARY)),
+    missions: new Set(MISSION_TEMPLATES.map((m) => m.id)),
+    belts: new Set(Object.keys(BELT_COMPOSITIONS)),
+    expeditionDurations: new Set(Object.keys(EXPEDITION_DURATIONS)),
+    refineryChains: new Set(Object.keys(REFINERY_CHAINS))
+  },
+  corpOf: (accountId) => getAccountById(accountId)?.state?.corp
+}));
+
 app.get("/api/accounts/:accountId", (req, res) => {
   const account = getAccountById(req.params.accountId);
   if (!account) {
@@ -2610,56 +2628,6 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
     type: "operations",
     title: "Mining Cycle Started",
     body: `${targetExtractorLabel} started a ${requestedHours}h silicate cycle with current throughput settings.`
-  });
-  if (notification) {
-    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
-  }
-
-  res.json(account);
-});
-
-app.post("/api/accounts/:accountId/gameplay/complete-rnd", (req, res) => {
-  let outcome = "ok";
-
-  const account = mutateAccountState(req.params.accountId, (state) => {
-    const corp = state.corp;
-    const techId = "tt-basic-extraction";
-    const rdCost = 40000;
-
-    if ((corp.unlockedTech || []).includes(techId)) {
-      outcome = "already-unlocked";
-      return;
-    }
-
-    if (corp.finances.credits < rdCost) {
-      outcome = "insufficient-credits";
-      return;
-    }
-
-    corp.finances.credits -= rdCost;
-    corp.unlockedTech.push(techId);
-    corp.military.modifiers.rdBonusPct = Math.max(corp.military.modifiers.rdBonusPct || 0, 4);
-  });
-
-  if (!account) {
-    res.status(404).json({ error: "Account not found." });
-    return;
-  }
-
-  if (outcome !== "ok") {
-    const corp = account.state.corp;
-    const messageMap = {
-      "already-unlocked": "This R&D project has already been completed.",
-      "insufficient-credits": fundingRequirementMessage("Basic Extraction Analytics", corp, 40000)
-    };
-    res.status(400).json({ error: messageMap[outcome] || "R&D action failed." });
-    return;
-  }
-
-  const notification = addAccountNotification(req.params.accountId, {
-    type: "research",
-    title: "R&D Completed",
-    body: "Basic Extraction Analytics has been completed and applied."
   });
   if (notification) {
     emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
