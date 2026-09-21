@@ -9,6 +9,7 @@ import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, 
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "./ceoEffects.js";
 import { missionRewardCredits } from "./ceoEffects.js"; // Bug #1009: its own line, after the others, so parallel branches adding imports do not collide
+import { requirementLink } from "./levelLinks.js"; // AB#1061
 
 /** localStorage, or null where reading the property itself throws (sandboxed frames, some private modes). */
 function viewerStorage() {
@@ -1376,7 +1377,7 @@ function renderOrbitalExecutiveSuites(building, data) {
 
     <section class="form-card" style="margin-top:1rem;max-width:750px;">
       <h3>Station Services</h3>
-      <p class="muted">Visit the ISA Claims &amp; Leases Division to file extraction rights applications for registered bodies in the Sol system.</p>
+      <p class="muted">Visit the ISA Claims &amp; Leases Division to file extraction rights applications. Each station's claims office files leases on the body it orbits.</p>
     </section>
   `;
 }
@@ -2819,14 +2820,16 @@ function renderLevel2Progress(data) {
       if (req.complete) {
         appState.completedRequirementIds.add(reqId);
       }
-      const targetTab = REQ_TAB[req.id];
-      const jumpAttr = targetTab ? ` data-jump="${targetTab}"` : "";
-      const clickable = targetTab && !req.complete ? " requirement-clickable" : "";
+      // AB#1061: a lease milestone leads to the station that files its body, by way of the Starmap when docked elsewhere
+      const link = requirementLink(req, data?.corp?.currentStationId || null, appState.stationRegistry, REQ_TAB[req.id]);
+      const jumpAttr = link ? ` data-jump="${link.tab}"` : "";
+      const clickable = link && !req.complete ? " requirement-clickable" : "";
       return `
       <section class="data-card requirement-card${doneClass}${justCompletedClass}${clickable}"${jumpAttr}>
         <h3 class="requirement-title">${req.title}</h3>
         <p><strong>${req.progress} / ${req.target}</strong></p>
-        <p class="muted requirement-state">${req.complete ? "Completed" : targetTab ? `Go to ${targetTab.charAt(0).toUpperCase() + targetTab.slice(1)} →` : "In Progress"}</p>
+        <p class="muted requirement-state">${req.complete ? "Completed" : link ? escapeHtml(link.label) : "In Progress"}</p>
+        ${!req.complete && link?.hint ? `<p class="muted requirement-hint">${escapeHtml(link.hint)}</p>` : ""}
       </section>
       `;
     })

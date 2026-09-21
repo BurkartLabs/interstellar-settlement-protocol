@@ -17,7 +17,7 @@ import jwt from "jsonwebtoken";
 import { resolveLeaseBody } from "./leases.js";
 import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from "../public/scripts/ceoEffects.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "../public/scripts/ceoEffects.js";
-import { canReachSystem } from "../public/scripts/navigation.js";
+import { canReachSystem, leaseFilingRefusal } from "../public/scripts/navigation.js";
 import {
   accountExists,
   addAccountNotification,
@@ -1289,6 +1289,14 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
     }
     requestedBody = resolved.body;
     leaseCost = resolved.cost;
+
+    // AB#1061: filed at the station that orbits the body, as the claims office offers it; in transit, nowhere.
+    const stationRefusal = leaseFilingRefusal(STATION_REGISTRY, corp.currentStationId || null, requestedBody);
+    if (stationRefusal) {
+      outcome = "invalid-body";
+      bodyError = stationRefusal;
+      return;
+    }
 
     const hasOffice = Array.isArray(corp.offices) && corp.offices.length > 0;
     if (!hasOffice) {

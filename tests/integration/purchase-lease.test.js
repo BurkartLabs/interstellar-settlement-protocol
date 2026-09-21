@@ -39,10 +39,55 @@ describe("POST /api/accounts/:id/gameplay/purchase-lease (Bug #691)", () => {
 
   it("leases a catalog body at its catalog price and stores the catalog's name", async () => {
     const { id, lease } = await readyCorp();
+    dockAt(id, "mars-orbital-dock");
     const res = await lease("mars");
     expect(res.status).toBe(200);
     const corp = getAccountById(id).state.corp;
     expect(corp.miningLeases.map((l) => [l.body, l.cost])).toEqual([["Mars", 25000]]);
     expect(corp.finances.credits).toBe(500000 - 25000);
+  });
+});
+
+// AB#1061: a station files leases only on the body it orbits (NEW_PLAYER_EXPERIENCE.md). The server used to file a
+// Mars lease from Earth Station Prime, which the claims office there never offers.
+function dockAt(id, stationId) {
+  mutateAccountState(id, (state) => {
+    state.corp.currentStationId = stationId;
+    state.corp.currentSystemId = "sol";
+    state.corp.travel = null;
+  });
+}
+
+describe("a lease is filed at the station orbiting its body (AB#1061)", () => {
+  it("refuses Mars from Earth Station Prime, says where to file it, and changes nothing", async () => {
+    const { id, lease, snapshot } = await readyCorp();
+    dockAt(id, "earth-station-prime");
+    const before = snapshot();
+    const res = await lease("Mars");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/Mars Orbital Dock/);
+    expect(snapshot()).toBe(before);
+  });
+
+  it("files Earth from Earth Station Prime and Luna from Luna Gateway", async () => {
+    const earth = await readyCorp();
+    dockAt(earth.id, "earth-station-prime");
+    expect((await earth.lease("Earth")).status).toBe(200);
+    const luna = await readyCorp();
+    dockAt(luna.id, "luna-gateway");
+    expect((await luna.lease("Luna")).status).toBe(200);
+  });
+
+  it("refuses any lease while the corporation is in transit", async () => {
+    const { id, lease, snapshot } = await readyCorp();
+    mutateAccountState(id, (state) => {
+      state.corp.currentStationId = null;
+      state.corp.travel = { travelType: "local", fromStationId: "earth-station-prime", toStationId: "mars-orbital-dock", departedAt: Date.now(), arrivesAt: Date.now() + 60_000 };
+    });
+    const before = snapshot();
+    const res = await lease("Earth");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/in transit/i);
+    expect(snapshot()).toBe(before);
   });
 });
