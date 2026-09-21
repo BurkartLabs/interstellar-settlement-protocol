@@ -3099,6 +3099,9 @@ const MILESTONE_ROADMAP = [
   "Reached Corporation Level 10"
 ];
 
+// Next to its caller, not in the block at the top, where branches adding imports collide (Bug #1254).
+import { refineryBuildButtonHtml } from "./html.js";
+
 function renderRefinery(data) {
   const catalog = document.getElementById("resource-catalog");
   catalog.innerHTML = RESOURCE_CATALOG.map((res) => `<span class="pill">${escapeHtml(res)}</span>`).join("");
@@ -3209,7 +3212,7 @@ function renderRefinery(data) {
               </div>
               <button class="btn btn-accent refinery-start-btn" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}">Start Run</button>`
             : belowRefineryCap && canBuildRefinery
-              ? `<button class="btn btn-outline refinery-build-btn"${!hasOpenBuildingSlot ? ` data-disabled-reason="${escapeHtml(`Refinery requires 1 open building slot. Current usage: ${buildings.length}/${buildingSlots}.`)}` : ""}>${hasRefinery ? "Build 2nd Refinery" : "Build Refinery"}</button>${!hasOpenBuildingSlot ? `<p class="muted" style="color:var(--color-warn)">No open building slots. Current usage: ${buildings.length}/${buildingSlots}.</p>` : ""}`
+              ? refineryBuildButtonHtml({ hasRefinery, used: buildings.length, slots: buildingSlots })
               : !hasRefinery && !canBuildRefinery
                 ? `<p class="muted" style="color:var(--color-warn)">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>`
                 : hasRefinery && !idleRefinery
