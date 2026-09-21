@@ -36,16 +36,17 @@ function recordingContext() {
   return { ctx, cores, reset() { cores.length = 0; } };
 }
 
-/** A canvas laid out in a CSS box of clientWidth x (style height - border), with a 1px border like #starmap-canvas. */
+/** A canvas laid out in a CSS box of clientWidth x (style height - border), with a 1px border like #starmap-canvas;
+ * a hidden one (clientWidth 0) has no box at all. */
 function fakeCanvas(clientWidth, context) {
   const handlers = {};
   const canvas = {
     width: 300, height: 150, hidden: false, style: {}, clientLeft: 1, clientTop: 1,
     clientWidth,
-    get clientHeight() { return parseInt(this.style.height || "152", 10) - 2; },
+    get clientHeight() { return this.clientWidth ? parseInt(this.style.height || "152", 10) - 2 : 0; },
     getContext: () => context.ctx,
     getBoundingClientRect() {
-      return { left: 16, top: 200, width: clientWidth + 2, height: this.clientHeight + 2 };
+      return { left: 16, top: 200, width: this.clientWidth + 2, height: this.clientHeight + 2 };
     },
     addEventListener(type, fn) { handlers[type] = fn; },
     handlers
@@ -62,7 +63,7 @@ function mountAt(clientWidth, devicePixelRatio) {
   const controller = createStarmapController({ canvas, fallbackEl, detailsEl });
   context.reset();
   controller.mount(SYSTEMS);
-  return { canvas, detailsEl, cores: [...context.cores] };
+  return { canvas, detailsEl, controller, cores: [...context.cores] };
 }
 
 /** Taps where a star is drawn: backing pixels -> CSS pixels in the content box -> client coordinates. */
@@ -100,6 +101,15 @@ describe("Starmap canvas on a phone (Bug #1286)", () => {
       expect(canvas.height).toBe(Math.round(canvas.clientHeight * used));
     });
   }
+
+  it("a map mounted while its tab is hidden is sized to its box the first time it is drawn visible", () => {
+    const { canvas, controller } = mountAt(0, 2);
+    expect(canvas.width).toBe(1); // hidden: nothing to size to
+    canvas.clientWidth = 292; // the Starmap tab is shown
+    controller.setSystems(SYSTEMS);
+    expect(canvas.width).toBe(584);
+    expect(canvas.height).toBe(canvas.clientHeight * 2);
+  });
 
   for (const [label, width, dpr] of [["a phone", 292, 1], ["a phone, dpr 2", 292, 2], ["a phone, dpr 3", 292, 3], ["a desktop", 719, 1]]) {
     it(`on ${label}, tapping where Tau Ceti is drawn opens Tau Ceti`, () => {

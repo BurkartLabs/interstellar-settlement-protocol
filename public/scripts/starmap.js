@@ -1124,6 +1124,12 @@ export function createStarmapController({
       return;
     }
 
+    // Bug #1286: a canvas sized while its tab was hidden has a 1x1 backing store; size it to its box before drawing.
+    const expected = canvasBackingSize(canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio);
+    if (canvas.width !== expected.width || canvas.height !== expected.height) {
+      setCanvasSize();
+    }
+
     clearScene();
 
     const system = getSelectedSystem();
