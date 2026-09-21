@@ -2,6 +2,7 @@ import { WALKTHROUGH_STEPS as walkthroughSteps } from "./walkthrough.js";
 import { chooseHighlight, nextStepIndex } from "./walkthrough.js";
 import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
+import { suggestedListingPrice } from "./suggestedPrice.js"; // AB#1166, on a line of its own away from other branches' imports
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
@@ -841,58 +842,6 @@ function getAllInventory() {
     appState.data.corp.inventory = {};
   }
   return appState.data.corp.inventory;
-}
-
-/**
- * Compute the average market unit price per item across:
- *   - active player sell listings on the order book
- *   - active NPC buy orders
- *   - the most recent trade history entries
- * Returns a map keyed by item name. Items with no signal are absent so callers
- * can fall back to a hard-coded default.
- */
-function computeAverageMarketPrice(data) {
-  const totals = {};
-  const counts = {};
-  const accumulate = (item, price, weight = 1) => {
-    const p = Number(price);
-    if (!item || !Number.isFinite(p) || p <= 0) return;
-    totals[item] = (totals[item] || 0) + p * weight;
-    counts[item] = (counts[item] || 0) + weight;
-  };
-
-  // Weight NPC buy orders heavily — they're the published "fair value" floor
-  // set by the GEX commodities authority. Player sell listings (which can be
-  // dumped low to undercut competitors) and recent trades nudge the average,
-  // but should not drag the suggested price below the standing NPC bid.
-  const orderBook = data?.market?.orderBook || [];
-  for (const o of orderBook) accumulate(o.item, o.unitPrice, 1);
-
-  const npcBuy = data?.market?.npcBuyOrders || [];
-  for (const o of npcBuy) accumulate(o.item, o.unitPrice, 5);
-
-  const trades = (data?.corp?.tradeHistory || []).slice(0, 50);
-  for (const t of trades) accumulate(t.item, t.unitPrice, 1);
-
-  // Build the weighted average, then floor it at the best NPC bid so the
-  // suggested price never undercuts the guaranteed buyer.
-  const npcFloorByItem = {};
-  for (const o of npcBuy) {
-    const p = Number(o.unitPrice);
-    if (!o.item || !Number.isFinite(p) || p <= 0) continue;
-    npcFloorByItem[o.item] = Math.max(npcFloorByItem[o.item] || 0, p);
-  }
-
-  const result = {};
-  for (const item of Object.keys(totals)) {
-    const avg = totals[item] / counts[item];
-    result[item] = Math.max(avg, npcFloorByItem[item] || 0);
-  }
-  // Items that only have an NPC bid (no trades / no listings) still surface.
-  for (const item of Object.keys(npcFloorByItem)) {
-    if (result[item] == null) result[item] = npcFloorByItem[item];
-  }
-  return result;
 }
 
 function availableTechNodes(data) {
@@ -3886,12 +3835,12 @@ function renderMarket(data) {
     : "<li>No inventory available yet. Begin mining and refining to generate tradable stock.</li>";
 
   // Create Listing grid — default unit price to AVG market price for the item.
-  const avgPriceByItem = computeAverageMarketPrice(data);
+  // AB#1166: what the market has actually paid, never a raw listing (public/scripts/suggestedPrice.js)
   if (sellGrid) {
     sellGrid.innerHTML = entries
       .map(
         ([name, qty]) => {
-          const defaultPrice = Math.max(1, Math.round(avgPriceByItem[name] || 50));
+          const defaultPrice = suggestedListingPrice(name, data.market, Date.now());
           return `
           <tr>
             <td>${escapeHtml(name)}</td>
