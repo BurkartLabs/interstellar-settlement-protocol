@@ -300,7 +300,7 @@ Levels 1–10 defined. Each level has a set of requirements that must all be met
 | `tt-supply-forecast` | Supply Forecast Engine | 4h | $32,000 | basic-extraction |
 | `tt-energy-routing` | High-Density Energy Routing | 6h | $54,000 | industrial-safety + supply-forecast |
 
-Server-side auto-completion (marking done and applying effects) is not yet implemented — tracked in Todos.md.
+Server-side auto-completion (marking done and applying effects) runs on a five-second tick: `processRndCompletions` in `server/index.js`.
 
 ---
 
@@ -320,8 +320,7 @@ Server-side auto-completion (marking done and applying effects) is not yet imple
 1. **Stop the server before editing `data/*.json` directly** — the in-memory store will overwrite any file changes on next save tick
 2. Restart the dev server with `node --watch server/index.js` from the project root
 3. Hard-refresh the browser (**Ctrl + Shift + R**) after editing JS or CSS
-4. `Todos.md` tracks active work — never mark items complete or add new items without explicit user permission
-5. Always read `Todos.md` at the start of each session
+4. Work is tracked in Azure DevOps (area `interstellar-settlement-protocol`), with the version plan in `DEVELOPMENT_PHASES.md`; `Todos.md` is retired (AB#412)
 
 ---
 
