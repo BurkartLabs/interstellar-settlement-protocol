@@ -1,7 +1,17 @@
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
+import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
+
+/** localStorage, or null where reading the property itself throws (sandboxed frames, some private modes). */
+function viewerStorage() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 const appState = {
   serverData: null,
@@ -41,7 +51,7 @@ const appState = {
   insightPrograms: [], // loaded from /api/ceo-insight (Bug #983)
   stationActiveLease: null,
   _travelTimer: null,
-  exchangeFilter: "",
+  exchangeView: loadExchangeView(viewerStorage()), // resource, order type and sort, remembered per viewer (AB#402)
   beltCompositions: {},
   inbox: {
     messages: [],
@@ -3803,29 +3813,57 @@ function renderMarket(data) {
 
   const market = data.market || {};
   const allSellOrders = (market.orderBook || []).filter((order) => order.type === "sell" && !isOwnSellOrder(order));
-  const mySellOrders = (market.orderBook || [])
-    .filter((order) => order.type === "sell" && isOwnSellOrder(order))
-    .slice(0, 50);
+  const allMySellOrders = (market.orderBook || []).filter((order) => order.type === "sell" && isOwnSellOrder(order));
   const npcBuyOrders = market.npcBuyOrders || [];
 
-  // Build resource filter pills from all visible resources
+  const view = appState.exchangeView;
+
+  // Build resource filter pills from all visible resources, keeping a remembered resource that has no orders today so
+  // the viewer can see which filter is on
   const resourceSet = new Set();
   allSellOrders.forEach((o) => o.item && resourceSet.add(o.item));
   npcBuyOrders.forEach((o) => o.item && resourceSet.add(o.item));
+  allMySellOrders.forEach((o) => o.item && resourceSet.add(o.item));
+  if (view.resource) resourceSet.add(view.resource);
   const resources = Array.from(resourceSet).sort();
 
   const filterBar = document.getElementById("exchange-filter-bar");
   if (filterBar) {
-    const cur = appState.exchangeFilter || "";
+    const cur = view.resource;
     filterBar.innerHTML =
       `<button class="exchange-filter-pill${!cur ? " active" : ""}" data-filter="">All</button>` +
       resources.map((r) => `<button class="exchange-filter-pill${cur === r ? " active" : ""}" data-filter="${escapeHtml(r)}">${escapeHtml(r)}</button>`).join("");
   }
+  const typeSelect = document.getElementById("exchange-type-filter");
+  if (typeSelect) typeSelect.value = view.type;
+  const sortSelect = document.getElementById("exchange-sort");
+  if (sortSelect) sortSelect.value = view.sort;
 
-  // Apply filter
-  const filter = appState.exchangeFilter || "";
-  const filteredSellOrders = (filter ? allSellOrders.filter((o) => o.item === filter) : allSellOrders).slice(0, 30);
-  const filteredNpcOrders = filter ? npcBuyOrders.filter((o) => o.item === filter) : npcBuyOrders;
+  // Order-type filter: one table, or all of them (AB#402)
+  const showSection = (id, type) => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = view.type !== "all" && view.type !== type;
+  };
+  showSection("exchange-sell-section", "sell");
+  showSection("exchange-standing-section", "standing");
+  showSection("exchange-mine-section", "mine");
+
+  // Filter by resource and sort, then cap: the cap applies to what the viewer asked to see (AB#402)
+  const filteredSellOrders = viewOrders(allSellOrders, view).slice(0, 30);
+  const filteredNpcOrders = viewOrders(npcBuyOrders, view);
+  const mySellOrders = viewOrders(allMySellOrders, view).slice(0, 50);
+
+  // "Nothing listed yet" and "your filter hid it" are different states, shown differently (AB#402)
+  const showEmpty = (emptyEl, filteredId, total, shown, label) => {
+    if (emptyEl) emptyEl.hidden = total > 0;
+    const filteredEl = document.getElementById(filteredId);
+    if (!filteredEl) return;
+    // No rows: hide the table too, so its headers do not sit over an empty body
+    const tableWrap = filteredEl.parentElement?.querySelector(".table-wrap");
+    if (tableWrap) tableWrap.hidden = shown === 0;
+    filteredEl.hidden = !(total > 0 && shown === 0);
+    filteredEl.innerHTML = filteredEl.hidden ? "" : filteredEmptyHtml(label, view.resource, total);
+  };
 
   // Sell Orders table (player can buy from these)
   if (buyTable) {
@@ -3844,7 +3882,7 @@ function renderMarket(data) {
       )
       .join("");
   }
-  if (buyEmpty) buyEmpty.hidden = filteredSellOrders.length > 0;
+  showEmpty(buyEmpty, "exchange-buy-filtered", allSellOrders.length, filteredSellOrders.length, "player sell orders");
 
   // NPC Standing Buy Orders table (player can sell into these)
   if (npcBuyTable) {
@@ -3872,7 +3910,7 @@ function renderMarket(data) {
       })
       .join("");
   }
-  if (npcBuyEmpty) npcBuyEmpty.hidden = filteredNpcOrders.length > 0;
+  showEmpty(npcBuyEmpty, "npc-buy-filtered", npcBuyOrders.length, filteredNpcOrders.length, "standing buy orders");
 
   // Mercenary book
   // TODO: Remove mercenary references. Functionality isn't built yet.
@@ -3929,7 +3967,7 @@ function renderMarket(data) {
       )
       .join("");
   }
-  if (mySellOrdersEmpty) mySellOrdersEmpty.hidden = mySellOrders.length > 0;
+  showEmpty(mySellOrdersEmpty, "my-sell-orders-filtered", allMySellOrders.length, mySellOrders.length, "active listings");
 
   // Trade History
   const tradeHistoryTable = document.getElementById("trade-history-table");
@@ -5777,13 +5815,22 @@ function bindForms() {
     }
   });
 
-  // Resource filter pills
-  const filterBarEl = document.getElementById("exchange-filter-bar");
-  filterBarEl?.addEventListener("click", (event) => {
-    const pill = event.target.closest(".exchange-filter-pill");
-    if (!pill) return;
-    appState.exchangeFilter = pill.getAttribute("data-filter") || "";
+  // Resource pills, order type, sort and Clear filters: change the view, remember it, redraw (AB#402)
+  const setExchangeView = (changes) => {
+    appState.exchangeView = { ...appState.exchangeView, ...changes };
+    saveExchangeView(viewerStorage(), appState.exchangeView);
     renderMarket(appState.data);
+  };
+  document.getElementById("exchange-filter-bar")?.addEventListener("click", (event) => {
+    const pill = event.target.closest(".exchange-filter-pill");
+    if (pill) setExchangeView({ resource: pill.getAttribute("data-filter") || "" });
+  });
+  document.getElementById("exchange-type-filter")?.addEventListener("change", (event) => setExchangeView({ type: event.target.value }));
+  document.getElementById("exchange-sort")?.addEventListener("change", (event) => setExchangeView({ sort: event.target.value }));
+  document.getElementById("market")?.addEventListener("click", (event) => {
+    if (event.target.closest(".exchange-clear-filters")) {
+      setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, type: DEFAULT_EXCHANGE_VIEW.type });
+    }
   });
 
   // NPC standing buy order — sell buttons

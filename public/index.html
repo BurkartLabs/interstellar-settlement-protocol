@@ -570,15 +570,38 @@
             <h2>Galactic Exchange</h2>
             <div id="market-station-banner"></div>
 
-            <!-- Resource filter bar -->
-            <div class="exchange-filter-bar" id="exchange-filter-bar" aria-label="Filter by resource"></div>
+            <!-- Resource filter bar, order-type filter and sort (AB#402) -->
+            <div class="exchange-controls">
+              <div class="exchange-filter-bar" id="exchange-filter-bar" aria-label="Filter by resource"></div>
+              <div class="exchange-view-selects">
+                <label>Show
+                  <select id="exchange-type-filter">
+                    <option value="all">All orders</option>
+                    <option value="sell">Player sell orders</option>
+                    <option value="standing">Standing buy orders</option>
+                    <option value="mine">My listings</option>
+                  </select>
+                </label>
+                <label>Sort
+                  <select id="exchange-sort">
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                    <option value="price-asc">Price: low to high</option>
+                    <option value="price-desc">Price: high to low</option>
+                    <option value="qty-desc">Quantity: most first</option>
+                    <option value="qty-asc">Quantity: fewest first</option>
+                  </select>
+                </label>
+              </div>
+            </div>
 
             <div class="split-grid exchange-layout">
               <!-- Left: Sell Orders (others' items you can buy) -->
-              <section class="form-card exchange-section">
+              <section class="form-card exchange-section" id="exchange-sell-section">
                 <h3>Sell Orders</h3>
                 <p class="muted">Public sell orders available on the exchange. You will never see your own listings here.</p>
-                <p id="exchange-buy-empty" class="muted" hidden>No sell orders match the current filter.</p>
+                <p id="exchange-buy-empty" class="muted" hidden>No player has listed anything for sale yet.</p>
+                <div id="exchange-buy-filtered" class="exchange-filtered-empty" hidden></div>
                 <p id="buy-status" class="muted"></p>
                 <div class="table-wrap">
                   <table class="data-table">
@@ -621,10 +644,11 @@
             </div>
 
             <!-- Standing NPC Buy Orders -->
-            <section class="form-card" style="margin-top:1.6rem">
+            <section class="form-card" id="exchange-standing-section" style="margin-top:1.6rem">
               <h3>Standing Buy Orders</h3>
               <p class="muted">These are recurring NPC buy orders. Sell your resources directly into them at the listed price — no waiting for a buyer. Quantities reset daily at midnight EST.</p>
-              <p id="npc-buy-empty" class="muted" hidden>No standing buy orders match the current filter.</p>
+              <p id="npc-buy-empty" class="muted" hidden>There are no standing buy orders today.</p>
+              <div id="npc-buy-filtered" class="exchange-filtered-empty" hidden></div>
               <p id="npc-buy-status" class="muted"></p>
               <div class="table-wrap">
                 <table class="data-table">
@@ -644,9 +668,10 @@
             </section>
 
             <!-- My Active Listings -->
-            <section class="form-card" style="margin-top:1.6rem">
+            <section class="form-card" id="exchange-mine-section" style="margin-top:1.6rem">
               <h3>My Active Listings</h3>
               <p id="my-sell-orders-empty" class="muted" hidden>You have no active sell orders on the exchange.</p>
+              <div id="my-sell-orders-filtered" class="exchange-filtered-empty" hidden></div>
               <div class="table-wrap">
                 <table class="data-table">
                   <thead>
