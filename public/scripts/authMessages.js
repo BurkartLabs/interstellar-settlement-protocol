@@ -1,0 +1,57 @@
+// What the register and login pages tell a player when something goes wrong (Bug #1059): what happened and what to do
+// next, with a link when the next step is another page. Nothing here mentions the demo account: it exists only on a
+// developer's machine (ISP_DEV=1, never in production), so a real player is never sent to it.
+
+export const LOGIN_LINK = { href: "/login.html", text: "Log in instead" };
+export const REGISTER_LINK = { href: "/register.html", text: "Register a corporation" };
+
+const TRY_AGAIN = "Try again in a minute.";
+
+/** The message for a failed login: `status` is the HTTP status (0 when the server could not be reached). */
+export function loginErrorMessage(status, payload = {}) {
+  if (status === 401) {
+    return { text: "That email and password do not match. Check them, or register a new corporation.", link: REGISTER_LINK };
+  }
+  if (status === 400 && payload?.error) return { text: payload.error };
+  if (status === 429) return { text: `Too many attempts. ${TRY_AGAIN}` };
+  if (status === 0) return { text: `The server could not be reached. Check your connection. ${TRY_AGAIN}` };
+  return { text: `Logging in failed on our side. ${TRY_AGAIN}` };
+}
+
+/** The message for a failed registration. The server names what to fix; an email already in use offers the login. */
+export function registerErrorMessage(status, payload = {}) {
+  if (status === 400 && payload?.code === "email-taken") {
+    return { text: "An account with this email already exists.", link: LOGIN_LINK };
+  }
+  if (status === 400 && payload?.error) return { text: payload.error };
+  if (status === 429) return { text: `Too many attempts. ${TRY_AGAIN}` };
+  if (status === 0) return { text: `The server could not be reached. Check your connection. ${TRY_AGAIN}` };
+  return { text: `Registering failed on our side. ${TRY_AGAIN}` };
+}
+
+/** What the register form is missing before it is sent, or null. The server checks the same rules again. */
+export function registerFormProblem({ email, password, corpName }) {
+  if (!email || !email.includes("@")) return "Enter the email address you will log in with.";
+  if (!password || password.length < 8) return "Choose a password of at least 8 characters.";
+  if (!corpName) return "Name your corporation: 3 to 40 letters, digits, spaces and - ' . &.";
+  return null;
+}
+
+/** What the login form is missing before it is sent, or null. */
+export function loginFormProblem({ email, password }) {
+  if (!email || !password) return "Enter your email and password.";
+  return null;
+}
+
+/** Show `message` ({text, link?}) in a status element, building the link as an element (no HTML is parsed). */
+export function showMessage(element, message) {
+  if (!element) return;
+  element.textContent = message.text;
+  if (message.link) {
+    const a = element.ownerDocument.createElement("a");
+    a.href = message.link.href;
+    a.textContent = message.link.text;
+    a.className = "login-status-link";
+    element.append(" ", a);
+  }
+}
