@@ -2098,8 +2098,27 @@ textarea {
 
 #walkthrough-modal .modal-card {
   pointer-events: auto;
-  width: min(440px, 100%);
+  width: min(420px, 100%);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+#walkthrough-modal .modal-card.has-portrait {
+  padding-left: calc(1.5rem + 52px);
+}
+
+#walkthrough-modal .dialogue-portrait {
+  width: 52px;
+  height: 52px;
+}
+
+#walkthrough-modal .lede {
+  font-size: 0.95rem;
+}
+
+/* While the briefing is up the page can scroll anything clear of the card (app.js sets the height it measures), so the
+   card never hides for good what it is describing. */
+body.walkthrough-open {
+  padding-bottom: var(--walkthrough-card-height, 22rem);
 }
 
 .walkthrough-focus {

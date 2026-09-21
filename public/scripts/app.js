@@ -4957,6 +4957,7 @@ function clearWalkthroughFocus() {
 
 function stopWalkthrough() {
   walkthroughModal.hidden = true;
+  document.body.classList.remove("walkthrough-open");
   clearWalkthroughFocus();
   clearInterval(walkthroughWatch);
   walkthroughTarget = null;
@@ -5014,6 +5015,12 @@ function finishWalkthrough() {
 function refreshWalkthroughHighlight() {
   const step = walkthroughSteps[appState.walkthroughIndex];
   if (!step || walkthroughModal.hidden) return;
+  if (walkthroughFinished) {
+    // Nothing left to do, so nothing to point at: the card is only the handoff now.
+    clearWalkthroughFocus();
+    walkthroughTarget = null;
+    return;
+  }
   const { selector, missing } = chooseHighlight(step, (candidate) => {
     const el = document.querySelector(candidate);
     return { exists: Boolean(el), visible: Boolean(el && el.getClientRects().length) };
@@ -5101,6 +5108,8 @@ function renderWalkthroughStep() {
   walkthroughPrev.hidden = walkthroughFinished;
   walkthroughEnd.hidden = walkthroughFinished;
   walkthroughNext.textContent = walkthroughFinished ? "Close" : "Skip";
+  const card = walkthroughModal.querySelector(".modal-card");
+  if (card) document.body.style.setProperty("--walkthrough-card-height", `${card.offsetHeight + 24}px`);
   walkthroughTarget = null;
   refreshWalkthroughHighlight();
 }
@@ -5112,6 +5121,7 @@ function startWalkthrough() {
   walkthroughFinished = false;
   appState.walkthroughIndex = 0;
   walkthroughModal.hidden = false;
+  document.body.classList.add("walkthrough-open");
   renderWalkthroughStep();
   clearInterval(walkthroughWatch);
   walkthroughWatch = setInterval(checkWalkthroughProgress, 1000);
