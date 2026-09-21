@@ -89,7 +89,7 @@
       "prereqs": ["ceo-negotiation-fundamentals"],
       "tier": 2,
       "category": "Trade",
-      "status": "planned",
+      "status": "live",
       "maxLevels": 1
     },
     {
