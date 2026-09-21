@@ -2049,7 +2049,9 @@ textarea {
 }
 
 .modal-card {
-  width: min(760px, 96vw);
+  /* 100% of the backdrop's padded grid area, not 96vw: at 375px wide, 96vw is 17px wider than the space and the
+     card ran off the right edge (AB#585, found at 375x812). */
+  width: min(760px, 100%);
   border: 1px solid rgba(0, 247, 255, 0.3);
   border-radius: 12px;
   background: rgba(8, 24, 38, 0.96);
