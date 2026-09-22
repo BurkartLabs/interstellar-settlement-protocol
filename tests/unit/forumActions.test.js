@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { forumPostBodyHtml } from "../../public/scripts/html.js";
-import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft, REPLY_MAX_LENGTH } from "../../public/scripts/forumActions.js";
+import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft, REPLY_MAX_LENGTH, mergeThread } from "../../public/scripts/forumActions.js";
 
 // Bug #1131: one Like click sent one request per render of the thread, because each render added another listener
 // to a container that survives it. A stand-in element that dispatches clicks to every listener it holds, as the DOM does.
@@ -122,5 +122,50 @@ describe("a half-written reply survives forum updates (Bug #1222)", () => {
   });
   it("clears the live box after a reply is posted", () => {
     expect(app).toMatch(/const liveBox = document\.getElementById\("forum-reply-content"\);\s+if \(liveBox\) liveBox\.value = "";/);
+  });
+});
+
+// Bug #1133: a new thread reached the poster twice, in the POST response and in the forums:updated broadcast (which
+// replaces the whole list), and the response path added it again with unshift. Both paths, in both orders.
+describe("a new thread is listed once, whichever of its two arrivals comes first (Bug #1133)", () => {
+  const older = { id: "thr-1", title: "Older" };
+  const posted = { id: "thr-2", title: "Silicate price floor?" };
+  const broadcast = (client, forums) => { client.threads = forums.threads.slice(); };
+  const response = (client, thread) => { client.threads = mergeThread(client.threads, thread); };
+  const ids = (client) => client.threads.map((t) => t.id);
+
+  it("broadcast first, then the response: listed once, at the top", () => {
+    const client = { threads: [older] };
+    broadcast(client, { threads: [posted, older] });
+    response(client, posted);
+    expect(ids(client)).toEqual(["thr-2", "thr-1"]);
+  });
+
+  it("response first, then the broadcast: listed once, at the top", () => {
+    const client = { threads: [older] };
+    response(client, posted);
+    expect(ids(client)).toEqual(["thr-2", "thr-1"]);
+    broadcast(client, { threads: [posted, older] });
+    expect(ids(client)).toEqual(["thr-2", "thr-1"]);
+  });
+
+  it("the same response twice (a retry) is still one row, and an update replaces the copy in place", () => {
+    let list = mergeThread(mergeThread([older], posted), posted);
+    expect(list.map((t) => t.id)).toEqual(["thr-2", "thr-1"]);
+    list = mergeThread(list, { ...older, title: "Older, edited" });
+    expect(list.map((t) => t.title)).toEqual(["Silicate price floor?", "Older, edited"]);
+  });
+
+  it("ignores a missing thread and a missing list", () => {
+    expect(mergeThread([older], null)).toEqual([older]);
+    expect(mergeThread(undefined, posted)).toEqual([posted]);
+  });
+
+  it("app.js puts every thread from a response through putForumThread, into both copies (a source check)", () => {
+    const app = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+    expect(app).not.toMatch(/threads\.unshift\(payload\.thread\)/);
+    expect(app).not.toMatch(/forums\.threads\[idx\] = payload\.thread/);
+    expect(app.match(/putForumThread\(payload\?\.thread\)/g)).toHaveLength(3);
+    expect(app).toMatch(/for \(const holder of \[appState\.data, appState\.serverData\]\)/);
   });
 });
