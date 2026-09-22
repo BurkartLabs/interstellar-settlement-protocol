@@ -939,8 +939,6 @@
                   <button class="btn btn-ghost" id="inbox-action-archive" style="display:none;">Archive</button>
                   <button class="btn btn-ghost" id="inbox-action-restore" style="display:none;">Move to Inbox</button>
                   <button class="btn btn-danger" id="inbox-action-trash" style="display:none;">Move to Trash</button>
-                  <button class="btn btn-ghost" id="inbox-action-delete-draft" style="display:none;">Delete Draft</button>
-                  <button class="btn btn-primary" id="inbox-action-edit-draft" style="display:none;">Edit Draft</button>
                 </div>
               </div>
             </div>
@@ -962,6 +960,8 @@
                 <div class="inbox-compose-actions">
                   <button type="submit" class="btn btn-primary">Send</button>
                   <button type="button" class="btn btn-ghost" id="compose-save-draft-btn">Save Draft</button>
+                  <!-- Bug #1137: a draft opens here, so it is deleted here. Shown only while a saved draft is open. -->
+                  <button type="button" class="btn btn-danger" id="compose-delete-draft-btn" hidden>Delete Draft</button>
                   <span class="inbox-compose-status" id="compose-status"></span>
                 </div>
               </form>
