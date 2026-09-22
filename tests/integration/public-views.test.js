@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { io as connect } from "socket.io-client";
-import { getApp } from "../helpers/app.js";
+import { getApp, serverUrl } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState, getState } from "../../server/gameState.js";
 
@@ -16,8 +16,7 @@ const sockets = [];
 
 beforeAll(async () => {
   ({ app, server } = await getApp());
-  await new Promise((resolve) => server.listen(0, resolve));
-  url = `http://127.0.0.1:${server.address().port}`;
+  url = await serverUrl(); // the server always listens (Bug #578); Bug #1172: a second listen() threw
 });
 afterAll(async () => {
   for (const s of sockets) s.close();
