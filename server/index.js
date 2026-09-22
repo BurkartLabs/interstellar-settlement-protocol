@@ -16,6 +16,7 @@ import { SYSTEM_SENDERS } from "./corporationName.js";
 import jwt from "jsonwebtoken";
 import { resolveLeaseBody } from "./leases.js";
 import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from "../public/scripts/ceoEffects.js";
+import { ECONOMY, buildCostFor, operationCostPerHourFor, startupCostFor } from "./economy.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "../public/scripts/ceoEffects.js";
 import { canReachSystem, leaseFilingRefusal } from "../public/scripts/navigation.js";
 import {
@@ -1103,7 +1104,7 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
     const corp = state.corp;
     const available = Math.max(0, corp.employeeCap - corp.employeeCount);
     const hired = Math.min(count, available);
-    const hireCost = hired * 2000;
+    const hireCost = hired * ECONOMY.employees.hireCost;
 
     if (hired <= 0) {
       outcome = "no-capacity";
@@ -1117,7 +1118,7 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
 
     corp.employeeCount += hired;
     applyCredits(corp, -hireCost, "hiring");
-    corp.finances.dailyCosts += hired * 150;
+    corp.finances.dailyCosts += hired * ECONOMY.employees.payrollPerDay;
     hiredCount = hired;
   });
 
@@ -1620,15 +1621,15 @@ const corpSlotsFull = (corp) => corporationSlotsFullMessage(corp, unleasedFor(co
 // ─── Lease-scoped: Build an extractor yard on a specific lease ──────────────
 app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (req, res) => {
   const { leaseId } = req.params;
-  const BASE_BUILD_COST = 50000;
-  const ASSET_VALUE = 36000;
+  const BASE_BUILD_COST = ECONOMY.buildings.extractorYardCost;
+  const ASSET_VALUE = ECONOMY.buildings.extractorYardAssetValue;
   let outcome = "ok";
   let slotInfo = "";
 
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
     const hasSupplyForecast = (corp.unlockedTech || []).includes("tt-supply-forecast");
-    const buildCost = hasSupplyForecast ? Math.round(BASE_BUILD_COST * 0.94) : BASE_BUILD_COST;
+    const buildCost = buildCostFor(BASE_BUILD_COST, hasSupplyForecast);
 
     if (!Array.isArray(corp.miningLeases)) corp.miningLeases = [];
     const lease = corp.miningLeases.find((l) => l.id === leaseId);
@@ -1777,9 +1778,9 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
 
     let throughputPerHour = Math.max(10, Math.min(250, amount));
     if (!Number.isFinite(throughputPerHour) || throughputPerHour <= 0) throughputPerHour = 40;
-    let operationCostPerHour = Math.max(600, Math.round(throughputPerHour * 16));
+    let operationCostPerHour = operationCostPerHourFor(throughputPerHour);
     if (!Number.isFinite(operationCostPerHour) || operationCostPerHour <= 0) operationCostPerHour = 640;
-    const startupCost = Math.max(500, Math.round(operationCostPerHour * 0.35));
+    const startupCost = startupCostFor(operationCostPerHour);
 
     if ((corp.finances.credits || 0) < startupCost) {
       outcome = "insufficient-credits";
@@ -1839,7 +1840,7 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
     extractorCap = Number(corp.unlocks.maxBasicExtractorYards || 1);
     currentExtractorCount = (corp.buildings || []).filter((b) => b.name === "Basic Extractor Yard").length;
     const hasSupplyForecast = (corp.unlockedTech || []).includes("tt-supply-forecast");
-    const buildCost = hasSupplyForecast ? Math.round(50000 * 0.94) : 50000;
+    const buildCost = buildCostFor(ECONOMY.buildings.extractorYardCost, hasSupplyForecast);
 
     if (currentExtractorCount >= extractorCap) {
       outcome = "extractor-cap";
@@ -1933,8 +1934,8 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
 // ─── Asteroid Mining: Assembly Facility, Probes, Expeditions ─────────────────
 
 app.post("/api/accounts/:accountId/gameplay/build-assembly-facility", (req, res) => {
-  const BUILD_COST = 60000;
-  const ASSET_VALUE = 40000;
+  const BUILD_COST = ECONOMY.buildings.assemblyFacilityCost;
+  const ASSET_VALUE = ECONOMY.buildings.assemblyFacilityAssetValue;
   let outcome = "ok";
 
   const account = mutateAccountState(req.params.accountId, (state) => {
@@ -2234,8 +2235,8 @@ app.get("/api/accounts/:accountId/gameplay/belt-compositions", (req, res) => {
 // ─── Refinery ────────────────────────────────────────────────────────────────
 
 app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
-  const BUILD_COST = 75000;
-  const ASSET_VALUE = 55000;
+  const BUILD_COST = ECONOMY.buildings.refineryCost;
+  const ASSET_VALUE = ECONOMY.buildings.refineryAssetValue;
   let outcome = "ok";
 
   const account = mutateAccountState(req.params.accountId, (state) => {
@@ -2583,8 +2584,8 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
     const hasExtractor = corp.buildings.some((b) => b.name === "Basic Extractor Yard");
     const cycleHours = requestedHours;
     const throughputPerHour = Math.max(10, Math.min(250, amount));
-    const operationCostPerHour = Math.max(600, Math.round(throughputPerHour * 16));
-    const startupCost = Math.max(500, Math.round(operationCostPerHour * 0.35));
+    const operationCostPerHour = operationCostPerHourFor(throughputPerHour);
+    const startupCost = startupCostFor(operationCostPerHour);
 
     if (!hasExtractor) {
       outcome = "missing-extractor";
@@ -2651,8 +2652,8 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
   if (outcome !== "ok") {
     const corp = account.state.corp;
     const throughputPerHour = Math.max(10, Math.min(250, amount));
-    const operationCostPerHour = Math.max(600, Math.round(throughputPerHour * 16));
-    const startupCost = Math.max(500, Math.round(operationCostPerHour * 0.35));
+    const operationCostPerHour = operationCostPerHourFor(throughputPerHour);
+    const startupCost = startupCostFor(operationCostPerHour);
     const messageMap = {
       "missing-extractor": "Build a Basic Extractor Yard before mining.",
       "missing-extractor-target": "Selected extractor yard was not found.",
