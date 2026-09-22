@@ -2502,7 +2502,11 @@ function fmtTimestamp(t) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
+// Ledger names whose words are not simply capitalised (AB#712 books CEO programs as ceo-insight).
+const LEDGER_LABELS = { "ceo-insight": "CEO Insight" };
+
 function prettifyLedgerLabel(key) {
+  if (Object.hasOwn(LEDGER_LABELS, key)) return LEDGER_LABELS[key];
   return String(key)
     .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());

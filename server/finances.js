@@ -79,6 +79,62 @@ export function recordExpense(corp, category, amount, now = Date.now()) {
   refreshDailyExpenses(corp, now);
 }
 
+/**
+ * Every category a credit movement can be booked under (AB#712). Income is money in, expenses money out; the P&L and
+ * the daily statements (AB#713) read these names, so a new way to earn or spend adds its name here first.
+ */
+export const CREDIT_CATEGORIES = Object.freeze({
+  income: Object.freeze(["exchange", "missions"]),
+  expense: Object.freeze([
+    "hiring",
+    "payroll",
+    "office-rent",
+    "leases",
+    "transfer-fees",
+    "construction",
+    "mining-startup",
+    "mining-ops",
+    "expeditions",
+    "research",
+    "ceo-insight",
+    "exchange-purchases",
+    "exchange-tax"
+  ])
+});
+
+/** Where a movement goes when its category is not in the list, outside tests. */
+export const UNCATEGORISED = "uncategorised";
+
+/**
+ * The one way credits change (AB#712). Moves finances.credits by `delta` and books the same amount: a positive delta
+ * as income under `category`, a negative one as an expense. So opening credits + income - expenses = closing credits,
+ * exactly, and a statement built from the ledger is the balance the player sees.
+ *
+ * The amount is always one the server computed. A delta that is not a finite number throws before anything changes
+ * (fails closed). It is rounded to whole credits, the unit the ledger books in. A category not in CREDIT_CATEGORIES
+ * throws under test, so a new call site cannot ship unnamed, and is booked as "uncategorised" in production rather than
+ * refusing a player's action. Returns the rounded delta applied.
+ */
+export function applyCredits(corp, delta, category, now = Date.now()) {
+  if (typeof delta !== "number" || !Number.isFinite(delta)) {
+    throw new TypeError(`applyCredits: delta must be a finite number, got ${String(delta)}`);
+  }
+  if (!corp || typeof corp !== "object") throw new TypeError("applyCredits: no corporation");
+  const amount = Math.round(delta);
+  // Zero moves nothing and books nothing, so either side's name is fine (a sale at 0% tax books "exchange-tax" 0).
+  const sides = amount > 0 ? ["income"] : amount < 0 ? ["expense"] : ["income", "expense"];
+  let name = category;
+  if (!sides.some((side) => CREDIT_CATEGORIES[side].includes(name))) {
+    if (process.env.NODE_ENV === "test") throw new Error(`applyCredits: "${String(category)}" is not a ${sides.join(" or ")} category`);
+    name = UNCATEGORISED;
+  }
+  ensureFinanceTracking(corp);
+  corp.finances.credits = Math.round(Number(corp.finances.credits) || 0) + amount;
+  if (amount > 0) recordIncome(corp, name, amount, now);
+  else if (amount < 0) recordExpense(corp, name, -amount, now);
+  return amount;
+}
+
 /** dailyExpenses is the cost booked in the last 24 hours, the cost side of Net Daily Flow (Bug #1022). */
 export function refreshDailyExpenses(corp, now = Date.now()) {
   ensureFinanceTracking(corp);

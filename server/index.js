@@ -783,7 +783,7 @@ import { refreshDailyExpenses } from "./finances.js"; // Bug #1022 (placed apart
 // Captures a rolling balance/flow snapshot for every active corp so the
 // Financial Core dashboard can render real historical series (cash reserves,
 // net flow, assets vs liabilities) instead of synthesised projections.
-import { buildSnapshot, pushSnapshot, recordIncome, recordExpense, refreshDailyRevenue } from "./finances.js";
+import { applyCredits, buildSnapshot, pushSnapshot, refreshDailyRevenue } from "./finances.js";
 import { fleetStatus } from "./gameState.js"; // Bug #586
 
 const FINANCIAL_SNAPSHOT_INTERVAL_MS = 30_000;
@@ -1093,7 +1093,7 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
     }
 
     corp.employeeCount += hired;
-    corp.finances.credits -= hireCost;
+    applyCredits(corp, -hireCost, "hiring");
     corp.finances.dailyCosts += hired * 150;
     hiredCount = hired;
   });
@@ -1165,8 +1165,7 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
       return;
     }
 
-    corp.finances.credits -= officeCost;
-    recordExpense(corp, "office-rent", officeCost); // Bug #1022
+    applyCredits(corp, -officeCost, "office-rent");
     const now = Date.now();
     corp.offices.push({
       stationId: station.id,
@@ -1247,8 +1246,7 @@ app.post("/api/accounts/:accountId/gameplay/renew-office", (req, res) => {
       outcome = "insufficient-credits";
       return;
     }
-    corp.finances.credits -= renewalCost;
-    recordExpense(corp, "office-rent", renewalCost); // Bug #1022
+    applyCredits(corp, -renewalCost, "office-rent");
     const extensionMs = durationDays * 86_400_000;
     const now = Date.now();
     office.rentedUntil = Math.max(office.rentedUntil || now, now) + extensionMs;
@@ -1353,7 +1351,7 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
       extractorIds: []
     });
 
-    corp.finances.credits -= leaseCost;
+    applyCredits(corp, -leaseCost, "leases");
     corp.buildingSlots = (corp.buildingSlots || 2) + 2;
   });
 
@@ -1424,8 +1422,7 @@ app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
       if (fromInv[item] <= 0) delete fromInv[item];
       toInv[item] = (toInv[item] || 0) + quantity;
     }
-    corp.finances.credits -= plan.fee;
-    recordExpense(corp, "transfer-fees", plan.fee); // Bug #1022
+    applyCredits(corp, -plan.fee, "transfer-fees");
     corp.logisticsHistory = recordTransfer(corp.logisticsHistory, {
       time: Date.now(), from: request.fromStationId, to: toStationId, lines: request.lines, fee: plan.fee
     });
@@ -1663,7 +1660,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
     });
 
     lease.extractorIds.push(newExtractorId);
-    corp.finances.credits -= buildCost;
+    applyCredits(corp, -buildCost, "construction");
     corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
   });
 
@@ -1767,8 +1764,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
       return;
     }
 
-    recordExpense(corp, "mining-startup", startupCost); // Bug #1022
-    corp.finances.credits -= startupCost;
+    applyCredits(corp, -startupCost, "mining-startup");
 
     startExtractorCycle(extractorCycle, { now, hours: requestedHours, throughputPerHour, operationCostPerHour, startupCost });
 
@@ -1872,7 +1868,7 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
       autoLease.extractorIds.push(`ext-basic-${nextExtractorIndex}`);
     }
 
-    corp.finances.credits -= buildCost;
+    applyCredits(corp, -buildCost, "construction");
     corp.finances.assets += 42000;
   });
 
@@ -1944,7 +1940,7 @@ app.post("/api/accounts/:accountId/gameplay/build-assembly-facility", (req, res)
 
     if (!Array.isArray(corp.buildings)) corp.buildings = [];
     corp.buildings.push({ name: "Assembly Facility", tier: 1, status: "Operational" });
-    corp.finances.credits -= BUILD_COST;
+    applyCredits(corp, -BUILD_COST, "construction");
     corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
   });
 
@@ -2011,7 +2007,7 @@ app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
       return;
     }
 
-    corp.finances.credits -= PROBE_BUILD_COST;
+    applyCredits(corp, -PROBE_BUILD_COST, "construction");
 
     const now = Date.now();
     am.fabricationQueue.push({
@@ -2150,8 +2146,7 @@ app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
       return;
     }
 
-    corp.finances.credits -= launchCost;
-    recordExpense(corp, "expeditions", launchCost); // Bug #1022
+    applyCredits(corp, -launchCost, "expeditions");
     am.probeCount -= 1;
 
     const now = Date.now();
@@ -2267,7 +2262,7 @@ app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
       totalOutputProduced: 0
     });
 
-    corp.finances.credits -= BUILD_COST;
+    applyCredits(corp, -BUILD_COST, "construction");
     corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
   });
 
@@ -2513,8 +2508,7 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
     // which nothing reads). Contract Law Essentials adds 8%.
     const rewardCredits = missionRewardCredits(mission.reward, state.corp.completedInsights);
     if (rewardCredits) {
-      state.corp.finances.credits = (state.corp.finances.credits || 0) + rewardCredits;
-      recordIncome(state.corp, "missions", rewardCredits);
+      applyCredits(state.corp, rewardCredits, "missions");
     }
 
     // Remove from active
@@ -2618,8 +2612,7 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
     }
 
     const now = Date.now();
-    recordExpense(corp, "mining-startup", startupCost); // Bug #1022
-    corp.finances.credits -= startupCost;
+    applyCredits(corp, -startupCost, "mining-startup");
 
     startExtractorCycle(extractorCycle, { now, hours: cycleHours, throughputPerHour, operationCostPerHour, startupCost });
 
@@ -2712,7 +2705,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
       return;
     }
 
-    corp.finances.credits -= tech.costCredits;
+    applyCredits(corp, -tech.costCredits, "research");
     state.queues.corporateRnD.push({
       id: `rnd-${Date.now()}`,
       techId: tech.id,
@@ -2803,7 +2796,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-ceo", (req, res) => {
       return;
     }
 
-    corp.finances.credits -= prog.costCredits;
+    applyCredits(corp, -prog.costCredits, "ceo-insight");
     state.queues.ceoInsight.push({
       id: `ceo-${Date.now()}`,
       programId: prog.id,
@@ -3233,7 +3226,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
       return;
     }
 
-    corp.finances.credits -= tradeTotal;
+    applyCredits(corp, -tradeTotal, "exchange-purchases");
     const buyerStationId = corp.currentStationId || "earth-station-prime";
     const buyerInv = getStationInventory(corp, buyerStationId);
     buyerInv[order.item] = (buyerInv[order.item] || 0) + tradeQuantity;
@@ -3264,10 +3257,9 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
       const taxAmount = Math.round(tradeTotal * taxPct / 100);
       const sellerProceeds = tradeTotal - taxAmount;
       sale = { taxPct, taxAmount, proceeds: sellerProceeds, buyer: publicName(buyerAccount.state?.corp?.corporationName) };
-      state.corp.finances.credits += sellerProceeds;
-      // Bug #984: book the gross the buyer paid as income and the tax as an expense.
-      recordIncome(state.corp, "exchange", tradeTotal);
-      recordExpense(state.corp, "exchange-tax", taxAmount);
+      // Bug #984: the gross the buyer paid is income and the tax an expense; the balance moves by the proceeds.
+      applyCredits(state.corp, tradeTotal, "exchange");
+      applyCredits(state.corp, -taxAmount, "exchange-tax");
 
       if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
       state.corp.tradeHistory.unshift({
@@ -3399,10 +3391,9 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
     tradeTaxPct = taxPct;
     tradeTaxAmount = taxAmount;
     tradeProceeds = sellerProceeds;
-    state.corp.finances.credits = (state.corp.finances.credits || 0) + sellerProceeds;
-    // Bug #984: book the gross the NPC paid as income and the tax as an expense.
-    recordIncome(state.corp, "exchange", tradeTotal);
-    recordExpense(state.corp, "exchange-tax", taxAmount);
+    // Bug #984: the gross the NPC paid is income and the tax an expense; the balance moves by the proceeds.
+    applyCredits(state.corp, tradeTotal, "exchange");
+    applyCredits(state.corp, -taxAmount, "exchange-tax");
 
     if (!state.corp.stats) state.corp.stats = {};
     state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
