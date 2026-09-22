@@ -1099,6 +1099,7 @@ export function evaluateLevelProgress(profileState) {
       return {
         id: r.id,
         title: r.title,
+        metric: r.metric, // AB#1061: the card reads the body a lease milestone names from here
         progress,
         target: r.target,
         complete: Number(progress || 0) >= Number(r.target || 0)

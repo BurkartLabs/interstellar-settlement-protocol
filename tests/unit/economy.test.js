@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, it, expect } from "vitest";
 import { ECONOMY, economyProblems, loadEconomy, buildCostFor, operationCostPerHourFor, startupCostFor } from "../../server/economy.js";
 import { LOGISTICS_FEE_PER_UNIT } from "../../public/scripts/logistics.js";
-import { officeRenewalCost } from "../../public/scripts/ceoEffects.js";
+import { officeLeaseCost, officeRenewalCost, OFFICE_TERMS_DAYS } from "../../public/scripts/ceoEffects.js";
 
 // AB#726 (ISP-40): the economy's numbers live in data/economy.json and the server reads them from there. This was a
 // move with no value changed, so every value is pinned here to what the code held before the move.
@@ -13,7 +13,7 @@ const root = path.resolve(import.meta.dirname, "..", "..");
 
 const BEFORE_THE_MOVE = {
   employees: { hireCost: 2000, payrollPerDay: 150 },                       // server/index.js hire: hired * 2000, hired * 150
-  office: { rentPerDay: 1000, termDays: [7, 14, 21, 28] },                  // rent-office: durationDays * 1000; VALID_DURATIONS
+  office: { rentPerDay: 1000, termDays: [7, 14, 21, 28] },                  // ceoEffects.js OFFICE_PER_DAY, OFFICE_TERMS_DAYS (Bug #1032)
   buildings: {                                                              // build-extractor routes, build-assembly-facility, build-refinery
     extractorYardCost: 50000, extractorYardAssetValue: 36000, assemblyFacilityCost: 60000, assemblyFacilityAssetValue: 40000,
     refineryCost: 75000, refineryAssetValue: 55000, supplyForecastCostMultiplier: 0.94
@@ -109,10 +109,15 @@ describe("data/economy.json (AB#726)", () => {
     expect(found).toEqual([]);
   });
 
-  it("the two prices the browser also computes, in modules it shares with the server, agree with the file", () => {
-    // public/scripts/logistics.js and ceoEffects.js are loaded by the browser as well, which cannot read data/. Until the
-    // client is given the economy, they keep their own copy, and this test fails the moment either copy drifts.
+  it("the prices the browser also computes, in modules it shares with the server, agree with the file", () => {
+    // public/scripts/logistics.js and ceoEffects.js are loaded by the browser as well, which cannot read data/, so the
+    // logistics fee and the office price and terms (Bug #1032's single source for the Suites panel and the server)
+    // keep their own copy there. This test fails the moment either copy drifts from data/economy.json.
     expect(LOGISTICS_FEE_PER_UNIT).toBe(ECONOMY.logistics.feePerUnit);
-    for (const days of ECONOMY.office.termDays) expect(officeRenewalCost([], days)).toBe(days * ECONOMY.office.rentPerDay);
+    expect(OFFICE_TERMS_DAYS).toEqual(ECONOMY.office.termDays);
+    for (const days of ECONOMY.office.termDays) {
+      expect(officeLeaseCost(days)).toBe(days * ECONOMY.office.rentPerDay);
+      expect(officeRenewalCost([], days)).toBe(days * ECONOMY.office.rentPerDay);
+    }
   });
 });

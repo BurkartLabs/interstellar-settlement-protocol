@@ -17,7 +17,8 @@ import jwt from "jsonwebtoken";
 import { resolveLeaseBody } from "./leases.js";
 import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from "../public/scripts/ceoEffects.js";
 import { ECONOMY, buildCostFor, operationCostPerHourFor, startupCostFor } from "./economy.js";
-import { canReachSystem } from "../public/scripts/navigation.js";
+import { officeLeaseCost, OFFICE_TERMS_DAYS } from "../public/scripts/ceoEffects.js";
+import { canReachSystem, leaseFilingRefusal } from "../public/scripts/navigation.js";
 import {
   accountExists,
   addAccountNotification,
@@ -1110,9 +1111,8 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
 
 app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
   const requestedStationId = String(req.body?.stationId || "earth-station-prime").trim();
-  const VALID_DURATIONS = ECONOMY.office.termDays;
-  const durationDays = VALID_DURATIONS.includes(Number(req.body?.durationDays)) ? Number(req.body.durationDays) : 7;
-  const officeCost = durationDays * ECONOMY.office.rentPerDay;
+  const durationDays = OFFICE_TERMS_DAYS.includes(Number(req.body?.durationDays)) ? Number(req.body.durationDays) : 7;
+  const officeCost = officeLeaseCost(durationDays); // Bug #1032: the figure the Suites panel quotes
   let outcome = "ok";
   let stationName = "Earth Station Prime";
 
@@ -1194,8 +1194,7 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
 // ─── Orbital Executive Suites: Renew an office lease ───────────────────────
 app.post("/api/accounts/:accountId/gameplay/renew-office", (req, res) => {
   const requestedStationId = String(req.body?.stationId || "earth-station-prime").trim();
-  const VALID_DURATIONS = ECONOMY.office.termDays;
-  const durationDays = VALID_DURATIONS.includes(Number(req.body?.durationDays)) ? Number(req.body.durationDays) : 7;
+  const durationDays = OFFICE_TERMS_DAYS.includes(Number(req.body?.durationDays)) ? Number(req.body.durationDays) : 7;
   // Priced inside the mutation: the CEO program that discounts it is part of the corporation's state (Bug #983).
   let renewalCost = officeRenewalCost([], durationDays);
   let outcome = "ok";
@@ -1291,6 +1290,14 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
     }
     requestedBody = resolved.body;
     leaseCost = resolved.cost;
+
+    // AB#1061: filed at the station that orbits the body, as the claims office offers it; in transit, nowhere.
+    const stationRefusal = leaseFilingRefusal(STATION_REGISTRY, corp.currentStationId || null, requestedBody);
+    if (stationRefusal) {
+      outcome = "invalid-body";
+      bodyError = stationRefusal;
+      return;
+    }
 
     const hasOffice = Array.isArray(corp.offices) && corp.offices.length > 0;
     if (!hasOffice) {
