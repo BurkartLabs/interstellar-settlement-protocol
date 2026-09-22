@@ -33,7 +33,7 @@ describe("POST /api/accounts/:id/gameplay/travel research gate (Bug #976)", () =
     const { travel, corp } = await corpAt("alpha-centauri", ["tt-proxima-navigation"]);
     const res = await travel("epsilon-eridani");
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/navigation research/);
+    expect(res.body.error).toMatch(/^Requires Deep-Star Cartography Suite/); // Bug #1270: the research is named
     expect(corp().travel).toBeFalsy();
   });
 

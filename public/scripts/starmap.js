@@ -1,4 +1,4 @@
-import { canReachSystem } from "./navigation.js";
+import { canReachSystem, travelResearchLock, travelResearchName } from "./navigation.js";
 
 const CLUSTER_LAYOUT = {
   sol: { x: 0.16, y: 0.5 },
@@ -273,7 +273,9 @@ export function createStarmapController({
   onDockAtStation,
   onScoutBelt,
   onLaunchExpedition,
-  getAsteroidMiningState
+  getAsteroidMiningState,
+  researchCatalog = [], // Bug #1270: to name the research a locked jump needs
+  getCorpLevel = () => 0
 }) {
   const ctx = canvas?.getContext?.("2d");
   const state = {
@@ -294,6 +296,11 @@ export function createStarmapController({
   // The same gate as the server's travel route (public/scripts/navigation.js, Bug #976).
   function canTravelToSystem(targetSystemId) {
     return canReachSystem(state.unlockedTech, state.currentSystemId, targetSystemId);
+  }
+
+  // Bug #1270: what the lock says, the same text the travel route refuses with.
+  function travelLockText(targetSystemId) {
+    return travelResearchLock(researchCatalog, state.unlockedTech, getCorpLevel(), state.currentSystemId, targetSystemId) || "";
   }
 
   function setCanvasSize() {
@@ -862,7 +869,7 @@ export function createStarmapController({
       if (isCurrentSystem) {
         jumpHtml = `<p class="muted" style="color:rgba(0,247,255,0.85);margin-top:0.5rem;">Currently in this system. Select a body to view stations.</p>`;
       } else if (!reachable) {
-        jumpHtml = `<p class="muted" style="color:rgba(255,180,60,0.85);margin-top:0.5rem;">🔒 Navigation research required to jump here.</p>`;
+        jumpHtml = `<p class="muted" style="color:rgba(255,180,60,0.85);margin-top:0.5rem;">🔒 ${escapeHtmlAttr(travelLockText(system.id))}</p>`;
       } else if (onTravelToSystem) {
         jumpHtml = `<button class="btn btn-accent starmap-travel-system-btn" data-system-id="${system.id}" style="margin-top:0.75rem;">Jump to ${escapeHtmlAttr(system.name)}</button>
           <p class="muted" style="font-size:0.78rem;margin-top:0.4rem;">Stations can only be docked from inside the destination system.</p>`;
@@ -904,7 +911,7 @@ export function createStarmapController({
             const dockLabel = isCurrent
               ? `<span style="color:rgba(0,247,255,0.85);font-size:0.8rem;margin-left:0.4rem;">[DOCKED]</span>`
               : !reachable
-                ? `<span style="color:rgba(255,180,60,0.85);font-size:0.75rem;margin-left:0.4rem;">🔒 Navigation research required</span>`
+                ? `<span style="color:rgba(255,180,60,0.85);font-size:0.75rem;margin-left:0.4rem;">🔒 Needs ${escapeHtmlAttr(travelResearchName(researchCatalog, s.systemId) || "navigation research")}</span>`
               : inSameSystem && onDockAtStation
                 ? `<button class="btn btn-outline starmap-dock-btn" data-station-id="${s.id}" style="margin-left:0.5rem;font-size:0.75rem;padding:0.15em 0.5em;">Dock</button>`
               : !inSameSystem
@@ -1300,7 +1307,7 @@ export function createStarmapController({
           ${isCurrent
             ? `<span class="muted" style="font-size:0.85rem;">You are currently docked at this station.</span>`
             : !canTravelToSystem(station.systemId)
-              ? `<span class="muted" style="font-size:0.85rem;color:rgba(255,180,60,0.85);">🔒 Navigation research required to travel here.</span>`
+              ? `<span class="muted" style="font-size:0.85rem;color:rgba(255,180,60,0.85);">🔒 ${escapeHtmlAttr(travelLockText(station.systemId))}</span>`
             : (state.currentSystemId || "sol") === station.systemId
               ? `<button class="btn btn-accent starmap-modal-dock-btn" data-station-id="${escapeHtmlAttr(station.id)}">Dock at Station</button>`
               : `<span class="muted" style="font-size:0.85rem;">Jump to <strong>${escapeHtmlAttr(station.systemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()))}</strong> from the system view, then dock here.</span>`
