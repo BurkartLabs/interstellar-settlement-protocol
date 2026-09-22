@@ -1,0 +1,36 @@
+# What the image leaves out (AB#735). The build context is the repository; only package*.json, server/, public/ and the
+# catalogues in data/ are copied in, and this keeps everything else out of the context entirely.
+
+# Written by the server at runtime. Never in an image: the accounts snapshot holds password hashes and refresh tokens
+# (Bug #415), and state.json is a local world. The container keeps both on the /data volume.
+data/accounts-snapshot.json
+data/*accounts*.json
+data/state.json
+data/*.tmp
+
+# Secrets and local configuration
+.env
+.env.*
+
+# Dependencies are installed in the image with npm ci
+node_modules
+
+# Not needed to run the game
+.git
+.github
+.vscode
+obsidian
+tests
+coverage
+test_output*
+*.log
+migrations
+supabase_migration.sql
+kanban
+docs
+screenshots
+playwright-report
+test-results
+*.md
+Dockerfile
+.dockerignore

@@ -400,6 +400,8 @@ for (const s of STATIONS_DATA.stations) {
 }
 
 const app = express();
+// AB#735: responses do not name the framework they come from.
+app.disable("x-powered-by");
 const server = http.createServer(app);
 // Bug #710: sockets were open to every origin. The game is served by this same server, so same-origin needs no CORS
 // at all; ISP_APP_ORIGIN (comma-separated) names any other origin allowed in. Unset means none: fail closed.
@@ -805,6 +807,13 @@ if (!process.env.ISP_DISABLE_TICKERS) {
 }
 
 // TODO(AB#737): Consider moving API to a dedicated api.js file
+
+// AB#735: the container platform's health probe. Public, and says nothing but that the server is up: by the time it
+// listens, the world and the accounts have loaded (both are read before the module finishes). No version, path or
+// environment detail.
+app.get("/healthz", (_req, res) => {
+  res.json({ ok: true });
+});
 
 app.get("/api/bootstrap", (req, res) => {
   // Public, but a signed-in caller also gets their own older orders (Bug #425: the book is capped when read), and is
