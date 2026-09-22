@@ -1518,9 +1518,6 @@ function bindOfficeActions(building, data) {
 
 // ─── ISA Claims & Leases Division ──────────────────────────────────────────
 
-// Empty states that name the next action (Bug #1060): the Claims lines here, and the Inbox list's.
-import { claimsAllTakenText, claimsNoLeasesText, inboxEmptyText } from "./emptyStates.js";
-
 function renderISAClaimsLeases(building, data) {
   const corp = data.corp;
   const station = getCurrentStationInfo(data);
@@ -6247,6 +6244,9 @@ function bindAuthControls() {
     }
   });
 }
+
+// Empty states that name the next action (Bug #1060): the Inbox list's below, and ISA Claims' lines.
+import { claimsAllTakenText, claimsNoLeasesText, inboxEmptyText } from "./emptyStates.js";
 
 // ─── Inbox ────────────────────────────────────────────────────────────────────
 
