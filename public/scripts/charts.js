@@ -100,6 +100,7 @@ function formatCompact(n) {
 }
 
 function snapshotLabel(snap) {
+  if (snap?.label) return snap.label; // a daily close (AB#714) names its day
   if (!snap?.t) return "";
   const d = new Date(snap.t);
   const hh = String(d.getHours()).padStart(2, "0");
@@ -148,8 +149,24 @@ function getSnapshots(finances) {
 
 // Filter snapshots to the rolling window the user has picked for `chartId`.
 // `null`/missing = no filter (show everything).
+// AB#714: the closed days from the statements, as chart points (statementsToSeries). A window longer than an hour
+// draws these and ends at the live figure, instead of the half hour the 30-second snapshots hold.
+const HOUR_MS = 3_600_000;
+let _dailyPoints = [];
+
+export function setStatementSeries(points) {
+  _dailyPoints = Array.isArray(points) ? points : [];
+  if (_lastFinances) renderFinanceCharts(_lastFinances);
+}
+
 function filterSnapsForChart(snaps, chartId) {
   const windowMs = chartDurations[chartId];
+  if (_dailyPoints.length && (!windowMs || !Number.isFinite(windowMs) || windowMs > HOUR_MS)) {
+    const cutoff = windowMs && Number.isFinite(windowMs) ? Date.now() - windowMs : -Infinity;
+    const days = _dailyPoints.filter((p) => p.t >= cutoff);
+    const live = snaps[snaps.length - 1];
+    if (days.length) return live ? [...days, { ...live, label: "Now" }] : days;
+  }
   if (!windowMs || !Number.isFinite(windowMs)) return snaps;
   const cutoff = Date.now() - windowMs;
   const filtered = snaps.filter((s) => Number(s?.t) >= cutoff);

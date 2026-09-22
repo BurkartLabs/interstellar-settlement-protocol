@@ -2542,6 +2542,61 @@ function describeTrend(curr, prev) {
   };
 }
 
+// ─── Daily statements (AB#714): the books the server closes at 00:00 UTC (AB#713) ─────
+import { statementHtml, statementDayOptionsHtml, statementsEmptyHtml, statementsToSeries } from "./statements.js";
+import { setStatementSeries } from "./charts.js";
+
+const STATEMENT_DAY_MS = 24 * 60 * 60 * 1000;
+const statementsState = { data: null, loadedForDay: null, selectedDay: null, loading: false };
+
+/** Fetch the closed days and render them. Runs when the Financial Core opens, and again once a new day has closed. */
+async function loadStatements() {
+  if (!appState.accountId || statementsState.loading) return;
+  statementsState.loading = true;
+  try {
+    const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/finances/statements`);
+    statementsState.data = await parseJsonResponse(response);
+    statementsState.loadedForDay = Math.floor(Date.now() / STATEMENT_DAY_MS);
+    renderStatements();
+  } catch (err) {
+    const body = document.getElementById("statement-body");
+    if (body) body.innerHTML = `<p class="muted">The statements could not be loaded: ${escapeHtml(err.message || "try again shortly")}.</p>`;
+  } finally {
+    statementsState.loading = false;
+  }
+}
+
+function renderStatements() {
+  const body = document.getElementById("statement-body");
+  const picker = document.getElementById("statement-day");
+  if (!body || !picker || !statementsState.data) return;
+  const statements = Array.isArray(statementsState.data.statements) ? statementsState.data.statements : [];
+  setStatementSeries(statementsToSeries(statements));
+  const pickerLabel = picker.closest("label");
+  if (!statements.length) {
+    if (pickerLabel) pickerLabel.hidden = true;
+    body.innerHTML = statementsEmptyHtml(statementsState.data.today);
+    return;
+  }
+  // Yesterday by default (the newest closed day); a day chosen earlier stays chosen while it is kept.
+  const chosen = statements.find((s) => s.day === statementsState.selectedDay) || statements[0];
+  statementsState.selectedDay = chosen.day;
+  picker.innerHTML = statementDayOptionsHtml(statements, chosen.day);
+  if (pickerLabel) pickerLabel.hidden = false;
+  body.innerHTML = statementHtml(chosen);
+}
+
+document.getElementById("statement-day")?.addEventListener("change", (event) => {
+  statementsState.selectedDay = event.target.value;
+  renderStatements();
+});
+
+/** A day has closed since the statements were loaded: load them again (checked on each finance update). */
+function refreshStatementsIfDayClosed() {
+  if (statementsState.loadedForDay === null) return;
+  if (Math.floor(Date.now() / STATEMENT_DAY_MS) !== statementsState.loadedForDay) loadStatements();
+}
+
 function renderFinanceDashboard(finances) {
   if (!finances) return;
   const credits = Number(finances.credits) || 0;
@@ -5080,6 +5135,10 @@ function setTab(targetId) {
     requestAnimationFrame(() => starmap.resize());
   }
 
+  if (targetId === "finance") {
+    loadStatements(); // AB#714: the closed days are fetched on their own, not carried in the account
+  }
+
   if (targetId === "inbox") {
     onInboxTabActivated();
   }
@@ -6219,6 +6278,7 @@ function bindRealtimeEvents() {
     renderFinanceCharts(financeState);
     renderFinanceDashboard(financeState);
     updateCorpIdentity(appState.data);
+    refreshStatementsIfDayClosed();
   });
 
   socket.on("finance:snapshot", () => {
