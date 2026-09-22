@@ -11,6 +11,28 @@ export function escapeHtml(value) {
 }
 
 /**
+ * One attribute, quoted and escaped here, with its leading space: htmlAttr("data-x", v) is ` data-x="..."`, and ""
+ * when the value is null, undefined or false, so an optional attribute is one call. Bug #1254: a hand-written
+ * data-disabled-reason attribute lost its closing quote and swallowed the Build Refinery button's label.
+ */
+export function htmlAttr(name, value) {
+  if (value === null || value === undefined || value === false) return "";
+  return ` ${name}="${escapeHtml(value)}"`;
+}
+
+/**
+ * The Refinery Chains card's Build Refinery button. With no free building slot it carries the reason the click handler
+ * shows, and a line under it says the same (Bug #1254).
+ */
+export function refineryBuildButtonHtml({ hasRefinery, used, slots }) {
+  const full = used >= slots;
+  const label = hasRefinery ? "Build 2nd Refinery" : "Build Refinery";
+  const reason = full ? `Refinery requires 1 open building slot. Current usage: ${used}/${slots}.` : null;
+  const note = full ? `<p class="muted" style="color:var(--color-warn)">No open building slots. Current usage: ${used}/${slots}.</p>` : "";
+  return `<button class="btn btn-outline refinery-build-btn"${htmlAttr("data-disabled-reason", reason)}>${label}</button>${note}`;
+}
+
+/**
  * The trade confirmation modal's rows. Label and value are text, escaped here, so callers pass raw strings
  * (Bug #1002: they went into innerHTML raw, and callers escaped some values themselves and not others).
  */
