@@ -18,7 +18,7 @@ const accountsSnapshotPath = path.join(dataDir, "accounts-snapshot.json");
 const milestonesPath = path.join(catalogueDir, "milestones.json");
 const PASSWORD_SALT_ROUNDS = 10;
 
-import { applyCredits, ensureFinanceTracking } from "./finances.js";
+import { applyCredits, closeDueDays, ensureFinanceTracking, MAX_STATEMENTS } from "./finances.js";
 import { unknownLeaseBodies } from "./leases.js";
 import { directInvestmentRecords } from "./legacyInvestments.js";
 import { validateCorporationName, SYSTEM_SENDERS, CORPORATION_NAME_MAX_LENGTH } from "./corporationName.js";
@@ -1890,14 +1890,37 @@ export function createCombatReport(payload) {
 }
 
 function sanitizeAccount(account) {
+  // The daily statements (AB#713) stay out: up to 90 days of them would ride on every response and socket event. They
+  // are served on their own by GET /finances/statements.
+  const { statements: _statements, ...state } = account.state || {};
   return {
     id: account.id,
     email: account.email,
     createdAt: account.createdAt,
     lastLoginAt: account.lastLoginAt || null,
     walkthroughCompleted: account.walkthroughCompleted,
-    state: deepClone(account.state)
+    state: deepClone(state)
   };
+}
+
+/** Close any day that has ended (AB#713), before the corporation is read or changed, so each movement lands on its day. */
+function closeFinancialDays(account, now = Date.now()) {
+  closeDueDays(account.state, now, state?.market || null);
+}
+
+/**
+ * The corporation's closed daily statements, newest first, at most `days` of them (1 to 90). Closes any day that has
+ * ended first, so a day missed while nobody looked is there on the next read. Null for an unknown account.
+ */
+export function getStatements(accountId, days = MAX_STATEMENTS, now = Date.now()) {
+  const account = accountsStore.accounts?.[accountId];
+  if (!account) return null;
+  closeFinancialDays(account, now);
+  scheduleAccountsSave();
+  const count = Math.max(1, Math.min(MAX_STATEMENTS, Math.floor(Number(days) || MAX_STATEMENTS)));
+  const all = Array.isArray(account.state.statements) ? account.state.statements : [];
+  const book = account.state.corp?.finances?.dayBook || null;
+  return { statements: deepClone(all.slice(-count).reverse()), today: book ? deepClone(book) : null };
 }
 
 function sanitizeNotification(notification) {
@@ -1936,6 +1959,7 @@ export function getAccountById(accountId) {
     return null;
   }
 
+  closeFinancialDays(account);
   applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
   evaluateLevelProgress(account.state);
@@ -2474,6 +2498,7 @@ export function mutateAccountState(accountId, mutator) {
     return null;
   }
 
+  closeFinancialDays(account);
   applyMiningOperations(account.state.corp);
   mutator(account.state);
   applyMiningOperations(account.state.corp);

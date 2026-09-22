@@ -25,6 +25,7 @@ import {
   saveAccountsNow,
   authenticateAccount,
   getAccountById,
+  getStatements,
   getDummyAccount,
   getAllAccountIds,
   getState,
@@ -983,6 +984,28 @@ app.get("/api/accounts/:accountId", (req, res) => {
   }
 
   res.json(account);
+});
+
+// AB#713: the corporation's daily statements (P&L, cash flow, balance sheet), newest first. Under requireAuth and
+// requireAccountAccess like the rest of /api/accounts/:accountId, so only the owner reads them. The one input is ?days=,
+// clamped to 1..90; anything that is not a number is refused.
+app.get("/api/accounts/:accountId/finances/statements", (req, res) => {
+  let days = 90;
+  if (req.query.days !== undefined) {
+    const raw = Array.isArray(req.query.days) ? null : String(req.query.days).trim();
+    const n = raw === null || raw === "" ? NaN : Number(raw);
+    if (!Number.isFinite(n)) {
+      res.status(400).json({ error: "days must be a number from 1 to 90." });
+      return;
+    }
+    days = Math.max(1, Math.min(90, Math.floor(n)));
+  }
+  const result = getStatements(req.params.accountId, days);
+  if (!result) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+  res.json({ accountId: req.params.accountId, days, ...result });
 });
 
 app.post("/api/accounts/:accountId/walkthrough-complete", (req, res) => {

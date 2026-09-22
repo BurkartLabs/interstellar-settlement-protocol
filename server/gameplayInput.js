@@ -95,6 +95,8 @@ export const ACCOUNT_INPUT = {
   "POST /walkthrough-complete": NOTHING,
   "POST /walkthrough-reset": NOTHING,
   "GET /notifications": NOTHING,
+  // AB#713: numbers are clamped to 1..90 by the route and anything else refused there, so this only bounds the length.
+  "GET /finances/statements": { query: { days: text(12, "a number of days from 1 to 90", { optional: true }) } },
   "POST /notifications/read-all": NOTHING,
   "POST /notifications/:notificationId/read": { params: { notificationId: ref("a notification") } },
   "GET /messages": NOTHING,
