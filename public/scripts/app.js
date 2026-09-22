@@ -491,6 +491,8 @@ function deepClone(input) {
   return JSON.parse(JSON.stringify(input));
 }
 
+import { starmapMiningState } from "./beltCompositions.js"; // Bug #1264 (placed here, apart from the imports at the top that parallel PRs edit)
+
 // TODO(AB#1050): Ensure this function is updated when we make asteroid belts dynamic
 async function refreshBeltCompositions() {
   if (!appState.accountId) return;
@@ -501,6 +503,13 @@ async function refreshBeltCompositions() {
     const data = await parseJsonResponse(res);
     appState.beltCompositions = data.compositions || {};
   } catch (_) { /* silent */ }
+}
+
+/** Bug #1264: fetch the revealed compositions and hand them to the Starmap when they land (it redraws an open belt
+ * panel). Called on every entry into the game (enterGame: log in, register, restore after a reload) and on refresh;
+ * before, a reload never fetched them, so a scouted belt showed neither its composition nor a Scout button. */
+function loadBeltCompositionsIntoStarmap() {
+  return refreshBeltCompositions().then(() => starmap.setAsteroidMining(starmapMiningState(appState.data, appState.beltCompositions)));
 }
 
 import { tradeConfirmRowsHtml, queueItemsHtml } from "./html.js"; // Bug #1002
@@ -4866,15 +4875,7 @@ function updateAllViews() {
   if (data.world?.systems) starmap.setSystems(data.world.systems);
   starmap.setStations(appState.stationRegistry, data.corp?.currentStationId, data.corp?.currentSystemId || "sol");
   starmap.setUnlockedTech(new Set(data.corp?.unlockedTech || []));
-  const am = data.corp?.asteroidMining || {};
-  starmap.setAsteroidMining({
-    probeCount: am.probeCount || 0,
-    maxProbes: data.corp?.fleet?.cap ?? 2,
-    maxDeployments: am.maxDeployments || 1,
-    activeExpeditions: am.activeExpeditions || [],
-    scoutedBelts: am.scoutedBelts || [],
-    beltCompositions: appState.beltCompositions || {}
-  });
+  starmap.setAsteroidMining(starmapMiningState(data, appState.beltCompositions));
   renderExpeditionPanel(data);
   renderInboxMessageList();
 }
@@ -5333,12 +5334,14 @@ function enterGame(mode, data, options = {}) {
   appState.walkthroughCompleted = Boolean(options.walkthroughCompleted);
   appState.data = deepClone(data);
   appState.activeMissions = appState.data.corp?.activeMissions || [];
+  appState.beltCompositions = {}; // Bug #1264: never another account's; this account's are fetched below
 
   if (appState.serverData) {
     applySharedState(appState.serverData);
   }
 
   persistSession();
+  if (appState.accountId) loadBeltCompositionsIntoStarmap(); // Bug #1264
 
   authShell.hidden = true;
   gameShell.hidden = false;
@@ -5486,7 +5489,7 @@ async function refreshFromServer() {
     applySharedState(serverState);
     appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
     appState.activeMissions = appState.data.corp?.activeMissions || [];
-    refreshBeltCompositions();
+    loadBeltCompositionsIntoStarmap(); // Bug #1264
     updateAllViews();
     return;
   }
