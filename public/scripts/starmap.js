@@ -9,6 +9,12 @@ const CLUSTER_LAYOUT = {
   "epsilon-eridani": { x: 0.83, y: 0.3 }
 };
 
+// Starmap system view: the innermost orbit's distance from the star, and the room kept between the outermost body and
+// the canvas edge; labels keep this margin from the right edge (Bug #1315).
+const ORBIT_INNER = 56;
+const ORBIT_EDGE_MARGIN = 20;
+const LABEL_EDGE_MARGIN = 4;
+
 const FALLBACK_PLANET_STYLE = {
   base: "#9bb4c8",
   shadow: "#2a3d4f",
@@ -417,6 +423,13 @@ export function createStarmapController({
     }
   }
 
+  /** Bug #1315: where a label beside a point starts, in the current font: to the right of it, or to the left when it
+   * would run past the canvas's right edge. */
+  function labelX(text, x, gap) {
+    const textWidth = ctx.measureText(text).width;
+    return x + gap + textWidth > canvas.clientWidth - LABEL_EDGE_MARGIN ? x - gap - textWidth : x + gap;
+  }
+
   function drawClusterView() {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
@@ -519,13 +532,13 @@ export function createStarmapController({
       // System name label
       ctx.fillStyle = isSelected ? "rgba(255, 255, 255, 0.95)" : "rgba(200, 220, 240, 0.8)";
       ctx.font = isSelected ? 'bold 12px "Inter", sans-serif' : '11px "Inter", sans-serif';
-      ctx.fillText(system.name, x + baseRadius + 10, y + 1);
+      ctx.fillText(system.name, labelX(system.name, x, baseRadius + 10), y + 1);
 
       // "YOU ARE HERE" label for current system
       if (isCurrent) {
         ctx.fillStyle = "rgba(0, 247, 255, 0.6)";
         ctx.font = '9px "Inter", sans-serif';
-        ctx.fillText("YOU ARE HERE", x + baseRadius + 10, y + 13);
+        ctx.fillText("YOU ARE HERE", labelX("YOU ARE HERE", x, baseRadius + 10), y + 13);
       }
 
       state.clickTargets.push({
@@ -659,10 +672,13 @@ export function createStarmapController({
 
     const bodies = (system?.bodies || []).filter((body) => body.type === "Planet" || body.type === "Field");
     const maxOrbitX = Math.max(1, ...bodies.map((body) => Number(body.x || 0)));
-    const orbitLimit = Math.min(width, height) * 0.42;
+    // Bug #1315: on a narrow canvas the outer orbits ran past the sides (0.42 of 292px plus 56 is 179px from a 146px
+    // centre). The orbits now also fit the width, leaving room for the body; a desktop canvas is wide enough that
+    // this never binds, so its layout is unchanged.
+    const orbitLimit = Math.min(Math.min(width, height) * 0.42, Math.max(0, width / 2 - ORBIT_INNER - ORBIT_EDGE_MARGIN));
 
     bodies.forEach((body, index) => {
-      const orbit = ((Number(body.x || 0) / maxOrbitX) * orbitLimit) + 56;
+      const orbit = ((Number(body.x || 0) / maxOrbitX) * orbitLimit) + ORBIT_INNER;
       const angle = (index / Math.max(1, bodies.length)) * Math.PI * 2;
       const x = cx + Math.cos(angle) * orbit;
       const y = cy + Math.sin(angle) * orbit;
@@ -700,15 +716,16 @@ export function createStarmapController({
 
       ctx.fillStyle = "rgba(200, 225, 245, 0.88)";
       ctx.font = '11px "Inter", sans-serif';
-      ctx.fillText(body.name, x + 8, y - 4);
+      const bodyLabelX = labelX(body.name, x, 8);
+      ctx.fillText(body.name, bodyLabelX, y - 4);
 
-      // Station indicator pip next to name
+      // Station indicator pip next to name (before it when the label is drawn to the left of the body)
       if (bodyHasStation(system.id, body.name)) {
         const hasCurrentStn = bodyHasCurrentStation(system.id, body.name);
         ctx.fillStyle = hasCurrentStn ? "rgba(0, 247, 255, 0.8)" : "rgba(255, 210, 80, 0.7)";
         const nameW = ctx.measureText(body.name).width;
         ctx.beginPath();
-        ctx.arc(x + 8 + nameW + 6, y - 7, 2.5, 0, Math.PI * 2);
+        ctx.arc(bodyLabelX < x ? bodyLabelX - 6 : bodyLabelX + nameW + 6, y - 7, 2.5, 0, Math.PI * 2);
         ctx.fill();
       }
 
