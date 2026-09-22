@@ -3,9 +3,9 @@ import { chooseHighlight, nextStepIndex } from "./walkthrough.js";
 import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
-import { bindOnce, likeRequest } from "./forumActions.js";
+import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft } from "./forumActions.js";
 import { createStarmapController } from "./starmap.js";
-import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
+import { escapeHtml, notificationItemsHtml, messageListItemsHtml, forumPostBodyHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
 import { stationStartPromptHtml, milestonesFirst, sidebarStartsCollapsed, revealScroll } from "./firstAction.js"; // AB#1056
 import { labelTableCells } from "./tableLabels.js"; // AB#1055
@@ -4072,11 +4072,11 @@ function renderForums(data) {
                     <span class="thread-badge thread-badge--reply">Reply</span>
                   </header>
                   <div class="thread-card__body">
-                    <p>${escapeHtml(reply.content || "")}</p>
+                    ${forumPostBodyHtml(reply.content || "")}
                   </div>
                   <footer class="thread-card__actions">
-                    <button class="thread-action-btn" type="button" data-action="reply">↩ Reply</button>
-                    <button class="thread-action-btn" type="button" data-action="quote">❝ Quote</button>
+                    <button class="thread-action-btn" type="button" data-action="reply" data-reply-id="${escapeHtml(reply.id)}">↩ Reply</button>
+                    <button class="thread-action-btn" type="button" data-action="quote" data-reply-id="${escapeHtml(reply.id)}">❝ Quote</button>
                     <button class="thread-action-btn thread-action-btn--like${replyLiked ? " is-liked" : ""}" type="button" data-action="like" data-target="reply" data-reply-id="${escapeHtml(reply.id)}" aria-pressed="${replyLiked}">▲ ${replyLiked ? "Liked" : "Like"} <span class="thread-action-count">${Number(reply.likes) || 0}</span></button>
                   </footer>
                 </article>
@@ -4084,6 +4084,12 @@ function renderForums(data) {
           }).join("")
         : `<li class="thread-reply thread-reply--empty"><p class="muted">No replies yet. Be the first to weigh in.</p></li>`;
 
+      // Bug #1222: the reply box is part of this HTML, so a re-render (any forum update) emptied a half-written reply.
+      // Keep what is in it, where the cursor is and whether it had focus, for the same thread, and put them back below.
+      const oldBox = detailBody.querySelector("#forum-reply-content");
+      const keptDraft = oldBox && oldBox.closest("form")?.dataset.threadId === selected.id
+        ? { value: oldBox.value, start: oldBox.selectionStart, end: oldBox.selectionEnd, focused: document.activeElement === oldBox }
+        : null;
       detailBody.innerHTML = `
         <div class="thread-detail">
           <div class="thread-detail__topbar">
@@ -4113,7 +4119,7 @@ function renderForums(data) {
               <span class="thread-badge thread-badge--op">OP</span>
             </header>
             <div class="thread-card__body thread-card__body--op">
-              ${opBody.split(/\n+/).map((para) => `<p>${escapeHtml(para)}</p>`).join("")}
+              ${forumPostBodyHtml(opBody)}
             </div>
             <footer class="thread-card__actions">
               <button class="thread-action-btn thread-action-btn--primary" type="button" data-action="reply">↩ Reply</button>
@@ -4141,6 +4147,15 @@ function renderForums(data) {
           </form>
         </div>
       `;
+
+      const newBox = detailBody.querySelector("#forum-reply-content");
+      if (keptDraft && newBox && keptDraft.value) {
+        newBox.value = keptDraft.value;
+        if (keptDraft.focused) {
+          newBox.focus({ preventScroll: true });
+          newBox.setSelectionRange(keptDraft.start, keptDraft.end);
+        }
+      }
 
       const inlineBack = detailBody.querySelector("#forum-back-btn-inline");
       if (inlineBack) {
@@ -4184,6 +4199,20 @@ function renderForums(data) {
         }
       });
 
+      // Bug #1132: Reply and Quote work on the reply box at the foot of the thread. Bound once, like Like (Bug #1131).
+      bindOnce(detailBody, "composeBound", "click", (event) => {
+        const btn = event.target.closest('[data-action="reply"], [data-action="quote"]');
+        if (!btn) return;
+        const box = detailBody.querySelector("#forum-reply-content");
+        const thread = (appState.data?.forums?.threads || []).find((t) => t.id === appState.selectedForumThreadId);
+        const post = postFor(btn, thread);
+        if (!box || !post) return;
+        box.value = btn.dataset.action === "quote" ? quoteDraft(box.value, post) : replyDraft(box.value, post);
+        box.scrollIntoView({ behavior: "smooth", block: "center" });
+        box.focus({ preventScroll: true });
+        box.setSelectionRange(box.value.length, box.value.length);
+      });
+
       // Reply submission — POST to the server, then re-render with the
       // updated thread payload returned by the API.
       const replyForm = detailBody.querySelector("#forum-reply-form");
@@ -4217,7 +4246,10 @@ function renderForums(data) {
               const idx = appState.data.forums.threads.findIndex((t) => t.id === payload.thread.id);
               if (idx >= 0) appState.data.forums.threads[idx] = payload.thread;
             }
-            if (contentEl) contentEl.value = "";
+            // Bug #1222: clear the box on the page now, not contentEl: if the socket update re-rendered the thread first,
+            // contentEl is the old, detached box and the sent text would come back as a kept draft.
+            const liveBox = document.getElementById("forum-reply-content");
+            if (liveBox) liveBox.value = "";
             renderForums(appState.data);
           } catch (err) {
             if (statusEl) {

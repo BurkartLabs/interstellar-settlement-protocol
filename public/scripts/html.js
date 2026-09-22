@@ -130,3 +130,27 @@ export function stationBuildingCardsHtml(stationBuildings) {
     })
     .join("");
 }
+
+/**
+ * A forum post's text as HTML (Bug #1132): lines starting with "> " become one blockquote per run, which is how Quote
+ * writes them; the other lines keep their breaks, blank lines separating paragraphs. Every line is escaped.
+ */
+export function forumPostBodyHtml(text) {
+  const blocks = [];
+  for (const line of String(text ?? "").split(/\r?\n/)) {
+    const quoted = /^>\s?/.test(line);
+    const content = quoted ? line.replace(/^>\s?/, "") : line;
+    const last = blocks.at(-1);
+    if (!quoted && !line.trim()) { blocks.push({ kind: "gap" }); continue; }
+    const kind = quoted ? "quote" : "para";
+    if (last?.kind === kind) last.lines.push(content);
+    else blocks.push({ kind, lines: [content] });
+  }
+  return blocks
+    .filter((b) => b.kind !== "gap")
+    .map((b) => {
+      const inner = b.lines.map(escapeHtml).join("<br>");
+      return b.kind === "quote" ? `<blockquote class="forum-quote">${inner}</blockquote>` : `<p>${inner}</p>`;
+    })
+    .join("");
+}

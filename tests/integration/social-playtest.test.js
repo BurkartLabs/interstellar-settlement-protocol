@@ -132,9 +132,13 @@ describe("player text renders as text, never as HTML (AB#733)", () => {
     expect(client).toMatch(/getElementById\("inbox-detail-subject"\)\.textContent =/);
     expect(client).toMatch(/getElementById\("inbox-detail-body"\)\.textContent =/);
     expect(client).toMatch(/\.map\(\(msg\) => chatLineHtml\(msg, formatTime\)\)/);
-    expect(client).toContain("${escapeHtml(reply.content || \"\")}");
+    // Bug #1132: reply and opening-post bodies go through forumPostBodyHtml, which escapes every line it renders
+    // (tests/unit/forumActions.test.js checks it with markup in both a quote and a paragraph).
+    expect(client).toContain("${forumPostBodyHtml(reply.content || \"\")}");
+    expect(client).toContain("${forumPostBodyHtml(opBody)}");
+    const html = readFileSync(new URL("../../public/scripts/html.js", import.meta.url), "utf8");
+    expect(html).toMatch(/export function forumPostBodyHtml[\s\S]*?b\.lines\.map\(escapeHtml\)/);
     expect(client).toContain("${escapeHtml(selected.title || \"Untitled Thread\")}");
-    expect(client).toMatch(/opBody\.split\([^)]*\)\.map\(\(para\) => `<p>\$\{escapeHtml\(para\)\}<\/p>`\)/);
   });
 });
 
