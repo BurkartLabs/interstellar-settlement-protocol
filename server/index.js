@@ -2837,6 +2837,9 @@ app.post("/api/accounts/:accountId/messages/send", (req, res) => {
     deleteDraft(req.params.accountId, String(req.body.draftId));
   }
   const messages = listAccountMessages(req.params.accountId);
+  // Bug #1130: tell the recipient's open sessions, so their Inbox and its unread count refresh without a reload. The
+  // account room keeps the event to that account's own sockets; the payload carries no ids (Bug #1134).
+  emitToAccount(result.recipientAccountId, "messages:new", {});
   res.json({ ok: true, toName: result.toName, messages });
 });
 
