@@ -1442,6 +1442,9 @@ app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
   res.json(account);
 });
 
+// Bug #1270 (placed here, apart from the navigation.js import at the top that open PRs edit)
+import { travelResearchLock } from "../public/scripts/navigation.js";
+
 // ─── Travel: interstellar (system-to-system) or local (dock at station) ──────
 app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
   const toSystemId = String(req.body?.toSystemId || "").trim();
@@ -1548,7 +1551,9 @@ app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
       "already-traveling": "Your ship is already in transit. Wait for arrival before initiating a new course.",
       "already-docked": "You are already docked at this station.",
       "already-in-system": "You are already in this system.",
-      "missing-research": "You lack the required navigation research to travel to that system.",
+      // Bug #1270: name the research, and what stands before it, from the research library.
+      "missing-research": travelResearchLock(RESEARCH_LIBRARY, account.state.corp.unlockedTech, account.state.corp.level,
+        account.state.corp.currentSystemId, toSystemId) || "You lack the required navigation research to travel to that system.",
       "wrong-system": "That station is in a different system. Travel to the system first."
     };
     res.status(400).json({ error: messageMap[outcome] || "Travel request failed." });

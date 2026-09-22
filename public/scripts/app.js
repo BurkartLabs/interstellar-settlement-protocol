@@ -255,6 +255,8 @@ const starmap = createStarmapController({
   detailsEl: document.getElementById("map-details"),
   overlaySelect: document.getElementById("map-overlay"),
   resetButton: document.getElementById("map-reset"),
+  researchCatalog: techTree, // Bug #1270: the lock names the research a jump needs
+  getCorpLevel: () => appState.data?.corp?.level || 0,
   onScoutBody(systemId, bodyId) {
     appState.scoutedBodies.add(`${systemId}:${bodyId}`);
   },
