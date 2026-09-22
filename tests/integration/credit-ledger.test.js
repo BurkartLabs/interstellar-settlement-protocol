@@ -39,7 +39,10 @@ describe("the corporate ledger reconciles (AB#712)", () => {
 
     await ok(await api.post(`/api/accounts/${id}/gameplay/hire`).send({ count: 2 }), "hire");
     await ok(await api.post(`/api/accounts/${id}/gameplay/rent-office`).send({ stationId: "earth-station-prime", durationDays: 28 }), "rent");
+    // Leases are filed at the station orbiting the body in some builds (AB#1091), so file it docked at Mars.
+    mutateAccountState(id, (state) => { state.corp.currentStationId = "mars-orbital-dock"; });
     await ok(await api.post(`/api/accounts/${id}/gameplay/purchase-lease`).send({ body: "mars" }), "lease");
+    mutateAccountState(id, (state) => { state.corp.currentStationId = "earth-station-prime"; });
     const leaseId = corp().miningLeases.at(-1).id;
     await ok(await api.post(`/api/accounts/${id}/gameplay/lease/${leaseId}/build-extractor`).send({}), "build");
     await ok(await api.post(`/api/accounts/${id}/gameplay/queue-rnd`).send({ techId: "tt-basic-extraction" }), "research");

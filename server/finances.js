@@ -87,6 +87,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
   income: Object.freeze(["exchange", "missions"]),
   expense: Object.freeze([
     "hiring",
+    "payroll",
     "office-rent",
     "leases",
     "transfer-fees",
