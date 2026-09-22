@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { io as connect } from "socket.io-client";
 import { getApp, serverUrl } from "../helpers/app.js";
@@ -9,6 +10,35 @@ import { mutateAccountState, getAccountById, getState, mutateState } from "../..
 // past 200 orders each new listing deleted the oldest one, goods and all. The book is never cut now; a seller may
 // have 50 open listings and can cancel one; what clients receive is capped when it is read.
 const STATION = "earth-station-prime";
+
+// Bug #1092: these tests used to reach 200 orders with 200 HTTP listings in a row (about 700 in the file). Alone that
+// took 1.3 s; under the full suite's parallel load it passed vitest's 5 s timeout, and the timed-out test kept listing
+// in the background and broke the tests after it. What they protect is a property of the book at and past 200 orders,
+// not of how the orders got there, so the book is seeded to just short of the edge the way the route writes it (the
+// goods leave the seller's stock, the order goes on the front) and the route itself takes it over 200.
+
+/** An order as POST /api/market/orders writes it. */
+const order = (sellerAccountId, seller, quantity) => ({
+  id: `ord-${randomUUID()}`, type: "sell", item: "Silicates", quantity, unitPrice: 10,
+  seller, sellerAccountId, stationId: STATION, createdAt: Date.now()
+});
+
+/** Put `count` listings of `quantity` Silicates on the book for seller `s`, taking the goods out of their stock. */
+function seedListings(s, count, quantity) {
+  const corpName = getAccountById(s.id).state.corp.corporationName;
+  mutateAccountState(s.id, (state) => { state.corp.inventory[STATION].Silicates -= count * quantity; });
+  mutateState((draft) => { for (let i = 0; i < count; i++) draft.market.orderBook.unshift(order(s.id, corpName, quantity)); });
+}
+
+/** Put `count` listings from other corporations on the book, 40 each (under the 50-listing limit), newest first. */
+function seedOthersListings(count) {
+  mutateState((draft) => {
+    for (let i = 0; i < count; i++) {
+      const n = Math.floor(i / 40);
+      draft.market.orderBook.unshift(order(`acc-seeded-${n}`, `Seeded Traders ${n}`, 1));
+    }
+  });
+}
 
 async function seller(silicates = 1000) {
   const { app } = await getApp();
@@ -26,14 +56,21 @@ async function seller(silicates = 1000) {
   };
 }
 
+// Load the server once, in a hook (10 s), so the first test's time is its own work and not the module import.
+beforeAll(async () => { await getApp(); });
+
 describe("the order book loses nothing (Bug #425)", () => {
   it("keeps every order past 200, and every seller's goods are either in stock or listed", async () => {
     mutateState((draft) => { draft.market.orderBook = []; });
-    const sellers = await Promise.all([1, 2, 3, 4, 5].map(() => seller(1000)));
+    const sellers = await Promise.all([1, 2].map(() => seller(1000)));
     const first = await sellers[0].list({ quantity: 7 });
     expect(first.status).toBe(200);
+    for (const s of sellers) seedListings(s, 20, 3);
+    seedOthersListings(155);
+    expect(getState().market.orderBook.length).toBe(196);
+    // The route takes the book from 196 to 206: across 200, where it used to cut the oldest order.
     for (const s of sellers) {
-      for (let i = 0; i < 41; i++) expect((await s.list({ quantity: 3 })).status).toBe(200);
+      for (let i = 0; i < 5; i++) expect((await s.list({ quantity: 3 })).status).toBe(200);
     }
     const book = getState().market.orderBook;
     expect(book.length).toBe(206);
@@ -51,7 +88,8 @@ describe("the order book loses nothing (Bug #425)", () => {
 describe("a seller may have 50 open listings (Bug #425)", () => {
   it("refuses the 51st before taking any goods", async () => {
     const s = await seller(1000);
-    for (let i = 0; i < 50; i++) expect((await s.list({ quantity: 1 })).status).toBe(200);
+    seedListings(s, 49, 1);
+    expect((await s.list({ quantity: 1 })).status).toBe(200); // the 50th, through the route
     const res = await s.list({ quantity: 5 });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("You have 50 open listings; cancel one to list more.");
@@ -130,8 +168,10 @@ describe("what clients receive is capped when read, and always includes the call
     mutateState((draft) => { draft.market.orderBook = []; });
     const mine = await seller(100);
     const oldest = (await mine.list({ quantity: 5 })).body.order;
-    const others = await Promise.all([1, 2, 3, 4, 5].map(() => seller(1000)));
-    for (const s of others) for (let i = 0; i < 45; i++) await s.list({ quantity: 1 });
+    const other = await seller(1000);
+    seedOthersListings(220);
+    expect(getState().market.orderBook.length).toBe(221);
+    for (let i = 0; i < 5; i++) expect((await other.list({ quantity: 1 })).status).toBe(200);
     expect(getState().market.orderBook.length).toBe(226);
     return { mine, oldest };
   }

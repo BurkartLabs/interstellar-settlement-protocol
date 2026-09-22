@@ -141,18 +141,20 @@ describe("player text renders as text, never as HTML (AB#733)", () => {
 describe("nothing is hidden behind a social feature flag (AB#733)", () => {
   it("no file in the product names one", () => {
     const flag = ["ISP", "SOCIAL"].join("_");
+    // The product is what ships: server/, public/ and the root files. Bug #1221: the whole repository (tests, notes,
+    // docs) was read synchronously, which passed the 5 s timeout under load.
     const root = new URL("../../", import.meta.url);
-    const skip = new Set(["node_modules", ".git", "data", "coverage"]);
     const hits = [];
     const walk = (dir) => {
       for (const name of readdirSync(dir)) {
-        if (skip.has(name)) continue;
         const path = new URL(name, dir);
         if (statSync(path).isDirectory()) walk(new URL(`${name}/`, dir));
-        else if (/\.(js|mjs|html|css|json|md)$/.test(name) && readFileSync(path, "utf8").includes(flag)) hits.push(path.pathname);
+        else if (/\.(js|mjs|html|css|json)$/.test(name) && readFileSync(path, "utf8").includes(flag)) hits.push(path.pathname);
       }
     };
-    walk(root);
+    walk(new URL("server/", root));
+    walk(new URL("public/", root));
+    for (const name of ["package.json", "vitest.config.js"]) if (readFileSync(new URL(name, root), "utf8").includes(flag)) hits.push(name);
     expect(hits).toEqual([]);
   });
 });
