@@ -261,6 +261,17 @@ function asteroidComposition(seedKey) {
   return profiles[seed % profiles.length];
 }
 
+/** The Starmap canvas's backing store for a CSS box and devicePixelRatio (clamped to 1..2): one CSS pixel is dpr
+ * backing pixels in both directions, so what is drawn at (x, y) is where a click at (x, y) lands. */
+export function canvasBackingSize(cssWidth, cssHeight, devicePixelRatio) {
+  const dpr = Math.max(1, Math.min(2, devicePixelRatio || 1));
+  return {
+    width: Math.max(1, Math.round(cssWidth * dpr)),
+    height: Math.max(1, Math.round(cssHeight * dpr)),
+    dpr
+  };
+}
+
 export function createStarmapController({
   canvas,
   fallbackEl,
@@ -302,16 +313,18 @@ export function createStarmapController({
     }
 
     const rect = canvas.getBoundingClientRect();
-    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    const width = Math.max(500, Math.floor(rect.width));
     const availableHeight = Math.max(320, Math.floor(window.innerHeight - rect.top - 34));
     const targetHeight = Math.min(560, availableHeight);
 
     canvas.style.height = `${targetHeight}px`;
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(targetHeight * dpr);
+    // Bug #1286: the backing store follows the box the map is drawn and clicked in (clientWidth x clientHeight, the
+    // units every draw function and clickTargets use). A 500px floor here squeezed the drawing into the left half of
+    // a phone's 292px canvas while taps were still tested at full scale, so tapping a star missed it.
+    const size = canvasBackingSize(canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio);
+    canvas.width = size.width;
+    canvas.height = size.height;
     if (ctx) {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
     }
   }
 
@@ -530,6 +543,14 @@ export function createStarmapController({
     return width;
   }
 
+  // Bug #1286: the right-hand of two back buttons sits at preferredX, or further left when that would run past the
+  // canvas's right edge (a phone's canvas is 292px wide; "Back To Cluster" at 250 ended at about 300).
+  function rightBackButtonX(label, preferredX, canvasWidth) {
+    ctx.font = '10px "Inter", sans-serif';
+    const buttonWidth = Math.max(88, Math.ceil(ctx.measureText(label).width + 28));
+    return Math.min(preferredX, canvasWidth - 6 - buttonWidth / 2);
+  }
+
   function drawStationMarker(x, y, isCurrent) {
     const size = isCurrent ? 5 : 4;
     ctx.save();
@@ -689,10 +710,11 @@ export function createStarmapController({
 
     state.clickTargets = [];
     const backSysWidth = drawBackButton("Back To System", 108, 36);
-    const backClusterWidth = drawBackButton("Back To Cluster", 250, 36);
+    const backClusterX = rightBackButtonX("Back To Cluster", 250, width);
+    const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, 36);
 
     state.clickTargets.push({ type: "back-to-system", x: 108, y: 36, radius: Math.max(40, backSysWidth * 0.55) });
-    state.clickTargets.push({ type: "back-to-cluster", x: 250, y: 36, radius: Math.max(42, backClusterWidth * 0.55) });
+    state.clickTargets.push({ type: "back-to-cluster", x: backClusterX, y: 36, radius: Math.max(42, backClusterWidth * 0.55) });
 
     if (body.type === "Field") {
       const beltRadius = Math.min(width, height) * 0.2;
@@ -793,10 +815,11 @@ export function createStarmapController({
 
     state.clickTargets = [];
     const backBodyWidth = drawBackButton("Back To Belt", 98, 36);
-    const backSystemWidth = drawBackButton("Back To System", 228, 36);
+    const backSystemX = rightBackButtonX("Back To System", 228, width);
+    const backSystemWidth = drawBackButton("Back To System", backSystemX, 36);
 
     state.clickTargets.push({ type: "back-to-body", x: 98, y: 36, radius: Math.max(38, backBodyWidth * 0.55) });
-    state.clickTargets.push({ type: "back-to-system", x: 228, y: 36, radius: Math.max(38, backSystemWidth * 0.55) });
+    state.clickTargets.push({ type: "back-to-system", x: backSystemX, y: 36, radius: Math.max(38, backSystemWidth * 0.55) });
 
     const seed = hashSeed(asteroidId || `${system.id}:${body.id}:ast-0`);
     const radius = Math.min(width, height) * 0.11;
@@ -1109,6 +1132,12 @@ export function createStarmapController({
     if (!ctx || !canvas || canvas.hidden || canvas.clientWidth <= 0 || canvas.clientHeight <= 0) {
       renderFallback();
       return;
+    }
+
+    // Bug #1286: a canvas sized while its tab was hidden has a 1x1 backing store; size it to its box before drawing.
+    const expected = canvasBackingSize(canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio);
+    if (canvas.width !== expected.width || canvas.height !== expected.height) {
+      setCanvasSize();
     }
 
     clearScene();
