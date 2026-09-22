@@ -3071,10 +3071,6 @@ function renderQueue(elId, queue, subtitle) {
     formatCredits: toCurrency
   });
 }
-
-// The Refinery Chains form's run-size rule, shared with start-refinery (AB#1255); here, clear of other branches' imports.
-import { refineMinimum, refineQuantityCheck, refineQuantityFieldValue } from "./refineQuantity.js";
-
 // TODO(AB#824): Remove duplicate. This should be stored in the database
 const RESOURCE_CATALOG = [
   "Silicates", "Helium-3", "Nickel", "Titanium", "Carbon",
@@ -3377,6 +3373,9 @@ function renderRefinery(data) {
     }
   };
 }
+
+// renderRefinery's run-size rule, shared with start-refinery (AB#1255). After the function, where no other branch adds.
+import { refineMinimum, refineQuantityCheck, refineQuantityFieldValue } from "./refineQuantity.js";
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 function renderAssets(data) {
