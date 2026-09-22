@@ -1518,6 +1518,9 @@ function bindOfficeActions(building, data) {
 
 // ─── ISA Claims & Leases Division ──────────────────────────────────────────
 
+// Empty states that name the next action (Bug #1060): the Claims lines here, and the Inbox list's.
+import { claimsAllTakenText, claimsNoLeasesText, inboxEmptyText } from "./emptyStates.js";
+
 function renderISAClaimsLeases(building, data) {
   const corp = data.corp;
   const station = getCurrentStationInfo(data);
@@ -1544,7 +1547,7 @@ function renderISAClaimsLeases(building, data) {
   // Active leases section
   let leasesHtml = "";
   if (leases.length === 0) {
-    leasesHtml = `<p class="muted" style="margin-top:0.4rem;">No active extraction claims on file. Submit a lease application below to begin.</p>`;
+    leasesHtml = `<p class="muted" style="margin-top:0.4rem;">${escapeHtml(claimsNoLeasesText(hasOffice))}</p>`; // Bug #1060
   } else {
     leasesHtml = `<div class="lease-card-grid">`;
     for (const lease of leases) {
@@ -1590,7 +1593,12 @@ function renderISAClaimsLeases(building, data) {
   } else if (!hasLocalBodies) {
     purchaseHtml = `<p class="muted">No extraction zones are available at ${escapeHtml(station?.name || "this station")}. Travel to a station orbiting a resource-bearing body to file new lease applications.</p>`;
   } else if (availableBodies.length === 0) {
-    purchaseHtml = `<p class="muted">All extraction zones available from this station have been claimed by your corporation.</p>`;
+    // Bug #1060: say where the other leases are filed, by station name from the registry.
+    purchaseHtml = `<p class="muted">${escapeHtml(claimsAllTakenText({
+      offeredBodies: LEASE_BODIES.map((b) => b.body),
+      ownedBodies: allLeases.map((l) => l.body), // every lease held, not only this station's
+      stations: appState.stationRegistry || []
+    }))}</p>`;
   } else {
     purchaseHtml = availableBodies.map((entry) => {
       const canAfford = (corp?.finances?.credits || 0) >= entry.cost;
@@ -6330,6 +6338,7 @@ function renderInboxMessageList() {
   const msgs = inboxMsgsForView();
   if (!msgs.length) {
     list.innerHTML = "";
+    emptyNotice.textContent = inboxEmptyText(appState.inbox.folder, appState.inbox.subtype); // Bug #1060
     emptyNotice.style.display = "";
     return;
   }
