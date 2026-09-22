@@ -3484,6 +3484,11 @@ function emitToAccount(accountId, event, payload) {
   if (accountId) io.to(accountRoom(accountId)).emit(event, payload);
 }
 
+// Bug #1260: notifications made inside gameState (a level reached) reach the account's own sockets as every other
+// notification does, as notifications:new, so the badge and the list update without a reload.
+import { onAccountNotification } from "./gameState.js";
+onAccountNotification((accountId, notification) => emitToAccount(accountId, "notifications:new", { accountId, notification }));
+
 /**
  * Send the market to every connected socket as that socket's account should see it: the newest orders plus its own
  * (Bug #425: the book is never cut, so what is sent is capped here instead).
