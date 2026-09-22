@@ -126,11 +126,43 @@ describe("statements survive a restart (AB#713)", () => {
     const closed = await read(second.url, await login(second.url));
     expect(closed.status).toBe(200);
     expect(closed.body.statements.map((s) => s.cashFlow)).toEqual([{ opening: 75_000, inflows: 0, outflows: 5_000, closing: 70_000, unrecorded: 0 }]);
-    await waitFor(() => fs.readFileSync(snapshot, "utf8").includes('"statements"'));
+    // Bug #1480: the day is filed in the corporation's own statements file, never in the accounts snapshot.
+    const file = path.join(dir, "statements", `${encodeURIComponent(id)}.json`);
+    await waitFor(() => fs.existsSync(file));
+    expect(JSON.parse(fs.readFileSync(file, "utf8")).map((s) => s.cashFlow.closing)).toEqual([70_000]);
+    await waitFor(() => fs.readFileSync(snapshot, "utf8").includes('"dayStart"'));
+    expect(fs.readFileSync(snapshot, "utf8")).not.toContain('"statements"');
     second.child.kill();
 
     const third = await startServer(dir);
     const again = await read(third.url, await login(third.url));
     expect(again.body.statements).toEqual(closed.body.statements);
+  }, 90000);
+
+  it("statements an older save kept in the snapshot move to their own file on load (Bug #1480)", async () => {
+    const dir = fs.mkdtempSync(path.join(process.env.ISP_TEST_DATA_ROOT, "statements-migrate-"));
+    const snapshot = path.join(dir, "accounts-snapshot.json");
+    const who = { email: `migrate-${Date.now()}@example.com`, password: "supersecret123", ceoName: "Old Save", corpName: `Old Save ${Date.now() % 100000}` };
+    const first = await startServer(dir);
+    const id = (await request(first.url).post("/api/auth/register").send(who)).body.account.id;
+    await waitFor(() => fs.existsSync(snapshot) && fs.readFileSync(snapshot, "utf8").includes(who.email));
+    first.child.kill();
+
+    // The first version of AB#713 kept statements inside the account.
+    const saved = JSON.parse(fs.readFileSync(snapshot, "utf8"));
+    const account = Object.values(saved.accounts || saved).find((a) => a?.id === id);
+    const old = [{ day: "2026-09-01", dayStart: Date.UTC(2026, 8, 1), pnl: { income: {}, expenses: {}, totalIncome: 0, totalExpenses: 0, net: 0 },
+      cashFlow: { opening: 1, inflows: 0, outflows: 0, closing: 1, unrecorded: 0 }, balanceSheet: { credits: 1, facilities: 0, inventory: 0, liabilities: 0, totalAssets: 1, netWorth: 1 } }];
+    account.state.statements = old;
+    fs.writeFileSync(snapshot, JSON.stringify(saved));
+
+    const second = await startServer(dir);
+    const token = (await request(second.url).post("/api/auth/login").send({ email: who.email, password: who.password })).body.accessToken;
+    const res = await request(second.url).get(`/api/accounts/${id}/finances/statements`).set("Authorization", `Bearer ${token}`);
+    expect(res.body.statements).toEqual(old);
+    await waitFor(() => !fs.readFileSync(snapshot, "utf8").includes('"statements"'));
+    expect(fs.readFileSync(snapshot, "utf8")).not.toContain('"statements"');
+    expect(JSON.parse(fs.readFileSync(path.join(dir, "statements", `${encodeURIComponent(id)}.json`), "utf8"))).toEqual(old);
+    second.child.kill();
   }, 90000);
 });
