@@ -855,6 +855,8 @@ function ensureCorpAsteroidMiningModel(corp) {
     lastTickAt: exp.lastTickAt || exp.deployedAt || Date.now(),
     launchCost: Number(exp.launchCost || EXPEDITION_LAUNCH_COST),
     yields: exp.yields || {},
+    // Bug #1274: the fraction of a unit carried to the next tick; an expedition saved before it starts at 0.
+    yieldCarry: Math.max(0, Number(exp.yieldCarry) || 0),
     status: exp.status || "active"
   }));
 }
@@ -880,6 +882,30 @@ function weightedPick(pool, seed) {
   }
   // Fallback
   return Object.keys(pool)[0];
+}
+
+// Bug #1274: an expedition's yield in whole units, with the fraction carried to the next tick, and split across the
+// tick's drops so the drops add up to exactly that many. In production a 10-second tick of a Short Sweep is worth 0.5
+// units; floored on its own it was always 0, and every production expedition came home empty. This is the extractors'
+// rule (Bug #1138, !177: whole units now, the fraction carried, the same tolerance for floating-point drift), so a sweep
+// yields the same total whether it is settled every 10 seconds or once at the end. An expedition saved before this has
+// no carry yet, which reads as 0.
+const EXPEDITION_CARRY_TOLERANCE = 1e-6;
+function takeWholeUnits(amount, carried) {
+  const total = amount + Math.max(0, Number(carried) || 0);
+  const whole = Math.floor(total + EXPEDITION_CARRY_TOLERANCE);
+  return { whole, rest: Math.max(0, total - whole) };
+}
+
+/** Split `whole` units into `weights.length` shares that add up to exactly `whole` (largest remainders first). */
+export function splitExactly(whole, weights) {
+  const sum = weights.reduce((a, b) => a + b, 0) || 1;
+  const raw = weights.map((w) => (whole * w) / sum);
+  const shares = raw.map(Math.floor);
+  let left = whole - shares.reduce((a, b) => a + b, 0);
+  const order = raw.map((r, i) => [r - Math.floor(r), i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]);
+  for (let k = 0; left > 0; k = (k + 1) % order.length, left--) shares[order[k][1]] += 1;
+  return shares;
 }
 
 export function applyAsteroidExpeditions(corp, now = Date.now()) {
@@ -915,18 +941,22 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
     const tickMinutes = elapsedMs / (60 * 1000);
     // Base: ~2-5 units per resource per tick minute
     const baseYieldPerMin = 3;
-    const totalYield = Math.floor(tickMinutes * baseYieldPerMin * rarityMult * tickMult);
+    const units = takeWholeUnits(tickMinutes * baseYieldPerMin * rarityMult * tickMult, exp.yieldCarry);
+    const totalYield = units.whole;
+    exp.yieldCarry = units.rest;
 
     if (totalYield > 0) {
       // Generate a tick-unique seed from expedition id + tick timestamp
       const tickSeed = (hashSeedStr(exp.id) + Math.floor(now / 5000)) | 0;
 
-      // Roll 1–3 resources per tick
-      const dropCount = 1 + Math.floor(seededRand(tickSeed) * 3);
+      // Roll 1–3 resources per tick (never more drops than units), sharing exactly totalYield between them
+      const dropCount = Math.min(totalYield, 1 + Math.floor(seededRand(tickSeed) * 3));
+      const weights = Array.from({ length: dropCount }, (_, i) => 0.6 + seededRand(tickSeed + i * 3571) * 0.8);
+      const shares = splitExactly(totalYield, weights);
       for (let i = 0; i < dropCount; i++) {
+        if (shares[i] <= 0) continue;
         const resource = weightedPick(composition, tickSeed + i * 7919);
-        const qty = Math.max(1, Math.floor((totalYield / dropCount) * (0.6 + seededRand(tickSeed + i * 3571) * 0.8)));
-        exp.yields[resource] = (exp.yields[resource] || 0) + qty;
+        exp.yields[resource] = (exp.yields[resource] || 0) + shares[i];
       }
     }
 
