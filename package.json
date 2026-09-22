@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "start": "node server/index.js",
+    "bench:ticks": "node scripts/bench-ticks.mjs",
     "dev": "node --watch-path=./server --watch-path=./public server/index.js",
     "check": "node --check server/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "bench:ticks": "node scripts/bench-ticks.mjs"
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
