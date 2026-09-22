@@ -18,7 +18,7 @@ const accountsSnapshotPath = path.join(dataDir, "accounts-snapshot.json");
 const milestonesPath = path.join(catalogueDir, "milestones.json");
 const PASSWORD_SALT_ROUNDS = 10;
 
-import { recordExpense, ensureFinanceTracking } from "./finances.js";
+import { applyCredits, closeDueDays, ensureFinanceTracking, MAX_STATEMENTS } from "./finances.js";
 import { ECONOMY, operationCostPerHourFor } from "./economy.js";
 import { unknownLeaseBodies } from "./leases.js";
 import { directInvestmentRecords } from "./legacyInvestments.js";
@@ -75,7 +75,7 @@ function safeWriteFile(filePath, data) {
 
 // ─── Milestones: single source of truth from data/milestones.json ──────────
 const MILESTONES_DATA = JSON.parse(fs.readFileSync(milestonesPath, "utf8"));
-const MILESTONE_LEVELS = MILESTONES_DATA.levels;
+export const MILESTONE_LEVELS = MILESTONES_DATA.levels;
 // The top of the ladder is the highest level the data defines (Bug #424: the cap shown to players was a literal 40).
 export const MAX_DEFINED_LEVEL = Math.max(...MILESTONE_LEVELS.map((l) => l.level));           // [{level, requirements, unlocks}, ...]
 const MILESTONE_ROADMAP = MILESTONES_DATA.roadmap;          // ["Rent an Office", ...]
@@ -384,6 +384,7 @@ function ensureCorpMiningModel(corp) {
       operationCostPerHour: 0,
       totalMined: 0,
       minedRemainder: 0,
+      costRemainder: 0,
       totalSpent: 0,
       lastCompletedAt: null,
       downtimeActive: false,
@@ -419,6 +420,8 @@ function ensureCorpMiningModel(corp) {
       // AB#575: this cycle's output, zeroed by startExtractorCycle; totalMined is the lifetime.
       minedThisCycle: Math.max(0, Number(extractor.minedThisCycle || 0)),
       minedRemainder: Math.max(0, Number(extractor.minedRemainder || 0)),
+      // Bug #1138: the running cost's unpaid fraction of a credit, carried like minedRemainder.
+      costRemainder: Math.max(0, Number(extractor.costRemainder || 0)),
       totalSpent: Number(extractor.totalSpent || 0),
       lastCompletedAt: extractor.lastCompletedAt ?? null,
       leaseId: extractor.leaseId ?? null,
@@ -446,6 +449,7 @@ function ensureCorpMiningModel(corp) {
     operationCostPerHour: 0,
     totalMined: 0,
     minedRemainder: 0,
+    costRemainder: 0,
     totalSpent: 0,
     lastCompletedAt: null
   };
@@ -546,6 +550,17 @@ export function extractorDowntimeProbPerSec(corp) {
   return probPerSec;
 }
 
+// Bug #1138: whole units now, the fraction carried to the next call, for yield and running cost alike. The mining step
+// runs on every account read and around every write as well as on the ticker, so the same hour can arrive in one
+// slice or in thousands; it must come to the same totals either way. The tolerance absorbs floating-point drift:
+// 36,000 slices of 1/900 add up to 39.99999..., which floored to 39 and lost the last ton of every cycle.
+const CARRY_TOLERANCE = 1e-6;
+function takeWhole(amount, carried) {
+  const total = amount + Math.max(0, Number(carried) || 0);
+  const whole = Math.floor(total + CARRY_TOLERANCE);
+  return { whole, rest: Math.max(0, total - whole) };
+}
+
 export function applyMiningOperations(corp, now = Date.now()) {
   ensureCorpMiningModel(corp);
 
@@ -633,15 +648,16 @@ export function applyMiningOperations(corp, now = Date.now()) {
       affordabilityRatio = Math.max(0, Math.min(1, byCredits));
     }
 
-    const minedWithCarry = projectedMined * affordabilityRatio + Math.max(0, Number(extractor.minedRemainder || 0));
-    const actualMined = Math.floor(minedWithCarry);
-    extractor.minedRemainder = minedWithCarry - actualMined;
-    const actualCost = Math.round(projectedCost * affordabilityRatio);
+    const mined = takeWhole(projectedMined * affordabilityRatio, extractor.minedRemainder);
+    const actualMined = mined.whole;
+    extractor.minedRemainder = mined.rest;
+    const cost = takeWhole(projectedCost * affordabilityRatio, extractor.costRemainder);
+    const actualCost = cost.whole;
+    extractor.costRemainder = cost.rest;
 
     if (actualCost > 0) {
-      corp.finances.credits = Math.max(0, corp.finances.credits - actualCost);
-      extractor.totalSpent += actualCost;
-      recordExpense(corp, "mining-ops", actualCost, now); // Bug #1022: at the tick's time, for the 24-hour window
+      const charged = -applyCredits(corp, -Math.min(actualCost, Math.max(0, Math.round(Number(corp.finances.credits) || 0))), "mining-ops", now);
+      extractor.totalSpent += charged;
     }
 
     if (actualMined > 0) {
@@ -839,6 +855,8 @@ function ensureCorpAsteroidMiningModel(corp) {
     lastTickAt: exp.lastTickAt || exp.deployedAt || Date.now(),
     launchCost: Number(exp.launchCost || EXPEDITION_LAUNCH_COST),
     yields: exp.yields || {},
+    // Bug #1274: the fraction of a unit carried to the next tick; an expedition saved before it starts at 0.
+    yieldCarry: Math.max(0, Number(exp.yieldCarry) || 0),
     status: exp.status || "active"
   }));
 }
@@ -864,6 +882,30 @@ function weightedPick(pool, seed) {
   }
   // Fallback
   return Object.keys(pool)[0];
+}
+
+// Bug #1274: an expedition's yield in whole units, with the fraction carried to the next tick, and split across the
+// tick's drops so the drops add up to exactly that many. In production a 10-second tick of a Short Sweep is worth 0.5
+// units; floored on its own it was always 0, and every production expedition came home empty. This is the extractors'
+// rule (Bug #1138, !177: whole units now, the fraction carried, the same tolerance for floating-point drift), so a sweep
+// yields the same total whether it is settled every 10 seconds or once at the end. An expedition saved before this has
+// no carry yet, which reads as 0.
+const EXPEDITION_CARRY_TOLERANCE = 1e-6;
+function takeWholeUnits(amount, carried) {
+  const total = amount + Math.max(0, Number(carried) || 0);
+  const whole = Math.floor(total + EXPEDITION_CARRY_TOLERANCE);
+  return { whole, rest: Math.max(0, total - whole) };
+}
+
+/** Split `whole` units into `weights.length` shares that add up to exactly `whole` (largest remainders first). */
+export function splitExactly(whole, weights) {
+  const sum = weights.reduce((a, b) => a + b, 0) || 1;
+  const raw = weights.map((w) => (whole * w) / sum);
+  const shares = raw.map(Math.floor);
+  let left = whole - shares.reduce((a, b) => a + b, 0);
+  const order = raw.map((r, i) => [r - Math.floor(r), i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]);
+  for (let k = 0; left > 0; k = (k + 1) % order.length, left--) shares[order[k][1]] += 1;
+  return shares;
 }
 
 export function applyAsteroidExpeditions(corp, now = Date.now()) {
@@ -899,18 +941,22 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
     const tickMinutes = elapsedMs / (60 * 1000);
     // Base: ~2-5 units per resource per tick minute
     const baseYieldPerMin = 3;
-    const totalYield = Math.floor(tickMinutes * baseYieldPerMin * rarityMult * tickMult);
+    const units = takeWholeUnits(tickMinutes * baseYieldPerMin * rarityMult * tickMult, exp.yieldCarry);
+    const totalYield = units.whole;
+    exp.yieldCarry = units.rest;
 
     if (totalYield > 0) {
       // Generate a tick-unique seed from expedition id + tick timestamp
       const tickSeed = (hashSeedStr(exp.id) + Math.floor(now / 5000)) | 0;
 
-      // Roll 1–3 resources per tick
-      const dropCount = 1 + Math.floor(seededRand(tickSeed) * 3);
+      // Roll 1–3 resources per tick (never more drops than units), sharing exactly totalYield between them
+      const dropCount = Math.min(totalYield, 1 + Math.floor(seededRand(tickSeed) * 3));
+      const weights = Array.from({ length: dropCount }, (_, i) => 0.6 + seededRand(tickSeed + i * 3571) * 0.8);
+      const shares = splitExactly(totalYield, weights);
       for (let i = 0; i < dropCount; i++) {
+        if (shares[i] <= 0) continue;
         const resource = weightedPick(composition, tickSeed + i * 7919);
-        const qty = Math.max(1, Math.floor((totalYield / dropCount) * (0.6 + seededRand(tickSeed + i * 3571) * 0.8)));
-        exp.yields[resource] = (exp.yields[resource] || 0) + qty;
+        exp.yields[resource] = (exp.yields[resource] || 0) + shares[i];
       }
     }
 
@@ -1154,6 +1200,68 @@ export function evaluateLevelProgress(profileState) {
   corp.fleet = fleetStatus(corp); // Bug #586: derived every evaluation, like levelProgress
 }
 
+// Bug #1260: reaching a level told the player nothing. evaluateLevelProgress is a pure state function; the account
+// paths below wrap it, compare the level before and after, and tell the player once per level reached, in order. A
+// level already held (reached before this fix, or earlier) is never announced again, and a level cannot go down.
+let accountNotificationListener = null;
+
+/** index.js sends each notification made here to the account's own sockets, as notifications:new. */
+export function onAccountNotification(listener) {
+  accountNotificationListener = listener;
+}
+
+/**
+ * The notices for the levels `corp` reached since `before`. The figures are the ones the sidebar shows once each level
+ * is granted, built by the same rules as evaluateLevelProgress and fleetStatus: each cap is the highest of what the
+ * corporation had and what every level up to this one grants, and the fleet cap includes Fleet Coordination.
+ */
+export function levelReachedNotices(before, corp) {
+  const coordinated = (corp?.unlockedTech || []).includes(FLEET_COORDINATION_TECH);
+  let employeeCap = Number(before.employeeCap || 0);
+  let buildingSlots = Number(before.buildingSlots || 0);
+  let maxFleetSize = Number(before.maxFleetSize || 0);
+  const sectors = new Set(before.marketSectors || []);
+  const notices = [];
+  for (const levelDef of [...MILESTONE_LEVELS].sort((a, b) => a.level - b.level)) {
+    if (levelDef.level > Number(corp.level || 0)) break;
+    const u = levelDef.unlocks || {};
+    employeeCap = Math.max(employeeCap, Number(u.employeeCap || 0));
+    buildingSlots = Math.max(buildingSlots, Number(u.buildingSlots || 0));
+    maxFleetSize = Math.max(maxFleetSize, Number(u.maxFleetSize || 0));
+    const opened = (Array.isArray(u.marketSectors) ? u.marketSectors : []).filter((sector) => !sectors.has(sector));
+    opened.forEach((sector) => sectors.add(sector));
+    if (levelDef.level <= Number(before.level || 0)) continue;
+    const fleetCap = Math.max(BASE_MAX_PROBES, maxFleetSize) + (coordinated ? FLEET_COORDINATION_BONUS : 0);
+    notices.push({
+      type: "level",
+      title: `Corporation Level ${levelDef.level}`,
+      body:
+        `Your corporation reached Level ${levelDef.level} of ${MAX_DEFINED_LEVEL}. ` +
+        `Employee cap ${employeeCap}, building slots ${buildingSlots}, fleet cap ${fleetCap}.` +
+        (opened.length ? ` Market sector${opened.length > 1 ? "s" : ""} opened: ${opened.join(", ")}.` : "")
+    });
+  }
+  return notices;
+}
+
+/** Evaluate an account's level and tell it about each level it has just reached. */
+function evaluateAccountLevel(accountId, account) {
+  const corp = account.state.corp;
+  const before = {
+    level: Number(corp.level || 0),
+    employeeCap: corp.employeeCap,
+    buildingSlots: corp.buildingSlots,
+    maxFleetSize: corp.unlocks?.maxFleetSize,
+    marketSectors: [...(corp.unlocks?.marketSectors || [])]
+  };
+  evaluateLevelProgress(account.state);
+  if (!(Number(corp.level || 0) > before.level)) return;
+  for (const notice of levelReachedNotices(before, corp)) {
+    pushSystemNotification(account, notice);
+    if (accountNotificationListener) accountNotificationListener(accountId, sanitizeNotification(account.notifications[0]));
+  }
+}
+
 /* TODO(AB#726): Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
 function createStarterCorporationState(baseState, ceoName, corpName) {
   const next = deepClone(baseState);
@@ -1267,7 +1375,7 @@ const MISSION_TEMPLATES = [
     type: "Logistics",
     risk: "Low",
     reward: "12,000 Credits",
-    text: "Coordinator Voss requires 400 units of raw silicates delivered to her office for redistribution to ISA-contracted construction projects. Mine the quota from any active extraction lease and sell directly to the agent within the deadline.",
+    text: "The Bureau requires 400 units of raw silicates for redistribution to ISA-contracted construction projects. Mine the quota from any active extraction lease and deliver it to the Bureau when you have it.",
     agentId: "elara-voss",
     quota: { resource: "Silicates", amount: 400 }
   },
@@ -1307,7 +1415,7 @@ const MISSION_TEMPLATES = [
     type: "Logistics",
     risk: "Medium",
     reward: "20,000 Credits",
-    text: "Station expansion projects require titanium for structural framework assembly. Deliver 250 units to satisfy this month's allotment schedule.",
+    text: "Station expansion projects require titanium for structural framework assembly. Deliver 250 units to satisfy this standing allotment.",
     agentId: "elara-voss",
     quota: { resource: "Titanium", amount: 250 }
   },
@@ -1540,7 +1648,7 @@ function getSeedState() {
         type: "Logistics",
         risk: "Low",
         reward: "12,000 Credits",
-        text: "Coordinator Voss requires 400 units of raw silicates delivered to her office for redistribution to ISA-contracted construction projects. Mine the quota from any active extraction lease and sell directly to the agent within the deadline.",
+        text: "The Bureau requires 400 units of raw silicates for redistribution to ISA-contracted construction projects. Mine the quota from any active extraction lease and deliver it to the Bureau when you have it.",
         canShiftControl: false,
         agentId: "elara-voss",
         quota: { resource: "Silicates", amount: 400 }
@@ -1758,14 +1866,15 @@ backfillCorpPublicIds();
   if (records.length) console.warn(`[investments] ${records.length} direct investment(s) from the removed route (Bug #689), left in place:`, JSON.stringify(records));
 }
 
+// A write runs 300 ms after the first unsaved change. Later changes ride on that write rather than restarting the wait:
+// restarting it meant nothing was written while changes kept coming (Bug #1447). The write reads the state when it
+// runs, so it carries every change made before it.
 function scheduleSave() {
-  if (saveTimer) {
-    clearTimeout(saveTimer);
-  }
+  if (saveTimer) return;
 
   saveTimer = setTimeout(() => {
-    safeWriteFile(statePath, JSON.stringify(state, null, 2));
     saveTimer = null;
+    safeWriteFile(statePath, JSON.stringify(state, null, 2));
   }, 300);
 }
 
@@ -1832,7 +1941,7 @@ export function getStationInventory(corp, stationId) {
 
 export { CEO_INSIGHT_LIBRARY };
 export { REFINERY_CHAINS };
-export { MISSION_TEMPLATES, refreshContractOfferings };
+export { MISSION_TEMPLATES, refreshContractOfferings, COMPLETED_COOLDOWN_MS };
 export { SYSTEM_DETAILS };
 export { BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_ASSET_VALUE, PROBE_FABRICATION_MS, BASE_MAX_PROBES, BASE_MAX_DEPLOYMENTS };
 
@@ -1887,14 +1996,37 @@ export function createCombatReport(payload) {
 }
 
 function sanitizeAccount(account) {
+  // The daily statements (AB#713) stay out: up to 90 days of them would ride on every response and socket event. They
+  // are served on their own by GET /finances/statements.
+  const { statements: _statements, ...state } = account.state || {};
   return {
     id: account.id,
     email: account.email,
     createdAt: account.createdAt,
     lastLoginAt: account.lastLoginAt || null,
     walkthroughCompleted: account.walkthroughCompleted,
-    state: deepClone(account.state)
+    state: deepClone(state)
   };
+}
+
+/** Close any day that has ended (AB#713), before the corporation is read or changed, so each movement lands on its day. */
+function closeFinancialDays(account, now = Date.now()) {
+  closeDueDays(account.state, now, state?.market || null);
+}
+
+/**
+ * The corporation's closed daily statements, newest first, at most `days` of them (1 to 90). Closes any day that has
+ * ended first, so a day missed while nobody looked is there on the next read. Null for an unknown account.
+ */
+export function getStatements(accountId, days = MAX_STATEMENTS, now = Date.now()) {
+  const account = accountsStore.accounts?.[accountId];
+  if (!account) return null;
+  closeFinancialDays(account, now);
+  scheduleAccountsSave();
+  const count = Math.max(1, Math.min(MAX_STATEMENTS, Math.floor(Number(days) || MAX_STATEMENTS)));
+  const all = Array.isArray(account.state.statements) ? account.state.statements : [];
+  const book = account.state.corp?.finances?.dayBook || null;
+  return { statements: deepClone(all.slice(-count).reverse()), today: book ? deepClone(book) : null };
 }
 
 function sanitizeNotification(notification) {
@@ -1927,15 +2059,33 @@ function pushSystemNotification(account, payload) {
   account.notifications = account.notifications.slice(0, 120);
 }
 
+// Bug #1097: payroll, settled by the mining ticker (server/index.js) for every account. Imported beside its use.
+import { settlePayroll, payrollNotice } from "./payroll.js";
+
+/**
+ * Charge an account's payroll up to `now`, and tell the player when wages go unpaid or are paid again. Only the
+ * ticker calls it, so reading an account, or a request that is refused, never changes it.
+ */
+export function settleAccountPayroll(accountId, now = Date.now()) {
+  const account = accountsStore.accounts?.[accountId];
+  if (!account?.state?.corp) return null;
+  const result = settlePayroll(account.state.corp, now);
+  const notice = payrollNotice(account.state.corp, result);
+  if (notice) pushSystemNotification(account, notice);
+  if (result.paid > 0 || notice) scheduleAccountsSave();
+  return result;
+}
+
 export function getAccountById(accountId) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) {
     return null;
   }
 
+  closeFinancialDays(account);
   applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
-  evaluateLevelProgress(account.state);
+  evaluateAccountLevel(accountId, account); // a read can raise the level too: mining settles here (Bug #1260)
   scheduleAccountsSave();
   return sanitizeAccount(account);
 }
@@ -1983,7 +2133,8 @@ export async function createAccount({ email, password, ceoName, corpName }) {
 
   const existing = Object.values(accountsStore.accounts || {}).find((item) => item.email === normalizedEmail);
   if (existing) {
-    return { error: "An account with this email already exists." };
+    // Bug #1059: the code lets the page offer the login instead.
+    return { error: "An account with this email already exists.", code: "email-taken" };
   }
 
   // Bug #433: the name is the only trust signal on the order book, the forums and in mail. Checked before anything is
@@ -2292,7 +2443,9 @@ export function sendPlayerMessage(fromAccountId, { toCorpId, toCorpName, subject
   });
 
   scheduleAccountsSave();
-  return { ok: true, toName };
+  // recipientAccountId is for the server alone: the send route uses it to pick the recipient's socket room (Bug #1130)
+  // and must never put it in a response or an event (Bug #1134).
+  return { ok: true, toName, recipientAccountId: recipient.id };
 }
 
 export function saveDraft(accountId, { draftId, toCorpId, toCorpName, subject, body }) {
@@ -2471,12 +2624,13 @@ export function mutateAccountState(accountId, mutator) {
     return null;
   }
 
+  closeFinancialDays(account);
   applyMiningOperations(account.state.corp);
   mutator(account.state);
   applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
   ensureCorpMiningModel(account.state.corp);
-  evaluateLevelProgress(account.state);
+  evaluateAccountLevel(accountId, account); // Bug #1260
   scheduleAccountsSave();
   return sanitizeAccount(account);
 }

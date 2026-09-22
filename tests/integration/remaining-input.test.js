@@ -21,6 +21,7 @@ const OUT_OF_SCOPE = {
   "POST /api/auth/refresh": "the refresh token is the whole input",
   "POST /api/auth/logout": "the refresh token is the whole input",
   "GET /api/auth/session": "no input",
+  "GET /healthz": "the health probe, with no input (AB#735)",
   "GET /api/bootstrap": "a public read with no input",
   "GET /api/stations": "a static catalog",
   "GET /api/buildings": "a static catalog",
@@ -99,6 +100,7 @@ const BASELINE = {
   "/api/accounts/:accountId": {
     "POST /notifications/:notificationId/read": { params: { notificationId: "n-732" } },
     "GET /corporations": { query: { name: "Frontier" } },
+    "GET /finances/statements": { query: { days: "7" } },
     "POST /messages/send": { body: { toCorpName: "Frontier", subject: "s", body: "b" } },
     "POST /messages/draft": { body: { subject: "s", body: "b" } },
     "DELETE /messages/draft/:draftId": { params: { draftId: "d-732" } },

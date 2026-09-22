@@ -132,6 +132,21 @@ The shared demo account (the "Log In To Dummy Account" button, shown on localhos
 
 Everything the server writes goes in one data directory: the accounts in `accounts-snapshot.json` and the shared world (market, forums, chat) in `state.json`. It is `data/` by default; set `ISP_DATA_DIR` to put it elsewhere, which is how the container keeps it on a mounted volume. The game's catalogues (stations, systems, research and the rest) are read from `data/` in the code either way. The server is one long-lived process: it always listens, on `PORT` (default 3000), and its sockets and tickers run for as long as it does. A graceful stop (Ctrl+C, or the SIGTERM a container platform sends) writes both files before it exits.
 
+### In a container
+
+The `Dockerfile` builds the image the Azure Container App runs (AB#735): Node 24, production dependencies only, running as the unprivileged `node` user. What the server writes goes to `/data` (`ISP_DATA_DIR`), so mount a volume there or it is lost with the container. `.dockerignore` keeps the accounts snapshot, `state.json` and `.env` out of the image.
+
+```bash
+docker build -t isp .
+docker volume create isp-data
+# isp.env holds one line, JWT_SECRET=<at least 32 bytes>; keep it out of the repository
+docker run -d --name isp -p 3000:3000 -v isp-data:/data --env-file isp.env isp
+curl http://localhost:3000/healthz        # {"ok":true}
+docker stop isp && docker start isp      # a stop writes /data first; accounts survive
+```
+
+Without `JWT_SECRET` the container refuses to start. `ISP_DEV=1` does not change that in the image, because the image sets `NODE_ENV=production`. `GET /healthz` answers `{"ok":true}` with no login and says nothing else; the image's HEALTHCHECK and the platform's probe use it.
+
 ---
 
 ## Project Structure

@@ -107,7 +107,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.tab-btn[data-tab="missions"]',
     renderedBy: "index.html",
     title: "My Bureau",
-    text: "Open Assignments: the Contracting & Assignments Bureau, where I work. Agents here issue contracts, each with a quota and a deadline. I keep a record of which corporations meet their terms, and I remember it.",
+    text: "Open Assignments: the Contracting & Assignments Bureau, where I work. Agents here issue contracts, each with a quota and a reward, and no clock: deliver when you have the goods. Every contract you complete raises your standing with the agent who issued it.",
     tab: "missions"
   },
   {
@@ -123,7 +123,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.tab-btn[data-tab="starmap"]',
     renderedBy: "index.html",
     title: "From here",
-    text: "That is the procedure, and you can take it from here. Open the starmap: every system, body and station the ISA administers. When your corporation outgrows Earth Station Prime, this is where you look next. Before that, once your corporation is established, come and see me on Deck 7. I have a Silicate Requisition Order — Batch 4-7A that needs an operator who delivers on schedule.",
+    text: "That is the procedure, and you can take it from here. Open the starmap: every system, body and station the ISA administers. When your corporation outgrows Earth Station Prime, this is where you look next. Before that, once your corporation is established, come and see me on Deck 7. I have a Silicate Requisition Order — Batch 4-7A that needs an operator who delivers what they sign for.",
     tab: "starmap",
     handoffContractId: "ms-log-001"
   }
@@ -201,4 +201,25 @@ export function chooseHighlight(step, find) {
     `.tab-btn[data-tab="${step.tab}"]`
   ];
   return { selector: candidates.find((c) => find(c).visible) || null, missing: false };
+}
+
+/** Space kept between the highlighted control and the edges of the band it is scrolled into, in CSS pixels. */
+export const WALKTHROUGH_SCROLL_MARGIN = 12;
+
+/**
+ * Bug #1083: how far to scroll the page so the highlighted control can be seen. The briefing card sits at the bottom
+ * of the screen, over more than half of it on a phone, and the sticky header covers the top; scrolling the control
+ * to the centre of the window put it behind the card. The clear band runs from the header's bottom to the card's
+ * top, or to the bottom of the window when the card is not in the control's column (a desktop, where the card sits
+ * to the right). Returns the pixels to scroll down (negative is up), and 0 when the control is already clear.
+ * Every argument is a viewport rectangle or number: { top, bottom, left, right }.
+ */
+export function walkthroughScrollDelta({ viewportHeight, headerBottom = 0, card = null, target }) {
+  const sharesColumn = card && card.right > target.left && card.left < target.right;
+  const bandTop = Math.max(0, headerBottom) + WALKTHROUGH_SCROLL_MARGIN;
+  const bandBottom = (sharesColumn ? Math.min(card.top, viewportHeight) : viewportHeight) - WALKTHROUGH_SCROLL_MARGIN;
+  if (target.top >= bandTop && target.bottom <= bandBottom) return 0;
+  const height = target.bottom - target.top;
+  if (height >= bandBottom - bandTop) return Math.round(target.top - bandTop); // too tall for the band: show its top
+  return Math.round((target.top + target.bottom) / 2 - (bandTop + bandBottom) / 2);
 }

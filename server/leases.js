@@ -53,3 +53,24 @@ export function unknownLeaseBodies(catalog, accounts) {
   }
   return n;
 }
+
+// ─── The bodies a corporation can still lease (Bug #1057) ─────────────────────
+// For the building-slot errors: public/scripts/slotAdvice.js words them, from this list.
+
+/**
+ * The bodies the corporation could still lease, each with the station whose ISA Claims & Leases Division files it:
+ * [{ body, station }]. Only bodies with a lease price, in a system the corporation can reach, and with a station.
+ */
+export function unleasedBodies(catalog, stations, corp) {
+  const leased = new Set((corp?.miningLeases || []).map((l) => String(l?.body || l).toLowerCase()));
+  const out = [];
+  for (const system of catalog || []) {
+    if (!systemAccessible(corp, system.id)) continue;
+    for (const body of system.bodies || []) {
+      if (!(Number(body.leaseCost) > 0) || leased.has(body.name.toLowerCase())) continue;
+      const station = (stations || []).find((s) => s.body === body.name);
+      if (station) out.push({ body: body.name, station: station.name });
+    }
+  }
+  return out;
+}
