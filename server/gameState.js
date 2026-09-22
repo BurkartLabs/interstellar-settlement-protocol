@@ -1871,14 +1871,15 @@ backfillCorpPublicIds();
   if (records.length) console.warn(`[investments] ${records.length} direct investment(s) from the removed route (Bug #689), left in place:`, JSON.stringify(records));
 }
 
+// A write runs 300 ms after the first unsaved change. Later changes ride on that write rather than restarting the wait:
+// restarting it meant nothing was written while changes kept coming (Bug #1447). The write reads the state when it
+// runs, so it carries every change made before it.
 function scheduleSave() {
-  if (saveTimer) {
-    clearTimeout(saveTimer);
-  }
+  if (saveTimer) return;
 
   saveTimer = setTimeout(() => {
-    safeWriteFile(statePath, JSON.stringify(state, null, 2));
     saveTimer = null;
+    safeWriteFile(statePath, JSON.stringify(state, null, 2));
   }, 300);
 }
 
