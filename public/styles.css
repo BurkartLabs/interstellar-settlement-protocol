@@ -20,6 +20,18 @@
   --surface: var(--cold-navy);
   --border: rgba(0, 247, 255, 0.18);
   --warn: var(--muted-amber);
+
+  /* AB#1113: names older code used, which nothing defined, so their colours silently never showed (refinery
+     warnings not amber, forum categories not cyan). Each is an alias of the palette above; new code uses the names
+     above. tests/unit/cssVariables.test.js fails on any var() that is neither defined nor given a fallback. */
+  --color-accent: var(--accent);
+  --color-warn: var(--warn);
+  --color-text: var(--text);
+  --color-border: var(--border);
+  --color-bg-deep: var(--void-black);
+  --text-primary: var(--text);
+  --text-secondary: var(--muted);
+  --foreground: var(--text);
 }
 
 * {
