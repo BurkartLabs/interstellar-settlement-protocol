@@ -1,4 +1,5 @@
 import { canReachSystem, travelResearchLock, travelResearchName } from "./navigation.js";
+import { bodyResourceHtml } from "./bodyInfo.js"; // AB#740: what the catalogue holds, not a hash of the name
 
 const CLUSTER_LAYOUT = {
   sol: { x: 0.16, y: 0.5 },
@@ -63,23 +64,6 @@ function hashSeed(input) {
 /** A scouted belt whose composition has not reached the page yet (Bug #1264): say so rather than show nothing. */
 export function scoutedBeltLoadingHtml() {
   return `<p class="muted" data-belt-composition="loading">Scouted. Loading composition…</p>`;
-}
-
-function generatedComposition(body) {
-  const seed = hashSeed(body.id);
-  const entries = [
-    { name: "Silicates", pct: 20 + (seed % 25) },
-    { name: "Nickel", pct: 8 + ((seed >> 2) % 18) },
-    { name: "Titanium", pct: 6 + ((seed >> 3) % 16) },
-    { name: "Water Ice", pct: 5 + ((seed >> 4) % 28) },
-    { name: "Helium-3", pct: 2 + ((seed >> 5) % 10) }
-  ];
-
-  const sum = entries.reduce((acc, item) => acc + item.pct, 0);
-  return entries.map((item) => ({
-    name: item.name,
-    pct: Math.round((item.pct / sum) * 100)
-  }));
 }
 
 function styleForBody(body) {
@@ -278,18 +262,6 @@ function asteroidPoint(systemId, bodyId, index, cx, cy, radius) {
   return { x, y, size, angle, ringRadius };
 }
 
-function asteroidComposition(seedKey) {
-  const seed = hashSeed(seedKey);
-  const profiles = [
-    "Silicate-rich",
-    "Nickel-iron",
-    "Carbonaceous",
-    "Volatile-rich",
-    "Mixed ore"
-  ];
-  return profiles[seed % profiles.length];
-}
-
 /** The Starmap canvas's backing store for a CSS box and devicePixelRatio (clamped to 1..2): one CSS pixel is dpr
  * backing pixels in both directions, so what is drawn at (x, y) is where a click at (x, y) lands. */
 export function canvasBackingSize(cssWidth, cssHeight, devicePixelRatio) {
@@ -307,8 +279,6 @@ export function createStarmapController({
   detailsEl,
   overlaySelect,
   resetButton,
-  onScoutBody,
-  isBodyScouted,
   onTravelToSystem,
   onDockAtStation,
   onScoutBelt,
@@ -957,10 +927,6 @@ export function createStarmapController({
     }
 
     if (state.view === "body" && system && body) {
-      const scouted = isBodyScouted ? Boolean(isBodyScouted(system.id, body.id)) : false;
-      const composition = generatedComposition(body)
-        .map((part) => `<li>${part.name}: ${part.pct}%</li>`)
-        .join("");
 
       // Find stations orbiting this body
       const bodyStations = state.stations.filter(
@@ -1100,25 +1066,10 @@ export function createStarmapController({
         // Non-field body (planet/moon)
         detailsEl.innerHTML = `
           <h3>${body.name} - ${system.name}</h3>
-          <p class="muted">Type: ${body.type} | Scouting Status: ${scouted ? "Completed" : "Unscouted"}</p>
-          ${
-            scouted
-              ? `<ul class="text-list">${composition}</ul>`
-              : `<p class="muted">Resource composition is unknown. You must scout this body first.</p>
-                 <button id="scout-body-btn" class="btn btn-accent">Scout Body</button>`
-          }
+          <p class="muted">Type: ${body.type}</p>
+          ${bodyResourceHtml(body, state.stations)}
           ${stationListHtml}
         `;
-      }
-
-      if (!scouted && body.type !== "Field") {
-        const scoutButton = detailsEl.querySelector("#scout-body-btn");
-        scoutButton?.addEventListener("click", () => {
-          if (onScoutBody) {
-            onScoutBody(system.id, body.id);
-          }
-          render();
-        });
       }
 
       // Bind dock buttons in starmap details
@@ -1143,14 +1094,18 @@ export function createStarmapController({
 
     if (state.view === "asteroid" && system && body) {
       const asteroidId = state.selectedAsteroidId || `${system.id}:${body.id}:ast-0`;
-      const profile = asteroidComposition(asteroidId);
       // Redirect asteroid detail view to the belt mining panel
       const beltKey = `${system.id}:${body.id}`;
       const am = state.asteroidMining || {};
+      // AB#740: the belt's surveyed composition from the server, or nothing; no longer a class drawn from a hash.
+      const surveyed = (am.scoutedBelts || []).includes(beltKey) && (am.beltCompositions || {})[beltKey];
+      const profile = surveyed
+        ? Object.entries(surveyed).sort((x, y) => y[1] - x[1]).map(([name, pct]) => `${name} ${pct}%`).join(", ")
+        : "Not surveyed (scout the belt)";
       const hasProspecting = state.unlockedTech.has("tt-asteroid-prospecting");
       detailsEl.innerHTML = `
         <h3>Asteroid Sample — ${body.name}</h3>
-        <p class="muted">Catalog ID: ${asteroidId.split(":").slice(-1)[0]} | Composition class: ${profile}</p>
+        <p class="muted">Catalog ID: ${asteroidId.split(":").slice(-1)[0]} | Belt composition: ${profile}</p>
         ${hasProspecting
           ? `<p class="muted" style="margin-top:0.5rem;">Use the belt-level view to launch mining expeditions to this asteroid field.</p>`
           : `<p class="muted" style="margin-top:0.5rem;">Research Asteroid Prospecting Arrays to unlock mining operations in this belt.</p>`

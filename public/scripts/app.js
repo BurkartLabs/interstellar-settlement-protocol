@@ -41,7 +41,6 @@ const appState = {
   mapMounted: false,
   walkthroughIndex: 0,
   activeTypewriter: null,
-  scoutedBodies: new Set(),
   feedbackLog: [],
   notifications: [],
   unreadNotifications: 0,
@@ -257,12 +256,6 @@ const starmap = createStarmapController({
   resetButton: document.getElementById("map-reset"),
   researchCatalog: techTree, // Bug #1270: the lock names the research a jump needs
   getCorpLevel: () => appState.data?.corp?.level || 0,
-  onScoutBody(systemId, bodyId) {
-    appState.scoutedBodies.add(`${systemId}:${bodyId}`);
-  },
-  isBodyScouted(systemId, bodyId) {
-    return appState.scoutedBodies.has(`${systemId}:${bodyId}`);
-  },
   async onTravelToSystem(systemId) {
     if (!appState.accountId) return;
     try {
