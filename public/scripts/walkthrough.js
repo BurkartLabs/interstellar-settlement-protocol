@@ -202,3 +202,24 @@ export function chooseHighlight(step, find) {
   ];
   return { selector: candidates.find((c) => find(c).visible) || null, missing: false };
 }
+
+/** Space kept between the highlighted control and the edges of the band it is scrolled into, in CSS pixels. */
+export const WALKTHROUGH_SCROLL_MARGIN = 12;
+
+/**
+ * Bug #1083: how far to scroll the page so the highlighted control can be seen. The briefing card sits at the bottom
+ * of the screen, over more than half of it on a phone, and the sticky header covers the top; scrolling the control
+ * to the centre of the window put it behind the card. The clear band runs from the header's bottom to the card's
+ * top, or to the bottom of the window when the card is not in the control's column (a desktop, where the card sits
+ * to the right). Returns the pixels to scroll down (negative is up), and 0 when the control is already clear.
+ * Every argument is a viewport rectangle or number: { top, bottom, left, right }.
+ */
+export function walkthroughScrollDelta({ viewportHeight, headerBottom = 0, card = null, target }) {
+  const sharesColumn = card && card.right > target.left && card.left < target.right;
+  const bandTop = Math.max(0, headerBottom) + WALKTHROUGH_SCROLL_MARGIN;
+  const bandBottom = (sharesColumn ? Math.min(card.top, viewportHeight) : viewportHeight) - WALKTHROUGH_SCROLL_MARGIN;
+  if (target.top >= bandTop && target.bottom <= bandBottom) return 0;
+  const height = target.bottom - target.top;
+  if (height >= bandBottom - bandTop) return Math.round(target.top - bandTop); // too tall for the band: show its top
+  return Math.round((target.top + target.bottom) / 2 - (bandTop + bandBottom) / 2);
+}
