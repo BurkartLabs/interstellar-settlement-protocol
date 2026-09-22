@@ -3352,7 +3352,24 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
   });
 });
 
+// Bug #1123: a request the server cannot read is the client's mistake, not a server fault. express.json() and the
+// router hand these on with a 4xx status (a body that is not JSON, too large, in a charset or content encoding it does
+// not take, or a path that does not decode); they are answered with that status and fixed text, never the parser's
+// message, the body or a stack. They reach here before any route runs, so nothing has changed. Everything else is 500.
+const CLIENT_ERROR_TEXT = {
+  "entity.parse.failed": "The request body is not valid JSON.",
+  "entity.too.large": "The request body is too large.",
+  "charset.unsupported": "The request body must be UTF-8.",
+  "encoding.unsupported": "The request body's content encoding is not supported."
+};
+
 app.use((error, _req, res, _next) => {
+  const status = Number(error?.status ?? error?.statusCode);
+  if (error?.expose !== false && status >= 400 && status < 500) {
+    console.warn(`[http] rejected request: ${status} ${error?.type || "client error"}`);
+    res.status(status).json({ error: CLIENT_ERROR_TEXT[error?.type] || "The request could not be read." });
+    return;
+  }
   console.error("[http] unhandled route error", error);
   res.status(500).json({ error: "Internal server error." });
 });
