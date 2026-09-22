@@ -1569,6 +1569,14 @@ app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
   res.json(account);
 });
 
+// Bug #1057: what a player can do when building slots run out, worked out from their own leases and level.
+import { unleasedBodies } from "./leases.js";
+import { leaseSlotsFullMessage, corporationSlotsFullMessage } from "../public/scripts/slotAdvice.js";
+import { MILESTONE_LEVELS } from "./gameState.js";
+const unleasedFor = (corp) => unleasedBodies(SYSTEMS_CATALOG, STATIONS_DATA.stations, corp);
+/** The corporation-slots message for this corporation, from its leases, what it can reach and the level table. */
+const corpSlotsFull = (corp) => corporationSlotsFullMessage(corp, unleasedFor(corp), MILESTONE_LEVELS);
+
 // ─── Lease-scoped: Build an extractor yard on a specific lease ──────────────
 app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (req, res) => {
   const { leaseId } = req.params;
@@ -1648,8 +1656,8 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
     const corp = account.state.corp;
     const messageMap = {
       "no-lease": "The specified lease could not be found on your account.",
-      "lease-slots-full": `This lease has used all ${slotInfo} building slots. Upgrade your lease tier or acquire an additional claim to expand capacity.`,
-      "no-corp-slot": `No corporation building slots available. Current usage: ${slotInfo}. Upgrade your headquarters or release an existing building.`,
+      "lease-slots-full": leaseSlotsFullMessage(corp, (corp.miningLeases || []).find((l) => l.id === leaseId), unleasedFor(corp)),
+      "no-corp-slot": corpSlotsFull(corp),
       "insufficient-credits": fundingRequirementMessage("Basic Extractor Yard construction", corp, BASE_BUILD_COST)
     };
     res.status(400).json({ error: messageMap[outcome] || "Build action failed." });
@@ -1854,8 +1862,10 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
   if (outcome !== "ok") {
     const corp = account.state.corp;
     const messageMap = {
-      "extractor-cap": `Basic Extractor Yard cap reached (${currentExtractorCount}/${extractorCap}). Additional capacity requires future corporation perks.`,
-      "no-slot": `Basic Extractor Yard requires 1 open building slot. Current usage: ${corp.buildings.length}/${corp.buildingSlots}.`,
+      // Bug #1195: no perk raises this cap; leases are where more extractors go. (No page button calls this route any
+      // more; the lease-scoped route below is the one players use.)
+      "extractor-cap": `Only ${extractorCap === 1 ? "one Basic Extractor Yard" : `${extractorCap} Basic Extractor Yards`} can be built outside a mining lease (${currentExtractorCount}/${extractorCap}). Build more on a lease: each lease holds 2, and the ISA Claims & Leases Division files them.`,
+      "no-slot": `A Basic Extractor Yard needs a free building slot. ${corpSlotsFull(corp)}`,
       "insufficient-credits": fundingRequirementMessage(
         "Basic Extractor Yard construction",
         corp,
@@ -1922,7 +1932,7 @@ app.post("/api/accounts/:accountId/gameplay/build-assembly-facility", (req, res)
     const msgs = {
       "missing-research": "Assembly & Fabrication Systems research is required before constructing an Assembly Facility.",
       "already-built": "Your corporation already operates an Assembly Facility.",
-      "no-slot": `No building slots available (${account.state.corp.buildings.length}/${account.state.corp.buildingSlots}).`,
+      "no-slot": `An Assembly Facility needs a free building slot. ${corpSlotsFull(account.state.corp)}`,
       "insufficient-credits": fundingRequirementMessage("Assembly Facility construction", account.state.corp, BUILD_COST)
     };
     res.status(400).json({ error: msgs[outcome] || "Build failed." });
@@ -2237,7 +2247,7 @@ app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
     const messageMap = {
       "missing-research": "Refinery construction requires Material Compression I and Nano-Lattice Weaving research.",
       "max-refineries": "You already operate the maximum of 2 refineries.",
-      "no-slot": `Refinery requires 1 open building slot. Current usage: ${corp.buildings.length}/${corp.buildingSlots}.`,
+      "no-slot": `A refinery needs a free building slot. ${corpSlotsFull(corp)}`,
       "insufficient-credits": fundingRequirementMessage("Refinery construction", corp, BUILD_COST)
     };
     res.status(400).json({ error: messageMap[outcome] || "Build action failed." });

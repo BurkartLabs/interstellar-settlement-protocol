@@ -74,7 +74,7 @@ function safeWriteFile(filePath, data) {
 
 // ─── Milestones: single source of truth from data/milestones.json ──────────
 const MILESTONES_DATA = JSON.parse(fs.readFileSync(milestonesPath, "utf8"));
-const MILESTONE_LEVELS = MILESTONES_DATA.levels;
+export const MILESTONE_LEVELS = MILESTONES_DATA.levels;
 // The top of the ladder is the highest level the data defines (Bug #424: the cap shown to players was a literal 40).
 export const MAX_DEFINED_LEVEL = Math.max(...MILESTONE_LEVELS.map((l) => l.level));           // [{level, requirements, unlocks}, ...]
 const MILESTONE_ROADMAP = MILESTONES_DATA.roadmap;          // ["Rent an Office", ...]

@@ -1518,6 +1518,22 @@ function bindOfficeActions(building, data) {
 
 // ─── ISA Claims & Leases Division ──────────────────────────────────────────
 
+// The bodies the ISA leases. Module level so a full lease can say which are left (Bug #1057).
+const LEASE_BODIES = [
+  { body: "Earth", cost: 20000, description: "Grants two (2) on-surface building slots for Basic Extractor Yard construction. Abundant mineral and silicate deposits across diverse terrain." },
+  { body: "Mars", cost: 25000, description: "Grants two (2) on-surface building slots for Basic Extractor Yard construction. Primary source of silicate deposits." },
+  { body: "Luna", cost: 30000, description: "Grants two (2) on-surface building slots. Lunar regolith operations with access to Helium-3 deposits." }
+];
+
+import { leaseFullAdvice } from "./slotAdvice.js";
+/** The bodies this corporation has not leased yet, each with the station that files it, for public/scripts/slotAdvice.js. */
+function unleasedBodiesForPage(corp) {
+  const leased = new Set((corp?.miningLeases || []).map((l) => l.body));
+  return LEASE_BODIES.filter((b) => !leased.has(b.body))
+    .map((b) => ({ body: b.body, station: (appState.stationRegistry || []).find((st) => st.body === b.body)?.name }))
+    .filter((b) => b.station);
+}
+
 function renderISAClaimsLeases(building, data) {
   const corp = data.corp;
   const station = getCurrentStationInfo(data);
@@ -1573,11 +1589,6 @@ function renderISAClaimsLeases(building, data) {
   }
 
   // Purchase section — only show bodies accessible from this station
-  const LEASE_BODIES = [
-    { body: "Earth", cost: 20000, description: "Grants two (2) on-surface building slots for Basic Extractor Yard construction. Abundant mineral and silicate deposits across diverse terrain." },
-    { body: "Mars", cost: 25000, description: "Grants two (2) on-surface building slots for Basic Extractor Yard construction. Primary source of silicate deposits." },
-    { body: "Luna", cost: 30000, description: "Grants two (2) on-surface building slots. Lunar regolith operations with access to Helium-3 deposits." }
-  ];
 
   const ownedBodies = new Set(leases.map((l) => l.body));
   const availableBodies = LEASE_BODIES.filter((b) => b.body === stationBody && !ownedBodies.has(b.body));
@@ -1813,7 +1824,7 @@ function renderLeaseManagement(building, lease, data) {
         </button>
         <p id="lease-build-extractor-status" class="muted action-hint"></p>
       </div>`
-    : `<p class="muted" style="margin-top:0.6rem;">This lease's building slots are fully allocated (${usedSlots}/${totalSlots}).</p>`;
+    : `<p class="muted" style="margin-top:0.6rem;">This lease's building slots are fully allocated (${usedSlots}/${totalSlots}). ${escapeHtml(leaseFullAdvice(corp, lease, unleasedBodiesForPage(corp)))}</p>`;
 
   const station = getCurrentStationInfo(data);
 
