@@ -105,10 +105,27 @@ describe("a scouted belt after a reload (Bug #1264)", () => {
     expect(scoutedBeltLoadingHtml()).toMatch(/Loading composition/);
   });
 
-  it("on load, the page hands the compositions to the Starmap when the fetch resolves", () => {
-    const app = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
-    const boot = app.slice(app.indexOf("async function refreshFromServer()"), app.indexOf("const serverState = await loadBootstrap();", app.indexOf("async function refreshFromServer()")));
-    expect(boot).toMatch(/refreshBeltCompositions\(\)\.then\(\(\) => starmap\.setAsteroidMining\(starmapMiningState\(appState\.data, appState\.beltCompositions\)\)\)/);
-    expect(app).toMatch(/starmap\.setAsteroidMining\(starmapMiningState\(data, appState\.beltCompositions\)\)/);
+  // app.js cannot load in node (it binds the DOM on import), so these read its source; the reload itself is looked at
+  // in the browser (the PR's screenshots). A reload runs boot -> restoreAuthenticatedSession -> enterGame, not
+  // refreshFromServer, which is where the first version of this fix went and why it did not work.
+  const app = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+  const body = (signature) => {
+    const at = app.indexOf(signature);
+    return app.slice(at, app.indexOf("\n}\n", at));
+  };
+
+  it("every entry into the game (log in, register, restore after a reload) fetches the compositions for the Starmap", () => {
+    const enter = body("function enterGame(");
+    expect(enter).toMatch(/appState\.beltCompositions = \{\};/);
+    expect(enter).toMatch(/if \(appState\.accountId\) loadBeltCompositionsIntoStarmap\(\);/);
+    expect(body("async function restoreAuthenticatedSession(")).toMatch(/enterGame\(/);
+    expect(body("async function refreshFromServer(")).toMatch(/loadBeltCompositionsIntoStarmap\(\);/);
+  });
+
+  it("when the fetch resolves, the compositions go to the Starmap", () => {
+    expect(body("function loadBeltCompositionsIntoStarmap(")).toMatch(
+      /refreshBeltCompositions\(\)\.then\(\(\) => starmap\.setAsteroidMining\(starmapMiningState\(appState\.data, appState\.beltCompositions\)\)\)/
+    );
+    expect(body("function updateAllViews(")).toMatch(/starmap\.setAsteroidMining\(starmapMiningState\(data, appState\.beltCompositions\)\)/);
   });
 });

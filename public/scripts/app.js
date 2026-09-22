@@ -498,6 +498,13 @@ async function refreshBeltCompositions() {
   } catch (_) { /* silent */ }
 }
 
+/** Bug #1264: fetch the revealed compositions and hand them to the Starmap when they land (it redraws an open belt
+ * panel). Called on every entry into the game (enterGame: log in, register, restore after a reload) and on refresh;
+ * before, a reload never fetched them, so a scouted belt showed neither its composition nor a Scout button. */
+function loadBeltCompositionsIntoStarmap() {
+  return refreshBeltCompositions().then(() => starmap.setAsteroidMining(starmapMiningState(appState.data, appState.beltCompositions)));
+}
+
 import { tradeConfirmRowsHtml, queueItemsHtml } from "./html.js"; // Bug #1002
 
 // ─── Trade confirmation modal ────────────────────────────────────────────────
@@ -5243,12 +5250,14 @@ function enterGame(mode, data, options = {}) {
   appState.walkthroughCompleted = Boolean(options.walkthroughCompleted);
   appState.data = deepClone(data);
   appState.activeMissions = appState.data.corp?.activeMissions || [];
+  appState.beltCompositions = {}; // Bug #1264: never another account's; this account's are fetched below
 
   if (appState.serverData) {
     applySharedState(appState.serverData);
   }
 
   persistSession();
+  if (appState.accountId) loadBeltCompositionsIntoStarmap(); // Bug #1264
 
   authShell.hidden = true;
   gameShell.hidden = false;
@@ -5395,9 +5404,7 @@ async function refreshFromServer() {
     applySharedState(serverState);
     appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
     appState.activeMissions = appState.data.corp?.activeMissions || [];
-    // Bug #1264: the compositions arrive after the first draw, so hand them to the Starmap when they land; before,
-    // a scouted belt showed neither its composition nor a Scout button until something else redrew the map.
-    refreshBeltCompositions().then(() => starmap.setAsteroidMining(starmapMiningState(appState.data, appState.beltCompositions)));
+    loadBeltCompositionsIntoStarmap(); // Bug #1264
     updateAllViews();
     return;
   }
