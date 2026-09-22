@@ -22,7 +22,8 @@ describe("one module per system (AB#737)", () => {
   });
 
   it("server/gameState.js only re-exports", () => {
-    const code = fs.readFileSync(path.join(ROOT, "server/gameState.js"), "utf8").split("\n").filter((l) => l.trim() && !l.startsWith("//"));
+    // Split on CRLF too: a Windows checkout has CRLF endings, and "$" does not match before "\r".
+    const code = fs.readFileSync(path.join(ROOT, "server/gameState.js"), "utf8").split(/\r?\n/).filter((l) => l.trim() && !l.startsWith("//"));
     for (const line of code) expect(line).toMatch(/^export \{[^}]+\} from "\.\/game\/[a-z]+\.js";$/);
   });
 
