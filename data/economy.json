@@ -1,0 +1,46 @@
+{
+  "employees": {
+    "hireCost": 2000,
+    "payrollPerDay": 150
+  },
+  "office": {
+    "rentPerDay": 1000,
+    "termDays": [7, 14, 21, 28]
+  },
+  "buildings": {
+    "extractorYardCost": 50000,
+    "extractorYardAssetValue": 36000,
+    "assemblyFacilityCost": 60000,
+    "assemblyFacilityAssetValue": 40000,
+    "refineryCost": 75000,
+    "refineryAssetValue": 55000,
+    "supplyForecastCostMultiplier": 0.94
+  },
+  "operations": {
+    "costPerThroughputUnit": 16,
+    "minCostPerHour": 600,
+    "startupShareOfHourlyCost": 0.35,
+    "minStartupCost": 500
+  },
+  "probes": {
+    "buildCost": 8000,
+    "assetValue": 5000
+  },
+  "expeditions": {
+    "launchCost": 3000
+  },
+  "exchange": {
+    "salesTaxPct": 8
+  },
+  "logistics": {
+    "feePerUnit": 2
+  },
+  "npcBuyers": [
+    { "item": "Silicates", "buyer": "GEX Commodities Authority", "unitPrice": 24, "dailyQty": 1000000 },
+    { "item": "Helium-3", "buyer": "Lunar Helium Consortium", "unitPrice": 92, "dailyQty": 250000 },
+    { "item": "Nickel", "buyer": "Belt Refining Cooperative", "unitPrice": 18, "dailyQty": 750000 },
+    { "item": "Titanium", "buyer": "Olympus Heavy Industries", "unitPrice": 64, "dailyQty": 400000 },
+    { "item": "Carbon", "buyer": "ISA Materials Exchange", "unitPrice": 12, "dailyQty": 1500000 },
+    { "item": "Rare Earths", "buyer": "Synthorium Trading House", "unitPrice": 140, "dailyQty": 120000 }
+  ]
+}

@@ -19,6 +19,7 @@ const milestonesPath = path.join(catalogueDir, "milestones.json");
 const PASSWORD_SALT_ROUNDS = 10;
 
 import { recordExpense, ensureFinanceTracking } from "./finances.js";
+import { ECONOMY, operationCostPerHourFor } from "./economy.js";
 import { unknownLeaseBodies } from "./leases.js";
 import { directInvestmentRecords } from "./legacyInvestments.js";
 import { validateCorporationName, SYSTEM_SENDERS, CORPORATION_NAME_MAX_LENGTH } from "./corporationName.js";
@@ -402,7 +403,7 @@ function ensureCorpMiningModel(corp) {
     // Only auto-fix throughput/cost if NOT active
     if (!extractor.active) {
       if (throughput <= 0) throughput = 40;
-      if (operationCost <= 0) operationCost = Math.max(600, Math.round(throughput * 16));
+      if (operationCost <= 0) operationCost = operationCostPerHourFor(throughput);
     }
     const normalized = {
       id: String(extractor.id || `ext-basic-${index + 1}`),
@@ -805,9 +806,9 @@ const EXPEDITION_DURATIONS = IS_DEV ? {
   extended: { label: "Deep Core Drill (2 hr)",     ms: 2 * 60 * 60 * 1000, tickYieldMultiplier: 1 }
 };
 
-const EXPEDITION_LAUNCH_COST = 3000;   // credits per expedition launch
-const PROBE_BUILD_COST = 8000;         // credits to fabricate one mining probe
-const PROBE_ASSET_VALUE = 5000;
+const EXPEDITION_LAUNCH_COST = ECONOMY.expeditions.launchCost;   // credits per expedition launch (data/economy.json)
+const PROBE_BUILD_COST = ECONOMY.probes.buildCost;               // credits to fabricate one mining probe
+const PROBE_ASSET_VALUE = ECONOMY.probes.assetValue;
 const PROBE_FABRICATION_MS = IS_DEV ? 10 * 1000 : 30 * 60 * 1000; // 10s dev, 30 min prod
 const BASE_MAX_PROBES = 2;             // Fleet Cap before Level 1 grants one (Bug #586)
 const FLEET_COORDINATION_TECH = "tt-fleet-coordination";
@@ -959,8 +960,8 @@ function hashSeedStr(input) {
 }
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
-// TODO(AB#726): Should this be hardcoded? Or should we store it in the database?
-const BASE_EXCHANGE_SALES_TAX_PCT = 8;
+// The base rate is in data/economy.json (AB#726); CEO insights lower it from there.
+const BASE_EXCHANGE_SALES_TAX_PCT = ECONOMY.exchange.salesTaxPct;
 
 export function getEffectiveExchangeTaxRate(state) {
   let taxPct = BASE_EXCHANGE_SALES_TAX_PCT;
@@ -1585,14 +1586,8 @@ function ensureStateFile() {
 // NPC buyers exist for every raw resource that currently has a refinery chain, so newly mined materials always have
 // a guaranteed sink.
 // TODO(AB#777): Reevaluate how we are storing the below information. Should it be hardcoded? Should it be more dynamic?
-const NPC_BUY_SEED = [
-  { item: "Silicates",   buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
-  { item: "Helium-3",    buyer: "Lunar Helium Consortium",   unitPrice: 92, dailyQty: 250000 },
-  { item: "Nickel",      buyer: "Belt Refining Cooperative", unitPrice: 18, dailyQty: 750000 },
-  { item: "Titanium",    buyer: "Olympus Heavy Industries",  unitPrice: 64, dailyQty: 400000 },
-  { item: "Carbon",      buyer: "ISA Materials Exchange",    unitPrice: 12, dailyQty: 1500000 },
-  { item: "Rare Earths", buyer: "Synthorium Trading House",  unitPrice: 140, dailyQty: 120000 }
-];
+// The exchange's NPC buyers and what they pay (data/economy.json, AB#726).
+const NPC_BUY_SEED = ECONOMY.npcBuyers;
 
 /**
  * Names no player may take (Bug #433): every name the game's own messages are signed with, and every NPC buyer on the
