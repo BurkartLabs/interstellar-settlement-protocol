@@ -2179,6 +2179,15 @@ textarea {
   font-size: 0.95rem;
 }
 
+/* Bug #1083: on a phone the card spans the width, so it must leave the upper half for what it points at (app.js
+   scrolls the control into the band above it); a long step scrolls inside the card instead. */
+@media (max-width: 767px) {
+  #walkthrough-modal .modal-card {
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+}
+
 /* While the briefing is up the page can scroll anything clear of the card (app.js sets the height it measures), so the
    card never hides for good what it is describing. */
 body.walkthrough-open {

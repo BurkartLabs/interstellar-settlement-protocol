@@ -5214,8 +5214,24 @@ function refreshWalkthroughHighlight() {
   }
   target.classList.add("walkthrough-focus");
   // Scroll only when the thing to do changes, not when a re-render redraws the same control under the player.
-  if (selector !== walkthroughTarget) target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+  if (selector !== walkthroughTarget) scrollWalkthroughTargetIntoView(target);
   walkthroughTarget = selector;
+}
+
+import { walkthroughScrollDelta } from "./walkthrough.js"; // Bug #1083 (here, apart from the top-of-file imports open PRs edit)
+
+// Bug #1083: into the band between the sticky header and the briefing card, not the centre of the window, where the
+// card is on a phone.
+function scrollWalkthroughTargetIntoView(target) {
+  const card = walkthroughModal.querySelector(".modal-card");
+  const header = document.querySelector(".app-header");
+  const delta = walkthroughScrollDelta({
+    viewportHeight: window.innerHeight,
+    headerBottom: header ? header.getBoundingClientRect().bottom : 0,
+    card: card ? card.getBoundingClientRect() : null,
+    target: target.getBoundingClientRect()
+  });
+  if (delta) window.scrollBy({ top: delta, behavior: "smooth" });
 }
 
 async function completeWalkthroughForAccount() {
