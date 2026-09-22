@@ -1,5 +1,9 @@
 # CODEBASE_MAP — interstellar-settlement-protocol
 
+> **2026-09-22, AB#737:** `server/gameState.js` is now split into `server/game/*.js` (catalog, shape, mining, refining,
+> asteroids, progression, corporation, world, store, messaging) and only re-exports them. The `gameState.js:<line>`
+> anchors below predate the split, as do its Supabase sections (removed in AB#578). Find a function by name.
+
 Generated 2026-09-20 from ten parallel subsystem reads of commit `4f92687`, at the start of the v0.5 Beta
 MVP pass. Each reader opened the actual files; every claim below carries a `file:line` anchor. **The code
 wins** — when this document and the source disagree, the source is right and this file is stale
