@@ -3556,7 +3556,7 @@ function renderAssets(data) {
 
 // ─── Logistics ───────────────────────────────────────────────────────────────
 // AB#717: the transfer rules, fee and history limit come from the module the server enforces them with.
-import { LOGISTICS_FEE_PER_UNIT, MAX_TRANSFER_LINES, transferFee, describeLines } from "./logistics.js";
+import { MAX_TRANSFER_LINES, transferFee, feePerUnit, stationHops, describeHops, describeLines } from "./logistics.js";
 
 function renderLogistics(data) {
   const station = getCurrentStationInfo(data);
@@ -3572,6 +3572,9 @@ function renderLogistics(data) {
   const credits = Number(data.corp?.finances?.credits || 0);
   const currentName = station?.name || "current station";
   const stationName = (id) => stationRegistry.find((st) => st.id === id)?.name || id;
+  // AB#718: the fee depends on how far the goods go. Null until the rates have loaded; the server quotes it then.
+  const rates = appState.logisticsRates || null;
+  const hopsFrom = (fromStation) => stationHops(stationRegistry, fromStation, currentStationId);
   // The last outcome on a station card (AB#717): errors name the fix, and survive the re-renders a tick causes.
   const status = appState.logisticsStatus || null;
   // Picks and typed quantities survive those re-renders too, until the transfer goes through.
@@ -3598,7 +3601,7 @@ function renderLogistics(data) {
       </div>
       <div class="logistics-summary-tile">
         <span class="logistics-summary-label">Transfer fee</span>
-        <span class="logistics-summary-value">${toCurrency(LOGISTICS_FEE_PER_UNIT)} / unit</span>
+        <span class="logistics-summary-value">${rates ? `${toCurrency(rates.sameSystemFeePerUnit)} / unit in system, +${toCurrency(rates.perJumpFeePerUnit)} a jump` : "By distance"}</span>
       </div>
       <div class="logistics-summary-tile">
         <span class="logistics-summary-label">Credits</span>
@@ -3615,6 +3618,10 @@ function renderLogistics(data) {
     const isCurrent = st.id === currentStationId;
     const badge = isCurrent ? `<span class="logistics-current-badge">Docked</span>` : "";
     const subhead = `${escapeHtml(st.body || "")}${st.systemId ? ` · ${escapeHtml(String(st.systemId).toUpperCase())}` : ""}`;
+    const hops = isCurrent ? null : hopsFrom(st.id);
+    const routeFee = rates && hops !== null && entries.length
+      ? `<p class="logistics-route-fee">Fee to ${escapeHtml(currentName)}: <strong>${toCurrency(feePerUnit(rates, hops))} per unit</strong> <span class="muted">(${escapeHtml(describeHops(hops))})</span></p>`
+      : "";
 
     let itemsHtml = "";
     if (!entries.length) {
@@ -3664,6 +3671,7 @@ function renderLogistics(data) {
           </div>
           <span class="logistics-station-sub muted">${subhead}</span>
         </header>
+        ${routeFee}
         ${itemsHtml}
         ${cardStatus}
       </section>`;
@@ -3705,8 +3713,10 @@ function renderLogistics(data) {
     const units = lines.reduce((s, l) => s + Math.max(0, Math.floor(Number(l.quantity) || 0)), 0);
     btn.disabled = lines.length === 0;
     btn.textContent = lines.length ? `Move ${lines.length} picked → ${currentName}` : "Move picked items";
+    const hops = hopsFrom(fromStation);
+    const fee = rates && hops !== null ? `fee ${toCurrency(transferFee(rates, hops, [{ quantity: units }]))}` : "fee quoted when you move";
     feeEl.textContent = lines.length
-      ? `${units.toLocaleString()} units, fee ${toCurrency(transferFee([{ quantity: units }]))}${lines.length > MAX_TRANSFER_LINES ? `. At most ${MAX_TRANSFER_LINES} items per transfer.` : ""}`
+      ? `${units.toLocaleString()} units, ${fee}${lines.length > MAX_TRANSFER_LINES ? `. At most ${MAX_TRANSFER_LINES} items per transfer.` : ""}`
       : `Pick up to ${MAX_TRANSFER_LINES} items to move together.`;
   };
   const remember = (el) => {
@@ -5336,6 +5346,8 @@ async function loadStationRegistry() {
     if (stationsRes.ok) {
       const data = await stationsRes.json();
       appState.stationRegistry = data.stations || [];
+      // AB#718: the transfer rates the server charges by, so the Logistics tab quotes the same fee.
+      appState.logisticsRates = data.logistics || null;
     }
     if (buildingsRes.ok) {
       const data = await buildingsRes.json();
