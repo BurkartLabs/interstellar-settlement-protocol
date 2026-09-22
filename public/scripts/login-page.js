@@ -1,7 +1,10 @@
+import { loginErrorMessage, loginFormProblem, showMessage } from "./authMessages.js";
+
 const loginForm = document.getElementById("login-form");
 const loginStatus = document.getElementById("login-status");
 const dummyLoginButton = document.getElementById("dummy-login-btn");
 // TODO(AB#738): Move IS_DEV_ACCESS duplicate to a single file
+// The demo account exists only on a developer's server (ISP_DEV=1, never in production), so its button shows only there.
 const IS_DEV_ACCESS =
   new URL(window.location.href).searchParams.get("dev") === "1" ||
   window.location.hostname === "localhost" ||
@@ -25,7 +28,7 @@ async function goToDummyProfile() {
     return;
   }
 
-  loginStatus.textContent = "Authorizing temporary sandbox access...";
+  loginStatus.textContent = "Opening the demo account...";
 
   try {
     const response = await fetch("/api/auth/dummy-login", {
@@ -34,7 +37,7 @@ async function goToDummyProfile() {
     });
 
     if (!response.ok) {
-      loginStatus.textContent = "Dummy access is currently unavailable.";
+      loginStatus.textContent = "The demo account is not available on this server (it needs ISP_DEV=1).";
       return;
     }
 
@@ -44,7 +47,7 @@ async function goToDummyProfile() {
     localStorage.setItem(STORAGE_KEYS.refreshToken, payload.refreshToken);
     window.location.href = `/?account=${encodeURIComponent(payload.account.id)}`;
   } catch {
-    loginStatus.textContent = "Dummy access failed. Try again.";
+    loginStatus.textContent = "The demo account could not be reached. Try again.";
   }
 }
 
@@ -60,38 +63,37 @@ if (loginForm) {
     const email = String(formData.get("email") || "").trim();
     const password = String(formData.get("password") || "");
 
-    if (!email || !password) {
-      loginStatus.textContent = "Enter both email and password to continue.";
-      return;
-    }
-
-    if (password.length < 8) {
-      loginStatus.textContent = "Password must be at least 8 characters.";
+    const problem = loginFormProblem({ email, password });
+    if (problem) {
+      loginStatus.textContent = problem;
       return;
     }
 
     loginStatus.textContent = "Authenticating corporate profile...";
 
+    let response;
     try {
-      const response = await fetch("/api/auth/login", {
+      response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
       });
-
-      if (!response.ok) {
-        loginStatus.textContent = "Invalid credentials. Use the dummy account button for temporary access.";
-        return;
-      }
-
-      const payload = await response.json();
-      localStorage.setItem(STORAGE_KEYS.accountId, payload.account.id);
-      localStorage.setItem(STORAGE_KEYS.accessToken, payload.accessToken);
-      localStorage.setItem(STORAGE_KEYS.refreshToken, payload.refreshToken);
-      window.location.href = `/?account=${encodeURIComponent(payload.account.id)}`;
     } catch {
-      loginStatus.textContent = "Login service unavailable. Try again or use temporary dummy access.";
+      showMessage(loginStatus, loginErrorMessage(0));
+      return;
     }
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      showMessage(loginStatus, loginErrorMessage(response.status, payload));
+      return;
+    }
+
+    const payload = await response.json();
+    localStorage.setItem(STORAGE_KEYS.accountId, payload.account.id);
+    localStorage.setItem(STORAGE_KEYS.accessToken, payload.accessToken);
+    localStorage.setItem(STORAGE_KEYS.refreshToken, payload.refreshToken);
+    window.location.href = `/?account=${encodeURIComponent(payload.account.id)}`;
   });
 }
 

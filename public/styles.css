@@ -20,6 +20,18 @@
   --surface: var(--cold-navy);
   --border: rgba(0, 247, 255, 0.18);
   --warn: var(--muted-amber);
+
+  /* AB#1113: names older code used, which nothing defined, so their colours silently never showed (refinery
+     warnings not amber, forum categories not cyan). Each is an alias of the palette above; new code uses the names
+     above. tests/unit/cssVariables.test.js fails on any var() that is neither defined nor given a fallback. */
+  --color-accent: var(--accent);
+  --color-warn: var(--warn);
+  --color-text: var(--text);
+  --color-border: var(--border);
+  --color-bg-deep: var(--void-black);
+  --text-primary: var(--text);
+  --text-secondary: var(--muted);
+  --foreground: var(--text);
 }
 
 * {
@@ -563,6 +575,15 @@ body {
   min-height: 1.35rem;
   color: #9ed4e7;
   font-size: 0.84rem;
+}
+
+/* Bug #1059: the next step after an error, and the links in the intro copy. */
+.login-status-link,
+.login-copy a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .login-actions {
@@ -1552,6 +1573,73 @@ h1 {
 .finance-table .num--positive { color: #6cf0c2; }
 .finance-table .num--negative { color: #f06a77; }
 
+/* Daily statements (AB#714): the books closed at 00:00 UTC, a day at a time. */
+.finance-statements {
+  margin-top: 0.95rem;
+  padding: 0.85rem 0.95rem;
+  background: rgba(10, 31, 46, 0.5);
+  border: 1px solid rgba(0, 247, 255, 0.14);
+  border-radius: 6px;
+}
+
+.finance-statements__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin-bottom: 0.7rem;
+}
+
+.finance-statements__head h3 { margin: 0 0 0.15rem; }
+
+.finance-statements__picker {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  min-width: 0;
+}
+
+.finance-statements__picker select { min-width: 14rem; max-width: 100%; }
+
+.statement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.7rem;
+}
+
+.statement-card .chart-card__head { flex-direction: column; align-items: flex-start; gap: 0.15rem; }
+.statement-card h4 { margin: 0; font-size: 0.95rem; }
+
+.finance-table .statement-heading th { padding-top: 0.6rem; }
+.finance-table .statement-heading--in th { color: #6cf0c2; }
+.finance-table .statement-heading--out th { color: #f0a06a; }
+
+.finance-table .statement-total td {
+  border-top: 1px solid rgba(0, 247, 255, 0.35);
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.finance-table .statement-muted td { color: var(--text-muted); }
+
+.statement-empty {
+  padding: 1rem 1.1rem;
+  border: 1px dashed rgba(0, 247, 255, 0.25);
+  border-radius: 6px;
+}
+
+.statement-empty p { margin: 0 0 0.35rem; }
+.statement-empty .num--positive { color: #6cf0c2; }
+.statement-empty .num--negative { color: #f06a77; }
+
+@media (max-width: 600px) {
+  .finance-statements__picker, .finance-statements__picker select { width: 100%; min-width: 0; }
+}
+
 .inline-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -2156,6 +2244,15 @@ textarea {
 
 #walkthrough-modal .lede {
   font-size: 0.95rem;
+}
+
+/* Bug #1083: on a phone the card spans the width, so it must leave the upper half for what it points at (app.js
+   scrolls the control into the band above it); a long step scrolls inside the card instead. */
+@media (max-width: 767px) {
+  #walkthrough-modal .modal-card {
+    max-height: 45vh;
+    overflow-y: auto;
+  }
 }
 
 /* While the briefing is up the page can scroll anything clear of the card (app.js sets the height it measures), so the
@@ -2786,7 +2883,7 @@ body.walkthrough-open {
 /* ── Prominent Facility Cards (Assembly, Refinery) ── */
 #station-facility-buildings {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); /* Bug #1283: a phone leaves the grid ~309px */
   gap: 1rem;
 }
 
@@ -2841,6 +2938,19 @@ body.walkthrough-open {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* Bug #1253: why Construct cannot be used yet, and a button that looks as unusable as it is. */
+.facility-blocked {
+  margin: 0;
+  color: var(--warn);
+  font-size: 0.9rem;
+}
+
+.facility-card .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .building-card {
@@ -4563,6 +4673,13 @@ body.walkthrough-open {
   color: var(--text);
 }
 
+/* Bug #1058: what to do while the quota is short. */
+.mission-quota-hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--text);
+}
+
 /* ─── Mission location tags ──────────────────────────────── */
 .mission-location-tag {
   font-size: 0.65rem;
@@ -4606,7 +4723,10 @@ body.walkthrough-open {
 /* ─── Agent card (bureau hub) ────────────────────────────── */
 .agent-card {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  width: 30em;
+  /* AB#1055: a fixed 30em ran out of the Assignments board (320 px on desktop, 94 px on a phone); now it fills the
+     board up to 30em */
+  width: 100%;
+  max-width: 30em;
 }
 
 .agent-card:hover,
@@ -5666,4 +5786,126 @@ tr.npc-order-exhausted {
 .compose-candidate.is-selected {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* ─── Start here (AB#1056) ─── */
+/* The Station's first action, shown above the station description until the corporation has an office. */
+.start-here {
+  margin: 0.8rem 0 1rem;
+  border: 1px solid var(--accent);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+.start-here .overline,
+.start-here p {
+  margin: 0;
+}
+.start-here p:not(.overline) {
+  flex: 1 1 22rem;
+}
+
+/* ─── Phone: one row of tabs (AB#1056) ─── */
+/* At phone width the fifteen tabs wrapped into six rows and pushed every panel's first action below the fold. One row
+   that scrolls sideways; the tab cut off at the right edge says there is more. 767px matches NARROW_MAX_WIDTH in
+   public/scripts/firstAction.js. */
+@media (max-width: 767px) {
+  .tab-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: thin;
+  }
+  .tab-btn {
+    flex: 0 0 auto;
+  }
+}
+
+/* ─── Overview: milestones first (AB#1056) ─── */
+/* At levels 0 to 2 the milestones are moved to the top of the Overview; the gap a card gets between siblings is not
+   wanted above the first one, and a heading after it needs the gap instead. */
+#overview > .form-card:first-child {
+  margin-top: 0;
+}
+#overview > .form-card:first-child + h2 {
+  margin-top: 1.6rem;
+}
+
+/* ─── Galactic Exchange: tables side by side only when they fit (AB#1055, AB#1165) ─── */
+/* Sell Orders and Create Listing sat side by side from 500 px of panel, while each table needs about 520 px: at
+   1280x800 the Buy and Create Listing buttons were outside their cards. Two columns only when each card can hold its
+   table; below that they stack full width. */
+.exchange-layout {
+  grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr));
+}
+
+/* ─── Phone: panels fill the screen (AB#1055) ─── */
+/* Whole panels were capped with vw max-widths, a design choice on a desktop that a phone turns into a column 94 to
+   188 px wide. At phone width they fill the space they are given. tests/unit/phonePanels.test.js derives the list of
+   capped rules from this stylesheet, so a new one added above without a line here fails the suite. 767px is
+   NARROW_MAX_WIDTH in public/scripts/firstAction.js. */
+@media (max-width: 767px) {
+  #inbox,
+  #chat,
+  #map-details,
+  #forum-overview-view,
+  #agent-office-view,
+  #missions-board-view,
+  .mission-card {
+    max-width: none;
+  }
+  /* the ISA Claims lease cards: a 280 px minimum and 300 px columns ran past a 309 px view */
+  .lease-card-grid {
+    grid-template-columns: 1fr;
+  }
+  #station-building-content.icl-bg .form-card .lease-card {
+    min-width: 0;
+  }
+  /* The Exchange tables with an action in every row: a six-column table does not fit 280 px, and the Buy and Create
+     Listing buttons were off to the right. One card per row; each cell names its column (tableLabels.js). */
+  .data-table--stack thead {
+    display: none;
+  }
+  .data-table--stack,
+  .data-table--stack tbody,
+  .data-table--stack tr,
+  .data-table--stack td {
+    display: block;
+    width: 100%;
+    min-width: 0; /* .data-table sets 520px, which is the width this layout exists to escape */
+  }
+  .data-table--stack tr {
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table--stack td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.2rem 0;
+    border: 0;
+    text-align: right;
+  }
+  .data-table--stack td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    text-align: left;
+    font-size: 0.8rem;
+  }
+  .data-table--stack .sell-input {
+    width: 7rem;
+    min-width: 0;
+  }
+}
+
+/* Bug #1132: a quoted post inside a forum reply, as Quote writes it ("> " lines). */
+.thread-card__body .forum-quote {
+  margin: 0 0 0.6rem;
+  padding: 0.35rem 0.75rem;
+  border-left: 3px solid rgba(0, 247, 255, 0.45);
+  background: rgba(0, 247, 255, 0.05);
+  color: var(--text-muted);
+  font-size: 0.92em;
 }

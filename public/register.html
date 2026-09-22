@@ -13,7 +13,7 @@
     />
     <link rel="stylesheet" href="styles.css" />
     <script src="scripts/starfield.js" defer></script>
-    <script src="scripts/register-page.js" defer></script>
+    <script type="module" src="scripts/register-page.js"></script>
   </head>
   <body>
     <canvas id="starfield-canvas" aria-hidden="true"></canvas>
@@ -27,6 +27,7 @@
         <p class="login-copy">
           File your corporation charter below to establish a new command identity, register a secure account,
           and enter the Interstellar Settlement Protocol under your own executive authority.
+          Already registered? <a href="/login.html">Log in</a>.
         </p>
 
         <form id="register-form" class="login-form" novalidate>

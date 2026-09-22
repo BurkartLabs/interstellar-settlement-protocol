@@ -1,11 +1,16 @@
 import { WALKTHROUGH_STEPS as walkthroughSteps } from "./walkthrough.js";
 import { chooseHighlight, nextStepIndex } from "./walkthrough.js";
+import { tradeNumbers } from "./exchangeView.js"; // AB#1164, on a line of its own away from the imports other branches add
 import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
+import { suggestedListingPrice } from "./suggestedPrice.js"; // AB#1166, on a line of its own away from other branches' imports
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
+import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft, mergeThread } from "./forumActions.js";
 import { createStarmapController } from "./starmap.js";
-import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
+import { escapeHtml, notificationItemsHtml, messageListItemsHtml, forumPostBodyHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
+import { stationStartPromptHtml, milestonesFirst, sidebarStartsCollapsed, revealScroll } from "./firstAction.js"; // AB#1056
+import { labelTableCells } from "./tableLabels.js"; // AB#1055
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "./ceoEffects.js";
 import { missionRewardCredits } from "./ceoEffects.js"; // Bug #1009: its own line, after the others, so parallel branches adding imports do not collide
@@ -32,11 +37,10 @@ const appState = {
   walkthroughCompleted: false,
   textOnly: false,
   chatChannel: "global",
-  chatAutoScrollOnNextRender: false,
+  chatOwnLinePending: false, // Bug #1135: the player just sent a line, so the next redraw shows the newest
   mapMounted: false,
   walkthroughIndex: 0,
   activeTypewriter: null,
-  scoutedBodies: new Set(),
   feedbackLog: [],
   notifications: [],
   unreadNotifications: 0,
@@ -52,6 +56,7 @@ const appState = {
   // Persists user-edited refinery quantity so re-renders (every tick) don't
   // overwrite what the user is typing.
   refineQuantityOverrides: {},
+  refineQuantityErrors: {}, // AB#1255: why Start Run refused a chain's quantity, shown under its field until it is edited
   miningUiTicker: null,
   stationRegistry: [],
   buildingRegistry: [],
@@ -249,12 +254,8 @@ const starmap = createStarmapController({
   detailsEl: document.getElementById("map-details"),
   overlaySelect: document.getElementById("map-overlay"),
   resetButton: document.getElementById("map-reset"),
-  onScoutBody(systemId, bodyId) {
-    appState.scoutedBodies.add(`${systemId}:${bodyId}`);
-  },
-  isBodyScouted(systemId, bodyId) {
-    return appState.scoutedBodies.has(`${systemId}:${bodyId}`);
-  },
+  researchCatalog: techTree, // Bug #1270: the lock names the research a jump needs
+  getCorpLevel: () => appState.data?.corp?.level || 0,
   async onTravelToSystem(systemId) {
     if (!appState.accountId) return;
     try {
@@ -301,7 +302,7 @@ const starmap = createStarmapController({
       appState.data = deepClone(account.state);
       await refreshBeltCompositions();
       updateAllViews();
-      pushFeedback(`Asteroid belt scouted: ${beltKey}`, "ok");
+      pushFeedback(beltScoutedText(beltKey, appState.data?.world?.systems), "ok"); // AB#1257: names, not "sol:belt"
     } catch (err) {
       pushFeedback(err.message || "Belt scouting failed.", "warn");
     }
@@ -486,6 +487,8 @@ function deepClone(input) {
   return JSON.parse(JSON.stringify(input));
 }
 
+import { starmapMiningState } from "./beltCompositions.js"; // Bug #1264 (placed here, apart from the imports at the top that parallel PRs edit)
+
 // TODO(AB#1050): Ensure this function is updated when we make asteroid belts dynamic
 async function refreshBeltCompositions() {
   if (!appState.accountId) return;
@@ -498,7 +501,15 @@ async function refreshBeltCompositions() {
   } catch (_) { /* silent */ }
 }
 
+/** Bug #1264: fetch the revealed compositions and hand them to the Starmap when they land (it redraws an open belt
+ * panel). Called on every entry into the game (enterGame: log in, register, restore after a reload) and on refresh;
+ * before, a reload never fetched them, so a scouted belt showed neither its composition nor a Scout button. */
+function loadBeltCompositionsIntoStarmap() {
+  return refreshBeltCompositions().then(() => starmap.setAsteroidMining(starmapMiningState(appState.data, appState.beltCompositions)));
+}
+
 import { tradeConfirmRowsHtml, queueItemsHtml } from "./html.js"; // Bug #1002
+import { scheduleRndQueue, nextRndStart, rndItemStatus, formatHoursMinutes } from "./rndQueue.js"; // Bug #1258
 
 // ─── Trade confirmation modal ────────────────────────────────────────────────
 function getClientExchangeTaxPct() {
@@ -574,7 +585,17 @@ function bindRippleEffect() {
   });
 }
 
-function bindCollapsibleSections() {  document.querySelectorAll(".section-toggle").forEach((button) => {
+function bindCollapsibleSections() {
+  // AB#1056: at phone width the sidebar filled the first screen, so it starts collapsed there; its toggles still open it
+  if (sidebarStartsCollapsed(window.innerWidth)) {
+    document.querySelectorAll(".side-panel .section-toggle").forEach((button) => {
+      const content = document.getElementById(button.getAttribute("aria-controls") || "");
+      if (!content) return;
+      button.setAttribute("aria-expanded", "false");
+      content.hidden = true;
+    });
+  }
+  document.querySelectorAll(".section-toggle").forEach((button) => {
     button.addEventListener("click", () => {
       const controlsId = button.getAttribute("aria-controls");
       const content = controlsId ? document.getElementById(controlsId) : null;
@@ -843,58 +864,6 @@ function getAllInventory() {
     appState.data.corp.inventory = {};
   }
   return appState.data.corp.inventory;
-}
-
-/**
- * Compute the average market unit price per item across:
- *   - active player sell listings on the order book
- *   - active NPC buy orders
- *   - the most recent trade history entries
- * Returns a map keyed by item name. Items with no signal are absent so callers
- * can fall back to a hard-coded default.
- */
-function computeAverageMarketPrice(data) {
-  const totals = {};
-  const counts = {};
-  const accumulate = (item, price, weight = 1) => {
-    const p = Number(price);
-    if (!item || !Number.isFinite(p) || p <= 0) return;
-    totals[item] = (totals[item] || 0) + p * weight;
-    counts[item] = (counts[item] || 0) + weight;
-  };
-
-  // Weight NPC buy orders heavily — they're the published "fair value" floor
-  // set by the GEX commodities authority. Player sell listings (which can be
-  // dumped low to undercut competitors) and recent trades nudge the average,
-  // but should not drag the suggested price below the standing NPC bid.
-  const orderBook = data?.market?.orderBook || [];
-  for (const o of orderBook) accumulate(o.item, o.unitPrice, 1);
-
-  const npcBuy = data?.market?.npcBuyOrders || [];
-  for (const o of npcBuy) accumulate(o.item, o.unitPrice, 5);
-
-  const trades = (data?.corp?.tradeHistory || []).slice(0, 50);
-  for (const t of trades) accumulate(t.item, t.unitPrice, 1);
-
-  // Build the weighted average, then floor it at the best NPC bid so the
-  // suggested price never undercuts the guaranteed buyer.
-  const npcFloorByItem = {};
-  for (const o of npcBuy) {
-    const p = Number(o.unitPrice);
-    if (!o.item || !Number.isFinite(p) || p <= 0) continue;
-    npcFloorByItem[o.item] = Math.max(npcFloorByItem[o.item] || 0, p);
-  }
-
-  const result = {};
-  for (const item of Object.keys(totals)) {
-    const avg = totals[item] / counts[item];
-    result[item] = Math.max(avg, npcFloorByItem[item] || 0);
-  }
-  // Items that only have an NPC bid (no trades / no listings) still surface.
-  for (const item of Object.keys(npcFloorByItem)) {
-    if (result[item] == null) result[item] = npcFloorByItem[item];
-  }
-  return result;
 }
 
 function availableTechNodes(data) {
@@ -1407,6 +1376,8 @@ function bindOfficeActions(building, data) {
           appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
           updateAllViews();
           showStationBuilding(building.id);
+          // AB#1056: hiring is the next thing to do, and on a phone its form sat a screen and a half down
+          revealUnderHeader(document.getElementById("office-hire-form")?.closest(".form-card"));
         } else {
           const cost = officeLeaseCost(durationDays);
           if ((appState.data.corp.finances.credits || 0) < cost) {
@@ -1530,6 +1501,22 @@ function bindOfficeActions(building, data) {
 
 // ─── ISA Claims & Leases Division ──────────────────────────────────────────
 
+// The bodies the ISA leases. Module level so a full lease can say which are left (Bug #1057).
+const LEASE_BODIES = [
+  { body: "Earth", cost: 20000, description: "Grants two (2) on-surface building slots for Basic Extractor Yard construction. Abundant mineral and silicate deposits across diverse terrain." },
+  { body: "Mars", cost: 25000, description: "Grants two (2) on-surface building slots for Basic Extractor Yard construction. Primary source of silicate deposits." },
+  { body: "Luna", cost: 30000, description: "Grants two (2) on-surface building slots. Lunar regolith operations with access to Helium-3 deposits." }
+];
+
+import { leaseFullAdvice } from "./slotAdvice.js";
+/** The bodies this corporation has not leased yet, each with the station that files it, for public/scripts/slotAdvice.js. */
+function unleasedBodiesForPage(corp) {
+  const leased = new Set((corp?.miningLeases || []).map((l) => l.body));
+  return LEASE_BODIES.filter((b) => !leased.has(b.body))
+    .map((b) => ({ body: b.body, station: (appState.stationRegistry || []).find((st) => st.body === b.body)?.name }))
+    .filter((b) => b.station);
+}
+
 function renderISAClaimsLeases(building, data) {
   const corp = data.corp;
   const station = getCurrentStationInfo(data);
@@ -1556,7 +1543,7 @@ function renderISAClaimsLeases(building, data) {
   // Active leases section
   let leasesHtml = "";
   if (leases.length === 0) {
-    leasesHtml = `<p class="muted" style="margin-top:0.4rem;">No active extraction claims on file. Submit a lease application below to begin.</p>`;
+    leasesHtml = `<p class="muted" style="margin-top:0.4rem;">${escapeHtml(claimsNoLeasesText(hasOffice))}</p>`; // Bug #1060
   } else {
     leasesHtml = `<div class="lease-card-grid">`;
     for (const lease of leases) {
@@ -1585,11 +1572,6 @@ function renderISAClaimsLeases(building, data) {
   }
 
   // Purchase section — only show bodies accessible from this station
-  const LEASE_BODIES = [
-    { body: "Earth", cost: 20000, description: "Grants two (2) on-surface building slots for Basic Extractor Yard construction. Abundant mineral and silicate deposits across diverse terrain." },
-    { body: "Mars", cost: 25000, description: "Grants two (2) on-surface building slots for Basic Extractor Yard construction. Primary source of silicate deposits." },
-    { body: "Luna", cost: 30000, description: "Grants two (2) on-surface building slots. Lunar regolith operations with access to Helium-3 deposits." }
-  ];
 
   const ownedBodies = new Set(leases.map((l) => l.body));
   const availableBodies = LEASE_BODIES.filter((b) => b.body === stationBody && !ownedBodies.has(b.body));
@@ -1602,7 +1584,12 @@ function renderISAClaimsLeases(building, data) {
   } else if (!hasLocalBodies) {
     purchaseHtml = `<p class="muted">No extraction zones are available at ${escapeHtml(station?.name || "this station")}. Travel to a station orbiting a resource-bearing body to file new lease applications.</p>`;
   } else if (availableBodies.length === 0) {
-    purchaseHtml = `<p class="muted">All extraction zones available from this station have been claimed by your corporation.</p>`;
+    // Bug #1060: say where the other leases are filed, by station name from the registry.
+    purchaseHtml = `<p class="muted">${escapeHtml(claimsAllTakenText({
+      offeredBodies: LEASE_BODIES.map((b) => b.body),
+      ownedBodies: allLeases.map((l) => l.body), // every lease held, not only this station's
+      stations: appState.stationRegistry || []
+    }))}</p>`;
   } else {
     purchaseHtml = availableBodies.map((entry) => {
       const canAfford = (corp?.finances?.credits || 0) >= entry.cost;
@@ -1684,6 +1671,37 @@ function bindISAClaimsLeasesActions(building, data) {
   });
 }
 
+// Bug #1091: the running figures, shared by the lease view and its live refresh. Imported beside their use.
+import { activeCycleFigures, extractorState } from "./leaseLive.js";
+
+/**
+ * Refresh the open lease view's running figures from the latest extractors, in place, so a Start Cycle form being
+ * filled in is not wiped. When an extractor changes state (a cycle ends or breaks down) the row's layout changes,
+ * so the view is redrawn instead. Does nothing when no lease view is open.
+ */
+function refreshOpenLeaseView(extractors) {
+  const rows = document.querySelectorAll("[data-live-ex]");
+  if (!rows.length) return;
+  const byId = new Map((extractors || []).map((ex) => [ex.id, ex]));
+  for (const row of rows) {
+    const ex = byId.get(row.getAttribute("data-live-ex"));
+    if (!ex || extractorState(ex) !== row.getAttribute("data-live-state")) {
+      showStationBuilding("isa-claims-leases");
+      return;
+    }
+    if (extractorState(ex) !== "active" || !ex.endsAt || !ex.startedAt) continue;
+    const { pct, hrs, mins, mined, fees } = activeCycleFigures(ex);
+    const set = (key, text) => { const el = row.querySelector(`[data-live="${key}"]`); if (el) el.textContent = text; };
+    set("pct", `${pct}%`);
+    set("left", `${hrs}h ${mins}m left`);
+    set("remaining", `${hrs}h ${mins}m`);
+    set("mined", mined.toLocaleString());
+    set("fees", toCurrency(fees));
+    const fill = row.querySelector('[data-live="fill"]');
+    if (fill) fill.style.width = `${pct}%`;
+  }
+}
+
 function renderLeaseManagement(building, lease, data) {
   const corp = data.corp;
   const extractors = (corp?.mining?.silicateExtractors || []).filter((ex) => ex.leaseId === lease.id);
@@ -1751,29 +1769,23 @@ function renderLeaseManagement(building, lease, data) {
         </div>
       `;
     } else if (ex.active && ex.endsAt && ex.startedAt) {
-      const now = Date.now();
-      const remaining = Math.max(0, ex.endsAt - now);
-      const cycleDuration = ex.endsAt - ex.startedAt;
-      const elapsed = Math.min(now - ex.startedAt, cycleDuration);
-      const pct = cycleDuration > 0 ? Math.min(100, Math.round((elapsed / cycleDuration) * 100)) : 0;
-      const hrs = Math.floor(remaining / 3_600_000);
-      const mins = Math.floor((remaining % 3_600_000) / 60_000);
-      const elapsedHours = elapsed / 3_600_000;
-      const estimatedFees = Math.round(elapsedHours * (ex.operationCostPerHour || 0));
+      // Bug #1091: the figures come from public/scripts/leaseLive.js, and carry data-live so mining:updated can refresh
+      // them in place while the view stays open.
+      const { pct, hrs, mins, mined, fees: estimatedFees } = activeCycleFigures(ex);
 
-      cycleInfo = `<span class="extractor-cycle-status">${ex.throughputPerHour} t/h &mdash; ${hrs}h ${mins}m remaining</span>`;
+      cycleInfo = `<span class="extractor-cycle-status">${ex.throughputPerHour} t/h &mdash; <span data-live="remaining">${hrs}h ${mins}m</span> remaining</span>`;
       progressBarHtml = `
         <div class="extractor-progress-wrap">
           <div class="extractor-progress-header">
-            <span class="extractor-progress-pct">${pct}%</span>
-            <span class="extractor-progress-time">${hrs}h ${mins}m left</span>
+            <span class="extractor-progress-pct" data-live="pct">${pct}%</span>
+            <span class="extractor-progress-time" data-live="left">${hrs}h ${mins}m left</span>
           </div>
           <div class="extractor-progress-track">
-            <div class="extractor-progress-fill" style="width:${pct}%"></div>
+            <div class="extractor-progress-fill" data-live="fill" style="width:${pct}%"></div>
           </div>
           <div class="extractor-stat-row">
-            <span class="extractor-stat"><span class="extractor-stat-label">Mined this cycle</span><span class="extractor-stat-value">${(ex.minedThisCycle || 0).toLocaleString()}</span></span>
-            <span class="extractor-stat"><span class="extractor-stat-label">Fees incurred</span><span class="extractor-stat-value">${toCurrency(estimatedFees)}</span></span>
+            <span class="extractor-stat"><span class="extractor-stat-label">Mined this cycle</span><span class="extractor-stat-value" data-live="mined">${mined.toLocaleString()}</span></span>
+            <span class="extractor-stat"><span class="extractor-stat-label">Fees incurred</span><span class="extractor-stat-value" data-live="fees">${toCurrency(estimatedFees)}</span></span>
             <span class="extractor-stat"><span class="extractor-stat-label">Rate</span><span class="extractor-stat-value">${ex.throughputPerHour} t/h</span></span>
           </div>
         </div>
@@ -1796,7 +1808,7 @@ function renderLeaseManagement(building, lease, data) {
 
     const mineFormVisible = !ex.active && !ex.downtimeActive;
     extractorRows += `
-      <div class="extractor-row ${statusClass}">
+      <div class="extractor-row ${statusClass}" data-live-ex="${escapeHtml(ex.id)}" data-live-state="${extractorState(ex)}">
         <div class="extractor-row-header">
           <strong>${escapeHtml(ex.name)}</strong>
           <span class="building-status-badge ${statusClass}">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : "Idle")}</span>
@@ -1825,7 +1837,7 @@ function renderLeaseManagement(building, lease, data) {
         </button>
         <p id="lease-build-extractor-status" class="muted action-hint"></p>
       </div>`
-    : `<p class="muted" style="margin-top:0.6rem;">This lease's building slots are fully allocated (${usedSlots}/${totalSlots}).</p>`;
+    : `<p class="muted" style="margin-top:0.6rem;">This lease's building slots are fully allocated (${usedSlots}/${totalSlots}). ${escapeHtml(leaseFullAdvice(corp, lease, unleasedBodiesForPage(corp)))}</p>`;
 
   const station = getCurrentStationInfo(data);
 
@@ -2183,6 +2195,9 @@ function formatDuration(ms) {
   return `${s}s`;
 }
 
+// Next to its one caller, not in the block at the top, where every branch adding an import collides (Bug #1253).
+import { renderStationFacilities } from "./stationFacilities.js";
+
 function renderStation(data) {
   const header = document.getElementById("station-location-header");
   const npcGrid = document.getElementById("station-npc-buildings");
@@ -2228,6 +2243,7 @@ function renderStation(data) {
   header.innerHTML = `
     <p class="overline">${escapeHtml(station.designation)} &#47;&#47; ${escapeHtml(station.systemId.toUpperCase())}</p>
     <h2>${escapeHtml(station.name)}</h2>
+    ${stationStartPromptHtml(corp)}
     <p class="muted lede">${escapeHtml(station.description)}</p>
   `;
 
@@ -2238,61 +2254,22 @@ function renderStation(data) {
 
   npcGrid.innerHTML = stationBuildingCardsHtml(stationBuildings);
 
-  const corpBuildings = (data.corp?.buildings || []).filter((b) => b.status === "Operational");
-  const hasAssemblyTech = (data.corp?.unlockedTech || []).includes("tt-assembly-fabrication");
-  const hasAssembly = corpBuildings.some((b) => b.name === "Assembly Facility");
-
-  // ── Operational Facilities (Assembly, Refinery — prominent usable cards) ──
-  const facilitySection = document.getElementById("station-facilities-section");
-  const facilityGrid = document.getElementById("station-facility-buildings");
-  const facilityBuildings = corpBuildings.filter((b) => b.name === "Assembly Facility" || b.name === "Refinery");
-  const buildAssemblyHtml = (hasAssemblyTech && !hasAssembly)
-    ? `<article class="facility-card data-card" style="border:1px dashed rgba(0,247,255,0.3);">
-         <header class="facility-card-header"><span class="faction-code-badge corp-badge">NEW</span><h3>Assembly Facility</h3></header>
-         <p class="muted">Modular manufacturing bay for fabricating deployable units.</p>
-         <footer class="facility-card-footer"><button id="build-assembly-btn" class="btn btn-accent">Construct (¤60,000)</button></footer>
-       </article>`
-    : "";
-
-  if (facilityGrid && facilitySection) {
-    const facilityHtml = facilityBuildings.map((b) => {
-      const actionBtn = `<button class="btn btn-accent" data-corp-building="${escapeHtml(b.name)}">Enter</button>`;
-      const desc = b.name === "Assembly Facility"
-        ? "Modular manufacturing bay for fabricating deployable units and equipment."
-        : "Industrial refinery complex for processing raw minerals into advanced materials.";
-      return `
-        <article class="facility-card data-card">
-          <header class="facility-card-header">
-            <span class="faction-code-badge corp-badge">CORP</span>
-            <h3>${escapeHtml(b.name)}</h3>
-          </header>
-          <p class="muted facility-desc">${desc}</p>
-          <p class="facility-tier">Tier ${b.tier || 1} &mdash; ${escapeHtml(b.status)}</p>
-          <footer class="facility-card-footer">${actionBtn}</footer>
-        </article>
-      `;
-    }).join("") + buildAssemblyHtml;
-
-    if (facilityHtml) {
-      facilitySection.hidden = false;
-      facilityGrid.innerHTML = facilityHtml;
-    } else {
-      facilitySection.hidden = true;
-      facilityGrid.innerHTML = "";
-    }
-
-    // Bind facility enter buttons
-    facilityGrid.querySelectorAll("[data-corp-building]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const name = btn.getAttribute("data-corp-building");
-        if (name === "Assembly Facility") {
-          renderAssemblyFacility(data);
-        } else if (name === "Refinery") {
-          setTab("refinery");
-        }
-      });
-    });
-  }
+  // ── Operational Facilities (Assembly, Refinery — prominent usable cards, and Construct) ──
+  // Bug #1253: rendered and bound in one place, stationFacilities.js.
+  renderStationFacilities(document, data.corp, {
+    accountId: () => appState.accountId,
+    request: async (path, init) => parseJsonResponse(await apiFetch(path, init)),
+    onEnter: (name) => {
+      if (name === "Assembly Facility") renderAssemblyFacility(data);
+      else if (name === "Refinery") setTab("refinery");
+    },
+    onBuilt: (account) => {
+      appState.data = deepClone(account.state);
+      updateAllViews();
+      pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok");
+    },
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
+  });
 
   // ── Licensed Corporate Holdings (Extractor Yards — filtered to current station body) ──
   const stationBody = station.body;
@@ -2330,26 +2307,6 @@ function renderStation(data) {
         }
       )
       .join("");
-  }
-
-  // Bind build Assembly Facility button
-  const buildAssemblyBtn = playerGrid.querySelector("#build-assembly-btn");
-  if (buildAssemblyBtn) {
-    buildAssemblyBtn.addEventListener("click", async () => {
-      if (!appState.accountId) return;
-      try {
-        const res = await apiFetch(
-          `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/build-assembly-facility`,
-          { method: "POST", headers: { "Content-Type": "application/json" } }
-        );
-        const account = await parseJsonResponse(res);
-        appState.data = deepClone(account.state);
-        updateAllViews();
-        pushFeedback("Assembly Facility constructed!", "ok");
-      } catch (err) {
-        pushFeedback(err.message || "Construction failed.", "warn");
-      }
-    });
   }
 }
 
@@ -2433,13 +2390,17 @@ function renderAssemblyFacility(data) {
         appState.data = deepClone(account.state);
         updateAllViews();
         renderAssemblyFacility(appState.data);
-        pushFeedback("Mining Probe fabricated.", "ok");
+        // AB#1257: it said "fabricated" here, 30 minutes before the probe existed; that line now comes on completion.
+        pushFeedback(probeFabricationStartedText(appState.data?.corp?.asteroidMining?.fabricationQueue), "ok");
       } catch (err) {
         pushFeedback(err.message || "Probe fabrication failed.", "warn");
       }
     });
   }
 }
+
+// The asteroid-mining feedback lines (AB#1257), beside the fabrication handler that writes one of them.
+import { beltScoutedText, probeFabricationStartedText, probeReadyText } from "./miningFeedback.js";
 
 function clearTravelTimer() {
   if (appState._travelTimer) {
@@ -2503,6 +2464,15 @@ function bindBuildingActions() {
   document.getElementById("station-back-btn")?.addEventListener("click", () => {
     showStationOverview();
   });
+
+  // AB#1056: the Start here prompt opens the Suites; it has its own attribute so the walkthrough's highlight, which
+  // finds the Suites card by data-building-action, still lands on the card.
+  document.getElementById("station-location-header")?.addEventListener("click", (event) => {
+    if (!event.target.closest("[data-start-office]")) return;
+    showStationBuilding("orbital-executive-suites");
+    // straight to the lease form, which sits under the Suites' description and was below the fold on a phone
+    revealUnderHeader(document.getElementById("rent-office-btn")?.closest(".form-card") || document.getElementById("station-building-view"));
+  });
 }
 
 // ─── Financial Control Board (CORP-FIN-1) — KPI strip and ledger tables ─────
@@ -2525,7 +2495,11 @@ function fmtTimestamp(t) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
+// Ledger names whose words are not simply capitalised (AB#712 books CEO programs as ceo-insight).
+const LEDGER_LABELS = { "ceo-insight": "CEO Insight" };
+
 function prettifyLedgerLabel(key) {
+  if (Object.hasOwn(LEDGER_LABELS, key)) return LEDGER_LABELS[key];
   return String(key)
     .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
@@ -2559,6 +2533,61 @@ function describeTrend(curr, prev) {
     text: `${sign} $${Math.abs(Math.round(delta)).toLocaleString()}`,
     direction: delta > 0 ? "up" : "down"
   };
+}
+
+// ─── Daily statements (AB#714): the books the server closes at 00:00 UTC (AB#713) ─────
+import { statementHtml, statementDayOptionsHtml, statementsEmptyHtml, statementsToSeries } from "./statements.js";
+import { setStatementSeries } from "./charts.js";
+
+const STATEMENT_DAY_MS = 24 * 60 * 60 * 1000;
+const statementsState = { data: null, loadedForDay: null, selectedDay: null, loading: false };
+
+/** Fetch the closed days and render them. Runs when the Financial Core opens, and again once a new day has closed. */
+async function loadStatements() {
+  if (!appState.accountId || statementsState.loading) return;
+  statementsState.loading = true;
+  try {
+    const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/finances/statements`);
+    statementsState.data = await parseJsonResponse(response);
+    statementsState.loadedForDay = Math.floor(Date.now() / STATEMENT_DAY_MS);
+    renderStatements();
+  } catch (err) {
+    const body = document.getElementById("statement-body");
+    if (body) body.innerHTML = `<p class="muted">The statements could not be loaded: ${escapeHtml(err.message || "try again shortly")}.</p>`;
+  } finally {
+    statementsState.loading = false;
+  }
+}
+
+function renderStatements() {
+  const body = document.getElementById("statement-body");
+  const picker = document.getElementById("statement-day");
+  if (!body || !picker || !statementsState.data) return;
+  const statements = Array.isArray(statementsState.data.statements) ? statementsState.data.statements : [];
+  setStatementSeries(statementsToSeries(statements));
+  const pickerLabel = picker.closest("label");
+  if (!statements.length) {
+    if (pickerLabel) pickerLabel.hidden = true;
+    body.innerHTML = statementsEmptyHtml(statementsState.data.today);
+    return;
+  }
+  // Yesterday by default (the newest closed day); a day chosen earlier stays chosen while it is kept.
+  const chosen = statements.find((s) => s.day === statementsState.selectedDay) || statements[0];
+  statementsState.selectedDay = chosen.day;
+  picker.innerHTML = statementDayOptionsHtml(statements, chosen.day);
+  if (pickerLabel) pickerLabel.hidden = false;
+  body.innerHTML = statementHtml(chosen);
+}
+
+document.getElementById("statement-day")?.addEventListener("change", (event) => {
+  statementsState.selectedDay = event.target.value;
+  renderStatements();
+});
+
+/** A day has closed since the statements were loaded: load them again (checked on each finance update). */
+function refreshStatementsIfDayClosed() {
+  if (statementsState.loadedForDay === null) return;
+  if (Math.floor(Date.now() / STATEMENT_DAY_MS) !== statementsState.loadedForDay) loadStatements();
 }
 
 function renderFinanceDashboard(finances) {
@@ -2663,7 +2692,10 @@ function renderBalanceTable(finances, derived) {
   const dailyCosts = Number(finances.dailyCosts) || 0;
   const dailyExpenses = Number(finances.dailyExpenses) || 0;
   const forwardOps = Math.round(dailyCosts * 7);
-  const leaseShare = Math.max(0, liabilities - forwardOps);
+  // Bug #1097: wages owed are their own line, not part of the lease figure; payroll is charged, at this rate.
+  const payrollOwed = Math.max(0, Math.round(Number(finances.payrollArrears) || 0));
+  const leaseShare = Math.max(0, liabilities - forwardOps - payrollOwed);
+  const staff = Math.max(0, Math.floor(Number(appState.data?.corp?.employeeCount) || 0));
 
   tbody.innerHTML = `
     <tr><th colspan="2" style="color:#6cf0c2">Assets</th></tr>
@@ -2673,9 +2705,11 @@ function renderBalanceTable(finances, derived) {
     <tr><th colspan="2" style="color:#f0a06a">Liabilities</th></tr>
     <tr><td>Forward Operating (7d)</td><td class="num">${fmtCredits(forwardOps)}</td></tr>
     <tr><td>Lease Commitments</td><td class="num">${fmtCredits(leaseShare)}</td></tr>
+    ${payrollOwed > 0 ? `<tr><td>Payroll Owed</td><td class="num num--negative">${fmtCredits(payrollOwed)}</td></tr>` : ""}
     <tr><th colspan="2" style="color:#89a7bd">Operating Profile</th></tr>
     <tr><td>Daily Revenue</td><td class="num num--positive">+${fmtCredits(dailyRevenue)}</td></tr>
     <tr><td>Daily Costs</td><td class="num num--negative">−${fmtCredits(dailyExpenses)}</td></tr>
+    <tr><td>Payroll (${staff} staff × 150 a day)</td><td class="num num--negative">−${fmtCredits(staff * 150)}</td></tr>
   `;
 
   const nwClass = netWorth >= 0 ? "num--positive" : "num--negative";
@@ -2742,6 +2776,17 @@ function renderLevel2Progress(data) {
 
   if (!requirementsWrap || !status) {
     return;
+  }
+
+  // AB#1056: early on, the next milestones are the first thing on the Overview, above the brief and the stat cards
+  const milestonesSection = requirementsWrap.closest("section.form-card");
+  const overviewPanel = document.getElementById("overview");
+  const expeditionPanel = document.getElementById("expedition-panel");
+  if (milestonesSection && overviewPanel && expeditionPanel) {
+    const first = milestonesFirst(data?.corp?.level);
+    const isFirst = overviewPanel.firstElementChild === milestonesSection;
+    if (first && !isFirst) overviewPanel.prepend(milestonesSection);
+    if (!first && isFirst) expeditionPanel.after(milestonesSection);
   }
 
   // Map requirement IDs to the tab they should navigate to
@@ -3072,6 +3117,11 @@ function renderQueue(elId, queue, subtitle) {
     return;
   }
 
+  if (elId === "rnd-queue") {
+    el.innerHTML = rndQueueHtml(queue, subtitle);
+    return;
+  }
+
   el.innerHTML = queueItemsHtml(queue, subtitle, {
     progressOf: queueProgress,
     remainingLabel: (item) => {
@@ -3080,6 +3130,23 @@ function renderQueue(elId, queue, subtitle) {
       const rMins = Math.floor((remainingMs % 3_600_000) / 60_000);
       return remainingMs > 0 ? `${rHrs}h ${rMins}m remaining` : "Completing...";
     },
+    formatCredits: toCurrency
+  });
+}
+
+// Corporate R&D researches one technology at a time (Bug #1258): an item behind another is "Queued, starts in ...".
+// Scheduled on a copy, so a queue saved before the fix shows the order the server will run it in.
+function rndQueueHtml(queue, subtitle) {
+  const now = Date.now();
+  const scheduled = scheduleRndQueue(queue.map((item) => ({ ...item })), now);
+  return queueItemsHtml(scheduled, subtitle, {
+    progressOf: (item) => (rndItemStatus(item, now).state === "queued" ? 0 : queueProgress(item)),
+    remainingLabel: (item) => {
+      const status = rndItemStatus(item, now);
+      if (status.state === "queued") return `Queued, starts in ${formatHoursMinutes(status.startsInMs)}`;
+      return status.state === "running" ? `${formatHoursMinutes(status.remainingMs)} remaining` : "Completing...";
+    },
+    statusOf: (item) => (rndItemStatus(item, now).state === "queued" ? "Queued" : "In progress"),
     formatCredits: toCurrency
   });
 }
@@ -3112,6 +3179,9 @@ const MILESTONE_ROADMAP = [
   "Sell 500 Hydro-Carbon Emulsion Base", "Research Extrasolar Expansion Protocols",
   "Reached Corporation Level 10"
 ];
+
+// Next to its caller, not in the block at the top, where branches adding imports collide (Bug #1254).
+import { refineryBuildButtonHtml } from "./html.js";
 
 function renderRefinery(data) {
   const catalog = document.getElementById("resource-catalog");
@@ -3187,19 +3257,17 @@ function renderRefinery(data) {
         : String(chain.outputs);
       const inputAvailable = Number(inventory[chain.input] || 0);
       const perCycle = Number(chain.inputQuantityPerCycle || 100);
-      // Effective minimum batch is at least 100 units, rounded up to a
-      // multiple of the chain's per-cycle base.
-      const minQty = Math.max(perCycle, Math.ceil(100 / perCycle) * perCycle);
+      // Whole batches, at least 100 units: the rule start-refinery checks too (refineQuantity.js).
+      const minQty = refineMinimum(perCycle);
       const hasInput = inputAvailable >= minQty;
       const idleRefinery = refineries.find((r) => !r.active);
       const canStart = hasRefinery && !techGated && hasInput && idleRefinery;
       // Default the quantity input to whichever is larger: the minimum, or as
       // much of the player's stock as fits in whole batches.
       const computedDefault = Math.max(minQty, Math.floor(inputAvailable / perCycle) * perCycle || minQty);
-      // Honor any user-typed value, but clamp it to the legal min.
-      const overrideRaw = appState.refineQuantityOverrides[chain.id];
-      const override = Number.isFinite(Number(overrideRaw)) ? Math.max(minQty, Math.floor(Number(overrideRaw))) : null;
-      const defaultQty = override != null ? override : computedDefault;
+      // What the player typed stays as typed, blank included (AB#1255); Start Run checks it and refuses, not the render.
+      const fieldValue = refineQuantityFieldValue(appState.refineQuantityOverrides[chain.id], computedDefault);
+      const quantityError = appState.refineQuantityErrors[chain.id];
       const inputId = `refine-qty-${chain.id}`;
 
       return `
@@ -3216,14 +3284,15 @@ function renderRefinery(data) {
             ? `<div class="refine-quantity-row" style="display:flex;gap:0.5rem;align-items:center;margin:0.5rem 0;">
                 <label for="${escapeHtml(inputId)}" class="muted" style="font-size:0.85rem;">Quantity</label>
                 <input id="${escapeHtml(inputId)}" class="refine-quantity-input" type="number"
-                  min="${minQty}" step="${perCycle}" value="${defaultQty}"
+                  min="${minQty}" step="${perCycle}" value="${escapeHtml(fieldValue)}"
                   data-chain-id="${escapeHtml(chain.id)}"
                   style="width:9rem;padding:0.3rem 0.5rem;background:var(--color-bg-deep);border:1px solid var(--color-border);color:var(--color-text);border-radius:4px;" />
                 <span class="muted" style="font-size:0.8rem;">min ${minQty}, step ${perCycle}</span>
               </div>
-              <button class="btn btn-accent refinery-start-btn" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}">Start Run</button>`
+              ${quantityError ? `<p class="refine-quantity-error" role="alert" style="color:var(--warn);margin:0 0 0.5rem;">${escapeHtml(quantityError)}</p>` : ""}
+              <button class="btn btn-accent refinery-start-btn" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}" data-per-cycle="${perCycle}" data-input="${escapeHtml(chain.input)}" data-available="${inputAvailable}" data-hours="${Number(chain.cycleDurationHours) || 0}">Start Run</button>`
             : belowRefineryCap && canBuildRefinery
-              ? `<button class="btn btn-outline refinery-build-btn"${!hasOpenBuildingSlot ? ` data-disabled-reason="${escapeHtml(`Refinery requires 1 open building slot. Current usage: ${buildings.length}/${buildingSlots}.`)}` : ""}>${hasRefinery ? "Build 2nd Refinery" : "Build Refinery"}</button>${!hasOpenBuildingSlot ? `<p class="muted" style="color:var(--color-warn)">No open building slots. Current usage: ${buildings.length}/${buildingSlots}.</p>` : ""}`
+              ? refineryBuildButtonHtml({ hasRefinery, used: buildings.length, slots: buildingSlots })
               : !hasRefinery && !canBuildRefinery
                 ? `<p class="muted" style="color:var(--color-warn)">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>`
                 : hasRefinery && !idleRefinery
@@ -3243,6 +3312,7 @@ function renderRefinery(data) {
     const chainId = qty.getAttribute("data-chain-id");
     if (!chainId) return;
     appState.refineQuantityOverrides[chainId] = qty.value;
+    delete appState.refineQuantityErrors[chainId]; // the reason was about the old value
   };
 
   // Restore focus/caret on the quantity input that was being edited.
@@ -3265,25 +3335,42 @@ function renderRefinery(data) {
       const refineryId = startBtn.getAttribute("data-refinery-id");
       const qtyInputId = startBtn.getAttribute("data-quantity-input");
       const qtyInput = qtyInputId ? document.getElementById(qtyInputId) : null;
-      const inputQuantity = qtyInput ? Math.max(0, Math.floor(Number(qtyInput.value) || 0)) : 0;
-      // Clear the override now that we've consumed it.
-      delete appState.refineQuantityOverrides[chainId];
+      const input = startBtn.getAttribute("data-input");
+      // AB#1255: what is in the field, checked and sent as it is, or refused beside it; never replaced by a default.
+      const check = refineQuantityCheck(qtyInput ? qtyInput.value : "", {
+        perCycle: Number(startBtn.getAttribute("data-per-cycle")),
+        input,
+        available: Number(startBtn.getAttribute("data-available"))
+      });
+      if (!check.ok) {
+        appState.refineQuantityErrors[chainId] = check.reason;
+        updateAllViews();
+        return;
+      }
       startBtn.disabled = true;
       startBtn.textContent = "Starting…";
       try {
         const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/start-refinery`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chainId, refineryId, inputQuantity })
+          body: JSON.stringify({ chainId, refineryId, inputQuantity: check.quantity })
         });
         const account = await parseJsonResponse(response);
+        delete appState.refineQuantityOverrides[chainId];
+        delete appState.refineQuantityErrors[chainId];
+        const hours = Number(startBtn.getAttribute("data-hours")) * check.batches;
+        const started = `Refinery run started: ${check.quantity.toLocaleString("en-US")} ${input}, ready in ${hours}h.`;
+        appState.refineryStatus = { type: "ok", text: started };
+        pushFeedback(started, "ok");
         appState.data = deepClone(account.state);
         appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
         updateAllViews();
       } catch (error) {
         startBtn.disabled = false;
         startBtn.textContent = "Start Run";
+        appState.refineQuantityErrors[chainId] = error.message;
         pushFeedback(`Refinery error: ${error.message}`, "warn");
+        updateAllViews();
       }
       return;
     }
@@ -3368,6 +3455,9 @@ function renderRefinery(data) {
     }
   };
 }
+
+// renderRefinery's run-size rule, shared with start-refinery (AB#1255). After the function, where no other branch adds.
+import { refineMinimum, refineQuantityCheck, refineQuantityFieldValue } from "./refineQuantity.js";
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 function renderAssets(data) {
@@ -3900,12 +3990,12 @@ function renderMarket(data) {
     : "<li>No inventory available yet. Begin mining and refining to generate tradable stock.</li>";
 
   // Create Listing grid — default unit price to AVG market price for the item.
-  const avgPriceByItem = computeAverageMarketPrice(data);
+  // AB#1166: what the market has actually paid, never a raw listing (public/scripts/suggestedPrice.js)
   if (sellGrid) {
     sellGrid.innerHTML = entries
       .map(
         ([name, qty]) => {
-          const defaultPrice = Math.max(1, Math.round(avgPriceByItem[name] || 50));
+          const defaultPrice = suggestedListingPrice(name, data.market, Date.now());
           return `
           <tr>
             <td>${escapeHtml(name)}</td>
@@ -3969,6 +4059,22 @@ function renderMarket(data) {
       .join("");
   }
   if (tradeHistoryEmpty) tradeHistoryEmpty.hidden = tradeHistory.length > 0;
+
+  // AB#1055: the action tables stack into one card per row at phone width; each cell carries its column's name
+  document.querySelectorAll("#market .data-table--stack").forEach(labelTableCells);
+}
+
+/**
+ * Bug #1133: the one way a thread from a response enters the client's forums, once, by id (mergeThread). Both copies
+ * are updated: updateAllViews copies serverData.forums over data.forums, so a thread added to data alone vanished.
+ */
+function putForumThread(thread) {
+  if (!thread?.id || !appState.data) return;
+  for (const holder of [appState.data, appState.serverData]) {
+    if (!holder) continue;
+    if (!holder.forums) holder.forums = { categories: [], threads: [] };
+    holder.forums.threads = mergeThread(holder.forums.threads, thread);
+  }
 }
 
 function renderForums(data) {
@@ -4022,11 +4128,11 @@ function renderForums(data) {
                     <span class="thread-badge thread-badge--reply">Reply</span>
                   </header>
                   <div class="thread-card__body">
-                    <p>${escapeHtml(reply.content || "")}</p>
+                    ${forumPostBodyHtml(reply.content || "")}
                   </div>
                   <footer class="thread-card__actions">
-                    <button class="thread-action-btn" type="button" data-action="reply">↩ Reply</button>
-                    <button class="thread-action-btn" type="button" data-action="quote">❝ Quote</button>
+                    <button class="thread-action-btn" type="button" data-action="reply" data-reply-id="${escapeHtml(reply.id)}">↩ Reply</button>
+                    <button class="thread-action-btn" type="button" data-action="quote" data-reply-id="${escapeHtml(reply.id)}">❝ Quote</button>
                     <button class="thread-action-btn thread-action-btn--like${replyLiked ? " is-liked" : ""}" type="button" data-action="like" data-target="reply" data-reply-id="${escapeHtml(reply.id)}" aria-pressed="${replyLiked}">▲ ${replyLiked ? "Liked" : "Like"} <span class="thread-action-count">${Number(reply.likes) || 0}</span></button>
                   </footer>
                 </article>
@@ -4034,6 +4140,12 @@ function renderForums(data) {
           }).join("")
         : `<li class="thread-reply thread-reply--empty"><p class="muted">No replies yet. Be the first to weigh in.</p></li>`;
 
+      // Bug #1222: the reply box is part of this HTML, so a re-render (any forum update) emptied a half-written reply.
+      // Keep what is in it, where the cursor is and whether it had focus, for the same thread, and put them back below.
+      const oldBox = detailBody.querySelector("#forum-reply-content");
+      const keptDraft = oldBox && oldBox.closest("form")?.dataset.threadId === selected.id
+        ? { value: oldBox.value, start: oldBox.selectionStart, end: oldBox.selectionEnd, focused: document.activeElement === oldBox }
+        : null;
       detailBody.innerHTML = `
         <div class="thread-detail">
           <div class="thread-detail__topbar">
@@ -4063,7 +4175,7 @@ function renderForums(data) {
               <span class="thread-badge thread-badge--op">OP</span>
             </header>
             <div class="thread-card__body thread-card__body--op">
-              ${opBody.split(/\n+/).map((para) => `<p>${escapeHtml(para)}</p>`).join("")}
+              ${forumPostBodyHtml(opBody)}
             </div>
             <footer class="thread-card__actions">
               <button class="thread-action-btn thread-action-btn--primary" type="button" data-action="reply">↩ Reply</button>
@@ -4092,6 +4204,15 @@ function renderForums(data) {
         </div>
       `;
 
+      const newBox = detailBody.querySelector("#forum-reply-content");
+      if (keptDraft && newBox && keptDraft.value) {
+        newBox.value = keptDraft.value;
+        if (keptDraft.focused) {
+          newBox.focus({ preventScroll: true });
+          newBox.setSelectionRange(keptDraft.start, keptDraft.end);
+        }
+      }
+
       const inlineBack = detailBody.querySelector("#forum-back-btn-inline");
       if (inlineBack) {
         inlineBack.addEventListener("click", () => {
@@ -4104,32 +4225,45 @@ function renderForums(data) {
       // Like buttons (delegated). Toggles a like for the current account on
       // either the OP thread or a specific reply. Server enforces one-like-
       // per-account by tracking `likedBy`, which it keeps to itself (Bug #1134).
-      detailBody.addEventListener("click", async (event) => {
+      // Bug #1131: detailBody outlives its innerHTML, so the listener is added once, not on every render, and reads the
+      // open thread when clicked (forumActions.js).
+      bindOnce(detailBody, "likeBound", "click", async (event) => {
         const likeBtn = event.target.closest('[data-action="like"]');
-        if (!likeBtn) return;
+        if (!likeBtn || likeBtn.disabled) return;
         if (!appState.accountId) {
           pushFeedback("Sign in to like posts.", "warn");
           return;
         }
-        const target = likeBtn.getAttribute("data-target") || "thread";
-        const replyId = target === "reply" ? likeBtn.getAttribute("data-reply-id") : null;
+        const request = likeRequest(likeBtn, appState.selectedForumThreadId);
+        if (!request) return;
         likeBtn.disabled = true;
         try {
-          const response = await apiFetch(`/api/forums/threads/${encodeURIComponent(selected.id)}/like`, {
+          const response = await apiFetch(request.path, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(replyId ? { replyId } : {})
+            body: JSON.stringify(request.body)
           });
           const payload = await parseJsonResponse(response);
-          if (payload?.thread && Array.isArray(appState.data?.forums?.threads)) {
-            const idx = appState.data.forums.threads.findIndex((t) => t.id === payload.thread.id);
-            if (idx >= 0) appState.data.forums.threads[idx] = payload.thread;
-          }
+          putForumThread(payload?.thread);
           renderForums(appState.data);
         } catch (err) {
           likeBtn.disabled = false;
           pushFeedback(`Like failed: ${err.message}`, "warn");
         }
+      });
+
+      // Bug #1132: Reply and Quote work on the reply box at the foot of the thread. Bound once, like Like (Bug #1131).
+      bindOnce(detailBody, "composeBound", "click", (event) => {
+        const btn = event.target.closest('[data-action="reply"], [data-action="quote"]');
+        if (!btn) return;
+        const box = detailBody.querySelector("#forum-reply-content");
+        const thread = (appState.data?.forums?.threads || []).find((t) => t.id === appState.selectedForumThreadId);
+        const post = postFor(btn, thread);
+        if (!box || !post) return;
+        box.value = btn.dataset.action === "quote" ? quoteDraft(box.value, post) : replyDraft(box.value, post);
+        box.scrollIntoView({ behavior: "smooth", block: "center" });
+        box.focus({ preventScroll: true });
+        box.setSelectionRange(box.value.length, box.value.length);
       });
 
       // Reply submission — POST to the server, then re-render with the
@@ -4161,11 +4295,11 @@ function renderForums(data) {
             // Splice the updated thread into the local cache so re-render
             // shows the new reply immediately (the socket broadcast will
             // also fire, but we don't want to wait for it).
-            if (payload?.thread && Array.isArray(appState.data?.forums?.threads)) {
-              const idx = appState.data.forums.threads.findIndex((t) => t.id === payload.thread.id);
-              if (idx >= 0) appState.data.forums.threads[idx] = payload.thread;
-            }
-            if (contentEl) contentEl.value = "";
+            putForumThread(payload?.thread);
+            // Bug #1222: clear the box on the page now, not contentEl: if the socket update re-rendered the thread first,
+            // contentEl is the old, detached box and the sent text would come back as a kept draft.
+            const liveBox = document.getElementById("forum-reply-content");
+            if (liveBox) liveBox.value = "";
             renderForums(appState.data);
           } catch (err) {
             if (statusEl) {
@@ -4282,13 +4416,8 @@ function renderForums(data) {
           body: JSON.stringify({ category, title, body })
         });
         const payload = await parseJsonResponse(response);
-        if (payload?.thread) {
-          if (!Array.isArray(appState.data?.forums?.threads)) {
-            if (!appState.data.forums) appState.data.forums = { categories: [], threads: [] };
-            appState.data.forums.threads = [];
-          }
-          appState.data.forums.threads.unshift(payload.thread);
-        }
+        // Bug #1133: the forums:updated broadcast usually lands first with this thread already in it.
+        putForumThread(payload?.thread);
         newThreadForm.reset();
         newThreadForm.hidden = true;
         if (statusEl) statusEl.textContent = "";
@@ -4342,18 +4471,21 @@ const MISSION_AGENTS = [
     stationId: "earth-station-prime",
     bio: `Coordinator Voss has served the ISA's logistics division for over fourteen years, beginning as a junior freight auditor on Luna Gateway before transferring to Earth Station Prime's newly established Contracting & Assignments Bureau. She earned her Senior Coordinator designation after managing the emergency redistribution of silicate reserves during the Ceres Supply Crisis of 2139 — an operation that required coordinating seventeen independent mining corporations under a 72-hour ISA directive.
 
-Her management style is precise, documented, and unapologetically procedural. Contractors who deliver on time and within specification earn her trust. Those who miss deadlines or falsify manifests do not get second contracts.
+Her management style is precise, documented, and unapologetically procedural. Contractors who deliver what they sign for, to specification, earn her trust, and she keeps count.
 
 She maintains a small but well-organised office on Deck 7 of the Bureau. The filing cabinets are alphabetised. The coffee is adequate. The contracts are real.`,
     dialogue: [
       "Good. You're here. I have contracts that need competent operators — not speculators who think logistics is a side business.",
-      "The ISA needs resources moved, extracted, and delivered on schedule. If you can handle that, we'll get along fine.",
-      "Review the available contracts below. Each one has a deadline and a quota. Meet the terms, sell directly to me, and you'll be compensated. Miss the terms, and I file an incomplete. Your record is your reputation."
+      "The ISA needs resources moved, extracted, and delivered to specification. If you can handle that, we'll get along fine.",
+      "Review the available contracts below. Each one has a quota and a reward. Deliver the quota to me and you'll be paid; every contract you complete raises your standing with me. Walk away from one and it costs you nothing but the standing you would have earned."
     ],
     missionType: "Logistics",
     available: true
   }
 ];
+
+// Bug #1058: the next step under a short quota. Imported beside its use, away from the import block.
+import { missionShortAdvice } from "./contractAdvice.js";
 
 function openMissionModal(missionId, data) {
   const activeMissions = appState.activeMissions || [];
@@ -4425,6 +4557,13 @@ function openMissionModal(missionId, data) {
     if (quotaText) {
       const displayResource = resource.charAt(0).toUpperCase() + resource.slice(1);
       quotaText.innerHTML = `<strong>${have.toLocaleString()}</strong> / ${required.toLocaleString()} ${escapeHtml(displayResource)} at ${escapeHtml(stationLabel)}`;
+      // Bug #1058: Complete stays hidden until the quota is met, so say how to meet it. Away from the agent's station the
+      // location warning below says where to go instead.
+      if (!isFulfilled && isAtAgentStation) {
+        const stationName = (id) => appState.stationRegistry.find((s) => s.id === id)?.name || id;
+        const advice = missionShortAdvice({ resource, stationId: currentStationId, inventory: data?.corp?.inventory, stationName });
+        quotaText.innerHTML += `<span class="mission-quota-hint">${escapeHtml(advice)}</span>`;
+      }
     }
   } else if (quotaSection) {
     quotaSection.hidden = true;
@@ -4740,6 +4879,7 @@ function resolveChatChannel(tab, data = appState.data) {
 
 // AB#733: the chat line template lives in html.js, where it is tested; imported beside its one use.
 import { chatLineHtml } from "./html.js";
+import { chatScrollTop } from "./chatScroll.js";
 
 function renderChatLog(data) {
   const channel = resolveChatChannel(appState.chatChannel, data);
@@ -4750,15 +4890,19 @@ function renderChatLog(data) {
     return;
   }
 
+  // Bug #1135: measure before the redraw, so a player at the newest line stays there and one reading history does not
+  // lose their place; a channel switch or their own line goes to the newest.
+  const before = { scrollHeight: chatLog.scrollHeight, scrollTop: chatLog.scrollTop, clientHeight: chatLog.clientHeight };
+  const channelChanged = chatLog.dataset.channel !== channel;
+  chatLog.dataset.channel = channel;
+
   chatLog.innerHTML = messages
     .slice(-120)
     .map((msg) => chatLineHtml(msg, formatTime))
     .join("");
 
-  if (appState.chatAutoScrollOnNextRender) {
-    chatLog.scrollTop = chatLog.scrollHeight;
-    appState.chatAutoScrollOnNextRender = false;
-  }
+  chatLog.scrollTop = chatScrollTop({ before, afterScrollHeight: chatLog.scrollHeight, channelChanged, ownLine: appState.chatOwnLinePending });
+  appState.chatOwnLinePending = false;
 }
 
 function renderChatChannelTabs() {
@@ -4780,7 +4924,15 @@ function renderChatChannelTabs() {
 }
 
 // TODO(AB#730): Can this be refactored to improve performance? Where is this function called? Do we always need to update every single view? 
+// AB#730: every full re-render is timed as a performance measure, "isp:updateAllViews", which DevTools shows in its
+// Timings track and scripts/bench-render.mjs reads. The cost is one performance.now() and one measure per render.
 function updateAllViews() {
+  const start = performance.now();
+  renderAllViews();
+  performance.measure("isp:updateAllViews", { start });
+}
+
+function renderAllViews() {
   if (appState.serverData) {
     applySharedState(appState.serverData);
   }
@@ -4815,15 +4967,7 @@ function updateAllViews() {
   if (data.world?.systems) starmap.setSystems(data.world.systems);
   starmap.setStations(appState.stationRegistry, data.corp?.currentStationId, data.corp?.currentSystemId || "sol");
   starmap.setUnlockedTech(new Set(data.corp?.unlockedTech || []));
-  const am = data.corp?.asteroidMining || {};
-  starmap.setAsteroidMining({
-    probeCount: am.probeCount || 0,
-    maxProbes: data.corp?.fleet?.cap ?? 2,
-    maxDeployments: am.maxDeployments || 1,
-    activeExpeditions: am.activeExpeditions || [],
-    scoutedBelts: am.scoutedBelts || [],
-    beltCompositions: appState.beltCompositions || {}
-  });
+  starmap.setAsteroidMining(starmapMiningState(data, appState.beltCompositions));
   renderExpeditionPanel(data);
   renderInboxMessageList();
 }
@@ -4992,6 +5136,10 @@ function setTab(targetId) {
     requestAnimationFrame(() => starmap.resize());
   }
 
+  if (targetId === "finance") {
+    loadStatements(); // AB#714: the closed days are fetched on their own, not carried in the account
+  }
+
   if (targetId === "inbox") {
     onInboxTabActivated();
   }
@@ -5008,13 +5156,32 @@ function setTab(targetId) {
   noteWalkthroughEvent(`tab:${targetId}`);
 }
 
+/**
+ * AB#1056: a panel the player chose is brought on screen. At phone width the panels sit below the sidebar and the tab
+ * bar, so a tap used to change something nobody could see. Only for the player's own choices, not for automatic tab
+ * changes, and only when the panel's top is not already in the upper part of the screen.
+ */
+function goToTab(targetId) {
+  setTab(targetId);
+  const panel = document.getElementById(targetId);
+  if (panel?.classList.contains("active")) revealUnderHeader(panel);
+}
+
+/** Scroll `el` to just under the pinned header when it is not already in view below it (AB#1056). */
+function revealUnderHeader(el) {
+  if (!el) return;
+  const headerBottom = document.querySelector(".app-header")?.getBoundingClientRect().bottom ?? 0;
+  const delta = revealScroll(el.getBoundingClientRect().top, headerBottom, window.innerHeight);
+  if (delta) window.scrollBy(0, delta);
+}
+
 function bindTabs() {
   tabButtons.forEach((button) => {
-    button.addEventListener("click", () => setTab(button.dataset.tab));
+    button.addEventListener("click", () => goToTab(button.dataset.tab));
   });
 
   document.querySelectorAll("[data-jump]").forEach((button) => {
-    button.addEventListener("click", () => setTab(button.dataset.jump));
+    button.addEventListener("click", () => goToTab(button.dataset.jump));
   });
 
   // Delegated handler for dynamically-rendered requirement cards
@@ -5022,7 +5189,7 @@ function bindTabs() {
   if (requirementsWrap) {
     requirementsWrap.addEventListener("click", (e) => {
       const card = e.target.closest("[data-jump]");
-      if (card) setTab(card.dataset.jump);
+      if (card) goToTab(card.dataset.jump);
     });
   }
 }
@@ -5116,8 +5283,24 @@ function refreshWalkthroughHighlight() {
   }
   target.classList.add("walkthrough-focus");
   // Scroll only when the thing to do changes, not when a re-render redraws the same control under the player.
-  if (selector !== walkthroughTarget) target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+  if (selector !== walkthroughTarget) scrollWalkthroughTargetIntoView(target);
   walkthroughTarget = selector;
+}
+
+import { walkthroughScrollDelta } from "./walkthrough.js"; // Bug #1083 (here, apart from the top-of-file imports open PRs edit)
+
+// Bug #1083: into the band between the sticky header and the briefing card, not the centre of the window, where the
+// card is on a phone.
+function scrollWalkthroughTargetIntoView(target) {
+  const card = walkthroughModal.querySelector(".modal-card");
+  const header = document.querySelector(".app-header");
+  const delta = walkthroughScrollDelta({
+    viewportHeight: window.innerHeight,
+    headerBottom: header ? header.getBoundingClientRect().bottom : 0,
+    card: card ? card.getBoundingClientRect() : null,
+    target: target.getBoundingClientRect()
+  });
+  if (delta) window.scrollBy({ top: delta, behavior: "smooth" });
 }
 
 async function completeWalkthroughForAccount() {
@@ -5263,18 +5446,21 @@ function enterGame(mode, data, options = {}) {
   appState.walkthroughCompleted = Boolean(options.walkthroughCompleted);
   appState.data = deepClone(data);
   appState.activeMissions = appState.data.corp?.activeMissions || [];
+  appState.beltCompositions = {}; // Bug #1264: never another account's; this account's are fetched below
 
   if (appState.serverData) {
     applySharedState(appState.serverData);
   }
 
   persistSession();
+  if (appState.accountId) loadBeltCompositionsIntoStarmap(); // Bug #1264
 
   authShell.hidden = true;
   gameShell.hidden = false;
 
   updateAllViews();
   setTab("overview");
+  loadMessages(); // Bug #1130: the Inbox tab's unread count is right from the start, before the Inbox is opened
 
   if (!appState.mapMounted) {
     starmap.mount(appState.data.world?.systems || []);
@@ -5415,7 +5601,7 @@ async function refreshFromServer() {
     applySharedState(serverState);
     appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
     appState.activeMissions = appState.data.corp?.activeMissions || [];
-    refreshBeltCompositions();
+    loadBeltCompositionsIntoStarmap(); // Bug #1264
     updateAllViews();
     return;
   }
@@ -5447,8 +5633,10 @@ function bindForms() {
     const item = button.getAttribute("data-sell-item");
     const qtyInput = row?.querySelector("[data-sell-qty]");
     const priceInput = row?.querySelector("[data-sell-price]");
-    const quantity = Math.max(1, Number(qtyInput?.value || 1));
-    const unitPrice = Math.max(1, Number(priceInput?.value || 1));
+    // AB#1164: what was typed, not Math.max(1, Number(x || 1)), which listed a cleared price at $1. A value that is not
+    // a whole number of at least 1 goes to the server as typed, and its refusal is what the player reads.
+    const typed = { quantity: qtyInput?.value ?? "", unitPrice: priceInput?.value ?? "" };
+    const numbers = tradeNumbers(typed);
     const inventory = getInventory();
     const available = Number(inventory[item] || 0);
 
@@ -5457,9 +5645,32 @@ function bindForms() {
       return;
     }
 
-    if (quantity > available) {
+    if (numbers.ok && numbers.values.quantity > available) {
       listingStatus.textContent = "Quantity exceeds available inventory.";
       return;
+    }
+
+    // A listing is public the moment it is made, so it is confirmed like a purchase or a sale: the price is seen
+    // before anyone can buy at it.
+    if (numbers.ok) {
+      const { quantity, unitPrice } = numbers.values;
+      const gross = quantity * unitPrice;
+      const taxPct = getClientExchangeTaxPct();
+      const tax = Math.round(gross * taxPct / 100);
+      const confirmed = await showTradeConfirmation({
+        heading: "Create Listing",
+        title: `List ${item}`,
+        confirmLabel: "List",
+        rows: [
+          { label: "Item", value: item },
+          { label: "Quantity", value: quantity.toLocaleString() },
+          { label: "Unit Price", value: toCurrency(unitPrice), highlight: true },
+          { label: "If it all sells", value: toCurrency(gross) },
+          { label: `GEX Sales Tax (${taxPct}%)`, value: `− ${toCurrency(tax)}`, muted: true },
+          { label: "You Receive", value: toCurrency(gross - tax), highlight: true }
+        ]
+      });
+      if (!confirmed) return;
     }
 
     try {
@@ -5469,8 +5680,8 @@ function bindForms() {
         body: JSON.stringify({
           type: "sell",
           item,
-          quantity,
-          unitPrice
+          quantity: numbers.ok ? numbers.values.quantity : typed.quantity,
+          unitPrice: numbers.ok ? numbers.values.unitPrice : typed.unitPrice
         })
       });
 
@@ -5488,7 +5699,8 @@ function bindForms() {
       }
 
       renderMarket(appState.data);
-      listingStatus.textContent = `Listing created: ${quantity} ${item} @ ${toCurrency(unitPrice)}.`;
+      // the server's own record of what was listed, not what the form thought it sent
+      listingStatus.textContent = `Listing created: ${Number(payload.order?.quantity)} ${item} @ ${toCurrency(payload.order?.unitPrice)}.`;
       await refreshFromServer();
     } catch (error) {
       listingStatus.textContent = `Sell listing failed: ${error.message}`;
@@ -5561,7 +5773,7 @@ function bindForms() {
           name: node.name,
           effect: node.effect,
           durationHours: node.durationHours,
-          startedAt: Date.now(),
+          startedAt: nextRndStart(appState.data.queues.corporateRnD, Date.now()), // Bug #1258
           costCredits: node.costCredits
         });
         updateAllViews();
@@ -5607,13 +5819,8 @@ function bindForms() {
       return;
     }
 
-    const chatLogEl = document.getElementById("chat-log");
-    if (chatLogEl) {
-      const distanceFromBottom = chatLogEl.scrollHeight - (chatLogEl.scrollTop + chatLogEl.clientHeight);
-      appState.chatAutoScrollOnNextRender = distanceFromBottom <= 12;
-    } else {
-      appState.chatAutoScrollOnNextRender = false;
-    }
+    // Bug #1135: show the player their own line when it comes back, wherever they had scrolled to.
+    appState.chatOwnLinePending = true;
 
     // The server names the author from the logged-in account (Bug #710); the client no longer sends one.
     socket?.emit("chat:send", {
@@ -5864,31 +6071,37 @@ function bindForms() {
     const price = Number(button.getAttribute("data-buy-price"));
     const maxQty = Number(button.getAttribute("data-buy-qty"));
     const qtyInput = row?.querySelector(`[data-buy-order-qty="${orderId}"]`);
-    const qty = Math.max(1, Math.min(maxQty, Number(qtyInput?.value || 1)));
+    // AB#1164: the quantity as typed. A blank, 0, negative or unreadable quantity used to become 1, and one larger than
+    // the listing was quietly cut to it; now the confirmation shows only a quantity that can be bought, and anything
+    // else goes to the server as typed, whose refusal is what the player reads.
+    const typedQty = qtyInput?.value ?? "";
+    const { ok, values } = tradeNumbers({ quantity: typedQty });
+    const qty = values.quantity;
     const listingStatus = document.getElementById("listing-status");
     const buyStatus = document.getElementById("buy-status");
     const seller = row?.children[3]?.textContent || "Anonymous";
 
-    const totalCost = qty * price;
-    const confirmed = await showTradeConfirmation({
-      heading: "Buy from Sell Order",
-      title: `Buy ${item}`,
-      confirmLabel: "Buy",
-      rows: [
-        { label: "Item", value: item },
-        { label: "Quantity", value: qty.toLocaleString() },
-        { label: "Unit Price", value: toCurrency(price) },
-        { label: "Seller", value: seller },
-        { label: "Total Cost", value: toCurrency(totalCost), highlight: true }
-      ]
-    });
-    if (!confirmed) return;
+    if (ok && qty <= maxQty) {
+      const confirmed = await showTradeConfirmation({
+        heading: "Buy from Sell Order",
+        title: `Buy ${item}`,
+        confirmLabel: "Buy",
+        rows: [
+          { label: "Item", value: item },
+          { label: "Quantity", value: qty.toLocaleString() },
+          { label: "Unit Price", value: toCurrency(price) },
+          { label: "Seller", value: seller },
+          { label: "Total Cost", value: toCurrency(qty * price), highlight: true }
+        ]
+      });
+      if (!confirmed) return;
+    }
 
     try {
       const response = await apiFetch(`/api/market/orders/${encodeURIComponent(orderId)}/buy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantity: qty })
+        body: JSON.stringify({ quantity: ok ? qty : typedQty })
       });
 
       const payload = await parseJsonResponse(response);
@@ -5938,36 +6151,40 @@ function bindForms() {
     const item = button.getAttribute("data-npc-item");
     const price = Number(button.getAttribute("data-npc-price"));
     const qtyInput = row?.querySelector(`[data-npc-sell-qty="${orderId}"]`);
-    const qty = Math.max(1, Number(qtyInput?.value || 1));
+    // AB#1164: the quantity as typed; a blank, 0 or unreadable one is no longer a sale of 1. Only a whole number of at
+    // least 1 is confirmed; anything else goes to the server as typed and its refusal is shown.
+    const typedQty = qtyInput?.value ?? "";
+    const { ok, values } = tradeNumbers({ quantity: typedQty });
+    const qty = values.quantity;
     const npcStatus = document.getElementById("npc-buy-status");
 
-    const grossTotal = qty * price;
-    const taxPct = getClientExchangeTaxPct();
-    const taxAmount = Math.round(grossTotal * taxPct / 100);
-    const netProceeds = grossTotal - taxAmount;
-    const buyer = row?.children[1]?.textContent || "NPC";
-
-    const confirmed = await showTradeConfirmation({
-      heading: "Sell to Standing Buy Order",
-      title: `Sell ${item}`,
-      confirmLabel: "Sell",
-      rows: [
-        { label: "Item", value: item },
-        { label: "Quantity", value: qty.toLocaleString() },
-        { label: "Unit Price", value: toCurrency(price) },
-        { label: "Buyer", value: buyer },
-        { label: "Gross Total", value: toCurrency(grossTotal) },
-        { label: `GEX Sales Tax (${taxPct}%)`, value: `− ${toCurrency(taxAmount)}`, muted: true },
-        { label: "You Receive", value: toCurrency(netProceeds), highlight: true }
-      ]
-    });
-    if (!confirmed) return;
+    if (ok) {
+      const grossTotal = qty * price;
+      const taxPct = getClientExchangeTaxPct();
+      const taxAmount = Math.round(grossTotal * taxPct / 100);
+      const buyer = row?.children[1]?.textContent || "NPC";
+      const confirmed = await showTradeConfirmation({
+        heading: "Sell to Standing Buy Order",
+        title: `Sell ${item}`,
+        confirmLabel: "Sell",
+        rows: [
+          { label: "Item", value: item },
+          { label: "Quantity", value: qty.toLocaleString() },
+          { label: "Unit Price", value: toCurrency(price) },
+          { label: "Buyer", value: buyer },
+          { label: "Gross Total", value: toCurrency(grossTotal) },
+          { label: `GEX Sales Tax (${taxPct}%)`, value: `− ${toCurrency(taxAmount)}`, muted: true },
+          { label: "You Receive", value: toCurrency(grossTotal - taxAmount), highlight: true }
+        ]
+      });
+      if (!confirmed) return;
+    }
 
     try {
       const response = await apiFetch(`/api/market/npc-orders/${encodeURIComponent(orderId)}/sell`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantity: qty })
+        body: JSON.stringify({ quantity: ok ? qty : typedQty })
       });
 
       const payload = await parseJsonResponse(response);
@@ -6062,6 +6279,7 @@ function bindRealtimeEvents() {
     renderFinanceCharts(financeState);
     renderFinanceDashboard(financeState);
     updateCorpIdentity(appState.data);
+    refreshStatementsIfDayClosed();
   });
 
   socket.on("finance:snapshot", () => {
@@ -6093,7 +6311,21 @@ function bindRealtimeEvents() {
     renderNotifications();
   });
 
+  // Bug #1130: mail for this account arrived (the server sends it to this account's room only, with no payload).
+  socket.on("messages:new", () => {
+    loadMessages();
+  });
+
   socket.on("ceo:completed", (payload) => {
+    if (!appState.accountId || payload?.accountId !== appState.accountId) {
+      return;
+    }
+    refreshFromServer();
+  });
+
+  // Bug #1167: someone bought one of this account's listings. The notification comes on its own event; this redraws
+  // the credits and Trade History from the account.
+  socket.on("market:sold", (payload) => {
     if (!appState.accountId || payload?.accountId !== appState.accountId) {
       return;
     }
@@ -6139,6 +6371,7 @@ function bindRealtimeEvents() {
     }
     renderAssets(appState.data);
     updateCorpIdentity(appState.data);
+    refreshOpenLeaseView(payload.extractors); // Bug #1091: the open lease view follows the cycle
   });
 
   socket.on("expedition:completed", (payload) => {
@@ -6147,9 +6380,10 @@ function bindRealtimeEvents() {
     loadMessages();
   });
 
-  socket.on("fabrication:completed", (payload) => {
+  socket.on("fabrication:completed", async (payload) => {
     if (!appState.data || !appState.accountId || payload?.accountId !== appState.accountId) return;
-    refreshFromServer();
+    await refreshFromServer();
+    pushFeedback(probeReadyText(appState.data?.corp?.asteroidMining?.probeCount), "ok"); // AB#1257: said once, when true
   });
 }
 
@@ -6254,6 +6488,9 @@ function bindAuthControls() {
   });
 }
 
+// Empty states that name the next action (Bug #1060): the Inbox list's below, and ISA Claims' lines.
+import { claimsAllTakenText, claimsNoLeasesText, inboxEmptyText } from "./emptyStates.js";
+
 // ─── Inbox ────────────────────────────────────────────────────────────────────
 
 async function loadMessages() {
@@ -6305,6 +6542,12 @@ function updateInboxSubtabBadges() {
     const n = counts[subtype] || 0;
     btn.textContent = n > 0 ? `${baseLabel} (${n})` : baseLabel;
   });
+  // Bug #1130: the Inbox tab carries the unread count too, so a player on any other tab is told that mail has arrived.
+  const inboxTab = document.querySelector('.tab-btn[data-tab="inbox"]');
+  if (inboxTab) {
+    const unread = counts.official + counts.players;
+    inboxTab.textContent = unread > 0 ? `Inbox (${unread})` : "Inbox";
+  }
 }
 
 function inboxMsgsForView() {
@@ -6344,6 +6587,7 @@ function renderInboxMessageList() {
   const msgs = inboxMsgsForView();
   if (!msgs.length) {
     list.innerHTML = "";
+    emptyNotice.textContent = inboxEmptyText(appState.inbox.folder, appState.inbox.subtype); // Bug #1060
     emptyNotice.style.display = "";
     return;
   }
@@ -6372,7 +6616,9 @@ function openMessage(messageId) {
     clearComposeCandidates();
     document.getElementById("compose-subject").value = msg.subject || "";
     document.getElementById("compose-body").value = msg.body || "";
+    document.getElementById("compose-status").textContent = "";
     appState.inbox.composeDraftId = msg.id;
+    syncComposeDraftControls();
     return;
   }
 
@@ -6387,13 +6633,9 @@ function openMessage(messageId) {
   const archiveBtn = document.getElementById("inbox-action-archive");
   const restoreBtn = document.getElementById("inbox-action-restore");
   const trashBtn = document.getElementById("inbox-action-trash");
-  const deleteDraftBtn = document.getElementById("inbox-action-delete-draft");
-  const editDraftBtn = document.getElementById("inbox-action-edit-draft");
   archiveBtn.style.display = "none";
   restoreBtn.style.display = "none";
   trashBtn.style.display = "none";
-  deleteDraftBtn.style.display = "none";
-  editDraftBtn.style.display = "none";
 
   if (msg.folder === "inbox") {
     archiveBtn.style.display = "";
@@ -6403,20 +6645,28 @@ function openMessage(messageId) {
     trashBtn.style.display = "";
   } else if (msg.folder === "trash") {
     restoreBtn.style.display = "";
-  } else if (msg.folder === "draft") {
-    editDraftBtn.style.display = "";
-    deleteDraftBtn.style.display = "";
   }
 
-  // Mark read
+  // Mark read. Bug #1136: here and now, so the counts and the list are right the moment the player goes Back (it used
+  // to wait for the request, and nothing redrew the list after it); put back if the server does not record it.
   if (!msg.readAt && msg.folder !== "sent" && msg.folder !== "draft") {
+    msg.readAt = Date.now();
+    updateInboxSubtabBadges(); // Bug #1130: the Inbox tab's count is on screen while the message is open
+    const unmark = () => {
+      const m = appState.inbox.messages.find((x) => x.id === messageId);
+      if (m) m.readAt = null;
+      renderInboxMessageList();
+    };
     apiFetch(`/api/accounts/${appState.accountId}/messages/${messageId}/read`, { method: "POST" })
-      .then(() => {
-        const m = appState.inbox.messages.find((x) => x.id === messageId);
-        if (m) m.readAt = Date.now();
-      })
-      .catch(() => {});
+      .then((res) => { if (!res.ok) unmark(); })
+      .catch(unmark);
   }
+}
+
+/** Bug #1137: Delete Draft shows in the compose view whenever a saved draft is open there (opened, or just saved). */
+function syncComposeDraftControls() {
+  const btn = document.getElementById("compose-delete-draft-btn");
+  if (btn) btn.hidden = !appState.inbox.composeDraftId;
 }
 
 function showInboxView(view) {
@@ -6462,9 +6712,11 @@ function bindInboxControls() {
   document.getElementById("inbox-back-btn")?.addEventListener("click", () => {
     showInboxView("list");
     appState.inbox.openMessageId = null;
+    renderInboxMessageList(); // Bug #1136: the message just read is no longer marked unread
   });
   document.getElementById("inbox-compose-back-btn")?.addEventListener("click", () => {
     appState.inbox.composeDraftId = null;
+    syncComposeDraftControls();
     showInboxView("list");
     renderInboxMessageList();
   });
@@ -6479,6 +6731,7 @@ function bindInboxControls() {
     document.getElementById("compose-subject").value = "";
     document.getElementById("compose-body").value = "";
     document.getElementById("compose-status").textContent = "";
+    syncComposeDraftControls();
     showInboxView("compose");
   });
 
@@ -6492,19 +6745,30 @@ function bindInboxControls() {
   document.getElementById("inbox-action-archive")?.addEventListener("click", () => moveCurrentMessage("archive"));
   document.getElementById("inbox-action-restore")?.addEventListener("click", () => moveCurrentMessage("inbox"));
   document.getElementById("inbox-action-trash")?.addEventListener("click", () => moveCurrentMessage("trash"));
-  document.getElementById("inbox-action-delete-draft")?.addEventListener("click", async () => {
-    const id = appState.inbox.openMessageId;
+  // Bug #1137: delete the draft open in the compose view, then show Drafts without it.
+  document.getElementById("compose-delete-draft-btn")?.addEventListener("click", async () => {
+    const id = appState.inbox.composeDraftId;
     if (!id) return;
-    await apiFetch(`/api/accounts/${appState.accountId}/messages/draft/${id}`, { method: "DELETE" });
+    const status = document.getElementById("compose-status");
+    status.textContent = "Deleting…";
+    try {
+      const res = await apiFetch(`/api/accounts/${appState.accountId}/messages/draft/${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "the server refused");
+    } catch (err) {
+      status.textContent = `The draft was not deleted: ${err.message}.`;
+      return;
+    }
     appState.inbox.messages = appState.inbox.messages.filter((m) => m.id !== id);
+    appState.inbox.composeDraftId = null;
     appState.inbox.openMessageId = null;
+    document.getElementById("compose-draft-id").value = "";
+    status.textContent = "";
+    syncComposeDraftControls();
+    appState.inbox.folder = "draft";
+    document.querySelectorAll(".inbox-folder-btn").forEach((b) => b.classList.toggle("active", b.dataset.folder === "draft"));
     showInboxView("list");
     renderInboxMessageList();
-  });
-  document.getElementById("inbox-action-edit-draft")?.addEventListener("click", () => {
-    const id = appState.inbox.openMessageId;
-    if (!id) return;
-    openMessage(id);
+    pushFeedback("Draft deleted.", "success");
   });
 
   // Compose form
@@ -6537,6 +6801,7 @@ function bindInboxControls() {
       appState.inbox.messages = data.messages;
       appState.inbox.folder = "sent";
       appState.inbox.composeDraftId = null;
+      syncComposeDraftControls();
       document.querySelectorAll(".inbox-folder-btn").forEach((b) => {
         b.classList.toggle("active", b.dataset.folder === "sent");
       });
@@ -6570,6 +6835,7 @@ function bindInboxControls() {
       if (data.draft) {
         document.getElementById("compose-draft-id").value = data.draft.id;
         appState.inbox.composeDraftId = data.draft.id;
+        syncComposeDraftControls();
         // Upsert in local list
         const idx = appState.inbox.messages.findIndex((m) => m.id === data.draft.id);
         if (idx >= 0) appState.inbox.messages[idx] = data.draft;
@@ -6606,11 +6872,9 @@ async function moveCurrentMessage(folder) {
 
 // Called when the Inbox tab becomes active (via tab switching logic)
 function onInboxTabActivated() {
-  if (!appState.inbox.loaded) {
-    loadMessages();
-  } else {
-    renderInboxMessageList();
-  }
+  // Bug #1130: fetch every time the Inbox opens, not once per page load; show what is already held meanwhile.
+  if (appState.inbox.loaded) renderInboxMessageList();
+  loadMessages();
   const subtabNav = document.getElementById("inbox-subtab-nav");
   if (subtabNav) subtabNav.style.display = appState.inbox.folder === "inbox" ? "" : "none";
 }

@@ -68,6 +68,12 @@
               <span class="hero-title-bottom">Settlement Protocol</span>
             </h1>
 
+            <!-- AB#1056: the two things a visitor can do, straight under the title, inside the first screen at 1280x800 -->
+            <div class="hero-actions">
+              <a href="/login.html" class="btn-hero btn-hero-outline">Log In</a>
+              <a href="/register.html" id="show-register-btn" class="btn-hero btn-hero-fill">Register Corporation</a>
+            </div>
+
             <div class="hero-divider" aria-hidden="true">
               <span class="divider-line"></span>
               <span class="divider-diamond"></span>
@@ -87,11 +93,6 @@
               <span class="pill">Persistent multiplayer state</span>
               <span class="pill">Milestone progression, not XP grind</span>
               <span class="pill">Text-first command interface</span>
-            </div>
-
-            <div class="hero-actions">
-              <a href="/login.html" class="btn-hero btn-hero-outline">Log In</a>
-              <a href="/register.html" id="show-register-btn" class="btn-hero btn-hero-fill">Register Corporation</a>
             </div>
           </div>
         </section>
@@ -421,7 +422,7 @@
               <section class="chart-card chart-card--wide">
                 <header class="chart-card__head">
                   <h3>Cash Reserves</h3>
-                  <span class="chart-card__sub">Live snapshot series</span>
+                  <span class="chart-card__sub">Balance over time</span>
                   <select class="chart-duration-picker" data-chart-duration="cashflow" aria-label="Cash Reserves duration">
                     <option value="3600000">1 hour</option>
                     <option value="86400000">1 day</option>
@@ -437,7 +438,7 @@
               <section class="chart-card">
                 <header class="chart-card__head">
                   <h3>Net Cash Flow</h3>
-                  <span class="chart-card__sub">Revenue − Costs per snapshot</span>
+                  <span class="chart-card__sub">Net profit over time</span>
                   <select class="chart-duration-picker" data-chart-duration="netflow" aria-label="Net Cash Flow duration">
                     <option value="3600000">1 hour</option>
                     <option value="86400000">1 day</option>
@@ -517,6 +518,21 @@
                 </table>
               </section>
             </div>
+
+            <!-- AB#714: the books the server closes every day at 00:00 UTC (AB#713), 90 days of them. -->
+            <section class="finance-statements" id="finance-statements" aria-labelledby="finance-statements-title">
+              <header class="finance-statements__head">
+                <div>
+                  <h3 id="finance-statements-title">Daily Statements</h3>
+                  <span class="chart-card__sub">Closed at 00:00 UTC · kept 90 days</span>
+                </div>
+                <label class="finance-statements__picker" hidden>
+                  <span>Day</span>
+                  <select id="statement-day" aria-label="Statement day"></select>
+                </label>
+              </header>
+              <div id="statement-body" aria-live="polite"><p class="muted">Loading statements…</p></div>
+            </section>
           </article>
 
           <article id="rnd" class="tab-panel">
@@ -617,7 +633,7 @@
                 <div id="exchange-buy-filtered" class="exchange-filtered-empty" hidden></div>
                 <p id="buy-status" class="muted"></p>
                 <div class="table-wrap">
-                  <table class="data-table">
+                  <table class="data-table data-table--stack">
                     <thead>
                       <tr>
                         <th>Item</th>
@@ -637,9 +653,9 @@
               <section class="form-card exchange-section action-surface">
                 <h3>Create Listing</h3>
                 <p class="muted">List resources from your inventory as a public sell order.</p>
-                <p id="market-sell-empty" class="muted" hidden>You have no items in inventory to list.</p>
+                <p id="market-sell-empty" class="muted" hidden>Nothing in inventory here to list yet. Lease a claim and run an extractor yard (Station &gt; ISA Claims &amp; Leases) to have goods to sell.</p>
                 <div class="table-wrap">
-                  <table class="data-table">
+                  <table class="data-table data-table--stack">
                     <thead>
                       <tr>
                         <th>Item</th>
@@ -664,7 +680,7 @@
               <div id="npc-buy-filtered" class="exchange-filtered-empty" hidden></div>
               <p id="npc-buy-status" class="muted"></p>
               <div class="table-wrap">
-                <table class="data-table">
+                <table class="data-table data-table--stack">
                   <thead>
                     <tr>
                       <th>Item</th>
@@ -686,7 +702,7 @@
               <p id="my-sell-orders-empty" class="muted" hidden>You have no active sell orders on the exchange.</p>
               <div id="my-sell-orders-filtered" class="exchange-filtered-empty" hidden></div>
               <div class="table-wrap">
-                <table class="data-table">
+                <table class="data-table data-table--stack">
                   <thead>
                     <tr>
                       <th>Item</th>
@@ -938,8 +954,6 @@
                   <button class="btn btn-ghost" id="inbox-action-archive" style="display:none;">Archive</button>
                   <button class="btn btn-ghost" id="inbox-action-restore" style="display:none;">Move to Inbox</button>
                   <button class="btn btn-danger" id="inbox-action-trash" style="display:none;">Move to Trash</button>
-                  <button class="btn btn-ghost" id="inbox-action-delete-draft" style="display:none;">Delete Draft</button>
-                  <button class="btn btn-primary" id="inbox-action-edit-draft" style="display:none;">Edit Draft</button>
                 </div>
               </div>
             </div>
@@ -961,6 +975,8 @@
                 <div class="inbox-compose-actions">
                   <button type="submit" class="btn btn-primary">Send</button>
                   <button type="button" class="btn btn-ghost" id="compose-save-draft-btn">Save Draft</button>
+                  <!-- Bug #1137: a draft opens here, so it is deleted here. Shown only while a saved draft is open. -->
+                  <button type="button" class="btn btn-danger" id="compose-delete-draft-btn" hidden>Delete Draft</button>
                   <span class="inbox-compose-status" id="compose-status"></span>
                 </div>
               </form>

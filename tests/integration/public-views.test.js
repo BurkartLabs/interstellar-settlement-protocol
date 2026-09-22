@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { io as connect } from "socket.io-client";
-import { getApp } from "../helpers/app.js";
+import { getApp, serverUrl } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState, getState } from "../../server/gameState.js";
 
@@ -16,8 +16,7 @@ const sockets = [];
 
 beforeAll(async () => {
   ({ app, server } = await getApp());
-  await new Promise((resolve) => server.listen(0, resolve));
-  url = `http://127.0.0.1:${server.address().port}`;
+  url = await serverUrl(); // the server always listens (Bug #578); Bug #1172: a second listen() threw
 });
 afterAll(async () => {
   for (const s of sockets) s.close();
@@ -164,6 +163,54 @@ describe("what one corporation can see of another (Bugs #1134, #1145)", () => {
     await settle();
     expect(thread(lastForums(sb.heard, before[1]), threadId)).toMatchObject({ likes: 1, likedByMe: true });
     expect(thread(lastForums(sa.heard, before[0]), threadId)).toMatchObject({ likes: 1, likedByMe: false });
+  });
+
+  // Bug #1171: each listing carried the station its goods came from, which told anyone where the seller was docked.
+  it("no order anyone receives says which station it was listed from, and a cancel still returns the goods there", async () => {
+    const ordersIn = (payload, found = []) => {
+      if (Array.isArray(payload)) payload.forEach((x) => ordersIn(x, found));
+      else if (payload && typeof payload === "object") {
+        for (const [key, value] of Object.entries(payload)) {
+          if (key === "orderBook" && Array.isArray(value)) found.push(...value);
+          else if (key === "order" && value && typeof value === "object") found.push(value);
+          else ordersIn(value, found);
+        }
+      }
+      return found;
+    };
+    // A docks at Luna Gateway and lists there, as in the item's repro; the viewers listen from before it is listed.
+    mutateAccountState(a.id, (state) => {
+      state.corp.currentStationId = "luna-gateway";
+      state.corp.inventory = { ...(state.corp.inventory || {}), "luna-gateway": { Silicates: 2 } };
+    });
+    const seen = [];
+    const listeners = { A: await socket(a.token), B: await socket(b.token), anonymous: await socket() };
+    const listed = await a.api.post("/api/market/orders").send({ type: "sell", item: "Silicates", quantity: 2, unitPrice: 31 });
+    expect(listed.status).toBe(200);
+    const lunaId = listed.body.order.id;
+    expect(getState().market.orderBook.find((o) => o.id === lunaId).stationId).toBe("luna-gateway");
+    await settle();
+    for (const [who, { heard }] of Object.entries(listeners)) for (const { event, payload } of heard) seen.push({ source: `${who}'s socket ${event}`, payload });
+    for (const [who, get] of [["A", a.api.get("/api/bootstrap")], ["B", b.api.get("/api/bootstrap")], ["signed out", request(app).get("/api/bootstrap")]]) {
+      seen.push({ source: `GET /api/bootstrap as ${who}`, payload: (await get).body });
+    }
+    const lateAnon = await socket();
+    for (const { event, payload } of lateAnon.heard) seen.push({ source: `new anonymous socket ${event}`, payload });
+
+    const orders = [...seenByB, ...seenByAnon, ...seen].flatMap(({ source, payload }) => ordersIn(payload).map((order) => ({ source, order })));
+    // The sources checked include the Luna listing itself, as each viewer received it.
+    for (const who of ["A", "B", "signed out"]) {
+      expect(orders.some(({ source, order }) => source === `GET /api/bootstrap as ${who}` && order.id === lunaId), who).toBe(true);
+    }
+    expect(orders.filter(({ source }) => source.includes("market:updated")).length).toBeGreaterThan(0);
+    const leaked = orders.filter(({ source, order }) => "stationId" in order);
+    expect(leaked.map(({ source }) => source)).toEqual([]);
+
+    // A's own cancel: the goods go back to Luna Gateway, where they were listed, and the reply names no station.
+    const cancelled = await a.api.post(`/api/market/orders/${lunaId}/cancel`).send({});
+    expect(cancelled.status).toBe(200);
+    expect(cancelled.body.cancelled).toBe(lunaId);
+    expect(cancelled.body.account.state.corp.inventory["luna-gateway"].Silicates).toBe(2);
   });
 
   it("a listing says whether it is the viewer's own, and A can still cancel it", async () => {

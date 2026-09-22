@@ -11,6 +11,28 @@ export function escapeHtml(value) {
 }
 
 /**
+ * One attribute, quoted and escaped here, with its leading space: htmlAttr("data-x", v) is ` data-x="..."`, and ""
+ * when the value is null, undefined or false, so an optional attribute is one call. Bug #1254: a hand-written
+ * data-disabled-reason attribute lost its closing quote and swallowed the Build Refinery button's label.
+ */
+export function htmlAttr(name, value) {
+  if (value === null || value === undefined || value === false) return "";
+  return ` ${name}="${escapeHtml(value)}"`;
+}
+
+/**
+ * The Refinery Chains card's Build Refinery button. With no free building slot it carries the reason the click handler
+ * shows, and a line under it says the same (Bug #1254).
+ */
+export function refineryBuildButtonHtml({ hasRefinery, used, slots }) {
+  const full = used >= slots;
+  const label = hasRefinery ? "Build 2nd Refinery" : "Build Refinery";
+  const reason = full ? `Refinery requires 1 open building slot. Current usage: ${used}/${slots}.` : null;
+  const note = full ? `<p class="muted" style="color:var(--color-warn)">No open building slots. Current usage: ${used}/${slots}.</p>` : "";
+  return `<button class="btn btn-outline refinery-build-btn"${htmlAttr("data-disabled-reason", reason)}>${label}</button>${note}`;
+}
+
+/**
  * The trade confirmation modal's rows. Label and value are text, escaped here, so callers pass raw strings
  * (Bug #1002: they went into innerHTML raw, and callers escaped some values themselves and not others).
  */
@@ -28,7 +50,7 @@ export function tradeConfirmRowsHtml(rows) {
  * from the catalog today, and a player-named item would otherwise become stored XSS. `progressOf(item)` is 0 to 100,
  * `remainingLabel(item)` the time left, `formatCredits(n)` the funding figure.
  */
-export function queueItemsHtml(queue, subtitle, { progressOf, remainingLabel, formatCredits }) {
+export function queueItemsHtml(queue, subtitle, { progressOf, remainingLabel, formatCredits, statusOf }) {
   return queue
     .map((item) => {
       const progress = Number(progressOf(item)) || 0;
@@ -40,7 +62,7 @@ export function queueItemsHtml(queue, subtitle, { progressOf, remainingLabel, fo
         <h3>${escapeHtml(item.name)}</h3>
         <p class="muted">${escapeHtml(subtitle)}</p>
         <p>${escapeHtml(item.effect)}</p>
-        <p class="muted">Duration: ${escapeHtml(item.durationHours)}h | ${item.startedAt ? "In progress" : "Queued"}</p>
+        <p class="muted">Duration: ${escapeHtml(item.durationHours)}h | ${escapeHtml(statusOf ? statusOf(item) : item.startedAt ? "In progress" : "Queued")}</p>
         ${item.costCredits ? `<p class="muted">Committed funding: ${escapeHtml(formatCredits(item.costCredits))} credits</p>` : ""}
         ${progressMeta}
         <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
@@ -127,6 +149,30 @@ export function stationBuildingCardsHtml(stationBuildings) {
           <footer class="building-card-footer">${actionBtn}</footer>
         </article>
       `;
+    })
+    .join("");
+}
+
+/**
+ * A forum post's text as HTML (Bug #1132): lines starting with "> " become one blockquote per run, which is how Quote
+ * writes them; the other lines keep their breaks, blank lines separating paragraphs. Every line is escaped.
+ */
+export function forumPostBodyHtml(text) {
+  const blocks = [];
+  for (const line of String(text ?? "").split(/\r?\n/)) {
+    const quoted = /^>\s?/.test(line);
+    const content = quoted ? line.replace(/^>\s?/, "") : line;
+    const last = blocks.at(-1);
+    if (!quoted && !line.trim()) { blocks.push({ kind: "gap" }); continue; }
+    const kind = quoted ? "quote" : "para";
+    if (last?.kind === kind) last.lines.push(content);
+    else blocks.push({ kind, lines: [content] });
+  }
+  return blocks
+    .filter((b) => b.kind !== "gap")
+    .map((b) => {
+      const inner = b.lines.map(escapeHtml).join("<br>");
+      return b.kind === "quote" ? `<blockquote class="forum-quote">${inner}</blockquote>` : `<p>${inner}</p>`;
     })
     .join("");
 }

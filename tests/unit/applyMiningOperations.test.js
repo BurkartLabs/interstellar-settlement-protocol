@@ -331,3 +331,68 @@ describe("applyMiningOperations", () => {
     });
   });
 });
+
+// Bug #1138: the running cost was rounded on every call with nothing carried, and the mining step runs on every
+// account read and around every write as well as on the 5-second ticker. Calls under ~2.8 s at 640/h each charged 0
+// while using up the time, so polling your own account made a cycle free; the ticker's own 5 s calls rounded 0.89 up
+// to 1 and overcharged. However the hour is sliced, it now costs what one call over the hour costs.
+describe("running costs are the same however the time is sliced (Bug #1138)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const HOUR = 60 * 60 * 1000;
+  function cycleCorp(start) {
+    return makeCorp({
+      finances: { credits: 1_000_000, dailyRevenue: 0 },
+      miningLeases: [{ id: "lease-1", body: "Earth" }],
+      mining: {
+        silicateExtractors: [makeExtractor({
+          startedAt: start, lastTickAt: start, endsAt: start + HOUR,
+          throughputPerHour: 40, operationCostPerHour: 640, leaseId: "lease-1"
+        })]
+      }
+    });
+  }
+  function runSliced(stepMs) {
+    const start = 1_700_000_000_000;
+    const corp = cycleCorp(start);
+    for (let t = start + stepMs; t <= start + HOUR; t += stepMs) applyMiningOperations(corp, t);
+    return corp;
+  }
+
+  it("one call over the hour charges the hourly rate", () => {
+    pinRandom(0.999);
+    const corp = runSliced(HOUR);
+    expect(corp.mining.silicateExtractors[0].totalSpent).toBe(640);
+    expect(corp.finances.credits).toBe(1_000_000 - 640);
+  });
+
+  it("36,000 reads 100 ms apart charge the same as one call, not nothing", () => {
+    pinRandom(0.999);
+    const corp = runSliced(100);
+    expect(corp.mining.silicateExtractors[0].totalSpent).toBe(640);
+    expect(corp.finances.credits).toBe(1_000_000 - 640);
+  });
+
+  it("the 5-second ticker charges the hourly rate, not 720", () => {
+    pinRandom(0.999);
+    const corp = runSliced(5000);
+    expect(corp.mining.silicateExtractors[0].totalSpent).toBe(640);
+  });
+
+  // It carried its fraction, but floating-point drift over many slices floored the last ton away: 39 of 40.
+  it("yield is the same however the hour is sliced", () => {
+    pinRandom(0.999);
+    expect(runSliced(100).mining.silicateExtractors[0].totalMined).toBe(runSliced(HOUR).mining.silicateExtractors[0].totalMined);
+  });
+
+  it("keeps the unpaid fraction of a credit on the extractor, never negative and under 1", () => {
+    pinRandom(0.999);
+    const start = 1_700_000_000_000;
+    const corp = cycleCorp(start);
+    applyMiningOperations(corp, start + 1000); // 1 s at 640/h is 0.178 credits
+    const ext = corp.mining.silicateExtractors[0];
+    expect(ext.totalSpent).toBe(0);
+    expect(ext.costRemainder).toBeGreaterThan(0.17);
+    expect(ext.costRemainder).toBeLessThan(1);
+  });
+});

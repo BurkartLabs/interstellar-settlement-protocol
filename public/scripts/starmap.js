@@ -1,4 +1,5 @@
-import { canReachSystem } from "./navigation.js";
+import { canReachSystem, travelResearchLock, travelResearchName } from "./navigation.js";
+import { bodyResourceHtml } from "./bodyInfo.js"; // AB#740: what the catalogue holds, not a hash of the name
 
 const CLUSTER_LAYOUT = {
   sol: { x: 0.16, y: 0.5 },
@@ -8,6 +9,12 @@ const CLUSTER_LAYOUT = {
   "tau-ceti": { x: 0.72, y: 0.55 },
   "epsilon-eridani": { x: 0.83, y: 0.3 }
 };
+
+// Starmap system view: the innermost orbit's distance from the star, and the room kept between the outermost body and
+// the canvas edge; labels keep this margin from the right edge (Bug #1315).
+const ORBIT_INNER = 56;
+const ORBIT_EDGE_MARGIN = 20;
+const LABEL_EDGE_MARGIN = 4;
 
 const FALLBACK_PLANET_STYLE = {
   base: "#9bb4c8",
@@ -54,25 +61,31 @@ function hashSeed(input) {
   return Math.abs(h);
 }
 
-function generatedComposition(body) {
-  const seed = hashSeed(body.id);
-  const entries = [
-    { name: "Silicates", pct: 20 + (seed % 25) },
-    { name: "Nickel", pct: 8 + ((seed >> 2) % 18) },
-    { name: "Titanium", pct: 6 + ((seed >> 3) % 16) },
-    { name: "Water Ice", pct: 5 + ((seed >> 4) % 28) },
-    { name: "Helium-3", pct: 2 + ((seed >> 5) % 10) }
-  ];
-
-  const sum = entries.reduce((acc, item) => acc + item.pct, 0);
-  return entries.map((item) => ({
-    name: item.name,
-    pct: Math.round((item.pct / sum) * 100)
-  }));
+/** A scouted belt whose composition has not reached the page yet (Bug #1264): say so rather than show nothing. */
+export function scoutedBeltLoadingHtml() {
+  return `<p class="muted" data-belt-composition="loading">Scouted. Loading composition…</p>`;
 }
 
 function styleForBody(body) {
   return PLANET_STYLE[body.id] || FALLBACK_PLANET_STYLE;
+}
+
+/** The belt panel for an unscouted belt. Bug #1285: the Scout button is offered only to a corporation the server
+ * will let scout (Asteroid Prospecting Arrays, in the belt's system: AB#1256); anyone else is told what to do instead
+ * of meeting a button whose refusal only shows on the Overview tab. */
+export function unscoutedBeltHtml({ hasProspecting, inSameSystem, systemName }) {
+  const unknown = `<p class="muted">Material composition unknown. Scout this belt to reveal resource data.</p>`;
+  if (!hasProspecting) {
+    return `${unknown}
+            <p class="muted" style="margin-top:0.5rem;">🔒 Research <em>Asteroid Prospecting Arrays</em> in Corporate R&amp;D to scout this belt.</p>`;
+  }
+  if (!inSameSystem) {
+    const name = String(systemName || "this system").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return `${unknown}
+            <p class="muted" style="margin-top:0.5rem;">Travel to ${name} to scout this belt.</p>`;
+  }
+  return `${unknown}
+            <button id="scout-belt-btn" class="btn btn-accent" style="margin-top:0.5rem;">Scout Asteroid Belt</button>`;
 }
 
 // ─── Planet image assets ─────────────────────────────────────────────────────
@@ -249,16 +262,15 @@ function asteroidPoint(systemId, bodyId, index, cx, cy, radius) {
   return { x, y, size, angle, ringRadius };
 }
 
-function asteroidComposition(seedKey) {
-  const seed = hashSeed(seedKey);
-  const profiles = [
-    "Silicate-rich",
-    "Nickel-iron",
-    "Carbonaceous",
-    "Volatile-rich",
-    "Mixed ore"
-  ];
-  return profiles[seed % profiles.length];
+/** The Starmap canvas's backing store for a CSS box and devicePixelRatio (clamped to 1..2): one CSS pixel is dpr
+ * backing pixels in both directions, so what is drawn at (x, y) is where a click at (x, y) lands. */
+export function canvasBackingSize(cssWidth, cssHeight, devicePixelRatio) {
+  const dpr = Math.max(1, Math.min(2, devicePixelRatio || 1));
+  return {
+    width: Math.max(1, Math.round(cssWidth * dpr)),
+    height: Math.max(1, Math.round(cssHeight * dpr)),
+    dpr
+  };
 }
 
 export function createStarmapController({
@@ -267,13 +279,13 @@ export function createStarmapController({
   detailsEl,
   overlaySelect,
   resetButton,
-  onScoutBody,
-  isBodyScouted,
   onTravelToSystem,
   onDockAtStation,
   onScoutBelt,
   onLaunchExpedition,
-  getAsteroidMiningState
+  getAsteroidMiningState,
+  researchCatalog = [], // Bug #1270: to name the research a locked jump needs
+  getCorpLevel = () => 0
 }) {
   const ctx = canvas?.getContext?.("2d");
   const state = {
@@ -296,22 +308,29 @@ export function createStarmapController({
     return canReachSystem(state.unlockedTech, state.currentSystemId, targetSystemId);
   }
 
+  // Bug #1270: what the lock says, the same text the travel route refuses with.
+  function travelLockText(targetSystemId) {
+    return travelResearchLock(researchCatalog, state.unlockedTech, getCorpLevel(), state.currentSystemId, targetSystemId) || "";
+  }
+
   function setCanvasSize() {
     if (!canvas) {
       return;
     }
 
     const rect = canvas.getBoundingClientRect();
-    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    const width = Math.max(500, Math.floor(rect.width));
     const availableHeight = Math.max(320, Math.floor(window.innerHeight - rect.top - 34));
     const targetHeight = Math.min(560, availableHeight);
 
     canvas.style.height = `${targetHeight}px`;
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(targetHeight * dpr);
+    // Bug #1286: the backing store follows the box the map is drawn and clicked in (clientWidth x clientHeight, the
+    // units every draw function and clickTargets use). A 500px floor here squeezed the drawing into the left half of
+    // a phone's 292px canvas while taps were still tested at full scale, so tapping a star missed it.
+    const size = canvasBackingSize(canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio);
+    canvas.width = size.width;
+    canvas.height = size.height;
     if (ctx) {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
     }
   }
 
@@ -379,6 +398,13 @@ export function createStarmapController({
         ctx.fill();
       }
     }
+  }
+
+  /** Bug #1315: where a label beside a point starts, in the current font: to the right of it, or to the left when it
+   * would run past the canvas's right edge. */
+  function labelX(text, x, gap) {
+    const textWidth = ctx.measureText(text).width;
+    return x + gap + textWidth > canvas.clientWidth - LABEL_EDGE_MARGIN ? x - gap - textWidth : x + gap;
   }
 
   function drawClusterView() {
@@ -483,13 +509,13 @@ export function createStarmapController({
       // System name label
       ctx.fillStyle = isSelected ? "rgba(255, 255, 255, 0.95)" : "rgba(200, 220, 240, 0.8)";
       ctx.font = isSelected ? 'bold 12px "Inter", sans-serif' : '11px "Inter", sans-serif';
-      ctx.fillText(system.name, x + baseRadius + 10, y + 1);
+      ctx.fillText(system.name, labelX(system.name, x, baseRadius + 10), y + 1);
 
       // "YOU ARE HERE" label for current system
       if (isCurrent) {
         ctx.fillStyle = "rgba(0, 247, 255, 0.6)";
         ctx.font = '9px "Inter", sans-serif';
-        ctx.fillText("YOU ARE HERE", x + baseRadius + 10, y + 13);
+        ctx.fillText("YOU ARE HERE", labelX("YOU ARE HERE", x, baseRadius + 10), y + 13);
       }
 
       state.clickTargets.push({
@@ -528,6 +554,14 @@ export function createStarmapController({
     ctx.fillText("◂ " + label, x - textWidth / 2 - 4, y + 3.5);
 
     return width;
+  }
+
+  // Bug #1286: the right-hand of two back buttons sits at preferredX, or further left when that would run past the
+  // canvas's right edge (a phone's canvas is 292px wide; "Back To Cluster" at 250 ended at about 300).
+  function rightBackButtonX(label, preferredX, canvasWidth) {
+    ctx.font = '10px "Inter", sans-serif';
+    const buttonWidth = Math.max(88, Math.ceil(ctx.measureText(label).width + 28));
+    return Math.min(preferredX, canvasWidth - 6 - buttonWidth / 2);
   }
 
   function drawStationMarker(x, y, isCurrent) {
@@ -615,10 +649,13 @@ export function createStarmapController({
 
     const bodies = (system?.bodies || []).filter((body) => body.type === "Planet" || body.type === "Field");
     const maxOrbitX = Math.max(1, ...bodies.map((body) => Number(body.x || 0)));
-    const orbitLimit = Math.min(width, height) * 0.42;
+    // Bug #1315: on a narrow canvas the outer orbits ran past the sides (0.42 of 292px plus 56 is 179px from a 146px
+    // centre). The orbits now also fit the width, leaving room for the body; a desktop canvas is wide enough that
+    // this never binds, so its layout is unchanged.
+    const orbitLimit = Math.min(Math.min(width, height) * 0.42, Math.max(0, width / 2 - ORBIT_INNER - ORBIT_EDGE_MARGIN));
 
     bodies.forEach((body, index) => {
-      const orbit = ((Number(body.x || 0) / maxOrbitX) * orbitLimit) + 56;
+      const orbit = ((Number(body.x || 0) / maxOrbitX) * orbitLimit) + ORBIT_INNER;
       const angle = (index / Math.max(1, bodies.length)) * Math.PI * 2;
       const x = cx + Math.cos(angle) * orbit;
       const y = cy + Math.sin(angle) * orbit;
@@ -656,15 +693,16 @@ export function createStarmapController({
 
       ctx.fillStyle = "rgba(200, 225, 245, 0.88)";
       ctx.font = '11px "Inter", sans-serif';
-      ctx.fillText(body.name, x + 8, y - 4);
+      const bodyLabelX = labelX(body.name, x, 8);
+      ctx.fillText(body.name, bodyLabelX, y - 4);
 
-      // Station indicator pip next to name
+      // Station indicator pip next to name (before it when the label is drawn to the left of the body)
       if (bodyHasStation(system.id, body.name)) {
         const hasCurrentStn = bodyHasCurrentStation(system.id, body.name);
         ctx.fillStyle = hasCurrentStn ? "rgba(0, 247, 255, 0.8)" : "rgba(255, 210, 80, 0.7)";
         const nameW = ctx.measureText(body.name).width;
         ctx.beginPath();
-        ctx.arc(x + 8 + nameW + 6, y - 7, 2.5, 0, Math.PI * 2);
+        ctx.arc(bodyLabelX < x ? bodyLabelX - 6 : bodyLabelX + nameW + 6, y - 7, 2.5, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -689,10 +727,11 @@ export function createStarmapController({
 
     state.clickTargets = [];
     const backSysWidth = drawBackButton("Back To System", 108, 36);
-    const backClusterWidth = drawBackButton("Back To Cluster", 250, 36);
+    const backClusterX = rightBackButtonX("Back To Cluster", 250, width);
+    const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, 36);
 
     state.clickTargets.push({ type: "back-to-system", x: 108, y: 36, radius: Math.max(40, backSysWidth * 0.55) });
-    state.clickTargets.push({ type: "back-to-cluster", x: 250, y: 36, radius: Math.max(42, backClusterWidth * 0.55) });
+    state.clickTargets.push({ type: "back-to-cluster", x: backClusterX, y: 36, radius: Math.max(42, backClusterWidth * 0.55) });
 
     if (body.type === "Field") {
       const beltRadius = Math.min(width, height) * 0.2;
@@ -793,10 +832,11 @@ export function createStarmapController({
 
     state.clickTargets = [];
     const backBodyWidth = drawBackButton("Back To Belt", 98, 36);
-    const backSystemWidth = drawBackButton("Back To System", 228, 36);
+    const backSystemX = rightBackButtonX("Back To System", 228, width);
+    const backSystemWidth = drawBackButton("Back To System", backSystemX, 36);
 
     state.clickTargets.push({ type: "back-to-body", x: 98, y: 36, radius: Math.max(38, backBodyWidth * 0.55) });
-    state.clickTargets.push({ type: "back-to-system", x: 228, y: 36, radius: Math.max(38, backSystemWidth * 0.55) });
+    state.clickTargets.push({ type: "back-to-system", x: backSystemX, y: 36, radius: Math.max(38, backSystemWidth * 0.55) });
 
     const seed = hashSeed(asteroidId || `${system.id}:${body.id}:ast-0`);
     const radius = Math.min(width, height) * 0.11;
@@ -862,7 +902,7 @@ export function createStarmapController({
       if (isCurrentSystem) {
         jumpHtml = `<p class="muted" style="color:rgba(0,247,255,0.85);margin-top:0.5rem;">Currently in this system. Select a body to view stations.</p>`;
       } else if (!reachable) {
-        jumpHtml = `<p class="muted" style="color:rgba(255,180,60,0.85);margin-top:0.5rem;">🔒 Navigation research required to jump here.</p>`;
+        jumpHtml = `<p class="muted" style="color:rgba(255,180,60,0.85);margin-top:0.5rem;">🔒 ${escapeHtmlAttr(travelLockText(system.id))}</p>`;
       } else if (onTravelToSystem) {
         jumpHtml = `<button class="btn btn-accent starmap-travel-system-btn" data-system-id="${system.id}" style="margin-top:0.75rem;">Jump to ${escapeHtmlAttr(system.name)}</button>
           <p class="muted" style="font-size:0.78rem;margin-top:0.4rem;">Stations can only be docked from inside the destination system.</p>`;
@@ -887,10 +927,6 @@ export function createStarmapController({
     }
 
     if (state.view === "body" && system && body) {
-      const scouted = isBodyScouted ? Boolean(isBodyScouted(system.id, body.id)) : false;
-      const composition = generatedComposition(body)
-        .map((part) => `<li>${part.name}: ${part.pct}%</li>`)
-        .join("");
 
       // Find stations orbiting this body
       const bodyStations = state.stations.filter(
@@ -904,7 +940,7 @@ export function createStarmapController({
             const dockLabel = isCurrent
               ? `<span style="color:rgba(0,247,255,0.85);font-size:0.8rem;margin-left:0.4rem;">[DOCKED]</span>`
               : !reachable
-                ? `<span style="color:rgba(255,180,60,0.85);font-size:0.75rem;margin-left:0.4rem;">🔒 Navigation research required</span>`
+                ? `<span style="color:rgba(255,180,60,0.85);font-size:0.75rem;margin-left:0.4rem;">🔒 Needs ${escapeHtmlAttr(travelResearchName(researchCatalog, s.systemId) || "navigation research")}</span>`
               : inSameSystem && onDockAtStation
                 ? `<button class="btn btn-outline starmap-dock-btn" data-station-id="${s.id}" style="margin-left:0.5rem;font-size:0.75rem;padding:0.15em 0.5em;">Dock</button>`
               : !inSameSystem
@@ -926,15 +962,15 @@ export function createStarmapController({
         const inSameSystem = (state.currentSystemId || "sol") === system.id;
         const activeExps = (am.activeExpeditions || []).filter(e => e.beltKey === beltKey);
 
-        let compositionHtml = "";
+        // Bug #1264: scouted, but the composition has not arrived from the server yet (it is fetched after a load).
+        let compositionHtml = isBeltScouted && !beltComps[beltKey] ? scoutedBeltLoadingHtml() : "";
         if (isBeltScouted && beltComps[beltKey]) {
           const comp = beltComps[beltKey];
           compositionHtml = `<h4 style="margin-top:0.75rem;">Material Composition</h4><ul class="text-list">${
             Object.entries(comp).map(([name, pct]) => `<li>${name}: ${pct}%</li>`).join("")
           }</ul>`;
         } else if (!isBeltScouted) {
-          compositionHtml = `<p class="muted">Material composition unknown. Scout this belt to reveal resource data.</p>
-            <button id="scout-belt-btn" class="btn btn-accent" style="margin-top:0.5rem;">Scout Asteroid Belt</button>`;
+          compositionHtml = unscoutedBeltHtml({ hasProspecting, inSameSystem, systemName: system.name });
         }
 
         let miningHtml = "";
@@ -1030,25 +1066,10 @@ export function createStarmapController({
         // Non-field body (planet/moon)
         detailsEl.innerHTML = `
           <h3>${body.name} - ${system.name}</h3>
-          <p class="muted">Type: ${body.type} | Scouting Status: ${scouted ? "Completed" : "Unscouted"}</p>
-          ${
-            scouted
-              ? `<ul class="text-list">${composition}</ul>`
-              : `<p class="muted">Resource composition is unknown. You must scout this body first.</p>
-                 <button id="scout-body-btn" class="btn btn-accent">Scout Body</button>`
-          }
+          <p class="muted">Type: ${body.type}</p>
+          ${bodyResourceHtml(body, state.stations)}
           ${stationListHtml}
         `;
-      }
-
-      if (!scouted && body.type !== "Field") {
-        const scoutButton = detailsEl.querySelector("#scout-body-btn");
-        scoutButton?.addEventListener("click", () => {
-          if (onScoutBody) {
-            onScoutBody(system.id, body.id);
-          }
-          render();
-        });
       }
 
       // Bind dock buttons in starmap details
@@ -1073,14 +1094,18 @@ export function createStarmapController({
 
     if (state.view === "asteroid" && system && body) {
       const asteroidId = state.selectedAsteroidId || `${system.id}:${body.id}:ast-0`;
-      const profile = asteroidComposition(asteroidId);
       // Redirect asteroid detail view to the belt mining panel
       const beltKey = `${system.id}:${body.id}`;
       const am = state.asteroidMining || {};
+      // AB#740: the belt's surveyed composition from the server, or nothing; no longer a class drawn from a hash.
+      const surveyed = (am.scoutedBelts || []).includes(beltKey) && (am.beltCompositions || {})[beltKey];
+      const profile = surveyed
+        ? Object.entries(surveyed).sort((x, y) => y[1] - x[1]).map(([name, pct]) => `${name} ${pct}%`).join(", ")
+        : "Not surveyed (scout the belt)";
       const hasProspecting = state.unlockedTech.has("tt-asteroid-prospecting");
       detailsEl.innerHTML = `
         <h3>Asteroid Sample — ${body.name}</h3>
-        <p class="muted">Catalog ID: ${asteroidId.split(":").slice(-1)[0]} | Composition class: ${profile}</p>
+        <p class="muted">Catalog ID: ${asteroidId.split(":").slice(-1)[0]} | Belt composition: ${profile}</p>
         ${hasProspecting
           ? `<p class="muted" style="margin-top:0.5rem;">Use the belt-level view to launch mining expeditions to this asteroid field.</p>`
           : `<p class="muted" style="margin-top:0.5rem;">Research Asteroid Prospecting Arrays to unlock mining operations in this belt.</p>`
@@ -1109,6 +1134,12 @@ export function createStarmapController({
     if (!ctx || !canvas || canvas.hidden || canvas.clientWidth <= 0 || canvas.clientHeight <= 0) {
       renderFallback();
       return;
+    }
+
+    // Bug #1286: a canvas sized while its tab was hidden has a 1x1 backing store; size it to its box before drawing.
+    const expected = canvasBackingSize(canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio);
+    if (canvas.width !== expected.width || canvas.height !== expected.height) {
+      setCanvasSize();
     }
 
     clearScene();
@@ -1300,7 +1331,7 @@ export function createStarmapController({
           ${isCurrent
             ? `<span class="muted" style="font-size:0.85rem;">You are currently docked at this station.</span>`
             : !canTravelToSystem(station.systemId)
-              ? `<span class="muted" style="font-size:0.85rem;color:rgba(255,180,60,0.85);">🔒 Navigation research required to travel here.</span>`
+              ? `<span class="muted" style="font-size:0.85rem;color:rgba(255,180,60,0.85);">🔒 ${escapeHtmlAttr(travelLockText(station.systemId))}</span>`
             : (state.currentSystemId || "sol") === station.systemId
               ? `<button class="btn btn-accent starmap-modal-dock-btn" data-station-id="${escapeHtmlAttr(station.id)}">Dock at Station</button>`
               : `<span class="muted" style="font-size:0.85rem;">Jump to <strong>${escapeHtmlAttr(station.systemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()))}</strong> from the system view, then dock here.</span>`
