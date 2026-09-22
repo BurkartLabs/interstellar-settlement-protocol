@@ -110,6 +110,12 @@ describe("the daily close (AB#713)", () => {
     expect(state.statements[0].cashFlow).toMatchObject({ opening: 100_000, inflows: 0, outflows: 0, closing: 100_777, unrecorded: 777 });
   });
 
+  it("a corporation with no finances is left alone: a read does not invent a balance", () => {
+    const state = { corp: { finances: null } };
+    expect(closeDueDays(state, at(3))).toBe(0);
+    expect(state.corp.finances).toBeNull();
+  });
+
   it("an older save with no day book opens one at its balance; days are UTC", () => {
     const state = newState(12_345);
     expect(closeDueDays(state, at(5, 23))).toBe(0);

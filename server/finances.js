@@ -214,7 +214,8 @@ export function closeDay(corp, dayStart, market = null) {
  */
 export function closeDueDays(state, now = Date.now(), market = null) {
   const corp = state?.corp;
-  if (!corp) return 0;
+  // A corporation with no finances is left as it is: a read does not invent a balance (it would read as 0 credits).
+  if (!corp || !corp.finances || typeof corp.finances !== "object") return 0;
   const book = openDayBook(corp, now);
   if (!Array.isArray(state.statements)) state.statements = [];
   const today = utcDayStart(now);
