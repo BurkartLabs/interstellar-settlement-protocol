@@ -4572,6 +4572,13 @@ body.walkthrough-open {
   color: var(--text);
 }
 
+/* Bug #1058: what to do while the quota is short. */
+.mission-quota-hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--text);
+}
+
 /* ─── Mission location tags ──────────────────────────────── */
 .mission-location-tag {
   font-size: 0.65rem;

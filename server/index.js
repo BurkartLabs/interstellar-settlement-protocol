@@ -379,7 +379,7 @@ function formatCredits(amount) {
 function fundingRequirementMessage(actionLabel, corp, requiredCredits, extra = "") {
   const parts = [
     `${actionLabel} requires ${formatCredits(requiredCredits)}.`,
-    `Current reserves: ${formatCredits(corp.finances.credits)} credits.`
+    `Current reserves: ${formatCredits(corp.finances.credits)}.` // Bug #1201: formatCredits already says "credits"
   ];
 
   if (extra) {
@@ -1063,6 +1063,9 @@ app.post("/api/accounts/:accountId/notifications/read-all", (req, res) => {
   res.json(payload);
 });
 
+// Bug #1058: refusals that say what to do next. Imported beside their first use, away from the import block.
+import { employeeCapMessage, miningCreditsAdvice, missionShortMessage, LEVELS } from "./nextStep.js";
+
 app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
   const count = bodyNumber(req.body?.count, { fallback: 1, min: 1, integer: true });
   let outcome = "ok";
@@ -1098,7 +1101,7 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
   if (outcome !== "ok") {
     const corp = account.state.corp;
     const messageMap = {
-      "no-capacity": `Employee cap reached. Current staffing is ${corp.employeeCount}/${corp.employeeCap}.`,
+      "no-capacity": employeeCapMessage(corp, LEVELS),
       "insufficient-credits": fundingRequirementMessage("Hiring", corp, count * 2000)
     };
     res.status(400).json({ error: messageMap[outcome] || "Hire action failed." });
@@ -1686,6 +1689,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
 // ─── Lease-scoped: Start a mining cycle on a lease extractor ───────────────
 app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, res) => {
   const { leaseId } = req.params;
+  let neededStartup = 0; // Bug #1058: the start-up cost, for the refusal
   const amount = bodyNumber(req.body?.amount, { fallback: 40, min: 10 });
   const requestedHours = bodyNumber(req.body?.hours, { fallback: 24, min: 1, max: 72 });
   const requestedExtractorId = String(req.body?.extractorId || "").trim();
@@ -1749,6 +1753,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
 
     if ((corp.finances.credits || 0) < startupCost) {
       outcome = "insufficient-credits";
+      neededStartup = startupCost;
       return;
     }
 
@@ -1774,7 +1779,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
       "no-lease-extractors": "No extraction facilities are assigned to this lease.",
       "missing-extractor-target": `Extractor "${requestedExtractorId}" not found on this lease.`,
       "already-active": `${targetExtractorLabel} already has an active mining cycle in progress.`,
-      "insufficient-credits": `Insufficient credits to start the mining cycle. Check your finances.`
+      "insufficient-credits": fundingRequirementMessage("Starting this mining cycle", account.state.corp, neededStartup, miningCreditsAdvice(neededStartup))
     };
     res.status(400).json({ error: messageMap[outcome] || "Mining cycle failed to start." });
     return;
@@ -2451,6 +2456,7 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
   if (!missionId) return res.status(400).json({ error: "Missing missionId." });
 
   let outcome = "ok";
+  let shortfall = null;
   const account = mutateAccountState(req.params.accountId, (state) => {
     if (!Array.isArray(state.corp.activeMissions)) state.corp.activeMissions = [];
     const mission = state.corp.activeMissions.find((m) => m.id === missionId);
@@ -2465,7 +2471,7 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
     const resource = mission.quota.resource || "";
     const required = mission.quota.amount || 0;
     const have = stationInv[resource] || 0;
-    if (have < required) { outcome = "insufficient"; return; }
+    if (have < required) { outcome = "insufficient"; shortfall = { resource, required, stationId }; return; }
 
     // Deduct resources
     stationInv[resource] = have - required;
@@ -2509,7 +2515,10 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
   if (!account) return res.status(404).json({ error: "Account not found." });
   if (outcome === "not-active") return res.status(400).json({ error: "Mission is not active." });
   if (outcome === "no-quota") return res.status(400).json({ error: "Mission has no quota to complete." });
-  if (outcome === "insufficient") return res.status(400).json({ error: "Insufficient resources at this station." });
+  if (outcome === "insufficient") {
+    const stationName = (id) => STATIONS_DATA.stations.find((st) => st.id === id)?.name || id;
+    return res.status(400).json({ error: missionShortMessage({ ...shortfall, inventory: account.state.corp.inventory, stationName }) });
+  }
   res.json(account);
 });
 
