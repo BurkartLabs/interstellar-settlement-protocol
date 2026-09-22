@@ -61,7 +61,7 @@
     },
     "metric": {
       "type": "string",
-      "description": "The milestone ladder's metric vocabulary (server/gameState.js resolveMetric: stat:, employeeCount, miningLease:, building:, building-count:, totalMined:, unlockedTech:) plus the kinds this design proposes adding to that same resolver, each reading a state field that exists today: level (corp.level), walkthroughCompleted (playerProfile.walkthroughCompleted), missionActive:<id> (corp.activeMissions), missionCompleted:<id> (corp.completedMissions), dockedAt:<stationId> (corp.currentStationId), techQueued:<techId> (queues.corporateRnD), extractorsRunning (corp.mining.silicateExtractors[].active), stationStock:<stationId>:<item> (corp.inventory).",
+      "description": "The milestone ladder's metric vocabulary (server/game/progression.js resolveMetric: stat:, employeeCount, miningLease:, building:, building-count:, totalMined:, unlockedTech:) plus the kinds this design proposes adding to that same resolver, each reading a state field that exists today: level (corp.level), walkthroughCompleted (playerProfile.walkthroughCompleted), missionActive:<id> (corp.activeMissions), missionCompleted:<id> (corp.completedMissions), dockedAt:<stationId> (corp.currentStationId), techQueued:<techId> (queues.corporateRnD), extractorsRunning (corp.mining.silicateExtractors[].active), stationStock:<stationId>:<item> (corp.inventory).",
       "minLength": 1
     },
     "condition": {
