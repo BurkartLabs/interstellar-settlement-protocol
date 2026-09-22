@@ -13,7 +13,7 @@
 // A corporation's payroll clock starts the first time it is settled with staff, so nobody is charged for the time
 // before payroll existed, and a corporation with no staff is never touched.
 
-import { recordExpense } from "./finances.js";
+import { applyCredits } from "./finances.js";
 
 export const PAYROLL_PER_EMPLOYEE_PER_DAY = 150;
 const DAY_MS = 86_400_000;
@@ -60,9 +60,9 @@ export function settlePayroll(corp, now = Date.now()) {
   if (due <= 0) return { ...none, owed: 0 };
   const credits = Math.max(0, Number(f.credits) || 0);
   const paid = Math.min(due, Math.floor(credits));
-  f.credits = credits - paid;
+  // Through the ledger (AB#712): the balance and the P&L move together, by what was actually paid.
+  applyCredits(corp, -paid, "payroll", now);
   f.payrollArrears = due - paid;
-  if (paid > 0) recordExpense(corp, "payroll", paid, now);
   return { paid, owed: f.payrollArrears, becameShort: owedBefore === 0 && f.payrollArrears > 0, caughtUp: owedBefore > 0 && f.payrollArrears === 0 };
 }
 
