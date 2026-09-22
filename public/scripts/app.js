@@ -32,7 +32,7 @@ const appState = {
   walkthroughCompleted: false,
   textOnly: false,
   chatChannel: "global",
-  chatAutoScrollOnNextRender: false,
+  chatOwnLinePending: false, // Bug #1135: the player just sent a line, so the next redraw shows the newest
   mapMounted: false,
   walkthroughIndex: 0,
   activeTypewriter: null,
@@ -4761,6 +4761,7 @@ function resolveChatChannel(tab, data = appState.data) {
 
 // AB#733: the chat line template lives in html.js, where it is tested; imported beside its one use.
 import { chatLineHtml } from "./html.js";
+import { chatScrollTop } from "./chatScroll.js";
 
 function renderChatLog(data) {
   const channel = resolveChatChannel(appState.chatChannel, data);
@@ -4771,15 +4772,19 @@ function renderChatLog(data) {
     return;
   }
 
+  // Bug #1135: measure before the redraw, so a player at the newest line stays there and one reading history does not
+  // lose their place; a channel switch or their own line goes to the newest.
+  const before = { scrollHeight: chatLog.scrollHeight, scrollTop: chatLog.scrollTop, clientHeight: chatLog.clientHeight };
+  const channelChanged = chatLog.dataset.channel !== channel;
+  chatLog.dataset.channel = channel;
+
   chatLog.innerHTML = messages
     .slice(-120)
     .map((msg) => chatLineHtml(msg, formatTime))
     .join("");
 
-  if (appState.chatAutoScrollOnNextRender) {
-    chatLog.scrollTop = chatLog.scrollHeight;
-    appState.chatAutoScrollOnNextRender = false;
-  }
+  chatLog.scrollTop = chatScrollTop({ before, afterScrollHeight: chatLog.scrollHeight, channelChanged, ownLine: appState.chatOwnLinePending });
+  appState.chatOwnLinePending = false;
 }
 
 function renderChatChannelTabs() {
@@ -5629,13 +5634,8 @@ function bindForms() {
       return;
     }
 
-    const chatLogEl = document.getElementById("chat-log");
-    if (chatLogEl) {
-      const distanceFromBottom = chatLogEl.scrollHeight - (chatLogEl.scrollTop + chatLogEl.clientHeight);
-      appState.chatAutoScrollOnNextRender = distanceFromBottom <= 12;
-    } else {
-      appState.chatAutoScrollOnNextRender = false;
-    }
+    // Bug #1135: show the player their own line when it comes back, wherever they had scrolled to.
+    appState.chatOwnLinePending = true;
 
     // The server names the author from the logged-in account (Bug #710); the client no longer sends one.
     socket?.emit("chat:send", {
