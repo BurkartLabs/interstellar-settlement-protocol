@@ -309,7 +309,7 @@ const starmap = createStarmapController({
       appState.data = deepClone(account.state);
       await refreshBeltCompositions();
       updateAllViews();
-      pushFeedback(`Asteroid belt scouted: ${beltKey}`, "ok");
+      pushFeedback(beltScoutedText(beltKey, appState.data?.world?.systems), "ok"); // AB#1257: names, not "sol:belt"
     } catch (err) {
       pushFeedback(err.message || "Belt scouting failed.", "warn");
     }
@@ -2392,13 +2392,17 @@ function renderAssemblyFacility(data) {
         appState.data = deepClone(account.state);
         updateAllViews();
         renderAssemblyFacility(appState.data);
-        pushFeedback("Mining Probe fabricated.", "ok");
+        // AB#1257: it said "fabricated" here, 30 minutes before the probe existed; that line now comes on completion.
+        pushFeedback(probeFabricationStartedText(appState.data?.corp?.asteroidMining?.fabricationQueue), "ok");
       } catch (err) {
         pushFeedback(err.message || "Probe fabrication failed.", "warn");
       }
     });
   }
 }
+
+// The asteroid-mining feedback lines (AB#1257), beside the fabrication handler that writes one of them.
+import { beltScoutedText, probeFabricationStartedText, probeReadyText } from "./miningFeedback.js";
 
 function clearTravelTimer() {
   if (appState._travelTimer) {
@@ -6290,9 +6294,10 @@ function bindRealtimeEvents() {
     loadMessages();
   });
 
-  socket.on("fabrication:completed", (payload) => {
+  socket.on("fabrication:completed", async (payload) => {
     if (!appState.data || !appState.accountId || payload?.accountId !== appState.accountId) return;
-    refreshFromServer();
+    await refreshFromServer();
+    pushFeedback(probeReadyText(appState.data?.corp?.asteroidMining?.probeCount), "ok"); // AB#1257: said once, when true
   });
 }
 
