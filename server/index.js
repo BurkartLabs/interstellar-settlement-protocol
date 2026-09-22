@@ -3113,6 +3113,10 @@ app.post("/api/market/orders/:orderId/cancel", requireAuth, (req, res) => {
   res.json({ ok: true, cancelled: order.id, account });
 });
 
+// Bug #1325: each side of a sale is named to the other as the order book names a seller: the corporation name, or
+// "Unregistered corporation", never an email address (the buyer's used to be the fallback in the seller's history).
+import { publicName } from "./publicViews.js";
+
 app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
   const requestedQty = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
@@ -3171,7 +3175,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
       quantity: tradeQuantity,
       unitPrice: Number(order.unitPrice || 0),
       total: tradeTotal,
-      counterparty: order.seller || "Unknown",
+      counterparty: publicName(order.seller),
       at: Date.now()
     });
     corp.tradeHistory = corp.tradeHistory.slice(0, 200);
@@ -3203,7 +3207,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
         taxPct,
         taxAmount,
         proceeds: sellerProceeds,
-        counterparty: buyerAccount.state?.corp?.corporationName || buyerAccount.email || "Anonymous",
+        counterparty: publicName(buyerAccount.state?.corp?.corporationName),
         at: Date.now()
       });
       state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
