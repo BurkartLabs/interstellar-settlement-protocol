@@ -1,0 +1,73 @@
+import { describe, it, expect } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { CODE_RULES, computeModel, leaseCatalog, modelText } from "../../scripts/economy-model.mjs";
+import { economyNumbers } from "../../server/economy.js";
+
+// AB#727: ECONOMY.md explains every key of data/economy.json and quotes the model; this keeps both true.
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
+const economy = JSON.parse(read("data/economy.json"));
+const doc = read("ECONOMY.md").replace(/\r\n/g, "\n");
+
+describe("ECONOMY.md (AB#727)", () => {
+  it("lists every key in data/economy.json, and no key the file does not have", () => {
+    // Array positions fold into their list: office.termDays.0 is office.termDays, npcBuyers.2.unitPrice is npcBuyers.unitPrice.
+    const keys = [...new Set(economyNumbers(economy).map(([k]) => k.split(".").filter((p) => !/^\d+$/.test(p)).join(".")))];
+    const listed = [...doc.matchAll(/^\| `([^`]+)` \|/gm)].map((m) => m[1]);
+    expect(listed.sort()).toEqual(keys.sort());
+    for (const b of economy.npcBuyers) expect(doc, b.item).toContain(`${b.item} ${b.unitPrice}`);
+  });
+
+  it("quotes exactly what npm run economy:model prints", () => {
+    const quoted = doc.match(/<!-- economy-model:start -->\n```text\n([\s\S]*?)\n```\n<!-- economy-model:end -->/)?.[1];
+    expect(quoted).toBe(modelText().trimEnd());
+  });
+
+  it("says it is a model, states T-018, and cites the prior art", () => {
+    expect(doc).toContain("It is a model, not play");
+    expect(doc).toContain("24 x T x 0.92");
+    expect(doc).toMatch(/Virtual Economic Theory: How MMOs Really Work/);
+  });
+
+  it("npm run economy:model is the script", () => {
+    expect(JSON.parse(read("package.json")).scripts["economy:model"]).toBe("node scripts/economy-model.mjs");
+  });
+});
+
+describe("the model reads the game, not a copy of it (AB#727)", () => {
+  it("each rule taken from the code still says what the model assumes", () => {
+    const gameState = read("server/gameState.js");
+    const index = read("server/index.js");
+    expect(gameState).toMatch(/credits: 250000/);
+    expect(gameState).toMatch(/currentStationId: "earth-station-prime"/);
+    expect(index).toMatch(/const EMPLOYEES_PER_LEASE = 5;/);
+    expect(index).toMatch(/Math\.max\(10, Math\.min\(250, amount\)\)/);
+    expect(index).toMatch(/hours, \{ fallback: 24, min: 1, max: 72 \}/);
+    expect(gameState).toMatch(/let probPerSec = 0\.00005;/);
+    expect(gameState).toMatch(/const recoveryProbPerSec = 0\.000276;/);
+    expect(gameState).toMatch(/const minDowntimeMs = 15 \* 60 \* 1000;/);
+    expect(CODE_RULES.startingCredits.value).toBe(250_000);
+  });
+
+  it("the path and the payback follow from the numbers", () => {
+    const m = computeModel(economy, leaseCatalog());
+    expect(m.lease).toEqual({ name: "Earth", cost: 20_000 });
+    expect(m.steps.map((s) => s.cost)).toEqual([7_000, 10_000, 20_000, 50_000]);
+    expect(m.credits).toBe(163_000);
+    expect(m.marginPerUnit).toBeCloseTo(6.08, 10);
+    const [t10, t100, t250] = m.rows;
+    expect(t10.perHourIdeal).toBeLessThan(0);
+    expect(t10.paybackIdeal).toBe(Infinity);
+    expect(t250.perHourIdeal).toBeCloseTo(250 * 24 * 0.92 - 4_000 - (750 + 1_000) / 24 - 1_400 / 72, 6);
+    expect(t250.paybackIdeal).toBeLessThan(t100.paybackIdeal);
+  });
+
+  it("a margin at or below zero makes every setting lose, and the model says never", () => {
+    const worse = { ...economy, operations: { ...economy.operations, costPerThroughputUnit: 23 } };
+    const m = computeModel(worse, leaseCatalog());
+    expect(m.rows.every((r) => r.paybackIdeal === Infinity)).toBe(true);
+    expect(m.marginPerUnit).toBeLessThan(0);
+  });
+});
