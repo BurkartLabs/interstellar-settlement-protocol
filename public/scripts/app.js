@@ -6557,15 +6557,19 @@ function openMessage(messageId) {
     restoreBtn.style.display = "";
   }
 
-  // Mark read
+  // Mark read. Bug #1136: here and now, so the counts and the list are right the moment the player goes Back (it used
+  // to wait for the request, and nothing redrew the list after it); put back if the server does not record it.
   if (!msg.readAt && msg.folder !== "sent" && msg.folder !== "draft") {
+    msg.readAt = Date.now();
+    updateInboxSubtabBadges(); // Bug #1130: the Inbox tab's count is on screen while the message is open
+    const unmark = () => {
+      const m = appState.inbox.messages.find((x) => x.id === messageId);
+      if (m) m.readAt = null;
+      renderInboxMessageList();
+    };
     apiFetch(`/api/accounts/${appState.accountId}/messages/${messageId}/read`, { method: "POST" })
-      .then(() => {
-        const m = appState.inbox.messages.find((x) => x.id === messageId);
-        if (m) m.readAt = Date.now();
-        updateInboxSubtabBadges(); // Bug #1130: the Inbox tab's count is on screen while the message is open
-      })
-      .catch(() => {});
+      .then((res) => { if (!res.ok) unmark(); })
+      .catch(unmark);
   }
 }
 
@@ -6618,6 +6622,7 @@ function bindInboxControls() {
   document.getElementById("inbox-back-btn")?.addEventListener("click", () => {
     showInboxView("list");
     appState.inbox.openMessageId = null;
+    renderInboxMessageList(); // Bug #1136: the message just read is no longer marked unread
   });
   document.getElementById("inbox-compose-back-btn")?.addEventListener("click", () => {
     appState.inbox.composeDraftId = null;
