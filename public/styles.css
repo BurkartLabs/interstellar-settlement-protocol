@@ -3449,7 +3449,8 @@ body.walkthrough-open {
 }
 
 #lease-suite-box {
-  width: 750px;
+  /* Bug #1032: a fixed 750px ran off a phone screen and hid the office price; as wide as the other Suites cards. */
+  width: min(750px, 100%);
 }
 
 /* ─── Office Interior View ───────────────────────────────────────────────── */
