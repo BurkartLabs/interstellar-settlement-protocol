@@ -145,6 +145,85 @@ public/
 | Mars mining lease | $25,000 |
 | Luna mining lease | $30,000 |
 | Employees required per lease | 5 per active lease |
+| Transfer fee | $2/unit within a system, +$3/unit per jump (see Transfers, below) |
+
+---
+
+## Transfers: Fee and Transit Time by Distance (AB#718)
+
+**The decision.** The Board answered AB#693 (how moving resources between stations should cost and take time):
+*"distance based time and fees"*. This replaced the flat 2 credits a unit for any pair of stations. The reason, from
+T-018: with a flat fee, where goods are processed is not a decision.
+
+**The model.** Distance is counted in jumps between systems on the map in `public/scripts/navigation.js`
+(`SYSTEM_ADJACENCY`, the same graph the server's travel times use). Two stations in one system are 0 jumps apart.
+
+- Fee per unit = `sameSystemFeePerUnit` + `perJumpFeePerUnit` × jumps
+- Transit time = `sameSystemTransitMinutes` + `perJumpTransitMinutes` × jumps
+
+The numbers are in `data/economy.json` under `logistics`: 2 credits a unit within a system (the old flat fee, so
+nothing moved within Sol costs more than before), 3 more a unit per jump, 30 minutes within a system, and 2 hours per
+jump. They are a starting point for the balance pass, not tuned against play. The server computes both from the two
+station ids (`server/transfers.js`: `transferFee(from, to, quantity)`, `transitTime(from, to)`). The Logistics tab gets
+the same rates with the station list and quotes the fee on each station's card before anything is moved. Transfers
+still arrive at once; the transit time becomes real in the next story (timed transit).
+
+**Every pair of stations** (the fee is per unit; a test checks this table against the code):
+
+| From | To | Jumps | Fee per unit | Transit time |
+|---|---|---|---|---|
+| Earth Station Prime | Luna Gateway | 0 | 2 | 30 min |
+| Earth Station Prime | Mars Orbital Dock | 0 | 2 | 30 min |
+| Earth Station Prime | Centauri Prime Orbital | 1 | 5 | 2 h 30 min |
+| Earth Station Prime | Ironwell Mining Depot | 1 | 5 | 2 h 30 min |
+| Earth Station Prime | Halo Anchorage | 2 | 8 | 4 h 30 min |
+| Earth Station Prime | Verde Trade Hub | 2 | 8 | 4 h 30 min |
+| Earth Station Prime | Kestrel Platform | 3 | 11 | 6 h 30 min |
+| Luna Gateway | Mars Orbital Dock | 0 | 2 | 30 min |
+| Luna Gateway | Centauri Prime Orbital | 1 | 5 | 2 h 30 min |
+| Luna Gateway | Ironwell Mining Depot | 1 | 5 | 2 h 30 min |
+| Luna Gateway | Halo Anchorage | 2 | 8 | 4 h 30 min |
+| Luna Gateway | Verde Trade Hub | 2 | 8 | 4 h 30 min |
+| Luna Gateway | Kestrel Platform | 3 | 11 | 6 h 30 min |
+| Mars Orbital Dock | Centauri Prime Orbital | 1 | 5 | 2 h 30 min |
+| Mars Orbital Dock | Ironwell Mining Depot | 1 | 5 | 2 h 30 min |
+| Mars Orbital Dock | Halo Anchorage | 2 | 8 | 4 h 30 min |
+| Mars Orbital Dock | Verde Trade Hub | 2 | 8 | 4 h 30 min |
+| Mars Orbital Dock | Kestrel Platform | 3 | 11 | 6 h 30 min |
+| Centauri Prime Orbital | Ironwell Mining Depot | 2 | 8 | 4 h 30 min |
+| Centauri Prime Orbital | Halo Anchorage | 1 | 5 | 2 h 30 min |
+| Centauri Prime Orbital | Verde Trade Hub | 2 | 8 | 4 h 30 min |
+| Centauri Prime Orbital | Kestrel Platform | 2 | 8 | 4 h 30 min |
+| Ironwell Mining Depot | Halo Anchorage | 2 | 8 | 4 h 30 min |
+| Ironwell Mining Depot | Verde Trade Hub | 1 | 5 | 2 h 30 min |
+| Ironwell Mining Depot | Kestrel Platform | 2 | 8 | 4 h 30 min |
+| Halo Anchorage | Verde Trade Hub | 1 | 5 | 2 h 30 min |
+| Halo Anchorage | Kestrel Platform | 1 | 5 | 2 h 30 min |
+| Verde Trade Hub | Kestrel Platform | 1 | 5 | 2 h 30 min |
+
+**Where to refine, by arithmetic from the data (not from player behaviour).** The story set out to show that the
+cheapest place to refine is sometimes neither the mine's station nor the main market's. The arithmetic shows the
+opposite for every chain the game has today. It is written down here because it matters more than the table.
+
+Take the silicates chain (`data/refinery-chains.json`): 100 Silicates make 40 Aerogel and 15 Quantum Insulators, 55
+units. A refinery runs where its inputs are held, and every station has an exchange. Mine at Kestrel Platform (Epsilon
+Eridani) and sell at Earth Station Prime, 3 jumps away:
+
+- Refine at the mine: ship 55 units 3 jumps: 55 × 11 = **605** credits, and the goods reach Earth 6 h 30 min after
+  the cycle ends.
+- Refine at Verde Trade Hub, on the way (1 jump from Kestrel, 2 from Sol): 100 × 5 + 55 × 8 = **940** credits, and
+  2 h 30 min + 4 h 30 min = 7 hours of transit.
+- Refine at Earth: ship 100 units 3 jumps: 100 × 11 = **1,100** credits, and 6 h 30 min of transit before the cycle.
+
+The mine wins on fee and ties or wins on time, and that holds in general. Every chain turns more units in into fewer
+out, and jumps obey the triangle inequality. So for any refinery station R between mine M and market K, the fee is
+`in × f(M,R) + out × f(R,K) ≥ out × (f(M,R) + f(R,K)) ≥ out × f(M,K)`, which is the fee of refining at the mine.
+Time is the same: the two legs through R are never shorter than the direct route. So a fee and a delay that grow with
+distance make "refine where you mine" the answer, not a trade-off.
+
+What would give siting a middle: a chain with inputs from two different mines, a station where refining is cheaper or
+faster, or prices that differ by station (a market geography). None of these exist yet. That is a design choice for
+the Board, filed as a Decision rather than guessed at here.
 
 ---
 

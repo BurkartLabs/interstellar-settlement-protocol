@@ -18,7 +18,7 @@ import { resolveLeaseBody } from "./leases.js";
 import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from "../public/scripts/ceoEffects.js";
 import { ECONOMY, buildCostFor, operationCostPerHourFor, startupCostFor } from "./economy.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "../public/scripts/ceoEffects.js";
-import { canReachSystem, leaseFilingRefusal } from "../public/scripts/navigation.js";
+import { canReachSystem, leaseFilingRefusal, systemHops } from "../public/scripts/navigation.js";
 import {
   accountExists,
   addAccountNotification,
@@ -27,6 +27,7 @@ import {
   saveAccountsNow,
   authenticateAccount,
   getAccountById,
+  getStatements,
   getDummyAccount,
   getAllAccountIds,
   getState,
@@ -55,6 +56,7 @@ import {
   REFINERY_CHAINS,
   MISSION_TEMPLATES,
   refreshContractOfferings,
+  COMPLETED_COOLDOWN_MS, // Bug #1268
   SYSTEM_DETAILS
 } from "./gameState.js";
 
@@ -186,37 +188,9 @@ const RESEARCH_LIBRARY = {
 
 const TIER_1_TECH_IDS = Object.values(RESEARCH_LIBRARY).filter((t) => t.tier === 1).map((t) => t.id);
 
-// ── System adjacency graph (for hop-distance calculation) ──
-// TODO(AB#804): Store in DB
-const SYSTEM_ADJACENCY = {
-  "sol":              ["alpha-centauri", "barnards-star"],
-  "alpha-centauri":   ["sol", "wolf-359"],
-  "barnards-star":    ["sol", "tau-ceti"],
-  "wolf-359":         ["alpha-centauri", "tau-ceti", "epsilon-eridani"],
-  "tau-ceti":         ["barnards-star", "wolf-359", "epsilon-eridani"],
-  "epsilon-eridani":  ["wolf-359", "tau-ceti"]
-};
-
+// ── Jumps between systems: public/scripts/navigation.js holds the map (AB#718), shared with the transfer fee ──
 function getSystemHops(fromId, toId) {
-  if (fromId === toId) return 0;
-  const visited = new Set([fromId]);
-  let frontier = [fromId];
-  let depth = 0;
-  while (frontier.length > 0) {
-    depth++;
-    const next = [];
-    for (const sys of frontier) {
-      for (const neighbor of SYSTEM_ADJACENCY[sys] || []) {
-        if (neighbor === toId) return depth;
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          next.push(neighbor);
-        }
-      }
-    }
-    frontier = next;
-  }
-  return 99; // unreachable fallback
+  return systemHops(fromId, toId) ?? 99; // unreachable fallback
 }
 
 // ── Planet ordering within each system (for intra-system hop distance) ──
@@ -380,7 +354,7 @@ function formatCredits(amount) {
 function fundingRequirementMessage(actionLabel, corp, requiredCredits, extra = "") {
   const parts = [
     `${actionLabel} requires ${formatCredits(requiredCredits)}.`,
-    `Current reserves: ${formatCredits(corp.finances.credits)} credits.`
+    `Current reserves: ${formatCredits(corp.finances.credits)}.` // Bug #1201: formatCredits already says "credits"
   ];
 
   if (extra) {
@@ -402,6 +376,8 @@ for (const s of STATIONS_DATA.stations) {
 }
 
 const app = express();
+// AB#735: responses do not name the framework they come from.
+app.disable("x-powered-by");
 const server = http.createServer(app);
 // Bug #710: sockets were open to every origin. The game is served by this same server, so same-origin needs no CORS
 // at all; ISP_APP_ORIGIN (comma-separated) names any other origin allowed in. Unset means none: fail closed.
@@ -468,9 +444,13 @@ import { startExtractorCycle } from "./gameState.js"; // AB#575
 import { applyMiningOperations, getStationInventory } from "./gameState.js";
 import { applyAsteroidExpeditions, BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_ASSET_VALUE, PROBE_FABRICATION_MS, BASE_MAX_PROBES, BASE_MAX_DEPLOYMENTS } from "./gameState.js";
 
+// Bug #1097: payroll is settled on this same 5-second tick, for every account, online or not.
+import { settleAccountPayroll } from "./gameState.js";
+
 function miningTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
+    settleAccountPayroll(accountId, now);
     mutateAccountState(accountId, (state) => {
       if (state && state.corp) {
         applyMiningOperations(state.corp, now);
@@ -669,6 +649,9 @@ function travelTick() {
 
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(travelTick, 5000); // Every 5 seconds
 
+// The R&D schedule lives in public/scripts/rndQueue.js, which the R&D panel reads too; imported here beside its use
+// (Bug #1258), away from the import block other branches edit.
+import { scheduleRndQueue, nextRndStart, rndItemStatus } from "../public/scripts/rndQueue.js"; // Bug #1258
 function processRndCompletions() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
@@ -678,14 +661,12 @@ function processRndCompletions() {
       const queue = state.queues?.corporateRnD;
       if (!Array.isArray(queue) || queue.length === 0) return;
 
-      completedItems = queue.filter((item) => {
-        const startedAt = Number(item?.startedAt || 0);
-        const durationHours = Number(item?.durationHours ?? NaN);
-        if (!startedAt || !Number.isFinite(durationHours) || durationHours < 0) {
-          return false;
-        }
-        return now >= startedAt + durationHours * 3_600_000;
-      });
+      // One technology at a time (Bug #1258): sequence the queue first, which also pushes research queued before
+      // the fix back behind the item ahead of it, then complete the finished items, always a run from the front.
+      scheduleRndQueue(queue, now);
+      let finished = 0;
+      while (finished < queue.length && rndItemStatus(queue[finished], now).state === "done") finished += 1;
+      completedItems = queue.slice(0, finished);
       if (completedItems.length === 0) return;
 
       if (!Array.isArray(state.corp.unlockedTech)) state.corp.unlockedTech = [];
@@ -694,9 +675,8 @@ function processRndCompletions() {
           state.corp.unlockedTech.push(item.techId);
         }
       }
-      state.queues.corporateRnD = queue.filter(
-        (item) => !completedItems.some((c) => c.id === item.id)
-      );
+      // By position, not id: two items queued in the same millisecond share an id.
+      state.queues.corporateRnD = queue.slice(finished);
     });
 
     if (completedItems.length === 0) continue;
@@ -777,7 +757,7 @@ import { refreshDailyExpenses } from "./finances.js"; // Bug #1022 (placed apart
 // Captures a rolling balance/flow snapshot for every active corp so the
 // Financial Core dashboard can render real historical series (cash reserves,
 // net flow, assets vs liabilities) instead of synthesised projections.
-import { buildSnapshot, pushSnapshot, recordIncome, recordExpense, refreshDailyRevenue } from "./finances.js";
+import { applyCredits, buildSnapshot, pushSnapshot, refreshDailyRevenue } from "./finances.js";
 import { fleetStatus } from "./gameState.js"; // Bug #586
 
 const FINANCIAL_SNAPSHOT_INTERVAL_MS = 30_000;
@@ -808,6 +788,13 @@ if (!process.env.ISP_DISABLE_TICKERS) {
 
 // TODO(AB#737): Consider moving API to a dedicated api.js file
 
+// AB#735: the container platform's health probe. Public, and says nothing but that the server is up: by the time it
+// listens, the world and the accounts have loaded (both are read before the module finishes). No version, path or
+// environment detail.
+app.get("/healthz", (_req, res) => {
+  res.json({ ok: true });
+});
+
 app.get("/api/bootstrap", (req, res) => {
   // Public, but a signed-in caller also gets their own older orders (Bug #425: the book is capped when read), and is
   // told which posts and listings are theirs. Nobody is sent an account id (Bugs #1134, #1145).
@@ -818,7 +805,8 @@ app.get("/api/bootstrap", (req, res) => {
 app.get("/api/stations", (_req, res) => {
   try {
     const raw = fs.readFileSync(path.join(__dirname, "..", "data", "stations.json"), "utf8");
-    res.json(JSON.parse(raw));
+    // AB#718: the transfer rates ride with the stations, so the Logistics tab quotes what the server charges.
+    res.json({ ...JSON.parse(raw), logistics: ECONOMY.logistics });
   } catch {
     res.status(500).json({ error: "Stations data unavailable." });
   }
@@ -844,7 +832,7 @@ app.post("/api/auth/register", async (req, res) => {
     const result = await createAccount({ email, password, ceoName, corpName });
 
     if (result.error) {
-      res.status(400).json({ error: result.error });
+      res.status(400).json(result.code ? { error: result.error, code: result.code } : { error: result.error });
       return;
     }
 
@@ -853,7 +841,7 @@ app.post("/api/auth/register", async (req, res) => {
     res.status(201).json({ account, ...tokens });
   } catch (error) {
     console.error("[auth/register]", error);
-    res.status(500).json({ error: "Registration failed." });
+    res.status(500).json({ error: "Registering failed on our side. Try again in a minute." });
   }
 });
 
@@ -892,7 +880,7 @@ app.post("/api/auth/login", async (req, res) => {
     res.json({ account, ...tokens });
   } catch (error) {
     console.error("[auth/login]", error);
-    res.status(500).json({ error: "Login failed." });
+    res.status(500).json({ error: "Logging in failed on our side. Try again in a minute." });
   }
 });
 
@@ -987,6 +975,28 @@ app.get("/api/accounts/:accountId", (req, res) => {
   res.json(account);
 });
 
+// AB#713: the corporation's daily statements (P&L, cash flow, balance sheet), newest first. Under requireAuth and
+// requireAccountAccess like the rest of /api/accounts/:accountId, so only the owner reads them. The one input is ?days=,
+// clamped to 1..90; anything that is not a number is refused.
+app.get("/api/accounts/:accountId/finances/statements", (req, res) => {
+  let days = 90;
+  if (req.query.days !== undefined) {
+    const raw = Array.isArray(req.query.days) ? null : String(req.query.days).trim();
+    const n = raw === null || raw === "" ? NaN : Number(raw);
+    if (!Number.isFinite(n)) {
+      res.status(400).json({ error: "days must be a number from 1 to 90." });
+      return;
+    }
+    days = Math.max(1, Math.min(90, Math.floor(n)));
+  }
+  const result = getStatements(req.params.accountId, days);
+  if (!result) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+  res.json({ accountId: req.params.accountId, days, ...result });
+});
+
 app.post("/api/accounts/:accountId/walkthrough-complete", (req, res) => {
   const account = markWalkthroughCompleted(req.params.accountId);
   if (!account) {
@@ -1055,6 +1065,9 @@ app.post("/api/accounts/:accountId/notifications/read-all", (req, res) => {
   res.json(payload);
 });
 
+// Bug #1058: refusals that say what to do next. Imported beside their first use, away from the import block.
+import { employeeCapMessage, miningCreditsAdvice, missionShortMessage, LEVELS } from "./nextStep.js";
+
 app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
   const count = bodyNumber(req.body?.count, { fallback: 1, min: 1, integer: true });
   let outcome = "ok";
@@ -1077,7 +1090,7 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
     }
 
     corp.employeeCount += hired;
-    corp.finances.credits -= hireCost;
+    applyCredits(corp, -hireCost, "hiring");
     corp.finances.dailyCosts += hired * ECONOMY.employees.payrollPerDay;
     hiredCount = hired;
   });
@@ -1090,7 +1103,7 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
   if (outcome !== "ok") {
     const corp = account.state.corp;
     const messageMap = {
-      "no-capacity": `Employee cap reached. Current staffing is ${corp.employeeCount}/${corp.employeeCap}.`,
+      "no-capacity": employeeCapMessage(corp, LEVELS),
       "insufficient-credits": fundingRequirementMessage("Hiring", corp, count * 2000)
     };
     res.status(400).json({ error: messageMap[outcome] || "Hire action failed." });
@@ -1149,8 +1162,7 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
       return;
     }
 
-    corp.finances.credits -= officeCost;
-    recordExpense(corp, "office-rent", officeCost); // Bug #1022
+    applyCredits(corp, -officeCost, "office-rent");
     const now = Date.now();
     corp.offices.push({
       stationId: station.id,
@@ -1231,8 +1243,7 @@ app.post("/api/accounts/:accountId/gameplay/renew-office", (req, res) => {
       outcome = "insufficient-credits";
       return;
     }
-    corp.finances.credits -= renewalCost;
-    recordExpense(corp, "office-rent", renewalCost); // Bug #1022
+    applyCredits(corp, -renewalCost, "office-rent");
     const extensionMs = durationDays * 86_400_000;
     const now = Date.now();
     office.rentedUntil = Math.max(office.rentedUntil || now, now) + extensionMs;
@@ -1337,7 +1348,7 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
       extractorIds: []
     });
 
-    corp.finances.credits -= leaseCost;
+    applyCredits(corp, -leaseCost, "leases");
     corp.buildingSlots = (corp.buildingSlots || 2) + 2;
   });
 
@@ -1394,7 +1405,7 @@ app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
     const toStationId = corp.currentStationId || null;
     const plan = planTransfer({
       fromStationId: request.fromStationId, toStationId, lines: request.lines,
-      inventory: corp.inventory, credits: corp.finances.credits, stations: STATION_REGISTRY
+      inventory: corp.inventory, credits: corp.finances.credits, stations: STATION_REGISTRY, rates: ECONOMY.logistics
     });
     if (!plan.ok) {
       refusal = plan.error; // nothing has moved
@@ -1408,8 +1419,7 @@ app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
       if (fromInv[item] <= 0) delete fromInv[item];
       toInv[item] = (toInv[item] || 0) + quantity;
     }
-    corp.finances.credits -= plan.fee;
-    recordExpense(corp, "transfer-fees", plan.fee); // Bug #1022
+    applyCredits(corp, -plan.fee, "transfer-fees");
     corp.logisticsHistory = recordTransfer(corp.logisticsHistory, {
       time: Date.now(), from: request.fromStationId, to: toStationId, lines: request.lines, fee: plan.fee
     });
@@ -1425,6 +1435,9 @@ app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
   }
   res.json(account);
 });
+
+// Bug #1270 (placed here, apart from the navigation.js import at the top that open PRs edit)
+import { travelResearchLock } from "../public/scripts/navigation.js";
 
 // ─── Travel: interstellar (system-to-system) or local (dock at station) ──────
 app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
@@ -1532,7 +1545,9 @@ app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
       "already-traveling": "Your ship is already in transit. Wait for arrival before initiating a new course.",
       "already-docked": "You are already docked at this station.",
       "already-in-system": "You are already in this system.",
-      "missing-research": "You lack the required navigation research to travel to that system.",
+      // Bug #1270: name the research, and what stands before it, from the research library.
+      "missing-research": travelResearchLock(RESEARCH_LIBRARY, account.state.corp.unlockedTech, account.state.corp.level,
+        account.state.corp.currentSystemId, toSystemId) || "You lack the required navigation research to travel to that system.",
       "wrong-system": "That station is in a different system. Travel to the system first."
     };
     res.status(400).json({ error: messageMap[outcome] || "Travel request failed." });
@@ -1567,6 +1582,14 @@ app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
   saveAccountsNow();
   res.json(account);
 });
+
+// Bug #1057: what a player can do when building slots run out, worked out from their own leases and level.
+import { unleasedBodies } from "./leases.js";
+import { leaseSlotsFullMessage, corporationSlotsFullMessage } from "../public/scripts/slotAdvice.js";
+import { MILESTONE_LEVELS } from "./gameState.js";
+const unleasedFor = (corp) => unleasedBodies(SYSTEMS_CATALOG, STATIONS_DATA.stations, corp);
+/** The corporation-slots message for this corporation, from its leases, what it can reach and the level table. */
+const corpSlotsFull = (corp) => corporationSlotsFullMessage(corp, unleasedFor(corp), MILESTONE_LEVELS);
 
 // ─── Lease-scoped: Build an extractor yard on a specific lease ──────────────
 app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (req, res) => {
@@ -1634,7 +1657,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
     });
 
     lease.extractorIds.push(newExtractorId);
-    corp.finances.credits -= buildCost;
+    applyCredits(corp, -buildCost, "construction");
     corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
   });
 
@@ -1647,8 +1670,8 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
     const corp = account.state.corp;
     const messageMap = {
       "no-lease": "The specified lease could not be found on your account.",
-      "lease-slots-full": `This lease has used all ${slotInfo} building slots. Upgrade your lease tier or acquire an additional claim to expand capacity.`,
-      "no-corp-slot": `No corporation building slots available. Current usage: ${slotInfo}. Upgrade your headquarters or release an existing building.`,
+      "lease-slots-full": leaseSlotsFullMessage(corp, (corp.miningLeases || []).find((l) => l.id === leaseId), unleasedFor(corp)),
+      "no-corp-slot": corpSlotsFull(corp),
       "insufficient-credits": fundingRequirementMessage("Basic Extractor Yard construction", corp, BASE_BUILD_COST)
     };
     res.status(400).json({ error: messageMap[outcome] || "Build action failed." });
@@ -1670,6 +1693,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (re
 // ─── Lease-scoped: Start a mining cycle on a lease extractor ───────────────
 app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, res) => {
   const { leaseId } = req.params;
+  let neededStartup = 0; // Bug #1058: the start-up cost, for the refusal
   const amount = bodyNumber(req.body?.amount, { fallback: 40, min: 10 });
   const requestedHours = bodyNumber(req.body?.hours, { fallback: 24, min: 1, max: 72 });
   const requestedExtractorId = String(req.body?.extractorId || "").trim();
@@ -1733,11 +1757,11 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
 
     if ((corp.finances.credits || 0) < startupCost) {
       outcome = "insufficient-credits";
+      neededStartup = startupCost;
       return;
     }
 
-    recordExpense(corp, "mining-startup", startupCost); // Bug #1022
-    corp.finances.credits -= startupCost;
+    applyCredits(corp, -startupCost, "mining-startup");
 
     startExtractorCycle(extractorCycle, { now, hours: requestedHours, throughputPerHour, operationCostPerHour, startupCost });
 
@@ -1758,7 +1782,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
       "no-lease-extractors": "No extraction facilities are assigned to this lease.",
       "missing-extractor-target": `Extractor "${requestedExtractorId}" not found on this lease.`,
       "already-active": `${targetExtractorLabel} already has an active mining cycle in progress.`,
-      "insufficient-credits": `Insufficient credits to start the mining cycle. Check your finances.`
+      "insufficient-credits": fundingRequirementMessage("Starting this mining cycle", account.state.corp, neededStartup, miningCreditsAdvice(neededStartup))
     };
     res.status(400).json({ error: messageMap[outcome] || "Mining cycle failed to start." });
     return;
@@ -1841,7 +1865,7 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
       autoLease.extractorIds.push(`ext-basic-${nextExtractorIndex}`);
     }
 
-    corp.finances.credits -= buildCost;
+    applyCredits(corp, -buildCost, "construction");
     corp.finances.assets += 42000;
   });
 
@@ -1853,8 +1877,10 @@ app.post("/api/accounts/:accountId/gameplay/build-extractor", (req, res) => {
   if (outcome !== "ok") {
     const corp = account.state.corp;
     const messageMap = {
-      "extractor-cap": `Basic Extractor Yard cap reached (${currentExtractorCount}/${extractorCap}). Additional capacity requires future corporation perks.`,
-      "no-slot": `Basic Extractor Yard requires 1 open building slot. Current usage: ${corp.buildings.length}/${corp.buildingSlots}.`,
+      // Bug #1195: no perk raises this cap; leases are where more extractors go. (No page button calls this route any
+      // more; the lease-scoped route below is the one players use.)
+      "extractor-cap": `Only ${extractorCap === 1 ? "one Basic Extractor Yard" : `${extractorCap} Basic Extractor Yards`} can be built outside a mining lease (${currentExtractorCount}/${extractorCap}). Build more on a lease: each lease holds 2, and the ISA Claims & Leases Division files them.`,
+      "no-slot": `A Basic Extractor Yard needs a free building slot. ${corpSlotsFull(corp)}`,
       "insufficient-credits": fundingRequirementMessage(
         "Basic Extractor Yard construction",
         corp,
@@ -1911,7 +1937,7 @@ app.post("/api/accounts/:accountId/gameplay/build-assembly-facility", (req, res)
 
     if (!Array.isArray(corp.buildings)) corp.buildings = [];
     corp.buildings.push({ name: "Assembly Facility", tier: 1, status: "Operational" });
-    corp.finances.credits -= BUILD_COST;
+    applyCredits(corp, -BUILD_COST, "construction");
     corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
   });
 
@@ -1921,7 +1947,7 @@ app.post("/api/accounts/:accountId/gameplay/build-assembly-facility", (req, res)
     const msgs = {
       "missing-research": "Assembly & Fabrication Systems research is required before constructing an Assembly Facility.",
       "already-built": "Your corporation already operates an Assembly Facility.",
-      "no-slot": `No building slots available (${account.state.corp.buildings.length}/${account.state.corp.buildingSlots}).`,
+      "no-slot": `An Assembly Facility needs a free building slot. ${corpSlotsFull(account.state.corp)}`,
       "insufficient-credits": fundingRequirementMessage("Assembly Facility construction", account.state.corp, BUILD_COST)
     };
     res.status(400).json({ error: msgs[outcome] || "Build failed." });
@@ -1978,7 +2004,7 @@ app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
       return;
     }
 
-    corp.finances.credits -= PROBE_BUILD_COST;
+    applyCredits(corp, -PROBE_BUILD_COST, "construction");
 
     const now = Date.now();
     am.fabricationQueue.push({
@@ -2026,6 +2052,10 @@ app.post("/api/accounts/:accountId/gameplay/scout-belt", (req, res) => {
   let outcome = "ok";
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
+    // Bug #1256: scouting takes the research the Starmap names and a presence in the belt's system, as
+    // launch-expedition does. Without these a new corporation could read every belt's composition from Sol.
+    if (!(corp.unlockedTech || []).includes("tt-asteroid-prospecting")) { outcome = "missing-research"; return; }
+    if ((corp.currentSystemId || "sol") !== beltKey.split(":")[0]) { outcome = "wrong-system"; return; }
     if (!corp.asteroidMining) corp.asteroidMining = {};
     if (!Array.isArray(corp.asteroidMining.scoutedBelts)) corp.asteroidMining.scoutedBelts = [];
 
@@ -2038,6 +2068,14 @@ app.post("/api/accounts/:accountId/gameplay/scout-belt", (req, res) => {
   });
 
   if (!account) { res.status(404).json({ error: "Account not found." }); return; }
+  if (outcome === "missing-research") {
+    res.status(400).json({ error: "Research Asteroid Prospecting Arrays in Corporate R&D to scout asteroid belts." });
+    return;
+  }
+  if (outcome === "wrong-system") {
+    res.status(400).json({ error: "You must be in the same system as the asteroid belt to scout it. Travel there first." });
+    return;
+  }
   if (outcome === "already-scouted") {
     res.json(account); // Idempotent — no error, just return current state
     return;
@@ -2105,8 +2143,7 @@ app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
       return;
     }
 
-    corp.finances.credits -= launchCost;
-    recordExpense(corp, "expeditions", launchCost); // Bug #1022
+    applyCredits(corp, -launchCost, "expeditions");
     am.probeCount -= 1;
 
     const now = Date.now();
@@ -2222,7 +2259,7 @@ app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
       totalOutputProduced: 0
     });
 
-    corp.finances.credits -= BUILD_COST;
+    applyCredits(corp, -BUILD_COST, "construction");
     corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
   });
 
@@ -2236,7 +2273,7 @@ app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
     const messageMap = {
       "missing-research": "Refinery construction requires Material Compression I and Nano-Lattice Weaving research.",
       "max-refineries": "You already operate the maximum of 2 refineries.",
-      "no-slot": `Refinery requires 1 open building slot. Current usage: ${corp.buildings.length}/${corp.buildingSlots}.`,
+      "no-slot": `A refinery needs a free building slot. ${corpSlotsFull(corp)}`,
       "insufficient-credits": fundingRequirementMessage("Refinery construction", corp, BUILD_COST)
     };
     res.status(400).json({ error: messageMap[outcome] || "Build action failed." });
@@ -2255,18 +2292,21 @@ app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
   res.json(account);
 });
 
+// AB#1255: the run-size rule the Refinery Chains form uses too; imported here beside its use.
+import { refineQuantityCheck } from "../public/scripts/refineQuantity.js";
+
 app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
   const refineryId = String(req.body?.refineryId || "").trim();
   const chainId = String(req.body?.chainId || "").trim();
-  // Optional: number of input units the player wants to refine in this run.
-  // Defaults to chain.inputQuantityPerCycle. Floored to a multiple of the
-  // chain's per-cycle input. Effective minimum is max(100, perCycle).
-  const requestedQuantity = bodyNumber(req.body?.inputQuantity, { fallback: 0, integer: true });
+  // The input units to refine: whole batches of the chain's per-cycle input, at least 100 (refineQuantity.js).
+  // Checked as sent; nothing is rounded or defaulted.
+  const requestedQuantity = req.body?.inputQuantity;
   let outcome = "ok";
   let targetLabel = "";
   let actualQuantity = 0;
   let actualScale = 1;
   let actualDurationHours = 0;
+  let quantityRefusal = "";
 
   const chain = REFINERY_CHAINS[chainId];
   if (!chain) {
@@ -2304,20 +2344,17 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
       return;
     }
 
-    // Resolve the run size. Player may pass `inputQuantity`; we round it down
-    // to the chain's per-cycle multiple. Default = one cycle. Hard minimum =
-    // 100 input units, capped per chain in case the per-cycle base is
-    // smaller than 100 (e.g. He-3 at 50/cycle requires at least two cycles).
+    // The run is exactly what was asked for, or refused (AB#1255): it used to raise anything below one batch to a batch
+    // and round the rest down, spending materials the player never chose. The rule is shared with the form.
     const perCycle = Math.max(1, Number(chain.inputQuantityPerCycle));
-    const minQuantity = Math.max(100, perCycle);
-    const requested = requestedQuantity > 0 ? requestedQuantity : perCycle;
-    const scale = Math.max(1, Math.floor(requested / perCycle));
-    const inputQty = scale * perCycle;
-    if (inputQty < minQuantity) {
-      outcome = "below-minimum";
-      actualQuantity = inputQty;
+    const check = refineQuantityCheck(requestedQuantity, { perCycle, input: chain.input });
+    if (!check.ok) {
+      outcome = "bad-quantity";
+      quantityRefusal = check.reason;
       return;
     }
+    const scale = check.batches;
+    const inputQty = check.quantity;
 
     // Check input material availability at current station
     const refStationId = corp.currentStationId || "earth-station-prime";
@@ -2361,7 +2398,7 @@ app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
       "refinery-not-found": `Refinery "${refineryId}" was not found.`,
       "all-busy": "All refineries are currently running cycles.",
       "already-active": `${targetLabel} already has an active production cycle.`,
-      "below-minimum": `Minimum refine quantity is 100 units (one batch of ${chain.inputQuantityPerCycle} ${chain.input}).`,
+      "bad-quantity": quantityRefusal,
       "insufficient-input": `Not enough ${chain.input} at this station. Need ${actualQuantity || chain.inputQuantityPerCycle} but only have ${Number(getStationInventory(account.state.corp, account.state.corp.currentStationId || "earth-station-prime")[chain.input] || 0)}.`
     };
     res.status(400).json({ error: messageMap[outcome] || "Refinery cycle failed to start." });
@@ -2390,27 +2427,37 @@ app.post("/api/accounts/:accountId/gameplay/accept-mission", (req, res) => {
   if (!missionId) return res.status(400).json({ error: "Missing missionId." });
 
   let outcome = "ok";
+  let refusalHours = 2;
   const account = mutateAccountState(req.params.accountId, (state) => {
     if (!Array.isArray(state.corp.activeMissions)) state.corp.activeMissions = [];
     if (state.corp.activeMissions.some((m) => m.id === missionId)) { outcome = "already-active"; return; }
 
-    // Look up mission from the account's current contract offerings
+    // Bug #1268: only a contract the Bureau is offering this corporation now can be accepted. A fallback to the whole
+    // template pool let any contract be taken, all ten at once, and one completed a moment ago taken again, past the
+    // offerings (two at a time, refreshed every 2 hours) and the 4-hour cooldown that refreshContractOfferings applies.
     const offerings = refreshContractOfferings(state.corp);
     const mission = offerings.missions.find((m) => m.id === missionId);
     if (!mission) {
-      // Also check the full template pool as fallback
-      const template = MISSION_TEMPLATES.find((m) => m.id === missionId);
-      if (!template) { outcome = "not-found"; return; }
-      state.corp.activeMissions.push({ ...template });
-    } else {
-      state.corp.activeMissions.push({ ...mission });
-      // Remove from current offerings so it can't be double-accepted
-      offerings.missions = offerings.missions.filter((m) => m.id !== missionId);
+      if (!MISSION_TEMPLATES.some((m) => m.id === missionId)) { outcome = "not-found"; return; }
+      const done = (state.corp.completedMissions || []).find((m) => m.id === missionId);
+      outcome = done && Date.now() - Number(done.completedAt || 0) < COMPLETED_COOLDOWN_MS ? "cooling-down" : "not-offered";
+      refusalHours = Math.max(1, Math.ceil((offerings.nextRefreshAt - Date.now()) / 3_600_000));
+      return;
     }
+    state.corp.activeMissions.push({ ...mission });
+    // Remove from current offerings so it can't be double-accepted
+    offerings.missions = offerings.missions.filter((m) => m.id !== missionId);
   });
 
   if (!account) return res.status(404).json({ error: "Account not found." });
   if (outcome === "not-found") return res.status(400).json({ error: "Mission not found in current offerings." });
+  const nextOffers = `New contracts are offered in about ${refusalHours} hour${refusalHours === 1 ? "" : "s"}.`;
+  if (outcome === "not-offered") {
+    return res.status(400).json({ error: `That contract is not on offer to you. Accept one of the contracts listed in the agent's office on Assignments. ${nextOffers}` });
+  }
+  if (outcome === "cooling-down") {
+    return res.status(400).json({ error: `You completed that contract recently; it can be offered to you again 4 hours after completion. Accept one of the contracts listed in the agent's office on Assignments. ${nextOffers}` });
+  }
   if (outcome === "already-active") return res.status(400).json({ error: "Mission already accepted." });
   res.json(account);
 });
@@ -2433,6 +2480,7 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
   if (!missionId) return res.status(400).json({ error: "Missing missionId." });
 
   let outcome = "ok";
+  let shortfall = null;
   const account = mutateAccountState(req.params.accountId, (state) => {
     if (!Array.isArray(state.corp.activeMissions)) state.corp.activeMissions = [];
     const mission = state.corp.activeMissions.find((m) => m.id === missionId);
@@ -2447,7 +2495,7 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
     const resource = mission.quota.resource || "";
     const required = mission.quota.amount || 0;
     const have = stationInv[resource] || 0;
-    if (have < required) { outcome = "insufficient"; return; }
+    if (have < required) { outcome = "insufficient"; shortfall = { resource, required, stationId }; return; }
 
     // Deduct resources
     stationInv[resource] = have - required;
@@ -2457,8 +2505,7 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
     // which nothing reads). Contract Law Essentials adds 8%.
     const rewardCredits = missionRewardCredits(mission.reward, state.corp.completedInsights);
     if (rewardCredits) {
-      state.corp.finances.credits = (state.corp.finances.credits || 0) + rewardCredits;
-      recordIncome(state.corp, "missions", rewardCredits);
+      applyCredits(state.corp, rewardCredits, "missions");
     }
 
     // Remove from active
@@ -2491,7 +2538,10 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
   if (!account) return res.status(404).json({ error: "Account not found." });
   if (outcome === "not-active") return res.status(400).json({ error: "Mission is not active." });
   if (outcome === "no-quota") return res.status(400).json({ error: "Mission has no quota to complete." });
-  if (outcome === "insufficient") return res.status(400).json({ error: "Insufficient resources at this station." });
+  if (outcome === "insufficient") {
+    const stationName = (id) => STATIONS_DATA.stations.find((st) => st.id === id)?.name || id;
+    return res.status(400).json({ error: missionShortMessage({ ...shortfall, inventory: account.state.corp.inventory, stationName }) });
+  }
   res.json(account);
 });
 
@@ -2559,8 +2609,7 @@ app.post("/api/accounts/:accountId/gameplay/mine", (req, res) => {
     }
 
     const now = Date.now();
-    recordExpense(corp, "mining-startup", startupCost); // Bug #1022
-    corp.finances.credits -= startupCost;
+    applyCredits(corp, -startupCost, "mining-startup");
 
     startExtractorCycle(extractorCycle, { now, hours: cycleHours, throughputPerHour, operationCostPerHour, startupCost });
 
@@ -2653,14 +2702,14 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
       return;
     }
 
-    corp.finances.credits -= tech.costCredits;
+    applyCredits(corp, -tech.costCredits, "research");
     state.queues.corporateRnD.push({
       id: `rnd-${Date.now()}`,
       techId: tech.id,
       name: tech.name,
       effect: tech.effect,
       durationHours: IS_DEV ? 0 : tech.durationHours,
-      startedAt: Date.now(),
+      startedAt: nextRndStart(state.queues.corporateRnD, Date.now()), // after the item ahead finishes (Bug #1258)
       costCredits: tech.costCredits
     });
   });
@@ -2744,7 +2793,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-ceo", (req, res) => {
       return;
     }
 
-    corp.finances.credits -= prog.costCredits;
+    applyCredits(corp, -prog.costCredits, "ceo-insight");
     state.queues.ceoInsight.push({
       id: `ceo-${Date.now()}`,
       programId: prog.id,
@@ -2826,6 +2875,9 @@ app.post("/api/accounts/:accountId/messages/send", (req, res) => {
     deleteDraft(req.params.accountId, String(req.body.draftId));
   }
   const messages = listAccountMessages(req.params.accountId);
+  // Bug #1130: tell the recipient's open sessions, so their Inbox and its unread count refresh without a reload. The
+  // account room keeps the event to that account's own sockets; the payload carries no ids (Bug #1134).
+  emitToAccount(result.recipientAccountId, "messages:new", {});
   res.json({ ok: true, toName: result.toName, messages });
 });
 
@@ -3121,6 +3173,10 @@ app.post("/api/market/orders/:orderId/cancel", requireAuth, (req, res) => {
   res.json({ ok: true, cancelled: order.id, account });
 });
 
+// Bug #1325: each side of a sale is named to the other as the order book names a seller: the corporation name, or
+// "Unregistered corporation", never an email address (the buyer's used to be the fallback in the seller's history).
+import { publicName } from "./publicViews.js";
+
 app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
   const requestedQty = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
@@ -3157,6 +3213,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
 
   const tradeQuantity = requestedQty;
   const tradeTotal = tradeQuantity * Number(order.unitPrice || 0);
+  const leftAfterSale = Math.max(0, Number(order.quantity || 0) - tradeQuantity); // read now: `order` is the stored listing
   let rejectReason = "";
 
   const buyer = mutateAccountState(req.auth.accountId, (state) => {
@@ -3166,7 +3223,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
       return;
     }
 
-    corp.finances.credits -= tradeTotal;
+    applyCredits(corp, -tradeTotal, "exchange-purchases");
     const buyerStationId = corp.currentStationId || "earth-station-prime";
     const buyerInv = getStationInventory(corp, buyerStationId);
     buyerInv[order.item] = (buyerInv[order.item] || 0) + tradeQuantity;
@@ -3179,7 +3236,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
       quantity: tradeQuantity,
       unitPrice: Number(order.unitPrice || 0),
       total: tradeTotal,
-      counterparty: order.seller || "Unknown",
+      counterparty: publicName(order.seller),
       at: Date.now()
     });
     corp.tradeHistory = corp.tradeHistory.slice(0, 200);
@@ -3190,15 +3247,16 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
     return;
   }
 
+  let sale = null; // what the seller is told (Bug #1167): the same facts as their Sold row, nothing of the buyer's but a name
   if (order.sellerAccountId) {
     mutateAccountState(order.sellerAccountId, (state) => {
       const taxPct = getEffectiveExchangeTaxRate(state);
       const taxAmount = Math.round(tradeTotal * taxPct / 100);
       const sellerProceeds = tradeTotal - taxAmount;
-      state.corp.finances.credits += sellerProceeds;
-      // Bug #984: book the gross the buyer paid as income and the tax as an expense.
-      recordIncome(state.corp, "exchange", tradeTotal);
-      recordExpense(state.corp, "exchange-tax", taxAmount);
+      sale = { taxPct, taxAmount, proceeds: sellerProceeds, buyer: publicName(buyerAccount.state?.corp?.corporationName) };
+      // Bug #984: the gross the buyer paid is income and the tax an expense; the balance moves by the proceeds.
+      applyCredits(state.corp, tradeTotal, "exchange");
+      applyCredits(state.corp, -taxAmount, "exchange-tax");
 
       if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
       state.corp.tradeHistory.unshift({
@@ -3211,7 +3269,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
         taxPct,
         taxAmount,
         proceeds: sellerProceeds,
-        counterparty: buyerAccount.state?.corp?.corporationName || buyerAccount.email || "Anonymous",
+        counterparty: sale.buyer,
         at: Date.now()
       });
       state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
@@ -3231,6 +3289,23 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
       draft.market.orderBook = draft.market.orderBook.filter((entry) => entry.id !== target.id);
     }
   });
+
+  // Bug #1167: the seller was told nothing; their open page kept the old credits and Trade History until a reload. The
+  // notification waits in their list if they are signed out. "market:sold" goes to the seller's own sockets only
+  // (Bug #1021), with their own account id as the other per-account events carry, and the page reloads its account.
+  if (sale) {
+    const notification = addAccountNotification(order.sellerAccountId, {
+      type: "market",
+      title: "Listing Sold",
+      body:
+        `${sale.buyer} bought ${tradeQuantity.toLocaleString("en-US")} ${order.item} at ${formatCredits(order.unitPrice)} each: ` +
+        `${formatCredits(tradeTotal)}, less ${formatCredits(sale.taxAmount)} exchange tax (${sale.taxPct}%), ` +
+        `${formatCredits(sale.proceeds)} paid to you. ` +
+        (leftAfterSale > 0 ? `${leftAfterSale.toLocaleString("en-US")} still listed.` : "The listing is sold out.")
+    });
+    if (notification) emitToAccount(order.sellerAccountId, "notifications:new", { accountId: order.sellerAccountId, notification });
+    emitToAccount(order.sellerAccountId, "market:sold", { accountId: order.sellerAccountId });
+  }
 
   emitMarketUpdated();
   res.json({
@@ -3313,10 +3388,9 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
     tradeTaxPct = taxPct;
     tradeTaxAmount = taxAmount;
     tradeProceeds = sellerProceeds;
-    state.corp.finances.credits = (state.corp.finances.credits || 0) + sellerProceeds;
-    // Bug #984: book the gross the NPC paid as income and the tax as an expense.
-    recordIncome(state.corp, "exchange", tradeTotal);
-    recordExpense(state.corp, "exchange-tax", taxAmount);
+    // Bug #984: the gross the NPC paid is income and the tax an expense; the balance moves by the proceeds.
+    applyCredits(state.corp, tradeTotal, "exchange");
+    applyCredits(state.corp, -taxAmount, "exchange-tax");
 
     if (!state.corp.stats) state.corp.stats = {};
     state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
@@ -3360,7 +3434,24 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
   });
 });
 
+// Bug #1123: a request the server cannot read is the client's mistake, not a server fault. express.json() and the
+// router hand these on with a 4xx status (a body that is not JSON, too large, in a charset or content encoding it does
+// not take, or a path that does not decode); they are answered with that status and fixed text, never the parser's
+// message, the body or a stack. They reach here before any route runs, so nothing has changed. Everything else is 500.
+const CLIENT_ERROR_TEXT = {
+  "entity.parse.failed": "The request body is not valid JSON.",
+  "entity.too.large": "The request body is too large.",
+  "charset.unsupported": "The request body must be UTF-8.",
+  "encoding.unsupported": "The request body's content encoding is not supported."
+};
+
 app.use((error, _req, res, _next) => {
+  const status = Number(error?.status ?? error?.statusCode);
+  if (error?.expose !== false && status >= 400 && status < 500) {
+    console.warn(`[http] rejected request: ${status} ${error?.type || "client error"}`);
+    res.status(status).json({ error: CLIENT_ERROR_TEXT[error?.type] || "The request could not be read." });
+    return;
+  }
   console.error("[http] unhandled route error", error);
   res.status(500).json({ error: "Internal server error." });
 });
@@ -3380,6 +3471,11 @@ function accountRoom(accountId) {
 function emitToAccount(accountId, event, payload) {
   if (accountId) io.to(accountRoom(accountId)).emit(event, payload);
 }
+
+// Bug #1260: notifications made inside gameState (a level reached) reach the account's own sockets as every other
+// notification does, as notifications:new, so the badge and the list update without a reload.
+import { onAccountNotification } from "./gameState.js";
+onAccountNotification((accountId, notification) => emitToAccount(accountId, "notifications:new", { accountId, notification }));
 
 /**
  * Send the market to every connected socket as that socket's account should see it: the newest orders plus its own

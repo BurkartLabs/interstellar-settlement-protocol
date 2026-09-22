@@ -42,7 +42,7 @@ describe("forumsView (Bug #1134)", () => {
 
 describe("orderView and marketView (Bug #1145)", () => {
   it("marks the viewer's own listing and drops every seller's account id", () => {
-    const order = { id: "o1", type: "sell", item: "Silicates", seller: "Alpha", sellerAccountId: "acc-a" };
+    const order = { id: "o1", type: "sell", item: "Silicates", seller: "Alpha", sellerAccountId: "acc-a", stationId: "luna-gateway" };
     expect(orderView(order, "acc-a")).toEqual({ id: "o1", type: "sell", item: "Silicates", seller: "Alpha", mine: true });
     expect(orderView(order, "acc-b").mine).toBe(false);
     expect(orderView(order).mine).toBe(false);
@@ -50,8 +50,9 @@ describe("orderView and marketView (Bug #1145)", () => {
   });
 
   it("marketView sends the book with no account ids, signed in or not", () => {
-    const market = { orderBook: [{ id: "o1", seller: "Alpha", sellerAccountId: "acc-a" }], npcBuyOrders: [{ id: "n1" }] };
-    for (const viewer of [null, "acc-a", "acc-b"]) expect(JSON.stringify(marketView(market, viewer))).not.toMatch(/acc-/);
-    expect(market.orderBook[0].sellerAccountId).toBe("acc-a");
+    const market = { orderBook: [{ id: "o1", seller: "Alpha", sellerAccountId: "acc-a", stationId: "luna-gateway" }], npcBuyOrders: [{ id: "n1" }] };
+    for (const viewer of [null, "acc-a", "acc-b"]) expect(JSON.stringify(marketView(market, viewer))).not.toMatch(/acc-|luna-gateway/);
+    // Bug #1171: stored as it was, so a cancel still returns the goods where they came from.
+    expect(market.orderBook[0]).toMatchObject({ sellerAccountId: "acc-a", stationId: "luna-gateway" });
   });
 });

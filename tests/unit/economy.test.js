@@ -3,7 +3,6 @@ import os from "node:os";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
 import { ECONOMY, economyProblems, loadEconomy, buildCostFor, operationCostPerHourFor, startupCostFor } from "../../server/economy.js";
-import { LOGISTICS_FEE_PER_UNIT } from "../../public/scripts/logistics.js";
 import { officeLeaseCost, officeRenewalCost, OFFICE_TERMS_DAYS } from "../../public/scripts/ceoEffects.js";
 
 // AB#726 (ISP-40): the economy's numbers live in data/economy.json and the server reads them from there. This was a
@@ -22,7 +21,8 @@ const BEFORE_THE_MOVE = {
   probes: { buildCost: 8000, assetValue: 5000 },                            // gameState.js PROBE_BUILD_COST, PROBE_ASSET_VALUE
   expeditions: { launchCost: 3000 },                                        // gameState.js EXPEDITION_LAUNCH_COST
   exchange: { salesTaxPct: 8 },                                             // gameState.js BASE_EXCHANGE_SALES_TAX_PCT
-  logistics: { feePerUnit: 2 },                                             // public/scripts/logistics.js
+  // AB#718 replaced the flat 2 a unit with a fee by distance; 2 a unit is still the in-system rate.
+  logistics: { sameSystemFeePerUnit: 2, perJumpFeePerUnit: 3, sameSystemTransitMinutes: 30, perJumpTransitMinutes: 120 },
   npcBuyers: [                                                              // gameState.js NPC_BUY_SEED
     { item: "Silicates", buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
     { item: "Helium-3", buyer: "Lunar Helium Consortium", unitPrice: 92, dailyQty: 250000 },
@@ -110,10 +110,9 @@ describe("data/economy.json (AB#726)", () => {
   });
 
   it("the prices the browser also computes, in modules it shares with the server, agree with the file", () => {
-    // public/scripts/logistics.js and ceoEffects.js are loaded by the browser as well, which cannot read data/, so the
-    // logistics fee and the office price and terms (Bug #1032's single source for the Suites panel and the server)
-    // keep their own copy there. This test fails the moment either copy drifts from data/economy.json.
-    expect(LOGISTICS_FEE_PER_UNIT).toBe(ECONOMY.logistics.feePerUnit);
+    // ceoEffects.js is loaded by the browser as well, which cannot read data/, so the office price and terms (Bug #1032's
+    // single source for the Suites panel and the server) keep their own copy there. This test fails the moment that
+    // copy drifts from data/economy.json. (The transfer rates are sent to the browser instead, AB#718.)
     expect(OFFICE_TERMS_DAYS).toEqual(ECONOMY.office.termDays);
     for (const days of ECONOMY.office.termDays) {
       expect(officeLeaseCost(days)).toBe(days * ECONOMY.office.rentPerDay);
