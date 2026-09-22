@@ -1152,6 +1152,68 @@ export function evaluateLevelProgress(profileState) {
   corp.fleet = fleetStatus(corp); // Bug #586: derived every evaluation, like levelProgress
 }
 
+// Bug #1260: reaching a level told the player nothing. evaluateLevelProgress is a pure state function; the account
+// paths below wrap it, compare the level before and after, and tell the player once per level reached, in order. A
+// level already held (reached before this fix, or earlier) is never announced again, and a level cannot go down.
+let accountNotificationListener = null;
+
+/** index.js sends each notification made here to the account's own sockets, as notifications:new. */
+export function onAccountNotification(listener) {
+  accountNotificationListener = listener;
+}
+
+/**
+ * The notices for the levels `corp` reached since `before`. The figures are the ones the sidebar shows once each level
+ * is granted, built by the same rules as evaluateLevelProgress and fleetStatus: each cap is the highest of what the
+ * corporation had and what every level up to this one grants, and the fleet cap includes Fleet Coordination.
+ */
+export function levelReachedNotices(before, corp) {
+  const coordinated = (corp?.unlockedTech || []).includes(FLEET_COORDINATION_TECH);
+  let employeeCap = Number(before.employeeCap || 0);
+  let buildingSlots = Number(before.buildingSlots || 0);
+  let maxFleetSize = Number(before.maxFleetSize || 0);
+  const sectors = new Set(before.marketSectors || []);
+  const notices = [];
+  for (const levelDef of [...MILESTONE_LEVELS].sort((a, b) => a.level - b.level)) {
+    if (levelDef.level > Number(corp.level || 0)) break;
+    const u = levelDef.unlocks || {};
+    employeeCap = Math.max(employeeCap, Number(u.employeeCap || 0));
+    buildingSlots = Math.max(buildingSlots, Number(u.buildingSlots || 0));
+    maxFleetSize = Math.max(maxFleetSize, Number(u.maxFleetSize || 0));
+    const opened = (Array.isArray(u.marketSectors) ? u.marketSectors : []).filter((sector) => !sectors.has(sector));
+    opened.forEach((sector) => sectors.add(sector));
+    if (levelDef.level <= Number(before.level || 0)) continue;
+    const fleetCap = Math.max(BASE_MAX_PROBES, maxFleetSize) + (coordinated ? FLEET_COORDINATION_BONUS : 0);
+    notices.push({
+      type: "level",
+      title: `Corporation Level ${levelDef.level}`,
+      body:
+        `Your corporation reached Level ${levelDef.level} of ${MAX_DEFINED_LEVEL}. ` +
+        `Employee cap ${employeeCap}, building slots ${buildingSlots}, fleet cap ${fleetCap}.` +
+        (opened.length ? ` Market sector${opened.length > 1 ? "s" : ""} opened: ${opened.join(", ")}.` : "")
+    });
+  }
+  return notices;
+}
+
+/** Evaluate an account's level and tell it about each level it has just reached. */
+function evaluateAccountLevel(accountId, account) {
+  const corp = account.state.corp;
+  const before = {
+    level: Number(corp.level || 0),
+    employeeCap: corp.employeeCap,
+    buildingSlots: corp.buildingSlots,
+    maxFleetSize: corp.unlocks?.maxFleetSize,
+    marketSectors: [...(corp.unlocks?.marketSectors || [])]
+  };
+  evaluateLevelProgress(account.state);
+  if (!(Number(corp.level || 0) > before.level)) return;
+  for (const notice of levelReachedNotices(before, corp)) {
+    pushSystemNotification(account, notice);
+    if (accountNotificationListener) accountNotificationListener(accountId, sanitizeNotification(account.notifications[0]));
+  }
+}
+
 /* TODO(AB#726): Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
 function createStarterCorporationState(baseState, ceoName, corpName) {
   const next = deepClone(baseState);
@@ -1939,7 +2001,7 @@ export function getAccountById(accountId) {
 
   applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
-  evaluateLevelProgress(account.state);
+  evaluateAccountLevel(accountId, account); // a read can raise the level too: mining settles here (Bug #1260)
   scheduleAccountsSave();
   return sanitizeAccount(account);
 }
@@ -2480,7 +2542,7 @@ export function mutateAccountState(accountId, mutator) {
   applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
   ensureCorpMiningModel(account.state.corp);
-  evaluateLevelProgress(account.state);
+  evaluateAccountLevel(accountId, account); // Bug #1260
   scheduleAccountsSave();
   return sanitizeAccount(account);
 }
