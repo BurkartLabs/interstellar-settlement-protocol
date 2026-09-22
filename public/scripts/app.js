@@ -6231,6 +6231,15 @@ function bindRealtimeEvents() {
     refreshFromServer();
   });
 
+  // Bug #1167: someone bought one of this account's listings. The notification comes on its own event; this redraws
+  // the credits and Trade History from the account.
+  socket.on("market:sold", (payload) => {
+    if (!appState.accountId || payload?.accountId !== appState.accountId) {
+      return;
+    }
+    refreshFromServer();
+  });
+
   socket.on("rnd:completed", (payload) => {
     if (!appState.accountId || payload?.accountId !== appState.accountId) {
       return;

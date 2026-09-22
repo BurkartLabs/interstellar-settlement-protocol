@@ -3178,6 +3178,10 @@ app.post("/api/market/orders/:orderId/cancel", requireAuth, (req, res) => {
   res.json({ ok: true, cancelled: order.id, account });
 });
 
+// Bug #1325: each side of a sale is named to the other as the order book names a seller: the corporation name, or
+// "Unregistered corporation", never an email address (the buyer's used to be the fallback in the seller's history).
+import { publicName } from "./publicViews.js";
+
 app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
   const requestedQty = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
@@ -3214,6 +3218,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
 
   const tradeQuantity = requestedQty;
   const tradeTotal = tradeQuantity * Number(order.unitPrice || 0);
+  const leftAfterSale = Math.max(0, Number(order.quantity || 0) - tradeQuantity); // read now: `order` is the stored listing
   let rejectReason = "";
 
   const buyer = mutateAccountState(req.auth.accountId, (state) => {
@@ -3236,7 +3241,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
       quantity: tradeQuantity,
       unitPrice: Number(order.unitPrice || 0),
       total: tradeTotal,
-      counterparty: order.seller || "Unknown",
+      counterparty: publicName(order.seller),
       at: Date.now()
     });
     corp.tradeHistory = corp.tradeHistory.slice(0, 200);
@@ -3247,11 +3252,13 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
     return;
   }
 
+  let sale = null; // what the seller is told (Bug #1167): the same facts as their Sold row, nothing of the buyer's but a name
   if (order.sellerAccountId) {
     mutateAccountState(order.sellerAccountId, (state) => {
       const taxPct = getEffectiveExchangeTaxRate(state);
       const taxAmount = Math.round(tradeTotal * taxPct / 100);
       const sellerProceeds = tradeTotal - taxAmount;
+      sale = { taxPct, taxAmount, proceeds: sellerProceeds, buyer: publicName(buyerAccount.state?.corp?.corporationName) };
       state.corp.finances.credits += sellerProceeds;
       // Bug #984: book the gross the buyer paid as income and the tax as an expense.
       recordIncome(state.corp, "exchange", tradeTotal);
@@ -3268,7 +3275,7 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
         taxPct,
         taxAmount,
         proceeds: sellerProceeds,
-        counterparty: buyerAccount.state?.corp?.corporationName || buyerAccount.email || "Anonymous",
+        counterparty: sale.buyer,
         at: Date.now()
       });
       state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
@@ -3288,6 +3295,23 @@ app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
       draft.market.orderBook = draft.market.orderBook.filter((entry) => entry.id !== target.id);
     }
   });
+
+  // Bug #1167: the seller was told nothing; their open page kept the old credits and Trade History until a reload. The
+  // notification waits in their list if they are signed out. "market:sold" goes to the seller's own sockets only
+  // (Bug #1021), with their own account id as the other per-account events carry, and the page reloads its account.
+  if (sale) {
+    const notification = addAccountNotification(order.sellerAccountId, {
+      type: "market",
+      title: "Listing Sold",
+      body:
+        `${sale.buyer} bought ${tradeQuantity.toLocaleString("en-US")} ${order.item} at ${formatCredits(order.unitPrice)} each: ` +
+        `${formatCredits(tradeTotal)}, less ${formatCredits(sale.taxAmount)} exchange tax (${sale.taxPct}%), ` +
+        `${formatCredits(sale.proceeds)} paid to you. ` +
+        (leftAfterSale > 0 ? `${leftAfterSale.toLocaleString("en-US")} still listed.` : "The listing is sold out.")
+    });
+    if (notification) emitToAccount(order.sellerAccountId, "notifications:new", { accountId: order.sellerAccountId, notification });
+    emitToAccount(order.sellerAccountId, "market:sold", { accountId: order.sellerAccountId });
+  }
 
   emitMarketUpdated();
   res.json({
