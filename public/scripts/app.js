@@ -504,6 +504,7 @@ async function refreshBeltCompositions() {
 }
 
 import { tradeConfirmRowsHtml, queueItemsHtml } from "./html.js"; // Bug #1002
+import { scheduleRndQueue, nextRndStart, rndItemStatus, formatHoursMinutes } from "./rndQueue.js"; // Bug #1258
 
 // ─── Trade confirmation modal ────────────────────────────────────────────────
 function getClientExchangeTaxPct() {
@@ -3043,6 +3044,11 @@ function renderQueue(elId, queue, subtitle) {
     return;
   }
 
+  if (elId === "rnd-queue") {
+    el.innerHTML = rndQueueHtml(queue, subtitle);
+    return;
+  }
+
   el.innerHTML = queueItemsHtml(queue, subtitle, {
     progressOf: queueProgress,
     remainingLabel: (item) => {
@@ -3051,6 +3057,23 @@ function renderQueue(elId, queue, subtitle) {
       const rMins = Math.floor((remainingMs % 3_600_000) / 60_000);
       return remainingMs > 0 ? `${rHrs}h ${rMins}m remaining` : "Completing...";
     },
+    formatCredits: toCurrency
+  });
+}
+
+// Corporate R&D researches one technology at a time (Bug #1258): an item behind another is "Queued, starts in ...".
+// Scheduled on a copy, so a queue saved before the fix shows the order the server will run it in.
+function rndQueueHtml(queue, subtitle) {
+  const now = Date.now();
+  const scheduled = scheduleRndQueue(queue.map((item) => ({ ...item })), now);
+  return queueItemsHtml(scheduled, subtitle, {
+    progressOf: (item) => (rndItemStatus(item, now).state === "queued" ? 0 : queueProgress(item)),
+    remainingLabel: (item) => {
+      const status = rndItemStatus(item, now);
+      if (status.state === "queued") return `Queued, starts in ${formatHoursMinutes(status.startsInMs)}`;
+      return status.state === "running" ? `${formatHoursMinutes(status.remainingMs)} remaining` : "Completing...";
+    },
+    statusOf: (item) => (rndItemStatus(item, now).state === "queued" ? "Queued" : "In progress"),
     formatCredits: toCurrency
   });
 }
@@ -5632,7 +5655,7 @@ function bindForms() {
           name: node.name,
           effect: node.effect,
           durationHours: node.durationHours,
-          startedAt: Date.now(),
+          startedAt: nextRndStart(appState.data.queues.corporateRnD, Date.now()), // Bug #1258
           costCredits: node.costCredits
         });
         updateAllViews();

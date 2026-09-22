@@ -28,7 +28,7 @@ export function tradeConfirmRowsHtml(rows) {
  * from the catalog today, and a player-named item would otherwise become stored XSS. `progressOf(item)` is 0 to 100,
  * `remainingLabel(item)` the time left, `formatCredits(n)` the funding figure.
  */
-export function queueItemsHtml(queue, subtitle, { progressOf, remainingLabel, formatCredits }) {
+export function queueItemsHtml(queue, subtitle, { progressOf, remainingLabel, formatCredits, statusOf }) {
   return queue
     .map((item) => {
       const progress = Number(progressOf(item)) || 0;
@@ -40,7 +40,7 @@ export function queueItemsHtml(queue, subtitle, { progressOf, remainingLabel, fo
         <h3>${escapeHtml(item.name)}</h3>
         <p class="muted">${escapeHtml(subtitle)}</p>
         <p>${escapeHtml(item.effect)}</p>
-        <p class="muted">Duration: ${escapeHtml(item.durationHours)}h | ${item.startedAt ? "In progress" : "Queued"}</p>
+        <p class="muted">Duration: ${escapeHtml(item.durationHours)}h | ${escapeHtml(statusOf ? statusOf(item) : item.startedAt ? "In progress" : "Queued")}</p>
         ${item.costCredits ? `<p class="muted">Committed funding: ${escapeHtml(formatCredits(item.costCredits))} credits</p>` : ""}
         ${progressMeta}
         <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>

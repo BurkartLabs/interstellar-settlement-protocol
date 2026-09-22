@@ -675,6 +675,9 @@ function travelTick() {
 
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(travelTick, 5000); // Every 5 seconds
 
+// The R&D schedule lives in public/scripts/rndQueue.js, which the R&D panel reads too; imported here beside its use
+// (Bug #1258), away from the import block other branches edit.
+import { scheduleRndQueue, nextRndStart, rndItemStatus } from "../public/scripts/rndQueue.js"; // Bug #1258
 function processRndCompletions() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
@@ -684,14 +687,12 @@ function processRndCompletions() {
       const queue = state.queues?.corporateRnD;
       if (!Array.isArray(queue) || queue.length === 0) return;
 
-      completedItems = queue.filter((item) => {
-        const startedAt = Number(item?.startedAt || 0);
-        const durationHours = Number(item?.durationHours ?? NaN);
-        if (!startedAt || !Number.isFinite(durationHours) || durationHours < 0) {
-          return false;
-        }
-        return now >= startedAt + durationHours * 3_600_000;
-      });
+      // One technology at a time (Bug #1258): sequence the queue first, which also pushes research queued before
+      // the fix back behind the item ahead of it, then complete the finished items, always a run from the front.
+      scheduleRndQueue(queue, now);
+      let finished = 0;
+      while (finished < queue.length && rndItemStatus(queue[finished], now).state === "done") finished += 1;
+      completedItems = queue.slice(0, finished);
       if (completedItems.length === 0) return;
 
       if (!Array.isArray(state.corp.unlockedTech)) state.corp.unlockedTech = [];
@@ -700,9 +701,8 @@ function processRndCompletions() {
           state.corp.unlockedTech.push(item.techId);
         }
       }
-      state.queues.corporateRnD = queue.filter(
-        (item) => !completedItems.some((c) => c.id === item.id)
-      );
+      // By position, not id: two items queued in the same millisecond share an id.
+      state.queues.corporateRnD = queue.slice(finished);
     });
 
     if (completedItems.length === 0) continue;
@@ -2714,7 +2714,7 @@ app.post("/api/accounts/:accountId/gameplay/queue-rnd", (req, res) => {
       name: tech.name,
       effect: tech.effect,
       durationHours: IS_DEV ? 0 : tech.durationHours,
-      startedAt: Date.now(),
+      startedAt: nextRndStart(state.queues.corporateRnD, Date.now()), // after the item ahead finishes (Bug #1258)
       costCredits: tech.costCredits
     });
   });
