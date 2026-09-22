@@ -1,6 +1,7 @@
 // server/game/store.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import fs from "node:fs";
+import path from "node:path";
 import bcrypt from "bcryptjs";
 import { welcomeLetter } from "../../public/scripts/liaison.js";
 import { closeDueDays, MAX_STATEMENTS } from "../finances.js";
@@ -8,12 +9,18 @@ import { unknownLeaseBodies } from "../leases.js";
 import { directInvestmentRecords } from "../legacyInvestments.js";
 import { validateCorporationName, SYSTEM_SENDERS } from "../corporationName.js";
 import { settlePayroll, payrollNotice } from "../payroll.js";
-import { PASSWORD_SALT_ROUNDS, SYSTEMS_DATA, accountsSnapshotPath, createId, deepClone, safeWriteFile, statePath } from "./catalog.js";
+import { PASSWORD_SALT_ROUNDS, SYSTEMS_DATA, accountsSnapshotPath, createId, dataDir, deepClone, safeWriteFile, statePath } from "./catalog.js";
 import { evaluateAccountLevel, evaluateLevelProgress, pushSystemNotification, sanitizeNotification } from "./progression.js";
 import { applyMiningOperations, ensureCorpMiningModel } from "./mining.js";
 import { normalizeStateShape } from "./shape.js";
 import { createStarterCorporationState, refreshContractOfferings } from "./corporation.js";
 import { RESERVED_CORPORATION_NAMES, ensureStateFile, getSeedState } from "./world.js";
+
+// Bug #1480: the statements live in one file per corporation (declared here, before the load-time
+// migration below uses it), written when a day closes, not in the accounts snapshot.
+// That file is rewritten every few seconds, and 90 days of statements for 1,000 corporations would add 63 MB to it.
+export const statementsDir = path.join(dataDir, "statements");
+const statementsFile = (accountId) => path.join(statementsDir, `${encodeURIComponent(accountId)}.json`);
 
 export let state = ensureStateFile();
 // Bug #1036: report what the removed combat simulate route left in the global state, as a count and a size only.
@@ -45,7 +52,8 @@ export function writeAccountsSnapshotToDiskNow() {
     _diskSnapshotTimer = null;
   }
   try {
-    safeWriteFile(accountsSnapshotPath, JSON.stringify(accountsStore, null, 2));
+    // Compact (Bug #1480): about a third smaller than indented, and this file is rewritten every few seconds.
+    safeWriteFile(accountsSnapshotPath, JSON.stringify(accountsStore));
   } catch (error) {
     logPersistError("[accounts] Failed to write local accounts snapshot", error);
   }
@@ -131,6 +139,12 @@ export let accountsStore = loadAccountsStore(createSeedAccountsStore());
 }
 // Bug #711: saves from before corporations had a public id get one on load, so they can be addressed by mail.
 backfillCorpPublicIds();
+// Bug #1480: statements saved inside the snapshot by the first version of AB#713 move to their own files.
+{
+  let moved = 0;
+  for (const account of Object.values(accountsStore.accounts || {})) moved += fileStatements(account);
+  if (moved) { console.warn(`[statements] moved ${moved} daily statement(s) out of the accounts snapshot into ${statementsDir} (Bug #1480).`); scheduleAccountsSave(); }
+}
 // Bug #689: POST /api/investments is removed. Report what it stored, for the PM, and leave it in place.
 {
   const records = directInvestmentRecords(Object.values(accountsStore.accounts || {}));
@@ -266,9 +280,40 @@ export function sanitizeAccount(account) {
   };
 }
 
+
+/** A corporation's closed statements, oldest first; empty when it has none. */
+export function readStatements(accountId) {
+  try {
+    const list = JSON.parse(fs.readFileSync(statementsFile(accountId), "utf8"));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Move the days closeDueDays has just closed from the account to its statements file, keeping the newest 90. Also
+ * moves statements an older save kept in the snapshot, on load. Returns how many were filed.
+ */
+export function fileStatements(account) {
+  const fresh = account?.state?.statements;
+  if (!account?.state || !Array.isArray(fresh)) return 0;
+  delete account.state.statements;
+  if (!fresh.length) return 0;
+  fs.mkdirSync(statementsDir, { recursive: true });
+  // Idempotent by day: a day closed again (the server stopped before the snapshot kept the advanced day book) replaces
+  // the one filed before rather than appearing twice.
+  const byDay = new Map(readStatements(account.id).map((st) => [st.dayStart, st]));
+  for (const st of fresh) byDay.set(st.dayStart, st);
+  const list = [...byDay.values()].sort((a, b) => a.dayStart - b.dayStart).slice(-MAX_STATEMENTS);
+  safeWriteFile(statementsFile(account.id), JSON.stringify(list));
+  return fresh.length;
+}
+
 /** Close any day that has ended (AB#713), before the corporation is read or changed, so each movement lands on its day. */
 export function closeFinancialDays(account, now = Date.now()) {
   closeDueDays(account.state, now, state?.market || null);
+  fileStatements(account);
 }
 
 /**
@@ -281,7 +326,7 @@ export function getStatements(accountId, days = MAX_STATEMENTS, now = Date.now()
   closeFinancialDays(account, now);
   scheduleAccountsSave();
   const count = Math.max(1, Math.min(MAX_STATEMENTS, Math.floor(Number(days) || MAX_STATEMENTS)));
-  const all = Array.isArray(account.state.statements) ? account.state.statements : [];
+  const all = readStatements(accountId);
   const book = account.state.corp?.finances?.dayBook || null;
   return { statements: deepClone(all.slice(-count).reverse()), today: book ? deepClone(book) : null };
 }
