@@ -1,5 +1,6 @@
 import { WALKTHROUGH_STEPS as walkthroughSteps } from "./walkthrough.js";
 import { chooseHighlight, nextStepIndex } from "./walkthrough.js";
+import { tradeNumbers } from "./exchangeView.js"; // AB#1164, on a line of its own away from the imports other branches add
 import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
@@ -5568,8 +5569,10 @@ function bindForms() {
     const item = button.getAttribute("data-sell-item");
     const qtyInput = row?.querySelector("[data-sell-qty]");
     const priceInput = row?.querySelector("[data-sell-price]");
-    const quantity = Math.max(1, Number(qtyInput?.value || 1));
-    const unitPrice = Math.max(1, Number(priceInput?.value || 1));
+    // AB#1164: what was typed, not Math.max(1, Number(x || 1)), which listed a cleared price at $1. A value that is not
+    // a whole number of at least 1 goes to the server as typed, and its refusal is what the player reads.
+    const typed = { quantity: qtyInput?.value ?? "", unitPrice: priceInput?.value ?? "" };
+    const numbers = tradeNumbers(typed);
     const inventory = getInventory();
     const available = Number(inventory[item] || 0);
 
@@ -5578,9 +5581,32 @@ function bindForms() {
       return;
     }
 
-    if (quantity > available) {
+    if (numbers.ok && numbers.values.quantity > available) {
       listingStatus.textContent = "Quantity exceeds available inventory.";
       return;
+    }
+
+    // A listing is public the moment it is made, so it is confirmed like a purchase or a sale: the price is seen
+    // before anyone can buy at it.
+    if (numbers.ok) {
+      const { quantity, unitPrice } = numbers.values;
+      const gross = quantity * unitPrice;
+      const taxPct = getClientExchangeTaxPct();
+      const tax = Math.round(gross * taxPct / 100);
+      const confirmed = await showTradeConfirmation({
+        heading: "Create Listing",
+        title: `List ${item}`,
+        confirmLabel: "List",
+        rows: [
+          { label: "Item", value: item },
+          { label: "Quantity", value: quantity.toLocaleString() },
+          { label: "Unit Price", value: toCurrency(unitPrice), highlight: true },
+          { label: "If it all sells", value: toCurrency(gross) },
+          { label: `GEX Sales Tax (${taxPct}%)`, value: `− ${toCurrency(tax)}`, muted: true },
+          { label: "You Receive", value: toCurrency(gross - tax), highlight: true }
+        ]
+      });
+      if (!confirmed) return;
     }
 
     try {
@@ -5590,8 +5616,8 @@ function bindForms() {
         body: JSON.stringify({
           type: "sell",
           item,
-          quantity,
-          unitPrice
+          quantity: numbers.ok ? numbers.values.quantity : typed.quantity,
+          unitPrice: numbers.ok ? numbers.values.unitPrice : typed.unitPrice
         })
       });
 
@@ -5609,7 +5635,8 @@ function bindForms() {
       }
 
       renderMarket(appState.data);
-      listingStatus.textContent = `Listing created: ${quantity} ${item} @ ${toCurrency(unitPrice)}.`;
+      // the server's own record of what was listed, not what the form thought it sent
+      listingStatus.textContent = `Listing created: ${Number(payload.order?.quantity)} ${item} @ ${toCurrency(payload.order?.unitPrice)}.`;
       await refreshFromServer();
     } catch (error) {
       listingStatus.textContent = `Sell listing failed: ${error.message}`;
@@ -5980,31 +6007,37 @@ function bindForms() {
     const price = Number(button.getAttribute("data-buy-price"));
     const maxQty = Number(button.getAttribute("data-buy-qty"));
     const qtyInput = row?.querySelector(`[data-buy-order-qty="${orderId}"]`);
-    const qty = Math.max(1, Math.min(maxQty, Number(qtyInput?.value || 1)));
+    // AB#1164: the quantity as typed. A blank, 0, negative or unreadable quantity used to become 1, and one larger than
+    // the listing was quietly cut to it; now the confirmation shows only a quantity that can be bought, and anything
+    // else goes to the server as typed, whose refusal is what the player reads.
+    const typedQty = qtyInput?.value ?? "";
+    const { ok, values } = tradeNumbers({ quantity: typedQty });
+    const qty = values.quantity;
     const listingStatus = document.getElementById("listing-status");
     const buyStatus = document.getElementById("buy-status");
     const seller = row?.children[3]?.textContent || "Anonymous";
 
-    const totalCost = qty * price;
-    const confirmed = await showTradeConfirmation({
-      heading: "Buy from Sell Order",
-      title: `Buy ${item}`,
-      confirmLabel: "Buy",
-      rows: [
-        { label: "Item", value: item },
-        { label: "Quantity", value: qty.toLocaleString() },
-        { label: "Unit Price", value: toCurrency(price) },
-        { label: "Seller", value: seller },
-        { label: "Total Cost", value: toCurrency(totalCost), highlight: true }
-      ]
-    });
-    if (!confirmed) return;
+    if (ok && qty <= maxQty) {
+      const confirmed = await showTradeConfirmation({
+        heading: "Buy from Sell Order",
+        title: `Buy ${item}`,
+        confirmLabel: "Buy",
+        rows: [
+          { label: "Item", value: item },
+          { label: "Quantity", value: qty.toLocaleString() },
+          { label: "Unit Price", value: toCurrency(price) },
+          { label: "Seller", value: seller },
+          { label: "Total Cost", value: toCurrency(qty * price), highlight: true }
+        ]
+      });
+      if (!confirmed) return;
+    }
 
     try {
       const response = await apiFetch(`/api/market/orders/${encodeURIComponent(orderId)}/buy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantity: qty })
+        body: JSON.stringify({ quantity: ok ? qty : typedQty })
       });
 
       const payload = await parseJsonResponse(response);
@@ -6054,36 +6087,40 @@ function bindForms() {
     const item = button.getAttribute("data-npc-item");
     const price = Number(button.getAttribute("data-npc-price"));
     const qtyInput = row?.querySelector(`[data-npc-sell-qty="${orderId}"]`);
-    const qty = Math.max(1, Number(qtyInput?.value || 1));
+    // AB#1164: the quantity as typed; a blank, 0 or unreadable one is no longer a sale of 1. Only a whole number of at
+    // least 1 is confirmed; anything else goes to the server as typed and its refusal is shown.
+    const typedQty = qtyInput?.value ?? "";
+    const { ok, values } = tradeNumbers({ quantity: typedQty });
+    const qty = values.quantity;
     const npcStatus = document.getElementById("npc-buy-status");
 
-    const grossTotal = qty * price;
-    const taxPct = getClientExchangeTaxPct();
-    const taxAmount = Math.round(grossTotal * taxPct / 100);
-    const netProceeds = grossTotal - taxAmount;
-    const buyer = row?.children[1]?.textContent || "NPC";
-
-    const confirmed = await showTradeConfirmation({
-      heading: "Sell to Standing Buy Order",
-      title: `Sell ${item}`,
-      confirmLabel: "Sell",
-      rows: [
-        { label: "Item", value: item },
-        { label: "Quantity", value: qty.toLocaleString() },
-        { label: "Unit Price", value: toCurrency(price) },
-        { label: "Buyer", value: buyer },
-        { label: "Gross Total", value: toCurrency(grossTotal) },
-        { label: `GEX Sales Tax (${taxPct}%)`, value: `− ${toCurrency(taxAmount)}`, muted: true },
-        { label: "You Receive", value: toCurrency(netProceeds), highlight: true }
-      ]
-    });
-    if (!confirmed) return;
+    if (ok) {
+      const grossTotal = qty * price;
+      const taxPct = getClientExchangeTaxPct();
+      const taxAmount = Math.round(grossTotal * taxPct / 100);
+      const buyer = row?.children[1]?.textContent || "NPC";
+      const confirmed = await showTradeConfirmation({
+        heading: "Sell to Standing Buy Order",
+        title: `Sell ${item}`,
+        confirmLabel: "Sell",
+        rows: [
+          { label: "Item", value: item },
+          { label: "Quantity", value: qty.toLocaleString() },
+          { label: "Unit Price", value: toCurrency(price) },
+          { label: "Buyer", value: buyer },
+          { label: "Gross Total", value: toCurrency(grossTotal) },
+          { label: `GEX Sales Tax (${taxPct}%)`, value: `− ${toCurrency(taxAmount)}`, muted: true },
+          { label: "You Receive", value: toCurrency(grossTotal - taxAmount), highlight: true }
+        ]
+      });
+      if (!confirmed) return;
+    }
 
     try {
       const response = await apiFetch(`/api/market/npc-orders/${encodeURIComponent(orderId)}/sell`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantity: qty })
+        body: JSON.stringify({ quantity: ok ? qty : typedQty })
       });
 
       const payload = await parseJsonResponse(response);

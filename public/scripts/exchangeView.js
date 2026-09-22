@@ -4,6 +4,21 @@
 // access is wrapped: the worst case is the defaults.
 
 import { escapeHtml } from "./html.js";
+import { wholeNumber } from "./wholeNumber.js";
+
+/**
+ * AB#1164: the numbers typed into an Exchange form, read the way the server's input check reads them. `ok` is true
+ * when every value is a whole number of at least 1, which is when a confirmation is worth showing; otherwise the form
+ * sends what was typed and shows the server's refusal. It never turns a blank or a 0 into 1.
+ */
+export function tradeNumbers(raw) {
+  const values = {};
+  for (const [key, value] of Object.entries(raw || {})) {
+    const n = wholeNumber(typeof value === "string" ? value : value ?? "");
+    values[key] = n !== null && n >= 1 ? n : null;
+  }
+  return { ok: Object.values(values).every((n) => n !== null), values };
+}
 
 export const EXCHANGE_VIEW_KEY = "isp.exchangeView";
 

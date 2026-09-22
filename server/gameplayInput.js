@@ -164,12 +164,10 @@ const refuse = (error) => ({ ok: false, error });
 // Not sent: left out, or empty. An explicit null is sent, and refused: JSON turns NaN and Infinity into null.
 const isAbsent = (v) => v === undefined || v === "";
 
-/** A whole number from a JSON number or a string of digits; anything else (2.5, "abc", "NaN", "1e3", objects) is null. */
-export function wholeNumber(value) {
-  if (typeof value === "number") return Number.isInteger(value) ? value : null;
-  if (typeof value === "string" && /^-?\d{1,15}$/.test(value.trim())) return Number(value.trim());
-  return null;
-}
+// A whole number from a JSON number or a string of digits. It lives in public/scripts so the Exchange forms read a
+// typed number the way this check does (AB#1164); re-exported here for the callers and tests that import it from here.
+import { wholeNumber } from "../public/scripts/wholeNumber.js";
+export { wholeNumber };
 
 /** An id as a trimmed string of sensible length, or null. */
 export function idString(value) {
