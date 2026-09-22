@@ -155,6 +155,7 @@ async function measure(dir, { id, who }, tracePath) {
       if (nowMs - last >= 5000) break;
     }
     const paint = await page.evaluate(() => Object.fromEntries(performance.getEntriesByType("paint").map((e) => [e.name, e.startTime])));
+    await page.screenshot({ path: tracePath.replace(/\.json$/, "") + "-loaded.png" }); // what was measured, loaded
 
     // 20 full re-renders, through the Suites' hire form, traced.
     const tab = page.locator('.tab-btn[data-tab="station"]');
@@ -179,6 +180,12 @@ async function measure(dir, { id, who }, tracePath) {
       await sleep(300);
     }
     await browser.stopTracing();
+    // Measures named isp:part:<view>, if a build adds them around each view's render, broken down by median.
+    const parts = await page.evaluate(() => {
+      const by = {};
+      for (const m of performance.getEntriesByType("measure")) if (m.name.startsWith("isp:part:")) (by[m.name.slice(9)] ||= []).push(m.duration);
+      return by;
+    });
     const hot = process.env.BENCH_PROFILE ? selfTimes((await cdp.send("Profiler.stop")).profile) : null;
 
     // Live updates: how much of the main thread the socket events and the page's 1-second timer take, left alone.
@@ -191,7 +198,7 @@ async function measure(dir, { id, who }, tracePath) {
     return {
       firstPaint: paint["first-paint"], firstContentfulPaint: paint["first-contentful-paint"], firstRender, tti,
       renders, median: percentile(sorted, 50), p95: percentile(sorted, 95), max: sorted.at(-1),
-      idleBusyShare: busyShare / IDLE_SECONDS, errors, hot
+      idleBusyShare: busyShare / IDLE_SECONDS, errors, hot, parts
     };
   } finally {
     await browser.close();
@@ -216,6 +223,11 @@ export function renderReport(r, machine) {
     `Left alone for ${IDLE_SECONDS} s (socket updates and the page's 1-second timer): main thread busy ${(r.idleBusyShare * 100).toFixed(1)}% of the time.`,
     `Page errors: ${r.errors.length ? r.errors.join("; ") : "none"}.`
   ];
+  const parts = Object.entries(r.parts || {}).map(([k, v]) => [k, [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)]]).sort((a, b) => b[1] - a[1]);
+  if (parts.length) {
+    lines.push("", "Full re-render by view (median ms of each part):");
+    for (const [k, v] of parts) lines.push(`  ${v.toFixed(1).padStart(7)}  ${k}`);
+  }
   if (r.hot) {
     lines.push("", "Where the re-renders' time goes (CPU profile, self time, top functions):");
     for (const h of r.hot) lines.push(`  ${(h.share * 100).toFixed(1).padStart(5)}%  ${h.fn.padEnd(32)} ${h.where}`);
@@ -225,7 +237,7 @@ export function renderReport(r, machine) {
 
 async function main() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "isp-render-"));
-  const tracePath = process.env.BENCH_TRACE || path.join(ROOT, "render-trace.json");
+  const tracePath = process.env.BENCH_TRACE || path.join(os.tmpdir(), "isp-render-trace.json");
   try {
     const who = await seed(dir);
     const result = await measure(dir, who, tracePath);
