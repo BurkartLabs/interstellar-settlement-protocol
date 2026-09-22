@@ -107,7 +107,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.tab-btn[data-tab="missions"]',
     renderedBy: "index.html",
     title: "My Bureau",
-    text: "Open Assignments: the Contracting & Assignments Bureau, where I work. Agents here issue contracts, each with a quota and a deadline. I keep a record of which corporations meet their terms, and I remember it.",
+    text: "Open Assignments: the Contracting & Assignments Bureau, where I work. Agents here issue contracts, each with a quota and a reward, and no clock: deliver when you have the goods. Every contract you complete raises your standing with the agent who issued it.",
     tab: "missions"
   },
   {
@@ -123,7 +123,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.tab-btn[data-tab="starmap"]',
     renderedBy: "index.html",
     title: "From here",
-    text: "That is the procedure, and you can take it from here. Open the starmap: every system, body and station the ISA administers. When your corporation outgrows Earth Station Prime, this is where you look next. Before that, once your corporation is established, come and see me on Deck 7. I have a Silicate Requisition Order — Batch 4-7A that needs an operator who delivers on schedule.",
+    text: "That is the procedure, and you can take it from here. Open the starmap: every system, body and station the ISA administers. When your corporation outgrows Earth Station Prime, this is where you look next. Before that, once your corporation is established, come and see me on Deck 7. I have a Silicate Requisition Order — Batch 4-7A that needs an operator who delivers what they sign for.",
     tab: "starmap",
     handoffContractId: "ms-log-001"
   }
