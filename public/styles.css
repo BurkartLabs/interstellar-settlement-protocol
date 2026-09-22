@@ -1552,6 +1552,73 @@ h1 {
 .finance-table .num--positive { color: #6cf0c2; }
 .finance-table .num--negative { color: #f06a77; }
 
+/* Daily statements (AB#714): the books closed at 00:00 UTC, a day at a time. */
+.finance-statements {
+  margin-top: 0.95rem;
+  padding: 0.85rem 0.95rem;
+  background: rgba(10, 31, 46, 0.5);
+  border: 1px solid rgba(0, 247, 255, 0.14);
+  border-radius: 6px;
+}
+
+.finance-statements__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin-bottom: 0.7rem;
+}
+
+.finance-statements__head h3 { margin: 0 0 0.15rem; }
+
+.finance-statements__picker {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  min-width: 0;
+}
+
+.finance-statements__picker select { min-width: 14rem; max-width: 100%; }
+
+.statement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.7rem;
+}
+
+.statement-card .chart-card__head { flex-direction: column; align-items: flex-start; gap: 0.15rem; }
+.statement-card h4 { margin: 0; font-size: 0.95rem; }
+
+.finance-table .statement-heading th { padding-top: 0.6rem; }
+.finance-table .statement-heading--in th { color: #6cf0c2; }
+.finance-table .statement-heading--out th { color: #f0a06a; }
+
+.finance-table .statement-total td {
+  border-top: 1px solid rgba(0, 247, 255, 0.35);
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.finance-table .statement-muted td { color: var(--text-muted); }
+
+.statement-empty {
+  padding: 1rem 1.1rem;
+  border: 1px dashed rgba(0, 247, 255, 0.25);
+  border-radius: 6px;
+}
+
+.statement-empty p { margin: 0 0 0.35rem; }
+.statement-empty .num--positive { color: #6cf0c2; }
+.statement-empty .num--negative { color: #f06a77; }
+
+@media (max-width: 600px) {
+  .finance-statements__picker, .finance-statements__picker select { width: 100%; min-width: 0; }
+}
+
 .inline-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

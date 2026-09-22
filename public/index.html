@@ -421,7 +421,7 @@
               <section class="chart-card chart-card--wide">
                 <header class="chart-card__head">
                   <h3>Cash Reserves</h3>
-                  <span class="chart-card__sub">Live snapshot series</span>
+                  <span class="chart-card__sub">Balance over time</span>
                   <select class="chart-duration-picker" data-chart-duration="cashflow" aria-label="Cash Reserves duration">
                     <option value="3600000">1 hour</option>
                     <option value="86400000">1 day</option>
@@ -437,7 +437,7 @@
               <section class="chart-card">
                 <header class="chart-card__head">
                   <h3>Net Cash Flow</h3>
-                  <span class="chart-card__sub">Revenue − Costs per snapshot</span>
+                  <span class="chart-card__sub">Net profit over time</span>
                   <select class="chart-duration-picker" data-chart-duration="netflow" aria-label="Net Cash Flow duration">
                     <option value="3600000">1 hour</option>
                     <option value="86400000">1 day</option>
@@ -517,6 +517,21 @@
                 </table>
               </section>
             </div>
+
+            <!-- AB#714: the books the server closes every day at 00:00 UTC (AB#713), 90 days of them. -->
+            <section class="finance-statements" id="finance-statements" aria-labelledby="finance-statements-title">
+              <header class="finance-statements__head">
+                <div>
+                  <h3 id="finance-statements-title">Daily Statements</h3>
+                  <span class="chart-card__sub">Closed at 00:00 UTC · kept 90 days</span>
+                </div>
+                <label class="finance-statements__picker" hidden>
+                  <span>Day</span>
+                  <select id="statement-day" aria-label="Statement day"></select>
+                </label>
+              </header>
+              <div id="statement-body" aria-live="polite"><p class="muted">Loading statements…</p></div>
+            </section>
           </article>
 
           <article id="rnd" class="tab-panel">
