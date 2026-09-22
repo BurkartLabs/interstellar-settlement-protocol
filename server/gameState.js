@@ -18,7 +18,7 @@ const accountsSnapshotPath = path.join(dataDir, "accounts-snapshot.json");
 const milestonesPath = path.join(catalogueDir, "milestones.json");
 const PASSWORD_SALT_ROUNDS = 10;
 
-import { recordExpense, ensureFinanceTracking } from "./finances.js";
+import { applyCredits, ensureFinanceTracking } from "./finances.js";
 import { unknownLeaseBodies } from "./leases.js";
 import { directInvestmentRecords } from "./legacyInvestments.js";
 import { validateCorporationName, SYSTEM_SENDERS, CORPORATION_NAME_MAX_LENGTH } from "./corporationName.js";
@@ -638,9 +638,8 @@ export function applyMiningOperations(corp, now = Date.now()) {
     const actualCost = Math.round(projectedCost * affordabilityRatio);
 
     if (actualCost > 0) {
-      corp.finances.credits = Math.max(0, corp.finances.credits - actualCost);
-      extractor.totalSpent += actualCost;
-      recordExpense(corp, "mining-ops", actualCost, now); // Bug #1022: at the tick's time, for the 24-hour window
+      const charged = -applyCredits(corp, -Math.min(actualCost, Math.max(0, Math.round(Number(corp.finances.credits) || 0))), "mining-ops", now);
+      extractor.totalSpent += charged;
     }
 
     if (actualMined > 0) {
