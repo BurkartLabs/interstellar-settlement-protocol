@@ -8,6 +8,7 @@ import { createStarmapController } from "./starmap.js";
 import { escapeHtml, notificationItemsHtml, messageListItemsHtml } from "./html.js";
 import { DEFAULT_EXCHANGE_VIEW, loadExchangeView, saveExchangeView, viewOrders, filteredEmptyHtml } from "./exchangeView.js";
 import { stationStartPromptHtml, milestonesFirst, sidebarStartsCollapsed, revealScroll } from "./firstAction.js"; // AB#1056
+import { labelTableCells } from "./tableLabels.js"; // AB#1055
 import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "./ceoEffects.js";
 import { missionRewardCredits } from "./ceoEffects.js"; // Bug #1009: its own line, after the others, so parallel branches adding imports do not collide
@@ -4015,6 +4016,9 @@ function renderMarket(data) {
       .join("");
   }
   if (tradeHistoryEmpty) tradeHistoryEmpty.hidden = tradeHistory.length > 0;
+
+  // AB#1055: the action tables stack into one card per row at phone width; each cell carries its column's name
+  document.querySelectorAll("#market .data-table--stack").forEach(labelTableCells);
 }
 
 function renderForums(data) {
