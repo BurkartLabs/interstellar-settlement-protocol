@@ -1,9 +1,13 @@
 // public/scripts/logistics.js
 // Transfers between stations (AB#717, ISP-32): the rules the server enforces and the client shows, in one module so
 // they cannot disagree. The server imports it as it does ceoEffects.js. Pure: no DOM, no state of its own.
+//
+// AB#718 (the Board's answer on AB#693, "distance based time and fees"): the fee and the transit time depend on how
+// far the goods go, counted in jumps between systems on navigation.js's map. The rates are data/economy.json's
+// `logistics`, which the server reads and sends to the Logistics tab with the stations, so the quote and the charge
+// come from the same numbers and the same function.
 
-/** Credits per unit moved. The fee is transferFee(), and nothing else computes it (v0.5-s07 changes it here). */
-export const LOGISTICS_FEE_PER_UNIT = 2;
+import { systemHops } from "./navigation.js";
 /** Resource lines one request may carry. */
 export const MAX_TRANSFER_LINES = 10;
 /** Completed transfers kept in corp.logisticsHistory, newest first. */
@@ -11,9 +15,41 @@ export const LOGISTICS_HISTORY_LIMIT = 100;
 /** Longer than any resource name; anything longer is not an item. */
 const ITEM_MAX_LENGTH = 40;
 
-/** The fee for moving these lines, in credits. */
-export function transferFee(lines) {
-  return (lines || []).reduce((sum, l) => sum + LOGISTICS_FEE_PER_UNIT * Number(l.quantity || 0), 0);
+const stationById = (stations, id) => {
+  if (typeof id !== "string") return null;
+  if (Array.isArray(stations)) return stations.find((s) => s?.id === id) || null;
+  return Object.hasOwn(stations || {}, id) ? stations[id] : null;
+};
+
+/**
+ * Jumps between two stations' systems: 0 within one system. null when either station is unknown, has no system, or no
+ * route joins them. `stations` is data/stations.json's list, or the server's id-keyed registry of the same objects.
+ */
+export function stationHops(stations, fromStationId, toStationId) {
+  const from = stationById(stations, fromStationId);
+  const to = stationById(stations, toStationId);
+  if (!from?.systemId || !to?.systemId) return null;
+  return systemHops(from.systemId, to.systemId);
+}
+
+/** Credits per unit over this many jumps: the in-system rate, plus the per-jump rate for each jump. */
+export function feePerUnit(rates, hops) {
+  return Number(rates.sameSystemFeePerUnit) + Number(rates.perJumpFeePerUnit) * hops;
+}
+
+/** The fee for moving these lines this many jumps, in credits. */
+export function transferFee(rates, hops, lines) {
+  return (lines || []).reduce((sum, l) => sum + feePerUnit(rates, hops) * Number(l.quantity || 0), 0);
+}
+
+/** How long a shipment takes over this many jumps, in minutes. Transfers arrive at once until timed transit exists. */
+export function transitMinutes(rates, hops) {
+  return Number(rates.sameSystemTransitMinutes) + Number(rates.perJumpTransitMinutes) * hops;
+}
+
+/** "in system" or "2 jumps": the distance in words. */
+export function describeHops(hops) {
+  return hops === 0 ? "in system" : `${hops} jump${hops === 1 ? "" : "s"}`;
 }
 
 /** A quantity from a request: a whole number of at least 1; null for anything else ("abc", NaN, -5, 0, 2.5, missing). AB#731 refuses fractions on every gameplay route. */
@@ -49,9 +85,10 @@ export function parseTransferRequest(body) {
 
 /**
  * Check a parsed request against the corporation before anything moves: all of it can happen, or none of it does.
- * `stations` maps id to { name }; `inventory` is corp.inventory. Returns { ok: true, fee } or { ok: false, error }.
+ * `stations` maps id to { name, systemId }; `rates` is data/economy.json's `logistics`; `inventory` is corp.inventory.
+ * Returns { ok: true, fee, hops } or { ok: false, error }.
  */
-export function planTransfer({ fromStationId, toStationId, lines, inventory, credits, stations }) {
+export function planTransfer({ fromStationId, toStationId, lines, inventory, credits, stations, rates }) {
   // Own keys only: a plain object answers "__proto__" and "constructor" too.
   const station = (id) => (typeof id === "string" && Object.hasOwn(stations || {}, id) ? stations[id] : null);
   const from = station(fromStationId);
@@ -69,12 +106,15 @@ export function planTransfer({ fromStationId, toStationId, lines, inventory, cre
       return { ok: false, error: `${from.name} holds ${have.toLocaleString()} ${item}; you asked to move ${quantity.toLocaleString()}. Move ${have.toLocaleString()} or fewer.` };
     }
   }
-  const fee = transferFee(lines);
+  const hops = stationHops(stations, fromStationId, toStationId);
+  if (hops === null) return { ok: false, error: `No shipping route joins ${from.name} and ${to?.name || "your station"}.` };
+  const fee = transferFee(rates, hops, lines);
   const units = lines.reduce((s, l) => s + l.quantity, 0);
   if (Number(credits || 0) < fee) {
-    return { ok: false, error: `The fee is ${fee.toLocaleString()} credits (${LOGISTICS_FEE_PER_UNIT} per unit for ${units.toLocaleString()} units); you have ${Math.floor(Number(credits || 0)).toLocaleString()}. Move fewer units or sell goods first.` };
+    const distance = hops === 0 ? "" : `, ${describeHops(hops)}`;
+    return { ok: false, error: `The fee is ${fee.toLocaleString()} credits (${feePerUnit(rates, hops)} per unit for ${units.toLocaleString()} units${distance}); you have ${Math.floor(Number(credits || 0)).toLocaleString()}. Move fewer units or sell goods first.` };
   }
-  return { ok: true, fee };
+  return { ok: true, fee, hops };
 }
 
 /** Add a completed transfer to the front of the history, keeping the last LOGISTICS_HISTORY_LIMIT. Returns the history. */

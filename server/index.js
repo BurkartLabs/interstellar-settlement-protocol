@@ -18,7 +18,7 @@ import { resolveLeaseBody } from "./leases.js";
 import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from "../public/scripts/ceoEffects.js";
 import { ECONOMY, buildCostFor, operationCostPerHourFor, startupCostFor } from "./economy.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "../public/scripts/ceoEffects.js";
-import { canReachSystem, leaseFilingRefusal } from "../public/scripts/navigation.js";
+import { canReachSystem, leaseFilingRefusal, systemHops } from "../public/scripts/navigation.js";
 import {
   accountExists,
   addAccountNotification,
@@ -188,37 +188,9 @@ const RESEARCH_LIBRARY = {
 
 const TIER_1_TECH_IDS = Object.values(RESEARCH_LIBRARY).filter((t) => t.tier === 1).map((t) => t.id);
 
-// ── System adjacency graph (for hop-distance calculation) ──
-// TODO(AB#804): Store in DB
-const SYSTEM_ADJACENCY = {
-  "sol":              ["alpha-centauri", "barnards-star"],
-  "alpha-centauri":   ["sol", "wolf-359"],
-  "barnards-star":    ["sol", "tau-ceti"],
-  "wolf-359":         ["alpha-centauri", "tau-ceti", "epsilon-eridani"],
-  "tau-ceti":         ["barnards-star", "wolf-359", "epsilon-eridani"],
-  "epsilon-eridani":  ["wolf-359", "tau-ceti"]
-};
-
+// ── Jumps between systems: public/scripts/navigation.js holds the map (AB#718), shared with the transfer fee ──
 function getSystemHops(fromId, toId) {
-  if (fromId === toId) return 0;
-  const visited = new Set([fromId]);
-  let frontier = [fromId];
-  let depth = 0;
-  while (frontier.length > 0) {
-    depth++;
-    const next = [];
-    for (const sys of frontier) {
-      for (const neighbor of SYSTEM_ADJACENCY[sys] || []) {
-        if (neighbor === toId) return depth;
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          next.push(neighbor);
-        }
-      }
-    }
-    frontier = next;
-  }
-  return 99; // unreachable fallback
+  return systemHops(fromId, toId) ?? 99; // unreachable fallback
 }
 
 // ── Planet ordering within each system (for intra-system hop distance) ──
@@ -833,7 +805,8 @@ app.get("/api/bootstrap", (req, res) => {
 app.get("/api/stations", (_req, res) => {
   try {
     const raw = fs.readFileSync(path.join(__dirname, "..", "data", "stations.json"), "utf8");
-    res.json(JSON.parse(raw));
+    // AB#718: the transfer rates ride with the stations, so the Logistics tab quotes what the server charges.
+    res.json({ ...JSON.parse(raw), logistics: ECONOMY.logistics });
   } catch {
     res.status(500).json({ error: "Stations data unavailable." });
   }
@@ -1432,7 +1405,7 @@ app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
     const toStationId = corp.currentStationId || null;
     const plan = planTransfer({
       fromStationId: request.fromStationId, toStationId, lines: request.lines,
-      inventory: corp.inventory, credits: corp.finances.credits, stations: STATION_REGISTRY
+      inventory: corp.inventory, credits: corp.finances.credits, stations: STATION_REGISTRY, rates: ECONOMY.logistics
     });
     if (!plan.ok) {
       refusal = plan.error; // nothing has moved

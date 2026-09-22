@@ -33,7 +33,10 @@
     "salesTaxPct": 8
   },
   "logistics": {
-    "feePerUnit": 2
+    "sameSystemFeePerUnit": 2,
+    "perJumpFeePerUnit": 3,
+    "sameSystemTransitMinutes": 30,
+    "perJumpTransitMinutes": 120
   },
   "npcBuyers": [
     { "item": "Silicates", "buyer": "GEX Commodities Authority", "unitPrice": 24, "dailyQty": 1000000 },
