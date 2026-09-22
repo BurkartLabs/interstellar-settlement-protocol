@@ -4766,7 +4766,15 @@ function renderChatChannelTabs() {
 }
 
 // TODO(AB#730): Can this be refactored to improve performance? Where is this function called? Do we always need to update every single view? 
+// AB#730: every full re-render is timed as a performance measure, "isp:updateAllViews", which DevTools shows in its
+// Timings track and scripts/bench-render.mjs reads. The cost is one performance.now() and one measure per render.
 function updateAllViews() {
+  const start = performance.now();
+  renderAllViews();
+  performance.measure("isp:updateAllViews", { start });
+}
+
+function renderAllViews() {
   if (appState.serverData) {
     applySharedState(appState.serverData);
   }
