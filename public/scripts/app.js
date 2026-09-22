@@ -1660,6 +1660,37 @@ function bindISAClaimsLeasesActions(building, data) {
   });
 }
 
+// Bug #1091: the running figures, shared by the lease view and its live refresh. Imported beside their use.
+import { activeCycleFigures, extractorState } from "./leaseLive.js";
+
+/**
+ * Refresh the open lease view's running figures from the latest extractors, in place, so a Start Cycle form being
+ * filled in is not wiped. When an extractor changes state (a cycle ends or breaks down) the row's layout changes,
+ * so the view is redrawn instead. Does nothing when no lease view is open.
+ */
+function refreshOpenLeaseView(extractors) {
+  const rows = document.querySelectorAll("[data-live-ex]");
+  if (!rows.length) return;
+  const byId = new Map((extractors || []).map((ex) => [ex.id, ex]));
+  for (const row of rows) {
+    const ex = byId.get(row.getAttribute("data-live-ex"));
+    if (!ex || extractorState(ex) !== row.getAttribute("data-live-state")) {
+      showStationBuilding("isa-claims-leases");
+      return;
+    }
+    if (extractorState(ex) !== "active" || !ex.endsAt || !ex.startedAt) continue;
+    const { pct, hrs, mins, mined, fees } = activeCycleFigures(ex);
+    const set = (key, text) => { const el = row.querySelector(`[data-live="${key}"]`); if (el) el.textContent = text; };
+    set("pct", `${pct}%`);
+    set("left", `${hrs}h ${mins}m left`);
+    set("remaining", `${hrs}h ${mins}m`);
+    set("mined", mined.toLocaleString());
+    set("fees", toCurrency(fees));
+    const fill = row.querySelector('[data-live="fill"]');
+    if (fill) fill.style.width = `${pct}%`;
+  }
+}
+
 function renderLeaseManagement(building, lease, data) {
   const corp = data.corp;
   const extractors = (corp?.mining?.silicateExtractors || []).filter((ex) => ex.leaseId === lease.id);
@@ -1727,29 +1758,23 @@ function renderLeaseManagement(building, lease, data) {
         </div>
       `;
     } else if (ex.active && ex.endsAt && ex.startedAt) {
-      const now = Date.now();
-      const remaining = Math.max(0, ex.endsAt - now);
-      const cycleDuration = ex.endsAt - ex.startedAt;
-      const elapsed = Math.min(now - ex.startedAt, cycleDuration);
-      const pct = cycleDuration > 0 ? Math.min(100, Math.round((elapsed / cycleDuration) * 100)) : 0;
-      const hrs = Math.floor(remaining / 3_600_000);
-      const mins = Math.floor((remaining % 3_600_000) / 60_000);
-      const elapsedHours = elapsed / 3_600_000;
-      const estimatedFees = Math.round(elapsedHours * (ex.operationCostPerHour || 0));
+      // Bug #1091: the figures come from public/scripts/leaseLive.js, and carry data-live so mining:updated can refresh
+      // them in place while the view stays open.
+      const { pct, hrs, mins, mined, fees: estimatedFees } = activeCycleFigures(ex);
 
-      cycleInfo = `<span class="extractor-cycle-status">${ex.throughputPerHour} t/h &mdash; ${hrs}h ${mins}m remaining</span>`;
+      cycleInfo = `<span class="extractor-cycle-status">${ex.throughputPerHour} t/h &mdash; <span data-live="remaining">${hrs}h ${mins}m</span> remaining</span>`;
       progressBarHtml = `
         <div class="extractor-progress-wrap">
           <div class="extractor-progress-header">
-            <span class="extractor-progress-pct">${pct}%</span>
-            <span class="extractor-progress-time">${hrs}h ${mins}m left</span>
+            <span class="extractor-progress-pct" data-live="pct">${pct}%</span>
+            <span class="extractor-progress-time" data-live="left">${hrs}h ${mins}m left</span>
           </div>
           <div class="extractor-progress-track">
-            <div class="extractor-progress-fill" style="width:${pct}%"></div>
+            <div class="extractor-progress-fill" data-live="fill" style="width:${pct}%"></div>
           </div>
           <div class="extractor-stat-row">
-            <span class="extractor-stat"><span class="extractor-stat-label">Mined this cycle</span><span class="extractor-stat-value">${(ex.minedThisCycle || 0).toLocaleString()}</span></span>
-            <span class="extractor-stat"><span class="extractor-stat-label">Fees incurred</span><span class="extractor-stat-value">${toCurrency(estimatedFees)}</span></span>
+            <span class="extractor-stat"><span class="extractor-stat-label">Mined this cycle</span><span class="extractor-stat-value" data-live="mined">${mined.toLocaleString()}</span></span>
+            <span class="extractor-stat"><span class="extractor-stat-label">Fees incurred</span><span class="extractor-stat-value" data-live="fees">${toCurrency(estimatedFees)}</span></span>
             <span class="extractor-stat"><span class="extractor-stat-label">Rate</span><span class="extractor-stat-value">${ex.throughputPerHour} t/h</span></span>
           </div>
         </div>
@@ -1772,7 +1797,7 @@ function renderLeaseManagement(building, lease, data) {
 
     const mineFormVisible = !ex.active && !ex.downtimeActive;
     extractorRows += `
-      <div class="extractor-row ${statusClass}">
+      <div class="extractor-row ${statusClass}" data-live-ex="${escapeHtml(ex.id)}" data-live-state="${extractorState(ex)}">
         <div class="extractor-row-header">
           <strong>${escapeHtml(ex.name)}</strong>
           <span class="building-status-badge ${statusClass}">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : "Idle")}</span>
@@ -6246,6 +6271,7 @@ function bindRealtimeEvents() {
     }
     renderAssets(appState.data);
     updateCorpIdentity(appState.data);
+    refreshOpenLeaseView(payload.extractors); // Bug #1091: the open lease view follows the cycle
   });
 
   socket.on("expedition:completed", (payload) => {
