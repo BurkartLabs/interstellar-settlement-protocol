@@ -565,6 +565,15 @@ body {
   font-size: 0.84rem;
 }
 
+/* Bug #1059: the next step after an error, and the links in the intro copy. */
+.login-status-link,
+.login-copy a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .login-actions {
   display: flex;
   flex-direction: column;

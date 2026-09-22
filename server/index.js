@@ -851,7 +851,7 @@ app.post("/api/auth/register", async (req, res) => {
     const result = await createAccount({ email, password, ceoName, corpName });
 
     if (result.error) {
-      res.status(400).json({ error: result.error });
+      res.status(400).json(result.code ? { error: result.error, code: result.code } : { error: result.error });
       return;
     }
 
@@ -860,7 +860,7 @@ app.post("/api/auth/register", async (req, res) => {
     res.status(201).json({ account, ...tokens });
   } catch (error) {
     console.error("[auth/register]", error);
-    res.status(500).json({ error: "Registration failed." });
+    res.status(500).json({ error: "Registering failed on our side. Try again in a minute." });
   }
 });
 
@@ -899,7 +899,7 @@ app.post("/api/auth/login", async (req, res) => {
     res.json({ account, ...tokens });
   } catch (error) {
     console.error("[auth/login]", error);
-    res.status(500).json({ error: "Login failed." });
+    res.status(500).json({ error: "Logging in failed on our side. Try again in a minute." });
   }
 });
 

@@ -2004,7 +2004,8 @@ export async function createAccount({ email, password, ceoName, corpName }) {
 
   const existing = Object.values(accountsStore.accounts || {}).find((item) => item.email === normalizedEmail);
   if (existing) {
-    return { error: "An account with this email already exists." };
+    // Bug #1059: the code lets the page offer the login instead.
+    return { error: "An account with this email already exists.", code: "email-taken" };
   }
 
   // Bug #433: the name is the only trust signal on the order book, the forums and in mail. Checked before anything is
