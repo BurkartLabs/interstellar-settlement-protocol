@@ -50,6 +50,7 @@ This project has a deliberate roadmap in [DEVELOPMENT_PHASES.md](DEVELOPMENT_PHA
 - Mobile-first isn't enforced, but responsive breakpoints should be included for any new layout components.
 
 ### Server
+- One module per system (AB#737): game code lives in `server/game/<system>.js`, not in `server/gameState.js` (a re-export) and not in a new catch-all. Aim for under about 600 lines; past 800 a module must be split, and `tests/unit/moduleSize.test.js` fails. Import only from modules earlier in the order in DESIGN_DOCUMENT.md, so there are no import cycles.
 - All state mutations go through `mutateState()` (global) or `mutateAccountState()` (per-account). Never write to `state` or `accountsStore` directly in route handlers.
 - Call `saveAccountsNow()` after any critical state change that must survive an immediate restart.
 - Validate and sanitize all `req.body` fields at the top of route handlers. Return 400 with a clear error before touching state.

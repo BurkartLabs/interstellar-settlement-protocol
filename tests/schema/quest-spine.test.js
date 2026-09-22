@@ -11,7 +11,8 @@ const json = (p) => JSON.parse(read(p));
 const schema = json("docs/quest-spine/quest.schema.json");
 const act = json("docs/quest-spine/act-1.example.json");
 const server = read("server/index.js");
-const gameState = read("server/gameState.js");
+// AB#737: the game state is split by system into server/game/*.js behind server/gameState.js; read all of it.
+const gameState = [read("server/gameState.js"), ...readdirSync(new URL("server/game/", root)).sort().map((f) => read(`server/game/${f}`))].join("\n");
 const indexHtml = read("public/index.html");
 // Where a highlighted element can come from: static markup, any client script, or building data the cards are drawn from.
 const client = readdirSync(new URL("public/scripts/", root)).filter((f) => f.endsWith(".js")).map((f) => read(`public/scripts/${f}`)).join("\n") +

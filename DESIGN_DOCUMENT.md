@@ -31,7 +31,18 @@ A browser-based, text-heavy multiplayer sci-fi corporate strategy game set in 21
 ```
 server/
   index.js        — Express routes, Socket.io, all gameplay API endpoints
-  gameState.js    — In-memory store, all data mutation functions, persistence scheduling
+  gameState.js    — Re-exports server/game/*.js, so existing imports keep working
+  game/           — the game state, one module per system (AB#737); gameState.js re-exports them
+    catalog.js    — data paths and the catalogues read at startup; ids, cloning, the atomic file write
+    shape.js      — normalising a stored account's state to the current shape
+    mining.js     — extractors: cycles, downtime, mining ticks
+    refining.js   — refineries
+    asteroids.js  — belts, probes and expeditions
+    progression.js — stats, the level ladder, fleet cap, level notices, the exchange tax
+    corporation.js — a new corporation, contracts and their offering
+    world.js      — the global state: its seed, social and market parts
+    store.js      — the in-memory state and accounts, persistence, and the account API
+    messaging.js  — mail, drafts and the corporation directory
 data/
   state.json      — Global world state (market, chat logs, combat reports, systems)
   stations.json   — Station registry (Earth Station Prime, etc.)
@@ -50,9 +61,13 @@ public/
 
 ---
 
-## Server Architecture (`server/gameState.js`)
+## Server Architecture (`server/game/`, re-exported by `server/gameState.js`)
 
-**In-memory store** — account data is hydrated from Supabase at startup into `accountsStore`; `state.json` is loaded into `globalState`. All reads/writes happen in-memory; a debounced `scheduleAccountsSave()` persists to Supabase and `scheduleSave()` flushes global state to disk.
+**In-memory store** (`server/game/store.js`): accounts are loaded at startup from `accounts-snapshot.json` in the data directory (`ISP_DATA_DIR`) into `accountsStore`, and `state.json` into `state`. All reads and writes happen in memory; `scheduleAccountsSave()` writes the accounts 500 ms after the first unsaved change and `scheduleSave()` the world 300 ms after (Bug #1447), both atomically.
+
+### Code organisation: one module per system (AB#737)
+
+Each game system has its own module under `server/game/`, and a module holds one system's state, rules and I/O, kept apart within it. The soft cap is about 600 lines; a module past 800 is split, and a test enforces 800 for everything under `server/` except `server/index.js`. Why: every system from v0.1 to v0.4 went into one file of 2,641 lines, so no part could be read, reviewed or tested on its own, and every change to any system was a change to the same file, which is where parallel pull requests collided. Modules import only from those below them in this order, so nothing depends on load order: catalog, progression, mining, refining, asteroids, shape, corporation, world, store, messaging. New code imports the module it needs; `server/gameState.js` stays as a re-export so nothing that imports it had to change.
 
 ### Key Functions
 

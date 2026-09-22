@@ -41,7 +41,7 @@
       "guide": { "tab": "missions", "selector": ".tab-btn[data-tab=\"missions\"]" },
       "uses": {
         "routes": ["gameplay/accept-mission"],
-        "data": ["server/gameState.js MISSION_TEMPLATES ms-log-001"]
+        "data": ["server/game/corporation.js MISSION_TEMPLATES ms-log-001"]
       },
       "done": { "text": "It is on your books. Four hundred units of silicates, delivered to my office. There is no deadline on it; there is a record." }
     },
@@ -117,7 +117,7 @@
       },
       "progress": { "metric": "stationStock:earth-station-prime:Silicates", "target": 400 },
       "guide": { "tab": "missions", "selector": ".tab-btn[data-tab=\"missions\"]" },
-      "uses": { "routes": ["gameplay/complete-mission"], "data": ["server/gameState.js MISSION_TEMPLATES ms-log-001 quota"] },
+      "uses": { "routes": ["gameplay/complete-mission"], "data": ["server/game/corporation.js MISSION_TEMPLATES ms-log-001 quota"] },
       "pending": [
         { "source": "extractor.endsAt", "label": "Your Earth cycle ends", "payoff": "The last of the 400 units" }
       ],

@@ -105,7 +105,9 @@ describe("statistics are kept through one helper (Bug #424)", () => {
 
 describe("the lists match the code that keeps them (Bug #424)", () => {
   const index = fs.readFileSync(new URL("../../server/index.js", import.meta.url), "utf8");
-  const gameState = fs.readFileSync(new URL("../../server/gameState.js", import.meta.url), "utf8");
+  // AB#737: the game state is split by system into server/game/*.js behind server/gameState.js; read all of it.
+  const gameDir = new URL("../../server/game/", import.meta.url);
+  const gameState = [fs.readFileSync(new URL("../../server/gameState.js", import.meta.url), "utf8"), ...fs.readdirSync(gameDir).sort().map((f) => fs.readFileSync(new URL(f, gameDir), "utf8"))].join("\n");
 
   it("every building a construction route adds is a player building, and each one is added somewhere", () => {
     const built = new Set([...index.matchAll(/buildings\.push\(\{\s*name:\s*"([^"]+)"/g)].map((m) => m[1]));
