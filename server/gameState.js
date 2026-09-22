@@ -1949,6 +1949,23 @@ function pushSystemNotification(account, payload) {
   account.notifications = account.notifications.slice(0, 120);
 }
 
+// Bug #1097: payroll, settled by the mining ticker (server/index.js) for every account. Imported beside its use.
+import { settlePayroll, payrollNotice } from "./payroll.js";
+
+/**
+ * Charge an account's payroll up to `now`, and tell the player when wages go unpaid or are paid again. Only the
+ * ticker calls it, so reading an account, or a request that is refused, never changes it.
+ */
+export function settleAccountPayroll(accountId, now = Date.now()) {
+  const account = accountsStore.accounts?.[accountId];
+  if (!account?.state?.corp) return null;
+  const result = settlePayroll(account.state.corp, now);
+  const notice = payrollNotice(account.state.corp, result);
+  if (notice) pushSystemNotification(account, notice);
+  if (result.paid > 0 || notice) scheduleAccountsSave();
+  return result;
+}
+
 export function getAccountById(accountId) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) {

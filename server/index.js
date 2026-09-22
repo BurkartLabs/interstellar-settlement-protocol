@@ -469,9 +469,13 @@ import { startExtractorCycle } from "./gameState.js"; // AB#575
 import { applyMiningOperations, getStationInventory } from "./gameState.js";
 import { applyAsteroidExpeditions, BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_ASSET_VALUE, PROBE_FABRICATION_MS, BASE_MAX_PROBES, BASE_MAX_DEPLOYMENTS } from "./gameState.js";
 
+// Bug #1097: payroll is settled on this same 5-second tick, for every account, online or not.
+import { settleAccountPayroll } from "./gameState.js";
+
 function miningTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
+    settleAccountPayroll(accountId, now);
     mutateAccountState(accountId, (state) => {
       if (state && state.corp) {
         applyMiningOperations(state.corp, now);
