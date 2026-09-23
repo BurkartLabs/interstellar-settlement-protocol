@@ -92,4 +92,16 @@ describe("the standing bid drifts with the day's volume (ISP-87)", () => {
     expect(order.unitPrice).toBe(npcBidFor(order.basePrice, order.soldToday));
     expect(order.remainingQty).toBe(order.totalQtyPerDay - order.soldToday);
   });
+
+  it("the mining rate advisor is priced at the drifted bid, not the empty-market base (AB#1736)", async () => {
+    // A quarter of the daily quota is enough to move the bid well off the base without emptying it.
+    const seller = await sellerWith(Math.round(ECONOMY.npcBid.quotaPerDay / 4));
+    await sell(seller.accessToken, Math.round(ECONOMY.npcBid.quotaPerDay / 4));
+
+    const bootstrap = await request(app).get("/api/bootstrap");
+    const order = bootstrap.body.market.npcBuyOrders.find((o) => o.id === SILICATES);
+    // The drift moved the live bid below the base price the advisor used to be stuck on.
+    expect(order.unitPrice).toBeLessThan(BASE);
+    expect(bootstrap.body.economy.silicateUnitPrice).toBe(order.unitPrice);
+  });
 });
