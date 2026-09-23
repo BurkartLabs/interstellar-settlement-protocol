@@ -19,6 +19,7 @@ import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from ".
 import { ECONOMY, buildCostFor, operationCostPerHourFor, startupCostFor, npcBidFor, npcBidAfterRecovery } from "./economy.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "../public/scripts/ceoEffects.js";
 import { canReachSystem, leaseFilingRefusal, systemHops } from "../public/scripts/navigation.js";
+import { loginIpLimiter, loginAccountLimiter, registerLimiter, refreshLimiter } from "./rateLimiters.js";
 import {
   accountExists,
   addAccountNotification,
@@ -379,6 +380,9 @@ for (const s of STATIONS_DATA.stations) {
 const app = express();
 // AB#735: responses do not name the framework they come from.
 app.disable("x-powered-by");
+// ISP-64: trust exactly one hop — the Container Apps ingress in front of this server — so X-Forwarded-For's
+// rightmost entry is the real client address and nothing a client prepends ahead of it can move the count.
+app.set("trust proxy", 1);
 const server = http.createServer(app);
 // Bug #710: sockets were open to every origin. The game is served by this same server, so same-origin needs no CORS
 // at all; ISP_APP_ORIGIN (comma-separated) names any other origin allowed in. Unset means none: fail closed.
@@ -847,7 +851,7 @@ app.get("/api/buildings", (_req, res) => {
   }
 });
 
-app.post("/api/auth/register", async (req, res) => {
+app.post("/api/auth/register", registerLimiter, async (req, res) => {
   try {
     const { email, password, ceoName, corpName } = req.body ?? {};
     const result = await createAccount({ email, password, ceoName, corpName });
@@ -887,7 +891,7 @@ if (DEV_SURFACE) {
 // POST /api/dev/set-credits is gone (Bug #423): it set any corporation's balance for anyone, and a credit-granting
 // route has no safe form in a shared economy. Tests set credits through gameState's mutateAccountState.
 
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", loginIpLimiter, loginAccountLimiter, async (req, res) => {
   try {
     const { email, password } = req.body ?? {};
     const account = await authenticateAccount(email, password);
@@ -905,7 +909,7 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-app.post("/api/auth/refresh", (req, res) => {
+app.post("/api/auth/refresh", refreshLimiter, (req, res) => {
   const token = String(req.body?.refreshToken || "").trim();
   if (!token) {
     res.status(400).json({ error: "Refresh token is required." });
