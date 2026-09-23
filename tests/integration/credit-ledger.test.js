@@ -13,7 +13,7 @@ async function corporation() {
   mutateAccountState(account.id, (state) => {
     const c = state.corp;
     c.currentStationId = "earth-station-prime";
-    c.offices = [{ stationId: "earth-orbital", leasedAt: Date.now() }];
+    c.offices = [];
     c.employeeCount = 10;
     c.completedInsights = [];
     c.inventory = { "earth-station-prime": { Silicates: 200 }, "mars-orbital-dock": { Silicates: 50 } };
@@ -37,10 +37,13 @@ describe("the corporate ledger reconciles (AB#712)", () => {
     const opening = corp().finances.credits;
     const ok = async (res, what) => expect(res.status, `${what}: ${JSON.stringify(res.body).slice(0, 200)}`).toBe(200);
 
-    await ok(await api.post(`/api/accounts/${id}/gameplay/hire`).send({ count: 2 }), "hire");
+    // Bug #1124: hiring requires an active office at the docked station, so rent one before hiring.
     await ok(await api.post(`/api/accounts/${id}/gameplay/rent-office`).send({ stationId: "earth-station-prime", durationDays: 28 }), "rent");
-    // Leases are filed at the station orbiting the body in some builds (AB#1091), so file it docked at Mars.
+    await ok(await api.post(`/api/accounts/${id}/gameplay/hire`).send({ count: 2 }), "hire");
+    // Leases are filed at the station orbiting the body in some builds (AB#1091), so file it docked at Mars, with
+    // an office there too (Bug #1124: an office elsewhere no longer authorizes a lease filed here).
     mutateAccountState(id, (state) => { state.corp.currentStationId = "mars-orbital-dock"; });
+    await ok(await api.post(`/api/accounts/${id}/gameplay/rent-office`).send({ stationId: "mars-orbital-dock", durationDays: 28 }), "rent-mars");
     await ok(await api.post(`/api/accounts/${id}/gameplay/purchase-lease`).send({ body: "mars" }), "lease");
     mutateAccountState(id, (state) => { state.corp.currentStationId = "earth-station-prime"; });
     const leaseId = corp().miningLeases.at(-1).id;

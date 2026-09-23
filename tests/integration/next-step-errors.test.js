@@ -13,10 +13,16 @@ async function corporation(setup) {
 
 describe("refusals say what to do next (Bug #1058)", () => {
   it("hiring past the cap names the level that raises it", async () => {
-    const c = await corporation((corp) => { corp.level = 0; corp.employeeCap = 8; corp.employeeCount = 8; corp.finances.credits = 100000; });
+    // Bug #1124: hiring now requires an office, and any office plus 5+ employees completes level 1's own
+    // requirements -- so "at cap, still unpromoted" is set at level 2 instead, whose own cap (30) is level 2's
+    // unlocks; level 3 needs silicate sales and research, so this corp does not auto-advance past it.
+    const c = await corporation((corp) => {
+      corp.level = 2; corp.employeeCap = 30; corp.employeeCount = 30; corp.finances.credits = 100000;
+      corp.offices = [{ stationId: "earth-station-prime", rentedUntil: Date.now() + 86400000 }];
+    });
     const res = await c.api.post(`/api/accounts/${c.id}/gameplay/hire`).send({ count: 1 });
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Employee cap reached: 8/8 on payroll. Reaching corporation level 1 raises the cap to 20; the Overview lists what the next level needs.");
+    expect(res.body.error).toBe("Employee cap reached: 30/30 on payroll. Reaching corporation level 3 raises the cap to 45; the Overview lists what the next level needs.");
   });
 
   it("a mining cycle without the credits says how many, and how to need fewer", async () => {
@@ -43,7 +49,10 @@ describe("refusals say what to do next (Bug #1058)", () => {
   });
 
   it("a funding refusal says 'credits' once (Bug #1201)", async () => {
-    const c = await corporation((corp) => { corp.employeeCap = 50; corp.employeeCount = 0; corp.finances.credits = 1234; });
+    const c = await corporation((corp) => {
+      corp.employeeCap = 50; corp.employeeCount = 0; corp.finances.credits = 1234;
+      corp.offices = [{ stationId: "earth-station-prime", rentedUntil: Date.now() + 86400000 }];
+    });
     const res = await c.api.post(`/api/accounts/${c.id}/gameplay/hire`).send({ count: 10 });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("Hiring requires 20,000 credits. Current reserves: 1,234 credits.");

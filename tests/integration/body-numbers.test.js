@@ -15,7 +15,11 @@ async function corp(setup) {
 }
 
 describe("POST /gameplay/hire with a bad count (Bug #1014)", () => {
-  const hirer = () => corp((s) => { s.corp.employeeCap = 20; s.corp.employeeCount = 0; });
+  const hirer = () => corp((s) => {
+    s.corp.employeeCap = 20;
+    s.corp.employeeCount = 0;
+    s.corp.offices = [{ stationId: "earth-station-prime", rentedAt: Date.now(), rentedUntil: Date.now() + 7 * 86_400_000 }];
+  });
 
   for (const count of ["abc", 1.5, -3, "Infinity"]) {
     it(`keeps credits and headcount whole numbers for count ${JSON.stringify(count)}`, async () => {

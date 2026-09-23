@@ -13,7 +13,11 @@ afterEach(() => { vi.useRealTimers(); });
 async function corporation(credits) {
   const { app } = await getApp();
   const { account, accessToken } = await registerAccount(app);
-  mutateAccountState(account.id, (state) => { state.corp.finances.credits = credits; state.corp.employeeCap = 20; });
+  mutateAccountState(account.id, (state) => {
+    state.corp.finances.credits = credits;
+    state.corp.employeeCap = 20;
+    state.corp.offices = [{ stationId: "earth-station-prime", rentedUntil: Date.now() + 7 * DAY }];
+  });
   const api = authed(app, accessToken);
   return { id: account.id, api, read: async () => (await api.get(`/api/accounts/${account.id}`)).body };
 }
