@@ -17,7 +17,7 @@ const BEFORE_THE_MOVE = {
     extractorYardCost: 50000, extractorYardAssetValue: 36000, assemblyFacilityCost: 60000, assemblyFacilityAssetValue: 40000,
     refineryCost: 75000, refineryAssetValue: 55000, supplyForecastCostMultiplier: 0.94
   },
-  operations: { costPerThroughputUnit: 16, minCostPerHour: 600, startupShareOfHourlyCost: 0.35, minStartupCost: 500, throughputReferencePerHour: 500 },
+  operations: { costPerThroughputUnit: 16, minCostPerHour: 600, startupShareOfHourlyCost: 0.35, minStartupCost: 500, throughputReferencePerHour: 420 },
   probes: { buildCost: 8000, assetValue: 5000 },                            // gameState.js PROBE_BUILD_COST, PROBE_ASSET_VALUE
   expeditions: { launchCost: 3000 },                                        // gameState.js EXPEDITION_LAUNCH_COST
   exchange: { salesTaxPct: 8 },                                             // gameState.js BASE_EXCHANGE_SALES_TAX_PCT
@@ -42,11 +42,13 @@ describe("data/economy.json (AB#726)", () => {
     expect(buildCostFor(50000, false)).toBe(50000);
     expect(buildCostFor(50000, true)).toBe(47000);
     // ISP-86: the running cost curves — base x T x (1 + (T / T_ref)^2) — so that the throughput a player sets is
-    // a decision. Under the floor it is still the floor; at the top of the range it is a quarter dearer than the
-    // straight line it replaced (4,000 -> 5,000), which is what makes "always the maximum" a real cost.
+    // a decision. Under the floor it is still the floor; at the top of the range it is half again the straight
+    // line it replaced (4,000 -> 5,417), which is what makes the top of the range a real cost. T_ref was chosen
+    // against the probe, not by eye: at 500 a researched corporation kept 98% of the best profit at the top of
+    // the range, and at 350 the always-maximum bot went bankrupt inside a week.
     expect(operationCostPerHourFor(10)).toBe(600);
-    expect(operationCostPerHourFor(40)).toBe(644);
-    expect(operationCostPerHourFor(250)).toBe(5000);
+    expect(operationCostPerHourFor(40)).toBe(646);
+    expect(operationCostPerHourFor(250)).toBe(5417);
     expect(startupCostFor(600)).toBe(500);
     expect(startupCostFor(4000)).toBe(1400);
   });

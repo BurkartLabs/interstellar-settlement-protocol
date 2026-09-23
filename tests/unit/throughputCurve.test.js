@@ -57,11 +57,17 @@ describe("profit per hour has a maximum inside the range (ISP-86)", () => {
     expect(dearer).toBeGreaterThan(cheaper);
   });
 
-  it("makes the top of the range a worse deal than the best, but still a deal", () => {
+  it("makes the top of the range a real mistake, and says so before the cycle starts", () => {
     const best = bestThroughputFor(SILICATES);
     const top = miningProfitPerHourFor(MAX, SILICATES);
-    expect(top.profitPerHour).toBeGreaterThan(0); // never a trap: the maximum still earns
-    expect(top.profitPerHour).toBeLessThan(best.profitPerHour * 0.95); // but it is a real cost to ignore the curve
+    // It is a worse deal than the best rate — that is the decision the curve creates.
+    expect(top.profitPerHour).toBeLessThan(best.profitPerHour * 0.95);
+    // It still earns, with or without the extraction technologies: the curve is a cost, not a cliff. A steeper
+    // one (T_ref 350) made the top of the range lose money for a corporation with no research, and the probe's
+    // always-maximum bot went bankrupt inside a week — a wrong answer should cost, not end, the game.
+    expect(top.profitPerHour).toBeGreaterThan(0);
+    const researched = miningProfitPerHourFor(MAX, { ...SILICATES, efficiency: 1.1 * 1.06 });
+    expect(researched.profitPerHour).toBeGreaterThan(top.profitPerHour);
   });
 });
 

@@ -28,7 +28,7 @@ describe("refusals say what to do next (Bug #1058)", () => {
     });
     const res = await c.api.post(`/api/accounts/${c.id}/gameplay/lease/lease-e/start-mining`).send({ amount: 250, hours: 1, extractorId: "ext-basic-1" });
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Starting this mining cycle requires 1,750 credits. Current reserves: 300 credits. A throughput of 86 t/h or less starts for 500 credits. Selling stock to the standing buy orders on the Galactic Exchange raises credits.");
+    expect(res.body.error).toBe("Starting this mining cycle requires 1,896 credits. Current reserves: 300 credits. A throughput of 85 t/h or less starts for 500 credits. Selling stock to the standing buy orders on the Galactic Exchange raises credits.");
   });
 
   it("a short contract delivery names the item, the amount, the station and where the rest is", async () => {

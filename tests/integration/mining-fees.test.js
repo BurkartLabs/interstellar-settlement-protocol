@@ -47,8 +47,8 @@ describe("mining running costs do not depend on how often the account is read (B
     }
     await quiet.read();
 
-    // ISP-86: the running cost curves, so 40 t/h costs 644 an hour rather than 640. Ten minutes of it is 107.33:
-    // 107 paid, the fraction carried. What this test is about is that the two corporations pay the same.
+    // ISP-86: the running cost curves, so 40 t/h costs 646 an hour rather than 640. Ten minutes of it is
+    // 107.67: what this test is about is that the two corporations pay the same, however often they are read.
     const feesPolled = polled.extractor().totalSpent - startupPolled;
     const feesQuiet = quiet.extractor().totalSpent - startupQuiet;
     expect({ polled: feesPolled, quiet: feesQuiet }).toEqual({ polled: 107, quiet: 107 });
