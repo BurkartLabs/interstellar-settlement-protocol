@@ -25,7 +25,13 @@ export function employeeCapMessage(corp, levels) {
 
 /** The throughput at or below which a mining cycle starts for the minimum cost: start-mining's formula, from data/economy.json (AB#726). */
 export const MINING_MIN_STARTUP = ECONOMY.operations.minStartupCost;
-export const MINING_CHEAPEST_THROUGHPUT = Math.floor(MINING_MIN_STARTUP / (ECONOMY.operations.costPerThroughputUnit * ECONOMY.operations.startupShareOfHourlyCost));
+// ISP-86: the running cost curves, so the cheapest start is found from the curve rather than from a straight line.
+export const MINING_CHEAPEST_THROUGHPUT = (() => {
+  for (let t = 10; t <= 250; t += 1) {
+    if (startupCostFor(operationCostPerHourFor(t)) > MINING_MIN_STARTUP) return Math.max(10, t - 1);
+  }
+  return 250;
+})();
 
 /** What to add to "Starting this mining cycle requires N credits." */
 export function miningCreditsAdvice(startupCost) {
@@ -41,6 +47,6 @@ export { missionShortMessage } from "../public/scripts/contractAdvice.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ECONOMY } from "./economy.js";
+import { ECONOMY, operationCostPerHourFor, startupCostFor } from "./economy.js";
 /** data/milestones.json's levels, read here so the routes need no other import. */
 export const LEVELS = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "milestones.json"), "utf8")).levels;

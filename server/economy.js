@@ -59,9 +59,49 @@ export function buildCostFor(baseCost, hasSupplyForecast) {
   return hasSupplyForecast ? Math.round(baseCost * ECONOMY.buildings.supplyForecastCostMultiplier) : baseCost;
 }
 
-/** A mining operation's hourly running cost for a throughput, and what it costs to start. */
+/**
+ * A mining operation's hourly running cost for a throughput (ISP-86, AB#775).
+ *
+ * The cost rises faster than the rate: `base x T x (1 + (T / T_ref)^2)`. When it was linear, revenue and cost were
+ * both straight lines through the origin and the best throughput was always the highest one the rules allowed, so
+ * the core verb of the game held no decision at all (Depth Critique #426, T-018). Curved, the profit per hour has
+ * a maximum inside the range, and where that maximum sits depends on the price the ore fetches and on the
+ * research the corporation owns — which is the decision.
+ *
+ * It is a tax on rate and never on access: every throughput the rules allow stays startable, and the floor
+ * (`minCostPerHour`) is what makes a very low rate a poor deal rather than a free one.
+ */
 export function operationCostPerHourFor(throughputPerHour) {
-  return Math.max(ECONOMY.operations.minCostPerHour, Math.round(throughputPerHour * ECONOMY.operations.costPerThroughputUnit));
+  const { minCostPerHour, costPerThroughputUnit, throughputReferencePerHour } = ECONOMY.operations;
+  const rate = Math.max(0, Number(throughputPerHour) || 0);
+  const curved = rate * costPerThroughputUnit * (1 + (rate / throughputReferencePerHour) ** 2);
+  return Math.max(minCostPerHour, Math.round(curved));
+}
+
+/**
+ * What an hour of mining at this throughput is worth, before and after its running cost: the number the extractor
+ * panel shows so the curve is visible rather than hidden. `unitPrice` is what the ore sells for and `taxPct` the
+ * sales tax the corporation pays on it; `efficiency` is the multiplier its research has earned.
+ */
+export function miningProfitPerHourFor(throughputPerHour, { unitPrice, taxPct, efficiency = 1 }) {
+  const rate = Math.max(0, Number(throughputPerHour) || 0);
+  const revenue = rate * efficiency * Number(unitPrice || 0) * (1 - Number(taxPct || 0) / 100);
+  const cost = operationCostPerHourFor(rate);
+  return { revenuePerHour: Math.round(revenue), costPerHour: cost, profitPerHour: Math.round(revenue - cost) };
+}
+
+/**
+ * The throughput that pays best for a price and a research multiplier, to the nearest whole unit inside the
+ * range the rules allow. Walked rather than solved: the floor makes the curve piecewise, and a walk of 241 points
+ * is cheaper than being clever about it.
+ */
+export function bestThroughputFor({ unitPrice, taxPct, efficiency = 1, min = 10, max = 250 }) {
+  let best = { throughput: min, profitPerHour: -Infinity };
+  for (let t = min; t <= max; t += 1) {
+    const { profitPerHour } = miningProfitPerHourFor(t, { unitPrice, taxPct, efficiency });
+    if (profitPerHour > best.profitPerHour) best = { throughput: t, profitPerHour };
+  }
+  return best;
 }
 
 export function startupCostFor(operationCostPerHour) {

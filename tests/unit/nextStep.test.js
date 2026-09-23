@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { nextLevelRaising, employeeCapMessage, miningCreditsAdvice, missionShortMessage, LEVELS, MINING_CHEAPEST_THROUGHPUT } from "../../server/nextStep.js";
+import { operationCostPerHourFor, startupCostFor } from "../../server/economy.js";
 
 // Bug #1058: a refusal says what to do next, and names only what the game can do.
 const names = { "earth-station-prime": "Earth Station Prime", "mars-orbital-dock": "Mars Orbital Dock", "luna-gateway": "Luna Gateway" };
@@ -20,7 +21,9 @@ describe("the employee cap (Bug #1058)", () => {
 
 describe("a mining cycle's start-up cost (Bug #1058)", () => {
   it("the cheapest throughput matches start-mining's formula", () => {
-    const startup = (t) => Math.max(500, Math.round(Math.max(600, Math.round(t * 16)) * 0.35));
+    // ISP-86: the running cost is the curve in server/economy.js, so this asks that function rather than
+     // keeping a second copy of the rule that can drift from it.
+    const startup = (t) => startupCostFor(operationCostPerHourFor(t));
     expect(startup(MINING_CHEAPEST_THROUGHPUT)).toBe(500);
     expect(startup(MINING_CHEAPEST_THROUGHPUT + 1)).toBeGreaterThan(500);
   });
