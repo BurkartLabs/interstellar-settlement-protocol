@@ -471,7 +471,7 @@ function miningTick() {
           credits: state.corp.finances?.credits ?? 0
         });
       }
-    });
+    }, { sanitize: false, settleMining: false });
   }
 }
 
@@ -484,7 +484,7 @@ function refineryTick() {
       if (state && state.corp) {
         applyRefineryOperations(state.corp, now);
       }
-    });
+    }, { sanitize: false, settleMining: false });
   }
 }
 
@@ -509,7 +509,7 @@ function asteroidExpeditionTick() {
         completedExpeditions = (state.corp.asteroidMining?.completedExpeditions || [])
           .filter(e => e.completedAt && e.completedAt >= now - 15000);
       }
-    });
+    }, { sanitize: false, settleMining: false });
 
     for (const exp of completedExpeditions) {
       const yieldSummary = Object.entries(exp.yields || {}).map(([r, q]) => `${q} ${r}`).join(", ") || "no resources";
@@ -581,7 +581,7 @@ function fabricationTick() {
       }
       am.fabricationQueue = am.fabricationQueue.filter(j => now < j.completesAt);
       completed = true;
-    });
+    }, { sanitize: false, settleMining: false });
 
     if (completed) {
       const notification = addAccountNotification(accountId, {
@@ -627,7 +627,7 @@ function travelTick() {
       }
       state.corp.travel = null;
       arrived = true;
-    });
+    }, { sanitize: false, settleMining: false });
 
     if (arrived && travelResult) {
       let notification;
@@ -687,7 +687,7 @@ function processRndCompletions() {
       }
       // By position, not id: two items queued in the same millisecond share an id.
       state.queues.corporateRnD = queue.slice(finished);
-    });
+    }, { sanitize: false, settleMining: false });
 
     if (completedItems.length === 0) continue;
 
@@ -740,7 +740,7 @@ function processCeoInsightCompletions() {
       state.queues.ceoInsight = queue.filter(
         (item) => !completedItems.some((c) => c.id === item.id)
       );
-    });
+    }, { sanitize: false, settleMining: false });
 
     if (completedItems.length === 0) continue;
 
@@ -783,7 +783,7 @@ function financialSnapshotTick() {
       const snap = buildSnapshot(state.corp, now, getState().market);
       pushSnapshot(state.corp, snap);
       finances = state.corp.finances;
-    });
+    }, { sanitize: false, settleMining: false });
     if (finances) {
       // Reuse the existing finance:updated channel so clients refresh their snapshot-driven dashboard. Only this
       // account's sockets get it, with the account id so the client can check it (Bug #1021).

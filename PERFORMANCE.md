@@ -14,7 +14,7 @@ ticker or to what an account holds.
 - Each ticker uses **under 50% of its own interval** at N = 1,000.
 - A full state write takes **under 1 second**.
 
-## The last run (2026-09-22)
+## The last run (2026-09-23, after AB#1448)
 
 ```text
 Machine: Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz (12 logical cores), 32 GB RAM, Windows_NT 10.0.19045, Node 26.7.0.
@@ -22,34 +22,42 @@ Each ticker called 5 times in-process; median (slowest) in milliseconds. No sock
 
 ticker                        | every |              N = 10 |             N = 100 |           N = 1,000
 -------------------------------------------------------------------------------------------------------
-miningTick                    |    5s |         3.76 (5.94) |         32.1 (36.9) |           294 (363)
-refineryTick                  |   10s |         3.25 (3.79) |         29.8 (35.6) |           292 (326)
-asteroidExpeditionTick        |   10s |         2.88 (3.75) |         32.9 (39.4) |           286 (347)
-fabricationTick               |    5s |         3.18 (4.90) |         29.7 (42.2) |           291 (329)
-travelTick                    |    5s |         3.60 (4.77) |         25.8 (39.2) |           287 (303)
-processRndCompletions         |    5s |         2.73 (3.97) |         28.7 (30.1) |           285 (313)
-processCeoInsightCompletions  |    5s |         2.75 (4.08) |         27.3 (31.7) |           267 (280)
-checkAndResetNpcBuyOrders     |   60s |         0.08 (0.18) |         0.07 (0.19) |         0.10 (0.23)
-financialSnapshotTick         |   30s |         4.19 (4.91) |         31.1 (37.6) |           336 (386)
+miningTick                    |    5s |         0.56 (3.05) |         4.09 (8.63) |         24.4 (47.6)
+refineryTick                  |   10s |         0.21 (1.38) |         2.22 (2.78) |         15.6 (21.8)
+asteroidExpeditionTick        |   10s |         0.18 (0.59) |         1.59 (3.50) |         17.2 (21.3)
+fabricationTick               |    5s |         0.21 (0.29) |         1.69 (2.59) |         16.9 (22.4)
+travelTick                    |    5s |         0.21 (0.36) |         1.10 (1.63) |         13.6 (22.2)
+processRndCompletions         |    5s |         0.17 (1.42) |         2.10 (4.32) |         14.6 (34.2)
+processCeoInsightCompletions  |    5s |         0.21 (0.82) |         1.32 (2.91) |         21.7 (39.6)
+checkAndResetNpcBuyOrders     |   60s |         0.07 (0.18) |         0.09 (0.19) |         0.08 (0.21)
+financialSnapshotTick         |   30s |         0.84 (1.87) |         5.87 (6.55) |         60.5 (91.6)
 -------------------------------------------------------------------------------------------------------
-state write (accounts + world) |       |             6.33 ms |             35.8 ms |              403 ms
-accounts-snapshot.json        |       |             0.62 MB |             5.96 MB |            59.40 MB
+state write (accounts + world) |       |             6.73 ms |             22.7 ms |              230 ms
+accounts-snapshot.json        |       |             0.32 MB |             3.07 MB |            30.59 MB
 state.json                    |       |             0.02 MB |             0.02 MB |             0.02 MB
 
 Budget at N = 1,000: each ticker under 50% of its interval; a state write under 1,000 ms.
   Everything is within budget.
-All tickers together keep the event loop busy 35% of the time at N = 1,000, before any request is served.
+All tickers together keep the event loop busy 2% of the time at N = 1,000, before any request is served.
 ```
 
-Every ticker is within its own budget. The weak point is the total, not any one ticker:
+Every ticker is within its own budget, and the total dropped from 35% to 2% of the event loop at N = 1,000 — a
+17.5x reduction, well past the 2x this was filed for.
 
-- **Load:** at 1,000 corporations the tickers together hold the event loop about a third of the time, before a single
-  request is served.
-- **Cost per corporation:** almost all of it is the same per-corporation work, about 0.29 ms, repeated by every
-  ticker. Each ticker calls `mutateAccountState` on every account, and that runs mining twice, the contract refresh and
-  the level check, then deep-clones the whole account to return it; the tickers throw the clone away.
-- **Growth:** it scales linearly. At about 1,400 corporations the tickers would hold the event loop half the time, and at
-  about 2,900 all of it. Filed as **AB#1448**: tickers that do their work without the clone.
+- **Before (2026-09-22, same machine):** almost all of the 0.29 ms/account/ticker was the same repeated work: each
+  ticker called `mutateAccountState` on every account, which ran mining settlement twice, the contract refresh and
+  the level check, then deep-cloned the whole account to return it — a clone none of the nine tickers used.
+  `miningTick` additionally called mining settlement a third time itself, so its own account update ran it three
+  times for one 5-second interval.
+- **Fix (AB#1448):** `mutateAccountState` takes `{ sanitize, settleMining }`, both defaulting to `true` so every
+  route handler (which does use the clone, and does need mining settled around its own mutation) is unchanged. The
+  nine tickers now call it with both `false`. Mining still settles exactly once per elapsed interval — inside
+  `miningTick`'s own mutator, as before — and every other ticker no longer touches mining at all; the next real
+  account read (any route, or the next `miningTick`) settles what accumulated meanwhile, the same guarantee
+  `getAccountById` already gave every API response. `tests/integration/ticker-mining-settle.test.js` asserts both:
+  a non-mining ticker leaves mining unsettled, and `miningTick` settles it exactly once.
+- **Growth:** before the fix this scaled to 50% of the event loop at about 1,400 corporations and 100% at about
+  2,900; the reduction moves that ceiling out by roughly the same 17.5x.
 
 ## Persistence and what a crash loses
 

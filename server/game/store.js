@@ -655,20 +655,25 @@ export function resetDummyAccountProgress() {
   return sanitizeAccount(dummy);
 }
 
-export function mutateAccountState(accountId, mutator) {
+// AB#1448: `sanitize` and `settleMining` default to the behaviour every route handler relies on. The nine tickers
+// pass both false: none of them use the returned clone (sanitizeAccount deep-clones the whole account state, the
+// single largest cost per call), and mining only needs settling once per elapsed interval, which miningTick already
+// does itself inside its own mutator — the before/after calls here would otherwise re-run it (on the same `now`, so
+// idempotently, but not for free) on every ticker, mining or not.
+export function mutateAccountState(accountId, mutator, { sanitize = true, settleMining = true } = {}) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) {
     return null;
   }
 
   closeFinancialDays(account);
-  applyMiningOperations(account.state.corp);
+  if (settleMining) applyMiningOperations(account.state.corp);
   mutator(account.state);
-  applyMiningOperations(account.state.corp);
+  if (settleMining) applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
   ensureCorpMiningModel(account.state.corp);
   evaluateAccountLevel(accountId, account); // Bug #1260
   scheduleAccountsSave();
-  return sanitizeAccount(account);
+  return sanitize ? sanitizeAccount(account) : null;
 }
 
