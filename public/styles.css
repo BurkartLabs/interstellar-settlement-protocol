@@ -5551,6 +5551,12 @@ body.walkthrough-open {
   margin-bottom: 0.25rem;
 }
 
+.npc-order-drift {
+  font-size: 0.75rem;
+  color: var(--warn, #d8a657);
+  margin-top: 0.15rem;
+}
+
 .npc-order-of-total {
   font-weight: 400;
   color: var(--muted);

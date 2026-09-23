@@ -33,6 +33,12 @@
   "exchange": {
     "salesTaxPct": 8
   },
+  "npcBid": {
+    "quotaPerDay": 7000,
+    "driftAtFullQuotaPct": 50,
+    "recoveryPerDayPct": 60,
+    "floorPct": 55
+  },
   "logistics": {
     "sameSystemFeePerUnit": 2,
     "perJumpFeePerUnit": 3,

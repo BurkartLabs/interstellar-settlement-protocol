@@ -26,8 +26,15 @@ describe("the suggested listing price (AB#1166)", () => {
     expect(suggestedListingPrice("Silicates", market, NOW)).toBe(30);
   });
 
-  it("is never below the standing bid, however low the last trade", () => {
-    expect(suggestedListingPrice("Silicates", { npcBuyOrders: [silicatesBid], priceHistory: { Silicates: [bucket(0, 1)] } }, NOW)).toBe(24);
+  it("can suggest below the standing bid, because a glutted market trades below it (ISP-87)", () => {
+    // The bid drifts down as the day's volume is sold into it and recovers overnight, so what the market last paid
+    // can sit under it. A seller who wants to move stock today has to be able to undercut the bid; the bid is
+    // still what they are guaranteed if they do not.
+    expect(suggestedListingPrice("Silicates", { npcBuyOrders: [silicatesBid], priceHistory: { Silicates: [bucket(0, 14)] } }, NOW)).toBe(14);
+  });
+
+  it("suggests the standing bid when nobody has traded, because that is the only price there is", () => {
+    expect(suggestedListingPrice("Silicates", { npcBuyOrders: [silicatesBid], priceHistory: { Silicates: [] } }, NOW)).toBe(24);
   });
 
   it("ignores trades older than the window", () => {

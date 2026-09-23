@@ -54,6 +54,40 @@ export function loadEconomy(file = ECONOMY_FILE) {
 /** The economy, frozen: nothing at run time can change a price by accident. */
 export const ECONOMY = loadEconomy();
 
+// ─── The standing bid (ISP-87, AB#777) ───────────────────────────────────────
+//
+// A standing buy order used to be a fixed price with a million units a day behind it: no corporation ever reached
+// the quota, so the bid absorbed everything anyone could mine and there was never a reason to trade with another
+// player (Depth Critique #426 epic 3, and the BRIEF's second measure). It is a floor now, not a ceiling:
+//
+//   - the quota is a day's work for a working extractor, not a day's work for a planet;
+//   - the more is sold into it today, the lower it goes, down to a stated floor and never below;
+//   - overnight it recovers most of the way back towards the base price.
+//
+// A seller dumping volume therefore moves the price against themselves and cannot stall the market for anyone
+// else: the floor is what a new corporation is always guaranteed.
+
+/** The bid for an item after `soldToday` units have gone into today's quota. Never below the floor. */
+export function npcBidFor(basePrice, soldToday, bid = ECONOMY.npcBid) {
+  const base = Math.max(0, Number(basePrice) || 0);
+  const quota = Math.max(1, Number(bid?.quotaPerDay) || 1);
+  const drift = Math.max(0, Number(bid?.driftAtFullQuotaPct) || 0) / 100;
+  const floor = base * (Math.max(0, Number(bid?.floorPct) || 0) / 100);
+  const filled = Math.min(1, Math.max(0, Number(soldToday) || 0) / quota);
+  return Math.max(Math.round(floor), Math.round(base * (1 - drift * filled)));
+}
+
+/**
+ * Where a bid sits after a night: most of the way back to the base price. The recovery is of the gap, so a bid
+ * that fell hard comes back hard, and one that barely moved barely moves.
+ */
+export function npcBidAfterRecovery(basePrice, currentBid, bid = ECONOMY.npcBid) {
+  const base = Math.max(0, Number(basePrice) || 0);
+  const now = Math.max(0, Number(currentBid) || 0);
+  const recovery = Math.min(1, Math.max(0, Number(bid?.recoveryPerDayPct) || 0) / 100);
+  return Math.round(now + (base - now) * recovery);
+}
+
 /** What an extractor yard or refinery costs to build, with the Supply Forecast discount when it is researched. */
 export function buildCostFor(baseCost, hasSupplyForecast) {
   return hasSupplyForecast ? Math.round(baseCost * ECONOMY.buildings.supplyForecastCostMultiplier) : baseCost;

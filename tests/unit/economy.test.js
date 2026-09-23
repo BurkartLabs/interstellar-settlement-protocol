@@ -23,6 +23,7 @@ const BEFORE_THE_MOVE = {
   exchange: { salesTaxPct: 8 },                                             // gameState.js BASE_EXCHANGE_SALES_TAX_PCT
   // AB#718 replaced the flat 2 a unit with a fee by distance; 2 a unit is still the in-system rate.
   logistics: { sameSystemFeePerUnit: 2, perJumpFeePerUnit: 3, sameSystemTransitMinutes: 30, perJumpTransitMinutes: 120 },
+  npcBid: { quotaPerDay: 7000, driftAtFullQuotaPct: 50, recoveryPerDayPct: 60, floorPct: 55 }, // ISP-87
   npcBuyers: [                                                              // gameState.js NPC_BUY_SEED
     { item: "Silicates", buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
     { item: "Helium-3", buyer: "Lunar Helium Consortium", unitPrice: 92, dailyQty: 250000 },

@@ -33,6 +33,10 @@ question in the retune (AB#728).
 | `probes.assetValue` | 5,000 | 63% of cost on the balance sheet. No reason is recorded. |
 | `expeditions.launchCost` | 3,000 | The price of a look at a belt's composition. Not on the first-extractor path. |
 | `exchange.salesTaxPct` | 8 | The exchange's cut of every sale. At 24 a tonne it is 1.92, almost a third of the 6.08 margin. Each point off it is 0.24 a tonne, about 60 an hour at 250 t/h; +10% output from research is worth about 550. |
+| `npcBid.quotaPerDay` | 7000 | How much a standing buy order takes in a day before it stops buying. A yard running at its best rate produces about 3,500 units a day, so this is two yards' output: a corporation that runs three fills it and sees the price move. It was 40,000 until the probe showed the drift almost never bit at that size (ISP-87). |
+| `npcBid.driftAtFullQuotaPct` | 50 | How far the bid falls when the day's quota has been sold into it: half. Selling into the bid moves the price against the seller, which is what makes another player worth trading with. |
+| `npcBid.recoveryPerDayPct` | 60 | How much of the gap back to the base price the bid recovers overnight. A market glutted yesterday opens dearer than it closed and cheaper than if nobody had sold. |
+| `npcBid.floorPct` | 55 | The lowest the bid ever goes, as a share of its base price. A corporation dumping volume cannot strand a new player: this is the price always guaranteed. |
 | `logistics.sameSystemFeePerUnit` | 2 | Moving stock between two stations in one system, per unit: the old flat fee, kept so nothing moved within Sol costs more (AB#718). 9% of the net Silicates price. The cheapest path avoids it by selling where it mines. |
 | `logistics.perJumpFeePerUnit` | 3 | Added per unit for each jump between systems (AB#693, the Board: "distance based time and fees"). A starting point set in AB#718, not derived: no reason beyond that is recorded. |
 | `logistics.sameSystemTransitMinutes` | 30 | How long a shipment within one system takes. Set in AB#718 as a starting point; not yet used, because transfers still arrive at once until timed transit is built. |
@@ -119,6 +123,36 @@ Below about 37 t/h the 600 floor means the corporation pays for throughput it do
 loses money. At the top of the range the curve costs 5,417 an hour and pays 103: **17% of what the best setting
 pays**. Ignoring the curve is a real cost and never a wall - every throughput from 10 to 250 stays startable, which
 is the rule the tests hold (`tests/unit/throughputCurve.test.js`).
+
+## The standing bid is a floor, not a ceiling (ISP-87)
+
+The silicate bid used to be 24 credits with a million units a day behind it. No corporation reaches a million
+units, so the bid absorbed everything anyone could mine: the rational play was never to trade with another player,
+and the BRIEF's second measure - orders filled by a player rather than an NPC - could not move.
+
+The bid now drifts with the day's volume (`npcBidFor`, server/economy.js), and is computed on the server from what
+the order has already taken; nothing in a request can set it:
+
+**bid = max(floor, base x (1 - 0.50 x sold today / 7,000))**, floor = 55% of base.
+
+For silicates at 24 credits:
+
+| sold into it today | bid |
+| --- | --- |
+| 0 | 24 |
+| 1,750 | 21 |
+| 3,500 | 18 |
+| 5,250 | 15 |
+| 7,000 | 13 |
+| beyond the quota | 13 (the floor) |
+
+Overnight it recovers 60% of the gap back to base: a bid driven to the floor opens the next day at 17, then 20,
+then 22. A corporation that dumps volume therefore pays for it twice - in the price it gets and in the price it
+gets tomorrow - and a corporation that did not sell finds the market where it left it.
+
+What this is for: at 40,000 units a day and a bid that falls as you sell, a second corporation's listing becomes
+worth buying, and a seller with more than a day's quota has a reason to list rather than dump. The suggested price
+on Create Listing no longer floors itself at the NPC bid, so a glutted market can be listed below it.
 
 ## Faucets and sinks
 
