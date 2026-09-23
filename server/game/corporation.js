@@ -72,8 +72,7 @@ export function createStarterCorporationState(baseState, ceoName, corpName) {
     unlocks: {
       marketSectors: [],
       maxUpgradeTier: 1,
-      maxFleetSize: 0,
-      maxBasicExtractorYards: 1
+      maxFleetSize: 0
     },
     investments: [],
     unlockedTech: [],

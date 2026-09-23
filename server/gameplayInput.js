@@ -58,7 +58,6 @@ export const GAMEPLAY_INPUT = {
       extractorId: id("ownExtractors", "one of your extractors")
     }
   },
-  "POST /build-extractor": NOTHING,
   "POST /build-assembly-facility": NOTHING,
   "POST /build-mining-probe": NOTHING,
   "POST /build-refinery": NOTHING,
@@ -77,14 +76,6 @@ export const GAMEPLAY_INPUT = {
   "POST /accept-mission": ACCEPT_MISSION,
   "POST /abandon-mission": OWN_MISSION,
   "POST /complete-mission": OWN_MISSION,
-  "POST /mine": {
-    body: {
-      amount: int(10, 250, "a throughput from 10 to 250 tons per hour"),
-      hours: int(1, 72, "a cycle length from 1 to 72 hours"),
-      // The older mining panel sends "" when no extractor is picked; the route then uses the first idle one.
-      extractorId: id("ownExtractors", "one of your extractors", { optional: true })
-    }
-  },
   "POST /queue-rnd": { body: { techId: id("techs", "a research project") } },
   "POST /queue-ceo": { body: { programId: id("programs", "a CEO Insight program") } }
 };

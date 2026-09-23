@@ -22,7 +22,6 @@ const BASELINE = {
   "POST /travel": { body: { toStationId: "mars-orbital-dock" } },
   "POST /lease/:leaseId/build-extractor": { params: { leaseId: "lease-731" } },
   "POST /lease/:leaseId/start-mining": { params: { leaseId: "lease-731" }, body: { amount: 40, hours: 24, extractorId: "ext-731" } },
-  "POST /build-extractor": {},
   "POST /build-assembly-facility": {},
   "POST /build-mining-probe": {},
   "POST /build-refinery": {},
@@ -33,7 +32,6 @@ const BASELINE = {
   "POST /accept-mission": { body: { missionId: "ms-log-001" } },
   "POST /abandon-mission": { body: { missionId: "ms-log-002" } },
   "POST /complete-mission": { body: { missionId: "ms-log-001" } },
-  "POST /mine": { body: { amount: 40, hours: 24, extractorId: "ext-731" } },
   "POST /queue-rnd": { body: { techId: "tt-basic-extraction" } },
   "POST /queue-ceo": { body: { programId: "ceo-negotiation-fundamentals" } }
 };
@@ -122,6 +120,11 @@ describe("every gameplay route has input checks (AB#731)", async () => {
 
   it("has no route that grants research outside the R&D queue", () => {
     expect(registered).not.toContain("POST /complete-rnd");
+  });
+
+  it("has no unleased route that builds or runs an extractor, skipping office and lease checks (AB#1121)", () => {
+    expect(registered).not.toContain("POST /build-extractor");
+    expect(registered).not.toContain("POST /mine");
   });
 
   it("has a baseline for every route in this test", () => {

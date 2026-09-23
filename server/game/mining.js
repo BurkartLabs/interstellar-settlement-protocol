@@ -120,13 +120,6 @@ export function ensureCorpMiningModel(corp) {
     lastCompletedAt: null
   };
 
-  if (!corp.unlocks || typeof corp.unlocks !== "object") {
-    corp.unlocks = {};
-  }
-  if (typeof corp.unlocks.maxBasicExtractorYards !== "number") {
-    corp.unlocks.maxBasicExtractorYards = 1;
-  }
-
   // Backfill leaseId/body for legacy extractors built before location was
   // tracked on the row itself.
   // Strategy:

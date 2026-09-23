@@ -22,7 +22,7 @@ function starterCorp() {
     stats: {},
     milestonesCompleted: [],
     mining: { silicateExtractors: [] },
-    unlocks: { marketSectors: [], maxUpgradeTier: 1, maxFleetSize: 0, maxBasicExtractorYards: 1 }
+    unlocks: { marketSectors: [], maxUpgradeTier: 1, maxFleetSize: 0 }
   };
 }
 

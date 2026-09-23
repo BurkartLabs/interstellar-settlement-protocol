@@ -3,7 +3,9 @@ import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState, getAccountById } from "../../server/gameState.js";
 
-// AB#575: both routes that start a mining cycle must zero the per-cycle count, not only the helper they call.
+// AB#575: the route that starts a mining cycle must zero the per-cycle count, not only the helper it calls.
+// (The second route this guarded, POST /gameplay/mine outside a lease, was deleted for AB#1121: it skipped the
+// office and lease checks the lease-scoped route enforces.)
 async function corpAfterOneCycle() {
   const { app } = await getApp();
   const { account, accessToken } = await registerAccount(app);
@@ -29,13 +31,6 @@ describe("starting a second mining cycle (AB#575)", () => {
   it("POST /gameplay/lease/:leaseId/start-mining zeroes minedThisCycle and keeps totalMined", async () => {
     const c = await corpAfterOneCycle();
     const res = await c.api.post(`/api/accounts/${c.id}/gameplay/lease/${c.leaseId}/start-mining`).send({ hours: 1, amount: 250, extractorId: "ext-basic-1" });
-    expect(res.status).toBe(200);
-    expect(c.extractor()).toMatchObject({ active: true, minedThisCycle: 0, totalMined: 600 });
-  });
-
-  it("POST /gameplay/mine zeroes minedThisCycle and keeps totalMined", async () => {
-    const c = await corpAfterOneCycle();
-    const res = await c.api.post(`/api/accounts/${c.id}/gameplay/mine`).send({ amount: 250, hours: 1, extractorId: "ext-basic-1" });
     expect(res.status).toBe(200);
     expect(c.extractor()).toMatchObject({ active: true, minedThisCycle: 0, totalMined: 600 });
   });

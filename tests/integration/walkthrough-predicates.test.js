@@ -44,7 +44,8 @@ describe("walkthrough completion predicates, through the real routes (AB#581)", 
 
     expect(done("cycle", state())).toBe(false);
     const extractorId = state().corp.mining.silicateExtractors[0].id;
-    expect((await play("mine", { amount: 40, hours: 24, extractorId })).status).toBe(200);
+    // The live mining form posts to the lease-scoped route (AB#1121 deleted the unleased POST /gameplay/mine it used to be here).
+    expect((await play(`lease/${leaseId}/start-mining`, { amount: 40, hours: 24, extractorId })).status).toBe(200);
     expect(done("cycle", state())).toBe(true);
 
     // The mining tickers are off in tests, so the tons the cycle would have produced are put at the station directly.

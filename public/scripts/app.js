@@ -830,8 +830,7 @@ function createNewPlayerState(baseState, ceoName, corpName) {
     unlocks: {
       marketSectors: [],
       maxUpgradeTier: 1,
-      maxFleetSize: 0,
-      maxBasicExtractorYards: 1
+      maxFleetSize: 0
     },
     investments: [],
     unlockedTech: []
@@ -2948,7 +2947,6 @@ function startMiningUiTicker() {
       return;
     }
     renderMiningCyclePanel(appState.data);
-    renderActionHints(appState.data);
     renderQueue("rnd-queue", appState.data.queues?.corporateRnD || [], "Permanent corporate unlock track");
     renderQueue("ceo-queue", appState.data.queues?.ceoInsight || [], "CEO-centric growth track");
 
@@ -3058,80 +3056,6 @@ function miningEfficiencyOf(corp) {
   if (tech.includes("tt-basic-extraction")) efficiency *= 1.1;
   if (tech.includes("tt-supply-forecast")) efficiency *= 1.06;
   return efficiency;
-}
-
-function renderActionHints(data) {
-  const hireInput = document.getElementById("level2-hire-count");
-  const hireHint = document.getElementById("hire-action-hint");
-  const buildHint = document.getElementById("build-action-hint");
-  const mineExtractorId = document.getElementById("mine-extractor-id");
-  const mineInput = document.getElementById("mine-amount");
-  const mineHoursInput = document.getElementById("mine-hours");
-  const mineHint = document.getElementById("mine-action-hint");
-  const mineBtn = document.getElementById("mine-btn");
-
-  if (!hireInput || !hireHint || !buildHint || !mineExtractorId || !mineInput || !mineHoursInput || !mineHint || !mineBtn) {
-    return;
-  }
-
-  const corp = data.corp;
-  const availableStaffCapacity = Math.max(1, corp.employeeCap - corp.employeeCount);
-  const hireCount = Math.max(1, Number(hireInput.value || 1));
-  const adjustedHireCount = Math.min(hireCount, availableStaffCapacity);
-  const hireCost = adjustedHireCount * 2000;
-
-  hireInput.max = String(availableStaffCapacity);
-  if (Number(hireInput.value || 1) !== adjustedHireCount) {
-    hireInput.value = String(adjustedHireCount);
-  }
-
-  hireHint.textContent = `Immediate funding: ${toCurrency(hireCost)} credits. Ongoing payroll impact: ${toCurrency(adjustedHireCount * 150)}/day. Available headroom: ${corp.employeeCap - corp.employeeCount} employee(s).`;
-
-  const extractorCount = (corp.buildings || []).filter((b) => b.name === "Basic Extractor Yard").length;
-  const extractorCap = Number(corp.unlocks?.maxBasicExtractorYards || 1);
-  buildHint.textContent = `Requires 1 free building slot and ${toCurrency(50000)} credits. Current slots: ${corp.buildings.length}/${corp.buildingSlots}. Extractor cap: ${extractorCount}/${extractorCap}.`;
-
-  const throughputPerHour = Math.max(10, Math.min(250, Number(mineInput.value || 80)));
-  if (Number(mineInput.value || 80) !== throughputPerHour) {
-    mineInput.value = String(throughputPerHour);
-  }
-
-  const cycleHours = Math.max(1, Math.min(72, Number(mineHoursInput.value || 24)));
-  if (Number(mineHoursInput.value || 24) !== cycleHours) {
-    mineHoursInput.value = String(cycleHours);
-  }
-
-  // NOTE (ISP-86): #mine-amount is in no HTML file, so this function returns at its guard above and nothing below
-  // is ever shown. The live extractor form is rendered per lease (`.lease-mine-form`), and the throughput
-  // projection lives there. This is left as it was rather than extended, so that nothing here claims to be on a
-  // screen it is not on.
-  const operationCostPerHour = costPerHourFor(throughputPerHour, appState.economy?.operations);
-  const startupCost = clientStartupCostFor(operationCostPerHour, appState.economy?.operations);
-  const extractors = corp.mining?.silicateExtractors || [];
-
-  if (!mineExtractorId.options.length || mineExtractorId.options.length !== extractors.length) {
-    mineExtractorId.innerHTML = extractors
-      .map((ex) => `<option value="${escapeHtml(ex.id)}">${escapeHtml(ex.name || ex.id)}</option>`)
-      .join("");
-  }
-
-  if (!extractors.some((ex) => ex.id === mineExtractorId.value) && extractors.length) {
-    mineExtractorId.value = extractors[0].id;
-  }
-
-  const selectedExtractor = extractors.find((ex) => ex.id === mineExtractorId.value) || extractors[0];
-  const hasExtractor = extractorCount > 0;
-  const cycleActive = isExtractorCycleActive(selectedExtractor);
-
-  mineBtn.disabled = cycleActive;
-  mineBtn.textContent = cycleActive ? "Mining Cycle Active" : "Start Mining Cycle";
-  mineHint.textContent = !hasExtractor
-    ? "Mining cycles unlock after Basic Extractor Yard is operational."
-    : cycleActive
-      ? `${selectedExtractor?.name || "Selected extractor"} already has an active cycle. Choose another yard or wait for completion.`
-      : `Cycle profile: ${throughputPerHour}/hour for ${cycleHours}h. Startup cost: ${toCurrency(startupCost)}. Operating spend: ${toCurrency(operationCostPerHour)}/hour.`;
-
-  renderMiningCyclePanel(data);
 }
 
 function renderResearchSelectionDetails(data) {
@@ -5016,7 +4940,6 @@ function renderAllViews() {
   renderTravelPage(data);
   renderStation(data);
   renderLevel2Progress(data);
-  renderActionHints(data);
   renderQueue("rnd-queue", data.queues.corporateRnD, "Permanent corporate unlock track");
   renderQueue("ceo-queue", data.queues.ceoInsight, "CEO-centric growth track");
   renderTechTree(data);
@@ -5068,123 +4991,6 @@ function renderExpeditionPanel(data) {
     })
     .join("");
   panel.innerHTML = `<h3>Asteroid Belt Expeditions</h3>${rows}`;
-}
-
-async function runLevel2Action(endpoint, payload = null) {
-  if (!appState.accountId) {
-    const status = document.getElementById("level2-status");
-    if (status) {
-      status.textContent = "Level progression actions require an authenticated account profile.";
-    }
-    return;
-  }
-
-  const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}${endpoint}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: payload ? JSON.stringify(payload) : undefined
-  });
-
-  const account = await parseJsonResponse(response);
-  appState.data = deepClone(account.state);
-  appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
-  updateAllViews();
-  return account;
-}
-
-function bindLevel2Controls() {
-  const hireForm = document.getElementById("level2-hire-form");
-  const hireCount = document.getElementById("level2-hire-count");
-  const buildBtn = document.getElementById("level2-build-btn");
-  const mineForm = document.getElementById("mine-form");
-  const mineExtractorId = document.getElementById("mine-extractor-id");
-  const mineAmount = document.getElementById("mine-amount");
-  const mineHours = document.getElementById("mine-hours");
-  const mineBtn = document.getElementById("mine-btn");
-  const status = document.getElementById("level2-status");
-
-  if (!hireForm || !hireCount || !buildBtn || !mineForm || !mineExtractorId || !mineAmount || !mineHours || !mineBtn) {
-    return;
-  }
-
-  hireForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const count = Math.max(1, Number(hireCount.value || 1));
-    try {
-      const account = await runLevel2Action("/gameplay/hire", { count });
-      pushFeedback(
-        `Hiring order confirmed. ${count} employee(s) onboarded for ${toCurrency(count * 2000)}. Payroll burn increased by ${toCurrency(count * 150)}/day.`,
-        "success"
-      );
-      flashButtonSuccess(hireForm.querySelector(".btn-accent"));
-      if (status) {
-        status.textContent = `Staffing expansion approved. Corporation headcount is now ${account.state.corp.employeeCount}/${account.state.corp.employeeCap}.`;
-      }
-    } catch (error) {
-      if (status) {
-        status.textContent = `Hire action failed: ${error.message}`;
-      }
-      pushFeedback(`Hiring order rejected. ${error.message}`, "error");
-    }
-  });
-
-  buildBtn.addEventListener("click", async () => {
-    try {
-      await runLevel2Action("/gameplay/build-extractor");
-      pushFeedback(
-        `Basic Extractor Yard commissioned. ${toCurrency(50000)} capital deployed and your first persistent mining line is now available.`,
-        "success"
-      );
-      flashButtonSuccess(buildBtn);
-      if (status) {
-        status.textContent = "Basic Extractor Yard construction completed. You can now launch silicate extraction cycles.";
-      }
-    } catch (error) {
-      if (status) {
-        status.textContent = `Build action failed: ${error.message}`;
-      }
-      pushFeedback(`Extractor construction blocked. ${error.message}`, "error");
-    }
-  });
-
-  hireCount.addEventListener("input", () => renderActionHints(appState.data));
-  mineExtractorId.addEventListener("change", () => renderActionHints(appState.data));
-  mineAmount.addEventListener("input", () => renderActionHints(appState.data));
-  mineHours.addEventListener("input", () => renderActionHints(appState.data));
-
-  mineForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const extractorId = String(mineExtractorId.value || "");
-    const amount = Math.max(10, Math.min(250, Number(mineAmount.value || 80)));
-    const hours = Math.max(1, Math.min(72, Number(mineHours.value || 24)));
-    const hasExtractor = Boolean(appState.data?.corp?.buildings?.some((b) => b.name === "Basic Extractor Yard"));
-
-    if (!hasExtractor) {
-      const message = "Build the Basic Extractor Yard first, then start a mining cycle.";
-      if (status) {
-        status.textContent = message;
-      }
-      pushFeedback(message, "info");
-      return;
-    }
-
-    try {
-      await runLevel2Action("/gameplay/mine", { extractorId, amount, hours });
-      pushFeedback(
-        `Mining cycle started on ${extractorId || "selected extractor"} at ${amount}/hour throughput for ${hours}h. Outputs and costs will accrue over time.`,
-        "success"
-      );
-      flashButtonSuccess(mineBtn);
-      if (status) {
-        status.textContent = `Silicate extraction cycle launched. Expected runtime: ${hours} hour(s).`;
-      }
-    } catch (error) {
-      if (status) {
-        status.textContent = `Mining cycle launch failed: ${error.message}`;
-      }
-      pushFeedback(`Mining cycle launch rejected. ${error.message}`, "error");
-    }
-  });
 }
 
 function setTab(targetId) {
@@ -7075,7 +6881,6 @@ async function boot() {
   bindTabs();
   bindAuthControls();
   bindForms();
-  bindLevel2Controls();
   bindRealtimeEvents();
   bindGlobalControls();
   bindRippleEffect();
