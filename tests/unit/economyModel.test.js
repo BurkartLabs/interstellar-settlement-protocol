@@ -36,18 +36,39 @@ describe("ECONOMY.md (AB#727)", () => {
   });
 });
 
+/** Every line of server source, as one string: a rule counts wherever in server/ it now lives (AB#1719). */
+function serverSource() {
+  const root = path.join(process.cwd(), "server");
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith(".js")) files.push(full);
+    }
+  };
+  walk(root);
+  return files.map((f) => fs.readFileSync(f, "utf8")).join(String.fromCharCode(10));
+}
+
 describe("the model reads the game, not a copy of it (AB#727)", () => {
   it("each rule taken from the code still says what the model assumes", () => {
-    const gameState = read("server/gameState.js");
-    const index = read("server/index.js");
-    expect(gameState).toMatch(/credits: 250000/);
-    expect(gameState).toMatch(/currentStationId: "earth-station-prime"/);
-    expect(index).toMatch(/const EMPLOYEES_PER_LEASE = 5;/);
-    expect(index).toMatch(/Math\.max\(10, Math\.min\(250, amount\)\)/);
-    expect(index).toMatch(/hours, \{ fallback: 24, min: 1, max: 72 \}/);
-    expect(gameState).toMatch(/let probPerSec = 0\.00005;/);
-    expect(gameState).toMatch(/const recoveryProbPerSec = 0\.000276;/);
-    expect(gameState).toMatch(/const minDowntimeMs = 15 \* 60 \* 1000;/);
+    // AB#1719: these rules used to live in server/gameState.js, which AB#737 split into server/game/*.js. Reading
+    // the whole of server/ instead of two named files means the next split moves the code without darkening this
+    // guard — which is the only thing standing between ECONOMY.md and the code drifting apart.
+    const server = serverSource();
+    for (const rule of [
+      /credits: 250000/,
+      /currentStationId: "earth-station-prime"/,
+      /const EMPLOYEES_PER_LEASE = 5;/,
+      /Math\.max\(10, Math\.min\(250, amount\)\)/,
+      /hours, \{ fallback: 24, min: 1, max: 72 \}/,
+      /let probPerSec = 0\.00005;/,
+      /const recoveryProbPerSec = 0\.000276;/,
+      /const minDowntimeMs = 15 \* 60 \* 1000;/
+    ]) {
+      expect(server, String(rule)).toMatch(rule);
+    }
     expect(CODE_RULES.startingCredits.value).toBe(250_000);
   });
 

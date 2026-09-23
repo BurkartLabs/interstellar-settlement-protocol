@@ -4,6 +4,7 @@ import { tradeNumbers } from "./exchangeView.js"; // AB#1164, on a line of its o
 import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { suggestedListingPrice } from "./suggestedPrice.js"; // AB#1166, on a line of its own away from other branches' imports
+import { miningProjection, bestThroughput } from "./miningProjection.js"; // ISP-86, on a line of its own
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft, mergeThread } from "./forumActions.js";
 import { createStarmapController } from "./starmap.js";
@@ -3015,6 +3016,15 @@ function renderMiningCyclePanel(data) {
     .join("");
 }
 
+/** What the corporation's research multiplies an hour of extraction by (ISP-86; the server applies the same two). */
+function miningEfficiencyOf(corp) {
+  const tech = corp?.unlockedTech || [];
+  let efficiency = 1;
+  if (tech.includes("tt-basic-extraction")) efficiency *= 1.1;
+  if (tech.includes("tt-supply-forecast")) efficiency *= 1.06;
+  return efficiency;
+}
+
 function renderActionHints(data) {
   const hireInput = document.getElementById("level2-hire-count");
   const hireHint = document.getElementById("hire-action-hint");
@@ -3056,8 +3066,24 @@ function renderActionHints(data) {
     mineHoursInput.value = String(cycleHours);
   }
 
-  const operationCostPerHour = Math.max(600, Math.round(throughputPerHour * 16));
-  const startupCost = Math.max(500, Math.round(operationCostPerHour * 0.35));
+  // ISP-86: the running cost rises faster than the rate, so the panel shows what an hour at this setting earns
+  // after it, and what the best setting would be. The constants come from the server (bootstrap.economy).
+  const economy = appState.serverData?.economy || {};
+  const efficiency = miningEfficiencyOf(corp);
+  const projection = miningProjection(throughputPerHour, {
+    operations: economy.operations,
+    unitPrice: economy.silicateUnitPrice,
+    taxPct: economy.salesTaxPct,
+    efficiency
+  });
+  const best = bestThroughput({
+    operations: economy.operations,
+    unitPrice: economy.silicateUnitPrice,
+    taxPct: economy.salesTaxPct,
+    efficiency
+  });
+  const operationCostPerHour = projection.costPerHour;
+  const startupCost = projection.startupCost;
   const extractors = corp.mining?.silicateExtractors || [];
 
   if (!mineExtractorId.options.length || mineExtractorId.options.length !== extractors.length) {
@@ -3080,7 +3106,11 @@ function renderActionHints(data) {
     ? "Mining cycles unlock after Basic Extractor Yard is operational."
     : cycleActive
       ? `${selectedExtractor?.name || "Selected extractor"} already has an active cycle. Choose another yard or wait for completion.`
-      : `Cycle profile: ${throughputPerHour}/hour for ${cycleHours}h. Startup cost: ${toCurrency(startupCost)}. Operating spend: ${toCurrency(operationCostPerHour)}/hour.`;
+      : `Cycle profile: ${throughputPerHour}/hour for ${cycleHours}h. Startup cost: ${toCurrency(startupCost)}. ` +
+        `Operating spend: ${toCurrency(operationCostPerHour)}/hour. ` +
+        `At today's price this rate earns ${toCurrency(projection.revenuePerHour)}/hour and nets ` +
+        `${projection.profitPerHour >= 0 ? toCurrency(projection.profitPerHour) : `-${toCurrency(Math.abs(projection.profitPerHour))}`}/hour` +
+        `${best.throughputPerHour === throughputPerHour ? " — the best rate for your research." : `. Best rate for your research: ${best.throughputPerHour}/hour, netting ${toCurrency(best.profitPerHour)}/hour.`}`;
 
   renderMiningCyclePanel(data);
 }

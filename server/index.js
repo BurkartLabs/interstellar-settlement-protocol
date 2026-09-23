@@ -799,7 +799,18 @@ app.get("/api/bootstrap", (req, res) => {
   // Public, but a signed-in caller also gets their own older orders (Bug #425: the book is capped when read), and is
   // told which posts and listings are theirs. Nobody is sent an account id (Bugs #1134, #1145).
   const viewer = verifyAccessToken(getBearerToken(req)).accountId || null;
-  res.json({ ...sharedStateView(viewer), version: APP_VERSION });
+  // ISP-86: the extractor panel projects an hour's profit before the player starts a cycle, so it needs the
+  // running-cost constants and what silicates fetch. Numbers only; the rule itself stays in server/economy.js.
+  const silicates = ECONOMY.npcBuyers.find((b) => b.item === "Silicates");
+  res.json({
+    ...sharedStateView(viewer),
+    version: APP_VERSION,
+    economy: {
+      operations: ECONOMY.operations,
+      salesTaxPct: ECONOMY.exchange.salesTaxPct,
+      silicateUnitPrice: silicates ? silicates.unitPrice : 0
+    }
+  });
 });
 
 app.get("/api/stations", (_req, res) => {
