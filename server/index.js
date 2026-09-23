@@ -807,6 +807,10 @@ app.get("/api/bootstrap", (req, res) => {
   const viewer = verifyAccessToken(getBearerToken(req)).accountId || null;
   // ISP-86: the extractor panel projects an hour's profit before the player starts a cycle, so it needs the
   // running-cost constants and what silicates fetch. Numbers only; the rule itself stays in server/economy.js.
+  // AB#1736: what silicates fetch is the standing bid's *live* price, not its static base — ISP-87 drifts the
+  // bid with the day's volume, and a rate advised against the base price can be a rate that loses money.
+  checkAndResetNpcBuyOrders();
+  const silicatesOrder = (getState().market?.npcBuyOrders || []).find((o) => o.item === "Silicates");
   const silicates = ECONOMY.npcBuyers.find((b) => b.item === "Silicates");
   res.json({
     ...sharedStateView(viewer),
@@ -814,7 +818,7 @@ app.get("/api/bootstrap", (req, res) => {
     economy: {
       operations: ECONOMY.operations,
       salesTaxPct: ECONOMY.exchange.salesTaxPct,
-      silicateUnitPrice: silicates ? silicates.unitPrice : 0
+      silicateUnitPrice: silicatesOrder ? Number(silicatesOrder.unitPrice) : (silicates ? silicates.unitPrice : 0)
     }
   });
 });
