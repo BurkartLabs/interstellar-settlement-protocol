@@ -20,7 +20,8 @@
     "costPerThroughputUnit": 16,
     "minCostPerHour": 600,
     "startupShareOfHourlyCost": 0.35,
-    "minStartupCost": 500
+    "minStartupCost": 500,
+    "throughputReferencePerHour": 420
   },
   "probes": {
     "buildCost": 8000,

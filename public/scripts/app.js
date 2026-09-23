@@ -4,6 +4,7 @@ import { tradeNumbers } from "./exchangeView.js"; // AB#1164, on a line of its o
 import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 import { suggestedListingPrice } from "./suggestedPrice.js"; // AB#1166, on a line of its own away from other branches' imports
+import { miningProjection, bestThroughput, costPerHourFor, startupCostFor as clientStartupCostFor } from "./miningProjection.js"; // ISP-86, on a line of its own
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft, mergeThread } from "./forumActions.js";
 import { createStarmapController } from "./starmap.js";
@@ -27,6 +28,8 @@ function viewerStorage() {
 
 const appState = {
   serverData: null,
+  /** The economy's constants from /api/bootstrap (ISP-86): what an hour of mining costs and what ore fetches. */
+  economy: null,
   data: null,
   authenticated: false,
   accountId: null,
@@ -1803,6 +1806,7 @@ function renderLeaseManagement(building, lease, data) {
           <label>Duration (hrs)<input type="number" name="hours" min="1" max="72" value="24" style="width:60px;" /></label>
           <button class="btn btn-accent btn-sm" type="submit">Start Cycle</button>
         </form>
+        <p class="muted action-hint lease-mine-projection" data-for="${escapeHtml(ex.id)}">${escapeHtml(mineProjectionText(40))}</p>
         <p class="muted action-hint lease-mine-status" data-for="${escapeHtml(ex.id)}"></p>`
       : "";
 
@@ -1937,8 +1941,20 @@ function bindLeaseManagementActions(building, lease, data) {
     });
   }
 
+  // ISP-86: what an hour at the chosen rate earns after its running cost, shown before the cycle starts. The
+  // running cost rises faster than the rate, so the top of the range is no longer the answer to everything and
+  // the player can see that while they are choosing rather than afterwards.
+  const showMineProjection = (form) => {
+    const line = form.parentElement?.querySelector(`.lease-mine-projection[data-for="${CSS.escape(form.getAttribute("data-extractor-id") || "")}"]`);
+    if (!line) return;
+    const rate = Math.max(10, Math.min(250, Number(form.querySelector('[name="amount"]')?.value || 40)));
+    line.textContent = mineProjectionText(rate);
+  };
+
   // Mining cycle forms
   document.querySelectorAll(".lease-mine-form").forEach((form) => {
+    showMineProjection(form);
+    form.querySelector('[name="amount"]')?.addEventListener("input", () => showMineProjection(form));
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const extractorId = form.getAttribute("data-extractor-id");
@@ -1965,8 +1981,10 @@ function bindLeaseManagementActions(building, lease, data) {
           // Demo fallback
           const corp = appState.data.corp;
           const throughputPerHour = Math.max(10, Math.min(250, amount));
-          const operationCostPerHour = Math.max(600, Math.round(throughputPerHour * 16));
-          const startupCost = Math.max(500, Math.round(operationCostPerHour * 0.35));
+          // ISP-86: the same curve the server charges, from the server's own constants.
+          const operations = appState.economy?.operations;
+          const operationCostPerHour = costPerHourFor(throughputPerHour, operations);
+          const startupCost = clientStartupCostFor(operationCostPerHour, operations);
           if ((corp.finances.credits || 0) < startupCost) throw new Error(`Startup requires ${toCurrency(startupCost)} credits.`);
           const ex = corp.mining.silicateExtractors.find((e) => e.id === extractorId);
           if (!ex) throw new Error("Extractor not found.");
@@ -3015,6 +3033,33 @@ function renderMiningCyclePanel(data) {
     .join("");
 }
 
+/**
+ * ISP-86: what an hour at this rate earns after its running cost, and what the best rate would be. Rendered into
+ * the extractor row itself, because the row is rewritten whenever a cycle ticks and anything written to it
+ * afterwards is wiped by the next rewrite.
+ */
+function mineProjectionText(rate) {
+  const economy = appState.economy;
+  if (!economy?.operations) return "";
+  const efficiency = miningEfficiencyOf(appState.data?.corp);
+  const at = miningProjection(rate, { operations: economy.operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency });
+  const best = bestThroughput({ operations: economy.operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency });
+  const net = at.profitPerHour >= 0 ? `nets ${toCurrency(at.profitPerHour)}/hour` : `loses ${toCurrency(Math.abs(at.profitPerHour))}/hour`;
+  return `At ${rate} t/h: earns ${toCurrency(at.revenuePerHour)}/hour, costs ${toCurrency(at.costPerHour)}/hour, ${net}. `
+    + (best.throughputPerHour === rate
+      ? "That is the best rate for your research."
+      : `Best for your research: ${best.throughputPerHour} t/h, netting ${toCurrency(best.profitPerHour)}/hour.`);
+}
+
+/** What the corporation's research multiplies an hour of extraction by (ISP-86; the server applies the same two). */
+function miningEfficiencyOf(corp) {
+  const tech = corp?.unlockedTech || [];
+  let efficiency = 1;
+  if (tech.includes("tt-basic-extraction")) efficiency *= 1.1;
+  if (tech.includes("tt-supply-forecast")) efficiency *= 1.06;
+  return efficiency;
+}
+
 function renderActionHints(data) {
   const hireInput = document.getElementById("level2-hire-count");
   const hireHint = document.getElementById("hire-action-hint");
@@ -3056,8 +3101,12 @@ function renderActionHints(data) {
     mineHoursInput.value = String(cycleHours);
   }
 
-  const operationCostPerHour = Math.max(600, Math.round(throughputPerHour * 16));
-  const startupCost = Math.max(500, Math.round(operationCostPerHour * 0.35));
+  // NOTE (ISP-86): #mine-amount is in no HTML file, so this function returns at its guard above and nothing below
+  // is ever shown. The live extractor form is rendered per lease (`.lease-mine-form`), and the throughput
+  // projection lives there. This is left as it was rather than extended, so that nothing here claims to be on a
+  // screen it is not on.
+  const operationCostPerHour = costPerHourFor(throughputPerHour, appState.economy?.operations);
+  const startupCost = clientStartupCostFor(operationCostPerHour, appState.economy?.operations);
   const extractors = corp.mining?.silicateExtractors || [];
 
   if (!mineExtractorId.options.length || mineExtractorId.options.length !== extractors.length) {
@@ -5510,6 +5559,9 @@ async function loadBootstrap() {
     throw new Error("Failed to load bootstrap state.");
   }
   appState.serverData = await response.json();
+  // ISP-86: the economy's constants are fixed for the life of the server, and `state:init` replaces serverData
+  // wholesale with a payload that does not carry them. Kept here, they survive that.
+  if (appState.serverData?.economy) appState.economy = appState.serverData.economy;
 
   const version = appState.serverData?.version;
   if (version) {

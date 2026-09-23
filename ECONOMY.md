@@ -28,6 +28,7 @@ question in the retune (AB#728).
 | `operations.minCostPerHour` | 600 | The floor on an extractor's hourly cost: 37.5 t/h's worth. Below that, the player pays for throughput they do not get, so low settings lose money. |
 | `operations.startupShareOfHourlyCost` | 0.35 | A cycle's startup is about a third of an hour's cost. Over a 72-hour cycle that is noise; over a 1-hour cycle it is a 35% surcharge. |
 | `operations.minStartupCost` | 500 | The floor on startup, so the smallest cycle still costs something to begin. |
+| `operations.throughputReferencePerHour` | 420 | The rate at which an extractor's running cost is double its straight-line cost: `16 x T x (1 + (T / 420)^2)`. It sets where the profit curve peaks, and so what the throughput decision is worth (ISP-86). |
 | `probes.buildCost` | 8,000 | A mining probe, the cheap way to scout. Not on the first-extractor path. |
 | `probes.assetValue` | 5,000 | 63% of cost on the balance sheet. No reason is recorded. |
 | `expeditions.launchCost` | 3,000 | The price of a look at a belt's composition. Not on the first-extractor path. |
@@ -84,17 +85,40 @@ What it says, in words:
 - Credits grow from the first hour of mining at any setting that pays at all. The number to tune is not *whether*
   the first session profits but *how fast*: four days at the top setting.
 
-## T-018: the maximum always wins
+## T-018: the throughput is a decision (ISP-86)
 
-Revenue per hour is **24 x T x 0.92** (price, throughput, what the tax leaves). Cost per hour is **16 x T** above the
-600 floor. Profit is therefore **6.08 x T** less fixed costs, rising with every tonne. Nothing else in the model
-depends on T: downtime strikes per second whatever the setting, and no buyer runs out. So **250 t/h is the right
-answer at every scale and every balance**, and the throughput slider is arithmetic, not a decision. DEPTH.md scored
-decision density 2 for this reason.
+Revenue per hour is **24 x T x 0.92** (price, throughput, what the tax leaves). Cost per hour used to be
+**16 x T** above the 600 floor, so profit was **6.08 x T** less fixed costs and rose with every tonne: 250 t/h was the
+right answer at every scale and every balance, and the slider was arithmetic. DEPTH.md scored decision density 2
+for this reason.
 
-What it implies for the retune (AB#728): a margin that is positive per unit and a cost that is flat per unit make the
-top setting dominant, whatever the numbers are. A choice needs a cost that rises faster than revenue (wear, downtime
-or cost per unit that grows with T), or a buyer whose price falls as you sell into it.
+The cost now rises faster than the rate (`operationCostPerHourFor`, server/economy.js):
+
+**cost per hour = 16 x T x (1 + (T / 420)^2)**, never below the 600 floor.
+
+Profit per hour for Earth silicates at 24 credits and 8% tax, with no research:
+
+| T (t/h) | revenue/h | cost/h | profit/h |
+| --- | --- | --- | --- |
+| 10 | 221 | 600 | -379 |
+| 50 | 1,104 | 811 | 293 |
+| 100 | 2,208 | 1,691 | 517 |
+| 150 | 3,312 | 2,706 | 606 |
+| 173 | 3,820 | 3,238 | 582 |
+| 200 | 4,416 | 3,926 | 490 |
+| 250 | 5,520 | 5,417 | 103 |
+
+The maximum is at **T = 146 t/h**, paying **606 credits an hour**. Two things move it, which is what makes it a
+decision rather than a constant:
+
+- **Research.** With Basic Extraction Analytics and Supply Forecast (x1.1 and x1.06 on what an hour yields) the
+  best setting rises to **189 t/h** at **1,230 an hour**. Earning more per tonne is worth running hotter.
+- **Price.** A dearer buyer or a lower sales tax moves it up; a cheaper one moves it down.
+
+Below about 37 t/h the 600 floor means the corporation pays for throughput it does not get, so a very low setting
+loses money. At the top of the range the curve costs 5,417 an hour and pays 103: **17% of what the best setting
+pays**. Ignoring the curve is a real cost and never a wall - every throughput from 10 to 250 stays startable, which
+is the rule the tests hold (`tests/unit/throughputCurve.test.js`).
 
 ## Faucets and sinks
 
