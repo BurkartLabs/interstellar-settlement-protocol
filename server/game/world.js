@@ -98,8 +98,7 @@ export function getSeedState() {
       unlocks: {
         marketSectors: ["Raw Materials", "Logistics Services"],
         maxUpgradeTier: 2,
-        maxFleetSize: 45,
-        maxBasicExtractorYards: 3
+        maxFleetSize: 45
       },
       unlockedTech: ["tt-basic-extraction"]
     },
