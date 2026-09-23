@@ -34,7 +34,7 @@
     "salesTaxPct": 8
   },
   "npcBid": {
-    "quotaPerDay": 40000,
+    "quotaPerDay": 7000,
     "driftAtFullQuotaPct": 50,
     "recoveryPerDayPct": 60,
     "floorPct": 55

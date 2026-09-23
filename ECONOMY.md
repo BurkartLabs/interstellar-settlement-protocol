@@ -33,7 +33,7 @@ question in the retune (AB#728).
 | `probes.assetValue` | 5,000 | 63% of cost on the balance sheet. No reason is recorded. |
 | `expeditions.launchCost` | 3,000 | The price of a look at a belt's composition. Not on the first-extractor path. |
 | `exchange.salesTaxPct` | 8 | The exchange's cut of every sale. At 24 a tonne it is 1.92, almost a third of the 6.08 margin. Each point off it is 0.24 a tonne, about 60 an hour at 250 t/h; +10% output from research is worth about 550. |
-| `npcBid.quotaPerDay` | 40000 | How much a standing buy order takes in a day before it stops buying. A working extractor fills it in about a day, so the quota is a real limit rather than a formality (ISP-87). |
+| `npcBid.quotaPerDay` | 7000 | How much a standing buy order takes in a day before it stops buying. A yard running at its best rate produces about 3,500 units a day, so this is two yards' output: a corporation that runs three fills it and sees the price move. It was 40,000 until the probe showed the drift almost never bit at that size (ISP-87). |
 | `npcBid.driftAtFullQuotaPct` | 50 | How far the bid falls when the day's quota has been sold into it: half. Selling into the bid moves the price against the seller, which is what makes another player worth trading with. |
 | `npcBid.recoveryPerDayPct` | 60 | How much of the gap back to the base price the bid recovers overnight. A market glutted yesterday opens dearer than it closed and cheaper than if nobody had sold. |
 | `npcBid.floorPct` | 55 | The lowest the bid ever goes, as a share of its base price. A corporation dumping volume cannot strand a new player: this is the price always guaranteed. |
@@ -133,17 +133,18 @@ and the BRIEF's second measure - orders filled by a player rather than an NPC - 
 The bid now drifts with the day's volume (`npcBidFor`, server/economy.js), and is computed on the server from what
 the order has already taken; nothing in a request can set it:
 
-**bid = max(floor, base x (1 - 0.50 x sold today / 40,000))**, floor = 55% of base.
+**bid = max(floor, base x (1 - 0.50 x sold today / 7,000))**, floor = 55% of base.
 
 For silicates at 24 credits:
 
 | sold into it today | bid |
 | --- | --- |
 | 0 | 24 |
-| 10,000 | 21 |
-| 20,000 | 18 |
-| 30,000 | 15 |
-| 40,000 and beyond | 13 (the floor) |
+| 1,750 | 21 |
+| 3,500 | 18 |
+| 5,250 | 15 |
+| 7,000 | 13 |
+| beyond the quota | 13 (the floor) |
 
 Overnight it recovers 60% of the gap back to base: a bid driven to the floor opens the next day at 17, then 20,
 then 22. A corporation that dumps volume therefore pays for it twice - in the price it gets and in the price it
