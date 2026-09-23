@@ -16,7 +16,7 @@ import { SYSTEM_SENDERS } from "./corporationName.js";
 import jwt from "jsonwebtoken";
 import { resolveLeaseBody } from "./leases.js";
 import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from "../public/scripts/ceoEffects.js";
-import { ECONOMY, buildCostFor, operationCostPerHourFor, startupCostFor } from "./economy.js";
+import { ECONOMY, buildCostFor, operationCostPerHourFor, startupCostFor, npcBidFor, npcBidAfterRecovery } from "./economy.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "../public/scripts/ceoEffects.js";
 import { canReachSystem, leaseFilingRefusal, systemHops } from "../public/scripts/navigation.js";
 import {
@@ -57,7 +57,8 @@ import {
   MISSION_TEMPLATES,
   refreshContractOfferings,
   COMPLETED_COOLDOWN_MS, // Bug #1268
-  SYSTEM_DETAILS
+  SYSTEM_DETAILS,
+  ensureBidShape
 } from "./gameState.js";
 
 // TODO(AB#737): Move this to a single file so that we aren't redefining it everywhere
@@ -426,7 +427,12 @@ function checkAndResetNpcBuyOrders() {
   mutateState((draft) => {
     (draft.market.npcBuyOrders || []).forEach((order) => {
       if (order.lastResetDate !== today) {
+        ensureBidShape(order);
+        // ISP-87: the quota refills and the bid recovers most of the way back towards its base price. A market
+        // glutted yesterday opens dearer than it closed, and not as dear as if nobody had sold.
         order.remainingQty = order.totalQtyPerDay;
+        order.soldToday = 0;
+        order.unitPrice = npcBidAfterRecovery(order.basePrice, order.unitPrice);
         order.lastResetDate = today;
       }
     });
@@ -3375,7 +3381,10 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
     return;
   }
 
-  const tradeTotal = requestedQty * npcOrder.unitPrice;
+  // ISP-87: the bid is what today's volume has left it at, computed here and never taken from the request.
+  ensureBidShape(npcOrder);
+  const unitPrice = npcBidFor(npcOrder.basePrice, npcOrder.soldToday);
+  const tradeTotal = requestedQty * unitPrice;
   let rejectReason = "";
   let tradeTaxPct = 0;
   let tradeTaxAmount = 0;
@@ -3412,7 +3421,7 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
       type: "sold-npc",
       item: npcOrder.item,
       quantity: requestedQty,
-      unitPrice: npcOrder.unitPrice,
+      unitPrice,
       total: tradeTotal,
       taxPct,
       taxAmount,
@@ -3431,16 +3440,19 @@ app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
   mutateState((draft) => {
     const target = (draft.market.npcBuyOrders || []).find((o) => o.id === orderId);
     if (target) {
+      ensureBidShape(target);
       target.remainingQty = Math.max(0, target.remainingQty - requestedQty);
+      target.soldToday = Math.max(0, Number(target.soldToday) || 0) + requestedQty;
+      target.unitPrice = npcBidFor(target.basePrice, target.soldToday);
     }
     if (!draft.market.priceHistory) draft.market.priceHistory = {};
-    recordTrade(draft.market.priceHistory, npcOrder.item, Number(npcOrder.unitPrice || 0), requestedQty); // AB#715
+    recordTrade(draft.market.priceHistory, npcOrder.item, unitPrice, requestedQty); // AB#715, at the price paid
   });
 
   emitMarketUpdated();
   res.json({
     ok: true,
-    traded: { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice: npcOrder.unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, proceeds: tradeProceeds },
+    traded: { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, proceeds: tradeProceeds },
     account: seller
   });
 });

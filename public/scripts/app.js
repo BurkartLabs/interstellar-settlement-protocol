@@ -4022,7 +4022,16 @@ function renderMarket(data) {
           <tr class="${exhausted ? "npc-order-exhausted" : ""}">
             <td>${escapeHtml(order.item)}</td>
             <td>${escapeHtml(order.buyer)}</td>
-            <td>${toCurrency(order.unitPrice)}</td>
+            <td>
+              ${toCurrency(order.unitPrice)}
+              ${
+                // ISP-87: the bid falls as the day's volume is sold into it. Saying so where the price is shown is
+                // the difference between a number that looks wrong and a market a player can read.
+                Number(order.basePrice) > Number(order.unitPrice)
+                  ? `<div class="npc-order-drift">down from ${toCurrency(order.basePrice)} on today&#39;s volume</div>`
+                  : ""
+              }
+            </td>
             <td>
               <div class="npc-order-remaining">${Number(order.remainingQty).toLocaleString()} <span class="npc-order-of-total">/ ${Number(order.totalQtyPerDay).toLocaleString()}</span></div>
               <div class="npc-order-track"><div class="npc-order-fill" style="width:${fillPct}%"></div></div>

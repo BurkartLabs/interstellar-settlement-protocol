@@ -195,6 +195,21 @@ export function ensureStateFile() {
 export const NPC_BUY_SEED = ECONOMY.npcBuyers;
 
 /**
+ * An order saved before ISP-87 has no basePrice, no soldToday and a quota of a million. Bring it up to date in
+ * place, so an existing install starts drifting instead of carrying the old fixed bid for ever.
+ */
+export function ensureBidShape(order) {
+  if (!order || typeof order !== "object") return order;
+  if (!Number.isFinite(Number(order.basePrice))) order.basePrice = Number(order.unitPrice) || 0;
+  if (!Number.isFinite(Number(order.soldToday))) order.soldToday = 0;
+  if (Number(order.totalQtyPerDay) !== ECONOMY.npcBid.quotaPerDay) {
+    order.totalQtyPerDay = ECONOMY.npcBid.quotaPerDay;
+    order.remainingQty = Math.min(Number(order.remainingQty) || 0, ECONOMY.npcBid.quotaPerDay);
+  }
+  return order;
+}
+
+/**
  * Names no player may take (Bug #433): every name the game's own messages are signed with, and every NPC buyer on the
  * exchange, derived from the lists the server uses so a new sender or buyer is reserved without anyone retyping it.
  */
@@ -216,9 +231,13 @@ export function ensureMarketState(globalState) {
         id,
         item: seed.item,
         buyer: seed.buyer,
+        // ISP-87: `basePrice` is what the buyer pays an empty market; `unitPrice` is what it pays now, after the
+        // volume already sold into it today. `soldToday` is what moved it.
+        basePrice: seed.unitPrice,
         unitPrice: seed.unitPrice,
-        totalQtyPerDay: seed.dailyQty,
-        remainingQty: seed.dailyQty,
+        soldToday: 0,
+        totalQtyPerDay: ECONOMY.npcBid.quotaPerDay,
+        remainingQty: ECONOMY.npcBid.quotaPerDay,
         lastResetDate: ""
       });
     }

@@ -13,7 +13,9 @@ describe("the global state a fresh install starts with (Bug #588, #574)", () => 
     expect(state.market.orderBook).toEqual([]);
     expect(state.market.npcBuyOrders.map((o) => o.item)).toEqual(NPC_ITEMS);
     const silicates = state.market.npcBuyOrders.find((o) => o.item === "Silicates");
-    expect(silicates).toMatchObject({ id: "npc-buy-silicates-daily", unitPrice: 24, totalQtyPerDay: 1000000, remainingQty: 1000000 });
+    // ISP-87: the quota is a day's work for a working extractor, not for a planet, and the order carries the base
+    // price it recovers towards and what has been sold into it today.
+    expect(silicates).toMatchObject({ id: "npc-buy-silicates-daily", unitPrice: 24, basePrice: 24, soldToday: 0, totalQtyPerDay: 40000, remainingQty: 40000 });
   });
 
   it("has a chat log with every channel", () => {

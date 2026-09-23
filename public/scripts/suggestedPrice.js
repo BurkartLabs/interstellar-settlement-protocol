@@ -4,8 +4,13 @@
 // cancelled rows. A listing costs nothing to post, so one player listing 1 unit at $1,000,000,000 moved every other
 // player's suggestion by a hundred million. The suggestion is now what the market has actually paid: the close of the
 // most recent day with trades (the daily price history, AB#715, which records player trades and standing-order sales)
-// within the window, and never below the best standing bid, the price a seller is guaranteed. A trade costs its
-// buyer the price, so moving this takes real credits, not a free listing.
+// within the window. A trade costs its buyer the price, so moving this takes real credits, not a free listing.
+//
+// ISP-87: it no longer floors itself at the standing bid. The bid drifts down as the day's volume is sold into it,
+// so a glutted market's traded price can sit below it, and a seller who wants to move stock before the bid
+// recovers needs to be able to undercut it. The bid is still what a seller is guaranteed - it is just not what
+// this box has to say. With no trades in the window the standing bid is the only price anyone knows, so that is
+// what is suggested.
 
 /** How far back a trade still counts as the market price. */
 export const SUGGESTION_WINDOW_DAYS = 7;
@@ -24,6 +29,7 @@ export function suggestedListingPrice(item, market, now = Date.now()) {
   const recent = buckets.filter((b) => typeof b?.day === "string" && b.day >= cutoff && positive(b.close));
   const lastClose = recent.length ? positive(recent.reduce((a, b) => (b.day > a.day ? b : a)).close) : 0;
 
-  const price = Math.max(lastClose, bestBid);
+  // What the market last paid, if anyone has paid anything; otherwise the standing bid, which is all there is.
+  const price = lastClose > 0 ? lastClose : bestBid;
   return price > 0 ? Math.max(1, Math.round(price)) : FALLBACK_PRICE;
 }
