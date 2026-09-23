@@ -125,6 +125,38 @@ describe("data/research.json", () => {
     const ids = nodes.map((n) => n.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  // AB#1259: two research effects (tt-energy-routing, tt-material-compression) promised a mechanic — an advanced
+  // manufacturing lane, +8% refining throughput — that nothing in the game read. Every node's effect must now
+  // either say what it unlocks (a real gate: prereqs, requiresTechIds, corp level, system access) or point at a
+  // reader that actually applies it. READERS is the same kind of list-and-check TICKERS is for the tickers
+  // (scripts/bench-ticks.mjs): keeping it here, beside the data it checks, means a new numeric effect with no
+  // reader fails this test instead of shipping quietly.
+  const RESEARCH_EFFECT_READERS = {
+    "tt-basic-extraction": "server/game/mining.js",
+    "tt-industrial-safety": "server/game/mining.js",
+    "tt-supply-forecast": "server/game/mining.js",
+    "tt-fleet-coordination": "server/game/catalog.js"
+  };
+
+  it("every effect is a stated unlock, or has a reader that applies it (AB#1259)", () => {
+    const nodes = Array.isArray(data) ? data : data.nodes || data.tree;
+    const ids = new Set(nodes.map((n) => n.id));
+    expect(new Set(Object.keys(RESEARCH_EFFECT_READERS))).toEqual(
+      new Set([...Object.keys(RESEARCH_EFFECT_READERS)].filter((id) => ids.has(id)))
+    );
+    for (const n of nodes) {
+      const isStatedUnlock = /^(Unlocks|Enables)\s/.test(n.effect || "");
+      const readerFile = RESEARCH_EFFECT_READERS[n.id];
+      if (!isStatedUnlock && !readerFile) {
+        throw new Error(`${n.id}'s effect "${n.effect}" is neither a stated unlock nor in RESEARCH_EFFECT_READERS`);
+      }
+      if (readerFile) {
+        const src = fs.readFileSync(path.resolve(__dirname, "..", "..", readerFile), "utf8");
+        expect(src.includes(`"${n.id}"`), `${readerFile} no longer references ${n.id} (RESEARCH_EFFECT_READERS is stale)`).toBe(true);
+      }
+    }
+  });
 });
 
 describe("data/refinery-chains.json", () => {

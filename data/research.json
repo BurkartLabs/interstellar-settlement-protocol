@@ -36,8 +36,8 @@
     {
       "id": "tt-energy-routing",
       "name": "High-Density Energy Routing",
-      "effect": "+1 advanced manufacturing lane",
-      "description": "Redesigns power distribution architecture to support a dedicated high-load manufacturing lane. Required for Tier 2 refinery output and advanced material synthesis.",
+      "effect": "Unlocks Material Compression I, Containment Physics I, Fleet Coordination Matrix and Assembly & Fabrication Systems",
+      "description": "Redesigns power distribution architecture to support higher-load research and production lines. Gate technology for Material Compression, Containment Physics, Fleet Coordination and Assembly & Fabrication research.",
       "durationHours": 6,
       "costCredits": 4000,
       "prereqs": ["tt-industrial-safety", "tt-supply-forecast"],
@@ -47,8 +47,8 @@
     {
       "id": "tt-material-compression",
       "name": "Material Compression I",
-      "effect": "+8% refining throughput",
-      "description": "Applies high-pressure compression staging to raw silicate inputs before refinery processing. Increases yield per cycle without expanding physical footprint.",
+      "effect": "Unlocks Nickel refining, and (with further research) the Silicates and Titanium chains",
+      "description": "Applies high-pressure compression staging to raw silicate and metal inputs before refinery processing. Gates Nickel refining outright, and the Silicates and Titanium chains alongside Nano-Lattice Weaving or High-Density Energy Routing.",
       "durationHours": 9,
       "costCredits": 6000,
       "prereqs": ["tt-energy-routing"],

@@ -124,7 +124,7 @@ const techTree = [
   {
     id: "tt-energy-routing",
     name: "High-Density Energy Routing",
-    effect: "+1 advanced manufacturing lane",
+    effect: "Unlocks Material Compression I, Containment Physics I, Fleet Coordination Matrix and Assembly & Fabrication Systems",
     durationHours: 6,
     costCredits: 4000,
     prereqs: ["tt-industrial-safety", "tt-supply-forecast"],
@@ -133,7 +133,7 @@ const techTree = [
   {
     id: "tt-material-compression",
     name: "Material Compression I",
-    effect: "+8% refining throughput",
+    effect: "Unlocks Nickel refining, and (with further research) the Silicates and Titanium chains",
     durationHours: 9,
     costCredits: 6000,
     prereqs: ["tt-energy-routing"],
