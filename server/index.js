@@ -1093,6 +1093,14 @@ app.post("/api/accounts/:accountId/notifications/read-all", (req, res) => {
 // Bug #1058: refusals that say what to do next. Imported beside their first use, away from the import block.
 import { employeeCapMessage, miningCreditsAdvice, missionShortMessage, LEVELS } from "./nextStep.js";
 
+// Bug #1124: an office registers a corporation's presence at one station, not company-wide, and only while its
+// lease has not lapsed. Hiring, filing a lease and operating a lease all read this same check, so an office
+// rented somewhere else, or one that has expired, cannot stand in for one here.
+function activeOfficeAt(corp, stationId, now = Date.now()) {
+  if (!stationId || !Array.isArray(corp.offices)) return null;
+  return corp.offices.find((o) => o.stationId === stationId && o.rentedUntil > now) || null;
+}
+
 app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
   const count = bodyNumber(req.body?.count, { fallback: 1, min: 1, integer: true });
   let outcome = "ok";
@@ -1100,6 +1108,12 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
 
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
+
+    if (!activeOfficeAt(corp, corp.currentStationId, Date.now())) {
+      outcome = "no-office";
+      return;
+    }
+
     const available = Math.max(0, corp.employeeCap - corp.employeeCount);
     const hired = Math.min(count, available);
     const hireCost = hired * ECONOMY.employees.hireCost;
@@ -1128,6 +1142,7 @@ app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
   if (outcome !== "ok") {
     const corp = account.state.corp;
     const messageMap = {
+      "no-office": "You must maintain a registered office at this station before recruiting personnel.",
       "no-capacity": employeeCapMessage(corp, LEVELS),
       "insufficient-credits": fundingRequirementMessage("Hiring", corp, count * 2000)
     };
@@ -1153,6 +1168,7 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
   const officeCost = officeLeaseCost(durationDays); // Bug #1032: the figure the Suites panel quotes
   let outcome = "ok";
   let stationName = "Earth Station Prime";
+  let dockedStationName = "";
 
   let stationsData;
   try {
@@ -1172,6 +1188,14 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
 
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
+
+    // Bug #1124: a lease establishes presence at this location, so it can only be filed at the station the
+    // corporation is docked at now -- the only one the Suites panel itself offers.
+    if (corp.currentStationId !== station.id) {
+      outcome = corp.currentStationId ? "wrong-station" : "in-transit";
+      dockedStationName = stationsData.find((s) => s.id === corp.currentStationId)?.name || corp.currentStationId || "";
+      return;
+    }
 
     if (!Array.isArray(corp.offices)) {
       corp.offices = [];
@@ -1209,6 +1233,8 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
   if (outcome !== "ok") {
     const corp = account.state.corp;
     const messageMap = {
+      "wrong-station": `You must be docked at ${stationName} to rent an office there. You are at ${dockedStationName || "another station"}: travel there on the Starmap first.`,
+      "in-transit": `You are in transit. Dock at ${stationName} to rent an office there.`,
       "already-rented": `Your corporation already maintains an office at ${stationName}.`,
       "insufficient-credits": `Leasing an office at ${stationName} for ${durationDays} days requires ${formatCredits(officeCost)}. Current reserves: ${formatCredits(corp.finances.credits)} credits.`
     };
@@ -1335,8 +1361,9 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
       return;
     }
 
-    const hasOffice = Array.isArray(corp.offices) && corp.offices.length > 0;
-    if (!hasOffice) {
+    // Bug #1124: the office that authorizes a lease is the one at the station where it is filed, not any office
+    // the corporation has ever rented -- stationRefusal above already guarantees currentStationId orbits the body.
+    if (!activeOfficeAt(corp, corp.currentStationId, Date.now())) {
       outcome = "no-office";
       return;
     }
@@ -1728,15 +1755,14 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
 
-    // Check for expired office lease
+    // Bug #1124: an office at another station cannot authorize mining here, and does not read as "expired".
+    const now = Date.now();
     if (!Array.isArray(corp.offices) || corp.offices.length === 0) {
       outcome = "no-office";
       return;
     }
-    const now = Date.now();
-    const activeOffice = corp.offices.find((o) => o.rentedUntil > now);
-    if (!activeOffice) {
-      outcome = "office-lease-expired";
+    if (!activeOfficeAt(corp, corp.currentStationId, now)) {
+      outcome = corp.offices.some((o) => o.stationId === corp.currentStationId) ? "office-lease-expired" : "office-wrong-station";
       return;
     }
 
@@ -1802,6 +1828,7 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
     const messageMap = {
       "no-office": "You must have an active office lease to operate mining facilities.",
       "office-lease-expired": "Your office lease has expired. Renew your lease to resume mining operations.",
+      "office-wrong-station": "Your corporation has no office at this station. Operate from where your office is, or rent one here.",
       "no-lease": "The specified lease could not be found on your account.",
       "missing-extractor": "No extraction facilities are available.",
       "no-lease-extractors": "No extraction facilities are assigned to this lease.",

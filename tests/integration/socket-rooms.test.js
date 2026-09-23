@@ -28,6 +28,7 @@ async function player() {
     state.corp.employeeCap = 20;
     state.corp.employeeCount = 0;
     state.corp.finances.credits = 100000;
+    state.corp.offices = [{ stationId: "earth-station-prime", rentedUntil: Date.now() + 7 * 86_400_000 }];
   });
   return { id: account.id, token: accessToken, api: authed(app, accessToken) };
 }

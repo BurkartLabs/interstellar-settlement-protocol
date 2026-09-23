@@ -50,11 +50,16 @@ describe("POST /api/accounts/:id/gameplay/purchase-lease (Bug #691)", () => {
 
 // AB#1061: a station files leases only on the body it orbits (NEW_PLAYER_EXPERIENCE.md). The server used to file a
 // Mars lease from Earth Station Prime, which the claims office there never offers.
+// Bug #1124: filing a lease also requires an active office at the station the corporation is docked at, so docking
+// somewhere in a test grants one there too.
 function dockAt(id, stationId) {
   mutateAccountState(id, (state) => {
     state.corp.currentStationId = stationId;
     state.corp.currentSystemId = "sol";
     state.corp.travel = null;
+    if (!state.corp.offices.some((o) => o.stationId === stationId && o.rentedUntil > Date.now())) {
+      state.corp.offices.push({ stationId, rentedAt: Date.now(), rentedUntil: Date.now() + 7 * 86_400_000 });
+    }
   });
 }
 
