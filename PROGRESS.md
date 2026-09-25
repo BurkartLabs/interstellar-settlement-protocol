@@ -30,6 +30,20 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 - Looked at with `data/economy.json` edited (hire 2,500, payroll 175, assembly 65,000): the page quoted those.
   Screenshots in `docs/ab-1430/`.
 
+## What's now true (AB#1336, Builder #3)
+
+- **Names shown to players come from `public/scripts/displayNames.js`** (server and client alike): `systemName`,
+  `stationName`, `beltPlace` and `beltPhrase`, all read from the catalogs. Use it for any new message.
+  `tests/unit/displayNames.test.js` scans the route and tick files for a message that interpolates an id or key.
+  Flaky test filed, not fixed: **AB#2015** (`socket-rooms.test.js`, fixed 300ms windows).
+
+## What's now true (AB#1295, Builder #3)
+
+- A returning expedition's notification and inbox report name the belt, its system and the deposit station
+  (`server/expeditionText.js`), not ids. `e2e/expedition-return.spec.js` seeds an expedition that finishes seconds after
+  start (`e2e/seed-expedition-account.mjs`), which is reusable for anything that needs a completed expedition.
+  AB#1336, internal ids in other notifications, is still open.
+
 ## What's now true (AB#1326 — system-view orbits fit the height, Builder #1)
 
 - `systemViewLayout`'s `orbitLimit` also fits the height (`h / 2 - 76`), so on desktop and tablet canvases the outer

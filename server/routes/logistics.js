@@ -10,7 +10,8 @@ import { transitTime } from "../transfers.js";
 // Bug #1270 (placed here, apart from the navigation.js import at the top that open PRs edit)
 import { travelResearchLock } from "../../public/scripts/navigation.js";
 import { IS_DEV } from "../app.js";
-import { STATION_REGISTRY, getInterstellarTravelTimeMs, getTravelTimeMs } from "../travel.js";
+import { STATION_REGISTRY, SYSTEMS_CATALOG, getInterstellarTravelTimeMs, getTravelTimeMs } from "../travel.js";
+import { systemName } from "../../public/scripts/displayNames.js"; // AB#1336
 import { emitToAccount } from "../realtime.js";
 
 export function registerLogisticsRoutes(app) {
@@ -228,8 +229,8 @@ export function registerLogisticsRoutes(app) {
 
     let notifBody;
     if (travelInfo.travelType === "interstellar") {
-      const sysName = SYSTEM_DETAILS[travelInfo.toSystemId]?.bodies?.[0]?.name || travelInfo.toSystemId;
-      notifBody = `Initiating interstellar jump to the ${travelInfo.toSystemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())} system. ETA ${etaText}.`;
+      const sysName = systemName(SYSTEMS_CATALOG, travelInfo.toSystemId) || "destination"; // AB#1336: "Barnard's Star", not "Barnards Star"
+      notifBody = `Initiating interstellar jump to the ${sysName} system. ETA ${etaText}.`;
     } else {
       const dest = STATION_REGISTRY[travelInfo.toStationId];
       notifBody = `Setting course for ${dest.name} (${dest.body}). ETA ${etaText}.`;
