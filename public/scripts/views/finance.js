@@ -110,6 +110,7 @@ export function renderFinanceDashboard(finances) {
 
   setKpi("kpi-net-worth", `$${fmtCredits(netWorth)}`);
   setKpi("kpi-credits", `$${fmtCredits(credits)}`);
+  document.getElementById("kpi-credits")?.setAttribute("data-num-value", String(credits)); // AB#745, numberChange.js
   setKpi(
     "kpi-net-flow",
     `${netFlow >= 0 ? "+" : "-"}$${Math.abs(Math.round(netFlow)).toLocaleString()}/day`,

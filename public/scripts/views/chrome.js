@@ -99,6 +99,7 @@ export async function loadNotifications() {
   renderNotifications();
 }
 
+import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
 export function updateCorpIdentity(data) {
   const identity = document.getElementById("corp-identity");
   const corp = data.corp;
@@ -107,9 +108,9 @@ export function updateCorpIdentity(data) {
     <dt>CEO</dt><dd>${corp.ceo}</dd>
     <dt>Location</dt><dd>${escapeHtml(corp.location || "Earth")}</dd>
     <dt>Level</dt><dd>${corp.level} / ${corp.levelCap}</dd>
-    <dt>Employees</dt><dd>${corp.employeeCount} / ${corp.employeeCap}</dd>
-    <dt>Building Slots</dt><dd>${corp.buildingSlots}</dd>
-    <dt>Fleet Cap</dt><dd>${corp.fleet?.cap ?? corp.unlocks.maxFleetSize}</dd>
+    <dt>Employees</dt><dd>${numberMarkup("sidebar:employees", corp.employeeCount)} / ${corp.employeeCap}</dd>
+    <dt>Building Slots</dt><dd>${numberMarkup("sidebar:building-slots", corp.buildingSlots)}</dd>
+    <dt>Fleet Cap</dt><dd>${numberMarkup("sidebar:fleet-cap", corp.fleet?.cap ?? corp.unlocks.maxFleetSize)}</dd>
   `;
 
   const milestones = document.getElementById("milestone-list");

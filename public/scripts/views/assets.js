@@ -6,6 +6,7 @@ import { appState } from "../state.js";
 import { getAllInventory } from "./shared.js";
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
+import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
 export function renderAssets(data) {
   const bannerEl = document.getElementById("assets-station-banner");
   if (bannerEl) bannerEl.innerHTML = "";
@@ -54,13 +55,13 @@ export function renderAssets(data) {
           inventoryRows += `<tr>
             <td class="assets-resource-name" rowspan="${stationEntries.length}">${escapeHtml(resource)}</td>
             <td>${escapeHtml(stName)}</td>
-            <td class="num">${qty.toLocaleString()}</td>
+            <td class="num">${numberMarkup(`assets:inventory:${stId}:${resource}`, qty, qty.toLocaleString())}</td>
           </tr>`;
           first = false;
         } else {
           inventoryRows += `<tr>
             <td>${escapeHtml(stName)}</td>
-            <td class="num">${qty.toLocaleString()}</td>
+            <td class="num">${numberMarkup(`assets:inventory:${stId}:${resource}`, qty, qty.toLocaleString())}</td>
           </tr>`;
         }
       }
