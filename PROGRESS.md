@@ -18,6 +18,12 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1857 — Create Listing with nothing to list, Builder)
+
+- `renderMarket` hides the Create Listing `.table-wrap` when the station has no inventory, as `showEmpty` does for the
+  other Exchange tables. `e2e/create-listing-empty.spec.js` checks both states at 1280x800 and 375x812; on a phone the
+  stacked table has no headers to show, so the spec asserts the `hidden` flag, not only visibility. `docs/ab-1857/`.
+
 ## What's now true (AB#1459 — the Starmap offers no made-up resource overlay)
 
 - The Starmap's overlay picker is None, GDP Index, Activity Level, Pirate Density. "Resource Concentration" is gone:
