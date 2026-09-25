@@ -1136,7 +1136,8 @@ app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
       "wrong-station": `You must be docked at ${stationName} to rent an office there. You are at ${dockedStationName || "another station"}: travel there on the Starmap first.`,
       "in-transit": `You are in transit. Dock at ${stationName} to rent an office there.`,
       "already-rented": `Your corporation already maintains an office at ${stationName}.`,
-      "insufficient-credits": `Leasing an office at ${stationName} for ${durationDays} days requires ${formatCredits(officeCost)}. Current reserves: ${formatCredits(corp.finances.credits)} credits.`
+      // AB#1809: formatCredits() already appends "credits" (Bug #1201) -- no second "credits" suffix here.
+      "insufficient-credits": `Leasing an office at ${stationName} for ${durationDays} days requires ${formatCredits(officeCost)}. Current reserves: ${formatCredits(corp.finances.credits)}.`
     };
     res.status(400).json({ error: messageMap[outcome] || "Office rental failed." });
     return;
@@ -1210,7 +1211,8 @@ app.post("/api/accounts/:accountId/gameplay/renew-office", (req, res) => {
     const corp = account.state.corp;
     const messageMap = {
       "no-office": `Your corporation does not have an office at ${stationName} to renew.`,
-      "insufficient-credits": `Renewing for ${durationDays} days requires ${formatCredits(renewalCost)}. Current reserves: ${formatCredits(corp.finances.credits)} credits.`
+      // AB#1809: formatCredits() already appends "credits" (Bug #1201) -- no second "credits" suffix here.
+      "insufficient-credits": `Renewing for ${durationDays} days requires ${formatCredits(renewalCost)}. Current reserves: ${formatCredits(corp.finances.credits)}.`
     };
     res.status(400).json({ error: messageMap[outcome] || "Lease renewal failed." });
     return;
