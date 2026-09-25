@@ -12,7 +12,9 @@ import { scheduleRndQueue, rndItemStatus } from "../public/scripts/rndQueue.js";
 import { refreshDailyExpenses } from "./finances.js"; // Bug #1022 (placed apart from the import below, which parallel PRs append to)
 import { buildSnapshot, pushSnapshot, refreshDailyRevenue } from "./finances.js";
 import { recordTransfer, describeLines } from "../public/scripts/logistics.js";
-import { STATION_REGISTRY } from "./travel.js";
+import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
+import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
+import { expeditionNotificationBody, expeditionPlaces } from "./expeditionText.js"; // AB#1295
 import { emitMarketUpdated, emitToAccount } from "./realtime.js";
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
@@ -95,21 +97,20 @@ function asteroidExpeditionTick() {
     }, { sanitize: false, settleMining: false });
 
     for (const exp of completedExpeditions) {
-      const yieldSummary = Object.entries(exp.yields || {}).map(([r, q]) => `${q} ${r}`).join(", ") || "no resources";
       const notification = addAccountNotification(accountId, {
         type: "mining",
         title: "Expedition Complete",
-        body: `Mining probe has returned from ${exp.beltKey.split(":")[1] || "asteroid belt"}. Yields: ${yieldSummary}. Resources deposited at ${exp.depositStationId || "nearest station"}.`
+        body: expeditionNotificationBody(exp) // AB#1295: names, not the belt key's suffix and the station id
       });
       if (notification) {
         emitToAccount(accountId, "notifications:new", { accountId, notification });
       }
 
       // Send detailed expedition report to inbox
-      const beltId = exp.beltKey.split(":")[1] || "asteroid belt";
-      const beltLabel = beltId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-      const systemLabel = (exp.systemId || "sol").replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-      const stationName = STATION_REGISTRY[exp.depositStationId]?.name || exp.depositStationId || "nearest station";
+      const places = expeditionPlaces(exp); // AB#1295: from the catalogs, not title-cased ids ("Ac Belt")
+      const beltLabel = places.belt || "Asteroid Belt";
+      const systemLabel = places.system || "Unknown";
+      const stationName = places.station || "your nearest station";
       const durationLabel = EXPEDITION_DURATIONS[exp.duration]?.label || exp.duration;
       const yieldLines = Object.entries(exp.yields || {});
       const yieldBlock = yieldLines.length
@@ -211,7 +212,7 @@ function travelTick() {
     if (arrived && travelResult) {
       let notification;
       if (travelResult.type === "interstellar") {
-        const sysLabel = travelResult.systemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+        const sysLabel = systemName(SYSTEMS_CATALOG, travelResult.systemId) || "destination"; // AB#1336
         notification = addAccountNotification(accountId, {
           type: "travel",
           title: "System Arrival",
@@ -224,7 +225,7 @@ function travelTick() {
           notification = addAccountNotification(accountId, {
             type: "travel",
             title: "Docking Complete",
-            body: `Your ship has arrived at ${station.name} (${station.body}, ${station.systemId.toUpperCase()}).`
+            body: `Your ship has arrived at ${station.name} (${station.body}, ${systemName(SYSTEMS_CATALOG, station.systemId) || "open space"}).` // AB#1336: not "SOL"
           });
           emitToAccount(accountId, "travel:arrived", { accountId, stationId: travelResult.stationId });
         }

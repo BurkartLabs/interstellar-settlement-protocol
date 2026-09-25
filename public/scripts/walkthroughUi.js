@@ -2,6 +2,7 @@
 // app.js. The steps themselves and the rules for advancing them stay in walkthrough.js, which the tests run in node.
 import { WALKTHROUGH_STEPS as walkthroughSteps, chooseHighlight, nextStepIndex } from "./walkthrough.js";
 import { walkthroughScrollDelta } from "./walkthrough.js"; // Bug #1083
+import { setWalkthroughEconomy } from "./walkthrough.js"; // AB#1430
 import { appState, STORAGE_KEYS } from "./state.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { showDialogue, closeDialogue } from "./dialogue.js";
@@ -211,6 +212,7 @@ function renderWalkthroughStep() {
   const speaker = document.getElementById("walkthrough-speaker");
   if (speaker) speaker.textContent = COORDINATOR_BYLINE;
   walkthroughTitle.textContent = step.title;
+  setWalkthroughEconomy(appState.economy); // AB#1430: the steps that quote a price read it from here
   walkthroughText.textContent = step.text;
   const progress = document.getElementById("walkthrough-progress");
   if (progress) {

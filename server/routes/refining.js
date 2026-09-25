@@ -196,7 +196,7 @@ export function registerRefiningRoutes(app) {
       const messageMap = {
         "missing-research": `This chain requires: ${chain.requiresResearch.join(", ")}.`,
         "no-refinery": "Build a Refinery before starting a production run.",
-        "refinery-not-found": `Refinery "${refineryId}" was not found.`,
+        "refinery-not-found": "That refinery was not found. It may have been removed; reload and choose another.", // AB#1336: no id echoed back
         "all-busy": "All refineries are currently running cycles.",
         "already-active": `${targetLabel} already has an active production cycle.`,
         "bad-quantity": quantityRefusal,

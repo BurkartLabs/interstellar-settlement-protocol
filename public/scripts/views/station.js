@@ -11,6 +11,7 @@ import { escapeHtml, stationBuildingCardsHtml } from "../html.js";
 import { activeCycleFigures, extractorState } from "../leaseLive.js";
 import { probeFabricationStartedText } from "../miningFeedback.js";
 import { bestThroughput, costPerHourFor, miningProjection, startupCostFor as clientStartupCostFor } from "../miningProjection.js";
+import { clientPrices } from "../clientPrices.js";
 import { leaseFullAdvice } from "../slotAdvice.js";
 import { appState } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
@@ -137,7 +138,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
         <dl class="kv-list" style="margin:0.9rem 0;">
           <dt>Lease Cost</dt><dd>${toCurrency(officeLeaseCost(1))} credits a day</dd>
           <dt>Station</dt><dd>${escapeHtml(station?.name || stationId)}</dd>
-          <dt>Location</dt><dd>${escapeHtml(currentBody)}, ${escapeHtml(station?.systemId?.toUpperCase() || "SOL")}</dd>
+          <dt>Location</dt><dd>${escapeHtml(currentBody)}, ${escapeHtml(formatSystemLabel(station?.systemId || "sol"))}</dd>
         </dl>
         <p class="muted">The lease runs for the term you choose and can be extended from this office before or after it ends. Without an active office you cannot start a mining cycle.</p>
         <div class="inline-form compact-action-form">
@@ -184,7 +185,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
       <dl class="kv-list kv-list--compact">
         <dt>Status</dt><dd>${leaseStatusBadge}</dd>
         <dt>Station</dt><dd>${escapeHtml(existingOffice.name)}</dd>
-        <dt>Location</dt><dd>${escapeHtml(existingOffice.body)}, ${escapeHtml(existingOffice.systemId?.toUpperCase() || "SOL")}</dd>
+        <dt>Location</dt><dd>${escapeHtml(existingOffice.body)}, ${escapeHtml(formatSystemLabel(existingOffice.systemId || "sol"))}</dd>
         <dt>Lease Commenced</dt><dd>${rentedDate}</dd>
         <dt>Lease Expires</dt><dd>${expiryDate}</dd>
         <dt>Time Remaining</dt><dd>${timeRemainingText}</dd>
@@ -208,7 +209,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
 
     <section class="form-card action-surface" style="margin-top:1rem;max-width:750px;">
       <h3>Workforce — Hire Personnel</h3>
-      <p class="muted">Recruit employees through your registered office. Each hire costs ${toCurrency(2000)} credits and adds ${toCurrency(150)}/day to operational payroll.</p>
+      <p class="muted">Recruit employees through your registered office. Each hire costs ${toCurrency(clientPrices(appState.economy).hireCost)} credits and adds ${toCurrency(clientPrices(appState.economy).payrollPerDay)}/day to operational payroll.</p>
       <form id="office-hire-form" class="inline-form compact-action-form">
         <label>
           Head Count
@@ -357,12 +358,13 @@ export function bindOfficeActions(building, data) {
           const corp = appState.data.corp;
           const available = Math.max(0, corp.employeeCap - corp.employeeCount);
           const hired = Math.min(count, available);
-          const cost = hired * 2000;
+          const { hireCost, payrollPerDay } = clientPrices(appState.economy);
+          const cost = hired * hireCost;
           if (hired <= 0) throw new Error("No available headroom to hire additional personnel.");
           if (corp.finances.credits < cost) throw new Error(`Hiring requires ${toCurrency(cost)} credits.`);
           corp.employeeCount += hired;
           corp.finances.credits -= cost;
-          corp.finances.dailyCosts += hired * 150;
+          corp.finances.dailyCosts += hired * payrollPerDay;
           updateAllViews();
           showStationBuilding(building.id);
         }
@@ -582,7 +584,7 @@ export function renderLeaseManagement(building, lease, data) {
   const usedSlots = extractors.length;
   const totalSlots = lease.buildingSlots || 2;
   const hasSlotAvailable = usedSlots < totalSlots;
-  const buildCost = 50000;
+  const buildCost = clientPrices(appState.economy).extractorYardCost;
   const canAffordBuild = (corp?.finances?.credits || 0) >= buildCost;
 
   const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
@@ -713,7 +715,7 @@ export function renderLeaseManagement(building, lease, data) {
         <p class="muted" style="margin-bottom:0.7rem;">Deploys an extraction facility to this lease's surface allocation. Slot usage: ${usedSlots}/${totalSlots}.</p>
         <dl class="kv-list kv-list--compact" style="max-width:360px;margin-bottom:0.8rem;">
           <dt>Construction Cost</dt><dd>${toCurrency(buildCost)} credits</dd>
-          <dt>Asset Value</dt><dd>${toCurrency(36000)} credits</dd>
+          <dt>Asset Value</dt><dd>${toCurrency(clientPrices(appState.economy).extractorYardAssetValue)} credits</dd>
         </dl>
         <button id="lease-build-extractor-btn" class="btn btn-accent" type="button" ${!canAffordBuild ? "disabled" : ""}>
           Commission Extractor Yard
@@ -785,7 +787,7 @@ export function bindLeaseManagementActions(building, lease, data) {
         } else {
           // Demo account fallback
           const corp = appState.data.corp;
-          const cost = 50000;
+          const { extractorYardCost: cost, extractorYardAssetValue } = clientPrices(appState.economy);
           if ((corp.finances.credits || 0) < cost) throw new Error(`Construction requires ${toCurrency(cost)} credits.`);
           if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];
           const nextIndex = corp.mining.silicateExtractors.length + 1;
@@ -799,7 +801,7 @@ export function bindLeaseManagementActions(building, lease, data) {
           const leaseObj = corp.miningLeases.find((l) => l.id === lease.id);
           if (leaseObj) { if (!Array.isArray(leaseObj.extractorIds)) leaseObj.extractorIds = []; leaseObj.extractorIds.push(newId); }
           corp.finances.credits -= cost;
-          corp.finances.assets = (corp.finances.assets || 0) + 36000;
+          corp.finances.assets = (corp.finances.assets || 0) + extractorYardAssetValue;
           updateAllViews();
           const updatedLease = corp.miningLeases.find((l) => l.id === lease.id);
           renderBuildingDetail(building, appState.data);
@@ -1019,7 +1021,7 @@ export function renderStation(data) {
       pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok");
     },
     onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
-  });
+  }, clientPrices(appState.economy).assemblyFacilityCost);
 
   // ── Licensed Corporate Holdings (Extractor Yards — filtered to current station body) ──
   const stationBody = station.body;
@@ -1106,7 +1108,7 @@ export function renderAssemblyFacility(data) {
         <div>
           <p>Mining Probes: <strong>${fleet.vessels} / ${fleet.cap}</strong> Fleet Cap <span class="muted">(${probeCount} in hangar${deployedCount > 0 ? `, ${deployedCount} on expedition` : ""}${pendingCount > 0 ? `, ${pendingCount} in fabrication` : ""})</span></p>
           ${canBuild
-            ? `<button id="build-probe-btn" class="btn btn-accent">Fabricate Mining Probe (¤8,000)</button>`
+            ? `<button id="build-probe-btn" class="btn btn-accent">Fabricate Mining Probe (¤${clientPrices(appState.economy).probeBuildCost.toLocaleString("en-US")})</button>`
             : activeFab
               ? ""
               : `<p class="muted">Your fleet is at its Fleet Cap. ${fleet.raiseText}</p>`

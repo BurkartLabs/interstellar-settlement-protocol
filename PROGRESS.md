@@ -58,6 +58,32 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   - Checks: `npm run check` clean; `npm test` — **171 files, 1,864 tests, all green** (169/1,854 baseline on
     `origin/main` + 10 new).
 
+## What's now true (AB#1430 — the browser's prices come from data/economy.json, Builder #1)
+
+- `GET /api/bootstrap`'s `economy` also carries `employees`, `buildings` and `probes`; `clientPrices(appState.economy)`
+  (`public/scripts/clientPrices.js`, pure) reads them for the hire panel and its maths, yard/refinery/assembly
+  construction, the probe button, the balance sheet's payroll line and the walkthrough's priced steps (a getter fed by
+  `setWalkthroughEconomy`). No economy loaded: prices read NaN, and the Construct card says the price has not loaded.
+- **A new price shown in the browser goes through `clientPrices`.** `tests/unit/clientPrices.test.js` scans every
+  module app.js loads for a restated price (money text, `toCurrency(n)`, `cost = n`, `hired * n`, `staff * n`).
+  The office price stays in `ceoEffects.js`, checked against the file by `economy.test.js`.
+- Looked at with `data/economy.json` edited (hire 2,500, payroll 175, assembly 65,000): the page quoted those.
+  Screenshots in `docs/ab-1430/`.
+
+## What's now true (AB#1336, Builder #3)
+
+- **Names shown to players come from `public/scripts/displayNames.js`** (server and client alike): `systemName`,
+  `stationName`, `beltPlace` and `beltPhrase`, all read from the catalogs. Use it for any new message.
+  `tests/unit/displayNames.test.js` scans the route and tick files for a message that interpolates an id or key.
+  Flaky test filed, not fixed: **AB#2015** (`socket-rooms.test.js`, fixed 300ms windows).
+
+## What's now true (AB#1295, Builder #3)
+
+- A returning expedition's notification and inbox report name the belt, its system and the deposit station
+  (`server/expeditionText.js`), not ids. `e2e/expedition-return.spec.js` seeds an expedition that finishes seconds after
+  start (`e2e/seed-expedition-account.mjs`), which is reusable for anything that needs a completed expedition.
+  AB#1336, internal ids in other notifications, is still open.
+
 ## What's now true (AB#1326 — system-view orbits fit the height, Builder #1)
 
 - `systemViewLayout`'s `orbitLimit` also fits the height (`h / 2 - 76`), so on desktop and tablet canvases the outer

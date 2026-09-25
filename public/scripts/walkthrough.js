@@ -22,6 +22,17 @@
 // the suite instead of silently highlighting nothing, and asserts the order by id. The last step's
 // `handoffContractId` is the contract she promises; server/gameState.js FIRST_CONTRACT_ID guarantees a new
 // corporation is offered it.
+//
+// AB#1430: the hire and yard prices are read from the economy the page loaded (walkthroughUi.js hands it over before it
+// draws a step), not typed here, so a balance change to data/economy.json reaches this copy too.
+import { clientPrices } from "./clientPrices.js";
+
+let prices = clientPrices(undefined);
+export function setWalkthroughEconomy(economy) {
+  prices = clientPrices(economy);
+}
+const credits = (value) => `$${value.toLocaleString("en-US")}`;
+
 export const WALKTHROUGH_STEPS = [
   {
     id: "licence",
@@ -53,7 +64,9 @@ export const WALKTHROUGH_STEPS = [
     selector: '[data-building-action="building:orbital-executive-suites"]',
     renderedBy: "stationBuildingCardsHtml",
     title: "Staff",
-    text: "With the lease active, hire in the Workforce panel of the same suites. Each hire costs $2,000 and adds $150 a day to payroll. The ISA requires five employees on payroll for each mining lease you hold, so hire at least five.",
+    get text() {
+      return `With the lease active, hire in the Workforce panel of the same suites. Each hire costs ${credits(prices.hireCost)} and adds ${credits(prices.payrollPerDay)} a day to payroll. The ISA requires five employees on payroll for each mining lease you hold, so hire at least five.`;
+    },
     tab: "station",
     actionSelectors: ['[id="office-hire-form"]']
   },
@@ -71,7 +84,9 @@ export const WALKTHROUGH_STEPS = [
     selector: '[data-building-action="building:isa-claims-leases"]',
     renderedBy: "stationBuildingCardsHtml",
     title: "Equipment",
-    text: "In the same office, open your Earth lease with Manage Lease and commission a Basic Extractor Yard for $50,000. A lease without equipment is paperwork.",
+    get text() {
+      return `In the same office, open your Earth lease with Manage Lease and commission a Basic Extractor Yard for ${credits(prices.extractorYardCost)}. A lease without equipment is paperwork.`;
+    },
     tab: "station",
     actionSelectors: ['[id="lease-build-extractor-btn"]', ".lease-manage-btn"]
   },
