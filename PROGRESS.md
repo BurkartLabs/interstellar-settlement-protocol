@@ -9,12 +9,13 @@ extension-less — then ISP-66 (AB#755), below; #4 did ISP-278 (AB#985), ISP-279
 priority order; #1 (this pane) then did AB#1049 (research.json as the only research-tree definition), then
 AB#1759 (one primary button on login/register). A Salvage Assignment session landed AB#1789 while the below
 was in progress. #10 (this pane, new, no CONTROL_URL by design) did AB#1754, then AB#1752, then AB#1806, then
-AB#1807, below. AB#1052 and ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension
-for their screens; AB#758 used it too, to look at a static mockup rather than the running game; AB#1049 and
-AB#1759 used it again, for Corporate R&D and for login/register respectively; AB#1752 and AB#1806 used it once
-more, fresh specs against a locally-started server; AB#1807 (no visible change) used it for a console-error
-smoke check instead. No CONTROL_URL / Chrome extension on any of these panes (Builder panes don't get one by
-design). See "Blind spot" below.**
+AB#1807, then AB#1744, below — Board directive received mid-AB#1744, holding after this item lands. AB#1052 and
+ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension for their screens; AB#758
+used it too, to look at a static mockup rather than the running game; AB#1049 and AB#1759 used it again, for
+Corporate R&D and for login/register respectively; AB#1752 and AB#1806 used it once more, fresh specs against a
+locally-started server; AB#1807 (no visible change) used it for a console-error smoke check instead; AB#1744 is
+a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on any of these panes (Builder panes
+don't get one by design). See "Blind spot" below.**
 
 ## What's now true (this session: AB#1752, Builder #10)
 
@@ -49,6 +50,24 @@ design). See "Blind spot" below.**
     gitignored, not committed).
   - Checks: `node --check public/scripts/app.js` and `npm run check` both clean. `npm test` — **159 files, 1,777
     tests, all passed** (1,583 baseline on `origin/main` after AB#1754 merged + 194 new, `domTargets.test.js`).
+
+## What's now true (this session: AB#1744, Builder #10)
+
+- **AB#1744 is done: the construct-assembly flake is fixed.** `tests/integration/construct-assembly.test.js`'s
+  `settle()` was a flat `new Promise(r => setTimeout(r, 50))` — a wall-clock guess for whether the click
+  handler's own `await request(...)` had resolved, so it reliably missed under load (reproduced twice, live, by
+  this session's own full-suite runs while working AB#1754 and AB#1807 — not a hypothetical).
+  - `playerPage`'s `request` handler now records the actual in-flight request promise (`pending`) the moment it
+    is called; `settle()` awaits that promise instead of a timer. Because `bindFacilityGrid`'s own
+    `await request(...)` attaches its continuation (the one that calls `onBuilt`/`onError`) to that same promise
+    *before* the test's `await settle()` does, JS's microtask ordering guarantees `onBuilt`/`onError` has always
+    fired by the time `settle()` resolves — deterministic, not a longer guess.
+  - Applied everywhere `settle()` was called (5 of 8 tests): each now destructures `settle` from `playerPage`'s
+    return value instead of using the removed module-level timer function.
+  - **Verified rather than assumed fixed**: `npx vitest run tests/integration/construct-assembly.test.js` alone
+    (10/10), then `npm test` **three times in a row, full suite, 159 files / 1,777 tests each time, all green**
+    — the exact repro conditions (full-suite load) that reproduced the flake twice earlier this session.
+  - Checks: `npm run check` clean.
 
 ## What's now true (this session: AB#1807, Builder #10)
 
@@ -820,11 +839,14 @@ a Builder pane without the Chrome extension.
   state under test would need disproportionate grinding to reach by fresh play) for the established shapes.
   Each has its own unmet predecessor as of 2026-09-25 (AB#757 wants the CSP story above; AB#987/989 want AB#757
   and AB#781 respectively) — check state before claiming.
-- **AB#1767** (a flaky test, possibly related to AB#1744) is filed, Proposed, unclaimed — non-visual fallback.
-- **AB#1806 and AB#1807 are both done** (this session and the one before it, above). `domTargets.test.js`'s
+- **AB#1744 is done** (this session, above). **AB#1767** (a different flaky test, `ticker-mining-settle.test.js`
+  — check whether it shares AB#1744's shape before assuming a separate cause) is filed, Proposed, unclaimed.
+- **AB#1806 and AB#1807 are both done** (two sessions before this one, above). `domTargets.test.js`'s
   `KNOWN_ORPHANED` allowlist is empty and has been simplified away — the three findings from AB#1752's own
   general regression test are all closed out.
-- Multiple Builder panes are working ISP at once — check ADO for what's Active before claiming.
+- **Board directive received mid-AB#1744 (2026-09-25): every pane holds after its current item lands, nothing
+  new claimed, ahead of an upcoming code change.** This pane (#10) is holding. Multiple Builder panes are
+  working ISP at once — check ADO for what's Active before claiming, once holds are lifted.
 
 ## In flight / blocked
 
@@ -837,7 +859,7 @@ Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-bo
 (`design/758-flat-station`, PR !454), AB#1789's (`agent/1789-salvage-assignment`, PR !458), AB#1754's
 (`fix/1754-economy-model`, PR !462), AB#1791's (`agent/1791-salvage-display`, PR !466), AB#1792's (probe
 `--broke` scenario, per OPS), AB#1752's (`fix/1752-milestone-list`, PR !469), AB#1806's
-(`fix/1806-mine-cycle-list`, PR !473) and AB#1794's (`fix/1794-luna-lease-not-a-bug`, PR !474 — test-only, no
-production code changed) are all merged. This session's (AB#1807) branch is `fix/1807-dead-login-panel`, PR to
-be opened next and set to auto-complete. Multiple Builder panes are active on ISP at once — check ADO state
-before claiming the next item.
+(`fix/1806-mine-cycle-list`, PR !473), AB#1794's (`fix/1794-luna-lease-not-a-bug`, PR !474 — test-only, no
+production code changed) and AB#1807's (`fix/1807-dead-login-panel`, PR !479) are all merged. This session's
+(AB#1744) branch is `fix/1744-construct-assembly-flake`, PR to be opened next and set to auto-complete.
+**Holding after this per Board directive — not claiming another item.**
