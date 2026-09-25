@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState, getAccountById } from "../../server/gameState.js";
-import { stationHops, transferFee } from "../../public/scripts/logistics.js";
+import { stationHops, transferFee, transitMinutes } from "../../public/scripts/logistics.js";
 
 // AB#718: the transfer fee grows with distance. The Logistics tab quotes it from the rates GET /api/stations sends,
 // with the shared function, and the server charges exactly that. Nothing the client sends sets the fee.
@@ -32,15 +32,29 @@ describe("transfer fees by distance (AB#718)", () => {
     const quote = (from, units) => transferFee(catalog.logistics, stationHops(catalog.stations, from, "earth-station-prime"), [{ quantity: units }]);
     expect(quote("mars-orbital-dock", 120)).toBe(240);
     expect(quote("kestrel-platform", 130)).toBe(1430);
+    // ISP-279 (AB#986): the quoted arrival time, computed the same way the Logistics tab computes it.
+    const quoteMinutes = (from) => transitMinutes(catalog.logistics, stationHops(catalog.stations, from, "earth-station-prime"));
+    expect(quoteMinutes("mars-orbital-dock")).toBe(30); // same system: sameSystemTransitMinutes
+    expect(quoteMinutes("kestrel-platform")).toBe(390); // 3 jumps: 30 + 120*3
 
+    const dispatchedAt1 = Date.now();
     expect((await transfer({ fromStationId: "mars-orbital-dock", lines: [{ item: "Silicates", quantity: 120 }] })).status).toBe(200);
     expect(corp().finances.credits).toBe(10_000 - 240);
+    const dispatchedAt2 = Date.now();
     expect((await transfer({ fromStationId: "kestrel-platform", lines: [{ item: "Silicates", quantity: 100 }, { item: "Nickel", quantity: 30 }] })).status).toBe(200);
     const c = corp();
     expect(c.finances.credits).toBe(10_000 - 240 - 1430);
     expect(c.finances.expensesByCategory["transfer-fees"]).toBe(1670);
     // AB#985: the fee is charged at dispatch, but delivery is a shipment that arrives on a later tick.
-    expect(c.shipments[0]).toMatchObject({ fromStationId: "kestrel-platform", toStationId: "earth-station-prime", fee: 1430 });
+    const marsShipment = c.shipments.find((s) => s.fromStationId === "mars-orbital-dock");
+    const kestrelShipment = c.shipments.find((s) => s.fromStationId === "kestrel-platform");
+    expect(marsShipment).toMatchObject({ toStationId: "earth-station-prime", fee: 240 });
+    expect(kestrelShipment).toMatchObject({ toStationId: "earth-station-prime", fee: 1430 });
+    // The server's arrival time equals the quote (within a second of scheduling jitter either side).
+    expect(marsShipment.arrivesAt - marsShipment.dispatchedAt).toBe(quoteMinutes("mars-orbital-dock") * 60_000);
+    expect(kestrelShipment.arrivesAt - kestrelShipment.dispatchedAt).toBe(quoteMinutes("kestrel-platform") * 60_000);
+    expect(marsShipment.dispatchedAt).toBeGreaterThanOrEqual(dispatchedAt1);
+    expect(kestrelShipment.dispatchedAt).toBeGreaterThanOrEqual(dispatchedAt2);
     expect(c.inventory["earth-station-prime"]).toEqual({});
     expect(c.inventory["mars-orbital-dock"]).toEqual({});
     expect(c.inventory["kestrel-platform"]).toEqual({});
