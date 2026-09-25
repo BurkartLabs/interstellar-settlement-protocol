@@ -39,8 +39,11 @@ describe("transfer fees by distance (AB#718)", () => {
     const c = corp();
     expect(c.finances.credits).toBe(10_000 - 240 - 1430);
     expect(c.finances.expensesByCategory["transfer-fees"]).toBe(1670);
-    expect(c.logisticsHistory[0]).toMatchObject({ from: "kestrel-platform", to: "earth-station-prime", fee: 1430 });
-    expect(c.inventory["earth-station-prime"]).toMatchObject({ Silicates: 220, Nickel: 30 });
+    // AB#985: the fee is charged at dispatch, but delivery is a shipment that arrives on a later tick.
+    expect(c.shipments[0]).toMatchObject({ fromStationId: "kestrel-platform", toStationId: "earth-station-prime", fee: 1430 });
+    expect(c.inventory["earth-station-prime"]).toEqual({});
+    expect(c.inventory["mars-orbital-dock"]).toEqual({});
+    expect(c.inventory["kestrel-platform"]).toEqual({});
   });
 
   it("a fee, a price or a distance in the request changes nothing: the server computes them from the two stations", async () => {
@@ -48,7 +51,7 @@ describe("transfer fees by distance (AB#718)", () => {
     const res = await transfer({ fromStationId: "kestrel-platform", fee: 0, hops: 0, feePerUnit: 0, toStationId: "kestrel-platform", lines: [{ item: "Nickel", quantity: 10, fee: 0 }] });
     expect(res.status).toBe(200);
     expect(corp().finances.credits).toBe(10_000 - 110);
-    expect(corp().logisticsHistory[0]).toMatchObject({ to: "earth-station-prime", fee: 110 });
+    expect(corp().shipments[0]).toMatchObject({ toStationId: "earth-station-prime", fee: 110 });
   });
 
   it("refuses an unknown station, a fraction, more than is held, a huge number and an unpayable fee, changing nothing", async () => {

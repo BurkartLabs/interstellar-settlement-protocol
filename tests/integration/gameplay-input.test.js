@@ -19,6 +19,8 @@ const BASELINE = {
   "POST /renew-office": { body: { stationId: "earth-station-prime", durationDays: 7 } },
   "POST /purchase-lease": { body: { body: "Mars" } },
   "POST /transfer-resources": { body: { fromStationId: "mars-orbital-dock", lines: [{ item: "Silicates", quantity: 1 }] } },
+  "GET /shipments": {},
+  "GET /shipments/:shipmentId": { params: { shipmentId: "shp-731" } },
   "POST /travel": { body: { toStationId: "mars-orbital-dock" } },
   "POST /lease/:leaseId/build-extractor": { params: { leaseId: "lease-731" } },
   "POST /lease/:leaseId/start-mining": { params: { leaseId: "lease-731" }, body: { amount: 40, hours: 24, extractorId: "ext-731" } },
@@ -133,11 +135,25 @@ describe("every gameplay route has input checks (AB#731)", async () => {
   });
 });
 
+/**
+ * Whether the input check must itself refuse this value. Catalog ids, numbers and choices refuse everything in the
+ * table; a `ref` (an id the route looks up and 404s for itself, e.g. shipmentId) only refuses empty or oversized —
+ * "abc" is a well-formed id the check lets through, for the route to answer 404 on (tested separately below).
+ */
+function checkRefuses(key, name, where, value) {
+  const entry = GAMEPLAY_INPUT[key];
+  if (entry.custom === "transfer") return true; // transfer's bespoke fields always refuse in this table
+  const spec = entry.oneOf?.[name] || entry.params?.[name] || entry.body?.[name];
+  if (value === undefined) return !spec.optional;
+  const sent = where === "body" ? value : String(value); // params arrive as strings (encodeURIComponent)
+  return spec.kind !== "ref" || typeof sent !== "string" || sent.length > 64 || sent.trim() === "";
+}
+
 describe("hostile input is refused before anything changes (AB#731)", async () => {
   const player = await playerWithEverything();
   const labels = Object.values(GAMEPLAY_INPUT).flatMap((e) => [...Object.values(e.body || {}), ...Object.values(e.params || {}), ...Object.values(e.oneOf || {})]).map((s) => s.label);
   const cases = Object.keys(GAMEPLAY_INPUT).flatMap((key) => fieldsOf(key).flatMap(([where, name, optional]) =>
-    HOSTILE.filter(([label]) => !(optional && label === "a missing field")).map(([label, value]) => [key, name, label, where, value])));
+    HOSTILE.filter(([label]) => !(optional && label === "a missing field")).filter(([, value]) => checkRefuses(key, name, where, value)).map(([label, value]) => [key, name, label, where, value])));
 
   it("covers every field of every route", () => {
     expect(cases.length).toBeGreaterThan(150);
@@ -157,6 +173,13 @@ describe("hostile input is refused before anything changes (AB#731)", async () =
     const res = await player.send(key, BASELINE[key]);
     // The route may still refuse on the game's rules (credits, slots); it must not be the input check refusing.
     if (res.status === 400) expect(labels.some((l) => String(res.body.error).includes(l)), `${key}: ${res.body.error}`).toBe(false);
+  });
+
+  it("GET /shipments/:shipmentId: a well-formed id that does not exist is left to the route, and nothing changes", async () => {
+    const before = player.state();
+    const res = await player.send("GET /shipments/:shipmentId", { params: { shipmentId: "shp-does-not-exist" } });
+    expect(res.status).toBe(404);
+    expect(player.state()).toBe(before);
   });
 
   it("a request with no login is refused before its input is read", async () => {

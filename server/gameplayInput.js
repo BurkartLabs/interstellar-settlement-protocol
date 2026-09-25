@@ -48,6 +48,8 @@ export const GAMEPLAY_INPUT = {
   },
   "POST /purchase-lease": { body: { body: id("leaseBodies", "a celestial body the ISA leases") } },
   "POST /transfer-resources": { custom: "transfer" },
+  "GET /shipments": NOTHING,
+  "GET /shipments/:shipmentId": { params: { shipmentId: ref("a shipment") } },
   "POST /travel": { oneOf: { toSystemId: id("systems", "a star system"), toStationId: id("stations", "a station") } },
   "POST /lease/:leaseId/build-extractor": { params: { leaseId: id("ownLeases", "one of your mining leases") } },
   "POST /lease/:leaseId/start-mining": {

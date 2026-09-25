@@ -1444,7 +1444,10 @@ app.post("/api/accounts/:accountId/gameplay/purchase-lease", (req, res) => {
 
 // AB#717: transfers carry up to 10 lines, all or nothing, into corp.logisticsHistory. The rules, the fee and the
 // error copy live in public/scripts/logistics.js, which the Logistics tab reads too; imported here beside its use.
-import { parseTransferRequest, planTransfer, recordTransfer } from "../public/scripts/logistics.js";
+// AB#985 (ISP-278): dispatch no longer delivers on the spot. transitTime (server/transfers.js, dead since AB#718)
+// gives the arrival time; shipmentTick below delivers on the tick it is reached, the way travelTick delivers travel.
+import { parseTransferRequest, planTransfer, recordTransfer, describeLines } from "../public/scripts/logistics.js";
+import { transitTime } from "./transfers.js";
 
 app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
   const request = parseTransferRequest(req.body);
@@ -1454,6 +1457,7 @@ app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
   }
 
   let refusal = null;
+  let dispatched = null;
   const account = mutateAccountState(req.params.accountId, (state) => {
     const corp = state.corp;
     const toStationId = corp.currentStationId || null;
@@ -1465,18 +1469,33 @@ app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
       refusal = plan.error; // nothing has moved
       return;
     }
+    // Client-supplied arrival time, if any, is never read: the server always derives it from the two stations.
+    const minutes = transitTime(request.fromStationId, toStationId);
+    if (minutes === null) {
+      refusal = "No shipping route joins those stations."; // planTransfer already validated both stations, so this is defensive
+      return;
+    }
 
     const fromInv = getStationInventory(corp, request.fromStationId);
-    const toInv = getStationInventory(corp, toStationId);
     for (const { item, quantity } of request.lines) {
       fromInv[item] -= quantity;
       if (fromInv[item] <= 0) delete fromInv[item];
-      toInv[item] = (toInv[item] || 0) + quantity;
     }
     applyCredits(corp, -plan.fee, "transfer-fees");
-    corp.logisticsHistory = recordTransfer(corp.logisticsHistory, {
-      time: Date.now(), from: request.fromStationId, to: toStationId, lines: request.lines, fee: plan.fee
-    });
+
+    const now = Date.now();
+    dispatched = {
+      id: `shp-${randomUUID()}`,
+      fromStationId: request.fromStationId,
+      toStationId, // pinned at dispatch (Bug #692's lesson: never re-read "wherever the corp is" at delivery time)
+      lines: request.lines,
+      fee: plan.fee,
+      dispatchedAt: now,
+      arrivesAt: now + minutes * 60_000,
+      status: "in-transit"
+    };
+    if (!Array.isArray(corp.shipments)) corp.shipments = [];
+    corp.shipments.unshift(dispatched);
   });
 
   if (!account) {
@@ -1487,8 +1506,81 @@ app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
     res.status(400).json({ error: refusal });
     return;
   }
-  res.json(account);
+  res.json({ ...account, shipment: dispatched });
 });
+
+app.get("/api/accounts/:accountId/gameplay/shipments", (req, res) => {
+  const account = getAccountById(req.params.accountId);
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+  res.json({ shipments: Array.isArray(account.state.corp.shipments) ? account.state.corp.shipments : [] });
+});
+
+app.get("/api/accounts/:accountId/gameplay/shipments/:shipmentId", (req, res) => {
+  const account = getAccountById(req.params.accountId);
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+  const shipment = (account.state.corp.shipments || []).find((s) => s.id === req.params.shipmentId);
+  if (!shipment) {
+    res.status(404).json({ error: "Shipment not found." });
+    return;
+  }
+  res.json(shipment);
+});
+
+// ─── Shipment arrival tick ────────────────────────────────────────────────────
+// Mirrors travelTick: goods dispatched above arrive here, on the first tick at or after arrivesAt, exactly once
+// (delivered shipments are dropped from corp.shipments in the same pass that credits the destination).
+function shipmentTick() {
+  const now = Date.now();
+  for (const accountId of getAllAccountIds()) {
+    const outcomes = []; // { shipment, delivered }
+
+    mutateAccountState(accountId, (state) => {
+      const corp = state.corp;
+      if (!Array.isArray(corp.shipments) || corp.shipments.length === 0) return;
+
+      for (const shipment of corp.shipments) {
+        if (shipment.status !== "in-transit" || now < shipment.arrivesAt) continue;
+
+        const destination = STATION_REGISTRY[shipment.toStationId];
+        if (!destination) {
+          // The destination is no longer in the catalog (a decommissioned station). Nothing is destroyed: the
+          // shipment stays held rather than delivered or dropped, for the Board to resolve.
+          shipment.status = "held";
+          outcomes.push({ shipment, delivered: false });
+          continue;
+        }
+
+        const toInv = getStationInventory(corp, shipment.toStationId);
+        for (const { item, quantity } of shipment.lines) {
+          toInv[item] = (toInv[item] || 0) + quantity;
+        }
+        corp.logisticsHistory = recordTransfer(corp.logisticsHistory, {
+          time: now, from: shipment.fromStationId, to: shipment.toStationId, lines: shipment.lines, fee: shipment.fee
+        });
+        shipment.status = "delivered";
+        outcomes.push({ shipment, delivered: true });
+      }
+
+      corp.shipments = corp.shipments.filter((s) => s.status !== "delivered");
+    }, { sanitize: false, settleMining: false });
+
+    for (const { shipment, delivered } of outcomes) {
+      const destinationName = STATION_REGISTRY[shipment.toStationId]?.name || shipment.toStationId;
+      const notification = addAccountNotification(accountId, delivered
+        ? { type: "logistics", title: "Shipment Received", body: `${describeLines(shipment.lines)} has arrived at ${destinationName}.` }
+        : { type: "logistics", title: "Shipment Held", body: `A shipment bound for ${destinationName} could not be delivered: the destination is not recognized. Reference number: ${shipment.id}.` });
+      if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
+    }
+  }
+}
+
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(shipmentTick, 5000); // Every 5 seconds
 
 // Bug #1270 (placed here, apart from the navigation.js import at the top that open PRs edit)
 import { travelResearchLock } from "../public/scripts/navigation.js";
@@ -3549,6 +3641,7 @@ export {
   asteroidExpeditionTick,
   fabricationTick,
   travelTick,
+  shipmentTick,
   processRndCompletions,
   processCeoInsightCompletions,
   checkAndResetNpcBuyOrders,
