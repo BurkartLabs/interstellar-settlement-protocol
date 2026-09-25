@@ -18,6 +18,13 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#2073 — the first lease's staffing refusal, Builder)
+
+- `purchase-lease`'s staffing refusal says "a mining lease" for the first and "an additional mining lease" only once
+  one is held, and now says how many to hire and where ("Hire N more at the Orbital Executive Suites, then file
+  again."). Tested both ways in `tests/integration/purchase-lease.test.js`. No screen shows it in normal play: the
+  claims office disables the button and shows its own hint first.
+
 ## What's now true (AB#746, ISP-60 — a running cycle shows its accumulation, Builder)
 
 - The server keeps `spentThisCycle` beside `minedThisCycle`: the startup cost at `startExtractorCycle`, plus what
