@@ -5,6 +5,10 @@ import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState, getAccountById } from "../../server/gameState.js";
 import { renderStationFacilities, facilityCardsHtml, constructBlocker } from "../../public/scripts/stationFacilities.js";
+import { ECONOMY } from "../../server/economy.js";
+
+// AB#1430: the page passes the server's price (GET /api/bootstrap); so do these tests.
+const COST = ECONOMY.buildings.assemblyFacilityCost;
 
 // Bug #1253: Construct Assembly Facility was drawn into #station-facility-buildings and its listener was looked up in
 // #station-player-buildings, so a click did nothing and no request was sent. A test that only drives the route could
@@ -59,7 +63,7 @@ function playerPage(p, overrides = {}) {
     onError: (error) => events.errors.push(error.message),
     ...overrides
   };
-  renderStationFacilities(doc, p.corp(), handlers);
+  renderStationFacilities(doc, p.corp(), handlers, COST);
   const settle = () => pending.catch(() => {});
   return { doc, sent, events, handlers, settle };
 }
@@ -129,8 +133,8 @@ describe("Construct Assembly Facility (Bug #1253)", () => {
   it("re-rendering does not stack handlers: one click after three renders is still one request", async () => {
     const p = await researcher();
     const { doc, sent, handlers, settle } = playerPage(p);
-    renderStationFacilities(doc, p.corp(), handlers);
-    renderStationFacilities(doc, p.corp(), handlers);
+    renderStationFacilities(doc, p.corp(), handlers, COST);
+    renderStationFacilities(doc, p.corp(), handlers, COST);
     doc.getElementById("build-assembly-btn").click();
     await settle();
     expect(sent).toHaveLength(1);
@@ -163,7 +167,14 @@ describe("Construct Assembly Facility (Bug #1253)", () => {
   });
 
   it("with exactly enough credits and a free slot, nothing blocks it", () => {
-    expect(constructBlocker({ buildings: [{ name: "Headquarters" }], buildingSlots: 2, finances: { credits: 60_000 } })).toBe("");
+    expect(constructBlocker({ buildings: [{ name: "Headquarters" }], buildingSlots: 2, finances: { credits: COST } }, COST)).toBe("");
+  });
+
+  // AB#1430: with no price loaded the card cannot quote one, so it says so and Construct stays disabled.
+  it("with no price loaded, the card says so instead of guessing one", () => {
+    const html = facilityCardsHtml({ unlockedTech: ["tt-assembly-fabrication"], buildings: [], finances: { credits: 1e9 } });
+    expect(html).toContain("The price has not loaded; reload the page.");
+    expect(html).toMatch(/id="build-assembly-btn"[^>]* disabled/);
   });
 
   it("without the research there is nothing to construct, and the section stays hidden", () => {
