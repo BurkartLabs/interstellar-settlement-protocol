@@ -1809,6 +1809,13 @@ function renderLeaseManagement(building, lease, data) {
         <p class="muted action-hint lease-mine-status" data-for="${escapeHtml(ex.id)}"></p>`
       : "";
 
+    // AB#1052: a Stop control on a running cycle (including one paused in downtime, since that is still
+    // extractor.active — see server/game/mining.js). It ends the cycle now, keeping what has been mined.
+    const stopButtonHtml = ex.active
+      ? `<button type="button" class="btn btn-outline btn-sm lease-stop-btn" data-extractor-id="${escapeHtml(ex.id)}" data-extractor-name="${escapeHtml(ex.name)}" style="margin-top:0.5rem;">Stop Cycle</button>
+        <p class="muted action-hint lease-stop-status" data-for="${escapeHtml(ex.id)}"></p>`
+      : "";
+
     const mineFormVisible = !ex.active && !ex.downtimeActive;
     extractorRows += `
       <div class="extractor-row ${statusClass}" data-live-ex="${escapeHtml(ex.id)}" data-live-state="${extractorState(ex)}">
@@ -1819,6 +1826,7 @@ function renderLeaseManagement(building, lease, data) {
         ${ex.downtimeActive ? cycleInfo : (ex.active ? "" : cycleInfo)}
         ${progressBarHtml}
         ${mineFormVisible ? mineFormHtml : ""}
+        ${ex.active ? stopButtonHtml : ""}
       </div>
     `;
   }
@@ -2002,6 +2010,67 @@ function bindLeaseManagementActions(building, lease, data) {
       } catch (err) {
         if (submitBtn) submitBtn.disabled = false;
         if (statusEl) statusEl.textContent = err.message || "Mining cycle failed to start.";
+      }
+    });
+  });
+
+  // AB#1052: stop a running cycle early, keeping what has been mined and settling the cost for the time used.
+  document.querySelectorAll(".lease-stop-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const extractorId = btn.getAttribute("data-extractor-id");
+      const extractorName = btn.getAttribute("data-extractor-name") || "This extractor";
+      const statusEl = document.querySelector(`.lease-stop-status[data-for="${CSS.escape(extractorId)}"]`);
+
+      const confirmed = await showTradeConfirmation({
+        heading: "Stop Mining Cycle",
+        title: `Stop ${extractorName}?`,
+        confirmLabel: "Stop Cycle",
+        rows: [
+          { label: "Extractor", value: extractorName },
+          { label: "What happens", value: "Ends the cycle now. Silicates mined so far are kept; running costs stop." }
+        ]
+      });
+      if (!confirmed) return;
+
+      btn.disabled = true;
+      if (statusEl) statusEl.textContent = "Stopping mining cycle...";
+
+      try {
+        if (appState.accountId) {
+          const response = await apiFetch(
+            `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/lease/${encodeURIComponent(lease.id)}/stop-mining`,
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ extractorId }) }
+          );
+          const account = await parseJsonResponse(response);
+          appState.data = deepClone(account.state);
+          appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+          updateAllViews();
+          renderBuildingDetail(building, appState.data);
+        } else {
+          // Demo fallback: settle the elapsed time the same way the server would, then stop.
+          const corp = appState.data.corp;
+          const ex = corp.mining.silicateExtractors.find((e) => e.id === extractorId);
+          if (!ex) throw new Error("Extractor not found.");
+          if (!ex.active) throw new Error("This extractor has no mining cycle running.");
+          const now = Date.now();
+          const elapsedHours = Math.max(0, (Math.min(now, ex.endsAt || now) - (ex.lastTickAt || ex.startedAt || now)) / 3_600_000);
+          const mined = Math.floor(elapsedHours * (ex.throughputPerHour || 0));
+          const cost = Math.floor(elapsedHours * (ex.operationCostPerHour || 0));
+          ex.minedThisCycle = (ex.minedThisCycle || 0) + mined;
+          ex.totalMined = (ex.totalMined || 0) + mined;
+          corp.finances.credits = Math.max(0, (corp.finances.credits || 0) - cost);
+          ex.totalSpent = (ex.totalSpent || 0) + cost;
+          ex.active = false;
+          ex.endsAt = now;
+          ex.lastTickAt = now;
+          ex.lastCompletedAt = now;
+          updateAllViews();
+          renderBuildingDetail(building, appState.data);
+        }
+        pushFeedback("Mining cycle stopped.", "success");
+      } catch (err) {
+        btn.disabled = false;
+        if (statusEl) statusEl.textContent = err.message || "Could not stop the mining cycle.";
       }
     });
   });
