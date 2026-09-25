@@ -18,6 +18,19 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (ISP-92 and ISP-93, AB#782 and AB#783 — the player building catalogue, Builder #4)
+
+- `docs/design/buildings.md` lists every player building type found, with file:line, and fixes the data shape.
+  Headquarters is not a building yet, and Refinery Annex is the Refinery's old name. Proposed effects for the three
+  designed buildings wait on the Board or PM.
+- `data/player-buildings.json` holds the Basic Extractor Yard, Assembly Facility and Refinery, loaded by
+  `server/playerBuildings.js`. Each entry names its price, which stays in `data/economy.json` (the balance file,
+  AB#726). The three build routes read cost, asset value, research and cap from it through `catalogueRefusal`, and
+  `PLAYER_BUILDINGS` is its names. `/api/bootstrap` serves it as `playerBuildings`.
+- **A new building is an entry plus a route**, and `tests/schema/player-buildings.test.js` fails if the entry names
+  research that does not exist or a milestone names a building it lacks.
+- `tests/integration/player-buildings-parity.test.js` pins every cost, asset, slot and refusal the routes had
+  before the move. It passed on main before the change and passes after.
 ## What's now true (AB#744, ISP-58 — the confirmation modal on every committing action, Builder #3)
 
 - **Every POST under /gameplay/ and on the exchange either answers with a `receipt` or is exempt with a reason.**
