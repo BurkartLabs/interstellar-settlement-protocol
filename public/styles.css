@@ -2281,10 +2281,12 @@ textarea {
   }
 }
 
-/* While the briefing is up the page can scroll anything clear of the card (app.js sets the height it measures), so the
-   card never hides for good what it is describing. */
-body.walkthrough-open {
-  padding-bottom: var(--walkthrough-card-height, 22rem);
+/* While the briefing is up the page can scroll anything clear of the card (walkthroughUi.js sets the height it
+   measures), so the card never hides for good what it is describing. AB#1756: the room goes under the layout grid, not
+   the body: #game-shell is 100vh tall and the grid overflows it, so body padding landed inside the overflow and added
+   no scroll room once a page was taller than the screen (step 3's lease button stayed under the card). */
+body.walkthrough-open .layout-grid {
+  padding-bottom: calc(1rem + var(--walkthrough-card-height, 22rem));
 }
 
 .walkthrough-focus {
