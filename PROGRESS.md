@@ -33,6 +33,13 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 - **Filed, not fixed: AB#1870** — the claims office offers a lease with an office anywhere; the server (AB#1124)
   wants one at that station. Visible in `docs/ab-1202/03-mars-claims-office.png`.
 
+## What's now true (AB#1269 — building copy names only its own station, Builder #1)
+
+- The Orbital Executive Suites' flavour line is station-neutral ("a registered office here tells the ISA"), since the
+  Suites stand at all eight stations. `tests/unit/buildingCopyStations.test.js` fails if any building's text names a
+  station the building is not confined to. `e2e/suites-flavor.spec.js` (seed: `e2e/seed-docked-account.mjs <station>`)
+  looks at the card docked at Mars; screenshots in `docs/ab-1269/`.
+
 ## What's now true (AB#1825, Builder #4)
 
 - The no-account branch of the rent-office handler no longer throws (`currentBody` was undeclared there). **Every
