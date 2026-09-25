@@ -13,6 +13,11 @@
   --panel-border: rgba(0, 247, 255, 0.18);
   --danger: #f06a77;
 
+  /* AB#1760: the keyboard-focus ring. Every interactive element draws it, through the one rule under "Focus and
+     motion"; nothing else sets an outline for focus. */
+  --focus-ring: 2px solid var(--electric-cyan);
+  --focus-ring-offset: 2px;
+
   /* Semantic aliases used throughout the stylesheet */
   --accent: var(--electric-cyan);
   --text: var(--text-main);
@@ -36,6 +41,33 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* ─── Focus and motion (AB#1760, ISP-291) ─── */
+/* Keyboard focus is visible on every element that can take it, from one token: buttons, links, inputs, tabs, and the
+   scrolling tables Chromium makes tab stops of their own. :focus-visible, so a mouse click on a button draws no ring
+   while a text field shows it whenever it has focus, which is how browsers treat them. */
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* A player whose system asks for less motion gets none: every animation and transition finishes at once, and smooth
+   scrolling jumps. 0.01ms rather than none, so a script waiting for animationend or transitionend still hears it.
+   !important because it must beat every animation rule in this file; tests/unit/focusAndMotion.test.js fails if
+   another animation or transition is ever marked !important. The typewriter, the starfield and the scripted scrolls
+   read the same query through public/scripts/motion.js. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 html,
@@ -455,7 +487,9 @@ body {
   border-radius: 6px;
   padding: clamp(0.65rem, 1.5vw, 0.85rem) clamp(1.4rem, 3vw, 2.2rem);
   cursor: pointer;
-  transition: all 0.22s ease;
+  /* AB#1760: the properties the hovers change, not `all`, which also animated the focus ring in from the browser's
+     own 3px outline in the text colour. */
+  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, color 0.22s ease, transform 0.22s ease;
   position: relative;
   overflow: hidden;
 }
@@ -580,7 +614,6 @@ body {
 }
 
 .login-form input:focus {
-  outline: none;
   border-color: rgba(0, 247, 255, 0.7);
   box-shadow: 0 0 0 2px rgba(0, 247, 255, 0.16);
 }
@@ -1545,7 +1578,6 @@ button:disabled {
 .chart-duration-picker:hover,
 .chart-duration-picker:focus {
   border-color: rgba(0, 247, 255, 0.6);
-  outline: none;
 }
 
 .chart-duration-picker option {
@@ -4579,7 +4611,9 @@ body.walkthrough-open .layout-grid {
 
 .mission-modal-card {
   position: relative;
-  width: min(640px, 94vw);
+  /* 100% of the backdrop's padded area, as .modal-card has since AB#585: 94vw is 352.5px at 375 wide, 9.5px more than
+     the space, and during modalSlideIn the card reached past the viewport's right edge (AB#1781). */
+  width: min(640px, 100%);
   max-height: 90vh;
   overflow-y: auto;
   border: 1px solid rgba(0, 247, 255, 0.25);
@@ -5378,10 +5412,7 @@ body.walkthrough-open .layout-grid {
   opacity: 1;
 }
 
-.mission-card:focus-visible {
-  outline: 2px solid var(--accent, #00f7ff);
-  outline-offset: 2px;
-}
+/* AB#1760: its keyboard ring comes from the one focus rule under "Focus and motion", like every other control. */
 
 /* Header row: type badge + risk badge */
 .mission-card-header {
@@ -5719,7 +5750,7 @@ tr.npc-order-exhausted {
 
 /* ─── Trade Confirmation Modal ─── */
 .trade-confirm-card {
-  width: min(480px, 94vw);
+  width: min(480px, 100%); /* not 94vw: the same overflow as AB#1781, inside .modal-backdrop's padding */
 }
 
 .trade-confirm-body {

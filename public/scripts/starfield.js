@@ -2,7 +2,12 @@
  * Starfield canvas — lightweight animated cosmic background.
  * Two star layers at different speeds for a subtle parallax feel.
  * Negligible CPU: uses requestAnimationFrame + single canvas.
+ *
+ * AB#1760: loaded as a module so it can ask motion.js whether the player wants reduced motion. If so, the stars are
+ * drawn once, still, and redrawn only when the window is resized.
  */
+import { prefersReducedMotion } from "./motion.js";
+
 (function () {
   const canvas = document.getElementById("starfield-canvas");
   if (!canvas) return;
@@ -32,6 +37,7 @@
     W = canvas.width  = window.innerWidth;
     H = canvas.height = window.innerHeight;
     buildStars();
+    if (prefersReducedMotion()) paint(false);
   }
 
   function buildStars() {
@@ -44,16 +50,19 @@
     });
   }
 
-  function draw(t) {
+  /** Draw every star once; `move` advances the drift and the twinkle first. */
+  function paint(move) {
     ctx.clearRect(0, 0, W, H);
 
     for (const s of stars) {
-      s.twinkle += s.twinkleSpeed;
-      // Very slow vertical drift
-      s.y -= s.speed;
-      if (s.y < -2) {
-        s.y = H + 2;
-        s.x = Math.random() * W;
+      if (move) {
+        s.twinkle += s.twinkleSpeed;
+        // Very slow vertical drift
+        s.y -= s.speed;
+        if (s.y < -2) {
+          s.y = H + 2;
+          s.x = Math.random() * W;
+        }
       }
 
       const alpha = s.opacity * (0.65 + 0.35 * Math.sin(s.twinkle));
@@ -62,7 +71,14 @@
       ctx.fillStyle = `rgba(200, 230, 255, ${alpha.toFixed(2)})`;
       ctx.fill();
     }
+  }
 
+  function draw() {
+    if (prefersReducedMotion()) {
+      paint(false);
+      return; // stop the loop; resize repaints the still field
+    }
+    paint(true);
     requestAnimationFrame(draw);
   }
 
