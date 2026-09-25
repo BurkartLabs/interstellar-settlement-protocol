@@ -185,9 +185,9 @@ export function renderMarket(data) {
           <tr>
             <td>${escapeHtml(name)}</td>
             <td>${Number(qty).toLocaleString()}</td>
-            <td><input class="sell-input" type="number" min="1" max="${Number(qty)}" value="1" data-sell-qty="${escapeHtml(name)}" /></td>
-            <td><input class="sell-input" type="number" min="1" value="${defaultPrice}" data-sell-price="${escapeHtml(name)}" /></td>
-            <td><button class="btn btn-accent" type="button" data-sell-item="${escapeHtml(name)}">Create Listing</button></td>
+            <td><input class="sell-input" type="number" min="1" max="${Number(qty)}" value="1" required data-sell-qty="${escapeHtml(name)}" /></td>
+            <td><input class="sell-input" type="number" min="1" value="${defaultPrice}" required data-sell-price="${escapeHtml(name)}" /></td>
+            <td><button class="btn btn-accent" type="button" data-sell-item="${escapeHtml(name)}">Create Listing</button><p class="listing-row-status" data-sell-status="${escapeHtml(name)}"></p></td>
           </tr>
         `;
         }
@@ -245,12 +245,48 @@ export function renderMarket(data) {
 
   // AB#1055: the action tables stack into one card per row at phone width; each cell carries its column's name
   document.querySelectorAll("#market .data-table--stack").forEach(labelTableCells);
+  paintListingStatus();
+}
+
+/**
+ * AB#2057: what Create Listing last said goes under the button that was pressed, in that item's row. It was one line
+ * below the whole table, out of sight once the player had scrolled to a row's button, so a refused price looked like
+ * a dead click. It lives in appState, so a redraw of the table keeps it. When that row is gone (the whole stock was
+ * listed), it goes in the line below the table.
+ */
+export function paintListingStatus() {
+  const status = appState.listingStatus;
+  const rows = [...document.querySelectorAll("#market-sell-grid [data-sell-status]")];
+  for (const el of rows) {
+    el.textContent = "";
+    el.className = "listing-row-status";
+    el.removeAttribute("role");
+  }
+  const below = document.getElementById("listing-status");
+  if (below) below.textContent = "";
+  if (!status) return;
+  const inRow = rows.find((el) => el.getAttribute("data-sell-status") === status.item);
+  const target = inRow || below;
+  if (!target) return;
+  target.textContent = status.text;
+  if (inRow) {
+    inRow.className = `listing-row-status listing-row-status--${status.tone === "ok" ? "ok" : "error"}`;
+    inRow.setAttribute("role", status.tone === "ok" ? "status" : "alert");
+  }
+  if (status.reveal) {
+    status.reveal = false; // only when it is first said, not on every redraw
+    target.scrollIntoView({ block: "nearest" });
+  }
+}
+
+function sayListing(item, tone, text) {
+  appState.listingStatus = { item, tone, text, reveal: true };
+  paintListingStatus();
 }
 
 /** Galactic Exchange: selling, taking a listing down, buying, the filters, and selling to NPC buy orders. */
 export function bindExchangeForms() {
   const sellGrid = document.getElementById("market-sell-grid");
-  const listingStatus = document.getElementById("listing-status");
   const buyStatus = document.getElementById("buy-status");
 
   sellGrid?.addEventListener("click", async (event) => {
@@ -271,12 +307,12 @@ export function bindExchangeForms() {
     const available = Number(inventory[item] || 0);
 
     if (!item || available <= 0) {
-      listingStatus.textContent = "No stock available for this item.";
+      sayListing(item, "error", "No stock available for this item.");
       return;
     }
 
     if (numbers.ok && numbers.values.quantity > available) {
-      listingStatus.textContent = "Quantity exceeds available inventory.";
+      sayListing(item, "error", "Quantity exceeds available inventory.");
       return;
     }
 
@@ -329,13 +365,14 @@ export function bindExchangeForms() {
         ];
       }
 
+      // the server's own record of what was listed, not what the form thought it sent
+      appState.listingStatus = { item, tone: "ok", text: `Listing created: ${Number(payload.order?.quantity)} ${item} @ ${toCurrency(payload.order?.unitPrice)}.` };
       renderMarket(appState.data);
       showActionReceipt(payload, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
-      // the server's own record of what was listed, not what the form thought it sent
-      listingStatus.textContent = `Listing created: ${Number(payload.order?.quantity)} ${item} @ ${toCurrency(payload.order?.unitPrice)}.`;
       await refreshFromServer();
     } catch (error) {
-      listingStatus.textContent = `Sell listing failed: ${error.message}`;
+      sayListing(item, "error", `Sell listing failed: ${error.message}`);
+      pushFeedback(`Sell listing failed: ${error.message}`, "warn");
     }
   });
 
@@ -352,7 +389,8 @@ export function bindExchangeForms() {
       appState.data = deepClone(payload.account.state);
       appState.data.market = { ...previousMarket, orderBook: (previousMarket.orderBook || []).filter((order) => order.id !== orderId) };
       renderMarket(appState.data);
-      if (listingStatus) listingStatus.textContent = ""; // a refusal shown before the cancel no longer applies
+      appState.listingStatus = null; // a refusal shown before the cancel no longer applies
+      paintListingStatus();
       pushFeedback("Listing cancelled; the goods are back in your station inventory.", "success");
     } catch (error) {
       button.disabled = false;
@@ -377,7 +415,6 @@ export function bindExchangeForms() {
     const typedQty = qtyInput?.value ?? "";
     const { ok, values } = tradeNumbers({ quantity: typedQty });
     const qty = values.quantity;
-    const listingStatus = document.getElementById("listing-status");
     const buyStatus = document.getElementById("buy-status");
     const seller = row?.children[3]?.textContent || "Anonymous";
 
@@ -410,9 +447,8 @@ export function bindExchangeForms() {
       if (buyStatus) {
         buyStatus.textContent = `Executed purchase: ${qty.toLocaleString()} \u00d7 ${escapeHtml(item)} at ${toCurrency(price)}/unit.`;
       }
-      if (listingStatus) {
-        listingStatus.textContent = "";
-      }
+      appState.listingStatus = null;
+      paintListingStatus();
       pushFeedback(`Purchase executed: ${item} \u00d7 ${qty} @ ${toCurrency(price)}/unit.`, "success");
       flashButtonSuccess(button);
       await refreshFromServer();

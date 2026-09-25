@@ -6296,6 +6296,15 @@ tr.npc-order-exhausted {
     width: 7rem;
     min-width: 0;
   }
+  /* AB#2057: on a stacked card, Create Listing's word on the row takes a line of its own under the button. */
+  .data-table--stack td:has(> .listing-row-status) {
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
+  }
+  .data-table--stack .listing-row-status {
+    flex-basis: 100%;
+    margin: 0;
+  }
 }
 
 /* Bug #1132: a quoted post inside a forum reply, as Quote writes it ("> " lines). */
@@ -6585,4 +6594,21 @@ body.sg {
   .sg-table[data-contrast] td:nth-child(4) {
     display: none;
   }
+}
+
+/* AB#2057: Create Listing's word on the row that was acted on, under its button. Empty and collapsed until then;
+   brought into view with room to spare, not flush with the screen's edge. */
+.listing-row-status {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-2);
+  scroll-margin: var(--space-6) 0;
+}
+.listing-row-status:empty {
+  display: none;
+}
+.listing-row-status--error {
+  color: var(--danger);
+}
+.listing-row-status--ok {
+  color: var(--accent);
 }
