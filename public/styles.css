@@ -18,6 +18,13 @@
   --focus-ring: 2px solid var(--electric-cyan);
   --focus-ring-offset: 2px;
 
+  /* AB#745: the first motion tokens, for a number that changed (public/scripts/numberChange.js). AB#759's token block
+     is where they belong once it exists. Up and down are colours, not glows: the flat direction (Decision AB#1801). */
+  --motion-fade: 180ms;
+  --motion-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --change-up: #5ee6a0;
+  --change-down: var(--danger);
+
   /* Semantic aliases used throughout the stylesheet */
   --accent: var(--electric-cyan);
   --text: var(--text-main);
@@ -68,6 +75,23 @@
     transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ─── A number that changed (AB#745, ISP-59) ─── */
+/* numberChange.js counts the number to its new value and puts one of these classes on it for HIGHLIGHT_MS; the colour
+   fades in and out over --motion-fade, under a second in all. Tabular numerals so the count does not jitter. Under
+   reduced motion the block above makes the fade instant, so the colour is a static highlight. */
+.num-live {
+  font-variant-numeric: tabular-nums;
+  transition: color var(--motion-fade) var(--motion-ease-out);
+}
+
+.num-change--up {
+  color: var(--change-up);
+}
+
+.num-change--down {
+  color: var(--change-down);
 }
 
 html,
@@ -282,19 +306,23 @@ body {
 /* ─── App background nebula layer ─── */
 .app-bg {
   position: fixed;
-  inset: 0;
+  /* AB#1453: a little larger than the screen, so the drift below never shows an edge. */
+  inset: -4%;
   z-index: -1;
   background:
     radial-gradient(ellipse 70% 50% at 15% 20%, rgba(0, 247, 255, 0.07) 0%, transparent 60%),
     radial-gradient(ellipse 50% 40% at 80% 12%, rgba(255, 170, 51, 0.05) 0%, transparent 55%),
     radial-gradient(ellipse 55% 45% at 62% 80%, rgba(0, 100, 180, 0.1) 0%, transparent 55%),
     linear-gradient(160deg, #05050f 0%, #070d1a 40%, #0a1f2e 70%, #05050f 100%);
+  /* AB#1453: moved with transform, which the compositor does alone. It animated background-position, which repainted
+     the whole screen (and re-blurred every panel over it) on every frame, forever, for a drift of 0.3px a second. */
   animation: nebulaDrift 90s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 @keyframes nebulaDrift {
-  0%   { background-position: 0% 0%; }
-  100% { background-position: 2% 3%; }
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(2%, 3%); }
 }
 
 /* ─── Auth shell ─── */
