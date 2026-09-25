@@ -18,7 +18,7 @@ const value = (name) => resolve(tokens, name);
  * The literals outside the block when it landed. A change that adds one fails here; one that removes some should lower
  * the number, so the floor keeps falling. New CSS is written in tokens.
  */
-const LITERALS_WHEN_THE_BLOCK_LANDED = { colours: 592, fontSizes: 227, spacing: 506, customProperties: 0 };
+const LITERALS_WHEN_THE_BLOCK_LANDED = { colours: 2, fontSizes: 14, spacing: 370, customProperties: 0 }; // ISP-71 (AB#760) lowered them
 
 describe("the token block (ISP-70)", () => {
   it("defines every colour the direction names, carrying the mockup's values as they are", () => {
