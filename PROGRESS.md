@@ -18,6 +18,18 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#2057 — Create Listing says why, in the row that was pressed, Builder #1)
+
+- Create Listing's refusal ("Sell listing failed: ...", no stock, too many) and its "Listing created" go under the
+  button that was pressed, in that item's row (`paintListingStatus`, `appState.listingStatus` in
+  `public/scripts/views/exchange.js`), scrolled into view with a margin, and a server refusal also reaches Command
+  Feedback. It was one line below the whole table, off-screen once a row's button was in view. `#listing-status` below
+  the table is used only when the row is gone (the whole stock listed). The two inputs carry `required`.
+- `e2e/listing-refusal-in-row.spec.js` (six goods from `e2e/seed-stocked-account.mjs`) clears the price in the first and
+  last rows at 1280x800 and 375x812 and measures the refusal inside the viewport under that button; screens in
+  `docs/ab-2057/`. New CSS is in tokens and sits at the end of `styles.css`: `tests/unit/no-payments.test.js` names a
+  `styles.css` line, which anything inserted above it moves.
+
 ## What's now true (AB#744, ISP-58 — the confirmation modal on every committing action, Builder #3)
 
 - **Every POST under /gameplay/ and on the exchange either answers with a `receipt` or is exempt with a reason.**
