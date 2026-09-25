@@ -289,6 +289,42 @@ export function canvasBackingSize(cssWidth, cssHeight, devicePixelRatio) {
   };
 }
 
+/** Where the system view's "Back To Cluster" button sits (its centre) when nothing is in its way. */
+const SYSTEM_BACK_BUTTON = { x: 102, y: 36 };
+const BACK_BUTTON_HEIGHT = 28;
+const BACK_BUTTON_INSET = 6;
+
+/**
+ * AB#1287: the system view's orbits and its back button, laid out so no orbit (with the body's glow margin) reaches the
+ * button. On a desktop canvas the button's usual place is already clear and nothing moves. On a phone (a 307x320
+ * canvas) the outer orbits ran under it and Saturn was drawn over "Back To Cluster"; there the button moves into the
+ * top-left corner and the orbits drop below it, shrinking only as far as the canvas height requires.
+ */
+export function systemViewLayout(width, height, buttonWidth) {
+  const extra = ORBIT_INNER + ORBIT_EDGE_MARGIN;
+  // Bug #1315: on a narrow canvas the outer orbits ran past the sides (0.42 of 292px plus 56 is 179px from a 146px
+  // centre). The orbits now also fit the width, leaving room for the body; a desktop canvas is wide enough that this
+  // never binds, so its layout is unchanged.
+  const orbitLimit = Math.min(Math.min(width, height) * 0.42, Math.max(0, width / 2 - extra));
+  const cx = width / 2;
+  const clearance = (cy, button) => {
+    const dx = Math.max(button.x - buttonWidth / 2 - cx, 0, cx - button.x - buttonWidth / 2);
+    const dy = Math.max(button.y - BACK_BUTTON_HEIGHT / 2 - cy, 0, cy - button.y - BACK_BUTTON_HEIGHT / 2);
+    return Math.hypot(dx, dy);
+  };
+  if (clearance(height / 2, SYSTEM_BACK_BUTTON) >= orbitLimit + extra) {
+    return { cx, cy: height / 2, orbitLimit, button: { ...SYSTEM_BACK_BUTTON } };
+  }
+  const button = { x: BACK_BUTTON_INSET + buttonWidth / 2, y: BACK_BUTTON_INSET + BACK_BUTTON_HEIGHT / 2 };
+  const dx = Math.max(0, cx - (button.x + buttonWidth / 2));
+  const buttonBottom = button.y + BACK_BUTTON_HEIGHT / 2;
+  for (let reach = orbitLimit + extra; reach > extra; reach -= 0.5) {
+    const cy = Math.max(height / 2, dx >= reach ? 0 : buttonBottom + Math.sqrt(reach * reach - dx * dx));
+    if (cy + reach <= height) return { cx, cy, orbitLimit: reach - extra, button };
+  }
+  return { cx, cy: height / 2, orbitLimit: 0, button };
+}
+
 export function createStarmapController({
   canvas,
   fallbackEl,
@@ -575,9 +611,13 @@ export function createStarmapController({
   // Bug #1286: the right-hand of two back buttons sits at preferredX, or further left when that would run past the
   // canvas's right edge (a phone's canvas is 292px wide; "Back To Cluster" at 250 ended at about 300).
   function rightBackButtonX(label, preferredX, canvasWidth) {
+    return Math.min(preferredX, canvasWidth - 6 - backButtonWidth(label) / 2);
+  }
+
+  /** The width drawBackButton will draw `label` at. */
+  function backButtonWidth(label) {
     ctx.font = '10px "Inter", sans-serif';
-    const buttonWidth = Math.max(88, Math.ceil(ctx.measureText(label).width + 28));
-    return Math.min(preferredX, canvasWidth - 6 - buttonWidth / 2);
+    return Math.max(88, Math.ceil(ctx.measureText(label).width + 28));
   }
 
   function drawStationMarker(x, y, isCurrent) {
@@ -616,16 +656,15 @@ export function createStarmapController({
   function drawSystemView(system) {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
-    const cx = width / 2;
-    const cy = height / 2;
+    const { cx, cy, orbitLimit, button } = systemViewLayout(width, height, backButtonWidth("Back To Cluster"));
 
     state.clickTargets = [];
 
-    const backWidth = drawBackButton("Back To Cluster", 102, 36);
+    const backWidth = drawBackButton("Back To Cluster", button.x, button.y);
     state.clickTargets.push({
       type: "back",
-      x: 102,
-      y: 36,
+      x: button.x,
+      y: button.y,
       radius: Math.max(36, backWidth * 0.55)
     });
 
@@ -665,10 +704,6 @@ export function createStarmapController({
 
     const bodies = (system?.bodies || []).filter((body) => body.type === "Planet" || body.type === "Field");
     const maxOrbitX = Math.max(1, ...bodies.map((body) => Number(body.x || 0)));
-    // Bug #1315: on a narrow canvas the outer orbits ran past the sides (0.42 of 292px plus 56 is 179px from a 146px
-    // centre). The orbits now also fit the width, leaving room for the body; a desktop canvas is wide enough that
-    // this never binds, so its layout is unchanged.
-    const orbitLimit = Math.min(Math.min(width, height) * 0.42, Math.max(0, width / 2 - ORBIT_INNER - ORBIT_EDGE_MARGIN));
 
     bodies.forEach((body, index) => {
       const orbit = ((Number(body.x || 0) / maxOrbitX) * orbitLimit) + ORBIT_INNER;
