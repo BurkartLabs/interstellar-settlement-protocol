@@ -36,7 +36,7 @@ const ALLOWLIST = [
   // AB#1051: the "premium-rate" flavour text this entry named moved to data/missions.json, which this scanner
   // does not read (SCAN_EXT is .js/.html/.css only) — the match left the scanned surface, so the entry is gone
   // rather than re-pointed.
-  ["public/styles.css", 4151, "a CSS section comment naming a forum-thread layout; no .premium class exists"],
+  ["public/styles.css", 4206, "a CSS section comment naming a forum-thread layout; no .premium class exists"],
   ["public/scripts/app.js", 478, "toCurrency: the sanctioned in-game credits formatter this story's own acceptance names as the one exception"]
 ];
 

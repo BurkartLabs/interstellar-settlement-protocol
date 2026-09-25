@@ -2,12 +2,13 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { welcomeLetter } from "../../public/scripts/liaison.js";
 import { closeDueDays, MAX_STATEMENTS } from "../finances.js";
 import { unknownLeaseBodies } from "../leases.js";
 import { directInvestmentRecords } from "../legacyInvestments.js";
-import { validateCorporationName, SYSTEM_SENDERS } from "../corporationName.js";
+import { NAME_CHARS, validateCorporationName, SYSTEM_SENDERS } from "../corporationName.js";
 import { settlePayroll, payrollNotice } from "../payroll.js";
 import { PASSWORD_SALT_ROUNDS, SYSTEMS_DATA, accountsSnapshotPath, createId, dataDir, deepClone, safeWriteFile, statePath } from "./catalog.js";
 import { evaluateAccountLevel, evaluateLevelProgress, pushSystemNotification, sanitizeNotification } from "./progression.js";
@@ -390,22 +391,40 @@ export async function authenticateAccount(email, password) {
   return sanitizeAccount(account);
 }
 
+// ISP-66: boundaries checked at the registration boundary, before anything is hashed or stored.
+export const EMAIL_MAX_LENGTH = 254; // RFC 5321's practical mailbox-address limit
+export const PASSWORD_MIN_LENGTH = 10;
+export const PASSWORD_MAX_LENGTH = 128;
+export const CEO_NAME_MIN_LENGTH = 2;
+export const CEO_NAME_MAX_LENGTH = 40;
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function createAccount({ email, password, ceoName, corpName }) {
   const normalizedEmail = String(email || "").trim().toLowerCase();
   const normalizedPassword = String(password || "");
+  const normalizedCeoName = String(ceoName || "").trim().replace(/\s+/g, " ");
 
-  if (!normalizedEmail || !normalizedEmail.includes("@")) {
-    return { error: "A valid email is required." };
+  if (!normalizedEmail || normalizedEmail.length > EMAIL_MAX_LENGTH || !EMAIL_SHAPE.test(normalizedEmail)) {
+    return { error: "Enter a valid email address.", field: "email" };
   }
 
-  if (normalizedPassword.length < 8) {
-    return { error: "Password must be at least 8 characters." };
+  if (normalizedPassword.length < PASSWORD_MIN_LENGTH || normalizedPassword.length > PASSWORD_MAX_LENGTH) {
+    return { error: `Password must be ${PASSWORD_MIN_LENGTH} to ${PASSWORD_MAX_LENGTH} characters.`, field: "password" };
+  }
+
+  // Bug #1187: no stand-in name, so an empty field is refused here rather than defaulted — the same reasoning that
+  // already applies to corpName. Same character set as a corporation name (NAME_CHARS): a name is a name.
+  if (normalizedCeoName.length < CEO_NAME_MIN_LENGTH || normalizedCeoName.length > CEO_NAME_MAX_LENGTH) {
+    return { error: `CEO name must be ${CEO_NAME_MIN_LENGTH} to ${CEO_NAME_MAX_LENGTH} characters.`, field: "ceoName" };
+  }
+  if (!NAME_CHARS.test(normalizedCeoName)) {
+    return { error: "CEO name may use letters, digits, spaces and - ' . & only.", field: "ceoName" };
   }
 
   const existing = Object.values(accountsStore.accounts || {}).find((item) => item.email === normalizedEmail);
   if (existing) {
     // Bug #1059: the code lets the page offer the login instead.
-    return { error: "An account with this email already exists.", code: "email-taken" };
+    return { error: "An account with this email already exists.", code: "email-taken", field: "email" };
   }
 
   // Bug #433: the name is the only trust signal on the order book, the forums and in mail. Checked before anything is
@@ -416,7 +435,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
     reservedNames: RESERVED_CORPORATION_NAMES
   });
   if (corporation.error) {
-    return { error: corporation.error };
+    return { error: corporation.error, field: "corpName" };
   }
 
   const accountId = createId("acc");
@@ -425,7 +444,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
   const seedState = normalizeStateShape(getSeedState());
   const nextState = createStarterCorporationState(
     seedState,
-    String(ceoName || "New CEO").trim() || "New CEO",
+    normalizedCeoName,
     corporation.name
   );
 
@@ -554,6 +573,15 @@ export function getAllAccountIds() {
   return Object.keys(accountsStore.accounts || {});
 }
 
+// Bug #1765: a refresh token is a bearer credential good for up to 30 days, and account.refreshTokens is
+// persisted to accounts-snapshot.json as-is. Unlike passwordHash (bcrypt, one-way), storing the token itself
+// meant a leaked snapshot handed out live, usable-as-is tokens with no cracking required. Only ever compared
+// for exact equality against a client-presented token (never a user-typed value, so no salt is needed, the way
+// a password's would be), so a plain SHA-256 digest is stored instead — same shape as passwordHash, one-way.
+function hashRefreshToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 // TODO(AB#757): Evaluate usage of Refresh Tokens
 export function storeRefreshToken(accountId, token, expiresAt) {
   const account = accountsStore.accounts?.[accountId];
@@ -565,7 +593,7 @@ export function storeRefreshToken(accountId, token, expiresAt) {
     account.refreshTokens = [];
   }
 
-  account.refreshTokens.push({ token, expiresAt: Number(expiresAt || 0) });
+  account.refreshTokens.push({ token: hashRefreshToken(token), expiresAt: Number(expiresAt || 0) });
   account.refreshTokens = account.refreshTokens
     .filter((item) => item.expiresAt > Date.now())
     .slice(-10);
@@ -579,8 +607,9 @@ export function revokeRefreshToken(accountId, token) {
     return false;
   }
 
+  const hashed = hashRefreshToken(token);
   const before = account.refreshTokens.length;
-  account.refreshTokens = account.refreshTokens.filter((item) => item.token !== token);
+  account.refreshTokens = account.refreshTokens.filter((item) => item.token !== hashed);
   if (account.refreshTokens.length !== before) {
     scheduleAccountsSave();
     return true;
@@ -597,7 +626,7 @@ export function hasRefreshToken(accountId, token) {
 
   const now = Date.now();
   account.refreshTokens = account.refreshTokens.filter((item) => item.expiresAt > now);
-  return account.refreshTokens.some((item) => item.token === token);
+  return account.refreshTokens.some((item) => item.token === hashRefreshToken(token));
 }
 
 export function getDummyAccount() {

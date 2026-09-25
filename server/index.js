@@ -866,7 +866,8 @@ app.post("/api/auth/register", registerLimiter, async (req, res) => {
     const result = await createAccount({ email, password, ceoName, corpName });
 
     if (result.error) {
-      res.status(400).json(result.code ? { error: result.error, code: result.code } : { error: result.error });
+      // ISP-66: `field` names which input the register page shows the message beside.
+      res.status(400).json({ error: result.error, ...(result.code ? { code: result.code } : {}), ...(result.field ? { field: result.field } : {}) });
       return;
     }
 
@@ -1585,6 +1586,9 @@ function shipmentTick() {
         ? { type: "logistics", title: "Shipment Received", body: `${describeLines(shipment.lines)} has arrived at ${destinationName}.` }
         : { type: "logistics", title: "Shipment Held", body: `A shipment bound for ${destinationName} could not be delivered: the destination is not recognized. Reference number: ${shipment.id}.` });
       if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
+      // ISP-279 (AB#986): lets the Logistics tab move the shipment to history (or show it held) with no reload,
+      // the way travel:arrived already does for travel.
+      emitToAccount(accountId, "logistics:arrived", { accountId, shipmentId: shipment.id, delivered });
     }
   }
 }

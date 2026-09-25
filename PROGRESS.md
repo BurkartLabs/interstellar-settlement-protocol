@@ -1,11 +1,37 @@
 # ISP — handoff
 
-**2026-09-25. Merged from concurrent Builder panes: #1 (this pane) did AB#1758 (orchestrata, scope override)
-then AB#1052 — a player-triggered stop on a running mining cycle, looked at with ISP-61's own Playwright
-pattern rather than the Chrome extension; #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then ISP-89 (AB#779);
-#3 did ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only extension-less; #4 did
-ISP-278 (AB#985), still without a browser session of its own. No CONTROL_URL / Chrome extension on any of these
-panes (Builder panes don't get one by design).**
+**2026-09-25. Merged from several concurrent Builder panes: #1 did AB#1758 (orchestrata, scope override) then
+AB#1052 — a player-triggered stop on a running mining cycle; #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then
+ISP-89 (AB#779); #3 did ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only
+extension-less — then ISP-66 (AB#755), below; #4 (this pane) did ISP-278 (AB#985), ISP-279 (AB#986), then
+AB#1765 (refresh tokens hashed at rest) per a Director-relayed priority order. AB#1052 and ISP-279 both used
+ISP-61's own Playwright pattern rather than the Chrome extension for their screens. No CONTROL_URL / Chrome
+extension on any of these panes (Builder panes don't get one by design). See "Blind spot" below.**
+
+## What's now true (this session: AB#1765)
+
+- **AB#1765 is fixed: refresh tokens are hashed before they touch disk.** `storeRefreshToken` used to push the
+  client's raw signed JWT into `account.refreshTokens`, persisted verbatim to `accounts-snapshot.json` —
+  unlike `passwordHash`, bcrypt-hashed before it ever reaches disk, a leaked snapshot handed out live, 30-day
+  bearer tokens with no cracking required.
+  - `server/game/store.js`'s new `hashRefreshToken()` (SHA-256; the comparison is always exact-match against a
+    machine-generated token, never a user-typed value the way a password's would be, so no salt is needed the
+    bcrypt way) runs inside `storeRefreshToken`/`revokeRefreshToken`/`hasRefreshToken`. `server/index.js`'s
+    three call sites are unchanged — they pass the raw client-presented token in, same as before; the hashing
+    is internal to the store.
+  - **Confirmed nothing else reads the raw value**: grepped every reference to `refreshTokens` in `server/`,
+    `public/` and `tests/`; the three functions above are the only readers/writers.
+  - New tests in `tests/integration/auth.test.js`: the stored value is a SHA-256 digest of the issued token, not
+    the token itself (fails against the pre-fix code, checked by reverting the fix and re-running — T-047); a
+    full register → refresh → logout → reuse-rejected cycle still passes with the digest in place, so the fix
+    is transparent to every existing caller.
+  - **Not migrated, and not worth migrating**: any refresh token issued before this fix is stored raw in an
+    existing `accounts-snapshot.json` and will fail `hasRefreshToken`'s digest comparison the first time it's
+    presented after this deploys — an already-logged-in session's silent refresh fails and the client re-logs
+    in. Pre-beta, no real users, the same one-time cost as any password-hash-scheme change; not worth a
+    migration path for it.
+  - Checks: `npm run check` clean; `npm test` — **153 files, 1553 tests, all passed** (1551 baseline on
+    `origin/main` after ISP-279 merged + 2 new).
 
 ## What's now true (this session: AB#1051)
 
@@ -94,7 +120,43 @@ panes (Builder panes don't get one by design).**
     41 more from this session's merge of ISP-278's sibling work + 6 new here). `npx playwright test
     e2e/stop-mining.spec.js` — 2 passed.
 
-## What's now true (this session: ISP-89, AB#779)
+## What's now true (this session: ISP-66, AB#755)
+
+- **ISP-66 is done: registration fields are validated server-side, with the rejection shown beside the field.**
+  `createAccount` (`server/game/store.js`) now checks email shape and a 254-char limit, password 10–128
+  characters (was "at least 8"), and a CEO name (2–40 characters, the same `NAME_CHARS` set a corporation name
+  already uses — now exported from `server/corporationName.js` instead of a second regex). Every rejection
+  carries `field` in the JSON body (`POST /api/auth/register`, `server/index.js`); `register-page.js` reads it
+  and shows the message in a `<p class="field-error">` beside that input, clearing it on the next submit, not
+  the shared status line — the two never say the same thing twice.
+  - **The client pre-check (`registerFormProblem`) had to become field-aware too.** It used to just short-circuit
+    with a generic message in the status line before ever reaching the server, which meant an empty field never
+    exercised the new beside-the-field display at all through the real UI — found by looking at the first
+    screenshot, not by the unit tests (they only checked the string, not where it landed). It now returns
+    `{ field, text }`, the same shape the server's refusal takes, so both paths render identically.
+  - **`ceoName` is now required, with no silent stand-in.** It used to default to `"New CEO"` both server-side
+    and in `register-page.js` — Bug #1187 had already fixed this for `corpName` but left `ceoName`'s own copy
+    of the same bug in place. Checked every caller of `createAccount`/`POST /api/auth/register` first (57 test
+    files via `tests/helpers/api.js`, which already sends a real `ceoName`; every direct call in the suite does
+    too) — nothing relied on the default.
+  - `EMAIL_MAX_LENGTH`, `PASSWORD_MIN_LENGTH`, `PASSWORD_MAX_LENGTH`, `CEO_NAME_MIN_LENGTH/MAX_LENGTH` are
+    exported from `server/game/store.js` so the new tests assert against the same numbers the code enforces,
+    not a copy of them.
+  - New tests: `tests/integration/register-validation.test.js` (each rejection, both accepted boundaries, no
+    password echoed, a hostile extra body field changes nothing), `auth-errors.test.js` and
+    `authMessages.test.js` updated for the new response/return shapes.
+  - **Looked at**: two throwaway Playwright scripts (not committed — `e2e/first-hour.spec.js` is the permanent
+    suite, this was just the evidence), one per path — the client pre-check (blank CEO name) and a real server
+    round trip (`Alex_Rivera`, an underscore, passes the client's "is it empty" check but not the server's
+    character rule) — both screenshotted at 375x812 showing the message beside the CEO Name field, not just
+    asserted. Fixed the pre-check display gap this looking found (above) before calling it done.
+  - Checks: `npm test` — **150 files, 1508 tests, all green** (1500 baseline + 8 new). `npm run check` and
+    `node --check` on both changed client scripts clean.
+  - One more `tests/integration/ticker-mining-settle.test.js` flake seen (failed once under the full suite's
+    load, passed alone and on two full reruns) — already filed as **AB#1767** by a concurrent Builder pane, see
+    below; not filed again.
+
+## What's now true (ISP-89, AB#779 — earlier session, still accurate)
 
 - **ISP-89 is done: `tests/unit/no-payments.test.js` exists**, scanning every `.js`/`.html`/`.css` file under
   `server/` and `public/` for payment and pricing vocabulary, with a three-entry allowlist (two benign
@@ -114,7 +176,50 @@ panes (Builder panes don't get one by design).**
 - Checks: `npm run check` clean; `npm test` — **150 files, 1502 tests, all passed** on the clean rerun (1500
   baseline + 2 new).
 
-## What's now true (this session: ISP-278, AB#985)
+## What's now true (this session: ISP-279, AB#986)
+
+- **ISP-279 is done: the Logistics tab quotes the arrival time next to the fee, and lists shipments in flight.**
+  Builds on ISP-278/AB#985's `corp.shipments`, which existed server-side with nothing showing it yet.
+  - The remote-station card's fee line now reads "Fee to X: $5 per unit, 2h 30m transit (1 jump)" —
+    `transitMinutes` (`public/scripts/logistics.js`, already shared with the server) formatted through the
+    existing `formatDuration()` helper, not a new one.
+  - A new "Shipments In Transit" section (above Transfer History) lists `corp.shipments`: route, contents, fee,
+    and a countdown to `arrivesAt`; a held shipment (AB#985's decommissioned-station case) shows "Held —
+    destination unreachable" instead. Empty state names what to do next, per the acceptance line. The countdown
+    ticks live off the existing 1s `miningUiTicker` (client-side elapsed time against the known timestamp, no
+    extra polling).
+  - **New:** `shipmentTick` (server) now also emits `logistics:arrived` per account (mirrors `travel:arrived`),
+    with `{accountId, shipmentId, delivered}`; the client's handler calls the existing `refreshFromServer()`,
+    which re-renders the Logistics tab with no reload the same way travel/market/R&D updates already do.
+  - Tests: `tests/integration/transfer-distance.test.js` gained an arrival-time equivalence check (the quote's
+    `transitMinutes` equals the dispatched shipment's `arrivesAt - dispatchedAt`, acceptance #1) alongside the
+    existing fee-equivalence one. New `tests/integration/logistics-arrived-socket.test.js`: the event fires only
+    for the shipment's own account, with `delivered: true` on arrival and `delivered: false` when held (real
+    `socket.io-client` connections against the real server, injected time, same pattern ISP-67's
+    `socket-rooms.test.js` established).
+  - **Screenshots (acceptance #3), looked at, not just taken:** `e2e/logistics-shipments.spec.js`, at 1280x800
+    and 375x812 — `01-quote-cross-system-*.png` (the fee+transit-time quote for Centauri Prime Station, 1 jump)
+    and `02-in-flight-*.png` (the in-flight list after a real dispatch click, showing route, contents, fee and
+    a 2h 30m countdown). Both viewports read correctly: no overlap, no truncation, no sideways scroll on the
+    phone width (checked the same way ISP-61 does). Reaching a station outside Sol legitimately needs
+    Corporate R&D research that needs corporation level 5 (data/research.json), a real grind even with dev
+    mode's zeroed R&D timers, because mining itself is not accelerated (ISP-61's own finding) — scripting that
+    climb to take two screenshots of a display panel would be wildly disproportionate, so the spec seeds a
+    corporation that already holds stock at that station via `mutateAccountState` (the same mechanism every
+    integration test already uses), in a companion script run as its own process
+    (`e2e/seed-logistics-account.mjs` — server/gameState.js's `dataDir` is computed once at first import and
+    does not follow a later `ISP_DATA_DIR` change within one process, so the seeding could not be inlined via a
+    second in-process import without silently writing into the first viewport's already-deleted directory,
+    which is what the first version of this spec did). Everything past that point is real: login over real
+    HTTP, the quote read off the live page, the dispatch a real click against the real route, delivered by a
+    real, separately-spawned `node server/index.js` reading that fixture from disk at boot — the same as an
+    actual restart.
+  - Checks: `npm run check` clean; `npm test` — **150 files, 1515 tests, all passed** (1513 baseline on
+    `origin/main` after AB#985 merged + 2 new); `npx playwright test e2e/logistics-shipments.spec.js` — 2
+    passed; `npx playwright test e2e/first-hour.spec.js` re-run against the modified server as a regression
+    check — still 2 passed, unaffected.
+
+## What's now true (ISP-278, AB#985 — prior session, still accurate)
 
 - **ISP-278 is done: shipments arrive on a later tick, not on dispatch.** `POST .../gameplay/transfer-resources`
   debits the origin inventory and the fee once, same as before, but now creates a shipment (`corp.shipments`)
@@ -289,53 +394,68 @@ panes (Builder panes don't get one by design).**
 - **AB#1766**: `emitMarketUpdated`/`emitForumsUpdated`/local chat read `peer.data.accountId` directly instead
   of through `checkSocketAuth` (ISP-67's own known-boundary note above, now filed).
 
-No Chrome extension on any pane (Builder panes don't get one by design) — **but ISP-61 changes what that means
-for ISP.** ISP-61 is entirely about screens and was looked at for real: Playwright, not the extension, drove a
-real Chromium against a real running server, and the 22 resulting screenshots were read back and checked,
-including catching and fixing a header-repeat capture bug (`fullPage: true` stitching a `position: sticky`
-header into the image twice). ISP-48 and ISP-89 have no screen of their own — a markdown file and a
+No Chrome extension on any of these panes (Builder panes don't get one by design), but ISP-61 changed what that
+means for ISP. ISP-61 is entirely about screens and was looked at for real: Playwright, not the extension,
+drove a real Chromium against a real running server, and the 22 resulting screenshots were read back and
+checked, including catching and fixing a header-repeat capture bug (`fullPage: true` stitching a `position:
+sticky` header into the image twice). ISP-48 and ISP-89 have no screen of their own — a markdown file and a
 server-side throttle, a source-scanning Vitest test — and were each verified directly instead: `SECURITY.md`'s
 every code claim read back against the actual file and line; the rate limiter proven with real HTTP requests
 through `supertest`; the payments scan run against a temporary, uncommitted seeded violation (caught it) and
 against a clean checkout (passed) — each the actual mechanism its own acceptance criteria describe, not a
-proxy for it. ISP-67's own blind-spot note (an earlier session) stands unchanged: `socket.io-client` against a
-real server was that session's equivalent of "looked at it."
+proxy for it. ISP-278 has no screen of its own either — a dispatch/delivery split in server state, proven with
+real HTTP requests and a real `shipmentTick()` call through `supertest`/`getApp()` (not a mock). One thing that
+session did **not** look at: the client's post-dispatch toast wording, reasoned through and `node --check`ed
+but never rendered — that gap is closed now: **ISP-279 (this session) used ISP-61's Playwright pattern for
+real**, `e2e/logistics-shipments.spec.js`, and the four resulting screenshots were read back and checked (see
+above) — the quote line, the toast, and the in-flight list all render correctly, at both widths, with no
+overflow. AB#1052 (a concurrent pane) also used this pattern for its own screen, `e2e/stop-mining.spec.js`.
+ISP-67's own blind-spot note (an earlier session) stands unchanged: `socket.io-client` against a real server
+was that session's equivalent of "looked at it."
 
-ISP-278 has no screen of its own either — a dispatch/delivery split in server state, proven with real HTTP
-requests and a real `shipmentTick()` call through `supertest`/`getApp()` (not a mock), the mechanism its
-acceptance criteria describe (dispatch, tick timing, restart, the held case, ownership). One thing that session
-did **not** look at: the client's post-dispatch toast wording (`public/scripts/app.js`) was reasoned through
-and `node --check`ed, but never seen rendered — a plain-text change (an ETA in a toast), not layout, so the
-risk is narrow, but it is unverified and called out rather than folded into "done."
-
-`npm test` after all four sessions: **149 files, 1513 tests, all green** (1500 after ISP-48/ISP-61/ISP-89 + 13
-new from ISP-278). `npm run check` clean. `npx playwright test`: 2 passed (from ISP-61, not re-run since). One,
-unrelated `ticker-mining-settle.test.js` flake seen once under full-suite load during the ISP-89 session, filed
-as AB#1767, not reproduced again.
+`npm test` after merging AB#1052 and ISP-89 into this branch: **152 files, 1543 tests, all green**. `npm run
+check` clean. `npx playwright test`: `first-hour.spec.js` 2 passed (re-run as a regression check against the
+modified server), `logistics-shipments.spec.js` 2 passed (this session's new spec). One, unrelated
+`ticker-mining-settle.test.js` flake seen once under full-suite load during the ISP-89 session, filed as
+AB#1767, not reproduced again. **One line-number fix on merge**: ISP-89's `no-payments.test.js` allowlists
+`public/styles.css` by line number; this session's CSS insertion pushed the one existing allowlisted match (a
+"Premium Thread Detail View" section comment) from line 4151 to 4195, and the test's own message ("the code
+moved; update or remove the entry") says exactly what to do — updated, not a new finding.
 
 **AB#753/755/757/781/987/989 (the remaining screenshot-gated v0.5 items) are no longer blocked on "no
-browser."** They still need a look, and Playwright is now the way to do it for ISP the way it already was for
-job-hunt — but nobody has yet written the scripts for CSP-console-checking, the register page, or the
+browser."** Playwright is the way to do it for ISP now — see ISP-61's pattern (`e2e/first-hour.spec.js`) or
+this session's (`e2e/logistics-shipments.spec.js`, for a story that needs a seeded fixture rather than fresh
+play) — but nobody has yet written the scripts for CSP-console-checking, the register page, or the
 verification-email flow. That's real work still to do, not a blind spot anymore, and the natural next pick for
 a Builder pane without the Chrome extension.
 
 ## What's next
 
-- **AB#753/755/757/781/987/989** (screenshot-gated v0.5 items) can now be built and looked at with Playwright —
-  see ISP-61 above for the pattern (`e2e/first-hour.spec.js`, `playwright.config.js`). This is the largest
-  block of stuck v0.5 work across four sessions, and it just became claimable; a good next pick.
-- **ISP-279** ("Shipments in the Logistics tab: arrival time quoted before you move") is a natural next story
-  for whichever pane picks it up: it has the `ui` tag ISP-278 avoided, and can now build on `corp.shipments`
-  and the two new `GET .../gameplay/shipments(/:id)` routes instead of inventing the data model itself.
-- **AB#1765** (refresh tokens in plain text at rest), **AB#1766** (the market/forum "still-authenticated-
-  looking" socket boundary) and **AB#1767** (a second flaky test, possibly related to AB#1744) are filed,
-  Proposed, unclaimed — non-visual fallbacks.
+- **Director-relayed priority order for this pane (2026-09-25), after AB#1765**: **AB#1766** next (the
+  market/forum "still-authenticated-looking" socket boundary), then **AB#1753** (the Level-2 gate — must be
+  clearable before any v0.6+ work), then **AB#758** (one Station mockup — the Board is waiting on this one
+  specifically), then **AB#1740**. If this pane frees up before AB#1765/#1766 both land and **ENG-9 (AB#669)**
+  is still unclaimed, take that instead — platform-first priority per PM/Director.
+- **ISP-279** and **ISP-66 (AB#755)** are both done (this session and a concurrent pane) — see above.
+- **AB#753 (ISP-65, CSP/security headers)** has an unmet predecessor, AB#739 (splitting `app.js`), still
+  Proposed as of 2026-09-25 — check its state before claiming; it may be worth doing anyway now that the actual
+  risk that predecessor was hedging against (many inline event handlers to convert) turned out not to exist —
+  `grep -c 'onclick='` across `public/` returns 0, the client already uses `addEventListener` exclusively.
+- **AB#757/987/989** (the rest of the screenshot-gated v0.5 items) can now be built and looked at with
+  Playwright too — see ISP-61 (`e2e/first-hour.spec.js`, fresh play), AB#1052 (`e2e/stop-mining.spec.js`, fresh
+  play) or ISP-279 (`e2e/logistics-shipments.spec.js`, a seeded fixture — the pattern to reach for when the
+  state under test would need disproportionate grinding to reach by fresh play) for the established shapes.
+  Each has its own unmet predecessor as of 2026-09-25 (AB#757 wants the CSP story above; AB#987/989 want AB#757
+  and AB#781 respectively) — check state before claiming.
+- **AB#1767** (a flaky test, possibly related to AB#1744) is filed, Proposed, unclaimed — non-visual fallback.
 - Multiple Builder panes are working ISP at once — check ADO for what's Active before claiming.
 
 ## In flight / blocked
 
 Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-boundary`, PR !392), ISP-48's
-(`agent/734-security`, PR !402), ISP-61's (`agent/747-first-hour-playtest`) and ISP-278's
-(`agent/985-timed-transit`, PR !408) are all merged. ISP-89's session's branch was `agent/779-no-payments-test`,
-PR !409, approved and set to auto-complete. This pane's AB#1052 branch is `agent/1052-stop-mining`, PR opening
-now. Multiple Builder panes are active on ISP at once — check ADO state before claiming the next item.
+(`agent/734-security`, PR !402), ISP-89's (`agent/779-no-payments-test`, PR !409), ISP-61's
+(`agent/747-first-hour-playtest`, PR !406), ISP-278's (`agent/985-timed-transit`, PR !408), AB#1052's
+(`agent/1052-stop-mining`, PR !417), ISP-66's (`agent/755-registration-validation`) and ISP-279's
+(`agent/986-shipments-ui`, PR !432) are all merged. This session's (AB#1765) branch is
+`fix/1765-hash-refresh-token`, PR to be opened next and set to auto-complete.
+Multiple Builder panes are active on ISP at once — check ADO state before claiming the next item.

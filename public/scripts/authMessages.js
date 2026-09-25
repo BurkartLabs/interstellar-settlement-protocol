@@ -30,11 +30,15 @@ export function registerErrorMessage(status, payload = {}) {
   return { text: `Registering failed on our side. ${TRY_AGAIN}` };
 }
 
-/** What the register form is missing before it is sent, or null. The server checks the same rules again. */
-export function registerFormProblem({ email, password, corpName }) {
-  if (!email || !email.includes("@")) return "Enter the email address you will log in with.";
-  if (!password || password.length < 8) return "Choose a password of at least 8 characters.";
-  if (!corpName) return "Name your corporation: 3 to 40 letters, digits, spaces and - ' . &.";
+/** What the register form is missing before it is sent, as `{ field, text }`, or null. The server checks the same
+ *  rules again (ISP-66) and is what actually enforces them — this is only so an obviously-empty or obviously-short
+ *  field doesn't cost a round trip. Shaped the same as the server's own refusal (`field` names the input) so
+ *  register-page.js shows both beside the field the same way, not one there and one in the shared status line. */
+export function registerFormProblem({ email, password, ceoName, corpName }) {
+  if (!email || !email.includes("@")) return { field: "email", text: "Enter the email address you will log in with." };
+  if (!password || password.length < 10) return { field: "password", text: "Choose a password of at least 10 characters." };
+  if (!ceoName) return { field: "ceoName", text: "Enter the CEO's name: 2 to 40 letters, digits, spaces and - ' . &." };
+  if (!corpName) return { field: "corpName", text: "Name your corporation: 3 to 40 letters, digits, spaces and - ' . &." };
   return null;
 }
 

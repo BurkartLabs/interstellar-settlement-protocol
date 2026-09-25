@@ -46,17 +46,20 @@ describe("register errors (Bug #1059)", () => {
     expect(registerErrorMessage(0).text).toMatch(/could not be reached/);
   });
 
-  it("names the missing field before sending, including an empty corporation name (Bug #1187)", () => {
-    const ok = { email: "ceo@example.com", password: "password123", corpName: "Helios Mining" };
+  it("names the missing field before sending, including an empty corporation or CEO name (Bug #1187, ISP-66)", () => {
+    const ok = { email: "ceo@example.com", password: "password123", ceoName: "Alex Rivera", corpName: "Helios Mining" };
     expect(registerFormProblem(ok)).toBeNull();
-    expect(registerFormProblem({ ...ok, email: "" })).toMatch(/email/);
-    expect(registerFormProblem({ ...ok, email: "no-at-sign" })).toMatch(/email/);
-    expect(registerFormProblem({ ...ok, password: "short" })).toMatch(/at least 8 characters/);
-    expect(registerFormProblem({ ...ok, corpName: "" })).toMatch(/^Name your corporation/);
+    expect(registerFormProblem({ ...ok, email: "" })).toMatchObject({ field: "email" });
+    expect(registerFormProblem({ ...ok, email: "no-at-sign" })).toMatchObject({ field: "email" });
+    expect(registerFormProblem({ ...ok, password: "short" })).toMatchObject({ field: "password", text: expect.stringMatching(/at least 10 characters/) });
+    expect(registerFormProblem({ ...ok, ceoName: "" })).toMatchObject({ field: "ceoName", text: expect.stringMatching(/^Enter the CEO's name/) });
+    expect(registerFormProblem({ ...ok, corpName: "" })).toMatchObject({ field: "corpName", text: expect.stringMatching(/^Name your corporation/) });
   });
 
-  it("the page sends the corporation name as typed, with no stand-in (Bug #1187)", () => {
-    expect(code("public/scripts/register-page.js")).not.toMatch(/Frontier Protocol Ventures/);
+  it("the page sends the CEO and corporation names as typed, with no stand-in (Bug #1187, ISP-66)", () => {
+    const page = code("public/scripts/register-page.js");
+    expect(page).not.toMatch(/Frontier Protocol Ventures/);
+    expect(page).not.toMatch(/["']New CEO["']/);
   });
 });
 

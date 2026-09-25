@@ -12,14 +12,14 @@ describe("register and login errors (Bug #1059)", () => {
     expect((await request(app).post("/api/auth/register").send(first)).status).toBe(201);
     const again = await request(app).post("/api/auth/register").send({ ...account(), email: first.email.toUpperCase() });
     expect(again.status).toBe(400);
-    expect(again.body).toEqual({ error: "An account with this email already exists.", code: "email-taken" });
+    expect(again.body).toEqual({ error: "An account with this email already exists.", code: "email-taken", field: "email" });
   });
 
-  it("other refusals carry no code: the page shows the server's reason", async () => {
+  it("other refusals carry no code, but do name the field (ISP-66): the page shows the server's reason beside it", async () => {
     const { app } = await getApp();
     const res = await request(app).post("/api/auth/register").send({ ...account(), corpName: "" });
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: "A corporation name is required." });
+    expect(res.body).toEqual({ error: "A corporation name is required.", field: "corpName" });
   });
 
   it("a wrong password answers 401 and says nothing about which of the two was wrong", async () => {

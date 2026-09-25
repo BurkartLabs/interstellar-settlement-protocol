@@ -3,6 +3,33 @@ import { registerErrorMessage, registerFormProblem, showMessage } from "./authMe
 const registerForm = document.getElementById("register-form");
 const registerStatus = document.getElementById("register-status");
 
+// ISP-66: one error element per field, next to the input it is about ("beside the field"), so the server's
+// per-field refusal lands where the player is already looking, not only in the shared status line below the form.
+const FIELD_ERRORS = {
+  email: document.getElementById("register-email-error"),
+  password: document.getElementById("register-password-error"),
+  ceoName: document.getElementById("register-ceo-error"),
+  corpName: document.getElementById("register-corp-error")
+};
+
+function clearFieldErrors() {
+  for (const el of Object.values(FIELD_ERRORS)) if (el) el.textContent = "";
+}
+
+/** `field` is the server's own name for what to fix, or undefined for an error that names no one field (a network
+ *  failure, a 500). A named field's message goes beside that field, and nothing is left in the shared status line
+ *  for it — the two never say the same thing twice. */
+function showRegisterError(status, payload) {
+  clearFieldErrors();
+  const target = payload?.field ? FIELD_ERRORS[payload.field] : undefined;
+  if (target) {
+    target.textContent = payload.error;
+    registerStatus.textContent = "";
+    return;
+  }
+  showMessage(registerStatus, registerErrorMessage(status, payload));
+}
+
 const STORAGE_KEYS = {
   accountId: "isp.accountId",
   accessToken: "isp.accessToken",
@@ -13,18 +40,20 @@ const STORAGE_KEYS = {
 if (registerForm) {
   registerForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    clearFieldErrors();
 
     const formData = new FormData(registerForm);
     const email = String(formData.get("email") || "").trim();
     const password = String(formData.get("password") || "");
-    const ceoName = String(formData.get("ceoName") || "").trim() || "New CEO";
-    // Bug #1187: no stand-in name. An empty field used to register as "Frontier Protocol Ventures", so the second
-    // player who left it empty was told a name they never typed was taken.
+    // Bug #1187: no stand-in name. An empty corpName used to register as "Frontier Protocol Ventures", so the
+    // second player who left it empty was told a name they never typed was taken; ceoName gets the same treatment
+    // (ISP-66) rather than the "New CEO" default this line used to substitute.
+    const ceoName = String(formData.get("ceoName") || "").trim();
     const corpName = String(formData.get("corpName") || "").trim();
 
-    const problem = registerFormProblem({ email, password, corpName });
+    const problem = registerFormProblem({ email, password, ceoName, corpName });
     if (problem) {
-      registerStatus.textContent = problem;
+      showRegisterError(0, { field: problem.field, error: problem.text });
       return;
     }
 
@@ -38,13 +67,13 @@ if (registerForm) {
         body: JSON.stringify({ email, password, ceoName, corpName })
       });
     } catch {
-      showMessage(registerStatus, registerErrorMessage(0));
+      showRegisterError(0, {});
       return;
     }
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      showMessage(registerStatus, registerErrorMessage(response.status, payload));
+      showRegisterError(response.status, payload);
       return;
     }
 

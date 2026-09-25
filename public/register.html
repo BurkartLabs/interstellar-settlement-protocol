@@ -32,16 +32,20 @@
 
         <form id="register-form" class="login-form" novalidate>
           <label for="register-email">Email</label>
-          <input id="register-email" name="email" type="email" autocomplete="email" required placeholder="ceo@corporation.com" />
+          <input id="register-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="ceo@corporation.com" />
+          <p id="register-email-error" class="field-error" aria-live="polite"></p>
 
           <label for="register-password">Password</label>
-          <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="Minimum 8 characters" />
+          <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="128" placeholder="10 to 128 characters" />
+          <p id="register-password-error" class="field-error" aria-live="polite"></p>
 
           <label for="register-ceo">CEO Name</label>
-          <input id="register-ceo" name="ceoName" required maxlength="40" placeholder="New CEO" />
+          <input id="register-ceo" name="ceoName" required minlength="2" maxlength="40" pattern="[A-Za-z0-9 \-'.&amp;]+" title="2 to 40 letters, digits, spaces and - ' . &amp;" placeholder="e.g. Alex Rivera" />
+          <p id="register-ceo-error" class="field-error" aria-live="polite"></p>
 
           <label for="register-corp">Corporation Name</label>
           <input id="register-corp" name="corpName" required minlength="3" maxlength="40" pattern="[A-Za-z0-9 \-'.&amp;]+" title="3 to 40 letters, digits, spaces and - ' . &amp;" placeholder="Frontier Protocol Ventures" />
+          <p id="register-corp-error" class="field-error" aria-live="polite"></p>
 
           <p id="register-status" class="login-status" aria-live="polite"></p>
 
