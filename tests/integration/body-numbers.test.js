@@ -32,6 +32,20 @@ describe("POST /gameplay/hire with a bad count (Bug #1014)", () => {
     });
   }
 
+  // AB#2058: a cleared Head Count box was hired as 1 because the client turned it into 1 before sending. The server was
+  // never the problem: a count that is missing or not a whole number of at least 1 is refused before the route runs
+  // (gameplayInput.js, AB#731). Pinned here so the client can send what was typed and rely on it.
+  for (const [label, body] of [["a blank count", { count: "" }], ["no count at all", {}], ["count \"abc\"", { count: "abc" }], ["count 1.5", { count: 1.5 }], ["count 0", { count: 0 }], ["count -3", { count: -3 }]]) {
+    it(`refuses ${label} with 400, hires nobody and spends nothing (AB#2058)`, async () => {
+      const { id, api, corp: read } = await hirer();
+      const res = await api.post(`/api/accounts/${id}/gameplay/hire`).send(body);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/^Enter the number of employees to hire/); // gameplayInput.js (AB#731), before the route
+      expect(read().employeeCount).toBe(0);
+      expect(read().finances.credits).toBe(100000);
+    });
+  }
+
   it("still hires the number asked for", async () => {
     const { id, api, corp: read } = await hirer();
     expect((await api.post(`/api/accounts/${id}/gameplay/hire`).send({ count: 3 })).status).toBe(200);
