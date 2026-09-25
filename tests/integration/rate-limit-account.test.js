@@ -50,6 +50,11 @@ describe("per-account login lockout (ISP-64)", () => {
     expect(blocked.status).toBe(429);
     expect(blocked.headers["retry-after"]).toBeTruthy();
     expect(blocked.body.error).toMatch(/try again/i);
+    // AB#2043: the account lockout is 15 minutes, and the body says the same number the header does.
+    const seconds = Number(blocked.headers["retry-after"]);
+    expect(seconds).toBeGreaterThan(14 * 60);
+    expect(seconds).toBeLessThanOrEqual(15 * 60);
+    expect(blocked.body.error).toMatch(new RegExp(`try again in ${Math.ceil(seconds / 60)} minutes`));
 
     // The lockout follows the account: even the correct password is refused while it holds.
     const correctButLocked = await request(app)

@@ -63,6 +63,36 @@ describe("register errors (Bug #1059)", () => {
   });
 });
 
+describe("too many attempts says how long the wait really is (AB#2043)", () => {
+  // The server's Retry-After, in seconds: one minute for logins per address, 15 for failed logins per account and 60
+  // for registrations per address. Each is the time left, so it can be anything below its window too.
+  it.each([
+    [60, "Try again in a minute."],
+    [45, "Try again in a minute."],
+    [900, "Try again in 15 minutes."],
+    [3600, "Try again in 60 minutes."],
+    [2990, "Try again in 50 minutes."]
+  ])("Retry-After %i seconds: %s", (seconds, wait) => {
+    expect(loginErrorMessage(429, {}, seconds).text).toBe(`Too many attempts. ${wait}`);
+    expect(registerErrorMessage(429, {}, seconds).text).toBe(`Too many attempts. ${wait}`);
+  });
+
+  it("with no usable header, the server's own sentence; with neither, a minute", () => {
+    const payload = { error: "This request could not be processed. Too many attempts — try again in 60 minutes." };
+    for (const header of [undefined, NaN, 0, -5]) {
+      expect(registerErrorMessage(429, payload, header).text, String(header)).toBe(payload.error);
+      expect(loginErrorMessage(429, payload, header).text, String(header)).toBe(payload.error);
+    }
+    expect(registerErrorMessage(429).text).toBe("Too many attempts. Try again in a minute.");
+  });
+
+  it("both pages hand the header to the message", () => {
+    for (const page of ["public/scripts/login-page.js", "public/scripts/register-page.js"]) {
+      expect(code(page), page).toMatch(/headers\.get\("Retry-After"\)/);
+    }
+  });
+});
+
 describe("no player-facing copy mentions the demo account (Bug #1059)", () => {
   it("only the developer button, hidden off a developer's machine, names it", () => {
     const html = read("public/login.html").replace(/<button id="dummy-login-btn"[^>]*>[^<]*<\/button>/, "");

@@ -85,7 +85,7 @@ if (loginForm) {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      showMessage(loginStatus, loginErrorMessage(response.status, payload));
+      showMessage(loginStatus, loginErrorMessage(response.status, payload, response.headers.get("Retry-After")));
       return;
     }
 

@@ -24,10 +24,18 @@ function minutesFrom(ms) {
   return `${n} minute${n === 1 ? "" : "s"}`;
 }
 
+/**
+ * AB#2043: the time left before this caller may try again, from the same resetTime the Retry-After header is set from,
+ * so the sentence and the header never disagree. The whole window only when the store gave no reset time.
+ */
+export function throttledMessage(req, options, now = Date.now()) {
+  const reset = req.rateLimit?.resetTime;
+  const left = reset instanceof Date ? reset.getTime() - now : options.windowMs;
+  return `This request could not be processed. Too many attempts — try again in ${minutesFrom(left)}.`;
+}
+
 function throttledResponse(req, res, next, options) {
-  res.status(options.statusCode).json({
-    error: `This request could not be processed. Too many attempts — try again in ${minutesFrom(options.windowMs)}.`
-  });
+  res.status(options.statusCode).json({ error: throttledMessage(req, options) });
 }
 
 // Wraps a Store so a broken counter throttles nobody: any error logs and reports "not yet at the limit" instead
