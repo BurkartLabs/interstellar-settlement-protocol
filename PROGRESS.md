@@ -4,12 +4,50 @@
 AB#1052 — a player-triggered stop on a running mining cycle; #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then
 ISP-89 (AB#779); #3 did ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only
 extension-less — then ISP-66 (AB#755), below; #4 (this pane) did ISP-278 (AB#985), ISP-279 (AB#986), AB#1765
-(refresh tokens hashed at rest), AB#1766 (socket auth boundary), then AB#1753 (Level 2's Mars-lease gate) — the
-last three per a Director-relayed priority order. AB#1052 and ISP-279 both used ISP-61's own Playwright pattern
-rather than the Chrome extension for their screens. No CONTROL_URL / Chrome extension on any of these panes
-(Builder panes don't get one by design). See "Blind spot" below.**
+(refresh tokens hashed at rest), AB#1766 (socket auth boundary), AB#1753 (Level 2's Mars-lease gate), then AB#758
+(the flat-direction Station mockup, a Decision now waiting on the Board) — all five per a Director-relayed
+priority order. AB#1052 and ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension
+for their screens; AB#758 used it too, to look at a static mockup rather than the running game. No CONTROL_URL
+/ Chrome extension on any of these panes (Builder panes don't get one by design). See "Blind spot" below.**
 
-## What's now true (this session: AB#1753)
+## What's now true (this session: AB#758, ISP-69)
+
+- **AB#758 is built, and now waits on the Board.** `design/directions/flat/station.html`: one self-contained
+  Station mockup in the flat direction AB#1757's visual-design critique (POLISH 2.4/5) and AB#592 both pointed
+  to — void-black + cyan, three surface steps each computed to >= 1.2:1 apart (1.20, 1.22, 1.41), no
+  box-shadow/text-shadow used decoratively, cyan spent on exactly one primary control per screen plus the
+  active tab, Inter only (Orbitron kept to the logo mark), tabular numerals on every numeric value. Real copy
+  (Orbital Executive Suites, ISA Claims & Leases Division, Earth Assembly) and the existing, previously-unused
+  `public/images/orbital_executive_suites.jpg` as the hero band — nothing invented that the shipped screen does
+  not already have somewhere.
+  - The page states its own type system, palette (with every contrast ratio computed against WCAG 2.1's
+    relative-luminance formula, not eyeballed), and references (EVE Photon UI, Frostpunk, Linear, Geist, Radix
+    Colors) in a "Design notes" section at the foot of the same file — acceptance #2, self-contained rather
+    than split across a separate doc.
+  - **Looked at it, found a real bug, fixed it before shipping**: the first screenshot at 375 wide showed the
+    hero's heading text overlapping the mobile tab bar above it. Real cause, confirmed by reading the DOM's own
+    bounding boxes rather than guessing: `.hero` had a fixed `height: 220px` with `align-items: flex-end`, and
+    at 375 wide the description text wraps to more lines than fit in 220px — flex-end pushed the overflow
+    *upward*, out of the box, over the tabbar. Fixed with `min-height` instead of `height` (the box grows to
+    258px there instead of clipping or overflowing); re-screenshotted and confirmed clean at both widths.
+  - Screenshots committed at `design/directions/flat/screenshots/station-{1280x800,375x812}.png` — acceptance
+    #3's "attached," matching how ISP-61/AB#1052/ISP-279 each already did it (referenced by repo path, not an
+    uploaded ADO attachment).
+  - **Judgment call on "shown to the Board as an artifact" (acceptance #3), stated plainly in the Decision
+    rather than silently guessed**: read as this codebase's own established sense (CADENCE.md: "the artifact
+    itself... a screenshot, a URL, a recording"), not specifically a claude.ai-hosted link — the repo file plus
+    the two real screenshots satisfy it directly, and standing up a separate hosted copy (which the Artifact
+    tool's own contract would require reworking the file's `<head>`/theme/asset handling for) seemed
+    disproportionate for a self-contained mockup already fully viewable by opening the file. Said so in the
+    Decision so the Board can ask for the interactive link if that is what was actually wanted — cheap to add.
+  - **Filed the Decision the acceptance line requires**: **AB#1801**, "Board: does the flat-direction Station
+    mockup ship?", linked to AB#758 and to AB#1764 (the prior Decision that picked "one mockup" over three).
+    Two options: yes (ships, AB#759 and eleven downstream screen stories proceed), or no with what is wrong (a
+    second mockup follows, aimed at the note — not three new directions, per AB#1764's own answer).
+  - Checks: `npm run check` clean; `npm test` — **155 files, 1568 tests, all passed** (unchanged from AB#1753 —
+    this story adds no server/client logic, only a static design file, so nothing to regress). Looked at with
+    a one-off Playwright script (not a committed spec — this is a single static file, not a repeatable
+    regression target the way `e2e/*.spec.js` covers running gameplay).
 
 - **AB#1753 is fixed: Level 2's lease requirement no longer names Mars specifically.**
   `data/milestones.json`'s Level 2 `marsLease` requirement was `metric: "miningLease:Mars"` — Earth is the
@@ -500,11 +538,13 @@ a Builder pane without the Chrome extension.
 
 ## What's next
 
-- **Director-relayed priority order for this pane (2026-09-25), after AB#1765/#1766/#1753 (all now done)**:
-  **AB#758** next (one Station mockup — the Board is waiting on this one specifically). **AB#1740 was picked
-  up and merged by a concurrent pane while this session worked AB#1765/#1766** — no longer available to take.
-  If this pane frees up before AB#758 and **ENG-9 (AB#669)** is still unclaimed, take that instead —
-  platform-first priority per PM/Director.
+- **Director-relayed priority order for this pane (2026-09-25), all five now done (AB#1765, #1766, #1753,
+  #758)**: nothing further named by that order. **AB#1740 was picked up and merged by a concurrent pane while
+  this session worked AB#1765/#1766** — was never available to take. If **ENG-9 (AB#669)** is still unclaimed,
+  that is the platform-first fallback per PM/Director.
+- **AB#1801** (the Decision this session filed: does the flat-direction Station mockup ship?) is the one thing
+  actually blocking the eleven-story design-system track (AB#745, AB#759 to AB#772) — hand it to the Board, not
+  to another Builder pane; nothing to build until it is answered.
 - **AB#1794** (Level 9's Luna-lease gate, the same shape as AB#1753 — filed, not fixed, low confidence, needs
   the runway probe extended to actually reach Level 9 before anyone fixes it blind) is Proposed, unclaimed.
 - **ISP-279** and **ISP-66 (AB#755)** are both done (concurrent panes) — see above.
@@ -527,7 +567,8 @@ Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-bo
 (`agent/734-security`, PR !402), ISP-89's (`agent/779-no-payments-test`, PR !409), ISP-61's
 (`agent/747-first-hour-playtest`, PR !406), ISP-278's (`agent/985-timed-transit`, PR !408), AB#1052's
 (`agent/1052-stop-mining`, PR !417), ISP-66's (`agent/755-registration-validation`), ISP-279's
-(`agent/986-shipments-ui`, PR !432), AB#1765's (`fix/1765-hash-refresh-token`, PR !439) and AB#1766's
-(`fix/1766-socket-auth-check`, PR !444) are all merged. This session's (AB#1753) branch is
-`fix/1753-level2-gate`, PR to be opened next and set to auto-complete. Multiple Builder panes are active on
-ISP at once — check ADO state before claiming the next item.
+(`agent/986-shipments-ui`, PR !432), AB#1765's (`fix/1765-hash-refresh-token`, PR !439), AB#1766's
+(`fix/1766-socket-auth-check`, PR !444) and AB#1753's (`fix/1753-level2-gate`, PR !450) are all merged. This
+session's (AB#758) branch is `design/758-flat-station`, PR to be opened next and set to auto-complete — merging
+it does not answer the Decision (AB#1801), which is a Board action, not a merge. Multiple Builder panes are
+active on ISP at once — check ADO state before claiming the next item.
