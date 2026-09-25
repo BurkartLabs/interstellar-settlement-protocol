@@ -22,6 +22,7 @@ const OUT_OF_SCOPE = {
   "POST /api/auth/logout": "reads only the isp_refresh cookie; the body is not read (AB#757)",
   "GET /api/auth/session": "no input",
   "GET /healthz": "the health probe, with no input (AB#735)",
+  "GET /how-to-start": "a static page, with no input (AB#748)",
   "GET /api/bootstrap": "a public read with no input",
   "GET /api/stations": "a static catalog",
   "GET /api/buildings": "a static catalog",

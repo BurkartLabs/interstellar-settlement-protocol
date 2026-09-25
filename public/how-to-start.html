@@ -1,0 +1,111 @@
+<!doctype html>
+<!-- AB#748 (ISP-62): the one page the Board hands a playtester with the URL. No login. Every figure below is checked
+     against data/*.json by tests/unit/howToStart.test.js, and the steps against the walkthrough's order
+     (public/scripts/walkthrough.js): change a price or a step there and that test says what to change here. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ISP: How to Start</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="scripts/starfield.js"></script>
+  </head>
+  <body>
+    <canvas id="starfield-canvas" aria-hidden="true"></canvas>
+    <div class="app-bg" aria-hidden="true"></div>
+
+    <main class="auth-shell">
+      <article class="auth-card howto">
+        <section class="landing-section">
+          <p class="hero-overline">INTERSTELLAR SETTLEMENT AUTHORITY &middot; PLAYTEST BRIEFING</p>
+          <h1>How to Start</h1>
+          <p class="hero-desc">
+            It is 2147. You run a corporation. You hire staff, lease mining rights on a planet, extract what is in it, and
+            sell it on the Galactic Exchange, where the other side of an order may be another corporation run by another
+            player. Everything you build persists between sessions. Nothing here is a race: progress is measured in
+            milestones, not minutes.
+          </p>
+        </section>
+
+        <section class="landing-section">
+          <h2>Before you begin</h2>
+          <ul>
+            <li><a href="/register.html">Register a corporation</a>. It is issued <strong>$250,000</strong> and docked at
+              <strong>Earth Station Prime</strong>. Your whole first session happens there.</li>
+            <li>Use a desktop browser. The interface is built for one.</li>
+            <li>Elara Voss of the Contracting &amp; Assignments Bureau will offer to brief you. Accept, and she takes you
+              through the steps below in this order. Decline, and this page is the same procedure. Your settlement licence
+              is in your Inbox either way.</li>
+          </ul>
+        </section>
+
+        <section class="landing-section">
+          <h2>The first hour, in eight steps</h2>
+          <ol>
+            <li data-step="office"><strong>Rent an office.</strong> Station &rarr; Orbital Executive Suites. Suites cost
+              <strong>$1,000 a day</strong>; the shortest term is 7 days, <strong>$7,000</strong>. Without an active office
+              the ISA files no lease, hires no staff, and starts no mining cycle.</li>
+            <li data-step="hire"><strong>Hire five employees.</strong> The Workforce panel of the same suites. Each hire
+              costs <strong>$2,000</strong> and adds <strong>$150 a day</strong> to payroll. The ISA requires
+              <strong>5 employees</strong> on payroll for each mining lease you hold.</li>
+            <li data-step="lease"><strong>File a mining lease.</strong> Station &rarr; ISA Claims &amp; Leases Division.
+              A station files leases only on the body it orbits, so from Earth Station Prime the lease is Earth, Silicate
+              Extraction, <strong>$20,000</strong>.</li>
+            <li data-step="yard"><strong>Commission an extractor yard.</strong> In the same office, open the lease with
+              Manage Lease and build a Basic Extractor Yard: <strong>$50,000</strong>. A lease without equipment is
+              paperwork.</li>
+            <li data-step="cycle"><strong>Start a mining cycle.</strong> Set a throughput between <strong>10 and 250 tons
+              per hour</strong> and a duration of up to <strong>72 hours</strong>. Silicates accrue to your Earth Station
+              Prime inventory while it runs. Throughput costs more per ton the higher you set it: the top setting is not
+              the most profitable one.</li>
+            <li data-step="sell"><strong>Sell what you mined.</strong> Galactic Exchange. A Standing Buy Order from the
+              GEX Commodities Authority takes Silicates at once, at about <strong>$24 a ton</strong> when the market is
+              quiet; the price falls as the day's quota fills and recovers overnight. The Exchange keeps
+              <strong>8%</strong> of every sale. You may instead list them for other corporations, and wait for a buyer.
+              </li>
+            <li data-step="research"><strong>Fund your first research.</strong> Corporate R&amp;D &rarr; Basic Extraction
+              Analytics: <strong>2 hours</strong>, <strong>$2,000</strong>, and a permanent <strong>+10%</strong> to
+              extraction throughput on every yard.</li>
+            <li data-step="bureau"><strong>Take a contract, then read your milestones.</strong> Assignments is the Bureau:
+              agents issue contracts with a quota and a reward, and no deadline. Then open the Overview, where the ISA
+              lists what your next corporation level requires. When you do not know what to do, start there.</li>
+          </ol>
+        </section>
+
+        <section class="landing-section">
+          <h2>If something breaks</h2>
+          <p>
+            Post it in <strong>Forums &rarr; Help &amp; Guides</strong> with a title that begins <em>Bug:</em>, and tell
+            the person who invited you. Say what you did, what you expected, what happened instead, and roughly when.
+            Never post your password or your email address; nobody needs either to fix a bug.
+          </p>
+        </section>
+
+        <section class="landing-section">
+          <h2>Not in this build</h2>
+          <ul>
+            <li>Corporation levels above <strong>10</strong>. Ten are defined; 11 to 40 are planned for a later version.</li>
+            <li>Combat between corporations. It is planned, deliberately late.</li>
+            <li>Anything bought with real money. Nothing is for sale, and nothing will be before 1.0.</li>
+            <li>Moderation. Chat, forums and mail are not filtered, and there is no report, block or mute. Everything
+              players write is shown as they typed it.</li>
+          </ul>
+        </section>
+
+        <section class="landing-section">
+          <div class="login-actions">
+            <a href="/register.html" class="btn-hero btn-hero-fill">Register Corporation</a>
+            <a href="/login.html" class="btn-hero btn-hero-secondary">Log In</a>
+            <a href="/" class="btn-hero btn-hero-secondary">Return To Landing Page</a>
+          </div>
+        </section>
+      </article>
+    </main>
+  </body>
+</html>

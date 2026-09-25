@@ -664,9 +664,11 @@ body {
   margin: 0;
 }
 
-/* Bug #1059: the next step after an error, and the links in the intro copy. */
+/* Bug #1059: the next step after an error, and the links in the intro copy. AB#748: and the playtest briefing's. */
 .login-status-link,
-.login-copy a {
+.login-copy a,
+.landing-howto a,
+.howto a:not(.btn-hero) {
   color: var(--accent);
   font-weight: 600;
   text-decoration: underline;
@@ -690,6 +692,28 @@ body {
   margin: 0;
   padding: 4.8rem clamp(1rem, 6vw, 6rem);
   border-top: 1px solid rgba(0, 247, 255, 0.08);
+}
+
+/* ─── How to start (AB#748, public/how-to-start.html) ─── */
+/* A reading column under the centred section headings, with room between the steps. */
+.howto h1 {
+  margin: 0.4rem 0 0.9rem;
+}
+
+.howto .landing-section > ol,
+.howto .landing-section > ul,
+.howto .landing-section > p {
+  max-width: 760px;
+  margin: 1.6rem auto 0;
+  line-height: 1.7;
+}
+
+.howto li + li {
+  margin-top: 0.85rem;
+}
+
+.howto li > strong:first-child {
+  color: var(--text);
 }
 
 .auth-card > .landing-section:not(.landing-hero) {

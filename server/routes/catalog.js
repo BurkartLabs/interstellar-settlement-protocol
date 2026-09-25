@@ -18,6 +18,12 @@ export function registerCatalogRoutes(app) {
     res.json({ ok: true });
   });
 
+  // AB#748: the playtest briefing at the address the Board hands out. Public, like the landing and login pages, and
+  // static: public/how-to-start.html, whose figures tests/integration/how-to-start.test.js checks against data/.
+  app.get("/how-to-start", (_req, res) => {
+    res.sendFile(path.join(__dirname, "..", "public", "how-to-start.html"));
+  });
+
   app.get("/api/bootstrap", (req, res) => {
     // Public, but a signed-in caller also gets their own older orders (Bug #425: the book is capped when read), and is
     // told which posts and listings are theirs. Nobody is sent an account id (Bugs #1134, #1145).
