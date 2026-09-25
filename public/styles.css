@@ -5790,6 +5790,92 @@ tr.npc-order-exhausted {
   opacity: 0.8;
 }
 
+/* ─── Action receipt (AB#743): what a committing action did, and the milestone variant for a level reached ─── */
+/* It never blocks the next action: the backdrop dims the page but lets the pointer through, so a click anywhere
+   outside the card closes it (public/scripts/views/receiptModal.js) and still lands on what the player clicked. */
+#action-receipt-modal {
+  pointer-events: none;
+}
+
+.action-receipt-card {
+  pointer-events: auto;
+  width: min(520px, 100%); /* not a vw width: inside .modal-backdrop's padding, as .trade-confirm-card (AB#1781) */
+}
+
+.action-receipt-body {
+  margin: 0.75rem 0 1rem;
+}
+
+.action-receipt-summary {
+  margin: 0 0 0.6rem;
+  color: var(--text);
+}
+
+.action-receipt-list {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.action-receipt-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.15rem 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.action-receipt-row dt {
+  color: var(--muted);
+}
+
+.action-receipt-row dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.action-receipt-next {
+  margin: 0.85rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.action-receipt-next-label {
+  margin-right: 0.35rem;
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.action-receipt-order {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 247, 255, 0.18);
+}
+
+.action-receipt-order h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+/* The milestone variant: the level leads, in the amber the walkthrough uses for the corporation's own progress. */
+.action-receipt-card--milestone {
+  border-color: rgba(255, 170, 51, 0.55);
+}
+
+.action-receipt-card--milestone .overline,
+.action-receipt-card--milestone > h2 {
+  color: var(--warn);
+}
+
+.action-receipt-card--milestone .action-receipt-level .action-receipt-row dd {
+  color: var(--warn);
+  font-weight: 700;
+}
+
 /* ─── Trade Confirmation Modal ─── */
 .trade-confirm-card {
   width: min(480px, 100%); /* not 94vw: the same overflow as AB#1781, inside .modal-backdrop's padding */

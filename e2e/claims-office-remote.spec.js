@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -71,7 +72,11 @@ for (const viewport of VIEWPORTS) {
       await page.click("#station-back-btn");
       await page.click('[data-building-action="building:orbital-executive-suites"]');
       await page.click("#rent-office-btn");
-      await expect(page.locator("#rent-office-status")).toContainText(/lease|rented/i);
+      // AB#743: the server's receipt, not #rent-office-status, which this used to read while it still said
+      // "Processing lease agreement..." (it matched /lease/ before the server had answered at all).
+      await expect(page.locator("#action-receipt-title")).toHaveText("Office Lease Confirmed");
+      await expect(page.locator("#action-receipt-body")).toContainText("Mars Orbital Dock");
+      await acknowledgeReceipt(page);
       await page.click("#station-back-btn");
       await page.click('[data-building-action="building:isa-claims-leases"]');
       await expect(page.locator(".purchase-lease-btn").first()).toBeVisible();

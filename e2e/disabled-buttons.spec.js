@@ -8,6 +8,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743
 
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
 fs.mkdirSync(SCREEN_DIR, { recursive: true });
@@ -53,6 +54,7 @@ test("a disabled button is dimmed, shows not-allowed and loses its hover glow; e
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   await page.selectOption("#rent-office-duration", "7");
   await page.click("#rent-office-btn");
+  await acknowledgeReceipt(page);
   await expect(page.getByText("Active Lease")).toBeVisible();
   await page.click("#station-back-btn");
   await page.click('[data-building-action="building:isa-claims-leases"]');
@@ -76,6 +78,7 @@ test("a disabled button is dimmed, shows not-allowed and loses its hover glow; e
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   await page.fill("#office-hire-count", "5");
   await page.click('#office-hire-form button[type="submit"]');
+  await acknowledgeReceipt(page);
   await expect(page.locator("#office-hire-hint")).toContainText("5 / ");
   await page.click("#station-back-btn");
   await page.click('[data-building-action="building:isa-claims-leases"]');

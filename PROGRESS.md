@@ -33,6 +33,22 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 - `e2e/how-to-start.spec.js` walks landing -> page -> login -> page at both sizes and writes screenshots to
   `test-results/isp-62/` (copied by hand to `docs/isp-62/`). `no-payments.test.js`'s pinned line is 4306.
 
+## What's now true (AB#743, ISP-57 — the confirmation modal, and the first level-up)
+
+- **The component, for AB#744 to reuse: `showActionReceipt(answer, { returnFocusTo })`** in
+  `public/scripts/views/receiptModal.js`, with `#action-receipt-modal` in `index.html`. Pass it a route's parsed
+  response. It shows `answer.receipt`, or the amber milestone variant when `answer.levelsReached` is non-empty, and
+  does nothing for a refusal. The layout is the pure `actionReceiptView()` in `public/scripts/actionReceipt.js`.
+- **The server side: `server/receipts.js`.** A route that commits something answers `{ ...account, receipt }`, with
+  `receipt = { action, title, summary, cost, costCredits, grants: [{label, value}], next }` built from the values its
+  mutation used. Done for rent-office, renew-office, hire, purchase-lease, build-extractor and start-mining. AB#744:
+  add a builder there and call `showActionReceipt` from the view. `mutateAccountState` now returns `levelsReached`
+  on every call ([] when none), from `evaluateAccountLevel`, with each unlock `data/milestones.json` defines.
+  `formatCredits` lives in `server/receipts.js` now; `server/routes/helpers.js` re-exports it.
+- Closes on Escape, its button, or any click outside the card. Outside clicks go through to what was clicked; the
+  card itself can cover the next control, so `e2e/receipt.mjs`'s `acknowledgeReceipt(page)` dismisses it in specs.
+- Screenshots of all six receipts and the Level 1 milestone in `docs/ab-743/`.
+
 ## What's now true (ISP-59, AB#745 — changing numbers are acknowledged where they change, Builder)
 
 - **To mark a number, render it with `numberMarkup(key, value, text)`** (`public/scripts/numberChange.js`); nothing

@@ -11,6 +11,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743
 
 const SHOT_DIR = path.join(process.cwd(), "docs", "ab-1202");
 fs.mkdirSync(SHOT_DIR, { recursive: true });
@@ -44,8 +45,10 @@ test("the Level 2 lease card keeps a five-staff player at home, and Mars can be 
   await enterBuilding(page, "orbital-executive-suites");
   await page.selectOption("#rent-office-duration", "7");
   await page.click("#rent-office-btn");
+  await acknowledgeReceipt(page);
   await page.fill("#office-hire-count", "5");
   await page.click('#office-hire-form button[type="submit"]');
+  await acknowledgeReceipt(page);
   await expect(page.locator("#office-hire-hint")).toContainText("Staffing: 5 /");
 
   // The Level 2 lease card, before any lease: filed here, not a journey to Mars.
@@ -59,6 +62,7 @@ test("the Level 2 lease card keeps a five-staff player at home, and Mars can be 
   // The Earth lease, as the bug's repro has it. The Level 2 lease requirement is then met.
   await enterBuilding(page, "isa-claims-leases");
   await page.click('.purchase-lease-btn[data-body="Earth"]');
+  await acknowledgeReceipt(page);
   await expect(page.locator(".lease-card")).toHaveCount(1);
   await page.click('.tab-btn[data-tab="overview"]');
   await expect(leaseCard.locator(".requirement-state")).toHaveText("Completed");
@@ -93,14 +97,17 @@ test("the Level 2 lease card keeps a five-staff player at home, and Mars can be 
   await shot(page, "04-mars-suites-before-office");
   await page.selectOption("#rent-office-duration", "7");
   await page.click("#rent-office-btn");
+  await acknowledgeReceipt(page);
   await page.fill("#office-hire-count", "5");
   await page.click('#office-hire-form button[type="submit"]');
+  await acknowledgeReceipt(page);
   await expect(page.locator("#office-hire-hint")).toContainText("Staffing: 10 /");
   await shot(page, "05-mars-suites-hired-to-ten");
 
   // And the Mars lease files at Mars, without flying home.
   await enterBuilding(page, "isa-claims-leases");
   await page.click('.purchase-lease-btn[data-body="Mars"]');
+  await acknowledgeReceipt(page);
   await expect(page.locator(".lease-body-badge", { hasText: "Mars" })).toBeVisible();
   await shot(page, "06-mars-lease-filed-at-mars");
 
