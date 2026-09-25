@@ -16,9 +16,33 @@ Corporate R&D and for login/register respectively; AB#1752 and AB#1806 used it o
 locally-started server; AB#1807 (no visible change) used it for a console-error smoke check instead; AB#1744 is
 a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on any of these panes (Builder panes
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
-below — ISP-53 (AB#739, one module per tab) is queued right behind it.**
+below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
-## What's now true (this session: ISP-52, AB#738 — split app.js, part 1)
+## What's now true (this session: ISP-53, AB#739 — split app.js, part 2)
+
+- **app.js is bootstrap and tab routing only: 716 lines, from 6,268.** Every tab's renderer and binder is a module
+  in `public/scripts/views/` (overview, inbox, travel, station, finance, research, ceoInsight, refinery, exchange,
+  assets, logistics, comms, forums, assignments, starmap), plus `shared.js` (what several tabs use), `chrome.js`
+  (the bell, the sidebar identity, the header's controls) and `miningTicker.js`. `bindForms` is now five per-tab
+  binders it calls in turn. Views reach `updateAllViews`/`setTab`/`refreshFromServer`/`showAuthScreen` through
+  forwarders in `shared.js` that app.js connects at load (part 1's hook shape) — **no view imports app.js**, and
+  there is no import cycle. Moved by a script over the parsed file (whole declarations, comments kept, imports
+  computed), not by hand.
+- **Source-reading tests read the whole client now** — `tests/helpers/clientSource.js` (app.js and everything it
+  imports, `../` included), the counterpart of `serverSource.js`. Three tests that listed `public/scripts/` read it
+  recursively. For ISP-26: a test that names where client code lives should use it, not a path.
+- **`e2e/refinery-requirements-muted.spec.js` swaps `views/refinery.js`**, where the panel is drawn now (AB#1828's
+  fix had just landed and would have thrown after the split).
+- **Checked:** `npm test` **160 files, 1793 tests**, green, none skipped. `tsc --checkJs` as a name resolver: the
+  same unresolved names before and after (`Chart`, `io`, `currentBody`/AB#1825). **Looked at:** all 15 tabs at
+  1280x800 on a local build, each tab's binders exercised (chat sent, forum category, agent + contract, Exchange
+  filters, R&D picker, building views, locked tabs in transit), zero console errors — and the same run on
+  origin/main, pixel-identical wherever the content is not a timestamp or randomly generated. Screenshots in
+  `docs/isp-53/`. `walkthrough-run` and the refinery spec pass.
+- **Filed while here, not fixed:** **AB#1832** — a contract's briefing opens above the screen: the mission modal is
+  nested in the Assignments panel, whose `backdrop-filter` becomes the fixed modal's containing block. Same on main.
+
+## What was true before it (ISP-52, AB#738 — split app.js, part 1)
 
 - **app.js no longer defines its shared pieces; five ES modules under `public/scripts/` do, and app.js imports
   them.** `state.js` (appState and the constants), `apiClient.js` (session, `apiFetch`, `parseJsonResponse`, the
@@ -916,8 +940,8 @@ a Builder pane without the Chrome extension.
   scope for an ISP-only Builder pane (COMMON §3, project scope). Flagging for whichever pane is scoped to the
   platform.
 - **ISP-279** and **ISP-66 (AB#755)** are both done (concurrent panes) — see above.
-- **AB#753 (ISP-65, CSP/security headers)** has an unmet predecessor, AB#739 (splitting `app.js`), still
-  Proposed as of 2026-09-25 — check its state before claiming; it may be worth doing anyway now that the actual
+- **AB#753 (ISP-65, CSP/security headers)**: its predecessor, AB#739 (splitting `app.js`), is done (ISP-53, top of
+  this file), so it is unblocked. It was worth doing regardless, now that the actual
   risk that predecessor was hedging against (many inline event handlers to convert) turned out not to exist —
   `grep -c 'onclick='` across `public/` returns 0, the client already uses `addEventListener` exclusively.
 - **AB#757/987/989** (the rest of the screenshot-gated v0.5 items) can now be built and looked at with
