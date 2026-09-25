@@ -26,18 +26,33 @@ async function researcher() {
   return { app, account, api: authed(app, accessToken), corp: () => getAccountById(account.id).state.corp };
 }
 
-/** The Station as a player with the research sees it, with every request the page sends recorded and forwarded. */
+/**
+ * The Station as a player with the research sees it, with every request the page sends recorded and forwarded.
+ *
+ * `settle()` awaits the actual in-flight request rather than guessing how long it takes (AB#1744, P-STOPWATCH-TEST):
+ * a fixed 50ms wait missed the click handler's own `await request(...)` under load, since a wall-clock guess is not
+ * a signal tied to the request completing. `request` itself is synchronous up to the point where it creates and
+ * records that promise, so by the time `button.click()` returns to the test, `settle()` is already bound to the
+ * one request the click just sent — and because `bindFacilityGrid`'s `await request(...)` attaches its own
+ * continuation (the one that calls `onBuilt`/`onError`) to that same promise *before* the test's `await settle()`
+ * does, the two continuations run in that order: `onBuilt`/`onError` has always fired by the time `settle()`
+ * resolves. No request means `settle()` resolves immediately against its initial no-op promise.
+ */
 function playerPage(p, overrides = {}) {
   const doc = stationPage();
   const sent = [];
   const events = { built: [], errors: [], entered: [] };
+  let pending = Promise.resolve();
   const handlers = {
     accountId: () => p.account.id,
-    request: async (path, init) => {
+    request: (path, init) => {
       sent.push({ path, method: init.method });
-      const res = await p.api.post(path).send({});
-      if (res.status !== 200) throw new Error(res.body.error);
-      return res.body;
+      pending = (async () => {
+        const res = await p.api.post(path).send({});
+        if (res.status !== 200) throw new Error(res.body.error);
+        return res.body;
+      })();
+      return pending;
     },
     onEnter: (name) => events.entered.push(name),
     onBuilt: (account) => events.built.push(account),
@@ -45,10 +60,9 @@ function playerPage(p, overrides = {}) {
     ...overrides
   };
   renderStationFacilities(doc, p.corp(), handlers);
-  return { doc, sent, events, handlers };
+  const settle = () => pending.catch(() => {});
+  return { doc, sent, events, handlers, settle };
 }
-
-const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
 
 describe("Construct Assembly Facility (Bug #1253)", () => {
   it("draws the Construct button in the page's facilities section, which it shows", async () => {
@@ -63,7 +77,7 @@ describe("Construct Assembly Facility (Bug #1253)", () => {
 
   it("a click sends one POST to build-assembly-facility, and the facility is built", async () => {
     const p = await researcher();
-    const { doc, sent, events } = playerPage(p);
+    const { doc, sent, events, settle } = playerPage(p);
     doc.getElementById("build-assembly-btn").click();
     await settle();
 
@@ -76,7 +90,7 @@ describe("Construct Assembly Facility (Bug #1253)", () => {
 
   it("a double click while the request is out sends one request, not two", async () => {
     const p = await researcher();
-    const { doc, sent } = playerPage(p);
+    const { doc, sent, settle } = playerPage(p);
     const button = doc.getElementById("build-assembly-btn");
     button.click();
     expect(button.disabled).toBe(true);
@@ -88,7 +102,7 @@ describe("Construct Assembly Facility (Bug #1253)", () => {
 
   it("a refusal the page could not foresee gives the server's reason and the button back", async () => {
     const p = await researcher();
-    const { doc, sent, events } = playerPage(p);
+    const { doc, sent, events, settle } = playerPage(p);
     // Credits spent elsewhere after the Station was drawn: the page still offers Construct, the server refuses.
     mutateAccountState(p.account.id, (state) => { state.corp.finances.credits = 10_000; });
     const button = doc.getElementById("build-assembly-btn");
@@ -114,7 +128,7 @@ describe("Construct Assembly Facility (Bug #1253)", () => {
 
   it("re-rendering does not stack handlers: one click after three renders is still one request", async () => {
     const p = await researcher();
-    const { doc, sent, handlers } = playerPage(p);
+    const { doc, sent, handlers, settle } = playerPage(p);
     renderStationFacilities(doc, p.corp(), handlers);
     renderStationFacilities(doc, p.corp(), handlers);
     doc.getElementById("build-assembly-btn").click();
@@ -126,7 +140,7 @@ describe("Construct Assembly Facility (Bug #1253)", () => {
   it("short of credits, the card says so and Construct sends nothing", async () => {
     const p = await researcher();
     mutateAccountState(p.account.id, (state) => { state.corp.finances.credits = 10_000; });
-    const { doc, sent } = playerPage(p);
+    const { doc, sent, settle } = playerPage(p);
     const button = doc.getElementById("build-assembly-btn");
     expect(button.disabled).toBe(true);
     expect(doc.querySelector(".facility-blocked").textContent).toBe("Needs ¤60,000; you have ¤10,000.");
