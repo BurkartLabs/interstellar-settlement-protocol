@@ -1,6 +1,7 @@
 // The Refinery Chains tab.
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
+import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { deepClone, formatDurationHours, toCurrency } from "../helpers.js";
 import { escapeHtml, refineryBuildButtonHtml } from "../html.js";
@@ -185,6 +186,7 @@ export function renderRefinery(data) {
       startBtn.disabled = true;
       startBtn.textContent = "Starting…";
       try {
+        const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
         const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/start-refinery`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -200,6 +202,7 @@ export function renderRefinery(data) {
         appState.data = deepClone(account.state);
         appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
         updateAllViews();
+        showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       } catch (error) {
         startBtn.disabled = false;
         startBtn.textContent = "Start Run";
@@ -222,6 +225,8 @@ export function renderRefinery(data) {
 
       buildBtn.disabled = true;
       buildBtn.textContent = "Building…";
+      const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
+      let receiptAnswer = null; // AB#744: the server's answer; none when built offline, so no receipt
       try {
         if (appState.accountId) {
           const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/build-refinery`, {
@@ -229,6 +234,7 @@ export function renderRefinery(data) {
             headers: { "Content-Type": "application/json" }
           });
           const account = await parseJsonResponse(response);
+          receiptAnswer = account;
           appState.data = deepClone(account.state);
           appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
         } else {
@@ -280,6 +286,7 @@ export function renderRefinery(data) {
 
         appState.refineryStatus = { type: "ok", text: "Refinery commissioned." };
         updateAllViews();
+        showActionReceipt(receiptAnswer, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
         pushFeedback("Refinery commissioned.", "ok");
       } catch (error) {
         appState.refineryStatus = { type: "warn", text: error.message };

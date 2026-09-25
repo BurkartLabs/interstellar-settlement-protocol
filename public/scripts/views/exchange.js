@@ -1,6 +1,7 @@
 // The Galactic Exchange tab: listings, buying, selling and the filters.
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
+import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { DEFAULT_EXCHANGE_VIEW, MY_LISTINGS_SHOWN, SELL_ORDERS_SHOWN, cappedNote, filteredEmptyHtml, saveExchangeView, tradeNumbers, viewOrders } from "../exchangeView.js";
 import { deepClone, formatTime, toCurrency } from "../helpers.js";
@@ -303,6 +304,7 @@ export function bindExchangeForms() {
     }
 
     try {
+      const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
       const response = await apiFetch("/api/market/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -328,6 +330,7 @@ export function bindExchangeForms() {
       }
 
       renderMarket(appState.data);
+      showActionReceipt(payload, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       // the server's own record of what was listed, not what the form thought it sent
       listingStatus.textContent = `Listing created: ${Number(payload.order?.quantity)} ${item} @ ${toCurrency(payload.order?.unitPrice)}.`;
       await refreshFromServer();
@@ -395,6 +398,7 @@ export function bindExchangeForms() {
     }
 
     try {
+      const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
       const response = await apiFetch(`/api/market/orders/${encodeURIComponent(orderId)}/buy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -412,6 +416,7 @@ export function bindExchangeForms() {
       pushFeedback(`Purchase executed: ${item} \u00d7 ${qty} @ ${toCurrency(price)}/unit.`, "success");
       flashButtonSuccess(button);
       await refreshFromServer();
+      showActionReceipt(payload, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
     } catch (error) {
       if (buyStatus) {
         buyStatus.textContent = `Buy order failed: ${error.message}`;
@@ -478,6 +483,7 @@ export function bindExchangeForms() {
     }
 
     try {
+      const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
       const response = await apiFetch(`/api/market/npc-orders/${encodeURIComponent(orderId)}/sell`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -496,6 +502,7 @@ export function bindExchangeForms() {
       pushFeedback(`Sold ${item} × ${qty} @ ${toCurrency(price)}/unit to ${escapeHtml(button.closest("tr")?.children[1]?.textContent || "NPC")}. ${toCurrency(proceeds)} credited.`, "success");
       flashButtonSuccess(button);
       await refreshFromServer();
+      showActionReceipt(payload, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
     } catch (error) {
       if (npcStatus) {
         npcStatus.textContent = `Sale failed: ${error.message}`;
