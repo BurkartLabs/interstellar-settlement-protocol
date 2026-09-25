@@ -18,6 +18,16 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1203 — a contract is completed at its agent's station, Builder #1)
+
+- `POST /gameplay/complete-mission` refuses a quota contract unless the corporation is docked at the agent's station
+  (`MISSION_AGENTS_DATA[].stationId`), before it reads the quota: "You must be docked at Earth Station Prime to
+  complete this contract. You are at Mars Orbital Dock: travel there on the Starmap first." The page already had
+  this rule; the Salvage Assignment (time-served) and an agent with no station are not checked, as on the page.
+  **The stricter of the two rules was chosen** — the Board can veto it for the looser one (drop the page's check).
+- `tests/integration/mission-agent-station.test.js`; `e2e/contract-agent-station.spec.js` accepts and completes a
+  contract at Earth in a browser (seed: `e2e/seed-contractor-account.mjs`); screenshots in `docs/ab-1203/`.
+
 ## What's now true (AB#1827, Builder #4)
 
 - **No e2e spec writes to the checkout any more.** `refinery-requirements-muted.spec.js` served its pre-fix
