@@ -205,3 +205,79 @@ describe("the system view's back button is clear of every body on a phone (AB#12
     });
   }
 });
+
+// AB#1337: a body's label that would pass the right edge was drawn to the left of the body whatever was there, so an
+// inner planet right of the star (Centauri Prime at 292px) ran its name across it; and a body left of the star ran
+// its right-hand label into it (Sol's Asteroid Belt and Jupiter on a phone, the belt at 1280x800 too). A label now
+// takes the first place beside, above or below its body that is clear of the star's 60px halo, and when a body is so
+// close to the star that none is, the place farthest from it.
+describe("a body's label stays clear of the star (AB#1337)", () => {
+  /** The box an 11px label covers, from the baseline fillText was given. */
+  const boxOf = (l) => ({ left: l.x, right: l.x + l.width, top: l.y - 9, bottom: l.y + 3 });
+  const touches = (box, c) => {
+    const nx = Math.min(Math.max(c.x, box.left), box.right);
+    const ny = Math.min(Math.max(c.y, box.top), box.bottom);
+    return Math.hypot(nx - c.x, ny - c.y) < c.r;
+  };
+
+  for (const [width, innerHeight] of [[292, 812], [292, 354], [307, 354], [881, 427], [881, 568], [685, 592]]) {
+    it(`at ${width}px wide (innerHeight ${innerHeight}), in every system, no body label touches the star's glow or leaves the canvas`, () => {
+      for (const system of systems) {
+        const map = mapAt(width, innerHeight);
+        const placed = openSystem(map, system);
+        const halo = map.context.arcs.find((a) => a.r === 60);
+        const glow = map.context.arcs.find((a) => a.r === 28 && a.x === halo.x && a.y === halo.y); // the visible glow
+        const labels = map.context.labels.filter((l) => placed.some((p) => p.body.name === l.text));
+        expect(labels.length, system.name).toBe(placed.length);
+        for (const l of labels) {
+          const box = boxOf(l);
+          const p = placed.find((b) => b.body.name === l.text);
+          const where = `${system.name} ${l.text} at ${JSON.stringify(box)}`;
+          expect.soft(touches(box, glow), `${where} is on the star's glow`).toBe(false);
+          // Into the faint outer halo only when the body is too near the star for any place beside it to clear it,
+          // and then above or below the body, never across the star beside it.
+          if (touches(box, halo)) expect.soft(Math.abs(l.y - (p.y - 4)), `${where} is beside its body, in the halo`).toBeGreaterThan(1);
+          expect.soft(box.left, where).toBeGreaterThanOrEqual(0);
+          expect.soft(box.right, where).toBeLessThanOrEqual(width);
+          expect.soft(box.top, where).toBeGreaterThanOrEqual(0);
+          expect.soft(box.bottom, where).toBeLessThanOrEqual(map.canvas.clientHeight);
+        }
+      }
+    });
+  }
+
+  it("at 292px Centauri Prime's name is above or below the planet, off the star, and the other two cases clear the halo", () => {
+    const at = (systemName, bodyName) => {
+      const map = mapAt(292, 812);
+      const system = systems.find((s) => s.name === systemName);
+      const placed = openSystem(map, system);
+      const halo = map.context.arcs.find((a) => a.r === 60);
+      return { p: placed.find((b) => b.body.name === bodyName), l: map.context.labels.find((x) => x.text === bodyName), halo };
+    };
+    const prime = at("Alpha Centauri", "Centauri Prime");
+    expect(Math.abs(prime.l.y - (prime.p.y - 4))).toBeGreaterThan(1); // not beside it, where it ran across the star
+    expect(prime.l.x).toBeGreaterThan(prime.halo.x); // on the planet's side of the star
+    for (const [s, b] of [["Sol", "Asteroid Belt"], ["Sol", "Jupiter"]]) {
+      const { l, halo } = at(s, b);
+      expect(touches(boxOf(l), halo), `${s} ${b}`).toBe(false);
+    }
+  });
+
+  it("on a desktop canvas a body label with room to the right of its body, clear of the star, has not moved", () => {
+    let unmoved = 0;
+    for (const system of systems) {
+      const map = mapAt(881, 427);
+      const placed = openSystem(map, system);
+      const halo = map.context.arcs.find((a) => a.r === 60);
+      for (const p of placed) {
+        const l = map.context.labels.find((x) => x.text === p.body.name);
+        const right = { left: p.x + 8, right: p.x + 8 + l.width, top: p.y - 4 - 9, bottom: p.y - 4 + 3 };
+        if (right.right > 881 - 4 || touches(right, halo)) continue;
+        expect(l.x, `${system.name} ${p.body.name}`).toBeCloseTo(p.x + 8, 6);
+        expect(l.y, `${system.name} ${p.body.name}`).toBeCloseTo(p.y - 4, 6);
+        unmoved += 1;
+      }
+    }
+    expect(unmoved).toBeGreaterThan(20); // nearly every body: only what crossed the star or the edge moves
+  });
+});

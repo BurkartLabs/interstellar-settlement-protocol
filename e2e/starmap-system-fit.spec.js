@@ -95,10 +95,11 @@ for (const viewport of VIEWPORTS) {
       await canvas.scrollIntoViewIfNeeded();
       await page.waitForTimeout(800);
 
-      for (const [name, file] of [["Sol", "sol"], ["Epsilon Eridani", "epsilon-eridani"]]) {
+      // AB#1337: Alpha Centauri, where Centauri Prime ran its name across the star on a phone.
+      for (const [name, file] of [["Sol", "ab1326-sol"], ["Epsilon Eridani", "ab1326-epsilon-eridani"], ["Alpha Centauri", "ab1337-alpha-centauri"]]) {
         await openSystem(page, canvas, name);
         await page.waitForTimeout(600);
-        await canvas.screenshot({ path: path.join(SCREEN_DIR, `ab1326-${file}-${viewport.label}.png`) });
+        await canvas.screenshot({ path: path.join(SCREEN_DIR, `${file}-${viewport.label}.png`) });
         const back = await labelOf(page, `t.endsWith("Back To Cluster")`);
         await canvas.click({ position: { x: back.x + back.w / 2, y: back.y - 3 } });
         await page.waitForTimeout(600);
