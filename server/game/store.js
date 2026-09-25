@@ -363,6 +363,8 @@ export function getAccountById(accountId) {
 }
 
 export async function authenticateAccount(email, password) {
+  // Bug #2050: a password of {"x":1} was compared as "[object Object]". Anything but two strings signs nobody in.
+  if (typeof email !== "string" || typeof password !== "string") return null;
   const normalizedEmail = String(email || "").toLowerCase();
   const normalizedPassword = String(password || "");
   const account = Object.values(accountsStore.accounts || {}).find(
@@ -400,6 +402,16 @@ export const CEO_NAME_MAX_LENGTH = 40;
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function createAccount({ email, password, ceoName, corpName }) {
+  // Bug #2050: every field must arrive as a string. String() made a password of {"x":1} into "[object Object]", a
+  // password anyone can guess, and a one-element array into its element. A wrong type gets the message and field its
+  // length or shape rule gives, and the value is never read.
+  if (typeof email !== "string") return { error: "Enter a valid email address.", field: "email" };
+  if (typeof password !== "string") {
+    return { error: `Password must be ${PASSWORD_MIN_LENGTH} to ${PASSWORD_MAX_LENGTH} characters.`, field: "password" };
+  }
+  if (typeof ceoName !== "string") {
+    return { error: `CEO name must be ${CEO_NAME_MIN_LENGTH} to ${CEO_NAME_MAX_LENGTH} characters.`, field: "ceoName" };
+  }
   const normalizedEmail = String(email || "").trim().toLowerCase();
   const normalizedPassword = String(password || "");
   const normalizedCeoName = String(ceoName || "").trim().replace(/\s+/g, " ");
