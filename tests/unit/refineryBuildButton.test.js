@@ -23,7 +23,7 @@ describe("Build Refinery with no free building slot (Bug #1254)", () => {
     expect(button).not.toBeNull();
     expect(button.text).toBe("Build Refinery");
     expect(button.attrs["data-disabled-reason"]).toBe("Refinery requires 1 open building slot. Current usage: 2/2.");
-    expect(button.after).toBe('<p class="muted" style="color:var(--color-warn)">No open building slots. Current usage: 2/2.</p>');
+    expect(button.after).toBe('<p class="muted" style="color:var(--warn)">No open building slots. Current usage: 2/2.</p>');
   });
 
   it("puts no markup inside an attribute, so nothing of the tag reaches the screen", () => {
