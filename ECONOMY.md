@@ -275,6 +275,43 @@ worse than any real mining setting (T-018) and self-limiting (the credit thresho
 entering the game from nowhere, which is exactly the kind of change BRIEF.md's "what we will measure first"
 section and DOCTRINE's security-first framing both ask to be surfaced rather than assumed.
 
+## ISP-42's re-run against the floor above (AB#728), 2026-09-25
+
+Bot numbers, seed 7000 (P-PROXY). **Before** (MONETIZATION.md review #2, pre-Salvage-Assignment): planner and
+greedy both plateau at level 2, 0 credits, banked/spent 0.00x/0.00x/0.00x at day 3/7/30 — the dead-end this
+file's "way back from broke" section closes. **After**, with AB#1789/1791/1792 (the Salvage Assignment),
+AB#1774 (the reserve bot) and AB#1812 (giving planner/greedy a real mission-taking decision) all on `main`:
+
+| | level | credits at day 30 | banked/spent, day 3 / 7 / 30 | moves include |
+| --- | --- | --- | --- | --- |
+| planner | 3 | 141 | 0.00x / 0.01x / 0.00x | 22 salvage-accept, 22 salvage-complete |
+| greedy | 3 | 1,700 | 0.00x / 0.00x / 0.01x | 56 salvage-accept, 56 salvage-complete |
+| reserve | 2 | 25,858 | 0.16x / 0.22x / 0.12x | never dips low enough to need one |
+
+The deadlock is gone (both bots now spend real turns on salvage-accept/salvage-complete, and neither is
+permanently refused every action), and the acceptance line's sink target — banked ÷ spent stays below 3x at
+day 3 and day 7 — is met by all three profiles. It is met the way MONETIZATION.md's own review #1 already
+warned against (thin margins near 0.00x-0.01x rather than a healthy reserve), which is a sink-depth finding for
+a different epic (MONETIZATION.md epic 2), not something this item's mandate reaches.
+
+**The 24-hour payback target is not met, by any bot, at any horizon tried (3 or 30 bot-days) — and no
+`data/economy.json` value moves it.** `bestThroughputFor` already sets planner near the profit-maximising
+point (94-146 t/h across these runs); the model above already shows the best real setting paying back around
+day 9-11 under *ideal* play, because `buildings.extractorYardCost`'s own recorded rationale is "it is what
+makes payback a multi-day question" — the target and the design intent are opposed on paper before any bot
+is even run. Checked rather than assumed: cutting `extractorYardCost` from 50,000 to 3,000 (94%, well under
+the building's own 36,000 asset value, an indefensible value in its own right) in a scratch run still shows
+"paid for itself in no part of 3 bot days." Closing a ~9-11 day gap to 24 hours needs roughly a 10x
+improvement in margin-per-sunk-credit that no single lever, or defensible combination of them, supplies
+without gutting the T-018 curve's own point (that profit does not scale linearly with throughput) or the
+office/hire/lease/yard costs the design intentionally sized to make the first session a real decision.
+
+**Outcome: no value in `data/economy.json` changed.** Per this item's own acceptance line, "nothing needed
+changing" is recorded as the result for the value-retune mandate — the Salvage Assignment alone moved the sink
+target — and the payback target is filed as **Bug AB#1871** (root cause: Specification Error; the acceptance
+number was written without checking it against this file's own model output or the yard cost's documented
+rationale), for the Director to either rewrite the target or confirm it should be dropped.
+
 ## Rules the model takes from the code
 
 These are not in `data/economy.json`, so the model states them, with where each comes from. The test reads those
