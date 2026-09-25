@@ -149,7 +149,7 @@ export const SYSTEM_DETAILS = {
     bodies: [
       { id: "ac-prime", name: "Centauri Prime", type: "Planet", x: 50, y: 0, radius: 7 },
       { id: "ac-ii", name: "Centauri II", type: "Planet", x: 86, y: 0, radius: 5 },
-      { id: "ac-haven", name: "Haven", type: "Moon", x: 102, y: 0, radius: 3 },
+      { id: "ac-haven", name: "Haven", type: "Moon", parentId: "ac-ii", x: 102, y: 0, radius: 3 },
       { id: "ac-belt", name: "Centauri Belt", type: "Field", x: 126, y: 0, radius: 10 }
     ]
   },
@@ -158,7 +158,7 @@ export const SYSTEM_DETAILS = {
     bodies: [
       { id: "bn-iron", name: "Ironwell", type: "Planet", x: 48, y: 0, radius: 6 },
       { id: "bn-cinder", name: "Cinder", type: "Planet", x: 82, y: 0, radius: 4 },
-      { id: "bn-arc", name: "Arcadia", type: "Moon", x: 103, y: 0, radius: 3 },
+      { id: "bn-arc", name: "Arcadia", type: "Moon", parentId: "bn-cinder", x: 103, y: 0, radius: 3 },
       { id: "bn-rift", name: "Rift Debris Ring", type: "Field", x: 132, y: 0, radius: 11 }
     ]
   },
@@ -167,7 +167,7 @@ export const SYSTEM_DETAILS = {
     bodies: [
       { id: "wf-halo", name: "Halo", type: "Planet", x: 44, y: 0, radius: 5 },
       { id: "wf-garnet", name: "Garnet", type: "Planet", x: 77, y: 0, radius: 6 },
-      { id: "wf-veil", name: "Veil", type: "Moon", x: 92, y: 0, radius: 3 },
+      { id: "wf-veil", name: "Veil", type: "Moon", parentId: "wf-garnet", x: 92, y: 0, radius: 3 },
       { id: "wf-shards", name: "Shard Belt", type: "Field", x: 126, y: 0, radius: 10 }
     ]
   },
@@ -176,7 +176,7 @@ export const SYSTEM_DETAILS = {
     bodies: [
       { id: "tc-verde", name: "Verde", type: "Planet", x: 47, y: 0, radius: 7 },
       { id: "tc-lumen", name: "Lumen", type: "Planet", x: 84, y: 0, radius: 5 },
-      { id: "tc-aqua", name: "Aqua Minor", type: "Moon", x: 101, y: 0, radius: 3 },
+      { id: "tc-aqua", name: "Aqua Minor", type: "Moon", parentId: "tc-lumen", x: 101, y: 0, radius: 3 },
       { id: "tc-cloud", name: "Tau Ice Cloud", type: "Field", x: 128, y: 0, radius: 11 }
     ]
   },
@@ -185,7 +185,7 @@ export const SYSTEM_DETAILS = {
     bodies: [
       { id: "ee-kestrel", name: "Kestrel", type: "Planet", x: 46, y: 0, radius: 6 },
       { id: "ee-orion", name: "Orion Reach", type: "Planet", x: 78, y: 0, radius: 5 },
-      { id: "ee-lyra", name: "Lyra", type: "Moon", x: 95, y: 0, radius: 3 },
+      { id: "ee-lyra", name: "Lyra", type: "Moon", parentId: "ee-orion", x: 95, y: 0, radius: 3 },
       { id: "ee-crown", name: "Crown Belt", type: "Field", x: 124, y: 0, radius: 10 }
     ]
   }

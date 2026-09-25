@@ -33,6 +33,20 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 - `e2e/number-change.spec.js` plays a hire and a sale with a video, a reduced-motion hire and a hidden-tab hire;
   frames and `hire-and-sale.mp4` in `docs/isp-59/`. `no-payments.test.js`'s pinned line is 4278 now.
 
+## What's now true (AB#742, ISP-56 — procedural renders outside Sol; Bug #2112, Builder)
+
+- Every body outside Sol has a `style` in `data/systems.json` (surface bands/craters/clouds/ice/lava, base, shadow,
+  accent, glow; belts `surface: "field"` and are tinted). `public/scripts/bodyRender.js` draws a disc from it with
+  features seeded by the body id, painted once per size into an offscreen canvas. `bodyRenderKind` in starmap.js says
+  how any body is drawn; `tests/unit/bodyRender.test.js` walks all 38 and none is the placeholder. `normalizeSystems`
+  takes `style` and `parentId` from the catalogue on every load, so existing saved worlds get them.
+- Bug #2112, fixed here: the five moons outside Sol had no `parentId` and were drawn nowhere; each now orbits the
+  planet just inside it (Haven/Centauri II, Arcadia/Cinder, Veil/Garnet, Aqua Minor/Lumen, Lyra/Orion Reach).
+- Each Starmap frame is the `isp:starmap-render` measure. `e2e/procedural-bodies.spec.js` records 30 frames per system
+  at 4x throttle (printed, not asserted: this shared machine moved the old build's median from 7 to 27 ms) and checks
+  Alpha Centauri is the same pixels after a reload. Screenshots in `docs/ab-742/`.
+- At system scale (5-7 px) a body reads as a shaded coloured sphere; the surface shows in the close-up.
+
 ## What's now true (ISP-293, AB#1762 — Corporate R&D and Assignments at full content width, Builder)
 
 - `.rnd-panel` (was 820px), `#rnd-queue` (750px, 500px at 601-900), `#missions-board-view` (25vw) and
