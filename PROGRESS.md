@@ -18,6 +18,13 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1827, Builder #4)
+
+- **No e2e spec writes to the checkout any more.** `refinery-requirements-muted.spec.js` served its pre-fix
+  `views/refinery.js` by overwriting the file on disk. It now uses `page.route` for that one page load.
+  `tests/unit/e2eNoSourceWrites.test.js` fails for any `*.spec.js` that writes, copies, renames or deletes a file,
+  except removing its own temporary data dir. A spec that needs different client code routes it.
+
 ## What's now true (this session: AB#1756, Builder #4)
 
 - **The walkthrough's phone-width target is visible on step 3 again.** Execute Lease Agreement (drawn only once the
