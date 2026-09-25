@@ -10,11 +10,26 @@ const dialogueText = document.getElementById("dialogue-text");
 const dialogueChoices = document.getElementById("dialogue-choices");
 const dialogueContinue = document.getElementById("dialogue-continue");
 
+// AB#1763 (ISP-294): while a line is typing, a click or tap anywhere on the dialogue, or any key, finishes it.
+let skipTyping = null;
+let skipArming = null;
+
 function clearTypewriter() {
   if (appState.activeTypewriter) {
     clearInterval(appState.activeTypewriter);
     appState.activeTypewriter = null;
   }
+  clearTimeout(skipArming);
+  if (skipTyping) {
+    dialogueModal.removeEventListener("click", skipTyping);
+    document.removeEventListener("keydown", skipTyping, true);
+    skipTyping = null;
+  }
+}
+
+/** The first choice or Continue button, once the line has finished and they exist. */
+function firstControl() {
+  return dialogueChoices.querySelector("button") || (dialogueContinue.hidden ? null : dialogueContinue);
 }
 
 function typeDialogueText(text, onDone) {
@@ -27,16 +42,37 @@ function typeDialogueText(text, onDone) {
   }
   dialogueText.textContent = "";
   let index = 0;
+  const finish = () => {
+    clearTypewriter();
+    dialogueText.textContent = text;
+    if (onDone) onDone();
+  };
   appState.activeTypewriter = setInterval(() => {
     dialogueText.textContent += text[index] || "";
     index += 1;
-    if (index >= text.length) {
-      clearTypewriter();
-      if (onDone) {
-        onDone();
-      }
-    }
+    if (index >= text.length) finish();
   }, 14);
+  // The key or click that finishes the line does nothing else: the choices do not exist until it has, and the key is
+  // not passed on, so Enter or Space cannot also press whatever held focus. Focus then goes to the first choice, so
+  // the next key press acts on it.
+  skipTyping = (event) => {
+    if (event.type === "keydown") {
+      if (["Shift", "Control", "Alt", "Meta"].includes(event.key)) return;
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    finish();
+    firstControl()?.focus();
+  };
+  // Armed on the next task, not now: a choice that opens the next line does so while its own click (or the Enter that
+  // pressed it) is still being dispatched, and a listener added to dialogueModal now would take that same click as a
+  // skip and finish the new line before anyone read it.
+  const skip = skipTyping;
+  skipArming = setTimeout(() => {
+    if (skipTyping !== skip) return;
+    dialogueModal.addEventListener("click", skip);
+    document.addEventListener("keydown", skip, true);
+  }, 0);
 }
 
 export function showDialogue({ speaker, title, text, choices = [], continueText = "", onContinue, portrait = "" }) {

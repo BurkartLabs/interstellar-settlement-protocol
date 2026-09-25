@@ -18,6 +18,16 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1763, ISP-294 — the typewriter finishes on click, Builder)
+
+- While the coordinator's line is typing, a click or tap on the dialogue or any key (not a bare modifier) prints the
+  whole line, renders the choices and focuses the first one; the key is swallowed, so it cannot also press what held
+  focus. The skip listeners are armed on the next task (`setTimeout 0` in `dialogue.js`): armed at once, the click or
+  Enter that picked a choice would finish the next line before anyone read it (the spec proves it). Reduced motion was
+  already AB#1760. `e2e/typewriter-skip.spec.js`, 1280x800 and 375x812; before/after in `docs/ab-1763/`.
+- Filed, not fixed: **AB#2080**, `claims-office-remote.spec.js` asserts on `#rent-office-status`, which the Suites
+  re-render removes after a successful rent, so it fails intermittently on main.
+
 ## What's now true (AB#753, ISP-65 — security headers, a CSP, and CORS)
 
 - Every response carries helmet's headers with the policy in `server/securityHeaders.js` (mounted in `server/app.js`):
