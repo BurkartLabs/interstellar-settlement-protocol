@@ -51,7 +51,7 @@ export function renderLogistics(data) {
       </div>
       <div class="logistics-summary-tile">
         <span class="logistics-summary-label">Transfer fee</span>
-        <span class="logistics-summary-value">${rates ? `${toCurrency(rates.sameSystemFeePerUnit)} / unit in system, +${toCurrency(rates.perJumpFeePerUnit)} a jump` : "By distance"}</span>
+        <span class="logistics-summary-value logistics-summary-value--wrap">${rates ? `${toCurrency(rates.sameSystemFeePerUnit)} / unit in system, +${toCurrency(rates.perJumpFeePerUnit)} a jump` : "By distance"}</span>
       </div>
       <div class="logistics-summary-tile">
         <span class="logistics-summary-label">Credits</span>
