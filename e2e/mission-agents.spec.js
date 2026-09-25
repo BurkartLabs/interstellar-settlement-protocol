@@ -67,16 +67,14 @@ for (const viewport of VIEWPORTS) {
     await agentCard.click();
     const missionCard = page.locator("[data-mission-id]").first();
     await expect(missionCard, "a contract offer (materializeOffer from the template pool) must render").toBeVisible();
-    // AB#1781: a 5px horizontal-overflow reading at this exact step is filed, not fixed here — not reproducible
-    // in isolation, not caused by this story (the render functions here are unmodified by it, only their data
-    // source), and not visible in the screenshot itself (looked at directly). Not asserted at this one step so
-    // that pre-existing, unrelated finding doesn't gate this story's own acceptance line.
+    // AB#1781: a 5px reading here was once seen and skipped. It did not reproduce in 16 runs of this spec (current
+    // main, and the commit it was found at) nor in 8 frame-by-frame probes, so the check guards this step again.
+    if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "02-offers", viewport.width);
 
     await missionCard.click();
     await expect(page.locator("#mission-accept-btn")).toBeVisible();
-    // AB#1781 again: same finding persists once triggered by the step above; not re-asserted here either, for
-    // the same reason. Still screenshotted and looked at directly.
+    if (mobile) await assertNoHorizontalScroll(page); // AB#1781: asserted again, as at the step above
     await shoot(page, viewport.label, "03-mission-detail", viewport.width);
   });
 }
