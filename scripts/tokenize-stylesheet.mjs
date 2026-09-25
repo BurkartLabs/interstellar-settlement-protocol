@@ -85,12 +85,18 @@ function textColour(c, fill) {
   return v(seen >= 0.78 ? "--text" : seen >= 0.58 ? "--text-soft" : "--muted");
 }
 
-function backgroundColour(c) {
+function backgroundColour(c, selector = "") {
   if (c.family === "transparent") return "transparent";
   if (c.family === "neutral") {
-    if (c.rgb?.every?.((x) => x === 0) || (c.lum < 0.001 && c.a >= 0.45)) return v("--scrim-modal");
+    // A dark see-through layer over the whole page, behind a modal: the scrim.
+    if (/backdrop|overlay|scrim/i.test(selector) && c.lum < 0.01 && c.a < 1) return v("--scrim-modal");
+    // Black: a veil over the page when dense (a modal's backdrop), a darker well when faint (an input on a panel).
+    if (c.rgb.every((x) => x === 0) || c.lum < 0.001) return v(c.a >= 0.45 ? "--scrim-modal" : "--bg");
     if (c.lum > 0.3 && c.a >= 0.6) return v("--text-soft");
-    return v(nearestSurface(c.onPage));
+    // A see-through dark layer always lies on something, a panel as often as the page: it is a card, one step up
+    // (surface-2), or two if it was light. Blended onto the page instead, cards went darker than their panels.
+    if (c.a < 0.9) return v(c.lum >= 0.03 ? "--surface-3" : c.lum >= 0.006 ? "--surface-2" : "--surface-1"); // near-black: the page's own shell
+    return v(nearestSurface(c.lum));
   }
   if (c.a >= 0.6 && c.lum > 0.15) return v(HUE_TOKEN[c.family]);
   return v(c.a >= 0.15 ? "--surface-3" : "--surface-2");
@@ -139,7 +145,7 @@ function hslCalls(text) {
 
 const colours = (text) => (text.match(COLOUR) ?? []).map((t) => ({ text: t, ...parseColour(t) })).map((c) => ({ ...c, ...classify(c) }));
 
-function background(value) {
+function background(value, selector = "") {
   const kept = [];
   for (const layer of layers(value)) {
     const cs = colours(layer).filter((c) => c.family !== "transparent");
@@ -166,10 +172,10 @@ function background(value) {
         if (cs.some((c) => c.family === "cyan" && c.a >= 0.3)) kept.push(v("--border"));
         continue;
       }
-      kept.push(backgroundColour(cs[0]));
+      kept.push(backgroundColour(cs[0], selector));
       continue;
     }
-    kept.push(backgroundColour(cs[0]));
+    kept.push(backgroundColour(cs[0], selector));
   }
   return kept.length ? kept.join(", ") : "none";
 }
@@ -227,7 +233,7 @@ export function rewrite(property, value, selector, fill) {
   if ((property === "text-shadow" || property === "filter") && hasColour) return null;
   if (property === "box-shadow" && hasColour) return boxShadow(value, selector);
   if (property === "color" && hasColour) return textColour(colours(value)[0], fill);
-  if ((property === "background" || property === "background-color" || property === "background-image") && (hasColour || /gradient\(/.test(value))) return background(value);
+  if ((property === "background" || property === "background-color" || property === "background-image") && (hasColour || /gradient\(/.test(value))) return background(value, selector);
   if (/^border(-(top|right|bottom|left))?(-color)?$|^outline(-color)?$/.test(property) && hasColour) {
     return value.replace(COLOUR, (t) => borderColour(classify(parseColour(t)) && { ...parseColour(t), ...classify(parseColour(t)) }));
   }
