@@ -45,7 +45,12 @@ This project has a deliberate roadmap in [DEVELOPMENT_PHASES.md](DEVELOPMENT_PHA
 - `escapeHtml()` for all user-supplied or data-driven values injected into HTML.
 
 ### CSS
-- Use the established CSS custom properties (`--accent`, `--text`, `--muted`, `--surface`, `--border`, `--warn`).
+- **New CSS is written in tokens only** (ISP-70): colours, font sizes, spacing, radii, shadows, durations and z-index
+  come from the design-token block at the top of `styles.css` (see them at `/styleguide/tokens`). No literal value:
+  `tests/unit/designTokens.test.js` counts the literals outside the block and fails when there are more. A colour the
+  block lacks is added to the block, with its contrast checked there (`node scripts/design-tokens.mjs`).
+- The old palette names (`--void-black`, `--electric-cyan`, `--panel`, `--color-*` and the like) are aliases of tokens
+  now; ISP-71 retires them. Use the token names.
 - New component styles go near the bottom of `styles.css`, grouped with a `/* ─── Section name ─── */` header comment.
 - Mobile-first isn't enforced, but responsive breakpoints should be included for any new layout components.
 

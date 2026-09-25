@@ -18,6 +18,22 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (ISP-70, AB#759 — the flat direction's design tokens, Builder)
+
+- **One token block at the top of `public/styles.css`** (Decision AB#1801, the flat direction): surfaces `--bg` and
+  `--surface-1..3`, text `--text`, `--text-soft`, `--muted`, one `--accent`, and warn/danger/success, each with hover,
+  pressed and an `--on-` colour; scrims; a six-step Inter type scale; a 4px spacing scale; radii; one overlay shadow;
+  motion (0ms under reduced motion); z layers. Specimen at **/styleguide/tokens**, measured live in the browser.
+- The old palette names are aliases of the tokens, so every `var()` in the game took the new palette at once. The
+  **literals** still written in the stylesheet (592 colours, 227 font sizes, 506 spacing values, including the
+  landing title's glow and bright `#00f7ff`, and the teal panel gradients and corner marks) are ISP-71's to replace;
+  `tests/unit/designTokens.test.js` holds each count so it can only fall.
+- Orbitron and Rajdhani are gone from every font import and every font-family is a token; the wordmark is Inter.
+- Contrast: `node scripts/design-tokens.mjs` prints every pair. The lowest text-on-surface is 4.57:1 (`--warn` on
+  `--surface-3`). `--danger` became `#f697a0` and `--text-soft` (`#cdd7df`) was added: the old danger and any third
+  grey below `--muted` fail AA on `--surface-3`.
+- Looked at: `docs/isp-70/` (specimen at both sizes, and the game's landing, Overview and Station after the change).
+
 ## What's now true (AB#2073 — the first lease's staffing refusal, Builder)
 
 - `purchase-lease`'s staffing refusal says "a mining lease" for the first and "an additional mining lease" only once
