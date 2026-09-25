@@ -33,7 +33,8 @@ least 32 bytes and the server refuses to start without it outside the dev surfac
 the file's own comment says rotating it is the correct response to a suspected leak (`server/jwtSecret.js:7-8`).
 **AB#757 (unclaimed, tracked separately):** the access token still lives in the browser's `localStorage`, not an
 `HttpOnly` cookie, so it is reachable by any script that runs on the page (a dependency compromise, not a
-same-origin XSS — the CSP that would close that door is ISP-65's separate, still-unclaimed scope).
+same-origin XSS). The content security policy (ISP-65, AB#753; "Headers and CORS" below) narrows that door: no
+inline or injected script runs, and outside scripts load only from the one Chart.js file the page names.
 
 **Fail closed.** `resolveJwtSecret` throws and the process never starts if `JWT_SECRET` is unset or short,
 outside `ISP_DEV=1` (never true in production) — no silent fallback to a guessable string (`server/jwtSecret.js:
@@ -149,6 +150,29 @@ five checks fails: no verified account, no corporation, no allowed channel, empt
 is empty (and therefore `cors: { origin: false }`, refusing every cross-origin handshake) unless
 `ISP_APP_ORIGIN` names one explicitly (`server/index.js:388-394`, the fix for Bug #710) — an unset environment
 variable fails closed to "no other origin may connect," not open to "any origin may."
+
+## Headers and CORS (ISP-65, AB#753)
+
+**What it touches.** Nothing stored: response headers only, set by `server/securityHeaders.js` and mounted once in
+`server/app.js` ahead of every route and the static files, so no route can be added without them. A path nothing
+answers gets a 404 from `server/index.js`, not Express's default, which clears the headers already set.
+
+**Who can reach it, and if they are hostile.** The content security policy (`CSP_DIRECTIVES`) lets no inline or
+evaluated script run: script-src has neither `'unsafe-inline'` nor `'unsafe-eval'`, and `script-src-attr 'none'`
+blocks an `on*` handler written into rendered HTML, the shape of Bug #691. The one outside script, Chart.js, is
+allowed by its exact file path, not the CDN's origin, which serves every npm package. style-src keeps
+`'unsafe-inline'` because the views still set `style=""` attributes (ISP-26 removes them). `frame-ancestors 'none'`
+and `X-Frame-Options: DENY` stop the game being framed, `nosniff` stops a response being read as another type, and
+the referrer policy is `same-origin`, so the page's URL (it carries `?account=`) never reaches the font or script CDN.
+A request whose Origin is another site is refused with 403 before any route runs, and gets no CORS headers, so the
+browser refuses it too (`corsPolicy`). Same origin is judged by host, against Host or the ingress's
+X-Forwarded-Host, so the proxy's http-to-https hop does not make the game a stranger to itself.
+
+**Fail closed.** `ISP_APP_ORIGIN`, the list the sockets read, is the only way to allow another origin; unset, none is.
+Tested in `tests/integration/security-headers.test.js`.
+
+**Not verified here:** the production ingress's Host and X-Forwarded-Host. If it rewrites both to an internal name,
+every same-origin POST in production would be refused. The first deploy should be checked by logging in.
 
 ## Rate limits (ISP-64 + AB#734)
 

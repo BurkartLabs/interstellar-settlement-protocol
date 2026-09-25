@@ -18,6 +18,18 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#753, ISP-65 — security headers, a CSP, and CORS)
+
+- Every response carries helmet's headers with the policy in `server/securityHeaders.js` (mounted in `server/app.js`):
+  no inline or evaluated script, Chart.js allowed by its exact path, frame-ancestors 'none', nosniff, Referrer-Policy
+  same-origin. A request from another origin is refused with 403 unless `ISP_APP_ORIGIN` names it. Unanswered paths
+  get a JSON 404 from `server/index.js`, which keeps the headers. `SECURITY.md` has a "Headers and CORS" section.
+- **A new outside resource needs its origin in `CSP_DIRECTIVES`**, or the browser blocks it. Adding a script tag for
+  a CDN fails `tests/integration/security-headers.test.js` until its exact URL is listed.
+- No console messages and no CSP violations on login, register and all 14 tabs, recorded by Playwright. The DevTools
+  console screenshot acceptance #4 asks for was not taken (see the PR). Owed: the Board opens the console once.
+- Not verified: the production ingress's Host headers. Log in on the first deploy.
+
 ## What's now true (AB#1760, ISP-291 — a focus-ring token, and reduced motion)
 
 - Keyboard focus draws `--focus-ring` (2px solid cyan, `:root`) through one unqualified `:focus-visible` rule in
