@@ -67,6 +67,27 @@ async function heardEach(s, events, action, ms = 300) {
   return got;
 }
 
+/**
+ * The first `event` on `s` that `match` accepts, once `action` has run; rejects after `ms` (AB#2015). For what must
+ * arrive: a fixed window says "not yet" on a loaded machine, and waiting for the event itself does not.
+ */
+async function first(s, event, action, match = () => true, ms = 5000) {
+  let on;
+  const arrived = new Promise((resolve) => {
+    on = (payload) => { if (match(payload)) resolve(payload); };
+    s.on(event, on);
+  });
+  let timer;
+  const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`no ${event} within ${ms}ms`)), ms); });
+  try {
+    await action();
+    return await Promise.race([arrived, timeout]);
+  } finally {
+    clearTimeout(timer);
+    s.off(event, on);
+  }
+}
+
 describe("per-account events reach only that account's sockets (Bug #1021)", () => {
   it("sends each corporation's finances only to its own sockets, and none to an anonymous one", async () => {
     const a = await player();
@@ -143,14 +164,20 @@ describe("an expired token drops the socket back to anonymous, not the connectio
     // one: the point of this story is a socket that was authenticated and stops being so mid-connection.
     await new Promise((resolve) => setTimeout(resolve, 1300));
 
-    const got = await heardEach(s, ["finance:updated", "auth:expired"], () => mod.financialSnapshotTick());
-    expect(got["finance:updated"]).toEqual([]);
-    expect(got["auth:expired"].length).toBeGreaterThan(0);
+    // AB#2015: wait for auth:expired itself rather than a fixed window, and only then give finance:updated 300ms more,
+    // so the check that nothing reached the expired socket starts from a known point instead of racing the delivery.
+    const financeOnExpired = [];
+    const onFinance = (payload) => financeOnExpired.push(payload);
+    s.on("finance:updated", onFinance);
+    await first(s, "auth:expired", () => mod.financialSnapshotTick());
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    s.off("finance:updated", onFinance);
+    expect(financeOnExpired).toEqual([]);
 
     // The account's other sockets are unaffected: a fresh connection with a good token still gets its events.
     const fresh = await socket(a.token);
-    const restored = await heard(fresh, "finance:updated", () => mod.financialSnapshotTick());
-    expect(restored.map((p) => p.accountId)).toContain(a.id);
+    const restored = await first(fresh, "finance:updated", () => mod.financialSnapshotTick(), (p) => p?.accountId === a.id);
+    expect(restored.accountId).toBe(a.id);
   });
 
   it("also fails closed on writes: chat:send from an expired-token socket is dropped, not sent as the account", async () => {

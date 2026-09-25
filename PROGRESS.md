@@ -18,6 +18,16 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#2015 — the expired-token socket test waits for its events, Builder)
+
+- `socket-rooms.test.js` has `first(s, event, action, match, ms)`: resolves on the first matching event, fails after 5s.
+  The expired-token test waits for `auth:expired` with it, then listens 300ms for the finance:updated that must not
+  come; the fresh socket waits for its own finance:updated. Mutation-checked: with the server's emits 400ms late the
+  old test is red and this one green; with no `auth:expired`, or an expired socket kept in its room, both are red.
+- **Filed, not fixed:** AB#2056 (the file's four other tests assert positives inside the same fixed window) and
+  AB#2055 (under CPU load `beforeAll` times out at vitest's 10s default while booting the server, and the whole file
+  reads as skipped). The reported AB#2015 failure itself was not reproduced; the load loop only produced AB#2055.
+
 ## What's now true (AB#1857 — Create Listing with nothing to list, Builder)
 
 - `renderMarket` hides the Create Listing `.table-wrap` when the station has no inventory, as `showEmpty` does for the
