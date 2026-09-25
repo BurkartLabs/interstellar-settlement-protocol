@@ -6107,6 +6107,12 @@ function bindRealtimeEvents() {
     updateAllViews();
   });
 
+  // ISP-67: the server drops a socket whose token has expired back to anonymous and says so here, rather than
+  // disconnecting it. Get a fresh access token and reconnect so per-account events resume without a page reload.
+  socket.on("auth:expired", () => {
+    if (appState.refreshToken) refreshSessionToken();
+  });
+
   socket.on("chat:new", (msg) => {
     if (!appState.data) {
       return;

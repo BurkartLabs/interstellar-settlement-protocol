@@ -3309,12 +3309,39 @@ function accountRoom(accountId) {
 }
 
 /**
+ * Re-verify the token a socket connected with. A socket that authenticated once and is still in its account room but
+ * whose token has since expired is dropped back to anonymous here rather than kept signed in for the life of the
+ * connection: it leaves the room, loses socket.data.accountId, and is told "auth:expired" so the page can refresh its
+ * token and reconnect (ISP-67). A socket that was never authenticated is left alone. Returns the account id still
+ * good for this socket, or undefined.
+ */
+function checkSocketAuth(socket) {
+  const verified = verifyAccessToken(socket.data.token);
+  if (verified.accountId) return verified.accountId;
+  if (socket.data.accountId) {
+    socket.leave(accountRoom(socket.data.accountId));
+    socket.data.accountId = undefined;
+    socket.emit("auth:expired");
+  }
+  return undefined;
+}
+
+/**
  * Send an event about one account to that account's sockets only (Bug #1021: these used to be io.emit broadcasts, so
  * every connected client received every corporation's finances, mining, inventory and notification text). Global
  * events (market, forums, chat) still use io.emit; tests/integration/socket-rooms.test.js checks there are no others.
+ * Each member's token is re-checked before delivery (ISP-67), so a room a socket never formally left because it
+ * disconnected loses nothing, but one that just expired stops hearing this account the moment there is something to
+ * hear.
  */
 function emitToAccount(accountId, event, payload) {
-  if (accountId) io.to(accountRoom(accountId)).emit(event, payload);
+  if (!accountId) return;
+  const room = io.sockets.adapter.rooms.get(accountRoom(accountId));
+  if (!room) return;
+  for (const socketId of [...room]) {
+    const socket = io.sockets.sockets.get(socketId);
+    if (socket && checkSocketAuth(socket) === accountId) socket.emit(event, payload);
+  }
 }
 
 // Bug #1260: notifications made inside gameState (a level reached) reach the account's own sockets as every other
@@ -3343,7 +3370,10 @@ function sharedStateView(viewer) {
 }
 
 io.use((socket, next) => {
-  const verified = verifyAccessToken(socket.handshake.auth?.token);
+  // The raw token is kept, not just its verdict, so checkSocketAuth can re-verify it later against the clock it is
+  // checked at rather than the clock it connected at (ISP-67).
+  socket.data.token = socket.handshake.auth?.token;
+  const verified = verifyAccessToken(socket.data.token);
   if (verified.accountId) socket.data.accountId = verified.accountId;
   next();
 });
@@ -3370,7 +3400,8 @@ io.on("connection", (socket) => {
 
   socket.on("chat:send", (payload) => {
     // Fail closed: no verified account, no account, no allowed channel or no content means nothing is stored or sent.
-    const accountId = socket.data.accountId;
+    // Re-checked here rather than read off socket.data (ISP-67): a token good at connect time can have expired since.
+    const accountId = checkSocketAuth(socket);
     if (!accountId) return;
     const corp = getAccountById(accountId)?.state?.corp;
     if (!corp) return;
