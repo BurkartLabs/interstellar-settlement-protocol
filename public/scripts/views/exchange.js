@@ -193,6 +193,9 @@ export function renderMarket(data) {
       .join("");
   }
   if (sellEmpty) sellEmpty.hidden = entries.length > 0;
+  // AB#1857: nothing to list, so no headers over an empty body either (as showEmpty does for the other tables)
+  const sellTableWrap = sellGrid?.closest(".table-wrap");
+  if (sellTableWrap) sellTableWrap.hidden = entries.length === 0;
 
   // My Active Listings
   if (mySellOrdersTable) {
