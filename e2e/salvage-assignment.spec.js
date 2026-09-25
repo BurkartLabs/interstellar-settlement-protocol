@@ -10,6 +10,7 @@
 // about the mechanism under test is faked from there on: the account logs in over real HTTP, the countdown and
 // the Overview card are read off the live page, and the server is a real, separate `node server/index.js`
 // process reading that fixture from disk at boot, the same as a real restart.
+import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743, AB#744
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import os from "node:os";
@@ -170,8 +171,10 @@ for (const viewport of VIEWPORTS) {
       await expect(page.locator("#feedback-log li").first()).toContainText(/\$3,000 credited/, { timeout: 10_000 });
       await expect(page.locator(".mission-card--active", { hasText: "ISA Salvage Assignment" })).toHaveCount(0);
 
-      // The completion celebration overlay sits on top of everything until dismissed.
-      await page.click(".mission-complete-dismiss");
+      // AB#744: the completion is confirmed by the ISA receipt, with the flat payout the server paid.
+      await expect(page.locator("#action-receipt-title")).toHaveText("Contract Completed", { timeout: 10_000 });
+      await expect(page.locator("#action-receipt-body")).toContainText("3,000 credits");
+      await acknowledgeReceipt(page);
       await expect(page.locator(".mission-complete-overlay")).toHaveCount(0);
 
       await page.click('.tab-btn[data-tab="overview"]');
