@@ -82,6 +82,17 @@ for (const prog of CEO_INSIGHT_DATA.programs) {
   CEO_INSIGHT_LIBRARY[prog.id] = prog;
 }
 
+// ─── Research tree: single source of truth from data/research.json (AB#1049) ─
+// Used to be redefined by hand in server/index.js (RESEARCH_LIBRARY) and public/scripts/app.js (techTree);
+// data/research.json's schema test already validated it and nothing loaded it. Now this is the only copy the
+// server keys by id, and GET /api/research (server/index.js) is how the client gets the same tree.
+export const researchPath = path.join(catalogueDir, "research.json");
+export const RESEARCH_DATA = JSON.parse(fs.readFileSync(researchPath, "utf8"));
+export const RESEARCH_LIBRARY = {};
+for (const node of RESEARCH_DATA.nodes) {
+  RESEARCH_LIBRARY[node.id] = node;
+}
+
 // ─── Systems: single source of truth from data/systems.json ────────────────
 export const SYSTEMS_DATA = JSON.parse(fs.readFileSync(path.join(catalogueDir, "systems.json"), "utf8"));
 

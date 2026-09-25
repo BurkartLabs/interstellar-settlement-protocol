@@ -1,7 +1,7 @@
 // server/gameState.js: the game's state, rules and persistence, split by system into server/game/*.js (AB#737).
 // This file only re-exports, so every existing import of it keeps working. New code imports the module it needs.
 
-export { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, REFINERY_CHAINS, SYSTEM_DETAILS, dataDir, getStationInventory } from "./game/catalog.js";
+export { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, REFINERY_CHAINS, RESEARCH_LIBRARY, SYSTEM_DETAILS, dataDir, getStationInventory } from "./game/catalog.js";
 export { PLAYER_BUILDINGS, STAT_KEYS, bumpStat, evaluateLevelProgress, fleetRaiseText, fleetStatus, getEffectiveExchangeTaxRate, levelReachedNotices, onAccountNotification } from "./game/progression.js";
 export { applyMiningOperations, extractorDowntimeProbPerSec, startExtractorCycle, stopExtractorCycle } from "./game/mining.js";
 export { applyRefineryOperations } from "./game/refining.js";

@@ -92,128 +92,11 @@ const IS_DEV_ACCESS =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1";
 
-// TODO(AB#1049): This should be fetched from db or research.json
-const techTree = [
-  {
-    id: "tt-basic-extraction",
-    name: "Basic Extraction Analytics",
-    effect: "+10% raw extraction throughput",
-    durationHours: 2,
-    costCredits: 2000,
-    prereqs: [],
-    tier: 1
-  },
-  {
-    id: "tt-industrial-safety",
-    name: "Industrial Safety Protocols",
-    effect: "-8% facility downtime risk",
-    durationHours: 3,
-    costCredits: 2000,
-    prereqs: ["tt-basic-extraction"],
-    tier: 1
-  },
-  {
-    id: "tt-supply-forecast",
-    name: "Supply Forecast Engine",
-    effect: "-6% extractor build cost, +6% mining yield",
-    durationHours: 4,
-    costCredits: 3000,
-    prereqs: ["tt-basic-extraction"],
-    tier: 1
-  },
-  {
-    id: "tt-energy-routing",
-    name: "High-Density Energy Routing",
-    effect: "Unlocks Material Compression I, Containment Physics I, Fleet Coordination Matrix and Assembly & Fabrication Systems",
-    durationHours: 6,
-    costCredits: 4000,
-    prereqs: ["tt-industrial-safety", "tt-supply-forecast"],
-    tier: 2
-  },
-  {
-    id: "tt-material-compression",
-    name: "Material Compression I",
-    effect: "Unlocks Nickel refining, and (with further research) the Silicates and Titanium chains",
-    durationHours: 9,
-    costCredits: 6000,
-    prereqs: ["tt-energy-routing"],
-    tier: 2
-  },
-  {
-    id: "tt-containment-physics",
-    name: "Containment Physics I",
-    effect: "Unlocks Helium-3 refinery chain",
-    durationHours: 10,
-    costCredits: 8000,
-    prereqs: ["tt-energy-routing"],
-    tier: 2
-  },
-  {
-    id: "tt-fleet-coordination",
-    name: "Fleet Coordination Matrix",
-    effect: "+12 fleet cap",
-    durationHours: 16,
-    costCredits: 12000,
-    prereqs: ["tt-energy-routing"],
-    tier: 2
-  },
-  {
-    id: "tt-nano-lattice",
-    name: "Nano-Lattice Weaving",
-    effect: "Unlocks Aerogel & Quantum Insulator refinery chains",
-    durationHours: 12,
-    costCredits: 8000,
-    prereqs: ["tt-material-compression"],
-    tier: 3
-  },
-  {
-    id: "tt-exotic-energy-routing",
-    name: "Exotic Energy Routing",
-    effect: "Unlocks Dark-Matter Capacitor synthesis",
-    durationHours: 16,
-    costCredits: 12000,
-    prereqs: ["tt-containment-physics"],
-    tier: 3
-  },
-  {
-    id: "tt-proxima-navigation",
-    name: "Near-Star Navigation Array",
-    effect: "Enables travel to Alpha Centauri and Barnard's Star",
-    durationHours: 8,
-    costCredits: 10000,
-    prereqs: ["tt-fleet-coordination"],
-    tier: 2,
-    requiresCorpLevel: 5
-  },
-  {
-    id: "tt-deep-star-navigation",
-    name: "Deep-Star Cartography Suite",
-    effect: "Enables travel to all charted star systems",
-    durationHours: 14,
-    costCredits: 20000,
-    prereqs: ["tt-proxima-navigation"],
-    tier: 3,
-    requiresCorpLevel: 10
-  },
-  {
-    id: "tt-assembly-fabrication",
-    name: "Assembly & Fabrication Systems",
-    effect: "Unlocks Assembly Facility construction",
-    durationHours: 6,
-    costCredits: 5000,
-    prereqs: ["tt-energy-routing"],
-    tier: 2
-  },
-  {
-    id: "tt-asteroid-prospecting",
-    name: "Asteroid Prospecting Arrays",
-    effect: "Unlocks Mining Probe fabrication",
-    durationHours: 8,
-    costCredits: 8000,
-    prereqs: ["tt-assembly-fabrication", "tt-supply-forecast"],
-    tier: 2
-  }
-];
+// AB#1049: fetched from GET /api/research (loadStationRegistry, below) instead of redefined here. `const` and
+// populated by mutation (`techTree.push(...)`), never reassigned — createStarmapController below captures this
+// exact array by reference at module load, before the boot fetch resolves, so replacing the binding would leave
+// the starmap's travel-research-lock text reading a permanently empty tree.
+const techTree = [];
 
 // ------------- ELEMENTS ------------- //
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
@@ -5479,11 +5362,12 @@ async function loadBootstrap() {
 
 async function loadStationRegistry() {
   try {
-    const [stationsRes, buildingsRes, insightRes, missionAgentsRes] = await Promise.all([
+    const [stationsRes, buildingsRes, insightRes, missionAgentsRes, researchRes] = await Promise.all([
       fetch("/api/stations"),
       fetch("/api/buildings"),
       fetch("/api/ceo-insight"),
-      fetch("/api/mission-agents")
+      fetch("/api/mission-agents"),
+      fetch("/api/research")
     ]);
     if (stationsRes.ok) {
       const data = await stationsRes.json();
@@ -5502,6 +5386,12 @@ async function loadStationRegistry() {
     if (missionAgentsRes.ok) {
       const data = await missionAgentsRes.json();
       applyMissionAgentsCatalog(data.agents, data.reputationTiers);
+    }
+    if (researchRes.ok) {
+      // AB#1049: mutate in place (see the comment on `const techTree = []`), never reassign the binding.
+      const data = await researchRes.json();
+      techTree.length = 0;
+      techTree.push(...(data.nodes || []));
     }
   } catch {
     // Station registry is best-effort; game works without it.

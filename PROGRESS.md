@@ -3,12 +3,50 @@
 **2026-09-25. Merged from several concurrent Builder panes: #1 did AB#1758 (orchestrata, scope override) then
 AB#1052 — a player-triggered stop on a running mining cycle; #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then
 ISP-89 (AB#779); #3 did ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only
-extension-less — then ISP-66 (AB#755), below; #4 (this pane) did ISP-278 (AB#985), ISP-279 (AB#986), AB#1765
+extension-less — then ISP-66 (AB#755), below; #4 did ISP-278 (AB#985), ISP-279 (AB#986), AB#1765
 (refresh tokens hashed at rest), AB#1766 (socket auth boundary), AB#1753 (Level 2's Mars-lease gate), then AB#758
 (the flat-direction Station mockup, a Decision now waiting on the Board) — all five per a Director-relayed
-priority order. AB#1052 and ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension
-for their screens; AB#758 used it too, to look at a static mockup rather than the running game. No CONTROL_URL
-/ Chrome extension on any of these panes (Builder panes don't get one by design). See "Blind spot" below.**
+priority order; #1 (this pane) then did AB#1049 (research.json as the only research-tree definition). AB#1052
+and ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension for their screens; AB#758
+used it too, to look at a static mockup rather than the running game; AB#1049 used it again for the Corporate
+R&D tab. No CONTROL_URL / Chrome extension on any of these panes (Builder panes don't get one by design). See
+"Blind spot" below.**
+
+## What's now true (this session: AB#1049)
+
+- **AB#1049 is done: `data/research.json` is the only definition of the research tree.** `RESEARCH_LIBRARY`
+  (`server/index.js`) used to be a ~120-line hand-written object literal, and `public/scripts/app.js`'s
+  `techTree` was a second, separately hand-written ~120-line copy of the same 13 nodes — two places for the
+  same id/name/effect/cost/duration/prereqs/tier to drift apart, with `data/research.json` sitting unread on
+  disk (only its own schema test ever loaded it).
+  - `server/game/catalog.js` now builds `RESEARCH_LIBRARY` from `data/research.json` (same pattern as the
+    existing `CEO_INSIGHT_LIBRARY` in the same file), re-exported through `server/gameState.js`.
+  - A new `GET /api/research` route (`server/index.js`, same shape as `/api/ceo-insight`) is the client's only
+    copy. `public/scripts/app.js`'s hardcoded `techTree` literal is gone, replaced by `const techTree = []`
+    populated by `loadStationRegistry()`'s boot fetch. **Mutated in place** (`techTree.length = 0;
+    techTree.push(...)`), never reassigned — `createStarmapController({ researchCatalog: techTree, ... })` is
+    called at module load and captures the array by reference before the boot fetch resolves; reassigning the
+    binding would have left the starmap's travel-research-lock text (Bug #1270) reading a permanently empty
+    tree.
+  - `tests/integration/research-route.test.js` (new): the route serves exactly the ids `data/research.json`
+    defines, every field matches exactly (not a hand-copied approximation), no login required. T-047: reverted
+    to confirm all 3 fail without the route (`TypeError` / 404), restored, confirmed green.
+  - `GET /api/research` registered in both "every route accounted for" tables:
+    `tests/integration/route-auth.test.js` (public) and `tests/integration/remaining-input.test.js`
+    (out-of-scope: a static catalog).
+  - `tests/unit/travelResearchLock.test.js`'s "the page's copy agrees with research.json" test — which read
+    `app.js`'s raw source text and string-searched for hardcoded node blocks — is gone; there's no second copy
+    left for it to check against. The drift it guarded against is now structurally impossible, not just
+    untested. The rest of that file (the lock-text logic itself, and the Starmap panel test against the real
+    `CATALOG`) is untouched and still passes.
+  - `tests/unit/no-payments.test.js`'s allowlist line number for `toCurrency` moved 478→361 (the ~120-line
+    deletion above it in `app.js`).
+  - **Looked at it**: `e2e/research-tree.spec.js` (new, following ISP-61/AB#1052's Playwright pattern) registers
+    an account, opens Corporate R&D, asserts the rendered row count matches `GET /api/research`'s node count,
+    screenshots at 1280×800 and 375×812. Ran against a real dev server (`ISP_DEV=1 PORT=4149 node
+    server/index.js`), screenshots opened and read directly: all 13 nodes render with the same names, effects,
+    costs, durations, tiers and prereq text as before the change, no horizontal overflow on mobile.
+  - Checks: `npm run check` clean; `npm test` — **156 files, 1570 tests, all green** (two consecutive runs).
 
 ## What's now true (this session: AB#758, ISP-69)
 
@@ -48,6 +86,8 @@ for their screens; AB#758 used it too, to look at a static mockup rather than th
     this story adds no server/client logic, only a static design file, so nothing to regress). Looked at with
     a one-off Playwright script (not a committed spec — this is a single static file, not a repeatable
     regression target the way `e2e/*.spec.js` covers running gameplay).
+
+## What's now true (this session: AB#1753)
 
 - **AB#1753 is fixed: Level 2's lease requirement no longer names Mars specifically.**
   `data/milestones.json`'s Level 2 `marsLease` requirement was `metric: "miningLease:Mars"` — Earth is the

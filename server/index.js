@@ -55,6 +55,7 @@ import {
   CEO_INSIGHT_LIBRARY,
   applyRefineryOperations,
   REFINERY_CHAINS,
+  RESEARCH_LIBRARY,
   MISSION_TEMPLATES,
   MISSION_AGENTS_DATA,
   REPUTATION_TIERS_DATA,
@@ -67,129 +68,8 @@ import {
 // TODO(AB#737): Move this to a single file so that we aren't redefining it everywhere
 const IS_DEV = !process.env.NODE_ENV || process.env.NODE_ENV !== "production";
 
-// TODO(AB#1049): This should be extracted from the DB or from research.json
-const RESEARCH_LIBRARY = {
-  "tt-basic-extraction": {
-    id: "tt-basic-extraction",
-    name: "Basic Extraction Analytics",
-    effect: "+10% raw extraction throughput",
-    durationHours: 2,
-    costCredits: 2000,
-    prereqs: [],
-    tier: 1
-  },
-  "tt-industrial-safety": {
-    id: "tt-industrial-safety",
-    name: "Industrial Safety Protocols",
-    effect: "-8% facility downtime risk",
-    durationHours: 3,
-    costCredits: 2000,
-    prereqs: ["tt-basic-extraction"],
-    tier: 1
-  },
-  "tt-supply-forecast": {
-    id: "tt-supply-forecast",
-    name: "Supply Forecast Engine",
-    effect: "-6% extractor build cost, +6% mining yield",
-    durationHours: 4,
-    costCredits: 3000,
-    prereqs: ["tt-basic-extraction"],
-    tier: 1
-  },
-  "tt-energy-routing": {
-    id: "tt-energy-routing",
-    name: "High-Density Energy Routing",
-    effect: "Unlocks Material Compression I, Containment Physics I, Fleet Coordination Matrix and Assembly & Fabrication Systems",
-    durationHours: 6,
-    costCredits: 4000,
-    prereqs: ["tt-industrial-safety", "tt-supply-forecast"],
-    tier: 2
-  },
-  "tt-material-compression": {
-    id: "tt-material-compression",
-    name: "Material Compression I",
-    effect: "Unlocks Nickel refining, and (with further research) the Silicates and Titanium chains",
-    durationHours: 9,
-    costCredits: 6000,
-    prereqs: ["tt-energy-routing"],
-    tier: 2
-  },
-  "tt-nano-lattice": {
-    id: "tt-nano-lattice",
-    name: "Nano-Lattice Weaving",
-    effect: "Unlocks Aerogel and Quantum Insulator refinery chains",
-    durationHours: 12,
-    costCredits: 8000,
-    prereqs: ["tt-material-compression"],
-    tier: 3
-  },
-  "tt-containment-physics": {
-    id: "tt-containment-physics",
-    name: "Containment Physics I",
-    effect: "Unlocks Helium-3 refinery chain",
-    durationHours: 10,
-    costCredits: 8000,
-    prereqs: ["tt-energy-routing"],
-    tier: 2
-  },
-  "tt-exotic-energy-routing": {
-    id: "tt-exotic-energy-routing",
-    name: "Exotic Energy Routing",
-    effect: "Unlocks Dark-Matter Capacitor synthesis",
-    durationHours: 16,
-    costCredits: 12000,
-    prereqs: ["tt-containment-physics"],
-    tier: 3
-  },
-  "tt-fleet-coordination": {
-    id: "tt-fleet-coordination",
-    name: "Fleet Coordination Matrix",
-    effect: "+12 fleet cap",
-    durationHours: 16,
-    costCredits: 12000,
-    prereqs: ["tt-energy-routing"],
-    tier: 2
-  },
-  "tt-proxima-navigation": {
-    id: "tt-proxima-navigation",
-    name: "Near-Star Navigation Array",
-    effect: "Enables travel to Alpha Centauri and Barnard's Star",
-    durationHours: 8,
-    costCredits: 10000,
-    prereqs: ["tt-fleet-coordination"],
-    tier: 2,
-    requiresCorpLevel: 5
-  },
-  "tt-deep-star-navigation": {
-    id: "tt-deep-star-navigation",
-    name: "Deep-Star Cartography Suite",
-    effect: "Enables travel to all charted star systems",
-    durationHours: 14,
-    costCredits: 20000,
-    prereqs: ["tt-proxima-navigation"],
-    tier: 3,
-    requiresCorpLevel: 10
-  },
-  "tt-assembly-fabrication": {
-    id: "tt-assembly-fabrication",
-    name: "Assembly & Fabrication Systems",
-    effect: "Unlocks Assembly Facility construction",
-    durationHours: 6,
-    costCredits: 5000,
-    prereqs: ["tt-energy-routing"],
-    tier: 2
-  },
-  "tt-asteroid-prospecting": {
-    id: "tt-asteroid-prospecting",
-    name: "Asteroid Prospecting Arrays",
-    effect: "Unlocks Mining Probe fabrication",
-    durationHours: 8,
-    costCredits: 8000,
-    prereqs: ["tt-assembly-fabrication", "tt-supply-forecast"],
-    tier: 2
-  }
-};
-
+// AB#1049: RESEARCH_LIBRARY is imported from gameState.js now — data/research.json is the only definition,
+// keyed by id in server/game/catalog.js. GET /api/research (below) is how the client gets the same tree.
 const TIER_1_TECH_IDS = Object.values(RESEARCH_LIBRARY).filter((t) => t.tier === 1).map((t) => t.id);
 
 // ── Jumps between systems: public/scripts/navigation.js holds the map (AB#718), shared with the transfer fee ──
@@ -849,6 +729,11 @@ app.get("/api/ceo-insight", (_req, res) => {
 // owned by ASSIGNED_COORDINATOR (public/scripts/liaison.js, AB#585) and are merged in client-side.
 app.get("/api/mission-agents", (_req, res) => {
   res.json({ agents: MISSION_AGENTS_DATA, reputationTiers: REPUTATION_TIERS_DATA });
+});
+
+// AB#1049: the research tree, the client's only copy (same pattern as /api/ceo-insight above).
+app.get("/api/research", (_req, res) => {
+  res.json({ nodes: Object.values(RESEARCH_LIBRARY) });
 });
 
 app.get("/api/buildings", (_req, res) => {

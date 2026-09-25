@@ -50,17 +50,11 @@ describe("the lock names the research a jump needs (Bug #1270)", () => {
     );
   });
 
-  it("the page's copy of the catalog agrees with research.json for the navigation research", () => {
-    const app = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
-    for (const id of ["tt-proxima-navigation", "tt-deep-star-navigation"]) {
-      const entry = CATALOG.find((t) => t.id === id);
-      const block = app.slice(app.indexOf(`id: "${id}"`), app.indexOf("}", app.indexOf(`id: "${id}"`)));
-      expect(block).toContain(`name: "${entry.name}"`);
-      expect(block).toContain(`tier: ${entry.tier}`);
-      expect(block).toContain(`requiresCorpLevel: ${entry.requiresCorpLevel}`);
-      expect(block).toContain(`prereqs: ${JSON.stringify(entry.prereqs).replace(/,/g, ", ")}`);
-    }
-  });
+  // AB#1049: the page no longer carries its own copy of the tech tree to drift from research.json — it fetches
+  // GET /api/research at boot and mutates the same techTree array navigation.js/starmap.js already read (see
+  // the comment on `const techTree = []` in app.js). The drift this test used to guard against is now
+  // structurally impossible: there is one file, server and client both read it. See
+  // tests/integration/research-route.test.js for the route itself serving exactly what research.json defines.
 });
 
 describe("the Starmap's system panel shows it (Bug #1270)", () => {
