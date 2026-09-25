@@ -3541,16 +3541,22 @@ onAccountNotification((accountId, notification) => emitToAccount(accountId, "not
 
 /**
  * Send the market to every connected socket as that socket's account should see it: the newest orders plus its own
- * (Bug #425: the book is never cut, so what is sent is capped here instead).
+ * (Bug #425: the book is never cut, so what is sent is capped here instead). The viewer is re-verified through
+ * checkSocketAuth (Bug #1766), not read off socket.data.accountId directly: a socket whose token expired since
+ * connecting kept seeing "this is your own listing" highlighting for its last-known account until some other
+ * per-account event happened to re-check it first.
  */
 function emitMarketUpdated() {
   const market = getState().market;
-  for (const peer of io.of("/").sockets.values()) peer.emit("market:updated", marketView(market, peer.data.accountId));
+  for (const peer of io.of("/").sockets.values()) peer.emit("market:updated", marketView(market, checkSocketAuth(peer)));
 }
 
-/** Send the forums to every connected socket as that socket's account should see them: no account ids (Bug #1134). */
+/**
+ * Send the forums to every connected socket as that socket's account should see them: no account ids (Bug #1134).
+ * The viewer is re-verified through checkSocketAuth (Bug #1766); see emitMarketUpdated.
+ */
 function emitForumsUpdated(forums) {
-  for (const peer of io.of("/").sockets.values()) peer.emit("forums:updated", forumsView(forums, peer.data.accountId));
+  for (const peer of io.of("/").sockets.values()) peer.emit("forums:updated", forumsView(forums, checkSocketAuth(peer)));
 }
 
 /** The shared state as `viewer` (an account id, or null) should see it: the bootstrap and a socket's state:init. */
@@ -3614,9 +3620,13 @@ io.on("connection", (socket) => {
     appendChatMessage(channel, message);
     if (channel.startsWith("local:")) {
       // Local chat reaches the corporations in that system now, read at send time so travel needs no bookkeeping.
+      // The recipient is re-verified through checkSocketAuth (Bug #1766), not read off socket.data.accountId
+      // directly: a socket whose token expired since connecting kept receiving its last-known system's local
+      // chat until some other per-account event happened to re-check it first.
       const systemId = channel.slice("local:".length);
       for (const peer of io.of("/").sockets.values()) {
-        const peerCorp = peer.data.accountId ? getAccountById(peer.data.accountId)?.state?.corp : null;
+        const peerAccountId = checkSocketAuth(peer);
+        const peerCorp = peerAccountId ? getAccountById(peerAccountId)?.state?.corp : null;
         if (peerCorp && (peerCorp.currentSystemId || "sol") === systemId) peer.emit("chat:new", message);
       }
     } else {

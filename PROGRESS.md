@@ -3,12 +3,36 @@
 **2026-09-25. Merged from several concurrent Builder panes: #1 did AB#1758 (orchestrata, scope override) then
 AB#1052 — a player-triggered stop on a running mining cycle; #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then
 ISP-89 (AB#779); #3 did ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only
-extension-less — then ISP-66 (AB#755), below; #4 (this pane) did ISP-278 (AB#985), ISP-279 (AB#986), then
-AB#1765 (refresh tokens hashed at rest) per a Director-relayed priority order. AB#1052 and ISP-279 both used
-ISP-61's own Playwright pattern rather than the Chrome extension for their screens. No CONTROL_URL / Chrome
-extension on any of these panes (Builder panes don't get one by design). See "Blind spot" below.**
+extension-less — then ISP-66 (AB#755), below; #4 (this pane) did ISP-278 (AB#985), ISP-279 (AB#986), AB#1765
+(refresh tokens hashed at rest), then AB#1766 (socket auth boundary) — the last two per a Director-relayed
+priority order. AB#1052 and ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension
+for their screens. No CONTROL_URL / Chrome extension on any of these panes (Builder panes don't get one by
+design). See "Blind spot" below.**
 
-## What's now true (this session: AB#1765)
+## What's now true (this session: AB#1766)
+
+- **AB#1766 is fixed: market, forums and local chat stop personalizing for an expired-token socket.**
+  `emitMarketUpdated`, `emitForumsUpdated` and the local-chat system lookup (`server/index.js`) read
+  `peer.data.accountId` directly instead of calling `checkSocketAuth(peer)`, the function ISP-67 (AB#756) added
+  to re-verify a socket's token against the clock it is checked at rather than trusting the value cached at
+  connect time. A socket whose token expired mid-connection kept seeing "this is your own listing"/"liked by
+  me" highlighting for its last-known account, and kept receiving its last-known system's local chat, until
+  some other per-account event (an emit through `emitToAccount`, or a `chat:send` attempt) forced a re-check.
+  No private or financial data leaked through this path — market/forums are public data with viewer-relative
+  highlighting, local chat is public to the system — but "signed out" was not actually signed out for it.
+  - All three call sites now route through `checkSocketAuth(peer)`, the same function `emitToAccount` already
+    uses, at the small extra cost of re-verifying a token on every market/forum broadcast to every connected
+    socket (the proposed fix's own tradeoff, accepted).
+  - New `tests/integration/socket-market-forums-auth.test.js` (real `socket.io-client` connections, a token
+    given a real 1-second expiry and actually let it lapse — ISP-67's own idiom, not a forged already-expired
+    token): confirms an expired socket's own market listing shows `mine: false`, its own forum like shows
+    `likedByMe: false`, and it receives nothing at all on `chat:send` to its last-known system's local channel,
+    once the token has actually expired. All three fail against the pre-fix code (checked by reverting the fix
+    and re-running — T-047).
+  - Checks: `npm run check` clean; `npm test` — **154 files, 1556 tests, all passed** (1553 baseline on
+    `origin/main` after AB#1765 merged + 3 new).
+
+## What's now true (AB#1765 — prior session, still accurate)
 
 - **AB#1765 is fixed: refresh tokens are hashed before they touch disk.** `storeRefreshToken` used to push the
   client's raw signed JWT into `account.refreshTokens`, persisted verbatim to `accounts-snapshot.json` —
@@ -431,12 +455,13 @@ a Builder pane without the Chrome extension.
 
 ## What's next
 
-- **Director-relayed priority order for this pane (2026-09-25), after AB#1765**: **AB#1766** next (the
-  market/forum "still-authenticated-looking" socket boundary), then **AB#1753** (the Level-2 gate — must be
-  clearable before any v0.6+ work), then **AB#758** (one Station mockup — the Board is waiting on this one
-  specifically), then **AB#1740**. If this pane frees up before AB#1765/#1766 both land and **ENG-9 (AB#669)**
-  is still unclaimed, take that instead — platform-first priority per PM/Director.
-- **ISP-279** and **ISP-66 (AB#755)** are both done (this session and a concurrent pane) — see above.
+- **Director-relayed priority order for this pane (2026-09-25), after AB#1765/#1766 (both now done)**:
+  **AB#1753** next (the Level-2 gate — must be clearable before any v0.6+ work), then **AB#758** (one Station
+  mockup — the Board is waiting on this one specifically). **AB#1740 was picked up and merged by a concurrent
+  pane while this session worked AB#1765/#1766** — no longer available to take. If this pane frees up before
+  AB#1753/#758 and **ENG-9 (AB#669)** is still unclaimed, take that instead — platform-first priority per
+  PM/Director.
+- **ISP-279** and **ISP-66 (AB#755)** are both done (concurrent panes) — see above.
 - **AB#753 (ISP-65, CSP/security headers)** has an unmet predecessor, AB#739 (splitting `app.js`), still
   Proposed as of 2026-09-25 — check its state before claiming; it may be worth doing anyway now that the actual
   risk that predecessor was hedging against (many inline event handlers to convert) turned out not to exist —
@@ -455,7 +480,7 @@ a Builder pane without the Chrome extension.
 Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-boundary`, PR !392), ISP-48's
 (`agent/734-security`, PR !402), ISP-89's (`agent/779-no-payments-test`, PR !409), ISP-61's
 (`agent/747-first-hour-playtest`, PR !406), ISP-278's (`agent/985-timed-transit`, PR !408), AB#1052's
-(`agent/1052-stop-mining`, PR !417), ISP-66's (`agent/755-registration-validation`) and ISP-279's
-(`agent/986-shipments-ui`, PR !432) are all merged. This session's (AB#1765) branch is
-`fix/1765-hash-refresh-token`, PR to be opened next and set to auto-complete.
+(`agent/1052-stop-mining`, PR !417), ISP-66's (`agent/755-registration-validation`), ISP-279's
+(`agent/986-shipments-ui`, PR !432) and AB#1765's (`fix/1765-hash-refresh-token`, PR !439) are all merged. This
+session's (AB#1766) branch is `fix/1766-socket-auth-check`, PR to be opened next and set to auto-complete.
 Multiple Builder panes are active on ISP at once — check ADO state before claiming the next item.
