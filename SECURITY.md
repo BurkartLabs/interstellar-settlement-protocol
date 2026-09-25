@@ -31,10 +31,11 @@ attacker forge one for someone else. `JWT_SECRET` itself is the one credential t
 least 32 bytes and the server refuses to start without it outside the dev surface
 (`server/jwtSecret.js:18-31`), so a leak there is total (every existing token could be forged) — the same reason
 the file's own comment says rotating it is the correct response to a suspected leak (`server/jwtSecret.js:7-8`).
-**AB#757 (unclaimed, tracked separately):** the access token still lives in the browser's `localStorage`, not an
-`HttpOnly` cookie, so it is reachable by any script that runs on the page (a dependency compromise, not a
-same-origin XSS). The content security policy (ISP-65, AB#753; "Headers and CORS" below) narrows that door: no
-inline or injected script runs, and outside scripts load only from the one Chart.js file the page names.
+**AB#757 (D-0.5-2):** no token is written to browser storage. The refresh token is an `HttpOnly`, `SameSite=Strict`
+cookie scoped to `/api/auth` (`server/auth.js`), and the access token lives only in the page's memory
+(`public/scripts/apiClient.js`), so a script running on the page can still use it for as long as the page is open.
+The content security policy (ISP-65, AB#753; "Headers and CORS" below) narrows that door: no inline or injected
+script runs, and outside scripts load only from the one Chart.js file the page names.
 
 **Fail closed.** `resolveJwtSecret` throws and the process never starts if `JWT_SECRET` is unset or short,
 outside `ISP_DEV=1` (never true in production) — no silent fallback to a guessable string (`server/jwtSecret.js:

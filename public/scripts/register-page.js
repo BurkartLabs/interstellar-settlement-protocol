@@ -19,7 +19,7 @@ function clearFieldErrors() {
 /** `field` is the server's own name for what to fix, or undefined for an error that names no one field (a network
  *  failure, a 500). A named field's message goes beside that field, and nothing is left in the shared status line
  *  for it — the two never say the same thing twice. */
-function showRegisterError(status, payload) {
+function showRegisterError(status, payload, retryAfter) {
   clearFieldErrors();
   const target = payload?.field ? FIELD_ERRORS[payload.field] : undefined;
   if (target) {
@@ -27,13 +27,13 @@ function showRegisterError(status, payload) {
     registerStatus.textContent = "";
     return;
   }
-  showMessage(registerStatus, registerErrorMessage(status, payload));
+  showMessage(registerStatus, registerErrorMessage(status, payload, retryAfter));
 }
 
+// AB#757: only the account id is stored. The refresh token arrived as an HttpOnly cookie, and the game page gets its
+// own access token from that cookie on load.
 const STORAGE_KEYS = {
-  accountId: "isp.accountId",
-  accessToken: "isp.accessToken",
-  refreshToken: "isp.refreshToken"
+  accountId: "isp.accountId"
 };
 
 // TODO(AB#987): Implement email verification
@@ -73,14 +73,12 @@ if (registerForm) {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      showRegisterError(response.status, payload);
+      showRegisterError(response.status, payload, response.headers.get("Retry-After"));
       return;
     }
 
     const payload = await response.json();
     localStorage.setItem(STORAGE_KEYS.accountId, payload.account.id);
-    localStorage.setItem(STORAGE_KEYS.accessToken, payload.accessToken);
-    localStorage.setItem(STORAGE_KEYS.refreshToken, payload.refreshToken);
     window.location.href = `/?account=${encodeURIComponent(payload.account.id)}`;
   });
 }

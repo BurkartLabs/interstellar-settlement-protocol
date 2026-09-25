@@ -30,6 +30,30 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   console screenshot acceptance #4 asks for was not taken (see the PR). Owed: the Board opens the console once.
 - Not verified: the production ingress's Host headers. Log in on the first deploy.
 
+## What's now true (AB#757 — login tokens out of localStorage, Builder)
+
+- The refresh token is only ever the `isp_refresh` cookie (HttpOnly, Secure, SameSite=Strict, Path=/api/auth, 30
+  days), set by register/login/dummy-login/refresh through `sendSession` in `server/auth.js`; no response body carries
+  it. `/api/auth/refresh` reads only the cookie and clears it on any refusal; `/api/auth/logout` revokes the cookie's
+  token and clears it, and revokes nothing named in a body. The access token is in `appState` only: every page load
+  refreshes from the cookie (`restoreAuthenticatedSession`), and `refreshSessionToken` is single-flight so two 401s
+  cannot rotate the cookie twice. `hydrateSession` deletes the old `isp.accessToken`/`isp.refreshToken` keys, so a
+  player from an older build logs in once more. Tests: `tests/integration/auth-cookie.test.js`,
+  `tests/unit/noTokenStorage.test.js`, `e2e/session-cookie.spec.js`; screenshots in `docs/ab-757/`.
+- **Still open, not in this story:** the access token lives 7 days (`ACCESS_TOKEN_SECONDS`); now that the page
+  refreshes on load and on 401, it can be minutes. An injected script can still use the in-memory token while it runs
+  (for example by wrapping `fetch`). AB#753 (CSP) is still Proposed.
+
+## What's now true (AB#2015 — the expired-token socket test waits for its events, Builder)
+
+- `socket-rooms.test.js` has `first(s, event, action, match, ms)`: resolves on the first matching event, fails after 5s.
+  The expired-token test waits for `auth:expired` with it, then listens 300ms for the finance:updated that must not
+  come; the fresh socket waits for its own finance:updated. Mutation-checked: with the server's emits 400ms late the
+  old test is red and this one green; with no `auth:expired`, or an expired socket kept in its room, both are red.
+- **Filed, not fixed:** AB#2056 (the file's four other tests assert positives inside the same fixed window) and
+  AB#2055 (under CPU load `beforeAll` times out at vitest's 10s default while booting the server, and the whole file
+  reads as skipped). The reported AB#2015 failure itself was not reproduced; the load loop only produced AB#2055.
+
 ## What's now true (AB#1760, ISP-291 — a focus-ring token, and reduced motion)
 
 - Keyboard focus draws `--focus-ring` (2px solid cyan, `:root`) through one unqualified `:focus-visible` rule in

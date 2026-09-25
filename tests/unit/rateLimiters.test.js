@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { failOpenStore } from "../../server/rateLimiters.js";
+import { failOpenStore, throttledMessage } from "../../server/rateLimiters.js";
 
 describe("failOpenStore (ISP-64)", () => {
   afterEach(() => {
@@ -53,5 +53,25 @@ describe("failOpenStore (ISP-64)", () => {
     await expect(store.decrement("k")).resolves.toBeUndefined();
     await expect(store.resetKey("k")).resolves.toBeUndefined();
     expect(errorSpy).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("the throttled answer names the time left, not the window (AB#2043)", () => {
+  const NOW = Date.UTC(2026, 8, 25, 12);
+  const HOUR = 60 * 60_000;
+  const at = (leftMs) => ({ rateLimit: { resetTime: new Date(NOW + leftMs) } });
+
+  it("ten minutes into an hour's window, it says 50 minutes", () => {
+    expect(throttledMessage(at(50 * 60_000), { windowMs: HOUR }, NOW)).toMatch(/try again in 50 minutes\.$/);
+  });
+
+  it("rounds up, never down to zero, and says one minute in the singular", () => {
+    expect(throttledMessage(at(61_000), { windowMs: HOUR }, NOW)).toMatch(/try again in 2 minutes\.$/);
+    expect(throttledMessage(at(5_000), { windowMs: HOUR }, NOW)).toMatch(/try again in 1 minute\.$/);
+    expect(throttledMessage(at(-1_000), { windowMs: HOUR }, NOW)).toMatch(/try again in 1 minute\.$/);
+  });
+
+  it("without a reset time from the store, it falls back to the whole window", () => {
+    expect(throttledMessage({}, { windowMs: 15 * 60_000 }, NOW)).toMatch(/try again in 15 minutes\.$/);
   });
 });
