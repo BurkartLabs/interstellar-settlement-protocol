@@ -17,6 +17,9 @@ const CLUSTER_LAYOUT = {
 const ORBIT_INNER = 56;
 const ORBIT_EDGE_MARGIN = 20;
 const LABEL_EDGE_MARGIN = 4;
+// How far an 11px label reaches above and below its baseline (AB#1337: kept off the star's halo).
+const LABEL_ASCENT = 9;
+const LABEL_DESCENT = 3;
 
 const FALLBACK_PLANET_STYLE = {
   base: "#9bb4c8",
@@ -328,6 +331,23 @@ export function canvasBackingSize(cssWidth, cssHeight, devicePixelRatio) {
 const SYSTEM_BACK_BUTTON = { x: 102, y: 36 };
 const BACK_BUTTON_HEIGHT = 28;
 const BACK_BUTTON_INSET = 6;
+/** How far past its drawn edge a back button still takes a tap: 6px makes the 28px button a 40px-tall target. */
+const BACK_TARGET_PAD = 6;
+
+/**
+ * AB#1344: a back button's click target is the button as drawn, plus BACK_TARGET_PAD. It was a circle of radius 0.55 x
+ * the button's width (67px for "Back To Cluster") about its centre, tested before any body, so on a phone every belt
+ * drawn beside the button (AB#1287 cleared the drawn button, not that circle) went back to the cluster when tapped.
+ */
+export function backButtonTarget(type, x, y, width) {
+  return { type, x, y, w: width + BACK_TARGET_PAD * 2, h: BACK_BUTTON_HEIGHT + BACK_TARGET_PAD * 2 };
+}
+
+/** Whether a tap at (x, y) lands on a click target: a rectangle when it has a width, a circle otherwise. */
+export function targetHit(target, x, y) {
+  if (target.w !== undefined) return Math.abs(target.x - x) <= target.w / 2 && Math.abs(target.y - y) <= target.h / 2;
+  return Math.hypot(target.x - x, target.y - y) <= target.radius;
+}
 
 /**
  * AB#1287: the system view's orbits and its back button, laid out so no orbit (with the body's glow margin) reaches the
@@ -494,6 +514,40 @@ export function createStarmapController({
   function labelX(text, x, gap) {
     const textWidth = ctx.measureText(text).width;
     return x + gap + textWidth > canvas.clientWidth - LABEL_EDGE_MARGIN ? x - gap - textWidth : x + gap;
+  }
+
+  /** AB#1337: where a body's name goes in the system view, as { x, y } for fillText in the current font. Beside the
+   * body on the right as before; otherwise on the left, above or below it: the first of those that stays inside the
+   * canvas and off the star's halo, or, when a body is so close to the star that none is, the one farthest from it.
+   * labelX flipped the name left whatever was there, so a planet right of the star ran its name across it, and a body
+   * left of the star ran its right-hand name into it. */
+  function bodyLabelAt(text, x, y, bodyR, star) {
+    const width = ctx.measureText(text).width;
+    const minX = LABEL_EDGE_MARGIN;
+    const maxX = canvas.clientWidth - LABEL_EDGE_MARGIN;
+    const within = (left) => Math.min(Math.max(left, minX), maxX - width);
+    const centred = within(x - width / 2);
+    const awayFromStar = within(x < star.x ? x + 8 - width : x - 8); // over the body, reaching away from the star
+    const above = y - bodyR - 5;
+    const below = y + bodyR + LABEL_ASCENT + 3;
+    const candidates = [
+      { x: x + 8, y: y - 4 },
+      { x: x - 8 - width, y: y - 4 },
+      { x: centred, y: above },
+      { x: centred, y: below },
+      { x: awayFromStar, y: above },
+      { x: awayFromStar, y: below }
+    ];
+    const fits = (c) => c.x >= minX && c.x + width <= maxX &&
+      c.y - LABEL_ASCENT >= LABEL_EDGE_MARGIN && c.y + LABEL_DESCENT <= canvas.clientHeight - LABEL_EDGE_MARGIN;
+    // How far the label's box comes to the star's centre: 0 when it covers it.
+    const reach = (c) => Math.hypot(
+      Math.min(Math.max(star.x, c.x), c.x + width) - star.x,
+      Math.min(Math.max(star.y, c.y - LABEL_ASCENT), c.y + LABEL_DESCENT) - star.y
+    );
+    const inside = candidates.filter(fits);
+    if (inside.length === 0) return candidates[0];
+    return inside.find((c) => reach(c) >= star.r) || inside.reduce((best, c) => (reach(c) > reach(best) ? c : best));
   }
 
   function drawClusterView() {
@@ -698,12 +752,7 @@ export function createStarmapController({
     state.clickTargets = [];
 
     const backWidth = drawBackButton("Back To Cluster", button.x, button.y);
-    state.clickTargets.push({
-      type: "back",
-      x: button.x,
-      y: button.y,
-      radius: Math.max(36, backWidth * 0.55)
-    });
+    state.clickTargets.push(backButtonTarget("back", button.x, button.y, backWidth));
 
     // Central star with layered glow
     // Outer halo
@@ -781,16 +830,19 @@ export function createStarmapController({
 
       ctx.fillStyle = "rgba(200, 225, 245, 0.88)";
       ctx.font = '11px "Inter", sans-serif';
-      const bodyLabelX = labelX(body.name, x, 8);
-      ctx.fillText(body.name, bodyLabelX, y - 4);
+      const bodyR = body.type === "Field" ? Math.max(10, body.radius + 5) : Math.max(4, body.radius);
+      const label = bodyLabelAt(body.name, x, y, bodyR, { x: cx, y: cy, r: starHaloR });
+      ctx.fillText(body.name, label.x, label.y);
 
-      // Station indicator pip next to name (before it when the label is drawn to the left of the body)
+      // Station indicator pip on the name's line: after the name when it starts right of the body or has no room
+      // before it, otherwise before it.
       if (bodyHasStation(system.id, body.name)) {
         const hasCurrentStn = bodyHasCurrentStation(system.id, body.name);
         ctx.fillStyle = hasCurrentStn ? "rgba(0, 247, 255, 0.8)" : "rgba(255, 210, 80, 0.7)";
         const nameW = ctx.measureText(body.name).width;
+        const before = label.x < x && label.x - 9 >= 0;
         ctx.beginPath();
-        ctx.arc(bodyLabelX < x ? bodyLabelX - 6 : bodyLabelX + nameW + 6, y - 7, 2.5, 0, Math.PI * 2);
+        ctx.arc(before ? label.x - 6 : label.x + nameW + 6, label.y - 3, 2.5, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -818,8 +870,8 @@ export function createStarmapController({
     const backClusterX = rightBackButtonX("Back To Cluster", 250, width);
     const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, 36);
 
-    state.clickTargets.push({ type: "back-to-system", x: 108, y: 36, radius: Math.max(40, backSysWidth * 0.55) });
-    state.clickTargets.push({ type: "back-to-cluster", x: backClusterX, y: 36, radius: Math.max(42, backClusterWidth * 0.55) });
+    state.clickTargets.push(backButtonTarget("back-to-system", 108, 36, backSysWidth));
+    state.clickTargets.push(backButtonTarget("back-to-cluster", backClusterX, 36, backClusterWidth));
 
     if (body.type === "Field") {
       const beltRadius = Math.min(width, height) * 0.2;
@@ -925,8 +977,8 @@ export function createStarmapController({
     const backSystemX = rightBackButtonX("Back To System", 228, width);
     const backSystemWidth = drawBackButton("Back To System", backSystemX, 36);
 
-    state.clickTargets.push({ type: "back-to-body", x: 98, y: 36, radius: Math.max(38, backBodyWidth * 0.55) });
-    state.clickTargets.push({ type: "back-to-system", x: backSystemX, y: 36, radius: Math.max(38, backSystemWidth * 0.55) });
+    state.clickTargets.push(backButtonTarget("back-to-body", 98, 36, backBodyWidth));
+    state.clickTargets.push(backButtonTarget("back-to-system", backSystemX, 36, backSystemWidth));
 
     const seed = hashSeed(asteroidId || `${system.id}:${body.id}:ast-0`);
     const radius = Math.min(width, height) * 0.11;
@@ -1281,7 +1333,7 @@ export function createStarmapController({
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    const hit = state.clickTargets.find((target) => Math.hypot(target.x - x, target.y - y) <= target.radius);
+    const hit = state.clickTargets.find((target) => targetHit(target, x, y));
     if (!hit) {
       return;
     }

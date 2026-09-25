@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readTokens, resolve } from "../../scripts/design-tokens.mjs";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "fs";
 import { URL as NodeURL } from "node:url"; // jsdom replaces the global URL, and readFileSync wants Node's
@@ -55,7 +56,8 @@ describe("the rules (AB#745)", () => {
 
   it("keeps the highlight under one second including the stylesheet's fade in and out", () => {
     const css = readFileSync(new NodeURL("../../public/styles.css", import.meta.url), "utf8");
-    const fade = Number(/--motion-fade:\s*(\d+)ms/.exec(css)?.[1]);
+    // The fade is a design token (ISP-70): --motion-fade is an alias of --duration-base, followed to its value.
+    const fade = parseFloat(resolve(readTokens(), "--motion-fade"));
     expect(Number.isFinite(fade)).toBe(true);
     expect(HIGHLIGHT_MS + fade).toBeLessThan(1000);
     expect(css).toMatch(/\.num-change--up\s*{[^}]*color:\s*var\(--change-up\)/);

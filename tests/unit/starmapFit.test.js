@@ -205,3 +205,139 @@ describe("the system view's back button is clear of every body on a phone (AB#12
     });
   }
 });
+
+// AB#1337: a body's label that would pass the right edge was drawn to the left of the body whatever was there, so an
+// inner planet right of the star (Centauri Prime at 292px) ran its name across it; and a body left of the star ran
+// its right-hand label into it (Sol's Asteroid Belt and Jupiter on a phone, the belt at 1280x800 too). A label now
+// takes the first place beside, above or below its body that is clear of the star's 60px halo, and when a body is so
+// close to the star that none is, the place farthest from it.
+describe("a body's label stays clear of the star (AB#1337)", () => {
+  /** The box an 11px label covers, from the baseline fillText was given. */
+  const boxOf = (l) => ({ left: l.x, right: l.x + l.width, top: l.y - 9, bottom: l.y + 3 });
+  const touches = (box, c) => {
+    const nx = Math.min(Math.max(c.x, box.left), box.right);
+    const ny = Math.min(Math.max(c.y, box.top), box.bottom);
+    return Math.hypot(nx - c.x, ny - c.y) < c.r;
+  };
+
+  for (const [width, innerHeight] of [[292, 812], [292, 354], [307, 354], [881, 427], [881, 568], [685, 592]]) {
+    it(`at ${width}px wide (innerHeight ${innerHeight}), in every system, no body label touches the star's glow or leaves the canvas`, () => {
+      for (const system of systems) {
+        const map = mapAt(width, innerHeight);
+        const placed = openSystem(map, system);
+        const halo = map.context.arcs.find((a) => a.r === 60);
+        const glow = map.context.arcs.find((a) => a.r === 28 && a.x === halo.x && a.y === halo.y); // the visible glow
+        const labels = map.context.labels.filter((l) => placed.some((p) => p.body.name === l.text));
+        expect(labels.length, system.name).toBe(placed.length);
+        for (const l of labels) {
+          const box = boxOf(l);
+          const p = placed.find((b) => b.body.name === l.text);
+          const where = `${system.name} ${l.text} at ${JSON.stringify(box)}`;
+          expect.soft(touches(box, glow), `${where} is on the star's glow`).toBe(false);
+          // Into the faint outer halo only when the body is too near the star for any place beside it to clear it,
+          // and then above or below the body, never across the star beside it.
+          if (touches(box, halo)) expect.soft(Math.abs(l.y - (p.y - 4)), `${where} is beside its body, in the halo`).toBeGreaterThan(1);
+          expect.soft(box.left, where).toBeGreaterThanOrEqual(0);
+          expect.soft(box.right, where).toBeLessThanOrEqual(width);
+          expect.soft(box.top, where).toBeGreaterThanOrEqual(0);
+          expect.soft(box.bottom, where).toBeLessThanOrEqual(map.canvas.clientHeight);
+        }
+      }
+    });
+  }
+
+  it("at 292px Centauri Prime's name is above or below the planet, off the star, and the other two cases clear the halo", () => {
+    const at = (systemName, bodyName) => {
+      const map = mapAt(292, 812);
+      const system = systems.find((s) => s.name === systemName);
+      const placed = openSystem(map, system);
+      const halo = map.context.arcs.find((a) => a.r === 60);
+      return { p: placed.find((b) => b.body.name === bodyName), l: map.context.labels.find((x) => x.text === bodyName), halo };
+    };
+    const prime = at("Alpha Centauri", "Centauri Prime");
+    expect(Math.abs(prime.l.y - (prime.p.y - 4))).toBeGreaterThan(1); // not beside it, where it ran across the star
+    expect(prime.l.x).toBeGreaterThan(prime.halo.x); // on the planet's side of the star
+    for (const [s, b] of [["Sol", "Asteroid Belt"], ["Sol", "Jupiter"]]) {
+      const { l, halo } = at(s, b);
+      expect(touches(boxOf(l), halo), `${s} ${b}`).toBe(false);
+    }
+  });
+
+  it("on a desktop canvas a body label with room to the right of its body, clear of the star, has not moved", () => {
+    let unmoved = 0;
+    for (const system of systems) {
+      const map = mapAt(881, 427);
+      const placed = openSystem(map, system);
+      const halo = map.context.arcs.find((a) => a.r === 60);
+      for (const p of placed) {
+        const l = map.context.labels.find((x) => x.text === p.body.name);
+        const right = { left: p.x + 8, right: p.x + 8 + l.width, top: p.y - 4 - 9, bottom: p.y - 4 + 3 };
+        if (right.right > 881 - 4 || touches(right, halo)) continue;
+        expect(l.x, `${system.name} ${p.body.name}`).toBeCloseTo(p.x + 8, 6);
+        expect(l.y, `${system.name} ${p.body.name}`).toBeCloseTo(p.y - 4, 6);
+        unmoved += 1;
+      }
+    }
+    expect(unmoved).toBeGreaterThan(20); // nearly every body: only what crossed the star or the edge moves
+  });
+});
+
+// AB#1344: every back button's click target was a circle of radius 0.55 x its width (67px for "Back To Cluster"), tested
+// before any body. AB#1287 moved the orbits clear of the drawn button but not of that circle, so on a phone the belt
+// drawn beside the button, in each of the five systems with one, went Back To Cluster when tapped. The planets tests
+// above never tapped a belt. A back button's target is now the button as drawn, plus 6px.
+describe("a tap on a body opens it, never a back button (AB#1344)", () => {
+  const hasBelt = () => systems.filter((s) => (s.bodies || []).some((b) => b.type === "Field"));
+
+  for (const [width, innerHeight] of [[292, 354], [307, 354], [343, 354], [881, 427]]) {
+    it(`at ${width}x${innerHeight - 34}, in every system, a tap on each planet and each belt opens it`, () => {
+      expect(hasBelt().length).toBeGreaterThanOrEqual(5);
+      for (const system of systems) {
+        const count = openSystem(mapAt(width, innerHeight), system).length;
+        for (let i = 0; i < count; i += 1) {
+          const map = mapAt(width, innerHeight);
+          const target = openSystem(map, system)[i];
+          map.context.reset();
+          map.canvas.handlers.click({ clientX: target.x, clientY: target.y });
+          const where = `${system.name} ${target.body.name} at (${target.x.toFixed(0)}, ${target.y.toFixed(0)})`;
+          expect(map.context.labels.map((l) => l.text), `${where} went back to the cluster`).not.toContain("YOU ARE HERE");
+          expect(map.detailsEl.innerHTML, where).toContain(target.body.name);
+        }
+      }
+    });
+  }
+
+  it("Back To Cluster takes a tap on the button and up to 6px around it, and nowhere further", () => {
+    const system = hasBelt()[0];
+    const tapAt = (dx, dy) => {
+      const map = mapAt(307, 354);
+      openSystem(map, system);
+      const b = map.context.rects[0];
+      map.context.reset();
+      map.canvas.handlers.click({ clientX: b.x + b.w / 2 + dx(b), clientY: b.y + b.h / 2 + dy(b) });
+      return map.context.labels.some((l) => l.text === "YOU ARE HERE");
+    };
+    expect(tapAt(() => 0, () => 0), "the button's centre").toBe(true);
+    expect(tapAt((b) => b.w / 2 - 2, (b) => b.h / 2 + 5), "5px below its bottom-right corner").toBe(true);
+    expect(tapAt(() => 0, (b) => b.h / 2 + 8), "8px below it").toBe(false);
+    expect(tapAt(() => 0, (b) => b.h / 2 + 30), "30px below it, which the old circle took").toBe(false);
+  });
+
+  it("a belt's own view, on a phone: Back To System and Back To Cluster each do what they say", () => {
+    for (const system of hasBelt()) {
+      const open = (button) => {
+        const map = mapAt(307, 354);
+        const belt = openSystem(map, system).find((p) => p.body.type === "Field");
+        map.context.reset();
+        map.canvas.handlers.click({ clientX: belt.x, clientY: belt.y });
+        const b = map.context.rects[button];
+        map.context.reset();
+        map.canvas.handlers.click({ clientX: b.x + b.w / 2, clientY: b.y + b.h / 2 });
+        return map.context.labels.map((l) => l.text);
+      };
+      expect(open(0), `${system.name}: Back To System`).toContain("◂ Back To Cluster");
+      expect(open(0), `${system.name}: Back To System`).not.toContain("YOU ARE HERE");
+      expect(open(1), `${system.name}: Back To Cluster`).toContain("YOU ARE HERE");
+    }
+  });
+});
