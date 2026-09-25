@@ -218,7 +218,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
       <form id="office-hire-form" class="inline-form compact-action-form">
         <label>
           Head Count
-          <input id="office-hire-count" type="number" min="1" max="${availableStaffCapacity}" value="1" />
+          <input id="office-hire-count" type="number" min="1" max="${availableStaffCapacity}" value="1" required />
         </label>
         <button class="btn btn-accent" type="submit">Hire Personnel</button>
       </form>
@@ -344,7 +344,10 @@ export function bindOfficeActions(building, data) {
       event.preventDefault();
       const countInput = document.getElementById("office-hire-count");
       const statusEl = document.getElementById("office-hire-status");
-      const count = Math.max(1, Number(countInput?.value || 1));
+      // AB#2058: what was typed, not Math.max(1, Number(x || 1)), which hired one employee from a cleared box (the
+      // clamp AB#1164 removed from the Exchange). The server refuses anything but a whole number of at least 1.
+      const typed = countInput?.value ?? "";
+      const count = Number(typed);
       const submitBtn = hireForm.querySelector("button[type=submit]");
 
       if (submitBtn) submitBtn.disabled = true;
@@ -354,7 +357,7 @@ export function bindOfficeActions(building, data) {
         if (appState.accountId) {
           const response = await apiFetch(
             `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/hire`,
-            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ count }) }
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ count: typed }) }
           );
           const account = await parseJsonResponse(response);
           appState.data = deepClone(account.state);
@@ -363,6 +366,8 @@ export function bindOfficeActions(building, data) {
           showStationBuilding(building.id);
           showActionReceipt(account, { returnFocusTo: firstPresent("#office-hire-form button[type=submit]", "#office-hire-count") });
         } else {
+          // No server to ask: the same rule, and the same words, as gameplayInput.js gives a count it refuses.
+          if (!Number.isInteger(count) || count < 1 || typed === "") throw new Error("Enter the number of employees to hire.");
           const corp = appState.data.corp;
           const available = Math.max(0, corp.employeeCap - corp.employeeCount);
           const hired = Math.min(count, available);
