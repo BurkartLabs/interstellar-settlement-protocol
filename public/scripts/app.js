@@ -111,15 +111,6 @@ const notificationPanel = document.getElementById("notification-panel");
 const notificationList = document.getElementById("notification-list");
 const notificationReadAllButton = document.getElementById("notification-read-all");
 
-const loginPanel = document.getElementById("login-panel");
-const registerPanel = document.getElementById("register-panel");
-const showLoginButton = document.getElementById("show-login-btn");
-const showRegisterButton = document.getElementById("show-register-btn");
-const loginDummyButton = document.getElementById("login-dummy-btn");
-const loginCancelButton = document.getElementById("login-cancel-btn");
-const registerCancelButton = document.getElementById("register-cancel-btn");
-const registerForm = document.getElementById("register-form");
-
 const dialogueModal = document.getElementById("dialogue-modal");
 const dialogueSpeaker = document.getElementById("dialogue-speaker");
 const dialogueTitle = document.getElementById("dialogue-title");
@@ -6383,107 +6374,6 @@ function bindRealtimeEvents() {
   });
 }
 
-function bindAuthControls() {
-  if (showLoginButton && loginPanel && registerPanel) {
-    showLoginButton.addEventListener("click", () => {
-      loginPanel.hidden = false;
-      registerPanel.hidden = true;
-    });
-  }
-
-  if (showRegisterButton && registerPanel) {
-    showRegisterButton.addEventListener("click", () => {
-      registerPanel.hidden = false;
-      if (loginPanel) {
-        loginPanel.hidden = true;
-      }
-    });
-  }
-
-  if (loginCancelButton && loginPanel) {
-    loginCancelButton.addEventListener("click", () => {
-      loginPanel.hidden = true;
-    });
-  }
-
-  if (registerCancelButton && registerPanel) {
-    registerCancelButton.addEventListener("click", () => {
-      registerPanel.hidden = true;
-    });
-  }
-
-  if (loginDummyButton) {
-    loginDummyButton.hidden = !IS_DEV_ACCESS;
-    loginDummyButton.addEventListener("click", async () => {
-      if (!IS_DEV_ACCESS) {
-        return;
-      }
-
-      const payload = await loginDummyAccount();
-      enterGame("account", payload.account.state, {
-        accountId: payload.account.id,
-        accountEmail: payload.account.email,
-        accessToken: payload.accessToken,
-        refreshToken: payload.refreshToken,
-        walkthroughCompleted: payload.account.walkthroughCompleted,
-        autoPromptWalkthrough: false
-      });
-    });
-  }
-
-  if (!registerForm) {
-    return;
-  }
-
-  registerForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const formData = new FormData(registerForm);
-    const email = String(formData.get("email") || "").trim();
-    const password = String(formData.get("password") || "");
-    const ceoName = String(formData.get("ceoName") || "New CEO").trim();
-    const corpName = String(formData.get("corpName") || "Frontier Protocol Ventures").trim();
-    const registerStatus = document.getElementById("register-status");
-
-    if (!email || !password || password.length < 8) {
-      if (registerStatus) {
-        registerStatus.textContent = "Registration requires a valid email and a password with at least 8 characters.";
-      }
-      return;
-    }
-
-    if (registerStatus) {
-      registerStatus.textContent = "Registering corporation credentials...";
-    }
-
-    try {
-      const response = await apiFetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, ceoName, corpName })
-      });
-
-      const payload = await parseJsonResponse(response);
-      if (registerPanel) {
-        registerPanel.hidden = true;
-      }
-
-      await runIntroDialogue();
-      enterGame("account", payload.account.state, {
-        accountId: payload.account.id,
-        accountEmail: payload.account.email,
-        accessToken: payload.accessToken,
-        refreshToken: payload.refreshToken,
-        walkthroughCompleted: payload.account.walkthroughCompleted,
-        autoPromptWalkthrough: true
-      });
-    } catch (error) {
-      if (registerStatus) {
-        registerStatus.textContent = `Registration failed: ${error.message}`;
-      }
-    }
-  });
-}
-
 // Empty states that name the next action (Bug #1060): the Inbox list's below, and ISA Claims' lines.
 import { claimsAllTakenText, claimsNoLeasesText, inboxEmptyText } from "./emptyStates.js";
 
@@ -6996,7 +6886,6 @@ async function boot() {
   showAuthScreen();
   bindCollapsibleSections();
   bindTabs();
-  bindAuthControls();
   bindForms();
   bindRealtimeEvents();
   bindGlobalControls();

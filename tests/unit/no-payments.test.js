@@ -38,8 +38,8 @@ const ALLOWLIST = [
   // rather than re-pointed.
   // AB#1759: line number moved when .btn-hero-secondary was added above it.
   ["public/styles.css", 4221, "a CSS section comment naming a forum-thread layout; no .premium class exists"],
-  // AB#1049: line number moved when the hardcoded techTree literal (120 lines) was deleted from above it.
-  ["public/scripts/app.js", 361, "toCurrency: the sanctioned in-game credits formatter this story's own acceptance names as the one exception"]
+  // AB#1807: line number moved when the dead pre-page-split login/register toggle code was deleted from above it.
+  ["public/scripts/app.js", 352, "toCurrency: the sanctioned in-game credits formatter this story's own acceptance names as the one exception"]
 ];
 
 function scanFiles(dir) {
