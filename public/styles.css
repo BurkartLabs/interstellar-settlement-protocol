@@ -1772,6 +1772,27 @@ textarea {
   background: linear-gradient(90deg, rgba(0, 247, 255, 0.88), rgba(255, 170, 51, 0.7));
 }
 
+/* AB#746: a running cycle's figures in Active Mining Cycles, labelled like the lease view's extractor stats. */
+.cycle-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.4rem;
+  margin: 0.6rem 0 0;
+}
+
+.cycle-figures dt {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cycle-figures dd {
+  margin: 0.1rem 0 0;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
 .pill-grid {
   display: flex;
   flex-wrap: wrap;

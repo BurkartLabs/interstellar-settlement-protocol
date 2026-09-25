@@ -9,7 +9,8 @@ import { renderLogistics } from "./logistics.js";
 import { renderExpeditionPanel } from "./overview.js";
 import { renderRefinery } from "./refinery.js";
 import { renderQueue } from "./research.js";
-import { cycleProgressPercent, refreshFromServer, salvageRemainingMs } from "./shared.js";
+import { refreshFromServer, salvageRemainingMs } from "./shared.js";
+import { activeCycleFigures, spentText } from "../leaseLive.js"; // AB#746
 import { starmap } from "./starmap.js";
 import { renderAssemblyFacility } from "./station.js";
 
@@ -117,8 +118,9 @@ export function renderMiningCyclePanel(data) {
 
   list.innerHTML = extractors
     .map((extractor) => {
-      const progress = cycleProgressPercent(extractor);
       const active = isExtractorCycleActive(extractor);
+      // AB#746: a running cycle shows what it has done so far, from the same figures as the lease view (leaseLive.js).
+      const figures = active ? activeCycleFigures(extractor) : null;
       const remainingMs = active ? Math.max(0, Number(extractor.endsAt || 0) - Date.now()) : 0;
       const hours = active && extractor.startedAt && extractor.endsAt
         ? Math.max(1, Math.round((Number(extractor.endsAt) - Number(extractor.startedAt)) / (1000 * 60 * 60)))
@@ -131,8 +133,13 @@ export function renderMiningCyclePanel(data) {
           <p class="muted">Total mined: ${Number(extractor.totalMined || 0).toLocaleString()} | Total spent: ${toCurrency(Number(extractor.totalSpent || 0))}</p>
           ${
             active
-              ? `<p class="muted">Running ${hours}h cycle at ${Number(extractor.throughputPerHour || 0)}/hour. Remaining: ${formatDurationHours(remainingMs)}.</p>
-                 <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>`
+              ? `<p class="muted">Running ${hours}h cycle. Remaining: ${formatDurationHours(remainingMs)} (${figures.pctText}).</p>
+                 <div class="progress-wrap"><div class="progress-bar" style="width:${figures.fill.toFixed(2)}%"></div></div>
+                 <dl class="cycle-figures">
+                   <div><dt>Mined this cycle</dt><dd>${figures.mined.toLocaleString()} t</dd></div>
+                   <div><dt>Spent this cycle</dt><dd>${escapeHtml(spentText(figures, toCurrency))}</dd></div>
+                   <div><dt>Rate</dt><dd>${figures.rate.toLocaleString()} t/h</dd></div>
+                 </dl>`
               : `<p class="muted">Ready for next cycle.</p>`
           }
         </article>

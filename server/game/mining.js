@@ -85,6 +85,9 @@ export function ensureCorpMiningModel(corp) {
       totalMined: Number(extractor.totalMined || 0),
       // AB#575: this cycle's output, zeroed by startExtractorCycle; totalMined is the lifetime.
       minedThisCycle: Math.max(0, Number(extractor.minedThisCycle || 0)),
+      // AB#746: this cycle's cost so far, set by startExtractorCycle and added to by each charged tick. null for a cycle
+      // started before the field existed, so the page shows its estimate from the clock instead of a false 0.
+      spentThisCycle: extractor.spentThisCycle == null ? null : Math.max(0, Number(extractor.spentThisCycle) || 0),
       minedRemainder: Math.max(0, Number(extractor.minedRemainder || 0)),
       // Bug #1138: the running cost's unpaid fraction of a credit, carried like minedRemainder.
       costRemainder: Math.max(0, Number(extractor.costRemainder || 0)),
@@ -199,6 +202,7 @@ export function startExtractorCycle(extractor, { now, hours, throughputPerHour, 
   extractor.operationCostPerHour = operationCostPerHour;
   extractor.totalSpent = Number(extractor.totalSpent || 0) + startupCost;
   extractor.minedThisCycle = 0;
+  extractor.spentThisCycle = startupCost; // AB#746
 }
 
 /**
@@ -320,6 +324,7 @@ export function applyMiningOperations(corp, now = Date.now()) {
     if (actualCost > 0) {
       const charged = -applyCredits(corp, -Math.min(actualCost, Math.max(0, Math.round(Number(corp.finances.credits) || 0))), "mining-ops", now);
       extractor.totalSpent += charged;
+      if (extractor.spentThisCycle != null) extractor.spentThisCycle += charged; // AB#746
     }
 
     if (actualMined > 0) {
