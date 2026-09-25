@@ -1,10 +1,31 @@
 # ISP — handoff
 
-**2026-09-25, Builder #2 (Sonnet 5), non-visual session (no CONTROL_URL, no Chrome extension attached — see
-"Blind spot" below). Rewritten after ISP-48 (AB#734), on top of the ISP-67 handoff below (still accurate; not
-this session's own work).**
+**2026-09-25, Builder #2 (Sonnet 5). Rewritten after ISP-89 (AB#779), on top of the ISP-48 and ISP-67 handoffs
+below (still accurate; not this session's own work).**
 
-## What's now true (this session: ISP-48, AB#734)
+## What's now true (this session: ISP-89, AB#779)
+
+- **ISP-89 is done: `tests/unit/no-payments.test.js` exists**, scanning every `.js`/`.html`/`.css` file under
+  `server/` and `public/` for payment and pricing vocabulary, with a three-entry allowlist (two benign
+  "premium" matches, and the one sanctioned credits formatter, `toCurrency` at `public/scripts/app.js:478`).
+  Verified per its own acceptance line with a temporary, uncommitted `import Stripe from "stripe"` — caught it,
+  then reverted before committing.
+- **Update from a peer Builder mid-session (2026-09-25, relayed by the Board): AB#747 (ISP-61) shipped
+  `e2e/first-hour.spec.js`, a real Playwright playtest that saves screenshots without the Chrome extension.**
+  This should unblock AB#753/755/757/781/987/989 — the screenshot-gated v0.5 items ISP-67's and ISP-48's own
+  handoffs both listed as unclaimable for lack of a browser session. **Not yet verified by this session** —
+  next session (or the rest of this one) should confirm the file exists on `origin/main`, read it, and decide
+  whether it (or a new `scripts/look-*.mjs` in its pattern) is the way to satisfy those items' screenshot
+  requirements before claiming one.
+- **New bug, filed not fixed:** AB#1767, `tests/integration/ticker-mining-settle.test.js` flaky under the full
+  `npm test` run (unrelated to this story — no mining or ticker code touched). Passed in two isolated reruns
+  and a second full-suite run; root cause not pinned down (unlike AB#1744's clear `setTimeout(50)` cause), and
+  the bug notes the two may share a systemic cause (both flake only under full-suite load, pass alone) without
+  confirming it.
+- Checks: `npm run check` clean; `npm test` — **150 files, 1502 tests, all passed** on the clean rerun (1500
+  baseline + 2 new).
+
+## What's now true (ISP-48, AB#734 — prior session, still accurate)
 
 - **ISP-48 is done: `SECURITY.md` exists**, answering DOCTRINE's four questions (what data, who can reach it,
   blast radius, fail closed) for auth, persistence, the market and sockets, every answer citing file and line.
@@ -100,30 +121,36 @@ this session's own work).**
 
 ## Blind spot
 
-No Chrome extension connected this session either (Builder panes don't get one by design), so nothing visual
-was looked at this session or the one before it. ISP-48 has no screen of its own — a markdown file and a
-server-side throttle — and both were verified directly: `SECURITY.md`'s every code claim was read back against
-the actual file and line after writing it (not trusted from memory), and the rate limiter was proven with real
-HTTP requests through `supertest` against the live route chain (`npm test`, not a mock), which is the actual
-mechanism the acceptance criteria describe. `npm test`: **149 files, 1500 tests, all green** (1496 baseline +
-4 new). `npm run check` clean.
+No Chrome extension connected this session (Builder panes don't get one by design). ISP-89 has no screen of
+its own — a source-scanning Vitest test — and was verified directly: run against a temporary, uncommitted
+seeded violation (caught it), then against `origin/main` clean (passed), never trusted from reading the code
+alone. `npm test`: **150 files, 1502 tests, all green** on the clean rerun. `npm run check` clean.
 
-ISP-67's own blind-spot note (previous session) is unchanged and still true: no Chrome extension then either;
-`socket.io-client` against a real server was that session's equivalent of "looked at it."
+**Update, no longer true as stated: AB#747 (ISP-61) shipped `e2e/first-hour.spec.js`, a real Playwright
+playtest that saves screenshots without the Chrome extension (reported by a peer Builder mid-session,
+2026-09-25, not yet independently confirmed by reading the file).** ISP-48's and ISP-67's blind-spot notes
+below, and the "screenshot-gated, unclaimed" framing on AB#753/755/757/781/987/989, predate this and should be
+re-checked before being repeated again: read `e2e/first-hour.spec.js` (or a `scripts/look-*.mjs` in its
+pattern, if one now exists) before claiming one of those six, to confirm it actually produces a real screenshot
+this session can look at.
 
-Screenshot-gated v0.5 items (AB#753/755/757/781/987/989) remain unclaimed for the same reason — no browser
-session available this session either.
+ISP-48's and ISP-67's own blind-spot notes (prior sessions) are otherwise unchanged: no Chrome extension either
+time; `SECURITY.md`'s citations read back against the file, and `socket.io-client` against a real server, were
+each session's own equivalent of "looked at it."
 
 ## What's next
 
-- **AB#1765** (refresh tokens in plain text at rest) and **AB#1766** (the market/forum "still-authenticated-
-  looking" socket boundary) are filed, Proposed, unclaimed — either is a reasonable next pick, both non-visual.
-- The screenshot-gated v0.5 items are ready once a browser session is available.
+- **Confirm AB#747's screenshot capability first** (see "Blind spot" above), then claim one of
+  AB#753/755/757/781/987/989 if it holds up — they were the largest block of stuck v0.5 work across two prior
+  sessions.
+- **AB#1765** (refresh tokens in plain text at rest), **AB#1766** (the market/forum socket boundary) and
+  **AB#1767** (a second flaky test, possibly related to AB#1744) are filed, Proposed, unclaimed — all
+  non-visual fallbacks if the screenshot capability doesn't pan out.
 - Check ADO for what a concurrent Builder pane (if any) has Active before claiming, per the Board's "Builder #2
   on ISP" framing this session started under.
 
 ## In flight / blocked
 
-Nothing blocked, nothing left uncommitted. This session's branch is `agent/734-security`, PR to be opened next
-and set to auto-complete. ISP-67's branch (`agent/756-socket-boundary`, PR !392) merged before this session
-started. `fix/rate-limiter-ipv6-warning` (AB#1747) already merged.
+Nothing blocked, nothing left uncommitted. This session's branch is `agent/779-no-payments-test`, PR to be
+opened next and set to auto-complete. ISP-48's branch (`agent/734-security`, PR !402) merged before this
+worktree was created.
