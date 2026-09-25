@@ -4,7 +4,8 @@
 // delegated handler on the grid they are rendered into, so a button cannot be drawn somewhere its handler is not.
 import { escapeHtml } from "./html.js";
 
-export const ASSEMBLY_BUILD_COST = 60000;
+// AB#1430: the Assembly Facility's price is the server's (data/economy.json, sent by GET /api/bootstrap), passed in
+// by the caller as `cost`: this module loads in node, without the page's state, and holds no copy of it.
 
 const DESCRIPTIONS = {
   "Assembly Facility": "Modular manufacturing bay for fabricating deployable units and equipment.",
@@ -16,7 +17,7 @@ export function assemblyBuildPath(accountId) {
 }
 
 /** The facility cards for a corporation, and the Construct card while it has the research and no facility yet. */
-export function facilityCardsHtml(corp = {}) {
+export function facilityCardsHtml(corp = {}, cost = NaN) {
   const operational = (corp.buildings || []).filter((b) => b.status === "Operational");
   const hasAssemblyTech = (corp.unlockedTech || []).includes("tt-assembly-fabrication");
   const hasAssembly = operational.some((b) => b.name === "Assembly Facility");
@@ -40,12 +41,12 @@ export function facilityCardsHtml(corp = {}) {
   if (hasAssemblyTech && !hasAssembly) {
     // The Station shows no feedback line (that is on Overview), so a refusal the player cannot see is the same dead
     // button as Bug #1253. Say why before the click, from the checks the server makes.
-    const blocked = constructBlocker(corp);
+    const blocked = constructBlocker(corp, cost);
     construct = `<article class="facility-card data-card" style="border:1px dashed rgba(0,247,255,0.3);">
          <header class="facility-card-header"><span class="faction-code-badge corp-badge">NEW</span><h3>Assembly Facility</h3></header>
          <p class="muted">Modular manufacturing bay for fabricating deployable units.</p>
          ${blocked ? `<p class="facility-blocked">${escapeHtml(blocked)}</p>` : ""}
-         <footer class="facility-card-footer"><button id="build-assembly-btn" class="btn btn-accent" data-facility-action="construct-assembly"${blocked ? " disabled" : ""}>Construct (¤${ASSEMBLY_BUILD_COST.toLocaleString("en-US")})</button></footer>
+         <footer class="facility-card-footer"><button id="build-assembly-btn" class="btn btn-accent" data-facility-action="construct-assembly"${blocked ? " disabled" : ""}>Construct (¤${cost.toLocaleString("en-US")})</button></footer>
        </article>`;
   }
 
@@ -53,13 +54,14 @@ export function facilityCardsHtml(corp = {}) {
 }
 
 /** Why the Assembly Facility cannot be built right now, as the server would refuse it, or "" when it can. */
-export function constructBlocker(corp = {}) {
+export function constructBlocker(corp = {}, cost = NaN) {
   const used = (corp.buildings || []).length;
   const slots = corp.buildingSlots || 2;
   if (used >= slots) return `Needs a free building slot: ${used} of ${slots} in use.`;
+  if (!Number.isFinite(cost)) return "The price has not loaded; reload the page."; // fail closed, never a guessed price
   const credits = Number(corp.finances?.credits || 0);
-  if (credits < ASSEMBLY_BUILD_COST) {
-    return `Needs ¤${ASSEMBLY_BUILD_COST.toLocaleString("en-US")}; you have ¤${Math.floor(credits).toLocaleString("en-US")}.`;
+  if (credits < cost) {
+    return `Needs ¤${cost.toLocaleString("en-US")}; you have ¤${Math.floor(credits).toLocaleString("en-US")}.`;
   }
   return "";
 }
@@ -68,11 +70,11 @@ export function constructBlocker(corp = {}) {
  * Draw the facilities into the Station page and bind their clicks to the same grid. Returns false when the page has no
  * facilities section. The section is hidden while there is nothing to show.
  */
-export function renderStationFacilities(doc, corp, handlers) {
+export function renderStationFacilities(doc, corp, handlers, cost = NaN) {
   const section = doc.getElementById("station-facilities-section");
   const grid = doc.getElementById("station-facility-buildings");
   if (!section || !grid) return false;
-  const html = facilityCardsHtml(corp);
+  const html = facilityCardsHtml(corp, cost);
   section.hidden = !html;
   grid.innerHTML = html;
   bindFacilityGrid(grid, handlers);

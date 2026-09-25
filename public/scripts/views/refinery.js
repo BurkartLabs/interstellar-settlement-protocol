@@ -6,6 +6,7 @@ import { deepClone, formatDurationHours, toCurrency } from "../helpers.js";
 import { escapeHtml, refineryBuildButtonHtml } from "../html.js";
 import { refineMinimum, refineQuantityCheck, refineQuantityFieldValue } from "../refineQuantity.js";
 import { appState } from "../state.js";
+import { clientPrices } from "../clientPrices.js";
 import { cycleProgressPercent, pushFeedback, updateAllViews } from "./shared.js";
 
 // TODO(AB#824): Remove duplicate. This should be stored in the database
@@ -250,8 +251,7 @@ export function renderRefinery(data) {
           if (!corp.finances || typeof corp.finances !== "object") {
             corp.finances = { credits: 0, assets: 0 };
           }
-          const buildCost = 75000;
-          const assetValue = 55000;
+          const { refineryCost: buildCost, refineryAssetValue: assetValue } = clientPrices(appState.economy);
           if (Number(corp.finances.credits || 0) < buildCost) {
             throw new Error(`Refinery construction requires ${toCurrency(buildCost)} credits.`);
           }

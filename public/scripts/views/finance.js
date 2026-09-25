@@ -6,6 +6,7 @@ import { setStatementSeries } from "../charts.js";
 import { fmtCredits, fmtSignedCredits, fmtTimestamp, prettifyLedgerLabel } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { appState } from "../state.js";
+import { clientPrices } from "../clientPrices.js";
 import { statementDayOptionsHtml, statementHtml, statementsEmptyHtml, statementsToSeries } from "../statements.js";
 
 // ─── Financial Control Board (CORP-FIN-1) — KPI strip and ledger tables ─────
@@ -198,6 +199,7 @@ export function renderBalanceTable(finances, derived) {
   const payrollOwed = Math.max(0, Math.round(Number(finances.payrollArrears) || 0));
   const leaseShare = Math.max(0, liabilities - forwardOps - payrollOwed);
   const staff = Math.max(0, Math.floor(Number(appState.data?.corp?.employeeCount) || 0));
+  const { payrollPerDay } = clientPrices(appState.economy);
 
   tbody.innerHTML = `
     <tr><th colspan="2" style="color:#6cf0c2">Assets</th></tr>
@@ -211,7 +213,7 @@ export function renderBalanceTable(finances, derived) {
     <tr><th colspan="2" style="color:#89a7bd">Operating Profile</th></tr>
     <tr><td>Daily Revenue</td><td class="num num--positive">+${fmtCredits(dailyRevenue)}</td></tr>
     <tr><td>Daily Costs</td><td class="num num--negative">−${fmtCredits(dailyExpenses)}</td></tr>
-    <tr><td>Payroll (${staff} staff × 150 a day)</td><td class="num num--negative">−${fmtCredits(staff * 150)}</td></tr>
+    <tr><td>Payroll (${staff} staff × ${fmtCredits(payrollPerDay)} a day)</td><td class="num num--negative">−${fmtCredits(staff * payrollPerDay)}</td></tr>
   `;
 
   const nwClass = netWorth >= 0 ? "num--positive" : "num--negative";

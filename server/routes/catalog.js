@@ -35,7 +35,12 @@ export function registerCatalogRoutes(app) {
       economy: {
         operations: ECONOMY.operations,
         salesTaxPct: ECONOMY.exchange.salesTaxPct,
-        silicateUnitPrice: silicatesOrder ? Number(silicatesOrder.unitPrice) : (silicates ? silicates.unitPrice : 0)
+        silicateUnitPrice: silicatesOrder ? Number(silicatesOrder.unitPrice) : (silicates ? silicates.unitPrice : 0),
+        // AB#1430: the prices the panels quote (hire, payroll, construction, probes) come from here, not from copies
+        // in the browser, so a balance change to data/economy.json reaches the page it is shown on.
+        employees: ECONOMY.employees,
+        buildings: ECONOMY.buildings,
+        probes: ECONOMY.probes
       }
     });
   });
