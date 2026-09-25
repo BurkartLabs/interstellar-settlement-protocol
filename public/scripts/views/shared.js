@@ -6,6 +6,7 @@ import { revealScroll } from "../firstAction.js";
 import { formatTime } from "../helpers.js";
 import { escapeHtml, tradeConfirmRowsHtml } from "../html.js";
 import { appState } from "../state.js";
+import { systemName } from "../displayNames.js"; // AB#1336
 
 // app.js owns these; it hands them over before anything renders (connectViews, called at the top of app.js).
 let app = null;
@@ -123,7 +124,7 @@ export function stationLocationBanner(station) {
   if (!station) return "";
   return `<div class="station-location-banner">
     <span class="station-location-icon">&#9670;</span>
-    <span class="station-location-text">Docked at <strong>${escapeHtml(station.name)}</strong> &mdash; ${escapeHtml(station.body)}, ${escapeHtml(station.systemId?.toUpperCase() || "SOL")}</span>
+    <span class="station-location-text">Docked at <strong>${escapeHtml(station.name)}</strong> &mdash; ${escapeHtml(station.body)}, ${escapeHtml(formatSystemLabel(station.systemId || "sol"))}</span>
   </div>`;
 }
 
@@ -132,8 +133,10 @@ export function isPlayerTraveling(data) {
   return Boolean(travel && travel.arrivesAt);
 }
 
+// AB#1336: the catalog's name ("Barnard's Star"); title-casing the id is only for a system the catalog lacks.
 export function formatSystemLabel(systemId) {
-  return (systemId || "").replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  return systemName(appState.data?.world?.systems, systemId)
+    || (systemId || "").replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
 export function cycleProgressPercent(extractor) {

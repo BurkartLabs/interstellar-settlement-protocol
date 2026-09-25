@@ -1,5 +1,6 @@
 import { canReachSystem, travelResearchLock, travelResearchName } from "./navigation.js";
 import { bodyResourceHtml } from "./bodyInfo.js"; // AB#740: what the catalogue holds, not a hash of the name
+import { systemName } from "./displayNames.js"; // AB#1336
 
 const CLUSTER_LAYOUT = {
   sol: { x: 0.16, y: 0.5 },
@@ -1387,7 +1388,7 @@ export function createStarmapController({
               ? `<span class="muted" style="font-size:0.85rem;color:rgba(255,180,60,0.85);">🔒 ${escapeHtmlAttr(travelLockText(station.systemId))}</span>`
             : (state.currentSystemId || "sol") === station.systemId
               ? `<button class="btn btn-accent starmap-modal-dock-btn" data-station-id="${escapeHtmlAttr(station.id)}">Dock at Station</button>`
-              : `<span class="muted" style="font-size:0.85rem;">Jump to <strong>${escapeHtmlAttr(station.systemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()))}</strong> from the system view, then dock here.</span>`
+              : `<span class="muted" style="font-size:0.85rem;">Jump to <strong>${escapeHtmlAttr(systemName(state.systems, station.systemId) || "its system")}</strong> from the system view, then dock here.</span>`
           }
         </div>
       </div>

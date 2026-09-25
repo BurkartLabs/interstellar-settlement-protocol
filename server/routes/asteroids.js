@@ -5,6 +5,8 @@ import { BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_
 import { applyCredits } from "../finances.js";
 import { fleetStatus } from "../gameState.js"; // Bug #586
 import { emitToAccount } from "../realtime.js";
+import { SYSTEMS_CATALOG } from "../travel.js";
+import { beltPhrase } from "../../public/scripts/displayNames.js"; // AB#1336
 import { corpSlotsFull, fundingRequirementMessage } from "./helpers.js";
 
 export function registerAsteroidRoutes(app) {
@@ -287,7 +289,7 @@ export function registerAsteroidRoutes(app) {
     const notification = addAccountNotification(req.params.accountId, {
       type: "mining",
       title: "Expedition Launched",
-      body: `Mining probe deployed to ${beltKey.split(":")[1] || "asteroid belt"} on a ${durationLabel} mission. Resources will be deposited upon return.`
+      body: `Mining probe deployed to ${beltPhrase(SYSTEMS_CATALOG, beltKey)} on a ${durationLabel} mission. Resources will be deposited upon return.` // AB#1336
     });
     if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     saveAccountsNow();

@@ -137,7 +137,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
         <dl class="kv-list" style="margin:0.9rem 0;">
           <dt>Lease Cost</dt><dd>${toCurrency(officeLeaseCost(1))} credits a day</dd>
           <dt>Station</dt><dd>${escapeHtml(station?.name || stationId)}</dd>
-          <dt>Location</dt><dd>${escapeHtml(currentBody)}, ${escapeHtml(station?.systemId?.toUpperCase() || "SOL")}</dd>
+          <dt>Location</dt><dd>${escapeHtml(currentBody)}, ${escapeHtml(formatSystemLabel(station?.systemId || "sol"))}</dd>
         </dl>
         <p class="muted">The lease runs for the term you choose and can be extended from this office before or after it ends. Without an active office you cannot start a mining cycle.</p>
         <div class="inline-form compact-action-form">
@@ -184,7 +184,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
       <dl class="kv-list kv-list--compact">
         <dt>Status</dt><dd>${leaseStatusBadge}</dd>
         <dt>Station</dt><dd>${escapeHtml(existingOffice.name)}</dd>
-        <dt>Location</dt><dd>${escapeHtml(existingOffice.body)}, ${escapeHtml(existingOffice.systemId?.toUpperCase() || "SOL")}</dd>
+        <dt>Location</dt><dd>${escapeHtml(existingOffice.body)}, ${escapeHtml(formatSystemLabel(existingOffice.systemId || "sol"))}</dd>
         <dt>Lease Commenced</dt><dd>${rentedDate}</dd>
         <dt>Lease Expires</dt><dd>${expiryDate}</dd>
         <dt>Time Remaining</dt><dd>${timeRemainingText}</dd>

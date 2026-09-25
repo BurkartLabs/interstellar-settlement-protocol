@@ -12,7 +12,8 @@ import { scheduleRndQueue, rndItemStatus } from "../public/scripts/rndQueue.js";
 import { refreshDailyExpenses } from "./finances.js"; // Bug #1022 (placed apart from the import below, which parallel PRs append to)
 import { buildSnapshot, pushSnapshot, refreshDailyRevenue } from "./finances.js";
 import { recordTransfer, describeLines } from "../public/scripts/logistics.js";
-import { STATION_REGISTRY } from "./travel.js";
+import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
+import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
 import { expeditionNotificationBody, expeditionPlaces } from "./expeditionText.js"; // AB#1295
 import { emitMarketUpdated, emitToAccount } from "./realtime.js";
 
@@ -211,7 +212,7 @@ function travelTick() {
     if (arrived && travelResult) {
       let notification;
       if (travelResult.type === "interstellar") {
-        const sysLabel = travelResult.systemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+        const sysLabel = systemName(SYSTEMS_CATALOG, travelResult.systemId) || "destination"; // AB#1336
         notification = addAccountNotification(accountId, {
           type: "travel",
           title: "System Arrival",
@@ -224,7 +225,7 @@ function travelTick() {
           notification = addAccountNotification(accountId, {
             type: "travel",
             title: "Docking Complete",
-            body: `Your ship has arrived at ${station.name} (${station.body}, ${station.systemId.toUpperCase()}).`
+            body: `Your ship has arrived at ${station.name} (${station.body}, ${systemName(SYSTEMS_CATALOG, station.systemId) || "open space"}).` // AB#1336: not "SOL"
           });
           emitToAccount(accountId, "travel:arrived", { accountId, stationId: travelResult.stationId });
         }
