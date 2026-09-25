@@ -73,12 +73,12 @@ Expected uptime: 81.6% (a stoppage every 5.6 h on average, lasting 1.26 h).
 Pays back = the purchases and the first startup earned back: credits are at the starting figure again.
   t/h | cost/h | startup | revenue/h | profit/h ideal | profit/h expected | pays back (ideal)   | pays back (expected)
    10 |    600 |     500 |       221 |           -459 |              -389 | never               | never
-  100 |  1,600 |     560 |     2,208 |            527 |               415 | 166.1 h (day 7)     | 210.9 h (day 9)
-  250 |  4,000 |   1,400 |     5,520 |          1,428 |             1,147 | 61.9 h (day 3)      | 77.1 h (day 4)
-Credits start to accumulate: at 100 t/h and 250 t/h from the first hour of mining (day 1), counted as sold; at 10 t/h, never: every hour loses.
+  100 |  1,691 |     592 |     2,208 |            436 |               341 | 201.0 h (day 9)     | 257.2 h (day 11)
+  250 |  5,417 |   1,896 |     5,520 |              4 |               -15 | 23705.6 h (day 988) | never
+Credits start to accumulate: at 100 t/h from the first hour of mining (day 1), counted as sold; at 10 t/h and 250 t/h, never: every hour loses.
 
-Margin per unit above the minimum cost: 24 x 0.92 - 16 = 6.08 credits.
-It is positive and the only other cost is a floor, so profit rises with every unit of throughput: the maximum always wins.
+Running cost curves with throughput (operationCostPerHourFor, server/economy.js): the best setting here, no research, is 146 t/h at 606 an hour.
+Every throughput from the floor to the cap stays startable; the curve is what makes the setting a decision, not a wall.
 A model, not play: perfect play, no travel, selling every unit at the standing bid, no research.
 ```
 <!-- economy-model:end -->
@@ -87,11 +87,13 @@ What it says, in words:
 
 - The cheapest way to a first extractor costs **87,000 of the 250,000**: an office, five hires, the Earth lease and a
   yard. That leaves 163,000, so money is not what limits the first session.
-- At **250 t/h** the extractor earns about 1,150 an hour, allowing for downtime, and **pays back on day 4**. At
-  100 t/h it takes until day 9. **At 10 t/h it never pays back**: every hour loses, because the 600 floor costs more
-  than 10 tonnes fetch.
-- Credits grow from the first hour of mining at any setting that pays at all. The number to tune is not *whether*
-  the first session profits but *how fast*: four days at the top setting.
+- **250 t/h is no longer the right answer**: the curved cost (T-018 below) makes it earn about 4 credits an hour
+  under perfect play and **lose money once real downtime is counted** — it never pays back. **100 t/h pays back
+  around day 9** (day 11 with downtime). **10 t/h never pays back**, because the 600 floor costs more than 10
+  tonnes fetch. The best setting at this price, with no research, is **146 t/h at 606 an hour** — below either
+  number this table samples, which is the point: the decision is a real one, not a slide to the cap.
+- Credits grow from the first hour of mining only at a setting that actually pays — no longer every setting up to
+  the cap. The number to tune is *which throughput to run*, not just how fast a fixed answer pays back.
 
 ## T-018: the throughput is a decision (ISP-86)
 

@@ -7,11 +7,48 @@ extension-less — then ISP-66 (AB#755), below; #4 did ISP-278 (AB#985), ISP-279
 (refresh tokens hashed at rest), AB#1766 (socket auth boundary), AB#1753 (Level 2's Mars-lease gate), then AB#758
 (the flat-direction Station mockup, a Decision now waiting on the Board) — all five per a Director-relayed
 priority order; #1 (this pane) then did AB#1049 (research.json as the only research-tree definition), then
-AB#1759 (one primary button on login/register). AB#1052 and ISP-279 both used ISP-61's own Playwright pattern
-rather than the Chrome extension for their screens; AB#758 used it too, to look at a static mockup rather than
-the running game; AB#1049 and AB#1759 used it again, for Corporate R&D and for login/register respectively. No
-CONTROL_URL / Chrome extension on any of these panes (Builder panes don't get one by design). See "Blind spot"
-below.**
+AB#1759 (one primary button on login/register). A Salvage Assignment session landed AB#1789 while the below
+was in progress. #10 (this pane, new, no CONTROL_URL by design) did AB#1754 below. AB#1052 and ISP-279 both
+used ISP-61's own Playwright pattern rather than the Chrome extension for their screens; AB#758 used it too,
+to look at a static mockup rather than the running game; AB#1049 and AB#1759 used it again, for Corporate R&D
+and for login/register respectively. No CONTROL_URL / Chrome extension on any of these panes (Builder panes
+don't get one by design). See "Blind spot" below.**
+
+## What's now true (this session: AB#1754, Builder #10)
+
+- **AB#1754 is done: `scripts/economy-model.mjs` no longer reimplements the extractor cost formula.** It
+  imported its own copy of the linear pre-AB#775 curve, so `npm run economy:model` printed cost/h 600/1,600/4,000
+  at 10/100/250 t/h and closed with "profit rises with every unit of throughput: the maximum always wins" — both
+  wrong since AB#775 shipped the curved cost (`server/economy.js`'s `operationCostPerHourFor`), and the second
+  line is the exact defect AB#775 fixed. `ECONOMY.md` committed that stale output verbatim, so the balance-pass
+  reference document taught the opposite of what the shipped economy does — and contradicted its own "T-018"
+  section three screens below, which already had the correct curve (P-TWO-SOURCES, in the same file).
+  - `server/economy.js`'s `operationCostPerHourFor`, `miningProfitPerHourFor`, `bestThroughputFor` and
+    `startupCostFor` each gained an optional `operations` override parameter, defaulting to the live `ECONOMY`
+    singleton — backward compatible, every existing call site omits it. `scripts/economy-model.mjs` now imports
+    and calls these directly, passing the `data/economy.json` it already reads, instead of recomputing the cost
+    inline: the override is what lets the script price a hypothetical economy (the "what if margins go negative"
+    test) without the two ever being able to diverge again.
+  - Regenerated `ECONOMY.md`'s committed block from the fixed script's real output. The real numbers: cost/h at
+    100 t/h is 1,691 (was 1,600), at 250 t/h is 5,417 (was 4,000, and matches AB#775's own test,
+    `operationCostPerHourFor(250) === 5417`). **250 t/h is no longer the best answer** — it earns about 4 credits
+    an hour under perfect play and *loses* money once real downtime is counted (`perHourExpected` is negative);
+    the best real setting at this price with no research is 146 t/h at 606/h, which is what the T-018 section
+    already said. Rewrote the "what it says, in words" prose below the table to match.
+  - `tests/unit/economyModel.test.js`: the two assertions that hardcoded the old linear numbers (`marginPerUnit`,
+    and a formula re-deriving `t250.perHourIdeal` by hand) are gone — one of them (`t250.paybackIdeal <
+    t100.paybackIdeal`) encoded the exact bug (250 t/h no longer pays back *faster* than 100 t/h; it now pays back
+    slower, or never). Added the drift guard the bug asked for: a new test calls
+    `operationCostPerHourFor`/`startupCostFor`/`bestThroughputFor` directly and asserts the model's own numbers
+    equal them for the same inputs, so this class of drift fails at commit time instead of waiting for a reader.
+  - New/changed assertions checked against the pre-fix code (T-047): reverted both files, 4 of 8 tests in
+    `economyModel.test.js` went red (the exact-quote test, the payback-ordering test, and the two `m.best`
+    assertions), restored, all green again.
+  - Checks: `npm run check` (`node --check server/index.js`) clean. `npm test` — **157 files, 1,579 tests, all
+    passed** (1,578 baseline on `origin/main` after AB#1789 merged + 1 net new: one test removed, two added).
+  - No screen: this is a design-document/model consistency fix with no rendered UI. Verified by the script's own
+    printed output (captured and diffed against the committed block) and the test suite, not a screenshot — the
+    blind class is the same as every non-visual ISP session, named rather than proxied.
 
 ## What's now true (this session: AB#1759)
 
@@ -610,8 +647,24 @@ a Builder pane without the Chrome extension.
 - **AB#1801** (the Decision this session filed: does the flat-direction Station mockup ship?) is the one thing
   actually blocking the eleven-story design-system track (AB#745, AB#759 to AB#772) — hand it to the Board, not
   to another Builder pane; nothing to build until it is answered.
-- **AB#1794** (Level 9's Luna-lease gate, the same shape as AB#1753 — filed, not fixed, low confidence, needs
-  the runway probe extended to actually reach Level 9 before anyone fixes it blind) is Proposed, unclaimed.
+- **AB#1794** (Level 9's Luna-lease gate) was picked up by this pane, then handed back, tagged `blocked`, left
+  Active: `DEPTH.md` review #3 (same day) already shows the runway probe's bots wall economically at Level 2 for
+  the full 30-day run regardless of days simulated (0 credits, refused on every action), and states the probe
+  cannot reach Level 9 to test the Luna-lease shape until a broke corporation can recover. This pane started a
+  120-simulated-day probe run to re-confirm directly, then invalidated it by deleting the worktree the run was
+  reading from before it finished (`btwqyndvx.output` stayed empty — the process died silently rather than
+  printing anything). **Not re-run this session** — DEPTH.md's evidence stands on its own, but nobody has
+  independently reproduced it against a fresh checkout yet. **AB#1789 merged to main while this session worked
+  AB#1754** (PR 458) — 1791 and 1792 have not. Once both land: re-run `node ops/probes/isp-runway.ts --days 30
+  --seed 7000` (from hq, against a *worktree you keep alive until it prints*) and see whether bots now reach
+  Level 9 and get stuck on the Luna lease specifically. If so, AB#1794 is ready to fix with AB#1753's exact
+  pattern (`miningLease:any`, in `data/milestones.json` and `server/game/progression.js`). If bots still can't
+  reach Level 9 even with the Salvage Assignment live, that is itself worth a comment on AB#1794 before touching
+  the milestone.
+- **AB#1774** (the runway probe's banked-reserve profile) is `Proposed`, not started, and `DEPTH.md` ranks it
+  the top epic two reviews running — but it lives in `ops/probes/` in **hq**, not this repo, so it is out of
+  scope for an ISP-only Builder pane (COMMON §3, project scope). Flagging for whichever pane is scoped to the
+  platform.
 - **ISP-279** and **ISP-66 (AB#755)** are both done (concurrent panes) — see above.
 - **AB#753 (ISP-65, CSP/security headers)** has an unmet predecessor, AB#739 (splitting `app.js`), still
   Proposed as of 2026-09-25 — check its state before claiming; it may be worth doing anyway now that the actual
@@ -633,7 +686,8 @@ Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-bo
 (`agent/747-first-hour-playtest`, PR !406), ISP-278's (`agent/985-timed-transit`, PR !408), AB#1052's
 (`agent/1052-stop-mining`, PR !417), ISP-66's (`agent/755-registration-validation`), ISP-279's
 (`agent/986-shipments-ui`, PR !432), AB#1765's (`fix/1765-hash-refresh-token`, PR !439), AB#1766's
-(`fix/1766-socket-auth-check`, PR !444) and AB#1753's (`fix/1753-level2-gate`, PR !450) are all merged. This
-session's (AB#758) branch is `design/758-flat-station`, PR to be opened next and set to auto-complete — merging
-it does not answer the Decision (AB#1801), which is a Board action, not a merge. Multiple Builder panes are
-active on ISP at once — check ADO state before claiming the next item.
+(`fix/1766-socket-auth-check`, PR !444), AB#1753's (`fix/1753-level2-gate`, PR !450) and AB#758's
+(`design/758-flat-station`, PR !454) are all merged. AB#1789 (Salvage Assignment, `agent/1789-salvage-assignment`,
+PR !458) also merged, from a pane not tracked in this file's session list. This session's (AB#1754) branch is
+`fix/1754-economy-model`, PR to be opened next and set to auto-complete. Multiple Builder panes are active on
+ISP at once — check ADO state before claiming the next item.
