@@ -18,6 +18,31 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (this session: ISP-42, AB#728, Builder #10)
+
+- **ISP-42 is done, and closes with "nothing needed changing" in `data/economy.json`.** Re-ran
+  `ops/probes/isp-runway.ts` (hq) at seed 7000, 3 and 30 bot-days, against a fresh worktree on `origin/main`
+  with AB#1789/1791/1792 (Salvage Assignment), AB#1774 (reserve bot) and AB#1812 (planner/greedy given a real
+  mission-taking decision) all merged. The credits deadlock this item was blocked on is gone — planner and
+  greedy both now spend real turns on salvage-accept/salvage-complete (22 and 56 times) and reach level 3
+  instead of plateauing at level 2/0 credits — and the acceptance line's sink target (banked ÷ spent stays
+  below 3x at day 3 and 7) is met by all three profiles.
+  - **The 24-hour payback target is not met, by any bot, and no economy.json value moves it.** Checked, not
+    assumed: cutting `buildings.extractorYardCost` from 50,000 to 3,000 (94%, below the building's own asset
+    value) in a scratch run still shows every bot's yard "paid for itself in no part of 3 bot days." The
+    target is opposed on paper by an existing, documented design decision — this file's own entry for
+    `extractorYardCost` already says the cost "is what makes payback a multi-day question," and the model's
+    own output shows the best real setting paying back around day 9-11 under ideal play. Filed as **Bug
+    AB#1871** (Specification Error, medium confidence) per this item's own acceptance clause for a target that
+    survives measurement unmet, rather than force-fitting a value to it.
+  - `ECONOMY.md` gets a new section ("ISP-42's re-run against the floor above") with the before/after table and
+    this finding; no other file changes — this is a measurement-and-documentation close, not a code change.
+  - Checks: `npm run check` clean; `npm test` — **162 files, 1,799 tests, all green**, unchanged from the
+    `origin/main` baseline (a docs-only PR has nothing to regress).
+  - No screen: this is a probe-numbers and design-document close, not a UI change — the blind class is the
+    same as every non-visual ISP session (named, not proxied): the probe never drives missions/expeditions
+    beyond its own mission-decision policy, the player market, or real human pacing (P-PROXY).
+
 ## What's now true (AB#1169 — Sell Orders says when it is capped, Builder #1)
 
 - Sell Orders draws `SELL_ORDERS_SHOWN` (30) and My Active Listings `MY_LISTINGS_SHOWN` (50), both in
