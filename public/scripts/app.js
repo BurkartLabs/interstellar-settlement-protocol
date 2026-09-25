@@ -3807,8 +3807,14 @@ function renderLogistics(data) {
         }
       );
       const account = await parseJsonResponse(response);
-      const moved = account.state?.corp?.logisticsHistory?.[0];
-      appState.logisticsStatus = { stationId: fromStation, tone: "ok", text: `Moved ${describeLines(moved?.lines || [])} to ${currentName} for ${toCurrency(moved?.fee || 0)}.` };
+      // AB#985: dispatch no longer delivers on the spot — the shipment arrives on a later tick, so the
+      // confirmation names an ETA rather than claiming the goods already moved (corp.logisticsHistory gets its
+      // entry on arrival, not here).
+      const shipment = account.shipment;
+      const etaMin = shipment ? Math.max(1, Math.round((shipment.arrivesAt - shipment.dispatchedAt) / 60_000)) : null;
+      appState.logisticsStatus = { stationId: fromStation, tone: "ok", text: shipment
+        ? `Dispatched ${describeLines(shipment.lines)} to ${currentName} for ${toCurrency(shipment.fee)} — arriving in ${etaMin} min.`
+        : "Transfer dispatched." };
       for (const key of Object.keys(draft)) if (key.startsWith(`${fromStation}|`)) delete draft[key];
       appState.data = deepClone(account.state);
       appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
