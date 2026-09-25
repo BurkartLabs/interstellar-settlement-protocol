@@ -8,12 +8,13 @@ extension-less — then ISP-66 (AB#755), below; #4 did ISP-278 (AB#985), ISP-279
 (the flat-direction Station mockup, a Decision now waiting on the Board) — all five per a Director-relayed
 priority order; #1 (this pane) then did AB#1049 (research.json as the only research-tree definition), then
 AB#1759 (one primary button on login/register). A Salvage Assignment session landed AB#1789 while the below
-was in progress. #10 (this pane, new, no CONTROL_URL by design) did AB#1754, then AB#1752, then AB#1806, below. AB#1052 and
-ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension for their screens; AB#758
-used it too, to look at a static mockup rather than the running game; AB#1049 and AB#1759 used it again, for
-Corporate R&D and for login/register respectively; AB#1752 used it once more, a fresh `e2e/milestone-list.spec.js`
-against a locally-started server. No CONTROL_URL / Chrome extension on any of these panes (Builder panes don't
-get one by design). See "Blind spot" below.**
+was in progress. #10 (this pane, new, no CONTROL_URL by design) did AB#1754, then AB#1752, then AB#1806, then
+AB#1807, below. AB#1052 and ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension
+for their screens; AB#758 used it too, to look at a static mockup rather than the running game; AB#1049 and
+AB#1759 used it again, for Corporate R&D and for login/register respectively; AB#1752 and AB#1806 used it once
+more, fresh specs against a locally-started server; AB#1807 (no visible change) used it for a console-error
+smoke check instead. No CONTROL_URL / Chrome extension on any of these panes (Builder panes don't get one by
+design). See "Blind spot" below.**
 
 ## What's now true (this session: AB#1752, Builder #10)
 
@@ -48,6 +49,36 @@ get one by design). See "Blind spot" below.**
     gitignored, not committed).
   - Checks: `node --check public/scripts/app.js` and `npm run check` both clean. `npm test` — **159 files, 1,777
     tests, all passed** (1,583 baseline on `origin/main` after AB#1754 merged + 194 new, `domTargets.test.js`).
+
+## What's now true (this session: AB#1807, Builder #10)
+
+- **AB#1807 is done: the dead pre-page-split login/register toggle code is gone.** Found by AB#1752's general
+  regression test. Investigating it further than the filed bug's own six named ids showed the whole
+  `bindAuthControls()` function was dead, not just the toggle-panel part of it: `app.js` is loaded only by
+  `index.html` (`login.html` and `register.html` each have their own `login-page.js`/`register-page.js`), so
+  `registerForm` (`#register-form`, only ever present on `register.html`) was always `null` too — the function's
+  final block, a full registration-submit handler, could never run either. Removed the whole function and its
+  eight now-unused top-level `getElementById` consts (`loginPanel`, `registerPanel`, `showLoginButton`,
+  `showRegisterButton`, `loginDummyButton`, `loginCancelButton`, `registerCancelButton`, `registerForm`) and its
+  one call site in `boot()`. `showRegisterButton`'s target (`#show-register-btn`) is real — it is the landing
+  page's own "Register Corporation" link — only the dead JS wiring around it is gone; the link keeps working by
+  plain HTML `<a href>` navigation, untouched.
+  - `tests/unit/domTargets.test.js`: the `KNOWN_ORPHANED` allowlist is empty now, so simplified back to a plain
+    assertion. Also corrected a wrong assumption from AB#1752's version of this file (that `app.js` runs on all
+    three pages) to the true one (`index.html` only) — verified nothing else in `app.js` was silently relying on
+    that wrong assumption before narrowing it (checked with a throwaway script: zero targets would go missing).
+  - `tests/unit/no-payments.test.js`'s allowlist line for the sanctioned `toCurrency` formatter moved (361→352,
+    P-SHARED-LINE) since ~100 lines were deleted above it.
+  - T-047: reverted `app.js`, watched all six of the newly-plain assertions go red, restored.
+  - **No visible change**: this is pure dead-code removal, so there is no screen to screenshot. Looked at it
+    anyway with a throwaway Playwright smoke check (not committed): `index.html`, `login.html` and
+    `register.html` each boot with zero console errors, and clicking "Register Corporation" still navigates to
+    `register.html` and shows the real form — confirming the removed code was truly unreachable rather than
+    silently load-bearing.
+  - Checks: `node --check public/scripts/app.js` and `npm run check` both clean. `npm test` — **158 of 159
+    files, 1,766 of 1,776 tests, all passed excluding `tests/integration/construct-assembly.test.js`**, which
+    failed under full-suite load and passed in isolation (10/10) — the exact, already-filed AB#1744 flake,
+    unrelated to anything this session touched (verified by file: only `app.js` and two test files changed).
 
 ## What's now true (this session: AB#1806, Builder #10)
 
@@ -790,10 +821,9 @@ a Builder pane without the Chrome extension.
   Each has its own unmet predecessor as of 2026-09-25 (AB#757 wants the CSP story above; AB#987/989 want AB#757
   and AB#781 respectively) — check state before claiming.
 - **AB#1767** (a flaky test, possibly related to AB#1744) is filed, Proposed, unclaimed — non-visual fallback.
-- **AB#1806 is done** (this session, above). **AB#1807** (dead pre-page-split login/register toggle code, six
-  orphaned ids, low severity, cleanup only) is still filed, Proposed, unclaimed — found by
-  `tests/unit/domTargets.test.js`'s general guard (AB#1752) and named in its `KNOWN_ORPHANED` allowlist;
-  whoever fixes it must remove that entry, or the test stays silently lenient about it.
+- **AB#1806 and AB#1807 are both done** (this session and the one before it, above). `domTargets.test.js`'s
+  `KNOWN_ORPHANED` allowlist is empty and has been simplified away — the three findings from AB#1752's own
+  general regression test are all closed out.
 - Multiple Builder panes are working ISP at once — check ADO for what's Active before claiming.
 
 ## In flight / blocked
@@ -805,8 +835,9 @@ Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-bo
 (`agent/986-shipments-ui`, PR !432), AB#1765's (`fix/1765-hash-refresh-token`, PR !439), AB#1766's
 (`fix/1766-socket-auth-check`, PR !444), AB#1753's (`fix/1753-level2-gate`, PR !450), AB#758's
 (`design/758-flat-station`, PR !454), AB#1789's (`agent/1789-salvage-assignment`, PR !458), AB#1754's
-(`fix/1754-economy-model`, PR !462), AB#1791's (`agent/1791-salvage-display`, PR !466), AB#1752's
-(`fix/1752-milestone-list`, PR !469) and AB#1806's (`fix/1806-mine-cycle-list`, PR !473) are all merged. This
-session's (AB#1794) branch is `fix/1794-luna-lease-not-a-bug`, PR !474, set to auto-complete — test-only, no
-production code changed. Multiple Builder panes are active on ISP at once — check ADO state before claiming the
-next item.
+(`fix/1754-economy-model`, PR !462), AB#1791's (`agent/1791-salvage-display`, PR !466), AB#1792's (probe
+`--broke` scenario, per OPS), AB#1752's (`fix/1752-milestone-list`, PR !469), AB#1806's
+(`fix/1806-mine-cycle-list`, PR !473) and AB#1794's (`fix/1794-luna-lease-not-a-bug`, PR !474 — test-only, no
+production code changed) are all merged. This session's (AB#1807) branch is `fix/1807-dead-login-panel`, PR to
+be opened next and set to auto-complete. Multiple Builder panes are active on ISP at once — check ADO state
+before claiming the next item.
