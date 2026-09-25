@@ -1,11 +1,12 @@
 # ISP — handoff
 
-**2026-09-25. Merged from concurrent Builder panes: #1 did AB#1758 (orchestrata, scope override) then AB#1052 —
-a player-triggered stop on a running mining cycle; #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then ISP-89
-(AB#779); #3 did ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only
-extension-less; #4 (this pane) did ISP-278 (AB#985) then ISP-279 (AB#986). AB#1052 and ISP-279 both used
-ISP-61's own Playwright pattern rather than the Chrome extension for their screens. No CONTROL_URL / Chrome
-extension on any of these panes (Builder panes don't get one by design). See "Blind spot" below.**
+**2026-09-25. Merged from several concurrent Builder panes: #1 did AB#1758 (orchestrata, scope override) then
+AB#1052 — a player-triggered stop on a running mining cycle; #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then
+ISP-89 (AB#779); #3 did ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only
+extension-less — then ISP-66 (AB#755), below; #4 (this pane) did ISP-278 (AB#985) then ISP-279 (AB#986).
+AB#1052 and ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension for their
+screens. No CONTROL_URL / Chrome extension on any of these panes (Builder panes don't get one by design). See
+"Blind spot" below.**
 
 ## What's now true (this session: AB#1052)
 
@@ -44,7 +45,43 @@ extension on any of these panes (Builder panes don't get one by design). See "Bl
     41 more from this session's merge of ISP-278's sibling work + 6 new here). `npx playwright test
     e2e/stop-mining.spec.js` — 2 passed.
 
-## What's now true (this session: ISP-89, AB#779)
+## What's now true (this session: ISP-66, AB#755)
+
+- **ISP-66 is done: registration fields are validated server-side, with the rejection shown beside the field.**
+  `createAccount` (`server/game/store.js`) now checks email shape and a 254-char limit, password 10–128
+  characters (was "at least 8"), and a CEO name (2–40 characters, the same `NAME_CHARS` set a corporation name
+  already uses — now exported from `server/corporationName.js` instead of a second regex). Every rejection
+  carries `field` in the JSON body (`POST /api/auth/register`, `server/index.js`); `register-page.js` reads it
+  and shows the message in a `<p class="field-error">` beside that input, clearing it on the next submit, not
+  the shared status line — the two never say the same thing twice.
+  - **The client pre-check (`registerFormProblem`) had to become field-aware too.** It used to just short-circuit
+    with a generic message in the status line before ever reaching the server, which meant an empty field never
+    exercised the new beside-the-field display at all through the real UI — found by looking at the first
+    screenshot, not by the unit tests (they only checked the string, not where it landed). It now returns
+    `{ field, text }`, the same shape the server's refusal takes, so both paths render identically.
+  - **`ceoName` is now required, with no silent stand-in.** It used to default to `"New CEO"` both server-side
+    and in `register-page.js` — Bug #1187 had already fixed this for `corpName` but left `ceoName`'s own copy
+    of the same bug in place. Checked every caller of `createAccount`/`POST /api/auth/register` first (57 test
+    files via `tests/helpers/api.js`, which already sends a real `ceoName`; every direct call in the suite does
+    too) — nothing relied on the default.
+  - `EMAIL_MAX_LENGTH`, `PASSWORD_MIN_LENGTH`, `PASSWORD_MAX_LENGTH`, `CEO_NAME_MIN_LENGTH/MAX_LENGTH` are
+    exported from `server/game/store.js` so the new tests assert against the same numbers the code enforces,
+    not a copy of them.
+  - New tests: `tests/integration/register-validation.test.js` (each rejection, both accepted boundaries, no
+    password echoed, a hostile extra body field changes nothing), `auth-errors.test.js` and
+    `authMessages.test.js` updated for the new response/return shapes.
+  - **Looked at**: two throwaway Playwright scripts (not committed — `e2e/first-hour.spec.js` is the permanent
+    suite, this was just the evidence), one per path — the client pre-check (blank CEO name) and a real server
+    round trip (`Alex_Rivera`, an underscore, passes the client's "is it empty" check but not the server's
+    character rule) — both screenshotted at 375x812 showing the message beside the CEO Name field, not just
+    asserted. Fixed the pre-check display gap this looking found (above) before calling it done.
+  - Checks: `npm test` — **150 files, 1508 tests, all green** (1500 baseline + 8 new). `npm run check` and
+    `node --check` on both changed client scripts clean.
+  - One more `tests/integration/ticker-mining-settle.test.js` flake seen (failed once under the full suite's
+    load, passed alone and on two full reruns) — already filed as **AB#1767** by a concurrent Builder pane, see
+    below; not filed again.
+
+## What's now true (ISP-89, AB#779 — earlier session, still accurate)
 
 - **ISP-89 is done: `tests/unit/no-payments.test.js` exists**, scanning every `.js`/`.html`/`.css` file under
   `server/` and `public/` for payment and pricing vocabulary, with a three-entry allowlist (two benign
@@ -319,11 +356,20 @@ a Builder pane without the Chrome extension.
 
 ## What's next
 
-- **AB#753/755/757/781/987/989** (screenshot-gated v0.5 items) can now be built and looked at with Playwright —
-  see ISP-61 (`e2e/first-hour.spec.js`, fresh play), AB#1052 (`e2e/stop-mining.spec.js`, fresh play) or ISP-279
-  (`e2e/logistics-shipments.spec.js`, a seeded fixture — the pattern to reach for when the state under test
-  would need disproportionate grinding to reach by fresh play) for the established shapes. This is the largest
-  block of stuck v0.5 work across five sessions, and it just became claimable; a good next pick.
+- **ISP-279** ("Shipments in the Logistics tab: arrival time quoted before you move") is now done (this
+  session) — see above.
+- **AB#781 (open registration switch)**'s predecessor, ISP-66 (AB#755), is now done. Its acceptance is
+  screenshot-gated (register page open/closed at 375x812) — buildable now with Playwright, see ISP-61 above.
+- **AB#753 (ISP-65, CSP/security headers)** has an unmet predecessor, AB#739 (splitting `app.js`), still
+  Proposed as of 2026-09-25 — check its state before claiming; it may be worth doing anyway now that the actual
+  risk that predecessor was hedging against (many inline event handlers to convert) turned out not to exist —
+  `grep -c 'onclick='` across `public/` returns 0, the client already uses `addEventListener` exclusively.
+- **AB#757/987/989** (the rest of the screenshot-gated v0.5 items) can now be built and looked at with
+  Playwright too — see ISP-61 (`e2e/first-hour.spec.js`, fresh play), AB#1052 (`e2e/stop-mining.spec.js`, fresh
+  play) or ISP-279 (`e2e/logistics-shipments.spec.js`, a seeded fixture — the pattern to reach for when the
+  state under test would need disproportionate grinding to reach by fresh play) for the established shapes.
+  Each has its own unmet predecessor as of 2026-09-25 (AB#757 wants the CSP story above; AB#987/989 want AB#757
+  and AB#781 respectively) — check state before claiming.
 - **AB#1765** (refresh tokens in plain text at rest), **AB#1766** (the market/forum "still-authenticated-
   looking" socket boundary) and **AB#1767** (a second flaky test, possibly related to AB#1744) are filed,
   Proposed, unclaimed — non-visual fallbacks.
@@ -332,8 +378,8 @@ a Builder pane without the Chrome extension.
 ## In flight / blocked
 
 Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-boundary`, PR !392), ISP-48's
-(`agent/734-security`, PR !402), ISP-61's (`agent/747-first-hour-playtest`) and ISP-278's
-(`agent/985-timed-transit`, PR !408) are all merged. ISP-89's branch was `agent/779-no-payments-test`, PR !409,
-approved and set to auto-complete. AB#1052's branch is `agent/1052-stop-mining`, PR opening separately. This
-session's (ISP-279) branch is `agent/986-shipments-ui`, PR to be opened next and set to auto-complete. Multiple
-Builder panes are active on ISP at once — check ADO state before claiming the next item.
+(`agent/734-security`, PR !402), ISP-89's (`agent/779-no-payments-test`, PR !409), ISP-61's
+(`agent/747-first-hour-playtest`, PR !406), ISP-278's (`agent/985-timed-transit`, PR !408), AB#1052's
+(`agent/1052-stop-mining`, PR !417) and ISP-66's (`agent/755-registration-validation`) are all merged. This
+session's (ISP-279) branch is `agent/986-shipments-ui`, PR to be opened next and set to auto-complete.
+Multiple Builder panes are active on ISP at once — check ADO state before claiming the next item.

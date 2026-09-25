@@ -7,7 +7,7 @@ import { welcomeLetter } from "../../public/scripts/liaison.js";
 import { closeDueDays, MAX_STATEMENTS } from "../finances.js";
 import { unknownLeaseBodies } from "../leases.js";
 import { directInvestmentRecords } from "../legacyInvestments.js";
-import { validateCorporationName, SYSTEM_SENDERS } from "../corporationName.js";
+import { NAME_CHARS, validateCorporationName, SYSTEM_SENDERS } from "../corporationName.js";
 import { settlePayroll, payrollNotice } from "../payroll.js";
 import { PASSWORD_SALT_ROUNDS, SYSTEMS_DATA, accountsSnapshotPath, createId, dataDir, deepClone, safeWriteFile, statePath } from "./catalog.js";
 import { evaluateAccountLevel, evaluateLevelProgress, pushSystemNotification, sanitizeNotification } from "./progression.js";
@@ -390,22 +390,40 @@ export async function authenticateAccount(email, password) {
   return sanitizeAccount(account);
 }
 
+// ISP-66: boundaries checked at the registration boundary, before anything is hashed or stored.
+export const EMAIL_MAX_LENGTH = 254; // RFC 5321's practical mailbox-address limit
+export const PASSWORD_MIN_LENGTH = 10;
+export const PASSWORD_MAX_LENGTH = 128;
+export const CEO_NAME_MIN_LENGTH = 2;
+export const CEO_NAME_MAX_LENGTH = 40;
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function createAccount({ email, password, ceoName, corpName }) {
   const normalizedEmail = String(email || "").trim().toLowerCase();
   const normalizedPassword = String(password || "");
+  const normalizedCeoName = String(ceoName || "").trim().replace(/\s+/g, " ");
 
-  if (!normalizedEmail || !normalizedEmail.includes("@")) {
-    return { error: "A valid email is required." };
+  if (!normalizedEmail || normalizedEmail.length > EMAIL_MAX_LENGTH || !EMAIL_SHAPE.test(normalizedEmail)) {
+    return { error: "Enter a valid email address.", field: "email" };
   }
 
-  if (normalizedPassword.length < 8) {
-    return { error: "Password must be at least 8 characters." };
+  if (normalizedPassword.length < PASSWORD_MIN_LENGTH || normalizedPassword.length > PASSWORD_MAX_LENGTH) {
+    return { error: `Password must be ${PASSWORD_MIN_LENGTH} to ${PASSWORD_MAX_LENGTH} characters.`, field: "password" };
+  }
+
+  // Bug #1187: no stand-in name, so an empty field is refused here rather than defaulted — the same reasoning that
+  // already applies to corpName. Same character set as a corporation name (NAME_CHARS): a name is a name.
+  if (normalizedCeoName.length < CEO_NAME_MIN_LENGTH || normalizedCeoName.length > CEO_NAME_MAX_LENGTH) {
+    return { error: `CEO name must be ${CEO_NAME_MIN_LENGTH} to ${CEO_NAME_MAX_LENGTH} characters.`, field: "ceoName" };
+  }
+  if (!NAME_CHARS.test(normalizedCeoName)) {
+    return { error: "CEO name may use letters, digits, spaces and - ' . & only.", field: "ceoName" };
   }
 
   const existing = Object.values(accountsStore.accounts || {}).find((item) => item.email === normalizedEmail);
   if (existing) {
     // Bug #1059: the code lets the page offer the login instead.
-    return { error: "An account with this email already exists.", code: "email-taken" };
+    return { error: "An account with this email already exists.", code: "email-taken", field: "email" };
   }
 
   // Bug #433: the name is the only trust signal on the order book, the forums and in mail. Checked before anything is
@@ -416,7 +434,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
     reservedNames: RESERVED_CORPORATION_NAMES
   });
   if (corporation.error) {
-    return { error: corporation.error };
+    return { error: corporation.error, field: "corpName" };
   }
 
   const accountId = createId("acc");
@@ -425,7 +443,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
   const seedState = normalizeStateShape(getSeedState());
   const nextState = createStarterCorporationState(
     seedState,
-    String(ceoName || "New CEO").trim() || "New CEO",
+    normalizedCeoName,
     corporation.name
   );
 
