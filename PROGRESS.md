@@ -25,6 +25,12 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   station the building is not confined to. `e2e/suites-flavor.spec.js` (seed: `e2e/seed-docked-account.mjs <station>`)
   looks at the card docked at Mars; screenshots in `docs/ab-1269/`.
 
+## What's now true (AB#1825, Builder #4)
+
+- The no-account branch of the rent-office handler no longer throws (`currentBody` was undeclared there). **Every
+  `if (appState.accountId) … else` local-mutation branch in the client is unreachable** (both `enterGame` calls pass
+  an account id). Removing them is a cleanup the PM has been handed, not something done here.
+
 ## What's now true (AB#1203 — a contract is completed at its agent's station, Builder #1)
 
 - `POST /gameplay/complete-mission` refuses a quota contract unless the corporation is docked at the agent's station
