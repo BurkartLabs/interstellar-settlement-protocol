@@ -18,6 +18,23 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1760, ISP-291 — a focus-ring token, and reduced motion)
+
+- Keyboard focus draws `--focus-ring` (2px solid cyan, `:root`) through one unqualified `:focus-visible` rule in
+  `public/styles.css`'s "Focus and motion" section. No other focus rule may set an outline, and no transition may
+  cover `all` (it animated the ring in): `tests/unit/focusAndMotion.test.js` enforces both.
+- `@media (prefers-reduced-motion: reduce)` finishes every animation and transition in 0.01ms. Script-driven motion
+  asks `public/scripts/motion.js`: the typewriter prints at once, the starfield holds still (it is now a module on
+  index, login and register), the walkthrough and forum scrolls jump. A new animation needs nothing extra; one made
+  `!important` fails the test.
+- `e2e/focus-and-motion.spec.js` tabs through login, the Station and the Exchange at 1280x800 and 375x812 and checks
+  every stop's computed ring. Run it against a server started with `ISP_RATE_LIMIT_REGISTER_MAX` raised: it registers
+  three accounts, and the limit is five an hour per address. Screenshots in `docs/ab-1760/`.
+- Filed, not fixed: **AB#2043**, the page says "Try again in a minute" after five registrations, but the server
+  refuses for an hour. It has no lane tag yet (PM).
+- The full suite timed out server start-up hooks in 5 to 12 files while other Builders' suites held the CPU at 100%;
+  on a calm machine it was 178 files, 1912 tests, all passed. Check the load before reading a red run here.
+
 ## What's now true (AB#1832 — a contract's briefing opens on screen, Builder)
 
 - `#mission-detail-modal` sits at body level beside `#trade-confirm-modal`, not inside `article#missions`: `.tab-panel`'s

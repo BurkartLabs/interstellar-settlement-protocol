@@ -7,6 +7,7 @@ import { formatTime } from "../helpers.js";
 import { escapeHtml, forumPostBodyHtml } from "../html.js";
 import { appState } from "../state.js";
 import { pushFeedback } from "./shared.js";
+import { scrollBehavior } from "../motion.js"; // AB#1760
 
 /**
  * Bug #1133: the one way a thread from a response enters the client's forums, once, by id (mergeThread). Both copies
@@ -205,7 +206,7 @@ export function renderForums(data) {
         const post = postFor(btn, thread);
         if (!box || !post) return;
         box.value = btn.dataset.action === "quote" ? quoteDraft(box.value, post) : replyDraft(box.value, post);
-        box.scrollIntoView({ behavior: "smooth", block: "center" });
+        box.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
         box.focus({ preventScroll: true });
         box.setSelectionRange(box.value.length, box.value.length);
       });
