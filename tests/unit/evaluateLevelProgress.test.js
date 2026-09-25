@@ -44,7 +44,10 @@ function meet(corp, req) {
     corp.employeeCount = Math.max(corp.employeeCount, target);
   } else if (metric.startsWith("miningLease:")) {
     const body = metric.slice(12);
-    if (!corp.miningLeases.some((l) => l.body === body)) corp.miningLeases.push({ body });
+    // "any" (Bug #1753): a lease on any body satisfies it; a fixture lease still needs a real body name.
+    if (body === "any") {
+      if (corp.miningLeases.length === 0) corp.miningLeases.push({ body: "Earth" });
+    } else if (!corp.miningLeases.some((l) => l.body === body)) corp.miningLeases.push({ body });
   } else if (metric.startsWith("building-count:") || metric.startsWith("building:")) {
     const name = metric.slice(metric.indexOf(":") + 1);
     const want = metric.startsWith("building-count:") ? target : 1;
@@ -73,10 +76,27 @@ describe("evaluateLevelProgress", () => {
     expect(corp.unlocks.marketSectors).toEqual([]);
   });
 
-  it("does not skip level 2 when level 3 is met first (AB#690 repro: Earth lease, no Mars)", () => {
+  it("an Earth lease (no Mars) satisfies level 2's lease requirement (Bug #1753)", () => {
+    // Earth is the cheapest leasable body (data/systems.json), so a cost-minimising player — and both bots in
+    // ops/probes/isp-runway.ts — leases it first. Level 2 used to require a lease on Mars specifically
+    // (metric miningLease:Mars), so that cheapest path left a player stuck at level 1 forever with no error
+    // explaining why. The milestone is testing for a working, producing lease, not one particular planet.
     const corp = starterCorp();
     meetLevel(corp, 1);
     corp.miningLeases.push({ body: "Earth" });
+    corp.buildings.push({ name: "Basic Extractor Yard" });
+    meet(corp, { metric: "totalMined:silicate", target: 300 });
+
+    evaluate(corp);
+    expect(corp.levelProgress.level2.allCompleted).toBe(true);
+    expect(corp.level).toBe(2);
+    expect(corp.milestonesCompleted).toContain("Purchase a Mining Lease");
+  });
+
+  it("does not skip level 2 when level 3 is met first (AB#690 repro)", () => {
+    const corp = starterCorp();
+    meetLevel(corp, 1);
+    // Level 2 left incomplete: no lease of any kind yet, so its only unmet requirement is the lease one.
     corp.buildings.push({ name: "Basic Extractor Yard" });
     meet(corp, { metric: "totalMined:silicate", target: 300 });
     meetLevel(corp, 3);
@@ -87,8 +107,8 @@ describe("evaluateLevelProgress", () => {
     expect(corp.level).toBe(1);
     expect(corp.milestonesCompleted).not.toContain("Reached Corporation Level 3");
 
-    // Now lease Mars: level 2 completes, and the corp climbs 2 then 3 in one evaluation.
-    corp.miningLeases.push({ body: "Mars" });
+    // Now lease Earth: level 2 completes, and the corp climbs 2 then 3 in one evaluation.
+    corp.miningLeases.push({ body: "Earth" });
     evaluate(corp);
     expect(corp.level).toBe(3);
     expect(corp.unlocks.marketSectors).toEqual(["Raw Materials", "Logistics Services"]);

@@ -332,7 +332,8 @@ describe("data/milestones.json names only what this build has (Bug #424)", async
     if (kind === "stat") return STAT_KEYS.includes(arg) ? null : `no server code keeps the statistic "${arg}"`;
     if (kind === "unlockedTech") return researchIds.has(arg) ? null : `research "${arg}" is not in research.json`;
     if (kind === "building" || kind === "building-count") return PLAYER_BUILDINGS.includes(arg) ? null : `players cannot build "${arg}"`;
-    if (kind === "miningLease") return leasable.has(arg) ? null : `"${arg}" cannot be leased (no leaseCost in systems.json)`;
+    // "any" (Bug #1753) is a sentinel for "a lease on any body", not a body name to look up in systems.json.
+    if (kind === "miningLease") return arg === "any" || leasable.has(arg) ? null : `"${arg}" cannot be leased (no leaseCost in systems.json)`;
     if (kind === "totalMined") return arg === "silicate" ? null : `the resolver counts only silicate mined, not "${arg}"`;
     return `unknown metric "${metric}"`;
   };

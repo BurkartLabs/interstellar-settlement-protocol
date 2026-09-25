@@ -3206,7 +3206,7 @@ const RESOURCE_CATALOG = [
 // TODO(AB#798): Remove. This is defined within gameState.js but should be fetched from the DB or from milestones.json
 const MILESTONE_ROADMAP = [
   "Rent an Office", "Hire 5 Employees", "Reached Corporation Level 1",
-  "Purchase a Mining Lease on Mars", "Build a Basic Extractor Yard", "Mine 300 Silicate",
+  "Purchase a Mining Lease", "Build a Basic Extractor Yard", "Mine 300 Silicate",
   "Reached Corporation Level 2", "Sell 300 Silicate on the Galactic Exchange",
   "Research Basic Extraction Analytics", "Reached Corporation Level 3",
   "Build a Second Extractor Yard", "Hire 10 Employees", "Research Industrial Safety Protocols",

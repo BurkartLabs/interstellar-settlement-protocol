@@ -4,10 +4,55 @@
 AB#1052 — a player-triggered stop on a running mining cycle; #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then
 ISP-89 (AB#779); #3 did ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only
 extension-less — then ISP-66 (AB#755), below; #4 (this pane) did ISP-278 (AB#985), ISP-279 (AB#986), AB#1765
-(refresh tokens hashed at rest), then AB#1766 (socket auth boundary) — the last two per a Director-relayed
-priority order. AB#1052 and ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension
-for their screens. No CONTROL_URL / Chrome extension on any of these panes (Builder panes don't get one by
-design). See "Blind spot" below.**
+(refresh tokens hashed at rest), AB#1766 (socket auth boundary), then AB#1753 (Level 2's Mars-lease gate) — the
+last three per a Director-relayed priority order. AB#1052 and ISP-279 both used ISP-61's own Playwright pattern
+rather than the Chrome extension for their screens. No CONTROL_URL / Chrome extension on any of these panes
+(Builder panes don't get one by design). See "Blind spot" below.**
+
+## What's now true (this session: AB#1753)
+
+- **AB#1753 is fixed: Level 2's lease requirement no longer names Mars specifically.**
+  `data/milestones.json`'s Level 2 `marsLease` requirement was `metric: "miningLease:Mars"` — Earth is the
+  cheaper lease (20,000 vs Mars's 25,000, `data/systems.json`), so a cost-minimising player (and both bots in
+  `ops/probes/isp-runway.ts`, per the bug's own repro) leased Earth first, built the extractor, mined 300
+  Silicate, and were then **permanently stuck at Level 1** with no error explaining why — every other Level 2
+  requirement satisfied, one hard-coded planet name standing in the way.
+  - `server/game/progression.js`'s `resolveMetric` gained a special case: `miningLease:any` is true for any
+    lease at all, not one specific body. `data/milestones.json`'s Level 2 requirement now reads
+    `metric: "miningLease:any"`, title "Purchase a Mining Lease" (was "...on Mars") — Mars remains the
+    walkthrough's *suggested* first destination, it is just no longer a *mechanical* gate.
+  - **T-003 (the same fact restated, found while fixing this):** the requirement's title is independently
+    copied in `data/milestones.json`'s own `roadmap` array and in `public/scripts/app.js`'s
+    `MILESTONE_ROADMAP` constant (already flagged as duplicate debt, `TODO(AB#798)`). Updated all three
+    consistently, or the milestone list would show this step as permanently "Open" for anyone who completed it
+    under the old title text.
+  - Existing tests updated for the new semantics, not just left broken: `tests/unit/evaluateLevelProgress.test.js`'s
+    AB#690 repro used "Earth lease, no Mars" specifically to demonstrate the bug this session fixes — rewrote
+    it to use "no lease at all" as the not-yet-met condition, and added a dedicated test that an Earth-only
+    lease now completes Level 2. `tests/unit/leaseStation.test.js` and `tests/schema/data-files.test.js` both
+    walk every `miningLease:<body>` metric in the catalog and look up a station/lease cost for the body named;
+    both taught to treat `any` as a sentinel, not a real body, so they do not report it as broken.
+  - New test fails against the pre-fix code (checked by reverting `data/milestones.json` and
+    `server/game/progression.js` and re-running — T-047).
+  - **Sibling filed, not fixed**: **AB#1794** — Level 9's `lunaLease` requirement (`miningLease:Luna`) is the
+    same shape, found by inspection while fixing this one. Unlike this bug, it has **not been confirmed
+    unreachable** by the cheapest path — `ops/probes/isp-runway.ts`'s bots never reached Level 9 in the run
+    that found AB#1753 (both topped out at Level 1) — so it is filed at low confidence for someone to actually
+    measure, not fixed blind.
+  - **Not touched, flagged for PM/Director**: `docs/QUEST_SPINE.md`'s Act 1 Beat 8 sends a new player to Mars
+    specifically *because* Level 2 required it ("The Mars beat bridges a gap the audit found... Level 2 wants
+    a Mars lease"). That premise is now optional, not mechanical — the beat's narrative can stay exactly as
+    designed (Mars is still a fine *suggested* first destination), but the document's own justification for
+    forcing it is stale and reads oddly next to a milestone that no longer forces anything. A design call, not
+    a Builder one. `CODEBASE_MAP.md`, `DEPTH.md`, `FIRST_SESSION_AUDIT.md` and `MONETIZATION.md` are dated
+    review/audit snapshots (`CODEBASE_MAP.md` says so explicitly: "Status: unreviewed... the code wins") and
+    were left alone on the same basis PATTERNS.md gives for not retroactively editing them.
+  - **Also flagged, out of this repo's scope**: `ops/probes/isp-runway.ts` (in `hq`, not this repo) carries a
+    Mars-detour workaround for exactly this bug, gated behind 200,000 credits (per the bug's own citation of
+    that source comment) — now unnecessary dead logic. Out of scope for an ISP-only Builder session to touch
+    the platform repo; noted for whoever next works there.
+  - Checks: `npm run check` clean; `npm test` — **155 files, 1568 tests, all passed** (1556 baseline on
+    `origin/main` after AB#1766 merged + 12 new/changed across the four test files above).
 
 ## What's now true (this session: AB#1766)
 
@@ -455,12 +500,13 @@ a Builder pane without the Chrome extension.
 
 ## What's next
 
-- **Director-relayed priority order for this pane (2026-09-25), after AB#1765/#1766 (both now done)**:
-  **AB#1753** next (the Level-2 gate — must be clearable before any v0.6+ work), then **AB#758** (one Station
-  mockup — the Board is waiting on this one specifically). **AB#1740 was picked up and merged by a concurrent
-  pane while this session worked AB#1765/#1766** — no longer available to take. If this pane frees up before
-  AB#1753/#758 and **ENG-9 (AB#669)** is still unclaimed, take that instead — platform-first priority per
-  PM/Director.
+- **Director-relayed priority order for this pane (2026-09-25), after AB#1765/#1766/#1753 (all now done)**:
+  **AB#758** next (one Station mockup — the Board is waiting on this one specifically). **AB#1740 was picked
+  up and merged by a concurrent pane while this session worked AB#1765/#1766** — no longer available to take.
+  If this pane frees up before AB#758 and **ENG-9 (AB#669)** is still unclaimed, take that instead —
+  platform-first priority per PM/Director.
+- **AB#1794** (Level 9's Luna-lease gate, the same shape as AB#1753 — filed, not fixed, low confidence, needs
+  the runway probe extended to actually reach Level 9 before anyone fixes it blind) is Proposed, unclaimed.
 - **ISP-279** and **ISP-66 (AB#755)** are both done (concurrent panes) — see above.
 - **AB#753 (ISP-65, CSP/security headers)** has an unmet predecessor, AB#739 (splitting `app.js`), still
   Proposed as of 2026-09-25 — check its state before claiming; it may be worth doing anyway now that the actual
@@ -481,6 +527,7 @@ Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-bo
 (`agent/734-security`, PR !402), ISP-89's (`agent/779-no-payments-test`, PR !409), ISP-61's
 (`agent/747-first-hour-playtest`, PR !406), ISP-278's (`agent/985-timed-transit`, PR !408), AB#1052's
 (`agent/1052-stop-mining`, PR !417), ISP-66's (`agent/755-registration-validation`), ISP-279's
-(`agent/986-shipments-ui`, PR !432) and AB#1765's (`fix/1765-hash-refresh-token`, PR !439) are all merged. This
-session's (AB#1766) branch is `fix/1766-socket-auth-check`, PR to be opened next and set to auto-complete.
-Multiple Builder panes are active on ISP at once — check ADO state before claiming the next item.
+(`agent/986-shipments-ui`, PR !432), AB#1765's (`fix/1765-hash-refresh-token`, PR !439) and AB#1766's
+(`fix/1766-socket-auth-check`, PR !444) are all merged. This session's (AB#1753) branch is
+`fix/1753-level2-gate`, PR to be opened next and set to auto-complete. Multiple Builder panes are active on
+ISP at once — check ADO state before claiming the next item.

@@ -28,7 +28,9 @@ describe("leaseStationFor (AB#1061)", () => {
   });
 
   it("every body a milestone asks the player to lease has a station to file it from", () => {
-    const bodies = MILESTONES.levels.flatMap((l) => l.requirements).map((r) => r.metric).filter((m) => /^miningLease:/.test(m)).map((m) => m.split(":")[1]);
+    // "any" (Bug #1753) is a sentinel for "a lease on any body", not a real body name — it deliberately has no
+    // station, and requirementLink (below) falls back to a generic destination for it.
+    const bodies = MILESTONES.levels.flatMap((l) => l.requirements).map((r) => r.metric).filter((m) => /^miningLease:/.test(m)).map((m) => m.split(":")[1]).filter((b) => b !== "any");
     expect(bodies.length).toBeGreaterThan(0);
     for (const body of bodies) expect(leaseStationFor(STATIONS, body), body).not.toBeNull();
   });

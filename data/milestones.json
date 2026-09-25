@@ -16,7 +16,7 @@
     {
       "level": 2,
       "requirements": [
-        { "id": "marsLease", "title": "Purchase a Mining Lease on Mars", "target": 1, "metric": "miningLease:Mars" },
+        { "id": "marsLease", "title": "Purchase a Mining Lease", "target": 1, "metric": "miningLease:any" },
         { "id": "extractor", "title": "Build a Basic Extractor Yard", "target": 1, "metric": "building:Basic Extractor Yard" },
         { "id": "mine300", "title": "Mine 300 Silicate", "target": 300, "metric": "totalMined:silicate" }
       ],
@@ -145,7 +145,7 @@
     "Rent an Office",
     "Hire 5 Employees",
     "Reached Corporation Level 1",
-    "Purchase a Mining Lease on Mars",
+    "Purchase a Mining Lease",
     "Build a Basic Extractor Yard",
     "Mine 300 Silicate",
     "Reached Corporation Level 2",
