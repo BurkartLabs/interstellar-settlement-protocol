@@ -28,7 +28,7 @@ export function refineryBuildButtonHtml({ hasRefinery, used, slots }) {
   const full = used >= slots;
   const label = hasRefinery ? "Build 2nd Refinery" : "Build Refinery";
   const reason = full ? `Refinery requires 1 open building slot. Current usage: ${used}/${slots}.` : null;
-  const note = full ? `<p class="muted" style="color:var(--color-warn)">No open building slots. Current usage: ${used}/${slots}.</p>` : "";
+  const note = full ? `<p class="muted" style="color:var(--warn)">No open building slots. Current usage: ${used}/${slots}.</p>` : "";
   return `<button class="btn btn-outline refinery-build-btn"${htmlAttr("data-disabled-reason", reason)}>${label}</button>${note}`;
 }
 

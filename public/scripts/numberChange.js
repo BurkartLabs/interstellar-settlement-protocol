@@ -15,7 +15,7 @@ import { prefersReducedMotion } from "./motion.js";
 
 /** How long the count from the old value to the new one runs. */
 export const COUNT_MS = 450;
-/** How long the up or down colour stays on; the stylesheet fades it in and out over --motion-fade (under 1s in all). */
+/** How long the up or down colour stays on; the stylesheet fades it in and out over --duration-base (under 1s in all). */
 export const HIGHLIGHT_MS = 650;
 
 /** "up", "down", or null when either value is not a number or nothing changed. */

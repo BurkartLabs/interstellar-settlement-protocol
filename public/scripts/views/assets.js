@@ -135,7 +135,7 @@ export function renderAssets(data) {
     const yardName = ex.name || ex.id;
     const locationLabel = locationBody
       ? `${escapeHtml(yardName)} <span class="muted">— ${escapeHtml(locationBody)}</span>`
-      : `${escapeHtml(yardName)} <span class="muted" style="color:var(--color-warn)">— Unassigned</span>`;
+      : `${escapeHtml(yardName)} <span class="muted" style="color:var(--warn)">— Unassigned</span>`;
     infraRows += `<tr>
       <td>Extractor</td>
       <td>${locationLabel}</td>

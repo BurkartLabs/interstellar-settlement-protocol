@@ -20,6 +20,6 @@ describe("Refinery Chains: requirement text is muted, not amber (AB#1761)", () =
   });
 
   it("keeps amber for the real warning: all refineries busy", () => {
-    expect(APP_JS).toContain('<p class="muted" style="color:var(--color-warn)">All refineries busy.</p>');
+    expect(APP_JS).toContain('<p class="muted" style="color:var(--warn)">All refineries busy.</p>');
   });
 });

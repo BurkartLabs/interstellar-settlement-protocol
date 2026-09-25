@@ -224,7 +224,7 @@ export function renderForums(data) {
           if (!content) {
             if (statusEl) {
               statusEl.textContent = "Reply cannot be empty.";
-              statusEl.style.color = "var(--color-warn)";
+              statusEl.style.color = "var(--warn)";
             }
             return;
           }
@@ -249,7 +249,7 @@ export function renderForums(data) {
           } catch (err) {
             if (statusEl) {
               statusEl.textContent = `Failed to post reply: ${err.message}`;
-              statusEl.style.color = "var(--color-warn)";
+              statusEl.style.color = "var(--warn)";
             }
           } finally {
             if (submitBtn) submitBtn.disabled = false;
@@ -348,7 +348,7 @@ export function renderForums(data) {
       if (!category || !title || !body) {
         if (statusEl) {
           statusEl.textContent = "Category, title, and body are all required.";
-          statusEl.style.color = "var(--color-warn)";
+          statusEl.style.color = "var(--warn)";
         }
         return;
       }
@@ -370,7 +370,7 @@ export function renderForums(data) {
       } catch (err) {
         if (statusEl) {
           statusEl.textContent = `Failed to post thread: ${err.message}`;
-          statusEl.style.color = "var(--color-warn)";
+          statusEl.style.color = "var(--warn)";
         }
       } finally {
         if (submitBtn) submitBtn.disabled = false;

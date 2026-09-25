@@ -38,7 +38,7 @@ describe("CSS custom properties (AB#1113)", () => {
 
   it("finds the uses it is meant to check", () => {
     expect(uses.length).toBeGreaterThan(100);
-    expect(uses.some((u) => u.name === "--color-warn")).toBe(true);
+    expect(uses.some((u) => u.name === "--warn")).toBe(true);
   });
 
   it("every var() without a fallback names a property that is defined", () => {

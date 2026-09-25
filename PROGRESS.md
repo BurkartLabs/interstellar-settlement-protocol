@@ -65,6 +65,22 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   player docked in Barnard's Star with Asteroid Prospecting (`e2e/seed-prospector-account.mjs`): Scout there, "travel
   there" elsewhere. Screens: `docs/ab-1344/`.
 
+## What's now true (ISP-71, AB#760 — styles.css on the tokens, Builder)
+
+- **Outside the token block, `styles.css` has no hex colour, no `rgb(` and no px font size**;
+  `tests/unit/stylesheetLiterals.test.js` runs the git grep (comments may hold issue references like AB#1760, never a
+  colour). `scripts/tokenize-stylesheet.mjs` did the pass and states its rules; it is idempotent, so run it on CSS that
+  arrives from elsewhere. Glows are gone, gradients flat, see-through cards one step above their panel, backdrops the
+  modal scrim; fixed rem sizes are on the six-step scale; spacing exactly on the 4px grid uses `--space-*`.
+- **The old palette names are gone** (`--void-black`, `--electric-cyan`, `--panel`, `--color-*`...): 128 uses renamed.
+- **Still literal, and fine to leave:** 14 fluid `clamp()` font sizes, the forum avatar's per-user `hsl()`, and 370
+  spacing declarations off the 4px grid (the ISP-70 ratchet holds each count).
+- **Owed to ISP-72 (buttons):** the primary actions (Log in, Register, Send) were translucent cyan fills and are now a
+  raised surface with a cyan border; the direction's one primary control is a solid `--accent` fill.
+- **Playwright specs write into committed `docs/` folders on every run.** After a run, `git checkout -- docs/` before
+  committing (Bug AB#2256: ISP-70's commit overwrote 23 evidence screenshots; restored here).
+- Looked at: `docs/isp-71/pair-*.png`, every tab and the three signed-out pages at 1280x800, before above after.
+
 ## What's now true (ISP-70, AB#759 — the flat direction's design tokens, Builder)
 
 - **One token block at the top of `public/styles.css`** (Decision AB#1801, the flat direction): surfaces `--bg` and
