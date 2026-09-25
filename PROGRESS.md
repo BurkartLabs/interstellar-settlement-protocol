@@ -301,12 +301,14 @@ overflow. AB#1052 (a concurrent pane) also used this pattern for its own screen,
 ISP-67's own blind-spot note (an earlier session) stands unchanged: `socket.io-client` against a real server
 was that session's equivalent of "looked at it."
 
-`npm test` after all six sessions: **150 files, 1515 tests, all green** on this branch's own rerun (see below
-for the count after merging AB#1052/ISP-89's own test additions, which this handoff was rewritten alongside
-before that merge finished). `npm run check` clean. `npx playwright test`: `first-hour.spec.js` 2 passed
-(re-run as a regression check against the modified server), `logistics-shipments.spec.js` 2 passed (this
-session's new spec). One, unrelated `ticker-mining-settle.test.js` flake seen once under full-suite load
-during the ISP-89 session, filed as AB#1767, not reproduced again.
+`npm test` after merging AB#1052 and ISP-89 into this branch: **152 files, 1543 tests, all green**. `npm run
+check` clean. `npx playwright test`: `first-hour.spec.js` 2 passed (re-run as a regression check against the
+modified server), `logistics-shipments.spec.js` 2 passed (this session's new spec). One, unrelated
+`ticker-mining-settle.test.js` flake seen once under full-suite load during the ISP-89 session, filed as
+AB#1767, not reproduced again. **One line-number fix on merge**: ISP-89's `no-payments.test.js` allowlists
+`public/styles.css` by line number; this session's CSS insertion pushed the one existing allowlisted match (a
+"Premium Thread Detail View" section comment) from line 4151 to 4195, and the test's own message ("the code
+moved; update or remove the entry") says exactly what to do — updated, not a new finding.
 
 **AB#753/755/757/781/987/989 (the remaining screenshot-gated v0.5 items) are no longer blocked on "no
 browser."** Playwright is the way to do it for ISP now — see ISP-61's pattern (`e2e/first-hour.spec.js`) or
