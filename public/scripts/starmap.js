@@ -1,6 +1,7 @@
 import { canReachSystem, travelResearchLock, travelResearchName } from "./navigation.js";
 import { bodyResourceHtml } from "./bodyInfo.js"; // AB#740: what the catalogue holds, not a hash of the name
 import { systemName } from "./displayNames.js"; // AB#1336
+import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 
 const CLUSTER_LAYOUT = {
   sol: { x: 0.16, y: 0.5 },
@@ -134,6 +135,18 @@ function loadPlanetImage(bodyId) {
 
 let _starmapRender = null;
 
+/**
+ * How a body is drawn (AB#742): a Field as a belt of asteroids, a Sol body from its image (AB#741), any other body
+ * procedurally from its style in data/systems.json. "placeholder" is the plain gradient circle, which no body in the
+ * catalogue should reach; tests/unit/bodyRender.test.js walks every body to hold that.
+ */
+export function bodyRenderKind(body) {
+  if (body?.type === "Field") return "belt";
+  if (PLANET_IMAGE_PATHS[body?.id]) return "image";
+  if (isProcedural(body)) return "procedural";
+  return "placeholder";
+}
+
 // Preload all planet images
 Object.keys(PLANET_IMAGE_PATHS).forEach(loadPlanetImage);
 
@@ -189,6 +202,12 @@ function drawPlanet(ctx, body, x, y, radius) {
     return;
   }
 
+  // AB#742: a body with no photograph is drawn from its style, not as the placeholder circle below.
+  if (isProcedural(body)) {
+    drawProceduralBody(ctx, body, x, y, radius);
+    return;
+  }
+
   const gradient = ctx.createRadialGradient(x - radius * 0.35, y - radius * 0.35, 1, x, y, radius * 1.1);
   gradient.addColorStop(0, style.base);
   gradient.addColorStop(1, style.shadow);
@@ -231,12 +250,22 @@ function drawPlanet(ctx, body, x, y, radius) {
   }
 }
 
-function drawAsteroidBelt(ctx, cx, cy, radius) {
+/** "#rrggbb" as "r, g, b", for the belt tints (AB#742). */
+function rgbOf(hex) {
+  const n = Number.parseInt(String(hex).replace("#", ""), 16);
+  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+
+function drawAsteroidBelt(ctx, cx, cy, radius, style = null) {
+  // AB#742: a belt with a style in data/systems.json takes its colours from it; Sol's belt keeps the default grey-blue.
+  const rock = style ? rgbOf(style.base) : "140, 165, 190";
+  const bright = style ? rgbOf(style.accent) : "200, 220, 240";
+  const haze = style ? rgbOf(style.base) : "155, 185, 210";
   // Faint ring glow
   const ringGlow = ctx.createRadialGradient(cx, cy, radius - 8, cx, cy, radius + 8);
-  ringGlow.addColorStop(0, "rgba(155, 185, 210, 0.05)");
-  ringGlow.addColorStop(0.5, "rgba(155, 185, 210, 0.08)");
-  ringGlow.addColorStop(1, "rgba(155, 185, 210, 0)");
+  ringGlow.addColorStop(0, `rgba(${haze}, 0.05)`);
+  ringGlow.addColorStop(0.5, `rgba(${haze}, 0.08)`);
+  ringGlow.addColorStop(1, `rgba(${haze}, 0)`);
   ctx.fillStyle = ringGlow;
   ctx.beginPath();
   ctx.arc(cx, cy, radius + 8, 0, Math.PI * 2);
@@ -246,7 +275,7 @@ function drawAsteroidBelt(ctx, cx, cy, radius) {
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.strokeStyle = "rgba(155, 185, 205, 0.18)";
+  ctx.strokeStyle = `rgba(${haze}, 0.18)`;
   ctx.lineWidth = 1;
   ctx.setLineDash([2, 5]);
   ctx.stroke();
@@ -262,7 +291,7 @@ function drawAsteroidBelt(ctx, cx, cy, radius) {
     const y = cy + Math.sin(t) * r;
     const s = ((i % 3) + 1) * 0.8;
     const alpha = 0.35 + ((i * 19) % 100) / 250;
-    ctx.fillStyle = i % 7 === 0 ? `rgba(200, 220, 240, ${alpha})` : `rgba(140, 165, 190, ${alpha * 0.8})`;
+    ctx.fillStyle = i % 7 === 0 ? `rgba(${bright}, ${alpha})` : `rgba(${rock}, ${alpha * 0.8})`;
     ctx.beginPath();
     ctx.arc(x, y, s * 0.6, 0, Math.PI * 2);
     ctx.fill();
@@ -731,7 +760,7 @@ export function createStarmapController({
 
       if (body.type === "Field") {
         const beltRadius = Math.max(10, body.radius + 5);
-        drawAsteroidBelt(ctx, x, y, beltRadius);
+        drawAsteroidBelt(ctx, x, y, beltRadius, body.style);
 
         // Create individual clickable asteroid targets within the belt.
         for (let i = 0; i < 36; i += 1) {
@@ -794,7 +823,7 @@ export function createStarmapController({
 
     if (body.type === "Field") {
       const beltRadius = Math.min(width, height) * 0.2;
-      drawAsteroidBelt(ctx, cx, cy, beltRadius);
+      drawAsteroidBelt(ctx, cx, cy, beltRadius, body.style);
 
       for (let i = 0; i < 64; i += 1) {
         const pt = asteroidPoint(system.id, body.id, i, cx, cy, beltRadius);
@@ -858,6 +887,8 @@ export function createStarmapController({
           const bmdh = bmih * bms;
           ctx.drawImage(bmImg, x - bmdw / 2, y - bmdh / 2, bmdw, bmdh);
           ctx.restore();
+        } else if (isProcedural(moon)) {
+          drawProceduralBody(ctx, moon, x, y, bmr); // AB#742
         } else {
           ctx.beginPath();
           ctx.arc(x, y, bmr, 0, Math.PI * 2);
@@ -1189,7 +1220,18 @@ export function createStarmapController({
     `;
   }
 
+  // AB#742: every Starmap frame is timed as a performance measure, "isp:starmap-render" (the AB#730 pattern), so a
+  // frame's cost can be read from DevTools or a script; e2e/procedural-bodies.spec.js holds it under 16 ms throttled.
   function render() {
+    const start = performance.now();
+    try {
+      renderFrame();
+    } finally {
+      performance.measure("isp:starmap-render", { start });
+    }
+  }
+
+  function renderFrame() {
     if (!ctx || !canvas || canvas.hidden || canvas.clientWidth <= 0 || canvas.clientHeight <= 0) {
       renderFallback();
       return;

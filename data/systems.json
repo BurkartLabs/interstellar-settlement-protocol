@@ -35,10 +35,10 @@
     "activityLevel": 77,
     "ownerRule": "Neutral authority oversight with corporate lease competition.",
     "bodies": [
-      { "id": "ac-prime", "name": "Centauri Prime", "type": "Planet", "x": 50, "y": 0, "radius": 7 },
-      { "id": "ac-ii", "name": "Centauri II", "type": "Planet", "x": 86, "y": 0, "radius": 5 },
-      { "id": "ac-haven", "name": "Haven", "type": "Moon", "x": 102, "y": 0, "radius": 3 },
-      { "id": "ac-belt", "name": "Centauri Belt", "type": "Field", "x": 126, "y": 0, "radius": 10 }
+      { "id": "ac-prime", "name": "Centauri Prime", "type": "Planet", "x": 50, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#4f9a8c", "shadow": "#1c3b3a", "accent": "#e8f4ef", "glow": "rgba(120, 220, 200, 0.38)" } },
+      { "id": "ac-ii", "name": "Centauri II", "type": "Planet", "x": 86, "y": 0, "radius": 5, "style": { "surface": "craters", "base": "#b08a5e", "shadow": "#4a3522", "accent": "#7a5a3a", "glow": "rgba(210, 170, 120, 0.22)" } },
+      { "id": "ac-haven", "name": "Haven", "type": "Moon", "parentId": "ac-ii", "x": 102, "y": 0, "radius": 3, "style": { "surface": "ice", "base": "#cfe3ee", "shadow": "#5b7486", "accent": "#8fb6cc", "glow": "rgba(190, 230, 255, 0.3)" } },
+      { "id": "ac-belt", "name": "Centauri Belt", "type": "Field", "x": 126, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#b9a88f", "shadow": "#5a4e3f", "accent": "#e2d4bd", "glow": "rgba(185, 168, 143, 0.08)" } }
     ]
   },
   {
@@ -49,10 +49,10 @@
     "activityLevel": 59,
     "ownerRule": "Frontier charter system with low-regulation extraction rights.",
     "bodies": [
-      { "id": "bn-iron", "name": "Ironwell", "type": "Planet", "x": 48, "y": 0, "radius": 6 },
-      { "id": "bn-cinder", "name": "Cinder", "type": "Planet", "x": 82, "y": 0, "radius": 4 },
-      { "id": "bn-arc", "name": "Arcadia", "type": "Moon", "x": 103, "y": 0, "radius": 3 },
-      { "id": "bn-rift", "name": "Rift Debris Ring", "type": "Field", "x": 132, "y": 0, "radius": 11 }
+      { "id": "bn-iron", "name": "Ironwell", "type": "Planet", "x": 48, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#8c8a88", "shadow": "#35302d", "accent": "#5e5a57", "glow": "rgba(170, 160, 150, 0.2)" } },
+      { "id": "bn-cinder", "name": "Cinder", "type": "Planet", "x": 82, "y": 0, "radius": 4, "style": { "surface": "lava", "base": "#3a2622", "shadow": "#140b0a", "accent": "#ff7a2e", "glow": "rgba(255, 110, 50, 0.4)" } },
+      { "id": "bn-arc", "name": "Arcadia", "type": "Moon", "parentId": "bn-cinder", "x": 103, "y": 0, "radius": 3, "style": { "surface": "craters", "base": "#d6d0c4", "shadow": "#6a655c", "accent": "#a39c90", "glow": "rgba(220, 215, 200, 0.2)" } },
+      { "id": "bn-rift", "name": "Rift Debris Ring", "type": "Field", "x": 132, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#a0765e", "shadow": "#4a3428", "accent": "#d8a37e", "glow": "rgba(160, 118, 94, 0.08)" } }
     ]
   },
   {
@@ -63,10 +63,10 @@
     "activityLevel": 51,
     "ownerRule": "High-risk conflict zone with arbitration-based claims.",
     "bodies": [
-      { "id": "wf-halo", "name": "Halo", "type": "Planet", "x": 44, "y": 0, "radius": 5 },
-      { "id": "wf-garnet", "name": "Garnet", "type": "Planet", "x": 77, "y": 0, "radius": 6 },
-      { "id": "wf-veil", "name": "Veil", "type": "Moon", "x": 92, "y": 0, "radius": 3 },
-      { "id": "wf-shards", "name": "Shard Belt", "type": "Field", "x": 126, "y": 0, "radius": 10 }
+      { "id": "wf-halo", "name": "Halo", "type": "Planet", "x": 44, "y": 0, "radius": 5, "style": { "surface": "ice", "base": "#e6eef7", "shadow": "#6f7f93", "accent": "#a9c2dc", "glow": "rgba(210, 230, 255, 0.35)" } },
+      { "id": "wf-garnet", "name": "Garnet", "type": "Planet", "x": 77, "y": 0, "radius": 6, "style": { "surface": "bands", "base": "#a8374a", "shadow": "#3d1219", "accent": "#e0917a", "glow": "rgba(230, 90, 100, 0.35)" } },
+      { "id": "wf-veil", "name": "Veil", "type": "Moon", "parentId": "wf-garnet", "x": 92, "y": 0, "radius": 3, "style": { "surface": "clouds", "base": "#7d6aa8", "shadow": "#2c2440", "accent": "#d9ccf2", "glow": "rgba(170, 140, 240, 0.38)" } },
+      { "id": "wf-shards", "name": "Shard Belt", "type": "Field", "x": 126, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#9fb3c9", "shadow": "#48566a", "accent": "#dce8f5", "glow": "rgba(159, 179, 201, 0.08)" } }
     ]
   },
   {
@@ -77,10 +77,10 @@
     "activityLevel": 64,
     "ownerRule": "Treaty-governed commercial corridor with tariff controls.",
     "bodies": [
-      { "id": "tc-verde", "name": "Verde", "type": "Planet", "x": 47, "y": 0, "radius": 7 },
-      { "id": "tc-lumen", "name": "Lumen", "type": "Planet", "x": 84, "y": 0, "radius": 5 },
-      { "id": "tc-aqua", "name": "Aqua Minor", "type": "Moon", "x": 101, "y": 0, "radius": 3 },
-      { "id": "tc-cloud", "name": "Tau Ice Cloud", "type": "Field", "x": 128, "y": 0, "radius": 11 }
+      { "id": "tc-verde", "name": "Verde", "type": "Planet", "x": 47, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#5f9a4a", "shadow": "#1f3a1a", "accent": "#eef6e2", "glow": "rgba(140, 220, 120, 0.38)" } },
+      { "id": "tc-lumen", "name": "Lumen", "type": "Planet", "x": 84, "y": 0, "radius": 5, "style": { "surface": "bands", "base": "#d9b25a", "shadow": "#6e5220", "accent": "#f6e1a6", "glow": "rgba(250, 210, 120, 0.35)" } },
+      { "id": "tc-aqua", "name": "Aqua Minor", "type": "Moon", "parentId": "tc-lumen", "x": 101, "y": 0, "radius": 3, "style": { "surface": "ice", "base": "#8fd6d9", "shadow": "#2f6668", "accent": "#d6f5f5", "glow": "rgba(140, 230, 235, 0.35)" } },
+      { "id": "tc-cloud", "name": "Tau Ice Cloud", "type": "Field", "x": 128, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#bfe0ea", "shadow": "#5f7f8a", "accent": "#f0fbff", "glow": "rgba(191, 224, 234, 0.1)" } }
     ]
   },
   {
@@ -91,10 +91,10 @@
     "activityLevel": 55,
     "ownerRule": "Semi-private jurisdiction with licensed station authorities.",
     "bodies": [
-      { "id": "ee-kestrel", "name": "Kestrel", "type": "Planet", "x": 46, "y": 0, "radius": 6 },
-      { "id": "ee-orion", "name": "Orion Reach", "type": "Planet", "x": 78, "y": 0, "radius": 5 },
-      { "id": "ee-lyra", "name": "Lyra", "type": "Moon", "x": 95, "y": 0, "radius": 3 },
-      { "id": "ee-crown", "name": "Crown Belt", "type": "Field", "x": 124, "y": 0, "radius": 10 }
+      { "id": "ee-kestrel", "name": "Kestrel", "type": "Planet", "x": 46, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#c7a57a", "shadow": "#5a4430", "accent": "#8d7152", "glow": "rgba(220, 190, 150, 0.22)" } },
+      { "id": "ee-orion", "name": "Orion Reach", "type": "Planet", "x": 78, "y": 0, "radius": 5, "style": { "surface": "bands", "base": "#5670c9", "shadow": "#1c2656", "accent": "#a9c0f2", "glow": "rgba(110, 140, 240, 0.38)" } },
+      { "id": "ee-lyra", "name": "Lyra", "type": "Moon", "parentId": "ee-orion", "x": 95, "y": 0, "radius": 3, "style": { "surface": "lava", "base": "#3b2a30", "shadow": "#130c10", "accent": "#ff5a6e", "glow": "rgba(255, 90, 110, 0.35)" } },
+      { "id": "ee-crown", "name": "Crown Belt", "type": "Field", "x": 124, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#d4b86a", "shadow": "#6a5a30", "accent": "#f5e3a8", "glow": "rgba(212, 184, 106, 0.08)" } }
     ]
   }
 ]

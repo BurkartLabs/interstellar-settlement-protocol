@@ -1,32 +1,53 @@
 // server/game/shape.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import { ensureFinanceTracking } from "../finances.js";
-import { MAX_DEFINED_LEVEL, REFINERY_CHAINS_DATA, STATION_REGISTRY_CACHE, SYSTEM_DETAILS } from "./catalog.js";
+import { MAX_DEFINED_LEVEL, REFINERY_CHAINS_DATA, STATION_REGISTRY_CACHE, SYSTEM_DETAILS, SYSTEMS_DATA } from "./catalog.js";
 import { getEffectiveExchangeTaxRate } from "./progression.js";
 import { ensureCorpMiningModel } from "./mining.js";
 import { ensureCorpRefineryModel } from "./refining.js";
 import { ensureCorpAsteroidMiningModel } from "./asteroids.js";
 
+// AB#742, Bug #2112: how a body is drawn, and which planet a moon orbits, are catalogue, not state. A saved world keeps
+// the bodies it was created with, so a style or parentId added to data/systems.json later would never reach an existing
+// install; both are taken from the catalogue on every load.
+const CATALOG_FIELDS = ["style", "parentId"];
+const CATALOG_BODIES = new Map(SYSTEMS_DATA.flatMap((system) => (system.bodies || []).map((b) => [b.id, b])));
+function withCatalogStyles(system) {
+  if (!Array.isArray(system.bodies)) return system;
+  return {
+    ...system,
+    bodies: system.bodies.map((body) => {
+      const catalog = CATALOG_BODIES.get(body.id);
+      if (!catalog) return body;
+      const merged = { ...body };
+      for (const field of CATALOG_FIELDS) if (catalog[field] !== undefined) merged[field] = catalog[field];
+      return merged;
+    })
+  };
+}
+
 export function normalizeSystems(systems = []) {
-  return systems.map((system) => {
-    const defaults = SYSTEM_DETAILS[system.id]; // TODO(AB#804): Update to use SYSTEMS_DATA
-    if (!defaults) {
-      return system;
-    }
+  return systems.map((system) => withCatalogStyles(normalizeSystemBodies(system)));
+}
 
-    const isOutdatedSolCatalog =
-      system.id === "sol" && (!Array.isArray(system.bodies) || system.bodies.length < 10);
+function normalizeSystemBodies(system) {
+  const defaults = SYSTEM_DETAILS[system.id]; // TODO(AB#804): Update to use SYSTEMS_DATA
+  if (!defaults) {
+    return system;
+  }
 
-    return {
-      ...system,
-      ownerRule: system.ownerRule || defaults.ownerRule,
-      bodies: isOutdatedSolCatalog
-        ? defaults.bodies
-        : Array.isArray(system.bodies) && system.bodies.length
-          ? system.bodies
-          : defaults.bodies
-    };
-  });
+  const isOutdatedSolCatalog =
+    system.id === "sol" && (!Array.isArray(system.bodies) || system.bodies.length < 10);
+
+  return {
+    ...system,
+    ownerRule: system.ownerRule || defaults.ownerRule,
+    bodies: isOutdatedSolCatalog
+      ? defaults.bodies
+      : Array.isArray(system.bodies) && system.bodies.length
+        ? system.bodies
+        : defaults.bodies
+  };
 }
 
 export function normalizeStateShape(rawState) {
