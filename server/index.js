@@ -40,6 +40,9 @@ process.on("unhandledRejection", (reason) => {
 app.use(express.json());
 
 app.use(express.static(path.join(__dirname, "..", "public")));
+// ISP-70 (AB#759): the style guide's static pages without their .html, so the token specimen is /styleguide/tokens.
+// Static files, like the rest of public/: no route, no game data.
+app.use("/styleguide", express.static(path.join(__dirname, "..", "public", "styleguide"), { extensions: ["html"] }));
 // Serve /kanban as the Kanban board root, defaulting to kanban.html. A developer tool: its API writes any request body
 // to disk, so it exists only on the dev surface (Bug #1069).
 if (DEV_SURFACE) {
