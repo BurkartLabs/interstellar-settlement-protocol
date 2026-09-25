@@ -12,6 +12,8 @@ npm-debug.log*
 # Test/debug output artifacts
 test_output*
 *.log
+e2e/screenshots/
+test-results/
 
 # Local account snapshots. Never commit these: the copy that was in git history held 129 accounts with
 # password hashes and refresh tokens, including two real addresses, in a public repository (Orchestrata AB#415).
