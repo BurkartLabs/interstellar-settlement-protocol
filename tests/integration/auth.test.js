@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
+import crypto from "node:crypto";
 import { getApp } from "../helpers/app.js";
 import { freshAgent, registerAccount, authed } from "../helpers/api.js";
 import { getAccountById } from "../../server/gameState.js";
+import { accountsStore } from "../../server/game/store.js";
 
 describe("Auth routes", () => {
   describe("POST /api/auth/register", () => {
@@ -127,6 +129,28 @@ describe("Auth routes", () => {
         refreshToken: "not-a-real-jwt"
       });
       expect(res.status).toBe(401);
+    });
+  });
+
+  describe("refresh tokens are stored hashed, not raw (Bug #1765)", () => {
+    it("stores a one-way digest, not the JWT the client holds", async () => {
+      const { app } = await getApp();
+      const { account, refreshToken } = await registerAccount(app);
+      const stored = accountsStore.accounts[account.id].refreshTokens;
+      expect(stored).toHaveLength(1);
+      expect(stored[0].token).not.toBe(refreshToken);
+      expect(stored[0].token).toBe(crypto.createHash("sha256").update(refreshToken).digest("hex"));
+    });
+
+    it("still accepts, rotates and revokes the real token despite the stored digest", async () => {
+      const { app } = await getApp();
+      const { account, refreshToken } = await registerAccount(app);
+      const refreshed = await freshAgent(app).post("/api/auth/refresh").send({ refreshToken });
+      expect(refreshed.status).toBe(200);
+      const logout = await freshAgent(app).post("/api/auth/logout").send({ accountId: account.id, refreshToken: refreshed.body.refreshToken });
+      expect(logout.status).toBe(200);
+      const reuse = await freshAgent(app).post("/api/auth/refresh").send({ refreshToken: refreshed.body.refreshToken });
+      expect(reuse.status).toBe(401);
     });
   });
 

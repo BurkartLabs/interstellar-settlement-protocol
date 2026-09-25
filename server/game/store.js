@@ -2,6 +2,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { welcomeLetter } from "../../public/scripts/liaison.js";
 import { closeDueDays, MAX_STATEMENTS } from "../finances.js";
@@ -572,6 +573,15 @@ export function getAllAccountIds() {
   return Object.keys(accountsStore.accounts || {});
 }
 
+// Bug #1765: a refresh token is a bearer credential good for up to 30 days, and account.refreshTokens is
+// persisted to accounts-snapshot.json as-is. Unlike passwordHash (bcrypt, one-way), storing the token itself
+// meant a leaked snapshot handed out live, usable-as-is tokens with no cracking required. Only ever compared
+// for exact equality against a client-presented token (never a user-typed value, so no salt is needed, the way
+// a password's would be), so a plain SHA-256 digest is stored instead — same shape as passwordHash, one-way.
+function hashRefreshToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 // TODO(AB#757): Evaluate usage of Refresh Tokens
 export function storeRefreshToken(accountId, token, expiresAt) {
   const account = accountsStore.accounts?.[accountId];
@@ -583,7 +593,7 @@ export function storeRefreshToken(accountId, token, expiresAt) {
     account.refreshTokens = [];
   }
 
-  account.refreshTokens.push({ token, expiresAt: Number(expiresAt || 0) });
+  account.refreshTokens.push({ token: hashRefreshToken(token), expiresAt: Number(expiresAt || 0) });
   account.refreshTokens = account.refreshTokens
     .filter((item) => item.expiresAt > Date.now())
     .slice(-10);
@@ -597,8 +607,9 @@ export function revokeRefreshToken(accountId, token) {
     return false;
   }
 
+  const hashed = hashRefreshToken(token);
   const before = account.refreshTokens.length;
-  account.refreshTokens = account.refreshTokens.filter((item) => item.token !== token);
+  account.refreshTokens = account.refreshTokens.filter((item) => item.token !== hashed);
   if (account.refreshTokens.length !== before) {
     scheduleAccountsSave();
     return true;
@@ -615,7 +626,7 @@ export function hasRefreshToken(accountId, token) {
 
   const now = Date.now();
   account.refreshTokens = account.refreshTokens.filter((item) => item.expiresAt > now);
-  return account.refreshTokens.some((item) => item.token === token);
+  return account.refreshTokens.some((item) => item.token === hashRefreshToken(token));
 }
 
 export function getDummyAccount() {
