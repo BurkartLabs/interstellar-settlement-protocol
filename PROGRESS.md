@@ -18,6 +18,21 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (ISP-59, AB#745 — changing numbers are acknowledged where they change, Builder)
+
+- **To mark a number, render it with `numberMarkup(key, value, text)`** (`public/scripts/numberChange.js`); nothing
+  else. One MutationObserver, installed in `boot()`, sees every render path and compares each marked number with the
+  value last *seen on screen*: on screen and changed, it counts to the new value (450ms) and turns green or red
+  (650ms, plus a 180ms fade: under a second). Not on screen (hidden browser tab, inactive game tab) it is recorded
+  silently, so nothing replays on return. Reduced motion: final value at once, static colour.
+- Marked now: sidebar Employees, Building Slots, Fleet Cap; the office's Staffing; Overview Cash Reserves; Financial
+  Core credits (`#kpi-credits`, by attribute); Exchange and Assets inventory. **Keys are per place** (`sidebar:`,
+  `exchange:inventory:<station>:<item>`...): two places sharing a key would let the hidden one swallow the change.
+- Direction: flat (Decision AB#1801) — colour only, no glow, tabular numerals. The first motion tokens
+  (`--motion-fade`, `--motion-ease-out`, `--change-up`, `--change-down`) sit in `:root` for AB#759 to take over.
+- `e2e/number-change.spec.js` plays a hire and a sale with a video, a reduced-motion hire and a hidden-tab hire;
+  frames and `hire-and-sale.mp4` in `docs/isp-59/`. `no-payments.test.js`'s pinned line is 4278 now.
+
 ## What's now true (ISP-293, AB#1762 — Corporate R&D and Assignments at full content width, Builder)
 
 - `.rnd-panel` (was 820px), `#rnd-queue` (750px, 500px at 601-900), `#missions-board-view` (25vw) and

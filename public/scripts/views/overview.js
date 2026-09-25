@@ -8,6 +8,7 @@ import { requirementLink } from "../levelLinks.js";
 import { appState } from "../state.js";
 import { salvageRemainingMs } from "./shared.js";
 
+import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
 export function updateOverview(data) {
   const cards = [];
 
@@ -40,6 +41,7 @@ export function updateOverview(data) {
     {
       title: "Cash Reserves",
       value: toCurrency(data.corp.finances.credits),
+      num: { key: "overview:credits", value: Number(data.corp.finances.credits) || 0 },
       body: "Total corporate credits on hand."
     },
     {
@@ -74,7 +76,7 @@ export function updateOverview(data) {
       (card) => `
       <section class="data-card"${card.jump ? ` data-jump="${card.jump}" role="button" tabindex="0" style="cursor:pointer"` : ""}>
         <h3>${escapeHtml(card.title)}</h3>
-        <p><strong>${escapeHtml(card.value)}</strong></p>
+        <p><strong>${card.num ? numberMarkup(card.num.key, card.num.value, card.value) : escapeHtml(card.value)}</strong></p>
         <p class="muted">${escapeHtml(card.body)}</p>
       </section>
     `
