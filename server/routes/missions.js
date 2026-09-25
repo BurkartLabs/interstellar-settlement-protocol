@@ -5,7 +5,8 @@ import {
   mutateAccountState,
   MISSION_TEMPLATES,
   refreshContractOfferings,
-  COMPLETED_COOLDOWN_MS // Bug #1268
+  COMPLETED_COOLDOWN_MS, // Bug #1268
+  MISSION_AGENTS_DATA // AB#1203
 } from "../gameState.js";
 import { applyCredits } from "../finances.js";
 // Bug #1058: refusals that say what to do next. Imported beside their first use, away from the import block.
@@ -77,6 +78,7 @@ export function registerMissionRoutes(app) {
     let outcome = "ok";
     let shortfall = null;
     let hoursRemaining = null;
+    let wrongStation = null;
     const account = mutateAccountState(req.params.accountId, (state) => {
       if (!Array.isArray(state.corp.activeMissions)) state.corp.activeMissions = [];
       const mission = state.corp.activeMissions.find((m) => m.id === missionId);
@@ -98,6 +100,14 @@ export function registerMissionRoutes(app) {
         if (!mission.quota) { outcome = "no-quota"; return; }
 
         const stationId = state.corp.currentStationId || "earth-station-prime";
+        // AB#1203: the page's rule, held here too — a contract is handed in to its agent, at the agent's station. An
+        // agent with no station (none in data/missions.json today) is not checked, as on the page.
+        const agentStationId = MISSION_AGENTS_DATA.find((a) => a.id === mission.agentId)?.stationId;
+        if (agentStationId && agentStationId !== stationId) {
+          outcome = "wrong-station";
+          wrongStation = { agentStationId, stationId };
+          return;
+        }
         if (!state.corp.inventory) state.corp.inventory = {};
         if (!state.corp.inventory[stationId]) state.corp.inventory[stationId] = {};
         const stationInv = state.corp.inventory[stationId];
@@ -151,6 +161,12 @@ export function registerMissionRoutes(app) {
     if (outcome === "no-quota") return res.status(400).json({ error: "Mission has no quota to complete." });
     if (outcome === "too-soon") {
       return res.status(400).json({ error: `Salvage work is not finished yet. ${hoursRemaining} hour${hoursRemaining === 1 ? "" : "s"} remaining.` });
+    }
+    if (outcome === "wrong-station") {
+      const name = (id) => STATIONS_DATA.stations.find((st) => st.id === id)?.name || "another station";
+      return res.status(400).json({
+        error: `You must be docked at ${name(wrongStation.agentStationId)} to complete this contract. You are at ${name(wrongStation.stationId)}: travel there on the Starmap first.`
+      });
     }
     if (outcome === "insufficient") {
       const stationName = (id) => STATIONS_DATA.stations.find((st) => st.id === id)?.name || id;
