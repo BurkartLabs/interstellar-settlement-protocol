@@ -4579,7 +4579,9 @@ body.walkthrough-open .layout-grid {
 
 .mission-modal-card {
   position: relative;
-  width: min(640px, 94vw);
+  /* 100% of the backdrop's padded area, as .modal-card has since AB#585: 94vw is 352.5px at 375 wide, 9.5px more than
+     the space, and during modalSlideIn the card reached past the viewport's right edge (AB#1781). */
+  width: min(640px, 100%);
   max-height: 90vh;
   overflow-y: auto;
   border: 1px solid rgba(0, 247, 255, 0.25);
@@ -5719,7 +5721,7 @@ tr.npc-order-exhausted {
 
 /* ─── Trade Confirmation Modal ─── */
 .trade-confirm-card {
-  width: min(480px, 94vw);
+  width: min(480px, 100%); /* not 94vw: the same overflow as AB#1781, inside .modal-backdrop's padding */
 }
 
 .trade-confirm-body {
