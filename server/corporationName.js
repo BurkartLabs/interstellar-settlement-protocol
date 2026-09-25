@@ -32,6 +32,10 @@ const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  * but not inside other words ("Visa Systems" does not contain "ISA System").
  */
 export function validateCorporationName(raw, { existingNames = [], reservedNames = [] } = {}) {
+  // Bug #2050: ["Type Corp Four"] was read as "Type Corp Four". A name is a string or it is refused.
+  if (raw !== undefined && raw !== null && typeof raw !== "string") {
+    return { error: `A corporation name must be ${CORPORATION_NAME_MIN_LENGTH} to ${CORPORATION_NAME_MAX_LENGTH} characters.` };
+  }
   const name = String(raw ?? "").trim().replace(/\s+/g, " ");
   if (!name) return { error: "A corporation name is required." };
   if (name.length < CORPORATION_NAME_MIN_LENGTH || name.length > CORPORATION_NAME_MAX_LENGTH) {

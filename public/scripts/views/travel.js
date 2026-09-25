@@ -1,6 +1,7 @@
 // The Travel tab: destinations, the journey in progress and its timer.
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
+import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { deepClone, formatDuration } from "../helpers.js";
 import { escapeHtml } from "../html.js";
@@ -40,6 +41,7 @@ export function renderTravelPage(data) {
           const sid = btn.getAttribute("data-station-id");
           if (!sid || !appState.accountId) return;
           try {
+            const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
             const response = await apiFetch(
               `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/travel`,
               { method: "POST", headers: { "Content-Type": "application/json" },
@@ -49,6 +51,7 @@ export function renderTravelPage(data) {
             appState.data = deepClone(account.state);
             appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
             updateAllViews();
+            showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
             setTab("travel");
           } catch (err) {
             pushFeedback(err.message || "Docking request failed.", "warn");

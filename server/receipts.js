@@ -123,3 +123,213 @@ export function startMiningReceipt({ extractorName, cost, hours, throughputPerHo
     next: "Output settles into this station's inventory while the cycle runs. Sell it on the Galactic Exchange."
   });
 }
+
+// ── AB#744 (ISP-58): the rest of the game's committing actions ─────────────────────────────────────────────────────
+// Same shape and register as the six above. Where an action charges nothing (scouting, travel, a listing, a contract),
+// the receipt still says so ("0 credits"): the modal is the record of what happened, not only of what was paid.
+
+const amount = (n) => Math.round(Number(n || 0)).toLocaleString("en-US");
+
+export function buildRefineryReceipt({ refineryName, cost, slotsUsed, slotsTotal }) {
+  return receipt("build-refinery", {
+    title: "Refinery Commissioned",
+    summary: `${refineryName} is operational.`,
+    costCredits: cost,
+    grants: [
+      { label: "Facility", value: refineryName },
+      { label: "Building slots used", value: `${slotsUsed} / ${slotsTotal}` }
+    ],
+    next: "Start a production run from Refinery Chains: choose a chain and how much input to process."
+  });
+}
+
+export function buildAssemblyReceipt({ cost, assetValue, slotsUsed, slotsTotal }) {
+  return receipt("build-assembly-facility", {
+    title: "Assembly Facility Commissioned",
+    summary: "An Assembly Facility is operational at your corporation.",
+    costCredits: cost,
+    grants: [
+      { label: "Added to assets", value: formatCredits(assetValue) },
+      { label: "Building slots used", value: `${slotsUsed} / ${slotsTotal}` },
+      { label: "Now possible", value: "Fabricating mining probes" }
+    ],
+    next: "Fabricate a mining probe here, then scout an asteroid belt on the Starmap."
+  });
+}
+
+export function startRefineryReceipt({ refineryName, input, inputQuantity, outputs, hours, endsAt }) {
+  return receipt("start-refinery", {
+    title: "Production Run Started",
+    summary: `${refineryName} is processing ${amount(inputQuantity)} ${input}.`,
+    costCredits: 0,
+    grants: [
+      { label: "Input consumed", value: `${amount(inputQuantity)} ${input}` },
+      { label: "Output when it ends", value: outputs.map((o) => `${amount(o.quantity)} ${o.item}`).join(", ") },
+      { label: "Run length", value: `${hours} hour${hours === 1 ? "" : "s"}` },
+      { label: "Run ends", value: formatUtc(endsAt) }
+    ],
+    next: "The output is added to this station's inventory when the run ends."
+  });
+}
+
+export function probeFabricationReceipt({ cost, completesAt, vessels, cap }) {
+  return receipt("build-mining-probe", {
+    title: "Probe Fabrication Started",
+    summary: "One mining probe, at your Assembly Facility.",
+    costCredits: cost,
+    grants: [
+      { label: "Ready", value: formatUtc(completesAt) },
+      { label: "Fleet", value: `${vessels} / ${cap} vessels, this probe included` }
+    ],
+    next: "When it is ready, open an asteroid belt on the Starmap: scout it, then launch an expedition with the probe."
+  });
+}
+
+export function scoutBeltReceipt({ beltLabel }) {
+  return receipt("scout-belt", {
+    title: "Belt Scouted",
+    summary: `${beltLabel} is surveyed.`,
+    costCredits: 0,
+    grants: [{ label: "Survey", value: "Its composition is now shown on the Starmap" }],
+    next: "Launch an expedition to it from the Starmap, with a mining probe from your Assembly Facility."
+  });
+}
+
+export function launchExpeditionReceipt({ beltLabel, durationLabel, cost, completesAt, probesLeft }) {
+  return receipt("launch-expedition", {
+    title: "Expedition Launched",
+    summary: `A mining probe to ${beltLabel}, on a ${durationLabel} mission.`,
+    costCredits: cost,
+    grants: [
+      { label: "Returns", value: formatUtc(completesAt) },
+      { label: "Probes still on hand", value: String(probesLeft) }
+    ],
+    next: "Its yield is deposited at a station in that system when it returns. The Mineral Survey Office sends a report."
+  });
+}
+
+export function queueResearchReceipt({ name, cost, startsAt, endsAt, now }) {
+  return receipt("queue-rnd", {
+    title: "Research Queued",
+    summary: `${name}, in the corporate R&D queue.`,
+    costCredits: cost,
+    grants: [
+      { label: "Starts", value: Number(startsAt) <= Number(now) ? "Now" : formatUtc(startsAt) },
+      { label: "Completes", value: formatUtc(endsAt) }
+    ],
+    next: "It takes effect when it completes. Research queued after it starts when it ends."
+  });
+}
+
+export function queueInsightReceipt({ name, cost, endsAt }) {
+  return receipt("queue-ceo", {
+    title: "Executive Program Enrolled",
+    summary: `${name}, in the CEO Insight queue.`,
+    costCredits: cost,
+    grants: [{ label: "Completes", value: formatUtc(endsAt) }],
+    next: "Its effect applies to your corporation when the program completes."
+  });
+}
+
+export function listingReceipt({ item, quantity, unitPrice, stationName }) {
+  return receipt("list-for-sale", {
+    title: "Listing Posted",
+    summary: `${amount(quantity)} ${item} for sale at ${formatCredits(unitPrice)} each.`,
+    costCredits: 0,
+    grants: [
+      { label: "Listed value", value: formatCredits(Number(quantity) * Number(unitPrice)) },
+      { label: "Held for the buyer at", value: stationName }
+    ],
+    next: "It stays on Sell Orders until another corporation buys it or you cancel it. Exchange tax comes out of what it sells for."
+  });
+}
+
+export function buyReceipt({ item, quantity, unitPrice, total, stationName }) {
+  return receipt("buy", {
+    title: "Purchase Completed",
+    summary: `${amount(quantity)} ${item} at ${formatCredits(unitPrice)} each.`,
+    costCredits: total,
+    grants: [{ label: "Delivered to", value: stationName }],
+    next: "It is in this station's inventory: refine it, deliver it on a contract, or ship it from Logistics."
+  });
+}
+
+export function sellToOrderReceipt({ item, quantity, unitPrice, total, taxPct, taxAmount, proceeds }) {
+  return receipt("sell-to-order", {
+    title: "Sale Completed",
+    summary: `${amount(quantity)} ${item} sold to a standing order at ${formatCredits(unitPrice)} each.`,
+    costCredits: taxAmount,
+    grants: [
+      { label: "Sale value", value: formatCredits(total) },
+      { label: "Exchange tax", value: `${formatCredits(taxAmount)} (${taxPct}%), the amount charged above` },
+      { label: "Paid to your reserves", value: formatCredits(proceeds) }
+    ],
+    next: "The credits are in your reserves now."
+  });
+}
+
+export function transferReceipt({ linesText, fromName, toName, fee, arrivesAt }) {
+  return receipt("transfer-resources", {
+    title: "Shipment Dispatched",
+    summary: `${linesText}, from ${fromName} to ${toName}.`,
+    costCredits: fee,
+    grants: [{ label: "Arrives", value: formatUtc(arrivesAt) }],
+    next: "It joins this station's inventory on arrival. Follow it under Logistics, Shipments."
+  });
+}
+
+export function travelReceipt({ interstellar, destination, arrivesAt }) {
+  return receipt("travel", {
+    title: interstellar ? "Jump Initiated" : "Course Set",
+    summary: `Under way to ${destination}.`,
+    costCredits: 0,
+    grants: [{ label: "Arrives", value: formatUtc(arrivesAt) }],
+    next: interstellar
+      ? "When you arrive, choose a station in that system to dock at."
+      : "You dock on arrival; that station's offices open to you once you are docked."
+  });
+}
+
+export function acceptMissionReceipt({ title, quota, hoursRequired, reward }) {
+  const task = quota
+    ? { label: "Deliver", value: `${amount(quota.amount)} ${quota.resource}` }
+    : { label: "Work required", value: `${hoursRequired} hour${Number(hoursRequired) === 1 ? "" : "s"} of documented recovery work` };
+  return receipt("accept-mission", {
+    title: "Contract Accepted",
+    summary: title,
+    costCredits: 0,
+    grants: [task, { label: "Reward on completion", value: String(reward || "None stated") }],
+    next: quota
+      ? `Bring ${amount(quota.amount)} ${quota.resource} to the agent's station and complete it from Assignments.`
+      : "Complete it from Assignments once the hours are served."
+  });
+}
+
+/**
+ * The standing a count of completed contracts gives, from data/missions.json's reputationTiers: the same thresholds
+ * and titles the Assignments page reads (views/assignments.js getAgentRepLevel).
+ */
+export function standingFor(count, tiers) {
+  const thresholds = tiers?.thresholds || [0];
+  let level = 0;
+  for (let i = thresholds.length - 1; i >= 0; i -= 1) {
+    if (count >= thresholds[i]) { level = i; break; }
+  }
+  return { level, title: (tiers?.titles || [])[level] || "Unknown" };
+}
+
+export function completeMissionReceipt({ title, delivered, rewardCredits, standing }) {
+  return receipt("complete-mission", {
+    title: "Contract Completed",
+    summary: title,
+    costCredits: 0,
+    grants: [
+      ...(delivered ? [{ label: "Delivered", value: `${amount(delivered.amount)} ${delivered.resource}` }] : []),
+      { label: "Paid to your reserves", value: formatCredits(rewardCredits) },
+      ...(standing
+        ? [{ label: "Standing with the agent", value: `${standing.title} (Level ${standing.level})${standing.raised ? ", raised by this contract" : ""}` }]
+        : [])
+    ],
+    next: "New contracts are offered in the agent's office on Assignments."
+  });
+}

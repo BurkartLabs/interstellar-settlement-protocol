@@ -5,7 +5,8 @@ import { canReachSystem } from "../../public/scripts/navigation.js";
 import { addAccountNotification, saveAccountsNow, getAccountById, mutateAccountState, RESEARCH_LIBRARY, SYSTEM_DETAILS } from "../gameState.js";
 import { getStationInventory } from "../gameState.js";
 import { applyCredits } from "../finances.js";
-import { parseTransferRequest, planTransfer } from "../../public/scripts/logistics.js";
+import { describeLines, parseTransferRequest, planTransfer } from "../../public/scripts/logistics.js";
+import { transferReceipt, travelReceipt } from "../receipts.js"; // AB#744
 import { transitTime } from "../transfers.js";
 // Bug #1270 (placed here, apart from the navigation.js import at the top that open PRs edit)
 import { travelResearchLock } from "../../public/scripts/navigation.js";
@@ -79,7 +80,15 @@ export function registerLogisticsRoutes(app) {
       res.status(400).json({ error: refusal });
       return;
     }
-    res.json({ ...account, shipment: dispatched });
+    // AB#744: the shipment as dispatched.
+    const receipt = transferReceipt({
+      linesText: describeLines(dispatched.lines),
+      fromName: STATION_REGISTRY[dispatched.fromStationId]?.name || "the source station",
+      toName: STATION_REGISTRY[dispatched.toStationId]?.name || "this station",
+      fee: dispatched.fee,
+      arrivesAt: dispatched.arrivesAt
+    });
+    res.json({ ...account, shipment: dispatched, receipt });
   });
 
   app.get("/api/accounts/:accountId/gameplay/shipments", (req, res) => {
@@ -246,6 +255,15 @@ export function registerLogisticsRoutes(app) {
     }
 
     saveAccountsNow();
-    res.json(account);
+    // AB#744: the course the mutation set.
+    const interstellar = travelInfo.travelType === "interstellar";
+    const receipt = travelReceipt({
+      interstellar,
+      destination: interstellar
+        ? `the ${systemName(SYSTEMS_CATALOG, travelInfo.toSystemId) || "destination"} system`
+        : STATION_REGISTRY[travelInfo.toStationId]?.name || "the station",
+      arrivesAt: travelInfo.arrivesAt
+    });
+    res.json({ ...account, receipt });
   });
 }

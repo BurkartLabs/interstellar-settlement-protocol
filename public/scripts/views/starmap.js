@@ -1,6 +1,7 @@
 // The Starmap tab: the map controller, and the belt compositions it shows.
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
+import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { starmapMiningState } from "../beltCompositions.js";
 import { deepClone } from "../helpers.js";
@@ -20,6 +21,7 @@ export const starmap = createStarmapController({
   async onTravelToSystem(systemId) {
     if (!appState.accountId) return;
     try {
+      const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
       const response = await apiFetch(
         `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/travel`,
         { method: "POST", headers: { "Content-Type": "application/json" },
@@ -29,6 +31,7 @@ export const starmap = createStarmapController({
       appState.data = deepClone(account.state);
       appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
       updateAllViews();
+      showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       setTab("travel");
     } catch (err) {
       pushFeedback(err.message || "Interstellar travel request failed.", "warn");
@@ -37,6 +40,7 @@ export const starmap = createStarmapController({
   async onDockAtStation(stationId) {
     if (!appState.accountId) return;
     try {
+      const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
       const response = await apiFetch(
         `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/travel`,
         { method: "POST", headers: { "Content-Type": "application/json" },
@@ -46,6 +50,7 @@ export const starmap = createStarmapController({
       appState.data = deepClone(account.state);
       appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
       updateAllViews();
+      showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       setTab("travel");
     } catch (err) {
       pushFeedback(err.message || "Docking request failed.", "warn");
@@ -54,6 +59,7 @@ export const starmap = createStarmapController({
   async onScoutBelt(systemId, bodyId, beltKey) {
     if (!appState.accountId) return;
     try {
+      const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
       const response = await apiFetch(
         `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/scout-belt`,
         { method: "POST", headers: { "Content-Type": "application/json" },
@@ -63,6 +69,7 @@ export const starmap = createStarmapController({
       appState.data = deepClone(account.state);
       await refreshBeltCompositions();
       updateAllViews();
+      showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       pushFeedback(beltScoutedText(beltKey, appState.data?.world?.systems), "ok"); // AB#1257: names, not "sol:belt"
     } catch (err) {
       pushFeedback(err.message || "Belt scouting failed.", "warn");
@@ -71,6 +78,7 @@ export const starmap = createStarmapController({
   async onLaunchExpedition(beltKey, duration) {
     if (!appState.accountId) return;
     try {
+      const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
       const response = await apiFetch(
         `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/launch-expedition`,
         { method: "POST", headers: { "Content-Type": "application/json" },
@@ -79,6 +87,7 @@ export const starmap = createStarmapController({
       const account = await parseJsonResponse(response);
       appState.data = deepClone(account.state);
       updateAllViews();
+      showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       pushFeedback("Mining expedition launched!", "ok");
     } catch (err) {
       pushFeedback(err.message || "Expedition launch failed.", "warn");

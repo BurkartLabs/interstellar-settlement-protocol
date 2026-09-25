@@ -11,6 +11,7 @@ import { corpSlotsFull, fundingRequirementMessage } from "./helpers.js";
 import { catalogueRefusal, countBuilt, playerBuilding } from "../playerBuildings.js";
 
 const ASSEMBLY = playerBuilding("assembly-facility");
+import { buildAssemblyReceipt, launchExpeditionReceipt, probeFabricationReceipt, scoutBeltReceipt } from "../receipts.js"; // AB#744
 
 export function registerAsteroidRoutes(app) {
   // ─── Asteroid Mining: Assembly Facility, Probes, Expeditions ─────────────────
@@ -65,7 +66,10 @@ export function registerAsteroidRoutes(app) {
     });
     if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     saveAccountsNow();
-    res.json(account);
+    // AB#744: a construction purchase like the refinery, so it is confirmed the same way.
+    const built = account.state.corp;
+    const receipt = buildAssemblyReceipt({ cost: BUILD_COST, assetValue: ASSET_VALUE, slotsUsed: (built.buildings || []).length, slotsTotal: built.buildingSlots || 2 });
+    res.json({ ...account, receipt });
   });
 
   app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
@@ -142,7 +146,11 @@ export function registerAsteroidRoutes(app) {
     });
     if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     saveAccountsNow();
-    res.json(account);
+    // AB#744: the probe the mutation queued, and the fleet with it counted.
+    const queued = account.state.corp.asteroidMining.fabricationQueue;
+    const fleet = fleetStatus(account.state.corp);
+    const receipt = probeFabricationReceipt({ cost: PROBE_BUILD_COST, completesAt: queued[queued.length - 1]?.completesAt, vessels: fleet.vessels, cap: fleet.cap });
+    res.json({ ...account, receipt });
   });
 
   app.post("/api/accounts/:accountId/gameplay/scout-belt", (req, res) => {
@@ -180,11 +188,11 @@ export function registerAsteroidRoutes(app) {
       return;
     }
     if (outcome === "already-scouted") {
-      res.json(account); // Idempotent — no error, just return current state
+      res.json(account); // Idempotent — no error, just return current state; nothing was done, so no receipt (AB#744)
       return;
     }
 
-    res.json(account);
+    res.json({ ...account, receipt: scoutBeltReceipt({ beltLabel: beltPhrase(SYSTEMS_CATALOG, beltKey) }) }); // AB#744
   });
 
   app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
@@ -290,7 +298,17 @@ export function registerAsteroidRoutes(app) {
     });
     if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     saveAccountsNow();
-    res.json(account);
+    // AB#744: the expedition the mutation launched, the newest of its belt.
+    const am = account.state.corp.asteroidMining;
+    const launched = [...(am.activeExpeditions || [])].reverse().find((e) => e.beltKey === beltKey);
+    const receipt = launchExpeditionReceipt({
+      beltLabel: beltPhrase(SYSTEMS_CATALOG, beltKey),
+      durationLabel,
+      cost: launched?.launchCost ?? launchCost,
+      completesAt: launched?.completesAt,
+      probesLeft: am.probeCount
+    });
+    res.json({ ...account, receipt });
   });
 
   // Provide belt compositions to the client (only scouted belts return data)
