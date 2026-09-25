@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CODE_RULES, computeModel, leaseCatalog, modelText } from "../../scripts/economy-model.mjs";
 import { economyNumbers, operationCostPerHourFor, startupCostFor, bestThroughputFor } from "../../server/economy.js";
+import { EMPLOYEES_PER_LEASE } from "../../public/scripts/leaseStaffing.js";
 
 // AB#727: ECONOMY.md explains every key of data/economy.json and quotes the model; this keeps both true.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -60,7 +61,6 @@ describe("the model reads the game, not a copy of it (AB#727)", () => {
     for (const rule of [
       /credits: 250000/,
       /currentStationId: "earth-station-prime"/,
-      /const EMPLOYEES_PER_LEASE = 5;/,
       /Math\.max\(10, Math\.min\(250, amount\)\)/,
       /hours, \{ fallback: 24, min: 1, max: 72 \}/,
       /let probPerSec = 0\.00005;/,
@@ -70,6 +70,8 @@ describe("the model reads the game, not a copy of it (AB#727)", () => {
       expect(server, String(rule)).toMatch(rule);
     }
     expect(CODE_RULES.startingCredits.value).toBe(250_000);
+    // AB#1202: staff per lease is a module the lease route imports, so the model is checked against its value.
+    expect(CODE_RULES.employeesPerLease.value).toBe(EMPLOYEES_PER_LEASE);
   });
 
   it("the path and the payback follow from the numbers", () => {
