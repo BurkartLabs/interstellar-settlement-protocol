@@ -135,6 +135,7 @@ export const WALKTHROUGH_STEPS = [
 // tab opens). `means` is the sentence the tests and the PR use for it. tests/integration/walkthrough-predicates.test.js
 // performs each action through the real route on a freshly registered corporation and checks its predicate either side.
 import { employeesForNextLease } from "./leaseStaffing.js";
+import { activeOfficeAt } from "./officeStatus.js"; // AB#1870: one copy of "an office here, not lapsed"
 const FIRST_LEASE_EMPLOYEES = employeesForNextLease(0); // AB#1202: what the server wants for a first lease
 const FIRST_RESEARCH_ID = "tt-basic-extraction";
 const extractorsOf = (state) => state?.corp?.mining?.silicateExtractors || [];
@@ -144,9 +145,7 @@ export const WALKTHROUGH_COMPLETION = {
   station: { means: "the Station tab was opened", event: "tab:station" },
   office: {
     means: "an office lease is active at the station the corporation is docked at",
-    state: (state, now) => (state?.corp?.offices || []).some(
-      (o) => o.stationId === state.corp.currentStationId && Number(o.rentedUntil) > now
-    )
+    state: (state, now) => Boolean(activeOfficeAt(state?.corp, state?.corp?.currentStationId, now))
   },
   hire: {
     means: `at least ${FIRST_LEASE_EMPLOYEES} employees on payroll`,

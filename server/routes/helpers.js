@@ -2,6 +2,7 @@
 // Bug #1057: what a player can do when building slots run out, worked out from their own leases and level.
 import { unleasedBodies } from "../leases.js";
 import { corporationSlotsFullMessage } from "../../public/scripts/slotAdvice.js";
+import { activeOfficeAt } from "../../public/scripts/officeStatus.js";
 import { MILESTONE_LEVELS } from "../gameState.js";
 import { SYSTEMS_CATALOG, STATIONS_DATA } from "../travel.js";
 
@@ -22,13 +23,10 @@ function fundingRequirementMessage(actionLabel, corp, requiredCredits, extra = "
   return parts.join(" ");
 }
 
-// Bug #1124: an office registers a corporation's presence at one station, not company-wide, and only while its
-// lease has not lapsed. Hiring, filing a lease and operating a lease all read this same check, so an office
-// rented somewhere else, or one that has expired, cannot stand in for one here.
-function activeOfficeAt(corp, stationId, now = Date.now()) {
-  if (!stationId || !Array.isArray(corp.offices)) return null;
-  return corp.offices.find((o) => o.stationId === stationId && o.rentedUntil > now) || null;
-}
+// Bug #1124, moved to public/scripts/officeStatus.js by AB#1870 so the claims page can read the same rule: an
+// office registers a corporation's presence at one station, not company-wide, and only while its lease has not
+// lapsed. Hiring, filing a lease and operating a lease all read this same check, so an office rented somewhere
+// else, or one that has expired, cannot stand in for one here.
 const unleasedFor = (corp) => unleasedBodies(SYSTEMS_CATALOG, STATIONS_DATA.stations, corp);
 /** The corporation-slots message for this corporation, from its leases, what it can reach and the level table. */
 const corpSlotsFull = (corp) => corporationSlotsFullMessage(corp, unleasedFor(corp), MILESTONE_LEVELS);
