@@ -2,7 +2,7 @@
 // in process memory — no account data, no request bodies — which is why a single replica (#591) is enough for
 // now and why a store failure has nothing to lose: on error we log and let the request through rather than
 // deny service because the counter broke (fail open, not fail closed, for a throttle that only slows abuse).
-import rateLimit, { MemoryStore } from "express-rate-limit";
+import rateLimit, { MemoryStore, ipKeyGenerator } from "express-rate-limit";
 
 const isTest = process.env.NODE_ENV === "test";
 
@@ -82,14 +82,15 @@ export const loginIpLimiter = limiter("login-ip", {
 
 // Five failed logins per account per 15 minutes. Keyed on the normalized email in the body, not the address, and
 // only failed attempts count (skipSuccessfulRequests) so a real player who mistypes once and then logs in is never
-// locked out by their own success.
+// locked out by their own success. AB#1747: the no-email fallback goes through ipKeyGenerator, not a raw req.ip —
+// without it, an IPv6 caller could get a fresh bucket per address within their own /56 by varying the low bits.
 export const loginAccountLimiter = limiter("login-account", {
   windowMs: 15 * 60_000,
   envName: "ISP_RATE_LIMIT_LOGIN_ACCOUNT_MAX",
   productionDefault: 5,
   extra: {
     skipSuccessfulRequests: true,
-    keyGenerator: (req) => String(req.body?.email || "").trim().toLowerCase() || req.ip
+    keyGenerator: (req) => String(req.body?.email || "").trim().toLowerCase() || ipKeyGenerator(req.ip)
   }
 });
 
