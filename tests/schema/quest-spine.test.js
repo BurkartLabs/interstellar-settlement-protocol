@@ -17,7 +17,8 @@ const server = serverCode();
 const gameState = [read("server/gameState.js"), ...readdirSync(new URL("server/game/", root)).sort().map((f) => read(`server/game/${f}`))].join("\n");
 const indexHtml = read("public/index.html");
 // Where a highlighted element can come from: static markup, any client script, or building data the cards are drawn from.
-const client = readdirSync(new URL("public/scripts/", root)).filter((f) => f.endsWith(".js")).map((f) => read(`public/scripts/${f}`)).join("\n") +
+// AB#739: recursive, so the tab modules in public/scripts/views/ count as client scripts.
+const client = readdirSync(new URL("public/scripts/", root), { recursive: true }).map((f) => f.replaceAll("\\", "/")).filter((f) => f.endsWith(".js")).sort().map((f) => read(`public/scripts/${f}`)).join("\n") +
   (existsSync(new URL("data/buildings.json", root)) ? read("data/buildings.json") : "");
 const research = json("data/research.json");
 const stations = json("data/stations.json").stations;

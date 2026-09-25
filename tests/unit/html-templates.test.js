@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "fs";
+import { clientCode } from "../helpers/clientSource.js";
 import { tradeConfirmRowsHtml, queueItemsHtml } from "../../public/scripts/html.js";
 
 // Bug #1002: three innerHTML templates put server strings into markup raw. Catalog data today; a player string tomorrow.
@@ -26,7 +26,7 @@ describe("tradeConfirmRowsHtml (Bug #1002)", () => {
 
   // The callers used to escape their own values; with the template escaping too, a seller named "A&B" would read "A&amp;amp;B".
   it("is not fed pre-escaped values by its callers", () => {
-    const app = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+    const app = clientCode(); // AB#739: the callers are in the tab modules app.js loads
     const calls = app.split("showTradeConfirmation({").slice(1).map((c) => c.slice(0, c.indexOf("});")));
     expect(calls.length).toBeGreaterThanOrEqual(2);
     for (const call of calls) expect(call).not.toContain("escapeHtml(");

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import fs from "node:fs";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
+import { clientCode } from "../helpers/clientSource.js";
 
 // Bug #1137: a saved draft could not be deleted. Opening a draft goes to Compose, which had no Delete; the Delete
 // Draft button was in the message view, which drafts never open. It is now in Compose.
@@ -40,7 +41,7 @@ describe("deleting a draft (Bug #1137)", () => {
 
 describe("the page offers Delete where a draft opens (Bug #1137)", () => {
   const html = fs.readFileSync(new URL("../../public/index.html", import.meta.url), "utf8");
-  const app = fs.readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+  const app = clientCode(); // AB#739: app.js and the tab modules it loads
 
   it("Compose has a Delete Draft button, hidden until a saved draft is open", () => {
     const compose = html.slice(html.indexOf('id="inbox-compose-form"'), html.indexOf("</form>", html.indexOf('id="inbox-compose-form"')));

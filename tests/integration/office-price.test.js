@@ -4,6 +4,7 @@ import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { getAccountById, mutateAccountState } from "../../server/gameState.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "../../public/scripts/ceoEffects.js";
+import { clientCode } from "../helpers/clientSource.js";
 
 // Bug #1032: the Suites panel quoted data/stations.json's officeCost ($20,000 "one-time") and the server charged
 // $1,000 a day for 7 days. Both now use officeLeaseCost; the server charges exactly it for every term the panel offers.
@@ -54,12 +55,15 @@ describe("the office costs what the Suites panel quotes (Bug #1032)", () => {
     expect(res.body.error).toMatch(/Current reserves: [\d,]+ credits\.$/);
   });
 
-  // Source checks, weaker than rendering: the panel is drawn by app.js code the tests cannot call.
+  // Source checks, weaker than rendering: the panel is drawn by client code the tests cannot call (the station view,
+  // which app.js loads - AB#739).
   it("leaves no second office price: none in the station data, none in the panel", () => {
     expect(read("data/stations.json")).not.toMatch(/officeCost/);
-    const app = read("public/scripts/app.js");
-    expect(app).not.toMatch(/officeCost/);
-    expect(app).not.toMatch(/one-time\)<\/dd>[^\n]*\n[^\n]*Station<\/dt>/); // the old "(one-time)" office quote
+    const app = clientCode();
+    // Code only: ceoEffects.js, now in the scan, has a comment recounting where the old officeCost came from.
+    const code = app.split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n");
+    expect(code).not.toMatch(/officeCost/);
+    expect(code).not.toMatch(/one-time\)<\/dd>[^\n]*\n[^\n]*Station<\/dt>/); // the old "(one-time)" office quote
     expect(app).toMatch(/officeLeaseCost\(days\)/); // the term select is priced by the shared function
     expect(app).toMatch(/JSON\.stringify\(\{ stationId: [^}]*durationDays \}\)/); // and sends the chosen term
   });

@@ -3,6 +3,7 @@ import { readFileSync } from "fs";
 import { WALKTHROUGH_STEPS } from "../../public/scripts/walkthrough.js";
 import { WALKTHROUGH_COMPLETION, isStepComplete, nextStepIndex, chooseHighlight } from "../../public/scripts/walkthrough.js";
 import * as html from "../../public/scripts/html.js";
+import { clientCode } from "../helpers/clientSource.js";
 
 // AB#404: each walkthrough step highlights one element. Nothing failed when an element moved or a step pointed at the
 // wrong tab - the step just highlighted nothing - so every selector is checked against the markup that draws it.
@@ -141,7 +142,7 @@ describe("walkthrough steps (AB#404)", () => {
 // AB#581: the walkthrough advances on what the player does. The predicates are exercised against the real routes in
 // tests/integration/walkthrough-predicates.test.js; these cover the table's shape and the page-side choices.
 describe("interactive walkthrough (AB#581)", () => {
-  const APP_JS = read("public/scripts/app.js");
+  const APP_JS = clientCode(); // AB#739: app.js and the tab modules it loads, where these controls are drawn
 
   it("every step has exactly one completion rule, a state predicate or a UI event, and says what it means", () => {
     expect(Object.keys(WALKTHROUGH_COMPLETION).sort()).toEqual(WALKTHROUGH_STEPS.map((s) => s.id).sort());
@@ -206,8 +207,8 @@ describe("interactive walkthrough (AB#581)", () => {
       expect(chooseHighlight(office, page(['.tab-btn[data-tab="station"]']))).toEqual({ selector: null, missing: true });
     });
 
-    // A source check, weaker than rendering: these controls are drawn by app.js render functions the test cannot call.
-    it("every action selector names markup that app.js writes", () => {
+    // A source check, weaker than rendering: these controls are drawn by client render functions the test cannot call.
+    it("every action selector names markup that the client writes", () => {
       for (const step of WALKTHROUGH_STEPS) {
         for (const selector of step.actionSelectors || []) {
           const { classes, attrs } = parseSelector(selector);

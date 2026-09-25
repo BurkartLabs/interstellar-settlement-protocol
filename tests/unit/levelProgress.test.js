@@ -6,6 +6,7 @@ import {
 } from "../../server/gameState.js";
 import { makeCorp } from "../fixtures/makeCorp.js";
 import { serverCode } from "../helpers/serverSource.js";
+import { clientCode } from "../helpers/clientSource.js";
 
 // Bug #424: progression stopped at Level 5. The ladder now names only what the build contains, and the counters
 // levels 6 to 10 read are kept.
@@ -116,7 +117,7 @@ describe("the lists match the code that keeps them (Bug #424)", () => {
   });
 
   it("every requirement can be clicked through to its tab, and the map names no requirement that no longer exists", () => {
-    const app = fs.readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+    const app = clientCode(); // AB#739: REQ_TAB is in views/overview.js now
     const map = app.slice(app.indexOf("const REQ_TAB = {"), app.indexOf("};", app.indexOf("const REQ_TAB = {")));
     const mapped = new Set([...map.matchAll(/^\s+(\w+):\s+"\w+"/gm)].map((m) => m[1]));
     const ids = JSON.parse(fs.readFileSync(new URL("../../data/milestones.json", import.meta.url), "utf8")).levels.flatMap((l) => l.requirements.map((r) => r.id));

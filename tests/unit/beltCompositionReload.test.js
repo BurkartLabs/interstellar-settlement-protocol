@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { readFileSync } from "fs";
 import request from "supertest";
 import { getApp } from "../helpers/app.js";
 import { starmapMiningState } from "../../public/scripts/beltCompositions.js";
+import { clientCode } from "../helpers/clientSource.js";
 
 // starmap.js preloads planet images when it is imported; node has no Image.
 globalThis.Image ??= class { set src(_v) {} };
@@ -110,11 +110,12 @@ describe("a scouted belt after a reload (Bug #1264)", () => {
   // refreshFromServer, which is where the first version of this fix went and why it did not work.
   // AB#1826: normalised, so a slice means the same on a CRLF checkout as an LF one — on CRLF "\n}\n" never matched
   // and body() silently returned the rest of the file. It throws rather than ever slicing to -1 again.
-  const app = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+  // AB#739: the Starmap's loader lives in views/starmap.js now; this reads app.js and every module it loads.
+  const app = clientCode();
   const body = (signature) => {
     const at = app.indexOf(signature);
     const end = app.indexOf("\n}\n", at);
-    if (at < 0 || end < 0) throw new Error(`app.js has no complete ${signature}...}`);
+    if (at < 0 || end < 0) throw new Error(`the client code has no complete ${signature}...}`);
     return app.slice(at, end);
   };
 

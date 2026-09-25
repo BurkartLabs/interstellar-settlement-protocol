@@ -62,7 +62,9 @@ describe("every name the game signs messages with is reserved (Bug #433)", () =>
     const dirs = ["server", "public/scripts"];
     const unreserved = [];
     for (const dir of dirs) {
-      for (const file of fs.readdirSync(new URL(`../../${dir}`, import.meta.url)).filter((f) => f.endsWith(".js"))) {
+      // AB#739: recursive, so client code in public/scripts/views/ (and server code in its subfolders) is read too.
+      const files = fs.readdirSync(new URL(`../../${dir}`, import.meta.url), { recursive: true }).map((f) => f.replaceAll("\\", "/")).filter((f) => f.endsWith(".js"));
+      for (const file of files) {
         const source = fs.readFileSync(new URL(`../../${dir}/${file}`, import.meta.url), "utf8");
         for (const m of source.matchAll(/fromName\s*[:=]\s*["'`]([^"'`$]+)["'`]/g)) {
           if (!RESERVED_CORPORATION_NAMES.includes(m[1])) unreserved.push(`${dir}/${file}: ${m[1]}`);

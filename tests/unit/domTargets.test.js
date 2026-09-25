@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
+import { clientSources } from "../helpers/clientSource.js";
 
 // AB#1752: app.js wrote a milestone list into #milestone-list, a page which had never had that element, so the
 // `if (milestones)` null-guard silenced the whole feature instead of erroring. Every literal getElementById target
@@ -20,20 +21,8 @@ const indexHtml = read("public/index.html");
 
 // AB#738: app.js is split into modules it imports (the dialogue card, the walkthrough), and their targets are as much
 // the page's as app.js's own. Scanning app.js alone silently dropped 16 of them, so this reads every module app.js
-// reaches through its imports, and a module added by a later split is covered without editing this file.
-function clientSources(entry) {
-  const seen = new Map();
-  const visit = (rel) => {
-    if (seen.has(rel)) return;
-    const text = read(rel);
-    seen.set(rel, text);
-    for (const [, spec] of text.matchAll(/(?:^|\n)\s*import\s[^;]*?["'](\.\/[^"']+)["']/g)) {
-      visit(path.posix.join(path.posix.dirname(rel), spec));
-    }
-  };
-  visit(entry);
-  return seen;
-}
+// reaches through its imports, and a module added by a later split is covered without editing this file. AB#739 moved
+// the walk to tests/helpers/clientSource.js and taught it "../" imports, which the tab modules in views/ use.
 const sources = clientSources("public/scripts/app.js");
 const appJs = [...sources.values()].join("\n");
 
@@ -58,6 +47,15 @@ describe("every getElementById target app.js reads resolves to a real id (AB#175
       expect([...sources.keys()], f).toContain(`public/scripts/${f}`);
     }
     expect(targets).toEqual(expect.arrayContaining(["dialogue-modal", "walkthrough-modal", "walkthrough-progress"]));
+  });
+
+  it("reads every tab module in views/, and what they import from the folder above (AB#739)", () => {
+    const views = fs.readdirSync(path.join(ROOT, "public/scripts/views")).filter((f) => f.endsWith(".js"));
+    expect(views.length).toBeGreaterThan(10);
+    for (const f of views) expect([...sources.keys()], f).toContain(`public/scripts/views/${f}`);
+    // Imported only by a tab module, through "../": missed if the walk followed "./" alone.
+    expect([...sources.keys()]).toContain("public/scripts/exchangeView.js");
+    expect(targets).toEqual(expect.arrayContaining(["exchange-buy-table", "forum-threads", "inbox-detail-subject"]));
   });
 
   it.each(targets)("#%s exists on index.html or in a template app.js renders", (id) => {

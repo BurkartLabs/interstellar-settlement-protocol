@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { bodyResourceHtml, LEASE_RESOURCE } from "../../public/scripts/bodyInfo.js";
+import { clientCode } from "../helpers/clientSource.js";
 
 // AB#740: the starmap's body panel shows the server's catalogue, and nothing derived from a hash of a body's id.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -44,6 +45,6 @@ describe("the starmap body panel (AB#740)", () => {
   });
 
   it("the client keeps no pretend scouting of planets", () => {
-    expect(read("public/scripts/app.js")).not.toMatch(/scoutedBodies/);
+    expect(clientCode()).not.toMatch(/scoutedBodies/); // AB#739: app.js and every module it loads
   });
 });

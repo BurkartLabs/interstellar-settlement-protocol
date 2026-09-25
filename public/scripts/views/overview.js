@@ -1,0 +1,229 @@
+// The Overview tab: the corporation at a glance, the next level's requirements, and the belt expeditions.
+// AB#739 (ISP-53): everything here moved from app.js unchanged.
+
+import { milestonesFirst } from "../firstAction.js";
+import { formatDurationHours, toCurrency } from "../helpers.js";
+import { escapeHtml } from "../html.js";
+import { requirementLink } from "../levelLinks.js";
+import { appState } from "../state.js";
+import { salvageRemainingMs } from "./shared.js";
+
+export function updateOverview(data) {
+  const cards = [];
+
+  // ISP-298 (AB#1791): a corporation the Salvage Assignment is offered to, or already working it, is told so
+  // here — the first thing on Overview — rather than left to find Assignments unprompted (T-078). Matched by
+  // kind, not id: the offer and the active copy are the same contract, materialized from ECONOMY.salvage
+  // (server/game/corporation.js), and there is currently exactly one time-served contract shape.
+  const salvageOffer = (data.corp?.contractOfferings?.missions || []).find((m) => m.kind === "time-served");
+  const salvageActive = (data.corp?.activeMissions || []).find((m) => m.kind === "time-served");
+  if (salvageActive) {
+    const remaining = salvageRemainingMs(salvageActive);
+    cards.push({
+      title: "ISA Salvage Assignment",
+      value: remaining > 0 ? `${formatDurationHours(remaining)} remaining` : "Ready to report",
+      body: remaining > 0
+        ? "Reporting for documented salvage work. Return to Assignments once your time is served to collect payment."
+        : "Your time is served. Report to Assignments to collect payment.",
+      jump: "missions"
+    });
+  } else if (salvageOffer) {
+    cards.push({
+      title: "ISA Salvage Assignment",
+      value: "Available",
+      body: "The Bureau is offering emergency salvage work: no funds to lose and nothing left to sell. See Assignments.",
+      jump: "missions"
+    });
+  }
+
+  cards.push(
+    {
+      title: "Cash Reserves",
+      value: toCurrency(data.corp.finances.credits),
+      body: "Total corporate credits on hand."
+    },
+    {
+      title: "Net Daily Flow",
+      value: toCurrency((Number(data.corp.finances.dailyRevenue) || 0) - (Number(data.corp.finances.dailyExpenses) || 0)),
+      body: "Income minus costs booked in the last 24 hours. This drives long-horizon compounding over years."
+    },
+    {
+      title: "Conglomerate Status",
+      value: (() => {
+        const playerCong = (data.conglomerates || []).find((c) => c.id === data.corp?.conglomerateId);
+        return playerCong ? `${playerCong.name} — ${playerCong.memberCount} / ${playerCong.maxMembers} members` : "Independent";
+      })(),
+      body: (() => {
+        const playerCong = (data.conglomerates || []).find((c) => c.id === data.corp?.conglomerateId);
+        return playerCong
+          ? "Alliance scaling path: early groups stay small and unlock higher membership over time."
+          : "You are not affiliated with a conglomerate. Joining one unlocks pooled resources, co-ownership, and alliance operations.";
+      })()
+    },
+    {
+      title: "Military Power",
+      value: `${data.corp.military.attackValue} ATK / ${data.corp.military.defenseValue} DEF`,
+      body: "Deterministic baseline before unit counters, R&D multipliers, and leadership effects."
+    }
+  );
+
+  const wrap = document.getElementById("overview-cards");
+  wrap.innerHTML = cards
+    .map(
+      // Bug #691 audit: the Conglomerate card's value carries a player-chosen conglomerate name.
+      (card) => `
+      <section class="data-card"${card.jump ? ` data-jump="${card.jump}" role="button" tabindex="0" style="cursor:pointer"` : ""}>
+        <h3>${escapeHtml(card.title)}</h3>
+        <p><strong>${escapeHtml(card.value)}</strong></p>
+        <p class="muted">${escapeHtml(card.body)}</p>
+      </section>
+    `
+    )
+    .join("");
+}
+
+export function renderLevel2Progress(data) {
+  const requirementsWrap = document.getElementById("level2-requirements");
+  const status = document.getElementById("level2-status");
+  const title = document.getElementById("level-requirements-title");
+  const lede = document.getElementById("level-requirements-lede");
+
+  if (!requirementsWrap || !status) {
+    return;
+  }
+
+  // AB#1056: early on, the next milestones are the first thing on the Overview, above the brief and the stat cards
+  const milestonesSection = requirementsWrap.closest("section.form-card");
+  const overviewPanel = document.getElementById("overview");
+  const expeditionPanel = document.getElementById("expedition-panel");
+  if (milestonesSection && overviewPanel && expeditionPanel) {
+    const first = milestonesFirst(data?.corp?.level);
+    const isFirst = overviewPanel.firstElementChild === milestonesSection;
+    if (first && !isFirst) overviewPanel.prepend(milestonesSection);
+    if (!first && isFirst) expeditionPanel.after(milestonesSection);
+  }
+
+  // Map requirement IDs to the tab they should navigate to
+  // TODO(AB#798): This information should be stored in the database OR in milestones.json
+  const REQ_TAB = {
+    officeRented:               "station",
+    hire5:                      "station",
+    hire10:                     "station",
+    hire15:                     "station",
+    hire25:                     "station",
+    marsLease:                  "station",
+    secondLease:                "station",
+    lunaLease:                  "station",
+    extractor:                  "station",
+    extractor2:                 "station",
+    extractor3:                 "station",
+    mine300:                    "station",
+    researchBasicExtraction:    "rnd",
+    researchIndustrialSafety:   "rnd",
+    researchEnergyRouting:      "rnd",
+    sell300Silicate:            "market",
+    sell50000Silicate:          "market",
+    missions25:                 "missions",
+    // Levels 6 to 10 since Bug #424
+    assemblyFacility:           "station",
+    refinery:                   "refinery",
+    expeditions3:               "starmap",
+    expeditions10:              "starmap",
+    refine1000:                 "refinery",
+    refine10000:                "refinery",
+    sell100000Silicate:         "market",
+    researchAssemblyFabrication: "rnd",
+    researchAsteroidProspecting: "rnd",
+    researchMaterialCompression: "rnd",
+    researchNanoLattice:        "rnd",
+    researchNearStarNavigation: "rnd"
+  };
+
+  const level = Number(data?.corp?.level || 0);
+  const nextLevel = level + 1;
+  const nextKey = `level${nextLevel}`;
+  const nextProgress = data?.corp?.levelProgress?.[nextKey];
+
+  // Bug #424: the top of the ladder is reachable now, so say it is the top rather than offer a level that does not exist.
+  const levelCap = Number(data?.corp?.levelCap || 0);
+  if (levelCap && level >= levelCap) {
+    if (title) title.textContent = `Corporation Level ${level}: the top of this build`;
+    if (lede) lede.textContent = `You have reached the highest level this build defines. Levels ${levelCap + 1} to 40 are planned for a later version.`;
+    requirementsWrap.innerHTML = "";
+    status.textContent = "";
+    return;
+  }
+
+  if (title) {
+    title.textContent = `Corporation Level ${nextLevel} Milestones`;
+  }
+  if (lede) {
+    lede.textContent = `Complete these requirements to advance from Level ${level} to Level ${nextLevel}.`;
+  }
+
+  if (!nextProgress?.requirements?.length) {
+    requirementsWrap.innerHTML =
+      '<section class="data-card"><p class="muted">No additional level requirements are currently defined for this profile.</p></section>';
+    status.textContent = "";
+    return;
+  }
+
+  requirementsWrap.innerHTML = nextProgress.requirements
+    .map((req) => {
+      const doneClass = req.complete ? " requirement-done" : "";
+      const reqId = `${nextKey}:${req.id}`;
+      const justCompletedClass =
+        appState.requirementsInitialized && req.complete && !appState.completedRequirementIds.has(reqId)
+          ? " just-completed"
+          : "";
+      if (req.complete) {
+        appState.completedRequirementIds.add(reqId);
+      }
+      // AB#1061: a lease milestone leads to the station that files its body, by way of the Starmap when docked elsewhere
+      const link = requirementLink(req, data?.corp?.currentStationId || null, appState.stationRegistry, REQ_TAB[req.id]);
+      const jumpAttr = link ? ` data-jump="${link.tab}"` : "";
+      const clickable = link && !req.complete ? " requirement-clickable" : "";
+      return `
+      <section class="data-card requirement-card${doneClass}${justCompletedClass}${clickable}"${jumpAttr}>
+        <h3 class="requirement-title">${req.title}</h3>
+        <p><strong>${req.progress} / ${req.target}</strong></p>
+        <p class="muted requirement-state">${req.complete ? "Completed" : link ? escapeHtml(link.label) : "In Progress"}</p>
+        ${!req.complete && link?.hint ? `<p class="muted requirement-hint">${escapeHtml(link.hint)}</p>` : ""}
+      </section>
+      `;
+    })
+    .join("");
+
+  status.textContent = `Complete the requirements above to advance from Corporation Level ${level} to ${nextLevel}.`;
+  appState.requirementsInitialized = true;
+}
+
+// Render the overview Asteroid Belt Expeditions panel. The starmap belt-detail
+// view is rendered separately via starmap.updateExpeditionProgress().
+export function renderExpeditionPanel(data) {
+  const panel = document.getElementById("expedition-panel");
+  if (!panel) return;
+  const active = data?.corp?.asteroidMining?.activeExpeditions || [];
+  if (!active.length) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  const now = Date.now();
+  const rows = active
+    .map((exp) => {
+      const total = Math.max(1, Number(exp.endsAt || 0) - Number(exp.startedAt || 0));
+      const elapsed = Math.max(0, Math.min(total, now - Number(exp.startedAt || 0)));
+      const progress = (elapsed / total) * 100;
+      const remainingMs = Math.max(0, Number(exp.endsAt || 0) - now);
+      const beltName = exp.beltName || exp.beltKey || "Unknown Belt";
+      return `
+        <article class="queue-item">
+          <h4 style="margin:0 0 .25rem">${escapeHtml(beltName)}</h4>
+          <p class="muted" style="margin:0 0 .35rem">Remaining: ${formatDurationHours(remainingMs)} (${progress.toFixed(1)}%)</p>
+          <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
+        </article>`;
+    })
+    .join("");
+  panel.innerHTML = `<h3>Asteroid Belt Expeditions</h3>${rows}`;
+}
