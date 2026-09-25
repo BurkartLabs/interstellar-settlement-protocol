@@ -4,10 +4,11 @@
 //
 // A fresh account already shows this: every chain in data/refinery-chains.json needs research nobody starts
 // with, so the panel is all "Requires:" rows from the first login — no fixture beyond registering. "Before" is
-// captured by serving the pre-fix panel code for one page load (express.static reads the file fresh each request,
-// no build step), then the real fix is restored and reloaded for "after" — the same file, the same running server,
-// only the moment of capture differs. AB#739: the panel is drawn by public/scripts/views/refinery.js since app.js
-// was split into a module per tab, so that is the file swapped.
+// captured by serving the pre-fix panel code for one page load, then the route is dropped and the page reloaded for
+// "after": the same server, only the moment of capture differs. AB#739: the panel is drawn by
+// public/scripts/views/refinery.js since app.js was split into a module per tab, so that is the file swapped.
+// AB#1827: swapped in the browser with page.route, never on disk. Writing the file under public/ served the pre-fix
+// code to every other spec and player on the same checkout while this one ran.
 //
 // AB#1828: the pre-fix file is rebuilt from the current one, not read from git. It was `git show origin/main:…`,
 // which was the pre-fix code only while AB#1761's own pull request was open; once merged, origin/main was the fix,
@@ -52,6 +53,7 @@ function preFixPanelJs(fixed) {
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PANEL_JS = path.join(REPO_ROOT, "public", "scripts", "views", "refinery.js");
+const PANEL_URL = "**/scripts/views/refinery.js";
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
 fs.mkdirSync(SCREEN_DIR, { recursive: true });
 
@@ -127,7 +129,9 @@ for (const viewport of VIEWPORTS) {
       await expect(requirementRow).toBeVisible();
 
       // ── before: the pre-fix code, amber ──────────────────────────────────────────────────────────────
-      fs.writeFileSync(PANEL_JS, beforePanelJs);
+      await page.route(PANEL_URL, (route) =>
+        route.fulfill({ contentType: "text/javascript", headers: { "cache-control": "no-store" }, body: beforePanelJs })
+      );
       await page.reload();
       await page.click('.tab-btn[data-tab="refinery"]');
       await expect(chainsEl).toBeVisible();
@@ -138,7 +142,7 @@ for (const viewport of VIEWPORTS) {
       await shoot(page, viewport.label, "01-before-amber", viewport.width);
 
       // ── after: the real fix, muted ───────────────────────────────────────────────────────────────────
-      fs.writeFileSync(PANEL_JS, fixedPanelJs);
+      await page.unroute(PANEL_URL);
       await page.reload();
       await page.click('.tab-btn[data-tab="refinery"]');
       await expect(chainsEl).toBeVisible();
@@ -154,7 +158,6 @@ for (const viewport of VIEWPORTS) {
       expect(after.requirement, "after: the requirement line renders in the muted token").toBe(after.muted);
       expect(before.requirement, "before: the rebuilt pre-fix file really rendered the warning colour").not.toBe(before.muted);
     } finally {
-      fs.writeFileSync(PANEL_JS, fixedPanelJs); // always leave the real fix on disk, whatever else happened
       child.kill();
       fs.rmSync(dir, { recursive: true, force: true });
     }
