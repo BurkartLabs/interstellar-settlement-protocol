@@ -18,6 +18,46 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (this session: AB#1870, Builder #10)
+
+- **AB#1870 is fixed: the ISA Claims & Leases Division agrees with the server about which station an office is
+  at.** `renderISAClaimsLeases` (`public/scripts/views/station.js`) computed `hasOffice` from
+  `(corp?.offices || []).length > 0` — any office the corporation had ever rented, anywhere — while the server's
+  purchase-lease route (Bug #1124) refuses unless an office is *active at the station being filed from*. Docked
+  at Mars with only an Earth office, the page showed the full application form and an enabled File button for a
+  request the server would refuse.
+  - **One shared function, not a third copy.** `activeOfficeAt` moved out of `server/routes/helpers.js` into
+    `public/scripts/officeStatus.js` (the `navigation.js`/`leaseStaffing.js` pattern: a pure module the server
+    imports). `server/routes/helpers.js` now imports and re-exports it, so `corporation.js` and `mining.js` are
+    unchanged. `renderISAClaimsLeases` imports the same function. `walkthrough.js`'s own inline copy of the same
+    predicate (`WALKTHROUGH_COMPLETION.office`, correct but a third copy) now calls it too (T-003) — checked
+    first that its `Number(...)` coercion was redundant (`rentedUntil` is always set as a plain number
+    server-side, grepped every writer).
+  - **Checked the rest of `corp.offices`'s readers before touching anything (P-HALF-FIX):**
+    `renderOrbitalExecutiveSuites` (the office screen itself) already finds the office at *this* station and
+    separately handles expiry with its own "Renew Expired Lease" section — untouched, correct as is. `assets.js`
+    intentionally lists every office ever held, expired or not, for the balance sheet — untouched. `firstAction.js`'s
+    "Start here, lease an office" onboarding nudge is intentionally company-wide (has the player ever done this at
+    all) — untouched, different question from the claims page's.
+  - The no-office message now names the station ("An office at Mars Orbital Dock is required before the ISA will
+    process lease applications here...") instead of a station-blind sentence that read as "you have no office
+    anywhere" to a corporation that does, just not here.
+  - New `tests/unit/officeStatus.test.js` (the pure function, every branch, plus an identity assertion that the
+    server's re-export is the same function object, not a second copy) and `tests/unit/claimsOfficeGate.test.js`
+    (the claims page's rendered HTML: Earth-only office at Mars refuses; a Mars office, even alongside the Earth
+    one, offers; a lapsed Mars office refuses). T-047: reverted all four changed files, watched every new
+    assertion fail (`officeStatus.test.js` fails to import at all; `claimsOfficeGate.test.js` fails two of three),
+    restored.
+  - **Looked at it**: `e2e/claims-office-remote.spec.js` (new, the `suites-flavor.spec.js` self-contained-server
+    pattern), seeded via `e2e/seed-remote-office-account.mjs` with an Earth office only, docked at Mars. Screenshots
+    at 1280×800 and 375×812, opened and read directly: before renting a Mars office, the page shows "An office at
+    Mars Orbital Dock is required..." with no File button; after renting one (through the real UI, not a fixture),
+    the same page offers "File Lease Application — Mars". Also ran the existing office/lease/walkthrough e2e specs
+    against a real dev server (`suites-flavor`, `lease-staffing`, `walkthrough-run` ×2, `walkthrough-late-target`,
+    `first-hour` at both widths) since this touches shared code three files import — all pass.
+  - Checks: `npm run check` clean; `npm test` — **171 files, 1,864 tests, all green** (169/1,854 baseline on
+    `origin/main` + 10 new).
+
 ## What's now true (AB#1430 — the browser's prices come from data/economy.json, Builder #1)
 
 - `GET /api/bootstrap`'s `economy` also carries `employees`, `buildings` and `probes`; `clientPrices(appState.economy)`

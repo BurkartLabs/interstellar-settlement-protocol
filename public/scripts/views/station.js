@@ -380,6 +380,7 @@ export function bindOfficeActions(building, data) {
 // ─── ISA Claims & Leases Division ──────────────────────────────────────────
 
 import { employeesForNextLease } from "../leaseStaffing.js"; // AB#1202: the server's rule, not a copy of it
+import { activeOfficeAt } from "../officeStatus.js"; // AB#1870: the server's rule, not a copy of it
 
 // The bodies the ISA leases. Module level so a full lease can say which are left (Bug #1057).
 export const LEASE_BODIES = [
@@ -413,7 +414,8 @@ export function renderISAClaimsLeases(building, data) {
     <p class="building-flavor">${escapeHtml(building.flavor)}</p>
   `;
 
-  const hasOffice = Boolean((corp?.offices || []).length > 0);
+  const currentStationId = station?.id || "earth-station-prime";
+  const hasOffice = Boolean(activeOfficeAt(corp, currentStationId, Date.now()));
   const requiredForNext = employeesForNextLease(allLeases.length);
   const currentEmployees = corp?.employeeCount || 0;
 
@@ -457,7 +459,7 @@ export function renderISAClaimsLeases(building, data) {
   const hasLocalBodies = LEASE_BODIES.some((b) => b.body === stationBody);
 
   if (!hasOffice) {
-    purchaseHtml = `<p class="muted">A registered corporate office is required before the ISA will process lease applications. Visit the Orbital Executive Suites first.</p>`;
+    purchaseHtml = `<p class="muted">An office at ${escapeHtml(station?.name || "this station")} is required before the ISA will process lease applications here. Visit the Orbital Executive Suites to lease one.</p>`;
   } else if (!hasLocalBodies) {
     purchaseHtml = `<p class="muted">No extraction zones are available at ${escapeHtml(station?.name || "this station")}. Travel to a station orbiting a resource-bearing body to file new lease applications.</p>`;
   } else if (availableBodies.length === 0) {
