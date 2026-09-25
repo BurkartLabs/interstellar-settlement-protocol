@@ -1,10 +1,42 @@
 # ISP — handoff
 
-**2026-09-23, Builder (Sonnet 5), non-visual session (no CONTROL_URL, no Chrome extension attached — see
-"Blind spot" below). Rewritten to fold in a parallel session's AB#1124 work merged the same day.**
+**2026-09-25, Builder (Sonnet 5), non-visual session (no CONTROL_URL, no Chrome extension attached — see
+"Blind spot" below). Rewritten merging this session's ISP-67 work with a parallel session's AB#1747 fix that
+landed on main the same day.**
 
 ## What's now true
 
+- **ISP-67 (AB#756) is done.** The PM re-scoped it on 2026-09-23 after Bug #710/#1021 shipped most of it; what
+  was left was the anonymous and expired-token edges, and they're now proven rather than assumed:
+  - `io.use` keeps the raw token on `socket.data.token`, not just its verdict, so it can be re-verified later
+    against the clock it is checked at.
+  - A new `checkSocketAuth(socket)` re-verifies that token on demand. If it has expired since the handshake, the
+    socket leaves its account room, loses `socket.data.accountId`, and is sent `auth:expired` — dropped back to
+    anonymous, not disconnected.
+  - `emitToAccount` calls it for every socket in the room before delivering, so an expired member is evicted and
+    skipped in the same pass that would have sent it the event — "the first event after expiry" from the
+    acceptance line is literally the next per-account emit attempt.
+  - `chat:send` calls it too, so a write from a socket whose token has since expired fails closed instead of
+    trusting the account id cached at connect time.
+  - Client: `app.js` listens for `auth:expired` and calls the existing `refreshSessionToken()`, which already
+    reconnects the socket with a fresh token (Bug #710's `reauthenticateSocket()`) — so a live tab recovers
+    without a reload, the acceptance line's "reconnecting with a fresh token restores them."
+  - New tests in `tests/integration/socket-rooms.test.js`: an anonymous socket gets the public events and none
+    of `finance:updated`/`mining:updated`/`notifications:new` in the same run that produces all four; a token
+    that expires mid-connection stops per-account delivery, fires `auth:expired`, and a fresh connection is
+    unaffected; an expired-token socket's `chat:send` is dropped rather than sent as the account. All three
+    fail against the pre-fix code (checked by reverting the fix and re-running).
+  - **Known boundary, not closed by this story:** `emitMarketUpdated`/`emitForumsUpdated` and the local chat
+    room-by-system lookup still read `peer.data.accountId` directly rather than through `checkSocketAuth`, so a
+    socket whose token has expired but is still connected keeps seeing "this is your own listing" highlighting
+    and local chat for its last-known system until it does something that calls `checkSocketAuth` (a per-account
+    emit, or `chat:send`). Nothing per-account or financial leaks through this path — market/forum views are
+    public data with viewer-relative highlighting, not private state — but it's a real gap between "anonymous"
+    and "actually anonymous" worth a follow-up if the Board wants it airtight.
+  - Security answer (acceptance #6): an anonymous or expired-token socket sees exactly the signed-out view —
+    `state:init`'s shared state with no viewer, and the four global events — and nothing derived from an
+    account; a forged `accountId` in a payload is never read (the server always uses `socket.data.accountId`,
+    set only from a verified token), and `chat:send`'s existing content/length/channel checks are untouched.
 - `/api/auth/login`, `/register` and `/refresh` are rate-limited (ISP-64, AB#752): 10 login attempts/minute
   per address, 5 failed logins per account per 15 minutes (lockout keyed on email, not address; the no-email
   fallback goes through express-rate-limit's own `ipKeyGenerator`, not a raw `req.ip` — AB#1747, fixed the
@@ -31,25 +63,28 @@
 
 ## Blind spot
 
-No browser this session (no Chrome extension, no CONTROL_URL — Builder panes don't get either by design).
-Everything above is server/data-only — verified with `npm test` (148 files / 1493 tests green) and
-`node --check`, plus `npm run bench:ticks` for the AB#1448 claim and a direct import of `server/index.js` with
-a `console.error` spy for the AB#1747 claim. Nothing here has a screen. (AB#1124's new refusal text is also
-read from two screens nobody has looked at yet — noted by that session, still true.)
+No Chrome extension connected this session (Builder panes don't get one by design), so nothing visual was
+looked at. This session's own story (ISP-67) has no screen of its own — it's socket handshake and room
+membership — and was verified with real `socket.io-client` connections against a real running server
+(`npm test`, not a mock), which is the actual mechanism the acceptance criteria describe, not a DOM/pixel proxy
+for it. `npm test`: **147 files, 1495 tests, all green** (1492 baseline on `origin/main` + 3 new). `npm run
+check` (`node --check server/index.js`) and `node --check public/scripts/app.js` both clean. (AB#1124's new
+refusal text is also read from two screens nobody has looked at yet, per that session's own note, still true;
+AB#1747's claim was verified with a direct import of `server/index.js` and a `console.error` spy, per that
+session's note.)
 
-Checked and left unclaimed rather than forced:
-- **AB#756 (ISP-67, socket auth/rooms):** mostly already done by Bug #710/#1021. One open acceptance point
-  (disconnect an unauthenticated socket at handshake) conflicts with an intentional feature (anonymous read
-  access). Commented on the item for PM to trim the acceptance line or decide anonymous sockets should go.
-- **AB#734 (ISP-48)** depends on AB#731/#732 (still Active elsewhere) and AB#756 above — not buildable yet.
-- **AB#753/755/757/781/987/989**: all have a screenshot in their acceptance criteria — skipped per the Board's
-  instruction rather than faked with a proxy for looking.
+Screenshot-gated v0.5 items (AB#753/755/757/781/987/989) remain unclaimed for the same reason — no browser
+session available.
 
-## What's next
+## What's next — **paused: Board directive, 2026-09-25, no new items until told to resume**
 
-- Re-check AB#731/#732/#756 next session — once those land, AB#734 becomes buildable.
-- The screenshot-gated v0.5 items above are ready to pick up once a browser session is available.
+- The market/forum "still-authenticated-looking" boundary noted above, if the Board wants it closed.
+- AB#734 (ISP-48, security answers + audit) was blocked on AB#731/#732/#756 as of 2026-09-23. AB#756 is now
+  done; check whether #731/#732 have landed before picking #734 up.
+- The screenshot-gated v0.5 items are ready once a browser session is available.
 
 ## In flight / blocked
 
-Nothing blocked, nothing left uncommitted. `fix/rate-limiter-ipv6-warning` branch, PR opening next.
+Nothing blocked, nothing left uncommitted. This session's branch is `agent/756-socket-boundary`, PR !392,
+approved and set to auto-complete. `fix/rate-limiter-ipv6-warning` (AB#1747) already merged. Holding per the
+Board's pause directive — not claiming another item.

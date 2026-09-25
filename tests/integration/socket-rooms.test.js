@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs";
+import jwt from "jsonwebtoken";
 import { io as connect } from "socket.io-client";
 import { getApp, serverUrl } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
@@ -51,6 +52,20 @@ async function heard(s, event, action, ms = 300) {
   return got;
 }
 
+/** Like `heard`, but for several events from one `action`, so a single tick cannot be double-counted. */
+async function heardEach(s, events, action, ms = 300) {
+  const got = Object.fromEntries(events.map((e) => [e, []]));
+  const handlers = events.map((e) => {
+    const on = (payload) => got[e].push(payload);
+    s.on(e, on);
+    return [e, on];
+  });
+  await action();
+  await new Promise((resolve) => setTimeout(resolve, ms));
+  for (const [e, on] of handlers) s.off(e, on);
+  return got;
+}
+
 describe("per-account events reach only that account's sockets (Bug #1021)", () => {
   it("sends each corporation's finances only to its own sockets, and none to an anonymous one", async () => {
     const a = await player();
@@ -96,6 +111,56 @@ describe("per-account events reach only that account's sockets (Bug #1021)", () 
     const [gotA, gotAnon] = await Promise.all([heard(sa, "market:updated", reset), heard(anon, "market:updated", async () => {})]);
     expect(gotA.length).toBe(1);
     expect(gotAnon.length).toBe(1);
+  });
+});
+
+// ISP-67: the anonymous and expired-token edges around the boundary Bug #710 and Bug #1021 already built.
+describe("an anonymous socket keeps working and sees only the signed-out view (ISP-67)", () => {
+  it("gets the public events and none of the per-account ones, in the same run that produces both", async () => {
+    const a = await player();
+    const anon = await socket();
+    const activity = async () => {
+      mod.financialSnapshotTick();
+      mod.miningTick();
+      mutateState((draft) => { for (const o of draft.market.npcBuyOrders) o.lastResetDate = ""; });
+      mod.checkAndResetNpcBuyOrders();
+    };
+    const got = await heardEach(anon, ["finance:updated", "mining:updated", "notifications:new", "market:updated"], activity);
+    expect(got["finance:updated"]).toEqual([]);
+    expect(got["mining:updated"]).toEqual([]);
+    expect(got["notifications:new"]).toEqual([]);
+    expect(got["market:updated"].length).toBe(1);
+  });
+});
+
+describe("an expired token drops the socket back to anonymous, not the connection (ISP-67)", () => {
+  it("stops per-account events, says auth:expired, and a fresh token restores them", async () => {
+    const a = await player();
+    const soonToExpire = jwt.sign({ sub: a.id, kind: "access" }, process.env.JWT_SECRET, { expiresIn: 1 });
+    const s = await socket(soonToExpire);
+    // Let the 1-second token actually expire while the connection stays open, rather than forging an already-expired
+    // one: the point of this story is a socket that was authenticated and stops being so mid-connection.
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+
+    const got = await heardEach(s, ["finance:updated", "auth:expired"], () => mod.financialSnapshotTick());
+    expect(got["finance:updated"]).toEqual([]);
+    expect(got["auth:expired"].length).toBeGreaterThan(0);
+
+    // The account's other sockets are unaffected: a fresh connection with a good token still gets its events.
+    const fresh = await socket(a.token);
+    const restored = await heard(fresh, "finance:updated", () => mod.financialSnapshotTick());
+    expect(restored.map((p) => p.accountId)).toContain(a.id);
+  });
+
+  it("also fails closed on writes: chat:send from an expired-token socket is dropped, not sent as the account", async () => {
+    const a = await player();
+    const soonToExpire = jwt.sign({ sub: a.id, kind: "access" }, process.env.JWT_SECRET, { expiresIn: 1 });
+    const s = await socket(soonToExpire);
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+
+    const anon = await socket();
+    const got = await heard(anon, "chat:new", () => s.emit("chat:send", { channel: "global", content: "should not send" }));
+    expect(got).toEqual([]);
   });
 });
 
