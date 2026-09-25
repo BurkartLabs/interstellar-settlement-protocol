@@ -14,7 +14,10 @@ export const SYSTEM_SENDERS = Object.freeze({
   MINERAL_SURVEY: "ISA Mineral Survey Division"
 });
 
-const ALLOWED = /^[A-Za-z0-9 \-'.&]+$/;
+// ISP-66: the same character set a CEO's own name is checked against — a name is a name, and one rule for both
+// means "what characters are allowed in a name" has one answer, not two that could drift.
+export const NAME_CHARS = /^[A-Za-z0-9 \-'.&]+$/;
+const ALLOWED = NAME_CHARS;
 
 /** Case, and runs of spaces, do not make two names different. */
 export function nameKey(name) {

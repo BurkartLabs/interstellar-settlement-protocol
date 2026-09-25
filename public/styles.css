@@ -577,6 +577,17 @@ body {
   font-size: 0.84rem;
 }
 
+/* ISP-66: a field's own refusal, shown beside it rather than only in the shared .login-status line below the
+   form. Empty and collapsed (no min-height) until a field actually has something wrong with it. */
+.field-error {
+  margin: 0.1rem 0 0.5rem;
+  color: #ff6b6b;
+  font-size: 0.82rem;
+}
+.field-error:empty {
+  margin: 0;
+}
+
 /* Bug #1059: the next step after an error, and the links in the intro copy. */
 .login-status-link,
 .login-copy a {

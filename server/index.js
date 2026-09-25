@@ -857,7 +857,8 @@ app.post("/api/auth/register", registerLimiter, async (req, res) => {
     const result = await createAccount({ email, password, ceoName, corpName });
 
     if (result.error) {
-      res.status(400).json(result.code ? { error: result.error, code: result.code } : { error: result.error });
+      // ISP-66: `field` names which input the register page shows the message beside.
+      res.status(400).json({ error: result.error, ...(result.code ? { code: result.code } : {}), ...(result.field ? { field: result.field } : {}) });
       return;
     }
 

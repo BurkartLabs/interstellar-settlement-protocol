@@ -34,7 +34,7 @@ const FORBIDDEN_TERMS = [
 
 const ALLOWLIST = [
   ["server/game/corporation.js", 210, "flavour text for an NPC delivery contract (\"premium-rate\"), not a real price"],
-  ["public/styles.css", 4151, "a CSS section comment naming a forum-thread layout; no .premium class exists"],
+  ["public/styles.css", 4162, "a CSS section comment naming a forum-thread layout; no .premium class exists"],
   ["public/scripts/app.js", 478, "toCurrency: the sanctioned in-game credits formatter this story's own acceptance names as the one exception"]
 ];
 
