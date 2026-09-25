@@ -164,6 +164,34 @@ design). See "Blind spot" below.**
     non-reproducible single-test flake on an earlier run, gone on retry — not chased further, see
     `learnings/PATTERNS.md`'s guidance on non-reproducible findings, same call as AB#1781).
 
+## What's now true (this session: AB#1794 — confirmed not a bug)
+
+Re-ran `node ops/probes/isp-runway.ts --days 30 --seed 7000` per the plan below, against main@2552e7e (ISP-297,
+298, 299 all merged): **both bots still top out at Level 2, 0 credits, "current reserves: 0" refusals** — the
+plan's premise was wrong, not the game. The probe's own header states its blind spot: it never drives missions
+or contracts at all (`accept-mission`/`complete-mission` do not appear anywhere in `ops/probes/isp-runway.ts`),
+Salvage Assignment included, so ISP-297/298/299 could never have changed what this organic run shows. Re-running
+it again will not settle AB#1794 — filing that as a separate, real gap below rather than re-attempting the same
+run.
+
+Read `data/milestones.json` and `server/game/progression.js` directly instead: **AB#1794's premise does not
+hold.** Level 2's old bug (Bug #1753) was a lease on *any* body being pinned to Mars specifically, when Earth
+was just as valid a first foothold. Level 9's `lunaLease` is not the same shape: only three bodies are leasable
+at all (`data/systems.json` — Earth 20,000, Mars 25,000, Luna 30,000), no lease is exclusive to one corporation,
+and levels grant strictly in order (AB#690), so anyone reaching level 9 already passed level 5's "a second
+lease, any" and holds two of the three. Luna is either already one of them, or the one body left to add — never
+a dead end. Added a regression test proving this directly (`tests/unit/evaluateLevelProgress.test.js`): a
+corporation that clears levels 1-8 without ever touching Luna still completes level 9 the moment it leases Luna.
+**Resolution filed on AB#1794 (`fix:none-proposed`) and closed** — PR opening next, test-only, no production
+change. `npx vitest run`: 158 files, 1584 tests, all green.
+
+**Also worth filing (not attempted this session, out of scope for a display/economy fix)**: the runway probe's
+PLANNER/GREEDY bots have no mission-taking behavior at all, so nothing about the actual economy's mission
+system — Salvage Assignment or any ordinary contract — is exercised by the 30-day organic run; only
+`--broke` mode's scripted, single-purpose walk (ISP-299) touches it. Extending the bots' own decision policy to
+consider missions is a real, separate piece of work, and it lives in `ops/probes/isp-runway.ts` — the hq repo,
+not this one.
+
 ## What's now true (this session: ISP-297/AB#1789, ISP-298/AB#1791)
 
 Per Director #2's next-priority relay (after this pane's AB#1765/1766/1753/758 arc): the Salvage Assignment,
@@ -293,11 +321,11 @@ that changed anything.
     both taught to treat `any` as a sentinel, not a real body, so they do not report it as broken.
   - New test fails against the pre-fix code (checked by reverting `data/milestones.json` and
     `server/game/progression.js` and re-running — T-047).
-  - **Sibling filed, not fixed**: **AB#1794** — Level 9's `lunaLease` requirement (`miningLease:Luna`) is the
-    same shape, found by inspection while fixing this one. Unlike this bug, it has **not been confirmed
-    unreachable** by the cheapest path — `ops/probes/isp-runway.ts`'s bots never reached Level 9 in the run
-    that found AB#1753 (both topped out at Level 1) — so it is filed at low confidence for someone to actually
-    measure, not fixed blind.
+  - **Sibling filed at the time, since resolved**: **AB#1794** — Level 9's `lunaLease` requirement
+    (`miningLease:Luna`) was flagged as the same shape, found by inspection while fixing this one, at low
+    confidence pending confirmation. A later session confirmed it is **not** the same bug (see AB#1794's own
+    section, above in this file): only three bodies are leasable at all, none exclusively, and levels grant in
+    strict order, so anyone at level 9 already holds two of the three and Luna is always the reachable third.
   - **Not touched, flagged for PM/Director**: `docs/QUEST_SPINE.md`'s Act 1 Beat 8 sends a new player to Mars
     specifically *because* Level 2 required it ("The Mars beat bridges a gap the audit found... Level 2 wants
     a Mars lease"). That premise is now optional, not mechanical — the beat's narrative can stay exactly as
@@ -765,20 +793,18 @@ a Builder pane without the Chrome extension.
 - **AB#1801** (the Decision this session filed: does the flat-direction Station mockup ship?) is the one thing
   actually blocking the eleven-story design-system track (AB#745, AB#759 to AB#772) — hand it to the Board, not
   to another Builder pane; nothing to build until it is answered.
-- **AB#1794** (Level 9's Luna-lease gate) was picked up by this pane, then handed back, tagged `blocked`, left
-  Active: `DEPTH.md` review #3 (same day) already shows the runway probe's bots wall economically at Level 2 for
-  the full 30-day run regardless of days simulated (0 credits, refused on every action), and states the probe
-  cannot reach Level 9 to test the Luna-lease shape until a broke corporation can recover. This pane started a
-  120-simulated-day probe run to re-confirm directly, then invalidated it by deleting the worktree the run was
-  reading from before it finished (`btwqyndvx.output` stayed empty — the process died silently rather than
-  printing anything). **Not re-run this session** — DEPTH.md's evidence stands on its own, but nobody has
-  independently reproduced it against a fresh checkout yet. **AB#1789 and AB#1791 (this session) are both merged** (PR !458 and this
-  session's PR) — only ISP-299 (AB#1792) remains. Once it lands: re-run `node ops/probes/isp-runway.ts --days 30
-  --seed 7000` (from hq, against a *worktree you keep alive until it prints*) and see whether bots now reach
-  Level 9 and get stuck on the Luna lease specifically. If so, AB#1794 is ready to fix with AB#1753's exact
-  pattern (`miningLease:any`, in `data/milestones.json` and `server/game/progression.js`). If bots still can't
-  reach Level 9 even with the Salvage Assignment live, that is itself worth a comment on AB#1794 before touching
-  the milestone.
+- **AB#1794 is done — see this session's section above.** Confirmed not a bug by direct analysis, not by the
+  re-run `DEPTH.md` review #3 and this file both expected to be dispositive: the runway probe's bots never take
+  missions of any kind (Salvage Assignment included), so ISP-297/298/299 could never change what a 30-day
+  organic run shows, and the re-run (against main@2552e7e, all three merged) confirms it — still Level 2, still
+  0 credits. If `DEPTH.md` review #3 is read again, its "probe cannot reach Level 9 until a broke corporation
+  can recover" framing should be read against this: recovery existing does not help, because the organic bots
+  never try to recover through a mission either way.
+- **Worth filing** (not attempted this session — a hq-repo change, out of scope for an ISP display/economy
+  session): give the runway probe's PLANNER/GREEDY bots an actual mission-taking decision (accept a delivery
+  contract or the Salvage Assignment when eligible), so the 30-day organic run says something real about the
+  economy's mission system instead of never touching it. Without this, no future "did the economy get less
+  stuck" review can trust the organic run's Level/credits numbers where missions matter.
 - **AB#1774** (the runway probe's banked-reserve profile) is `Proposed`, not started, and `DEPTH.md` ranks it
   the top epic two reviews running — but it lives in `ops/probes/` in **hq**, not this repo, so it is out of
   scope for an ISP-only Builder pane (COMMON §3, project scope). Flagging for whichever pane is scoped to the
@@ -809,8 +835,9 @@ Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-bo
 (`agent/986-shipments-ui`, PR !432), AB#1765's (`fix/1765-hash-refresh-token`, PR !439), AB#1766's
 (`fix/1766-socket-auth-check`, PR !444), AB#1753's (`fix/1753-level2-gate`, PR !450), AB#758's
 (`design/758-flat-station`, PR !454), AB#1789's (`agent/1789-salvage-assignment`, PR !458), AB#1754's
-(`fix/1754-economy-model`, PR !462), AB#1791's (`agent/1791-salvage-display`), AB#1792's (probe `--broke`
-scenario, per OPS), AB#1752's (`fix/1752-milestone-list`, PR !469) and AB#1806's (`fix/1806-mine-cycle-list`,
-PR !473) are all merged. This session's (AB#1807) branch is `fix/1807-dead-login-panel`, PR to be opened next
-and set to auto-complete. Multiple Builder panes are
-active on ISP at once — check ADO state before claiming the next item.
+(`fix/1754-economy-model`, PR !462), AB#1791's (`agent/1791-salvage-display`, PR !466), AB#1792's (probe
+`--broke` scenario, per OPS), AB#1752's (`fix/1752-milestone-list`, PR !469), AB#1806's
+(`fix/1806-mine-cycle-list`, PR !473) and AB#1794's (`fix/1794-luna-lease-not-a-bug`, PR !474 — test-only, no
+production code changed) are all merged. This session's (AB#1807) branch is `fix/1807-dead-login-panel`, PR to
+be opened next and set to auto-complete. Multiple Builder panes are active on ISP at once — check ADO state
+before claiming the next item.

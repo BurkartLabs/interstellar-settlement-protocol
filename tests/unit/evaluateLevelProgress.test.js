@@ -93,6 +93,30 @@ describe("evaluateLevelProgress", () => {
     expect(corp.milestonesCompleted).toContain("Purchase a Mining Lease");
   });
 
+  it("level 9's Luna-specific lease requirement is always reachable (AB#1794: confirmed not a bug)", () => {
+    // AB#1794 guessed this was the same shape as Bug #1753 (Level 2's Mars-specific pin, fixed to "any"), just
+    // unconfirmed at this depth. It is not: only three bodies are leasable at all (data/systems.json — Earth,
+    // Mars, Luna; no fourth), no lease is exclusive to one corporation (server/gameplayInput.js's leaseBodies
+    // catalog carries no per-corp scarcity check), and levels grant strictly in order (AB#690) — so anyone at
+    // level 9 has already passed level 5's "a second lease, any" requirement and holds two of the three bodies.
+    // Whichever two those are, Luna is either already one of them (already satisfied) or the one body left to
+    // add (always purchasable, never a dead end) — unlike level 2's old bug, where Earth was just as valid a
+    // *first* lease as Mars and got a player stuck with no error explaining why.
+    const corp = starterCorp();
+    for (let lvl = 1; lvl <= 8; lvl += 1) meetLevel(corp, lvl);
+    // Every level 9 requirement except the lease, so the lease is the only thing left unmet.
+    levelDef(9).requirements.filter((r) => r.id !== "lunaLease").forEach((r) => meet(corp, r));
+    evaluate(corp);
+    expect(corp.level).toBe(8);
+    expect(corp.miningLeases.some((l) => l.body === "Luna")).toBe(false);
+    expect(corp.levelProgress.level9.requirements.find((r) => r.id === "lunaLease").complete).toBe(false);
+
+    corp.miningLeases.push({ body: "Luna" });
+    evaluate(corp);
+    expect(corp.levelProgress.level9.allCompleted).toBe(true);
+    expect(corp.level).toBe(9);
+  });
+
   it("does not skip level 2 when level 3 is met first (AB#690 repro)", () => {
     const corp = starterCorp();
     meetLevel(corp, 1);
