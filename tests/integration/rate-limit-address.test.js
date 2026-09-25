@@ -72,14 +72,14 @@ describe("per-address rate limits (ISP-64)", () => {
       const res = await request(app)
         .post("/api/auth/refresh")
         .set("X-Forwarded-For", "203.0.113.30")
-        .send({ refreshToken: "not-a-real-token" });
+        .set("Cookie", "isp_refresh=not-a-real-token");
       expect(res.status).toBe(401);
     }
 
     const blocked = await request(app)
       .post("/api/auth/refresh")
       .set("X-Forwarded-For", "203.0.113.30")
-      .send({ refreshToken: "not-a-real-token" });
+      .set("Cookie", "isp_refresh=not-a-real-token");
 
     expect(blocked.status).toBe(429);
     expect(blocked.headers["retry-after"]).toBeTruthy();

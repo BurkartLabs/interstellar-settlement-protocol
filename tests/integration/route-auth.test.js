@@ -9,8 +9,8 @@ import { getApp } from "../helpers/app.js";
 const PUBLIC = {
   "POST /api/auth/register": "creating an account",
   "POST /api/auth/login": "signing in",
-  "POST /api/auth/refresh": "exchanging a refresh token, which is itself the credential",
-  "POST /api/auth/logout": "revoking a refresh token, which is itself the credential",
+  "POST /api/auth/refresh": "exchanging the refresh cookie, which is itself the credential (AB#757)",
+  "POST /api/auth/logout": "revoking the refresh cookie, which is itself the credential (AB#757)",
   "GET /healthz": "the container platform's health probe (AB#735)",
   "GET /api/bootstrap": "the global game state shown before login",
   "GET /api/stations": "a static catalog",
