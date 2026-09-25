@@ -7,12 +7,47 @@
 // captured by serving the pre-fix public/scripts/app.js for one page load (express.static reads the file fresh
 // each request, no build step), then the real fix is restored and reloaded for "after" — the same file, the
 // same running server, only the moment of capture differs.
+//
+// AB#1828: the pre-fix file is rebuilt from the current one, not read from git. It was `git show origin/main:…`,
+// which was the pre-fix code only while AB#1761's own pull request was open; once merged, origin/main was the fix,
+// before equalled after, and this spec failed on every checkout.
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { spawn, execSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+
+/**
+ * A requirement line's colour and an ordinary muted line's (one that never had an override: what the muted token
+ * renders as), read in one evaluate. The panel re-renders every second, so an element found in one round-trip can be
+ * detached by the next, and a detached element's computed colour is "".
+ */
+function panelColors(page) {
+  return page.evaluate(() => {
+    const ps = [...document.querySelectorAll("#refinery-chains p")];
+    const color = (p) => (p ? getComputedStyle(p).color : null);
+    return {
+      requirement: color(ps.find((p) => p.textContent.startsWith("Requires:"))),
+      muted: color(ps.find((p) => p.classList.contains("muted") && p.textContent.startsWith("Cycle:")))
+    };
+  });
+}
+
+/** The pre-fix app.js: AB#1761 removed the warning colour from exactly these two requirement lines. */
+function preFixAppJs(fixed) {
+  const REVERT = [
+    ['<p class="muted">Requires: ', '<p class="muted" style="color:var(--color-warn)">Requires: '],
+    ['<p class="muted">Refinery construction requires: ', '<p class="muted" style="color:var(--color-warn)">Refinery construction requires: ']
+  ];
+  let text = fixed;
+  for (const [now, before] of REVERT) {
+    const n = text.split(now).length - 1;
+    if (n !== 1) throw new Error(`expected exactly one ${now} in public/scripts/app.js, found ${n}: the code this spec rebuilds "before" from has changed`);
+    text = text.replace(now, before);
+  }
+  return text;
+}
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const APP_JS = path.join(REPO_ROOT, "public", "scripts", "app.js");
@@ -68,7 +103,7 @@ for (const viewport of VIEWPORTS) {
     const email = `refinery-qa-${Date.now()}-${viewport.width}@example.test`;
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "isp-refinery-e2e-"));
     const fixedAppJs = fs.readFileSync(APP_JS, "utf8");
-    const preFixAppJs = execSync("git show origin/main:public/scripts/app.js", { cwd: REPO_ROOT, encoding: "utf8" });
+    const beforeAppJs = preFixAppJs(fixedAppJs);
     const { child, url } = await startServer(dir);
     const mobile = viewport.width < 600;
 
@@ -91,13 +126,13 @@ for (const viewport of VIEWPORTS) {
       await expect(requirementRow).toBeVisible();
 
       // ── before: the pre-fix code, amber ──────────────────────────────────────────────────────────────
-      fs.writeFileSync(APP_JS, preFixAppJs);
+      fs.writeFileSync(APP_JS, beforeAppJs);
       await page.reload();
       await page.click('.tab-btn[data-tab="refinery"]');
       await expect(chainsEl).toBeVisible();
       const beforeRow = chainsEl.locator("p", { hasText: "Requires:" }).first();
       await expect(beforeRow).toBeVisible();
-      const beforeColor = await beforeRow.evaluate((el) => getComputedStyle(el).color);
+      const before = await panelColors(page);
       if (mobile) await assertNoHorizontalScroll(page);
       await shoot(page, viewport.label, "01-before-amber", viewport.width);
 
@@ -108,11 +143,15 @@ for (const viewport of VIEWPORTS) {
       await expect(chainsEl).toBeVisible();
       const afterRow = chainsEl.locator("p", { hasText: "Requires:" }).first();
       await expect(afterRow).toBeVisible();
-      const afterColor = await afterRow.evaluate((el) => getComputedStyle(el).color);
+      const after = await panelColors(page);
       if (mobile) await assertNoHorizontalScroll(page);
       await shoot(page, viewport.label, "02-after-muted", viewport.width);
 
-      expect(afterColor).not.toBe(beforeColor);
+      for (const [when, colors] of Object.entries({ before, after })) {
+        for (const [k, v] of Object.entries(colors)) expect(v, `${when}: the ${k} line's colour was read`).toMatch(/^rgba?\(/);
+      }
+      expect(after.requirement, "after: the requirement line renders in the muted token").toBe(after.muted);
+      expect(before.requirement, "before: the rebuilt pre-fix file really rendered the warning colour").not.toBe(before.muted);
     } finally {
       fs.writeFileSync(APP_JS, fixedAppJs); // always leave the real fix on disk, whatever else happened
       child.kill();
