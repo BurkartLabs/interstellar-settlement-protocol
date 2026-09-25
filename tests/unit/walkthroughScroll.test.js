@@ -77,4 +77,16 @@ describe("the briefing card leaves room on a phone (Bug #1083)", () => {
     expect(rule[1]).toMatch(/max-height:\s*45vh;/);
     expect(rule[1]).toMatch(/overflow-y:\s*auto;/);
   });
+
+  // AB#1756: the walkthrough scrolled step 3's lease button (drawn after the step rendered) by the right amount, but the
+  // page was already at its end: #game-shell is 100vh and the grid overflows it, so body padding sat inside the
+  // overflow. Measured at 375x812: scrollY 991 of a 1803 page, button 679-711, card top 433.
+  it("adds the room the card needs under the content that scrolls, not under the 100vh shell", () => {
+    const css = readFileSync(new URL("../../public/styles.css", import.meta.url), "utf8");
+    expect(css).toMatch(/#game-shell \{\s*height:\s*100vh;/); // if this goes, the body could carry the room again
+    const rule = css.match(/body\.walkthrough-open \.layout-grid \{([^}]*)\}/);
+    expect(rule, "walkthrough room on the layout grid").toBeTruthy();
+    expect(rule[1]).toMatch(/padding-bottom:[^;]*var\(--walkthrough-card-height/);
+    expect(css).not.toMatch(/body\.walkthrough-open \{[^}]*padding-bottom/);
+  });
 });
