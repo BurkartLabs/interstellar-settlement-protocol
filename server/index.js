@@ -19,7 +19,7 @@ import { isInsightProgramLive, officeRenewalCost, missionRewardCredits } from ".
 import { ECONOMY, buildCostFor, operationCostPerHourFor, startupCostFor, npcBidFor, npcBidAfterRecovery } from "./economy.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "../public/scripts/ceoEffects.js";
 import { canReachSystem, leaseFilingRefusal, systemHops } from "../public/scripts/navigation.js";
-import { loginIpLimiter, loginAccountLimiter, registerLimiter, refreshLimiter } from "./rateLimiters.js";
+import { loginIpLimiter, loginAccountLimiter, registerLimiter, refreshLimiter, accountActionLimiter } from "./rateLimiters.js";
 import {
   accountExists,
   addAccountNotification,
@@ -956,7 +956,9 @@ app.get("/api/auth/session", requireAuth, (req, res) => {
   res.json({ account });
 });
 
-app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess);
+// AB#734 (ISP-48): the per-account throttle runs right after requireAuth sets req.auth, so it always has the
+// verified account to key on.
+app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess, accountActionLimiter);
 
 // AB#731: every gameplay route's numbers and ids are checked against server/gameplayInput.js here, after the login and
 // ownership checks and before any handler, so a refused request has touched nothing. Imported beside its one use.
@@ -2991,7 +2993,7 @@ app.post("/api/forums/threads/:threadId/like", requireAuth, (req, res) => {
   res.json({ ...result, thread: threadView(foundThread, accountId) });
 });
 
-app.post("/api/market/orders", requireAuth, (req, res) => {
+app.post("/api/market/orders", requireAuth, accountActionLimiter, (req, res) => {
   const { type, item, quantity, unitPrice } = req.body ?? {};
 
   const account = getAccountById(req.auth.accountId);
@@ -3073,7 +3075,7 @@ app.post("/api/market/orders", requireAuth, (req, res) => {
 
 // Bug #425: a seller can take a listing down, getting the unsold goods back at the station they were listed from.
 // Only the seller: anyone else gets 404, so the route says nothing about orders that are not theirs.
-app.post("/api/market/orders/:orderId/cancel", requireAuth, (req, res) => {
+app.post("/api/market/orders/:orderId/cancel", requireAuth, accountActionLimiter, (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
   const order = (getState().market.orderBook || []).find((o) => o.id === orderId && o.sellerAccountId === req.auth.accountId);
   if (!order) {
@@ -3108,7 +3110,7 @@ app.post("/api/market/orders/:orderId/cancel", requireAuth, (req, res) => {
 // "Unregistered corporation", never an email address (the buyer's used to be the fallback in the seller's history).
 import { publicName } from "./publicViews.js";
 
-app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => {
+app.post("/api/market/orders/:orderId/buy", requireAuth, accountActionLimiter, (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
   const requestedQty = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
   const normalizeIdentity = (value) => String(value || "").trim().toLowerCase();
@@ -3268,7 +3270,7 @@ app.get("/api/market/history/:item", requireAuth, (req, res) => {
 });
 
 // ─── Sell player resources into an NPC standing buy order ────────────────────
-app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => {
+app.post("/api/market/npc-orders/:orderId/sell", requireAuth, accountActionLimiter, (req, res) => {
   const orderId = String(req.params.orderId || "").trim();
   // Bug #425: a whole number of at least 1, or refused; it used to fall back to 1 for "abc", 0 or -5.
   const requestedQty = bodyCount(req.body?.quantity);
