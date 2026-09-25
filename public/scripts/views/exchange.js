@@ -8,6 +8,7 @@ import { escapeHtml } from "../html.js";
 import { appState, viewerStorage } from "../state.js";
 import { suggestedListingPrice } from "../suggestedPrice.js";
 import { labelTableCells } from "../tableLabels.js";
+import { tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
 import { flashButtonSuccess, getCurrentStationInfo, getInventory, pushFeedback, refreshFromServer, showTradeConfirmation, stationLocationBanner } from "./shared.js";
 
 export function getClientExchangeTaxPct() {
@@ -203,20 +204,15 @@ export function renderMarket(data) {
   const tradeHistoryTable = document.getElementById("trade-history-table");
   const tradeHistoryEmpty = document.getElementById("trade-history-empty");
   const tradeHistory = data?.corp?.tradeHistory || [];
-  const typeLabel = { listed: "Listed", sold: "Sold", "sold-npc": "Sold (NPC)", bought: "Bought" };
-  const typeClass = { listed: "trade-type-listed", sold: "trade-type-sold", "sold-npc": "trade-type-sold", bought: "trade-type-bought" };
   if (tradeHistoryTable) {
     tradeHistoryTable.innerHTML = tradeHistory
       .map(
         (t) => {
-          const hasTax = typeof t.taxAmount === "number" && t.taxAmount > 0;
-          const totalCell = hasTax
-            ? `${toCurrency(t.proceeds)} <span class="trade-tax-note">(${toCurrency(t.taxAmount)} tax)</span>`
-            : toCurrency(t.total || 0);
+          const totalCell = tradeTotalCell(t);
           return `
           <tr>
             <td class="trade-time">${t.at ? formatTime(t.at) : "-"}</td>
-            <td><span class="trade-type-badge ${typeClass[t.type] || ""}">${typeLabel[t.type] || t.type}</span></td>
+            <td>${tradeTypeBadge(t)}</td>
             <td>${escapeHtml(t.item || "-")}</td>
             <td>${Number(t.quantity || 0).toLocaleString()}</td>
             <td>${toCurrency(t.unitPrice || 0)}</td>

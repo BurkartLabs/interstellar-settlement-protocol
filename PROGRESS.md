@@ -29,6 +29,15 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   server with `ISP_RATE_LIMIT_REGISTER_MAX=200` for local playtests. Otherwise a spec fails at registration and
   looks like a regression.
 
+## What's now true (AB#1168 — a cancelled listing in Trade History, Builder #1)
+
+- **A Trade History row's badge and Total come from `public/scripts/tradeHistory.js`** (`TRADE_TYPES`,
+  `tradeTypeBadge`, `tradeTotalCell`). Cancelled gets its own dashed muted badge; Listed and Cancelled show `-` in
+  Total, since neither moved money. `tests/unit/tradeHistoryRow.test.js` reads every `type:` the server writes into
+  `tradeHistory` and fails if one has no label. **A new trade type needs an entry there.**
+- `e2e/trade-history-cancelled.spec.js` starts its own server on a seeded data dir (`e2e/seed-trade-account.mjs`),
+  lists, cancels, and screenshots Trade History at 1280x800 and 375x812 (`docs/ab-1168/`).
+
 ## What's now true (this session: ISP-53, AB#739 — split app.js, part 2)
 
 - **app.js is bootstrap and tab routing only: 716 lines, from 6,268.** Every tab's renderer and binder is a module
