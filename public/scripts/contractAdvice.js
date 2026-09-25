@@ -3,7 +3,7 @@
 //
 // The page completes a contract only at the agent's station (openMissionModal), so the advice never says "travel
 // somewhere else and complete it there": it names Logistics transfers, which bring stock to where you are, and the
-// ways to get more. (The route does not check the agent's station: Bug #1203.)
+// ways to get more. The route holds the same agent's-station rule (AB#1203), and refuses before the quota is read.
 
 /**
  * `inventory` is corp.inventory ({ stationId: { item: qty } }); `stationName(id)` names a station.
