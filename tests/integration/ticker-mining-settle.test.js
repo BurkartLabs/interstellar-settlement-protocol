@@ -60,6 +60,9 @@ describe("tickers and mining settlement (AB#1448)", () => {
     vi.setSystemTime(start);
     const id = await corpWithActiveExtractor(start, "ext-1448-b");
     const spy = vi.spyOn(mining, "applyMiningOperations");
+    // AB#1767: settling 6 minutes rolls for extractor downtime once, at 1 - (1 - 0.00005)^360, about 1.8%; a hit pauses
+    // the whole interval and mines 0. Pinned above the roll, as every other mining test does.
+    vi.spyOn(Math, "random").mockReturnValue(0.999);
 
     vi.setSystemTime(start + 6 * 60 * 1000); // 0.1h → 60 silicates at 600/h
     await miningTick();
