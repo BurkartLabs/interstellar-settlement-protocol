@@ -8,7 +8,7 @@ extension-less — then ISP-66 (AB#755), below; #4 did ISP-278 (AB#985), ISP-279
 (the flat-direction Station mockup, a Decision now waiting on the Board) — all five per a Director-relayed
 priority order; #1 (this pane) then did AB#1049 (research.json as the only research-tree definition), then
 AB#1759 (one primary button on login/register). A Salvage Assignment session landed AB#1789 while the below
-was in progress. #10 (this pane, new, no CONTROL_URL by design) did AB#1754, then AB#1752, below. AB#1052 and
+was in progress. #10 (this pane, new, no CONTROL_URL by design) did AB#1754, then AB#1752, then AB#1806, below. AB#1052 and
 ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension for their screens; AB#758
 used it too, to look at a static mockup rather than the running game; AB#1049 and AB#1759 used it again, for
 Corporate R&D and for login/register respectively; AB#1752 used it once more, a fresh `e2e/milestone-list.spec.js`
@@ -48,6 +48,30 @@ get one by design). See "Blind spot" below.**
     gitignored, not committed).
   - Checks: `node --check public/scripts/app.js` and `npm run check` both clean. `npm test` — **159 files, 1,777
     tests, all passed** (1,583 baseline on `origin/main` after AB#1754 merged + 194 new, `domTargets.test.js`).
+
+## What's now true (this session: AB#1806, Builder #10)
+
+- **AB#1806 is done: the Active Mining Cycles panel is visible again.** Same shape as AB#1752, found by that
+  story's own general regression test: `renderMiningCyclePanel` (`public/scripts/app.js`) wrote into
+  `document.getElementById("mine-cycle-list")`, guarded by `if (!list) return`, and no page has ever had that
+  element (`git log --all -S "mine-cycle-list" -- public/index.html` finds nothing, so this was never wired,
+  not a regression).
+  - `public/index.html`: a new "Active Mining Cycles" section in the Station tab's overview, right after
+    "Licensed Corporate Holdings" — extractor yards are station buildings, so this is where a player already
+    looks for them. `<div id="mine-cycle-list" class="queue-list"></div>`, matching the `queue-item` cards
+    `renderMiningCyclePanel` already produces and the same `.queue-list`/`.queue-item` classes the Refinery
+    tab's "Active Runs" section uses for the analogous panel.
+  - `tests/unit/domTargets.test.js`: removed the `mine-cycle-list: 1806` entry from `KNOWN_ORPHANED` — the
+    test's own "allowlist names only ids that are actually still missing" check would have caught leaving it in.
+  - T-047: reverted the markup, watched the `#mine-cycle-list` assertion go red, restored.
+  - **Looked at it**: extended `e2e/first-hour.spec.js`'s own path (register, dismiss the onboarding dialogue,
+    rent an office, hire five, lease Earth, build an extractor yard) into a new `e2e/mine-cycle-list.spec.js`,
+    then navigated back to the Station overview and opened the screenshot directly — "Active Mining Cycles"
+    sits under "Licensed Corporate Holdings", showing "Basic Extractor Yard #1, Status: Idle, Total mined: 0 |
+    Total spent: $0, Ready for next cycle," styled consistently with the rest of the page.
+  - Checks: `node --check public/scripts/app.js` and `npm run check` both clean. `npm test` — **159 files,
+    1,780 tests, all passed** (1,777 baseline on `origin/main` after AB#1752 merged, +3 net from the allowlist
+    entry moving into the asserted set).
 
 ## What's now true (this session: AB#1754, Builder #10)
 
@@ -740,11 +764,10 @@ a Builder pane without the Chrome extension.
   Each has its own unmet predecessor as of 2026-09-25 (AB#757 wants the CSP story above; AB#987/989 want AB#757
   and AB#781 respectively) — check state before claiming.
 - **AB#1767** (a flaky test, possibly related to AB#1744) is filed, Proposed, unclaimed — non-visual fallback.
-- **AB#1806** (`#mine-cycle-list`, same shape as AB#1752 — a whole panel silently never renders) is filed,
-  Proposed, unclaimed, real player-facing severity. **AB#1807** (dead pre-page-split login/register toggle
-  code, six orphaned ids, low severity, cleanup only) is filed, Proposed, unclaimed. Both were found by
-  `tests/unit/domTargets.test.js`'s general guard (AB#1752) and are named in its `KNOWN_ORPHANED` allowlist —
-  whoever fixes either must remove that entry, or the test stays silently lenient about it.
+- **AB#1806 is done** (this session, above). **AB#1807** (dead pre-page-split login/register toggle code, six
+  orphaned ids, low severity, cleanup only) is still filed, Proposed, unclaimed — found by
+  `tests/unit/domTargets.test.js`'s general guard (AB#1752) and named in its `KNOWN_ORPHANED` allowlist;
+  whoever fixes it must remove that entry, or the test stays silently lenient about it.
 - Multiple Builder panes are working ISP at once — check ADO for what's Active before claiming.
 
 ## In flight / blocked
@@ -756,6 +779,7 @@ Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-bo
 (`agent/986-shipments-ui`, PR !432), AB#1765's (`fix/1765-hash-refresh-token`, PR !439), AB#1766's
 (`fix/1766-socket-auth-check`, PR !444), AB#1753's (`fix/1753-level2-gate`, PR !450), AB#758's
 (`design/758-flat-station`, PR !454), AB#1789's (`agent/1789-salvage-assignment`, PR !458), AB#1754's
-(`fix/1754-economy-model`, PR !462) and AB#1791's (`agent/1791-salvage-display`) are all merged. This session's
-(AB#1752) branch is `fix/1752-milestone-list`, PR to be opened next and set to auto-complete. Multiple Builder
-panes are active on ISP at once — check ADO state before claiming the next item.
+(`fix/1754-economy-model`, PR !462), AB#1791's (`agent/1791-salvage-display`), AB#1792's (probe `--broke`
+scenario, per OPS) and AB#1752's (`fix/1752-milestone-list`, PR !469) are all merged. This session's (AB#1806)
+branch is `fix/1806-mine-cycle-list`, PR to be opened next and set to auto-complete. Multiple Builder panes are
+active on ISP at once — check ADO state before claiming the next item.
