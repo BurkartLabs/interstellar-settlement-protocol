@@ -6,10 +6,10 @@
 // now is.
 
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, URL as NodeURL } from "node:url"; // Node's URL: a jsdom test replaces the global one
 import { measure } from "../public/scripts/tokenContrast.js";
 
-export const STYLESHEET = fileURLToPath(new URL("../public/styles.css", import.meta.url));
+export const STYLESHEET = fileURLToPath(new NodeURL("../public/styles.css", import.meta.url));
 const START = "/* ─── Design tokens";
 const END = "/* ─── End of design tokens ─── */";
 

@@ -13,7 +13,7 @@ import path from "node:path";
 
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
 fs.mkdirSync(SCREEN_DIR, { recursive: true });
-const RING = { style: "solid", width: "2px", color: "rgb(0, 247, 255)" };
+const RING = { style: "solid", width: "2px", color: "rgb(79, 216, 232)" }; // --accent, #4fd8e8 (ISP-70)
 
 const VIEWPORTS = [
   { label: "1280x800", width: 1280, height: 800, mobile: false },
