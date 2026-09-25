@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { operationCostPerHourFor, startupCostFor, bestThroughputFor } from "../server/economy.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const readJson = (file) => JSON.parse(fs.readFileSync(path.join(ROOT, file), "utf8"));
@@ -53,16 +54,19 @@ export function computeModel(economy, leases, rules = CODE_RULES) {
   const meanDownHours = r.minDowntimeMinutes / 60 + 1 / r.recoveryPerSecond / 3600;
   const uptime = meanUpHours / (meanUpHours + meanDownHours);
   const rows = [10, 100, 250].map((t) => {
-    const cost = Math.max(economy.operations.minCostPerHour, round(t * economy.operations.costPerThroughputUnit));
-    const startup = Math.max(economy.operations.minStartupCost, round(cost * economy.operations.startupShareOfHourlyCost));
+    // AB#775's curve, from server/economy.js — not reimplemented here, so the two can never diverge again (AB#1754).
+    const cost = operationCostPerHourFor(t, economy.operations);
+    const startup = startupCostFor(cost, economy.operations);
     const revenue = t * silicates.unitPrice * keep;
     const perHour = (u) => u * (revenue - cost) - fixedPerHour - startup / r.maxCycleHours;
     const paybackHours = (u) => (perHour(u) > 0 ? (sunk + startup) / perHour(u) : Infinity);
     // Back to the starting credits: the purchases and the first startup, earned back.
     return { t, cost, startup, revenue, perHourIdeal: perHour(1), perHourExpected: perHour(uptime), paybackIdeal: paybackHours(1), paybackExpected: paybackHours(uptime) };
   });
-  const marginPerUnit = silicates.unitPrice * keep - economy.operations.costPerThroughputUnit;
-  return { rules: r, lease, officeDays, steps, sunk, credits, fixedPerHour, uptime, meanUpHours, meanDownHours, rows, silicates, keep, marginPerUnit };
+  // The throughput that actually pays best under the curve, at this price and no research — what T-018 calls
+  // "the decision". Also from server/economy.js, for the same reason the rows above are.
+  const best = bestThroughputFor({ unitPrice: silicates.unitPrice, taxPct: economy.exchange.salesTaxPct, min: r.minThroughput, max: r.maxThroughput }, economy.operations);
+  return { rules: r, lease, officeDays, steps, sunk, credits, fixedPerHour, uptime, meanUpHours, meanDownHours, rows, silicates, keep, best };
 }
 
 const hours = (h) => (Number.isFinite(h) ? `${h.toFixed(1)} h (day ${Math.ceil(h / 24)})` : "never");
@@ -90,8 +94,8 @@ export function renderModel(m) {
   const losing = m.rows.filter((r) => r.perHourExpected <= 0).map((r) => `${r.t} t/h`);
   lines.push(`Credits start to accumulate: at ${earning.join(" and ")} from the first hour of mining (day 1), counted as sold; at ${losing.join(" and ") || "none"}, never: every hour loses.`);
   lines.push("");
-  lines.push(`Margin per unit above the minimum cost: ${m.silicates.unitPrice} x ${m.keep.toFixed(2)} - ${(m.silicates.unitPrice * m.keep - m.marginPerUnit).toFixed(0)} = ${m.marginPerUnit.toFixed(2)} credits.`);
-  lines.push("It is positive and the only other cost is a floor, so profit rises with every unit of throughput: the maximum always wins.");
+  lines.push(`Running cost curves with throughput (operationCostPerHourFor, server/economy.js): the best setting here, no research, is ${m.best.throughput} t/h at ${fmt(m.best.profitPerHour)} an hour.`);
+  lines.push("Every throughput from the floor to the cap stays startable; the curve is what makes the setting a decision, not a wall.");
   lines.push("A model, not play: perfect play, no travel, selling every unit at the standing bid, no research.");
   return lines.join("\n");
 }

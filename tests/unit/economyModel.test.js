@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CODE_RULES, computeModel, leaseCatalog, modelText } from "../../scripts/economy-model.mjs";
-import { economyNumbers } from "../../server/economy.js";
+import { economyNumbers, operationCostPerHourFor, startupCostFor, bestThroughputFor } from "../../server/economy.js";
 
 // AB#727: ECONOMY.md explains every key of data/economy.json and quotes the model; this keeps both true.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -77,18 +77,35 @@ describe("the model reads the game, not a copy of it (AB#727)", () => {
     expect(m.lease).toEqual({ name: "Earth", cost: 20_000 });
     expect(m.steps.map((s) => s.cost)).toEqual([7_000, 10_000, 20_000, 50_000]);
     expect(m.credits).toBe(163_000);
-    expect(m.marginPerUnit).toBeCloseTo(6.08, 10);
     const [t10, t100, t250] = m.rows;
     expect(t10.perHourIdeal).toBeLessThan(0);
     expect(t10.paybackIdeal).toBe(Infinity);
-    expect(t250.perHourIdeal).toBeCloseTo(250 * 24 * 0.92 - 4_000 - (750 + 1_000) / 24 - 1_400 / 72, 6);
-    expect(t250.paybackIdeal).toBeLessThan(t100.paybackIdeal);
+    // AB#775's curve, not the pre-fix straight line: 250 t/h no longer pays back fastest — it barely pays back at
+    // all under perfect play, and loses once real downtime (perHourExpected) is counted (AB#1754).
+    expect(t250.perHourExpected).toBeLessThan(0);
+    expect(t250.paybackExpected).toBe(Infinity);
+    expect(t100.paybackIdeal).toBeLessThan(t250.paybackIdeal);
+    // The best real setting sits well under the cap, which is the point of the curve (T-018).
+    expect(m.best.throughput).toBeLessThan(250);
+    expect(m.best.profitPerHour).toBeGreaterThan(t250.perHourIdeal);
+  });
+
+  it("never disagrees with server/economy.js for the same inputs — the class of drift AB#1754 was", () => {
+    for (const t of [10, 40, 100, 146, 250]) {
+      const cost = operationCostPerHourFor(t, economy.operations);
+      expect(cost, `cost at ${t} t/h`).toBe(operationCostPerHourFor(t));
+      expect(startupCostFor(cost, economy.operations), `startup at ${t} t/h`).toBe(startupCostFor(cost));
+    }
+    const silicates = economy.npcBuyers.find((b) => b.item === "Silicates");
+    const best = bestThroughputFor({ unitPrice: silicates.unitPrice, taxPct: economy.exchange.salesTaxPct, min: 10, max: 250 });
+    const m = computeModel(economy, leaseCatalog());
+    expect(m.best).toEqual(best);
   });
 
   it("a margin at or below zero makes every setting lose, and the model says never", () => {
     const worse = { ...economy, operations: { ...economy.operations, costPerThroughputUnit: 23 } };
     const m = computeModel(worse, leaseCatalog());
     expect(m.rows.every((r) => r.paybackIdeal === Infinity)).toBe(true);
-    expect(m.marginPerUnit).toBeLessThan(0);
+    expect(m.best.profitPerHour).toBeLessThan(0);
   });
 });

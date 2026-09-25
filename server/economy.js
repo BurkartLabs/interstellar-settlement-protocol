@@ -105,8 +105,12 @@ export function buildCostFor(baseCost, hasSupplyForecast) {
  * It is a tax on rate and never on access: every throughput the rules allow stays startable, and the floor
  * (`minCostPerHour`) is what makes a very low rate a poor deal rather than a free one.
  */
-export function operationCostPerHourFor(throughputPerHour) {
-  const { minCostPerHour, costPerThroughputUnit, throughputReferencePerHour } = ECONOMY.operations;
+// Every function below takes the live economy's numbers by default (`ECONOMY.operations`), and an optional
+// `operations` override so a caller can ask "what would this be under a different economy" — scripts/economy-model.mjs
+// uses the override to price the numbers ECONOMY.md quotes from the same file it reads, rather than re-deriving them
+// (AB#1754: it used to reimplement this formula from before AB#775 and silently fell out of step with it).
+export function operationCostPerHourFor(throughputPerHour, operations = ECONOMY.operations) {
+  const { minCostPerHour, costPerThroughputUnit, throughputReferencePerHour } = operations;
   const rate = Math.max(0, Number(throughputPerHour) || 0);
   const curved = rate * costPerThroughputUnit * (1 + (rate / throughputReferencePerHour) ** 2);
   return Math.max(minCostPerHour, Math.round(curved));
@@ -117,10 +121,10 @@ export function operationCostPerHourFor(throughputPerHour) {
  * panel shows so the curve is visible rather than hidden. `unitPrice` is what the ore sells for and `taxPct` the
  * sales tax the corporation pays on it; `efficiency` is the multiplier its research has earned.
  */
-export function miningProfitPerHourFor(throughputPerHour, { unitPrice, taxPct, efficiency = 1 }) {
+export function miningProfitPerHourFor(throughputPerHour, { unitPrice, taxPct, efficiency = 1 }, operations = ECONOMY.operations) {
   const rate = Math.max(0, Number(throughputPerHour) || 0);
   const revenue = rate * efficiency * Number(unitPrice || 0) * (1 - Number(taxPct || 0) / 100);
-  const cost = operationCostPerHourFor(rate);
+  const cost = operationCostPerHourFor(rate, operations);
   return { revenuePerHour: Math.round(revenue), costPerHour: cost, profitPerHour: Math.round(revenue - cost) };
 }
 
@@ -129,15 +133,15 @@ export function miningProfitPerHourFor(throughputPerHour, { unitPrice, taxPct, e
  * range the rules allow. Walked rather than solved: the floor makes the curve piecewise, and a walk of 241 points
  * is cheaper than being clever about it.
  */
-export function bestThroughputFor({ unitPrice, taxPct, efficiency = 1, min = 10, max = 250 }) {
+export function bestThroughputFor({ unitPrice, taxPct, efficiency = 1, min = 10, max = 250 }, operations = ECONOMY.operations) {
   let best = { throughput: min, profitPerHour: -Infinity };
   for (let t = min; t <= max; t += 1) {
-    const { profitPerHour } = miningProfitPerHourFor(t, { unitPrice, taxPct, efficiency });
+    const { profitPerHour } = miningProfitPerHourFor(t, { unitPrice, taxPct, efficiency }, operations);
     if (profitPerHour > best.profitPerHour) best = { throughput: t, profitPerHour };
   }
   return best;
 }
 
-export function startupCostFor(operationCostPerHour) {
-  return Math.max(ECONOMY.operations.minStartupCost, Math.round(operationCostPerHour * ECONOMY.operations.startupShareOfHourlyCost));
+export function startupCostFor(operationCostPerHour, operations = ECONOMY.operations) {
+  return Math.max(operations.minStartupCost, Math.round(operationCostPerHour * operations.startupShareOfHourlyCost));
 }
