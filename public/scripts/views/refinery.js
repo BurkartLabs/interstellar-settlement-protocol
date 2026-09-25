@@ -79,7 +79,7 @@ export function renderRefinery(data) {
       }
     : null;
   const statusHtml = refineryStatus?.text
-    ? `<article class="queue-item"><p class="muted" style="color:${refineryStatus.type === "ok" ? "var(--color-accent)" : "var(--color-warn)"}">${escapeHtml(refineryStatus.text)}</p></article>`
+    ? `<article class="queue-item"><p class="muted" style="color:${refineryStatus.type === "ok" ? "var(--accent)" : "var(--warn)"}">${escapeHtml(refineryStatus.text)}</p></article>`
     : "";
 
   chainsEl.innerHTML = statusHtml + refineryChains
@@ -111,7 +111,7 @@ export function renderRefinery(data) {
           ${techGated
             // ISP-292 (AB#1761): a requirement not yet met, not a warning — the muted token, not amber.
             ? `<p class="muted">Requires: ${escapeHtml((chain.requiresResearch || []).join(", "))}</p>`
-            : `<p class="muted" style="color:var(--color-accent)">Research: ✓ Unlocked</p>`
+            : `<p class="muted" style="color:var(--accent)">Research: ✓ Unlocked</p>`
           }
           <p class="muted">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(chain.input)}${!hasInput && !techGated ? ` (need ${minQty})` : ""}</p>
           ${canStart
@@ -120,7 +120,7 @@ export function renderRefinery(data) {
                 <input id="${escapeHtml(inputId)}" class="refine-quantity-input" type="number"
                   min="${minQty}" step="${perCycle}" value="${escapeHtml(fieldValue)}"
                   data-chain-id="${escapeHtml(chain.id)}"
-                  style="width:9rem;padding:0.3rem 0.5rem;background:var(--color-bg-deep);border:1px solid var(--color-border);color:var(--color-text);border-radius:4px;" />
+                  style="width:9rem;padding:0.3rem 0.5rem;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px;" />
                 <span class="muted" style="font-size:0.8rem;">min ${minQty}, step ${perCycle}</span>
               </div>
               ${quantityError ? `<p class="refine-quantity-error" role="alert" style="color:var(--warn);margin:0 0 0.5rem;">${escapeHtml(quantityError)}</p>` : ""}
@@ -131,7 +131,7 @@ export function renderRefinery(data) {
                 // ISP-292 (AB#1761): a requirement not yet met, not a warning — the muted token, not amber.
                 ? `<p class="muted">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>`
                 : hasRefinery && !idleRefinery
-                  ? `<p class="muted" style="color:var(--color-warn)">All refineries busy.</p>`
+                  ? `<p class="muted" style="color:var(--warn)">All refineries busy.</p>`
                   : ""
           }
         </section>

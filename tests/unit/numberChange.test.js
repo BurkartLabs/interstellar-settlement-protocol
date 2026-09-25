@@ -56,8 +56,8 @@ describe("the rules (AB#745)", () => {
 
   it("keeps the highlight under one second including the stylesheet's fade in and out", () => {
     const css = readFileSync(new NodeURL("../../public/styles.css", import.meta.url), "utf8");
-    // The fade is a design token (ISP-70): --motion-fade is an alias of --duration-base, followed to its value.
-    const fade = parseFloat(resolve(readTokens(), "--motion-fade"));
+    // The fade is the design token --duration-base (ISP-70), read from the token block.
+    const fade = parseFloat(resolve(readTokens(), "--duration-base"));
     expect(Number.isFinite(fade)).toBe(true);
     expect(HIGHLIGHT_MS + fade).toBeLessThan(1000);
     expect(css).toMatch(/\.num-change--up\s*{[^}]*color:\s*var\(--change-up\)/);
