@@ -18,6 +18,12 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1287, Builder #4)
+
+- On a phone the Starmap's system view puts "Back To Cluster" in the top-left corner and drops the orbits below it
+  (`systemViewLayout` in `starmap.js`). Desktop canvases keep the old layout exactly. `docs/ab-1287/` has before and
+  after. The body view's two back buttons were not changed.
+
 ## What's now true (AB#1202 — no lease milestone strands a player short of staff, Builder)
 
 - **The bug no longer reproduces on main**, and nothing here fixes it: AB#1753 made Level 2 "any lease", so its
