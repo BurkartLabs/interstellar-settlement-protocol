@@ -43,6 +43,83 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
     same as every non-visual ISP session (named, not proxied): the probe never drives missions/expeditions
     beyond its own mission-decision policy, the player market, or real human pacing (P-PROXY).
 
+## What's now true (AB#1287, Builder #4)
+
+- On a phone the Starmap's system view puts "Back To Cluster" in the top-left corner and drops the orbits below it
+  (`systemViewLayout` in `starmap.js`). Desktop canvases keep the old layout exactly. `docs/ab-1287/` has before and
+  after. The body view's two back buttons were not changed.
+
+## What's now true (AB#1202 — no lease milestone strands a player short of staff, Builder)
+
+- **The bug no longer reproduces on main**, and nothing here fixes it: AB#1753 made Level 2 "any lease", so its
+  card says Go to Station and never sends a Level 1 corporation to Mars; AB#1124 requires an office at the station
+  a lease is filed at, and that office also hires there. Played on main and on the branch (`e2e/lease-staffing.spec.js`,
+  screenshots in `docs/ab-1202/`): Earth lease completes Level 2; a player who goes to Mars anyway is told
+  "10 on payroll (current: 5)", rents a Mars office, hires to 10 and files Mars without flying home.
+- **Staff per lease has one copy**: `public/scripts/leaseStaffing.js` (`EMPLOYEES_PER_LEASE`,
+  `employeesForNextLease`), imported by the lease route, the claims office and the walkthrough's hire step.
+- **`tests/unit/leaseStaffing.test.js`** checks every lease milestone against the staff the levels before it
+  guarantee (headcount only rises; levels grant in order; one lease per body). Mutation-checked: re-pinning Level 2
+  to Mars, or dropping Level 4's hire 10, turns it red. **A new lease milestone is covered without editing it.**
+- **Filed, not fixed: AB#1870** — the claims office offers a lease with an office anywhere; the server (AB#1124)
+  wants one at that station. Visible in `docs/ab-1202/03-mars-claims-office.png`.
+
+## What's now true (AB#1269 — building copy names only its own station, Builder #1)
+
+- The Orbital Executive Suites' flavour line is station-neutral ("a registered office here tells the ISA"), since the
+  Suites stand at all eight stations. `tests/unit/buildingCopyStations.test.js` fails if any building's text names a
+  station the building is not confined to. `e2e/suites-flavor.spec.js` (seed: `e2e/seed-docked-account.mjs <station>`)
+  looks at the card docked at Mars; screenshots in `docs/ab-1269/`.
+
+## What's now true (AB#1825, Builder #4)
+
+- The no-account branch of the rent-office handler no longer throws (`currentBody` was undeclared there). **Every
+  `if (appState.accountId) … else` local-mutation branch in the client is unreachable** (both `enterGame` calls pass
+  an account id). Removing them is a cleanup the PM has been handed, not something done here.
+
+## What's now true (AB#1203 — a contract is completed at its agent's station, Builder #1)
+
+- `POST /gameplay/complete-mission` refuses a quota contract unless the corporation is docked at the agent's station
+  (`MISSION_AGENTS_DATA[].stationId`), before it reads the quota: "You must be docked at Earth Station Prime to
+  complete this contract. You are at Mars Orbital Dock: travel there on the Starmap first." The page already had
+  this rule; the Salvage Assignment (time-served) and an agent with no station are not checked, as on the page.
+  **The stricter of the two rules was chosen** — the Board can veto it for the looser one (drop the page's check).
+- `tests/integration/mission-agent-station.test.js`; `e2e/contract-agent-station.spec.js` accepts and completes a
+  contract at Earth in a browser (seed: `e2e/seed-contractor-account.mjs`); screenshots in `docs/ab-1203/`.
+
+## What's now true (AB#1284 — a disabled button looks disabled)
+
+- `button:disabled` is dimmed (0.45) with a not-allowed cursor, and `.btn:disabled` has no hover glow, in
+  `public/styles.css` under `.btn:hover`. It replaces the Construct card's own rule from AB#1253.
+  `tests/unit/disabledButtons.test.js` reads the stylesheet; `e2e/disabled-buttons.spec.js` measures the claims-office
+  lease button and the walkthrough's Previous, and that enabled buttons are unchanged. Screenshots in `docs/ab-1284/`.
+- Disabled inputs and selects (the research select, an exhausted NPC sell quantity) are not covered by this rule.
+
+## What's now true (AB#1827, Builder #4)
+
+- **No e2e spec writes to the checkout any more.** `refinery-requirements-muted.spec.js` served its pre-fix
+  `views/refinery.js` by overwriting the file on disk. It now uses `page.route` for that one page load.
+  `tests/unit/e2eNoSourceWrites.test.js` fails for any `*.spec.js` that writes, copies, renames or deletes a file,
+  except removing its own temporary data dir. A spec that needs different client code routes it.
+
+## What's now true (this session: AB#1756, Builder #4)
+
+- **The walkthrough's phone-width target is visible on step 3 again.** Execute Lease Agreement (drawn only once the
+  Suites are open) was scrolled correctly, but the page had no room left: `#game-shell` is `height:100vh` and the
+  grid overflows it, so the `body.walkthrough-open` padding added nothing to a page taller than the screen. That
+  room now sits on `.layout-grid`. `e2e/walkthrough-late-target.spec.js` (375x812, the player never scrolls) is red
+  on the old CSS and green now. The screenshots of steps 3 and 4 were looked at.
+- **Running several e2e specs against one local server hits the register limit** (5 per IP per hour). Start the
+  server with `ISP_RATE_LIMIT_REGISTER_MAX=200` for local playtests. Otherwise a spec fails at registration and
+  looks like a regression.
+
+## What's now true (AB#1170 — an over-long transfer item is "not held", not "no item")
+
+- A transfer line's item is missing only when it is blank. An item too long to be any id is an item the source
+  station does not hold, and gets that answer from both `checkTransfer` (`server/gameplayInput.js`, which answered
+  first for anything over 64) and `parseTransferRequest` (`public/scripts/logistics.js`, whose 40 cap is gone).
+  Tests: `tests/integration/transfers.test.js` (41, 65, 10,000, blank), `tests/unit/logistics.test.js`.
+
 ## What's now true (AB#1169 — Sell Orders says when it is capped, Builder #1)
 
 - Sell Orders draws `SELL_ORDERS_SHOWN` (30) and My Active Listings `MY_LISTINGS_SHOWN` (50), both in

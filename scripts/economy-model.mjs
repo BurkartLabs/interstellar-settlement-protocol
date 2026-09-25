@@ -18,7 +18,7 @@ const readJson = (file) => JSON.parse(fs.readFileSync(path.join(ROOT, file), "ut
 export const CODE_RULES = {
   startingCredits: { value: 250_000, where: "server/gameState.js, a new corporation's finances.credits" },
   startingStation: { value: "earth-station-prime", where: "server/gameState.js, currentStationId" },
-  employeesPerLease: { value: 5, where: "server/routes/corporation.js, EMPLOYEES_PER_LEASE" },
+  employeesPerLease: { value: 5, where: "public/scripts/leaseStaffing.js, EMPLOYEES_PER_LEASE" },
   minThroughput: { value: 10, where: "server/routes/mining.js, start-mining clamps throughput to 10..250" },
   maxThroughput: { value: 250, where: "server/routes/mining.js, start-mining clamps throughput to 10..250" },
   maxCycleHours: { value: 72, where: "server/routes/mining.js, start-mining hours max 72" },

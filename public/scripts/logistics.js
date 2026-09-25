@@ -12,8 +12,6 @@ import { systemHops } from "./navigation.js";
 export const MAX_TRANSFER_LINES = 10;
 /** Completed transfers kept in corp.logisticsHistory, newest first. */
 export const LOGISTICS_HISTORY_LIMIT = 100;
-/** Longer than any resource name; anything longer is not an item. */
-const ITEM_MAX_LENGTH = 40;
 
 const stationById = (stations, id) => {
   if (typeof id !== "string") return null;
@@ -75,7 +73,9 @@ export function parseTransferRequest(body) {
   const merged = new Map();
   for (let i = 0; i < raw.length; i += 1) {
     const item = typeof raw[i]?.item === "string" ? raw[i].item.trim() : "";
-    if (!item || item.length > ITEM_MAX_LENGTH) return { ok: false, error: `Line ${i + 1} has no item. Pick one from the station's list.` };
+    // Only a blank item is missing. One too long to be any resource is an item the station does not hold, which
+    // planTransfer answers (AB#1170).
+    if (!item) return { ok: false, error: `Line ${i + 1} has no item. Pick one from the station's list.` };
     const quantity = transferQuantity(raw[i]?.quantity);
     if (quantity === null) return { ok: false, error: `Line ${i + 1}: enter a whole number of at least 1 to move.` };
     merged.set(item, (merged.get(item) || 0) + quantity);

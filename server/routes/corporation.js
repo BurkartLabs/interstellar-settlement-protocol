@@ -7,6 +7,7 @@ import { officeRenewalCost } from "../../public/scripts/ceoEffects.js";
 import { ECONOMY } from "../economy.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "../../public/scripts/ceoEffects.js";
 import { leaseFilingRefusal } from "../../public/scripts/navigation.js";
+import { employeesForNextLease } from "../../public/scripts/leaseStaffing.js";
 import { addAccountNotification, saveAccountsNow, mutateAccountState } from "../gameState.js";
 import { applyCredits } from "../finances.js";
 // Bug #1058: refusals that say what to do next. Imported beside their first use, away from the import block.
@@ -254,7 +255,6 @@ export function registerCorporationRoutes(app) {
     let requestedBody = null;
     let leaseCost = 0;
     let bodyError = null;
-    const EMPLOYEES_PER_LEASE = 5;
     let outcome = "ok";
     let existingLeaseOnBody = false;
 
@@ -295,7 +295,7 @@ export function registerCorporationRoutes(app) {
         return;
       }
 
-      const requiredEmployees = (corp.miningLeases.length + 1) * EMPLOYEES_PER_LEASE;
+      const requiredEmployees = employeesForNextLease(corp.miningLeases.length);
       if ((corp.employeeCount || 0) < requiredEmployees) {
         outcome = "insufficient-employees";
         return;
@@ -329,7 +329,7 @@ export function registerCorporationRoutes(app) {
 
     if (outcome !== "ok") {
       const corp = account.state.corp;
-      const requiredEmployees = ((corp.miningLeases || []).length + 1) * EMPLOYEES_PER_LEASE;
+      const requiredEmployees = employeesForNextLease((corp.miningLeases || []).length);
       const messageMap = {
         "invalid-body": bodyError,
         "no-office": "You must lease a corporate office before filing extraction claims with the ISA.",

@@ -264,7 +264,7 @@ export function bindOfficeActions(building, data) {
           appState.data.corp.offices.push({
             stationId: station?.id || "earth-station-prime",
             name: station?.name || "Earth Station Prime",
-            body: currentBody,
+            body: station?.body || corp?.location || "Earth", // AB#1825: as renderOrbitalExecutiveSuites derives it
             systemId: station?.systemId || "sol",
             tier: station?.tier || 1,
             rentedAt: Date.now(),
@@ -377,6 +377,8 @@ export function bindOfficeActions(building, data) {
 
 // ─── ISA Claims & Leases Division ──────────────────────────────────────────
 
+import { employeesForNextLease } from "../leaseStaffing.js"; // AB#1202: the server's rule, not a copy of it
+
 // The bodies the ISA leases. Module level so a full lease can say which are left (Bug #1057).
 export const LEASE_BODIES = [
   { body: "Earth", cost: 20000, description: "Grants two (2) on-surface building slots for Basic Extractor Yard construction. Abundant mineral and silicate deposits across diverse terrain." },
@@ -410,9 +412,7 @@ export function renderISAClaimsLeases(building, data) {
   `;
 
   const hasOffice = Boolean((corp?.offices || []).length > 0);
-  const EMPLOYEES_PER_LEASE = 5;
-  const totalLeaseCount = allLeases.length;
-  const requiredForNext = (totalLeaseCount + 1) * EMPLOYEES_PER_LEASE;
+  const requiredForNext = employeesForNextLease(allLeases.length);
   const currentEmployees = corp?.employeeCount || 0;
 
   // Active leases section

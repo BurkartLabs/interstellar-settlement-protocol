@@ -318,7 +318,7 @@ These are not in `data/economy.json`, so the model states them, with where each 
 files and fails when one changes.
 
 - Starting credits 250,000, at Earth Station Prime (`server/gameState.js`).
-- A lease needs an office and 5 employees per lease (`server/routes/corporation.js`, `EMPLOYEES_PER_LEASE`).
+- A lease needs an office and 5 employees per lease (`public/scripts/leaseStaffing.js`, `EMPLOYEES_PER_LEASE`, which the lease route imports).
 - Throughput is clamped to 10..250 t/h, and a cycle runs at most 72 hours (`server/routes/mining.js`, start-mining).
 - Downtime starts with probability 0.005% a second, lasts at least 15 minutes, then ends with probability 0.0276% a
   second (`server/gameState.js`). That makes expected uptime about 82%, and costs pause while an extractor is down.

@@ -51,6 +51,15 @@ describe("parseTransferRequest (AB#717)", () => {
     expect(parseTransferRequest({ fromStationId: "mars-orbital-dock", lines: lines.slice(0, 10) }).ok).toBe(true);
   });
 
+  // AB#1170: only a blank item is missing. One too long to be any item is still an item, and planTransfer answers it
+  // the way it answers any item the station does not hold.
+  it.each([41, 65, 10_000])("reads an item of %i characters as an item the station does not hold", (length) => {
+    const parsed = parseTransferRequest({ fromStationId: "mars-orbital-dock", lines: [{ item: "x".repeat(length), quantity: 1 }] });
+    expect(parsed.ok).toBe(true);
+    expect(planTransfer({ ...parsed, toStationId: "earth-station-prime", credits: 1000, stations: STATIONS, rates: RATES, inventory: { "mars-orbital-dock": { Silicates: 40 } } }))
+      .toEqual({ ok: false, error: "Mars Orbital Dock holds none of that item. Pick one from its list." });
+  });
+
   it("never repeats the request's text back", () => {
     const hostile = "<img src=x onerror=alert(1)>";
     for (const body of [{ fromStationId: hostile }, { fromStationId: "x", lines: [{ item: hostile, quantity: "abc" }] }]) {

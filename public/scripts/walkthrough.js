@@ -134,7 +134,8 @@ export const WALKTHROUGH_STEPS = [
 // `event` names something the player does in the UI that leaves no trace in state (app.js reports "tab:<id>" when a
 // tab opens). `means` is the sentence the tests and the PR use for it. tests/integration/walkthrough-predicates.test.js
 // performs each action through the real route on a freshly registered corporation and checks its predicate either side.
-const FIRST_LEASE_EMPLOYEES = 5; // EMPLOYEES_PER_LEASE in server/index.js
+import { employeesForNextLease } from "./leaseStaffing.js";
+const FIRST_LEASE_EMPLOYEES = employeesForNextLease(0); // AB#1202: what the server wants for a first lease
 const FIRST_RESEARCH_ID = "tt-basic-extraction";
 const extractorsOf = (state) => state?.corp?.mining?.silicateExtractors || [];
 

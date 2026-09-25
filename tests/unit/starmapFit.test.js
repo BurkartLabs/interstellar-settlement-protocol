@@ -17,6 +17,7 @@ const CHAR_WIDTH = { 9: 5.2, 11: 6.2, 12: 7 }; // close to Inter at these sizes;
 function recordingContext() {
   const labels = [];
   const arcs = [];
+  const rects = [];
   let font = '11px "Inter", sans-serif';
   const gradient = { addColorStop() {} };
   const measure = (text) => String(text).length * (CHAR_WIDTH[parseInt(font.match(/(\d+)px/)?.[1], 10)] || 6.2);
@@ -27,12 +28,13 @@ function recordingContext() {
       if (prop === "fillText") return (text, x, y) => { labels.push({ text, x, y, width: measure(text) }); };
       if (prop === "measureText") return (text) => ({ width: measure(text) });
       if (prop === "arc") return (x, y, r) => { arcs.push({ x, y, r }); };
+      if (prop === "roundRect") return (x, y, w, h) => { rects.push({ x, y, w, h }); };
       if (prop === "createLinearGradient" || prop === "createRadialGradient") return () => gradient;
       return () => {};
     },
     set(target, prop, value) { if (prop === "font") font = value; else target[prop] = value; return true; }
   });
-  return { ctx, labels, arcs, reset() { labels.length = 0; arcs.length = 0; } };
+  return { ctx, labels, arcs, rects, reset() { labels.length = 0; arcs.length = 0; rects.length = 0; } };
 }
 
 function fakeCanvas(context, width, height) {
@@ -81,14 +83,15 @@ function openSystem(map, system) {
   const star = starOf(context, label);
   context.reset();
   canvas.handlers.click({ clientX: star.x, clientY: star.y });
-  const width = canvas.clientWidth, height = canvas.clientHeight;
-  const centred = context.arcs.filter((a) => Math.abs(a.x - width / 2) < 0.01 && Math.abs(a.y - height / 2) < 0.01);
+  // AB#1287: the orbits' centre is the star's, which is below the middle when the back button needs the room.
+  const halo = context.arcs.find((a) => a.r === 60);
+  const centred = context.arcs.filter((a) => Math.abs(a.x - halo.x) < 0.01 && Math.abs(a.y - halo.y) < 0.01);
   const rings = centred.slice(3); // after the star's halo, glow and core: one orbit ring per body, in order
   const bodies = (system.bodies || []).filter((b) => b.type === "Planet" || b.type === "Field");
   return bodies.map((body, i) => {
     const angle = (i / Math.max(1, bodies.length)) * Math.PI * 2;
     const reach = body.type === "Field" ? Math.max(10, body.radius + 5) + 8 : Math.max(4, body.radius) + 8;
-    return { body, orbit: rings[i].r, x: width / 2 + Math.cos(angle) * rings[i].r, y: height / 2 + Math.sin(angle) * rings[i].r, reach };
+    return { body, orbit: rings[i].r, x: halo.x + Math.cos(angle) * rings[i].r, y: halo.y + Math.sin(angle) * rings[i].r, reach };
   });
 }
 
@@ -152,4 +155,36 @@ describe("the Starmap fits a phone's width (Bug #1315)", () => {
       expect(l.x, s.name).toBeCloseTo(star.x + star.r + 10, 6); // to the right of its star, as before
     }
   });
+});
+
+// AB#1287: a phone's canvas sits low on the page, so it gets its 320px floor (innerHeight 354 here, with the canvas at
+// the top of a fake page). Saturn was drawn over "Back To Cluster", and a tap on it went Back.
+describe("the system view's back button is clear of every body on a phone (AB#1287)", () => {
+  for (const width of [292, 307]) {
+    it(`at ${width}x320, in every system, no body reaches the button, and each planet opens on a tap`, () => {
+      for (const system of systems) {
+        const map = mapAt(width, 354);
+        expect(map.canvas.clientHeight).toBe(320);
+        const placed = openSystem(map, system);
+        const button = map.context.rects[0];
+        expect(button, system.name).toBeTruthy();
+        for (const p of placed) {
+          const apart = p.x + p.reach < button.x || p.x - p.reach > button.x + button.w ||
+            p.y + p.reach < button.y || p.y - p.reach > button.y + button.h;
+          expect(apart, `${system.name} ${p.body.name} at (${p.x.toFixed(0)}, ${p.y.toFixed(0)}) vs ${JSON.stringify(button)}`).toBe(true);
+          expect(p.y + p.reach, `${system.name} ${p.body.name}`).toBeLessThanOrEqual(320);
+        }
+        map.context.reset();
+        map.canvas.handlers.click({ clientX: button.x + button.w / 2, clientY: button.y + button.h / 2 });
+        expect(map.context.labels.map((l) => l.text), `${system.name}: the button goes back to the cluster`).toContain("YOU ARE HERE");
+        for (const [i, p] of placed.entries()) {
+          if (p.body.type !== "Planet") continue;
+          const again = mapAt(width, 354);
+          const target = openSystem(again, system)[i];
+          again.canvas.handlers.click({ clientX: target.x, clientY: target.y });
+          expect(again.detailsEl.innerHTML, `${system.name} ${p.body.name}`).toContain(p.body.name);
+        }
+      }
+    });
+  }
 });
