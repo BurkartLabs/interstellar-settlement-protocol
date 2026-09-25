@@ -3034,6 +3034,11 @@ function startMiningUiTicker() {
     // Live-update starmap belt detail panel expedition progress bars
     starmap.updateExpeditionProgress();
 
+    // Live-update the shipments-in-transit countdown (ISP-279, AB#986)
+    if (Array.isArray(appState.data.corp?.shipments) && appState.data.corp.shipments.length) {
+      renderLogistics(appState.data);
+    }
+
     // Live-update contract refresh timer
     const timerEl = document.getElementById("contract-refresh-timer");
     if (timerEl && !timerEl.hidden) {
@@ -3688,7 +3693,7 @@ function renderAssets(data) {
 
 // ─── Logistics ───────────────────────────────────────────────────────────────
 // AB#717: the transfer rules, fee and history limit come from the module the server enforces them with.
-import { MAX_TRANSFER_LINES, transferFee, feePerUnit, stationHops, describeHops, describeLines } from "./logistics.js";
+import { MAX_TRANSFER_LINES, transferFee, feePerUnit, transitMinutes, stationHops, describeHops, describeLines } from "./logistics.js";
 
 function renderLogistics(data) {
   const station = getCurrentStationInfo(data);
@@ -3751,8 +3756,10 @@ function renderLogistics(data) {
     const badge = isCurrent ? `<span class="logistics-current-badge">Docked</span>` : "";
     const subhead = `${escapeHtml(st.body || "")}${st.systemId ? ` · ${escapeHtml(String(st.systemId).toUpperCase())}` : ""}`;
     const hops = isCurrent ? null : hopsFrom(st.id);
+    // ISP-279 (AB#986): the quote now names the arrival time too, not just the fee — a delay the player cannot
+    // see before sending reads as goods going missing (D-0.5-1's third story, after AB#985's server-side transit).
     const routeFee = rates && hops !== null && entries.length
-      ? `<p class="logistics-route-fee">Fee to ${escapeHtml(currentName)}: <strong>${toCurrency(feePerUnit(rates, hops))} per unit</strong> <span class="muted">(${escapeHtml(describeHops(hops))})</span></p>`
+      ? `<p class="logistics-route-fee">Fee to ${escapeHtml(currentName)}: <strong>${toCurrency(feePerUnit(rates, hops))} per unit</strong>, <strong>${escapeHtml(formatDuration(transitMinutes(rates, hops) * 60_000))} transit</strong> <span class="muted">(${escapeHtml(describeHops(hops))})</span></p>`
       : "";
 
     let itemsHtml = "";
@@ -3809,6 +3816,29 @@ function renderLogistics(data) {
       </section>`;
   }
 
+  // Shipments in flight (ISP-279, AB#986): corp.shipments (AB#985) until shipmentTick delivers or holds them.
+  // Moves to Transfer History on arrival with no reload — the server pushes logistics:arrived over the socket
+  // (mirroring travel:arrived) and this whole panel is rebuilt on the next renderAllViews() that follows.
+  const shipments = Array.isArray(data.corp?.shipments) ? data.corp.shipments : [];
+  const inFlightHtml = `
+    <section class="form-card logistics-in-flight">
+      <h3>Shipments In Transit</h3>
+      ${shipments.length
+        ? `<ol class="logistics-in-flight-list">${shipments.map((s) => {
+            const remainingMs = Math.max(0, (s.arrivesAt || 0) - Date.now());
+            const eta = s.status === "held"
+              ? `<span class="logistics-in-flight-held">Held — destination unreachable</span>`
+              : `<span class="logistics-in-flight-eta" data-arrives-at="${escapeHtml(String(s.arrivesAt || 0))}">${remainingMs > 0 ? escapeHtml(formatDuration(remainingMs)) : "Arriving"}</span>`;
+            return `<li class="logistics-in-flight-item${s.status === "held" ? " logistics-in-flight-item--held" : ""}">
+              <span class="logistics-in-flight-route">${escapeHtml(stationName(s.fromStationId))} → ${escapeHtml(stationName(s.toStationId))}</span>
+              <span class="logistics-in-flight-fee">${toCurrency(s.fee)}</span>
+              <span class="logistics-in-flight-lines">${escapeHtml(describeLines(s.lines))}</span>
+              ${eta}
+            </li>`;
+          }).join("")}</ol>`
+        : `<p class="muted">Nothing is in transit. Move goods from a remote station's card above, and they will list here until they arrive.</p>`}
+    </section>`;
+
   // Transfer history, newest first (corp.logisticsHistory keeps the last 100).
   const history = Array.isArray(data.corp?.logisticsHistory) ? data.corp.logisticsHistory : [];
   const historyHtml = `
@@ -3824,7 +3854,7 @@ function renderLogistics(data) {
         : `<p class="muted">No transfers yet. Goods held at another station can be moved here from its card above.</p>`}
     </section>`;
 
-  contentEl.innerHTML = summary + `<div class="logistics-grid">${cardsHtml}</div>` + historyHtml;
+  contentEl.innerHTML = summary + `<div class="logistics-grid">${cardsHtml}</div>` + inFlightHtml + historyHtml;
 
   const lineFor = (fromStation, item) => {
     const input = [...contentEl.querySelectorAll(".logistics-qty-input")]
@@ -6311,6 +6341,16 @@ function bindRealtimeEvents() {
         setTab("station");
       }
     });
+  });
+
+  // ISP-279 (AB#986): a shipment (AB#985) arrived or was held on this tick. The in-flight list and inventory both
+  // moved server-side; refreshFromServer() re-renders the Logistics tab (renderAllViews() always calls
+  // renderLogistics()) with no reload, the way travel:arrived already does for travel.
+  socket.on("logistics:arrived", (payload) => {
+    if (!appState.accountId || payload?.accountId !== appState.accountId) {
+      return;
+    }
+    refreshFromServer();
   });
 
   socket.on("mining:updated", (payload) => {
