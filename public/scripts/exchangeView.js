@@ -100,6 +100,16 @@ export function viewOrders(orders, { resource = "", sort = DEFAULT_EXCHANGE_VIEW
   return list.filter((o) => !resource || o?.item === resource).sort(orderComparator(sort));
 }
 
+// AB#1169: how many rows the Sell Orders and My Active Listings tables draw, and what they say when that drops some.
+export const SELL_ORDERS_SHOWN = 30;
+export const MY_LISTINGS_SHOWN = 50;
+
+/** Plain text, for textContent: "" when every order fits. */
+export function cappedNote(shown, total, label) {
+  if (!(total > shown)) return "";
+  return `Showing ${shown} of ${total} ${label}. Sort by price or filter by resource to see the rest.`;
+}
+
 /**
  * What a table says when its orders exist but the resource filter hides them all: which filter did it, how many it
  * hides, and a way out. Kept apart from the "nothing listed yet" line, which is plain muted text.
