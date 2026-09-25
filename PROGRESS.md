@@ -18,6 +18,13 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1170 — an over-long transfer item is "not held", not "no item")
+
+- A transfer line's item is missing only when it is blank. An item too long to be any id is an item the source
+  station does not hold, and gets that answer from both `checkTransfer` (`server/gameplayInput.js`, which answered
+  first for anything over 64) and `parseTransferRequest` (`public/scripts/logistics.js`, whose 40 cap is gone).
+  Tests: `tests/integration/transfers.test.js` (41, 65, 10,000, blank), `tests/unit/logistics.test.js`.
+
 ## What's now true (AB#1169 — Sell Orders says when it is capped, Builder #1)
 
 - Sell Orders draws `SELL_ORDERS_SHOWN` (30) and My Active Listings `MY_LISTINGS_SHOWN` (50), both in
