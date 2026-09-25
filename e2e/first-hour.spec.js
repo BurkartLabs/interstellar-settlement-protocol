@@ -156,6 +156,7 @@ for (const viewport of VIEWPORTS) {
     await expect(sellBtn).toBeEnabled();
     await sellBtn.click();
     await page.click("#trade-confirm-ok");
+    await acknowledgeReceipt(page); // AB#744: the sale's receipt
     await expectFeedback(page, /sold|sale/i);
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "09-sell", viewport.width);
@@ -163,6 +164,7 @@ for (const viewport of VIEWPORTS) {
     // ── research: queue Basic Extraction Analytics ─────────────────────────
     await page.click('.tab-btn[data-tab="rnd"]');
     await page.click('.rnd-enqueue-btn[data-tech-id="tt-basic-extraction"]');
+    await acknowledgeReceipt(page); // AB#744: the research receipt
     await expectFeedback(page, /research|queue|analytics/i);
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "10-research", viewport.width);
@@ -176,6 +178,7 @@ for (const viewport of VIEWPORTS) {
     await expect(missionCard).toBeVisible();
     await missionCard.click();
     await page.click("#mission-accept-btn");
+    await acknowledgeReceipt(page); // AB#744: the contract's receipt
     await expectFeedback(page, /contract accepted/i);
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "11-contract", viewport.width);

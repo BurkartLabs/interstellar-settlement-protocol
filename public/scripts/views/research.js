@@ -1,6 +1,7 @@
 // The Corporate R&D tab: the tech tree, the research picker and the queues.
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
+import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { deepClone, toCurrency } from "../helpers.js";
 import { escapeHtml, queueItemsHtml } from "../html.js";
@@ -207,6 +208,7 @@ export function bindResearchForms() {
 
     try {
       if (appState.accountId) {
+        const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
         const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/queue-rnd`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -217,6 +219,7 @@ export function bindResearchForms() {
         appState.data = deepClone(account.state);
         appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
         updateAllViews();
+        showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       } else {
         const credits = Number(appState.data.corp.finances.credits || 0);
         if (credits < node.costCredits) {

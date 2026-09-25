@@ -2,6 +2,7 @@
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
+import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { missionRewardCredits } from "../ceoEffects.js";
 import { missionShortAdvice } from "../contractAdvice.js";
 import { deepClone, formatDurationHours, formatTime, toCurrency } from "../helpers.js";
@@ -512,6 +513,7 @@ export function bindAssignmentForms() {
     const alreadyActive = appState.activeMissions.some((m) => m.id === mission.id);
     if (alreadyActive) return;
 
+    let receiptAnswer = null; // AB#744: the server's answer; none offline, so no receipt
     if (appState.profileMode === "account" && appState.accountId) {
       const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/accept-mission`, {
         method: "POST",
@@ -524,6 +526,7 @@ export function bindAssignmentForms() {
         return;
       }
       const account = await parseJsonResponse(response);
+      receiptAnswer = account;
       appState.data = deepClone(account.state);
       appState.activeMissions = appState.data.corp?.activeMissions || [];
     } else {
@@ -538,6 +541,8 @@ export function bindAssignmentForms() {
     if (btn) flashButtonSuccess(btn);
     closeMissionModal();
     renderMissions(appState.data);
+    // AB#744: after the contract dialog has closed, so the receipt is the one thing on screen.
+    showActionReceipt(receiptAnswer, { returnFocusTo: () => document.querySelector("[data-complete-mission], .tab-btn[data-tab='missions']") });
   });
 
   activeMissionListEl?.addEventListener("click", async (event) => {
@@ -595,6 +600,7 @@ export function bindAssignmentForms() {
       // Bug #1009: the same rule the server pays by, so the message says what actually arrived.
       : missionRewardCredits(mission.reward, appState.data?.corp?.completedInsights);
 
+    let receiptAnswer = null; // AB#744: the server's answer; offline there is none and the old overlay stays
     if (appState.profileMode === "account" && appState.accountId) {
       const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/complete-mission`, {
         method: "POST",
@@ -607,6 +613,7 @@ export function bindAssignmentForms() {
         return;
       }
       const account = await parseJsonResponse(response);
+      receiptAnswer = account;
       appState.data = deepClone(account.state);
       appState.activeMissions = appState.data.corp?.activeMissions || [];
     } else {
@@ -670,8 +677,10 @@ export function bindAssignmentForms() {
     const agent = MISSION_AGENTS.find(a => a.id === agentId);
     const agentName = agent ? agent.name : "Agent";
 
-    // Show completion celebration overlay
-    showMissionCompleteOverlay(mission, rep, agentName, rewardCredits);
+    // AB#744: signed in, the ISA's receipt from the server's own figures (reward and standing) replaces the page's
+    // overlay, which recomputed the reward; offline, with no server answer, the overlay is still what confirms it.
+    if (receiptAnswer) showActionReceipt(receiptAnswer, { returnFocusTo: () => document.querySelector(".tab-btn[data-tab='missions']") });
+    else showMissionCompleteOverlay(mission, rep, agentName, rewardCredits);
 
     renderMissions(appState.data);
     // Bug #1043: renderInventoryPanel was called here and threw (its form is gone), so updateAllViews never ran.

@@ -7,6 +7,7 @@ import { applyCredits } from "../finances.js";
 import { refineQuantityCheck } from "../../public/scripts/refineQuantity.js";
 import { emitToAccount } from "../realtime.js";
 import { corpSlotsFull, fundingRequirementMessage } from "./helpers.js";
+import { buildRefineryReceipt, startRefineryReceipt } from "../receipts.js"; // AB#744
 
 export function registerRefiningRoutes(app) {
   // ─── Refinery ────────────────────────────────────────────────────────────────
@@ -93,7 +94,15 @@ export function registerRefiningRoutes(app) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     }
 
-    res.json(account);
+    // AB#744: what was built and what it took, from the corporation the mutation left.
+    const built = account.state.corp;
+    const receipt = buildRefineryReceipt({
+      refineryName: built.refineries[built.refineries.length - 1]?.name || "Refinery",
+      cost: BUILD_COST,
+      slotsUsed: (built.buildings || []).length,
+      slotsTotal: built.buildingSlots || 2
+    });
+    res.json({ ...account, receipt });
   });
 
   app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
@@ -218,6 +227,16 @@ export function registerRefiningRoutes(app) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     }
 
-    res.json(account);
+    // AB#744: the run as the mutation set it up.
+    const started = account.state.corp.refineries.find((r) => r.name === targetLabel);
+    const receipt = startRefineryReceipt({
+      refineryName: targetLabel,
+      input: chain.input,
+      inputQuantity: actualQuantity,
+      outputs: chain.outputs.map((o) => ({ item: o.item, quantity: o.quantityPerCycle * actualScale })),
+      hours: actualDurationHours,
+      endsAt: started?.endsAt
+    });
+    res.json({ ...account, receipt });
   });
 }

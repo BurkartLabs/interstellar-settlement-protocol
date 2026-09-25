@@ -88,10 +88,12 @@ test("the walkthrough runs start to finish with no console error, at 1280x800", 
   await expect(sellBtn).toBeEnabled();
   await sellBtn.click();
   await page.click("#trade-confirm-ok");
+  await acknowledgeReceipt(page); // AB#744
 
   await atStep(9); // research
   await page.click('.tab-btn[data-tab="rnd"]');
   await page.click('.rnd-enqueue-btn[data-tech-id="tt-basic-extraction"]');
+  await acknowledgeReceipt(page); // AB#744
 
   await atStep(10); // bureau
   await page.click('.tab-btn[data-tab="missions"]');
