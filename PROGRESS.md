@@ -3,10 +3,35 @@
 **2026-09-25. Merged from several concurrent Builder panes: #1 did AB#1758 (orchestrata, scope override) then
 AB#1052 — a player-triggered stop on a running mining cycle; #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then
 ISP-89 (AB#779); #3 did ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only
-extension-less — then ISP-66 (AB#755), below; #4 (this pane) did ISP-278 (AB#985) then ISP-279 (AB#986).
-AB#1052 and ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension for their
-screens. No CONTROL_URL / Chrome extension on any of these panes (Builder panes don't get one by design). See
-"Blind spot" below.**
+extension-less — then ISP-66 (AB#755), below; #4 (this pane) did ISP-278 (AB#985), ISP-279 (AB#986), then
+AB#1765 (refresh tokens hashed at rest) per a Director-relayed priority order. AB#1052 and ISP-279 both used
+ISP-61's own Playwright pattern rather than the Chrome extension for their screens. No CONTROL_URL / Chrome
+extension on any of these panes (Builder panes don't get one by design). See "Blind spot" below.**
+
+## What's now true (this session: AB#1765)
+
+- **AB#1765 is fixed: refresh tokens are hashed before they touch disk.** `storeRefreshToken` used to push the
+  client's raw signed JWT into `account.refreshTokens`, persisted verbatim to `accounts-snapshot.json` —
+  unlike `passwordHash`, bcrypt-hashed before it ever reaches disk, a leaked snapshot handed out live, 30-day
+  bearer tokens with no cracking required.
+  - `server/game/store.js`'s new `hashRefreshToken()` (SHA-256; the comparison is always exact-match against a
+    machine-generated token, never a user-typed value the way a password's would be, so no salt is needed the
+    bcrypt way) runs inside `storeRefreshToken`/`revokeRefreshToken`/`hasRefreshToken`. `server/index.js`'s
+    three call sites are unchanged — they pass the raw client-presented token in, same as before; the hashing
+    is internal to the store.
+  - **Confirmed nothing else reads the raw value**: grepped every reference to `refreshTokens` in `server/`,
+    `public/` and `tests/`; the three functions above are the only readers/writers.
+  - New tests in `tests/integration/auth.test.js`: the stored value is a SHA-256 digest of the issued token, not
+    the token itself (fails against the pre-fix code, checked by reverting the fix and re-running — T-047); a
+    full register → refresh → logout → reuse-rejected cycle still passes with the digest in place, so the fix
+    is transparent to every existing caller.
+  - **Not migrated, and not worth migrating**: any refresh token issued before this fix is stored raw in an
+    existing `accounts-snapshot.json` and will fail `hasRefreshToken`'s digest comparison the first time it's
+    presented after this deploys — an already-logged-in session's silent refresh fails and the client re-logs
+    in. Pre-beta, no real users, the same one-time cost as any password-hash-scheme change; not worth a
+    migration path for it.
+  - Checks: `npm run check` clean; `npm test` — **153 files, 1553 tests, all passed** (1551 baseline on
+    `origin/main` after ISP-279 merged + 2 new).
 
 ## What's now true (this session: AB#1052)
 
@@ -356,10 +381,12 @@ a Builder pane without the Chrome extension.
 
 ## What's next
 
-- **ISP-279** ("Shipments in the Logistics tab: arrival time quoted before you move") is now done (this
-  session) — see above.
-- **AB#781 (open registration switch)**'s predecessor, ISP-66 (AB#755), is now done. Its acceptance is
-  screenshot-gated (register page open/closed at 375x812) — buildable now with Playwright, see ISP-61 above.
+- **Director-relayed priority order for this pane (2026-09-25), after AB#1765**: **AB#1766** next (the
+  market/forum "still-authenticated-looking" socket boundary), then **AB#1753** (the Level-2 gate — must be
+  clearable before any v0.6+ work), then **AB#758** (one Station mockup — the Board is waiting on this one
+  specifically), then **AB#1740**. If this pane frees up before AB#1765/#1766 both land and **ENG-9 (AB#669)**
+  is still unclaimed, take that instead — platform-first priority per PM/Director.
+- **ISP-279** and **ISP-66 (AB#755)** are both done (this session and a concurrent pane) — see above.
 - **AB#753 (ISP-65, CSP/security headers)** has an unmet predecessor, AB#739 (splitting `app.js`), still
   Proposed as of 2026-09-25 — check its state before claiming; it may be worth doing anyway now that the actual
   risk that predecessor was hedging against (many inline event handlers to convert) turned out not to exist —
@@ -370,9 +397,7 @@ a Builder pane without the Chrome extension.
   state under test would need disproportionate grinding to reach by fresh play) for the established shapes.
   Each has its own unmet predecessor as of 2026-09-25 (AB#757 wants the CSP story above; AB#987/989 want AB#757
   and AB#781 respectively) — check state before claiming.
-- **AB#1765** (refresh tokens in plain text at rest), **AB#1766** (the market/forum "still-authenticated-
-  looking" socket boundary) and **AB#1767** (a second flaky test, possibly related to AB#1744) are filed,
-  Proposed, unclaimed — non-visual fallbacks.
+- **AB#1767** (a flaky test, possibly related to AB#1744) is filed, Proposed, unclaimed — non-visual fallback.
 - Multiple Builder panes are working ISP at once — check ADO for what's Active before claiming.
 
 ## In flight / blocked
@@ -380,6 +405,7 @@ a Builder pane without the Chrome extension.
 Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-boundary`, PR !392), ISP-48's
 (`agent/734-security`, PR !402), ISP-89's (`agent/779-no-payments-test`, PR !409), ISP-61's
 (`agent/747-first-hour-playtest`, PR !406), ISP-278's (`agent/985-timed-transit`, PR !408), AB#1052's
-(`agent/1052-stop-mining`, PR !417) and ISP-66's (`agent/755-registration-validation`) are all merged. This
-session's (ISP-279) branch is `agent/986-shipments-ui`, PR to be opened next and set to auto-complete.
+(`agent/1052-stop-mining`, PR !417), ISP-66's (`agent/755-registration-validation`) and ISP-279's
+(`agent/986-shipments-ui`, PR !432) are all merged. This session's (AB#1765) branch is
+`fix/1765-hash-refresh-token`, PR to be opened next and set to auto-complete.
 Multiple Builder panes are active on ISP at once — check ADO state before claiming the next item.
