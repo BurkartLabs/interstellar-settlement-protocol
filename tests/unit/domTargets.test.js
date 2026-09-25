@@ -31,8 +31,7 @@ const targets = [...new Set([...appJs.matchAll(/getElementById\((['"])([^'"]+)\1
 // still turns this test red for anything the fix missed.
 const KNOWN_ORPHANED = {
   "login-panel": 1807, "register-panel": 1807, "show-login-btn": 1807,
-  "login-dummy-btn": 1807, "login-cancel-btn": 1807, "register-cancel-btn": 1807, // dead pre-page-split toggle
-  "mine-cycle-list": 1806 // same shape as this story's own bug, one panel over
+  "login-dummy-btn": 1807, "login-cancel-btn": 1807, "register-cancel-btn": 1807 // dead pre-page-split toggle
 };
 
 describe("every getElementById target app.js reads resolves to a real id (AB#1752)", () => {
