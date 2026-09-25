@@ -42,21 +42,44 @@ pre-beta. When it is asked, the Monetization Critic reviews it like any other pr
 answers to explore first are cosmetic (station and corporate identity) and convenience that does not sell
 advantage in a player-versus-player economy. Selling power in a market game breaks the market.
 
-**No player may gain an unfair advantage by trading anything in game for real money** (Board decision AB#703,
-2026-09-21, verbatim: *"We don't want any player to be able to gain an unfair advantage by trading anything in
-game for real money. This would be a violation of the Real Money Trading rule"*). This is a rule for the whole
-game, not only the v0.9 finance features it was first asked about — a general rule written in one place is read
-as permission everywhere else it isn't repeated (T-021).
+**Three Board rulings bind every shop, pack, pass or paid feature this game will ever have** (AB#1776). Each is a
+rule to apply as written; the decision number after it is where the Board's own words are, not something to look
+up first. Two of them bind systems that are not built yet, so whoever starts v0.9 or v0.10 starts under them.
 
-**Research and CEO Insight may never be sold or sped up for real money; items may always be traded in game**
-(Board decision AB#980, 2026-09-21, verbatim: *"Research and Insight should never be sellable. Items should
-always be sellable"*). The example the Decision was asked about: CEO Insight's Negotiation Fundamentals program
-(`ceo-negotiation-fundamentals` in `data/ceo-insight.json`; applied in
-`server/game/progression.js`'s `getEffectiveExchangeTaxRate`) cuts a player's Galactic Exchange sales tax from
-8% to as low as 2%, earned only with in-game credits and time. Because every player sells on the same market,
-that discount is taken straight out of other players' trades — sold or sped up for real money, it would be the
-plainest pay-to-win item in the game. The 8% base tax itself is where a future business model would take its
-cut, a small fee on trades between players, instead of selling advantages (T-022).
+1. **Nothing in the game may be traded for real money in a way that gives one player an advantage over
+   another.** Not credits, resources, goods, buildings, leases, employees, levels, time, or a better price on the
+   exchange; nor anything bought with real money and then traded to another player. It is a rule for the whole
+   game, not only the v0.9 finance features it was first asked about, because a general rule written in one place
+   is read as permission everywhere it isn't repeated (T-021). **It binds all of v0.9's financial mechanics before
+   any of them exists:** bond issuance, loans, equity in other corporations, investment returns, and credit
+   ratings may never be sold, sped up or improved for real money. (Board decision **AB#703**, 2026-09-21, verbatim:
+   *"We don't want any player to be able to gain an unfair advantage by trading anything in game for real money.
+   This would be a violation of the Real Money Trading rule"*.)
+
+2. **Research and CEO Insight may never be sold or sped up for real money: not a node, a level, a completion, or
+   the wait for one. Items may always be sold**, meaning a player can always put an item up for sale in the game;
+   rule 1 still decides whether anything may be sold for real money. This binds systems that exist today: the
+   research tree (`data/research.json`) and the CEO Insight programs (`data/ceo-insight.json`). (Board decision
+   **AB#980**, 2026-09-21, verbatim: *"Research and Inisght [sic] should never be sellable. Items should always be
+   sellable"*.) The example the Decision was asked about: CEO Insight's Negotiation Fundamentals program
+   (`ceo-negotiation-fundamentals` in `data/ceo-insight.json`; applied in `server/game/progression.js`'s
+   `getEffectiveExchangeTaxRate`) cuts a player's Galactic Exchange sales tax from 8% to as low as 2%, earned only
+   with in-game credits and time. Because every player sells on the same market, that discount is taken straight
+   out of other players' trades: sold or sped up for real money, it would be the plainest pay-to-win item in the
+   game.
+
+3. **No v0.10 military mechanic may ever be sold or accelerated for real money: all of them.** Units, troops,
+   fleets and their ships, the shipyard, build or training time, shields or protection, upkeep and readiness, fleet
+   cap, raid cooldowns and mercenary terms, and anything else v0.10 adds that makes one corporation stronger in a
+   fight, because whatever is sold to the raider is taken from the corporation it raids. **It binds v0.10 before any
+   of it exists.** The Decision also offered to leave cosmetic fleet naming or livery open (its option B); the
+   answer did not take it, so that is not open either without a new decision. (Board decision **AB#706**,
+   2026-09-21, answering "which v0.10 military mechanics may never be sold or accelerated for real money?"
+   verbatim: *"All"*.)
+
+The 8% base exchange tax is where a future business model would take its cut, a small fee on trades between
+players, instead of selling advantages (T-022). `tests/unit/no-payments.test.js` (AB#779) fails on payment code
+before 1.0, but it reads vocabulary, not intent: these three rules are what stop a shop that sells the wrong thing.
 
 ## Out of scope
 

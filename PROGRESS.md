@@ -28,6 +28,13 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 - `tests/unit/no-payments.test.js` pins its allowlist by line: removing CSS above line 4260 moved the "Premium Thread"
   comment to 4254, re-pointed here. Expect it again after any styles.css deletion.
 
+## What's now true (AB#1776, ISP-296 — BRIEF.md carries the three no-RMT rulings)
+
+- BRIEF.md's Monetization section states the Board's three rulings as numbered rules, each with its decision number:
+  AB#703 (nothing traded for real money may give an advantage; binds all of v0.9 finance, not built), AB#980
+  (research and CEO Insight never sold or sped up; items always sellable in game), AB#706 (every v0.10 military
+  mechanic, no cosmetic carve-out; not built). Read it before building v0.9, v0.10, or anything with a price.
+
 ## What's now true (AB#1763, ISP-294 — the typewriter finishes on click, Builder)
 
 - While the coordinator's line is typing, a click or tap on the dialogue or any key (not a bare modifier) prints the
