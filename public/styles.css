@@ -487,6 +487,21 @@ body {
   transform: translateY(-1px);
 }
 
+/* AB#1759: a secondary hero action, without the cyan accent .btn-hero-outline carries — Critique AB#1757's
+   "cyan on at most one primary control per screen" rule, scoped to login/register (.btn-hero-outline is
+   unchanged, still used by the landing page). */
+.btn-hero-secondary {
+  background: transparent;
+  border: 1px solid rgba(137, 167, 189, 0.35);
+  color: var(--text-muted);
+}
+
+.btn-hero-secondary:hover {
+  background: rgba(137, 167, 189, 0.08);
+  border-color: rgba(137, 167, 189, 0.6);
+  color: var(--text-main);
+}
+
 /* Hero auth panels */
 .auth-panel-hero {
   margin-top: 1.8rem;

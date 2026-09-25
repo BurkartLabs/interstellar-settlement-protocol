@@ -6,11 +6,36 @@ ISP-89 (AB#779); #3 did ISP-61 (AB#747) — a scripted Playwright playtest, so I
 extension-less — then ISP-66 (AB#755), below; #4 did ISP-278 (AB#985), ISP-279 (AB#986), AB#1765
 (refresh tokens hashed at rest), AB#1766 (socket auth boundary), AB#1753 (Level 2's Mars-lease gate), then AB#758
 (the flat-direction Station mockup, a Decision now waiting on the Board) — all five per a Director-relayed
-priority order; #1 (this pane) then did AB#1049 (research.json as the only research-tree definition). AB#1052
-and ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension for their screens; AB#758
-used it too, to look at a static mockup rather than the running game; AB#1049 used it again for the Corporate
-R&D tab. No CONTROL_URL / Chrome extension on any of these panes (Builder panes don't get one by design). See
-"Blind spot" below.**
+priority order; #1 (this pane) then did AB#1049 (research.json as the only research-tree definition), then
+AB#1759 (one primary button on login/register). AB#1052 and ISP-279 both used ISP-61's own Playwright pattern
+rather than the Chrome extension for their screens; AB#758 used it too, to look at a static mockup rather than
+the running game; AB#1049 and AB#1759 used it again, for Corporate R&D and for login/register respectively. No
+CONTROL_URL / Chrome extension on any of these panes (Builder panes don't get one by design). See "Blind spot"
+below.**
+
+## What's now true (this session: AB#1759)
+
+- **AB#1759 is done: login and register each show exactly one primary (cyan) control now.** Visual-design
+  Critique AB#1757 (POLISH 2.4/5) flagged "cyan on at most one primary control per screen" as a session-sized
+  quick win — both screens' `.btn-hero-outline` secondary actions (Developer demo login, Register Corporation,
+  Back To Login, Return To Landing Page) carried the same cyan border/text/glow as the one primary
+  `.btn-hero-fill` button, so nothing stood out as *the* action.
+  - New `.btn-hero-secondary` class (`public/styles.css`): a muted border/text (`--text-muted`), no cyan, no
+    glow. Deliberately scoped to `public/login.html` and `public/register.html` only —
+    `.btn-hero-outline` itself is untouched, since `public/index.html` (the landing page, out of this story's
+    scope) still uses it.
+  - `tests/unit/authPrimaryButton.test.js` (new): both pages have exactly one `.btn-hero-fill`, zero leftover
+    `.btn-hero-outline`, and the primary control is still first in tab order. T-047 verified: reverted, watched
+    2 of 4 fail (2 leftover cyan actions found on register), restored.
+  - `tests/unit/no-payments.test.js`'s allowlist line number for the forum-thread CSS comment moved (4206→4221,
+    `.btn-hero-secondary` added above it).
+  - **Looked at it**: `e2e/auth-primary-button.spec.js` (new), before/after screenshots of both pages at
+    1280×800 and 375×812 against a real dev server, opened and read directly. Before: all four login actions
+    (and both register secondary actions) glow cyan, none reads as *the* button. After: exactly one cyan
+    control per screen, the rest muted; tab order and copy unchanged; no layout issues at either width.
+  - Checks: `npm run check` clean; `npm test` — **157 files, 1574 tests, all green** (one unrelated,
+    non-reproducible single-test flake on an earlier run, gone on retry — not chased further, see
+    `learnings/PATTERNS.md`'s guidance on non-reproducible findings, same call as AB#1781).
 
 ## What's now true (this session: AB#1049)
 

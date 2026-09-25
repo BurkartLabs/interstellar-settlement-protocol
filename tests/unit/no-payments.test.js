@@ -36,7 +36,8 @@ const ALLOWLIST = [
   // AB#1051: the "premium-rate" flavour text this entry named moved to data/missions.json, which this scanner
   // does not read (SCAN_EXT is .js/.html/.css only) — the match left the scanned surface, so the entry is gone
   // rather than re-pointed.
-  ["public/styles.css", 4206, "a CSS section comment naming a forum-thread layout; no .premium class exists"],
+  // AB#1759: line number moved when .btn-hero-secondary was added above it.
+  ["public/styles.css", 4221, "a CSS section comment naming a forum-thread layout; no .premium class exists"],
   // AB#1049: line number moved when the hardcoded techTree literal (120 lines) was deleted from above it.
   ["public/scripts/app.js", 361, "toCurrency: the sanctioned in-game credits formatter this story's own acceptance names as the one exception"]
 ];
