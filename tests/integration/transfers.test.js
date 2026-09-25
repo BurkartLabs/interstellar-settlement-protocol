@@ -105,6 +105,25 @@ describe("transfer input is refused before anything changes (AB#717)", () => {
     expect(snapshot(corp())).toBe(before);
   });
 
+  // AB#1170: an item too long to be any item was refused as "has no item", which is untrue; it is an item the station
+  // does not hold, and gets that answer. Over 64 the input check (server/gameplayInput.js) said "has no item"; 41 is
+  // the boundary of parseTransferRequest's old 40, which the input check's own-stock answer reaches first. Blank is
+  // still "has no item".
+  it.each([
+    ["41 characters", "x".repeat(41), "Mars Orbital Dock holds none of that item. Pick one from its list."],
+    ["65 characters", "x".repeat(65), "Mars Orbital Dock holds none of that item. Pick one from its list."],
+    ["10,000 characters", "x".repeat(10_000), "Mars Orbital Dock holds none of that item. Pick one from its list."],
+    ["blank", "   ", "Line 1 has no item. Pick one from the station's list."]
+  ])("an item of %s: 400 with the answer for it, never echoed, and nothing moves", async (_label, item, error) => {
+    const { corp, transfer } = await corpAtEarthWithMarsStock();
+    const before = snapshot(corp());
+    const res = await transfer({ fromStationId: "mars-orbital-dock", lines: [{ item, quantity: 1 }] });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe(error);
+    if (item.trim()) expect(JSON.stringify(res.body)).not.toContain(item);
+    expect(snapshot(corp())).toBe(before);
+  });
+
   it("refuses in transit, naming the fix, and nothing moves", async () => {
     const { corp, transfer, set } = await corpAtEarthWithMarsStock();
     set((c) => { c.currentStationId = null; });

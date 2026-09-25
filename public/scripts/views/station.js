@@ -264,7 +264,7 @@ export function bindOfficeActions(building, data) {
           appState.data.corp.offices.push({
             stationId: station?.id || "earth-station-prime",
             name: station?.name || "Earth Station Prime",
-            body: currentBody,
+            body: station?.body || corp?.location || "Earth", // AB#1825: as renderOrbitalExecutiveSuites derives it
             systemId: station?.systemId || "sol",
             tier: station?.tier || 1,
             rentedAt: Date.now(),
