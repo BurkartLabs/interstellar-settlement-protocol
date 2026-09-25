@@ -65,6 +65,21 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   player docked in Barnard's Star with Asteroid Prospecting (`e2e/seed-prospector-account.mjs`): Scout there, "travel
   there" elsewhere. Screens: `docs/ab-1344/`.
 
+## What's now true (ISP-72, AB#761 — core components on /styleguide, Builder)
+
+- **`/styleguide` shows the core components, each in every state**, with the game's own words: button (primary,
+  secondary, ghost, danger × rest, hover, focus, pressed, disabled, loading), input and select, card, panel with header,
+  tabs, badge, tooltip. They are `ui-` classes in tokens only, at the end of `styles.css`; no screen uses them yet (the
+  rebuilds, ISP-76 to 79, adopt them). `.is-hover`, `.is-active`, `.is-focus`, `.is-loading`, `.is-selected`, `.is-open`
+  draw a state standing still for the page; `.is-focus` is part of the one focus rule (AB#1760).
+- Controls are 36px on a desktop and 44px on a phone. `e2e/styleguide.spec.js` measures every control at 375 wide and
+  walks the page with Tab, checking the ring on each stop. Tabs follow the ARIA pattern (arrow keys, Home, End) and a
+  tooltip closes on Escape: `public/scripts/uiComponents.js`.
+- **The primary fill ISP-71 owed:** login and register's submit (`.btn-hero-fill`) is a solid `--accent`. The game's
+  per-item `.btn-accent` (Enroll, Enqueue, Send...) is accent text and border: many to a screen, so not filled; each
+  screen's one filled primary is chosen when it is rebuilt.
+- Looked at: `docs/isp-72/` (the style guide at both sizes, the login page and CEO Insight after the change).
+
 ## What's now true (ISP-71, AB#760 — styles.css on the tokens, Builder)
 
 - **Outside the token block, `styles.css` has no hex colour, no `rgb(` and no px font size**;

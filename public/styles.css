@@ -132,7 +132,9 @@
 /* Keyboard focus is visible on every element that can take it, from one token: buttons, links, inputs, tabs, and the
    scrolling tables Chromium makes tab stops of their own. :focus-visible, so a mouse click on a button draws no ring
    while a text field shows it whenever it has focus, which is how browsers treat them. */
-:focus-visible {
+/* .is-focus draws the same ring standing still, for the style guide's specimens (ISP-72). */
+:focus-visible,
+.is-focus {
   outline: var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
@@ -6503,4 +6505,458 @@ body.sg {
 }
 .listing-row-status--ok {
   color: var(--accent);
+}
+
+/* ─── Core components (ISP-72, AB#761): button, input and select, card, panel, tabs, badge, tooltip ───
+   The flat direction (Decision AB#1801), in tokens only. Every one is shown in every state at /styleguide. A screen
+   adopts them when it is rebuilt (ISP-76 to ISP-79); until then the game's own .btn, .pill and .tab-btn are unchanged.
+   The .is-hover, .is-active, .is-focus, .is-loading, .is-selected and .is-open classes draw a state that is otherwise
+   reached by the pointer or the keyboard, so the style guide can show it standing still. Controls are 36px tall on a
+   desktop and 44px on a phone, the smallest target a thumb hits reliably. */
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+.ui-button--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.ui-button--primary:hover:not(:disabled),
+.ui-button--primary.is-hover {
+  background: var(--accent-hover);
+}
+.ui-button--primary:active:not(:disabled),
+.ui-button--primary.is-active {
+  background: var(--accent-pressed);
+}
+.ui-button--secondary {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+.ui-button--secondary:hover:not(:disabled),
+.ui-button--secondary.is-hover {
+  background: var(--surface-hover);
+  border-color: var(--muted);
+}
+.ui-button--secondary:active:not(:disabled),
+.ui-button--secondary.is-active {
+  background: var(--surface-pressed);
+}
+.ui-button--ghost {
+  background: transparent;
+  color: var(--accent);
+}
+.ui-button--ghost:hover:not(:disabled),
+.ui-button--ghost.is-hover {
+  background: var(--surface-2);
+  color: var(--accent-hover);
+}
+.ui-button--ghost:active:not(:disabled),
+.ui-button--ghost.is-active {
+  background: var(--surface-3);
+  color: var(--accent-hover);
+}
+.ui-button--danger {
+  background: var(--danger);
+  color: var(--on-danger);
+}
+.ui-button--danger:hover:not(:disabled),
+.ui-button--danger.is-hover {
+  background: var(--danger-hover);
+}
+.ui-button--danger:active:not(:disabled),
+.ui-button--danger.is-active {
+  background: var(--danger-pressed);
+}
+.ui-button:disabled,
+.ui-button[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+/* Loading: the label stays (it says what is happening), a spinner in the text colour leads it, and it cannot be
+   pressed twice. It keeps its place in the tab order; aria-busy tells a screen reader it is working. */
+.ui-button.is-loading,
+.ui-button[aria-busy="true"] {
+  cursor: progress;
+  pointer-events: none;
+}
+.ui-button.is-loading::before,
+.ui-button[aria-busy="true"]::before {
+  content: "";
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: ui-spin 0.8s linear infinite;
+}
+@keyframes ui-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.ui-field__label {
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+}
+.ui-field__hint {
+  font-size: var(--font-size-1);
+  color: var(--muted);
+}
+.ui-field__error {
+  font-size: var(--font-size-1);
+  color: var(--danger);
+}
+.ui-input,
+.ui-select {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2);
+  color-scheme: dark;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+.ui-input::placeholder {
+  color: var(--muted);
+}
+.ui-input:hover:not(:disabled),
+.ui-select:hover:not(:disabled),
+.ui-input.is-hover,
+.ui-select.is-hover {
+  border-color: var(--muted);
+}
+.ui-input:focus-visible,
+.ui-select:focus-visible,
+.ui-input.is-focus,
+.ui-select.is-focus {
+  border-color: var(--accent);
+}
+.ui-input:disabled,
+.ui-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.ui-input[aria-invalid="true"],
+.ui-select[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.ui-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-soft);
+  text-align: left;
+  text-decoration: none;
+}
+.ui-card__title {
+  margin: 0;
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+}
+.ui-card__body {
+  margin: 0;
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+}
+.ui-card__meta {
+  margin: 0;
+  font-size: var(--font-size-1);
+  color: var(--muted);
+}
+/* A card that is itself the control (a whole card to pick): it lightens a step under the pointer, and the selected
+   one carries the accent on its border. */
+.ui-card--interactive {
+  cursor: pointer;
+  font: inherit;
+  transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+.ui-card--interactive:hover,
+.ui-card--interactive.is-hover {
+  background: var(--surface-3);
+}
+.ui-card--interactive.is-selected,
+.ui-card--interactive[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+
+.ui-panel {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  min-width: 0;
+}
+.ui-panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.ui-panel__title {
+  margin: 0;
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+}
+.ui-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ui-panel__body {
+  padding: var(--space-4);
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+}
+
+.ui-tabs {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.ui-tab {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+.ui-tab:hover:not(:disabled),
+.ui-tab.is-hover {
+  color: var(--text);
+}
+.ui-tab[aria-selected="true"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+/* The tab strip scrolls sideways, which clips anything drawn outside it: the focus ring goes inside the tab. */
+.ui-tab:focus-visible,
+.ui-tab.is-focus {
+  outline-offset: calc(-1 * var(--focus-ring-offset));
+}
+.ui-tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.ui-tabpanel {
+  padding: var(--space-4) 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+}
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  min-height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-soft);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+.ui-badge--accent {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.ui-badge--warn {
+  color: var(--warn);
+  border-color: var(--warn);
+}
+.ui-badge--danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.ui-badge--success {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+/* A tooltip explains its trigger and holds nothing to act on: it opens on hover and on keyboard focus, and Escape
+   closes it (scripts/uiTooltip.js), as WCAG 1.4.13 asks of content that appears on hover. */
+.ui-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.ui-tooltip {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  left: 50%;
+  z-index: var(--z-tooltip);
+  width: max-content;
+  max-width: 240px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--elevation-overlay);
+  color: var(--text);
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-body);
+  transform: translateX(-50%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-standard), visibility var(--duration-fast) var(--ease-standard);
+}
+.ui-tooltip-wrap:hover .ui-tooltip,
+.ui-tooltip-wrap:focus-within .ui-tooltip,
+.ui-tooltip.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+.ui-tooltip-wrap.is-dismissed .ui-tooltip {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* The primary action ISP-71 owed: the login and register submit is the direction's one primary, a solid accent fill.
+   The game's per-item accent actions (.btn-accent, many to a screen) carry the accent as their text and border
+   instead, so a screen is not a field of cyan; each screen's one filled primary is chosen when it is rebuilt. */
+.btn-hero-fill {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.btn-hero-fill:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+.btn-accent {
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-accent:hover:not(:disabled) {
+  background: var(--surface-3);
+}
+
+@media (max-width: 600px) {
+  .ui-button,
+  .ui-input,
+  .ui-select,
+  .ui-tab {
+    min-height: 44px;
+  }
+  .ui-button {
+    min-width: 44px;
+  }
+}
+
+/* ─── Style guide: the components page at /styleguide (ISP-72, AB#761) ─── */
+.sg-lede a {
+  color: var(--accent);
+}
+/* One column per state on a desktop, so the four variants line up; on a phone each variant wraps on its own. */
+.sg-matrix {
+  display: grid;
+  grid-template-columns: 88px repeat(6, max-content);
+  align-items: start;
+  gap: var(--space-4) var(--space-3);
+}
+.sg-matrix-row {
+  display: contents;
+}
+.sg-row-name {
+  width: 88px;
+  margin: 0;
+  padding-top: var(--space-2);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+}
+.sg-specimen {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+.sg-state {
+  font-size: var(--font-size-1);
+  color: var(--muted);
+}
+.sg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+.sg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.sg-tooltip-row {
+  padding-top: var(--space-16);
+  gap: var(--space-8);
+}
+.sg-tab-states {
+  margin-top: var(--space-2);
+}
+@media (max-width: 600px) {
+  .sg-matrix {
+    display: flex;
+    flex-direction: column;
+  }
+  .sg-matrix-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+  .sg-row-name {
+    width: 100%;
+    padding-top: 0;
+  }
+  .sg-grid {
+    grid-template-columns: 1fr;
+  }
 }
