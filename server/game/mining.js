@@ -175,7 +175,10 @@ export function ensureCorpMiningModel(corp) {
   }
 }
 
-// TODO(AB#1052): Add force-stop functionality
+// AB#1052: also called directly by POST /lease/:leaseId/stop-mining (server/index.js). mutateAccountState
+// settles every extractor up to "now" via applyMiningOperations before that route's mutator runs, so by the
+// time this is called the extractor's minedThisCycle/totalSpent/lastTickAt already reflect the real elapsed
+// time — stopping it here charges for exactly what happened, not a moment more.
 export function stopExtractorCycle(extractor, timestamp) {
   extractor.active = false;
   extractor.endsAt = timestamp;

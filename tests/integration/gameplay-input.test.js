@@ -22,6 +22,7 @@ const BASELINE = {
   "POST /travel": { body: { toStationId: "mars-orbital-dock" } },
   "POST /lease/:leaseId/build-extractor": { params: { leaseId: "lease-731" } },
   "POST /lease/:leaseId/start-mining": { params: { leaseId: "lease-731" }, body: { amount: 40, hours: 24, extractorId: "ext-731" } },
+  "POST /lease/:leaseId/stop-mining": { params: { leaseId: "lease-731" }, body: { extractorId: "ext-731" } },
   "POST /build-assembly-facility": {},
   "POST /build-mining-probe": {},
   "POST /build-refinery": {},

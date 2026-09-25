@@ -58,6 +58,10 @@ export const GAMEPLAY_INPUT = {
       extractorId: id("ownExtractors", "one of your extractors")
     }
   },
+  "POST /lease/:leaseId/stop-mining": {
+    params: { leaseId: id("ownLeases", "one of your mining leases") },
+    body: { extractorId: id("ownExtractors", "one of your extractors") }
+  },
   "POST /build-assembly-facility": NOTHING,
   "POST /build-mining-probe": NOTHING,
   "POST /build-refinery": NOTHING,
