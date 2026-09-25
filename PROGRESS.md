@@ -1,9 +1,48 @@
 # ISP — handoff
 
-**2026-09-25. Merged from four concurrent Builder panes: #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then
-ISP-89 (AB#779); #3 did ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only
-extension-less; #4 did ISP-278 (AB#985), still without a browser session of its own. No CONTROL_URL / Chrome
-extension on any of these panes (Builder panes don't get one by design).**
+**2026-09-25. Merged from concurrent Builder panes: #1 (this pane) did AB#1758 (orchestrata, scope override)
+then AB#1052 — a player-triggered stop on a running mining cycle, looked at with ISP-61's own Playwright
+pattern rather than the Chrome extension; #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then ISP-89 (AB#779);
+#3 did ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only extension-less; #4 did
+ISP-278 (AB#985), still without a browser session of its own. No CONTROL_URL / Chrome extension on any of these
+panes (Builder panes don't get one by design).**
+
+## What's now true (this session: AB#1052)
+
+- **AB#1052 is done: a player can stop a running mining cycle early.** `POST
+  .../gameplay/lease/:leaseId/stop-mining` ends the cycle now, keeps what has been mined, and settles the cost
+  for the time actually used.
+  - **No new settlement math was needed.** `mutateAccountState` already runs `applyMiningOperations` on every
+    extractor before its mutator executes (AB#1448), so by the time this route's mutator runs, the target
+    extractor's `minedThisCycle`/`totalSpent`/`lastTickAt` already reflect the real elapsed time; the route
+    only calls the existing `stopExtractorCycle` (`server/game/mining.js`, previously unused outside that file,
+    now re-exported from `gameState.js`). The mined amount and the charge can't disagree with what a normal
+    tick would have produced, by construction — the acceptance line's own bar.
+  - **No office check**, unlike start-mining: an expired or wrong-station office lease should not trap a player
+    into a cycle they cannot end.
+  - Registered in `server/gameplayInput.js` and `gameplay-input.test.js`'s baseline (AB#731's requirement), so
+    the hostile-input fuzz suite covers it like every other gameplay route.
+  - **Client**: a Stop Cycle button on a running extractor's panel (shown during downtime too — the extractor
+    is still `active` then, per the data model), behind the existing trade-confirmation modal. Demo-account
+    fallback mirrors the server's settlement math for players with no account.
+  - Six new tests (`tests/integration/mining-cycle-stop.test.js`): mined/charged match a partial elapsed time,
+    not the full cycle; `totalMined` survives across a stop; refuses a cycle that isn't running; refuses a
+    second stop (idempotent, no double-charge); a cycle that already finished naturally before the stop request
+    settles the whole cycle and no more; 404 for a nonexistent account. All six confirmed to fail with the
+    route removed (T-047).
+  - **One test-authoring bug found and fixed along the way, not a route bug**: the first draft's credits
+    baseline was read through `getAccountById`, which itself settles mining as a side effect (Bug #1260) —
+    reading it *after* advancing the fake clock silently absorbed the charge into the baseline, and the test
+    failed for a reason that had nothing to do with the route. Fixed by reading the known starting balance
+    instead of re-reading through a settling call.
+  - **Looked at it, with ISP-61's own pattern**: `e2e/stop-mining.spec.js` (Playwright, not the Chrome
+    extension) registers a fresh account, rents an office, hires, files the Earth claim, builds a yard, starts
+    a cycle at 250 t/h, waits for real accrual the way ISP-61's script does, clicks Stop Cycle, confirms, and
+    asserts the row reads Idle with the Start-Cycle form back — at 1280×800 and 375×812. Both pass; all 6
+    screenshots looked at directly, phone width has no horizontal scroll.
+  - Checks: `npm test` — **151 files, 1541 tests, all green** (1500 baseline after merging ISP-48/61/89/278 +
+    41 more from this session's merge of ISP-278's sibling work + 6 new here). `npx playwright test
+    e2e/stop-mining.spec.js` — 2 passed.
 
 ## What's now true (this session: ISP-89, AB#779)
 
@@ -247,5 +286,6 @@ a Builder pane without the Chrome extension.
 
 Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-boundary`, PR !392), ISP-48's
 (`agent/734-security`, PR !402), ISP-61's (`agent/747-first-hour-playtest`) and ISP-278's
-(`agent/985-timed-transit`, PR !408) are all merged. This session's branch is `agent/779-no-payments-test`,
-PR !409, approved and set to auto-complete.
+(`agent/985-timed-transit`, PR !408) are all merged. ISP-89's session's branch was `agent/779-no-payments-test`,
+PR !409, approved and set to auto-complete. This pane's AB#1052 branch is `agent/1052-stop-mining`, PR opening
+now. Multiple Builder panes are active on ISP at once — check ADO state before claiming the next item.
