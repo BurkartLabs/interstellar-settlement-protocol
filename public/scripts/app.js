@@ -653,9 +653,11 @@ function bindRealtimeEvents() {
 
 // AB#716: imported beside its one use, away from the import block that parallel pull requests edit.
 import { bindPriceChart } from "./priceChart.js";
+import { installNumberAcknowledgement } from "./numberChange.js"; // AB#745
 
 async function boot() {
   hydrateSession();
+  installNumberAcknowledgement(); // before the first render, so what it draws is the baseline, not a change
   showAuthScreen();
   bindCollapsibleSections();
   bindTabs();

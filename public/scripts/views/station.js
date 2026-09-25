@@ -115,6 +115,7 @@ export function renderBuildingDetail(building, data) {
 */
 
 // ─── Orbital Executive Suites ──────────────────────────────────────────
+import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
 export function renderOrbitalExecutiveSuites(building, data) {
   const corp = data.corp;
   const station = getCurrentStationInfo(data);
@@ -221,7 +222,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
         </label>
         <button class="btn btn-accent" type="submit">Hire Personnel</button>
       </form>
-      <p id="office-hire-hint" class="muted action-hint">Available headroom: ${corp.employeeCap - corp.employeeCount} position(s). Staffing: ${corp.employeeCount} / ${corp.employeeCap}.</p>
+      <p id="office-hire-hint" class="muted action-hint">Available headroom: ${corp.employeeCap - corp.employeeCount} position(s). Staffing: ${numberMarkup("station:staffing", corp.employeeCount)} / ${corp.employeeCap}.</p>
       <p id="office-hire-status" class="muted"></p>
     </section>
 
