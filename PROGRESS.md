@@ -1,9 +1,9 @@
 # ISP — handoff
 
-**2026-09-25. Merged from three concurrent Builder panes: #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then
+**2026-09-25. Merged from four concurrent Builder panes: #2 did ISP-67 (AB#756), then ISP-48 (AB#734), then
 ISP-89 (AB#779); #3 did ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only
-extension-less; see below. No CONTROL_URL / Chrome extension on any of these panes (Builder panes don't get one
-by design).**
+extension-less; #4 did ISP-278 (AB#985), still without a browser session of its own. No CONTROL_URL / Chrome
+extension on any of these panes (Builder panes don't get one by design).**
 
 ## What's now true (this session: ISP-89, AB#779)
 
@@ -24,6 +24,41 @@ by design).**
   confirming it.
 - Checks: `npm run check` clean; `npm test` — **150 files, 1502 tests, all passed** on the clean rerun (1500
   baseline + 2 new).
+
+## What's now true (this session: ISP-278, AB#985)
+
+- **ISP-278 is done: shipments arrive on a later tick, not on dispatch.** `POST .../gameplay/transfer-resources`
+  debits the origin inventory and the fee once, same as before, but now creates a shipment (`corp.shipments`)
+  with an arrival time from `transitTime` (`server/transfers.js`, dead code since AB#718, now wired in) instead
+  of crediting the destination on the spot. The goods are in neither inventory while in flight — the bug-#692
+  lesson applies here too: the destination station is pinned at dispatch (`corp.currentStationId` read once,
+  when the shipment is created), never re-read at delivery time.
+  - **`shipmentTick`** (mirrors `travelTick`, same 5s interval) delivers each shipment on the first tick at or
+    after `arrivesAt`: credits the destination, records it in `corp.logisticsHistory` (same shape as before, so
+    the existing Transfer History list needs no change), fires a notification, and drops the shipment from
+    `corp.shipments` in the same pass — delivery is idempotent by construction, no separate guard needed.
+  - **Held, not lost:** if the destination station id isn't in the catalog at arrival (a decommissioned
+    station), the shipment's marked `status: "held"` and stays in `corp.shipments` rather than crediting nothing
+    or vanishing; the player is notified. Nothing today resolves a held shipment — a reasonable follow-up if the
+    Board ever retires a station.
+  - **New, owner-scoped:** `GET .../gameplay/shipments` (list) and `.../shipments/:shipmentId` (one, 404 if it
+    isn't yours — same shape as the existing message/notification-by-id routes).
+  - **Client:** `app.js`'s post-transfer toast now reads the dispatch response's ETA rather than
+    `logisticsHistory[0]` (which no longer has an entry at dispatch time) — "Dispatched … arriving in N min"
+    instead of a false "Moved …". This is a plain-text change, not a layout one; see Blind spot.
+  - Tests (`tests/integration/transfers.test.js`, `transfer-distance.test.js`): dispatch-vs-delivery separation,
+    idempotent tick delivery with injected time, arrival notification, restart survival (write the live state to
+    disk, reload it as a fresh process would, tick from the reloaded copy alone), the held-station case, a
+    client-supplied arrival time being ignored, and cross-account 404 scoping. All fail against the pre-fix
+    code where meaningful (dispatch-vs-delivery, idempotence) — checked by reverting the diff and re-running.
+  - `tests/unit/benchTicks.test.js` and `scripts/bench-ticks.mjs` gained `shipmentTick`; `server/gameplayInput.js`
+    and both AB#731/#732 guard-test files gained the two new routes (the first `ref`-kind field in
+    `GAMEPLAY_INPUT`, so `gameplay-input.test.js`'s hostile-input loop needed the same ref-kind carve-out
+    `remaining-input.test.js` already had — a real gap in that test, not specific to this story, fixed here).
+  - `ECONOMY.md` and `DESIGN_DOCUMENT.md`'s "transfers still arrive at once; transit time isn't used yet" notes
+    are updated — that sentence is what this story replaces.
+  - Checks: `npm run check` clean; `npm test` — **149 files, 1513 tests, all passed** (1500 baseline on
+    `origin/main` after merge + 13 new).
 
 ## What's now true (ISP-48, AB#734 — prior session, still accurate)
 
@@ -177,20 +212,32 @@ against a clean checkout (passed) — each the actual mechanism its own acceptan
 proxy for it. ISP-67's own blind-spot note (an earlier session) stands unchanged: `socket.io-client` against a
 real server was that session's equivalent of "looked at it."
 
-`npm test` after all three sessions: **150 files, 1502 tests, all green** on a clean rerun (one, unrelated
-`ticker-mining-settle.test.js` flake seen once under full-suite load, filed as AB#1767, not reproduced again).
-`npm run check` clean. `npx playwright test`: 2 passed.
+ISP-278 has no screen of its own either — a dispatch/delivery split in server state, proven with real HTTP
+requests and a real `shipmentTick()` call through `supertest`/`getApp()` (not a mock), the mechanism its
+acceptance criteria describe (dispatch, tick timing, restart, the held case, ownership). One thing that session
+did **not** look at: the client's post-dispatch toast wording (`public/scripts/app.js`) was reasoned through
+and `node --check`ed, but never seen rendered — a plain-text change (an ETA in a toast), not layout, so the
+risk is narrow, but it is unverified and called out rather than folded into "done."
+
+`npm test` after all four sessions: **149 files, 1513 tests, all green** (1500 after ISP-48/ISP-61/ISP-89 + 13
+new from ISP-278). `npm run check` clean. `npx playwright test`: 2 passed (from ISP-61, not re-run since). One,
+unrelated `ticker-mining-settle.test.js` flake seen once under full-suite load during the ISP-89 session, filed
+as AB#1767, not reproduced again.
 
 **AB#753/755/757/781/987/989 (the remaining screenshot-gated v0.5 items) are no longer blocked on "no
 browser."** They still need a look, and Playwright is now the way to do it for ISP the way it already was for
 job-hunt — but nobody has yet written the scripts for CSP-console-checking, the register page, or the
-verification-email flow. That's real work still to do, not a blind spot anymore.
+verification-email flow. That's real work still to do, not a blind spot anymore, and the natural next pick for
+a Builder pane without the Chrome extension.
 
 ## What's next
 
-- **AB#753/755/757/781/987/989** can now be built and looked at with Playwright — see ISP-61 above for the
-  pattern (`e2e/first-hour.spec.js`, `playwright.config.js`). This is the largest block of stuck v0.5 work
-  across three sessions, and it just became claimable; a good next pick.
+- **AB#753/755/757/781/987/989** (screenshot-gated v0.5 items) can now be built and looked at with Playwright —
+  see ISP-61 above for the pattern (`e2e/first-hour.spec.js`, `playwright.config.js`). This is the largest
+  block of stuck v0.5 work across four sessions, and it just became claimable; a good next pick.
+- **ISP-279** ("Shipments in the Logistics tab: arrival time quoted before you move") is a natural next story
+  for whichever pane picks it up: it has the `ui` tag ISP-278 avoided, and can now build on `corp.shipments`
+  and the two new `GET .../gameplay/shipments(/:id)` routes instead of inventing the data model itself.
 - **AB#1765** (refresh tokens in plain text at rest), **AB#1766** (the market/forum "still-authenticated-
   looking" socket boundary) and **AB#1767** (a second flaky test, possibly related to AB#1744) are filed,
   Proposed, unclaimed — non-visual fallbacks.
@@ -199,5 +246,6 @@ verification-email flow. That's real work still to do, not a blind spot anymore.
 ## In flight / blocked
 
 Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-boundary`, PR !392), ISP-48's
-(`agent/734-security`, PR !402) and ISP-61's (`agent/747-first-hour-playtest`) are all merged. This session's
-branch is `agent/779-no-payments-test`, PR !409, approved and set to auto-complete.
+(`agent/734-security`, PR !402), ISP-61's (`agent/747-first-hour-playtest`) and ISP-278's
+(`agent/985-timed-transit`, PR !408) are all merged. This session's branch is `agent/779-no-payments-test`,
+PR !409, approved and set to auto-complete.

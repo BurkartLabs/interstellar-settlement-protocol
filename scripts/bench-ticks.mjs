@@ -26,6 +26,7 @@ export const TICKERS = [
   { name: "asteroidExpeditionTick", intervalMs: 10_000 },
   { name: "fabricationTick", intervalMs: 5_000 },
   { name: "travelTick", intervalMs: 5_000 },
+  { name: "shipmentTick", intervalMs: 5_000 },
   { name: "processRndCompletions", intervalMs: 5_000 },
   { name: "processCeoInsightCompletions", intervalMs: 5_000 },
   { name: "checkAndResetNpcBuyOrders", intervalMs: 60_000 },
