@@ -102,6 +102,21 @@ function updateAllViews() {
   performance.measure("isp:updateAllViews", { start });
 }
 
+/**
+ * AB#1452 (ISP-44a): the two costliest views, the Galactic Exchange's order book and the six finance charts (74 and
+ * 51 ms of a ~178 ms re-render at 4x throttling), draw only while their tab is on screen, and setTab draws them on the
+ * switch to it. Nothing else reads what they draw, so a hidden one is simply drawn later, from the state as it is then.
+ */
+const isTabOnScreen = (id) => document.getElementById(id)?.classList.contains("active") === true;
+
+function renderMarketIfOnScreen(data) {
+  if (isTabOnScreen("market")) renderMarket(data);
+}
+
+function renderFinanceChartsIfOnScreen(data) {
+  if (isTabOnScreen("finance")) renderFinanceCharts(data.corp.finances);
+}
+
 function renderAllViews() {
   if (appState.serverData) {
     applySharedState(appState.serverData);
@@ -123,14 +138,14 @@ function renderAllViews() {
   renderTechTree(data);
   renderInsightTree(data);
   renderRefinery(data);
-  renderMarket(data);
+  renderMarketIfOnScreen(data);
   renderAssets(data);
   renderLogistics(data);
   renderForums(data);
   renderMissions(data);
   renderChatLog(data);
   renderChatChannelTabs();
-  renderFinanceCharts(data.corp.finances);
+  renderFinanceChartsIfOnScreen(data);
   renderFinanceDashboard(data.corp.finances);
   renderFeedbackLog();
   if (data.world?.systems) starmap.setSystems(data.world.systems);
@@ -158,7 +173,12 @@ function setTab(targetId) {
     requestAnimationFrame(() => starmap.resize());
   }
 
+  // AB#1452: a view that is not drawn while hidden is drawn now, as its tab comes on screen.
+  const shown = appState.authenticated ? appState.data : null;
+  if (targetId === "market" && shown) renderMarket(shown);
+
   if (targetId === "finance") {
+    if (shown) renderFinanceCharts(shown.corp.finances);
     loadStatements(); // AB#714: the closed days are fetched on their own, not carried in the account
   }
 
@@ -484,7 +504,7 @@ function bindRealtimeEvents() {
     }
 
     appState.data.market = marketState;
-    renderMarket(appState.data);
+    renderMarketIfOnScreen(appState.data); // AB#1452: another player's trade no longer redraws a hidden book
   });
 
   socket.on("forums:updated", (forumsState) => {
