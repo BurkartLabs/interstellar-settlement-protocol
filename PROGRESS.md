@@ -28,6 +28,14 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 - `tests/integration/mission-agent-station.test.js`; `e2e/contract-agent-station.spec.js` accepts and completes a
   contract at Earth in a browser (seed: `e2e/seed-contractor-account.mjs`); screenshots in `docs/ab-1203/`.
 
+## What's now true (AB#1284 — a disabled button looks disabled)
+
+- `button:disabled` is dimmed (0.45) with a not-allowed cursor, and `.btn:disabled` has no hover glow, in
+  `public/styles.css` under `.btn:hover`. It replaces the Construct card's own rule from AB#1253.
+  `tests/unit/disabledButtons.test.js` reads the stylesheet; `e2e/disabled-buttons.spec.js` measures the claims-office
+  lease button and the walkthrough's Previous, and that enabled buttons are unchanged. Screenshots in `docs/ab-1284/`.
+- Disabled inputs and selects (the research select, an exhausted NPC sell quantity) are not covered by this rule.
+
 ## What's now true (AB#1827, Builder #4)
 
 - **No e2e spec writes to the checkout any more.** `refinery-requirements-muted.spec.js` served its pre-fix
