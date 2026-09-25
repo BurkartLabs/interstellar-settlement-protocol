@@ -132,7 +132,9 @@
 /* Keyboard focus is visible on every element that can take it, from one token: buttons, links, inputs, tabs, and the
    scrolling tables Chromium makes tab stops of their own. :focus-visible, so a mouse click on a button draws no ring
    while a text field shows it whenever it has focus, which is how browsers treat them. */
-:focus-visible {
+/* .is-focus draws the same ring standing still, for the style guide's specimens (ISP-72). */
+:focus-visible,
+.is-focus {
   outline: var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
@@ -6607,11 +6609,6 @@ body.sg {
   to {
     transform: rotate(360deg);
   }
-}
-/* A keyboard focus shown standing still; the real one is the one rule under "Focus and motion" (AB#1760). */
-.is-focus {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
 }
 
 .ui-field {

@@ -56,7 +56,8 @@ describe("the focus ring (AB#1760)", () => {
   // own, and a list of button, a, input... left the Exchange's trade table with no ring (found by the e2e walk).
   it("draws it with one rule for everything focusable: :focus-visible, unqualified", () => {
     const ring = RULES.filter((r) => r.media === "" && decls(r.body).some((d) => d.prop === "outline" && d.value === "var(--focus-ring)"));
-    expect(ring.map((r) => r.selectors)).toEqual([[":focus-visible"]]);
+    // .is-focus is the same ring drawn standing still, for the style guide's specimens (ISP-72): the same one rule.
+    expect(ring.map((r) => r.selectors)).toEqual([[":focus-visible", ".is-focus"]]);
     expect(decls(ring[0].body)).toContainEqual({ prop: "outline-offset", value: "var(--focus-ring-offset)" });
   });
 

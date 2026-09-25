@@ -57,7 +57,7 @@ describe("/styleguide shows every component in every state (ISP-72)", () => {
       expect(CSS, `${variant} hover`).toContain(`.ui-button--${variant}.is-hover`);
       expect(CSS, `${variant} pressed`).toContain(`.ui-button--${variant}.is-active`);
     }
-    for (const rule of [".ui-button.is-loading::before", ".ui-input.is-hover", ".ui-input.is-focus", ".ui-select.is-hover", ".ui-select.is-focus", ".ui-card--interactive.is-hover", ".ui-tab.is-hover", ".ui-tab.is-focus", ".ui-tooltip.is-open", ".is-focus {"]) {
+    for (const rule of [".ui-button.is-loading::before", ".ui-input.is-hover", ".ui-input.is-focus", ".ui-select.is-hover", ".ui-select.is-focus", ".ui-card--interactive.is-hover", ".ui-tab.is-hover", ".ui-tab.is-focus", ".ui-tooltip.is-open", ":focus-visible,\n.is-focus {"]) {
       expect(CSS, rule).toContain(rule);
     }
   });
