@@ -28,6 +28,31 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 - `tests/integration/mission-agent-station.test.js`; `e2e/contract-agent-station.spec.js` accepts and completes a
   contract at Earth in a browser (seed: `e2e/seed-contractor-account.mjs`); screenshots in `docs/ab-1203/`.
 
+## What's now true (AB#1827, Builder #4)
+
+- **No e2e spec writes to the checkout any more.** `refinery-requirements-muted.spec.js` served its pre-fix
+  `views/refinery.js` by overwriting the file on disk. It now uses `page.route` for that one page load.
+  `tests/unit/e2eNoSourceWrites.test.js` fails for any `*.spec.js` that writes, copies, renames or deletes a file,
+  except removing its own temporary data dir. A spec that needs different client code routes it.
+
+## What's now true (this session: AB#1756, Builder #4)
+
+- **The walkthrough's phone-width target is visible on step 3 again.** Execute Lease Agreement (drawn only once the
+  Suites are open) was scrolled correctly, but the page had no room left: `#game-shell` is `height:100vh` and the
+  grid overflows it, so the `body.walkthrough-open` padding added nothing to a page taller than the screen. That
+  room now sits on `.layout-grid`. `e2e/walkthrough-late-target.spec.js` (375x812, the player never scrolls) is red
+  on the old CSS and green now. The screenshots of steps 3 and 4 were looked at.
+- **Running several e2e specs against one local server hits the register limit** (5 per IP per hour). Start the
+  server with `ISP_RATE_LIMIT_REGISTER_MAX=200` for local playtests. Otherwise a spec fails at registration and
+  looks like a regression.
+
+## What's now true (AB#1170 — an over-long transfer item is "not held", not "no item")
+
+- A transfer line's item is missing only when it is blank. An item too long to be any id is an item the source
+  station does not hold, and gets that answer from both `checkTransfer` (`server/gameplayInput.js`, which answered
+  first for anything over 64) and `parseTransferRequest` (`public/scripts/logistics.js`, whose 40 cap is gone).
+  Tests: `tests/integration/transfers.test.js` (41, 65, 10,000, blank), `tests/unit/logistics.test.js`.
+
 ## What's now true (AB#1169 — Sell Orders says when it is capped, Builder #1)
 
 - Sell Orders draws `SELL_ORDERS_SHOWN` (30) and My Active Listings `MY_LISTINGS_SHOWN` (50), both in

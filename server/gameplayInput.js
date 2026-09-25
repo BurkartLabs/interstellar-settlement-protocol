@@ -218,13 +218,15 @@ function checkTransfer(body, has, stationName) {
   if (!lines || lines.length === 0) return refuse("Add at least one item to move.");
   if (lines.length > MAX_TRANSFER_LINES) return refuse(`A transfer carries at most ${MAX_TRANSFER_LINES} lines; you sent ${lines.length}. Split it into two transfers.`);
   for (let i = 0; i < lines.length; i += 1) {
-    const item = idString(lines[i]?.item);
-    if (item === null) return refuse(`Line ${i + 1} has no item. Pick one from the station's list.`);
+    // Only a blank item is missing. One too long to be any id is still an item, just not one the station holds (AB#1170).
+    const item = lines[i]?.item;
+    if (typeof item !== "string" || !item.trim()) return refuse(`Line ${i + 1} has no item. Pick one from the station's list.`);
     const n = wholeNumber(lines[i]?.quantity);
     if (n === null || n < 1 || n > 1_000_000_000) return refuse(`Line ${i + 1}: enter a whole number of at least 1 to move.`);
   }
   for (const line of lines) {
-    if (!has("ownStock", `${from}|${idString(line.item)}`)) return refuse(`${stationName(from)} holds none of that item. Pick one from its list.`);
+    const item = idString(line.item);
+    if (item === null || !has("ownStock", `${from}|${item}`)) return refuse(`${stationName(from)} holds none of that item. Pick one from its list.`);
   }
   return { ok: true };
 }
