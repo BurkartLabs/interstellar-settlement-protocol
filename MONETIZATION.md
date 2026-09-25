@@ -2,6 +2,246 @@
 
 One `## Review #N — <date> · **x.x / 5 · VERDICT**` section per Monetization Critic review, newest first.
 
+## Review #2 — 2026-09-25 · **1.8 / 5 · REPRICE**
+
+Reviewer: Monetization Critic (Claude Sonnet 5; `personas/models.json` lists `opus` for the Critic. Context not fresh:
+this session had already run a depth review and an ad hoc systems audit of this same product before the Board
+assigned the metric change to monetization. The Board was told so and directed the review to proceed anyway rather
+than wait for a `/clear`.) · probes: `ops/probes/isp-runway.ts` (ISP-84/AB#773, built since review #1 — epic 4 is
+done)
+Stage: Build (v0.5 Beta MVP, AB#389)
+Previous score: 1.8/5 (review #1, 2026-09-20; evaluable-only 3.5, same as this review)
+Build read: `origin/main` at `edf1b7a`, clean worktree, `npm ci`. Origin moved twice while this review was being
+written (`c341c96` → `edf1b7a`, four PRs); the second move landed exactly one of this review's own findings before
+it could be filed — see epic 3 and "then the history" below, both written against the final commit.
+
+**Read the headline against the last one, not instead of it.** The number is unchanged — still no SKU exists, so
+four of six gates still fail closed — but three of review #1's five epics have shipped since, and the gate that
+matters most for whether this product can ever be monetized (Sink depth) failed for the **opposite reason** this
+time. That is the finding worth reading past the number for.
+
+### What is already known
+
+Review #1's research still stands and is not re-run: EVE's PLEX precedent (indirect monetization is tolerated,
+direct is not, and both are inflationary), the transaction-fee model for trading games, and "sinks before taps" as
+the balance instrument. One addition, from this session's own systems-audit pass earlier today, cited again here
+because it bears directly on Sink depth: EVE's and RuneScape's retention both rest on **permanent, uncapped
+progression that a player spends years and money-equivalents pursuing** — which is exactly the resource this
+product's sink curve needs to point at, and exactly what it does not yet have past Level 1.
+
+### Probe numbers
+
+**Epic 4 from review #1 is done.** `ops/probes/isp-runway.ts` now reports the RUBRIC's own probe column for this
+table — "gems banked vs spent per day, by profile" — from a real bot run against the real HTTP handlers, not read
+from source. Run today, 30 simulated days, seed 7000, two supply settings, against a clean `origin/main` worktree
+(the same run this session already used for a systems audit; reused here rather than re-run, since nothing has
+changed on `origin/main` in between):
+
+```text
+                    HIGH SUPPLY                          LOW SUPPLY
+PLANNER  credits banked/spent, day 3/7/30: 0.00x / 0.00x / 0.00x     0.00x / 0.00x / 0.00x
+         credits at end: 0  (earned 42,598 / spent 206,702)         0  (earned 1,112,956 / spent 1,033,276)
+GREEDY   credits banked/spent, day 3/7/30: 0.00x / 0.00x / 0.00x     0.00x / 0.00x / 0.00x
+         credits at end: 0  (earned 20,832 / spent 208,137)         0  (earned 15,870 / spent 265,902)
+highest corporation level reached, every run: 1 (of 10 defined)
+```
+
+Review #1's acceptance target for the next review was **"banked ÷ spent stays below 3× at day 3, 7 and 30"** and
+**"the bot reaches the documented maximum corporation level and still has purchases available at it."** The first
+number is met by an enormous margin — 0.00x is below 3x — and that is exactly the wrong way to meet it. Review #1's
+economy accumulated credits **without bound** past minute 120, because nothing was worth buying. This economy's
+bots reach **zero credits and stay there**, refused on `start-mining: requires [900–1,900] credits, current
+reserves: 0` between 900 and 1,700 times per run, in every one of the four runs. The second target — reaching the
+maximum defined level — fails outright: every run stops at Level 1 of 10, and this session already traced why and
+filed it (AB#1753, below): Level 2 requires a lease specifically on Mars, and Earth is the cheaper lease every bot
+and the game's own documented cheapest path picks first.
+
+**One caveat on the zero-balance number, stated because the RUBRIC asks what a probe measures and not just what it
+reports:** the probe's bots appear to reinvest every available credit rather than ever choosing to bank a reserve,
+so "ends at 0" may be a property of the bot policy rather than of the economy. I have not yet built a bot that
+banks a margin and can tell the two apart — that is epic 1 below, and until it exists, Sink depth's score below is
+bounded by this uncertainty on both sides.
+
+### Honesty audit (pass/fail, judged first)
+
+Re-run rather than assumed. Whole-repo grep for the same payment/pricing vocabulary as review #1
+(`stripe|paypal|paddle|checkout|real.?money|\$[0-9]|usd|subscription|premium|microtransaction|iap|in-app|paywall|
+donat|patreon|ko-fi|battle ?pass|season pass|loot ?box|gacha`), excluding `node_modules` and `package-lock.json`:
+same three categories of hit as before (in-game credits formatted with `$`, "premium" as flavour text, `Intl.
+NumberFormat` currency code), nothing new, nothing touching real money. No payment library, no ad SDK, no analytics
+vendor. **Zero real-money SKUs, zero offer surfaces — same as review #1.**
+
+One surface materially changed and worth re-auditing: the **suggested-listing-price helper** review #1 flagged as
+quietly steering every seller toward the NPC bid (`public/scripts/app.js:920–964` at the time) has been rewritten
+(`public/scripts/suggestedPrice.js`, AB#1166/ISP-87). It now suggests the most recent traded close, and its own
+comment states the fix plainly: *"it no longer floors itself at the standing bid... a seller who wants to move
+stock before the bid recovers needs to be able to undercut it."* The price-discovery problem review #1 declined to
+score against is resolved.
+
+| Surface | Fake urgency/scarcity | Inflated baseline | Fabricated social proof | Odds shown | Paid random rewards | Pass? |
+|---|---|---|---|---|---|---|
+| Real-money offers (any) | n/a — none exist | n/a | n/a | n/a | n/a | **PASS** (vacuously) |
+| NPC standing bids | Real daily quota, now much smaller and drifting with volume (AB#777) rather than 1,000,000 units/day; still not theatre — it moves because it was traded against | No baseline claimed; the bid drifts down under supply and recovers, shown as what it is | Own table, own heading, separate from player listings | n/a — deterministic | n/a | **PASS** |
+| Player sell listings | No countdowns, no "N others viewing" | No strike-through pricing | Unchanged from review #1 — no fabricated proof | n/a | n/a | **PASS** |
+| Suggested-price helper | none | Fixed since review #1 — no longer artificially floors at the bid | n/a | Client-side, but changes nothing a player pays | n/a | **PASS** |
+| Missions, research, CEO insight | Durations stated up front; 2 of 12 CEO Insight programs still labelled "planned" and refused rather than sold (AB#983) — an honesty improvement over review #1, which had all 12 sellable and 11 inert | Costs stated in credits | Institutional senders (ISA, GEX) | Deterministic | n/a | **PASS** |
+
+**Honesty: PASS**, on the same grounds as review #1 and slightly stronger evidence: the one thing that could have
+been a quiet dishonesty (selling a program that does nothing) is now refused rather than sold.
+
+### What each SKU is worth in play time
+
+No SKU exists. Unchanged from review #1; the table is still empty by design, not by omission.
+
+### Scores (RUBRIC Monetization table)
+
+Scored blind against the probe and the code, before re-reading review #1's own scores (its narrative history was
+read earlier in this session, for the bug-status checks P-STALE-VERDICT requires — noted here rather than left
+implied, since strict ordering was not possible in a non-fresh context).
+
+| Gate | Score | Evidence |
+|---|---|---|
+| Value perception | **1 (n/s)** | No SKU. Fails closed. |
+| Sink depth | **2** | Real subject, opposite failure from review #1. Then: credits accumulated without bound past minute 120 because nothing was worth buying — "gems pile up with nothing to want," the RUBRIC's own definition of a 1, scored 2 for a real first-session squeeze. Now: the probe's own banked/spent ratio is 0.00x at every checkpoint in all four runs, and both bots sit refused to mine for want of a four-figure sum for the rest of a 30-day run. Neither state is "something worth buying most sessions" (a 3): one had money with nothing to spend it on, the other has nothing to spend. Scored 2, not 1, because — as with review #1 — a real, structural squeeze exists (the curved cost from AB#775 makes the core loop tight by design); it is scored no higher because the squeeze has gone from "loose" to "possibly too tight to ever exit," which is not yet distinguishable from a probe artifact (see caveat above), and because the ladder gate (AB#1753) means no run has ever reached the point past Level 2 where the RUBRIC's later sinks (13 research nodes, 12 CEO-insight programs, larger facilities) would even be reachable to test. |
+| Price ladder | **1 (n/s)** | No prices. |
+| Spend moments | **1 (n/s)** | No offers. Still the product's honest strength: nothing can interrupt the good part because nothing interrupts at all. |
+| Free path | **5** | Unchanged. The whole game is still free in the strongest sense: no content, system, station, body, research node or exchange function sits behind money. |
+| Spending runway | **1 (n/s)** | Nothing to buy with money past $0. |
+| **Average, headline** | **1.8** | (1+2+1+1+5+1) ÷ 6 = 1.83 → 1.8. Identical to review #1's headline; the sameness is coincidence, not stagnation — see "then the history" below. |
+| **Average, evaluable only** | **3.5** | (2+5) ÷ 2 = 3.5, same two gates as review #1, same figure. Not the headline, for the same reason DOCTRINE gives: it would open the Live gate on a question nobody has asked. |
+| Honesty | **PASS** | No offer surface exists to violate it; the one near-miss from review #1 (selling a CEO Insight program with no effect) is now refused, not sold (AB#983). |
+
+### Then the history (read in full before this section was written)
+
+- **Epic 1 (currency and order-book integrity) is done.** AB#423 (unauthenticated credit setter), AB#425
+  (order-book truncation destroying goods) and AB#433 (unvalidated corporation names) are all `Resolved`, verified
+  by re-reading each work item rather than trusting the tag (P-STALE-VERDICT). The specific worry review #1 named —
+  *"the day ISP charges for anything, this is a refund event and a chargeback event"* — no longer has these three
+  open doors.
+- **Epic 4 (the probe) is done**, and its output is what this review is built on instead of source-reading.
+- **The suggested-price fix (noted, not scored, in review #1) is done** — see the Honesty audit above.
+- **Epic 3 is half done, as of the commit this review closes on.** `tests/unit/no-payments.test.js` (AB#779,
+  ISP-89) landed on `origin/main` while this review was being written, citing this product's Critique #434 epic 3
+  by number, and does exactly what was asked: it scans every `server/` and `public/` file for payment vocabulary,
+  fails on anything outside a named, checked allowlist, and asserts it scans a real number of files rather than
+  passing vacuously. Confirmed by reading the test, not by trusting its name. The other half of the same epic —
+  writing the constraint into `BRIEF.md` — is still outstanding: the Monetization section is byte-for-byte what
+  review #1 quoted, and the Board has since given an **explicit, general rule** that supersedes review #1's
+  narrower ask, in a decision comment nobody has copied anywhere it would be read again — **"Research and Insight
+  should never be sellable. Items should always be sellable"** (AB#980, answering the re-asked AB#699). That
+  sentence is exactly what P-WRITE-ONLY describes: written once, read by the PM session that closed the ticket, and
+  by nobody since — including, until now, this test.
+- **Epic 5 (repo privacy, AB#415 remediation) is partially settled by Board decision, not by the fix it asked for.**
+  AB#415 is `Closed`, and I verified directly — `git log --all` for `data/accounts-snapshot.json` across every
+  ref in the current checkout returns nothing, which is consistent with a history purge having actually happened
+  rather than the file merely being gitignored going forward. Repo privacy itself was answered separately and
+  differently than the epic assumed: **"Not for the time being"** (AB#698, Board decision) — a legitimate Board
+  call, not a defect, and epic 5 should be considered closed rather than carried forward.
+- **Sink depth's acceptance target is not met, and not met for a new reason.** Traced to a cause shared with the
+  Depth loop: **AB#1753** (filed by this session earlier today, severity 2) — Level 2's requirement is pinned to a
+  lease specifically on Mars, and Earth is the cheaper lease every bot and the game's own economy model picks
+  first, so nothing in this build has ever been played past Level 2 by simulation. Sink depth cannot be honestly
+  scored above the level this defect permits reaching, and it will not move until that gate does.
+
+### Security (scored as part of this review, per role)
+
+Re-verified rather than re-filed (P-STALE-VERDICT): #423, #425, #433 confirmed `Resolved` above. Two new findings
+from this session's earlier systems-audit pass bear directly on monetization readiness and are cross-referenced
+rather than re-filed:
+
+- **AB#1753** — the Mars-lease gate — is the reason Sink depth cannot be scored past what a broken tutorial permits.
+  It is a Depth-shaped bug with a Monetization consequence, exactly the shape review #1's own process note
+  anticipated ("epics 1 and 2 below are the same body of work as Depth epic 1").
+- **AB#1754** — `ECONOMY.md`'s own model script still claims the pre-AB#775 economy ("the maximum always wins"),
+  which means anyone pricing a future SKU against the *documented* economy rather than the *shipped* one would be
+  pricing against a economy that no longer exists.
+- **Currency integrity has a new, positive foundation not in review #1's scope**: `server/finances.js`'s ledger
+  (AB#712) now routes every credit movement through one recorder, and daily P&L/cash-flow/balance-sheet statements
+  exist per corporation (AB#713/714). Neither was audited line-by-line this session — noted as the money-plumbing
+  layer to check first in review #3, ahead of any pricing work, the same way #423/#425/#433 were checked first here.
+- Data collected remains proportionate; AB#415's remediation is resolved per above. Repo privacy remains a live,
+  answered Board choice, not an open item.
+
+### What a player feels, in money terms, at minute 5 / 30 / 120 / day 3 / day 14
+
+Materially different from review #1 past minute 30, now that a real bot has actually played it rather than a model
+being read.
+
+- **Minute 5–30.** Unchanged and still the product's best sequence: weighty starting capital, a real cash-flow
+  squeeze once mining starts, nothing for sale for real money anywhere in it.
+- **Minute 120 onward.** Review #1 predicted a dominant strategy that prints money forever. It does not: the curved
+  cost (AB#775) and the drifting bid (AB#777) together mean a corporation that keeps mining without managing its
+  throughput **runs itself to zero and stays there**, refused a four-figure restart for the rest of the month. The
+  future offer review #1 worried about — "buy your way out of the minute-30 constraint" — is now a live temptation
+  at every later point too, not just once, because the constraint never fully releases.
+- **Day 3–30.** Never observed by simulation past Level 1–2. Review #1's "day 14: rich and stuck" is now, provisionally,
+  "day 3: broke and stuck" — the opposite wallet, the same verdict: nothing exists for a shop to sell into, because
+  the game has not yet demonstrated it can carry a corporation past its own tutorial.
+
+### Charter / Soul risks
+
+- **Charter "energy/cooldown gates that exist only to sell clocks"** — still passes; nothing shortens a wait for
+  money, and nothing is proposed to.
+- **The Board has pre-committed, in writing, to the PvP-advantage constraint review #1 recommended**, and gone
+  further than asked. Since review #1: **"we don't want any player to be able to gain an unfair advantage by
+  trading anything in game for real money — this would be a violation of the Real Money Trading rule"** (AB#703,
+  covering all v0.9 financial mechanics); **"all" v0.10 military mechanics may never be sold or accelerated**
+  (AB#706); and the sharper, general rule already quoted above (AB#980). This is the single best sign in this
+  review: the company is writing its no-RMT line before any revenue pressure exists to test it, exactly as T-021
+  asks. The gap is that none of it lives anywhere a builder under deadline would read it — it is ADO comments, not
+  `BRIEF.md` and not a test. Closing that gap is epic 3 below.
+- **A new financial mechanic is Board-approved in principle and not yet built**: corporate shares, priced at
+  company value ÷ share count (AB#704). This is the first mechanic in this product where real value could route
+  through something other than the credit ledger, and it should be designed against the RMT rulings above from its
+  first commit, not audited afterward.
+- **Charter "infinite scope,"** in money terms: the ladder still advertises a multi-year, 40-level arc and cannot
+  currently be simulated past Level 1. Any future pricing referencing progression prices against content that is,
+  by measurement, unreachable.
+
+### Verdict: **REPRICE**
+
+Not HEALTHY, for the same reason as review #1: no SKU has ever been priced, and calling it HEALTHY would open the
+Live gate on a question nobody has asked. Not COERCIVE: Honesty passes cleanly, and the Board's own pre-emptive
+RMT rulings are the opposite of coercive design.
+
+REPRICE still means "not cleared, and here is ranked work," not "your prices are wrong" — there are still no
+prices. Three of review #1's five epics shipped; the work below is what is left, plus what today's probe run found.
+
+### Epics (≤5, ranked)
+
+| # | Epic | Hypothesis | Probe target (acceptance) | Size | Charter risk check |
+|---|---|---|---|---|---|
+| 1 | **Give the runway probe a bot that banks a reserve, alongside planner and greedy** | Sink depth cannot be honestly scored while "ends at zero" might describe the bot's spending policy rather than the economy; a third profile that keeps a safety margin (or none) tells them apart | The three profiles' banked/spent ratios diverge measurably by day 7; review #3 reports which one the economy actually rewards | S | None; measurement only |
+| 2 | **Fix AB#1753 (the Mars-lease gate) as a monetization precondition, not only a depth one** | No sink past Level 2 has ever been exercised by simulation; Sink depth's score is bounded by this until it moves, whatever the economy's real shape turns out to be | The runway probe reaches at least Level 5 in the same run that reports Sink depth | S–M | None; already filed, cross-referenced here |
+| 3 | **Write the Board's RMT rulings into `BRIEF.md` by name** — the guard test half of this epic is done (AB#779); fold AB#703, #706 and #980 into the Monetization section itself (research and CEO Insight effects never sellable; all v0.9 financial and v0.10 military mechanics never sellable or accelerable for real money; items always sellable) | P-WRITE-ONLY: three explicit Board rulings exist and none of them is in the one document a session under deadline reads before shipping a shop, even though the code-side guard against it now exists | `BRIEF.md`'s Monetization section names all three rulings verbatim, each with its decision number | XS | None; constrains scope only |
+| 4 | **Design the shares mechanic (AB#704) against the RMT rulings from its first commit**: share price derives only from in-game company value, no path from real money to share ownership or price, before any code exists | Cheapest possible moment to bind a Charter constraint to a mechanic is before it is built (T-020); a shares system built first and constrained after is exactly how #433 and the CEO-insight tax edge happened | A story for the shares system cannot merge without an acceptance line citing AB#703 and AB#980 by number | S, Board-adjacent | Is the constraint itself; nothing to check against |
+
+Epics 1 and 2 are the same measurement work the Depth loop needs and should be one story set, not two, per review
+#1's own process note. Epic 3 is cheap and overdue. Epic 4 is a design gate on work that has not started yet, not
+a fix.
+
+### Next review
+
+At the v0.5 Preview gate, or immediately if a payment surface or the shares mechanic appears in the repo. What
+review #3 must show: the runway probe reaching past Level 2 (AB#1753 fixed), a banked-reserve profile distinguishing
+bot policy from economy shape (epic 1), and `BRIEF.md`/a test actually carrying the Board's RMT rulings (epic 3). If
+any of those three is still missing, review #3 should say so in the same words rather than restate this review.
+
+### Transferable (for the Sunday fold)
+
+- A sink-depth failure can flip from "too shallow" to "too tight" between two reviews of the same gate, and the
+  RUBRIC's 1/3/5 anchors only describe one direction of it. A probe that reports a single ratio (banked ÷ spent)
+  cannot by itself distinguish "nothing to buy" from "nothing to buy with" — both read as a low, flat number. Score
+  the mechanism, not just the ratio, and say which failure mode the evidence shows.
+- An explicit Board ruling recorded as a decision comment and never copied into the document a builder actually
+  reads is a promise nobody keeps, by construction — this is P-WRITE-ONLY applied to policy rather than to code.
+  Three separate no-RMT rulings (AB#703, #706, #980) exist for this product and none of them is in `BRIEF.md`.
+- Design a new financial mechanic's abuse-resistance before it exists, not after: the cheapest moment to bind a
+  Charter constraint (T-020) is the first commit, and every prior violation on this product (the CEO-insight tax
+  edge, corporation-name impersonation) was found after the mechanic shipped rather than before.
+
+---
+
 ## Review #1 — 2026-09-20 · **1.8 / 5 · REPRICE**
 
 Reviewer: Monetization Critic (fresh context, session `critic-mu98dmgc-8f8aa0`) · probes: **none exist**
