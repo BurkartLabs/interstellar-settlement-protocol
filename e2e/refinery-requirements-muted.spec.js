@@ -4,9 +4,10 @@
 //
 // A fresh account already shows this: every chain in data/refinery-chains.json needs research nobody starts
 // with, so the panel is all "Requires:" rows from the first login — no fixture beyond registering. "Before" is
-// captured by serving the pre-fix public/scripts/app.js for one page load (express.static reads the file fresh
-// each request, no build step), then the real fix is restored and reloaded for "after" — the same file, the
-// same running server, only the moment of capture differs.
+// captured by serving the pre-fix panel code for one page load (express.static reads the file fresh each request,
+// no build step), then the real fix is restored and reloaded for "after" — the same file, the same running server,
+// only the moment of capture differs. AB#739: the panel is drawn by public/scripts/views/refinery.js since app.js
+// was split into a module per tab, so that is the file swapped.
 //
 // AB#1828: the pre-fix file is rebuilt from the current one, not read from git. It was `git show origin/main:…`,
 // which was the pre-fix code only while AB#1761's own pull request was open; once merged, origin/main was the fix,
@@ -34,8 +35,8 @@ function panelColors(page) {
   });
 }
 
-/** The pre-fix app.js: AB#1761 removed the warning colour from exactly these two requirement lines. */
-function preFixAppJs(fixed) {
+/** The pre-fix panel code: AB#1761 removed the warning colour from exactly these two requirement lines. */
+function preFixPanelJs(fixed) {
   const REVERT = [
     ['<p class="muted">Requires: ', '<p class="muted" style="color:var(--color-warn)">Requires: '],
     ['<p class="muted">Refinery construction requires: ', '<p class="muted" style="color:var(--color-warn)">Refinery construction requires: ']
@@ -43,14 +44,14 @@ function preFixAppJs(fixed) {
   let text = fixed;
   for (const [now, before] of REVERT) {
     const n = text.split(now).length - 1;
-    if (n !== 1) throw new Error(`expected exactly one ${now} in public/scripts/app.js, found ${n}: the code this spec rebuilds "before" from has changed`);
+    if (n !== 1) throw new Error(`expected exactly one ${now} in public/scripts/views/refinery.js, found ${n}: the code this spec rebuilds "before" from has changed`);
     text = text.replace(now, before);
   }
   return text;
 }
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const APP_JS = path.join(REPO_ROOT, "public", "scripts", "app.js");
+const PANEL_JS = path.join(REPO_ROOT, "public", "scripts", "views", "refinery.js");
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
 fs.mkdirSync(SCREEN_DIR, { recursive: true });
 
@@ -102,8 +103,8 @@ for (const viewport of VIEWPORTS) {
     test.setTimeout(60_000);
     const email = `refinery-qa-${Date.now()}-${viewport.width}@example.test`;
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "isp-refinery-e2e-"));
-    const fixedAppJs = fs.readFileSync(APP_JS, "utf8");
-    const beforeAppJs = preFixAppJs(fixedAppJs);
+    const fixedPanelJs = fs.readFileSync(PANEL_JS, "utf8");
+    const beforePanelJs = preFixPanelJs(fixedPanelJs);
     const { child, url } = await startServer(dir);
     const mobile = viewport.width < 600;
 
@@ -126,7 +127,7 @@ for (const viewport of VIEWPORTS) {
       await expect(requirementRow).toBeVisible();
 
       // ── before: the pre-fix code, amber ──────────────────────────────────────────────────────────────
-      fs.writeFileSync(APP_JS, beforeAppJs);
+      fs.writeFileSync(PANEL_JS, beforePanelJs);
       await page.reload();
       await page.click('.tab-btn[data-tab="refinery"]');
       await expect(chainsEl).toBeVisible();
@@ -137,7 +138,7 @@ for (const viewport of VIEWPORTS) {
       await shoot(page, viewport.label, "01-before-amber", viewport.width);
 
       // ── after: the real fix, muted ───────────────────────────────────────────────────────────────────
-      fs.writeFileSync(APP_JS, fixedAppJs);
+      fs.writeFileSync(PANEL_JS, fixedPanelJs);
       await page.reload();
       await page.click('.tab-btn[data-tab="refinery"]');
       await expect(chainsEl).toBeVisible();
@@ -153,7 +154,7 @@ for (const viewport of VIEWPORTS) {
       expect(after.requirement, "after: the requirement line renders in the muted token").toBe(after.muted);
       expect(before.requirement, "before: the rebuilt pre-fix file really rendered the warning colour").not.toBe(before.muted);
     } finally {
-      fs.writeFileSync(APP_JS, fixedAppJs); // always leave the real fix on disk, whatever else happened
+      fs.writeFileSync(PANEL_JS, fixedPanelJs); // always leave the real fix on disk, whatever else happened
       child.kill();
       fs.rmSync(dir, { recursive: true, force: true });
     }

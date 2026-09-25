@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import fs from "node:fs";
 import { activeCycleFigures, extractorState } from "../../public/scripts/leaseLive.js";
+import { clientCode } from "../helpers/clientSource.js";
 
 // Bug #1091: the open lease view refreshes a running extractor's figures from mining:updated, with the same
 // functions it draws them with.
@@ -26,7 +26,7 @@ describe("a running extractor's figures (Bug #1091)", () => {
   });
 
   it("the mining:updated handler refreshes the open lease view", () => {
-    const app = fs.readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+    const app = clientCode(); // AB#739: the handler is in app.js, the lease view it refreshes in views/station.js
     const handler = app.slice(app.indexOf('socket.on("mining:updated"'), app.indexOf('socket.on("expedition:completed"'));
     expect(handler).toContain("refreshOpenLeaseView(payload.extractors)");
     for (const key of ["pct", "left", "mined", "fees", "fill"]) expect(app).toContain(`data-live="${key}"`);

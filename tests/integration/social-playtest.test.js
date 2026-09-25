@@ -6,6 +6,7 @@ import { getApp, serverUrl } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { getAccountById, getState } from "../../server/gameState.js";
 import { chatLineHtml, messageListItemsHtml } from "../../public/scripts/html.js";
+import { clientCode } from "../helpers/clientSource.js";
 
 // AB#733: chat, forums and player mail ship to the playtest as they are (Board ruling on AB#696). This proves, on a
 // fresh install (tests/setup.js gives every run a state file that does not exist), that two players can use all four
@@ -128,7 +129,7 @@ describe("player text renders as text, never as HTML (AB#733)", () => {
   });
 
   it("a mail's subject and body are set as text in the reader, and chat and forum text go through escapeHtml", () => {
-    const client = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+    const client = clientCode(); // AB#739: app.js and the tab modules it loads
     expect(client).toMatch(/getElementById\("inbox-detail-subject"\)\.textContent =/);
     expect(client).toMatch(/getElementById\("inbox-detail-body"\)\.textContent =/);
     expect(client).toMatch(/\.map\(\(msg\) => chatLineHtml\(msg, formatTime\)\)/);

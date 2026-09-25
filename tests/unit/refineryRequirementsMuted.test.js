@@ -2,11 +2,11 @@
 // or construction requirement in amber, the same colour as an actual warning, so a normal step in the panel
 // read as something wrong. Amber stays for a real warning ("All refineries busy") — only requirement rows move
 // to the muted token.
-import fs from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { clientCode } from "../helpers/clientSource.js";
 
-const APP_JS = fs.readFileSync(path.resolve(import.meta.dirname, "..", "..", "public", "scripts", "app.js"), "utf8");
+// AB#739: the Refinery Chains panel is drawn by views/refinery.js; this reads app.js and every module it loads.
+const APP_JS = clientCode();
 
 describe("Refinery Chains: requirement text is muted, not amber (AB#1761)", () => {
   it("has no requirement row styled with the warning colour", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { clientCode } from "../helpers/clientSource.js";
 import { forumPostBodyHtml } from "../../public/scripts/html.js";
 import { bindOnce, likeRequest, postFor, replyDraft, quoteDraft, REPLY_MAX_LENGTH, mergeThread } from "../../public/scripts/forumActions.js";
 
@@ -42,9 +42,10 @@ describe("forum Like sends one request per click (Bug #1131)", () => {
     expect(likeRequest(button({}), null)).toBeNull();
   });
 
-  // A source check, weaker than rendering: renderForums lives in app.js, which the tests cannot run without a DOM.
-  it("app.js binds the thread view's click listener through bindOnce and reads the open thread at click time", () => {
-    const app = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+  // A source check, weaker than rendering: renderForums lives in the client (views/forums.js since AB#739), which the
+  // tests cannot run without a DOM.
+  it("the client binds the thread view's click listener through bindOnce and reads the open thread at click time", () => {
+    const app = clientCode();
     expect(app).toMatch(/bindOnce\(detailBody, "likeBound", "click"/);
     expect(app).not.toMatch(/detailBody\.addEventListener\("click"/);
     expect(app).toMatch(/likeRequest\(likeBtn, appState\.selectedForumThreadId\)/);
@@ -83,8 +84,8 @@ describe("forum Reply and Quote (Bug #1132)", () => {
     expect(quoteDraft("y".repeat(REPLY_MAX_LENGTH), long)).toHaveLength(REPLY_MAX_LENGTH);
   });
 
-  it("app.js binds Reply and Quote once and gives the buttons on each reply its id (a source check)", () => {
-    const app = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+  it("the client binds Reply and Quote once and gives the buttons on each reply its id (a source check)", () => {
+    const app = clientCode();
     expect(app).toMatch(/bindOnce\(detailBody, "composeBound", "click"/);
     expect(app).toMatch(/data-action="reply" data-reply-id=/);
     expect(app).toMatch(/data-action="quote" data-reply-id=/);
@@ -112,10 +113,10 @@ describe("forum post bodies show quotes and line breaks (Bug #1132)", () => {
   });
 });
 
-// Bug #1222: a forum update re-rendered the thread and emptied a half-written reply. A source check: app.js keeps the
+// Bug #1222: a forum update re-rendered the thread and emptied a half-written reply. A source check: the client keeps the
 // box's value across the render, and after posting clears the box on the page rather than a possibly detached one.
 describe("a half-written reply survives forum updates (Bug #1222)", () => {
-  const app = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+  const app = clientCode();
   it("keeps the draft for the same thread and puts it back after the render", () => {
     expect(app).toMatch(/const keptDraft = oldBox && oldBox\.closest\("form"\)\?\.dataset\.threadId === selected\.id/);
     expect(app).toMatch(/newBox\.value = keptDraft\.value/);
@@ -161,8 +162,8 @@ describe("a new thread is listed once, whichever of its two arrivals comes first
     expect(mergeThread(undefined, posted)).toEqual([posted]);
   });
 
-  it("app.js puts every thread from a response through putForumThread, into both copies (a source check)", () => {
-    const app = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+  it("the client puts every thread from a response through putForumThread, into both copies (a source check)", () => {
+    const app = clientCode();
     expect(app).not.toMatch(/threads\.unshift\(payload\.thread\)/);
     expect(app).not.toMatch(/forums\.threads\[idx\] = payload\.thread/);
     expect(app.match(/putForumThread\(payload\?\.thread\)/g)).toHaveLength(3);

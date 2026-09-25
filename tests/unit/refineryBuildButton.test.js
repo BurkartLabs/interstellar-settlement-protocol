@@ -73,7 +73,10 @@ export function unclosedAttributes(source) {
 describe("Every interpolated attribute in public/scripts closes its quote (Bug #1254)", () => {
   it("finds none unclosed", () => {
     const bad = [];
-    for (const file of readdirSync(SCRIPTS).filter((f) => f.endsWith(".js"))) {
+    // AB#739: recursive, so the tab modules in public/scripts/views/ are scanned too.
+    const files = readdirSync(SCRIPTS, { recursive: true }).map((f) => f.replaceAll("\\", "/")).filter((f) => f.endsWith(".js"));
+    expect(files).toContain("views/station.js");
+    for (const file of files) {
       for (const hit of unclosedAttributes(readFileSync(new URL(file, SCRIPTS), "utf8"))) bad.push(`${file}:${hit.line} (then ${JSON.stringify(hit.next)})`);
     }
     expect(bad).toEqual([]);
