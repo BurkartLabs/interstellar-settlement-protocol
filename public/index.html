@@ -885,52 +885,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- Mission detail modal (rendered dynamically) -->
-            <div id="mission-detail-modal" class="mission-modal-backdrop" hidden>
-              <article class="mission-modal-card">
-                <button id="mission-modal-close" class="mission-modal-close" type="button" aria-label="Close">&times;</button>
-                <div class="mission-modal-header">
-                  <div class="mission-modal-img-placeholder">
-                    <span>CONTRACT<br/>BRIEFING</span>
-                  </div>
-                  <div class="mission-modal-meta">
-                    <p class="overline" id="mission-detail-type"></p>
-                    <h2 id="mission-detail-title"></h2>
-                    <div class="mission-modal-badges">
-                      <span id="mission-detail-risk-badge" class="mission-card-risk"></span>
-                      <span id="mission-detail-reward-badge" class="mission-modal-reward-badge"></span>
-                    </div>
-                  </div>
-                </div>
-                <div class="mission-modal-body">
-                  <div class="mission-modal-section">
-                    <h4>Briefing</h4>
-                    <p id="mission-detail-text"></p>
-                  </div>
-                  <div id="mission-quota-section" class="mission-modal-section" hidden>
-                    <h4>Quota Progress</h4>
-                    <div class="mission-quota-info">
-                      <div class="mission-quota-bar-container">
-                        <div id="mission-quota-bar" class="mission-quota-bar"></div>
-                      </div>
-                      <p id="mission-quota-text" class="mission-quota-text"></p>
-                    </div>
-                  </div>
-                  <div id="mission-location-section" class="mission-modal-section" hidden>
-                    <div id="mission-location-warning" class="mission-location-warning"></div>
-                  </div>
-                  <div class="mission-modal-section">
-                    <h4>Intelligence</h4>
-                    <p id="mission-detail-risk" class="muted"></p>
-                  </div>
-                </div>
-                <div class="mission-modal-actions">
-                  <button id="mission-accept-btn" class="btn btn-accent btn-command" type="button">Accept Contract</button>
-                  <button id="mission-complete-btn" class="btn btn-accent btn-command" type="button" hidden>Complete Contract</button>
-                </div>
-              </article>
-            </div>
           </article>
 
           <article id="inbox" class="tab-panel">
@@ -1025,6 +979,52 @@
           </article>
         </section>
       </main>
+    </div>
+
+    <!-- Contract briefing (AB#1832): at body level, not in #missions, whose .tab-panel backdrop-filter would pin a fixed modal to the scrolled panel. -->
+    <div id="mission-detail-modal" class="mission-modal-backdrop" hidden>
+      <article class="mission-modal-card">
+        <button id="mission-modal-close" class="mission-modal-close" type="button" aria-label="Close">&times;</button>
+        <div class="mission-modal-header">
+          <div class="mission-modal-img-placeholder">
+            <span>CONTRACT<br/>BRIEFING</span>
+          </div>
+          <div class="mission-modal-meta">
+            <p class="overline" id="mission-detail-type"></p>
+            <h2 id="mission-detail-title"></h2>
+            <div class="mission-modal-badges">
+              <span id="mission-detail-risk-badge" class="mission-card-risk"></span>
+              <span id="mission-detail-reward-badge" class="mission-modal-reward-badge"></span>
+            </div>
+          </div>
+        </div>
+        <div class="mission-modal-body">
+          <div class="mission-modal-section">
+            <h4>Briefing</h4>
+            <p id="mission-detail-text"></p>
+          </div>
+          <div id="mission-quota-section" class="mission-modal-section" hidden>
+            <h4>Quota Progress</h4>
+            <div class="mission-quota-info">
+              <div class="mission-quota-bar-container">
+                <div id="mission-quota-bar" class="mission-quota-bar"></div>
+              </div>
+              <p id="mission-quota-text" class="mission-quota-text"></p>
+            </div>
+          </div>
+          <div id="mission-location-section" class="mission-modal-section" hidden>
+            <div id="mission-location-warning" class="mission-location-warning"></div>
+          </div>
+          <div class="mission-modal-section">
+            <h4>Intelligence</h4>
+            <p id="mission-detail-risk" class="muted"></p>
+          </div>
+        </div>
+        <div class="mission-modal-actions">
+          <button id="mission-accept-btn" class="btn btn-accent btn-command" type="button">Accept Contract</button>
+          <button id="mission-complete-btn" class="btn btn-accent btn-command" type="button" hidden>Complete Contract</button>
+        </div>
+      </article>
     </div>
 
     <section id="trade-confirm-modal" class="modal-backdrop" hidden>
