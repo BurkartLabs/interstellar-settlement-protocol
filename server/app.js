@@ -6,6 +6,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
+import { securityHeaders, corsPolicy } from "./securityHeaders.js";
 
 // TODO(AB#737): Move this to a single file so that we aren't redefining it everywhere
 const IS_DEV = !process.env.NODE_ENV || process.env.NODE_ENV !== "production";
@@ -28,6 +29,9 @@ const server = http.createServer(app);
 // Bug #710: sockets were open to every origin. The game is served by this same server, so same-origin needs no CORS
 // at all; ISP_APP_ORIGIN (comma-separated) names any other origin allowed in. Unset means none: fail closed.
 const SOCKET_ORIGINS = String(process.env.ISP_APP_ORIGIN || "").split(",").map((o) => o.trim()).filter(Boolean);
+// AB#753: security headers and the same origin rule for HTTP, ahead of every route and the static files.
+app.use(securityHeaders());
+app.use(corsPolicy({ allowedOrigins: SOCKET_ORIGINS }));
 const io = new Server(server, {
   cors: {
     origin: SOCKET_ORIGINS.length ? SOCKET_ORIGINS : false
