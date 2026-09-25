@@ -147,6 +147,13 @@ const CLIENT_ERROR_TEXT = {
   "encoding.unsupported": "The request body's content encoding is not supported."
 };
 
+// AB#753: a path nothing answers is a 404 from here, not Express's default, which clears every header already set
+// (the content security policy, frame-ancestors, the referrer policy) and writes only its own. Same status, and the
+// same shape as every other refusal.
+app.use((_req, res) => {
+  res.status(404).json({ error: "This request could not be processed: nothing is at that address." });
+});
+
 app.use((error, _req, res, _next) => {
   const status = Number(error?.status ?? error?.statusCode);
   if (error?.expose !== false && status >= 400 && status < 500) {

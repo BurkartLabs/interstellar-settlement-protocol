@@ -1,3 +1,11 @@
+// Fetch version from /package.json or hardcode for now. Moved here from an inline <script> in kanban.html, which the
+// content security policy blocks (AB#753).
+fetch('/package.json').then(r => r.json()).then(pkg => {
+  document.getElementById('kanban-version').textContent = 'v' + (pkg.version || '0.1.0');
+}).catch(() => {
+  document.getElementById('kanban-version').textContent = 'v0.1.0';
+});
+
 // Prompt for user name on first load and store in localStorage, blocking until set
 async function ensureKanbanUserName() {
   let name = localStorage.getItem('kanbanUserName');
