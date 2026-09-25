@@ -46,6 +46,50 @@ below — ISP-53 (AB#739, one module per tab) is queued right behind it.**
   app.js on disk mid-run, so don't run it in parallel with other specs until it is fixed. **Fixed while here:**
   **AB#1826** — `beltCompositionReload.test.js` only passed on CRLF checkouts, and asserted the wrong function.
 
+## What's now true (this session: ISP-300, AB#1815 — server/index.js split into route modules)
+
+**Where a route lives now.** `server/index.js` is 194 lines (was 3,583): app setup, middleware, ticker starts and one
+`register…Routes(app)` call per module, in the original registration order. The 59 routes are in 13 modules under
+`server/routes/` — `catalog`, `auth`, `account`, `corporation` (hire, offices, leases), `logistics` (transfers,
+shipments, travel), `mining`, `asteroids` (assembly, probes, belts, expeditions), `refining`, `missions`, `research`,
+`messaging`, `forums`, `market` — plus `routes/helpers.js` for the five helpers more than one uses. What routes,
+tickers and middleware share moved to `server/app.js` (app, HTTP server, socket.io, env flags, `__dirname`),
+`server/auth.js`, `server/travel.js`, `server/ticks.js` and `server/realtime.js`. **An open branch editing
+server/index.js will conflict** — the code it targets is in one of these now; only !489 was open and it does not
+touch it.
+
+**How it was done, so the next split can reuse it.** Generated, not retyped: a script moved each top-level statement's
+exact source span with the comments it owns. Two traps it had to handle: routes register through a function called
+where they used to sit, not on import (ESM hoists imports, so self-registering modules would all register before
+index.js's middleware — the accounts login check included); and it never re-indents a line that starts inside a
+template literal (that would change the string). Checked two independent ways: a re-parse proving all 157
+statements are present once, in order, identical but for indentation, every string/template literal byte-identical
+and all 296 comments kept; and a diff of the live Express stack and socket.io wiring before and after, with and
+without the dev surface — identical (69 layers / 57 routes; 73 / 59 with `ISP_DEV=1`).
+
+**Tests that read index.js as text** now read everything it became (`tests/helpers/serverSource.js`). Four would have
+stayed green with nothing to scan — bodyNumber's "no route parses a body number by hand", slotAdvice's dead-end
+advice, exchangeNoPlaceholder, and economy.test.js's left-behind literals (a non-recursive `readdirSync("server")`).
+Each was mutation-tested against a moved file: 13 mutations, 13 caught. `moduleSize.test.js` lost its index.js
+exception and gained a layer check: only index.js imports a route module, nothing imports index.js, route modules
+import no other route module but the helpers, game modules import no route.
+
+**A reading of the acceptance to veto if wrong.** It says routes import "only from server/game/*". They also import
+`server/*.js` helpers (`bodyNumber`, `economy`, `finances`, `auth`, …) — every handler did already, and moving those
+is not this story. The test enforces the "never the reverse" half and isolation, not the literal "only".
+
+**Also found**: AB#1828 — my own AB#1761 spec (`e2e/refinery-requirements-muted.spec.js`) reads its "before" from
+`origin/main`, which became the fix when its PR merged, so it has failed on every checkout since. Pre-existing on
+main, not caused by this split (reproduced on plain 79dad81); fixed separately. hq's runway probe still greps
+`server/index.js` for `"tt-…"` research ids as a fallback on top of `RESEARCH_IDS` — it now finds fewer, harmlessly
+(research.json has been the source since AB#1049); an hq file, not touched.
+
+**Verified**: fresh clone, no runtime data — `npm run check` clean, `npx vitest run` **160 files, 1,785 tests** green.
+Full Playwright suite against the fresh clone's own server (port 3815; :3000 was held by someone's `npm run dev`,
+which answered /healthz while mine had failed to bind — caught by checking the listener's PID, not trusting the 200):
+**22 of 24** pass, including `first-hour.spec.js` driving register → lease → hire → mine → sell → research → contract
+through the moved routes; the 2 failures are AB#1828.
+
 ## What's now true (this session: ISP-292, AB#1761)
 
 Refinery Chains' "Requires: ..." lines (both the per-chain research gate and "Refinery construction requires...")
@@ -903,7 +947,8 @@ Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-bo
 (`fix/1754-economy-model`, PR !462), AB#1791's (`agent/1791-salvage-display`, PR !466), AB#1792's (probe
 `--broke` scenario, per OPS), AB#1752's (`fix/1752-milestone-list`, PR !469), AB#1806's
 (`fix/1806-mine-cycle-list`, PR !473), AB#1794's (`fix/1794-luna-lease-not-a-bug`, PR !474 — test-only, no
-production code changed), AB#1807's (`fix/1807-dead-login-panel`, PR !479) and AB#1761's
-(`agent/1761-refinery-muted`, PR !481) are all merged. This session's (AB#1744) branch is
-`fix/1744-construct-assembly-flake`, PR to be opened next and set to auto-complete.
-**Holding after this per Board directive — not claiming another item.**
+production code changed), AB#1807's (`fix/1807-dead-login-panel`, PR !479), AB#1761's
+(`agent/1761-refinery-muted`, PR !481) and AB#1744's (`fix/1744-construct-assembly-flake`, PR !484) are all
+merged. The Board's hold was lifted by the ISP-300 assignment. This session's (AB#1815) branch is
+`agent/1815-route-modules`, PR opening next and set to auto-complete; AB#1828's fix follows on its own branch.
+Open elsewhere: !489 (ISP-52, client `app.js` split) — does not touch `server/index.js`.

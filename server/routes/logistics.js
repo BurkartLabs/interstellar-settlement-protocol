@@ -1,0 +1,250 @@
+// server/routes/logistics.js: the logistics routes, split out of server/index.js (AB#1815).
+import { randomUUID } from "node:crypto";
+import { ECONOMY } from "../economy.js";
+import { canReachSystem } from "../../public/scripts/navigation.js";
+import { addAccountNotification, saveAccountsNow, getAccountById, mutateAccountState, RESEARCH_LIBRARY, SYSTEM_DETAILS } from "../gameState.js";
+import { getStationInventory } from "../gameState.js";
+import { applyCredits } from "../finances.js";
+import { parseTransferRequest, planTransfer } from "../../public/scripts/logistics.js";
+import { transitTime } from "../transfers.js";
+// Bug #1270 (placed here, apart from the navigation.js import at the top that open PRs edit)
+import { travelResearchLock } from "../../public/scripts/navigation.js";
+import { IS_DEV } from "../app.js";
+import { STATION_REGISTRY, getInterstellarTravelTimeMs, getTravelTimeMs } from "../travel.js";
+import { emitToAccount } from "../realtime.js";
+
+export function registerLogisticsRoutes(app) {
+  // ─── Logistics: transfer resources between stations ──────────────────────────
+
+  // AB#717: transfers carry up to 10 lines, all or nothing, into corp.logisticsHistory. The rules, the fee and the
+  // error copy live in public/scripts/logistics.js, which the Logistics tab reads too; imported here beside its use.
+  // AB#985 (ISP-278): dispatch no longer delivers on the spot. transitTime (server/transfers.js, dead since AB#718)
+  // gives the arrival time; shipmentTick below delivers on the tick it is reached, the way travelTick delivers travel.
+
+  app.post("/api/accounts/:accountId/gameplay/transfer-resources", (req, res) => {
+    const request = parseTransferRequest(req.body);
+    if (!request.ok) {
+      res.status(400).json({ error: request.error });
+      return;
+    }
+
+    let refusal = null;
+    let dispatched = null;
+    const account = mutateAccountState(req.params.accountId, (state) => {
+      const corp = state.corp;
+      const toStationId = corp.currentStationId || null;
+      const plan = planTransfer({
+        fromStationId: request.fromStationId, toStationId, lines: request.lines,
+        inventory: corp.inventory, credits: corp.finances.credits, stations: STATION_REGISTRY, rates: ECONOMY.logistics
+      });
+      if (!plan.ok) {
+        refusal = plan.error; // nothing has moved
+        return;
+      }
+      // Client-supplied arrival time, if any, is never read: the server always derives it from the two stations.
+      const minutes = transitTime(request.fromStationId, toStationId);
+      if (minutes === null) {
+        refusal = "No shipping route joins those stations."; // planTransfer already validated both stations, so this is defensive
+        return;
+      }
+
+      const fromInv = getStationInventory(corp, request.fromStationId);
+      for (const { item, quantity } of request.lines) {
+        fromInv[item] -= quantity;
+        if (fromInv[item] <= 0) delete fromInv[item];
+      }
+      applyCredits(corp, -plan.fee, "transfer-fees");
+
+      const now = Date.now();
+      dispatched = {
+        id: `shp-${randomUUID()}`,
+        fromStationId: request.fromStationId,
+        toStationId, // pinned at dispatch (Bug #692's lesson: never re-read "wherever the corp is" at delivery time)
+        lines: request.lines,
+        fee: plan.fee,
+        dispatchedAt: now,
+        arrivesAt: now + minutes * 60_000,
+        status: "in-transit"
+      };
+      if (!Array.isArray(corp.shipments)) corp.shipments = [];
+      corp.shipments.unshift(dispatched);
+    });
+
+    if (!account) {
+      res.status(404).json({ error: "Account not found." });
+      return;
+    }
+    if (refusal) {
+      res.status(400).json({ error: refusal });
+      return;
+    }
+    res.json({ ...account, shipment: dispatched });
+  });
+
+  app.get("/api/accounts/:accountId/gameplay/shipments", (req, res) => {
+    const account = getAccountById(req.params.accountId);
+    if (!account) {
+      res.status(404).json({ error: "Account not found." });
+      return;
+    }
+    res.json({ shipments: Array.isArray(account.state.corp.shipments) ? account.state.corp.shipments : [] });
+  });
+
+  app.get("/api/accounts/:accountId/gameplay/shipments/:shipmentId", (req, res) => {
+    const account = getAccountById(req.params.accountId);
+    if (!account) {
+      res.status(404).json({ error: "Account not found." });
+      return;
+    }
+    const shipment = (account.state.corp.shipments || []).find((s) => s.id === req.params.shipmentId);
+    if (!shipment) {
+      res.status(404).json({ error: "Shipment not found." });
+      return;
+    }
+    res.json(shipment);
+  });
+
+  // ─── Travel: interstellar (system-to-system) or local (dock at station) ──────
+  app.post("/api/accounts/:accountId/gameplay/travel", (req, res) => {
+    const toSystemId = String(req.body?.toSystemId || "").trim();
+    const toStationId = String(req.body?.toStationId || "").trim();
+
+    // Must specify exactly one destination type
+    const isInterstellar = Boolean(toSystemId);
+    const isLocal = Boolean(toStationId);
+    if ((!isInterstellar && !isLocal) || (isInterstellar && isLocal)) {
+      res.status(400).json({ error: "Specify either toSystemId (interstellar) or toStationId (dock)." });
+      return;
+    }
+
+    if (isLocal && !STATION_REGISTRY[toStationId]) {
+      res.status(400).json({ error: "Invalid destination station." });
+      return;
+    }
+
+    if (isInterstellar && !SYSTEM_DETAILS[toSystemId]) {
+      res.status(400).json({ error: "Invalid destination system." });
+      return;
+    }
+
+    let outcome = "ok";
+    let travelInfo = null;
+
+    const account = mutateAccountState(req.params.accountId, (state) => {
+      const corp = state.corp;
+
+      if (corp.travel) {
+        outcome = "already-traveling";
+        return;
+      }
+
+      if (isInterstellar) {
+        // ── Interstellar jump ──
+        const fromSystemId = corp.currentSystemId || "sol";
+        if (fromSystemId === toSystemId) {
+          outcome = "already-in-system";
+          return;
+        }
+
+        // Research gate: Sol needs none, so a corporation can always come home (Bug #976).
+        if (!canReachSystem(corp.unlockedTech, fromSystemId, toSystemId)) { outcome = "missing-research"; return; }
+
+        const durationMs = getInterstellarTravelTimeMs(fromSystemId, toSystemId);
+        const now = Date.now();
+
+        corp.travel = {
+          travelType: "interstellar",
+          fromSystemId,
+          toSystemId,
+          fromStationId: corp.currentStationId || null,
+          departedAt: now,
+          arrivesAt: now + durationMs
+        };
+
+        // Undock from current station
+        corp.currentStationId = null;
+        travelInfo = { ...corp.travel };
+
+      } else {
+        // ── Local docking ──
+        const station = STATION_REGISTRY[toStationId];
+        const currentSystemId = corp.currentSystemId || "sol";
+
+        if (station.systemId !== currentSystemId) {
+          outcome = "wrong-system";
+          return;
+        }
+
+        if (corp.currentStationId === toStationId) {
+          outcome = "already-docked";
+          return;
+        }
+
+        const durationMs = corp.currentStationId
+          ? getTravelTimeMs(corp.currentStationId, toStationId)
+          : (IS_DEV ? 5 * 1000 : 10 * 60 * 1000); // from open space: dev 5s, prod 10 min
+        const now = Date.now();
+
+        corp.travel = {
+          travelType: "local",
+          fromStationId: corp.currentStationId || null,
+          toStationId,
+          toSystemId: currentSystemId,
+          departedAt: now,
+          arrivesAt: now + durationMs
+        };
+
+        // Undock from current station (if docked)
+        corp.currentStationId = null;
+        travelInfo = { ...corp.travel };
+      }
+    });
+
+    if (!account) {
+      res.status(404).json({ error: "Account not found." });
+      return;
+    }
+
+    if (outcome !== "ok") {
+      const messageMap = {
+        "already-traveling": "Your ship is already in transit. Wait for arrival before initiating a new course.",
+        "already-docked": "You are already docked at this station.",
+        "already-in-system": "You are already in this system.",
+        // Bug #1270: name the research, and what stands before it, from the research library.
+        "missing-research": travelResearchLock(RESEARCH_LIBRARY, account.state.corp.unlockedTech, account.state.corp.level,
+          account.state.corp.currentSystemId, toSystemId) || "You lack the required navigation research to travel to that system.",
+        "wrong-system": "That station is in a different system. Travel to the system first."
+      };
+      res.status(400).json({ error: messageMap[outcome] || "Travel request failed." });
+      return;
+    }
+
+    // Notification
+    const etaMs = travelInfo.arrivesAt - travelInfo.departedAt;
+    const etaMin = Math.round(etaMs / 60000);
+    const etaText = etaMin >= 60
+      ? `${Math.floor(etaMin / 60)}h ${etaMin % 60 ? etaMin % 60 + "m" : ""}`
+      : etaMin < 1 ? "< 1 minute" : `${etaMin} minute(s)`;
+
+    let notifBody;
+    if (travelInfo.travelType === "interstellar") {
+      const sysName = SYSTEM_DETAILS[travelInfo.toSystemId]?.bodies?.[0]?.name || travelInfo.toSystemId;
+      notifBody = `Initiating interstellar jump to the ${travelInfo.toSystemId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())} system. ETA ${etaText}.`;
+    } else {
+      const dest = STATION_REGISTRY[travelInfo.toStationId];
+      notifBody = `Setting course for ${dest.name} (${dest.body}). ETA ${etaText}.`;
+    }
+
+    const notification = addAccountNotification(req.params.accountId, {
+      type: "travel",
+      title: travelInfo.travelType === "interstellar" ? "Interstellar Jump Initiated" : "Undocking — Course Set",
+      body: notifBody
+    });
+    if (notification) {
+      emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
+    }
+
+    saveAccountsNow();
+    res.json(account);
+  });
+}

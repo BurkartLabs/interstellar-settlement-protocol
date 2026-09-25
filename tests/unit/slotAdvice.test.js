@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { leaseSlotsFullMessage, corporationSlotsFullMessage, leaseFullAdvice, nextSlotLevel } from "../../public/scripts/slotAdvice.js";
 import { unleasedBodies } from "../../server/leases.js";
+import { serverCodeFiles } from "../helpers/serverSource.js";
 
 // Bug #1057: the building-slot errors named actions the game cannot do. They now name only what it can.
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -68,8 +69,9 @@ describe("full corporation slots (Bug #1057)", () => {
 });
 
 describe("no error names a verb the game lacks (Bug #1057, #1195)", () => {
-  it("server/index.js and the page carry none of the old dead-end advice", () => {
-    for (const f of ["server/index.js", "public/scripts/app.js", "public/scripts/slotAdvice.js"]) {
+  it("the server code and the page carry none of the old dead-end advice", () => {
+    // AB#1815: server/index.js and every module it was split into.
+    for (const f of [...serverCodeFiles(), "public/scripts/app.js", "public/scripts/slotAdvice.js"]) {
       // Code only: the comments that explain the fix quote the old advice.
       const text = fs.readFileSync(path.join(repo, f), "utf8").split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n");
       expect(text, f).not.toMatch(/Upgrade your lease tier|acquire an additional claim|Upgrade your headquarters|release an existing building|future corporation perks/i);

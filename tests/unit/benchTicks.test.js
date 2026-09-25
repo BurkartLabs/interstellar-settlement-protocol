@@ -3,19 +3,22 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { TICKERS, BUDGET, renderReport } from "../../scripts/bench-ticks.mjs";
+import { serverCode } from "../helpers/serverSource.js";
 
 // AB#729: the benchmark times the tickers the server really registers, at the intervals it registers them.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const index = fs.readFileSync(path.join(ROOT, "server/index.js"), "utf8");
+// AB#1815: index.js starts the tickers, but an interval's named constant now lives beside its ticker (server/ticks.js).
+const code = serverCode();
 
 const toMs = (expr) => {
-  const constant = index.match(new RegExp(`const ${expr} = ([\\d_]+);`));
+  const constant = code.match(new RegExp(`const ${expr} = ([\\d_]+);`));
   return Number((constant ? constant[1] : expr).replace(/_/g, ""));
 };
 
 describe("bench:ticks (AB#729)", () => {
-  it("covers every setInterval in server/index.js, at the interval the server uses", () => {
-    const registered = [...index.matchAll(/setInterval\((\w+), ([\w_]+)\)/g)].map((m) => ({ name: m[1], intervalMs: toMs(m[2]) }));
+  it("covers every setInterval in the server code, at the interval the server uses", () => {
+    const registered = [...code.matchAll(/setInterval\((\w+), ([\w_]+)\)/g)].map((m) => ({ name: m[1], intervalMs: toMs(m[2]) }));
     expect(registered.length).toBeGreaterThan(0);
     expect([...registered].sort((a, b) => a.name.localeCompare(b.name))).toEqual([...TICKERS].sort((a, b) => a.name.localeCompare(b.name)));
   });

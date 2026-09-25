@@ -180,7 +180,7 @@ greedy bots' 7-day and 30-day probe runs are byte-for-byte identical past bot-da
 across both bots and only 13,407 cleared — most of what was mined is still on the book when they go idle, so the
 deadlock is not a demand problem. Raising `npcBid.floorPct` from 55 to 75 changed nothing, byte for byte: the
 clearing price never approached either floor, so that lever is not the binding constraint. **The actual mechanism**
-(read from `server/index.js`'s `start-mining` and `payroll.js`): starting a cycle needs `startupCost` credits up
+(read from `server/routes/mining.js`'s `start-mining` and `payroll.js`): starting a cycle needs `startupCost` credits up
 front (at least `operations.minStartupCost`, 500) and a corporation at 0 credits cannot pay it — `start-mining`
 refuses with "Starting this mining cycle requires N credits. Current reserves: 0 credits." Payroll fails
 gracefully (a balance stops at 0, never below; arrears accrue, nobody is let go — `payroll.js`), so a broke
@@ -281,8 +281,8 @@ These are not in `data/economy.json`, so the model states them, with where each 
 files and fails when one changes.
 
 - Starting credits 250,000, at Earth Station Prime (`server/gameState.js`).
-- A lease needs an office and 5 employees per lease (`server/index.js`, `EMPLOYEES_PER_LEASE`).
-- Throughput is clamped to 10..250 t/h, and a cycle runs at most 72 hours (`server/index.js`, start-mining).
+- A lease needs an office and 5 employees per lease (`server/routes/corporation.js`, `EMPLOYEES_PER_LEASE`).
+- Throughput is clamped to 10..250 t/h, and a cycle runs at most 72 hours (`server/routes/mining.js`, start-mining).
 - Downtime starts with probability 0.005% a second, lasts at least 15 minutes, then ends with probability 0.0276% a
   second (`server/gameState.js`). That makes expected uptime about 82%, and costs pause while an extractor is down.
 - Leases come from `data/systems.json`: Earth 20,000, Mars 25,000, Luna 30,000. Mined Silicates land at the station

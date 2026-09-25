@@ -1,0 +1,165 @@
+// server/realtime.js: socket.io: rooms, the auth boundary, per-account and global emits, and chat, split out of server/index.js (AB#1815).
+import { marketView } from "./marketView.js";
+import { forumsView } from "./publicViews.js";
+import { appendChatMessage, getAccountById, getState } from "./gameState.js";
+// Bug #1260: notifications made inside gameState (a level reached) reach the account's own sockets as every other
+// notification does, as notifications:new, so the badge and the list update without a reload.
+import { onAccountNotification } from "./gameState.js";
+import { io } from "./app.js";
+import { verifyAccessToken } from "./auth.js";
+
+/** Characters in one chat line: the chat input's maxlength (Bug #1127). */
+const CHAT_MAX_LENGTH = 300;
+
+function stripHtml(input) {
+  return String(input || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
+
+// Bug #710: a socket carries the same access token as the HTTP API (socket.handshake.auth.token). Anyone may still
+// connect to read public state, but only a verified socket may chat, and the server decides who is speaking.
+/** The socket.io room for one account's sockets. */
+function accountRoom(accountId) {
+  return `account:${accountId}`;
+}
+
+/**
+ * Re-verify the token a socket connected with. A socket that authenticated once and is still in its account room but
+ * whose token has since expired is dropped back to anonymous here rather than kept signed in for the life of the
+ * connection: it leaves the room, loses socket.data.accountId, and is told "auth:expired" so the page can refresh its
+ * token and reconnect (ISP-67). A socket that was never authenticated is left alone. Returns the account id still
+ * good for this socket, or undefined.
+ */
+function checkSocketAuth(socket) {
+  const verified = verifyAccessToken(socket.data.token);
+  if (verified.accountId) return verified.accountId;
+  if (socket.data.accountId) {
+    socket.leave(accountRoom(socket.data.accountId));
+    socket.data.accountId = undefined;
+    socket.emit("auth:expired");
+  }
+  return undefined;
+}
+
+/**
+ * Send an event about one account to that account's sockets only (Bug #1021: these used to be io.emit broadcasts, so
+ * every connected client received every corporation's finances, mining, inventory and notification text). Global
+ * events (market, forums, chat) still use io.emit; tests/integration/socket-rooms.test.js checks there are no others.
+ * Each member's token is re-checked before delivery (ISP-67), so a room a socket never formally left because it
+ * disconnected loses nothing, but one that just expired stops hearing this account the moment there is something to
+ * hear.
+ */
+function emitToAccount(accountId, event, payload) {
+  if (!accountId) return;
+  const room = io.sockets.adapter.rooms.get(accountRoom(accountId));
+  if (!room) return;
+  for (const socketId of [...room]) {
+    const socket = io.sockets.sockets.get(socketId);
+    if (socket && checkSocketAuth(socket) === accountId) socket.emit(event, payload);
+  }
+}
+
+/**
+ * Send the market to every connected socket as that socket's account should see it: the newest orders plus its own
+ * (Bug #425: the book is never cut, so what is sent is capped here instead). The viewer is re-verified through
+ * checkSocketAuth (Bug #1766), not read off socket.data.accountId directly: a socket whose token expired since
+ * connecting kept seeing "this is your own listing" highlighting for its last-known account until some other
+ * per-account event happened to re-check it first.
+ */
+function emitMarketUpdated() {
+  const market = getState().market;
+  for (const peer of io.of("/").sockets.values()) peer.emit("market:updated", marketView(market, checkSocketAuth(peer)));
+}
+
+/**
+ * Send the forums to every connected socket as that socket's account should see them: no account ids (Bug #1134).
+ * The viewer is re-verified through checkSocketAuth (Bug #1766); see emitMarketUpdated.
+ */
+function emitForumsUpdated(forums) {
+  for (const peer of io.of("/").sockets.values()) peer.emit("forums:updated", forumsView(forums, checkSocketAuth(peer)));
+}
+
+/** The shared state as `viewer` (an account id, or null) should see it: the bootstrap and a socket's state:init. */
+function sharedStateView(viewer) {
+  const state = getState();
+  return { ...state, market: marketView(state.market, viewer), forums: forumsView(state.forums, viewer) };
+}
+
+/** The chat channels anyone may post to. "private" is gone: it was a public broadcast wearing the name (D-0.12-1). */
+const PUBLIC_CHAT_CHANNELS = new Set(["global", "trade"]);
+
+/**
+ * Where a message goes, decided by the server: "global" and "trade" as asked; "local" (or "local:<own system>") is the
+ * sender's current system as the server knows it. Anything else, including another system's local channel, is null.
+ */
+function resolveChatChannel(requested, corp) {
+  if (typeof requested !== "string") return null;
+  if (PUBLIC_CHAT_CHANNELS.has(requested)) return requested;
+  const home = `local:${corp?.currentSystemId || "sol"}`;
+  if (requested === "local" || requested === home) return home;
+  return null;
+}
+
+export function registerRealtime() {
+  onAccountNotification((accountId, notification) => emitToAccount(accountId, "notifications:new", { accountId, notification }));
+
+  io.use((socket, next) => {
+    // The raw token is kept, not just its verdict, so checkSocketAuth can re-verify it later against the clock it is
+    // checked at rather than the clock it connected at (ISP-67).
+    socket.data.token = socket.handshake.auth?.token;
+    const verified = verifyAccessToken(socket.data.token);
+    if (verified.accountId) socket.data.accountId = verified.accountId;
+    next();
+  });
+
+  io.on("connection", (socket) => {
+    // Bug #1021: an authenticated socket joins its account's room, so per-account events reach only its owner.
+    if (socket.data.accountId) socket.join(accountRoom(socket.data.accountId));
+    socket.emit("state:init", sharedStateView(socket.data.accountId || null));
+
+    socket.on("chat:send", (payload) => {
+      // Fail closed: no verified account, no account, no allowed channel or no content means nothing is stored or sent.
+      // Re-checked here rather than read off socket.data (ISP-67): a token good at connect time can have expired since.
+      const accountId = checkSocketAuth(socket);
+      if (!accountId) return;
+      const corp = getAccountById(accountId)?.state?.corp;
+      if (!corp) return;
+      const channel = resolveChatChannel(payload?.channel, corp);
+      if (!channel) return;
+      // Bug #1127: kept as typed (the client renders it as text; stripping tags garbled "10 < price < 30"), and at most
+      // CHAT_MAX_LENGTH characters, the chat box's own limit: a longer line is dropped like an empty one.
+      const content = typeof payload?.content === "string" ? payload.content.trim() : "";
+      if (!content || content.length > CHAT_MAX_LENGTH) return;
+
+      // The author is the sender's own corporation; payload.author is ignored. No account id goes in the broadcast.
+      const message = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        channel,
+        author: stripHtml(corp.corporationName || "") || "Unnamed Corporation",
+        content,
+        createdAt: Date.now()
+      };
+
+      appendChatMessage(channel, message);
+      if (channel.startsWith("local:")) {
+        // Local chat reaches the corporations in that system now, read at send time so travel needs no bookkeeping.
+        // The recipient is re-verified through checkSocketAuth (Bug #1766), not read off socket.data.accountId
+        // directly: a socket whose token expired since connecting kept receiving its last-known system's local
+        // chat until some other per-account event happened to re-check it first.
+        const systemId = channel.slice("local:".length);
+        for (const peer of io.of("/").sockets.values()) {
+          const peerAccountId = checkSocketAuth(peer);
+          const peerCorp = peerAccountId ? getAccountById(peerAccountId)?.state?.corp : null;
+          if (peerCorp && (peerCorp.currentSystemId || "sol") === systemId) peer.emit("chat:new", message);
+        }
+      } else {
+        io.emit("chat:new", message);
+      }
+    });
+
+    socket.on("disconnect", () => {
+      // Placeholder for future presence tracking and local system channel cleanup.
+    });
+  });
+}
+
+export { emitMarketUpdated, emitToAccount, sharedStateView, emitForumsUpdated };

@@ -5,6 +5,7 @@ import {
   applyRefineryOperations, applyAsteroidExpeditions, REFINERY_CHAINS, BELT_COMPOSITIONS
 } from "../../server/gameState.js";
 import { makeCorp } from "../fixtures/makeCorp.js";
+import { serverCode } from "../helpers/serverSource.js";
 
 // Bug #424: progression stopped at Level 5. The ladder now names only what the build contains, and the counters
 // levels 6 to 10 read are kept.
@@ -104,7 +105,7 @@ describe("statistics are kept through one helper (Bug #424)", () => {
 });
 
 describe("the lists match the code that keeps them (Bug #424)", () => {
-  const index = fs.readFileSync(new URL("../../server/index.js", import.meta.url), "utf8");
+  const index = serverCode(); // AB#1815: server/index.js and the route modules it was split into
   // AB#737: the game state is split by system into server/game/*.js behind server/gameState.js; read all of it.
   const gameDir = new URL("../../server/game/", import.meta.url);
   const gameState = [fs.readFileSync(new URL("../../server/gameState.js", import.meta.url), "utf8"), ...fs.readdirSync(gameDir).sort().map((f) => fs.readFileSync(new URL(f, gameDir), "utf8"))].join("\n");

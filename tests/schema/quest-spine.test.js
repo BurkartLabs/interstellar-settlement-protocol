@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync, readdirSync } from "fs";
+import { serverCode } from "../helpers/serverSource.js";
 
 // AB#584: the quest spine is a design, but its worked example is written against the build. This keeps it honest:
 // the example must fit its schema, and every route, id, tab, metric and timer it names must exist in the build, so a
@@ -10,7 +11,8 @@ const json = (p) => JSON.parse(read(p));
 
 const schema = json("docs/quest-spine/quest.schema.json");
 const act = json("docs/quest-spine/act-1.example.json");
-const server = read("server/index.js");
+// AB#1815: server/index.js is split into server/routes/*.js and a few server modules; read all of it.
+const server = serverCode();
 // AB#737: the game state is split by system into server/game/*.js behind server/gameState.js; read all of it.
 const gameState = [read("server/gameState.js"), ...readdirSync(new URL("server/game/", root)).sort().map((f) => read(`server/game/${f}`))].join("\n");
 const indexHtml = read("public/index.html");

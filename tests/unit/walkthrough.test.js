@@ -120,7 +120,7 @@ describe("walkthrough steps (AB#404)", () => {
   });
 
   // The figures a step quotes that live in a catalog are checked against that catalog, so a price change there fails
-  // here. (The office and extractor prices live in server/index.js route handlers; see the PR for their lines.)
+  // here. (The office and extractor prices live in the server/routes/*.js handlers; see the PR for their lines.)
   it("quotes the Earth lease price from data/systems.json", () => {
     const earth = SYSTEMS.flatMap((s) => s.bodies || []).find((b) => b.id === "earth");
     const step = WALKTHROUGH_STEPS.find((s) => s.id === "lease");

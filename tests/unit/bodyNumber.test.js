@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import fs from "node:fs";
 import { bodyNumber } from "../../server/bodyNumber.js";
+import { serverCodeFiles, readServerFile } from "../helpers/serverSource.js";
 
 // Bug #1014: routes clamped body numbers with Math.max(min, Number(x || default)), and Math.max lets NaN through.
 describe("bodyNumber (Bug #1014)", () => {
@@ -47,15 +47,17 @@ function routesReadingBodyNumbers(source) {
 }
 
 describe("every write route parses body numbers through bodyNumber (Bug #1014)", () => {
-  const source = fs.readFileSync(new URL("../../server/index.js", import.meta.url), "utf8");
+  // AB#1815: routes live in server/routes/*.js now. Scanned one file at a time, so a module's last route never runs on
+  // into the next file's imports.
+  const routes = serverCodeFiles().flatMap((f) => routesReadingBodyNumbers(readServerFile(f)));
 
   it("finds the routes it is meant to police (the scan itself works)", () => {
-    const paths = routesReadingBodyNumbers(source).map((r) => r.path);
+    const paths = routes.map((r) => r.path);
     expect(paths).toEqual(expect.arrayContaining(Object.keys(SAFE_WITHOUT_BODY_NUMBER)));
   });
 
   it("has no route outside the allowlist parsing a body number by hand", () => {
-    const offenders = routesReadingBodyNumbers(source).filter((r) => !(r.path in SAFE_WITHOUT_BODY_NUMBER));
+    const offenders = routes.filter((r) => !(r.path in SAFE_WITHOUT_BODY_NUMBER));
     expect(offenders).toEqual([]);
   });
 });

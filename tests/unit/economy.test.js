@@ -11,7 +11,7 @@ import { officeLeaseCost, officeRenewalCost, OFFICE_TERMS_DAYS } from "../../pub
 const root = path.resolve(import.meta.dirname, "..", "..");
 
 const BEFORE_THE_MOVE = {
-  employees: { hireCost: 2000, payrollPerDay: 150 },                       // server/index.js hire: hired * 2000, hired * 150
+  employees: { hireCost: 2000, payrollPerDay: 150 },                       // server/routes/corporation.js hire: hired * 2000, hired * 150
   office: { rentPerDay: 1000, termDays: [7, 14, 21, 28] },                  // ceoEffects.js OFFICE_PER_DAY, OFFICE_TERMS_DAYS (Bug #1032)
   buildings: {                                                              // build-extractor routes, build-assembly-facility, build-refinery
     extractorYardCost: 50000, extractorYardAssetValue: 36000, assemblyFacilityCost: 60000, assemblyFacilityAssetValue: 40000,
@@ -106,14 +106,16 @@ describe("data/economy.json (AB#726)", () => {
       /Math\.round\(50000/,
       /"GEX Commodities Authority"/
     ];
-    const serverDir = path.join(root, "server");
+    // server/*.js and, since AB#1815 moved the route handlers there, server/routes/*.js.
+    const files = ["server", "server/routes"].flatMap((d) => fs.readdirSync(path.join(root, d)).filter((f) => f.endsWith(".js")).map((f) => `${d}/${f}`));
     const found = [];
-    for (const file of fs.readdirSync(serverDir).filter((f) => f.endsWith(".js"))) {
-      const lines = fs.readFileSync(path.join(serverDir, file), "utf8").split(/\r?\n/);
+    for (const file of files) {
+      const lines = fs.readFileSync(path.join(root, file), "utf8").split(/\r?\n/);
       lines.forEach((line, i) => {
-        for (const pattern of LEFT_BEHIND) if (pattern.test(line)) found.push(`server/${file}:${i + 1} ${line.trim()}`);
+        for (const pattern of LEFT_BEHIND) if (pattern.test(line)) found.push(`${file}:${i + 1} ${line.trim()}`);
       });
     }
+    expect(files).toContain("server/routes/corporation.js"); // the scan reaches the handlers it is meant to police
     expect(found).toEqual([]);
   });
 

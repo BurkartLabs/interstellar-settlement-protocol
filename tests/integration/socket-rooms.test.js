@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { io as connect } from "socket.io-client";
 import { getApp, serverUrl } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
+import { serverCode } from "../helpers/serverSource.js";
 import { mutateAccountState, mutateState } from "../../server/gameState.js";
 
 // Bug #1021: per-account events went to every socket with io.emit: every corporation's finances every 30 seconds,
@@ -171,7 +172,7 @@ const GLOBAL_EVENTS = ["market:updated", "forums:updated", "chat:new", "combat:n
 
 describe("the server broadcasts only global events (Bug #1021)", () => {
   it("has no io.emit outside the global events", () => {
-    const source = fs.readFileSync(new URL("../../server/index.js", import.meta.url), "utf8");
+    const source = serverCode(); // AB#1815: index.js and the modules it was split into
     const events = [...source.matchAll(/\bio\.emit\(\s*"([^"]+)"/g)].map((m) => m[1]);
     expect(events.length).toBeGreaterThan(0);
     expect(events.filter((e) => !GLOBAL_EVENTS.includes(e))).toEqual([]);
