@@ -1,10 +1,45 @@
 # ISP — handoff
 
-**2026-09-25, Builder #2 (Sonnet 5), non-visual session (no CONTROL_URL, no Chrome extension attached — see
-"Blind spot" below). Rewritten after ISP-48 (AB#734), on top of the ISP-67 handoff below (still accurate; not
-this session's own work).**
+**2026-09-25, Builder #4 (Sonnet 5), non-visual session (no CONTROL_URL, no Chrome extension attached — see
+"Blind spot" below). Rewritten after ISP-278 (AB#985), on top of the ISP-48/ISP-67 handoffs below (still
+accurate; not this session's own work).**
 
-## What's now true (this session: ISP-48, AB#734)
+## What's now true (this session: ISP-278, AB#985)
+
+- **ISP-278 is done: shipments arrive on a later tick, not on dispatch.** `POST .../gameplay/transfer-resources`
+  debits the origin inventory and the fee once, same as before, but now creates a shipment (`corp.shipments`)
+  with an arrival time from `transitTime` (`server/transfers.js`, dead code since AB#718, now wired in) instead
+  of crediting the destination on the spot. The goods are in neither inventory while in flight — the bug-#692
+  lesson applies here too: the destination station is pinned at dispatch (`corp.currentStationId` read once,
+  when the shipment is created), never re-read at delivery time.
+  - **`shipmentTick`** (mirrors `travelTick`, same 5s interval) delivers each shipment on the first tick at or
+    after `arrivesAt`: credits the destination, records it in `corp.logisticsHistory` (same shape as before, so
+    the existing Transfer History list needs no change), fires a notification, and drops the shipment from
+    `corp.shipments` in the same pass — delivery is idempotent by construction, no separate guard needed.
+  - **Held, not lost:** if the destination station id isn't in the catalog at arrival (a decommissioned
+    station), the shipment's marked `status: "held"` and stays in `corp.shipments` rather than crediting nothing
+    or vanishing; the player is notified. Nothing today resolves a held shipment — a reasonable follow-up if the
+    Board ever retires a station.
+  - **New, owner-scoped:** `GET .../gameplay/shipments` (list) and `.../shipments/:shipmentId` (one, 404 if it
+    isn't yours — same shape as the existing message/notification-by-id routes).
+  - **Client:** `app.js`'s post-transfer toast now reads the dispatch response's ETA rather than
+    `logisticsHistory[0]` (which no longer has an entry at dispatch time) — "Dispatched … arriving in N min"
+    instead of a false "Moved …". This is a plain-text change, not a layout one; see Blind spot.
+  - Tests (`tests/integration/transfers.test.js`, `transfer-distance.test.js`): dispatch-vs-delivery separation,
+    idempotent tick delivery with injected time, arrival notification, restart survival (write the live state to
+    disk, reload it as a fresh process would, tick from the reloaded copy alone), the held-station case, a
+    client-supplied arrival time being ignored, and cross-account 404 scoping. All fail against the pre-fix
+    code where meaningful (dispatch-vs-delivery, idempotence) — checked by reverting the diff and re-running.
+  - `tests/unit/benchTicks.test.js` and `scripts/bench-ticks.mjs` gained `shipmentTick`; `server/gameplayInput.js`
+    and both AB#731/#732 guard-test files gained the two new routes (the first `ref`-kind field in
+    `GAMEPLAY_INPUT`, so `gameplay-input.test.js`'s hostile-input loop needed the same ref-kind carve-out
+    `remaining-input.test.js` already had — a real gap in that test, not specific to this story, fixed here).
+  - `ECONOMY.md` and `DESIGN_DOCUMENT.md`'s "transfers still arrive at once; transit time isn't used yet" notes
+    are updated — that sentence is what this story replaces.
+  - Checks: `npm run check` clean; `npm test` — **149 files, 1513 tests, all passed** (1500 baseline on
+    `origin/main` after merge + 13 new).
+
+## What's now true (ISP-48, AB#734 — prior session, still accurate)
 
 - **ISP-48 is done: `SECURITY.md` exists**, answering DOCTRINE's four questions (what data, who can reach it,
   blast radius, fail closed) for auth, persistence, the market and sockets, every answer citing file and line.
@@ -100,16 +135,16 @@ this session's own work).**
 
 ## Blind spot
 
-No Chrome extension connected this session either (Builder panes don't get one by design), so nothing visual
-was looked at this session or the one before it. ISP-48 has no screen of its own — a markdown file and a
-server-side throttle — and both were verified directly: `SECURITY.md`'s every code claim was read back against
-the actual file and line after writing it (not trusted from memory), and the rate limiter was proven with real
-HTTP requests through `supertest` against the live route chain (`npm test`, not a mock), which is the actual
-mechanism the acceptance criteria describe. `npm test`: **149 files, 1500 tests, all green** (1496 baseline +
-4 new). `npm run check` clean.
+No Chrome extension connected this session either (Builder panes don't get one by design). ISP-278 has no
+screen of its own — a dispatch/delivery split in server state, proven with real HTTP requests and a real
+`shipmentTick()` call through `supertest`/`getApp()` (not a mock), which is the mechanism the acceptance
+criteria describe (dispatch, tick timing, restart, the held case, ownership). One thing this session did
+**not** look at: the client's post-dispatch toast wording (`public/scripts/app.js`) was reasoned through and
+`node --check`ed, but never seen rendered — a plain-text change (an ETA in a toast), not layout, so the risk is
+narrow, but it is unverified and the reason it's called out rather than folded into "done."
 
-ISP-67's own blind-spot note (previous session) is unchanged and still true: no Chrome extension then either;
-`socket.io-client` against a real server was that session's equivalent of "looked at it."
+ISP-48's and ISP-67's own blind-spot notes (previous sessions) are unchanged and still true: no Chrome
+extension then either.
 
 Screenshot-gated v0.5 items (AB#753/755/757/781/987/989) remain unclaimed for the same reason — no browser
 session available this session either.
@@ -117,13 +152,19 @@ session available this session either.
 ## What's next
 
 - **AB#1765** (refresh tokens in plain text at rest) and **AB#1766** (the market/forum "still-authenticated-
-  looking" socket boundary) are filed, Proposed, unclaimed — either is a reasonable next pick, both non-visual.
+  looking" socket boundary), both filed by the ISP-48 session, remain Proposed and unclaimed — non-visual, and
+  ISP-279 (below) is not the only reasonable next pick.
+- **ISP-279** ("Shipments in the Logistics tab: arrival time quoted before you move") is the natural next
+  story: it has the `ui` tag this session avoided, and can now build on `corp.shipments` and the two new
+  `GET .../gameplay/shipments(/:id)` routes instead of inventing the data model itself.
+- The market/forum "still-authenticated-looking" boundary (ISP-67's note) and AB#734/AB#1765/AB#1766 are all
+  still open, non-visual, and worth a look before the next screenshot-gated pick.
 - The screenshot-gated v0.5 items are ready once a browser session is available.
-- Check ADO for what a concurrent Builder pane (if any) has Active before claiming, per the Board's "Builder #2
-  on ISP" framing this session started under.
+- Check ADO for what a concurrent Builder pane has Active before claiming — three others were working ISP in
+  parallel this session (AB#734 landed on main mid-session and was merged in cleanly; no conflicts).
 
 ## In flight / blocked
 
-Nothing blocked, nothing left uncommitted. This session's branch is `agent/734-security`, PR to be opened next
-and set to auto-complete. ISP-67's branch (`agent/756-socket-boundary`, PR !392) merged before this session
-started. `fix/rate-limiter-ipv6-warning` (AB#1747) already merged.
+Nothing blocked, nothing left uncommitted. This session's branch is `agent/985-timed-transit`, PR to be opened
+next and set to auto-complete. `agent/734-security` (ISP-48, AB#734) merged into main during this session and
+is merged into this branch too, so the checks above are against the combined state.
