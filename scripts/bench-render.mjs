@@ -197,13 +197,20 @@ async function measure(dir, { who }, tracePath) {
     await cdp.send("Performance.enable");
     const metric = async (name) => (await cdp.send("Performance.getMetrics")).metrics.find((m) => m.name === name)?.value || 0;
     const busyBefore = await metric("TaskDuration");
+    // AB#1453: TaskDuration is wall-clock time, which other work on the machine inflates; ThreadTime is the CPU the
+    // page's main thread actually used, which is what costs a phone its battery. Both are reported.
+    const cpuBefore = await metric("ThreadTime");
+    // AB#1453: with BENCH_PROFILE, the idle minute is profiled too, so the report can say what keeps the page busy.
+    if (process.env.BENCH_PROFILE) await cdp.send("Profiler.start");
     await sleep(IDLE_SECONDS * 1000);
     const busyShare = (await metric("TaskDuration")) - busyBefore;
+    const cpuShare = (await metric("ThreadTime")) - cpuBefore;
+    const hotIdle = process.env.BENCH_PROFILE ? selfTimes((await cdp.send("Profiler.stop")).profile, 16) : null;
     const sorted = [...renders].sort((x, y) => x - y);
     return {
       firstPaint: paint["first-paint"], firstContentfulPaint: paint["first-contentful-paint"], firstRender, tti,
       renders, median: percentile(sorted, 50), p95: percentile(sorted, 95), max: sorted.at(-1),
-      idleBusyShare: busyShare / IDLE_SECONDS, errors, hot, parts
+      idleBusyShare: busyShare / IDLE_SECONDS, idleCpuShare: cpuShare / IDLE_SECONDS, errors, hot, hotIdle, parts
     };
   } finally {
     await browser.close();
@@ -225,7 +232,7 @@ export function renderReport(r, machine) {
     "",
     `Full re-render (updateAllViews), ${r.renders.length} renders: median ${r.median.toFixed(1)} ms, p95 ${r.p95.toFixed(1)} ms, slowest ${r.max.toFixed(1)} ms.`,
     `Budget: median under ${BUDGET.medianMs} ms and p95 under ${BUDGET.p95Ms} ms: ${r.median < BUDGET.medianMs && r.p95 < BUDGET.p95Ms ? "within" : "OVER"} (median ${r.median < BUDGET.medianMs ? "within" : "over"}, p95 ${r.p95 < BUDGET.p95Ms ? "within" : "over"}).`,
-    `Left alone for ${IDLE_SECONDS} s (socket updates and the page's 1-second timer): main thread busy ${(r.idleBusyShare * 100).toFixed(1)}% of the time.`,
+    `Left alone for ${IDLE_SECONDS} s (socket updates and the page's 1-second timer): main thread busy ${(r.idleBusyShare * 100).toFixed(1)}% of the time${r.idleCpuShare === undefined ? "" : `, using ${(r.idleCpuShare * 100).toFixed(1)}% of a CPU`}.`,
     `Page errors: ${r.errors.length ? r.errors.join("; ") : "none"}.`
   ];
   const parts = Object.entries(r.parts || {}).map(([k, v]) => [k, [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)]]).sort((a, b) => b[1] - a[1]);
@@ -236,6 +243,10 @@ export function renderReport(r, machine) {
   if (r.hot) {
     lines.push("", "Where the re-renders' time goes (CPU profile, self time, top functions):");
     for (const h of r.hot) lines.push(`  ${(h.share * 100).toFixed(1).padStart(5)}%  ${h.fn.padEnd(32)} ${h.where}`);
+  }
+  if (r.hotIdle) {
+    lines.push("", `Where the idle minute's time goes (CPU profile, self time, share of all samples, "(idle)" included):`);
+    for (const h of r.hotIdle) lines.push(`  ${(h.share * 100).toFixed(1).padStart(5)}%  ${h.fn.padEnd(32)} ${h.where}`);
   }
   return lines.join("\n");
 }
