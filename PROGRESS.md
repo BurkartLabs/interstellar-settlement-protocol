@@ -18,6 +18,21 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1202 — no lease milestone strands a player short of staff, Builder)
+
+- **The bug no longer reproduces on main**, and nothing here fixes it: AB#1753 made Level 2 "any lease", so its
+  card says Go to Station and never sends a Level 1 corporation to Mars; AB#1124 requires an office at the station
+  a lease is filed at, and that office also hires there. Played on main and on the branch (`e2e/lease-staffing.spec.js`,
+  screenshots in `docs/ab-1202/`): Earth lease completes Level 2; a player who goes to Mars anyway is told
+  "10 on payroll (current: 5)", rents a Mars office, hires to 10 and files Mars without flying home.
+- **Staff per lease has one copy**: `public/scripts/leaseStaffing.js` (`EMPLOYEES_PER_LEASE`,
+  `employeesForNextLease`), imported by the lease route, the claims office and the walkthrough's hire step.
+- **`tests/unit/leaseStaffing.test.js`** checks every lease milestone against the staff the levels before it
+  guarantee (headcount only rises; levels grant in order; one lease per body). Mutation-checked: re-pinning Level 2
+  to Mars, or dropping Level 4's hire 10, turns it red. **A new lease milestone is covered without editing it.**
+- **Filed, not fixed: AB#1870** — the claims office offers a lease with an office anywhere; the server (AB#1124)
+  wants one at that station. Visible in `docs/ab-1202/03-mars-claims-office.png`.
+
 ## What's now true (AB#1269 — building copy names only its own station, Builder #1)
 
 - The Orbital Executive Suites' flavour line is station-neutral ("a registered office here tells the ISA"), since the
@@ -40,6 +55,14 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   **The stricter of the two rules was chosen** — the Board can veto it for the looser one (drop the page's check).
 - `tests/integration/mission-agent-station.test.js`; `e2e/contract-agent-station.spec.js` accepts and completes a
   contract at Earth in a browser (seed: `e2e/seed-contractor-account.mjs`); screenshots in `docs/ab-1203/`.
+
+## What's now true (AB#1284 — a disabled button looks disabled)
+
+- `button:disabled` is dimmed (0.45) with a not-allowed cursor, and `.btn:disabled` has no hover glow, in
+  `public/styles.css` under `.btn:hover`. It replaces the Construct card's own rule from AB#1253.
+  `tests/unit/disabledButtons.test.js` reads the stylesheet; `e2e/disabled-buttons.spec.js` measures the claims-office
+  lease button and the walkthrough's Previous, and that enabled buttons are unchanged. Screenshots in `docs/ab-1284/`.
+- Disabled inputs and selects (the research select, an exhausted NPC sell quantity) are not covered by this rule.
 
 ## What's now true (AB#1827, Builder #4)
 

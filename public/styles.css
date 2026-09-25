@@ -1058,6 +1058,17 @@ h1 {
   box-shadow: 0 0 10px rgba(0, 247, 255, 0.16);
 }
 
+/* AB#1284: a button the game has disabled looks it, everywhere: dimmed, not-allowed, and no hover glow. */
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn:disabled,
+.btn:disabled:hover {
+  box-shadow: none;
+}
+
 /* ─── Layout ─── */
 .layout-grid {
   display: grid;
@@ -2968,17 +2979,11 @@ body.walkthrough-open .layout-grid {
   gap: 0.5rem;
 }
 
-/* Bug #1253: why Construct cannot be used yet, and a button that looks as unusable as it is. */
+/* Bug #1253: why Construct cannot be used yet. Its disabled button is drawn by the rule under .btn:hover (AB#1284). */
 .facility-blocked {
   margin: 0;
   color: var(--warn);
   font-size: 0.9rem;
-}
-
-.facility-card .btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  box-shadow: none;
 }
 
 .building-card {
