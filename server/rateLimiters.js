@@ -107,3 +107,21 @@ export const refreshLimiter = limiter("refresh", {
   envName: "ISP_RATE_LIMIT_REFRESH_MAX",
   productionDefault: 60
 });
+
+// AB#734 (ISP-48): 120 state-changing game requests a minute, shared by every route under /api/accounts/:accountId
+// and /api/market — one limiter instance, so an account can't dodge the count by splitting a burst across the two
+// route families. Keyed on the caller's own account, not their address: two players behind the same NAT (or one
+// player's own two tabs) never share a bucket, and the key exists only once requireAuth has verified a token, so
+// this always runs after requireAuth in the middleware chain. An unauthenticated caller (a forged or missing
+// token) falls back to their address, the same shape as loginAccountLimiter's fallback (AB#1747) — requireAuth
+// still answers 401 to them; the fallback only keeps a token-guessing burst from running unthrottled ahead of
+// that 401. GET requests are read-only and excluded by `skip`, matching the acceptance line's "state-changing".
+export const accountActionLimiter = limiter("account-action", {
+  windowMs: 60_000,
+  envName: "ISP_RATE_LIMIT_ACCOUNT_ACTION_MAX",
+  productionDefault: 120,
+  extra: {
+    keyGenerator: (req) => req.auth?.accountId || ipKeyGenerator(req.ip),
+    skip: (req) => req.method === "GET"
+  }
+});

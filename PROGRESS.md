@@ -1,10 +1,47 @@
 # ISP — handoff
 
-**2026-09-25, Builder (Sonnet 5), non-visual session (no CONTROL_URL, no Chrome extension attached — see
-"Blind spot" below). Rewritten merging this session's ISP-67 work with a parallel session's AB#1747 fix that
-landed on main the same day.**
+**2026-09-25, Builder #2 (Sonnet 5), non-visual session (no CONTROL_URL, no Chrome extension attached — see
+"Blind spot" below). Rewritten after ISP-48 (AB#734), on top of the ISP-67 handoff below (still accurate; not
+this session's own work).**
 
-## What's now true
+## What's now true (this session: ISP-48, AB#734)
+
+- **ISP-48 is done: `SECURITY.md` exists**, answering DOCTRINE's four questions (what data, who can reach it,
+  blast radius, fail closed) for auth, persistence, the market and sockets, every answer citing file and line.
+  Its dependencies (#731, #732, #752, #756) were all Resolved before this was claimed.
+- **New: `accountActionLimiter`** (`server/rateLimiters.js`) — 120 requests/minute shared across every
+  state-changing route under `/api/accounts/:accountId` and `/api/market`, keyed on the verified account id
+  (falls back to address if unauthenticated, same shape as `loginAccountLimiter`'s AB#1747 fallback). One
+  limiter instance mounted at both route families so an account can't dodge the count by splitting a burst
+  across them. `tests/integration/rate-limit-account-action.test.js` proves the shared bucket, the 429, that
+  `GET` is excluded, and that a different account's budget is untouched.
+- **Secret audit**: `git grep` for JWT_SECRET literals, JWT-shaped tokens and password literals over the
+  tracked tree found only two clearly-labeled throwaway values in `scripts/bench-*.mjs`. Server logs checked:
+  nothing logs an email, password or token (every `console.*` call in `server/` either logs a JS `Error`
+  object, a count, or neither).
+  - **Middleware registration order matters for what a keyGenerator can see, and it is not what the route's own
+    argument list suggests.** `/api/accounts/:accountId` has one `app.use(requireAuth, requireAccountAccess,
+    accountActionLimiter)` mount, so the limiter always sees `req.auth`. `/api/market` has no such blanket
+    mount — each route lists `requireAuth` itself — but a *separate*, earlier-registered
+    `app.use("/api/market", gameplayInputMiddleware(...))` (input validation) runs before any individual
+    route's own middleware chain, Express matching `app.use` in *registration order* across the whole app, not
+    per-route. A test that posts an out-of-catalog item name to prove the limiter counts it will instead get
+    400 from input validation before ever reaching the limiter — not a bug, just a trap for whoever writes the
+    next test here. Use a real catalog item name (`data/refinery-chains.json`'s `resourceCatalog`, exact case:
+    `"Silicates"`, not `"silicates"`) so the request actually reaches the routes under test.
+- **Two findings filed, not fixed (acceptance #5, out of this story's scope):**
+  - **AB#1765**: refresh tokens are stored in plain text in `accounts-snapshot.json`
+    (`server/game/store.js:560-570`, `storeRefreshToken`) — unlike passwords, which are bcrypt-hashed before
+    they ever reach disk. A leak of that file (the same class AB#415 already caused once) hands out live
+    30-day bearer tokens directly, no cracking required. Proposed fix in the bug: hash it the way `passwordHash`
+    already is, compared for exact match rather than against a typed value.
+  - **AB#1766**: `emitMarketUpdated`, `emitForumsUpdated` and the local-chat system lookup
+    (`server/index.js:3358-3366`, `3430-3432`) read `peer.data.accountId` directly instead of through
+    `checkSocketAuth` — the known boundary ISP-67's own handoff note (below) already described, now actually
+    filed as a bug rather than just written down.
+- Checks: `npm run check` clean; `npm test` — **149 files, 1500 tests, all passed** (1496 baseline + 4 new).
+
+## What's now true (ISP-67, AB#756 — prior session, still accurate)
 
 - **ISP-67 (AB#756) is done.** The PM re-scoped it on 2026-09-23 after Bug #710/#1021 shipped most of it; what
   was left was the anonymous and expired-token edges, and they're now proven rather than assumed:
@@ -63,28 +100,30 @@ landed on main the same day.**
 
 ## Blind spot
 
-No Chrome extension connected this session (Builder panes don't get one by design), so nothing visual was
-looked at. This session's own story (ISP-67) has no screen of its own — it's socket handshake and room
-membership — and was verified with real `socket.io-client` connections against a real running server
-(`npm test`, not a mock), which is the actual mechanism the acceptance criteria describe, not a DOM/pixel proxy
-for it. `npm test`: **147 files, 1495 tests, all green** (1492 baseline on `origin/main` + 3 new). `npm run
-check` (`node --check server/index.js`) and `node --check public/scripts/app.js` both clean. (AB#1124's new
-refusal text is also read from two screens nobody has looked at yet, per that session's own note, still true;
-AB#1747's claim was verified with a direct import of `server/index.js` and a `console.error` spy, per that
-session's note.)
+No Chrome extension connected this session either (Builder panes don't get one by design), so nothing visual
+was looked at this session or the one before it. ISP-48 has no screen of its own — a markdown file and a
+server-side throttle — and both were verified directly: `SECURITY.md`'s every code claim was read back against
+the actual file and line after writing it (not trusted from memory), and the rate limiter was proven with real
+HTTP requests through `supertest` against the live route chain (`npm test`, not a mock), which is the actual
+mechanism the acceptance criteria describe. `npm test`: **149 files, 1500 tests, all green** (1496 baseline +
+4 new). `npm run check` clean.
+
+ISP-67's own blind-spot note (previous session) is unchanged and still true: no Chrome extension then either;
+`socket.io-client` against a real server was that session's equivalent of "looked at it."
 
 Screenshot-gated v0.5 items (AB#753/755/757/781/987/989) remain unclaimed for the same reason — no browser
-session available.
+session available this session either.
 
-## What's next — **paused: Board directive, 2026-09-25, no new items until told to resume**
+## What's next
 
-- The market/forum "still-authenticated-looking" boundary noted above, if the Board wants it closed.
-- AB#734 (ISP-48, security answers + audit) was blocked on AB#731/#732/#756 as of 2026-09-23. AB#756 is now
-  done; check whether #731/#732 have landed before picking #734 up.
+- **AB#1765** (refresh tokens in plain text at rest) and **AB#1766** (the market/forum "still-authenticated-
+  looking" socket boundary) are filed, Proposed, unclaimed — either is a reasonable next pick, both non-visual.
 - The screenshot-gated v0.5 items are ready once a browser session is available.
+- Check ADO for what a concurrent Builder pane (if any) has Active before claiming, per the Board's "Builder #2
+  on ISP" framing this session started under.
 
 ## In flight / blocked
 
-Nothing blocked, nothing left uncommitted. This session's branch is `agent/756-socket-boundary`, PR !392,
-approved and set to auto-complete. `fix/rate-limiter-ipv6-warning` (AB#1747) already merged. Holding per the
-Board's pause directive — not claiming another item.
+Nothing blocked, nothing left uncommitted. This session's branch is `agent/734-security`, PR to be opened next
+and set to auto-complete. ISP-67's branch (`agent/756-socket-boundary`, PR !392) merged before this session
+started. `fix/rate-limiter-ipv6-warning` (AB#1747) already merged.
