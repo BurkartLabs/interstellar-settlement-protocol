@@ -6,9 +6,11 @@ import {
   MISSION_TEMPLATES,
   refreshContractOfferings,
   COMPLETED_COOLDOWN_MS, // Bug #1268
-  MISSION_AGENTS_DATA // AB#1203
+  MISSION_AGENTS_DATA, // AB#1203
+  REPUTATION_TIERS_DATA // AB#744: the standing on a completion's receipt
 } from "../gameState.js";
 import { applyCredits } from "../finances.js";
+import { acceptMissionReceipt, completeMissionReceipt, standingFor } from "../receipts.js"; // AB#744
 // Bug #1058: refusals that say what to do next. Imported beside their first use, away from the import block.
 import { missionShortMessage } from "../nextStep.js";
 import { STATIONS_DATA } from "../travel.js";
@@ -22,6 +24,7 @@ export function registerMissionRoutes(app) {
 
     let outcome = "ok";
     let refusalHours = 2;
+    let accepted = null; // AB#744: the contract as accepted, for its receipt
     const account = mutateAccountState(req.params.accountId, (state) => {
       if (!Array.isArray(state.corp.activeMissions)) state.corp.activeMissions = [];
       if (state.corp.activeMissions.some((m) => m.id === missionId)) { outcome = "already-active"; return; }
@@ -40,7 +43,8 @@ export function registerMissionRoutes(app) {
       }
       // ISP-297 (AB#1789): acceptedAt is what a time-served contract (the Salvage Assignment) measures completion
       // against; harmless to record on every mission, so one route sets it rather than branching on kind here.
-      state.corp.activeMissions.push({ ...mission, acceptedAt: Date.now() });
+      accepted = { ...mission, acceptedAt: Date.now() };
+      state.corp.activeMissions.push(accepted);
       // Remove from current offerings so it can't be double-accepted
       offerings.missions = offerings.missions.filter((m) => m.id !== missionId);
     });
@@ -55,7 +59,13 @@ export function registerMissionRoutes(app) {
       return res.status(400).json({ error: `You completed that contract recently; it can be offered to you again 4 hours after completion. Accept one of the contracts listed in the agent's office on Assignments. ${nextOffers}` });
     }
     if (outcome === "already-active") return res.status(400).json({ error: "Mission already accepted." });
-    res.json(account);
+    const receipt = acceptMissionReceipt({
+      title: accepted.title,
+      quota: accepted.kind === "time-served" ? null : accepted.quota || null,
+      hoursRequired: accepted.hoursRequired,
+      reward: accepted.reward
+    });
+    res.json({ ...account, receipt });
   });
 
   app.post("/api/accounts/:accountId/gameplay/abandon-mission", (req, res) => {
@@ -79,6 +89,7 @@ export function registerMissionRoutes(app) {
     let shortfall = null;
     let hoursRemaining = null;
     let wrongStation = null;
+    let done = null; // AB#744: what was delivered and paid, for the receipt
     const account = mutateAccountState(req.params.accountId, (state) => {
       if (!Array.isArray(state.corp.activeMissions)) state.corp.activeMissions = [];
       const mission = state.corp.activeMissions.find((m) => m.id === missionId);
@@ -96,6 +107,7 @@ export function registerMissionRoutes(app) {
           return;
         }
         applyCredits(state.corp, ECONOMY.salvage.payoutCredits, "salvage");
+        done = { title: mission.title, agentId: mission.agentId || "unknown", delivered: null, rewardCredits: ECONOMY.salvage.payoutCredits };
       } else {
         if (!mission.quota) { outcome = "no-quota"; return; }
 
@@ -127,6 +139,7 @@ export function registerMissionRoutes(app) {
         if (rewardCredits) {
           applyCredits(state.corp, rewardCredits, "missions");
         }
+        done = { title: mission.title, agentId: mission.agentId || "unknown", delivered: { resource, amount: required }, rewardCredits };
       }
 
       // Remove from active
@@ -172,6 +185,10 @@ export function registerMissionRoutes(app) {
       const stationName = (id) => STATIONS_DATA.stations.find((st) => st.id === id)?.name || id;
       return res.status(400).json({ error: missionShortMessage({ ...shortfall, inventory: account.state.corp.inventory, stationName }) });
     }
-    res.json(account);
+    // AB#744: standing after this contract, and whether it moved (the page's own overlay used to work this out).
+    const count = Number(account.state.corp.agentReputation?.[done.agentId]?.completedCount || 0);
+    const now = standingFor(count, REPUTATION_TIERS_DATA);
+    const standing = { ...now, raised: now.level > standingFor(count - 1, REPUTATION_TIERS_DATA).level };
+    res.json({ ...account, receipt: completeMissionReceipt({ ...done, standing }) });
   });
 }

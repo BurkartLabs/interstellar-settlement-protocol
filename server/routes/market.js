@@ -15,6 +15,8 @@ import { requireAuth } from "../auth.js";
 import { checkAndResetNpcBuyOrders } from "../ticks.js";
 import { emitMarketUpdated, emitToAccount } from "../realtime.js";
 import { formatCredits } from "./helpers.js";
+import { buyReceipt, listingReceipt, sellToOrderReceipt } from "../receipts.js"; // AB#744
+import { STATION_REGISTRY } from "../travel.js";
 
 /** How many sell listings one seller may have open at once (Bug #425). */
 const MAX_OPEN_LISTINGS = 50;
@@ -97,7 +99,14 @@ export function registerMarketRoutes(app) {
     }
 
     emitMarketUpdated();
-    res.json({ ok: true, order, account: updatedSeller });
+    // AB#744: the listing as posted, and where its goods are held.
+    const receipt = listingReceipt({
+      item: order.item,
+      quantity: order.quantity,
+      unitPrice: order.unitPrice,
+      stationName: STATION_REGISTRY[order.stationId]?.name || "your station"
+    });
+    res.json({ ok: true, order, account: updatedSeller, receipt });
   });
 
   // Bug #425: a seller can take a listing down, getting the unsold goods back at the station they were listed from.
@@ -264,6 +273,14 @@ export function registerMarketRoutes(app) {
     }
 
     emitMarketUpdated();
+    // AB#744: what was bought, and the station it was delivered to (the buyer's, as the mutation used).
+    const receipt = buyReceipt({
+      item: order.item,
+      quantity: tradeQuantity,
+      unitPrice: Number(order.unitPrice || 0),
+      total: tradeTotal,
+      stationName: STATION_REGISTRY[buyer.state.corp.currentStationId || "earth-station-prime"]?.name || "your station"
+    });
     res.json({
       ok: true,
       traded: {
@@ -273,7 +290,8 @@ export function registerMarketRoutes(app) {
         unitPrice: Number(order.unitPrice || 0),
         total: tradeTotal
       },
-      account: buyer
+      account: buyer,
+      receipt
     });
   });
   // ─── Daily price history per item (AB#715) ───────────────────────────────────
@@ -387,10 +405,7 @@ export function registerMarketRoutes(app) {
     });
 
     emitMarketUpdated();
-    res.json({
-      ok: true,
-      traded: { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, proceeds: tradeProceeds },
-      account: seller
-    });
+    const traded = { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, proceeds: tradeProceeds };
+    res.json({ ok: true, traded, account: seller, receipt: sellToOrderReceipt(traded) }); // AB#744
   });
 }

@@ -8,6 +8,8 @@ import { applyCredits } from "../finances.js";
 import { IS_DEV } from "../app.js";
 import { emitToAccount } from "../realtime.js";
 import { fundingRequirementMessage } from "./helpers.js";
+import { queueInsightReceipt, queueResearchReceipt } from "../receipts.js"; // AB#744
+import { rndItemEndsAt } from "../../public/scripts/rndQueue.js"; // AB#744: the same end the R&D panel shows
 
 // AB#1049: RESEARCH_LIBRARY is imported from gameState.js now — data/research.json is the only definition,
 // keyed by id in server/game/catalog.js. GET /api/research (below) is how the client gets the same tree.
@@ -102,7 +104,16 @@ export function registerResearchRoutes(app) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     }
 
-    res.json(account);
+    // AB#744: the item the mutation queued, scheduled behind whatever was ahead of it.
+    const queuedItem = [...(account.state.queues?.corporateRnD || [])].reverse().find((q) => q.techId === tech.id);
+    const receipt = queueResearchReceipt({
+      name: tech.name,
+      cost: queuedItem?.costCredits ?? tech.costCredits,
+      startsAt: queuedItem?.startedAt,
+      endsAt: rndItemEndsAt(queuedItem),
+      now: Date.now()
+    });
+    res.json({ ...account, receipt });
   });
 
   // ─── CEO Insight ─────────────────────────────────────────────────────────────
@@ -191,6 +202,13 @@ export function registerResearchRoutes(app) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     }
 
-    res.json(account);
+    // AB#744: the program the mutation enrolled.
+    const enrolled = [...(account.state.queues?.ceoInsight || [])].reverse().find((q) => q.programId === prog.id);
+    const receipt = queueInsightReceipt({
+      name: prog.name,
+      cost: enrolled?.costCredits ?? prog.costCredits,
+      endsAt: Number(enrolled?.startedAt || Date.now()) + Number(enrolled?.durationHours || 0) * 3_600_000
+    });
+    res.json({ ...account, receipt });
   });
 }
