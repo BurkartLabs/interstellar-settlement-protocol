@@ -18,6 +18,16 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1326 — system-view orbits fit the height, Builder #1)
+
+- `systemViewLayout`'s `orbitLimit` also fits the height (`h / 2 - 76`), so on desktop and tablet canvases the outer
+  bodies (Uranus in Sol, the Crown Belt in Epsilon Eridani) no longer cross the top and bottom edges. **The desktop
+  system view is smaller** (outermost orbit at 881x393 from 221px to 176px from the star) — the price of fitting.
+  On a phone the width binds first, so AB#1287's button layout is unchanged.
+- Two tests that pinned the old desktop formula now pin the new rule; `starmapFit.test.js` adds edge checks at 881x534,
+  685x558 and 881x393. `e2e/starmap-system-fit.spec.js` photographs Sol and Epsilon Eridani at 1280x800, 768x1024 and
+  375x812 (`docs/ab-1326/`).
+
 ## What's now true (this session: ISP-42, AB#728, Builder #10)
 
 - **ISP-42 is done, and closes with "nothing needed changing" in `data/economy.json`.** Re-ran
