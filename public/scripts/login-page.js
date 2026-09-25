@@ -10,10 +10,10 @@ const IS_DEV_ACCESS =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1";
 
+// AB#757: only the account id is stored. The refresh token arrived as an HttpOnly cookie, and the game page gets its
+// own access token from that cookie on load.
 const STORAGE_KEYS = {
-  accountId: "isp.accountId",
-  accessToken: "isp.accessToken",
-  refreshToken: "isp.refreshToken"
+  accountId: "isp.accountId"
 };
 
 const loginPageUrl = new URL(window.location.href);
@@ -43,8 +43,6 @@ async function goToDummyProfile() {
 
     const payload = await response.json();
     localStorage.setItem(STORAGE_KEYS.accountId, payload.account.id);
-    localStorage.setItem(STORAGE_KEYS.accessToken, payload.accessToken);
-    localStorage.setItem(STORAGE_KEYS.refreshToken, payload.refreshToken);
     window.location.href = `/?account=${encodeURIComponent(payload.account.id)}`;
   } catch {
     loginStatus.textContent = "The demo account could not be reached. Try again.";
@@ -91,8 +89,6 @@ if (loginForm) {
 
     const payload = await response.json();
     localStorage.setItem(STORAGE_KEYS.accountId, payload.account.id);
-    localStorage.setItem(STORAGE_KEYS.accessToken, payload.accessToken);
-    localStorage.setItem(STORAGE_KEYS.refreshToken, payload.refreshToken);
     window.location.href = `/?account=${encodeURIComponent(payload.account.id)}`;
   });
 }

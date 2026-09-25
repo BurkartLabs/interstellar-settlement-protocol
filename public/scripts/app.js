@@ -235,9 +235,6 @@ function enterGame(mode, data, options = {}) {
     appState.accessToken = options.accessToken;
     if (changed) reauthenticateSocket(); // Bug #710: chat must run on the token this page now holds
   }
-  if (options.refreshToken) {
-    appState.refreshToken = options.refreshToken;
-  }
   appState.walkthroughCompleted = Boolean(options.walkthroughCompleted);
   appState.data = deepClone(data);
   appState.activeMissions = appState.data.corp?.activeMissions || [];
@@ -375,8 +372,9 @@ async function restoreAuthenticatedSession() {
     return null;
   }
 
-  if (!appState.accessToken && !appState.refreshToken) {
-    handleSessionExpired("expired");
+  // AB#757: a page load holds no access token; the HttpOnly refresh cookie is the session, and refreshing from it
+  // either yields one or sends the player to log in (refreshSessionToken handles the expiry).
+  if (!appState.accessToken && !(await refreshSessionToken())) {
     return null;
   }
 
@@ -385,7 +383,6 @@ async function restoreAuthenticatedSession() {
     accountId: account.id,
     accountEmail: account.email,
     accessToken: appState.accessToken,
-    refreshToken: appState.refreshToken,
     walkthroughCompleted: account.walkthroughCompleted,
     autoPromptWalkthrough: true
   });
@@ -462,7 +459,7 @@ function bindRealtimeEvents() {
   // ISP-67: the server drops a socket whose token has expired back to anonymous and says so here, rather than
   // disconnecting it. Get a fresh access token and reconnect so per-account events resume without a page reload.
   socket.on("auth:expired", () => {
-    if (appState.refreshToken) refreshSessionToken();
+    if (appState.accountId) refreshSessionToken();
   });
 
   socket.on("chat:new", (msg) => {
@@ -676,7 +673,6 @@ async function boot() {
         accountId: payload.account.id,
         accountEmail: payload.account.email,
         accessToken: payload.accessToken,
-        refreshToken: payload.refreshToken,
         walkthroughCompleted: payload.account.walkthroughCompleted,
         autoPromptWalkthrough: true
       });
