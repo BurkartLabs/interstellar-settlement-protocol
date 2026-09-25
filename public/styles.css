@@ -5423,6 +5423,13 @@ body.walkthrough-open {
   border: 1px solid rgba(255, 107, 107, 0.22);
 }
 
+/* ISP-298 (AB#1791): a fourth risk value, "None" (the Salvage Assignment) — neutral, not red like risk-high. */
+.mission-card-risk.risk-none {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 /* Title */
 .mission-card-title {
   font-family: "Orbitron", "Inter", sans-serif;
@@ -5470,6 +5477,14 @@ body.walkthrough-open {
   letter-spacing: 0.04em;
   opacity: 0.6;
   transition: opacity 0.2s ease;
+}
+
+/* ISP-298 (AB#1791): the Salvage Assignment's countdown, ticking every second (startMiningUiTicker). */
+.mission-card-countdown {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .mission-card:hover .mission-card-cta {

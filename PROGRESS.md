@@ -109,6 +109,35 @@ get one by design). See "Blind spot" below.**
     non-reproducible single-test flake on an earlier run, gone on retry — not chased further, see
     `learnings/PATTERNS.md`'s guidance on non-reproducible findings, same call as AB#1781).
 
+## What's now true (this session: ISP-297/AB#1789, ISP-298/AB#1791)
+
+Per Director #2's next-priority relay (after this pane's AB#1765/1766/1753/758 arc): the Salvage Assignment,
+ECONOMY.md "The way back from broke" (closes Bug AB#1741) — a corporation with 0 credits and no ore had no move
+that changed anything.
+
+- **AB#1789 (ISP-297, server) — merged (PR !458, main@50c31cb).** A time-served Bureau contract: offered only
+  under `ECONOMY.salvage.creditsThreshold` (3,000) with no active mining cycle, accept costs nothing, 4 hours
+  served pays a flat 3,000 to a new `salvage` income category (never `missionRewardCredits`' 8% Contract Law
+  bonus — T-018, nothing a player sets changes what it pays), 8-hour cooldown after completion. Found and fixed:
+  `gameplayInput.js`'s `missions` catalog only listed `MISSION_TEMPLATES`' static ids, so `accept-mission`
+  refused the dynamically-materialized Salvage id outright; two existing unit tests (`firstContract`,
+  `missionVariance`) had corp fixtures with no `finances.credits`, which the new eligibility check reads as
+  0/broke, unintentionally pulling the offer into their assertions.
+- **AB#1791 (ISP-298, client) — this session, PR opening next.** Overview names the Assignment and links to it
+  whenever broke+idle or already active; Assignments shows a live countdown on the active card and swaps in a
+  Complete button once elapsed — never Abandon, per ECONOMY.md's "accepting, waiting and completing are the
+  only three actions." No home station (the flavor text says "any ISA facility"), so the remote-location warning
+  other contracts get does not apply. Found and fixed: the risk-badge ternary only knew Low/Medium/High, so
+  ISP-297's `risk: "None"` painted a riskless contract red (`risk-high`) — factored into one `missionRiskClass()`
+  helper plus a real `.risk-none`.
+- **Verified**: `npx vitest run` 157 files/1578 tests green both times. `npx playwright test
+  e2e/salvage-assignment.spec.js` (new, seeded via `e2e/seed-salvage-account.mjs`, the ISP-279 pattern): 6/6 —
+  Overview's card and the Assignments countdown at 1440x900 and 375x812, plus a real accept→wait→complete run.
+  Screenshots looked at directly; no horizontal scroll at phone width.
+- **Next**: ISP-299 (AB#1792), `ops/probes/isp-runway.ts --broke` mode — lives in the **hq** repo, not this one.
+  An explicit, one-time Board scope override was granted for this item specifically (marked as such on the
+  commit and the work item when reached).
+
 ## What's now true (this session: AB#1049)
 
 - **AB#1049 is done: `data/research.json` is the only definition of the research tree.** `RESEARCH_LIBRARY`
@@ -675,10 +704,9 @@ a Builder pane without the Chrome extension.
 
 ## What's next
 
-- **Director-relayed priority order for this pane (2026-09-25), all five now done (AB#1765, #1766, #1753,
-  #758)**: nothing further named by that order. **AB#1740 was picked up and merged by a concurrent pane while
-  this session worked AB#1765/#1766** — was never available to take. If **ENG-9 (AB#669)** is still unclaimed,
-  that is the platform-first fallback per PM/Director.
+- **ISP-299 (AB#1792)**: `ops/probes/isp-runway.ts --broke` mode, depends on ISP-297 (done). **Lives in the hq
+  repo** — Board scope override granted for this one item (see this session's section above), not a standing
+  exception for future items.
 - **AB#1801** (the Decision this session filed: does the flat-direction Station mockup ship?) is the one thing
   actually blocking the eleven-story design-system track (AB#745, AB#759 to AB#772) — hand it to the Board, not
   to another Builder pane; nothing to build until it is answered.
@@ -689,8 +717,8 @@ a Builder pane without the Chrome extension.
   120-simulated-day probe run to re-confirm directly, then invalidated it by deleting the worktree the run was
   reading from before it finished (`btwqyndvx.output` stayed empty — the process died silently rather than
   printing anything). **Not re-run this session** — DEPTH.md's evidence stands on its own, but nobody has
-  independently reproduced it against a fresh checkout yet. **AB#1789 merged to main while this session worked
-  AB#1754** (PR 458) — 1791 and 1792 have not. Once both land: re-run `node ops/probes/isp-runway.ts --days 30
+  independently reproduced it against a fresh checkout yet. **AB#1789 and AB#1791 (this session) are both merged** (PR !458 and this
+  session's PR) — only ISP-299 (AB#1792) remains. Once it lands: re-run `node ops/probes/isp-runway.ts --days 30
   --seed 7000` (from hq, against a *worktree you keep alive until it prints*) and see whether bots now reach
   Level 9 and get stuck on the Luna lease specifically. If so, AB#1794 is ready to fix with AB#1753's exact
   pattern (`miningLease:any`, in `data/milestones.json` and `server/game/progression.js`). If bots still can't
@@ -726,9 +754,8 @@ Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-bo
 (`agent/747-first-hour-playtest`, PR !406), ISP-278's (`agent/985-timed-transit`, PR !408), AB#1052's
 (`agent/1052-stop-mining`, PR !417), ISP-66's (`agent/755-registration-validation`), ISP-279's
 (`agent/986-shipments-ui`, PR !432), AB#1765's (`fix/1765-hash-refresh-token`, PR !439), AB#1766's
-(`fix/1766-socket-auth-check`, PR !444), AB#1753's (`fix/1753-level2-gate`, PR !450) and AB#758's
-(`design/758-flat-station`, PR !454) are all merged. AB#1789 (Salvage Assignment, `agent/1789-salvage-assignment`,
-PR !458) also merged, from a pane not tracked in this file's session list. AB#1754's branch
-(`fix/1754-economy-model`, PR !462) also merged. This session's (AB#1752) branch is `fix/1752-milestone-list`,
-PR to be opened next and set to auto-complete. Multiple Builder panes are active on ISP at once — check ADO
-state before claiming the next item.
+(`fix/1766-socket-auth-check`, PR !444), AB#1753's (`fix/1753-level2-gate`, PR !450), AB#758's
+(`design/758-flat-station`, PR !454), AB#1789's (`agent/1789-salvage-assignment`, PR !458), AB#1754's
+(`fix/1754-economy-model`, PR !462) and AB#1791's (`agent/1791-salvage-display`) are all merged. This session's
+(AB#1752) branch is `fix/1752-milestone-list`, PR to be opened next and set to auto-complete. Multiple Builder
+panes are active on ISP at once — check ADO state before claiming the next item.
