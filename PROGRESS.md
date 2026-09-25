@@ -17,6 +17,20 @@ locally-started server; AB#1807 (no visible change) used it for a console-error 
 a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on any of these panes (Builder panes
 don't get one by design). See "Blind spot" below.**
 
+## What's now true (this session: ISP-292, AB#1761)
+
+Refinery Chains' "Requires: ..." lines (both the per-chain research gate and "Refinery construction requires...")
+used the warning colour (amber), reading as something wrong rather than a normal, unmet step (visual-design
+Critique AB#1757, POLISH 2.4/5). Both moved to the muted token by removing the inline `color:var(--color-warn)`
+override and letting `.muted`'s own colour show; "All refineries busy" (a real, transient warning, not a
+requirement) keeps amber. `tests/unit/refineryRequirementsMuted.test.js` (new) asserts no requirement row is
+still styled with the warning colour, and that both requirement lines still render in the muted token; T-047
+verified against the pre-fix code. Screenshots (`e2e/refinery-requirements-muted.spec.js`, new): before (the
+pre-fix `app.js` served for one page load, express.static reads it fresh, no build step) and after, at 1280x800
+and 375x812, looked at directly — every chain still shows the requirement text, now muted, on a fresh account
+(no fixture needed: nobody starts with the research these chains all still gate on). `npx vitest run`: 160
+files, 1784 tests, all green.
+
 ## What's now true (this session: AB#1752, Builder #10)
 
 - **AB#1752 is done: the milestone roadmap is visible again.** `public/scripts/app.js` wrote it into
@@ -860,6 +874,7 @@ Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-bo
 (`fix/1754-economy-model`, PR !462), AB#1791's (`agent/1791-salvage-display`, PR !466), AB#1792's (probe
 `--broke` scenario, per OPS), AB#1752's (`fix/1752-milestone-list`, PR !469), AB#1806's
 (`fix/1806-mine-cycle-list`, PR !473), AB#1794's (`fix/1794-luna-lease-not-a-bug`, PR !474 — test-only, no
-production code changed) and AB#1807's (`fix/1807-dead-login-panel`, PR !479) are all merged. This session's
-(AB#1744) branch is `fix/1744-construct-assembly-flake`, PR to be opened next and set to auto-complete.
+production code changed), AB#1807's (`fix/1807-dead-login-panel`, PR !479) and AB#1761's
+(`agent/1761-refinery-muted`, PR !481) are all merged. This session's (AB#1744) branch is
+`fix/1744-construct-assembly-flake`, PR to be opened next and set to auto-complete.
 **Holding after this per Board directive — not claiming another item.**

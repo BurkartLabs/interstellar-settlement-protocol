@@ -3259,7 +3259,8 @@ function renderRefinery(data) {
           <p class="muted">${perCycle} ${escapeHtml(chain.input)} per batch → ${escapeHtml(outputLabel)}</p>
           <p class="muted">Cycle: ${chain.cycleDurationHours || "?"}h per batch</p>
           ${techGated
-            ? `<p class="muted" style="color:var(--color-warn)">Requires: ${escapeHtml((chain.requiresResearch || []).join(", "))}</p>`
+            // ISP-292 (AB#1761): a requirement not yet met, not a warning — the muted token, not amber.
+            ? `<p class="muted">Requires: ${escapeHtml((chain.requiresResearch || []).join(", "))}</p>`
             : `<p class="muted" style="color:var(--color-accent)">Research: ✓ Unlocked</p>`
           }
           <p class="muted">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(chain.input)}${!hasInput && !techGated ? ` (need ${minQty})` : ""}</p>
@@ -3277,7 +3278,8 @@ function renderRefinery(data) {
             : belowRefineryCap && canBuildRefinery
               ? refineryBuildButtonHtml({ hasRefinery, used: buildings.length, slots: buildingSlots })
               : !hasRefinery && !canBuildRefinery
-                ? `<p class="muted" style="color:var(--color-warn)">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>`
+                // ISP-292 (AB#1761): a requirement not yet met, not a warning — the muted token, not amber.
+                ? `<p class="muted">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>`
                 : hasRefinery && !idleRefinery
                   ? `<p class="muted" style="color:var(--color-warn)">All refineries busy.</p>`
                   : ""
