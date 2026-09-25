@@ -18,6 +18,12 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1825, Builder #4)
+
+- The no-account branch of the rent-office handler no longer throws (`currentBody` was undeclared there). **Every
+  `if (appState.accountId) … else` local-mutation branch in the client is unreachable** (both `enterGame` calls pass
+  an account id). Removing them is a cleanup the PM has been handed, not something done here.
+
 ## What's now true (AB#1203 — a contract is completed at its agent's station, Builder #1)
 
 - `POST /gameplay/complete-mission` refuses a quota contract unless the corporation is docked at the agent's station
