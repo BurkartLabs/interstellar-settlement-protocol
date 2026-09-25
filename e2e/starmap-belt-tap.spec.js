@@ -60,23 +60,20 @@ async function openSystem(page, canvas, name) {
 }
 
 /**
- * Where a belt is drawn: drawAsteroidBelt strokes its ring glow (radius + 8) and then its ring (radius) about the
- * belt's centre, and the belt's label is drawn 8px beside that centre, 4px above it.
+ * Where a belt is drawn: drawAsteroidBelt fills its ring glow (radius + 8) and then strokes its ring (radius) about
+ * the belt's centre, the radius being Math.max(10, body.radius + 5) in the system view.
  */
-async function beltCentre(page, name) {
-  return page.evaluate((beltName) => {
-    const label = window.__labels.filter((l) => l.t === beltName).pop();
-    if (!label) return null;
+async function beltCentre(page, radius) {
+  return page.evaluate((r) => {
     const arcs = window.__arcs;
     for (let i = 0; i + 1 < arcs.length; i += 1) {
       const [glow, ring] = [arcs[i], arcs[i + 1]];
-      if (glow.x !== ring.x || glow.y !== ring.y || Math.abs(glow.r - ring.r - 8) > 0.01) continue;
-      const nearLabel = Math.abs(ring.y - 4 - label.y) < 0.5 &&
-        (Math.abs(ring.x + 8 - label.x) < 0.5 || Math.abs(ring.x - 8 - label.w - label.x) < 1.5);
-      if (nearLabel) return { x: ring.x, y: ring.y };
+      if (glow.x === ring.x && glow.y === ring.y && Math.abs(ring.r - r) < 0.01 && Math.abs(glow.r - r - 8) < 0.01) {
+        return { x: ring.x, y: ring.y };
+      }
     }
     return null;
-  }, name);
+  }, radius);
 }
 
 for (const viewport of VIEWPORTS) {
@@ -130,7 +127,7 @@ for (const viewport of VIEWPORTS) {
       for (const { system, belt } of belts) {
         await openSystem(page, canvas, system.name);
         await page.waitForTimeout(300);
-        const centre = await beltCentre(page, belt.name);
+        const centre = await beltCentre(page, Math.max(10, Number(belt.radius) + 5));
         expect(centre, `${system.name}: ${belt.name} is drawn`).toBeTruthy();
         if (system.id === "barnards-star") {
           await canvas.screenshot({ path: path.join(SCREEN_DIR, `ab1344-barnards-star-${viewport.label}.png`) });

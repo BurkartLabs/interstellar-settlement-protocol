@@ -17,6 +17,9 @@ const CLUSTER_LAYOUT = {
 const ORBIT_INNER = 56;
 const ORBIT_EDGE_MARGIN = 20;
 const LABEL_EDGE_MARGIN = 4;
+// How far an 11px label reaches above and below its baseline (AB#1337: kept off the star's halo).
+const LABEL_ASCENT = 9;
+const LABEL_DESCENT = 3;
 
 const FALLBACK_PLANET_STYLE = {
   base: "#9bb4c8",
@@ -513,6 +516,40 @@ export function createStarmapController({
     return x + gap + textWidth > canvas.clientWidth - LABEL_EDGE_MARGIN ? x - gap - textWidth : x + gap;
   }
 
+  /** AB#1337: where a body's name goes in the system view, as { x, y } for fillText in the current font. Beside the
+   * body on the right as before; otherwise on the left, above or below it: the first of those that stays inside the
+   * canvas and off the star's halo, or, when a body is so close to the star that none is, the one farthest from it.
+   * labelX flipped the name left whatever was there, so a planet right of the star ran its name across it, and a body
+   * left of the star ran its right-hand name into it. */
+  function bodyLabelAt(text, x, y, bodyR, star) {
+    const width = ctx.measureText(text).width;
+    const minX = LABEL_EDGE_MARGIN;
+    const maxX = canvas.clientWidth - LABEL_EDGE_MARGIN;
+    const within = (left) => Math.min(Math.max(left, minX), maxX - width);
+    const centred = within(x - width / 2);
+    const awayFromStar = within(x < star.x ? x + 8 - width : x - 8); // over the body, reaching away from the star
+    const above = y - bodyR - 5;
+    const below = y + bodyR + LABEL_ASCENT + 3;
+    const candidates = [
+      { x: x + 8, y: y - 4 },
+      { x: x - 8 - width, y: y - 4 },
+      { x: centred, y: above },
+      { x: centred, y: below },
+      { x: awayFromStar, y: above },
+      { x: awayFromStar, y: below }
+    ];
+    const fits = (c) => c.x >= minX && c.x + width <= maxX &&
+      c.y - LABEL_ASCENT >= LABEL_EDGE_MARGIN && c.y + LABEL_DESCENT <= canvas.clientHeight - LABEL_EDGE_MARGIN;
+    // How far the label's box comes to the star's centre: 0 when it covers it.
+    const reach = (c) => Math.hypot(
+      Math.min(Math.max(star.x, c.x), c.x + width) - star.x,
+      Math.min(Math.max(star.y, c.y - LABEL_ASCENT), c.y + LABEL_DESCENT) - star.y
+    );
+    const inside = candidates.filter(fits);
+    if (inside.length === 0) return candidates[0];
+    return inside.find((c) => reach(c) >= star.r) || inside.reduce((best, c) => (reach(c) > reach(best) ? c : best));
+  }
+
   function drawClusterView() {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
@@ -793,16 +830,19 @@ export function createStarmapController({
 
       ctx.fillStyle = "rgba(200, 225, 245, 0.88)";
       ctx.font = '11px "Inter", sans-serif';
-      const bodyLabelX = labelX(body.name, x, 8);
-      ctx.fillText(body.name, bodyLabelX, y - 4);
+      const bodyR = body.type === "Field" ? Math.max(10, body.radius + 5) : Math.max(4, body.radius);
+      const label = bodyLabelAt(body.name, x, y, bodyR, { x: cx, y: cy, r: starHaloR });
+      ctx.fillText(body.name, label.x, label.y);
 
-      // Station indicator pip next to name (before it when the label is drawn to the left of the body)
+      // Station indicator pip on the name's line: after the name when it starts right of the body or has no room
+      // before it, otherwise before it.
       if (bodyHasStation(system.id, body.name)) {
         const hasCurrentStn = bodyHasCurrentStation(system.id, body.name);
         ctx.fillStyle = hasCurrentStn ? "rgba(0, 247, 255, 0.8)" : "rgba(255, 210, 80, 0.7)";
         const nameW = ctx.measureText(body.name).width;
+        const before = label.x < x && label.x - 9 >= 0;
         ctx.beginPath();
-        ctx.arc(bodyLabelX < x ? bodyLabelX - 6 : bodyLabelX + nameW + 6, y - 7, 2.5, 0, Math.PI * 2);
+        ctx.arc(before ? label.x - 6 : label.x + nameW + 6, label.y - 3, 2.5, 0, Math.PI * 2);
         ctx.fill();
       }
 
