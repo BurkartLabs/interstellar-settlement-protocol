@@ -96,3 +96,41 @@ describe("a lease is filed at the station orbiting its body (AB#1061)", () => {
     expect(snapshot()).toBe(before);
   });
 });
+
+// AB#2073: a corporation's first lease was refused "before issuing an additional mining lease", which reads as though
+// it already held one. The requirement is right (5 for the first, employeesForNextLease); the words were written for
+// the second lease and used for every lease.
+describe("the staffing refusal says which lease it is about (AB#2073)", () => {
+  function staffed(id, employees) {
+    mutateAccountState(id, (state) => { state.corp.employeeCount = employees; });
+  }
+
+  it("refuses a first lease with no staff as a lease, not an additional one, and says what to hire where", async () => {
+    const { id, lease, snapshot } = await readyCorp();
+    dockAt(id, "earth-station-prime");
+    staffed(id, 0);
+    const before = snapshot();
+    const res = await lease("Earth");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/at least 5 employees on payroll before issuing a mining lease/);
+    expect(res.body.error).not.toMatch(/additional/i);
+    expect(res.body.error).toMatch(/Hire 5 more at the Orbital Executive Suites/);
+    expect(res.body.error).toMatch(/Current headcount: 0\./);
+    expect(snapshot()).toBe(before);
+  });
+
+  it("still calls a second lease an additional one, and counts the hires from the headcount", async () => {
+    const { id, lease, snapshot } = await readyCorp();
+    dockAt(id, "earth-station-prime");
+    expect((await lease("Earth")).status).toBe(200);
+    dockAt(id, "mars-orbital-dock");
+    staffed(id, 7);
+    const before = snapshot();
+    const res = await lease("Mars");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/at least 10 employees on payroll before issuing an additional mining lease/);
+    expect(res.body.error).toMatch(/Hire 3 more at the Orbital Executive Suites/);
+    expect(res.body.error).toMatch(/Current headcount: 7\./);
+    expect(snapshot()).toBe(before);
+  });
+});

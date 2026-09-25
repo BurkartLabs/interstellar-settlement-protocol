@@ -343,12 +343,16 @@ export function registerCorporationRoutes(app) {
 
     if (outcome !== "ok") {
       const corp = account.state.corp;
-      const requiredEmployees = employeesForNextLease((corp.miningLeases || []).length);
+      const heldLeases = (corp.miningLeases || []).length;
+      const requiredEmployees = employeesForNextLease(heldLeases);
+      const headcount = corp.employeeCount || 0;
+      // AB#2073: "additional" only once a lease is held; the first lease is just a lease. Say what fixes it, and where.
+      const whichLease = heldLeases > 0 ? "an additional mining lease" : "a mining lease";
       const messageMap = {
         "invalid-body": bodyError,
         "no-office": "You must lease a corporate office before filing extraction claims with the ISA.",
         "duplicate-lease": `Your corporation already holds an active mining lease on ${requestedBody}.`,
-        "insufficient-employees": `ISA regulations require at least ${requiredEmployees} employees on payroll before issuing an additional mining lease. Current headcount: ${corp.employeeCount || 0}.`,
+        "insufficient-employees": `ISA regulations require at least ${requiredEmployees} employees on payroll before issuing ${whichLease}. Hire ${Math.max(0, requiredEmployees - headcount)} more at the Orbital Executive Suites, then file again. Current headcount: ${headcount}.`,
         "insufficient-credits": fundingRequirementMessage(`${requestedBody} mining lease acquisition`, corp, leaseCost)
       };
       res.status(400).json({ error: messageMap[outcome] || "Lease application failed." });
