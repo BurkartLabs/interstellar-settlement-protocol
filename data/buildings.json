@@ -9,7 +9,7 @@
       "owner": "npc",
       "category": "administrative",
       "description": "Licensed executive office suites for corporate operations within the station. Leasing a suite establishes a formal registered presence at this location, enabling your corporation to recruit personnel and engage with the station's institutional services.",
-      "flavor": "The suites are functional — climate-regulated, encrypted uplink, standard executive clearance. The prestige is in the address. An Earth Station Prime office tells the ISA, and everyone else, that you are serious.",
+      "flavor": "The suites are functional — climate-regulated, encrypted uplink, standard executive clearance. The prestige is in the address: a registered office here tells the ISA, and everyone else, that you are serious.",
       "imageFile": "buildings/orbital-executive-suites.png",
       "action": "building:orbital-executive-suites",
       "available": true
