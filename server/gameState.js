@@ -3,7 +3,7 @@
 
 export { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, REFINERY_CHAINS, SYSTEM_DETAILS, dataDir, getStationInventory } from "./game/catalog.js";
 export { PLAYER_BUILDINGS, STAT_KEYS, bumpStat, evaluateLevelProgress, fleetRaiseText, fleetStatus, getEffectiveExchangeTaxRate, levelReachedNotices, onAccountNotification } from "./game/progression.js";
-export { applyMiningOperations, extractorDowntimeProbPerSec, startExtractorCycle } from "./game/mining.js";
+export { applyMiningOperations, extractorDowntimeProbPerSec, startExtractorCycle, stopExtractorCycle } from "./game/mining.js";
 export { applyRefineryOperations } from "./game/refining.js";
 export { BASE_MAX_DEPLOYMENTS, BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_ASSET_VALUE, PROBE_BUILD_COST, PROBE_FABRICATION_MS, applyAsteroidExpeditions, splitExactly } from "./game/asteroids.js";
 export { COMPLETED_COOLDOWN_MS, FIRST_CONTRACT_ID, MISSION_TEMPLATES, refreshContractOfferings } from "./game/corporation.js";

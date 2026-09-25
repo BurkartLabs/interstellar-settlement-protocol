@@ -450,7 +450,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(checkAndResetNpcBuyOrders, 60_
 
 // ─── R&D auto-completion tick ────────────────────────────────────────────────
 // ─── Mining tick: process downtime, recovery, and mining progress ─────────────
-import { startExtractorCycle } from "./gameState.js"; // AB#575
+import { startExtractorCycle, stopExtractorCycle } from "./gameState.js"; // AB#575, AB#1052
 import { applyMiningOperations, getStationInventory } from "./gameState.js";
 import { applyAsteroidExpeditions, BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_ASSET_VALUE, PROBE_FABRICATION_MS, BASE_MAX_PROBES, BASE_MAX_DEPLOYMENTS } from "./gameState.js";
 
@@ -1941,6 +1941,89 @@ app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, 
     type: "mining",
     title: "Mining Cycle Started",
     body: `${targetExtractorLabel} has begun silicate extraction operations.`
+  });
+  if (notification) {
+    emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
+  }
+
+  res.json(account);
+});
+
+// ─── Lease-scoped: Stop a running mining cycle early (AB#1052) ─────────────
+// No office check, unlike start-mining: an expired or wrong-station office should not trap a player into a
+// cycle they cannot end. mutateAccountState settles every extractor up to now (AB#1448) before the mutator
+// below runs, so the mined amount and the charge already reflect the real elapsed time by the time this stops
+// the cycle — see the comment on stopExtractorCycle itself (server/game/mining.js).
+app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/stop-mining", (req, res) => {
+  const { leaseId } = req.params;
+  const requestedExtractorId = String(req.body?.extractorId || "").trim();
+  let outcome = "ok";
+  let targetExtractorLabel = "";
+  let minedThisCycle = 0;
+
+  const account = mutateAccountState(req.params.accountId, (state) => {
+    const corp = state.corp;
+    const now = Date.now();
+
+    if (!Array.isArray(corp.miningLeases)) corp.miningLeases = [];
+    const lease = corp.miningLeases.find((l) => l.id === leaseId);
+    if (!lease) {
+      outcome = "no-lease";
+      return;
+    }
+
+    if (!Array.isArray(corp.mining?.silicateExtractors) || corp.mining.silicateExtractors.length === 0) {
+      outcome = "missing-extractor";
+      return;
+    }
+
+    const leaseExtractors = corp.mining.silicateExtractors.filter((ex) => ex.leaseId === leaseId);
+    if (leaseExtractors.length === 0) {
+      outcome = "no-lease-extractors";
+      return;
+    }
+
+    const extractorCycle = requestedExtractorId
+      ? leaseExtractors.find((ex) => ex.id === requestedExtractorId)
+      : leaseExtractors[0];
+
+    targetExtractorLabel = extractorCycle?.name || requestedExtractorId || "Extractor";
+
+    if (!extractorCycle) {
+      outcome = "missing-extractor-target";
+      return;
+    }
+
+    if (!extractorCycle.active) {
+      outcome = "not-active";
+      return;
+    }
+
+    minedThisCycle = extractorCycle.minedThisCycle || 0;
+    stopExtractorCycle(extractorCycle, now);
+  });
+
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+
+  if (outcome !== "ok") {
+    const messageMap = {
+      "no-lease": "The specified lease could not be found on your account.",
+      "missing-extractor": "No extraction facilities are available.",
+      "no-lease-extractors": "No extraction facilities are assigned to this lease.",
+      "missing-extractor-target": `Extractor "${requestedExtractorId}" not found on this lease.`,
+      "not-active": `${targetExtractorLabel || "This extractor"} has no mining cycle running.`
+    };
+    res.status(400).json({ error: messageMap[outcome] || "Could not stop the mining cycle." });
+    return;
+  }
+
+  const notification = addAccountNotification(req.params.accountId, {
+    type: "mining",
+    title: "Mining Cycle Stopped",
+    body: `${targetExtractorLabel} was stopped early, keeping ${minedThisCycle} t mined this cycle.`
   });
   if (notification) {
     emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
