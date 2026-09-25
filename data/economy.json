@@ -45,6 +45,12 @@
     "sameSystemTransitMinutes": 30,
     "perJumpTransitMinutes": 120
   },
+  "salvage": {
+    "creditsThreshold": 3000,
+    "hoursRequired": 4,
+    "payoutCredits": 3000,
+    "cooldownHours": 8
+  },
   "npcBuyers": [
     { "item": "Silicates", "buyer": "GEX Commodities Authority", "unitPrice": 24, "dailyQty": 1000000 },
     { "item": "Helium-3", "buyer": "Lunar Helium Consortium", "unitPrice": 92, "dailyQty": 250000 },

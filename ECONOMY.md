@@ -41,6 +41,10 @@ question in the retune (AB#728).
 | `logistics.perJumpFeePerUnit` | 3 | Added per unit for each jump between systems (AB#693, the Board: "distance based time and fees"). A starting point set in AB#718, not derived: no reason beyond that is recorded. |
 | `logistics.sameSystemTransitMinutes` | 30 | How long a shipment within one system takes. Set in AB#718 as a starting point; live since AB#985 (ISP-278) — a dispatch creates a shipment that arrives on the tick at or after `dispatchedAt + transitTime(...)`, not on the spot. |
 | `logistics.perJumpTransitMinutes` | 120 | Added transit time per jump, twice a corporate ship's hour a jump, as freight is slower. A starting point from AB#718; live since AB#985, as above. |
+| `salvage.creditsThreshold` | 3,000 | Below this, and with no cycle running, the Salvage Assignment is offered (ISP-297): "the way back from broke," below. Set equal to `expeditions.launchCost`'s round number, not derived. |
+| `salvage.hoursRequired` | 4 | How long the Assignment takes: paid in time served, not delivered quota, so nothing the player sets — throughput, research, a lever of any kind — changes how fast it pays (T-018). |
+| `salvage.payoutCredits` | 3,000 | The flat payout: exactly the threshold above, so completing one contract is enough to be offered a real one again, not two. |
+| `salvage.cooldownHours` | 8 | How long after completion before another is offered, so it is a stopgap and not a standing income. |
 | `npcBuyers.unitPrice` | Silicates 24, Helium-3 92, Nickel 18, Titanium 64, Carbon 12, Rare Earths 140 | The standing bids. They are the only steady faucet of new credits in the game (see below). Silicates at 24 is the one a first session sells into. No derivation is recorded for any of them. |
 | `npcBuyers.dailyQty` | Silicates 1,000,000, Helium-3 250,000, Nickel 750,000, Titanium 400,000, Carbon 1,500,000, Rare Earths 120,000 | How much each buyer takes a day. One extractor at 250 t/h makes 6,000 a day, 0.6% of the Silicates bid, so in practice the bid has no bottom (DEPTH.md, review #1, epic 3). |
 

@@ -84,7 +84,7 @@ export function recordExpense(corp, category, amount, now = Date.now()) {
  * the daily statements (AB#713) read these names, so a new way to earn or spend adds its name here first.
  */
 export const CREDIT_CATEGORIES = Object.freeze({
-  income: Object.freeze(["exchange", "missions"]),
+  income: Object.freeze(["exchange", "missions", "salvage"]),
   expense: Object.freeze([
     "hiring",
     "payroll",

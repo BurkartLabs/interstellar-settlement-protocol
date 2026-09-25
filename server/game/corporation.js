@@ -4,6 +4,7 @@ import { MAX_DEFINED_LEVEL, MISSIONS_DATA, createId, deepClone } from "./catalog
 import { evaluateLevelProgress } from "./progression.js";
 import { ensureCorpMiningModel } from "./mining.js";
 import { ensureCorpRefineryModel } from "./refining.js";
+import { ECONOMY } from "../economy.js";
 
 /* TODO(AB#726): Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
 export function createStarterCorporationState(baseState, ceoName, corpName) {
@@ -144,6 +145,43 @@ export function materializeOffer(template) {
   };
 }
 
+// ─── Salvage Assignment (ISP-297, AB#1789, AB#1741) ────────────────────────
+// ECONOMY.md "The way back from broke": a corporation with 0 credits and no ore has no move that changes
+// anything (start-mining needs startup credits it does not have). This is the way out: a Bureau contract paid
+// in time served, not delivered resources, offered only while it is actually needed. Every number lives in
+// ECONOMY.salvage, not here, and none of them is a lever a player can turn (T-018) — accepting, waiting and
+// completing are the only three actions, and none of them changes what it pays or how fast.
+export const SALVAGE_ASSIGNMENT_ID = "ms-salvage-001";
+
+/** The Salvage Assignment offer: not materializeOffer's random range, a fixed shape built from ECONOMY.salvage. */
+export function salvageAssignmentOffer() {
+  return {
+    id: SALVAGE_ASSIGNMENT_ID,
+    title: "ISA Salvage Assignment",
+    type: "Salvage",
+    risk: "None",
+    text: "The Bureau extends emergency salvage work to a corporation with no active operation and nothing left "
+      + "to sell: report for documented recovery work at any ISA facility, and the Bureau pays for your time, "
+      + "not a delivered quota.",
+    agentId: "elara-voss",
+    kind: "time-served",
+    hoursRequired: ECONOMY.salvage.hoursRequired,
+    reward: `${ECONOMY.salvage.payoutCredits.toLocaleString("en-US")} Credits`
+  };
+}
+
+/** Whether corpState should be offered a fresh Salvage Assignment right now (recomputed on every call, not cached). */
+export function salvageEligible(corpState, now = Date.now()) {
+  const credits = Number(corpState?.finances?.credits || 0);
+  if (credits >= ECONOMY.salvage.creditsThreshold) return false;
+  const hasActiveCycle = (corpState?.mining?.silicateExtractors || []).some((e) => e?.active);
+  if (hasActiveCycle) return false;
+  if ((corpState.activeMissions || []).some((m) => m.id === SALVAGE_ASSIGNMENT_ID)) return false;
+  const lastCompleted = (corpState.completedMissions || []).find((m) => m.id === SALVAGE_ASSIGNMENT_ID);
+  if (lastCompleted && now - Number(lastCompleted.completedAt || 0) < ECONOMY.salvage.cooldownHours * 3_600_000) return false;
+  return true;
+}
+
 /**
  * Refresh contract offerings for an account if the timer has expired.
  * Returns the current offerings array (mutates state in-place).
@@ -153,33 +191,39 @@ export function refreshContractOfferings(corpState) {
   const offerings = corpState.contractOfferings;
   const now = Date.now();
 
-  // Only regenerate when the timer has actually expired
-  if (offerings.nextRefreshAt > 0 && now < offerings.nextRefreshAt) {
-    return offerings;
-  }
-
-  // Gather IDs that are on cooldown (recently completed)
-  const completedMissions = corpState.completedMissions || [];
-  const cooldownIds = new Set();
-  for (const m of completedMissions) {
-    if (m.completedAt && (now - m.completedAt) < COMPLETED_COOLDOWN_MS) {
-      cooldownIds.add(m.id);
+  // Only regenerate the random pool when the timer has actually expired
+  if (!(offerings.nextRefreshAt > 0 && now < offerings.nextRefreshAt)) {
+    // Gather IDs that are on cooldown (recently completed)
+    const completedMissions = corpState.completedMissions || [];
+    const cooldownIds = new Set();
+    for (const m of completedMissions) {
+      if (m.completedAt && (now - m.completedAt) < COMPLETED_COOLDOWN_MS) {
+        cooldownIds.add(m.id);
+      }
     }
+
+    // Gather IDs that are currently active
+    const activeIds = new Set((corpState.activeMissions || []).map(m => m.id));
+
+    // Filter eligible templates
+    const eligible = MISSION_TEMPLATES.filter(t => !cooldownIds.has(t.id) && !activeIds.has(t.id));
+
+    // Shuffle and pick; a corporation's first offering always includes the contract the walkthrough promised it.
+    const shuffled = eligible.slice().sort(() => Math.random() - 0.5);
+    const neverContracted = !completedMissions.length && !activeIds.size;
+    const promised = neverContracted ? shuffled.find((t) => t.id === FIRST_CONTRACT_ID) : null;
+    const picked = promised ? [promised, ...shuffled.filter((t) => t !== promised)] : shuffled;
+    offerings.missions = picked.slice(0, CONTRACTS_PER_AGENT).map(materializeOffer);
+    offerings.nextRefreshAt = now + CONTRACT_REFRESH_MS;
   }
 
-  // Gather IDs that are currently active
-  const activeIds = new Set((corpState.activeMissions || []).map(m => m.id));
-
-  // Filter eligible templates
-  const eligible = MISSION_TEMPLATES.filter(t => !cooldownIds.has(t.id) && !activeIds.has(t.id));
-
-  // Shuffle and pick; a corporation's first offering always includes the contract the walkthrough promised it.
-  const shuffled = eligible.slice().sort(() => Math.random() - 0.5);
-  const neverContracted = !completedMissions.length && !activeIds.size;
-  const promised = neverContracted ? shuffled.find((t) => t.id === FIRST_CONTRACT_ID) : null;
-  const picked = promised ? [promised, ...shuffled.filter((t) => t !== promised)] : shuffled;
-  offerings.missions = picked.slice(0, CONTRACTS_PER_AGENT).map(materializeOffer);
-  offerings.nextRefreshAt = now + CONTRACT_REFRESH_MS;
+  // The Salvage Assignment is not part of the random rotation above: it is evaluated fresh on every call, so a
+  // corporation crossing the credits threshold (either way) sees it appear or disappear immediately, not on the
+  // next 2-hour refresh.
+  offerings.missions = offerings.missions.filter((m) => m.id !== SALVAGE_ASSIGNMENT_ID);
+  if (salvageEligible(corpState, now)) {
+    offerings.missions = [salvageAssignmentOffer(), ...offerings.missions];
+  }
 
   return offerings;
 }

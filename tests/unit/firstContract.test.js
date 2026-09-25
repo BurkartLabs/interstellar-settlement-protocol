@@ -5,7 +5,12 @@ import { ASSIGNED_COORDINATOR } from "../../public/scripts/liaison.js";
 
 // AB#579: the walkthrough ends with Elara Voss promising the player her silicate requisition. Offerings are 2 of 10
 // templates at random, so without a rule the promise was true for about one new corporation in five.
-const newCorp = () => ({ completedMissions: [], activeMissions: [], contractOfferings: { missions: [], nextRefreshAt: 0 } });
+// finances.credits is a real starter corp's default (server/game/corporation.js): high enough that the Salvage
+// Assignment (ISP-297, offered only under ECONOMY.salvage.creditsThreshold) never joins these offerings.
+const newCorp = () => ({
+  completedMissions: [], activeMissions: [], contractOfferings: { missions: [], nextRefreshAt: 0 },
+  finances: { credits: 250000 }
+});
 
 describe("the first contract a new corporation is offered (AB#579)", () => {
   afterEach(() => vi.restoreAllMocks());

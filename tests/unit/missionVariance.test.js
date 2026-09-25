@@ -48,7 +48,12 @@ describe("materializeOffer rolls quota and reward within the template's bounds (
   });
 
   it("a real refresh through refreshContractOfferings produces offers within bounds too, not just direct calls", () => {
-    const corp = { completedMissions: [], activeMissions: [], contractOfferings: { missions: [], nextRefreshAt: 0 } };
+    // finances.credits above ECONOMY.salvage.creditsThreshold: keeps the Salvage Assignment (ISP-297), which has
+    // no quota, out of an offer list this test checks entirely by quota bounds.
+    const corp = {
+      completedMissions: [], activeMissions: [], contractOfferings: { missions: [], nextRefreshAt: 0 },
+      finances: { credits: 250000 }
+    };
     const offered = refreshContractOfferings(corp).missions;
     for (const offer of offered) {
       const t = MISSION_TEMPLATES.find((x) => x.id === offer.id);

@@ -59,6 +59,7 @@ import {
   MISSION_TEMPLATES,
   MISSION_AGENTS_DATA,
   REPUTATION_TIERS_DATA,
+  SALVAGE_ASSIGNMENT_ID,
   refreshContractOfferings,
   COMPLETED_COOLDOWN_MS, // Bug #1268
   SYSTEM_DETAILS,
@@ -867,7 +868,9 @@ const INPUT_CHECKS = {
     leaseBodies: new Set(SYSTEMS_CATALOG.flatMap((s) => (s.bodies || []).filter((b) => Number(b.leaseCost) > 0).flatMap((b) => [b.name, b.id])).map((x) => String(x).toLowerCase())),
     techs: new Set(Object.keys(RESEARCH_LIBRARY)),
     programs: new Set(Object.keys(CEO_INSIGHT_LIBRARY)),
-    missions: new Set(MISSION_TEMPLATES.map((m) => m.id)),
+    // ISP-297 (AB#1789): the Salvage Assignment is not one of MISSION_TEMPLATES' static ids — it is materialized
+    // from ECONOMY.salvage when a corporation is eligible — so it is added to the catalog by hand.
+    missions: new Set([...MISSION_TEMPLATES.map((m) => m.id), SALVAGE_ASSIGNMENT_ID]),
     belts: new Set(Object.keys(BELT_COMPOSITIONS)),
     expeditionDurations: new Set(Object.keys(EXPEDITION_DURATIONS)),
     refineryChains: new Set(Object.keys(REFINERY_CHAINS)),
@@ -2467,7 +2470,9 @@ app.post("/api/accounts/:accountId/gameplay/accept-mission", (req, res) => {
       refusalHours = Math.max(1, Math.ceil((offerings.nextRefreshAt - Date.now()) / 3_600_000));
       return;
     }
-    state.corp.activeMissions.push({ ...mission });
+    // ISP-297 (AB#1789): acceptedAt is what a time-served contract (the Salvage Assignment) measures completion
+    // against; harmless to record on every mission, so one route sets it rather than branching on kind here.
+    state.corp.activeMissions.push({ ...mission, acceptedAt: Date.now() });
     // Remove from current offerings so it can't be double-accepted
     offerings.missions = offerings.missions.filter((m) => m.id !== missionId);
   });
@@ -2504,31 +2509,47 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
 
   let outcome = "ok";
   let shortfall = null;
+  let hoursRemaining = null;
   const account = mutateAccountState(req.params.accountId, (state) => {
     if (!Array.isArray(state.corp.activeMissions)) state.corp.activeMissions = [];
     const mission = state.corp.activeMissions.find((m) => m.id === missionId);
     if (!mission) { outcome = "not-active"; return; }
-    if (!mission.quota) { outcome = "no-quota"; return; }
 
-    const stationId = state.corp.currentStationId || "earth-station-prime";
-    if (!state.corp.inventory) state.corp.inventory = {};
-    if (!state.corp.inventory[stationId]) state.corp.inventory[stationId] = {};
-    const stationInv = state.corp.inventory[stationId];
+    if (mission.kind === "time-served") {
+      // ISP-297 (AB#1789): the Salvage Assignment — paid in time served, not a delivered quota (ECONOMY.md "The
+      // way back from broke"). Flat payout, unmodified by missionRewardCredits' Contract Law Essentials bonus:
+      // the design is explicit that nothing a player can research or set changes what it pays (T-018).
+      const requiredMs = Number(mission.hoursRequired || 0) * 3_600_000;
+      const elapsedMs = Date.now() - Number(mission.acceptedAt || 0);
+      if (elapsedMs < requiredMs) {
+        outcome = "too-soon";
+        hoursRemaining = Math.max(1, Math.ceil((requiredMs - elapsedMs) / 3_600_000));
+        return;
+      }
+      applyCredits(state.corp, ECONOMY.salvage.payoutCredits, "salvage");
+    } else {
+      if (!mission.quota) { outcome = "no-quota"; return; }
 
-    const resource = mission.quota.resource || "";
-    const required = mission.quota.amount || 0;
-    const have = stationInv[resource] || 0;
-    if (have < required) { outcome = "insufficient"; shortfall = { resource, required, stationId }; return; }
+      const stationId = state.corp.currentStationId || "earth-station-prime";
+      if (!state.corp.inventory) state.corp.inventory = {};
+      if (!state.corp.inventory[stationId]) state.corp.inventory[stationId] = {};
+      const stationInv = state.corp.inventory[stationId];
 
-    // Deduct resources
-    stationInv[resource] = have - required;
-    if (stationInv[resource] <= 0) delete stationInv[resource];
+      const resource = mission.quota.resource || "";
+      const required = mission.quota.amount || 0;
+      const have = stationInv[resource] || 0;
+      if (have < required) { outcome = "insufficient"; shortfall = { resource, required, stationId }; return; }
 
-    // Credit reward into the balance the player spends, and book it as income (Bug #1009: it went to corp.credits,
-    // which nothing reads). Contract Law Essentials adds 8%.
-    const rewardCredits = missionRewardCredits(mission.reward, state.corp.completedInsights);
-    if (rewardCredits) {
-      applyCredits(state.corp, rewardCredits, "missions");
+      // Deduct resources
+      stationInv[resource] = have - required;
+      if (stationInv[resource] <= 0) delete stationInv[resource];
+
+      // Credit reward into the balance the player spends, and book it as income (Bug #1009: it went to
+      // corp.credits, which nothing reads). Contract Law Essentials adds 8%.
+      const rewardCredits = missionRewardCredits(mission.reward, state.corp.completedInsights);
+      if (rewardCredits) {
+        applyCredits(state.corp, rewardCredits, "missions");
+      }
     }
 
     // Remove from active
@@ -2561,6 +2582,9 @@ app.post("/api/accounts/:accountId/gameplay/complete-mission", (req, res) => {
   if (!account) return res.status(404).json({ error: "Account not found." });
   if (outcome === "not-active") return res.status(400).json({ error: "Mission is not active." });
   if (outcome === "no-quota") return res.status(400).json({ error: "Mission has no quota to complete." });
+  if (outcome === "too-soon") {
+    return res.status(400).json({ error: `Salvage work is not finished yet. ${hoursRemaining} hour${hoursRemaining === 1 ? "" : "s"} remaining.` });
+  }
   if (outcome === "insufficient") {
     const stationName = (id) => STATIONS_DATA.stations.find((st) => st.id === id)?.name || id;
     return res.status(400).json({ error: missionShortMessage({ ...shortfall, inventory: account.state.corp.inventory, stationName }) });
