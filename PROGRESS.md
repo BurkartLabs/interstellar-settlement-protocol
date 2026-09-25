@@ -8,11 +8,46 @@ extension-less — then ISP-66 (AB#755), below; #4 did ISP-278 (AB#985), ISP-279
 (the flat-direction Station mockup, a Decision now waiting on the Board) — all five per a Director-relayed
 priority order; #1 (this pane) then did AB#1049 (research.json as the only research-tree definition), then
 AB#1759 (one primary button on login/register). A Salvage Assignment session landed AB#1789 while the below
-was in progress. #10 (this pane, new, no CONTROL_URL by design) did AB#1754 below. AB#1052 and ISP-279 both
-used ISP-61's own Playwright pattern rather than the Chrome extension for their screens; AB#758 used it too,
-to look at a static mockup rather than the running game; AB#1049 and AB#1759 used it again, for Corporate R&D
-and for login/register respectively. No CONTROL_URL / Chrome extension on any of these panes (Builder panes
-don't get one by design). See "Blind spot" below.**
+was in progress. #10 (this pane, new, no CONTROL_URL by design) did AB#1754, then AB#1752, below. AB#1052 and
+ISP-279 both used ISP-61's own Playwright pattern rather than the Chrome extension for their screens; AB#758
+used it too, to look at a static mockup rather than the running game; AB#1049 and AB#1759 used it again, for
+Corporate R&D and for login/register respectively; AB#1752 used it once more, a fresh `e2e/milestone-list.spec.js`
+against a locally-started server. No CONTROL_URL / Chrome extension on any of these panes (Builder panes don't
+get one by design). See "Blind spot" below.**
+
+## What's now true (this session: AB#1752, Builder #10)
+
+- **AB#1752 is done: the milestone roadmap is visible again.** `public/scripts/app.js` wrote it into
+  `document.getElementById("milestone-list")`, guarded by `if (milestones)`, and no page has ever had that
+  element (`git grep milestone-list -- public/*.html` returned nothing) — the guard silenced the whole feature
+  instead of erroring (P-QUIET-FALLBACK). Filed as a learning Issue on 2026-09-21, re-confirmed against current
+  main before fixing (P-STALE-BRIEF: the render code had moved from the bug's cited line 1109 to line 992).
+  - `public/index.html`: a new "Milestones" collapsible sidebar section, right after Corporation Identity, with
+    `<ul id="milestone-list" class="milestone-list"></ul>` — using the purpose-built `.milestone-list`/
+    `.milestone-item`/`.milestone-state` CSS classes already in `public/styles.css` (dead code since whenever
+    this markup was dropped), not the generic `.text-list` the bug's own proposed fix guessed. The generic
+    `.section-toggle` collapse wiring is class-based, so the new section works with no JS changes.
+  - **A general regression guard, per the bug's own proposed fix**: `tests/unit/domTargets.test.js` extracts
+    every literal `getElementById` target in `app.js` and asserts each resolves to a real id — either in the
+    static markup of `index.html`/`login.html`/`register.html`, or inside one of `app.js`'s own template
+    literals (a great many targets, like `#rent-office-btn` or `#travel-eta`, are elements the script renders
+    into the page at runtime via `innerHTML`, which a markup-only `jsdom` load cannot see; the test accounts for
+    that rather than false-failing on them).
+  - **This test found two more of the same bug shape**, filed rather than fixed here (out of this story's
+    scope): **AB#1806** (`#mine-cycle-list`, the extractor mining-cycle panel — same defect, same severity,
+    real player-facing loss) and **AB#1807** (six ids from a login/register toggle-panel that predates
+    login.html/register.html becoming separate pages — every use is null-guarded, so it is dead code, not a
+    live bug, filed at low severity for cleanup). Both are named in the test's `KNOWN_ORPHANED` allowlist with
+    their bug ids, so fixing either without updating the test turns it red rather than silently passing.
+  - T-047: reverted `index.html`'s new markup, watched the `#milestone-list` assertion go red, restored.
+  - **Looked at it**: started the server locally (`ISP_DEV=1`), wrote `e2e/milestone-list.spec.js` (register a
+    fresh corporation, wait for `#milestone-list`, assert at least one visible `.milestone-item` reading "Open"),
+    ran it against the real server, then opened the PNG it captured and read it directly — the "Milestones"
+    panel sits under Corporation Identity, ten items, all correctly "Open" for a brand-new corporation, styled
+    consistently with the rest of the sidebar (screenshot: `e2e/screenshots/milestone-list-sidebar.png`,
+    gitignored, not committed).
+  - Checks: `node --check public/scripts/app.js` and `npm run check` both clean. `npm test` — **159 files, 1,777
+    tests, all passed** (1,583 baseline on `origin/main` after AB#1754 merged + 194 new, `domTargets.test.js`).
 
 ## What's now true (this session: AB#1754, Builder #10)
 
@@ -677,6 +712,11 @@ a Builder pane without the Chrome extension.
   Each has its own unmet predecessor as of 2026-09-25 (AB#757 wants the CSP story above; AB#987/989 want AB#757
   and AB#781 respectively) — check state before claiming.
 - **AB#1767** (a flaky test, possibly related to AB#1744) is filed, Proposed, unclaimed — non-visual fallback.
+- **AB#1806** (`#mine-cycle-list`, same shape as AB#1752 — a whole panel silently never renders) is filed,
+  Proposed, unclaimed, real player-facing severity. **AB#1807** (dead pre-page-split login/register toggle
+  code, six orphaned ids, low severity, cleanup only) is filed, Proposed, unclaimed. Both were found by
+  `tests/unit/domTargets.test.js`'s general guard (AB#1752) and are named in its `KNOWN_ORPHANED` allowlist —
+  whoever fixes either must remove that entry, or the test stays silently lenient about it.
 - Multiple Builder panes are working ISP at once — check ADO for what's Active before claiming.
 
 ## In flight / blocked
@@ -688,6 +728,7 @@ Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-bo
 (`agent/986-shipments-ui`, PR !432), AB#1765's (`fix/1765-hash-refresh-token`, PR !439), AB#1766's
 (`fix/1766-socket-auth-check`, PR !444), AB#1753's (`fix/1753-level2-gate`, PR !450) and AB#758's
 (`design/758-flat-station`, PR !454) are all merged. AB#1789 (Salvage Assignment, `agent/1789-salvage-assignment`,
-PR !458) also merged, from a pane not tracked in this file's session list. This session's (AB#1754) branch is
-`fix/1754-economy-model`, PR to be opened next and set to auto-complete. Multiple Builder panes are active on
-ISP at once — check ADO state before claiming the next item.
+PR !458) also merged, from a pane not tracked in this file's session list. AB#1754's branch
+(`fix/1754-economy-model`, PR !462) also merged. This session's (AB#1752) branch is `fix/1752-milestone-list`,
+PR to be opened next and set to auto-complete. Multiple Builder panes are active on ISP at once — check ADO
+state before claiming the next item.
