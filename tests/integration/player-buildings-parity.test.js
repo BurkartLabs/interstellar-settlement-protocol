@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
+import request from "supertest";
 import { getApp } from "../helpers/app.js";
+import { PLAYER_BUILDING_CATALOGUE } from "../../server/playerBuildings.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState, getAccountById } from "../../server/gameState.js";
 import { corpSlotsFull, fundingRequirementMessage, unleasedFor } from "../../server/routes/helpers.js";
@@ -123,5 +125,19 @@ describe("building each player building through its route, as before the catalog
 
     const poor = await corporation((c) => { c.unlockedTech = ["tt-material-compression", "tt-nano-lattice"]; c.finances.credits = 10_000; });
     expect((await poor.post("build-refinery")).body.error).toBe(fundingRequirementMessage("Refinery construction", poor.corp(), 75_000));
+  });
+});
+
+describe("the catalogue is served read-only to the page (AB#783)", () => {
+  it("GET /api/bootstrap carries every player building, signed out, and nothing of any player's", async () => {
+    const { app } = await getApp();
+    const player = await registerAccount(app); // a player exists; none of their data may appear
+    const res = await request(app).get("/api/bootstrap");
+    expect(res.status).toBe(200);
+    expect(res.body.playerBuildings).toEqual(JSON.parse(JSON.stringify(PLAYER_BUILDING_CATALOGUE)));
+    const allowed = ["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot"];
+    for (const b of res.body.playerBuildings) expect(Object.keys(b).filter((k) => !allowed.includes(k)), b.id).toEqual([]);
+    const served = JSON.stringify(res.body.playerBuildings);
+    for (const own of [player.account.id, player.body.email, player.body.corpName]) expect(served).not.toContain(own);
   });
 });

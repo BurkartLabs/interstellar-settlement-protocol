@@ -1,6 +1,6 @@
 // server/routes/mining.js: the mining routes, split out of server/index.js (AB#1815).
 import { bodyNumber } from "../bodyNumber.js";
-import { ECONOMY, buildCostFor, operationCostPerHourFor, startupCostFor } from "../economy.js";
+import { buildCostFor, operationCostPerHourFor, startupCostFor } from "../economy.js";
 import { addAccountNotification, mutateAccountState } from "../gameState.js";
 import { startExtractorCycle, stopExtractorCycle } from "../gameState.js"; // AB#575, AB#1052
 import { applyCredits } from "../finances.js";
@@ -11,13 +11,18 @@ import { emitToAccount } from "../realtime.js";
 import { unleasedFor, corpSlotsFull, fundingRequirementMessage, activeOfficeAt } from "./helpers.js";
 // AB#743: what each committing action did, from the values its mutation used, for the confirmation modal.
 import { buildExtractorReceipt, startMiningReceipt } from "../receipts.js";
+// AB#783: the Basic Extractor Yard's cost, asset value, research and cap come from data/player-buildings.json.
+import { catalogueRefusal, playerBuilding } from "../playerBuildings.js";
+import { RESEARCH_LIBRARY } from "../game/catalog.js";
+
+const YARD = playerBuilding("basic-extractor-yard");
 
 export function registerMiningRoutes(app) {
   // ─── Lease-scoped: Build an extractor yard on a specific lease ──────────────
   app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (req, res) => {
     const { leaseId } = req.params;
-    const BASE_BUILD_COST = ECONOMY.buildings.extractorYardCost;
-    const ASSET_VALUE = ECONOMY.buildings.extractorYardAssetValue;
+    const BASE_BUILD_COST = YARD.cost;
+    const ASSET_VALUE = YARD.assetValue;
     let outcome = "ok";
     let slotInfo = "";
     let built = null;
@@ -31,6 +36,13 @@ export function registerMiningRoutes(app) {
       const lease = corp.miningLeases.find((l) => l.id === leaseId);
       if (!lease) {
         outcome = "no-lease";
+        return;
+      }
+
+      // The yard has no research gate or cap today; one added to the catalogue is enforced here.
+      const refused = catalogueRefusal(YARD, corp);
+      if (refused) {
+        outcome = refused;
         return;
       }
 
@@ -59,10 +71,10 @@ export function registerMiningRoutes(app) {
       const nextIndex = corp.mining.silicateExtractors.length + 1;
       const newExtractorId = `ext-basic-${nextIndex}`;
 
-      corp.buildings.push({ name: "Basic Extractor Yard", tier: 1, status: "Operational" });
+      corp.buildings.push({ name: "Basic Extractor Yard", tier: 1, status: "Operational" }); // the catalogue name; a test holds them equal
       corp.mining.silicateExtractors.push({
         id: newExtractorId,
-        name: `Basic Extractor Yard #${nextIndex}`,
+        name: `${YARD.name} #${nextIndex}`,
         tier: 1,
         active: false,
         startedAt: null,
@@ -81,7 +93,7 @@ export function registerMiningRoutes(app) {
 
       lease.extractorIds.push(newExtractorId);
       applyCredits(corp, -buildCost, "construction");
-      built = { extractorName: `Basic Extractor Yard #${nextIndex}`, body: lease?.body || null, cost: buildCost, assetValue: ASSET_VALUE };
+      built = { extractorName: `${YARD.name} #${nextIndex}`, body: lease?.body || null, cost: buildCost, assetValue: ASSET_VALUE };
       corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
     });
 
@@ -94,6 +106,8 @@ export function registerMiningRoutes(app) {
       const corp = account.state.corp;
       const messageMap = {
         "no-lease": "The specified lease could not be found on your account.",
+        "missing-research": `${YARD.name} construction requires ${YARD.researchGates.map((id) => RESEARCH_LIBRARY[id]?.name || id).join(" and ")} research.`,
+        "at-cap": `You already operate the maximum of ${YARD.cap.perCorporation} of the ${YARD.name}.`,
         "lease-slots-full": leaseSlotsFullMessage(corp, (corp.miningLeases || []).find((l) => l.id === leaseId), unleasedFor(corp)),
         "no-corp-slot": corpSlotsFull(corp),
         "insufficient-credits": fundingRequirementMessage("Basic Extractor Yard construction", corp, BASE_BUILD_COST)

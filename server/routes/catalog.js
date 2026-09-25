@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ECONOMY } from "../economy.js";
+import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
 import { getState, CEO_INSIGHT_LIBRARY, RESEARCH_LIBRARY, MISSION_AGENTS_DATA, REPUTATION_TIERS_DATA } from "../gameState.js";
 import { APP_VERSION, __dirname } from "../app.js";
 import { verifyAccessToken, getBearerToken } from "../auth.js";
@@ -47,7 +48,9 @@ export function registerCatalogRoutes(app) {
         employees: ECONOMY.employees,
         buildings: ECONOMY.buildings,
         probes: ECONOMY.probes
-      }
+      },
+      // AB#783: what a corporation can build, read-only: the same for every caller, and nothing of any player's.
+      playerBuildings: PLAYER_BUILDING_CATALOGUE
     });
   });
 
