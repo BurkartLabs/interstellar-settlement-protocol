@@ -16,12 +16,15 @@ import { __dirname } from "../app.js";
 import { SYSTEMS_CATALOG, STATION_REGISTRY } from "../travel.js";
 import { emitToAccount } from "../realtime.js";
 import { activeOfficeAt, fundingRequirementMessage, formatCredits } from "./helpers.js";
+// AB#743: what each committing action did, from the values its mutation used, for the confirmation modal.
+import { hireReceipt, rentOfficeReceipt, renewOfficeReceipt, purchaseLeaseReceipt } from "../receipts.js";
 
 export function registerCorporationRoutes(app) {
   app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
     const count = bodyNumber(req.body?.count, { fallback: 1, min: 1, integer: true });
     let outcome = "ok";
     let hiredCount = 0;
+    let hireCostCharged = 0;
 
     const account = mutateAccountState(req.params.accountId, (state) => {
       const corp = state.corp;
@@ -49,6 +52,7 @@ export function registerCorporationRoutes(app) {
       applyCredits(corp, -hireCost, "hiring");
       corp.finances.dailyCosts += hired * ECONOMY.employees.payrollPerDay;
       hiredCount = hired;
+      hireCostCharged = hireCost;
     });
 
     if (!account) {
@@ -76,7 +80,13 @@ export function registerCorporationRoutes(app) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     }
 
-    res.json(account);
+    const receipt = hireReceipt({
+      hired: hiredCount,
+      cost: hireCostCharged,
+      payrollPerDay: hiredCount * ECONOMY.employees.payrollPerDay,
+      corp: account.state.corp
+    });
+    res.json({ ...account, receipt });
   });
 
   app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
@@ -169,7 +179,9 @@ export function registerCorporationRoutes(app) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     }
 
-    res.json(account);
+    const office = (account.state.corp.offices || []).find((o) => o.stationId === station.id);
+    const receipt = rentOfficeReceipt({ stationName, durationDays, cost: officeCost, rentedUntil: office?.rentedUntil, corp: account.state.corp });
+    res.json({ ...account, receipt });
   });
 
   // ─── Orbital Executive Suites: Renew an office lease ───────────────────────
@@ -244,7 +256,9 @@ export function registerCorporationRoutes(app) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     }
 
-    res.json(account);
+    const office = (account.state.corp.offices || []).find((o) => o.stationId === station.id);
+    const receipt = renewOfficeReceipt({ stationName, durationDays, cost: renewalCost, rentedUntil: office?.rentedUntil });
+    res.json({ ...account, receipt });
   });
 
   // ─── ISA Claims & Leases Division: Purchase a mining lease ─────────────────
@@ -353,6 +367,7 @@ export function registerCorporationRoutes(app) {
     // Commit to disk immediately — critical state that must survive server restarts.
     saveAccountsNow();
 
-    res.json(account);
+    const receipt = purchaseLeaseReceipt({ body: requestedBody, cost: leaseCost, corp: account.state.corp });
+    res.json({ ...account, receipt });
   });
 }

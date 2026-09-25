@@ -701,8 +701,10 @@ export function mutateAccountState(accountId, mutator, { sanitize = true, settle
   if (settleMining) applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
   ensureCorpMiningModel(account.state.corp);
-  evaluateAccountLevel(accountId, account); // Bug #1260
+  const levelsReached = evaluateAccountLevel(accountId, account); // Bug #1260
   scheduleAccountsSave();
-  return sanitize ? sanitizeAccount(account) : null;
+  // AB#743: the levels this change reached ride on the response, so the page can show the milestone modal from the
+  // server's own figures. [] on every change that reaches none.
+  return sanitize ? { ...sanitizeAccount(account), levelsReached } : null;
 }
 

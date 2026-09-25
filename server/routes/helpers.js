@@ -5,10 +5,8 @@ import { corporationSlotsFullMessage } from "../../public/scripts/slotAdvice.js"
 import { activeOfficeAt } from "../../public/scripts/officeStatus.js";
 import { MILESTONE_LEVELS } from "../gameState.js";
 import { SYSTEMS_CATALOG, STATIONS_DATA } from "../travel.js";
-
-function formatCredits(amount) {
-  return `${Math.round(Number(amount || 0)).toLocaleString("en-US")} credits`;
-}
+// AB#743: defined in server/receipts.js, below the route modules, so a receipt and a refusal say credits the same way.
+import { formatCredits } from "../receipts.js";
 
 function fundingRequirementMessage(actionLabel, corp, requiredCredits, extra = "") {
   const parts = [
