@@ -1037,6 +1037,7 @@ export function renderStation(data) {
       appState.data = deepClone(account.state);
       updateAllViews();
       pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok");
+      showActionReceipt(account, { returnFocusTo: firstPresent('[data-corp-building="Assembly Facility"]', ".tab-btn[data-tab='station']") }); // AB#744
     },
     onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
   }, clientPrices(appState.economy).assemblyFacilityCost);
@@ -1152,6 +1153,7 @@ export function renderAssemblyFacility(data) {
     buildProbeBtn.addEventListener("click", async () => {
       if (!appState.accountId) return;
       try {
+        const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
         const res = await apiFetch(
           `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/build-mining-probe`,
           { method: "POST", headers: { "Content-Type": "application/json" } }
@@ -1159,6 +1161,7 @@ export function renderAssemblyFacility(data) {
         const account = await parseJsonResponse(res);
         appState.data = deepClone(account.state);
         updateAllViews();
+        showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
         renderAssemblyFacility(appState.data);
         // AB#1257: it said "fabricated" here, 30 minutes before the probe existed; that line now comes on completion.
         pushFeedback(probeFabricationStartedText(appState.data?.corp?.asteroidMining?.fabricationQueue), "ok");

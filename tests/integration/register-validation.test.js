@@ -93,3 +93,55 @@ describe("POST /api/auth/register field validation (ISP-66)", () => {
     expect(res.body.account.state.corp.finances.credits).not.toBe(1_000_000);
   });
 });
+
+// Bug #2050: every field was read through String() before any rule ran, so a password of {"x":1} became the password
+// "[object Object]", which anyone can guess, and ["Type Corp Four"] a corporation name. A value that is not a string is
+// refused with its field's own message, no account is made, and nothing sent comes back.
+describe("POST /api/auth/register refuses a field that is not a string (Bug #2050)", () => {
+  const WRONG_TYPES = [{ x: 1 }, {}, [], ["Sup3rSecret-Echo-Me"], ["Alex Rivera"], 12345, true, null];
+
+  for (const field of ["email", "password", "ceoName", "corpName"]) {
+    it(`${field}: an object, an array, a number, a boolean or null is a 400 naming ${field}, and makes no account`, async () => {
+      const { app } = await getApp();
+      for (const value of WRONG_TYPES) {
+        const body = good({ [field]: value });
+        const what = `${field} = ${JSON.stringify(value)}`;
+        const res = await request(app).post("/api/auth/register").send(body);
+        expect(res.status, what).toBe(400);
+        expect(res.body.field, what).toBe(field);
+        expect(res.body.account, what).toBeUndefined();
+        expect(JSON.stringify(res.body), what).not.toContain("Sup3rSecret");
+        if (field !== "email") {
+          // Nothing was made under that email: it registers once every field is a string.
+          const again = await request(app).post("/api/auth/register").send({ ...body, [field]: good()[field] });
+          expect(again.status, `${what}, then sent properly`).toBe(201);
+        }
+      }
+    });
+  }
+
+  it('a password of {"x":1} makes no account that "[object Object]" signs in to', async () => {
+    const { app } = await getApp();
+    const body = good({ password: { x: 1 } });
+    expect((await request(app).post("/api/auth/register").send(body)).status).toBe(400);
+    const login = await request(app).post("/api/auth/login").send({ email: body.email, password: "[object Object]" });
+    expect(login.status).toBe(401);
+  });
+});
+
+describe("POST /api/auth/login compares strings only (Bug #2050)", () => {
+  it('a password that is not a string is a 401, even for an account whose password really is "[object Object]"', async () => {
+    const { app } = await getApp();
+    const body = good({ password: "[object Object]" }); // 15 characters, a legitimate password typed as text
+    expect((await request(app).post("/api/auth/register").send(body)).status).toBe(201);
+    expect((await request(app).post("/api/auth/login").send({ email: body.email, password: "[object Object]" })).status).toBe(200);
+    for (const password of [{ x: 1 }, {}, ["[object Object]"], 12345, true]) {
+      const res = await request(app).post("/api/auth/login").send({ email: body.email, password });
+      expect(res.status, JSON.stringify(password)).toBe(401);
+    }
+    for (const email of [[body.email], { email: body.email }]) {
+      const res = await request(app).post("/api/auth/login").send({ email, password: "[object Object]" });
+      expect(res.status, JSON.stringify(email)).toBe(401);
+    }
+  });
+});

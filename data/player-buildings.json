@@ -1,0 +1,34 @@
+{
+  "buildings": [
+    {
+      "id": "basic-extractor-yard",
+      "name": "Basic Extractor Yard",
+      "price": "extractorYard",
+      "slot": "corporation+lease",
+      "researchGates": [],
+      "cap": {},
+      "effect": "Adds a silicate extractor to the lease it stands on; its cycles add Silicates to the station's inventory.",
+      "since": "0.1"
+    },
+    {
+      "id": "assembly-facility",
+      "name": "Assembly Facility",
+      "price": "assemblyFacility",
+      "slot": "corporation",
+      "researchGates": ["tt-assembly-fabrication"],
+      "cap": { "perCorporation": 1 },
+      "effect": "Lets the corporation fabricate mining probes.",
+      "since": "0.3"
+    },
+    {
+      "id": "refinery",
+      "name": "Refinery",
+      "price": "refinery",
+      "slot": "corporation",
+      "researchGates": ["tt-material-compression", "tt-nano-lattice"],
+      "cap": { "perCorporation": 2 },
+      "effect": "Runs a refinery chain, turning raw resources at a station into refined products each cycle.",
+      "since": "0.3"
+    }
+  ]
+}

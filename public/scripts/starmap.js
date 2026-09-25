@@ -331,6 +331,23 @@ export function canvasBackingSize(cssWidth, cssHeight, devicePixelRatio) {
 const SYSTEM_BACK_BUTTON = { x: 102, y: 36 };
 const BACK_BUTTON_HEIGHT = 28;
 const BACK_BUTTON_INSET = 6;
+/** How far past its drawn edge a back button still takes a tap: 6px makes the 28px button a 40px-tall target. */
+const BACK_TARGET_PAD = 6;
+
+/**
+ * AB#1344: a back button's click target is the button as drawn, plus BACK_TARGET_PAD. It was a circle of radius 0.55 x
+ * the button's width (67px for "Back To Cluster") about its centre, tested before any body, so on a phone every belt
+ * drawn beside the button (AB#1287 cleared the drawn button, not that circle) went back to the cluster when tapped.
+ */
+export function backButtonTarget(type, x, y, width) {
+  return { type, x, y, w: width + BACK_TARGET_PAD * 2, h: BACK_BUTTON_HEIGHT + BACK_TARGET_PAD * 2 };
+}
+
+/** Whether a tap at (x, y) lands on a click target: a rectangle when it has a width, a circle otherwise. */
+export function targetHit(target, x, y) {
+  if (target.w !== undefined) return Math.abs(target.x - x) <= target.w / 2 && Math.abs(target.y - y) <= target.h / 2;
+  return Math.hypot(target.x - x, target.y - y) <= target.radius;
+}
 
 /**
  * AB#1287: the system view's orbits and its back button, laid out so no orbit (with the body's glow margin) reaches the
@@ -735,12 +752,7 @@ export function createStarmapController({
     state.clickTargets = [];
 
     const backWidth = drawBackButton("Back To Cluster", button.x, button.y);
-    state.clickTargets.push({
-      type: "back",
-      x: button.x,
-      y: button.y,
-      radius: Math.max(36, backWidth * 0.55)
-    });
+    state.clickTargets.push(backButtonTarget("back", button.x, button.y, backWidth));
 
     // Central star with layered glow
     // Outer halo
@@ -858,8 +870,8 @@ export function createStarmapController({
     const backClusterX = rightBackButtonX("Back To Cluster", 250, width);
     const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, 36);
 
-    state.clickTargets.push({ type: "back-to-system", x: 108, y: 36, radius: Math.max(40, backSysWidth * 0.55) });
-    state.clickTargets.push({ type: "back-to-cluster", x: backClusterX, y: 36, radius: Math.max(42, backClusterWidth * 0.55) });
+    state.clickTargets.push(backButtonTarget("back-to-system", 108, 36, backSysWidth));
+    state.clickTargets.push(backButtonTarget("back-to-cluster", backClusterX, 36, backClusterWidth));
 
     if (body.type === "Field") {
       const beltRadius = Math.min(width, height) * 0.2;
@@ -965,8 +977,8 @@ export function createStarmapController({
     const backSystemX = rightBackButtonX("Back To System", 228, width);
     const backSystemWidth = drawBackButton("Back To System", backSystemX, 36);
 
-    state.clickTargets.push({ type: "back-to-body", x: 98, y: 36, radius: Math.max(38, backBodyWidth * 0.55) });
-    state.clickTargets.push({ type: "back-to-system", x: backSystemX, y: 36, radius: Math.max(38, backSystemWidth * 0.55) });
+    state.clickTargets.push(backButtonTarget("back-to-body", 98, 36, backBodyWidth));
+    state.clickTargets.push(backButtonTarget("back-to-system", backSystemX, 36, backSystemWidth));
 
     const seed = hashSeed(asteroidId || `${system.id}:${body.id}:ast-0`);
     const radius = Math.min(width, height) * 0.11;
@@ -1321,7 +1333,7 @@ export function createStarmapController({
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    const hit = state.clickTargets.find((target) => Math.hypot(target.x - x, target.y - y) <= target.radius);
+    const hit = state.clickTargets.find((target) => targetHit(target, x, y));
     if (!hit) {
       return;
     }

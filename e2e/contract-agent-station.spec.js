@@ -2,6 +2,7 @@
 // player complete one. This plays that path in a browser — accept a contract from Elara Voss at Earth Station Prime,
 // complete it there — so the stricter route is shown not to refuse the one place the game sends you.
 // (The refusal away from the station is tests/integration/mission-agent-station.test.js.)
+import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743, AB#744
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import os from "node:os";
@@ -67,6 +68,7 @@ for (const viewport of VIEWPORTS) {
       const missionId = await offered.getAttribute("data-mission-id");
       await offered.click();
       await page.click("#mission-accept-btn");
+      await acknowledgeReceipt(page); // AB#744
       await expect(page.locator("#feedback-log li").first()).toContainText(/contract accepted/i, { timeout: 10_000 });
 
       // The accepted contract moves to the Bureau's active list; open it there, where Complete lives
@@ -80,7 +82,9 @@ for (const viewport of VIEWPORTS) {
       await expect(page.locator("#mission-location-section")).toBeHidden();
       await complete.click();
       await expect(page.locator("#feedback-log li").first()).toContainText(/complete/i, { timeout: 10_000 });
-      await page.waitForTimeout(2000); // let the fulfilled dialog finish its entrance before the picture
+      // AB#744: signed in, completion is confirmed by the ISA receipt (the server's figures), not the old overlay.
+      await expect(page.locator("#action-receipt-title")).toHaveText("Contract Completed", { timeout: 10_000 });
+      await page.waitForTimeout(600); // the receipt's own entrance, before the picture
       await page.screenshot({ path: path.join(SCREEN_DIR, `ab1203-contract-completed-${viewport.label}.png`) });
       expect(errors).toEqual([]);
     } finally {

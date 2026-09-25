@@ -1,6 +1,7 @@
 // The Logistics tab: shipments between stations.
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
+import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
@@ -210,6 +211,7 @@ export function renderLogistics(data) {
     const original = btn.textContent;
     btn.textContent = "Transferring…";
     try {
+      const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
       const response = await apiFetch(
         `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/transfer-resources`,
         {
@@ -231,6 +233,7 @@ export function renderLogistics(data) {
       appState.data = deepClone(account.state);
       appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
       updateAllViews();
+      showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       pushFeedback(appState.logisticsStatus.text, "success");
     } catch (err) {
       appState.logisticsStatus = { stationId: fromStation, tone: "error", text: err.message || "Transfer failed." };
