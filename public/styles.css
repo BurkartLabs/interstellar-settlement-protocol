@@ -3244,6 +3244,13 @@ body.walkthrough-open .layout-grid {
   text-overflow: ellipsis;
 }
 
+/* AB#2046: the transfer fee is a sentence, not a name or a number; clipped to one line it hid the per-jump fee. */
+.logistics-summary-value--wrap {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
 .logistics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr)); /* AB#717: no sideways scroll below 360px */
