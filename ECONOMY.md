@@ -50,6 +50,10 @@ question in the retune (AB#728).
 
 `npcBuyers.item` and `npcBuyers.buyer` are the only words in the file: which good and who buys it.
 
+The six `buildings.*Cost` and `*AssetValue` keys are each named by one building in data/player-buildings.json (its
+`price`, AB#783). That file holds the rest of what a building is: its slot, research, cap and effect. The price stays
+here, so the balance pass is still a diff of this one file.
+
 ## The first session, computed
 
 The model's output, as `npm run economy:model` prints it today:
