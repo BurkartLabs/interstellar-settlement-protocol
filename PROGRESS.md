@@ -32,6 +32,23 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   Alpha Centauri is the same pixels after a reload. Screenshots in `docs/ab-742/`.
 - At system scale (5-7 px) a body reads as a shaded coloured sphere; the surface shows in the close-up.
 
+## What's now true (ISP-293, AB#1762 — Corporate R&D and Assignments at full content width, Builder)
+
+- `.rnd-panel` (was 820px), `#rnd-queue` (750px, 500px at 601-900), `#missions-board-view` (25vw) and
+  `#agent-office-view` (50vw) have no width cap; each fills the tab's content column, 898px at 1280x800 and 309px at
+  375x812, measured by `e2e/rnd-assignments-width.spec.js`. `tests/unit/panelWidth.test.js` fails if a px or vw
+  width returns on any of them. CEO Insight's `#ceo-queue` keeps its cap (not in scope). `.mission-card` keeps its
+  card-sized 25vw cap; the contracts now sit two across. Before/after in `docs/isp-293/`.
+- `tests/unit/no-payments.test.js` pins its allowlist by line: removing CSS above line 4260 moved the "Premium Thread"
+  comment to 4254, re-pointed here. Expect it again after any styles.css deletion.
+
+## What's now true (AB#1776, ISP-296 — BRIEF.md carries the three no-RMT rulings)
+
+- BRIEF.md's Monetization section states the Board's three rulings as numbered rules, each with its decision number:
+  AB#703 (nothing traded for real money may give an advantage; binds all of v0.9 finance, not built), AB#980
+  (research and CEO Insight never sold or sped up; items always sellable in game), AB#706 (every v0.10 military
+  mechanic, no cosmetic carve-out; not built). Read it before building v0.9, v0.10, or anything with a price.
+
 ## What's now true (AB#1763, ISP-294 — the typewriter finishes on click, Builder)
 
 - While the coordinator's line is typing, a click or tap on the dialogue or any key (not a bare modifier) prints the
