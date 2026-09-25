@@ -1,5 +1,3 @@
-import { WALKTHROUGH_STEPS as walkthroughSteps } from "./walkthrough.js";
-import { chooseHighlight, nextStepIndex } from "./walkthrough.js";
 import { tradeNumbers } from "./exchangeView.js"; // AB#1164, on a line of its own away from the imports other branches add
 import { stationBuildingCardsHtml } from "./html.js";
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
@@ -16,87 +14,18 @@ import { isInsightProgramLive, officeRenewalCost } from "./ceoEffects.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "./ceoEffects.js";
 import { missionRewardCredits } from "./ceoEffects.js"; // Bug #1009: its own line, after the others, so parallel branches adding imports do not collide
 import { requirementLink } from "./levelLinks.js"; // AB#1061
+// AB#738 (ISP-52): the shared pieces app.js used to define itself.
+import { viewerStorage, appState, IS_DEV_ACCESS, techTree } from "./state.js";
+import { connectApiClient, socket, reauthenticateSocket, persistSession, clearSession, redirectToLoginPage, handleSessionExpired, createInvalidSessionError, hydrateSession, refreshSessionToken, apiFetch, parseJsonResponse } from "./apiClient.js";
+import { toCurrency, deepClone, formatTime, formatDuration, fmtCredits, fmtSignedCredits, fmtTimestamp, prettifyLedgerLabel, formatDurationHours, formatInboxDate } from "./helpers.js";
+import { runIntroDialogue } from "./dialogue.js";
+import { connectWalkthroughUi, bindWalkthroughControls, hasSeenWalkthroughOffer, noteWalkthroughEvent, promptWalkthroughOffer, resetWalkthroughForAccount } from "./walkthroughUi.js";
 
-/** localStorage, or null where reading the property itself throws (sandboxed frames, some private modes). */
-function viewerStorage() {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
+// The moved modules call back into the game screen app.js owns; hand them what they need before anything runs.
+connectApiClient({ stopMiningUiTicker, showAuthScreen });
+connectWalkthroughUi({ updateAllViews, setTab });
 
-const appState = {
-  serverData: null,
-  /** The economy's constants from /api/bootstrap (ISP-86): what an hour of mining costs and what ore fetches. */
-  economy: null,
-  data: null,
-  authenticated: false,
-  accountId: null,
-  accountEmail: null,
-  accessToken: null,
-  refreshToken: null,
-  profileMode: null,
-  walkthroughCompleted: false,
-  textOnly: false,
-  chatChannel: "global",
-  chatOwnLinePending: false, // Bug #1135: the player just sent a line, so the next redraw shows the newest
-  mapMounted: false,
-  walkthroughIndex: 0,
-  activeTypewriter: null,
-  feedbackLog: [],
-  notifications: [],
-  unreadNotifications: 0,
-  selectedForumThreadId: null,
-  completedRequirementIds: new Set(),
-  requirementsInitialized: false,
-  forumsView: "overview",
-  selectedForumCategory: null,
-  missionsView: "board",
-  selectedMissionId: null,
-  selectedAgentId: null,
-  activeMissions: [],
-  // Persists user-edited refinery quantity so re-renders (every tick) don't
-  // overwrite what the user is typing.
-  refineQuantityOverrides: {},
-  refineQuantityErrors: {}, // AB#1255: why Start Run refused a chain's quantity, shown under its field until it is edited
-  miningUiTicker: null,
-  stationRegistry: [],
-  buildingRegistry: [],
-  insightPrograms: [], // loaded from /api/ceo-insight (Bug #983)
-  stationActiveLease: null,
-  _travelTimer: null,
-  exchangeView: loadExchangeView(viewerStorage()), // resource, order type and sort, remembered per viewer (AB#402)
-  beltCompositions: {},
-  inbox: {
-    messages: [],
-    folder: "inbox",          // active folder tab
-    subtype: "official",      // active inbox sub-tab: "official" | "players"
-    openMessageId: null,      // message being viewed in detail
-    composeDraftId: null,     // draft being edited
-    loaded: false
-  }
-};
 
-const STORAGE_KEYS = {
-  accountId: "isp.accountId",
-  accessToken: "isp.accessToken",
-  refreshToken: "isp.refreshToken",
-  walkthroughOfferSeenPrefix: "isp.walkthrough-offer-seen:"
-};
-
-const LOGIN_PAGE_PATH = "/login.html";
-
-const IS_DEV_ACCESS =
-  new URL(window.location.href).searchParams.get("dev") === "1" ||
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1";
-
-// AB#1049: fetched from GET /api/research (loadStationRegistry, below) instead of redefined here. `const` and
-// populated by mutation (`techTree.push(...)`), never reassigned — createStarmapController below captures this
-// exact array by reference at module load, before the boot fetch resolves, so replacing the binding would leave
-// the starmap's travel-research-lock text reading a permanently empty tree.
-const techTree = [];
 
 // ------------- ELEMENTS ------------- //
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
@@ -111,19 +40,7 @@ const notificationPanel = document.getElementById("notification-panel");
 const notificationList = document.getElementById("notification-list");
 const notificationReadAllButton = document.getElementById("notification-read-all");
 
-const dialogueModal = document.getElementById("dialogue-modal");
-const dialogueSpeaker = document.getElementById("dialogue-speaker");
-const dialogueTitle = document.getElementById("dialogue-title");
-const dialogueText = document.getElementById("dialogue-text");
-const dialogueChoices = document.getElementById("dialogue-choices");
-const dialogueContinue = document.getElementById("dialogue-continue");
 
-const walkthroughModal = document.getElementById("walkthrough-modal");
-const walkthroughTitle = document.getElementById("walkthrough-title");
-const walkthroughText = document.getElementById("walkthrough-text");
-const walkthroughPrev = document.getElementById("walkthrough-prev");
-const walkthroughNext = document.getElementById("walkthrough-next");
-const walkthroughEnd = document.getElementById("walkthrough-end");
 
 const starmap = createStarmapController({
   canvas: document.getElementById("starmap-canvas"),
@@ -202,167 +119,9 @@ const starmap = createStarmapController({
   }
 });
 
-// Bug #710: the socket carries the access token, so the server knows who is chatting. The callback runs on every
-// (re)connect, so a refreshed token is picked up; the page's own origin needs no CORS.
-const socket = typeof io !== "undefined"
-  ? io({ auth: (cb) => cb({ token: appState.accessToken || localStorage.getItem(STORAGE_KEYS.accessToken) }) })
-  : null;
-
-/** Reconnect so the socket authenticates with the current token (after a refresh or a login on this page). */
-function reauthenticateSocket() {
-  if (socket?.connected) socket.disconnect().connect();
-}
-
-function persistSession() {
-  if (appState.accountId) {
-    localStorage.setItem(STORAGE_KEYS.accountId, appState.accountId);
-  }
-
-  if (appState.accessToken) {
-    localStorage.setItem(STORAGE_KEYS.accessToken, appState.accessToken);
-  }
-
-  if (appState.refreshToken) {
-    localStorage.setItem(STORAGE_KEYS.refreshToken, appState.refreshToken);
-  }
-}
-
-function clearSession() {
-  appState.accountId = null;
-  appState.accountEmail = null;
-  appState.accessToken = null;
-  appState.refreshToken = null;
-  appState.inbox = { messages: [], folder: "inbox", subtype: "official", openMessageId: null, composeDraftId: null, loaded: false };
-  localStorage.removeItem(STORAGE_KEYS.accountId);
-  localStorage.removeItem(STORAGE_KEYS.accessToken);
-  localStorage.removeItem(STORAGE_KEYS.refreshToken);
-}
-
-let _sessionExpiredHandled = false;
-function redirectToLoginPage(reason = "expired") {
-  const loginUrl = new URL(LOGIN_PAGE_PATH, window.location.origin);
-  if (reason) {
-    loginUrl.searchParams.set("reason", reason);
-  }
-  window.location.replace(`${loginUrl.pathname}${loginUrl.search}${loginUrl.hash}`);
-}
-
-function handleSessionExpired(reason = "expired") {
-  if (_sessionExpiredHandled) return;
-  _sessionExpiredHandled = true;
-  clearSession();
-  appState.authenticated = false;
-  appState.data = null;
-  appState.profileMode = null;
-  stopMiningUiTicker();
-  showAuthScreen();
-  redirectToLoginPage(reason);
-  setTimeout(() => {
-    _sessionExpiredHandled = false;
-  }, 1000);
-}
-
-function createInvalidSessionError(message) {
-  const error = new Error(message || "Session is invalid.");
-  error.code = "AUTH_SESSION_INVALID";
-  return error;
-}
-
-function walkthroughOfferKey(accountId) {
-  if (!accountId) {
-    return null;
-  }
-  return `${STORAGE_KEYS.walkthroughOfferSeenPrefix}${accountId}`;
-}
-
-function markWalkthroughOfferSeen(accountId) {
-  const key = walkthroughOfferKey(accountId);
-  if (!key) {
-    return;
-  }
-  localStorage.setItem(key, "1");
-}
-
-function hasSeenWalkthroughOffer(accountId) {
-  const key = walkthroughOfferKey(accountId);
-  if (!key) {
-    return false;
-  }
-  return localStorage.getItem(key) === "1";
-}
-
-function hydrateSession() {
-  appState.accountId = localStorage.getItem(STORAGE_KEYS.accountId);
-  appState.accessToken = localStorage.getItem(STORAGE_KEYS.accessToken);
-  appState.refreshToken = localStorage.getItem(STORAGE_KEYS.refreshToken);
-}
-
-async function refreshSessionToken() {
-  if (!appState.refreshToken) {
-    handleSessionExpired();
-    return false;
-  }
-
-  const response = await fetch("/api/auth/refresh", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken: appState.refreshToken })
-  });
-
-  if (!response.ok) {
-    handleSessionExpired();
-    return false;
-  }
-
-  const payload = await response.json();
-  appState.accessToken = payload.accessToken;
-  appState.refreshToken = payload.refreshToken;
-  if (payload.account?.id) {
-    appState.accountId = payload.account.id;
-  }
-  persistSession();
-  // A socket that connected with the expired token is unauthenticated, and its chat would be dropped (Bug #710).
-  reauthenticateSocket();
-  return true;
-}
-
-async function apiFetch(url, options = {}, allowRetry = true) {
-  const headers = new Headers(options.headers || {});
-  if (appState.accessToken) {
-    headers.set("Authorization", `Bearer ${appState.accessToken}`);
-  }
-
-  const response = await fetch(url, { ...options, headers });
-  if (response.status === 401 && allowRetry) {
-    if (appState.refreshToken) {
-      const refreshed = await refreshSessionToken();
-      if (refreshed) {
-        return apiFetch(url, options, false);
-      }
-    } else if (appState.authenticated) {
-      handleSessionExpired();
-    }
-  }
-
-  return response;
-}
-
-// TODO(AB#738): Ensure all helper functions are consolidated into a single function
-function toCurrency(number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0
-  }).format(number);
-}
 
 
-function deepClone(input) {
-  if (typeof structuredClone === "function") {
-    return structuredClone(input);
-  }
-  return JSON.parse(JSON.stringify(input));
-}
+
 
 import { starmapMiningState } from "./beltCompositions.js"; // Bug #1264 (placed here, apart from the imports at the top that parallel PRs edit)
 
@@ -538,190 +297,9 @@ async function loadNotifications() {
   renderNotifications();
 }
 
-async function parseJsonResponse(response) {
-  if (!response.ok) {
-    const fallback = { error: "Request failed." };
-    let payload = fallback;
-    try {
-      payload = await response.json();
-    } catch {
-      payload = fallback;
-    }
 
-    throw new Error(payload.error || "Request failed.");
-  }
 
-  return response.json();
-}
 
-function formatTime(ts) {
-  const d = new Date(ts);
-  return d.toLocaleString();
-}
-
-function clearTypewriter() {
-  if (appState.activeTypewriter) {
-    clearInterval(appState.activeTypewriter);
-    appState.activeTypewriter = null;
-  }
-}
-
-function typeDialogueText(text, onDone) {
-  clearTypewriter();
-  dialogueText.textContent = "";
-  let index = 0;
-  appState.activeTypewriter = setInterval(() => {
-    dialogueText.textContent += text[index] || "";
-    index += 1;
-    if (index >= text.length) {
-      clearTypewriter();
-      if (onDone) {
-        onDone();
-      }
-    }
-  }, 14);
-}
-
-function showDialogue({ speaker, title, text, choices = [], continueText = "", onContinue, portrait = "" }) {
-  dialogueSpeaker.textContent = speaker;
-  dialogueTitle.textContent = title;
-  // A speaker with a portrait shows it (AB#585); every other dialogue keeps the text-only card.
-  const dialoguePortrait = document.getElementById("dialogue-portrait");
-  if (dialoguePortrait) {
-    dialoguePortrait.hidden = !portrait;
-    dialoguePortrait.closest(".modal-card")?.classList.toggle("has-portrait", Boolean(portrait));
-    if (portrait) {
-      dialoguePortrait.src = portrait;
-      dialoguePortrait.alt = speaker;
-    } else {
-      dialoguePortrait.removeAttribute("src");
-    }
-  }
-  dialogueChoices.innerHTML = "";
-  dialogueContinue.hidden = true;
-  dialogueModal.hidden = false;
-
-  typeDialogueText(text, () => {
-    choices.forEach((choice) => {
-      const button = document.createElement("button");
-      button.className = `btn ${choice.accent ? "btn-accent" : "btn-outline"}`;
-      button.textContent = choice.label;
-      button.addEventListener("click", choice.onClick);
-      dialogueChoices.append(button);
-    });
-
-    if (continueText) {
-      dialogueContinue.hidden = false;
-      dialogueContinue.textContent = continueText;
-      dialogueContinue.onclick = onContinue;
-    }
-  });
-}
-
-function closeDialogue() {
-  clearTypewriter();
-  dialogueModal.hidden = true;
-  dialogueChoices.innerHTML = "";
-  dialogueContinue.hidden = true;
-}
-
-// TODO(AB#585): Expand design of intro dialogue
-function runIntroDialogue() {
-  return new Promise((resolve) => {
-    showDialogue({
-      speaker: COORDINATOR_BYLINE,
-      portrait: ASSIGNED_COORDINATOR.portrait,
-      title: "Corporate Confirmation",
-      text: "Registration complete. Your corporation is officially chartered under the Interstellar Settlement Protocol, and command authority is yours as Founder and CEO. The Bureau assigns every new charter a coordinator. I have been assigned to yours.",
-      choices: [
-        {
-          label: "Any advice for me?",
-          accent: true,
-          onClick: () => {
-            showDialogue({
-              speaker: COORDINATOR_BYLINE,
-              portrait: ASSIGNED_COORDINATOR.portrait,
-              title: "Starting Advice",
-              text: "In order: an office, then staff, then a mining claim with a yard on it. Sell what you mine before you spend on anything you do not yet need. Research can wait until the yard is running. I will walk you through each of those next.",
-              continueText: "Proceed To Command Interface",
-              onContinue: () => {
-                closeDialogue();
-                resolve();
-              }
-            });
-          }
-        },
-        {
-          label: "Proceed. I understand the basics.",
-          onClick: () => {
-            closeDialogue();
-            resolve();
-          }
-        }
-      ]
-    });
-  });
-}
-
-// TODO(AB#738): Remove, we have a duplicate function in gameState.json, and this should be extrapolated based on values in the DB
-function createNewPlayerState(baseState, ceoName, corpName) {
-  const next = deepClone(baseState);
-  next.corp = {
-    ...next.corp,
-    ceo: ceoName,
-    corporationName: corpName,
-    level: 0,
-    milestonesCompleted: [],
-    employeeCap: 8,
-    employeeCount: 0,
-    buildingSlots: 2,
-    buildings: [{ name: "Headquarters", tier: 1, status: "Operational" }],
-    military: {
-      lightFighters: 0,
-      destroyers: 0,
-      siegeEngines: 0,
-      attackValue: 0,
-      defenseValue: 0,
-      modifiers: {
-        rdBonusPct: 0,
-        ceoLeadershipPct: 0
-      }
-    },
-    finances: {
-      ...next.corp.finances,
-      credits: 250000,
-      liabilities: 0,
-      assets: 0,
-      dailyRevenue: 0,
-      dailyCosts: 0,
-      taxRatePct: 14,
-      bondYieldPct: 0
-    },
-    inventory: {},
-    mining: {
-      silicateExtractors: []
-    },
-    unlocks: {
-      marketSectors: [],
-      maxUpgradeTier: 1,
-      maxFleetSize: 0
-    },
-    investments: [],
-    unlockedTech: []
-  };
-
-  next.queues = {
-    corporateRnD: [],
-    ceoInsight: []
-  };
-
-  next.playerProfile = {
-    isNewPlayer: true,
-    registeredAt: Date.now()
-  };
-
-  return next;
-}
 
 function getInventory() {
   if (!appState.data?.corp?.inventory) {
@@ -2144,16 +1722,6 @@ function travelTimeBetween(fromStation, toStation) {
   return 1 * 60 * 1000;
 }
 
-// TODO(AB#738): Consolidate all helper functions to singular file
-function formatDuration(ms) {
-  const totalSec = Math.max(0, Math.ceil(ms / 1000));
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
-}
 
 // Next to its one caller, not in the block at the top, where every branch adding an import collides (Bug #1253).
 import { renderStationFacilities } from "./stationFacilities.js";
@@ -2436,34 +2004,6 @@ function bindBuildingActions() {
 }
 
 // ─── Financial Control Board (CORP-FIN-1) — KPI strip and ledger tables ─────
-// TODO(AB#738): Consolidate helper functions to singular file
-
-function fmtCredits(n) {
-  const v = Math.round(Number(n) || 0);
-  return v.toLocaleString();
-}
-
-function fmtSignedCredits(n) {
-  const v = Math.round(Number(n) || 0);
-  if (v > 0) return "+" + v.toLocaleString();
-  return v.toLocaleString();
-}
-
-function fmtTimestamp(t) {
-  if (!t) return "—";
-  const d = new Date(t);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
-
-// Ledger names whose words are not simply capitalised (AB#712 books CEO programs as ceo-insight).
-const LEDGER_LABELS = { "ceo-insight": "CEO Insight" };
-
-function prettifyLedgerLabel(key) {
-  if (Object.hasOwn(LEDGER_LABELS, key)) return LEDGER_LABELS[key];
-  return String(key)
-    .replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 function setKpi(id, value, options = {}) {
   const el = document.getElementById(id);
@@ -2883,15 +2423,6 @@ function cycleProgressPercent(extractor) {
   return Math.max(0, Math.min(100, (elapsed / total) * 100));
 }
 
-function formatDurationHours(ms) {
-  if (!Number.isFinite(ms) || ms <= 0) {
-    return "0h";
-  }
-  const totalMinutes = Math.max(0, Math.floor(ms / (1000 * 60)));
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  return `${h}h ${m}m`;
-}
 
 // ISP-298 (AB#1791): the Salvage Assignment (server/game/corporation.js) is paid in time served, not a
 // delivered quota, so it has no progress bar to read from inventory — only a clock, read from the same
@@ -5132,234 +4663,6 @@ function bindTabs() {
   }
 }
 
-function clearWalkthroughFocus() {
-  document.querySelectorAll(".walkthrough-focus").forEach((el) => {
-    el.classList.remove("walkthrough-focus");
-  });
-}
-
-function stopWalkthrough() {
-  walkthroughModal.hidden = true;
-  document.body.classList.remove("walkthrough-open");
-  clearWalkthroughFocus();
-  clearInterval(walkthroughWatch);
-  walkthroughTarget = null;
-}
-
-// AB#581: the walkthrough advances when the player does what a step asks (walkthrough.js, WALKTHROUGH_COMPLETION).
-// State predicates are checked on a one-second watch and after every click, because an action's response and the
-// building views it opens arrive after the click; tab changes are reported by setTab as "tab:<id>" events.
-const walkthroughEvents = new Set();
-const walkthroughWarned = new Set();
-let walkthroughWatch = null;
-let walkthroughTarget = null; // the selector highlighted now: views re-render, so the element itself is not stable
-let walkthroughHeld = false; // the player stepped back to reread: stay put until they press Skip
-let walkthroughFinished = false;
-let walkthroughOfferPending = false;
-
-/** A real dialogue is open (a trade confirmation, a mission, a dialogue). The briefing never moves or appears over one. */
-function otherModalOpen() {
-  return [...document.querySelectorAll(".modal-backdrop, .mission-modal-backdrop")].some(
-    (modal) => modal !== walkthroughModal && !modal.hidden
-  );
-}
-
-function noteWalkthroughEvent(name) {
-  if (walkthroughModal.hidden || walkthroughFinished) return;
-  walkthroughEvents.add(name);
-  checkWalkthroughProgress();
-}
-
-function checkWalkthroughProgress() {
-  if (walkthroughModal.hidden || walkthroughFinished || otherModalOpen()) return;
-  if (!walkthroughHeld) {
-    const next = nextStepIndex(appState.walkthroughIndex, appState.data, walkthroughEvents);
-    if (next >= walkthroughSteps.length) {
-      finishWalkthrough();
-      return;
-    }
-    if (next !== appState.walkthroughIndex) {
-      appState.walkthroughIndex = next;
-      renderWalkthroughStep();
-      return;
-    }
-  }
-  refreshWalkthroughHighlight();
-}
-
-/** Every step done: stay on the last one, which carries the handoff, until the player closes it. */
-function finishWalkthrough() {
-  walkthroughFinished = true;
-  appState.walkthroughIndex = walkthroughSteps.length - 1;
-  renderWalkthroughStep();
-  completeWalkthroughForAccount();
-}
-
-function refreshWalkthroughHighlight() {
-  const step = walkthroughSteps[appState.walkthroughIndex];
-  if (!step || walkthroughModal.hidden) return;
-  if (walkthroughFinished) {
-    // Nothing left to do, so nothing to point at: the card is only the handoff now.
-    clearWalkthroughFocus();
-    walkthroughTarget = null;
-    return;
-  }
-  const { selector, missing } = chooseHighlight(step, (candidate) => {
-    const el = document.querySelector(candidate);
-    return { exists: Boolean(el), visible: Boolean(el && el.getClientRects().length) };
-  });
-  if (missing && !walkthroughWarned.has(step.id)) {
-    walkthroughWarned.add(step.id);
-    console.warn(`[walkthrough] step "${step.id}": ${step.selector} matches nothing on the page, so it is shown without a highlight.`);
-  }
-  const target = selector ? document.querySelector(selector) : null;
-  if (target?.classList.contains("walkthrough-focus") || (!target && !walkthroughTarget)) return;
-  clearWalkthroughFocus();
-  if (!target) {
-    walkthroughTarget = null;
-    return;
-  }
-  target.classList.add("walkthrough-focus");
-  // Scroll only when the thing to do changes, not when a re-render redraws the same control under the player.
-  if (selector !== walkthroughTarget) scrollWalkthroughTargetIntoView(target);
-  walkthroughTarget = selector;
-}
-
-import { walkthroughScrollDelta } from "./walkthrough.js"; // Bug #1083 (here, apart from the top-of-file imports open PRs edit)
-
-// Bug #1083: into the band between the sticky header and the briefing card, not the centre of the window, where the
-// card is on a phone.
-function scrollWalkthroughTargetIntoView(target) {
-  const card = walkthroughModal.querySelector(".modal-card");
-  const header = document.querySelector(".app-header");
-  const delta = walkthroughScrollDelta({
-    viewportHeight: window.innerHeight,
-    headerBottom: header ? header.getBoundingClientRect().bottom : 0,
-    card: card ? card.getBoundingClientRect() : null,
-    target: target.getBoundingClientRect()
-  });
-  if (delta) window.scrollBy({ top: delta, behavior: "smooth" });
-}
-
-async function completeWalkthroughForAccount() {
-  if (!appState.accountId || appState.walkthroughCompleted) {
-    return;
-  }
-
-  try {
-    const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/walkthrough-complete`, {
-      method: "POST"
-    });
-    const account = await parseJsonResponse(response);
-    appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
-    appState.data = deepClone(account.state);
-    updateAllViews();
-  } catch {
-    // Walkthrough completion persistence is best-effort.
-  }
-}
-
-async function resetWalkthroughForAccount() {
-  if (!appState.accountId) {
-    appState.walkthroughCompleted = false;
-    if (appState.data?.playerProfile) {
-      appState.data.playerProfile.walkthroughCompleted = false;
-    }
-    return;
-  }
-
-  const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/walkthrough-reset`, {
-    method: "POST"
-  });
-  const account = await parseJsonResponse(response);
-  appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
-  appState.data = deepClone(account.state);
-  updateAllViews();
-}
-
-function renderWalkthroughStep() {
-  const step = walkthroughSteps[appState.walkthroughIndex];
-  if (!step) {
-    stopWalkthrough();
-    return;
-  }
-
-  // AB#579: a briefing from the assigned coordinator. The step count is a small mark under the text, not the heading.
-  const portrait = document.getElementById("walkthrough-portrait");
-  if (portrait) {
-    portrait.src = ASSIGNED_COORDINATOR.portrait;
-    portrait.alt = ASSIGNED_COORDINATOR.name;
-  }
-  const speaker = document.getElementById("walkthrough-speaker");
-  if (speaker) speaker.textContent = COORDINATOR_BYLINE;
-  walkthroughTitle.textContent = step.title;
-  walkthroughText.textContent = step.text;
-  const progress = document.getElementById("walkthrough-progress");
-  if (progress) {
-    progress.textContent = walkthroughFinished
-      ? "Briefing complete"
-      : `${appState.walkthroughIndex + 1} of ${walkthroughSteps.length}`;
-  }
-  // AB#581: the steps advance on what the player does, so the button is a way past a step, not the way through.
-  walkthroughPrev.disabled = appState.walkthroughIndex === 0;
-  walkthroughPrev.hidden = walkthroughFinished;
-  walkthroughEnd.hidden = walkthroughFinished;
-  walkthroughNext.textContent = walkthroughFinished ? "Close" : "Skip";
-  const card = walkthroughModal.querySelector(".modal-card");
-  if (card) document.body.style.setProperty("--walkthrough-card-height", `${card.offsetHeight + 24}px`);
-  walkthroughTarget = null;
-  refreshWalkthroughHighlight();
-}
-
-function startWalkthrough() {
-  walkthroughEvents.clear();
-  walkthroughWarned.clear();
-  walkthroughHeld = false;
-  walkthroughFinished = false;
-  appState.walkthroughIndex = 0;
-  walkthroughModal.hidden = false;
-  document.body.classList.add("walkthrough-open");
-  renderWalkthroughStep();
-  clearInterval(walkthroughWatch);
-  walkthroughWatch = setInterval(checkWalkthroughProgress, 1000);
-}
-
-function promptWalkthroughOffer() {
-  // AB#581: never over another dialogue, such as an open trade confirmation (Builder #1 saw this once).
-  if (otherModalOpen()) {
-    if (!walkthroughOfferPending) {
-      walkthroughOfferPending = true;
-      setTimeout(() => {
-        walkthroughOfferPending = false;
-        promptWalkthroughOffer();
-      }, 500);
-    }
-    return;
-  }
-  markWalkthroughOfferSeen(appState.accountId);
-  showDialogue({
-    speaker: COORDINATOR_BYLINE,
-    portrait: ASSIGNED_COORDINATOR.portrait,
-    title: "Your first day",
-    text: "I can take you through your first day on the station: an office, staff, a mining claim, and your first sale. It takes a few minutes. If you would rather find your own way, the milestones on your Overview say what the ISA expects next.",
-    choices: [
-      {
-        label: "Brief me",
-        accent: true,
-        onClick: () => {
-          closeDialogue();
-          startWalkthrough();
-        }
-      },
-      {
-        label: "I'll find my own way",
-        onClick: () => {
-          closeDialogue();
-        }
-      }
-    ]
-  });
-}
 
 function showAuthScreen() {
   appState.authenticated = false;
@@ -6451,15 +5754,6 @@ function inboxMsgsForView() {
   return filtered.slice().sort((a, b) => b.sentAt - a.sentAt);
 }
 
-function formatInboxDate(ts) {
-  if (!ts) return "";
-  const d = new Date(ts);
-  const now = new Date();
-  if (d.toDateString() === now.toDateString()) {
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-  return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
-}
 
 function renderInboxMessageList() {
   const panel = document.getElementById("inbox");
@@ -6842,42 +6136,7 @@ function bindGlobalControls() {
     });
   }
 
-  walkthroughPrev.addEventListener("click", () => {
-    appState.walkthroughIndex = Math.max(0, appState.walkthroughIndex - 1);
-    walkthroughHeld = true;
-    renderWalkthroughStep();
-  });
-
-  // Skip always works: past this step, then past any the player has already done.
-  walkthroughNext.addEventListener("click", () => {
-    if (walkthroughFinished) {
-      stopWalkthrough();
-      return;
-    }
-    if (appState.walkthroughIndex >= walkthroughSteps.length - 1) {
-      stopWalkthrough();
-      completeWalkthroughForAccount();
-      setTab("rnd");
-      return;
-    }
-    walkthroughHeld = false;
-    const next = nextStepIndex(appState.walkthroughIndex + 1, appState.data, walkthroughEvents);
-    if (next >= walkthroughSteps.length) {
-      finishWalkthrough();
-      return;
-    }
-    appState.walkthroughIndex = next;
-    renderWalkthroughStep();
-  });
-
-  // An action's result, or a building view it opens, lands after the click that caused it.
-  document.addEventListener("click", () => setTimeout(checkWalkthroughProgress, 0));
-
-  walkthroughEnd.addEventListener("click", () => {
-    stopWalkthrough();
-    completeWalkthroughForAccount();
-    setTab("rnd");
-  });
+  bindWalkthroughControls();
 }
 
 // AB#716: imported beside its one use, away from the import block that parallel pull requests edit.

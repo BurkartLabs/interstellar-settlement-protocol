@@ -16,12 +16,33 @@ import { JSDOM } from "jsdom";
 // is written down).
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
-const appJs = read("public/scripts/app.js");
 const indexHtml = read("public/index.html");
 
+// AB#738: app.js is split into modules it imports (the dialogue card, the walkthrough), and their targets are as much
+// the page's as app.js's own. Scanning app.js alone silently dropped 16 of them, so this reads every module app.js
+// reaches through its imports, and a module added by a later split is covered without editing this file.
+function clientSources(entry) {
+  const seen = new Map();
+  const visit = (rel) => {
+    if (seen.has(rel)) return;
+    const text = read(rel);
+    seen.set(rel, text);
+    for (const [, spec] of text.matchAll(/(?:^|\n)\s*import\s[^;]*?["'](\.\/[^"']+)["']/g)) {
+      visit(path.posix.join(path.posix.dirname(rel), spec));
+    }
+  };
+  visit(entry);
+  return seen;
+}
+const sources = clientSources("public/scripts/app.js");
+const appJs = [...sources.values()].join("\n");
+
 const idAttr = /\bid=(["'])([^"']+)\1/g;
+// An element a module builds itself (starmap.js's station modal: `overlay.id = "starmap-station-modal"`).
+const idAssigned = /\.id\s*=\s*(["'])([^"']+)\1/g;
 const knownIds = new Set([
   ...[...appJs.matchAll(idAttr)].map((m) => m[2]),
+  ...[...appJs.matchAll(idAssigned)].map((m) => m[2]),
   ...[...new JSDOM(indexHtml).window.document.querySelectorAll("[id]")].map((el) => el.id)
 ]);
 
@@ -30,6 +51,13 @@ const targets = [...new Set([...appJs.matchAll(/getElementById\((['"])([^'"]+)\1
 describe("every getElementById target app.js reads resolves to a real id (AB#1752)", () => {
   it("found at least one target, so this test cannot silently assert nothing", () => {
     expect(targets.length).toBeGreaterThan(50);
+  });
+
+  it("reads the modules app.js imports, not app.js alone (AB#738)", () => {
+    for (const f of ["state.js", "apiClient.js", "helpers.js", "dialogue.js", "walkthroughUi.js"]) {
+      expect([...sources.keys()], f).toContain(`public/scripts/${f}`);
+    }
+    expect(targets).toEqual(expect.arrayContaining(["dialogue-modal", "walkthrough-modal", "walkthrough-progress"]));
   });
 
   it.each(targets)("#%s exists on index.html or in a template app.js renders", (id) => {

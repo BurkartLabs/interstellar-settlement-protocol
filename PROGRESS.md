@@ -15,7 +15,36 @@ used it too, to look at a static mockup rather than the running game; AB#1049 an
 Corporate R&D and for login/register respectively; AB#1752 and AB#1806 used it once more, fresh specs against a
 locally-started server; AB#1807 (no visible change) used it for a console-error smoke check instead; AB#1744 is
 a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on any of these panes (Builder panes
-don't get one by design). See "Blind spot" below.**
+don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
+below — ISP-53 (AB#739, one module per tab) is queued right behind it.**
+
+## What's now true (this session: ISP-52, AB#738 — split app.js, part 1)
+
+- **app.js no longer defines its shared pieces; five ES modules under `public/scripts/` do, and app.js imports
+  them.** `state.js` (appState and the constants), `apiClient.js` (session, `apiFetch`, `parseJsonResponse`, the
+  socket), `helpers.js` (the formatting helpers — each defined once; *not* merged with each other, since
+  `fmtCredits`/`toCurrency` and `formatDuration`/`formatDurationHours` render differently), `dialogue.js` (the
+  coordinator's card and typewriter), `walkthroughUi.js` (the walkthrough's page side; its steps and rules stay in
+  `walkthrough.js`). Moved byte-for-byte: app.js's own diff is 752 deletions and 11 additions. Dead
+  `createNewPlayerState` deleted (never called; its TODO asked).
+- **For ISP-53 (part 2):** the moved code calls back into app.js through two hooks set once at load —
+  `connectApiClient({ stopMiningUiTicker, showAuthScreen })` and `connectWalkthroughUi({ updateAllViews, setTab })`
+  — rather than importing the entry point. Keep that shape: a per-tab module that needs `updateAllViews` should be
+  handed it the same way, not import app.js. `tests/unit/domTargets.test.js` now walks app.js's import graph, so new
+  tab modules are covered automatically.
+- **Source-grep tests:** several tests read app.js's text. Anything part 2 moves out that such a test names will
+  make it fail loudly (good) — except `domTargets`, which used to lose coverage silently (fixed above). Line-pinned
+  allowlists (`no-payments.test.js`) will need re-pointing, as `toCurrency` was here (now `helpers.js:6`).
+- **Checked:** `tsc --checkJs` as a name resolver over the whole import graph gives the same unresolved names before
+  and after (`io`, `Chart` — CDN globals — and `currentBody`, a real pre-existing bug, filed **AB#1825**).
+  `npm test` **160 files, 1787 tests**, green (baseline 1780: +16 targets the split briefly dropped from domTargets
+  and got back, +6 from modules it had never read, +1). **Looked at:** `e2e/walkthrough-run.spec.js` (new) plays
+  the walkthrough through all 12 steps to "Briefing complete" with zero console errors, plus the End-briefing path
+  (the `setTab` hook); every other e2e spec passes (24, serially).
+- **Filed while here, not fixed:** **AB#1825** (above); **AB#1827** — `e2e/refinery-requirements-muted.spec.js`
+  fails on main since AB#1761 merged (its "before" is `git show origin/main`, which is now the fix) and rewrites
+  app.js on disk mid-run, so don't run it in parallel with other specs until it is fixed. **Fixed while here:**
+  **AB#1826** — `beltCompositionReload.test.js` only passed on CRLF checkouts, and asserted the wrong function.
 
 ## What's now true (this session: ISP-292, AB#1761)
 
