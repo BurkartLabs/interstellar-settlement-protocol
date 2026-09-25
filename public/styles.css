@@ -1813,17 +1813,12 @@ textarea {
 .rnd-panel {
   display: flex;
   flex-direction: column;
-  max-width: min(820px, 100%);
   border: 1px solid rgba(0, 247, 255, 0.18);
   border-radius: 10px;
   overflow: hidden;
   background:
     radial-gradient(circle at top right, rgba(0, 247, 255, 0.06), transparent 30%),
     linear-gradient(180deg, rgba(17, 34, 51, 0.62), rgba(8, 22, 36, 0.78));
-}
-
-.rnd-panel #rnd-queue {
-  max-width: 100%;
 }
 
 .rnd-panel__section {
@@ -1979,13 +1974,12 @@ textarea {
   border-color: rgba(0, 247, 255, 0.15);
 }
 
-#rnd-queue,
+/* AB#1762: the R&D queue fills its panel, which fills the content column; only CEO Insight's queue is still capped */
 #ceo-queue {
   max-width: min(750px, 100%);
 }
 
 @media (min-width: 601px) and (max-width: 900px) {
-  #rnd-queue,
   #ceo-queue {
     max-width: 500px;
   }
@@ -4876,9 +4870,7 @@ body.walkthrough-open .layout-grid {
 }
 
 /* ─── Agent office view ──────────────────────────────────── */
-#agent-office-view {
-  max-width: 50vw;
-}
+/* AB#1762: no width cap (it was 50vw); the office fills the content column like every other tab */
 
 #agent-back-btn {
   margin-bottom: 1.2rem;
@@ -5099,9 +5091,7 @@ body.walkthrough-open .layout-grid {
   margin-top: 1.2rem;
 }
 
-#missions-board-view {
-  max-width:25vw;
-}
+/* AB#1762: #missions-board-view has no width cap (it was 25vw); it fills the content column */
 
 .mission-log-header {
   display: flex;
@@ -5992,8 +5982,6 @@ tr.npc-order-exhausted {
   #chat,
   #map-details,
   #forum-overview-view,
-  #agent-office-view,
-  #missions-board-view,
   .mission-card {
     max-width: none;
   }
