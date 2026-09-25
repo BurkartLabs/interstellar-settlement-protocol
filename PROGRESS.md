@@ -1,10 +1,46 @@
 # ISP — handoff
 
-**2026-09-25. Three Builder panes on ISP today: #2 did ISP-67 (AB#756) then ISP-48 (AB#734); #3 (this one) did
-ISP-61 (AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only extension-less; see below.
-No CONTROL_URL / Chrome extension on any of these panes (Builder panes don't get one by design).**
+**2026-09-25. Four Builder panes on ISP today: #2 did ISP-67 (AB#756) then ISP-48 (AB#734); #3 did ISP-61
+(AB#747) — a scripted Playwright playtest, so ISP is no longer blind, only extension-less; #4 (this one, Sonnet
+5) did ISP-278 (AB#985), still without a browser session of its own — see "Blind spot" below. No CONTROL_URL /
+Chrome extension on any of these panes (Builder panes don't get one by design).**
 
-## What's now true (this session: ISP-48, AB#734)
+## What's now true (this session: ISP-278, AB#985)
+
+- **ISP-278 is done: shipments arrive on a later tick, not on dispatch.** `POST .../gameplay/transfer-resources`
+  debits the origin inventory and the fee once, same as before, but now creates a shipment (`corp.shipments`)
+  with an arrival time from `transitTime` (`server/transfers.js`, dead code since AB#718, now wired in) instead
+  of crediting the destination on the spot. The goods are in neither inventory while in flight — the bug-#692
+  lesson applies here too: the destination station is pinned at dispatch (`corp.currentStationId` read once,
+  when the shipment is created), never re-read at delivery time.
+  - **`shipmentTick`** (mirrors `travelTick`, same 5s interval) delivers each shipment on the first tick at or
+    after `arrivesAt`: credits the destination, records it in `corp.logisticsHistory` (same shape as before, so
+    the existing Transfer History list needs no change), fires a notification, and drops the shipment from
+    `corp.shipments` in the same pass — delivery is idempotent by construction, no separate guard needed.
+  - **Held, not lost:** if the destination station id isn't in the catalog at arrival (a decommissioned
+    station), the shipment's marked `status: "held"` and stays in `corp.shipments` rather than crediting nothing
+    or vanishing; the player is notified. Nothing today resolves a held shipment — a reasonable follow-up if the
+    Board ever retires a station.
+  - **New, owner-scoped:** `GET .../gameplay/shipments` (list) and `.../shipments/:shipmentId` (one, 404 if it
+    isn't yours — same shape as the existing message/notification-by-id routes).
+  - **Client:** `app.js`'s post-transfer toast now reads the dispatch response's ETA rather than
+    `logisticsHistory[0]` (which no longer has an entry at dispatch time) — "Dispatched … arriving in N min"
+    instead of a false "Moved …". This is a plain-text change, not a layout one; see Blind spot.
+  - Tests (`tests/integration/transfers.test.js`, `transfer-distance.test.js`): dispatch-vs-delivery separation,
+    idempotent tick delivery with injected time, arrival notification, restart survival (write the live state to
+    disk, reload it as a fresh process would, tick from the reloaded copy alone), the held-station case, a
+    client-supplied arrival time being ignored, and cross-account 404 scoping. All fail against the pre-fix
+    code where meaningful (dispatch-vs-delivery, idempotence) — checked by reverting the diff and re-running.
+  - `tests/unit/benchTicks.test.js` and `scripts/bench-ticks.mjs` gained `shipmentTick`; `server/gameplayInput.js`
+    and both AB#731/#732 guard-test files gained the two new routes (the first `ref`-kind field in
+    `GAMEPLAY_INPUT`, so `gameplay-input.test.js`'s hostile-input loop needed the same ref-kind carve-out
+    `remaining-input.test.js` already had — a real gap in that test, not specific to this story, fixed here).
+  - `ECONOMY.md` and `DESIGN_DOCUMENT.md`'s "transfers still arrive at once; transit time isn't used yet" notes
+    are updated — that sentence is what this story replaces.
+  - Checks: `npm run check` clean; `npm test` — **149 files, 1513 tests, all passed** (1500 baseline on
+    `origin/main` after merge + 13 new).
+
+## What's now true (ISP-48, AB#734 — prior session, still accurate)
 
 - **ISP-48 is done: `SECURITY.md` exists**, answering DOCTRINE's four questions (what data, who can reach it,
   blast radius, fail closed) for auth, persistence, the market and sockets, every answer citing file and line.
@@ -148,25 +184,47 @@ chain, both the actual mechanism their acceptance criteria describe, not a proxy
 blind-spot note (an earlier session) stands unchanged: `socket.io-client` against a real server was that
 session's equivalent of "looked at it."
 
-`npm test` after both sessions: **149 files, 1500 tests, all green.** `npm run check` clean. `npx playwright
-test`: 2 passed.
+No Chrome extension on any of these panes (Builder panes don't get one by design), but ISP-61 changes what that
+means for ISP going forward. ISP-61 is entirely about screens and was looked at for real: Playwright, not the
+extension, drove a real Chromium against a real running server, and the 22 resulting screenshots were read
+back and checked, including catching and fixing a header-repeat capture bug (`fullPage: true` stitching a
+`position: sticky` header into the image twice). ISP-48 has no screen of its own — a markdown file and a
+server-side throttle — and was verified directly instead: `SECURITY.md`'s every code claim read back against
+the actual file and line, the rate limiter proven with real HTTP requests through `supertest` against the live
+route chain. ISP-278 (this session) has no screen of its own either — a dispatch/delivery split in server
+state, proven with real HTTP requests and a real `shipmentTick()` call through `supertest`/`getApp()` (not a
+mock), which is the mechanism its acceptance criteria describe (dispatch, tick timing, restart, the held case,
+ownership). All three are the actual mechanism their acceptance criteria describe, not a proxy for it. One
+thing this session did **not** look at: the client's post-dispatch toast wording (`public/scripts/app.js`) was
+reasoned through and `node --check`ed, but never seen rendered — a plain-text change (an ETA in a toast), not
+layout, so the risk is narrow, but it is unverified and the reason it's called out rather than folded into
+"done." ISP-67's own blind-spot note (an earlier session) stands unchanged: `socket.io-client` against a real
+server was that session's equivalent of "looked at it."
+
+`npm test` after all four sessions: **149 files, 1513 tests, all green** (1500 after ISP-48/ISP-61 + 13 new
+this session). `npm run check` clean. `npx playwright test`: 2 passed (from ISP-61, not re-run this session).
 
 **AB#753/755/757/781/987/989 (the remaining screenshot-gated v0.5 items) are no longer blocked on "no
 browser."** They still need a look, and Playwright is now the way to do it for ISP the way it already was for
 job-hunt — but nobody has yet written the scripts for CSP-console-checking, the register page, or the
-verification-email flow. That's real work still to do, not a blind spot anymore.
+verification-email flow. That's real work still to do, not a blind spot anymore, and the natural next pick for
+a Builder pane without the Chrome extension.
 
 ## What's next
 
+- **AB#753/755/757/781/987/989** (screenshot-gated v0.5 items) can now be built and looked at with Playwright —
+  see ISP-61 above for the pattern (`e2e/first-hour.spec.js`, `playwright.config.js`). No longer a reason to
+  skip these.
+- **ISP-279** ("Shipments in the Logistics tab: arrival time quoted before you move") is a natural next story
+  for whichever pane picks it up: it has the `ui` tag this session avoided, and can now build on
+  `corp.shipments` and the two new `GET .../gameplay/shipments(/:id)` routes instead of inventing the data
+  model itself.
 - **AB#1765** (refresh tokens in plain text at rest) and **AB#1766** (the market/forum "still-authenticated-
-  looking" socket boundary) are filed, Proposed, unclaimed — either is a reasonable next pick, both non-visual.
-- The screenshot-gated v0.5 items (AB#753/755/757/781/987/989) can now be built and looked at with Playwright —
-  see ISP-61 above for the pattern (`e2e/first-hour.spec.js`, `playwright.config.js`).
+  looking" socket boundary), both filed by the ISP-48 session, remain Proposed and unclaimed — non-visual.
 - Multiple Builder panes are working ISP at once — check ADO for what's Active before claiming.
 
 ## In flight / blocked
 
-Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-boundary`, PR !392) and ISP-48's
-(`agent/734-security`) are both merged. This session's branch is `agent/747-first-hour-playtest`, PR opening
-next, then continuing to the next ISP item per the Board's resume directive (2026-09-25): prioritize
-Requirement-type stories over bugs, RESULT to OPS per item, don't stop after one.
+Nothing blocked, nothing left uncommitted. ISP-67's branch (`agent/756-socket-boundary`, PR !392), ISP-48's
+(`agent/734-security`) and ISP-61's (`agent/747-first-hour-playtest`) are all merged. This session's branch is
+`agent/985-timed-transit`, PR !408, approved and set to auto-complete.

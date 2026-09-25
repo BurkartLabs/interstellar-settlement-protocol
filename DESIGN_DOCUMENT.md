@@ -180,8 +180,10 @@ The numbers are in `data/economy.json` under `logistics`: 2 credits a unit withi
 nothing moved within Sol costs more than before), 3 more a unit per jump, 30 minutes within a system, and 2 hours per
 jump. They are a starting point for the balance pass, not tuned against play. The server computes both from the two
 station ids (`server/transfers.js`: `transferFee(from, to, quantity)`, `transitTime(from, to)`). The Logistics tab gets
-the same rates with the station list and quotes the fee on each station's card before anything is moved. Transfers
-still arrive at once; the transit time becomes real in the next story (timed transit).
+the same rates with the station list and quotes the fee on each station's card before anything is moved. Since
+AB#985 (ISP-278) a dispatch debits the origin and the fee at once and creates a shipment that credits the
+destination on the first tick at or after its arrival time (`shipmentTick`, mirroring `travelTick`); the goods are
+in neither inventory while in flight.
 
 **Every pair of stations** (the fee is per unit; a test checks this table against the code):
 

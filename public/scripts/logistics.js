@@ -42,7 +42,7 @@ export function transferFee(rates, hops, lines) {
   return (lines || []).reduce((sum, l) => sum + feePerUnit(rates, hops) * Number(l.quantity || 0), 0);
 }
 
-/** How long a shipment takes over this many jumps, in minutes. Transfers arrive at once until timed transit exists. */
+/** How long a shipment takes over this many jumps, in minutes (AB#985: timed transit, not instant delivery). */
 export function transitMinutes(rates, hops) {
   return Number(rates.sameSystemTransitMinutes) + Number(rates.perJumpTransitMinutes) * hops;
 }
