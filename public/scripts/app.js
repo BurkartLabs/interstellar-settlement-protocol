@@ -4501,22 +4501,12 @@ function renderForums(data) {
   }
 }
 
-// TODO(AB#1051): This should be defined in the database 
+// AB#1051: the reputation tiers and the agent registry (bio, dialogue, station, availability) both come from
+// GET /api/mission-agents now — data/missions.json is the one copy, the CEO Insight pattern (Bug #983). Empty
+// until loadStationRegistry's boot fetch resolves, same lifecycle as insightPrograms/buildingRegistry.
 // ─── Mission Reputation System ─────────────────────────────────────────────
-const REPUTATION_THRESHOLDS = [0, 1, 3, 7, 15, 30, 60, 120, 250, 500, 1000];
-const REPUTATION_TITLES = [
-  "Unknown",
-  "Registered",
-  "Recognized",
-  "Reliable",
-  "Trusted",
-  "Valued",
-  "Distinguished",
-  "Esteemed",
-  "Elite",
-  "Legendary",
-  "Exalted"
-];
+let REPUTATION_THRESHOLDS = [0];
+let REPUTATION_TITLES = ["Unknown"];
 
 function getAgentRepLevel(agentId) {
   const rep = appState.data?.corp?.agentReputation?.[agentId];
@@ -4525,31 +4515,24 @@ function getAgentRepLevel(agentId) {
   for (let i = REPUTATION_THRESHOLDS.length - 1; i >= 0; i--) {
     if (count >= REPUTATION_THRESHOLDS[i]) { level = i; break; }
   }
-  const nextThreshold = level < 10 ? REPUTATION_THRESHOLDS[level + 1] : REPUTATION_THRESHOLDS[10];
-  return { level, count, title: REPUTATION_TITLES[level], nextThreshold, maxLevel: 10 };
+  const maxLevel = REPUTATION_THRESHOLDS.length - 1;
+  const nextThreshold = level < maxLevel ? REPUTATION_THRESHOLDS[level + 1] : REPUTATION_THRESHOLDS[maxLevel];
+  return { level, count, title: REPUTATION_TITLES[level], nextThreshold, maxLevel };
 }
 
 // ─── Mission Agent Registry ────────────────────────────────────────────────
-// TODO(AB#1051): This should be in the database 
-const MISSION_AGENTS = [
-  {
-    // Name, title and portrait come from the one record the welcome letter and intro dialogue use (AB#585).
-    ...ASSIGNED_COORDINATOR,
-    stationId: "earth-station-prime",
-    bio: `Coordinator Voss has served the ISA's logistics division for over fourteen years, beginning as a junior freight auditor on Luna Gateway before transferring to Earth Station Prime's newly established Contracting & Assignments Bureau. She earned her Senior Coordinator designation after managing the emergency redistribution of silicate reserves during the Ceres Supply Crisis of 2139 — an operation that required coordinating seventeen independent mining corporations under a 72-hour ISA directive.
+let MISSION_AGENTS = [];
 
-Her management style is precise, documented, and unapologetically procedural. Contractors who deliver what they sign for, to specification, earn her trust, and she keeps count.
-
-She maintains a small but well-organised office on Deck 7 of the Bureau. The filing cabinets are alphabetised. The coffee is adequate. The contracts are real.`,
-    dialogue: [
-      "Good. You're here. I have contracts that need competent operators — not speculators who think logistics is a side business.",
-      "The ISA needs resources moved, extracted, and delivered to specification. If you can handle that, we'll get along fine.",
-      "Review the available contracts below. Each one has a quota and a reward. Deliver the quota to me and you'll be paid; every contract you complete raises your standing with me. Walk away from one and it costs you nothing but the standing you would have earned."
-    ],
-    missionType: "Logistics",
-    available: true
+/** Name, title and portrait come from the one record the welcome letter and intro dialogue use (AB#585);
+ *  everything else (bio, dialogue, station, availability) comes from the server's own data (AB#1051). */
+function applyMissionAgentsCatalog(agents, reputationTiers) {
+  MISSION_AGENTS = (agents || []).map((a) =>
+    a.id === ASSIGNED_COORDINATOR.id ? { ...ASSIGNED_COORDINATOR, ...a } : a);
+  if (reputationTiers?.thresholds?.length && reputationTiers.thresholds.length === reputationTiers.titles?.length) {
+    REPUTATION_THRESHOLDS = reputationTiers.thresholds;
+    REPUTATION_TITLES = reputationTiers.titles;
   }
-];
+}
 
 // Bug #1058: the next step under a short quota. Imported beside its use, away from the import block.
 import { missionShortAdvice } from "./contractAdvice.js";
@@ -5466,10 +5449,11 @@ async function loadBootstrap() {
 
 async function loadStationRegistry() {
   try {
-    const [stationsRes, buildingsRes, insightRes] = await Promise.all([
+    const [stationsRes, buildingsRes, insightRes, missionAgentsRes] = await Promise.all([
       fetch("/api/stations"),
       fetch("/api/buildings"),
-      fetch("/api/ceo-insight")
+      fetch("/api/ceo-insight"),
+      fetch("/api/mission-agents")
     ]);
     if (stationsRes.ok) {
       const data = await stationsRes.json();
@@ -5484,6 +5468,10 @@ async function loadStationRegistry() {
     if (insightRes.ok) {
       const data = await insightRes.json();
       appState.insightPrograms = data.programs || [];
+    }
+    if (missionAgentsRes.ok) {
+      const data = await missionAgentsRes.json();
+      applyMissionAgentsCatalog(data.agents, data.reputationTiers);
     }
   } catch {
     // Station registry is best-effort; game works without it.

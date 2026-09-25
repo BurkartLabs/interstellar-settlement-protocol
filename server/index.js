@@ -56,6 +56,8 @@ import {
   applyRefineryOperations,
   REFINERY_CHAINS,
   MISSION_TEMPLATES,
+  MISSION_AGENTS_DATA,
+  REPUTATION_TIERS_DATA,
   refreshContractOfferings,
   COMPLETED_COOLDOWN_MS, // Bug #1268
   SYSTEM_DETAILS,
@@ -840,6 +842,13 @@ app.get("/api/stations", (_req, res) => {
 // The CEO Insight catalogue, with each program's live or planned status: the client's only copy (Bug #983).
 app.get("/api/ceo-insight", (_req, res) => {
   res.json({ programs: Object.values(CEO_INSIGHT_LIBRARY) });
+});
+
+// AB#1051: the mission agent registry and reputation tiers, the client's only copy of either (the CEO Insight
+// pattern above). Bio, dialogue, station and availability are data; the agent's name, title and portrait stay
+// owned by ASSIGNED_COORDINATOR (public/scripts/liaison.js, AB#585) and are merged in client-side.
+app.get("/api/mission-agents", (_req, res) => {
+  res.json({ agents: MISSION_AGENTS_DATA, reputationTiers: REPUTATION_TIERS_DATA });
 });
 
 app.get("/api/buildings", (_req, res) => {

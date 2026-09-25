@@ -1,6 +1,6 @@
 // server/game/corporation.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
-import { MAX_DEFINED_LEVEL, createId, deepClone } from "./catalog.js";
+import { MAX_DEFINED_LEVEL, MISSIONS_DATA, createId, deepClone } from "./catalog.js";
 import { evaluateLevelProgress } from "./progression.js";
 import { ensureCorpMiningModel } from "./mining.js";
 import { ensureCorpRefineryModel } from "./refining.js";
@@ -107,111 +107,42 @@ export const COMPLETED_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4h before a complete
 // never accepted or completed one is always offered it. public/scripts/walkthrough.js names it (handoffContractId).
 export const FIRST_CONTRACT_ID = "ms-log-001";
 
-/*
-  TODO(AB#1051): This shouldn't be hardcoded in this way. The values should be more random. 
-*/
-export const MISSION_TEMPLATES = [
-  {
-    id: "ms-log-001",
-    title: "Silicate Requisition Order — Batch 4-7A",
-    type: "Logistics",
-    risk: "Low",
-    reward: "12,000 Credits",
-    text: "The Bureau requires 400 units of raw silicates for redistribution to ISA-contracted construction projects. Mine the quota from any active extraction lease and deliver it to the Bureau when you have it.",
-    agentId: "elara-voss",
-    quota: { resource: "Silicates", amount: 400 }
-  },
-  {
-    id: "ms-log-002",
-    title: "Nickel Freight Manifest — Consignment 9-2B",
-    type: "Logistics",
-    risk: "Low",
-    reward: "15,000 Credits",
-    text: "The Bureau has flagged a shortfall of nickel across ISA-administered construction depots. Deliver 300 units of nickel to fulfil this standing requisition order.",
-    agentId: "elara-voss",
-    quota: { resource: "Nickel", amount: 300 }
-  },
-  {
-    id: "ms-log-003",
-    title: "Carbon Fibre Supply Run — Priority C",
-    type: "Logistics",
-    risk: "Low",
-    reward: "10,000 Credits",
-    text: "Station maintenance divisions require a resupply of carbon for composite fabrication. Source and deliver 500 units to the contracting office.",
-    agentId: "elara-voss",
-    quota: { resource: "Carbon", amount: 500 }
-  },
-  {
-    id: "ms-log-004",
-    title: "Helium-3 Emergency Allocation — Directive 77",
-    type: "Logistics",
-    risk: "Medium",
-    reward: "24,000 Credits",
-    text: "Reactor fuel reserves are approaching critical minimums. The ISA has issued a priority directive: deliver 200 units of Helium-3 to the Bureau for immediate redistribution to power infrastructure.",
-    agentId: "elara-voss",
-    quota: { resource: "Helium-3", amount: 200 }
-  },
-  {
-    id: "ms-log-005",
-    title: "Titanium Structural Allotment — Frame Series 12",
-    type: "Logistics",
-    risk: "Medium",
-    reward: "20,000 Credits",
-    text: "Station expansion projects require titanium for structural framework assembly. Deliver 250 units to satisfy this standing allotment.",
-    agentId: "elara-voss",
-    quota: { resource: "Titanium", amount: 250 }
-  },
-  {
-    id: "ms-log-006",
-    title: "Water Ice Procurement — Habitat Sustainment",
-    type: "Logistics",
-    risk: "Low",
-    reward: "8,000 Credits",
-    text: "Life-support divisions have requisitioned 600 units of water ice for processing into potable reserves. Standard sustainment contract — deliver to the Bureau at your earliest.",
-    agentId: "elara-voss",
-    quota: { resource: "Water Ice", amount: 600 }
-  },
-  {
-    id: "ms-log-007",
-    title: "Rare Earths Acquisition — R&D Allocation",
-    type: "Logistics",
-    risk: "High",
-    reward: "35,000 Credits",
-    text: "The ISA's applied sciences division has requested rare earth elements for experimental fabrication. Deliver 150 units. Extraction difficulty is noted — compensation reflects the challenge.",
-    agentId: "elara-voss",
-    quota: { resource: "Rare Earths", amount: 150 }
-  },
-  {
-    id: "ms-log-008",
-    title: "Lithium Cell Stockpile — Battery Reserve",
-    type: "Logistics",
-    risk: "Medium",
-    reward: "22,000 Credits",
-    text: "Energy storage facilities need lithium for next-generation battery cell production. Source and deliver 200 units to the contracting office to fulfil this standing order.",
-    agentId: "elara-voss",
-    quota: { resource: "Lithium", amount: 200 }
-  },
-  {
-    id: "ms-log-009",
-    title: "Cobalt Shipment — Alloy Programme",
-    type: "Logistics",
-    risk: "Medium",
-    reward: "18,000 Credits",
-    text: "The metallurgy division requires cobalt for high-temperature alloy production. Deliver 250 units to satisfy the current programme quota.",
-    agentId: "elara-voss",
-    quota: { resource: "Cobalt", amount: 250 }
-  },
-  {
-    id: "ms-log-010",
-    title: "Thorium Fuel Rods — Reactor Consignment",
-    type: "Logistics",
-    risk: "High",
-    reward: "30,000 Credits",
-    text: "Next-generation reactor trials require thorium. The ISA has authorised a premium-rate contract for 100 units delivered to the Bureau. Handle with appropriate caution.",
-    agentId: "elara-voss",
-    quota: { resource: "Thorium", amount: 100 }
-  }
-];
+// AB#1051: the pool itself, its agent registry and its reputation tiers all live in data/missions.json now —
+// see MISSION_AGENTS_DATA and REPUTATION_TIERS_DATA below, and GET /api/mission-agents (server/index.js), which
+// is how the client gets its own copy instead of keeping a second one (the CEO Insight pattern, Bug #983).
+// A template carries a *range* (quotaMin/quotaMax, rewardMin/rewardMax), not a fixed value; materializeOffer
+// below rolls one instance of it per refresh, so the same template reads differently contract to contract.
+export const MISSION_TEMPLATES = MISSIONS_DATA.templates;
+export const MISSION_AGENTS_DATA = MISSIONS_DATA.agents;
+export const REPUTATION_TIERS_DATA = MISSIONS_DATA.reputationTiers;
+
+/** A whole multiple of `step` in [min, max], min when the range is empty or inverted. */
+function randomInRange(min, max, step) {
+  if (!(max > min)) return min;
+  const steps = Math.max(0, Math.floor((max - min) / step));
+  return min + Math.floor(Math.random() * (steps + 1)) * step;
+}
+
+/**
+ * One instance of a template, offered now: a quota amount and a reward rolled within the template's own bounds
+ * (AB#1051). The offered mission keeps the exact shape every existing reader (the client, accept-mission,
+ * complete-mission, missionRewardCredits) already expects — reward as a formatted string, quota as
+ * { resource, amount } — so nothing downstream of an offer needs to know templates changed shape.
+ */
+export function materializeOffer(template) {
+  const amount = randomInRange(template.quotaMin, template.quotaMax, 10);
+  const rewardCredits = randomInRange(template.rewardMin, template.rewardMax, 100);
+  return {
+    id: template.id,
+    title: template.title,
+    type: template.type,
+    risk: template.risk,
+    text: template.text,
+    agentId: template.agentId,
+    quota: { resource: template.resource, amount },
+    reward: `${rewardCredits.toLocaleString("en-US")} Credits`
+  };
+}
 
 /**
  * Refresh contract offerings for an account if the timer has expired.
@@ -247,7 +178,7 @@ export function refreshContractOfferings(corpState) {
   const neverContracted = !completedMissions.length && !activeIds.size;
   const promised = neverContracted ? shuffled.find((t) => t.id === FIRST_CONTRACT_ID) : null;
   const picked = promised ? [promised, ...shuffled.filter((t) => t !== promised)] : shuffled;
-  offerings.missions = picked.slice(0, CONTRACTS_PER_AGENT).map(t => ({ ...t }));
+  offerings.missions = picked.slice(0, CONTRACTS_PER_AGENT).map(materializeOffer);
   offerings.nextRefreshAt = now + CONTRACT_REFRESH_MS;
 
   return offerings;

@@ -93,6 +93,10 @@ for (const chain of REFINERY_CHAINS_DATA.chains) {
   REFINERY_CHAINS[chain.id] = chain;
 }
 
+// ─── Missions: templates, the agent registry and reputation tiers (AB#1051) ─
+export const missionsPath = path.join(catalogueDir, "missions.json");
+export const MISSIONS_DATA = JSON.parse(fs.readFileSync(missionsPath, "utf8"));
+
 // Build a lookup from requirement id → display title (for milestonesCompleted tracking)
 export const REQ_ID_TO_TITLE = {};
 for (const lvl of MILESTONE_LEVELS) {

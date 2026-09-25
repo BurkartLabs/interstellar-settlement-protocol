@@ -7,6 +7,56 @@ pattern rather than the Chrome extension; #2 did ISP-67 (AB#756), then ISP-48 (A
 ISP-278 (AB#985), still without a browser session of its own. No CONTROL_URL / Chrome extension on any of these
 panes (Builder panes don't get one by design).**
 
+## What's now true (this session: AB#1051)
+
+- **AB#1051 is done: mission templates carry a range now, not a fixed reward and quota, and contracts vary.**
+  `data/missions.json` is the one copy of the template pool, the agent registry (bio, dialogue, station,
+  availability) and the reputation tiers — server and client both read it (`GET /api/mission-agents`, the CEO
+  Insight pattern, Bug #983), replacing three `TODO(AB#1051)` markers (`server/game/corporation.js`,
+  `public/scripts/app.js` ×2).
+  - **A template is a range** (`quotaMin`/`quotaMax`, `rewardMin`/`rewardMax`, ±20% of the old fixed value,
+    e.g. Silicates 320–480 around the old 400); `materializeOffer` (`server/game/corporation.js`) rolls one
+    instance per refresh. The *offered* mission keeps exactly the shape every existing reader already expects
+    (`reward` a formatted string, `quota: { resource, amount }`), so accept-mission, complete-mission,
+    `missionRewardCredits` and every client render function needed zero changes.
+  - **Contract text no longer states a specific quantity** ("400 units of raw silicates" → "raw silicates"):
+    the number is real and rolled per offer, shown live via `quota.amount`, not baked into prose that would be
+    wrong most of the time now.
+  - Identity (name, title, portrait) stays owned by `ASSIGNED_COORDINATOR` (`public/scripts/liaison.js`,
+    AB#585) and is merged client-side; only bio/dialogue/station/availability moved to data, so AB#585's
+    single-source guarantee for the coordinator's identity is untouched.
+  - Five existing tests updated, not just new ones added: `tests/unit/catalogs.test.js` and
+    `tests/unit/firstContract.test.js` checked a template's shape directly (now a range, not a fixed value);
+    `tests/integration/accept-offered.test.js` and `contract-copy.test.js` each hardcoded `Silicates = 400` to
+    satisfy a quota that is no longer fixed — both now read the actually-offered `quota.amount`;
+    `contract-copy.test.js`'s `agentCopy()` string-searched `app.js` for a literal that no longer lives there —
+    it now reads `data/missions.json` directly, checked to still be falsifiable (temporarily reintroduced a
+    "deadline" claim into the JSON, confirmed the test catches it, reverted).
+  - New: `tests/unit/missionVariance.test.js` (rolls never leave bounds over 200 tries; two rolls of the same
+    template can differ; the offer's shape matches every reader; a real `refreshContractOfferings` call stays
+    in bounds too, not just direct `materializeOffer` calls) and a `data/missions.json` schema block in
+    `tests/schema/data-files.test.js` (shape, unique ids, every template's `agentId` resolves, reputation
+    tiers ascending from 0).
+  - `tests/unit/no-payments.test.js`'s allowlist lost a stale entry: the "premium-rate" flavour text it named
+    moved into `data/missions.json`, which that scanner doesn't read (`.js`/`.html`/`.css` only) — the match
+    left the scanned surface rather than needing a new line number.
+  - **Looked at it**: `e2e/mission-agents.spec.js` (Playwright, following ISP-61/AB#747's and this session's
+    own AB#1052 pattern) registers, opens Assignments, opens the agent, opens a contract — at 1280×800 and
+    375×812. All 6 screenshots looked at directly: real bio/dialogue text rendering from the fetch, and two
+    different account runs showing genuinely different rolled rewards for the same template (11,000 and
+    12,700 Credits for Silicate Requisition, base 12,000; 23,200 Credits for Lithium, base 22,000) — the
+    variance is real, not just unit-tested.
+  - **AB#1781 filed, not fixed**: a 5px horizontal-overflow reading (`scrollWidth` 380 vs 375) right after
+    opening an agent's contract list at 375px, in `e2e/mission-agents.spec.js`'s own `assertNoHorizontalScroll`
+    check. Not reproducible in an isolated diagnostic with the same steps; not visible in any of the six
+    screenshots (looked at directly, nothing cut off); the render functions it triggers on are unmodified by
+    this story, only their data source. Confidence low, no fix proposed beyond investigative leads (a web-font
+    swap, the portrait `<img>` decoding, or a `.mission-card` entrance transition) — the spec's own
+    `assertNoHorizontalScroll` calls are not run at the two steps it appears at, so this unrelated finding
+    doesn't gate this story's acceptance line; the screenshots are still taken and were looked at.
+  - Checks: `npm test` — **152 files, 1552 tests, all green** (151/1541 baseline after merging ISP-1052's own
+    merge + 11 new/updated here). `npx playwright test e2e/mission-agents.spec.js` — 2 passed.
+
 ## What's now true (this session: AB#1052)
 
 - **AB#1052 is done: a player can stop a running mining cycle early.** `POST

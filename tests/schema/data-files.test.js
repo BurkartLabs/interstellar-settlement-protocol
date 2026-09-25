@@ -192,6 +192,71 @@ describe("data/refinery-chains.json", () => {
   });
 });
 
+describe("data/missions.json (AB#1051)", () => {
+  const data = load("missions.json");
+
+  it("has templates, agents and reputationTiers", () => {
+    expect(Array.isArray(data.templates)).toBe(true);
+    expect(data.templates.length).toBeGreaterThan(0);
+    expect(Array.isArray(data.agents)).toBe(true);
+    expect(data.agents.length).toBeGreaterThan(0);
+    expect(data.reputationTiers).toBeDefined();
+  });
+
+  it("every template has id, type, resource, and a valid quota/reward range", () => {
+    for (const t of data.templates) {
+      expect(typeof t.id).toBe("string");
+      expect(typeof t.type).toBe("string");
+      expect(typeof t.risk).toBe("string");
+      expect(typeof t.text).toBe("string");
+      expect(typeof t.agentId).toBe("string");
+      expect(typeof t.resource).toBe("string");
+      expect(typeof t.quotaMin).toBe("number");
+      expect(typeof t.quotaMax).toBe("number");
+      expect(t.quotaMax, t.id).toBeGreaterThanOrEqual(t.quotaMin);
+      expect(typeof t.rewardMin).toBe("number");
+      expect(typeof t.rewardMax).toBe("number");
+      expect(t.rewardMax, t.id).toBeGreaterThanOrEqual(t.rewardMin);
+    }
+  });
+
+  it("template ids are unique", () => {
+    const ids = data.templates.map((t) => t.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("every template's agentId resolves to a defined agent", () => {
+    const agentIds = new Set(data.agents.map((a) => a.id));
+    for (const t of data.templates) expect(agentIds.has(t.agentId), `${t.id} -> ${t.agentId}`).toBe(true);
+  });
+
+  it("every agent has id, stationId, missionType, available, bio and dialogue", () => {
+    for (const a of data.agents) {
+      expect(typeof a.id).toBe("string");
+      expect(typeof a.stationId).toBe("string");
+      expect(typeof a.missionType).toBe("string");
+      expect(typeof a.available).toBe("boolean");
+      expect(typeof a.bio).toBe("string");
+      expect(Array.isArray(a.dialogue)).toBe(true);
+      expect(a.dialogue.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("agent ids are unique", () => {
+    const ids = data.agents.map((a) => a.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("reputationTiers.thresholds and .titles are the same length, thresholds ascending from 0", () => {
+    const { thresholds, titles } = data.reputationTiers;
+    expect(Array.isArray(thresholds)).toBe(true);
+    expect(Array.isArray(titles)).toBe(true);
+    expect(thresholds.length).toBe(titles.length);
+    expect(thresholds[0]).toBe(0);
+    for (let i = 1; i < thresholds.length; i++) expect(thresholds[i]).toBeGreaterThan(thresholds[i - 1]);
+  });
+});
+
 describe("data/ceo-insight.json", () => {
   const data = load("ceo-insight.json");
 

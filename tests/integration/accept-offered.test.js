@@ -51,7 +51,9 @@ describe("accept-mission accepts only a contract on offer (Bug #1268)", () => {
   it("refuses a contract completed a moment ago, naming the 4-hour wait", async () => {
     const c = await corp();
     expect((await c.accept(FIRST_CONTRACT_ID)).status).toBe(200);
-    mutateAccountState(c.id, (s) => { getStationInventory(s.corp, s.corp.currentStationId).Silicates = 400; });
+    // AB#1051: the quota is rolled per offer now, not a fixed 400 — read what was actually accepted.
+    const quota = c.state().activeMissions.find((m) => m.id === FIRST_CONTRACT_ID).quota;
+    mutateAccountState(c.id, (s) => { getStationInventory(s.corp, s.corp.currentStationId)[quota.resource] = quota.amount; });
     expect((await c.complete(FIRST_CONTRACT_ID)).status).toBe(200);
     const res = await c.accept(FIRST_CONTRACT_ID);
     expect(res.status).toBe(400);

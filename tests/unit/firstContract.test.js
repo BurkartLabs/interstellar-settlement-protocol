@@ -14,7 +14,10 @@ describe("the first contract a new corporation is offered (AB#579)", () => {
     const t = MISSION_TEMPLATES.find((m) => m.id === FIRST_CONTRACT_ID);
     expect(t).toBeTruthy();
     expect(t.agentId).toBe(ASSIGNED_COORDINATOR.id);
-    expect(t.quota).toEqual({ resource: "Silicates", amount: 400 });
+    expect(t.resource).toBe("Silicates");
+    // AB#1051: a range now, not a fixed 400 — 400 is still inside it (the range this story replaced it with).
+    expect(t.quotaMin).toBeLessThanOrEqual(400);
+    expect(t.quotaMax).toBeGreaterThanOrEqual(400);
   });
 
   it("is always offered to a corporation that has never taken a contract, whatever the shuffle", () => {

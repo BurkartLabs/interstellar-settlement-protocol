@@ -26,6 +26,7 @@ const OUT_OF_SCOPE = {
   "GET /api/stations": "a static catalog",
   "GET /api/buildings": "a static catalog",
   "GET /api/ceo-insight": "a static catalog",
+  "GET /api/mission-agents": "a static catalog",
   "POST /api/auth/dummy-login": "dev only (ISP_DEV=1), the shared demo account",
   "POST /api/auth/dummy-reset": "dev only (ISP_DEV=1)",
   "GET /kanban/api": "the developer kanban board, dev only",
