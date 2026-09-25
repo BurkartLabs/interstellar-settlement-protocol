@@ -40,6 +40,8 @@ process.on("unhandledRejection", (reason) => {
 app.use(express.json());
 
 app.use(express.static(path.join(__dirname, "..", "public")));
+// ISP-70 (AB#759): the design-token specimen, a static page with no game data, at the address the style guide uses.
+app.get("/styleguide/tokens", (req, res) => res.sendFile(path.join(__dirname, "..", "public", "styleguide", "tokens.html")));
 // Serve /kanban as the Kanban board root, defaulting to kanban.html. A developer tool: its API writes any request body
 // to disk, so it exists only on the dev surface (Bug #1069).
 if (DEV_SURFACE) {

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- ISP-70 (AB#759): the design-token specimen. Every value shown is read from the token block at the top of
+         styles.css as the page loads (scripts/styleguideTokens.js); nothing here is typed twice. -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Design tokens · ISP style guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/scripts/styleguideTokens.js"></script>
+  </head>
+  <body class="sg">
+    <main class="sg-page">
+      <header class="sg-header">
+        <p class="sg-wordmark">ISP</p>
+        <h1 class="sg-title">Design tokens</h1>
+        <p class="sg-lede">
+          The flat direction the Board chose on Decision AB#1801. Each value below is read from the token block in
+          styles.css while this page loads, and the contrast table at the end is measured here, in this browser.
+        </p>
+      </header>
+
+      <section class="sg-section" aria-labelledby="sg-surfaces">
+        <h2 class="sg-heading" id="sg-surfaces">Surfaces</h2>
+        <p class="sg-note">Depth is luminance: each step is at least 1.2:1 over the one below. No decorative shadow.</p>
+        <div class="sg-swatches" data-swatches="--bg --surface-1 --surface-2 --surface-3 --border"></div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-text">
+        <h2 class="sg-heading" id="sg-text">Text on every surface</h2>
+        <p class="sg-note">Three weights. Each meets WCAG AA on each surface, the lightest included.</p>
+        <div class="sg-text-grid" data-text-grid></div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-colour">
+        <h2 class="sg-heading" id="sg-colour">Accent and status</h2>
+        <p class="sg-note">One accent, for what the player acts on. Warn, danger and success are status only. Each fill is shown at rest, hovered and pressed, with the text set on it.</p>
+        <div class="sg-fills" data-fills="accent warn danger success"></div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-scrim">
+        <h2 class="sg-heading" id="sg-scrim">Text over station art</h2>
+        <div class="sg-scrim-demo">
+          <p class="sg-scrim-overline">SOL-STATION-001 // SOL</p>
+          <p class="sg-scrim-title">Earth Station Prime</p>
+          <p class="sg-scrim-copy">The principal orbital installation above Earth. The scrim is darkest where the words sit.</p>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-type">
+        <h2 class="sg-heading" id="sg-type">Type</h2>
+        <p class="sg-note">Inter only. Six sizes; weight and size make the hierarchy. Numbers are tabular everywhere, so columns line up.</p>
+        <div class="sg-type" data-type-scale="--font-size-6 --font-size-5 --font-size-4 --font-size-3 --font-size-2 --font-size-1"></div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-space">
+        <h2 class="sg-heading" id="sg-space">Spacing, radii and elevation</h2>
+        <div class="sg-space" data-space="--space-1 --space-2 --space-3 --space-4 --space-5 --space-6 --space-8 --space-10 --space-12 --space-16"></div>
+        <div class="sg-radii" data-radii="--radius-sm --radius-md --radius-lg --radius-pill"></div>
+        <div class="sg-elevation">
+          <div class="sg-elevation-card">A card: surface-2 on surface-1, no shadow</div>
+          <div class="sg-elevation-overlay">An overlay: the one shadow, --elevation-overlay</div>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-motion">
+        <h2 class="sg-heading" id="sg-motion">Motion and layers</h2>
+        <p class="sg-note">Durations are 0ms when the system asks for reduced motion.</p>
+        <table class="sg-table" data-values="--duration-fast --duration-base --duration-slow --ease-standard --ease-out --ease-in --z-base --z-raised --z-sticky --z-dropdown --z-overlay --z-modal --z-toast --z-tooltip"></table>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-contrast">
+        <h2 class="sg-heading" id="sg-contrast">Contrast, measured in this browser</h2>
+        <p class="sg-note" data-contrast-summary></p>
+        <table class="sg-table" data-contrast></table>
+      </section>
+    </main>
+  </body>
+</html>
