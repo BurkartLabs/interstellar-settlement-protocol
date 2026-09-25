@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ISP — Flat Direction — Station</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /*
+    ISP visual-design direction: FLAT (AB#758, ISP-69)
+    Answers AB#1757's POLISH critique (2.4/5): flat surfaces, one accent, no glow, one type family.
+    This file is the whole proposal. Every number below is what is actually on screen — nothing is aspirational copy.
+  */
+  :root {
+    /* ── Palette: void-black + three surface steps, each >= 1.2:1 over the one below ── */
+    --base:      #05070a; /* void-black. lum 0.00206 */
+    --surface-1: #171e27; /* lum 0.01257 — 1.20:1 over base */
+    --surface-2: #232e39; /* lum 0.02607 — 1.22:1 over surface-1 */
+    --surface-3: #374553; /* lum 0.05693 — 1.41:1 over surface-2 */
+    --border:    #475665; /* decorative only, not used for text */
+
+    --text:   #eef3f7; /* lum 0.88994 */
+    --muted:  #aebdc9; /* lum 0.49611 */
+    --cyan:       #4fd8e8; /* lum 0.56600 — the ONE accent colour in this file */
+    --cyan-text:  #03181b; /* dark text set on a cyan-filled control */
+
+    --warn: #e8a34f; /* status only (idle/coming-soon), never a second accent for actions */
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--base);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; /* Inter only in this build; the logo mark (below) is the one Orbitron exception */
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .num { font-variant-numeric: tabular-nums; }
+
+  a { color: var(--cyan); }
+
+  /* ── App shell ── */
+  .shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  @media (max-width: 700px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+  }
+
+  .sidebar {
+    background: var(--surface-1);
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 8px; margin-bottom: 24px; }
+  .brand-mark { font-family: 'Orbitron', 'Inter', sans-serif; font-size: 13px; letter-spacing: 0.08em; color: var(--cyan); } /* the one place Orbitron is allowed */
+  .brand-sub { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; }
+
+  .identity-panel {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .identity-panel h4 { margin: 0 0 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .identity-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
+  .identity-row span:first-child { color: var(--muted); }
+  .identity-row span:last-child { font-weight: 500; }
+
+  .nav { margin-top: 20px; display: flex; flex-direction: column; gap: 2px; }
+  .nav-group-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 14px 0 4px; }
+  .nav a { display: block; padding: 7px 10px; border-radius: 5px; font-size: 13px; color: var(--muted); text-decoration: none; }
+  .nav a.active { background: var(--surface-3); color: var(--text); border-left: 2px solid var(--cyan); padding-left: 8px; }
+
+  /* ── Top tab bar (mobile stand-in for the sidebar nav) ── */
+  .tabbar { display: none; }
+  @media (max-width: 700px) {
+    .tabbar {
+      display: flex; overflow-x: auto; gap: 4px; padding: 10px 12px;
+      background: var(--surface-1); border-bottom: 1px solid var(--border);
+    }
+    .tabbar a { flex: none; padding: 6px 12px; border-radius: 999px; font-size: 12px; color: var(--muted); text-decoration: none; white-space: nowrap; }
+    .tabbar a.active { background: var(--surface-3); color: var(--text); box-shadow: inset 0 0 0 1px var(--cyan); } /* an inset outline, not a glow: no blur radius */
+  }
+
+  .main { min-width: 0; }
+
+  /* ── Station hero band ── */
+  .hero {
+    position: relative;
+    min-height: 220px; /* min-, not height: at 375 wide the lede wraps to more lines than fit in a fixed box,
+                          and align-items: flex-end would push the overflow upward, over whatever sits above it */
+    background: linear-gradient(180deg, rgba(5,7,10,0.15) 0%, rgba(5,7,10,0.92) 100%), url('../../../public/images/orbital_executive_suites.jpg') center/cover no-repeat;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-end;
+  }
+  .hero-inner { padding: 20px 28px; max-width: 780px; }
+  .overline { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan); margin: 0 0 6px; }
+  .hero h1 { margin: 0 0 10px; font-size: 26px; font-weight: 700; }
+  .hero p { margin: 0; color: var(--muted); font-size: 14px; max-width: 620px; }
+
+  .content { padding: 24px 28px 60px; max-width: 900px; }
+
+  section.district { margin-bottom: 32px; }
+  section.district h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+  section.district > p.lede { margin: 0 0 14px; color: var(--muted); font-size: 13px; max-width: 640px; }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .card.unavailable { opacity: 0.62; }
+  .card-header { display: flex; align-items: center; gap: 8px; }
+  .faction-badge {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+    background: var(--surface-3); color: var(--muted);
+    border-radius: 4px; padding: 2px 6px;
+  }
+  .card h4 { margin: 0; font-size: 14px; font-weight: 600; }
+  .card .desc { font-size: 12.5px; color: var(--muted); margin: 0; }
+  .card .flavor { font-size: 12px; color: var(--muted); font-style: italic; margin: 0; opacity: 0.85; }
+  .card footer { margin-top: auto; display: flex; justify-content: flex-end; }
+
+  .btn {
+    font-family: inherit; font-size: 13px; font-weight: 600; border-radius: 6px;
+    padding: 7px 14px; cursor: pointer; border: 1px solid var(--border);
+    background: transparent; color: var(--text);
+  }
+  .btn-primary {
+    /* cyan is spent here: the one primary action per screen (Enter, on the one available office) */
+    background: var(--cyan); color: var(--cyan-text); border-color: var(--cyan);
+  }
+  .status-badge {
+    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    background: var(--surface-3); color: var(--muted);
+  }
+  .status-badge.operational { color: var(--text); }
+  .status-badge.coming-soon { color: var(--warn); }
+
+  /* ── Design notes (this file's own documentation; not part of the in-game screen) ── */
+  .design-notes {
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+    padding: 28px;
+    background: var(--surface-1);
+  }
+  .design-notes h2 { margin: 0 0 4px; font-size: 18px; }
+  .design-notes > p.lede { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+  .design-notes h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cyan); margin: 24px 0 10px; }
+  .swatch-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .swatch { width: 168px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--surface-2); }
+  .swatch-fill { height: 48px; }
+  .swatch-meta { padding: 8px 10px; font-size: 11px; }
+  .swatch-meta .hex { font-family: ui-monospace, monospace; color: var(--muted); }
+  .ratio-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 10px; }
+  .ratio-table th, .ratio-table td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  .ratio-table th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .ratio-table td.num { text-align: right; }
+  .pass { color: var(--text); }
+  .design-notes ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+  .design-notes li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">ISP</span>
+        <span class="brand-sub">v0.4 · EST. 2147</span>
+      </div>
+
+      <div class="identity-panel">
+        <h4>Corporation Identity</h4>
+        <div class="identity-row"><span>Level</span><span class="num">2 / 10</span></div>
+        <div class="identity-row"><span>Employees</span><span class="num">7 / 20</span></div>
+        <div class="identity-row"><span>Building Slots</span><span class="num">3</span></div>
+        <div class="identity-row"><span>Fleet Cap</span><span class="num">14</span></div>
+      </div>
+
+      <div class="nav">
+        <span class="nav-group-label">Company</span>
+        <a href="#">Overview</a>
+        <a href="#">Inbox</a>
+        <a href="#">Financial Core</a>
+        <span class="nav-group-label">Station</span>
+        <a href="#" class="active">Station</a>
+        <a href="#">Corporate R&amp;D</a>
+        <a href="#">Refinery Chains</a>
+        <span class="nav-group-label">Market</span>
+        <a href="#">Galactic Exchange</a>
+        <a href="#">Assets</a>
+      </div>
+    </aside>
+
+    <div class="main">
+      <nav class="tabbar">
+        <a href="#">Overview</a>
+        <a href="#" class="active">Station</a>
+        <a href="#">Exchange</a>
+        <a href="#">Comms</a>
+        <a href="#">Starmap</a>
+      </nav>
+
+      <header class="hero">
+        <div class="hero-inner">
+          <p class="overline">SOL-STATION-001 // SOL</p>
+          <h1>Earth Station Prime</h1>
+          <p>The principal orbital installation above Earth. Houses the primary offices of the Interstellar
+            Settlement Authority and the major regulatory institutions governing colonization, commerce, and
+            security across the Sol system. All new corporations registered under the ISP framework maintain a
+            mandatory operational presence here.</p>
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="district">
+          <h3>Authority &amp; Regulatory Offices</h3>
+          <p class="lede">Government bodies, regulatory agencies, and institutional services present at this
+            station. Access is open to all registered corporations.</p>
+          <div class="card-grid">
+            <article class="card">
+              <div class="card-header"><span class="faction-badge">STA</span><h4>Orbital Executive Suites</h4></div>
+              <p class="desc">Licensed executive office suites for corporate operations within the station.
+                Leasing a suite establishes a formal registered presence at this location, enabling your
+                corporation to recruit personnel and engage with the station's institutional services.</p>
+              <p class="flavor">The suites are functional — climate-regulated, encrypted uplink, standard executive
+                clearance. The prestige is in the address.</p>
+              <footer><button class="btn btn-primary">Enter</button></footer>
+            </article>
+
+            <article class="card">
+              <div class="card-header"><span class="faction-badge">ISA</span><h4>ISA Claims &amp; Leases Division</h4></div>
+              <p class="desc">The operational arm of the ISA responsible for processing all mining lease
+                applications, territorial claim filings, and extraction rights across registered systems.</p>
+              <p class="flavor">Queue a claim, file your survey data, and wait. The Division processes thousands of
+                applications per cycle.</p>
+              <footer><button class="btn">Enter</button></footer>
+            </article>
+
+            <article class="card unavailable">
+              <div class="card-header"><span class="faction-badge">EA</span><h4>Earth Assembly</h4></div>
+              <p class="desc">The overarching governing body of humanity's settled territories. Issues executive
+                mandates, ratifies inter-system treaties, and sets the legislative framework within which all ISA
+                regulation operates.</p>
+              <footer><span class="status-badge coming-soon">Coming Soon</span></footer>
+            </article>
+          </div>
+        </section>
+
+        <section class="district">
+          <h3>Licensed Corporate Holdings</h3>
+          <p class="lede">Extractor yards and infrastructure deployed at this station.</p>
+          <div class="card-grid">
+            <article class="card">
+              <div class="card-header"><span class="faction-badge">CORP</span><h4>Basic Extractor Yard</h4></div>
+              <p class="desc">Tier <span class="num">1</span> — <span class="status-badge operational">Active</span></p>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <div class="design-notes">
+        <h2>Design notes — the Flat direction</h2>
+        <p class="lede">One self-contained mockup, per Decision AB#1764 (the Board's answer: one direction, not
+          three). This section is the whole proposal in words; the screen above is the same proposal in pixels.</p>
+
+        <h3>Type system</h3>
+        <ul>
+          <li><strong>Inter only.</strong> Weight (400/500/600/700) and size do the hierarchy, not a second family.
+            The one exception is the sidebar's "ISP" wordmark, set in Orbitron — the logo mark, nothing else.</li>
+          <li><strong>Tabular numerals</strong> (<code>font-variant-numeric: tabular-nums</code>, the <code>.num</code>
+            class above) on every numeric value: Level, Employees, Building Slots, Fleet Cap, the extractor's Tier.</li>
+        </ul>
+
+        <h3>Palette and contrast</h3>
+        <div class="swatch-row">
+          <div class="swatch"><div class="swatch-fill" style="background:var(--base)"></div><div class="swatch-meta">base<br><span class="hex">#05070a</span></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--surface-1)"></div><div class="swatch-meta">surface-1<br><span class="hex">#171e27</span></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--surface-2)"></div><div class="swatch-meta">surface-2<br><span class="hex">#232e39</span></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--surface-3)"></div><div class="swatch-meta">surface-3<br><span class="hex">#374553</span></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--cyan)"></div><div class="swatch-meta">cyan (accent)<br><span class="hex">#4fd8e8</span></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--text)"></div><div class="swatch-meta">text<br><span class="hex">#eef3f7</span></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--muted)"></div><div class="swatch-meta">muted<br><span class="hex">#aebdc9</span></div></div>
+        </div>
+
+        <table class="ratio-table">
+          <thead><tr><th>Pair</th><th class="num">Ratio</th><th>WCAG</th></tr></thead>
+          <tbody>
+            <tr><td>surface-1 vs base (surface step)</td><td class="num">1.20 : 1</td><td class="pass">≥ 1.2 target — pass</td></tr>
+            <tr><td>surface-2 vs surface-1 (surface step)</td><td class="num">1.22 : 1</td><td class="pass">≥ 1.2 target — pass</td></tr>
+            <tr><td>surface-3 vs surface-2 (surface step)</td><td class="num">1.41 : 1</td><td class="pass">≥ 1.2 target — pass</td></tr>
+            <tr><td>text vs base</td><td class="num">18.05 : 1</td><td class="pass">AAA (≥ 7)</td></tr>
+            <tr><td>text vs surface-3 (worst case)</td><td class="num">8.79 : 1</td><td class="pass">AAA (≥ 7)</td></tr>
+            <tr><td>muted vs base</td><td class="num">10.49 : 1</td><td class="pass">AAA (≥ 7)</td></tr>
+            <tr><td>muted vs surface-3 (worst case)</td><td class="num">5.11 : 1</td><td class="pass">AA (≥ 4.5) — pass</td></tr>
+            <tr><td>cyan vs base</td><td class="num">11.83 : 1</td><td class="pass">AAA (≥ 7)</td></tr>
+            <tr><td>cyan vs surface-3 (worst case)</td><td class="num">5.76 : 1</td><td class="pass">AA (≥ 4.5) — pass</td></tr>
+            <tr><td>cyan-text vs cyan (button fill)</td><td class="num">10.71 : 1</td><td class="pass">AAA (≥ 7)</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:11.5px;color:var(--muted);margin-top:8px;">Ratios computed from WCAG 2.1's relative-luminance
+          formula (sRGB → linear, <code>0.2126R + 0.7152G + 0.0722B</code>, contrast = <code>(L1+0.05)/(L2+0.05)</code>).
+          "Surface step" pairs are judged against the &gt;= 1.2:1 target this direction sets for depth-by-luminance
+          rather than the AA text thresholds, which don't apply to fills; every text/background pair above is
+          judged against WCAG 2.1 AA (4.5:1 normal text) or better.</p>
+
+        <h3>Cyan discipline</h3>
+        <p style="font-size:13px;color:var(--muted);">One primary control per screen (here: the Enter button on
+          Orbital Executive Suites, the office a new corporation actually needs first) plus the active tab/nav
+          item. Every other button, badge and card border uses the surface and border tokens. No box-shadow or
+          text-shadow is used decoratively anywhere in this file — the mobile tab bar's active state uses a 1px
+          inset outline (<code>box-shadow: inset 0 0 0 1px</code>, zero blur radius), which is a border, not a glow.</p>
+
+        <h3>References</h3>
+        <ul>
+          <li><strong>EVE Online's Photon UI</strong> (2022 redesign) — solved density-without-clutter by reskinning
+            components and changing the type family rather than adding chrome; the model for "flat, dense, still
+            legible."</li>
+          <li><strong>Frostpunk</strong> — single-accent restraint: one signal colour reserved for what the player
+            must act on, everything else desaturated.</li>
+          <li><strong>Linear</strong> and <strong>Geist</strong> (Vercel) — type and spacing rhythm on a dark
+            surface; both use one family, weight-led hierarchy, and tabular figures in data-dense views.</li>
+          <li><strong>Radix Colors</strong> — the reference for building an accessible dark scale as discrete
+            numbered steps rather than picking shades by eye; this palette's surface-1/2/3 ladder follows that
+            shape.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
