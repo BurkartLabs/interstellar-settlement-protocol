@@ -27,9 +27,10 @@ function clearance(layout) {
 }
 
 describe("the system view keeps its back button clear of the orbits (AB#1287)", () => {
-  it("on a desktop canvas nothing moves: the button stays at (102, 36) and the orbits keep the old formula", () => {
+  // AB#1326: the orbits on a desktop canvas now fit its height (h / 2 - 76), which is what stops them crossing its edges.
+  it("on a desktop canvas the button stays at (102, 36) round a centred star, and the orbits fit the height", () => {
     const layout = systemViewLayout(881, 393, BUTTON_W);
-    expect(layout).toEqual({ cx: 881 / 2, cy: 393 / 2, orbitLimit: Math.min(881, 393) * 0.42, button: { x: 102, y: 36 } });
+    expect(layout).toEqual({ cx: 881 / 2, cy: 393 / 2, orbitLimit: 393 / 2 - 56 - 20, button: { x: 102, y: 36 } });
   });
 
   for (const [w, h] of [[307, 320], [292, 320], [343, 320], [307, 400]]) {

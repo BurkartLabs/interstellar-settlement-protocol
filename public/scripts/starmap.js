@@ -305,7 +305,9 @@ export function systemViewLayout(width, height, buttonWidth) {
   // Bug #1315: on a narrow canvas the outer orbits ran past the sides (0.42 of 292px plus 56 is 179px from a 146px
   // centre). The orbits now also fit the width, leaving room for the body; a desktop canvas is wide enough that this
   // never binds, so its layout is unchanged.
-  const orbitLimit = Math.min(Math.min(width, height) * 0.42, Math.max(0, width / 2 - extra));
+  // AB#1326: nor did anything fit the height, so on a desktop canvas the outer bodies crossed the top and bottom edges
+  // (0.42 x 393 + 56 = 221px from a 196px centre). They fit it the same way; on a phone the width binds first.
+  const orbitLimit = Math.min(Math.min(width, height) * 0.42, Math.max(0, width / 2 - extra), Math.max(0, height / 2 - extra));
   const cx = width / 2;
   const clearance = (cy, button) => {
     const dx = Math.max(button.x - buttonWidth / 2 - cx, 0, cx - button.x - buttonWidth / 2);
