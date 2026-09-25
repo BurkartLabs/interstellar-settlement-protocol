@@ -11,6 +11,9 @@ export function getEffectiveExchangeTaxRate(state) {
   let taxPct = BASE_EXCHANGE_SALES_TAX_PCT;
 
   // CEO Insight: Negotiation Fundamentals reduces tax by 2% per completion (max 3 completions = 6%)
+  // BRIEF.md, Monetization (Board decision AB#980, 2026-09-21): "Research and Insight should never be sellable."
+  // This program, and every level or wait inside it, may never be bought or sped up with real money - only ever
+  // earned with in-game credits and time, the way every other player already earns their own discount.
   const completedInsights = state.corp.completedInsights || [];
   const negLevels = completedInsights.filter((id) => id === "ceo-negotiation-fundamentals").length;
   if (negLevels > 0) {

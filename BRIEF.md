@@ -42,6 +42,22 @@ pre-beta. When it is asked, the Monetization Critic reviews it like any other pr
 answers to explore first are cosmetic (station and corporate identity) and convenience that does not sell
 advantage in a player-versus-player economy. Selling power in a market game breaks the market.
 
+**No player may gain an unfair advantage by trading anything in game for real money** (Board decision AB#703,
+2026-09-21, verbatim: *"We don't want any player to be able to gain an unfair advantage by trading anything in
+game for real money. This would be a violation of the Real Money Trading rule"*). This is a rule for the whole
+game, not only the v0.9 finance features it was first asked about — a general rule written in one place is read
+as permission everywhere else it isn't repeated (T-021).
+
+**Research and CEO Insight may never be sold or sped up for real money; items may always be traded in game**
+(Board decision AB#980, 2026-09-21, verbatim: *"Research and Insight should never be sellable. Items should
+always be sellable"*). The example the Decision was asked about: CEO Insight's Negotiation Fundamentals program
+(`ceo-negotiation-fundamentals` in `data/ceo-insight.json`; applied in
+`server/game/progression.js`'s `getEffectiveExchangeTaxRate`) cuts a player's Galactic Exchange sales tax from
+8% to as low as 2%, earned only with in-game credits and time. Because every player sells on the same market,
+that discount is taken straight out of other players' trades — sold or sped up for real money, it would be the
+plainest pay-to-win item in the game. The 8% base tax itself is where a future business model would take its
+cut, a small fee on trades between players, instead of selling advantages (T-022).
+
 ## Out of scope
 
 - Anything in v0.6 and beyond, until v0.5 ships. The roadmap is long and the temptation to build the fun parts
