@@ -18,6 +18,17 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1344 — every belt opens on a phone, Builder #1)
+
+- A back button's click target is the button as drawn plus 6px (`backButtonTarget`, `targetHit` in
+  `public/scripts/starmap.js`), in the system, body and asteroid views. It was a circle of radius 0.55 x the button's
+  width, tested first, and on a phone it covered the belt drawn beside Back To Cluster in all five systems with one,
+  so a belt could not be opened or scouted. AB#1287 had cleared the drawn button, not that circle.
+- `tests/unit/starmapFit.test.js` now taps every belt as well as every planet, at three phone widths and the desktop;
+  `e2e/starmap-belt-tap.spec.js` taps (touch) the centre of every belt at 375x812 and clicks it at 1280x800, as a
+  player docked in Barnard's Star with Asteroid Prospecting (`e2e/seed-prospector-account.mjs`): Scout there, "travel
+  there" elsewhere. Screens: `docs/ab-1344/`.
+
 ## What's now true (ISP-70, AB#759 — the flat direction's design tokens, Builder)
 
 - **One token block at the top of `public/styles.css`** (Decision AB#1801, the flat direction): surfaces `--bg` and
