@@ -34,20 +34,25 @@ const PLANET_STYLE = {
   neptune: { base: "#5478d6", shadow: "#32488a", glow: "rgba(96, 130, 230, 0.4)" }
 };
 
-function overlayColor(system, overlay) {
-  if (overlay === "none") {
+/**
+ * The Starmap's overlays, in picker order (index.html's #map-overlay lists the same, after None). Each colours a system
+ * by one field data/systems.json holds, over its full scale. AB#1459: there is no resource overlay, because no system
+ * carries resource data yet; the one that was here blended GDP and pirates under a resource label.
+ */
+export const STARMAP_OVERLAYS = {
+  gdp: { label: "GDP Index", field: "gdpIndex", scale: 100 },
+  activity: { label: "Activity Level", field: "activityLevel", scale: 100 },
+  pirates: { label: "Pirate Density", field: "pirateDensity", scale: 40 }
+};
+
+/** A system's colour under an overlay; "none", or any overlay not offered, draws the plain map. */
+export function overlayColor(system, overlay) {
+  const spec = Object.hasOwn(STARMAP_OVERLAYS, overlay) ? STARMAP_OVERLAYS[overlay] : null;
+  if (!spec) {
     return "rgba(0, 247, 255, 0.88)";
   }
 
-  const value =
-    overlay === "gdp"
-      ? system.gdpIndex / 100
-      : overlay === "activity"
-        ? system.activityLevel / 100
-        : overlay === "pirates"
-          ? system.pirateDensity / 40
-          : Math.max(0.12, (100 - system.pirateDensity + system.gdpIndex) / 150);
-
+  const value = Number(system[spec.field]) / spec.scale;
   const clamped = Math.max(0.1, Math.min(1, value));
   return `rgba(${Math.floor((1 - clamped) * 180 + 40)}, ${Math.floor(clamped * 220 + 30)}, 255, 0.92)`;
 }

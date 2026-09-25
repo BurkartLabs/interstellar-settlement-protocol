@@ -18,6 +18,14 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1459 — the Starmap offers no made-up resource overlay)
+
+- The Starmap's overlay picker is None, GDP Index, Activity Level, Pirate Density. "Resource Concentration" is gone:
+  it coloured systems by a GDP-and-pirates blend, and no system carries resource data. `STARMAP_OVERLAYS` in
+  `public/scripts/starmap.js` maps each overlay to one `data/systems.json` field; `tests/unit/starmapOverlays.test.js`
+  checks the picker, the intro text and the fields against it. Screenshots in `docs/ab-1459/`. A real resource overlay
+  is still DEVELOPMENT_PHASES.md's unchecked v0.8 item, and needs per-system resource data first.
+
 ## What's now true (AB#1767 — ticker-mining-settle was a dice roll, not load, Builder)
 
 - **The flake was extractor downtime**: settling 6 minutes rolls once at about 1.8%, and a hit mines 0. It failed
