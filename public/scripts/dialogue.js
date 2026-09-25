@@ -1,6 +1,7 @@
 // AB#738 (ISP-52): the coordinator's dialogue card and its typewriter, moved out of app.js.
 import { appState } from "./state.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
+import { prefersReducedMotion } from "./motion.js"; // AB#1760
 
 const dialogueModal = document.getElementById("dialogue-modal");
 const dialogueSpeaker = document.getElementById("dialogue-speaker");
@@ -18,6 +19,12 @@ function clearTypewriter() {
 
 function typeDialogueText(text, onDone) {
   clearTypewriter();
+  // AB#1760: a player who asks for reduced motion reads the whole line at once.
+  if (prefersReducedMotion()) {
+    dialogueText.textContent = text;
+    if (onDone) onDone();
+    return;
+  }
   dialogueText.textContent = "";
   let index = 0;
   appState.activeTypewriter = setInterval(() => {

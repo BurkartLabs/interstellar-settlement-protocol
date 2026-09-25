@@ -8,6 +8,7 @@ import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { showDialogue, closeDialogue } from "./dialogue.js";
 import { apiFetch, parseJsonResponse } from "./apiClient.js";
 import { deepClone } from "./helpers.js";
+import { scrollBehavior } from "./motion.js"; // AB#1760
 
 // Finishing or resetting the walkthrough redraws the page and moves between tabs, which app.js owns; it hands those
 // over at load (connectWalkthroughUi) rather than this module importing the entry point back.
@@ -157,7 +158,7 @@ function scrollWalkthroughTargetIntoView(target) {
     card: card ? card.getBoundingClientRect() : null,
     target: target.getBoundingClientRect()
   });
-  if (delta) window.scrollBy({ top: delta, behavior: "smooth" });
+  if (delta) window.scrollBy({ top: delta, behavior: scrollBehavior() });
 }
 
 async function completeWalkthroughForAccount() {
