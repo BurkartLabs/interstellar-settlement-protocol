@@ -413,3 +413,176 @@ The bar from review #1 stands: at least 2.9, against probe output.
 - A fresh clone is an environment nobody runs. ISP's tests, its market seeding and its `dummy-reset` all depend on a
   gitignored file, so the first thing a new checkout shows is an empty exchange (#574, #588). Run the product from a
   clean clone before calling an environment acceptance done.
+
+---
+
+## Review #3 — 2026-09-25 · **1.9 / 5 · DEEPEN**
+
+Reviewer: Depth Critic (Claude Sonnet 5; `personas/models.json` lists `opus`. Context maximally not fresh: this
+session wrote reviews #1 (systems audit) and #2 of this exact product and metric earlier today, plus the
+monetization review. The Board directed this review to proceed anyway rather than wait for a `/clear`.)
+Stage: Build (v0.5 Beta MVP, AB#389)
+Previous score: 1.9/5 (review #2, same day; evaluable-only 2.2)
+Build read: `origin/main`, moved twice while this review was in progress — `68b7071` for the first probe run,
+`8260abb` (merges AB#1753's fix) for the second; both stated below rather than picked one and hidden the other.
+Filed under AB#421, the standing item.
+
+**Read the headline against what actually happened, not instead of it.** The number is identical to review #2 —
+both the 1.9 headline and the 2.2 evaluable-only figure, to one decimal, on every one of six re-scored gates. That
+sameness is not stagnation: real, verified work landed today (a filed bug fixed, a design accepted, three security
+fixes, a monetization commitment written down), and it is exactly aligned with what review #2 asked for, and
+**none of it has moved a measured gate yet**, because none of it is the thing the ceiling actually is. This is
+P-STALE-VERDICT's lesson from the other direction: a verdict is a photograph, and two identical photographs can
+still show real motion between them if you know where to look.
+
+## What is already known
+
+Unchanged from reviews #1 and #2 (EVE's PLEX indirection, RuneScape's uncapped-progression retention, the trading-
+game transaction-fee model, the idle-game dominant-strategy failure) — not re-searched. One new item worth
+recording because it is process, not product: the `docs(economy): design the way back from broke` commit (AB#1740)
+is itself a documented instance of "look for the existing answer before generating your own" applied *within* the
+company — it explicitly ran the retune candidate (`floorPct` 55→75) through the runway probe first, found the
+7-day and 30-day runs byte-for-byte identical past bot-day 2-3 regardless, and used that negative result to reject
+retuning before proposing the real fix. Worth citing back to Doctrine's own constraint as a model of doing it right.
+
+## Probe numbers
+
+Both runs, `ops/probes/isp-runway.ts`, 30 simulated days, seed 7000, high supply, against two clean worktrees
+(`68b7071` then `8260abb`). Re-run rather than reused, per the freshness this review owes even a same-day product.
+
+```text
+                              PRE-FIX (68b7071)              POST-FIX (8260abb, AB#1753 merged)
+highest level reached          1 (both bots)                   2 (both bots)
+credits at end                 0 (both bots)                   0 (both bots) — identical to the credit,
+                                                                 wait-count and refusal numbers pre-fix
+first extractor yard payback   never, in 30 bot days           never, in 30 bot days (unchanged)
+decision density (planner)     100% (108-146 t/h)              100% (unchanged)
+decision density (greedy)      0% (250 t/h)                    0% (unchanged)
+p2p share of filled volume     77%                              77% (unchanged)
+```
+
+Every number except "highest level reached" is byte-for-byte identical between the two runs — exactly what a
+milestone-metadata fix should do: change what the ladder *recognises*, change nothing about what the bots actually
+did. This is the cleanest confirmation this company has produced yet that a fix did only what it claimed to.
+
+**AB#1753 (the Mars-lease gate) is fixed, verified by this review's own re-run, not by trusting the ticket state.**
+Level 2's `metric` now reads `miningLease:any`; both bots, who have held an Earth lease since minute one across
+three reviews, immediately register as past it. **The wall at Level 2 is now proven to be purely economic**: both
+bots exhaust their credits to exactly zero and spend the remainder of 30 days refused on `start-mining` (900+
+refusals each) and every research queue action, because — as `AB#1740`'s design doc independently proved by
+running the same probe against a retuned `floorPct` — a broke corporation cannot afford a cycle's own startup
+cost, and no amount of demand-side retuning touches that. **AB#1794 confirms the same defect shape recurs at
+Level 9** (`miningLease:Luna`, verified directly in `data/milestones.json` this review), filed and deliberately
+sequenced *after* the Salvage Assignment stories, since the probe cannot even reach Level 9 to test it until a
+broke corporation can recover — a genuinely correct dependency call by whoever ordered the backlog.
+
+## Scores (RUBRIC Depth table)
+
+Scored blind against the two probe runs and the code, before opening this file's own history further than the
+bug-status checks P-STALE-VERDICT requires.
+
+| Gate | Score | Evidence |
+|---|---|---|
+| Decision density | **2** | Unchanged mechanism (AB#775's curve). AB#1052 (stop a cycle early) is a real new decision point neither bot exercises — the probe's move list shows no `stop` action in either run — so it cannot be credited as measured density yet; it is real, unexercised inventory for a future probe update. |
+| Goal ladder | **2** | Mechanically higher (1→2) but the ceiling shifted from a data bug to a proven economic wall, not from a data bug to nothing: 30 days of optimal play still reaches only Level 2 of 10. The distance travelled is smaller than the distance the fix took to find. |
+| Content runway | **3** | Unchanged catalogue size; missions gained real variance (`data/missions.json`, quota/reward ranges ±20%, AB#1051) rather than fixed values, which is genuine but is depth *within* the existing runway, not more of it. |
+| Time-box fidelity | **2** | Worse evidence, same score: the probe now explicitly reports "first extractor yard paid for itself in no part of 30 bot days" against ISP-42's own 24-hour target — a number review #2 could only infer, now measured directly. |
+| System interplay | **2** | Unchanged: CEO Insight is still 10 of 12 unwired (confirmed re-grepped this review), and the new mission variance has not been verified to feed anything else in the system yet. |
+| Mastery* | **1*** | Still no greedy-vs-planner instrument (AB#1774, the probe's third bot, is `Proposed`, not built). Floor unchanged. |
+| World change* | **1*** | Unchanged; no day-1-vs-week-2 comparison is possible in a build with under an hour of reachable state. |
+| Return reason | **2** | Unchanged score, but the *design* underneath it matured: AB#1740 explicitly frames the Salvage Assignment as "the corporation is never in a state where nothing it can do changes anything" — a real anticipation-adjacent commitment — while noting it is deliberately never a lever a player optimises (T-018), so it cannot itself become the loop. Not yet shipped; scored on what exists. |
+| **Average, headline** | **1.9** | (2+2+3+2+2+1+1+2) / 8 = 1.875, two floors — identical to review #2. |
+| **Average, evaluable only** | **2.2** | (2+2+3+2+2+2) / 6 = 2.167 — identical to review #2, to the gate. |
+
+## Then the history
+
+- **Not a flat-cycle kill signal.** OPERATIONS' "+0.5 per cycle or two flat cycles → kill review" rule is about
+  completed *Deepen cycles* (a 2-week timebox, ≤3 epics, then re-reviewed) — no such cycle has run between review
+  #2 and this one; both landed the same day, driven by OPS re-dispatching after real commits, not by a cycle
+  closing. Reading this as "two flat cycles" would be exactly the mistake the rule exists to prevent applied to a
+  different failure mode: punishing a photograph for not moving before the subject has.
+- **Review #2's own epics, checked against the ticket tracker rather than assumed:** epic 2 (fix AB#1753) —
+  **done, verified above**. Epic 1 (the runway probe's banked-reserve profile, AB#1774) — `Proposed`, not started.
+  Epic 3 (write the monetization RMT rulings into `BRIEF.md`, AB#1776/AB#780) — **done**: `BRIEF.md`'s Monetization
+  section now names AB#703, AB#980 and the `ceo-negotiation-fundamentals` example verbatim, confirmed by reading
+  the file this review. AB#1754 (the stale `ECONOMY.md` model script) — still `Proposed`.
+- **New, not from review #2's epics:** AB#1741 (a broke corporation with no ore is permanently stuck) is now a
+  filed Bug, correctly blocked on the design story (AB#1740) rather than a Board decision, with implementation
+  split into three sized stories (AB#1789/1791/1792), all still `Proposed`. AB#1794 (Level 9's Luna gate) is filed
+  and deliberately sequenced behind the Salvage Assignment landing.
+- **Security, re-verified rather than re-filed:** AB#1765 (refresh tokens stored in plain text) and AB#1766
+  (socket broadcasts trusting `peer.data` without re-checking auth) are both `Closed` since review #2, found and
+  fixed the same day. AB#1741's own class — a permanently unrecoverable player state — is itself worth reading as
+  a security-adjacent availability finding (P-GUARD-THAT-CANNOT-BE-SATISFIED's shape, at the economy layer), named
+  here rather than re-filed since AB#1741 already covers it.
+
+## Security (scored as part of this review, per role)
+
+No new findings this pass beyond what is already filed and cross-referenced above (AB#1741, AB#1754). AB#1765 and
+AB#1766 closing since review #2 is the relevant movement, and it is real: refresh tokens no longer land on disk
+in plain text, and a socket cannot forge another account's identity onto a market or forum broadcast by supplying
+its own `peer.data`.
+
+## What a player feels at minute 5 / 30 / 120 / day 3 / day 14
+
+Unchanged from review #2 through minute 120 (the curve and the drifting bid behave identically; confirmed by the
+identical probe numbers above). Day 3 onward is now more precisely characterised rather than differently
+characterised: **the wall is at Level 2, not somewhere vaguer past it**, a corporation that mines at all eventually
+sits at 0 credits refused on every queue action, and — new information this review — even a corporation that never
+touches research or CEO Insight and just mines cannot pay back its own first extractor yard inside a month at
+these settings. The player is not stuck at "rich and unable to progress" (review #1's day-14 finding) or merely
+"broke" (review #2's); the probe now shows broke is reached with the ladder barely started.
+
+## Charter / Soul risks
+
+Unchanged: no coercion, no energy gate, nothing monetized. One addition: `BRIEF.md` now carries the Board's RMT
+rulings by decision number where review #2 found them only in ADO comments — the gap review #2's monetization pass
+flagged as P-WRITE-ONLY-shaped is closed for two of three rulings (AB#703, AB#980); AB#706 (v0.10 military, "all")
+is not yet in the brief since v0.10 does not exist yet, which is a defensible sequencing call, not an omission.
+
+## Verdict: **DEEPEN**
+
+Unchanged shape from review #2, for the same reasons: not DEEP ENOUGH (no scored gate above 3, two floors), not
+SUNSET (the blocking mechanism is now precisely understood, falsifiably designed against, and mid-implementation
+with three sized stories already filed). The company's own backlog is, as of this morning, already doing exactly
+what this review's epics would ask for — which changes what this review's epics should be.
+
+## Epics (≤5, ranked)
+
+| # | Epic | Status | Note |
+|---|---|---|---|
+| 1 | Ship the Salvage Assignment (AB#1789, 1791, 1792) | **Already filed and sequenced**, not re-proposed | This is review #2's implicit ask, arrived at independently by the Director from the same probe evidence. Re-run `isp-runway.ts` once it lands: review #2's original acceptance (banked/spent stays finite, credits rise off the floor) is exactly AB#1792's own stated probe target. |
+| 2 | Fix AB#1794 (Level 9's Luna gate) | **Already filed**, correctly blocked on epic 1 | Confirm-first per the Director's own note: extend the probe to Level 9 once reachable; only write the code fix if the probe actually finds it unreachable. |
+| 3 | Build AB#1774 (the runway probe's banked-reserve profile) | **Already filed**, not yet started | This review's own scores are still bounded by not having it — Mastery and World change stay floored, and "ends at 0" still cannot be separated from "the bot never banks" versus "the economy cannot sustain a margin" until it exists. Rank it up: it is now the single instrument this review most needs and has needed twice in a row. |
+| 4 | Fix AB#1754 (`ECONOMY.md`'s stale model script) | **Already filed**, not yet started | Lower urgency than the above three, but cheap and still open two reviews later. |
+| 5 | Wire or hide the remaining 10 CEO Insight programs | Not filed as a story this review; carried forward from review #2's system-interplay finding | Unchanged since review #2 — still worth doing, still not urgent relative to 1-4. |
+
+Nothing here is a new epic this product's backlog does not already contain. The finding worth acting on is
+sequencing, not invention: 1-3 are the whole reason the next review can be expected to actually move.
+
+## Blind class
+
+Unchanged from review #2 (no human, no stranger's registration route, the deployed build does not exist, the
+screenshot tool was unavailable this session too). One addition: **this review's own probes ran against two
+different commits of a codebase that gained a third commit (missions/security fixes aside) before either finished
+running** — the pace at which this specific product changes right now is faster than a single review's own
+evidence-gathering window, stated plainly rather than pretending one snapshot held still.
+
+## Next review
+
+Immediately once AB#1789/1791/1792 (the Salvage Assignment) land — this is the one event most likely to move a
+score, and the fastest way to find out is to re-run the same probe, same seed, same day if possible. Bar from
+review #1, still standing: at least 2.9, against probe output.
+
+### Transferable (for the Sunday fold)
+
+- **A milestone-metadata fix and an economy fix can look identical from the ladder ("stuck at Level 1/2") and be
+  completely different repairs** — re-running the exact same probe before and after a fix, and finding every
+  number except the one the fix targets byte-for-byte unchanged, is the cheapest possible proof a fix did only
+  what it claimed. Worth making standard practice for any fix a probe can reach.
+- **Two identical review scores in a row do not mean nothing happened**; they can mean the thing that happened
+  was correctly aimed at the actual ceiling and hasn't shipped yet. Read the epics' status against the tracker
+  before reading the number as a verdict on the work.
+- **A design doc that runs the retune it's rejecting through the probe before rejecting it** (AB#1740 against
+  `floorPct`) is DOCTRINE's "look for the existing answer" applied to a company's own prior attempt, not only to
+  outside research — the same discipline, turned inward.
