@@ -233,19 +233,34 @@ export function levelReachedNotices(before, corp) {
     opened.forEach((sector) => sectors.add(sector));
     if (levelDef.level <= Number(before.level || 0)) continue;
     const fleetCap = Math.max(BASE_MAX_PROBES, maxFleetSize) + (coordinated ? FLEET_COORDINATION_BONUS : 0);
+    // AB#743: the same figures, one per unlock this level defines in data/milestones.json, for the milestone modal. A
+    // key this list does not know is still shown, under its own name, rather than dropped.
+    const resulting = {
+      employeeCap: { label: "Employee cap", value: String(employeeCap) },
+      buildingSlots: { label: "Building slots", value: String(buildingSlots) },
+      maxFleetSize: { label: "Fleet cap", value: String(fleetCap) },
+      marketSectors: { label: "Market sectors opened", value: (opened.length ? opened : u.marketSectors || []).join(", ") }
+    };
     notices.push({
       type: "level",
       title: `Corporation Level ${levelDef.level}`,
       body:
         `Your corporation reached Level ${levelDef.level} of ${MAX_DEFINED_LEVEL}. ` +
         `Employee cap ${employeeCap}, building slots ${buildingSlots}, fleet cap ${fleetCap}.` +
-        (opened.length ? ` Market sector${opened.length > 1 ? "s" : ""} opened: ${opened.join(", ")}.` : "")
+        (opened.length ? ` Market sector${opened.length > 1 ? "s" : ""} opened: ${opened.join(", ")}.` : ""),
+      level: levelDef.level,
+      maxLevel: MAX_DEFINED_LEVEL,
+      unlocks: Object.keys(u).map((key) => ({ key, ...(resulting[key] || { label: key, value: String(u[key]) }) }))
     });
   }
   return notices;
 }
 
-/** Evaluate an account's level and tell it about each level it has just reached. */
+/**
+ * Evaluate an account's level and tell it about each level it has just reached. Returns those levels, as
+ * { level, maxLevel, title, unlocks }, oldest first, and [] when none (AB#743: mutateAccountState hands them to the
+ * route's response for the milestone modal).
+ */
 export function evaluateAccountLevel(accountId, account) {
   const corp = account.state.corp;
   const before = {
@@ -256,11 +271,13 @@ export function evaluateAccountLevel(accountId, account) {
     marketSectors: [...(corp.unlocks?.marketSectors || [])]
   };
   evaluateLevelProgress(account.state);
-  if (!(Number(corp.level || 0) > before.level)) return;
-  for (const notice of levelReachedNotices(before, corp)) {
+  if (!(Number(corp.level || 0) > before.level)) return [];
+  const notices = levelReachedNotices(before, corp);
+  for (const notice of notices) {
     pushSystemNotification(account, notice);
     if (accountNotificationListener) accountNotificationListener(accountId, sanitizeNotification(account.notifications[0]));
   }
+  return notices.map(({ level, maxLevel, title, unlocks }) => ({ level, maxLevel, title, unlocks }));
 }
 
 export function sanitizeNotification(notification) {

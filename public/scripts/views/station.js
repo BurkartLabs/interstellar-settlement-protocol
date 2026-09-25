@@ -17,6 +17,10 @@ import { appState } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
 import { renderMissions } from "./assignments.js";
 import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHeader, setTab, showTradeConfirmation, stationLocationBanner, updateAllViews } from "./shared.js";
+// AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
+// back to the control that was pressed if it is still there, otherwise to the one the flow continues from.
+import { showActionReceipt } from "./receiptModal.js";
+const firstPresent = (...selectors) => () => selectors.map((sel) => document.querySelector(sel)).find(Boolean) || null;
 
 export function showStationOverview() {
   const overviewEl = document.getElementById("station-overview-view");
@@ -256,6 +260,7 @@ export function bindOfficeActions(building, data) {
           showStationBuilding(building.id);
           // AB#1056: hiring is the next thing to do, and on a phone its form sat a screen and a half down
           revealUnderHeader(document.getElementById("office-hire-form")?.closest(".form-card"));
+          showActionReceipt(account, { returnFocusTo: firstPresent("#rent-office-btn", "#office-hire-count") });
         } else {
           const cost = officeLeaseCost(durationDays);
           if ((appState.data.corp.finances.credits || 0) < cost) {
@@ -311,6 +316,7 @@ export function bindOfficeActions(building, data) {
           appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
           updateAllViews();
           showStationBuilding(building.id);
+          showActionReceipt(account, { returnFocusTo: firstPresent("#renew-office-form button[type=submit]") });
         } else {
           const renewalCost = officeRenewalCost(corp.completedInsights, durationDays);
           if ((corp.finances.credits || 0) < renewalCost) {
@@ -355,6 +361,7 @@ export function bindOfficeActions(building, data) {
           appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
           updateAllViews();
           showStationBuilding(building.id);
+          showActionReceipt(account, { returnFocusTo: firstPresent("#office-hire-form button[type=submit]", "#office-hire-count") });
         } else {
           const corp = appState.data.corp;
           const available = Math.max(0, corp.employeeCap - corp.employeeCount);
@@ -529,6 +536,7 @@ export function bindISAClaimsLeasesActions(building, data) {
           appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
           updateAllViews();
           showStationBuilding(building.id);
+          showActionReceipt(account, { returnFocusTo: firstPresent(`.purchase-lease-btn[data-body="${CSS.escape(body)}"]`, ".lease-manage-btn") });
         }
         pushFeedback(`${body} mining lease approved by the ISA.`, "success");
       } catch (err) {
@@ -785,6 +793,7 @@ export function bindLeaseManagementActions(building, lease, data) {
           appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
           updateAllViews();
           renderBuildingDetail(building, appState.data);
+          showActionReceipt(account, { returnFocusTo: firstPresent("#lease-build-extractor-btn", ".lease-mine-form button[type=submit]") });
         } else {
           // Demo account fallback
           const corp = appState.data.corp;
@@ -859,6 +868,7 @@ export function bindLeaseManagementActions(building, lease, data) {
           appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
           updateAllViews();
           renderBuildingDetail(building, appState.data);
+          showActionReceipt(account, { returnFocusTo: firstPresent(`.lease-mine-form[data-extractor-id="${CSS.escape(extractorId)}"] button[type=submit]`, ".lease-stop-btn") });
         } else {
           // Demo fallback
           const corp = appState.data.corp;

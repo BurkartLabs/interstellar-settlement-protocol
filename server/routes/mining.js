@@ -9,6 +9,8 @@ import { miningCreditsAdvice } from "../nextStep.js";
 import { leaseSlotsFullMessage } from "../../public/scripts/slotAdvice.js";
 import { emitToAccount } from "../realtime.js";
 import { unleasedFor, corpSlotsFull, fundingRequirementMessage, activeOfficeAt } from "./helpers.js";
+// AB#743: what each committing action did, from the values its mutation used, for the confirmation modal.
+import { buildExtractorReceipt, startMiningReceipt } from "../receipts.js";
 
 export function registerMiningRoutes(app) {
   // ─── Lease-scoped: Build an extractor yard on a specific lease ──────────────
@@ -18,6 +20,7 @@ export function registerMiningRoutes(app) {
     const ASSET_VALUE = ECONOMY.buildings.extractorYardAssetValue;
     let outcome = "ok";
     let slotInfo = "";
+    let built = null;
 
     const account = mutateAccountState(req.params.accountId, (state) => {
       const corp = state.corp;
@@ -78,6 +81,7 @@ export function registerMiningRoutes(app) {
 
       lease.extractorIds.push(newExtractorId);
       applyCredits(corp, -buildCost, "construction");
+      built = { extractorName: `Basic Extractor Yard #${nextIndex}`, body: lease?.body || null, cost: buildCost, assetValue: ASSET_VALUE };
       corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
     });
 
@@ -107,7 +111,7 @@ export function registerMiningRoutes(app) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     }
 
-    res.json(account);
+    res.json({ ...account, receipt: buildExtractorReceipt(built) });
   });
 
   // ─── Lease-scoped: Start a mining cycle on a lease extractor ───────────────
@@ -116,6 +120,7 @@ export function registerMiningRoutes(app) {
     let neededStartup = 0; // Bug #1058: the start-up cost, for the refusal
     const amount = bodyNumber(req.body?.amount, { fallback: 40, min: 10 });
     const requestedHours = bodyNumber(req.body?.hours, { fallback: 24, min: 1, max: 72 });
+    let started = null; // AB#743
     const requestedExtractorId = String(req.body?.extractorId || "").trim();
     let outcome = "ok";
     let targetExtractorLabel = "";
@@ -183,6 +188,7 @@ export function registerMiningRoutes(app) {
       applyCredits(corp, -startupCost, "mining-startup");
 
       startExtractorCycle(extractorCycle, { now, hours: requestedHours, throughputPerHour, operationCostPerHour, startupCost });
+      started = { extractorName: targetExtractorLabel, cost: startupCost, hours: requestedHours, throughputPerHour, operationCostPerHour, endsAt: extractorCycle.endsAt };
 
       corp.mining.silicateExtractor = corp.mining.silicateExtractors[0];
     });
@@ -217,7 +223,7 @@ export function registerMiningRoutes(app) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     }
 
-    res.json(account);
+    res.json({ ...account, receipt: startMiningReceipt(started) });
   });
 
   // ─── Lease-scoped: Stop a running mining cycle early (AB#1052) ─────────────
