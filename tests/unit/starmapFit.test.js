@@ -205,3 +205,63 @@ describe("the system view's back button is clear of every body on a phone (AB#12
     });
   }
 });
+
+// AB#1344: every back button's click target was a circle of radius 0.55 x its width (67px for "Back To Cluster"), tested
+// before any body. AB#1287 moved the orbits clear of the drawn button but not of that circle, so on a phone the belt
+// drawn beside the button, in each of the five systems with one, went Back To Cluster when tapped. The planets tests
+// above never tapped a belt. A back button's target is now the button as drawn, plus 6px.
+describe("a tap on a body opens it, never a back button (AB#1344)", () => {
+  const hasBelt = () => systems.filter((s) => (s.bodies || []).some((b) => b.type === "Field"));
+
+  for (const [width, innerHeight] of [[292, 354], [307, 354], [343, 354], [881, 427]]) {
+    it(`at ${width}x${innerHeight - 34}, in every system, a tap on each planet and each belt opens it`, () => {
+      expect(hasBelt().length).toBeGreaterThanOrEqual(5);
+      for (const system of systems) {
+        const count = openSystem(mapAt(width, innerHeight), system).length;
+        for (let i = 0; i < count; i += 1) {
+          const map = mapAt(width, innerHeight);
+          const target = openSystem(map, system)[i];
+          map.context.reset();
+          map.canvas.handlers.click({ clientX: target.x, clientY: target.y });
+          const where = `${system.name} ${target.body.name} at (${target.x.toFixed(0)}, ${target.y.toFixed(0)})`;
+          expect(map.context.labels.map((l) => l.text), `${where} went back to the cluster`).not.toContain("YOU ARE HERE");
+          expect(map.detailsEl.innerHTML, where).toContain(target.body.name);
+        }
+      }
+    });
+  }
+
+  it("Back To Cluster takes a tap on the button and up to 6px around it, and nowhere further", () => {
+    const system = hasBelt()[0];
+    const tapAt = (dx, dy) => {
+      const map = mapAt(307, 354);
+      openSystem(map, system);
+      const b = map.context.rects[0];
+      map.context.reset();
+      map.canvas.handlers.click({ clientX: b.x + b.w / 2 + dx(b), clientY: b.y + b.h / 2 + dy(b) });
+      return map.context.labels.some((l) => l.text === "YOU ARE HERE");
+    };
+    expect(tapAt(() => 0, () => 0), "the button's centre").toBe(true);
+    expect(tapAt((b) => b.w / 2 - 2, (b) => b.h / 2 + 5), "5px below its bottom-right corner").toBe(true);
+    expect(tapAt(() => 0, (b) => b.h / 2 + 8), "8px below it").toBe(false);
+    expect(tapAt(() => 0, (b) => b.h / 2 + 30), "30px below it, which the old circle took").toBe(false);
+  });
+
+  it("a belt's own view, on a phone: Back To System and Back To Cluster each do what they say", () => {
+    for (const system of hasBelt()) {
+      const open = (button) => {
+        const map = mapAt(307, 354);
+        const belt = openSystem(map, system).find((p) => p.body.type === "Field");
+        map.context.reset();
+        map.canvas.handlers.click({ clientX: belt.x, clientY: belt.y });
+        const b = map.context.rects[button];
+        map.context.reset();
+        map.canvas.handlers.click({ clientX: b.x + b.w / 2, clientY: b.y + b.h / 2 });
+        return map.context.labels.map((l) => l.text);
+      };
+      expect(open(0), `${system.name}: Back To System`).toContain("◂ Back To Cluster");
+      expect(open(0), `${system.name}: Back To System`).not.toContain("YOU ARE HERE");
+      expect(open(1), `${system.name}: Back To Cluster`).toContain("YOU ARE HERE");
+    }
+  });
+});
