@@ -6,7 +6,7 @@ import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { MAX_TRANSFER_LINES, describeHops, describeLines, feePerUnit, stationHops, transferFee, transitMinutes } from "../logistics.js";
 import { appState } from "../state.js";
-import { getAllInventory, getCurrentStationInfo, pushFeedback, stationLocationBanner, updateAllViews } from "./shared.js";
+import { formatSystemLabel, getAllInventory, getCurrentStationInfo, pushFeedback, stationLocationBanner, updateAllViews } from "./shared.js";
 
 export function renderLogistics(data) {
   const station = getCurrentStationInfo(data);
@@ -67,7 +67,7 @@ export function renderLogistics(data) {
     const entries = Object.entries(inv).filter(([, qty]) => Number(qty) > 0);
     const isCurrent = st.id === currentStationId;
     const badge = isCurrent ? `<span class="logistics-current-badge">Docked</span>` : "";
-    const subhead = `${escapeHtml(st.body || "")}${st.systemId ? ` · ${escapeHtml(String(st.systemId).toUpperCase())}` : ""}`;
+    const subhead = `${escapeHtml(st.body || "")}${st.systemId ? ` · ${escapeHtml(formatSystemLabel(st.systemId))}` : ""}`;
     const hops = isCurrent ? null : hopsFrom(st.id);
     // ISP-279 (AB#986): the quote now names the arrival time too, not just the fee — a delay the player cannot
     // see before sending reads as goods going missing (D-0.5-1's third story, after AB#985's server-side transit).

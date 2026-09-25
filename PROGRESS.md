@@ -18,6 +18,13 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1336, Builder #3)
+
+- **Names shown to players come from `public/scripts/displayNames.js`** (server and client alike): `systemName`,
+  `stationName`, `beltPlace` and `beltPhrase`, all read from the catalogs. Use it for any new message.
+  `tests/unit/displayNames.test.js` scans the route and tick files for a message that interpolates an id or key.
+  Flaky test filed, not fixed: **AB#2015** (`socket-rooms.test.js`, fixed 300ms windows).
+
 ## What's now true (AB#1295, Builder #3)
 
 - A returning expedition's notification and inbox report name the belt, its system and the deposit station

@@ -200,7 +200,7 @@ export function registerMiningRoutes(app) {
         "no-lease": "The specified lease could not be found on your account.",
         "missing-extractor": "No extraction facilities are available.",
         "no-lease-extractors": "No extraction facilities are assigned to this lease.",
-        "missing-extractor-target": `Extractor "${requestedExtractorId}" not found on this lease.`,
+        "missing-extractor-target": "That extractor is not on this lease. Reload the lease and choose one of its extractors.", // AB#1336
         "already-active": `${targetExtractorLabel} already has an active mining cycle in progress.`,
         "insufficient-credits": fundingRequirementMessage("Starting this mining cycle", account.state.corp, neededStartup, miningCreditsAdvice(neededStartup))
       };
@@ -284,7 +284,7 @@ export function registerMiningRoutes(app) {
         "no-lease": "The specified lease could not be found on your account.",
         "missing-extractor": "No extraction facilities are available.",
         "no-lease-extractors": "No extraction facilities are assigned to this lease.",
-        "missing-extractor-target": `Extractor "${requestedExtractorId}" not found on this lease.`,
+        "missing-extractor-target": "That extractor is not on this lease. Reload the lease and choose one of its extractors.", // AB#1336
         "not-active": `${targetExtractorLabel || "This extractor"} has no mining cycle running.`
       };
       res.status(400).json({ error: messageMap[outcome] || "Could not stop the mining cycle." });
