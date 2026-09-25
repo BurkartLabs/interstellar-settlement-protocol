@@ -18,6 +18,13 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1767 — ticker-mining-settle was a dice roll, not load, Builder)
+
+- **The flake was extractor downtime**: settling 6 minutes rolls once at about 1.8%, and a hit mines 0. It failed
+  about 1 run in 56, alone or in the full suite. The test now pins `Math.random` at 0.999 like every other mining test.
+- **How to find the next one**: make the downtime roll fire at `Math.max(tickProb, 0.99)` and run the suite; a
+  test pinned at 0.999 stays clear, an unpinned one fails. On main that found this test and no other.
+
 ## What's now true (this session: AB#1870, Builder #10)
 
 - **AB#1870 is fixed: the ISA Claims & Leases Division agrees with the server about which station an office is
