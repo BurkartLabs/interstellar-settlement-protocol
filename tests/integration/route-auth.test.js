@@ -15,7 +15,8 @@ const PUBLIC = {
   "GET /api/bootstrap": "the global game state shown before login",
   "GET /api/stations": "a static catalog",
   "GET /api/buildings": "a static catalog",
-  "GET /api/ceo-insight": "a static catalog"
+  "GET /api/ceo-insight": "a static catalog",
+  "GET /api/mission-agents": "a static catalog"
 };
 
 /** Routes that exist only when ISP_DEV=1 outside production (the test process sets it); they answer without a login by design. */

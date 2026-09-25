@@ -1,0 +1,152 @@
+{
+  "templates": [
+    {
+      "id": "ms-log-001",
+      "title": "Silicate Requisition Order — Batch 4-7A",
+      "type": "Logistics",
+      "risk": "Low",
+      "text": "The Bureau requires raw silicates for redistribution to ISA-contracted construction projects. Mine the quota from any active extraction lease and deliver it to the Bureau when you have it.",
+      "agentId": "elara-voss",
+      "resource": "Silicates",
+      "quotaMin": 320,
+      "quotaMax": 480,
+      "rewardMin": 9600,
+      "rewardMax": 14400
+    },
+    {
+      "id": "ms-log-002",
+      "title": "Nickel Freight Manifest — Consignment 9-2B",
+      "type": "Logistics",
+      "risk": "Low",
+      "text": "The Bureau has flagged a shortfall of nickel across ISA-administered construction depots. Deliver nickel to fulfil this standing requisition order.",
+      "agentId": "elara-voss",
+      "resource": "Nickel",
+      "quotaMin": 240,
+      "quotaMax": 360,
+      "rewardMin": 12000,
+      "rewardMax": 18000
+    },
+    {
+      "id": "ms-log-003",
+      "title": "Carbon Fibre Supply Run — Priority C",
+      "type": "Logistics",
+      "risk": "Low",
+      "text": "Station maintenance divisions require a resupply of carbon for composite fabrication. Source and deliver to the contracting office.",
+      "agentId": "elara-voss",
+      "resource": "Carbon",
+      "quotaMin": 400,
+      "quotaMax": 600,
+      "rewardMin": 8000,
+      "rewardMax": 12000
+    },
+    {
+      "id": "ms-log-004",
+      "title": "Helium-3 Emergency Allocation — Directive 77",
+      "type": "Logistics",
+      "risk": "Medium",
+      "text": "Reactor fuel reserves are approaching critical minimums. The ISA has issued a priority directive: deliver Helium-3 to the Bureau for immediate redistribution to power infrastructure.",
+      "agentId": "elara-voss",
+      "resource": "Helium-3",
+      "quotaMin": 160,
+      "quotaMax": 240,
+      "rewardMin": 19200,
+      "rewardMax": 28800
+    },
+    {
+      "id": "ms-log-005",
+      "title": "Titanium Structural Allotment — Frame Series 12",
+      "type": "Logistics",
+      "risk": "Medium",
+      "text": "Station expansion projects require titanium for structural framework assembly. Deliver to satisfy this standing allotment.",
+      "agentId": "elara-voss",
+      "resource": "Titanium",
+      "quotaMin": 200,
+      "quotaMax": 300,
+      "rewardMin": 16000,
+      "rewardMax": 24000
+    },
+    {
+      "id": "ms-log-006",
+      "title": "Water Ice Procurement — Habitat Sustainment",
+      "type": "Logistics",
+      "risk": "Low",
+      "text": "Life-support divisions have requisitioned water ice for processing into potable reserves. Standard sustainment contract — deliver to the Bureau at your earliest.",
+      "agentId": "elara-voss",
+      "resource": "Water Ice",
+      "quotaMin": 480,
+      "quotaMax": 720,
+      "rewardMin": 6400,
+      "rewardMax": 9600
+    },
+    {
+      "id": "ms-log-007",
+      "title": "Rare Earths Acquisition — R&D Allocation",
+      "type": "Logistics",
+      "risk": "High",
+      "text": "The ISA's applied sciences division has requested rare earth elements for experimental fabrication. Extraction difficulty is noted — compensation reflects the challenge.",
+      "agentId": "elara-voss",
+      "resource": "Rare Earths",
+      "quotaMin": 120,
+      "quotaMax": 180,
+      "rewardMin": 28000,
+      "rewardMax": 42000
+    },
+    {
+      "id": "ms-log-008",
+      "title": "Lithium Cell Stockpile — Battery Reserve",
+      "type": "Logistics",
+      "risk": "Medium",
+      "text": "Energy storage facilities need lithium for next-generation battery cell production. Source and deliver to the contracting office to fulfil this standing order.",
+      "agentId": "elara-voss",
+      "resource": "Lithium",
+      "quotaMin": 160,
+      "quotaMax": 240,
+      "rewardMin": 17600,
+      "rewardMax": 26400
+    },
+    {
+      "id": "ms-log-009",
+      "title": "Cobalt Shipment — Alloy Programme",
+      "type": "Logistics",
+      "risk": "Medium",
+      "text": "The metallurgy division requires cobalt for high-temperature alloy production. Deliver to satisfy the current programme quota.",
+      "agentId": "elara-voss",
+      "resource": "Cobalt",
+      "quotaMin": 200,
+      "quotaMax": 300,
+      "rewardMin": 14400,
+      "rewardMax": 21600
+    },
+    {
+      "id": "ms-log-010",
+      "title": "Thorium Fuel Rods — Reactor Consignment",
+      "type": "Logistics",
+      "risk": "High",
+      "text": "Next-generation reactor trials require thorium. The ISA has authorised a premium-rate contract delivered to the Bureau. Handle with appropriate caution.",
+      "agentId": "elara-voss",
+      "resource": "Thorium",
+      "quotaMin": 80,
+      "quotaMax": 120,
+      "rewardMin": 24000,
+      "rewardMax": 36000
+    }
+  ],
+  "agents": [
+    {
+      "id": "elara-voss",
+      "stationId": "earth-station-prime",
+      "missionType": "Logistics",
+      "available": true,
+      "bio": "Coordinator Voss has served the ISA's logistics division for over fourteen years, beginning as a junior freight auditor on Luna Gateway before transferring to Earth Station Prime's newly established Contracting & Assignments Bureau. She earned her Senior Coordinator designation after managing the emergency redistribution of silicate reserves during the Ceres Supply Crisis of 2139 — an operation that required coordinating seventeen independent mining corporations under a 72-hour ISA directive.\n\nHer management style is precise, documented, and unapologetically procedural. Contractors who deliver what they sign for, to specification, earn her trust, and she keeps count.\n\nShe maintains a small but well-organised office on Deck 7 of the Bureau. The filing cabinets are alphabetised. The coffee is adequate. The contracts are real.",
+      "dialogue": [
+        "Good. You're here. I have contracts that need competent operators — not speculators who think logistics is a side business.",
+        "The ISA needs resources moved, extracted, and delivered to specification. If you can handle that, we'll get along fine.",
+        "Review the available contracts below. Each one has a quota and a reward. Deliver the quota to me and you'll be paid; every contract you complete raises your standing with me. Walk away from one and it costs you nothing but the standing you would have earned."
+      ]
+    }
+  ],
+  "reputationTiers": {
+    "thresholds": [0, 1, 3, 7, 15, 30, 60, 120, 250, 500, 1000],
+    "titles": ["Unknown", "Registered", "Recognized", "Reliable", "Trusted", "Valued", "Distinguished", "Esteemed", "Elite", "Legendary", "Exalted"]
+  }
+}

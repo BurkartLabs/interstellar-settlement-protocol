@@ -65,16 +65,22 @@ describe("Catalog libraries", () => {
     }
   });
 
-  it("MISSION_TEMPLATES entries have id, type, reward, quota.resource and quota.amount", () => {
+  // AB#1051: a template is a range now (data/missions.json), not a fixed reward and quota — materializeOffer
+  // (server/game/corporation.js) rolls one instance of it per refresh. See tests/unit/missionVariance.test.js
+  // for the roll itself; this just guards the template's own shape.
+  it("MISSION_TEMPLATES entries have id, type, resource and a valid quota/reward range", () => {
     expect(Array.isArray(MISSION_TEMPLATES)).toBe(true);
     expect(MISSION_TEMPLATES.length).toBeGreaterThan(0);
     for (const m of MISSION_TEMPLATES) {
       expect(typeof m.id).toBe("string");
       expect(typeof m.type).toBe("string");
-      expect(m.reward).toBeDefined();
-      expect(m.quota).toBeDefined();
-      expect(typeof m.quota.resource).toBe("string");
-      expect(typeof m.quota.amount).toBe("number");
+      expect(typeof m.resource).toBe("string");
+      expect(typeof m.quotaMin).toBe("number");
+      expect(typeof m.quotaMax).toBe("number");
+      expect(m.quotaMax, m.id).toBeGreaterThanOrEqual(m.quotaMin);
+      expect(typeof m.rewardMin).toBe("number");
+      expect(typeof m.rewardMax).toBe("number");
+      expect(m.rewardMax, m.id).toBeGreaterThanOrEqual(m.rewardMin);
     }
     const ids = MISSION_TEMPLATES.map((m) => m.id);
     expect(new Set(ids).size).toBe(ids.length); // unique ids

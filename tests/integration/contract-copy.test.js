@@ -10,11 +10,10 @@ import { ASSIGNED_COORDINATOR } from "../../public/scripts/liaison.js";
 // deadline", Voss's greeting "each one has a deadline"), threatened a record of failures nothing keeps, and named the
 // coordinator inside contract data. The copy may claim only what the server does, which the last tests below check.
 const TIME_CLAIM = /\b(deadline|on schedule|on time|time limit|expires?|this month|within \d+|due by)\b/i;
-const APP_JS = readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
-const agentCopy = () => {
-  const start = APP_JS.indexOf("const MISSION_AGENTS = [");
-  return APP_JS.slice(start, APP_JS.indexOf("];", start));
-};
+// AB#1051: the agent's bio and dialogue moved from a literal in app.js to data/missions.json (GET
+// /api/mission-agents is the client's only copy, same as MISSION_TEMPLATES above).
+const MISSIONS_JSON = JSON.parse(readFileSync(new URL("../../data/missions.json", import.meta.url), "utf8"));
+const agentCopy = () => MISSIONS_JSON.agents.map((a) => `${a.bio}\n${(a.dialogue || []).join("\n")}`).join("\n");
 
 describe("contract copy promises nothing the game does not do (Bug #1104)", () => {
   it("no contract template carries or promises a time limit", () => {
@@ -45,7 +44,8 @@ describe("contract copy promises nothing the game does not do (Bug #1104)", () =
     const accepted = getAccountById(account.id).state.corp.activeMissions.find((m) => m.id === FIRST_CONTRACT_ID);
     for (const key of ["deadline", "expiresAt", "dueAt", "acceptedUntil"]) expect(accepted).not.toHaveProperty(key);
     // Time passing is not something the route can see: completion is checked against the quota alone.
-    mutateAccountState(account.id, (s) => { getStationInventory(s.corp, s.corp.currentStationId).Silicates = 400; });
+    // AB#1051: the quota is rolled per offer now, not a fixed 400 — read what was actually accepted.
+    mutateAccountState(account.id, (s) => { getStationInventory(s.corp, s.corp.currentStationId)[accepted.quota.resource] = accepted.quota.amount; });
     const done = await play("complete-mission", { missionId: FIRST_CONTRACT_ID });
     expect(done.status).toBe(200);
     expect(getAccountById(account.id).state.corp.agentReputation[ASSIGNED_COORDINATOR.id].completedCount).toBe(1);
