@@ -18,6 +18,16 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#744, ISP-58 — the confirmation modal on every committing action, Builder #3)
+
+- **Every POST under /gameplay/ and on the exchange either answers with a `receipt` or is exempt with a reason.**
+  `tests/unit/receiptRoutes.test.js` reads the routes from source and fails on a new one that is neither, so a new
+  committing action needs a builder in `server/receipts.js` and a `showActionReceipt(answer)` at its call site, after
+  the redraw, inside the same `try` as the parse (a refusal throws there and never shows a confirmation).
+- Signed in, contract completion shows the receipt (with standing) instead of the old overlay; offline keeps it.
+- e2e specs acknowledge receipts with `acknowledgeReceipt` (e2e/receipt.mjs). **Running the e2e suite rewrites the
+  screenshots other stories committed under docs/**: restore them (`git checkout -- docs/<story>`) before committing.
+
 ## What's now true (AB#2073 — the first lease's staffing refusal, Builder)
 
 - `purchase-lease`'s staffing refusal says "a mining lease" for the first and "an additional mining lease" only once
