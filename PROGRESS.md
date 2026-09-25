@@ -18,6 +18,13 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1269 — building copy names only its own station, Builder #1)
+
+- The Orbital Executive Suites' flavour line is station-neutral ("a registered office here tells the ISA"), since the
+  Suites stand at all eight stations. `tests/unit/buildingCopyStations.test.js` fails if any building's text names a
+  station the building is not confined to. `e2e/suites-flavor.spec.js` (seed: `e2e/seed-docked-account.mjs <station>`)
+  looks at the card docked at Mars; screenshots in `docs/ab-1269/`.
+
 ## What's now true (AB#1203 — a contract is completed at its agent's station, Builder #1)
 
 - `POST /gameplay/complete-mission` refuses a quota contract unless the corporation is docked at the agent's station
