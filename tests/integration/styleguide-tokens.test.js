@@ -22,3 +22,16 @@ describe("/styleguide/tokens (ISP-70)", () => {
     }
   });
 });
+
+describe("/styleguide (ISP-72)", () => {
+  it("serves the components page, and the bare address sends you to it", async () => {
+    const res = await request(app).get("/styleguide/");
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('<h1 class="sg-title">Components</h1>');
+    expect(res.text).toContain('src="/scripts/styleguide.js"');
+    const bare = await request(app).get("/styleguide");
+    expect(bare.status).toBe(301);
+    expect(bare.headers.location).toBe("/styleguide/");
+    for (const asset of ["/scripts/styleguide.js", "/scripts/uiComponents.js"]) expect((await request(app).get(asset)).status, asset).toBe(200);
+  });
+});

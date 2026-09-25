@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- ISP-72 (AB#761): the core components, each in every state, with the game's own words. The flat direction,
+         Decision AB#1801. Every specimen names itself in data-component, data-variant and data-state, which
+         tests/unit/styleguide.test.js reads to hold the page to the full set. -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Components · ISP style guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/scripts/styleguide.js"></script>
+  </head>
+  <body class="sg">
+    <main class="sg-page">
+      <header class="sg-header">
+        <p class="sg-wordmark">ISP</p>
+        <h1 class="sg-title">Components</h1>
+        <p class="sg-lede">
+          The flat direction the Board chose on Decision AB#1801, as parts: each one here in every state it can be in.
+          The colours, sizes and spacing are the <a href="/styleguide/tokens">design tokens</a>. Hover, focus and
+          pressed are drawn standing still below; every control also answers the pointer and the keyboard for real.
+        </p>
+      </header>
+
+      <section class="sg-section" aria-labelledby="sg-buttons">
+        <h2 class="sg-heading" id="sg-buttons">Buttons</h2>
+        <p class="sg-note">Primary is the one thing a screen asks for, once. Secondary for everything else, ghost for a way out, danger for what cannot be undone.</p>
+        <div class="sg-matrix">
+          <div class="sg-matrix-row">
+            <p class="sg-row-name">Primary</p>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--primary" data-component="button" data-variant="primary" data-state="rest">Rent office</button><span class="sg-state">rest</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--primary is-hover" data-component="button" data-variant="primary" data-state="hover">Rent office</button><span class="sg-state">hover</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--primary is-focus" data-component="button" data-variant="primary" data-state="focus">Rent office</button><span class="sg-state">focus</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--primary is-active" data-component="button" data-variant="primary" data-state="active">Rent office</button><span class="sg-state">pressed</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--primary" disabled data-component="button" data-variant="primary" data-state="disabled">Rent office</button><span class="sg-state">disabled</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--primary is-loading" aria-busy="true" data-component="button" data-variant="primary" data-state="loading">Renting office</button><span class="sg-state">loading</span></div>
+          </div>
+          <div class="sg-matrix-row">
+            <p class="sg-row-name">Secondary</p>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--secondary" data-component="button" data-variant="secondary" data-state="rest">View lease</button><span class="sg-state">rest</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--secondary is-hover" data-component="button" data-variant="secondary" data-state="hover">View lease</button><span class="sg-state">hover</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--secondary is-focus" data-component="button" data-variant="secondary" data-state="focus">View lease</button><span class="sg-state">focus</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--secondary is-active" data-component="button" data-variant="secondary" data-state="active">View lease</button><span class="sg-state">pressed</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--secondary" disabled data-component="button" data-variant="secondary" data-state="disabled">View lease</button><span class="sg-state">disabled</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--secondary is-loading" aria-busy="true" data-component="button" data-variant="secondary" data-state="loading">Loading lease</button><span class="sg-state">loading</span></div>
+          </div>
+          <div class="sg-matrix-row">
+            <p class="sg-row-name">Ghost</p>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--ghost" data-component="button" data-variant="ghost" data-state="rest">Log out</button><span class="sg-state">rest</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--ghost is-hover" data-component="button" data-variant="ghost" data-state="hover">Log out</button><span class="sg-state">hover</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--ghost is-focus" data-component="button" data-variant="ghost" data-state="focus">Log out</button><span class="sg-state">focus</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--ghost is-active" data-component="button" data-variant="ghost" data-state="active">Log out</button><span class="sg-state">pressed</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--ghost" disabled data-component="button" data-variant="ghost" data-state="disabled">Log out</button><span class="sg-state">disabled</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--ghost is-loading" aria-busy="true" data-component="button" data-variant="ghost" data-state="loading">Logging out</button><span class="sg-state">loading</span></div>
+          </div>
+          <div class="sg-matrix-row">
+            <p class="sg-row-name">Danger</p>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--danger" data-component="button" data-variant="danger" data-state="rest">Dismantle extractor</button><span class="sg-state">rest</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--danger is-hover" data-component="button" data-variant="danger" data-state="hover">Dismantle extractor</button><span class="sg-state">hover</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--danger is-focus" data-component="button" data-variant="danger" data-state="focus">Dismantle extractor</button><span class="sg-state">focus</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--danger is-active" data-component="button" data-variant="danger" data-state="active">Dismantle extractor</button><span class="sg-state">pressed</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--danger" disabled data-component="button" data-variant="danger" data-state="disabled">Dismantle extractor</button><span class="sg-state">disabled</span></div>
+            <div class="sg-specimen"><button type="button" class="ui-button ui-button--danger is-loading" aria-busy="true" data-component="button" data-variant="danger" data-state="loading">Dismantling</button><span class="sg-state">loading</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-inputs">
+        <h2 class="sg-heading" id="sg-inputs">Inputs and selects</h2>
+        <p class="sg-note">A label above, always; a hint under it when the rule is not obvious; the error in words, on the field it belongs to.</p>
+        <div class="sg-grid">
+          <div class="ui-field" data-component="input" data-state="rest">
+            <label class="ui-field__label" for="sg-in-rest">Corporation name</label>
+            <input class="ui-input" id="sg-in-rest" type="text" placeholder="Frontier Protocol Ventures" />
+            <span class="sg-state">rest, with a placeholder</span>
+          </div>
+          <div class="ui-field" data-component="input" data-state="hover">
+            <label class="ui-field__label" for="sg-in-hover">Corporation name</label>
+            <input class="ui-input is-hover" id="sg-in-hover" type="text" placeholder="Frontier Protocol Ventures" />
+            <span class="sg-state">hover</span>
+          </div>
+          <div class="ui-field" data-component="input" data-state="focus">
+            <label class="ui-field__label" for="sg-in-focus">Corporation name</label>
+            <input class="ui-input is-focus" id="sg-in-focus" type="text" value="Orion Freight" />
+            <span class="sg-state">focus</span>
+          </div>
+          <div class="ui-field" data-component="input" data-state="filled">
+            <label class="ui-field__label" for="sg-in-filled">Units to sell</label>
+            <input class="ui-input" id="sg-in-filled" type="text" inputmode="numeric" value="120" aria-describedby="sg-in-filled-hint" />
+            <span class="ui-field__hint" id="sg-in-filled-hint">You hold 480 t of Silicates at Earth Station Prime.</span>
+            <span class="sg-state">filled, with a hint</span>
+          </div>
+          <div class="ui-field" data-component="input" data-state="disabled">
+            <label class="ui-field__label" for="sg-in-disabled">CEO name</label>
+            <input class="ui-input" id="sg-in-disabled" type="text" value="Elara Voss" disabled />
+            <span class="sg-state">disabled</span>
+          </div>
+          <div class="ui-field" data-component="input" data-state="invalid">
+            <label class="ui-field__label" for="sg-in-invalid">Corporation name</label>
+            <input class="ui-input" id="sg-in-invalid" type="text" value="OX" aria-invalid="true" aria-describedby="sg-in-invalid-error" />
+            <span class="ui-field__error" id="sg-in-invalid-error">A corporation name needs 3 to 40 characters.</span>
+            <span class="sg-state">invalid</span>
+          </div>
+          <div class="ui-field" data-component="select" data-state="rest">
+            <label class="ui-field__label" for="sg-sel-rest">Resource</label>
+            <select class="ui-select" id="sg-sel-rest"><option>Silicates</option><option>Nickel</option><option>Helium-3</option><option>Carbon</option><option>Titanium</option><option>Rare Earths</option></select>
+            <span class="sg-state">rest</span>
+          </div>
+          <div class="ui-field" data-component="select" data-state="hover">
+            <label class="ui-field__label" for="sg-sel-hover">Resource</label>
+            <select class="ui-select is-hover" id="sg-sel-hover"><option>Nickel</option></select>
+            <span class="sg-state">hover</span>
+          </div>
+          <div class="ui-field" data-component="select" data-state="focus">
+            <label class="ui-field__label" for="sg-sel-focus">Sort</label>
+            <select class="ui-select is-focus" id="sg-sel-focus"><option>Newest first</option><option>Price, low to high</option></select>
+            <span class="sg-state">focus</span>
+          </div>
+          <div class="ui-field" data-component="select" data-state="disabled">
+            <label class="ui-field__label" for="sg-sel-disabled">Destination station</label>
+            <select class="ui-select" id="sg-sel-disabled" disabled><option>Luna Gateway</option></select>
+            <span class="sg-state">disabled</span>
+          </div>
+          <div class="ui-field" data-component="select" data-state="invalid">
+            <label class="ui-field__label" for="sg-sel-invalid">Lease length</label>
+            <select class="ui-select" id="sg-sel-invalid" aria-invalid="true" aria-describedby="sg-sel-invalid-error"><option>Choose a length</option><option>30 days</option></select>
+            <span class="ui-field__error" id="sg-sel-invalid-error">Choose how long to lease the office for.</span>
+            <span class="sg-state">invalid</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-cards">
+        <h2 class="sg-heading" id="sg-cards">Cards</h2>
+        <p class="sg-note">A card is one thing: a building, an agent, a lease. A card that is itself the choice lightens under the pointer and carries the accent when it is chosen.</p>
+        <div class="sg-grid">
+          <article class="ui-card" data-component="card" data-state="rest">
+            <h3 class="ui-card__title">Orbital Executive Suites</h3>
+            <p class="ui-card__body">Licensed executive office suites for corporate operations within the station.</p>
+            <p class="ui-card__meta">STA · Earth Station Prime</p>
+            <span class="sg-state">rest</span>
+          </article>
+          <button type="button" class="ui-card ui-card--interactive is-hover" data-component="card" data-state="hover">
+            <span class="ui-card__title">ISA Claims &amp; Leases Division</span>
+            <span class="ui-card__body">Queue a claim, file your survey data, and wait.</span>
+            <span class="sg-state">hover</span>
+          </button>
+          <button type="button" class="ui-card ui-card--interactive is-focus" data-component="card" data-state="focus">
+            <span class="ui-card__title">ISA Contracting &amp; Assignments Bureau</span>
+            <span class="ui-card__body">Field contracts and logistics assignments through the agents stationed here.</span>
+            <span class="sg-state">focus</span>
+          </button>
+          <button type="button" class="ui-card ui-card--interactive" aria-pressed="true" data-component="card" data-state="selected">
+            <span class="ui-card__title">Basic Extractor Yard</span>
+            <span class="ui-card__body">Tier 1 · 2 building slots · Active</span>
+            <span class="sg-state">selected</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-panels">
+        <h2 class="sg-heading" id="sg-panels">Panel with header</h2>
+        <div class="ui-panel" data-component="panel" data-state="with-header">
+          <div class="ui-panel__header">
+            <h3 class="ui-panel__title">Active Mining Cycles</h3>
+            <div class="ui-panel__actions">
+              <button type="button" class="ui-button ui-button--secondary">View history</button>
+              <button type="button" class="ui-button ui-button--primary">Start cycle</button>
+            </div>
+          </div>
+          <div class="ui-panel__body">
+            Silicates at the Basic Extractor Yard: 42 t of 120 t this cycle, 3 h 20 m left. The cycle pays out when it
+            completes, into your inventory at Earth Station Prime.
+          </div>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-tabs">
+        <h2 class="sg-heading" id="sg-tabs">Tabs</h2>
+        <p class="sg-note">The arrow keys move between tabs; Tab moves on to what the tab shows.</p>
+        <div class="ui-tabs" role="tablist" aria-label="Company" data-component="tabs">
+          <button type="button" class="ui-tab" role="tab" id="sg-tab-overview" aria-controls="sg-panel-overview" aria-selected="true" data-state="selected">Overview</button>
+          <button type="button" class="ui-tab" role="tab" id="sg-tab-inbox" aria-controls="sg-panel-inbox" aria-selected="false" tabindex="-1" data-state="rest">Inbox (1)</button>
+          <button type="button" class="ui-tab is-hover" role="tab" id="sg-tab-station" aria-controls="sg-panel-station" aria-selected="false" tabindex="-1" data-state="hover">Station</button>
+          <button type="button" class="ui-tab is-focus" role="tab" id="sg-tab-finance" aria-controls="sg-panel-finance" aria-selected="false" tabindex="-1" data-state="focus">Financial Core</button>
+          <button type="button" class="ui-tab" role="tab" id="sg-tab-starmap" aria-controls="sg-panel-starmap" aria-selected="false" tabindex="-1" disabled data-state="disabled">Starmap</button>
+        </div>
+        <div class="ui-tabpanel" role="tabpanel" id="sg-panel-overview" aria-labelledby="sg-tab-overview">Corporation Level 1 milestones: rent an office, hire 5 employees.</div>
+        <div class="ui-tabpanel" role="tabpanel" id="sg-panel-inbox" aria-labelledby="sg-tab-inbox" hidden>ISA Settlement Licence: your corporation is registered.</div>
+        <div class="ui-tabpanel" role="tabpanel" id="sg-panel-station" aria-labelledby="sg-tab-station" hidden>Earth Station Prime: the principal orbital installation above Earth.</div>
+        <div class="ui-tabpanel" role="tabpanel" id="sg-panel-finance" aria-labelledby="sg-tab-finance" hidden>Net worth $250,000; daily net flow $0.</div>
+        <div class="ui-tabpanel" role="tabpanel" id="sg-panel-starmap" aria-labelledby="sg-tab-starmap" hidden>Starmap.</div>
+        <p class="sg-note sg-tab-states">Shown: Overview selected, Inbox at rest, Station hovered, Financial Core focused, Starmap disabled.</p>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-badges">
+        <h2 class="sg-heading" id="sg-badges">Badges</h2>
+        <p class="sg-note">A word or two of state beside what it describes. Not a control: nothing happens when you press one.</p>
+        <div class="sg-row">
+          <span class="ui-badge" data-component="badge" data-variant="neutral">Tier 1</span>
+          <span class="ui-badge ui-badge--accent" data-component="badge" data-variant="accent">Docked</span>
+          <span class="ui-badge ui-badge--success" data-component="badge" data-variant="success">Active</span>
+          <span class="ui-badge ui-badge--warn" data-component="badge" data-variant="warn">Coming soon</span>
+          <span class="ui-badge ui-badge--danger" data-component="badge" data-variant="danger">Downtime</span>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-tooltips">
+        <h2 class="sg-heading" id="sg-tooltips">Tooltips</h2>
+        <p class="sg-note">It explains its trigger and holds nothing to press. It opens on hover and on keyboard focus; Escape closes it.</p>
+        <div class="sg-row sg-tooltip-row">
+          <div class="sg-specimen" data-component="tooltip" data-state="closed">
+            <span class="ui-tooltip-wrap">
+              <button type="button" class="ui-button ui-button--secondary" aria-describedby="sg-tt-closed">Building slots: 2</button>
+              <span class="ui-tooltip" role="tooltip" id="sg-tt-closed">Each building you own uses a slot. Corporation Level 2 adds a third.</span>
+            </span>
+            <span class="sg-state">closed (hover or focus it)</span>
+          </div>
+          <div class="sg-specimen" data-component="tooltip" data-state="open">
+            <span class="ui-tooltip-wrap">
+              <button type="button" class="ui-button ui-button--secondary" aria-describedby="sg-tt-open">Fleet cap: 2</button>
+              <span class="ui-tooltip is-open" role="tooltip" id="sg-tt-open">How many ships your corporation may operate at once.</span>
+            </span>
+            <span class="sg-state">open</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
