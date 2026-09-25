@@ -3,6 +3,11 @@
 > **2026-09-22, AB#737:** `server/gameState.js` is now split into `server/game/*.js` (catalog, shape, mining, refining,
 > asteroids, progression, corporation, world, store, messaging) and only re-exports them. The `gameState.js:<line>`
 > anchors below predate the split, as do its Supabase sections (removed in AB#578). Find a function by name.
+>
+> **2026-09-25, AB#757:** no token is in localStorage any more. The refresh token is an HttpOnly, Secure,
+> SameSite=Strict cookie (`isp_refresh`, path `/api/auth`) set by register/login/refresh; the access token is in
+> `appState` only, obtained on each page load from `POST /api/auth/refresh`. Logout revokes the cookie's token, not
+> one named in a body. Every `isp.accessToken` / `isp.refreshToken` / logout-by-body line below predates this.
 
 Generated 2026-09-20 from ten parallel subsystem reads of commit `4f92687`, at the start of the v0.5 Beta
 MVP pass. Each reader opened the actual files; every claim below carries a `file:line` anchor. **The code
