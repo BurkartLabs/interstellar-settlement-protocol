@@ -64,9 +64,13 @@ export function resolveMetric(metric, corp) {
   // employeeCount
   if (metric === "employeeCount") return Number(corp.employeeCount || 0);
 
-  // miningLease:<body> — check body field, fall back to type field
+  // miningLease:<body> — check body field, fall back to type field. "any" (Bug #1753) is a lease on any body:
+  // the milestone is testing for a working lease, not a specific planet, and pinning it to one instance (Mars)
+  // let a cost-minimising player (and both ops/probes/isp-runway.ts bots) lease the cheaper Earth instead and
+  // be stuck permanently with no error explaining why.
   if (metric.startsWith("miningLease:")) {
     const target = metric.slice(12);
+    if (target === "any") return miningLeases.length > 0 ? 1 : 0;
     return miningLeases.some((l) => (l.body || l.type || l) === target) ? 1 : 0;
   }
 
