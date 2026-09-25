@@ -37,7 +37,7 @@ const ALLOWLIST = [
   // does not read (SCAN_EXT is .js/.html/.css only) — the match left the scanned surface, so the entry is gone
   // rather than re-pointed.
   // AB#1759: line number moved when .btn-hero-secondary was added above it.
-  ["public/styles.css", 4306,"a CSS section comment naming a forum-thread layout; no .premium class exists"],
+  ["public/styles.css", 4327,"a CSS section comment naming a forum-thread layout; no .premium class exists"],
   // AB#738: toCurrency moved, unchanged, from app.js to the shared helpers module.
   ["public/scripts/helpers.js", 6, "toCurrency: the sanctioned in-game credits formatter this story's own acceptance names as the one exception"]
 ];

@@ -96,7 +96,7 @@ for (const viewport of VIEWPORTS) {
     await mineForm.locator('button[type="submit"]').click();
     await acknowledgeReceipt(page);
     await expect(page.locator(".extractor-row .building-status-badge")).toHaveText("Active");
-    await expect(page.locator('.extractor-row [data-live="mined"]')).not.toHaveText("0", { timeout: 60_000 });
+    await expect(page.locator('.extractor-row [data-live="mined"]')).not.toHaveText(/^0( t)?$/, { timeout: 60_000 }); // AB#746: "0 t"
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "01-running", viewport.width);
 

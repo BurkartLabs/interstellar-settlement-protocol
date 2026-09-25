@@ -18,6 +18,19 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#746, ISP-60 — a running cycle shows its accumulation, Builder)
+
+- The server keeps `spentThisCycle` beside `minedThisCycle`: the startup cost at `startExtractorCycle`, plus what
+  each tick actually charged. It is `null` on a cycle started before the field existed, and the page then shows the
+  clock estimate marked "(est.)". `activeCycleFigures` (leaseLive.js) is the one source for both places a running
+  cycle is shown, the lease view's extractor panel and Active Mining Cycles on Station: mined, spent, rate, and a bar
+  from the cycle's own start and end (`fill`, unrounded, so a minute in is a sliver, not the old flat 0%; the label
+  says "<1%"). The mining:updated handler redraws Active Mining Cycles too, not only on the 1 s ticker.
+- "Mined this cycle" now reads "N t"; three specs waited on the bare text "0" and were updated
+  (first-hour, stop-mining, walkthrough-run). `e2e/seed-running-cycle.mjs` builds a real cycle through the routes and
+  moves its clock back, and `e2e/cycle-accumulation.spec.js` checks 1 min and 1 h in at both sizes: bar vs elapsed,
+  after a reload, live accrual, server spend. Screenshots in `docs/ab-746/`.
+
 ## What's now true (ISP-62, AB#748 — /how-to-start, the playtest briefing, Builder)
 
 - `/how-to-start` (`public/how-to-start.html`, route in `server/routes/catalog.js`, public like `/healthz`) is the

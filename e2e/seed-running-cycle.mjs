@@ -1,0 +1,77 @@
+// Companion to e2e/cycle-accumulation.spec.js (AB#746): a corporation with one extractor part-way into a real mining
+// cycle. The cycle is built through the game's own routes (office, staff, a lease on Earth, an extractor, a 4-hour
+// cycle), exactly as a player builds one; then, with the server stopped, the cycle's clock is moved back by the given
+// offset with nothing mined or charged for it. The next server to load this data settles that time with its own
+// mining code, so "an hour in" is what an hour of real mining produces, not a number typed here.
+//
+// Usage: node e2e/seed-running-cycle.mjs <dataDir> <email> <password> <offsetMs>
+import fs from "node:fs";
+import path from "node:path";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const [, , dataDir, email, password, offsetArg] = process.argv;
+const offsetMs = Number(offsetArg);
+if (!dataDir || !email || !password || !(offsetMs >= 0)) throw new Error("usage: seed-running-cycle.mjs <dataDir> <email> <password> <offsetMs>");
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const SECRET = process.env.JWT_SECRET || "cycle-e2e-fixture-secret-0123456789abcdef";
+
+function startServer() {
+  const child = spawn(process.execPath, ["server/index.js"], {
+    cwd: ROOT,
+    env: { ...process.env, ISP_DATA_DIR: dataDir, PORT: "0", NODE_ENV: "test", ISP_DEV: "", ISP_DISABLE_TICKERS: "1", JWT_SECRET: SECRET },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+  return new Promise((resolve, reject) => {
+    let out = "";
+    const timer = setTimeout(() => reject(new Error(`server did not listen: ${out.slice(-500)}`)), 30_000);
+    const read = (chunk) => {
+      out += chunk;
+      const port = out.match(/listening on port (\d+)/)?.[1];
+      if (port) { clearTimeout(timer); resolve({ child, port: Number(port) }); }
+    };
+    child.stdout.on("data", read);
+    child.stderr.on("data", read);
+    child.on("exit", (code) => { clearTimeout(timer); reject(new Error(`server exited ${code}: ${out.slice(-500)}`)); });
+  });
+}
+
+async function api(port, method, url, body, token) {
+  const res = await fetch(`http://127.0.0.1:${port}${url}`, {
+    method,
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const json = await res.json().catch(() => ({}));
+  if (res.status >= 400) throw new Error(`${method} ${url}: ${res.status} ${JSON.stringify(json).slice(0, 200)}`);
+  return json;
+}
+
+const { child, port } = await startServer();
+let id;
+try {
+  const reg = await api(port, "POST", "/api/auth/register", { email, password, ceoName: "Cycle QA", corpName: `Cycle QA Corp ${Date.now()}` });
+  id = reg.account.id;
+  const a = (route, body) => api(port, "POST", `/api/accounts/${id}/${route}`, body, reg.accessToken);
+  await a("walkthrough-complete");
+  await a("gameplay/rent-office", { stationId: "earth-station-prime", durationDays: 28 });
+  await a("gameplay/hire", { count: 5 });
+  const leased = await a("gameplay/purchase-lease", { body: "earth" });
+  const lease = leased.state.corp.miningLeases.at(-1);
+  const built = await a(`gameplay/lease/${lease.id}/build-extractor`, {});
+  const extractorId = built.state.corp.miningLeases.find((l) => l.id === lease.id).extractorIds.at(-1);
+  await a(`gameplay/lease/${lease.id}/start-mining`, { amount: 120, hours: 4, extractorId });
+  await new Promise((r) => setTimeout(r, 1500)); // the debounced snapshot write
+} finally {
+  await new Promise((r) => { child.once("exit", r); child.kill(); });
+}
+
+// Move the running cycle's clock back: it started `offsetMs` ago and has settled nothing since.
+const snapFile = path.join(dataDir, "accounts-snapshot.json");
+const saved = JSON.parse(fs.readFileSync(snapFile, "utf8"));
+const store = saved.accounts ? saved : { accounts: saved };
+const ex = store.accounts[id].state.corp.mining.silicateExtractors.find((e) => e.active);
+if (!ex) throw new Error("no running extractor after start-mining");
+for (const key of ["startedAt", "lastTickAt", "endsAt"]) ex[key] -= offsetMs;
+fs.writeFileSync(snapFile, JSON.stringify(store));
+console.log(JSON.stringify({ accountId: id, extractorId: ex.id, startedAt: ex.startedAt, endsAt: ex.endsAt }));

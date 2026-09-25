@@ -8,7 +8,7 @@ import { claimsAllTakenText, claimsNoLeasesText } from "../emptyStates.js";
 import { stationStartPromptHtml } from "../firstAction.js";
 import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml, stationBuildingCardsHtml } from "../html.js";
-import { activeCycleFigures, extractorState } from "../leaseLive.js";
+import { activeCycleFigures, extractorState, spentText } from "../leaseLive.js";
 import { probeFabricationStartedText } from "../miningFeedback.js";
 import { bestThroughput, costPerHourFor, miningProjection, startupCostFor as clientStartupCostFor } from "../miningProjection.js";
 import { clientPrices } from "../clientPrices.js";
@@ -575,15 +575,16 @@ export function refreshOpenLeaseView(extractors) {
       return;
     }
     if (extractorState(ex) !== "active" || !ex.endsAt || !ex.startedAt) continue;
-    const { pct, hrs, mins, mined, fees } = activeCycleFigures(ex);
+    const figures = activeCycleFigures(ex);
+    const { hrs, mins, mined } = figures;
     const set = (key, text) => { const el = row.querySelector(`[data-live="${key}"]`); if (el) el.textContent = text; };
-    set("pct", `${pct}%`);
+    set("pct", figures.pctText);
     set("left", `${hrs}h ${mins}m left`);
     set("remaining", `${hrs}h ${mins}m`);
-    set("mined", mined.toLocaleString());
-    set("fees", toCurrency(fees));
+    set("mined", `${mined.toLocaleString()} t`);
+    set("spent", spentText(figures, toCurrency));
     const fill = row.querySelector('[data-live="fill"]');
-    if (fill) fill.style.width = `${pct}%`;
+    if (fill) fill.style.width = `${figures.fill.toFixed(2)}%`;
   }
 }
 
@@ -656,21 +657,22 @@ export function renderLeaseManagement(building, lease, data) {
     } else if (ex.active && ex.endsAt && ex.startedAt) {
       // Bug #1091: the figures come from public/scripts/leaseLive.js, and carry data-live so mining:updated can refresh
       // them in place while the view stays open.
-      const { pct, hrs, mins, mined, fees: estimatedFees } = activeCycleFigures(ex);
+      const figures = activeCycleFigures(ex);
+      const { hrs, mins, mined } = figures;
 
       cycleInfo = `<span class="extractor-cycle-status">${ex.throughputPerHour} t/h &mdash; <span data-live="remaining">${hrs}h ${mins}m</span> remaining</span>`;
       progressBarHtml = `
         <div class="extractor-progress-wrap">
           <div class="extractor-progress-header">
-            <span class="extractor-progress-pct" data-live="pct">${pct}%</span>
+            <span class="extractor-progress-pct" data-live="pct">${figures.pctText}</span>
             <span class="extractor-progress-time" data-live="left">${hrs}h ${mins}m left</span>
           </div>
           <div class="extractor-progress-track">
-            <div class="extractor-progress-fill" data-live="fill" style="width:${pct}%"></div>
+            <div class="extractor-progress-fill" data-live="fill" style="width:${figures.fill.toFixed(2)}%"></div>
           </div>
           <div class="extractor-stat-row">
-            <span class="extractor-stat"><span class="extractor-stat-label">Mined this cycle</span><span class="extractor-stat-value" data-live="mined">${mined.toLocaleString()}</span></span>
-            <span class="extractor-stat"><span class="extractor-stat-label">Fees incurred</span><span class="extractor-stat-value" data-live="fees">${toCurrency(estimatedFees)}</span></span>
+            <span class="extractor-stat"><span class="extractor-stat-label">Mined this cycle</span><span class="extractor-stat-value" data-live="mined">${mined.toLocaleString()} t</span></span>
+            <span class="extractor-stat"><span class="extractor-stat-label">Spent this cycle</span><span class="extractor-stat-value" data-live="spent">${spentText(figures, toCurrency)}</span></span>
             <span class="extractor-stat"><span class="extractor-stat-label">Rate</span><span class="extractor-stat-value">${ex.throughputPerHour} t/h</span></span>
           </div>
         </div>

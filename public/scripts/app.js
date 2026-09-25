@@ -19,7 +19,7 @@ import { loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } 
 import { bindForumForms, renderForums } from "./views/forums.js";
 import { bindInboxControls, loadMessages, onInboxTabActivated, renderInboxMessageList } from "./views/inbox.js";
 import { renderLogistics } from "./views/logistics.js";
-import { startMiningUiTicker, stopMiningUiTicker } from "./views/miningTicker.js";
+import { renderMiningCyclePanel, startMiningUiTicker, stopMiningUiTicker } from "./views/miningTicker.js";
 import { renderExpeditionPanel, renderLevel2Progress, updateOverview } from "./views/overview.js";
 import { renderRefinery } from "./views/refinery.js";
 import { bindResearchForms, renderQueue, renderTechTree } from "./views/research.js";
@@ -636,6 +636,7 @@ function bindRealtimeEvents() {
     renderAssets(appState.data);
     updateCorpIdentity(appState.data);
     refreshOpenLeaseView(payload.extractors); // Bug #1091: the open lease view follows the cycle
+    renderMiningCyclePanel(appState.data); // AB#746: and so does Active Mining Cycles, on the event, not the next tick
   });
 
   socket.on("expedition:completed", (payload) => {

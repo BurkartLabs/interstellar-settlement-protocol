@@ -146,7 +146,7 @@ for (const viewport of VIEWPORTS) {
     // within a few ticks (server/game/mining.js carries the fraction between ticks, so this is a real accrual,
     // not a race). "Mined this cycle" is the same figure the player watches (Bug #1091, data-live="mined"),
     // pushed live over the socket — waiting on it is waiting on what the screen shows, not on a fixed sleep.
-    await expect(page.locator('.extractor-row [data-live="mined"]')).not.toHaveText("0", { timeout: 60_000 });
+    await expect(page.locator('.extractor-row [data-live="mined"]')).not.toHaveText(/^0( t)?$/, { timeout: 60_000 }); // AB#746: "0 t"
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "08-cycle", viewport.width);
 
