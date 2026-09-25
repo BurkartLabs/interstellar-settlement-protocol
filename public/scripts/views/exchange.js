@@ -2,7 +2,7 @@
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
-import { DEFAULT_EXCHANGE_VIEW, filteredEmptyHtml, saveExchangeView, tradeNumbers, viewOrders } from "../exchangeView.js";
+import { DEFAULT_EXCHANGE_VIEW, MY_LISTINGS_SHOWN, SELL_ORDERS_SHOWN, cappedNote, filteredEmptyHtml, saveExchangeView, tradeNumbers, viewOrders } from "../exchangeView.js";
 import { deepClone, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { appState, viewerStorage } from "../state.js";
@@ -80,9 +80,21 @@ export function renderMarket(data) {
   showSection("exchange-mine-section", "mine");
 
   // Filter by resource and sort, then cap: the cap applies to what the viewer asked to see (AB#402)
-  const filteredSellOrders = viewOrders(allSellOrders, view).slice(0, 30);
+  const viewedSellOrders = viewOrders(allSellOrders, view);
+  const filteredSellOrders = viewedSellOrders.slice(0, SELL_ORDERS_SHOWN);
   const filteredNpcOrders = viewOrders(npcBuyOrders, view);
-  const mySellOrders = viewOrders(allMySellOrders, view).slice(0, 50);
+  const viewedMySellOrders = viewOrders(allMySellOrders, view);
+  const mySellOrders = viewedMySellOrders.slice(0, MY_LISTINGS_SHOWN);
+
+  // AB#1169: say when the cap left some out, rather than letting 30 rows read as the whole book
+  const showCapped = (id, shown, total, label) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = cappedNote(shown, total, label);
+    el.hidden = !el.textContent;
+  };
+  showCapped("exchange-buy-capped", filteredSellOrders.length, viewedSellOrders.length, "player sell orders");
+  showCapped("my-sell-orders-capped", mySellOrders.length, viewedMySellOrders.length, "of your listings");
 
   // "Nothing listed yet" and "your filter hid it" are different states, shown differently (AB#402)
   const showEmpty = (emptyEl, filteredId, total, shown, label) => {
