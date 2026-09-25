@@ -162,13 +162,10 @@ export function bindGlobalControls() {
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", async () => {
-      if (appState.accountId && appState.refreshToken) {
+      if (appState.accountId) {
         try {
-          await fetch("/api/auth/logout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ accountId: appState.accountId, refreshToken: appState.refreshToken })
-          });
+          // AB#757: the server revokes the refresh token in this browser's HttpOnly cookie and clears the cookie.
+          await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
         } catch {
           // best-effort — clear session regardless
         }

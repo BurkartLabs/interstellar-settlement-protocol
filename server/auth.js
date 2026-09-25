@@ -81,4 +81,50 @@ function requireAccountAccess(req, res, next) {
   next();
 }
 
-export { verifyAccessToken, getBearerToken, issueTokens, JWT_SECRET, requireAuth, requireAccountAccess };
+// AB#757 (D-0.5-2): the refresh token lives only in this cookie. HttpOnly keeps it from any script on the page,
+// Secure keeps it off plain http (browsers treat localhost and 127.0.0.1 as secure, so local play still works),
+// SameSite=Strict keeps another site's form or fetch from sending it, and the path keeps it off every request but
+// refresh and logout. The access token is returned in the body and the page holds it in memory only.
+const REFRESH_COOKIE = "isp_refresh";
+const REFRESH_COOKIE_OPTIONS = { httpOnly: true, secure: true, sameSite: "strict", path: "/api/auth" };
+
+function setRefreshCookie(res, tokens) {
+  res.cookie(REFRESH_COOKIE, tokens.refreshToken, { ...REFRESH_COOKIE_OPTIONS, maxAge: REFRESH_TOKEN_SECONDS * 1000 });
+}
+
+function clearRefreshCookie(res) {
+  res.cookie(REFRESH_COOKIE, "", { ...REFRESH_COOKIE_OPTIONS, maxAge: 0 });
+}
+
+/** The refresh token from the request's cookie header, or null. Nothing else in a request is read as one. */
+function readRefreshCookie(req) {
+  for (const part of String(req.headers.cookie || "").split(";")) {
+    const eq = part.indexOf("=");
+    if (eq < 0 || part.slice(0, eq).trim() !== REFRESH_COOKIE) continue;
+    try {
+      return decodeURIComponent(part.slice(eq + 1).trim()) || null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** A session response: the refresh token goes in the cookie and is left out of the body. */
+function sendSession(res, status, account, tokens) {
+  setRefreshCookie(res, tokens);
+  const { refreshToken: _cookieOnly, ...body } = tokens;
+  res.status(status).json({ account, ...body });
+}
+
+export {
+  verifyAccessToken,
+  getBearerToken,
+  issueTokens,
+  JWT_SECRET,
+  requireAuth,
+  requireAccountAccess,
+  sendSession,
+  clearRefreshCookie,
+  readRefreshCookie
+};

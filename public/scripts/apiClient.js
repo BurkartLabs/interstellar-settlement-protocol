@@ -15,9 +15,10 @@ function showAuthScreen() {
 }
 
 // Bug #710: the socket carries the access token, so the server knows who is chatting. The callback runs on every
-// (re)connect, so a refreshed token is picked up; the page's own origin needs no CORS.
+// (re)connect, so a refreshed token is picked up; the page's own origin needs no CORS. AB#757: the token is the one
+// in memory; until the page has refreshed from its cookie the socket is anonymous, and the refresh reconnects it.
 export const socket = typeof io !== "undefined"
-  ? io({ auth: (cb) => cb({ token: appState.accessToken || localStorage.getItem(STORAGE_KEYS.accessToken) }) })
+  ? io({ auth: (cb) => cb({ token: appState.accessToken }) })
   : null;
 
 /** Reconnect so the socket authenticates with the current token (after a refresh or a login on this page). */
@@ -25,29 +26,28 @@ export function reauthenticateSocket() {
   if (socket?.connected) socket.disconnect().connect();
 }
 
+// AB#757 (D-0.5-2): no token is ever written to storage. The refresh token is an HttpOnly cookie the page cannot
+// read, and the access token lives in appState only; only the account id, which is not a credential, is kept.
 export function persistSession() {
   if (appState.accountId) {
     localStorage.setItem(STORAGE_KEYS.accountId, appState.accountId);
   }
+}
 
-  if (appState.accessToken) {
-    localStorage.setItem(STORAGE_KEYS.accessToken, appState.accessToken);
-  }
-
-  if (appState.refreshToken) {
-    localStorage.setItem(STORAGE_KEYS.refreshToken, appState.refreshToken);
-  }
+// Where tokens were kept before AB#757. Removed on every load, so a player who last signed in on an older build
+// does not keep a readable 30-day refresh token in this origin's storage.
+const LEGACY_TOKEN_KEYS = ["isp.accessToken", "isp.refreshToken"];
+function forgetLegacyTokens() {
+  for (const key of LEGACY_TOKEN_KEYS) localStorage.removeItem(key);
 }
 
 export function clearSession() {
   appState.accountId = null;
   appState.accountEmail = null;
   appState.accessToken = null;
-  appState.refreshToken = null;
   appState.inbox = { messages: [], folder: "inbox", subtype: "official", openMessageId: null, composeDraftId: null, loaded: false };
   localStorage.removeItem(STORAGE_KEYS.accountId);
-  localStorage.removeItem(STORAGE_KEYS.accessToken);
-  localStorage.removeItem(STORAGE_KEYS.refreshToken);
+  forgetLegacyTokens();
 }
 
 let _sessionExpiredHandled = false;
@@ -82,37 +82,40 @@ export function createInvalidSessionError(message) {
 
 export function hydrateSession() {
   appState.accountId = localStorage.getItem(STORAGE_KEYS.accountId);
-  appState.accessToken = localStorage.getItem(STORAGE_KEYS.accessToken);
-  appState.refreshToken = localStorage.getItem(STORAGE_KEYS.refreshToken);
+  appState.accessToken = null;
+  forgetLegacyTokens();
 }
 
-export async function refreshSessionToken() {
-  if (!appState.refreshToken) {
-    handleSessionExpired();
-    return false;
-  }
+// One refresh at a time: each refresh rotates the cookie, so two in flight would present the same token twice and
+// the loser, finding it revoked, would sign the player out.
+let refreshing = null;
 
-  const response = await fetch("/api/auth/refresh", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken: appState.refreshToken })
-  });
+/** Exchange the refresh cookie for a new access token (AB#757). A page load starts here; so does any 401. */
+export function refreshSessionToken() {
+  refreshing ??= (async () => {
+    try {
+      const response = await fetch("/api/auth/refresh", { method: "POST", credentials: "same-origin" });
+      if (!response.ok) {
+        handleSessionExpired();
+        return false;
+      }
 
-  if (!response.ok) {
-    handleSessionExpired();
-    return false;
-  }
-
-  const payload = await response.json();
-  appState.accessToken = payload.accessToken;
-  appState.refreshToken = payload.refreshToken;
-  if (payload.account?.id) {
-    appState.accountId = payload.account.id;
-  }
-  persistSession();
-  // A socket that connected with the expired token is unauthenticated, and its chat would be dropped (Bug #710).
-  reauthenticateSocket();
-  return true;
+      const payload = await response.json();
+      appState.accessToken = payload.accessToken;
+      if (payload.account?.id) {
+        appState.accountId = payload.account.id;
+      }
+      persistSession();
+      // A socket that connected with the expired token is unauthenticated, and its chat would be dropped (Bug #710).
+      reauthenticateSocket();
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshing = null;
+    }
+  })();
+  return refreshing;
 }
 
 export async function apiFetch(url, options = {}, allowRetry = true) {
@@ -123,7 +126,7 @@ export async function apiFetch(url, options = {}, allowRetry = true) {
 
   const response = await fetch(url, { ...options, headers });
   if (response.status === 401 && allowRetry) {
-    if (appState.refreshToken) {
+    if (appState.accountId) {
       const refreshed = await refreshSessionToken();
       if (refreshed) {
         return apiFetch(url, options, false);

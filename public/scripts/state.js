@@ -19,8 +19,8 @@ export const appState = {
   authenticated: false,
   accountId: null,
   accountEmail: null,
+  /** AB#757: in memory only, never in storage; the refresh token is an HttpOnly cookie this page cannot see. */
   accessToken: null,
-  refreshToken: null,
   profileMode: null,
   walkthroughCompleted: false,
   textOnly: false,
@@ -65,8 +65,6 @@ export const appState = {
 
 export const STORAGE_KEYS = {
   accountId: "isp.accountId",
-  accessToken: "isp.accessToken",
-  refreshToken: "isp.refreshToken",
   walkthroughOfferSeenPrefix: "isp.walkthrough-offer-seen:"
 };
 

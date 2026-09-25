@@ -35,12 +35,21 @@ export async function registerAccount(app, overrides = {}) {
   }
   return {
     body,
+    response: res,
     account: res.body.account,
     accessToken: res.body.accessToken,
-    refreshToken: res.body.refreshToken,
+    // AB#757: the refresh token arrives only as the HttpOnly isp_refresh cookie; send it back with
+    // .set("Cookie", `isp_refresh=${refreshToken}`).
+    refreshToken: refreshCookieOf(res),
     accessTokenExpiresAt: res.body.accessTokenExpiresAt,
     refreshTokenExpiresAt: res.body.refreshTokenExpiresAt
   };
+}
+
+/** The refresh token a response set in its isp_refresh cookie (AB#757), or undefined. */
+export function refreshCookieOf(res) {
+  const line = [].concat(res.headers["set-cookie"] || []).find((c) => c.startsWith("isp_refresh="));
+  return line ? decodeURIComponent(line.slice("isp_refresh=".length).split(";")[0]) || undefined : undefined;
 }
 
 /**

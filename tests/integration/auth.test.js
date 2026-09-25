@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import crypto from "node:crypto";
 import { getApp } from "../helpers/app.js";
-import { freshAgent, registerAccount, authed } from "../helpers/api.js";
+import { freshAgent, registerAccount, authed, refreshCookieOf } from "../helpers/api.js";
+
+// AB#757: the refresh token travels only in the isp_refresh cookie (tests/integration/auth-cookie.test.js has its flags).
+const withCookie = (req, token) => req.set("Cookie", `isp_refresh=${token}`);
 import { getAccountById } from "../../server/gameState.js";
 import { accountsStore } from "../../server/game/store.js";
 
@@ -66,7 +69,7 @@ describe("Auth routes", () => {
       });
       expect(res.status).toBe(200);
       expect(res.body.accessToken).toBeTruthy();
-      expect(res.body.refreshToken).toBeTruthy();
+      expect(refreshCookieOf(res)).toBeTruthy();
       expect(res.body.account.email.toLowerCase()).toBe(body.email.toLowerCase());
     });
 
@@ -94,10 +97,10 @@ describe("Auth routes", () => {
     it("rotates a valid refresh token and returns new pair", async () => {
       const { app } = await getApp();
       const { refreshToken } = await registerAccount(app);
-      const res = await freshAgent(app).post("/api/auth/refresh").send({ refreshToken });
+      const res = await withCookie(freshAgent(app).post("/api/auth/refresh"), refreshToken);
       expect(res.status).toBe(200);
       expect(res.body.accessToken).toBeTruthy();
-      expect(res.body.refreshToken).toBeTruthy();
+      expect(refreshCookieOf(res)).toBeTruthy();
       // Note: tokens issued in the same second are byte-identical because JWT
       // iat has second resolution. We don't assert non-equality here.
     });
@@ -109,25 +112,30 @@ describe("Auth routes", () => {
       // distinct string from the original (otherwise the original gets
       // re-stored as a side-effect of issueTokens producing the same bytes).
       await new Promise((r) => setTimeout(r, 1100));
-      const rotated = await freshAgent(app).post("/api/auth/refresh").send({ refreshToken });
+      const rotated = await withCookie(freshAgent(app).post("/api/auth/refresh"), refreshToken);
       expect(rotated.status).toBe(200);
-      expect(rotated.body.refreshToken).not.toBe(refreshToken);
+      expect(refreshCookieOf(rotated)).not.toBe(refreshToken);
       // Now attempt to re-use the original (revoked) token
-      const reuse = await freshAgent(app).post("/api/auth/refresh").send({ refreshToken });
+      const reuse = await withCookie(freshAgent(app).post("/api/auth/refresh"), refreshToken);
       expect(reuse.status).toBe(401);
     });
 
-    it("rejects missing refresh token with 400", async () => {
+    it("rejects a missing refresh cookie with 401 (not signed in)", async () => {
       const { app } = await getApp();
       const res = await freshAgent(app).post("/api/auth/refresh").send({});
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(401);
     });
 
     it("rejects malformed token with 401", async () => {
       const { app } = await getApp();
-      const res = await freshAgent(app).post("/api/auth/refresh").send({
-        refreshToken: "not-a-real-jwt"
-      });
+      const res = await withCookie(freshAgent(app).post("/api/auth/refresh"), "not-a-real-jwt");
+      expect(res.status).toBe(401);
+    });
+
+    it("rejects an access token offered as a refresh token with 401", async () => {
+      const { app } = await getApp();
+      const { accessToken } = await registerAccount(app);
+      const res = await withCookie(freshAgent(app).post("/api/auth/refresh"), accessToken);
       expect(res.status).toBe(401);
     });
   });
@@ -145,26 +153,29 @@ describe("Auth routes", () => {
     it("still accepts, rotates and revokes the real token despite the stored digest", async () => {
       const { app } = await getApp();
       const { account, refreshToken } = await registerAccount(app);
-      const refreshed = await freshAgent(app).post("/api/auth/refresh").send({ refreshToken });
+      const refreshed = await withCookie(freshAgent(app).post("/api/auth/refresh"), refreshToken);
       expect(refreshed.status).toBe(200);
-      const logout = await freshAgent(app).post("/api/auth/logout").send({ accountId: account.id, refreshToken: refreshed.body.refreshToken });
+      const rotated = refreshCookieOf(refreshed);
+      expect(accountsStore.accounts[account.id].refreshTokens).toHaveLength(1);
+      const logout = await withCookie(freshAgent(app).post("/api/auth/logout"), rotated);
       expect(logout.status).toBe(200);
-      const reuse = await freshAgent(app).post("/api/auth/refresh").send({ refreshToken: refreshed.body.refreshToken });
+      expect(accountsStore.accounts[account.id].refreshTokens).toHaveLength(0);
+      const reuse = await withCookie(freshAgent(app).post("/api/auth/refresh"), rotated);
       expect(reuse.status).toBe(401);
     });
   });
 
   describe("POST /api/auth/logout", () => {
-    it("revokes the supplied refresh token (idempotent 200)", async () => {
+    it("revokes the refresh token in the cookie (idempotent 200)", async () => {
       const { app } = await getApp();
       const { account, refreshToken } = await registerAccount(app);
-      const r1 = await freshAgent(app).post("/api/auth/logout").send({
-        accountId: account.id,
-        refreshToken
-      });
+      const r1 = await withCookie(freshAgent(app).post("/api/auth/logout"), refreshToken);
       expect(r1.status).toBe(200);
+      expect(accountsStore.accounts[account.id].refreshTokens).toHaveLength(0);
+      const again = await withCookie(freshAgent(app).post("/api/auth/logout"), refreshToken);
+      expect(again.status).toBe(200);
       // Subsequent refresh attempt should now fail
-      const r2 = await freshAgent(app).post("/api/auth/refresh").send({ refreshToken });
+      const r2 = await withCookie(freshAgent(app).post("/api/auth/refresh"), refreshToken);
       expect(r2.status).toBe(401);
     });
   });

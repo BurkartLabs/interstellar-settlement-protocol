@@ -18,8 +18,8 @@ const TABLES = [
 const OUT_OF_SCOPE = {
   "POST /api/auth/register": "validates its own body (email, password, names: Bug #433)",
   "POST /api/auth/login": "validates its own body; answers only yes or no",
-  "POST /api/auth/refresh": "the refresh token is the whole input",
-  "POST /api/auth/logout": "the refresh token is the whole input",
+  "POST /api/auth/refresh": "reads only the isp_refresh cookie; the body is not read (AB#757)",
+  "POST /api/auth/logout": "reads only the isp_refresh cookie; the body is not read (AB#757)",
   "GET /api/auth/session": "no input",
   "GET /healthz": "the health probe, with no input (AB#735)",
   "GET /api/bootstrap": "a public read with no input",

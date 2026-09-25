@@ -66,11 +66,13 @@ test("the Level 2 lease card keeps a five-staff player at home, and Mars can be 
 
   // Nothing sends this player to Mars now, but a player can still choose to go. Travel there through the real route,
   // then wait until the server has the corporation docked.
+  // AB#757: the page keeps its access token in memory, so this gets its own from the HttpOnly refresh cookie.
   const api = (method, url, body) => page.evaluate(async ({ method, url, body }) => {
     const id = localStorage.getItem("isp.accountId");
+    const { accessToken } = await (await fetch("/api/auth/refresh", { method: "POST" })).json();
     const res = await fetch(url.replace(":id", id), {
       method,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("isp.accessToken")}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
       body: body ? JSON.stringify(body) : undefined
     });
     return { status: res.status, body: await res.json() };

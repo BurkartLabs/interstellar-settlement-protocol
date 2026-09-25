@@ -118,10 +118,9 @@ export function selfTimes(profile, top = 12) {
   });
 }
 
-async function measure(dir, { id, who }, tracePath) {
+async function measure(dir, { who }, tracePath) {
   const { chromium } = loadPlaywright();
   const { child, port } = await startServer(dir);
-  const login = await api(port, "POST", "/api/auth/login", { email: who.email, password: who.password });
   const browser = await chromium.launch(process.env.BENCH_CHANNEL ? { channel: process.env.BENCH_CHANNEL } : {});
   try {
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -138,7 +137,13 @@ async function measure(dir, { id, who }, tracePath) {
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: THROTTLE });
     const base = `http://127.0.0.1:${port}`;
     await page.goto(`${base}/login.html`);
-    await page.evaluate((p) => { localStorage.setItem("isp.accountId", p.id); localStorage.setItem("isp.accessToken", p.token); localStorage.setItem("isp.refreshToken", p.refresh); }, { id, token: login.accessToken, refresh: login.refreshToken });
+    // AB#757: sign in from the page, so the browser holds the HttpOnly refresh cookie a player's would; the game page
+    // gets its access token from that cookie on load. Only the account id is stored.
+    await page.evaluate(async (who) => {
+      const res = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(who) });
+      if (!res.ok) throw new Error(`login ${res.status}`);
+      localStorage.setItem("isp.accountId", (await res.json()).account.id);
+    }, { email: who.email, password: who.password });
 
     // Load: first paint, the first full render, and time to interactive (the end of the last long task before five
     // quiet seconds, the Lighthouse definition without its network condition).
