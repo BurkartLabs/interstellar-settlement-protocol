@@ -18,7 +18,16 @@ describe("what a level's notice says (Bug #1260)", () => {
       title: "Corporation Level 1",
       body:
         `Your corporation reached Level 1 of ${MAX_DEFINED_LEVEL}. Employee cap ${u.employeeCap}, building slots ${u.buildingSlots}, ` +
-        `fleet cap ${u.maxFleetSize}. Market sector opened: ${u.marketSectors.join(", ")}.`
+        `fleet cap ${u.maxFleetSize}. Market sector opened: ${u.marketSectors.join(", ")}.`,
+      // AB#743: the same figures, one per unlock the level defines, for the milestone modal.
+      level: 1,
+      maxLevel: MAX_DEFINED_LEVEL,
+      unlocks: [
+        { key: "employeeCap", label: "Employee cap", value: String(u.employeeCap) },
+        { key: "buildingSlots", label: "Building slots", value: String(u.buildingSlots) },
+        { key: "maxFleetSize", label: "Fleet cap", value: String(u.maxFleetSize) },
+        { key: "marketSectors", label: "Market sectors opened", value: u.marketSectors.join(", ") }
+      ]
     });
   });
 

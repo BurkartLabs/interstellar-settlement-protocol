@@ -31,6 +31,37 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   moves its clock back, and `e2e/cycle-accumulation.spec.js` checks 1 min and 1 h in at both sizes: bar vs elapsed,
   after a reload, live accrual, server spend. Screenshots in `docs/ab-746/`.
 
+## What's now true (ISP-62, AB#748 — /how-to-start, the playtest briefing, Builder)
+
+- `/how-to-start` (`public/how-to-start.html`, route in `server/routes/catalog.js`, public like `/healthz`) is the
+  page the Board hands out with the URL: what the game is, the first hour in eight steps, how to report a bug, and
+  what is not in this build. Linked from the landing hero (a text line, so its two buttons stay the only buttons)
+  and from the login copy.
+- **Its figures are copies, and a test keeps them honest**: `tests/integration/how-to-start.test.js` computes each
+  from `data/economy.json`, `systems.json`, `research.json`, `milestones.json`, the lease-staffing rule and the
+  economy model's code rules, and checks the eight `data-step`s follow `WALKTHROUGH_STEPS`. **A price or step change
+  that fails it means: edit the page.** Mutation-checked (a price, a swapped step, the route, a link: each red).
+- Bug reports go to Forums > Help & Guides and the person who invited you: the only channel the build has. Nobody
+  is known to read the forum for bugs; the Board should confirm who does.
+- `e2e/how-to-start.spec.js` walks landing -> page -> login -> page at both sizes and writes screenshots to
+  `test-results/isp-62/` (copied by hand to `docs/isp-62/`). `no-payments.test.js`'s pinned line is 4306.
+
+## What's now true (AB#743, ISP-57 — the confirmation modal, and the first level-up)
+
+- **The component, for AB#744 to reuse: `showActionReceipt(answer, { returnFocusTo })`** in
+  `public/scripts/views/receiptModal.js`, with `#action-receipt-modal` in `index.html`. Pass it a route's parsed
+  response. It shows `answer.receipt`, or the amber milestone variant when `answer.levelsReached` is non-empty, and
+  does nothing for a refusal. The layout is the pure `actionReceiptView()` in `public/scripts/actionReceipt.js`.
+- **The server side: `server/receipts.js`.** A route that commits something answers `{ ...account, receipt }`, with
+  `receipt = { action, title, summary, cost, costCredits, grants: [{label, value}], next }` built from the values its
+  mutation used. Done for rent-office, renew-office, hire, purchase-lease, build-extractor and start-mining. AB#744:
+  add a builder there and call `showActionReceipt` from the view. `mutateAccountState` now returns `levelsReached`
+  on every call ([] when none), from `evaluateAccountLevel`, with each unlock `data/milestones.json` defines.
+  `formatCredits` lives in `server/receipts.js` now; `server/routes/helpers.js` re-exports it.
+- Closes on Escape, its button, or any click outside the card. Outside clicks go through to what was clicked; the
+  card itself can cover the next control, so `e2e/receipt.mjs`'s `acknowledgeReceipt(page)` dismisses it in specs.
+- Screenshots of all six receipts and the Level 1 milestone in `docs/ab-743/`.
+
 ## What's now true (ISP-59, AB#745 — changing numbers are acknowledged where they change, Builder)
 
 - **To mark a number, render it with `numberMarkup(key, value, text)`** (`public/scripts/numberChange.js`); nothing

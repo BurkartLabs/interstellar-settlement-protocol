@@ -10,6 +10,7 @@ import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { WALKTHROUGH_STEPS } from "../public/scripts/walkthrough.js";
+import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743
 
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
 fs.mkdirSync(SCREEN_DIR, { recursive: true });
@@ -55,25 +56,30 @@ test("the walkthrough runs start to finish with no console error, at 1280x800", 
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   await page.selectOption("#rent-office-duration", "7");
   await page.click("#rent-office-btn");
+  await acknowledgeReceipt(page);
 
   await atStep(4); // hire
   await page.fill("#office-hire-count", "5");
   await page.click('#office-hire-form button[type="submit"]');
+  await acknowledgeReceipt(page);
 
   await atStep(5); // lease
   await page.click("#station-back-btn");
   await page.click('[data-building-action="building:isa-claims-leases"]');
   await page.click('.purchase-lease-btn[data-body="Earth"]');
+  await acknowledgeReceipt(page);
 
   await atStep(6); // yard
   await page.click(".lease-manage-btn");
   await page.click("#lease-build-extractor-btn");
+  await acknowledgeReceipt(page);
 
   await atStep(7); // cycle
   const mineForm = page.locator(".lease-mine-form");
   await mineForm.locator('[name="amount"]').fill("250");
   await mineForm.locator('[name="hours"]').fill("24");
   await mineForm.locator('button[type="submit"]').click();
+  await acknowledgeReceipt(page);
 
   await atStep(8); // sell, once something has been mined (the 5s server tick, pushed live over the socket)
   await expect(page.locator('.extractor-row [data-live="mined"]')).not.toHaveText(/^0( t)?$/, { timeout: 60_000 }); // AB#746: "0 t"

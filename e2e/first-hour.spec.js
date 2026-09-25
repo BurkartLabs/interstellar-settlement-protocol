@@ -15,6 +15,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743
 
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
 fs.mkdirSync(SCREEN_DIR, { recursive: true });
@@ -103,6 +104,7 @@ for (const viewport of VIEWPORTS) {
     await expect(page.locator("#rent-office-duration")).toBeVisible();
     await page.selectOption("#rent-office-duration", "7");
     await page.click("#rent-office-btn");
+    await acknowledgeReceipt(page);
     await expect(page.getByText("Active Lease")).toBeVisible();
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "04-office", viewport.width);
@@ -110,6 +112,7 @@ for (const viewport of VIEWPORTS) {
     // ── hire: five employees, the ISA's per-lease minimum ───────────────────
     await page.fill("#office-hire-count", "5");
     await page.click('#office-hire-form button[type="submit"]');
+    await acknowledgeReceipt(page);
     await expectFeedback(page, /hire|staff|personnel/i);
     await expect(page.locator("#office-hire-hint")).toContainText("5 / ");
     if (mobile) await assertNoHorizontalScroll(page);
@@ -119,6 +122,7 @@ for (const viewport of VIEWPORTS) {
     await page.click('#station-back-btn');
     await page.click('[data-building-action="building:isa-claims-leases"]');
     await page.click('.purchase-lease-btn[data-body="Earth"]');
+    await acknowledgeReceipt(page);
     await expect(page.locator(".lease-manage-btn").first()).toBeVisible();
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "06-lease", viewport.width);
@@ -126,6 +130,7 @@ for (const viewport of VIEWPORTS) {
     // ── yard: commission a Basic Extractor Yard on that claim ──────────────
     await page.click(".lease-manage-btn");
     await page.click("#lease-build-extractor-btn");
+    await acknowledgeReceipt(page);
     await expect(page.locator(".extractor-row")).toBeVisible();
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "07-yard", viewport.width);
@@ -135,6 +140,7 @@ for (const viewport of VIEWPORTS) {
     await mineForm.locator('[name="amount"]').fill("250");
     await mineForm.locator('[name="hours"]').fill("24");
     await mineForm.locator('button[type="submit"]').click();
+    await acknowledgeReceipt(page);
     await expect(page.locator(".extractor-row .building-status-badge")).toHaveText("Active");
     // The tick runs every 5s server-side (server/index.js miningTick); at 250 t/h that crosses one whole ton
     // within a few ticks (server/game/mining.js carries the fraction between ticks, so this is a real accrual,
