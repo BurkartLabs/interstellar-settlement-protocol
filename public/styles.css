@@ -5685,6 +5685,13 @@ tr.npc-order-exhausted {
   background: rgba(255, 255, 255, 0.04);
 }
 
+/* AB#1168: a listing taken down moved no goods and no money; dashed so it is not mistaken for Listed */
+.trade-type-cancelled {
+  color: var(--muted);
+  border-color: rgba(255, 255, 255, 0.12);
+  border-style: dashed;
+}
+
 .trade-type-sold {
   color: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 35%, transparent);
