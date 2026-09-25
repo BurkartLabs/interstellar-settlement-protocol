@@ -18,6 +18,13 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1295, Builder #3)
+
+- A returning expedition's notification and inbox report name the belt, its system and the deposit station
+  (`server/expeditionText.js`), not ids. `e2e/expedition-return.spec.js` seeds an expedition that finishes seconds after
+  start (`e2e/seed-expedition-account.mjs`), which is reusable for anything that needs a completed expedition.
+  AB#1336, internal ids in other notifications, is still open.
+
 ## What's now true (AB#1326 — system-view orbits fit the height, Builder #1)
 
 - `systemViewLayout`'s `orbitLimit` also fits the height (`h / 2 - 76`), so on desktop and tablet canvases the outer
