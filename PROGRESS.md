@@ -18,6 +18,15 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#1169 — Sell Orders says when it is capped, Builder #1)
+
+- Sell Orders draws `SELL_ORDERS_SHOWN` (30) and My Active Listings `MY_LISTINGS_SHOWN` (50), both in
+  `public/scripts/exchangeView.js`; when the filtered list is longer, `cappedNote` fills `#exchange-buy-capped` /
+  `#my-sell-orders-capped` ("Showing 30 of 35 player sell orders. Sort by price or filter by resource to see the
+  rest."). `e2e/sell-orders-capped.spec.js` seeds 35 listings (`e2e/seed-busy-book.mjs`); screenshots in
+  `docs/ab-1169/`. The server's own 200-order view cap (`server/marketView.js`) is not counted by the note.
+- Filed, not fixed: **AB#1857** — Create Listing shows bare column headers when there is nothing to list.
+
 ## What's now true (AB#1168 — a cancelled listing in Trade History, Builder #1)
 
 - **A Trade History row's badge and Total come from `public/scripts/tradeHistory.js`** (`TRADE_TYPES`,
