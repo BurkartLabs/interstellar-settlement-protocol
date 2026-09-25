@@ -45,6 +45,7 @@ export const appState = {
   // overwrite what the user is typing.
   refineQuantityOverrides: {},
   refineQuantityErrors: {}, // AB#1255: why Start Run refused a chain's quantity, shown under its field until it is edited
+  listingStatus: null, // AB#2057: { item, tone, text }, what Create Listing last said, shown in that item's row
   miningUiTicker: null,
   stationRegistry: [],
   buildingRegistry: [],
