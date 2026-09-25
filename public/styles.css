@@ -6428,10 +6428,19 @@ body.sg {
   color: var(--text);
 }
 .sg-fill {
+  display: flex;
+  flex-direction: column;
+  min-width: 96px;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
+}
+.sg-fill-state {
   font-size: var(--font-size-2);
   font-weight: var(--font-weight-semibold);
+}
+.sg-fill-hex {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-1);
 }
 .sg-fill-text {
   margin: 0 0 0 var(--space-2);
@@ -6554,8 +6563,26 @@ body.sg {
     grid-template-columns: 1fr;
     gap: var(--space-1);
   }
+  .sg-swatches {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sg-fill-name {
+    width: 100%;
+  }
+  .sg-fill-text {
+    width: 100%;
+    margin: 0;
+  }
+  .sg-table {
+    font-size: var(--font-size-1);
+  }
   .sg-table th,
   .sg-table td {
-    padding: var(--space-2);
+    padding: var(--space-2) var(--space-1);
+  }
+  /* The threshold is in the summary above the table; the phone keeps the pair, its ratio and the verdict. */
+  .sg-table[data-contrast] th:nth-child(4),
+  .sg-table[data-contrast] td:nth-child(4) {
+    display: none;
   }
 }

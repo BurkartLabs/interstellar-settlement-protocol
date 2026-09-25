@@ -51,7 +51,8 @@ for (const el of document.querySelectorAll("[data-fills]")) {
     row.append(node("p", "sg-fill-name", name));
     const on = `--on-${name}`;
     for (const [state, token] of [["rest", `--${name}`], ["hover", `--${name}-hover`], ["pressed", `--${name}-pressed`]]) {
-      const chip = node("div", "sg-fill", `${state} ${value(token)}`);
+      const chip = node("div", "sg-fill");
+      chip.append(node("span", "sg-fill-state", state), node("span", "sg-fill-hex", value(token)));
       chip.style.setProperty("background", `var(${token})`);
       chip.style.setProperty("color", `var(${on})`);
       row.append(chip);
