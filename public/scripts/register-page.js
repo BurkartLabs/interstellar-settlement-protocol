@@ -19,7 +19,7 @@ function clearFieldErrors() {
 /** `field` is the server's own name for what to fix, or undefined for an error that names no one field (a network
  *  failure, a 500). A named field's message goes beside that field, and nothing is left in the shared status line
  *  for it — the two never say the same thing twice. */
-function showRegisterError(status, payload) {
+function showRegisterError(status, payload, retryAfter) {
   clearFieldErrors();
   const target = payload?.field ? FIELD_ERRORS[payload.field] : undefined;
   if (target) {
@@ -27,7 +27,7 @@ function showRegisterError(status, payload) {
     registerStatus.textContent = "";
     return;
   }
-  showMessage(registerStatus, registerErrorMessage(status, payload));
+  showMessage(registerStatus, registerErrorMessage(status, payload, retryAfter));
 }
 
 const STORAGE_KEYS = {
@@ -73,7 +73,7 @@ if (registerForm) {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      showRegisterError(response.status, payload);
+      showRegisterError(response.status, payload, response.headers.get("Retry-After"));
       return;
     }
 

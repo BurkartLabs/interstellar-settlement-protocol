@@ -8,24 +8,41 @@ export const REGISTER_LINK = { href: "/register.html", text: "register a new cor
 
 const TRY_AGAIN = "Try again in a minute.";
 
-/** The message for a failed login: `status` is the HTTP status (0 when the server could not be reached). */
-export function loginErrorMessage(status, payload = {}) {
+/**
+ * AB#2043: a refusal for too many attempts says how long the server will keep refusing. `retryAfter` is its
+ * Retry-After header in seconds: one minute for logins per address, 15 for one account's failed logins, 60 for
+ * registrations. Without a usable header, the server's own sentence, which names the same time; with neither, a minute.
+ * The durations are never written here: a second copy would drift from server/rateLimiters.js.
+ */
+function tooManyAttempts(payload, retryAfter) {
+  const seconds = Number(retryAfter);
+  if (Number.isFinite(seconds) && seconds > 0) {
+    const minutes = Math.ceil(seconds / 60);
+    return { text: `Too many attempts. ${minutes <= 1 ? TRY_AGAIN : `Try again in ${minutes} minutes.`}` };
+  }
+  if (payload?.error) return { text: payload.error };
+  return { text: `Too many attempts. ${TRY_AGAIN}` };
+}
+
+/** The message for a failed login: `status` is the HTTP status (0 when the server could not be reached), and
+ *  `retryAfter` the response's Retry-After header, read only for a 429. */
+export function loginErrorMessage(status, payload = {}, retryAfter) {
   if (status === 401) {
     return { text: "That email and password do not match. Check them and try again, or", link: REGISTER_LINK };
   }
   if (status === 400 && payload?.error) return { text: payload.error };
-  if (status === 429) return { text: `Too many attempts. ${TRY_AGAIN}` };
+  if (status === 429) return tooManyAttempts(payload, retryAfter);
   if (status === 0) return { text: `The server could not be reached. Check your connection. ${TRY_AGAIN}` };
   return { text: `Logging in failed on our side. ${TRY_AGAIN}` };
 }
 
 /** The message for a failed registration. The server names what to fix; an email already in use offers the login. */
-export function registerErrorMessage(status, payload = {}) {
+export function registerErrorMessage(status, payload = {}, retryAfter) {
   if (status === 400 && payload?.code === "email-taken") {
     return { text: "An account with this email already exists.", link: LOGIN_LINK };
   }
   if (status === 400 && payload?.error) return { text: payload.error };
-  if (status === 429) return { text: `Too many attempts. ${TRY_AGAIN}` };
+  if (status === 429) return tooManyAttempts(payload, retryAfter);
   if (status === 0) return { text: `The server could not be reached. Check your connection. ${TRY_AGAIN}` };
   return { text: `Registering failed on our side. ${TRY_AGAIN}` };
 }
