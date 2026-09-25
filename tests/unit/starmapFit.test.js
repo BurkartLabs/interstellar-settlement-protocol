@@ -133,18 +133,35 @@ describe("the Starmap fits a phone's width (Bug #1315)", () => {
     }
   });
 
-  it("on a desktop canvas (881x393) the orbits are exactly the old formula", () => {
+  // AB#1326 replaced "the orbits are exactly the old formula": that formula put the outer bodies past the top and
+  // bottom edges. The orbits now also fit the height.
+  it("on a desktop canvas (881x393) the orbits fit the height too", () => {
     for (const system of systems) {
       const map = mapAt(881, 427); // innerHeight 427 gives the 393px canvas seen at 1280x800
       const height = map.canvas.clientHeight;
       expect(height).toBe(393);
       const placed = openSystem(map, system);
       const maxX = Math.max(1, ...placed.map((p) => Number(p.body.x || 0)));
+      const limit = Math.min(Math.min(881, height) * 0.42, 881 / 2 - 76, height / 2 - 76);
       for (const p of placed) {
-        expect(p.orbit, `${system.name} ${p.body.name}`).toBeCloseTo((Number(p.body.x || 0) / maxX) * Math.min(881, height) * 0.42 + 56, 6);
+        expect(p.orbit, `${system.name} ${p.body.name}`).toBeCloseTo((Number(p.body.x || 0) / maxX) * limit + 56, 6);
       }
     }
   });
+
+  // AB#1326: the canvas sizes measured in the bug (1280x800 and 768x1024 in an iframe) and 1280x800 in a window.
+  for (const [width, innerHeight] of [[881, 568], [685, 592], [881, 427]]) {
+    it(`at ${width}x${innerHeight - 34}, in every system, every body and its glow is inside the top and bottom edges`, () => {
+      for (const system of systems) {
+        const map = mapAt(width, innerHeight);
+        const height = map.canvas.clientHeight;
+        for (const p of openSystem(map, system)) {
+          expect(p.y - p.reach, `${system.name} ${p.body.name}`).toBeGreaterThanOrEqual(0);
+          expect(p.y + p.reach, `${system.name} ${p.body.name}`).toBeLessThanOrEqual(height);
+        }
+      }
+    });
+  }
 
   it("on a desktop canvas no cluster label moves: each starts right of its star", () => {
     const { context } = mapAt(881, 427);
