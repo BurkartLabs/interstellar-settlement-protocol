@@ -2691,7 +2691,34 @@ function renderBalanceTable(finances, derived) {
 
 
 function updateOverview(data) {
-  const cards = [
+  const cards = [];
+
+  // ISP-298 (AB#1791): a corporation the Salvage Assignment is offered to, or already working it, is told so
+  // here — the first thing on Overview — rather than left to find Assignments unprompted (T-078). Matched by
+  // kind, not id: the offer and the active copy are the same contract, materialized from ECONOMY.salvage
+  // (server/game/corporation.js), and there is currently exactly one time-served contract shape.
+  const salvageOffer = (data.corp?.contractOfferings?.missions || []).find((m) => m.kind === "time-served");
+  const salvageActive = (data.corp?.activeMissions || []).find((m) => m.kind === "time-served");
+  if (salvageActive) {
+    const remaining = salvageRemainingMs(salvageActive);
+    cards.push({
+      title: "ISA Salvage Assignment",
+      value: remaining > 0 ? `${formatDurationHours(remaining)} remaining` : "Ready to report",
+      body: remaining > 0
+        ? "Reporting for documented salvage work. Return to Assignments once your time is served to collect payment."
+        : "Your time is served. Report to Assignments to collect payment.",
+      jump: "missions"
+    });
+  } else if (salvageOffer) {
+    cards.push({
+      title: "ISA Salvage Assignment",
+      value: "Available",
+      body: "The Bureau is offering emergency salvage work: no funds to lose and nothing left to sell. See Assignments.",
+      jump: "missions"
+    });
+  }
+
+  cards.push(
     {
       title: "Cash Reserves",
       value: toCurrency(data.corp.finances.credits),
@@ -2720,14 +2747,14 @@ function updateOverview(data) {
       value: `${data.corp.military.attackValue} ATK / ${data.corp.military.defenseValue} DEF`,
       body: "Deterministic baseline before unit counters, R&D multipliers, and leadership effects."
     }
-  ];
+  );
 
   const wrap = document.getElementById("overview-cards");
   wrap.innerHTML = cards
     .map(
       // Bug #691 audit: the Conglomerate card's value carries a player-chosen conglomerate name.
       (card) => `
-      <section class="data-card">
+      <section class="data-card"${card.jump ? ` data-jump="${card.jump}" role="button" tabindex="0" style="cursor:pointer"` : ""}>
         <h3>${escapeHtml(card.title)}</h3>
         <p><strong>${escapeHtml(card.value)}</strong></p>
         <p class="muted">${escapeHtml(card.body)}</p>
@@ -2875,6 +2902,26 @@ function formatDurationHours(ms) {
   return `${h}h ${m}m`;
 }
 
+// ISP-298 (AB#1791): the Salvage Assignment (server/game/corporation.js) is paid in time served, not a
+// delivered quota, so it has no progress bar to read from inventory — only a clock, read from the same
+// acceptedAt/hoursRequired the server checks (server/index.js complete-mission, "time-served" branch).
+function salvageRemainingMs(mission, now = Date.now()) {
+  const requiredMs = Number(mission?.hoursRequired || 0) * 3_600_000;
+  const elapsedMs = now - Number(mission?.acceptedAt || 0);
+  return requiredMs - elapsedMs;
+}
+
+// ISP-297 (AB#1789) gave the Salvage Assignment risk: "None" — a real fourth value this ternary did not have a
+// class for, which fell through to risk-high and painted a riskless contract red. Named so a future risk value
+// fails the same way loudly (a blank badge) rather than quietly inheriting "high".
+function missionRiskClass(risk) {
+  if (risk === "Low") return "risk-low";
+  if (risk === "Medium") return "risk-med";
+  if (risk === "High") return "risk-high";
+  if (risk === "None") return "risk-none";
+  return "risk-high";
+}
+
 function isExtractorCycleActive(extractor, now = Date.now()) {
   const startedAt = Number(extractor?.startedAt || 0);
   const endsAt = Number(extractor?.endsAt || 0);
@@ -2921,6 +2968,21 @@ function startMiningUiTicker() {
     if (Array.isArray(appState.data.corp?.shipments) && appState.data.corp.shipments.length) {
       renderLogistics(appState.data);
     }
+
+    // Live-update the Salvage Assignment countdown on its Assignments card (ISP-298, AB#1791). Once it elapses,
+    // the whole list re-renders so the countdown becomes a Complete button — everything else here just edits text.
+    let salvageElapsed = false;
+    document.querySelectorAll("[data-salvage-countdown]").forEach((el) => {
+      const mission = (appState.activeMissions || []).find((m) => m.id === el.getAttribute("data-salvage-countdown"));
+      if (!mission) return;
+      const remaining = salvageRemainingMs(mission);
+      if (remaining <= 0) {
+        salvageElapsed = true;
+      } else {
+        el.textContent = `${formatDurationHours(remaining)} remaining`;
+      }
+    });
+    if (salvageElapsed) renderMissions(appState.data);
 
     // Live-update contract refresh timer
     const timerEl = document.getElementById("contract-refresh-timer");
@@ -4462,7 +4524,9 @@ function openMissionModal(missionId, data) {
   const currentStationId = (data.corp || {}).currentStationId || "earth-station-prime";
   const agent = MISSION_AGENTS.find(a => a.id === mission.agentId);
   const agentStationId = agent ? agent.stationId : null;
-  const isAtAgentStation = !agentStationId || agentStationId === currentStationId;
+  // ISP-298 (AB#1791): the Salvage Assignment is worked "at any ISA facility" — no station to be away from.
+  const isSalvage = mission.kind === "time-served";
+  const isAtAgentStation = isSalvage || !agentStationId || agentStationId === currentStationId;
 
   const modal = document.getElementById("mission-detail-modal");
   const typeEl = document.getElementById("mission-detail-type");
@@ -4488,7 +4552,7 @@ function openMissionModal(missionId, data) {
       : "Control Shift Potential: None \u2014 this mission does not affect territorial control.";
   }
   if (riskBadge) {
-    const riskClass = mission.risk === "Low" ? "risk-low" : mission.risk === "Medium" ? "risk-med" : "risk-high";
+    const riskClass = missionRiskClass(mission.risk);
     riskBadge.className = `mission-card-risk ${riskClass}`;
     riskBadge.textContent = `${mission.risk} Risk`;
   }
@@ -4499,9 +4563,21 @@ function openMissionModal(missionId, data) {
     acceptBtn.hidden = isActive;
   }
 
-  // Quota progress (only for active missions with a quota)
+  // Quota progress (only for active missions with a quota) — the Salvage Assignment has a clock instead (below).
   let canComplete = false;
-  if (isActive && mission.quota && quotaSection) {
+  if (isActive && isSalvage && quotaSection) {
+    // ISP-298 (AB#1791): the same section, repurposed as a countdown — hoursRequired/acceptedAt, not a station's
+    // inventory, decide this contract, so the progress bar (which reads inventory) is hidden rather than reused.
+    const remaining = salvageRemainingMs(mission);
+    canComplete = remaining <= 0;
+    quotaSection.hidden = false;
+    if (quotaBar) quotaBar.style.display = "none";
+    if (quotaText) {
+      quotaText.innerHTML = canComplete
+        ? "<strong>Time served.</strong> Report to collect payment."
+        : `<strong>${escapeHtml(formatDurationHours(remaining))}</strong> remaining before this contract can be completed`;
+    }
+  } else if (isActive && mission.quota && quotaSection) {
     const inv = getInventory(); // current station inventory
     const resource = mission.quota.resource || "";
     const required = mission.quota.amount || 0;
@@ -4512,6 +4588,7 @@ function openMissionModal(missionId, data) {
 
     quotaSection.hidden = false;
     if (quotaBar) {
+      quotaBar.style.display = "";
       quotaBar.style.width = pct + "%";
       quotaBar.className = "mission-quota-bar" + (isFulfilled ? " quota-fulfilled" : "");
     }
@@ -4532,7 +4609,7 @@ function openMissionModal(missionId, data) {
     quotaSection.hidden = true;
   }
 
-  // Location warning (active + remote)
+  // Location warning (active + remote) — never for the Salvage Assignment (isAtAgentStation is forced true).
   if (isActive && !isAtAgentStation && locationSection && locationWarning) {
     const agentStation = appState.stationRegistry.find(s => s.id === agentStationId);
     const agentStationLabel = agentStation ? agentStation.name : "another station";
@@ -4690,7 +4767,7 @@ function renderMissions(data) {
       if (agentMissions.length) {
         if (missionsEmptyEl) missionsEmptyEl.hidden = true;
         missionListEl.innerHTML = agentMissions.map((mission) => {
-          const riskClass = mission.risk === "Low" ? "risk-low" : mission.risk === "Medium" ? "risk-med" : "risk-high";
+          const riskClass = missionRiskClass(mission.risk);
           return `
           <section class="mission-card" data-mission-id="${mission.id}" role="button" tabindex="0">
             <div class="mission-card-header">
@@ -4768,16 +4845,29 @@ function renderMissions(data) {
       activeMissionList.innerHTML = activeMissions
         .map(
           (mission) => {
-            const riskClass = mission.risk === "Low" ? "risk-low" : mission.risk === "Medium" ? "risk-med" : "risk-high";
+            const riskClass = missionRiskClass(mission.risk);
+            // ISP-298 (AB#1791): the Salvage Assignment reports "at any ISA facility" (server/game/corporation.js) —
+            // it has no home station to be remote from, so the location tag and its warning do not apply to it.
+            const isSalvage = mission.kind === "time-served";
             const agent = MISSION_AGENTS.find(a => a.id === mission.agentId);
             const agentStation = agent ? agent.stationId : null;
-            const isRemote = agentStation && agentStation !== currentStationId;
+            const isRemote = !isSalvage && agentStation && agentStation !== currentStationId;
             const stationObj = isRemote ? appState.stationRegistry.find(s => s.id === agentStation) : null;
-            const locationTag = isRemote && stationObj
-              ? `<span class="mission-location-tag mission-location-remote" title="Agent is at ${escapeHtml(stationObj.name)}">⚠ ${escapeHtml(stationObj.body || stationObj.name)}</span>`
-              : isRemote
-                ? `<span class="mission-location-tag mission-location-remote">⚠ Remote</span>`
-                : `<span class="mission-location-tag mission-location-local">● Local</span>`;
+            const locationTag = isSalvage
+              ? ""
+              : isRemote && stationObj
+                ? `<span class="mission-location-tag mission-location-remote" title="Agent is at ${escapeHtml(stationObj.name)}">⚠ ${escapeHtml(stationObj.body || stationObj.name)}</span>`
+                : isRemote
+                  ? `<span class="mission-location-tag mission-location-remote">⚠ Remote</span>`
+                  : `<span class="mission-location-tag mission-location-local">● Local</span>`;
+            // The Assignment is paid in time served, not a delivered quota, so its footer is a countdown until it
+            // can be completed, and then a Complete button — never Abandon (ECONOMY.md: accepting, waiting and
+            // completing are the only three actions).
+            const salvageFooter = isSalvage
+              ? (salvageRemainingMs(mission) > 0
+                  ? `<span class="mission-card-countdown" data-salvage-countdown="${mission.id}">${formatDurationHours(salvageRemainingMs(mission))} remaining</span>`
+                  : `<button class="btn btn-accent btn-sm" type="button" data-complete-mission="${mission.id}">Complete</button>`)
+              : `<button class="btn btn-outline btn-sm" type="button" data-abandon-mission="${mission.id}">Abandon</button>`;
             return `
           <section class="mission-card mission-card--active" data-mission-id="${mission.id}" role="button" tabindex="0" style="cursor:pointer">
             <div class="mission-card-header">
@@ -4788,7 +4878,7 @@ function renderMissions(data) {
             <h3 class="mission-card-title">${escapeHtml(mission.title)}</h3>
             <div class="mission-card-footer">
               <span class="mission-card-reward">${escapeHtml(mission.reward)}</span>
-              <button class="btn btn-outline btn-sm" type="button" data-abandon-mission="${mission.id}">Abandon</button>
+              ${salvageFooter}
             </div>
           </section>`;
           }
@@ -5033,6 +5123,16 @@ function bindTabs() {
   const requirementsWrap = document.getElementById("level2-requirements");
   if (requirementsWrap) {
     requirementsWrap.addEventListener("click", (e) => {
+      const card = e.target.closest("[data-jump]");
+      if (card) goToTab(card.dataset.jump);
+    });
+  }
+
+  // ISP-298 (AB#1791): the Salvage Assignment's Overview card, rendered after bindTabs runs, so it needs its
+  // own delegated listener rather than the once-only direct binding above.
+  const overviewCardsWrap = document.getElementById("overview-cards");
+  if (overviewCardsWrap) {
+    overviewCardsWrap.addEventListener("click", (e) => {
       const card = e.target.closest("[data-jump]");
       if (card) goToTab(card.dataset.jump);
     });
@@ -5829,6 +5929,13 @@ function bindForms() {
       renderMissions(appState.data);
       return;
     }
+    // ISP-298 (AB#1791): the Salvage Assignment's inline Complete button, so a player does not have to open the
+    // modal for a contract that has no quota to review — refused the same way as everything else, via pushFeedback.
+    const completeInline = event.target.closest("[data-complete-mission]");
+    if (completeInline) {
+      await completeMission(completeInline.getAttribute("data-complete-mission"));
+      return;
+    }
     // Click card → open modal
     const card = event.target.closest("[data-mission-id]");
     if (card) {
@@ -5836,12 +5943,17 @@ function bindForms() {
     }
   });
 
-  // Complete contract: deduct resources and remove from active
-  missionCompleteBtn?.addEventListener("click", async () => {
-    const mission = (appState.activeMissions || []).find((m) => m.id === appState.selectedMissionId);
-    if (!mission || !mission.quota) return;
-    // Bug #1009: the same rule the server pays by, so the message says what actually arrived.
-    const rewardCredits = missionRewardCredits(mission.reward, appState.data?.corp?.completedInsights);
+  // Complete contract: deduct resources (or, for the Salvage Assignment, check the clock) and remove from active.
+  // Shared by the mission detail modal's Complete button and the inline one on a ready Assignments card (ISP-298).
+  async function completeMission(missionId) {
+    const mission = (appState.activeMissions || []).find((m) => m.id === missionId);
+    if (!mission || (!mission.quota && mission.kind !== "time-served")) return;
+    // ISP-297/298 (AB#1789/1791): time-served pay is flat, never Contract Law Essentials' 8% bonus (T-018), so
+    // the figure shown is the reward text itself, not missionRewardCredits' bonus-adjusted one.
+    const rewardCredits = mission.kind === "time-served"
+      ? parseInt(String(mission.reward ?? "").replace(/[^0-9]/g, ""), 10) || 0
+      // Bug #1009: the same rule the server pays by, so the message says what actually arrived.
+      : missionRewardCredits(mission.reward, appState.data?.corp?.completedInsights);
 
     if (appState.profileMode === "account" && appState.accountId) {
       const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/complete-mission`, {
@@ -5858,15 +5970,19 @@ function bindForms() {
       appState.data = deepClone(account.state);
       appState.activeMissions = appState.data.corp?.activeMissions || [];
     } else {
-      const inv = getInventory();
-      const resource = mission.quota.resource || "";
-      const required = mission.quota.amount || 0;
-      const have = inv[resource] || 0;
-      if (have < required) return;
+      if (mission.kind === "time-served") {
+        if (salvageRemainingMs(mission) > 0) return;
+      } else {
+        const inv = getInventory();
+        const resource = mission.quota.resource || "";
+        const required = mission.quota.amount || 0;
+        const have = inv[resource] || 0;
+        if (have < required) return;
 
-      // Deduct resources
-      inv[resource] = have - required;
-      if (inv[resource] <= 0) delete inv[resource];
+        // Deduct resources
+        inv[resource] = have - required;
+        if (inv[resource] <= 0) delete inv[resource];
+      }
 
       // Remove from active
       appState.activeMissions = appState.activeMissions.filter((m) => m.id !== mission.id);
@@ -5920,7 +6036,9 @@ function bindForms() {
     renderMissions(appState.data);
     // Bug #1043: renderInventoryPanel was called here and threw (its form is gone), so updateAllViews never ran.
     updateAllViews();
-  });
+  }
+
+  missionCompleteBtn?.addEventListener("click", () => completeMission(appState.selectedMissionId));
 
   // Exchange buy buttons
   const buyTableEl = document.getElementById("exchange-buy-table");
