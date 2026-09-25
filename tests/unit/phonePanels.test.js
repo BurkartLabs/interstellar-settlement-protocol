@@ -33,7 +33,8 @@ function vwCapped(css) {
 describe("phone panels (AB#1055)", () => {
   it("finds the capped panels it is meant to find", () => {
     const capped = vwCapped(CSS);
-    for (const s of ["#inbox", "#missions-board-view", "#chat", "#forum-overview-view", "#agent-office-view", "#map-details", ".mission-card"]) expect(capped).toContain(s);
+    // #missions-board-view and #agent-office-view are no longer capped at all (AB#1762, tests/unit/panelWidth.test.js).
+    for (const s of ["#inbox", "#chat", "#forum-overview-view", "#map-details", ".mission-card"]) expect(capped).toContain(s);
   });
 
   it("lifts every vw-capped rule at phone width", () => {

@@ -15,6 +15,7 @@ export function getClientExchangeTaxPct() {
   return Number(appState.data?.corp?.finances?.exchangeSalesTaxPct ?? 8);
 }
 
+import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
 export function renderMarket(data) {
   const station = getCurrentStationInfo(data);
   const bannerEl = document.getElementById("market-station-banner");
@@ -169,7 +170,7 @@ export function renderMarket(data) {
   const entries = Object.entries(inventory).filter(([, qty]) => Number(qty) > 0);
   const inventoryList = document.getElementById("inventory-list");
   inventoryList.innerHTML = entries.length
-    ? entries.map(([name, qty]) => `<li>${escapeHtml(name)}: ${Number(qty).toLocaleString()}</li>`).join("")
+    ? entries.map(([name, qty]) => `<li>${escapeHtml(name)}: ${numberMarkup(`exchange:inventory:${data.corp?.currentStationId}:${name}`, qty, Number(qty).toLocaleString())}</li>`).join("")
     : "<li>No inventory available yet. Begin mining and refining to generate tradable stock.</li>";
 
   // Create Listing grid — default unit price to AVG market price for the item.
