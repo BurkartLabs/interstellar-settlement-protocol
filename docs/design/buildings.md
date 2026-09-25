@@ -56,13 +56,12 @@ mining.js:38.
 - **What it does:** adds an entry to `corp.refineries` (refining.js:52). Its cycles turn raw resources into the products in data/refinery-chains.json (server/game/refining.js:80).
 - **Route:** `POST /api/accounts/:accountId/gameplay/build-refinery`.
 
-**Where the numbers live today, for AB#783.** The cost literals 50000, 60000 and 75000 are no longer in the
-handlers; they are in data/economy.json's `buildings` block (lines 10-18), which each handler reads (mining.js:19-20,
-asteroids.js:16-17, refining.js:15-16). The handlers still hold everything else:
-- the caps (asteroids.js:28, refining.js:30);
-- the research gates (asteroids.js:23, refining.js:24);
-- the slot checks;
-- the list of names a milestone may use, `PLAYER_BUILDINGS` (progression.js:38). The schema test checks milestones against it (tests/schema/data-files.test.js:322-334), so it should come from the catalogue instead.
+**Where the numbers live, since AB#783.**
+- **Catalogue:** data/player-buildings.json holds the three, and server/playerBuildings.js loads it.
+- **Prices:** still in data/economy.json's `buildings` block, named by each entry's `price`.
+- **What each build route reads from the catalogue:** cost, asset value, research gates and cap. It asks `catalogueRefusal`, so a gate or cap added to the file is enforced without a code change. The slot checks stay in the routes.
+- **`PLAYER_BUILDINGS`:** the catalogue's names (progression.js).
+- **Schema test:** tests/schema/player-buildings.test.js fails on a research id or a milestone building that the files do not share (T-019).
 
 ## Not a building yet (P-INERT-FEATURE)
 
@@ -140,12 +139,12 @@ No level requires them since AB#424, so those lines stay Open for ever. AB#798 (
 **Why:**
 - **Different readers.** data/buildings.json is the station's catalogue: stations resolve their `buildingIds` against it, and the station view renders it (public/scripts/html.js:131). The only thing telling player and station entries apart would be a filter every reader must remember. One reader already filters on `owner`; the others would not, and a player building would appear inside a station.
 - **Different fields.** Station entries carry faction, factionCode, imageFile, action and flavour. Player entries carry cost, asset value, slot, research gate, cap and effect. One file means one schema where every field is optional. Two files let the schema test require every field of each.
-- **One source for each number.** The new file takes over data/economy.json's `buildings` costs and asset values. `supplyForecastCostMultiplier` stays in economy.json, because it is a research effect, not a building's price.
+- **One source for each number.** A building's price stays in data/economy.json, and its catalogue entry names it by `price`. *Amended by AB#783:* this document first had the catalogue take the prices over. Building that showed economy.json is deliberately the one file the balance pass edits (AB#726). ECONOMY.md explains every key in it, the economy model reads it, and `tests/unit/economyModel.test.js` holds the two together. Moving six prices out would have split the balance pass across two files for no gain. One home per number holds either way.
 
 **Fields:**
 - `id`: kebab-case, used in data and code.
 - `name`: the string already stored in saved games' `corp.buildings`, so no migration is needed.
-- `cost`, `assetValue`: credits.
+- `price`: the stem of its two keys in data/economy.json's `buildings`. For example, `"extractorYard"` names `extractorYardCost` and `extractorYardAssetValue`. The loaded entry (server/playerBuildings.js) carries them as `cost` and `assetValue`, and so does the copy served in `/api/bootstrap`.
 - `slot`: `"corporation"`, `"corporation+lease"` or `"upgrade"`.
 - `researchGates`: ids in data/research.json, all required.
 - `cap`: `perCorporation`, or for a lease building `perLease` (with `lease` for one lease only, such as `"luna"`), or for an upgrade `perBuilding`.
@@ -155,7 +154,7 @@ No level requires them since AB#424, so those lines stay Open for ever. AB#798 (
 
 A building's effect stays in code: the catalogue describes it for the player and the tests, and does not drive it.
 
-**Example**, the three that exist, as AB#783 should write them:
+**Example**, the three that exist, as AB#783 wrote them in data/player-buildings.json:
 
 ```json
 {
@@ -163,8 +162,7 @@ A building's effect stays in code: the catalogue describes it for the player and
     {
       "id": "basic-extractor-yard",
       "name": "Basic Extractor Yard",
-      "cost": 50000,
-      "assetValue": 36000,
+      "price": "extractorYard",
       "slot": "corporation+lease",
       "researchGates": [],
       "cap": {},
@@ -174,8 +172,7 @@ A building's effect stays in code: the catalogue describes it for the player and
     {
       "id": "assembly-facility",
       "name": "Assembly Facility",
-      "cost": 60000,
-      "assetValue": 40000,
+      "price": "assemblyFacility",
       "slot": "corporation",
       "researchGates": ["tt-assembly-fabrication"],
       "cap": { "perCorporation": 1 },
@@ -185,8 +182,7 @@ A building's effect stays in code: the catalogue describes it for the player and
     {
       "id": "refinery",
       "name": "Refinery",
-      "cost": 75000,
-      "assetValue": 55000,
+      "price": "refinery",
       "slot": "corporation",
       "researchGates": ["tt-material-compression", "tt-nano-lattice"],
       "cap": { "perCorporation": 2 },

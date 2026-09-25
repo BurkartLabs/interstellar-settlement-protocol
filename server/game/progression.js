@@ -1,6 +1,7 @@
 // server/game/progression.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import { ECONOMY } from "../economy.js";
+import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
 import { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, REQ_ID_TO_TITLE, createId } from "./catalog.js";
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
@@ -34,8 +35,9 @@ export const DERIVED_STATS = ["officeRented", "miningLeasesCount", "missionsComp
 /** Statistics kept as counters in corp.stats, through bumpStat. */
 export const COUNTED_STATS = ["silicateSoldOnExchange", "refinedUnitsProduced", "asteroidExpeditionsCompleted"];
 export const STAT_KEYS = Object.freeze([...DERIVED_STATS, ...COUNTED_STATS]);
-/** Buildings a player can build (the construction routes in server/index.js; a test checks the two agree). */
-export const PLAYER_BUILDINGS = Object.freeze(["Basic Extractor Yard", "Assembly Facility", "Refinery"]);
+/** Buildings a player can build: the names in data/player-buildings.json (AB#783). A test checks the construction
+ * routes add exactly these. */
+export const PLAYER_BUILDINGS = Object.freeze(PLAYER_BUILDING_CATALOGUE.map((b) => b.name));
 
 /** Add `n` to a counted statistic. Refuses a key nothing reads, so a typo cannot quietly start a new counter. */
 export function bumpStat(corp, key, n = 1) {

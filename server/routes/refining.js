@@ -1,5 +1,4 @@
 // server/routes/refining.js: the refining routes, split out of server/index.js (AB#1815).
-import { ECONOMY } from "../economy.js";
 import { addAccountNotification, mutateAccountState, REFINERY_CHAINS } from "../gameState.js";
 import { getStationInventory } from "../gameState.js";
 import { applyCredits } from "../finances.js";
@@ -7,31 +6,27 @@ import { applyCredits } from "../finances.js";
 import { refineQuantityCheck } from "../../public/scripts/refineQuantity.js";
 import { emitToAccount } from "../realtime.js";
 import { corpSlotsFull, fundingRequirementMessage } from "./helpers.js";
+// AB#783: the Refinery's cost, asset value, research and cap come from data/player-buildings.json.
+import { catalogueRefusal, playerBuilding } from "../playerBuildings.js";
+
+const REFINERY = playerBuilding("refinery");
 import { buildRefineryReceipt, startRefineryReceipt } from "../receipts.js"; // AB#744
 
 export function registerRefiningRoutes(app) {
   // ─── Refinery ────────────────────────────────────────────────────────────────
 
   app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
-    const BUILD_COST = ECONOMY.buildings.refineryCost;
-    const ASSET_VALUE = ECONOMY.buildings.refineryAssetValue;
+    const BUILD_COST = REFINERY.cost;
+    const ASSET_VALUE = REFINERY.assetValue;
     let outcome = "ok";
 
     const account = mutateAccountState(req.params.accountId, (state) => {
       const corp = state.corp;
-      const unlockedTech = corp.unlockedTech || [];
 
-      // Require both Material Compression I and Nano-Lattice Weaving
-      if (!unlockedTech.includes("tt-material-compression") || !unlockedTech.includes("tt-nano-lattice")) {
-        outcome = "missing-research";
-        return;
-      }
-
-      // Cap concurrent refineries (each lets you run one chain in parallel).
-      const MAX_REFINERIES = 2;
-      const existingRefineries = (corp.buildings || []).filter((b) => b.name === "Refinery").length;
-      if (existingRefineries >= MAX_REFINERIES) {
-        outcome = "max-refineries";
+      // Both research gates, then the cap on concurrent refineries (each runs one chain in parallel).
+      const refused = catalogueRefusal(REFINERY, corp);
+      if (refused) {
+        outcome = refused === "at-cap" ? "max-refineries" : refused;
         return;
       }
 
@@ -46,7 +41,7 @@ export function registerRefiningRoutes(app) {
       }
 
       if (!Array.isArray(corp.buildings)) corp.buildings = [];
-      corp.buildings.push({ name: "Refinery", tier: 1, status: "Operational" });
+      corp.buildings.push({ name: "Refinery", tier: 1, status: "Operational" }); // the catalogue name; a test holds them equal
 
       if (!Array.isArray(corp.refineries)) corp.refineries = [];
       const nextIndex = corp.refineries.length + 1;
@@ -77,7 +72,7 @@ export function registerRefiningRoutes(app) {
       const corp = account.state.corp;
       const messageMap = {
         "missing-research": "Refinery construction requires Material Compression I and Nano-Lattice Weaving research.",
-        "max-refineries": "You already operate the maximum of 2 refineries.",
+        "max-refineries": `You already operate the maximum of ${REFINERY.cap.perCorporation} refineries.`,
         "no-slot": `A refinery needs a free building slot. ${corpSlotsFull(corp)}`,
         "insufficient-credits": fundingRequirementMessage("Refinery construction", corp, BUILD_COST)
       };
