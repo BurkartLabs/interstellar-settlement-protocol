@@ -1,7 +1,10 @@
 /**
  * Starfield canvas — lightweight animated cosmic background.
  * Two star layers at different speeds for a subtle parallax feel.
- * Negligible CPU: uses requestAnimationFrame + single canvas.
+ * AB#1453: at most 5 frames a second, not every animation frame. The drift is under 1.5px a second, so 5 frames
+ * (a third of a pixel a step) look the same as 60, and the movement is scaled by the time elapsed, so the stars keep
+ * the speed they had at 60. Each frame costs more than its own drawing: every blurred panel above the canvas is
+ * recomposited.
  *
  * AB#1760: loaded as a module so it can ask motion.js whether the player wants reduced motion. If so, the stars are
  * drawn once, still, and redrawn only when the window is resized.
@@ -16,6 +19,8 @@ import { prefersReducedMotion } from "./motion.js";
   let W, H, stars;
 
   const STAR_COUNT = 260;
+  const FRAME_MS = 1000 / 5;
+  const STEP_MS = 1000 / 60; // the speeds below are per 60th of a second
   const LAYERS = [
     { speed: 0.012, radiusMax: 1.1, opacity: 0.55 }, // far stars
     { speed: 0.022, radiusMax: 1.6, opacity: 0.80 }, // near stars
@@ -37,7 +42,7 @@ import { prefersReducedMotion } from "./motion.js";
     W = canvas.width  = window.innerWidth;
     H = canvas.height = window.innerHeight;
     buildStars();
-    if (prefersReducedMotion()) paint(false);
+    if (prefersReducedMotion()) paint(0);
   }
 
   function buildStars() {
@@ -50,15 +55,15 @@ import { prefersReducedMotion } from "./motion.js";
     });
   }
 
-  /** Draw every star once; `move` advances the drift and the twinkle first. */
-  function paint(move) {
+  /** Draw every star once; `steps` (60ths of a second, 0 for none) advances the drift and the twinkle first. */
+  function paint(steps) {
     ctx.clearRect(0, 0, W, H);
 
     for (const s of stars) {
-      if (move) {
-        s.twinkle += s.twinkleSpeed;
+      if (steps) {
+        s.twinkle += s.twinkleSpeed * steps;
         // Very slow vertical drift
-        s.y -= s.speed;
+        s.y -= s.speed * steps;
         if (s.y < -2) {
           s.y = H + 2;
           s.x = Math.random() * W;
@@ -73,13 +78,17 @@ import { prefersReducedMotion } from "./motion.js";
     }
   }
 
-  function draw() {
+  let last = 0;
+
+  function draw(now) {
     if (prefersReducedMotion()) {
-      paint(false);
+      paint(0);
       return; // stop the loop; resize repaints the still field
     }
-    paint(true);
-    requestAnimationFrame(draw);
+    // A long gap (the tab was hidden, so no frames ran) moves the stars at most a sixth of a second, never a jump.
+    paint(last ? Math.min((now - last) / STEP_MS, 10) : 1);
+    last = now;
+    setTimeout(() => requestAnimationFrame(draw), FRAME_MS);
   }
 
   window.addEventListener("resize", resize, { passive: true });
