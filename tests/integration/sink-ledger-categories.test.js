@@ -11,7 +11,7 @@ import { miningTick } from "../../server/ticks.js";
 afterEach(() => vi.restoreAllMocks());
 
 describe("the sinks' own ledger lines through the routes (ISP-307)", () => {
-  it("a second yard books its extra price apart, and its cycle books its upkeep apart", async () => {
+  it("a third yard books its extra price apart, and a second yard's cycle books its upkeep apart", async () => {
     const { app } = await getApp();
     const { account, accessToken } = await registerAccount(app);
     const api = authed(app, accessToken);
@@ -26,7 +26,13 @@ describe("the sinks' own ledger lines through the routes (ISP-307)", () => {
     expect(corp().finances.expensesByCategory["yard-price-growth"] || 0).toBe(0);
     const second = await play(`lease/${leaseId}/build-extractor`);
     expect(second.status).toBe(200);
-    expect(corp().finances.expensesByCategory["yard-price-growth"]).toBe(second.body.receipt.costCredits - 50_000);
+    // ISP-309 (AB#2305): the starting kit's second yard costs the base price; growth starts at the third.
+    expect(corp().finances.expensesByCategory["yard-price-growth"] || 0).toBe(0);
+    // A lease holds two yards; the third needs a slot a second lease would give, granted here to keep one lease.
+    mutateAccountState(account.id, (state) => { state.corp.miningLeases[0].buildingSlots = 3; });
+    const third = await play(`lease/${leaseId}/build-extractor`);
+    expect(third.status, JSON.stringify(third.body.error)).toBe(200);
+    expect(corp().finances.expensesByCategory["yard-price-growth"]).toBe(third.body.receipt.costCredits - 50_000);
 
     const extractorId = corp().mining.silicateExtractors[1].id;
     const started = await play(`lease/${leaseId}/start-mining`, { amount: 40, hours: 2, extractorId });

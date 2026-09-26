@@ -4,7 +4,8 @@ import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState, getAccountById } from "../../server/gameState.js";
 import { ECONOMY } from "../../server/economy.js";
 
-// ISP-303 (AB#2286): each extractor yard costs more than the last, through the real build route.
+// ISP-303 (AB#2286): each extractor yard past the starting kit costs more than the last, through the real build route.
+// ISP-309 (AB#2305): the kit's two yards are flat at 50,000; growth starts at yard 3.
 async function corporation(credits) {
   const { app } = await getApp();
   const { account, accessToken } = await registerAccount(app);
@@ -23,10 +24,10 @@ async function corporation(credits) {
   return { id: account.id, build, corp };
 }
 
-describe("each extractor yard costs more than the last (AB#2286)", () => {
-  it("charges 50,000, 63,000 and 78,000 for the first three, and each receipt says so", async () => {
+describe("each extractor yard past the starting kit costs more than the last (AB#2286, AB#2305)", () => {
+  it("charges 50,000, 50,000, 63,000 and 78,000 for the first four, and each receipt says so", async () => {
     const c = await corporation(1_000_000);
-    for (const price of [50_000, 63_000, 78_000]) {
+    for (const price of [50_000, 50_000, 63_000, 78_000]) {
       const before = c.corp().finances;
       const res = await c.build();
       expect(res.status, JSON.stringify(res.body.error)).toBe(200);
@@ -38,13 +39,13 @@ describe("each extractor yard costs more than the last (AB#2286)", () => {
   });
 
   it("refuses the third yard short of credit with the escalated price, not the base one, and changes nothing", async () => {
-    const c = await corporation(50_000 + 63_000 + 70_000);
+    const c = await corporation(50_000 + 50_000 + 60_000);
     expect((await c.build()).status).toBe(200);
     expect((await c.build()).status).toBe(200);
     const before = JSON.stringify(c.corp().buildings);
     const res = await c.build();
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain("78,000");
+    expect(res.body.error).toContain("63,000");
     expect(res.body.error).not.toContain("50,000");
     expect(JSON.stringify(c.corp().buildings)).toBe(before);
   });
@@ -58,6 +59,6 @@ describe("each extractor yard costs more than the last (AB#2286)", () => {
       expect((await c.build()).status).toBe(200);
       spent.push(before - c.corp().finances.credits);
     }
-    expect(spent).toEqual([50_000, 63_000, 78_000].map((p) => Math.round(p * ECONOMY.buildings.supplyForecastCostMultiplier)));
+    expect(spent).toEqual([50_000, 50_000, 63_000].map((p) => Math.round(p * ECONOMY.buildings.supplyForecastCostMultiplier)));
   });
 });
