@@ -18,6 +18,19 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (ISP-96, AB#786 — the Ferric Mining Complex, Builder)
+
+- The fourth catalogue building: 90,000 / 65,000, one corporation slot, Material Compression I, one per corporation
+  (`data/player-buildings.json`; prices and the 1.25 multiplier in `data/economy.json`). Built through
+  `POST /gameplay/build` only; it appears in the construction panel with no client change.
+- Effect: when an expedition returns, its Nickel and Titanium are multiplied before they reach the station, in whole
+  units rounded down (`ferricBonus`, `server/game/asteroids.js`). The completed expedition keeps `ferricBonus`, and the
+  Expedition Complete notification and the Mining Probe Return report say what the complex added.
+- **Level 6 does not name it.** The acceptance assumed a `building:Ferric Mining Complex` requirement at level 6; the
+  ladder asks for the Assembly Facility there, and only the roadmap strings mention Ferric (AB#798 owns that drift).
+  The metric resolves to 1 after the build (tested); whether the ladder should use it is the PM's.
+- Screens: `docs/ab-786/`, from `e2e/construction-panel.spec.js` (the probe comes home on the server's own tick).
+
 ## What's now true (ISP-95, AB#785 — the construction panel on the Station, Builder)
 
 - The Station has a **Construction** section (`public/scripts/constructionPanel.js`, drawn by `renderStation`): one row
