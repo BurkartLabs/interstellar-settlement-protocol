@@ -1,7 +1,7 @@
 // ISP-140 (AB#834): the four cross-track chains on the Refinery Chains screen, in a real browser: each card names every
-// input, the research it needs, and what the corporation holds of each. Starting one from the page is AB#836's form;
-// until then the card says so, and this spec holds it to that. Screenshots go to e2e/screenshots/ab-834/ (gitignored;
-// the ones the pull request shows were copied to docs/ab-834/).
+// input, the research it needs, and whether a batch's worth of each is here; since AB#836 its Start button says which
+// are short. Screenshots go to e2e/screenshots/ab-834/ (gitignored; the ones the pull request shows were copied to
+// docs/ab-834/).
 //
 // Run: `npx playwright test e2e/cross-track-chains.spec.js` (it starts its own server).
 import { test, expect } from "@playwright/test";
@@ -17,11 +17,12 @@ const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-834");
 fs.mkdirSync(SHOT_DIR, { recursive: true });
 const SECRET = "cross-track-e2e-fixture-secret-0123456789";
 const PASSWORD = "playtest-password-not-real";
+// AB#836: each card is named for what it makes, and says of each input whether a batch's worth is here.
 const CARDS = [
-  ["Fusion Pellets + Rare-Earth Magnets + Cryogenic Coolant Refining", "20 Fusion Pellets + 10 Rare-Earth Magnets + 20 Cryogenic Coolant per batch → 4 Fusion Reactor Cores", "Inventory: 20 Fusion Pellets, 10 Rare-Earth Magnets, 20 Cryogenic Coolant"],
-  ["Thorium Fuel Rods + Pressure Vessels Refining", "5 Thorium Fuel Rods + 10 Pressure Vessels per batch → 5 Compact Fission Modules", "Inventory: 0 Thorium Fuel Rods, 0 Pressure Vessels"],
-  ["Aluminium-Lithium Alloy + Structural Alloys Refining", "30 Aluminium-Lithium Alloy + 20 Structural Alloys per batch → 10 Lightweight Spaceframes", "Inventory: 0 Aluminium-Lithium Alloy, 0 Structural Alloys"],
-  ["Rare-Earth Magnets + Plasma Conduits + Battery Cells Refining", "10 Rare-Earth Magnets + 10 Plasma Conduits + 10 Battery Cells per batch → 5 Ion Thrusters", "Inventory: 10 Rare-Earth Magnets, 0 Plasma Conduits, 0 Battery Cells"]
+  ["fusion-core-chain", "Fusion Reactor Cores", "20 Fusion Pellets + 10 Rare-Earth Magnets + 20 Cryogenic Coolant per batch → 4 Fusion Reactor Cores", "Start Run"],
+  ["fission-module-chain", "Compact Fission Modules", "5 Thorium Fuel Rods + 10 Pressure Vessels per batch → 5 Compact Fission Modules", "Short: Thorium Fuel Rods, Pressure Vessels"],
+  ["spaceframe-chain", "Lightweight Spaceframes", "30 Aluminium-Lithium Alloy + 20 Structural Alloys per batch → 10 Lightweight Spaceframes", "Short: Aluminium-Lithium Alloy, Structural Alloys"],
+  ["ion-thruster-chain", "Ion Thrusters", "10 Rare-Earth Magnets + 10 Plasma Conduits + 10 Battery Cells per batch → 5 Ion Thrusters", "Short: Plasma Conduits, Battery Cells"]
 ];
 
 function startServer(dir) {
@@ -63,12 +64,13 @@ for (const [width, height] of [[375, 812], [1280, 800]]) {
       await page.waitForURL(/\/\?account=/);
       await openTab(page, "refinery");
 
-      for (const [title, recipe, inventory] of CARDS) {
-        const card = page.locator("#refinery-chains .refinery__chain", { hasText: title });
-        await expect(card, title).toContainText(recipe);
-        await expect(card, title).toContainText(inventory);
-        await expect(card.locator(".ui-badge--success"), title).toHaveText("Research unlocked");
-        await expect(card, title).toContainText("Starting it from this page arrives in a later build.");
+      for (const [id, title, recipe, button] of CARDS) {
+        const card = page.locator(`#chain-${id}`);
+        await expect(card.locator(".ui-card__title"), id).toHaveText(title);
+        await expect(card, id).toContainText(recipe);
+        await expect(card.locator(".ui-card__meta > .ui-badge--success").first(), id).toHaveText("Research unlocked");
+        await expect(card.locator(".refinery__start"), id).toHaveText(button);
+        await expect(card.locator(".refinery__start"), id)[button === "Start Run" ? "toBeEnabled" : "toBeDisabled"]();
       }
       await page.screenshot({ path: path.join(SHOT_DIR, `cross-track-${width}x${height}.png`), fullPage: true });
       expect(errors).toEqual([]);
