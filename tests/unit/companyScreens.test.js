@@ -37,7 +37,7 @@ function classUses(text, name) {
   const patterns = [
     new RegExp(`class(Name)?\\s*=\\s*["'\`][^"'\`]*(?<![\\w-])${n}${edge}`),
     new RegExp(`classList\\.(add|remove|toggle|contains)\\([^)]*["'\`]${n}["'\`]`),
-    new RegExp(`(?<![\\w-])\\.${n}${edge}(?!\\s*\\()`)
+    new RegExp(`(?<![\\w.-])\\.${n}${edge}(?!\\s*\\()`) // not after a dot: `[...card.x]` is a spread, not a class
   ];
   return text.split("\n").filter((line) => patterns.some((p) => p.test(line)));
 }
@@ -78,6 +78,7 @@ describe("Overview, Inbox and the Financial Core are on the design system (ISP-7
     expect(classUses('<ul id="inbox-message-list">', "inbox-message-list")).toHaveLength(0);
     expect(classUses("list.querySelectorAll('.inbox-msg-item')", "inbox-msg-item")).toHaveLength(1);
     expect(classUses("x.num(2)", "num")).toHaveLength(0);
+    expect(classUses('[...card.querySelectorAll("a")]', "card")).toHaveLength(0);
   });
 
   it.each(Object.keys(SCREENS))("%s uses no shared legacy component, no inline style and no old colour", (id) => {
