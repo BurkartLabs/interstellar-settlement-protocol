@@ -23,6 +23,9 @@ question in the retune (AB#728).
 | `buildings.assemblyFacilityAssetValue` | 40,000 | 67% of cost on the balance sheet. No reason is recorded. |
 | `buildings.refineryCost` | 75,000 | The dearest building. Its outputs have no NPC buyer (DEPTH.md), so it is a bet on the player market. |
 | `buildings.refineryAssetValue` | 55,000 | 73% of cost on the balance sheet. No reason is recorded. |
+| `buildings.ferricMiningComplexCost` | 90,000 | The Ferric Mining Complex (ISP-96, AB#786), priced in docs/design/buildings.md (v0.6-01) above the Refinery it feeds. It pays back only through expeditions' Nickel and Titanium, so it is a late purchase by design. Chosen, not derived. |
+| `buildings.ferricMiningComplexAssetValue` | 65,000 | 72% of cost on the balance sheet, in line with the other buildings. From the design, no further reason. |
+| `buildings.ferricMiningComplexMetalMultiplier` | 1.25 | A returning expedition's Nickel and Titanium are multiplied by this when the corporation has the complex, rounded down to whole units: 40 Nickel arrives as 50. From the design (v0.6-01); not yet set against the refinery chains' margins. |
 | `buildings.supplyForecastCostMultiplier` | 0.94 | Supply Forecast research takes 6% off a yard or refinery: 3,000 on an extractor yard. It is small next to the research's other effect, +6% output. |
 | `buildings.extractorYardUpkeepPctPerDay` | 2 | Every extractor yard after a corporation's first adds 2% of the yard's price per running day to its hourly running cost: 50,000 x 2% / 24 = 41.67 an hour, after the 600 floor, and not in the startup (ISP-301, AB#2284; sink 1 of "Sinks that scale with income" below). A one-yard corporation never pays it; one short of credit mines less and owes nothing. Chosen, not derived: the Board has not seen it. |
 | `operations.costPerThroughputUnit` | 16 | What a tonne costs to mine. Against a net sale price of 22.08, it leaves a 6.08 margin, which is the T-018 problem below. |

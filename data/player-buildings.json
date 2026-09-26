@@ -29,6 +29,16 @@
       "cap": { "perCorporation": 2 },
       "effect": "Runs a refinery chain, turning raw resources at a station into refined products each cycle.",
       "since": "0.3"
+    },
+    {
+      "id": "ferric-mining-complex",
+      "name": "Ferric Mining Complex",
+      "price": "ferricMiningComplex",
+      "slot": "corporation",
+      "researchGates": ["tt-material-compression"],
+      "cap": { "perCorporation": 1 },
+      "effect": "Returning mining probes deposit a quarter more Nickel and Titanium, the inputs to the nickel and titanium refinery chains.",
+      "since": "0.6"
     }
   ]
 }

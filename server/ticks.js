@@ -114,7 +114,8 @@ function asteroidExpeditionTick() {
       const durationLabel = EXPEDITION_DURATIONS[exp.duration]?.label || exp.duration;
       const yieldLines = Object.entries(exp.yields || {});
       const yieldBlock = yieldLines.length
-        ? yieldLines.map(([r, q]) => `  ${String(q).padStart(6)} units — ${r}`).join("\n")
+        // ISP-96 (AB#786): a metal the Ferric Mining Complex added to says how much of it was the complex's.
+        ? yieldLines.map(([r, q]) => `  ${String(q).padStart(6)} units — ${r}${exp.ferricBonus?.[r] ? ` (+${exp.ferricBonus[r]} from your Ferric Mining Complex)` : ""}`).join("\n")
         : "  No recoverable material extracted.";
       const totalUnits = yieldLines.reduce((sum, [, q]) => sum + q, 0);
       const refNo = `MPR-${(exp.systemId || "sol").slice(0, 3).toUpperCase()}-${String(exp.completedAt || Date.now()).slice(-8)}`;

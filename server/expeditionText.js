@@ -17,5 +17,8 @@ export function expeditionPlaces(exp) {
 export function expeditionNotificationBody(exp) {
   const yieldSummary = Object.entries(exp?.yields || {}).map(([r, q]) => `${q} ${r}`).join(", ") || "no resources";
   const station = stationName(STATION_REGISTRY, exp?.depositStationId) || "your nearest station";
-  return `Mining probe has returned from ${beltPhrase(SYSTEMS_CATALOG, exp?.beltKey, exp?.systemId)}. Yields: ${yieldSummary}. Resources deposited at ${station}.`;
+  // ISP-96 (AB#786): what the Ferric Mining Complex added, already counted in the yields above.
+  const bonus = Object.entries(exp?.ferricBonus || {}).map(([r, q]) => `${q} ${r}`).join(" and ");
+  const ferric = bonus ? ` Your Ferric Mining Complex added ${bonus}.` : "";
+  return `Mining probe has returned from ${beltPhrase(SYSTEMS_CATALOG, exp?.beltKey, exp?.systemId)}. Yields: ${yieldSummary}.${ferric} Resources deposited at ${station}.`;
 }

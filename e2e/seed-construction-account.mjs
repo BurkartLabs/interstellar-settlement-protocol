@@ -3,7 +3,10 @@
 // full Earth lease through the server's own construct(), and a Mars lease with room. Built with the server's own
 // account code in a separate process (see seed-logistics-account.mjs for why).
 //
-// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5>
+// `ferric` (ISP-96) is level5 plus a Sol belt expedition due back 25 seconds after seeding, carrying 40 Nickel,
+// 20 Titanium and 12 Silicates and mining nothing more on the way: time to build the Ferric Mining Complex first.
+//
+// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric>
 const [, , dataDir, email, password, kind] = process.argv;
 process.env.ISP_DATA_DIR = dataDir;
 process.env.JWT_SECRET = process.env.JWT_SECRET || "construction-panel-e2e-fixture-secret-0123";
@@ -16,7 +19,7 @@ const { account } = await store.createAccount({ email, password, ceoName: "Const
 store.mutateAccountState(account.id, (state) => {
   const corp = state.corp;
   corp.currentStationId = "earth-station-prime";
-  if (kind !== "level5") return;
+  if (kind !== "level5" && kind !== "ferric") return;
   const lease = (id, body) => ({ id, body, leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: [], issuedAt: Date.now() });
   corp.level = 5;
   corp.buildingSlots = 6;
@@ -26,6 +29,15 @@ store.mutateAccountState(account.id, (state) => {
   for (let i = 0; i < 2; i += 1) {
     const built = construct(corp, playerBuilding("basic-extractor-yard"), "lease-earth-qa");
     if (built.outcome !== "ok") throw new Error(`seeding a yard: ${built.outcome}`);
+  }
+  if (kind === "ferric") {
+    const due = Date.now() + 25_000;
+    corp.asteroidMining = {
+      ...(corp.asteroidMining || {}),
+      probeCount: 0,
+      activeExpeditions: [{ id: "exp-e2e-ferric", beltKey: "sol:belt", systemId: "sol", duration: "short", status: "active",
+        deployedAt: due - 120_000, lastTickAt: due, completesAt: due, yields: { Nickel: 40, Titanium: 20, Silicates: 12 } }]
+    };
   }
 });
 store.markWalkthroughCompleted(account.id);
