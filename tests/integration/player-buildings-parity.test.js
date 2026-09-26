@@ -68,7 +68,8 @@ describe("building each player building through its route, as before the catalog
     // With Supply Forecast the charge is 47,000, but the refusal still quotes the list price of 50,000.
     const poor = await corporation((c) => { c.unlockedTech = ["tt-supply-forecast"]; c.miningLeases = [{ ...LEASE, extractorIds: [] }]; c.finances.credits = 10_000; });
     const pr = await poor.post(`lease/${LEASE.id}/build-extractor`);
-    expect(pr.body.error).toBe(fundingRequirementMessage("Basic Extractor Yard construction", poor.corp(), 50_000));
+    // AB#2286: the refusal quotes what the build would charge, the Supply Forecast price (47,000), not the catalogue's 50,000.
+    expect(pr.body.error).toBe(fundingRequirementMessage("Basic Extractor Yard construction", poor.corp(), 47_000));
   });
 
   it("Assembly Facility: 60,000, 40,000 of assets, a corporation slot, one per corporation", async () => {

@@ -22,6 +22,7 @@
     "refineryComplexOutputMultiplier": 1.5,
     "supplyForecastCostMultiplier": 0.94,
     "extractorYardUpkeepPctPerDay": 2,
+    "extractorYardPriceGrowth": 1.25,
     "assemblyFacilityUpgrades": [
       { "toTier": 2, "upgradeCost": 30000, "assetValue": 21000, "offlineHours": 2, "fabricationTimePct": 50 }
     ],

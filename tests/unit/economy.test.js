@@ -17,6 +17,7 @@ const BEFORE_THE_MOVE = {
     extractorYardCost: 50000, extractorYardAssetValue: 36000, assemblyFacilityCost: 60000, assemblyFacilityAssetValue: 40000,
     refineryCost: 75000, refineryAssetValue: 55000, supplyForecastCostMultiplier: 0.94,
     extractorYardUpkeepPctPerDay: 2,                                        // ISP-301 (AB#2284): new, not moved
+    extractorYardPriceGrowth: 1.25,                                         // ISP-303 (AB#2286): new, not moved
     assemblyFacilityUpgrades: [                                             // ISP-102 (AB#794): new, not moved
       { toTier: 2, upgradeCost: 30000, assetValue: 21000, offlineHours: 2, fabricationTimePct: 50 }
     ],
