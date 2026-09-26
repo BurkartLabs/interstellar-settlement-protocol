@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { getApp } from "../helpers/app.js";
+import { readFileSync as readCatalog } from "node:fs";
+// ISP-112 (AB#804): the cluster view's positions come from data/systems.json.
+const SYSTEMS_CATALOG = JSON.parse(readCatalog(new URL("../../data/systems.json", import.meta.url), "utf8"));
 
 // starmap.js preloads planet images when it is imported; node has no Image.
 globalThis.Image ??= class { set src(_v) {} };
@@ -64,7 +67,7 @@ function mapAt(width, innerHeight) {
   const context = recordingContext();
   const canvas = fakeCanvas(context, width, 558);
   const detailsEl = { innerHTML: "", querySelector: () => null, querySelectorAll: () => [] };
-  const controller = createStarmapController({ canvas, fallbackEl: { hidden: true }, detailsEl });
+  const controller = createStarmapController({ canvas, fallbackEl: { hidden: true }, detailsEl, getSystemsCatalog: () => SYSTEMS_CATALOG });
   controller.mount(systems);
   return { canvas, context, detailsEl, controller };
 }

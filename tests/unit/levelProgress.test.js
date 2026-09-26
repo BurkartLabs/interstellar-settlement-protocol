@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import {
   evaluateLevelProgress, bumpStat, STAT_KEYS, PLAYER_BUILDINGS, MAX_DEFINED_LEVEL,
-  applyRefineryOperations, applyAsteroidExpeditions, REFINERY_CHAINS, BELT_COMPOSITIONS
+  applyRefineryOperations, applyAsteroidExpeditions, REFINERY_CHAINS, BELT_KEYS
 } from "../../server/gameState.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../../server/playerBuildings.js";
 import { CONSTRUCTIONS } from "../../server/construction.js";
@@ -92,7 +92,7 @@ describe("statistics are kept through one helper (Bug #424)", () => {
       currentStationId: "earth-station-prime",
       asteroidMining: {
         probeCount: 0, maxProbes: 2, completedExpeditions: [],
-        activeExpeditions: [{ id: "exp-1", status: "active", beltKey: Object.keys(BELT_COMPOSITIONS)[0], systemId: "sol",
+        activeExpeditions: [{ id: "exp-1", status: "active", beltKey: BELT_KEYS[0], systemId: "sol",
           duration: "standard", deployedAt: start, lastTickAt: start, completesAt: start + 60_000, yields: {} }]
       }
     });

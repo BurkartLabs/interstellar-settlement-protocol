@@ -1,6 +1,7 @@
 // AB#738 (ISP-52): the page's one shared state object and the constants every module reads. `appState` is a
 // single object mutated in place, never reassigned, so every importer sees the same state.
 import { loadExchangeView } from "./exchangeView.js";
+import { navigationFor } from "./navigation.js";
 
 /** localStorage, or null where reading the property itself throws (sandboxed frames, some private modes). */
 export function viewerStorage() {
@@ -51,6 +52,10 @@ export const appState = {
   listingStatus: null, // AB#2057: { item, tone, text }, what Create Listing last said, shown in that item's row
   miningUiTicker: null,
   stationRegistry: [],
+  // ISP-112 (AB#804): data/systems.json from GET /api/systems, and the travel gate and jump routes over it. Empty until
+  // the boot fetch resolves, which the first render waits for (app.js).
+  systemsCatalog: [],
+  navigation: navigationFor([]),
   buildingRegistry: [],
   insightPrograms: [], // loaded from /api/ceo-insight (Bug #983)
   stationActiveLease: null,

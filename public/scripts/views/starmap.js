@@ -18,6 +18,8 @@ export const starmap = createStarmapController({
   resetButton: document.getElementById("map-reset"),
   researchCatalog: techTree, // Bug #1270: the lock names the research a jump needs
   getCorpLevel: () => appState.data?.corp?.level || 0,
+  getSystemsCatalog: () => appState.systemsCatalog, // ISP-112 (AB#804)
+  getNavigation: () => appState.navigation,
   async onTravelToSystem(systemId) {
     if (!appState.accountId) return;
     try {

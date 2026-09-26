@@ -4,6 +4,7 @@ import "../loadEnv.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { navigationFor } from "../../public/scripts/navigation.js";
 
 export const __filename = fileURLToPath(import.meta.url);
 export const __dirname = path.dirname(__filename);
@@ -121,7 +122,16 @@ for (const node of RESEARCH_DATA.nodes) {
 }
 
 // ─── Systems: single source of truth from data/systems.json ────────────────
-export const SYSTEMS_DATA = JSON.parse(fs.readFileSync(path.join(catalogueDir, "systems.json"), "utf8"));
+const deepFreeze = (value) => {
+  if (value && typeof value === "object") { for (const v of Object.values(value)) deepFreeze(v); Object.freeze(value); }
+  return value;
+};
+/** The systems catalog, frozen: nothing at run time changes a system's facts (ISP-112, AB#804). */
+export const SYSTEMS_DATA = deepFreeze(JSON.parse(fs.readFileSync(path.join(catalogueDir, "systems.json"), "utf8")));
+/** ISP-112 (AB#804): each system by id, for its bodies, owner rule, rarity, routes and access research. */
+export const SYSTEMS_BY_ID = new Map(SYSTEMS_DATA.map((s) => [s.id, s]));
+/** ISP-112 (AB#804): the travel gate and the jump routes over the catalog (public/scripts/navigation.js). */
+export const NAVIGATION = navigationFor(SYSTEMS_DATA);
 
 // ─── Refinery chains ────────────────────────────────────────────────────────
 export const refineryChainsPath = path.join(catalogueDir, "refinery-chains.json");
@@ -148,77 +158,6 @@ for (const lvl of MILESTONE_LEVELS) {
 export function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
-/* TODO(AB#804): This should be fetched from systems.json, see SYSTEMS_DATA */
-export const SYSTEM_DETAILS = {
-  sol: {
-    ownerRule: "No direct ownership. Mining rights are leased.",
-    bodies: [
-      { id: "mercury", name: "Mercury", type: "Planet", x: 58, y: 0, radius: 4 },
-      { id: "venus", name: "Venus", type: "Planet", x: 90, y: 0, radius: 6 },
-      { id: "earth", name: "Earth", type: "Planet", x: 122, y: 0, radius: 7 },
-      { id: "mars", name: "Mars", type: "Planet", x: 156, y: 0, radius: 5 },
-      { id: "belt", name: "Asteroid Belt", type: "Field", x: 196, y: 0, radius: 13 },
-      { id: "jupiter", name: "Jupiter", type: "Planet", x: 238, y: 0, radius: 12 },
-      { id: "saturn", name: "Saturn", type: "Planet", x: 284, y: 0, radius: 11 },
-      { id: "uranus", name: "Uranus", type: "Planet", x: 326, y: 0, radius: 9 },
-      { id: "neptune", name: "Neptune", type: "Planet", x: 366, y: 0, radius: 9 },
-      { id: "luna", name: "Luna", type: "Moon", parentId: "earth", x: 0, y: 0, radius: 2 },
-      { id: "phobos", name: "Phobos", type: "Moon", parentId: "mars", x: 0, y: 0, radius: 2 },
-      { id: "deimos", name: "Deimos", type: "Moon", parentId: "mars", x: 0, y: 0, radius: 2 },
-      { id: "io", name: "Io", type: "Moon", parentId: "jupiter", x: 0, y: 0, radius: 2 },
-      { id: "europa", name: "Europa", type: "Moon", parentId: "jupiter", x: 0, y: 0, radius: 2 },
-      { id: "ganymede", name: "Ganymede", type: "Moon", parentId: "jupiter", x: 0, y: 0, radius: 3 },
-      { id: "callisto", name: "Callisto", type: "Moon", parentId: "jupiter", x: 0, y: 0, radius: 3 },
-      { id: "titan", name: "Titan", type: "Moon", parentId: "saturn", x: 0, y: 0, radius: 3 },
-      { id: "enceladus", name: "Enceladus", type: "Moon", parentId: "saturn", x: 0, y: 0, radius: 2 }
-    ]
-  },
-  "alpha-centauri": {
-    ownerRule: "Neutral authority oversight with corporate lease competition.",
-    bodies: [
-      { id: "ac-prime", name: "Centauri Prime", type: "Planet", x: 50, y: 0, radius: 7 },
-      { id: "ac-ii", name: "Centauri II", type: "Planet", x: 86, y: 0, radius: 5 },
-      { id: "ac-haven", name: "Haven", type: "Moon", parentId: "ac-ii", x: 102, y: 0, radius: 3 },
-      { id: "ac-belt", name: "Centauri Belt", type: "Field", x: 126, y: 0, radius: 10 }
-    ]
-  },
-  "barnards-star": {
-    ownerRule: "Frontier charter system with low-regulation extraction rights.",
-    bodies: [
-      { id: "bn-iron", name: "Ironwell", type: "Planet", x: 48, y: 0, radius: 6 },
-      { id: "bn-cinder", name: "Cinder", type: "Planet", x: 82, y: 0, radius: 4 },
-      { id: "bn-arc", name: "Arcadia", type: "Moon", parentId: "bn-cinder", x: 103, y: 0, radius: 3 },
-      { id: "bn-rift", name: "Rift Debris Ring", type: "Field", x: 132, y: 0, radius: 11 }
-    ]
-  },
-  "wolf-359": {
-    ownerRule: "High-risk conflict zone with arbitration-based claims.",
-    bodies: [
-      { id: "wf-halo", name: "Halo", type: "Planet", x: 44, y: 0, radius: 5 },
-      { id: "wf-garnet", name: "Garnet", type: "Planet", x: 77, y: 0, radius: 6 },
-      { id: "wf-veil", name: "Veil", type: "Moon", parentId: "wf-garnet", x: 92, y: 0, radius: 3 },
-      { id: "wf-shards", name: "Shard Belt", type: "Field", x: 126, y: 0, radius: 10 }
-    ]
-  },
-  "tau-ceti": {
-    ownerRule: "Treaty-governed commercial corridor with tariff controls.",
-    bodies: [
-      { id: "tc-verde", name: "Verde", type: "Planet", x: 47, y: 0, radius: 7 },
-      { id: "tc-lumen", name: "Lumen", type: "Planet", x: 84, y: 0, radius: 5 },
-      { id: "tc-aqua", name: "Aqua Minor", type: "Moon", parentId: "tc-lumen", x: 101, y: 0, radius: 3 },
-      { id: "tc-cloud", name: "Tau Ice Cloud", type: "Field", x: 128, y: 0, radius: 11 }
-    ]
-  },
-  "epsilon-eridani": {
-    ownerRule: "Semi-private jurisdiction with licensed station authorities.",
-    bodies: [
-      { id: "ee-kestrel", name: "Kestrel", type: "Planet", x: 46, y: 0, radius: 6 },
-      { id: "ee-orion", name: "Orion Reach", type: "Planet", x: 78, y: 0, radius: 5 },
-      { id: "ee-lyra", name: "Lyra", type: "Moon", parentId: "ee-orion", x: 95, y: 0, radius: 3 },
-      { id: "ee-crown", name: "Crown Belt", type: "Field", x: 124, y: 0, radius: 10 }
-    ]
-  }
-};
 
 export const BASE_MAX_PROBES = 2;             // Fleet Cap before Level 1 grants one (Bug #586)
 export const BASE_MAX_DEPLOYMENTS = 1;        // concurrent expedition slots before a level's maxDeployments (AB#2307)

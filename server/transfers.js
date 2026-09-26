@@ -7,12 +7,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ECONOMY } from "./economy.js";
 import { stationHops, transferFee as feeOverJumps, transitMinutes } from "../public/scripts/logistics.js";
+import { NAVIGATION } from "./game/catalog.js";
 
 const STATIONS = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "stations.json"), "utf8")).stations;
 
 /** Jumps between two stations in the catalog; null for an unknown station or no route. */
 export function jumpsBetween(fromStationId, toStationId) {
-  return stationHops(STATIONS, fromStationId, toStationId);
+  return stationHops(STATIONS, fromStationId, toStationId, NAVIGATION);
 }
 
 /** The fee, in credits, to move `quantity` units from one station to another; null for an unknown station. */

@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
-import { mutateAccountState, getAccountById, BELT_COMPOSITIONS } from "../../server/gameState.js";
+import { mutateAccountState, getAccountById, BELT_KEYS } from "../../server/gameState.js";
 import { resolveMetric } from "../../server/game/progression.js";
 import { asteroidExpeditionTick } from "../../server/ticks.js";
 
@@ -53,7 +53,7 @@ describe("the Ferric Mining Complex through the routes (ISP-96)", () => {
     const now = Date.now();
     mutateAccountState(c.id, (state) => {
       state.corp.inventory = {};
-      state.corp.asteroidMining.activeExpeditions = [{ id: "exp-fmc", status: "active", beltKey: Object.keys(BELT_COMPOSITIONS)[0], systemId: "sol",
+      state.corp.asteroidMining.activeExpeditions = [{ id: "exp-fmc", status: "active", beltKey: BELT_KEYS[0], systemId: "sol",
         duration: "standard", deployedAt: now - 120_000, lastTickAt: now - 1_000, completesAt: now - 1_000, yields: { Nickel: 40, Titanium: 20, Silicates: 12 } }];
     });
     asteroidExpeditionTick();
