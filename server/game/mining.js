@@ -94,6 +94,8 @@ export function ensureCorpMiningModel(corp) {
       totalSpent: Number(extractor.totalSpent || 0),
       lastCompletedAt: extractor.lastCompletedAt ?? null,
       leaseId: extractor.leaseId ?? null,
+      // AB#792: the id of this extractor's yard in corp.buildings, given by ensureBuildingIds (server/game/buildingIds.js).
+      buildingId: extractor.buildingId ?? null,
       // Authoritative location string (planet/moon name). Persisted on the
       // extractor row directly so we don't have to chase leaseId references
       // across hydrations to know where the yard physically lives.

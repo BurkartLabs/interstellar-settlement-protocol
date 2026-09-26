@@ -2355,8 +2355,9 @@ textarea {
      card ran off the right edge (AB#585, found at 375x812). */
   width: min(760px, 100%);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--surface-1);
+  box-shadow: var(--elevation-overlay);
   padding: var(--space-4);
 }
 
@@ -6961,6 +6962,239 @@ body.sg {
     padding-top: 0;
   }
   .sg-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Data components (ISP-73, AB#762): table, toast, empty and error state, skeleton ───
+   The flat direction (Decision AB#1801), in tokens only, each shown in every state at /styleguide. The modal, the
+   progress bar, the mining cycle and the KPI tile are the game's own (.modal-card, .progress-wrap, .cycle-figures,
+   .kpi-tile) and are shown there as they are. Empty and error are separate components on purpose: an empty list is a
+   fact about the game and says what to do; a failure says what failed and offers to try again. */
+.ui-table-wrap {
+  max-width: 100%;
+}
+.ui-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-2);
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
+.ui-table__caption {
+  caption-side: top;
+  padding-bottom: var(--space-3);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+}
+.ui-table th {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ui-table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.ui-table tbody tr:hover {
+  background: var(--surface-hover);
+}
+.ui-table .ui-table__num {
+  text-align: right;
+}
+/* Below 768px a row is a card: the header goes, and each cell carries its column's name before its value. */
+@media (max-width: 767px) {
+  .ui-table thead {
+    display: none;
+  }
+  .ui-table,
+  .ui-table tbody,
+  .ui-table__caption {
+    display: block;
+  }
+  .ui-table tbody tr {
+    display: grid;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    padding: var(--space-4);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .ui-table td,
+  .ui-table .ui-table__num {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: 0;
+    border: 0;
+    text-align: right;
+  }
+  .ui-table td::before {
+    content: attr(data-label);
+    font-size: var(--font-size-1);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-caps);
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--muted);
+  }
+}
+
+.ui-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 480px;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-overlay);
+  color: var(--text);
+}
+.ui-toast--success {
+  border-left-color: var(--success);
+}
+.ui-toast--warn {
+  border-left-color: var(--warn);
+}
+.ui-toast--danger {
+  border-left-color: var(--danger);
+}
+.ui-toast__text {
+  flex: 1;
+  margin: 0;
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+}
+.ui-toast__close {
+  flex: none;
+  min-width: 36px;
+  padding: 0;
+  font-size: var(--font-size-4);
+  line-height: 1;
+}
+@media (max-width: 600px) {
+  .ui-toast__close {
+    min-width: 44px;
+  }
+}
+
+.ui-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  background: var(--surface-1);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+.ui-state__title {
+  margin: 0;
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+}
+.ui-state__why {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+  color: var(--text-soft);
+}
+/* A failure is drawn as one: a solid danger edge where the empty state has a quiet dashed line. */
+.ui-state--error {
+  border-style: solid;
+  border-color: var(--danger);
+  border-left-width: 4px;
+}
+
+.ui-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 480px;
+  padding: var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.ui-skeleton__line {
+  display: block;
+  width: 100%;
+  height: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  animation: ui-skeleton-pulse 1.6s var(--ease-standard) infinite alternate;
+}
+.ui-skeleton__line--title {
+  width: 60%;
+  height: 18px;
+}
+.ui-skeleton__line--short {
+  width: 40%;
+}
+@keyframes ui-skeleton-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton__line {
+    animation: none;
+  }
+}
+
+/* The style guide's frames for the data components (ISP-73). A modal is drawn in place on its own scrim. */
+.sg-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.sg-grid--wide {
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+}
+.sg-modal-frame {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--scrim-modal);
+  border-radius: var(--radius-lg);
+}
+.sg-modal-copy {
+  margin: 0 0 var(--space-4);
+  color: var(--text-soft);
+  line-height: var(--line-height-body);
+}
+.sg-specimen--full {
+  align-items: stretch;
+}
+.sg-progress-label {
+  margin: 0;
+  font-size: var(--font-size-2);
+  color: var(--text-soft);
+}
+.sg-cycle-grid {
+  margin-top: var(--space-4);
+}
+.sg-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+@media (max-width: 600px) {
+  .sg-pair {
     grid-template-columns: 1fr;
   }
 }

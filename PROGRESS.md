@@ -30,6 +30,19 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   without one is refused, not built bare (fails closed). ISP-96 (AB#786, Ferric Mining Complex) is the first to use it.
 - `tests/integration/build-endpoint.test.js`: state and receipt parity with each old route, each refusal byte-identical
   before and after, hostile values, 401/403, the snapshot on disk.
+## What's now true (AB#762 — ISP-73, the data components on /styleguide)
+
+- `/styleguide` has seven data sections after the core ones: a table that is cards below 768px (`.ui-table`, each
+  `td` carries `data-label`), toasts in four variants (`.ui-toast`, closed by `initToasts` in `uiComponents.js`), the
+  game's own modal as confirmation, danger and receipt, the progress bar at 0/62/100% and the mining cycle running and
+  idle, an **empty state and an error state side by side** (`.ui-state`, `.ui-state--error`), a skeleton that stands
+  still under reduced motion, and the game's KPI tile in its five states. New components are `ui-*`; the modal,
+  progress bar, cycle and KPI tile are the game's classes as they are, except `.modal-card`, which now uses
+  `--radius-lg` and `--elevation-overlay`, so every in-game dialog is 8px and shadowed.
+- `tests/unit/styleguide.test.js` holds the page to the set; `e2e/styleguide.spec.js` measures table at 1280, cards at
+  375, no sideways scroll, and the toast closing. Screens in `docs/ab-762/`. No screen uses the new components yet:
+  they are adopted when a screen is rebuilt (ISP-76 to ISP-79), including the empty-vs-error split the Mining Ticker's
+  "No extractor yard records found" still lacks.
 
 ## What's now true (AB#2057 — Create Listing says why, in the row that was pressed, Builder #1)
 
