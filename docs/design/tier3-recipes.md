@@ -251,19 +251,28 @@ whatever the sell route prices a lot at (AB#2356).
 
 - On every track, no fixed policy has the most credits at every point of the sweep.
 - "Always refine to the end" loses to "always sell raw" at one or more points.
-- The design's rule ends within 5% of the best policy at every point.
+- The design's rule ends within 5% of the best policy at every point where refine-to-end is not the best policy,
+  and within 11% where it is (measured worst: 10.7%, nickel-iron 84h x1).
+
+**Director ruling, 2026-09-26 (AB#2367): the wider band at low volume is a heuristic gap, not a real problem.**
+Every point where the rule misses 5% is a point where refine-to-end is already best, which means the Refinery is
+idle anyway and a player finds the plain, correct answer without the rule. The likely lead, not yet built: refine
+to the end when the chain's end products fit within their own quotas that week. **Tripwire:** the rule is not shown
+to a player in any form - a hint, an advisor, a recommendation - before this gap closes to 5% everywhere. Widening
+the target to 11% accepts the gap for the probe's own bookkeeping; it does not clear the rule for a player-facing
+screen.
 
 `npm run probe:chains` prints the table; the latest is in AB#2367 and its pull request.
 
-**Where it stands (2026-09-26, bot numbers).** Over 40 points (5 tracks x 4 volumes x 1 or 2 Refineries): the first two
-targets are met. Refine-to-end is best at 16 points, the rule at 20 and sell-raw at 4, and refine-to-end loses to
-sell-raw at 17: rare metals below 336h, fuel with two Refineries or at 336h, light metals and cross-track at high
-volume. The third is not: the rule ends within 5% at 33 points. The seven it misses are all where refine-to-end is
-best at low volume (nickel-iron at 42h and 84h, light metals at 42h and 168h with one Refinery, cross-track at 42h with
-one), 5.2% to 10.7% below. Valuing an intermediate by what the next stage makes of it made that worse. The rule is with
-the Director (AB#2367). What this measures is whether
-the rule survives a corporation's own volume, quotas, drift, cycle times and one or two Refineries. It does not
-measure human pacing, player-to-player prices, or other sellers moving the bids.
+**Where it stands (2026-09-26, bot numbers).** Over 40 points (5 tracks x 4 volumes x 1 or 2 Refineries): all three
+targets are met against the corrected bar above. Refine-to-end is best at 16 points, the rule at 20 and sell-raw at 4,
+and refine-to-end loses to sell-raw at 17: rare metals below 336h, fuel with two Refineries or at 336h, light metals
+and cross-track at high volume. At the 16 points where refine-to-end is best, the rule lands within 11% of it (worst
+10.7%, nickel-iron 84h x1); at the other 24 it is within 5%. Valuing an intermediate by what the next stage makes of
+it was tried and made the low-volume gap worse (worst 15.8%), and was reverted. AB#2367 is closed on this reading;
+closing the low-volume gap itself, and the player-facing tripwire, is its own follow-up. What this measures is
+whether the rule survives a corporation's own volume, quotas, drift, cycle times and one or two Refineries. It does
+not measure human pacing, player-to-player prices, or other sellers moving the bids.
 
 Section 1's table still gives the per-step result by construction. The probe exists because a week of a
 corporation's own selling, quotas and one or two slots is not per-step arithmetic.
