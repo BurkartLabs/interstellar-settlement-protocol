@@ -6,71 +6,19 @@ import { fleetStatus } from "../gameState.js"; // Bug #586
 import { emitToAccount } from "../realtime.js";
 import { SYSTEMS_CATALOG } from "../travel.js";
 import { beltPhrase } from "../../public/scripts/displayNames.js"; // AB#1336
-import { corpSlotsFull, fundingRequirementMessage } from "./helpers.js";
-// AB#783: the Assembly Facility's cost, asset value, research and cap come from data/player-buildings.json.
-import { catalogueRefusal, countBuilt, playerBuilding } from "../playerBuildings.js";
+// ISP-94 (AB#784): buildHandler builds the Assembly Facility, as it builds every player building (server/construction.js).
+import { fundingRequirementMessage, buildHandler } from "./helpers.js";
+// AB#783: probes need an Assembly Facility, counted from data/player-buildings.json.
+import { countBuilt, playerBuilding } from "../playerBuildings.js";
 
 const ASSEMBLY = playerBuilding("assembly-facility");
-import { buildAssemblyReceipt, launchExpeditionReceipt, probeFabricationReceipt, scoutBeltReceipt } from "../receipts.js"; // AB#744
+import { launchExpeditionReceipt, probeFabricationReceipt, scoutBeltReceipt } from "../receipts.js"; // AB#744
 
 export function registerAsteroidRoutes(app) {
   // ─── Asteroid Mining: Assembly Facility, Probes, Expeditions ─────────────────
 
-  app.post("/api/accounts/:accountId/gameplay/build-assembly-facility", (req, res) => {
-    const BUILD_COST = ASSEMBLY.cost;
-    const ASSET_VALUE = ASSEMBLY.assetValue;
-    let outcome = "ok";
-
-    const account = mutateAccountState(req.params.accountId, (state) => {
-      const corp = state.corp;
-
-      const refused = catalogueRefusal(ASSEMBLY, corp);
-      if (refused) {
-        outcome = refused === "at-cap" ? "already-built" : refused;
-        return;
-      }
-
-      if ((corp.buildings || []).length >= (corp.buildingSlots || 2)) {
-        outcome = "no-slot";
-        return;
-      }
-
-      if ((corp.finances.credits || 0) < BUILD_COST) {
-        outcome = "insufficient-credits";
-        return;
-      }
-
-      if (!Array.isArray(corp.buildings)) corp.buildings = [];
-      corp.buildings.push({ name: "Assembly Facility", tier: 1, status: "Operational" }); // the catalogue name; a test holds them equal
-      applyCredits(corp, -BUILD_COST, "construction");
-      corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
-    });
-
-    if (!account) { res.status(404).json({ error: "Account not found." }); return; }
-
-    if (outcome !== "ok") {
-      const msgs = {
-        "missing-research": "Assembly & Fabrication Systems research is required before constructing an Assembly Facility.",
-        "already-built": "Your corporation already operates an Assembly Facility.",
-        "no-slot": `An Assembly Facility needs a free building slot. ${corpSlotsFull(account.state.corp)}`,
-        "insufficient-credits": fundingRequirementMessage("Assembly Facility construction", account.state.corp, BUILD_COST)
-      };
-      res.status(400).json({ error: msgs[outcome] || "Build failed." });
-      return;
-    }
-
-    const notification = addAccountNotification(req.params.accountId, {
-      type: "infrastructure",
-      title: "Assembly Facility Online",
-      body: "Your Assembly Facility is now operational. You may begin fabricating units."
-    });
-    if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
-    saveAccountsNow();
-    // AB#744: a construction purchase like the refinery, so it is confirmed the same way.
-    const built = account.state.corp;
-    const receipt = buildAssemblyReceipt({ cost: BUILD_COST, assetValue: ASSET_VALUE, slotsUsed: (built.buildings || []).length, slotsTotal: built.buildingSlots || 2 });
-    res.json({ ...account, receipt });
-  });
+  // ISP-94 (AB#784): POST /gameplay/build with the Assembly Facility (server/routes/construction.js).
+  app.post("/api/accounts/:accountId/gameplay/build-assembly-facility", buildHandler(() => ({ buildingId: "assembly-facility" })));
 
   app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
     let outcome = "ok";
