@@ -70,11 +70,15 @@ export const starmap = createStarmapController({
       const account = await parseJsonResponse(response);
       appState.data = deepClone(account.state);
       await refreshBeltCompositions();
+      starmap.setBeltNotice(null);
       updateAllViews();
       showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       pushFeedback(beltScoutedText(beltKey, appState.data?.world?.systems), "ok"); // AB#1257: names, not "sol:belt"
     } catch (err) {
+      // Bug #2339: the refusal beside the button that met it, as well as in the Overview's Command Feedback.
+      starmap.setBeltNotice({ beltKey, message: err.message || "Belt scouting failed." });
       pushFeedback(err.message || "Belt scouting failed.", "warn");
+      loadBeltCompositionsIntoStarmap(); // AB#2331: a refusal may mean the belt is gone; show what is there
     }
   },
   async onLaunchExpedition(beltKey, duration) {
@@ -88,17 +92,20 @@ export const starmap = createStarmapController({
       );
       const account = await parseJsonResponse(response);
       appState.data = deepClone(account.state);
+      starmap.setBeltNotice(null);
       updateAllViews();
       showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       pushFeedback("Mining expedition launched!", "ok");
     } catch (err) {
+      starmap.setBeltNotice({ beltKey, message: err.message || "Expedition launch failed." }); // Bug #2339
       pushFeedback(err.message || "Expedition launch failed.", "warn");
+      loadBeltCompositionsIntoStarmap(); // AB#2331
     }
   }
 });
 
-// TODO(AB#2331): carry each belt's generation and remaining reserve, so a respawned belt reads as unscouted and a belt
-// running down shows it (docs/design/belts.md, AB#1050).
+/** The scouted belts' compositions, and (AB#2331) every slot as this account may see it: whether a belt is there, its
+ * generation and next draw, and for a belt scouted in this generation its rarity and reserve (docs/design/belts.md). */
 export async function refreshBeltCompositions() {
   if (!appState.accountId) return;
   try {
@@ -107,6 +114,8 @@ export async function refreshBeltCompositions() {
     );
     const data = await parseJsonResponse(res);
     appState.beltCompositions = data.compositions || {};
+    appState.belts = data.belts || {};
+    appState.beltRespawnChance = data.respawnChancePerHour ?? null;
   } catch (_) { /* silent */ }
 }
 
@@ -114,5 +123,6 @@ export async function refreshBeltCompositions() {
  * panel). Called on every entry into the game (enterGame: log in, register, restore after a reload) and on refresh;
  * before, a reload never fetched them, so a scouted belt showed neither its composition nor a Scout button. */
 export function loadBeltCompositionsIntoStarmap() {
-  return refreshBeltCompositions().then(() => starmap.setAsteroidMining(starmapMiningState(appState.data, appState.beltCompositions)));
+  return refreshBeltCompositions().then(() => starmap.setAsteroidMining(starmapMiningState(appState.data, appState.beltCompositions,
+    { belts: appState.belts, respawnChancePerHour: appState.beltRespawnChance })));
 }

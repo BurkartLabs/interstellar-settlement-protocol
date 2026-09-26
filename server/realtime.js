@@ -71,6 +71,15 @@ function emitMarketUpdated() {
 }
 
 /**
+ * AB#2331: tell every connected socket that these belt slots emptied or filled, so an open belt panel refetches what
+ * its account may see of them (GET .../gameplay/belt-compositions). Only the keys go out: which belts, not whose.
+ */
+function emitBeltsChanged(keys) {
+  if (!keys?.length) return;
+  for (const peer of io.of("/").sockets.values()) peer.emit("belts:changed", { keys });
+}
+
+/**
  * Send the forums to every connected socket as that socket's account should see them: no account ids (Bug #1134).
  * The viewer is re-verified through checkSocketAuth (Bug #1766); see emitMarketUpdated.
  */
@@ -162,4 +171,4 @@ export function registerRealtime() {
   });
 }
 
-export { emitMarketUpdated, emitToAccount, sharedStateView, emitForumsUpdated };
+export { emitBeltsChanged, emitMarketUpdated, emitToAccount, sharedStateView, emitForumsUpdated };

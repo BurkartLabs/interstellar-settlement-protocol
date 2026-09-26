@@ -53,6 +53,14 @@
   --focus-ring: 2px solid var(--accent);
   --focus-ring-offset: 2px;
 
+  /* AB#2331: the parts of one bar that are different things of the same kind (a belt's resources), in order; each
+     is labelled in a legend, so the colour only tells neighbours apart. */
+  --series-1: var(--accent);
+  --series-2: var(--success);
+  --series-3: var(--warn);
+  --series-4: var(--danger);
+  --series-5: var(--muted);
+
   /* AB#745: a number that changed goes up or down in colour, not glow (public/scripts/numberChange.js). */
   --change-up: var(--success);
   --change-down: var(--danger);
@@ -3842,6 +3850,63 @@ img.station__body {
   color: var(--text);
   font-size: var(--font-size-3);
   font-weight: var(--font-weight-semibold);
+}
+/* AB#2331: a scouted belt's composition as one bar, its parts in legend order, a hairline of panel between them. */
+.belt-bar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--surface-1);
+}
+.belt-bar__part {
+  display: block;
+  min-width: 2px;
+}
+.belt-bar__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-soft); /* the panel's own size: 15px on a phone (the 600px rule below) */
+}
+.belt-bar__legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.belt-bar__legend strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.belt-bar__swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+}
+.belt-bar__part--1 { background: var(--series-1); }
+.belt-bar__part--2 { background: var(--series-2); }
+.belt-bar__part--3 { background: var(--series-3); }
+.belt-bar__part--4 { background: var(--series-4); }
+.belt-bar__part--5 { background: var(--series-5); }
+.belt-bar__other {
+  margin: 0;
+}
+/* The reserve's track on the panel's own surface would not show where full is. */
+.belt-reserve {
+  background: var(--surface-3);
+}
+/* Bug #2339: a refusal in the belt panel is a line, not a full empty-state block. */
+.starmap__notice {
+  padding: var(--space-3) var(--space-4);
+}
+.starmap__notice .ui-state__why {
+  margin: 0;
+  color: var(--text);
 }
 .starmap__status {
   margin: 0;

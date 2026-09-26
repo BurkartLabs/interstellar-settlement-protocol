@@ -66,6 +66,9 @@ export const appState = {
   _travelTimer: null,
   exchangeView: loadExchangeView(viewerStorage()), // resource, order type and sort, remembered per viewer (AB#402)
   beltCompositions: {},
+  // AB#2331: every belt slot as this account may see it (GET .../belt-compositions), and the hourly respawn chance.
+  belts: {},
+  beltRespawnChance: null,
   inbox: {
     messages: [],
     folder: "inbox",          // active folder tab

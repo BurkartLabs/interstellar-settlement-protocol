@@ -61,6 +61,35 @@ export function nextBeltDrawAt(belt) {
   return belt.lastDrawAt ? belt.lastDrawAt + HOUR : nextHourAfter(Number(belt.emptiedAt) || 0);
 }
 
+/**
+ * AB#2331: whether a corporation has scouted the belt in a slot now. Scouting is of a generation: a key scouted before
+ * belts had generations was of the first, and a belt that has since respawned is unscouted, whatever the key list says.
+ */
+export function isBeltScoutedBy(asteroidMining, belt) {
+  if (!isBeltPresent(belt)) return false;
+  if (!(asteroidMining?.scoutedBelts || []).includes(belt.key)) return false;
+  return (Number(asteroidMining?.scoutedGenerations?.[belt.key]) || 1) === belt.generation;
+}
+
+/** AB#2331: record that a corporation has scouted this generation of a belt. */
+export function recordBeltScouted(asteroidMining, belt) {
+  if (!Array.isArray(asteroidMining.scoutedBelts)) asteroidMining.scoutedBelts = [];
+  if (!asteroidMining.scoutedBelts.includes(belt.key)) asteroidMining.scoutedBelts.push(belt.key);
+  asteroidMining.scoutedGenerations = { ...(asteroidMining.scoutedGenerations || {}), [belt.key]: belt.generation };
+}
+
+/**
+ * AB#2331: what a corporation is told about a slot. Anyone can see whether a belt is there, its generation and, when
+ * it is not, when the next draw is; its rarity, composition and reserve are only for a corporation that scouted it.
+ */
+export function beltView(belt, asteroidMining) {
+  if (!belt) return null;
+  const present = isBeltPresent(belt);
+  const view = { key: belt.key, generation: belt.generation, present, scouted: false, nextDrawAt: nextBeltDrawAt(belt) };
+  if (!isBeltScoutedBy(asteroidMining, belt)) return view;
+  return { ...view, scouted: true, rarity: belt.rarity, composition: { ...belt.composition }, reserve: belt.reserve, remaining: belt.remaining };
+}
+
 /** A belt mined out at `now` (the expedition tick calls this when its reserve runs out, AB#2330): nothing remains; the next draw is at the next hour. */
 export function markBeltEmpty(globalState, key, now = Date.now()) {
   const belt = beltAt(globalState, key);

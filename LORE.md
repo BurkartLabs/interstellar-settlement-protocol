@@ -98,7 +98,7 @@ The starting theater. Mining leases in the Sol system are the cheapest available
 |---|---|---|
 | Mercury | Planet | Extreme heat; proximity to solar collection arrays; contested extraction zone |
 | Venus | Planet | Hostile atmosphere; specialized equipment required; high-risk high-yield |
-| Earth | Planet | No extraction rights. Regulatory center of gravity for the whole system |
+| Earth | Planet | Silicate leases only. Regulatory center of gravity for the whole system |
 | Mars | Planet | First accessible mining body; silicate-rich; popular for early-stage operations |
 | Asteroid Belt | Field | Richest accessible resource density in Sol; requires mid-tier equipment |
 | Jupiter | Planet | Gas giant; helium-3 harvesting requires advanced tech |
@@ -114,8 +114,8 @@ The starting theater. Mining leases in the Sol system are the cheapest available
 | Tier | Resources |
 |---|---|
 | Tier 1 (Raw Extraction) | Silicates, Helium-3, Nickel, Carbon, Water Ice, Hydrogen |
-| Tier 2 (Processed) | Titanium, Rare Earths, Lithium, Cobalt, Thorium, Uranium |
-| Tier 3 (Synthetic / Exotic) | Aerogel, Quantum Insulators, Plasma Conduits, Dark-Matter Capacitors, Exotic Matter |
+| Tier 2 (Scarce) | Titanium, Rare Earths, Lithium, Cobalt, Thorium, Uranium, Exotic Matter |
+| Tier 3 (Refined) | Aerogel, Quantum Insulators, Plasma Conduits, Dark-Matter Capacitors, and other chain products |
 
 Tier 3 resources require multi-step refinery chains and are typically gated behind significant R&D investment. They are also worth considerably more.
 

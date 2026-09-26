@@ -1,6 +1,7 @@
 // server/routes/asteroids.js: the asteroids routes, split out of server/index.js (AB#1815).
 import { addAccountNotification, saveAccountsNow, getAccountById, getState, mutateAccountState } from "../gameState.js";
-import { beltAt, isBeltPresent } from "../game/belts.js"; // AB#2330
+import { beltAt, beltView, isBeltPresent, isBeltScoutedBy, recordBeltScouted } from "../game/belts.js"; // AB#2330, AB#2331
+import { ECONOMY } from "../economy.js";
 import { emptyBeltMessage } from "../expeditionText.js"; // AB#2330
 import { BELT_KEYS, EXPEDITION_DURATIONS, beltComposition, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_FABRICATION_MS, BASE_MAX_DEPLOYMENTS } from "../gameState.js";
 import { applyCredits } from "../finances.js";
@@ -133,14 +134,13 @@ export function registerAsteroidRoutes(app) {
       if (!(corp.unlockedTech || []).includes("tt-asteroid-prospecting")) { outcome = "missing-research"; return; }
       if ((corp.currentSystemId || "sol") !== beltKey.split(":")[0]) { outcome = "wrong-system"; return; }
       if (!corp.asteroidMining) corp.asteroidMining = {};
-      if (!Array.isArray(corp.asteroidMining.scoutedBelts)) corp.asteroidMining.scoutedBelts = [];
-
-      if (corp.asteroidMining.scoutedBelts.includes(beltKey)) {
+      // AB#2331: scouting is of the belt there now; a key scouted in an earlier generation is scouted afresh.
+      if (isBeltScoutedBy(corp.asteroidMining, scoutedBelt)) {
         outcome = "already-scouted";
         return;
       }
 
-      corp.asteroidMining.scoutedBelts.push(beltKey);
+      recordBeltScouted(corp.asteroidMining, scoutedBelt);
     });
 
     if (!account) { res.status(404).json({ error: "Account not found." }); return; }
@@ -195,8 +195,7 @@ export function registerAsteroidRoutes(app) {
       if (typeof am.maxDeployments !== "number") am.maxDeployments = BASE_MAX_DEPLOYMENTS;
       if (!Array.isArray(am.activeExpeditions)) am.activeExpeditions = [];
 
-      if (!Array.isArray(am.scoutedBelts)) am.scoutedBelts = [];
-      if (!am.scoutedBelts.includes(beltKey)) {
+      if (!isBeltScoutedBy(am, belt)) { // AB#2331: this generation, not the key alone
         outcome = "not-scouted";
         return;
       }
@@ -286,16 +285,18 @@ export function registerAsteroidRoutes(app) {
     const account = getAccountById(req.params.accountId);
     if (!account) { res.status(404).json({ error: "Account not found." }); return; }
 
-    const scouted = account.state?.corp?.asteroidMining?.scoutedBelts || [];
+    // AB#2331: every slot as this corporation may see it (server/game/belts.js beltView): whether a belt is there, its
+    // generation and next draw, and for a belt it scouted, this generation's rarity, composition and reserve.
+    // `compositions` is the scouted ones' compositions, as before.
+    const am = account.state?.corp?.asteroidMining || {};
+    const belts = {};
     const result = {};
-    for (const key of scouted) {
-      // AB#2330: the composition of the belt there now, which a respawn draws afresh; the catalog's is generation 1.
-      const belt = beltAt(getState(), key);
-      const composition = beltComposition(key) && (belt?.composition || beltComposition(key));
-      if (composition) {
-        result[key] = composition;
-      }
+    for (const key of BELT_KEYS) {
+      const view = beltView(beltAt(getState(), key), am);
+      if (!view) continue;
+      belts[key] = view;
+      if (view.scouted) result[key] = view.composition;
     }
-    res.json({ compositions: result, allBeltKeys: BELT_KEYS });
+    res.json({ compositions: result, belts, respawnChancePerHour: ECONOMY.belts.respawnChancePerHour, allBeltKeys: BELT_KEYS });
   });
 }
