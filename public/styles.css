@@ -4203,6 +4203,22 @@ img.station__body {
   width: 7rem;
   max-width: 100%;
 }
+/* AB#818: an NPC's name is a button that opens its card; it reads as the name, not as a control's box. */
+.exchange__npc-name {
+  padding-inline: 0;
+  text-align: start;
+  white-space: normal; /* a long name wraps in a phone's card rather than widening it */
+  max-width: 100%;
+}
+.npc-profile-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.npc-profile__note {
+  color: var(--muted);
+  font-size: var(--font-size-1);
+}
 /* AB#815: an NPC seller's name and its badge, the badge wrapping under a long name in a phone's card. */
 .exchange__seller {
   display: inline-flex;

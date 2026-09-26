@@ -1239,6 +1239,20 @@
       </article>
     </section>
 
+    <!-- ISP-124 (AB#818): an NPC corporation's (or authority's) profile, from the catalog (public/scripts/views/npcProfileModal.js). -->
+    <section id="npc-profile-modal" class="modal-backdrop" hidden>
+      <article class="modal-card dialogue npc-profile-card" role="dialog" aria-modal="true" aria-labelledby="npc-profile-title">
+        <div class="dialogue__content">
+          <p class="dialogue__speaker" id="npc-profile-heading">NPC corporation</p>
+          <h2 id="npc-profile-title" class="dialogue__title"></h2>
+          <div id="npc-profile-body" class="npc-profile-body"></div>
+          <div class="dialogue__actions">
+            <button id="npc-profile-close" class="ui-button ui-button--primary" type="button">Close</button>
+          </div>
+        </div>
+      </article>
+    </section>
+
     <section id="dialogue-modal" class="modal-backdrop" hidden>
       <!-- ISP-82 (AB#771): on the design system, in the flat direction (Decision AB#1801). -->
       <article class="modal-card dialogue" role="dialog" aria-modal="true" aria-labelledby="dialogue-title">

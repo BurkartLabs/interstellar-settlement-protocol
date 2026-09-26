@@ -14,6 +14,8 @@ import { taxOnSale } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same sp
 import { suggestedListingPrice } from "../suggestedPrice.js";
 import { labelTableCells } from "../tableLabels.js";
 import { tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
+import { counterpartyHtml } from "../npcProfile.js"; // ISP-124 (AB#818)
+import { showNpcProfile } from "./npcProfileModal.js";
 import { flashButtonSuccess, getCurrentStationInfo, getInventory, pushFeedback, refreshFromServer, showTradeConfirmation, stationLocationBanner } from "./shared.js";
 
 /**
@@ -178,7 +180,7 @@ export function renderMarket(data) {
             <td>${escapeHtml(order.item)}</td>
             <td class="ui-table__num">${Number(order.quantity).toLocaleString()}</td>
             <td class="ui-table__num">${toCurrency(order.unitPrice)}</td>
-            <td><span class="exchange__seller">${escapeHtml(order.seller || "")} <span class="ui-badge" data-npc-badge>NPC</span></span></td>
+            <td>${counterpartyHtml(order.seller, market.npcDirectory)}</td>
             <td>${soldOut ? "-" : `<input class="ui-input exchange__qty" type="number" min="1" max="${Number(order.quantity)}" value="1" aria-label="Quantity of ${escapeHtml(order.item)} to buy" data-buy-order-qty="${escapeHtml(order.id)}" />`}</td>
             <td>${soldOut ? "Sold out until tomorrow" : `<button class="ui-button ui-button--secondary" type="button" data-buy-order-id="${escapeHtml(order.id)}" data-buy-item="${escapeHtml(order.item)}" data-buy-price="${Number(order.unitPrice)}" data-buy-qty="${Number(order.quantity)}">Buy</button>`}</td>
           </tr>`;
@@ -198,7 +200,7 @@ export function renderMarket(data) {
         return `
           <tr${exhausted ? ' class="ui-table__muted"' : ""}>
             <td>${escapeHtml(order.item)}</td>
-            <td>${escapeHtml(order.buyer)}</td>
+            <td>${counterpartyHtml(order.buyer, market.npcDirectory)}</td>
             <td class="ui-table__num">
               <span class="exchange__price">${toCurrency(order.unitPrice)}${
                 // ISP-87: the bid falls as the day's volume is sold into it. Saying so where the price is shown is
@@ -579,7 +581,7 @@ export function bindExchangeForms() {
     const { ok, values } = tradeNumbers({ quantity: typedQty });
     const qty = values.quantity;
     const buyStatus = document.getElementById("buy-status");
-    const seller = row?.children[3]?.textContent || "Anonymous";
+    const seller = row?.children[3]?.querySelector("[data-counterparty-name]")?.textContent || row?.children[3]?.textContent || "Anonymous"; // AB#818: the name, not its badge
 
     if (ok && qty <= maxQty) {
       const confirmed = await showTradeConfirmation({
@@ -639,6 +641,12 @@ export function bindExchangeForms() {
   document.getElementById("exchange-type-filter")?.addEventListener("change", (event) => setExchangeView({ type: event.target.value }));
   document.getElementById("exchange-sort")?.addEventListener("change", (event) => setExchangeView({ sort: event.target.value }));
   document.getElementById("market")?.addEventListener("click", (event) => {
+    // ISP-124 (AB#818): an NPC's name opens its profile card.
+    const npc = event.target.closest("[data-npc-profile]");
+    if (npc) {
+      showNpcProfile(npc.getAttribute("data-npc-profile"), npc);
+      return;
+    }
     if (event.target.closest("[data-clear-filters]")) {
       setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, type: DEFAULT_EXCHANGE_VIEW.type });
     }
@@ -663,7 +671,7 @@ export function bindExchangeForms() {
 
     if (ok) {
       const grossTotal = qty * price;
-      const buyer = row?.children[1]?.textContent || "NPC";
+      const buyer = row?.children[1]?.querySelector("[data-counterparty-name]")?.textContent || row?.children[1]?.textContent || "NPC"; // AB#818
       const confirmed = await showTradeConfirmation({
         heading: "Sell to Standing Buy Order",
         title: `Sell ${item}`,
