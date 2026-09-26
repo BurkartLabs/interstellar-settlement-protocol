@@ -289,6 +289,27 @@ export function onAccountNotification(listener) {
   accountNotificationListener = listener;
 }
 
+/** AB#803: what each unlock key is called on screen; the level notice and the level panel use the same words. */
+export const UNLOCK_LABELS = Object.freeze({
+  employeeCap: "Employee cap",
+  buildingSlots: "Building slots",
+  maxFleetSize: "Fleet cap",
+  maxUpgradeTier: "Highest building tier",
+  maxDeployments: "Deployment slots", // the expedition panel's words (AB#2307)
+  marketSectors: "Market sectors opened"
+});
+
+/**
+ * AB#803: a level's own unlocks as the level panel lists them, in the data's order, each as the level grants it (a cap
+ * research adds to, such as Fleet Coordination's, is shown without it). A sector list that opens nothing is left out.
+ */
+export function levelUnlockList(unlocks) {
+  return Object.entries(unlocks || {}).flatMap(([key, v]) => {
+    const value = Array.isArray(v) ? v.join(", ") : String(v);
+    return value === "" ? [] : [{ key, label: UNLOCK_LABELS[key] || key, value }];
+  });
+}
+
 /**
  * The notices for the levels `corp` reached since `before`. The figures are the ones the sidebar shows once each level
  * is granted, built by the same rules as evaluateLevelProgress and fleetStatus: each cap is the highest of what the
@@ -318,12 +339,12 @@ export function levelReachedNotices(before, corp, levels = MILESTONE_LEVELS) {
     // AB#743: the same figures, one per unlock this level defines in data/milestones.json, for the milestone modal. A
     // key this list does not know is still shown, under its own name, rather than dropped.
     const resulting = {
-      employeeCap: { label: "Employee cap", value: String(employeeCap) },
-      buildingSlots: { label: "Building slots", value: String(buildingSlots) },
-      maxFleetSize: { label: "Fleet cap", value: String(fleetCap) },
-      maxUpgradeTier: { label: "Highest building tier", value: String(maxUpgradeTier) },
-      maxDeployments: { label: "Deployment slots", value: String(maxDeployments) }, // the expedition panel's words
-      marketSectors: { label: "Market sectors opened", value: (opened.length ? opened : u.marketSectors || []).join(", ") }
+      employeeCap: { label: UNLOCK_LABELS.employeeCap, value: String(employeeCap) },
+      buildingSlots: { label: UNLOCK_LABELS.buildingSlots, value: String(buildingSlots) },
+      maxFleetSize: { label: UNLOCK_LABELS.maxFleetSize, value: String(fleetCap) },
+      maxUpgradeTier: { label: UNLOCK_LABELS.maxUpgradeTier, value: String(maxUpgradeTier) },
+      maxDeployments: { label: UNLOCK_LABELS.maxDeployments, value: String(maxDeployments) },
+      marketSectors: { label: UNLOCK_LABELS.marketSectors, value: (opened.length ? opened : u.marketSectors || []).join(", ") }
     };
     notices.push({
       type: "level",

@@ -5,6 +5,7 @@ import { milestonesFirst } from "../firstAction.js";
 import { formatDurationHours, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { requirementLink } from "../levelLinks.js";
+import { levelPanelView } from "../levelPanel.js"; // AB#803
 import { appState } from "../state.js";
 import { salvageRemainingMs } from "./shared.js";
 
@@ -176,65 +177,111 @@ export function renderLevel2Progress(data) {
   };
 
   const level = Number(data?.corp?.level || 0);
-  const nextLevel = level + 1;
-  const nextKey = `level${nextLevel}`;
-  const nextProgress = data?.corp?.levelProgress?.[nextKey];
+  // AB#803: reaching a level moves the panel on to the new next level, whatever was being browsed.
+  if (appState.levelBrowseAt !== level) {
+    appState.levelBrowse = null;
+    appState.levelBrowseAt = level;
+  }
+  const view = levelPanelView({
+    level,
+    levelCap: data?.corp?.levelCap,
+    levelProgress: data?.corp?.levelProgress,
+    ladder: appState.levelLadder,
+    browse: appState.levelBrowse
+  });
+  const shownKey = `level${view.shown}`;
+  const isNext = view.state === "next";
 
-  // Bug #424: the top of the ladder is reachable now, so say it is the top rather than offer a level that does not exist.
-  const levelCap = Number(data?.corp?.levelCap || 0);
-  if (levelCap && level >= levelCap) {
-    if (title) title.textContent = `Corporation Level ${level}: the top of this build`;
-    if (lede) lede.textContent = `You have reached the highest level this build defines. Levels ${levelCap + 1} to 40 are planned for a later version.`;
-    requirementsWrap.innerHTML = "";
-    status.textContent = "";
-    return;
+  // "Level N of M", M the highest level the data defines (Bug #424: never a literal).
+  if (title) title.textContent = view.max ? `Level ${level} of ${view.max}` : `Level ${level}`;
+  const meta = document.getElementById("level-panel-meta");
+  if (meta) {
+    const badge = {
+      next: '<span class="ui-badge ui-badge--accent">Next</span>',
+      reached: '<span class="ui-badge ui-badge--success">Reached</span>',
+      ahead: '<span class="ui-badge">Ahead</span>'
+    }[view.state];
+    meta.innerHTML = `${badge} Showing Level ${view.shown}`;
+  }
+  const browse = document.getElementById("level-browse");
+  if (browse) {
+    const step = (to, label, aria) =>
+      `<button type="button" class="ui-button ui-button--ghost" data-level-browse="${to ?? ""}"${to ? "" : " disabled"} aria-label="${aria}">${label}</button>`;
+    browse.innerHTML =
+      step(view.prev, view.prev ? `&lsaquo; Level ${view.prev}` : "&lsaquo;", view.prev ? `Show Level ${view.prev}` : "No earlier level") +
+      (view.isDefault ? "" : `<button type="button" class="ui-button ui-button--secondary" data-level-browse="default">${view.atTop ? "Your level" : "Next level"}</button>`) +
+      step(view.next, view.next ? `Level ${view.next} &rsaquo;` : "&rsaquo;", view.next ? `Show Level ${view.next}` : "No later level in this build");
+    if (!browse.dataset.bound) {
+      browse.dataset.bound = "1";
+      browse.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-level-browse]");
+        if (!button || button.disabled) return;
+        const to = button.dataset.levelBrowse;
+        appState.levelBrowse = to === "default" ? null : Number(to);
+        if (appState.data) renderLevel2Progress(appState.data);
+      });
+    }
   }
 
-  if (title) {
-    title.textContent = `Corporation Level ${nextLevel} Milestones`;
-  }
   if (lede) {
-    lede.textContent = `Complete these requirements to advance from Level ${level} to Level ${nextLevel}.`;
+    lede.textContent = view.atTop && view.shown === view.max
+      ? `You have reached the highest level this build defines. Levels ${view.max + 1} to 40 are planned for a later version.`
+      : isNext
+        ? `Complete these requirements to advance from Level ${level} to Level ${view.shown}.`
+        : view.state === "reached"
+          ? `Your corporation reached Level ${view.shown}. Its requirements, as they stand today:`
+          : `Level ${view.shown} opens after Level ${view.shown - 1}. Its requirements, with your progress so far:`;
   }
 
-  if (!nextProgress?.requirements?.length) {
+  const unlocksCard = document.getElementById("level-unlocks");
+  if (unlocksCard) {
+    unlocksCard.hidden = !view.unlocks.length;
+    const unlocksTitle = document.getElementById("level-unlocks-title");
+    if (unlocksTitle) unlocksTitle.textContent = view.state === "reached" ? `Level ${view.shown} unlocked` : `Reaching Level ${view.shown} unlocks`;
+    const list = document.getElementById("level-unlocks-list");
+    if (list) list.innerHTML = view.unlocks.map((u) => `<dt>${escapeHtml(u.label)}</dt><dd>${escapeHtml(u.value)}</dd>`).join("");
+  }
+
+  if (!view.requirements.length) {
     requirementsWrap.innerHTML =
       '<section class="ui-card"><p class="ui-card__body">No additional level requirements are currently defined for this profile.</p></section>';
     status.textContent = "";
     return;
   }
 
-  requirementsWrap.innerHTML = nextProgress.requirements
+  requirementsWrap.innerHTML = view.requirements
     .map((req) => {
       const doneClass = req.complete ? " is-complete" : "";
-      const reqId = `${nextKey}:${req.id}`;
+      const reqId = `${shownKey}:${req.id}`;
       const justCompletedClass =
-        appState.requirementsInitialized && req.complete && !appState.completedRequirementIds.has(reqId)
+        isNext && appState.requirementsInitialized && req.complete && !appState.completedRequirementIds.has(reqId)
           ? " is-just-completed"
           : "";
-      if (req.complete) {
+      if (req.complete && isNext) {
         appState.completedRequirementIds.add(reqId);
       }
-      // AB#1061: a lease milestone leads to the station that files its body, by way of the Starmap when docked elsewhere
-      const link = requirementLink(req, data?.corp?.currentStationId || null, appState.stationRegistry, REQ_TAB[req.id]);
+      // AB#1061: a lease milestone leads to the station that files its body, by way of the Starmap when docked elsewhere.
+      // AB#803: only the next level's cards lead anywhere; a level reached or ahead is there to read.
+      const link = isNext ? requirementLink(req, data?.corp?.currentStationId || null, appState.stationRegistry, REQ_TAB[req.id]) : null;
       const jumpAttr = link ? ` data-jump="${link.tab}"` : "";
       const clickable = link && !req.complete;
       // ISP-77 (AB#766): a milestone is a design-system card; one still to do that leads somewhere is a button.
       const tag = clickable ? 'button type="button"' : "section";
       const close = clickable ? "button" : "section";
+      const stateText = req.complete ? "Completed" : link ? escapeHtml(link.label) : "In Progress";
       return `
       <${tag} class="ui-card overview__milestone${clickable ? " ui-card--interactive" : ""}${doneClass}${justCompletedClass}"${jumpAttr}>
         <span class="ui-card__title overview__milestone-title">${escapeHtml(req.title)}</span>
         <span class="ui-card__figure">${milestoneNumber(req.progress)} / ${milestoneNumber(req.target)}</span>
-        <span class="ui-card__meta overview__milestone-state">${req.complete ? "Completed" : link ? escapeHtml(link.label) : "In Progress"}</span>
+        <span class="ui-card__meta overview__milestone-state">${stateText}</span>
         ${!req.complete && link?.hint ? `<span class="ui-card__body">${escapeHtml(link.hint)}</span>` : ""}
       </${close}>
       `;
     })
     .join("");
 
-  status.textContent = `Complete the requirements above to advance from Corporation Level ${level} to ${nextLevel}.`;
-  appState.requirementsInitialized = true;
+  status.textContent = isNext ? `Complete the requirements above to advance from Corporation Level ${level} to ${view.shown}.` : "";
+  if (isNext) appState.requirementsInitialized = true;
 }
 
 // Render the overview Asteroid Belt Expeditions panel. The starmap belt-detail

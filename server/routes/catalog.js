@@ -4,6 +4,7 @@ import path from "node:path";
 import { ECONOMY } from "../economy.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
 import { MILESTONE_LEVELS, MILESTONE_ROADMAP, SYSTEMS_DATA } from "../game/catalog.js";
+import { levelUnlockList } from "../game/progression.js"; // AB#803
 import { PROBE_FABRICATION_MS } from "../game/asteroids.js";
 import { getState, CEO_INSIGHT_LIBRARY, RESEARCH_LIBRARY, MISSION_AGENTS_DATA, REPUTATION_TIERS_DATA } from "../gameState.js";
 import { APP_VERSION, __dirname } from "../app.js";
@@ -59,7 +60,9 @@ export function registerCatalogRoutes(app) {
       // AB#783: what a corporation can build, read-only: the same for every caller, and nothing of any player's.
       playerBuildings: PLAYER_BUILDING_CATALOGUE,
       // ISP-106 (AB#798): the sidebar's roadmap, derived from the levels (server/game/catalog.js deriveRoadmap).
-      milestoneRoadmap: MILESTONE_ROADMAP
+      milestoneRoadmap: MILESTONE_ROADMAP,
+      // AB#803: each level's own unlocks, labelled, for the level panel's browser; its progress rides on the corporation.
+      levelLadder: [...MILESTONE_LEVELS].sort((a, b) => a.level - b.level).map((l) => ({ level: l.level, unlocks: levelUnlockList(l.unlocks) }))
     });
   });
 
