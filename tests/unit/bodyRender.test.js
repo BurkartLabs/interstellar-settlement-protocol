@@ -17,10 +17,10 @@ const outsideSol = every.filter((b) => b.system !== "sol");
 const HEX = /^#[0-9a-f]{6}$/i;
 
 describe("every body is drawn as something real, never the placeholder circle (AB#742)", () => {
-  it("walks all 55 bodies in the twelve systems (AB#806 added six systems and 17 bodies)", () => {
-    expect(systems).toHaveLength(12);
-    expect(every).toHaveLength(55);
-    expect(outsideSol).toHaveLength(37);
+  it("walks all 80 bodies in the 22 systems (AB#806 added six systems and 17 bodies, AB#807 ten and 25)", () => {
+    expect(systems).toHaveLength(22);
+    expect(every).toHaveLength(80);
+    expect(outsideSol).toHaveLength(62);
   });
 
   it("no body in any system falls back to the placeholder", () => {

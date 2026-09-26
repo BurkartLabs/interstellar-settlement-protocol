@@ -204,6 +204,16 @@ there (`corp.shipments`) until they arrive, moving with no reload on the `logist
 | Earth Station Prime | Frost Relay Depot | 2 | 8 | 4 h 30 min |
 | Earth Station Prime | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
 | Earth Station Prime | Southern Reef Platform | 2 | 8 | 4 h 30 min |
+| Earth Station Prime | Procyon Free Port | 3 | 11 | 6 h 30 min |
+| Earth Station Prime | Quiet Star Station | 4 | 14 | 8 h 30 min |
+| Earth Station Prime | Cygni Condominium | 3 | 11 | 6 h 30 min |
+| Earth Station Prime | Kapteyn Salvage Court | 3 | 11 | 6 h 30 min |
+| Earth Station Prime | Indi Convoy Station | 3 | 11 | 6 h 30 min |
+| Earth Station Prime | Cassiopeia Reach Post | 4 | 14 | 8 h 30 min |
+| Earth Station Prime | Ophiuchus Frontier Office | 5 | 17 | 10 h 30 min |
+| Earth Station Prime | Altair Compact Exchange | 4 | 14 | 8 h 30 min |
+| Earth Station Prime | Serpent Accord Station | 5 | 17 | 10 h 30 min |
+| Earth Station Prime | Remnant Beacon | 4 | 14 | 8 h 30 min |
 | Luna Gateway | Mars Orbital Dock | 0 | 2 | 30 min |
 | Luna Gateway | Centauri Prime Orbital | 1 | 5 | 2 h 30 min |
 | Luna Gateway | Ironwell Mining Depot | 1 | 5 | 2 h 30 min |
@@ -216,6 +226,16 @@ there (`corp.shipments`) until they arrive, moving with no reload on the `logist
 | Luna Gateway | Frost Relay Depot | 2 | 8 | 4 h 30 min |
 | Luna Gateway | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
 | Luna Gateway | Southern Reef Platform | 2 | 8 | 4 h 30 min |
+| Luna Gateway | Procyon Free Port | 3 | 11 | 6 h 30 min |
+| Luna Gateway | Quiet Star Station | 4 | 14 | 8 h 30 min |
+| Luna Gateway | Cygni Condominium | 3 | 11 | 6 h 30 min |
+| Luna Gateway | Kapteyn Salvage Court | 3 | 11 | 6 h 30 min |
+| Luna Gateway | Indi Convoy Station | 3 | 11 | 6 h 30 min |
+| Luna Gateway | Cassiopeia Reach Post | 4 | 14 | 8 h 30 min |
+| Luna Gateway | Ophiuchus Frontier Office | 5 | 17 | 10 h 30 min |
+| Luna Gateway | Altair Compact Exchange | 4 | 14 | 8 h 30 min |
+| Luna Gateway | Serpent Accord Station | 5 | 17 | 10 h 30 min |
+| Luna Gateway | Remnant Beacon | 4 | 14 | 8 h 30 min |
 | Mars Orbital Dock | Centauri Prime Orbital | 1 | 5 | 2 h 30 min |
 | Mars Orbital Dock | Ironwell Mining Depot | 1 | 5 | 2 h 30 min |
 | Mars Orbital Dock | Halo Anchorage | 2 | 8 | 4 h 30 min |
@@ -227,6 +247,16 @@ there (`corp.shipments`) until they arrive, moving with no reload on the `logist
 | Mars Orbital Dock | Frost Relay Depot | 2 | 8 | 4 h 30 min |
 | Mars Orbital Dock | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
 | Mars Orbital Dock | Southern Reef Platform | 2 | 8 | 4 h 30 min |
+| Mars Orbital Dock | Procyon Free Port | 3 | 11 | 6 h 30 min |
+| Mars Orbital Dock | Quiet Star Station | 4 | 14 | 8 h 30 min |
+| Mars Orbital Dock | Cygni Condominium | 3 | 11 | 6 h 30 min |
+| Mars Orbital Dock | Kapteyn Salvage Court | 3 | 11 | 6 h 30 min |
+| Mars Orbital Dock | Indi Convoy Station | 3 | 11 | 6 h 30 min |
+| Mars Orbital Dock | Cassiopeia Reach Post | 4 | 14 | 8 h 30 min |
+| Mars Orbital Dock | Ophiuchus Frontier Office | 5 | 17 | 10 h 30 min |
+| Mars Orbital Dock | Altair Compact Exchange | 4 | 14 | 8 h 30 min |
+| Mars Orbital Dock | Serpent Accord Station | 5 | 17 | 10 h 30 min |
+| Mars Orbital Dock | Remnant Beacon | 4 | 14 | 8 h 30 min |
 | Centauri Prime Orbital | Ironwell Mining Depot | 2 | 8 | 4 h 30 min |
 | Centauri Prime Orbital | Halo Anchorage | 1 | 5 | 2 h 30 min |
 | Centauri Prime Orbital | Verde Trade Hub | 2 | 8 | 4 h 30 min |
@@ -237,6 +267,16 @@ there (`corp.shipments`) until they arrive, moving with no reload on the `logist
 | Centauri Prime Orbital | Frost Relay Depot | 3 | 11 | 6 h 30 min |
 | Centauri Prime Orbital | Twin Flare Outpost | 3 | 11 | 6 h 30 min |
 | Centauri Prime Orbital | Southern Reef Platform | 3 | 11 | 6 h 30 min |
+| Centauri Prime Orbital | Procyon Free Port | 2 | 8 | 4 h 30 min |
+| Centauri Prime Orbital | Quiet Star Station | 3 | 11 | 6 h 30 min |
+| Centauri Prime Orbital | Cygni Condominium | 3 | 11 | 6 h 30 min |
+| Centauri Prime Orbital | Kapteyn Salvage Court | 4 | 14 | 8 h 30 min |
+| Centauri Prime Orbital | Indi Convoy Station | 4 | 14 | 8 h 30 min |
+| Centauri Prime Orbital | Cassiopeia Reach Post | 3 | 11 | 6 h 30 min |
+| Centauri Prime Orbital | Ophiuchus Frontier Office | 4 | 14 | 8 h 30 min |
+| Centauri Prime Orbital | Altair Compact Exchange | 4 | 14 | 8 h 30 min |
+| Centauri Prime Orbital | Serpent Accord Station | 5 | 17 | 10 h 30 min |
+| Centauri Prime Orbital | Remnant Beacon | 5 | 17 | 10 h 30 min |
 | Ironwell Mining Depot | Halo Anchorage | 2 | 8 | 4 h 30 min |
 | Ironwell Mining Depot | Verde Trade Hub | 1 | 5 | 2 h 30 min |
 | Ironwell Mining Depot | Kestrel Platform | 2 | 8 | 4 h 30 min |
@@ -246,6 +286,16 @@ there (`corp.shipments`) until they arrive, moving with no reload on the `logist
 | Ironwell Mining Depot | Frost Relay Depot | 1 | 5 | 2 h 30 min |
 | Ironwell Mining Depot | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
 | Ironwell Mining Depot | Southern Reef Platform | 3 | 11 | 6 h 30 min |
+| Ironwell Mining Depot | Procyon Free Port | 3 | 11 | 6 h 30 min |
+| Ironwell Mining Depot | Quiet Star Station | 3 | 11 | 6 h 30 min |
+| Ironwell Mining Depot | Cygni Condominium | 2 | 8 | 4 h 30 min |
+| Ironwell Mining Depot | Kapteyn Salvage Court | 3 | 11 | 6 h 30 min |
+| Ironwell Mining Depot | Indi Convoy Station | 4 | 14 | 8 h 30 min |
+| Ironwell Mining Depot | Cassiopeia Reach Post | 4 | 14 | 8 h 30 min |
+| Ironwell Mining Depot | Ophiuchus Frontier Office | 4 | 14 | 8 h 30 min |
+| Ironwell Mining Depot | Altair Compact Exchange | 3 | 11 | 6 h 30 min |
+| Ironwell Mining Depot | Serpent Accord Station | 4 | 14 | 8 h 30 min |
+| Ironwell Mining Depot | Remnant Beacon | 4 | 14 | 8 h 30 min |
 | Halo Anchorage | Verde Trade Hub | 1 | 5 | 2 h 30 min |
 | Halo Anchorage | Kestrel Platform | 1 | 5 | 2 h 30 min |
 | Halo Anchorage | Lalande Registry Station | 1 | 5 | 2 h 30 min |
@@ -254,6 +304,16 @@ there (`corp.shipments`) until they arrive, moving with no reload on the `logist
 | Halo Anchorage | Frost Relay Depot | 3 | 11 | 6 h 30 min |
 | Halo Anchorage | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
 | Halo Anchorage | Southern Reef Platform | 4 | 14 | 8 h 30 min |
+| Halo Anchorage | Procyon Free Port | 1 | 5 | 2 h 30 min |
+| Halo Anchorage | Quiet Star Station | 2 | 8 | 4 h 30 min |
+| Halo Anchorage | Cygni Condominium | 2 | 8 | 4 h 30 min |
+| Halo Anchorage | Kapteyn Salvage Court | 3 | 11 | 6 h 30 min |
+| Halo Anchorage | Indi Convoy Station | 4 | 14 | 8 h 30 min |
+| Halo Anchorage | Cassiopeia Reach Post | 2 | 8 | 4 h 30 min |
+| Halo Anchorage | Ophiuchus Frontier Office | 3 | 11 | 6 h 30 min |
+| Halo Anchorage | Altair Compact Exchange | 3 | 11 | 6 h 30 min |
+| Halo Anchorage | Serpent Accord Station | 4 | 14 | 8 h 30 min |
+| Halo Anchorage | Remnant Beacon | 4 | 14 | 8 h 30 min |
 | Verde Trade Hub | Kestrel Platform | 1 | 5 | 2 h 30 min |
 | Verde Trade Hub | Lalande Registry Station | 1 | 5 | 2 h 30 min |
 | Verde Trade Hub | Compact Hall | 2 | 8 | 4 h 30 min |
@@ -261,27 +321,152 @@ there (`corp.shipments`) until they arrive, moving with no reload on the `logist
 | Verde Trade Hub | Frost Relay Depot | 2 | 8 | 4 h 30 min |
 | Verde Trade Hub | Twin Flare Outpost | 1 | 5 | 2 h 30 min |
 | Verde Trade Hub | Southern Reef Platform | 3 | 11 | 6 h 30 min |
+| Verde Trade Hub | Procyon Free Port | 2 | 8 | 4 h 30 min |
+| Verde Trade Hub | Quiet Star Station | 2 | 8 | 4 h 30 min |
+| Verde Trade Hub | Cygni Condominium | 2 | 8 | 4 h 30 min |
+| Verde Trade Hub | Kapteyn Salvage Court | 2 | 8 | 4 h 30 min |
+| Verde Trade Hub | Indi Convoy Station | 3 | 11 | 6 h 30 min |
+| Verde Trade Hub | Cassiopeia Reach Post | 3 | 11 | 6 h 30 min |
+| Verde Trade Hub | Ophiuchus Frontier Office | 3 | 11 | 6 h 30 min |
+| Verde Trade Hub | Altair Compact Exchange | 3 | 11 | 6 h 30 min |
+| Verde Trade Hub | Serpent Accord Station | 4 | 14 | 8 h 30 min |
+| Verde Trade Hub | Remnant Beacon | 3 | 11 | 6 h 30 min |
 | Kestrel Platform | Lalande Registry Station | 2 | 8 | 4 h 30 min |
 | Kestrel Platform | Compact Hall | 3 | 11 | 6 h 30 min |
 | Kestrel Platform | Sirius Exchange Anchorage | 3 | 11 | 6 h 30 min |
-| Kestrel Platform | Frost Relay Depot | 3 | 11 | 6 h 30 min |
+| Kestrel Platform | Frost Relay Depot | 2 | 8 | 4 h 30 min |
 | Kestrel Platform | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
 | Kestrel Platform | Southern Reef Platform | 4 | 14 | 8 h 30 min |
+| Kestrel Platform | Procyon Free Port | 2 | 8 | 4 h 30 min |
+| Kestrel Platform | Quiet Star Station | 1 | 5 | 2 h 30 min |
+| Kestrel Platform | Cygni Condominium | 1 | 5 | 2 h 30 min |
+| Kestrel Platform | Kapteyn Salvage Court | 3 | 11 | 6 h 30 min |
+| Kestrel Platform | Indi Convoy Station | 4 | 14 | 8 h 30 min |
+| Kestrel Platform | Cassiopeia Reach Post | 3 | 11 | 6 h 30 min |
+| Kestrel Platform | Ophiuchus Frontier Office | 2 | 8 | 4 h 30 min |
+| Kestrel Platform | Altair Compact Exchange | 2 | 8 | 4 h 30 min |
+| Kestrel Platform | Serpent Accord Station | 3 | 11 | 6 h 30 min |
+| Kestrel Platform | Remnant Beacon | 4 | 14 | 8 h 30 min |
 | Lalande Registry Station | Compact Hall | 2 | 8 | 4 h 30 min |
 | Lalande Registry Station | Sirius Exchange Anchorage | 3 | 11 | 6 h 30 min |
 | Lalande Registry Station | Frost Relay Depot | 3 | 11 | 6 h 30 min |
 | Lalande Registry Station | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
 | Lalande Registry Station | Southern Reef Platform | 3 | 11 | 6 h 30 min |
+| Lalande Registry Station | Procyon Free Port | 2 | 8 | 4 h 30 min |
+| Lalande Registry Station | Quiet Star Station | 3 | 11 | 6 h 30 min |
+| Lalande Registry Station | Cygni Condominium | 3 | 11 | 6 h 30 min |
+| Lalande Registry Station | Kapteyn Salvage Court | 3 | 11 | 6 h 30 min |
+| Lalande Registry Station | Indi Convoy Station | 4 | 14 | 8 h 30 min |
+| Lalande Registry Station | Cassiopeia Reach Post | 3 | 11 | 6 h 30 min |
+| Lalande Registry Station | Ophiuchus Frontier Office | 4 | 14 | 8 h 30 min |
+| Lalande Registry Station | Altair Compact Exchange | 4 | 14 | 8 h 30 min |
+| Lalande Registry Station | Serpent Accord Station | 5 | 17 | 10 h 30 min |
+| Lalande Registry Station | Remnant Beacon | 4 | 14 | 8 h 30 min |
 | Compact Hall | Sirius Exchange Anchorage | 3 | 11 | 6 h 30 min |
 | Compact Hall | Frost Relay Depot | 3 | 11 | 6 h 30 min |
 | Compact Hall | Twin Flare Outpost | 1 | 5 | 2 h 30 min |
 | Compact Hall | Southern Reef Platform | 1 | 5 | 2 h 30 min |
+| Compact Hall | Procyon Free Port | 4 | 14 | 8 h 30 min |
+| Compact Hall | Quiet Star Station | 4 | 14 | 8 h 30 min |
+| Compact Hall | Cygni Condominium | 4 | 14 | 8 h 30 min |
+| Compact Hall | Kapteyn Salvage Court | 2 | 8 | 4 h 30 min |
+| Compact Hall | Indi Convoy Station | 2 | 8 | 4 h 30 min |
+| Compact Hall | Cassiopeia Reach Post | 5 | 17 | 10 h 30 min |
+| Compact Hall | Ophiuchus Frontier Office | 5 | 17 | 10 h 30 min |
+| Compact Hall | Altair Compact Exchange | 5 | 17 | 10 h 30 min |
+| Compact Hall | Serpent Accord Station | 6 | 20 | 12 h 30 min |
+| Compact Hall | Remnant Beacon | 3 | 11 | 6 h 30 min |
 | Sirius Exchange Anchorage | Frost Relay Depot | 4 | 14 | 8 h 30 min |
 | Sirius Exchange Anchorage | Twin Flare Outpost | 4 | 14 | 8 h 30 min |
 | Sirius Exchange Anchorage | Southern Reef Platform | 4 | 14 | 8 h 30 min |
+| Sirius Exchange Anchorage | Procyon Free Port | 1 | 5 | 2 h 30 min |
+| Sirius Exchange Anchorage | Quiet Star Station | 2 | 8 | 4 h 30 min |
+| Sirius Exchange Anchorage | Cygni Condominium | 4 | 14 | 8 h 30 min |
+| Sirius Exchange Anchorage | Kapteyn Salvage Court | 5 | 17 | 10 h 30 min |
+| Sirius Exchange Anchorage | Indi Convoy Station | 5 | 17 | 10 h 30 min |
+| Sirius Exchange Anchorage | Cassiopeia Reach Post | 2 | 8 | 4 h 30 min |
+| Sirius Exchange Anchorage | Ophiuchus Frontier Office | 3 | 11 | 6 h 30 min |
+| Sirius Exchange Anchorage | Altair Compact Exchange | 5 | 17 | 10 h 30 min |
+| Sirius Exchange Anchorage | Serpent Accord Station | 4 | 14 | 8 h 30 min |
+| Sirius Exchange Anchorage | Remnant Beacon | 6 | 20 | 12 h 30 min |
 | Frost Relay Depot | Twin Flare Outpost | 3 | 11 | 6 h 30 min |
 | Frost Relay Depot | Southern Reef Platform | 4 | 14 | 8 h 30 min |
+| Frost Relay Depot | Procyon Free Port | 4 | 14 | 8 h 30 min |
+| Frost Relay Depot | Quiet Star Station | 3 | 11 | 6 h 30 min |
+| Frost Relay Depot | Cygni Condominium | 1 | 5 | 2 h 30 min |
+| Frost Relay Depot | Kapteyn Salvage Court | 4 | 14 | 8 h 30 min |
+| Frost Relay Depot | Indi Convoy Station | 5 | 17 | 10 h 30 min |
+| Frost Relay Depot | Cassiopeia Reach Post | 5 | 17 | 10 h 30 min |
+| Frost Relay Depot | Ophiuchus Frontier Office | 4 | 14 | 8 h 30 min |
+| Frost Relay Depot | Altair Compact Exchange | 2 | 8 | 4 h 30 min |
+| Frost Relay Depot | Serpent Accord Station | 3 | 11 | 6 h 30 min |
+| Frost Relay Depot | Remnant Beacon | 5 | 17 | 10 h 30 min |
 | Twin Flare Outpost | Southern Reef Platform | 2 | 8 | 4 h 30 min |
+| Twin Flare Outpost | Procyon Free Port | 3 | 11 | 6 h 30 min |
+| Twin Flare Outpost | Quiet Star Station | 3 | 11 | 6 h 30 min |
+| Twin Flare Outpost | Cygni Condominium | 3 | 11 | 6 h 30 min |
+| Twin Flare Outpost | Kapteyn Salvage Court | 1 | 5 | 2 h 30 min |
+| Twin Flare Outpost | Indi Convoy Station | 2 | 8 | 4 h 30 min |
+| Twin Flare Outpost | Cassiopeia Reach Post | 4 | 14 | 8 h 30 min |
+| Twin Flare Outpost | Ophiuchus Frontier Office | 4 | 14 | 8 h 30 min |
+| Twin Flare Outpost | Altair Compact Exchange | 4 | 14 | 8 h 30 min |
+| Twin Flare Outpost | Serpent Accord Station | 5 | 17 | 10 h 30 min |
+| Twin Flare Outpost | Remnant Beacon | 2 | 8 | 4 h 30 min |
+| Southern Reef Platform | Procyon Free Port | 5 | 17 | 10 h 30 min |
+| Southern Reef Platform | Quiet Star Station | 5 | 17 | 10 h 30 min |
+| Southern Reef Platform | Cygni Condominium | 5 | 17 | 10 h 30 min |
+| Southern Reef Platform | Kapteyn Salvage Court | 2 | 8 | 4 h 30 min |
+| Southern Reef Platform | Indi Convoy Station | 1 | 5 | 2 h 30 min |
+| Southern Reef Platform | Cassiopeia Reach Post | 6 | 20 | 12 h 30 min |
+| Southern Reef Platform | Ophiuchus Frontier Office | 6 | 20 | 12 h 30 min |
+| Southern Reef Platform | Altair Compact Exchange | 6 | 20 | 12 h 30 min |
+| Southern Reef Platform | Serpent Accord Station | 7 | 23 | 14 h 30 min |
+| Southern Reef Platform | Remnant Beacon | 3 | 11 | 6 h 30 min |
+| Procyon Free Port | Quiet Star Station | 1 | 5 | 2 h 30 min |
+| Procyon Free Port | Cygni Condominium | 3 | 11 | 6 h 30 min |
+| Procyon Free Port | Kapteyn Salvage Court | 4 | 14 | 8 h 30 min |
+| Procyon Free Port | Indi Convoy Station | 5 | 17 | 10 h 30 min |
+| Procyon Free Port | Cassiopeia Reach Post | 1 | 5 | 2 h 30 min |
+| Procyon Free Port | Ophiuchus Frontier Office | 2 | 8 | 4 h 30 min |
+| Procyon Free Port | Altair Compact Exchange | 4 | 14 | 8 h 30 min |
+| Procyon Free Port | Serpent Accord Station | 3 | 11 | 6 h 30 min |
+| Procyon Free Port | Remnant Beacon | 5 | 17 | 10 h 30 min |
+| Quiet Star Station | Cygni Condominium | 2 | 8 | 4 h 30 min |
+| Quiet Star Station | Kapteyn Salvage Court | 4 | 14 | 8 h 30 min |
+| Quiet Star Station | Indi Convoy Station | 5 | 17 | 10 h 30 min |
+| Quiet Star Station | Cassiopeia Reach Post | 2 | 8 | 4 h 30 min |
+| Quiet Star Station | Ophiuchus Frontier Office | 1 | 5 | 2 h 30 min |
+| Quiet Star Station | Altair Compact Exchange | 3 | 11 | 6 h 30 min |
+| Quiet Star Station | Serpent Accord Station | 2 | 8 | 4 h 30 min |
+| Quiet Star Station | Remnant Beacon | 5 | 17 | 10 h 30 min |
+| Cygni Condominium | Kapteyn Salvage Court | 4 | 14 | 8 h 30 min |
+| Cygni Condominium | Indi Convoy Station | 5 | 17 | 10 h 30 min |
+| Cygni Condominium | Cassiopeia Reach Post | 4 | 14 | 8 h 30 min |
+| Cygni Condominium | Ophiuchus Frontier Office | 3 | 11 | 6 h 30 min |
+| Cygni Condominium | Altair Compact Exchange | 1 | 5 | 2 h 30 min |
+| Cygni Condominium | Serpent Accord Station | 2 | 8 | 4 h 30 min |
+| Cygni Condominium | Remnant Beacon | 5 | 17 | 10 h 30 min |
+| Kapteyn Salvage Court | Indi Convoy Station | 1 | 5 | 2 h 30 min |
+| Kapteyn Salvage Court | Cassiopeia Reach Post | 5 | 17 | 10 h 30 min |
+| Kapteyn Salvage Court | Ophiuchus Frontier Office | 5 | 17 | 10 h 30 min |
+| Kapteyn Salvage Court | Altair Compact Exchange | 5 | 17 | 10 h 30 min |
+| Kapteyn Salvage Court | Serpent Accord Station | 6 | 20 | 12 h 30 min |
+| Kapteyn Salvage Court | Remnant Beacon | 1 | 5 | 2 h 30 min |
+| Indi Convoy Station | Cassiopeia Reach Post | 6 | 20 | 12 h 30 min |
+| Indi Convoy Station | Ophiuchus Frontier Office | 6 | 20 | 12 h 30 min |
+| Indi Convoy Station | Altair Compact Exchange | 6 | 20 | 12 h 30 min |
+| Indi Convoy Station | Serpent Accord Station | 7 | 23 | 14 h 30 min |
+| Indi Convoy Station | Remnant Beacon | 2 | 8 | 4 h 30 min |
+| Cassiopeia Reach Post | Ophiuchus Frontier Office | 3 | 11 | 6 h 30 min |
+| Cassiopeia Reach Post | Altair Compact Exchange | 5 | 17 | 10 h 30 min |
+| Cassiopeia Reach Post | Serpent Accord Station | 4 | 14 | 8 h 30 min |
+| Cassiopeia Reach Post | Remnant Beacon | 6 | 20 | 12 h 30 min |
+| Ophiuchus Frontier Office | Altair Compact Exchange | 2 | 8 | 4 h 30 min |
+| Ophiuchus Frontier Office | Serpent Accord Station | 1 | 5 | 2 h 30 min |
+| Ophiuchus Frontier Office | Remnant Beacon | 6 | 20 | 12 h 30 min |
+| Altair Compact Exchange | Serpent Accord Station | 1 | 5 | 2 h 30 min |
+| Altair Compact Exchange | Remnant Beacon | 6 | 20 | 12 h 30 min |
+| Serpent Accord Station | Remnant Beacon | 7 | 23 | 14 h 30 min |
 
 **Where to refine, by arithmetic from the data (not from player behaviour).** The story set out to show that the
 cheapest place to refine is sometimes neither the mine's station nor the main market's. The arithmetic shows the

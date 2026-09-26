@@ -125,7 +125,8 @@ describe("a world saved before AB#806 (normalisation)", () => {
     expect(systems.find((s) => s.id === "barnards-star").bodies.every((b) => b.savedMarker)).toBe(true);
     expect(systems.find((s) => s.id === "sirius").bodies.map((b) => b.id)).toEqual(["si-ia", "si-anchorage", "si-disk"]);
     // A new system is a copy: changing the world's does not change the catalog.
+    const catalogLanes = [...byId.sirius.adjacent];
     systems.find((s) => s.id === "sirius").adjacent.push("x");
-    expect(byId.sirius.adjacent).toEqual(["alpha-centauri"]);
+    expect(byId.sirius.adjacent).toEqual(catalogLanes);
   });
 });

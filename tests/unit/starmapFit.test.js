@@ -178,13 +178,17 @@ describe("the Starmap fits a phone's width (Bug #1315)", () => {
     });
   }
 
-  it("on a desktop canvas no cluster label moves: each starts right of its star", () => {
+  it("on a desktop canvas no cluster label moves: each starts right of its star, or ends left of it at the right edge", () => {
     const { context } = mapAt(881, 427);
     for (const s of systems) {
       const l = context.labels.find((x) => x.text === s.name);
       const star = starOf(context, l);
       expect(star, s.name).toBeTruthy();
-      expect(l.x, s.name).toBeCloseTo(star.x + star.r + 10, 6); // to the right of its star, as before
+      // AB#807: a Frontier system sits at 0.82 to 0.9 across; where its name would run past the canvas's right edge it
+      // goes left of its star, the cluster view's own rule (clusterLabelAt, AB#808).
+      const rightFits = star.x + star.r + 10 + l.width <= 881 - 4;
+      if (rightFits) expect(l.x, s.name).toBeCloseTo(star.x + star.r + 10, 6); // to the right of its star, as before
+      else expect(l.x + l.width, s.name).toBeCloseTo(star.x - star.r - 10, 6);
     }
   });
 });

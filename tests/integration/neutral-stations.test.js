@@ -29,7 +29,7 @@ describe("the new systems' stations (AB#810)", () => {
   const rows = section.split(/\r?\n/).map((line) => line.split("|").slice(1, -1).map((c) => c.trim())).filter((c) => /^`[a-z0-9-]+`$/.test(c[1] || ""));
 
   it("are the design's, field by field, and every system in the catalog has at least one station", () => {
-    expect(rows.length).toBe(6);
+    expect(rows.length).toBe(16); // AB#810's six, and AB#807's ten for the second half
     for (const [name, id, designation, systemName, body, tier, jurisdiction] of rows) {
       const station = STATIONS.find((s) => s.id === id.replace(/`/g, ""));
       expect(station, id).toBeDefined();

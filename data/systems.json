@@ -77,7 +77,7 @@
     "accessResearch": "tt-deep-star-navigation",
     "rarity": "rare",
     "mapPosition": { "x": 0.44, "y": 0.28 },
-    "adjacent": ["alpha-centauri", "lalande-21185", "tau-ceti", "epsilon-eridani"],
+    "adjacent": ["alpha-centauri", "lalande-21185", "tau-ceti", "epsilon-eridani", "procyon"],
     "bodies": [
       { "id": "wf-halo", "name": "Halo", "type": "Planet", "x": 44, "y": 0, "radius": 5, "style": { "surface": "ice", "base": "#e6eef7", "shadow": "#6f7f93", "accent": "#a9c2dc", "glow": "rgba(210, 230, 255, 0.35)" }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
       { "id": "wf-garnet", "name": "Garnet", "type": "Planet", "x": 77, "y": 0, "radius": 6, "style": { "surface": "bands", "base": "#a8374a", "shadow": "#3d1219", "accent": "#e0917a", "glow": "rgba(230, 90, 100, 0.35)" }, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
@@ -113,7 +113,7 @@
     "accessResearch": "tt-deep-star-navigation",
     "rarity": "exotic",
     "mapPosition": { "x": 0.58, "y": 0.38 },
-    "adjacent": ["wolf-359", "tau-ceti"],
+    "adjacent": ["wolf-359", "tau-ceti", "61-cygni", "ross-128"],
     "bodies": [
       { "id": "ee-kestrel", "name": "Kestrel", "type": "Planet", "x": 46, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#c7a57a", "shadow": "#5a4430", "accent": "#8d7152", "glow": "rgba(220, 190, 150, 0.22)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Iron Ore", "concentration": 0.2 }, { "item": "Nickel", "concentration": 0.15 }, { "item": "Bauxite", "concentration": 0.1 }, { "item": "Cobalt", "concentration": 0.1 }] },
       { "id": "ee-orion", "name": "Orion Reach", "type": "Planet", "x": 78, "y": 0, "radius": 5, "style": { "surface": "bands", "base": "#5670c9", "shadow": "#1c2656", "accent": "#a9c0f2", "glow": "rgba(110, 140, 240, 0.38)" }, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
@@ -165,7 +165,7 @@
     "accessResearch": "tt-deep-star-navigation",
     "rarity": "rare",
     "mapPosition": { "x": 0.42, "y": 0.08 },
-    "adjacent": ["alpha-centauri"],
+    "adjacent": ["alpha-centauri", "procyon"],
     "bodies": [
       { "id": "si-ia", "name": "Sirius Ia", "type": "Planet", "x": 58, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#6fa6c8", "shadow": "#223a4a", "accent": "#eef7ff", "glow": "rgba(150, 210, 255, 0.4)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Bauxite", "concentration": 0.25 }, { "item": "Carbon", "concentration": 0.15 }, { "item": "Water Ice", "concentration": 0.15 }] },
       { "id": "si-anchorage", "name": "Canis Anchorage", "type": "Moon", "parentId": "si-ia", "x": 77, "y": 0, "radius": 3, "style": { "surface": "ice", "base": "#dbe9f2", "shadow": "#61788a", "accent": "#a4c3d8", "glow": "rgba(200, 235, 255, 0.32)" }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
@@ -182,7 +182,7 @@
     "accessResearch": "tt-deep-star-navigation",
     "rarity": "rare",
     "mapPosition": { "x": 0.4, "y": 0.64 },
-    "adjacent": ["barnards-star"],
+    "adjacent": ["barnards-star", "61-cygni"],
     "bodies": [
       { "id": "r248-i", "name": "Ross 248 I", "type": "Planet", "x": 50, "y": 0, "radius": 5, "style": { "surface": "ice", "base": "#e2edf6", "shadow": "#6c7d90", "accent": "#a6c0da", "glow": "rgba(210, 230, 255, 0.34)" }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
       { "id": "r248-rime", "name": "Rime", "type": "Moon", "parentId": "r248-i", "x": 66, "y": 0, "radius": 2, "style": { "surface": "ice", "base": "#cfe7f0", "shadow": "#5d7a88", "accent": "#94bccd", "glow": "rgba(190, 230, 250, 0.3)" }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
@@ -199,7 +199,7 @@
     "accessResearch": "tt-deep-star-navigation",
     "rarity": "rare",
     "mapPosition": { "x": 0.45, "y": 0.78 },
-    "adjacent": ["ross-154", "tau-ceti"],
+    "adjacent": ["ross-154", "tau-ceti", "kapteyns-star"],
     "bodies": [
       { "id": "l726-i", "name": "BL Ceti I", "type": "Planet", "x": 60, "y": 0, "radius": 5, "style": { "surface": "lava", "base": "#402420", "shadow": "#160a08", "accent": "#ff6a3a", "glow": "rgba(255, 100, 60, 0.4)" }, "resourceProfile": [{ "item": "Iron Ore", "concentration": 0.3 }, { "item": "Silicates", "concentration": 0.25 }, { "item": "Nickel", "concentration": 0.2 }, { "item": "Cobalt", "concentration": 0.15 }, { "item": "Thorium", "concentration": 0.1 }] },
       { "id": "l726-belt", "name": "Twin Flare Belt", "type": "Field", "x": 34, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#b07a6a", "shadow": "#503430", "accent": "#e6aa98", "glow": "rgba(176, 122, 106, 0.08)" }, "composition": { "Rare Earths": 22, "Thorium": 18, "Cobalt": 16, "Titanium": 14, "Nickel": 12, "Uranium": 10, "Lithium": 8 }, "resourceProfile": [{ "item": "Rare Earths", "concentration": 0.22 }, { "item": "Thorium", "concentration": 0.18 }, { "item": "Cobalt", "concentration": 0.16 }, { "item": "Titanium", "concentration": 0.14 }, { "item": "Nickel", "concentration": 0.12 }, { "item": "Uranium", "concentration": 0.1 }, { "item": "Lithium", "concentration": 0.08 }] }
@@ -215,11 +215,176 @@
     "accessResearch": "tt-deep-star-navigation",
     "rarity": "rare",
     "mapPosition": { "x": 0.41, "y": 0.93 },
-    "adjacent": ["ross-154"],
+    "adjacent": ["ross-154", "epsilon-indi"],
     "bodies": [
       { "id": "lc-b", "name": "Lacaille 9352 b", "type": "Planet", "x": 44, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#8f8a80", "shadow": "#39352f", "accent": "#615c54", "glow": "rgba(175, 168, 158, 0.2)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Iron Ore", "concentration": 0.2 }, { "item": "Nickel", "concentration": 0.15 }, { "item": "Bauxite", "concentration": 0.1 }, { "item": "Cobalt", "concentration": 0.1 }] },
       { "id": "lc-c", "name": "Lacaille 9352 c", "type": "Planet", "x": 80, "y": 0, "radius": 7, "style": { "surface": "bands", "base": "#5f8c6c", "shadow": "#203428", "accent": "#cfe8d6", "glow": "rgba(130, 200, 150, 0.32)" }, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
       { "id": "lc-reef", "name": "Southern Reef", "type": "Field", "x": 128, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#9ca890", "shadow": "#474f40", "accent": "#d6e0ca", "glow": "rgba(156, 168, 144, 0.08)" }, "composition": { "Nickel": 24, "Cobalt": 20, "Titanium": 18, "Rare Earths": 14, "Carbon": 12, "Thorium": 12 }, "resourceProfile": [{ "item": "Nickel", "concentration": 0.24 }, { "item": "Cobalt", "concentration": 0.2 }, { "item": "Titanium", "concentration": 0.18 }, { "item": "Rare Earths", "concentration": 0.14 }, { "item": "Carbon", "concentration": 0.12 }, { "item": "Thorium", "concentration": 0.12 }] }
+    ]
+  },
+  {
+    "id": "procyon",
+    "name": "Procyon",
+    "gdpIndex": 80,
+    "pirateDensity": 17,
+    "activityLevel": 82,
+    "ownerRule": "Procyon Free Port: tariff-free trade under a single charter.",
+    "accessResearch": "tt-long-baseline-navigation",
+    "rarity": "rare",
+    "mapPosition": { "x": 0.62, "y": 0.14 },
+    "adjacent": ["sirius", "wolf-359", "kruger-60", "ross-128"],
+    "bodies": [
+      { "id": "pr-ia", "name": "Procyon Ia", "type": "Planet", "x": 56, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#d8c48a", "shadow": "#4a3f22", "accent": "#fff4d0", "glow": "rgba(255, 230, 160, 0.36)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Bauxite", "concentration": 0.25 }, { "item": "Carbon", "concentration": 0.15 }, { "item": "Water Ice", "concentration": 0.15 }] },
+      { "id": "pr-port", "name": "Canis Minor Port", "type": "Moon", "parentId": "pr-ia", "x": 75, "y": 0, "radius": 3, "style": { "surface": "craters", "base": "#b4b0a6", "shadow": "#4c4a44", "accent": "#86827a", "glow": "rgba(200, 196, 186, 0.2)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.5 }, { "item": "Iron Ore", "concentration": 0.25 }, { "item": "Bauxite", "concentration": 0.15 }, { "item": "Carbon", "concentration": 0.1 }] },
+      { "id": "pr-scatter", "name": "Procyon Scatter", "type": "Field", "x": 32, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#d6c79c", "shadow": "#62583e", "accent": "#fff3cf", "glow": "rgba(214, 199, 156, 0.1)" }, "composition": { "Helium-3": 22, "Rare Earths": 18, "Titanium": 16, "Nickel": 14, "Hydrogen": 12, "Lithium": 10, "Exotic Matter": 8 }, "resourceProfile": [{ "item": "Helium-3", "concentration": 0.22 }, { "item": "Rare Earths", "concentration": 0.18 }, { "item": "Titanium", "concentration": 0.16 }, { "item": "Nickel", "concentration": 0.14 }, { "item": "Hydrogen", "concentration": 0.12 }, { "item": "Lithium", "concentration": 0.1 }, { "item": "Exotic Matter", "concentration": 0.08 }] }
+    ]
+  },
+  {
+    "id": "ross-128",
+    "name": "Ross 128",
+    "gdpIndex": 47,
+    "pirateDensity": 24,
+    "activityLevel": 42,
+    "ownerRule": "Quiet Star Trust: a research reserve that leases sparingly.",
+    "accessResearch": "tt-long-baseline-navigation",
+    "rarity": "rare",
+    "mapPosition": { "x": 0.7, "y": 0.28 },
+    "adjacent": ["epsilon-eridani", "procyon", "wolf-1061"],
+    "bodies": [
+      { "id": "r128-b", "name": "Ross 128 b", "type": "Planet", "x": 48, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#a08a78", "shadow": "#43382f", "accent": "#75655a", "glow": "rgba(200, 175, 150, 0.2)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Iron Ore", "concentration": 0.2 }, { "item": "Nickel", "concentration": 0.15 }, { "item": "Bauxite", "concentration": 0.1 }, { "item": "Cobalt", "concentration": 0.1 }] },
+      { "id": "r128-belt", "name": "Quiet Belt", "type": "Field", "x": 30, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#9a9aa6", "shadow": "#45454f", "accent": "#d4d4e0", "glow": "rgba(154, 154, 166, 0.08)" }, "composition": { "Rare Earths": 26, "Titanium": 20, "Nickel": 16, "Cobalt": 14, "Lithium": 12, "Silicates": 12 }, "resourceProfile": [{ "item": "Rare Earths", "concentration": 0.26 }, { "item": "Titanium", "concentration": 0.2 }, { "item": "Nickel", "concentration": 0.16 }, { "item": "Cobalt", "concentration": 0.14 }, { "item": "Lithium", "concentration": 0.12 }, { "item": "Silicates", "concentration": 0.12 }] }
+    ]
+  },
+  {
+    "id": "61-cygni",
+    "name": "61 Cygni",
+    "gdpIndex": 69,
+    "pirateDensity": 16,
+    "activityLevel": 72,
+    "ownerRule": "Twin-star condominium under two rival charters.",
+    "accessResearch": "tt-long-baseline-navigation",
+    "rarity": "rare",
+    "mapPosition": { "x": 0.62, "y": 0.57 },
+    "adjacent": ["ross-248", "epsilon-eridani", "altair"],
+    "bodies": [
+      { "id": "c61-a1", "name": "61 Cygni A I", "type": "Planet", "x": 50, "y": 0, "radius": 6, "style": { "surface": "bands", "base": "#b0845a", "shadow": "#45301e", "accent": "#f0d2a8", "glow": "rgba(230, 170, 110, 0.3)" }, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
+      { "id": "c61-b1", "name": "61 Cygni B I", "type": "Planet", "x": 86, "y": 0, "radius": 5, "style": { "surface": "craters", "base": "#8c6e5e", "shadow": "#3a2c24", "accent": "#62493c", "glow": "rgba(180, 140, 115, 0.2)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Iron Ore", "concentration": 0.2 }, { "item": "Nickel", "concentration": 0.15 }, { "item": "Bauxite", "concentration": 0.1 }, { "item": "Cobalt", "concentration": 0.1 }] },
+      { "id": "c61-wake", "name": "Swan's Wake", "type": "Field", "x": 128, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#b8a28c", "shadow": "#54493c", "accent": "#eadbc8", "glow": "rgba(184, 162, 140, 0.08)" }, "composition": { "Rare Earths": 24, "Titanium": 18, "Cobalt": 16, "Nickel": 14, "Thorium": 12, "Helium-3": 10, "Lithium": 6 }, "resourceProfile": [{ "item": "Rare Earths", "concentration": 0.24 }, { "item": "Titanium", "concentration": 0.18 }, { "item": "Cobalt", "concentration": 0.16 }, { "item": "Nickel", "concentration": 0.14 }, { "item": "Thorium", "concentration": 0.12 }, { "item": "Helium-3", "concentration": 0.1 }, { "item": "Lithium", "concentration": 0.06 }] }
+    ]
+  },
+  {
+    "id": "kapteyns-star",
+    "name": "Kapteyn's Star",
+    "gdpIndex": 36,
+    "pirateDensity": 41,
+    "activityLevel": 29,
+    "ownerRule": "A halo drifter with no authority: salvage law applies.",
+    "accessResearch": "tt-long-baseline-navigation",
+    "rarity": "exotic",
+    "mapPosition": { "x": 0.64, "y": 0.8 },
+    "adjacent": ["luyten-726-8", "epsilon-indi", "van-maanens-star"],
+    "bodies": [
+      { "id": "kap-b", "name": "Kapteyn b", "type": "Planet", "x": 54, "y": 0, "radius": 6, "style": { "surface": "ice", "base": "#b6c6d4", "shadow": "#4a5866", "accent": "#86a0b6", "glow": "rgba(180, 205, 230, 0.26)" }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
+      { "id": "kap-drift", "name": "Halo Drift", "type": "Field", "x": 32, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#8a8f9c", "shadow": "#3c404a", "accent": "#c8ccd8", "glow": "rgba(138, 143, 156, 0.08)" }, "composition": { "Thorium": 20, "Uranium": 18, "Rare Earths": 16, "Exotic Matter": 14, "Cobalt": 12, "Titanium": 10, "Nickel": 10 }, "resourceProfile": [{ "item": "Thorium", "concentration": 0.2 }, { "item": "Uranium", "concentration": 0.18 }, { "item": "Rare Earths", "concentration": 0.16 }, { "item": "Exotic Matter", "concentration": 0.14 }, { "item": "Cobalt", "concentration": 0.12 }, { "item": "Titanium", "concentration": 0.1 }, { "item": "Nickel", "concentration": 0.1 }] }
+    ]
+  },
+  {
+    "id": "epsilon-indi",
+    "name": "Epsilon Indi",
+    "gdpIndex": 52,
+    "pirateDensity": 33,
+    "activityLevel": 46,
+    "ownerRule": "Brown-dwarf frontier: survey claims arbitrated by convoy captains.",
+    "accessResearch": "tt-long-baseline-navigation",
+    "rarity": "exotic",
+    "mapPosition": { "x": 0.6, "y": 0.94 },
+    "adjacent": ["lacaille-9352", "kapteyns-star"],
+    "bodies": [
+      { "id": "ei-ab", "name": "Epsilon Indi Ab", "type": "Planet", "x": 50, "y": 0, "radius": 7, "style": { "surface": "bands", "base": "#7a8fb0", "shadow": "#283246", "accent": "#d2dcf0", "glow": "rgba(150, 175, 230, 0.32)" }, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
+      { "id": "ei-ba", "name": "Indi Ba", "type": "Planet", "x": 90, "y": 0, "radius": 8, "style": { "surface": "lava", "base": "#5a2a3a", "shadow": "#1c0c12", "accent": "#d8506e", "glow": "rgba(220, 80, 110, 0.36)" }, "resourceProfile": [{ "item": "Iron Ore", "concentration": 0.3 }, { "item": "Silicates", "concentration": 0.25 }, { "item": "Nickel", "concentration": 0.2 }, { "item": "Cobalt", "concentration": 0.15 }, { "item": "Thorium", "concentration": 0.1 }] },
+      { "id": "ei-belt", "name": "Indus Belt", "type": "Field", "x": 30, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#a3b4c4", "shadow": "#4a5562", "accent": "#dfe9f3", "glow": "rgba(163, 180, 196, 0.08)" }, "composition": { "Helium-3": 26, "Hydrogen": 20, "Rare Earths": 16, "Exotic Matter": 12, "Uranium": 10, "Lithium": 8, "Water Ice": 8 }, "resourceProfile": [{ "item": "Helium-3", "concentration": 0.26 }, { "item": "Hydrogen", "concentration": 0.2 }, { "item": "Rare Earths", "concentration": 0.16 }, { "item": "Exotic Matter", "concentration": 0.12 }, { "item": "Uranium", "concentration": 0.1 }, { "item": "Lithium", "concentration": 0.08 }, { "item": "Water Ice", "concentration": 0.08 }] }
+    ]
+  },
+  {
+    "id": "kruger-60",
+    "name": "Kruger 60",
+    "gdpIndex": 42,
+    "pirateDensity": 36,
+    "activityLevel": 35,
+    "ownerRule": "Cassiopeia Reach: claims recorded by whichever convoy arrived first.",
+    "accessResearch": "tt-frontier-cartography",
+    "rarity": "exotic",
+    "mapPosition": { "x": 0.86, "y": 0.1 },
+    "adjacent": ["procyon"],
+    "bodies": [
+      { "id": "kr60-i", "name": "Kruger 60 I", "type": "Planet", "x": 52, "y": 0, "radius": 6, "style": { "surface": "lava", "base": "#4c2c22", "shadow": "#180d09", "accent": "#ff7e46", "glow": "rgba(255, 126, 70, 0.36)" }, "resourceProfile": [{ "item": "Iron Ore", "concentration": 0.3 }, { "item": "Silicates", "concentration": 0.25 }, { "item": "Nickel", "concentration": 0.2 }, { "item": "Cobalt", "concentration": 0.15 }, { "item": "Thorium", "concentration": 0.1 }] },
+      { "id": "kr60-stream", "name": "Kruger Stream", "type": "Field", "x": 32, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#c4a07a", "shadow": "#5c4834", "accent": "#f4d6b0", "glow": "rgba(196, 160, 122, 0.08)" }, "composition": { "Helium-3": 30, "Rare Earths": 20, "Hydrogen": 16, "Exotic Matter": 12, "Lithium": 12, "Titanium": 10 }, "resourceProfile": [{ "item": "Helium-3", "concentration": 0.3 }, { "item": "Rare Earths", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.16 }, { "item": "Exotic Matter", "concentration": 0.12 }, { "item": "Lithium", "concentration": 0.12 }, { "item": "Titanium", "concentration": 0.1 }] }
+    ]
+  },
+  {
+    "id": "wolf-1061",
+    "name": "Wolf 1061",
+    "gdpIndex": 50,
+    "pirateDensity": 29,
+    "activityLevel": 44,
+    "ownerRule": "Ophiuchus Frontier Office: an ISA outpost at the edge of its writ.",
+    "accessResearch": "tt-frontier-cartography",
+    "rarity": "exotic",
+    "mapPosition": { "x": 0.88, "y": 0.33 },
+    "adjacent": ["ross-128", "70-ophiuchi"],
+    "bodies": [
+      { "id": "w1061-b", "name": "Wolf 1061 b", "type": "Planet", "x": 44, "y": 0, "radius": 5, "style": { "surface": "lava", "base": "#52302a", "shadow": "#1a0e0c", "accent": "#ff9a5a", "glow": "rgba(255, 140, 90, 0.34)" }, "resourceProfile": [{ "item": "Iron Ore", "concentration": 0.3 }, { "item": "Silicates", "concentration": 0.25 }, { "item": "Nickel", "concentration": 0.2 }, { "item": "Cobalt", "concentration": 0.15 }, { "item": "Thorium", "concentration": 0.1 }] },
+      { "id": "w1061-c", "name": "Wolf 1061 c", "type": "Planet", "x": 68, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#9c7f6c", "shadow": "#413328", "accent": "#6f5a4c", "glow": "rgba(195, 165, 140, 0.2)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Iron Ore", "concentration": 0.2 }, { "item": "Nickel", "concentration": 0.15 }, { "item": "Bauxite", "concentration": 0.1 }, { "item": "Cobalt", "concentration": 0.1 }] },
+      { "id": "w1061-d", "name": "Wolf 1061 d", "type": "Planet", "x": 96, "y": 0, "radius": 6, "style": { "surface": "ice", "base": "#c4d6e4", "shadow": "#52667a", "accent": "#92afc8", "glow": "rgba(190, 215, 240, 0.28)" }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
+      { "id": "w1061-reach", "name": "Wolf Reach", "type": "Field", "x": 30, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#b49a8a", "shadow": "#52453c", "accent": "#e8d4c6", "glow": "rgba(180, 154, 138, 0.08)" }, "composition": { "Rare Earths": 30, "Titanium": 18, "Cobalt": 14, "Thorium": 12, "Helium-3": 12, "Uranium": 8, "Nickel": 6 }, "resourceProfile": [{ "item": "Rare Earths", "concentration": 0.3 }, { "item": "Titanium", "concentration": 0.18 }, { "item": "Cobalt", "concentration": 0.14 }, { "item": "Thorium", "concentration": 0.12 }, { "item": "Helium-3", "concentration": 0.12 }, { "item": "Uranium", "concentration": 0.08 }, { "item": "Nickel", "concentration": 0.06 }] }
+    ]
+  },
+  {
+    "id": "altair",
+    "name": "Altair",
+    "gdpIndex": 76,
+    "pirateDensity": 22,
+    "activityLevel": 70,
+    "ownerRule": "Altair Compact: the frontier's own exchange.",
+    "accessResearch": "tt-frontier-cartography",
+    "rarity": "exotic",
+    "mapPosition": { "x": 0.84, "y": 0.54 },
+    "adjacent": ["61-cygni", "70-ophiuchi"],
+    "bodies": [
+      { "id": "alt-i", "name": "Altair I", "type": "Planet", "x": 60, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#c8d8f0", "shadow": "#3c4a60", "accent": "#ffffff", "glow": "rgba(210, 225, 255, 0.4)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Bauxite", "concentration": 0.25 }, { "item": "Carbon", "concentration": 0.15 }, { "item": "Water Ice", "concentration": 0.15 }] },
+      { "id": "alt-ring", "name": "Aquila Ring", "type": "Field", "x": 34, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#d2d8e6", "shadow": "#5e6474", "accent": "#f8faff", "glow": "rgba(210, 216, 230, 0.1)" }, "composition": { "Helium-3": 24, "Rare Earths": 22, "Titanium": 16, "Lithium": 14, "Exotic Matter": 12, "Nickel": 12 }, "resourceProfile": [{ "item": "Helium-3", "concentration": 0.24 }, { "item": "Rare Earths", "concentration": 0.22 }, { "item": "Titanium", "concentration": 0.16 }, { "item": "Lithium", "concentration": 0.14 }, { "item": "Exotic Matter", "concentration": 0.12 }, { "item": "Nickel", "concentration": 0.12 }] }
+    ]
+  },
+  {
+    "id": "70-ophiuchi",
+    "name": "70 Ophiuchi",
+    "gdpIndex": 57,
+    "pirateDensity": 32,
+    "activityLevel": 50,
+    "ownerRule": "Serpent Accord: two stars' claims held in trust by rival consortia.",
+    "accessResearch": "tt-frontier-cartography",
+    "rarity": "exotic",
+    "mapPosition": { "x": 0.9, "y": 0.74 },
+    "adjacent": ["wolf-1061", "altair"],
+    "bodies": [
+      { "id": "o70-a1", "name": "70 Ophiuchi A I", "type": "Planet", "x": 54, "y": 0, "radius": 6, "style": { "surface": "bands", "base": "#9a7a52", "shadow": "#3c2e1c", "accent": "#e6caa0", "glow": "rgba(220, 180, 120, 0.3)" }, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
+      { "id": "o70-belt", "name": "Serpent Belt", "type": "Field", "x": 32, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#b2986a", "shadow": "#504430", "accent": "#e8d6ae", "glow": "rgba(178, 152, 106, 0.08)" }, "composition": { "Rare Earths": 26, "Helium-3": 20, "Titanium": 16, "Cobalt": 14, "Thorium": 12, "Uranium": 12 }, "resourceProfile": [{ "item": "Rare Earths", "concentration": 0.26 }, { "item": "Helium-3", "concentration": 0.2 }, { "item": "Titanium", "concentration": 0.16 }, { "item": "Cobalt", "concentration": 0.14 }, { "item": "Thorium", "concentration": 0.12 }, { "item": "Uranium", "concentration": 0.12 }] }
+    ]
+  },
+  {
+    "id": "van-maanens-star",
+    "name": "van Maanen's Star",
+    "gdpIndex": 28,
+    "pirateDensity": 47,
+    "activityLevel": 22,
+    "ownerRule": "Remnant field: a dead system's debris, claimed by no one.",
+    "accessResearch": "tt-frontier-cartography",
+    "rarity": "exotic",
+    "mapPosition": { "x": 0.82, "y": 0.93 },
+    "adjacent": ["kapteyns-star"],
+    "bodies": [
+      { "id": "vm-cinder", "name": "Cinder Remnant", "type": "Planet", "x": 50, "y": 0, "radius": 5, "style": { "surface": "craters", "base": "#6e6a66", "shadow": "#2a2826", "accent": "#4c4946", "glow": "rgba(150, 145, 140, 0.16)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Iron Ore", "concentration": 0.2 }, { "item": "Nickel", "concentration": 0.15 }, { "item": "Bauxite", "concentration": 0.1 }, { "item": "Cobalt", "concentration": 0.1 }] },
+      { "id": "vm-field", "name": "Remnant Field", "type": "Field", "x": 30, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#9a948e", "shadow": "#46423e", "accent": "#d4cfc9", "glow": "rgba(154, 148, 142, 0.08)" }, "composition": { "Exotic Matter": 22, "Uranium": 20, "Thorium": 18, "Rare Earths": 16, "Cobalt": 12, "Titanium": 12 }, "resourceProfile": [{ "item": "Exotic Matter", "concentration": 0.22 }, { "item": "Uranium", "concentration": 0.2 }, { "item": "Thorium", "concentration": 0.18 }, { "item": "Rare Earths", "concentration": 0.16 }, { "item": "Cobalt", "concentration": 0.12 }, { "item": "Titanium", "concentration": 0.12 }] }
     ]
   }
 ]

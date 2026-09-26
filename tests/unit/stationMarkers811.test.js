@@ -75,7 +75,9 @@ describe("the cluster view's count badges (AB#811)", () => {
     const { plan } = laidOut(324, 320, true);
     const named = [...plan.keys()];
     expect(named).toContain("sol");
-    expect(named.length, "Sol and at least two neighbours on a phone, as AB#808 names them").toBeGreaterThanOrEqual(3);
+    // AB#807: with 22 systems a neighbour whose name crosses another star is not named on this 324px canvas (Bug #2343;
+    // at 390x844 the game names three of Sol's four, e2e/starmap-22.spec.js). Badges never take a name's place.
+    expect(named.length, "Sol and at least one neighbour on a phone, as AB#808 names them").toBeGreaterThanOrEqual(2);
   });
 });
 

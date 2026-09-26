@@ -111,9 +111,9 @@ export function renderBeltModel(m) {
   }
   lines.push("");
   lines.push(`Rarity of a respawned belt, per system (each tier away from the label ${m.design.rarityStepWeight} as likely):`);
-  lines.push("  system          | label    | common | uncommon |  rare  | exotic | mean yield x | vs today | expected net, standard");
+  lines.push("  system            | label    | common | uncommon |  rare  | exotic | mean yield x | vs today | expected net, standard");
   for (const s of m.systems) {
-    lines.push(`  ${s.name.padEnd(15)} | ${s.label.padEnd(8)} | ${pct(s.dist.common).padStart(6)} | ${pct(s.dist.uncommon).padStart(8)} | ${pct(s.dist.rare).padStart(6)} | ${pct(s.dist.exotic).padStart(6)} | ${s.expectedMult.toFixed(3).padStart(12)} | ${((s.change >= 0 ? "+" : "") + pct(s.change)).padStart(8)} | ${fmt(s.expectedNet)}`);
+    lines.push(`  ${s.name.padEnd(17)} | ${s.label.padEnd(8)} | ${pct(s.dist.common).padStart(6)} | ${pct(s.dist.uncommon).padStart(8)} | ${pct(s.dist.rare).padStart(6)} | ${pct(s.dist.exotic).padStart(6)} | ${s.expectedMult.toFixed(3).padStart(12)} | ${((s.change >= 0 ? "+" : "") + pct(s.change)).padStart(8)} | ${fmt(s.expectedNet)}`);
   }
   lines.push("");
   lines.push(`Respawn: ${pct(m.design.respawnChancePerHour, 0)} each hour on the hour; mean wait ${fmt(m.respawn.meanWaitHours, 1)} h; still empty after 12 h ${pct(m.respawn.emptyAfter12h)}, after 24 h ${pct(m.respawn.emptyAfter24h, 2)}.`);
