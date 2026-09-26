@@ -11,7 +11,11 @@
 //
 // `cryo` (ISP-98) is level5 plus Containment Physics and a Luna lease holding one idle yard built through construct().
 //
-// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo>
+// `tier5` (ISP-312, AB#2308) is level5 with both Earth yards at tier 5 and the corporation allowed tier 6, which no level
+// grants yet (AB#800 to AB#802 will): the upgrade control's tier-6 row with its price. `tier5-locked` is the same at
+// maxUpgradeTier 5, what a corporation sees today.
+//
+// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked>
 const [, , dataDir, email, password, kind] = process.argv;
 process.env.ISP_DATA_DIR = dataDir;
 process.env.JWT_SECRET = process.env.JWT_SECRET || "construction-panel-e2e-fixture-secret-0123";
@@ -26,7 +30,7 @@ verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who c
 store.mutateAccountState(account.id, (state) => {
   const corp = state.corp;
   corp.currentStationId = "earth-station-prime";
-  if (!["level5", "ferric", "refinery", "cryo"].includes(kind)) return;
+  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked"].includes(kind)) return;
   const lease = (id, body) => ({ id, body, leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: [], issuedAt: Date.now() });
   corp.level = 5;
   corp.buildingSlots = 6;
@@ -36,6 +40,11 @@ store.mutateAccountState(account.id, (state) => {
   for (let i = 0; i < 2; i += 1) {
     const built = construct(corp, playerBuilding("basic-extractor-yard"), "lease-earth-qa");
     if (built.outcome !== "ok") throw new Error(`seeding a yard: ${built.outcome}`);
+  }
+  if (kind === "tier5" || kind === "tier5-locked") {
+    for (const b of corp.buildings.filter((x) => x.name === "Basic Extractor Yard")) b.tier = 5;
+    for (const ex of corp.mining.silicateExtractors) ex.tier = 5;
+    corp.unlocks = { ...corp.unlocks, maxUpgradeTier: kind === "tier5" ? 6 : 5 };
   }
   if (kind === "cryo") {
     corp.unlockedTech = [...new Set([...corp.unlockedTech, "tt-containment-physics"])];

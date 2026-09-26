@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
-import { ECONOMY, economyProblems, loadEconomy, buildCostFor, operationCostPerHourFor, startupCostFor, yardUpkeepPerHourFor } from "../../server/economy.js";
+import { ECONOMY, economyProblems, loadEconomy, buildCostFor, operationCostPerHourFor, startupCostFor, yardMaxTier, yardTierFor, yardUpkeepPerHourFor } from "../../server/economy.js";
 import { officeLeaseCost, officeRenewalCost, OFFICE_TERMS_DAYS } from "../../public/scripts/ceoEffects.js";
 
 // AB#726 (ISP-40): the economy's numbers live in data/economy.json and the server reads them from there. This was a
@@ -29,7 +29,11 @@ const BEFORE_THE_MOVE = {
       { toTier: 2, upgradeCost: 40000, assetValue: 28000, offlineHours: 6, throughputReferencePerHour: 525, throughputCap: 313 },
       { toTier: 3, upgradeCost: 60000, assetValue: 42000, offlineHours: 12, throughputReferencePerHour: 656, throughputCap: 391 },
       { toTier: 4, upgradeCost: 90000, assetValue: 63000, offlineHours: 18, throughputReferencePerHour: 820, throughputCap: 488 },
-      { toTier: 5, upgradeCost: 135000, assetValue: 94500, offlineHours: 24, throughputReferencePerHour: 1025, throughputCap: 610 }
+      { toTier: 5, upgradeCost: 135000, assetValue: 94500, offlineHours: 24, throughputReferencePerHour: 1025, throughputCap: 610 },
+      // AB#2308: AB#791's curve continued, x1.25 cap and T_ref, x1.5 price, 70% book value, 6 h more offline a tier.
+      { toTier: 6, upgradeCost: 202500, assetValue: 141750, offlineHours: 30, throughputReferencePerHour: 1282, throughputCap: 763 },
+      { toTier: 7, upgradeCost: 303750, assetValue: 212625, offlineHours: 36, throughputReferencePerHour: 1602, throughputCap: 954 },
+      { toTier: 8, upgradeCost: 455625, assetValue: 318938, offlineHours: 42, throughputReferencePerHour: 2003, throughputCap: 1192 }
     ],
     ferricMiningComplexCost: 90000, ferricMiningComplexAssetValue: 65000,   // ISP-96 (AB#786): new, not moved
     ferricMiningComplexMetalMultiplier: 1.25,
@@ -165,5 +169,12 @@ describe("data/economy.json (AB#726)", () => {
       expect(officeLeaseCost(days)).toBe(days * ECONOMY.office.rentPerDay);
       expect(officeRenewalCost([], days)).toBe(days * ECONOMY.office.rentPerDay);
     }
+  });
+});
+
+describe("the yard's tier count (AB#2308)", () => {
+  it("is read from the table: tiers 6 to 8 in data/economy.json make yardMaxTier() 8", () => {
+    expect(yardMaxTier()).toBe(8);
+    expect(yardTierFor(8).throughputCap).toBe(1192);
   });
 });
