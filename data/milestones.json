@@ -139,7 +139,7 @@
       "requirements": [
         { "id": "researchNearStarNavigation", "title": "Research Near-Star Navigation Array", "target": 1, "metric": "unlockedTech:tt-proxima-navigation" },
         { "id": "expeditions10", "title": "Complete 10 Asteroid Expeditions", "target": 10, "metric": "stat:asteroidExpeditionsCompleted" },
-        { "id": "refine10000", "title": "Refine 10,000 Units of Goods", "target": 10000, "metric": "stat:refinedUnitsProduced" },
+        { "id": "refine2000", "title": "Refine 2,000 Units of Goods", "target": 2000, "metric": "stat:refinedUnitsProduced" },
         { "id": "sell100000Silicate", "title": "Sell 100,000 Silicate", "target": 100000, "metric": "stat:silicateSoldOnExchange" }
       ],
       "unlocks": {
