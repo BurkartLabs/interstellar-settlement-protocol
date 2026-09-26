@@ -212,6 +212,17 @@
       "prereqs": ["tt-nano-lattice"],
       "tier": 3,
       "category": "Refining"
+    },
+    {
+      "id": "tt-integrated-manufacturing",
+      "name": "Integrated Manufacturing",
+      "effect": "Unlocks the four cross-track chains: Fusion Reactor Cores, Compact Fission Modules, Lightweight Spaceframes and Ion Thrusters",
+      "description": "Combines the products of the fuel, metals, rare-metal and light-metal lines into finished assemblies. It licenses the assembly, not the lines behind it: the inputs can be bought from whoever makes them.",
+      "durationHours": 20,
+      "costCredits": 20000,
+      "prereqs": ["tt-nano-lattice", "tt-exotic-energy-routing"],
+      "tier": 4,
+      "category": "Refining"
     }
   ]
 }
