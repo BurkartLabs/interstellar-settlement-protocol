@@ -88,8 +88,10 @@ function starOf(context, label) {
 /** Opens a system by tapping its star. */
 function openSystem(map, system) {
   const { context, canvas } = map;
-  const label = context.labels.find((l) => l.text === system.name);
-  const star = starOf(context, label);
+  // AB#806: where the cluster view draws the star, its catalog mapPosition on this canvas. With twelve systems on a phone
+  // a name can end beside another star, so the label no longer says which star is whose.
+  const { mapPosition } = SYSTEMS_CATALOG.find((s) => s.id === system.id);
+  const star = { x: mapPosition.x * canvas.clientWidth, y: mapPosition.y * canvas.clientHeight };
   context.reset();
   canvas.handlers.click({ clientX: star.x, clientY: star.y });
   // AB#1287: the orbits' centre is the star's, which is below the middle when the back button needs the room.

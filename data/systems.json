@@ -8,8 +8,8 @@
     "ownerRule": "No direct ownership. Mining rights are leased.",
     "accessResearch": null,
     "rarity": "common",
-    "mapPosition": { "x": 0.16, "y": 0.5 },
-    "adjacent": ["alpha-centauri", "barnards-star"],
+    "mapPosition": { "x": 0.07, "y": 0.5 },
+    "adjacent": ["alpha-centauri", "barnards-star", "lalande-21185", "ross-154"],
     "bodies": [
       { "id": "mercury", "name": "Mercury", "type": "Planet", "x": 58, "y": 0, "radius": 4 },
       { "id": "venus", "name": "Venus", "type": "Planet", "x": 90, "y": 0, "radius": 6 },
@@ -40,8 +40,8 @@
     "ownerRule": "Neutral authority oversight with corporate lease competition.",
     "accessResearch": "tt-proxima-navigation",
     "rarity": "uncommon",
-    "mapPosition": { "x": 0.35, "y": 0.26 },
-    "adjacent": ["sol", "wolf-359"],
+    "mapPosition": { "x": 0.25, "y": 0.2 },
+    "adjacent": ["sol", "wolf-359", "sirius"],
     "bodies": [
       { "id": "ac-prime", "name": "Centauri Prime", "type": "Planet", "x": 50, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#4f9a8c", "shadow": "#1c3b3a", "accent": "#e8f4ef", "glow": "rgba(120, 220, 200, 0.38)" } },
       { "id": "ac-ii", "name": "Centauri II", "type": "Planet", "x": 86, "y": 0, "radius": 5, "style": { "surface": "craters", "base": "#b08a5e", "shadow": "#4a3522", "accent": "#7a5a3a", "glow": "rgba(210, 170, 120, 0.22)" } },
@@ -58,8 +58,8 @@
     "ownerRule": "Frontier charter system with low-regulation extraction rights.",
     "accessResearch": "tt-proxima-navigation",
     "rarity": "uncommon",
-    "mapPosition": { "x": 0.34, "y": 0.72 },
-    "adjacent": ["sol", "tau-ceti"],
+    "mapPosition": { "x": 0.25, "y": 0.62 },
+    "adjacent": ["sol", "tau-ceti", "ross-248"],
     "bodies": [
       { "id": "bn-iron", "name": "Ironwell", "type": "Planet", "x": 48, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#8c8a88", "shadow": "#35302d", "accent": "#5e5a57", "glow": "rgba(170, 160, 150, 0.2)" } },
       { "id": "bn-cinder", "name": "Cinder", "type": "Planet", "x": 82, "y": 0, "radius": 4, "style": { "surface": "lava", "base": "#3a2622", "shadow": "#140b0a", "accent": "#ff7a2e", "glow": "rgba(255, 110, 50, 0.4)" } },
@@ -76,8 +76,8 @@
     "ownerRule": "High-risk conflict zone with arbitration-based claims.",
     "accessResearch": "tt-deep-star-navigation",
     "rarity": "rare",
-    "mapPosition": { "x": 0.56, "y": 0.35 },
-    "adjacent": ["alpha-centauri", "tau-ceti", "epsilon-eridani"],
+    "mapPosition": { "x": 0.44, "y": 0.28 },
+    "adjacent": ["alpha-centauri", "lalande-21185", "tau-ceti", "epsilon-eridani"],
     "bodies": [
       { "id": "wf-halo", "name": "Halo", "type": "Planet", "x": 44, "y": 0, "radius": 5, "style": { "surface": "ice", "base": "#e6eef7", "shadow": "#6f7f93", "accent": "#a9c2dc", "glow": "rgba(210, 230, 255, 0.35)" } },
       { "id": "wf-garnet", "name": "Garnet", "type": "Planet", "x": 77, "y": 0, "radius": 6, "style": { "surface": "bands", "base": "#a8374a", "shadow": "#3d1219", "accent": "#e0917a", "glow": "rgba(230, 90, 100, 0.35)" } },
@@ -94,8 +94,8 @@
     "ownerRule": "Treaty-governed commercial corridor with tariff controls.",
     "accessResearch": "tt-deep-star-navigation",
     "rarity": "rare",
-    "mapPosition": { "x": 0.72, "y": 0.55 },
-    "adjacent": ["barnards-star", "wolf-359", "epsilon-eridani"],
+    "mapPosition": { "x": 0.43, "y": 0.48 },
+    "adjacent": ["barnards-star", "wolf-359", "epsilon-eridani", "luyten-726-8", "lalande-21185"],
     "bodies": [
       { "id": "tc-verde", "name": "Verde", "type": "Planet", "x": 47, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#5f9a4a", "shadow": "#1f3a1a", "accent": "#eef6e2", "glow": "rgba(140, 220, 120, 0.38)" } },
       { "id": "tc-lumen", "name": "Lumen", "type": "Planet", "x": 84, "y": 0, "radius": 5, "style": { "surface": "bands", "base": "#d9b25a", "shadow": "#6e5220", "accent": "#f6e1a6", "glow": "rgba(250, 210, 120, 0.35)" } },
@@ -112,13 +112,114 @@
     "ownerRule": "Semi-private jurisdiction with licensed station authorities.",
     "accessResearch": "tt-deep-star-navigation",
     "rarity": "exotic",
-    "mapPosition": { "x": 0.83, "y": 0.3 },
+    "mapPosition": { "x": 0.58, "y": 0.38 },
     "adjacent": ["wolf-359", "tau-ceti"],
     "bodies": [
       { "id": "ee-kestrel", "name": "Kestrel", "type": "Planet", "x": 46, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#c7a57a", "shadow": "#5a4430", "accent": "#8d7152", "glow": "rgba(220, 190, 150, 0.22)" } },
       { "id": "ee-orion", "name": "Orion Reach", "type": "Planet", "x": 78, "y": 0, "radius": 5, "style": { "surface": "bands", "base": "#5670c9", "shadow": "#1c2656", "accent": "#a9c0f2", "glow": "rgba(110, 140, 240, 0.38)" } },
       { "id": "ee-lyra", "name": "Lyra", "type": "Moon", "parentId": "ee-orion", "x": 95, "y": 0, "radius": 3, "style": { "surface": "lava", "base": "#3b2a30", "shadow": "#130c10", "accent": "#ff5a6e", "glow": "rgba(255, 90, 110, 0.35)" } },
       { "id": "ee-crown", "name": "Crown Belt", "type": "Field", "x": 124, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#d4b86a", "shadow": "#6a5a30", "accent": "#f5e3a8", "glow": "rgba(212, 184, 106, 0.08)" }, "composition": { "Rare Earths": 15, "Thorium": 14, "Uranium": 12, "Cobalt": 12, "Exotic Matter": 8, "Helium-3": 10, "Titanium": 10, "Lithium": 10, "Nickel": 9 } }
+    ]
+  },
+  {
+    "id": "lalande-21185",
+    "name": "Lalande 21185",
+    "gdpIndex": 74,
+    "pirateDensity": 14,
+    "activityLevel": 68,
+    "ownerRule": "ISA survey protectorate: the Bureau's second registry, leasing on Sol's terms.",
+    "accessResearch": "tt-proxima-navigation",
+    "rarity": "uncommon",
+    "mapPosition": { "x": 0.24, "y": 0.4 },
+    "adjacent": ["sol", "wolf-359", "tau-ceti"],
+    "bodies": [
+      { "id": "la-b", "name": "Lalande 21185 b", "type": "Planet", "x": 46, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#9a7b62", "shadow": "#3e2f24", "accent": "#6e5543", "glow": "rgba(200, 160, 120, 0.2)" } },
+      { "id": "la-c", "name": "Lalande 21185 c", "type": "Planet", "x": 84, "y": 0, "radius": 7, "style": { "surface": "bands", "base": "#8a7fb0", "shadow": "#2f2a44", "accent": "#cfc6ee", "glow": "rgba(160, 140, 230, 0.32)" } },
+      { "id": "la-drift", "name": "Halley Drift", "type": "Field", "x": 128, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#a89a86", "shadow": "#4f473c", "accent": "#ddd0bb", "glow": "rgba(168, 154, 134, 0.08)" }, "composition": { "Nickel": 30, "Silicates": 25, "Carbon": 15, "Titanium": 12, "Water Ice": 10, "Cobalt": 8 } }
+    ]
+  },
+  {
+    "id": "ross-154",
+    "name": "Ross 154",
+    "gdpIndex": 61,
+    "pirateDensity": 19,
+    "activityLevel": 57,
+    "ownerRule": "Sagittarius Mining Compact: co-operative claims, one vote per lease.",
+    "accessResearch": "tt-proxima-navigation",
+    "rarity": "uncommon",
+    "mapPosition": { "x": 0.24, "y": 0.84 },
+    "adjacent": ["sol", "luyten-726-8", "lacaille-9352"],
+    "bodies": [
+      { "id": "r154-i", "name": "Ross 154 I", "type": "Planet", "x": 52, "y": 0, "radius": 6, "style": { "surface": "lava", "base": "#4a2a20", "shadow": "#170c08", "accent": "#ff8a3d", "glow": "rgba(255, 120, 60, 0.38)" } },
+      { "id": "r154-ember", "name": "Ember", "type": "Moon", "parentId": "r154-i", "x": 70, "y": 0, "radius": 3, "style": { "surface": "craters", "base": "#b89a84", "shadow": "#54443a", "accent": "#8a7262", "glow": "rgba(200, 170, 150, 0.2)" } },
+      { "id": "r154-ring", "name": "Flare Ring", "type": "Field", "x": 34, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#c08a62", "shadow": "#5a3e2a", "accent": "#f0c49a", "glow": "rgba(192, 138, 98, 0.08)" }, "composition": { "Titanium": 24, "Nickel": 22, "Carbon": 18, "Silicates": 14, "Lithium": 12, "Hydrogen": 10 } }
+    ]
+  },
+  {
+    "id": "sirius",
+    "name": "Sirius",
+    "gdpIndex": 90,
+    "pirateDensity": 9,
+    "activityLevel": 91,
+    "ownerRule": "Sirius Exchange Authority: a chartered trading port of brokers, not miners.",
+    "accessResearch": "tt-deep-star-navigation",
+    "rarity": "rare",
+    "mapPosition": { "x": 0.42, "y": 0.08 },
+    "adjacent": ["alpha-centauri"],
+    "bodies": [
+      { "id": "si-ia", "name": "Sirius Ia", "type": "Planet", "x": 58, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#6fa6c8", "shadow": "#223a4a", "accent": "#eef7ff", "glow": "rgba(150, 210, 255, 0.4)" } },
+      { "id": "si-anchorage", "name": "Canis Anchorage", "type": "Moon", "parentId": "si-ia", "x": 77, "y": 0, "radius": 3, "style": { "surface": "ice", "base": "#dbe9f2", "shadow": "#61788a", "accent": "#a4c3d8", "glow": "rgba(200, 235, 255, 0.32)" } },
+      { "id": "si-disk", "name": "Canis Debris Disk", "type": "Field", "x": 34, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#b8c7d6", "shadow": "#566474", "accent": "#eef4fa", "glow": "rgba(184, 199, 214, 0.1)" }, "composition": { "Titanium": 22, "Nickel": 22, "Silicates": 20, "Carbon": 12, "Rare Earths": 10, "Lithium": 8, "Helium-3": 6 } }
+    ]
+  },
+  {
+    "id": "ross-248",
+    "name": "Ross 248",
+    "gdpIndex": 39,
+    "pirateDensity": 27,
+    "activityLevel": 33,
+    "ownerRule": "ISA Northern Survey relay post: a depot, lightly held.",
+    "accessResearch": "tt-deep-star-navigation",
+    "rarity": "rare",
+    "mapPosition": { "x": 0.4, "y": 0.64 },
+    "adjacent": ["barnards-star"],
+    "bodies": [
+      { "id": "r248-i", "name": "Ross 248 I", "type": "Planet", "x": 50, "y": 0, "radius": 5, "style": { "surface": "ice", "base": "#e2edf6", "shadow": "#6c7d90", "accent": "#a6c0da", "glow": "rgba(210, 230, 255, 0.34)" } },
+      { "id": "r248-rime", "name": "Rime", "type": "Moon", "parentId": "r248-i", "x": 66, "y": 0, "radius": 2, "style": { "surface": "ice", "base": "#cfe7f0", "shadow": "#5d7a88", "accent": "#94bccd", "glow": "rgba(190, 230, 250, 0.3)" } },
+      { "id": "r248-halo", "name": "Frost Halo", "type": "Field", "x": 30, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#c6e2ee", "shadow": "#627f8c", "accent": "#f2fbff", "glow": "rgba(198, 226, 238, 0.1)" }, "composition": { "Water Ice": 25, "Helium-3": 22, "Hydrogen": 20, "Carbon": 13, "Nickel": 12, "Lithium": 8 } }
+    ]
+  },
+  {
+    "id": "luyten-726-8",
+    "name": "Luyten 726-8",
+    "gdpIndex": 44,
+    "pirateDensity": 38,
+    "activityLevel": 40,
+    "ownerRule": "Unregulated: the twin flare stars' claims go to whoever holds them.",
+    "accessResearch": "tt-deep-star-navigation",
+    "rarity": "rare",
+    "mapPosition": { "x": 0.45, "y": 0.78 },
+    "adjacent": ["ross-154", "tau-ceti"],
+    "bodies": [
+      { "id": "l726-i", "name": "BL Ceti I", "type": "Planet", "x": 60, "y": 0, "radius": 5, "style": { "surface": "lava", "base": "#402420", "shadow": "#160a08", "accent": "#ff6a3a", "glow": "rgba(255, 100, 60, 0.4)" } },
+      { "id": "l726-belt", "name": "Twin Flare Belt", "type": "Field", "x": 34, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#b07a6a", "shadow": "#503430", "accent": "#e6aa98", "glow": "rgba(176, 122, 106, 0.08)" }, "composition": { "Rare Earths": 22, "Thorium": 18, "Cobalt": 16, "Titanium": 14, "Nickel": 12, "Uranium": 10, "Lithium": 8 } }
+    ]
+  },
+  {
+    "id": "lacaille-9352",
+    "name": "Lacaille 9352",
+    "gdpIndex": 55,
+    "pirateDensity": 21,
+    "activityLevel": 48,
+    "ownerRule": "Southern Arm Consortium: a members-only lease pool.",
+    "accessResearch": "tt-deep-star-navigation",
+    "rarity": "rare",
+    "mapPosition": { "x": 0.41, "y": 0.93 },
+    "adjacent": ["ross-154"],
+    "bodies": [
+      { "id": "lc-b", "name": "Lacaille 9352 b", "type": "Planet", "x": 44, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#8f8a80", "shadow": "#39352f", "accent": "#615c54", "glow": "rgba(175, 168, 158, 0.2)" } },
+      { "id": "lc-c", "name": "Lacaille 9352 c", "type": "Planet", "x": 80, "y": 0, "radius": 7, "style": { "surface": "bands", "base": "#5f8c6c", "shadow": "#203428", "accent": "#cfe8d6", "glow": "rgba(130, 200, 150, 0.32)" } },
+      { "id": "lc-reef", "name": "Southern Reef", "type": "Field", "x": 128, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#9ca890", "shadow": "#474f40", "accent": "#d6e0ca", "glow": "rgba(156, 168, 144, 0.08)" }, "composition": { "Nickel": 24, "Cobalt": 20, "Titanium": 18, "Rare Earths": 14, "Carbon": 12, "Thorium": 12 } }
     ]
   }
 ]

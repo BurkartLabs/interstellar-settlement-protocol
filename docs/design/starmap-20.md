@@ -85,17 +85,17 @@ tier 3 rare or exotic, tier 4 exotic), because rarity is the one trait the game 
 | system | ownerRule | bodies |
 |---|---|---|
 | Sol | No direct ownership. Mining rights are leased. | Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune (Planet); Luna, Phobos, Deimos, Io, ... (Moon); Asteroid Belt (Field) |
-| Alpha Centauri | Neutral authority oversight with corporate lease competition. | AC Prime, AC II (Planet); AC Haven (Moon); Centauri Belt (Field) |
+| Alpha Centauri | Neutral authority oversight with corporate lease competition. | Centauri Prime, Centauri II (Planet); Haven (Moon); Centauri Belt (Field) |
 | Lalande 21185 | ISA survey protectorate: the Bureau's second registry, leasing on Sol's terms. | Lalande 21185 b, Lalande 21185 c (Planet, both known exoplanets); Halley Drift (Field) |
-| Barnard's Star | Frontier charter system with low-regulation extraction rights. | Iron, Cinder (Planet); Arc (Moon); Rift Debris Ring (Field) |
+| Barnard's Star | Frontier charter system with low-regulation extraction rights. | Ironwell, Cinder (Planet); Arcadia (Moon); Rift Debris Ring (Field) |
 | Ross 154 | Sagittarius Mining Compact: co-operative claims, one vote per lease. | Ross 154 I (Planet); Ember (Moon); Flare Ring (Field) |
 | Sirius | Sirius Exchange Authority: a chartered trading port of brokers, not miners. | Sirius Ia (Planet); Canis Anchorage (Moon); Canis Debris Disk (Field) |
 | Wolf 359 | High-risk conflict zone with arbitration-based claims. | Halo, Garnet (Planet); Veil (Moon); Shard Belt (Field) |
-| Tau Ceti | Treaty-governed commercial corridor with tariff controls. | Verde, Lumen (Planet); Aqua (Moon); Tau Ice Cloud (Field) |
+| Tau Ceti | Treaty-governed commercial corridor with tariff controls. | Verde, Lumen (Planet); Aqua Minor (Moon); Tau Ice Cloud (Field) |
 | Ross 248 | ISA Northern Survey relay post: a depot, lightly held. | Ross 248 I (Planet); Rime (Moon); Frost Halo (Field) |
 | Luyten 726-8 | Unregulated: the twin flare stars' claims go to whoever holds them. | BL Ceti I (Planet); Twin Flare Belt (Field) |
 | Lacaille 9352 | Southern Arm Consortium: a members-only lease pool. | Lacaille 9352 b, Lacaille 9352 c (Planet, both known exoplanets); Southern Reef (Field) |
-| Epsilon Eridani | Semi-private jurisdiction with licensed station authorities. | Kestrel, Orion (Planet); Lyra (Moon); Crown Belt (Field) |
+| Epsilon Eridani | Semi-private jurisdiction with licensed station authorities. | Kestrel, Orion Reach (Planet); Lyra (Moon); Crown Belt (Field) |
 | Procyon | Procyon Free Port: tariff-free trade under a single charter. | Procyon Ia (Planet); Canis Minor Port (Moon); Procyon Scatter (Field) |
 | Ross 128 | Quiet Star Trust: a research reserve that leases sparingly. | Ross 128 b (Planet, a known exoplanet); Quiet Belt (Field) |
 | 61 Cygni | Twin-star condominium under two rival charters. | 61 Cygni A I, 61 Cygni B I (Planet); Swan's Wake (Field) |
