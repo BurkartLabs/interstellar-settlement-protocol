@@ -66,7 +66,7 @@ question in the retune (AB#728).
 | `belts.compositionJitter` | 0.25 | Each resource's share in a new belt is its tier's template share times a draw in 1 ± this, renormalized: belts of one tier differ without changing character. Chosen, not derived. |
 | `leases.royaltyPointsByLeasesHeld` | 2: 1, 3: 2, 5: 3 | The ISA lease royalty, points added to `exchange.salesTaxPct` by leases held (ISP-302, AB#2285; sink 2 of "Sinks that scale with income" below): 8% at one lease, 9% at two, 10% at three or four, 11% at five or more, before the Negotiation Fundamentals discount and never below 0. It comes out of every sale's proceeds, player trades included, and is booked as its own ledger category, `lease-royalty`. A one-lease corporation never pays it. Chosen, not derived: the Board has not seen it. |
 | `exchange.salesTaxPct` | 8 | The exchange's cut of every sale. At 24 a tonne it is 1.92, almost a third of the 6.08 margin. Each point off it is 0.24 a tonne, about 60 an hour at 250 t/h; +10% output from research is worth about 550. |
-| `npcBid.quotaPerDay` | 7000 | How much a standing buy order takes in a day before it stops buying. A yard running at its best rate produces about 3,500 units a day, so this is two yards' output: a corporation that runs three fills it and sees the price move. It was 40,000 until the probe showed the drift almost never bit at that size (ISP-87). |
+| `npcBid.quotaPerDay` | 7000 | How much a standing buy order takes in a day before it stops buying. A yard at the flat-price best rate (146 t/h) produces about 3,500 units a day, so this is two such yards' output; priced along the bid the best rate is about 60 to 74 t/h, 1,450 a day, and the price moves long before the quota fills (AB#2334). It was 40,000 until the probe showed the drift almost never bit at that size (ISP-87). |
 | `npcBid.driftAtFullQuotaPct` | 50 | How far the bid falls when the day's quota has been sold into it: half. Selling into the bid moves the price against the seller, which is what makes another player worth trading with. |
 | `npcBid.recoveryPerDayPct` | 60 | How much of the gap back to the base price the bid recovers overnight. A market glutted yesterday opens dearer than it closed and cheaper than if nobody had sold. |
 | `npcAsks.askMultiple` | 1.5 | An NPC corporation's ask as a multiple of the same good's standing bid base: Silicates at 36 against a bid of 24 (ISP-122, AB#815; docs/design/npc-corporations.md). The gap is the room the player market lives in: a listing between the two is better for both sides than the NPC. |
@@ -106,19 +106,33 @@ Purchase order (the cheapest path to a first extractor):
 
 Running costs while mining: payroll and office 72.92/h; each cycle's startup spread over 72 h.
 (Payroll is charged once AB#1097 lands; until then the game charges less than this.)
-Silicates sell to GEX Commodities Authority at 24, less 8% tax: 22.08 a unit.
+Silicates sell to GEX Commodities Authority at 24, less 8% tax, along the standing bid (ISP-87): it falls 50% of base
+across the day's 7,000 quota, never below 55%, and recovers 60% of the gap overnight. Each unit is sold along it, from the
+opening bid the corporation settles into selling the same amount every day; revenue/h is that day over the hours run.
 Expected uptime: 81.6% (a stoppage every 5.6 h on average, lasting 1.26 h).
 
 Pays back = the purchases and the first startup earned back: credits are at the starting figure again.
   t/h | cost/h | startup | revenue/h | profit/h ideal | profit/h expected | pays back (ideal)   | pays back (expected)
-   10 |    600 |     500 |       221 |           -459 |              -389 | never               | never
-  100 |  1,691 |     592 |     2,208 |            436 |               341 | 201.0 h (day 9)     | 257.2 h (day 11)
-  250 |  5,417 |   1,896 |     5,520 |              4 |               -15 | 23705.6 h (day 988) | never
+   10 |    600 |     500 |       221 |           -459 |              -390 | never               | never
+  100 |  1,691 |     592 |     1,835 |             63 |                66 | 1393.9 h (day 59)   | 1331.0 h (day 56)
+  250 |  5,417 |   1,896 |     3,538 |         -1,978 |            -1,531 | never               | never
 Credits start to accumulate: at 100 t/h from the first hour of mining (day 1), counted as sold; at 10 t/h and 250 t/h, never: every hour loses.
 
-Running cost curves with throughput (operationCostPerHourFor, server/economy.js): the best setting here, no research, is 146 t/h at 606 an hour.
+Running cost curves with throughput (operationCostPerHourFor, server/economy.js): the best setting here, no research, is 60 t/h at 224 an hour
+(ideal uptime, running cost only; its tonnes average 21.81 before tax). At the flat 24 it was 146 t/h at 606 an hour.
 Every throughput from the floor to the cap stays startable; the curve is what makes the setting a decision, not a wall.
-A model, not play: perfect play, no travel, selling every unit at the standing bid, no research.
+
+One corporation's yards, 2 to a lease, all selling into the one order, at expected uptime, per day (payroll,
+office, running and startup costs, yard upkeep and the lease royalty counted; lease and yard purchases not):
+  yards | leases | t/h each | tonnes/day | sold to the bid | opening bid | average bid | tax | profit/day
+      1 |      1 |       74 |      1,448 |           1,448 |          23 |       21.81 |  8% |      3,234
+      2 |      1 |       37 |      1,448 |           1,448 |          23 |       21.81 |  8% |      3,479
+      3 |      2 |       39 |      2,290 |           2,290 |          22 |       20.04 |  9% |      1,009
+      4 |      2 |       38 |      2,975 |           2,975 |          21 |       18.45 |  9% |     -2,837
+Other corporations selling into the same order are not modelled: each one lowers every other's price.
+Today's server pays a lot at the bid before it and opens every day at 24 (AB#2356, AB#2357): one lot a day of up to 7,000 t is
+paid 24 a tonne, the flat figure above. This model prices what ECONOMY.md's rule says, which the game pays once both are fixed.
+A model, not play: perfect play, no travel, selling every unit to the standing bid as mined, no research.
 ```
 <!-- economy-model:end -->
 
@@ -126,17 +140,26 @@ What it says, in words:
 
 - The cheapest way to a first extractor costs **87,000 of the 250,000**: an office, five hires, the Earth lease and a
   yard. That leaves 163,000, so money is not what limits the first session.
-- **250 t/h is no longer the right answer**: the curved cost (T-018 below) makes it earn about 4 credits an hour
-  under perfect play and **lose money once real downtime is counted** — it never pays back. **100 t/h pays back
-  around day 9** (day 11 with downtime). **10 t/h never pays back**, because the 600 floor costs more than 10
-  tonnes fetch. The best setting at this price, with no research, is **146 t/h at 606 an hour** — below either
-  number this table samples, which is the point: the decision is a real one, not a slide to the cap.
+- **250 t/h is no longer the right answer**: the curved cost (T-018 below) and the falling bid (ISP-87) make it
+  lose about 2,000 an hour, and it never pays back. **100 t/h pays back around day 59** (day 56 with downtime, which
+  sells fewer tonnes into a less glutted bid). **10 t/h never pays back**, because the 600 floor costs more than 10
+  tonnes fetch. The best setting, with no research, is **60 t/h at 224 an hour** — below either number this table
+  samples, which is the point: the decision is a real one, not a slide to the cap.
+- **The bid, not the yard, is the limit** (AB#2334). Until AB#2334 this model sold every tonne at the flat 24 and
+  said 146 t/h at 606 an hour. Sold along the standing bid, a 146 t/h yard's 3,500 tonnes a day average 17 and it
+  loses money. A corporation's best day is **two yards on one lease at 37 t/h each, about 3,500 a day**; a third
+  yard needs a second lease and its payroll, and loses. These are one corporation alone in the world: every other
+  corporation selling Silicates lowers the price further.
+- **Today's server pays more than this** (AB#2356, AB#2357): it prices a whole sale at the bid before it and opens
+  every day at 24, so a corporation that sells a day's output in one lot is paid the flat 24, the old 606-an-hour
+  figure. The model prices ECONOMY.md's rule; the two bugs are where the game departs from it.
 - Credits grow from the first hour of mining only at a setting that actually pays — no longer every setting up to
   the cap. The number to tune is *which throughput to run*, not just how fast a fixed answer pays back.
 
 ## T-018: the throughput is a decision (ISP-86)
 
-Revenue per hour is **24 x T x 0.92** (price, throughput, what the tax leaves). Cost per hour used to be
+Revenue per hour was counted as **24 x T x 0.92** (price, throughput, what the tax leaves) until AB#2334; since ISP-87
+the 24 falls as the day's sales fill the order (below). Cost per hour used to be
 **16 x T** above the 600 floor, so profit was **6.08 x T** less fixed costs and rose with every tonne: 250 t/h was the
 right answer at every scale and every balance, and the slider was arithmetic. DEPTH.md scored decision density 2
 for this reason.
@@ -145,28 +168,32 @@ The cost now rises faster than the rate (`operationCostPerHourFor`, server/econo
 
 **cost per hour = 16 x T x (1 + (T / 420)^2)**, never below the 600 floor.
 
-Profit per hour for Earth silicates at 24 credits and 8% tax, with no research:
+Profit per hour for Earth silicates at 24 credits and 8% tax, with no research, one yard running every hour of the
+day and each tonne sold to the standing bid as it is mined, from the opening bid it settles into (AB#2334,
+`steadyBidDay` in scripts/economy-model.mjs). The flat column is what the table said when every tonne fetched 24:
 
-| T (t/h) | revenue/h | cost/h | profit/h |
-| --- | --- | --- | --- |
-| 10 | 221 | 600 | -379 |
-| 50 | 1,104 | 811 | 293 |
-| 100 | 2,208 | 1,691 | 517 |
-| 150 | 3,312 | 2,706 | 606 |
-| 173 | 3,820 | 3,238 | 582 |
-| 200 | 4,416 | 3,926 | 490 |
-| 250 | 5,520 | 5,417 | 103 |
+| T (t/h) | tonnes average | revenue/h | cost/h | profit/h | at the flat 24 |
+| --- | --- | --- | --- | --- | --- |
+| 10 | 24.00 | 221 | 600 | -379 | -379 |
+| 50 | 21.97 | 1,011 | 811 | 200 | 293 |
+| 60 | 21.81 | 1,204 | 980 | 224 | 345 |
+| 100 | 19.95 | 1,835 | 1,691 | 144 | 517 |
+| 150 | 16.92 | 2,335 | 2,706 | -371 | 606 |
+| 200 | 15.98 | 2,940 | 3,926 | -986 | 490 |
+| 250 | 15.38 | 3,538 | 5,417 | -1,879 | 103 |
 
-The maximum is at **T = 146 t/h**, paying **606 credits an hour**. Two things move it, which is what makes it a
-decision rather than a constant:
+The maximum is at **T = 60 t/h**, paying **224 credits an hour** (146 t/h and 606 at the flat price). Two things move
+it, which is what makes it a decision rather than a constant:
 
 - **Research.** With Basic Extraction Analytics and Supply Forecast (x1.1 and x1.06 on what an hour yields) the
-  best setting rises to **189 t/h** at **1,230 an hour**. Earning more per tonne is worth running hotter.
-- **Price.** A dearer buyer or a lower sales tax moves it up; a cheaper one moves it down.
+  best setting rises to **93 t/h** at **413 an hour** (189 t/h and 1,230 at the flat price). Earning more per tonne
+  is worth running hotter.
+- **Price.** A dearer buyer, a lower sales tax or a bid left unsold overnight moves it up; a cheaper one, or other
+  corporations selling into the same order, moves it down.
 
-Below about 37 t/h the 600 floor means the corporation pays for throughput it does not get, so a very low setting
-loses money. At the top of the range the curve costs 5,417 an hour and pays 103: **17% of what the best setting
-pays**. Ignoring the curve is a real cost and never a wall - every throughput from 10 to 250 stays startable, which
+Below about 28 t/h the 600 floor means the corporation pays for throughput it does not get, so a very low setting
+loses money. At the top of the range the curve costs 5,417 an hour against 3,538 of sales: it **loses 1,879 an hour**,
+where the flat price had it paying 103. Ignoring the curve is a real cost and never a wall - every throughput from 10 to 250 stays startable, which
 is the rule the tests hold (`tests/unit/throughputCurve.test.js`).
 
 ## The standing bid is a floor, not a ceiling (ISP-87)
@@ -422,7 +449,12 @@ Director's ruling on AB#2287; flagged for the Board).
 
 ### What they add up to
 
-The model's assumptions, as `npm run economy:model`: Earth Silicates at 24, no research, the best setting of 146 t/h
+**Corrected by AB#2334:** the table below sells every tonne at the flat 24, so its profit column grows by 11,106 a
+yard. Along the falling bid one corporation's day peaks at two yards (about 3,500, the model's yard table above) and a
+third yard loses money; the sinks' shares of profit are therefore much larger than shown. The design's order of the
+sinks still holds; its sizes were set against this overstated profit.
+
+The model's assumptions, as `npm run economy:model` printed them before AB#2334: Earth Silicates at 24, no research, the best setting of 146 t/h
 (606 an hour ideal), expected uptime 81.6% (costs and revenue both pause while down), one yard per lease, and 750 a
 day of payroll per lease. Office rent, leases and hires are left out, and this design changes none of them. Per
 day:
