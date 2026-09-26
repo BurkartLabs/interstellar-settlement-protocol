@@ -745,6 +745,8 @@ export function resetDummyAccountProgress() {
   state.market.orderBook = (state.market.orderBook || []).filter(
     (order) => order.type !== "sell" || order.sellerAccountId !== dummyId
   );
+  // AB#1054: and its buy orders; the credits they held went with the reset corporation.
+  state.market.buyOrders = (state.market.buyOrders || []).filter((order) => order.buyerAccountId !== dummyId);
   scheduleSave();
 
   scheduleAccountsSave();

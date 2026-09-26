@@ -23,7 +23,7 @@ export function tradeNumbers(raw) {
 export const EXCHANGE_VIEW_KEY = "isp.exchangeView";
 
 /** Which order tables to show: all of them, or one. */
-export const ORDER_TYPES = ["all", "sell", "standing", "mine"];
+export const ORDER_TYPES = ["all", "sell", "bids", "standing", "mine"]; // "bids": players' buy orders (AB#1054)
 
 /** Sort orders, as the value of the sort control. */
 export const SORTS = ["newest", "oldest", "price-asc", "price-desc", "qty-desc", "qty-asc"];

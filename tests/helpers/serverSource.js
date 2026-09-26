@@ -6,7 +6,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const SPLIT_FROM_INDEX = ["server/index.js", "server/app.js", "server/auth.js", "server/travel.js", "server/ticks.js", "server/realtime.js"];
+// AB#1054: marketSettlement.js holds the buy route's settlement, taken out of server/routes/market.js, and buyOrders.js
+// the buy orders that settle the same way; a scan of route code (trade-history types, io.emit) covers them too.
+const SPLIT_FROM_INDEX = ["server/index.js", "server/app.js", "server/auth.js", "server/travel.js", "server/ticks.js", "server/realtime.js", "server/marketSettlement.js", "server/buyOrders.js"];
 
 /** Repo-relative paths of every file that was server/index.js, route modules included (new ones too). */
 export function serverCodeFiles() {

@@ -291,16 +291,36 @@ export function queueInsightReceipt({ name, cost, endsAt }) {
   });
 }
 
-export function listingReceipt({ item, quantity, unitPrice, stationName }) {
+export function listingReceipt({ item, quantity, unitPrice, stationName, soldAtOnce = 0 }) {
   return receipt("list-for-sale", {
     title: "Listing Posted",
     summary: `${amount(quantity)} ${item} for sale at ${formatCredits(unitPrice)} each.`,
     costCredits: 0,
     grants: [
       { label: "Listed value", value: formatCredits(Number(quantity) * Number(unitPrice)) },
+      // AB#1054: what sold at once to players' buy orders at or over the price.
+      ...(soldAtOnce > 0 ? [{ label: "Sold at once to buy orders", value: `${amount(soldAtOnce)} ${item}` }] : []),
       { label: "Held for the buyer at", value: stationName }
     ],
     next: "It stays on Sell Orders until another corporation buys it or you cancel it. Exchange tax comes out of what it sells for."
+  });
+}
+
+/** AB#1054: a buy order placed: what filled at once, what it paid, and what is held for the rest. */
+export function buyOrderReceipt({ item, quantity, unitPrice, filled, paid, held, stationName }) {
+  const waiting = quantity - filled;
+  return receipt("place-buy-order", {
+    title: filled >= quantity ? "Buy Order Filled" : "Buy Order Placed",
+    summary: `${amount(quantity)} ${item} wanted at up to ${formatCredits(unitPrice)} each; ${amount(filled)} bought at once.`,
+    costCredits: paid + held,
+    grants: [
+      { label: "Paid for what filled", value: formatCredits(paid) },
+      { label: "Held for the rest", value: formatCredits(held) },
+      { label: "Delivered to", value: stationName }
+    ],
+    next: waiting > 0
+      ? `The other ${amount(waiting)} waits on Buy Orders and fills from any listing at or under your price. Cancelling returns what is held.`
+      : "It is in this station's inventory: refine it, deliver it on a contract, or ship it from Logistics."
   });
 }
 

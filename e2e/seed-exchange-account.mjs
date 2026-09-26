@@ -3,10 +3,13 @@
 // rows. Built with the server's own account code in a separate process (see seed-logistics-account.mjs for why); the
 // orders are the shape POST /api/market/orders writes (server/routes/market.js).
 //
-// Usage: node e2e/seed-exchange-account.mjs <dataDir> <email> <password>
+// With a fourth argument `bids` (AB#1054), a third corporation has two buy orders waiting, placed through the server's own
+// placeBuyOrder (server/buyOrders.js), so its credits are held as a real order holds them.
+//
+// Usage: node e2e/seed-exchange-account.mjs <dataDir> <email> <password> [bids]
 import { randomUUID } from "node:crypto";
 
-const [, , dataDir, email, password] = process.argv;
+const [, , dataDir, email, password, extra] = process.argv;
 process.env.ISP_DATA_DIR = dataDir;
 process.env.JWT_SECRET = process.env.JWT_SECRET || "exchange-e2e-fixture-secret-0123456789abcd";
 process.env.NODE_ENV = "test";
@@ -34,4 +37,13 @@ store.mutateState((draft) => {
     });
   }
 });
+if (extra === "bids") {
+  const { placeBuyOrder } = await import("../server/buyOrders.js");
+  const rival = await store.createAccount({ email: `rival-${email}`, password, ceoName: "Rival QA", corpName: "Halvorsen Refining" });
+  store.mutateAccountState(rival.account.id, (state) => { state.corp.finances.credits = 200_000; });
+  for (const [item, quantity, unitPrice] of [["Nickel", 200, 55], ["Silicates", 1000, 22]]) {
+    const placed = placeBuyOrder(rival.account.id, { item, quantity, unitPrice });
+    if (placed.error || placed.fills.length) throw new Error(`seeding a buy order: ${placed.error || "it filled"}`);
+  }
+}
 await store.saveAccountsNow();

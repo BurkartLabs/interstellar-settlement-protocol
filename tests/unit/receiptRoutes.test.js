@@ -27,7 +27,8 @@ const RECEIPTS = {
   "/api/accounts/:accountId/gameplay/launch-expedition": { builder: "launchExpeditionReceipt", client: ["public/scripts/views/starmap.js", "/gameplay/launch-expedition`"] },
   "/api/accounts/:accountId/gameplay/queue-rnd": { builder: "queueResearchReceipt", client: ["public/scripts/views/research.js", "/gameplay/queue-rnd`"] },
   "/api/accounts/:accountId/gameplay/queue-ceo": { builder: "queueInsightReceipt", client: ["public/scripts/views/ceoInsight.js", "/gameplay/queue-ceo`"] },
-  "/api/market/orders": { builder: "listingReceipt", client: ["public/scripts/views/exchange.js", 'apiFetch("/api/market/orders"'] },
+  // AB#1054: one route, two answers: a listing, or a buy order (`also`).
+  "/api/market/orders": { builder: "listingReceipt", also: ["buyOrderReceipt"], client: ["public/scripts/views/exchange.js", 'apiFetch("/api/market/orders"'] },
   "/api/market/orders/:orderId/buy": { builder: "buyReceipt", client: ["public/scripts/views/exchange.js", "/buy`"] },
   "/api/market/npc-orders/:orderId/sell": { builder: "sellToOrderReceipt", client: ["public/scripts/views/exchange.js", "/api/market/npc-orders/"] },
   "/api/accounts/:accountId/gameplay/transfer-resources": { builder: "transferReceipt", client: ["public/scripts/views/logistics.js", "/gameplay/transfer-resources`"] },
@@ -77,7 +78,7 @@ describe("every committing action has its confirmation modal (AB#744)", () => {
     expect([...Object.keys(RECEIPTS), ...Object.keys(EXEMPT)].filter((p) => !routes.has(p)), "an entry naming no route").toEqual([]);
   });
 
-  it.each(Object.entries(RECEIPTS))("%s answers with the receipt its builder makes", (path, { builder }) => {
+  it.each(Object.entries(RECEIPTS))("%s answers with the receipt its builder makes", (path, { builder, also = [] }) => {
     const { handler } = routes.get(path);
     // ISP-94 (AB#784): a build route is the one build handler with its building fixed. Its receipt is that building's
     // construction's (server/construction.js), and the handler answers with it (buildHandler, server/routes/helpers.js).
@@ -87,7 +88,7 @@ describe("every committing action has its confirmation modal (AB#744)", () => {
       expect(read("server/routes/helpers.js"), path).toMatch(/res\.json\(\{[^;]*\breceipt\b/);
       return;
     }
-    expect(handler, path).toContain(`${builder}(`);
+    for (const b of [builder, ...also]) expect(handler, path).toContain(`${b}(`);
     expect(handler, path).toMatch(/res\.json\(\{[^;]*\breceipt\b/);
   });
 
@@ -118,7 +119,7 @@ describe("every committing action has its confirmation modal (AB#744)", () => {
     // ISP-96 (AB#786): a building added since ISP-94 is built through the one build route only, so its receipt
     // builder is used by its construction (server/construction.js) and by no mapped route.
     const byConstruction = builders.filter((b) => Object.values(CONSTRUCTIONS).some((c) => c.receipt.toString().includes(b)));
-    const used = new Set([...Object.values(RECEIPTS).map((r) => r.builder), ...byConstruction]);
+    const used = new Set([...Object.values(RECEIPTS).flatMap((r) => [r.builder, ...(r.also || [])]), ...byConstruction]);
     expect(builders.filter((b) => !used.has(b)), "a builder nothing uses").toEqual([]);
     expect(Object.values(RECEIPTS).map((r) => r.builder).filter((b) => !builders.includes(b)), "a mapped builder the module lacks").toEqual([]);
   });

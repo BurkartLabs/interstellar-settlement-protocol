@@ -84,7 +84,9 @@ export function recordExpense(corp, category, amount, now = Date.now()) {
  * the daily statements (AB#713) read these names, so a new way to earn or spend adds its name here first.
  */
 export const CREDIT_CATEGORIES = Object.freeze({
-  income: Object.freeze(["exchange", "missions", "salvage"]),
+  // AB#1054: "exchange-escrow" is credits held for a player's buy order, "exchange-escrow-return" their return when it
+  // fills or is cancelled; over an order's life the two are equal, and what it bought is "exchange-purchases".
+  income: Object.freeze(["exchange", "missions", "salvage", "exchange-escrow-return"]),
   expense: Object.freeze([
     "hiring",
     "payroll",
@@ -100,6 +102,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "research",
     "ceo-insight",
     "exchange-purchases",
+    "exchange-escrow",
     "exchange-tax",
     "lease-royalty" // ISP-302 (AB#2285): the royalty's share of a sale's tax, booked apart so it can be counted
   ])

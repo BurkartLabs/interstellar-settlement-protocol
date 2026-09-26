@@ -221,6 +221,7 @@ export const RESERVED_CORPORATION_NAMES = Object.freeze([
 export function ensureMarketState(globalState) {
   if (!globalState.market || typeof globalState.market !== "object") globalState.market = {};
   if (!Array.isArray(globalState.market.orderBook)) globalState.market.orderBook = [];
+  if (!Array.isArray(globalState.market.buyOrders)) globalState.market.buyOrders = []; // AB#1054: players' buy orders
   globalState.market.priceHistory = normalizePriceHistory(globalState.market.priceHistory); // AB#715, and cleans a saved one
   if (!Array.isArray(globalState.market.npcBuyOrders)) globalState.market.npcBuyOrders = [];
   for (const seed of NPC_BUY_SEED) {

@@ -78,6 +78,7 @@ export function renderMarket(data) {
   const allSellOrders = (market.orderBook || []).filter((order) => order.type === "sell" && !isOwnSellOrder(order));
   const allMySellOrders = (market.orderBook || []).filter((order) => order.type === "sell" && isOwnSellOrder(order));
   const npcBuyOrders = market.npcBuyOrders || [];
+  const allBids = market.buyOrders || []; // AB#1054: players' buy orders, the viewer's own marked `mine`
 
   const view = appState.exchangeView;
 
@@ -87,6 +88,7 @@ export function renderMarket(data) {
   allSellOrders.forEach((o) => o.item && resourceSet.add(o.item));
   npcBuyOrders.forEach((o) => o.item && resourceSet.add(o.item));
   allMySellOrders.forEach((o) => o.item && resourceSet.add(o.item));
+  allBids.forEach((o) => o.item && resourceSet.add(o.item));
   if (view.resource) resourceSet.add(view.resource);
   const resources = Array.from(resourceSet).sort();
 
@@ -107,6 +109,8 @@ export function renderMarket(data) {
     if (el) el.hidden = view.type !== "all" && view.type !== type;
   };
   showSection("exchange-sell-section", "sell");
+  showSection("exchange-bids-section", "bids");
+  showSection("exchange-bid-form-section", "bids");
   showSection("exchange-standing-section", "standing");
   showSection("exchange-mine-section", "mine");
 
@@ -229,6 +233,25 @@ export function renderMarket(data) {
   const sellTableWrap = sellGrid?.closest(".ui-table-wrap");
   if (sellTableWrap) sellTableWrap.hidden = entries.length === 0;
 
+  // AB#1054: Buy Orders, the book's other side: the viewer's own can be cancelled, returning what they hold.
+  const bidsTable = document.getElementById("exchange-bids-table");
+  const shownBids = viewOrders(allBids, view).slice(0, SELL_ORDERS_SHOWN);
+  if (bidsTable) {
+    bidsTable.innerHTML = shownBids
+      .map((order) => `
+          <tr>
+            <td>${escapeHtml(order.item)}</td>
+            <td class="ui-table__num">${Number(order.quantity).toLocaleString()}</td>
+            <td class="ui-table__num">${toCurrency(order.unitPrice)}</td>
+            <td>${order.mine ? "You" : escapeHtml(order.buyer || "")}</td>
+            <td>${order.createdAt ? formatTime(order.createdAt) : "-"}</td>
+            <td>${order.mine ? `<button class="ui-button ui-button--secondary" type="button" data-cancel-bid-id="${escapeHtml(order.id)}">Cancel</button>` : "-"}</td>
+          </tr>`)
+      .join("");
+  }
+  showEmpty(document.getElementById("exchange-bids-empty"), "exchange-bids-filtered", allBids.length, shownBids.length, "player buy orders");
+  renderBidForm(market, view);
+
   // My Active Listings
   if (mySellOrdersTable) {
     mySellOrdersTable.innerHTML = mySellOrders
@@ -312,6 +335,26 @@ export function paintListingStatus() {
   }
 }
 
+/** AB#1054: the buy-order form's item list (the exchange's tradeable items) and what the order would hold. */
+function renderBidForm(market, view) {
+  const select = document.getElementById("bid-item");
+  const items = market.tradeItems || [];
+  if (select && items.length && select.options.length !== items.length) {
+    const keep = select.value || view.resource || "Silicates";
+    select.innerHTML = items.map((i) => `<option value="${escapeHtml(i)}"${i === keep ? " selected" : ""}>${escapeHtml(i)}</option>`).join("");
+  }
+  paintBidTotal();
+}
+
+function paintBidTotal() {
+  const el = document.getElementById("bid-total");
+  if (!el) return;
+  const numbers = tradeNumbers({ quantity: document.getElementById("bid-quantity")?.value ?? "", unitPrice: document.getElementById("bid-price")?.value ?? "" });
+  el.textContent = numbers.ok
+    ? `Holds ${toCurrency(numbers.values.quantity * numbers.values.unitPrice)} now; what fills below your price comes back.`
+    : "Enter a whole quantity and price of at least 1.";
+}
+
 function sayListing(item, tone, text) {
   appState.listingStatus = { item, tone, text, reveal: true };
   paintListingStatus();
@@ -388,7 +431,8 @@ export function bindExchangeForms() {
       appState.data = deepClone(payload.account.state);
       appState.data.market = previousMarket;
 
-      if (payload.order) {
+      const soldAtOnce = (payload.fills || []).reduce((sum, f) => sum + f.quantity, 0); // AB#1054: to buy orders
+      if (payload.order && soldAtOnce < Number(payload.order.quantity)) {
         appState.data.market.orderBook = [
           payload.order,
           ...(appState.data.market.orderBook || []).filter((order) => order.id !== payload.order.id)
@@ -396,7 +440,9 @@ export function bindExchangeForms() {
       }
 
       // the server's own record of what was listed, not what the form thought it sent
-      appState.listingStatus = { item, tone: "ok", text: `Listing created: ${Number(payload.order?.quantity)} ${item} @ ${toCurrency(payload.order?.unitPrice)}.` };
+      appState.listingStatus = soldAtOnce > 0
+        ? { item, tone: "ok", text: `Sold ${soldAtOnce} ${item} at once to buy orders; ${Number(payload.order?.quantity) - soldAtOnce} listed @ ${toCurrency(payload.order?.unitPrice)}.` }
+        : { item, tone: "ok", text: `Listing created: ${Number(payload.order?.quantity)} ${item} @ ${toCurrency(payload.order?.unitPrice)}.` };
       renderMarket(appState.data);
       showActionReceipt(payload, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       await refreshFromServer();
@@ -425,6 +471,67 @@ export function bindExchangeForms() {
     } catch (error) {
       button.disabled = false;
       pushFeedback(`Could not cancel the listing: ${error.message}`, "warn");
+    }
+  });
+
+  // AB#1054: place a buy order. The server holds the credits and says what filled; its refusal is what is shown.
+  const bidForm = document.getElementById("bid-form");
+  for (const id of ["bid-quantity", "bid-price"]) document.getElementById(id)?.addEventListener("input", paintBidTotal);
+  bidForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = document.getElementById("bid-status");
+    const submit = document.getElementById("bid-submit");
+    const item = document.getElementById("bid-item")?.value || "";
+    const typed = { quantity: document.getElementById("bid-quantity")?.value ?? "", unitPrice: document.getElementById("bid-price")?.value ?? "" };
+    const numbers = tradeNumbers(typed);
+    if (numbers.ok) {
+      const { quantity, unitPrice } = numbers.values;
+      const confirmed = await showTradeConfirmation({
+        heading: "Place Buy Order",
+        title: `Buy ${item}`,
+        confirmLabel: "Place order",
+        rows: [
+          { label: "Item", value: item },
+          { label: "Quantity", value: quantity.toLocaleString() },
+          { label: "Up to, per unit", value: toCurrency(unitPrice), highlight: true },
+          { label: "Held now", value: toCurrency(quantity * unitPrice) }
+        ]
+      });
+      if (!confirmed) return;
+    }
+    if (submit) submit.disabled = true;
+    try {
+      const receiptTrigger = document.activeElement;
+      const response = await apiFetch("/api/market/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "buy", item, quantity: numbers.ok ? numbers.values.quantity : typed.quantity, unitPrice: numbers.ok ? numbers.values.unitPrice : typed.unitPrice })
+      });
+      const payload = await parseJsonResponse(response);
+      const filled = (payload.fills || []).reduce((sum, f) => sum + f.quantity, 0);
+      if (status) status.textContent = payload.order ? `Bought ${filled} at once; ${payload.order.quantity} ${item} waiting at ${toCurrency(payload.order.unitPrice)}.` : `Bought ${filled} ${item}: the order is filled.`;
+      showActionReceipt(payload, { returnFocusTo: receiptTrigger });
+      await refreshFromServer();
+    } catch (error) {
+      if (status) status.textContent = `Buy order refused: ${error.message}`;
+    } finally {
+      if (submit) submit.disabled = false;
+    }
+  });
+
+  // AB#1054: take a buy order down; the credits it still holds come back.
+  document.getElementById("exchange-bids-table")?.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-cancel-bid-id]");
+    if (!button) return;
+    button.disabled = true;
+    try {
+      const response = await apiFetch(`/api/market/orders/${encodeURIComponent(button.getAttribute("data-cancel-bid-id"))}/cancel`, { method: "POST" });
+      const payload = await parseJsonResponse(response);
+      pushFeedback(`Buy order cancelled; ${toCurrency(payload.refunded)} returned to your reserves.`, "success");
+      await refreshFromServer();
+    } catch (error) {
+      button.disabled = false;
+      pushFeedback(`Could not cancel the buy order: ${error.message}`, "warn");
     }
   });
 
