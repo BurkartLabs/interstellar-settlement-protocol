@@ -448,6 +448,7 @@ export function bindOfficeActions(building, data) {
 
 import { employeesForNextLease } from "../leaseStaffing.js"; // AB#1202: the server's rule, not a copy of it
 import { activeOfficeAt } from "../officeStatus.js"; // AB#1870: the server's rule, not a copy of it
+import { bodyProfile, cycleItemsText, profileText } from "../bodyYield.js"; // AB#829
 
 // The bodies the ISA leases. Module level so a full lease can say which are left (Bug #1057).
 export const LEASE_BODIES = [
@@ -505,6 +506,7 @@ export function renderISAClaimsLeases(building, data) {
           </div>
           <dl class="ui-kv">
             <dt>Claim ID</dt><dd><code>${escapeHtml(lease.id)}</code></dd>
+            <dt>Yields</dt><dd data-role="lease-yield">${escapeHtml(profileText(bodyProfile(appState.systemsCatalog, lease.body)))}</dd>
             <dt>Issued</dt><dd>${issuedDate}</dd>
             <dt>Building Slots</dt><dd>${extractorCount} / ${lease.buildingSlots || 2} used</dd>
           </dl>
@@ -542,9 +544,10 @@ export function renderISAClaimsLeases(building, data) {
       const hasEnoughStaff = currentEmployees >= requiredForNext;
       return `
         <div class="station__lease-purchase">
-          <h4>${escapeHtml(entry.body)} — Silicate Extraction Lease</h4>
+          <h4>${escapeHtml(entry.body)} — Extraction Lease</h4>
           <p class="station__note">${escapeHtml(entry.description)}</p>
           <dl class="ui-kv">
+            <dt>Yields</dt><dd data-role="lease-yield">${escapeHtml(profileText(bodyProfile(appState.systemsCatalog, entry.body)))}</dd>
             <dt>Lease Cost</dt><dd>${toCurrency(entry.cost)} credits (one-time)</dd>
             <dt>Employee Requirement</dt><dd>${requiredForNext} on payroll (current: ${currentEmployees})</dd>
             <dt>Building Slots Granted</dt><dd>2 on-surface slots</dd>
@@ -641,6 +644,7 @@ export function refreshOpenLeaseView(extractors) {
     set("left", `${hrs}h ${mins}m left`);
     set("remaining", `${hrs}h ${mins}m`);
     set("mined", `${mined.toLocaleString()} t`);
+    set("mined-items", cycleItemsText(ex)); // AB#829
     set("spent", spentText(figures, toCurrency));
     const fill = row.querySelector('[data-live="fill"]');
     if (fill) fill.style.width = `${figures.fill.toFixed(2)}%`;
@@ -713,6 +717,7 @@ export function renderLeaseManagement(building, lease, data) {
             <span class="extractor__stat"><span class="extractor__stat-label">Downtime elapsed</span><span class="extractor__stat-value">${dtHrs}h ${dtMins}m</span></span>
             <span class="extractor__stat"><span class="extractor__stat-label">Mined before halt</span><span class="extractor__stat-value">${(ex.minedThisCycle || 0).toLocaleString()}</span></span>
           </div>
+          <p class="extractor__yield"><span class="extractor__stat-label">This cycle, by resource</span> <span>${escapeHtml(cycleItemsText(ex))}</span></p>
         </div>
       `;
     } else if (ex.active && ex.endsAt && ex.startedAt) {
@@ -736,6 +741,7 @@ export function renderLeaseManagement(building, lease, data) {
             <span class="extractor__stat"><span class="extractor__stat-label">Spent this cycle</span><span class="extractor__stat-value" data-live="spent">${spentText(figures, toCurrency)}</span></span>
             <span class="extractor__stat"><span class="extractor__stat-label">Rate</span><span class="extractor__stat-value">${ex.throughputPerHour} t/h</span></span>
           </div>
+          <p class="extractor__yield"><span class="extractor__stat-label">This cycle, by resource</span> <span data-live="mined-items">${escapeHtml(cycleItemsText(ex))}</span></p>
         </div>
       `;
     } else if (ex.totalMined > 0) {
@@ -815,6 +821,7 @@ export function renderLeaseManagement(building, lease, data) {
       <dl class="ui-kv">
         <dt>Claim ID</dt><dd><code>${escapeHtml(lease.id)}</code></dd>
         <dt>Body</dt><dd>${escapeHtml(lease.body)}</dd>
+        <dt>Yields</dt><dd data-role="lease-yield">${escapeHtml(profileText(bodyProfile(appState.systemsCatalog, lease.body)))}</dd>
         <dt>Lease Type</dt><dd>${escapeHtml(lease.leaseType || "Silicate Extraction")}</dd>
         <dt>Issued</dt><dd>${issuedDate}</dd>
         <dt>Building Slots</dt><dd>${usedSlots} / ${totalSlots} used</dd>

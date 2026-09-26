@@ -3783,6 +3783,14 @@ img.station__body {
   min-width: 0;
 }
 .dialogue__speaker,
+/* AB#829: an extractor's output this cycle, per resource, under its stats */
+.extractor__yield {
+  margin: var(--space-2) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  color: var(--text-soft);
+}
 /* ISP-119 (AB#811): the legend under the map for the neutral-station marks */
 .starmap__legend {
   display: flex;

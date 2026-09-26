@@ -94,6 +94,8 @@ export function ensureCorpMiningModel(corp) {
       // AB#828: lifetime output per item, and each item's fraction of a unit carried to the next split. A yard saved
       // before AB#828 only ever mined Silicates, so its lifetime total is its Silicates.
       minedByItem: countsOf(extractor.minedByItem, extractor.totalMined),
+      // AB#829: this cycle's output per item, zeroed with minedThisCycle; a cycle from before counted only Silicates.
+      minedThisCycleByItem: countsOf(extractor.minedThisCycleByItem, extractor.minedThisCycle),
       itemRemainders: countsOf(extractor.itemRemainders, 0),
       // Bug #1138: the running cost's unpaid fraction of a credit, carried like minedRemainder.
       costRemainder: Math.max(0, Number(extractor.costRemainder || 0)),
@@ -216,6 +218,7 @@ export function startExtractorCycle(extractor, { now, hours, throughputPerHour, 
   extractor.upkeepPerHour = Math.max(0, Math.min(Number(operationCostPerHour) || 0, Number(upkeepPerHour) || 0));
   extractor.totalSpent = Number(extractor.totalSpent || 0) + startupCost;
   extractor.minedThisCycle = 0;
+  extractor.minedThisCycleByItem = {}; // AB#829
   extractor.spentThisCycle = startupCost; // AB#746
 }
 
@@ -330,10 +333,12 @@ function mineSpan(corp, extractor, from, to, now) {
     // today) deposits exactly what it did.
     if (!extractor.minedByItem || typeof extractor.minedByItem !== "object") extractor.minedByItem = countsOf(null, extractor.totalMined);
     if (!extractor.itemRemainders || typeof extractor.itemRemainders !== "object") extractor.itemRemainders = {};
+    if (!extractor.minedThisCycleByItem || typeof extractor.minedThisCycleByItem !== "object") extractor.minedThisCycleByItem = countsOf(null, extractor.minedThisCycle);
     let deposited = 0;
     for (const [item, units] of Object.entries(shareByProfile(actualMined, bodyResourceProfile(lease?.body ?? extractor.body), extractor.itemRemainders))) {
       stationInv[item] = (stationInv[item] || 0) + units;
       extractor.minedByItem[item] = (extractor.minedByItem[item] || 0) + units;
+      extractor.minedThisCycleByItem[item] = (extractor.minedThisCycleByItem[item] || 0) + units; // AB#829
       bumpStat(corp, `mined:${item}`, units);
       deposited += units;
     }
