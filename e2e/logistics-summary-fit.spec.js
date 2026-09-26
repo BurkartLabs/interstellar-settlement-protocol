@@ -5,6 +5,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/logistics-summary-fit.spec.js`.
 
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -26,7 +27,7 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
     await verifyAndLogIn(page, "", `logistics-fit-${stamp}@example.test`, "playtest-password-not-real"); // AB#2288: verify, then log in
     await page.waitForURL(/\/\?account=/);
     await page.getByRole("button", { name: "I'll find my own way" }).click();
-    await page.click('.tab-btn[data-tab="logistics"]');
+    await openTab(page, "logistics");
     const values = page.locator(".logistics-summary-value");
     await expect(values).toHaveCount(4);
 

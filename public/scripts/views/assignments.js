@@ -542,7 +542,7 @@ export function bindAssignmentForms() {
     closeMissionModal();
     renderMissions(appState.data);
     // AB#744: after the contract dialog has closed, so the receipt is the one thing on screen.
-    showActionReceipt(receiptAnswer, { returnFocusTo: () => document.querySelector("[data-complete-mission], .tab-btn[data-tab='missions']") });
+    showActionReceipt(receiptAnswer, { returnFocusTo: () => document.querySelector("[data-complete-mission], .nav-tab[data-tab='missions']") });
   });
 
   activeMissionListEl?.addEventListener("click", async (event) => {
@@ -679,7 +679,7 @@ export function bindAssignmentForms() {
 
     // AB#744: signed in, the ISA's receipt from the server's own figures (reward and standing) replaces the page's
     // overlay, which recomputed the reward; offline, with no server answer, the overlay is still what confirms it.
-    if (receiptAnswer) showActionReceipt(receiptAnswer, { returnFocusTo: () => document.querySelector(".tab-btn[data-tab='missions']") });
+    if (receiptAnswer) showActionReceipt(receiptAnswer, { returnFocusTo: () => document.querySelector(".nav-tab[data-tab='missions']") });
     else showMissionCompleteOverlay(mission, rep, agentName, rewardCredits);
 
     renderMissions(appState.data);

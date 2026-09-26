@@ -14,6 +14,7 @@
 // which was the pre-fix code only while AB#1761's own pull request was open; once merged, origin/main was the fix,
 // before equalled after, and this spec failed on every checkout.
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -124,7 +125,7 @@ for (const viewport of VIEWPORTS) {
       // The coordinator's one-time offer (first-hour.spec.js's pattern) — declined, this spec plays the tab directly.
       await page.getByRole("button", { name: "I'll find my own way" }).click();
       await expect(page.locator("#dialogue-modal")).toBeHidden();
-      await page.click('.tab-btn[data-tab="refinery"]');
+      await openTab(page, "refinery");
       const chainsEl = page.locator("#refinery-chains");
       await expect(chainsEl).toBeVisible();
       const requirementRow = chainsEl.locator("p", { hasText: "Requires:" }).first();
@@ -135,7 +136,7 @@ for (const viewport of VIEWPORTS) {
         route.fulfill({ contentType: "text/javascript", headers: { "cache-control": "no-store" }, body: beforePanelJs })
       );
       await page.reload();
-      await page.click('.tab-btn[data-tab="refinery"]');
+      await openTab(page, "refinery");
       await expect(chainsEl).toBeVisible();
       const beforeRow = chainsEl.locator("p", { hasText: "Requires:" }).first();
       await expect(beforeRow).toBeVisible();
@@ -146,7 +147,7 @@ for (const viewport of VIEWPORTS) {
       // ── after: the real fix, muted ───────────────────────────────────────────────────────────────────
       await page.unroute(PANEL_URL);
       await page.reload();
-      await page.click('.tab-btn[data-tab="refinery"]');
+      await openTab(page, "refinery");
       await expect(chainsEl).toBeVisible();
       const afterRow = chainsEl.locator("p", { hasText: "Requires:" }).first();
       await expect(afterRow).toBeVisible();

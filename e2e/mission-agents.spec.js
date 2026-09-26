@@ -5,6 +5,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/mission-agents.spec.js`.
 
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -60,7 +61,7 @@ for (const viewport of VIEWPORTS) {
     await page.getByRole("button", { name: "I'll find my own way" }).click();
     await expect(page.locator("#dialogue-modal")).toBeHidden();
 
-    await page.click('.tab-btn[data-tab="missions"]');
+    await openTab(page, "missions");
     const agentCard = page.locator("[data-agent-id]").first();
     await expect(agentCard, "the agent registry (data/missions.json's agents, GET /api/mission-agents) must render at least one").toBeVisible();
     if (mobile) await assertNoHorizontalScroll(page);

@@ -163,8 +163,8 @@ async function measure(dir, { who }, tracePath) {
     await page.screenshot({ path: tracePath.replace(/\.json$/, "") + "-loaded.png" }); // what was measured, loaded
 
     // 20 full re-renders, through the Suites' hire form, traced.
-    const tab = page.locator('.tab-btn[data-tab="station"]');
-    if (await tab.isVisible()) await tab.click(); else await page.evaluate(() => document.querySelector('.tab-btn[data-tab="station"]').click());
+    const tab = page.locator('.nav-tab[data-tab="station"]');
+    if (await tab.isVisible()) await tab.click(); else await page.evaluate(() => document.querySelector('.nav-tab[data-tab="station"]').click());
     await page.locator('[data-building-action="building:orbital-executive-suites"]').click();
     const hireForm = page.locator("#office-hire-form");
     await hireForm.waitFor({ timeout: 20000 });

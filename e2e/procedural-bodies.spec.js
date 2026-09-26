@@ -4,6 +4,7 @@
 // each system under 4x CPU throttling from the "isp:starmap-render" measure, printed and attached to the Playwright
 // report for the PR (recorded, not asserted). Starts its own server (the starmap-system-fit.spec.js pattern).
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -80,7 +81,7 @@ async function signInToStarmap(page, url, email) {
   await page.fill("#login-password", PASSWORD);
   await page.click('#login-form button[type="submit"]');
   await page.waitForURL(/\/\?account=/);
-  await page.click('.tab-btn[data-tab="starmap"]');
+  await openTab(page, "starmap");
   const canvas = page.locator("#starmap-canvas");
   await canvas.scrollIntoViewIfNeeded();
   await page.waitForTimeout(800);
@@ -164,7 +165,7 @@ test("every system's bodies render procedurally and the same after a reload, wit
     const before = await canvas.evaluate((c) => c.toDataURL());
     await page.reload();
     await page.waitForURL(/\/\?account=|\/$/);
-    await page.click('.tab-btn[data-tab="starmap"]');
+    await openTab(page, "starmap");
     canvas = page.locator("#starmap-canvas");
     await page.waitForTimeout(800);
     await openSystem(page, canvas, "Alpha Centauri");

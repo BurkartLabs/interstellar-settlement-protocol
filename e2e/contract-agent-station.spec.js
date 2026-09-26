@@ -4,6 +4,7 @@
 // (The refusal away from the station is tests/integration/mission-agent-station.test.js.)
 import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743, AB#744
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -62,7 +63,7 @@ for (const viewport of VIEWPORTS) {
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
 
-      await page.click('.tab-btn[data-tab="missions"]');
+      await openTab(page, "missions");
       await page.locator("[data-agent-id]").first().click();
       const offered = page.locator("[data-mission-id]").first();
       const missionId = await offered.getAttribute("data-mission-id");

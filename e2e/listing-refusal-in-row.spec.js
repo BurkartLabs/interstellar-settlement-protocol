@@ -5,6 +5,7 @@
 // Starts its own server on a seeded data directory (the create-listing-empty.spec.js pattern); screenshots go to
 // e2e/screenshots/ab-2057/.
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -65,7 +66,7 @@ for (const viewport of VIEWPORTS) {
       await page.fill("#login-password", PASSWORD);
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
-      await page.click('.tab-btn[data-tab="market"]');
+      await openTab(page, "market");
       const rows = page.locator("#market-sell-grid tr");
       await expect(rows).toHaveCount(6);
 

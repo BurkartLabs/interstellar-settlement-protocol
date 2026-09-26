@@ -1314,27 +1314,6 @@ button:disabled {
   margin-top: 0.9rem;
 }
 
-.tab-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-bottom: 0.8rem;
-}
-
-.tab-btn {
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text);
-  border-radius: 999px;
-  padding: 0.45rem 0.8rem;
-  cursor: pointer;
-  font-size: var(--font-size-2);
-}
-
-.tab-btn.active,
-.tab-btn:hover {
-  border-color: var(--accent);
-}
 
 .tab-panel {
   display: none;
@@ -2808,12 +2787,6 @@ body.walkthrough-open .layout-grid {
   background: var(--surface-2);
 }
 
-/* ─── Locked tabs during travel ──────────────────────────── */
-.tab-btn--locked {
-  opacity: 0.3;
-  pointer-events: none;
-  cursor: not-allowed;
-}
 
 /* ─── Full Travel page ───────────────────────────────────── */
 .travel-page-outer {
@@ -6112,25 +6085,54 @@ tr.npc-order-exhausted {
   flex: 1 1 22rem;
 }
 
-/* ─── App shell (ISP-74, AB#763) ─── */
-/* The flat direction (Decision AB#1801): on a desktop the navigation is a column at the top of the left side, above
-   the corporation panel, with the content beside it; on a phone it is a bar along the bottom of the screen and the
-   content has the full width. One query decides it, at NARROW_MAX_WIDTH in public/scripts/firstAction.js, where the
-   scripts already call a screen a phone; tests/unit/appShell.test.js fails if another query reaches the shell. The
-   fifteen tabs scroll sideways in the bar until ISP-75 (AB#764) groups them. Focus and reduced motion come from the
-   global rules at the top of this file, which the shell does not override. */
+/* ─── App shell (ISP-74, AB#763; ISP-75, AB#764) ─── */
+/* The flat direction (Decision AB#1801). The navigation is six groups (public/scripts/navGroups.js), each a button
+   over its tabs. On a desktop it is a column at the top of the left side, every group's name over its tabs, with the
+   content beside it. On a phone the six group buttons are a bar along the bottom that never scrolls, and the open
+   group's tabs sit in a row just above it; a group with one tab has no row. One query decides it, at NARROW_MAX_WIDTH
+   in public/scripts/firstAction.js; tests/unit/appShell.test.js fails if another query reaches the shell. Focus and
+   reduced motion come from the global rules at the top of this file, which the shell does not override. */
 .app-nav {
   grid-area: nav;
+  display: flex;
   flex-direction: column;
-  flex-wrap: nowrap;
-  gap: var(--space-1);
+  gap: var(--space-3);
   margin: 0;
-  padding: var(--space-2);
+  padding: var(--space-3);
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
 }
-.app-nav .tab-btn {
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.nav-group__button {
+  position: relative;
+  min-height: 28px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.nav-group__button:hover:not(:disabled) {
+  color: var(--text);
+}
+.nav-group__tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.nav-tab {
   min-height: 36px;
   padding: var(--space-2) var(--space-3);
   border: 0;
@@ -6138,55 +6140,137 @@ tr.npc-order-exhausted {
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-soft);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2);
   text-align: left;
+  cursor: pointer;
 }
-.app-nav .tab-btn:hover:not(:disabled) {
+.nav-tab:hover:not(:disabled) {
   background: var(--surface-2);
   color: var(--text);
 }
-.app-nav .tab-btn.active {
+.nav-tab.active {
   background: var(--surface-3);
   border-left-color: var(--accent);
   color: var(--text);
 }
+/* In transit, the tabs a ship cannot use (app.js), and a group all of whose tabs are locked. */
+.nav-tab--locked,
+.nav-group__button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+/* What a closed group is holding, such as unread mail (Bug #1130), as a number on its button. */
+.nav-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--warn);
+  color: var(--on-warn);
+  font-size: var(--font-size-1);
+  letter-spacing: 0;
+}
+.nav-count::after {
+  content: attr(data-count);
+}
 
 @media (max-width: 767px) {
-  /* What the browser scrolls into view (keyboard focus, scrollIntoView) stops above the bar, not under it. */
+  /* What the browser scrolls into view (keyboard focus, scrollIntoView) stops above the bar and its row, not under. */
   html {
-    scroll-padding-bottom: calc(var(--space-4) + var(--space-16));
+    scroll-padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
   }
   .layout-grid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "side" "main";
-    padding-bottom: calc(var(--space-4) + var(--space-16));
+    padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
   }
   .side-panel {
     max-height: none;
   }
-  /* The bar: below every dialog (60) and the briefing (55), above the page. */
+  /* The bar: each group as wide as its name, the space shared evenly, never scrolling; below every dialog (60) and
+     the briefing (55). Equal columns ran "Company" into "Station" at 375. */
   .app-nav {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 20;
+    display: flex;
     flex-direction: row;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding: var(--space-2) var(--space-2) calc(var(--space-2) + env(safe-area-inset-bottom));
+    justify-content: space-evenly;
+    gap: 0;
+    padding: var(--space-1) var(--space-1) calc(var(--space-1) + env(safe-area-inset-bottom));
     border-width: 1px 0 0;
     border-radius: 0;
+  }
+  .nav-group {
+    display: block;
+  }
+  .nav-group__button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 var(--space-1);
+    border-top: 2px solid transparent;
+    border-radius: 0;
+    color: var(--text-soft);
+    font-size: var(--font-size-3);
+    font-weight: var(--font-weight-regular);
+    letter-spacing: 0;
+    text-align: center;
+    text-transform: none;
+  }
+  .nav-group__button.active {
+    border-top-color: var(--accent);
+    color: var(--text);
+  }
+  /* On the bar the count is a dot beside the name; the number is in the button's name for a screen reader. */
+  .nav-count {
+    position: absolute;
+    top: var(--space-1);
+    right: 0;
+    width: var(--space-2);
+    min-width: 0;
+    height: var(--space-2);
+    margin: 0;
+    padding: 0;
+  }
+  .nav-count::after {
+    content: none;
+  }
+  /* Only the open group's tabs, in a row just above the bar, and only when it has more than one. */
+  .nav-group__tabs {
+    display: none;
+  }
+  .nav-group.is-open .nav-group__tabs:has(> .nav-tab:not([hidden]) ~ .nav-tab:not([hidden])) {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(44px + 2 * var(--space-1) + 1px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-1);
+    padding: var(--space-1);
+    overflow-x: auto;
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
     scrollbar-width: thin;
   }
-  .app-nav .tab-btn {
+  .nav-tab {
     flex: 0 0 auto;
     min-height: 44px;
     border-left: 0;
-    border-top: 2px solid transparent;
+    border-bottom: 2px solid transparent;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-3);
     text-align: center;
   }
-  .app-nav .tab-btn.active {
-    border-top-color: var(--accent);
+  .nav-tab.active {
+    border-bottom-color: var(--accent);
   }
   /* Bug #1083: the briefing card spans the width, so it must leave the upper half for what it points at (app.js
      scrolls the control into the band above it); a long step scrolls inside the card instead. */
@@ -6194,12 +6278,12 @@ tr.npc-order-exhausted {
     max-height: 45vh;
     overflow-y: auto;
   }
-  /* The briefing card sits above the bar, so the tab a step asks for is never under it. */
+  /* The briefing card sits above the bar and its row, so the tab or group a step asks for is never under it. */
   #walkthrough-modal {
-    padding-bottom: calc(var(--space-4) + var(--space-16));
+    padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
   }
   body.walkthrough-open .layout-grid {
-    padding-bottom: calc(var(--space-4) + var(--space-16) + var(--walkthrough-card-height, var(--space-16)));
+    padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16) + var(--walkthrough-card-height, var(--space-16)));
   }
 }
 
@@ -6596,7 +6680,7 @@ body.sg {
 
 /* ─── Core components (ISP-72, AB#761): button, input and select, card, panel, tabs, badge, tooltip ───
    The flat direction (Decision AB#1801), in tokens only. Every one is shown in every state at /styleguide. A screen
-   adopts them when it is rebuilt (ISP-76 to ISP-79); until then the game's own .btn, .pill and .tab-btn are unchanged.
+   adopts them when it is rebuilt (ISP-76 to ISP-79); until then the game's own .btn and .pill are unchanged.
    The .is-hover, .is-active, .is-focus, .is-loading, .is-selected and .is-open classes draw a state that is otherwise
    reached by the pointer or the keyboard, so the style guide can show it standing still. Controls are 36px tall on a
    desktop and 44px on a phone, the smallest target a thumb hits reliably. */

@@ -8,6 +8,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/focus-and-motion.spec.js`.
 
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -82,11 +83,11 @@ for (const vp of VIEWPORTS) {
       await page.getByRole("button", { name: "I'll find my own way" }).click();
       await expect(page.locator("#dialogue-modal")).toBeHidden();
 
-      await page.click('.tab-btn[data-tab="station"]');
+      await openTab(page, "station");
       await expect(page.locator("#station")).toHaveClass(/active/);
       await walk(page, 30, "station", vp);
 
-      await page.click('.tab-btn[data-tab="market"]');
+      await openTab(page, "market");
       await expect(page.locator("#market")).toHaveClass(/active/);
       await walk(page, 30, "exchange", vp);
     });

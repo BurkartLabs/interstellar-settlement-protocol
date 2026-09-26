@@ -6,6 +6,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/disabled-buttons.spec.js`.
 
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -52,7 +53,7 @@ test("a disabled button is dimmed, shows not-allowed and loses its hover glow; e
   await expect(page.locator("#walkthrough-modal")).toBeHidden();
 
   // ISA Claims & Leases with an office and no employees: every lease button is disabled.
-  await page.click('.tab-btn[data-tab="station"]');
+  await openTab(page, "station");
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   await page.selectOption("#rent-office-duration", "7");
   await page.click("#rent-office-btn");

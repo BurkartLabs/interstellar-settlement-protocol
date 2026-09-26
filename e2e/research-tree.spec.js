@@ -4,6 +4,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/research-tree.spec.js`.
 
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -64,7 +65,7 @@ for (const viewport of VIEWPORTS) {
     await page.getByRole("button", { name: "I'll find my own way" }).click();
     await expect(page.locator("#dialogue-modal")).toBeHidden();
 
-    await page.click('.tab-btn[data-tab="rnd"]');
+    await openTab(page, "rnd");
     const rows = page.locator("#rnd-tech-tree .rnd-row");
     await expect(rows.first(), "the tech tree (GET /api/research, data/research.json) must render at least one node").toBeVisible();
 

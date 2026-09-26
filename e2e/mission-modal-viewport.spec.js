@@ -6,6 +6,7 @@
 //
 // Run: `npx playwright test e2e/mission-modal-viewport.spec.js` (it starts its own server).
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -64,7 +65,7 @@ for (const viewport of VIEWPORTS) {
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
 
-      await page.click('.tab-btn[data-tab="missions"]');
+      await openTab(page, "missions");
       await page.locator("[data-agent-id]").first().click();
       const offered = page.locator("#agent-mission-list [data-mission-id]").first();
       await offered.scrollIntoViewIfNeeded();

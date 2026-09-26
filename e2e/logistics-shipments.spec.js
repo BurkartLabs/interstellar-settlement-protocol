@@ -14,6 +14,7 @@
 // the real transfer-resources route, and the server that answers it is a real, separate `node server/index.js`
 // process reading that fixture from disk at boot, the same as a real restart.
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -102,8 +103,8 @@ for (const viewport of VIEWPORTS) {
       await page.waitForURL(/\/\?account=/);
       await expect(page.locator("#dialogue-modal")).toBeHidden();
 
-      await page.click('.tab-btn[data-tab="logistics"]');
-      await expect(page.locator('.tab-btn[data-tab="logistics"]')).toHaveClass(/active/);
+      await openTab(page, "logistics");
+      await expect(page.locator('.nav-tab[data-tab="logistics"]')).toHaveClass(/active/);
 
       // ── quote: the remote station's card names the fee and the arrival time before anything is sent ──────
       const remoteCard = page.locator(".logistics-station-card", { hasText: "Centauri Prime Orbital" });

@@ -1043,7 +1043,7 @@ export function renderStation(data) {
       appState.data = deepClone(account.state);
       updateAllViews();
       pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok");
-      showActionReceipt(account, { returnFocusTo: firstPresent('[data-corp-building="Assembly Facility"]', ".tab-btn[data-tab='station']") }); // AB#744
+      showActionReceipt(account, { returnFocusTo: firstPresent('[data-corp-building="Assembly Facility"]', ".nav-tab[data-tab='station']") }); // AB#744
     },
     onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
   }, clientPrices(appState.economy).assemblyFacilityCost);
@@ -1056,7 +1056,7 @@ export function renderStation(data) {
       appState.data = deepClone(account.state);
       updateAllViews();
       pushFeedback(account.receipt?.title || "Construction complete.", "ok");
-      showActionReceipt(account, { returnFocusTo: firstPresent("#station-construction-section h3", ".tab-btn[data-tab='station']") }); // AB#744
+      showActionReceipt(account, { returnFocusTo: firstPresent("#station-construction-section h3", ".nav-tab[data-tab='station']") }); // AB#744
     },
     onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
   }, {

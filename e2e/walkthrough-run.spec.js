@@ -7,6 +7,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/walkthrough-run.spec.js`.
 
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { WALKTHROUGH_STEPS } from "../public/scripts/walkthrough.js";
@@ -49,10 +50,10 @@ test("the walkthrough runs start to finish with no console error, at 1280x800", 
   }
 
   await atStep(1); // licence: open the inbox
-  await page.click('.tab-btn[data-tab="inbox"]');
+  await openTab(page, "inbox");
 
   await atStep(2); // station
-  await page.click('.tab-btn[data-tab="station"]');
+  await openTab(page, "station");
 
   await atStep(3); // office
   await page.click('[data-building-action="building:orbital-executive-suites"]');
@@ -85,7 +86,7 @@ test("the walkthrough runs start to finish with no console error, at 1280x800", 
 
   await atStep(8); // sell, once something has been mined (the 5s server tick, pushed live over the socket)
   await expect(page.locator('.extractor-row [data-live="mined"]')).not.toHaveText(/^0( t)?$/, { timeout: 60_000 }); // AB#746: "0 t"
-  await page.click('.tab-btn[data-tab="market"]');
+  await openTab(page, "market");
   const sellBtn = page.locator('.npc-sell-btn[data-npc-item="Silicates"]').first();
   await expect(sellBtn).toBeEnabled();
   await sellBtn.click();
@@ -93,18 +94,18 @@ test("the walkthrough runs start to finish with no console error, at 1280x800", 
   await acknowledgeReceipt(page); // AB#744
 
   await atStep(9); // research
-  await page.click('.tab-btn[data-tab="rnd"]');
+  await openTab(page, "rnd");
   await page.click('.rnd-enqueue-btn[data-tech-id="tt-basic-extraction"]');
   await acknowledgeReceipt(page); // AB#744
 
   await atStep(10); // bureau
-  await page.click('.tab-btn[data-tab="missions"]');
+  await openTab(page, "missions");
 
   await atStep(11); // overview
-  await page.click('.tab-btn[data-tab="overview"]');
+  await openTab(page, "overview");
 
   await atStep(12); // starmap
-  await page.click('.tab-btn[data-tab="starmap"]');
+  await openTab(page, "starmap");
 
   // Every step done: the card stays on the handoff, marked complete, and its one button closes it.
   await expect(progress).toHaveText("Briefing complete", { timeout: 10_000 });
@@ -114,8 +115,8 @@ test("the walkthrough runs start to finish with no console error, at 1280x800", 
   await expect(card).toBeHidden();
 
   // The Overview tab after the split, at 1280x800: the viewport as the player sees it, and the whole page.
-  await page.click('.tab-btn[data-tab="overview"]');
-  await expect(page.locator('.tab-btn[data-tab="overview"]')).toHaveClass(/active/);
+  await openTab(page, "overview");
+  await expect(page.locator('.nav-tab[data-tab="overview"]')).toHaveClass(/active/);
   await page.screenshot({ path: path.join(SCREEN_DIR, "overview-1280x800.png") });
   await page.screenshot({ path: path.join(SCREEN_DIR, "overview-1280x800-full.png"), fullPage: true });
 
@@ -145,6 +146,6 @@ test("End briefing closes the card and lands on R&D, with no console error", asy
   await expect(page.locator("#walkthrough-progress")).toHaveText(`1 of ${TOTAL}`);
   await page.click("#walkthrough-end");
   await expect(page.locator("#walkthrough-modal")).toBeHidden();
-  await expect(page.locator('.tab-btn[data-tab="rnd"]')).toHaveClass(/active/);
+  await expect(page.locator('.nav-tab[data-tab="rnd"]')).toHaveClass(/active/);
   expect(errors).toEqual([]);
 });
