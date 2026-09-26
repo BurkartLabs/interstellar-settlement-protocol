@@ -6,6 +6,7 @@ const MILESTONES = JSON.parse(
   readFileSync(new URL("../../data/milestones.json", import.meta.url), "utf8")
 );
 const LEVELS = MILESTONES.levels;
+const CATALOGUE = JSON.parse(readFileSync(new URL("../../data/player-buildings.json", import.meta.url), "utf8")).buildings;
 const levelDef = (n) => LEVELS.find((l) => l.level === n);
 
 // The shape createStarterCorporationState hands a new account (level 0).
@@ -48,6 +49,17 @@ function meet(corp, req) {
     if (body === "any") {
       if (corp.miningLeases.length === 0) corp.miningLeases.push({ body: "Earth" });
     } else if (!corp.miningLeases.some((l) => l.body === body)) corp.miningLeases.push({ body });
+  } else if (metric === "building:Refinery Complex") {
+    // ISP-97 (AB#787): the Complex is an upgrade recorded on the Refinery it upgraded, not a building of its own.
+    let refinery = corp.buildings.find((b) => b.name === "Refinery");
+    if (!refinery) corp.buildings.push((refinery = { name: "Refinery" }));
+    refinery.upgrades = [...new Set([...(refinery.upgrades || []), "Refinery Complex"])];
+  } else if (metric.startsWith("building-tier:")) {
+    // ISP-108 (AB#800): `target` of that catalogue building at tier n or above.
+    const [, id, n] = metric.split(":");
+    const name = CATALOGUE.find((b) => b.id === id).name;
+    while (corp.buildings.filter((b) => b.name === name).length < target) corp.buildings.push({ name, tier: 1 });
+    corp.buildings.filter((b) => b.name === name).slice(0, target).forEach((b) => { b.tier = Math.max(Number(b.tier) || 1, Number(n)); });
   } else if (metric.startsWith("building-count:") || metric.startsWith("building:")) {
     const name = metric.slice(metric.indexOf(":") + 1);
     const want = metric.startsWith("building-count:") ? target : 1;

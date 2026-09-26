@@ -23,11 +23,11 @@ const climb = (corp) => {
 };
 
 describe("the level ladder can be climbed to its top (Bug #424)", () => {
-  it("defines 10 levels, and the cap a player sees is that, not 40", () => {
-    expect(MAX_DEFINED_LEVEL).toBe(10);
+  it("defines 20 levels, and the cap a player sees is that, not 40", () => {
+    expect(MAX_DEFINED_LEVEL).toBe(20); // ISP-108 (AB#800): levels 11 to 20
     const state = { corp: makeCorp({ milestonesCompleted: [], employeeCap: 8, buildingSlots: 2, unlocks: { maxFleetSize: 0, marketSectors: [] },  levelCap: 40, level: 0 }) };
     evaluateLevelProgress(state);
-    expect(state.corp.levelCap).toBe(10);
+    expect(state.corp.levelCap).toBe(20);
   });
 
   it("a corporation that has done everything each level asks reaches Level 10", () => {

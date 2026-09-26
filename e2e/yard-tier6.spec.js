@@ -1,6 +1,6 @@
 // ISP-312 (AB#2308): the Station's upgrade control for a tier-5 Basic Extractor Yard, now that tiers 6 to 8 are in
-// data/economy.json. Allowed tier 6 (seeded: no level grants it until AB#800 to AB#802), the row offers tier 6 at its
-// price; at maxUpgradeTier 5, what a corporation sees today, it shows tier 6's comparison and that no level opens it.
+// data/economy.json. Allowed tier 6 (seeded; Level 20 grants it since AB#800), the row offers tier 6 at its price; at
+// maxUpgradeTier 5 it shows tier 6's comparison and the level that opens it.
 // At 1280x800 and 375x812; viewport screenshots of the yard row go to e2e/screenshots/ab-2308/.
 import { test, expect } from "@playwright/test";
 import { openTab } from "./nav.mjs";
@@ -82,11 +82,11 @@ for (const viewport of VIEWPORTS) {
     }
   });
 
-  test(`a tier-5 yard at today's maxUpgradeTier 5 sees tier 6 is not open at any level yet, at ${viewport.label}`, async ({ browser }) => {
+  test(`a tier-5 yard at maxUpgradeTier 5 sees that tier 6 opens at Level 20, at ${viewport.label}`, async ({ browser }) => {
     test.setTimeout(90_000);
     const { page, control, errors, close } = await openYard(browser, viewport, "tier5-locked");
     try {
-      await expect(control).toContainText("Tier 6 is not open at any level yet.");
+      await expect(control).toContainText("Tier 6 opens at Corporation Level 20; you are Level 5."); // AB#800
       await expect(control.locator("button")).toHaveCount(0);
       await page.screenshot({ path: path.join(SHOT_DIR, `tier5-locked-${viewport.label}.png`) });
       expect(errors).toEqual([]);

@@ -146,7 +146,30 @@ export function renderLevel2Progress(data) {
     researchAsteroidProspecting: "rnd",
     researchMaterialCompression: "rnd",
     researchNanoLattice:        "rnd",
-    researchNearStarNavigation: "rnd"
+    researchNearStarNavigation: "rnd",
+    // Levels 11 to 20 since ISP-108 (AB#800)
+    extractor4:                 "station",
+    extractor5:                 "station",
+    extractor6:                 "station",
+    thirdLease:                 "station",
+    yards3AtTier2:              "station",
+    yards6AtTier2:              "station",
+    yards3AtTier3:              "station",
+    yards6AtTier3:              "station",
+    mine260kSilicate:           "station",
+    mine470kSilicate:           "station",
+    mine700kSilicate:           "station",
+    mine920kSilicate:           "station",
+    mine1100kSilicate:          "station",
+    refinery2:                  "refinery",
+    refineryComplex:            "refinery",
+    refineryTier3:              "refinery",
+    refine25800:                "refinery",
+    refine34800:                "refinery",
+    refine44800:                "refinery",
+    refine55800:                "refinery",
+    refine65800:                "refinery",
+    researchContainmentPhysics: "rnd"
   };
 
   const level = Number(data?.corp?.level || 0);
