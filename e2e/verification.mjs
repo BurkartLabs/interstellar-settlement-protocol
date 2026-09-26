@@ -15,8 +15,35 @@ export async function verificationToken(request, base, email) {
   return token;
 }
 
+/**
+ * Bug AB#2326: what the register page says when it refuses, or null while it has not. Its status line reads
+ * "Registering corporation credentials..." while the request is in flight, which is not a refusal.
+ */
+const REGISTER_REFUSALS = "#register-status, #register-email-error, #register-password-error, #register-ceo-error, #register-corp-error";
+const IN_FLIGHT = /^Registering corporation credentials/;
+
+/** The error for a refused registration, naming the fix when it is the register limit (AB#2326). */
+export function refusedRegistrationError(text) {
+  const limit = /too many attempts/i.test(text)
+    ? " The register limit (5 an hour) is lifted only when the server runs with NODE_ENV=test: start it as" +
+      " ISP_DEV=1 NODE_ENV=test npm run dev (playwright.config.js)."
+    : "";
+  return new Error(`registration was refused: "${text}".${limit} (AB#2326)`);
+}
+
 /** After the register form is submitted: land on "Check your email", verify, and log in through the login page. */
 export async function verifyAndLogIn(page, base, email, password) {
+  // Bug AB#2326: a refused registration never reaches Check your email. Waiting only for that page turned a refusal
+  // the form was already showing into a 150-second timeout that named nothing.
+  const sent = page.waitForURL(/\/check-email\.html$/).then(() => null, () => null);
+  const refused = page
+    .waitForFunction(({ selector, inFlight }) => {
+      const said = [...document.querySelectorAll(selector)].map((el) => el.textContent.trim()).find((s) => s && !new RegExp(inFlight).test(s));
+      return said || null;
+    }, { selector: REGISTER_REFUSALS, inFlight: IN_FLIGHT.source }, { polling: 250 })
+    .then((handle) => handle.jsonValue(), () => null);
+  const refusal = await Promise.race([sent, refused]);
+  if (typeof refusal === "string" && refusal) throw refusedRegistrationError(refusal);
   await page.waitForURL(/\/check-email\.html$/);
   const token = await verificationToken(page.request, base, email);
   const verified = await page.request.post(`${base}/api/auth/verify-email`, { data: { token } });
