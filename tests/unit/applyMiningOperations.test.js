@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { applyMiningOperations } from "../../server/gameState.js";
+import { yardUpkeepPerHourFor } from "../../server/economy.js";
 import { makeCorp, makeExtractor } from "../fixtures/makeCorp.js";
 
 // Math.random is used for downtime/recovery rolls. We pin it per test so
@@ -165,6 +166,36 @@ describe("applyMiningOperations", () => {
       expect(corp.finances.credits).toBe(0);
       // Underfunded ticks stop the cycle
       expect(ext.active).toBe(false);
+    });
+
+    // ISP-301 (AB#2284): a second yard's upkeep is part of its running cost, so a corporation short of credit mines
+    // less with it and owes nothing; the first yard, charged first and paying no upkeep, runs in full.
+    it("with too little credit, a second yard paying upkeep mines in proportion and records no debt; the first runs in full", () => {
+      pinRandom(0.999);
+      const start = 1_700_000_000_000;
+      const cycle = { startedAt: start, lastTickAt: start, endsAt: start + 60 * 60 * 1000, throughputPerHour: 600, leaseId: "lease-1" };
+      const corp = makeCorp({
+        finances: { credits: 150, dailyRevenue: 0 }, // the first yard's 6 minutes (100) and about half the second's (104.17)
+        miningLeases: [{ id: "lease-1", body: "Earth" }],
+        mining: {
+          silicateExtractors: [
+            makeExtractor({ ...cycle, id: "ext-basic-1", operationCostPerHour: 1000 + yardUpkeepPerHourFor(0) }),
+            makeExtractor({ ...cycle, id: "ext-basic-2", operationCostPerHour: 1000 + yardUpkeepPerHourFor(1) })
+          ]
+        }
+      });
+      const financeKeysBefore = Object.keys(corp.finances).sort();
+
+      applyMiningOperations(corp, start + 6 * 60 * 1000);
+
+      const [first, second] = corp.mining.silicateExtractors;
+      expect(first.totalMined).toBe(60);
+      expect(first.totalSpent).toBe(100);
+      // 50 of 104.17 left: ratio 0.48, so 28 of 60 tonnes, and exactly the 50 credits there were.
+      expect(second.totalMined).toBe(28);
+      expect(second.totalSpent).toBe(50);
+      expect(corp.finances.credits).toBe(0);
+      expect(Object.keys(corp.finances).filter((k) => !financeKeysBefore.includes(k) && /arrear|owed|debt|upkeep/i.test(k))).toEqual([]);
     });
 
     it("carries fractional mined output via minedRemainder across ticks", () => {

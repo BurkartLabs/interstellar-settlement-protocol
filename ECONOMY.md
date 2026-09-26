@@ -24,6 +24,7 @@ question in the retune (AB#728).
 | `buildings.refineryCost` | 75,000 | The dearest building. Its outputs have no NPC buyer (DEPTH.md), so it is a bet on the player market. |
 | `buildings.refineryAssetValue` | 55,000 | 73% of cost on the balance sheet. No reason is recorded. |
 | `buildings.supplyForecastCostMultiplier` | 0.94 | Supply Forecast research takes 6% off a yard or refinery: 3,000 on an extractor yard. It is small next to the research's other effect, +6% output. |
+| `buildings.extractorYardUpkeepPctPerDay` | 2 | Every extractor yard after a corporation's first adds 2% of the yard's price per running day to its hourly running cost: 50,000 x 2% / 24 = 41.67 an hour, after the 600 floor, and not in the startup (ISP-301, AB#2284; sink 1 of "Sinks that scale with income" below). A one-yard corporation never pays it; one short of credit mines less and owes nothing. Chosen, not derived: the Board has not seen it. |
 | `operations.costPerThroughputUnit` | 16 | What a tonne costs to mine. Against a net sale price of 22.08, it leaves a 6.08 margin, which is the T-018 problem below. |
 | `operations.minCostPerHour` | 600 | The floor on an extractor's hourly cost: 37.5 t/h's worth. Below that, the player pays for throughput they do not get, so low settings lose money. |
 | `operations.startupShareOfHourlyCost` | 0.35 | A cycle's startup is about a third of an hour's cost. Over a 72-hour cycle that is noise; over a 1-hour cycle it is a 35% surcharge. |
@@ -318,8 +319,8 @@ rationale), for the Director to either rewrite the target or confirm it should b
 
 ## Sinks that scale with income (ISP-88, AB#778)
 
-**A design, not code.** Nothing below is in `data/economy.json` yet; each sink is one implementation story, and its
-key joins the table at the top of this file when that story lands.
+**A design, then code, one sink at a time.** Each sink is one implementation story, and its key joins the table at the
+top of this file when that story lands. Sink 1, yard upkeep, has (ISP-301, AB#2284); sinks 2 and 3 have not.
 
 **The problem, as it stands now.** Monetization review #1 found credits piling up past minute 120 with nothing to
 want: about 13 sinks, all one-off except payroll and rent. Review #2 and the ISP-42 re-run above found the
