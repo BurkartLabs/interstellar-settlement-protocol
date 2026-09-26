@@ -187,8 +187,20 @@ item's 7,000, and the sell route drifts the bid across it.
 The two choices for a cycle's worth of raw items are to sell them to the NPC bid now, or to put them in a Refinery and
 sell what comes out. A Refinery has no running cost (ECONOMY.md), so the choice is between two values:
 
-> **Refine a cycle when a Refinery is idle and its outputs at their bids now are worth more than its inputs at their
-> bids now.** Otherwise sell raw.
+> **Refine a cycle when a Refinery is idle and its outputs are worth more than its inputs, each valued at what selling
+> it from tomorrow would fetch.** Otherwise sell raw.
+
+**One night ahead (AB#2367).** "What selling it from tomorrow would fetch" means three things, because a corporation
+selling alone meets only the glut it makes itself, and a bid it pushed down today is most of the way back by morning:
+
+- each day opens at the bid **after a night's recovery** (`npcBidAfterRecovery`), not the bid this minute;
+- a day's sales walk **down the bid's curve** within the item's own daily quota (AB#2365: a product's is one
+  Refinery's day, so a product's bid falls fast);
+- what the week's remaining days **cannot sell** within those quotas is worth nothing.
+
+An intermediate's value is its own, valued the same way. The rule used to compare bids *now*, and bids now were the
+wrong question: it sold everything raw into a glut that had gone by morning (AB#2366). The arithmetic below compares
+single cycles at fixed bids, which is what the rule reduces to when a day's selling does not move them.
 
 It applies at every stage, and an intermediate's value is its own bid: refine Nickel-Iron Alloy into Pressure Vessels
 only if the vessels are worth more than the alloy would fetch. Here is the arithmetic at the **product floor** for two
@@ -218,29 +230,43 @@ happen and does not always hold. At the product's base, refining wins at any raw
 fallen bid recovers 60% of its gap overnight. A corporation that mines more than two Refineries can take sells the
 surplus raw under any policy.
 
-## 6. The probe target for v0.8-14 (AB#835)
+## 6. The probe target for v0.8-14 (AB#835, AB#2367)
 
-AB#835's bot runs a week of each track, starting from each of three price states:
+AB#835's bot plays a week of each track through the game's routes. It used to start each week from three price
+states (every bid at base, raw bids at their floor, product bids at their floor). The Director's ruling on AB#2366
+retired them: one corporation alone erases a starting glut overnight, so "always refine to the end" won all fifteen
+track-states and the target measured a state the probe cannot sustain. The glut that matters is the one a corporation
+makes itself, so the probe now sweeps what the corporation does:
 
-- **Fresh:** every bid at its base.
-- **Raw glut:** raw bids at their floor, product bids at base.
-- **Product glut:** raw bids at base, product bids at their floor.
+- **how much it mines:** the week's raw supply, as 42, 84, 168 or 336 hours of one Refinery running each of the
+  track's chains (`CHAIN_PROBE_VOLUMES`);
+- **how many Refineries it runs:** 1 or 2, at tier 1.
 
-Within the week, bids drift and recover by the normal rules. Three policies play each state: "always sell raw",
-"always refine to the end" (every stage the track has) and "the design's rule" (section 5). Each policy uses tier-1
-Refineries and the two-Refinery cap.
+Every week starts from fresh bids, with each item's own daily quota (AB#2365). Three policies play each point:
+"always sell raw", "always refine to the end" (every stage the track has) and "the design's rule" (section 5, with its
+night of look-ahead). The bot sells in lots of a twentieth of an order's daily quota, so a sale walks down the curve
+whatever the sell route prices a lot at (AB#2356).
 
 **Target, a bot number (P-PROXY):**
 
-- No single fixed policy has the most credits at the week's end in all three states.
-- "Always refine to the end" beats "always sell raw" in Fresh and Raw glut, and loses to it in Product glut.
-- The design's rule ends within 5% of the best policy in every state.
+- On every track, no fixed policy has the most credits at every point of the sweep.
+- "Always refine to the end" loses to "always sell raw" at one or more points.
+- The design's rule ends within 5% of the best policy at every point.
 
-What this measures is whether the rule's arithmetic survives quotas, drift, cycle times and the slot cap. It does not
+`npm run probe:chains` prints the table; the latest is in AB#2367 and its pull request.
+
+**Where it stands (2026-09-26, bot numbers).** Over 40 points (5 tracks x 4 volumes x 1 or 2 Refineries): the first two
+targets are met. Refine-to-end is best at 16 points, the rule at 20 and sell-raw at 4, and refine-to-end loses to
+sell-raw at 17: rare metals below 336h, fuel with two Refineries or at 336h, light metals and cross-track at high
+volume. The third is not: the rule ends within 5% at 33 points. The seven it misses are all where refine-to-end is
+best at low volume (nickel-iron at 42h and 84h, light metals at 42h and 168h with one Refinery, cross-track at 42h with
+one), 5.2% to 10.7% below. Valuing an intermediate by what the next stage makes of it made that worse. The rule is with
+the Director (AB#2367). What this measures is whether
+the rule survives a corporation's own volume, quotas, drift, cycle times and one or two Refineries. It does not
 measure human pacing, player-to-player prices, or other sellers moving the bids.
 
-Section 1's table predicts the per-step result by construction. The probe exists because a week of drift, quotas and
-two slots is not per-step arithmetic.
+Section 1's table still gives the per-step result by construction. The probe exists because a week of a
+corporation's own selling, quotas and one or two slots is not per-step arithmetic.
 
 ## 7. What changes for the existing chains, and cycles already running
 
