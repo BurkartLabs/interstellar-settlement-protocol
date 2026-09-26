@@ -87,7 +87,8 @@ describe("resource profiles on every body (AB#826)", () => {
     expect(res.status).toBe(200);
     const served = res.body.systems.flatMap((s) => s.bodies);
     expect(served.length).toBe(bodies.length);
-    for (const b of served) expect(b.resourceProfile, b.id).toEqual(bodies.find((x) => x.body.id === b.id).body.resourceProfile);
+    // Bug #2355: a belt's profile is its composition, which scouting reveals; the catalog route serves planets' and moons'.
+    for (const b of served) expect(b.resourceProfile, b.id).toEqual(b.type === "Field" ? undefined : bodies.find((x) => x.body.id === b.id).body.resourceProfile);
     for (const method of ["post", "put", "patch", "delete"]) expect((await request(app)[method]("/api/systems").send({})).status, method).toBe(404);
   });
 });
