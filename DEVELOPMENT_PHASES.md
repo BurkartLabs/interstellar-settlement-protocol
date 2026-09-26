@@ -109,10 +109,10 @@ Scale up the universe so progression past Sol feels meaningful.
 - [ ] NPC corporations in Sol system (price anchoring + flavour presence)
 - [ ] Pirate (Rats) NPC enemies in asteroid fields
 
-## Version 0.8 — Energy and Metals (Tier 3 Resources)
+## Version 0.8 — Energy and Metals
 
 - [ ] Helium-3 and Deuterium extraction and refinery chains
-- [ ] Nickel-Iron Rally — raw metal extraction, smelting, and alloy production
+- [ ] Nickel-Iron Rally (a production track's name, not a timed event) — raw metal extraction, smelting, and alloy production
 - [ ] Rare Metals chain (rare earths, thorium, cobalt)
 - [ ] Light Metals chain (lithium, aluminium composites)
 - [ ] Multi-step manufacturing chains across all Tier 3 resource tracks
