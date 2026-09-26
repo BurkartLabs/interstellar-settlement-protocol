@@ -12,16 +12,12 @@ import { clientPrices } from "../clientPrices.js";
 import { refineryMultiplierFor, refineryOutput } from "../refineryOutput.js"; // ISP-97 (AB#787), AB#794: output by tier
 import { cycleProgressPercent, pushFeedback, updateAllViews } from "./shared.js";
 
-// TODO(AB#824): Remove duplicate. This should be stored in the database
-export const RESOURCE_CATALOG = [
-  "Silicates", "Helium-3", "Nickel", "Titanium", "Carbon",
-  "Water Ice", "Rare Earths", "Thorium", "Hydrogen", "Lithium",
-  "Cobalt", "Uranium", "Exotic Matter"
-];
 
 export function renderRefinery(data) {
   const catalog = document.getElementById("resource-catalog");
-  catalog.innerHTML = RESOURCE_CATALOG.map((res) => `<li class="ui-badge">${escapeHtml(res)}</li>`).join("");
+  // AB#2353: data/refinery-chains.json's list, sent with the world (server/game/shape.js); the page kept a copy of it,
+  // and the copy missed Iron Ore when AB#831 added it.
+  catalog.innerHTML = (data.world?.resourceCatalog || []).map((res) => `<li class="ui-badge">${escapeHtml(res)}</li>`).join("");
 
   const refineries = data.corp?.refineries || [];
   const corp = data.corp || {};
@@ -97,7 +93,7 @@ export function renderRefinery(data) {
       const outputLabel = Array.isArray(chain.outputs)
         ? chain.outputs.map((o) => typeof o === "string" ? o : `${o.quantityPerCycle} ${o.item}`).join(", ")
         : String(chain.outputs);
-      // AB#825: a chain takes `inputs`. Every chain in data has one; a chain with several shows them all, and its start
+      // AB#825: a chain takes `inputs`. A chain with several (the v0.8 tracks', AB#833) shows them all, and its start
       // form is the multi-input panel's (AB#836).
       const inputs = chain.inputs || [];
       const input = inputs[0]?.item || "";
@@ -141,7 +137,7 @@ export function renderRefinery(data) {
                 ${quantityError ? `<p id="${escapeHtml(errorId)}" class="ui-field__error" role="alert">${escapeHtml(quantityError)}</p>` : ""}
               </div>
               <button class="ui-button ui-button--secondary refinery__start" type="button" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}" data-per-cycle="${perCycle}" data-input="${escapeHtml(input)}" data-available="${inputAvailable}" data-hours="${Number(chain.cycleDurationHours) || 0}">Start Run</button>`
-            // AB#825: no chain in data takes several inputs yet; their start form is AB#836's, and until then the card says so.
+            // AB#825: a chain of several inputs starts from AB#836's form; until then the card says so.
             : multiInput && hasRefinery && !techGated
               ? `<p class="ui-card__meta">This chain takes several inputs. Starting it from this page arrives in a later build.</p>`
             : belowRefineryCap && canBuildRefinery

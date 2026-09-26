@@ -15,6 +15,8 @@ export const starmap = createStarmapController({
   fallbackEl: document.getElementById("starmap-fallback"),
   detailsEl: document.getElementById("map-details"),
   overlaySelect: document.getElementById("map-overlay"),
+  resourceSelect: document.getElementById("map-resource"), // ISP-143 (AB#837)
+  resourceLegend: document.getElementById("starmap-resource-legend"),
   resetButton: document.getElementById("map-reset"),
   researchCatalog: techTree, // Bug #1270: the lock names the research a jump needs
   getCorpLevel: () => appState.data?.corp?.level || 0,

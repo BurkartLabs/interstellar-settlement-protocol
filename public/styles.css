@@ -3853,6 +3853,40 @@ img.station__body {
   align-items: flex-end;
   gap: var(--space-3);
 }
+/* ISP-143 (AB#837): the resource concentration overlay's legend, above the map: the item, and each band's colour and
+   range. The colours are the canvas's own (public/scripts/resourceOverlay.js), so they are set inline on each swatch. */
+.starmap__resource-legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+.starmap__resource-legend p {
+  margin: 0;
+}
+.starmap__bands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-soft);
+}
+.starmap__bands li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.starmap__band {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+}
 .starmap__subhead {
   margin: 0;
   color: var(--text);

@@ -56,6 +56,17 @@
       "category": "Refining"
     },
     {
+      "id": "tt-light-metal-electrolysis",
+      "name": "Light-Metal Electrolysis",
+      "effect": "Unlocks the Aluminium, Aluminium-Lithium and Battery chains",
+      "description": "Molten-salt electrolysis cells for the light metals: Bauxite reduced to aluminium, aluminium alloyed with Lithium, and Lithium and Cobalt made into battery cells. The Light Metals track (docs/design/tier3-recipes.md, AB#833).",
+      "durationHours": 10,
+      "costCredits": 8000,
+      "prereqs": ["tt-material-compression"],
+      "tier": 2,
+      "category": "Refining"
+    },
+    {
       "id": "tt-nano-lattice",
       "name": "Nano-Lattice Weaving",
       "effect": "Unlocks Aerogel and Quantum Insulator refinery chains",
@@ -64,6 +75,17 @@
       "costCredits": 8000,
       "prereqs": ["tt-material-compression"],
       "tier": 3,
+      "category": "Refining"
+    },
+    {
+      "id": "tt-ferrous-metallurgy",
+      "name": "Ferrous Metallurgy",
+      "effect": "Unlocks the Nickel-Iron smelting and Pressure Vessel refinery chains",
+      "description": "Blast-free reduction of iron ore with belt nickel into a Nickel-Iron alloy, and the forging of that alloy into pressure vessels. The metals half of the v0.8 production tracks.",
+      "durationHours": 10,
+      "costCredits": 8000,
+      "prereqs": ["tt-material-compression"],
+      "tier": 2,
       "category": "Refining"
     },
     {

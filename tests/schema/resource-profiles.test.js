@@ -29,9 +29,11 @@ for (const m of DESIGN.matchAll(/^\| ([^|]+?) \| ([^|]+?) \|$/gm)) {
 
 /** What the design says a body yields, as shares of 100. */
 function designed(system, body) {
-  if (["earth", "mars"].includes(body.id)) return [["Silicates", 100]]; // until their tracks are built (section 3)
-  // AB#830: the Fuel track gives Luna its Helium-3; Light Metals will move 15 of the Silicates to Bauxite (section 3).
-  if (body.id === "luna") return [["Silicates", 75], ["Helium-3", 25]];
+  if (body.id === "earth") return [["Silicates", 100]]; // unchanged (section 3)
+  // Section 3, with the tracks built: Light Metals (AB#833) gives Mars its Bauxite and Nickel-Iron (AB#831) its Iron
+  // Ore; Luna has the Fuel track's Helium-3 (AB#830) and its Bauxite.
+  if (body.id === "mars") return [["Silicates", 60], ["Iron Ore", 30], ["Bauxite", 10]];
+  if (body.id === "luna") return [["Silicates", 60], ["Helium-3", 25], ["Bauxite", 15]];
   if (body.type === "Field") return Object.entries(body.composition);
   let cls = system.id === "sol" ? SOL[body.name] : null;
   if (!cls) {
@@ -87,7 +89,8 @@ describe("resource profiles on every body (AB#826)", () => {
     expect(res.status).toBe(200);
     const served = res.body.systems.flatMap((s) => s.bodies);
     expect(served.length).toBe(bodies.length);
-    for (const b of served) expect(b.resourceProfile, b.id).toEqual(bodies.find((x) => x.body.id === b.id).body.resourceProfile);
+    // Bug #2355: a belt's profile is its composition, which scouting reveals; the catalog route serves planets' and moons'.
+    for (const b of served) expect(b.resourceProfile, b.id).toEqual(b.type === "Field" ? undefined : bodies.find((x) => x.body.id === b.id).body.resourceProfile);
     for (const method of ["post", "put", "patch", "delete"]) expect((await request(app)[method]("/api/systems").send({})).status, method).toBe(404);
   });
 });

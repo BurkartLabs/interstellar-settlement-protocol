@@ -22,11 +22,13 @@ const beltCount = new Map();
 for (const s of SYSTEMS) for (const b of s.bodies) for (const k of Object.keys(b.composition || {})) beltCount.set(k, (beltCount.get(k) || 0) + 1);
 // AB#2341: products have standing bids too; section 6 lists raw items, so a chain's output is not counted as one.
 const products = new Set(CHAINS.chains.flatMap((c) => (c.outputs || []).map((o) => o.item)));
+const ITEMS = json("data/items.json").items; // AB#831: a product is Tier 3 in the item catalog (AB#824)
 const bids = new Set(ECONOMY.npcBuyers.map((n) => n.item).filter((item) => !products.has(item)));
 const quotas = new Set(MISSIONS.templates.map((t) => t.resource).filter(Boolean));
 // AB#830: an item may feed several chains (Helium-3: he3-chain and fusion-fuel-chain), named in data order.
 const chainInputs = new Map();
-for (const c of CHAINS.chains) for (const i of c.inputs) chainInputs.set(i.item, [...(chainInputs.get(i.item) || []), c.id]);
+// AB#833: a product another chain takes (Aluminium Ingots, into al-li-chain) is not a raw item.
+for (const c of CHAINS.chains) for (const i of c.inputs) if (!products.has(i.item)) chainInputs.set(i.item, [...(chainInputs.get(i.item) || []), c.id]);
 const raw = new Set([...beltCount.keys(), ...CHAINS.resourceCatalog, ...bids, ...quotas, ...chainInputs.keys()]);
 
 describe("the v0.8 resource catalogue matches the build (AB#822)", () => {
@@ -48,8 +50,10 @@ describe("the v0.8 resource catalogue matches the build (AB#822)", () => {
     }
   });
 
-  it("names every chain product as Tier 3", () => {
-    for (const c of CHAINS.chains) for (const o of c.outputs) expect(DOC, o.item).toContain(o.item);
+  it("has every chain product at Tier 3 in the item catalog (section 1: made, never mined)", () => {
+    for (const c of CHAINS.chains) for (const o of c.outputs) {
+      expect(ITEMS.find((i) => i.name === o.item), o.item).toMatchObject({ tier: 3, category: "refined" });
+    }
   });
 
   it("names the three new items, and the four tracks' sections", () => {

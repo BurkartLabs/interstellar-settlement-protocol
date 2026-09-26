@@ -48,7 +48,7 @@
       "name": "Iron Ore",
       "tier": 1,
       "category": "raw",
-      "note": "New in v0.8 (AB#822); no source in the data yet."
+      "note": "New in v0.8 (AB#822). Mined on Mars (AB#831), and on crater and lava bodies no lease reaches yet."
     },
     {
       "id": "bauxite",
@@ -148,6 +148,18 @@
       "category": "refined"
     },
     {
+      "id": "nickel-iron-alloy",
+      "name": "Nickel-Iron Alloy",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "pressure-vessels",
+      "name": "Pressure Vessels",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
       "id": "armour-plating",
       "name": "Armour Plating",
       "tier": 3,
@@ -192,6 +204,24 @@
     {
       "id": "thorium-fuel-rods",
       "name": "Thorium Fuel Rods",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "aluminium-ingots",
+      "name": "Aluminium Ingots",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "aluminium-lithium-alloy",
+      "name": "Aluminium-Lithium Alloy",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "battery-cells",
+      "name": "Battery Cells",
       "tier": 3,
       "category": "refined"
     }

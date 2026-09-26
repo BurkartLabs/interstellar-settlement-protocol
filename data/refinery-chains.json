@@ -4,6 +4,7 @@
     "Helium-3",
     "Deuterium",
     "Nickel",
+    "Iron Ore",
     "Titanium",
     "Carbon",
     "Water Ice",
@@ -164,6 +165,79 @@
       "requiresTechIds": ["tt-rare-metal-separation", "tt-containment-physics"],
       "stage": 1,
       "category": "Rare Metals"
+    },
+    {
+      "id": "aluminium-chain",
+      "inputs": [
+        { "item": "Bauxite", "quantityPerCycle": 200 }
+      ],
+      "outputs": [
+        { "item": "Aluminium Ingots", "quantityPerCycle": 50 }
+      ],
+      "cycleDurationHours": 5,
+      "requiresResearch": ["Light-Metal Electrolysis"],
+      "requiresTechIds": ["tt-light-metal-electrolysis"],
+      "stage": 1,
+      "category": "Light Metals"
+    },
+    {
+      "id": "al-li-chain",
+      "inputs": [
+        { "item": "Aluminium Ingots", "quantityPerCycle": 40 },
+        { "item": "Lithium", "quantityPerCycle": 20 }
+      ],
+      "outputs": [
+        { "item": "Aluminium-Lithium Alloy", "quantityPerCycle": 40 }
+      ],
+      "cycleDurationHours": 6,
+      "requiresResearch": ["Light-Metal Electrolysis"],
+      "requiresTechIds": ["tt-light-metal-electrolysis"],
+      "stage": 2,
+      "category": "Light Metals"
+    },
+    {
+      "id": "battery-chain",
+      "inputs": [
+        { "item": "Lithium", "quantityPerCycle": 30 },
+        { "item": "Cobalt", "quantityPerCycle": 10 }
+      ],
+      "outputs": [
+        { "item": "Battery Cells", "quantityPerCycle": 30 }
+      ],
+      "cycleDurationHours": 6,
+      "requiresResearch": ["Light-Metal Electrolysis"],
+      "requiresTechIds": ["tt-light-metal-electrolysis"],
+      "stage": 1,
+      "category": "Light Metals"
+    },
+    {
+      "id": "smelting-chain",
+      "inputs": [
+        { "item": "Iron Ore", "quantityPerCycle": 150 },
+        { "item": "Nickel", "quantityPerCycle": 50 }
+      ],
+      "outputs": [
+        { "item": "Nickel-Iron Alloy", "quantityPerCycle": 80 }
+      ],
+      "cycleDurationHours": 5,
+      "requiresResearch": ["Ferrous Metallurgy"],
+      "requiresTechIds": ["tt-ferrous-metallurgy"],
+      "stage": 1,
+      "category": "Metal Smelting"
+    },
+    {
+      "id": "pressure-vessel-chain",
+      "inputs": [
+        { "item": "Nickel-Iron Alloy", "quantityPerCycle": 80 }
+      ],
+      "outputs": [
+        { "item": "Pressure Vessels", "quantityPerCycle": 25 }
+      ],
+      "cycleDurationHours": 6,
+      "requiresResearch": ["Ferrous Metallurgy"],
+      "requiresTechIds": ["tt-ferrous-metallurgy"],
+      "stage": 2,
+      "category": "Metal Processing"
     }
   ]
 }

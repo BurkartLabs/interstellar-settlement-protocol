@@ -1,6 +1,7 @@
 // server/realtime.js: socket.io: rooms, the auth boundary, per-account and global emits, and chat, split out of server/index.js (AB#1815).
 import { marketView } from "./marketView.js";
 import { forumsView } from "./publicViews.js";
+import { publicSystems } from "./catalogView.js"; // Bug #2355
 import { appendChatMessage, getAccountById, getState } from "./gameState.js";
 // Bug #1260: notifications made inside gameState (a level reached) reach the account's own sockets as every other
 // notification does, as notifications:new, so the badge and the list update without a reload.
@@ -89,8 +90,11 @@ function emitForumsUpdated(forums) {
 
 /** The shared state as `viewer` (an account id, or null) should see it: the bootstrap and a socket's state:init. */
 function sharedStateView(viewer) {
-  const state = getState();
-  return { ...state, market: marketView(state.market, viewer), forums: forumsView(state.forums, viewer) };
+  // Bug #2355: the belt state (AB#2329) and the catalog's belt contents stay on the server; a player's scouted belts
+  // come from GET .../belt-compositions.
+  const { belts, ...state } = getState();
+  const world = state.world ? { ...state.world, systems: publicSystems(state.world.systems) } : state.world;
+  return { ...state, world, market: marketView(state.market, viewer), forums: forumsView(state.forums, viewer) };
 }
 
 /** The chat channels anyone may post to. "private" is gone: it was a public broadcast wearing the name (D-0.12-1). */

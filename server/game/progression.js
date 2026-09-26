@@ -3,7 +3,7 @@
 import { ECONOMY } from "../economy.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
 import { taxBreakdown } from "../../public/scripts/exchangeTax.js";
-import { BASE_MAX_DEPLOYMENTS, BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, LEVEL_UNLOCK_KEYS, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, MINEABLE_RESOURCES, REQ_ID_TO_TITLE, createId } from "./catalog.js";
+import { BASE_MAX_DEPLOYMENTS, BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, LEVEL_UNLOCK_KEYS, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, MINEABLE_RESOURCES, REFINED_ITEMS, REQ_ID_TO_TITLE, createId } from "./catalog.js";
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
 // The base rate is in data/economy.json (AB#726); the ISA lease royalty adds to it by leases held (ISP-302, AB#2285);
@@ -55,7 +55,10 @@ export const COUNTED_STATS = Object.freeze([
   // (docs/design/ladder-11-40.md) could never be met from it; stat:missionsCompleted reads the larger of the two.
   "missionsCompletedTotal",
   // ISP-106 (AB#798): what returning expeditions deposit, per resource, for totalMined:<resource>.
-  ...MINEABLE_RESOURCES.map((r) => `mined:${r}`)
+  ...MINEABLE_RESOURCES.map((r) => `mined:${r}`),
+  // AB#831: what refinery runs have delivered, per product, so a level can name a product (stat:manufactured:<item>),
+  // as docs/design/ladder-11-40.md plans for v0.8. The ladder names none yet; that is the PM's call.
+  ...REFINED_ITEMS.map((item) => `manufactured:${item}`)
 ]);
 export const STAT_KEYS = Object.freeze([...DERIVED_STATS, ...COUNTED_STATS]);
 /** Buildings a player can build: the names in data/player-buildings.json (AB#783). A test checks the construction

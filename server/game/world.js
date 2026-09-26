@@ -16,6 +16,7 @@ export function getSeedState() {
       lawName: "Interstellar Settlement Protocol",
       lawYear: 2147, // TOOD: Should we set this value to increment on Jan 1st?
       systems: deepClone(SYSTEMS_DATA),
+      resourceCatalog: [...REFINERY_CHAINS_DATA.resourceCatalog], // AB#2353: the page's Resource catalog
       refineryChains: REFINERY_CHAINS_DATA.chains.map((c) => ({
         id: c.id,
         inputs: c.inputs, // AB#825: [{ item, quantityPerCycle }], one or several

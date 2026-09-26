@@ -169,6 +169,8 @@ export const REFINERY_CHAINS_DATA = JSON.parse(fs.readFileSync(refineryChainsPat
 // Iron Ore or Bauxite (AB#826) counts it towards totalMined:<item>. What can be listed on the exchange is still the
 // refinery file's own list; making the new raws tradeable is its own story.
 export const MINEABLE_RESOURCES = Object.freeze(ITEMS.filter((item) => item.category === "raw").map((item) => item.name));
+/** AB#831: every refined item (tier 3), each countable as manufactured for stat:manufactured:<item>. */
+export const REFINED_ITEMS = Object.freeze(ITEMS.filter((item) => item.category === "refined").map((item) => item.name));
 export const REFINERY_CHAINS = {};
 for (const chain of REFINERY_CHAINS_DATA.chains) {
   REFINERY_CHAINS[chain.id] = chain;

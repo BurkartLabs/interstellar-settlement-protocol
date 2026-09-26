@@ -49,6 +49,7 @@ describe("the v0.8 recipe graph (AB#823)", () => {
     for (const g of graph.filter((c) => !c.isNew)) expect(inData.has(g.id), g.id).toBe(true);
     expect(graph.filter((c) => c.isNew)).toHaveLength(13);
     for (const c of CHAINS) {
+      expect(graph.some((x) => x.id === c.id), `${c.id} is in the design`).toBe(true);
       const g = graph.find((x) => x.id === c.id);
       expect(g, `${c.id} is in the design`).toBeDefined();
       expect(g.inputs, c.id).toEqual(c.inputs.map((i) => [i.item, i.quantityPerCycle]));

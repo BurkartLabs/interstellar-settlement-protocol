@@ -11,6 +11,7 @@ import { APP_VERSION, __dirname } from "../app.js";
 import { verifyAccessToken, getBearerToken } from "../auth.js";
 import { checkAndResetNpcBuyOrders } from "../ticks.js";
 import { sharedStateView } from "../realtime.js";
+import { publicSystems } from "../catalogView.js"; // Bug #2355
 
 export function registerCatalogRoutes(app) {
   // TODO(AB#737): Consider moving API to a dedicated api.js file
@@ -77,9 +78,10 @@ export function registerCatalogRoutes(app) {
   });
 
   // ISP-112 (AB#804): every per-system fact the page needs (bodies, map position, jump routes, the research a jump
-  // needs, rarity, belt compositions), from data/systems.json and nothing else: the catalog, no player's data.
+  // needs, rarity), from data/systems.json and nothing else: the catalog, no player's data. Bug #2355: not a belt's
+  // contents, which scouting reveals (GET .../belt-compositions).
   app.get("/api/systems", (_req, res) => {
-    res.json({ systems: SYSTEMS_DATA });
+    res.json({ systems: publicSystems(SYSTEMS_DATA) });
   });
 
   // The CEO Insight catalogue, with each program's live or planned status: the client's only copy (Bug #983).
