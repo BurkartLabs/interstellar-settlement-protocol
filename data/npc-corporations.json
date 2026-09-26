@@ -1,0 +1,61 @@
+{
+  "_comment": "ISP-121 (AB#813): Sol's NPC corporations and the authorities, from docs/design/npc-corporations.md (AB#812). Every name here, and every system sender and standing-order buyer, is reserved at registration (server/npcCorporations.js). The standing orders still name their buyers in data/economy.json npcBuyers until the follow-up moves them onto this roster.",
+  "authorities": [
+    { "name": "GEX Commodities Authority", "role": "Settles every trade on the Galactic Exchange and keeps the exchange tax; does not trade." },
+    { "name": "Galactic Exchange", "role": "The commodities platform itself." },
+    { "name": "Earth Assembly", "role": "Ratified the ISP; sets the framework the ISA regulates within." },
+    { "name": "Station Administration", "role": "Runs Sol's stations: docking, offices, property." },
+    { "name": "Intergalactic Stock Exchange Authority", "role": "Regulates equity markets for corporate shares." },
+    { "name": "ISA Materials Exchange", "role": "Today's Carbon buyer name; dropped as a trading name, kept reserved so no player can take it." }
+  ],
+  "corporations": [
+    {
+      "id": "meridian-glassworks",
+      "name": "Meridian Glassworks",
+      "homeStationId": "earth-station-prime",
+      "flavour": "Makes the glass, insulation and aerogel panels every station in Sol is skinned with; always short of Silicates.",
+      "trades": ["Silicates"],
+      "absorbs": "GEX Commodities Authority"
+    },
+    {
+      "id": "lunar-helium-consortium",
+      "name": "Lunar Helium Consortium",
+      "homeStationId": "luna-gateway",
+      "flavour": "A cartel of the old Luna fusion operators; buys every litre of Helium-3 that reaches the Gateway and resells to the reactors.",
+      "trades": ["Helium-3"],
+      "absorbs": "Lunar Helium Consortium"
+    },
+    {
+      "id": "belt-refining-cooperative",
+      "name": "Belt Refining Cooperative",
+      "homeStationId": "mars-orbital-dock",
+      "flavour": "Smelters owned by the belt crews who sell to them; takes Nickel by the ton at the Dock.",
+      "trades": ["Nickel"],
+      "absorbs": "Belt Refining Cooperative"
+    },
+    {
+      "id": "olympus-heavy-industries",
+      "name": "Olympus Heavy Industries",
+      "homeStationId": "mars-orbital-dock",
+      "flavour": "Builds hulls and habitat frames in the yards above Olympus Mons; Titanium is its bottleneck.",
+      "trades": ["Titanium"],
+      "absorbs": "Olympus Heavy Industries"
+    },
+    {
+      "id": "tycho-carbon-works",
+      "name": "Tycho Carbon Works",
+      "homeStationId": "luna-gateway",
+      "flavour": "Spins carbon fibre for freight hulls at Tycho, fed through the Gateway.",
+      "trades": ["Carbon"],
+      "absorbs": "ISA Materials Exchange"
+    },
+    {
+      "id": "synthorium-trading-house",
+      "name": "Synthorium Trading House",
+      "homeStationId": "earth-station-prime",
+      "flavour": "An old trading house that brokers Rare Earths to Earth's electronics firms, and buys from anyone.",
+      "trades": ["Rare Earths"],
+      "absorbs": "Synthorium Trading House"
+    }
+  ]
+}
