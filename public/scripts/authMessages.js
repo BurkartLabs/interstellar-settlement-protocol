@@ -48,8 +48,8 @@ export function registerErrorMessage(status, payload = {}, retryAfter) {
   if (status === 400 && payload?.error) return { text: payload.error };
   // AB#781: the Board closed registration (REGISTRATION_OPEN); say that rather than "failed on our side".
   if (status === 403 && payload?.code === "registration-closed") return { text: payload.error };
-  // AB#2288: no way to send the verification link here yet, so nothing was created.
-  if (status === 503 && payload?.code === "mail-unavailable") return { text: payload.error };
+  // AB#2288: no way to send the verification link here yet; AB#989: it could not be sent just now. Nothing was created.
+  if (status === 503 && (payload?.code === "mail-unavailable" || payload?.code === "mail-failed")) return { text: payload.error };
   if (status === 429) return tooManyAttempts(payload, retryAfter);
   if (status === 0) return { text: `The server could not be reached. Check your connection. ${TRY_AGAIN}` };
   return { text: `Registering failed on our side. ${TRY_AGAIN}` };
