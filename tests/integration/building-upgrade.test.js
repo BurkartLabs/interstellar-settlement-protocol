@@ -9,7 +9,7 @@ import { ECONOMY, operationCostPerHourFor, yardUpgradeTo } from "../../server/ec
 // docs/design/upgrades.md (AB#791). Every number the route charges or sets comes from data/economy.json.
 const EARTH = "lease-793";
 
-/** A corporation at `level` with one tier-1 yard (bld-793a / ext-793a) on Earth, plus an Assembly Facility. */
+/** A corporation at `level` with one tier-1 yard (bld-793a / ext-793a) on Earth, plus a Ferric Mining Complex (no tiers). */
 async function corporation({ level = 8, credits = 1_000_000 } = {}) {
   const { app } = await getApp();
   const { account, accessToken } = await registerAccount(app);
@@ -21,7 +21,7 @@ async function corporation({ level = 8, credits = 1_000_000 } = {}) {
     corp.offices = [{ stationId: "earth-station-prime", rentedAt: now, rentedUntil: now + 7 * 86_400_000, durationDays: 7 }];
     corp.employeeCount = 5;
     corp.miningLeases = [{ id: EARTH, body: "Earth", leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: ["ext-793a"] }];
-    corp.buildings = [...corp.buildings, { id: "bld-793a", name: "Basic Extractor Yard", tier: 1, status: "Operational" }, { id: "bld-793f", name: "Assembly Facility", tier: 1, status: "Operational" }];
+    corp.buildings = [...corp.buildings, { id: "bld-793a", name: "Basic Extractor Yard", tier: 1, status: "Operational" }, { id: "bld-793f", name: "Ferric Mining Complex", tier: 1, status: "Operational" }];
     corp.mining.silicateExtractors = [{ id: "ext-793a", name: "Basic Extractor Yard #1", tier: 1, active: false, leaseId: EARTH, body: "Earth", buildingId: "bld-793a", totalMined: 0, totalSpent: 0 }];
   });
   const api = authed(app, accessToken);
@@ -117,7 +117,7 @@ describe("upgrading an extractor yard (AB#793)", () => {
 
     before = c.snapshot();
     res = await c.upgrade("bld-793f");
-    expect([res.status, res.body.error]).toEqual([400, "The Assembly Facility has no upgrades yet."]);
+    expect([res.status, res.body.error]).toEqual([400, "The Ferric Mining Complex has no upgrades."]); // "none" in the catalogue (AB#794)
     expect(c.snapshot()).toBe(before);
   });
 

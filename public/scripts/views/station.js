@@ -16,7 +16,7 @@ import { leaseFullAdvice } from "../slotAdvice.js";
 import { appState, techTree } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
 import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
-import { upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795)
+import { facilityUpgradeHtml, facilityUpgradeView, upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795), ISP-102 (AB#794)
 import { renderMissions } from "./assignments.js";
 import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHeader, setTab, showTradeConfirmation, stationLocationBanner, updateAllViews } from "./shared.js";
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
@@ -52,6 +52,48 @@ export function showStationBuilding(buildingId) {
   }
   renderBuildingDetail(building, appState.data);
   setTab("station");
+}
+
+/**
+ * ISP-103 (AB#795), ISP-102 (AB#794): post an upgrade the player has confirmed, draw the page from the account that
+ * comes back (no reload), and show the receipt. One path for a yard's row and a facility's card; the server checks
+ * everything again and a refusal is shown in the control's status line.
+ */
+async function postUpgrade(buildingId, btn, statusEl, { redraw = () => {}, focus } = {}) {
+  btn.disabled = true;
+  if (statusEl) statusEl.textContent = "Upgrading...";
+  try {
+    const response = await apiFetch(upgradePath(appState.accountId, buildingId), { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    const account = await parseJsonResponse(response);
+    appState.data = deepClone(account.state);
+    appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+    updateAllViews();
+    redraw();
+    showActionReceipt(account, { returnFocusTo: focus });
+  } catch (error) {
+    btn.disabled = false;
+    if (statusEl) statusEl.textContent = error?.message || "The upgrade was refused.";
+  }
+}
+
+/** ISP-102 (AB#794): a facility card's Upgrade: confirm with the tier's before and after, then postUpgrade. */
+async function upgradeFacility(buildingId) {
+  const building = (appState.data?.corp?.buildings || []).find((b) => b.id === buildingId);
+  const view = building ? facilityUpgradeView(building, appState.data.corp, appState.economy, appState.playerBuildings || []) : null;
+  if (!view?.next || view.locked || view.blocked || !appState.accountId) return;
+  const btn = document.querySelector(`.yard-upgrade[data-upgrade-for="${CSS.escape(buildingId)}"] button`);
+  const statusEl = document.querySelector(`.yard-upgrade-status[data-for="${CSS.escape(buildingId)}"]`);
+  const confirmed = await showTradeConfirmation({
+    heading: `Upgrade ${building.name}`,
+    title: `Upgrade the ${building.name} to tier ${view.next.tier}?`,
+    confirmLabel: `Upgrade (${toCurrency(view.next.cost)})`,
+    rows: [
+      { label: "Cost", value: `${toCurrency(view.next.cost)} credits` },
+      { label: "What changes", value: view.change.replace(/&times;/g, "×").replace(/&rarr;/g, "→").replace(/&middot;/g, "·") }
+    ]
+  });
+  if (!confirmed || !btn) return;
+  await postUpgrade(buildingId, btn, statusEl, { focus: firstPresent(`.yard-upgrade[data-upgrade-for="${CSS.escape(buildingId)}"] button`, ".nav-tab[data-tab='station']") });
 }
 
 export function renderBuildingDetail(building, data) {
@@ -941,21 +983,10 @@ export function bindLeaseManagementActions(building, lease, data) {
         ]
       });
       if (!confirmed) return;
-
-      btn.disabled = true;
-      if (statusEl) statusEl.textContent = "Upgrading...";
-      try {
-        const response = await apiFetch(upgradePath(appState.accountId, buildingId), { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-        const account = await parseJsonResponse(response);
-        appState.data = deepClone(account.state);
-        appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
-        updateAllViews();
-        renderBuildingDetail(building, appState.data);
-        showActionReceipt(account, { returnFocusTo: firstPresent(`.yard-upgrade[data-upgrade-for="${CSS.escape(extractorId)}"] button`, ".lease-mine-form button[type=submit]") });
-      } catch (error) {
-        btn.disabled = false;
-        if (statusEl) statusEl.textContent = error?.message || "The upgrade was refused.";
-      }
+      await postUpgrade(buildingId, btn, statusEl, {
+        redraw: () => renderBuildingDetail(building, appState.data),
+        focus: firstPresent(`.yard-upgrade[data-upgrade-for="${CSS.escape(extractorId)}"] button`, ".lease-mine-form button[type=submit]")
+      });
     });
   });
 
@@ -1091,8 +1122,10 @@ export function renderStation(data) {
       pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok");
       showActionReceipt(account, { returnFocusTo: firstPresent('[data-corp-building="Assembly Facility"]', ".nav-tab[data-tab='station']") }); // AB#744
     },
-    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
-  }, clientPrices(appState.economy).assemblyFacilityCost);
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn"),
+    onUpgrade: (buildingId) => upgradeFacility(buildingId) // ISP-102 (AB#794)
+  }, clientPrices(appState.economy).assemblyFacilityCost,
+  (b) => facilityUpgradeHtml(facilityUpgradeView(b, data.corp, appState.economy, appState.playerBuildings || [])));
 
   // ── Construction (ISP-95, AB#785): every catalogue building, with Build or the first thing in the way ──
   renderConstructionPanel(document, appState.playerBuildings || [], data.corp || {}, {

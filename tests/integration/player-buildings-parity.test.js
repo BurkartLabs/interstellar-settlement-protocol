@@ -135,7 +135,7 @@ describe("the catalogue is served read-only to the page (AB#783)", () => {
     const res = await request(app).get("/api/bootstrap");
     expect(res.status).toBe(200);
     expect(res.body.playerBuildings).toEqual(JSON.parse(JSON.stringify(PLAYER_BUILDING_CATALOGUE)));
-    const allowed = ["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot", "upgrades"]; // upgrades: ISP-97
+    const allowed = ["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot", "tiers", "upgrades"]; // upgrades: ISP-97; tiers: ISP-102 (AB#794)
     for (const b of res.body.playerBuildings) expect(Object.keys(b).filter((k) => !allowed.includes(k)), b.id).toEqual([]);
     const served = JSON.stringify(res.body.playerBuildings);
     for (const own of [player.account.id, player.body.email, player.body.corpName]) expect(served).not.toContain(own);

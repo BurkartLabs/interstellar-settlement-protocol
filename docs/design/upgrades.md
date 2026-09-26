@@ -115,7 +115,7 @@ arithmetic. Tier 2 is the **Refinery Complex** already proposed in buildings.md,
 | tier | output per cycle | upgrade cost | book value added | offline | gate |
 |---|---|---|---|---|---|
 | 1 | `quantityPerCycle` (x1) | - | - | - | the Refinery's own research |
-| 2 (Refinery Complex) | x1.5 | 100,000 | 70,000 | 4 h | tt-nano-lattice (buildings.md) |
+| 2 (Refinery Complex) | x1.5 | 100,000 | 70,000 | none | tt-nano-lattice (buildings.md) |
 | 3 | x2.0 | 150,000 | 105,000 | 8 h | tt-nano-lattice |
 
 Input per cycle and cycle length do not change, so a tier is more output from the same ore. That is only worth
@@ -133,12 +133,26 @@ It fabricates mining probes, 30 minutes each (`PROBE_FABRICATION_MS`), at 8,000 
 
 Worth it only to a corporation whose expeditions wait on probes. The probe price does not change.
 
-## Buildings not covered
+## Buildings with no tiers, and how the catalogue says so (AB#794)
 
+Every entry in `data/player-buildings.json` carries `tiers`: the name of its table in `data/economy.json`'s buildings,
+or `"none"`. The catalogue check refuses an entry with neither, so a building added later has to decide.
+
+- **Refinery tier 2 is the Refinery Complex, however it is bought.** AB#787 built the Complex as an upgrade building
+  on `/gameplay/build` before AB#794 existed. So the Refinery's tier 2 is priced from the Complex's own keys, not a
+  second copy. Buying it through the upgrade route records the Complex on the Refinery exactly as the build does, so
+  the level 7 ladder counts it and the build route will not sell it again. It has **no downtime**, because the build
+  route has none: the 4 hours first written here would have made the two paths leave different Refineries.
+  `refineryUpgrades` holds tier 3 only.
+- **Refinery Complex: "none".** It is itself an upgrade (of the Refinery). Its tiers are the Refinery's.
+- **Ferric Mining Complex: "none".** Its effect is a flat bonus on what returning probes bring (x1.25 Nickel and
+  Titanium, AB#786), with no running cost and nothing to trade against. A tier that raised the bonus would be pure
+  arithmetic, "always buy it", which is what T-018 rules out. It gets tiers when the design finds a cost for it to
+  weigh.
 - **Headquarters** is not a catalogue building (buildings.md) and has no tiers.
-- **Ferric Mining Complex** and **Cryo-vapor Extractor Array** (AB#788) are designed but not in the catalogue. Each
-  gets its tiers in the story that adds it. An extraction building follows the yard's pattern (tier raises the cost
-  curve's reference and cap; price x1.5 a tier, gain x1.25), so the same three pulls keep the decision.
+- **Cryo-vapor Extractor Array** (AB#788) is not in the catalogue yet. When it is added, the catalogue check makes it
+  choose. An extraction building follows the yard's pattern: the tier raises the cost curve's reference and cap, the
+  price rises 1.5 a tier and the gain 1.25, so the same three pulls keep the decision.
 
 ## maxUpgradeTier by corporation level
 
@@ -160,9 +174,11 @@ BRIEF.md draws for research and insight (Board decision AB#980: never sellable) 
 
 ## For the implementation
 
-- `data/player-buildings.json`: each catalogue entry gains `tiers`, a list of `{ tier, upgradeCost, assetValue,
-  offlineHours, effect }`. `effect` holds what the tier sets (`throughputReferencePerHour` and `throughputCap` for a
-  yard, `outputMultiplier` for a refinery, `fabricationMs` for an assembly facility).
+- `data/player-buildings.json`: each catalogue entry's `tiers` names its table in `data/economy.json`'s buildings
+  (`extractorYardUpgrades`, `assemblyFacilityUpgrades`, `refineryUpgrades`) or is `"none"`. A row is
+  `{ toTier, upgradeCost, assetValue, offlineHours, ...effect }`, the effect being `throughputReferencePerHour` and
+  `throughputCap` for a yard, `fabricationTimePct` for an assembly facility and `outputMultiplier` for a refinery. The
+  rule that reads them is `public/scripts/buildingTiers.js`, shared by the server and the page.
 - `data/milestones.json`: `unlocks.maxUpgradeTier` per level, as the table above.
 - The upgrade route (AB#793) takes a building id (AB#792's `bld-` ids) and computes every cost, effect and limit on
   the server from these two files.
