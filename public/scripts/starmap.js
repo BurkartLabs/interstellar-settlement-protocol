@@ -299,6 +299,43 @@ function asteroidPoint(systemId, bodyId, index, cx, cy, radius) {
 
 /** The Starmap canvas's backing store for a CSS box and devicePixelRatio (clamped to 1..2): one CSS pixel is dpr
  * backing pixels in both directions, so what is drawn at (x, y) is where a click at (x, y) lands. */
+/**
+ * ISP-82 (AB#771): where a star's name (and, for the corporation's own system, "YOU ARE HERE" under it) goes on the
+ * cluster view. Beside the star where it always went (right, or left when the right runs off the canvas), unless that
+ * box would cross a label already placed or another star; then the other side, then below, then above. On a phone the
+ * names are 14px, and Epsilon Eridani's ran across Alpha Centauri's; at a desktop's sizes nothing crosses, so nothing
+ * moves. `widths` are the lines' widths; `size` the font's px; `placed` the boxes of labels already drawn; `stars`
+ * every star as { x, y, r }. Returns { x, y } for the first line's fillText, and the box it takes.
+ */
+export function clusterLabelAt({ widths, size, x, y, gap, placed = [], stars = [], canvasWidth, canvasHeight }) {
+  const width = Math.max(...widths);
+  const lineHeight = size + 2;
+  const ascent = size * 0.8;
+  const descent = size * 0.25 + (widths.length - 1) * lineHeight;
+  const box = (c) => ({ left: c.x, right: c.x + width, top: c.y - ascent, bottom: c.y + descent });
+  const right = { x: x + gap, y: y + 1 };
+  const left = { x: x - gap - width, y: y + 1 };
+  // Above or below, centred on the star but kept inside the canvas, as bodyLabelAt keeps a body's name.
+  const centred = Math.min(Math.max(x - width / 2, LABEL_EDGE_MARGIN), canvasWidth - LABEL_EDGE_MARGIN - width);
+  const below = { x: centred, y: y + gap + ascent };
+  const above = { x: centred, y: y - gap - descent };
+  const rightFits = right.x + width <= canvasWidth - LABEL_EDGE_MARGIN;
+  const candidates = rightFits ? [right, left, below, above] : [left, right, below, above];
+  // Two labels need a little air between them, not only no overlap: 3px all round.
+  const crosses = (a, b) => a.left - 3 < b.right && b.left - 3 < a.right && a.top - 3 < b.bottom && b.top - 3 < a.bottom;
+  const covers = (b, s) => Math.hypot(
+    Math.min(Math.max(s.x, b.left), b.right) - s.x,
+    Math.min(Math.max(s.y, b.top), b.bottom) - s.y
+  ) < s.r;
+  const clear = (c) => {
+    const b = box(c);
+    return b.left >= LABEL_EDGE_MARGIN && b.right <= canvasWidth - LABEL_EDGE_MARGIN && b.top >= LABEL_EDGE_MARGIN &&
+      b.bottom <= canvasHeight - LABEL_EDGE_MARGIN && !placed.some((p) => crosses(b, p)) && !stars.some((s) => covers(b, s));
+  };
+  const chosen = candidates.find(clear) || candidates[0];
+  return { x: chosen.x, y: chosen.y, box: box(chosen) };
+}
+
 export function canvasBackingSize(cssWidth, cssHeight, devicePixelRatio) {
   const dpr = Math.max(1, Math.min(2, devicePixelRatio || 1));
   return {
@@ -492,11 +529,6 @@ export function createStarmapController({
 
   /** Bug #1315: where a label beside a point starts, in the current font: to the right of it, or to the left when it
    * would run past the canvas's right edge. */
-  function labelX(text, x, gap) {
-    const textWidth = ctx.measureText(text).width;
-    return x + gap + textWidth > canvas.clientWidth - LABEL_EDGE_MARGIN ? x - gap - textWidth : x + gap;
-  }
-
   /** AB#1337: where a body's name goes in the system view, as { x, y } for fillText in the current font. Beside the
    * body on the right as before; otherwise on the left, above or below it: the first of those that stays inside the
    * canvas and off the star's halo, or, when a body is so close to the star that none is, the one farthest from it.
@@ -577,11 +609,15 @@ export function createStarmapController({
       }
     }
 
-    // Draw star systems
-    state.systems.forEach((system) => {
+    // Draw star systems. Every star is known before any name is placed, so no name is put across one (ISP-82).
+    const at = (system) => {
       const p = CLUSTER_LAYOUT[system.id] || { x: 0.5, y: 0.5 };
-      const x = p.x * width;
-      const y = p.y * height;
+      return { x: p.x * width, y: p.y * height };
+    };
+    const stars = state.systems.map((system) => ({ ...at(system), id: system.id, r: (state.selectedSystemId === system.id ? 10 : 7) + 4 }));
+    const placedLabels = [];
+    state.systems.forEach((system) => {
+      const { x, y } = at(system);
       const isSelected = state.selectedSystemId === system.id;
       const isCurrent = system.id === currentSystemId;
       const baseRadius = isSelected ? 10 : 7;
@@ -630,16 +666,28 @@ export function createStarmapController({
         ctx.restore();
       }
 
-      // System name label
+      // System name label, and "YOU ARE HERE" under it for the current system, placed clear of the others.
+      const nameSize = chartFont(isSelected ? 12 : 11);
+      const hereSize = chartFont(9);
+      const nameFont = isSelected ? `bold ${nameSize}px "Inter", sans-serif` : `${nameSize}px "Inter", sans-serif`;
+      ctx.font = nameFont;
+      const widths = [ctx.measureText(system.name).width];
+      if (isCurrent) {
+        ctx.font = `${hereSize}px "Inter", sans-serif`;
+        widths.push(ctx.measureText("YOU ARE HERE").width);
+      }
+      const label = clusterLabelAt({
+        widths, size: nameSize, x, y, gap: baseRadius + 10, placed: placedLabels,
+        stars: stars.filter((s) => s.id !== system.id), canvasWidth: width, canvasHeight: height
+      });
+      placedLabels.push(label.box);
       ctx.fillStyle = isSelected ? "rgba(255, 255, 255, 0.95)" : "rgba(200, 220, 240, 0.8)";
-      ctx.font = isSelected ? `bold ${chartFont(12)}px "Inter", sans-serif` : `${chartFont(11)}px "Inter", sans-serif`;
-      ctx.fillText(system.name, labelX(system.name, x, baseRadius + 10), y + 1);
-
-      // "YOU ARE HERE" label for current system
+      ctx.font = nameFont;
+      ctx.fillText(system.name, label.x, label.y);
       if (isCurrent) {
         ctx.fillStyle = "rgba(0, 247, 255, 0.6)";
-        ctx.font = `${chartFont(9)}px "Inter", sans-serif`;
-        ctx.fillText("YOU ARE HERE", labelX("YOU ARE HERE", x, baseRadius + 10), y + 13);
+        ctx.font = `${hereSize}px "Inter", sans-serif`;
+        ctx.fillText("YOU ARE HERE", label.x, label.y + nameSize + 2);
       }
 
       state.clickTargets.push({

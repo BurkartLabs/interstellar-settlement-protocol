@@ -5860,6 +5860,17 @@ img.station__body {
     font-size: var(--font-size-3);
   }
 }
+/* The panel's stack spaces its lines; a paragraph's own margin would double it. A designation does not break. */
+.starmap__details .ui-panel__body p {
+  margin: 0;
+}
+.starmap__station-row .ui-panel__meta {
+  white-space: nowrap;
+}
+/* The close glyph keeps its size where the phone raises a modal's buttons to body size. */
+.starmap__station .starmap__close {
+  font-size: var(--font-size-5);
+}
 
 /* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */
 @media (max-width: 600px) {
