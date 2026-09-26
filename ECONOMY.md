@@ -316,6 +316,124 @@ target — and the payback target is filed as **Bug AB#1871** (root cause: Speci
 number was written without checking it against this file's own model output or the yard cost's documented
 rationale), for the Director to either rewrite the target or confirm it should be dropped.
 
+## Sinks that scale with income (ISP-88, AB#778)
+
+**A design, not code.** Nothing below is in `data/economy.json` yet; each sink is one implementation story, and its
+key joins the table at the top of this file when that story lands.
+
+**The problem, as it stands now.** Monetization review #1 found credits piling up past minute 120 with nothing to
+want: about 13 sinks, all one-off except payroll and rent. Review #2 and the ISP-42 re-run above found the
+opposite at the bottom of the curve: planner and greedy end near 0 credits (banked/spent 0.00x to 0.01x) and the
+reserve bot holds 25,858 at day 30 (0.12x). Both readings are true at once: a one-yard corporation is squeezed,
+and a corporation that expands has nothing that grows with it. So every sink here is **zero for a one-yard,
+one-lease corporation** and grows with yards and leases held. A flat new cost would deepen the squeeze that the
+Salvage Assignment exists to catch.
+
+**Prior art.** This file's "Faucets and sinks" section already cites Raph Koster's *MMO economies* and Game
+Developer's *Virtual Economic Theory* for keeping the NPC bid as a floor and tying the drains to the money supply.
+MONETIZATION.md's survey adds EVE's and RuneScape's permanent, uncapped sinks. The three sinks below apply that
+here: each drain is proportional to the capacity that creates money (yards mining, leases held), not a fixed price
+that a growing corporation stops noticing.
+
+### The three sinks
+
+**1. Yard upkeep, while a yard runs.** Every extractor yard after the corporation's first adds an upkeep to its
+hourly running cost, of 2% of the yard's price per running day:
+
+upkeep per hour = 50,000 x 2% / 24 = **41.67 credits an hour**, for yards 2 onward, added after the 600 floor.
+
+- *Scales with:* yards running. The first yard never pays it, and an idle yard costs nothing.
+- *Unpaid:* it is part of the running cost, so it inherits what the mining tick already does when credits cannot
+  cover a cycle (`server/game/mining.js`, `affordabilityRatio`). The yard mines in proportion to what the
+  corporation can pay, with no debt and no arrears, and a broke corporation's first yard is exempt. **It degrades
+  output and never locks the player out.**
+- It is a constant per hour, so it does not move T-018's best throughput. It makes each extra yard pay for its
+  keep, not change how it is run.
+- Proposed key: `buildings.extractorYardUpkeepPctPerDay`, 2.
+
+**2. The ISA lease royalty: a tiered sales tax by leases held.** The exchange's sales tax rises with the number of
+mining leases the corporation holds:
+
+| leases held | royalty added to the 8% tax |
+| --- | --- |
+| 1 | 0 |
+| 2 | 1 point |
+| 3 to 4 | 2 points |
+| 5 or more | 3 points |
+
+- *Scales with:* sales, the one number that is income. A corporation that sells nothing pays nothing.
+- *Unpaid:* it cannot be unpaid, because it comes out of the sale's proceeds the way the 8% does today. **Nothing
+  is withheld and nothing is locked.** The Negotiation Fundamentals discount (2 points a level, up to 6) still
+  applies on top, and the rate never goes below 0.
+- It is added in `getEffectiveExchangeTaxRate` (`server/game/progression.js`), so it reaches every sale the tax
+  already reaches, including player-to-player trades. That leaves a player's choice between the bid and another
+  player where it was.
+- Proposed key: `leases.royaltyPointsByLeasesHeld`, {2: 1, 3: 2, 5: 3}.
+
+**3. A capital cost that rises with the corporation: each yard costs more than the last.**
+
+price of the n-th yard = 50,000 x 1.25^(n - 1), rounded to 1,000: **50,000, 63,000, 78,000, 98,000, 122,000,
+153,000**.
+
+- *Scales with:* yards owned. Supply Forecast's 6% discount applies to the escalated price.
+- *Unpaid:* it is a purchase. A corporation that cannot afford the next yard keeps everything it has, and nothing it
+  already owns costs more. **It never locks a player out.**
+- It gives a corporation at the top of the ladder something to buy (Monetization epic 2's second test): there is
+  always a next yard, at a price that rises with what it already owns.
+- Proposed key: `buildings.extractorYardPriceGrowth`, 1.25.
+
+### What they add up to
+
+The model's assumptions, as `npm run economy:model`: Earth Silicates at 24, no research, the best setting of 146 t/h
+(606 an hour ideal), expected uptime 81.6% (costs and revenue both pause while down), one yard per lease, and 750 a
+day of payroll per lease. Office rent, leases and hires are left out, and this design changes none of them. Per
+day:
+
+| yards | tax | profit today | yard upkeep | lease royalty | share of profit | this yard's price | its payback |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 8% | 11,106 | 0 | 0 | 0% | 50,000 | today's path |
+| 2 | 9% | 22,212 | 816 | 1,372 | 9.9% | 63,000 | 7.1 days |
+| 3 | 10% | 33,318 | 1,632 | 4,117 | 17.3% | 78,000 | 10.3 days |
+| 4 | 10% | 44,425 | 2,448 | 5,490 | 17.9% | 98,000 | 11.0 days |
+| 5 | 11% | 55,531 | 3,264 | 10,293 | 24.4% | 122,000 | 22.2 days |
+| 6 | 11% | 66,637 | 4,080 | 12,352 | 24.7% | 153,000 | 18.6 days |
+
+"Its payback" is the yard's price over what that yard adds to the day's profit after both sinks. Under today's
+rules every yard after the first pays back its 50,000 in 4.5 days. After this design the 2nd yard still does so
+within a week, and the 5th takes three: the step to 5 leases is where the royalty tier rises. A corporation that
+stops at 4 has made a real decision (T-018), not hit a wall. **These are model numbers, not play** (P-PROXY): perfect
+play, every unit sold at the standing bid.
+
+### What the probe checks after each lands
+
+`ops/probes/isp-runway.ts` counts banked and spent per day. The implementation stories give it the three sinks as
+categories of their own, from the AB#712 ledger, and these are the numbers it must show. They are bot numbers,
+seeds 7000 and 7001, at day 3, 7 and 30:
+
+1. **The acceptance target still holds:** banked/spent below 3x for planner, greedy and reserve at every checkpoint.
+   Today it is 0.00x to 0.22x, so this is a guard that the sinks did not break the floor.
+2. **The squeezed are untouched:** with `--supply low` (one yard each), each bot's spend in the three categories is
+   **0**, and planner's and greedy's Salvage Assignment counts at day 30 stay within 10% of 22 and 56 (the counts
+   above).
+3. **The expanded pay:** with `--supply high`, the reserve bot's spend in the three categories on day 30 is **more
+   than 0 and between 5% and 30%** of what it earned that day. The model above says 10% to 25% for 2 to 6 yards; the
+   band is wider because the bot's yard count is its own.
+4. **Something is still for sale at the top:** the probe prints the price of the bot's next yard at its highest
+   level, and it is a number, not a cap. This can only be checked past Level 3 once the ladder is reachable (AB#1753).
+   Until then the probe reports it and the check waits.
+
+If check 2 fails, the design's premise (zero for the squeezed) is false, and the sink that caused it comes back out.
+
+### The Soul and Charter check, per sink
+
+None of the three withholds anything already owned, times anything against the player, or can be paid for with
+money. Upkeep reduces a yard's output in proportion to what cannot be paid; the royalty comes out of a sale; the
+escalating price is a purchase the player can decline. The Salvage Assignment still catches a corporation at 0, and
+none of these sinks reaches a one-yard corporation that needs it.
+
+**Flagged for the Board:** these three change what expansion costs for every corporation past its first yard. That
+is a balance decision about the core loop, and it is made here on model numbers alone.
+
 ## Rules the model takes from the code
 
 These are not in `data/economy.json`, so the model states them, with where each comes from. The test reads those
