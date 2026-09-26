@@ -1,7 +1,7 @@
 // server/game/asteroids.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import { ECONOMY } from "../economy.js";
-import { MINEABLE_RESOURCES, STATION_REGISTRY_CACHE, createId, getStationInventory } from "./catalog.js";
+import { BASE_MAX_DEPLOYMENTS, MINEABLE_RESOURCES, STATION_REGISTRY_CACHE, createId, getStationInventory } from "./catalog.js";
 import { bumpStat } from "./progression.js";
 import { countBuilt, playerBuilding } from "../playerBuildings.js";
 
@@ -76,7 +76,7 @@ export const EXPEDITION_LAUNCH_COST = ECONOMY.expeditions.launchCost;   // credi
 export const PROBE_BUILD_COST = ECONOMY.probes.buildCost;               // credits to fabricate one mining probe
 export const PROBE_ASSET_VALUE = ECONOMY.probes.assetValue;
 export const PROBE_FABRICATION_MS = IS_DEV ? 10 * 1000 : 30 * 60 * 1000; // 10s dev, 30 min prod
-export const BASE_MAX_DEPLOYMENTS = 1;        // concurrent expedition slots
+export { BASE_MAX_DEPLOYMENTS }; // concurrent expedition slots; in catalog.js, where progression can read it (AB#2307)
 
 export function ensureCorpAsteroidMiningModel(corp) {
   if (!corp.asteroidMining || typeof corp.asteroidMining !== "object") {

@@ -3,7 +3,7 @@
 import { ECONOMY } from "../economy.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
 import { taxBreakdown } from "../../public/scripts/exchangeTax.js";
-import { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, LEVEL_UNLOCK_KEYS, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, MINEABLE_RESOURCES, REQ_ID_TO_TITLE, createId } from "./catalog.js";
+import { BASE_MAX_DEPLOYMENTS, BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, LEVEL_UNLOCK_KEYS, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, MINEABLE_RESOURCES, REQ_ID_TO_TITLE, createId } from "./catalog.js";
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
 // The base rate is in data/economy.json (AB#726); the ISA lease royalty adds to it by leases held (ISP-302, AB#2285);
@@ -198,6 +198,14 @@ export const UNLOCK_APPLIERS = Object.freeze({
   maxFleetSize: (corp, v) => { corp.unlocks.maxFleetSize = raise(corp.unlocks.maxFleetSize, v); },
   // AB#793: the highest building tier this level allows (docs/design/upgrades.md), never below 1.
   maxUpgradeTier: (corp, v) => { corp.unlocks.maxUpgradeTier = Math.max(1, raise(corp.unlocks.maxUpgradeTier, v)); },
+  // AB#2307: concurrent expedition slots, raised from BASE_MAX_DEPLOYMENTS (docs/design/ladder-11-40.md, levels 12/24/33).
+  // Not through ensureCorpAsteroidMiningModel: asteroids.js sits above this module in the layer order (AB#737), and the
+  // model fills every other field the first time it is read.
+  maxDeployments: (corp, v) => {
+    if (!corp.asteroidMining || typeof corp.asteroidMining !== "object") corp.asteroidMining = {};
+    const am = corp.asteroidMining;
+    am.maxDeployments = raise(typeof am.maxDeployments === "number" ? am.maxDeployments : BASE_MAX_DEPLOYMENTS, v);
+  },
   marketSectors: (corp, v) => {
     if (!Array.isArray(corp.unlocks.marketSectors)) corp.unlocks.marketSectors = [];
     for (const sector of Array.isArray(v) ? v : []) if (!corp.unlocks.marketSectors.includes(sector)) corp.unlocks.marketSectors.push(sector);
@@ -286,21 +294,23 @@ export function onAccountNotification(listener) {
  * is granted, built by the same rules as evaluateLevelProgress and fleetStatus: each cap is the highest of what the
  * corporation had and what every level up to this one grants, and the fleet cap includes Fleet Coordination.
  */
-export function levelReachedNotices(before, corp) {
+export function levelReachedNotices(before, corp, levels = MILESTONE_LEVELS) {
   const coordinated = (corp?.unlockedTech || []).includes(FLEET_COORDINATION_TECH);
   let employeeCap = Number(before.employeeCap || 0);
   let buildingSlots = Number(before.buildingSlots || 0);
   let maxFleetSize = Number(before.maxFleetSize || 0);
   let maxUpgradeTier = Math.max(1, Number(before.maxUpgradeTier || 1)); // AB#793
+  let maxDeployments = Math.max(BASE_MAX_DEPLOYMENTS, Number(before.maxDeployments || 0)); // AB#2307
   const sectors = new Set(before.marketSectors || []);
   const notices = [];
-  for (const levelDef of [...MILESTONE_LEVELS].sort((a, b) => a.level - b.level)) {
+  for (const levelDef of [...levels].sort((a, b) => a.level - b.level)) {
     if (levelDef.level > Number(corp.level || 0)) break;
     const u = levelDef.unlocks || {};
     employeeCap = Math.max(employeeCap, Number(u.employeeCap || 0));
     buildingSlots = Math.max(buildingSlots, Number(u.buildingSlots || 0));
     maxFleetSize = Math.max(maxFleetSize, Number(u.maxFleetSize || 0));
     maxUpgradeTier = Math.max(maxUpgradeTier, Number(u.maxUpgradeTier || 0));
+    maxDeployments = Math.max(maxDeployments, Number(u.maxDeployments || 0));
     const opened = (Array.isArray(u.marketSectors) ? u.marketSectors : []).filter((sector) => !sectors.has(sector));
     opened.forEach((sector) => sectors.add(sector));
     if (levelDef.level <= Number(before.level || 0)) continue;
@@ -312,6 +322,7 @@ export function levelReachedNotices(before, corp) {
       buildingSlots: { label: "Building slots", value: String(buildingSlots) },
       maxFleetSize: { label: "Fleet cap", value: String(fleetCap) },
       maxUpgradeTier: { label: "Highest building tier", value: String(maxUpgradeTier) },
+      maxDeployments: { label: "Deployment slots", value: String(maxDeployments) }, // the expedition panel's words
       marketSectors: { label: "Market sectors opened", value: (opened.length ? opened : u.marketSectors || []).join(", ") }
     };
     notices.push({
@@ -341,6 +352,7 @@ export function evaluateAccountLevel(accountId, account) {
     employeeCap: corp.employeeCap,
     buildingSlots: corp.buildingSlots,
     maxFleetSize: corp.unlocks?.maxFleetSize,
+    maxDeployments: corp.asteroidMining?.maxDeployments,
     marketSectors: [...(corp.unlocks?.marketSectors || [])]
   };
   evaluateLevelProgress(account.state);
