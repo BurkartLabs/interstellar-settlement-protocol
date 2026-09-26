@@ -18,6 +18,22 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (ISP-95, AB#785 — the construction panel on the Station, Builder)
+
+- The Station has a **Construction** section (`public/scripts/constructionPanel.js`, drawn by `renderStation`): one row
+  per entry in the catalogue `/api/bootstrap` sends (`appState.playerBuildings`), with what it does, its price, the
+  slots it takes, and either Build or the first thing in the way, checked in the server's order: research, the cap,
+  a lease with room, a corporation slot, the price. A yard's row offers the leases with room. Build posts
+  `POST /gameplay/build`; the page draws again from the answer and shows the receipt; a refusal shows the server's
+  words in the row. The slot counter counts the Headquarters every corporation starts with.
+- `buildingCost` repeats one server rule, the Supply Forecast discount on a yard; `tests/unit/constructionPanel.test.js`
+  holds it equal to `CONSTRUCTIONS`. `e2e/construction-panel.spec.js` seeds a fresh and a level-5 corporation
+  (`e2e/seed-construction-account.mjs`) and builds from the panel; screens in `docs/ab-785/`.
+- **Owed:** the Operational Facilities section still has its own Construct card for the Assembly Facility, so a
+  researched corporation sees two Build buttons for it until that card goes (its Bug #1253 tests go with it).
+- **Main's suite does not finish** until Bug AB#2293 is fixed: `tests/integration/mining-fees.test.js` kills its worker
+  since AB#792 (ensureBuildingIds loops when createId repeats under a pinned Math.random).
+
 ## What's now true (ISP-94, AB#784 — one build endpoint for every player building, Builder)
 
 - `POST /api/accounts/:accountId/gameplay/build` with `{ buildingId, leaseId? }`. `server/gameplayInput.js` checks the

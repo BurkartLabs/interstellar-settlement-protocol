@@ -13,8 +13,9 @@ import { probeFabricationStartedText } from "../miningFeedback.js";
 import { bestThroughput, costPerHourFor, miningProjection, startupCostFor as clientStartupCostFor, yardUpkeepPerHourFor } from "../miningProjection.js";
 import { clientPrices } from "../clientPrices.js";
 import { leaseFullAdvice } from "../slotAdvice.js";
-import { appState } from "../state.js";
+import { appState, techTree } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
+import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
 import { renderMissions } from "./assignments.js";
 import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHeader, setTab, showTradeConfirmation, stationLocationBanner, updateAllViews } from "./shared.js";
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
@@ -1043,6 +1044,22 @@ export function renderStation(data) {
     },
     onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
   }, clientPrices(appState.economy).assemblyFacilityCost);
+
+  // ── Construction (ISP-95, AB#785): every catalogue building, with Build or the first thing in the way ──
+  renderConstructionPanel(document, appState.playerBuildings || [], data.corp || {}, {
+    accountId: () => appState.accountId,
+    request: async (path, init) => parseJsonResponse(await apiFetch(path, init)),
+    onBuilt: (account) => {
+      appState.data = deepClone(account.state);
+      updateAllViews();
+      pushFeedback(account.receipt?.title || "Construction complete.", "ok");
+      showActionReceipt(account, { returnFocusTo: firstPresent("#station-construction-section h3", ".tab-btn[data-tab='station']") }); // AB#744
+    },
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
+  }, {
+    researchName: (id) => techTree.find((t) => t.id === id)?.name || id,
+    economy: appState.economy
+  });
 
   // ── Licensed Corporate Holdings (Extractor Yards — filtered to current station body) ──
   const stationBody = station.body;
