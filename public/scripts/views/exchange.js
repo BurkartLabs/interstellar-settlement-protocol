@@ -1,5 +1,8 @@
 // The Galactic Exchange tab: listings, buying, selling and the filters.
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
+// ISP-80 (AB#769): drawn from the design system (ui-table, ui-input, ui-button, ui-tab, ui-state, ui-badge), in the flat
+// direction (Decision AB#1801). The row actions are secondary buttons: cyan is kept for one primary control a screen.
+// Clicks find their buttons by the data attributes they carry, not by class.
 
 import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
@@ -90,9 +93,8 @@ export function renderMarket(data) {
   const filterBar = document.getElementById("exchange-filter-bar");
   if (filterBar) {
     const cur = view.resource;
-    filterBar.innerHTML =
-      `<button class="exchange-filter-pill${!cur ? " active" : ""}" data-filter="">All</button>` +
-      resources.map((r) => `<button class="exchange-filter-pill${cur === r ? " active" : ""}" data-filter="${escapeHtml(r)}">${escapeHtml(r)}</button>`).join("");
+    const tab = (value, label) => `<button type="button" class="ui-tab" role="tab" aria-selected="${String(cur === value)}" data-filter="${escapeHtml(value)}">${escapeHtml(label)}</button>`;
+    filterBar.innerHTML = tab("", "All") + resources.map((r) => tab(r, r)).join("");
   }
   const typeSelect = document.getElementById("exchange-type-filter");
   if (typeSelect) typeSelect.value = view.type;
@@ -131,7 +133,7 @@ export function renderMarket(data) {
     const filteredEl = document.getElementById(filteredId);
     if (!filteredEl) return;
     // No rows: hide the table too, so its headers do not sit over an empty body
-    const tableWrap = filteredEl.parentElement?.querySelector(".table-wrap");
+    const tableWrap = filteredEl.parentElement?.querySelector(".ui-table-wrap");
     if (tableWrap) tableWrap.hidden = shown === 0;
     filteredEl.hidden = !(total > 0 && shown === 0);
     filteredEl.innerHTML = filteredEl.hidden ? "" : filteredEmptyHtml(label, view.resource, total);
@@ -144,11 +146,11 @@ export function renderMarket(data) {
         (order) => `
           <tr>
             <td>${escapeHtml(order.item)}</td>
-            <td>${Number(order.quantity).toLocaleString()}</td>
-            <td>${toCurrency(order.unitPrice)}</td>
+            <td class="ui-table__num">${Number(order.quantity).toLocaleString()}</td>
+            <td class="ui-table__num">${toCurrency(order.unitPrice)}</td>
             <td>${escapeHtml(order.seller || "Anonymous")}</td>
-            <td><input class="sell-input" type="number" min="1" max="${Number(order.quantity)}" value="1" data-buy-order-qty="${order.id}" /></td>
-            <td><button class="btn btn-accent exchange-buy-btn" type="button" data-buy-order-id="${order.id}" data-buy-item="${escapeHtml(order.item)}" data-buy-price="${Number(order.unitPrice)}" data-buy-qty="${Number(order.quantity)}">Buy</button></td>
+            <td><input class="ui-input exchange__qty" type="number" min="1" max="${Number(order.quantity)}" value="1" aria-label="Quantity of ${escapeHtml(order.item)} to buy" data-buy-order-qty="${order.id}" /></td>
+            <td><button class="ui-button ui-button--secondary" type="button" data-buy-order-id="${order.id}" data-buy-item="${escapeHtml(order.item)}" data-buy-price="${Number(order.unitPrice)}" data-buy-qty="${Number(order.quantity)}">Buy</button></td>
           </tr>
         `
       )
@@ -161,30 +163,31 @@ export function renderMarket(data) {
     npcBuyTable.innerHTML = filteredNpcOrders
       .map((order) => {
         const exhausted = order.remainingQty <= 0;
-        const fillPct = Math.round(((order.totalQtyPerDay - order.remainingQty) / order.totalQtyPerDay) * 100);
+        const total = Math.max(0, Number(order.totalQtyPerDay) || 0);
+        const sold = Math.max(0, total - Math.max(0, Number(order.remainingQty) || 0));
+        const boughtLabel = `${sold.toLocaleString()} of ${total.toLocaleString()} bought today`;
         return `
-          <tr class="${exhausted ? "npc-order-exhausted" : ""}">
+          <tr${exhausted ? ' class="ui-table__muted"' : ""}>
             <td>${escapeHtml(order.item)}</td>
             <td>${escapeHtml(order.buyer)}</td>
-            <td>
-              ${toCurrency(order.unitPrice)}
-              ${
+            <td class="ui-table__num">
+              <span class="exchange__price">${toCurrency(order.unitPrice)}${
                 // ISP-87: the bid falls as the day's volume is sold into it. Saying so where the price is shown is
                 // the difference between a number that looks wrong and a market a player can read.
                 Number(order.basePrice) > Number(order.unitPrice)
-                  ? `<div class="npc-order-drift">down from ${toCurrency(order.basePrice)} on today&#39;s volume</div>`
+                  ? `<span class="exchange__drift">down from ${toCurrency(order.basePrice)} on today&#39;s volume</span>`
                   : ""
-              }
+              }</span>
             </td>
             <td>
-              <div class="npc-order-remaining">${Number(order.remainingQty).toLocaleString()} <span class="npc-order-of-total">/ ${Number(order.totalQtyPerDay).toLocaleString()}</span></div>
-              <div class="npc-order-track"><div class="npc-order-fill" style="width:${fillPct}%"></div></div>
+              <span class="exchange__remaining"><span class="ui-figure">${Number(order.remainingQty).toLocaleString()} / ${total.toLocaleString()}</span>
+              <progress class="exchange__fill" max="${total || 1}" value="${sold}" aria-label="${boughtLabel}"></progress></span>
             </td>
             <td>
-              <input class="sell-input" type="number" min="1" max="${Number(order.remainingQty)}" value="1" data-npc-sell-qty="${order.id}" ${exhausted ? "disabled" : ""} />
+              <input class="ui-input exchange__qty" type="number" min="1" max="${Number(order.remainingQty)}" value="1" aria-label="Quantity of ${escapeHtml(order.item)} to sell" data-npc-sell-qty="${order.id}" ${exhausted ? "disabled" : ""} />
             </td>
             <td>
-              <button class="btn btn-accent npc-sell-btn" type="button" data-npc-order-id="${order.id}" data-npc-item="${escapeHtml(order.item)}" data-npc-price="${Number(order.unitPrice)}" ${exhausted ? "disabled" : ""}>Sell</button>
+              <button class="ui-button ui-button--secondary" type="button" data-npc-order-id="${order.id}" data-npc-item="${escapeHtml(order.item)}" data-npc-price="${Number(order.unitPrice)}" ${exhausted ? "disabled" : ""}>Sell</button>
             </td>
           </tr>
         `;
@@ -198,7 +201,7 @@ export function renderMarket(data) {
   const entries = Object.entries(inventory).filter(([, qty]) => Number(qty) > 0);
   const inventoryList = document.getElementById("inventory-list");
   inventoryList.innerHTML = entries.length
-    ? entries.map(([name, qty]) => `<li>${escapeHtml(name)}: ${numberMarkup(`exchange:inventory:${data.corp?.currentStationId}:${name}`, qty, Number(qty).toLocaleString())}</li>`).join("")
+    ? entries.map(([name, qty]) => `<li class="exchange__stock"><span>${escapeHtml(name)}</span> ${numberMarkup(`exchange:inventory:${data.corp?.currentStationId}:${name}`, qty, Number(qty).toLocaleString())}</li>`).join("")
     : "<li>No inventory available yet. Begin mining and refining to generate tradable stock.</li>";
 
   // Create Listing grid — default unit price to AVG market price for the item.
@@ -211,10 +214,10 @@ export function renderMarket(data) {
           return `
           <tr>
             <td>${escapeHtml(name)}</td>
-            <td>${Number(qty).toLocaleString()}</td>
-            <td><input class="sell-input" type="number" min="1" max="${Number(qty)}" value="1" required data-sell-qty="${escapeHtml(name)}" /></td>
-            <td><input class="sell-input" type="number" min="1" value="${defaultPrice}" required data-sell-price="${escapeHtml(name)}" /></td>
-            <td><button class="btn btn-accent" type="button" data-sell-item="${escapeHtml(name)}">Create Listing</button><p class="listing-row-status" data-sell-status="${escapeHtml(name)}"></p></td>
+            <td class="ui-table__num">${Number(qty).toLocaleString()}</td>
+            <td><input class="ui-input exchange__qty" type="number" min="1" max="${Number(qty)}" value="1" required aria-label="Quantity of ${escapeHtml(name)} to list" data-sell-qty="${escapeHtml(name)}" /></td>
+            <td><input class="ui-input exchange__qty" type="number" min="1" value="${defaultPrice}" required aria-label="Unit price for ${escapeHtml(name)}" data-sell-price="${escapeHtml(name)}" /></td>
+            <td><span class="exchange__action"><button class="ui-button ui-button--secondary" type="button" data-sell-item="${escapeHtml(name)}">Create Listing</button><span class="exchange__row-status" data-sell-status="${escapeHtml(name)}"></span></span></td>
           </tr>
         `;
         }
@@ -223,7 +226,7 @@ export function renderMarket(data) {
   }
   if (sellEmpty) sellEmpty.hidden = entries.length > 0;
   // AB#1857: nothing to list, so no headers over an empty body either (as showEmpty does for the other tables)
-  const sellTableWrap = sellGrid?.closest(".table-wrap");
+  const sellTableWrap = sellGrid?.closest(".ui-table-wrap");
   if (sellTableWrap) sellTableWrap.hidden = entries.length === 0;
 
   // My Active Listings
@@ -233,10 +236,10 @@ export function renderMarket(data) {
         (order) => `
           <tr>
             <td>${escapeHtml(order.item)}</td>
-            <td>${Number(order.quantity).toLocaleString()}</td>
-            <td>${toCurrency(order.unitPrice)}</td>
+            <td class="ui-table__num">${Number(order.quantity).toLocaleString()}</td>
+            <td class="ui-table__num">${toCurrency(order.unitPrice)}</td>
             <td>${order.createdAt ? formatTime(order.createdAt) : "-"}</td>
-            <td><button class="btn btn-ghost exchange-cancel-btn" type="button" data-cancel-order-id="${escapeHtml(order.id)}">Cancel</button></td>
+            <td><button class="ui-button ui-button--secondary" type="button" data-cancel-order-id="${escapeHtml(order.id)}">Cancel</button></td>
           </tr>
         `
       )
@@ -255,13 +258,13 @@ export function renderMarket(data) {
           const totalCell = tradeTotalCell(t);
           return `
           <tr>
-            <td class="trade-time">${t.at ? formatTime(t.at) : "-"}</td>
+            <td>${t.at ? formatTime(t.at) : "-"}</td>
             <td>${tradeTypeBadge(t)}</td>
             <td>${escapeHtml(t.item || "-")}</td>
-            <td>${Number(t.quantity || 0).toLocaleString()}</td>
-            <td>${toCurrency(t.unitPrice || 0)}</td>
-            <td>${totalCell}</td>
-            <td class="trade-counterparty">${escapeHtml(t.counterparty || "-")}</td>
+            <td class="ui-table__num">${Number(t.quantity || 0).toLocaleString()}</td>
+            <td class="ui-table__num">${toCurrency(t.unitPrice || 0)}</td>
+            <td class="ui-table__num">${totalCell}</td>
+            <td>${escapeHtml(t.counterparty || "-")}</td>
           </tr>
         `;
         }
@@ -269,9 +272,12 @@ export function renderMarket(data) {
       .join("");
   }
   if (tradeHistoryEmpty) tradeHistoryEmpty.hidden = tradeHistory.length > 0;
+  // ISP-20: an empty table shows no header and no scroll furniture, only the empty state above it.
+  const historyWrap = tradeHistoryTable?.closest(".ui-table-wrap");
+  if (historyWrap) historyWrap.hidden = tradeHistory.length === 0;
 
-  // AB#1055: the action tables stack into one card per row at phone width; each cell carries its column's name
-  document.querySelectorAll("#market .data-table--stack").forEach(labelTableCells);
+  // AB#1055: every table here is cards below 768px (ui-table); each cell carries its column's name
+  document.querySelectorAll("#market .ui-table").forEach(labelTableCells);
   paintListingStatus();
 }
 
@@ -286,7 +292,7 @@ export function paintListingStatus() {
   const rows = [...document.querySelectorAll("#market-sell-grid [data-sell-status]")];
   for (const el of rows) {
     el.textContent = "";
-    el.className = "listing-row-status";
+    el.className = "exchange__row-status";
     el.removeAttribute("role");
   }
   const below = document.getElementById("listing-status");
@@ -297,7 +303,7 @@ export function paintListingStatus() {
   if (!target) return;
   target.textContent = status.text;
   if (inRow) {
-    inRow.className = `listing-row-status listing-row-status--${status.tone === "ok" ? "ok" : "error"}`;
+    inRow.className = `exchange__row-status exchange__row-status--${status.tone === "ok" ? "ok" : "error"}`;
     inRow.setAttribute("role", status.tone === "ok" ? "status" : "alert");
   }
   if (status.reveal) {
@@ -402,7 +408,7 @@ export function bindExchangeForms() {
 
   // Bug #425: take a listing down and get the unsold goods back at the station they were listed from.
   document.getElementById("my-sell-orders-table")?.addEventListener("click", async (event) => {
-    const button = event.target.closest(".exchange-cancel-btn");
+    const button = event.target.closest("[data-cancel-order-id]");
     if (!button) return;
     const orderId = button.getAttribute("data-cancel-order-id");
     button.disabled = true;
@@ -425,7 +431,7 @@ export function bindExchangeForms() {
   // Exchange buy buttons
   const buyTableEl = document.getElementById("exchange-buy-table");
   buyTableEl?.addEventListener("click", async (event) => {
-    const button = event.target.closest(".exchange-buy-btn");
+    const button = event.target.closest("[data-buy-order-id]");
     if (!button) return;
     const row = button.closest("tr");
     const orderId = String(button.getAttribute("data-buy-order-id") || "");
@@ -492,13 +498,13 @@ export function bindExchangeForms() {
     renderMarket(appState.data);
   };
   document.getElementById("exchange-filter-bar")?.addEventListener("click", (event) => {
-    const pill = event.target.closest(".exchange-filter-pill");
+    const pill = event.target.closest("[data-filter]");
     if (pill) setExchangeView({ resource: pill.getAttribute("data-filter") || "" });
   });
   document.getElementById("exchange-type-filter")?.addEventListener("change", (event) => setExchangeView({ type: event.target.value }));
   document.getElementById("exchange-sort")?.addEventListener("change", (event) => setExchangeView({ sort: event.target.value }));
   document.getElementById("market")?.addEventListener("click", (event) => {
-    if (event.target.closest(".exchange-clear-filters")) {
+    if (event.target.closest("[data-clear-filters]")) {
       setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, type: DEFAULT_EXCHANGE_VIEW.type });
     }
   });
@@ -506,7 +512,7 @@ export function bindExchangeForms() {
   // NPC standing buy order — sell buttons
   const npcBuyTableEl = document.getElementById("npc-buy-table");
   npcBuyTableEl?.addEventListener("click", async (event) => {
-    const button = event.target.closest(".npc-sell-btn");
+    const button = event.target.closest("[data-npc-order-id]");
     if (!button) return;
     const row = button.closest("tr");
     const orderId = String(button.getAttribute("data-npc-order-id") || "");

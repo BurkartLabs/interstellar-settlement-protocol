@@ -3,23 +3,24 @@
 import { toCurrency } from "./helpers.js";
 import { escapeHtml } from "./html.js";
 
+// ISP-80 (AB#769): each type is a design-system badge; `tone` is its ui-badge modifier, "" for the plain one.
 export const TRADE_TYPES = {
-  listed: { label: "Listed", cls: "trade-type-listed", movedMoney: false },
-  cancelled: { label: "Cancelled", cls: "trade-type-cancelled", movedMoney: false },
-  sold: { label: "Sold", cls: "trade-type-sold", movedMoney: true },
-  "sold-npc": { label: "Sold (NPC)", cls: "trade-type-sold", movedMoney: true },
-  bought: { label: "Bought", cls: "trade-type-bought", movedMoney: true }
+  listed: { label: "Listed", tone: "", movedMoney: false },
+  cancelled: { label: "Cancelled", tone: "warn", movedMoney: false },
+  sold: { label: "Sold", tone: "success", movedMoney: true },
+  "sold-npc": { label: "Sold (NPC)", tone: "success", movedMoney: true },
+  bought: { label: "Bought", tone: "accent", movedMoney: true }
 };
 
 export function tradeTypeBadge(t) {
   const known = TRADE_TYPES[t.type];
-  return `<span class="trade-type-badge ${known ? known.cls : ""}">${known ? known.label : escapeHtml(t.type)}</span>`;
+  return `<span class="ui-badge${known?.tone ? ` ui-badge--${known.tone}` : ""}" data-trade-type="${escapeHtml(t.type)}">${known ? known.label : escapeHtml(t.type)}</span>`;
 }
 
 export function tradeTotalCell(t) {
   if (TRADE_TYPES[t.type]?.movedMoney === false) return "-";
   const hasTax = typeof t.taxAmount === "number" && t.taxAmount > 0;
   return hasTax
-    ? `${toCurrency(t.proceeds)} <span class="trade-tax-note">(${toCurrency(t.taxAmount)} tax)</span>`
+    ? `${toCurrency(t.proceeds)} <span class="exchange__tax">(${toCurrency(t.taxAmount)} tax)</span>`
     : toCurrency(t.total || 0);
 }

@@ -36,10 +36,10 @@ describe("labelTableCells (AB#1055)", () => {
 describe("the tables that stack at phone width (AB#1055)", () => {
   const html = readFileSync(new URL("../../public/index.html", import.meta.url), "utf8");
   const css = readFileSync(new URL("../../public/styles.css", import.meta.url), "utf8");
-  it("are the Exchange tables with an action in every row", () => {
+  it("the Exchange tables with an action in every row are design-system tables, cards below 768px (ISP-80, AB#769)", () => {
     for (const body of ["exchange-buy-table", "market-sell-grid", "npc-buy-table", "my-sell-orders-table"]) {
       const table = html.slice(html.lastIndexOf("<table", html.indexOf(`id="${body}"`)), html.indexOf(`id="${body}"`));
-      expect(table, body).toMatch(/class="[^"]*data-table--stack/);
+      expect(table, body).toMatch(/^<table class="ui-table">/);
     }
   });
   it("are stacked only inside the phone block", () => {

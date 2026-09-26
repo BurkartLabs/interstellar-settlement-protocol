@@ -21,7 +21,8 @@ describe("Trade History rows (AB#1168)", () => {
     for (const type of serverTypes()) {
       expect(TRADE_TYPES[type], type).toBeDefined();
       const html = tradeTypeBadge({ type });
-      expect(html, type).toContain(`class="trade-type-badge ${TRADE_TYPES[type].cls}"`);
+      // ISP-80 (AB#769): a design-system badge, its tone the type's, found by data-trade-type.
+      expect(html, type).toContain(`class="ui-badge${TRADE_TYPES[type].tone ? ` ui-badge--${TRADE_TYPES[type].tone}` : ""}" data-trade-type="${type}"`);
       expect(html, type).toContain(`>${TRADE_TYPES[type].label}<`);
     }
     expect(tradeTypeBadge({ type: "cancelled" })).toContain(">Cancelled<");

@@ -135,7 +135,7 @@ test("a hire counts the sidebar up in green, and a sale counts the inventory dow
     const inventory = '[data-num-key="exchange:inventory:earth-station-prime:Silicates"]';
     await expect(page.locator(inventory)).toHaveText("40");
     await page.locator(inventory).scrollIntoViewIfNeeded();
-    const sell = page.locator('.npc-sell-btn[data-npc-item="Silicates"]').first();
+    const sell = page.locator('[data-npc-item="Silicates"]').first();
     const orderId = await sell.getAttribute("data-npc-order-id");
     await page.fill(`[data-npc-sell-qty="${orderId}"]`, "10");
     await sell.click();
