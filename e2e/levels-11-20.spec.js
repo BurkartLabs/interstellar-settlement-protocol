@@ -61,7 +61,7 @@ for (const viewport of VIEWPORTS) {
       const title = page.locator("#level-requirements-title");
       // AB#803's panel (AB#2332): the heading is the corporation's level of the ladder's top, and the level shown under it
       // is the next one, Level 11, with its requirements.
-      await expect(title).toHaveText("Level 10 of 20");
+      await expect(title).toHaveText(/^Level 10 of (20|30)$/); // AB#801: thirty levels since
       await expect(page.locator("#level-panel-meta")).toHaveText(/Next\s*Showing Level 11/);
       const section = page.locator("#overview-milestones");
       await expect(section).toContainText("Build a Fourth Extractor Yard");

@@ -64,10 +64,10 @@ describe("/how-to-start (AB#748)", () => {
       "sales tax": `keeps ${economy.exchange.salesTaxPct}% of every sale`,
       "first research": `${firstResearch.name}: ${firstResearch.durationHours} hours, ${money(firstResearch.costCredits)}`,
       "first research effect": `${firstResearch.effect.match(/^\+\d+%/)[0]} to extraction throughput`,
-      "defined levels": `levels above ${levels}. Twenty are defined; ${levels + 1} to 40` // AB#800
+      "defined levels": `levels above ${levels}. Thirty are defined; ${levels + 1} to 40` // AB#800, AB#801
     };
     for (const [name, text] of Object.entries(figures)) expect(PAGE, name).toContain(text);
-    expect(levels, "the page says twenty levels are defined").toBe(20); // AB#800
+    expect(levels, "the page says thirty levels are defined").toBe(30); // AB#801
   });
 
   it("points bug reports at a forum category that exists, and asks for no personal data", async () => {

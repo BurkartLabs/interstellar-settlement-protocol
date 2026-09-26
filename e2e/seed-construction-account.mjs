@@ -18,10 +18,11 @@
 // `ledger` (Bug AB#2315) is level5 plus a third yard built through construct() on the Mars lease: the first yard past the
 // starting kit, so the first to pay price growth since ISP-309 (AB#2305), for e2e/ledger-categories.spec.js.
 //
-// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked|ledger|level10>
+// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked|ledger|level10|level20>
 //
 // `level10` (ISP-108, AB#800) is level5 raised to Level 10, the old top, with 150,000 Silicates mined: the Overview shows
-// Level 11's requirements, which did not exist before.
+// Level 11's requirements, which did not exist before. `level20` (ISP-109, AB#801) is the same at Level 20, the next old top,
+// with 150 expeditions completed: the Overview shows Level 21's.
 const [, , dataDir, email, password, kind] = process.argv;
 process.env.ISP_DATA_DIR = dataDir;
 process.env.JWT_SECRET = process.env.JWT_SECRET || "construction-panel-e2e-fixture-secret-0123";
@@ -36,7 +37,7 @@ verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who c
 store.mutateAccountState(account.id, (state) => {
   const corp = state.corp;
   corp.currentStationId = "earth-station-prime";
-  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked", "ledger", "level10"].includes(kind)) return;
+  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked", "ledger", "level10", "level20"].includes(kind)) return;
   const lease = (id, body) => ({ id, body, leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: [], issuedAt: Date.now() });
   corp.level = 5;
   corp.buildingSlots = 6;
@@ -54,6 +55,10 @@ store.mutateAccountState(account.id, (state) => {
   if (kind === "level10") {
     corp.level = 10;
     corp.mining.silicateExtractors[0].totalMined = 150_000;
+  }
+  if (kind === "level20") {
+    corp.level = 20;
+    corp.stats = { ...(corp.stats || {}), asteroidExpeditionsCompleted: 150 };
   }
   if (kind === "tier5" || kind === "tier5-locked") {
     for (const b of corp.buildings.filter((x) => x.name === "Basic Extractor Yard")) b.tier = 5;
