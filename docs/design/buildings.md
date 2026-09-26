@@ -59,7 +59,7 @@ mining.js:38.
 **Where the numbers live, since AB#783.**
 - **Catalogue:** data/player-buildings.json holds the three, and server/playerBuildings.js loads it.
 - **Prices:** still in data/economy.json's `buildings` block, named by each entry's `price`.
-- **What each build route reads from the catalogue:** cost, asset value, research gates and cap. It asks `catalogueRefusal`, so a gate or cap added to the file is enforced without a code change. The slot checks stay in the routes.
+- **One build route (ISP-94, AB#784):** `POST /api/accounts/:accountId/gameplay/build` with `{ buildingId, leaseId? }`. server/construction.js checks the lease, the catalogue's research gates and cap (`catalogueRefusal`), the lease's slots, a corporation slot and the price, then builds. The three old routes are that handler with the building fixed. A catalogue entry needs an entry in `CONSTRUCTIONS` (what it adds, its notification and receipt) or it is refused: a building added to the file is data plus that one entry, not a new route.
 - **`PLAYER_BUILDINGS`:** the catalogue's names (progression.js).
 - **Schema test:** tests/schema/player-buildings.test.js fails on a research id or a milestone building that the files do not share (T-019).
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
+import { CONSTRUCTIONS } from "../../server/construction.js";
 
 // AB#744 (ISP-58): every committing action shows the confirmation modal from the server's answer. This lists the
 // routes that commit something - every POST under /gameplay/ and on the exchange - and fails for any route that is
@@ -39,7 +40,9 @@ const RECEIPTS = {
 const EXEMPT = {
   "/api/accounts/:accountId/gameplay/lease/:leaseId/stop-mining": "stops a running cycle (AB#1052); it has its own confirmation before it runs",
   "/api/market/orders/:orderId/cancel": "withdraws the player's own listing and returns the goods; nothing is bought or spent",
-  "/api/accounts/:accountId/gameplay/abandon-mission": "gives a contract back; nothing is delivered, paid or charged"
+  "/api/accounts/:accountId/gameplay/abandon-mission": "gives a contract back; nothing is delivered, paid or charged",
+  // ISP-94 (AB#784): it answers with the receipt of the building it built, the same one each build route above answers with.
+  "/api/accounts/:accountId/gameplay/build": "no page calls it yet (ISP-95, AB#785, will); its receipts are the build routes', from server/construction.js"
 };
 
 function committingRoutes() {
@@ -73,6 +76,14 @@ describe("every committing action has its confirmation modal (AB#744)", () => {
 
   it.each(Object.entries(RECEIPTS))("%s answers with the receipt its builder makes", (path, { builder }) => {
     const { handler } = routes.get(path);
+    // ISP-94 (AB#784): a build route is the one build handler with its building fixed. Its receipt is that building's
+    // construction's (server/construction.js), and the handler answers with it (buildHandler, server/routes/helpers.js).
+    const building = handler.match(/buildHandler\(.*?buildingId: "([^"]+)"/)?.[1];
+    if (building) {
+      expect(CONSTRUCTIONS[building]?.receipt.toString(), path).toContain(builder); // vitest rewrites the call itself
+      expect(read("server/routes/helpers.js"), path).toMatch(/res\.json\(\{[^;]*\breceipt\b/);
+      return;
+    }
     expect(handler, path).toContain(`${builder}(`);
     expect(handler, path).toMatch(/res\.json\(\{[^;]*\breceipt\b/);
   });

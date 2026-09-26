@@ -28,6 +28,7 @@ const BASELINE = {
   "POST /build-assembly-facility": {},
   "POST /build-mining-probe": {},
   "POST /build-refinery": {},
+  "POST /build": { body: { buildingId: "basic-extractor-yard", leaseId: "lease-731" } }, // ISP-94
   "GET /belt-compositions": {},
   "POST /scout-belt": { body: { beltKey: "sol:belt" } },
   "POST /launch-expedition": { body: { beltKey: "sol:belt", duration: "short" } },

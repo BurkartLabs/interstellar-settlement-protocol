@@ -4,6 +4,8 @@ import {
   evaluateLevelProgress, bumpStat, STAT_KEYS, PLAYER_BUILDINGS, MAX_DEFINED_LEVEL,
   applyRefineryOperations, applyAsteroidExpeditions, REFINERY_CHAINS, BELT_COMPOSITIONS
 } from "../../server/gameState.js";
+import { PLAYER_BUILDING_CATALOGUE } from "../../server/playerBuildings.js";
+import { CONSTRUCTIONS } from "../../server/construction.js";
 import { makeCorp } from "../fixtures/makeCorp.js";
 import { serverCode } from "../helpers/serverSource.js";
 import { clientCode } from "../helpers/clientSource.js";
@@ -112,8 +114,14 @@ describe("the lists match the code that keeps them (Bug #424)", () => {
   const gameState = [fs.readFileSync(new URL("../../server/gameState.js", import.meta.url), "utf8"), ...fs.readdirSync(gameDir).sort().map((f) => fs.readFileSync(new URL(f, gameDir), "utf8"))].join("\n");
 
   it("every building a construction route adds is a player building, and each one is added somewhere", () => {
-    const built = new Set([...index.matchAll(/buildings\.push\(\{\s*name:\s*"([^"]+)"/g)].map((m) => m[1]));
-    expect([...built].sort()).toEqual([...PLAYER_BUILDINGS].sort());
+    // ISP-94 (AB#784): one build path adds every building, under its catalogue name (server/construction.js). A name
+    // written out in a push anywhere in the server would be a building outside the catalogue.
+    const named = [...index.matchAll(/buildings\.push\(\{\s*name:\s*"([^"]+)"/g)].map((m) => m[1]);
+    expect(named).toEqual([]);
+    const construction = fs.readFileSync(new URL("../../server/construction.js", import.meta.url), "utf8");
+    expect(construction).toMatch(/buildings\.push\(\{ name: building\.name,/);
+    const buildable = PLAYER_BUILDING_CATALOGUE.filter((b) => CONSTRUCTIONS[b.id]).map((b) => b.name);
+    expect(buildable.sort()).toEqual([...PLAYER_BUILDINGS].sort());
   });
 
   it("every requirement can be clicked through to its tab, and the map names no requirement that no longer exists", () => {
