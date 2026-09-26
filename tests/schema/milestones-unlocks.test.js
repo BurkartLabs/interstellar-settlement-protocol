@@ -44,7 +44,7 @@ describe("the maxDeployments unlock (AB#2307)", () => {
     expect(corp.asteroidMining.maxDeployments).toBe(3);
   });
 
-  it("a corporation below Level 12 keeps BASE_MAX_DEPLOYMENTS, and Level 12 grants a second slot (AB#800)", () => {
+  it("a corporation below Level 12 keeps BASE_MAX_DEPLOYMENTS, Level 12 grants a second slot (AB#800) and Level 24 a third (AB#801)", () => {
     expect(BASE_MAX_DEPLOYMENTS).toBe(1);
     const at = (level) => {
       const state = createStarterCorporationState(normalizeStateShape(getSeedState()), "Test CEO", "Test Corp"); // as registering builds it
@@ -56,7 +56,9 @@ describe("the maxDeployments unlock (AB#2307)", () => {
     expect(at(10)).toBe(BASE_MAX_DEPLOYMENTS); // levels 1 to 10 grant none
     expect(at(11)).toBe(BASE_MAX_DEPLOYMENTS); // Level 11 names 1, the base
     expect(at(12)).toBe(2);
-    expect(at(MAX_DEFINED_LEVEL)).toBe(2);
+    expect(at(23)).toBe(2);
+    expect(at(24)).toBe(3);
+    expect(at(MAX_DEFINED_LEVEL)).toBe(3);
   });
 
   it("the level notice names the raised cap as the expedition panel does", () => {
@@ -91,5 +93,38 @@ describe("a corporation saved at Level 10 before levels 11 to 20 existed (AB#800
     for (const key of ["employeeCap", "buildingSlots", "maxFleetSize"]) expect(corp[key], key).toBe(before[key]);
     expect(corp.asteroidMining.maxDeployments).toBe(before.asteroidMining.maxDeployments);
     expect(corp.levelProgress.level11.requirements.map((r) => r.id)).toEqual(["extractor4", "mine225kSilicate"]);
+  });
+});
+
+// ISP-109 (AB#801): levels 21 to 30 were added under corporations saved at the old top, Level 20, and the Level 10
+// test above now runs against thirty levels.
+describe("a corporation saved at Level 20 before levels 21 to 30 existed (AB#801)", () => {
+  it("loads at Level 20 with every unlock it had, and is shown Level 21's requirements", () => {
+    const saved = createStarterCorporationState(normalizeStateShape(getSeedState()), "Test CEO", "Test Corp");
+    saved.corp.level = 20;
+    evaluateLevelProgress(saved);
+    saved.corp.levelCap = 20; // what the save carried when 20 was the top
+    const before = JSON.parse(JSON.stringify(saved.corp));
+    expect(before.unlocks).toMatchObject({ maxFleetSize: 190, maxUpgradeTier: 6 });
+    expect([before.employeeCap, before.buildingSlots, before.asteroidMining.maxDeployments]).toEqual([300, 14, 2]);
+
+    const loaded = normalizeStateShape(JSON.parse(JSON.stringify(saved))); // written to disk and read back
+    evaluateLevelProgress(loaded);
+    evaluateLevelProgress(loaded);
+    const corp = loaded.corp;
+    expect(corp.level).toBe(20); // Level 21's Ferric complex and expeditions are not met, and nothing is taken away
+    expect(corp.levelCap).toBe(MAX_DEFINED_LEVEL);
+    expect(corp.unlocks).toEqual(before.unlocks);
+    for (const key of ["employeeCap", "buildingSlots", "maxFleetSize"]) expect(corp[key], key).toBe(before[key]);
+    expect(corp.asteroidMining.maxDeployments).toBe(2);
+    expect(corp.levelProgress.level21.requirements.map((r) => r.id)).toEqual(["ferricMiningComplex", "expeditions230"]);
+  });
+});
+
+// AB#2324 (Board, 2026-09-26): progress never waits on the market. No level from 28 on counts an NPC sale.
+describe("no level from 28 on counts Silicates sold (AB#2324)", () => {
+  it("every requirement of Levels 28 and up counts production", () => {
+    const sold = MILESTONE_LEVELS.filter((l) => l.level >= 28).flatMap((l) => l.requirements.filter((r) => /silicateSoldOnExchange/.test(r.metric)).map((r) => `level ${l.level}: ${r.id}`));
+    expect(sold).toEqual([]);
   });
 });

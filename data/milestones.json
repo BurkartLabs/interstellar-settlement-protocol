@@ -291,6 +291,146 @@
         "maxUpgradeTier": 6,
         "maxDeployments": 2
       }
+    },
+    {
+      "level": 21,
+      "requirements": [
+        { "id": "ferricMiningComplex", "title": "Build the Ferric Mining Complex", "target": 1, "metric": "building:Ferric Mining Complex" },
+        { "id": "expeditions230", "title": "Complete 230 Asteroid Expeditions", "target": 230, "metric": "stat:asteroidExpeditionsCompleted" }
+      ],
+      "unlocks": {
+        "employeeCap": 310,
+        "buildingSlots": 14,
+        "maxFleetSize": 195,
+        "maxUpgradeTier": 6,
+        "maxDeployments": 2
+      }
+    },
+    {
+      "level": 22,
+      "requirements": [
+        { "id": "assemblyTier2", "title": "Upgrade an Assembly Facility to Tier 2", "target": 1, "metric": "building-tier:assembly-facility:2" },
+        { "id": "expeditions250", "title": "Complete 250 Asteroid Expeditions", "target": 250, "metric": "stat:asteroidExpeditionsCompleted" }
+      ],
+      "unlocks": {
+        "employeeCap": 320,
+        "buildingSlots": 14,
+        "maxFleetSize": 200,
+        "maxUpgradeTier": 6,
+        "maxDeployments": 2
+      }
+    },
+    {
+      "level": 23,
+      "requirements": [
+        { "id": "researchExoticEnergyRouting", "title": "Research Exotic Energy Routing", "target": 1, "metric": "unlockedTech:tt-exotic-energy-routing" },
+        { "id": "expeditions270", "title": "Complete 270 Asteroid Expeditions", "target": 270, "metric": "stat:asteroidExpeditionsCompleted" }
+      ],
+      "unlocks": {
+        "employeeCap": 330,
+        "buildingSlots": 14,
+        "maxFleetSize": 205,
+        "maxUpgradeTier": 6,
+        "maxDeployments": 2
+      }
+    },
+    {
+      "level": 24,
+      "requirements": [
+        { "id": "yards3AtTier4", "title": "Upgrade 3 Extractor Yards to Tier 4", "target": 3, "metric": "building-tier:basic-extractor-yard:4" },
+        { "id": "expeditions289", "title": "Complete 289 Asteroid Expeditions", "target": 289, "metric": "stat:asteroidExpeditionsCompleted" }
+      ],
+      "unlocks": {
+        "employeeCap": 340,
+        "buildingSlots": 14,
+        "maxFleetSize": 210,
+        "maxUpgradeTier": 6,
+        "maxDeployments": 3
+      }
+    },
+    {
+      "level": 25,
+      "requirements": [
+        { "id": "researchDeepStarNavigation", "title": "Research Deep-Star Cartography Suite", "target": 1, "metric": "unlockedTech:tt-deep-star-navigation" },
+        { "id": "expeditions311", "title": "Complete 311 Asteroid Expeditions", "target": 311, "metric": "stat:asteroidExpeditionsCompleted" }
+      ],
+      "unlocks": {
+        "employeeCap": 350,
+        "buildingSlots": 15,
+        "maxFleetSize": 215,
+        "maxUpgradeTier": 6,
+        "maxDeployments": 3
+      }
+    },
+    {
+      "level": 26,
+      "requirements": [
+        { "id": "refineries2AtTier3", "title": "Upgrade 2 Refineries to Tier 3", "target": 2, "metric": "building-tier:refinery:3" },
+        { "id": "missions451", "title": "Complete 451 Missions", "target": 451, "metric": "stat:missionsCompleted" }
+      ],
+      "unlocks": {
+        "employeeCap": 360,
+        "buildingSlots": 15,
+        "maxFleetSize": 220,
+        "maxUpgradeTier": 6,
+        "maxDeployments": 3
+      }
+    },
+    {
+      "level": 27,
+      "requirements": [
+        { "id": "yards6AtTier4", "title": "Upgrade 6 Extractor Yards to Tier 4", "target": 6, "metric": "building-tier:basic-extractor-yard:4" },
+        { "id": "missions481", "title": "Complete 481 Missions", "target": 481, "metric": "stat:missionsCompleted" }
+      ],
+      "unlocks": {
+        "employeeCap": 370,
+        "buildingSlots": 15,
+        "maxFleetSize": 225,
+        "maxUpgradeTier": 6,
+        "maxDeployments": 3
+      }
+    },
+    {
+      "level": 28,
+      "requirements": [
+        { "id": "missions511", "title": "Complete 511 Missions", "target": 511, "metric": "stat:missionsCompleted" },
+        { "id": "mine1627kSilicate", "title": "Mine 1,627,000 Silicate", "target": 1627000, "metric": "totalMined:silicate" }
+      ],
+      "unlocks": {
+        "employeeCap": 380,
+        "buildingSlots": 15,
+        "maxFleetSize": 230,
+        "maxUpgradeTier": 6,
+        "maxDeployments": 3
+      }
+    },
+    {
+      "level": 29,
+      "requirements": [
+        { "id": "yards2AtTier5", "title": "Upgrade 2 Extractor Yards to Tier 5", "target": 2, "metric": "building-tier:basic-extractor-yard:5" },
+        { "id": "missions540", "title": "Complete 540 Missions", "target": 540, "metric": "stat:missionsCompleted" }
+      ],
+      "unlocks": {
+        "employeeCap": 390,
+        "buildingSlots": 15,
+        "maxFleetSize": 235,
+        "maxUpgradeTier": 6,
+        "maxDeployments": 3
+      }
+    },
+    {
+      "level": 30,
+      "requirements": [
+        { "id": "missions570", "title": "Complete 570 Missions", "target": 570, "metric": "stat:missionsCompleted" },
+        { "id": "mine1789kSilicate", "title": "Mine 1,789,000 Silicate", "target": 1789000, "metric": "totalMined:silicate" }
+      ],
+      "unlocks": {
+        "employeeCap": 400,
+        "buildingSlots": 16,
+        "maxFleetSize": 240,
+        "maxUpgradeTier": 7,
+        "maxDeployments": 3
+      }
     }
   ]
 }

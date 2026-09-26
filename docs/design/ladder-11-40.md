@@ -50,9 +50,15 @@ day for the whole world (`npcBid.quotaPerDay` in data/economy.json), and a yard 
 revenue to run, so ore past the quota and the refineries' take is pure cost. A profitable corporation mines about
 8,200 t a day, not the capacity above (bot, days 49 to 71). Levels 11 to 15's `totalMined:silicate` targets are drawn
 from that: about 160,000 mined at day 30 plus 8,200 a day, 90% of it at the level's day. The quota is not raised: it is
-a world economy lever, not a pacing one, and the design already has too many credits. The targets from Level 21 on
-still assume capacity; what happens past Level 20 is AB#2324 (Board), and AB#801 and AB#802 wait for it. The probe
-runs one corporation alone, so these are numbers for an empty server.
+a world economy lever, not a pacing one, and the design already has too many credits. The probe runs one corporation
+alone, so these are numbers for an empty server.
+
+**Progress never waits on the market (Board, Decision AB#2324, 2026-09-26).** No level counts what NPC buyers absorb:
+ECONOMY.md's "Demand: the Board's rule (AB#2324)" section (AB#2375). So from Level 28 on, every target that counted
+Silicates sold is redrawn as Silicates mined, by AB#2321's method: 90% of the mined curve above (160,000 at day 30
+plus 8,200 a day) at the level's day, rounded down to the thousand. Level 28 (day 231) asks for 1,627,000 mined and
+Level 30 (day 253) for 1,789,000; they were 4,800,000 and 5,600,000 sold, which the shared order could never take.
+Levels 31 to 40 are redrawn the same way by AB#802. Selling is still how the yards pay; it is only no longer a level.
 
 Silicates sold are the mined, less what goes into refineries (100 in for 55 out) and contracts (about 400 each). Each
 target below is 90% of the curve at its level's day, rounded down, so the bot meets it on that day or a little before.
@@ -84,9 +90,9 @@ change"). The `maxUpgradeTier` values above 5 are a **proposal** that needs a st
 | 25 | 198 | `unlockedTech:tt-deep-star-navigation` 1<br>`stat:asteroidExpeditionsCompleted` 311 | 350 | 15 | 215 | 6 | 3 |
 | 26 | 209 | `building-tier:refinery:3` 2<br>`stat:missionsCompleted` 451 | 360 | 15 | 220 | 6 | 3 |
 | 27 | 220 | `building-tier:basic-extractor-yard:4` 6<br>`stat:missionsCompleted` 481 | 370 | 15 | 225 | 6 | 3 |
-| 28 | 231 | `stat:missionsCompleted` 511<br>`stat:silicateSoldOnExchange` 4,800,000 | 380 | 15 | 230 | 6 | 3 |
+| 28 | 231 | `stat:missionsCompleted` 511<br>`totalMined:silicate` 1,627,000 | 380 | 15 | 230 | 6 | 3 |
 | 29 | 242 | `building-tier:basic-extractor-yard:5` 2<br>`stat:missionsCompleted` 540 | 390 | 15 | 235 | 6 | 3 |
-| 30 | 253 | `stat:missionsCompleted` 570<br>`stat:silicateSoldOnExchange` 5,600,000 | 400 | 16 | 240 | 7 | 3 |
+| 30 | 253 | `stat:missionsCompleted` 570<br>`totalMined:silicate` 1,789,000 | 400 | 16 | 240 | 7 | 3 |
 | 31 | 265 | `building-tier:basic-extractor-yard:5` 3<br>`totalMined:silicate` 6,600,000 | 410 | 16 | 245 | 7 | 3 |
 | 32 | 276 | `totalMined:silicate` 7,000,000<br>`stat:silicateSoldOnExchange` 6,400,000 | 420 | 16 | 250 | 7 | 3 |
 | 33 | 287 | `building-tier:basic-extractor-yard:5` 4<br>`totalMined:silicate` 7,400,000 | 430 | 16 | 255 | 7 | 4 |
@@ -123,7 +129,7 @@ a quarter and the metal refinery chains need. So a player refining metals drills
 launch costs 3,000. *Costs:* about 900,000 (the Ferric complex, the assembly tier, three yard tier-4 upgrades, about
 160 launches) and 30 h of research.
 
-**D. Contractor of record (26-30, days 209-253).** Contracts and sales. *Gets:* yard tier 7 (Level 30, proposed).
+**D. Contractor of record (26-30, days 209-253).** Contracts, and the Silicates mined behind them. *Gets:* yard tier 7 (Level 30).
 *Choice:* deliver Silicates to a contract (it counts toward the level and pays its reward) or sell them into the
 standing bid (paid at once, and the bid falls as the day's volume rises). The better one moves with the day's bid.
 *Costs:* about 790,000 (the second Refinery's Complex and tier 3, three yard tier-4 and two tier-5 upgrades).
