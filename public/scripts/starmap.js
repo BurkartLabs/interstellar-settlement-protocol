@@ -13,6 +13,10 @@ import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels ar
 const ORBIT_INNER = 56;
 const ORBIT_EDGE_MARGIN = 20;
 const LABEL_EDGE_MARGIN = 4;
+// ISP-116 (AB#808): below this cluster canvas width (a phone) only the current system, the selected one and their
+// neighbours are named; and the grey a system the corporation cannot yet jump to is drawn in.
+const COMPACT_CLUSTER_WIDTH = 600;
+const LOCKED_STAR_COLOR = "rgba(140, 150, 165, 0.75)";
 // How far an 11px label reaches above and below its baseline (AB#1337: kept off the star's halo).
 const LABEL_ASCENT = 9;
 const LABEL_DESCENT = 3;
@@ -314,7 +318,13 @@ export function clusterLabelAt({ widths, size, x, y, gap, placed = [], stars = [
   const below = { x: centred, y: y + gap + ascent };
   const above = { x: centred, y: y - gap - descent };
   const rightFits = right.x + width <= canvasWidth - LABEL_EDGE_MARGIN;
-  const candidates = rightFits ? [right, left, below, above] : [left, right, below, above];
+  // ISP-116 (AB#808): with twenty systems four places are not always enough; the corners beside the star come next.
+  const lift = ascent + descent;
+  const corners = [
+    { x: right.x, y: right.y - lift }, { x: right.x, y: right.y + lift },
+    { x: left.x, y: left.y - lift }, { x: left.x, y: left.y + lift }
+  ];
+  const candidates = [...(rightFits ? [right, left, below, above] : [left, right, below, above]), ...corners];
   // Two labels need a little air between them, not only no overlap: 3px all round.
   const crosses = (a, b) => a.left - 3 < b.right && b.left - 3 < a.right && a.top - 3 < b.bottom && b.top - 3 < a.bottom;
   const covers = (b, s) => Math.hypot(
@@ -326,8 +336,48 @@ export function clusterLabelAt({ widths, size, x, y, gap, placed = [], stars = [
     return b.left >= LABEL_EDGE_MARGIN && b.right <= canvasWidth - LABEL_EDGE_MARGIN && b.top >= LABEL_EDGE_MARGIN &&
       b.bottom <= canvasHeight - LABEL_EDGE_MARGIN && !placed.some((p) => crosses(b, p)) && !stars.some((s) => covers(b, s));
   };
-  const chosen = candidates.find(clear) || candidates[0];
-  return { x: chosen.x, y: chosen.y, box: box(chosen) };
+  const found = candidates.find(clear);
+  // ISP-116 (AB#808): with no clear place, a name still stays on the canvas: the first place inside it, or the first
+  // place moved inside it (a long line on a phone ran off the left edge, and the name with it).
+  const inside = (c) => {
+    const b = box(c);
+    return b.left >= LABEL_EDGE_MARGIN && b.right <= canvasWidth - LABEL_EDGE_MARGIN && b.top >= LABEL_EDGE_MARGIN && b.bottom <= canvasHeight - LABEL_EDGE_MARGIN;
+  };
+  const clamp = (c) => ({
+    x: Math.min(Math.max(c.x, LABEL_EDGE_MARGIN), canvasWidth - LABEL_EDGE_MARGIN - width),
+    y: Math.min(Math.max(c.y, LABEL_EDGE_MARGIN + ascent), canvasHeight - LABEL_EDGE_MARGIN - descent)
+  });
+  const chosen = found || candidates.find(inside) || clamp(candidates[0]);
+  return { x: chosen.x, y: chosen.y, box: box(chosen), clear: Boolean(found) };
+}
+
+/**
+ * ISP-116 (AB#808): which systems the cluster view names, and where, so the names never overlap. The current system,
+ * then the selected one, then the selected one's neighbours, then the rest take their places in that order, so the
+ * names that matter most get their first choice. On a narrow canvas (a phone) only the first three kinds are named and
+ * the rest are dots named when tapped: no arrangement of twenty 14px names fits 307x320 (docs/design/starmap-20.md).
+ * The current and selected systems are always named (kept on the canvas); any other name that finds no clear place
+ * is left off rather than drawn across another.
+ * `entries`: [{ id, x, y, r, widths, size, gap, current, selected, neighbour }]. Returns Map id -> { x, y, box }.
+ */
+export function planClusterLabels({ entries, compact, canvasWidth, canvasHeight }) {
+  const rank = (e) => (e.current ? 0 : e.selected ? 1 : e.neighbour ? 2 : 3);
+  const order = entries.map((e, i) => [e, i]).sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j).map(([e]) => e);
+  const stars = entries.map((e) => ({ x: e.x, y: e.y, r: e.r, id: e.id }));
+  const placed = [];
+  const plan = new Map();
+  for (const e of order) {
+    const priority = rank(e) < 3;
+    if (compact && !priority) continue;
+    const label = clusterLabelAt({
+      widths: e.widths, size: e.size, x: e.x, y: e.y, gap: e.gap, placed,
+      stars: stars.filter((s) => s.id !== e.id), canvasWidth, canvasHeight
+    });
+    if (!label.clear && rank(e) >= 2) continue;
+    placed.push(label.box);
+    plan.set(e.id, { x: label.x, y: label.y, box: label.box });
+  }
+  return plan;
 }
 
 export function canvasBackingSize(cssWidth, cssHeight, devicePixelRatio) {
@@ -610,14 +660,43 @@ export function createStarmapController({
       const p = mapPositionOf(system.id) || { x: 0.5, y: 0.5 };
       return { x: p.x * width, y: p.y * height };
     };
-    const stars = state.systems.map((system) => ({ ...at(system), id: system.id, r: (state.selectedSystemId === system.id ? 10 : 7) + 4 }));
-    const placedLabels = [];
+    // ISP-116 (AB#808): every name placed before any is drawn (planClusterLabels), so none overlaps; on a phone only
+    // the current system, the selected one and their neighbours are named. A locked system is drawn grey, and when
+    // selected its name carries the research the jump needs.
+    const compact = width < COMPACT_CLUSTER_WIDTH;
+    const adjacentOf = (id) => new Set(getSystemsCatalog().find((s) => s.id === id)?.adjacent || []);
+    const neighbours = adjacentOf(state.selectedSystemId || currentSystemId); // the selected system's (docs/design/starmap-20.md)
+    const sizes = (isSelected) => ({ name: chartFont(isSelected ? 12 : 11), here: chartFont(9), lock: chartFont(10) });
+    const linesOf = (system) => {
+      const isSelected = state.selectedSystemId === system.id;
+      const lines = [{ text: system.name, font: `${isSelected ? "bold " : ""}${sizes(isSelected).name}px "Inter", sans-serif`, color: isSelected ? "rgba(255, 255, 255, 0.95)" : "rgba(200, 220, 240, 0.8)" }];
+      if (system.id === currentSystemId) lines.push({ text: "YOU ARE HERE", font: `${sizes(isSelected).here}px "Inter", sans-serif`, color: "rgba(0, 247, 255, 0.6)" });
+      // On a phone the gate stays in the panel under the map: the line is wider than a phone's canvas.
+      if (isSelected && !compact && !canTravelToSystem(system.id)) {
+        const research = getNavigation().travelResearchName(researchCatalog, system.id);
+        if (research) lines.push({ text: `Requires ${research}`, font: `${sizes(isSelected).lock}px "Inter", sans-serif`, color: "rgba(255, 190, 120, 0.9)" });
+      }
+      return lines;
+    };
+    const entries = state.systems.map((system) => {
+      const isSelected = state.selectedSystemId === system.id;
+      const baseRadius = isSelected ? 10 : 7;
+      const lines = linesOf(system);
+      const widths = lines.map((line) => { ctx.font = line.font; return ctx.measureText(line.text).width; });
+      return {
+        id: system.id, ...at(system), r: baseRadius + 4, widths, lines, size: sizes(isSelected).name, gap: baseRadius + 10,
+        current: system.id === currentSystemId, selected: isSelected, neighbour: neighbours.has(system.id)
+      };
+    });
+    const labelPlan = planClusterLabels({ entries, compact, canvasWidth: width, canvasHeight: height });
+    const entryOf = new Map(entries.map((e) => [e.id, e]));
     state.systems.forEach((system) => {
       const { x, y } = at(system);
       const isSelected = state.selectedSystemId === system.id;
       const isCurrent = system.id === currentSystemId;
       const baseRadius = isSelected ? 10 : 7;
-      const color = overlayColor(system, state.overlay);
+      const locked = !canTravelToSystem(system.id);
+      const color = locked ? LOCKED_STAR_COLOR : overlayColor(system, state.overlay);
 
       // Outer glow halo
       const haloRadius = baseRadius + 20;
@@ -662,28 +741,26 @@ export function createStarmapController({
         ctx.restore();
       }
 
-      // System name label, and "YOU ARE HERE" under it for the current system, placed clear of the others.
-      const nameSize = chartFont(isSelected ? 12 : 11);
-      const hereSize = chartFont(9);
-      const nameFont = isSelected ? `bold ${nameSize}px "Inter", sans-serif` : `${nameSize}px "Inter", sans-serif`;
-      ctx.font = nameFont;
-      const widths = [ctx.measureText(system.name).width];
-      if (isCurrent) {
-        ctx.font = `${hereSize}px "Inter", sans-serif`;
-        widths.push(ctx.measureText("YOU ARE HERE").width);
+      // A locked system: a solid grey ring round the grey star, apart from the current system's dashed cyan one.
+      if (locked) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, baseRadius + 5, 0, Math.PI * 2);
+        ctx.strokeStyle = LOCKED_STAR_COLOR;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
       }
-      const label = clusterLabelAt({
-        widths, size: nameSize, x, y, gap: baseRadius + 10, placed: placedLabels,
-        stars: stars.filter((s) => s.id !== system.id), canvasWidth: width, canvasHeight: height
-      });
-      placedLabels.push(label.box);
-      ctx.fillStyle = isSelected ? "rgba(255, 255, 255, 0.95)" : "rgba(200, 220, 240, 0.8)";
-      ctx.font = nameFont;
-      ctx.fillText(system.name, label.x, label.y);
-      if (isCurrent) {
-        ctx.fillStyle = "rgba(0, 247, 255, 0.6)";
-        ctx.font = `${hereSize}px "Inter", sans-serif`;
-        ctx.fillText("YOU ARE HERE", label.x, label.y + nameSize + 2);
+
+      // Its name, and the lines under it ("YOU ARE HERE"; a locked selection's research), where the plan put them.
+      const label = labelPlan.get(system.id);
+      if (label) {
+        const entry = entryOf.get(system.id);
+        entry.lines.forEach((line, i) => {
+          ctx.fillStyle = line.color;
+          ctx.font = line.font;
+          ctx.fillText(line.text, label.x, label.y + i * (entry.size + 2));
+        });
       }
 
       state.clickTargets.push({
@@ -1056,7 +1133,12 @@ export function createStarmapController({
     }
 
     if (state.view === "cluster") {
-      detailsEl.innerHTML = detailsHtml("Star Cluster", `<p class="ui-panel__meta">Select a system to enter solar view mode.</p>`);
+      // ISP-116 (AB#808): a selected system the corporation cannot jump to says why here too, under the map; on a
+      // phone this is the only place it says so (its line is wider than a phone's canvas).
+      const lock = system && !canTravelToSystem(system.id)
+        ? `<p class="starmap__status starmap__status--locked">${escapeHtmlAttr(system.name)}: ${escapeHtmlAttr(travelLockText(system.id))}</p>`
+        : "";
+      detailsEl.innerHTML = detailsHtml("Star Cluster", `<p class="ui-panel__meta">Select a system to enter solar view mode.</p>${lock}`);
       return;
     }
 
@@ -1285,8 +1367,13 @@ export function createStarmapController({
       return;
     }
 
+    // ISP-116 (AB#808): every system, and whether the corporation can jump there or which research it needs first.
     const rows = state.systems
-      .map((system) => `<li><strong>${escapeHtmlAttr(system.name)}</strong> - ${(system.bodies || []).length} catalogued bodies.</li>`)
+      .map((system) => {
+        const research = canTravelToSystem(system.id) ? null : getNavigation().travelResearchName(researchCatalog, system.id);
+        const reach = system.id === (state.currentSystemId || "sol") ? "You are here." : research ? `Requires ${escapeHtmlAttr(research)}.` : "Reachable.";
+        return `<li data-system-id="${escapeHtmlAttr(system.id)}"><strong>${escapeHtmlAttr(system.name)}</strong> - ${(system.bodies || []).length} catalogued bodies. ${reach}</li>`;
+      })
       .join("");
 
     fallbackEl.innerHTML = `

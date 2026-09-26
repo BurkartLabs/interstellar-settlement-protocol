@@ -110,7 +110,11 @@ describe("the Starmap fits a phone's width (Bug #1315)", () => {
   it("at 292px every cluster label ends inside the canvas", () => {
     const { context, canvas } = mapAt(292, 812);
     const labels = context.labels.filter((l) => systems.some((s) => s.name === l.text) || l.text === "YOU ARE HERE");
-    expect(labels.length).toBeGreaterThanOrEqual(systems.length);
+    // ISP-116 (AB#808): on a phone the cluster names the system you are in (Sol) and its neighbours; the rest are
+    // dots, named when tapped (docs/design/starmap-20.md).
+    const sol = systems.find((s) => s.id === "sol");
+    const named = [sol, ...systems.filter((s) => (sol.adjacent || []).includes(s.id))].map((s) => s.name).sort();
+    expect(labels.filter((l) => l.text !== "YOU ARE HERE").map((l) => l.text).sort()).toEqual(named);
     for (const l of labels) {
       expect(l.x, l.text).toBeGreaterThanOrEqual(0);
       expect(l.x + l.width, l.text).toBeLessThanOrEqual(canvas.clientWidth);

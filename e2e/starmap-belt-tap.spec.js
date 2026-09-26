@@ -7,6 +7,7 @@
 // (the starmap-system-fit.spec.js pattern).
 import { test, expect } from "@playwright/test";
 import { openTab } from "./nav.mjs";
+import { tapStarByCatalog } from "./clusterStar.mjs"; // AB#808
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -54,7 +55,16 @@ const backShown = (page) => page.evaluate(() => window.__labels.some((l) => l.t.
  */
 async function openSystem(page, canvas, name) {
   const label = await lastLabel(page, name);
-  expect(label, `${name} is drawn on the cluster view`).toBeTruthy();
+  if (!label) {
+    // AB#808: a phone names only the current system, the selected one and its neighbours; the rest are dots.
+    await canvas.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await page.evaluate(() => { window.__labels = []; window.__arcs = []; });
+    await tapStarByCatalog(canvas, name);
+    await page.waitForTimeout(400);
+    expect(await backShown(page), `${name} opens from its star`).toBe(true);
+    expect(await page.locator("#map-details .ui-panel__title").textContent()).toBe(name);
+    return;
+  }
   const spots = [[-17, -1], [-20, -1], [label.w + 17, -1], [label.w + 20, -1], [label.w / 2, -26], [label.w / 2, 20]];
   // The map's back button is at its top edge, which a phone's fixed header can cover: tap with the map centred.
   await canvas.evaluate((el) => el.scrollIntoView({ block: "center" }));
