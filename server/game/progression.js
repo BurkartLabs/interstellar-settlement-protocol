@@ -3,7 +3,7 @@
 import { ECONOMY } from "../economy.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
 import { taxBreakdown } from "../../public/scripts/exchangeTax.js";
-import { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, LEVEL_UNLOCK_KEYS, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, REQ_ID_TO_TITLE, createId } from "./catalog.js";
+import { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, LEVEL_UNLOCK_KEYS, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, MINEABLE_RESOURCES, REQ_ID_TO_TITLE, createId } from "./catalog.js";
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
 // The base rate is in data/economy.json (AB#726); the ISA lease royalty adds to it by leases held (ISP-302, AB#2285);
@@ -49,7 +49,14 @@ export function refreshExchangeTax(state) {
 /** Statistics the resolver works out from other state. */
 export const DERIVED_STATS = ["officeRented", "miningLeasesCount", "missionsCompleted"];
 /** Statistics kept as counters in corp.stats, through bumpStat. */
-export const COUNTED_STATS = ["silicateSoldOnExchange", "refinedUnitsProduced", "asteroidExpeditionsCompleted"];
+export const COUNTED_STATS = Object.freeze([
+  "silicateSoldOnExchange", "refinedUnitsProduced", "asteroidExpeditionsCompleted",
+  // ISP-106 (AB#798): every contract ever completed. completedMissions keeps only the last 200, so a level past that
+  // (docs/design/ladder-11-40.md) could never be met from it; stat:missionsCompleted reads the larger of the two.
+  "missionsCompletedTotal",
+  // ISP-106 (AB#798): what returning expeditions deposit, per resource, for totalMined:<resource>.
+  ...MINEABLE_RESOURCES.map((r) => `mined:${r}`)
+]);
 export const STAT_KEYS = Object.freeze([...DERIVED_STATS, ...COUNTED_STATS]);
 /** Buildings a player can build: the names in data/player-buildings.json (AB#783). A test checks the construction
  * routes add exactly these. */
@@ -75,7 +82,11 @@ export function resolveMetric(metric, corp) {
     if (key === "officeRented") return (Array.isArray(corp.offices) && corp.offices.length > 0) ? 1 : 0;
     if (key === "miningLeasesCount") return miningLeases.length;
     // Bug #424: counted from the missions already recorded (kept to the last 200), so old saves get credit too.
-    if (key === "missionsCompleted") return Array.isArray(corp.completedMissions) ? corp.completedMissions.length : 0;
+    if (key === "missionsCompleted") {
+      // AB#798: the running total, or the recorded window for a save from before it was kept.
+      return Math.max(Array.isArray(corp.completedMissions) ? corp.completedMissions.length : 0, Number(stats.missionsCompletedTotal) || 0);
+    }
+    if (!STAT_KEYS.includes(key)) return unknownMetric(metric);
     return Number(stats[key] || 0);
   }
 
@@ -99,6 +110,15 @@ export function resolveMetric(metric, corp) {
     return buildings.some((b) => b.name === name || (Array.isArray(b.upgrades) && b.upgrades.includes(name))) ? 1 : 0;
   }
 
+  // building-tier:<id>:<n> (ISP-106, AB#798) — how many of that catalogue building are at tier n or above.
+  if (metric.startsWith("building-tier:")) {
+    const [, id, n] = metric.split(":");
+    const entry = PLAYER_BUILDING_CATALOGUE.find((b) => b.id === id);
+    const tier = Number(n);
+    if (!entry || !Number.isInteger(tier) || tier < 1) return unknownMetric(metric);
+    return buildings.filter((b) => b.name === entry.name && (Number(b.tier) || 1) >= tier).length;
+  }
+
   // building-count:<name> — count of matching buildings
   if (metric.startsWith("building-count:")) {
     const name = metric.slice(15);
@@ -111,7 +131,11 @@ export function resolveMetric(metric, corp) {
       return (corp?.mining?.silicateExtractors || [])
         .reduce((sum, ex) => sum + Number(ex?.totalMined || 0), 0);
     }
-    return 0;
+    // ISP-106 (AB#798): any other raw resource, as returning expeditions deposited it (asteroids.js bumps mined:<name>).
+    const wanted = metric.slice(11).toLowerCase();
+    const resource = MINEABLE_RESOURCES.find((r) => r.toLowerCase() === wanted);
+    if (!resource) return unknownMetric(metric);
+    return Number(stats[`mined:${resource}`] || 0);
   }
 
   // unlockedTech:<techId>
@@ -120,6 +144,18 @@ export function resolveMetric(metric, corp) {
     return unlockedTech.includes(techId) ? 1 : 0;
   }
 
+  return unknownMetric(metric);
+}
+
+// ISP-106 (AB#798): a metric the resolver does not know used to resolve to 0 in silence, so a level naming it could
+// never be reached and nothing said why (AB#424). Under tests it throws; in production it is logged once and counts 0.
+const reportedUnknownMetrics = new Set();
+function unknownMetric(metric) {
+  if (process.env.NODE_ENV === "test") throw new Error(`resolveMetric does not know "${metric}" (AB#798).`);
+  if (!reportedUnknownMetrics.has(metric)) {
+    reportedUnknownMetrics.add(metric);
+    console.warn(`[progression] unknown milestone metric "${metric}": it counts as 0 (AB#798).`);
+  }
   return 0;
 }
 
