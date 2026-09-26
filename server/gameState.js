@@ -2,7 +2,7 @@
 // This file only re-exports, so every existing import of it keeps working. New code imports the module it needs.
 
 export { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, REFINERY_CHAINS, RESEARCH_LIBRARY, SYSTEM_DETAILS, dataDir, getStationInventory } from "./game/catalog.js";
-export { PLAYER_BUILDINGS, STAT_KEYS, bumpStat, evaluateLevelProgress, fleetRaiseText, fleetStatus, getEffectiveExchangeTaxRate, levelReachedNotices, onAccountNotification } from "./game/progression.js";
+export { PLAYER_BUILDINGS, STAT_KEYS, bumpStat, evaluateLevelProgress, fleetRaiseText, fleetStatus, getEffectiveExchangeTaxRate, exchangeTaxBreakdown, refreshExchangeTax, levelReachedNotices, onAccountNotification } from "./game/progression.js";
 export { applyMiningOperations, extractorDowntimeProbPerSec, startExtractorCycle, stopExtractorCycle } from "./game/mining.js";
 export { applyRefineryOperations } from "./game/refining.js";
 export { BASE_MAX_DEPLOYMENTS, BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_ASSET_VALUE, PROBE_BUILD_COST, PROBE_FABRICATION_MS, applyAsteroidExpeditions, splitExactly } from "./game/asteroids.js";

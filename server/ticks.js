@@ -1,7 +1,7 @@
 // server/ticks.js: the background tickers: mining, refining, expeditions, fabrication, travel, shipments, research and finances, split out of server/index.js (AB#1815).
 import { SYSTEM_SENDERS } from "./corporationName.js";
 import { npcBidAfterRecovery } from "./economy.js";
-import { addAccountNotification, getAllAccountIds, getState, mutateAccountState, mutateState, addSystemMessageToAccount, getEffectiveExchangeTaxRate, applyRefineryOperations, ensureBidShape } from "./gameState.js";
+import { addAccountNotification, getAllAccountIds, getState, mutateAccountState, mutateState, addSystemMessageToAccount, refreshExchangeTax, applyRefineryOperations, ensureBidShape } from "./gameState.js";
 import { applyMiningOperations, getStationInventory } from "./gameState.js";
 import { applyAsteroidExpeditions, EXPEDITION_DURATIONS, PROBE_ASSET_VALUE } from "./gameState.js";
 // Bug #1097: payroll is settled on this same 5-second tick, for every account, online or not.
@@ -307,8 +307,8 @@ function processCeoInsightCompletions() {
         }
       }
 
-      // Recalculate effective tax rate after insight completions
-      state.corp.finances.exchangeSalesTaxPct = getEffectiveExchangeTaxRate(state);
+      // Recalculate the effective tax rate and its breakdown after insight completions (ISP-302, AB#2285)
+      refreshExchangeTax(state);
 
       state.queues.ceoInsight = queue.filter(
         (item) => !completedItems.some((c) => c.id === item.id)

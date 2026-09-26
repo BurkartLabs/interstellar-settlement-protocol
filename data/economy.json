@@ -7,6 +7,9 @@
     "rentPerDay": 1000,
     "termDays": [7, 14, 21, 28]
   },
+  "leases": {
+    "royaltyPointsByLeasesHeld": { "2": 1, "3": 2, "5": 3 }
+  },
   "buildings": {
     "extractorYardCost": 50000,
     "extractorYardAssetValue": 36000,

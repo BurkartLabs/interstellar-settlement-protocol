@@ -4,7 +4,9 @@ import { bodyCount } from "../bodyNumber.js";
 import { randomUUID } from "node:crypto";
 import { npcBidFor } from "../economy.js";
 import { accountActionLimiter } from "../rateLimiters.js";
-import { addAccountNotification, getAccountById, getState, mutateAccountState, mutateState, getEffectiveExchangeTaxRate, ensureBidShape } from "../gameState.js";
+import { addAccountNotification, getAccountById, getState, mutateAccountState, mutateState, ensureBidShape } from "../gameState.js";
+import { exchangeTaxBreakdown } from "../game/progression.js"; // ISP-302 (AB#2285): the rate and its royalty share
+import { taxOnSale } from "../../public/scripts/exchangeTax.js";
 import { getStationInventory } from "../gameState.js";
 import { applyCredits } from "../finances.js";
 // Bug #1325: each side of a sale is named to the other as the order book names a seller: the corporation name, or
@@ -215,13 +217,15 @@ export function registerMarketRoutes(app) {
     let sale = null; // what the seller is told (Bug #1167): the same facts as their Sold row, nothing of the buyer's but a name
     if (order.sellerAccountId) {
       mutateAccountState(order.sellerAccountId, (state) => {
-        const taxPct = getEffectiveExchangeTaxRate(state);
-        const taxAmount = Math.round(tradeTotal * taxPct / 100);
-        const sellerProceeds = tradeTotal - taxAmount;
+        // ISP-302 (AB#2285): the rate includes the lease royalty; its share is booked apart, as "lease-royalty".
+        const breakdown = exchangeTaxBreakdown(state);
+        const taxPct = breakdown.ratePct;
+        const { tax: taxAmount, royalty, salesTax, proceeds: sellerProceeds } = taxOnSale(tradeTotal, breakdown);
         sale = { taxPct, taxAmount, proceeds: sellerProceeds, buyer: publicName(buyerAccount.state?.corp?.corporationName) };
         // Bug #984: the gross the buyer paid is income and the tax an expense; the balance moves by the proceeds.
         applyCredits(state.corp, tradeTotal, "exchange");
-        applyCredits(state.corp, -taxAmount, "exchange-tax");
+        applyCredits(state.corp, -salesTax, "exchange-tax");
+        applyCredits(state.corp, -royalty, "lease-royalty");
 
         if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
         state.corp.tradeHistory.unshift({
@@ -357,15 +361,17 @@ export function registerMarketRoutes(app) {
       inventory[npcOrder.item] = available - requestedQty;
       if (inventory[npcOrder.item] <= 0) delete inventory[npcOrder.item];
 
-      const taxPct = getEffectiveExchangeTaxRate(state);
-      const taxAmount = Math.round(tradeTotal * taxPct / 100);
-      const sellerProceeds = tradeTotal - taxAmount;
+      // ISP-302 (AB#2285): the rate includes the lease royalty; its share is booked apart, as "lease-royalty".
+      const breakdown = exchangeTaxBreakdown(state);
+      const taxPct = breakdown.ratePct;
+      const { tax: taxAmount, royalty, salesTax, proceeds: sellerProceeds } = taxOnSale(tradeTotal, breakdown);
       tradeTaxPct = taxPct;
       tradeTaxAmount = taxAmount;
       tradeProceeds = sellerProceeds;
       // Bug #984: the gross the NPC paid is income and the tax an expense; the balance moves by the proceeds.
       applyCredits(state.corp, tradeTotal, "exchange");
-      applyCredits(state.corp, -taxAmount, "exchange-tax");
+      applyCredits(state.corp, -salesTax, "exchange-tax");
+      applyCredits(state.corp, -royalty, "lease-royalty");
 
       if (!state.corp.stats) state.corp.stats = {};
       state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
