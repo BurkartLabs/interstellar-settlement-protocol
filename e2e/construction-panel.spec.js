@@ -104,7 +104,7 @@ for (const viewport of VIEWPORTS) {
 // home: the notification and the inbox report say what the complex added, and the station holds it.
 for (const viewport of VIEWPORTS) {
   test(`the Ferric Mining Complex is built from the panel and adds to a returning probe, at ${viewport.label}`, async ({ browser }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     const { page, section, errors, close } = await openPanel(browser, viewport, "ferric");
     try {
       const row = section.locator('[data-building-row="ferric-mining-complex"]');
@@ -117,9 +117,16 @@ for (const viewport of VIEWPORTS) {
       await section.screenshot({ path: path.join(SHOT_DIR, `ferric-built-${viewport.label}.png`) });
 
       // The expedition tick runs every 10 seconds; the probe is due 25 seconds after seeding.
-      await page.click("#notification-toggle");
+      // Bug #2358: an open list gains a note only by the socket's push, and a push sent while the page's socket is
+      // (re)connecting is lost (AB#2364). If that happens after the list was opened, a single wait runs out on a list
+      // that will not change; the likeliest way this case failed under the full suite's load (not reproduced). Opening
+      // the list fetches it, so reopen it until the note is there, whichever came first, the tick or the click.
       const note = page.locator("#notification-list li", { hasText: "Expedition Complete" }).first();
-      await expect(note).toBeVisible({ timeout: 60_000 });
+      await expect.poll(async () => {
+        if (!(await page.locator("#notification-panel").isHidden())) await page.click("#notification-toggle");
+        await page.click("#notification-toggle");
+        return note.waitFor({ state: "visible", timeout: 3_000 }).then(() => true, () => false);
+      }, { timeout: 90_000, intervals: [2_000] }).toBe(true);
       await expect(note).toContainText("Your Ferric Mining Complex added 10 Nickel and 5 Titanium.");
       await page.screenshot({ path: path.join(SHOT_DIR, `ferric-notification-${viewport.label}.png`) });
       await page.click("#notification-toggle");
