@@ -5,100 +5,15 @@ import { applyCredits } from "../finances.js";
 // AB#1255: the run-size rule the Refinery Chains form uses too; imported here beside its use.
 import { refineQuantityCheck } from "../../public/scripts/refineQuantity.js";
 import { emitToAccount } from "../realtime.js";
-import { corpSlotsFull, fundingRequirementMessage } from "./helpers.js";
-// AB#783: the Refinery's cost, asset value, research and cap come from data/player-buildings.json.
-import { catalogueRefusal, playerBuilding } from "../playerBuildings.js";
-
-const REFINERY = playerBuilding("refinery");
-import { buildRefineryReceipt, startRefineryReceipt } from "../receipts.js"; // AB#744
+// ISP-94 (AB#784): buildHandler builds a refinery, as it builds every player building (server/construction.js).
+import { buildHandler } from "./helpers.js";
+import { startRefineryReceipt } from "../receipts.js"; // AB#744
 
 export function registerRefiningRoutes(app) {
   // ─── Refinery ────────────────────────────────────────────────────────────────
 
-  app.post("/api/accounts/:accountId/gameplay/build-refinery", (req, res) => {
-    const BUILD_COST = REFINERY.cost;
-    const ASSET_VALUE = REFINERY.assetValue;
-    let outcome = "ok";
-
-    const account = mutateAccountState(req.params.accountId, (state) => {
-      const corp = state.corp;
-
-      // Both research gates, then the cap on concurrent refineries (each runs one chain in parallel).
-      const refused = catalogueRefusal(REFINERY, corp);
-      if (refused) {
-        outcome = refused === "at-cap" ? "max-refineries" : refused;
-        return;
-      }
-
-      if ((corp.buildings || []).length >= (corp.buildingSlots || 2)) {
-        outcome = "no-slot";
-        return;
-      }
-
-      if ((corp.finances.credits || 0) < BUILD_COST) {
-        outcome = "insufficient-credits";
-        return;
-      }
-
-      if (!Array.isArray(corp.buildings)) corp.buildings = [];
-      corp.buildings.push({ name: "Refinery", tier: 1, status: "Operational" }); // the catalogue name; a test holds them equal
-
-      if (!Array.isArray(corp.refineries)) corp.refineries = [];
-      const nextIndex = corp.refineries.length + 1;
-      corp.refineries.push({
-        id: `ref-${nextIndex}`,
-        name: `Refinery #${nextIndex}`,
-        tier: 1,
-        active: false,
-        chainId: null,
-        startedAt: null,
-        lastTickAt: null,
-        endsAt: null,
-        cyclesCompleted: 0,
-        totalInputConsumed: 0,
-        totalOutputProduced: 0
-      });
-
-      applyCredits(corp, -BUILD_COST, "construction");
-      corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
-    });
-
-    if (!account) {
-      res.status(404).json({ error: "Account not found." });
-      return;
-    }
-
-    if (outcome !== "ok") {
-      const corp = account.state.corp;
-      const messageMap = {
-        "missing-research": "Refinery construction requires Material Compression I and Nano-Lattice Weaving research.",
-        "max-refineries": `You already operate the maximum of ${REFINERY.cap.perCorporation} refineries.`,
-        "no-slot": `A refinery needs a free building slot. ${corpSlotsFull(corp)}`,
-        "insufficient-credits": fundingRequirementMessage("Refinery construction", corp, BUILD_COST)
-      };
-      res.status(400).json({ error: messageMap[outcome] || "Build action failed." });
-      return;
-    }
-
-    const notification = addAccountNotification(req.params.accountId, {
-      type: "infrastructure",
-      title: "Refinery Commissioned",
-      body: "A new Refinery is now operational and ready for production runs."
-    });
-    if (notification) {
-      emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
-    }
-
-    // AB#744: what was built and what it took, from the corporation the mutation left.
-    const built = account.state.corp;
-    const receipt = buildRefineryReceipt({
-      refineryName: built.refineries[built.refineries.length - 1]?.name || "Refinery",
-      cost: BUILD_COST,
-      slotsUsed: (built.buildings || []).length,
-      slotsTotal: built.buildingSlots || 2
-    });
-    res.json({ ...account, receipt });
-  });
+  // ISP-94 (AB#784): POST /gameplay/build with the Refinery (server/routes/construction.js).
+  app.post("/api/accounts/:accountId/gameplay/build-refinery", buildHandler(() => ({ buildingId: "refinery" })));
 
   app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
     const refineryId = String(req.body?.refineryId || "").trim();

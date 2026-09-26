@@ -31,6 +31,18 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 - `e2e/app-shell.spec.js` measures both layouts, the bar's 44px tabs, no sideways scroll, the last content clear of the
   bar, a tab pressed in the bar, the focus ring on every tab, and reduced motion. Screens in `docs/ab-763/`.
 
+## What's now true (ISP-94, AB#784 — one build endpoint for every player building, Builder)
+
+- `POST /api/accounts/:accountId/gameplay/build` with `{ buildingId, leaseId? }`. `server/gameplayInput.js` checks the
+  id against the catalogue and the lease against the caller's own; `server/construction.js` checks the lease, research
+  gates and cap, lease slots, a corporation slot and the price, and writes nothing until all pass. `buildHandler`
+  (`server/routes/helpers.js`, because route modules may import only the helpers) answers in each old route's words.
+- `build-extractor`, `build-assembly-facility` and `build-refinery` are that handler with the building fixed; the client
+  is unchanged. `build-mining-probe` is not: it fabricates a vessel, not a building, and is not in the catalogue.
+- **A new building is a catalogue entry plus its `CONSTRUCTIONS` entry** (what it adds, notification, receipt). An entry
+  without one is refused, not built bare (fails closed). ISP-96 (AB#786, Ferric Mining Complex) is the first to use it.
+- `tests/integration/build-endpoint.test.js`: state and receipt parity with each old route, each refusal byte-identical
+  before and after, hostile values, 401/403, the snapshot on disk.
 ## What's now true (AB#762 — ISP-73, the data components on /styleguide)
 
 - `/styleguide` has seven data sections after the core ones: a table that is cards below 768px (`.ui-table`, each
@@ -67,7 +79,7 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   `server/playerBuildings.js`. Each entry names its price, which stays in `data/economy.json` (the balance file,
   AB#726). The three build routes read cost, asset value, research and cap from it through `catalogueRefusal`, and
   `PLAYER_BUILDINGS` is its names. `/api/bootstrap` serves it as `playerBuildings`.
-- **A new building is an entry plus a route**, and `tests/schema/player-buildings.test.js` fails if the entry names
+- **A new building was an entry plus a route** (since ISP-94, an entry plus its construction), and `tests/schema/player-buildings.test.js` fails if the entry names
   research that does not exist or a milestone names a building it lacks.
 - `tests/integration/player-buildings-parity.test.js` pins every cost, asset, slot and refusal the routes had
   before the move. It passed on main before the change and passes after.

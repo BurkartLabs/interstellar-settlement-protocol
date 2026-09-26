@@ -81,21 +81,27 @@ describe("data/player-buildings.json (AB#783)", () => {
     }
   });
 
-  it("the build handlers read the catalogue: no cost literal and no ECONOMY.buildings price in them", () => {
+  it("the build path reads the catalogue: no cost literal and no ECONOMY.buildings price in it", () => {
+    // ISP-94 (AB#784): one build path for every building, server/construction.js and buildHandler in server/routes/helpers.js.
+    for (const file of ["server/construction.js", "server/routes/helpers.js"]) {
+      const code = fs.readFileSync(path.join(root, file), "utf8");
+      expect(code, file).not.toMatch(/\b(50|60|75)_?000\b/);
+      expect(code, file).not.toMatch(/ECONOMY\.buildings\.\w+(Cost|AssetValue)/);
+    }
+    expect(fs.readFileSync(path.join(root, "server/routes/helpers.js"), "utf8")).toMatch(/PLAYER_BUILDING_CATALOGUE\.find\(/);
+    // Each old route is that handler with its building fixed, and nothing of its own.
     const handlers = [
-      ["server/routes/mining.js", "/lease/:leaseId/build-extractor"],
-      ["server/routes/asteroids.js", "/build-assembly-facility"],
-      ["server/routes/refining.js", "/build-refinery"]
+      ["server/routes/mining.js", "/lease/:leaseId/build-extractor", "basic-extractor-yard"],
+      ["server/routes/asteroids.js", "/build-assembly-facility", "assembly-facility"],
+      ["server/routes/refining.js", "/build-refinery", "refinery"]
     ];
-    for (const [file, route] of handlers) {
+    for (const [file, route, id] of handlers) {
       const code = fs.readFileSync(path.join(root, file), "utf8");
       const start = code.indexOf(`gameplay${route}"`);
       expect(start, `${file} registers ${route}`).toBeGreaterThan(0);
-      const next = code.indexOf("app.post(", start);
-      const handler = code.slice(start, next < 0 ? undefined : next);
-      expect(handler, file).not.toMatch(/\b(50|60|75)_?000\b/);
-      expect(handler, file).not.toMatch(/ECONOMY\.buildings\.\w+(Cost|AssetValue)/);
-      expect(code, file).toMatch(/playerBuilding\("/);
+      const line = code.slice(start, code.indexOf("\n", start));
+      expect(line, file).toContain("buildHandler(");
+      expect(line, file).toContain(`buildingId: "${id}"`);
     }
   });
 });

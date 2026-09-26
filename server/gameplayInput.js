@@ -67,6 +67,13 @@ export const GAMEPLAY_INPUT = {
   "POST /build-assembly-facility": NOTHING,
   "POST /build-mining-probe": NOTHING,
   "POST /build-refinery": NOTHING,
+  // ISP-94 (AB#784): the one build route. A lease only for a building that stands on one; the route refuses the rest.
+  "POST /build": {
+    body: {
+      buildingId: id("playerBuildings", "a building from the construction list"),
+      leaseId: id("ownLeases", "one of your mining leases", { optional: true })
+    }
+  },
   "GET /belt-compositions": NOTHING,
   "POST /scout-belt": { body: { beltKey: id("belts", "an asteroid belt") } },
   "POST /launch-expedition": {
