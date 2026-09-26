@@ -134,7 +134,11 @@ describe("the production-chain bot plays a week through the routes (AB#835)", ()
   }, 120_000);
 });
 
-describe.runIf(FULL)("the production-chain probe, every track (AB#835)", () => {
+// AB#2144: not requested means not collected. `describe.runIf` would report these tests as skipped, and `npm test`
+// fails any test that did not run (scripts/strict-pass.mjs), because a skip is how a file that never booted looks.
+const describeFull = FULL ? describe : () => {};
+
+describeFull("the production-chain probe, every track (AB#835)", () => {
   let tier1;
   beforeAll(async () => {
     vi.useFakeTimers({ toFake: ["Date"] });

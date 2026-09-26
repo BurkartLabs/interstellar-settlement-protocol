@@ -14,6 +14,9 @@ test_output*
 *.log
 e2e/screenshots/
 test-results/
+# scripts/test-strict.mjs writes these during a run and deletes them after
+.vitest-results.json
+.vitest-hook-errors.json
 
 # Local account snapshots. Never commit these: the copy that was in git history held 129 accounts with
 # password hashes and refresh tokens, including two real addresses, in a public repository (Orchestrata AB#415).
