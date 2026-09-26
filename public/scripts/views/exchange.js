@@ -165,6 +165,7 @@ export function renderMarket(data) {
         const exhausted = order.remainingQty <= 0;
         const total = Math.max(0, Number(order.totalQtyPerDay) || 0);
         const sold = Math.max(0, total - Math.max(0, Number(order.remainingQty) || 0));
+        const boughtLabel = `${sold.toLocaleString()} of ${total.toLocaleString()} bought today`;
         return `
           <tr${exhausted ? ' class="ui-table__muted"' : ""}>
             <td>${escapeHtml(order.item)}</td>
@@ -180,7 +181,7 @@ export function renderMarket(data) {
             </td>
             <td>
               <span class="exchange__remaining"><span class="ui-figure">${Number(order.remainingQty).toLocaleString()} / ${total.toLocaleString()}</span>
-              <progress class="exchange__fill" max="${total || 1}" value="${sold}" aria-label="${sold.toLocaleString()} of ${total.toLocaleString()} bought today"></progress></span>
+              <progress class="exchange__fill" max="${total || 1}" value="${sold}" aria-label="${boughtLabel}"></progress></span>
             </td>
             <td>
               <input class="ui-input exchange__qty" type="number" min="1" max="${Number(order.remainingQty)}" value="1" aria-label="Quantity of ${escapeHtml(order.item)} to sell" data-npc-sell-qty="${order.id}" ${exhausted ? "disabled" : ""} />

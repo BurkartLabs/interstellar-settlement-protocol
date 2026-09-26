@@ -6239,6 +6239,7 @@ img.station__body {
 .exchange__row-status {
   font-size: var(--font-size-2);
   color: var(--text-soft);
+  scroll-margin: var(--space-6) 0; /* AB#2057: revealed with room around it, not at the viewport's edge */
 }
 .exchange__row-status--error {
   color: var(--danger);

@@ -48,7 +48,8 @@ describe("after the local lease, ISA Claims says where the others are filed (Bug
 describe("the Exchange's empty inventory names how to get goods (Bug #1060)", () => {
   it("points at ISA Claims & Leases", () => {
     const html = readFileSync(new URL("../../public/index.html", import.meta.url), "utf8");
-    const line = html.match(/<p id="market-sell-empty"[^>]*>([^<]*)<\/p>/)[1];
+    // ISP-80 (AB#769): a design-system empty state; the way to get goods is its why line.
+    const line = html.match(/<div id="market-sell-empty"[^>]*>.*?<p class="ui-state__why">([^<]*)<\/p>/)[1];
     expect(line).not.toBe("You have no items in inventory to list.");
     expect(line).toMatch(/ISA Claims &amp; Leases/);
   });

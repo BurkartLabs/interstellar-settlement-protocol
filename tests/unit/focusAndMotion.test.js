@@ -97,7 +97,7 @@ describe("reduced motion (AB#1760)", () => {
     const moving = RULES.filter((r) => !/prefers-reduced-motion/.test(r.media))
       .flatMap((r) => decls(r.body).filter((d) => /^(animation|transition)(-|$)/.test(d.prop)).map((d) => ({ ...d, where: r.selectors.join(", ") })));
     expect(moving.filter((d) => /^animation/.test(d.prop)).length).toBeGreaterThan(10);
-    expect(moving.filter((d) => /^transition/.test(d.prop)).length).toBeGreaterThanOrEqual(30); // ISP-78 (AB#767) removed the Station's old two
+    expect(moving.filter((d) => /^transition/.test(d.prop)).length).toBeGreaterThanOrEqual(28); // ISP-78 (AB#767) removed the Station's old two; ISP-80 (AB#769) the Exchange's filter pills'
     expect(moving.filter((d) => /!important/.test(d.value)).map((d) => `${d.where} { ${d.prop} }`)).toEqual([]);
   });
 

@@ -18,6 +18,20 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (ISP-80, AB#769 — the Galactic Exchange on the design system, Builder)
+
+- The Exchange (order book, standing buy orders, my listings, trade history, price chart, filters) is ui-screen,
+  ui-panel, ui-table, ui-input, ui-button, ui-tabs, ui-state and ui-badge, in the flat direction (Decision AB#1801),
+  plus a few `exchange__*` layout classes in tokens. Its old classes are gone (`tests/unit/exchangeScreen.test.js`).
+  Clicks find buttons by their data attributes (`[data-npc-item]`, `[data-buy-order-id]`, `[data-cancel-order-id]`,
+  `[data-filter]`, `[data-clear-filters]`); the walkthrough and specs follow.
+- **Every Exchange table is cards when its own container is under 720px**, not only below 768px: at 768 with the side
+  menu the column is about 420px and the tables spilled their panels, scrolling the screen sideways inside a page that
+  did not. `e2e/exchange-screen.spec.js` fails on a panel wider than its room and on content past a card's edge.
+- The docked-at banner is still the shared legacy one (views/shared.js); on this screen its text is raised to 14px on
+  a phone. `.ui-tab` is at least 44px wide on a phone (design system).
+- Screens: `docs/ab-769/`, each section at 375, 768 and 1280, from a seeded book (`e2e/seed-exchange-account.mjs`).
+
 ## What's now true (AB#766 — ISP-77, Overview, Inbox and the Financial Core on the design system)
 
 - The Company group's three screens are `.ui-screen` tab panels built from the design system in the flat direction

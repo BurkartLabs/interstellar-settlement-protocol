@@ -43,7 +43,7 @@ function startServer(dir) {
 
 async function openCreateListing(page) {
   await openTab(page, "market");
-  const card = page.locator("section.form-card", { has: page.locator("#market-sell-grid") });
+  const card = page.locator("#exchange-listing-section");
   await expect(card).toBeVisible();
   await card.scrollIntoViewIfNeeded();
   return card;
