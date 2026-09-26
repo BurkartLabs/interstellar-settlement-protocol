@@ -1,6 +1,6 @@
 // server/routes/mining.js: the mining routes, split out of server/index.js (AB#1815).
 import { bodyNumber } from "../bodyNumber.js";
-import { operationCostPerHourFor, startupCostFor } from "../economy.js";
+import { operationCostPerHourFor, startupCostFor, yardUpkeepPerHourFor } from "../economy.js";
 import { addAccountNotification, mutateAccountState } from "../gameState.js";
 import { startExtractorCycle, stopExtractorCycle } from "../gameState.js"; // AB#575, AB#1052
 import { applyCredits } from "../finances.js";
@@ -78,9 +78,13 @@ export function registerMiningRoutes(app) {
 
       let throughputPerHour = Math.max(10, Math.min(250, amount));
       if (!Number.isFinite(throughputPerHour) || throughputPerHour <= 0) throughputPerHour = 40;
-      let operationCostPerHour = operationCostPerHourFor(throughputPerHour);
-      if (!Number.isFinite(operationCostPerHour) || operationCostPerHour <= 0) operationCostPerHour = 640;
-      const startupCost = startupCostFor(operationCostPerHour);
+      // ISP-301 (AB#2284): yards after the corporation's first pay upkeep while they run. The startup is priced on the
+      // running cost without it, so the upkeep is only ever charged by the hour.
+      const yardIndex = corp.mining.silicateExtractors.indexOf(extractorCycle);
+      let baseCostPerHour = operationCostPerHourFor(throughputPerHour);
+      if (!Number.isFinite(baseCostPerHour) || baseCostPerHour <= 0) baseCostPerHour = 640;
+      const operationCostPerHour = baseCostPerHour + yardUpkeepPerHourFor(yardIndex);
+      const startupCost = startupCostFor(baseCostPerHour);
 
       if ((corp.finances.credits || 0) < startupCost) {
         outcome = "insufficient-credits";

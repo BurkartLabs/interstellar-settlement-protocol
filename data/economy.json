@@ -14,7 +14,8 @@
     "assemblyFacilityAssetValue": 40000,
     "refineryCost": 75000,
     "refineryAssetValue": 55000,
-    "supplyForecastCostMultiplier": 0.94
+    "supplyForecastCostMultiplier": 0.94,
+    "extractorYardUpkeepPctPerDay": 2
   },
   "operations": {
     "costPerThroughputUnit": 16,

@@ -70,7 +70,7 @@ export function ensureCorpMiningModel(corp) {
     // Only auto-fix throughput/cost if NOT active
     if (!extractor.active) {
       if (throughput <= 0) throughput = 40;
-      if (operationCost <= 0) operationCost = operationCostPerHourFor(throughput);
+      if (operationCost <= 0) operationCost = operationCostPerHourFor(throughput, undefined, { yardIndex: index }); // AB#2284
     }
     const normalized = {
       id: String(extractor.id || `ext-basic-${index + 1}`),
