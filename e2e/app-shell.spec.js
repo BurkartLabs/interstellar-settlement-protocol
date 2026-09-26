@@ -7,6 +7,7 @@
 //
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/app-shell.spec.js`.
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import path from "node:path";
 
 const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-763");
@@ -41,7 +42,7 @@ test.describe("at 1280x800", () => {
     expect(nav.position).toBe("static");
     expect(nav.right).toBeLessThanOrEqual(main.left);
     expect(side.top).toBeGreaterThanOrEqual(nav.bottom);
-    const tabs = await page.locator(".app-nav .tab-btn:visible").evaluateAll((els) => els.map((e) => e.getBoundingClientRect().left));
+    const tabs = await page.locator(".app-nav .nav-tab:visible").evaluateAll((els) => els.map((e) => e.getBoundingClientRect().left));
     expect(new Set(tabs.map(Math.round)).size, "one column, every tab at the same left edge").toBe(1);
     await page.screenshot({ path: path.join(SHOT_DIR, "overview-1280x800.png") });
   });
@@ -59,7 +60,7 @@ test.describe("at 375x812", () => {
     expect(Math.round(nav.width)).toBe(375);
     const main = await box(page.locator(".main-panel"));
     expect(main.width).toBeGreaterThan(375 - 2 * 16 - 1);
-    const short = await page.locator(".app-nav .tab-btn:visible").evaluateAll((els) =>
+    const short = await page.locator(".app-nav .nav-tab:visible").evaluateAll((els) =>
       els.map((e) => ({ t: e.textContent.trim(), h: e.getBoundingClientRect().height })).filter((x) => x.h < 44).map((x) => `${x.t} ${x.h}`)
     );
     expect(short).toEqual([]);
@@ -71,26 +72,29 @@ test.describe("at 375x812", () => {
       // #game-shell is 100vh and the grid overflows it, so the page is what scrolls; scroll both to their end.
       for (const el of [document.getElementById("game-shell"), document.scrollingElement]) el.scrollTop = el.scrollHeight;
       const panel = document.querySelector(".tab-panel.active");
-      return panel.getBoundingClientRect().bottom;
+      // ISP-75: the open group's row of tabs sits above the bar, so what must stay clear is the higher of the two.
+      const row = [...document.querySelectorAll(".app-nav .nav-group__tabs")].find((r) => r.getBoundingClientRect().height > 0);
+      const top = Math.min(document.querySelector(".app-nav").getBoundingClientRect().top, row ? row.getBoundingClientRect().top : Infinity);
+      return { bottom: panel.getBoundingClientRect().bottom, top };
     });
-    expect(last).toBeLessThanOrEqual(nav.top + 1);
+    expect(last.bottom).toBeLessThanOrEqual(last.top + 1);
     await page.screenshot({ path: path.join(SHOT_DIR, "overview-375x812-end.png") });
 
     // A tab pressed in the bar opens its panel.
-    await page.locator('.app-nav .tab-btn[data-tab="station"]').click();
+    await openTab(page, "station");
     await expect(page.locator("#station")).toHaveClass(/active/);
   });
 });
 
 for (const [width, height] of [[1280, 800], [375, 812]]) {
-  test(`every tab in the navigation shows the focus ring from the keyboard, at ${width}x${height}`, async ({ page }) => {
+  test(`every group and tab in the navigation shows the focus ring from the keyboard, at ${width}x${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await register(page);
-    // Arrive by the keyboard, so :focus-visible applies as it does for a player: onto Inbox and back to Overview.
-    await page.locator('.app-nav .tab-btn[data-tab="overview"]').focus();
+    // Arrive by the keyboard, so :focus-visible applies as it does for a player: onto Overview and back to Company.
+    await page.locator('.app-nav .nav-group__button[data-group="company"]').focus();
     await page.keyboard.press("Tab");
     await page.keyboard.press("Shift+Tab");
-    const count = await page.locator(".app-nav .tab-btn:visible:not(:disabled)").count();
+    const count = await page.locator(".app-nav button:visible:not(:disabled)").count();
     const bad = [];
     for (let i = 0; i < count; i += 1) {
       const f = await page.evaluate(() => {
@@ -108,7 +112,7 @@ for (const [width, height] of [[1280, 800], [375, 812]]) {
 
 test("with reduced motion, the navigation's transitions finish at once, and without it they do not", async ({ page }) => {
   await register(page);
-  const duration = () => page.locator(".app-nav .tab-btn").first().evaluate((el) => getComputedStyle(el).transitionDuration);
+  const duration = () => page.locator(".app-nav .nav-tab").first().evaluate((el) => getComputedStyle(el).transitionDuration);
   // The global reduced-motion rule sets 0.01ms on every element (styles.css, "Focus and motion"); the control shows
   // the rule is what set it, so this cannot pass on a button that simply has no transition.
   expect(await duration()).not.toBe("1e-05s");

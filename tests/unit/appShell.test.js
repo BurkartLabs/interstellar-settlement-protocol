@@ -23,19 +23,19 @@ const mediaBlocks = () =>
     }
     return { query: m[1].trim(), body: CSS.slice(start, i - 1) };
   });
-const SHELL = /\.(layout-grid|app-nav|tab-nav|side-panel|main-panel)\b/;
+const SHELL = /\.(layout-grid|app-nav|nav-group|nav-tab|side-panel|main-panel)\b/;
 
 describe("the app shell (ISP-74)", () => {
   it("the navigation is the grid's own first child, not a row inside the content, and outside <main>", () => {
     const grid = HTML.indexOf('<div class="layout-grid">');
-    const nav = HTML.indexOf('<nav class="tab-nav app-nav" aria-label="Game modules">');
+    const nav = HTML.indexOf('<nav class="app-nav" aria-label="Game modules">');
     expect(grid).toBeGreaterThan(-1);
     expect(nav).toBeGreaterThan(grid);
     expect(HTML.slice(grid, nav).replace(/<!--[\s\S]*?-->/g, "").trim()).toBe('<div class="layout-grid">');
     expect(nav).toBeLessThan(HTML.indexOf('<aside class="side-panel">'));
     // <main> is the content alone: the bar is fixed to the screen, and nothing fixed may sit in <main> (Bug AB#1832).
     expect(HTML.indexOf('<main class="main-panel">')).toBeGreaterThan(HTML.indexOf('<aside class="side-panel">'));
-    expect(HTML.slice(HTML.indexOf('<main class="main-panel">'))).not.toContain('class="tab-nav');
+    expect(HTML.slice(HTML.indexOf('<main class="main-panel">'))).not.toContain('class="app-nav');
   });
 
   it("on a desktop, the navigation and the side panel share a column beside the content", () => {
@@ -50,7 +50,11 @@ describe("the app shell (ISP-74)", () => {
     const phone = shell[0].body;
     expect(phone).toMatch(/\.layout-grid {[^}]*grid-template-areas:\s*"side"\s*"main";/);
     expect(phone).toMatch(/\.app-nav {[^}]*position: fixed;[^}]*bottom: 0;/);
-    expect(phone).toMatch(/\.app-nav \.tab-btn {[^}]*min-height: 44px;/);
+    // ISP-75: the six group buttons are the bar and never scroll; each group button and each tab is 44px.
+    expect(phone).toMatch(/\.app-nav {[^}]*display: flex;[^}]*flex-direction: row;/);
+    expect(phone).not.toMatch(/\.app-nav {[^}]*overflow-x/);
+    expect(phone).toMatch(/\.nav-group__button {[^}]*min-height: 44px;/);
+    expect(phone).toMatch(/\.nav-tab {[^}]*min-height: 44px;/);
     // Room under the content and under the briefing card for the bar, so neither ends up beneath it.
     expect(phone).toMatch(/\.layout-grid {[^}]*padding-bottom: calc\(/);
     expect(phone).toMatch(/#walkthrough-modal {[^}]*padding-bottom: calc\(/);
