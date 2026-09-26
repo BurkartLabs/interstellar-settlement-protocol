@@ -178,9 +178,10 @@ for (const viewport of VIEWPORTS) {
 // counts its slot, and quotes the Luna yard's hour at 1.2 times the revenue. (What the mining tick deposits at 1.2 times is
 // tests/integration/cryo-vapor-array.test.js: seconds at 40 t/h mine no whole tonne, so a playtest cannot see it.)
 async function openLunaLease(page) {
-  await page.click('.tab-btn[data-tab="station"]');
+  await openTab(page, "station"); // AB#764: tabs sit in groups; the helper opens the group first
   await page.click('[data-building-action="building:isa-claims-leases"]');
   await page.click('.lease-manage-btn[data-lease-id="lease-luna-qa"]');
+  await expect(page.locator("#station-building-view")).toContainText("Mining Lease — Luna");
   const line = page.locator(".lease-mine-projection").first();
   await expect(line).toContainText("earns");
   return Number((await line.innerText()).match(/earns \$([\d,]+)\/hour/)[1].replace(/,/g, ""));

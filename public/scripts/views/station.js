@@ -715,7 +715,7 @@ export function renderLeaseManagement(building, lease, data) {
     // ISP-103 (AB#795): a yard being upgraded is offline; the upgrade control says until when.
     const upgrading = Number(ex.upgradingUntil) > Date.now();
     const mineFormVisible = !ex.active && !ex.downtimeActive && !upgrading;
-    const upgradeHtml = yardUpgradeHtml(yardUpgradeView(ex, data.corp, appState.economy, { efficiency: miningEfficiencyOf(data.corp) }), ex.id);
+    const upgradeHtml = yardUpgradeHtml(yardUpgradeView(ex, data.corp, appState.economy, { efficiency: extractorEfficiency(data.corp, ex) }), ex.id);
     extractorRows += `
       <div class="extractor-row ${statusClass}" data-live-ex="${escapeHtml(ex.id)}" data-live-state="${extractorState(ex)}">
         <div class="extractor-row-header">
@@ -930,7 +930,7 @@ export function bindLeaseManagementActions(building, lease, data) {
       const extractorId = btn.getAttribute("data-extractor-id");
       const buildingId = btn.getAttribute("data-upgrade-building");
       const ex = (appState.data?.corp?.mining?.silicateExtractors || []).find((e) => e.id === extractorId);
-      const view = ex ? yardUpgradeView(ex, appState.data.corp, appState.economy, { efficiency: miningEfficiencyOf(appState.data.corp) }) : null;
+      const view = ex ? yardUpgradeView(ex, appState.data.corp, appState.economy, { efficiency: extractorEfficiency(appState.data.corp, ex) }) : null;
       const statusEl = document.querySelector(`.yard-upgrade-status[data-for="${CSS.escape(extractorId)}"]`);
       if (!view?.next || view.locked || view.blocked || !appState.accountId) return;
       const { next } = view;
@@ -1296,6 +1296,11 @@ export function mineProjectionText(rate, extractorId) {
     + (best.throughputPerHour === rate
       ? "That is the best rate for your research."
       : `Best for your research: ${best.throughputPerHour} t/h, netting ${toCurrency(best.profitPerHour)}/hour.`);
+}
+
+/** What an hour on this extractor's lease is multiplied by: research and the lease's Cryo-vapor Extractor Array (ISP-98). */
+export function extractorEfficiency(corp, ex) {
+  return miningEfficiency(corp, (corp?.miningLeases || []).find((l) => l.id === ex?.leaseId), appState.economy?.buildings);
 }
 
 /** An extractor's place among the corporation's yards, in build order: 0 is its first, -1 when it is not found. */
