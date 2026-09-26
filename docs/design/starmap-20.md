@@ -102,7 +102,7 @@ tier 3 rare or exotic, tier 4 exotic), because rarity is the one trait the game 
 | Kapteyn's Star | A halo drifter with no authority: salvage law applies. | Kapteyn b (Planet); Halo Drift (Field) |
 | Epsilon Indi | Brown-dwarf frontier: survey claims arbitrated by convoy captains. | Epsilon Indi Ab (Planet, a known exoplanet); Indi Ba (Planet, brown dwarf); Indus Belt (Field) |
 | Kruger 60 | Cassiopeia Reach: claims recorded by whichever convoy arrived first. | Kruger 60 I (Planet); Kruger Stream (Field) |
-| Wolf 1061 | Ophiuchus Frontier Office: an ISA outpost at the edge of its writ. | Wolf 1061 b, c, d (Planet, known exoplanets); Wolf Reach (Field) |
+| Wolf 1061 | Ophiuchus Frontier Office: an ISA outpost at the edge of its writ. | Wolf 1061 b, Wolf 1061 c, Wolf 1061 d (Planet, known exoplanets); Wolf Reach (Field) |
 | Altair | Altair Compact: the frontier's own exchange. | Altair I (Planet); Aquila Ring (Field) |
 | 70 Ophiuchi | Serpent Accord: two stars' claims held in trust by rival consortia. | 70 Ophiuchi A I (Planet); Serpent Belt (Field) |
 | van Maanen's Star | Remnant field: a dead system's debris, claimed by no one. | Cinder Remnant (Planet); Remnant Field (Field) |
@@ -244,7 +244,20 @@ follows the pattern the existing stations set: 2 for a Near-Star system, 3 for a
 for its own story.
 
 The second half's systems (AB#807) follow the same rule: one neutral station on a planet or moon the design names,
-the three buildings, tier 3.
+the three buildings, tier 3. The names and designations are AB#807's, each after its system's owner rule:
+
+| station | id | designation | system | body | tier | jurisdiction |
+|---|---|---|---|---|---|---|
+| Procyon Free Port | `procyon-free-port` | PRO-STATION-001 | Procyon | Canis Minor Port | 3 | neutral |
+| Quiet Star Station | `quiet-star-station` | R12-STATION-001 | Ross 128 | Ross 128 b | 3 | neutral |
+| Cygni Condominium | `cygni-condominium` | C61-STATION-001 | 61 Cygni | 61 Cygni A I | 3 | neutral |
+| Kapteyn Salvage Court | `kapteyn-salvage-court` | KAP-STATION-001 | Kapteyn's Star | Kapteyn b | 3 | neutral |
+| Indi Convoy Station | `indi-convoy-station` | EIN-STATION-001 | Epsilon Indi | Epsilon Indi Ab | 3 | neutral |
+| Cassiopeia Reach Post | `cassiopeia-reach-post` | K60-STATION-001 | Kruger 60 | Kruger 60 I | 3 | neutral |
+| Ophiuchus Frontier Office | `ophiuchus-frontier-office` | W10-STATION-001 | Wolf 1061 | Wolf 1061 c | 3 | neutral |
+| Altair Compact Exchange | `altair-compact-exchange` | ALT-STATION-001 | Altair | Altair I | 3 | neutral |
+| Serpent Accord Station | `serpent-accord-station` | O70-STATION-001 | 70 Ophiuchi | 70 Ophiuchi A I | 3 | neutral |
+| Remnant Beacon | `remnant-beacon` | VMS-STATION-001 | van Maanen's Star | Cinder Remnant | 3 | neutral |
 
 ## Flagged, not decided here
 

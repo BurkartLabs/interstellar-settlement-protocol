@@ -47,23 +47,33 @@ Per tier, from its template (today's belts of that label, averaged):
   tier     | units/h | sold share | credits/unit | standard: units, credits, net | extended: units, net | reserve (units)
   common   |     180 |        85% |        16.74 |   180,  3,014,     14 |   360,  3,028 |  2,520
   uncommon |     207 |        80% |        21.47 |   207,  4,444,  1,444 |   414,  5,888 |  2,898
-  rare     |     243 |        63% |        35.57 |   243,  8,643,  5,643 |   486, 14,286 |  3,402
-  exotic   |     288 |        44% |        35.16 |   288, 10,127,  7,127 |   576, 17,254 |  4,032
+  rare     |     243 |        65% |        41.09 |   243,  9,985,  6,985 |   486, 16,969 |  3,402
+  exotic   |     288 |        52% |        46.37 |   288, 13,353, 10,353 |   576, 23,707 |  4,032
 
 Rarity of a respawned belt, per system (each tier away from the label 0.25 as likely):
-  system          | label    | common | uncommon |  rare  | exotic | mean yield x | vs today | expected net, standard
-  Sol             | common   |  75.3% |    18.8% |   4.7% |   1.2% |        1.052 |    +5.2% | 632
-  Alpha Centauri  | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,114
-  Barnard's Star  | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,114
-  Wolf 359        | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 4,983
-  Tau Ceti        | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 4,983
-  Epsilon Eridani | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 6,496
-  Lalande 21185   | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,114
-  Ross 154        | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,114
-  Sirius          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 4,983
-  Ross 248        | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 4,983
-  Luyten 726-8    | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 4,983
-  Lacaille 9352   | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 4,983
+  system            | label    | common | uncommon |  rare  | exotic | mean yield x | vs today | expected net, standard
+  Sol               | common   |  75.3% |    18.8% |   4.7% |   1.2% |        1.052 |    +5.2% | 733
+  Alpha Centauri    | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,458
+  Barnard's Star    | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,458
+  Wolf 359          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 6,358
+  Tau Ceti          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 6,358
+  Epsilon Eridani   | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 9,178
+  Lalande 21185     | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,458
+  Ross 154          | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,458
+  Sirius            | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 6,358
+  Ross 248          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 6,358
+  Luyten 726-8      | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 6,358
+  Lacaille 9352     | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 6,358
+  Procyon           | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 6,358
+  Ross 128          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 6,358
+  61 Cygni          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 6,358
+  Kapteyn's Star    | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 9,178
+  Epsilon Indi      | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 9,178
+  Kruger 60         | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 9,178
+  Wolf 1061         | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 9,178
+  Altair            | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 9,178
+  70 Ophiuchi       | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 9,178
+  van Maanen's Star | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 9,178
 
 Respawn: 20% each hour on the hour; mean wait 5.0 h; still empty after 12 h 6.9%, after 24 h 0.47%.
 
@@ -104,10 +114,11 @@ The model shows two things about expeditions today that are not about depletion,
    606 an hour at ideal uptime (`npm run economy:model`). The TODO's "belts should yield more than extractor yards" is far from true in
    Sol, and depletion makes Sol belts no more attractive. Base yield (`baseYieldPerMin`, 3) or the launch cost is the
    lever.
-2. **An exotic belt pays less per unit than a rare one** at the standing bids (35.16 against 35.57 credits), because
-   56% of an exotic belt is resources no standing order buys (Thorium, Uranium, Cobalt, Lithium, Exotic Matter). Their
-   value is on the player market or in refineries, which the model does not price. AB#822 (which bodies yield which
-   resources) is where that belongs.
+2. **Half of an exotic belt sells to no standing order.** With twelve systems an exotic belt paid less per unit than a
+   rare one (35.16 against 35.57 credits). AB#807's Frontier belts, heavy in Helium-3 and Rare Earths, moved the exotic
+   template to 46.37 against the rare one's 41.09, but 48% of it is still resources no standing order buys (Thorium,
+   Uranium, Cobalt, Lithium, Exotic Matter). Their value is on the player market or in refineries, which the model does
+   not price. AB#822 (which bodies yield which resources) is where that belongs.
 
 Both are pricing questions for the economy, not for this design; the belt rules above hold whichever way they go.
 

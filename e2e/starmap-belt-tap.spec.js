@@ -103,7 +103,7 @@ async function beltCentre(page, radius) {
 
 for (const viewport of VIEWPORTS) {
   test(`a tap on every belt opens the belt, with Scout, at ${viewport.label}`, async ({ browser, request }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(180_000); // AB#807: 22 belts to tap, from 12
     const context = await browser.newContext({
       viewport: { width: viewport.width, height: viewport.height }, isMobile: viewport.mobile, hasTouch: viewport.mobile
     });

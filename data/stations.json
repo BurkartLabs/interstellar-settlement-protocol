@@ -237,6 +237,166 @@
         "isa-claims-leases",
         "galactic-exchange-hub"
       ]
+    },
+    {
+      "id": "procyon-free-port",
+      "name": "Procyon Free Port",
+      "designation": "PRO-STATION-001",
+      "systemId": "procyon",
+      "body": "Canis Minor Port",
+      "tier": 3,
+      "owner": "npc",
+      "jurisdiction": "neutral",
+      "description": "The Free Port's charter station on the moon Canis Minor Port: tariff-free trade under a single charter. Neutral, open to every corporation to dock and rent an office.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "quiet-star-station",
+      "name": "Quiet Star Station",
+      "designation": "R12-STATION-001",
+      "systemId": "ross-128",
+      "body": "Ross 128 b",
+      "tier": 3,
+      "owner": "npc",
+      "jurisdiction": "neutral",
+      "description": "The Quiet Star Trust's station over Ross 128 b, a research reserve's one door, which leases sparingly. Neutral, open to every corporation to dock and rent an office.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "cygni-condominium",
+      "name": "Cygni Condominium",
+      "designation": "C61-STATION-001",
+      "systemId": "61-cygni",
+      "body": "61 Cygni A I",
+      "tier": 3,
+      "owner": "npc",
+      "jurisdiction": "neutral",
+      "description": "The shared station over 61 Cygni A I, run by the two rival charters that hold the twin stars together. Neutral, open to every corporation to dock and rent an office.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "kapteyn-salvage-court",
+      "name": "Kapteyn Salvage Court",
+      "designation": "KAP-STATION-001",
+      "systemId": "kapteyns-star",
+      "body": "Kapteyn b",
+      "tier": 3,
+      "owner": "npc",
+      "jurisdiction": "neutral",
+      "description": "A salvage court over Kapteyn b, where no authority rules and salvage law is the only law. Neutral, open to every corporation to dock and rent an office.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "indi-convoy-station",
+      "name": "Indi Convoy Station",
+      "designation": "EIN-STATION-001",
+      "systemId": "epsilon-indi",
+      "body": "Epsilon Indi Ab",
+      "tier": 3,
+      "owner": "npc",
+      "jurisdiction": "neutral",
+      "description": "The convoy captains' station over Epsilon Indi Ab, where the brown-dwarf frontier's survey claims are arbitrated. Neutral, open to every corporation to dock and rent an office.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "cassiopeia-reach-post",
+      "name": "Cassiopeia Reach Post",
+      "designation": "K60-STATION-001",
+      "systemId": "kruger-60",
+      "body": "Kruger 60 I",
+      "tier": 3,
+      "owner": "npc",
+      "jurisdiction": "neutral",
+      "description": "The Cassiopeia Reach post over Kruger 60 I, whose register records claims by whichever convoy arrived first. Neutral, open to every corporation to dock and rent an office.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "ophiuchus-frontier-office",
+      "name": "Ophiuchus Frontier Office",
+      "designation": "W10-STATION-001",
+      "systemId": "wolf-1061",
+      "body": "Wolf 1061 c",
+      "tier": 3,
+      "owner": "npc",
+      "jurisdiction": "neutral",
+      "description": "The ISA's outpost over Wolf 1061 c, at the edge of its writ. Neutral, open to every corporation to dock and rent an office.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "altair-compact-exchange",
+      "name": "Altair Compact Exchange",
+      "designation": "ALT-STATION-001",
+      "systemId": "altair",
+      "body": "Altair I",
+      "tier": 3,
+      "owner": "npc",
+      "jurisdiction": "neutral",
+      "description": "The Altair Compact's station over Altair I: the frontier's own exchange. Neutral, open to every corporation to dock and rent an office.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "serpent-accord-station",
+      "name": "Serpent Accord Station",
+      "designation": "O70-STATION-001",
+      "systemId": "70-ophiuchi",
+      "body": "70 Ophiuchi A I",
+      "tier": 3,
+      "owner": "npc",
+      "jurisdiction": "neutral",
+      "description": "The Serpent Accord's station over 70 Ophiuchi A I, where two stars' claims are held in trust by rival consortia. Neutral, open to every corporation to dock and rent an office.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
+    },
+    {
+      "id": "remnant-beacon",
+      "name": "Remnant Beacon",
+      "designation": "VMS-STATION-001",
+      "systemId": "van-maanens-star",
+      "body": "Cinder Remnant",
+      "tier": 3,
+      "owner": "npc",
+      "jurisdiction": "neutral",
+      "description": "A beacon station over Cinder Remnant, in a dead system's debris that no one claims. Neutral, open to every corporation to dock and rent an office.",
+      "buildingIds": [
+        "orbital-executive-suites",
+        "isa-claims-leases",
+        "galactic-exchange-hub"
+      ]
     }
   ]
 }
