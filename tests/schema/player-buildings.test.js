@@ -36,11 +36,12 @@ function crossCatalogueProblems(buildings, research, milestones) {
 }
 
 describe("data/player-buildings.json (AB#783)", () => {
-  it("holds the four buildings the game has (ISP-96 added the Ferric Mining Complex), in the design's shape, each with its price from data/economy.json", () => {
+  it("holds the five buildings the game has (ISP-96 and ISP-97 added two complexes), in the design's shape, each with its price from data/economy.json", () => {
     expect(playerBuildingProblems(FILE)).toEqual([]);
-    expect(PLAYER_BUILDING_CATALOGUE.map((b) => b.id)).toEqual(["basic-extractor-yard", "assembly-facility", "refinery", "ferric-mining-complex"]);
+    expect(PLAYER_BUILDING_CATALOGUE.map((b) => b.id)).toEqual(["basic-extractor-yard", "assembly-facility", "refinery", "ferric-mining-complex", "refinery-complex"]);
     for (const b of PLAYER_BUILDING_CATALOGUE) {
-      expect(Object.keys(b).sort(), b.id).toEqual(["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot"]);
+      const shape = ["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot", ...(b.slot === "upgrade" ? ["upgrades"] : [])];
+      expect(Object.keys(b).sort(), b.id).toEqual(shape.sort()); // an upgrade names what it upgrades (ISP-97)
       expect(b.cost, b.id).toBe(ECONOMY.buildings[`${b.price}Cost`]);
       expect(b.assetValue, b.id).toBe(ECONOMY.buildings[`${b.price}AssetValue`]);
     }
@@ -55,8 +56,8 @@ describe("data/player-buildings.json (AB#783)", () => {
   it("the cross-catalogue check fails on a missing research id and on a milestone naming a building the catalogue lacks", () => {
     const madeUp = [{ ...PLAYER_BUILDING_CATALOGUE[1], researchGates: ["tt-does-not-exist"] }];
     expect(crossCatalogueProblems(madeUp, RESEARCH, { levels: [] })).toEqual([`assembly-facility needs research "tt-does-not-exist", which data/research.json does not have.`]);
-    const ladder = { levels: [{ level: 6, requirements: [{ id: "rc", metric: "building:Refinery Complex" }, { id: "ext", metric: "building-count:Basic Extractor Yard" }] }] };
-    expect(crossCatalogueProblems(PLAYER_BUILDING_CATALOGUE, RESEARCH, ladder)).toEqual([`level 6 rc names building "Refinery Complex", which data/player-buildings.json does not have.`]);
+    const ladder = { levels: [{ level: 6, requirements: [{ id: "of", metric: "building:Orbital Foundry" }, { id: "ext", metric: "building-count:Basic Extractor Yard" }] }] };
+    expect(crossCatalogueProblems(PLAYER_BUILDING_CATALOGUE, RESEARCH, ladder)).toEqual([`level 6 of names building "Orbital Foundry", which data/player-buildings.json does not have.`]);
   });
 
   it("a catalogue that is unusable stops the server at startup", () => {
