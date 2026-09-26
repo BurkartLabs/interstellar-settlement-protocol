@@ -77,7 +77,7 @@ export const MILESTONE_LEVELS = MILESTONES_DATA.levels;
  * silence (AB#586's probe cap came apart from Fleet Cap that way): a reward the player earned and never got. Now the
  * server does not start with one, and tests/schema/milestones-unlocks.test.js fails.
  */
-export const LEVEL_UNLOCK_KEYS = Object.freeze(["employeeCap", "buildingSlots", "maxFleetSize", "maxUpgradeTier", "marketSectors"]);
+export const LEVEL_UNLOCK_KEYS = Object.freeze(["employeeCap", "buildingSlots", "maxFleetSize", "maxUpgradeTier", "marketSectors", "maxDeployments"]);
 
 /** Every unlock key in `levels` that is not allowed, as "level N: key". */
 export function unknownUnlockKeys(levels) {
@@ -221,6 +221,7 @@ export const SYSTEM_DETAILS = {
 };
 
 export const BASE_MAX_PROBES = 2;             // Fleet Cap before Level 1 grants one (Bug #586)
+export const BASE_MAX_DEPLOYMENTS = 1;        // concurrent expedition slots before a level's maxDeployments (AB#2307)
 export const FLEET_COORDINATION_TECH = "tt-fleet-coordination";
 export const FLEET_COORDINATION_BONUS = 12;   // "+12 fleet cap" (data/research.json)
 export function deepClone(input) {

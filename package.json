@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "playtest": "playwright test",
-    "economy:model": "node scripts/economy-model.mjs"
+    "economy:model": "node scripts/economy-model.mjs",
+    "probe:pacing": "node scripts/probe-pacing.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
