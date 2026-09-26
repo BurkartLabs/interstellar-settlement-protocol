@@ -17,12 +17,13 @@ export function costPerHourFor(throughputPerHour, operations) {
 }
 
 /**
- * ISP-301 (AB#2284): the upkeep an extractor yard pays per running hour, 0 for the corporation's first (yardIndex 0).
- * The server's yardUpkeepPerHourFor, from the same bootstrap constants; tests/unit/miningProjection.test.js holds the
- * two equal.
+ * ISP-301 (AB#2284): the upkeep an extractor yard pays per running hour, 0 for the corporation's first
+ * extractorYardsInStartingKit (two since ISP-308, AB#2304). The server's yardUpkeepPerHourFor, from the same bootstrap
+ * constants; tests/unit/miningProjection.test.js holds the two equal.
  */
 export function yardUpkeepPerHourFor(yardIndex, buildings) {
-  if (!(Number(yardIndex) > 0)) return 0;
+  const freeYards = Number(buildings?.extractorYardsInStartingKit) || 1;
+  if (!(Number(yardIndex) >= freeYards)) return 0;
   const perHour = (Number(buildings?.extractorYardCost) || 0) * (Number(buildings?.extractorYardUpkeepPctPerDay) || 0) / 100 / 24;
   return Math.round(perHour * 100) / 100;
 }

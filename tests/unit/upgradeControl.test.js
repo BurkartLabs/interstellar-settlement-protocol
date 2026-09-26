@@ -72,10 +72,13 @@ describe("the upgrade control (AB#795)", () => {
     expect(html(yard(), corp({ finances: { credits: 12_500 } }))).toMatch(/Needs \$40,000; you have \$12,500\.[\s\S]*disabled/);
   });
 
-  it("a second yard's running cost includes its upkeep (AB#2284)", () => {
+  // ISP-308 (AB#2304): the first two yards are the starting kit and pay none; the third pays it.
+  it("a third yard's running cost includes its upkeep (AB#2284), the second's does not (AB#2304)", () => {
     const second = yard({ id: "ext-2", buildingId: "bld-2" });
-    const out = html(second, corp({ mining: { silicateExtractors: [yard(), second] } }));
-    expect(out).toContain("running cost at best $2,659 &rarr; $3,303/h");
+    const third = yard({ id: "ext-3", buildingId: "bld-3" });
+    const yards = { mining: { silicateExtractors: [yard(), second, third] } };
+    expect(html(second, corp(yards))).toContain("running cost at best $2,618 &rarr; $3,262/h");
+    expect(html(third, corp(yards))).toContain("running cost at best $2,659 &rarr; $3,303/h");
   });
 
   it("fails closed: no prices loaded, or no building record, means no button", () => {
