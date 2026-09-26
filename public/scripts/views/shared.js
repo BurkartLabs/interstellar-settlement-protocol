@@ -90,7 +90,7 @@ export function renderFeedbackLog() {
   }
 
   feedbackLog.innerHTML = appState.feedbackLog
-    .map((entry) => `<li class="feedback-${entry.tone}"><strong>${formatTime(entry.createdAt)}</strong> | ${entry.message}</li>`)
+    .map((entry) => `<li class="ui-list__item ui-list__item--${entry.tone}"><strong>${formatTime(entry.createdAt)}</strong> | ${entry.message}</li>`)
     .join("");
 }
 

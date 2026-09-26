@@ -100,6 +100,21 @@ describe("upgrading an extractor yard (AB#793)", () => {
     expect(tiers).toEqual([1, 2, 2, 3, 3, 4, 4, 5, 5, 5]);
   });
 
+  // ISP-104 (AB#796): the tier a level grants through the level applier is the tier the route enforces.
+  it("a Level 4 corporation, granted maxUpgradeTier 3 by its level, upgrades to tier 3 and is refused tier 4", async () => {
+    const c = await corporation({ level: 4 });
+    expect(c.corp().unlocks.maxUpgradeTier).toBe(3);
+    for (const to of [2, 3]) {
+      expect((await c.upgrade("bld-793a")).status, `tier ${to}`).toBe(200);
+      c.backOnline();
+    }
+    const before = c.snapshot();
+    const res = await c.upgrade("bld-793a");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/allows tier 3; tier 4 needs a higher Corporation Level/);
+    expect(c.snapshot()).toBe(before);
+  });
+
   it("refuses a running yard, one short of credit, and a building with no tiers yet, changing nothing", async () => {
     const c = await corporation({ credits: 45_000 });
     expect((await c.start(40)).status).toBe(200);

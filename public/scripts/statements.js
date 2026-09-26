@@ -49,17 +49,17 @@ export function statementDayOptionsHtml(statements, selected, now = Date.now()) 
 function row(label, figure, value, { sign = "none", strong = false, muted = false } = {}) {
   const v = Math.round(Number(value) || 0);
   const shown = sign === "out" ? (v === 0 ? "0" : `−${statementCredits(v)}`) : sign === "in" ? `+${statementCredits(v)}` : sign === "net" ? `${v > 0 ? "+" : v < 0 ? "−" : ""}${statementCredits(Math.abs(v))}` : statementCredits(v);
-  const tone = sign === "out" && v > 0 ? " num--negative" : sign === "in" && v > 0 ? " num--positive" : sign === "net" && v !== 0 ? (v > 0 ? " num--positive" : " num--negative") : "";
-  const cls = strong ? ' class="statement-total"' : muted ? ' class="statement-muted"' : "";
-  return `<tr${cls}><td>${escapeHtml(label)}</td><td class="num${tone}" data-figure="${escapeHtml(figure)}" data-value="${v}">${shown}</td></tr>`;
+  const tone = sign === "out" && v > 0 ? " ui-figure--negative" : sign === "in" && v > 0 ? " ui-figure--positive" : sign === "net" && v !== 0 ? (v > 0 ? " ui-figure--positive" : " ui-figure--negative") : "";
+  const cls = strong ? ' class="ui-table__total"' : muted ? ' class="ui-table__muted"' : "";
+  return `<tr${cls}><td data-label="Line">${escapeHtml(label)}</td><td data-label="Amount" class="ui-figure${tone}" data-figure="${escapeHtml(figure)}" data-value="${v}">${shown}</td></tr>`;
 }
 
-const heading = (text, tone) => `<tr class="statement-heading statement-heading--${tone}"><th colspan="2" scope="rowgroup">${escapeHtml(text)}</th></tr>`;
+const heading = (text, tone) => `<tr class="ui-table__group ui-table__group--${tone}"><th colspan="2" scope="rowgroup">${escapeHtml(text)}</th></tr>`;
 
 function table(title, sub, body) {
-  return `<section class="finance-table-card statement-card">
-  <header class="chart-card__head"><h4>${escapeHtml(title)}</h4><span class="chart-card__sub">${escapeHtml(sub)}</span></header>
-  <table class="finance-table"><tbody>${body}</tbody></table>
+  return `<section class="ui-panel finance__statement">
+  <header class="ui-panel__header"><div><h4 class="ui-panel__title">${escapeHtml(title)}</h4><p class="ui-panel__meta">${escapeHtml(sub)}</p></div></header>
+  <div class="ui-panel__body ui-table-wrap"><table class="ui-table"><tbody>${body}</tbody></table></div>
 </section>`;
 }
 
@@ -69,9 +69,9 @@ export function statementHtml(s) {
   const expenses = Object.entries(s?.pnl?.expenses || {}).sort((a, b) => b[1] - a[1]);
   const pnl = [
     heading("Income", "in"),
-    ...(income.length ? income.map(([k, v]) => row(statementLabel(k), `pnl.income.${k}`, v, { sign: "in" })) : [`<tr class="statement-muted"><td>None</td><td class="num">0</td></tr>`]),
+    ...(income.length ? income.map(([k, v]) => row(statementLabel(k), `pnl.income.${k}`, v, { sign: "in" })) : [`<tr class="ui-table__muted"><td data-label="Line">None</td><td data-label="Amount" class="ui-figure">0</td></tr>`]),
     heading("Expenses", "out"),
-    ...(expenses.length ? expenses.map(([k, v]) => row(statementLabel(k), `pnl.expenses.${k}`, v, { sign: "out" })) : [`<tr class="statement-muted"><td>None</td><td class="num">0</td></tr>`]),
+    ...(expenses.length ? expenses.map(([k, v]) => row(statementLabel(k), `pnl.expenses.${k}`, v, { sign: "out" })) : [`<tr class="ui-table__muted"><td data-label="Line">None</td><td data-label="Amount" class="ui-figure">0</td></tr>`]),
     row("Total income", "pnl.totalIncome", s.pnl.totalIncome, { sign: "in", strong: true }),
     row("Total expenses", "pnl.totalExpenses", s.pnl.totalExpenses, { sign: "out", strong: true }),
     row("Net profit", "pnl.net", s.pnl.net, { sign: "net", strong: true })
@@ -96,7 +96,7 @@ export function statementHtml(s) {
     row("Obligations", "balanceSheet.liabilities", b.liabilities, { sign: "out" }),
     row("Net worth", "balanceSheet.netWorth", b.netWorth, { sign: "net", strong: true })
   ].join("");
-  return `<div class="statement-grid" data-day="${escapeHtml(s.day)}">
+  return `<div class="finance__statements" data-day="${escapeHtml(s.day)}">
 ${table("Profit & Loss", "Income and costs booked that day", pnl)}
 ${table("Cash Flow", "Opening to closing cash", cash)}
 ${table("Balance Sheet", "At the close, 00:00 UTC", balance)}
@@ -111,9 +111,9 @@ export function statementsEmptyHtml(today) {
   const inflows = Object.values(today?.income || {}).reduce((a, v) => a + (Number(v) || 0), 0);
   const outflows = Object.values(today?.expenses || {}).reduce((a, v) => a + (Number(v) || 0), 0);
   const soFar = today
-    ? `<p class="muted statement-sofar">So far today: <span class="num--positive">+${statementCredits(inflows)}</span> in, <span class="num--negative">−${statementCredits(outflows)}</span> out.</p>`
+    ? `<p class="ui-state__why">So far today: <span class="ui-figure ui-figure--positive">+${statementCredits(inflows)}</span> in, <span class="ui-figure ui-figure--negative">−${statementCredits(outflows)}</span> out.</p>`
     : "";
-  return `<div class="statement-empty"><p><strong>Your first statement closes at 00:00 UTC.</strong></p><p class="muted">Each day's profit and loss, cash flow and balance sheet are kept here for 90 days.</p>${soFar}</div>`;
+  return `<div class="ui-state" role="status"><p class="ui-state__title">Your first statement closes at 00:00 UTC.</p><p class="ui-state__why">Each day's profit and loss, cash flow and balance sheet are kept here for 90 days.</p>${soFar}</div>`;
 }
 
 /**

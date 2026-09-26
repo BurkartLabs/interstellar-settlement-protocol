@@ -73,13 +73,21 @@ export function updateOverview(data) {
   wrap.innerHTML = cards
     .map(
       // Bug #691 audit: the Conglomerate card's value carries a player-chosen conglomerate name.
-      (card) => `
-      <section class="data-card"${card.jump ? ` data-jump="${card.jump}" role="button" tabindex="0" style="cursor:pointer"` : ""}>
-        <h3>${escapeHtml(card.title)}</h3>
-        <p><strong>${card.num ? numberMarkup(card.num.key, card.num.value, card.value) : escapeHtml(card.value)}</strong></p>
-        <p class="muted">${escapeHtml(card.body)}</p>
-      </section>
-    `
+      // ISP-77 (AB#766): a design-system card; one that leads somewhere is a real button (keyboard and all).
+      (card) => {
+        const figure = card.num ? numberMarkup(card.num.key, card.num.value, card.value) : escapeHtml(card.value);
+        return card.jump
+          ? `<button type="button" class="ui-card ui-card--interactive" data-jump="${escapeHtml(card.jump)}">
+        <span class="ui-card__title">${escapeHtml(card.title)}</span>
+        <span class="ui-card__figure">${figure}</span>
+        <span class="ui-card__body">${escapeHtml(card.body)}</span>
+      </button>`
+          : `<section class="ui-card">
+        <h3 class="ui-card__title">${escapeHtml(card.title)}</h3>
+        <p class="ui-card__figure">${figure}</p>
+        <p class="ui-card__body">${escapeHtml(card.body)}</p>
+      </section>`;
+      }
     )
     .join("");
 }
@@ -95,7 +103,7 @@ export function renderLevel2Progress(data) {
   }
 
   // AB#1056: early on, the next milestones are the first thing on the Overview, above the brief and the stat cards
-  const milestonesSection = requirementsWrap.closest("section.form-card");
+  const milestonesSection = document.getElementById("overview-milestones");
   const overviewPanel = document.getElementById("overview");
   const expeditionPanel = document.getElementById("expedition-panel");
   if (milestonesSection && overviewPanel && expeditionPanel) {
@@ -165,18 +173,18 @@ export function renderLevel2Progress(data) {
 
   if (!nextProgress?.requirements?.length) {
     requirementsWrap.innerHTML =
-      '<section class="data-card"><p class="muted">No additional level requirements are currently defined for this profile.</p></section>';
+      '<section class="ui-card"><p class="ui-card__body">No additional level requirements are currently defined for this profile.</p></section>';
     status.textContent = "";
     return;
   }
 
   requirementsWrap.innerHTML = nextProgress.requirements
     .map((req) => {
-      const doneClass = req.complete ? " requirement-done" : "";
+      const doneClass = req.complete ? " is-complete" : "";
       const reqId = `${nextKey}:${req.id}`;
       const justCompletedClass =
         appState.requirementsInitialized && req.complete && !appState.completedRequirementIds.has(reqId)
-          ? " just-completed"
+          ? " is-just-completed"
           : "";
       if (req.complete) {
         appState.completedRequirementIds.add(reqId);
@@ -184,14 +192,17 @@ export function renderLevel2Progress(data) {
       // AB#1061: a lease milestone leads to the station that files its body, by way of the Starmap when docked elsewhere
       const link = requirementLink(req, data?.corp?.currentStationId || null, appState.stationRegistry, REQ_TAB[req.id]);
       const jumpAttr = link ? ` data-jump="${link.tab}"` : "";
-      const clickable = link && !req.complete ? " requirement-clickable" : "";
+      const clickable = link && !req.complete;
+      // ISP-77 (AB#766): a milestone is a design-system card; one still to do that leads somewhere is a button.
+      const tag = clickable ? 'button type="button"' : "section";
+      const close = clickable ? "button" : "section";
       return `
-      <section class="data-card requirement-card${doneClass}${justCompletedClass}${clickable}"${jumpAttr}>
-        <h3 class="requirement-title">${req.title}</h3>
-        <p><strong>${req.progress} / ${req.target}</strong></p>
-        <p class="muted requirement-state">${req.complete ? "Completed" : link ? escapeHtml(link.label) : "In Progress"}</p>
-        ${!req.complete && link?.hint ? `<p class="muted requirement-hint">${escapeHtml(link.hint)}</p>` : ""}
-      </section>
+      <${tag} class="ui-card overview__milestone${clickable ? " ui-card--interactive" : ""}${doneClass}${justCompletedClass}"${jumpAttr}>
+        <span class="ui-card__title overview__milestone-title">${escapeHtml(req.title)}</span>
+        <span class="ui-card__figure">${req.progress} / ${req.target}</span>
+        <span class="ui-card__meta overview__milestone-state">${req.complete ? "Completed" : link ? escapeHtml(link.label) : "In Progress"}</span>
+        ${!req.complete && link?.hint ? `<span class="ui-card__body">${escapeHtml(link.hint)}</span>` : ""}
+      </${close}>
       `;
     })
     .join("");
@@ -221,11 +232,12 @@ export function renderExpeditionPanel(data) {
       const beltName = exp.beltName || exp.beltKey || "Unknown Belt";
       return `
         <article class="queue-item">
-          <h4 style="margin:0 0 .25rem">${escapeHtml(beltName)}</h4>
-          <p class="muted" style="margin:0 0 .35rem">Remaining: ${formatDurationHours(remainingMs)} (${progress.toFixed(1)}%)</p>
-          <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
+          <h4 class="ui-card__title">${escapeHtml(beltName)}</h4>
+          <p class="ui-card__meta">Remaining: ${formatDurationHours(remainingMs)} (${progress.toFixed(1)}%)</p>
+          <div class="progress-wrap" role="progressbar" aria-label="${escapeHtml(beltName)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress)}"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
         </article>`;
     })
     .join("");
-  panel.innerHTML = `<h3>Asteroid Belt Expeditions</h3>${rows}`;
+  const list = document.getElementById("expedition-list");
+  if (list) list.innerHTML = rows;
 }

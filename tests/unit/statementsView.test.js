@@ -35,9 +35,9 @@ describe("a day's statements (AB#714)", () => {
   it("writes the amounts the way the Financial Core does: grouped, signed, coloured", () => {
     const html = statementHtml(statement("2026-09-21"));
     expect(html).toContain(`data-figure="pnl.net" data-value="-31800">−31,800</td>`);
-    expect(html).toContain(`<td class="num num--negative" data-figure="pnl.expenses.hiring" data-value="8000">−8,000</td>`);
-    expect(html).toContain(`<td class="num num--positive" data-figure="pnl.income.exchange" data-value="1200">+1,200</td>`);
-    expect(html).toContain("<td>CEO Insight</td>");
+    expect(html).toContain(`<td data-label="Amount" class="ui-figure ui-figure--negative" data-figure="pnl.expenses.hiring" data-value="8000">−8,000</td>`);
+    expect(html).toContain(`<td data-label="Amount" class="ui-figure ui-figure--positive" data-figure="pnl.income.exchange" data-value="1200">+1,200</td>`);
+    expect(html).toContain('<td data-label="Line">CEO Insight</td>');
     expect(html).toContain("Profit &amp; Loss");
   });
 
@@ -49,7 +49,7 @@ describe("a day's statements (AB#714)", () => {
 
   it("a quiet day says None rather than showing empty sections", () => {
     const quiet = statement("2026-09-21", { pnl: { income: {}, expenses: {}, totalIncome: 0, totalExpenses: 0, net: 0 } });
-    expect(statementHtml(quiet).match(/<td>None<\/td>/g)).toHaveLength(2);
+    expect(statementHtml(quiet).match(/<td data-label="Line">None<\/td>/g)).toHaveLength(2);
   });
 
   it("escapes what it prints: a category name cannot become markup", () => {

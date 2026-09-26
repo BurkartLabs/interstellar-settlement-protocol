@@ -45,7 +45,7 @@ describe("the page offers Delete where a draft opens (Bug #1137)", () => {
 
   it("Compose has a Delete Draft button, hidden until a saved draft is open", () => {
     const compose = html.slice(html.indexOf('id="inbox-compose-form"'), html.indexOf("</form>", html.indexOf('id="inbox-compose-form"')));
-    expect(compose).toMatch(/<button type="button" class="btn btn-danger" id="compose-delete-draft-btn" hidden>Delete Draft<\/button>/);
+    expect(compose).toMatch(/<button type="button" class="ui-button ui-button--danger" id="compose-delete-draft-btn" hidden>Delete Draft<\/button>/); // ISP-77 (AB#766)
     expect(app).toMatch(/btn\.hidden = !appState\.inbox\.composeDraftId/);
   });
 
