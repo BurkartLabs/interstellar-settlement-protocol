@@ -336,7 +336,8 @@ async function loadBootstrap() {
   if (version) {
     const versionLine = document.getElementById("app-version-line");
     if (versionLine) {
-      versionLine.textContent = `Interstellar Settlement Protocol v${version}, est. 2147`;
+      // ISP-83 (AB#772): the version and the founding year; the name is the heading right under it.
+      versionLine.textContent = `v${version} · est. 2147`;
     }
   }
 

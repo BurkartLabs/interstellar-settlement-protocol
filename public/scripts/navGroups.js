@@ -13,6 +13,17 @@ export const NAV_GROUPS = [
   { id: "map", label: "Map", tabs: ["starmap", "travel"] }
 ];
 
+/**
+ * ISP-83 (AB#772): each tab's name as the navigation shows it. A milestone card said "Go to Rnd", "Go to Market" and
+ * "Go to Missions" for Corporate R&D, the Galactic Exchange and Assignments, title-casing the panel's id; it names the
+ * tab the player will look for now. tests/unit/navGroups.test.js holds these to the buttons in index.html.
+ */
+export const TAB_LABELS = {
+  overview: "Overview", inbox: "Inbox", finance: "Financial Core", ceo: "CEO Insight", missions: "Assignments",
+  station: "Station", rnd: "Corporate R&D", refinery: "Refinery Chains", logistics: "Logistics",
+  market: "Galactic Exchange", assets: "Assets", chat: "Chat", forums: "Forums", starmap: "Starmap", travel: "Travel"
+};
+
 /** The id of the group a tab is in, or null. */
 export function groupOf(tab) {
   return NAV_GROUPS.find((g) => g.tabs.includes(tab))?.id ?? null;

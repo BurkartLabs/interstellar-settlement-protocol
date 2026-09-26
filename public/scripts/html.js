@@ -117,12 +117,13 @@ export function researchNodeHtml({ name, tier, effect, meta = [], state, action 
 export function notificationItemsHtml(items, formatTime) {
   return items
     .map((item) => {
-      const unreadClass = item.readAt ? "" : " unread";
+      // ISP-83 (AB#772): a design-system card; an unread one carries the warn edge.
+      const unreadClass = item.readAt ? "" : " is-unread";
       return `
-        <li class="notification-item${unreadClass}" data-notification-id="${escapeHtml(item.id)}">
-          <p><strong>${escapeHtml(item.title)}</strong></p>
-          <p class="muted">${escapeHtml(item.body)}</p>
-          <p class="notification-meta">${escapeHtml(formatTime(item.createdAt))} | ${escapeHtml(item.type)}</p>
+        <li class="ui-card notifications__item${unreadClass}" data-notification-id="${escapeHtml(item.id)}">
+          <p class="ui-card__title">${escapeHtml(item.title)}</p>
+          <p class="ui-card__body">${escapeHtml(item.body)}</p>
+          <p class="ui-card__meta">${escapeHtml(formatTime(item.createdAt))} | ${escapeHtml(item.type)}</p>
         </li>
       `;
     })
