@@ -1213,15 +1213,6 @@ textarea {
   padding: 0.85rem 0.9rem;
 }
 
-.queue-progress-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--font-size-2);
-  color: var(--muted);
-  margin-top: var(--space-2);
-  margin-bottom: 0.2rem;
-}
-
 .progress-wrap {
   background: var(--surface-1);
   border-radius: 999px;
@@ -1256,12 +1247,6 @@ textarea {
   font-variant-numeric: tabular-nums;
 }
 
-.pill-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
 .pill {
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -1289,182 +1274,6 @@ textarea {
 
 .research-panel {
   border-color: var(--border);
-}
-
-/* ── Corporate R&D Unified Panel ────────────────────────────── */
-
-.rnd-panel {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-  background:
-    var(--surface-2);
-}
-
-.rnd-panel__section {
-  padding: 1.1rem 1.3rem;
-}
-
-.rnd-panel__section + .rnd-panel__section {
-  border-top: 1px solid var(--border);
-}
-
-.rnd-panel__section--queue {
-  background: var(--surface-2);
-}
-
-.rnd-panel__label {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-1);
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin: 0 0 var(--space-3);
-}
-
-/* Ghost form — logic only, not visible */
-.rnd-form-ghost {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
-
-/* Tech node rows */
-.rnd-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: 0.65rem 0.8rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  margin-bottom: 0.4rem;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.rnd-row:last-child {
-  margin-bottom: 0;
-}
-
-.rnd-row--available:hover {
-  border-color: var(--border);
-  background: var(--surface-2);
-}
-
-.rnd-row--queued {
-  border-color: var(--border);
-  background: var(--surface-2);
-}
-
-.rnd-row--locked {
-  opacity: 0.45;
-  border-style: dashed;
-  border-color: var(--border);
-}
-
-/* Bug #983: a planned CEO program is shown with its promised effect struck through, and not sold. */
-.rnd-row--planned .rnd-row__effect {
-  text-decoration: line-through;
-}
-
-.rnd-row--done {
-  opacity: 0.28;
-  border-color: var(--border);
-}
-
-.rnd-row__info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.rnd-row__name {
-  font-size: var(--font-size-3);
-  font-weight: 600;
-  color: var(--text);
-}
-
-.rnd-row__effect {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-.rnd-row__meta {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-.rnd-row__badge {
-  flex-shrink: 0;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-1);
-  letter-spacing: 0.1em;
-  padding: 0.15rem 0.45rem;
-  border-radius: 3px;
-}
-
-.rnd-row__badge--done {
-  color: var(--accent);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-}
-
-.rnd-row__badge--queued {
-  color: var(--warn);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-}
-
-.rnd-row__badge--locked {
-  color: var(--muted);
-  border: 1px solid var(--border);
-}
-
-.rnd-tier-badge {
-  display: inline-block;
-  font-size: var(--font-size-1);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 0.1em 0.4em;
-  border-radius: 3px;
-  vertical-align: middle;
-  margin-left: 0.35em;
-  background: var(--surface-2);
-  color: var(--accent);
-  border: 1px solid var(--border);
-}
-
-.rnd-status-note:not(:empty) {
-  margin-top: 0.65rem;
-  font-size: var(--font-size-2);
-  color: var(--accent);
-}
-
-/* Queue section refinements inside panel */
-.rnd-panel .queue-list {
-  gap: var(--space-2);
-}
-
-.rnd-panel .queue-item {
-  border-color: var(--border);
-}
-
-/* AB#1762: the R&D queue fills its panel, which fills the content column; only CEO Insight's queue is still capped */
-#ceo-queue {
-  max-width: min(750px, 100%);
-}
-
-@media (min-width: 601px) and (max-width: 900px) {
-  #ceo-queue {
-    max-width: 500px;
-  }
 }
 
 .table-wrap {
@@ -1821,8 +1630,7 @@ body.walkthrough-open .layout-grid {
 
 /* ─── Vertical rhythm: tab panel ─────────────────────────── */
 .tab-panel > .card-grid,
-.tab-panel > .queue-list,
-.tab-panel > .pill-grid {
+.tab-panel > .queue-list {
   margin-top: var(--space-4);
 }
 
@@ -2317,506 +2125,10 @@ body.walkthrough-open .layout-grid {
   color: var(--text);
 }
 
-/* ─── Logistics ─────────────────────────────────────────────────────────── */
-#logistics-content {
-  margin-top: var(--space-4);
-}
-
-.logistics-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 0.6rem;
-  margin-bottom: var(--space-5);
-}
-
-.logistics-summary-tile {
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.7rem 0.9rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 0;
-}
-
-.logistics-summary-label {
-  font-size: var(--font-size-1);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
-
-.logistics-summary-value {
-  font-size: var(--font-size-4);
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* AB#2046: the transfer fee is a sentence, not a name or a number; clipped to one line it hid the per-jump fee. */
-.logistics-summary-value--wrap {
-  white-space: normal;
-  overflow: visible;
-  overflow-wrap: anywhere;
-}
-
-.logistics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr)); /* AB#717: no sideways scroll below 360px */
-  gap: 1rem;
-}
-
-.logistics-station-card {
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: var(--space-4) 1.1rem;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.logistics-station-card--current {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 6%, var(--surface-1));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-.logistics-station-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0.55rem;
-}
-
-.logistics-station-title {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  flex-wrap: wrap;
-}
-
-.logistics-station-title h3 {
-  margin: 0;
-  font-size: var(--font-size-3);
-  color: var(--text);
-  word-break: break-word;
-}
-
-.logistics-station-sub {
-  font-size: var(--font-size-2);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-/* AB#718: what moving goods from this station to where you are docked costs, before you pick anything. */
-.logistics-route-fee {
-  margin: 0 0 0.6rem;
-  font-size: var(--font-size-2);
-}
-
-.logistics-current-badge {
-  font-size: var(--font-size-1);
-  padding: 0.15rem 0.45rem;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--bg);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.logistics-empty {
-  margin: 0;
-  font-size: var(--font-size-2);
-  color: var(--muted);
-  font-style: italic;
-}
-
-.logistics-item-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.logistics-item-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.45rem 0.6rem;
-  background: color-mix(in srgb, var(--bg) 60%, var(--surface-1));
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  border-radius: 5px;
-  min-width: 0;
-}
-
-.logistics-item-row--transfer {
-  flex-wrap: wrap;
-}
-
-.logistics-item-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-  flex: 1 1 130px;
-}
-
-.logistics-item-name {
-  font-size: var(--font-size-3);
-  color: var(--text);
-  word-break: break-word;
-}
-
-.logistics-item-qty {
-  font-size: var(--font-size-2);
-}
-
-.logistics-transfer-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  flex: 0 1 auto;
-  min-width: 0;
-}
-
-.logistics-qty-input {
-  width: 78px;
-  max-width: 100%;
-  padding: 0.28rem 0.4rem;
-  font-size: var(--font-size-2);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text);
-}
-
-.logistics-transfer-btn {
-  white-space: nowrap;
-  font-size: var(--font-size-2);
-  padding: 0.3rem 0.7rem;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-/* AB#717: pick boxes, the bulk move, each card's last outcome, and the transfer history */
-.logistics-item-row--transfer {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-}
-
-.logistics-item-row--transfer .logistics-item-meta {
-  cursor: pointer;
-}
-
-.logistics-pick {
-  accent-color: var(--accent);
-  width: 1rem;
-  height: 1rem;
-  margin: 0;
-}
-
-.logistics-bulk {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  margin-top: 0.7rem;
-}
-
-.logistics-status {
-  margin: 0.7rem 0 0;
-  padding: var(--space-2) 0.7rem;
-  border-radius: 6px;
-  font-size: var(--font-size-2);
-  line-height: 1.4;
-}
-
-.logistics-status--error {
-  border: 1px solid var(--warn);
-  color: var(--warn);
-}
-
-.logistics-status--ok {
-  border: 1px solid var(--accent);
-  color: var(--accent);
-}
-
-.logistics-history {
-  margin-top: 1.4rem;
-}
-
-.logistics-history-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-2);
-}
-
-.logistics-history-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.15rem 0.8rem;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-
-.logistics-history-route {
-  font-weight: 600;
-}
-
-.logistics-history-lines,
-.logistics-history-time {
-  grid-column: 1 / -1;
-}
-
-.logistics-history-time {
-  font-size: var(--font-size-2);
-}
-
-@media (max-width: 480px) {
-  .logistics-item-row--transfer {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-  .logistics-item-row--transfer .logistics-transfer-controls {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 480px) {
-  .logistics-item-row--transfer {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .logistics-transfer-controls {
-    justify-content: flex-end;
-  }
-}
-
-/* ISP-279 (AB#986): shipments dispatched but not yet delivered (AB#985's corp.shipments), listed above history. */
-.logistics-in-flight {
-  margin-top: 1.4rem;
-}
-
-.logistics-in-flight-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-2);
-}
-
-.logistics-in-flight-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.15rem 0.8rem;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-
-.logistics-in-flight-item--held {
-  border-color: var(--warn);
-}
-
-.logistics-in-flight-route {
-  font-weight: 600;
-}
-
-.logistics-in-flight-lines {
-  grid-column: 1 / -1;
-  font-size: var(--font-size-2);
-}
-
-.logistics-in-flight-eta {
-  font-variant-numeric: tabular-nums;
-}
-
-.logistics-in-flight-held {
-  color: var(--warn);
-  font-size: var(--font-size-2);
-}
-
-/* ─── Assets ────────────────────────────────────────────────────────────── */
-
-/* Summary stats bar */
-.assets-summary-bar {
-  display: flex;
-  gap: 1px;
-  margin-bottom: var(--space-5);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  overflow: hidden;
-  background: var(--border);
-}
-
-.assets-stat {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--space-3) var(--space-2);
-  background: var(--surface-1);
-}
-
-.assets-stat-value {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-4);
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 0.04em;
-}
-
-.assets-stat-label {
-  font-size: var(--font-size-1);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-top: 0.2rem;
-}
-
-/* Sub-tab nav */
-.assets-tab-nav {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: var(--space-4);
-}
-
-.assets-tab-btn {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 0.6rem var(--space-5);
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-}
-
-.assets-tab-btn:hover {
-  color: var(--text);
-}
-
-.assets-tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-
-/* Panel visibility */
-.assets-panel {
-  display: none;
-}
-
-.assets-panel.active {
-  display: block;
-}
-
-/* Consolidated asset table */
-.assets-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.assets-table thead th {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: 0.55rem var(--space-3);
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-}
-
-.assets-table thead th.num {
-  text-align: right;
-}
-
-.assets-table tbody td {
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border);
-  font-size: var(--font-size-2);
-  color: var(--text);
-  vertical-align: middle;
-}
-
-.assets-table tbody td.num {
-  text-align: right;
-  font-family: var(--font-sans);
-  font-weight: 600;
-  letter-spacing: 0.03em;
-}
-
-.assets-table tbody td.assets-resource-name {
-  font-weight: 600;
-  color: var(--accent);
-  border-right: 1px solid var(--border);
-}
-
-.assets-table tbody tr:hover {
-  background: var(--surface-2);
-}
-
-.assets-table tfoot td {
-  padding: 0.6rem var(--space-3);
-  border-top: 1px solid var(--border);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.assets-table tfoot td.num {
-  text-align: right;
-  color: var(--accent);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2);
-}
-
-.assets-empty {
-  text-align: center;
-  color: var(--muted);
-  padding: var(--space-8) var(--space-4) !important;
-  font-size: var(--font-size-2);
-}
-
 /* Badge in table — ensure idle state */
 .building-status-badge.idle {
   color: var(--muted);
   border-color: var(--muted);
-}
-
-@media (max-width: 600px) {
-  .assets-summary-bar {
-    flex-wrap: wrap;
-  }
-  .assets-stat {
-    min-width: 33%;
-  }
-  .assets-table {
-    font-size: var(--font-size-2);
-  }
 }
 
 .action-surface {
@@ -6677,9 +5989,149 @@ body.sg {
   }
 }
 
+/* ─── The Industry screens on the design system (ISP-79, AB#768) ───
+   Corporate R&D, CEO Insight, Refinery Chains, Assets and Logistics, in tokens only, built from the shared parts
+   above. What is theirs alone: a research node's head and foot, a completed node quieter and a planned program's effect
+   struck through (Bug #983: a promise it does not keep is not sold), a running item's percentage and time left, the
+   refinery's last outcome and its catalogue, and Logistics' station cards and item rows. The pick box is a thumb's
+   size on a phone. tests/unit/industryScreens.test.js holds them to it. */
+.research__node-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.research__node-foot {
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+.research__node--done {
+  background: var(--surface-1);
+}
+.research__node--done .ui-card__title,
+.research__node--done .ui-card__body {
+  color: var(--muted);
+}
+.research__node--planned .ui-card__body {
+  text-decoration: line-through;
+}
+.research__timing {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.refinery__status {
+  margin: 0;
+  font-size: var(--font-size-2);
+}
+.refinery__status--ok {
+  color: var(--success);
+}
+.refinery__status--warn {
+  color: var(--warn);
+}
+#refinery-status:empty {
+  display: none;
+}
+.refinery__catalog {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  list-style: none;
+}
+.logistics__tile-text {
+  font-size: var(--font-size-3);
+  line-height: var(--line-height-body);
+  overflow-wrap: anywhere;
+}
+.logistics__station--current {
+  border-color: var(--accent);
+}
+.logistics__station-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.logistics__items {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.logistics__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  font-size: var(--font-size-2);
+  color: var(--text-soft);
+}
+.logistics__item--transfer {
+  justify-content: flex-start;
+}
+.logistics__item-name {
+  color: var(--text);
+  font-weight: var(--font-weight-semibold);
+}
+.logistics__item-label {
+  display: flex;
+  flex: 1 1 8rem;
+  flex-direction: column;
+  min-width: 0;
+  cursor: pointer;
+}
+.logistics__pick {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.logistics__controls {
+  display: flex;
+  flex: 1 1 100%;
+  gap: var(--space-2);
+}
+.logistics__qty {
+  flex: none;
+  width: 7rem;
+}
+.logistics__move {
+  flex: 1 1 auto;
+}
+.logistics__bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+.logistics__status {
+  margin: 0;
+  font-size: var(--font-size-2);
+}
+.logistics__status--ok {
+  color: var(--success);
+}
+.logistics__status--error {
+  color: var(--danger);
+}
+@media (max-width: 600px) {
+  .logistics__pick {
+    width: 44px;
+    height: 44px;
+  }
+  .ui-screen :is(.logistics__item, .refinery__status, .logistics__status) {
+    font-size: var(--font-size-3);
+  }
+}
+
 /* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */
 @media (max-width: 600px) {
-  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend) {
+  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend) {
     font-size: var(--font-size-3);
   }
   .ui-screen .ui-table td::before {

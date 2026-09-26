@@ -95,7 +95,7 @@ test("the walkthrough runs start to finish with no console error, at 1280x800", 
 
   await atStep(9); // research
   await openTab(page, "rnd");
-  await page.click('.rnd-enqueue-btn[data-tech-id="tt-basic-extraction"]');
+  await page.click('.research__enqueue[data-tech-id="tt-basic-extraction"]');
   await acknowledgeReceipt(page); // AB#744
 
   await atStep(10); // bureau

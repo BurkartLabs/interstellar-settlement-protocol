@@ -28,16 +28,16 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
     await page.waitForURL(/\/\?account=/);
     await page.getByRole("button", { name: "I'll find my own way" }).click();
     await openTab(page, "logistics");
-    const values = page.locator(".logistics-summary-value");
+    const values = page.locator(".kpi-tile__value");
     await expect(values).toHaveCount(4);
 
-    const fee = page.locator(".logistics-summary-tile", { hasText: "Transfer fee" }).locator(".logistics-summary-value");
+    const fee = page.locator("#logistics .kpi-tile", { hasText: "Transfer fee" }).locator(".kpi-tile__value");
     await expect(fee).toContainText("a jump");
     const clipped = await values.evaluateAll((els) =>
       els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => `${el.textContent} (${el.scrollWidth} > ${el.clientWidth})`)
     );
     expect(clipped, "summary values cut off").toEqual([]);
-    await page.locator(".logistics-summary").scrollIntoViewIfNeeded();
-    await page.locator(".logistics-summary").screenshot({ path: path.join(SCREEN_DIR, `logistics-summary-${vp.label}.png`) });
+    await page.locator("#logistics .kpi-strip").scrollIntoViewIfNeeded();
+    await page.locator("#logistics .kpi-strip").screenshot({ path: path.join(SCREEN_DIR, `logistics-summary-${vp.label}.png`) });
   });
 }

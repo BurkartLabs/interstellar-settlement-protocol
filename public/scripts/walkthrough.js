@@ -115,7 +115,7 @@ export const WALKTHROUGH_STEPS = [
     title: "Research",
     text: "Queue Basic Extraction Analytics in Corporate R&D. It is a 2-hour project, and the result is a permanent 10% boost to extraction throughput on every yard you run. It is the first research I would fund.",
     tab: "rnd",
-    actionSelectors: ['.rnd-enqueue-btn[data-tech-id="tt-basic-extraction"]']
+    actionSelectors: ['.research__enqueue[data-tech-id="tt-basic-extraction"]']
   },
   {
     id: "bureau",

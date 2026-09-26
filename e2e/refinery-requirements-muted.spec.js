@@ -33,7 +33,7 @@ function panelColors(page) {
     const color = (p) => (p ? getComputedStyle(p).color : null);
     return {
       requirement: color(ps.find((p) => p.textContent.startsWith("Requires:"))),
-      muted: color(ps.find((p) => p.classList.contains("muted") && p.textContent.startsWith("Cycle:")))
+      muted: color(ps.find((p) => p.classList.contains("ui-card__meta") && p.textContent.startsWith("Cycle:")))
     };
   });
 }
@@ -41,8 +41,8 @@ function panelColors(page) {
 /** The pre-fix panel code: AB#1761 removed the warning colour from exactly these two requirement lines. */
 function preFixPanelJs(fixed) {
   const REVERT = [
-    ['<p class="muted">Requires: ', '<p class="muted" style="color:var(--color-warn)">Requires: '],
-    ['<p class="muted">Refinery construction requires: ', '<p class="muted" style="color:var(--color-warn)">Refinery construction requires: ']
+    ['<p class="ui-card__meta">Requires: ', '<p class="ui-card__meta" style="color:var(--color-warn)">Requires: '],
+    ['<p class="ui-card__meta">Refinery construction requires: ', '<p class="ui-card__meta" style="color:var(--color-warn)">Refinery construction requires: ']
   ];
   let text = fixed;
   for (const [now, before] of REVERT) {

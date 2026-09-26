@@ -107,27 +107,27 @@ for (const viewport of VIEWPORTS) {
       await expect(page.locator('.nav-tab[data-tab="logistics"]')).toHaveClass(/active/);
 
       // ── quote: the remote station's card names the fee and the arrival time before anything is sent ──────
-      const remoteCard = page.locator(".logistics-station-card", { hasText: "Centauri Prime Orbital" });
+      const remoteCard = page.locator(".logistics__station", { hasText: "Centauri Prime Orbital" });
       await expect(remoteCard).toBeVisible();
-      const quoteText = await remoteCard.locator(".logistics-route-fee").innerText();
+      const quoteText = await remoteCard.locator(".logistics__route-fee").innerText();
       expect(quoteText).toMatch(/per unit/);
       expect(quoteText).toMatch(/transit/);
       expect(quoteText).toMatch(/1 jump/);
-      await expect(page.locator(".logistics-in-flight")).toContainText("Nothing is in transit");
+      await expect(page.locator("#logistics-in-flight")).toContainText("Nothing is in transit");
       if (mobile) await assertNoHorizontalScroll(page);
       await shoot(page, viewport.label, "01-quote-cross-system", viewport.width);
 
       // ── dispatch: a real click against the real transfer-resources route ───────────────────────────────
-      await remoteCard.locator('.logistics-qty-input[data-item="Silicates"]').fill("120");
-      await remoteCard.locator('.logistics-transfer-btn[data-item="Silicates"]').click();
+      await remoteCard.locator('.logistics__qty[data-item="Silicates"]').fill("120");
+      await remoteCard.locator('.logistics__move[data-item="Silicates"]').click();
       await expect(page.locator("#feedback-log li").first()).toContainText(/dispatched/i, { timeout: 10_000 });
 
       // ── in-flight: the shipment lists with its route, contents and a counting-down ETA ──────────────────
-      const inFlightItem = page.locator(".logistics-in-flight-item").first();
+      const inFlightItem = page.locator(".logistics__shipment").first();
       await expect(inFlightItem).toBeVisible();
       await expect(inFlightItem).toContainText("Centauri Prime Orbital");
       await expect(inFlightItem).toContainText("120");
-      await expect(inFlightItem.locator(".logistics-in-flight-eta")).toBeVisible();
+      await expect(inFlightItem.locator(".logistics__eta")).toBeVisible();
       if (mobile) await assertNoHorizontalScroll(page);
       await shoot(page, viewport.label, "02-in-flight", viewport.width);
     } finally {

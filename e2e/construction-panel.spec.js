@@ -156,7 +156,7 @@ for (const viewport of VIEWPORTS) {
       await section.screenshot({ path: path.join(SHOT_DIR, `refinery-complex-built-${viewport.label}.png`) });
 
       await openTab(page, "refinery");
-      const run = page.locator("#refinery-active-runs .queue-item").first();
+      const run = page.locator("#refinery-active-runs .ui-card").first();
       await expect(run).toContainText("Refinery #1 · Refinery Complex");
       await expect(run).toContainText("→ 60 Aerogel, 22 Quantum Insulators");
       await page.locator("#refinery-active-runs").screenshot({ path: path.join(SHOT_DIR, `refinery-complex-run-${viewport.label}.png`) });

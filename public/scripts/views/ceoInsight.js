@@ -1,11 +1,11 @@
 // The CEO Insight tab: the CEO's own growth tree.
-// AB#739 (ISP-53): everything here moved from app.js unchanged.
+// AB#739 (ISP-53): everything here moved from app.js unchanged. ISP-79 (AB#768): drawn from the design system.
 
 import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { isInsightProgramLive } from "../ceoEffects.js";
 import { deepClone, toCurrency } from "../helpers.js";
-import { escapeHtml } from "../html.js";
+import { escapeHtml, researchNodeHtml } from "../html.js";
 import { appState } from "../state.js";
 import { pushFeedback, updateAllViews } from "./shared.js";
 
@@ -28,7 +28,7 @@ export function renderInsightTree(data) {
       const isLocked = !prog.prereqs.every((req) => completed.includes(req));
       // Bug #983: a planned program has no effect yet; the server refuses it, so it is shown but not offered.
       const isPlanned = !isInsightProgramLive(prog);
-      const plannedNote = isPlanned ? `<span class="rnd-row__meta">No effect yet: planned for a later version.</span>` : "";
+      const plannedNote = isPlanned ? "No effect yet: planned for a later version." : "";
       const anyQueued = queue.length > 0;
       const canEnqueue = !isPlanned && !isDone && !isQueued && !isLocked && !anyQueued && (completionCount + queuedCount < maxLevels);
       const prereqLabel = prog.prereqs.length
@@ -36,71 +36,26 @@ export function renderInsightTree(data) {
         : "None";
 
       const levelLabel = maxLevels > 1 ? ` (${completionCount}/${maxLevels})` : "";
+      const cost = `${prog.durationHours}h · ${toCurrency(prog.costCredits)}`;
+      const card = { name: `${prog.name}${levelLabel}`, effect: prog.effect };
 
-      if (isDone) {
-        return `<div class="rnd-row rnd-row--done">
-          <div class="rnd-row__info">
-            <span class="rnd-row__name">${escapeHtml(prog.name)}${levelLabel}</span>
-            <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
-            ${plannedNote}
-          </div>
-          <span class="rnd-row__badge rnd-row__badge--done">\u2713 COMPLETE</span>
-        </div>`;
-      }
-
-      if (isQueued || queuedCount > 0) {
-        return `<div class="rnd-row rnd-row--queued">
-          <div class="rnd-row__info">
-            <span class="rnd-row__name">${escapeHtml(prog.name)}${levelLabel}</span>
-            <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
-            <span class="rnd-row__meta">${prog.durationHours}h &middot; ${toCurrency(prog.costCredits)}</span>
-            ${plannedNote}
-          </div>
-          <span class="rnd-row__badge rnd-row__badge--queued">IN QUEUE</span>
-        </div>`;
-      }
-
-      if (isPlanned) {
-        return `<div class="rnd-row rnd-row--locked rnd-row--planned">
-          <div class="rnd-row__info">
-            <span class="rnd-row__name">${escapeHtml(prog.name)}</span>
-            <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
-            ${plannedNote}
-          </div>
-          <span class="rnd-row__badge rnd-row__badge--locked">PLANNED</span>
-        </div>`;
-      }
-
-      if (isLocked) {
-        return `<div class="rnd-row rnd-row--locked">
-          <div class="rnd-row__info">
-            <span class="rnd-row__name">${escapeHtml(prog.name)}</span>
-            <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
-            <span class="rnd-row__meta">Requires: ${escapeHtml(prereqLabel)}</span>
-          </div>
-          <span class="rnd-row__badge rnd-row__badge--locked">LOCKED</span>
-        </div>`;
-      }
-
-      // Available
-      return `<div class="rnd-row rnd-row--available">
-        <div class="rnd-row__info">
-          <span class="rnd-row__name">${escapeHtml(prog.name)}${levelLabel}</span>
-          <span class="rnd-row__effect">${escapeHtml(prog.effect)}</span>
-          <span class="rnd-row__meta">${prog.durationHours}h &middot; ${toCurrency(prog.costCredits)} &middot; Prereqs: ${escapeHtml(prereqLabel)}</span>
-        </div>
-        ${canEnqueue
-          ? `<button class="btn btn-accent ceo-enqueue-btn" type="button" data-program-id="${prog.id}">+ Enroll</button>`
-          : `<span class="rnd-row__badge rnd-row__badge--locked">AWAITING SLOT</span>`
-        }
-      </div>`;
+      if (isDone) return researchNodeHtml({ ...card, state: "done", meta: [plannedNote] });
+      if (isQueued || queuedCount > 0) return researchNodeHtml({ ...card, state: "queued", meta: [cost, plannedNote] });
+      if (isPlanned) return researchNodeHtml({ ...card, name: prog.name, state: "planned", meta: [plannedNote] });
+      if (isLocked) return researchNodeHtml({ ...card, name: prog.name, state: "locked", meta: [`Requires: ${prereqLabel}`] });
+      return researchNodeHtml({
+        ...card,
+        state: canEnqueue ? "available" : "waiting",
+        meta: [cost, `Prereqs: ${prereqLabel}`],
+        action: `<button class="ui-button ui-button--secondary insight__enroll" type="button" data-program-id="${escapeHtml(prog.id)}">Enroll</button>`
+      });
     })
     .join("");
 
-  treeWrap.innerHTML = rows || '<p class="muted">No insight programs configured.</p>';
+  treeWrap.innerHTML = rows || '<div class="ui-state"><p class="ui-state__title">No insight programs configured.</p></div>';
 
   treeWrap.onclick = async (e) => {
-    const btn = e.target.closest(".ceo-enqueue-btn");
+    const btn = e.target.closest(".insight__enroll");
     if (!btn) return;
     const programId = btn.getAttribute("data-program-id");
     if (!programId || !appState.accountId) return;
@@ -123,7 +78,7 @@ export function renderInsightTree(data) {
       showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
     } catch (error) {
       btn.disabled = false;
-      btn.textContent = "+ Enroll";
+      btn.textContent = "Enroll";
       pushFeedback(`CEO Insight error: ${error.message}`, "warn");
     }
   };
