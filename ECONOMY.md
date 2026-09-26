@@ -452,51 +452,59 @@ seeds 7000 and 7001, at day 3, 7 and 30:
    Bug AB#2303 corrected "one yard each", which the probe never ran), each bot's spend in the three categories is
    **0**, and planner's and greedy's Salvage Assignment counts at day 30 stay within 10% of 22 and 56 (the counts
    above).
-3. **The expanded pay:** with `--supply high`, the reserve bot's spend in the three categories on day 30 is **more
-   than 0 and between 5% and 30%** of what it earned that day. The model above says 10% to 25% for 2 to 6 yards; the
-   band is wider because the bot's yard count is its own.
+3. **The expanded pay:** with `--supply high`, each bot that has expanded past the starting kit (3 or more yards, or 2
+   or more leases) spends **more than 0 and between 5% and 30%** of what it earned on day 30 in the three categories.
+   The model above says 10% to 25% for 2 to 6 yards; the band is wider because the bot's yard count is its own. With
+   no expanded bot the check **waits**, as check 4 does, rather than failing on nobody (ISP-310, AB#2306); the
+   `expander` bot exists to be that corporation.
 4. **Something is still for sale at the top:** the probe prints the price of the bot's next yard at its highest
    level, and it is a number, not a cap. This can only be checked past Level 3 once the ladder is reachable (AB#1753).
    Until then the probe reports it and the check waits.
 
 If check 2 fails, the design's premise (zero for the squeezed) is false, and the sink that caused it comes back out.
 
-### What the probe printed (ISP-304, AB#2287)
+### What the probe printed (ISP-304, AB#2287; ISP-310, AB#2306)
 
-`node ops/probes/isp-runway.ts --supply <low|high> --seed <7000|7001>` in hq, 30 bot days, against ISP main
-`4c051e76` (all three sinks and ISP-307's categories merged). Bot numbers (P-PROXY). The two seeds printed the same
-numbers: the seed only picks the pinned downtime roll, and every bot's play is otherwise deterministic.
+`node ops/probes/isp-runway.ts --supply <low|high> --seed <7000|7001>` in hq (branch of ISP-310, with AB#2317's session
+fix), 30 bot days, against ISP main `e31e390c` (the three sinks, ISP-307's categories, ISP-308's and ISP-309's
+starting-kit boundary). `--supply high` runs four bots, the three and `expander`; `--supply low` runs the three (its
+Salvage baselines are three-bot numbers). Bot numbers (P-PROXY). The two seeds printed the same numbers: the seed only
+picks the pinned downtime roll, and every bot's play is otherwise deterministic.
 
 ```text
---supply high
-CHECK 1 PASS: banked/spent below 3x for planner, greedy and reserve at every checkpoint — planner 0.02x/0.00x/0.01x, greedy 0.00x/0.00x/0.01x, reserve 0.13x/0.22x/0.12x
-CHECK 3 FAIL: --supply high reserve bot's last-day spend in the three sinks is 5% to 30% of that day's earnings — day 30: sinks 0 of 53,271 earned = 0.0%
-CHECK 4 WAIT: the next extractor yard's price at a bot's highest level is a number, not a cap — planner level 3: ¤73,320, greedy level 3: ¤78,000, reserve level 2: ¤78,000 (no bot passed Level 3: the check waits for AB#1753's ladder)
---supply low
-CHECK 1 PASS: banked/spent below 3x for planner, greedy and reserve at every checkpoint — planner 0.01x/0.00x/0.01x, greedy 0.00x/0.00x/0.00x, reserve 0.01x/0.00x/0.02x
-CHECK 2 FAIL: --supply low bots pay 0 in the three sinks; Salvage counts within 10% of 22 and 56 — paying: planner yard-upkeep 509, planner yard-price-growth 13,000, greedy yard-upkeep 75, greedy yard-price-growth 13,000, reserve yard-upkeep 1,338, reserve yard-price-growth 13,000; salvage-complete by day 30: planner 38 (baseline 22, outside 10%), greedy 53 (baseline 56, within 10%)
-CHECK 4 WAIT: (as on high: every bot at level 3, next yard ¤73,320)
+--supply high (planner, greedy, reserve, expander)
+CHECK 1 PASS: banked/spent below 3x for planner, greedy, reserve, expander at every checkpoint — planner 0.01x/0.10x/0.01x, greedy 0.00x/0.00x/0.00x, reserve 0.15x/0.00x/0.02x, expander 0.54x/0.32x/0.00x
+CHECK 3 FAIL: --supply high: an expanded bot's (3+ yards or 2+ leases) last-day spend in the three sinks is 5% to 30% of that day's earnings — expander (3 yards, 2 leases) day 30: sinks 0 of 6,000 earned = 0.0%
+CHECK 4 WAIT: the next extractor yard's price at a bot's highest level is a number, not a cap — planner level 3: ¤59,220, greedy level 3: ¤59,220, reserve level 3: ¤59,220, expander level 3: ¤73,320 (no bot passed Level 3: the check waits for AB#1753's ladder)
+--supply high, --bots planner,greedy,reserve (the world before ISP-310)
+CHECK 3 WAIT: ... — no bot expanded past the starting kit (planner 2 yard(s), 1 lease(s), greedy 2 yard(s), 1 lease(s), reserve 2 yard(s), 1 lease(s)): the check waits for one that does
+--supply low (planner, greedy, reserve)
+CHECK 1 PASS: banked/spent below 3x for planner, greedy, reserve at every checkpoint — planner 0.00x/0.00x/0.00x, greedy 0.00x/0.00x/0.01x, reserve 0.00x/0.00x/0.00x
+CHECK 2 PASS: --supply low bots pay 0 in the three sinks; Salvage counts within 10% of 22 and 56 — no bot paid any of the three; salvage-complete by day 30: planner 20 (baseline 22, within 10%), greedy 53 (baseline 56, within 10%)
+CHECK 4 WAIT: (as on high, without expander: every bot at level 3, next yard ¤59,220)
 ```
 
-**Check 2 failed, and the sinks that charged the squeezed are `yard-price-growth` (ISP-303) and `yard-upkeep`
-(ISP-301)**, not `lease-royalty` (0 for every bot). Written down, not patched, as the design requires. What it means
-is not settled here: the probe's `--supply low` caps the ore each bot sells a day (ISP-87); it does not cap yards. Every
-bot, on either supply, ends with one Earth lease and two yards, so the "squeezed" bots are two-yard corporations,
-not the one-yard corporation this design says pays nothing (a one-yard corporation does pay 0: ISP-301's and ISP-303's
-own tests). Either the squeezed player of the design owns two yards and the premise fails, or the check's
-`--supply low (one yard each)` describes a bot the probe does not run. That is the PM's and Director's call.
+**Check 2 passes.** With the starting kit exempt from upkeep and price growth (ISP-308, ISP-309), the two-yard bots of
+`--supply low` pay 0 in all three sinks, and the Salvage counts are within 10% of the baselines. AB#2287's failure is
+gone because the boundary moved, not because the check did.
 
-**Check 3 failed for the same reason seen from the other side**: the reserve bot never expands past two yards and one
-lease in 30 days (it reaches level 2), so on day 30 it builds nothing, has no royalty tier, and its second yard's
-upkeep is 0. The expanded corporation of the model (2 to 6 yards) is not a bot the probe has yet. Planner's Salvage
-count, 38 against 22, moved with ISP-299's and the sinks' changes; greedy's (53) is within 10% of 56.
+**Check 3 fails, on a real population, and the finding is not the sinks' size.** `expander` reaches 3 yards and a
+Mars lease inside the 30 days, but it ends day 30 with 1,487 credits after 35 Salvage completions: over the run it paid
+13,000 in `yard-price-growth` (its third yard, 63,000), 414 in `lease-royalty` and **0 in `yard-upkeep`**, because
+its Mars yard never ran a cycle. It never had the startup cost at hand. On day 30 it paid nothing because it was running
+almost nothing, so "sinks 0 of 6,000" measures a broke corporation, not an expanded one paying too little. This is
+the Director's "the problem is not reproduced" note seen from the expanded side: no bot in this probe reaches the state
+the sinks exist for, where credits pile up with nothing to want. Every profile, `expander` included, spends to near 0
+(most of `expander`'s money, 365,525, went on other bots' listings through the shared bargain rule). The thresholds
+are unchanged.
 
-**The Director's ruling on check 2 (AB#2287, 2026-09-26):** the squeezed player is the one with the starting kit, one
-lease and its two yards, so the line belongs there. ISP-308 (AB#2304) moved `yard-upkeep`'s and ISP-309 (AB#2305)
-`yard-price-growth`'s, both to `extractorYardsInStartingKit`. **Flagged for the Board:** where the line falls
-is itself a balance call on the game's opening, made on model numbers the Board has not seen; it is built to the
-ruling, not settled.
+**Check 4 still waits:** no bot passes Level 3. Level 4 needs Industrial Safety Protocols, and every bot's research
+stalls at a few thousand credits it does not keep.
 
+Found on the way, and filed: every bot in this probe had done nothing since ISP AB#2294 made access tokens last 30
+minutes (AB#2317, fixed in the same hq change; the probe now renews each bot's session through `/api/auth/refresh`
+before each action), and the three bots' own Mars-lease branch can never run (AB#2319), so none of them can hold a
+second lease.
 
 ### The Soul and Charter check, per sink
 
