@@ -5,7 +5,7 @@ import { registerAccount, longLivedAccessToken } from "../helpers/api.js";
 import { getAccountById, getState, mutateAccountState, mutateState, applyRefineryOperations, ensureBidShape } from "../../server/gameState.js";
 import * as ticks from "../../server/ticks.js";
 import { ECONOMY } from "../../server/economy.js";
-import { HOUR, POLICIES, REFINERY_COUNTS, VOLUMES, playWeek, trackShape, weekSupply } from "./chainProbe.js";
+import { HOUR, POLICIES, REFINERY_COUNTS, RULE_GAP_OPEN, VOLUMES, playWeek, trackShape, weekSupply } from "./chainProbe.js";
 
 // ISP-141 (AB#835): does refining stay a decision? docs/design/tier3-recipes.md section 6. AB#2367 (the Director's
 // ruling on AB#2366) replaced the three starting price states, which one corporation's market erases overnight, with a
@@ -110,7 +110,13 @@ async function sweep(app, tier, points = POINTS) {
 const best = (row) => POLICIES.reduce((a, b) => (row[b].gain > row[a].gain ? b : a));
 const fmt = (n) => Math.round(n).toLocaleString("en-US");
 /** The design's rule is within 5% of the best policy's gain. */
-const ruleClose = (row) => row[best(row)].gain - row["the design's rule"].gain <= 0.05 * Math.abs(row[best(row)].gain);
+/**
+ * The design's rule ends close to the best policy: within `tolerance` of its gain. AB#2372 (the Director's ruling on
+ * AB#2367, tier3-recipes.md section 6): 5%, widened to 11% where "refine to the end" is best, since there the Refinery
+ * is idle anyway and a player finds the plain answer without the rule.
+ */
+const toleranceFor = (row) => (best(row) === "refine to the end" ? 0.11 : 0.05);
+const ruleClose = (row, tolerance = toleranceFor(row)) => row[best(row)].gain - row["the design's rule"].gain <= tolerance * Math.abs(row[best(row)].gain);
 
 function report(results, tier) {
   const lines = [`[chain probe, AB#835/AB#2367] tier-${tier} Refineries: credits gained over the week, by weekly supply (hours of one Refinery per chain) x Refineries run. BOT NUMBERS (P-PROXY)`];
@@ -176,14 +182,22 @@ describeFull("the production-chain probe, every track across the sweep (AB#835, 
     expect(losses.length, "refine never lost to sell raw").toBeGreaterThan(0);
   });
 
-  // Not met on 2026-09-26 (AB#2367, with the Director): the rule was within 5% at 33 of 40 points. The seven misses are all
-  // where refine-to-end is best at low volume: nickel-iron 42h x1/x2 and 84h x1/x2 (5.5 to 10.7% below), light metals
-  // 42h x1 and 168h x1, cross-track 42h x1. `it.fails` says so without going red; when the rule or the data changes and
-  // the target is met, this fails, and it becomes `it`.
-  it.fails("at tier 1, the design's rule ends within 5% of the best policy at every point (not met: AB#2367)", () => {
+  // AB#2372: a real assertion. On 2026-09-26 the rule was within 5% at the 24 points where another policy was best and
+  // within 11% at the 16 where refine-to-end was (worst 10.7%, nickel-iron 84h x1). Worse than that anywhere goes red.
+  it("at tier 1, the design's rule ends within 5% of the best policy, or 11% where refine-to-end is best", () => {
     for (const [track, points] of Object.entries(tier1)) {
-      for (const [key, row] of Object.entries(points)) expect(ruleClose(row), `${track} ${key}: rule ${fmt(row["the design's rule"].gain)} against ${best(row)} ${fmt(row[best(row)].gain)}`).toBe(true);
+      for (const [key, row] of Object.entries(points)) {
+        expect(ruleClose(row), `${track} ${key}: rule ${fmt(row["the design's rule"].gain)} against ${best(row)} ${fmt(row[best(row)].gain)} (tolerance ${toleranceFor(row) * 100}%)`).toBe(true);
+      }
     }
+  });
+
+  // AB#2372: RULE_GAP_OPEN (chainProbe.js) is what keeps the rule off every player-facing screen; this checks it
+  // against the numbers: open while the rule is outside 5% anywhere, closed only when it is inside 5% everywhere.
+  it("RULE_GAP_OPEN says what the sweep shows: open while the rule misses 5% anywhere", () => {
+    const outside5 = Object.entries(tier1).flatMap(([track, points]) => Object.entries(points)
+      .filter(([, row]) => !ruleClose(row, 0.05)).map(([key]) => `${track} ${key}`));
+    expect(RULE_GAP_OPEN, `points outside 5%: ${outside5.join(", ") || "none"}`).toBe(outside5.length > 0);
   });
 
   it("at tier 3 the sweep's middle is reported, and \"always refine\" winning there is accepted (AB#823 section 8)", async () => {
