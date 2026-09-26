@@ -113,7 +113,8 @@ describe("the six systems are what they were before the move (ISP-112)", () => {
   });
 
   it("every belt has the same composition and every system the same rarity", () => {
-    expect([...BELT_KEYS].sort()).toEqual(Object.keys(BEFORE.compositions).sort());
+    // AB#806 adds systems after these six; every one of the six is still there, unchanged.
+    expect(BELT_KEYS).toEqual(expect.arrayContaining(Object.keys(BEFORE.compositions)));
     for (const [key, composition] of Object.entries(BEFORE.compositions)) expect(beltComposition(key), key).toEqual(composition);
     for (const [id, rarity] of Object.entries(BEFORE.rarity)) expect(systemRarity(id), id).toBe(rarity);
   });
@@ -123,6 +124,7 @@ describe("the six systems are what they were before the move (ISP-112)", () => {
     const seeded = (seed) => () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
     const START = 1_700_000_000_000;
     for (const [i, beltKey] of BELT_KEYS.entries()) {
+      if (!BEFORE.yields[beltKey]) continue; // a belt added after the recording (AB#806); the six keep their seeds
       const corp = makeCorp({
         currentStationId: "earth-station-prime", buildings: [], inventory: {},
         asteroidMining: { probeCount: 0, maxProbes: 2, completedExpeditions: [],

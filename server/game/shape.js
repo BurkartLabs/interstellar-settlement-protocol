@@ -1,7 +1,7 @@
 // server/game/shape.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import { ensureFinanceTracking } from "../finances.js";
-import { MAX_DEFINED_LEVEL, REFINERY_CHAINS_DATA, STATION_REGISTRY_CACHE, SYSTEMS_BY_ID, SYSTEMS_DATA } from "./catalog.js";
+import { MAX_DEFINED_LEVEL, REFINERY_CHAINS_DATA, STATION_REGISTRY_CACHE, SYSTEMS_BY_ID, SYSTEMS_DATA, deepClone } from "./catalog.js";
 import { refreshExchangeTax } from "./progression.js";
 import { ensureCorpMiningModel } from "./mining.js";
 import { ensureCorpRefineryModel } from "./refining.js";
@@ -26,8 +26,22 @@ function withCatalogStyles(system) {
   };
 }
 
+// ISP-114 (AB#806): every per-system fact is the catalog's on every load (data/systems.json, the one source since
+// AB#804), and a system added to the catalog joins a saved world. Before, a saved world kept the systems, positions
+// and lanes it was created with, so an install would never see a new system or a moved one. A saved system keeps
+// its own bodies, as normalizeSystemBodies always has; a system the catalog no longer has is kept, after the rest.
+const CATALOG_SYSTEM_FIELDS = ["name", "gdpIndex", "pirateDensity", "activityLevel", "ownerRule", "accessResearch", "rarity", "mapPosition", "adjacent"];
+
 export function normalizeSystems(systems = []) {
-  return systems.map((system) => withCatalogStyles(normalizeSystemBodies(system)));
+  const saved = new Map((systems || []).map((system) => [system.id, system]));
+  const fromCatalog = SYSTEMS_DATA.map((catalog) => {
+    const system = saved.has(catalog.id) ? normalizeSystemBodies(saved.get(catalog.id)) : deepClone(catalog);
+    const merged = { ...system };
+    for (const field of CATALOG_SYSTEM_FIELDS) if (catalog[field] !== undefined) merged[field] = deepClone(catalog[field]);
+    return withCatalogStyles(merged);
+  });
+  const retired = (systems || []).filter((system) => !SYSTEMS_BY_ID.has(system.id)).map((system) => withCatalogStyles(system));
+  return [...fromCatalog, ...retired];
 }
 
 function normalizeSystemBodies(system) {

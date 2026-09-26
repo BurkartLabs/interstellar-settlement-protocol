@@ -119,8 +119,8 @@ describe("Starmap canvas on a phone (Bug #1286)", () => {
       const { canvas, detailsEl, cores } = mountAt(width, dpr);
       expect(cores).toHaveLength(SYSTEMS.length);
       const tau = cores[SYSTEMS.findIndex((s) => s.id === "tau-ceti")];
-      // The whole cluster is drawn across the canvas, not squeezed into part of it.
-      expect(tau.x / canvas.width).toBeCloseTo(0.72, 2);
+      // The whole cluster is drawn across the canvas, not squeezed into part of it: at its catalog position.
+      expect(tau.x / canvas.width).toBeCloseTo(SYSTEMS_CATALOG.find((s) => s.id === "tau-ceti").mapPosition.x, 2);
       tapDrawnStar(canvas, tau);
       expect(detailsEl.innerHTML).toContain("Tau Ceti");
     });

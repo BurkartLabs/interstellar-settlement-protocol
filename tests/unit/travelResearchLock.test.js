@@ -82,7 +82,8 @@ describe("the Starmap's system panel shows it (Bug #1270)", () => {
         getSystemsCatalog: () => JSON.parse(readFileSync(new URL("../../data/systems.json", import.meta.url), "utf8")) });
       map.mount([{ id: "sol", name: "Sol", bodies: [] }, { id: "alpha-centauri", name: "Alpha Centauri", bodies: [] }]);
       map.setUnlockedTech(new Set());
-      handlers.click({ clientX: 0.35 * 719, clientY: 0.26 * canvas.clientHeight }); // Alpha Centauri's mapPosition in data/systems.json
+      const { mapPosition } = JSON.parse(readFileSync(new URL("../../data/systems.json", import.meta.url), "utf8")).find((s) => s.id === "alpha-centauri");
+      handlers.click({ clientX: mapPosition.x * 719, clientY: mapPosition.y * canvas.clientHeight }); // where the cluster view draws it
       expect(detailsEl.innerHTML).toContain("Alpha Centauri");
       expect(detailsEl.innerHTML).toContain("Requires Near-Star Navigation Array (Corporate R&amp;D, Tier 2, corporation level 5).");
       expect(detailsEl.innerHTML).not.toContain("Navigation research required");
