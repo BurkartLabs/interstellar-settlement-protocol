@@ -173,7 +173,28 @@ export function renderLevel2Progress(data) {
     refine44800:                "refinery",
     refine55800:                "refinery",
     refine65800:                "refinery",
-    researchContainmentPhysics: "rnd"
+    researchContainmentPhysics: "rnd",
+    // Levels 21 to 30 since ISP-109 (AB#801)
+    ferricMiningComplex:        "station",
+    assemblyTier2:              "station",
+    yards3AtTier4:              "station",
+    yards6AtTier4:              "station",
+    yards2AtTier5:              "station",
+    mine1627kSilicate:          "station",
+    mine1789kSilicate:          "station",
+    refineries2AtTier3:         "refinery",
+    expeditions230:             "starmap",
+    expeditions250:             "starmap",
+    expeditions270:             "starmap",
+    expeditions289:             "starmap",
+    expeditions311:             "starmap",
+    missions451:                "missions",
+    missions481:                "missions",
+    missions511:                "missions",
+    missions540:                "missions",
+    missions570:                "missions",
+    researchExoticEnergyRouting: "rnd",
+    researchDeepStarNavigation: "rnd"
   };
 
   const level = Number(data?.corp?.level || 0);

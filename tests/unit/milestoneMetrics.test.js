@@ -14,7 +14,7 @@ describe("the milestone roadmap (AB#798)", () => {
     expect(raw.roadmap).toBeUndefined();
   });
 
-  it("is each level's requirement titles then its tag, for levels 1 to 20 (derived; snapshot)", () => {
+  it("is each level's requirement titles then its tag, for levels 1 to 30 (derived; snapshot)", () => {
     expect(MILESTONE_ROADMAP).toEqual(deriveRoadmap(MILESTONE_LEVELS));
     // Recorded from the levels. Level 6 is the Assembly Facility and level 7 asteroid prospecting, because that is
     // what those levels require; the old hand-written list named an earlier plan (Ferric and Refinery Complexes,
@@ -93,6 +93,36 @@ describe("the milestone roadmap (AB#798)", () => {
         "Upgrade a Refinery to Tier 3",
         "Refine 65,800 Units of Goods",
         "Reached Corporation Level 20",
+        "Build the Ferric Mining Complex",
+        "Complete 230 Asteroid Expeditions",
+        "Reached Corporation Level 21",
+        "Upgrade an Assembly Facility to Tier 2",
+        "Complete 250 Asteroid Expeditions",
+        "Reached Corporation Level 22",
+        "Research Exotic Energy Routing",
+        "Complete 270 Asteroid Expeditions",
+        "Reached Corporation Level 23",
+        "Upgrade 3 Extractor Yards to Tier 4",
+        "Complete 289 Asteroid Expeditions",
+        "Reached Corporation Level 24",
+        "Research Deep-Star Cartography Suite",
+        "Complete 311 Asteroid Expeditions",
+        "Reached Corporation Level 25",
+        "Upgrade 2 Refineries to Tier 3",
+        "Complete 451 Missions",
+        "Reached Corporation Level 26",
+        "Upgrade 6 Extractor Yards to Tier 4",
+        "Complete 481 Missions",
+        "Reached Corporation Level 27",
+        "Complete 511 Missions",
+        "Mine 1,627,000 Silicate",
+        "Reached Corporation Level 28",
+        "Upgrade 2 Extractor Yards to Tier 5",
+        "Complete 540 Missions",
+        "Reached Corporation Level 29",
+        "Complete 570 Missions",
+        "Mine 1,789,000 Silicate",
+        "Reached Corporation Level 30",
       ]
     `);
     for (const stale of ["Build a Ferric Mining Complex", "Build a Refinery Complex", "Build a Cryo-vapor Extractor Array", "Start a Belt Mining Operation"]) expect(MILESTONE_ROADMAP).not.toContain(stale);

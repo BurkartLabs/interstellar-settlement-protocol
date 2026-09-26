@@ -16,7 +16,8 @@ describe("the employee cap (Bug #1058)", () => {
   it("skips levels that would not raise it, and says when the top is reached", () => {
     expect(nextLevelRaising(LEVELS, { level: 1 }, "employeeCap", 50)).toEqual({ level: 4, value: 60 });
     expect(employeeCapMessage({ level: 10, employeeCount: 200, employeeCap: 200 }, LEVELS)).toMatch(/level 11 raises the cap to 210/); // AB#800
-    expect(employeeCapMessage({ level: 20, employeeCount: 300, employeeCap: 300 }, LEVELS)).toBe("Employee cap reached: 300/300 on payroll. That is the highest cap in the game.");
+    expect(employeeCapMessage({ level: 20, employeeCount: 300, employeeCap: 300 }, LEVELS)).toMatch(/level 21 raises the cap to 310/); // AB#801
+    expect(employeeCapMessage({ level: 30, employeeCount: 400, employeeCap: 400 }, LEVELS)).toBe("Employee cap reached: 400/400 on payroll. That is the highest cap in the game.");
   });
 });
 

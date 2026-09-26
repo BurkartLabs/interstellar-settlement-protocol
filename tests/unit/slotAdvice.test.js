@@ -58,10 +58,11 @@ describe("full corporation slots (Bug #1057)", () => {
 
   it("does not promise a level that would not raise it", () => {
     expect(nextSlotLevel(levels, { level: 9, buildingSlots: 12 })).toEqual({ level: 15, slots: 13 }); // AB#800: 11 to 14 hold 12
-    expect(nextSlotLevel(levels, { level: 20, buildingSlots: 14 })).toBeNull();
+    expect(nextSlotLevel(levels, { level: 20, buildingSlots: 14 })).toEqual({ level: 25, slots: 15 }); // AB#801: 21 to 24 hold 14
+    expect(nextSlotLevel(levels, { level: 30, buildingSlots: 16 })).toBeNull();
     expect(nextSlotLevel(levels, { level: 0, buildingSlots: 2 })).toEqual({ level: 2, slots: 3 });
-    const done = { level: 20, buildingSlots: 14, buildings: new Array(14).fill({}), miningLeases: [] };
-    expect(corporationSlotsFullMessage(done, [], levels)).toBe("All 14/14 of your corporation's building slots are in use. That is the most the game allows for now.");
+    const done = { level: 30, buildingSlots: 16, buildings: new Array(16).fill({}), miningLeases: [] };
+    expect(corporationSlotsFullMessage(done, [], levels)).toBe("All 16/16 of your corporation's building slots are in use. That is the most the game allows for now.");
   });
 
   it("every station a message names exists", () => {

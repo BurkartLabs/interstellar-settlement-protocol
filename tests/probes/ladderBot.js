@@ -349,7 +349,7 @@ export async function climb({ request, account, clock, tick, levels, research, m
     const expeditionsAhead = asksAhead("stat:asteroidExpeditionsCompleted", Number(corp.stats?.asteroidExpeditionsCompleted || 0));
     const missionsDone = Math.max((corp.completedMissions || []).length, Number(corp.stats?.missionsCompletedTotal || 0));
     const contractsAhead = asksAhead("stat:missionsCompleted", missionsDone);
-    needs = { refine: refineAhead || unmet.some((r) => r.metric === "stat:refinedUnitsProduced"), contracts: unmet.some((r) => r.metric === "stat:missionsCompleted"), contractsAhead, mine: unmet.some((r) => r.metric === "totalMined:silicate") };
+    needs = { refine: refineAhead || unmet.some((r) => r.metric === "stat:refinedUnitsProduced"), contracts: unmet.some((r) => r.metric === "stat:missionsCompleted"), contractsAhead: contractsAhead && level >= 10, mine: unmet.some((r) => r.metric === "totalMined:silicate") };
     // A trip away is finished before anything else: the yards' ore and the standing bid are at Earth.
     const away = (corp.currentStationId || EARTH) !== EARTH;
     const leaseStillWanted = unmet.some((r) => /^(miningLease:|stat:miningLeasesCount|building-count:Basic Extractor Yard)/.test(r.metric));
@@ -360,10 +360,13 @@ export async function climb({ request, account, clock, tick, levels, research, m
         await pursue(req, corp);
         corp = await corpNow();
       }
-      // AB#801: a later level's expeditions and contracts, at every check-in, while credits allow
+      // AB#801: a later level's expeditions and contracts, at every check-in, while credits allow. Only from Level 10
+      // (the design's curves start at day 30, its Level 10) and only docked at Earth, where contracts are handed in:
+      // earlier, the launches spent the credits the early yards need, and contracts taken at Mars could not be completed.
       const solvent = Number(corp.finances?.credits || 0) >= RESERVE + floatFor(corp, needs.mine);
-      if (solvent && expeditionsAhead && !unmet.some((r) => r.metric === "stat:asteroidExpeditionsCompleted")) { await expedition(corp); corp = await corpNow(); }
-      if (contractsAhead && !needs.contracts) { await contracts(corp); corp = await corpNow(); }
+      const aheadNow = level >= 10 && (corp.currentStationId || EARTH) === EARTH;
+      if (aheadNow && solvent && expeditionsAhead && !unmet.some((r) => r.metric === "stat:asteroidExpeditionsCompleted")) { await expedition(corp); corp = await corpNow(); }
+      if (aheadNow && contractsAhead && !needs.contracts) { await contracts(corp); corp = await corpNow(); }
     }
     await standingWork(await corpNow(), needs);
     // The Bureau posts new contracts every 2 hours; while contracts are the open requirement, the bot looks that often.
