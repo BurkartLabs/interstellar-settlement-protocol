@@ -79,6 +79,13 @@ const BEFORE_THE_MOVE = {
     { item: "Dark-Matter Capacitors", buyer: "Lunar Helium Consortium", unitPrice: 423, dailyQty: 20 },
     { item: "Fusion Pellets", buyer: "Lunar Helium Consortium", unitPrice: 198, dailyQty: 160 },
     { item: "Cryogenic Coolant", buyer: "Lunar Helium Consortium", unitPrice: 54, dailyQty: 360 },
+    // AB#832: the Rare Metals track's bids (tier3-recipes.md section 4), all to Synthorium Trading House.
+    { item: "Thorium", buyer: "Synthorium Trading House", unitPrice: 160, dailyQty: 7000 },
+    { item: "Cobalt", buyer: "Synthorium Trading House", unitPrice: 110, dailyQty: 7000 },
+    { item: "Sensor Arrays", buyer: "Synthorium Trading House", unitPrice: 215, dailyQty: 54 },
+    { item: "Catalyst Substrates", buyer: "Synthorium Trading House", unitPrice: 215, dailyQty: 36 },
+    { item: "Rare-Earth Magnets", buyer: "Synthorium Trading House", unitPrice: 276, dailyQty: 120 },
+    { item: "Thorium Fuel Rods", buyer: "Synthorium Trading House", unitPrice: 552, dailyQty: 30 },
     // AB#833: the Light Metals track's, on the same rule.
     { item: "Lithium", buyer: "Synthorium Trading House", unitPrice: 70, dailyQty: 7000 },
     { item: "Bauxite", buyer: "Belt Refining Cooperative", unitPrice: 14, dailyQty: 7000 },

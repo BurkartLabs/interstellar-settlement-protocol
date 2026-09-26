@@ -196,6 +196,18 @@
       "category": "refined"
     },
     {
+      "id": "rare-earth-magnets",
+      "name": "Rare-Earth Magnets",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "thorium-fuel-rods",
+      "name": "Thorium Fuel Rods",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
       "id": "aluminium-ingots",
       "name": "Aluminium Ingots",
       "tier": 3,

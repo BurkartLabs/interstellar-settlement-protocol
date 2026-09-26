@@ -164,18 +164,19 @@ Every name below is kept exactly as it is. Places, from the data files on main:
 | Hydrogen | 1 | 7 belts | yes | | cryogenics-chain input |
 | Deuterium | 1 | | yes | | fusion-fuel-chain input |
 | Titanium | 2 | 20 belts | yes | yes | titanium-chain input |
-| Rare Earths | 2 | 16 belts | yes | yes | rare-earths-chain input |
+| Rare Earths | 2 | 16 belts | yes | yes | rare-earths-chain, magnet-chain input |
 | Lithium | 2 | 14 belts | yes | yes | al-li-chain, battery-chain input |
-| Cobalt | 2 | 13 belts | | yes | battery-chain input |
-| Thorium | 2 | 10 belts | | yes | |
+| Cobalt | 2 | 13 belts | yes | yes | magnet-chain, battery-chain input |
+| Thorium | 2 | 10 belts | yes | yes | thorium-fuel-chain input |
 | Uranium | 2 | 8 belts | | | |
 | Exotic Matter | 2 | 7 belts | | | |
 | Bauxite | 1 | | yes | | aluminium-chain input |
 
-The chains' twelve products (section 1, row 3) are Tier 3 and keep their names, and so are the Fuel track's two (AB#830):
-Fusion Pellets and Cryogenic Coolant, and the Light Metals track's three (AB#833): Aluminium Ingots,
-Aluminium-Lithium Alloy and Battery Cells. Deuterium is in the build since AB#830 (ice worlds and moons, and Rime's
-lease), Bauxite since AB#833 (Mars and Luna, section 3); Iron Ore since AB#831 (Mars, section 3, and the smelting chain). tests/unit/tier3Resources.test.js holds this table to the data files, so a renamed or new raw item fails
+The chains' twelve products (section 1, row 3) are Tier 3 and keep their names, and so are the tracks' products:
+Fusion Pellets and Cryogenic Coolant (AB#830), Nickel-Iron Alloy and Pressure Vessels (AB#831), Rare-Earth Magnets
+and Thorium Fuel Rods (AB#832), Aluminium Ingots, Aluminium-Lithium Alloy and Battery Cells (AB#833). Deuterium is in
+the build since AB#830 (ice worlds and moons, and Rime's lease), Iron Ore since AB#831 (Mars, section 3, and the
+smelting chain), Bauxite since AB#833 (Mars and Luna, section 3). tests/unit/tier3Resources.test.js holds this table to the data files, so a renamed or new raw item fails
 it until this document names it. The belt counts are the 22 systems' since AB#807; sections 2 to 5 were written against the
 first twelve belts, and their per-belt lists name those twelve only.
 

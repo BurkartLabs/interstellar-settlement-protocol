@@ -9,6 +9,8 @@ const NPC_ITEMS = ["Silicates", "Helium-3", "Nickel", "Titanium", "Carbon", "Rar
 const BID_ITEMS = [...NPC_ITEMS, "Aerogel", "Quantum Insulators", "Armour Plating", "Precision Frames", "Carbon Fibre Sheets", "Graphene Lattice",
   // AB#830: the Fuel track's raw items and products, all bought by the Lunar Helium Consortium.
   "Deuterium", "Water Ice", "Hydrogen", "Plasma Conduits", "Dark-Matter Capacitors", "Fusion Pellets", "Cryogenic Coolant",
+  // AB#832: the Rare Metals track, all bought by Synthorium Trading House.
+  "Thorium", "Cobalt", "Sensor Arrays", "Catalyst Substrates", "Rare-Earth Magnets", "Thorium Fuel Rods",
   // AB#833: the Light Metals track's two raw items and three products.
   "Lithium", "Bauxite", "Aluminium Ingots", "Aluminium-Lithium Alloy", "Battery Cells",
   // AB#831: the Nickel-Iron track's raw item and products.

@@ -201,6 +201,17 @@
       "prereqs": ["tt-assembly-fabrication", "tt-supply-forecast"],
       "tier": 2,
       "category": "Extraction"
+    },
+    {
+      "id": "tt-rare-metal-separation",
+      "name": "Rare-Metal Separation",
+      "effect": "Unlocks the Rare-Earth Magnet and Thorium Fuel Rod refinery chains",
+      "description": "Licenses solvent-extraction and ion-exchange separation from the Pan-System Research Compact, splitting rare earths, cobalt and thorium to the purity magnets and reactor fuel demand. Thorium Fuel Rods also need Containment Physics I.",
+      "durationHours": 16,
+      "costCredits": 12000,
+      "prereqs": ["tt-nano-lattice"],
+      "tier": 3,
+      "category": "Refining"
     }
   ]
 }

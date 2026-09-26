@@ -138,6 +138,35 @@
       "category": "Exotic Processing"
     },
     {
+      "id": "magnet-chain",
+      "inputs": [
+        { "item": "Rare Earths", "quantityPerCycle": 20 },
+        { "item": "Cobalt", "quantityPerCycle": 40 }
+      ],
+      "outputs": [
+        { "item": "Rare-Earth Magnets", "quantityPerCycle": 30 }
+      ],
+      "cycleDurationHours": 6,
+      "requiresResearch": ["Rare-Metal Separation"],
+      "requiresTechIds": ["tt-rare-metal-separation"],
+      "stage": 1,
+      "category": "Rare Metals"
+    },
+    {
+      "id": "thorium-fuel-chain",
+      "inputs": [
+        { "item": "Thorium", "quantityPerCycle": 30 }
+      ],
+      "outputs": [
+        { "item": "Thorium Fuel Rods", "quantityPerCycle": 10 }
+      ],
+      "cycleDurationHours": 8,
+      "requiresResearch": ["Rare-Metal Separation", "Containment Physics I"],
+      "requiresTechIds": ["tt-rare-metal-separation", "tt-containment-physics"],
+      "stage": 1,
+      "category": "Rare Metals"
+    },
+    {
       "id": "aluminium-chain",
       "inputs": [
         { "item": "Bauxite", "quantityPerCycle": 200 }
