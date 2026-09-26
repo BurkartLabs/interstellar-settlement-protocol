@@ -1,0 +1,176 @@
+{
+  "_comment": "ISP-130 (AB#824): every item the game names, once. Tiers and ids from docs/design/tier3-resources.md (AB#822): tier 1 common raw, tier 2 scarce raw, tier 3 refined (every refinery chain's output). Data files name an item by its `name`; the server refuses to start if any names one not here (server/game/items.js), so a typo cannot become a commodity (T-019).",
+  "items": [
+    {
+      "id": "silicates",
+      "name": "Silicates",
+      "tier": 1,
+      "category": "raw"
+    },
+    {
+      "id": "helium-3",
+      "name": "Helium-3",
+      "tier": 1,
+      "category": "raw"
+    },
+    {
+      "id": "nickel",
+      "name": "Nickel",
+      "tier": 1,
+      "category": "raw"
+    },
+    {
+      "id": "carbon",
+      "name": "Carbon",
+      "tier": 1,
+      "category": "raw"
+    },
+    {
+      "id": "water-ice",
+      "name": "Water Ice",
+      "tier": 1,
+      "category": "raw"
+    },
+    {
+      "id": "hydrogen",
+      "name": "Hydrogen",
+      "tier": 1,
+      "category": "raw"
+    },
+    {
+      "id": "deuterium",
+      "name": "Deuterium",
+      "tier": 1,
+      "category": "raw",
+      "note": "New in v0.8 (AB#822); no source in the data yet."
+    },
+    {
+      "id": "iron-ore",
+      "name": "Iron Ore",
+      "tier": 1,
+      "category": "raw",
+      "note": "New in v0.8 (AB#822); no source in the data yet."
+    },
+    {
+      "id": "bauxite",
+      "name": "Bauxite",
+      "tier": 1,
+      "category": "raw",
+      "note": "New in v0.8 (AB#822); no source in the data yet."
+    },
+    {
+      "id": "titanium",
+      "name": "Titanium",
+      "tier": 2,
+      "category": "raw"
+    },
+    {
+      "id": "rare-earths",
+      "name": "Rare Earths",
+      "tier": 2,
+      "category": "raw"
+    },
+    {
+      "id": "lithium",
+      "name": "Lithium",
+      "tier": 2,
+      "category": "raw"
+    },
+    {
+      "id": "cobalt",
+      "name": "Cobalt",
+      "tier": 2,
+      "category": "raw"
+    },
+    {
+      "id": "thorium",
+      "name": "Thorium",
+      "tier": 2,
+      "category": "raw"
+    },
+    {
+      "id": "uranium",
+      "name": "Uranium",
+      "tier": 2,
+      "category": "raw"
+    },
+    {
+      "id": "exotic-matter",
+      "name": "Exotic Matter",
+      "tier": 2,
+      "category": "raw"
+    },
+    {
+      "id": "aerogel",
+      "name": "Aerogel",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "quantum-insulators",
+      "name": "Quantum Insulators",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "plasma-conduits",
+      "name": "Plasma Conduits",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "dark-matter-capacitors",
+      "name": "Dark-Matter Capacitors",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "structural-alloys",
+      "name": "Structural Alloys",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "magnetic-cores",
+      "name": "Magnetic Cores",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "armour-plating",
+      "name": "Armour Plating",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "precision-frames",
+      "name": "Precision Frames",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "carbon-fibre-sheets",
+      "name": "Carbon Fibre Sheets",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "graphene-lattice",
+      "name": "Graphene Lattice",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "sensor-arrays",
+      "name": "Sensor Arrays",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "catalyst-substrates",
+      "name": "Catalyst Substrates",
+      "tier": 3,
+      "category": "refined"
+    }
+  ]
+}

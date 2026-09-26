@@ -7,6 +7,18 @@
 
 import { buyOrderView, orderView } from "./publicViews.js";
 import { PRICE_HISTORY_ITEMS } from "./priceHistory.js";
+import { NPC_CATALOG } from "./npcCorporations.js";
+import { STATIONS_RAW } from "./game/catalog.js";
+
+// ISP-124 (AB#818): who the NPCs are, for the badge and the profile card; the same for every viewer. The home station
+// goes by name: the view carries no station id (Bug #1171), and this one is public anyway.
+const stationNameOf = (id) => (STATIONS_RAW.stations || STATIONS_RAW).find((s) => s.id === id)?.name || "";
+const NPC_DIRECTORY = NPC_CATALOG
+  ? {
+      corporations: NPC_CATALOG.corporations.map(({ id, name, homeStationId, flavour, trades }) => ({ id, name, homeStation: stationNameOf(homeStationId), flavour, trades })),
+      authorities: NPC_CATALOG.authorities.map(({ name, role }) => ({ name, role }))
+    }
+  : { corporations: [], authorities: [] };
 
 export const ORDER_BOOK_VIEW_LIMIT = 200;
 
@@ -27,6 +39,7 @@ export function marketView(market, accountId = null) {
     ...market,
     orderBook: newest.concat(own, npcAsks).map((order) => orderView(order, accountId)),
     buyOrders: bids.slice(0, ORDER_BOOK_VIEW_LIMIT).concat(ownBids).map((order) => buyOrderView(order, accountId)),
-    tradeItems: [...PRICE_HISTORY_ITEMS].sort() // what a buy order may name
+    tradeItems: [...PRICE_HISTORY_ITEMS].sort(), // what a buy order may name
+    npcDirectory: NPC_DIRECTORY
   };
 }

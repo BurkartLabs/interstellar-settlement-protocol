@@ -11,24 +11,24 @@
     "mapPosition": { "x": 0.07, "y": 0.5 },
     "adjacent": ["alpha-centauri", "barnards-star", "lalande-21185", "ross-154"],
     "bodies": [
-      { "id": "mercury", "name": "Mercury", "type": "Planet", "x": 58, "y": 0, "radius": 4 },
-      { "id": "venus", "name": "Venus", "type": "Planet", "x": 90, "y": 0, "radius": 6 },
-      { "id": "earth", "name": "Earth", "type": "Planet", "x": 122, "y": 0, "radius": 7, "leaseCost": 20000 },
-      { "id": "mars", "name": "Mars", "type": "Planet", "x": 156, "y": 0, "radius": 5, "leaseCost": 25000 },
-      { "id": "belt", "name": "Asteroid Belt", "type": "Field", "x": 196, "y": 0, "radius": 13, "composition": { "Silicates": 35, "Carbon": 25, "Nickel": 20, "Water Ice": 15, "Titanium": 5 } },
-      { "id": "jupiter", "name": "Jupiter", "type": "Planet", "x": 238, "y": 0, "radius": 12 },
-      { "id": "saturn", "name": "Saturn", "type": "Planet", "x": 284, "y": 0, "radius": 11 },
-      { "id": "uranus", "name": "Uranus", "type": "Planet", "x": 326, "y": 0, "radius": 9 },
-      { "id": "neptune", "name": "Neptune", "type": "Planet", "x": 366, "y": 0, "radius": 9 },
-      { "id": "luna", "name": "Luna", "type": "Moon", "parentId": "earth", "x": 0, "y": 0, "radius": 2, "leaseCost": 30000 },
-      { "id": "phobos", "name": "Phobos", "type": "Moon", "parentId": "mars", "x": 0, "y": 0, "radius": 2 },
-      { "id": "deimos", "name": "Deimos", "type": "Moon", "parentId": "mars", "x": 0, "y": 0, "radius": 2 },
-      { "id": "io", "name": "Io", "type": "Moon", "parentId": "jupiter", "x": 0, "y": 0, "radius": 2 },
-      { "id": "europa", "name": "Europa", "type": "Moon", "parentId": "jupiter", "x": 0, "y": 0, "radius": 2 },
-      { "id": "ganymede", "name": "Ganymede", "type": "Moon", "parentId": "jupiter", "x": 0, "y": 0, "radius": 3 },
-      { "id": "callisto", "name": "Callisto", "type": "Moon", "parentId": "jupiter", "x": 0, "y": 0, "radius": 3 },
-      { "id": "titan", "name": "Titan", "type": "Moon", "parentId": "saturn", "x": 0, "y": 0, "radius": 3 },
-      { "id": "enceladus", "name": "Enceladus", "type": "Moon", "parentId": "saturn", "x": 0, "y": 0, "radius": 2 }
+      { "id": "mercury", "name": "Mercury", "type": "Planet", "x": 58, "y": 0, "radius": 4, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Iron Ore", "concentration": 0.3 }, { "item": "Nickel", "concentration": 0.15 }, { "item": "Bauxite", "concentration": 0.1 }] },
+      { "id": "venus", "name": "Venus", "type": "Planet", "x": 90, "y": 0, "radius": 6, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Bauxite", "concentration": 0.25 }, { "item": "Carbon", "concentration": 0.15 }, { "item": "Water Ice", "concentration": 0.15 }] },
+      { "id": "earth", "name": "Earth", "type": "Planet", "x": 122, "y": 0, "radius": 7, "leaseCost": 20000, "resourceProfile": [{ "item": "Silicates", "concentration": 1 }] },
+      { "id": "mars", "name": "Mars", "type": "Planet", "x": 156, "y": 0, "radius": 5, "leaseCost": 25000, "resourceProfile": [{ "item": "Silicates", "concentration": 1 }] },
+      { "id": "belt", "name": "Asteroid Belt", "type": "Field", "x": 196, "y": 0, "radius": 13, "composition": { "Silicates": 35, "Carbon": 25, "Nickel": 20, "Water Ice": 15, "Titanium": 5 }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.35 }, { "item": "Carbon", "concentration": 0.25 }, { "item": "Nickel", "concentration": 0.2 }, { "item": "Water Ice", "concentration": 0.15 }, { "item": "Titanium", "concentration": 0.05 }] },
+      { "id": "jupiter", "name": "Jupiter", "type": "Planet", "x": 238, "y": 0, "radius": 12, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
+      { "id": "saturn", "name": "Saturn", "type": "Planet", "x": 284, "y": 0, "radius": 11, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
+      { "id": "uranus", "name": "Uranus", "type": "Planet", "x": 326, "y": 0, "radius": 9, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.5 }, { "item": "Deuterium", "concentration": 0.3 }, { "item": "Water Ice", "concentration": 0.2 }] },
+      { "id": "neptune", "name": "Neptune", "type": "Planet", "x": 366, "y": 0, "radius": 9, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.5 }, { "item": "Deuterium", "concentration": 0.3 }, { "item": "Water Ice", "concentration": 0.2 }] },
+      { "id": "luna", "name": "Luna", "type": "Moon", "parentId": "earth", "x": 0, "y": 0, "radius": 2, "leaseCost": 30000, "resourceProfile": [{ "item": "Silicates", "concentration": 1 }] },
+      { "id": "phobos", "name": "Phobos", "type": "Moon", "parentId": "mars", "x": 0, "y": 0, "radius": 2, "resourceProfile": [{ "item": "Silicates", "concentration": 0.5 }, { "item": "Iron Ore", "concentration": 0.25 }, { "item": "Bauxite", "concentration": 0.15 }, { "item": "Carbon", "concentration": 0.1 }] },
+      { "id": "deimos", "name": "Deimos", "type": "Moon", "parentId": "mars", "x": 0, "y": 0, "radius": 2, "resourceProfile": [{ "item": "Silicates", "concentration": 0.5 }, { "item": "Iron Ore", "concentration": 0.25 }, { "item": "Bauxite", "concentration": 0.15 }, { "item": "Carbon", "concentration": 0.1 }] },
+      { "id": "io", "name": "Io", "type": "Moon", "parentId": "jupiter", "x": 0, "y": 0, "radius": 2, "resourceProfile": [{ "item": "Iron Ore", "concentration": 0.4 }, { "item": "Silicates", "concentration": 0.25 }, { "item": "Nickel", "concentration": 0.2 }, { "item": "Cobalt", "concentration": 0.15 }] },
+      { "id": "europa", "name": "Europa", "type": "Moon", "parentId": "jupiter", "x": 0, "y": 0, "radius": 2, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
+      { "id": "ganymede", "name": "Ganymede", "type": "Moon", "parentId": "jupiter", "x": 0, "y": 0, "radius": 3, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
+      { "id": "callisto", "name": "Callisto", "type": "Moon", "parentId": "jupiter", "x": 0, "y": 0, "radius": 3, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
+      { "id": "titan", "name": "Titan", "type": "Moon", "parentId": "saturn", "x": 0, "y": 0, "radius": 3, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Carbon", "concentration": 0.4 }, { "item": "Water Ice", "concentration": 0.15 }] },
+      { "id": "enceladus", "name": "Enceladus", "type": "Moon", "parentId": "saturn", "x": 0, "y": 0, "radius": 2, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] }
     ]
   },
   {
@@ -43,10 +43,10 @@
     "mapPosition": { "x": 0.25, "y": 0.2 },
     "adjacent": ["sol", "wolf-359", "sirius"],
     "bodies": [
-      { "id": "ac-prime", "name": "Centauri Prime", "type": "Planet", "x": 50, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#4f9a8c", "shadow": "#1c3b3a", "accent": "#e8f4ef", "glow": "rgba(120, 220, 200, 0.38)" } },
-      { "id": "ac-ii", "name": "Centauri II", "type": "Planet", "x": 86, "y": 0, "radius": 5, "style": { "surface": "craters", "base": "#b08a5e", "shadow": "#4a3522", "accent": "#7a5a3a", "glow": "rgba(210, 170, 120, 0.22)" } },
-      { "id": "ac-haven", "name": "Haven", "type": "Moon", "parentId": "ac-ii", "x": 102, "y": 0, "radius": 3, "style": { "surface": "ice", "base": "#cfe3ee", "shadow": "#5b7486", "accent": "#8fb6cc", "glow": "rgba(190, 230, 255, 0.3)" } },
-      { "id": "ac-belt", "name": "Centauri Belt", "type": "Field", "x": 126, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#b9a88f", "shadow": "#5a4e3f", "accent": "#e2d4bd", "glow": "rgba(185, 168, 143, 0.08)" }, "composition": { "Silicates": 25, "Nickel": 22, "Titanium": 18, "Carbon": 15, "Hydrogen": 12, "Lithium": 8 } }
+      { "id": "ac-prime", "name": "Centauri Prime", "type": "Planet", "x": 50, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#4f9a8c", "shadow": "#1c3b3a", "accent": "#e8f4ef", "glow": "rgba(120, 220, 200, 0.38)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Bauxite", "concentration": 0.25 }, { "item": "Carbon", "concentration": 0.15 }, { "item": "Water Ice", "concentration": 0.15 }] },
+      { "id": "ac-ii", "name": "Centauri II", "type": "Planet", "x": 86, "y": 0, "radius": 5, "style": { "surface": "craters", "base": "#b08a5e", "shadow": "#4a3522", "accent": "#7a5a3a", "glow": "rgba(210, 170, 120, 0.22)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Iron Ore", "concentration": 0.3 }, { "item": "Nickel", "concentration": 0.15 }, { "item": "Bauxite", "concentration": 0.1 }] },
+      { "id": "ac-haven", "name": "Haven", "type": "Moon", "parentId": "ac-ii", "x": 102, "y": 0, "radius": 3, "style": { "surface": "ice", "base": "#cfe3ee", "shadow": "#5b7486", "accent": "#8fb6cc", "glow": "rgba(190, 230, 255, 0.3)" }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
+      { "id": "ac-belt", "name": "Centauri Belt", "type": "Field", "x": 126, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#b9a88f", "shadow": "#5a4e3f", "accent": "#e2d4bd", "glow": "rgba(185, 168, 143, 0.08)" }, "composition": { "Silicates": 25, "Nickel": 22, "Titanium": 18, "Carbon": 15, "Hydrogen": 12, "Lithium": 8 }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.25 }, { "item": "Nickel", "concentration": 0.22 }, { "item": "Titanium", "concentration": 0.18 }, { "item": "Carbon", "concentration": 0.15 }, { "item": "Hydrogen", "concentration": 0.12 }, { "item": "Lithium", "concentration": 0.08 }] }
     ]
   },
   {
@@ -61,10 +61,10 @@
     "mapPosition": { "x": 0.25, "y": 0.62 },
     "adjacent": ["sol", "tau-ceti", "ross-248"],
     "bodies": [
-      { "id": "bn-iron", "name": "Ironwell", "type": "Planet", "x": 48, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#8c8a88", "shadow": "#35302d", "accent": "#5e5a57", "glow": "rgba(170, 160, 150, 0.2)" } },
-      { "id": "bn-cinder", "name": "Cinder", "type": "Planet", "x": 82, "y": 0, "radius": 4, "style": { "surface": "lava", "base": "#3a2622", "shadow": "#140b0a", "accent": "#ff7a2e", "glow": "rgba(255, 110, 50, 0.4)" } },
-      { "id": "bn-arc", "name": "Arcadia", "type": "Moon", "parentId": "bn-cinder", "x": 103, "y": 0, "radius": 3, "style": { "surface": "craters", "base": "#d6d0c4", "shadow": "#6a655c", "accent": "#a39c90", "glow": "rgba(220, 215, 200, 0.2)" } },
-      { "id": "bn-rift", "name": "Rift Debris Ring", "type": "Field", "x": 132, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#a0765e", "shadow": "#4a3428", "accent": "#d8a37e", "glow": "rgba(160, 118, 94, 0.08)" }, "composition": { "Nickel": 25, "Titanium": 22, "Carbon": 18, "Silicates": 15, "Hydrogen": 12, "Cobalt": 8 } }
+      { "id": "bn-iron", "name": "Ironwell", "type": "Planet", "x": 48, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#8c8a88", "shadow": "#35302d", "accent": "#5e5a57", "glow": "rgba(170, 160, 150, 0.2)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Iron Ore", "concentration": 0.3 }, { "item": "Nickel", "concentration": 0.15 }, { "item": "Bauxite", "concentration": 0.1 }] },
+      { "id": "bn-cinder", "name": "Cinder", "type": "Planet", "x": 82, "y": 0, "radius": 4, "style": { "surface": "lava", "base": "#3a2622", "shadow": "#140b0a", "accent": "#ff7a2e", "glow": "rgba(255, 110, 50, 0.4)" }, "resourceProfile": [{ "item": "Iron Ore", "concentration": 0.4 }, { "item": "Silicates", "concentration": 0.25 }, { "item": "Nickel", "concentration": 0.2 }, { "item": "Cobalt", "concentration": 0.15 }] },
+      { "id": "bn-arc", "name": "Arcadia", "type": "Moon", "parentId": "bn-cinder", "x": 103, "y": 0, "radius": 3, "style": { "surface": "craters", "base": "#d6d0c4", "shadow": "#6a655c", "accent": "#a39c90", "glow": "rgba(220, 215, 200, 0.2)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.5 }, { "item": "Iron Ore", "concentration": 0.25 }, { "item": "Bauxite", "concentration": 0.15 }, { "item": "Carbon", "concentration": 0.1 }] },
+      { "id": "bn-rift", "name": "Rift Debris Ring", "type": "Field", "x": 132, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#a0765e", "shadow": "#4a3428", "accent": "#d8a37e", "glow": "rgba(160, 118, 94, 0.08)" }, "composition": { "Nickel": 25, "Titanium": 22, "Carbon": 18, "Silicates": 15, "Hydrogen": 12, "Cobalt": 8 }, "resourceProfile": [{ "item": "Nickel", "concentration": 0.25 }, { "item": "Titanium", "concentration": 0.22 }, { "item": "Carbon", "concentration": 0.18 }, { "item": "Silicates", "concentration": 0.15 }, { "item": "Hydrogen", "concentration": 0.12 }, { "item": "Cobalt", "concentration": 0.08 }] }
     ]
   },
   {
@@ -79,10 +79,10 @@
     "mapPosition": { "x": 0.44, "y": 0.28 },
     "adjacent": ["alpha-centauri", "lalande-21185", "tau-ceti", "epsilon-eridani", "procyon"],
     "bodies": [
-      { "id": "wf-halo", "name": "Halo", "type": "Planet", "x": 44, "y": 0, "radius": 5, "style": { "surface": "ice", "base": "#e6eef7", "shadow": "#6f7f93", "accent": "#a9c2dc", "glow": "rgba(210, 230, 255, 0.35)" } },
-      { "id": "wf-garnet", "name": "Garnet", "type": "Planet", "x": 77, "y": 0, "radius": 6, "style": { "surface": "bands", "base": "#a8374a", "shadow": "#3d1219", "accent": "#e0917a", "glow": "rgba(230, 90, 100, 0.35)" } },
-      { "id": "wf-veil", "name": "Veil", "type": "Moon", "parentId": "wf-garnet", "x": 92, "y": 0, "radius": 3, "style": { "surface": "clouds", "base": "#7d6aa8", "shadow": "#2c2440", "accent": "#d9ccf2", "glow": "rgba(170, 140, 240, 0.38)" } },
-      { "id": "wf-shards", "name": "Shard Belt", "type": "Field", "x": 126, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#9fb3c9", "shadow": "#48566a", "accent": "#dce8f5", "glow": "rgba(159, 179, 201, 0.08)" }, "composition": { "Titanium": 20, "Nickel": 18, "Rare Earths": 16, "Lithium": 14, "Carbon": 12, "Cobalt": 10, "Thorium": 10 } }
+      { "id": "wf-halo", "name": "Halo", "type": "Planet", "x": 44, "y": 0, "radius": 5, "style": { "surface": "ice", "base": "#e6eef7", "shadow": "#6f7f93", "accent": "#a9c2dc", "glow": "rgba(210, 230, 255, 0.35)" }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
+      { "id": "wf-garnet", "name": "Garnet", "type": "Planet", "x": 77, "y": 0, "radius": 6, "style": { "surface": "bands", "base": "#a8374a", "shadow": "#3d1219", "accent": "#e0917a", "glow": "rgba(230, 90, 100, 0.35)" }, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
+      { "id": "wf-veil", "name": "Veil", "type": "Moon", "parentId": "wf-garnet", "x": 92, "y": 0, "radius": 3, "style": { "surface": "clouds", "base": "#7d6aa8", "shadow": "#2c2440", "accent": "#d9ccf2", "glow": "rgba(170, 140, 240, 0.38)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Bauxite", "concentration": 0.25 }, { "item": "Carbon", "concentration": 0.15 }, { "item": "Water Ice", "concentration": 0.15 }] },
+      { "id": "wf-shards", "name": "Shard Belt", "type": "Field", "x": 126, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#9fb3c9", "shadow": "#48566a", "accent": "#dce8f5", "glow": "rgba(159, 179, 201, 0.08)" }, "composition": { "Titanium": 20, "Nickel": 18, "Rare Earths": 16, "Lithium": 14, "Carbon": 12, "Cobalt": 10, "Thorium": 10 }, "resourceProfile": [{ "item": "Titanium", "concentration": 0.2 }, { "item": "Nickel", "concentration": 0.18 }, { "item": "Rare Earths", "concentration": 0.16 }, { "item": "Lithium", "concentration": 0.14 }, { "item": "Carbon", "concentration": 0.12 }, { "item": "Cobalt", "concentration": 0.1 }, { "item": "Thorium", "concentration": 0.1 }] }
     ]
   },
   {
@@ -97,10 +97,10 @@
     "mapPosition": { "x": 0.43, "y": 0.48 },
     "adjacent": ["barnards-star", "wolf-359", "epsilon-eridani", "luyten-726-8", "lalande-21185"],
     "bodies": [
-      { "id": "tc-verde", "name": "Verde", "type": "Planet", "x": 47, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#5f9a4a", "shadow": "#1f3a1a", "accent": "#eef6e2", "glow": "rgba(140, 220, 120, 0.38)" } },
-      { "id": "tc-lumen", "name": "Lumen", "type": "Planet", "x": 84, "y": 0, "radius": 5, "style": { "surface": "bands", "base": "#d9b25a", "shadow": "#6e5220", "accent": "#f6e1a6", "glow": "rgba(250, 210, 120, 0.35)" } },
-      { "id": "tc-aqua", "name": "Aqua Minor", "type": "Moon", "parentId": "tc-lumen", "x": 101, "y": 0, "radius": 3, "style": { "surface": "ice", "base": "#8fd6d9", "shadow": "#2f6668", "accent": "#d6f5f5", "glow": "rgba(140, 230, 235, 0.35)" } },
-      { "id": "tc-cloud", "name": "Tau Ice Cloud", "type": "Field", "x": 128, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#bfe0ea", "shadow": "#5f7f8a", "accent": "#f0fbff", "glow": "rgba(191, 224, 234, 0.1)" }, "composition": { "Rare Earths": 18, "Cobalt": 16, "Thorium": 14, "Titanium": 14, "Nickel": 12, "Helium-3": 10, "Lithium": 8, "Uranium": 8 } }
+      { "id": "tc-verde", "name": "Verde", "type": "Planet", "x": 47, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#5f9a4a", "shadow": "#1f3a1a", "accent": "#eef6e2", "glow": "rgba(140, 220, 120, 0.38)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Bauxite", "concentration": 0.25 }, { "item": "Carbon", "concentration": 0.15 }, { "item": "Water Ice", "concentration": 0.15 }] },
+      { "id": "tc-lumen", "name": "Lumen", "type": "Planet", "x": 84, "y": 0, "radius": 5, "style": { "surface": "bands", "base": "#d9b25a", "shadow": "#6e5220", "accent": "#f6e1a6", "glow": "rgba(250, 210, 120, 0.35)" }, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
+      { "id": "tc-aqua", "name": "Aqua Minor", "type": "Moon", "parentId": "tc-lumen", "x": 101, "y": 0, "radius": 3, "style": { "surface": "ice", "base": "#8fd6d9", "shadow": "#2f6668", "accent": "#d6f5f5", "glow": "rgba(140, 230, 235, 0.35)" }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
+      { "id": "tc-cloud", "name": "Tau Ice Cloud", "type": "Field", "x": 128, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#bfe0ea", "shadow": "#5f7f8a", "accent": "#f0fbff", "glow": "rgba(191, 224, 234, 0.1)" }, "composition": { "Rare Earths": 18, "Cobalt": 16, "Thorium": 14, "Titanium": 14, "Nickel": 12, "Helium-3": 10, "Lithium": 8, "Uranium": 8 }, "resourceProfile": [{ "item": "Rare Earths", "concentration": 0.18 }, { "item": "Cobalt", "concentration": 0.16 }, { "item": "Thorium", "concentration": 0.14 }, { "item": "Titanium", "concentration": 0.14 }, { "item": "Nickel", "concentration": 0.12 }, { "item": "Helium-3", "concentration": 0.1 }, { "item": "Lithium", "concentration": 0.08 }, { "item": "Uranium", "concentration": 0.08 }] }
     ]
   },
   {
@@ -115,10 +115,10 @@
     "mapPosition": { "x": 0.58, "y": 0.38 },
     "adjacent": ["wolf-359", "tau-ceti", "61-cygni", "ross-128"],
     "bodies": [
-      { "id": "ee-kestrel", "name": "Kestrel", "type": "Planet", "x": 46, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#c7a57a", "shadow": "#5a4430", "accent": "#8d7152", "glow": "rgba(220, 190, 150, 0.22)" } },
-      { "id": "ee-orion", "name": "Orion Reach", "type": "Planet", "x": 78, "y": 0, "radius": 5, "style": { "surface": "bands", "base": "#5670c9", "shadow": "#1c2656", "accent": "#a9c0f2", "glow": "rgba(110, 140, 240, 0.38)" } },
-      { "id": "ee-lyra", "name": "Lyra", "type": "Moon", "parentId": "ee-orion", "x": 95, "y": 0, "radius": 3, "style": { "surface": "lava", "base": "#3b2a30", "shadow": "#130c10", "accent": "#ff5a6e", "glow": "rgba(255, 90, 110, 0.35)" } },
-      { "id": "ee-crown", "name": "Crown Belt", "type": "Field", "x": 124, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#d4b86a", "shadow": "#6a5a30", "accent": "#f5e3a8", "glow": "rgba(212, 184, 106, 0.08)" }, "composition": { "Rare Earths": 15, "Thorium": 14, "Uranium": 12, "Cobalt": 12, "Exotic Matter": 8, "Helium-3": 10, "Titanium": 10, "Lithium": 10, "Nickel": 9 } }
+      { "id": "ee-kestrel", "name": "Kestrel", "type": "Planet", "x": 46, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#c7a57a", "shadow": "#5a4430", "accent": "#8d7152", "glow": "rgba(220, 190, 150, 0.22)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Iron Ore", "concentration": 0.2 }, { "item": "Nickel", "concentration": 0.15 }, { "item": "Bauxite", "concentration": 0.1 }, { "item": "Cobalt", "concentration": 0.1 }] },
+      { "id": "ee-orion", "name": "Orion Reach", "type": "Planet", "x": 78, "y": 0, "radius": 5, "style": { "surface": "bands", "base": "#5670c9", "shadow": "#1c2656", "accent": "#a9c0f2", "glow": "rgba(110, 140, 240, 0.38)" }, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
+      { "id": "ee-lyra", "name": "Lyra", "type": "Moon", "parentId": "ee-orion", "x": 95, "y": 0, "radius": 3, "style": { "surface": "lava", "base": "#3b2a30", "shadow": "#130c10", "accent": "#ff5a6e", "glow": "rgba(255, 90, 110, 0.35)" }, "resourceProfile": [{ "item": "Iron Ore", "concentration": 0.3 }, { "item": "Silicates", "concentration": 0.25 }, { "item": "Nickel", "concentration": 0.2 }, { "item": "Cobalt", "concentration": 0.15 }, { "item": "Thorium", "concentration": 0.1 }] },
+      { "id": "ee-crown", "name": "Crown Belt", "type": "Field", "x": 124, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#d4b86a", "shadow": "#6a5a30", "accent": "#f5e3a8", "glow": "rgba(212, 184, 106, 0.08)" }, "composition": { "Rare Earths": 15, "Thorium": 14, "Uranium": 12, "Cobalt": 12, "Exotic Matter": 8, "Helium-3": 10, "Titanium": 10, "Lithium": 10, "Nickel": 9 }, "resourceProfile": [{ "item": "Rare Earths", "concentration": 0.15 }, { "item": "Thorium", "concentration": 0.14 }, { "item": "Uranium", "concentration": 0.12 }, { "item": "Cobalt", "concentration": 0.12 }, { "item": "Helium-3", "concentration": 0.1 }, { "item": "Titanium", "concentration": 0.1 }, { "item": "Lithium", "concentration": 0.1 }, { "item": "Nickel", "concentration": 0.09 }, { "item": "Exotic Matter", "concentration": 0.08 }] }
     ]
   },
   {
@@ -133,9 +133,9 @@
     "mapPosition": { "x": 0.24, "y": 0.4 },
     "adjacent": ["sol", "wolf-359", "tau-ceti"],
     "bodies": [
-      { "id": "la-b", "name": "Lalande 21185 b", "type": "Planet", "x": 46, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#9a7b62", "shadow": "#3e2f24", "accent": "#6e5543", "glow": "rgba(200, 160, 120, 0.2)" } },
-      { "id": "la-c", "name": "Lalande 21185 c", "type": "Planet", "x": 84, "y": 0, "radius": 7, "style": { "surface": "bands", "base": "#8a7fb0", "shadow": "#2f2a44", "accent": "#cfc6ee", "glow": "rgba(160, 140, 230, 0.32)" } },
-      { "id": "la-drift", "name": "Halley Drift", "type": "Field", "x": 128, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#a89a86", "shadow": "#4f473c", "accent": "#ddd0bb", "glow": "rgba(168, 154, 134, 0.08)" }, "composition": { "Nickel": 30, "Silicates": 25, "Carbon": 15, "Titanium": 12, "Water Ice": 10, "Cobalt": 8 } }
+      { "id": "la-b", "name": "Lalande 21185 b", "type": "Planet", "x": 46, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#9a7b62", "shadow": "#3e2f24", "accent": "#6e5543", "glow": "rgba(200, 160, 120, 0.2)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Iron Ore", "concentration": 0.3 }, { "item": "Nickel", "concentration": 0.15 }, { "item": "Bauxite", "concentration": 0.1 }] },
+      { "id": "la-c", "name": "Lalande 21185 c", "type": "Planet", "x": 84, "y": 0, "radius": 7, "style": { "surface": "bands", "base": "#8a7fb0", "shadow": "#2f2a44", "accent": "#cfc6ee", "glow": "rgba(160, 140, 230, 0.32)" }, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
+      { "id": "la-drift", "name": "Halley Drift", "type": "Field", "x": 128, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#a89a86", "shadow": "#4f473c", "accent": "#ddd0bb", "glow": "rgba(168, 154, 134, 0.08)" }, "composition": { "Nickel": 30, "Silicates": 25, "Carbon": 15, "Titanium": 12, "Water Ice": 10, "Cobalt": 8 }, "resourceProfile": [{ "item": "Nickel", "concentration": 0.3 }, { "item": "Silicates", "concentration": 0.25 }, { "item": "Carbon", "concentration": 0.15 }, { "item": "Titanium", "concentration": 0.12 }, { "item": "Water Ice", "concentration": 0.1 }, { "item": "Cobalt", "concentration": 0.08 }] }
     ]
   },
   {
@@ -150,9 +150,9 @@
     "mapPosition": { "x": 0.24, "y": 0.84 },
     "adjacent": ["sol", "luyten-726-8", "lacaille-9352"],
     "bodies": [
-      { "id": "r154-i", "name": "Ross 154 I", "type": "Planet", "x": 52, "y": 0, "radius": 6, "style": { "surface": "lava", "base": "#4a2a20", "shadow": "#170c08", "accent": "#ff8a3d", "glow": "rgba(255, 120, 60, 0.38)" } },
-      { "id": "r154-ember", "name": "Ember", "type": "Moon", "parentId": "r154-i", "x": 70, "y": 0, "radius": 3, "style": { "surface": "craters", "base": "#b89a84", "shadow": "#54443a", "accent": "#8a7262", "glow": "rgba(200, 170, 150, 0.2)" } },
-      { "id": "r154-ring", "name": "Flare Ring", "type": "Field", "x": 34, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#c08a62", "shadow": "#5a3e2a", "accent": "#f0c49a", "glow": "rgba(192, 138, 98, 0.08)" }, "composition": { "Titanium": 24, "Nickel": 22, "Carbon": 18, "Silicates": 14, "Lithium": 12, "Hydrogen": 10 } }
+      { "id": "r154-i", "name": "Ross 154 I", "type": "Planet", "x": 52, "y": 0, "radius": 6, "style": { "surface": "lava", "base": "#4a2a20", "shadow": "#170c08", "accent": "#ff8a3d", "glow": "rgba(255, 120, 60, 0.38)" }, "resourceProfile": [{ "item": "Iron Ore", "concentration": 0.4 }, { "item": "Silicates", "concentration": 0.25 }, { "item": "Nickel", "concentration": 0.2 }, { "item": "Cobalt", "concentration": 0.15 }] },
+      { "id": "r154-ember", "name": "Ember", "type": "Moon", "parentId": "r154-i", "x": 70, "y": 0, "radius": 3, "style": { "surface": "craters", "base": "#b89a84", "shadow": "#54443a", "accent": "#8a7262", "glow": "rgba(200, 170, 150, 0.2)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.5 }, { "item": "Iron Ore", "concentration": 0.25 }, { "item": "Bauxite", "concentration": 0.15 }, { "item": "Carbon", "concentration": 0.1 }] },
+      { "id": "r154-ring", "name": "Flare Ring", "type": "Field", "x": 34, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#c08a62", "shadow": "#5a3e2a", "accent": "#f0c49a", "glow": "rgba(192, 138, 98, 0.08)" }, "composition": { "Titanium": 24, "Nickel": 22, "Carbon": 18, "Silicates": 14, "Lithium": 12, "Hydrogen": 10 }, "resourceProfile": [{ "item": "Titanium", "concentration": 0.24 }, { "item": "Nickel", "concentration": 0.22 }, { "item": "Carbon", "concentration": 0.18 }, { "item": "Silicates", "concentration": 0.14 }, { "item": "Lithium", "concentration": 0.12 }, { "item": "Hydrogen", "concentration": 0.1 }] }
     ]
   },
   {
@@ -167,9 +167,9 @@
     "mapPosition": { "x": 0.42, "y": 0.08 },
     "adjacent": ["alpha-centauri", "procyon"],
     "bodies": [
-      { "id": "si-ia", "name": "Sirius Ia", "type": "Planet", "x": 58, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#6fa6c8", "shadow": "#223a4a", "accent": "#eef7ff", "glow": "rgba(150, 210, 255, 0.4)" } },
-      { "id": "si-anchorage", "name": "Canis Anchorage", "type": "Moon", "parentId": "si-ia", "x": 77, "y": 0, "radius": 3, "style": { "surface": "ice", "base": "#dbe9f2", "shadow": "#61788a", "accent": "#a4c3d8", "glow": "rgba(200, 235, 255, 0.32)" } },
-      { "id": "si-disk", "name": "Canis Debris Disk", "type": "Field", "x": 34, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#b8c7d6", "shadow": "#566474", "accent": "#eef4fa", "glow": "rgba(184, 199, 214, 0.1)" }, "composition": { "Titanium": 22, "Nickel": 22, "Silicates": 20, "Carbon": 12, "Rare Earths": 10, "Lithium": 8, "Helium-3": 6 } }
+      { "id": "si-ia", "name": "Sirius Ia", "type": "Planet", "x": 58, "y": 0, "radius": 7, "style": { "surface": "clouds", "base": "#6fa6c8", "shadow": "#223a4a", "accent": "#eef7ff", "glow": "rgba(150, 210, 255, 0.4)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Bauxite", "concentration": 0.25 }, { "item": "Carbon", "concentration": 0.15 }, { "item": "Water Ice", "concentration": 0.15 }] },
+      { "id": "si-anchorage", "name": "Canis Anchorage", "type": "Moon", "parentId": "si-ia", "x": 77, "y": 0, "radius": 3, "style": { "surface": "ice", "base": "#dbe9f2", "shadow": "#61788a", "accent": "#a4c3d8", "glow": "rgba(200, 235, 255, 0.32)" }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
+      { "id": "si-disk", "name": "Canis Debris Disk", "type": "Field", "x": 34, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#b8c7d6", "shadow": "#566474", "accent": "#eef4fa", "glow": "rgba(184, 199, 214, 0.1)" }, "composition": { "Titanium": 22, "Nickel": 22, "Silicates": 20, "Carbon": 12, "Rare Earths": 10, "Lithium": 8, "Helium-3": 6 }, "resourceProfile": [{ "item": "Titanium", "concentration": 0.22 }, { "item": "Nickel", "concentration": 0.22 }, { "item": "Silicates", "concentration": 0.2 }, { "item": "Carbon", "concentration": 0.12 }, { "item": "Rare Earths", "concentration": 0.1 }, { "item": "Lithium", "concentration": 0.08 }, { "item": "Helium-3", "concentration": 0.06 }] }
     ]
   },
   {
@@ -184,9 +184,9 @@
     "mapPosition": { "x": 0.4, "y": 0.64 },
     "adjacent": ["barnards-star", "61-cygni"],
     "bodies": [
-      { "id": "r248-i", "name": "Ross 248 I", "type": "Planet", "x": 50, "y": 0, "radius": 5, "style": { "surface": "ice", "base": "#e2edf6", "shadow": "#6c7d90", "accent": "#a6c0da", "glow": "rgba(210, 230, 255, 0.34)" } },
-      { "id": "r248-rime", "name": "Rime", "type": "Moon", "parentId": "r248-i", "x": 66, "y": 0, "radius": 2, "style": { "surface": "ice", "base": "#cfe7f0", "shadow": "#5d7a88", "accent": "#94bccd", "glow": "rgba(190, 230, 250, 0.3)" } },
-      { "id": "r248-halo", "name": "Frost Halo", "type": "Field", "x": 30, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#c6e2ee", "shadow": "#627f8c", "accent": "#f2fbff", "glow": "rgba(198, 226, 238, 0.1)" }, "composition": { "Water Ice": 25, "Helium-3": 22, "Hydrogen": 20, "Carbon": 13, "Nickel": 12, "Lithium": 8 } }
+      { "id": "r248-i", "name": "Ross 248 I", "type": "Planet", "x": 50, "y": 0, "radius": 5, "style": { "surface": "ice", "base": "#e2edf6", "shadow": "#6c7d90", "accent": "#a6c0da", "glow": "rgba(210, 230, 255, 0.34)" }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
+      { "id": "r248-rime", "name": "Rime", "type": "Moon", "parentId": "r248-i", "x": 66, "y": 0, "radius": 2, "style": { "surface": "ice", "base": "#cfe7f0", "shadow": "#5d7a88", "accent": "#94bccd", "glow": "rgba(190, 230, 250, 0.3)" }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.55 }, { "item": "Deuterium", "concentration": 0.2 }, { "item": "Hydrogen", "concentration": 0.15 }, { "item": "Silicates", "concentration": 0.1 }] },
+      { "id": "r248-halo", "name": "Frost Halo", "type": "Field", "x": 30, "y": 0, "radius": 11, "style": { "surface": "field", "base": "#c6e2ee", "shadow": "#627f8c", "accent": "#f2fbff", "glow": "rgba(198, 226, 238, 0.1)" }, "composition": { "Water Ice": 25, "Helium-3": 22, "Hydrogen": 20, "Carbon": 13, "Nickel": 12, "Lithium": 8 }, "resourceProfile": [{ "item": "Water Ice", "concentration": 0.25 }, { "item": "Helium-3", "concentration": 0.22 }, { "item": "Hydrogen", "concentration": 0.2 }, { "item": "Carbon", "concentration": 0.13 }, { "item": "Nickel", "concentration": 0.12 }, { "item": "Lithium", "concentration": 0.08 }] }
     ]
   },
   {
@@ -201,8 +201,8 @@
     "mapPosition": { "x": 0.45, "y": 0.78 },
     "adjacent": ["ross-154", "tau-ceti", "kapteyns-star"],
     "bodies": [
-      { "id": "l726-i", "name": "BL Ceti I", "type": "Planet", "x": 60, "y": 0, "radius": 5, "style": { "surface": "lava", "base": "#402420", "shadow": "#160a08", "accent": "#ff6a3a", "glow": "rgba(255, 100, 60, 0.4)" } },
-      { "id": "l726-belt", "name": "Twin Flare Belt", "type": "Field", "x": 34, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#b07a6a", "shadow": "#503430", "accent": "#e6aa98", "glow": "rgba(176, 122, 106, 0.08)" }, "composition": { "Rare Earths": 22, "Thorium": 18, "Cobalt": 16, "Titanium": 14, "Nickel": 12, "Uranium": 10, "Lithium": 8 } }
+      { "id": "l726-i", "name": "BL Ceti I", "type": "Planet", "x": 60, "y": 0, "radius": 5, "style": { "surface": "lava", "base": "#402420", "shadow": "#160a08", "accent": "#ff6a3a", "glow": "rgba(255, 100, 60, 0.4)" }, "resourceProfile": [{ "item": "Iron Ore", "concentration": 0.3 }, { "item": "Silicates", "concentration": 0.25 }, { "item": "Nickel", "concentration": 0.2 }, { "item": "Cobalt", "concentration": 0.15 }, { "item": "Thorium", "concentration": 0.1 }] },
+      { "id": "l726-belt", "name": "Twin Flare Belt", "type": "Field", "x": 34, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#b07a6a", "shadow": "#503430", "accent": "#e6aa98", "glow": "rgba(176, 122, 106, 0.08)" }, "composition": { "Rare Earths": 22, "Thorium": 18, "Cobalt": 16, "Titanium": 14, "Nickel": 12, "Uranium": 10, "Lithium": 8 }, "resourceProfile": [{ "item": "Rare Earths", "concentration": 0.22 }, { "item": "Thorium", "concentration": 0.18 }, { "item": "Cobalt", "concentration": 0.16 }, { "item": "Titanium", "concentration": 0.14 }, { "item": "Nickel", "concentration": 0.12 }, { "item": "Uranium", "concentration": 0.1 }, { "item": "Lithium", "concentration": 0.08 }] }
     ]
   },
   {
@@ -217,9 +217,9 @@
     "mapPosition": { "x": 0.41, "y": 0.93 },
     "adjacent": ["ross-154", "epsilon-indi"],
     "bodies": [
-      { "id": "lc-b", "name": "Lacaille 9352 b", "type": "Planet", "x": 44, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#8f8a80", "shadow": "#39352f", "accent": "#615c54", "glow": "rgba(175, 168, 158, 0.2)" } },
-      { "id": "lc-c", "name": "Lacaille 9352 c", "type": "Planet", "x": 80, "y": 0, "radius": 7, "style": { "surface": "bands", "base": "#5f8c6c", "shadow": "#203428", "accent": "#cfe8d6", "glow": "rgba(130, 200, 150, 0.32)" } },
-      { "id": "lc-reef", "name": "Southern Reef", "type": "Field", "x": 128, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#9ca890", "shadow": "#474f40", "accent": "#d6e0ca", "glow": "rgba(156, 168, 144, 0.08)" }, "composition": { "Nickel": 24, "Cobalt": 20, "Titanium": 18, "Rare Earths": 14, "Carbon": 12, "Thorium": 12 } }
+      { "id": "lc-b", "name": "Lacaille 9352 b", "type": "Planet", "x": 44, "y": 0, "radius": 6, "style": { "surface": "craters", "base": "#8f8a80", "shadow": "#39352f", "accent": "#615c54", "glow": "rgba(175, 168, 158, 0.2)" }, "resourceProfile": [{ "item": "Silicates", "concentration": 0.45 }, { "item": "Iron Ore", "concentration": 0.2 }, { "item": "Nickel", "concentration": 0.15 }, { "item": "Bauxite", "concentration": 0.1 }, { "item": "Cobalt", "concentration": 0.1 }] },
+      { "id": "lc-c", "name": "Lacaille 9352 c", "type": "Planet", "x": 80, "y": 0, "radius": 7, "style": { "surface": "bands", "base": "#5f8c6c", "shadow": "#203428", "accent": "#cfe8d6", "glow": "rgba(130, 200, 150, 0.32)" }, "resourceProfile": [{ "item": "Hydrogen", "concentration": 0.55 }, { "item": "Helium-3", "concentration": 0.3 }, { "item": "Deuterium", "concentration": 0.15 }] },
+      { "id": "lc-reef", "name": "Southern Reef", "type": "Field", "x": 128, "y": 0, "radius": 10, "style": { "surface": "field", "base": "#9ca890", "shadow": "#474f40", "accent": "#d6e0ca", "glow": "rgba(156, 168, 144, 0.08)" }, "composition": { "Nickel": 24, "Cobalt": 20, "Titanium": 18, "Rare Earths": 14, "Carbon": 12, "Thorium": 12 }, "resourceProfile": [{ "item": "Nickel", "concentration": 0.24 }, { "item": "Cobalt", "concentration": 0.2 }, { "item": "Titanium", "concentration": 0.18 }, { "item": "Rare Earths", "concentration": 0.14 }, { "item": "Carbon", "concentration": 0.12 }, { "item": "Thorium", "concentration": 0.12 }] }
     ]
   },
   {

@@ -128,8 +128,9 @@ export function resolveMetric(metric, corp) {
   // totalMined:<resource>
   if (metric.startsWith("totalMined:")) {
     if (metric === "totalMined:silicate") {
+      // AB#828: the Silicates the yards mined; a yard saved before per-item counts mined nothing else.
       return (corp?.mining?.silicateExtractors || [])
-        .reduce((sum, ex) => sum + Number(ex?.totalMined || 0), 0);
+        .reduce((sum, ex) => sum + Number(ex?.minedByItem ? ex.minedByItem.Silicates || 0 : ex?.totalMined || 0), 0);
     }
     // ISP-106 (AB#798): any other raw resource, as returning expeditions deposited it (asteroids.js bumps mined:<name>).
     const wanted = metric.slice(11).toLowerCase();
