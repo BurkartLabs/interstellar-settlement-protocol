@@ -184,9 +184,12 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* AB#2131: html paints the page colour and body stays clear. An in-flow body paints its background above the fixed
+   negative-z background layers, so an opaque body hid the starfield on every page. */
 body {
   position: relative;
   overflow-x: hidden;
+  background: transparent;
 }
 
 [hidden] {
@@ -371,7 +374,8 @@ body {
 #starfield-canvas {
   position: fixed;
   inset: 0;
-  z-index: -2;
+  /* AB#2131: above .app-bg, which is opaque since the flat direction (AB#760), so the stars are not painted over. */
+  z-index: -1;
   display: block;
 }
 
@@ -380,7 +384,7 @@ body {
   position: fixed;
   /* AB#1453: a little larger than the screen, so the drift below never shows an edge. */
   inset: -4%;
-  z-index: -1;
+  z-index: -2;
   background:
     var(--bg);
   /* AB#1453: moved with transform, which the compositor does alone. It animated background-position, which repainted
