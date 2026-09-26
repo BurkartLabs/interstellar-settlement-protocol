@@ -4,56 +4,57 @@ import { getApp } from "../helpers/app.js";
 import { registerAccount, longLivedAccessToken } from "../helpers/api.js";
 import { getAccountById, getState, mutateAccountState, mutateState, applyRefineryOperations, ensureBidShape } from "../../server/gameState.js";
 import * as ticks from "../../server/ticks.js";
-import { ECONOMY, npcBidFor } from "../../server/economy.js";
-import { HOUR, POLICIES, playWeek, trackShape, weekSupply } from "./chainProbe.js";
+import { ECONOMY } from "../../server/economy.js";
+import { HOUR, POLICIES, REFINERY_COUNTS, VOLUMES, playWeek, trackShape, weekSupply } from "./chainProbe.js";
 
-// ISP-141 (AB#835): does refining stay a decision? docs/design/tier3-recipes.md section 6: a week of each track under
-// three policies from three price states. The bot (chainProbe.js) plays through the routes; this file sets up where
-// each week starts. BOT NUMBERS (P-PROXY): they do not measure human pacing, player-to-player prices or other sellers.
+// ISP-141 (AB#835): does refining stay a decision? docs/design/tier3-recipes.md section 6. AB#2367 (the Director's
+// ruling on AB#2366) replaced the three starting price states, which one corporation's market erases overnight, with a
+// sweep of what the corporation does to its own market: how much it mines in a week (VOLUMES) and how many Refineries
+// it runs (1 or 2). Every week starts from fresh bids. The bot (chainProbe.js) plays through the routes; this file sets
+// up where each week starts. BOT NUMBERS (P-PROXY): they do not measure human pacing, player-to-player prices or other
+// sellers.
 //
 // What is set up rather than played, and why:
 //   - the corporation's research (granted), its dock (Earth Station Prime) and, for the tier-3 run, its Refineries' tier:
-//     the plant a corporation on this track would already have. The two Refineries themselves are built through the route.
+//     the plant a corporation on this track would already have. The Refineries themselves are built through the route.
 //   - the week's raw supply, written once before the week starts (weekSupply in chainProbe.js), the same for every policy.
 //     Some tracks' inputs have no source a bot can reach in a week through routes (Lithium and Rare Earths come from belt
-//     expeditions in other systems; the cross-track chains' inputs are other tracks' products), and the supply is not
-//     what this measures. Nothing writes inventory or credits once the week starts.
-//   - the market's starting price state (the standing orders' volume sold today), as section 6 defines the three states.
-// Credits are never written: each corporation starts with the 250,000 a new one has, less the two Refineries it builds.
+//     expeditions in other systems; the cross-track chains' inputs are other tracks' products), and the supply is what
+//     the sweep varies, not what it measures. Nothing writes inventory or credits once the week starts.
+//   - fresh bids at the start of each week: every standing order at its base with its quota unsold, so one week's
+//     selling does not carry into the next corporation's.
+// Credits are never written: each corporation starts with the 250,000 a new one has, less the Refineries it builds.
 
 afterAll(() => vi.useRealTimers());
 
-const TRACKS = {
+const ALL_TRACKS = {
   "fuel": ["he3-chain", "fusion-fuel-chain", "cryogenics-chain"],
   "nickel-iron": ["smelting-chain", "pressure-vessel-chain"],
   "rare metals": ["rare-earths-chain", "magnet-chain", "thorium-fuel-chain"],
   "light metals": ["aluminium-chain", "al-li-chain", "battery-chain"],
   "cross-track": ["fusion-core-chain", "fission-module-chain", "spaceframe-chain", "ion-thruster-chain"]
 };
-const STATES = ["fresh", "raw glut", "product glut"];
+// CHAIN_PROBE_TRACKS ("fuel,light metals") runs part of the sweep, for looking at one track without the whole table.
+const TRACKS = Object.fromEntries(Object.entries(ALL_TRACKS).filter(([name]) => !process.env.CHAIN_PROBE_TRACKS || process.env.CHAIN_PROBE_TRACKS.split(",").includes(name)));
 const STATION = "earth-station-prime";
 const START = Date.UTC(2026, 2, 2, 11, 0, 0); // Monday 2 March 2026, 06:00 in New York: the day's reset has run
 const REFINERY_GATES = ["tt-material-compression", "tt-nano-lattice"];
 const T3_MULTIPLIER = ECONOMY.buildings.refineryUpgrades.find((u) => u.toTier === 3).outputMultiplier;
 
-/** Section 6's starting states: at the floor means sold into today until the bid reaches its floor. */
-function setPriceState(state, shape) {
-  const floorShare = (1 - ECONOMY.npcBid.floorPct / 100) / (ECONOMY.npcBid.driftAtFullQuotaPct / 100);
+/** Every standing order at its base, with today's quota unsold: the market a week starts from. */
+function freshBids() {
   const today = new Date(Date.now()).toLocaleDateString("sv-SE", { timeZone: "America/New_York" });
-  const glutted = new Set(state === "raw glut" ? shape.raw : state === "product glut" ? shape.made : []);
   mutateState((draft) => {
     for (const order of draft.market.npcBuyOrders) {
       ensureBidShape(order);
-      const quota = order.totalQtyPerDay; // each order's own quota, whatever the server sets it to
-      const sold = glutted.has(order.item) ? Math.ceil(quota * floorShare) : 0;
-      Object.assign(order, { soldToday: sold, remainingQty: quota - sold, totalQtyPerDay: quota, unitPrice: npcBidFor(order.basePrice, sold, { ...ECONOMY.npcBid, quotaPerDay: quota }), lastResetDate: today });
+      Object.assign(order, { soldToday: 0, remainingQty: order.totalQtyPerDay, unitPrice: order.basePrice, lastResetDate: today });
     }
   });
 }
 
-async function week(app, trackName, state, policy, tier) {
+async function week(app, trackName, volume, refineries, policy, tier) {
   vi.setSystemTime(START);
-  const shape = trackShape(TRACKS[trackName]);
+  const shape = trackShape(ALL_TRACKS[trackName]);
   const { account } = await registerAccount(app);
   const id = account.id;
   const token = await longLivedAccessToken(id);
@@ -63,17 +64,17 @@ async function week(app, trackName, state, policy, tier) {
     s.corp.unlockedTech = [...new Set([...(s.corp.unlockedTech || []), ...research])];
     s.corp.currentSystemId = "sol";
     s.corp.currentStationId = STATION;
-    s.corp.buildingSlots = 20; // room for the two Refineries, as the track tests give it
+    s.corp.buildingSlots = 20; // room for the Refineries, as the track tests give it
   }, { sanitize: false, settleMining: false });
-  for (let i = 0; i < 2; i += 1) {
+  for (let i = 0; i < refineries; i += 1) {
     const built = await request(app).post(`/api/accounts/${id}/gameplay/build-refinery`).set(auth).send({});
     if (built.status !== 200) throw new Error(`building a Refinery: ${JSON.stringify(built.body)}`);
   }
   mutateAccountState(id, (s) => {
     if (tier === 3) for (const r of s.corp.refineries) r.tier = 3;
-    s.corp.inventory = { ...(s.corp.inventory || {}), [STATION]: { ...weekSupply(shape) } }; // the week's supply, once
+    s.corp.inventory = { ...(s.corp.inventory || {}), [STATION]: { ...weekSupply(shape, volume) } }; // the week's supply, once
   }, { sanitize: false, settleMining: false });
-  setPriceState(state, shape);
+  freshBids();
   const startCredits = Number(getAccountById(id).state.corp.finances.credits);
 
   const io = {
@@ -91,13 +92,16 @@ async function week(app, trackName, state, policy, tier) {
   return { ...result, gain: result.credits - startCredits };
 }
 
-async function table(app, tier) {
+/** A point of the sweep: a volume and a Refinery count. */
+const POINTS = VOLUMES.flatMap((volume) => REFINERY_COUNTS.map((refineries) => ({ volume, refineries, key: `${volume}h x${refineries}` })));
+
+async function sweep(app, tier, points = POINTS) {
   const out = {};
   for (const track of Object.keys(TRACKS)) {
     out[track] = {};
-    for (const state of STATES) {
-      out[track][state] = {};
-      for (const policy of POLICIES) out[track][state][policy] = await week(app, track, state, policy, tier);
+    for (const p of points) {
+      out[track][p.key] = {};
+      for (const policy of POLICIES) out[track][p.key][policy] = await week(app, track, p.volume, p.refineries, policy, tier);
     }
   }
   return out;
@@ -105,29 +109,33 @@ async function table(app, tier) {
 
 const best = (row) => POLICIES.reduce((a, b) => (row[b].gain > row[a].gain ? b : a));
 const fmt = (n) => Math.round(n).toLocaleString("en-US");
+/** The design's rule is within 5% of the best policy's gain. */
+const ruleClose = (row) => row[best(row)].gain - row["the design's rule"].gain <= 0.05 * Math.abs(row[best(row)].gain);
 
 function report(results, tier) {
-  const lines = [`[chain probe, AB#835] tier-${tier} Refineries: credits gained over the week, BOT NUMBERS (P-PROXY)`];
-  for (const [track, states] of Object.entries(results)) {
+  const lines = [`[chain probe, AB#835/AB#2367] tier-${tier} Refineries: credits gained over the week, by weekly supply (hours of one Refinery per chain) x Refineries run. BOT NUMBERS (P-PROXY)`];
+  for (const [track, points] of Object.entries(results)) {
     lines.push(`  ${track}`);
-    for (const [state, row] of Object.entries(states)) {
+    for (const [key, row] of Object.entries(points)) {
       const cells = POLICIES.map((p) => `${p} ${fmt(row[p].gain)}${Object.keys(row[p].unsold).length ? ` (unsold: ${Object.entries(row[p].unsold).map(([i, q]) => `${q} ${i}`).join(", ")})` : ""}`);
-      lines.push(`    ${state.padEnd(12)} ${cells.join(" | ")}  -> best: ${best(row)}`);
+      const rule = row["the design's rule"].gain;
+      const gap = row[best(row)].gain ? ((row[best(row)].gain - rule) / Math.abs(row[best(row)].gain)) * 100 : 0;
+      lines.push(`    ${key.padEnd(10)} ${cells.join(" | ")}  -> best: ${best(row)}; rule ${gap.toFixed(1)}% below best`);
     }
   }
   console.log(lines.join("\n"));
 }
 
-// The whole table is about two and a half minutes, so it runs on request: `npm run probe:chains` (CHAIN_PROBE=1). One
-// track's three weeks run in every suite, so the bot cannot rot unnoticed.
+// The whole sweep takes several minutes, so it runs on request: `npm run probe:chains` (CHAIN_PROBE=1). One track's
+// week at one point runs in every suite, so the bot cannot rot unnoticed.
 const FULL = Boolean(process.env.CHAIN_PROBE);
 
 describe("the production-chain bot plays a week through the routes (AB#835)", () => {
-  it("nickel-iron, fresh bids: every policy's week runs without a refused action, and refining is paid", async () => {
+  it("nickel-iron, 84 hours, two Refineries: every policy's week runs without a refused action, and refining is paid", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     const { app } = await getApp();
     const row = {};
-    for (const policy of POLICIES) row[policy] = await week(app, "nickel-iron", "fresh", policy, 1);
+    for (const policy of POLICIES) row[policy] = await week(app, "nickel-iron", 84, 2, policy, 1);
     for (const policy of POLICIES) expect(row[policy].refusals, policy).toEqual([]);
     expect(row["refine to the end"].gain).toBeGreaterThan(row["sell raw"].gain);
     expect(Object.keys(row["sell raw"].unsold)).toEqual([]);
@@ -138,39 +146,53 @@ describe("the production-chain bot plays a week through the routes (AB#835)", ()
 // fails any test that did not run (scripts/strict-pass.mjs), because a skip is how a file that never booted looks.
 const describeFull = FULL ? describe : () => {};
 
-describeFull("the production-chain probe, every track (AB#835)", () => {
+describeFull("the production-chain probe, every track across the sweep (AB#835, AB#2367)", () => {
   let tier1;
   beforeAll(async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     const { app } = await getApp();
-    tier1 = await table(app, 1);
+    tier1 = await sweep(app, 1);
     report(tier1, 1);
-  }, 600_000);
+  }, 1_800_000);
 
   it("at tier 1, every week of every track runs without a refused action", () => {
-    for (const [track, states] of Object.entries(tier1)) {
-      for (const [state, row] of Object.entries(states)) for (const p of POLICIES) expect(row[p].refusals, `${track} ${state} ${p}`).toEqual([]);
+    for (const [track, points] of Object.entries(tier1)) {
+      for (const [key, row] of Object.entries(points)) for (const p of POLICIES) expect(row[p].refusals, `${track} ${key} ${p}`).toEqual([]);
     }
   });
 
-  // Section 6's target. Bug #2366: on main it is not met; "refine to the end" has the most credits in every state of
-  // every track. This is `it.fails` so the suite says so without going red; when the design or the data changes and the
-  // target is met, this fails, and it becomes `it`.
-  it.fails("at tier 1, no fixed policy wins every price state on any track (section 6; not met, Bug #2366)", () => {
-    for (const [track, states] of Object.entries(tier1)) {
-      const winners = STATES.map((s) => best(states[s]));
-      expect(winners.every((w) => w === "sell raw"), `${track}: "sell raw" best in every state (${winners})`).toBe(false);
-      expect(winners.every((w) => w === "refine to the end"), `${track}: "refine to the end" best in every state (${winners})`).toBe(false);
+  // Section 6's target (AB#2367).
+  it("at tier 1, on every track no fixed policy is best at every point of the sweep", () => {
+    for (const [track, points] of Object.entries(tier1)) {
+      const winners = Object.values(points).map(best);
+      expect(winners.every((w) => w === "sell raw"), `${track}: "sell raw" best everywhere (${winners})`).toBe(false);
+      expect(winners.every((w) => w === "refine to the end"), `${track}: "refine to the end" best everywhere (${winners})`).toBe(false);
     }
   });
 
-  it("at tier 3 the same weeks are reported, and \"always refine\" winning there is accepted (AB#823 section 8)", async () => {
+  it("at tier 1, \"always refine to the end\" loses to \"always sell raw\" at one or more points", () => {
+    const losses = Object.entries(tier1).flatMap(([track, points]) => Object.entries(points)
+      .filter(([, row]) => row["refine to the end"].gain < row["sell raw"].gain).map(([key]) => `${track} ${key}`));
+    expect(losses.length, "refine never lost to sell raw").toBeGreaterThan(0);
+  });
+
+  // Not met on 2026-09-26 (AB#2367, with the Director): the rule was within 5% at 33 of 40 points. The seven misses are all
+  // where refine-to-end is best at low volume: nickel-iron 42h x1/x2 and 84h x1/x2 (5.5 to 10.7% below), light metals
+  // 42h x1 and 168h x1, cross-track 42h x1. `it.fails` says so without going red; when the rule or the data changes and
+  // the target is met, this fails, and it becomes `it`.
+  it.fails("at tier 1, the design's rule ends within 5% of the best policy at every point (not met: AB#2367)", () => {
+    for (const [track, points] of Object.entries(tier1)) {
+      for (const [key, row] of Object.entries(points)) expect(ruleClose(row), `${track} ${key}: rule ${fmt(row["the design's rule"].gain)} against ${best(row)} ${fmt(row[best(row)].gain)}`).toBe(true);
+    }
+  });
+
+  it("at tier 3 the sweep's middle is reported, and \"always refine\" winning there is accepted (AB#823 section 8)", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     const { app } = await getApp();
-    const tier3 = await table(app, 3);
+    const tier3 = await sweep(app, 3, POINTS.filter((p) => p.volume === 84));
     report(tier3, 3);
-    for (const [track, states] of Object.entries(tier3)) {
-      for (const [state, row] of Object.entries(states)) for (const p of POLICIES) expect(row[p].refusals, `${track} ${state} ${p}`).toEqual([]);
+    for (const [track, points] of Object.entries(tier3)) {
+      for (const [key, row] of Object.entries(points)) for (const p of POLICIES) expect(row[p].refusals, `${track} ${key} ${p}`).toEqual([]);
     }
   }, 600_000);
 });
