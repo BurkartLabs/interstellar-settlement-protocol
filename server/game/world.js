@@ -4,6 +4,7 @@ import fs from "node:fs";
 import { ECONOMY } from "../economy.js";
 import { SYSTEM_SENDERS } from "../corporationName.js";
 import { NPC_NAMES } from "../npcCorporations.js"; // ISP-121 (AB#813)
+import { placeNpcAsks } from "./npcAsks.js"; // ISP-122 (AB#815)
 import { normalizePriceHistory } from "../priceHistory.js";
 import { MAX_DEFINED_LEVEL, REFINERY_CHAINS_DATA, SYSTEMS_DATA, deepClone, safeWriteFile, statePath } from "./catalog.js";
 import { normalizeStateShape } from "./shape.js";
@@ -245,6 +246,9 @@ export function ensureMarketState(globalState) {
       });
     }
   }
+  // ISP-122 (AB#815): the NPC corporations' asks, added if missing and never refilled here, so a restart neither
+  // duplicates them nor tops them up; the daily tick refills them (server/ticks.js).
+  placeNpcAsks(globalState.market, { refill: false });
   return globalState;
 }
 

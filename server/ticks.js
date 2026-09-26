@@ -13,6 +13,7 @@ import { refreshDailyExpenses } from "./finances.js"; // Bug #1022 (placed apart
 import { buildSnapshot, pushSnapshot, refreshDailyRevenue } from "./finances.js";
 import { recordTransfer, describeLines } from "../public/scripts/logistics.js";
 import { beltRespawnTick, ensureBeltState, isBeltPresent } from "./game/belts.js"; // AB#2329, AB#2330
+import { placeNpcAsks } from "./game/npcAsks.js"; // ISP-122 (AB#815)
 import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
 import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
 import { expeditionNotificationBody, expeditionPlaces, minutesEarly } from "./expeditionText.js"; // AB#1295, AB#2330
@@ -26,6 +27,14 @@ function getESTDateString() {
 
 function checkAndResetNpcBuyOrders() {
   const today = getESTDateString();
+  // ISP-122 (AB#815): the NPC asks refill once a day, on the same date change as the bids. Only npc entries move.
+  if (getState().market?.npcAsksRefilledOn !== today) {
+    mutateState((draft) => {
+      placeNpcAsks(draft.market, { refill: true });
+      draft.market.npcAsksRefilledOn = today;
+    });
+    emitMarketUpdated();
+  }
   const orders = getState().market?.npcBuyOrders || [];
   if (!orders.some((o) => o.lastResetDate !== today)) return;
 

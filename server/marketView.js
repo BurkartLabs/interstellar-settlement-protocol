@@ -13,7 +13,11 @@ export const ORDER_BOOK_VIEW_LIMIT = 200;
 /** The market as `accountId` should see it (null for someone not signed in). The book is newest first. */
 export function marketView(market, accountId = null) {
   if (!market || typeof market !== "object") return market;
-  const book = Array.isArray(market.orderBook) ? market.orderBook : [];
+  // AB#815: NPC asks are shown apart and in full; the cap counts player listings only, so an NPC order can never push
+  // a player's listing out of what a client sees (AB#425).
+  const all = Array.isArray(market.orderBook) ? market.orderBook : [];
+  const npcAsks = all.filter((o) => o?.npc === true);
+  const book = all.filter((o) => o?.npc !== true);
   const newest = book.slice(0, ORDER_BOOK_VIEW_LIMIT);
   const own = accountId ? book.slice(ORDER_BOOK_VIEW_LIMIT).filter((o) => o?.sellerAccountId === accountId) : [];
   // AB#1054: players' buy orders, capped and viewed the same way.
@@ -21,7 +25,7 @@ export function marketView(market, accountId = null) {
   const ownBids = accountId ? bids.slice(ORDER_BOOK_VIEW_LIMIT).filter((o) => o?.buyerAccountId === accountId) : [];
   return {
     ...market,
-    orderBook: newest.concat(own).map((order) => orderView(order, accountId)),
+    orderBook: newest.concat(own, npcAsks).map((order) => orderView(order, accountId)),
     buyOrders: bids.slice(0, ORDER_BOOK_VIEW_LIMIT).concat(ownBids).map((order) => buyOrderView(order, accountId)),
     tradeItems: [...PRICE_HISTORY_ITEMS].sort() // what a buy order may name
   };

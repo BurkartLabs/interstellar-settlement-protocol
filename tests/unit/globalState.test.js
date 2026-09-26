@@ -9,8 +9,9 @@ const NPC_ITEMS = ["Silicates", "Helium-3", "Nickel", "Titanium", "Carbon", "Rar
 describe("the global state a fresh install starts with (Bug #588, #574)", () => {
   const state = freshGlobalState();
 
-  it("has a market with an empty order book and the six standing buy orders", () => {
-    expect(state.market.orderBook).toEqual([]);
+  it("has a market with no player listings, the six NPC asks, and the six standing buy orders", () => {
+    expect(state.market.orderBook.filter((o) => !o.npc)).toEqual([]);
+    expect(state.market.orderBook.filter((o) => o.npc).map((o) => o.id).sort()).toEqual(NPC_ITEMS.map((i) => `npc-sell-${i.toLowerCase().replace(/\s+/g, "-")}`).sort()); // ISP-122 (AB#815)
     expect(state.market.npcBuyOrders.map((o) => o.item)).toEqual(NPC_ITEMS);
     const silicates = state.market.npcBuyOrders.find((o) => o.item === "Silicates");
     // ISP-87: the quota is a day's work for a working extractor, not for a planet, and the order carries the base
@@ -27,7 +28,8 @@ describe("normalizeGlobalState repairs an older state and changes nothing it doe
   it("adds what an old save lacks and keeps what it has", () => {
     const old = { market: { npcBuyOrders: [{ id: "npc-buy-silicates-daily", item: "Silicates", unitPrice: 24, totalQtyPerDay: 1000000, remainingQty: 5, lastResetDate: "2026-09-20" }] } };
     const state = normalizeGlobalState(old);
-    expect(state.market.orderBook).toEqual([]);
+    expect(state.market.orderBook.filter((o) => !o.npc)).toEqual([]);
+    expect(state.market.orderBook.filter((o) => o.npc)).toHaveLength(6); // ISP-122 (AB#815): added where missing
     expect(state.market.npcBuyOrders).toHaveLength(6);
     expect(state.market.npcBuyOrders.find((o) => o.id === "npc-buy-silicates-daily").remainingQty).toBe(5);
   });

@@ -69,6 +69,17 @@
   "exchange": {
     "salesTaxPct": 8
   },
+  "npcAsks": {
+    "askMultiple": 1.5,
+    "dailyQty": [
+      { "item": "Silicates", "qty": 3000 },
+      { "item": "Helium-3", "qty": 40 },
+      { "item": "Nickel", "qty": 300 },
+      { "item": "Titanium", "qty": 80 },
+      { "item": "Carbon", "qty": 400 },
+      { "item": "Rare Earths", "qty": 40 }
+    ]
+  },
   "npcBid": {
     "quotaPerDay": 7000,
     "driftAtFullQuotaPct": 50,
