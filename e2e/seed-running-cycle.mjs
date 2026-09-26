@@ -1,8 +1,13 @@
 // Companion to e2e/cycle-accumulation.spec.js (AB#746): a corporation with one extractor part-way into a real mining
 // cycle. The cycle is built through the game's own routes (office, staff, a lease on Earth, an extractor, a 4-hour
 // cycle), exactly as a player builds one; then, with the server stopped, the cycle's clock is moved back by the given
-// offset with nothing mined or charged for it. The next server to load this data settles that time with its own
-// mining code, so "an hour in" is what an hour of real mining produces, not a number typed here.
+// offset with nothing mined or charged for it, and that time is settled here by the game's own mining code, so "an
+// hour in" is what an hour of real mining produces, not a number typed here.
+//
+// AB#2289: settled here, with the breakdown roll pinned, rather than left to the spec's server. That server settled the
+// whole offset in one roll, so about one run in six drew a breakdown and showed an hour of mining as 0 t. Breakdowns are
+// the game working, and applyMiningOperations.test.js covers them; this fixture is "an hour of mining", and a
+// breakdown is not part of it. The spec's server then settles only the seconds since.
 //
 // Usage: node e2e/seed-running-cycle.mjs <dataDir> <email> <password> <offsetMs>
 import fs from "node:fs";
@@ -79,4 +84,17 @@ const ex = store.accounts[id].state.corp.mining.silicateExtractors.find((e) => e
 if (!ex) throw new Error("no running extractor after start-mining");
 for (const key of ["startedAt", "lastTickAt", "endsAt"]) ex[key] -= offsetMs;
 fs.writeFileSync(snapFile, JSON.stringify(store));
-console.log(JSON.stringify({ accountId: id, extractorId: ex.id, startedAt: ex.startedAt, endsAt: ex.endsAt }));
+
+// Settle the offset with the game's own code, as a server reading the account would, with no breakdown drawn (AB#2289).
+process.env.ISP_DATA_DIR = dataDir;
+process.env.NODE_ENV = "test";
+process.env.ISP_DISABLE_TICKERS = "1";
+process.env.JWT_SECRET = SECRET;
+const realRandom = Math.random;
+Math.random = () => 0.999;
+const game = await import("../server/gameState.js");
+const settled = game.getAccountById(id).state.corp.mining.silicateExtractors.find((e) => e.id === ex.id);
+Math.random = realRandom;
+if (settled.downtimeActive) throw new Error("the seeded span drew a breakdown despite the pinned roll");
+await game.saveAccountsNow();
+console.log(JSON.stringify({ accountId: id, extractorId: ex.id, startedAt: ex.startedAt, endsAt: ex.endsAt, minedThisCycle: settled.minedThisCycle }));
