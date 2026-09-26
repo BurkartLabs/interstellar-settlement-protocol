@@ -46,18 +46,24 @@ a resource no standing order buys (Water Ice, Hydrogen, Lithium, Cobalt, Thorium
 Per tier, from its template (today's belts of that label, averaged):
   tier     | units/h | sold share | credits/unit | standard: units, credits, net | extended: units, net | reserve (units)
   common   |     180 |        85% |        16.74 |   180,  3,014,     14 |   360,  3,028 |  2,520
-  uncommon |     207 |        80% |        21.91 |   207,  4,534,  1,534 |   414,  6,069 |  2,898
-  rare     |     243 |        60% |        39.28 |   243,  9,546,  6,546 |   486, 16,092 |  3,402
+  uncommon |     207 |        80% |        21.47 |   207,  4,444,  1,444 |   414,  5,888 |  2,898
+  rare     |     243 |        63% |        35.57 |   243,  8,643,  5,643 |   486, 14,286 |  3,402
   exotic   |     288 |        44% |        35.16 |   288, 10,127,  7,127 |   576, 17,254 |  4,032
 
 Rarity of a respawned belt, per system (each tier away from the label 0.25 as likely):
   system          | label    | common | uncommon |  rare  | exotic | mean yield x | vs today | expected net, standard
-  Sol             | common   |  75.3% |    18.8% |   4.7% |   1.2% |        1.052 |    +5.2% | 691
-  Alpha Centauri  | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,317
-  Barnard's Star  | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,317
-  Wolf 359        | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 5,576
-  Tau Ceti        | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 5,576
-  Epsilon Eridani | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 6,671
+  Sol             | common   |  75.3% |    18.8% |   4.7% |   1.2% |        1.052 |    +5.2% | 632
+  Alpha Centauri  | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,114
+  Barnard's Star  | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,114
+  Wolf 359        | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 4,983
+  Tau Ceti        | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 4,983
+  Epsilon Eridani | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 6,496
+  Lalande 21185   | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,114
+  Ross 154        | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 2,114
+  Sirius          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 4,983
+  Ross 248        | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 4,983
+  Luyten 726-8    | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 4,983
+  Lacaille 9352   | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 4,983
 
 Respawn: 20% each hour on the hour; mean wait 5.0 h; still empty after 12 h 6.9%, after 24 h 0.47%.
 

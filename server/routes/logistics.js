@@ -261,7 +261,9 @@ export function registerLogisticsRoutes(app) {
       destination: interstellar
         ? `the ${systemName(SYSTEMS_CATALOG, travelInfo.toSystemId) || "destination"} system`
         : STATION_REGISTRY[travelInfo.toStationId]?.name || "the station",
-      arrivesAt: travelInfo.arrivesAt
+      arrivesAt: travelInfo.arrivesAt,
+      // AB#2333: where the player can dock on arrival; none in a system whose stations are not built yet.
+      stations: interstellar ? Object.values(STATION_REGISTRY).filter((s) => s.systemId === travelInfo.toSystemId).map((s) => s.name) : []
     });
     res.json({ ...account, receipt });
   });
