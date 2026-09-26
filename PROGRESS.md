@@ -18,6 +18,16 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (ISP-307, AB#2299 — the sinks' own ledger categories, Builder)
+
+- Yard upkeep and the rising yard price are booked as `yard-upkeep` and `yard-price-growth` (AB#712 categories), so
+  ISP-304's probe (AB#2287) can read each sink apart. A running charge's upkeep share (the extractor's `upkeepPerHour`,
+  set when its cycle starts, over its `operationCostPerHour`) goes to `yard-upkeep`, the rest to `mining-ops`; a yard's
+  price above the first yard's goes to `yard-price-growth`, the rest to `construction`. Totals are unchanged.
+- `upkeepPerHour` is in `ensureCorpMiningModel`'s field list: that function rebuilds each extractor from a fixed list, so
+  a field left out of it is dropped on every mutation. A cycle started before this books all to `mining-ops`.
+- No probe target and no screen of its own; the Financial Core's P&L lists the two lines (`docs/ab-2299/`).
+
 ## What's now true (ISP-98, AB#788 — the Cryo-vapor Extractor Array, Builder)
 
 - The sixth catalogue entry: 80,000 / 58,000, Containment Physics, on a Luna lease only (`"lease": "luna"`), one per

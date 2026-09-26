@@ -93,7 +93,8 @@ export function registerMiningRoutes(app) {
       const yardIndex = corp.mining.silicateExtractors.indexOf(extractorCycle);
       let baseCostPerHour = operationCostPerHourFor(throughputPerHour, undefined, { tier });
       if (!Number.isFinite(baseCostPerHour) || baseCostPerHour <= 0) baseCostPerHour = 640;
-      const operationCostPerHour = baseCostPerHour + yardUpkeepPerHourFor(yardIndex);
+      const upkeepPerHour = yardUpkeepPerHourFor(yardIndex);
+      const operationCostPerHour = baseCostPerHour + upkeepPerHour;
       const startupCost = startupCostFor(baseCostPerHour);
 
       if ((corp.finances.credits || 0) < startupCost) {
@@ -104,7 +105,7 @@ export function registerMiningRoutes(app) {
 
       applyCredits(corp, -startupCost, "mining-startup");
 
-      startExtractorCycle(extractorCycle, { now, hours: requestedHours, throughputPerHour, operationCostPerHour, startupCost });
+      startExtractorCycle(extractorCycle, { now, hours: requestedHours, throughputPerHour, operationCostPerHour, startupCost, upkeepPerHour }); // ISP-307
       started = { extractorName: targetExtractorLabel, cost: startupCost, hours: requestedHours, throughputPerHour, operationCostPerHour, endsAt: extractorCycle.endsAt };
 
       corp.mining.silicateExtractor = corp.mining.silicateExtractors[0];

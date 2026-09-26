@@ -5,7 +5,7 @@
 //
 // What a building adds beyond its slot and its price is its construction below. A catalogue entry with none is
 // refused, not built bare: a building added to the file cannot be bought before its effect is written (fails closed).
-import { nextYardPriceFor } from "../public/scripts/yardPrice.js";
+import { nextYardPrice, nextYardPriceFor } from "../public/scripts/yardPrice.js";
 import { applyCredits } from "./finances.js";
 import { catalogueRefusal, PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
 import { buildAssemblyReceipt, buildCryoVaporArrayReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildRefineryComplexReceipt, buildRefineryReceipt } from "./receipts.js";
@@ -24,6 +24,8 @@ export const CONSTRUCTIONS = Object.freeze({
   "basic-extractor-yard": {
     // ISP-303 (AB#2286): each yard costs more than the last; the Supply Forecast discount comes after.
     cost: (building, corp) => nextYardPriceFor(corp, ECONOMY.buildings),
+    // ISP-307 (AB#2299): what the first yard costs this corporation; the rest of the price is booked as yard-price-growth.
+    basePrice: (building, corp) => nextYardPrice(0, ECONOMY.buildings, hasTech(corp, "tt-supply-forecast")),
     place(corp, building, lease) {
       if (!corp.mining || typeof corp.mining !== "object") corp.mining = {};
       if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];
@@ -143,7 +145,11 @@ export function construct(corp, building, leaseId) {
   if (!Array.isArray(corp.buildings)) corp.buildings = [];
   corp.buildings.push({ name: building.name, tier: 1, status: "Operational" }); // the catalogue name; a test holds them equal
   const placed = construction.place(corp, building, lease);
-  applyCredits(corp, -cost, "construction");
+  // ISP-307 (AB#2299): a price above the building's base (a yard after the first, ISP-303) is booked apart. Together
+  // the two lines are the price charged.
+  const base = construction.basePrice ? Math.min(cost, Math.max(0, construction.basePrice(building, corp))) : cost;
+  applyCredits(corp, -base, "construction");
+  applyCredits(corp, -(cost - base), "yard-price-growth");
   corp.finances.assets = (corp.finances.assets || 0) + building.assetValue;
   return { outcome: "ok", cost, assetValue: building.assetValue, ...placed };
 }
