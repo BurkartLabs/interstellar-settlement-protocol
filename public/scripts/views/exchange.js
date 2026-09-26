@@ -75,7 +75,9 @@ export function renderMarket(data) {
   };
 
   const market = data.market || {};
-  const allSellOrders = (market.orderBook || []).filter((order) => order.type === "sell" && !isOwnSellOrder(order));
+  // AB#815: NPC asks are listed apart (Standing sell orders), never among the players' listings.
+  const allSellOrders = (market.orderBook || []).filter((order) => order.type === "sell" && !order.npc && !isOwnSellOrder(order));
+  const npcAsks = (market.orderBook || []).filter((order) => order.type === "sell" && order.npc);
   const allMySellOrders = (market.orderBook || []).filter((order) => order.type === "sell" && isOwnSellOrder(order));
   const npcBuyOrders = market.npcBuyOrders || [];
   const allBids = market.buyOrders || []; // AB#1054: players' buy orders, the viewer's own marked `mine`
@@ -112,6 +114,7 @@ export function renderMarket(data) {
   showSection("exchange-bids-section", "bids");
   showSection("exchange-bid-form-section", "bids");
   showSection("exchange-standing-section", "standing");
+  showSection("exchange-npc-sell-section", "standing");
   showSection("exchange-mine-section", "mine");
 
   // Filter by resource and sort, then cap: the cap applies to what the viewer asked to see (AB#402)
@@ -161,6 +164,28 @@ export function renderMarket(data) {
       .join("");
   }
   showEmpty(buyEmpty, "exchange-buy-filtered", allSellOrders.length, filteredSellOrders.length, "player sell orders");
+
+  // AB#815: Standing sell orders, the NPC corporations' asks (player can buy from these), badged NPC. Same columns as Sell
+  // orders, so the purchase handler reads the seller from the fourth cell of either.
+  const npcSellTable = document.getElementById("npc-sell-table");
+  const shownAsks = viewOrders(npcAsks, view);
+  if (npcSellTable) {
+    npcSellTable.innerHTML = shownAsks
+      .map((order) => {
+        const soldOut = Number(order.quantity) <= 0;
+        return `
+          <tr>
+            <td>${escapeHtml(order.item)}</td>
+            <td class="ui-table__num">${Number(order.quantity).toLocaleString()}</td>
+            <td class="ui-table__num">${toCurrency(order.unitPrice)}</td>
+            <td><span class="exchange__seller">${escapeHtml(order.seller || "")} <span class="ui-badge" data-npc-badge>NPC</span></span></td>
+            <td>${soldOut ? "-" : `<input class="ui-input exchange__qty" type="number" min="1" max="${Number(order.quantity)}" value="1" aria-label="Quantity of ${escapeHtml(order.item)} to buy" data-buy-order-qty="${escapeHtml(order.id)}" />`}</td>
+            <td>${soldOut ? "Sold out until tomorrow" : `<button class="ui-button ui-button--secondary" type="button" data-buy-order-id="${escapeHtml(order.id)}" data-buy-item="${escapeHtml(order.item)}" data-buy-price="${Number(order.unitPrice)}" data-buy-qty="${Number(order.quantity)}">Buy</button>`}</td>
+          </tr>`;
+      })
+      .join("");
+  }
+  showEmpty(document.getElementById("npc-sell-empty"), "npc-sell-filtered", npcAsks.length, shownAsks.length, "standing sell orders");
 
   // NPC Standing Buy Orders table (player can sell into these)
   if (npcBuyTable) {
@@ -537,7 +562,8 @@ export function bindExchangeForms() {
 
   // Exchange buy buttons
   const buyTableEl = document.getElementById("exchange-buy-table");
-  buyTableEl?.addEventListener("click", async (event) => {
+  // AB#815: the same purchase from a player listing or an NPC ask; both go through POST /orders/:id/buy.
+  const buyFromBook = async (event) => {
     const button = event.target.closest("[data-buy-order-id]");
     if (!button) return;
     const row = button.closest("tr");
@@ -596,7 +622,9 @@ export function bindExchangeForms() {
       }
       pushFeedback(`Buy order rejected. ${error.message}`, "error");
     }
-  });
+  };
+  buyTableEl?.addEventListener("click", buyFromBook);
+  document.getElementById("npc-sell-table")?.addEventListener("click", buyFromBook);
 
   // Resource pills, order type, sort and Clear filters: change the view, remember it, redraw (AB#402)
   const setExchangeView = (changes) => {

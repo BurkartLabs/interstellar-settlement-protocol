@@ -4122,6 +4122,15 @@ img.station__body {
   width: 7rem;
   max-width: 100%;
 }
+/* AB#815: an NPC seller's name and its badge, the badge wrapping under a long name in a phone's card. */
+.exchange__seller {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  max-width: 100%;
+}
 /* AB#1054: the buy-order form's quantity and price side by side, wrapping on a phone. */
 .exchange__bid-row {
   display: flex;
