@@ -17,8 +17,9 @@
   "chains": [
     {
       "id": "silicates-chain",
-      "input": "Silicates",
-      "inputQuantityPerCycle": 100,
+      "inputs": [
+        { "item": "Silicates", "quantityPerCycle": 100 }
+      ],
       "outputs": [
         { "item": "Aerogel", "quantityPerCycle": 40 },
         { "item": "Quantum Insulators", "quantityPerCycle": 15 }
@@ -26,13 +27,14 @@
       "cycleDurationHours": 4,
       "requiresResearch": ["Material Compression I", "Nano-Lattice Weaving"],
       "requiresTechIds": ["tt-material-compression", "tt-nano-lattice"],
-      "tier": 2,
+      "stage": 1,
       "category": "Silicate Processing"
     },
     {
       "id": "he3-chain",
-      "input": "Helium-3",
-      "inputQuantityPerCycle": 50,
+      "inputs": [
+        { "item": "Helium-3", "quantityPerCycle": 50 }
+      ],
       "outputs": [
         { "item": "Plasma Conduits", "quantityPerCycle": 20 },
         { "item": "Dark-Matter Capacitors", "quantityPerCycle": 5 }
@@ -40,13 +42,14 @@
       "cycleDurationHours": 6,
       "requiresResearch": ["Containment Physics I", "Exotic Energy Routing"],
       "requiresTechIds": ["tt-containment-physics", "tt-exotic-energy-routing"],
-      "tier": 3,
+      "stage": 1,
       "category": "Exotic Processing"
     },
     {
       "id": "nickel-chain",
-      "input": "Nickel",
-      "inputQuantityPerCycle": 120,
+      "inputs": [
+        { "item": "Nickel", "quantityPerCycle": 120 }
+      ],
       "outputs": [
         { "item": "Structural Alloys", "quantityPerCycle": 60 },
         { "item": "Magnetic Cores", "quantityPerCycle": 20 }
@@ -54,13 +57,14 @@
       "cycleDurationHours": 5,
       "requiresResearch": ["Material Compression I"],
       "requiresTechIds": ["tt-material-compression"],
-      "tier": 2,
+      "stage": 1,
       "category": "Metal Processing"
     },
     {
       "id": "titanium-chain",
-      "input": "Titanium",
-      "inputQuantityPerCycle": 80,
+      "inputs": [
+        { "item": "Titanium", "quantityPerCycle": 80 }
+      ],
       "outputs": [
         { "item": "Armour Plating", "quantityPerCycle": 30 },
         { "item": "Precision Frames", "quantityPerCycle": 25 }
@@ -68,13 +72,14 @@
       "cycleDurationHours": 7,
       "requiresResearch": ["Material Compression I", "High-Density Energy Routing"],
       "requiresTechIds": ["tt-material-compression", "tt-energy-routing"],
-      "tier": 2,
+      "stage": 1,
       "category": "Metal Processing"
     },
     {
       "id": "carbon-chain",
-      "input": "Carbon",
-      "inputQuantityPerCycle": 200,
+      "inputs": [
+        { "item": "Carbon", "quantityPerCycle": 200 }
+      ],
       "outputs": [
         { "item": "Carbon Fibre Sheets", "quantityPerCycle": 80 },
         { "item": "Graphene Lattice", "quantityPerCycle": 30 }
@@ -82,13 +87,14 @@
       "cycleDurationHours": 4,
       "requiresResearch": ["Nano-Lattice Weaving"],
       "requiresTechIds": ["tt-nano-lattice"],
-      "tier": 2,
+      "stage": 1,
       "category": "Composite Processing"
     },
     {
       "id": "rare-earths-chain",
-      "input": "Rare Earths",
-      "inputQuantityPerCycle": 40,
+      "inputs": [
+        { "item": "Rare Earths", "quantityPerCycle": 40 }
+      ],
       "outputs": [
         { "item": "Sensor Arrays", "quantityPerCycle": 18 },
         { "item": "Catalyst Substrates", "quantityPerCycle": 12 }
@@ -96,7 +102,7 @@
       "cycleDurationHours": 8,
       "requiresResearch": ["Nano-Lattice Weaving", "Exotic Energy Routing"],
       "requiresTechIds": ["tt-nano-lattice", "tt-exotic-energy-routing"],
-      "tier": 3,
+      "stage": 1,
       "category": "Exotic Processing"
     }
   ]

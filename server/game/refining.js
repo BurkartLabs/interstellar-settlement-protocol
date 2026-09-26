@@ -46,8 +46,19 @@ export function ensureCorpRefineryModel(corp) {
     totalInputConsumed: Number(ref.totalInputConsumed || 0),
     totalOutputProduced: Number(ref.totalOutputProduced || 0),
     // AB#794: while an upgrade is under way the refinery is offline until this time (ms); no run starts before it.
-    upgradingUntil: Number(ref.upgradingUntil) > 0 ? Number(ref.upgradingUntil) : null
+    upgradingUntil: Number(ref.upgradingUntil) > 0 ? Number(ref.upgradingUntil) : null,
+    // AB#825: what a running cycle took and will deliver, recorded at its start. A cycle started before the record
+    // existed has none, and completes from its chain as before.
+    inputs: ref.active ? runRecord(ref.inputs) : null,
+    outputs: ref.active ? runRecord(ref.outputs) : null
   }));
+}
+
+/** A run's `[{ item, quantity }]` record as stored, or null when there is none or it is not a list of whole amounts. */
+function runRecord(list) {
+  if (!Array.isArray(list) || !list.length) return null;
+  const ok = list.every((e) => typeof e?.item === "string" && e.item && Number.isInteger(e.quantity) && e.quantity >= 0);
+  return ok ? list.map((e) => ({ item: e.item, quantity: e.quantity })) : null;
 }
 
 // The station a running cycle delivers to: the one its inputs came from, recorded by start-refinery (Bug #692).
@@ -66,8 +77,10 @@ export function applyRefineryOperations(corp, now = Date.now()) {
   corp.refineries.forEach((ref) => {
     if (!ref.active || !ref.chainId) return;
 
-    const chain = REFINERY_CHAINS[ref.chainId];
-    if (!chain) {
+    // AB#825: a cycle delivers what it recorded at its start, even if its chain has since changed or gone. One started
+    // before the record existed (the deploy that added it) completes from its chain, as it always did.
+    const chain = Object.hasOwn(REFINERY_CHAINS, ref.chainId) ? REFINERY_CHAINS[ref.chainId] : null;
+    if (!ref.outputs && !chain) {
       ref.active = false;
       ref.stationId = null;
       return;
@@ -81,11 +94,14 @@ export function applyRefineryOperations(corp, now = Date.now()) {
     if (!corp.inventory) corp.inventory = {};
     const refStationInv = getStationInventory(corp, ref.stationId);
     const scale = Math.max(1, Number(ref.cycleScale || 1));
-    for (const output of chain.outputs) {
-      const produced = refineryOutput(output.quantityPerCycle, scale, ref.tier, refineryMultiplierFor(ref.tier, ECONOMY.buildings)); // AB#794: by tier
-      bumpStat(corp, "refinedUnitsProduced", produced); // Bug #424: levels 9 and 10
-      refStationInv[output.item] = (refStationInv[output.item] || 0) + produced;
-      ref.totalOutputProduced += produced;
+    const delivered = ref.outputs || chain.outputs.map((output) => ({
+      item: output.item,
+      quantity: refineryOutput(output.quantityPerCycle, scale, ref.tier, refineryMultiplierFor(ref.tier, ECONOMY.buildings)) // AB#794: by tier
+    }));
+    for (const { item, quantity } of delivered) {
+      bumpStat(corp, "refinedUnitsProduced", quantity); // Bug #424: levels 9 and 10
+      refStationInv[item] = (refStationInv[item] || 0) + quantity;
+      ref.totalOutputProduced += quantity;
     }
 
     ref.cyclesCompleted += scale;
@@ -93,6 +109,8 @@ export function applyRefineryOperations(corp, now = Date.now()) {
     ref.chainId = null;
     ref.stationId = null;
     ref.cycleScale = 1;
+    ref.inputs = null;
+    ref.outputs = null;
     ref.startedAt = null;
     ref.lastTickAt = null;
     ref.endsAt = null;

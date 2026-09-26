@@ -24,7 +24,7 @@ for (const s of SYSTEMS) for (const b of s.bodies) for (const k of Object.keys(b
 const products = new Set(CHAINS.chains.flatMap((c) => (c.outputs || []).map((o) => o.item)));
 const bids = new Set(ECONOMY.npcBuyers.map((n) => n.item).filter((item) => !products.has(item)));
 const quotas = new Set(MISSIONS.templates.map((t) => t.resource).filter(Boolean));
-const chainInputs = new Map(CHAINS.chains.map((c) => [c.input, c.id]));
+const chainInputs = new Map(CHAINS.chains.flatMap((c) => c.inputs.map((i) => [i.item, c.id])));
 const raw = new Set([...beltCount.keys(), ...CHAINS.resourceCatalog, ...bids, ...quotas, ...chainInputs.keys()]);
 
 describe("the v0.8 resource catalogue matches the build (AB#822)", () => {

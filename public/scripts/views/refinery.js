@@ -6,6 +6,7 @@ import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { deepClone, formatDurationHours, toCurrency } from "../helpers.js";
 import { escapeHtml, refineryBuildButtonHtml } from "../html.js";
 import { refineMinimum, refineQuantityCheck, refineQuantityFieldValue } from "../refineQuantity.js";
+import { inputsLabel, maxBatches } from "../refineryRun.js"; // AB#825: "150 Iron Ore + 50 Nickel"
 import { appState } from "../state.js";
 import { clientPrices } from "../clientPrices.js";
 import { refineryMultiplierFor, refineryOutput } from "../refineryOutput.js"; // ISP-97 (AB#787), AB#794: output by tier
@@ -50,7 +51,8 @@ export function renderRefinery(data) {
       const progress = cycleProgressPercent(ref);
       const remainingMs = Math.max(0, Number(ref.endsAt || 0) - Date.now());
       const scale = Math.max(1, Number(ref.cycleScale || 1));
-      const totalInput = chain ? Number(chain.inputQuantityPerCycle || 100) * scale : 0;
+      // AB#825: what the run took, as it recorded at its start, or its chain's inputs times its batches.
+      const taken = ref.inputs || (chain?.inputs || []).map((i) => ({ item: i.item, quantity: Number(i.quantityPerCycle) * scale }));
       const multiplier = refineryMultiplierFor(ref.tier, appState.economy?.buildings); // AB#794: this refinery's tier
       const outputLabel = chain
         ? chain.outputs.map((o) => `${refineryOutput(o.quantityPerCycle, scale, ref.tier, multiplier)} ${o.item}`).join(", ")
@@ -62,7 +64,7 @@ export function renderRefinery(data) {
       return `
         <article class="ui-card">
           <h4 class="ui-card__title">${escapeHtml(name)}</h4>
-          <p class="ui-card__body">Processing: ${chain ? `${totalInput.toLocaleString()} ${escapeHtml(chain.input)}` : "Unknown"} → ${escapeHtml(outputLabel)}</p>
+          <p class="ui-card__body">Processing: ${taken.length ? escapeHtml(inputsLabel(taken)) : "Unknown"} → ${escapeHtml(outputLabel)}</p>
           <p class="ui-card__meta">Delivers to: ${escapeHtml(deliveryLabel)}</p>
           <p class="ui-card__meta research__timing"><span class="ui-figure">${progress.toFixed(1)}%</span><span>${formatDurationHours(remainingMs)} remaining</span></p>
           <div class="progress-wrap" role="progressbar" aria-label="${escapeHtml(name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress)}"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
@@ -95,16 +97,22 @@ export function renderRefinery(data) {
       const outputLabel = Array.isArray(chain.outputs)
         ? chain.outputs.map((o) => typeof o === "string" ? o : `${o.quantityPerCycle} ${o.item}`).join(", ")
         : String(chain.outputs);
-      const inputAvailable = Number(inventory[chain.input] || 0);
-      const perCycle = Number(chain.inputQuantityPerCycle || 100);
+      // AB#825: a chain takes `inputs`. Every chain in data has one; a chain with several shows them all, and its start
+      // form is the multi-input panel's (AB#836).
+      const inputs = chain.inputs || [];
+      const input = inputs[0]?.item || "";
+      const multiInput = inputs.length > 1;
+      const inputAvailable = Number(inventory[input] || 0);
+      const perCycle = Number(inputs[0]?.quantityPerCycle || 100);
       // Whole batches, at least 100 units: the rule start-refinery checks too (refineQuantity.js).
       const minQty = refineMinimum(perCycle);
       const hasInput = inputAvailable >= minQty;
       const idleRefinery = refineries.find((r) => !r.active);
-      const canStart = hasRefinery && !techGated && hasInput && idleRefinery;
+      const canStart = hasRefinery && !techGated && hasInput && idleRefinery && !multiInput;
       // Default the quantity input to whichever is larger: the minimum, or as
       // much of the player's stock as fits in whole batches.
-      const computedDefault = Math.max(minQty, Math.floor(inputAvailable / perCycle) * perCycle || minQty);
+      // AB#825: never more than a week of batches, the most one run may take.
+      const computedDefault = Math.min(maxBatches(chain) * perCycle, Math.max(minQty, Math.floor(inputAvailable / perCycle) * perCycle || minQty));
       // What the player typed stays as typed, blank included (AB#1255); Start Run checks it and refuses, not the render.
       const fieldValue = refineQuantityFieldValue(appState.refineQuantityOverrides[chain.id], computedDefault);
       const quantityError = appState.refineQuantityErrors[chain.id];
@@ -113,15 +121,17 @@ export function renderRefinery(data) {
 
       return `
         <section class="ui-card refinery__chain">
-          <h4 class="ui-card__title">${escapeHtml(chain.input)} Refining</h4>
-          <p class="ui-card__body">${perCycle} ${escapeHtml(chain.input)} per batch → ${escapeHtml(outputLabel)}</p>
+          <h4 class="ui-card__title">${escapeHtml(inputs.map((i) => i.item).join(" + "))} Refining</h4>
+          <p class="ui-card__body">${escapeHtml(inputsLabel(inputs.map((i) => ({ item: i.item, quantity: i.quantityPerCycle }))))} per batch → ${escapeHtml(outputLabel)}</p>
           <p class="ui-card__meta">Cycle: ${chain.cycleDurationHours || "?"}h per batch</p>
           ${techGated
             // ISP-292 (AB#1761): a requirement not yet met, not a warning — the muted token, not amber.
             ? `<p class="ui-card__meta">Requires: ${escapeHtml((chain.requiresResearch || []).join(", "))}</p>`
             : `<p class="ui-card__meta"><span class="ui-badge ui-badge--success">Research unlocked</span></p>`
           }
-          <p class="ui-card__meta">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(chain.input)}${!hasInput && !techGated ? ` (need ${minQty})` : ""}</p>
+          ${multiInput
+            ? `<p class="ui-card__meta">Inventory: ${escapeHtml(inputs.map((i) => `${Number(inventory[i.item] || 0).toLocaleString()} ${i.item}`).join(", "))}</p>`
+            : `<p class="ui-card__meta">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(input)}${!hasInput && !techGated ? ` (need ${minQty})` : ""}</p>`}
           ${canStart
             ? `<div class="ui-field">
                 <label for="${escapeHtml(inputId)}" class="ui-field__label">Quantity</label>
@@ -130,7 +140,10 @@ export function renderRefinery(data) {
                 <span class="ui-field__hint">Min ${minQty}, step ${perCycle}</span>
                 ${quantityError ? `<p id="${escapeHtml(errorId)}" class="ui-field__error" role="alert">${escapeHtml(quantityError)}</p>` : ""}
               </div>
-              <button class="ui-button ui-button--secondary refinery__start" type="button" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}" data-per-cycle="${perCycle}" data-input="${escapeHtml(chain.input)}" data-available="${inputAvailable}" data-hours="${Number(chain.cycleDurationHours) || 0}">Start Run</button>`
+              <button class="ui-button ui-button--secondary refinery__start" type="button" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}" data-per-cycle="${perCycle}" data-input="${escapeHtml(input)}" data-available="${inputAvailable}" data-hours="${Number(chain.cycleDurationHours) || 0}">Start Run</button>`
+            // AB#825: no chain in data takes several inputs yet; their start form is AB#836's, and until then the card says so.
+            : multiInput && hasRefinery && !techGated
+              ? `<p class="ui-card__meta">This chain takes several inputs. Starting it from this page arrives in a later build.</p>`
             : belowRefineryCap && canBuildRefinery
               ? refineryBuildButtonHtml({ hasRefinery, used: buildings.length, slots: buildingSlots })
               : !hasRefinery && !canBuildRefinery

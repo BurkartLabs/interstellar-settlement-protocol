@@ -2,8 +2,9 @@
 import { addAccountNotification, mutateAccountState, REFINERY_CHAINS } from "../gameState.js";
 import { getStationInventory } from "../gameState.js";
 import { applyCredits } from "../finances.js";
-// AB#1255: the run-size rule the Refinery Chains form uses too; imported here beside its use.
-import { refineQuantityCheck } from "../../public/scripts/refineQuantity.js";
+// AB#1255, ISP-131 (AB#825): the run rule the Refinery Chains form uses too: whole batches, a week at most, and every
+// input present in full or the whole start refused.
+import { refineRunCheck } from "../../public/scripts/refineryRun.js";
 import { emitToAccount } from "../realtime.js";
 // ISP-94 (AB#784): buildHandler builds a refinery, as it builds every player building (server/construction.js).
 import { buildHandler } from "./helpers.js";
@@ -21,17 +22,17 @@ export function registerRefiningRoutes(app) {
   app.post("/api/accounts/:accountId/gameplay/start-refinery", (req, res) => {
     const refineryId = String(req.body?.refineryId || "").trim();
     const chainId = String(req.body?.chainId || "").trim();
-    // The input units to refine: whole batches of the chain's per-cycle input, at least 100 (refineQuantity.js).
+    // The run as sent: `inputQuantity` units of a one-input chain's input, or `batches` of any chain (refineryRun.js).
     // Checked as sent; nothing is rounded or defaulted.
-    const requestedQuantity = req.body?.inputQuantity;
+    const requested = { inputQuantity: req.body?.inputQuantity, batches: req.body?.batches };
     let outcome = "ok";
     let targetLabel = "";
-    let actualQuantity = 0;
+    let actualDebits = [];
     let actualScale = 1;
     let actualDurationHours = 0;
-    let quantityRefusal = "";
+    let runRefusal = "";
 
-    const chain = REFINERY_CHAINS[chainId];
+    const chain = Object.hasOwn(REFINERY_CHAINS, chainId) ? REFINERY_CHAINS[chainId] : null;
     if (!chain) {
       res.status(400).json({ error: "Unknown refinery chain." });
       return;
@@ -73,46 +74,43 @@ export function registerRefiningRoutes(app) {
         return;
       }
 
-      // The run is exactly what was asked for, or refused (AB#1255): it used to raise anything below one batch to a batch
-      // and round the rest down, spending materials the player never chose. The rule is shared with the form.
-      const perCycle = Math.max(1, Number(chain.inputQuantityPerCycle));
-      const check = refineQuantityCheck(requestedQuantity, { perCycle, input: chain.input });
-      if (!check.ok) {
-        outcome = "bad-quantity";
-        quantityRefusal = check.reason;
-        return;
-      }
-      const scale = check.batches;
-      const inputQty = check.quantity;
-
-      // Check input material availability at current station
+      // The run is exactly what was asked for, or refused whole (AB#1255, AB#825): every input is checked against the
+      // station's stock before any is taken, so a start never leaves half its inputs debited.
       const refStationId = corp.currentStationId || "earth-station-prime";
       const refInv = getStationInventory(corp, refStationId);
-      const available = Number(refInv[chain.input] || 0);
-      if (available < inputQty) {
-        outcome = "insufficient-input";
-        actualQuantity = inputQty;
+      const run = refineRunCheck(chain, requested, (item) => refInv[item]);
+      if (!run.ok) {
+        outcome = "bad-run";
+        runRefusal = run.reason;
         return;
       }
 
-      // Consume input
-      refInv[chain.input] -= inputQty;
-      if (refInv[chain.input] <= 0) delete refInv[chain.input];
+      for (const { item, quantity } of run.debits) {
+        refInv[item] -= quantity;
+        if (refInv[item] <= 0) delete refInv[item];
+      }
 
       const now = Date.now();
-      actualQuantity = inputQty;
-      actualScale = scale;
-      actualDurationHours = chain.cycleDurationHours * scale;
+      actualDebits = run.debits;
+      actualScale = run.batches;
+      actualDurationHours = chain.cycleDurationHours * run.batches;
 
       refinery.active = true;
       refinery.chainId = chain.id;
       // Outputs are delivered where the inputs came from, not wherever the corporation is at completion (Bug #692).
       refinery.stationId = refStationId;
-      refinery.cycleScale = scale;
+      refinery.cycleScale = run.batches;
+      // AB#825: the run records what it took and what it will deliver, so a chain edited or removed while it runs
+      // cannot change what it produces (applyRefineryOperations delivers this record).
+      refinery.inputs = run.debits;
+      refinery.outputs = chain.outputs.map((o) => ({
+        item: o.item,
+        quantity: refineryOutput(o.quantityPerCycle, run.batches, refinery.tier, refineryMultiplierFor(refinery.tier, ECONOMY.buildings))
+      }));
       refinery.startedAt = now;
       refinery.lastTickAt = now;
       refinery.endsAt = now + actualDurationHours * 60 * 60 * 1000;
-      refinery.totalInputConsumed += inputQty;
+      refinery.totalInputConsumed += run.debits.reduce((sum, d) => sum + d.quantity, 0);
     });
 
     if (!account) {
@@ -128,23 +126,20 @@ export function registerRefiningRoutes(app) {
         "all-busy": "All refineries are currently running cycles.",
         "already-active": `${targetLabel} already has an active production cycle.`,
         upgrading: `${targetLabel} is being upgraded and is offline until it finishes.`,
-        "bad-quantity": quantityRefusal,
-        "insufficient-input": `Not enough ${chain.input} at this station. Need ${actualQuantity || chain.inputQuantityPerCycle} but only have ${Number(getStationInventory(account.state.corp, account.state.corp.currentStationId || "earth-station-prime")[chain.input] || 0)}.`
+        "bad-run": runRefusal
       };
       res.status(400).json({ error: messageMap[outcome] || "Refinery cycle failed to start." });
       return;
     }
 
-    // AB#744: the run as the mutation set it up.
+    // AB#744: the run as the mutation set it up, and what it recorded it will deliver.
     const started = account.state.corp.refineries.find((r) => r.name === targetLabel);
-    const delivers = (o) => refineryOutput(o.quantityPerCycle, actualScale, started?.tier, refineryMultiplierFor(started?.tier, ECONOMY.buildings)); // AB#794
-    const outputNames = chain.outputs
-      .map((o) => `${delivers(o)} ${o.item}`)
-      .join(", ");
+    const outputs = started?.outputs || [];
+    const outputNames = outputs.map((o) => `${o.quantity} ${o.item}`).join(", ");
     const notification = addAccountNotification(req.params.accountId, {
       type: "operations",
       title: "Refinery Cycle Started",
-      body: `${targetLabel} processing ${actualQuantity} ${chain.input} → ${outputNames} (${actualDurationHours}h, ${actualScale} batch${actualScale === 1 ? "" : "es"}).`
+      body: `${targetLabel} processing ${actualDebits.map((d) => `${d.quantity} ${d.item}`).join(" + ")} → ${outputNames} (${actualDurationHours}h, ${actualScale} batch${actualScale === 1 ? "" : "es"}).`
     });
     if (notification) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
@@ -152,9 +147,8 @@ export function registerRefiningRoutes(app) {
 
     const receipt = startRefineryReceipt({
       refineryName: targetLabel,
-      input: chain.input,
-      inputQuantity: actualQuantity,
-      outputs: chain.outputs.map((o) => ({ item: o.item, quantity: delivers(o) })),
+      inputs: actualDebits,
+      outputs,
       hours: actualDurationHours,
       endsAt: started?.endsAt
     });

@@ -8,6 +8,7 @@
 // here, then posts "abc", NaN, Infinity, -5, 0, 2.5, a missing field and a 10,000-character string to every field.
 
 import { yardMaxTier, yardTierFor } from "./economy.js";
+import { MAX_RUN_HOURS } from "../public/scripts/refineryRun.js"; // AB#825
 
 /** The highest cap any yard tier has (AB#793): what start-mining accepts before the route clamps to the yard's own. */
 const TOP_THROUGHPUT_CAP = yardTierFor(yardMaxTier()).throughputCap;
@@ -92,7 +93,10 @@ export const GAMEPLAY_INPUT = {
     body: {
       refineryId: id("ownRefineries", "one of your refineries"),
       chainId: id("refineryChains", "a refinery chain"),
-      inputQuantity: int(1, 10_000_000, "an input quantity of at least 1")
+      // AB#825: a run is `inputQuantity` of a one-input chain's input, or `batches` of any chain; the route refuses
+      // neither or both, and a run longer than a week (public/scripts/refineryRun.js).
+      inputQuantity: int(1, 10_000_000, "an input quantity of at least 1", { optional: true }),
+      batches: int(1, MAX_RUN_HOURS, `a number of batches from 1 to ${MAX_RUN_HOURS}`, { optional: true })
     }
   },
   "POST /accept-mission": ACCEPT_MISSION,
