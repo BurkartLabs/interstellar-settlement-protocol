@@ -30,8 +30,11 @@ export function ensureBuildingIds(corp) {
       seen.add(b.id);
       return b;
     }
-    let id = createId("bld");
-    while (seen.has(id)) id = createId("bld");
+    // AB#2290: a taken id gets a counter rather than another createId, so this ends even when createId repeats itself
+    // (a test that pins Math.random and Date made the old retry loop run until the worker ran out of heap).
+    const base = createId("bld");
+    let id = base;
+    for (let n = 2; seen.has(id); n += 1) id = `${base}-${n}`;
     seen.add(id);
     return { ...b, id };
   });
