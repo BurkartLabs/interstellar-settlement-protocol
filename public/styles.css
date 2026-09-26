@@ -3950,10 +3950,12 @@ img.station__body {
 .travel__route {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
+  align-items: stretch;
   gap: var(--space-3);
 }
 .travel__arrow {
+  align-self: center;
+  justify-self: center;
   color: var(--accent);
   font-size: var(--font-size-5);
 }
@@ -3965,6 +3967,15 @@ img.station__body {
 @media (max-width: 600px) {
   .travel__overline {
     font-size: var(--font-size-3);
+  }
+}
+/* AB#1053: side by side, a phone's two cards were a word wide; the route reads top to bottom there instead. */
+@media (max-width: 480px) {
+  .travel__route {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .travel__arrow {
+    transform: rotate(90deg);
   }
 }
 .app-header__brand {

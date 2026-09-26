@@ -26,11 +26,11 @@ export function ferricBonus(corp, yields) {
 // ─── Asteroid Belt Mining ────────────────────────────────────────────────────
 
 // Deterministic belt compositions per system — scoutable
-/* 
-  TODO(AB#1050): Asteroid Belts should be more dynamic. Once they spawn, there is a limited amount of ore to be mined. 
-  Asteroid Belts should yield more resources than extractor yards. Once the ore has been mined, the asteroid belt disappears. 
-  If no asteroid belt is present, it will have a 20% chance of spawning each hour at xx:00. The specific composition of the belt
-  should be random. 
+/*
+  TODO(AB#2329, AB#2330): belts become finite and respawn, as designed in docs/design/belts.md (AB#1050): a reserve of 14
+  standard expeditions' yield by tier, shared by every corporation on the belt; gone when mined out; an empty slot
+  spawning a new belt with a 20% chance each hour on the hour, its composition its tier's template jittered. Whether
+  belts should out-earn extractor yards (a Sol expedition breaks even today) is left to the economy: see the design.
 */
 /**
  * ISP-112 (AB#804): each belt's composition is its Field body's `composition` in data/systems.json, keyed
@@ -48,9 +48,9 @@ export function beltComposition(beltKey) {
 }
 
 // Rarity tiers control yield multiplier and the chance of bonus "jackpot" drops
-/* 
-  TODO(AB#1050): Rarity should be more dynamic. It shouldn't be impossible for an exotic Asteroid Belt to spawn within Sol, but it 
-  should be less common than say Epsilon Eridani
+/*
+  TODO(AB#2329): a respawned belt's rarity is drawn from its system's distribution, the label below being its centre and
+  each tier further away 0.25 times as likely, so Sol spawns an exotic belt 1.2% of the time (docs/design/belts.md).
 */
 /** ISP-112 (AB#804): a system's rarity is its `rarity` in data/systems.json. */
 export function systemRarity(systemId) {

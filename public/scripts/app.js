@@ -46,7 +46,8 @@ import { starmapMiningState } from "./beltCompositions.js";
 import { openGroupOf, tabForGroup, lockEmptyGroups } from "./navGroups.js"; // ISP-75 (AB#764) // Bug #1264 (placed here, apart from the imports at the top that parallel PRs edit)
 
 // ─── Tabs allowed during travel ──────────────────────────────────────────────
-// TODO(AB#1053): Overhaul Travel Page design
+// The Travel screen itself is views/travel.js, on the design system since ISP-83 (AB#772); e2e/travel-screen.spec.js
+// looks at its three states (AB#1053).
 const TRAVEL_ALLOWED_TABS = new Set(["overview", "inbox", "chat", "forums", "starmap", "travel"]);
 
 function isPlayerInSpace(data) {
