@@ -162,8 +162,9 @@ export async function climb({ request, account, clock, tick, levels, research, m
 
   async function build(name, corp) {
     const unlocked = corp.unlockedTech || [];
-    const entry = { "Basic Extractor Yard": "basic-extractor-yard", "Assembly Facility": "assembly-facility", Refinery: "refinery" }[name];
-    const gates = { "assembly-facility": ["tt-assembly-fabrication"], refinery: ["tt-material-compression", "tt-nano-lattice"] }[entry] || [];
+    // AB#801: Level 21 asks for the Ferric Mining Complex, which data/player-buildings.json gates on Material Compression
+    const entry = { "Basic Extractor Yard": "basic-extractor-yard", "Assembly Facility": "assembly-facility", Refinery: "refinery", "Ferric Mining Complex": "ferric-mining-complex" }[name];
+    const gates = { "assembly-facility": ["tt-assembly-fabrication"], refinery: ["tt-material-compression", "tt-nano-lattice"], "ferric-mining-complex": ["tt-material-compression"] }[entry] || [];
     for (const g of gates) {
       const next = nextTech(g, unlocked);
       if (next) return pursueTech(next);
@@ -296,7 +297,7 @@ export async function climb({ request, account, clock, tick, levels, research, m
     }
     const held = Number(known.inventory?.[here]?.Silicates || 0);
     // Keep enough for refining and contracts when the next level asks for them; sell the rest.
-    const keep = (needs.refine ? 1200 : 0) + (needs.contracts ? 800 : 0);
+    const keep = (needs.refine ? 1200 : 0) + (needs.contracts || needs.contractsAhead ? 800 : 0);
     if (needs.refine && here === EARTH) await refine(known); // AB#800: refineries kept busy, before the sale
     if (here === EARTH && held - keep >= 100) {
       const order = ((await request.get("/api/bootstrap").set(auth)).body.market?.npcBuyOrders || []).find((o) => o.id === SILICATE_ORDER);
@@ -339,8 +340,16 @@ export async function climb({ request, account, clock, tick, levels, research, m
     // bot keeps it running while any later level asks for more than it has made (docs/design/ladder-11-40.md draws its
     // refined curve from a refinery kept busy from day 30). Levels 11 to 15 ask for none, and Level 16 asks for 25,800.
     const refinedMade = Number(corp.stats?.refinedUnitsProduced || 0);
-    const refineAhead = (corp.refineries || []).length > 0 && levels.some((l) => l.level > level && l.requirements.some((r) => r.metric === "stat:refinedUnitsProduced" && Number(r.target) > refinedMade));
-    needs = { refine: refineAhead || unmet.some((r) => r.metric === "stat:refinedUnitsProduced"), contracts: unmet.some((r) => r.metric === "stat:missionsCompleted"), mine: unmet.some((r) => r.metric === "totalMined:silicate") };
+    const asksAhead = (metric, have) => levels.some((l) => l.level > level && l.requirements.some((r) => r.metric === metric && Number(r.target) > have));
+    const refineAhead = (corp.refineries || []).length > 0 && asksAhead("stat:refinedUnitsProduced", refinedMade);
+    // ISP-109 (AB#801): the same for expeditions and contracts. Levels 21 to 30 ask for 230 to 311 expeditions and 451
+    // to 570 contracts, drawn from one expedition relaunched at each check-in and the Bureau's offers taken as they
+    // come, from day 30 (docs/design/ladder-11-40.md). Doing them only once they are the open requirement left the bot
+    // about 95 simulated days at Level 20 and short of Level 26 at day 300.
+    const expeditionsAhead = asksAhead("stat:asteroidExpeditionsCompleted", Number(corp.stats?.asteroidExpeditionsCompleted || 0));
+    const missionsDone = Math.max((corp.completedMissions || []).length, Number(corp.stats?.missionsCompletedTotal || 0));
+    const contractsAhead = asksAhead("stat:missionsCompleted", missionsDone);
+    needs = { refine: refineAhead || unmet.some((r) => r.metric === "stat:refinedUnitsProduced"), contracts: unmet.some((r) => r.metric === "stat:missionsCompleted"), contractsAhead, mine: unmet.some((r) => r.metric === "totalMined:silicate") };
     // A trip away is finished before anything else: the yards' ore and the standing bid are at Earth.
     const away = (corp.currentStationId || EARTH) !== EARTH;
     const leaseStillWanted = unmet.some((r) => /^(miningLease:|stat:miningLeasesCount|building-count:Basic Extractor Yard)/.test(r.metric));
@@ -351,6 +360,10 @@ export async function climb({ request, account, clock, tick, levels, research, m
         await pursue(req, corp);
         corp = await corpNow();
       }
+      // AB#801: a later level's expeditions and contracts, at every check-in, while credits allow
+      const solvent = Number(corp.finances?.credits || 0) >= RESERVE + floatFor(corp, needs.mine);
+      if (solvent && expeditionsAhead && !unmet.some((r) => r.metric === "stat:asteroidExpeditionsCompleted")) { await expedition(corp); corp = await corpNow(); }
+      if (contractsAhead && !needs.contracts) { await contracts(corp); corp = await corpNow(); }
     }
     await standingWork(await corpNow(), needs);
     // The Bureau posts new contracts every 2 hours; while contracts are the open requirement, the bot looks that often.
