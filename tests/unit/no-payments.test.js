@@ -3,8 +3,10 @@
 // test is a reader.
 //
 // Scans every .js, .html and .css file under server/ and public/ for payment and pricing vocabulary. A match is
-// either a violation (fails the test) or a named, line-numbered entry in ALLOWLIST with the reason it is not
-// what it looks like — each one checked by hand when it was added, not assumed safe because it is old.
+// either a violation (fails the test) or an entry in ALLOWLIST, keyed by its file and the exact text of the line,
+// with the reason it is not what it looks like — each one checked by hand when it was added, not assumed safe
+// because it is old. AB#2250: keyed by text, not line number, so CSS added above an allowed line no longer breaks
+// the test; editing or removing the allowed line still does.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -32,14 +34,21 @@ const FORBIDDEN_TERMS = [
   /Intl\.NumberFormat/
 ];
 
+/** [file, the allowed line's text as written (trimmed), why it is not payment code]. */
 const ALLOWLIST = [
-  // AB#1051: the "premium-rate" flavour text this entry named moved to data/missions.json, which this scanner
-  // does not read (SCAN_EXT is .js/.html/.css only) — the match left the scanned surface, so the entry is gone
-  // rather than re-pointed.
-  // AB#1759: line number moved when .btn-hero-secondary was added above it.
-  ["public/styles.css", 4363,"a CSS section comment naming a forum-thread layout; no .premium class exists"],
+  // AB#1051: the "premium-rate" flavour text this list once named moved to data/missions.json, which this scanner
+  // does not read (SCAN_EXT is .js/.html/.css only), so its entry is gone rather than re-pointed.
+  [
+    "public/styles.css",
+    "/* ─── Premium Thread Detail View ────────────────────────────────────────── */",
+    "a CSS section comment naming a forum-thread layout; no .premium class exists"
+  ],
   // AB#738: toCurrency moved, unchanged, from app.js to the shared helpers module.
-  ["public/scripts/helpers.js", 6, "toCurrency: the sanctioned in-game credits formatter this story's own acceptance names as the one exception"]
+  [
+    "public/scripts/helpers.js",
+    'return new Intl.NumberFormat("en-US", {',
+    "toCurrency: the sanctioned in-game credits formatter this story's own acceptance names as the one exception"
+  ]
 ];
 
 function scanFiles(dir) {
@@ -56,32 +65,69 @@ function scanFiles(dir) {
   return out;
 }
 
-/** Every forbidden-term match under SCAN_DIRS, as "path:line" -> the matched line's own text. */
-function findMatches() {
-  const found = new Map();
+/** The forbidden-term matches in one file's text, as { file, line, text } with the line trimmed (so CRLF or LF alike). */
+function matchesIn(rel, content) {
+  const found = [];
+  content.split("\n").forEach((raw, i) => {
+    if (FORBIDDEN_TERMS.some((re) => re.test(raw))) found.push({ file: rel, line: i + 1, text: raw.trim() });
+  });
+  return found;
+}
+
+/** Every forbidden-term match under SCAN_DIRS. */
+function findMatches(read = (file) => fs.readFileSync(file, "utf8")) {
+  const found = [];
   for (const dir of SCAN_DIRS) {
     for (const file of scanFiles(path.join(ROOT, dir))) {
       const rel = path.relative(ROOT, file).replaceAll("\\", "/");
-      fs.readFileSync(file, "utf8")
-        .split("\n")
-        .forEach((text, i) => {
-          if (FORBIDDEN_TERMS.some((re) => re.test(text))) found.set(`${rel}:${i + 1}`, text.trim());
-        });
+      found.push(...matchesIn(rel, read(file, rel)));
     }
   }
   return found;
 }
 
+const keyOf = (file, text) => `${file}\n${text}`;
+
+/**
+ * AB#2250: a match is allowed when its file and its line's text are on the allowlist, wherever in the file that line
+ * now sits. An entry is stale when no match in its file has its text any more: the allowed line was edited or removed.
+ */
+function checkAllowlist(matches, allowlist = ALLOWLIST) {
+  const allowed = new Set(allowlist.map(([file, text]) => keyOf(file, text)));
+  const seen = new Set(matches.map((m) => keyOf(m.file, m.text)));
+  return {
+    violations: matches.filter((m) => !allowed.has(keyOf(m.file, m.text))).map((m) => `${m.file}:${m.line}: ${m.text}`),
+    stale: allowlist.filter(([file, text]) => !seen.has(keyOf(file, text))).map(([file, text]) => `${file}: ${text}`)
+  };
+}
+
 describe('no payment code before 1.0 (ISP-89, BRIEF.md: "None yet, and none before 1.0")', () => {
-  it("finds only the allowlisted matches, each still on the line it names", () => {
-    const allowed = new Map(ALLOWLIST.map(([file, line, reason]) => [`${file}:${line}`, reason]));
-    const matches = findMatches();
-
-    const violations = [...matches.entries()].filter(([key]) => !allowed.has(key)).map(([key, text]) => `${key}: ${text}`);
+  it("finds only the allowlisted matches, each still present in the file it names", () => {
+    const { violations, stale } = checkAllowlist(findMatches());
     expect(violations, "payment or pricing vocabulary found outside the allowlist").toEqual([]);
+    expect(stale, "an allowlist entry whose line is no longer in its file - it was edited or removed; update or remove the entry").toEqual([]);
+  });
 
-    const stale = [...allowed.keys()].filter((key) => !matches.has(key));
-    expect(stale, "an allowlist entry whose line no longer matches anything — the code moved; update or remove the entry").toEqual([]);
+  // AB#2250: the allowlist used to name a line number, and every stylesheet story that added CSS above it failed here.
+  const STYLES = "public/styles.css";
+  const withStyles = (edit) => findMatches((file, rel) => (rel === STYLES ? edit(fs.readFileSync(file, "utf8")) : fs.readFileSync(file, "utf8")));
+
+  it("still passes when lines are added above an allowed line", () => {
+    const { violations, stale } = checkAllowlist(withStyles((css) => `/* one */\n.a { color: red; }\n\n${css}`));
+    expect(violations).toEqual([]);
+    expect(stale).toEqual([]);
+  });
+
+  it("fails when an allowed line's text changes, as a violation and as a stale entry", () => {
+    const { violations, stale } = checkAllowlist(withStyles((css) => css.replace("Premium Thread Detail View", "Premium Thread Detail Views")));
+    expect(violations).toEqual([expect.stringMatching(/^public\/styles\.css:\d+: .*Premium Thread Detail Views/)]);
+    expect(stale).toEqual([expect.stringMatching(/^public\/styles\.css: .*Premium Thread Detail View /)]);
+  });
+
+  it("fails on a new forbidden term, even one added right beside an allowed line", () => {
+    const allowedComment = ALLOWLIST.find(([file]) => file === STYLES)[1];
+    const { violations } = checkAllowlist(withStyles((css) => css.replace(allowedComment, `${allowedComment}\n.premium-badge { color: gold; }`)));
+    expect(violations).toEqual([expect.stringMatching(/\.premium-badge/)]);
   });
 
   it("scans a real, non-trivial number of files, so a vacuous pass isn't mistaken for a clean one", () => {

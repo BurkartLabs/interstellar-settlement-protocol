@@ -1,7 +1,8 @@
 // AB#745 (ISP-59): a hire and a sale, played in the browser, with the numbers they change acknowledged where they are
 // shown. Each test starts its own server on a seeded corporation (e2e/seed-trade-account.mjs: 40 Silicates at Earth
-// Station Prime), the sell-orders-capped.spec.js pattern. The first test records a video to e2e/videos/ (gitignored
-// with test-results); docs/isp-59/ holds the frames and the converted recording.
+// Station Prime), the sell-orders-capped.spec.js pattern. The first test records a video to test-results/isp-59-video/
+// and its frames to e2e/screenshots/isp-59/, both gitignored; the committed frames and the converted recording are in
+// docs/isp-59/, copied there by hand (AB#2251).
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import os from "node:os";
@@ -10,7 +11,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SHOT_DIR = path.join(REPO_ROOT, "docs", "isp-59");
+const SHOT_DIR = path.join(REPO_ROOT, "e2e", "screenshots", "isp-59");
 const VIDEO_DIR = path.join(REPO_ROOT, "test-results", "isp-59-video");
 fs.mkdirSync(SHOT_DIR, { recursive: true });
 const PASSWORD = "playtest-password-not-real";

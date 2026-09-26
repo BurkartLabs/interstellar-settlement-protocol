@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { acknowledgeReceipt } from "./receipt.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SHOT_DIR = path.join(REPO_ROOT, "docs", "ab-744");
+const SHOT_DIR = path.join(REPO_ROOT, "e2e", "screenshots", "ab-744");
 fs.mkdirSync(SHOT_DIR, { recursive: true });
 const PASSWORD = "playtest-password-not-real";
 const SECRET = "trade-e2e-fixture-secret-0123456789abcdef";

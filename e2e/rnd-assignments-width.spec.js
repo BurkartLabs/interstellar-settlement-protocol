@@ -1,14 +1,14 @@
 // AB#1762 (ISP-293): Corporate R&D and the Assignments Bureau sat narrower than the content column (the R&D panel at
 // 820px, the Bureau board at 25vw, an agent's office at 50vw), so they looked unfinished beside the other tabs. Each
 // is measured here against the width of its own tab panel's content box, which is what every sibling tab fills.
-// Screenshots go to docs/isp-293/<SHOT_PREFIX>-...; run with SHOT_PREFIX=before on main and after on the branch.
+// Screenshots go to e2e/screenshots/isp-293/<SHOT_PREFIX>-...; run with SHOT_PREFIX=before on main and after on the branch.
 //
 // Run: ISP_DEV=1 npm run dev, then BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/rnd-assignments-width.spec.js
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
-const SHOT_DIR = path.join(process.cwd(), "docs", "isp-293");
+const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "isp-293");
 fs.mkdirSync(SHOT_DIR, { recursive: true });
 const PREFIX = process.env.SHOT_PREFIX || "after";
 const VIEWPORTS = [
