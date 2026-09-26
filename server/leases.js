@@ -8,14 +8,14 @@
 /** Longer than any real body name, short enough that nothing unbounded is ever looked up. */
 export const LEASE_BODY_MAX_LENGTH = 64;
 
-import { canReachSystem } from "../public/scripts/navigation.js";
+import { NAVIGATION } from "./game/catalog.js";
 
-// The travel gate lives in public/scripts/navigation.js, shared with the travel route and the starmap (Bug #976).
-export { researchForSystem } from "../public/scripts/navigation.js";
+// The travel gate lives in public/scripts/navigation.js, shared with the travel route and the starmap (Bug #976), over
+// data/systems.json's catalog (ISP-112, AB#804).
 
 /** A corporation can reach Sol, the system it is in, and any system its research opens. */
 export function systemAccessible(corp, systemId) {
-  return canReachSystem(corp?.unlockedTech, corp?.currentSystemId, systemId);
+  return NAVIGATION.canReachSystem(corp?.unlockedTech, corp?.currentSystemId, systemId);
 }
 
 /**

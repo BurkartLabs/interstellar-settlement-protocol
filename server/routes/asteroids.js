@@ -1,6 +1,6 @@
 // server/routes/asteroids.js: the asteroids routes, split out of server/index.js (AB#1815).
 import { addAccountNotification, saveAccountsNow, getAccountById, mutateAccountState } from "../gameState.js";
-import { BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_FABRICATION_MS, BASE_MAX_DEPLOYMENTS } from "../gameState.js";
+import { BELT_KEYS, EXPEDITION_DURATIONS, beltComposition, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_FABRICATION_MS, BASE_MAX_DEPLOYMENTS } from "../gameState.js";
 import { applyCredits } from "../finances.js";
 import { fleetStatus } from "../gameState.js"; // Bug #586
 import { emitToAccount } from "../realtime.js";
@@ -114,7 +114,7 @@ export function registerAsteroidRoutes(app) {
 
   app.post("/api/accounts/:accountId/gameplay/scout-belt", (req, res) => {
     const beltKey = String(req.body?.beltKey || "").trim();
-    if (!beltKey || !BELT_COMPOSITIONS[beltKey]) {
+    if (!beltKey || !beltComposition(beltKey)) {
       res.status(400).json({ error: "Invalid asteroid belt identifier." });
       return;
     }
@@ -158,7 +158,7 @@ export function registerAsteroidRoutes(app) {
     const beltKey = String(req.body?.beltKey || "").trim();
     const duration = String(req.body?.duration || "standard").trim();
 
-    if (!beltKey || !BELT_COMPOSITIONS[beltKey]) {
+    if (!beltKey || !beltComposition(beltKey)) {
       res.status(400).json({ error: "Invalid asteroid belt identifier." });
       return;
     }
@@ -278,10 +278,11 @@ export function registerAsteroidRoutes(app) {
     const scouted = account.state?.corp?.asteroidMining?.scoutedBelts || [];
     const result = {};
     for (const key of scouted) {
-      if (BELT_COMPOSITIONS[key]) {
-        result[key] = BELT_COMPOSITIONS[key];
+      const composition = beltComposition(key);
+      if (composition) {
+        result[key] = composition;
       }
     }
-    res.json({ compositions: result, allBeltKeys: Object.keys(BELT_COMPOSITIONS) });
+    res.json({ compositions: result, allBeltKeys: BELT_KEYS });
   });
 }

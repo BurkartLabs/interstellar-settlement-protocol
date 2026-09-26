@@ -15,6 +15,7 @@ const PUBLIC = {
   "GET /how-to-start": "the playtest briefing, a static page for people who have not registered yet (AB#748)",
   "GET /api/bootstrap": "the global game state shown before login",
   "GET /api/stations": "a static catalog",
+  "GET /api/systems": "a static catalog (ISP-112, AB#804)",
   "GET /api/buildings": "a static catalog",
   "GET /api/ceo-insight": "a static catalog",
   "GET /api/mission-agents": "a static catalog",

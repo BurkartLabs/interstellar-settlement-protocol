@@ -4,8 +4,8 @@ import kanbanRouter from "./kanban.js";
 import fs from "node:fs";
 import path from "node:path";
 import { accountActionLimiter } from "./rateLimiters.js";
-import { saveAccountsNow, getAccountById, getState, CEO_INSIGHT_LIBRARY, REFINERY_CHAINS, RESEARCH_LIBRARY, MISSION_TEMPLATES, SALVAGE_ASSIGNMENT_ID, SYSTEM_DETAILS } from "./gameState.js";
-import { BELT_COMPOSITIONS, EXPEDITION_DURATIONS } from "./gameState.js";
+import { saveAccountsNow, getAccountById, getState, CEO_INSIGHT_LIBRARY, REFINERY_CHAINS, RESEARCH_LIBRARY, MISSION_TEMPLATES, SALVAGE_ASSIGNMENT_ID, SYSTEMS_BY_ID } from "./gameState.js";
+import { BELT_KEYS, EXPEDITION_DURATIONS } from "./gameState.js";
 // AB#731: every gameplay route's numbers and ids are checked against server/gameplayInput.js here, after the login and
 // ownership checks and before any handler, so a refused request has touched nothing. Imported beside its one use.
 import { gameplayInputMiddleware, ACCOUNT_INPUT, MARKET_INPUT, FORUM_INPUT } from "./gameplayInput.js";
@@ -98,14 +98,14 @@ const REFINERY_CHAINS_DATA_FOR_INPUT = JSON.parse(fs.readFileSync(path.join(__di
 const INPUT_CHECKS = {
   catalogs: {
     stations: new Set(Object.keys(STATION_REGISTRY)),
-    systems: new Set(Object.keys(SYSTEM_DETAILS)),
+    systems: new Set(SYSTEMS_BY_ID.keys()),
     leaseBodies: new Set(SYSTEMS_CATALOG.flatMap((s) => (s.bodies || []).filter((b) => Number(b.leaseCost) > 0).flatMap((b) => [b.name, b.id])).map((x) => String(x).toLowerCase())),
     techs: new Set(Object.keys(RESEARCH_LIBRARY)),
     programs: new Set(Object.keys(CEO_INSIGHT_LIBRARY)),
     // ISP-297 (AB#1789): the Salvage Assignment is not one of MISSION_TEMPLATES' static ids — it is materialized
     // from ECONOMY.salvage when a corporation is eligible — so it is added to the catalog by hand.
     missions: new Set([...MISSION_TEMPLATES.map((m) => m.id), SALVAGE_ASSIGNMENT_ID]),
-    belts: new Set(Object.keys(BELT_COMPOSITIONS)),
+    belts: new Set(BELT_KEYS),
     expeditionDurations: new Set(Object.keys(EXPEDITION_DURATIONS)),
     refineryChains: new Set(Object.keys(REFINERY_CHAINS)),
     playerBuildings: new Set(PLAYER_BUILDING_CATALOGUE.map((b) => b.id)), // ISP-94: POST /gameplay/build

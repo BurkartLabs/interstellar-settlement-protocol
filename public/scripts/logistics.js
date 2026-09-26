@@ -7,7 +7,6 @@
 // `logistics`, which the server reads and sends to the Logistics tab with the stations, so the quote and the charge
 // come from the same numbers and the same function.
 
-import { systemHops } from "./navigation.js";
 /** Resource lines one request may carry. */
 export const MAX_TRANSFER_LINES = 10;
 /** Completed transfers kept in corp.logisticsHistory, newest first. */
@@ -21,13 +20,14 @@ const stationById = (stations, id) => {
 
 /**
  * Jumps between two stations' systems: 0 within one system. null when either station is unknown, has no system, or no
- * route joins them. `stations` is data/stations.json's list, or the server's id-keyed registry of the same objects.
+ * route joins them. `stations` is data/stations.json's list, or the server's id-keyed registry of the same objects;
+ * `navigation` is navigationFor(data/systems.json) (public/scripts/navigation.js, ISP-112, AB#804).
  */
-export function stationHops(stations, fromStationId, toStationId) {
+export function stationHops(stations, fromStationId, toStationId, navigation) {
   const from = stationById(stations, fromStationId);
   const to = stationById(stations, toStationId);
   if (!from?.systemId || !to?.systemId) return null;
-  return systemHops(from.systemId, to.systemId);
+  return navigation ? navigation.systemHops(from.systemId, to.systemId) : null;
 }
 
 /** Credits per unit over this many jumps: the in-system rate, plus the per-jump rate for each jump. */
@@ -88,7 +88,7 @@ export function parseTransferRequest(body) {
  * `stations` maps id to { name, systemId }; `rates` is data/economy.json's `logistics`; `inventory` is corp.inventory.
  * Returns { ok: true, fee, hops } or { ok: false, error }.
  */
-export function planTransfer({ fromStationId, toStationId, lines, inventory, credits, stations, rates }) {
+export function planTransfer({ fromStationId, toStationId, lines, inventory, credits, stations, rates, navigation }) {
   // Own keys only: a plain object answers "__proto__" and "constructor" too.
   const station = (id) => (typeof id === "string" && Object.hasOwn(stations || {}, id) ? stations[id] : null);
   const from = station(fromStationId);
@@ -106,7 +106,7 @@ export function planTransfer({ fromStationId, toStationId, lines, inventory, cre
       return { ok: false, error: `${from.name} holds ${have.toLocaleString()} ${item}; you asked to move ${quantity.toLocaleString()}. Move ${have.toLocaleString()} or fewer.` };
     }
   }
-  const hops = stationHops(stations, fromStationId, toStationId);
+  const hops = stationHops(stations, fromStationId, toStationId, navigation);
   if (hops === null) return { ok: false, error: `No shipping route joins ${from.name} and ${to?.name || "your station"}.` };
   const fee = transferFee(rates, hops, lines);
   const units = lines.reduce((s, l) => s + l.quantity, 0);
