@@ -4,9 +4,9 @@
 // a second (they drift under 1.5px a second, so it looks the same) and the nebula moves by transform, which the
 // compositor does alone. Nothing here stops either from moving: that is what reduced motion is for (AB#1760).
 //
-// What this cannot see: whether a player sees the stars. The motion check compares the canvas's own pixels, and on
-// every page neither layer reaches the screen - body's opaque background and the nebula's gradient paint over them
-// (AB#2131, found looking for this story's screenshot). This spec is about their cost, not their visibility.
+// This spec is about their cost. Whether a player sees the stars is e2e/focus-and-motion.spec.js, which compares the
+// screen: this one's motion check compares the canvas's own pixels, which kept changing while nothing reached the
+// screen (AB#2131).
 //
 // Run against a server you started: `npx playwright test e2e/idle-motion.spec.js`.
 import { test, expect } from "@playwright/test";

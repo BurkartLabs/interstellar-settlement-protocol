@@ -94,12 +94,14 @@ for (const vp of VIEWPORTS) {
 test.describe("reduced motion", () => {
   test.use({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 
-  const starfieldMoves = (page) => page.evaluate(async () => {
-    const canvas = document.getElementById("starfield-canvas");
-    const a = canvas.toDataURL();
-    await new Promise((r) => setTimeout(r, 700));
-    return canvas.toDataURL() !== a;
-  });
+  // AB#2131: compares the screen, not the canvas. The canvas kept drawing while body's background hid it, and a
+  // check of canvas.toDataURL() passed on a page with no visible star. The strip is the empty margin left of the panel.
+  const MARGIN = { x: 0, y: 0, width: 250, height: 800 };
+  const starfieldMoves = async (page) => {
+    const a = await page.screenshot({ clip: MARGIN });
+    await page.waitForTimeout(700);
+    return !a.equals(await page.screenshot({ clip: MARGIN }));
+  };
 
   test("control: without it, the starfield moves", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
