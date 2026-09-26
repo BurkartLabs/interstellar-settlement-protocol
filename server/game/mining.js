@@ -3,7 +3,8 @@
 import { applyCredits } from "../finances.js";
 import { ECONOMY, operationCostPerHourFor } from "../economy.js";
 import { miningEfficiency } from "../../public/scripts/miningEfficiency.js"; // ISP-98 (AB#788)
-import { BODY_TO_STATION, getStationInventory } from "./catalog.js";
+import { BODY_TO_STATION, bodyResourceProfile, getStationInventory } from "./catalog.js";
+import { bumpStat } from "./progression.js"; // AB#828: mined:<item>, what totalMined:<item> reads
 
 export function ensureCorpMiningModel(corp) {
   if (!corp.mining || typeof corp.mining !== "object") {
@@ -90,6 +91,10 @@ export function ensureCorpMiningModel(corp) {
       // started before the field existed, so the page shows its estimate from the clock instead of a false 0.
       spentThisCycle: extractor.spentThisCycle == null ? null : Math.max(0, Number(extractor.spentThisCycle) || 0),
       minedRemainder: Math.max(0, Number(extractor.minedRemainder || 0)),
+      // AB#828: lifetime output per item, and each item's fraction of a unit carried to the next split. A yard saved
+      // before AB#828 only ever mined Silicates, so its lifetime total is its Silicates.
+      minedByItem: countsOf(extractor.minedByItem, extractor.totalMined),
+      itemRemainders: countsOf(extractor.itemRemainders, 0),
       // Bug #1138: the running cost's unpaid fraction of a credit, carried like minedRemainder.
       costRemainder: Math.max(0, Number(extractor.costRemainder || 0)),
       // ISP-307 (AB#2299): the upkeep part of operationCostPerHour, set by startExtractorCycle; 0 for older cycles.
@@ -225,6 +230,29 @@ export function extractorDowntimeProbPerSec(corp) {
   return probPerSec;
 }
 
+/** AB#828: a { item: number } record kept to non-negative numbers; a missing one starts as { Silicates: legacy } or {}. */
+function countsOf(record, legacySilicates) {
+  if (!record || typeof record !== "object") {
+    const legacy = Math.max(0, Number(legacySilicates) || 0);
+    return legacy > 0 ? { Silicates: legacy } : {};
+  }
+  return Object.fromEntries(Object.entries(record).map(([k, v]) => [k, Math.max(0, Number(v) || 0)]));
+}
+
+/**
+ * AB#828: `whole` mined units shared among a body's resources by concentration, each item carrying its own fraction of
+ * a unit in `remainders` (updated in place). Returns { item: units } for the items that came out whole this time.
+ */
+export function shareByProfile(whole, profile, remainders) {
+  const out = {};
+  for (const { item, concentration } of profile || []) {
+    const share = takeWhole(whole * Math.max(0, Number(concentration) || 0), remainders[item]);
+    remainders[item] = share.rest;
+    if (share.whole > 0) out[item] = share.whole;
+  }
+  return out;
+}
+
 // Bug #1138: whole units now, the fraction carried to the next call, for yield and running cost alike. The mining step
 // runs on every account read and around every write as well as on the ticker, so the same hour can arrive in one
 // slice or in thousands; it must come to the same totals either way. The tolerance absorbs floating-point drift:
@@ -296,10 +324,22 @@ function mineSpan(corp, extractor, from, to, now) {
     const lease = (corp.miningLeases || []).find((l) => l.id === extractor.leaseId);
     const depositStation = (lease && BODY_TO_STATION[lease.body]) || corp.currentStationId || "earth-station-prime";
     const stationInv = getStationInventory(corp, depositStation);
-    stationInv.Silicates = (stationInv.Silicates || 0) + actualMined;
-    extractor.totalMined += actualMined;
-    extractor.minedThisCycle = Number(extractor.minedThisCycle || 0) + actualMined;
-    // Bug #984: mined silicates are inventory, not income; revenue is booked when they are sold.
+    // AB#828: the whole units are shared among the body's resources by concentration (data/systems.json
+    // resourceProfile, AB#826), each item carrying its own fraction of a unit to the next span, so a cycle's output
+    // comes out in the profile's proportions however often it is settled. A Silicates-only body (Earth, Mars and Luna
+    // today) deposits exactly what it did.
+    if (!extractor.minedByItem || typeof extractor.minedByItem !== "object") extractor.minedByItem = countsOf(null, extractor.totalMined);
+    if (!extractor.itemRemainders || typeof extractor.itemRemainders !== "object") extractor.itemRemainders = {};
+    let deposited = 0;
+    for (const [item, units] of Object.entries(shareByProfile(actualMined, bodyResourceProfile(lease?.body ?? extractor.body), extractor.itemRemainders))) {
+      stationInv[item] = (stationInv[item] || 0) + units;
+      extractor.minedByItem[item] = (extractor.minedByItem[item] || 0) + units;
+      bumpStat(corp, `mined:${item}`, units);
+      deposited += units;
+    }
+    extractor.totalMined += deposited;
+    extractor.minedThisCycle = Number(extractor.minedThisCycle || 0) + deposited;
+    // Bug #984: mined goods are inventory, not income; revenue is booked when they are sold.
   }
 
   extractor.lastTickAt = from + Math.round(elapsedMs * affordabilityRatio);
