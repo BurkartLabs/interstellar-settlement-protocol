@@ -6,23 +6,15 @@
 // Slice 1: the tokens, the mail that carries them and the routes that use them. Registration and login are not wired
 // to it yet; that is slice 2, which lands with the real transport (AB#989).
 
-import crypto from "node:crypto";
 import { accountsStore, scheduleAccountsSave } from "./game/store.js";
 import { publicBaseUrl, sendMail } from "./mail.js";
+import { issueToken, spendToken } from "./oneTimeToken.js";
 
 export const TOKEN_TTL_MS = 24 * 60 * 60_000;
-const TOKEN_BYTES = 32;
-
-const hashOf = (raw) => crypto.createHash("sha256").update(raw).digest("hex");
 
 /** Issue a fresh token for the account, replacing any earlier one. Returns the raw token, which is stored nowhere. */
 export function issueVerificationToken(accountId, now = Date.now()) {
-  const account = accountsStore.accounts?.[accountId];
-  if (!account) throw new Error("No such account.");
-  const raw = crypto.randomBytes(TOKEN_BYTES).toString("base64url");
-  account.emailVerification = { tokenHash: hashOf(raw), expiresAt: now + TOKEN_TTL_MS };
-  scheduleAccountsSave();
-  return raw;
+  return issueToken(accountId, "emailVerification", TOKEN_TTL_MS, now);
 }
 
 /**
@@ -30,20 +22,11 @@ export function issueVerificationToken(accountId, now = Date.now()) {
  * malformed, unknown, already used or expired: all four verify nothing and look the same to the caller.
  */
 export function verifyEmailToken(raw, now = Date.now()) {
-  if (typeof raw !== "string" || raw.length < 40 || raw.length > 64 || !/^[A-Za-z0-9_-]+$/.test(raw)) return null;
-  const wanted = Buffer.from(hashOf(raw), "hex");
-  for (const account of Object.values(accountsStore.accounts || {})) {
-    const pending = account?.emailVerification;
-    if (!pending?.tokenHash) continue;
-    const held = Buffer.from(pending.tokenHash, "hex");
-    if (held.length !== wanted.length || !crypto.timingSafeEqual(held, wanted)) continue;
-    delete account.emailVerification; // single-use, and an expired one is dropped too
-    scheduleAccountsSave();
-    if (!(pending.expiresAt > now)) return null;
-    account.emailVerifiedAt = now;
-    return account.id;
-  }
-  return null;
+  const account = spendToken("emailVerification", raw, now);
+  if (!account) return null;
+  account.emailVerifiedAt = now;
+  scheduleAccountsSave();
+  return account.id;
 }
 
 export function isEmailVerified(accountId) {

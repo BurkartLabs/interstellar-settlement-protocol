@@ -35,7 +35,9 @@ const OUT_OF_SCOPE = {
   "POST /kanban/api": "the developer kanban board, dev only",
   "POST /api/auth/verify-email": "validates its own body: a token string of the right length and alphabet, or nothing verifies (AB#987)",
   "POST /api/auth/resend-verification": "validates its own body: a non-string email finds no account, and the answer is the same either way (AB#987)",
-  "GET /api/dev/outbox": "dev only (ISP_DEV=1), the test mail outbox, with no input (AB#987)"
+  "GET /api/dev/outbox": "dev only (ISP_DEV=1), the test mail outbox, with no input (AB#987)",
+  "POST /api/auth/forgot-password": "validates its own body: a non-string email finds no account, and the answer is the same either way (AB#988)",
+  "POST /api/auth/reset-password": "validates its own body: the password rule first, then a token string of the right shape (AB#988)"
 };
 
 /** Registered today and removed by a pull request not yet merged; skipped once gone. */
