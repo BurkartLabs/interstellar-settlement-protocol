@@ -198,27 +198,90 @@ there (`corp.shipments`) until they arrive, moving with no reload on the `logist
 | Earth Station Prime | Halo Anchorage | 2 | 8 | 4 h 30 min |
 | Earth Station Prime | Verde Trade Hub | 2 | 8 | 4 h 30 min |
 | Earth Station Prime | Kestrel Platform | 3 | 11 | 6 h 30 min |
+| Earth Station Prime | Lalande Registry Station | 1 | 5 | 2 h 30 min |
+| Earth Station Prime | Compact Hall | 1 | 5 | 2 h 30 min |
+| Earth Station Prime | Sirius Exchange Anchorage | 2 | 8 | 4 h 30 min |
+| Earth Station Prime | Frost Relay Depot | 2 | 8 | 4 h 30 min |
+| Earth Station Prime | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
+| Earth Station Prime | Southern Reef Platform | 2 | 8 | 4 h 30 min |
 | Luna Gateway | Mars Orbital Dock | 0 | 2 | 30 min |
 | Luna Gateway | Centauri Prime Orbital | 1 | 5 | 2 h 30 min |
 | Luna Gateway | Ironwell Mining Depot | 1 | 5 | 2 h 30 min |
 | Luna Gateway | Halo Anchorage | 2 | 8 | 4 h 30 min |
 | Luna Gateway | Verde Trade Hub | 2 | 8 | 4 h 30 min |
 | Luna Gateway | Kestrel Platform | 3 | 11 | 6 h 30 min |
+| Luna Gateway | Lalande Registry Station | 1 | 5 | 2 h 30 min |
+| Luna Gateway | Compact Hall | 1 | 5 | 2 h 30 min |
+| Luna Gateway | Sirius Exchange Anchorage | 2 | 8 | 4 h 30 min |
+| Luna Gateway | Frost Relay Depot | 2 | 8 | 4 h 30 min |
+| Luna Gateway | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
+| Luna Gateway | Southern Reef Platform | 2 | 8 | 4 h 30 min |
 | Mars Orbital Dock | Centauri Prime Orbital | 1 | 5 | 2 h 30 min |
 | Mars Orbital Dock | Ironwell Mining Depot | 1 | 5 | 2 h 30 min |
 | Mars Orbital Dock | Halo Anchorage | 2 | 8 | 4 h 30 min |
 | Mars Orbital Dock | Verde Trade Hub | 2 | 8 | 4 h 30 min |
 | Mars Orbital Dock | Kestrel Platform | 3 | 11 | 6 h 30 min |
+| Mars Orbital Dock | Lalande Registry Station | 1 | 5 | 2 h 30 min |
+| Mars Orbital Dock | Compact Hall | 1 | 5 | 2 h 30 min |
+| Mars Orbital Dock | Sirius Exchange Anchorage | 2 | 8 | 4 h 30 min |
+| Mars Orbital Dock | Frost Relay Depot | 2 | 8 | 4 h 30 min |
+| Mars Orbital Dock | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
+| Mars Orbital Dock | Southern Reef Platform | 2 | 8 | 4 h 30 min |
 | Centauri Prime Orbital | Ironwell Mining Depot | 2 | 8 | 4 h 30 min |
 | Centauri Prime Orbital | Halo Anchorage | 1 | 5 | 2 h 30 min |
 | Centauri Prime Orbital | Verde Trade Hub | 2 | 8 | 4 h 30 min |
 | Centauri Prime Orbital | Kestrel Platform | 2 | 8 | 4 h 30 min |
+| Centauri Prime Orbital | Lalande Registry Station | 2 | 8 | 4 h 30 min |
+| Centauri Prime Orbital | Compact Hall | 2 | 8 | 4 h 30 min |
+| Centauri Prime Orbital | Sirius Exchange Anchorage | 1 | 5 | 2 h 30 min |
+| Centauri Prime Orbital | Frost Relay Depot | 3 | 11 | 6 h 30 min |
+| Centauri Prime Orbital | Twin Flare Outpost | 3 | 11 | 6 h 30 min |
+| Centauri Prime Orbital | Southern Reef Platform | 3 | 11 | 6 h 30 min |
 | Ironwell Mining Depot | Halo Anchorage | 2 | 8 | 4 h 30 min |
 | Ironwell Mining Depot | Verde Trade Hub | 1 | 5 | 2 h 30 min |
 | Ironwell Mining Depot | Kestrel Platform | 2 | 8 | 4 h 30 min |
+| Ironwell Mining Depot | Lalande Registry Station | 2 | 8 | 4 h 30 min |
+| Ironwell Mining Depot | Compact Hall | 2 | 8 | 4 h 30 min |
+| Ironwell Mining Depot | Sirius Exchange Anchorage | 3 | 11 | 6 h 30 min |
+| Ironwell Mining Depot | Frost Relay Depot | 1 | 5 | 2 h 30 min |
+| Ironwell Mining Depot | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
+| Ironwell Mining Depot | Southern Reef Platform | 3 | 11 | 6 h 30 min |
 | Halo Anchorage | Verde Trade Hub | 1 | 5 | 2 h 30 min |
 | Halo Anchorage | Kestrel Platform | 1 | 5 | 2 h 30 min |
+| Halo Anchorage | Lalande Registry Station | 1 | 5 | 2 h 30 min |
+| Halo Anchorage | Compact Hall | 3 | 11 | 6 h 30 min |
+| Halo Anchorage | Sirius Exchange Anchorage | 2 | 8 | 4 h 30 min |
+| Halo Anchorage | Frost Relay Depot | 3 | 11 | 6 h 30 min |
+| Halo Anchorage | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
+| Halo Anchorage | Southern Reef Platform | 4 | 14 | 8 h 30 min |
 | Verde Trade Hub | Kestrel Platform | 1 | 5 | 2 h 30 min |
+| Verde Trade Hub | Lalande Registry Station | 1 | 5 | 2 h 30 min |
+| Verde Trade Hub | Compact Hall | 2 | 8 | 4 h 30 min |
+| Verde Trade Hub | Sirius Exchange Anchorage | 3 | 11 | 6 h 30 min |
+| Verde Trade Hub | Frost Relay Depot | 2 | 8 | 4 h 30 min |
+| Verde Trade Hub | Twin Flare Outpost | 1 | 5 | 2 h 30 min |
+| Verde Trade Hub | Southern Reef Platform | 3 | 11 | 6 h 30 min |
+| Kestrel Platform | Lalande Registry Station | 2 | 8 | 4 h 30 min |
+| Kestrel Platform | Compact Hall | 3 | 11 | 6 h 30 min |
+| Kestrel Platform | Sirius Exchange Anchorage | 3 | 11 | 6 h 30 min |
+| Kestrel Platform | Frost Relay Depot | 3 | 11 | 6 h 30 min |
+| Kestrel Platform | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
+| Kestrel Platform | Southern Reef Platform | 4 | 14 | 8 h 30 min |
+| Lalande Registry Station | Compact Hall | 2 | 8 | 4 h 30 min |
+| Lalande Registry Station | Sirius Exchange Anchorage | 3 | 11 | 6 h 30 min |
+| Lalande Registry Station | Frost Relay Depot | 3 | 11 | 6 h 30 min |
+| Lalande Registry Station | Twin Flare Outpost | 2 | 8 | 4 h 30 min |
+| Lalande Registry Station | Southern Reef Platform | 3 | 11 | 6 h 30 min |
+| Compact Hall | Sirius Exchange Anchorage | 3 | 11 | 6 h 30 min |
+| Compact Hall | Frost Relay Depot | 3 | 11 | 6 h 30 min |
+| Compact Hall | Twin Flare Outpost | 1 | 5 | 2 h 30 min |
+| Compact Hall | Southern Reef Platform | 1 | 5 | 2 h 30 min |
+| Sirius Exchange Anchorage | Frost Relay Depot | 4 | 14 | 8 h 30 min |
+| Sirius Exchange Anchorage | Twin Flare Outpost | 4 | 14 | 8 h 30 min |
+| Sirius Exchange Anchorage | Southern Reef Platform | 4 | 14 | 8 h 30 min |
+| Frost Relay Depot | Twin Flare Outpost | 3 | 11 | 6 h 30 min |
+| Frost Relay Depot | Southern Reef Platform | 4 | 14 | 8 h 30 min |
+| Twin Flare Outpost | Southern Reef Platform | 2 | 8 | 4 h 30 min |
 
 **Where to refine, by arithmetic from the data (not from player behaviour).** The story set out to show that the
 cheapest place to refine is sometimes neither the mine's station nor the main market's. The arithmetic shows the

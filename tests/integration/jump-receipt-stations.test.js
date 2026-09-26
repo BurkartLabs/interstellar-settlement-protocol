@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState } from "../../server/gameState.js";
+import { travelReceipt } from "../../server/receipts.js";
 
 // AB#2333: a jump's receipt says what to do on arrival, truthfully (Bug #1058's rule). It named "a station in that
 // system" even for AB#806's six new systems, which have none yet.
@@ -15,12 +16,16 @@ async function jumpTo(toSystemId) {
 }
 
 describe("the jump receipt's next step (AB#2333)", () => {
-  it("to a system with no station, says there is nowhere to dock and what can be done there", async () => {
-    for (const system of ["lalande-21185", "sirius"]) {
-      const receipt = await jumpTo(system);
-      expect(receipt.next, system).toContain("There is no station in that system yet");
-      expect(receipt.next, system).not.toContain("choose a station");
-    }
+  it("to a system with no station, says there is nowhere to dock and what can be done there", () => {
+    // Since AB#810 every system in the catalog has a station, so this is the rule itself, for the systems still to come.
+    const receipt = travelReceipt({ interstellar: true, destination: "the Procyon system", arrivesAt: Date.now(), stations: [] });
+    expect(receipt.next).toContain("There is no station in that system yet");
+    expect(receipt.next).not.toContain("choose a station");
+  });
+
+  it("to one of AB#806's systems, names the station AB#810 gave it", async () => {
+    expect((await jumpTo("lalande-21185")).next).toBe("When you arrive, dock at Lalande Registry Station from the Starmap's system view.");
+    expect((await jumpTo("sirius")).next).toBe("When you arrive, dock at Sirius Exchange Anchorage from the Starmap's system view.");
   });
 
   it("to a system with a station, names it", async () => {
