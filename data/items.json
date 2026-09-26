@@ -224,6 +224,30 @@
       "name": "Battery Cells",
       "tier": 3,
       "category": "refined"
+    },
+    {
+      "id": "fusion-reactor-cores",
+      "name": "Fusion Reactor Cores",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "compact-fission-modules",
+      "name": "Compact Fission Modules",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "lightweight-spaceframes",
+      "name": "Lightweight Spaceframes",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "ion-thrusters",
+      "name": "Ion Thrusters",
+      "tier": 3,
+      "category": "refined"
     }
   ]
 }

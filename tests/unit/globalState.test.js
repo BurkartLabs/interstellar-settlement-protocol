@@ -14,7 +14,9 @@ const BID_ITEMS = [...NPC_ITEMS, "Aerogel", "Quantum Insulators", "Armour Platin
   // AB#833: the Light Metals track's two raw items and three products.
   "Lithium", "Bauxite", "Aluminium Ingots", "Aluminium-Lithium Alloy", "Battery Cells",
   // AB#831: the Nickel-Iron track's raw item and products.
-  "Iron Ore", "Nickel-Iron Alloy", "Pressure Vessels", "Structural Alloys", "Magnetic Cores"];
+  "Iron Ore", "Nickel-Iron Alloy", "Pressure Vessels", "Structural Alloys", "Magnetic Cores",
+  // AB#834: the cross-track products.
+  "Fusion Reactor Cores", "Compact Fission Modules", "Lightweight Spaceframes", "Ion Thrusters"];
 
 describe("the global state a fresh install starts with (Bug #588, #574)", () => {
   const state = freshGlobalState();

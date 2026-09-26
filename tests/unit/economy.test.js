@@ -97,7 +97,12 @@ const BEFORE_THE_MOVE = {
     { item: "Nickel-Iron Alloy", buyer: "Belt Refining Cooperative", unitPrice: 35, dailyQty: 384 },
     { item: "Pressure Vessels", buyer: "Olympus Heavy Industries", unitPrice: 129, dailyQty: 100 },
     { item: "Structural Alloys", buyer: "Belt Refining Cooperative", unitPrice: 25, dailyQty: 288 },
-    { item: "Magnetic Cores", buyer: "Belt Refining Cooperative", unitPrice: 50, dailyQty: 96 }
+    { item: "Magnetic Cores", buyer: "Belt Refining Cooperative", unitPrice: 50, dailyQty: 96 },
+    // AB#834: the cross-track products (docs/design/tier3-recipes.md section 4).
+    { item: "Fusion Reactor Cores", buyer: "Lunar Helium Consortium", unitPrice: 2243, dailyQty: 8 },
+    { item: "Compact Fission Modules", buyer: "Synthorium Trading House", unitPrice: 932, dailyQty: 12 },
+    { item: "Lightweight Spaceframes", buyer: "Olympus Heavy Industries", unitPrice: 451, dailyQty: 30 },
+    { item: "Ion Thrusters", buyer: "Olympus Heavy Industries", unitPrice: 1283, dailyQty: 12 }
   ]
 };
 

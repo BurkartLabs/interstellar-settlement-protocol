@@ -239,6 +239,68 @@
       "requiresTechIds": ["tt-ferrous-metallurgy"],
       "stage": 2,
       "category": "Metal Processing"
+    },
+    {
+      "id": "fusion-core-chain",
+      "inputs": [
+        { "item": "Fusion Pellets", "quantityPerCycle": 20 },
+        { "item": "Rare-Earth Magnets", "quantityPerCycle": 10 },
+        { "item": "Cryogenic Coolant", "quantityPerCycle": 20 }
+      ],
+      "outputs": [
+        { "item": "Fusion Reactor Cores", "quantityPerCycle": 4 }
+      ],
+      "cycleDurationHours": 12,
+      "requiresResearch": ["Integrated Manufacturing"],
+      "requiresTechIds": ["tt-integrated-manufacturing"],
+      "stage": 2,
+      "category": "Integrated Manufacturing"
+    },
+    {
+      "id": "fission-module-chain",
+      "inputs": [
+        { "item": "Thorium Fuel Rods", "quantityPerCycle": 5 },
+        { "item": "Pressure Vessels", "quantityPerCycle": 10 }
+      ],
+      "outputs": [
+        { "item": "Compact Fission Modules", "quantityPerCycle": 5 }
+      ],
+      "cycleDurationHours": 10,
+      "requiresResearch": ["Integrated Manufacturing"],
+      "requiresTechIds": ["tt-integrated-manufacturing"],
+      "stage": 3,
+      "category": "Integrated Manufacturing"
+    },
+    {
+      "id": "spaceframe-chain",
+      "inputs": [
+        { "item": "Aluminium-Lithium Alloy", "quantityPerCycle": 30 },
+        { "item": "Structural Alloys", "quantityPerCycle": 20 }
+      ],
+      "outputs": [
+        { "item": "Lightweight Spaceframes", "quantityPerCycle": 10 }
+      ],
+      "cycleDurationHours": 8,
+      "requiresResearch": ["Integrated Manufacturing"],
+      "requiresTechIds": ["tt-integrated-manufacturing"],
+      "stage": 3,
+      "category": "Integrated Manufacturing"
+    },
+    {
+      "id": "ion-thruster-chain",
+      "inputs": [
+        { "item": "Rare-Earth Magnets", "quantityPerCycle": 10 },
+        { "item": "Plasma Conduits", "quantityPerCycle": 10 },
+        { "item": "Battery Cells", "quantityPerCycle": 10 }
+      ],
+      "outputs": [
+        { "item": "Ion Thrusters", "quantityPerCycle": 5 }
+      ],
+      "cycleDurationHours": 10,
+      "requiresResearch": ["Integrated Manufacturing"],
+      "requiresTechIds": ["tt-integrated-manufacturing"],
+      "stage": 2,
+      "category": "Integrated Manufacturing"
     }
   ]
 }
