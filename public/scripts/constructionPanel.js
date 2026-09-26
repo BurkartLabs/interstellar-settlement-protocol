@@ -6,6 +6,7 @@
 // Pure apart from renderConstructionPanel, so it loads in node without the page's state.
 import { escapeHtml } from "./html.js";
 import { nextYardPriceFor } from "./yardPrice.js";
+import { leaseFacilities, leaseHasRoom, leaseSlotsUsed } from "./leaseSlots.js"; // ISP-98 (AB#788)
 
 const money = (n) => `¤${Math.floor(n).toLocaleString("en-US")}`;
 const has = (corp, tech) => (corp.unlockedTech || []).includes(tech);
@@ -24,9 +25,14 @@ export function buildingCost(building, corp = {}, economy = {}) {
   return cost;
 }
 
-/** The mining leases a building on a lease can go on: those with a free building slot. */
-function leasesWithRoom(corp) {
-  return (corp.miningLeases || []).filter((l) => (l.extractorIds || []).length < (l.buildingSlots || 0));
+/** A lease on the body a building is limited to (ISP-98: `lease`, such as "luna"), or any lease when it is not limited. */
+const onItsBody = (building, lease) => !building.lease || String(lease?.body || "").toLowerCase() === building.lease;
+/** Whether a lease is below the building's per-lease cap. */
+const belowLeaseCap = (building, lease) => building.cap?.perLease === undefined || leaseFacilities(lease).filter((n) => n === building.name).length < building.cap.perLease;
+
+/** The mining leases a building on a lease can go on: on its body, below its cap there, with a free building slot. */
+function leasesWithRoom(building, corp) {
+  return (corp.miningLeases || []).filter((l) => onItsBody(building, l) && belowLeaseCap(building, l) && leaseHasRoom(l));
 }
 
 /**
@@ -35,7 +41,7 @@ function leasesWithRoom(corp) {
  */
 export function constructionRow(building, corp = {}, { researchName = (id) => id, economy = {}, catalogue = [] } = {}) {
   const cost = buildingCost(building, corp, economy);
-  const leases = onLease(building) ? leasesWithRoom(corp) : [];
+  const leases = onLease(building) ? leasesWithRoom(building, corp) : [];
   const row = { building, cost, leases, reason: "" };
   const missing = (building.researchGates || []).find((id) => !has(corp, id));
   const cap = building.cap?.perCorporation;
@@ -58,12 +64,20 @@ export function constructionRow(building, corp = {}, { researchName = (id) => id
   }
   if (missing) row.reason = `Requires ${researchName(missing)} research.`;
   else if (cap !== undefined && built >= cap) row.reason = `Built: your corporation operates the most it may, ${cap}.`;
-  else if (onLease(building) && !(corp.miningLeases || []).length) row.reason = "Needs a mining lease: file one at the ISA Claims & Leases Division.";
-  else if (onLease(building) && !leases.length) row.reason = "Every mining lease's building slots are in use.";
+  else if (onLease(building) && !leases.length) row.reason = leaseReason(building, corp);
   else if (used >= slots) row.reason = `No free building slot: ${used} of ${slots} in use.`;
   else if (!Number.isFinite(cost)) row.reason = "The price has not loaded; reload the page."; // fail closed, never a guessed price
   else if (Number(corp.finances?.credits || 0) < cost) row.reason = `Needs ${money(cost)}; you have ${money(Number(corp.finances?.credits || 0))}.`;
   return row;
+}
+
+/** Why no lease will take the building: none on its body, each already has one, or every one is full. */
+function leaseReason(building, corp) {
+  const body = building.lease ? building.lease.replace(/^./, (c) => c.toUpperCase()) : "mining";
+  const own = (corp.miningLeases || []).filter((l) => onItsBody(building, l));
+  if (!own.length) return `Needs a ${body === "mining" ? "mining" : `${body}`} lease: file one at the ISA Claims & Leases Division.`;
+  if (!own.some((l) => belowLeaseCap(building, l))) return `Your ${body} lease already has a ${building.name}.`;
+  return `Every ${body} lease's building slots are in use.`;
 }
 
 export function slotCounterText(corp = {}) {
@@ -77,7 +91,7 @@ function rowHtml({ building, cost, leases, reason, upgrades }) {
     : onLease(building) ? "Uses 1 corporation slot and 1 slot on a mining lease." : "Uses 1 corporation slot.";
   const leasePicker = leases.length
     ? `<label class="construction-lease">On lease <select data-build-lease>${leases
-        .map((l) => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.body || l.id)} (${(l.extractorIds || []).length} of ${l.buildingSlots} in use)</option>`)
+        .map((l) => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.body || l.id)} (${leaseSlotsUsed(l)} of ${l.buildingSlots} in use)</option>`)
         .join("")}</select></label>`
     : "";
   const action = reason

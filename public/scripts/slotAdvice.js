@@ -9,6 +9,8 @@
 // `unleased` is [{ body, station }]: the bodies the corporation can still lease, each with the station whose
 // ISA Claims & Leases Division files it. The server works it out from the catalog, the page from its lease list.
 
+import { leaseHasRoom, leaseSlotsUsed } from "./leaseSlots.js"; // ISP-98 (AB#788)
+
 const OFFICE = "the ISA Claims & Leases Division";
 
 /** "Mars (at Mars Orbital Dock) or Luna (at Luna Gateway)". */
@@ -19,7 +21,7 @@ function bodyList(unleased) {
 
 /** What to do about a full lease, without the sentence saying it is full. */
 export function leaseFullAdvice(corp, lease, unleased = []) {
-  const roomy = (corp?.miningLeases || []).find((l) => l !== lease && l?.id !== lease?.id && (l.extractorIds || []).length < (l.buildingSlots || 2));
+  const roomy = (corp?.miningLeases || []).find((l) => l !== lease && l?.id !== lease?.id && leaseHasRoom(l)); // ISP-98: facilities count
   if (roomy) return `Your ${roomy.body} lease still has room: build there.`;
   if (unleased.length) return `To build more extractors, file a lease on ${bodyList(unleased)}: travel there and apply at ${OFFICE}.`;
   return "Every body the ISA leases is already claimed by your corporation, so this is the most extractors it can run.";
@@ -27,7 +29,7 @@ export function leaseFullAdvice(corp, lease, unleased = []) {
 
 /** The error when a lease's own slots are full. */
 export function leaseSlotsFullMessage(corp, lease, unleased = []) {
-  const used = (lease?.extractorIds || []).length;
+  const used = leaseSlotsUsed(lease); // ISP-98 (AB#788): extractors and the other buildings on the lease
   return `This ${lease?.body || "mining"} lease has used both of its building slots (${used}/${lease?.buildingSlots || 2}). ${leaseFullAdvice(corp, lease, unleased)}`;
 }
 
