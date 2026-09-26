@@ -12,6 +12,19 @@ import { getApp } from "../helpers/app.js";
 describe("verification mail in production with no transport (AB#987)", () => {
   beforeAll(async () => { await getApp(); });
 
+  it("registration answers 503 and creates nothing: the account could never be verified (AB#2288)", async () => {
+    const { app } = await getApp();
+    const { accountsStore } = await import("../../server/game/store.js");
+    const before = Object.keys(accountsStore.accounts).length;
+    const email = `prod-${Date.now()}@example.com`;
+    const res = await request(app).post("/api/auth/register").send({ email, password: "a-fine-password", ceoName: "Prod CEO", corpName: `Prod Corp ${Date.now()}` });
+    expect(res.status).toBe(503);
+    expect(res.body.code).toBe("mail-unavailable");
+    expect(res.headers["set-cookie"]).toBeUndefined();
+    expect(Object.keys(accountsStore.accounts)).toHaveLength(before);
+    expect(Object.values(accountsStore.accounts).some((a) => a.email === email)).toBe(false);
+  });
+
   it("asking for a link answers 503, identically for any address", async () => {
     const { app } = await getApp();
     const answers = [];
