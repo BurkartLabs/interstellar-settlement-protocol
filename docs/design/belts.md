@@ -28,8 +28,8 @@ perfectly and sells at the base bid; it is not a measurement of players (P-PROXY
    1.2% of the time; Epsilon Eridani the reverse. The label in data/systems.json becomes the centre of the distribution,
    not the answer.
 5. **A new belt's composition is its tier's template, jittered.** A tier's template is today's belts of that label,
-   averaged (common is Sol's belt; uncommon is Alpha Centauri's and Barnard's Star's; rare is Wolf 359's and Tau Ceti's;
-   exotic is Epsilon Eridani's). Each resource's weight is multiplied by a draw in **1 ± 0.25**, then the weights are
+   averaged: every belt in data/systems.json with that label counts, so a system added to the catalog moves its tier's
+   template (AB#2336). Each resource's weight is multiplied by a draw in **1 ± 0.25**, then the weights are
    renormalized, so two belts of one tier differ without changing character.
 6. **A new belt is unscouted.** Scouting is of a generation: every corporation must scout a respawned belt again
    before it knows what is in it. That makes scouting a recurring decision, as the item asks.
@@ -104,7 +104,7 @@ The model shows two things about expeditions today that are not about depletion,
    606 an hour at ideal uptime (`npm run economy:model`). The TODO's "belts should yield more than extractor yards" is far from true in
    Sol, and depletion makes Sol belts no more attractive. Base yield (`baseYieldPerMin`, 3) or the launch cost is the
    lever.
-2. **An exotic belt pays less per unit than a rare one** at the standing bids (35.16 against 39.28 credits), because
+2. **An exotic belt pays less per unit than a rare one** at the standing bids (35.16 against 35.57 credits), because
    56% of an exotic belt is resources no standing order buys (Thorium, Uranium, Cobalt, Lithium, Exotic Matter). Their
    value is on the player market or in refineries, which the model does not price. AB#822 (which bodies yield which
    resources) is where that belongs.
