@@ -32,6 +32,7 @@ export function facilityCardsHtml(corp = {}, cost = NaN) {
           </header>
           <p class="muted facility-desc">${DESCRIPTIONS[b.name]}</p>
           <p class="facility-tier">Tier ${b.tier || 1} &mdash; ${escapeHtml(b.status)}</p>
+          <p class="muted facility-tier-note">Tier ${b.tier || 1} is its only tier for now: its upgrades are not built yet.</p>
           <footer class="facility-card-footer"><button class="btn btn-accent" data-corp-building="${escapeHtml(b.name)}">Enter</button></footer>
         </article>
       `)
