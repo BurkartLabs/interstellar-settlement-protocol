@@ -253,7 +253,8 @@ export async function climb({ request, account, clock, tick, levels, research, m
       const unmet = done(corp, level + 1).filter((r) => Number(r.progress) < Number(r.target));
       const why = [...refusals].map(([what, error]) => `${what}: ${error}`).join(" | ");
       const reached = records.map((r) => `L${r.level} at ${r.totalHours} h (${r.credits} cr)`).join(", ");
-      throw new Error(`The ladder bot stopped at Level ${level} after ${maxDays} simulated days: Level ${level + 1} still needs ${unmet.map((r) => `${r.title} (${r.metric}: ${r.progress} of ${r.target})`).join("; ")}. Reached: ${reached}. Last refusals: ${why || "none"}.`);
+      // The levels reached ride on the error, so a caller can still report them (the year-pacing probe, AB#990).
+      throw Object.assign(new Error(`The ladder bot stopped at Level ${level} after ${maxDays} simulated days: Level ${level + 1} still needs ${unmet.map((r) => `${r.title} (${r.metric}: ${r.progress} of ${r.target})`).join("; ")}. Reached: ${reached}. Last refusals: ${why || "none"}.`), { records });
     }
     const next = done(corp, level + 1);
     const unmet = next.filter((r) => Number(r.progress) < Number(r.target));
