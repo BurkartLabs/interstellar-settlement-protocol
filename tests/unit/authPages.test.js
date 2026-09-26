@@ -94,8 +94,10 @@ describe("the pages before play are on the design system (ISP-76)", () => {
   });
 
   it("the landing and how to start are design-system cards and badges on the landing layout", () => {
-    const landing = read("public/index.html");
-    expect(landing).toContain('<section id="auth-shell" class="landing"');
+    const page = read("public/index.html");
+    expect(page).toContain('<section id="auth-shell" class="landing"');
+    // The landing alone: the game's screens after it have their own badges (ISP-81, AB#770).
+    const landing = page.slice(page.indexOf('<section id="auth-shell"'), page.indexOf('<div id="game-shell"'));
     expect((landing.match(/class="ui-card"/g) || []).length).toBeGreaterThanOrEqual(20);
     expect((landing.match(/class="ui-badge"/g) || []).length).toBe(3);
     expect(read("public/how-to-start.html")).toContain('<main class="landing">');

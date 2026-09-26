@@ -63,8 +63,8 @@ test(`the contract briefing card fits at ${WIDTH}px, from its first frame to its
   await page.locator("[data-agent-id]").first().click();
   await page.locator("[data-mission-id]").first().click();
   await expect(page.locator("#mission-accept-btn")).toBeVisible();
-  expectFits(await measure(page, "#mission-detail-modal .mission-modal-card", "start"), "first frame");
-  expectFits(await measure(page, "#mission-detail-modal .mission-modal-card", "end"), "at rest");
+  expectFits(await measure(page, "#mission-detail-modal .modal-card", "start"), "first frame");
+  expectFits(await measure(page, "#mission-detail-modal .modal-card", "end"), "at rest");
 });
 
 test(`the trade confirmation card fits at ${WIDTH}px`, async ({ page }) => {

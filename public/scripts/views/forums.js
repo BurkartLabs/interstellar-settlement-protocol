@@ -45,12 +45,6 @@ export function renderForums(data) {
         .map((p) => p[0])
         .join("")
         .toUpperCase() || "?";
-      const avatarHue = (str) => {
-        let h = 0;
-        for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 360;
-        return h;
-      };
-      const opHue = avatarHue(author);
       const opBody = selected.body
         || selected.summary
         || `Filing this thread to consolidate strategy on predatory mineral leases. Recent ISA arbitration cases suggest a narrow window for procedural objections — particularly when the lessor has failed to publish quarterly extraction reports. Would appreciate input from any corporation that has successfully challenged a Tier-2 lease auction in the last 18 months. I am compiling a citation pack for the Sol jurisdiction sub-forum and will share the redacted draft with anyone willing to co-sign.`;
@@ -58,32 +52,29 @@ export function renderForums(data) {
       const repliesHtml = replies.length
         ? replies.map((reply) => {
             const author = reply.author || "Anonymous";
-            const hue = avatarHue(author);
             const replyLiked = Boolean(myAccountId && reply.likedByMe);
             return `
-              <li class="thread-reply">
-                <div class="thread-reply__connector" aria-hidden="true"></div>
-                <article class="thread-card thread-card--reply">
-                  <header class="thread-card__head">
-                    <div class="thread-avatar" style="--avatar-hue:${hue};">${escapeHtml(initials(author))}</div>
-                    <div class="thread-card__head-meta">
-                      <span class="thread-card__author">${escapeHtml(author)}</span>
-                      <span class="thread-card__timestamp">${formatTime(reply.createdAt)}</span>
-                    </div>
-                    <span class="thread-badge thread-badge--reply">Reply</span>
+              <li>
+                <article class="ui-card forums__post">
+                  <header class="forums__post-head">
+                    <span class="forums__avatar" aria-hidden="true">${escapeHtml(initials(author))}</span>
+                    <span class="forums__byline">
+                      <strong class="forums__author">${escapeHtml(author)}</strong>
+                      <span class="ui-card__meta">${formatTime(reply.createdAt)}</span>
+                    </span>
                   </header>
-                  <div class="thread-card__body">
+                  <div class="forums__body">
                     ${forumPostBodyHtml(reply.content || "")}
                   </div>
-                  <footer class="thread-card__actions">
-                    <button class="thread-action-btn" type="button" data-action="reply" data-reply-id="${escapeHtml(reply.id)}">↩ Reply</button>
-                    <button class="thread-action-btn" type="button" data-action="quote" data-reply-id="${escapeHtml(reply.id)}">❝ Quote</button>
-                    <button class="thread-action-btn thread-action-btn--like${replyLiked ? " is-liked" : ""}" type="button" data-action="like" data-target="reply" data-reply-id="${escapeHtml(reply.id)}" aria-pressed="${replyLiked}">▲ ${replyLiked ? "Liked" : "Like"} <span class="thread-action-count">${Number(reply.likes) || 0}</span></button>
+                  <footer class="forums__post-actions">
+                    <button class="ui-button ui-button--ghost" type="button" data-action="reply" data-reply-id="${escapeHtml(reply.id)}">↩ Reply</button>
+                    <button class="ui-button ui-button--ghost" type="button" data-action="quote" data-reply-id="${escapeHtml(reply.id)}">❝ Quote</button>
+                    <button class="ui-button ui-button--ghost forums__like" type="button" data-action="like" data-target="reply" data-reply-id="${escapeHtml(reply.id)}" aria-pressed="${replyLiked}">▲ ${replyLiked ? "Liked" : "Like"} <span class="forums__like-count">${Number(reply.likes) || 0}</span></button>
                   </footer>
                 </article>
               </li>`;
           }).join("")
-        : `<li class="thread-reply thread-reply--empty"><p class="muted">No replies yet. Be the first to weigh in.</p></li>`;
+        : `<li><p class="forums__note">No replies yet. Be the first to weigh in.</p></li>`;
 
       // Bug #1222: the reply box is part of this HTML, so a re-render (any forum update) emptied a half-written reply.
       // Keep what is in it, where the cursor is and whether it had focus, for the same thread, and put them back below.
@@ -92,59 +83,54 @@ export function renderForums(data) {
         ? { value: oldBox.value, start: oldBox.selectionStart, end: oldBox.selectionEnd, focused: document.activeElement === oldBox }
         : null;
       detailBody.innerHTML = `
-        <div class="thread-detail">
-          <div class="thread-detail__topbar">
-            <button id="forum-back-btn-inline" class="thread-back-btn" type="button">← Back to Forums</button>
-            <span class="thread-badge thread-badge--category">${escapeHtml((selected.category || "general").toUpperCase())}</span>
+        <div class="forums__thread">
+          <div class="forums__topbar">
+            <button id="forum-back-btn-inline" class="ui-button ui-button--secondary" type="button">← Back to Forums</button>
+            <span class="ui-badge">${escapeHtml(selected.category || "general")}</span>
           </div>
 
-          <header class="thread-detail__header">
-            <h1 class="thread-detail__title">${escapeHtml(selected.title || "Untitled Thread")}</h1>
-            <div class="thread-detail__meta">
-              <span>Started ${formatTime(selected.createdAt)}</span>
-              <span class="thread-meta-dot">•</span>
-              <span>${replies.length} repl${replies.length === 1 ? "y" : "ies"}</span>
-              <span class="thread-meta-dot">•</span>
-              <span>${opLikes} like${opLikes === 1 ? "" : "s"}</span>
-            </div>
+          <header class="ui-screen__header">
+            <h2 class="ui-screen__title">${escapeHtml(selected.title || "Untitled Thread")}</h2>
+            <p class="ui-screen__meta">Started ${formatTime(selected.createdAt)} · ${replies.length} repl${replies.length === 1 ? "y" : "ies"} · ${opLikes} like${opLikes === 1 ? "" : "s"}</p>
           </header>
 
-          <article class="thread-card thread-card--op">
-            <div class="thread-card__op-tag">Original Post</div>
-            <header class="thread-card__head">
-              <div class="thread-avatar thread-avatar--op" style="--avatar-hue:${opHue};">${escapeHtml(initials(author))}</div>
-              <div class="thread-card__head-meta">
-                <span class="thread-card__author">${escapeHtml(author)}</span>
-                <span class="thread-card__timestamp">${formatTime(selected.createdAt)}</span>
-              </div>
-              <span class="thread-badge thread-badge--op">OP</span>
+          <article class="ui-card forums__post forums__post--op">
+            <header class="forums__post-head">
+              <span class="forums__avatar" aria-hidden="true">${escapeHtml(initials(author))}</span>
+              <span class="forums__byline">
+                <strong class="forums__author">${escapeHtml(author)}</strong>
+                <span class="ui-card__meta">${formatTime(selected.createdAt)}</span>
+              </span>
+              <span class="ui-badge ui-badge--accent">Original post</span>
             </header>
-            <div class="thread-card__body thread-card__body--op">
+            <div class="forums__body">
               ${forumPostBodyHtml(opBody)}
             </div>
-            <footer class="thread-card__actions">
-              <button class="thread-action-btn thread-action-btn--primary" type="button" data-action="reply">↩ Reply</button>
-              <button class="thread-action-btn" type="button" data-action="quote">❝ Quote</button>
-              <button class="thread-action-btn thread-action-btn--like${opLiked ? " is-liked" : ""}" type="button" data-action="like" data-target="thread" aria-pressed="${opLiked}">▲ ${opLiked ? "Liked" : "Like"} <span class="thread-action-count">${opLikes}</span></button>
+            <footer class="forums__post-actions">
+              <button class="ui-button ui-button--primary" type="button" data-action="reply">↩ Reply</button>
+              <button class="ui-button ui-button--ghost" type="button" data-action="quote">❝ Quote</button>
+              <button class="ui-button ui-button--ghost forums__like" type="button" data-action="like" data-target="thread" aria-pressed="${opLiked}">▲ ${opLiked ? "Liked" : "Like"} <span class="forums__like-count">${opLikes}</span></button>
             </footer>
           </article>
 
-          <section class="thread-replies">
-            <h2 class="thread-replies__heading">${replies.length} Repl${replies.length === 1 ? "y" : "ies"}</h2>
-            <ol class="thread-reply-list">${repliesHtml}</ol>
+          <section class="ui-stack">
+            <h3 class="forums__heading">${replies.length} Repl${replies.length === 1 ? "y" : "ies"}</h3>
+            <ol class="forums__replies">${repliesHtml}</ol>
           </section>
 
           <!-- Reply composer at the bottom of the thread. -->
-          <form id="forum-reply-form" class="form-card" data-thread-id="${escapeHtml(selected.id)}">
-            <h3>Post a Reply</h3>
-            <label>
-              <span>Your Reply</span>
-              <textarea id="forum-reply-content" rows="4" maxlength="4000" required placeholder="Write your reply..."></textarea>
-            </label>
-            <div class="form-actions">
-              <button type="submit" class="btn btn-accent">Post Reply</button>
+          <form id="forum-reply-form" class="ui-panel" data-thread-id="${escapeHtml(selected.id)}" aria-labelledby="forum-reply-heading">
+            <header class="ui-panel__header"><h3 id="forum-reply-heading" class="ui-panel__title">Post a Reply</h3></header>
+            <div class="ui-panel__body ui-stack">
+              <div class="ui-field">
+                <label class="ui-field__label" for="forum-reply-content">Your Reply</label>
+                <textarea id="forum-reply-content" class="ui-input ui-textarea" rows="4" maxlength="4000" required placeholder="Write your reply..."></textarea>
+              </div>
+              <div class="forums__actions">
+                <button type="submit" class="ui-button ui-button--primary">Post Reply</button>
+              </div>
+              <p id="forum-reply-status" class="ui-screen__meta" aria-live="polite"></p>
             </div>
-            <p id="forum-reply-status" class="muted"></p>
           </form>
         </div>
       `;
@@ -224,7 +210,7 @@ export function renderForums(data) {
           if (!content) {
             if (statusEl) {
               statusEl.textContent = "Reply cannot be empty.";
-              statusEl.style.color = "var(--warn)";
+              statusEl.classList.add("forums__status--warn");
             }
             return;
           }
@@ -249,7 +235,7 @@ export function renderForums(data) {
           } catch (err) {
             if (statusEl) {
               statusEl.textContent = `Failed to post reply: ${err.message}`;
-              statusEl.style.color = "var(--warn)";
+              statusEl.classList.add("forums__status--warn");
             }
           } finally {
             if (submitBtn) submitBtn.disabled = false;
@@ -266,14 +252,10 @@ export function renderForums(data) {
 
   const categoriesEl = document.getElementById("forum-categories");
   if (categoriesEl) {
-    categoriesEl.innerHTML =
-      `<button class="forum-category-btn${!appState.selectedForumCategory ? " active" : ""}" type="button" data-category="">All</button>` +
-      (data.forums?.categories || [])
-        .map(
-          (cat) =>
-            `<button class="forum-category-btn${appState.selectedForumCategory === cat ? " active" : ""}" type="button" data-category="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`
-        )
-        .join("");
+    // ISP-81 (AB#770): the categories are the design system's tabs over the thread list.
+    const tab = (value, label) =>
+      `<button class="ui-tab" type="button" role="tab" aria-selected="${(appState.selectedForumCategory || "") === value}" data-category="${escapeHtml(value)}">${escapeHtml(label)}</button>`;
+    categoriesEl.innerHTML = tab("", "All") + (data.forums?.categories || []).map((cat) => tab(cat, cat)).join("");
   }
 
   const filtered = appState.selectedForumCategory
@@ -283,7 +265,7 @@ export function renderForums(data) {
   const threadsEl = document.getElementById("forum-threads");
   if (threadsEl) {
     if (!filtered.length) {
-      threadsEl.innerHTML = `<p class="muted">No threads in this category yet.</p>`;
+      threadsEl.innerHTML = `<p class="forums__note">No threads in this category yet.</p>`;
     } else {
       threadsEl.innerHTML = filtered
         .map((thread) => {
@@ -294,18 +276,18 @@ export function renderForums(data) {
           const lastAuthor = replies.length ? replies[replies.length - 1]?.author : thread.author;
           const excerpt = String(thread.body || replies[0]?.body || "").slice(0, 240);
           return `
-          <button class="forum-thread-card" type="button" data-thread-id="${escapeHtml(thread.id)}">
-            <div class="forum-thread-card__head">
-              <span class="forum-thread-card__category">${escapeHtml(thread.category)}</span>
-              <span class="forum-thread-card__stat" title="Likes">▲ ${Number(thread.likes) || 0}</span>
-            </div>
-            <h3 class="forum-thread-card__title">${escapeHtml(thread.title)}</h3>
-            ${excerpt ? `<p class="forum-thread-card__excerpt">${escapeHtml(excerpt)}</p>` : ""}
-            <div class="forum-thread-card__meta">
+          <button class="ui-card ui-card--interactive forums__thread-card" type="button" data-thread-id="${escapeHtml(thread.id)}">
+            <span class="forums__thread-head">
+              <span class="ui-badge">${escapeHtml(thread.category)}</span>
+              <span class="ui-card__meta" title="Likes">▲ ${Number(thread.likes) || 0}</span>
+            </span>
+            <span class="ui-card__title">${escapeHtml(thread.title)}</span>
+            ${excerpt ? `<span class="ui-card__body forums__excerpt">${escapeHtml(excerpt)}</span>` : ""}
+            <span class="ui-card__meta forums__thread-meta">
               <span>Started by <strong>${escapeHtml(thread.author)}</strong></span>
-              <span class="forum-thread-card__stat">💬 ${replies.length} ${replies.length === 1 ? "reply" : "replies"}</span>
-              ${lastActivity ? `<span style="margin-left:auto">Last by <strong>${escapeHtml(lastAuthor || thread.author)}</strong> · ${formatTime(lastActivity)}</span>` : ""}
-            </div>
+              <span>💬 ${replies.length} ${replies.length === 1 ? "reply" : "replies"}</span>
+              ${lastActivity ? `<span class="forums__last">Last by <strong>${escapeHtml(lastAuthor || thread.author)}</strong> · ${formatTime(lastActivity)}</span>` : ""}
+            </span>
           </button>`;
         })
         .join("");
@@ -348,7 +330,7 @@ export function renderForums(data) {
       if (!category || !title || !body) {
         if (statusEl) {
           statusEl.textContent = "Category, title, and body are all required.";
-          statusEl.style.color = "var(--warn)";
+          statusEl.classList.add("forums__status--warn");
         }
         return;
       }
@@ -370,7 +352,7 @@ export function renderForums(data) {
       } catch (err) {
         if (statusEl) {
           statusEl.textContent = `Failed to post thread: ${err.message}`;
-          statusEl.style.color = "var(--warn)";
+          statusEl.classList.add("forums__status--warn");
         }
       } finally {
         if (submitBtn) submitBtn.disabled = false;
