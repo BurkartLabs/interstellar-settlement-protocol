@@ -26,7 +26,8 @@ const bids = new Set(ECONOMY.npcBuyers.map((n) => n.item).filter((item) => !prod
 const quotas = new Set(MISSIONS.templates.map((t) => t.resource).filter(Boolean));
 // AB#830: an item may feed several chains (Helium-3: he3-chain and fusion-fuel-chain), named in data order.
 const chainInputs = new Map();
-for (const c of CHAINS.chains) for (const i of c.inputs) chainInputs.set(i.item, [...(chainInputs.get(i.item) || []), c.id]);
+// AB#833: a product another chain takes (Aluminium Ingots, into al-li-chain) is not a raw item.
+for (const c of CHAINS.chains) for (const i of c.inputs) if (!products.has(i.item)) chainInputs.set(i.item, [...(chainInputs.get(i.item) || []), c.id]);
 const raw = new Set([...beltCount.keys(), ...CHAINS.resourceCatalog, ...bids, ...quotas, ...chainInputs.keys()]);
 
 describe("the v0.8 resource catalogue matches the build (AB#822)", () => {

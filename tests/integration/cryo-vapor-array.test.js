@@ -63,7 +63,7 @@ describe("the Cryo-vapor Extractor Array through the routes (ISP-98)", () => {
       state.corp.inventory = {};
     }, { settleMining: false });
     miningTick();
-    // AB#830: Luna yields Silicates 75, Helium-3 25; the array multiplies the whole yield.
-    expect(c.corp().inventory["luna-gateway"]).toEqual({ Silicates: 90, "Helium-3": 30 });
+    // AB#830, AB#833: Luna yields Silicates 60, Helium-3 25, Bauxite 15; the array multiplies the whole yield.
+    expect(c.corp().inventory["luna-gateway"]).toEqual({ Silicates: 72, "Helium-3": 30, Bauxite: 18 });
   });
 });

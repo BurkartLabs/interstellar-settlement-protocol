@@ -73,9 +73,9 @@ describe("the Fuel track, from a lease to a sale (AB#830)", () => {
   it("Luna's Helium-3 and Rime's Deuterium, Water Ice and Hydrogen run through all three chains and sell to the Consortium", async () => {
     const c = await corporation();
 
-    // Luna: Silicates 75, Helium-3 25, of an hour at 1,000 t/h times Basic Extraction's 1.1.
+    // Luna: Silicates 60, Helium-3 25, Bauxite 15 (AB#833), of an hour at 1,000 t/h times Basic Extraction's 1.1.
     await c.mineAn_hour("Luna", "luna-gateway");
-    expect(c.held("luna-gateway")).toEqual({ Silicates: 825, "Helium-3": 275 });
+    expect(c.held("luna-gateway")).toEqual({ Silicates: 660, "Helium-3": 275, Bauxite: 165 });
     await c.ok(await c.play("build-refinery"), "build a Refinery");
 
     // he3-chain at Luna Gateway: Helium-3 into Plasma Conduits and Dark-Matter Capacitors, sold there.
