@@ -45,7 +45,7 @@ describe("the v0.8 recipe graph (AB#823)", () => {
     expect(graph.filter((c) => c.isNew)).toHaveLength(13);
     for (const c of CHAINS) {
       const g = graph.find((x) => x.id === c.id);
-      expect(g.inputs, c.id).toEqual([[c.input, c.inputQuantityPerCycle]]);
+      expect(g.inputs, c.id).toEqual(c.inputs.map((i) => [i.item, i.quantityPerCycle]));
       expect(g.outputs, c.id).toEqual(c.outputs.map((o) => [o.item, o.quantityPerCycle]));
       expect(g.hours, c.id).toBe(c.cycleDurationHours);
       expect(g.research, c.id).toEqual(c.requiresTechIds);

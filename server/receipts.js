@@ -217,13 +217,15 @@ export function buildCryoVaporArrayReceipt({ cost, assetValue, body, multiplier,
   });
 }
 
-export function startRefineryReceipt({ refineryName, input, inputQuantity, outputs, hours, endsAt }) {
+/** `inputs` is every input the run took, `[{ item, quantity }]`: one for most chains, several for an alloy (AB#825). */
+export function startRefineryReceipt({ refineryName, inputs, outputs, hours, endsAt }) {
+  const taken = (inputs || []).map((i) => `${amount(i.quantity)} ${i.item}`).join(" + ");
   return receipt("start-refinery", {
     title: "Production Run Started",
-    summary: `${refineryName} is processing ${amount(inputQuantity)} ${input}.`,
+    summary: `${refineryName} is processing ${taken}.`,
     costCredits: 0,
     grants: [
-      { label: "Input consumed", value: `${amount(inputQuantity)} ${input}` },
+      { label: (inputs || []).length > 1 ? "Inputs consumed" : "Input consumed", value: taken },
       { label: "Output when it ends", value: outputs.map((o) => `${amount(o.quantity)} ${o.item}`).join(", ") },
       { label: "Run length", value: `${hours} hour${hours === 1 ? "" : "s"}` },
       { label: "Run ends", value: formatUtc(endsAt) }

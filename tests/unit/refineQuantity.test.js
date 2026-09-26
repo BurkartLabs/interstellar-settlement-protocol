@@ -6,7 +6,7 @@ import { refineMinimum, refineQuantityCheck, refineQuantityFieldValue } from "..
 // spent it. The field now keeps what was typed, and Start Run checks it with this rule, which the route uses too.
 const CHAINS = Object.fromEntries(
   JSON.parse(readFileSync(new URL("../../data/refinery-chains.json", import.meta.url), "utf8")).chains
-    .map((c) => [c.input, c.inputQuantityPerCycle])
+    .map((c) => [c.inputs[0].item, c.inputs[0].quantityPerCycle])
 );
 const silicates = { perCycle: CHAINS.Silicates, input: "Silicates" };
 const carbon = { perCycle: CHAINS.Carbon, input: "Carbon" };

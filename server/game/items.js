@@ -46,7 +46,7 @@ export function itemReferences({ refineryChains, systems, economy, npcCorporatio
   const add = (source, name) => refs.push({ source, name });
   for (const name of refineryChains?.resourceCatalog || []) add("refinery-chains.json resourceCatalog", name);
   for (const chain of refineryChains?.chains || []) {
-    if (chain?.input) add(`refinery-chains.json ${chain.id} input`, chain.input);
+    for (const input of chain?.inputs || []) add(`refinery-chains.json ${chain.id} input`, input?.item); // AB#825
     for (const out of chain?.outputs || []) add(`refinery-chains.json ${chain.id} output`, out?.item);
   }
   for (const system of systems || []) {

@@ -18,13 +18,12 @@ export function getSeedState() {
       systems: deepClone(SYSTEMS_DATA),
       refineryChains: REFINERY_CHAINS_DATA.chains.map((c) => ({
         id: c.id,
-        input: c.input,
-        inputQuantityPerCycle: c.inputQuantityPerCycle,
+        inputs: c.inputs, // AB#825: [{ item, quantityPerCycle }], one or several
         outputs: c.outputs,
         cycleDurationHours: c.cycleDurationHours,
         requiresResearch: c.requiresResearch,
         requiresTechIds: c.requiresTechIds,
-        tier: c.tier,
+        stage: c.stage, // AB#825: tier3-recipes.md's stage; the old `tier` was not an item tier
         category: c.category
       }))
     },

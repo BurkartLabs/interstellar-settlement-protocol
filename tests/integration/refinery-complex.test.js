@@ -51,11 +51,11 @@ describe("the Refinery Complex through the routes (ISP-97)", () => {
     const chain = Object.values(REFINERY_CHAINS).find((ch) => !(ch.requiresTechIds || []).length) || Object.values(REFINERY_CHAINS)[0];
     const c = await corporation((corp) => {
       corp.unlockedTech = [...new Set([...corp.unlockedTech, ...(chain.requiresTechIds || [])])];
-      corp.inventory = { "earth-station-prime": { [chain.input]: chain.inputQuantityPerCycle } };
+      corp.inventory = { "earth-station-prime": { [chain.inputs[0].item]: chain.inputs[0].quantityPerCycle } };
     });
     expect((await post(c, "build", { buildingId: "refinery" })).status).toBe(200);
     expect((await post(c, "build", { buildingId: "refinery-complex" })).status).toBe(200);
-    const started = await post(c, "start-refinery", { refineryId: c.corp().refineries[0].id, chainId: chain.id, inputQuantity: chain.inputQuantityPerCycle });
+    const started = await post(c, "start-refinery", { refineryId: c.corp().refineries[0].id, chainId: chain.id, inputQuantity: chain.inputs[0].quantityPerCycle });
     expect(started.status, JSON.stringify(started.body.error)).toBe(200);
     const quoted = chain.outputs.map((o) => `${Math.floor(o.quantityPerCycle * 1.5).toLocaleString("en-US")} ${o.item}`).join(", ");
     expect(started.body.receipt.grants.find((g) => g.label === "Output when it ends").value).toBe(quoted);

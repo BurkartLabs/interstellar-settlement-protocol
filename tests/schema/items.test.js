@@ -54,7 +54,7 @@ describe("every item named anywhere is in the catalog (AB#824)", () => {
     const sources = dataItemSources();
     const fixture = {
       ...sources,
-      refineryChains: { ...sources.refineryChains, chains: [{ id: "typo-chain", input: "Silicate", outputs: [{ item: "Aerogels" }] }] },
+      refineryChains: { ...sources.refineryChains, chains: [{ id: "typo-chain", inputs: [{ item: "Silicate", quantityPerCycle: 100 }], outputs: [{ item: "Aerogels" }] }] },
       systems: [{ id: "fixture", bodies: [{ id: "belt", composition: { "Helium 3": 50, Nickel: 50 } }] }],
       economy: { ...sources.economy, npcBuyers: [{ item: "Titanum" }], npcAsks: { dailyQty: [{ item: "Rare Earth" }] } },
       npcCorporations: { corporations: [{ id: "fixture-corp", trades: ["Carbon Fibre"] }] },

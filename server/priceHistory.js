@@ -24,7 +24,7 @@ export function dayKey(t) {
 export function tradeableItems(refineryData) {
   const items = new Set(refineryData?.resourceCatalog || []);
   for (const chain of refineryData?.chains || []) {
-    if (chain?.input) items.add(chain.input);
+    for (const input of chain?.inputs || []) if (input?.item) items.add(input.item); // AB#825
     for (const out of chain?.outputs || []) if (out?.item) items.add(out.item);
   }
   return items;

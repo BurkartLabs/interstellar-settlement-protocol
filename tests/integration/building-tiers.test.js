@@ -21,7 +21,7 @@ async function corporation({ level = 8 } = {}) {
     corp.buildingSlots = 6;
     corp.currentStationId = "earth-station-prime";
     corp.unlockedTech = [...new Set(["tt-material-compression", "tt-nano-lattice", "tt-assembly-fabrication", "tt-asteroid-prospecting", ...(CHAIN.requiresTechIds || [])])];
-    corp.inventory = { "earth-station-prime": { [CHAIN.input]: CHAIN.inputQuantityPerCycle * 10 } };
+    corp.inventory = { "earth-station-prime": { [CHAIN.inputs[0].item]: CHAIN.inputs[0].quantityPerCycle * 10 } };
   });
   const api = authed(app, accessToken);
   const post = (path, body = {}) => api.post(`/api/accounts/${account.id}/gameplay/${path}`).send(body);
@@ -35,7 +35,7 @@ async function corporation({ level = 8 } = {}) {
   /** One run of the chain on the first refinery, finished by the server's tick; what it delivered of each output. */
   const run = async () => {
     const before = { ...corp().inventory["earth-station-prime"] };
-    const started = await post("start-refinery", { refineryId: corp().refineries[0].id, chainId: CHAIN.id, inputQuantity: CHAIN.inputQuantityPerCycle });
+    const started = await post("start-refinery", { refineryId: corp().refineries[0].id, chainId: CHAIN.id, inputQuantity: CHAIN.inputs[0].quantityPerCycle });
     expect(started.status, JSON.stringify(started.body.error)).toBe(200);
     mutateAccountState(account.id, (s) => { s.corp.refineries[0].endsAt = Date.now() - 1; });
     refineryTick();
@@ -96,7 +96,7 @@ describe("the Refinery's tiers (AB#794), reconciled with the Refinery Complex (A
     const row = ECONOMY.buildings.refineryUpgrades.find((u) => u.toTier === 3);
     expect(credits - c.corp().finances.credits).toBe(row.upgradeCost);
     expect(c.corp().refineries[0].tier).toBe(3);
-    const offline = await c.post("start-refinery", { refineryId: c.corp().refineries[0].id, chainId: CHAIN.id, inputQuantity: CHAIN.inputQuantityPerCycle });
+    const offline = await c.post("start-refinery", { refineryId: c.corp().refineries[0].id, chainId: CHAIN.id, inputQuantity: CHAIN.inputs[0].quantityPerCycle });
     expect(offline.status).toBe(400);
     expect(offline.body.error).toMatch(/being upgraded/);
     expect(c.corp().refineries[0].upgradingUntil - Date.now()).toBeGreaterThan(row.offlineHours * 3_600_000 - 60_000);
