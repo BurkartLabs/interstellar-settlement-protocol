@@ -30,9 +30,9 @@ for (const m of DESIGN.matchAll(/^\| ([^|]+?) \| ([^|]+?) \|$/gm)) {
 /** What the design says a body yields, as shares of 100. */
 function designed(system, body) {
   if (body.id === "earth") return [["Silicates", 100]]; // unchanged (section 3)
-  // Section 3, as far as the tracks built so far take it: Light Metals (AB#833) gives Mars its Bauxite, and the Metals
-  // track's Iron Ore stays Silicates until it is built; Luna has the Fuel track's Helium-3 (AB#830) and its Bauxite.
-  if (body.id === "mars") return [["Silicates", 90], ["Bauxite", 10]];
+  // Section 3, with the tracks built: Light Metals (AB#833) gives Mars its Bauxite and Nickel-Iron (AB#831) its Iron
+  // Ore; Luna has the Fuel track's Helium-3 (AB#830) and its Bauxite.
+  if (body.id === "mars") return [["Silicates", 60], ["Iron Ore", 30], ["Bauxite", 10]];
   if (body.id === "luna") return [["Silicates", 60], ["Helium-3", 25], ["Bauxite", 15]];
   if (body.type === "Field") return Object.entries(body.composition);
   let cls = system.id === "sol" ? SOL[body.name] : null;

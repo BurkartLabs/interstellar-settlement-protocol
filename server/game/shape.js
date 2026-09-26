@@ -69,6 +69,7 @@ export function normalizeStateShape(rawState) {
     rawState.world.systems = normalizeSystems(rawState.world.systems || []);
     // Always rebuild refineryChains from the canonical data file so that
     // older persisted shapes (e.g. outputs as plain strings) are upgraded.
+    rawState.world.resourceCatalog = [...REFINERY_CHAINS_DATA.resourceCatalog]; // AB#2353: the page's Resource catalog
     rawState.world.refineryChains = REFINERY_CHAINS_DATA.chains.map((c) => ({
       id: c.id,
       inputs: c.inputs, // AB#825: [{ item, quantityPerCycle }], one or several
