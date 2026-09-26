@@ -1,0 +1,39 @@
+<!doctype html>
+<!-- AB#987 (ISP-280): the page a verification link opens. The token is in the fragment, which never reaches the
+     server; the button posts it, so a mail scanner that fetches the link cannot spend it. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ISP: Verify Your Email</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="scripts/starfield.js"></script>
+    <script type="module" src="scripts/verify-email-page.js"></script>
+  </head>
+  <body>
+    <canvas id="starfield-canvas" aria-hidden="true"></canvas>
+    <div class="app-bg" aria-hidden="true"></div>
+
+    <main class="auth-shell login-shell">
+      <section class="login-card" aria-labelledby="verify-title">
+        <p class="hero-overline">EARTH ASSEMBLY ACT 2147</p>
+        <h1 id="verify-title" class="login-title">Verify your email</h1>
+        <p id="verify-copy" class="login-copy">Confirm that this address belongs to your corporation's account.</p>
+
+        <p id="verify-status" class="login-status" aria-live="polite"></p>
+
+        <div class="login-actions">
+          <button id="verify-btn" class="btn-hero btn-hero-fill" type="button">Verify My Email</button>
+          <a id="verify-login" href="/login.html" class="btn-hero btn-hero-secondary">Log In</a>
+          <a id="verify-new-link" href="/check-email.html" class="btn-hero btn-hero-secondary" hidden>Ask For A New Link</a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

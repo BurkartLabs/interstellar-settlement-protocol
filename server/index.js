@@ -81,6 +81,9 @@ if (!process.env.ISP_DISABLE_TICKERS) {
 registerCatalogRoutes(app);
 
 registerAuthRoutes(app);
+// AB#987: email verification's routes, imported beside their one caller (P-SHARED-LINE).
+import { registerVerificationRoutes } from "./routes/verification.js";
+registerVerificationRoutes(app);
 
 // AB#734 (ISP-48): the per-account throttle runs right after requireAuth sets req.auth, so it always has the
 // verified account to key on.
