@@ -5,6 +5,8 @@
 // A message's link finishes its sentence: "... already exists. Log in instead", "... or register a new corporation."
 export const LOGIN_LINK = { href: "/login.html", text: "Log in instead." };
 export const REGISTER_LINK = { href: "/register.html", text: "register a new corporation." };
+// AB#2288: where an unverified player asks for a new verification link.
+export const CHECK_EMAIL_LINK = { href: "/check-email.html", text: "Send a new link." };
 
 const TRY_AGAIN = "Try again in a minute.";
 
@@ -31,6 +33,8 @@ export function loginErrorMessage(status, payload = {}, retryAfter) {
     return { text: "That email and password do not match. Check them and try again, or", link: REGISTER_LINK };
   }
   if (status === 400 && payload?.error) return { text: payload.error };
+  // AB#2288: the right password on an account whose email is not verified yet, with the resend action beside it.
+  if (status === 403 && payload?.code === "email-unverified") return { text: payload.error, link: CHECK_EMAIL_LINK };
   if (status === 429) return tooManyAttempts(payload, retryAfter);
   if (status === 0) return { text: `The server could not be reached. Check your connection. ${TRY_AGAIN}` };
   return { text: `Logging in failed on our side. ${TRY_AGAIN}` };
@@ -44,6 +48,8 @@ export function registerErrorMessage(status, payload = {}, retryAfter) {
   if (status === 400 && payload?.error) return { text: payload.error };
   // AB#781: the Board closed registration (REGISTRATION_OPEN); say that rather than "failed on our side".
   if (status === 403 && payload?.code === "registration-closed") return { text: payload.error };
+  // AB#2288: no way to send the verification link here yet, so nothing was created.
+  if (status === 503 && payload?.code === "mail-unavailable") return { text: payload.error };
   if (status === 429) return tooManyAttempts(payload, retryAfter);
   if (status === 0) return { text: `The server could not be reached. Check your connection. ${TRY_AGAIN}` };
   return { text: `Registering failed on our side. ${TRY_AGAIN}` };

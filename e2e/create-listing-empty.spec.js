@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { verifyAndLogIn } from "./verification.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOT_DIR = path.join(REPO_ROOT, "e2e", "screenshots", "ab-1857");
@@ -22,7 +23,7 @@ const VIEWPORTS = [
 function startServer(dir) {
   const child = spawn(process.execPath, ["server/index.js"], {
     cwd: REPO_ROOT,
-    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", NODE_ENV: "test", JWT_SECRET: SECRET, ISP_DEV: "" },
+    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", NODE_ENV: "test", JWT_SECRET: SECRET, ISP_DEV: "1" },
     stdio: ["ignore", "pipe", "pipe"]
   });
   return new Promise((resolve, reject) => {
@@ -71,6 +72,7 @@ for (const viewport of VIEWPORTS) {
       await page.fill("#register-ceo", "Playtest CEO");
       await page.fill("#register-corp", `Empty Corp ${stamp}`);
       await page.click('#register-form button[type="submit"]');
+      await verifyAndLogIn(page, url, `empty-${stamp}@example.test`, PASSWORD); // AB#2288: verify, then log in
       await page.waitForURL(/\/\?account=/);
       await page.getByRole("button", { name: "I'll find my own way" }).click();
 

@@ -5,12 +5,19 @@ import { createAccount, authenticateAccount, getAccountById, getDummyAccount, ha
 import { DEV_SURFACE } from "../app.js";
 import { issueTokens, JWT_SECRET, requireAuth, sendSession, clearRefreshCookie, readRefreshCookie } from "../auth.js";
 import { registrationOpen, REGISTRATION_CLOSED_MESSAGE } from "../registration.js";
+import { mailAvailable } from "../mail.js";
+import { sendVerificationEmail } from "../emailVerification.js";
 
 export function registerAuthRoutes(app) {
   app.post("/api/auth/register", registerLimiter, async (req, res) => {
     // AB#781: open to anyone, with no invitation, unless the Board has closed it (REGISTRATION_OPEN). Fails closed.
     if (!registrationOpen()) {
       res.status(403).json({ error: REGISTRATION_CLOSED_MESSAGE, code: "registration-closed" });
+      return;
+    }
+    // AB#2288: an account is usable only once its email is verified, so with no way to send the link nothing is created.
+    if (!(await mailAvailable())) {
+      res.status(503).json({ error: "Registration needs email, which is not available on this server yet. Try again later.", code: "mail-unavailable" });
       return;
     }
     try {
@@ -23,8 +30,14 @@ export function registerAuthRoutes(app) {
         return;
       }
 
-      const account = result.account;
-      sendSession(res, 201, account, issueTokens(account.id));
+      // AB#2288: no session until the address is verified; the link goes out now. If sending fails the account stands
+      // and "Check your email" can ask for another; the failure is logged without the address.
+      try {
+        await sendVerificationEmail(result.account.id);
+      } catch (error) {
+        console.error("[auth/register] the verification email could not be sent:", error?.name);
+      }
+      res.status(201).json({ verificationSent: true });
     } catch (error) {
       console.error("[auth/register]", error);
       res.status(500).json({ error: "Registering failed on our side. Try again in a minute." });
@@ -58,6 +71,11 @@ export function registerAuthRoutes(app) {
 
       if (!account) {
         res.status(401).json({ error: "Invalid account credentials." });
+        return;
+      }
+      // AB#2288: the right password on an account whose email is not verified yet.
+      if (account.blocked === "email-unverified") {
+        res.status(403).json({ error: "Check your email to verify your account.", code: "email-unverified" });
         return;
       }
 

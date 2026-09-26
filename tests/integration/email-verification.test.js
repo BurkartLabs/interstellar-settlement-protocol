@@ -6,7 +6,13 @@ import crypto from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { getApp } from "../helpers/app.js";
-import { registerAccount } from "../helpers/api.js";
+import { registerUnverified } from "../helpers/api.js";
+
+// AB#2288: registerAccount now verifies as it goes, so these tests start from an account that has not verified yet.
+const registerAccount = async (app) => {
+  const r = await registerUnverified(app);
+  return { account: { id: r.id }, body: { email: r.email } };
+};
 import { clearTestOutbox, testOutbox } from "../../server/mail.js";
 import { accountsStore } from "../../server/game/store.js";
 import { issueVerificationToken, isEmailVerified, TOKEN_TTL_MS, verifyEmailToken } from "../../server/emailVerification.js";

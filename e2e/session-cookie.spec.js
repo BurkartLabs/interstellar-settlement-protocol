@@ -10,6 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { verificationToken, verifyAndLogIn } from "./verification.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -20,7 +21,7 @@ const SECRET = "session-e2e-fixture-secret-0123456789ab";
 function startServer(dir) {
   const child = spawn(process.execPath, ["server/index.js"], {
     cwd: REPO_ROOT,
-    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", NODE_ENV: "test", JWT_SECRET: SECRET, ISP_DEV: "" },
+    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", NODE_ENV: "test", JWT_SECRET: SECRET, ISP_DEV: "1" },
     stdio: ["ignore", "pipe", "pipe"]
   });
   return new Promise((resolve, reject) => {
@@ -61,6 +62,7 @@ test("sign in, reload and stay signed in, with no token a script can read; log o
     await page.fill("#register-ceo", "Session QA");
     await page.fill("#register-corp", `Session QA Corp ${Date.now()}`);
     await page.click('#register-form button[type="submit"]');
+    await verifyAndLogIn(page, url, email, PASSWORD); // AB#2288: verify, then log in, which is where the cookie is set
     await page.waitForURL(/\/\?account=/);
     await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
 
@@ -98,10 +100,17 @@ test("a browser holding tokens from an older build is asked to log in once, and 
   const { child, url } = await startServer(dir);
   try {
     const email = `legacy-qa-${Date.now()}@example.test`;
-    const reg = await (await fetch(`${url}/api/auth/register`, {
+    await fetch(`${url}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password: PASSWORD, ceoName: "Legacy QA", corpName: `Legacy QA Corp ${Date.now()}` })
+    });
+    // AB#2288: registering gives no session; verify, then log in for the account and token an older build stored.
+    await page.request.post(`${url}/api/auth/verify-email`, { data: { token: await verificationToken(page.request, url, email) } });
+    const reg = await (await fetch(`${url}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password: PASSWORD })
     })).json();
     await page.goto(`${url}/login.html`);
     await page.evaluate((r) => {
