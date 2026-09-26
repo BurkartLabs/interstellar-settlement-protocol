@@ -18,6 +18,29 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#771 — ISP-82, the Starmap, the walkthrough and the dialogue on the design system)
+
+- The dialogue and the walkthrough are one layout on the game's modal card (`.modal-card.dialogue`): Elara Voss's
+  portrait as a column, then the speaker, the heading, the words and `ui-button` choices (the accented one is the
+  dialogue's primary). With no portrait the image is hidden and the column fills the card; no class is toggled for it.
+  The walkthrough keeps its scroll room (AB#1756) and its outline on a step's target, as `body.walkthrough--open` and
+  `.walkthrough__focus`.
+- The Starmap is a `.ui-screen`: a `ui-field` overlay picker, the canvas, and `#map-details` as a `ui-panel` under it
+  (no longer capped at 25vw; it was the last vw-capped panel). Its status lines carry a tone (`starmap__status--here`,
+  `--locked`); locked mining is a `ui-state`; the launch form is a `ui-field`. A station opened on the map is the
+  game's modal with a `ui-kv`, closed by a ghost button. The tooltip hides with `hidden`.
+- The map draws its names on a canvas, where the DOM checks cannot read: they take their size from `chartFont`, 14px on
+  a phone as the charts' are. At 14px Epsilon Eridani's name ran across Alpha Centauri's, so `clusterLabelAt` keeps a
+  name where it always went unless that crosses a placed name or another star, then tries the other side, below and
+  above (tests/unit/clusterLabels.test.js). A desktop's cluster does not move. The controller gained `show()` and
+  `openStation()`.
+- `tests/unit/starmapDialogue.test.js` holds the three to the design system; `e2e/starmap-dialogue.spec.js` registers a
+  player for the dialogue and the walkthrough and seeds one (e2e/seed-starmap-account.mjs) for the Starmap, at
+  375/768/1280. `e2e/starmap-belt-tap.spec.js` now checks the system its tap opened is the one it meant. Screens in
+  `docs/ab-771/`.
+- Not changed, noticed while looking: a station opened on the map says Buildings 0 and Office Rent —, because the
+  station registry the map is given carries neither.
+
 ## What's now true (ISP-80, AB#769 — the Galactic Exchange on the design system, Builder)
 
 - The Exchange (order book, standing buy orders, my listings, trade history, price chart, filters) is ui-screen,
