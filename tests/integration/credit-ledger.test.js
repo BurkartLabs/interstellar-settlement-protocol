@@ -83,7 +83,8 @@ describe("the corporate ledger reconciles (AB#712)", () => {
     expect([f.lifetimeRevenue, f.lifetimeCosts]).toEqual([income, expenses]);
     // Every movement landed under a named category, and each kind of action is there.
     expect(Object.keys(f.expensesByCategory).sort()).toEqual(
-      ["ceo-insight", "construction", "exchange-purchases", "exchange-tax", "hiring", "leases", "mining-ops", "office-rent", "research", "transfer-fees"]
+      // ISP-302 (AB#2285): this corporation holds two leases, so its sale books the royalty's share on its own.
+      ["ceo-insight", "construction", "exchange-purchases", "exchange-tax", "hiring", "lease-royalty", "leases", "mining-ops", "office-rent", "research", "transfer-fees"]
     );
     expect(Object.keys(f.incomeBySource)).toEqual(["exchange"]);
     expect(f.expensesByCategory["exchange-purchases"]).toBe(20 * 31);

@@ -92,13 +92,16 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "leases",
     "transfer-fees",
     "construction",
+    "yard-price-growth", // ISP-307 (AB#2299): what a yard costs above the first yard's price (ISP-303), booked apart
     "mining-startup",
     "mining-ops",
+    "yard-upkeep", // ISP-307 (AB#2299): the upkeep share of a yard's running cost (ISP-301), booked apart
     "expeditions",
     "research",
     "ceo-insight",
     "exchange-purchases",
-    "exchange-tax"
+    "exchange-tax",
+    "lease-royalty" // ISP-302 (AB#2285): the royalty's share of a sale's tax, booked apart so it can be counted
   ])
 });
 

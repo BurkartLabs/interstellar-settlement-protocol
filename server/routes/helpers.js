@@ -39,6 +39,7 @@ const corpSlotsFull = (corp) => corporationSlotsFullMessage(corp, unleasedFor(co
 // POST /gameplay/build and the three old build routes are this handler; server/construction.js holds the rules, this
 // says what happened, in the words each old route used.
 
+const capitalised = (word) => String(word || "").replace(/^./, (c) => c.toUpperCase());
 /** The name of the building an upgrade upgrades, from the catalogue. */
 const upgradedName = (building) => PLAYER_BUILDING_CATALOGUE.find((b) => b.id === building.upgrades)?.name || "building";
 const researchNames = (building) => building.researchGates.map((id) => RESEARCH_LIBRARY[id]?.name || id).join(" and ");
@@ -74,10 +75,16 @@ function refusalMessage(outcome, building, corp, leaseId) {
       // ISP-97 (AB#787): an upgrade's cap is per building it upgrades.
       if (building.slot === "upgrade") return `Every ${upgradedName(building)} you have is already a ${building.name}.`;
       return `You already operate the maximum of ${building.cap.perCorporation} of the ${building.name}.`;
+    case "wrong-lease": return `The ${building.name} is built only on a ${capitalised(building.lease)} lease.`; // ISP-98
+    case "lease-at-cap": {
+      const lease = (corp.miningLeases || []).find((l) => l.id === leaseId);
+      return `Your ${lease?.body || "mining"} lease already has a ${building.name}.`;
+    }
     case "nothing-to-upgrade": return `The ${building.name} upgrades a ${upgradedName(building)}: build one first.`;
     case "lease-slots-full": return leaseSlotsFullMessage(corp, (corp.miningLeases || []).find((l) => l.id === leaseId), unleasedFor(corp));
     case "no-corp-slot": return `The ${building.name} needs a free building slot. ${corpSlotsFull(corp)}`;
-    case "insufficient-credits": return fundingRequirementMessage(`${building.name} construction`, corp, building.cost);
+    // AB#2286: the price the construction charges (a yard's rises with each one built), not the catalogue's base.
+    case "insufficient-credits": return fundingRequirementMessage(`${building.name} construction`, corp, CONSTRUCTIONS[building.id]?.cost ? CONSTRUCTIONS[building.id].cost(building, corp) : building.cost);
     default: return "Build action failed.";
   }
 }

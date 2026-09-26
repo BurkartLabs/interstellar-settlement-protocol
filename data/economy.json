@@ -7,6 +7,9 @@
     "rentPerDay": 1000,
     "termDays": [7, 14, 21, 28]
   },
+  "leases": {
+    "royaltyPointsByLeasesHeld": { "2": 1, "3": 2, "5": 3 }
+  },
   "buildings": {
     "extractorYardCost": 50000,
     "extractorYardAssetValue": 36000,
@@ -20,8 +23,18 @@
     "refineryComplexCost": 100000,
     "refineryComplexAssetValue": 70000,
     "refineryComplexOutputMultiplier": 1.5,
+    "cryoVaporExtractorArrayCost": 80000,
+    "cryoVaporExtractorArrayAssetValue": 58000,
+    "cryoVaporExtractorArrayMiningMultiplier": 1.2,
     "supplyForecastCostMultiplier": 0.94,
     "extractorYardUpkeepPctPerDay": 2,
+    "extractorYardPriceGrowth": 1.25,
+    "assemblyFacilityUpgrades": [
+      { "toTier": 2, "upgradeCost": 30000, "assetValue": 21000, "offlineHours": 2, "fabricationTimePct": 50 }
+    ],
+    "refineryUpgrades": [
+      { "toTier": 3, "upgradeCost": 150000, "assetValue": 105000, "offlineHours": 8, "outputMultiplier": 2 }
+    ],
     "extractorYardUpgrades": [
       { "toTier": 2, "upgradeCost": 40000, "assetValue": 28000, "offlineHours": 6, "throughputReferencePerHour": 525, "throughputCap": 313 },
       { "toTier": 3, "upgradeCost": 60000, "assetValue": 42000, "offlineHours": 12, "throughputReferencePerHour": 656, "throughputCap": 391 },

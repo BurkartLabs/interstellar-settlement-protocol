@@ -36,11 +36,11 @@ function crossCatalogueProblems(buildings, research, milestones) {
 }
 
 describe("data/player-buildings.json (AB#783)", () => {
-  it("holds the five buildings the game has (ISP-96 and ISP-97 added two complexes), in the design's shape, each with its price from data/economy.json", () => {
+  it("holds the six buildings the game has (ISP-96 to ISP-98 added three), in the design's shape, each with its price from data/economy.json", () => {
     expect(playerBuildingProblems(FILE)).toEqual([]);
-    expect(PLAYER_BUILDING_CATALOGUE.map((b) => b.id)).toEqual(["basic-extractor-yard", "assembly-facility", "refinery", "ferric-mining-complex", "refinery-complex"]);
+    expect(PLAYER_BUILDING_CATALOGUE.map((b) => b.id)).toEqual(["basic-extractor-yard", "assembly-facility", "refinery", "ferric-mining-complex", "refinery-complex", "cryo-vapor-extractor-array"]);
     for (const b of PLAYER_BUILDING_CATALOGUE) {
-      const shape = ["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot", ...(b.slot === "upgrade" ? ["upgrades"] : [])];
+      const shape = ["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot", "tiers", ...(b.slot === "upgrade" ? ["upgrades"] : []), ...(b.lease !== undefined ? ["lease"] : [])]; // tiers: ISP-102 (AB#794); lease: ISP-98
       expect(Object.keys(b).sort(), b.id).toEqual(shape.sort()); // an upgrade names what it upgrades (ISP-97)
       expect(b.cost, b.id).toBe(ECONOMY.buildings[`${b.price}Cost`]);
       expect(b.assetValue, b.id).toBe(ECONOMY.buildings[`${b.price}AssetValue`]);

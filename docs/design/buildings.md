@@ -20,7 +20,7 @@ A player building is one a corporation builds or owns: an entry in `corp.buildin
 | Refinery Annex | server/game/world.js:42 (dev seed); DEVELOPMENT_PHASES.md:45 | The Refinery's old name; not a separate type |
 | Ferric Mining Complex | data/player-buildings.json; server/game/asteroids.js (`ferricBonus`); data/economy.json (price, multiplier) | Built (ISP-96, AB#786); in the catalogue |
 | Refinery Complex | data/player-buildings.json (`slot: "upgrade"`); server/construction.js (`upgrade`); public/scripts/refineryOutput.js | Built (ISP-97, AB#787); in the catalogue, the first upgrade |
-| Cryo-vapor Extractor Array | data/milestones.json:177; chrome.js:153; DESIGN_DOCUMENT.md:387 (as "Cryo-Vapor research, Luna lease") | Designed only; proposed below |
+| Cryo-vapor Extractor Array | data/player-buildings.json (`lease: "luna"`, `cap.perLease`); public/scripts/miningEfficiency.js; public/scripts/leaseSlots.js | Built (ISP-98, AB#788) with the fallback effect; in the catalogue |
 
 ## The three that exist
 
@@ -150,6 +150,7 @@ No level requires them since AB#424, so those lines stay Open for ever. AB#798 (
 - `researchGates`: ids in data/research.json, all required.
 - `cap`: `perCorporation`, or for a lease building `perLease` (with `lease` for one lease only, such as `"luna"`), or for an upgrade `perBuilding`.
 - `upgrades`: for an upgrade, the id of the building it upgrades.
+- `tiers`: the building's upgrade tiers, the name of its table in `data/economy.json`'s buildings, or `"none"` (ISP-102, AB#794; docs/design/upgrades.md). The catalogue check refuses an entry with neither.
 - `effect`: one sentence naming the state it changes.
 - `since`: the version it arrived.
 

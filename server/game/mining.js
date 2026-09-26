@@ -1,7 +1,8 @@
 // server/game/mining.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import { applyCredits } from "../finances.js";
-import { operationCostPerHourFor } from "../economy.js";
+import { ECONOMY, operationCostPerHourFor } from "../economy.js";
+import { miningEfficiency } from "../../public/scripts/miningEfficiency.js"; // ISP-98 (AB#788)
 import { BODY_TO_STATION, getStationInventory } from "./catalog.js";
 
 export function ensureCorpMiningModel(corp) {
@@ -91,6 +92,8 @@ export function ensureCorpMiningModel(corp) {
       minedRemainder: Math.max(0, Number(extractor.minedRemainder || 0)),
       // Bug #1138: the running cost's unpaid fraction of a credit, carried like minedRemainder.
       costRemainder: Math.max(0, Number(extractor.costRemainder || 0)),
+      // ISP-307 (AB#2299): the upkeep part of operationCostPerHour, set by startExtractorCycle; 0 for older cycles.
+      upkeepPerHour: Math.max(0, Number(extractor.upkeepPerHour || 0)),
       totalSpent: Number(extractor.totalSpent || 0),
       lastCompletedAt: extractor.lastCompletedAt ?? null,
       leaseId: extractor.leaseId ?? null,
@@ -197,13 +200,15 @@ export function stopExtractorCycle(extractor, timestamp) {
  * Start a mining cycle on an extractor: the one place both start routes go through (AB#575). It zeroes the
  * per-cycle count the extractor panel shows as "Mined this cycle"; totalMined stays the lifetime figure.
  */
-export function startExtractorCycle(extractor, { now, hours, throughputPerHour, operationCostPerHour, startupCost }) {
+export function startExtractorCycle(extractor, { now, hours, throughputPerHour, operationCostPerHour, startupCost, upkeepPerHour = 0 }) {
   extractor.active = true;
   extractor.startedAt = now;
   extractor.lastTickAt = now;
   extractor.endsAt = now + hours * 60 * 60 * 1000;
   extractor.throughputPerHour = throughputPerHour;
   extractor.operationCostPerHour = operationCostPerHour;
+  // ISP-307 (AB#2299): the part of that hourly cost that is yard upkeep (ISP-301), so the tick books it apart.
+  extractor.upkeepPerHour = Math.max(0, Math.min(Number(operationCostPerHour) || 0, Number(upkeepPerHour) || 0));
   extractor.totalSpent = Number(extractor.totalSpent || 0) + startupCost;
   extractor.minedThisCycle = 0;
   extractor.spentThisCycle = startupCost; // AB#746
@@ -257,9 +262,8 @@ function mineSpan(corp, extractor, from, to, now) {
   if (elapsedMs <= 0) return 1;
   const elapsedHours = elapsedMs / (60 * 60 * 1000);
   const throughput = Math.max(0, Number(extractor.throughputPerHour || 0));
-  let efficiency = 1;
-  if ((corp.unlockedTech || []).includes("tt-basic-extraction")) efficiency *= 1.1;
-  if ((corp.unlockedTech || []).includes("tt-supply-forecast")) efficiency *= 1.06;
+  // ISP-98 (AB#788): research, and a Cryo-vapor Extractor Array on the extractor's lease; one rule with the panel.
+  const efficiency = miningEfficiency(corp, (corp.miningLeases || []).find((l) => l.id === extractor.leaseId), ECONOMY.buildings);
   const projectedMined = elapsedHours * throughput * efficiency;
   const projectedCost = elapsedHours * Math.max(0, Number(extractor.operationCostPerHour || 0));
 
@@ -277,7 +281,12 @@ function mineSpan(corp, extractor, from, to, now) {
   extractor.costRemainder = cost.rest;
 
   if (actualCost > 0) {
-    const charged = -applyCredits(corp, -Math.min(actualCost, Math.max(0, Math.round(Number(corp.finances.credits) || 0))), "mining-ops", now);
+    const due = Math.min(actualCost, Math.max(0, Math.round(Number(corp.finances.credits) || 0)));
+    // ISP-307 (AB#2299): the upkeep share of the charge is booked as yard-upkeep, the rest as mining-ops; the two add to
+    // the same charge. A cycle started before the split has no upkeepPerHour and books as it always did.
+    const perHour = Math.max(0, Number(extractor.operationCostPerHour || 0));
+    const upkeep = perHour > 0 ? Math.round(due * Math.min(1, Math.max(0, Number(extractor.upkeepPerHour) || 0) / perHour)) : 0;
+    const charged = -applyCredits(corp, -(due - upkeep), "mining-ops", now) - applyCredits(corp, -upkeep, "yard-upkeep", now);
     extractor.totalSpent += charged;
     if (extractor.spentThisCycle != null) extractor.spentThisCycle += charged; // AB#746
   }

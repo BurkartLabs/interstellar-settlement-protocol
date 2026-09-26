@@ -110,18 +110,18 @@ export function buildExtractorReceipt({ extractorName, body, cost, assetValue })
   });
 }
 
-/** ISP-101 (AB#793): a building upgraded by one tier. */
-export function upgradeReceipt({ name, tier, cost, assetValue, offlineUntil, throughputCap }) {
+/** ISP-101 (AB#793), ISP-102 (AB#794): a building upgraded by one tier, with what that tier changes. */
+export function upgradeReceipt({ name, tier, cost, assetValue, offlineUntil, effect }) {
   return receipt("upgrade-building", {
     title: "Building Upgraded",
     summary: `${name}, now tier ${tier}.`,
     costCredits: cost,
     grants: [
-      { label: "Throughput cap", value: `${throughputCap} tons per hour` },
+      ...(effect ? [effect] : []),
       { label: "Added to assets", value: formatCredits(assetValue) },
-      { label: "Offline until", value: formatUtc(offlineUntil) }
+      ...(offlineUntil ? [{ label: "Offline until", value: formatUtc(offlineUntil) }] : [])
     ],
-    next: "Start its next mining cycle once it is back online: at this tier it pays best a little hotter than before."
+    next: offlineUntil ? "Start it again once it is back online." : "It works at its new tier from its next run."
   });
 }
 
@@ -199,6 +199,21 @@ export function buildRefineryComplexReceipt({ cost, assetValue, refineryName, mu
       { label: "Now possible", value: `${Math.round((multiplier - 1) * 100)}% more of every output from ${refineryName}'s runs` }
     ],
     next: "Start a production run on it from Refinery Chains; its outputs arrive with the bonus."
+  });
+}
+
+// ISP-98 (AB#788): built through POST /gameplay/build only, so no route of its own names this builder.
+export function buildCryoVaporArrayReceipt({ cost, assetValue, body, multiplier, slotsUsed, slotsTotal }) {
+  return receipt("build-cryo-vapor-extractor-array", {
+    title: "Cryo-vapor Extractor Array Commissioned",
+    summary: `A Cryo-vapor Extractor Array is operational on the ${body} lease.`,
+    costCredits: cost,
+    grants: [
+      { label: "Added to assets", value: formatCredits(assetValue) },
+      { label: "Building slots used", value: `${slotsUsed} / ${slotsTotal}, and one on the ${body} lease` },
+      { label: "Now possible", value: `${Math.round((multiplier - 1) * 100)}% more Silicates from every extractor on the ${body} lease` }
+    ],
+    next: `Run an extractor cycle on the ${body} lease; it mines with the bonus.`
   });
 }
 

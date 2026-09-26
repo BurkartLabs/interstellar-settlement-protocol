@@ -3,6 +3,7 @@
 
 import { escapeHtml } from "../html.js";
 import { appState } from "../state.js";
+import { leaseSlotsUsed } from "../leaseSlots.js"; // ISP-98 (AB#788)
 import { getAllInventory } from "./shared.js";
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -100,7 +101,7 @@ export function renderAssets(data) {
 
   // Mining leases
   for (const l of leases) {
-    const exCount = (l.extractorIds || []).length;
+    const exCount = leaseSlotsUsed(l); // ISP-98 (AB#788): extractors and the other buildings on the lease
     const leaseExtractors = extractors.filter(ex => ex.leaseId === l.id);
     const totalMined = leaseExtractors.reduce((sum, ex) => sum + Number(ex.totalMined || 0), 0);
     infraRows += `<tr>

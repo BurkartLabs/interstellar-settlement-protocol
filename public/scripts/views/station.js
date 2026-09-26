@@ -10,13 +10,16 @@ import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml, stationBuildingCardsHtml } from "../html.js";
 import { activeCycleFigures, extractorState, spentText } from "../leaseLive.js";
 import { probeFabricationStartedText } from "../miningFeedback.js";
+import { leaseFacilities, leaseSlotsUsed } from "../leaseSlots.js"; // ISP-98 (AB#788)
+import { miningEfficiency } from "../miningEfficiency.js"; // ISP-98 (AB#788): research and a Cryo-vapor Extractor Array
 import { bestThroughput, costPerHourFor, miningProjection, operationsForTier, startupCostFor as clientStartupCostFor, yardTierFor, yardUpkeepPerHourFor } from "../miningProjection.js";
 import { clientPrices } from "../clientPrices.js";
 import { leaseFullAdvice } from "../slotAdvice.js";
 import { appState, techTree } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
 import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
-import { upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795)
+import { nextYardPriceFor } from "../yardPrice.js"; // ISP-303 (AB#2286)
+import { facilityUpgradeHtml, facilityUpgradeView, upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795), ISP-102 (AB#794)
 import { renderMissions } from "./assignments.js";
 import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHeader, setTab, showTradeConfirmation, stationLocationBanner, updateAllViews } from "./shared.js";
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
@@ -52,6 +55,48 @@ export function showStationBuilding(buildingId) {
   }
   renderBuildingDetail(building, appState.data);
   setTab("station");
+}
+
+/**
+ * ISP-103 (AB#795), ISP-102 (AB#794): post an upgrade the player has confirmed, draw the page from the account that
+ * comes back (no reload), and show the receipt. One path for a yard's row and a facility's card; the server checks
+ * everything again and a refusal is shown in the control's status line.
+ */
+async function postUpgrade(buildingId, btn, statusEl, { redraw = () => {}, focus } = {}) {
+  btn.disabled = true;
+  if (statusEl) statusEl.textContent = "Upgrading...";
+  try {
+    const response = await apiFetch(upgradePath(appState.accountId, buildingId), { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    const account = await parseJsonResponse(response);
+    appState.data = deepClone(account.state);
+    appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+    updateAllViews();
+    redraw();
+    showActionReceipt(account, { returnFocusTo: focus });
+  } catch (error) {
+    btn.disabled = false;
+    if (statusEl) statusEl.textContent = error?.message || "The upgrade was refused.";
+  }
+}
+
+/** ISP-102 (AB#794): a facility card's Upgrade: confirm with the tier's before and after, then postUpgrade. */
+async function upgradeFacility(buildingId) {
+  const building = (appState.data?.corp?.buildings || []).find((b) => b.id === buildingId);
+  const view = building ? facilityUpgradeView(building, appState.data.corp, appState.economy, appState.playerBuildings || []) : null;
+  if (!view?.next || view.locked || view.blocked || !appState.accountId) return;
+  const btn = document.querySelector(`.yard-upgrade[data-upgrade-for="${CSS.escape(buildingId)}"] button`);
+  const statusEl = document.querySelector(`.yard-upgrade-status[data-for="${CSS.escape(buildingId)}"]`);
+  const confirmed = await showTradeConfirmation({
+    heading: `Upgrade ${building.name}`,
+    title: `Upgrade the ${building.name} to tier ${view.next.tier}?`,
+    confirmLabel: `Upgrade (${toCurrency(view.next.cost)})`,
+    rows: [
+      { label: "Cost", value: `${toCurrency(view.next.cost)} credits` },
+      { label: "What changes", value: view.change.replace(/&times;/g, "×").replace(/&rarr;/g, "→").replace(/&middot;/g, "·") }
+    ]
+  });
+  if (!confirmed || !btn) return;
+  await postUpgrade(buildingId, btn, statusEl, { focus: firstPresent(`.yard-upgrade[data-upgrade-for="${CSS.escape(buildingId)}"] button`, ".nav-tab[data-tab='station']") });
 }
 
 export function renderBuildingDetail(building, data) {
@@ -441,7 +486,7 @@ export function renderISAClaimsLeases(building, data) {
   } else {
     leasesHtml = `<div class="lease-card-grid">`;
     for (const lease of leases) {
-      const extractorCount = (lease.extractorIds || []).length;
+      const extractorCount = leaseSlotsUsed(lease); // ISP-98 (AB#788): extractors and the other buildings on the lease
       const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
         year: "numeric", month: "short", day: "numeric"
       });
@@ -598,10 +643,12 @@ export function refreshOpenLeaseView(extractors) {
 export function renderLeaseManagement(building, lease, data) {
   const corp = data.corp;
   const extractors = (corp?.mining?.silicateExtractors || []).filter((ex) => ex.leaseId === lease.id);
-  const usedSlots = extractors.length;
+  // ISP-98 (AB#788): the lease's other buildings (a Cryo-vapor Extractor Array) take its slots too.
+  const facilities = leaseFacilities(lease);
+  const usedSlots = extractors.length + facilities.length;
   const totalSlots = lease.buildingSlots || 2;
   const hasSlotAvailable = usedSlots < totalSlots;
-  const buildCost = clientPrices(appState.economy).extractorYardCost;
+  const buildCost = nextYardPriceFor(corp, appState.economy?.buildings); // AB#2286: the next yard's price, discount included
   const canAffordBuild = (corp?.finances?.credits || 0) >= buildCost;
 
   const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
@@ -711,7 +758,7 @@ export function renderLeaseManagement(building, lease, data) {
     // ISP-103 (AB#795): a yard being upgraded is offline; the upgrade control says until when.
     const upgrading = Number(ex.upgradingUntil) > Date.now();
     const mineFormVisible = !ex.active && !ex.downtimeActive && !upgrading;
-    const upgradeHtml = yardUpgradeHtml(yardUpgradeView(ex, data.corp, appState.economy, { efficiency: miningEfficiencyOf(data.corp) }), ex.id);
+    const upgradeHtml = yardUpgradeHtml(yardUpgradeView(ex, data.corp, appState.economy, { efficiency: extractorEfficiency(data.corp, ex) }), ex.id);
     extractorRows += `
       <div class="extractor-row ${statusClass}" data-live-ex="${escapeHtml(ex.id)}" data-live-state="${extractorState(ex)}">
         <div class="extractor-row-header">
@@ -770,6 +817,7 @@ export function renderLeaseManagement(building, lease, data) {
     <section class="form-card lease-management-card" style="margin-top:1rem;">
       <h3>Extraction Facilities</h3>
       ${extractorSection}
+      ${facilities.map((name) => `<p class="lease-facility"><strong>${escapeHtml(name)}</strong> <span class="muted">&middot; operational, one building slot</span></p>`).join("")}
     </section>
 
     <section class="form-card action-surface lease-management-card" style="margin-top:1rem;">
@@ -810,7 +858,8 @@ export function bindLeaseManagementActions(building, lease, data) {
         } else {
           // Demo account fallback
           const corp = appState.data.corp;
-          const { extractorYardCost: cost, extractorYardAssetValue } = clientPrices(appState.economy);
+          const { extractorYardAssetValue } = clientPrices(appState.economy);
+          const cost = nextYardPriceFor(corp, appState.economy?.buildings); // AB#2286
           if ((corp.finances.credits || 0) < cost) throw new Error(`Construction requires ${toCurrency(cost)} credits.`);
           if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];
           const nextIndex = corp.mining.silicateExtractors.length + 1;
@@ -925,7 +974,7 @@ export function bindLeaseManagementActions(building, lease, data) {
       const extractorId = btn.getAttribute("data-extractor-id");
       const buildingId = btn.getAttribute("data-upgrade-building");
       const ex = (appState.data?.corp?.mining?.silicateExtractors || []).find((e) => e.id === extractorId);
-      const view = ex ? yardUpgradeView(ex, appState.data.corp, appState.economy, { efficiency: miningEfficiencyOf(appState.data.corp) }) : null;
+      const view = ex ? yardUpgradeView(ex, appState.data.corp, appState.economy, { efficiency: extractorEfficiency(appState.data.corp, ex) }) : null;
       const statusEl = document.querySelector(`.yard-upgrade-status[data-for="${CSS.escape(extractorId)}"]`);
       if (!view?.next || view.locked || view.blocked || !appState.accountId) return;
       const { next } = view;
@@ -941,21 +990,10 @@ export function bindLeaseManagementActions(building, lease, data) {
         ]
       });
       if (!confirmed) return;
-
-      btn.disabled = true;
-      if (statusEl) statusEl.textContent = "Upgrading...";
-      try {
-        const response = await apiFetch(upgradePath(appState.accountId, buildingId), { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-        const account = await parseJsonResponse(response);
-        appState.data = deepClone(account.state);
-        appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
-        updateAllViews();
-        renderBuildingDetail(building, appState.data);
-        showActionReceipt(account, { returnFocusTo: firstPresent(`.yard-upgrade[data-upgrade-for="${CSS.escape(extractorId)}"] button`, ".lease-mine-form button[type=submit]") });
-      } catch (error) {
-        btn.disabled = false;
-        if (statusEl) statusEl.textContent = error?.message || "The upgrade was refused.";
-      }
+      await postUpgrade(buildingId, btn, statusEl, {
+        redraw: () => renderBuildingDetail(building, appState.data),
+        focus: firstPresent(`.yard-upgrade[data-upgrade-for="${CSS.escape(extractorId)}"] button`, ".lease-mine-form button[type=submit]")
+      });
     });
   });
 
@@ -1091,8 +1129,10 @@ export function renderStation(data) {
       pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok");
       showActionReceipt(account, { returnFocusTo: firstPresent('[data-corp-building="Assembly Facility"]', ".nav-tab[data-tab='station']") }); // AB#744
     },
-    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
-  }, clientPrices(appState.economy).assemblyFacilityCost);
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn"),
+    onUpgrade: (buildingId) => upgradeFacility(buildingId) // ISP-102 (AB#794)
+  }, clientPrices(appState.economy).assemblyFacilityCost,
+  (b) => facilityUpgradeHtml(facilityUpgradeView(b, data.corp, appState.economy, appState.playerBuildings || [])));
 
   // ── Construction (ISP-95, AB#785): every catalogue building, with Build or the first thing in the way ──
   renderConstructionPanel(document, appState.playerBuildings || [], data.corp || {}, {
@@ -1274,11 +1314,13 @@ export function bindBuildingActions() {
 export function mineProjectionText(rate, extractorId) {
   const economy = appState.economy;
   if (!economy?.operations) return "";
-  const efficiency = miningEfficiencyOf(appState.data?.corp);
-  // ISP-301 (AB#2284): a yard after the corporation's first pays upkeep while it runs, and the line says so.
-  const upkeepPerHour = yardUpkeepPerHourFor(yardIndexOf(appState.data?.corp, extractorId), economy.buildings);
   // ISP-101 (AB#793): the yard's tier sets its curve and its cap, so the projection and the best rate follow it.
   const ex = (appState.data?.corp?.mining?.silicateExtractors || []).find((e) => e.id === extractorId);
+  // ISP-98 (AB#788): the same efficiency the server's tick applies, the lease's Cryo-vapor Extractor Array included.
+  const lease = (appState.data?.corp?.miningLeases || []).find((l) => l.id === ex?.leaseId);
+  const efficiency = miningEfficiency(appState.data?.corp, lease, economy.buildings);
+  // ISP-301 (AB#2284): a yard after the corporation's first pays upkeep while it runs, and the line says so.
+  const upkeepPerHour = yardUpkeepPerHourFor(yardIndexOf(appState.data?.corp, extractorId), economy.buildings);
   const tierOf = yardTierFor(ex?.tier, economy.operations, economy.buildings);
   const operations = operationsForTier(tierOf.tier, economy.operations, economy.buildings);
   const at = miningProjection(rate, { operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour });
@@ -1291,16 +1333,14 @@ export function mineProjectionText(rate, extractorId) {
       : `Best for your research: ${best.throughputPerHour} t/h, netting ${toCurrency(best.profitPerHour)}/hour.`);
 }
 
+/** What an hour on this extractor's lease is multiplied by: research and the lease's Cryo-vapor Extractor Array (ISP-98). */
+export function extractorEfficiency(corp, ex) {
+  return miningEfficiency(corp, (corp?.miningLeases || []).find((l) => l.id === ex?.leaseId), appState.economy?.buildings);
+}
+
 /** An extractor's place among the corporation's yards, in build order: 0 is its first, -1 when it is not found. */
 export function yardIndexOf(corp, extractorId) {
   return (corp?.mining?.silicateExtractors || []).findIndex((e) => e.id === extractorId);
 }
 
-/** What the corporation's research multiplies an hour of extraction by (ISP-86; the server applies the same two). */
-export function miningEfficiencyOf(corp) {
-  const tech = corp?.unlockedTech || [];
-  let efficiency = 1;
-  if (tech.includes("tt-basic-extraction")) efficiency *= 1.1;
-  if (tech.includes("tt-supply-forecast")) efficiency *= 1.06;
-  return efficiency;
-}
+

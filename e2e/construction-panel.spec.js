@@ -58,7 +58,7 @@ async function openPanel(browser, viewport, kind) {
   await page.waitForURL(/\/\?account=/);
   await openTab(page, "station");
   const section = page.locator("#station-construction-section");
-  await expect(section.locator("[data-building-row]")).toHaveCount(5); // the catalogue's five since ISP-97
+  await expect(section.locator("[data-building-row]")).toHaveCount(6); // the catalogue's six since ISP-98
   await section.scrollIntoViewIfNeeded();
   return { page, section, errors, close: async () => { await context.close(); child.kill(); } };
 }
@@ -167,6 +167,52 @@ for (const viewport of VIEWPORTS) {
       await expect(aerogel).toContainText("60", { timeout: 60_000 });
       await expect(page.locator("#market-sell-grid tr", { hasText: "Quantum Insulators" })).toContainText("22");
       await page.locator("#market-sell-grid").screenshot({ path: path.join(SHOT_DIR, `refinery-complex-delivered-${viewport.label}.png`) });
+      expect(errors).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+}
+
+// ISP-98 (AB#788): the Cryo-vapor Extractor Array, built from the panel onto the Luna lease; the lease page lists it,
+// counts its slot, and quotes the Luna yard's hour at 1.2 times the revenue. (What the mining tick deposits at 1.2 times is
+// tests/integration/cryo-vapor-array.test.js: seconds at 40 t/h mine no whole tonne, so a playtest cannot see it.)
+async function openLunaLease(page) {
+  await openTab(page, "station"); // AB#764: tabs sit in groups; the helper opens the group first
+  await page.click('[data-building-action="building:isa-claims-leases"]');
+  await page.click('.lease-manage-btn[data-lease-id="lease-luna-qa"]');
+  await expect(page.locator("#station-building-view")).toContainText("Mining Lease — Luna");
+  const line = page.locator(".lease-mine-projection").first();
+  await expect(line).toContainText("earns");
+  return Number((await line.innerText()).match(/earns \$([\d,]+)\/hour/)[1].replace(/,/g, ""));
+}
+
+for (const viewport of VIEWPORTS) {
+  test(`the Cryo-vapor Extractor Array goes on the Luna lease from the panel, and the lease quotes its yard 1.2 times the revenue, at ${viewport.label}`, async ({ browser }) => {
+    test.setTimeout(120_000);
+    const { page, section, errors, close } = await openPanel(browser, viewport, "cryo");
+    try {
+      const before = await openLunaLease(page);
+      // Back out of the lease page as a player does: to Claims & Leases, then to the Station.
+      await page.click("#lease-back-btn");
+      await page.getByRole("button", { name: /Back to Station/ }).first().click();
+      await section.scrollIntoViewIfNeeded();
+      const row = section.locator('[data-building-row="cryo-vapor-extractor-array"]');
+      await expect(row.locator("[data-build-lease] option")).toHaveText(["Luna (1 of 2 in use)"]);
+      await expect(row.locator('[data-build-id="cryo-vapor-extractor-array"]')).toHaveText("Build (¤80,000)");
+      await row.scrollIntoViewIfNeeded();
+      await section.screenshot({ path: path.join(SHOT_DIR, `cryo-buildable-${viewport.label}.png`) });
+      await row.locator("[data-build-id]").click();
+      await expect(row.locator(".facility-blocked")).toHaveText("Your Luna lease already has a Cryo-vapor Extractor Array.");
+      await page.keyboard.press("Escape"); // the receipt
+      await section.screenshot({ path: path.join(SHOT_DIR, `cryo-built-${viewport.label}.png`) });
+
+      const after = await openLunaLease(page);
+      expect(after / before).toBeGreaterThan(1.19);
+      expect(after / before).toBeLessThan(1.21);
+      await expect(page.locator("#station-building-view")).toContainText("Cryo-vapor Extractor Array");
+      await expect(page.locator("#station-building-view")).toContainText("2 / 2 used");
+      await page.locator("#station-building-view").screenshot({ path: path.join(SHOT_DIR, `cryo-lease-${viewport.label}.png`) });
       expect(errors).toEqual([]);
     } finally {
       await close();

@@ -9,7 +9,9 @@
 // `refinery` (ISP-97) is level5 plus a Refinery built through construct(), running the Silicates chain and due to
 // finish 30 seconds after seeding: time to upgrade it to a Refinery Complex from the panel before it delivers.
 //
-// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery>
+// `cryo` (ISP-98) is level5 plus Containment Physics and a Luna lease holding one idle yard built through construct().
+//
+// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo>
 const [, , dataDir, email, password, kind] = process.argv;
 process.env.ISP_DATA_DIR = dataDir;
 process.env.JWT_SECRET = process.env.JWT_SECRET || "construction-panel-e2e-fixture-secret-0123";
@@ -24,7 +26,7 @@ verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who c
 store.mutateAccountState(account.id, (state) => {
   const corp = state.corp;
   corp.currentStationId = "earth-station-prime";
-  if (kind !== "level5" && kind !== "ferric" && kind !== "refinery") return;
+  if (!["level5", "ferric", "refinery", "cryo"].includes(kind)) return;
   const lease = (id, body) => ({ id, body, leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: [], issuedAt: Date.now() });
   corp.level = 5;
   corp.buildingSlots = 6;
@@ -34,6 +36,13 @@ store.mutateAccountState(account.id, (state) => {
   for (let i = 0; i < 2; i += 1) {
     const built = construct(corp, playerBuilding("basic-extractor-yard"), "lease-earth-qa");
     if (built.outcome !== "ok") throw new Error(`seeding a yard: ${built.outcome}`);
+  }
+  if (kind === "cryo") {
+    corp.unlockedTech = [...new Set([...corp.unlockedTech, "tt-containment-physics"])];
+    corp.currentStationId = "luna-gateway"; // a Luna lease is managed from Luna Gateway's Claims & Leases
+    corp.miningLeases.push(lease("lease-luna-qa", "Luna"));
+    const built = construct(corp, playerBuilding("basic-extractor-yard"), "lease-luna-qa");
+    if (built.outcome !== "ok") throw new Error(`seeding a Luna yard: ${built.outcome}`);
   }
   if (kind === "refinery") {
     const built = construct(corp, playerBuilding("refinery"), null);

@@ -90,11 +90,18 @@ export function hydrateSession() {
 // the loser, finding it revoked, would sign the player out.
 let refreshing = null;
 
+// Bug #2300: the cookie is shared by every tab, so one at a time must hold across tabs too; two tabs whose sockets
+// were told "auth:expired" by the same tick refresh in the same instant. The lock makes the second tab wait and then
+// present the cookie the first one's answer rotated to. Without Web Locks, only this page's refreshes are serialized.
+function acrossTabs(work) {
+  return globalThis.navigator?.locks ? navigator.locks.request("isp-refresh", work) : work();
+}
+
 /** Exchange the refresh cookie for a new access token (AB#757). A page load starts here; so does any 401. */
 export function refreshSessionToken() {
   refreshing ??= (async () => {
     try {
-      const response = await fetch("/api/auth/refresh", { method: "POST", credentials: "same-origin" });
+      const response = await acrossTabs(() => fetch("/api/auth/refresh", { method: "POST", credentials: "same-origin" }));
       if (!response.ok) {
         handleSessionExpired();
         return false;

@@ -36,6 +36,28 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   (`.btn`, `.form-card`, `.data-card`, `.muted` and the rest) stay for the screens not yet rebuilt (ISP-78, ISP-79).
   `e2e/company-screens.spec.js` holds the three at 375/768/1280. Screens in `docs/ab-766/`.
 
+## What's now true (ISP-307, AB#2299 — the sinks' own ledger categories, Builder)
+
+- Yard upkeep and the rising yard price are booked as `yard-upkeep` and `yard-price-growth` (AB#712 categories), so
+  ISP-304's probe (AB#2287) can read each sink apart. A running charge's upkeep share (the extractor's `upkeepPerHour`,
+  set when its cycle starts, over its `operationCostPerHour`) goes to `yard-upkeep`, the rest to `mining-ops`; a yard's
+  price above the first yard's goes to `yard-price-growth`, the rest to `construction`. Totals are unchanged.
+- `upkeepPerHour` is in `ensureCorpMiningModel`'s field list: that function rebuilds each extractor from a fixed list, so
+  a field left out of it is dropped on every mutation. A cycle started before this books all to `mining-ops`.
+- No probe target and no screen of its own; the Financial Core's P&L lists the two lines (`docs/ab-2299/`).
+
+## What's now true (ISP-98, AB#788 — the Cryo-vapor Extractor Array, Builder)
+
+- The sixth catalogue entry: 80,000 / 58,000, Containment Physics, on a Luna lease only (`"lease": "luna"`), one per
+  Luna lease (`cap.perLease`), a lease slot and a corporation slot like an extractor. It is recorded on the lease as
+  `facilities: ["Cryo-vapor Extractor Array"]`.
+- **Effect: the design's fallback**, taken without an answer from the PM: the lease's extractors mine 1.2 times
+  (`public/scripts/miningEfficiency.js`, one rule for the tick and the extractor panel's projection, which had two
+  copies of the research part). Helium-3 from Luna is left to v0.8 (DEVELOPMENT_PHASES.md, AB#830). A veto swaps it.
+- **A lease's slots are its extractors and its facilities**, counted by `public/scripts/leaseSlots.js` everywhere a lease's
+  room is read: construct(), the panel, slotAdvice, Assets, the Claims & Leases cards and the lease page. `extractorIds`
+  stays the extractors only (server/game/mining.js rebuilds it). The lease page lists its facilities.
+- Level 9 does not name the array (AB#798's drift, as levels 6 and 7). Screens: `docs/ab-788/`.
 ## What's now true (AB#765 — ISP-76, the pages before play on the design system)
 
 - The landing, login and register, and the pages that share their parts (check your email, verify, forgot and reset

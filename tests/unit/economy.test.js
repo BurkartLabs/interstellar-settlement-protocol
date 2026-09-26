@@ -13,10 +13,18 @@ const root = path.resolve(import.meta.dirname, "..", "..");
 const BEFORE_THE_MOVE = {
   employees: { hireCost: 2000, payrollPerDay: 150 },                       // server/routes/corporation.js hire: hired * 2000, hired * 150
   office: { rentPerDay: 1000, termDays: [7, 14, 21, 28] },                  // ceoEffects.js OFFICE_PER_DAY, OFFICE_TERMS_DAYS (Bug #1032)
+  leases: { royaltyPointsByLeasesHeld: { 2: 1, 3: 2, 5: 3 } },              // ISP-302 (AB#2285): new, not moved
   buildings: {                                                              // build-extractor routes, build-assembly-facility, build-refinery
     extractorYardCost: 50000, extractorYardAssetValue: 36000, assemblyFacilityCost: 60000, assemblyFacilityAssetValue: 40000,
     refineryCost: 75000, refineryAssetValue: 55000, supplyForecastCostMultiplier: 0.94,
     extractorYardUpkeepPctPerDay: 2,                                        // ISP-301 (AB#2284): new, not moved
+    extractorYardPriceGrowth: 1.25,                                         // ISP-303 (AB#2286): new, not moved
+    assemblyFacilityUpgrades: [                                             // ISP-102 (AB#794): new, not moved
+      { toTier: 2, upgradeCost: 30000, assetValue: 21000, offlineHours: 2, fabricationTimePct: 50 }
+    ],
+    refineryUpgrades: [                                                     // ISP-102 (AB#794): tier 3; tier 2 is the Refinery Complex
+      { toTier: 3, upgradeCost: 150000, assetValue: 105000, offlineHours: 8, outputMultiplier: 2 }
+    ],
     extractorYardUpgrades: [                                                // ISP-101 (AB#793): new, not moved
       { toTier: 2, upgradeCost: 40000, assetValue: 28000, offlineHours: 6, throughputReferencePerHour: 525, throughputCap: 313 },
       { toTier: 3, upgradeCost: 60000, assetValue: 42000, offlineHours: 12, throughputReferencePerHour: 656, throughputCap: 391 },
@@ -26,7 +34,9 @@ const BEFORE_THE_MOVE = {
     ferricMiningComplexCost: 90000, ferricMiningComplexAssetValue: 65000,   // ISP-96 (AB#786): new, not moved
     ferricMiningComplexMetalMultiplier: 1.25,
     refineryComplexCost: 100000, refineryComplexAssetValue: 70000,          // ISP-97 (AB#787): new, not moved
-    refineryComplexOutputMultiplier: 1.5
+    refineryComplexOutputMultiplier: 1.5,
+    cryoVaporExtractorArrayCost: 80000, cryoVaporExtractorArrayAssetValue: 58000, // ISP-98 (AB#788): new, not moved
+    cryoVaporExtractorArrayMiningMultiplier: 1.2
   },
   operations: { costPerThroughputUnit: 16, minCostPerHour: 600, startupShareOfHourlyCost: 0.35, minStartupCost: 500, throughputReferencePerHour: 420 },
   probes: { buildCost: 8000, assetValue: 5000 },                            // gameState.js PROBE_BUILD_COST, PROBE_ASSET_VALUE

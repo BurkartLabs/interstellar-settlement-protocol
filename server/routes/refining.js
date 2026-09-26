@@ -9,7 +9,7 @@ import { emitToAccount } from "../realtime.js";
 import { buildHandler } from "./helpers.js";
 import { startRefineryReceipt } from "../receipts.js"; // AB#744
 // ISP-97 (AB#787): what a run delivers, the Refinery Complex's 1.5 times included, as the tick delivers it.
-import { refineryOutput } from "../../public/scripts/refineryOutput.js";
+import { refineryMultiplierFor, refineryOutput } from "../../public/scripts/refineryOutput.js";
 import { ECONOMY } from "../economy.js";
 
 export function registerRefiningRoutes(app) {
@@ -67,6 +67,12 @@ export function registerRefiningRoutes(app) {
         return;
       }
 
+      // AB#794: a refinery being upgraded is offline until the upgrade finishes.
+      if (Number(refinery.upgradingUntil) > Date.now()) {
+        outcome = "upgrading";
+        return;
+      }
+
       // The run is exactly what was asked for, or refused (AB#1255): it used to raise anything below one batch to a batch
       // and round the rest down, spending materials the player never chose. The rule is shared with the form.
       const perCycle = Math.max(1, Number(chain.inputQuantityPerCycle));
@@ -121,6 +127,7 @@ export function registerRefiningRoutes(app) {
         "refinery-not-found": "That refinery was not found. It may have been removed; reload and choose another.", // AB#1336: no id echoed back
         "all-busy": "All refineries are currently running cycles.",
         "already-active": `${targetLabel} already has an active production cycle.`,
+        upgrading: `${targetLabel} is being upgraded and is offline until it finishes.`,
         "bad-quantity": quantityRefusal,
         "insufficient-input": `Not enough ${chain.input} at this station. Need ${actualQuantity || chain.inputQuantityPerCycle} but only have ${Number(getStationInventory(account.state.corp, account.state.corp.currentStationId || "earth-station-prime")[chain.input] || 0)}.`
       };
@@ -130,7 +137,7 @@ export function registerRefiningRoutes(app) {
 
     // AB#744: the run as the mutation set it up.
     const started = account.state.corp.refineries.find((r) => r.name === targetLabel);
-    const delivers = (o) => refineryOutput(o.quantityPerCycle, actualScale, started?.tier, ECONOMY.buildings.refineryComplexOutputMultiplier);
+    const delivers = (o) => refineryOutput(o.quantityPerCycle, actualScale, started?.tier, refineryMultiplierFor(started?.tier, ECONOMY.buildings)); // AB#794
     const outputNames = chain.outputs
       .map((o) => `${delivers(o)} ${o.item}`)
       .join(", ");

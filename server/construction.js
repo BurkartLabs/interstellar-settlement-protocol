@@ -5,10 +5,12 @@
 //
 // What a building adds beyond its slot and its price is its construction below. A catalogue entry with none is
 // refused, not built bare: a building added to the file cannot be bought before its effect is written (fails closed).
-import { buildCostFor } from "./economy.js";
+import { nextYardPrice, nextYardPriceFor } from "../public/scripts/yardPrice.js";
 import { applyCredits } from "./finances.js";
 import { catalogueRefusal, PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
-import { buildAssemblyReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildRefineryComplexReceipt, buildRefineryReceipt } from "./receipts.js";
+import { buildAssemblyReceipt, buildCryoVaporArrayReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildRefineryComplexReceipt, buildRefineryReceipt } from "./receipts.js";
+// ISP-98 (AB#788): a lease's slots are its extractors and the other buildings on it, counted in one place.
+import { leaseFacilities, leaseHasRoom } from "../public/scripts/leaseSlots.js";
 import { ECONOMY } from "./economy.js";
 
 const hasTech = (corp, id) => (corp.unlockedTech || []).includes(id);
@@ -20,7 +22,10 @@ const slotCount = (corp) => ({ slotsUsed: (corp.buildings || []).length, slotsTo
  */
 export const CONSTRUCTIONS = Object.freeze({
   "basic-extractor-yard": {
-    cost: (building, corp) => buildCostFor(building.cost, hasTech(corp, "tt-supply-forecast")),
+    // ISP-303 (AB#2286): each yard costs more than the last; the Supply Forecast discount comes after.
+    cost: (building, corp) => nextYardPriceFor(corp, ECONOMY.buildings),
+    // ISP-307 (AB#2299): what the first yard costs this corporation; the rest of the price is booked as yard-price-growth.
+    basePrice: (building, corp) => nextYardPrice(0, ECONOMY.buildings, hasTech(corp, "tt-supply-forecast")),
     place(corp, building, lease) {
       if (!corp.mining || typeof corp.mining !== "object") corp.mining = {};
       if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];
@@ -93,6 +98,15 @@ export const CONSTRUCTIONS = Object.freeze({
     },
     notification: { title: "Refinery Complex Online", body: "One of your Refineries is now a Refinery Complex: its runs deliver more of every output." },
     receipt: (built) => buildRefineryComplexReceipt({ cost: built.cost, assetValue: built.assetValue, refineryName: built.refineryName, multiplier: ECONOMY.buildings.refineryComplexOutputMultiplier })
+  },
+  // ISP-98 (AB#788): stands on a Luna lease beside its extractors; its effect is on their mining (miningEfficiency).
+  "cryo-vapor-extractor-array": {
+    place(corp, building, lease) {
+      lease.facilities = [...leaseFacilities(lease), building.name];
+      return { body: lease.body || "Luna" };
+    },
+    notification: { title: "Cryo-vapor Extractor Array Online", body: "The extractors on your Luna lease now mine more Silicates." },
+    receipt: (built, corp) => buildCryoVaporArrayReceipt({ cost: built.cost, assetValue: built.assetValue, body: built.body, multiplier: ECONOMY.buildings.cryoVaporExtractorArrayMiningMultiplier, ...slotCount(corp) })
   }
 });
 
@@ -113,6 +127,7 @@ export function construct(corp, building, leaseId) {
     if (!leaseId) return { outcome: "no-lease-named" };
     lease = (corp.miningLeases || []).find((l) => l?.id === leaseId);
     if (!lease) return { outcome: "no-lease" };
+    if (building.lease && String(lease.body || "").toLowerCase() !== building.lease) return { outcome: "wrong-lease" }; // ISP-98
   } else if (leaseId) {
     return { outcome: "not-on-lease" };
   }
@@ -120,7 +135,9 @@ export function construct(corp, building, leaseId) {
   const refused = catalogueRefusal(building, corp);
   if (refused) return { outcome: refused };
   if (building.slot === "upgrade") return upgrade(corp, building, construction);
-  if (lease && (lease.extractorIds || []).length >= lease.buildingSlots) return { outcome: "lease-slots-full" };
+  const perLease = building.cap?.perLease;
+  if (lease && perLease !== undefined && leaseFacilities(lease).filter((n) => n === building.name).length >= perLease) return { outcome: "lease-at-cap" };
+  if (lease && !leaseHasRoom(lease)) return { outcome: "lease-slots-full" };
   if ((corp.buildings || []).length >= (corp.buildingSlots || 2)) return { outcome: "no-corp-slot" };
   const cost = construction.cost ? construction.cost(building, corp) : building.cost;
   if ((corp.finances?.credits || 0) < cost) return { outcome: "insufficient-credits" };
@@ -128,7 +145,11 @@ export function construct(corp, building, leaseId) {
   if (!Array.isArray(corp.buildings)) corp.buildings = [];
   corp.buildings.push({ name: building.name, tier: 1, status: "Operational" }); // the catalogue name; a test holds them equal
   const placed = construction.place(corp, building, lease);
-  applyCredits(corp, -cost, "construction");
+  // ISP-307 (AB#2299): a price above the building's base (a yard after the first, ISP-303) is booked apart. Together
+  // the two lines are the price charged.
+  const base = construction.basePrice ? Math.min(cost, Math.max(0, construction.basePrice(building, corp))) : cost;
+  applyCredits(corp, -base, "construction");
+  applyCredits(corp, -(cost - base), "yard-price-growth");
   corp.finances.assets = (corp.finances.assets || 0) + building.assetValue;
   return { outcome: "ok", cost, assetValue: building.assetValue, ...placed };
 }

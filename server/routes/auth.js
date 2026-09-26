@@ -1,7 +1,7 @@
 // server/routes/auth.js: the auth routes, split out of server/index.js (AB#1815).
 import jwt from "jsonwebtoken";
 import { loginIpLimiter, loginAccountLimiter, registerLimiter, refreshLimiter } from "../rateLimiters.js";
-import { createAccount, authenticateAccount, getAccountById, getDummyAccount, hasRefreshToken, revokeRefreshToken, resetDummyAccountProgress } from "../gameState.js";
+import { createAccount, removeUnverifiedAccount, authenticateAccount, getAccountById, getDummyAccount, hasRefreshToken, revokeRefreshToken, resetDummyAccountProgress } from "../gameState.js";
 import { DEV_SURFACE } from "../app.js";
 import { issueTokens, JWT_SECRET, requireAuth, sendSession, clearRefreshCookie, readRefreshCookie } from "../auth.js";
 import { registrationOpen, REGISTRATION_CLOSED_MESSAGE } from "../registration.js";
@@ -30,12 +30,16 @@ export function registerAuthRoutes(app) {
         return;
       }
 
-      // AB#2288: no session until the address is verified; the link goes out now. If sending fails the account stands
-      // and "Check your email" can ask for another; the failure is logged without the address.
+      // AB#2288: no session until the address is verified; the link goes out now. AB#989: if it cannot be sent, the
+      // registration is taken back and the player is told to try again, so nothing is left half-created (an account
+      // nobody can verify, holding the email and the corporation name). The failure is logged without the address.
       try {
         await sendVerificationEmail(result.account.id);
       } catch (error) {
-        console.error("[auth/register] the verification email could not be sent:", error?.name);
+        console.error("[auth/register] the verification email could not be sent:", error?.name, error?.step || "");
+        removeUnverifiedAccount(result.account.id);
+        res.status(503).json({ error: "We could not send your verification email just now, so nothing was registered. Try again in a few minutes.", code: "mail-failed" });
+        return;
       }
       res.status(201).json({ verificationSent: true });
     } catch (error) {
