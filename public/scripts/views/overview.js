@@ -115,6 +115,9 @@ export function renderLevel2Progress(data) {
 
   // Map requirement IDs to the tab they should navigate to
   // TODO(AB#798): This information should be stored in the database OR in milestones.json
+  // AB#2322: grouped and whole, as the card's own title writes it ("Mine 260,000 Silicate", not 150000 / 260000).
+  const milestoneNumber = (n) => Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
+
   const REQ_TAB = {
     officeRented:               "station",
     hire5:                      "station",
@@ -222,7 +225,7 @@ export function renderLevel2Progress(data) {
       return `
       <${tag} class="ui-card overview__milestone${clickable ? " ui-card--interactive" : ""}${doneClass}${justCompletedClass}"${jumpAttr}>
         <span class="ui-card__title overview__milestone-title">${escapeHtml(req.title)}</span>
-        <span class="ui-card__figure">${req.progress} / ${req.target}</span>
+        <span class="ui-card__figure">${milestoneNumber(req.progress)} / ${milestoneNumber(req.target)}</span>
         <span class="ui-card__meta overview__milestone-state">${req.complete ? "Completed" : link ? escapeHtml(link.label) : "In Progress"}</span>
         ${!req.complete && link?.hint ? `<span class="ui-card__body">${escapeHtml(link.hint)}</span>` : ""}
       </${close}>
