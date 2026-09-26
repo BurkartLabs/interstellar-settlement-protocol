@@ -48,18 +48,19 @@ describe("queueItemsHtml (Bug #1002)", () => {
     const html = queueItemsHtml([
       { name: "Fleet Coordination Matrix", effect: "+12 fleet cap", durationHours: 16, startedAt: 1, costCredits: 12000 }
     ], "Permanent corporate unlock track", helpers);
-    expect(html).toContain("<h3>Fleet Coordination Matrix</h3>");
-    expect(html).toContain("<p>+12 fleet cap</p>");
-    expect(html).toContain("Duration: 16h | In progress");
-    expect(html).toContain("Committed funding: $12,000 credits");
-    expect(html).toContain("<span>42.0%</span><span>3h 5m remaining</span>");
+    // ISP-79 (AB#768): a design-system card, and the bar says how far it is to a screen reader.
+    expect(html).toContain('<h4 class="ui-card__title">Fleet Coordination Matrix</h4>');
+    expect(html).toContain('<p class="ui-card__body">+12 fleet cap</p>');
+    expect(html).toContain("Permanent corporate unlock track · 16h · In progress · $12,000 committed");
+    expect(html).toContain('<span class="ui-figure">42.0%</span><span>3h 5m remaining</span>');
     expect(html).toContain("width:42.0%");
+    expect(html).toContain('role="progressbar" aria-label="Fleet Coordination Matrix" aria-valuemin="0" aria-valuemax="100" aria-valuenow="42"');
   });
 
   it("shows a queued item without progress or funding", () => {
     const html = queueItemsHtml([{ name: "Energy Routing", effect: "+5% output", durationHours: 4 }], "track", helpers);
-    expect(html).toContain("Duration: 4h | Queued");
-    expect(html).not.toContain("queue-progress-meta");
-    expect(html).not.toContain("Committed funding");
+    expect(html).toContain("track · 4h · Queued");
+    expect(html).not.toContain("research__timing");
+    expect(html).not.toContain("committed");
   });
 });

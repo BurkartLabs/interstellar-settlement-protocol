@@ -1,5 +1,5 @@
 // The Assets tab: what the corporation holds and where.
-// AB#739 (ISP-53): everything here moved from app.js unchanged.
+// AB#739 (ISP-53): everything here moved from app.js unchanged. ISP-79 (AB#768): drawn from the design system.
 
 import { escapeHtml } from "../html.js";
 import { appState } from "../state.js";
@@ -9,9 +9,6 @@ import { getAllInventory } from "./shared.js";
 // ─── Assets ──────────────────────────────────────────────────────────────────
 import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
 export function renderAssets(data) {
-  const bannerEl = document.getElementById("assets-station-banner");
-  if (bannerEl) bannerEl.innerHTML = "";
-
   const contentEl = document.getElementById("assets-content");
   if (!contentEl) return;
 
@@ -36,44 +33,32 @@ export function renderAssets(data) {
   }
 
   const resourceNames = Object.keys(resourceMap).sort();
+  // A resource is a group of rows, one per station holding it: the design system's group row, so a phone shows the
+  // stations as cards under the resource's name (a rowspan cell would be lost there).
   let inventoryRows = "";
   let grandTotal = 0;
   if (resourceNames.length === 0) {
-    inventoryRows = `<tr><td colspan="3" class="assets-empty">No resources in inventory.</td></tr>`;
+    inventoryRows = `<tr class="ui-table__muted"><td colspan="2" data-label="Inventory">No resources in inventory.</td></tr>`;
   } else {
     for (const resource of resourceNames) {
-      const stations = resourceMap[resource];
-      const stationEntries = Object.entries(stations);
-      const total = stationEntries.reduce((s, [, q]) => s + q, 0);
-      grandTotal += total;
-
-      // First station row includes the resource name with rowspan
-      let first = true;
+      const stationEntries = Object.entries(resourceMap[resource]);
+      grandTotal += stationEntries.reduce((s, [, q]) => s + q, 0);
+      inventoryRows += `<tr class="ui-table__group"><th colspan="2" scope="rowgroup">${escapeHtml(resource)}</th></tr>`;
       for (const [stId, qty] of stationEntries) {
-        const st = stationRegistry.find(s => s.id === stId);
-        const stName = st?.name || stId;
-        if (first) {
-          inventoryRows += `<tr>
-            <td class="assets-resource-name" rowspan="${stationEntries.length}">${escapeHtml(resource)}</td>
-            <td>${escapeHtml(stName)}</td>
-            <td class="num">${numberMarkup(`assets:inventory:${stId}:${resource}`, qty, qty.toLocaleString())}</td>
+        const stName = stationRegistry.find((s) => s.id === stId)?.name || stId;
+        inventoryRows += `<tr>
+            <td data-label="Location">${escapeHtml(stName)}</td>
+            <td class="ui-figure" data-label="Qty">${numberMarkup(`assets:inventory:${stId}:${resource}`, qty, qty.toLocaleString())}</td>
           </tr>`;
-          first = false;
-        } else {
-          inventoryRows += `<tr>
-            <td>${escapeHtml(stName)}</td>
-            <td class="num">${numberMarkup(`assets:inventory:${stId}:${resource}`, qty, qty.toLocaleString())}</td>
-          </tr>`;
-        }
       }
     }
   }
 
   const inventoryPanel = `
-    <table class="assets-table">
-      <thead><tr><th>Resource</th><th>Location</th><th class="num">Qty</th></tr></thead>
+    <table class="ui-table">
+      <thead><tr><th scope="col">Resource and location</th><th scope="col" class="ui-table__num">Qty</th></tr></thead>
       <tbody>${inventoryRows}</tbody>
-      ${grandTotal > 0 ? `<tfoot><tr><td colspan="2">Total</td><td class="num">${grandTotal.toLocaleString()}</td></tr></tfoot>` : ""}
+      ${grandTotal > 0 ? `<tfoot><tr class="ui-table__total"><td data-label="Total">All stations</td><td class="ui-figure" data-label="Qty">${grandTotal.toLocaleString()}</td></tr></tfoot>` : ""}
     </table>`;
 
   // ── Infrastructure: offices + leases + extractors in one table ──
@@ -82,6 +67,13 @@ export function renderAssets(data) {
   const extractors = corp.mining?.silicateExtractors || [];
 
   let infraRows = "";
+  const statusBadge = (tone, text) => `<span class="ui-badge${tone ? ` ui-badge--${tone}` : ""}">${text}</span>`;
+  const row = (asset, location, status, details) => `<tr>
+      <td data-label="Asset">${asset}</td>
+      <td data-label="Location">${location}</td>
+      <td data-label="Status">${status}</td>
+      <td class="ui-figure" data-label="Details">${details}</td>
+    </tr>`;
   // Offices
   const seenStations = new Set();
   for (const o of offices) {
@@ -89,14 +81,7 @@ export function renderAssets(data) {
     seenStations.add(o.stationId);
     const st = stationRegistry.find(s => s.id === o.stationId);
     const expired = o.rentedUntil && o.rentedUntil <= Date.now();
-    const statusCls = expired ? "expired" : "operational";
-    const statusText = expired ? "Expired" : "Active";
-    infraRows += `<tr>
-      <td>Office Lease</td>
-      <td>${escapeHtml(st?.name || o.stationId)}</td>
-      <td><span class="building-status-badge ${statusCls}">${statusText}</span></td>
-      <td class="muted">—</td>
-    </tr>`;
+    infraRows += row("Office Lease", escapeHtml(st?.name || o.stationId), expired ? statusBadge("danger", "Expired") : statusBadge("success", "Active"), "—");
   }
 
   // Mining leases
@@ -104,18 +89,12 @@ export function renderAssets(data) {
     const exCount = leaseSlotsUsed(l); // ISP-98 (AB#788): extractors and the other buildings on the lease
     const leaseExtractors = extractors.filter(ex => ex.leaseId === l.id);
     const totalMined = leaseExtractors.reduce((sum, ex) => sum + Number(ex.totalMined || 0), 0);
-    infraRows += `<tr>
-      <td>Mining Lease</td>
-      <td>${escapeHtml(l.body)}</td>
-      <td><span class="building-status-badge operational">Active</span></td>
-      <td class="num">${exCount}/${l.buildingSlots || 2} slots · ${totalMined.toLocaleString()} mined</td>
-    </tr>`;
+    infraRows += row("Mining Lease", escapeHtml(l.body), statusBadge("success", "Active"), `${exCount}/${l.buildingSlots || 2} slots · ${totalMined.toLocaleString()} mined`);
   }
 
   // Extractors — show actual location (lease body) in the location column
   for (const ex of extractors) {
-    const status = ex.downtimeActive ? "Downtime" : ex.active ? "Active" : "Idle";
-    const statusCls = ex.downtimeActive ? "downtime" : ex.active ? "operational" : "idle";
+    const status = ex.downtimeActive ? statusBadge("warn", "Downtime") : ex.active ? statusBadge("success", "Active") : statusBadge("", "Idle");
     // Resolve location with the most authoritative source first:
     //   1. ex.body — stored directly on the extractor (post-fix)
     //   2. lease.body when leaseId resolves
@@ -135,23 +114,18 @@ export function renderAssets(data) {
     }
     const yardName = ex.name || ex.id;
     const locationLabel = locationBody
-      ? `${escapeHtml(yardName)} <span class="muted">— ${escapeHtml(locationBody)}</span>`
-      : `${escapeHtml(yardName)} <span class="muted" style="color:var(--warn)">— Unassigned</span>`;
-    infraRows += `<tr>
-      <td>Extractor</td>
-      <td>${locationLabel}</td>
-      <td><span class="building-status-badge ${statusCls}">${status}</span></td>
-      <td class="num">${Number(ex.totalMined || 0).toLocaleString()} mined</td>
-    </tr>`;
+      ? `${escapeHtml(yardName)} — ${escapeHtml(locationBody)}`
+      : `${escapeHtml(yardName)} ${statusBadge("warn", "Unassigned")}`;
+    infraRows += row("Extractor", locationLabel, status, `${Number(ex.totalMined || 0).toLocaleString()} mined`);
   }
 
   if (!infraRows) {
-    infraRows = `<tr><td colspan="4" class="assets-empty">No infrastructure registered.</td></tr>`;
+    infraRows = `<tr class="ui-table__muted"><td colspan="4" data-label="Infrastructure">No infrastructure registered.</td></tr>`;
   }
 
   const infraPanel = `
-    <table class="assets-table">
-      <thead><tr><th>Asset</th><th>Location / ID</th><th>Status</th><th class="num">Details</th></tr></thead>
+    <table class="ui-table">
+      <thead><tr><th scope="col">Asset</th><th scope="col">Location / ID</th><th scope="col">Status</th><th scope="col" class="ui-table__num">Details</th></tr></thead>
       <tbody>${infraRows}</tbody>
     </table>`;
 
@@ -161,33 +135,30 @@ export function renderAssets(data) {
   const totalLeases = leases.length;
   const totalExtractors = extractors.length;
 
+  const tab = (id, label) => `<button class="ui-tab" type="button" role="tab" id="assets-tab-${id}" aria-controls="assets-panel-${id}" aria-selected="${activeTab === id}" data-assets-tab="${id}">${label}</button>`;
+  const panel = (id, body) => `<div class="ui-tabpanel" role="tabpanel" id="assets-panel-${id}" aria-labelledby="assets-tab-${id}" data-assets-panel="${id}"${activeTab === id ? "" : " hidden"}>${body}</div>`;
+  const tile = (value, label) => `<div class="kpi-tile"><span class="kpi-tile__label">${label}</span><span class="kpi-tile__value">${value}</span></div>`;
   contentEl.innerHTML = `
-    <div class="assets-summary-bar">
-      <div class="assets-stat"><span class="assets-stat-value">${grandTotal.toLocaleString()}</span><span class="assets-stat-label">Units Stored</span></div>
-      <div class="assets-stat"><span class="assets-stat-value">${totalResources}</span><span class="assets-stat-label">Resource Types</span></div>
-      <div class="assets-stat"><span class="assets-stat-value">${totalOffices}</span><span class="assets-stat-label">Offices</span></div>
-      <div class="assets-stat"><span class="assets-stat-value">${totalLeases}</span><span class="assets-stat-label">Leases</span></div>
-      <div class="assets-stat"><span class="assets-stat-value">${totalExtractors}</span><span class="assets-stat-label">Extractors</span></div>
-    </div>
+    <section class="kpi-strip" aria-label="Holdings">
+      ${tile(grandTotal.toLocaleString(), "Units Stored")}
+      ${tile(totalResources, "Resource Types")}
+      ${tile(totalOffices, "Offices")}
+      ${tile(totalLeases, "Leases")}
+      ${tile(totalExtractors, "Extractors")}
+    </section>
 
-    <nav class="assets-tab-nav">
-      <button class="assets-tab-btn${activeTab === "inventory" ? " active" : ""}" data-assets-tab="inventory">Inventory</button>
-      <button class="assets-tab-btn${activeTab === "infrastructure" ? " active" : ""}" data-assets-tab="infrastructure">Infrastructure</button>
-    </nav>
-
-    <div class="assets-panel-body">
-      <div class="assets-panel${activeTab === "inventory" ? " active" : ""}" data-assets-panel="inventory">${inventoryPanel}</div>
-      <div class="assets-panel${activeTab === "infrastructure" ? " active" : ""}" data-assets-panel="infrastructure">${infraPanel}</div>
-    </div>
+    <div class="ui-tabs" role="tablist" aria-label="Assets">${tab("inventory", "Inventory")}${tab("infrastructure", "Infrastructure")}</div>
+    ${panel("inventory", inventoryPanel)}
+    ${panel("infrastructure", infraPanel)}
   `;
 
   // Bind tab switching
-  contentEl.querySelectorAll(".assets-tab-btn").forEach(btn => {
+  contentEl.querySelectorAll("[data-assets-tab]").forEach(btn => {
     btn.addEventListener("click", () => {
       const tab = btn.dataset.assetsTab;
       contentEl.dataset.activeTab = tab;
-      contentEl.querySelectorAll(".assets-tab-btn").forEach(b => b.classList.toggle("active", b.dataset.assetsTab === tab));
-      contentEl.querySelectorAll(".assets-panel").forEach(p => p.classList.toggle("active", p.dataset.assetsPanel === tab));
+      contentEl.querySelectorAll("[data-assets-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.assetsTab === tab)));
+      contentEl.querySelectorAll("[data-assets-panel]").forEach(p => { p.hidden = p.dataset.assetsPanel !== tab; });
     });
   });
 }

@@ -97,7 +97,9 @@ describe("reduced motion (AB#1760)", () => {
     const moving = RULES.filter((r) => !/prefers-reduced-motion/.test(r.media))
       .flatMap((r) => decls(r.body).filter((d) => /^(animation|transition)(-|$)/.test(d.prop)).map((d) => ({ ...d, where: r.selectors.join(", ") })));
     expect(moving.filter((d) => /^animation/.test(d.prop)).length).toBeGreaterThan(10);
-    expect(moving.filter((d) => /^transition/.test(d.prop)).length).toBeGreaterThanOrEqual(30); // ISP-78 (AB#767) removed the Station's old two
+    // A floor, so the check cannot pass by matching nothing. It was the 32 counted before AB#1760; screen rebuilds take
+    // old rules out with their screens (ISP-78, AB#767, and ISP-79, AB#768, took two each), so it is not a count to keep.
+    expect(moving.filter((d) => /^transition/.test(d.prop)).length).toBeGreaterThanOrEqual(25);
     expect(moving.filter((d) => /!important/.test(d.value)).map((d) => `${d.where} { ${d.prop} }`)).toEqual([]);
   });
 

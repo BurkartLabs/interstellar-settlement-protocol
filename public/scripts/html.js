@@ -30,14 +30,15 @@ export function htmlAttr(name, value) {
 
 /**
  * The Refinery Chains card's Build Refinery button. With no free building slot it carries the reason the click handler
- * shows, and a line under it says the same (Bug #1254).
+ * shows, and a line under it says the same (Bug #1254). ISP-79 (AB#768): a design-system button, and the line is the
+ * field's error, in the danger token.
  */
 export function refineryBuildButtonHtml({ hasRefinery, used, slots }) {
   const full = used >= slots;
   const label = hasRefinery ? "Build 2nd Refinery" : "Build Refinery";
   const reason = full ? `Refinery requires 1 open building slot. Current usage: ${used}/${slots}.` : null;
-  const note = full ? `<p class="muted" style="color:var(--warn)">No open building slots. Current usage: ${used}/${slots}.</p>` : "";
-  return `<button class="btn btn-outline refinery-build-btn"${htmlAttr("data-disabled-reason", reason)}>${label}</button>${note}`;
+  const note = full ? `<p class="ui-field__error">No open building slots. Current usage: ${used}/${slots}.</p>` : "";
+  return `<button class="ui-button ui-button--secondary refinery__build" type="button"${htmlAttr("data-disabled-reason", reason)}>${label}</button>${note}`;
 }
 
 /**
@@ -56,28 +57,57 @@ export function tradeConfirmRowsHtml(rows) {
 /**
  * A research queue's items (Corporate R&D, CEO Insight). Every string is escaped (Bug #1002): names and effects come
  * from the catalog today, and a player-named item would otherwise become stored XSS. `progressOf(item)` is 0 to 100,
- * `remainingLabel(item)` the time left, `formatCredits(n)` the funding figure.
+ * `remainingLabel(item)` the time left, `formatCredits(n)` the funding figure. ISP-79 (AB#768): each is a
+ * design-system card with the game's progress bar, which says how far it is to a screen reader too.
  */
 export function queueItemsHtml(queue, subtitle, { progressOf, remainingLabel, formatCredits, statusOf }) {
   return queue
     .map((item) => {
       const progress = Number(progressOf(item)) || 0;
-      const progressMeta = item.startedAt
-        ? `<div class="queue-progress-meta"><span>${progress.toFixed(1)}%</span><span>${escapeHtml(remainingLabel(item))}</span></div>`
+      const status = statusOf ? statusOf(item) : item.startedAt ? "In progress" : "Queued";
+      const facts = [`${item.durationHours}h`, status, item.costCredits ? `${formatCredits(item.costCredits)} committed` : ""].filter(Boolean);
+      const timing = item.startedAt
+        ? `<p class="ui-card__meta research__timing"><span class="ui-figure">${progress.toFixed(1)}%</span><span>${escapeHtml(remainingLabel(item))}</span></p>`
         : "";
       return `
-      <article class="queue-item">
-        <h3>${escapeHtml(item.name)}</h3>
-        <p class="muted">${escapeHtml(subtitle)}</p>
-        <p>${escapeHtml(item.effect)}</p>
-        <p class="muted">Duration: ${escapeHtml(item.durationHours)}h | ${escapeHtml(statusOf ? statusOf(item) : item.startedAt ? "In progress" : "Queued")}</p>
-        ${item.costCredits ? `<p class="muted">Committed funding: ${escapeHtml(formatCredits(item.costCredits))} credits</p>` : ""}
-        ${progressMeta}
-        <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
+      <article class="ui-card">
+        <h4 class="ui-card__title">${escapeHtml(item.name)}</h4>
+        <p class="ui-card__body">${escapeHtml(item.effect)}</p>
+        <p class="ui-card__meta">${escapeHtml(subtitle)} · ${escapeHtml(facts.join(" · "))}</p>
+        ${timing}
+        <div class="progress-wrap" role="progressbar" aria-label="${escapeHtml(item.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress)}"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
       </article>
       `;
     })
     .join("");
+}
+
+const NODE_BADGES = {
+  done: ["ui-badge--success", "Complete"],
+  queued: ["ui-badge--accent", "In queue"],
+  locked: ["", "Locked"],
+  planned: ["", "Planned"],
+  waiting: ["", "Awaiting slot"]
+};
+
+/**
+ * ISP-79 (AB#768): one node of a research tree, a Corporate R&D technology or a CEO Insight program, as a
+ * design-system card. `state` is done, queued, locked, planned, waiting or available: an available node ends in
+ * `action` (its button's markup, built by the caller), any other in a badge that says why it cannot be taken. Every
+ * other string is text, escaped here.
+ */
+export function researchNodeHtml({ name, tier, effect, meta = [], state, action = "" }) {
+  const badge = NODE_BADGES[state];
+  const tail = state === "available" || !badge ? action : `<span class="ui-badge ${badge[0]}">${badge[1]}</span>`;
+  return `<article class="ui-card research__node research__node--${escapeHtml(state)}">
+    <div class="research__node-head">
+      <h4 class="ui-card__title">${escapeHtml(name)}</h4>
+      ${tier ? `<span class="ui-badge">T${escapeHtml(tier)}</span>` : ""}
+    </div>
+    <p class="ui-card__body">${escapeHtml(effect)}</p>
+    ${meta.filter(Boolean).map((line) => `<p class="ui-card__meta">${escapeHtml(line)}</p>`).join("")}
+    <div class="research__node-foot">${tail}</div>
+  </article>`;
 }
 
 /**

@@ -1,10 +1,10 @@
 // The Corporate R&D tab: the tech tree, the research picker and the queues.
-// AB#739 (ISP-53): everything here moved from app.js unchanged.
+// AB#739 (ISP-53): everything here moved from app.js unchanged. ISP-79 (AB#768): drawn from the design system.
 
 import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { deepClone, toCurrency } from "../helpers.js";
-import { escapeHtml, queueItemsHtml } from "../html.js";
+import { escapeHtml, queueItemsHtml, researchNodeHtml } from "../html.js";
 import { formatHoursMinutes, nextRndStart, rndItemStatus, scheduleRndQueue } from "../rndQueue.js";
 import { appState, techTree } from "../state.js";
 import { flashButtonSuccess, pushFeedback, updateAllViews } from "./shared.js";
@@ -50,64 +50,30 @@ export function renderTechTree(data) {
   const rows = techTree
     .map((node) => {
       const prereqLabel = node.prereqs.length ? node.prereqs.map((id) => techTree.find((it) => it.id === id)?.name || id).join(", ") : "None";
-      const isDone = done.has(node.id);
-      const isQueued = inQueue.has(node.id);
       const prereqsMet = node.prereqs.every((req) => done.has(req));
       const tierGated = node.tier >= 2 && !allTier1Done;
-      const isLocked = !prereqsMet || tierGated;
+      const cost = `${node.durationHours}h · ${toCurrency(node.costCredits)}`;
+      const card = { name: node.name, tier: node.tier, effect: node.effect };
 
-      if (isDone) {
-        return `<div class="rnd-row rnd-row--done">
-          <div class="rnd-row__info">
-            <span class="rnd-row__name">${escapeHtml(node.name)}</span>
-            <span class="rnd-row__effect">${escapeHtml(node.effect)}</span>
-          </div>
-          <span class="rnd-row__badge rnd-row__badge--done">✓ COMPLETE</span>
-        </div>`;
+      if (done.has(node.id)) return researchNodeHtml({ ...card, state: "done" });
+      if (inQueue.has(node.id)) return researchNodeHtml({ ...card, state: "queued", meta: [cost] });
+      if (!prereqsMet || tierGated) {
+        return researchNodeHtml({ ...card, state: "locked", meta: [tierGated ? "Complete all Tier 1 research first" : `Requires: ${prereqLabel}`] });
       }
-
-      if (isQueued) {
-        return `<div class="rnd-row rnd-row--queued">
-          <div class="rnd-row__info">
-            <span class="rnd-row__name">${escapeHtml(node.name)}</span>
-            <span class="rnd-row__effect">${escapeHtml(node.effect)}</span>
-            <span class="rnd-row__meta">${node.durationHours}h &middot; ${toCurrency(node.costCredits)}</span>
-          </div>
-          <span class="rnd-row__badge rnd-row__badge--queued">IN QUEUE</span>
-        </div>`;
-      }
-
-      if (isLocked) {
-        const lockReason = tierGated
-          ? "Complete all Tier 1 research first"
-          : `Requires: ${escapeHtml(prereqLabel)}`;
-        return `<div class="rnd-row rnd-row--locked">
-          <div class="rnd-row__info">
-            <span class="rnd-row__name">${escapeHtml(node.name)} <span class="rnd-tier-badge">T${node.tier}</span></span>
-            <span class="rnd-row__effect">${escapeHtml(node.effect)}</span>
-            <span class="rnd-row__meta">${lockReason}</span>
-          </div>
-          <span class="rnd-row__badge rnd-row__badge--locked">LOCKED</span>
-        </div>`;
-      }
-
-      // Available — show enqueue button
-      return `<div class="rnd-row rnd-row--available">
-        <div class="rnd-row__info">
-          <span class="rnd-row__name">${escapeHtml(node.name)} <span class="rnd-tier-badge">T${node.tier}</span></span>
-          <span class="rnd-row__effect">${escapeHtml(node.effect)}</span>
-          <span class="rnd-row__meta">${node.durationHours}h &middot; ${toCurrency(node.costCredits)} &middot; Prereqs: ${escapeHtml(prereqLabel)}</span>
-        </div>
-        <button class="btn btn-accent rnd-enqueue-btn" type="button" data-tech-id="${node.id}">+ Enqueue</button>
-      </div>`;
+      return researchNodeHtml({
+        ...card,
+        state: "available",
+        meta: [cost, `Prereqs: ${prereqLabel}`],
+        action: `<button class="ui-button ui-button--secondary research__enqueue" type="button" data-tech-id="${escapeHtml(node.id)}">Enqueue</button>`
+      });
     })
     .join("");
 
-  treeWrap.innerHTML = rows || '<p class="muted">No research nodes configured.</p>';
+  treeWrap.innerHTML = rows || '<div class="ui-state"><p class="ui-state__title">No research nodes configured.</p></div>';
 
   // Event delegation — reassignment avoids listener stacking across re-renders
   treeWrap.onclick = (e) => {
-    const btn = e.target.closest(".rnd-enqueue-btn");
+    const btn = e.target.closest(".research__enqueue");
     if (!btn) return;
     const techId = btn.getAttribute("data-tech-id");
     const rndSelect = document.getElementById("rnd-select");
@@ -148,7 +114,7 @@ export function queueProgress(item) {
 export function renderQueue(elId, queue, subtitle) {
   const el = document.getElementById(elId);
   if (!queue.length) {
-    el.innerHTML = `<article class="queue-item"><p>No queued items yet.</p><p class="muted">${escapeHtml(subtitle)}</p></article>`;
+    el.innerHTML = `<div class="ui-state"><p class="ui-state__title">No queued items yet.</p><p class="ui-state__why">${escapeHtml(subtitle)}</p></div>`;
     return;
   }
 
@@ -248,7 +214,7 @@ export function bindResearchForms() {
         `${node.name} added to the corporate R&D queue. Funding locked: ${toCurrency(node.costCredits)} credits.`,
         "success"
       );
-      flashButtonSuccess(rndForm.querySelector(".btn-accent"));
+      flashButtonSuccess(rndForm.querySelector('button[type="submit"]'));
       rndForm.reset();
       renderResearchSelectionDetails(appState.data);
     } catch (error) {
