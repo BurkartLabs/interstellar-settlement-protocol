@@ -1,6 +1,7 @@
-// ISP-307 (AB#2299): the two sinks' own ledger lines, as the Financial Core's P&L shows them. The level-5 corporation
-// from e2e/seed-construction-account.mjs built two extractor yards through construct(), so its second yard's price
-// above the first is booked as Yard Price Growth, beside Construction. Screens in e2e/screenshots/ab-2299/.
+// ISP-307 (AB#2299): the two sinks' own ledger lines, as the Financial Core's P&L shows them. The corporation from
+// e2e/seed-construction-account.mjs's `ledger` kind built three extractor yards through construct(); since ISP-309
+// (AB#2305) the first two are the starting kit at the base price, so the third's price above it, 63,000 - 50,000, is
+// booked as Yard Price Growth and the three base prices as Construction (Bug AB#2315: it built two, and read nothing). Screens in e2e/screenshots/ab-2299/.
 import { test, expect } from "@playwright/test";
 import { openTab } from "./nav.mjs";
 import fs from "node:fs";
@@ -46,7 +47,7 @@ for (const viewport of VIEWPORTS) {
     const page = await context.newPage();
     const email = `ledger-${Date.now()}-${viewport.width}@example.test`;
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "isp-ledger-e2e-"));
-    const seeded = spawnSync(process.execPath, ["e2e/seed-construction-account.mjs", dir, email, PASSWORD, "level5"], { cwd: REPO_ROOT, encoding: "utf8", env: { ...process.env, JWT_SECRET: SECRET } });
+    const seeded = spawnSync(process.execPath, ["e2e/seed-construction-account.mjs", dir, email, PASSWORD, "ledger"], { cwd: REPO_ROOT, encoding: "utf8", env: { ...process.env, JWT_SECRET: SECRET } });
     if (seeded.status !== 0) throw new Error(`seed failed: ${seeded.stdout}
 ${seeded.stderr}`);
     const { child, url } = await startServer(dir);
@@ -61,7 +62,7 @@ ${seeded.stderr}`);
       await openTab(page, "finance");
       const pnl = page.locator("#finance-pnl-table");
       await expect(pnl.locator("tr", { hasText: "Yard Price Growth" })).toContainText("13,000");
-      await expect(pnl.locator("tr", { hasText: "Construction" })).toContainText("100,000");
+      await expect(pnl.locator("tr", { hasText: "Construction" })).toContainText("150,000");
       await pnl.scrollIntoViewIfNeeded();
       await pnl.screenshot({ path: path.join(SHOT_DIR, `pnl-${viewport.label}.png`) });
       expect(errors).toEqual([]);
