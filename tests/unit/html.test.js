@@ -17,8 +17,8 @@ describe("notificationItemsHtml (Bug #691)", () => {
 
   it("still renders an ordinary notification, unread marked", () => {
     const html = notificationItemsHtml([item()], formatTime);
-    expect(html).toContain("<strong>Mining Lease Approved</strong>");
-    expect(html).toContain("notification-item unread");
+    expect(html).toContain('<p class="ui-card__title">Mining Lease Approved</p>');
+    expect(html).toContain("notifications__item is-unread"); // ISP-83 (AB#772): a design-system card
     expect(html).toContain("12:00 | administration");
   });
 

@@ -25,31 +25,17 @@ export const notificationList = document.getElementById("notification-list");
 
 export const notificationReadAllButton = document.getElementById("notification-read-all");
 
-export function bindRippleEffect() {
-  document.addEventListener("click", (event) => {
-    const button = event.target.closest(".btn");
-    if (!button || button.disabled) return;
-    const ripple = document.createElement("span");
-    ripple.className = "btn-ripple-effect";
-    const rect = button.getBoundingClientRect();
-    ripple.style.left = `${event.clientX - rect.left}px`;
-    ripple.style.top = `${event.clientY - rect.top}px`;
-    button.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 600);
-  });
-}
-
 export function bindCollapsibleSections() {
   // AB#1056: at phone width the sidebar filled the first screen, so it starts collapsed there; its toggles still open it
   if (sidebarStartsCollapsed(window.innerWidth)) {
-    document.querySelectorAll(".side-panel .section-toggle").forEach((button) => {
+    document.querySelectorAll(".side-panel .side-panel__toggle").forEach((button) => {
       const content = document.getElementById(button.getAttribute("aria-controls") || "");
       if (!content) return;
       button.setAttribute("aria-expanded", "false");
       content.hidden = true;
     });
   }
-  document.querySelectorAll(".section-toggle").forEach((button) => {
+  document.querySelectorAll(".side-panel__toggle").forEach((button) => {
     button.addEventListener("click", () => {
       const controlsId = button.getAttribute("aria-controls");
       const content = controlsId ? document.getElementById(controlsId) : null;
@@ -72,7 +58,7 @@ export function renderNotifications() {
   notificationCount.textContent = String(appState.unreadNotifications || 0);
 
   if (!appState.notifications.length) {
-    notificationList.innerHTML = "<li class=\"notification-item\">No notifications yet.</li>";
+    notificationList.innerHTML = "<li class=\"ui-panel__meta\">No notifications yet.</li>";
     return;
   }
 
@@ -104,8 +90,8 @@ export function updateCorpIdentity(data) {
   const identity = document.getElementById("corp-identity");
   const corp = data.corp;
   identity.innerHTML = `
-    <dt>Corporation</dt><dd>${corp.corporationName}</dd>
-    <dt>CEO</dt><dd>${corp.ceo}</dd>
+    <dt>Corporation</dt><dd>${escapeHtml(corp.corporationName)}</dd>
+    <dt>CEO</dt><dd>${escapeHtml(corp.ceo)}</dd>
     <dt>Location</dt><dd>${escapeHtml(corp.location || "Earth")}</dd>
     <dt>Level</dt><dd>${corp.level} / ${corp.levelCap}</dd>
     <dt>Employees</dt><dd>${numberMarkup("sidebar:employees", corp.employeeCount)} / ${corp.employeeCap}</dd>
@@ -120,8 +106,8 @@ export function updateCorpIdentity(data) {
       .map((item) => {
         const done = corp.milestonesCompleted.includes(item);
         return `
-          <li class="milestone-item${done ? " done" : ""}">
-            <span class="milestone-state">${done ? "Done" : "Open"}</span>
+          <li class="side-panel__milestone${done ? " is-done" : ""}">
+            <span class="ui-badge ${done ? "ui-badge--accent" : "ui-badge--warn"}">${done ? "Done" : "Open"}</span>
             <span>${escapeHtml(item)}</span>
           </li>
         `;

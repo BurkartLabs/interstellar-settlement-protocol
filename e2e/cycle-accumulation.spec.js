@@ -50,7 +50,7 @@ function startServer(dir) {
 
 /** The Active Mining Cycles card for the running extractor, and its figures as the player reads them. */
 async function panelFigures(page) {
-  const card = page.locator("#mine-cycle-list .queue-item", { has: page.locator(".cycle-figures") }).first();
+  const card = page.locator("#mine-cycle-list .ui-card", { has: page.locator(".cycle-figures") }).first();
   await expect(card).toBeVisible();
   return card.evaluate((el) => {
     const dd = (label) => [...el.querySelectorAll(".cycle-figures div")].find((d) => d.querySelector("dt")?.textContent === label)?.querySelector("dd")?.textContent || "";

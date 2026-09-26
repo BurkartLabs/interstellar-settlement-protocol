@@ -257,7 +257,7 @@ export function renderExpeditionPanel(data) {
       const remainingMs = Math.max(0, Number(exp.endsAt || 0) - now);
       const beltName = exp.beltName || exp.beltKey || "Unknown Belt";
       return `
-        <article class="queue-item">
+        <article class="ui-card">
           <h4 class="ui-card__title">${escapeHtml(beltName)}</h4>
           <p class="ui-card__meta">Remaining: ${formatDurationHours(remainingMs)} (${progress.toFixed(1)}%)</p>
           <div class="progress-wrap" role="progressbar" aria-label="${escapeHtml(beltName)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress)}"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>

@@ -23,12 +23,12 @@ test("a fresh corporation sees its milestone roadmap in the sidebar", async ({ p
   await verifyAndLogIn(page, "", `ab1752-${stamp}@example.test`, "password123!"); // AB#2288: verify, then log in
 
   await page.waitForSelector("#milestone-list");
-  const items = page.locator("#milestone-list .milestone-item");
+  const items = page.locator("#milestone-list .side-panel__milestone");
   await expect(items.first()).toBeVisible();
   const count = await items.count();
   expect(count).toBeGreaterThan(0);
   // The first two milestones (rent an office, hire 5) are not done yet for a fresh corporation.
-  await expect(items.nth(0).locator(".milestone-state")).toHaveText("Open");
+  await expect(items.nth(0).locator(".ui-badge")).toHaveText("Open");
 
   const fullHeight = await page.evaluate(() => document.documentElement.scrollHeight);
   await page.setViewportSize({ width: 1280, height: fullHeight });

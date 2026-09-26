@@ -5,8 +5,7 @@
 // claims office that cannot offer it. The body comes from the milestone's own metric ("miningLease:Mars"), so a new
 // lease milestone needs no change here.
 import { leaseStationFor } from "./navigation.js";
-
-const titleCase = (tab) => tab.charAt(0).toUpperCase() + tab.slice(1);
+import { TAB_LABELS } from "./navGroups.js"; // ISP-83 (AB#772): the tab's name as the navigation shows it
 
 /**
  * { tab, label, hint? } for a requirement card, or null when it has nowhere to go. `defaultTab` is the tab the
@@ -23,5 +22,5 @@ export function requirementLink(req, currentStationId, stations, defaultTab) {
     };
   }
   const tab = office ? "station" : defaultTab;
-  return tab ? { tab, label: `Go to ${titleCase(tab)} →` } : null;
+  return tab ? { tab, label: `Go to ${TAB_LABELS[tab] || tab} →` } : null;
 }

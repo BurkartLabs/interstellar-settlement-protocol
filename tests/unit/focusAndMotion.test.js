@@ -42,9 +42,9 @@ const decls = (body) => body.split(";").map((d) => d.trim()).filter(Boolean).map
 });
 
 describe("the focus ring (AB#1760)", () => {
-  it("parses the stylesheet: it sees the .btn base rule and the keyframes", () => {
-    expect(RULES.some((r) => r.selectors.includes(".btn"))).toBe(true);
-    expect((CSS.match(/@keyframes\s/g) || []).length).toBeGreaterThanOrEqual(7); // 13 until ISP-81 (AB#770) removed the old overlay's
+  it("parses the stylesheet: it sees the .ui-button base rule and the keyframes", () => {
+    expect(RULES.some((r) => r.selectors.includes(".ui-button"))).toBe(true); // .btn until ISP-83 (AB#772) removed it
+    expect((CSS.match(/@keyframes\s/g) || []).length).toBeGreaterThanOrEqual(5); // 13 until ISP-81 (AB#770) removed the old overlay's, 7 until ISP-83 (AB#772) the dead ripple's
   });
 
   it("defines --focus-ring once, on :root", () => {
@@ -93,8 +93,8 @@ describe("reduced motion (AB#1760)", () => {
     expect(parseFloat(d["transition-duration"])).toBeLessThan(1);
   });
   // Floors, so the check cannot pass by matching nothing: what the stylesheet held after ISP-81 (AB#770), not counts to keep.
-  const ANIMATION_FLOOR = 7;
-  const TRANSITION_FLOOR = 13;
+  const ANIMATION_FLOOR = 5; // 7 until ISP-83 (AB#772) removed the ripple .btn drew, dead once no .btn was left
+  const TRANSITION_FLOOR = 10; // 13 until ISP-83 (AB#772) rebuilt the shell: the sidebar's old toggle rules went
 
   it("covers every animation and transition rule: none of them is !important, so none can win over the block", () => {
     const moving = RULES.filter((r) => !/prefers-reduced-motion/.test(r.media))

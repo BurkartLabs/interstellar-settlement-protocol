@@ -482,15 +482,6 @@ body {
   }
 }
 
-/* ─── Overline, shared by the game's panels ─── */
-.overline {
-  margin: 0;
-  color: var(--warn);
-  font-size: var(--font-size-2);
-  text-transform: uppercase;
-  letter-spacing: 0.11em;
-}
-
 h1, h2, h3, h4, p {
   margin-top: 0;
 }
@@ -499,60 +490,6 @@ h1 {
   margin-bottom: 0;
   font-size: clamp(1.2rem, 2.6vw, 1.8rem);
   letter-spacing: 0.02em;
-}
-
-.choice-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  align-items: center;
-}
-
-.muted {
-  color: var(--muted);
-}
-
-.lede {
-  font-size: var(--font-size-3);
-  line-height: 1.5;
-}
-
-.data-card {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-2);
-  padding: 1.3rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.data-card::before,
-.data-card::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-}
-
-.data-card::before {
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 34px;
-  height: 34px;
-  border-top: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-}
-
-.data-card::after {
-  left: -20%;
-  right: -20%;
-  bottom: -18px;
-  height: 36px;
-  background: none;
-}
-
-.data-card:hover {
-  border-color: var(--border);
 }
 
 @keyframes milestoneStrike {
@@ -567,25 +504,6 @@ h1 {
     width: 100%;
     opacity: 1;
   }
-}
-
-.data-card h3 {
-  margin-bottom: 0.4rem;
-  font-size: var(--font-size-3);
-  font-family: var(--font-sans);
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  color: var(--text-soft);
-}
-
-.data-card p {
-  margin: 0;
-  font-size: var(--font-size-3);
-  line-height: 1.6;
-}
-
-.compact-card {
-  min-height: 100%;
 }
 
 /* ─── App header (game shell) ─── */
@@ -607,117 +525,16 @@ h1 {
   height:100vh;
 }
 
-.header-actions {
-  display: flex;
-  align-items: stretch;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
-.header-actions .btn,
-.header-actions .notification-dropdown .btn {
-  height: 2.25rem;
-  padding-top: 0;
-  padding-bottom: 0;
-  display: inline-flex;
-  align-items: center;
-}
-
-.notification-dropdown {
-  position: relative;
-}
-
-.badge-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.35rem;
-  height: 1.35rem;
-  border-radius: 999px;
-  margin-left: 0.4rem;
-  padding: 0 0.38rem;
-  font-size: var(--font-size-2);
-  color: var(--text);
-  background: var(--warn);
-  border: 1px solid var(--warn);
-}
-
-.notification-panel {
-  position: absolute;
-  top: calc(100% + 0.45rem);
-  right: 0;
-  width: min(420px, 86vw);
-  max-height: min(82vh, 612px);
-  padding: 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-  box-shadow: var(--elevation-overlay);
-  overflow: hidden;
-  z-index: 40;
-}
-
-.notification-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
-  margin-bottom: 0.7rem;
-}
-
 #notification-list {
   max-height: min(66vh, 452px);
   overflow-y: auto;
   padding-right: 0.2rem;
 }
 
-.notification-item {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-2);
-  padding: 0.55rem 0.65rem;
-}
-
-.notification-item.unread {
-  border-color: var(--warn);
-}
-
-.notification-meta {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-/* ─── UI buttons ─── */
-.btn {
-  border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 0.48rem 0.78rem;
-  cursor: pointer;
-  color: var(--text);
-  background: var(--surface-1);
-}
-
-.btn-outline {
-  border-color: var(--border);
-}
-
-.btn-accent {
-  background: var(--surface-3);
-  border-color: var(--accent);
-}
-
-.btn:hover {
-}
-
 /* AB#1284: a button the game has disabled looks it, everywhere: dimmed, not-allowed, and no hover glow. */
 button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.btn:disabled,
-.btn:disabled:hover {
-  box-shadow: none;
 }
 
 /* ─── Layout ─── */
@@ -744,10 +561,7 @@ button:disabled {
   min-width: 0;
 }
 
-.panel-block,
-.form-card,
-.tab-panel,
-.side-panel {
+.tab-panel {
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -755,72 +569,22 @@ button:disabled {
 }
 
 .side-panel {
-  padding: 0.9rem;
   display: grid;
-  gap: 0.8rem;
+  gap: var(--space-3);
   align-content: start;
   max-height: calc(100vh - 110px);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
 
-.panel-block {
-  padding: 0.95rem var(--space-4);
-}
-
-.form-card,
 .tab-panel {
   padding: 1.15rem 1.2rem;
 }
 
 .tab-panel > h2,
-.panel-block h2,
-.form-card > h3,
 .modal-card > h2 {
   margin-bottom: 0.95rem;
-}
-
-.tab-panel > .muted,
-.form-card > .muted {
-  margin-bottom: var(--space-4);
-}
-
-.collapsible-block {
-  padding-top: 0.7rem;
-}
-
-.section-toggle {
-  width: 100%;
-  min-height: 2.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-3);
-  letter-spacing: 0.03em;
-  text-align: left;
-  cursor: pointer;
-}
-
-.toggle-arrow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.25rem;
-  transition: transform 0.18s ease;
-  color: var(--muted);
-}
-
-.section-toggle[aria-expanded="false"] .toggle-arrow {
-  transform: rotate(-90deg);
-}
-
-.collapsible-content {
-  margin-top: 0.9rem;
 }
 
 .tab-panel {
@@ -830,90 +594,6 @@ button:disabled {
 
 .tab-panel.active {
   display: block;
-}
-
-.kv-list {
-  display: grid;
-  gap: 0.3rem;
-  grid-template-columns: auto 1fr;
-  margin: 0;
-}
-
-.kv-list dt {
-  color: var(--muted);
-}
-
-.kv-list dd {
-  margin: 0;
-  text-align: right;
-}
-
-.text-list {
-  margin: 0;
-  padding-left: var(--space-4);
-  display: grid;
-  gap: 0.4rem;
-}
-
-.milestone-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 0.55rem;
-}
-
-.milestone-item {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.55rem;
-  align-items: start;
-  padding: 0.55rem 0.65rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-2);
-}
-
-.milestone-item.done {
-  border-color: var(--border);
-  box-shadow: inset 0 0 0 1px var(--border);
-}
-
-.milestone-state {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 3.7rem;
-  padding: 0.16rem 0.45rem;
-  border-radius: 999px;
-  font-size: var(--font-size-1);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  background: var(--surface-2);
-  color: var(--warn);
-  border: 1px solid var(--warn);
-}
-
-.milestone-item.done .milestone-state {
-  background: var(--surface-2);
-  color: var(--accent);
-  border-color: var(--border);
-}
-
-.text-list li {
-  line-height: 1.4;
-}
-
-.action-stack {
-  display: grid;
-  gap: 0.4rem;
-}
-
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.7rem;
 }
 
 /* ─── Financial Control Board (CORP-FIN-1) ───────────────────────────────── */
@@ -1018,18 +698,6 @@ textarea {
   resize: vertical;
 }
 
-.queue-list {
-  display: grid;
-  gap: 0.6rem;
-}
-
-.queue-item {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-2);
-  padding: 0.85rem 0.9rem;
-}
-
 .progress-wrap {
   background: var(--surface-1);
   border-radius: 999px;
@@ -1062,21 +730,6 @@ textarea {
   margin: 0.1rem 0 0;
   color: var(--text);
   font-variant-numeric: tabular-nums;
-}
-
-.pill {
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  padding: var(--space-1) 0.55rem;
-  font-size: var(--font-size-2);
-  color: var(--text);
-  background: var(--surface-2);
-}
-
-.split-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 0.7rem;
 }
 
 .action-surface {
@@ -1213,173 +866,6 @@ body.walkthrough--open .layout-grid {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-/* ─── Vertical rhythm: tab panel ─────────────────────────── */
-.tab-panel > .card-grid,
-.tab-panel > .queue-list {
-  margin-top: var(--space-4);
-}
-
-.tab-panel > .form-card,
-.tab-panel > .split-grid {
-  margin-top: 1.6rem;
-}
-
-.tab-panel > .lede {
-  margin-bottom: 0.9rem;
-}
-
-/* ─── Travel banner ──────────────────────────────────────── */
-
-.travel-progress-bar {
-  width: 100%;
-  max-width: 480px;
-  height: 8px;
-  background: var(--surface-3);
-  border-radius: 4px;
-  margin: var(--space-4) auto var(--space-2);
-  overflow: hidden;
-}
-
-.travel-progress-fill {
-  height: 100%;
-  width: 0%;
-  background: var(--accent);
-  border-radius: 4px;
-  transition: width 1s linear;
-}
-
-.travel-eta {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-4);
-  color: var(--accent);
-  letter-spacing: 0.06em;
-}
-
-.travel-dest-card {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-2);
-}
-
-/* ─── Full Travel page ───────────────────────────────────── */
-.travel-page-outer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-}
-
-.travel-page-card {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: var(--space-10) var(--space-12);
-  text-align: center;
-  max-width: 560px;
-  width: 100%;
-}
-
-.travel-page-overline {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2);
-  letter-spacing: 0.18em;
-  color: var(--accent);
-  margin-bottom: var(--space-1);
-}
-
-.travel-page-heading {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-6);
-  color: var(--accent);
-  margin-bottom: var(--space-6);
-}
-
-.travel-route {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-6);
-  margin-bottom: var(--space-6);
-}
-
-.travel-route-node {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.travel-route-label {
-  font-size: var(--font-size-1);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--muted);
-}
-
-.travel-route-station {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-3);
-  color: var(--text-soft);
-}
-
-.travel-route-body {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-.travel-route-arrow {
-  font-size: var(--font-size-5);
-  color: var(--accent);
-}
-
-.travel-progress-bar--large {
-  max-width: 420px;
-  height: 12px;
-  border-radius: 6px;
-}
-
-.travel-progress-bar--large .travel-progress-fill {
-  border-radius: 6px;
-}
-
-/* Interstellar travel variant */
-.travel-page-card--interstellar {
-  border-color: var(--border);
-  background: var(--bg);
-}
-.travel-page-card--interstellar .travel-page-overline,
-.travel-page-card--interstellar .travel-page-heading {
-  color: var(--accent);
-}
-.travel-page-card--interstellar .travel-route-arrow {
-  color: var(--accent);
-}
-.travel-page-card--interstellar .travel-progress-fill {
-  background: var(--accent);
-}
-
-/* In-space system label */
-.travel-system-label {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-4);
-  color: var(--accent);
-  margin-bottom: var(--space-2);
-}
-
-/* Dock options grid */
-.travel-dock-options {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.6rem;
-  margin-top: var(--space-2);
-}
-.travel-dock-btn {
-  min-width: 180px;
-  padding: 0.7rem var(--space-4);
-  text-align: center;
-  line-height: 1.4;
 }
 
 .building-status-badge {
@@ -1648,53 +1134,15 @@ body.walkthrough--open .layout-grid {
   50% { opacity: 0.55; }
 }
 
-/* ─── Vertical rhythm: within form-card ─────────────────── */
-.form-card > .card-grid,
-.form-card > .split-grid,
-.form-card > .choice-row,
-.form-card > .data-card,
-.form-card > .queue-list {
-  margin-top: 1.1rem;
-}
-
-.form-card > p:not(:first-child),
-.form-card > .muted:not(:first-child) {
-  margin-top: 0.65rem;
-}
-
-/* ─── Button — ripple + command variants ─────────────────── */
-.btn {
-  position: relative;
-  overflow: hidden;
-  transition: box-shadow 0.18s ease, transform 0.14s ease;
-}
-
-@keyframes btn-ripple-anim {
-  from { transform: scale(1); opacity: 0.45; }
-  to   { transform: scale(14); opacity: 0; }
-}
-
-.btn-ripple-effect {
-  position: absolute;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  margin-top: -9px;
-  margin-left: -9px;
-  background: var(--surface-3);
-  animation: btn-ripple-anim 0.55s ease-out forwards;
-  pointer-events: none;
-  z-index: 0;
-}
-
-@keyframes btn-pulse-success {
+/* A button's success pulse (flashButtonSuccess): the design system's button, since ISP-83 (AB#772). */
+@keyframes success-pulse {
   0%   { }
   40%  { box-shadow: 0 0 0 8px var(--border); }
   100% { }
 }
 
-.btn.btn-pulse-success {
-  animation: btn-pulse-success 0.75s ease-out forwards;
+.ui-button.is-success-pulse {
+  animation: success-pulse 0.75s ease-out forwards;
 }
 
 /* AB#402: the resource pills, with the order-type filter and sort beside them. */
@@ -1783,8 +1231,8 @@ body.walkthrough--open .layout-grid {
   border-color: var(--warn);
 }
 
-.action-receipt-card--milestone .overline,
-.action-receipt-card--milestone > h2 {
+.action-receipt-card--milestone .dialogue__speaker,
+.action-receipt-card--milestone .dialogue__title {
   color: var(--warn);
 }
 
@@ -2002,6 +1450,35 @@ body.walkthrough--open .layout-grid {
   }
   .side-panel {
     max-height: none;
+  }
+  /* ISP-83 (AB#772): the header's and the sidebar's small sizes raised as a screen's are, and a thumb-high toggle. */
+  :is(.app-header, .side-panel) :is(.ui-button, .ui-badge, .ui-panel__meta, .ui-kv, .ui-card__body, .ui-card__meta, .app-header__overline, .side-panel__milestone) {
+    font-size: var(--font-size-3);
+  }
+  .side-panel__toggle {
+    min-height: 44px;
+  }
+  /* The header was a third of a phone's first screen: a three-line title beside two stacked buttons. The name takes the
+     width at a smaller size, and the buttons sit in one row under it. */
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+  }
+  /* Scoped to the header, so these outrank the base rules, which come later in the file. The buttons wrap: a level-0
+     corporation also has Replay Onboarding, and three do not fit one row at 375. */
+  .app-header .app-header__title {
+    font-size: var(--font-size-4);
+  }
+  /* The notification panel spans the header on a phone: anchored to its button, it ran off the screen's left edge. */
+  .app-header .app-header__notifications {
+    position: static;
+  }
+  .app-header .app-header__panel {
+    left: var(--space-4);
+    right: var(--space-4);
+    width: auto;
   }
   /* The bar: each group as wide as its name, the space shared evenly, never scrolling; below every dialog (60) and
      the briefing (55). Equal columns ran "Company" into "Station" at 375. */
@@ -2768,18 +2245,6 @@ body.sg {
 .ui-tooltip-wrap.is-dismissed .ui-tooltip {
   opacity: 0;
   visibility: hidden;
-}
-
-/* The primary action ISP-71 owed: the login and register submit is the direction's one primary, a solid accent fill.
-   The game's per-item accent actions (.btn-accent, many to a screen) carry the accent as their text and border
-   instead, so a screen is not a field of cyan; each screen's one filled primary is chosen when it is rebuilt. */
-.btn-accent {
-  background: var(--surface-2);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.btn-accent:hover:not(:disabled) {
-  background: var(--surface-3);
 }
 
 @media (max-width: 600px) {
@@ -4454,6 +3919,146 @@ img.station__body {
 /* The close glyph keeps its size where the phone raises a modal's buttons to body size. */
 .starmap__station .starmap__close {
   font-size: var(--font-size-5);
+}
+
+/* ─── The shell on the design system (ISP-83, AB#772) ───
+   The header, its notifications and the sidebar, in the flat direction (Decision AB#1801), from the design system's
+   parts: ui-button, ui-badge, ui-panel, ui-card, ui-kv. No screen story owned them, so they kept the old .btn, .overline,
+   .panel-block and .kv-list after the nine screens were rebuilt; e2e/every-screen.spec.js found them. The header's
+   line over the title is the version and the founding year, not the name again. On a phone their small sizes are
+   raised as a screen's are, and the sidebar's toggles are a thumb's height. */
+/* Travel: the computer's line over the heading, the route as two cards either side of an arrow, the bar and the time
+   left. Its screen is drawn into #travel-page, so that block carries the screen's column. */
+.travel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.travel__overline {
+  margin: 0;
+  color: var(--accent);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+}
+.travel__route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+}
+.travel__arrow {
+  color: var(--accent);
+  font-size: var(--font-size-5);
+}
+.travel__eta {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-3);
+}
+@media (max-width: 600px) {
+  .travel__overline {
+    font-size: var(--font-size-3);
+  }
+}
+.app-header__brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.app-header__overline {
+  margin: 0;
+  color: var(--warn);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+}
+.app-header__title {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(1.2rem, 2.6vw, 1.8rem);
+  line-height: var(--line-height-tight);
+}
+.app-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.app-header__notifications {
+  position: relative;
+}
+.app-header__panel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 40;
+  width: min(420px, 86vw);
+  box-shadow: var(--elevation-overlay);
+}
+.notifications {
+  display: grid;
+  gap: var(--space-2);
+  max-height: min(66vh, 452px);
+  margin: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.notifications__item.is-unread {
+  border-color: var(--warn);
+}
+.side-panel__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 36px;
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.side-panel__toggle[aria-expanded="true"] {
+  border-bottom: 1px solid var(--border);
+}
+.side-panel__arrow {
+  color: var(--muted);
+  font-size: var(--font-size-3);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+.side-panel__toggle[aria-expanded="false"] .side-panel__arrow {
+  transform: rotate(-90deg);
+}
+.side-panel__identity dd {
+  text-align: right;
+}
+.side-panel__milestones {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.side-panel__milestone {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: var(--space-2);
+  color: var(--text);
+  font-size: var(--font-size-2);
+}
+.side-panel__milestone.is-done {
+  color: var(--text-soft);
+}
+.side-panel__actions {
+  display: grid;
+  gap: var(--space-2);
 }
 
 /* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */

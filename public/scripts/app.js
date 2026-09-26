@@ -12,7 +12,7 @@ import { connectWalkthroughUi, hasSeenWalkthroughOffer, noteWalkthroughEvent, pr
 import { renderAssets } from "./views/assets.js";
 import { applyMissionAgentsCatalog, bindAssignmentForms, renderMissions } from "./views/assignments.js";
 import { renderInsightTree } from "./views/ceoInsight.js";
-import { bindCollapsibleSections, bindGlobalControls, bindRippleEffect, loadNotifications, renderNotifications, updateCorpIdentity, updateReplayOnboardingVisibility } from "./views/chrome.js";
+import { bindCollapsibleSections, bindGlobalControls, loadNotifications, renderNotifications, updateCorpIdentity, updateReplayOnboardingVisibility } from "./views/chrome.js";
 import { bindCommsForms, renderChatChannelTabs, renderChatLog, resolveChatChannel } from "./views/comms.js";
 import { bindExchangeForms, renderMarket } from "./views/exchange.js";
 import { loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } from "./views/finance.js";
@@ -336,7 +336,8 @@ async function loadBootstrap() {
   if (version) {
     const versionLine = document.getElementById("app-version-line");
     if (versionLine) {
-      versionLine.textContent = `Interstellar Settlement Protocol v${version}, est. 2147`;
+      // ISP-83 (AB#772): the version and the founding year; the name is the heading right under it.
+      versionLine.textContent = `v${version} · est. 2147`;
     }
   }
 
@@ -681,7 +682,6 @@ async function boot() {
   bindForms();
   bindRealtimeEvents();
   bindGlobalControls();
-  bindRippleEffect();
   bindBuildingActions();
   bindInboxControls();
   bindChartDurationPickers();
