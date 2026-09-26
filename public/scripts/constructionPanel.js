@@ -5,6 +5,7 @@
 // page draws the panel again from the account that comes back, and a refusal shows the server's own words in the row.
 // Pure apart from renderConstructionPanel, so it loads in node without the page's state.
 import { escapeHtml } from "./html.js";
+import { nextYardPriceFor } from "./yardPrice.js";
 
 const money = (n) => `¤${Math.floor(n).toLocaleString("en-US")}`;
 const has = (corp, tech) => (corp.unlockedTech || []).includes(tech);
@@ -18,10 +19,8 @@ const isUpgrade = (building) => building.slot === "upgrade";
 export function buildingCost(building, corp = {}, economy = {}) {
   const cost = Number(building?.cost);
   if (!Number.isFinite(cost)) return NaN;
-  if (building.id === "basic-extractor-yard" && has(corp, "tt-supply-forecast")) {
-    const multiplier = Number(economy?.buildings?.supplyForecastCostMultiplier);
-    return Number.isFinite(multiplier) ? Math.round(cost * multiplier) : NaN;
-  }
+  // AB#2286: a yard's price rises with each one built, with the Supply Forecast discount after (yardPrice.js).
+  if (building.id === "basic-extractor-yard") return nextYardPriceFor(corp, economy?.buildings);
   return cost;
 }
 

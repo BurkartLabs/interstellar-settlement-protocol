@@ -16,6 +16,7 @@ import { leaseFullAdvice } from "../slotAdvice.js";
 import { appState, techTree } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
 import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
+import { nextYardPriceFor } from "../yardPrice.js"; // ISP-303 (AB#2286)
 import { facilityUpgradeHtml, facilityUpgradeView, upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795), ISP-102 (AB#794)
 import { renderMissions } from "./assignments.js";
 import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHeader, setTab, showTradeConfirmation, stationLocationBanner, updateAllViews } from "./shared.js";
@@ -643,7 +644,7 @@ export function renderLeaseManagement(building, lease, data) {
   const usedSlots = extractors.length;
   const totalSlots = lease.buildingSlots || 2;
   const hasSlotAvailable = usedSlots < totalSlots;
-  const buildCost = clientPrices(appState.economy).extractorYardCost;
+  const buildCost = nextYardPriceFor(corp, appState.economy?.buildings); // AB#2286: the next yard's price, discount included
   const canAffordBuild = (corp?.finances?.credits || 0) >= buildCost;
 
   const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
@@ -852,7 +853,8 @@ export function bindLeaseManagementActions(building, lease, data) {
         } else {
           // Demo account fallback
           const corp = appState.data.corp;
-          const { extractorYardCost: cost, extractorYardAssetValue } = clientPrices(appState.economy);
+          const { extractorYardAssetValue } = clientPrices(appState.economy);
+          const cost = nextYardPriceFor(corp, appState.economy?.buildings); // AB#2286
           if ((corp.finances.credits || 0) < cost) throw new Error(`Construction requires ${toCurrency(cost)} credits.`);
           if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];
           const nextIndex = corp.mining.silicateExtractors.length + 1;
