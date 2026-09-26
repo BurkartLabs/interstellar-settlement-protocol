@@ -54,12 +54,21 @@ a world economy lever, not a pacing one, and the design already has too many cre
 still assume capacity; what happens past Level 20 is AB#2324 (Board), and AB#801 and AB#802 wait for it. The probe
 runs one corporation alone, so these are numbers for an empty server.
 
+**AB#2324 is answered:** ECONOMY.md, "Demand: the Board's rule (AB#2324)", owns demand now. Progress never waits on
+the market, and demand is tuned later to one goal (yards 3 to 6 pay). This table's "the world buys" column and the
+paragraph above describe today's shared 7,000 t quota, which is pre-tuning. AB#801 and AB#802 redraw the targets
+against that rule; no number here changes until they do.
+
 Silicates sold are the mined, less what goes into refineries (100 in for 55 out) and contracts (about 400 each). Each
 target below is 90% of the curve at its level's day, rounded down, so the bot meets it on that day or a little before.
 Level 10's own targets are the curve's starting point. The refined curve is anchored at Level 10's 2,000 refined units (AB#2312, which lowered it from 10,000):
 every `stat:refinedUnitsProduced` target from Level 16 on is 7,200 (90% of the 8,000 difference) below its first version.
 
 ## The levels
+
+The `stat:silicateSoldOnExchange` targets below (Levels 28 to 40) count NPC sales, which ECONOMY.md's "Demand: the
+Board's rule (AB#2324)" excludes from ladder requirements: a level counts what a corporation produces. AB#802 redraws
+them as production metrics; they stand here, unchanged, until it does.
 
 `building-tier:<id>:<n>` is new: the count of that catalogue building at tier n or above (see "What AB#798 must
 change"). The `maxUpgradeTier` values above 5 are a **proposal** that needs a story before the data may carry them
