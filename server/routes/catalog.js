@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { ECONOMY } from "../economy.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
-import { MILESTONE_LEVELS } from "../game/catalog.js";
+import { MILESTONE_LEVELS, MILESTONE_ROADMAP } from "../game/catalog.js";
 import { PROBE_FABRICATION_MS } from "../game/asteroids.js";
 import { getState, CEO_INSIGHT_LIBRARY, RESEARCH_LIBRARY, MISSION_AGENTS_DATA, REPUTATION_TIERS_DATA } from "../gameState.js";
 import { APP_VERSION, __dirname } from "../app.js";
@@ -57,7 +57,9 @@ export function registerCatalogRoutes(app) {
         upgradeTierByLevel: MILESTONE_LEVELS.map((l) => ({ level: l.level, maxUpgradeTier: Number(l.unlocks?.maxUpgradeTier) || 1 }))
       },
       // AB#783: what a corporation can build, read-only: the same for every caller, and nothing of any player's.
-      playerBuildings: PLAYER_BUILDING_CATALOGUE
+      playerBuildings: PLAYER_BUILDING_CATALOGUE,
+      // ISP-106 (AB#798): the sidebar's roadmap, derived from the levels (server/game/catalog.js deriveRoadmap).
+      milestoneRoadmap: MILESTONE_ROADMAP
     });
   });
 

@@ -1,7 +1,7 @@
 // server/game/asteroids.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import { ECONOMY } from "../economy.js";
-import { STATION_REGISTRY_CACHE, createId, getStationInventory } from "./catalog.js";
+import { MINEABLE_RESOURCES, STATION_REGISTRY_CACHE, createId, getStationInventory } from "./catalog.js";
 import { bumpStat } from "./progression.js";
 import { countBuilt, playerBuilding } from "../playerBuildings.js";
 
@@ -229,6 +229,8 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
       const stationInv = getStationInventory(corp, depositStationId);
       for (const [resource, qty] of Object.entries(exp.yields)) {
         stationInv[resource] = (stationInv[resource] || 0) + qty;
+        // ISP-106 (AB#798): counted for totalMined:<resource>; only the catalogue's raw resources have a counter.
+        if (MINEABLE_RESOURCES.includes(resource) && qty > 0) bumpStat(corp, `mined:${resource}`, qty);
       }
 
       // Return the probe

@@ -69,23 +69,23 @@ test("the walkthrough runs start to finish with no console error, at 1280x800", 
   await atStep(5); // lease
   await page.click("#station-back-btn");
   await page.click('[data-building-action="building:isa-claims-leases"]');
-  await page.click('.purchase-lease-btn[data-body="Earth"]');
+  await page.click('[data-action="purchase-lease"][data-body="Earth"]');
   await acknowledgeReceipt(page);
 
   await atStep(6); // yard
-  await page.click(".lease-manage-btn");
+  await page.click('[data-action="manage-lease"]');
   await page.click("#lease-build-extractor-btn");
   await acknowledgeReceipt(page);
 
   await atStep(7); // cycle
-  const mineForm = page.locator(".lease-mine-form");
+  const mineForm = page.locator('[data-form="mine"]');
   await mineForm.locator('[name="amount"]').fill("250");
   await mineForm.locator('[name="hours"]').fill("24");
   await mineForm.locator('button[type="submit"]').click();
   await acknowledgeReceipt(page);
 
   await atStep(8); // sell, once something has been mined (the 5s server tick, pushed live over the socket)
-  await expect(page.locator('.extractor-row [data-live="mined"]')).not.toHaveText(/^0( t)?$/, { timeout: 60_000 }); // AB#746: "0 t"
+  await expect(page.locator('.extractor [data-live="mined"]')).not.toHaveText(/^0( t)?$/, { timeout: 60_000 }); // AB#746: "0 t"
   await openTab(page, "market");
   const sellBtn = page.locator('[data-npc-item="Silicates"]').first();
   await expect(sellBtn).toBeEnabled();

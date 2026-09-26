@@ -41,12 +41,12 @@ test("an idle extractor yard shows up in Active Mining Cycles before any cycle i
 
   await page.click("#station-back-btn");
   await page.click('[data-building-action="building:isa-claims-leases"]');
-  await page.click('.purchase-lease-btn[data-body="Earth"]');
+  await page.click('[data-action="purchase-lease"][data-body="Earth"]');
   await acknowledgeReceipt(page);
-  await page.click(".lease-manage-btn");
+  await page.click('[data-action="manage-lease"]');
   await page.click("#lease-build-extractor-btn");
   await acknowledgeReceipt(page);
-  await expect(page.locator(".extractor-row")).toBeVisible();
+  await expect(page.locator(".extractor")).toBeVisible();
 
   // Back to the Station overview, where the new Active Mining Cycles section lives.
   await page.click("#station-back-btn");

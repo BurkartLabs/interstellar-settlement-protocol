@@ -140,17 +140,17 @@ export function stationBuildingCardsHtml(stationBuildings) {
     .filter((b) => b.owner === "npc" && b.available)
     .map((b) => {
       const actionBtn = b.available
-        ? `<button class="btn btn-outline" data-building-action="${escapeHtml(b.action)}">Enter</button>`
-        : `<span class="building-status-badge">Coming Soon</span>`;
+        ? `<button type="button" class="ui-button ui-button--secondary" data-building-action="${escapeHtml(b.action)}">Enter</button>`
+        : `<span class="ui-badge">Coming Soon</span>`;
       return `
-        <article class="building-card data-card">
-          <header class="building-card-header">
-            <span class="faction-code-badge">${escapeHtml(b.factionCode)}</span>
-            <h3>${escapeHtml(b.name)}</h3>
+        <article class="ui-card station__card">
+          <header class="station__card-header">
+            <span class="ui-badge">${escapeHtml(b.factionCode)}</span>
+            <h3 class="ui-card__title">${escapeHtml(b.name)}</h3>
           </header>
-          <p class="muted building-description">${escapeHtml(b.description)}</p>
-          <p class="building-flavor">${escapeHtml(b.flavor)}</p>
-          <footer class="building-card-footer">${actionBtn}</footer>
+          <p class="ui-card__body">${escapeHtml(b.description)}</p>
+          <p class="station__flavor">${escapeHtml(b.flavor)}</p>
+          <footer class="station__card-footer">${actionBtn}</footer>
         </article>
       `;
     })

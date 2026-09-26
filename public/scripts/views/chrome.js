@@ -115,7 +115,8 @@ export function updateCorpIdentity(data) {
 
   const milestones = document.getElementById("milestone-list");
   if (milestones) {
-    milestones.innerHTML = MILESTONE_ROADMAP
+    // AB#798: the roadmap is the server's, derived from the levels; this file kept its own copy, which drifted.
+    milestones.innerHTML = (appState.milestoneRoadmap || [])
       .map((item) => {
         const done = corp.milestonesCompleted.includes(item);
         return `
@@ -134,30 +135,6 @@ export function updateReplayOnboardingVisibility(data) {
   const level = Number(data?.corp?.level || 0);
   replayOnboardingButton.hidden = level >= 5;
 }
-
-// TODO(AB#798): Remove. This is defined within gameState.js but should be fetched from the DB or from milestones.json
-export const MILESTONE_ROADMAP = [
-  "Rent an Office", "Hire 5 Employees", "Reached Corporation Level 1",
-  "Purchase a Mining Lease", "Build a Basic Extractor Yard", "Mine 300 Silicate",
-  "Reached Corporation Level 2", "Sell 300 Silicate on the Galactic Exchange",
-  "Research Basic Extraction Analytics", "Reached Corporation Level 3",
-  "Build a Second Extractor Yard", "Hire 10 Employees", "Research Industrial Safety Protocols",
-  "Sell 50,000 Silicate", "Reached Corporation Level 4", "Research High-Density Energy Routing",
-  "Purchase a Second Mining Lease", "Build a Third Extractor Yard", "Hire 15 Employees",
-  "Reached Corporation Level 5", "Research Ferric Core Extraction Facility", "Hire 25 Employees",
-  "Build a Ferric Mining Complex", "Reached Corporation Level 6",
-  "Research Multi-Stage Refinery Protocols", "Build a Refinery Complex",
-  "Reached Corporation Level 7", "Manufacture 5,000 Iron-Silicate Alloys",
-  "Complete 25 Missions", "Reached Corporation Level 8",
-  "Research Cryo-genic Vapor Extraction Theory", "Purchase a Mining Claim on Luna",
-  "Build a Cryo-vapor Extractor Array", "Sell 500 Cryo-Silicate Foam",
-  "Sell 500 Hydrated Ferric Compounds", "Reached Corporation Level 9",
-  "Research Carbonaceous Slurry Recovery Theory", "Purchase a Mining Claim on an Asteroid Belt",
-  "Research Asteroid Belt Mining Protocols", "Start a Belt Mining Operation",
-  "Sell 500 Carbon Silicate Composites", "Sell 500 Carbo-Iron Alloys",
-  "Sell 500 Hydro-Carbon Emulsion Base", "Research Extrasolar Expansion Protocols",
-  "Reached Corporation Level 10"
-];
 
 export function bindGlobalControls() {
   const logoutBtn = document.getElementById("logout-btn");
