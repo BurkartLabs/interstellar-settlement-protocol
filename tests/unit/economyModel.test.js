@@ -65,8 +65,8 @@ describe("the model reads the game, not a copy of it (AB#727)", () => {
       /export const BASE_THROUGHPUT_CAP = 250;/, // ... which is 250 at tier 1, the model's yard
       /hours, \{ fallback: 24, min: 1, max: 72 \}/,
       /let probPerSec = 0\.00005;/,
-      /const recoveryProbPerSec = 0\.000276;/,
-      /const minDowntimeMs = 15 \* 60 \* 1000;/
+      /const RECOVERY_PROB_PER_SEC = 0\.000276;/, // AB#2296: now module constants in server/game/mining.js
+      /const MIN_DOWNTIME_MS = 15 \* 60 \* 1000;/
     ]) {
       expect(server, String(rule)).toMatch(rule);
     }
