@@ -89,12 +89,12 @@ import { registerVerificationRoutes } from "./routes/verification.js";
 registerVerificationRoutes(app);
 // AB#988: password reset's routes.
 import { registerPasswordResetRoutes } from "./routes/passwordReset.js";
+import { PRICE_HISTORY_ITEMS } from "./priceHistory.js"; // ISP-130 (AB#824): what the exchange may name
 registerPasswordResetRoutes(app);
 
 // AB#734 (ISP-48): the per-account throttle runs right after requireAuth sets req.auth, so it always has the
 // verified account to key on.
 app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess, accountActionLimiter);
-const REFINERY_CHAINS_DATA_FOR_INPUT = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "refinery-chains.json"), "utf8"));
 const INPUT_CHECKS = {
   catalogs: {
     stations: new Set(Object.keys(STATION_REGISTRY)),
@@ -110,7 +110,8 @@ const INPUT_CHECKS = {
     refineryChains: new Set(Object.keys(REFINERY_CHAINS)),
     playerBuildings: new Set(PLAYER_BUILDING_CATALOGUE.map((b) => b.id)), // ISP-94: POST /gameplay/build
     // AB#732: what can be listed or charted (every raw resource and refinery output), standing orders, forum categories.
-    tradeItems: new Set([...REFINERY_CHAINS_DATA_FOR_INPUT.resourceCatalog, ...REFINERY_CHAINS_DATA_FOR_INPUT.chains.flatMap((c) => [c.input, ...c.outputs.map((o) => o.item)])]),
+    // ISP-130 (AB#824): the price history's set, which the server holds to data/items.json at load: one list, not two.
+    tradeItems: PRICE_HISTORY_ITEMS,
     npcOrders: { has: (orderId) => (getState().market?.npcBuyOrders || []).some((o) => o.id === orderId) },
     forumCategories: new Set(FORUM_CATEGORIES)
   },

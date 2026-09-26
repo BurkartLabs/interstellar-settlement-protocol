@@ -5,6 +5,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { ITEM_NAMES } from "./game/items.js"; // ISP-130 (AB#824)
 
 /** How many calendar days (UTC) of buckets are kept, today included. */
 export const PRICE_HISTORY_DAYS = 90;
@@ -31,6 +32,11 @@ export function tradeableItems(refineryData) {
 
 const dataFile = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "refinery-chains.json");
 export const PRICE_HISTORY_ITEMS = tradeableItems(JSON.parse(fs.readFileSync(dataFile, "utf8")));
+// ISP-130 (AB#824): what can be listed, bought or charted is only ever an item in data/items.json.
+{
+  const strays = [...PRICE_HISTORY_ITEMS].filter((item) => !ITEM_NAMES.has(item));
+  if (strays.length) throw new Error(`Tradeable items missing from data/items.json (AB#824): ${strays.join(", ")}.`);
+}
 
 /**
  * Add one settled trade to `history` (an object keyed by item, each an array of daily buckets in day order):
