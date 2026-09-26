@@ -9,6 +9,12 @@ function pinRandom(value) {
   return vi.spyOn(Math, "random").mockReturnValue(value);
 }
 
+/** Math.random answering these values in turn, then the last one for ever (AB#2296: one draw per event). */
+function pinRandomSequence(values) {
+  let i = 0;
+  return vi.spyOn(Math, "random").mockImplementation(() => values[Math.min(i++, values.length - 1)]);
+}
+
 describe("applyMiningOperations", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -256,8 +262,10 @@ describe("applyMiningOperations", () => {
 
       const ext = corp.mining.silicateExtractors[0];
       expect(ext.downtimeActive).toBe(true);
-      expect(ext.downtimeStartedAt).toBe(start + 6 * 60 * 1000);
-      expect(ext.totalMined).toBe(0); // mining paused on the trigger tick
+      // AB#2296: a roll of 0 is a breakdown at once, so it started where settling began, not when the account was read.
+      expect(ext.downtimeStartedAt).toBe(start);
+      expect(ext.totalMined).toBe(0);
+      expect(ext.lastTickAt).toBe(start + 6 * 60 * 1000);
     });
 
     it("does not allow recovery before the 15-minute minimum downtime", () => {
@@ -285,8 +293,8 @@ describe("applyMiningOperations", () => {
       expect(corp.mining.silicateExtractors[0].downtimeActive).toBe(true);
     });
 
-    it("recovers from downtime after the minimum window when the roll succeeds", () => {
-      pinRandom(0); // any roll < tickProb recovers
+    it("recovers from downtime after the minimum window when the roll succeeds, and mines from the recovery on", () => {
+      pinRandomSequence([0, 0.999]); // recovery at once when the minimum is over; then no further breakdown
       const start = 1_700_000_000_000;
       const downStart = start;
       const corp = makeCorp({
@@ -312,16 +320,15 @@ describe("applyMiningOperations", () => {
       const ext = corp.mining.silicateExtractors[0];
       expect(ext.downtimeActive).toBe(false);
       expect(ext.downtimeStartedAt).toBeNull();
-      expect(ext.downtimeRecoveredAt).toBe(now);
+      // AB#2296: recovered when the 15 minutes were up, not when the account was next read, and mined the minute since.
+      expect(ext.downtimeRecoveredAt).toBe(downStart + 15 * 60 * 1000);
       expect(ext.lastTickAt).toBe(now);
+      expect(ext.totalMined).toBe(10); // 600 t/h for one minute
     });
 
     it("industrial-safety tech reduces downtime probability", () => {
-      // Pick a random value that is between the safety-reduced threshold and
-      // the unsafe threshold for a 6-minute tick at base risk.
-      // base p/sec = 0.00005; safety = base * 0.92 = 0.000046
-      // 360 sec → tickProb_base ≈ 0.01784  ;  tickProb_safe ≈ 0.01642
-      // Any random in (0.01642, 0.01784) triggers without safety, not with.
+      // A roll of 0.0170 puts the breakdown ln(0.983) / ln(1 - p) seconds in (AB#2296): at base risk (p = 0.00005)
+      // about 343 s, inside a 6-minute tick; with safety (p = 0.000046) about 373 s, after it.
       pinRandom(0.0170);
       const start = 1_700_000_000_000;
 
@@ -426,4 +433,66 @@ describe("running costs are the same however the time is sliced (Bug #1138)", ()
     expect(ext.costRemainder).toBeGreaterThan(0.17);
     expect(ext.costRemainder).toBeLessThan(1);
   });
+});
+
+// AB#2296: a breakdown drawn while settling a long interval forfeited the whole interval, so a cycle's output depended
+// on how often the account was read (the class Bug #1138 fixed for fees). Now the breakdown falls at a drawn moment
+// inside the interval, and what came before it is mined.
+describe("breakdowns fall inside the interval, and output does not depend on how often it is read (AB#2296)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const HOUR = 60 * 60 * 1000;
+  const P = 0.00005; // extractorDowntimeProbPerSec with no research
+  function hourCorp(start) {
+    return makeCorp({
+      finances: { credits: 1_000_000, dailyRevenue: 0 },
+      miningLeases: [{ id: "lease-1", body: "Earth" }],
+      mining: {
+        silicateExtractors: [makeExtractor({ startedAt: start, lastTickAt: start, endsAt: start + HOUR, throughputPerHour: 120, operationCostPerHour: 0, leaseId: "lease-1" })]
+      }
+    });
+  }
+
+  it("a breakdown drawn 50 minutes into an hour settled in one call still yields those 50 minutes: 100 t", () => {
+    const start = 1_700_000_000_000;
+    // The roll that puts the first breakdown 3,000 s in: P(within s) = 1 - (1 - p)^s.
+    pinRandom(1 - Math.pow(1 - P, 3000));
+    const corp = hourCorp(start);
+    applyMiningOperations(corp, start + HOUR);
+    const ext = corp.mining.silicateExtractors[0];
+    expect(ext.totalMined).toBe(100);
+    expect(ext.downtimeActive).toBe(true);
+    expect(ext.downtimeStartedAt).toBe(start + 50 * 60 * 1000);
+  });
+
+  it("an hour settled in one call and in 720 calls five seconds apart mines the same on average", () => {
+    // A seeded generator (mulberry32) in place of Math.random, so the comparison is the same on every run.
+    const seeded = (seed) => () => {
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const RUNS = 1000;
+    const start = 1_700_000_000_000;
+    const minedIn = (stepMs, seed) => {
+      vi.spyOn(Math, "random").mockImplementation(seeded(seed));
+      const corp = hourCorp(start);
+      for (let t = start + stepMs; t <= start + HOUR; t += stepMs) applyMiningOperations(corp, t);
+      vi.restoreAllMocks();
+      return corp.mining.silicateExtractors[0].totalMined;
+    };
+    let once = 0;
+    let sliced = 0;
+    for (let r = 0; r < RUNS; r++) {
+      once += minedIn(HOUR, 1 + r);
+      sliced += minedIn(5_000, 100_001 + r);
+    }
+    const meanOnce = once / RUNS;
+    const meanSliced = sliced / RUNS;
+    // Without breakdowns an hour is 120 t; about one hour in six has one, so the mean sits a little below.
+    expect(meanOnce).toBeGreaterThan(100);
+    expect(meanOnce).toBeLessThan(120);
+    expect(Math.abs(meanOnce - meanSliced) / meanSliced, `one call ${meanOnce.toFixed(2)} t, sliced ${meanSliced.toFixed(2)} t`).toBeLessThan(0.03);
+  }, 120_000);
 });
