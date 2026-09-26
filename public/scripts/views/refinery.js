@@ -12,16 +12,12 @@ import { clientPrices } from "../clientPrices.js";
 import { refineryMultiplierFor, refineryOutput } from "../refineryOutput.js"; // ISP-97 (AB#787), AB#794: output by tier
 import { cycleProgressPercent, pushFeedback, updateAllViews } from "./shared.js";
 
-// TODO(AB#824): Remove duplicate. This should be stored in the database
-export const RESOURCE_CATALOG = [
-  "Silicates", "Helium-3", "Nickel", "Titanium", "Carbon",
-  "Water Ice", "Rare Earths", "Thorium", "Hydrogen", "Lithium",
-  "Cobalt", "Uranium", "Exotic Matter"
-];
 
 export function renderRefinery(data) {
   const catalog = document.getElementById("resource-catalog");
-  catalog.innerHTML = RESOURCE_CATALOG.map((res) => `<li class="ui-badge">${escapeHtml(res)}</li>`).join("");
+  // AB#2353: data/refinery-chains.json's list, sent with the world (server/game/shape.js); the page kept a copy of it,
+  // and the copy missed Iron Ore when AB#831 added it.
+  catalog.innerHTML = (data.world?.resourceCatalog || []).map((res) => `<li class="ui-badge">${escapeHtml(res)}</li>`).join("");
 
   const refineries = data.corp?.refineries || [];
   const corp = data.corp || {};
