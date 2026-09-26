@@ -66,7 +66,7 @@ for (const viewport of VIEWPORTS) {
     await expect(page.locator("#dialogue-modal")).toBeHidden();
 
     await openTab(page, "rnd");
-    const rows = page.locator("#rnd-tech-tree .rnd-row");
+    const rows = page.locator("#rnd-tech-tree .research__node");
     await expect(rows.first(), "the tech tree (GET /api/research, data/research.json) must render at least one node").toBeVisible();
 
     expect(researchResponse, "the client must have called GET /api/research to populate this tab").toBeTruthy();
@@ -76,8 +76,8 @@ for (const viewport of VIEWPORTS) {
     await expect(rows).toHaveCount(body.nodes.length);
 
     // Tier 1 nodes have no prereqs and no corp-level gate, so at least one row is available with cost/duration shown.
-    await expect(page.locator("#rnd-tech-tree .rnd-row--available").first()).toBeVisible();
-    await expect(page.locator(".rnd-enqueue-btn").first()).toBeVisible();
+    await expect(page.locator("#rnd-tech-tree .research__node--available").first()).toBeVisible();
+    await expect(page.locator(".research__enqueue").first()).toBeVisible();
 
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "01-rnd-tech-tree", viewport.width);

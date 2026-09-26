@@ -1,5 +1,5 @@
 // The Refinery Chains tab.
-// AB#739 (ISP-53): everything here moved from app.js unchanged.
+// AB#739 (ISP-53): everything here moved from app.js unchanged. ISP-79 (AB#768): drawn from the design system.
 
 import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
@@ -20,7 +20,7 @@ export const RESOURCE_CATALOG = [
 
 export function renderRefinery(data) {
   const catalog = document.getElementById("resource-catalog");
-  catalog.innerHTML = RESOURCE_CATALOG.map((res) => `<span class="pill">${escapeHtml(res)}</span>`).join("");
+  catalog.innerHTML = RESOURCE_CATALOG.map((res) => `<li class="ui-badge">${escapeHtml(res)}</li>`).join("");
 
   const refineries = data.corp?.refineries || [];
   const corp = data.corp || {};
@@ -43,7 +43,7 @@ export function renderRefinery(data) {
   const activeEl = document.getElementById("refinery-active-runs");
   const activeRefineries = refineries.filter((r) => r.active);
   if (!activeRefineries.length) {
-    activeEl.innerHTML = `<article class="queue-item"><p class="muted">${hasRefinery ? "No active refinery cycles. Start a production run below." : "Build a Refinery to begin processing raw materials."}</p></article>`;
+    activeEl.innerHTML = `<div class="ui-state"><p class="ui-state__title">${hasRefinery ? "No active refinery cycles." : "No refinery yet."}</p><p class="ui-state__why">${hasRefinery ? "Start a production run below." : "Build a Refinery to begin processing raw materials."}</p></div>`;
   } else {
     activeEl.innerHTML = activeRefineries.map((ref) => {
       const chain = refineryChains.find((c) => c.id === ref.chainId);
@@ -58,13 +58,14 @@ export function renderRefinery(data) {
       // Bug #692: outputs land where the inputs came from, whatever station the corporation is at when the cycle ends.
       const deliveryStation = (appState.stationRegistry || []).find((s) => s.id === ref.stationId);
       const deliveryLabel = deliveryStation?.name || ref.stationId || "an unknown station";
+      const name = `${ref.name}${Number(ref.tier) >= 2 ? " · Refinery Complex" : ""}`;
       return `
-        <article class="queue-item">
-          <h3>${escapeHtml(ref.name)}${Number(ref.tier) >= 2 ? " &middot; Refinery Complex" : ""}</h3>
-          <p class="muted">Processing: ${chain ? `${totalInput.toLocaleString()} ${escapeHtml(chain.input)}` : "Unknown"} → ${escapeHtml(outputLabel)}</p>
-          <p class="muted">Delivers to: ${escapeHtml(deliveryLabel)}</p>
-          <p class="muted">Remaining: ${formatDurationHours(remainingMs)} (${progress.toFixed(1)}%)</p>
-          <div class="progress-wrap"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
+        <article class="ui-card">
+          <h4 class="ui-card__title">${escapeHtml(name)}</h4>
+          <p class="ui-card__body">Processing: ${chain ? `${totalInput.toLocaleString()} ${escapeHtml(chain.input)}` : "Unknown"} → ${escapeHtml(outputLabel)}</p>
+          <p class="ui-card__meta">Delivers to: ${escapeHtml(deliveryLabel)}</p>
+          <p class="ui-card__meta research__timing"><span class="ui-figure">${progress.toFixed(1)}%</span><span>${formatDurationHours(remainingMs)} remaining</span></p>
+          <div class="progress-wrap" role="progressbar" aria-label="${escapeHtml(name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress)}"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
         </article>
       `;
     }).join("");
@@ -74,18 +75,21 @@ export function renderRefinery(data) {
   const chainsEl = document.getElementById("refinery-chains");
   // Capture which refine-quantity input has focus (and its caret) so we can
   // restore it after re-rendering — otherwise periodic re-renders steal focus.
-  const focusedInput = document.activeElement && document.activeElement.classList?.contains("refine-quantity-input")
+  const focusedInput = document.activeElement && document.activeElement.classList?.contains("refinery__quantity")
     ? {
         id: document.activeElement.id,
         selStart: document.activeElement.selectionStart,
         selEnd: document.activeElement.selectionEnd
       }
     : null;
+  // The last start or build outcome, above the chains: a tone class, never a colour written here.
   const statusHtml = refineryStatus?.text
-    ? `<article class="queue-item"><p class="muted" style="color:${refineryStatus.type === "ok" ? "var(--accent)" : "var(--warn)"}">${escapeHtml(refineryStatus.text)}</p></article>`
+    ? `<p class="refinery__status refinery__status--${refineryStatus.type === "ok" ? "ok" : "warn"}" role="status">${escapeHtml(refineryStatus.text)}</p>`
     : "";
+  const statusEl = document.getElementById("refinery-status");
+  if (statusEl) statusEl.innerHTML = statusHtml;
 
-  chainsEl.innerHTML = statusHtml + refineryChains
+  chainsEl.innerHTML = refineryChains
     .map((chain) => {
       const techGated = Array.isArray(chain.requiresTechIds) && !chain.requiresTechIds.every((t) => unlockedTech.has(t));
       const outputLabel = Array.isArray(chain.outputs)
@@ -105,36 +109,35 @@ export function renderRefinery(data) {
       const fieldValue = refineQuantityFieldValue(appState.refineQuantityOverrides[chain.id], computedDefault);
       const quantityError = appState.refineQuantityErrors[chain.id];
       const inputId = `refine-qty-${chain.id}`;
+      const errorId = `${inputId}-error`;
 
       return `
-        <section class="data-card">
-          <h3>${escapeHtml(chain.input)} Refining</h3>
-          <p class="muted">${perCycle} ${escapeHtml(chain.input)} per batch → ${escapeHtml(outputLabel)}</p>
-          <p class="muted">Cycle: ${chain.cycleDurationHours || "?"}h per batch</p>
+        <section class="ui-card refinery__chain">
+          <h4 class="ui-card__title">${escapeHtml(chain.input)} Refining</h4>
+          <p class="ui-card__body">${perCycle} ${escapeHtml(chain.input)} per batch → ${escapeHtml(outputLabel)}</p>
+          <p class="ui-card__meta">Cycle: ${chain.cycleDurationHours || "?"}h per batch</p>
           ${techGated
             // ISP-292 (AB#1761): a requirement not yet met, not a warning — the muted token, not amber.
-            ? `<p class="muted">Requires: ${escapeHtml((chain.requiresResearch || []).join(", "))}</p>`
-            : `<p class="muted" style="color:var(--accent)">Research: ✓ Unlocked</p>`
+            ? `<p class="ui-card__meta">Requires: ${escapeHtml((chain.requiresResearch || []).join(", "))}</p>`
+            : `<p class="ui-card__meta"><span class="ui-badge ui-badge--success">Research unlocked</span></p>`
           }
-          <p class="muted">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(chain.input)}${!hasInput && !techGated ? ` (need ${minQty})` : ""}</p>
+          <p class="ui-card__meta">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(chain.input)}${!hasInput && !techGated ? ` (need ${minQty})` : ""}</p>
           ${canStart
-            ? `<div class="refine-quantity-row" style="display:flex;gap:0.5rem;align-items:center;margin:0.5rem 0;">
-                <label for="${escapeHtml(inputId)}" class="muted" style="font-size:0.85rem;">Quantity</label>
-                <input id="${escapeHtml(inputId)}" class="refine-quantity-input" type="number"
-                  min="${minQty}" step="${perCycle}" value="${escapeHtml(fieldValue)}"
-                  data-chain-id="${escapeHtml(chain.id)}"
-                  style="width:9rem;padding:0.3rem 0.5rem;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px;" />
-                <span class="muted" style="font-size:0.8rem;">min ${minQty}, step ${perCycle}</span>
+            ? `<div class="ui-field">
+                <label for="${escapeHtml(inputId)}" class="ui-field__label">Quantity</label>
+                <input id="${escapeHtml(inputId)}" class="ui-input refinery__quantity" type="number"
+                  min="${minQty}" step="${perCycle}" value="${escapeHtml(fieldValue)}" data-chain-id="${escapeHtml(chain.id)}"${quantityError ? ` aria-invalid="true" aria-describedby="${escapeHtml(errorId)}"` : ""} />
+                <span class="ui-field__hint">Min ${minQty}, step ${perCycle}</span>
+                ${quantityError ? `<p id="${escapeHtml(errorId)}" class="ui-field__error" role="alert">${escapeHtml(quantityError)}</p>` : ""}
               </div>
-              ${quantityError ? `<p class="refine-quantity-error" role="alert" style="color:var(--warn);margin:0 0 0.5rem;">${escapeHtml(quantityError)}</p>` : ""}
-              <button class="btn btn-accent refinery-start-btn" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}" data-per-cycle="${perCycle}" data-input="${escapeHtml(chain.input)}" data-available="${inputAvailable}" data-hours="${Number(chain.cycleDurationHours) || 0}">Start Run</button>`
+              <button class="ui-button ui-button--secondary refinery__start" type="button" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}" data-per-cycle="${perCycle}" data-input="${escapeHtml(chain.input)}" data-available="${inputAvailable}" data-hours="${Number(chain.cycleDurationHours) || 0}">Start Run</button>`
             : belowRefineryCap && canBuildRefinery
               ? refineryBuildButtonHtml({ hasRefinery, used: buildings.length, slots: buildingSlots })
               : !hasRefinery && !canBuildRefinery
                 // ISP-292 (AB#1761): a requirement not yet met, not a warning — the muted token, not amber.
-                ? `<p class="muted">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>`
+                ? `<p class="ui-card__meta">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>`
                 : hasRefinery && !idleRefinery
-                  ? `<p class="muted" style="color:var(--warn)">All refineries busy.</p>`
+                  ? `<p class="ui-card__meta"><span class="ui-badge ui-badge--warn">All refineries busy</span></p>`
                   : ""
           }
         </section>
@@ -145,7 +148,7 @@ export function renderRefinery(data) {
   // ── Event delegation for start/build ──
   // Track quantity edits so re-renders (every few seconds) don't blow them away.
   chainsEl.oninput = (e) => {
-    const qty = e.target.closest(".refine-quantity-input");
+    const qty = e.target.closest(".refinery__quantity");
     if (!qty) return;
     const chainId = qty.getAttribute("data-chain-id");
     if (!chainId) return;
@@ -167,7 +170,7 @@ export function renderRefinery(data) {
   }
 
   chainsEl.onclick = async (e) => {
-    const startBtn = e.target.closest(".refinery-start-btn");
+    const startBtn = e.target.closest(".refinery__start");
     if (startBtn && appState.accountId) {
       const chainId = startBtn.getAttribute("data-chain-id");
       const refineryId = startBtn.getAttribute("data-refinery-id");
@@ -215,7 +218,7 @@ export function renderRefinery(data) {
       return;
     }
 
-    const buildBtn = e.target.closest(".refinery-build-btn");
+    const buildBtn = e.target.closest(".refinery__build");
     if (buildBtn) {
       const disabledReason = buildBtn.getAttribute("data-disabled-reason");
       if (disabledReason) {

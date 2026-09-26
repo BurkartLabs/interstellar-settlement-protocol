@@ -78,7 +78,7 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
 
       // ── queueing research ───────────────────────────────────────────────────
       await openTab(page, "rnd");
-      await page.click('.rnd-enqueue-btn[data-tech-id="tt-basic-extraction"]');
+      await page.click('.research__enqueue[data-tech-id="tt-basic-extraction"]');
       await expect(page.locator("#action-receipt-title")).toHaveText("Research Queued", { timeout: 10_000 });
       await expect(page.locator("#action-receipt-body")).toContainText("Basic Extraction Analytics");
       await expect(page.locator("#action-receipt-body")).toContainText(/Completes\s*\d+ \w+, \d\d:\d\d UTC/);
@@ -89,7 +89,7 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
       // A refusal is an error, not a confirmation: the same research again is refused, and no receipt appears.
       await openTab(page, "overview");
       await openTab(page, "rnd");
-      const again = page.locator('.rnd-enqueue-btn[data-tech-id="tt-basic-extraction"]');
+      const again = page.locator('.research__enqueue[data-tech-id="tt-basic-extraction"]');
       // Queued research usually loses its enqueue button; when one is still there and enabled, press it.
       if ((await again.count()) > 0 && (await again.first().isEnabled())) {
         await again.click();

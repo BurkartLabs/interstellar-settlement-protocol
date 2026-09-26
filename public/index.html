@@ -553,51 +553,68 @@
             </section>
           </article>
 
-          <article id="rnd" class="tab-panel">
-            <h2>Corporate R&D</h2>
-            <p class="muted">One technology researches at a time. Queue additional nodes — they activate automatically when the active slot clears.</p>
-            <div class="rnd-panel">
-              <div class="rnd-panel__section rnd-panel__section--queue">
-                <p class="rnd-panel__label">ACTIVE &amp; QUEUED</p>
-                <div id="rnd-queue" class="queue-list"></div>
-              </div>
-              <div class="rnd-panel__section rnd-panel__section--available">
-                <p class="rnd-panel__label">AVAILABLE RESEARCH</p>
-                <div id="rnd-tech-tree"></div>
-                <p id="rnd-status" class="muted rnd-status-note"></p>
-              </div>
-            </div>
-            <!-- Ghost form: submit logic only, visually hidden -->
-            <form id="rnd-form" class="rnd-form-ghost">
+          <article id="rnd" class="tab-panel ui-screen">
+            <!-- ISP-79 (AB#768): on the design system, in the flat direction (Decision AB#1801). -->
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title">Corporate R&amp;D</h2>
+              <p class="ui-screen__lede">One technology researches at a time. Queue more and each one starts when the slot before it clears.</p>
+            </header>
+            <section class="ui-panel" aria-labelledby="rnd-queue-title">
+              <header class="ui-panel__header"><h3 id="rnd-queue-title" class="ui-panel__title">Active and queued</h3></header>
+              <div id="rnd-queue" class="ui-panel__body ui-stack"></div>
+            </section>
+            <section class="ui-panel" aria-labelledby="rnd-tree-title">
+              <header class="ui-panel__header">
+                <h3 id="rnd-tree-title" class="ui-panel__title">Research</h3>
+                <p id="rnd-status" class="ui-panel__meta" role="status"></p>
+              </header>
+              <div id="rnd-tech-tree" class="ui-panel__body ui-grid"></div>
+            </section>
+            <!-- The submit logic only: each Enqueue button picks its node here and submits. Never shown. -->
+            <form id="rnd-form" hidden>
               <select id="rnd-select" required></select>
-              <button class="btn btn-accent" type="submit"></button>
+              <button type="submit">Queue research</button>
               <p id="rnd-selected-details"></p>
             </form>
           </article>
 
-          <article id="ceo" class="tab-panel">
-            <h2>CEO Insight Program</h2>
-            <p class="muted">Personal executive development programs that grant permanent corporate bonuses.</p>
-            <h3>Active Research</h3>
-            <div id="ceo-queue" class="queue-list"></div>
-            <h3 style="margin-top:1.5rem">Programs</h3>
-            <div id="ceo-insight-tree"></div>
+          <article id="ceo" class="tab-panel ui-screen">
+            <!-- ISP-79 (AB#768): on the design system, in the flat direction (Decision AB#1801). -->
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title">CEO Insight Program</h2>
+              <p class="ui-screen__lede">Personal executive development programs that grant permanent corporate bonuses. One runs at a time.</p>
+            </header>
+            <section class="ui-panel" aria-labelledby="ceo-queue-title">
+              <header class="ui-panel__header"><h3 id="ceo-queue-title" class="ui-panel__title">Active program</h3></header>
+              <div id="ceo-queue" class="ui-panel__body ui-stack"></div>
+            </section>
+            <section class="ui-panel" aria-labelledby="ceo-tree-title">
+              <header class="ui-panel__header"><h3 id="ceo-tree-title" class="ui-panel__title">Programs</h3></header>
+              <div id="ceo-insight-tree" class="ui-panel__body ui-grid"></div>
+            </section>
           </article>
 
-          <article id="refinery" class="tab-panel">
-            <h2>Refinery Chains</h2>
-            <p class="muted">
-              Process raw materials into refined goods. Requires a Refinery building and completed R&D.
-            </p>
-
-            <h3>Active Runs</h3>
-            <div id="refinery-active-runs" class="queue-list"></div>
-
-            <h3 style="margin-top:1.5rem">Available Chains</h3>
-            <div id="refinery-chains" class="card-grid"></div>
-
-            <h3 style="margin-top:1.5rem">Resource Catalog</h3>
-            <div id="resource-catalog" class="pill-grid"></div>
+          <article id="refinery" class="tab-panel ui-screen">
+            <!-- ISP-79 (AB#768): on the design system, in the flat direction (Decision AB#1801). -->
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title">Refinery Chains</h2>
+              <p class="ui-screen__lede">Process raw materials into refined goods. Requires a Refinery building and completed R&amp;D.</p>
+            </header>
+            <section class="ui-panel" aria-labelledby="refinery-runs-title">
+              <header class="ui-panel__header"><h3 id="refinery-runs-title" class="ui-panel__title">Active runs</h3></header>
+              <div id="refinery-active-runs" class="ui-panel__body ui-stack"></div>
+            </section>
+            <section class="ui-panel" aria-labelledby="refinery-chains-title">
+              <header class="ui-panel__header"><h3 id="refinery-chains-title" class="ui-panel__title">Available chains</h3></header>
+              <div class="ui-panel__body ui-stack">
+                <div id="refinery-status"></div>
+                <div id="refinery-chains" class="ui-grid"></div>
+              </div>
+            </section>
+            <section class="ui-panel" aria-labelledby="resource-catalog-title">
+              <header class="ui-panel__header"><h3 id="resource-catalog-title" class="ui-panel__title">Resource catalog</h3></header>
+              <ul id="resource-catalog" class="ui-panel__body refinery__catalog"></ul>
+            </section>
           </article>
 
           <article id="market" class="tab-panel ui-screen">
@@ -809,17 +826,23 @@
             </section>
           </article>
 
-          <article id="assets" class="tab-panel">
-            <h2>Corporate Assets</h2>
-            <div id="assets-station-banner"></div>
-            <div id="assets-content"></div>
+          <article id="assets" class="tab-panel ui-screen">
+            <!-- ISP-79 (AB#768): on the design system, in the flat direction (Decision AB#1801). -->
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title">Corporate Assets</h2>
+              <p class="ui-screen__lede">What the corporation holds, and where: goods at every station, and its offices, leases and extractors.</p>
+            </header>
+            <div id="assets-content" class="ui-stack"></div>
           </article>
 
-          <article id="logistics" class="tab-panel">
-            <h2>Interstellar Logistics</h2>
-            <div id="logistics-station-banner"></div>
-            <p class="lede muted">Transfer resources between stations for a logistics fee.</p>
-            <div id="logistics-content"></div>
+          <article id="logistics" class="tab-panel ui-screen">
+            <!-- ISP-79 (AB#768): on the design system, in the flat direction (Decision AB#1801). -->
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title">Interstellar Logistics</h2>
+              <p class="ui-screen__lede">Transfer resources between stations for a logistics fee.</p>
+              <p id="logistics-docked" class="ui-screen__meta"></p>
+            </header>
+            <div id="logistics-content" class="ui-stack"></div>
           </article>
 
           <article id="chat" class="tab-panel">

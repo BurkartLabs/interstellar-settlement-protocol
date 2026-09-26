@@ -166,7 +166,7 @@ for (const viewport of VIEWPORTS) {
 
     // ── research: queue Basic Extraction Analytics ─────────────────────────
     await openTab(page, "rnd");
-    await page.click('.rnd-enqueue-btn[data-tech-id="tt-basic-extraction"]');
+    await page.click('.research__enqueue[data-tech-id="tt-basic-extraction"]');
     await acknowledgeReceipt(page); // AB#744: the research receipt
     await expectFeedback(page, /research|queue|analytics/i);
     if (mobile) await assertNoHorizontalScroll(page);
