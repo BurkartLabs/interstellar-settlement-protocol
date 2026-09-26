@@ -79,7 +79,8 @@ export function resolveMetric(metric, corp) {
   // building:<name> — boolean: has at least one
   if (metric.startsWith("building:")) {
     const name = metric.slice(9);
-    return buildings.some((b) => b.name === name) ? 1 : 0;
+    // ISP-97 (AB#787): an upgrade (the Refinery Complex) is recorded on the building it upgraded, which keeps its name.
+    return buildings.some((b) => b.name === name || (Array.isArray(b.upgrades) && b.upgrades.includes(name))) ? 1 : 0;
   }
 
   // building-count:<name> — count of matching buildings

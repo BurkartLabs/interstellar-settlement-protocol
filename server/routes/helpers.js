@@ -39,6 +39,8 @@ const corpSlotsFull = (corp) => corporationSlotsFullMessage(corp, unleasedFor(co
 // POST /gameplay/build and the three old build routes are this handler; server/construction.js holds the rules, this
 // says what happened, in the words each old route used.
 
+/** The name of the building an upgrade upgrades, from the catalogue. */
+const upgradedName = (building) => PLAYER_BUILDING_CATALOGUE.find((b) => b.id === building.upgrades)?.name || "building";
 const researchNames = (building) => building.researchGates.map((id) => RESEARCH_LIBRARY[id]?.name || id).join(" and ");
 
 /** Where an old route said a refusal its own way, its words, kept so the client reads what it always read. */
@@ -68,7 +70,11 @@ function refusalMessage(outcome, building, corp, leaseId) {
     case "no-lease": return "The specified lease could not be found on your account.";
     case "not-on-lease": return `The ${building.name} is not built on a lease. Build it without choosing one.`;
     case "missing-research": return `${building.name} construction requires ${researchNames(building)} research.`;
-    case "at-cap": return `You already operate the maximum of ${building.cap.perCorporation} of the ${building.name}.`;
+    case "at-cap":
+      // ISP-97 (AB#787): an upgrade's cap is per building it upgrades.
+      if (building.slot === "upgrade") return `Every ${upgradedName(building)} you have is already a ${building.name}.`;
+      return `You already operate the maximum of ${building.cap.perCorporation} of the ${building.name}.`;
+    case "nothing-to-upgrade": return `The ${building.name} upgrades a ${upgradedName(building)}: build one first.`;
     case "lease-slots-full": return leaseSlotsFullMessage(corp, (corp.miningLeases || []).find((l) => l.id === leaseId), unleasedFor(corp));
     case "no-corp-slot": return `The ${building.name} needs a free building slot. ${corpSlotsFull(corp)}`;
     case "insufficient-credits": return fundingRequirementMessage(`${building.name} construction`, corp, building.cost);

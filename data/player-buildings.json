@@ -39,6 +39,17 @@
       "cap": { "perCorporation": 1 },
       "effect": "Returning mining probes deposit a quarter more Nickel and Titanium, the inputs to the nickel and titanium refinery chains.",
       "since": "0.6"
+    },
+    {
+      "id": "refinery-complex",
+      "name": "Refinery Complex",
+      "price": "refineryComplex",
+      "slot": "upgrade",
+      "upgrades": "refinery",
+      "researchGates": ["tt-nano-lattice"],
+      "cap": { "perBuilding": 1 },
+      "effect": "Upgrades one Refinery in place: its production runs deliver half as much again of every output.",
+      "since": "0.6"
     }
   ]
 }
