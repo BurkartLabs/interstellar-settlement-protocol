@@ -108,3 +108,11 @@ describe("no player-facing copy mentions the demo account (Bug #1059)", () => {
     expect(page.slice(page.indexOf("if (loginForm)"))).not.toMatch(/dummy account|demo account|sandbox/i);
   });
 });
+
+describe("a verification email that could not be sent (AB#989)", () => {
+  it("shows the server's own words, not \"failed on our side\"", async () => {
+    const { registerErrorMessage } = await import("../../public/scripts/authMessages.js");
+    const payload = { error: "We could not send your verification email just now, so nothing was registered. Try again in a few minutes.", code: "mail-failed" };
+    expect(registerErrorMessage(503, payload)).toEqual({ text: payload.error });
+  });
+});
