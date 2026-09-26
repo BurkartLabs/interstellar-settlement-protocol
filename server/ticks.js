@@ -12,6 +12,7 @@ import { scheduleRndQueue, rndItemStatus } from "../public/scripts/rndQueue.js";
 import { refreshDailyExpenses } from "./finances.js"; // Bug #1022 (placed apart from the import below, which parallel PRs append to)
 import { buildSnapshot, pushSnapshot, refreshDailyRevenue } from "./finances.js";
 import { recordTransfer, describeLines } from "../public/scripts/logistics.js";
+import { beltRespawnTick } from "./game/belts.js"; // AB#2329
 import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
 import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
 import { expeditionNotificationBody, expeditionPlaces } from "./expeditionText.js"; // AB#1295
@@ -361,6 +362,13 @@ function financialSnapshotTick() {
 // ─── Shipment arrival tick ────────────────────────────────────────────────────
 // Mirrors travelTick: goods dispatched above arrive here, on the first tick at or after arrivesAt, exactly once
 // (delivered shipments are dropped from corp.shipments in the same pass that credits the destination).
+/** AB#2329: the hourly draw for every empty belt slot; run often, it draws only at each hour boundary it has passed. */
+function beltTick(now = Date.now()) {
+  let spawned = [];
+  mutateState((draft) => { spawned = beltRespawnTick(draft, now); });
+  return spawned;
+}
+
 function shipmentTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
@@ -409,4 +417,4 @@ function shipmentTick() {
   }
 }
 
-export { checkAndResetNpcBuyOrders, miningTick, refineryTick, asteroidExpeditionTick, fabricationTick, travelTick, processRndCompletions, processCeoInsightCompletions, financialSnapshotTick, FINANCIAL_SNAPSHOT_INTERVAL_MS, shipmentTick };
+export { beltTick, checkAndResetNpcBuyOrders, miningTick, refineryTick, asteroidExpeditionTick, fabricationTick, travelTick, processRndCompletions, processCeoInsightCompletions, financialSnapshotTick, FINANCIAL_SNAPSHOT_INTERVAL_MS, shipmentTick };

@@ -30,7 +30,8 @@ export const TICKERS = [
   { name: "processRndCompletions", intervalMs: 5_000 },
   { name: "processCeoInsightCompletions", intervalMs: 5_000 },
   { name: "checkAndResetNpcBuyOrders", intervalMs: 60_000 },
-  { name: "financialSnapshotTick", intervalMs: 30_000 }
+  { name: "financialSnapshotTick", intervalMs: 30_000 },
+  { name: "beltTick", intervalMs: 60_000 }                  // AB#2329
 ];
 
 /** The budget: a ticker may use at most half its own interval at 1,000 corporations; a state write at most 1 second. */

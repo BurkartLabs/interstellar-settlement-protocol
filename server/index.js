@@ -13,7 +13,7 @@ import { FORUM_CATEGORIES } from "./gameState.js";
 import { app, __dirname, DEV_SURFACE, server, io } from "./app.js";
 import { requireAuth, requireAccountAccess, verifyAccessToken, getBearerToken } from "./auth.js";
 import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
-import { checkAndResetNpcBuyOrders, miningTick, refineryTick, asteroidExpeditionTick, fabricationTick, travelTick, processRndCompletions, processCeoInsightCompletions, financialSnapshotTick, FINANCIAL_SNAPSHOT_INTERVAL_MS, shipmentTick } from "./ticks.js";
+import { beltTick, checkAndResetNpcBuyOrders, miningTick, refineryTick, asteroidExpeditionTick, fabricationTick, travelTick, processRndCompletions, processCeoInsightCompletions, financialSnapshotTick, FINANCIAL_SNAPSHOT_INTERVAL_MS, shipmentTick } from "./ticks.js";
 import { registerRealtime } from "./realtime.js";
 import { registerCatalogRoutes } from "./routes/catalog.js";
 import { registerAuthRoutes } from "./routes/auth.js";
@@ -132,6 +132,8 @@ registerCorporationRoutes(app);
 registerLogisticsRoutes(app);
 
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(shipmentTick, 5000); // Every 5 seconds
+// AB#2329: an empty belt slot draws on the hour; checked every minute, so a draw is at most a minute late.
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(beltTick, 60_000);
 
 registerMiningRoutes(app);
 
@@ -203,6 +205,7 @@ process.on("SIGINT", onShutdown);
 export default app;
 export { app, server, io };
 export {
+  beltTick,
   miningTick,
   refineryTick,
   asteroidExpeditionTick,

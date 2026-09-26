@@ -33,9 +33,11 @@ describe("docs/design/belts.md (AB#1050)", () => {
 
 describe("the belt model reads the game, not a copy of it (AB#1050)", () => {
   it("the base yield, the rarity multipliers and the production durations are the code's", () => {
-    expect(asteroids).toMatch(new RegExp(`const baseYieldPerMin = ${CODE_RULES.baseYieldPerMin.value};`));
-    const m = CODE_RULES.rarityYieldMultiplier.value;
-    expect(asteroids).toContain(`RARITY_YIELD_MULTIPLIER = { common: ${m.common.toFixed(1)}, uncommon: ${m.uncommon}, rare: ${m.rare}, exotic: ${m.exotic} }`);
+    // AB#2329: the base yield and the multipliers are server/game/beltRules.js's, which the model imports and the
+    // expedition code uses; the durations are still read as text, since the module picks them by NODE_ENV.
+    expect(asteroids).toMatch(/import \{ BASE_YIELD_PER_MIN, RARITY_YIELD_MULTIPLIER \} from "\.\/beltRules\.js";/);
+    expect(asteroids).toContain("tickMinutes * BASE_YIELD_PER_MIN * rarityMult");
+    expect(CODE_RULES.baseYieldPerMin.value).toBe(3);
     const h = CODE_RULES.expeditionHours.value;
     expect(asteroids).toContain(`ms: ${h.short * 60} * 60 * 1000, tickYieldMultiplier: 1`);
     expect(asteroids).toContain(`ms: ${h.standard * 60} * 60 * 1000, tickYieldMultiplier: 1`);
@@ -46,12 +48,12 @@ describe("the belt model reads the game, not a copy of it (AB#1050)", () => {
 describe("the belt rules (AB#1050)", () => {
   it("a system's distribution sums to 1, peaks at its label and keeps every tier possible", () => {
     for (const label of DESIGN.tiers) {
-      const d = rarityDistribution(label);
+      const d = rarityDistribution(label, economy.belts.rarityStepWeight);
       expect(Object.values(d).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 12);
       expect(Math.max(...Object.values(d))).toBe(d[label]);
       for (const t of DESIGN.tiers) expect(d[t]).toBeGreaterThan(0);
     }
-    expect(rarityDistribution("common").exotic).toBeCloseTo(0.0118, 4); // an exotic belt in Sol: possible, rare
+    expect(rarityDistribution("common", economy.belts.rarityStepWeight).exotic).toBeCloseTo(0.0118, 4); // an exotic belt in Sol: possible, rare
   });
 
   it("each tier's template comes from today's belts of that label and sums to 1", () => {
@@ -63,7 +65,7 @@ describe("the belt rules (AB#1050)", () => {
   it("a belt holds the design's number of standard expeditions, and depletion costs a lone corporation under 1% of launches", () => {
     const m = computeBeltModel(economy, systems);
     const common = m.tiers.find((t) => t.tier === "common");
-    expect(common.reserve).toBe(DESIGN.reserveStandardExpeditions * common.byDuration.standard.units);
+    expect(common.reserve).toBe(economy.belts.reserveStandardExpeditions * common.byDuration.standard.units);
     expect(m.respawn.meanWaitHours).toBe(5);
     expect(m.ladder.lostShare).toBeLessThan(0.01);
   });

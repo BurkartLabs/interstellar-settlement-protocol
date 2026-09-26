@@ -12,54 +12,34 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const readJson = (file) => JSON.parse(fs.readFileSync(path.join(ROOT, file), "utf8"));
 
+// AB#2329: the belt rules are the game's own (server/game/beltRules.js), imported, not copied; the design's four numbers
+// are data/economy.json's `belts`, read below. What is left here is what the model alone assumes.
+import { BASE_YIELD_PER_MIN, BELT_TIERS, RARITY_YIELD_MULTIPLIER, beltReserve, rarityDistribution, tierTemplates } from "../server/game/beltRules.js";
+export { rarityDistribution, tierTemplates };
+
 /** The rules the model takes from code, with where each is; the unit test fails when one no longer matches. */
 export const CODE_RULES = {
-  baseYieldPerMin: { value: 3, where: "server/game/asteroids.js, applyAsteroidExpeditions: baseYieldPerMin" },
-  rarityYieldMultiplier: { value: { common: 1.0, uncommon: 1.15, rare: 1.35, exotic: 1.6 }, where: "server/game/asteroids.js, RARITY_YIELD_MULTIPLIER" },
+  baseYieldPerMin: { value: BASE_YIELD_PER_MIN, where: "server/game/beltRules.js, BASE_YIELD_PER_MIN (used by applyAsteroidExpeditions)" },
+  rarityYieldMultiplier: { value: RARITY_YIELD_MULTIPLIER, where: "server/game/beltRules.js, RARITY_YIELD_MULTIPLIER" },
   expeditionHours: { value: { short: 0.5, standard: 1, extended: 2 }, where: "server/game/asteroids.js, EXPEDITION_DURATIONS (production)" }
 };
 
 /**
- * The design's own numbers (docs/design/belts.md), proposed, each explained there. The model computes what they mean;
- * changing one here and re-running is how the design is tuned.
+ * What the model assumes beyond the game's data: the tiers, and the ladder's pace and the populations it is read at
+ * (docs/design/belts.md). The design's own numbers (reserve, respawn chance, rarity step, jitter) are data/economy.json's
+ * `belts` since AB#2329, so tuning one there changes the game and this model together.
  */
 export const DESIGN = {
-  tiers: ["common", "uncommon", "rare", "exotic"],
-  rarityStepWeight: 0.25,        // each tier away from a system's label is this much less likely
-  reserveStandardExpeditions: 14, // a belt holds this many standard expeditions' yield at its tier
-  respawnChancePerHour: 0.2,      // an empty belt slot's draw on the hour (the TODO's 20%)
-  compositionJitter: 0.25,        // each resource's weight in a respawned belt, x (1 +- this), renormalized
+  tiers: BELT_TIERS,
   ladderExpeditionsPerDay: 2,     // docs/design/ladder-11-40.md: one out, relaunched each check-in
   ladderCheckInHours: 12,
   populations: [1, 5, 20]         // corporations mining one belt, on the ladder's pace
 };
 
-/** Each tier's composition template: the belts that carry that label today, averaged (data/systems.json). */
-export function tierTemplates(systems, tiers = DESIGN.tiers) {
-  const out = {};
-  for (const tier of tiers) {
-    const belts = systems.filter((s) => s.rarity === tier).flatMap((s) => (s.bodies || []).filter((b) => b.composition));
-    const sum = {};
-    for (const b of belts) {
-      const total = Object.values(b.composition).reduce((a, v) => a + v, 0);
-      for (const [r, w] of Object.entries(b.composition)) sum[r] = (sum[r] || 0) + w / total / belts.length;
-    }
-    out[tier] = Object.fromEntries(Object.entries(sum).sort((a, b) => b[1] - a[1]));
-  }
-  return out;
-}
-
-/** A system's chance of each tier for a respawned belt: weight step^|distance from its label|, normalized. */
-export function rarityDistribution(label, tiers = DESIGN.tiers, step = DESIGN.rarityStepWeight) {
-  const at = tiers.indexOf(label);
-  const weights = tiers.map((_, i) => step ** Math.abs(i - at));
-  const total = weights.reduce((a, b) => a + b, 0);
-  return Object.fromEntries(tiers.map((t, i) => [t, weights[i] / total]));
-}
-
 /** The model, as numbers. */
-export function computeBeltModel(economy, systems, rules = CODE_RULES, design = DESIGN) {
+export function computeBeltModel(economy, systems, rules = CODE_RULES, assumed = DESIGN) {
   const r = Object.fromEntries(Object.entries(rules).map(([k, v]) => [k, v.value]));
+  const design = { ...assumed, ...economy.belts };
   const keep = 1 - economy.exchange.salesTaxPct / 100;
   const price = Object.fromEntries(economy.npcBuyers.map((b) => [b.item, b.unitPrice]));
   const templates = tierTemplates(systems, design.tiers);
@@ -75,14 +55,14 @@ export function computeBeltModel(economy, systems, rules = CODE_RULES, design = 
       const units = perHour * h;
       return [d, { units, credits: units * valuePerUnit, net: units * valuePerUnit - economy.expeditions.launchCost }];
     }));
-    const reserve = Math.round(design.reserveStandardExpeditions * byDuration.standard.units);
+    const reserve = beltReserve(tier, design.reserveStandardExpeditions);
     return { tier, composition, valuePerUnit, sellableShare, perHour, byDuration, reserve };
   });
   const tierBy = Object.fromEntries(tiers.map((t) => [t.tier, t]));
 
   // Per system: the chance of each tier for a belt that respawns there, and what that does to its average yield.
   const systemRows = systems.filter((s) => (s.bodies || []).some((b) => b.composition)).map((s) => {
-    const dist = rarityDistribution(s.rarity, design.tiers, design.rarityStepWeight);
+    const dist = rarityDistribution(s.rarity, design.rarityStepWeight, design.tiers);
     const expectedMult = design.tiers.reduce((a, t) => a + dist[t] * r.rarityYieldMultiplier[t], 0);
     const expectedNet = design.tiers.reduce((a, t) => a + dist[t] * tierBy[t].byDuration.standard.net, 0);
     return { id: s.id, name: s.name, label: s.rarity, dist, expectedMult, change: expectedMult / r.rarityYieldMultiplier[s.rarity] - 1, expectedNet };
