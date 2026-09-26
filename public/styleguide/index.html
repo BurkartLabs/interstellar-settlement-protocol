@@ -264,29 +264,35 @@
         <p class="sg-note">The game's own dialog, drawn in place here rather than over the page. It asks before anything costs credits or cannot be undone, and after, it says what happened.</p>
         <div class="sg-grid sg-grid--wide">
           <div class="sg-modal-frame">
-            <article class="modal-card" role="dialog" aria-labelledby="sg-modal-confirm-title" data-component="modal" data-variant="confirm">
-              <p class="overline">Order Confirmation</p>
-              <h2 id="sg-modal-confirm-title">Sell 120 t of Silicates?</h2>
-              <p class="sg-modal-copy">At 24 cr a tonne, 2,880 cr before the exchange's 2% fee.</p>
-              <div class="choice-row"><button type="button" class="ui-button ui-button--secondary">Cancel</button><button type="button" class="ui-button ui-button--primary">Confirm sale</button></div>
+            <article class="modal-card dialogue" role="dialog" aria-labelledby="sg-modal-confirm-title" data-component="modal" data-variant="confirm">
+              <div class="dialogue__content">
+                <p class="dialogue__speaker">Order Confirmation</p>
+                <h2 id="sg-modal-confirm-title" class="dialogue__title">Sell 120 t of Silicates?</h2>
+                <p class="sg-modal-copy">At 24 cr a tonne, 2,880 cr before the exchange's 2% fee.</p>
+                <div class="dialogue__actions"><button type="button" class="ui-button ui-button--secondary">Cancel</button><button type="button" class="ui-button ui-button--primary">Confirm sale</button></div>
+              </div>
             </article>
             <span class="sg-state">confirmation</span>
           </div>
           <div class="sg-modal-frame">
-            <article class="modal-card" role="dialog" aria-labelledby="sg-modal-danger-title" data-component="modal" data-variant="danger">
-              <p class="overline">Cannot be undone</p>
-              <h2 id="sg-modal-danger-title">Dismantle Silicate Extractor Yard 1?</h2>
-              <p class="sg-modal-copy">The yard and its slot are released. The 45,000 cr it cost is not returned.</p>
-              <div class="choice-row"><button type="button" class="ui-button ui-button--secondary">Keep it</button><button type="button" class="ui-button ui-button--danger">Dismantle</button></div>
+            <article class="modal-card dialogue" role="dialog" aria-labelledby="sg-modal-danger-title" data-component="modal" data-variant="danger">
+              <div class="dialogue__content">
+                <p class="dialogue__speaker">Cannot be undone</p>
+                <h2 id="sg-modal-danger-title" class="dialogue__title">Dismantle Silicate Extractor Yard 1?</h2>
+                <p class="sg-modal-copy">The yard and its slot are released. The 45,000 cr it cost is not returned.</p>
+                <div class="dialogue__actions"><button type="button" class="ui-button ui-button--secondary">Keep it</button><button type="button" class="ui-button ui-button--danger">Dismantle</button></div>
+              </div>
             </article>
             <span class="sg-state">what cannot be undone</span>
           </div>
           <div class="sg-modal-frame">
-            <article class="modal-card" role="dialog" aria-labelledby="sg-modal-receipt-title" data-component="modal" data-variant="receipt">
-              <p class="overline">ISA Transaction Record</p>
-              <h2 id="sg-modal-receipt-title">Office Lease Confirmed</h2>
-              <p class="sg-modal-copy">Orbital Executive Suites, Mars Orbital Dock. 12,500 cr a month, from today.</p>
-              <div class="choice-row"><button type="button" class="ui-button ui-button--primary">Acknowledge</button></div>
+            <article class="modal-card dialogue" role="dialog" aria-labelledby="sg-modal-receipt-title" data-component="modal" data-variant="receipt">
+              <div class="dialogue__content">
+                <p class="dialogue__speaker">ISA Transaction Record</p>
+                <h2 id="sg-modal-receipt-title" class="dialogue__title">Office Lease Confirmed</h2>
+                <p class="sg-modal-copy">Orbital Executive Suites, Mars Orbital Dock. 12,500 cr a month, from today.</p>
+                <div class="dialogue__actions"><button type="button" class="ui-button ui-button--primary">Acknowledge</button></div>
+              </div>
             </article>
             <span class="sg-state">receipt, after the server answers</span>
           </div>
@@ -302,10 +308,11 @@
           <div class="sg-specimen sg-specimen--full"><p class="sg-progress-label">Corporate Charter, done</p><div class="progress-wrap" role="progressbar" aria-label="Corporate Charter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" data-component="progress" data-state="complete"><div class="progress-bar" style="width: 100%"></div></div><span class="sg-state">all, 100%</span></div>
         </div>
         <div class="sg-grid sg-cycle-grid">
-          <article class="queue-item" data-component="cycle" data-state="running">
-            <h3>Silicate Extractor Yard 1</h3>
-            <p class="muted">Status: Active</p>
-            <p class="muted">Running 8h cycle. Remaining: 3h 02m (62%).</p>
+          <!-- ISP-83 (AB#772): the cycle as the Station draws it, a design-system card. -->
+          <article class="ui-card" data-component="cycle" data-state="running">
+            <h4 class="ui-card__title">Silicate Extractor Yard 1</h4>
+            <p class="station__note">Status: Active</p>
+            <p class="station__note">Running 8h cycle. Remaining: 3h 02m (62%).</p>
             <div class="progress-wrap" aria-hidden="true"><div class="progress-bar" style="width: 62%"></div></div>
             <dl class="cycle-figures">
               <div><dt>Mined this cycle</dt><dd>298 t</dd></div>
@@ -313,10 +320,10 @@
               <div><dt>Rate</dt><dd>60 t/h</dd></div>
             </dl>
           </article>
-          <article class="queue-item" data-component="cycle" data-state="idle">
-            <h3>Silicate Extractor Yard 2</h3>
-            <p class="muted">Status: Idle</p>
-            <p class="muted">Ready for next cycle.</p>
+          <article class="ui-card" data-component="cycle" data-state="idle">
+            <h4 class="ui-card__title">Silicate Extractor Yard 2</h4>
+            <p class="station__note">Status: Idle</p>
+            <p class="station__note">Ready for next cycle.</p>
           </article>
         </div>
       </section>

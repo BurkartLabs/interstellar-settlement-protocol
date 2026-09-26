@@ -112,7 +112,7 @@ export function renderMiningCyclePanel(data) {
 
   const extractors = data?.corp?.mining?.silicateExtractors || [];
   if (!extractors.length) {
-    list.innerHTML = `<article class="queue-item"><p class="station__note">No extractor yard records found.</p></article>`;
+    list.innerHTML = `<div class="ui-state"><p class="ui-state__title">No extractor yard records found.</p></div>`;
     return;
   }
 
@@ -127,14 +127,14 @@ export function renderMiningCyclePanel(data) {
         : 0;
 
       return `
-        <article class="queue-item">
-          <h3>${escapeHtml(extractor.name || extractor.id || "Extractor Yard")}</h3>
+        <article class="ui-card">
+          <h4 class="ui-card__title">${escapeHtml(extractor.name || extractor.id || "Extractor Yard")}</h4>
           <p class="station__note">Status: ${active ? "Active" : "Idle"}</p>
           <p class="station__note">Total mined: ${Number(extractor.totalMined || 0).toLocaleString()} | Total spent: ${toCurrency(Number(extractor.totalSpent || 0))}</p>
           ${
             active
               ? `<p class="station__note">Running ${hours}h cycle. Remaining: ${formatDurationHours(remainingMs)} (${figures.pctText}).</p>
-                 <div class="progress-wrap"><div class="progress-bar" style="width:${figures.fill.toFixed(2)}%"></div></div>
+                 <div class="progress-wrap" role="progressbar" aria-label="${escapeHtml(`${extractor.name || "Extractor Yard"} cycle`)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(figures.fill)}"><div class="progress-bar" style="width:${figures.fill.toFixed(2)}%"></div></div>
                  <dl class="cycle-figures">
                    <div><dt>Mined this cycle</dt><dd>${figures.mined.toLocaleString()} t</dd></div>
                    <div><dt>Spent this cycle</dt><dd>${escapeHtml(spentText(figures, toCurrency))}</dd></div>

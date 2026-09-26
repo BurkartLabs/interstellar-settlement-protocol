@@ -70,12 +70,14 @@ export function pushFeedback(message, tone = "info") {
   renderFeedbackLog();
 }
 
+// ISP-83 (AB#772): the pulse was drawn only on .btn, so it stopped when the screens moved to ui-button; it is the
+// design system's button's success state now.
 export function flashButtonSuccess(button) {
   if (!button) return;
-  button.classList.remove("btn-pulse-success");
+  button.classList.remove("is-success-pulse");
   void button.offsetWidth; // force reflow to restart animation
-  button.classList.add("btn-pulse-success");
-  setTimeout(() => button.classList.remove("btn-pulse-success"), 800);
+  button.classList.add("is-success-pulse");
+  setTimeout(() => button.classList.remove("is-success-pulse"), 800);
 }
 
 export function renderFeedbackLog() {

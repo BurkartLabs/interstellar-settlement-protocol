@@ -25,20 +25,6 @@ export const notificationList = document.getElementById("notification-list");
 
 export const notificationReadAllButton = document.getElementById("notification-read-all");
 
-export function bindRippleEffect() {
-  document.addEventListener("click", (event) => {
-    const button = event.target.closest(".btn");
-    if (!button || button.disabled) return;
-    const ripple = document.createElement("span");
-    ripple.className = "btn-ripple-effect";
-    const rect = button.getBoundingClientRect();
-    ripple.style.left = `${event.clientX - rect.left}px`;
-    ripple.style.top = `${event.clientY - rect.top}px`;
-    button.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 600);
-  });
-}
-
 export function bindCollapsibleSections() {
   // AB#1056: at phone width the sidebar filled the first screen, so it starts collapsed there; its toggles still open it
   if (sidebarStartsCollapsed(window.innerWidth)) {

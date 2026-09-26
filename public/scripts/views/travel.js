@@ -1,5 +1,14 @@
 // The Travel tab: destinations, the journey in progress and its timer.
-// AB#739 (ISP-53): everything here moved from app.js unchanged.
+// AB#739 (ISP-53): everything here moved from app.js unchanged. ISP-83 (AB#772): drawn from the design system.
+
+/** The screen's header: the computer's line over the heading, and what it means for the player. */
+function travelHeader(overline, heading, lede) {
+  return `<header class="ui-screen__header">
+      <p class="travel__overline">${escapeHtml(overline)}</p>
+      <h2 class="ui-screen__title">${escapeHtml(heading)}</h2>
+      ${lede ? `<p class="ui-screen__lede">${escapeHtml(lede)}</p>` : ""}
+    </header>`;
+}
 
 import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
@@ -21,22 +30,20 @@ export function renderTravelPage(data) {
       // In space — show system arrival / docking options
       const systemStations = (appState.stationRegistry || []).filter(s => s.systemId === systemId);
       const stationButtons = systemStations.map(s =>
-        `<button class="btn btn-accent travel-dock-btn" data-station-id="${escapeHtml(s.id)}" style="margin:0.3rem;">${escapeHtml(s.name)}<br><span class="muted" style="font-size:0.72rem;">${escapeHtml(s.body)} — ${escapeHtml(s.designation)}</span></button>`
+        `<button class="ui-card ui-card--interactive travel__dock" type="button" data-station-id="${escapeHtml(s.id)}">
+          <span class="ui-card__title">${escapeHtml(s.name)}</span>
+          <span class="ui-card__meta">${escapeHtml(s.body)} — ${escapeHtml(s.designation)}</span>
+        </button>`
       ).join("");
 
       container.innerHTML = `
-        <div class="travel-page-outer">
-          <div class="travel-page-card">
-            <p class="overline travel-page-overline">NAVIGATION COMPUTER</p>
-            <h2 class="travel-page-heading">In Open Space</h2>
-            <p class="travel-system-label">${escapeHtml(formatSystemLabel(systemId))} System</p>
-            <p class="muted" style="margin:1rem 0 1.5rem;font-size:0.85rem;">Your ship is in open space. Select a station to initiate docking approach.</p>
-            <div class="travel-dock-options">${stationButtons || '<p class="muted">No stations found in this system.</p>'}</div>
-          </div>
-        </div>
+        ${travelHeader("Navigation computer", "In Open Space", `${formatSystemLabel(systemId)} System. Your ship is in open space. Select a station to initiate docking approach.`)}
+        ${stationButtons
+          ? `<div class="ui-grid">${stationButtons}</div>`
+          : `<div class="ui-state"><p class="ui-state__title">No stations found in this system.</p></div>`}
       `;
 
-      container.querySelectorAll(".travel-dock-btn").forEach(btn => {
+      container.querySelectorAll(".travel__dock").forEach(btn => {
         btn.addEventListener("click", async () => {
           const sid = btn.getAttribute("data-station-id");
           if (!sid || !appState.accountId) return;
@@ -63,7 +70,7 @@ export function renderTravelPage(data) {
       return;
     }
 
-    container.innerHTML = `<p class="muted">You are not currently in transit.</p>`;
+    container.innerHTML = `${travelHeader("Navigation computer", "Travel")}<div class="ui-state"><p class="ui-state__title">You are not currently in transit.</p></div>`;
     clearTravelTimer();
     return;
   }
@@ -71,67 +78,41 @@ export function renderTravelPage(data) {
   const isInterstellar = travel.travelType === "interstellar";
   const remaining = Math.max(0, travel.arrivesAt - Date.now());
 
-  let originHtml, destHtml, heading, overline;
-
+  let origin, dest, heading, overline;
   if (isInterstellar) {
-    const fromLabel = formatSystemLabel(travel.fromSystemId);
-    const toLabel = formatSystemLabel(travel.toSystemId);
-    overline = "INTERSTELLAR NAVIGATION";
+    overline = "Interstellar navigation";
     heading = "Jump In Progress";
-    originHtml = `
-      <div class="travel-route-node">
-        <span class="travel-route-label">Origin System</span>
-        <span class="travel-route-station">${escapeHtml(fromLabel)}</span>
-      </div>`;
-    destHtml = `
-      <div class="travel-route-node">
-        <span class="travel-route-label">Destination System</span>
-        <span class="travel-route-station">${escapeHtml(toLabel)}</span>
-      </div>`;
+    origin = { label: "Origin System", name: formatSystemLabel(travel.fromSystemId) };
+    dest = { label: "Destination System", name: formatSystemLabel(travel.toSystemId) };
   } else {
     const from = appState.stationRegistry.find((s) => s.id === travel.fromStationId);
-    const dest = appState.stationRegistry.find((s) => s.id === travel.toStationId);
-    overline = "NAVIGATION COMPUTER";
+    const to = appState.stationRegistry.find((s) => s.id === travel.toStationId);
+    overline = "Navigation computer";
     heading = "Docking Approach";
-    originHtml = `
-      <div class="travel-route-node">
-        <span class="travel-route-label">Origin</span>
-        <span class="travel-route-station">${escapeHtml(from?.name || "Open Space")}</span>
-        <span class="travel-route-body">${escapeHtml(from?.body || "—")}</span>
-      </div>`;
-    destHtml = `
-      <div class="travel-route-node">
-        <span class="travel-route-label">Destination</span>
-        <span class="travel-route-station">${escapeHtml(dest?.name || travel.toStationId)}</span>
-        <span class="travel-route-body">${escapeHtml(dest?.body || "—")}</span>
-      </div>`;
+    origin = { label: "Origin", name: from?.name || "Open Space", body: from?.body || "—" };
+    dest = { label: "Destination", name: to?.name || travel.toStationId, body: to?.body || "—" };
   }
+  const node = (n) => `<section class="ui-card travel__node">
+      <p class="ui-card__meta">${escapeHtml(n.label)}</p>
+      <p class="ui-card__title">${escapeHtml(n.name)}</p>
+      ${n.body ? `<p class="ui-card__meta">${escapeHtml(n.body)}</p>` : ""}
+    </section>`;
 
   container.innerHTML = `
-    <div class="travel-page-outer">
-      <div class="travel-page-card ${isInterstellar ? "travel-page-card--interstellar" : ""}">
-        <p class="overline travel-page-overline">${overline}</p>
-        <h2 class="travel-page-heading">${heading}</h2>
-
-        <div class="travel-route">
-          ${originHtml}
-          <div class="travel-route-arrow">${isInterstellar ? "⟫" : "➔"}</div>
-          ${destHtml}
+    ${travelHeader(overline, heading, isInterstellar
+      ? "Interstellar jump drive engaged. All station services suspended until arrival."
+      : "Station services suspended during docking approach. Comms and Starmap remain available.")}
+    <section class="ui-panel" aria-label="Journey">
+      <div class="ui-panel__body ui-stack">
+        <div class="travel__route">
+          ${node(origin)}
+          <span class="travel__arrow" aria-hidden="true">${isInterstellar ? "⟫" : "→"}</span>
+          ${node(dest)}
         </div>
-
-        <div class="travel-progress-bar travel-progress-bar--large">
-          <div class="travel-progress-fill" id="travel-progress-fill"></div>
-        </div>
-        <p class="travel-eta" id="travel-eta">ETA: ${formatDuration(remaining)}</p>
-
-        <p class="muted" style="margin-top:1.5rem;font-size:0.82rem;">
-          ${isInterstellar
-            ? "Interstellar jump drive engaged. All station services suspended until arrival."
-            : "Station services suspended during docking approach. Comms and Starmap remain available."
-          }
-        </p>
+        <div class="progress-wrap" id="travel-progress" role="progressbar" aria-label="Journey" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar" id="travel-progress-fill"></div></div>
+        <p class="ui-figure travel__eta" id="travel-eta">ETA: ${formatDuration(remaining)}</p>
       </div>
-    </div>
+    </section>
   `;
 
   clearTravelTimer();
@@ -165,6 +146,7 @@ export function updateTravelProgress(travel) {
   const fill = document.getElementById("travel-progress-fill");
   const eta = document.getElementById("travel-eta");
   if (fill) fill.style.width = `${pct}%`;
+  document.getElementById("travel-progress")?.setAttribute("aria-valuenow", String(Math.round(pct)));
   if (eta) eta.textContent = remaining > 0 ? `ETA: ${formatDuration(remaining)}` : "Arriving...";
 
   // If time is up, refresh from server to get the docked/arrived state

@@ -325,8 +325,10 @@
             </section>
           </article>
 
-          <article id="travel" class="tab-panel">
-            <div id="travel-page"></div>
+          <article id="travel" class="tab-panel ui-screen">
+            <!-- ISP-83 (AB#772): Travel on the design system, in the flat direction (Decision AB#1801). No screen story
+                 owned it; the sweep did. -->
+            <div id="travel-page" class="travel"></div>
           </article>
 
           <article id="station" class="tab-panel ui-screen">
@@ -367,7 +369,7 @@
               <section class="ui-stack">
                 <h3 class="station__heading">Active Mining Cycles</h3>
                 <p class="ui-screen__lede">Every extractor yard's current cycle, wherever it is leased.</p>
-                <div id="mine-cycle-list" class="queue-list"></div>
+                <div id="mine-cycle-list" class="ui-stack"></div>
               </section>
             </div>
 
@@ -1110,26 +1112,31 @@
       </article>
     </div>
 
+    <!-- ISP-83 (AB#772): the confirmation and the receipt take the dialogue's layout (ISP-82), with no portrait. -->
     <section id="trade-confirm-modal" class="modal-backdrop" hidden>
-      <article class="modal-card trade-confirm-card">
-        <p class="overline" id="trade-confirm-heading">Order Confirmation</p>
-        <h2 id="trade-confirm-title">Confirm Trade</h2>
-        <div id="trade-confirm-body" class="trade-confirm-body"></div>
-        <div class="choice-row">
-          <button id="trade-confirm-cancel" class="btn btn-outline">Cancel</button>
-          <button id="trade-confirm-ok" class="btn btn-accent">Confirm</button>
+      <article class="modal-card dialogue trade-confirm-card" role="dialog" aria-modal="true" aria-labelledby="trade-confirm-title">
+        <div class="dialogue__content">
+          <p class="dialogue__speaker" id="trade-confirm-heading">Order Confirmation</p>
+          <h2 id="trade-confirm-title" class="dialogue__title">Confirm Trade</h2>
+          <div id="trade-confirm-body" class="trade-confirm-body"></div>
+          <div class="dialogue__actions">
+            <button id="trade-confirm-cancel" class="ui-button ui-button--secondary" type="button">Cancel</button>
+            <button id="trade-confirm-ok" class="ui-button ui-button--primary" type="button">Confirm</button>
+          </div>
         </div>
       </article>
     </section>
 
     <!-- AB#743: after a committing action, what it did, from the server's answer (public/scripts/views/receiptModal.js). -->
     <section id="action-receipt-modal" class="modal-backdrop" hidden>
-      <article class="modal-card action-receipt-card" role="dialog" aria-labelledby="action-receipt-title">
-        <p class="overline" id="action-receipt-heading">ISA Transaction Record</p>
-        <h2 id="action-receipt-title"></h2>
-        <div id="action-receipt-body" class="action-receipt-body"></div>
-        <div class="choice-row">
-          <button id="action-receipt-close" class="btn btn-accent" type="button">Acknowledge</button>
+      <article class="modal-card dialogue action-receipt-card" role="dialog" aria-modal="true" aria-labelledby="action-receipt-title">
+        <div class="dialogue__content">
+          <p class="dialogue__speaker" id="action-receipt-heading">ISA Transaction Record</p>
+          <h2 id="action-receipt-title" class="dialogue__title"></h2>
+          <div id="action-receipt-body" class="action-receipt-body"></div>
+          <div class="dialogue__actions">
+            <button id="action-receipt-close" class="ui-button ui-button--primary" type="button">Acknowledge</button>
+          </div>
         </div>
       </article>
     </section>
