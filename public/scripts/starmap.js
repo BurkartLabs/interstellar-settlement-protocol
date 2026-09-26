@@ -1,8 +1,11 @@
 import { lanePairs, navigationFor } from "./navigation.js";
+import { neutralStationCounts, placeStationBadges, systemStationMarkers } from "./stationMarkers.js"; // ISP-119 (AB#811)
 import { bodyResourceHtml } from "./bodyInfo.js"; // AB#740: what the catalogue holds, not a hash of the name
 import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 import { PLANET_IMAGE_PATHS } from "./planetImages.js";
+import { officeLeaseCost } from "./ceoEffects.js"; // Bug #2340: the one office rate (Bug #1032)
+import { isNeutralStation } from "./stationMarkers.js";
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 
 // ISP-112 (AB#804): each system's place on the cluster view is its `mapPosition` in data/systems.json, as fractions of
@@ -689,6 +692,20 @@ export function createStarmapController({
       };
     });
     const labelPlan = planClusterLabels({ entries, compact, canvasWidth: width, canvasHeight: height });
+    // ISP-119 (AB#811): a count of each system's neutral stations, from the catalog field, beside its star, in a corner
+    // the names (planned first, as AB#808 plans them) leave free.
+    const stationCounts = neutralStationCounts(state.stations);
+    const badgeFontPx = chartFont(9);
+    ctx.font = `bold ${badgeFontPx}px "Inter", sans-serif`;
+    const counted = state.systems.filter((system) => stationCounts.has(system.id)).map((system) => {
+      const text = String(stationCounts.get(system.id));
+      return { id: system.id, ...at(system), starRadius: state.selectedSystemId === system.id ? 10 : 7, text, textWidth: ctx.measureText(text).width };
+    });
+    const badgeBoxes = placeStationBadges({
+      systems: counted, labelBoxes: [...labelPlan.values()].map((p) => p.box), stars: entries,
+      canvasWidth: width, canvasHeight: height, fontPx: badgeFontPx
+    });
+    const badges = counted.map((s) => ({ id: s.id, text: s.text, box: badgeBoxes.get(s.id) }));
     const entryOf = new Map(entries.map((e) => [e.id, e]));
     state.systems.forEach((system) => {
       const { x, y } = at(system);
@@ -772,7 +789,30 @@ export function createStarmapController({
       });
     });
 
+    for (const badge of badges) drawStationBadge(badge, badgeFontPx);
+
     renderDetails();
+  }
+
+  /** ISP-119 (AB#811): a system's neutral-station count on the cluster view: the station diamond and the number. */
+  function drawStationBadge({ text, box }, fontPx) {
+    const midY = (box.top + box.bottom) / 2;
+    ctx.save();
+    ctx.fillStyle = "rgba(6, 16, 28, 0.88)";
+    ctx.strokeStyle = "rgba(255, 210, 80, 0.55)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(box.left, box.top, box.right - box.left, box.bottom - box.top, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.translate(box.left + 9, midY);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = "rgba(255, 210, 80, 0.95)";
+    ctx.fillRect(-2.8, -2.8, 5.6, 5.6);
+    ctx.restore();
+    ctx.fillStyle = "rgba(255, 226, 150, 0.95)";
+    ctx.font = `bold ${fontPx}px "Inter", sans-serif`;
+    ctx.fillText(text, box.left + 15, midY + fontPx * 0.36);
   }
 
   function drawBackButton(label = "Back", x = 88, y = 36) {
@@ -838,14 +878,6 @@ export function createStarmapController({
     ctx.restore();
   }
 
-  function bodyHasStation(systemId, bodyName) {
-    return state.stations.some((s) => s.systemId === systemId && s.body === bodyName);
-  }
-
-  function bodyHasCurrentStation(systemId, bodyName) {
-    return state.stations.some((s) => s.systemId === systemId && s.body === bodyName && s.id === state.currentStationId);
-  }
-
   function drawSystemView(system) {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
@@ -893,6 +925,7 @@ export function createStarmapController({
     const bodies = (system?.bodies || []).filter((body) => body.type === "Planet" || body.type === "Field");
     const maxOrbitX = Math.max(1, ...bodies.map((body) => Number(body.x || 0)));
 
+    const drawnAt = new Map(); // body id -> where it was drawn, for the station markers (ISP-119)
     bodies.forEach((body, index) => {
       const orbit = ((Number(body.x || 0) / maxOrbitX) * orbitLimit) + ORBIT_INNER;
       const angle = (index / Math.max(1, bodies.length)) * Math.PI * 2;
@@ -936,17 +969,7 @@ export function createStarmapController({
       const label = bodyLabelAt(body.name, x, y, bodyR, { x: cx, y: cy, r: starHaloR });
       ctx.fillText(body.name, label.x, label.y);
 
-      // Station indicator pip on the name's line: after the name when it starts right of the body or has no room
-      // before it, otherwise before it.
-      if (bodyHasStation(system.id, body.name)) {
-        const hasCurrentStn = bodyHasCurrentStation(system.id, body.name);
-        ctx.fillStyle = hasCurrentStn ? "rgba(0, 247, 255, 0.8)" : "rgba(255, 210, 80, 0.7)";
-        const nameW = ctx.measureText(body.name).width;
-        const before = label.x < x && label.x - 9 >= 0;
-        ctx.beginPath();
-        ctx.arc(before ? label.x - 6 : label.x + nameW + 6, label.y - 3, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      drawnAt.set(body.id, { x, y, r: bodyR });
 
       state.clickTargets.push({
         type: "body",
@@ -957,6 +980,28 @@ export function createStarmapController({
         radius: Math.max(10, body.radius + 8)
       });
     });
+
+    // ISP-119 (AB#811): a marker per neutral station, from the catalog field, above the body it orbits (below it at
+    // the canvas top; a moon's station on its planet). Its click target goes before the bodies', after the back
+    // button, so a tap on a marker opens the station, not the planet under it.
+    const markerTargets = [];
+    const perBody = new Map();
+    for (const { station, bodyId } of systemStationMarkers(system, state.stations)) {
+      if (!perBody.has(bodyId)) perBody.set(bodyId, []);
+      perBody.get(bodyId).push(station);
+    }
+    for (const [bodyId, stations] of perBody) {
+      const place = drawnAt.get(bodyId);
+      if (!place) continue;
+      const above = place.y - place.r - 10 >= 8;
+      stations.forEach((station, i) => {
+        const mx = place.x + (i - (stations.length - 1) / 2) * 13;
+        const my = above ? place.y - place.r - 10 : place.y + place.r + 10;
+        drawStationMarker(mx, my, station.id === state.currentStationId);
+        markerTargets.push({ type: "station", stationId: station.id, x: mx, y: my, radius: 8 });
+      });
+    }
+    state.clickTargets.splice(1, 0, ...markerTargets);
 
     renderDetails();
   }
@@ -1562,10 +1607,13 @@ export function createStarmapController({
     overlay.className = "modal-backdrop";
     overlay.id = "starmap-station-modal";
 
-    const buildingCount = station.buildings ? station.buildings.length : 0;
-    const officeRent = station.officeRentPerCycle
-      ? `¤${Number(station.officeRentPerCycle).toLocaleString()} / cycle`
-      : "—";
+    // Bug #2340: the catalog's buildingIds, the one office rate, and the station's jurisdiction (AB#810). The modal read
+    // buildings, officeRentPerCycle and ownership, which no station has, so every one said 0, "—" and NPC-controlled.
+    const buildingCount = Array.isArray(station.buildingIds) ? station.buildingIds.length : 0;
+    const officeRent = `¤${officeLeaseCost(1).toLocaleString("en-US")} a day, for 7 to 28 days`;
+    const jurisdiction = isNeutralStation(station)
+      ? "Neutral: no corporation owns it; any corporation may dock and rent an office here."
+      : `Jurisdiction: ${station.jurisdiction || "not recorded"}`;
 
     overlay.innerHTML = `
       <article class="modal-card starmap__station" role="dialog" aria-modal="true" aria-labelledby="starmap-station-title">
@@ -1576,7 +1624,7 @@ export function createStarmapController({
           </div>
           <button class="ui-button ui-button--ghost starmap__close" type="button" aria-label="Close">&times;</button>
         </header>
-        <p class="ui-panel__meta">${escapeHtmlAttr(station.body)} — ${escapeHtmlAttr(station.ownership || "NPC")}-controlled</p>
+        <p class="ui-panel__meta">In orbit of ${escapeHtmlAttr(station.body)}. ${escapeHtmlAttr(jurisdiction)}</p>
 
         <dl class="ui-kv">
           <dt>Buildings</dt><dd>${buildingCount}</dd>

@@ -1134,6 +1134,8 @@
               <button id="map-reset" class="ui-button ui-button--secondary" type="button">Reset View</button>
             </div>
             <canvas id="starmap-canvas" width="1200" height="680" aria-label="Interactive starmap"></canvas>
+            <!-- ISP-119 (AB#811): what the station marks on the map mean -->
+            <p id="starmap-legend" class="starmap__legend"><span class="starmap__legend-mark" aria-hidden="true"></span><span><strong>Neutral station</strong>: no corporation owns it, and any corporation can dock and rent an office there. The number beside a star is how many a system has; in a system, select a marker to open its station.</span></p>
             <div id="starmap-fallback" class="ui-state" hidden></div>
             <section id="map-details" class="ui-panel starmap__details" aria-live="polite"></section>
           </article>
