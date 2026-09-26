@@ -2,7 +2,28 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { applyMiningOperations } from "../../server/gameState.js";
 import { ensureCorpMiningModel, startExtractorCycle } from "../../server/game/mining.js";
 import { SYSTEMS_DATA } from "../../server/game/catalog.js";
-import { bodyProfile, cycleItems, cycleItemsText, profileText } from "../../public/scripts/bodyYield.js";
+import { bodyProfile, cycleItems, cycleItemsText, leaseTypeLabel, profileText } from "../../public/scripts/bodyYield.js";
+import { readFileSync } from "node:fs";
+
+// Bug #2354: a lease card's badge and Lease Type line said "Silicate Extraction" for every lease, a label stored when every
+// lease mined Silicates, beside a Yields line that says Mars yields Iron Ore too (AB#831). Both come from the body now.
+describe("a lease's type is what its body yields (Bug #2354)", () => {
+  it("names the one item a body yields, or says it is mixed", () => {
+    expect(leaseTypeLabel(bodyProfile(SYSTEMS_DATA, "Earth"))).toBe("Silicate Extraction");
+    expect(leaseTypeLabel(bodyProfile(SYSTEMS_DATA, "Mars"))).toBe("Mixed Extraction");
+    expect(leaseTypeLabel(bodyProfile(SYSTEMS_DATA, "Luna"))).toBe("Mixed Extraction");
+    expect(leaseTypeLabel([{ item: "Iron Ore", concentration: 1 }])).toBe("Iron Ore Extraction");
+    expect(leaseTypeLabel([{ item: "Iron Ore", concentration: 1 }, { item: "Nickel", concentration: 0 }])).toBe("Iron Ore Extraction");
+    expect(leaseTypeLabel([])).toBe("Extraction");
+    expect(leaseTypeLabel(undefined)).toBe("Extraction");
+  });
+
+  it("the Station page shows it from the body, never the label a lease was stored with", () => {
+    const station = readFileSync(new URL("../../public/scripts/views/station.js", import.meta.url), "utf8");
+    expect(station).not.toMatch(/lease\.leaseType/);
+    expect(station.match(/leaseTypeLabel\(bodyProfile\(appState\.systemsCatalog, lease\.body\)\)/g)).toHaveLength(2); // the card's badge, the lease's details
+  });
+});
 import { makeCorp, makeExtractor } from "../fixtures/makeCorp.js";
 
 // AB#829: the lease picker shows what each body yields, from the catalog, and the extractor row shows this cycle's

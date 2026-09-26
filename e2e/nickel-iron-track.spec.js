@@ -61,6 +61,7 @@ for (const [width, height] of [[375, 812], [1280, 800]]) {
       await page.click('[data-building-action="building:isa-claims-leases"]');
       const marsCard = page.locator('#station-building-content [data-role="lease-card"]', { hasText: "Mars" });
       await expect(marsCard.locator('[data-role="lease-yield"]')).toContainText("Iron Ore");
+      await expect(marsCard.locator('[data-role="lease-type"]')).toHaveText("Mixed Extraction"); // Bug #2354
       await shot("mars-lease");
 
       await openTab(page, "refinery");

@@ -448,7 +448,7 @@ export function bindOfficeActions(building, data) {
 
 import { employeesForNextLease } from "../leaseStaffing.js"; // AB#1202: the server's rule, not a copy of it
 import { activeOfficeAt } from "../officeStatus.js"; // AB#1870: the server's rule, not a copy of it
-import { bodyProfile, cycleItemsText, profileText } from "../bodyYield.js"; // AB#829
+import { bodyProfile, cycleItemsText, leaseTypeLabel, profileText } from "../bodyYield.js"; // AB#829, Bug #2354
 
 // The bodies the ISA leases. Module level so a full lease can say which are left (Bug #1057).
 export const LEASE_BODIES = [
@@ -502,7 +502,7 @@ export function renderISAClaimsLeases(building, data) {
         <div class="ui-card station__card" data-role="lease-card">
           <div class="station__card-header">
             <span class="ui-badge" data-role="lease-body">${escapeHtml(lease.body)}</span>
-            <span class="ui-badge">${escapeHtml(lease.leaseType || "Silicate Extraction")}</span>
+            <span class="ui-badge" data-role="lease-type">${escapeHtml(leaseTypeLabel(bodyProfile(appState.systemsCatalog, lease.body)))}</span>
           </div>
           <dl class="ui-kv">
             <dt>Claim ID</dt><dd><code>${escapeHtml(lease.id)}</code></dd>
@@ -822,7 +822,7 @@ export function renderLeaseManagement(building, lease, data) {
         <dt>Claim ID</dt><dd><code>${escapeHtml(lease.id)}</code></dd>
         <dt>Body</dt><dd>${escapeHtml(lease.body)}</dd>
         <dt>Yields</dt><dd data-role="lease-yield">${escapeHtml(profileText(bodyProfile(appState.systemsCatalog, lease.body)))}</dd>
-        <dt>Lease Type</dt><dd>${escapeHtml(lease.leaseType || "Silicate Extraction")}</dd>
+        <dt>Lease Type</dt><dd data-role="lease-type">${escapeHtml(leaseTypeLabel(bodyProfile(appState.systemsCatalog, lease.body)))}</dd>
         <dt>Issued</dt><dd>${issuedDate}</dd>
         <dt>Building Slots</dt><dd>${usedSlots} / ${totalSlots} used</dd>
       </dl>
