@@ -46,3 +46,12 @@ export function initTooltips(root = document) {
     wrap.addEventListener("focusout", reset);
   }
 }
+
+/** ISP-73 (AB#762): a toast's close button closes that toast, and nothing else. */
+export function initToasts(root = document) {
+  root.addEventListener("click", (e) => {
+    const close = e.target.closest("[data-toast-close]");
+    const toast = close?.closest(".ui-toast");
+    if (toast) toast.hidden = true;
+  });
+}
