@@ -97,7 +97,8 @@ export const starmap = createStarmapController({
   }
 });
 
-// TODO(AB#1050): Ensure this function is updated when we make asteroid belts dynamic
+// TODO(AB#2331): carry each belt's generation and remaining reserve, so a respawned belt reads as unscouted and a belt
+// running down shows it (docs/design/belts.md, AB#1050).
 export async function refreshBeltCompositions() {
   if (!appState.accountId) return;
   try {
