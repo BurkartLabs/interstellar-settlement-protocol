@@ -6647,6 +6647,9 @@ body.sg {
   .finance__charts {
     grid-template-columns: minmax(0, 1fr);
   }
+  .finance__canvas {
+    height: 260px;
+  }
   /* A table's footer is cards like its body, and a group heading a line of its own, not a card. */
   .ui-table tfoot {
     display: block;

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { chartFont } from "../../public/scripts/charts.js";
 
 // ISP-77 (AB#766): the Company group's screens - Overview, Inbox and the Financial Core with its daily statements - are
 // built from the design system in the flat direction (Decision AB#1801). Their own old classes are gone from every
@@ -115,5 +116,20 @@ describe("Overview, Inbox and the Financial Core are on the design system (ISP-7
 
   it("on a phone no text on these screens is set under 14px: their small sizes are raised", () => {
     expect(read("public/styles.css")).toMatch(/@media \(max-width: 600px\) {\s*\.ui-screen :is\([^)]*\.ui-button[^)]*\.kpi-tile__label[^)]*\) {\s*font-size: var\(--font-size-3\);/);
+  });
+});
+
+// The charts draw their own text on a canvas, which no DOM check reads: they take its size from chartFont.
+describe("the Financial Core's charts on a phone (ISP-77)", () => {
+  it("draw no text under 14px on a phone, and keep their smaller sizes on a wider screen", () => {
+    expect(chartFont(10, true)).toBe(14);
+    expect(chartFont(11, true)).toBe(14);
+    expect(chartFont(10, false)).toBe(10);
+  });
+
+  it("set every font size through chartFont, none as a literal", () => {
+    const charts = read("public/scripts/charts.js");
+    expect(charts).not.toMatch(/font: \{ size: \d+/);
+    expect((charts.match(/font: \{ size: chartFont\(/g) || []).length).toBeGreaterThanOrEqual(6);
   });
 });
