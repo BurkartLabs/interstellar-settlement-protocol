@@ -53,19 +53,25 @@ async function heard(s, event, action, ms = 300) {
   return got;
 }
 
-/** Like `heard`, but for several events from one `action`, so a single tick cannot be double-counted. */
-async function heardEach(s, events, action, ms = 300) {
-  const got = Object.fromEntries(events.map((e) => [e, []]));
-  const handlers = events.map((e) => {
-    const on = (payload) => got[e].push(payload);
-    s.on(e, on);
-    return [e, on];
-  });
-  await action();
-  await new Promise((resolve) => setTimeout(resolve, ms));
-  for (const [e, on] of handlers) s.off(e, on);
-  return got;
+/**
+ * Every `event` `s` receives from now until `stop()`, which waits `ms` more first (AB#2056). Start it before the
+ * action and stop it once the event that must arrive has arrived, so a check that nothing else came, or that it came
+ * once, is timed from the delivery instead of from the action.
+ */
+function collect(s, event) {
+  const got = [];
+  const on = (payload) => got.push(payload);
+  s.on(event, on);
+  return {
+    async stop(ms = 300) {
+      await new Promise((resolve) => setTimeout(resolve, ms));
+      s.off(event, on);
+      return got;
+    }
+  };
 }
+
+const noAction = async () => {};
 
 /**
  * The first `event` on `s` that `match` accepts, once `action` has run; rejects after `ms` (AB#2015). For what must
@@ -88,27 +94,30 @@ async function first(s, event, action, match = () => true, ms = 5000) {
   }
 }
 
+// AB#2056: each test waits for the event that must arrive (first, AB#2015), and times its "nothing else" and "exactly
+// once" checks from that arrival (collect), so a late delivery on a loaded machine is not read as a missing one.
 describe("per-account events reach only that account's sockets (Bug #1021)", () => {
   it("sends each corporation's finances only to its own sockets, and none to an anonymous one", async () => {
     const a = await player();
     const b = await player();
     const [sa, sb, anon] = [await socket(a.token), await socket(b.token), await socket()];
+    const [onA, onB, onAnon] = [collect(sa, "finance:updated"), collect(sb, "finance:updated"), collect(anon, "finance:updated")];
     const tick = () => mod.financialSnapshotTick();
-    const [gotA, gotB, gotAnon] = await Promise.all([heard(sa, "finance:updated", tick), heard(sb, "finance:updated", async () => {}), heard(anon, "finance:updated", async () => {})]);
-    expect(gotA.map((p) => p.accountId)).toContain(a.id);
+    const [mine] = await Promise.all([first(sa, "finance:updated", tick, (p) => p?.accountId === a.id), first(sb, "finance:updated", noAction, (p) => p?.accountId === b.id)]);
+    const [gotA, gotB, gotAnon] = await Promise.all([onA.stop(), onB.stop(), onAnon.stop()]);
     expect(gotA.every((p) => p.accountId === a.id), "A heard another corporation's finances").toBe(true);
     expect(gotB.every((p) => p.accountId === b.id), "B heard another corporation's finances").toBe(true);
-    expect(gotB.map((p) => p.accountId)).toContain(b.id);
     expect(gotAnon).toEqual([]);
-    expect(typeof gotA[0].finances.credits).toBe("number");
+    expect(typeof mine.finances.credits).toBe("number");
   });
 
   it("sends mining updates (inventory and credits) only to the owner", async () => {
     const a = await player();
     const b = await player();
     const [sa, anon] = [await socket(a.token), await socket()];
-    const [gotA, gotAnon] = await Promise.all([heard(sa, "mining:updated", () => mod.miningTick()), heard(anon, "mining:updated", async () => {})]);
-    expect(gotA.length).toBeGreaterThan(0);
+    const [onA, onAnon] = [collect(sa, "mining:updated"), collect(anon, "mining:updated")];
+    await first(sa, "mining:updated", () => mod.miningTick(), (p) => p?.accountId === a.id);
+    const [gotA, gotAnon] = await Promise.all([onA.stop(), onAnon.stop()]);
     expect(gotA.every((p) => p.accountId === a.id)).toBe(true);
     expect(gotA.some((p) => p.accountId === b.id)).toBe(false);
     expect(gotAnon).toEqual([]);
@@ -118,8 +127,10 @@ describe("per-account events reach only that account's sockets (Bug #1021)", () 
     const a = await player();
     const b = await player();
     const [sa, sb, anon] = [await socket(a.token), await socket(b.token), await socket()];
+    const [onA, onB, onAnon] = [collect(sa, "notifications:new"), collect(sb, "notifications:new"), collect(anon, "notifications:new")];
     const hire = () => a.api.post(`/api/accounts/${a.id}/gameplay/hire`).send({ count: 2 });
-    const [gotA, gotB, gotAnon] = await Promise.all([heard(sa, "notifications:new", hire), heard(sb, "notifications:new", async () => {}), heard(anon, "notifications:new", async () => {})]);
+    await first(sa, "notifications:new", hire, (p) => p?.accountId === a.id);
+    const [gotA, gotB, gotAnon] = await Promise.all([onA.stop(), onB.stop(), onAnon.stop()]);
     expect(gotA.map((p) => p.accountId)).toEqual([a.id]);
     expect(gotB).toEqual([]);
     expect(gotAnon).toEqual([]);
@@ -128,9 +139,11 @@ describe("per-account events reach only that account's sockets (Bug #1021)", () 
   it("still sends global events to everyone, signed in or not", async () => {
     const a = await player();
     const [sa, anon] = [await socket(a.token), await socket()];
+    const [onA, onAnon] = [collect(sa, "market:updated"), collect(anon, "market:updated")];
     mutateState((draft) => { for (const o of draft.market.npcBuyOrders) o.lastResetDate = ""; });
     const reset = () => mod.checkAndResetNpcBuyOrders();
-    const [gotA, gotAnon] = await Promise.all([heard(sa, "market:updated", reset), heard(anon, "market:updated", async () => {})]);
+    await Promise.all([first(sa, "market:updated", reset), first(anon, "market:updated", noAction)]);
+    const [gotA, gotAnon] = await Promise.all([onA.stop(), onAnon.stop()]);
     expect(gotA.length).toBe(1);
     expect(gotAnon.length).toBe(1);
   });
@@ -147,11 +160,15 @@ describe("an anonymous socket keeps working and sees only the signed-out view (I
       mutateState((draft) => { for (const o of draft.market.npcBuyOrders) o.lastResetDate = ""; });
       mod.checkAndResetNpcBuyOrders();
     };
-    const got = await heardEach(anon, ["finance:updated", "mining:updated", "notifications:new", "market:updated"], activity);
-    expect(got["finance:updated"]).toEqual([]);
-    expect(got["mining:updated"]).toEqual([]);
-    expect(got["notifications:new"]).toEqual([]);
-    expect(got["market:updated"].length).toBe(1);
+    // AB#2056: the same shape as the four above: wait for the public event, then time the per-account checks from it.
+    const events = ["finance:updated", "mining:updated", "notifications:new", "market:updated"];
+    const on = events.map((e) => collect(anon, e));
+    await first(anon, "market:updated", activity);
+    const [finance, mining, notifications, market] = await Promise.all(on.map((c) => c.stop()));
+    expect(finance).toEqual([]);
+    expect(mining).toEqual([]);
+    expect(notifications).toEqual([]);
+    expect(market.length).toBe(1);
   });
 });
 
