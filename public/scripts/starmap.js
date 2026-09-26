@@ -1,4 +1,4 @@
-import { navigationFor } from "./navigation.js";
+import { lanePairs, navigationFor } from "./navigation.js";
 import { bodyResourceHtml } from "./bodyInfo.js"; // AB#740: what the catalogue holds, not a hash of the name
 import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
@@ -570,43 +570,39 @@ export function createStarmapController({
 
     const currentSystemId = state.currentSystemId || "sol";
 
-    // Draw lane connections with gradient lines
-    for (let i = 0; i < state.systems.length; i += 1) {
-      for (let j = i + 1; j < state.systems.length; j += 1) {
-        const a = mapPositionOf(state.systems[i].id);
-        const b = mapPositionOf(state.systems[j].id);
-        if (!a || !b) continue;
+    // Draw lane connections with gradient lines: the jump graph (Bug #2328), for the systems this world shows.
+    const shown = new Set(state.systems.map((system) => system.id));
+    for (const [idA, idB] of lanePairs(getSystemsCatalog().filter((system) => shown.has(system.id)))) {
+      const a = mapPositionOf(idA);
+      const b = mapPositionOf(idB);
+      if (!a || !b) continue;
 
-        const ax = a.x * width;
-        const ay = a.y * height;
-        const bx = b.x * width;
-        const by = b.y * height;
-        const d = Math.hypot(ax - bx, ay - by);
-        if (d < width * 0.42) {
-          const laneGrad = ctx.createLinearGradient(ax, ay, bx, by);
-          laneGrad.addColorStop(0, "rgba(60, 140, 200, 0.12)");
-          laneGrad.addColorStop(0.5, "rgba(60, 140, 200, 0.22)");
-          laneGrad.addColorStop(1, "rgba(60, 140, 200, 0.12)");
-          ctx.beginPath();
-          ctx.moveTo(ax, ay);
-          ctx.lineTo(bx, by);
-          ctx.strokeStyle = laneGrad;
-          ctx.lineWidth = 1;
-          ctx.stroke();
+      const ax = a.x * width;
+      const ay = a.y * height;
+      const bx = b.x * width;
+      const by = b.y * height;
+      const laneGrad = ctx.createLinearGradient(ax, ay, bx, by);
+      laneGrad.addColorStop(0, "rgba(60, 140, 200, 0.12)");
+      laneGrad.addColorStop(0.5, "rgba(60, 140, 200, 0.22)");
+      laneGrad.addColorStop(1, "rgba(60, 140, 200, 0.12)");
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.strokeStyle = laneGrad;
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
-          // Dashed overlay for depth
-          ctx.save();
-          ctx.setLineDash([4, 8]);
-          ctx.beginPath();
-          ctx.moveTo(ax, ay);
-          ctx.lineTo(bx, by);
-          ctx.strokeStyle = "rgba(0, 200, 255, 0.08)";
-          ctx.lineWidth = 1;
-          ctx.stroke();
-          ctx.setLineDash([]);
-          ctx.restore();
-        }
-      }
+      // Dashed overlay for depth
+      ctx.save();
+      ctx.setLineDash([4, 8]);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.strokeStyle = "rgba(0, 200, 255, 0.08)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
     }
 
     // Draw star systems. Every star is known before any name is placed, so no name is put across one (ISP-82).

@@ -99,6 +99,24 @@ export function navigationFor(systems) {
 const stationList = (stations) => (Array.isArray(stations) ? stations : Object.values(stations || {}));
 
 /** The station whose claims office files leases on this body, or null when no station orbits it. */
+/**
+ * Bug #2328: the cluster view's lanes are the jump graph, each pair of systems where one lists the other in
+ * `adjacent` (the rule systemHops routes by), once. They were every pair closer than 42% of the canvas width, which
+ * drew jumps that do not exist and left out ones that do.
+ */
+export function lanePairs(systems) {
+  const ids = new Set((systems || []).map((s) => s.id));
+  const pairs = new Map();
+  for (const s of systems || []) {
+    for (const other of s.adjacent || []) {
+      if (!ids.has(other) || other === s.id) continue;
+      const key = [s.id, other].sort().join("|");
+      if (!pairs.has(key)) pairs.set(key, [s.id, other].sort());
+    }
+  }
+  return [...pairs.values()];
+}
+
 export function leaseStationFor(stations, body) {
   const wanted = String(body || "").toLowerCase();
   return stationList(stations).find((s) => String(s?.body || "").toLowerCase() === wanted) || null;
