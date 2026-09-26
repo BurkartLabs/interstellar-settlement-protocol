@@ -1,13 +1,17 @@
 // server/mail.js: the one way the server sends email (AB#987, ISP-280). One interface, sendMail({ to, subject, text }),
 // over one transport. Outside production that is the test transport (server/mailTestTransport.js), which keeps every
-// message in an in-memory outbox. In production there is no transport until AB#989 wires the sender the Board chose
-// (AB#981: a free one), so mail is unavailable and anything that needs it fails closed.
+// message in an in-memory outbox. In production it is SMTP (server/mailSmtpTransport.js, AB#989), with the free provider
+// the Board chose (AB#981) as configuration; until all of ISP_SMTP_HOST, ISP_SMTP_USER, ISP_SMTP_PASSWORD and
+// ISP_MAIL_FROM are set there is no transport, and anything that needs mail fails closed.
 //
 // Links in mail are built from ISP_PUBLIC_URL, never from a request's Host header, which the client controls.
 
 // The test transport refuses to load under NODE_ENV=production, so it is imported only outside it.
 const testModule = process.env.NODE_ENV === "production" ? null : await import("./mailTestTransport.js");
-const transport = testModule ? testModule.testTransport : null;
+const smtpModule = process.env.NODE_ENV === "production" ? await import("./mailSmtpTransport.js") : null;
+const smtpConfig = smtpModule ? smtpModule.smtpConfigFromEnv(process.env) : null;
+const transport = testModule ? testModule.testTransport : smtpConfig ? smtpModule.createSmtpTransport(smtpConfig) : null;
+if (process.env.NODE_ENV === "production" && !transport) console.warn("[mail] no SMTP transport configured (AB#989): registration and password reset answer 503.");
 
 /** The origin links in mail point at, without a trailing slash; null when none is usable (production needs one set). */
 export function publicBaseUrl() {

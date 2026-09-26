@@ -530,6 +530,19 @@ export async function createAccount({ email, password, ceoName, corpName }) {
   return { account: sanitizeAccount(account) };
 }
 
+/**
+ * AB#989: take back an account registration just created when its verification email could not be sent, so a failed
+ * send leaves nothing behind (no email or corporation name held by an account nobody can verify). Only an account
+ * that has never verified its address can be removed this way. Returns whether it was removed.
+ */
+export function removeUnverifiedAccount(accountId) {
+  const account = accountsStore.accounts?.[accountId];
+  if (!account || account.emailVerifiedAt) return false;
+  delete accountsStore.accounts[accountId];
+  scheduleAccountsSave();
+  return true;
+}
+
 export function listAccountNotifications(accountId) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) {

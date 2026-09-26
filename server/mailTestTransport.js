@@ -9,9 +9,22 @@ if (process.env.NODE_ENV === "production") {
 const OUTBOX_LIMIT = 200;
 const outbox = [];
 
+let failures = 0;
+
+/** AB#989: make the next `count` sends fail as a real transport would, for the tests of what a failure leaves behind. */
+export function failNextSends(count = 1) {
+  failures = Math.max(0, Math.floor(count));
+}
+
 export const testTransport = {
   name: "test",
   async send({ to, subject, text }) {
+    if (failures > 0) {
+      failures -= 1;
+      const error = new Error("The test transport was told to fail.");
+      error.name = "MailSendError";
+      throw error;
+    }
     outbox.push({ to, subject, text, at: Date.now() });
     if (outbox.length > OUTBOX_LIMIT) outbox.splice(0, outbox.length - OUTBOX_LIMIT);
   }
