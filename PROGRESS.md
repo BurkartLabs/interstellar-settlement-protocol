@@ -32,6 +32,21 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   out of sight (`chooseHighlight`).
 - Specs open tabs through `e2e/nav.mjs` `openTab(page, tab)`, never by a class. `git grep` for the old tab row's
   class names returns nothing. `e2e/nav-groups.spec.js` holds 375/768/1280; screens in `docs/ab-764/`.
+## What's now true (ISP-97, AB#787 — the Refinery Complex, the first upgrade, Builder)
+
+- The fifth catalogue entry and the first `"slot": "upgrade"` (`"upgrades": "refinery"`, `cap.perBuilding` 1):
+  100,000 / 70,000, Nano-Lattice Weaving. `POST /gameplay/build` upgrades the first Refinery not yet a complex, in
+  place and with no slot: the building records `upgrades: ["Refinery Complex"]` and tier 2, its refinery record tier 2.
+  It fails closed with no Refinery ("build one first") or none left ("already a Refinery Complex").
+- Effect: a tier-2 refinery's run delivers 1.5 times each output, rounded down (`public/scripts/refineryOutput.js`, one
+  rule for the tick, the start receipt and notification, and the Refinery page's run line).
+- The ladder's `building:` metric counts an upgrade recorded on the building it upgraded, so `building:Refinery
+  Complex` resolves to 1 and the Refinery still counts as a Refinery. **Level 7 does not name it** (AB#798's drift),
+  as with the Ferric Mining Complex at level 6; flagged for the PM.
+- **AB#793 (upgrade endpoint and extractor tiers) is Active elsewhere**: this adds the upgrade case to
+  `server/construction.js` for `/build`; the upgrade endpoint should reuse `upgrade()` rather than a second path.
+- Screens: `docs/ab-787/` (the run is seeded to end 30 s in, and the server's own tick delivers it).
+
 ## What's now true (ISP-96, AB#786 — the Ferric Mining Complex, Builder)
 
 - The fourth catalogue building: 90,000 / 65,000, one corporation slot, Material Compression I, one per corporation

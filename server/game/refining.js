@@ -2,6 +2,9 @@
 
 import { REFINERY_CHAINS, getStationInventory } from "./catalog.js";
 import { bumpStat } from "./progression.js";
+import { ECONOMY } from "../economy.js";
+// ISP-97 (AB#787): a Refinery Complex (tier 2) delivers 1.5 times; the rule is shared with the page and the receipt.
+import { refineryOutput } from "../../public/scripts/refineryOutput.js";
 
 // ─── Refinery model ──────────────────────────────────────────────────────────
 export function ensureCorpRefineryModel(corp) {
@@ -77,7 +80,7 @@ export function applyRefineryOperations(corp, now = Date.now()) {
     const refStationInv = getStationInventory(corp, ref.stationId);
     const scale = Math.max(1, Number(ref.cycleScale || 1));
     for (const output of chain.outputs) {
-      const produced = output.quantityPerCycle * scale;
+      const produced = refineryOutput(output.quantityPerCycle, scale, ref.tier, ECONOMY.buildings.refineryComplexOutputMultiplier);
       bumpStat(corp, "refinedUnitsProduced", produced); // Bug #424: levels 9 and 10
       refStationInv[output.item] = (refStationInv[output.item] || 0) + produced;
       ref.totalOutputProduced += produced;

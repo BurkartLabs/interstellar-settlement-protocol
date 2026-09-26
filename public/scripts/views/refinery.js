@@ -8,6 +8,7 @@ import { escapeHtml, refineryBuildButtonHtml } from "../html.js";
 import { refineMinimum, refineQuantityCheck, refineQuantityFieldValue } from "../refineQuantity.js";
 import { appState } from "../state.js";
 import { clientPrices } from "../clientPrices.js";
+import { refineryOutput } from "../refineryOutput.js"; // ISP-97 (AB#787): a Refinery Complex's run delivers 1.5 times
 import { cycleProgressPercent, pushFeedback, updateAllViews } from "./shared.js";
 
 // TODO(AB#824): Remove duplicate. This should be stored in the database
@@ -50,15 +51,16 @@ export function renderRefinery(data) {
       const remainingMs = Math.max(0, Number(ref.endsAt || 0) - Date.now());
       const scale = Math.max(1, Number(ref.cycleScale || 1));
       const totalInput = chain ? Number(chain.inputQuantityPerCycle || 100) * scale : 0;
+      const multiplier = appState.economy?.buildings?.refineryComplexOutputMultiplier;
       const outputLabel = chain
-        ? chain.outputs.map((o) => `${(Number(o.quantityPerCycle) || 0) * scale} ${o.item}`).join(", ")
+        ? chain.outputs.map((o) => `${refineryOutput(o.quantityPerCycle, scale, ref.tier, multiplier)} ${o.item}`).join(", ")
         : "Unknown";
       // Bug #692: outputs land where the inputs came from, whatever station the corporation is at when the cycle ends.
       const deliveryStation = (appState.stationRegistry || []).find((s) => s.id === ref.stationId);
       const deliveryLabel = deliveryStation?.name || ref.stationId || "an unknown station";
       return `
         <article class="queue-item">
-          <h3>${escapeHtml(ref.name)}</h3>
+          <h3>${escapeHtml(ref.name)}${Number(ref.tier) >= 2 ? " &middot; Refinery Complex" : ""}</h3>
           <p class="muted">Processing: ${chain ? `${totalInput.toLocaleString()} ${escapeHtml(chain.input)}` : "Unknown"} → ${escapeHtml(outputLabel)}</p>
           <p class="muted">Delivers to: ${escapeHtml(deliveryLabel)}</p>
           <p class="muted">Remaining: ${formatDurationHours(remainingMs)} (${progress.toFixed(1)}%)</p>

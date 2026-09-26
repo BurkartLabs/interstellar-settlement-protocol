@@ -79,7 +79,8 @@ export function resolveMetric(metric, corp) {
   // building:<name> — boolean: has at least one
   if (metric.startsWith("building:")) {
     const name = metric.slice(9);
-    return buildings.some((b) => b.name === name) ? 1 : 0;
+    // ISP-97 (AB#787): an upgrade (the Refinery Complex) is recorded on the building it upgraded, which keeps its name.
+    return buildings.some((b) => b.name === name || (Array.isArray(b.upgrades) && b.upgrades.includes(name))) ? 1 : 0;
   }
 
   // building-count:<name> — count of matching buildings
@@ -191,6 +192,8 @@ export function evaluateLevelProgress(profileState) {
     if (u.employeeCap) corp.employeeCap = Math.max(corp.employeeCap, u.employeeCap);
     if (u.buildingSlots) corp.buildingSlots = Math.max(corp.buildingSlots, u.buildingSlots);
     if (u.maxFleetSize) corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, u.maxFleetSize);
+    // AB#793: the highest building tier this level allows (docs/design/upgrades.md); a level never lowers it.
+    if (u.maxUpgradeTier) corp.unlocks.maxUpgradeTier = Math.max(Number(corp.unlocks.maxUpgradeTier) || 1, u.maxUpgradeTier);
     if (Array.isArray(u.marketSectors)) {
       for (const sector of u.marketSectors) {
         if (!corp.unlocks.marketSectors.includes(sector)) {
@@ -223,6 +226,7 @@ export function levelReachedNotices(before, corp) {
   let employeeCap = Number(before.employeeCap || 0);
   let buildingSlots = Number(before.buildingSlots || 0);
   let maxFleetSize = Number(before.maxFleetSize || 0);
+  let maxUpgradeTier = Math.max(1, Number(before.maxUpgradeTier || 1)); // AB#793
   const sectors = new Set(before.marketSectors || []);
   const notices = [];
   for (const levelDef of [...MILESTONE_LEVELS].sort((a, b) => a.level - b.level)) {
@@ -231,6 +235,7 @@ export function levelReachedNotices(before, corp) {
     employeeCap = Math.max(employeeCap, Number(u.employeeCap || 0));
     buildingSlots = Math.max(buildingSlots, Number(u.buildingSlots || 0));
     maxFleetSize = Math.max(maxFleetSize, Number(u.maxFleetSize || 0));
+    maxUpgradeTier = Math.max(maxUpgradeTier, Number(u.maxUpgradeTier || 0));
     const opened = (Array.isArray(u.marketSectors) ? u.marketSectors : []).filter((sector) => !sectors.has(sector));
     opened.forEach((sector) => sectors.add(sector));
     if (levelDef.level <= Number(before.level || 0)) continue;
@@ -241,6 +246,7 @@ export function levelReachedNotices(before, corp) {
       employeeCap: { label: "Employee cap", value: String(employeeCap) },
       buildingSlots: { label: "Building slots", value: String(buildingSlots) },
       maxFleetSize: { label: "Fleet cap", value: String(fleetCap) },
+      maxUpgradeTier: { label: "Highest building tier", value: String(maxUpgradeTier) },
       marketSectors: { label: "Market sectors opened", value: (opened.length ? opened : u.marketSectors || []).join(", ") }
     };
     notices.push({

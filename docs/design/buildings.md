@@ -19,7 +19,7 @@ A player building is one a corporation builds or owns: an entry in `corp.buildin
 | Headquarters | server/game/corporation.js:30 (every new corporation); server/game/world.js:40 (dev seed) | Not a building yet |
 | Refinery Annex | server/game/world.js:42 (dev seed); DEVELOPMENT_PHASES.md:45 | The Refinery's old name; not a separate type |
 | Ferric Mining Complex | data/player-buildings.json; server/game/asteroids.js (`ferricBonus`); data/economy.json (price, multiplier) | Built (ISP-96, AB#786); in the catalogue |
-| Refinery Complex | data/milestones.json:170; chrome.js:149; DESIGN_DOCUMENT.md:385 | Designed only; proposed below |
+| Refinery Complex | data/player-buildings.json (`slot: "upgrade"`); server/construction.js (`upgrade`); public/scripts/refineryOutput.js | Built (ISP-97, AB#787); in the catalogue, the first upgrade |
 | Cryo-vapor Extractor Array | data/milestones.json:177; chrome.js:153; DESIGN_DOCUMENT.md:387 (as "Cryo-Vapor research, Luna lease") | Designed only; proposed below |
 
 ## The three that exist

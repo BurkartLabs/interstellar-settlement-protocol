@@ -7,8 +7,8 @@
 // refused, not built bare: a building added to the file cannot be bought before its effect is written (fails closed).
 import { buildCostFor } from "./economy.js";
 import { applyCredits } from "./finances.js";
-import { catalogueRefusal } from "./playerBuildings.js";
-import { buildAssemblyReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildRefineryReceipt } from "./receipts.js";
+import { catalogueRefusal, PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
+import { buildAssemblyReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildRefineryComplexReceipt, buildRefineryReceipt } from "./receipts.js";
 import { ECONOMY } from "./economy.js";
 
 const hasTech = (corp, id) => (corp.unlockedTech || []).includes(id);
@@ -82,11 +82,22 @@ export const CONSTRUCTIONS = Object.freeze({
     place: () => ({}),
     notification: { title: "Ferric Mining Complex Online", body: "Returning mining probes now deposit more Nickel and Titanium." },
     receipt: (built, corp) => buildFerricMiningComplexReceipt({ cost: built.cost, assetValue: built.assetValue, multiplier: ECONOMY.buildings.ferricMiningComplexMetalMultiplier, ...slotCount(corp) })
+  },
+  // ISP-97 (AB#787): an upgrade. The n-th Refinery building and the n-th refinery record are pushed together by the
+  // refinery's construction and nothing removes either, so the building upgraded is matched to its refinery by order.
+  "refinery-complex": {
+    upgradeTarget: (corp, index) => (Array.isArray(corp.refineries) ? corp.refineries[index] : null) || null,
+    place(corp, building, refinery) {
+      refinery.tier = 2; // what server/game/refining.js reads for the larger output
+      return { refineryName: refinery.name || "Refinery" };
+    },
+    notification: { title: "Refinery Complex Online", body: "One of your Refineries is now a Refinery Complex: its runs deliver more of every output." },
+    receipt: (built) => buildRefineryComplexReceipt({ cost: built.cost, assetValue: built.assetValue, refineryName: built.refineryName, multiplier: ECONOMY.buildings.refineryComplexOutputMultiplier })
   }
 });
 
-/** The slots a building can take today. "upgrade" is in the catalogue's shape but nothing builds one yet. */
-const BUILDABLE_SLOTS = new Set(["corporation", "corporation+lease"]);
+/** The slots a building can take. An "upgrade" takes none: it changes a building the corporation has (ISP-97). */
+const BUILDABLE_SLOTS = new Set(["corporation", "corporation+lease", "upgrade"]);
 
 /**
  * Build `building` for `corp`, on the lease `leaseId` when it stands on one. Returns { outcome: "ok", cost, assetValue,
@@ -108,6 +119,7 @@ export function construct(corp, building, leaseId) {
 
   const refused = catalogueRefusal(building, corp);
   if (refused) return { outcome: refused };
+  if (building.slot === "upgrade") return upgrade(corp, building, construction);
   if (lease && (lease.extractorIds || []).length >= lease.buildingSlots) return { outcome: "lease-slots-full" };
   if ((corp.buildings || []).length >= (corp.buildingSlots || 2)) return { outcome: "no-corp-slot" };
   const cost = construction.cost ? construction.cost(building, corp) : building.cost;
@@ -116,6 +128,32 @@ export function construct(corp, building, leaseId) {
   if (!Array.isArray(corp.buildings)) corp.buildings = [];
   corp.buildings.push({ name: building.name, tier: 1, status: "Operational" }); // the catalogue name; a test holds them equal
   const placed = construction.place(corp, building, lease);
+  applyCredits(corp, -cost, "construction");
+  corp.finances.assets = (corp.finances.assets || 0) + building.assetValue;
+  return { outcome: "ok", cost, assetValue: building.assetValue, ...placed };
+}
+
+/**
+ * An upgrade (ISP-97): the first building of the kind it upgrades that does not carry it yet (`cap.perBuilding`, one
+ * each), changed in place. No slot is taken. The building records the upgrade in `upgrades` and tier 2, which the
+ * ladder's building: metric counts (server/game/progression.js); the construction changes the record that works.
+ */
+function upgrade(corp, building, construction) {
+  const base = PLAYER_BUILDING_CATALOGUE.find((b) => b.id === building.upgrades && b.slot !== "upgrade");
+  const perBuilding = building.cap?.perBuilding ?? 1;
+  if (!base || typeof construction.upgradeTarget !== "function") return { outcome: "not-constructible" };
+  const own = (corp.buildings || []).filter((b) => b?.name === base.name);
+  if (!own.length) return { outcome: "nothing-to-upgrade" };
+  const target = own.find((b) => (b.upgrades || []).filter((u) => u === building.name).length < perBuilding);
+  if (!target) return { outcome: "at-cap" };
+  const record = construction.upgradeTarget(corp, own.indexOf(target));
+  if (!record) return { outcome: "not-constructible" }; // a building with nothing behind it is not upgraded blind
+  const cost = construction.cost ? construction.cost(building, corp) : building.cost;
+  if ((corp.finances?.credits || 0) < cost) return { outcome: "insufficient-credits" };
+
+  target.upgrades = [...(target.upgrades || []), building.name];
+  target.tier = Math.max(Number(target.tier) || 1, 2);
+  const placed = construction.place(corp, building, record);
   applyCredits(corp, -cost, "construction");
   corp.finances.assets = (corp.finances.assets || 0) + building.assetValue;
   return { outcome: "ok", cost, assetValue: building.assetValue, ...placed };

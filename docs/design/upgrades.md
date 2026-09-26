@@ -55,10 +55,10 @@ The model's assumptions, as `npm run economy:model`: Earth Silicates at 24, 8% t
 | 1 | 420 | 250 | 146 | 606 | 2,618 | 11,868 | 51,271 | - | - | - | - |
 | 2 | 525 | 313 | 182 | 757 | 3,262 | 14,825 | 63,883 | 40,000 | 6 h | 2,957 | 14.5 days |
 | 3 | 656 | 391 | 232 | 947 | 4,176 | 18,546 | 81,783 | 60,000 | 12 h | 3,721 | 18.1 days |
-| 4 | 820 | 488 | 294 | 1,184 | 5,308 | 23,187 | 103,952 | 90,000 | 18 h | 4,641 | 22.4 days |
-| 5 | 1,025 | 610 | 357 | 1,479 | 6,404 | 28,965 | 125,416 | 135,000 | 24 h | 5,778 | 27.4 days |
+| 4 | 820 | 488 | 288 | 1,183 | 5,176 | 23,168 | 101,367 | 90,000 | 18 h | 4,622 | 22.5 days |
+| 5 | 1,025 | 610 | 361 | 1,479 | 6,492 | 28,965 | 127,139 | 135,000 | 24 h | 5,797 | 27.3 days |
 
-"Payback" is (upgrade cost + the previous tier's profit lost while offline) / gain per day. It lengthens at every
+Tiers 4 and 5 are computed from `T_ref` as rounded in the table (820 and 1,025), which is what `data/economy.json` holds; the first version of this table used the unrounded values for those two rows (AB#793 corrected them). "Payback" is (upgrade cost + the previous tier's profit lost while offline) / gain per day. It lengthens at every
 tier: a corporation that plans 30 days ahead takes a yard to tier 4 and has reason to stop before 5. That interior
 optimum is what T-018 asks for.
 
@@ -79,7 +79,7 @@ from the numbers above:
 |---|---|---|---|---|---|
 | **100,000** | Level 2, one tier-1 yard on Earth, one free slot | leaves 50,000; two yards need a float of 2 x 51,271 + 816 = 103,358 | leaves 60,000; a tier-2 yard needs 63,883 | **wait**: mine and sell; the build clears the float once credits reach 153,358, about 4.5 days at 11,868 a day | the float. The superlinear running cost means a bigger or hotter operation needs more cash than this corporation has |
 | **500,000** | Level 3, two tier-1 yards filling Earth | Mars lease + hires + yard: 85,000, pays back in 8.3 days; leaves 415,000 against a three-yard float of 155,445 | 40,000, pays back in 14.5 days | **build another** | payback. There is a slot, and a new yard earns more per credit than a tier |
-| **2,000,000** | Level 6, six tier-1 yards filling Earth, Mars and Luna | impossible: no leasable body is left | all six to tier 2 costs 240,000 and leaves 1,760,000 against a float of 387,378; tiers 3 and 4 follow at 18.1 and 22.4 days | **upgrade this one**, and the next, up to the tier the horizon pays for | the slot ceiling. Upgrading is the only growth left, and the lengthening payback says where to stop |
+| **2,000,000** | Level 6, six tier-1 yards filling Earth, Mars and Luna | impossible: no leasable body is left | all six to tier 2 costs 240,000 and leaves 1,760,000 against a float of 387,378; tiers 3 and 4 follow at 18.1 and 22.5 days | **upgrade this one**, and the next, up to the tier the horizon pays for | the slot ceiling. Upgrading is the only growth left, and the lengthening payback says where to stop |
 
 ### The rule a sensible corporation follows (for the probe)
 

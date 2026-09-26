@@ -27,6 +27,22 @@ export function yardUpkeepPerHourFor(yardIndex, buildings) {
   return Math.round(perHour * 100) / 100;
 }
 
+/**
+ * ISP-101 (AB#793): what a yard's tier sets, from the bootstrap constants: its running cost's reference throughput and
+ * its cap. The server's yardTierFor (server/economy.js); tests/unit/miningProjection.test.js holds the two equal. An
+ * unknown tier runs as tier 1, as on the server.
+ */
+export function yardTierFor(tier, operations, buildings) {
+  const row = (buildings?.extractorYardUpgrades || []).find((u) => u.toTier === Number(tier));
+  if (Number(tier) > 1 && row) return { tier: Number(tier), throughputReferencePerHour: row.throughputReferencePerHour, throughputCap: row.throughputCap };
+  return { tier: 1, throughputReferencePerHour: Number(operations?.throughputReferencePerHour) || 0, throughputCap: 250 };
+}
+
+/** The operations constants with a tier's reference throughput in place of tier 1's, for costPerHourFor. */
+export function operationsForTier(tier, operations, buildings) {
+  return { ...operations, throughputReferencePerHour: yardTierFor(tier, operations, buildings).throughputReferencePerHour };
+}
+
 /** What starting a cycle costs up front. */
 export function startupCostFor(costPerHour, operations) {
   const share = Number(operations?.startupShareOfHourlyCost) || 0;

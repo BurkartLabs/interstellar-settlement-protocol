@@ -17,8 +17,17 @@
     "ferricMiningComplexCost": 90000,
     "ferricMiningComplexAssetValue": 65000,
     "ferricMiningComplexMetalMultiplier": 1.25,
+    "refineryComplexCost": 100000,
+    "refineryComplexAssetValue": 70000,
+    "refineryComplexOutputMultiplier": 1.5,
     "supplyForecastCostMultiplier": 0.94,
-    "extractorYardUpkeepPctPerDay": 2
+    "extractorYardUpkeepPctPerDay": 2,
+    "extractorYardUpgrades": [
+      { "toTier": 2, "upgradeCost": 40000, "assetValue": 28000, "offlineHours": 6, "throughputReferencePerHour": 525, "throughputCap": 313 },
+      { "toTier": 3, "upgradeCost": 60000, "assetValue": 42000, "offlineHours": 12, "throughputReferencePerHour": 656, "throughputCap": 391 },
+      { "toTier": 4, "upgradeCost": 90000, "assetValue": 63000, "offlineHours": 18, "throughputReferencePerHour": 820, "throughputCap": 488 },
+      { "toTier": 5, "upgradeCost": 135000, "assetValue": 94500, "offlineHours": 24, "throughputReferencePerHour": 1025, "throughputCap": 610 }
+    ]
   },
   "operations": {
     "costPerThroughputUnit": 16,

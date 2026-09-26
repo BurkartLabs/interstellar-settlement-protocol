@@ -9,6 +9,7 @@ import { escapeHtml } from "./html.js";
 const money = (n) => `¤${Math.floor(n).toLocaleString("en-US")}`;
 const has = (corp, tech) => (corp.unlockedTech || []).includes(tech);
 const onLease = (building) => building.slot === "corporation+lease";
+const isUpgrade = (building) => building.slot === "upgrade";
 
 /**
  * What the server charges this corporation for the building (server/construction.js CONSTRUCTIONS): the catalogue
@@ -33,7 +34,7 @@ function leasesWithRoom(corp) {
  * One row's state: { building, cost, leases, reason }. `reason` is "" when the row offers Build, or the first unmet
  * condition in words: research, the cap, a lease with room, a corporation slot, the price.
  */
-export function constructionRow(building, corp = {}, { researchName = (id) => id, economy = {} } = {}) {
+export function constructionRow(building, corp = {}, { researchName = (id) => id, economy = {}, catalogue = [] } = {}) {
   const cost = buildingCost(building, corp, economy);
   const leases = onLease(building) ? leasesWithRoom(corp) : [];
   const row = { building, cost, leases, reason: "" };
@@ -43,6 +44,19 @@ export function constructionRow(building, corp = {}, { researchName = (id) => id
   const used = (corp.buildings || []).length;
   const slots = corp.buildingSlots || 2;
 
+  // ISP-97 (AB#787): an upgrade takes no slot; it needs a building of the kind it upgrades that does not carry it yet.
+  if (isUpgrade(building)) {
+    const baseName = catalogue.find((b) => b.id === building.upgrades)?.name || "building";
+    const own = (corp.buildings || []).filter((b) => b?.name === baseName);
+    const perBuilding = building.cap?.perBuilding ?? 1;
+    row.upgrades = baseName;
+    if (missing) row.reason = `Requires ${researchName(missing)} research.`;
+    else if (!own.length) row.reason = `Needs a ${baseName} to upgrade: build one first.`;
+    else if (!own.some((b) => (b.upgrades || []).filter((u) => u === building.name).length < perBuilding)) row.reason = `Every ${baseName} you have is already a ${building.name}.`;
+    else if (!Number.isFinite(cost)) row.reason = "The price has not loaded; reload the page.";
+    else if (Number(corp.finances?.credits || 0) < cost) row.reason = `Needs ${money(cost)}; you have ${money(Number(corp.finances?.credits || 0))}.`;
+    return row;
+  }
   if (missing) row.reason = `Requires ${researchName(missing)} research.`;
   else if (cap !== undefined && built >= cap) row.reason = `Built: your corporation operates the most it may, ${cap}.`;
   else if (onLease(building) && !(corp.miningLeases || []).length) row.reason = "Needs a mining lease: file one at the ISA Claims & Leases Division.";
@@ -57,9 +71,11 @@ export function slotCounterText(corp = {}) {
   return `Building slots: ${(corp.buildings || []).length} of ${corp.buildingSlots || 2} in use.`;
 }
 
-function rowHtml({ building, cost, leases, reason }) {
+function rowHtml({ building, cost, leases, reason, upgrades }) {
   const id = escapeHtml(building.id);
-  const slotUse = onLease(building) ? "Uses 1 corporation slot and 1 slot on a mining lease." : "Uses 1 corporation slot.";
+  const slotUse = isUpgrade(building)
+    ? `Uses no slot: upgrades a ${upgrades} in place.`
+    : onLease(building) ? "Uses 1 corporation slot and 1 slot on a mining lease." : "Uses 1 corporation slot.";
   const leasePicker = leases.length
     ? `<label class="construction-lease">On lease <select data-build-lease>${leases
         .map((l) => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.body || l.id)} (${(l.extractorIds || []).length} of ${l.buildingSlots} in use)</option>`)
@@ -80,7 +96,7 @@ function rowHtml({ building, cost, leases, reason }) {
 
 /** Every catalogue building as a row, in the catalogue's order. */
 export function constructionPanelHtml(catalogue = [], corp = {}, ctx = {}) {
-  return catalogue.map((building) => rowHtml(constructionRow(building, corp, ctx))).join("");
+  return catalogue.map((building) => rowHtml(constructionRow(building, corp, { catalogue, ...ctx }))).join("");
 }
 
 export function buildPath(accountId) {

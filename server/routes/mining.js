@@ -1,6 +1,6 @@
 // server/routes/mining.js: the mining routes, split out of server/index.js (AB#1815).
 import { bodyNumber } from "../bodyNumber.js";
-import { operationCostPerHourFor, startupCostFor, yardUpkeepPerHourFor } from "../economy.js";
+import { operationCostPerHourFor, startupCostFor, yardTierFor, yardUpkeepPerHourFor } from "../economy.js";
 import { addAccountNotification, mutateAccountState } from "../gameState.js";
 import { startExtractorCycle, stopExtractorCycle } from "../gameState.js"; // AB#575, AB#1052
 import { applyCredits } from "../finances.js";
@@ -21,6 +21,7 @@ export function registerMiningRoutes(app) {
   app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, res) => {
     const { leaseId } = req.params;
     let neededStartup = 0; // Bug #1058: the start-up cost, for the refusal
+    let upgradingUntil = 0; // AB#793: when an upgrading yard is back, for the refusal
     const amount = bodyNumber(req.body?.amount, { fallback: 40, min: 10 });
     const requestedHours = bodyNumber(req.body?.hours, { fallback: 24, min: 1, max: 72 });
     let started = null; // AB#743
@@ -76,12 +77,21 @@ export function registerMiningRoutes(app) {
         return;
       }
 
-      let throughputPerHour = Math.max(10, Math.min(250, amount));
+      // AB#793: a yard being upgraded is offline until the upgrade finishes.
+      if (Number(extractorCycle.upgradingUntil) > now) {
+        outcome = "upgrading";
+        upgradingUntil = Number(extractorCycle.upgradingUntil);
+        return;
+      }
+
+      // AB#793: the yard's tier sets its cap and the curve its running cost follows (docs/design/upgrades.md).
+      const { tier, throughputCap } = yardTierFor(extractorCycle.tier);
+      let throughputPerHour = Math.max(10, Math.min(throughputCap, amount));
       if (!Number.isFinite(throughputPerHour) || throughputPerHour <= 0) throughputPerHour = 40;
       // ISP-301 (AB#2284): yards after the corporation's first pay upkeep while they run. The startup is priced on the
       // running cost without it, so the upkeep is only ever charged by the hour.
       const yardIndex = corp.mining.silicateExtractors.indexOf(extractorCycle);
-      let baseCostPerHour = operationCostPerHourFor(throughputPerHour);
+      let baseCostPerHour = operationCostPerHourFor(throughputPerHour, undefined, { tier });
       if (!Number.isFinite(baseCostPerHour) || baseCostPerHour <= 0) baseCostPerHour = 640;
       const operationCostPerHour = baseCostPerHour + yardUpkeepPerHourFor(yardIndex);
       const startupCost = startupCostFor(baseCostPerHour);
@@ -115,6 +125,7 @@ export function registerMiningRoutes(app) {
         "no-lease-extractors": "No extraction facilities are assigned to this lease.",
         "missing-extractor-target": "That extractor is not on this lease. Reload the lease and choose one of its extractors.", // AB#1336
         "already-active": `${targetExtractorLabel} already has an active mining cycle in progress.`,
+        upgrading: `${targetExtractorLabel} is being upgraded and is offline until ${new Date(upgradingUntil).toISOString().slice(11, 16)} UTC.`,
         "insufficient-credits": fundingRequirementMessage("Starting this mining cycle", account.state.corp, neededStartup, miningCreditsAdvice(neededStartup))
       };
       res.status(400).json({ error: messageMap[outcome] || "Mining cycle failed to start." });

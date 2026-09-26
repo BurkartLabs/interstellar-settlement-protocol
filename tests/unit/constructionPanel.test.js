@@ -71,6 +71,18 @@ describe("the construction panel (ISP-95)", () => {
     expect(Number.isNaN(buildingCost(byId("basic-extractor-yard"), corp({ unlockedTech: ["tt-supply-forecast"] }), {}))).toBe(true);
   });
 
+  it("an upgrade takes no slot, needs the building it upgrades, and locks once every one carries it (ISP-97)", () => {
+    const ctxWithCatalogue = { ...ctx, catalogue: PLAYER_BUILDING_CATALOGUE };
+    const complex = byId("refinery-complex");
+    const researched = { unlockedTech: [...ALL_GATES] };
+    expect(constructionRow(complex, corp(researched), ctxWithCatalogue).reason).toBe("Needs a Refinery to upgrade: build one first.");
+    const full = corp({ ...researched, buildingSlots: 2, buildings: [{ name: "Headquarters" }, { name: "Refinery" }] });
+    expect(constructionRow(complex, full, ctxWithCatalogue).reason).toBe(""); // every slot in use, and still buildable
+    const upgraded = corp({ ...researched, buildings: [{ name: "Refinery", upgrades: ["Refinery Complex"] }] });
+    expect(constructionRow(complex, upgraded, ctxWithCatalogue).reason).toBe("Every Refinery you have is already a Refinery Complex.");
+    expect(constructionPanelHtml([byId("refinery"), complex], full, ctx)).toContain("Uses no slot: upgrades a Refinery in place.");
+  });
+
   it("fails closed without a price: the row is locked, never built at a guessed price", () => {
     const row = constructionRow({ ...byId("refinery"), cost: undefined }, corp({ unlockedTech: [...ALL_GATES] }), ctx);
     expect(row.reason).toBe("The price has not loaded; reload the page.");

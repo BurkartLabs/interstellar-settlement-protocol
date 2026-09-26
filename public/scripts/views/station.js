@@ -10,7 +10,7 @@ import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml, stationBuildingCardsHtml } from "../html.js";
 import { activeCycleFigures, extractorState, spentText } from "../leaseLive.js";
 import { probeFabricationStartedText } from "../miningFeedback.js";
-import { bestThroughput, costPerHourFor, miningProjection, startupCostFor as clientStartupCostFor, yardUpkeepPerHourFor } from "../miningProjection.js";
+import { bestThroughput, costPerHourFor, miningProjection, operationsForTier, startupCostFor as clientStartupCostFor, yardTierFor, yardUpkeepPerHourFor } from "../miningProjection.js";
 import { clientPrices } from "../clientPrices.js";
 import { leaseFullAdvice } from "../slotAdvice.js";
 import { appState, techTree } from "../state.js";
@@ -692,7 +692,7 @@ export function renderLeaseManagement(building, lease, data) {
     const mineFormId = `mine-form-${ex.id}`;
     const mineFormHtml = !ex.active
       ? `<form class="inline-form compact-action-form lease-mine-form" id="${escapeHtml(mineFormId)}" data-extractor-id="${escapeHtml(ex.id)}" style="margin-top:0.5rem;">
-          <label>Throughput (t/h)<input type="number" name="amount" min="10" max="250" value="40" style="width:72px;" /></label>
+          <label>Throughput (t/h)<input type="number" name="amount" min="10" max="${yardTierFor(ex.tier, appState.economy?.operations, appState.economy?.buildings).throughputCap}" value="40" style="width:72px;" /></label>
           <label>Duration (hrs)<input type="number" name="hours" min="1" max="72" value="24" style="width:60px;" /></label>
           <button class="btn btn-accent btn-sm" type="submit">Start Cycle</button>
         </form>
@@ -846,7 +846,8 @@ export function bindLeaseManagementActions(building, lease, data) {
   const showMineProjection = (form) => {
     const line = form.parentElement?.querySelector(`.lease-mine-projection[data-for="${CSS.escape(form.getAttribute("data-extractor-id") || "")}"]`);
     if (!line) return;
-    const rate = Math.max(10, Math.min(250, Number(form.querySelector('[name="amount"]')?.value || 40)));
+    const cap = Number(form.querySelector('[name="amount"]')?.max) || 250; // AB#793: the yard's tier cap
+    const rate = Math.max(10, Math.min(cap, Number(form.querySelector('[name="amount"]')?.value || 40)));
     line.textContent = mineProjectionText(rate, form.getAttribute("data-extractor-id"));
   };
 
@@ -880,9 +881,11 @@ export function bindLeaseManagementActions(building, lease, data) {
         } else {
           // Demo fallback
           const corp = appState.data.corp;
-          const throughputPerHour = Math.max(10, Math.min(250, amount));
-          // ISP-86: the same curve the server charges, from the server's own constants.
-          const operations = appState.economy?.operations;
+          // ISP-86: the same curve the server charges, from the server's own constants; AB#793: at the yard's tier.
+          const tierEx = corp.mining.silicateExtractors.find((e) => e.id === extractorId);
+          const tierOf = yardTierFor(tierEx?.tier, appState.economy?.operations, appState.economy?.buildings);
+          const throughputPerHour = Math.max(10, Math.min(tierOf.throughputCap, amount));
+          const operations = operationsForTier(tierOf.tier, appState.economy?.operations, appState.economy?.buildings);
           const baseCostPerHour = costPerHourFor(throughputPerHour, operations);
           const startupCost = clientStartupCostFor(baseCostPerHour, operations);
           // AB#2284: upkeep for yards after the first, by the hour only, as the server charges it.
@@ -1228,8 +1231,12 @@ export function mineProjectionText(rate, extractorId) {
   const efficiency = miningEfficiencyOf(appState.data?.corp);
   // ISP-301 (AB#2284): a yard after the corporation's first pays upkeep while it runs, and the line says so.
   const upkeepPerHour = yardUpkeepPerHourFor(yardIndexOf(appState.data?.corp, extractorId), economy.buildings);
-  const at = miningProjection(rate, { operations: economy.operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour });
-  const best = bestThroughput({ operations: economy.operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour });
+  // ISP-101 (AB#793): the yard's tier sets its curve and its cap, so the projection and the best rate follow it.
+  const ex = (appState.data?.corp?.mining?.silicateExtractors || []).find((e) => e.id === extractorId);
+  const tierOf = yardTierFor(ex?.tier, economy.operations, economy.buildings);
+  const operations = operationsForTier(tierOf.tier, economy.operations, economy.buildings);
+  const at = miningProjection(rate, { operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour });
+  const best = bestThroughput({ operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour, max: tierOf.throughputCap });
   const net = at.profitPerHour >= 0 ? `nets ${toCurrency(at.profitPerHour)}/hour` : `loses ${toCurrency(Math.abs(at.profitPerHour))}/hour`;
   const upkeep = upkeepPerHour > 0 ? ` (including ${upkeepPerHour.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 })}/hour upkeep, paid by every yard after your first)` : "";
   return `At ${rate} t/h: earns ${toCurrency(at.revenuePerHour)}/hour, costs ${toCurrency(at.costPerHour)}/hour${upkeep}, ${net}. `
