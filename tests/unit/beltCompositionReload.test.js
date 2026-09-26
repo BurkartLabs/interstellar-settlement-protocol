@@ -85,7 +85,7 @@ describe("a scouted belt after a reload (Bug #1264)", () => {
     controller.setAsteroidMining(starmapMiningState(scouted, {}));
     controller.setAsteroidMining(starmapMiningState(scouted, { "sol:belt": { Silicates: 35, Carbon: 25 } }));
     expect(detailsEl.innerHTML).toContain("Material Composition");
-    expect(detailsEl.innerHTML).toContain("Silicates: 35%");
+    expect(detailsEl.innerHTML).toContain("Silicates <strong>35%</strong>"); // AB#2331: a labelled bar's legend
     expect(detailsEl.innerHTML).not.toContain("Loading composition");
   });
 
@@ -96,7 +96,8 @@ describe("a scouted belt after a reload (Bug #1264)", () => {
     );
     expect(state).toEqual({
       probeCount: 2, maxProbes: 3, maxDeployments: 2, activeExpeditions: [],
-      scoutedBelts: ["sol:belt"], beltCompositions: { "sol:belt": { Silicates: 35 } }
+      scoutedBelts: ["sol:belt"], beltCompositions: { "sol:belt": { Silicates: 35 } },
+      belts: {}, respawnChancePerHour: null // AB#2331: until the slots have been fetched
     });
     expect(starmapMiningState({}, undefined).beltCompositions).toEqual({});
   });
@@ -128,10 +129,87 @@ describe("a scouted belt after a reload (Bug #1264)", () => {
   });
 
   it("when the fetch resolves, the compositions go to the Starmap", () => {
-    expect(body("function loadBeltCompositionsIntoStarmap(")).toMatch(
-      /refreshBeltCompositions\(\)\.then\(\(\) => starmap\.setAsteroidMining\(starmapMiningState\(appState\.data, appState\.beltCompositions\)\)\)/
-    );
+    // AB#2331: with the slots (appState.belts) and the respawn chance, fetched with them.
+    const slots = String.raw`\{ belts: appState\.belts, respawnChancePerHour: appState\.beltRespawnChance \}`;
+    expect(body("function loadBeltCompositionsIntoStarmap(")).toMatch(new RegExp(
+      String.raw`refreshBeltCompositions\(\)\.then\(\(\) => starmap\.setAsteroidMining\(starmapMiningState\(appState\.data, appState\.beltCompositions,\s*` + slots + String.raw`\)\)\)`
+    ));
     // AB#1826: renderAllViews, not updateAllViews — updateAllViews only times renderAllViews (Bug #729's bench).
-    expect(body("function renderAllViews(")).toMatch(/starmap\.setAsteroidMining\(starmapMiningState\(data, appState\.beltCompositions\)\)/);
+    expect(body("function renderAllViews(")).toMatch(new RegExp(
+      String.raw`starmap\.setAsteroidMining\(starmapMiningState\(data, appState\.beltCompositions, ` + slots + String.raw`\)\)`
+    ));
+  });
+});
+
+// AB#2331: the belt panel's three states, from the slot the server sends (GET .../belt-compositions): scouted, with its
+// rarity, composition bar and reserve; unscouted, whatever the key list says; and empty, with the next hourly chance.
+describe("the belt panel shows the belt there now (AB#2331)", () => {
+  const slot = (over) => ({ key: "sol:belt", generation: 1, present: true, scouted: false, nextDrawAt: null, ...over });
+  const scoutedSlot = slot({ scouted: true, rarity: "uncommon", composition: { Nickel: 30, Silicates: 50, Carbon: 20 }, reserve: 2898, remaining: 1449 });
+  const withSlots = (belts, compositions = {}) => starmapMiningState(scouted, compositions, { belts, respawnChancePerHour: 0.2 });
+
+  it("a scouted belt: its rarity, a labelled bar largest part first, and the reserve left", () => {
+    const { controller, detailsEl } = openSolBelt();
+    controller.setAsteroidMining(withSlots({ "sol:belt": scoutedSlot }));
+    const html = detailsEl.innerHTML;
+    expect(html).toContain("Generation 1");
+    expect(html).toContain('<span class="ui-badge ui-badge--accent">Uncommon</span>');
+    expect(html).toContain('role="img" aria-label="Silicates 50%, Nickel 30%, Carbon 20%"');
+    expect(html.indexOf("Silicates <strong>50%</strong>")).toBeLessThan(html.indexOf("Nickel <strong>30%</strong>"));
+    expect(html).toContain("1,449 of 2,898 units left (50%)");
+    expect(html).toContain('aria-valuenow="1449"');
+  });
+
+  it("a belt of more than five resources shows its four largest and the rest as Other, each named", () => {
+    const { controller, detailsEl } = openSolBelt();
+    const composition = { Nickel: 25, Titanium: 22, Carbon: 18, Silicates: 15, Hydrogen: 12, Cobalt: 8 };
+    controller.setAsteroidMining(withSlots({ "sol:belt": { ...scoutedSlot, composition } }));
+    const html = detailsEl.innerHTML;
+    expect(html.match(/class="belt-bar__part /g)).toHaveLength(5);
+    expect(html).toContain("Other <strong>20%</strong>");
+    expect(html).toContain("Other: Hydrogen 12%, Cobalt 8%");
+    expect(html).toContain('aria-label="Nickel 25%, Titanium 22%, Carbon 18%, Silicates 15%, Hydrogen 12%, Cobalt 8%"');
+  });
+
+  it("a belt respawned while the panel is open reads as unscouted when the slots arrive, though the key list names it", () => {
+    const { controller, detailsEl } = openSolBelt();
+    controller.setAsteroidMining(withSlots({ "sol:belt": scoutedSlot }));
+    controller.setAsteroidMining(withSlots({ "sol:belt": slot({ generation: 2 }) }, { "sol:belt": { Silicates: 50 } }));
+    expect(detailsEl.innerHTML).toContain("Material composition unknown");
+    expect(detailsEl.innerHTML).toContain("Scout Asteroid Belt");
+    expect(detailsEl.innerHTML).toContain("Generation 2");
+    expect(detailsEl.innerHTML).not.toContain("belt-bar");
+    expect(detailsEl.innerHTML).not.toContain("units left");
+  });
+
+  it("an empty slot: no belt, the chance and the next hour, and neither Scout nor Launch", () => {
+    const { controller, detailsEl } = openSolBelt();
+    const nextDrawAt = Date.UTC(2026, 8, 26, 14, 0);
+    controller.setAsteroidMining(withSlots({ "sol:belt": slot({ present: false, nextDrawAt }) }));
+    const html = detailsEl.innerHTML;
+    expect(html).toContain("No belt here");
+    expect(html).toContain("Each hour on the hour there is a 20% chance a new one forms here, unscouted by anyone; the next chance is at 14:00 UTC (");
+    expect(html).not.toContain("Scout Asteroid Belt");
+    expect(html).not.toContain("launch-expedition-btn");
+    expect(html).not.toContain("Scout this asteroid belt before launching");
+    expect(html).not.toContain("Generation");
+  });
+
+  it("a refused scout or launch is said in that belt's panel, and only there (Bug #2339)", () => {
+    const { controller, detailsEl } = openSolBelt();
+    controller.setAsteroidMining(withSlots({ "sol:belt": slot() }));
+    controller.setBeltNotice({ beltKey: "sol:belt", message: "No probes <now>." });
+    expect(detailsEl.innerHTML).toContain('<div class="ui-state ui-state--error starmap__notice" role="alert"><p class="ui-state__why">No probes &lt;now&gt;.</p></div>');
+    controller.setBeltNotice({ beltKey: "tau-ceti:tc-cloud", message: "Elsewhere." });
+    expect(detailsEl.innerHTML).not.toContain("starmap__notice");
+    controller.setBeltNotice(null);
+    expect(detailsEl.innerHTML).not.toContain("starmap__notice");
+  });
+
+  it("the page refetches the slots when a belt empties or forms anew, and after a refusal", () => {
+    const code = clientCode();
+    expect(code).toMatch(/socket\.on\("belts:changed", \(\) => \{\s*if \(!appState\.accountId\) return;\s*loadBeltCompositionsIntoStarmap\(\);/);
+    expect(code).toMatch(/starmap\.setBeltNotice\(\{ beltKey, message: err\.message \|\| "Belt scouting failed\." \}\);/);
+    expect(code).toMatch(/appState\.belts = data\.belts \|\| \{\};/);
   });
 });

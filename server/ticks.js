@@ -16,7 +16,7 @@ import { beltRespawnTick, ensureBeltState, isBeltPresent } from "./game/belts.js
 import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
 import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
 import { expeditionNotificationBody, expeditionPlaces, minutesEarly } from "./expeditionText.js"; // AB#1295, AB#2330
-import { emitMarketUpdated, emitToAccount } from "./realtime.js";
+import { emitBeltsChanged, emitMarketUpdated, emitToAccount } from "./realtime.js";
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
 function getESTDateString() {
@@ -98,13 +98,15 @@ function asteroidExpeditionTick(now = Date.now()) {
     home.set(accountId, entry);
   }, { sanitize: false, settleMining: false });
 
+  let emptied = [];
   mutateState((world) => {
     ensureBeltState(world, now);
     const present = Object.keys(world.belts).filter((k) => isBeltPresent(world.belts[k]));
     for (const accountId of getAllAccountIds()) settle(accountId, world, null);
-    const emptied = present.filter((k) => !isBeltPresent(world.belts[k]));
+    emptied = present.filter((k) => !isBeltPresent(world.belts[k]));
     if (emptied.length) for (const accountId of getAllAccountIds()) settle(accountId, world, emptied);
   });
+  emitBeltsChanged(emptied); // AB#2331: an open belt panel shows the slot empty without a reload
 
   for (const [accountId, { corpName, completedExpeditions }] of home) {
     for (const exp of completedExpeditions) {
@@ -378,6 +380,7 @@ function financialSnapshotTick() {
 function beltTick(now = Date.now()) {
   let spawned = [];
   mutateState((draft) => { spawned = beltRespawnTick(draft, now); });
+  emitBeltsChanged(spawned.map((b) => b.key)); // AB#2331: and a new belt there, unscouted, likewise
   return spawned;
 }
 
