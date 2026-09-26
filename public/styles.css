@@ -1466,12 +1466,19 @@ body.walkthrough--open .layout-grid {
     gap: var(--space-2);
     padding: var(--space-3) var(--space-4);
   }
-  /* Scoped to the header, so these outrank the base rules, which come later in the file. */
+  /* Scoped to the header, so these outrank the base rules, which come later in the file. The buttons wrap: a level-0
+     corporation also has Replay Onboarding, and three do not fit one row at 375. */
   .app-header .app-header__title {
     font-size: var(--font-size-4);
   }
-  .app-header .app-header__actions {
-    flex-wrap: nowrap;
+  /* The notification panel spans the header on a phone: anchored to its button, it ran off the screen's left edge. */
+  .app-header .app-header__notifications {
+    position: static;
+  }
+  .app-header .app-header__panel {
+    left: var(--space-4);
+    right: var(--space-4);
+    width: auto;
   }
   /* The bar: each group as wide as its name, the space shared evenly, never scrolling; below every dialog (60) and
      the briefing (55). Equal columns ran "Company" into "Station" at 375. */

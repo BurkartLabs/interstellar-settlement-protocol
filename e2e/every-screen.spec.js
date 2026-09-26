@@ -65,9 +65,27 @@ async function findings(page, name, width, scope = "body") {
     const shown = (el) => el.getClientRects().length && !el.closest("[hidden]") && getComputedStyle(el).visibility !== "hidden";
     const roots = [...document.querySelectorAll(scope)].filter(shown);
     const label = (el) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.className && typeof el.className === "string" ? `.${el.className.trim().split(/\s+/).join(".")}` : ""}`;
+    // What the sideways-scroll check cannot see (found by looking): a box past the left edge, which never scrolls, or past
+    // the right inside something that clips it; and a control whose words are wider than it.
+    const vw = document.documentElement.clientWidth;
+    const inScroller = (el) => {
+      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+        const ox = getComputedStyle(a).overflowX;
+        if (ox !== "visible" && a.scrollWidth > a.clientWidth + 1) return true;
+      }
+      return false;
+    };
     for (const root of roots) {
       for (const el of root.querySelectorAll(legacy.map((c) => `.${c}`).join(","))) {
         if (shown(el)) out.push(`${name}: legacy ${label(el)}`);
+      }
+      for (const el of root.querySelectorAll("*")) {
+        if (!shown(el) || el.closest("canvas, svg, [aria-hidden='true']")) continue; // decoration may bleed
+        const r = el.getBoundingClientRect();
+        if (r.width > 0 && (r.left < -1 || r.right > vw + 1) && !inScroller(el)) out.push(`${name}: off screen ${label(el)} ${Math.round(r.left)}..${Math.round(r.right)}`);
+      }
+      for (const el of root.querySelectorAll("button, [role=tab], .ui-badge")) {
+        if (shown(el) && el.scrollWidth > el.clientWidth + 1) out.push(`${name}: words wider than ${label(el)} "${el.textContent.trim().slice(0, 24)}"`);
       }
       if (!narrow) continue;
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -153,7 +171,7 @@ for (const [width, height] of SIZES) {
       await expect(page.locator("#travel")).toBeVisible();
       const travel = page.locator("#travel");
       if (!(await travel.evaluate((el) => el.classList.contains("ui-screen")))) found.push("travel: not a .ui-screen");
-      found.push(...await findings(page, "travel", width, "#travel"));
+      found.push(...await findings(page, "travel", width, "#travel, .app-header"));
       await shot(page, "travel", width, height);
     } finally {
       child.kill();
