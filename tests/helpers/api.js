@@ -5,6 +5,7 @@
 //   const { agent, account, accessToken } = await registerAccount(app);
 
 import request from "supertest";
+import jwt from "jsonwebtoken";
 import { testOutbox } from "../../server/mail.js";
 
 let registerSeq = 0;
@@ -104,6 +105,15 @@ export async function registerAccount(app, overrides = {}) {
     accessTokenExpiresAt: res.body.accessTokenExpiresAt,
     refreshTokenExpiresAt: res.body.refreshTokenExpiresAt
   };
+}
+
+/**
+ * AB#2294: an access token lives 30 minutes, and the page renews it before then. A test that moves the clock hours
+ * ahead holds one token across the jump instead, so this signs one that outlives it, stamped as a login's is (Bug #2291).
+ */
+export async function longLivedAccessToken(accountId, seconds = 30 * 24 * 60 * 60) {
+  const { passwordChangedAtOf } = await import("../../server/gameState.js");
+  return jwt.sign({ sub: accountId, kind: "access", pwc: passwordChangedAtOf(accountId) }, process.env.JWT_SECRET, { expiresIn: seconds });
 }
 
 /** The refresh token a response set in its isp_refresh cookie (AB#757), or undefined. */

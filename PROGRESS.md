@@ -391,7 +391,7 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   player from an older build logs in once more. Tests: `tests/integration/auth-cookie.test.js`,
   `tests/unit/noTokenStorage.test.js`, `e2e/session-cookie.spec.js`; screenshots in `docs/ab-757/`.
 - **Still open, not in this story:** the access token lives 7 days (`ACCESS_TOKEN_SECONDS`); now that the page
-  refreshes on load and on 401, it can be minutes. An injected script can still use the in-memory token while it runs
+  refreshes on load and on 401, it can be minutes. (Done in AB#2294: 30 minutes, renewed by the page 2 minutes early.) An injected script can still use the in-memory token while it runs
   (for example by wrapping `fetch`). AB#753 (CSP) is still Proposed.
 
 ## What's now true (AB#2015 — the expired-token socket test waits for its events, Builder)

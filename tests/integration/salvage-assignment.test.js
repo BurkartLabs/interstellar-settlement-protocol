@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { getApp } from "../helpers/app.js";
-import { registerAccount, authed } from "../helpers/api.js";
+import { registerAccount, authed, longLivedAccessToken } from "../helpers/api.js";
 import { mutateAccountState, getAccountById, refreshContractOfferings, SALVAGE_ASSIGNMENT_ID } from "../../server/gameState.js";
 
 // ISP-297 (AB#1789, AB#1741, ECONOMY.md "The way back from broke"): a corporation with 0 credits and no ore has no
@@ -9,7 +9,8 @@ import { mutateAccountState, getAccountById, refreshContractOfferings, SALVAGE_A
 // while the corporation is actually stuck (under 3,000 credits, no active mining cycle).
 async function corporation({ credits = 0, activeCycle = false } = {}) {
   const { app } = await getApp();
-  const { account, accessToken } = await registerAccount(app);
+  const { account } = await registerAccount(app);
+  const accessToken = await longLivedAccessToken(account.id); // AB#2294: outlives the clock moves below
   mutateAccountState(account.id, (state) => {
     state.corp.currentStationId = "earth-station-prime";
     state.corp.finances.credits = credits;

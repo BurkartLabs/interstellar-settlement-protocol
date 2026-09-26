@@ -23,8 +23,8 @@ token (`requireAuth`, `server/index.js:328-336`), and every `/api/accounts/:acco
 requires the token's own account to match the `:accountId` in the URL (`requireAccountAccess`,
 `server/index.js:338-350`) — a valid token for account A can never read or act on account B by editing the URL.
 
-**What is the blast radius of a leak?** A leaked *access* token (7 days, `ACCESS_TOKEN_SECONDS`,
-`server/index.js:262`) reaches one account for at most that long. A leaked *refresh* token (30 days,
+**What is the blast radius of a leak?** A leaked *access* token (30 minutes since AB#2294, was 7 days;
+`ACCESS_TOKEN_SECONDS`, `server/auth.js`) reaches one account for at most that long. A leaked *refresh* token (30 days,
 `REFRESH_TOKEN_SECONDS`, `server/index.js:264`) reaches one account for up to 30 days but only that one — the
 JWT secret is never embedded in a token, so no leak of any single token exposes another account or lets an
 attacker forge one for someone else. `JWT_SECRET` itself is the one credential that would: it is required at

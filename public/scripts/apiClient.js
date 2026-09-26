@@ -42,6 +42,7 @@ function forgetLegacyTokens() {
 }
 
 export function clearSession() {
+  clearTimeout(renewal);
   appState.accountId = null;
   appState.accountEmail = null;
   appState.accessToken = null;
@@ -97,6 +98,23 @@ function acrossTabs(work) {
   return globalThis.navigator?.locks ? navigator.locks.request("isp-refresh", work) : work();
 }
 
+// AB#2294: the access token lives 30 minutes. A socket that holds an expired one is told "auth:expired" only when the
+// server next has something for it, and that event, or a chat message the player sends then, is lost while the page
+// refreshes; so the page renews two minutes early. The token's life is read against the server's own clock (the
+// answer's Date header), not this device's, which may be off by more than the whole lifetime.
+const RENEW_EARLY_MS = 2 * 60 * 1000;
+const RENEW_AT_LEAST_MS = 30 * 1000;
+let renewal = null;
+
+function scheduleRenewal(response, payload) {
+  clearTimeout(renewal);
+  const expiresAt = Number(payload.accessTokenExpiresAt);
+  if (!Number.isFinite(expiresAt)) return;
+  const serverNow = Date.parse(response.headers.get("Date") || "") || Date.now();
+  const delay = Math.max(RENEW_AT_LEAST_MS, expiresAt - serverNow - RENEW_EARLY_MS);
+  renewal = setTimeout(() => { if (appState.accountId) refreshSessionToken(); }, Math.min(delay, 2 ** 31 - 1));
+}
+
 /** Exchange the refresh cookie for a new access token (AB#757). A page load starts here; so does any 401. */
 export function refreshSessionToken() {
   refreshing ??= (async () => {
@@ -109,6 +127,7 @@ export function refreshSessionToken() {
 
       const payload = await response.json();
       appState.accessToken = payload.accessToken;
+      scheduleRenewal(response, payload);
       if (payload.account?.id) {
         appState.accountId = payload.account.id;
       }
