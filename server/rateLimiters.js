@@ -109,6 +109,14 @@ export const registerLimiter = limiter("register", {
   productionDefault: 5
 });
 
+// Five verification resends per address per hour (AB#987): each one sends mail, so it is a cost and a nuisance to
+// whoever owns the address, and the same answer comes back whether or not an account has it.
+export const resendVerificationLimiter = limiter("resend-verification", {
+  windowMs: 60 * 60_000,
+  envName: "ISP_RATE_LIMIT_RESEND_MAX",
+  productionDefault: 5
+});
+
 // Sixty refreshes per address per minute.
 export const refreshLimiter = limiter("refresh", {
   windowMs: 60_000,

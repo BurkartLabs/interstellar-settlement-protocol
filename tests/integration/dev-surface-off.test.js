@@ -13,7 +13,7 @@ describe("the dev surface does not exist with ISP_DEV unset (Bug #423, #1069)", 
   // Bug #1221: load the server in a hook (10 s), so the first test's 5 s is its own request and not the module import.
   beforeAll(async () => { await getApp(); });
 
-  for (const [method, path] of [["post", "/api/auth/dummy-login"], ["post", "/api/auth/dummy-reset"], ["get", "/kanban/api"], ["post", "/kanban/api"], ["get", "/kanban/"]]) {
+  for (const [method, path] of [["post", "/api/auth/dummy-login"], ["post", "/api/auth/dummy-reset"], ["get", "/kanban/api"], ["post", "/kanban/api"], ["get", "/kanban/"], ["get", "/api/dev/outbox"]]) {
     it(`${method.toUpperCase()} ${path} answers 404`, async () => {
       const { app } = await getApp();
       const before = fs.existsSync(kanbanFile) ? fs.readFileSync(kanbanFile, "utf8") : null;
