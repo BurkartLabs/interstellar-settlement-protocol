@@ -62,7 +62,7 @@ describe("the focus ring (AB#1760)", () => {
   });
 
   // `transition: all` animates the outline too, so the ring faded in from the browser's own 3px ring in the text colour
-  // (.btn-hero on login, found by the e2e walk, which reads the outline the moment focus lands).
+  // (the login page's buttons, found by the e2e walk, which reads the outline the moment focus lands).
   it("no transition covers `all`, which would animate the ring in instead of drawing it", () => {
     const all = RULES.flatMap((r) => decls(r.body).filter((d) => /^transition(-property)?$/.test(d.prop) && /(^|,|\s)all(\s|,|$)/.test(d.value))
       .map((d) => `${r.selectors.join(", ")} { ${d.prop}: ${d.value} }`));
