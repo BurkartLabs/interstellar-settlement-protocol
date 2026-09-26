@@ -74,6 +74,67 @@ function hashSeed(input) {
   return Math.abs(h);
 }
 
+const escBelt = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const RARITY_LABELS = { common: "Common", uncommon: "Uncommon", rare: "Rare", exotic: "Exotic" };
+const SERIES = 5; // --series-1 to --series-5 in styles.css
+
+/**
+ * AB#2331: a belt scouted in its current generation: its rarity, its composition as one bar with a labelled legend
+ * (largest share first), and what is left of the reserve every corporation on it shares (docs/design/belts.md).
+ * `view` is the slot from GET .../belt-compositions; without it (an older server), the composition alone.
+ */
+export function scoutedBeltHtml(view, composition) {
+  const entries = Object.entries(composition || {}).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  // Up to five parts, each its own colour; a belt of more (a rare template has twelve) shows its four largest and the
+  // rest as one "Other" part in the last, muted colour, named beneath the legend. Five colours can be told apart.
+  const shown = entries.length <= SERIES ? entries : entries.slice(0, SERIES - 1);
+  const rest = entries.slice(shown.length);
+  const parts = rest.length ? [...shown, ["Other", Math.round(rest.reduce((s, [, p]) => s + Number(p), 0) * 10) / 10]] : shown;
+  const tone = (i) => `belt-bar__part--${i + 1}`;
+  const rarity = view?.rarity ? ` <span class="ui-badge ui-badge--accent">${escBelt(RARITY_LABELS[view.rarity] || view.rarity)}</span>` : "";
+  const bar = `<div class="belt-bar" role="img" aria-label="${escBelt(entries.map(([n, p]) => `${n} ${p}%`).join(", "))}">${
+    parts.map(([, pct], i) => `<span class="belt-bar__part ${tone(i)}" style="width:${Number(pct)}%"></span>`).join("")}</div>`;
+  const legend = `<ul class="belt-bar__legend">${parts.map(([name, pct], i) =>
+    `<li><span class="belt-bar__swatch ${tone(i)}" aria-hidden="true"></span>${escBelt(name)} <strong>${escBelt(pct)}%</strong></li>`).join("")}</ul>${
+    rest.length ? `
+            <p class="ui-panel__meta belt-bar__other">Other: ${rest.map(([n, p]) => `${escBelt(n)} ${escBelt(p)}%`).join(", ")}</p>` : ""}`;
+  let reserve = "";
+  if (view && Number(view.reserve) > 0) {
+    const left = Math.max(0, Number(view.remaining) || 0);
+    const pct = Math.min(100, (left / view.reserve) * 100);
+    reserve = `<h4 class="starmap__subhead">Reserve</h4>
+            <div class="progress-wrap belt-reserve" role="progressbar" aria-label="Reserve left" aria-valuemin="0" aria-valuemax="${view.reserve}" aria-valuenow="${left}"><div class="progress-bar" style="width:${pct.toFixed(1)}%"></div></div>
+            <p class="ui-panel__meta" data-belt-reserve>${left.toLocaleString("en-US")} of ${Number(view.reserve).toLocaleString("en-US")} units left (${Math.round(pct)}%). Every corporation mining here draws on it; when it runs out, the belt is gone.</p>`;
+  }
+  return `<h4 class="starmap__subhead">Material Composition${rarity}</h4>
+            ${bar}
+            ${legend}
+            ${reserve}`;
+}
+
+/** AB#2331: when an empty slot next draws, as UTC on the hour and in the viewer's own time. */
+export function nextDrawText(nextDrawAt) {
+  if (!nextDrawAt) return "the next hour";
+  const at = new Date(nextDrawAt);
+  const utc = `${String(at.getUTCHours()).padStart(2, "0")}:00 UTC`;
+  const local = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return `${utc} (${local} your time)`;
+}
+
+/** AB#2331: a slot whose belt was mined out: no belt, and when the next hourly chance of a new one is. */
+export function emptyBeltHtml(view, chancePerHour) {
+  const pct = Math.round((Number(chancePerHour) || 0.2) * 100);
+  return `<div class="ui-state" data-belt-state="empty">
+            <p class="ui-state__title">No belt here</p>
+            <p class="ui-state__why">This belt was mined out. Each hour on the hour there is a ${pct}% chance a new one forms here, unscouted by anyone; the next chance is at ${escBelt(nextDrawText(view?.nextDrawAt))}.</p>
+          </div>`;
+}
+
+/** Bug #2339: a refused scout or launch, said in the belt panel beside the button that met it. */
+export function beltNoticeHtml(message) {
+  return message ? `<div class="ui-state ui-state--error starmap__notice" role="alert"><p class="ui-state__why">${escBelt(message)}</p></div>` : "";
+}
+
 /** A scouted belt whose composition has not reached the page yet (Bug #1264): say so rather than show nothing. */
 export function scoutedBeltLoadingHtml() {
   return `<p class="ui-panel__meta" data-belt-composition="loading">Scouted. Loading composition…</p>`;
@@ -477,7 +538,8 @@ export function createStarmapController({
     unlockedTech: new Set(),
     selectedAsteroidId: null,
     clickTargets: [],
-    asteroidMining: null  // { probeCount, maxProbes, maxDeployments, activeExpeditions, scoutedBelts, beltCompositions }
+    asteroidMining: null,  // { probeCount, maxProbes, maxDeployments, activeExpeditions, scoutedBelts, beltCompositions, belts, respawnChancePerHour }
+    beltNotice: null       // Bug #2339: { beltKey, message }, the last refusal on a belt, shown in its panel
   };
 
   /** A system's place on the cluster view, from the catalog (AB#804); undefined for one it does not list. */
@@ -1252,7 +1314,12 @@ export function createStarmapController({
         const am = state.asteroidMining || {};
         const scoutedBelts = am.scoutedBelts || [];
         const beltComps = am.beltCompositions || {};
-        const isBeltScouted = scoutedBelts.includes(beltKey);
+        // AB#2331: the slot as the server shows this account; before it has arrived, the account's scouting list.
+        const slot = (am.belts || {})[beltKey] || null;
+        const isEmptySlot = slot ? !slot.present : false;
+        const isBeltScouted = slot ? slot.scouted : scoutedBelts.includes(beltKey);
+        if (state.beltNotice && state.beltNotice.beltKey !== beltKey) state.beltNotice = null; // Bug #2339: this belt's only
+        const noticeHtml = beltNoticeHtml(state.beltNotice?.message);
         const hasProspecting = state.unlockedTech.has("tt-asteroid-prospecting");
         const hasAssemblyTech = state.unlockedTech.has("tt-assembly-fabrication");
         const inSameSystem = (state.currentSystemId || "sol") === system.id;
@@ -1260,11 +1327,10 @@ export function createStarmapController({
 
         // Bug #1264: scouted, but the composition has not arrived from the server yet (it is fetched after a load).
         let compositionHtml = isBeltScouted && !beltComps[beltKey] ? scoutedBeltLoadingHtml() : "";
-        if (isBeltScouted && beltComps[beltKey]) {
-          const comp = beltComps[beltKey];
-          compositionHtml = `<h4 class="starmap__subhead">Material Composition</h4><ul class="ui-list">${
-            Object.entries(comp).map(([name, pct]) => `<li>${escapeHtmlAttr(name)}: ${pct}%</li>`).join("")
-          }</ul>`;
+        if (isEmptySlot) {
+          compositionHtml = emptyBeltHtml(slot, am.respawnChancePerHour);
+        } else if (isBeltScouted && (slot?.composition || beltComps[beltKey])) {
+          compositionHtml = scoutedBeltHtml(slot, slot?.composition || beltComps[beltKey]); // AB#2331
         } else if (!isBeltScouted) {
           compositionHtml = unscoutedBeltHtml({ hasProspecting, inSameSystem, systemName: system.name });
         }
@@ -1284,7 +1350,7 @@ export function createStarmapController({
           const probeCount = am.probeCount || 0;
           const maxDeployments = am.maxDeployments || 1;
           const activeCount = (am.activeExpeditions || []).length;
-          const canLaunch = isBeltScouted && probeCount > 0 && activeCount < maxDeployments && inSameSystem;
+          const canLaunch = !isEmptySlot && isBeltScouted && probeCount > 0 && activeCount < maxDeployments && inSameSystem;
 
           let activeExpHtml = "";
           if (activeExps.length > 0) {
@@ -1320,7 +1386,9 @@ export function createStarmapController({
                   </select>
                 </div>
                 <div><button id="launch-expedition-btn" class="ui-button ui-button--secondary" type="button">Launch Expedition (¤3,000)</button></div>
-              ` : !isBeltScouted
+              ` : isEmptySlot
+                ? "" // AB#2331: the empty state above says why, and when
+                : !isBeltScouted
                 ? `<p class="ui-panel__meta">Scout this asteroid belt before launching expeditions.</p>`
                 : !inSameSystem
                 ? `<p class="ui-panel__meta">You must be in this system to launch expeditions.</p>`
@@ -1333,8 +1401,9 @@ export function createStarmapController({
         }
 
         detailsEl.innerHTML = detailsHtml(`${body.name} — ${system.name}`, `
-          <p class="ui-panel__meta">Type: Asteroid Belt</p>
+          <p class="ui-panel__meta">Type: Asteroid Belt${slot?.present ? ` · Generation ${Number(slot.generation) || 1}` : ""}</p>
           ${compositionHtml}
+          ${noticeHtml}
           ${miningHtml}
           ${stationListHtml}
         `);
@@ -1392,7 +1461,8 @@ export function createStarmapController({
       const beltKey = `${system.id}:${body.id}`;
       const am = state.asteroidMining || {};
       // AB#740: the belt's surveyed composition from the server, or nothing; no longer a class drawn from a hash.
-      const surveyed = (am.scoutedBelts || []).includes(beltKey) && (am.beltCompositions || {})[beltKey];
+      const slot = (am.belts || {})[beltKey]; // AB#2331: this generation's, when the server has said
+      const surveyed = slot ? (slot.scouted && slot.composition) : (am.scoutedBelts || []).includes(beltKey) && (am.beltCompositions || {})[beltKey];
       const profile = surveyed
         ? Object.entries(surveyed).sort((x, y) => y[1] - x[1]).map(([name, pct]) => `${name} ${pct}%`).join(", ")
         : "Not surveyed (scout the belt)";
@@ -1784,6 +1854,11 @@ export function createStarmapController({
     },
     setUnlockedTech(techSet) {
       state.unlockedTech = techSet instanceof Set ? techSet : new Set(techSet || []);
+    },
+    /** Bug #2339: show a refused scout or launch in that belt's panel (null clears it). */
+    setBeltNotice(notice) {
+      state.beltNotice = notice && notice.message ? notice : null;
+      if (state.view === "body") renderDetails();
     },
     setAsteroidMining(amState) {
       state.asteroidMining = amState || null;

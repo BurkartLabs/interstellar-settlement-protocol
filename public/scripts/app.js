@@ -156,7 +156,7 @@ function renderAllViews() {
   if (data.world?.systems) starmap.setSystems(data.world.systems);
   starmap.setStations(appState.stationRegistry, data.corp?.currentStationId, data.corp?.currentSystemId || "sol");
   starmap.setUnlockedTech(new Set(data.corp?.unlockedTech || []));
-  starmap.setAsteroidMining(starmapMiningState(data, appState.beltCompositions));
+  starmap.setAsteroidMining(starmapMiningState(data, appState.beltCompositions, { belts: appState.belts, respawnChancePerHour: appState.beltRespawnChance }));
   renderExpeditionPanel(data);
   renderInboxMessageList();
 }
@@ -274,6 +274,7 @@ function enterGame(mode, data, options = {}) {
   appState.data = deepClone(data);
   appState.activeMissions = appState.data.corp?.activeMissions || [];
   appState.beltCompositions = {}; // Bug #1264: never another account's; this account's are fetched below
+  appState.belts = {}; // AB#2331: likewise
 
   if (appState.serverData) {
     applySharedState(appState.serverData);
@@ -670,6 +671,14 @@ function bindRealtimeEvents() {
     if (!appState.data || !appState.accountId || payload?.accountId !== appState.accountId) return;
     refreshFromServer();
     loadMessages();
+    loadBeltCompositionsIntoStarmap(); // AB#2331: the belt's reserve has moved
+  });
+
+  // AB#2331: a belt emptied or formed anew somewhere: what this account may see of the slots, fetched again, so an
+  // open belt panel shows it without a reload.
+  socket.on("belts:changed", () => {
+    if (!appState.accountId) return;
+    loadBeltCompositionsIntoStarmap();
   });
 
   socket.on("fabrication:completed", async (payload) => {
