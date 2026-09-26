@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "playtest": "playwright test",
     "economy:model": "node scripts/economy-model.mjs",
+    "belt:model": "node scripts/belt-model.mjs",
     "probe:pacing": "node scripts/probe-pacing.mjs"
   },
   "dependencies": {
