@@ -61,7 +61,7 @@ test("a disabled button is dimmed, shows not-allowed and loses its hover glow; e
   await expect(page.getByText("Active Lease")).toBeVisible();
   await page.click("#station-back-btn");
   await page.click('[data-building-action="building:isa-claims-leases"]');
-  const lease = page.locator('.purchase-lease-btn[data-body="Earth"]');
+  const lease = page.locator('[data-action="purchase-lease"][data-body="Earth"]');
   await expect(lease).toBeVisible();
   await lease.scrollIntoViewIfNeeded();
   await lease.hover();

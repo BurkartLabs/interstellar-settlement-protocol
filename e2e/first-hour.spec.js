@@ -124,32 +124,32 @@ for (const viewport of VIEWPORTS) {
     // ── lease: file the Earth Silicate Extraction claim ─────────────────────
     await page.click('#station-back-btn');
     await page.click('[data-building-action="building:isa-claims-leases"]');
-    await page.click('.purchase-lease-btn[data-body="Earth"]');
+    await page.click('[data-action="purchase-lease"][data-body="Earth"]');
     await acknowledgeReceipt(page);
-    await expect(page.locator(".lease-manage-btn").first()).toBeVisible();
+    await expect(page.locator('[data-action="manage-lease"]').first()).toBeVisible();
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "06-lease", viewport.width);
 
     // ── yard: commission a Basic Extractor Yard on that claim ──────────────
-    await page.click(".lease-manage-btn");
+    await page.click('[data-action="manage-lease"]');
     await page.click("#lease-build-extractor-btn");
     await acknowledgeReceipt(page);
-    await expect(page.locator(".extractor-row")).toBeVisible();
+    await expect(page.locator(".extractor")).toBeVisible();
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "07-yard", viewport.width);
 
     // ── cycle: start mining at the top rate, so enough accrues to sell soon ─
-    const mineForm = page.locator(".lease-mine-form");
+    const mineForm = page.locator('[data-form="mine"]');
     await mineForm.locator('[name="amount"]').fill("250");
     await mineForm.locator('[name="hours"]').fill("24");
     await mineForm.locator('button[type="submit"]').click();
     await acknowledgeReceipt(page);
-    await expect(page.locator(".extractor-row .building-status-badge")).toHaveText("Active");
+    await expect(page.locator('.extractor [data-role="yard-status"]')).toHaveText("Active");
     // The tick runs every 5s server-side (server/index.js miningTick); at 250 t/h that crosses one whole ton
     // within a few ticks (server/game/mining.js carries the fraction between ticks, so this is a real accrual,
     // not a race). "Mined this cycle" is the same figure the player watches (Bug #1091, data-live="mined"),
     // pushed live over the socket — waiting on it is waiting on what the screen shows, not on a fixed sleep.
-    await expect(page.locator('.extractor-row [data-live="mined"]')).not.toHaveText(/^0( t)?$/, { timeout: 60_000 }); // AB#746: "0 t"
+    await expect(page.locator('.extractor [data-live="mined"]')).not.toHaveText(/^0( t)?$/, { timeout: 60_000 }); // AB#746: "0 t"
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "08-cycle", viewport.width);
 

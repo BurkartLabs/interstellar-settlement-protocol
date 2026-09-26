@@ -77,7 +77,7 @@ export const WALKTHROUGH_STEPS = [
     title: "A mining claim",
     text: "Next, the ISA Claims & Leases Division. From Earth Station Prime the lease on offer is Earth, Silicate Extraction, for $20,000. The Division checks your headcount before it files anything, so the five come first.",
     tab: "station",
-    actionSelectors: [".purchase-lease-btn"]
+    actionSelectors: ['[data-action="purchase-lease"]']
   },
   {
     id: "yard",
@@ -88,7 +88,7 @@ export const WALKTHROUGH_STEPS = [
       return `In the same office, open your Earth lease with Manage Lease and commission a Basic Extractor Yard for ${credits(prices.extractorYardCost)}. A lease without equipment is paperwork.`;
     },
     tab: "station",
-    actionSelectors: ['[id="lease-build-extractor-btn"]', ".lease-manage-btn"]
+    actionSelectors: ['[id="lease-build-extractor-btn"]', '[data-action="manage-lease"]']
   },
   {
     id: "cycle",
@@ -97,7 +97,7 @@ export const WALKTHROUGH_STEPS = [
     title: "Your first cycle",
     text: "On that lease, set a throughput in tons per hour and a duration in hours, then start the cycle. Silicates accrue to your Earth Station Prime inventory while it runs. You do not have to wait for it to finish to sell them.",
     tab: "station",
-    actionSelectors: [".lease-mine-form", ".lease-manage-btn"]
+    actionSelectors: ['[data-form="mine"]', '[data-action="manage-lease"]']
   },
   {
     id: "sell",

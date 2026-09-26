@@ -61,7 +61,7 @@ for (const viewport of VIEWPORTS) {
       await page.waitForURL(/\/\?account=/);
       await openTab(page, "station");
 
-      const card = page.locator(".building-card", { has: page.locator('[data-building-action="building:orbital-executive-suites"]') });
+      const card = page.locator(".station__card", { has: page.locator('[data-building-action="building:orbital-executive-suites"]') });
       await expect(card).toBeVisible();
       await expect(page.locator("#station")).toContainText("Mars Orbital Dock");
       await expect(card).toContainText("a registered office here tells the ISA");
