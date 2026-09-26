@@ -12,12 +12,13 @@ export const LEASE_RESOURCE = "Silicates";
 export function bodyResourceHtml(body, stations = []) {
   const cost = Number(body?.leaseCost);
   if (!(cost > 0)) {
-    return `<p class="body-survey"><strong>Not surveyed.</strong> <span class="muted">No mining data exists for ${escapeHtml(body?.name || "this body")}: it has no lease terms.</span></p>`;
+    return `<p class="ui-panel__meta"><strong>Not surveyed.</strong> No mining data exists for ${escapeHtml(body?.name || "this body")}: it has no lease terms.</p>`;
   }
   const station = stations.find((s) => s.body === body.name);
   const filed = station ? `at ${escapeHtml(station.name)}, the station that orbits it` : "at the station that orbits it";
-  return `<div class="body-lease">
+  // ISP-82 (AB#771): in the Starmap's design-system details panel.
+  return `<div class="ui-stack">
   <p><strong>Mining lease:</strong> <span data-lease-cost="${cost}">${cost.toLocaleString("en-US")} credits</span>, filed ${filed}.</p>
-  <p class="muted">An extractor here produces <strong>${LEASE_RESOURCE}</strong>. The lease needs an office and five employees per lease.</p>
+  <p class="ui-panel__meta">An extractor here produces <strong>${LEASE_RESOURCE}</strong>. The lease needs an office and five employees per lease.</p>
 </div>`;
 }

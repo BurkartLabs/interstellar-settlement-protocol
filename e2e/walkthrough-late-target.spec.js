@@ -49,7 +49,7 @@ test("step 3's lease button, drawn after the step, is scrolled clear of the brie
 
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   const button = page.locator("#rent-office-btn");
-  await expect(button).toHaveClass(/walkthrough-focus/, { timeout: 5_000 });
+  await expect(button).toHaveClass(/walkthrough__focus/, { timeout: 5_000 });
   // The scroll is smooth; give it time to settle before measuring.
   await page.waitForTimeout(1_500);
   await page.screenshot({ path: path.join(SCREEN_DIR, "walkthrough-step3-lease-375x812.png") });
@@ -62,7 +62,7 @@ test("step 3's lease button, drawn after the step, is scrolled clear of the brie
   await page.selectOption("#rent-office-duration", "7");
   await button.click();
   await expect(progress).toHaveText(`4 of ${TOTAL}`, { timeout: 10_000 });
-  await expect(page.locator("#office-hire-form")).toHaveClass(/walkthrough-focus/, { timeout: 5_000 });
+  await expect(page.locator("#office-hire-form")).toHaveClass(/walkthrough__focus/, { timeout: 5_000 });
   await page.waitForTimeout(1_500);
   await page.screenshot({ path: path.join(SCREEN_DIR, "walkthrough-step4-hire-375x812.png") });
   const hire = await clearance(page, "#office-hire-form");

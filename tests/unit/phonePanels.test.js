@@ -35,16 +35,17 @@ describe("phone panels (AB#1055)", () => {
     const capped = vwCapped(CSS);
     // #missions-board-view and #agent-office-view are no longer capped at all (AB#1762, tests/unit/panelWidth.test.js),
     // nor is #inbox since ISP-77 rebuilt it on the design system at the content's width (AB#766), nor Comms, the
-    // Forums and the contract cards since ISP-81 did the same for them (AB#770).
-    expect(capped).toContain("#map-details");
-    for (const s of ["#chat", "#forum-overview-view"]) expect(capped).not.toContain(s);
+    // Forums and the contract cards since ISP-81 did the same for them (AB#770), nor the Starmap's details since ISP-82
+    // made them a panel under the map (AB#771).
+    for (const s of ["#chat", "#forum-overview-view", "#map-details"]) expect(capped).not.toContain(s);
   });
 
   it("lifts every vw-capped rule at phone width", () => {
     expect(PHONE_BLOCK).toContain(`@media (max-width: ${NARROW_MAX_WIDTH}px)`);
     const lifted = PHONE_BLOCK.split("{")[1] || "";
     for (const selector of vwCapped(CSS)) expect(lifted, selector).toContain(selector);
-    expect(PHONE_BLOCK).toMatch(/max-width:\s*none/);
+    // ISP-82 (AB#771) rebuilt the last capped panel, the Starmap's details: nothing is capped, so nothing is lifted.
+    if (vwCapped(CSS).length) expect(PHONE_BLOCK).toMatch(/max-width:\s*none/);
   });
 
   it("gives the agent card no fixed width, so it cannot run out of its board", () => {

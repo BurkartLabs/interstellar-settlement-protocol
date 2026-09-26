@@ -55,8 +55,8 @@ export function hasSeenWalkthroughOffer(accountId) {
 }
 
 function clearWalkthroughFocus() {
-  document.querySelectorAll(".walkthrough-focus").forEach((el) => {
-    el.classList.remove("walkthrough-focus");
+  document.querySelectorAll(".walkthrough__focus").forEach((el) => {
+    el.classList.remove("walkthrough__focus");
   });
 }
 
@@ -67,7 +67,7 @@ function revealNavGroups() {
 
 function stopWalkthrough() {
   walkthroughModal.hidden = true;
-  document.body.classList.remove("walkthrough-open");
+  document.body.classList.remove("walkthrough--open");
   revealNavGroups();
   clearWalkthroughFocus();
   clearInterval(walkthroughWatch);
@@ -141,13 +141,13 @@ function refreshWalkthroughHighlight() {
     console.warn(`[walkthrough] step "${step.id}": ${step.selector} matches nothing on the page, so it is shown without a highlight.`);
   }
   const target = selector ? document.querySelector(selector) : null;
-  if (target?.classList.contains("walkthrough-focus") || (!target && !walkthroughTarget)) return;
+  if (target?.classList.contains("walkthrough__focus") || (!target && !walkthroughTarget)) return;
   clearWalkthroughFocus();
   if (!target) {
     walkthroughTarget = null;
     return;
   }
-  target.classList.add("walkthrough-focus");
+  target.classList.add("walkthrough__focus");
   // Scroll only when the thing to do changes, not when a re-render redraws the same control under the player.
   if (selector !== walkthroughTarget) scrollWalkthroughTargetIntoView(target);
   walkthroughTarget = selector;
@@ -247,7 +247,7 @@ function startWalkthrough() {
   walkthroughFinished = false;
   appState.walkthroughIndex = 0;
   walkthroughModal.hidden = false;
-  document.body.classList.add("walkthrough-open");
+  document.body.classList.add("walkthrough--open");
   renderWalkthroughStep();
   clearInterval(walkthroughWatch);
   walkthroughWatch = setInterval(checkWalkthroughProgress, 1000);

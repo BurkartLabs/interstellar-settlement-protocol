@@ -39,7 +39,8 @@ describe("the starmap body panel (AB#740)", () => {
 
   it("starmap.js has no hash-derived composition, and no panel template uses a seed", () => {
     expect(starmap).not.toMatch(/generatedComposition|asteroidComposition|isBodyScouted|onScoutBody/);
-    const templates = [...starmap.matchAll(/innerHTML = `([\s\S]*?)`;/g)].map((m) => m[1]);
+    // ISP-82 (AB#771): the details panel's templates go through detailsHtml(title, `...`) now.
+    const templates = [...starmap.matchAll(/(?:innerHTML = |detailsHtml\([^`]*)`([\s\S]*?)`/g)].map((m) => m[1]);
     expect(templates.length).toBeGreaterThan(3);
     for (const t of templates) expect(t).not.toMatch(/seed/i);
   });

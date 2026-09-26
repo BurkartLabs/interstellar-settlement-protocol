@@ -47,15 +47,29 @@ function startServer(dir) {
 const lastLabel = (page, text) => page.evaluate((t) => window.__labels.filter((l) => l.t === t).pop(), text);
 const backShown = (page) => page.evaluate(() => window.__labels.some((l) => l.t.endsWith("Back To Cluster")));
 
-/** Taps a cluster star by its label: a star sits 10px plus its radius before its label, or after it. */
+/**
+ * Taps a cluster star by its label: a star sits 10px plus its radius before its label or after it, or (ISP-82, AB#771:
+ * a phone's 14px names move clear of each other) above or below it. A tap that opens another system, whose star sits
+ * near this label, goes back and tries the next place: the details panel names the system that opened.
+ */
 async function openSystem(page, canvas, name) {
   const label = await lastLabel(page, name);
   expect(label, `${name} is drawn on the cluster view`).toBeTruthy();
-  for (const dx of [-17, -20, label.w + 17, label.w + 20]) {
+  const spots = [[-17, -1], [-20, -1], [label.w + 17, -1], [label.w + 20, -1], [label.w / 2, -26], [label.w / 2, 20]];
+  // The map's back button is at its top edge, which a phone's fixed header can cover: tap with the map centred.
+  await canvas.evaluate((el) => el.scrollIntoView({ block: "center" }));
+  const box = await canvas.boundingBox();
+  const onMap = ([dx, dy]) => label.x + dx >= 0 && label.x + dx <= box.width && label.y + dy >= 0 && label.y + dy <= box.height;
+  for (const [dx, dy] of spots.filter(onMap)) {
     await page.evaluate(() => { window.__labels = []; window.__arcs = []; });
-    await canvas.click({ position: { x: label.x + dx, y: label.y - 1 } });
+    await canvas.click({ position: { x: label.x + dx, y: label.y + dy } });
     await page.waitForTimeout(400);
-    if (await backShown(page)) return;
+    if (!(await backShown(page))) continue;
+    if ((await page.locator("#map-details .ui-panel__title").textContent()) === name) return;
+    const back = await lastLabel(page, "◂ Back To Cluster");
+    await page.evaluate(() => { window.__labels = []; window.__arcs = []; });
+    await canvas.click({ position: { x: back.x + back.w / 2, y: back.y - 3 } });
+    await page.waitForTimeout(400);
   }
   throw new Error(`could not open ${name}`);
 }

@@ -1129,14 +1129,6 @@ textarea {
   top: 5.8rem;
 }
 
-.toolbar {
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 0.6rem;
-}
-
 #starmap-canvas {
   width: 100%;
   height: min(62vh, 560px);
@@ -1150,12 +1142,6 @@ textarea {
 
 #starmap-canvas.dragging {
   cursor: pointer;
-}
-
-.starmap-fallback {
-  border: 1px dashed var(--border);
-  border-radius: 10px;
-  padding: 0.8rem;
 }
 
 .alert {
@@ -1183,34 +1169,6 @@ textarea {
   padding: var(--space-4);
 }
 
-/* The speaker's portrait in a dialogue (AB#585): a left column, so the text never wraps under it.
-   No display rule on the image, so the hidden attribute keeps working. */
-.modal-card.has-portrait {
-  position: relative;
-  padding-left: calc(var(--space-8) + 72px);
-}
-.dialogue-portrait {
-  position: absolute;
-  left: 1rem;
-  top: 1rem;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  object-fit: cover;
-}
-@media (max-width: 480px) {
-  .modal-card.has-portrait { padding-left: calc(var(--space-6) + var(--space-12)); }
-  .dialogue-portrait { width: 48px; height: 48px; left: 0.75rem; }
-}
-
-/* AB#579: the walkthrough's step count, a small mark under the briefing rather than its heading. */
-.walkthrough-progress {
-  margin: 0.6rem 0 0;
-  font-size: var(--font-size-2);
-  letter-spacing: 0.08em;
-}
-
 /* AB#581: the briefing sits beside the game instead of over it. Its backdrop lets clicks through, so the player can do
    what a step asks, and it sits below real dialogues (z-index 60), so it never covers a confirmation or its own target
    (Bug 1083). The highlighted control needs no z-index now that nothing dims the page, and must not rise above a dialogue. */
@@ -1227,19 +1185,6 @@ textarea {
   box-shadow: var(--elevation-overlay);
 }
 
-#walkthrough-modal .modal-card.has-portrait {
-  padding-left: calc(var(--space-6) + 52px);
-}
-
-#walkthrough-modal .dialogue-portrait {
-  width: 52px;
-  height: 52px;
-}
-
-#walkthrough-modal .lede {
-  font-size: var(--font-size-3);
-}
-
 /* Bug #1083: on a phone the card spans the width and is capped at 45vh; that rule is in the app shell's phone query
    ("App shell", below), with the room the card leaves for the bottom bar. */
 
@@ -1247,14 +1192,15 @@ textarea {
    measures), so the card never hides for good what it is describing. AB#1756: the room goes under the layout grid, not
    the body: #game-shell is 100vh tall and the grid overflows it, so body padding landed inside the overflow and added
    no scroll room once a page was taller than the screen (step 3's lease button stayed under the card). */
-body.walkthrough-open .layout-grid {
+body.walkthrough--open .layout-grid {
   padding-bottom: calc(var(--space-4) + var(--walkthrough-card-height, 22rem));
 }
 
-.walkthrough-focus {
+/* What a walkthrough step points at. */
+.walkthrough__focus {
   position: relative;
   outline: 2px solid var(--warn);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .sr-only {
@@ -1434,108 +1380,6 @@ body.walkthrough-open .layout-grid {
   padding: 0.7rem var(--space-4);
   text-align: center;
   line-height: 1.4;
-}
-
-/* ─── Starmap station tooltip ────────────────────────────── */
-.starmap-tooltip {
-  position: fixed;
-  z-index: 9999;
-  padding: var(--space-1) 10px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2);
-  color: var(--text-soft);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-#map-details {
-  max-width: 25vw;
-}
-
-/* ─── Starmap station modal ──────────────────────────────── */
-.starmap-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--scrim-modal);
-  backdrop-filter: blur(4px);
-}
-
-.starmap-modal-card {
-  position: relative;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: var(--space-8) var(--space-10);
-  max-width: 460px;
-  width: 90%;
-  text-align: center;
-}
-
-.starmap-modal-close {
-  position: absolute;
-  top: 0.6rem;
-  right: 0.8rem;
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: var(--font-size-5);
-  cursor: pointer;
-  line-height: 1;
-}
-.starmap-modal-close:hover {
-  color: var(--text-soft);
-}
-
-.starmap-modal-overline {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-1);
-  letter-spacing: 0.16em;
-  color: var(--accent);
-  margin-bottom: 0.2rem;
-}
-
-.starmap-modal-title {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-5);
-  color: var(--accent);
-  margin-bottom: 0.3rem;
-}
-
-.starmap-modal-stats {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-8);
-  margin-top: var(--space-4);
-}
-
-.starmap-modal-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.starmap-modal-stat-label {
-  font-size: var(--font-size-1);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-}
-
-.starmap-modal-stat-value {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-3);
-  color: var(--text-soft);
-}
-
-.starmap-modal-actions {
-  margin-top: var(--space-6);
 }
 
 .building-status-badge {
@@ -2052,31 +1896,6 @@ body.walkthrough-open .layout-grid {
   margin-top: 0.3rem;
 }
 
-.starmap-expedition-card {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: var(--space-2) 0.7rem;
-  margin-bottom: 0.4rem;
-}
-
-.starmap-exp-select {
-  display: block;
-  width: 100%;
-  margin-top: 0.3rem;
-  padding: 0.35rem var(--space-2);
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  color: var(--text);
-  font-size: var(--font-size-2);
-}
-
-.starmap-mining-panel h4 {
-  font-size: var(--font-size-3);
-  margin-bottom: 0.4rem;
-}
-
 /* ─── App shell (ISP-74, AB#763; ISP-75, AB#764) ─── */
 /* The flat direction (Decision AB#1801). The navigation is six groups (public/scripts/navGroups.js), each a button
    over its tabs. On a desktop it is a column at the top of the left side, every group's name over its tabs, with the
@@ -2274,7 +2093,7 @@ body.walkthrough-open .layout-grid {
   #walkthrough-modal {
     padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
   }
-  body.walkthrough-open .layout-grid {
+  body.walkthrough--open .layout-grid {
     padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16) + var(--walkthrough-card-height, var(--space-16)));
   }
 }
@@ -2285,9 +2104,6 @@ body.walkthrough-open .layout-grid {
    capped rules from this stylesheet, so a new one added above without a line here fails the suite. 767px is
    NARROW_MAX_WIDTH in public/scripts/firstAction.js. */
 @media (max-width: 767px) {
-  #map-details {
-    max-width: none;
-  }
   /* The Exchange tables with an action in every row: a six-column table does not fit 280 px, and the Buy and Create
      Listing buttons were off to the right. One card per row; each cell names its column (tableLabels.js). */
   .data-table--stack thead {
@@ -4455,6 +4271,189 @@ img.station__body {
   .missions__portrait {
     width: min(200px, 100%);
   }
+}
+
+/* ─── The Starmap, the dialogue and the walkthrough on the design system (ISP-82, AB#771) ───
+   The flat direction (Decision AB#1801), in tokens only. A dialogue (and the walkthrough, which is one) is the game's
+   modal card holding a row: the speaker's portrait, then a column of who speaks, the heading, the words and the
+   choices; with no portrait the image is hidden and the column fills the card. The Starmap is a screen: its toolbar,
+   the canvas, and a details panel whose status lines carry a tone. A station opened on the map is the game's modal
+   with a key-value list. The modals sit outside any .ui-screen, so their small sizes are raised on a phone here.
+   tests/unit/starmapDialogue.test.js holds them to it. */
+.dialogue {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+.dialogue__portrait {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  object-fit: cover;
+}
+#walkthrough-modal .dialogue__portrait {
+  width: 52px;
+  height: 52px;
+}
+.dialogue__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.dialogue__speaker,
+.starmap__overline {
+  margin: 0;
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.dialogue__title,
+.starmap__station-title {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-5);
+  line-height: var(--line-height-tight);
+}
+.dialogue__text {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-3);
+  line-height: var(--line-height-body);
+}
+.dialogue__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.dialogue__actions:empty {
+  display: none;
+}
+.dialogue__continue {
+  align-self: flex-start;
+  margin-top: var(--space-2);
+}
+.walkthrough__progress {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-2);
+  letter-spacing: 0.08em;
+}
+.starmap__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.starmap__subhead {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-semibold);
+}
+.starmap__status {
+  margin: 0;
+  font-size: var(--font-size-2);
+}
+.starmap__status--here {
+  color: var(--accent);
+}
+.starmap__status--locked {
+  color: var(--warn);
+}
+.starmap__stations {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.starmap__station-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+}
+.starmap__tooltip {
+  position: fixed;
+  z-index: var(--z-tooltip);
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.starmap__station {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(460px, 100%);
+}
+.starmap__station-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.starmap__close {
+  font-size: var(--font-size-5);
+  line-height: 1;
+}
+/* On a phone the portrait floats beside the speaker's lines instead of taking a column, so the words and the choices
+   have the card's whole width: the walkthrough's three buttons fit one row, and the card, capped at 45vh (Bug #1083),
+   keeps them in sight. */
+@media (max-width: 480px) {
+  .dialogue {
+    display: block;
+  }
+  .dialogue__portrait,
+  #walkthrough-modal .dialogue__portrait {
+    float: left;
+    width: 48px;
+    height: 48px;
+    margin: 0 var(--space-3) var(--space-1) 0;
+  }
+  /* A flex column would stand beside the float, not flow round it: a block, spaced by margins, does. */
+  .dialogue__content {
+    display: block;
+  }
+  .dialogue__content > * + * {
+    margin-top: var(--space-2);
+  }
+  .dialogue__actions {
+    clear: both;
+  }
+}
+@media (max-width: 600px) {
+  :is(.dialogue, .starmap__station) :is(.ui-button, .dialogue__speaker, .starmap__overline, .walkthrough__progress, .ui-panel__meta, .ui-kv, .starmap__status) {
+    font-size: var(--font-size-3);
+  }
+  .ui-screen :is(.starmap__details .ui-panel__body, .starmap__status, .starmap__station-row) {
+    font-size: var(--font-size-3);
+  }
+}
+/* The panel's stack spaces its lines; a paragraph's own margin would double it. A designation does not break. */
+.starmap__details .ui-panel__body p {
+  margin: 0;
+}
+.starmap__station-row .ui-panel__meta {
+  white-space: nowrap;
+}
+/* The close glyph keeps its size where the phone raises a modal's buttons to body size. */
+.starmap__station .starmap__close {
+  font-size: var(--font-size-5);
 }
 
 /* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */
