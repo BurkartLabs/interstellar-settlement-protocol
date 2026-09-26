@@ -147,7 +147,7 @@ describe("Construct Assembly Facility (Bug #1253)", () => {
     const { doc, sent, settle } = playerPage(p);
     const button = doc.getElementById("build-assembly-btn");
     expect(button.disabled).toBe(true);
-    expect(doc.querySelector(".facility-blocked").textContent).toBe("Needs ¤60,000; you have ¤10,000.");
+    expect(doc.querySelector(".station__blocked").textContent).toBe("Needs ¤60,000; you have ¤10,000.");
     button.click();
     await settle();
     expect(sent).toEqual([]);
@@ -161,7 +161,7 @@ describe("Construct Assembly Facility (Bug #1253)", () => {
     });
     const { doc } = playerPage(p);
     expect(doc.getElementById("build-assembly-btn").disabled).toBe(true);
-    expect(doc.querySelector(".facility-blocked").textContent).toBe("Needs a free building slot: 2 of 2 in use.");
+    expect(doc.querySelector(".station__blocked").textContent).toBe("Needs a free building slot: 2 of 2 in use.");
     const res = await p.api.post(`/api/accounts/${p.account.id}/gameplay/build-assembly-facility`).send({});
     expect(res.status).toBe(400);
   });

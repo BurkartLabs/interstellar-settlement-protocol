@@ -38,15 +38,15 @@ export function facilityCardsHtml(corp = {}, cost = NaN, upgradeFor = null) {
   const cards = operational
     .filter((b) => b.name in DESCRIPTIONS)
     .map((b) => `
-        <article class="facility-card data-card">
-          <header class="facility-card-header">
-            <span class="faction-code-badge corp-badge">CORP</span>
+        <article class="ui-card station__card">
+          <header class="station__card-header">
+            <span class="ui-badge ui-badge--accent">CORP</span>
             <h3>${escapeHtml(b.name)}</h3>
           </header>
-          <p class="muted facility-desc">${DESCRIPTIONS[b.name]}</p>
-          <p class="facility-tier">${upgradeFor ? escapeHtml(facilityStatus(b, corp)) : `Tier ${b.tier || 1} &mdash; ${escapeHtml(b.status)}`}</p>
+          <p class="ui-card__body">${DESCRIPTIONS[b.name]}</p>
+          <p class="ui-badge">${upgradeFor ? escapeHtml(facilityStatus(b, corp)) : `Tier ${b.tier || 1} &mdash; ${escapeHtml(b.status)}`}</p>
           ${upgradeFor ? upgradeFor(b) : ""}
-          <footer class="facility-card-footer"><button class="btn btn-accent" data-corp-building="${escapeHtml(b.name)}">Enter</button></footer>
+          <footer class="station__card-footer"><button class="ui-button ui-button--primary" data-corp-building="${escapeHtml(b.name)}">Enter</button></footer>
         </article>
       `)
     .join("");
@@ -56,11 +56,11 @@ export function facilityCardsHtml(corp = {}, cost = NaN, upgradeFor = null) {
     // The Station shows no feedback line (that is on Overview), so a refusal the player cannot see is the same dead
     // button as Bug #1253. Say why before the click, from the checks the server makes.
     const blocked = constructBlocker(corp, cost);
-    construct = `<article class="facility-card data-card" style="border:1px dashed rgba(0,247,255,0.3);">
-         <header class="facility-card-header"><span class="faction-code-badge corp-badge">NEW</span><h3>Assembly Facility</h3></header>
-         <p class="muted">Modular manufacturing bay for fabricating deployable units.</p>
-         ${blocked ? `<p class="facility-blocked">${escapeHtml(blocked)}</p>` : ""}
-         <footer class="facility-card-footer"><button id="build-assembly-btn" class="btn btn-accent" data-facility-action="construct-assembly"${blocked ? " disabled" : ""}>Construct (¤${cost.toLocaleString("en-US")})</button></footer>
+    construct = `<article class="ui-card station__card station__card--dashed">
+         <header class="station__card-header"><span class="ui-badge ui-badge--accent">NEW</span><h3>Assembly Facility</h3></header>
+         <p class="station__note">Modular manufacturing bay for fabricating deployable units.</p>
+         ${blocked ? `<p class="station__blocked">${escapeHtml(blocked)}</p>` : ""}
+         <footer class="station__card-footer"><button id="build-assembly-btn" class="ui-button ui-button--primary" data-facility-action="construct-assembly"${blocked ? " disabled" : ""}>Construct (¤${cost.toLocaleString("en-US")})</button></footer>
        </article>`;
   }
 

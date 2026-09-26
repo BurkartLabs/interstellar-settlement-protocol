@@ -69,8 +69,8 @@ for (const viewport of VIEWPORTS) {
     const { page, section, errors, close } = await openPanel(browser, viewport, "fresh");
     try {
       await expect(section.locator("[data-build-id]")).toHaveCount(0);
-      await expect(section.locator('[data-building-row="refinery"] .facility-blocked')).toHaveText("Requires Material Compression I research.");
-      await expect(section.locator('[data-building-row="basic-extractor-yard"] .facility-blocked')).toHaveText("Needs a mining lease: file one at the ISA Claims & Leases Division.");
+      await expect(section.locator('[data-building-row="refinery"] .station__blocked')).toHaveText("Requires Material Compression I research.");
+      await expect(section.locator('[data-building-row="basic-extractor-yard"] .station__blocked')).toHaveText("Needs a mining lease: file one at the ISA Claims & Leases Division.");
       await section.screenshot({ path: path.join(SHOT_DIR, `fresh-${viewport.label}.png`) });
       expect(errors).toEqual([]);
     } finally {
@@ -86,7 +86,7 @@ for (const viewport of VIEWPORTS) {
       await expect(section.locator("[data-build-id]")).toHaveCount(4); // the Ferric Mining Complex too (ISP-96); the Refinery Complex needs a Refinery
       await section.screenshot({ path: path.join(SHOT_DIR, `level5-before-${viewport.label}.png`) });
       await section.locator('[data-build-id="assembly-facility"]').click();
-      await expect(section.locator('[data-building-row="assembly-facility"] .facility-blocked')).toHaveText("Built: your corporation operates the most it may, 1.");
+      await expect(section.locator('[data-building-row="assembly-facility"] .station__blocked')).toHaveText("Built: your corporation operates the most it may, 1.");
       await expect(page.locator("#construction-slots")).toHaveText("Building slots: 4 of 6 in use.");
       // The receipt modal (AB#744) opens over the page; photograph it, close it, then the panel as it is now.
       await page.screenshot({ path: path.join(SHOT_DIR, `level5-receipt-${viewport.label}.png`) });
@@ -112,7 +112,7 @@ for (const viewport of VIEWPORTS) {
       await row.scrollIntoViewIfNeeded();
       await section.screenshot({ path: path.join(SHOT_DIR, `ferric-buildable-${viewport.label}.png`) });
       await row.locator("[data-build-id]").click();
-      await expect(row.locator(".facility-blocked")).toHaveText("Built: your corporation operates the most it may, 1.");
+      await expect(row.locator(".station__blocked")).toHaveText("Built: your corporation operates the most it may, 1.");
       await page.keyboard.press("Escape"); // the receipt
       await section.screenshot({ path: path.join(SHOT_DIR, `ferric-built-${viewport.label}.png`) });
 
@@ -151,7 +151,7 @@ for (const viewport of VIEWPORTS) {
       await row.scrollIntoViewIfNeeded();
       await section.screenshot({ path: path.join(SHOT_DIR, `refinery-complex-buildable-${viewport.label}.png`) });
       await row.locator("[data-build-id]").click();
-      await expect(row.locator(".facility-blocked")).toHaveText("Every Refinery you have is already a Refinery Complex.");
+      await expect(row.locator(".station__blocked")).toHaveText("Every Refinery you have is already a Refinery Complex.");
       await page.keyboard.press("Escape"); // the receipt
       await section.screenshot({ path: path.join(SHOT_DIR, `refinery-complex-built-${viewport.label}.png`) });
 
@@ -180,9 +180,9 @@ for (const viewport of VIEWPORTS) {
 async function openLunaLease(page) {
   await openTab(page, "station"); // AB#764: tabs sit in groups; the helper opens the group first
   await page.click('[data-building-action="building:isa-claims-leases"]');
-  await page.click('.lease-manage-btn[data-lease-id="lease-luna-qa"]');
+  await page.click('[data-action="manage-lease"][data-lease-id="lease-luna-qa"]');
   await expect(page.locator("#station-building-view")).toContainText("Mining Lease — Luna");
-  const line = page.locator(".lease-mine-projection").first();
+  const line = page.locator('[data-role="mine-projection"]').first();
   await expect(line).toContainText("earns");
   return Number((await line.innerText()).match(/earns \$([\d,]+)\/hour/)[1].replace(/,/g, ""));
 }
@@ -203,7 +203,7 @@ for (const viewport of VIEWPORTS) {
       await row.scrollIntoViewIfNeeded();
       await section.screenshot({ path: path.join(SHOT_DIR, `cryo-buildable-${viewport.label}.png`) });
       await row.locator("[data-build-id]").click();
-      await expect(row.locator(".facility-blocked")).toHaveText("Your Luna lease already has a Cryo-vapor Extractor Array.");
+      await expect(row.locator(".station__blocked")).toHaveText("Your Luna lease already has a Cryo-vapor Extractor Array.");
       await page.keyboard.press("Escape"); // the receipt
       await section.screenshot({ path: path.join(SHOT_DIR, `cryo-built-${viewport.label}.png`) });
 

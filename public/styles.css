@@ -46,6 +46,8 @@
      title sat), and behind a modal. */
   --scrim-hero: linear-gradient(90deg, rgb(5 7 10 / 0.9) 0%, rgb(5 7 10 / 0.76) 55%, rgb(5 7 10 / 0.4) 100%);
   --scrim-modal: rgb(5 7 10 / 0.72);
+  /* ISP-78 (AB#767): under the words at the foot of a building's artwork, and nowhere else on it. */
+  --scrim-caption: linear-gradient(0deg, rgb(5 7 10 / 0.9) 0%, rgb(5 7 10 / 0.55) 40%, rgb(5 7 10 / 0) 75%);
 
   /* AB#1760: the keyboard-focus ring, drawn by the one rule under "Focus and motion". */
   --focus-ring: 2px solid var(--accent);
@@ -196,11 +198,6 @@ body {
   display: none !important;
 }
 
-/* --- Extractor Downtime/Inactive Styling --- */
-.extractor-row.downtime {
-  background: var(--bg);
-  border: 1.5px solid var(--danger);
-}
 .building-status-badge.downtime {
   background: var(--danger);
   color: var(--text);
@@ -210,11 +207,6 @@ body {
   background: var(--surface-3);
   color: var(--text);
   border: 1px solid var(--danger);
-}
-.extractor-progress-bar.downtime {
-  background: var(--danger);
-  height: 8px;
-  border-radius: 6px;
 }
 #market {
   padding: 2em;
@@ -276,100 +268,6 @@ body {
   display: flex;
   flex-direction: column;
 }
-/* Galactic Exchange background */
-#station-building-content.ge-bg {
-  background: url("/images/galactic_exchange.jpg") center center/cover no-repeat;
-  background-attachment: local;
-  border-radius: 18px;
-  position: relative;
-  overflow: hidden;
-}
-#station-building-content.ge-bg::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--bg);
-  opacity: 0.78;
-  z-index: 1;
-  pointer-events: none;
-}
-#station-building-content.ge-bg > * {
-  position: relative;
-  z-index: 2;
-}
-
-/* ISA Claims & Leases Division: Responsive .form-card width */
-#station-building-content.icl-bg .form-card {
-  width: 900px;
-  max-width: 100%;
-  transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
-}
-#station-building-content.icl-bg .form-card .lease-card-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-}
-#station-building-content.icl-bg .form-card .lease-card {
-  flex: 1 1 300px;
-  min-width: 280px;
-  max-width: 420px;
-}
-@media (min-width: 901px) {
-  #station-building-content.icl-bg .form-card.expand-width {
-    width: auto;
-    min-width: 900px;
-    max-width: none;
-  }
-}
-/* ISA Claims & Leases Division background */
-#station-building-content.icl-bg {
-  background: url("/images/isa_claims_leases_division.jpg") center center/cover no-repeat;
-  background-attachment: local;
-  border-radius: 18px;
-  position: relative;
-  overflow: hidden;
-}
-#station-building-content.icl-bg::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--bg);
-  opacity: 0.78;
-  z-index: 1;
-  pointer-events: none;
-}
-#station-building-content.icl-bg > * {
-  position: relative;
-  z-index: 2;
-}
-/* Orbital Executive Suites background */
-#station-building-content.oes-bg {
-  background: url("/images/orbital_executive_suites.jpg") center center/cover no-repeat;
-  background-attachment: local;
-  border-radius: 18px;
-  position: relative;
-  overflow: hidden;
-}
-
-#station-building-content.oes-bg::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--bg);
-  opacity: 0.78;
-  z-index: 1;
-  pointer-events: none;
-}
-
-#station-building-content.oes-bg > * {
-  position: relative;
-  z-index: 2;
-}
-
-#station-building-content {
-  padding: 2em;
-}
-
 /* ─── Starfield canvas ─── */
 #starfield-canvas {
   position: fixed;
@@ -626,12 +524,6 @@ h1 {
 
 .muted {
   color: var(--muted);
-}
-
-.action-hint {
-  margin: 0.35rem 0 0;
-  font-size: var(--font-size-2);
-  line-height: 1.5;
 }
 
 .lede {
@@ -970,17 +862,6 @@ button:disabled {
   text-align: right;
 }
 
-.kv-list.kv-list--compact {
-  grid-template-columns: auto auto;
-  justify-content: start;
-  column-gap: var(--space-5);
-  row-gap: 0.35rem;
-}
-
-.kv-list.kv-list--compact dd {
-  text-align: left;
-}
-
 .text-list {
   margin: 0;
   padding-left: var(--space-4);
@@ -1266,10 +1147,6 @@ textarea {
   background:
     var(--surface-2);
   box-shadow: inset 0 0 0 1px var(--border);
-}
-
-.compact-action-form {
-  max-width: 420px;
 }
 
 .research-panel {
@@ -1644,23 +1521,6 @@ body.walkthrough-open .layout-grid {
 }
 
 /* ─── Travel banner ──────────────────────────────────────── */
-.travel-banner {
-  margin-bottom: var(--space-6);
-}
-
-.travel-banner-inner {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: var(--space-6) var(--space-8);
-  text-align: center;
-}
-
-.travel-banner-inner h2 {
-  font-family: var(--font-sans);
-  color: var(--accent);
-  margin-bottom: var(--space-2);
-}
 
 .travel-progress-bar {
   width: 100%;
@@ -1914,159 +1774,6 @@ body.walkthrough-open .layout-grid {
   margin-top: var(--space-6);
 }
 
-/* ─── Station district ───────────────────────────────────── */
-.station-district {
-  margin-top: var(--space-8);
-}
-
-.station-district h3 {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: var(--space-1);
-}
-
-.station-district > .muted {
-  margin-bottom: 0.9rem;
-}
-
-.building-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 0.8rem;
-}
-
-/* ── Prominent Facility Cards (Assembly, Refinery) ── */
-#station-facility-buildings {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); /* Bug #1283: a phone leaves the grid ~309px */
-  gap: 1rem;
-}
-
-.facility-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  padding: 1.2rem 1.4rem;
-  min-height: 160px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  border-radius: 4px;
-  transition: border-color 0.2s;
-}
-
-.facility-card:hover {
-  border-color: var(--border);
-}
-
-.facility-card-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-}
-
-.facility-card-header h3 {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-3);
-  letter-spacing: 0.04em;
-  margin: 0;
-  flex: 1;
-}
-
-.facility-desc {
-  font-size: var(--font-size-2);
-  line-height: 1.55;
-  margin: 0;
-}
-
-.facility-tier {
-  font-size: var(--font-size-1);
-  color: var(--muted);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-family: var(--font-sans);
-  margin: 0;
-}
-
-.facility-card-footer {
-  margin-top: auto;
-  padding-top: 0.6rem;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-/* Bug #1253: why Construct cannot be used yet. Its disabled button is drawn by the rule under .btn:hover (AB#1284). */
-.facility-blocked {
-  margin: 0;
-  color: var(--warn);
-  font-size: var(--font-size-3);
-}
-
-.building-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.building-card-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.55rem;
-}
-
-.building-card-header h3 {
-  font-size: var(--font-size-2);
-  line-height: 1.3;
-  margin: 0;
-  flex: 1;
-}
-
-.faction-code-badge {
-  display: inline-block;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-1);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 0.18em 0.5em;
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  border-radius: 2px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  margin-top: 0.1rem;
-}
-
-.faction-code-badge.corp-badge {
-  border-color: var(--muted);
-  color: var(--muted);
-}
-
-.building-description {
-  font-size: var(--font-size-2);
-  line-height: 1.5;
-  margin: 0;
-}
-
-.building-flavor {
-  font-size: var(--font-size-2);
-  line-height: 1.55;
-  color: var(--muted);
-  font-style: italic;
-  margin: 0;
-  flex: 1;
-}
-
-.building-card-footer {
-  margin-top: auto;
-  padding-top: var(--space-2);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
 .building-status-badge {
   font-family: var(--font-sans);
   font-size: var(--font-size-1);
@@ -2084,20 +1791,6 @@ body.walkthrough-open .layout-grid {
 }
 
 /* ─── Station building detail sub-view ───────────────────── */
-.building-detail-nav {
-  margin-bottom: var(--space-6);
-}
-
-.building-detail-header {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
-  margin-bottom: var(--space-2);
-}
-
-.building-detail-header h2 {
-  margin: 0;
-}
 
 .station-location-banner {
   display: flex;
@@ -2134,37 +1827,6 @@ body.walkthrough-open .layout-grid {
 .action-surface {
   background: color-mix(in srgb, var(--accent) 5%, var(--surface-1));
   border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-.compact-action-form {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-3);
-  margin: 0.8rem 0 var(--space-2);
-  flex-wrap: wrap;
-}
-
-.compact-action-form label {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-.compact-action-form input[type="number"] {
-  width: 5rem;
-  padding: 0.4rem var(--space-2);
-}
-
-.action-hint {
-  font-size: var(--font-size-2);
-  margin-top: 0.35rem;
-}
-
-#lease-suite-box {
-  /* Bug #1032: a fixed 750px ran off a phone screen and hid the office price; as wide as the other Suites cards. */
-  width: min(750px, 100%);
 }
 
 /* ─── Office Interior View ───────────────────────────────────────────────── */
@@ -2251,57 +1913,6 @@ body.walkthrough-open .layout-grid {
 .office-panel--timer {
   display: flex;
   flex-direction: column;
-}
-
-.lease-countdown {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  margin-bottom: 0.3rem;
-  color: var(--accent);
-}
-
-.lease-countdown--warning { color: var(--warn); }
-.lease-countdown--expired { color: var(--danger); }
-
-.lease-countdown__days {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-6);
-  font-weight: 700;
-  line-height: 1;
-  text-shadow: 0 0 18px currentColor;
-}
-
-.lease-countdown__unit {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-1);
-  letter-spacing: 0.15em;
-  opacity: 0.8;
-  margin-bottom: var(--space-1);
-}
-
-.lease-progress {
-  height: 3px;
-  background: var(--surface-3);
-  border-radius: 2px;
-  overflow: hidden;
-  margin: 0.6rem 0 0.4rem;
-}
-
-.lease-progress__bar {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 2px;
-  transition: width 0.4s ease;
-}
-
-.lease-progress__bar--warning {
-  background: var(--warn);
-}
-
-.lease-progress__bar--expired {
-  background: var(--danger);
-  box-shadow: none;
 }
 
 .office-muted {
@@ -2422,185 +2033,11 @@ body.walkthrough-open .layout-grid {
   border-color: var(--danger);
 }
 
-#station-location-header .overline {
-  margin-bottom: 0.2rem;
-}
-
-#station-location-header h2 {
-  margin: 0.1rem 0 0.4rem;
-}
-
-/* ─── ISA Claims & Leases — lease cards ─────────────────────────────────── */
-.lease-card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-4);
-  margin-top: var(--space-2);
-}
-
-.lease-card {
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: var(--space-4);
-}
-
-.lease-card-header {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  margin-bottom: var(--space-2);
-}
-
-.lease-body-badge {
-  font-size: var(--font-size-1);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  color: var(--accent);
-  padding: 0.15rem var(--space-2);
-  border-radius: 3px;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-}
-
-.lease-type-label {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-.lease-purchase-block {
-  max-width: 640px;
-}
-
-/* ─── Extractor rows within lease management ─────────────────────────────── */
-.extractor-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-top: 0.4rem;
-}
-
-.extractor-row {
-  padding: 0.85rem;
-  border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--surface-1);
-}
-
-.extractor-row.active {
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
-  background: color-mix(in srgb, var(--accent) 5%, var(--surface-1));
-}
-
-.extractor-row-header {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.3rem;
-}
-
-.extractor-cycle-status {
-  font-size: var(--font-size-2);
-  color: var(--accent);
-  display: block;
-  margin: 0.2rem 0;
-}
-
-.extractor-cycle-status.idle {
-  color: var(--muted);
-}
-
 /* ─── Mining cycle progress bar ──────────────────────────────────────────── */
-.extractor-progress-wrap {
-  margin: 0.6rem 0 0.2rem;
-}
-
-.extractor-progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 0.3rem;
-}
-
-.extractor-progress-pct {
-  font-size: var(--font-size-2);
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: 0.03em;
-}
-
-.extractor-progress-time {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-.extractor-progress-track {
-  height: 7px;
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.extractor-progress-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 99px;
-  transition: width 1s linear;
-  min-width: 3px;
-}
-
-.extractor-progress-fill.downtime {
-  background: var(--danger);
-  animation: downtime-pulse 2s ease-in-out infinite;
-}
 
 @keyframes downtime-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }
-}
-
-.extractor-stat-row {
-  display: flex;
-  gap: var(--space-5);
-  margin-top: 0.55rem;
-  flex-wrap: wrap;
-}
-
-.extractor-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.extractor-stat-label {
-  font-size: var(--font-size-1);
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.extractor-stat-value {
-  font-size: var(--font-size-3);
-  font-weight: 600;
-  color: var(--text);
-}
-
-/* ─── Lease management card responsive width ─────────────────────────────── */
-.lease-management-card {
-  max-width: min(750px, 100%);
-}
-
-@media (max-width: 600px) {
-  .lease-management-card {
-    max-width: 100%;
-  }
-}
-
-@media (min-width: 601px) and (max-width: 900px) {
-  .lease-management-card {
-    max-width: 500px;
-  }
 }
 
 /* ─── Vertical rhythm: within form-card ─────────────────── */
@@ -4439,44 +3876,6 @@ tr.npc-order-exhausted {
   margin-bottom: 0.4rem;
 }
 
-/* ─── Assembly Facility ──────────────────────────────────── */
-.assembly-probe-status {
-  display: flex;
-  gap: 1.2rem;
-  align-items: center;
-  margin-top: var(--space-4);
-}
-
-.assembly-probe-img {
-  width: 120px;
-  height: auto;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--surface-1);
-}
-
-.assembly-probe-status p {
-  margin-bottom: var(--space-2);
-}
-
-/* ─── Start here (AB#1056) ─── */
-/* The Station's first action, shown above the station description until the corporation has an office. */
-.start-here {
-  margin: 0.8rem 0 var(--space-4);
-  border: 1px solid var(--accent);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem var(--space-4);
-}
-.start-here .overline,
-.start-here p {
-  margin: 0;
-}
-.start-here p:not(.overline) {
-  flex: 1 1 22rem;
-}
-
 /* ─── App shell (ISP-74, AB#763; ISP-75, AB#764) ─── */
 /* The flat direction (Decision AB#1801). The navigation is six groups (public/scripts/navGroups.js), each a button
    over its tabs. On a desktop it is a column at the top of the left side, every group's name over its tabs, with the
@@ -4698,13 +4097,6 @@ tr.npc-order-exhausted {
   #forum-overview-view,
   .mission-card {
     max-width: none;
-  }
-  /* the ISA Claims lease cards: a 280 px minimum and 300 px columns ran past a 309 px view */
-  .lease-card-grid {
-    grid-template-columns: 1fr;
-  }
-  #station-building-content.icl-bg .form-card .lease-card {
-    min-width: 0;
   }
   /* The Exchange tables with an action in every row: a six-column table does not fit 280 px, and the Buy and Create
      Listing buttons were off to the right. One card per row; each cell names its column (tableLabels.js). */
@@ -6149,9 +5541,357 @@ body.sg {
   }
 }
 
+/* ─── The Station on the design system (ISP-78, AB#767) ───
+   The flat direction (Decision AB#1801). The Station's header shows the body it orbits beside its name, so a screenshot
+   says which station it is (scripts/stationArt.js); a building's header carries its artwork at full contrast, with a
+   scrim only under the words. Cards, panels, badges and fields are the design system's; what is the Station's own is
+   named station__ and the lease view's extractor rows extractor__. tests/unit/stationScreens.test.js holds it to that. */
+.station__view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.station__view[hidden] {
+  display: none;
+}
+.station__hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6);
+}
+.station__art {
+  flex: 0 0 auto;
+  width: 176px;
+  aspect-ratio: 1;
+  margin: 0;
+}
+.station__body {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+img.station__body {
+  border-radius: var(--radius-pill);
+}
+.station__identity {
+  flex: 1 1 280px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.station__overline {
+  margin: 0;
+  color: var(--accent);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+}
+.station__heading {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-semibold);
+}
+.station__start {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-color: var(--accent);
+}
+#station-facility-buildings {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); /* Bug #1283: a phone leaves the grid ~309px */
+  gap: var(--space-4);
+}
+
+/* Cards: a building, a facility, a construction entry, a yard, a lease. */
+.station__card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.station__card-header h3,
+.station__card-header h4 {
+  flex: 1 1 auto;
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-semibold);
+}
+.station__card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+.station__card-footer:empty {
+  display: none;
+}
+.station__card--dashed {
+  border-style: dashed;
+}
+/* A grid with nothing in it says so across its whole width, not in one column. */
+.station__grid > .station__note {
+  grid-column: 1 / -1;
+}
+
+/* Words: a note, a hint under a control, a building's flavour line and what is in the way. */
+.station__note {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+}
+.station__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+}
+.station__hint:empty {
+  display: none;
+}
+.station__flavor {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--border);
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+  font-style: italic;
+  line-height: var(--line-height-body);
+}
+.station__blocked {
+  margin: 0;
+  color: var(--warn);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+}
+.station__warn {
+  color: var(--warn);
+}
+.station__danger {
+  color: var(--danger);
+}
+.station__status--active,
+.station__status--operational {
+  color: var(--success);
+  border-color: var(--success);
+}
+.station__status--downtime {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.station__status--idle {
+  color: var(--muted);
+}
+
+/* Panels and forms inside a building. */
+.station__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+.station__panel > h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-semibold);
+}
+.station__lease-purchase > h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-semibold);
+}
+.station__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.station__form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--muted);
+  font-size: var(--font-size-2);
+}
+.station__input--narrow {
+  width: 7em;
+}
+.station__upgrade,
+.station__lease-purchase,
+.station__probe-status,
+.station__fab-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.station__probe-img {
+  width: 96px;
+  height: auto;
+}
+
+/* A list of terms and their values, two columns wherever it fits. */
+.ui-kv {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+}
+.ui-kv dt {
+  color: var(--muted);
+}
+.ui-kv dd {
+  margin: 0;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* A building: its artwork is the header, the words sit on a scrim at its foot. */
+.station__building {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.station__building-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: flex-end;
+  gap: var(--space-2);
+}
+.station__building-title {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-5);
+  line-height: var(--line-height-tight);
+}
+:is(.station__art--oes, .station__art--icl, .station__art--ge) > .station__building-header {
+  min-height: 240px;
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+.station__art--oes > .station__building-header {
+  background-image: var(--scrim-caption), url("/images/orbital_executive_suites.jpg");
+}
+.station__art--icl > .station__building-header {
+  background-image: var(--scrim-caption), url("/images/isa_claims_leases_division.jpg");
+}
+.station__art--ge > .station__building-header {
+  background-image: var(--scrim-caption), url("/images/galactic_exchange.jpg");
+}
+
+/* The lease view's extractor yards: a card each, its figures, its cycle's progress and its controls. */
+.extractor__list {
+  display: grid;
+  gap: var(--space-3);
+}
+.extractor {
+  gap: var(--space-3);
+}
+.extractor.is-downtime {
+  border-color: var(--danger);
+}
+.extractor__header,
+.extractor__progress-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--text);
+}
+.extractor__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+  gap: var(--space-3);
+}
+.extractor__stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.extractor__stat-label {
+  color: var(--muted);
+  font-size: var(--font-size-1);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+}
+.extractor__stat-value {
+  color: var(--text);
+  font-size: var(--font-size-2);
+  font-variant-numeric: tabular-nums;
+}
+.extractor__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.extractor__pct,
+.extractor__time {
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+  font-variant-numeric: tabular-nums;
+}
+.extractor__track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+}
+.extractor__fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--duration-fast) var(--ease-standard);
+}
+.extractor__fill.is-downtime {
+  background: var(--danger);
+  animation: downtime-pulse 2s ease-in-out infinite;
+}
+.extractor__cycle-status {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+}
+.extractor__cycle-status.is-idle {
+  color: var(--muted);
+}
+.extractor__cycle-status.is-downtime {
+  color: var(--danger);
+}
+
+@media (max-width: 600px) {
+  .station__art {
+    width: 112px;
+  }
+  :is(.station__art--oes, .station__art--icl, .station__art--ge) > .station__building-header {
+    min-height: 180px;
+    padding: var(--space-4);
+  }
+}
+
 /* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */
 @media (max-width: 600px) {
-  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend) {
+  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-kv, .station__overline, .station__note, .station__hint, .station__flavor, .station__blocked, .station__form label, .extractor__stat-label, .extractor__stat-value, .extractor__pct, .extractor__time, .extractor__cycle-status) {
     font-size: var(--font-size-3);
   }
   .ui-screen .ui-table td::before {

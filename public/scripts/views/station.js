@@ -17,15 +17,22 @@ import { clientPrices } from "../clientPrices.js";
 import { leaseFullAdvice } from "../slotAdvice.js";
 import { appState, techTree } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
+import { paintStationArt, stationArtHtml } from "../stationArt.js"; // ISP-78 (AB#767)
 import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
 import { nextYardPriceFor } from "../yardPrice.js"; // ISP-303 (AB#2286)
 import { facilityUpgradeHtml, facilityUpgradeView, upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795), ISP-102 (AB#794)
 import { renderMissions } from "./assignments.js";
-import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHeader, setTab, showTradeConfirmation, stationLocationBanner, updateAllViews } from "./shared.js";
+import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHeader, setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
 // back to the control that was pressed if it is still there, otherwise to the one the flow continues from.
 import { showActionReceipt } from "./receiptModal.js";
 const firstPresent = (...selectors) => () => selectors.map((sel) => document.querySelector(sel)).find(Boolean) || null;
+
+// ISP-78 (AB#767): where the corporation is docked, as a line under a building's name.
+function dockedHtml(station) {
+  if (!station) return "";
+  return `<p class="ui-screen__meta">Docked at <strong>${escapeHtml(station.name)}</strong> &mdash; ${escapeHtml(station.body)}, ${escapeHtml(formatSystemLabel(station.systemId || "sol"))}</p>`;
+}
 
 export function showStationOverview() {
   const overviewEl = document.getElementById("station-overview-view");
@@ -33,7 +40,7 @@ export function showStationOverview() {
   const contentEl = document.getElementById("station-building-content");
   if (overviewEl) overviewEl.hidden = false;
   if (detailEl) detailEl.hidden = true;
-  if (contentEl) contentEl.classList.remove("ge-bg", "icl-bg", "oes-bg");
+  if (contentEl) contentEl.classList.remove("station__art--ge", "station__art--icl", "station__art--oes");
   appState.stationActiveLease = null;
 }
 
@@ -84,8 +91,8 @@ async function upgradeFacility(buildingId) {
   const building = (appState.data?.corp?.buildings || []).find((b) => b.id === buildingId);
   const view = building ? facilityUpgradeView(building, appState.data.corp, appState.economy, appState.playerBuildings || []) : null;
   if (!view?.next || view.locked || view.blocked || !appState.accountId) return;
-  const btn = document.querySelector(`.yard-upgrade[data-upgrade-for="${CSS.escape(buildingId)}"] button`);
-  const statusEl = document.querySelector(`.yard-upgrade-status[data-for="${CSS.escape(buildingId)}"]`);
+  const btn = document.querySelector(`[data-role="yard-upgrade"][data-upgrade-for="${CSS.escape(buildingId)}"] button`);
+  const statusEl = document.querySelector(`[data-role="yard-upgrade-status"][data-for="${CSS.escape(buildingId)}"]`);
   const confirmed = await showTradeConfirmation({
     heading: `Upgrade ${building.name}`,
     title: `Upgrade the ${building.name} to tier ${view.next.tier}?`,
@@ -96,7 +103,7 @@ async function upgradeFacility(buildingId) {
     ]
   });
   if (!confirmed || !btn) return;
-  await postUpgrade(buildingId, btn, statusEl, { focus: firstPresent(`.yard-upgrade[data-upgrade-for="${CSS.escape(buildingId)}"] button`, ".nav-tab[data-tab='station']") });
+  await postUpgrade(buildingId, btn, statusEl, { focus: firstPresent(`[data-role="yard-upgrade"][data-upgrade-for="${CSS.escape(buildingId)}"] button`, ".nav-tab[data-tab='station']") });
 }
 
 export function renderBuildingDetail(building, data) {
@@ -104,13 +111,13 @@ export function renderBuildingDetail(building, data) {
   if (!contentEl) return;
 
   // Apply building-specific background classes
-  contentEl.classList.remove("ge-bg", "icl-bg", "oes-bg");
+  contentEl.classList.remove("station__art--ge", "station__art--icl", "station__art--oes");
   if (building.id === "orbital-executive-suites") {
-    contentEl.classList.add("oes-bg");
+    contentEl.classList.add("station__art--oes");
   } else if (building.id === "isa-claims-leases") {
-    contentEl.classList.add("icl-bg");
+    contentEl.classList.add("station__art--icl");
   } else if (building.id === "galactic-exchange") {
-    contentEl.classList.add("ge-bg");
+    contentEl.classList.add("station__art--ge");
   }
 
   // ISA Contracting & Assignments Bureau → redirect to Missions tab
@@ -144,14 +151,14 @@ export function renderBuildingDetail(building, data) {
   } else {
     const station = getCurrentStationInfo(data);
     contentEl.innerHTML = `
-      <div class="building-detail-header">
-        <span class="faction-code-badge">${escapeHtml(building.factionCode)}</span>
-        <h2>${escapeHtml(building.name)}</h2>
+      <div class="station__building-header">
+        <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
       </div>
-      ${stationLocationBanner(station)}
-      <p class="muted lede">${escapeHtml(building.description)}</p>
-      <p class="building-flavor">${escapeHtml(building.flavor)}</p>
-      <p class="muted" style="margin-top:1.5rem;">This office is not yet operational. Check back in a future update.</p>
+      ${dockedHtml(station)}
+      <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
+      <p class="station__flavor">${escapeHtml(building.flavor)}</p>
+      <p class="station__note">This office is not yet operational. Check back in a future update.</p>
     `;
   }
 }
@@ -172,37 +179,37 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const existingOffice = (corp.offices || []).find((o) => o.stationId === stationId);
 
   const headerHtml = `
-    <div class="building-detail-header">
-      <span class="faction-code-badge">${escapeHtml(building.factionCode)}</span>
-      <h2>${escapeHtml(building.name)}</h2>
+    <div class="station__building-header">
+      <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+      <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
     </div>
-    ${stationLocationBanner(station)}
-    <p class="muted lede">${escapeHtml(building.description)}</p>
-    <p class="building-flavor">${escapeHtml(building.flavor)}</p>
+    ${dockedHtml(station)}
+    <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
+    <p class="station__flavor">${escapeHtml(building.flavor)}</p>
   `;
 
   if (!existingOffice) {
     return `
       ${headerHtml}
-      <section id="lease-suite-box" class="form-card action-surface" style="margin-top:1.5rem;">
+      <section id="lease-suite-box" class="ui-panel station__panel">
         <h3>Lease an Office Suite</h3>
-        <p class="muted">Establish a registered corporate presence at ${escapeHtml(station?.name || "this station")} by leasing a suite. This is required before your corporation can hire personnel or engage with station services.</p>
-        <dl class="kv-list" style="margin:0.9rem 0;">
+        <p class="station__note">Establish a registered corporate presence at ${escapeHtml(station?.name || "this station")} by leasing a suite. This is required before your corporation can hire personnel or engage with station services.</p>
+        <dl class="ui-kv">
           <dt>Lease Cost</dt><dd>${toCurrency(officeLeaseCost(1))} credits a day</dd>
           <dt>Station</dt><dd>${escapeHtml(station?.name || stationId)}</dd>
           <dt>Location</dt><dd>${escapeHtml(currentBody)}, ${escapeHtml(formatSystemLabel(station?.systemId || "sol"))}</dd>
         </dl>
-        <p class="muted">The lease runs for the term you choose and can be extended from this office before or after it ends. Without an active office you cannot start a mining cycle.</p>
-        <div class="inline-form compact-action-form">
+        <p class="station__note">The lease runs for the term you choose and can be extended from this office before or after it ends. Without an active office you cannot start a mining cycle.</p>
+        <div class="station__form">
           <label>
             Term
-            <select id="rent-office-duration">
+            <select class="ui-select" id="rent-office-duration">
               ${OFFICE_TERMS_DAYS.map((days) => `<option value="${days}">${days} days — ${toCurrency(officeLeaseCost(days))}</option>`).join("")}
             </select>
           </label>
-          <button id="rent-office-btn" class="btn btn-accent" type="button">Execute Lease Agreement</button>
+          <button id="rent-office-btn" class="ui-button ui-button--primary" type="button">Execute Lease Agreement</button>
         </div>
-        <p id="rent-office-status" class="muted action-hint"></p>
+        <p id="rent-office-status" class="station__hint"></p>
       </section>
     `;
   }
@@ -223,18 +230,18 @@ export function renderOrbitalExecutiveSuites(building, data) {
     year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
   });
   const leaseStatusBadge = leaseExpired
-    ? `<span class="building-status-badge downtime">Expired</span>`
-    : `<span class="building-status-badge operational">Active Lease</span>`;
+    ? `<span class="ui-badge ui-badge--danger">Expired</span>`
+    : `<span class="ui-badge ui-badge--success">Active Lease</span>`;
   const timeRemainingText = leaseExpired
-    ? `<span style="color:var(--red,#f44);">Lease expired</span>`
+    ? `<span class="station__danger">Lease expired</span>`
     : `${fullDays}d ${hoursRemaining}h remaining`;
 
   return `
     ${headerHtml}
 
-    <section class="form-card" style="margin-top:1.5rem;max-width:750px;">
+    <section class="ui-panel station__panel">
       <h3>Office Status</h3>
-      <dl class="kv-list kv-list--compact">
+      <dl class="ui-kv">
         <dt>Status</dt><dd>${leaseStatusBadge}</dd>
         <dt>Station</dt><dd>${escapeHtml(existingOffice.name)}</dd>
         <dt>Location</dt><dd>${escapeHtml(existingOffice.body)}, ${escapeHtml(formatSystemLabel(existingOffice.systemId || "sol"))}</dd>
@@ -244,38 +251,38 @@ export function renderOrbitalExecutiveSuites(building, data) {
       </dl>
     </section>
 
-    <section class="form-card action-surface" style="margin-top:1rem;max-width:750px;">
+    <section class="ui-panel station__panel">
       <h3>${leaseExpired ? "Renew Expired Lease" : "Extend Lease"}</h3>
-      <p class="muted">${leaseExpired ? "Your office lease has expired. Renew to restore access to station services." : "Extend your current lease term. The additional days will be added to your existing expiry date."}</p>
-      <form id="renew-office-form" class="inline-form compact-action-form">
+      <p class="station__note">${leaseExpired ? "Your office lease has expired. Renew to restore access to station services." : "Extend your current lease term. The additional days will be added to your existing expiry date."}</p>
+      <form id="renew-office-form" class="station__form">
         <label>
           Duration
-          <select id="renew-office-duration">
+          <select class="ui-select" id="renew-office-duration">
             ${[7, 14, 21, 28].map((days) => `<option value="${days}"${days === 28 ? " selected" : ""}>${days} days — ${toCurrency(officeRenewalCost(corp.completedInsights, days))}</option>`).join("")}
           </select>
         </label>
-        <button class="btn btn-accent" type="submit">${leaseExpired ? "Renew Lease" : "Extend Lease"}</button>
+        <button class="ui-button ui-button--primary" type="submit">${leaseExpired ? "Renew Lease" : "Extend Lease"}</button>
       </form>
-      <p id="renew-office-status" class="muted action-hint"></p>
+      <p id="renew-office-status" class="station__hint"></p>
     </section>
 
-    <section class="form-card action-surface" style="margin-top:1rem;max-width:750px;">
+    <section class="ui-panel station__panel">
       <h3>Workforce — Hire Personnel</h3>
-      <p class="muted">Recruit employees through your registered office. Each hire costs ${toCurrency(clientPrices(appState.economy).hireCost)} credits and adds ${toCurrency(clientPrices(appState.economy).payrollPerDay)}/day to operational payroll.</p>
-      <form id="office-hire-form" class="inline-form compact-action-form">
+      <p class="station__note">Recruit employees through your registered office. Each hire costs ${toCurrency(clientPrices(appState.economy).hireCost)} credits and adds ${toCurrency(clientPrices(appState.economy).payrollPerDay)}/day to operational payroll.</p>
+      <form id="office-hire-form" class="station__form">
         <label>
           Head Count
-          <input id="office-hire-count" type="number" min="1" max="${availableStaffCapacity}" value="1" required />
+          <input class="ui-input" id="office-hire-count" type="number" min="1" max="${availableStaffCapacity}" value="1" required />
         </label>
-        <button class="btn btn-accent" type="submit">Hire Personnel</button>
+        <button class="ui-button ui-button--primary" type="submit">Hire Personnel</button>
       </form>
-      <p id="office-hire-hint" class="muted action-hint">Available headroom: ${corp.employeeCap - corp.employeeCount} position(s). Staffing: ${numberMarkup("station:staffing", corp.employeeCount)} / ${corp.employeeCap}.</p>
-      <p id="office-hire-status" class="muted"></p>
+      <p id="office-hire-hint" class="station__hint">Available headroom: ${corp.employeeCap - corp.employeeCount} position(s). Staffing: ${numberMarkup("station:staffing", corp.employeeCount)} / ${corp.employeeCap}.</p>
+      <p id="office-hire-status" class="station__note"></p>
     </section>
 
-    <section class="form-card" style="margin-top:1rem;max-width:750px;">
+    <section class="ui-panel station__panel">
       <h3>Station Services</h3>
-      <p class="muted">Visit the ISA Claims &amp; Leases Division to file extraction rights applications. Each station's claims office files leases on the body it orbits.</p>
+      <p class="station__note">Visit the ISA Claims &amp; Leases Division to file extraction rights applications. Each station's claims office files leases on the body it orbits.</p>
     </section>
   `;
 }
@@ -306,7 +313,7 @@ export function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
           // AB#1056: hiring is the next thing to do, and on a phone its form sat a screen and a half down
-          revealUnderHeader(document.getElementById("office-hire-form")?.closest(".form-card"));
+          revealUnderHeader(document.getElementById("office-hire-form")?.closest(".ui-panel"));
           showActionReceipt(account, { returnFocusTo: firstPresent("#rent-office-btn", "#office-hire-count") });
         } else {
           const cost = officeLeaseCost(durationDays);
@@ -465,13 +472,13 @@ export function renderISAClaimsLeases(building, data) {
   const leases = allLeases.filter((l) => l.body === stationBody);
 
   const headerHtml = `
-    <div class="building-detail-header">
-      <span class="faction-code-badge">${escapeHtml(building.factionCode)}</span>
-      <h2>${escapeHtml(building.name)}</h2>
+    <div class="station__building-header">
+      <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+      <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
     </div>
-    ${stationLocationBanner(station)}
-    <p class="muted lede">${escapeHtml(building.description)}</p>
-    <p class="building-flavor">${escapeHtml(building.flavor)}</p>
+    ${dockedHtml(station)}
+    <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
+    <p class="station__flavor">${escapeHtml(building.flavor)}</p>
   `;
 
   const currentStationId = station?.id || "earth-station-prime";
@@ -482,26 +489,26 @@ export function renderISAClaimsLeases(building, data) {
   // Active leases section
   let leasesHtml = "";
   if (leases.length === 0) {
-    leasesHtml = `<p class="muted" style="margin-top:0.4rem;">${escapeHtml(claimsNoLeasesText(hasOffice))}</p>`; // Bug #1060
+    leasesHtml = `<p class="station__note">${escapeHtml(claimsNoLeasesText(hasOffice))}</p>`; // Bug #1060
   } else {
-    leasesHtml = `<div class="lease-card-grid">`;
+    leasesHtml = `<div class="ui-grid">`;
     for (const lease of leases) {
       const extractorCount = leaseSlotsUsed(lease); // ISP-98 (AB#788): extractors and the other buildings on the lease
       const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
         year: "numeric", month: "short", day: "numeric"
       });
       leasesHtml += `
-        <div class="lease-card">
-          <div class="lease-card-header">
-            <span class="lease-body-badge">${escapeHtml(lease.body)}</span>
-            <span class="lease-type-label">${escapeHtml(lease.leaseType || "Silicate Extraction")}</span>
+        <div class="ui-card station__card" data-role="lease-card">
+          <div class="station__card-header">
+            <span class="ui-badge" data-role="lease-body">${escapeHtml(lease.body)}</span>
+            <span class="ui-badge">${escapeHtml(lease.leaseType || "Silicate Extraction")}</span>
           </div>
-          <dl class="kv-list kv-list--compact" style="margin:0.6rem 0;">
+          <dl class="ui-kv">
             <dt>Claim ID</dt><dd><code>${escapeHtml(lease.id)}</code></dd>
             <dt>Issued</dt><dd>${issuedDate}</dd>
             <dt>Building Slots</dt><dd>${extractorCount} / ${lease.buildingSlots || 2} used</dd>
           </dl>
-          <button class="btn btn-outline btn-sm lease-manage-btn" data-lease-id="${escapeHtml(lease.id)}" type="button">
+          <button class="ui-button ui-button--secondary" data-action="manage-lease" data-lease-id="${escapeHtml(lease.id)}" type="button">
             Manage Lease
           </button>
         </div>
@@ -519,12 +526,12 @@ export function renderISAClaimsLeases(building, data) {
   const hasLocalBodies = LEASE_BODIES.some((b) => b.body === stationBody);
 
   if (!hasOffice) {
-    purchaseHtml = `<p class="muted">An office at ${escapeHtml(station?.name || "this station")} is required before the ISA will process lease applications here. Visit the Orbital Executive Suites to lease one.</p>`;
+    purchaseHtml = `<p class="station__note">An office at ${escapeHtml(station?.name || "this station")} is required before the ISA will process lease applications here. Visit the Orbital Executive Suites to lease one.</p>`;
   } else if (!hasLocalBodies) {
-    purchaseHtml = `<p class="muted">No extraction zones are available at ${escapeHtml(station?.name || "this station")}. Travel to a station orbiting a resource-bearing body to file new lease applications.</p>`;
+    purchaseHtml = `<p class="station__note">No extraction zones are available at ${escapeHtml(station?.name || "this station")}. Travel to a station orbiting a resource-bearing body to file new lease applications.</p>`;
   } else if (availableBodies.length === 0) {
     // Bug #1060: say where the other leases are filed, by station name from the registry.
-    purchaseHtml = `<p class="muted">${escapeHtml(claimsAllTakenText({
+    purchaseHtml = `<p class="station__note">${escapeHtml(claimsAllTakenText({
       offeredBodies: LEASE_BODIES.map((b) => b.body),
       ownedBodies: allLeases.map((l) => l.body), // every lease held, not only this station's
       stations: appState.stationRegistry || []
@@ -534,16 +541,16 @@ export function renderISAClaimsLeases(building, data) {
       const canAfford = (corp?.finances?.credits || 0) >= entry.cost;
       const hasEnoughStaff = currentEmployees >= requiredForNext;
       return `
-        <div class="lease-purchase-block" style="margin-bottom:1.2rem;">
-          <h4 style="margin:0 0 0.5rem;">${escapeHtml(entry.body)} — Silicate Extraction Lease</h4>
-          <p class="muted" style="margin-bottom:0.8rem;">${escapeHtml(entry.description)}</p>
-          <dl class="kv-list kv-list--compact" style="max-width:380px;margin-bottom:0.9rem;">
+        <div class="station__lease-purchase">
+          <h4>${escapeHtml(entry.body)} — Silicate Extraction Lease</h4>
+          <p class="station__note">${escapeHtml(entry.description)}</p>
+          <dl class="ui-kv">
             <dt>Lease Cost</dt><dd>${toCurrency(entry.cost)} credits (one-time)</dd>
             <dt>Employee Requirement</dt><dd>${requiredForNext} on payroll (current: ${currentEmployees})</dd>
             <dt>Building Slots Granted</dt><dd>2 on-surface slots</dd>
           </dl>
-          ${!hasEnoughStaff ? `<p class="muted action-hint" style="color:var(--warn,#f0ad4e);">Hire at least ${requiredForNext - currentEmployees} more employee(s) before filing this application.</p>` : ""}
-          <button class="purchase-lease-btn btn btn-accent" type="button" data-body="${escapeHtml(entry.body)}" ${!hasEnoughStaff || !canAfford ? "disabled" : ""}>
+          ${!hasEnoughStaff ? `<p class="station__hint station__warn">Hire at least ${requiredForNext - currentEmployees} more employee(s) before filing this application.</p>` : ""}
+          <button class="ui-button ui-button--secondary" data-action="purchase-lease" type="button" data-body="${escapeHtml(entry.body)}" ${!hasEnoughStaff || !canAfford ? "disabled" : ""}>
             File Lease Application — ${escapeHtml(entry.body)}
           </button>
         </div>
@@ -553,11 +560,11 @@ export function renderISAClaimsLeases(building, data) {
 
   return `
     ${headerHtml}
-    <section class="form-card" style="margin-top:1.5rem;">
+    <section class="ui-panel station__panel">
       <h3>Active Mining Claims</h3>
       ${leasesHtml}
     </section>
-    <section class="form-card action-surface" style="margin-top:1rem;">
+    <section class="ui-panel station__panel">
       <h3>File Extraction Lease Application</h3>
       ${purchaseHtml}
     </section>
@@ -569,7 +576,7 @@ export function bindISAClaimsLeasesActions(building, data) {
   if (!contentEl) return;
 
   // Purchase lease buttons (one per available body)
-  contentEl.querySelectorAll(".purchase-lease-btn").forEach((btn) => {
+  contentEl.querySelectorAll('[data-action="purchase-lease"]').forEach((btn) => {
     btn.addEventListener("click", async () => {
       const body = btn.getAttribute("data-body");
       if (!body) return;
@@ -588,7 +595,7 @@ export function bindISAClaimsLeasesActions(building, data) {
           appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
           updateAllViews();
           showStationBuilding(building.id);
-          showActionReceipt(account, { returnFocusTo: firstPresent(`.purchase-lease-btn[data-body="${CSS.escape(body)}"]`, ".lease-manage-btn") });
+          showActionReceipt(account, { returnFocusTo: firstPresent(`[data-action="purchase-lease"][data-body="${CSS.escape(body)}"]`, '[data-action="manage-lease"]') });
         }
         pushFeedback(`${body} mining lease approved by the ISA.`, "success");
       } catch (err) {
@@ -600,7 +607,7 @@ export function bindISAClaimsLeasesActions(building, data) {
   });
 
   // Manage buttons for each lease card
-  contentEl.querySelectorAll(".lease-manage-btn").forEach((btn) => {
+  contentEl.querySelectorAll('[data-action="manage-lease"]').forEach((btn) => {
     btn.addEventListener("click", () => {
       const leaseId = btn.getAttribute("data-lease-id");
       if (leaseId) {
@@ -691,20 +698,20 @@ export function renderLeaseManagement(building, lease, data) {
         cycleElapsed = `${elapHrs}h ${elapMins}m elapsed before shutdown`;
       }
 
-      cycleInfo = `<span class="extractor-cycle-status downtime">Equipment Offline &mdash; Down for ${dtHrs}h ${dtMins}m</span>`;
+      cycleInfo = `<span class="extractor__cycle-status is-downtime">Equipment Offline &mdash; Down for ${dtHrs}h ${dtMins}m</span>`;
       progressBarHtml = `
-        <div class="extractor-progress-wrap">
-          <div class="extractor-progress-header">
-            <span class="extractor-progress-pct">${cyclePct}% (paused)</span>
-            <span class="extractor-progress-time">${cycleRemaining}</span>
+        <div class="extractor__progress">
+          <div class="extractor__progress-header">
+            <span class="extractor__pct">${cyclePct}% (paused)</span>
+            <span class="extractor__time">${cycleRemaining}</span>
           </div>
-          <div class="extractor-progress-track">
-            <div class="extractor-progress-fill downtime" style="width:${cyclePct}%"></div>
+          <div class="extractor__track">
+            <div class="extractor__fill is-downtime" style="width:${cyclePct}%"></div>
           </div>
-          <div class="extractor-stat-row">
-            <span class="extractor-stat"><span class="extractor-stat-label">Cycle progress</span><span class="extractor-stat-value">${cycleElapsed}</span></span>
-            <span class="extractor-stat"><span class="extractor-stat-label">Downtime elapsed</span><span class="extractor-stat-value">${dtHrs}h ${dtMins}m</span></span>
-            <span class="extractor-stat"><span class="extractor-stat-label">Mined before halt</span><span class="extractor-stat-value">${(ex.minedThisCycle || 0).toLocaleString()}</span></span>
+          <div class="extractor__stats">
+            <span class="extractor__stat"><span class="extractor__stat-label">Cycle progress</span><span class="extractor__stat-value">${cycleElapsed}</span></span>
+            <span class="extractor__stat"><span class="extractor__stat-label">Downtime elapsed</span><span class="extractor__stat-value">${dtHrs}h ${dtMins}m</span></span>
+            <span class="extractor__stat"><span class="extractor__stat-label">Mined before halt</span><span class="extractor__stat-value">${(ex.minedThisCycle || 0).toLocaleString()}</span></span>
           </div>
         </div>
       `;
@@ -714,45 +721,45 @@ export function renderLeaseManagement(building, lease, data) {
       const figures = activeCycleFigures(ex);
       const { hrs, mins, mined } = figures;
 
-      cycleInfo = `<span class="extractor-cycle-status">${ex.throughputPerHour} t/h &mdash; <span data-live="remaining">${hrs}h ${mins}m</span> remaining</span>`;
+      cycleInfo = `<span class="extractor__cycle-status">${ex.throughputPerHour} t/h &mdash; <span data-live="remaining">${hrs}h ${mins}m</span> remaining</span>`;
       progressBarHtml = `
-        <div class="extractor-progress-wrap">
-          <div class="extractor-progress-header">
-            <span class="extractor-progress-pct" data-live="pct">${figures.pctText}</span>
-            <span class="extractor-progress-time" data-live="left">${hrs}h ${mins}m left</span>
+        <div class="extractor__progress">
+          <div class="extractor__progress-header">
+            <span class="extractor__pct" data-live="pct">${figures.pctText}</span>
+            <span class="extractor__time" data-live="left">${hrs}h ${mins}m left</span>
           </div>
-          <div class="extractor-progress-track">
-            <div class="extractor-progress-fill" data-live="fill" style="width:${figures.fill.toFixed(2)}%"></div>
+          <div class="extractor__track">
+            <div class="extractor__fill" data-live="fill" style="width:${figures.fill.toFixed(2)}%"></div>
           </div>
-          <div class="extractor-stat-row">
-            <span class="extractor-stat"><span class="extractor-stat-label">Mined this cycle</span><span class="extractor-stat-value" data-live="mined">${mined.toLocaleString()} t</span></span>
-            <span class="extractor-stat"><span class="extractor-stat-label">Spent this cycle</span><span class="extractor-stat-value" data-live="spent">${spentText(figures, toCurrency)}</span></span>
-            <span class="extractor-stat"><span class="extractor-stat-label">Rate</span><span class="extractor-stat-value">${ex.throughputPerHour} t/h</span></span>
+          <div class="extractor__stats">
+            <span class="extractor__stat"><span class="extractor__stat-label">Mined this cycle</span><span class="extractor__stat-value" data-live="mined">${mined.toLocaleString()} t</span></span>
+            <span class="extractor__stat"><span class="extractor__stat-label">Spent this cycle</span><span class="extractor__stat-value" data-live="spent">${spentText(figures, toCurrency)}</span></span>
+            <span class="extractor__stat"><span class="extractor__stat-label">Rate</span><span class="extractor__stat-value">${ex.throughputPerHour} t/h</span></span>
           </div>
         </div>
       `;
     } else if (ex.totalMined > 0) {
-      cycleInfo = `<span class="extractor-cycle-status idle">Idle &mdash; ${ex.totalMined.toLocaleString()} t extracted lifetime</span>`;
+      cycleInfo = `<span class="extractor__cycle-status is-idle">Idle &mdash; ${ex.totalMined.toLocaleString()} t extracted lifetime</span>`;
     } else {
-      cycleInfo = `<span class="extractor-cycle-status idle">Idle &mdash; no cycle history</span>`;
+      cycleInfo = `<span class="extractor__cycle-status is-idle">Idle &mdash; no cycle history</span>`;
     }
 
     const mineFormId = `mine-form-${ex.id}`;
     const mineFormHtml = !ex.active
-      ? `<form class="inline-form compact-action-form lease-mine-form" id="${escapeHtml(mineFormId)}" data-extractor-id="${escapeHtml(ex.id)}" style="margin-top:0.5rem;">
-          <label>Throughput (t/h)<input type="number" name="amount" min="10" max="${yardTierFor(ex.tier, appState.economy?.operations, appState.economy?.buildings).throughputCap}" value="40" style="width:72px;" /></label>
-          <label>Duration (hrs)<input type="number" name="hours" min="1" max="72" value="24" style="width:60px;" /></label>
-          <button class="btn btn-accent btn-sm" type="submit">Start Cycle</button>
+      ? `<form class="station__form" data-form="mine" id="${escapeHtml(mineFormId)}" data-extractor-id="${escapeHtml(ex.id)}">
+          <label>Throughput (t/h)<input type="number" name="amount" min="10" max="${yardTierFor(ex.tier, appState.economy?.operations, appState.economy?.buildings).throughputCap}" value="40" class="ui-input station__input--narrow" /></label>
+          <label>Duration (hrs)<input type="number" name="hours" min="1" max="72" value="24" class="ui-input station__input--narrow" /></label>
+          <button class="ui-button ui-button--primary" type="submit">Start Cycle</button>
         </form>
-        <p class="muted action-hint lease-mine-projection" data-for="${escapeHtml(ex.id)}">${escapeHtml(mineProjectionText(40, ex.id))}</p>
-        <p class="muted action-hint lease-mine-status" data-for="${escapeHtml(ex.id)}"></p>`
+        <p class="station__hint" data-role="mine-projection" data-for="${escapeHtml(ex.id)}">${escapeHtml(mineProjectionText(40, ex.id))}</p>
+        <p class="station__hint" data-role="mine-status" data-for="${escapeHtml(ex.id)}"></p>`
       : "";
 
     // AB#1052: a Stop control on a running cycle (including one paused in downtime, since that is still
     // extractor.active — see server/game/mining.js). It ends the cycle now, keeping what has been mined.
     const stopButtonHtml = ex.active
-      ? `<button type="button" class="btn btn-outline btn-sm lease-stop-btn" data-extractor-id="${escapeHtml(ex.id)}" data-extractor-name="${escapeHtml(ex.name)}" style="margin-top:0.5rem;">Stop Cycle</button>
-        <p class="muted action-hint lease-stop-status" data-for="${escapeHtml(ex.id)}"></p>`
+      ? `<button type="button" class="ui-button ui-button--secondary" data-action="stop-mining" data-extractor-id="${escapeHtml(ex.id)}" data-extractor-name="${escapeHtml(ex.name)}">Stop Cycle</button>
+        <p class="station__hint" data-role="stop-status" data-for="${escapeHtml(ex.id)}"></p>`
       : "";
 
     // ISP-103 (AB#795): a yard being upgraded is offline; the upgrade control says until when.
@@ -760,10 +767,10 @@ export function renderLeaseManagement(building, lease, data) {
     const mineFormVisible = !ex.active && !ex.downtimeActive && !upgrading;
     const upgradeHtml = yardUpgradeHtml(yardUpgradeView(ex, data.corp, appState.economy, { efficiency: extractorEfficiency(data.corp, ex) }), ex.id);
     extractorRows += `
-      <div class="extractor-row ${statusClass}" data-live-ex="${escapeHtml(ex.id)}" data-live-state="${extractorState(ex)}">
-        <div class="extractor-row-header">
+      <div class="ui-card extractor is-${statusClass}" data-live-ex="${escapeHtml(ex.id)}" data-live-state="${extractorState(ex)}">
+        <div class="extractor__header">
           <strong>${escapeHtml(ex.name)}</strong>
-          <span class="building-status-badge ${statusClass}">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : (upgrading ? "Upgrading" : "Idle"))}</span>
+          <span class="ui-badge station__status--${statusClass}" data-role="yard-status">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : (upgrading ? "Upgrading" : "Idle"))}</span>
         </div>
         ${ex.downtimeActive ? cycleInfo : (ex.active ? "" : cycleInfo)}
         ${progressBarHtml}
@@ -775,37 +782,37 @@ export function renderLeaseManagement(building, lease, data) {
   }
 
   const extractorSection = extractors.length === 0
-    ? `<p class="muted" style="margin-top:0.4rem;">No extraction facilities on this claim yet. Commission a yard below to begin operations.</p>`
-    : `<div class="extractor-list">${extractorRows}</div>`;
+    ? `<p class="station__note">No extraction facilities on this claim yet. Commission a yard below to begin operations.</p>`
+    : `<div class="extractor__list">${extractorRows}</div>`;
 
   const buildSection = hasSlotAvailable
-    ? `<div class="lease-purchase-block" style="margin-top:0.6rem;">
-        <h4 style="margin:0 0 0.4rem;">Commission Basic Extractor Yard</h4>
-        <p class="muted" style="margin-bottom:0.7rem;">Deploys an extraction facility to this lease's surface allocation. Slot usage: ${usedSlots}/${totalSlots}.</p>
-        <dl class="kv-list kv-list--compact" style="max-width:360px;margin-bottom:0.8rem;">
+    ? `<div class="station__lease-purchase">
+        <h4>Commission Basic Extractor Yard</h4>
+        <p class="station__note">Deploys an extraction facility to this lease's surface allocation. Slot usage: ${usedSlots}/${totalSlots}.</p>
+        <dl class="ui-kv">
           <dt>Construction Cost</dt><dd>${toCurrency(buildCost)} credits</dd>
           <dt>Asset Value</dt><dd>${toCurrency(clientPrices(appState.economy).extractorYardAssetValue)} credits</dd>
         </dl>
-        <button id="lease-build-extractor-btn" class="btn btn-accent" type="button" ${!canAffordBuild ? "disabled" : ""}>
+        <button id="lease-build-extractor-btn" class="ui-button ui-button--primary" type="button" ${!canAffordBuild ? "disabled" : ""}>
           Commission Extractor Yard
         </button>
-        <p id="lease-build-extractor-status" class="muted action-hint"></p>
+        <p id="lease-build-extractor-status" class="station__hint"></p>
       </div>`
-    : `<p class="muted" style="margin-top:0.6rem;">This lease's building slots are fully allocated (${usedSlots}/${totalSlots}). ${escapeHtml(leaseFullAdvice(corp, lease, unleasedBodiesForPage(corp)))}</p>`;
+    : `<p class="station__note">This lease's building slots are fully allocated (${usedSlots}/${totalSlots}). ${escapeHtml(leaseFullAdvice(corp, lease, unleasedBodiesForPage(corp)))}</p>`;
 
   const station = getCurrentStationInfo(data);
 
   return `
-    <div class="building-detail-header">
-      <span class="faction-code-badge">${escapeHtml(building.factionCode)}</span>
-      <h2>Mining Lease — ${escapeHtml(lease.body)}</h2>
+    <div class="station__building-header">
+      <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+      <h2 class="station__building-title">Mining Lease — ${escapeHtml(lease.body)}</h2>
     </div>
-    ${stationLocationBanner(station)}
-    <button id="lease-back-btn" class="btn btn-outline btn-sm" type="button" style="margin-bottom:1.2rem;">&#8592; Back to Claims &amp; Leases</button>
+    ${dockedHtml(station)}
+    <button id="lease-back-btn" class="ui-button ui-button--secondary" type="button">&#8592; Back to Claims &amp; Leases</button>
 
-    <section class="form-card lease-management-card" style="margin-top:0;">
+    <section class="ui-panel station__panel">
       <h3>Lease Details</h3>
-      <dl class="kv-list kv-list--compact">
+      <dl class="ui-kv">
         <dt>Claim ID</dt><dd><code>${escapeHtml(lease.id)}</code></dd>
         <dt>Body</dt><dd>${escapeHtml(lease.body)}</dd>
         <dt>Lease Type</dt><dd>${escapeHtml(lease.leaseType || "Silicate Extraction")}</dd>
@@ -814,13 +821,13 @@ export function renderLeaseManagement(building, lease, data) {
       </dl>
     </section>
 
-    <section class="form-card lease-management-card" style="margin-top:1rem;">
+    <section class="ui-panel station__panel">
       <h3>Extraction Facilities</h3>
       ${extractorSection}
-      ${facilities.map((name) => `<p class="lease-facility"><strong>${escapeHtml(name)}</strong> <span class="muted">&middot; operational, one building slot</span></p>`).join("")}
+      ${facilities.map((name) => `<p class="station__hint"><strong>${escapeHtml(name)}</strong> <span class="station__note">&middot; operational, one building slot</span></p>`).join("")}
     </section>
 
-    <section class="form-card action-surface lease-management-card" style="margin-top:1rem;">
+    <section class="ui-panel station__panel">
       <h3>Commission Infrastructure</h3>
       ${buildSection}
     </section>
@@ -854,7 +861,7 @@ export function bindLeaseManagementActions(building, lease, data) {
           appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
           updateAllViews();
           renderBuildingDetail(building, appState.data);
-          showActionReceipt(account, { returnFocusTo: firstPresent("#lease-build-extractor-btn", ".lease-mine-form button[type=submit]") });
+          showActionReceipt(account, { returnFocusTo: firstPresent("#lease-build-extractor-btn", '[data-form="mine"] button[type=submit]') });
         } else {
           // Demo account fallback
           const corp = appState.data.corp;
@@ -898,7 +905,7 @@ export function bindLeaseManagementActions(building, lease, data) {
   // running cost rises faster than the rate, so the top of the range is no longer the answer to everything and
   // the player can see that while they are choosing rather than afterwards.
   const showMineProjection = (form) => {
-    const line = form.parentElement?.querySelector(`.lease-mine-projection[data-for="${CSS.escape(form.getAttribute("data-extractor-id") || "")}"]`);
+    const line = form.parentElement?.querySelector(`[data-role="mine-projection"][data-for="${CSS.escape(form.getAttribute("data-extractor-id") || "")}"]`);
     if (!line) return;
     const cap = Number(form.querySelector('[name="amount"]')?.max) || 250; // AB#793: the yard's tier cap
     const rate = Math.max(10, Math.min(cap, Number(form.querySelector('[name="amount"]')?.value || 40)));
@@ -906,7 +913,7 @@ export function bindLeaseManagementActions(building, lease, data) {
   };
 
   // Mining cycle forms
-  document.querySelectorAll(".lease-mine-form").forEach((form) => {
+  document.querySelectorAll('[data-form="mine"]').forEach((form) => {
     showMineProjection(form);
     form.querySelector('[name="amount"]')?.addEventListener("input", () => showMineProjection(form));
     form.addEventListener("submit", async (event) => {
@@ -914,7 +921,7 @@ export function bindLeaseManagementActions(building, lease, data) {
       const extractorId = form.getAttribute("data-extractor-id");
       const amount = Number(form.querySelector('[name="amount"]')?.value || 40);
       const hours = Number(form.querySelector('[name="hours"]')?.value || 24);
-      const statusEl = document.querySelector(`.lease-mine-status[data-for="${CSS.escape(extractorId)}"]`);
+      const statusEl = document.querySelector(`[data-role="mine-status"][data-for="${CSS.escape(extractorId)}"]`);
       const submitBtn = form.querySelector("button[type=submit]");
       if (submitBtn) submitBtn.disabled = true;
       if (statusEl) statusEl.textContent = "Initiating mining cycle...";
@@ -931,7 +938,7 @@ export function bindLeaseManagementActions(building, lease, data) {
           appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
           updateAllViews();
           renderBuildingDetail(building, appState.data);
-          showActionReceipt(account, { returnFocusTo: firstPresent(`.lease-mine-form[data-extractor-id="${CSS.escape(extractorId)}"] button[type=submit]`, ".lease-stop-btn") });
+          showActionReceipt(account, { returnFocusTo: firstPresent(`[data-form="mine"][data-extractor-id="${CSS.escape(extractorId)}"] button[type=submit]`, '[data-action="stop-mining"]') });
         } else {
           // Demo fallback
           const corp = appState.data.corp;
@@ -969,13 +976,13 @@ export function bindLeaseManagementActions(building, lease, data) {
   // AB#1052: stop a running cycle early, keeping what has been mined and settling the cost for the time used.
   // ISP-103 (AB#795): upgrade a yard by one tier. The control was drawn from the server's tier table; the server checks
   // everything again, and the page draws itself from the account that comes back.
-  document.querySelectorAll(".yard-upgrade-btn").forEach((btn) => {
+  document.querySelectorAll('[data-action="upgrade"]').forEach((btn) => {
     btn.addEventListener("click", async () => {
       const extractorId = btn.getAttribute("data-extractor-id");
       const buildingId = btn.getAttribute("data-upgrade-building");
       const ex = (appState.data?.corp?.mining?.silicateExtractors || []).find((e) => e.id === extractorId);
       const view = ex ? yardUpgradeView(ex, appState.data.corp, appState.economy, { efficiency: extractorEfficiency(appState.data.corp, ex) }) : null;
-      const statusEl = document.querySelector(`.yard-upgrade-status[data-for="${CSS.escape(extractorId)}"]`);
+      const statusEl = document.querySelector(`[data-role="yard-upgrade-status"][data-for="${CSS.escape(extractorId)}"]`);
       if (!view?.next || view.locked || view.blocked || !appState.accountId) return;
       const { next } = view;
       const confirmed = await showTradeConfirmation({
@@ -992,16 +999,16 @@ export function bindLeaseManagementActions(building, lease, data) {
       if (!confirmed) return;
       await postUpgrade(buildingId, btn, statusEl, {
         redraw: () => renderBuildingDetail(building, appState.data),
-        focus: firstPresent(`.yard-upgrade[data-upgrade-for="${CSS.escape(extractorId)}"] button`, ".lease-mine-form button[type=submit]")
+        focus: firstPresent(`[data-role="yard-upgrade"][data-upgrade-for="${CSS.escape(extractorId)}"] button`, '[data-form="mine"] button[type=submit]')
       });
     });
   });
 
-  document.querySelectorAll(".lease-stop-btn").forEach((btn) => {
+  document.querySelectorAll('[data-action="stop-mining"]').forEach((btn) => {
     btn.addEventListener("click", async () => {
       const extractorId = btn.getAttribute("data-extractor-id");
       const extractorName = btn.getAttribute("data-extractor-name") || "This extractor";
-      const statusEl = document.querySelector(`.lease-stop-status[data-for="${CSS.escape(extractorId)}"]`);
+      const statusEl = document.querySelector(`[data-role="stop-status"][data-for="${CSS.escape(extractorId)}"]`);
 
       const confirmed = await showTradeConfirmation({
         heading: "Stop Mining Cycle",
@@ -1073,9 +1080,9 @@ export function renderStation(data) {
   if (!currentStationId) {
     const systemId = corp.currentSystemId || "sol";
     header.innerHTML = `
-      <p class="overline">IN OPEN SPACE</p>
-      <h2>${escapeHtml(formatSystemLabel(systemId))} System</h2>
-      <p class="muted lede">You are not docked at any station. Use the Travel tab or Starmap to dock at a station in this system.</p>
+      <p class="station__overline">IN OPEN SPACE</p>
+      <h2 class="ui-screen__title">${escapeHtml(formatSystemLabel(systemId))} System</h2>
+      <p class="ui-screen__lede">You are not docked at any station. Use the Travel tab or Starmap to dock at a station in this system.</p>
     `;
     npcGrid.innerHTML = "";
     playerGrid.innerHTML = "";
@@ -1096,16 +1103,25 @@ export function renderStation(data) {
   if (overviewView && !buildingDetailOpen) overviewView.hidden = false;
 
   if (!station) {
-    header.innerHTML = `<h2>Station</h2><p class="muted">No station data available for your current location.</p>`;
+    header.innerHTML = `<h2 class="ui-screen__title">Station</h2><p class="station__note">No station data available for your current location.</p>`;
     return;
   }
 
+  // ISP-78 (AB#767): the body the station orbits beside its name, so a screenshot says which station this is.
+  const systems = data.world?.systems || appState.data?.world?.systems || [];
   header.innerHTML = `
-    <p class="overline">${escapeHtml(station.designation)} &#47;&#47; ${escapeHtml(station.systemId.toUpperCase())}</p>
-    <h2>${escapeHtml(station.name)}</h2>
+    <div class="station__hero">
+      ${stationArtHtml(station, systems)}
+      <div class="station__identity">
+        <p class="station__overline">${escapeHtml(station.designation)} &#47;&#47; ${escapeHtml(station.systemId.toUpperCase())}</p>
+        <h2 class="ui-screen__title">${escapeHtml(station.name)}</h2>
+        <p class="ui-screen__meta">In orbit of ${escapeHtml(station.body)}, ${escapeHtml(formatSystemLabel(station.systemId))} system</p>
+        <p class="ui-screen__lede">${escapeHtml(station.description)}</p>
+      </div>
+    </div>
     ${stationStartPromptHtml(corp)}
-    <p class="muted lede">${escapeHtml(station.description)}</p>
   `;
+  paintStationArt(header, systems);
 
   // ── Station buildings ──
   const stationBuildings = station.buildingIds
@@ -1166,7 +1182,7 @@ export function renderStation(data) {
   const extractorBuildingCount = displayExtractors.length;
 
   if (!extractorBuildingCount) {
-    playerGrid.innerHTML = `<p class="muted">No extractor yards deployed at ${escapeHtml(station.name)}. Yards are linked to mining leases on ${escapeHtml(stationBody)}.</p>`;
+    playerGrid.innerHTML = `<p class="station__note">No extractor yards deployed at ${escapeHtml(station.name)}. Yards are linked to mining leases on ${escapeHtml(stationBody)}.</p>`;
   } else {
     playerGrid.innerHTML = displayExtractors
       .map(
@@ -1174,13 +1190,13 @@ export function renderStation(data) {
           const statusText = ex.active ? "Active" : "Idle";
           const statusClass = ex.active ? "operational" : "idle";
           return `
-            <article class="building-card data-card">
-              <header class="building-card-header">
-                <span class="faction-code-badge corp-badge">CORP</span>
+            <article class="ui-card station__card">
+              <header class="station__card-header">
+                <span class="ui-badge ui-badge--accent">CORP</span>
                 <h3>${escapeHtml(ex.name || "Basic Extractor Yard")}</h3>
               </header>
-              <p class="muted">Tier ${ex.tier || 1} &mdash; <span class="building-status-badge ${statusClass}">${statusText}</span></p>
-              <footer class="building-card-footer"></footer>
+              <p class="station__note">Tier ${ex.tier || 1} &mdash; <span class="ui-badge station__status--${statusClass}">${statusText}</span></p>
+              <footer class="station__card-footer"></footer>
             </article>
           `;
         }
@@ -1197,7 +1213,7 @@ export function renderAssemblyFacility(data) {
 
   if (overviewView) overviewView.hidden = true;
   buildingView.hidden = false;
-  contentEl.classList.remove("ge-bg", "icl-bg", "oes-bg");
+  contentEl.classList.remove("station__art--ge", "station__art--icl", "station__art--oes");
 
   const am = data.corp?.asteroidMining || {};
   const probeCount = am.probeCount || 0;
@@ -1207,7 +1223,7 @@ export function renderAssemblyFacility(data) {
 
   let probeSection = "";
   if (!hasProspecting) {
-    probeSection = `<p class="muted">Research <em>Asteroid Prospecting Arrays</em> to unlock Mining Probe fabrication.</p>`;
+    probeSection = `<p class="station__note">Research <em>Asteroid Prospecting Arrays</em> to unlock Mining Probe fabrication.</p>`;
   } else {
     const fabQueue = am.fabricationQueue || [];
     const activeFab = fabQueue[0] || null;
@@ -1222,23 +1238,23 @@ export function renderAssemblyFacility(data) {
       const pct = Math.min(100, Math.max(0, (elapsed / total) * 100));
       const remainMs = Math.max(0, activeFab.completesAt - Date.now());
       fabProgressHtml = `
-        <div class="assembly-fab-progress" style="margin-top:0.75rem;">
-          <p class="muted" style="font-size:0.8rem;">Fabricating Mining Probe &mdash; ${formatDuration(remainMs)} remaining</p>
+        <div class="station__fab-progress">
+          <p class="station__note station__hint">Fabricating Mining Probe &mdash; ${formatDuration(remainMs)} remaining</p>
           <div class="progress-wrap"><div class="progress-bar" id="fab-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
         </div>
       `;
     }
 
     probeSection = `
-      <div class="assembly-probe-status">
-        <img src="/images/mining_probe.png" alt="Mining Probe" class="assembly-probe-img" />
+      <div class="station__probe-status">
+        <img src="/images/mining_probe.png" alt="Mining Probe" class="station__probe-img" />
         <div>
-          <p>Mining Probes: <strong>${fleet.vessels} / ${fleet.cap}</strong> Fleet Cap <span class="muted">(${probeCount} in hangar${deployedCount > 0 ? `, ${deployedCount} on expedition` : ""}${pendingCount > 0 ? `, ${pendingCount} in fabrication` : ""})</span></p>
+          <p>Mining Probes: <strong>${fleet.vessels} / ${fleet.cap}</strong> Fleet Cap <span class="station__note">(${probeCount} in hangar${deployedCount > 0 ? `, ${deployedCount} on expedition` : ""}${pendingCount > 0 ? `, ${pendingCount} in fabrication` : ""})</span></p>
           ${canBuild
-            ? `<button id="build-probe-btn" class="btn btn-accent">Fabricate Mining Probe (¤${clientPrices(appState.economy).probeBuildCost.toLocaleString("en-US")})</button>`
+            ? `<button id="build-probe-btn" class="ui-button ui-button--primary">Fabricate Mining Probe (¤${clientPrices(appState.economy).probeBuildCost.toLocaleString("en-US")})</button>`
             : activeFab
               ? ""
-              : `<p class="muted">Your fleet is at its Fleet Cap. ${fleet.raiseText}</p>`
+              : `<p class="station__note">Your fleet is at its Fleet Cap. ${fleet.raiseText}</p>`
           }
           ${fabProgressHtml}
         </div>
@@ -1247,12 +1263,12 @@ export function renderAssemblyFacility(data) {
   }
 
   contentEl.innerHTML = `
-    <div class="building-detail-header">
-      <span class="faction-code-badge corp-badge">CORP</span>
-      <h2>Assembly Facility</h2>
+    <div class="station__building-header">
+      <span class="ui-badge ui-badge--accent">CORP</span>
+      <h2 class="station__building-title">Assembly Facility</h2>
     </div>
-    ${stationLocationBanner(station)}
-    <p class="muted lede">A modular manufacturing bay capable of fabricating autonomous mining probes and other deployable units.</p>
+    ${dockedHtml(station)}
+    <p class="ui-screen__lede">A modular manufacturing bay capable of fabricating autonomous mining probes and other deployable units.</p>
     ${probeSection}
   `;
 
@@ -1302,7 +1318,7 @@ export function bindBuildingActions() {
     if (!event.target.closest("[data-start-office]")) return;
     showStationBuilding("orbital-executive-suites");
     // straight to the lease form, which sits under the Suites' description and was below the fold on a phone
-    revealUnderHeader(document.getElementById("rent-office-btn")?.closest(".form-card") || document.getElementById("station-building-view"));
+    revealUnderHeader(document.getElementById("rent-office-btn")?.closest(".ui-panel") || document.getElementById("station-building-view"));
   });
 }
 

@@ -330,53 +330,54 @@
             <div id="travel-page"></div>
           </article>
 
-          <article id="station" class="tab-panel">
+          <article id="station" class="tab-panel ui-screen">
+            <!-- ISP-78 (AB#767): the Station on the design system, in the flat direction (Decision AB#1801). -->
             <!-- Travel in-progress banner -->
-            <div id="station-travel-banner" class="travel-banner" hidden></div>
+            <div id="station-travel-banner" class="ui-panel" role="status" hidden></div>
 
             <!-- Station overview -->
-            <div id="station-overview-view">
-              <div id="station-location-header"></div>
+            <div id="station-overview-view" class="station__view">
+              <header id="station-location-header" class="ui-screen__header"></header>
 
-              <section class="station-district">
-                <h3>Authority &amp; Regulatory Offices</h3>
-                <p class="muted lede">Government bodies, regulatory agencies, and institutional services present at this station. Access is open to all registered corporations.</p>
-                <div id="station-npc-buildings" class="building-grid"></div>
+              <section class="ui-stack">
+                <h3 class="station__heading">Authority &amp; Regulatory Offices</h3>
+                <p class="ui-screen__lede">Government bodies, regulatory agencies, and institutional services present at this station. Access is open to all registered corporations.</p>
+                <div id="station-npc-buildings" class="ui-grid station__grid"></div>
               </section>
 
-              <section class="station-district" id="station-facilities-section" hidden>
-                <h3>Operational Facilities</h3>
-                <p class="muted lede">Corporation-owned facilities available for use at this station.</p>
+              <section class="ui-stack" id="station-facilities-section" hidden>
+                <h3 class="station__heading">Operational Facilities</h3>
+                <p class="ui-screen__lede">Corporation-owned facilities available for use at this station.</p>
                 <div id="station-facility-buildings"></div>
               </section>
 
               <!-- ISP-95 (AB#785): every catalogue building, with Build or what is in the way (constructionPanel.js). -->
-              <section class="station-district" id="station-construction-section">
-                <h3>Construction</h3>
-                <p class="muted lede">Every building your corporation can construct: what it does, what it costs and what it needs first.</p>
-                <p id="construction-slots" class="muted"></p>
-                <div id="station-construction" class="building-grid"></div>
+              <section class="ui-stack" id="station-construction-section">
+                <h3 class="station__heading">Construction</h3>
+                <p class="ui-screen__lede">Every building your corporation can construct: what it does, what it costs and what it needs first.</p>
+                <p id="construction-slots" class="ui-screen__meta"></p>
+                <div id="station-construction" class="ui-grid station__grid"></div>
               </section>
 
-              <section class="station-district">
-                <h3>Licensed Corporate Holdings</h3>
-                <p class="muted lede">Extractor yards and infrastructure deployed at this station.</p>
-                <div id="station-player-buildings" class="building-grid"></div>
+              <section class="ui-stack">
+                <h3 class="station__heading">Licensed Corporate Holdings</h3>
+                <p class="ui-screen__lede">Extractor yards and infrastructure deployed at this station.</p>
+                <div id="station-player-buildings" class="ui-grid station__grid"></div>
               </section>
 
-              <section class="station-district">
-                <h3>Active Mining Cycles</h3>
-                <p class="muted lede">Every extractor yard's current cycle, wherever it is leased.</p>
+              <section class="ui-stack">
+                <h3 class="station__heading">Active Mining Cycles</h3>
+                <p class="ui-screen__lede">Every extractor yard's current cycle, wherever it is leased.</p>
                 <div id="mine-cycle-list" class="queue-list"></div>
               </section>
             </div>
 
             <!-- Building detail view -->
-            <div id="station-building-view" hidden>
-              <div class="building-detail-nav">
-                <button id="station-back-btn" class="btn btn-outline" type="button">&#8592; Back to Station</button>
+            <div id="station-building-view" class="station__view" hidden>
+              <div>
+                <button id="station-back-btn" class="ui-button ui-button--secondary" type="button">&#8592; Back to Station</button>
               </div>
-              <div id="station-building-content"></div>
+              <div id="station-building-content" class="station__building"></div>
             </div>
           </article>
 

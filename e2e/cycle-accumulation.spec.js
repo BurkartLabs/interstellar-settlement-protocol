@@ -112,7 +112,7 @@ for (const offset of OFFSETS) {
 
         // The lease view's extractor panel, the other place a running cycle is shown.
         await page.click('[data-building-action="building:isa-claims-leases"]');
-        const manage = page.locator(".lease-manage-btn, [data-lease-manage], button:has-text('Manage')").first();
+        const manage = page.locator('[data-action="manage-lease"], [data-lease-manage], button:has-text("Manage")').first();
         if (await manage.count()) await manage.click();
         const row = page.locator("[data-live-ex]").first();
         await expect(row).toBeVisible({ timeout: 10_000 });

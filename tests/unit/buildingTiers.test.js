@@ -92,7 +92,7 @@ describe("the upgrade control on a facility card (AB#794)", () => {
     const b = { id: "bld-a", name: "Assembly Facility", tier: 2, status: "Operational" };
     const out = facilityCardsHtml({ buildings: [b] }, NaN, () => "<p>control</p>");
     expect(out).not.toMatch(/Tier 2 &mdash;/);
-    expect(out).toContain('<p class="facility-tier">Operational</p>');
+    expect(out).toContain('<p class="ui-badge">Operational</p>');
     expect(facilityStatus({ ...b, upgradingUntil: 2_000 }, {}, 1_000)).toBe("Upgrading");
     const r = { id: "bld-r", name: "Refinery", tier: 3, status: "Operational" };
     expect(facilityStatus(r, { buildings: [r], refineries: [{ upgradingUntil: 2_000 }] }, 1_000)).toBe("Upgrading");

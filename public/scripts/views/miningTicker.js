@@ -45,7 +45,7 @@ export function startMiningUiTicker() {
     renderRefinery(appState.data);
 
     const buildingView = document.getElementById("station-building-view");
-    const buildingTitle = document.querySelector("#station-building-content .building-detail-header h2");
+    const buildingTitle = document.querySelector("#station-building-content .station__building-header h2");
     if (buildingView && !buildingView.hidden && buildingTitle?.textContent === "Assembly Facility") {
       renderAssemblyFacility(appState.data);
     }
@@ -112,7 +112,7 @@ export function renderMiningCyclePanel(data) {
 
   const extractors = data?.corp?.mining?.silicateExtractors || [];
   if (!extractors.length) {
-    list.innerHTML = `<article class="queue-item"><p class="muted">No extractor yard records found.</p></article>`;
+    list.innerHTML = `<article class="queue-item"><p class="station__note">No extractor yard records found.</p></article>`;
     return;
   }
 
@@ -129,18 +129,18 @@ export function renderMiningCyclePanel(data) {
       return `
         <article class="queue-item">
           <h3>${escapeHtml(extractor.name || extractor.id || "Extractor Yard")}</h3>
-          <p class="muted">Status: ${active ? "Active" : "Idle"}</p>
-          <p class="muted">Total mined: ${Number(extractor.totalMined || 0).toLocaleString()} | Total spent: ${toCurrency(Number(extractor.totalSpent || 0))}</p>
+          <p class="station__note">Status: ${active ? "Active" : "Idle"}</p>
+          <p class="station__note">Total mined: ${Number(extractor.totalMined || 0).toLocaleString()} | Total spent: ${toCurrency(Number(extractor.totalSpent || 0))}</p>
           ${
             active
-              ? `<p class="muted">Running ${hours}h cycle. Remaining: ${formatDurationHours(remainingMs)} (${figures.pctText}).</p>
+              ? `<p class="station__note">Running ${hours}h cycle. Remaining: ${formatDurationHours(remainingMs)} (${figures.pctText}).</p>
                  <div class="progress-wrap"><div class="progress-bar" style="width:${figures.fill.toFixed(2)}%"></div></div>
                  <dl class="cycle-figures">
                    <div><dt>Mined this cycle</dt><dd>${figures.mined.toLocaleString()} t</dd></div>
                    <div><dt>Spent this cycle</dt><dd>${escapeHtml(spentText(figures, toCurrency))}</dd></div>
                    <div><dt>Rate</dt><dd>${figures.rate.toLocaleString()} t/h</dd></div>
                  </dl>`
-              : `<p class="muted">Ready for next cycle.</p>`
+              : `<p class="station__note">Ready for next cycle.</p>`
           }
         </article>
       `;

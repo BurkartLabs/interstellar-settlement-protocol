@@ -66,7 +66,7 @@ for (const viewport of VIEWPORTS) {
 
       const content = page.locator("#station-building-content");
       await expect(content).toContainText("An office at Mars Orbital Dock is required");
-      await expect(page.locator(".purchase-lease-btn")).toHaveCount(0);
+      await expect(page.locator('[data-action="purchase-lease"]')).toHaveCount(0);
       await page.screenshot({ path: path.join(SCREEN_DIR, `ab1870-claims-no-office-here-${viewport.label}.png`) });
 
       // Rent the Mars office, then the same page offers the lease it refused a moment ago.
@@ -80,7 +80,7 @@ for (const viewport of VIEWPORTS) {
       await acknowledgeReceipt(page);
       await page.click("#station-back-btn");
       await page.click('[data-building-action="building:isa-claims-leases"]');
-      await expect(page.locator(".purchase-lease-btn").first()).toBeVisible();
+      await expect(page.locator('[data-action="purchase-lease"]').first()).toBeVisible();
       await page.screenshot({ path: path.join(SCREEN_DIR, `ab1870-claims-after-mars-office-${viewport.label}.png`) });
 
       expect(errors).toEqual([]);
