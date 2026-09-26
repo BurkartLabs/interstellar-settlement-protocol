@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import { VITEST_MAX_WORKERS } from "./scripts/test-workers.mjs";
 
 export default defineConfig({
   test: {
@@ -12,6 +13,8 @@ export default defineConfig({
     // Bug #2051: the same load pushes ordinary integration tests (register, log in, a few requests) past the 5s default.
     // Which files fail changes every run, so the margin is global. A hung test now fails at 20s instead of 5s.
     testTimeout: 20_000,
+    // AB#2144: the cause of both bugs above was other panes' suites on the same PC. At most half the machine per run.
+    maxWorkers: VITEST_MAX_WORKERS,
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
