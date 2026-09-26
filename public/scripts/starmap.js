@@ -1,5 +1,5 @@
 import { lanePairs, navigationFor } from "./navigation.js";
-import { neutralStationCounts, placeStationBadges, systemStationMarkers } from "./stationMarkers.js"; // ISP-119 (AB#811)
+import { badgedStationCounts, placeStationBadges, systemStationMarkers } from "./stationMarkers.js"; // ISP-119 (AB#811), AB#2349
 import { bodyResourceHtml } from "./bodyInfo.js"; // AB#740: what the catalogue holds, not a hash of the name
 import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
@@ -765,9 +765,10 @@ export function createStarmapController({
       };
     });
     const labelPlan = planClusterLabels({ entries, compact, canvasWidth: width, canvasHeight: height });
-    // ISP-119 (AB#811): a count of each system's neutral stations, from the catalog field, beside its star, in a corner
-    // the names (planned first, as AB#808 plans them) leave free.
-    const stationCounts = neutralStationCounts(state.stations);
+    // ISP-119 (AB#811): a count of a system's neutral stations, from the catalog field, beside its star, in a corner
+    // the names (planned first, as AB#808 plans them) leave free. AB#2349: only where it is more than the baseline of
+    // one every system has (today Sol's three); the legend says every system has one.
+    const stationCounts = badgedStationCounts(state.stations);
     const badgeFontPx = chartFont(9);
     ctx.font = `bold ${badgeFontPx}px "Inter", sans-serif`;
     const counted = state.systems.filter((system) => stationCounts.has(system.id)).map((system) => {

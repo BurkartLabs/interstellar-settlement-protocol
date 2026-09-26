@@ -17,6 +17,19 @@ export function neutralStationCounts(stations) {
 }
 
 /**
+ * AB#2349 (the Director's ruling on AB#811): every system has at least one neutral station (AB#810, AB#807), so a
+ * count of one says nothing about where to expand. The cluster view badges only a count above this baseline; the
+ * legend says every system has at least one. If station counts come to vary more, the rule still holds: the badge marks
+ * what differs from the baseline.
+ */
+export const STATION_BADGE_BASELINE = 1;
+
+/** The counts the cluster view badges: Map systemId -> count, only systems with more than the baseline. */
+export function badgedStationCounts(stations, baseline = STATION_BADGE_BASELINE) {
+  return new Map([...neutralStationCounts(stations)].filter(([, n]) => n > baseline));
+}
+
+/**
  * The neutral stations of `system`, each with the body the system view marks it on: the body it orbits when that is a
  * planet or a belt, and the planet a moon orbits when it orbits a moon (the system view draws planets and belts only;
  * Luna Gateway is marked on Earth). A station naming no body of the system is left out, not guessed at.
