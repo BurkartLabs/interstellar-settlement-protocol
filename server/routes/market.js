@@ -28,6 +28,11 @@ const MAX_OPEN_LISTINGS = 50;
 export function registerMarketRoutes(app) {
   app.post("/api/market/orders", requireAuth, accountActionLimiter, (req, res) => {
     const { type, item, quantity, unitPrice } = req.body ?? {};
+    // AB#815: NPC orders are placed by the server's tick only; a request that names one is refused, whatever else it says.
+    if (req.body && typeof req.body === "object" && "npc" in req.body) {
+      res.status(400).json({ error: "NPC orders are placed by the exchange, not by corporations." });
+      return;
+    }
 
     const account = getAccountById(req.auth.accountId);
     if (!account) {

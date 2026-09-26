@@ -56,7 +56,8 @@ export function takeFromListing(orderId, item, unitPrice, quantity) {
     const target = (draft.market.orderBook || []).find((entry) => entry.id === orderId && entry.type === "sell");
     if (!target) return;
     target.quantity = Math.max(0, Number(target.quantity || 0) - quantity);
-    if (target.quantity <= 0) draft.market.orderBook = draft.market.orderBook.filter((entry) => entry.id !== target.id);
+    // AB#815: an NPC ask sold out stays in the book at zero until the daily refill; a player's listing goes.
+    if (target.quantity <= 0 && target.npc !== true) draft.market.orderBook = draft.market.orderBook.filter((entry) => entry.id !== target.id);
   });
 }
 

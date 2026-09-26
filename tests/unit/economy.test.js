@@ -54,6 +54,7 @@ const BEFORE_THE_MOVE = {
   // ISP-297 (AB#1789, AB#1741): the Salvage Assignment, ECONOMY.md "The way back from broke".
   salvage: { creditsThreshold: 3000, hoursRequired: 4, payoutCredits: 3000, cooldownHours: 8 },
   npcBid: { quotaPerDay: 7000, driftAtFullQuotaPct: 50, recoveryPerDayPct: 60, floorPct: 55 }, // ISP-87
+  npcAsks: { askMultiple: 1.5, dailyQty: [{ item: "Silicates", qty: 3000 }, { item: "Helium-3", qty: 40 }, { item: "Nickel", qty: 300 }, { item: "Titanium", qty: 80 }, { item: "Carbon", qty: 400 }, { item: "Rare Earths", qty: 40 }] }, // ISP-122 (AB#815)
   npcBuyers: [                                                              // gameState.js NPC_BUY_SEED
     { item: "Silicates", buyer: "GEX Commodities Authority", unitPrice: 24, dailyQty: 1000000 },
     { item: "Helium-3", buyer: "Lunar Helium Consortium", unitPrice: 92, dailyQty: 250000 },
