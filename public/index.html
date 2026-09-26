@@ -312,11 +312,20 @@
 
             <section id="overview-milestones" class="ui-panel" aria-labelledby="level-requirements-title">
               <header class="ui-panel__header">
-                <h3 id="level-requirements-title" class="ui-panel__title">Corporation Advancement Requirements</h3>
+                <div class="overview__level-heading">
+                  <h3 id="level-requirements-title" class="ui-panel__title">Corporation Advancement Requirements</h3>
+                  <p id="level-panel-meta" class="ui-panel__meta"></p>
+                </div>
+                <!-- AB#803: one level at a time; the others are a step away -->
+                <nav id="level-browse" class="ui-panel__actions" aria-label="Browse corporation levels"></nav>
               </header>
               <div class="ui-panel__body ui-stack">
                 <p id="level-requirements-lede" class="ui-screen__lede">Complete your next level requirements below.</p>
                 <div id="level2-requirements" class="ui-grid"></div>
+                <section id="level-unlocks" class="ui-card" aria-labelledby="level-unlocks-title" hidden>
+                  <h4 id="level-unlocks-title" class="ui-card__title"></h4>
+                  <dl id="level-unlocks-list" class="ui-kv"></dl>
+                </section>
                 <p id="level2-status" class="ui-screen__meta"></p>
                 <section class="ui-card" aria-labelledby="feedback-log-title">
                   <h4 id="feedback-log-title" class="ui-card__title">Command Feedback</h4>

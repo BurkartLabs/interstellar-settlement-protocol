@@ -3219,6 +3219,11 @@ body.sg {
 .overview__milestone.is-complete .overview__milestone-state {
   color: var(--text-soft);
 }
+/* AB#803: the level panel heading, "Level N of M" over what is being shown */
+.overview__level-heading {
+  display: grid;
+  gap: var(--space-1);
+}
 .overview__milestone-title {
   position: relative;
   display: inline-block;

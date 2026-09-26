@@ -18,6 +18,10 @@ export const appState = {
   /** The building catalogue from /api/bootstrap (ISP-95): what the construction panel lists. */
   playerBuildings: [],
   milestoneRoadmap: [], // AB#798: from GET /api/bootstrap, derived from the levels
+  levelLadder: [], // AB#803: from GET /api/bootstrap, each level's own unlocks
+  /** AB#803: the level the panel is showing, or null for the next one; reset when the corporation's level changes. */
+  levelBrowse: null,
+  levelBrowseAt: null,
   data: null,
   authenticated: false,
   accountId: null,
