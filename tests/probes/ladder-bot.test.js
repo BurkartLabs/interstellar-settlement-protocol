@@ -30,6 +30,7 @@ describe("the ladder bot (AB#799)", () => {
       ticks.fabricationTick();
       ticks.asteroidExpeditionTick();
       ticks.travelTick();
+      ticks.shipmentTick(); // AB#800: ore shipped home from Mars and Luna
       ticks.processRndCompletions();
     };
 
@@ -41,12 +42,12 @@ describe("the ladder bot (AB#799)", () => {
       levels: MILESTONE_LEVELS,
       research: RESEARCH,
       maxLevel: MAX_DEFINED_LEVEL,
-      maxDays: Number(process.env.LADDER_DAYS || 120)
+      maxDays: Number(process.env.LADDER_DAYS || 240) // AB#800: Level 20 is about half a year in
     });
 
     console.log(`[ladder bot, AB#799] BOT NUMBERS on development timings, not player time:\n${records
       .map((r) => `  Level ${r.level}: ${r.hours} h (at ${r.totalHours} h), ${r.actions} actions so far, ${r.spent.toLocaleString("en-US")} credits spent on purchases, ${r.researchHours} research hours queued (data), ${r.credits.toLocaleString("en-US")} credits held`)
       .join("\n")}`);
     expect(records.map((r) => r.level)).toEqual(Array.from({ length: MAX_DEFINED_LEVEL }, (_, i) => i + 1));
-  }, 60_000);
+  }, 240_000);
 });

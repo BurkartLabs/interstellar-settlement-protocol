@@ -55,12 +55,13 @@ describe("the upgrade control (AB#795)", () => {
     expect(t3).toContain("Tier 3 opens at Corporation Level 4; you are Level 3.");
   });
 
-  it("a tier-5 yard sees tier 6's comparison, and that no level opens it yet (AB#2308, until AB#800 to AB#802)", () => {
+  it("a tier-5 yard sees tier 6's comparison and the level that opens it; tier 7 no level opens yet (AB#2308, AB#800)", () => {
     const out = html(yard({ tier: 5 }), corp({ level: 10, unlocks: { maxUpgradeTier: 5 } }));
     expect(out).toContain("<strong>Tier 5</strong> of 8");
     expect(out).toContain("cap 610 &rarr; 763 t/h");
-    expect(out).toContain("Tier 6 is not open at any level yet.");
+    expect(out).toContain("Tier 6 opens at Corporation Level 20; you are Level 10.");
     expect(out).not.toContain("<button");
+    expect(html(yard({ tier: 6 }), corp({ level: 20, unlocks: { maxUpgradeTier: 6 } }))).toContain("Tier 7 is not open at any level yet.");
     const allowed = html(yard({ tier: 5 }), corp({ level: 10, unlocks: { maxUpgradeTier: 6 } }));
     expect(allowed).toContain("Upgrade to tier 6 ($202,500)");
   });
