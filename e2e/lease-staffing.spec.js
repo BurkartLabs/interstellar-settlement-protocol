@@ -64,9 +64,9 @@ test("the Level 2 lease card keeps a five-staff player at home, and Mars can be 
 
   // The Earth lease, as the bug's repro has it. The Level 2 lease requirement is then met.
   await enterBuilding(page, "isa-claims-leases");
-  await page.click('.purchase-lease-btn[data-body="Earth"]');
+  await page.click('[data-action="purchase-lease"][data-body="Earth"]');
   await acknowledgeReceipt(page);
-  await expect(page.locator(".lease-card")).toHaveCount(1);
+  await expect(page.locator('[data-role="lease-card"]')).toHaveCount(1);
   await openTab(page, "overview");
   await expect(leaseCard.locator(".overview__milestone-state")).toHaveText("Completed");
   await shot(page, "02-level2-card-after-earth-lease");
@@ -109,9 +109,9 @@ test("the Level 2 lease card keeps a five-staff player at home, and Mars can be 
 
   // And the Mars lease files at Mars, without flying home.
   await enterBuilding(page, "isa-claims-leases");
-  await page.click('.purchase-lease-btn[data-body="Mars"]');
+  await page.click('[data-action="purchase-lease"][data-body="Mars"]');
   await acknowledgeReceipt(page);
-  await expect(page.locator(".lease-body-badge", { hasText: "Mars" })).toBeVisible();
+  await expect(page.locator('[data-role="lease-body"]', { hasText: "Mars" })).toBeVisible();
   await shot(page, "06-mars-lease-filed-at-mars");
 
   expect(errors).toEqual([]);

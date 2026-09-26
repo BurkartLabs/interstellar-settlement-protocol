@@ -80,15 +80,15 @@ export function yardUpgradeView(extractor, corp = {}, economy = {}, { now = Date
 /** The control's markup for one extractor row. */
 export function yardUpgradeHtml(view, extractorId) {
   const exId = escapeHtml(extractorId);
-  const head = `<p class="yard-upgrade-tier"><strong>Tier ${view.tier}</strong> of ${view.lastTier}</p>`;
+  const head = `<p class="ui-badge"><strong>Tier ${view.tier}</strong> of ${view.lastTier}</p>`;
   const n = view.next;
   const change = n
-    ? `<p class="muted action-hint yard-upgrade-change">Tier ${n.tier}: cap ${num(n.before.cap)} &rarr; ${num(n.after.cap)} t/h &middot; best rate ${num(n.before.rate)} &rarr; ${num(n.after.rate)} t/h &middot; running cost at best ${money(n.before.costPerHour)} &rarr; ${money(n.after.costPerHour)}/h &middot; nets ${money(n.before.netPerHour)} &rarr; ${money(n.after.netPerHour)}/h &middot; offline ${n.offlineHours} h while it upgrades</p>`
+    ? `<p class="station__hint" data-role="yard-upgrade-change">Tier ${n.tier}: cap ${num(n.before.cap)} &rarr; ${num(n.after.cap)} t/h &middot; best rate ${num(n.before.rate)} &rarr; ${num(n.after.rate)} t/h &middot; running cost at best ${money(n.before.costPerHour)} &rarr; ${money(n.after.costPerHour)}/h &middot; nets ${money(n.before.netPerHour)} &rarr; ${money(n.after.netPerHour)}/h &middot; offline ${n.offlineHours} h while it upgrades</p>`
     : "";
   const action = view.locked
-    ? `<p class="facility-blocked yard-upgrade-locked">${escapeHtml(view.locked)}</p>`
-    : `${view.blocked ? `<p class="facility-blocked">${escapeHtml(view.blocked)}</p>` : ""}<button type="button" class="btn btn-outline btn-sm yard-upgrade-btn" data-upgrade-building="${escapeHtml(view.buildingId)}" data-extractor-id="${exId}"${view.blocked ? " disabled" : ""}>Upgrade to tier ${n.tier} (${money(n.cost)})</button>`;
-  return `<div class="yard-upgrade" data-upgrade-for="${exId}">${head}${change}${action}<p class="muted action-hint yard-upgrade-status" role="status" aria-live="polite" data-for="${exId}"></p></div>`;
+    ? `<p class="station__blocked">${escapeHtml(view.locked)}</p>`
+    : `${view.blocked ? `<p class="station__blocked">${escapeHtml(view.blocked)}</p>` : ""}<button type="button" class="ui-button ui-button--secondary" data-action="upgrade" data-upgrade-building="${escapeHtml(view.buildingId)}" data-extractor-id="${exId}"${view.blocked ? " disabled" : ""}>Upgrade to tier ${n.tier} (${money(n.cost)})</button>`;
+  return `<div class="station__upgrade" data-role="yard-upgrade" data-upgrade-for="${exId}">${head}${change}${action}<p class="station__hint" data-role="yard-upgrade-status" role="status" aria-live="polite" data-for="${exId}"></p></div>`;
 }
 
 export function upgradePath(accountId, buildingId) {
@@ -163,10 +163,10 @@ export function facilityUpgradeView(building, corp = {}, economy = {}, catalogue
 /** The control's markup for one facility card. */
 export function facilityUpgradeHtml(view) {
   const id = escapeHtml(view.buildingId);
-  const head = `<p class="yard-upgrade-tier"><strong>Tier ${view.tier}</strong> of ${view.lastTier}</p>`;
-  const change = view.change ? `<p class="muted action-hint yard-upgrade-change">${view.change}</p>` : "";
+  const head = `<p class="ui-badge"><strong>Tier ${view.tier}</strong> of ${view.lastTier}</p>`;
+  const change = view.change ? `<p class="station__hint" data-role="yard-upgrade-change">${view.change}</p>` : "";
   const action = view.locked
-    ? `<p class="facility-tier-note yard-upgrade-locked">${escapeHtml(view.locked)}</p>`
-    : `${view.blocked ? `<p class="facility-tier-note">${escapeHtml(view.blocked)}</p>` : ""}<button type="button" class="btn btn-outline btn-sm yard-upgrade-btn" data-upgrade-building="${id}"${view.blocked ? " disabled" : ""}>Upgrade to tier ${view.next.tier} (${money(view.next.cost)})</button>`;
-  return `<div class="yard-upgrade" data-upgrade-for="${id}">${head}${change}${action}<p class="muted action-hint yard-upgrade-status" role="status" aria-live="polite" data-for="${id}"></p></div>`;
+    ? `<p class="station__hint">${escapeHtml(view.locked)}</p>`
+    : `${view.blocked ? `<p class="station__hint">${escapeHtml(view.blocked)}</p>` : ""}<button type="button" class="ui-button ui-button--secondary" data-action="upgrade" data-upgrade-building="${id}"${view.blocked ? " disabled" : ""}>Upgrade to tier ${view.next.tier} (${money(view.next.cost)})</button>`;
+  return `<div class="station__upgrade" data-role="yard-upgrade" data-upgrade-for="${id}">${head}${change}${action}<p class="station__hint" data-role="yard-upgrade-status" role="status" aria-live="polite" data-for="${id}"></p></div>`;
 }

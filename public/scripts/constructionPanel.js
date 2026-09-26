@@ -90,20 +90,20 @@ function rowHtml({ building, cost, leases, reason, upgrades }) {
     ? `Uses no slot: upgrades a ${upgrades} in place.`
     : onLease(building) ? "Uses 1 corporation slot and 1 slot on a mining lease." : "Uses 1 corporation slot.";
   const leasePicker = leases.length
-    ? `<label class="construction-lease">On lease <select data-build-lease>${leases
+    ? `<label class="ui-select">On lease <select class="ui-select" data-build-lease>${leases
         .map((l) => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.body || l.id)} (${leaseSlotsUsed(l)} of ${l.buildingSlots} in use)</option>`)
         .join("")}</select></label>`
     : "";
   const action = reason
-    ? `<p class="facility-blocked">${escapeHtml(reason)}</p>`
-    : `${leasePicker}<button class="btn btn-accent" data-build-id="${id}">Build (${money(cost)})</button>`;
+    ? `<p class="station__blocked">${escapeHtml(reason)}</p>`
+    : `${leasePicker}<button class="ui-button ui-button--primary" data-build-id="${id}">Build (${money(cost)})</button>`;
   return `
-        <article class="facility-card data-card construction-row" data-building-row="${id}">
-          <header class="facility-card-header"><h3>${escapeHtml(building.name)}</h3></header>
-          <p class="muted facility-desc">${escapeHtml(building.effect || "")}</p>
-          <p class="muted">${Number.isFinite(cost) ? money(cost) : "Price not loaded"} &middot; ${slotUse}</p>
-          <footer class="facility-card-footer">${action}</footer>
-          <p class="construction-status" role="status" aria-live="polite"></p>
+        <article class="ui-card station__card" data-building-row="${id}">
+          <header class="station__card-header"><h3>${escapeHtml(building.name)}</h3></header>
+          <p class="ui-card__body">${escapeHtml(building.effect || "")}</p>
+          <p class="station__note">${Number.isFinite(cost) ? money(cost) : "Price not loaded"} &middot; ${slotUse}</p>
+          <footer class="station__card-footer">${action}</footer>
+          <p class="station__hint" role="status" aria-live="polite"></p>
         </article>`;
 }
 
