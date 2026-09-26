@@ -6,7 +6,9 @@ import { URL as NodeURL } from "node:url";
 // (data-component, data-variant, data-state), so this reads the page as data and holds it to the full set, and holds
 // each drawn-still state to a stylesheet rule that draws it. Whether the states look right is for the person looking
 // at the page; whether a control is 44px and shows a focus ring in a real browser is e2e/styleguide.spec.js.
-const read = (file) => readFileSync(new NodeURL(`../../${file}`, import.meta.url), "utf8");
+// AB#2280: line endings normalised, because git writes these files with CRLF on a Windows checkout (core.autocrlf) and
+// the rule checks below match text that spans a line break.
+const read = (file) => readFileSync(new NodeURL(`../../${file}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
 const PAGE = read("public/styleguide/index.html");
 const CSS = read("public/styles.css");
 
