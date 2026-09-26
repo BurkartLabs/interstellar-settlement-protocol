@@ -56,10 +56,10 @@ test("the Level 2 lease card keeps a five-staff player at home, and Mars can be 
 
   // The Level 2 lease card, before any lease: filed here, not a journey to Mars.
   await openTab(page, "overview");
-  const leaseCard = page.locator(".requirement-card", { hasText: "Purchase a Mining Lease" });
+  const leaseCard = page.locator(".overview__milestone", { hasText: "Purchase a Mining Lease" });
   await expect(leaseCard).toBeVisible();
   await expect(leaseCard).not.toContainText("Mars");
-  await expect(leaseCard.locator(".requirement-state")).toHaveText("Go to Station →");
+  await expect(leaseCard.locator(".overview__milestone-state")).toHaveText("Go to Station →");
   await shot(page, "01-level2-card-before-lease");
 
   // The Earth lease, as the bug's repro has it. The Level 2 lease requirement is then met.
@@ -68,7 +68,7 @@ test("the Level 2 lease card keeps a five-staff player at home, and Mars can be 
   await acknowledgeReceipt(page);
   await expect(page.locator(".lease-card")).toHaveCount(1);
   await openTab(page, "overview");
-  await expect(leaseCard.locator(".requirement-state")).toHaveText("Completed");
+  await expect(leaseCard.locator(".overview__milestone-state")).toHaveText("Completed");
   await shot(page, "02-level2-card-after-earth-lease");
 
   // Nothing sends this player to Mars now, but a player can still choose to go. Travel there through the real route,

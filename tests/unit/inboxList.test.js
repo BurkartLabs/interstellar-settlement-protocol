@@ -27,9 +27,10 @@ describe("messageListItemsHtml (Bug #754)", () => {
       { id: "m3", folder: "inbox", fromName: "ISA System", subject: "Welcome", sentAt: 0, readAt: null },
       draft({ toCorpName: "" })
     ], date);
-    expect(html).toContain('class="inbox-msg-item unread" data-msg-id="m3"');
-    expect(html).toContain('<span class="inbox-unread-dot"></span>');
+    // ISP-77 (AB#766): a row is a button styled as a design-system card; an unread one says New.
+    expect(html).toContain('<button type="button" class="ui-card ui-card--interactive inbox__message is-unread" data-msg-id="m3">');
+    expect(html).toContain('<span class="ui-badge ui-badge--accent">New</span>');
     expect(html).toContain("To: (no recipient)");
-    expect(html).toContain('<span class="inbox-msg-date">21 Sep</span>');
+    expect(html).toContain("<span>21 Sep</span>");
   });
 });

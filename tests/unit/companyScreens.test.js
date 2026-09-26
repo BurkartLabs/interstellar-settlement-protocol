@@ -105,7 +105,10 @@ describe("Overview, Inbox and the Financial Core are on the design system (ISP-7
     expect((SCREENS.finance.match(/<table\b[^>]*class="ui-table"/g) || []).length).toBe(2);
     expect(read("public/scripts/statements.js")).toContain('<table class="ui-table">');
     // Each cell carries its column's name, which the cards show (ISP-73).
-    expect(read("public/scripts/views/finance.js")).toMatch(/<td data-label="(Category|Line item)">/);
+    const finance = read("public/scripts/views/finance.js");
+    expect(finance).toContain('<td data-label="${labels[0]}">');
+    expect(finance).toContain('const L = ["Category", "Amount ($)"];');
+    expect(finance).toContain('const L = ["Line item", "Value ($)"];');
     expect(read("public/scripts/statements.js")).toMatch(/<td data-label="Line">/);
   });
 
