@@ -18,6 +18,15 @@ export const WEEK_HOURS = 168;
 export const POLICIES = ["sell raw", "refine to the end", "the design's rule"];
 
 /**
+ * AB#2372 (the Director's ruling on AB#2367): the design's rule misses 5% of the best policy at some low-volume points,
+ * all where "refine to the end" is best (worst 10.7%, nickel-iron 84h x1). While that gap is open the rule may not
+ * be shown to a player in any form (tier3-recipes.md section 6): tests/unit/refineRuleTripwire.test.js holds the
+ * product to it. The full sweep (npm run probe:chains) fails if this flag and its own numbers disagree, so it can be
+ * set false only when the sweep shows the rule within 5% everywhere.
+ */
+export const RULE_GAP_OPEN = true;
+
+/**
  * Section 6's sweep (AB#2367): the week's raw supply, as hours of one Refinery running each of the track's chains
  * (CHAIN_PROBE_VOLUMES overrides the list), and how many Refineries the corporation runs.
  */
