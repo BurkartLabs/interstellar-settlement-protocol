@@ -228,6 +228,138 @@
           </div>
         </div>
       </section>
+      <!-- ISP-73 (AB#762): the data components. The table, toast, empty and error states and skeleton are new (ui-*);
+           the modal, progress bar, mining cycle and KPI tile are the game's own, shown here in every state. -->
+      <section class="sg-section" aria-labelledby="sg-table">
+        <h2 class="sg-heading" id="sg-table">Data table</h2>
+        <p class="sg-note">A table on a desktop. Below 768px each row becomes a card and every value carries its column's name, so nothing scrolls sideways.</p>
+        <div class="ui-table-wrap">
+          <table class="ui-table" data-component="table" data-state="populated">
+            <caption class="ui-table__caption">Sell orders for Silicates at Earth Station Prime</caption>
+            <thead>
+              <tr><th scope="col">Seller</th><th scope="col">Quantity</th><th scope="col" class="ui-table__num">Unit price</th><th scope="col" class="ui-table__num">Total</th><th scope="col">Action</th></tr>
+            </thead>
+            <tbody>
+              <tr><td data-label="Seller">Orion Freight</td><td data-label="Quantity">120 t</td><td data-label="Unit price" class="ui-table__num">24 cr</td><td data-label="Total" class="ui-table__num">2,880 cr</td><td data-label="Action"><button type="button" class="ui-button ui-button--secondary">Buy</button></td></tr>
+              <tr><td data-label="Seller">Frontier Protocol Ventures</td><td data-label="Quantity">480 t</td><td data-label="Unit price" class="ui-table__num">25 cr</td><td data-label="Total" class="ui-table__num">12,000 cr</td><td data-label="Action"><button type="button" class="ui-button ui-button--secondary">Buy</button></td></tr>
+              <tr><td data-label="Seller">Kepler Mining Cooperative</td><td data-label="Quantity">60 t</td><td data-label="Unit price" class="ui-table__num">27 cr</td><td data-label="Total" class="ui-table__num">1,620 cr</td><td data-label="Action"><button type="button" class="ui-button ui-button--secondary">Buy</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-toasts">
+        <h2 class="sg-heading" id="sg-toasts">Toasts</h2>
+        <p class="sg-note">What just happened, in a sentence, where it cannot cover the work. An error is read out at once; the rest wait their turn. Each one closes.</p>
+        <div class="sg-stack">
+          <div class="ui-toast" role="status" data-component="toast" data-variant="info"><p class="ui-toast__text">Mining cycle started at Silicate Extractor Yard 1. It runs for 8 hours.</p><button type="button" class="ui-toast__close ui-button ui-button--ghost" data-toast-close aria-label="Close this notice">×</button></div>
+          <div class="ui-toast ui-toast--success" role="status" data-component="toast" data-variant="success"><p class="ui-toast__text">Office lease confirmed at Mars Orbital Dock.</p><button type="button" class="ui-toast__close ui-button ui-button--ghost" data-toast-close aria-label="Close this notice">×</button></div>
+          <div class="ui-toast ui-toast--warn" role="status" data-component="toast" data-variant="warn"><p class="ui-toast__text">Your Helium-3 sell order expires in 2 hours.</p><button type="button" class="ui-toast__close ui-button ui-button--ghost" data-toast-close aria-label="Close this notice">×</button></div>
+          <div class="ui-toast ui-toast--danger" role="alert" data-component="toast" data-variant="danger"><p class="ui-toast__text">The lease could not be signed: the exchange did not answer. Nothing was charged.</p><button type="button" class="ui-toast__close ui-button ui-button--ghost" data-toast-close aria-label="Close this notice">×</button></div>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-modals">
+        <h2 class="sg-heading" id="sg-modals">Modal and confirmation</h2>
+        <p class="sg-note">The game's own dialog, drawn in place here rather than over the page. It asks before anything costs credits or cannot be undone, and after, it says what happened.</p>
+        <div class="sg-grid sg-grid--wide">
+          <div class="sg-modal-frame">
+            <article class="modal-card" role="dialog" aria-labelledby="sg-modal-confirm-title" data-component="modal" data-variant="confirm">
+              <p class="overline">Order Confirmation</p>
+              <h2 id="sg-modal-confirm-title">Sell 120 t of Silicates?</h2>
+              <p class="sg-modal-copy">At 24 cr a tonne, 2,880 cr before the exchange's 2% fee.</p>
+              <div class="choice-row"><button type="button" class="ui-button ui-button--secondary">Cancel</button><button type="button" class="ui-button ui-button--primary">Confirm sale</button></div>
+            </article>
+            <span class="sg-state">confirmation</span>
+          </div>
+          <div class="sg-modal-frame">
+            <article class="modal-card" role="dialog" aria-labelledby="sg-modal-danger-title" data-component="modal" data-variant="danger">
+              <p class="overline">Cannot be undone</p>
+              <h2 id="sg-modal-danger-title">Dismantle Silicate Extractor Yard 1?</h2>
+              <p class="sg-modal-copy">The yard and its slot are released. The 45,000 cr it cost is not returned.</p>
+              <div class="choice-row"><button type="button" class="ui-button ui-button--secondary">Keep it</button><button type="button" class="ui-button ui-button--danger">Dismantle</button></div>
+            </article>
+            <span class="sg-state">what cannot be undone</span>
+          </div>
+          <div class="sg-modal-frame">
+            <article class="modal-card" role="dialog" aria-labelledby="sg-modal-receipt-title" data-component="modal" data-variant="receipt">
+              <p class="overline">ISA Transaction Record</p>
+              <h2 id="sg-modal-receipt-title">Office Lease Confirmed</h2>
+              <p class="sg-modal-copy">Orbital Executive Suites, Mars Orbital Dock. 12,500 cr a month, from today.</p>
+              <div class="choice-row"><button type="button" class="ui-button ui-button--primary">Acknowledge</button></div>
+            </article>
+            <span class="sg-state">receipt, after the server answers</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-progress">
+        <h2 class="sg-heading" id="sg-progress">Progress and the mining cycle</h2>
+        <p class="sg-note">A bar says how far, the words say how long. The mining cycle is the game's own row: what it has done so far, while it runs.</p>
+        <div class="sg-grid">
+          <div class="sg-specimen sg-specimen--full"><p class="sg-progress-label">Advanced Extraction, queued</p><div class="progress-wrap" role="progressbar" aria-label="Advanced Extraction" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-component="progress" data-state="empty"><div class="progress-bar" style="width: 0%"></div></div><span class="sg-state">none, 0%</span></div>
+          <div class="sg-specimen sg-specimen--full"><p class="sg-progress-label">Orbital Logistics, 62%</p><div class="progress-wrap" role="progressbar" aria-label="Orbital Logistics" aria-valuemin="0" aria-valuemax="100" aria-valuenow="62" data-component="progress" data-state="partial"><div class="progress-bar" style="width: 62%"></div></div><span class="sg-state">part, 62%</span></div>
+          <div class="sg-specimen sg-specimen--full"><p class="sg-progress-label">Corporate Charter, done</p><div class="progress-wrap" role="progressbar" aria-label="Corporate Charter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" data-component="progress" data-state="complete"><div class="progress-bar" style="width: 100%"></div></div><span class="sg-state">all, 100%</span></div>
+        </div>
+        <div class="sg-grid sg-cycle-grid">
+          <article class="queue-item" data-component="cycle" data-state="running">
+            <h3>Silicate Extractor Yard 1</h3>
+            <p class="muted">Status: Active</p>
+            <p class="muted">Running 8h cycle. Remaining: 3h 02m (62%).</p>
+            <div class="progress-wrap" aria-hidden="true"><div class="progress-bar" style="width: 62%"></div></div>
+            <dl class="cycle-figures">
+              <div><dt>Mined this cycle</dt><dd>298 t</dd></div>
+              <div><dt>Spent this cycle</dt><dd>1,190 cr</dd></div>
+              <div><dt>Rate</dt><dd>60 t/h</dd></div>
+            </dl>
+          </article>
+          <article class="queue-item" data-component="cycle" data-state="idle">
+            <h3>Silicate Extractor Yard 2</h3>
+            <p class="muted">Status: Idle</p>
+            <p class="muted">Ready for next cycle.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-empty-error">
+        <h2 class="sg-heading" id="sg-empty-error">Empty and error</h2>
+        <p class="sg-note">Side by side because they must never look alike. Empty is a fact about the game: it says why and what to do. An error is a failure: it says what failed, that nothing was lost, and offers to try again.</p>
+        <div class="sg-pair">
+          <div class="ui-state" role="status" data-component="empty-state">
+            <p class="ui-state__title">No sell orders for Silicates</p>
+            <p class="ui-state__why">Nobody has listed Silicates at Earth Station Prime yet. List yours and it is the first one buyers see.</p>
+            <button type="button" class="ui-button ui-button--secondary">List Silicates</button>
+          </div>
+          <div class="ui-state ui-state--error" role="alert" data-component="error-state">
+            <p class="ui-state__title">Sell orders could not be loaded</p>
+            <p class="ui-state__why">The exchange did not answer. Nothing you own has changed.</p>
+            <button type="button" class="ui-button ui-button--secondary">Try again</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-skeleton">
+        <h2 class="sg-heading" id="sg-skeleton">Skeleton</h2>
+        <p class="sg-note">The shape of what is coming, while it comes. It pulses gently, and stands still for anyone whose system asks for less motion.</p>
+        <div class="ui-skeleton" role="status" aria-busy="true" aria-label="Loading sell orders" data-component="skeleton">
+          <span class="ui-skeleton__line ui-skeleton__line--title"></span>
+          <span class="ui-skeleton__line"></span>
+          <span class="ui-skeleton__line"></span>
+          <span class="ui-skeleton__line ui-skeleton__line--short"></span>
+        </div>
+      </section>
+
+      <section class="sg-section" aria-labelledby="sg-kpi">
+        <h2 class="sg-heading" id="sg-kpi">KPI tile</h2>
+        <p class="sg-note">The game's own figure tile: a label, one number in tabular numerals, and which way it moved. The primary tile is the one number a screen leads with.</p>
+        <div class="kpi-strip">
+          <article class="kpi-tile kpi-tile--primary" data-component="kpi" data-variant="primary" data-state="up"><span class="kpi-tile__label">Credits</span><span class="kpi-tile__value">1,248,300 cr</span><span class="kpi-tile__trend kpi-tile__trend--up">+4.2% today</span></article>
+          <article class="kpi-tile" data-component="kpi" data-state="down"><span class="kpi-tile__label">Silicates held</span><span class="kpi-tile__value">480 t</span><span class="kpi-tile__trend kpi-tile__trend--down">−120 t since yesterday</span></article>
+          <article class="kpi-tile" data-component="kpi" data-state="flat"><span class="kpi-tile__label">Employees</span><span class="kpi-tile__value">5</span><span class="kpi-tile__trend kpi-tile__trend--flat">No change</span></article>
+          <article class="kpi-tile" data-component="kpi" data-state="gain"><span class="kpi-tile__label">Net this week</span><span class="kpi-tile__value kpi-tile__value--positive">+18,400 cr</span><span class="kpi-tile__sub">Sales less costs</span></article>
+          <article class="kpi-tile" data-component="kpi" data-state="loss"><span class="kpi-tile__label">Net last week</span><span class="kpi-tile__value kpi-tile__value--negative">−6,250 cr</span><span class="kpi-tile__sub">Two leases renewed</span></article>
+        </div>
+      </section>
     </main>
   </body>
 </html>

@@ -63,3 +63,41 @@ test("a tooltip opens on focus and Escape closes it", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(tip).toBeHidden();
 });
+
+// ISP-73 (AB#762): the data table is a table at 1280 and a stack of cards at 375, each cell labelled with its column,
+// and neither width scrolls sideways.
+for (const [width, height, shape] of [[1280, 800, "table"], [375, 812, "cards"]]) {
+  test(`the data table shows as ${shape} at ${width}x${height}, with no sideways scroll`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.goto("/styleguide");
+    const table = page.locator('[data-component="table"]');
+    const look = await table.evaluate((t) => {
+      const row = t.querySelector("tbody tr");
+      const cell = row.querySelector("td");
+      return {
+        row: getComputedStyle(row).display,
+        head: getComputedStyle(t.querySelector("thead")).display,
+        label: getComputedStyle(cell, "::before").content,
+        overflow: t.parentElement.scrollWidth - t.parentElement.clientWidth
+      };
+    });
+    if (shape === "table") {
+      expect(look.row).toBe("table-row");
+      expect(look.head).toBe("table-header-group");
+    } else {
+      expect(look.row).toBe("grid");
+      expect(look.head).toBe("none");
+      expect(look.label).toBe(`"${await table.locator("th").first().textContent()}"`);
+    }
+    expect(look.overflow).toBe(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+  });
+}
+
+test("a toast's close button closes it", async ({ page }) => {
+  await page.goto("/styleguide");
+  const toast = page.locator('[data-component="toast"][data-variant="success"]');
+  await expect(toast).toBeVisible();
+  await toast.getByRole("button", { name: /close/i }).click();
+  await expect(toast).toBeHidden();
+});
