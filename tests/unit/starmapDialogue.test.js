@@ -99,8 +99,11 @@ describe("the Starmap, the walkthrough and the dialogue are on the design system
   it("the map's labels are drawn through chartFont, so a phone draws none under 14px", () => {
     const starmap = read("public/scripts/starmap.js");
     expect(starmap).not.toMatch(/ctx\.font = ['"][^'"]*\d+px/);
-    expect((starmap.match(/ctx\.font = /g) || []).length).toBe(6);
-    expect((starmap.match(/\$\{chartFont\(\d+\)\}px/g) || []).length).toBe(7);
+    // Every px size the map sets comes from chartFont: no ctx.font with a literal size, and a size variable is one.
+    expect(starmap).not.toMatch(/ctx\.font = `[^`$]*\d+px/);
+    expect(starmap).not.toMatch(/(?:Size|size) = \d+;/);
+    // A star's name, YOU ARE HERE, the back buttons (drawn and measured), a body's name and a moon's.
+    expect((starmap.match(/chartFont\(/g) || []).length).toBeGreaterThanOrEqual(6);
   });
 
   it("on a phone the modals' own small text is raised, as a screen's is", () => {

@@ -72,8 +72,14 @@ function mapAt(width, innerHeight) {
 /** The star a cluster label belongs to: its core dot (radius 7, or 10 when selected) sits radius + 10 px before the
  * label, or after it when the label is drawn to the left. */
 function starOf(context, label) {
-  return context.arcs.find((a) => (a.r === 7 || a.r === 10) && Math.abs(a.y - (label.y - 1)) < 1 &&
+  const cores = context.arcs.filter((a) => a.r === 7 || a.r === 10);
+  const beside = cores.find((a) => Math.abs(a.y - (label.y - 1)) < 1 &&
     (Math.abs(a.x + a.r + 10 - label.x) < 1 || Math.abs(a.x - a.r - 10 - (label.x + label.width)) < 1));
+  if (beside) return beside;
+  // ISP-82 (AB#771): a name that would cross another is drawn above or below its star instead; it is then the star
+  // nearest the name's box.
+  const reach = (a) => Math.hypot(Math.min(Math.max(a.x, label.x), label.x + label.width) - a.x, Math.min(Math.max(a.y, label.y - 10), label.y + 3) - a.y);
+  return cores.reduce((best, a) => (reach(a) < reach(best) ? a : best));
 }
 
 /** Opens a system by tapping its star. */
