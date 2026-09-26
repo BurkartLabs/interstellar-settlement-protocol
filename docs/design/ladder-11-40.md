@@ -52,8 +52,8 @@ Level 10's own targets are the curve's starting point.
 ## The levels
 
 `building-tier:<id>:<n>` is new: the count of that catalogue building at tier n or above (see "What AB#798 must
-change"). The `maxUpgradeTier` values above 5 and the `maxDeployments` column are **proposals** that need stories
-before the data may carry them (see "Rewards past Level 10"). The other unlocks continue levels 1 to 10's steps.
+change"). The `maxUpgradeTier` values above 5 are a **proposal** that needs a story before the data may carry them
+(see "Rewards past Level 10"); the `maxDeployments` column may be carried now (AB#2307 added the key). The other unlocks continue levels 1 to 10's steps.
 
 | level | probe day | requirements (metric, target) | employeeCap | buildingSlots | maxFleetSize | maxUpgradeTier | maxDeployments (proposed) |
 |---|---|---|---|---|---|---|---|
@@ -137,11 +137,12 @@ At v0.6 nothing a level from 11 to 40 could grant is something a player can use,
   does not call them rewards.
 - **Market sectors gate nothing.** `unlocks.marketSectors` is recorded and shown, and no code reads it. This design
   adds no sector until a story makes one do something. Naming a sector as a reward would be a reward that is not one.
-- **Proposed, each needing a story before the data may carry it:** a `maxDeployments` unlock key (added to AB#796's
-  allowlist with an applier, and the expedition route reading it instead of `BASE_MAX_DEPLOYMENTS`), and yard tiers 6
+- **`maxDeployments` is an unlock key since AB#2307:** in AB#796's allowlist (`LEVEL_UNLOCK_KEYS`, server/game/catalog.js)
+  with an applier that raises `corp.asteroidMining.maxDeployments` from `BASE_MAX_DEPLOYMENTS` and never lowers it; the
+  launch route already read that field, and the level notice names it "Deployment slots".
+- **Proposed, needing a story before the data may carry it:** yard tiers 6
   to 8 on AB#791's curve (`T_ref` and the cap x1.25 a tier, the price x1.5: 202,500, 303,750 and 455,625, paybacks
-  lengthening past 30 days). If they are not built, AB#800 to AB#802 keep `maxUpgradeTier` at 5 and leave
-  `maxDeployments` out, and the bands keep their requirements without their rewards.
+  lengthening past 30 days). If they are not built, AB#800 to AB#802 keep `maxUpgradeTier` at 5.
 
 ## What AB#798 must change
 
