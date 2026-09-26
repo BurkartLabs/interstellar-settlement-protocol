@@ -14,7 +14,8 @@
     "playtest": "playwright test",
     "economy:model": "node scripts/economy-model.mjs",
     "belt:model": "node scripts/belt-model.mjs",
-    "probe:pacing": "node scripts/probe-pacing.mjs"
+    "probe:pacing": "node scripts/probe-pacing.mjs",
+    "probe:chains": "node scripts/probe-chains.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
