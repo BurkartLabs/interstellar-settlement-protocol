@@ -4,6 +4,7 @@ import { escapeHtml, bootFailureHtml } from "./html.js";
 
 // AB#738 (ISP-52): the shared pieces app.js used to define itself.
 import { appState, IS_DEV_ACCESS, techTree } from "./state.js";
+import { navigationFor } from "./navigation.js"; // ISP-112 (AB#804)
 import { connectApiClient, socket, reauthenticateSocket, persistSession, clearSession, redirectToLoginPage, handleSessionExpired, createInvalidSessionError, hydrateSession, refreshSessionToken, apiFetch, parseJsonResponse } from "./apiClient.js";
 import { toCurrency, deepClone } from "./helpers.js";
 
@@ -12,7 +13,7 @@ import { connectWalkthroughUi, hasSeenWalkthroughOffer, noteWalkthroughEvent, pr
 import { renderAssets } from "./views/assets.js";
 import { applyMissionAgentsCatalog, bindAssignmentForms, renderMissions } from "./views/assignments.js";
 import { renderInsightTree } from "./views/ceoInsight.js";
-import { bindCollapsibleSections, bindGlobalControls, bindRippleEffect, loadNotifications, renderNotifications, updateCorpIdentity, updateReplayOnboardingVisibility } from "./views/chrome.js";
+import { bindCollapsibleSections, bindGlobalControls, loadNotifications, renderNotifications, updateCorpIdentity, updateReplayOnboardingVisibility } from "./views/chrome.js";
 import { bindCommsForms, renderChatChannelTabs, renderChatLog, resolveChatChannel } from "./views/comms.js";
 import { bindExchangeForms, renderMarket } from "./views/exchange.js";
 import { loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } from "./views/finance.js";
@@ -337,7 +338,8 @@ async function loadBootstrap() {
   if (version) {
     const versionLine = document.getElementById("app-version-line");
     if (versionLine) {
-      versionLine.textContent = `Interstellar Settlement Protocol v${version}, est. 2147`;
+      // ISP-83 (AB#772): the version and the founding year; the name is the heading right under it.
+      versionLine.textContent = `v${version} · est. 2147`;
     }
   }
 
@@ -346,12 +348,13 @@ async function loadBootstrap() {
 
 async function loadStationRegistry() {
   try {
-    const [stationsRes, buildingsRes, insightRes, missionAgentsRes, researchRes] = await Promise.all([
+    const [stationsRes, buildingsRes, insightRes, missionAgentsRes, researchRes, systemsRes] = await Promise.all([
       fetch("/api/stations"),
       fetch("/api/buildings"),
       fetch("/api/ceo-insight"),
       fetch("/api/mission-agents"),
-      fetch("/api/research")
+      fetch("/api/research"),
+      fetch("/api/systems")
     ]);
     if (stationsRes.ok) {
       const data = await stationsRes.json();
@@ -362,6 +365,12 @@ async function loadStationRegistry() {
     if (buildingsRes.ok) {
       const data = await buildingsRes.json();
       appState.buildingRegistry = data.buildings || [];
+    }
+    if (systemsRes.ok) {
+      // ISP-112 (AB#804): every per-system fact, and the travel gate and routes over it, from data/systems.json.
+      const data = await systemsRes.json();
+      appState.systemsCatalog = data.systems || [];
+      appState.navigation = navigationFor(appState.systemsCatalog);
     }
     if (insightRes.ok) {
       const data = await insightRes.json();
@@ -682,7 +691,6 @@ async function boot() {
   bindForms();
   bindRealtimeEvents();
   bindGlobalControls();
-  bindRippleEffect();
   bindBuildingActions();
   bindInboxControls();
   bindChartDurationPickers();

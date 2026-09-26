@@ -18,6 +18,27 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#772 — ISP-83, the accessibility score and the three-width sweep of every screen)
+
+- Lighthouse accessibility is 100 on the landing and on the main app view, on a phone and a desktop
+  (`node scripts/a11y-lighthouse.mjs`; Lighthouse pinned and run with npx, not a dependency; docs/ab-772/lighthouse-summary.json).
+  Lighthouse is an automated check: it reads names, roles, contrast and the like, not a keyboard or a screen reader.
+- `e2e/every-screen.spec.js` is the sweep: the eight pages before play, all fourteen tabs (a seeded corporation),
+  Travel mid-journey, the sidebar opened and the notification panel, at 375, 768 and 1280. It fails on sideways
+  scroll; a box off either edge outside a scroller; a control whose words are wider than it; at 375 text under 14px
+  or a control under 44px; any legacy component in sight; a tab that is not one `.ui-screen` with one title.
+- What it found, now fixed: the header, its notifications and the sidebar (no story owned them) still drew .btn,
+  .overline, .panel-block and .kv-list; Travel had never been rebuilt; the Station's mining cycles and the Overview's
+  expeditions drew .queue-item; the trade confirmation and the receipt drew .btn and .overline. They are on the
+  design system; the confirmation and the receipt take the dialogue's layout. A milestone card said "Go to Rnd":
+  tabs are named as the navigation names them (`TAB_LABELS`, navGroups.js).
+- With that, no page used .btn, .muted, .overline, .lede, .choice-row, .pill, .queue-item or the rest of the old
+  components, and their rules are gone. The button success pulse, which only .btn drew, is `.ui-button.is-success-pulse`.
+- On a phone the header is the name over one row of buttons (it was a third of the first screen), and the
+  notification panel spans the header. Both were found by looking at the sweep's screenshots after its checks
+  passed; the sweep now checks for both.
+- Screens: one contact sheet per width in docs/ab-772/; every screen at every width on AB#772.
+
 ## What's now true (AB#771 — ISP-82, the Starmap, the walkthrough and the dialogue on the design system)
 
 - The dialogue and the walkthrough are one layout on the game's modal card (`.modal-card.dialogue`): Elara Voss's

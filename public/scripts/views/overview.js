@@ -116,6 +116,9 @@ export function renderLevel2Progress(data) {
 
   // Map requirement IDs to the tab they should navigate to
   // TODO(AB#798): This information should be stored in the database OR in milestones.json
+  // AB#2322: grouped and whole, as the card's own title writes it ("Mine 260,000 Silicate", not 150000 / 260000).
+  const milestoneNumber = (n) => Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
+
   const REQ_TAB = {
     officeRented:               "station",
     hire5:                      "station",
@@ -147,7 +150,30 @@ export function renderLevel2Progress(data) {
     researchAsteroidProspecting: "rnd",
     researchMaterialCompression: "rnd",
     researchNanoLattice:        "rnd",
-    researchNearStarNavigation: "rnd"
+    researchNearStarNavigation: "rnd",
+    // Levels 11 to 20 since ISP-108 (AB#800)
+    extractor4:                 "station",
+    extractor5:                 "station",
+    extractor6:                 "station",
+    thirdLease:                 "station",
+    yards3AtTier2:              "station",
+    yards6AtTier2:              "station",
+    yards3AtTier3:              "station",
+    yards6AtTier3:              "station",
+    mine260kSilicate:           "station",
+    mine470kSilicate:           "station",
+    mine700kSilicate:           "station",
+    mine920kSilicate:           "station",
+    mine1100kSilicate:          "station",
+    refinery2:                  "refinery",
+    refineryComplex:            "refinery",
+    refineryTier3:              "refinery",
+    refine25800:                "refinery",
+    refine34800:                "refinery",
+    refine44800:                "refinery",
+    refine55800:                "refinery",
+    refine65800:                "refinery",
+    researchContainmentPhysics: "rnd"
   };
 
   const level = Number(data?.corp?.level || 0);
@@ -246,7 +272,7 @@ export function renderLevel2Progress(data) {
       return `
       <${tag} class="ui-card overview__milestone${clickable ? " ui-card--interactive" : ""}${doneClass}${justCompletedClass}"${jumpAttr}>
         <span class="ui-card__title overview__milestone-title">${escapeHtml(req.title)}</span>
-        <span class="ui-card__figure">${Number(req.progress || 0).toLocaleString("en-US")} / ${Number(req.target || 0).toLocaleString("en-US")}</span>
+        <span class="ui-card__figure">${milestoneNumber(req.progress)} / ${milestoneNumber(req.target)}</span>
         <span class="ui-card__meta overview__milestone-state">${stateText}</span>
         ${!req.complete && link?.hint ? `<span class="ui-card__body">${escapeHtml(link.hint)}</span>` : ""}
       </${close}>
@@ -278,7 +304,7 @@ export function renderExpeditionPanel(data) {
       const remainingMs = Math.max(0, Number(exp.endsAt || 0) - now);
       const beltName = exp.beltName || exp.beltKey || "Unknown Belt";
       return `
-        <article class="queue-item">
+        <article class="ui-card">
           <h4 class="ui-card__title">${escapeHtml(beltName)}</h4>
           <p class="ui-card__meta">Remaining: ${formatDurationHours(remainingMs)} (${progress.toFixed(1)}%)</p>
           <div class="progress-wrap" role="progressbar" aria-label="${escapeHtml(beltName)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress)}"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>

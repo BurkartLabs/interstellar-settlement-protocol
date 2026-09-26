@@ -25,6 +25,7 @@ const OUT_OF_SCOPE = {
   "GET /how-to-start": "a static page, with no input (AB#748)",
   "GET /api/bootstrap": "a public read with no input",
   "GET /api/stations": "a static catalog",
+  "GET /api/systems": "a static catalog (ISP-112, AB#804)",
   "GET /api/buildings": "a static catalog",
   "GET /api/ceo-insight": "a static catalog",
   "GET /api/mission-agents": "a static catalog",

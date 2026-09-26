@@ -4,6 +4,7 @@ import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState, getAccountById } from "../../server/gameState.js";
 import { stationHops, transferFee, transitMinutes } from "../../public/scripts/logistics.js";
+import { navigationFor } from "../../public/scripts/navigation.js";
 
 // AB#718: the transfer fee grows with distance. The Logistics tab quotes it from the rates GET /api/stations sends,
 // with the shared function, and the server charges exactly that. Nothing the client sends sets the fee.
@@ -27,13 +28,15 @@ describe("transfer fees by distance (AB#718)", () => {
   it("charges what the Logistics tab quotes, within Sol and across three jumps", async () => {
     const { app, corp, transfer } = await corpAtEarthWithStock();
     const catalog = (await request(app).get("/api/stations")).body;
+    // ISP-112 (AB#804): the routes the page counts jumps on, from the catalog route it loads them from.
+    const navigation = navigationFor((await request(app).get("/api/systems")).body.systems);
     expect(catalog.logistics).toEqual({ sameSystemFeePerUnit: 2, perJumpFeePerUnit: 3, sameSystemTransitMinutes: 30, perJumpTransitMinutes: 120 });
     // The quote, computed the way the Logistics tab computes it.
-    const quote = (from, units) => transferFee(catalog.logistics, stationHops(catalog.stations, from, "earth-station-prime"), [{ quantity: units }]);
+    const quote = (from, units) => transferFee(catalog.logistics, stationHops(catalog.stations, from, "earth-station-prime", navigation), [{ quantity: units }]);
     expect(quote("mars-orbital-dock", 120)).toBe(240);
     expect(quote("kestrel-platform", 130)).toBe(1430);
     // ISP-279 (AB#986): the quoted arrival time, computed the same way the Logistics tab computes it.
-    const quoteMinutes = (from) => transitMinutes(catalog.logistics, stationHops(catalog.stations, from, "earth-station-prime"));
+    const quoteMinutes = (from) => transitMinutes(catalog.logistics, stationHops(catalog.stations, from, "earth-station-prime", navigation));
     expect(quoteMinutes("mars-orbital-dock")).toBe(30); // same system: sameSystemTransitMinutes
     expect(quoteMinutes("kestrel-platform")).toBe(390); // 3 jumps: 30 + 120*3
 

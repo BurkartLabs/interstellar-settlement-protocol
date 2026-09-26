@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import {
   evaluateLevelProgress, bumpStat, STAT_KEYS, PLAYER_BUILDINGS, MAX_DEFINED_LEVEL,
-  applyRefineryOperations, applyAsteroidExpeditions, REFINERY_CHAINS, BELT_COMPOSITIONS
+  applyRefineryOperations, applyAsteroidExpeditions, REFINERY_CHAINS, BELT_KEYS
 } from "../../server/gameState.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../../server/playerBuildings.js";
 import { CONSTRUCTIONS } from "../../server/construction.js";
@@ -23,11 +23,11 @@ const climb = (corp) => {
 };
 
 describe("the level ladder can be climbed to its top (Bug #424)", () => {
-  it("defines 10 levels, and the cap a player sees is that, not 40", () => {
-    expect(MAX_DEFINED_LEVEL).toBe(10);
+  it("defines 20 levels, and the cap a player sees is that, not 40", () => {
+    expect(MAX_DEFINED_LEVEL).toBe(20); // ISP-108 (AB#800): levels 11 to 20
     const state = { corp: makeCorp({ milestonesCompleted: [], employeeCap: 8, buildingSlots: 2, unlocks: { maxFleetSize: 0, marketSectors: [] },  levelCap: 40, level: 0 }) };
     evaluateLevelProgress(state);
-    expect(state.corp.levelCap).toBe(10);
+    expect(state.corp.levelCap).toBe(20);
   });
 
   it("a corporation that has done everything each level asks reaches Level 10", () => {
@@ -92,7 +92,7 @@ describe("statistics are kept through one helper (Bug #424)", () => {
       currentStationId: "earth-station-prime",
       asteroidMining: {
         probeCount: 0, maxProbes: 2, completedExpeditions: [],
-        activeExpeditions: [{ id: "exp-1", status: "active", beltKey: Object.keys(BELT_COMPOSITIONS)[0], systemId: "sol",
+        activeExpeditions: [{ id: "exp-1", status: "active", beltKey: BELT_KEYS[0], systemId: "sol",
           duration: "standard", deployedAt: start, lastTickAt: start, completesAt: start + 60_000, yields: {} }]
       }
     });

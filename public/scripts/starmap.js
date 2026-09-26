@@ -1,18 +1,12 @@
-import { canReachSystem, travelResearchLock, travelResearchName } from "./navigation.js";
+import { navigationFor } from "./navigation.js";
 import { bodyResourceHtml } from "./bodyInfo.js"; // AB#740: what the catalogue holds, not a hash of the name
 import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 import { PLANET_IMAGE_PATHS } from "./planetImages.js";
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 
-const CLUSTER_LAYOUT = {
-  sol: { x: 0.16, y: 0.5 },
-  "alpha-centauri": { x: 0.35, y: 0.26 },
-  "barnards-star": { x: 0.34, y: 0.72 },
-  "wolf-359": { x: 0.56, y: 0.35 },
-  "tau-ceti": { x: 0.72, y: 0.55 },
-  "epsilon-eridani": { x: 0.83, y: 0.3 }
-};
+// ISP-112 (AB#804): each system's place on the cluster view is its `mapPosition` in data/systems.json, as fractions of
+// the canvas; the controller reads it from the catalog it is given (getSystemsCatalog).
 
 // Starmap system view: the innermost orbit's distance from the star, and the room kept between the outermost body and
 // the canvas edge; labels keep this margin from the right edge (Bug #1315).
@@ -412,7 +406,10 @@ export function createStarmapController({
   onLaunchExpedition,
   getAsteroidMiningState,
   researchCatalog = [], // Bug #1270: to name the research a locked jump needs
-  getCorpLevel = () => 0
+  getCorpLevel = () => 0,
+  // ISP-112 (AB#804): data/systems.json's list, and the travel gate and routes over it (public/scripts/navigation.js).
+  getSystemsCatalog = () => [],
+  getNavigation = () => navigationFor(getSystemsCatalog())
 }) {
   const ctx = canvas?.getContext?.("2d");
   const state = {
@@ -430,14 +427,17 @@ export function createStarmapController({
     asteroidMining: null  // { probeCount, maxProbes, maxDeployments, activeExpeditions, scoutedBelts, beltCompositions }
   };
 
+  /** A system's place on the cluster view, from the catalog (AB#804); undefined for one it does not list. */
+  const mapPositionOf = (systemId) => getSystemsCatalog().find((s) => s.id === systemId)?.mapPosition;
+
   // The same gate as the server's travel route (public/scripts/navigation.js, Bug #976).
   function canTravelToSystem(targetSystemId) {
-    return canReachSystem(state.unlockedTech, state.currentSystemId, targetSystemId);
+    return getNavigation().canReachSystem(state.unlockedTech, state.currentSystemId, targetSystemId);
   }
 
   // Bug #1270: what the lock says, the same text the travel route refuses with.
   function travelLockText(targetSystemId) {
-    return travelResearchLock(researchCatalog, state.unlockedTech, getCorpLevel(), state.currentSystemId, targetSystemId) || "";
+    return getNavigation().travelResearchLock(researchCatalog, state.unlockedTech, getCorpLevel(), state.currentSystemId, targetSystemId) || "";
   }
 
   function setCanvasSize() {
@@ -573,8 +573,8 @@ export function createStarmapController({
     // Draw lane connections with gradient lines
     for (let i = 0; i < state.systems.length; i += 1) {
       for (let j = i + 1; j < state.systems.length; j += 1) {
-        const a = CLUSTER_LAYOUT[state.systems[i].id];
-        const b = CLUSTER_LAYOUT[state.systems[j].id];
+        const a = mapPositionOf(state.systems[i].id);
+        const b = mapPositionOf(state.systems[j].id);
         if (!a || !b) continue;
 
         const ax = a.x * width;
@@ -611,7 +611,7 @@ export function createStarmapController({
 
     // Draw star systems. Every star is known before any name is placed, so no name is put across one (ISP-82).
     const at = (system) => {
-      const p = CLUSTER_LAYOUT[system.id] || { x: 0.5, y: 0.5 };
+      const p = mapPositionOf(system.id) || { x: 0.5, y: 0.5 };
       return { x: p.x * width, y: p.y * height };
     };
     const stars = state.systems.map((system) => ({ ...at(system), id: system.id, r: (state.selectedSystemId === system.id ? 10 : 7) + 4 }));
@@ -1113,7 +1113,7 @@ export function createStarmapController({
             const dockLabel = isCurrent
               ? `<span class="ui-badge ui-badge--accent">Docked</span>`
               : !reachable
-                ? `<span class="starmap__status starmap__status--locked">Needs ${escapeHtmlAttr(travelResearchName(researchCatalog, s.systemId) || "navigation research")}</span>`
+                ? `<span class="starmap__status starmap__status--locked">Needs ${escapeHtmlAttr(getNavigation().travelResearchName(researchCatalog, s.systemId) || "navigation research")}</span>`
               : inSameSystem && onDockAtStation
                 ? `<button class="ui-button ui-button--secondary starmap__dock" type="button" data-station-id="${escapeHtmlAttr(s.id)}">Dock</button>`
               : !inSameSystem

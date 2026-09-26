@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { applyAsteroidExpeditions, BELT_COMPOSITIONS } from "../../server/gameState.js";
+import { applyAsteroidExpeditions, BELT_KEYS } from "../../server/gameState.js";
 import { expeditionNotificationBody } from "../../server/expeditionText.js";
 import { ECONOMY } from "../../server/economy.js";
 import { playerBuilding } from "../../server/playerBuildings.js";
@@ -22,7 +22,7 @@ function returning(yields, buildings = []) {
     inventory: {},
     asteroidMining: {
       probeCount: 0, maxProbes: 2, completedExpeditions: [],
-      activeExpeditions: [{ id: "exp-fmc", status: "active", beltKey: Object.keys(BELT_COMPOSITIONS)[0], systemId: "sol",
+      activeExpeditions: [{ id: "exp-fmc", status: "active", beltKey: BELT_KEYS[0], systemId: "sol",
         duration: "standard", deployedAt: START, lastTickAt: START + 60_000, completesAt: START + 60_000, yields: { ...yields } }]
     }
   });

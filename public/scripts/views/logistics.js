@@ -30,7 +30,7 @@ export function renderLogistics(data) {
   const stationName = (id) => stationRegistry.find((st) => st.id === id)?.name || id;
   // AB#718: the fee depends on how far the goods go. Null until the rates have loaded; the server quotes it then.
   const rates = appState.logisticsRates || null;
-  const hopsFrom = (fromStation) => stationHops(stationRegistry, fromStation, currentStationId);
+  const hopsFrom = (fromStation) => stationHops(stationRegistry, fromStation, currentStationId, appState.navigation);
   // The last outcome on a station card (AB#717): errors name the fix, and survive the re-renders a tick causes.
   const status = appState.logisticsStatus || null;
   // Picks and typed quantities survive those re-renders too, until the transfer goes through.

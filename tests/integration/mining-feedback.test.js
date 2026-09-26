@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
-import { mutateAccountState, getAccountById, BELT_COMPOSITIONS, PROBE_FABRICATION_MS } from "../../server/gameState.js";
+import { mutateAccountState, getAccountById, BELT_KEYS, PROBE_FABRICATION_MS } from "../../server/gameState.js";
 import { beltScoutedText, probeFabricationStartedText, probeReadyText, readyInText } from "../../public/scripts/miningFeedback.js";
 
 // AB#1257: pressing Fabricate Mining Probe logged "Mining Probe fabricated." while the facility showed 29m 59s to go
@@ -51,7 +51,7 @@ describe("Scouting names the belt and its system, never the key (AB#1257)", () =
   it("for every belt in the game, from the systems a player's account holds", async () => {
     const p = await player();
     const systems = getAccountById(p.account.id).state.world.systems;
-    for (const beltKey of Object.keys(BELT_COMPOSITIONS)) {
+    for (const beltKey of BELT_KEYS) {
       const [systemId, bodyId] = beltKey.split(":");
       const system = systems.find((s) => s.id === systemId);
       const body = system.bodies.find((b) => b.id === bodyId);

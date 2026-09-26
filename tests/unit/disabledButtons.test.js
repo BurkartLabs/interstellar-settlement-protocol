@@ -30,8 +30,9 @@ const declared = (selector, property) => RULES.filter((r) => r.selectors.include
   .filter(Boolean);
 
 describe("disabled buttons look disabled (AB#1284)", () => {
-  it("finds rules at all: the parser sees the .btn base rule", () => {
-    expect(declared(".btn", "cursor")).toContain("pointer");
+  // ISP-83 (AB#772): the game's buttons are the design system's; .btn is gone from the stylesheet with its last use.
+  it("finds rules at all: the parser sees the .ui-button base rule", () => {
+    expect(declared(".ui-button", "cursor")).toContain("pointer");
   });
 
   it("dims every disabled button and says it cannot be pressed, not only .btn", () => {
@@ -41,9 +42,8 @@ describe("disabled buttons look disabled (AB#1284)", () => {
     expect(declared("button:disabled", "cursor")).toContain("not-allowed");
   });
 
-  it("takes away .btn's hover glow while disabled", () => {
-    expect(declared(".btn:disabled", "box-shadow")).toContain("none");
-    expect(declared(".btn:disabled:hover", "box-shadow")).toContain("none");
+  it("says a disabled design-system button cannot be pressed", () => {
+    expect(declared(".ui-button:disabled", "cursor")).toContain("not-allowed");
   });
 
   it("is one rule for the whole game: the Construct card's own copy (AB#1253) is gone", () => {

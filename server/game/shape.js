@@ -1,7 +1,7 @@
 // server/game/shape.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import { ensureFinanceTracking } from "../finances.js";
-import { MAX_DEFINED_LEVEL, REFINERY_CHAINS_DATA, STATION_REGISTRY_CACHE, SYSTEM_DETAILS, SYSTEMS_DATA } from "./catalog.js";
+import { MAX_DEFINED_LEVEL, REFINERY_CHAINS_DATA, STATION_REGISTRY_CACHE, SYSTEMS_BY_ID, SYSTEMS_DATA } from "./catalog.js";
 import { refreshExchangeTax } from "./progression.js";
 import { ensureCorpMiningModel } from "./mining.js";
 import { ensureCorpRefineryModel } from "./refining.js";
@@ -31,7 +31,7 @@ export function normalizeSystems(systems = []) {
 }
 
 function normalizeSystemBodies(system) {
-  const defaults = SYSTEM_DETAILS[system.id]; // TODO(AB#804): Update to use SYSTEMS_DATA
+  const defaults = SYSTEMS_BY_ID.get(system.id); // ISP-112 (AB#804): the catalog, data/systems.json
   if (!defaults) {
     return system;
   }

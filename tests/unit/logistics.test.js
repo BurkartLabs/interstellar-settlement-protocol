@@ -1,10 +1,15 @@
 import { describe, it, expect } from "vitest";
+import fs from "node:fs";
+import { navigationFor } from "../../public/scripts/navigation.js";
 import {
   transferQuantity, parseTransferRequest, planTransfer, recordTransfer, transferFee, describeLines,
   stationHops, feePerUnit, transitMinutes, describeHops, MAX_TRANSFER_LINES, LOGISTICS_HISTORY_LIMIT
 } from "../../public/scripts/logistics.js";
 
 // AB#717: the transfer rules the server enforces and the Logistics tab shows.
+// ISP-112 (AB#804): jumps are counted on data/systems.json's routes.
+const NAVIGATION = navigationFor(JSON.parse(fs.readFileSync(new URL("../../data/systems.json", import.meta.url), "utf8")));
+
 const STATIONS = {
   "earth-station-prime": { name: "Earth Station Prime", systemId: "sol" },
   "mars-orbital-dock": { name: "Mars Orbital Dock", systemId: "sol" },
@@ -56,7 +61,7 @@ describe("parseTransferRequest (AB#717)", () => {
   it.each([41, 65, 10_000])("reads an item of %i characters as an item the station does not hold", (length) => {
     const parsed = parseTransferRequest({ fromStationId: "mars-orbital-dock", lines: [{ item: "x".repeat(length), quantity: 1 }] });
     expect(parsed.ok).toBe(true);
-    expect(planTransfer({ ...parsed, toStationId: "earth-station-prime", credits: 1000, stations: STATIONS, rates: RATES, inventory: { "mars-orbital-dock": { Silicates: 40 } } }))
+    expect(planTransfer({ ...parsed, toStationId: "earth-station-prime", credits: 1000, stations: STATIONS, rates: RATES, navigation: NAVIGATION, inventory: { "mars-orbital-dock": { Silicates: 40 } } }))
       .toEqual({ ok: false, error: "Mars Orbital Dock holds none of that item. Pick one from its list." });
   });
 
@@ -69,7 +74,7 @@ describe("parseTransferRequest (AB#717)", () => {
 });
 
 describe("planTransfer (AB#717)", () => {
-  const base = { fromStationId: "mars-orbital-dock", toStationId: "earth-station-prime", credits: 1000, stations: STATIONS, rates: RATES,
+  const base = { fromStationId: "mars-orbital-dock", toStationId: "earth-station-prime", credits: 1000, stations: STATIONS, rates: RATES, navigation: NAVIGATION,
     inventory: { "mars-orbital-dock": { Silicates: 40, Nickel: 10 } } };
 
   it("allows a transfer the corporation can make, with its fee", () => {
@@ -117,10 +122,10 @@ describe("the fee, the history and the words (AB#717)", () => {
 
 describe("the fee and the time grow with distance (AB#718)", () => {
   it("counts jumps between the stations' systems: none within one system, null for a station it does not know", () => {
-    expect(stationHops(STATIONS, "mars-orbital-dock", "earth-station-prime")).toBe(0);
-    expect(stationHops(STATIONS, "kestrel-platform", "earth-station-prime")).toBe(3);
-    expect(stationHops(Object.values(STATIONS).map((s, i) => ({ ...s, id: Object.keys(STATIONS)[i] })), "kestrel-platform", "mars-orbital-dock")).toBe(3);
-    for (const id of ["nowhere", "__proto__", "constructor", undefined, 7]) expect(stationHops(STATIONS, id, "earth-station-prime")).toBeNull();
+    expect(stationHops(STATIONS, "mars-orbital-dock", "earth-station-prime", NAVIGATION)).toBe(0);
+    expect(stationHops(STATIONS, "kestrel-platform", "earth-station-prime", NAVIGATION)).toBe(3);
+    expect(stationHops(Object.values(STATIONS).map((s, i) => ({ ...s, id: Object.keys(STATIONS)[i] })), "kestrel-platform", "mars-orbital-dock", NAVIGATION)).toBe(3);
+    for (const id of ["nowhere", "__proto__", "constructor", undefined, 7]) expect(stationHops(STATIONS, id, "earth-station-prime", NAVIGATION)).toBeNull();
   });
 
   it("prices and times a route from the rates: in-system flat, then per jump", () => {
@@ -130,7 +135,7 @@ describe("the fee and the time grow with distance (AB#718)", () => {
   });
 
   it("charges a transfer across systems by its jumps, and says so when it cannot be paid", () => {
-    const from = { fromStationId: "kestrel-platform", toStationId: "earth-station-prime", stations: STATIONS, rates: RATES, inventory: { "kestrel-platform": { Silicates: 100 } } };
+    const from = { fromStationId: "kestrel-platform", toStationId: "earth-station-prime", stations: STATIONS, rates: RATES, navigation: NAVIGATION, inventory: { "kestrel-platform": { Silicates: 100 } } };
     expect(planTransfer({ ...from, credits: 5000, lines: [{ item: "Silicates", quantity: 100 }] })).toEqual({ ok: true, fee: 1100, hops: 3 });
     expect(planTransfer({ ...from, credits: 1000, lines: [{ item: "Silicates", quantity: 100 }] })).toEqual({
       ok: false, error: "The fee is 1,100 credits (11 per unit for 100 units, 3 jumps); you have 1,000. Move fewer units or sell goods first."

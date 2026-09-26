@@ -51,7 +51,7 @@ test("an idle extractor yard shows up in Active Mining Cycles before any cycle i
   // Back to the Station overview, where the new Active Mining Cycles section lives.
   await page.click("#station-back-btn");
   await expect(page.locator("#mine-cycle-list")).toBeVisible();
-  const items = page.locator("#mine-cycle-list .queue-item");
+  const items = page.locator("#mine-cycle-list .ui-card");
   await expect(items.first()).toBeVisible();
   await expect(items.first()).toContainText("Ready for next cycle");
 

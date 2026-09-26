@@ -11,14 +11,17 @@
 //
 // `cryo` (ISP-98) is level5 plus Containment Physics and a Luna lease holding one idle yard built through construct().
 //
-// `tier5` (ISP-312, AB#2308) is level5 with both Earth yards at tier 5 and the corporation allowed tier 6, which no level
-// grants yet (AB#800 to AB#802 will): the upgrade control's tier-6 row with its price. `tier5-locked` is the same at
+// `tier5` (ISP-312, AB#2308) is level5 with both Earth yards at tier 5 and the corporation allowed tier 6, which Level 20
+// grants (AB#800): the upgrade control's tier-6 row with its price. `tier5-locked` is the same at
 // maxUpgradeTier 5, what a corporation sees today.
 //
 // `ledger` (Bug AB#2315) is level5 plus a third yard built through construct() on the Mars lease: the first yard past the
 // starting kit, so the first to pay price growth since ISP-309 (AB#2305), for e2e/ledger-categories.spec.js.
 //
-// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked|ledger>
+// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked|ledger|level10>
+//
+// `level10` (ISP-108, AB#800) is level5 raised to Level 10, the old top, with 150,000 Silicates mined: the Overview shows
+// Level 11's requirements, which did not exist before.
 const [, , dataDir, email, password, kind] = process.argv;
 process.env.ISP_DATA_DIR = dataDir;
 process.env.JWT_SECRET = process.env.JWT_SECRET || "construction-panel-e2e-fixture-secret-0123";
@@ -33,7 +36,7 @@ verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who c
 store.mutateAccountState(account.id, (state) => {
   const corp = state.corp;
   corp.currentStationId = "earth-station-prime";
-  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked", "ledger"].includes(kind)) return;
+  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked", "ledger", "level10"].includes(kind)) return;
   const lease = (id, body) => ({ id, body, leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: [], issuedAt: Date.now() });
   corp.level = 5;
   corp.buildingSlots = 6;
@@ -47,6 +50,10 @@ store.mutateAccountState(account.id, (state) => {
   if (kind === "ledger") {
     const built = construct(corp, playerBuilding("basic-extractor-yard"), "lease-mars-qa");
     if (built.outcome !== "ok") throw new Error(`seeding a third yard: ${built.outcome}`);
+  }
+  if (kind === "level10") {
+    corp.level = 10;
+    corp.mining.silicateExtractors[0].totalMined = 150_000;
   }
   if (kind === "tier5" || kind === "tier5-locked") {
     for (const b of corp.buildings.filter((x) => x.name === "Basic Extractor Yard")) b.tier = 5;

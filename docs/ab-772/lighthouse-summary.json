@@ -1,0 +1,22 @@
+{
+  "landing-mobile": {
+    "score": 100,
+    "failing": [],
+    "finalUrl": "http://127.0.0.1:12083/"
+  },
+  "landing-desktop": {
+    "score": 100,
+    "failing": [],
+    "finalUrl": "http://127.0.0.1:12083/"
+  },
+  "app-mobile": {
+    "score": 100,
+    "failing": [],
+    "finalUrl": "http://127.0.0.1:12083/"
+  },
+  "app-desktop": {
+    "score": 100,
+    "failing": [],
+    "finalUrl": "http://127.0.0.1:12083/"
+  }
+}

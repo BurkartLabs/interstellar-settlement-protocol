@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { NAV_GROUPS, groupOf, revealedGroups } from "../../public/scripts/navGroups.js";
+import { NAV_GROUPS, TAB_LABELS, groupOf, revealedGroups } from "../../public/scripts/navGroups.js";
+import { requirementLink } from "../../public/scripts/levelLinks.js";
 import { WALKTHROUGH_STEPS } from "../../public/scripts/walkthrough.js";
 
 // ISP-75 (AB#764): the fourteen tabs (and Travel, shown only in transit) in six groups. The page's panels are read from
@@ -29,6 +30,15 @@ describe("the six navigation groups (ISP-75)", () => {
       const section = HTML.slice(at, end);
       for (const tab of g.tabs) expect(section, `${g.id} holds ${tab}`).toMatch(new RegExp(`class="nav-tab[^"]*" data-tab="${tab}"`));
     }
+  });
+
+  // ISP-83 (AB#772): a milestone card named tabs "Rnd", "Market" and "Missions"; it names them as the navigation does.
+  it("names every tab as its navigation button does, and a milestone card says that name", () => {
+    const decode = (text) => text.replace(/&amp;/g, "&");
+    const buttons = Object.fromEntries([...HTML.matchAll(/class="nav-tab[^"]*" data-tab="([^"]+)"[^>]*>([^<]+)</g)].map((m) => [m[1], decode(m[2].trim())]));
+    expect(TAB_LABELS).toEqual(buttons);
+    expect(requirementLink({ id: "x" }, null, [], "rnd").label).toBe("Go to Corporate R&D →");
+    expect(requirementLink({ id: "x" }, null, [], "market").label).toBe("Go to Galactic Exchange →");
   });
 
   it("groupOf names the group a tab is in, and nothing for a tab that does not exist", () => {
