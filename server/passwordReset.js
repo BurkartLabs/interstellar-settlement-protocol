@@ -42,6 +42,9 @@ export async function resetPassword(raw, password, now = Date.now()) {
   const account = spendToken(FIELD, raw, now);
   if (!account) return { ok: false, reason: "spent" };
   setAccountPassword(account.id, password, now);
+  // AB#2288: following a link mailed to the address proves the address as a verification link does, so a player who
+  // resets before verifying can log in with the new password.
+  if (!account.emailVerifiedAt) account.emailVerifiedAt = now;
   try {
     await sendMail({
       to: accountsStore.accounts[account.id].email,

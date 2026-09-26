@@ -9,6 +9,7 @@ import { test, expect } from "@playwright/test";
 import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
+import { verifyAndLogIn } from "./verification.mjs";
 import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743
 
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -35,6 +36,7 @@ test("a disabled button is dimmed, shows not-allowed and loses its hover glow; e
   await page.fill("#register-ceo", "Playtest CEO");
   await page.fill("#register-corp", `Disabled Look Corp ${stamp}`);
   await page.click('#register-form button[type="submit"]');
+  await verifyAndLogIn(page, "", `disabled-${stamp}@example.test`, "playtest-password-not-real"); // AB#2288: verify, then log in
   await page.waitForURL(/\/\?account=/);
 
   // The walkthrough's first step: Previous is disabled, Next is not.

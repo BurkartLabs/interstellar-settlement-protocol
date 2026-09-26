@@ -8,6 +8,7 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 import { openTab } from "./nav.mjs";
+import { verifyAndLogIn } from "./verification.mjs";
 
 const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-764");
 const GROUPS = ["Company", "Station", "Industry", "Market", "Comms", "Map"];
@@ -21,6 +22,7 @@ async function register(page, { briefing = false } = {}) {
   await page.fill("#register-ceo", "Nav CEO");
   await page.fill("#register-corp", `Nav Corp ${stamp}`);
   await page.click('#register-form button[type="submit"]');
+  await verifyAndLogIn(page, "", `nav-${stamp}@example.test`, "playtest-password-not-real"); // AB#2288: verify, then log in
   await page.waitForURL(/\/\?account=/);
   await page.getByRole("button", { name: briefing ? "Brief me" : "I'll find my own way" }).click();
   await expect(page.locator("#dialogue-modal")).toBeHidden();

@@ -9,7 +9,9 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "listing-refusal-e2e-fixture-
 process.env.NODE_ENV = "test";
 
 const store = await import("../server/gameState.js");
+const { issueVerificationToken, verifyEmailToken } = await import("../server/emailVerification.js");
 const { account } = await store.createAccount({ email, password, ceoName: "Stock QA", corpName: `Stock QA Corp ${Date.now()}` });
+verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who can log in has verified
 store.mutateAccountState(account.id, (state) => {
   state.corp.currentStationId = "earth-station-prime";
   state.corp.inventory = {

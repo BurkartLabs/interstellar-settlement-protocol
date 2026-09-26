@@ -30,13 +30,8 @@ function showRegisterError(status, payload, retryAfter) {
   showMessage(registerStatus, registerErrorMessage(status, payload, retryAfter));
 }
 
-// AB#757: only the account id is stored. The refresh token arrived as an HttpOnly cookie, and the game page gets its
-// own access token from that cookie on load.
-const STORAGE_KEYS = {
-  accountId: "isp.accountId"
-};
-
-// TODO(AB#987): Implement email verification
+// AB#2288: registering gives no session. The page goes to "Check your email"; the login after the link stores the
+// account id, as login-page.js does.
 if (registerForm) {
   registerForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -77,8 +72,7 @@ if (registerForm) {
       return;
     }
 
-    const payload = await response.json();
-    localStorage.setItem(STORAGE_KEYS.accountId, payload.account.id);
-    window.location.href = `/?account=${encodeURIComponent(payload.account.id)}`;
+    // AB#2288: no session yet. The verification link is on its way; the account logs in once it is followed.
+    window.location.href = "/check-email.html";
   });
 }

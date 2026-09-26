@@ -9,6 +9,7 @@
 import { test, expect } from "@playwright/test";
 import { openTab } from "./nav.mjs";
 import path from "node:path";
+import { verifyAndLogIn } from "./verification.mjs";
 
 const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-763");
 const RING = { style: "solid", width: "2px" };
@@ -21,6 +22,7 @@ async function register(page) {
   await page.fill("#register-ceo", "Shell CEO");
   await page.fill("#register-corp", `Shell Corp ${stamp}`);
   await page.click('#register-form button[type="submit"]');
+  await verifyAndLogIn(page, "", `shell-${stamp}@example.test`, "playtest-password-not-real"); // AB#2288: verify, then log in
   await page.waitForURL(/\/\?account=/);
   await page.getByRole("button", { name: "I'll find my own way" }).click();
   await expect(page.locator("#dialogue-modal")).toBeHidden();

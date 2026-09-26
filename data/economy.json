@@ -14,6 +14,9 @@
     "assemblyFacilityAssetValue": 40000,
     "refineryCost": 75000,
     "refineryAssetValue": 55000,
+    "ferricMiningComplexCost": 90000,
+    "ferricMiningComplexAssetValue": 65000,
+    "ferricMiningComplexMetalMultiplier": 1.25,
     "supplyForecastCostMultiplier": 0.94,
     "extractorYardUpkeepPctPerDay": 2
   },

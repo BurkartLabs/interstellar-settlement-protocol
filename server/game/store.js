@@ -16,6 +16,7 @@ import { applyMiningOperations, ensureCorpMiningModel } from "./mining.js";
 import { normalizeStateShape } from "./shape.js";
 import { createStarterCorporationState, refreshContractOfferings } from "./corporation.js";
 import { backfillBuildingIds, ensureBuildingIds } from "./buildingIds.js";
+import { backfillVerificationPolicy, loginBlockedByVerification, REQUIRED, verificationPrompted } from "./verificationPolicy.js";
 import { RESERVED_CORPORATION_NAMES, ensureStateFile, getSeedState } from "./world.js";
 
 // Bug #1480: the statements live in one file per corporation (declared here, before the load-time
@@ -143,6 +144,8 @@ export let accountsStore = loadAccountsStore(createSeedAccountsStore());
 backfillCorpPublicIds();
 // AB#792: saves from before buildings had ids get them on load, once; later loads find them and change nothing.
 if (backfillBuildingIds(accountsStore.accounts).migrated) scheduleAccountsSave();
+// AB#2288: accounts from before email verification are asked to verify at login, not refused; set once, here.
+if (backfillVerificationPolicy(accountsStore.accounts)) scheduleAccountsSave();
 // Bug #1480: statements saved inside the snapshot by the first version of AB#713 move to their own files.
 {
   let moved = 0;
@@ -382,6 +385,8 @@ export async function authenticateAccount(email, password) {
   if (!isValidPassword) {
     return null;
   }
+  // AB#2288: the right password, but an address never verified: refused before the login changes anything.
+  if (loginBlockedByVerification(account)) return { blocked: "email-unverified" };
 
   applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
@@ -391,6 +396,13 @@ export async function authenticateAccount(email, password) {
     title: "Secure Access Granted",
     body: "Authentication successful. Welcome back to command."
   });
+  if (verificationPrompted(account)) {
+    pushSystemNotification(account, {
+      type: "auth",
+      title: "Verify your email address",
+      body: "Confirm the address you log in with: open /check-email.html and ask for a link. Your account keeps working meanwhile."
+    });
+  }
   scheduleAccountsSave();
 
   return sanitizeAccount(account);
@@ -409,7 +421,8 @@ export function passwordRuleError(password) {
 
 /**
  * Set a new password (AB#988) and revoke every refresh token the account holds, so each signed-in device has to log
- * in again. The caller has checked passwordRuleError. Access tokens already issued stay valid until they expire.
+ * in again. The caller has checked passwordRuleError. Access tokens issued before it stop working too: each carries
+ * the passwordChangedAt it was issued under, and server/auth.js refuses one that no longer matches (Bug #2291).
  */
 export function setAccountPassword(accountId, password, now = Date.now()) {
   const account = accountsStore.accounts?.[accountId];
@@ -419,6 +432,11 @@ export function setAccountPassword(accountId, password, now = Date.now()) {
   account.refreshTokens = [];
   scheduleAccountsSave();
   return true;
+}
+
+/** When the account's password was last changed (ms), 0 if never or no such account: what an access token must carry (Bug #2291). */
+export function passwordChangedAtOf(accountId) {
+  return Number(accountsStore.accounts?.[accountId]?.passwordChangedAt) || 0;
 }
 
 export const CEO_NAME_MIN_LENGTH = 2;
@@ -490,6 +508,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
     walkthroughCompleted: false,
     createdAt: Date.now(),
     lastLoginAt: Date.now(),
+    verificationPolicy: REQUIRED, // AB#2288: logs in once its email is verified
     refreshTokens: [],
     notifications: [],
     messages: [],

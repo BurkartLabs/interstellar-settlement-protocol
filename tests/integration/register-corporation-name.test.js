@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import request from "supertest";
 import { getApp } from "../helpers/app.js";
+import { storedAccountByEmail } from "../helpers/api.js";
 import { RESERVED_CORPORATION_NAMES } from "../../server/gameState.js";
 import { SYSTEM_SENDERS } from "../../server/corporationName.js";
 
@@ -10,9 +11,10 @@ let seq = 0;
 const register = async (corpName) => {
   const { app } = await getApp();
   seq += 1;
-  return request(app).post("/api/auth/register").send({
-    email: `name-${Date.now()}-${seq}@example.com`, password: "supersecret123", ceoName: "Name Tester", corpName
-  });
+  const email = `name-${Date.now()}-${seq}@example.com`;
+  const res = await request(app).post("/api/auth/register").send({ email, password: "supersecret123", ceoName: "Name Tester", corpName });
+  res.email = email; // AB#2288: registration answers with no account; read it by email
+  return res;
 };
 
 describe("POST /api/auth/register validates the corporation name (Bug #433)", () => {
@@ -20,7 +22,7 @@ describe("POST /api/auth/register validates the corporation name (Bug #433)", ()
     const n = Date.now() % 100000;
     const res = await register(`  Clean   Name ${n} `);
     expect(res.status).toBe(201);
-    expect(res.body.account.state.corp.corporationName).toBe(`Clean Name ${n}`);
+    expect((await storedAccountByEmail(res.email)).account.state.corp.corporationName).toBe(`Clean Name ${n}`);
   });
 
   it("refuses a name already taken, ignoring case and spacing, and creates no account", async () => {

@@ -20,6 +20,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { verifyAndLogIn } from "./verification.mjs";
 
 /**
  * A requirement line's colour and an ordinary muted line's (one that never had an override: what the muted token
@@ -84,7 +85,7 @@ async function shoot(page, viewportLabel, stepId, width) {
 function startServer(dir) {
   const child = spawn(process.execPath, ["server/index.js"], {
     cwd: REPO_ROOT,
-    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", NODE_ENV: "test", JWT_SECRET: "refinery-e2e-fixture-secret-0123456789ab", ISP_DEV: "" },
+    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", NODE_ENV: "test", JWT_SECRET: "refinery-e2e-fixture-secret-0123456789ab", ISP_DEV: "1" },
     stdio: ["ignore", "pipe", "pipe"]
   });
   return new Promise((resolve, reject) => {
@@ -119,6 +120,7 @@ for (const viewport of VIEWPORTS) {
       await page.fill("#register-ceo", "Refinery QA");
       await page.fill("#register-corp", `Refinery QA Corp ${Date.now()}`);
       await page.click('#register-form button[type="submit"]');
+      await verifyAndLogIn(page, url, email, FIXTURE_PASSWORD); // AB#2288: verify, then log in
       await page.waitForURL(/\/\?account=/);
       // The coordinator's one-time offer (first-hour.spec.js's pattern) — declined, this spec plays the tab directly.
       await page.getByRole("button", { name: "I'll find my own way" }).click();

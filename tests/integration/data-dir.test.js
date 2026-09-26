@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import request from "supertest";
 import { getApp } from "../helpers/app.js";
-import { registerAccount } from "../helpers/api.js";
+import { registerAccount, verifyEmailOnServer } from "../helpers/api.js";
 import { saveAccountsNow, dataDir } from "../../server/gameState.js";
 
 // Bug #578: the server is one long-lived process that keeps what it writes in ISP_DATA_DIR (Decision #591: a mounted
@@ -18,7 +18,7 @@ afterAll(() => { for (const child of children) child.kill(); });
 function startServer(dir) {
   const child = spawn(process.execPath, ["server/index.js"], {
     cwd: repo,
-    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", ISP_DISABLE_TICKERS: "1", ISP_DEV: "", NODE_ENV: "test", JWT_SECRET: "data-dir-test-secret-0123456789abcdef" },
+    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", ISP_DISABLE_TICKERS: "1", ISP_DEV: "1", NODE_ENV: "test", JWT_SECRET: "data-dir-test-secret-0123456789abcdef" },
     stdio: ["ignore", "pipe", "pipe"]
   });
   children.push(child);
@@ -59,9 +59,10 @@ describe("the data directory (Bug #578)", () => {
     const first = await startServer(dir);
     const account = { email: `restart-${Date.now()}@example.com`, password: "supersecret123", ceoName: "Restart CEO", corpName: `Restart Corp ${Date.now() % 100000}` };
     expect((await request(first.url).post("/api/auth/register").send(account)).status).toBe(201);
+    await verifyEmailOnServer(first.url, account.email); // AB#2288: a new account logs in once verified
     // The debounced snapshot write takes 500 ms; wait for it rather than relying on a signal Windows cannot deliver.
     const snapshot = path.join(dir, "accounts-snapshot.json");
-    for (let i = 0; i < 40 && !(fs.existsSync(snapshot) && fs.readFileSync(snapshot, "utf8").includes(account.email)); i++) await new Promise((r) => setTimeout(r, 100));
+    for (let i = 0; i < 40 && !(fs.existsSync(snapshot) && fs.readFileSync(snapshot, "utf8").includes('"emailVerifiedAt"')); i++) await new Promise((r) => setTimeout(r, 100));
     first.child.kill();
     const second = await startServer(dir);
     const login = await request(second.url).post("/api/auth/login").send({ email: account.email, password: account.password });

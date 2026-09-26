@@ -11,6 +11,7 @@
 
 import { test, expect } from "@playwright/test";
 import { openTab } from "./nav.mjs";
+import { verifyAndLogIn } from "./verification.mjs";
 
 const WIDTH = 375;
 
@@ -23,6 +24,7 @@ async function register(page) {
   await page.fill("#register-ceo", "Playtest CEO");
   await page.fill("#register-corp", `Playtest Corp ${stamp}`);
   await page.click('#register-form button[type="submit"]');
+  await verifyAndLogIn(page, "", `playtest-modal-${stamp}@example.test`, "playtest-password-not-real"); // AB#2288: verify, then log in
   await page.waitForURL(/\/\?account=/);
   await page.getByRole("button", { name: "I'll find my own way" }).click();
   await expect(page.locator("#dialogue-modal")).toBeHidden();

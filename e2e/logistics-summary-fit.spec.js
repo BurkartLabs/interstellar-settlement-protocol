@@ -8,6 +8,7 @@ import { test, expect } from "@playwright/test";
 import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
+import { verifyAndLogIn } from "./verification.mjs";
 
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
 fs.mkdirSync(SCREEN_DIR, { recursive: true });
@@ -23,6 +24,7 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
     await page.fill("#register-ceo", "Playtest CEO");
     await page.fill("#register-corp", `Fit Corp ${stamp}`);
     await page.click('#register-form button[type="submit"]');
+    await verifyAndLogIn(page, "", `logistics-fit-${stamp}@example.test`, "playtest-password-not-real"); // AB#2288: verify, then log in
     await page.waitForURL(/\/\?account=/);
     await page.getByRole("button", { name: "I'll find my own way" }).click();
     await openTab(page, "logistics");

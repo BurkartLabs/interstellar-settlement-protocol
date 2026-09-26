@@ -16,6 +16,7 @@ import { test, expect } from "@playwright/test";
 import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
+import { verifyAndLogIn } from "./verification.mjs";
 import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743
 
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -79,6 +80,7 @@ for (const viewport of VIEWPORTS) {
     await page.fill("#register-ceo", account.ceoName);
     await page.fill("#register-corp", account.corpName);
     await page.click('#register-form button[type="submit"]');
+    await verifyAndLogIn(page, "", account.email, account.password); // AB#2288: verify, then log in
     await page.waitForURL(/\/\?account=/);
     await expect(page.locator(".nav-tab.active")).toHaveText("Overview");
     // The coordinator's one-time offer ("Brief me" / "I'll find my own way") — this script plays the actions

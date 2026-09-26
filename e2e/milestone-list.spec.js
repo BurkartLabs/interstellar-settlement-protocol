@@ -6,6 +6,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { verifyAndLogIn } from "./verification.mjs";
 
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
 fs.mkdirSync(SCREEN_DIR, { recursive: true });
@@ -19,6 +20,7 @@ test("a fresh corporation sees its milestone roadmap in the sidebar", async ({ p
   await page.fill("#register-ceo", "AB1752 Test CEO");
   await page.fill("#register-corp", `AB1752 Corp ${stamp}`);
   await page.click('#register-form button[type="submit"]');
+  await verifyAndLogIn(page, "", `ab1752-${stamp}@example.test`, "password123!"); // AB#2288: verify, then log in
 
   await page.waitForSelector("#milestone-list");
   const items = page.locator("#milestone-list .milestone-item");

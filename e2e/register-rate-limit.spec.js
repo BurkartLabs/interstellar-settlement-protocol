@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { verifyAndLogIn } from "./verification.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -23,7 +24,7 @@ function startServer(dir) {
   const child = spawn(process.execPath, ["server/index.js"], {
     cwd: REPO_ROOT,
     // Not NODE_ENV=test: the production limiter, with its one-hour window, and a limit of one registration.
-    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", NODE_ENV: "", JWT_SECRET: SECRET, ISP_DEV: "", ISP_RATE_LIMIT_REGISTER_MAX: "1" },
+    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", NODE_ENV: "", JWT_SECRET: SECRET, ISP_DEV: "1", ISP_RATE_LIMIT_REGISTER_MAX: "1" },
     stdio: ["ignore", "pipe", "pipe"]
   });
   return new Promise((resolve, reject) => {
@@ -56,7 +57,9 @@ for (const viewport of VIEWPORTS) {
     const { child, url } = await startServer(dir);
     try {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await fillRegister(page, url, `${Date.now()}-a`);
+      const first = `${Date.now()}-a`;
+      await fillRegister(page, url, first);
+      await verifyAndLogIn(page, url, `limit-${first}@example.test`, PASSWORD); // AB#2288: verify, then log in
       await page.waitForURL(/\/\?account=/);
 
       await page.context().clearCookies();

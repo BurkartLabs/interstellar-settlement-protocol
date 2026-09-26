@@ -11,6 +11,7 @@ import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { WALKTHROUGH_STEPS } from "../public/scripts/walkthrough.js";
+import { verifyAndLogIn } from "./verification.mjs";
 import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743
 
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -32,6 +33,7 @@ test("the walkthrough runs start to finish with no console error, at 1280x800", 
   await page.fill("#register-ceo", "Playtest CEO");
   await page.fill("#register-corp", `Walkthrough Corp ${stamp}`);
   await page.click('#register-form button[type="submit"]');
+  await verifyAndLogIn(page, "", `walkthrough-${stamp}@example.test`, "playtest-password-not-real"); // AB#2288: verify, then log in
   await page.waitForURL(/\/\?account=/);
 
   // The coordinator's offer is the dialogue card (dialogue.js); accepting it starts the walkthrough (walkthroughUi.js).
@@ -137,6 +139,7 @@ test("End briefing closes the card and lands on R&D, with no console error", asy
   await page.fill("#register-ceo", "Playtest CEO");
   await page.fill("#register-corp", `End Corp ${stamp}`);
   await page.click('#register-form button[type="submit"]');
+  await verifyAndLogIn(page, "", `walkthrough-end-${stamp}@example.test`, "playtest-password-not-real"); // AB#2288: verify, then log in
   await page.waitForURL(/\/\?account=/);
 
   await page.getByRole("button", { name: "Brief me" }).click();

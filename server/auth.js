@@ -2,7 +2,7 @@
 import "./loadEnv.js";
 import { resolveJwtSecret } from "./jwtSecret.js";
 import jwt from "jsonwebtoken";
-import { accountExists, storeRefreshToken } from "./gameState.js";
+import { accountExists, passwordChangedAtOf, storeRefreshToken } from "./gameState.js";
 import { IS_DEV, DEV_SURFACE } from "./app.js";
 
 const ACCESS_TOKEN_SECONDS = 7 * 24 * 60 * 60;
@@ -11,9 +11,15 @@ const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
 // Refuses to start without a real secret, except on the dev surface (Bug #589: it fell back to a string in the source).
 const JWT_SECRET = resolveJwtSecret(process.env, { devSurface: DEV_SURFACE });
 
+// Bug #2291: an access token carries the account's passwordChangedAt as it was when the token was issued (`pwc`, ms,
+// 0 before any change), and verifyAccessToken refuses one that no longer matches. A password reset revoked every
+// refresh token but left 7-day access tokens working, so whoever held a stolen one kept the account for up to a week
+// after its owner reset the password to lock them out. The comparison is exact on purpose: the JWT's own `iat` is in
+// whole seconds, so comparing it with a millisecond change time would either refuse a login made in the same second
+// as the reset or accept a stolen token issued in that second.
 function signAccessToken(accountId) {
   const expiresIn = accountId === "dummy" ? DUMMY_ACCESS_TOKEN_SECONDS : ACCESS_TOKEN_SECONDS;
-  return jwt.sign({ sub: accountId, kind: "access" }, JWT_SECRET, { expiresIn });
+  return jwt.sign({ sub: accountId, kind: "access", pwc: passwordChangedAtOf(accountId) }, JWT_SECRET, { expiresIn });
 }
 
 function signRefreshToken(accountId) {
@@ -51,6 +57,8 @@ function verifyAccessToken(token) {
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     if (payload.kind !== "access") return { error: "Invalid token type." };
+    // Bug #2291: issued before the password last changed. The same answer as an expired token, so it says nothing more.
+    if ((Number(payload.pwc) || 0) !== passwordChangedAtOf(payload.sub)) return { error: "Invalid or expired access token." };
     return { accountId: payload.sub };
   } catch {
     return { error: "Invalid or expired access token." };

@@ -58,7 +58,7 @@ async function openPanel(browser, viewport, kind) {
   await page.waitForURL(/\/\?account=/);
   await openTab(page, "station");
   const section = page.locator("#station-construction-section");
-  await expect(section.locator("[data-building-row]")).toHaveCount(3);
+  await expect(section.locator("[data-building-row]")).toHaveCount(4); // the catalogue's four since ISP-96
   await section.scrollIntoViewIfNeeded();
   return { page, section, errors, close: async () => { await context.close(); child.kill(); } };
 }
@@ -83,7 +83,7 @@ for (const viewport of VIEWPORTS) {
     const { page, section, errors, close } = await openPanel(browser, viewport, "level5");
     try {
       await expect(page.locator("#construction-slots")).toHaveText("Building slots: 3 of 6 in use.") // the Headquarters every corporation starts with, and two yards;
-      await expect(section.locator("[data-build-id]")).toHaveCount(3);
+      await expect(section.locator("[data-build-id]")).toHaveCount(4); // the Ferric Mining Complex too, since ISP-96
       await section.screenshot({ path: path.join(SHOT_DIR, `level5-before-${viewport.label}.png`) });
       await section.locator('[data-build-id="assembly-facility"]').click();
       await expect(section.locator('[data-building-row="assembly-facility"] .facility-blocked')).toHaveText("Built: your corporation operates the most it may, 1.");
@@ -93,6 +93,44 @@ for (const viewport of VIEWPORTS) {
       await page.keyboard.press("Escape");
       await section.scrollIntoViewIfNeeded();
       await section.screenshot({ path: path.join(SHOT_DIR, `level5-after-${viewport.label}.png`) });
+      expect(errors).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+}
+
+// ISP-96 (AB#786): the Ferric Mining Complex, built from the panel, then the server's own expedition tick brings a probe
+// home: the notification and the inbox report say what the complex added, and the station holds it.
+for (const viewport of VIEWPORTS) {
+  test(`the Ferric Mining Complex is built from the panel and adds to a returning probe, at ${viewport.label}`, async ({ browser }) => {
+    test.setTimeout(120_000);
+    const { page, section, errors, close } = await openPanel(browser, viewport, "ferric");
+    try {
+      const row = section.locator('[data-building-row="ferric-mining-complex"]');
+      await expect(row.locator('[data-build-id="ferric-mining-complex"]')).toHaveText("Build (¤90,000)");
+      await row.scrollIntoViewIfNeeded();
+      await section.screenshot({ path: path.join(SHOT_DIR, `ferric-buildable-${viewport.label}.png`) });
+      await row.locator("[data-build-id]").click();
+      await expect(row.locator(".facility-blocked")).toHaveText("Built: your corporation operates the most it may, 1.");
+      await page.keyboard.press("Escape"); // the receipt
+      await section.screenshot({ path: path.join(SHOT_DIR, `ferric-built-${viewport.label}.png`) });
+
+      // The expedition tick runs every 10 seconds; the probe is due 25 seconds after seeding.
+      await page.click("#notification-toggle");
+      const note = page.locator("#notification-list li", { hasText: "Expedition Complete" }).first();
+      await expect(note).toBeVisible({ timeout: 60_000 });
+      await expect(note).toContainText("Your Ferric Mining Complex added 10 Nickel and 5 Titanium.");
+      await page.screenshot({ path: path.join(SHOT_DIR, `ferric-notification-${viewport.label}.png`) });
+      await page.click("#notification-toggle");
+
+      await openTab(page, "inbox");
+      await page.locator("#inbox-message-list li", { hasText: "Mining Probe Return" }).first().click();
+      const body = page.locator("#inbox-detail-body");
+      await expect(body).toContainText("50 units — Nickel (+10 from your Ferric Mining Complex)");
+      await expect(body).toContainText("25 units — Titanium (+5 from your Ferric Mining Complex)");
+      await expect(body).toContainText("12 units — Silicates");
+      await page.locator("#inbox-detail-view").screenshot({ path: path.join(SHOT_DIR, `ferric-report-${viewport.label}.png`) });
       expect(errors).toEqual([]);
     } finally {
       await close();

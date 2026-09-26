@@ -32,6 +32,18 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   out of sight (`chooseHighlight`).
 - Specs open tabs through `e2e/nav.mjs` `openTab(page, tab)`, never by a class. `git grep` for the old tab row's
   class names returns nothing. `e2e/nav-groups.spec.js` holds 375/768/1280; screens in `docs/ab-764/`.
+## What's now true (ISP-96, AB#786 — the Ferric Mining Complex, Builder)
+
+- The fourth catalogue building: 90,000 / 65,000, one corporation slot, Material Compression I, one per corporation
+  (`data/player-buildings.json`; prices and the 1.25 multiplier in `data/economy.json`). Built through
+  `POST /gameplay/build` only; it appears in the construction panel with no client change.
+- Effect: when an expedition returns, its Nickel and Titanium are multiplied before they reach the station, in whole
+  units rounded down (`ferricBonus`, `server/game/asteroids.js`). The completed expedition keeps `ferricBonus`, and the
+  Expedition Complete notification and the Mining Probe Return report say what the complex added.
+- **Level 6 does not name it.** The acceptance assumed a `building:Ferric Mining Complex` requirement at level 6; the
+  ladder asks for the Assembly Facility there, and only the roadmap strings mention Ferric (AB#798 owns that drift).
+  The metric resolves to 1 after the build (tested); whether the ladder should use it is the PM's.
+- Screens: `docs/ab-786/`, from `e2e/construction-panel.spec.js` (the probe comes home on the server's own tick).
 
 ## What's now true (AB#763 — ISP-74, the app shell)
 
