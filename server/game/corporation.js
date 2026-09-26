@@ -5,6 +5,7 @@ import { evaluateLevelProgress } from "./progression.js";
 import { ensureCorpMiningModel } from "./mining.js";
 import { ensureCorpRefineryModel } from "./refining.js";
 import { ECONOMY } from "../economy.js";
+import { ensureBuildingIds } from "./buildingIds.js";
 
 /* TODO(AB#726): Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
 export function createStarterCorporationState(baseState, ceoName, corpName) {
@@ -97,6 +98,7 @@ export function createStarterCorporationState(baseState, ceoName, corpName) {
   evaluateLevelProgress(next);
   ensureCorpMiningModel(next.corp);
   ensureCorpRefineryModel(next.corp);
+  ensureBuildingIds(next.corp); // AB#792: Headquarters has an id from the start
   return next;
 }
 
