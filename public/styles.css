@@ -4206,7 +4206,7 @@ img.station__body {
 /* AB#818: an NPC's name is a button that opens its card; it reads as the name, not as a control's box. */
 .exchange__npc-name {
   padding-inline: 0;
-  text-align: start;
+  text-align: inherit; /* AB#2344: follow the cell, right-aligned in a phone's card */
   white-space: normal; /* a long name wraps in a phone's card rather than widening it */
   max-width: 100%;
 }

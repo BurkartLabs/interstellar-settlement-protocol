@@ -5,14 +5,16 @@ import { freshGlobalState, normalizeGlobalState, CHAT_CHANNELS, storedCombatRepo
 // which is gitignored runtime output. A fresh install used to get the bare seed with no market at all: no order book
 // and no NPC standing buy orders, because the market setup ran only when a state file already existed.
 const NPC_ITEMS = ["Silicates", "Helium-3", "Nickel", "Titanium", "Carbon", "Rare Earths"];
+// AB#2341: standing bids for six products too; no NPC corporation sells them (no asks).
+const BID_ITEMS = [...NPC_ITEMS, "Aerogel", "Quantum Insulators", "Armour Plating", "Precision Frames", "Carbon Fibre Sheets", "Graphene Lattice"];
 
 describe("the global state a fresh install starts with (Bug #588, #574)", () => {
   const state = freshGlobalState();
 
-  it("has a market with no player listings, the six NPC asks, and the six standing buy orders", () => {
+  it("has a market with no player listings, the six NPC asks, and the twelve standing buy orders", () => {
     expect(state.market.orderBook.filter((o) => !o.npc)).toEqual([]);
     expect(state.market.orderBook.filter((o) => o.npc).map((o) => o.id).sort()).toEqual(NPC_ITEMS.map((i) => `npc-sell-${i.toLowerCase().replace(/\s+/g, "-")}`).sort()); // ISP-122 (AB#815)
-    expect(state.market.npcBuyOrders.map((o) => o.item)).toEqual(NPC_ITEMS);
+    expect(state.market.npcBuyOrders.map((o) => o.item)).toEqual(BID_ITEMS);
     const silicates = state.market.npcBuyOrders.find((o) => o.item === "Silicates");
     // ISP-87: the quota is a day's work for a working extractor, not for a planet, and the order carries the base
     // price it recovers towards and what has been sold into it today.
@@ -30,7 +32,7 @@ describe("normalizeGlobalState repairs an older state and changes nothing it doe
     const state = normalizeGlobalState(old);
     expect(state.market.orderBook.filter((o) => !o.npc)).toEqual([]);
     expect(state.market.orderBook.filter((o) => o.npc)).toHaveLength(6); // ISP-122 (AB#815): added where missing
-    expect(state.market.npcBuyOrders).toHaveLength(6);
+    expect(state.market.npcBuyOrders).toHaveLength(BID_ITEMS.length); // AB#2341: twelve, the products' added where missing
     expect(state.market.npcBuyOrders.find((o) => o.id === "npc-buy-silicates-daily").remainingQty).toBe(5);
   });
 

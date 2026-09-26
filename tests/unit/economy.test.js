@@ -61,7 +61,15 @@ const BEFORE_THE_MOVE = {
     { item: "Nickel", buyer: "Belt Refining Cooperative", unitPrice: 18, dailyQty: 750000 },
     { item: "Titanium", buyer: "Olympus Heavy Industries", unitPrice: 64, dailyQty: 400000 },
     { item: "Carbon", buyer: "ISA Materials Exchange", unitPrice: 12, dailyQty: 1500000 },
-    { item: "Rare Earths", buyer: "Synthorium Trading House", unitPrice: 140, dailyQty: 120000 }
+    { item: "Rare Earths", buyer: "Synthorium Trading House", unitPrice: 140, dailyQty: 120000 },
+    // AB#2341: the six products no track story owns, base from docs/design/tier3-recipes.md section 4, a day of one
+    // Refinery's output as the quantity (the design's per-product quota, for when npcBidFor takes one).
+    { item: "Aerogel", buyer: "Meridian Glassworks", unitPrice: 41, dailyQty: 240 },
+    { item: "Quantum Insulators", buyer: "Meridian Glassworks", unitPrice: 74, dailyQty: 90 },
+    { item: "Armour Plating", buyer: "Olympus Heavy Industries", unitPrice: 118, dailyQty: 103 },
+    { item: "Precision Frames", buyer: "Olympus Heavy Industries", unitPrice: 94, dailyQty: 86 },
+    { item: "Carbon Fibre Sheets", buyer: "Tycho Carbon Works", unitPrice: 21, dailyQty: 480 },
+    { item: "Graphene Lattice", buyer: "Tycho Carbon Works", unitPrice: 37, dailyQty: 180 }
   ]
 };
 
