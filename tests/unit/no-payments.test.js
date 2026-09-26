@@ -38,11 +38,7 @@ const FORBIDDEN_TERMS = [
 const ALLOWLIST = [
   // AB#1051: the "premium-rate" flavour text this list once named moved to data/missions.json, which this scanner
   // does not read (SCAN_EXT is .js/.html/.css only), so its entry is gone rather than re-pointed.
-  [
-    "public/styles.css",
-    "/* ─── Premium Thread Detail View ────────────────────────────────────────── */",
-    "a CSS section comment naming a forum-thread layout; no .premium class exists"
-  ],
+  // ISP-81 (AB#770): the "Premium Thread Detail View" comment in styles.css went with the forum's old CSS.
   // AB#738: toCurrency moved, unchanged, from app.js to the shared helpers module.
   [
     "public/scripts/helpers.js",
@@ -108,26 +104,28 @@ describe('no payment code before 1.0 (ISP-89, BRIEF.md: "None yet, and none befo
     expect(stale, "an allowlist entry whose line is no longer in its file - it was edited or removed; update or remove the entry").toEqual([]);
   });
 
-  // AB#2250: the allowlist used to name a line number, and every stylesheet story that added CSS above it failed here.
-  const STYLES = "public/styles.css";
-  const withStyles = (edit) => findMatches((file, rel) => (rel === STYLES ? edit(fs.readFileSync(file, "utf8")) : fs.readFileSync(file, "utf8")));
+  // AB#2250: the allowlist used to name a line number, and every story that added lines above one failed here. These
+  // edit the file of the allowlist's first entry in memory (the stylesheet's until ISP-81 removed its line, AB#770).
+  const [TARGET, ALLOWED_LINE] = ALLOWLIST[0];
+  const withTarget = (edit) => findMatches((file, rel) => (rel === TARGET ? edit(fs.readFileSync(file, "utf8")) : fs.readFileSync(file, "utf8")));
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
 
   it("still passes when lines are added above an allowed line", () => {
-    const { violations, stale } = checkAllowlist(withStyles((css) => `/* one */\n.a { color: red; }\n\n${css}`));
+    const { violations, stale } = checkAllowlist(withTarget((text) => `// one\nconst a = 1;\n\n${text}`));
     expect(violations).toEqual([]);
     expect(stale).toEqual([]);
   });
 
   it("fails when an allowed line's text changes, as a violation and as a stale entry", () => {
-    const { violations, stale } = checkAllowlist(withStyles((css) => css.replace("Premium Thread Detail View", "Premium Thread Detail Views")));
-    expect(violations).toEqual([expect.stringMatching(/^public\/styles\.css:\d+: .*Premium Thread Detail Views/)]);
-    expect(stale).toEqual([expect.stringMatching(/^public\/styles\.css: .*Premium Thread Detail View /)]);
+    const changed = `${ALLOWED_LINE} // edited`;
+    const { violations, stale } = checkAllowlist(withTarget((text) => text.replace(ALLOWED_LINE, changed)));
+    expect(violations).toEqual([expect.stringMatching(new RegExp(`^${esc(TARGET)}:\\d+: .*// edited`))]);
+    expect(stale).toEqual([expect.stringMatching(new RegExp(`^${esc(TARGET)}: `))]);
   });
 
   it("fails on a new forbidden term, even one added right beside an allowed line", () => {
-    const allowedComment = ALLOWLIST.find(([file]) => file === STYLES)[1];
-    const { violations } = checkAllowlist(withStyles((css) => css.replace(allowedComment, `${allowedComment}\n.premium-badge { color: gold; }`)));
-    expect(violations).toEqual([expect.stringMatching(/\.premium-badge/)]);
+    const { violations } = checkAllowlist(withTarget((text) => text.replace(ALLOWED_LINE, `${ALLOWED_LINE}\n// a premium badge`)));
+    expect(violations).toEqual([expect.stringMatching(/a premium badge/)]);
   });
 
   it("scans a real, non-trivial number of files, so a vacuous pass isn't mistaken for a clean one", () => {

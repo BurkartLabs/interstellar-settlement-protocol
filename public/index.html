@@ -845,109 +845,120 @@
             <div id="logistics-content" class="ui-stack"></div>
           </article>
 
-          <article id="chat" class="tab-panel">
-            <h2>Real-time Communications</h2>
-            <div class="split-grid">
-              <section>
-                <p class="muted" style="margin-bottom:0.45rem">Channel</p>
-                <div id="chat-channel-tabs" class="chat-channel-tabs" role="tablist" aria-label="Comms Channels">
-                  <button class="chat-channel-tab active" type="button" role="tab" aria-selected="true" data-chat-channel-tab="global">Global</button>
-                  <button class="chat-channel-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="local">Local</button>
-                  <button class="chat-channel-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="trade">Trade</button>
-                </div>
-                <ul id="chat-log" class="chat-log"></ul>
-                <form id="chat-form" class="inline-form">
-                  <label class="sr-only" for="chat-input">Message</label>
-                  <input id="chat-input" name="message" required maxlength="300" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-                  <button class="btn btn-accent" type="submit">Send</button>
-                </form>
-              </section>
-            </div>
+          <article id="chat" class="tab-panel ui-screen">
+            <!-- ISP-81 (AB#770): Comms on the design system, in the flat direction (Decision AB#1801). -->
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title">Real-time Communications</h2>
+              <p class="ui-screen__lede">Global and Trade reach every corporation; Local reaches only those in your current system.</p>
+            </header>
+            <section class="ui-panel chat">
+              <div id="chat-channel-tabs" class="ui-tabs chat__tabs" role="tablist" aria-label="Comms Channels">
+                <button class="ui-tab" type="button" role="tab" aria-selected="true" data-chat-channel-tab="global">Global</button>
+                <button class="ui-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="local">Local</button>
+                <button class="ui-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="trade">Trade</button>
+              </div>
+              <ul id="chat-log" class="chat__log"></ul>
+              <form id="chat-form" class="chat__form">
+                <label class="sr-only" for="chat-input">Message</label>
+                <input id="chat-input" class="ui-input" name="message" required maxlength="300" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Message the channel…" />
+                <button class="ui-button ui-button--primary" type="submit">Send</button>
+              </form>
+            </section>
           </article>
 
-          <article id="forums" class="tab-panel">
+          <article id="forums" class="tab-panel ui-screen">
+            <!-- ISP-81 (AB#770): the Forums on the design system, in the flat direction (Decision AB#1801). -->
             <!-- Overview: category filter + thread list -->
-            <div id="forum-overview-view">
-              <h2>Corporate Forums</h2>
-              <div class="forums-nav">
-                <div id="forum-categories" class="forum-category-nav"></div>
-                <button id="forum-new-thread-btn" class="btn btn-accent" type="button">+ New Thread</button>
-                <button id="forum-recent-btn" class="btn btn-outline" type="button">Recent Threads</button>
-              </div>
-              <!-- Inline composer revealed by the New Thread button. -->
-              <form id="forum-new-thread-form" class="form-card" hidden>
-                <h3>Start a New Thread</h3>
-                <label>
-                  <span>Category</span>
-                  <select id="forum-new-thread-category" required></select>
-                </label>
-                <label>
-                  <span>Title</span>
-                  <input id="forum-new-thread-title" type="text" maxlength="200" required>
-                </label>
-                <label>
-                  <span>Body</span>
-                  <textarea id="forum-new-thread-body" rows="6" maxlength="8000" required></textarea>
-                </label>
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-accent">Post Thread</button>
-                  <button type="button" id="forum-new-thread-cancel" class="btn btn-outline">Cancel</button>
+            <div id="forum-overview-view" class="forums__view">
+              <header class="ui-screen__header forums__header">
+                <h2 class="ui-screen__title">Corporate Forums</h2>
+                <div class="forums__actions">
+                  <button id="forum-new-thread-btn" class="ui-button ui-button--primary" type="button">+ New Thread</button>
+                  <button id="forum-recent-btn" class="ui-button ui-button--secondary" type="button">Recent Threads</button>
                 </div>
-                <p id="forum-new-thread-status" class="muted"></p>
+              </header>
+              <div id="forum-categories" class="ui-tabs" role="tablist" aria-label="Forum categories"></div>
+              <!-- Inline composer revealed by the New Thread button. -->
+              <form id="forum-new-thread-form" class="ui-panel" aria-labelledby="forum-new-thread-heading" hidden>
+                <header class="ui-panel__header"><h3 id="forum-new-thread-heading" class="ui-panel__title">Start a New Thread</h3></header>
+                <div class="ui-panel__body ui-stack">
+                  <div class="ui-field">
+                    <label class="ui-field__label" for="forum-new-thread-category">Category</label>
+                    <select id="forum-new-thread-category" class="ui-select" required></select>
+                  </div>
+                  <div class="ui-field">
+                    <label class="ui-field__label" for="forum-new-thread-title">Title</label>
+                    <input id="forum-new-thread-title" class="ui-input" type="text" maxlength="200" required>
+                  </div>
+                  <div class="ui-field">
+                    <label class="ui-field__label" for="forum-new-thread-body">Body</label>
+                    <textarea id="forum-new-thread-body" class="ui-input ui-textarea" rows="6" maxlength="8000" required></textarea>
+                  </div>
+                  <div class="forums__actions">
+                    <button type="submit" class="ui-button ui-button--primary">Post Thread</button>
+                    <button type="button" id="forum-new-thread-cancel" class="ui-button ui-button--secondary">Cancel</button>
+                  </div>
+                  <p id="forum-new-thread-status" class="ui-screen__meta" aria-live="polite"></p>
+                </div>
               </form>
-              <div id="forum-threads" class="forum-thread-list"></div>
+              <div id="forum-threads" class="forums__threads"></div>
             </div>
             <!-- Thread detail: full-page view -->
-            <div id="forum-thread-view" hidden>
-              <div class="forum-thread-header" hidden>
-                <button id="forum-back-btn" class="btn btn-outline" type="button">&#8592; Back to Forums</button>
+            <div id="forum-thread-view" class="forums__view" hidden>
+              <div hidden>
+                <button id="forum-back-btn" class="ui-button ui-button--secondary" type="button">&#8592; Back to Forums</button>
               </div>
-              <div id="forum-thread-detail-body" class="forum-thread-full"></div>
+              <div id="forum-thread-detail-body"></div>
             </div>
           </article>
 
-          <article id="missions" class="tab-panel">
+          <article id="missions" class="tab-panel ui-screen">
+            <!-- ISP-81 (AB#770): the Assignments Bureau on the design system, in the flat direction (Decision AB#1801). -->
             <!-- Bureau hub: list of mission agents -->
-            <div id="missions-board-view">
-              <h2>ISA Contracting &amp; Assignments Bureau</h2>
-              <p class="muted lede">Registered mission agents maintain offices within this bureau. Select an agent to enter their office and review available contracts.</p>
-              <div id="agent-list" class="card-grid"></div>
-              <section class="form-card" id="active-missions-section">
-                <h3>Active Contracts</h3>
-                <p id="active-missions-empty" class="muted">No active contracts. Visit an agent's office to accept assignments.</p>
-                <div id="active-mission-list" class="card-grid"></div>
+            <div id="missions-board-view" class="missions__view">
+              <header class="ui-screen__header">
+                <h2 class="ui-screen__title">ISA Contracting &amp; Assignments Bureau</h2>
+                <p class="ui-screen__lede">Registered mission agents maintain offices within this bureau. Select an agent to enter their office and review available contracts.</p>
+              </header>
+              <div id="agent-list" class="ui-grid missions__agents"></div>
+              <section class="ui-panel missions__panel" id="active-missions-section">
+                <h3 class="ui-panel__title">Active Contracts</h3>
+                <p id="active-missions-empty" class="missions__note">No active contracts. Visit an agent's office to accept assignments.</p>
+                <div id="active-mission-list" class="ui-grid"></div>
               </section>
-              <section class="form-card mission-log-section" id="completed-missions-section" hidden>
-                <div class="mission-log-header">
-                  <h3>Mission Log</h3>
-                  <span class="mission-log-count" id="mission-log-count"></span>
+              <section class="ui-panel missions__panel" id="completed-missions-section" hidden>
+                <div class="missions__panel-head">
+                  <h3 class="ui-panel__title">Mission Log</h3>
+                  <span class="ui-badge" id="mission-log-count"></span>
                 </div>
-                <div class="mission-log-list" id="completed-mission-log"></div>
+                <ul class="missions__log" id="completed-mission-log"></ul>
               </section>
             </div>
 
             <!-- Agent office view -->
-            <div id="agent-office-view" hidden>
-              <button id="agent-back-btn" class="btn btn-outline" type="button">&#8592; Back to Assignments Bureau</button>
-              <div class="agent-office-layout">
-                <div class="agent-portrait-section">
-                  <img id="agent-portrait" class="agent-portrait" src="" alt="" />
-                  <div class="agent-nameplate">
-                    <p class="agent-title overline" id="agent-title"></p>
-                    <h2 id="agent-name"></h2>
+            <div id="agent-office-view" class="missions__view" hidden>
+              <div>
+                <button id="agent-back-btn" class="ui-button ui-button--secondary" type="button">&#8592; Back to Assignments Bureau</button>
+              </div>
+              <div class="missions__office">
+                <div class="missions__agent">
+                  <img id="agent-portrait" class="missions__portrait" src="" alt="" />
+                  <div>
+                    <p class="missions__overline" id="agent-title"></p>
+                    <h2 class="ui-screen__title" id="agent-name"></h2>
                   </div>
-                  <div class="agent-reputation-section" id="agent-reputation"></div>
+                  <section class="ui-panel missions__panel" id="agent-reputation"></section>
                 </div>
-                <div class="agent-info-section">
-                  <div class="agent-bio form-card" id="agent-bio"></div>
-                  <div class="agent-dialogue form-card" id="agent-dialogue"></div>
-                  <div class="agent-missions-section">
-                    <h3>Available Contracts</h3>
-                    <p class="muted" id="agent-missions-empty">No contracts currently available from this agent.</p>
-                    <div id="agent-mission-list" class="card-grid"></div>
-                    <p class="contract-refresh-timer muted" id="contract-refresh-timer" hidden></p>
-                  </div>
-                  <div class="agent-completed-section form-card" id="agent-completed-missions" hidden></div>
+                <div class="missions__office-main">
+                  <section class="ui-panel missions__panel" id="agent-bio"></section>
+                  <section class="ui-panel missions__panel" id="agent-dialogue"></section>
+                  <section class="ui-stack">
+                    <h3 class="missions__heading">Available Contracts</h3>
+                    <p class="missions__note" id="agent-missions-empty">No contracts currently available from this agent.</p>
+                    <div id="agent-mission-list" class="ui-grid"></div>
+                    <p class="missions__hint" id="contract-refresh-timer" hidden></p>
+                  </section>
+                  <section class="ui-panel missions__panel" id="agent-completed-missions" hidden></section>
                 </div>
               </div>
             </div>
@@ -1060,47 +1071,39 @@
     </div>
 
     <!-- Contract briefing (AB#1832): at body level, not in #missions, whose .tab-panel backdrop-filter would pin a fixed modal to the scrolled panel. -->
-    <div id="mission-detail-modal" class="mission-modal-backdrop" hidden>
-      <article class="mission-modal-card">
-        <button id="mission-modal-close" class="mission-modal-close" type="button" aria-label="Close">&times;</button>
-        <div class="mission-modal-header">
-          <div class="mission-modal-img-placeholder">
-            <span>CONTRACT<br/>BRIEFING</span>
+    <!-- ISP-81 (AB#770): a contract's briefing, on the game's modal card. -->
+    <div id="mission-detail-modal" class="modal-backdrop" hidden>
+      <article class="modal-card missions__modal" role="dialog" aria-modal="true" aria-labelledby="mission-detail-title">
+        <header class="missions__modal-header">
+          <div class="missions__modal-heading">
+            <p class="missions__overline" id="mission-detail-type"></p>
+            <h2 id="mission-detail-title" class="ui-screen__title"></h2>
           </div>
-          <div class="mission-modal-meta">
-            <p class="overline" id="mission-detail-type"></p>
-            <h2 id="mission-detail-title"></h2>
-            <div class="mission-modal-badges">
-              <span id="mission-detail-risk-badge" class="mission-card-risk"></span>
-              <span id="mission-detail-reward-badge" class="mission-modal-reward-badge"></span>
-            </div>
-          </div>
+          <button id="mission-modal-close" class="ui-button ui-button--ghost" type="button" aria-label="Close">&times;</button>
+        </header>
+        <div class="missions__badges">
+          <span id="mission-detail-risk-badge" class="ui-badge"></span>
+          <span id="mission-detail-reward-badge" class="ui-badge ui-badge--accent"></span>
         </div>
-        <div class="mission-modal-body">
-          <div class="mission-modal-section">
-            <h4>Briefing</h4>
-            <p id="mission-detail-text"></p>
-          </div>
-          <div id="mission-quota-section" class="mission-modal-section" hidden>
-            <h4>Quota Progress</h4>
-            <div class="mission-quota-info">
-              <div class="mission-quota-bar-container">
-                <div id="mission-quota-bar" class="mission-quota-bar"></div>
-              </div>
-              <p id="mission-quota-text" class="mission-quota-text"></p>
-            </div>
-          </div>
-          <div id="mission-location-section" class="mission-modal-section" hidden>
-            <div id="mission-location-warning" class="mission-location-warning"></div>
-          </div>
-          <div class="mission-modal-section">
-            <h4>Intelligence</h4>
-            <p id="mission-detail-risk" class="muted"></p>
-          </div>
-        </div>
-        <div class="mission-modal-actions">
-          <button id="mission-accept-btn" class="btn btn-accent btn-command" type="button">Accept Contract</button>
-          <button id="mission-complete-btn" class="btn btn-accent btn-command" type="button" hidden>Complete Contract</button>
+        <section class="missions__modal-section">
+          <h3 class="missions__heading">Briefing</h3>
+          <p id="mission-detail-text" class="missions__note"></p>
+        </section>
+        <section id="mission-quota-section" class="missions__modal-section" hidden>
+          <h3 class="missions__heading">Quota Progress</h3>
+          <div class="progress-wrap"><div id="mission-quota-bar" class="progress-bar"></div></div>
+          <p id="mission-quota-text" class="missions__note"></p>
+        </section>
+        <section id="mission-location-section" class="missions__modal-section" hidden>
+          <p id="mission-location-warning" class="missions__warning"></p>
+        </section>
+        <section class="missions__modal-section">
+          <h3 class="missions__heading">Intelligence</h3>
+          <p id="mission-detail-risk" class="missions__hint"></p>
+        </section>
+        <div class="missions__modal-actions">
+          <button id="mission-accept-btn" class="ui-button ui-button--primary" type="button">Accept Contract</button>
+          <button id="mission-complete-btn" class="ui-button ui-button--primary" type="button" hidden>Complete Contract</button>
         </div>
       </article>
     </div>

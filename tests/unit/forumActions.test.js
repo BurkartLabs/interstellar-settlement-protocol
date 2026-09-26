@@ -96,20 +96,20 @@ describe("forum Reply and Quote (Bug #1132)", () => {
 describe("forum post bodies show quotes and line breaks (Bug #1132)", () => {
   it("renders a run of '> ' lines as one blockquote and keeps the other lines' breaks", () => {
     expect(forumPostBodyHtml("> Halcyon Ore wrote:\n> 22 here too.\n\nSame here.\nSince Monday."))
-      .toBe('<blockquote class="forum-quote">Halcyon Ore wrote:<br>22 here too.</blockquote><p>Same here.<br>Since Monday.</p>');
+      .toBe('<blockquote class="forums__quote">Halcyon Ore wrote:<br>22 here too.</blockquote><p>Same here.<br>Since Monday.</p>');
   });
 
   it("separates paragraphs on blank lines and escapes every line", () => {
     expect(forumPostBodyHtml("One\n\nTwo")).toBe("<p>One</p><p>Two</p>");
     expect(forumPostBodyHtml("> <img src=x onerror=alert(1)>\n<b>hi</b>"))
-      .toBe('<blockquote class="forum-quote">&lt;img src=x onerror=alert(1)&gt;</blockquote><p>&lt;b&gt;hi&lt;/b&gt;</p>');
+      .toBe('<blockquote class="forums__quote">&lt;img src=x onerror=alert(1)&gt;</blockquote><p>&lt;b&gt;hi&lt;/b&gt;</p>');
     expect(forumPostBodyHtml("")).toBe("");
     expect(forumPostBodyHtml(undefined)).toBe("");
   });
 
   it("a quote written by quoteDraft renders back as that quote", () => {
     const draft = quoteDraft("", { author: "Kestrel", text: "Line A\nLine B", isReply: true }) + "My answer.";
-    expect(forumPostBodyHtml(draft)).toBe('<blockquote class="forum-quote">Kestrel wrote:<br>Line A<br>Line B</blockquote><p>My answer.</p>');
+    expect(forumPostBodyHtml(draft)).toBe('<blockquote class="forums__quote">Kestrel wrote:<br>Line A<br>Line B</blockquote><p>My answer.</p>');
   });
 });
 

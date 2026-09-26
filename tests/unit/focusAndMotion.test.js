@@ -42,9 +42,9 @@ const decls = (body) => body.split(";").map((d) => d.trim()).filter(Boolean).map
 });
 
 describe("the focus ring (AB#1760)", () => {
-  it("parses the stylesheet: it sees the .btn base rule and the 13 keyframes", () => {
+  it("parses the stylesheet: it sees the .btn base rule and the keyframes", () => {
     expect(RULES.some((r) => r.selectors.includes(".btn"))).toBe(true);
-    expect((CSS.match(/@keyframes\s/g) || []).length).toBeGreaterThanOrEqual(13);
+    expect((CSS.match(/@keyframes\s/g) || []).length).toBeGreaterThanOrEqual(7); // 13 until ISP-81 (AB#770) removed the old overlay's
   });
 
   it("defines --focus-ring once, on :root", () => {
@@ -92,14 +92,18 @@ describe("reduced motion (AB#1760)", () => {
     expect(parseFloat(d["animation-duration"])).toBeLessThan(1);
     expect(parseFloat(d["transition-duration"])).toBeLessThan(1);
   });
+  // Floors, so the check cannot pass by matching nothing: what the stylesheet held after ISP-81 (AB#770), not counts to keep.
+  const ANIMATION_FLOOR = 7;
+  const TRANSITION_FLOOR = 13;
 
   it("covers every animation and transition rule: none of them is !important, so none can win over the block", () => {
     const moving = RULES.filter((r) => !/prefers-reduced-motion/.test(r.media))
       .flatMap((r) => decls(r.body).filter((d) => /^(animation|transition)(-|$)/.test(d.prop)).map((d) => ({ ...d, where: r.selectors.join(", ") })));
-    expect(moving.filter((d) => /^animation/.test(d.prop)).length).toBeGreaterThan(10);
+    expect(moving.filter((d) => /^animation/.test(d.prop)).length).toBeGreaterThanOrEqual(ANIMATION_FLOOR);
     // A floor, so the check cannot pass by matching nothing. It was the 32 counted before AB#1760; screen rebuilds take
-    // old rules out with their screens (ISP-78, AB#767, and ISP-79, AB#768, took two each), so it is not a count to keep.
-    expect(moving.filter((d) => /^transition/.test(d.prop)).length).toBeGreaterThanOrEqual(25);
+    // old rules out with their screens (ISP-78, AB#767, ISP-79, AB#768, and ISP-80, AB#769, took two each; ISP-81, AB#770, the old
+    // contract cards' and forum threads' hovers and the old celebration overlay's animations), so it is not a count to keep.
+    expect(moving.filter((d) => /^transition/.test(d.prop)).length).toBeGreaterThanOrEqual(TRANSITION_FLOOR);
     expect(moving.filter((d) => /!important/.test(d.value)).map((d) => `${d.where} { ${d.prop} }`)).toEqual([]);
   });
 

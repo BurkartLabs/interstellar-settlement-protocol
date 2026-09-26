@@ -130,7 +130,7 @@ for (const viewport of VIEWPORTS) {
       await expect(page.locator('.nav-tab[data-tab="missions"]')).toHaveClass(/active/);
 
       // ── one hour in of four: a countdown, not a Complete button yet ────────────────────────────────────
-      const activeCard = page.locator(".mission-card--active", { hasText: "ISA Salvage Assignment" });
+      const activeCard = page.locator('[data-mission-id][data-state="active"]', { hasText: "ISA Salvage Assignment" });
       await expect(activeCard).toBeVisible();
       const countdown = activeCard.locator("[data-salvage-countdown]");
       await expect(countdown).toBeVisible();
@@ -162,7 +162,7 @@ for (const viewport of VIEWPORTS) {
       await expect(page.locator("#dialogue-modal")).toBeHidden();
 
       await openTab(page, "missions");
-      const activeCard = page.locator(".mission-card--active", { hasText: "ISA Salvage Assignment" });
+      const activeCard = page.locator('[data-mission-id][data-state="active"]', { hasText: "ISA Salvage Assignment" });
       await expect(activeCard).toBeVisible();
       await expect(activeCard.locator("[data-salvage-countdown]")).toHaveCount(0);
 
@@ -170,13 +170,13 @@ for (const viewport of VIEWPORTS) {
       await expect(completeBtn).toBeVisible();
       await completeBtn.click();
       await expect(page.locator("#feedback-log li").first()).toContainText(/\$3,000 credited/, { timeout: 10_000 });
-      await expect(page.locator(".mission-card--active", { hasText: "ISA Salvage Assignment" })).toHaveCount(0);
+      await expect(page.locator('[data-mission-id][data-state="active"]', { hasText: "ISA Salvage Assignment" })).toHaveCount(0);
 
       // AB#744: the completion is confirmed by the ISA receipt, with the flat payout the server paid.
       await expect(page.locator("#action-receipt-title")).toHaveText("Contract Completed", { timeout: 10_000 });
       await expect(page.locator("#action-receipt-body")).toContainText("3,000 credits");
       await acknowledgeReceipt(page);
-      await expect(page.locator(".mission-complete-overlay")).toHaveCount(0);
+      await expect(page.locator('[data-role="mission-complete"]')).toHaveCount(0);
 
       await openTab(page, "overview");
       await expect(page.locator("#overview-cards .ui-card", { hasText: "Cash Reserves" })).toContainText("$3,000");

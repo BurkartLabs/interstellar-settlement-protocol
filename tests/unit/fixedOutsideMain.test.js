@@ -42,7 +42,7 @@ describe("overlays fixed to the screen sit outside <main> (Bug AB#1832)", () => 
   const fixed = fixedSelectors(CSS);
 
   it("reads the stylesheet and the page it checks", () => {
-    expect(fixed).toEqual(expect.arrayContaining([".modal-backdrop", ".mission-modal-backdrop"]));
+    expect(fixed).toEqual(expect.arrayContaining([".modal-backdrop"])); // the contract briefing is one since ISP-81 (AB#770)
     expect(main(HTML)).toContain('id="missions"');
   });
 
