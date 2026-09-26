@@ -45,6 +45,8 @@ describe("POST /api/accounts/:id/gameplay/purchase-lease (Bug #691)", () => {
     const corp = getAccountById(id).state.corp;
     expect(corp.miningLeases.map((l) => [l.body, l.cost])).toEqual([["Mars", 25000]]);
     expect(corp.finances.credits).toBe(500000 - 25000);
+    // Bug #2354: the lease is stored with what Mars yields (Silicates and Iron Ore since AB#831), not a fixed label.
+    expect(corp.miningLeases[0].leaseType).toBe("Mixed Extraction");
   });
 });
 

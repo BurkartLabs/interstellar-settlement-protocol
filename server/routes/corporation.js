@@ -8,6 +8,7 @@ import { ECONOMY } from "../economy.js";
 import { officeLeaseCost, OFFICE_TERMS_DAYS } from "../../public/scripts/ceoEffects.js";
 import { leaseFilingRefusal } from "../../public/scripts/navigation.js";
 import { employeesForNextLease } from "../../public/scripts/leaseStaffing.js";
+import { bodyProfile, leaseTypeLabel } from "../../public/scripts/bodyYield.js"; // Bug #2354
 import { addAccountNotification, saveAccountsNow, mutateAccountState } from "../gameState.js";
 import { applyCredits } from "../finances.js";
 // Bug #1058: refusals that say what to do next. Imported beside their first use, away from the import block.
@@ -325,7 +326,7 @@ export function registerCorporationRoutes(app) {
       corp.miningLeases.push({
         id: leaseId,
         body: requestedBody,
-        leaseType: "Silicate Extraction",
+        leaseType: leaseTypeLabel(bodyProfile(SYSTEMS_CATALOG, requestedBody)), // Bug #2354: what the body yields; the page derives it too
         issuedAt: now,
         cost: leaseCost,
         buildingSlots: 2,

@@ -13,6 +13,19 @@ export function bodyProfile(systemsCatalog, bodyName) {
   return [];
 }
 
+/**
+ * Bug #2354: a lease's type, from what its body yields: "Silicate Extraction" for a body of Silicates alone, "Iron Ore
+ * Extraction" for one of Iron Ore alone, "Mixed Extraction" for a body of several (Mars since AB#831). Every lease was
+ * stored as "Silicate Extraction" when every lease mined Silicates; the card showed that beside a Yields line that
+ * disagreed. The stored label is not read.
+ */
+export function leaseTypeLabel(profile) {
+  const items = (profile || []).filter((p) => Number(p.concentration) > 0);
+  if (items.length > 1) return "Mixed Extraction";
+  if (items.length === 1) return `${items[0].item === "Silicates" ? "Silicate" : items[0].item} Extraction`;
+  return "Extraction";
+}
+
 /** "Silicates 100%", or "Hydrogen 55% · Helium-3 30% · Deuterium 15%": each item and its share, as the catalog lists them. */
 export function profileText(profile) {
   if (!profile?.length) return "Not surveyed";
