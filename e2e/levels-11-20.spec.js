@@ -59,7 +59,10 @@ for (const viewport of VIEWPORTS) {
       await page.waitForURL(/\?account=/);
       await openTab(page, "overview");
       const title = page.locator("#level-requirements-title");
-      await expect(title).toHaveText("Corporation Level 11 Milestones");
+      // AB#803's panel (AB#2332): the heading is the corporation's level of the ladder's top, and the level shown under it
+      // is the next one, Level 11, with its requirements.
+      await expect(title).toHaveText("Level 10 of 20");
+      await expect(page.locator("#level-panel-meta")).toHaveText(/Next\s*Showing Level 11/);
       const section = page.locator("#overview-milestones");
       await expect(section).toContainText("Build a Fourth Extractor Yard");
       await expect(section).toContainText("Mine 225,000 Silicate");
