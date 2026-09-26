@@ -16,6 +16,17 @@ export function costPerHourFor(throughputPerHour, operations) {
   return Math.max(floor, Math.round(rate * base * (1 + (rate / ref) ** 2)));
 }
 
+/**
+ * ISP-301 (AB#2284): the upkeep an extractor yard pays per running hour, 0 for the corporation's first (yardIndex 0).
+ * The server's yardUpkeepPerHourFor, from the same bootstrap constants; tests/unit/miningProjection.test.js holds the
+ * two equal.
+ */
+export function yardUpkeepPerHourFor(yardIndex, buildings) {
+  if (!(Number(yardIndex) > 0)) return 0;
+  const perHour = (Number(buildings?.extractorYardCost) || 0) * (Number(buildings?.extractorYardUpkeepPctPerDay) || 0) / 100 / 24;
+  return Math.round(perHour * 100) / 100;
+}
+
 /** What starting a cycle costs up front. */
 export function startupCostFor(costPerHour, operations) {
   const share = Number(operations?.startupShareOfHourlyCost) || 0;
@@ -27,24 +38,27 @@ export function startupCostFor(costPerHour, operations) {
  * Revenue, cost and the difference for one hour at a rate. `efficiency` is what the corporation's research has
  * earned it; `unitPrice` and `taxPct` are what the ore fetches and what the sale is taxed.
  */
-export function miningProjection(throughputPerHour, { operations, unitPrice, taxPct, efficiency = 1 }) {
+export function miningProjection(throughputPerHour, { operations, unitPrice, taxPct, efficiency = 1, upkeepPerHour = 0 }) {
   const rate = Math.max(0, Number(throughputPerHour) || 0);
   const revenuePerHour = Math.round(rate * efficiency * (Number(unitPrice) || 0) * (1 - (Number(taxPct) || 0) / 100));
-  const costPerHour = costPerHourFor(rate, operations);
+  const baseCostPerHour = costPerHourFor(rate, operations);
+  // AB#2284: upkeep is charged by the hour and not in the startup, as on the server.
+  const costPerHour = baseCostPerHour + (Number(upkeepPerHour) || 0);
   return {
     throughputPerHour: rate,
     revenuePerHour,
     costPerHour,
-    profitPerHour: revenuePerHour - costPerHour,
-    startupCost: startupCostFor(costPerHour, operations)
+    upkeepPerHour: Number(upkeepPerHour) || 0,
+    profitPerHour: Math.round((revenuePerHour - costPerHour) * 100) / 100,
+    startupCost: startupCostFor(baseCostPerHour, operations)
   };
 }
 
 /** The rate that pays best, walked across the range the rules allow. */
-export function bestThroughput({ operations, unitPrice, taxPct, efficiency = 1, min = 10, max = 250 }) {
+export function bestThroughput({ operations, unitPrice, taxPct, efficiency = 1, upkeepPerHour = 0, min = 10, max = 250 }) {
   let best = { throughputPerHour: min, profitPerHour: -Infinity };
   for (let t = min; t <= max; t += 1) {
-    const at = miningProjection(t, { operations, unitPrice, taxPct, efficiency });
+    const at = miningProjection(t, { operations, unitPrice, taxPct, efficiency, upkeepPerHour });
     if (at.profitPerHour > best.profitPerHour) best = at;
   }
   return best;

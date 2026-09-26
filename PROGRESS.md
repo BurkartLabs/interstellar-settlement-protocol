@@ -30,6 +30,21 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   tall (the title wraps to three lines and the three buttons stack, about 175px of the first screen); owed.
 - `e2e/app-shell.spec.js` measures both layouts, the bar's 44px tabs, no sideways scroll, the last content clear of the
   bar, a tab pressed in the bar, the focus ring on every tab, and reduced motion. Screens in `docs/ab-763/`.
+## What's now true (ISP-95, AB#785 — the construction panel on the Station, Builder)
+
+- The Station has a **Construction** section (`public/scripts/constructionPanel.js`, drawn by `renderStation`): one row
+  per entry in the catalogue `/api/bootstrap` sends (`appState.playerBuildings`), with what it does, its price, the
+  slots it takes, and either Build or the first thing in the way, checked in the server's order: research, the cap,
+  a lease with room, a corporation slot, the price. A yard's row offers the leases with room. Build posts
+  `POST /gameplay/build`; the page draws again from the answer and shows the receipt; a refusal shows the server's
+  words in the row. The slot counter counts the Headquarters every corporation starts with.
+- `buildingCost` repeats one server rule, the Supply Forecast discount on a yard; `tests/unit/constructionPanel.test.js`
+  holds it equal to `CONSTRUCTIONS`. `e2e/construction-panel.spec.js` seeds a fresh and a level-5 corporation
+  (`e2e/seed-construction-account.mjs`) and builds from the panel; screens in `docs/ab-785/`.
+- **Owed:** the Operational Facilities section still has its own Construct card for the Assembly Facility, so a
+  researched corporation sees two Build buttons for it until that card goes (its Bug #1253 tests go with it).
+- **Main's suite does not finish** until Bug AB#2293 is fixed: `tests/integration/mining-fees.test.js` kills its worker
+  since AB#792 (ensureBuildingIds loops when createId repeats under a pinned Math.random).
 
 ## What's now true (ISP-94, AB#784 — one build endpoint for every player building, Builder)
 

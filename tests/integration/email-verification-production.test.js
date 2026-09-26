@@ -24,4 +24,16 @@ describe("verification mail in production with no transport (AB#987)", () => {
     expect(answers[1]).toEqual(answers[0]);
     expect(answers[2]).toEqual(answers[0]);
   });
+
+  it("asking for a password-reset link answers 503, identically for any address (AB#988)", async () => {
+    const { app } = await getApp();
+    const answers = [];
+    for (const email of ["someone@example.com", `nobody-${Date.now()}@example.com`, "not an address"]) {
+      const res = await request(app).post("/api/auth/forgot-password").send({ email });
+      answers.push([res.status, res.body]);
+    }
+    expect(answers[0][0]).toBe(503);
+    expect(answers[1]).toEqual(answers[0]);
+    expect(answers[2]).toEqual(answers[0]);
+  });
 });

@@ -3,8 +3,8 @@
 // test that the copy cannot drift from the original.
 
 import { describe, it, expect } from "vitest";
-import { ECONOMY, operationCostPerHourFor, startupCostFor, miningProfitPerHourFor, bestThroughputFor } from "../../server/economy.js";
-import { costPerHourFor, startupCostFor as clientStartup, miningProjection, bestThroughput } from "../../public/scripts/miningProjection.js";
+import { ECONOMY, operationCostPerHourFor, startupCostFor, miningProfitPerHourFor, bestThroughputFor, yardUpkeepPerHourFor } from "../../server/economy.js";
+import { costPerHourFor, startupCostFor as clientStartup, miningProjection, bestThroughput, yardUpkeepPerHourFor as clientUpkeep } from "../../public/scripts/miningProjection.js";
 
 const operations = ECONOMY.operations;
 const SILICATES = ECONOMY.npcBuyers.find((b) => b.item === "Silicates");
@@ -40,6 +40,16 @@ describe("the panel's projection is the server's rule (ISP-86)", () => {
   it("agrees on which rate pays best, which is the number the panel suggests", () => {
     for (const efficiency of [1, 1.1 * 1.06]) {
       expect(bestThroughput({ ...price, efficiency }).throughputPerHour).toBe(bestThroughputFor({ ...serverPrice, efficiency }).throughput);
+    }
+  });
+
+  // ISP-301 (AB#2284): the upkeep a yard after the first pays, from the same bootstrap constants.
+  it("agrees on each yard's upkeep and a later yard's running cost, and prices the startup without the upkeep", () => {
+    for (const i of [0, 1, 2, 3]) expect(clientUpkeep(i, ECONOMY.buildings), `yard ${i}`).toBe(yardUpkeepPerHourFor(i));
+    for (let t = 10; t <= 250; t += 1) {
+      const at = miningProjection(t, { operations, unitPrice: 24, taxPct: 8, upkeepPerHour: clientUpkeep(1, ECONOMY.buildings) });
+      expect(at.costPerHour, `throughput ${t}`).toBe(operationCostPerHourFor(t, undefined, { yardIndex: 1 }));
+      expect(at.startupCost, `throughput ${t}`).toBe(startupCostFor(operationCostPerHourFor(t)));
     }
   });
 

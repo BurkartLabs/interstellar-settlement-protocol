@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
-import { ECONOMY, economyProblems, loadEconomy, buildCostFor, operationCostPerHourFor, startupCostFor } from "../../server/economy.js";
+import { ECONOMY, economyProblems, loadEconomy, buildCostFor, operationCostPerHourFor, startupCostFor, yardUpkeepPerHourFor } from "../../server/economy.js";
 import { officeLeaseCost, officeRenewalCost, OFFICE_TERMS_DAYS } from "../../public/scripts/ceoEffects.js";
 
 // AB#726 (ISP-40): the economy's numbers live in data/economy.json and the server reads them from there. This was a
@@ -15,7 +15,8 @@ const BEFORE_THE_MOVE = {
   office: { rentPerDay: 1000, termDays: [7, 14, 21, 28] },                  // ceoEffects.js OFFICE_PER_DAY, OFFICE_TERMS_DAYS (Bug #1032)
   buildings: {                                                              // build-extractor routes, build-assembly-facility, build-refinery
     extractorYardCost: 50000, extractorYardAssetValue: 36000, assemblyFacilityCost: 60000, assemblyFacilityAssetValue: 40000,
-    refineryCost: 75000, refineryAssetValue: 55000, supplyForecastCostMultiplier: 0.94
+    refineryCost: 75000, refineryAssetValue: 55000, supplyForecastCostMultiplier: 0.94,
+    extractorYardUpkeepPctPerDay: 2                                         // ISP-301 (AB#2284): new, not moved
   },
   operations: { costPerThroughputUnit: 16, minCostPerHour: 600, startupShareOfHourlyCost: 0.35, minStartupCost: 500, throughputReferencePerHour: 420 },
   probes: { buildCost: 8000, assetValue: 5000 },                            // gameState.js PROBE_BUILD_COST, PROBE_ASSET_VALUE
@@ -54,6 +55,22 @@ describe("data/economy.json (AB#726)", () => {
     expect(operationCostPerHourFor(250)).toBe(5417);
     expect(startupCostFor(600)).toBe(500);
     expect(startupCostFor(4000)).toBe(1400);
+  });
+
+  // ISP-301 (AB#2284), ECONOMY.md "Sinks that scale with income" sink 1. Chosen, not derived: the Board has not seen it.
+  it("a corporation's first yard costs what it did at every throughput, and each later yard exactly 41.67 an hour more", () => {
+    const { minCostPerHour, costPerThroughputUnit, throughputReferencePerHour } = ECONOMY.operations;
+    const before = (t) => Math.max(minCostPerHour, Math.round(t * costPerThroughputUnit * (1 + (t / throughputReferencePerHour) ** 2)));
+    expect(yardUpkeepPerHourFor(0)).toBe(0);
+    expect(yardUpkeepPerHourFor(1)).toBe(41.67);
+    expect(yardUpkeepPerHourFor(5)).toBe(41.67);
+    expect(yardUpkeepPerHourFor(-1)).toBe(0);
+    for (let t = 10; t <= 250; t += 1) {
+      expect(operationCostPerHourFor(t), `default, ${t} t/h`).toBe(before(t));
+      expect(operationCostPerHourFor(t, undefined, { yardIndex: 0 }), `first yard, ${t} t/h`).toBe(before(t));
+      expect(operationCostPerHourFor(t, undefined, { yardIndex: 1 }) - before(t), `second yard, ${t} t/h`).toBeCloseTo(41.67, 10);
+      expect(operationCostPerHourFor(t, undefined, { yardIndex: 2 }) - before(t), `third yard, ${t} t/h`).toBeCloseTo(41.67, 10);
+    }
   });
 
   it("every value is a finite positive number, every buyer is named, and the loaded economy cannot be changed at run time", () => {

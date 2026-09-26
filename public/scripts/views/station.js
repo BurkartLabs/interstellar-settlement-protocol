@@ -10,11 +10,12 @@ import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml, stationBuildingCardsHtml } from "../html.js";
 import { activeCycleFigures, extractorState, spentText } from "../leaseLive.js";
 import { probeFabricationStartedText } from "../miningFeedback.js";
-import { bestThroughput, costPerHourFor, miningProjection, startupCostFor as clientStartupCostFor } from "../miningProjection.js";
+import { bestThroughput, costPerHourFor, miningProjection, startupCostFor as clientStartupCostFor, yardUpkeepPerHourFor } from "../miningProjection.js";
 import { clientPrices } from "../clientPrices.js";
 import { leaseFullAdvice } from "../slotAdvice.js";
-import { appState } from "../state.js";
+import { appState, techTree } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
+import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
 import { renderMissions } from "./assignments.js";
 import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHeader, setTab, showTradeConfirmation, stationLocationBanner, updateAllViews } from "./shared.js";
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
@@ -695,7 +696,7 @@ export function renderLeaseManagement(building, lease, data) {
           <label>Duration (hrs)<input type="number" name="hours" min="1" max="72" value="24" style="width:60px;" /></label>
           <button class="btn btn-accent btn-sm" type="submit">Start Cycle</button>
         </form>
-        <p class="muted action-hint lease-mine-projection" data-for="${escapeHtml(ex.id)}">${escapeHtml(mineProjectionText(40))}</p>
+        <p class="muted action-hint lease-mine-projection" data-for="${escapeHtml(ex.id)}">${escapeHtml(mineProjectionText(40, ex.id))}</p>
         <p class="muted action-hint lease-mine-status" data-for="${escapeHtml(ex.id)}"></p>`
       : "";
 
@@ -846,7 +847,7 @@ export function bindLeaseManagementActions(building, lease, data) {
     const line = form.parentElement?.querySelector(`.lease-mine-projection[data-for="${CSS.escape(form.getAttribute("data-extractor-id") || "")}"]`);
     if (!line) return;
     const rate = Math.max(10, Math.min(250, Number(form.querySelector('[name="amount"]')?.value || 40)));
-    line.textContent = mineProjectionText(rate);
+    line.textContent = mineProjectionText(rate, form.getAttribute("data-extractor-id"));
   };
 
   // Mining cycle forms
@@ -882,8 +883,10 @@ export function bindLeaseManagementActions(building, lease, data) {
           const throughputPerHour = Math.max(10, Math.min(250, amount));
           // ISP-86: the same curve the server charges, from the server's own constants.
           const operations = appState.economy?.operations;
-          const operationCostPerHour = costPerHourFor(throughputPerHour, operations);
-          const startupCost = clientStartupCostFor(operationCostPerHour, operations);
+          const baseCostPerHour = costPerHourFor(throughputPerHour, operations);
+          const startupCost = clientStartupCostFor(baseCostPerHour, operations);
+          // AB#2284: upkeep for yards after the first, by the hour only, as the server charges it.
+          const operationCostPerHour = baseCostPerHour + yardUpkeepPerHourFor(yardIndexOf(corp, extractorId), appState.economy?.buildings);
           if ((corp.finances.credits || 0) < startupCost) throw new Error(`Startup requires ${toCurrency(startupCost)} credits.`);
           const ex = corp.mining.silicateExtractors.find((e) => e.id === extractorId);
           if (!ex) throw new Error("Extractor not found.");
@@ -1041,6 +1044,22 @@ export function renderStation(data) {
     },
     onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
   }, clientPrices(appState.economy).assemblyFacilityCost);
+
+  // ── Construction (ISP-95, AB#785): every catalogue building, with Build or the first thing in the way ──
+  renderConstructionPanel(document, appState.playerBuildings || [], data.corp || {}, {
+    accountId: () => appState.accountId,
+    request: async (path, init) => parseJsonResponse(await apiFetch(path, init)),
+    onBuilt: (account) => {
+      appState.data = deepClone(account.state);
+      updateAllViews();
+      pushFeedback(account.receipt?.title || "Construction complete.", "ok");
+      showActionReceipt(account, { returnFocusTo: firstPresent("#station-construction-section h3", ".tab-btn[data-tab='station']") }); // AB#744
+    },
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
+  }, {
+    researchName: (id) => techTree.find((t) => t.id === id)?.name || id,
+    economy: appState.economy
+  });
 
   // ── Licensed Corporate Holdings (Extractor Yards — filtered to current station body) ──
   const stationBody = station.body;
@@ -1203,17 +1222,25 @@ export function bindBuildingActions() {
  * the extractor row itself, because the row is rewritten whenever a cycle ticks and anything written to it
  * afterwards is wiped by the next rewrite.
  */
-export function mineProjectionText(rate) {
+export function mineProjectionText(rate, extractorId) {
   const economy = appState.economy;
   if (!economy?.operations) return "";
   const efficiency = miningEfficiencyOf(appState.data?.corp);
-  const at = miningProjection(rate, { operations: economy.operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency });
-  const best = bestThroughput({ operations: economy.operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency });
+  // ISP-301 (AB#2284): a yard after the corporation's first pays upkeep while it runs, and the line says so.
+  const upkeepPerHour = yardUpkeepPerHourFor(yardIndexOf(appState.data?.corp, extractorId), economy.buildings);
+  const at = miningProjection(rate, { operations: economy.operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour });
+  const best = bestThroughput({ operations: economy.operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour });
   const net = at.profitPerHour >= 0 ? `nets ${toCurrency(at.profitPerHour)}/hour` : `loses ${toCurrency(Math.abs(at.profitPerHour))}/hour`;
-  return `At ${rate} t/h: earns ${toCurrency(at.revenuePerHour)}/hour, costs ${toCurrency(at.costPerHour)}/hour, ${net}. `
+  const upkeep = upkeepPerHour > 0 ? ` (including ${upkeepPerHour.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 })}/hour upkeep, paid by every yard after your first)` : "";
+  return `At ${rate} t/h: earns ${toCurrency(at.revenuePerHour)}/hour, costs ${toCurrency(at.costPerHour)}/hour${upkeep}, ${net}. `
     + (best.throughputPerHour === rate
       ? "That is the best rate for your research."
       : `Best for your research: ${best.throughputPerHour} t/h, netting ${toCurrency(best.profitPerHour)}/hour.`);
+}
+
+/** An extractor's place among the corporation's yards, in build order: 0 is its first, -1 when it is not found. */
+export function yardIndexOf(corp, extractorId) {
+  return (corp?.mining?.silicateExtractors || []).findIndex((e) => e.id === extractorId);
 }
 
 /** What the corporation's research multiplies an hour of extraction by (ISP-86; the server applies the same two). */
