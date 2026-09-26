@@ -72,7 +72,8 @@ describe("where the walkthrough scrolls the control it points at (Bug #1083)", (
 describe("the briefing card leaves room on a phone (Bug #1083)", () => {
   it("is capped at 45vh and scrolls inside, under the phone breakpoint", () => {
     const css = readFileSync(new URL("../../public/styles.css", import.meta.url), "utf8");
-    const rule = css.match(/@media \(max-width: 767px\) \{\s*#walkthrough-modal \.modal-card \{([^}]*)\}/);
+    // AB#763: the rule lives in the app shell's phone query now, beside the room the card leaves for the bottom bar.
+    const rule = css.replace(/\r\n/g, "\n").match(/@media \(max-width: 767px\) \{[^@]*?#walkthrough-modal \.modal-card \{([^}]*)\}/);
     expect(rule, "phone rule for the walkthrough card").toBeTruthy();
     expect(rule[1]).toMatch(/max-height:\s*45vh;/);
     expect(rule[1]).toMatch(/overflow-y:\s*auto;/);

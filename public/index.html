@@ -262,7 +262,27 @@
         </div>
       </header>
 
-      <main class="layout-grid">
+      <div class="layout-grid">
+        <!-- ISP-74 (AB#763): the app shell's navigation, a column beside the content on a desktop and a bar along the
+             bottom on a phone (styles.css, "App shell"). -->
+        <nav class="tab-nav app-nav" aria-label="Game modules">
+          <button class="tab-btn active" data-tab="overview">Overview</button>
+          <button class="tab-btn" data-tab="inbox">Inbox</button>
+          <button class="tab-btn" data-tab="travel" hidden>Travel</button>
+          <button class="tab-btn" data-tab="station">Station</button>
+          <button class="tab-btn" data-tab="finance">Financial Core</button>
+          <button class="tab-btn" data-tab="rnd">Corporate R&D</button>
+          <button class="tab-btn" data-tab="ceo">CEO Insight</button>
+          <button class="tab-btn" data-tab="refinery">Refinery Chains</button>
+          <button class="tab-btn" data-tab="market">Galactic Exchange</button>
+          <button class="tab-btn" data-tab="assets">Assets</button>
+          <button class="tab-btn" data-tab="logistics">Logistics</button>
+          <button class="tab-btn" data-tab="chat">Comms</button>
+          <button class="tab-btn" data-tab="forums">Forums</button>
+          <button class="tab-btn" data-tab="missions">Assignments</button>
+
+          <button class="tab-btn" data-tab="starmap">Starmap</button>
+        </nav>
         <aside class="side-panel">
           <section class="panel-block collapsible-block">
             <button class="section-toggle" type="button" aria-expanded="true" aria-controls="sidebar-identity">
@@ -301,25 +321,7 @@
           </section>
         </aside>
 
-        <section class="main-panel">
-          <nav class="tab-nav" aria-label="Game modules">
-            <button class="tab-btn active" data-tab="overview">Overview</button>
-            <button class="tab-btn" data-tab="inbox">Inbox</button>
-            <button class="tab-btn" data-tab="travel" hidden>Travel</button>
-            <button class="tab-btn" data-tab="station">Station</button>
-            <button class="tab-btn" data-tab="finance">Financial Core</button>
-            <button class="tab-btn" data-tab="rnd">Corporate R&D</button>
-            <button class="tab-btn" data-tab="ceo">CEO Insight</button>
-            <button class="tab-btn" data-tab="refinery">Refinery Chains</button>
-            <button class="tab-btn" data-tab="market">Galactic Exchange</button>
-            <button class="tab-btn" data-tab="assets">Assets</button>
-            <button class="tab-btn" data-tab="logistics">Logistics</button>
-            <button class="tab-btn" data-tab="chat">Comms</button>
-            <button class="tab-btn" data-tab="forums">Forums</button>
-            <button class="tab-btn" data-tab="missions">Assignments</button>
-
-            <button class="tab-btn" data-tab="starmap">Starmap</button>
-          </nav>
+        <main class="main-panel">
 
           <article id="overview" class="tab-panel active">
             <h2>Executive Situation Brief</h2>
@@ -987,8 +989,8 @@
             <div id="starmap-fallback" class="starmap-fallback" hidden></div>
             <div id="map-details" class="panel-block"></div>
           </article>
-        </section>
-      </main>
+        </main>
+      </div>
     </div>
 
     <!-- Contract briefing (AB#1832): at body level, not in #missions, whose .tab-panel backdrop-filter would pin a fixed modal to the scrolled panel. -->
