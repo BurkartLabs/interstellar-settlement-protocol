@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { getApp } from "../helpers/app.js";
-import { registerAccount, authed } from "../helpers/api.js";
+import { registerAccount, authed, longLivedAccessToken } from "../helpers/api.js";
 import { mutateAccountState } from "../../server/gameState.js";
 
 // Bug #1097: payroll through the real routes and the real ticker. The clock is moved with a fake Date (Date only;
@@ -12,7 +12,8 @@ afterEach(() => { vi.useRealTimers(); });
 
 async function corporation(credits) {
   const { app } = await getApp();
-  const { account, accessToken } = await registerAccount(app);
+  const { account } = await registerAccount(app);
+  const accessToken = await longLivedAccessToken(account.id); // AB#2294: outlives the clock moves below
   mutateAccountState(account.id, (state) => {
     state.corp.finances.credits = credits;
     state.corp.employeeCap = 20;

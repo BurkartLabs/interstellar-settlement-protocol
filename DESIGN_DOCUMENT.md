@@ -85,7 +85,7 @@ Each game system has its own module under `server/game/`, and a module holds one
 
 ## Authentication
 
-- **Real accounts**: email + bcrypt password → JWT access token (7-day) + refresh token (30-day); tokens stored server-side for revocation
+- **Real accounts**: email + bcrypt password → JWT access token (30-minute since AB#2294, renewed by the page) + refresh token (30-day); tokens stored server-side for revocation
 - **Dummy account** (`dummy@isp.local`): special pre-seeded account for unauthenticated play; access token expires in 2 hours; progress persists across restarts; reset only via `POST /api/auth/dummy-reset`
 - All account-scoped routes guarded by `requireAuth` (JWT verification) + `requireAccountAccess` (token subject must match `:accountId` param)
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeAll, afterAll } from "vitest";
 import { io as connect } from "socket.io-client";
 import { getApp, serverUrl } from "../helpers/app.js";
-import { registerAccount, authed } from "../helpers/api.js";
+import { registerAccount, authed, longLivedAccessToken } from "../helpers/api.js";
 import { mutateAccountState, getAccountById } from "../../server/gameState.js";
 
 // ISP-279 (AB#986): the Logistics tab moves a shipment to history (or shows it held) with no reload. The socket
@@ -24,7 +24,8 @@ afterEach(() => {
 
 async function corpAtEarthWithMarsStock() {
   const { app } = await getApp();
-  const { account, accessToken } = await registerAccount(app);
+  const { account } = await registerAccount(app);
+  const accessToken = await longLivedAccessToken(account.id); // AB#2294: outlives the clock moves below
   mutateAccountState(account.id, (state) => {
     state.corp.currentStationId = "earth-station-prime";
     state.corp.inventory = { "mars-orbital-dock": { Silicates: 50 } };

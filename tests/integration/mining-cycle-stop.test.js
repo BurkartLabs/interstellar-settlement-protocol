@@ -4,12 +4,13 @@
 // (AB#1448), not recomputed here, so it can never disagree with what a normal tick would have charged.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { getApp } from "../helpers/app.js";
-import { registerAccount, authed } from "../helpers/api.js";
+import { registerAccount, authed, longLivedAccessToken } from "../helpers/api.js";
 import { mutateAccountState, getAccountById } from "../../server/gameState.js";
 
 async function corpWithActiveExtractor({ startedAt, hours = 24, throughputPerHour = 600, operationCostPerHour = 0, extractorId = "ext-basic-1", leaseId = "lease-1052" }) {
   const { app } = await getApp();
-  const { account, accessToken } = await registerAccount(app);
+  const { account } = await registerAccount(app);
+  const accessToken = await longLivedAccessToken(account.id); // AB#2294: outlives the clock moves below
   mutateAccountState(account.id, (state) => {
     const corp = state.corp;
     corp.offices = [{ stationId: "earth-station-prime", rentedAt: startedAt, rentedUntil: startedAt + 30 * 86_400_000, durationDays: 30 }];

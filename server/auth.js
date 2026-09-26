@@ -5,7 +5,12 @@ import jwt from "jsonwebtoken";
 import { accountExists, passwordChangedAtOf, storeRefreshToken } from "./gameState.js";
 import { IS_DEV, DEV_SURFACE } from "./app.js";
 
-const ACCESS_TOKEN_SECONDS = 7 * 24 * 60 * 60;
+// AB#2294: 30 minutes, down from 7 days. The page renews it before it lapses and on any 401 (AB#757), so a player never
+// sees it expire; what the shorter life buys is the window a stolen access token alone stays good for, which no
+// password reset or logout closes when the token is never presented to them. 30 rather than 15: a renewal per tab
+// every half hour, and each rotates the shared refresh cookie (Bug #2300), so the shorter end doubles that for a
+// window already cut by a factor of 336.
+const ACCESS_TOKEN_SECONDS = 30 * 60;
 const DUMMY_ACCESS_TOKEN_SECONDS = IS_DEV ? 7 * 24 * 60 * 60 : 2 * 60 * 60;
 const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
 // Refuses to start without a real secret, except on the dev surface (Bug #589: it fell back to a string in the source).
