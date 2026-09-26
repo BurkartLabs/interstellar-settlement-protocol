@@ -8,7 +8,7 @@ import { escapeHtml, refineryBuildButtonHtml } from "../html.js";
 import { refineMinimum, refineQuantityCheck, refineQuantityFieldValue } from "../refineQuantity.js";
 import { appState } from "../state.js";
 import { clientPrices } from "../clientPrices.js";
-import { refineryOutput } from "../refineryOutput.js"; // ISP-97 (AB#787): a Refinery Complex's run delivers 1.5 times
+import { refineryMultiplierFor, refineryOutput } from "../refineryOutput.js"; // ISP-97 (AB#787), AB#794: output by tier
 import { cycleProgressPercent, pushFeedback, updateAllViews } from "./shared.js";
 
 // TODO(AB#824): Remove duplicate. This should be stored in the database
@@ -51,7 +51,7 @@ export function renderRefinery(data) {
       const remainingMs = Math.max(0, Number(ref.endsAt || 0) - Date.now());
       const scale = Math.max(1, Number(ref.cycleScale || 1));
       const totalInput = chain ? Number(chain.inputQuantityPerCycle || 100) * scale : 0;
-      const multiplier = appState.economy?.buildings?.refineryComplexOutputMultiplier;
+      const multiplier = refineryMultiplierFor(ref.tier, appState.economy?.buildings); // AB#794: this refinery's tier
       const outputLabel = chain
         ? chain.outputs.map((o) => `${refineryOutput(o.quantityPerCycle, scale, ref.tier, multiplier)} ${o.item}`).join(", ")
         : "Unknown";

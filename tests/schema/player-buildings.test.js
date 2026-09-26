@@ -40,7 +40,7 @@ describe("data/player-buildings.json (AB#783)", () => {
     expect(playerBuildingProblems(FILE)).toEqual([]);
     expect(PLAYER_BUILDING_CATALOGUE.map((b) => b.id)).toEqual(["basic-extractor-yard", "assembly-facility", "refinery", "ferric-mining-complex", "refinery-complex"]);
     for (const b of PLAYER_BUILDING_CATALOGUE) {
-      const shape = ["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot", ...(b.slot === "upgrade" ? ["upgrades"] : [])];
+      const shape = ["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot", "tiers", ...(b.slot === "upgrade" ? ["upgrades"] : [])]; // tiers: ISP-102 (AB#794)
       expect(Object.keys(b).sort(), b.id).toEqual(shape.sort()); // an upgrade names what it upgrades (ISP-97)
       expect(b.cost, b.id).toBe(ECONOMY.buildings[`${b.price}Cost`]);
       expect(b.assetValue, b.id).toBe(ECONOMY.buildings[`${b.price}AssetValue`]);

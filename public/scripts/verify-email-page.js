@@ -24,8 +24,8 @@ function verified() {
   status.textContent = "";
   button.hidden = true;
   newLink.hidden = true;
-  login.classList.remove("btn-hero-secondary");
-  login.classList.add("btn-hero-fill");
+  login.classList.remove("ui-button--secondary");
+  login.classList.add("ui-button--primary"); // AB#765: Log In becomes the page's one primary
 }
 
 if (!token) spent("This link is incomplete. Open the whole link from the email, or ask for a new one.");

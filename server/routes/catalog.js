@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { ECONOMY } from "../economy.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
+import { MILESTONE_LEVELS } from "../game/catalog.js";
+import { PROBE_FABRICATION_MS } from "../game/asteroids.js";
 import { getState, CEO_INSIGHT_LIBRARY, RESEARCH_LIBRARY, MISSION_AGENTS_DATA, REPUTATION_TIERS_DATA } from "../gameState.js";
 import { APP_VERSION, __dirname } from "../app.js";
 import { verifyAccessToken, getBearerToken } from "../auth.js";
@@ -47,7 +49,12 @@ export function registerCatalogRoutes(app) {
         // in the browser, so a balance change to data/economy.json reaches the page it is shown on.
         employees: ECONOMY.employees,
         buildings: ECONOMY.buildings,
-        probes: ECONOMY.probes
+        probes: ECONOMY.probes,
+        // ISP-103 (AB#795): the highest building tier each level allows (data/milestones.json), so the upgrade control
+        // can say which level opens the next tier.
+        // ISP-102 (AB#794): how long a probe takes before any tier, for the Assembly Facility's upgrade control.
+        probeFabricationMs: PROBE_FABRICATION_MS,
+        upgradeTierByLevel: MILESTONE_LEVELS.map((l) => ({ level: l.level, maxUpgradeTier: Number(l.unlocks?.maxUpgradeTier) || 1 }))
       },
       // AB#783: what a corporation can build, read-only: the same for every caller, and nothing of any player's.
       playerBuildings: PLAYER_BUILDING_CATALOGUE

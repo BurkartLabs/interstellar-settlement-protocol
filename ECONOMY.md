@@ -31,6 +31,17 @@ question in the retune (AB#728).
 | `buildings.refineryComplexOutputMultiplier` | 1.5 | An upgraded refinery's run delivers this many times each output, rounded down to whole units: a 60-unit output arrives as 90, a 15-unit one as 22. From the design (v0.6-01); refined outputs have no NPC buyer, so what it is worth rests on the player market. |
 | `buildings.supplyForecastCostMultiplier` | 0.94 | Supply Forecast research takes 6% off a yard or refinery: 3,000 on an extractor yard. It is small next to the research's other effect, +6% output. |
 | `buildings.extractorYardUpkeepPctPerDay` | 2 | Every extractor yard after a corporation's first adds 2% of the yard's price per running day to its hourly running cost: 50,000 x 2% / 24 = 41.67 an hour, after the 600 floor, and not in the startup (ISP-301, AB#2284; sink 1 of "Sinks that scale with income" below). A one-yard corporation never pays it; one short of credit mines less and owes nothing. Chosen, not derived: the Board has not seen it. |
+| `buildings.extractorYardPriceGrowth` | 1.25 | Each extractor yard costs a quarter more than the last: the n-th is `extractorYardCost x 1.25^(n-1)` rounded to the nearest 1,000, so 50,000, 63,000, 78,000, 98,000, 122,000 and 153,000 for yards 1 to 6, with the Supply Forecast discount after (ISP-303, AB#2286; sink 3 of "Sinks that scale with income" below). A yard already built keeps its book value (`extractorYardAssetValue`); only the next purchase costs more. The rule is `public/scripts/yardPrice.js`, shared by the build and the page. Chosen, not derived: the Board has not seen it. |
+| `buildings.assemblyFacilityUpgrades.toTier` | 2 | The Assembly Facility's one upgrade (ISP-102, AB#794; docs/design/upgrades.md). Chosen, not derived: the Board has not seen it. |
+| `buildings.assemblyFacilityUpgrades.upgradeCost` | 30,000 | Half the facility's own price: worth it only to a corporation whose expeditions wait on probes. |
+| `buildings.assemblyFacilityUpgrades.assetValue` | 21,000 | 70% of the upgrade's cost, as every upgrade books. |
+| `buildings.assemblyFacilityUpgrades.offlineHours` | 2 | No probe can be fabricated while it upgrades. |
+| `buildings.assemblyFacilityUpgrades.fabricationTimePct` | 50 | A probe takes half as long: 15 minutes instead of 30 (`PROBE_FABRICATION_MS`). The probe's price does not change. |
+| `buildings.refineryUpgrades.toTier` | 3 | The Refinery's tier 3 (ISP-102, AB#794). Its tier 2 is the Refinery Complex (AB#787), priced by `buildings.refineryComplexCost`, `...AssetValue` and `...OutputMultiplier`, whether it is built or bought as an upgrade; the upgrade route takes it with no downtime, as the build does. |
+| `buildings.refineryUpgrades.upgradeCost` | 150,000 | Half again the Complex's price, for another half of output. A Refinery has no running cost, so what decides it is ore to feed it and a buyer for the output (docs/design/upgrades.md). |
+| `buildings.refineryUpgrades.assetValue` | 105,000 | 70% of the upgrade's cost. |
+| `buildings.refineryUpgrades.offlineHours` | 8 | No production run can start while it upgrades. |
+| `buildings.refineryUpgrades.outputMultiplier` | 2 | Each run delivers twice `quantityPerCycle` of every output from the same input (`refineryMultiplierFor`, shared by the tick, the receipt and the page). |
 | `buildings.extractorYardUpgrades.toTier` | 2, 3, 4, 5 | The tier each upgrade takes an extractor yard to (ISP-101, AB#793; the design and why is docs/design/upgrades.md, AB#791). Tier 1 is the yard as built: `operations.throughputReferencePerHour` and the 250 cap. A yard's last tier is 1 plus the number of upgrades listed. Chosen, not derived: the Board has not seen these. |
 | `buildings.extractorYardUpgrades.upgradeCost` | 40,000, 60,000, 90,000, 135,000 | The price of each upgrade: `40,000 x 1.5^(tier - 2)`, OGame's `base x factor^(level - 1)` with its factor for mines. It rises half again a tier while what a tier adds rises a quarter, so each tier pays back more slowly (docs/design/upgrades.md). |
 | `buildings.extractorYardUpgrades.assetValue` | 28,000, 42,000, 63,000, 94,500 | Added to book value by each upgrade: 70% of its cost, the share the Refinery Complex uses (docs/design/buildings.md). |
@@ -333,7 +344,7 @@ rationale), for the Director to either rewrite the target or confirm it should b
 ## Sinks that scale with income (ISP-88, AB#778)
 
 **A design, then code, one sink at a time.** Each sink is one implementation story, and its key joins the table at the
-top of this file when that story lands. Sink 1, yard upkeep, has (ISP-301, AB#2284); sinks 2 and 3 have not.
+top of this file when that story lands. Sink 1, yard upkeep (ISP-301, AB#2284), and sink 3, the rising yard price (ISP-303, AB#2286), have; sink 2 has not.
 
 **The problem, as it stands now.** Monetization review #1 found credits piling up past minute 120 with nothing to
 want: about 13 sinks, all one-off except payroll and rent. Review #2 and the ISP-42 re-run above found the

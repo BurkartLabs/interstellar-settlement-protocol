@@ -16,6 +16,8 @@ import { leaseFullAdvice } from "../slotAdvice.js";
 import { appState, techTree } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
 import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
+import { nextYardPriceFor } from "../yardPrice.js"; // ISP-303 (AB#2286)
+import { facilityUpgradeHtml, facilityUpgradeView, upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795), ISP-102 (AB#794)
 import { renderMissions } from "./assignments.js";
 import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHeader, setTab, showTradeConfirmation, stationLocationBanner, updateAllViews } from "./shared.js";
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
@@ -51,6 +53,48 @@ export function showStationBuilding(buildingId) {
   }
   renderBuildingDetail(building, appState.data);
   setTab("station");
+}
+
+/**
+ * ISP-103 (AB#795), ISP-102 (AB#794): post an upgrade the player has confirmed, draw the page from the account that
+ * comes back (no reload), and show the receipt. One path for a yard's row and a facility's card; the server checks
+ * everything again and a refusal is shown in the control's status line.
+ */
+async function postUpgrade(buildingId, btn, statusEl, { redraw = () => {}, focus } = {}) {
+  btn.disabled = true;
+  if (statusEl) statusEl.textContent = "Upgrading...";
+  try {
+    const response = await apiFetch(upgradePath(appState.accountId, buildingId), { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    const account = await parseJsonResponse(response);
+    appState.data = deepClone(account.state);
+    appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+    updateAllViews();
+    redraw();
+    showActionReceipt(account, { returnFocusTo: focus });
+  } catch (error) {
+    btn.disabled = false;
+    if (statusEl) statusEl.textContent = error?.message || "The upgrade was refused.";
+  }
+}
+
+/** ISP-102 (AB#794): a facility card's Upgrade: confirm with the tier's before and after, then postUpgrade. */
+async function upgradeFacility(buildingId) {
+  const building = (appState.data?.corp?.buildings || []).find((b) => b.id === buildingId);
+  const view = building ? facilityUpgradeView(building, appState.data.corp, appState.economy, appState.playerBuildings || []) : null;
+  if (!view?.next || view.locked || view.blocked || !appState.accountId) return;
+  const btn = document.querySelector(`.yard-upgrade[data-upgrade-for="${CSS.escape(buildingId)}"] button`);
+  const statusEl = document.querySelector(`.yard-upgrade-status[data-for="${CSS.escape(buildingId)}"]`);
+  const confirmed = await showTradeConfirmation({
+    heading: `Upgrade ${building.name}`,
+    title: `Upgrade the ${building.name} to tier ${view.next.tier}?`,
+    confirmLabel: `Upgrade (${toCurrency(view.next.cost)})`,
+    rows: [
+      { label: "Cost", value: `${toCurrency(view.next.cost)} credits` },
+      { label: "What changes", value: view.change.replace(/&times;/g, "×").replace(/&rarr;/g, "→").replace(/&middot;/g, "·") }
+    ]
+  });
+  if (!confirmed || !btn) return;
+  await postUpgrade(buildingId, btn, statusEl, { focus: firstPresent(`.yard-upgrade[data-upgrade-for="${CSS.escape(buildingId)}"] button`, ".nav-tab[data-tab='station']") });
 }
 
 export function renderBuildingDetail(building, data) {
@@ -600,7 +644,7 @@ export function renderLeaseManagement(building, lease, data) {
   const usedSlots = extractors.length;
   const totalSlots = lease.buildingSlots || 2;
   const hasSlotAvailable = usedSlots < totalSlots;
-  const buildCost = clientPrices(appState.economy).extractorYardCost;
+  const buildCost = nextYardPriceFor(corp, appState.economy?.buildings); // AB#2286: the next yard's price, discount included
   const canAffordBuild = (corp?.finances?.credits || 0) >= buildCost;
 
   const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
@@ -707,17 +751,21 @@ export function renderLeaseManagement(building, lease, data) {
         <p class="muted action-hint lease-stop-status" data-for="${escapeHtml(ex.id)}"></p>`
       : "";
 
-    const mineFormVisible = !ex.active && !ex.downtimeActive;
+    // ISP-103 (AB#795): a yard being upgraded is offline; the upgrade control says until when.
+    const upgrading = Number(ex.upgradingUntil) > Date.now();
+    const mineFormVisible = !ex.active && !ex.downtimeActive && !upgrading;
+    const upgradeHtml = yardUpgradeHtml(yardUpgradeView(ex, data.corp, appState.economy, { efficiency: miningEfficiencyOf(data.corp) }), ex.id);
     extractorRows += `
       <div class="extractor-row ${statusClass}" data-live-ex="${escapeHtml(ex.id)}" data-live-state="${extractorState(ex)}">
         <div class="extractor-row-header">
           <strong>${escapeHtml(ex.name)}</strong>
-          <span class="building-status-badge ${statusClass}">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : "Idle")}</span>
+          <span class="building-status-badge ${statusClass}">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : (upgrading ? "Upgrading" : "Idle"))}</span>
         </div>
         ${ex.downtimeActive ? cycleInfo : (ex.active ? "" : cycleInfo)}
         ${progressBarHtml}
         ${mineFormVisible ? mineFormHtml : ""}
         ${ex.active ? stopButtonHtml : ""}
+        ${upgradeHtml}
       </div>
     `;
   }
@@ -805,7 +853,8 @@ export function bindLeaseManagementActions(building, lease, data) {
         } else {
           // Demo account fallback
           const corp = appState.data.corp;
-          const { extractorYardCost: cost, extractorYardAssetValue } = clientPrices(appState.economy);
+          const { extractorYardAssetValue } = clientPrices(appState.economy);
+          const cost = nextYardPriceFor(corp, appState.economy?.buildings); // AB#2286
           if ((corp.finances.credits || 0) < cost) throw new Error(`Construction requires ${toCurrency(cost)} credits.`);
           if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];
           const nextIndex = corp.mining.silicateExtractors.length + 1;
@@ -913,6 +962,36 @@ export function bindLeaseManagementActions(building, lease, data) {
   });
 
   // AB#1052: stop a running cycle early, keeping what has been mined and settling the cost for the time used.
+  // ISP-103 (AB#795): upgrade a yard by one tier. The control was drawn from the server's tier table; the server checks
+  // everything again, and the page draws itself from the account that comes back.
+  document.querySelectorAll(".yard-upgrade-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const extractorId = btn.getAttribute("data-extractor-id");
+      const buildingId = btn.getAttribute("data-upgrade-building");
+      const ex = (appState.data?.corp?.mining?.silicateExtractors || []).find((e) => e.id === extractorId);
+      const view = ex ? yardUpgradeView(ex, appState.data.corp, appState.economy, { efficiency: miningEfficiencyOf(appState.data.corp) }) : null;
+      const statusEl = document.querySelector(`.yard-upgrade-status[data-for="${CSS.escape(extractorId)}"]`);
+      if (!view?.next || view.locked || view.blocked || !appState.accountId) return;
+      const { next } = view;
+      const confirmed = await showTradeConfirmation({
+        heading: "Upgrade Extractor Yard",
+        title: `Upgrade ${ex.name} to tier ${next.tier}?`,
+        confirmLabel: `Upgrade (${toCurrency(next.cost)})`,
+        rows: [
+          { label: "Cost", value: `${toCurrency(next.cost)} credits` },
+          { label: "Cap", value: `${next.before.cap} → ${next.after.cap} t/h` },
+          { label: "Best rate", value: `${next.before.rate} → ${next.after.rate} t/h, netting ${toCurrency(next.before.netPerHour)} → ${toCurrency(next.after.netPerHour)}/h` },
+          { label: "Offline", value: `${next.offlineHours} hours while it upgrades: no cycle can run` }
+        ]
+      });
+      if (!confirmed) return;
+      await postUpgrade(buildingId, btn, statusEl, {
+        redraw: () => renderBuildingDetail(building, appState.data),
+        focus: firstPresent(`.yard-upgrade[data-upgrade-for="${CSS.escape(extractorId)}"] button`, ".lease-mine-form button[type=submit]")
+      });
+    });
+  });
+
   document.querySelectorAll(".lease-stop-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const extractorId = btn.getAttribute("data-extractor-id");
@@ -1045,8 +1124,10 @@ export function renderStation(data) {
       pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok");
       showActionReceipt(account, { returnFocusTo: firstPresent('[data-corp-building="Assembly Facility"]', ".nav-tab[data-tab='station']") }); // AB#744
     },
-    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
-  }, clientPrices(appState.economy).assemblyFacilityCost);
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn"),
+    onUpgrade: (buildingId) => upgradeFacility(buildingId) // ISP-102 (AB#794)
+  }, clientPrices(appState.economy).assemblyFacilityCost,
+  (b) => facilityUpgradeHtml(facilityUpgradeView(b, data.corp, appState.economy, appState.playerBuildings || [])));
 
   // ── Construction (ISP-95, AB#785): every catalogue building, with Build or the first thing in the way ──
   renderConstructionPanel(document, appState.playerBuildings || [], data.corp || {}, {

@@ -18,6 +18,13 @@ const BEFORE_THE_MOVE = {
     extractorYardCost: 50000, extractorYardAssetValue: 36000, assemblyFacilityCost: 60000, assemblyFacilityAssetValue: 40000,
     refineryCost: 75000, refineryAssetValue: 55000, supplyForecastCostMultiplier: 0.94,
     extractorYardUpkeepPctPerDay: 2,                                        // ISP-301 (AB#2284): new, not moved
+    extractorYardPriceGrowth: 1.25,                                         // ISP-303 (AB#2286): new, not moved
+    assemblyFacilityUpgrades: [                                             // ISP-102 (AB#794): new, not moved
+      { toTier: 2, upgradeCost: 30000, assetValue: 21000, offlineHours: 2, fabricationTimePct: 50 }
+    ],
+    refineryUpgrades: [                                                     // ISP-102 (AB#794): tier 3; tier 2 is the Refinery Complex
+      { toTier: 3, upgradeCost: 150000, assetValue: 105000, offlineHours: 8, outputMultiplier: 2 }
+    ],
     extractorYardUpgrades: [                                                // ISP-101 (AB#793): new, not moved
       { toTier: 2, upgradeCost: 40000, assetValue: 28000, offlineHours: 6, throughputReferencePerHour: 525, throughputCap: 313 },
       { toTier: 3, upgradeCost: 60000, assetValue: 42000, offlineHours: 12, throughputReferencePerHour: 656, throughputCap: 391 },
