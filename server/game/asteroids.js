@@ -1,7 +1,7 @@
 // server/game/asteroids.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import { ECONOMY } from "../economy.js";
-import { BASE_MAX_DEPLOYMENTS, MINEABLE_RESOURCES, STATION_REGISTRY_CACHE, createId, getStationInventory } from "./catalog.js";
+import { BASE_MAX_DEPLOYMENTS, MINEABLE_RESOURCES, STATION_REGISTRY_CACHE, SYSTEMS_BY_ID, SYSTEMS_DATA, createId, getStationInventory } from "./catalog.js";
 import { bumpStat } from "./progression.js";
 import { countBuilt, playerBuilding } from "../playerBuildings.js";
 
@@ -32,28 +32,30 @@ export function ferricBonus(corp, yields) {
   If no asteroid belt is present, it will have a 20% chance of spawning each hour at xx:00. The specific composition of the belt
   should be random. 
 */
-export const BELT_COMPOSITIONS = {
-  "sol:belt":          { "Silicates": 35, "Carbon": 25, "Nickel": 20, "Water Ice": 15, "Titanium": 5 },
-  "alpha-centauri:ac-belt": { "Silicates": 25, "Nickel": 22, "Titanium": 18, "Carbon": 15, "Hydrogen": 12, "Lithium": 8 },
-  "barnards-star:bn-rift":  { "Nickel": 25, "Titanium": 22, "Carbon": 18, "Silicates": 15, "Hydrogen": 12, "Cobalt": 8 },
-  "wolf-359:wf-shards":     { "Titanium": 20, "Nickel": 18, "Rare Earths": 16, "Lithium": 14, "Carbon": 12, "Cobalt": 10, "Thorium": 10 },
-  "tau-ceti:tc-cloud":      { "Rare Earths": 18, "Cobalt": 16, "Thorium": 14, "Titanium": 14, "Nickel": 12, "Helium-3": 10, "Lithium": 8, "Uranium": 8 },
-  "epsilon-eridani:ee-crown":{ "Rare Earths": 15, "Thorium": 14, "Uranium": 12, "Cobalt": 12, "Exotic Matter": 8, "Helium-3": 10, "Titanium": 10, "Lithium": 10, "Nickel": 9 }
-};
+/**
+ * ISP-112 (AB#804): each belt's composition is its Field body's `composition` in data/systems.json, keyed
+ * "<system id>:<body id>" as a scout and an expedition name it.
+ */
+const BELT_COMPOSITION_BY_KEY = new Map(SYSTEMS_DATA.flatMap((system) =>
+  (system.bodies || []).filter((b) => b.composition).map((b) => [`${system.id}:${b.id}`, Object.freeze({ ...b.composition })])));
+
+/** Every belt a corporation can scout or send an expedition to. */
+export const BELT_KEYS = Object.freeze([...BELT_COMPOSITION_BY_KEY.keys()]);
+
+/** A belt's composition (resource: weight), or null for a key the catalog does not have. */
+export function beltComposition(beltKey) {
+  return BELT_COMPOSITION_BY_KEY.get(beltKey) || null;
+}
 
 // Rarity tiers control yield multiplier and the chance of bonus "jackpot" drops
 /* 
   TODO(AB#1050): Rarity should be more dynamic. It shouldn't be impossible for an exotic Asteroid Belt to spawn within Sol, but it 
   should be less common than say Epsilon Eridani
 */
-export const SYSTEM_RARITY = {
-  sol:                "common",
-  "alpha-centauri":   "uncommon",
-  "barnards-star":    "uncommon",
-  "wolf-359":         "rare",
-  "tau-ceti":         "rare",
-  "epsilon-eridani":  "exotic"
-};
+/** ISP-112 (AB#804): a system's rarity is its `rarity` in data/systems.json. */
+export function systemRarity(systemId) {
+  return SYSTEMS_BY_ID.get(systemId)?.rarity || null;
+}
 
 // TODO(AB#822): In addition to rarity improving yields, it should also determine what types of raw resources are available
 export const RARITY_YIELD_MULTIPLIER = { common: 1.0, uncommon: 1.15, rare: 1.35, exotic: 1.6 };
@@ -172,14 +174,16 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
     if (elapsedMs <= 0 && now < completesAt) return;
 
     // Determine belt composition
-    const composition = BELT_COMPOSITIONS[exp.beltKey];
+    const composition = beltComposition(exp.beltKey);
     if (!composition) {
       exp.status = "completed";
       expeditionsToRemove.push(exp.id);
       return;
     }
 
-    const rarity = SYSTEM_RARITY[exp.systemId] || "common"; // TODO(AB#804): Should we really be defaulting to common? In what circumstances is SYSTEM_RARITY[exp.systemId] null?
+    // AB#804: every system in the catalog has a rarity (tests/schema/data-files.test.js); "common" is only for an
+    // expedition sent to a system since taken out of the catalog.
+    const rarity = systemRarity(exp.systemId) || "common";
     const rarityMult = RARITY_YIELD_MULTIPLIER[rarity];
     const durationDef = EXPEDITION_DURATIONS[exp.duration] || EXPEDITION_DURATIONS.standard;
     const tickMult = durationDef.tickYieldMultiplier;

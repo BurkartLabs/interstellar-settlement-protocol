@@ -3,8 +3,9 @@ import {
   REFINERY_CHAINS,
   CEO_INSIGHT_LIBRARY,
   MISSION_TEMPLATES,
-  SYSTEM_DETAILS,
-  BELT_COMPOSITIONS,
+  SYSTEMS_BY_ID,
+  BELT_KEYS,
+  beltComposition,
   EXPEDITION_DURATIONS,
   EXPEDITION_LAUNCH_COST,
   PROBE_BUILD_COST,
@@ -86,14 +87,15 @@ describe("Catalog libraries", () => {
     expect(new Set(ids).size).toBe(ids.length); // unique ids
   });
 
-  it("SYSTEM_DETAILS includes sol with bodies array", () => {
-    expect(SYSTEM_DETAILS.sol).toBeDefined();
-    expect(Array.isArray(SYSTEM_DETAILS.sol.bodies)).toBe(true);
-    expect(SYSTEM_DETAILS.sol.bodies.length).toBeGreaterThan(0);
+  it("the systems catalog includes sol with bodies array", () => {
+    expect(SYSTEMS_BY_ID.get("sol")).toBeDefined();
+    expect(Array.isArray(SYSTEMS_BY_ID.get("sol").bodies)).toBe(true);
+    expect(SYSTEMS_BY_ID.get("sol").bodies.length).toBeGreaterThan(0);
   });
 
-  it("BELT_COMPOSITIONS percentages sum near 100 for each belt", () => {
-    for (const [beltKey, comp] of Object.entries(BELT_COMPOSITIONS)) {
+  it("each belt's composition percentages sum near 100", () => {
+    expect(BELT_KEYS.length).toBeGreaterThan(0);
+    for (const [beltKey, comp] of BELT_KEYS.map((k) => [k, beltComposition(k)])) {
       const sum = Object.values(comp).reduce((a, b) => a + b, 0);
       expect(sum, `belt ${beltKey} sum`).toBeGreaterThanOrEqual(95);
       expect(sum, `belt ${beltKey} sum`).toBeLessThanOrEqual(105);

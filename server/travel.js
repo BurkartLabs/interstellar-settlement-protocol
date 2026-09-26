@@ -1,22 +1,20 @@
 // server/travel.js: star systems, stations and travel times, split out of server/index.js (AB#1815).
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { systemHops } from "../public/scripts/navigation.js";
+import { NAVIGATION, SYSTEMS_DATA } from "./game/catalog.js";
 import { IS_DEV, __dirname } from "./app.js";
 
-// ── Jumps between systems: public/scripts/navigation.js holds the map (AB#718), shared with the transfer fee ──
+// ── Jumps between systems: data/systems.json's routes, through public/scripts/navigation.js (AB#718, AB#804) ──
 function getSystemHops(fromId, toId) {
-  return systemHops(fromId, toId) ?? 99; // unreachable fallback
+  return NAVIGATION.systemHops(fromId, toId) ?? 99; // unreachable fallback
 }
 
 // ── Planet ordering within each system (for intra-system hop distance) ──
 // Only planets/fields count as "orbital positions"; moons inherit their parent's index.
 const BODY_ORBITAL_INDEX = {}; // bodyName → positional index within its system
 const BODY_PARENT = {};        // moonName → parentPlanetName
-const _earlyDir = path.dirname(fileURLToPath(import.meta.url));
-/** The body catalog. Also what a mining lease is resolved against (server/leases.js, Bug #691). */
-const SYSTEMS_CATALOG = JSON.parse(fs.readFileSync(path.join(_earlyDir, "..", "data", "systems.json"), "utf8"));
+/** The body catalog. Also what a mining lease is resolved against (server/leases.js, Bug #691). One copy (AB#804). */
+const SYSTEMS_CATALOG = SYSTEMS_DATA;
 for (const sys of SYSTEMS_CATALOG) {
   let idx = 0;
   for (const b of sys.bodies) {

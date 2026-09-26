@@ -1,11 +1,11 @@
 // server/gameState.js: the game's state, rules and persistence, split by system into server/game/*.js (AB#737).
 // This file only re-exports, so every existing import of it keeps working. New code imports the module it needs.
 
-export { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, REFINERY_CHAINS, RESEARCH_LIBRARY, SYSTEM_DETAILS, dataDir, getStationInventory } from "./game/catalog.js";
+export { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, NAVIGATION, REFINERY_CHAINS, RESEARCH_LIBRARY, SYSTEMS_BY_ID, dataDir, getStationInventory } from "./game/catalog.js";
 export { PLAYER_BUILDINGS, STAT_KEYS, bumpStat, evaluateLevelProgress, fleetRaiseText, fleetStatus, getEffectiveExchangeTaxRate, exchangeTaxBreakdown, refreshExchangeTax, levelReachedNotices, onAccountNotification } from "./game/progression.js";
 export { applyMiningOperations, extractorDowntimeProbPerSec, startExtractorCycle, stopExtractorCycle } from "./game/mining.js";
 export { applyRefineryOperations } from "./game/refining.js";
-export { BASE_MAX_DEPLOYMENTS, BELT_COMPOSITIONS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_ASSET_VALUE, PROBE_BUILD_COST, PROBE_FABRICATION_MS, applyAsteroidExpeditions, splitExactly } from "./game/asteroids.js";
+export { BASE_MAX_DEPLOYMENTS, BELT_KEYS, EXPEDITION_DURATIONS, EXPEDITION_LAUNCH_COST, PROBE_ASSET_VALUE, PROBE_BUILD_COST, PROBE_FABRICATION_MS, applyAsteroidExpeditions, beltComposition, splitExactly } from "./game/asteroids.js";
 export { COMPLETED_COOLDOWN_MS, FIRST_CONTRACT_ID, MISSION_TEMPLATES, MISSION_AGENTS_DATA, REPUTATION_TIERS_DATA, SALVAGE_ASSIGNMENT_ID, materializeOffer, refreshContractOfferings, salvageAssignmentOffer, salvageEligible } from "./game/corporation.js";
 export { CHAT_CHANNELS, FORUM_CATEGORIES, NPC_BUY_SEED, RESERVED_CORPORATION_NAMES, ensureGlobalSocialState, freshGlobalState, normalizeGlobalState, ensureBidShape } from "./game/world.js";
 export { accountExists, addAccountNotification, appendChatMessage, authenticateAccount, backfillCorpPublicIds, createAccount, createCombatReport, getAccountById, getAllAccountIds, getDummyAccount, getState, getStatements, hasRefreshToken, listAccountNotifications, markAllNotificationsRead, markNotificationRead, markWalkthroughCompleted, mergeDummyAccount, mutateAccountState, mutateState, passwordChangedAtOf, removeUnverifiedAccount, resetDummyAccountProgress, resetWalkthroughCompletion, revokeRefreshToken, saveAccountsNow, settleAccountPayroll, storeRefreshToken, storedCombatReportSummary } from "./game/store.js";

@@ -1,15 +1,13 @@
 // server/routes/logistics.js: the logistics routes, split out of server/index.js (AB#1815).
 import { randomUUID } from "node:crypto";
 import { ECONOMY } from "../economy.js";
-import { canReachSystem } from "../../public/scripts/navigation.js";
-import { addAccountNotification, saveAccountsNow, getAccountById, mutateAccountState, RESEARCH_LIBRARY, SYSTEM_DETAILS } from "../gameState.js";
+import { addAccountNotification, saveAccountsNow, getAccountById, mutateAccountState, NAVIGATION, RESEARCH_LIBRARY, SYSTEMS_BY_ID } from "../gameState.js";
 import { getStationInventory } from "../gameState.js";
 import { applyCredits } from "../finances.js";
 import { describeLines, parseTransferRequest, planTransfer } from "../../public/scripts/logistics.js";
 import { transferReceipt, travelReceipt } from "../receipts.js"; // AB#744
 import { transitTime } from "../transfers.js";
 // Bug #1270 (placed here, apart from the navigation.js import at the top that open PRs edit)
-import { travelResearchLock } from "../../public/scripts/navigation.js";
 import { IS_DEV } from "../app.js";
 import { STATION_REGISTRY, SYSTEMS_CATALOG, getInterstellarTravelTimeMs, getTravelTimeMs } from "../travel.js";
 import { systemName } from "../../public/scripts/displayNames.js"; // AB#1336
@@ -36,6 +34,7 @@ export function registerLogisticsRoutes(app) {
       const corp = state.corp;
       const toStationId = corp.currentStationId || null;
       const plan = planTransfer({
+        navigation: NAVIGATION,
         fromStationId: request.fromStationId, toStationId, lines: request.lines,
         inventory: corp.inventory, credits: corp.finances.credits, stations: STATION_REGISTRY, rates: ECONOMY.logistics
       });
@@ -132,7 +131,7 @@ export function registerLogisticsRoutes(app) {
       return;
     }
 
-    if (isInterstellar && !SYSTEM_DETAILS[toSystemId]) {
+    if (isInterstellar && !SYSTEMS_BY_ID.has(toSystemId)) {
       res.status(400).json({ error: "Invalid destination system." });
       return;
     }
@@ -157,7 +156,7 @@ export function registerLogisticsRoutes(app) {
         }
 
         // Research gate: Sol needs none, so a corporation can always come home (Bug #976).
-        if (!canReachSystem(corp.unlockedTech, fromSystemId, toSystemId)) { outcome = "missing-research"; return; }
+        if (!NAVIGATION.canReachSystem(corp.unlockedTech, fromSystemId, toSystemId)) { outcome = "missing-research"; return; }
 
         const durationMs = getInterstellarTravelTimeMs(fromSystemId, toSystemId);
         const now = Date.now();
@@ -221,7 +220,7 @@ export function registerLogisticsRoutes(app) {
         "already-docked": "You are already docked at this station.",
         "already-in-system": "You are already in this system.",
         // Bug #1270: name the research, and what stands before it, from the research library.
-        "missing-research": travelResearchLock(RESEARCH_LIBRARY, account.state.corp.unlockedTech, account.state.corp.level,
+        "missing-research": NAVIGATION.travelResearchLock(RESEARCH_LIBRARY, account.state.corp.unlockedTech, account.state.corp.level,
           account.state.corp.currentSystemId, toSystemId) || "You lack the required navigation research to travel to that system.",
         "wrong-system": "That station is in a different system. Travel to the system first."
       };
