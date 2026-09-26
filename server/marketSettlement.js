@@ -1,0 +1,81 @@
+// Settling a trade against a sell listing: the seller's side, the book and the price history. Taken out of the buy
+// route (server/routes/market.js) for AB#1054, so a listing bought from the book and one filled against a standing buy
+// order pay the seller, tax the sale and tell the seller the same way.
+
+import { addAccountNotification, mutateAccountState, mutateState } from "./gameState.js";
+import { exchangeTaxBreakdown } from "./game/progression.js";
+import { taxOnSale } from "../public/scripts/exchangeTax.js";
+import { applyCredits } from "./finances.js";
+import { publicName } from "./publicViews.js";
+import { recordTrade } from "./priceHistory.js";
+import { emitToAccount } from "./realtime.js";
+import { formatCredits } from "./receipts.js";
+
+/**
+ * Pay the seller of `order` for `quantity` at the listing's price, less the exchange tax, and write their Sold row.
+ * Returns what the seller is told (Bug #1167), or null for a listing with no seller account.
+ */
+export function paySeller(order, quantity, buyerName) {
+  if (!order.sellerAccountId) return null;
+  const total = quantity * Number(order.unitPrice || 0);
+  let sale = null;
+  mutateAccountState(order.sellerAccountId, (state) => {
+    // ISP-302 (AB#2285): the rate includes the lease royalty; its share is booked apart, as "lease-royalty".
+    const breakdown = exchangeTaxBreakdown(state);
+    const taxPct = breakdown.ratePct;
+    const { tax: taxAmount, royalty, salesTax, proceeds } = taxOnSale(total, breakdown);
+    sale = { taxPct, taxAmount, proceeds, buyer: publicName(buyerName) };
+    // Bug #984: the gross the buyer paid is income and the tax an expense; the balance moves by the proceeds.
+    applyCredits(state.corp, total, "exchange");
+    applyCredits(state.corp, -salesTax, "exchange-tax");
+    applyCredits(state.corp, -royalty, "lease-royalty");
+    if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
+    state.corp.tradeHistory.unshift({
+      id: `th-${Date.now() + 1}`,
+      type: "sold",
+      item: order.item,
+      quantity,
+      unitPrice: Number(order.unitPrice || 0),
+      total,
+      taxPct,
+      taxAmount,
+      proceeds,
+      counterparty: sale.buyer,
+      at: Date.now()
+    });
+    state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
+  });
+  return sale;
+}
+
+/** The day's price history takes the trade (AB#715), and the listing loses `quantity`, leaving the book at zero. */
+export function takeFromListing(orderId, item, unitPrice, quantity) {
+  mutateState((draft) => {
+    if (!draft.market.priceHistory) draft.market.priceHistory = {};
+    recordTrade(draft.market.priceHistory, item, Number(unitPrice || 0), quantity);
+    const target = (draft.market.orderBook || []).find((entry) => entry.id === orderId && entry.type === "sell");
+    if (!target) return;
+    target.quantity = Math.max(0, Number(target.quantity || 0) - quantity);
+    if (target.quantity <= 0) draft.market.orderBook = draft.market.orderBook.filter((entry) => entry.id !== target.id);
+  });
+}
+
+/**
+ * Bug #1167: the seller is told, in a notification that waits if they are signed out, and "market:sold" to their own
+ * sockets only (Bug #1021) so an open page reloads its credits and Trade History.
+ */
+export function tellSeller(order, quantity, sale, leftAfterSale) {
+  if (!sale) return;
+  const total = quantity * Number(order.unitPrice || 0);
+  const notification = addAccountNotification(order.sellerAccountId, {
+    type: "market",
+    title: "Listing Sold",
+    body:
+      `${sale.buyer} bought ${quantity.toLocaleString("en-US")} ${order.item} at ${formatCredits(order.unitPrice)} each: ` +
+      `${formatCredits(total)}, less ${formatCredits(sale.taxAmount)} exchange tax (${sale.taxPct}%), ` +
+      `${formatCredits(sale.proceeds)} paid to you. ` +
+      (leftAfterSale > 0 ? `${leftAfterSale.toLocaleString("en-US")} still listed.` : "The listing is sold out.")
+  });
+  if (notification) emitToAccount(order.sellerAccountId, "notifications:new", { accountId: order.sellerAccountId, notification });
+  emitToAccount(order.sellerAccountId, "market:sold", { accountId: order.sellerAccountId });
+}

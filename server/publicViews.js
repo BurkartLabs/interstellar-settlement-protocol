@@ -42,6 +42,14 @@ export function forumsView(forums, viewer = null) {
 }
 
 /** A market order as `viewer` should see it: the seller's name, and whether it is the viewer's own. No account id or station. */
+/** AB#1054: a player's buy order as a client sees it: the buyer by public name, `mine` for its buyer, and neither the
+ *  buyer's account id nor the station its goods go to. */
+export function buyOrderView(order, viewer = null) {
+  if (!order || typeof order !== "object") return order;
+  const { buyerAccountId, stationId, ...rest } = order;
+  return { ...rest, buyer: publicName(rest.buyer), mine: Boolean(viewer) && Boolean(buyerAccountId) && buyerAccountId === viewer };
+}
+
 export function orderView(order, viewer = null) {
   if (!order || typeof order !== "object") return order;
   const { sellerAccountId, stationId, ...rest } = order;

@@ -4,7 +4,7 @@ import { bodyCount } from "../bodyNumber.js";
 import { randomUUID } from "node:crypto";
 import { npcBidFor } from "../economy.js";
 import { accountActionLimiter } from "../rateLimiters.js";
-import { addAccountNotification, getAccountById, getState, mutateAccountState, mutateState, ensureBidShape } from "../gameState.js";
+import { getAccountById, getState, mutateAccountState, mutateState, ensureBidShape } from "../gameState.js";
 import { exchangeTaxBreakdown } from "../game/progression.js"; // ISP-302 (AB#2285): the rate and its royalty share
 import { taxOnSale } from "../../public/scripts/exchangeTax.js";
 import { getStationInventory } from "../gameState.js";
@@ -15,9 +15,11 @@ import { publicName } from "../publicViews.js";
 import { recordTrade, historyFor, PRICE_HISTORY_ITEMS, PRICE_HISTORY_DAYS } from "../priceHistory.js";
 import { requireAuth } from "../auth.js";
 import { checkAndResetNpcBuyOrders } from "../ticks.js";
-import { emitMarketUpdated, emitToAccount } from "../realtime.js";
-import { formatCredits } from "./helpers.js";
-import { buyReceipt, listingReceipt, sellToOrderReceipt } from "../receipts.js"; // AB#744
+import { emitMarketUpdated } from "../realtime.js";
+import { buyOrderReceipt, buyReceipt, listingReceipt, sellToOrderReceipt } from "../receipts.js"; // AB#744
+import { cancelBuyOrder, matchListing, placeBuyOrder } from "../buyOrders.js"; // AB#1054
+import { paySeller, takeFromListing, tellSeller } from "../marketSettlement.js";
+import { buyOrderView } from "../publicViews.js";
 import { STATION_REGISTRY } from "../travel.js";
 
 /** How many sell listings one seller may have open at once (Bug #425). */
@@ -36,8 +38,30 @@ export function registerMarketRoutes(app) {
     // Bug #425: whole numbers of at least 1, or refused (they used to be clamped up to 1).
     const normalizedQty = bodyCount(quantity);
     const normalizedUnitPrice = bodyCount(unitPrice);
-    if (!type || !item || normalizedQty === null || normalizedUnitPrice === null || type !== "sell") {
+    if (!type || !item || normalizedQty === null || normalizedUnitPrice === null || (type !== "sell" && type !== "buy")) {
       res.status(400).json({ error: "Missing required order fields." });
+      return;
+    }
+
+    // AB#1054: a buy order holds its credits, fills from listings at or under its price, and the rest waits.
+    if (type === "buy") {
+      const before = Number(account.state?.corp?.finances?.credits || 0);
+      const placed = placeBuyOrder(req.auth.accountId, { item: String(item), quantity: normalizedQty, unitPrice: normalizedUnitPrice });
+      if (placed.error) {
+        res.status(400).json({ error: placed.error });
+        return;
+      }
+      const buyerNow = mutateAccountState(req.auth.accountId, () => {}); // the account after every fill
+      const filled = placed.fills.reduce((sum, f) => sum + f.quantity, 0);
+      const paid = placed.fills.reduce((sum, f) => sum + f.total, 0);
+      emitMarketUpdated();
+      const receipt = buyOrderReceipt({
+        item: placed.order.item, quantity: normalizedQty, unitPrice: normalizedUnitPrice, filled, paid,
+        held: (normalizedQty - filled) * normalizedUnitPrice,
+        stationName: STATION_REGISTRY[placed.order.stationId]?.name || "your station"
+      });
+      const waiting = (getState().market.buyOrders || []).find((o) => o.id === placed.order.id);
+      res.json({ ok: true, order: waiting ? buyOrderView(waiting, req.auth.accountId) : null, fills: placed.fills, spent: before - Number(buyerNow?.state?.corp?.finances?.credits || 0), account: buyerNow, receipt });
       return;
     }
 
@@ -100,15 +124,19 @@ export function registerMarketRoutes(app) {
       return;
     }
 
+    // AB#1054: a listing at or under a waiting buy order's price sells to it at once, at the listing's price.
+    const fills = matchListing(order.id, req.auth.accountId);
+    const sellerNow = fills.length ? mutateAccountState(req.auth.accountId, () => {}) : updatedSeller;
     emitMarketUpdated();
     // AB#744: the listing as posted, and where its goods are held.
     const receipt = listingReceipt({
       item: order.item,
       quantity: order.quantity,
       unitPrice: order.unitPrice,
-      stationName: STATION_REGISTRY[order.stationId]?.name || "your station"
+      stationName: STATION_REGISTRY[order.stationId]?.name || "your station",
+      soldAtOnce: fills.reduce((sum, f) => sum + f.quantity, 0)
     });
-    res.json({ ok: true, order, account: updatedSeller, receipt });
+    res.json({ ok: true, order, fills, account: sellerNow, receipt });
   });
 
   // Bug #425: a seller can take a listing down, getting the unsold goods back at the station they were listed from.
@@ -117,7 +145,14 @@ export function registerMarketRoutes(app) {
     const orderId = String(req.params.orderId || "").trim();
     const order = (getState().market.orderBook || []).find((o) => o.id === orderId && o.sellerAccountId === req.auth.accountId);
     if (!order) {
-      res.status(404).json({ error: "You have no listing with that id." });
+      // AB#1054: the same route takes down a buy order, returning the credits it still holds.
+      const cancelled = cancelBuyOrder(req.auth.accountId, orderId);
+      if (!cancelled) {
+        res.status(404).json({ error: "You have no listing or buy order with that id." });
+        return;
+      }
+      emitMarketUpdated();
+      res.json({ ok: true, cancelled: cancelled.order.id, refunded: cancelled.refund, account: cancelled.account });
       return;
     }
 
@@ -214,67 +249,10 @@ export function registerMarketRoutes(app) {
       return;
     }
 
-    let sale = null; // what the seller is told (Bug #1167): the same facts as their Sold row, nothing of the buyer's but a name
-    if (order.sellerAccountId) {
-      mutateAccountState(order.sellerAccountId, (state) => {
-        // ISP-302 (AB#2285): the rate includes the lease royalty; its share is booked apart, as "lease-royalty".
-        const breakdown = exchangeTaxBreakdown(state);
-        const taxPct = breakdown.ratePct;
-        const { tax: taxAmount, royalty, salesTax, proceeds: sellerProceeds } = taxOnSale(tradeTotal, breakdown);
-        sale = { taxPct, taxAmount, proceeds: sellerProceeds, buyer: publicName(buyerAccount.state?.corp?.corporationName) };
-        // Bug #984: the gross the buyer paid is income and the tax an expense; the balance moves by the proceeds.
-        applyCredits(state.corp, tradeTotal, "exchange");
-        applyCredits(state.corp, -salesTax, "exchange-tax");
-        applyCredits(state.corp, -royalty, "lease-royalty");
-
-        if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
-        state.corp.tradeHistory.unshift({
-          id: `th-${Date.now() + 1}`,
-          type: "sold",
-          item: order.item,
-          quantity: tradeQuantity,
-          unitPrice: Number(order.unitPrice || 0),
-          total: tradeTotal,
-          taxPct,
-          taxAmount,
-          proceeds: sellerProceeds,
-          counterparty: sale.buyer,
-          at: Date.now()
-        });
-        state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
-      });
-    }
-
-    mutateState((draft) => {
-      // AB#715: the day's price history takes the trade whether or not the listing is still in the book.
-      if (!draft.market.priceHistory) draft.market.priceHistory = {};
-      recordTrade(draft.market.priceHistory, order.item, Number(order.unitPrice || 0), tradeQuantity);
-      const target = draft.market.orderBook.find((entry) => entry.id === orderId && entry.type === "sell");
-      if (!target) {
-        return;
-      }
-      target.quantity = Math.max(0, Number(target.quantity || 0) - tradeQuantity);
-      if (target.quantity <= 0) {
-        draft.market.orderBook = draft.market.orderBook.filter((entry) => entry.id !== target.id);
-      }
-    });
-
-    // Bug #1167: the seller was told nothing; their open page kept the old credits and Trade History until a reload. The
-    // notification waits in their list if they are signed out. "market:sold" goes to the seller's own sockets only
-    // (Bug #1021), with their own account id as the other per-account events carry, and the page reloads its account.
-    if (sale) {
-      const notification = addAccountNotification(order.sellerAccountId, {
-        type: "market",
-        title: "Listing Sold",
-        body:
-          `${sale.buyer} bought ${tradeQuantity.toLocaleString("en-US")} ${order.item} at ${formatCredits(order.unitPrice)} each: ` +
-          `${formatCredits(tradeTotal)}, less ${formatCredits(sale.taxAmount)} exchange tax (${sale.taxPct}%), ` +
-          `${formatCredits(sale.proceeds)} paid to you. ` +
-          (leftAfterSale > 0 ? `${leftAfterSale.toLocaleString("en-US")} still listed.` : "The listing is sold out.")
-      });
-      if (notification) emitToAccount(order.sellerAccountId, "notifications:new", { accountId: order.sellerAccountId, notification });
-      emitToAccount(order.sellerAccountId, "market:sold", { accountId: order.sellerAccountId });
-    }
+    // AB#1054: the seller's side, the book and the price history, as a buy order's fill settles them.
+    const sale = paySeller(order, tradeQuantity, buyerAccount.state?.corp?.corporationName);
+    takeFromListing(orderId, order.item, order.unitPrice, tradeQuantity);
+    tellSeller(order, tradeQuantity, sale, leftAfterSale);
 
     emitMarketUpdated();
     // AB#744: what was bought, and the station it was delivered to (the buyer's, as the mutation used).

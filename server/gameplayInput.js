@@ -145,14 +145,14 @@ export const ACCOUNT_INPUT = {
 export const MARKET_INPUT = {
   "POST /orders": {
     body: {
-      type: word(["sell"], "an order type: sell"),
+      type: word(["sell", "buy"], "an order type: sell or buy"), // AB#1054: buy orders
       item: id("tradeItems", "a resource or refined good"),
-      quantity: int(1, 1_000_000_000, "a quantity to list"),
+      quantity: int(1, 1_000_000_000, "a quantity to list or buy"),
       unitPrice: int(1, 1_000_000_000, "a price per unit in whole credits")
     }
   },
   "POST /orders/:orderId/buy": { params: { orderId: ref("a sell order") }, body: { quantity: int(1, 1_000_000_000, "a quantity to buy") } },
-  "POST /orders/:orderId/cancel": { params: { orderId: ref("one of your listings") }, elsewhere: "!154" },
+  "POST /orders/:orderId/cancel": { params: { orderId: ref("one of your listings or buy orders") }, elsewhere: "!154" },
   "POST /npc-orders/:orderId/sell": {
     params: { orderId: id("npcOrders", "a standing buy order") },
     // !154's words for this refusal, which its tests pin.
