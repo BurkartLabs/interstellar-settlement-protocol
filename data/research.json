@@ -69,12 +69,23 @@
     {
       "id": "tt-containment-physics",
       "name": "Containment Physics I",
-      "effect": "Unlocks Helium-3 refinery chain",
+      "effect": "Unlocks the Helium-3 and cryogenics refinery chains",
       "description": "Establishes magnetic confinement field generation standards. Required before Helium-3 can be safely processed into Plasma Conduits at refinery scale.",
       "durationHours": 10,
       "costCredits": 8000,
       "prereqs": ["tt-energy-routing"],
       "tier": 2,
+      "category": "Refining"
+    },
+    {
+      "id": "tt-fusion-fuel-cycle",
+      "name": "Fusion Fuel Cycle",
+      "effect": "Unlocks the fusion-fuel refinery chain: Helium-3 and Deuterium into Fusion Pellets",
+      "description": "Licenses the deuterium-helium-3 pellet process the Lunar Helium Consortium's reactors burn. Required before Helium-3 and Deuterium can be pressed into Fusion Pellets at refinery scale.",
+      "durationHours": 16,
+      "costCredits": 12000,
+      "prereqs": ["tt-containment-physics"],
+      "tier": 3,
       "category": "Refining"
     },
     {

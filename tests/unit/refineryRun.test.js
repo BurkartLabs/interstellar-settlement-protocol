@@ -4,7 +4,9 @@ import { chainInputs, inputsLabel, maxBatches, minBatches, refineRunCheck, MAX_R
 import { refineMinimum, refineQuantityCheck } from "../../public/scripts/refineQuantity.js";
 
 // ISP-131 (AB#825): a chain takes `inputs`, one or several; a start takes every one in full or is refused whole.
-const CHAINS = JSON.parse(readFileSync(new URL("../../data/refinery-chains.json", import.meta.url), "utf8")).chains;
+const ALL_CHAINS = JSON.parse(readFileSync(new URL("../../data/refinery-chains.json", import.meta.url), "utf8")).chains;
+// The one-input chains, which keep AB#1255's rule; AB#830's Fuel chains are the first in data with several inputs.
+const CHAINS = ALL_CHAINS.filter((c) => c.inputs.length === 1);
 const ALLOY = {
   id: "alloy",
   inputs: [{ item: "Iron Ore", quantityPerCycle: 150 }, { item: "Nickel", quantityPerCycle: 50 }],
@@ -14,12 +16,15 @@ const ALLOY = {
 const stock = (held) => (item) => held[item] ?? 0;
 
 describe("a chain's inputs", () => {
-  it("every chain in data has a list of one, with a whole quantity", () => {
-    for (const c of CHAINS) {
-      expect(chainInputs(c), c.id).toHaveLength(1);
+  it("every chain in data has a list of one or more, each a whole quantity of a different item", () => {
+    for (const c of ALL_CHAINS) {
+      expect(chainInputs(c), c.id).toHaveLength(c.inputs.length);
+      expect(new Set(c.inputs.map((i) => i.item)).size, c.id).toBe(c.inputs.length);
       expect(c.input, `${c.id} keeps no legacy field`).toBeUndefined();
       expect(c.inputQuantityPerCycle, c.id).toBeUndefined();
     }
+    // AB#830: the Fuel track's two chains take two inputs each.
+    expect(ALL_CHAINS.filter((c) => c.inputs.length > 1).map((c) => c.id).sort()).toEqual(["cryogenics-chain", "fusion-fuel-chain"]);
   });
 
   it("is null for anything the refinery cannot run, so the route fails closed", () => {
@@ -49,6 +54,7 @@ describe("how long a run may be", () => {
   it("starts at the one-input chains' 100 units, and at one batch of several inputs", () => {
     for (const c of CHAINS) expect(minBatches(c) * c.inputs[0].quantityPerCycle, c.id).toBe(refineMinimum(c.inputs[0].quantityPerCycle));
     expect(minBatches(ALLOY)).toBe(1);
+    for (const c of ALL_CHAINS.filter((x) => x.inputs.length > 1)) expect(minBatches(c), c.id).toBe(1);
   });
 });
 

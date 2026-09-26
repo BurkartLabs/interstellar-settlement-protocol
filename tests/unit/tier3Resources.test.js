@@ -24,7 +24,9 @@ for (const s of SYSTEMS) for (const b of s.bodies) for (const k of Object.keys(b
 const products = new Set(CHAINS.chains.flatMap((c) => (c.outputs || []).map((o) => o.item)));
 const bids = new Set(ECONOMY.npcBuyers.map((n) => n.item).filter((item) => !products.has(item)));
 const quotas = new Set(MISSIONS.templates.map((t) => t.resource).filter(Boolean));
-const chainInputs = new Map(CHAINS.chains.flatMap((c) => c.inputs.map((i) => [i.item, c.id])));
+// AB#830: an item may feed several chains (Helium-3: he3-chain and fusion-fuel-chain), named in data order.
+const chainInputs = new Map();
+for (const c of CHAINS.chains) for (const i of c.inputs) chainInputs.set(i.item, [...(chainInputs.get(i.item) || []), c.id]);
 const raw = new Set([...beltCount.keys(), ...CHAINS.resourceCatalog, ...bids, ...quotas, ...chainInputs.keys()]);
 
 describe("the v0.8 resource catalogue matches the build (AB#822)", () => {
@@ -42,7 +44,7 @@ describe("the v0.8 resource catalogue matches the build (AB#822)", () => {
       expect(row.belts, `${item} belts`).toBe(n ? `${n} belt${n === 1 ? "" : "s"}` : "");
       expect(row.bid === "yes", `${item} bid`).toBe(bids.has(item));
       expect(row.quota === "yes", `${item} quota`).toBe(quotas.has(item));
-      expect(row.chain, `${item} chain`).toBe(chainInputs.has(item) ? `${chainInputs.get(item)} input` : "");
+      expect(row.chain, `${item} chain`).toBe(chainInputs.has(item) ? `${chainInputs.get(item).join(", ")} input` : "");
     }
   });
 
