@@ -358,15 +358,25 @@ export function transferReceipt({ linesText, fromName, toName, fee, arrivesAt })
   });
 }
 
-export function travelReceipt({ interstellar, destination, arrivesAt }) {
+/** "A", "A or B", "A, B or C". */
+const orList = (names) => (names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} or ${names.at(-1)}`);
+
+/**
+ * AB#2333: a jump's next step names the stations of the system it goes to (`stations`, their names). A system with
+ * none (AB#806's six new ones, until their stations are built) has nowhere to dock, and the receipt says so and what
+ * can still be done there: its belt is scouted and mined from the system itself, undocked, and a jump goes on or home.
+ */
+export function travelReceipt({ interstellar, destination, arrivesAt, stations = [] }) {
+  const jumpNext = stations.length
+    ? `When you arrive, dock at ${orList(stations)} from the Starmap's system view.`
+    : "There is no station in that system yet, so nowhere to dock there. From the Starmap you can still scout its " +
+      "asteroid belt and send expeditions to it once you arrive, or jump on or home.";
   return receipt("travel", {
     title: interstellar ? "Jump Initiated" : "Course Set",
     summary: `Under way to ${destination}.`,
     costCredits: 0,
     grants: [{ label: "Arrives", value: formatUtc(arrivesAt) }],
-    next: interstellar
-      ? "When you arrive, choose a station in that system to dock at."
-      : "You dock on arrival; that station's offices open to you once you are docked."
+    next: interstellar ? jumpNext : "You dock on arrival; that station's offices open to you once you are docked."
   });
 }
 
