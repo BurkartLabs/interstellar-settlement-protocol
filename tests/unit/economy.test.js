@@ -69,7 +69,16 @@ const BEFORE_THE_MOVE = {
     { item: "Armour Plating", buyer: "Olympus Heavy Industries", unitPrice: 118, dailyQty: 103 },
     { item: "Precision Frames", buyer: "Olympus Heavy Industries", unitPrice: 94, dailyQty: 86 },
     { item: "Carbon Fibre Sheets", buyer: "Tycho Carbon Works", unitPrice: 21, dailyQty: 480 },
-    { item: "Graphene Lattice", buyer: "Tycho Carbon Works", unitPrice: 37, dailyQty: 180 }
+    { item: "Graphene Lattice", buyer: "Tycho Carbon Works", unitPrice: 37, dailyQty: 180 },
+    // AB#830: new, not moved. The Fuel track's bids (docs/design/tier3-recipes.md section 4): raw items at the raw
+    // quota of 7,000; products at a day of one Refinery's output, which the bid does not read yet.
+    { item: "Deuterium", buyer: "Lunar Helium Consortium", unitPrice: 40, dailyQty: 7000 },
+    { item: "Water Ice", buyer: "Lunar Helium Consortium", unitPrice: 8, dailyQty: 7000 },
+    { item: "Hydrogen", buyer: "Lunar Helium Consortium", unitPrice: 6, dailyQty: 7000 },
+    { item: "Plasma Conduits", buyer: "Lunar Helium Consortium", unitPrice: 159, dailyQty: 80 },
+    { item: "Dark-Matter Capacitors", buyer: "Lunar Helium Consortium", unitPrice: 423, dailyQty: 20 },
+    { item: "Fusion Pellets", buyer: "Lunar Helium Consortium", unitPrice: 198, dailyQty: 160 },
+    { item: "Cryogenic Coolant", buyer: "Lunar Helium Consortium", unitPrice: 54, dailyQty: 360 }
   ]
 };
 
