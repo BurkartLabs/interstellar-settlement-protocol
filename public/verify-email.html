@@ -20,18 +20,18 @@
     <canvas id="starfield-canvas" aria-hidden="true"></canvas>
     <div class="app-bg" aria-hidden="true"></div>
 
-    <main class="auth-shell login-shell">
-      <section class="login-card" aria-labelledby="verify-title">
-        <p class="hero-overline">EARTH ASSEMBLY ACT 2147</p>
-        <h1 id="verify-title" class="login-title">Verify your email</h1>
-        <p id="verify-copy" class="login-copy">Confirm that this address belongs to your corporation's account.</p>
+    <main class="auth-page">
+      <section class="ui-panel auth-page__card" aria-labelledby="verify-title">
+        <p class="auth-page__overline">Earth Assembly Act 2147</p>
+        <h1 id="verify-title" class="auth-page__title">Verify your email</h1>
+        <p id="verify-copy" class="auth-page__lede">Confirm that this address belongs to your corporation's account.</p>
 
-        <p id="verify-status" class="login-status" aria-live="polite"></p>
+        <p id="verify-status" class="auth-page__status" aria-live="polite"></p>
 
-        <div class="login-actions">
-          <button id="verify-btn" class="btn-hero btn-hero-fill" type="button">Verify My Email</button>
-          <a id="verify-login" href="/login.html" class="btn-hero btn-hero-secondary">Log In</a>
-          <a id="verify-new-link" href="/check-email.html" class="btn-hero btn-hero-secondary" hidden>Ask For A New Link</a>
+        <div class="auth-page__actions">
+          <button id="verify-btn" class="ui-button ui-button--primary" type="button">Verify My Email</button>
+          <a id="verify-login" href="/login.html" class="ui-button ui-button--secondary">Log In</a>
+          <a id="verify-new-link" href="/check-email.html" class="ui-button ui-button--secondary" hidden>Ask For A New Link</a>
         </div>
       </section>
     </main>

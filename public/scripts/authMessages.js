@@ -81,7 +81,7 @@ export function showMessage(element, message) {
     const a = element.ownerDocument.createElement("a");
     a.href = message.link.href;
     a.textContent = message.link.text;
-    a.className = "login-status-link";
+    a.className = "auth-page__link";
     element.append(" ", a);
   }
 }
