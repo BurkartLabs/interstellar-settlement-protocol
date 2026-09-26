@@ -17,6 +17,7 @@ export const appState = {
   economy: null,
   /** The building catalogue from /api/bootstrap (ISP-95): what the construction panel lists. */
   playerBuildings: [],
+  milestoneRoadmap: [], // AB#798: from GET /api/bootstrap, derived from the levels
   data: null,
   authenticated: false,
   accountId: null,
