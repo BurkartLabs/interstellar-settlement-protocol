@@ -68,7 +68,12 @@ async function measure(page, id, width) {
 }
 
 /** A table row's display: a card (grid) below 768px, a row above. */
-const rowDisplay = (page, selector) => page.locator(selector).first().evaluate((r) => getComputedStyle(r).display);
+// Bug #2320: found and read in one evaluate, since a tick redraws Logistics and a row resolved first can be detached
+// (display "") by the time it is read. Called through expect.poll, so a row redrawn mid-read is read again.
+const rowDisplay = (page, selector) => page.evaluate((sel) => {
+  const row = document.querySelector(sel);
+  return row ? getComputedStyle(row).display : null;
+}, selector);
 
 for (const [width, height] of SIZES) {
   test(`Corporate R&D, CEO Insight, Refinery Chains, Assets and Logistics at ${width}x${height}`, async ({ page }) => {
@@ -112,7 +117,7 @@ for (const [width, height] of SIZES) {
       await openTab(page, "assets");
       await expect(page.locator("#assets-panel-inventory tbody tr:not(.ui-table__group)").first()).toBeVisible();
       await measure(page, "assets", width);
-      expect(await rowDisplay(page, "#assets-panel-inventory tbody tr:not(.ui-table__group)"), "a table row below 768px is a card").toBe(width < 768 ? "grid" : "table-row");
+      await expect.poll(() => rowDisplay(page, "#assets-panel-inventory tbody tr:not(.ui-table__group)"), { message: "a table row below 768px is a card" }).toBe(width < 768 ? "grid" : "table-row");
       await shot("assets");
       await page.click("#assets-tab-infrastructure");
       await expect(page.locator("#assets-panel-infrastructure")).toBeVisible();
@@ -129,7 +134,7 @@ for (const [width, height] of SIZES) {
       await page.locator("#logistics .logistics__pick").first().check();
       await expect(page.locator("#logistics .logistics__move-picked").first()).toBeEnabled();
       await measure(page, "logistics", width);
-      expect(await rowDisplay(page, "#logistics-history tbody tr"), "a table row below 768px is a card").toBe(width < 768 ? "grid" : "table-row");
+      await expect.poll(() => rowDisplay(page, "#logistics-history tbody tr"), { message: "a table row below 768px is a card" }).toBe(width < 768 ? "grid" : "table-row");
       await shot("logistics");
       expect(errors).toEqual([]);
     } finally {
