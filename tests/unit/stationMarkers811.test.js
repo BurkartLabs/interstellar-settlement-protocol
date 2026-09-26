@@ -2,7 +2,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { isNeutralStation, neutralStationCounts, stationBadgeBox, systemStationMarkers } from "../../public/scripts/stationMarkers.js";
+import { isNeutralStation, neutralStationCounts, placeStationBadges, systemStationMarkers } from "../../public/scripts/stationMarkers.js";
 
 // ISP-119 (AB#811): neutral stations on the starmap. A count per system on the cluster view and a marker per neutral
 // station on the system view, both read from the catalog's `jurisdiction` field (AB#810), and a marker opens the
@@ -40,29 +40,42 @@ describe("which stations are marked (AB#811)", () => {
 });
 
 describe("the cluster view's count badges (AB#811)", () => {
-  /** The desktop cluster at 1058x560 with every name planned around the real badges, as drawClusterView does. */
-  function planned(width, height) {
+  const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  /** The cluster as drawClusterView plans it: AB#808's names, unchanged, then the badges in the corners they leave. */
+  function laidOut(width, height, compact) {
+    const size = compact ? 14 : 11;
     const counts = neutralStationCounts(STATIONS);
     const entries = SYSTEMS.map((s) => ({
       id: s.id, x: s.mapPosition.x * width, y: s.mapPosition.y * height, r: 11,
-      widths: [s.name.length * 6.2, ...(s.id === "sol" ? ["YOU ARE HERE".length * 5.2] : [])], size: 11, gap: 17,
+      widths: [s.name.length * size * 0.62, ...(s.id === "sol" ? ["YOU ARE HERE".length * (compact ? 14 : 9) * 0.62] : [])], size, gap: 17,
       current: s.id === "sol", selected: false, neighbour: SOL.adjacent.includes(s.id)
     }));
-    const badges = SYSTEMS.filter((s) => counts.has(s.id)).map((s) => stationBadgeBox({ x: s.mapPosition.x * width, y: s.mapPosition.y * height, starRadius: 7, textWidth: 6 }));
-    return { plan: planClusterLabels({ entries, compact: false, canvasWidth: width, canvasHeight: height, reserved: badges }), badges };
+    const plan = planClusterLabels({ entries, compact, canvasWidth: width, canvasHeight: height });
+    const systems = SYSTEMS.filter((s) => counts.has(s.id)).map((s) => ({ id: s.id, x: s.mapPosition.x * width, y: s.mapPosition.y * height, starRadius: 7, text: String(counts.get(s.id)), textWidth: size * 0.6 }));
+    const badges = placeStationBadges({ systems, labelBoxes: [...plan.values()].map((p) => p.box), stars: entries, canvasWidth: width, canvasHeight: height, fontPx: compact ? 14 : 9 });
+    return { plan, badges };
   }
-  const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 
-  it("every system is still named on a desktop canvas, and no name crosses a badge", () => {
-    const { plan, badges } = planned(1058, 560);
-    expect([...plan.keys()].sort()).toEqual(SYSTEMS.map((s) => s.id).sort());
-    for (const [id, label] of plan) for (const badge of badges) expect(overlaps(label.box, badge), id).toBe(false);
-  });
+  for (const [w, h, compact] of [[1058, 560, false], [324, 320, true]]) {
+    it(`at ${w}x${h} every system shows its count, on the canvas, and no badge crosses a name or another badge`, () => {
+      const { plan, badges } = laidOut(w, h, compact);
+      expect([...badges.keys()].sort()).toEqual(SYSTEMS.map((s) => s.id).sort());
+      const boxes = [...badges.entries()];
+      for (const [id, box] of boxes) {
+        expect(box.left, id).toBeGreaterThanOrEqual(2);
+        expect(box.right, id).toBeLessThanOrEqual(w - 2);
+        expect(box.top, id).toBeGreaterThanOrEqual(2);
+        for (const [name, label] of plan) expect(overlaps(box, label.box), `${id} badge / ${name} name`).toBe(false);
+        for (const [other, b] of boxes) if (other !== id) expect(overlaps(box, b), `${id} / ${other}`).toBe(false);
+      }
+    });
+  }
 
-  it("a badge stays on the canvas: to the right of a star too near the left edge", () => {
-    const box = stationBadgeBox({ x: 20, y: 160, starRadius: 7, textWidth: 8 });
-    expect(box.left).toBeGreaterThanOrEqual(2);
-    expect(stationBadgeBox({ x: 400, y: 160, starRadius: 7, textWidth: 8 }).right).toBeLessThanOrEqual(400);
+  it("the names are AB#808's, whatever the badges: they are planned before any badge", () => {
+    const { plan } = laidOut(324, 320, true);
+    const named = [...plan.keys()];
+    expect(named).toContain("sol");
+    expect(named.length, "Sol and at least two neighbours on a phone, as AB#808 names them").toBeGreaterThanOrEqual(3);
   });
 });
 

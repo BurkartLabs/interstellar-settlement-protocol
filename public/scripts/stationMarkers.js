@@ -38,15 +38,37 @@ export function systemStationMarkers(system, stations) {
 }
 
 /**
- * The cluster view's count badge for a star at (x, y) with core radius `starRadius`: a box above and to the left of the
- * star, or to the right when the left would leave the canvas. `textWidth` is the drawn width of the count. The label
- * planner is given these boxes first, so no system's name is drawn across a badge.
+ * Where the cluster view puts each system's count badge. The names are planned first (AB#808's planClusterLabels, as
+ * it was), so a badge never costs a name its place: each badge takes the first place round its star (above left,
+ * above right, below left, below right, centred above or below, then level with it on the left or the right) that stays on the canvas and crosses no name, no
+ * other badge and no other star. When none is free it takes the place on the canvas that covers the least of any name,
+ * then the least of other badges and stars: a badge over a name is the one thing worse than a crowded badge.
+ * `systems`: [{ id, x, y, starRadius, text, textWidth }]; `labelBoxes` and the returned boxes are
+ * { left, right, top, bottom }; `stars`: [{ id, x, y, r }]. Returns Map id -> box.
  */
-export function stationBadgeBox({ x, y, starRadius, textWidth, fontPx = 9 }) {
-  const w = Math.ceil(textWidth) + 18; // 5px pad, an 8px diamond, 3px gap, the count, 2px pad
+export function placeStationBadges({ systems, labelBoxes = [], stars = [], canvasWidth, canvasHeight, fontPx = 9 }) {
   const h = Math.max(13, Math.ceil(fontPx) + 4); // a phone draws the count at 14px (chartFont)
-  const bottom = y - starRadius - 2;
-  const leftAligned = x - 3 - w;
-  const left = leftAligned >= 2 ? leftAligned : x + 3;
-  return { left, right: left + w, top: bottom - h, bottom };
+  const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  const coversStar = (box, id) => stars.some((s) => s.id !== id &&
+    Math.hypot(Math.max(box.left, Math.min(s.x, box.right)) - s.x, Math.max(box.top, Math.min(s.y, box.bottom)) - s.y) < s.r);
+  const inside = (box) => box.left >= 2 && box.top >= 2 && box.right <= canvasWidth - 2 && box.bottom <= canvasHeight - 2;
+  const placed = new Map();
+  for (const s of systems) {
+    const w = Math.ceil(s.textWidth) + 18; // 5px pad, an 8px diamond, 3px gap, the count, 2px pad
+    const near = s.starRadius + 2;
+    const corners = [
+      { left: s.x - 3 - w, top: s.y - near - h }, { left: s.x + 3, top: s.y - near - h },
+      { left: s.x - 3 - w, top: s.y + near }, { left: s.x + 3, top: s.y + near },
+      { left: s.x - w / 2, top: s.y - near - h }, { left: s.x - w / 2, top: s.y + near },
+      { left: s.x - near - 3 - w, top: s.y - h / 2 }, { left: s.x + near + 3, top: s.y - h / 2 }
+    ].map((c) => ({ ...c, right: c.left + w, bottom: c.top + h }));
+    const taken = [...labelBoxes, ...placed.values()];
+    const free = corners.find((box) => inside(box) && !taken.some((b) => overlaps(box, b)) && !coversStar(box, s.id));
+    if (free) { placed.set(s.id, free); continue; }
+    const area = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+    const cost = (box) => labelBoxes.reduce((n, b) => n + area(box, b), 0) * 1000 + [...placed.values()].reduce((n, b) => n + area(box, b), 0) + (coversStar(box, s.id) ? 1 : 0);
+    const onCanvas = corners.filter(inside);
+    placed.set(s.id, (onCanvas.length ? onCanvas : corners).reduce((best, box) => (cost(box) < cost(best) ? box : best)));
+  }
+  return placed;
 }
