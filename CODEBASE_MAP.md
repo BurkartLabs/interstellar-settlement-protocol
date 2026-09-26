@@ -7,7 +7,9 @@
 > **2026-09-25, AB#757:** no token is in localStorage any more. The refresh token is an HttpOnly, Secure,
 > SameSite=Strict cookie (`isp_refresh`, path `/api/auth`) set by register/login/refresh; the access token is in
 > `appState` only, obtained on each page load from `POST /api/auth/refresh`. Logout revokes the cookie's token, not
-> one named in a body. Every `isp.accessToken` / `isp.refreshToken` / logout-by-body line below predates this.
+> one named in a body. The token-storage lines below were refreshed to match (AB#2143); the auth routes' line anchors
+> and the logout-by-body sentence still predate it. The two old localStorage key names survive in code only in
+> `public/scripts/apiClient.js` (`LEGACY_TOKEN_KEYS`), which deletes whatever an older build left there.
 
 Generated 2026-09-20 from ten parallel subsystem reads of commit `4f92687`, at the start of the v0.5 Beta
 MVP pass. Each reader opened the actual files; every claim below carries a `file:line` anchor. **The code
@@ -41,7 +43,7 @@ wins** — when this document and the source disagree, the source is right and t
 
 **Scope.** AUTH and ACCOUNTS (server/index.js auth routes + middleware, server/gameState.js accounts store, client token handling in public/scripts/app.js, login-page.js, register-page.js)
 
-Auth is stateless HS256 JWT over bearer headers: `issueTokens` (server/index.js:297) signs an access token (`kind:"access"`, 7 days; 2 h for the `dummy` account only when NODE_ENV=production) and a refresh token (`kind:"refresh"`, 30 days) with `JWT_SECRET`, which falls back to the in-repo literal "isp-dev-insecure-secret-change-me" (index.js:280). Refresh tokens are the only server-side session state: `storeRefreshToken` pushes the raw JWT into `account.refreshTokens` capped at the last 10 (gameState.js:2480-2493); `/api/auth/refresh` (index.js:911) verifies, checks `hasRefreshToken`, revokes and reissues; `/api/auth/logout` (index.js:939) revokes by `{accountId, refreshToken}` from the body with no auth. `requireAuth` (index.js:319) verifies the bearer and the `kind` claim, `requireAccountAccess` (index.js:340) compares `req.auth.accountId` to `:accountId` and checks existence, and both are mounted once with `app.use("/api/accounts/:accountId", ...)` at index.js:958; routes outside that prefix (forums, market, investments) call `requireAuth` explicitly, while `/api/dev/set-credits`, `/api/combat/simulate`, `POST /kanban/api` and the socket.io `chat:send` handler are unauthenticated. Passwords are bcryptjs `hashSync` with 10 rounds (gameState.js:2164) unless `USE_SUPABASE_AUTH` (URL + service key + anon key all set) is on, in which case the user is created in Supabase Auth via `admin.createUser`, login goes through `signInWithPassword`, and the local `passwordHash` is the sentinel "__supabase_auth_managed__" (gameState.js:2166-2183, 2110-2121). The store is a module-level `accountsStore` hydrated once at import (gameState.js:1818) from Supabase `accounts` + `account_state.state_json` (refresh tokens, notifications and messages ride inside `state_json.__accountMeta`, gameState.js:1523-1529), else from `data/accounts-snapshot.json`, else a seeded store containing only `dummy`; every mutation and every `getAccountById` read calls `scheduleAccountsSave` (gameState.js:2099, 1904), which upserts every account row to Supabase and debounce-writes the full store (hashes and raw refresh tokens included) to disk. The client keeps `isp.accountId`, `isp.accessToken`, `isp.refreshToken` in localStorage (app.js:54-58, 400-424); `apiFetch` (app.js:512) adds the bearer, and on a 401 calls `refreshSessionToken` (app.js:485) once, then `handleSessionExpired` clears storage and redirects to /login.html?reason=expired. There is no rate limiting, no helmet, no CORS middleware on Express (socket.io alone has `cors: {origin: "*"}`, index.js:385), no cookies, and `express.json()` runs with its 100 kb default. All tests run in local (non-Supabase) mode with VERCEL=1, so neither the Supabase auth path nor disk snapshot writing is ever exercised.
+Auth is stateless HS256 JWT over bearer headers: `issueTokens` (server/index.js:297) signs an access token (`kind:"access"`, 7 days; 2 h for the `dummy` account only when NODE_ENV=production) and a refresh token (`kind:"refresh"`, 30 days) with `JWT_SECRET`, which falls back to the in-repo literal "isp-dev-insecure-secret-change-me" (index.js:280). Refresh tokens are the only server-side session state: `storeRefreshToken` pushes the raw JWT into `account.refreshTokens` capped at the last 10 (gameState.js:2480-2493); `/api/auth/refresh` (index.js:911) verifies, checks `hasRefreshToken`, revokes and reissues; `/api/auth/logout` (index.js:939) revokes by `{accountId, refreshToken}` from the body with no auth. `requireAuth` (index.js:319) verifies the bearer and the `kind` claim, `requireAccountAccess` (index.js:340) compares `req.auth.accountId` to `:accountId` and checks existence, and both are mounted once with `app.use("/api/accounts/:accountId", ...)` at index.js:958; routes outside that prefix (forums, market, investments) call `requireAuth` explicitly, while `/api/dev/set-credits`, `/api/combat/simulate`, `POST /kanban/api` and the socket.io `chat:send` handler are unauthenticated. Passwords are bcryptjs `hashSync` with 10 rounds (gameState.js:2164) unless `USE_SUPABASE_AUTH` (URL + service key + anon key all set) is on, in which case the user is created in Supabase Auth via `admin.createUser`, login goes through `signInWithPassword`, and the local `passwordHash` is the sentinel "__supabase_auth_managed__" (gameState.js:2166-2183, 2110-2121). The store is a module-level `accountsStore` hydrated once at import (gameState.js:1818) from Supabase `accounts` + `account_state.state_json` (refresh tokens, notifications and messages ride inside `state_json.__accountMeta`, gameState.js:1523-1529), else from `data/accounts-snapshot.json`, else a seeded store containing only `dummy`; every mutation and every `getAccountById` read calls `scheduleAccountsSave` (gameState.js:2099, 1904), which upserts every account row to Supabase and debounce-writes the full store (hashes and raw refresh tokens included) to disk. The client keeps only `isp.accountId` in localStorage; the refresh token is the `isp_refresh` HttpOnly cookie and the access token lives in `appState` (AB#757); `apiFetch` (app.js:512) adds the bearer, and on a 401 calls `refreshSessionToken` (app.js:485) once, then `handleSessionExpired` clears storage and redirects to /login.html?reason=expired. There is no rate limiting, no helmet, no CORS middleware on Express (socket.io alone has `cors: {origin: "*"}`, index.js:385), no cookies, and `express.json()` runs with its 100 kb default. All tests run in local (non-Supabase) mode with VERCEL=1, so neither the Supabase auth path nor disk snapshot writing is ever exercised.
 
 ### Entry points
 
@@ -72,7 +74,7 @@ Auth is stateless HS256 JWT over bearer headers: `issueTokens` (server/index.js:
 - `storeRefreshToken / revokeRefreshToken / hasRefreshToken` — `server/gameState.js:2480` — Raw-JWT list on the account, expiry-pruned, capped at 10, revoked by exact string match
 - `getDummyAccount / resetDummyAccountProgress / mutateAccountState` — `server/gameState.js:2525` — Dummy helpers and the generic mutate-then-persist wrapper used by every gameplay route
 - `loadEnv.js` — `server/loadEnv.js:44` — Reads .env then .env.local into process.env without overriding existing keys (no .env or .env.example present in the checkout)
-- `STORAGE_KEYS / IS_DEV_ACCESS` — `public/scripts/app.js:54` — localStorage keys isp.accountId/isp.accessToken/isp.refreshToken; dev gate is ?dev=1 or localhost (client-side only)
+- `STORAGE_KEYS / IS_DEV_ACCESS` — `public/scripts/state.js` — the localStorage key isp.accountId (tokens are not stored, AB#757); dev gate is ?dev=1 or localhost (client-side only)
 - `persistSession / clearSession / handleSessionExpired / hydrateSession` — `public/scripts/app.js:400` — Token storage lifecycle and the redirect to /login.html?reason=expired
 - `refreshSessionToken / apiFetch` — `public/scripts/app.js:485` — Bearer injection and single-retry refresh on 401; no in-flight dedupe
 - `loadAuthenticatedAccount / restoreAuthenticatedSession / loginDummyAccount` — `public/scripts/app.js:5241` — Boot-time session validation via /api/auth/session; dummy login POST
@@ -102,8 +104,8 @@ Auth is stateless HS256 JWT over bearer headers: `issueTokens` (server/index.js:
 - `data/accounts-snapshot.json (full accountsStore incl. hashes and refresh tokens; gitignored)`
 - `state.market.orderBook[].sellerAccountId and state.forums threads[].authorAccountId (account ids exposed via unauthenticated GET /api/bootstrap)`
 - `localStorage isp.accountId`
-- `localStorage isp.accessToken`
-- `localStorage isp.refreshToken`
+- `appState.accessToken (memory only, AB#757)`
+- `cookie isp_refresh (HttpOnly, Secure, SameSite=Strict, path /api/auth; AB#757)`
 - `localStorage isp.walkthrough-offer-seen:<accountId>`
 - `req.auth.accountId (set by requireAuth)`
 - `process.env.JWT_SECRET`
@@ -1037,8 +1039,8 @@ The shell is a single-page vanilla-JS app. public/index.html holds an unauthenti
 - `appState.completedRequirementIds`
 - `appState.activeMissions`
 - `localStorage isp.accountId`
-- `localStorage isp.accessToken`
-- `localStorage isp.refreshToken`
+- `appState.accessToken (memory only, AB#757)`
+- `cookie isp_refresh (HttpOnly, Secure, SameSite=Strict, path /api/auth; AB#757)`
 - `localStorage isp.walkthrough-offer-seen:<accountId>`
 - `corp.corporationName`
 - `corp.ceo`
@@ -1243,7 +1245,7 @@ All fifteen tabs live in one 6,641-line ES module (public/scripts/app.js) that h
 - `account.walkthroughCompleted`
 - `account.email (used for own-order detection 3799)`
 - `CLIENT-ONLY: appState.* (4-51), appState.refineryStatus (undeclared, 3231/3389/3454), appState.scoutedBodies (Set, lost on reload), appState.stationRegistry (GET /api/stations), appState.buildingRegistry (GET /api/buildings), appState.beltCompositions (GET belt-compositions), appState.inbox.*, appState.exchangeFilter, appState.refineQuantityOverrides, appState.stationActiveLease, appState.forumsView/selectedForumThreadId/selectedForumCategory, appState.missionsView/selectedAgentId/selectedMissionId`
-- `localStorage: isp.accountId, isp.accessToken, isp.refreshToken, isp.walkthrough-offer-seen:<accountId> (53-58)`
+- `localStorage: isp.accountId, isp.walkthrough-offer-seen:<accountId>; the tokens are the isp_refresh cookie and appState.accessToken (AB#757)`
 
 ### TODOs in this code
 
