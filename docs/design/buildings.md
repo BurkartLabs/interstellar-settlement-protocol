@@ -150,6 +150,7 @@ No level requires them since AB#424, so those lines stay Open for ever. AB#798 (
 - `researchGates`: ids in data/research.json, all required.
 - `cap`: `perCorporation`, or for a lease building `perLease` (with `lease` for one lease only, such as `"luna"`), or for an upgrade `perBuilding`.
 - `upgrades`: for an upgrade, the id of the building it upgrades.
+- `tiers`: the building's upgrade tiers, the name of its table in `data/economy.json`'s buildings, or `"none"` (ISP-102, AB#794; docs/design/upgrades.md). The catalogue check refuses an entry with neither.
 - `effect`: one sentence naming the state it changes.
 - `since`: the version it arrived.
 

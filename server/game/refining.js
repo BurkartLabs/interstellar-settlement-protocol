@@ -4,7 +4,7 @@ import { REFINERY_CHAINS, getStationInventory } from "./catalog.js";
 import { bumpStat } from "./progression.js";
 import { ECONOMY } from "../economy.js";
 // ISP-97 (AB#787): a Refinery Complex (tier 2) delivers 1.5 times; the rule is shared with the page and the receipt.
-import { refineryOutput } from "../../public/scripts/refineryOutput.js";
+import { refineryMultiplierFor, refineryOutput } from "../../public/scripts/refineryOutput.js";
 
 // ─── Refinery model ──────────────────────────────────────────────────────────
 export function ensureCorpRefineryModel(corp) {
@@ -44,7 +44,9 @@ export function ensureCorpRefineryModel(corp) {
     endsAt: ref.endsAt ?? null,
     cyclesCompleted: Number(ref.cyclesCompleted || 0),
     totalInputConsumed: Number(ref.totalInputConsumed || 0),
-    totalOutputProduced: Number(ref.totalOutputProduced || 0)
+    totalOutputProduced: Number(ref.totalOutputProduced || 0),
+    // AB#794: while an upgrade is under way the refinery is offline until this time (ms); no run starts before it.
+    upgradingUntil: Number(ref.upgradingUntil) > 0 ? Number(ref.upgradingUntil) : null
   }));
 }
 
@@ -80,7 +82,7 @@ export function applyRefineryOperations(corp, now = Date.now()) {
     const refStationInv = getStationInventory(corp, ref.stationId);
     const scale = Math.max(1, Number(ref.cycleScale || 1));
     for (const output of chain.outputs) {
-      const produced = refineryOutput(output.quantityPerCycle, scale, ref.tier, ECONOMY.buildings.refineryComplexOutputMultiplier);
+      const produced = refineryOutput(output.quantityPerCycle, scale, ref.tier, refineryMultiplierFor(ref.tier, ECONOMY.buildings)); // AB#794: by tier
       bumpStat(corp, "refinedUnitsProduced", produced); // Bug #424: levels 9 and 10
       refStationInv[output.item] = (refStationInv[output.item] || 0) + produced;
       ref.totalOutputProduced += produced;

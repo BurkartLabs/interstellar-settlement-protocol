@@ -8,7 +8,8 @@
       "researchGates": [],
       "cap": {},
       "effect": "Adds a silicate extractor to the lease it stands on; its cycles add Silicates to the station's inventory.",
-      "since": "0.1"
+      "since": "0.1",
+      "tiers": "extractorYardUpgrades"
     },
     {
       "id": "assembly-facility",
@@ -18,7 +19,8 @@
       "researchGates": ["tt-assembly-fabrication"],
       "cap": { "perCorporation": 1 },
       "effect": "Lets the corporation fabricate mining probes.",
-      "since": "0.3"
+      "since": "0.3",
+      "tiers": "assemblyFacilityUpgrades"
     },
     {
       "id": "refinery",
@@ -28,7 +30,8 @@
       "researchGates": ["tt-material-compression", "tt-nano-lattice"],
       "cap": { "perCorporation": 2 },
       "effect": "Runs a refinery chain, turning raw resources at a station into refined products each cycle.",
-      "since": "0.3"
+      "since": "0.3",
+      "tiers": "refineryUpgrades"
     },
     {
       "id": "ferric-mining-complex",
@@ -38,7 +41,8 @@
       "researchGates": ["tt-material-compression"],
       "cap": { "perCorporation": 1 },
       "effect": "Returning mining probes deposit a quarter more Nickel and Titanium, the inputs to the nickel and titanium refinery chains.",
-      "since": "0.6"
+      "since": "0.6",
+      "tiers": "none"
     },
     {
       "id": "refinery-complex",
@@ -49,7 +53,8 @@
       "researchGates": ["tt-nano-lattice"],
       "cap": { "perBuilding": 1 },
       "effect": "Upgrades one Refinery in place: its production runs deliver half as much again of every output.",
-      "since": "0.6"
+      "since": "0.6",
+      "tiers": "none"
     },
     {
       "id": "cryo-vapor-extractor-array",
@@ -60,7 +65,8 @@
       "researchGates": ["tt-containment-physics"],
       "cap": { "perLease": 1 },
       "effect": "Built on a Luna lease, it cools that lease's extractors: they mine a fifth more Silicates.",
-      "since": "0.6"
+      "since": "0.6",
+      "tiers": "none"
     }
   ]
 }

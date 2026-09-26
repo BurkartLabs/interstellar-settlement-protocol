@@ -5,7 +5,7 @@
 //
 // What a building adds beyond its slot and its price is its construction below. A catalogue entry with none is
 // refused, not built bare: a building added to the file cannot be bought before its effect is written (fails closed).
-import { buildCostFor } from "./economy.js";
+import { nextYardPriceFor } from "../public/scripts/yardPrice.js";
 import { applyCredits } from "./finances.js";
 import { catalogueRefusal, PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
 import { buildAssemblyReceipt, buildCryoVaporArrayReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildRefineryComplexReceipt, buildRefineryReceipt } from "./receipts.js";
@@ -22,7 +22,8 @@ const slotCount = (corp) => ({ slotsUsed: (corp.buildings || []).length, slotsTo
  */
 export const CONSTRUCTIONS = Object.freeze({
   "basic-extractor-yard": {
-    cost: (building, corp) => buildCostFor(building.cost, hasTech(corp, "tt-supply-forecast")),
+    // ISP-303 (AB#2286): each yard costs more than the last; the Supply Forecast discount comes after.
+    cost: (building, corp) => nextYardPriceFor(corp, ECONOMY.buildings),
     place(corp, building, lease) {
       if (!corp.mining || typeof corp.mining !== "object") corp.mining = {};
       if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];

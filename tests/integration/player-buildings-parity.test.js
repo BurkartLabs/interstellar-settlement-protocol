@@ -68,7 +68,8 @@ describe("building each player building through its route, as before the catalog
     // With Supply Forecast the charge is 47,000, but the refusal still quotes the list price of 50,000.
     const poor = await corporation((c) => { c.unlockedTech = ["tt-supply-forecast"]; c.miningLeases = [{ ...LEASE, extractorIds: [] }]; c.finances.credits = 10_000; });
     const pr = await poor.post(`lease/${LEASE.id}/build-extractor`);
-    expect(pr.body.error).toBe(fundingRequirementMessage("Basic Extractor Yard construction", poor.corp(), 50_000));
+    // AB#2286: the refusal quotes what the build would charge, the Supply Forecast price (47,000), not the catalogue's 50,000.
+    expect(pr.body.error).toBe(fundingRequirementMessage("Basic Extractor Yard construction", poor.corp(), 47_000));
   });
 
   it("Assembly Facility: 60,000, 40,000 of assets, a corporation slot, one per corporation", async () => {
@@ -135,7 +136,7 @@ describe("the catalogue is served read-only to the page (AB#783)", () => {
     const res = await request(app).get("/api/bootstrap");
     expect(res.status).toBe(200);
     expect(res.body.playerBuildings).toEqual(JSON.parse(JSON.stringify(PLAYER_BUILDING_CATALOGUE)));
-    const allowed = ["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot", "upgrades", "lease"]; // upgrades: ISP-97; lease: ISP-98
+    const allowed = ["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot", "tiers", "upgrades", "lease"]; // upgrades: ISP-97; tiers: ISP-102 (AB#794); lease: ISP-98
     for (const b of res.body.playerBuildings) expect(Object.keys(b).filter((k) => !allowed.includes(k)), b.id).toEqual([]);
     const served = JSON.stringify(res.body.playerBuildings);
     for (const own of [player.account.id, player.body.email, player.body.corpName]) expect(served).not.toContain(own);

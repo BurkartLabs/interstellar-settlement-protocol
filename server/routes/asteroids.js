@@ -8,6 +8,7 @@ import { SYSTEMS_CATALOG } from "../travel.js";
 import { beltPhrase } from "../../public/scripts/displayNames.js"; // AB#1336
 // ISP-94 (AB#784): buildHandler builds the Assembly Facility, as it builds every player building (server/construction.js).
 import { fundingRequirementMessage, buildHandler } from "./helpers.js";
+import { fabricationMsFor } from "../buildingTiers.js"; // ISP-102 (AB#794)
 // AB#783: probes need an Assembly Facility, counted from data/player-buildings.json.
 import { countBuilt, playerBuilding } from "../playerBuildings.js";
 
@@ -22,6 +23,7 @@ export function registerAsteroidRoutes(app) {
 
   app.post("/api/accounts/:accountId/gameplay/build-mining-probe", (req, res) => {
     let outcome = "ok";
+    let fabricationMs = PROBE_FABRICATION_MS; // AB#794: set from the Assembly Facility's tier below
 
     const account = mutateAccountState(req.params.accountId, (state) => {
       const corp = state.corp;
@@ -48,6 +50,14 @@ export function registerAsteroidRoutes(app) {
         return;
       }
 
+      // AB#794: the Assembly Facility's tier sets the fabrication time; while it upgrades it is offline.
+      const facility = (corp.buildings || []).find((b) => b.name === ASSEMBLY.name);
+      if (Number(facility?.upgradingUntil) > Date.now()) {
+        outcome = "assembly-upgrading";
+        return;
+      }
+      fabricationMs = fabricationMsFor(facility?.tier, PROBE_FABRICATION_MS);
+
       // Only one fabrication at a time
       if (pendingCount > 0) {
         outcome = "already-fabricating";
@@ -66,7 +76,7 @@ export function registerAsteroidRoutes(app) {
         id: `fab-${now}-${Math.random().toString(36).slice(2, 8)}`,
         type: "mining-probe",
         startedAt: now,
-        completesAt: now + PROBE_FABRICATION_MS,
+        completesAt: now + fabricationMs, // AB#794: the Assembly Facility's tier
         cost: PROBE_BUILD_COST
       });
     });
@@ -81,6 +91,7 @@ export function registerAsteroidRoutes(app) {
         "no-assembly": "You must construct an Assembly Facility before fabricating probes.",
         "probe-cap": (() => { const fleet = fleetStatus(account.state.corp); return `Your fleet is at its Fleet Cap (${fleet.vessels}/${fleet.cap}). ${fleet.raiseText}`; })(),
         "already-fabricating": "A probe is already being fabricated. Wait for it to complete before starting another.",
+        "assembly-upgrading": "The Assembly Facility is being upgraded and is offline until it finishes.",
         "insufficient-credits": fundingRequirementMessage("Mining Probe fabrication", account.state.corp, PROBE_BUILD_COST)
       };
       res.status(400).json({ error: msgs[outcome] || "Probe fabrication failed." });
@@ -90,7 +101,7 @@ export function registerAsteroidRoutes(app) {
     const notification = addAccountNotification(req.params.accountId, {
       type: "infrastructure",
       title: "Probe Fabrication Started",
-      body: `Mining Probe fabrication has begun. Estimated completion: ${PROBE_FABRICATION_MS >= 60000 ? Math.round(PROBE_FABRICATION_MS / 60000) + " minute(s)" : Math.round(PROBE_FABRICATION_MS / 1000) + " second(s)"}.`
+      body: `Mining Probe fabrication has begun. Estimated completion: ${fabricationMs >= 60000 ? Math.round(fabricationMs / 60000) + " minute(s)" : Math.round(fabricationMs / 1000) + " second(s)"}.`
     });
     if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     saveAccountsNow();

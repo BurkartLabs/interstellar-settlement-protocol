@@ -33,7 +33,7 @@ const focused = (page) => page.evaluate(() => {
     what: `${el.tagName.toLowerCase()}${id}${cls}`.slice(0, 80),
     text: (el.textContent || el.getAttribute("placeholder") || "").trim().slice(0, 30),
     style: s.outlineStyle, width: s.outlineWidth, color: s.outlineColor,
-    tag: el.tagName.toLowerCase(), inPanel: Boolean(el.closest(".tab-panel.active, .login-form, .login-card"))
+    tag: el.tagName.toLowerCase(), inPanel: Boolean(el.closest(".tab-panel.active, .auth-page__form, .auth-page__card"))
   };
 });
 

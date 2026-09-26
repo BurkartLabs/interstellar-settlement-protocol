@@ -16,8 +16,21 @@ export function assemblyBuildPath(accountId) {
   return `/api/accounts/${encodeURIComponent(accountId)}/gameplay/build-assembly-facility`;
 }
 
+/**
+ * ISP-102 (AB#794): what a facility is doing, for the card that also shows its upgrade control (which says the tier).
+ * "Upgrading" while the building, or the refinery it runs, is offline for an upgrade.
+ */
+export function facilityStatus(building, corp = {}, now = Date.now()) {
+  let until = Number(building?.upgradingUntil) || 0;
+  if (building?.name === "Refinery") {
+    const own = (corp.buildings || []).filter((b) => b?.name === "Refinery");
+    until = Math.max(until, Number((corp.refineries || [])[own.indexOf(building)]?.upgradingUntil) || 0);
+  }
+  return until > now ? "Upgrading" : String(building?.status || "Operational");
+}
+
 /** The facility cards for a corporation, and the Construct card while it has the research and no facility yet. */
-export function facilityCardsHtml(corp = {}, cost = NaN) {
+export function facilityCardsHtml(corp = {}, cost = NaN, upgradeFor = null) {
   const operational = (corp.buildings || []).filter((b) => b.status === "Operational");
   const hasAssemblyTech = (corp.unlockedTech || []).includes("tt-assembly-fabrication");
   const hasAssembly = operational.some((b) => b.name === "Assembly Facility");
@@ -31,8 +44,8 @@ export function facilityCardsHtml(corp = {}, cost = NaN) {
             <h3>${escapeHtml(b.name)}</h3>
           </header>
           <p class="muted facility-desc">${DESCRIPTIONS[b.name]}</p>
-          <p class="facility-tier">Tier ${b.tier || 1} &mdash; ${escapeHtml(b.status)}</p>
-          <p class="muted facility-tier-note">Tier ${b.tier || 1} is its only tier for now: its upgrades are not built yet.</p>
+          <p class="facility-tier">${upgradeFor ? escapeHtml(facilityStatus(b, corp)) : `Tier ${b.tier || 1} &mdash; ${escapeHtml(b.status)}`}</p>
+          ${upgradeFor ? upgradeFor(b) : ""}
           <footer class="facility-card-footer"><button class="btn btn-accent" data-corp-building="${escapeHtml(b.name)}">Enter</button></footer>
         </article>
       `)
@@ -71,11 +84,11 @@ export function constructBlocker(corp = {}, cost = NaN) {
  * Draw the facilities into the Station page and bind their clicks to the same grid. Returns false when the page has no
  * facilities section. The section is hidden while there is nothing to show.
  */
-export function renderStationFacilities(doc, corp, handlers, cost = NaN) {
+export function renderStationFacilities(doc, corp, handlers, cost = NaN, upgradeFor = null) {
   const section = doc.getElementById("station-facilities-section");
   const grid = doc.getElementById("station-facility-buildings");
   if (!section || !grid) return false;
-  const html = facilityCardsHtml(corp, cost);
+  const html = facilityCardsHtml(corp, cost, upgradeFor); // ISP-102 (AB#794): each card's upgrade control
   section.hidden = !html;
   grid.innerHTML = html;
   bindFacilityGrid(grid, handlers);
@@ -89,10 +102,17 @@ export function renderStationFacilities(doc, corp, handlers, cost = NaN) {
  *   onEnter(name)      a facility's Enter button
  *   onBuilt(account)   the facility was built
  *   onError(error)     it was refused or the request failed
+ *   onUpgrade(id)      a facility's Upgrade button (ISP-102, AB#794): the page confirms, posts and redraws
  * While a construction request is out the button is disabled, so a double click is one request, not two.
  */
-export function bindFacilityGrid(grid, { accountId, request, onEnter, onBuilt, onError }) {
+export function bindFacilityGrid(grid, { accountId, request, onEnter, onBuilt, onError, onUpgrade }) {
   grid.onclick = async (event) => {
+    const upgrade = event.target.closest("[data-upgrade-building]");
+    if (upgrade && grid.contains(upgrade)) {
+      if (!upgrade.disabled && onUpgrade) onUpgrade(upgrade.getAttribute("data-upgrade-building"));
+      return;
+    }
+
     const enter = event.target.closest("[data-corp-building]");
     if (enter && grid.contains(enter)) {
       onEnter(enter.getAttribute("data-corp-building"));

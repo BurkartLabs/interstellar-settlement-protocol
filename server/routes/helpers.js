@@ -83,7 +83,8 @@ function refusalMessage(outcome, building, corp, leaseId) {
     case "nothing-to-upgrade": return `The ${building.name} upgrades a ${upgradedName(building)}: build one first.`;
     case "lease-slots-full": return leaseSlotsFullMessage(corp, (corp.miningLeases || []).find((l) => l.id === leaseId), unleasedFor(corp));
     case "no-corp-slot": return `The ${building.name} needs a free building slot. ${corpSlotsFull(corp)}`;
-    case "insufficient-credits": return fundingRequirementMessage(`${building.name} construction`, corp, building.cost);
+    // AB#2286: the price the construction charges (a yard's rises with each one built), not the catalogue's base.
+    case "insufficient-credits": return fundingRequirementMessage(`${building.name} construction`, corp, CONSTRUCTIONS[building.id]?.cost ? CONSTRUCTIONS[building.id].cost(building, corp) : building.cost);
     default: return "Build action failed.";
   }
 }

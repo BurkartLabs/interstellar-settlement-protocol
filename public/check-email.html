@@ -19,26 +19,28 @@
     <canvas id="starfield-canvas" aria-hidden="true"></canvas>
     <div class="app-bg" aria-hidden="true"></div>
 
-    <main class="auth-shell login-shell">
-      <section class="login-card" aria-labelledby="check-email-title">
-        <p class="hero-overline">EARTH ASSEMBLY ACT 2147</p>
-        <h1 id="check-email-title" class="login-title">Check your email to verify your account.</h1>
-        <p class="login-copy">
+    <main class="auth-page">
+      <section class="ui-panel auth-page__card" aria-labelledby="check-email-title">
+        <p class="auth-page__overline">Earth Assembly Act 2147</p>
+        <h1 id="check-email-title" class="auth-page__title">Check your email to verify your account.</h1>
+        <p class="auth-page__lede">
           We sent a link to the address you registered with. Open it within 24 hours to confirm the address is yours,
           then log in. Nothing arrived? Check your spam folder, or ask for a new link below; each new link replaces
           the one before it.
         </p>
 
-        <form id="resend-form" class="login-form" novalidate>
-          <label for="resend-email">Email</label>
-          <input id="resend-email" name="email" type="email" autocomplete="email" required placeholder="ceo@corporation.com" />
+        <form id="resend-form" class="auth-page__form" novalidate>
+          <div class="ui-field">
+            <label class="ui-field__label" for="resend-email">Email</label>
+            <input class="ui-input" id="resend-email" name="email" type="email" autocomplete="email" required placeholder="ceo@corporation.com" />
+          </div>
 
-          <p id="resend-status" class="login-status" aria-live="polite"></p>
+          <p id="resend-status" class="auth-page__status" aria-live="polite"></p>
 
-          <div class="login-actions">
-            <button id="resend-btn" class="btn-hero btn-hero-fill" type="submit">Send A New Link</button>
-            <a href="/login.html" class="btn-hero btn-hero-secondary">Log In</a>
-            <a href="/" class="btn-hero btn-hero-secondary">Return To Landing Page</a>
+          <div class="auth-page__actions">
+            <button id="resend-btn" class="ui-button ui-button--primary" type="submit">Send A New Link</button>
+            <a href="/login.html" class="ui-button ui-button--secondary">Log In</a>
+            <a href="/" class="ui-button ui-button--secondary">Return To Landing Page</a>
           </div>
         </form>
       </section>

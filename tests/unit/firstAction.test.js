@@ -61,10 +61,11 @@ describe("One breakpoint for the phone layout (AB#1056)", () => {
 describe("Landing: Log In and Register come straight after the title (AB#1056)", () => {
   const html = readFileSync(new URL("../../public/index.html", import.meta.url), "utf8");
   const at = (needle) => html.indexOf(needle);
-  it("places .hero-actions after the title and before the tagline, description and pills", () => {
-    expect(at('class="hero-actions"')).toBeGreaterThan(at('class="hero-title"'));
-    expect(at('class="hero-actions"')).toBeLessThan(at('class="hero-tagline"'));
-    expect(at('class="hero-actions"')).toBeLessThan(at('class="hero-desc"'));
-    expect(at('class="hero-actions"')).toBeLessThan(at('class="hero-metrics"'));
+  // ISP-76 (AB#765) rebuilt the landing on the design system; the order is the same rule under the new names.
+  it("places the actions after the title and before the tagline, description and promises", () => {
+    expect(at('class="landing__actions"')).toBeGreaterThan(at('class="landing__title"'));
+    expect(at('class="landing__actions"')).toBeLessThan(at('class="landing__tagline"'));
+    expect(at('class="landing__actions"')).toBeLessThan(at('class="landing__lede"'));
+    expect(at('class="landing__actions"')).toBeLessThan(at('class="landing__promises"'));
   });
 });

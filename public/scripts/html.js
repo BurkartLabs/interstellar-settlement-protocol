@@ -1,6 +1,14 @@
 // Small pure helpers for building HTML strings, kept out of app.js so they can be tested without a browser.
 
 /** Escape a value for use in HTML text or a quoted attribute. */
+/**
+ * The card the landing shows when the game cannot start (app.js). Bug AB#2297: the message is escaped, whatever threw
+ * it; one of the two failure paths used to insert it as HTML.
+ */
+export function bootFailureHtml(what, message) {
+  return `<article class="ui-panel landing__notice" role="alert"><p class="landing__lede">${escapeHtml(what)}: ${escapeHtml(message || "Unknown error")}</p></article>`;
+}
+
 export function escapeHtml(value) {
   return String(value || "")
     .replaceAll("&", "&amp;")
