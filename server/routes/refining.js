@@ -8,6 +8,9 @@ import { emitToAccount } from "../realtime.js";
 // ISP-94 (AB#784): buildHandler builds a refinery, as it builds every player building (server/construction.js).
 import { buildHandler } from "./helpers.js";
 import { startRefineryReceipt } from "../receipts.js"; // AB#744
+// ISP-97 (AB#787): what a run delivers, the Refinery Complex's 1.5 times included, as the tick delivers it.
+import { refineryOutput } from "../../public/scripts/refineryOutput.js";
+import { ECONOMY } from "../economy.js";
 
 export function registerRefiningRoutes(app) {
   // ─── Refinery ────────────────────────────────────────────────────────────────
@@ -125,8 +128,11 @@ export function registerRefiningRoutes(app) {
       return;
     }
 
+    // AB#744: the run as the mutation set it up.
+    const started = account.state.corp.refineries.find((r) => r.name === targetLabel);
+    const delivers = (o) => refineryOutput(o.quantityPerCycle, actualScale, started?.tier, ECONOMY.buildings.refineryComplexOutputMultiplier);
     const outputNames = chain.outputs
-      .map((o) => `${o.quantityPerCycle * actualScale} ${o.item}`)
+      .map((o) => `${delivers(o)} ${o.item}`)
       .join(", ");
     const notification = addAccountNotification(req.params.accountId, {
       type: "operations",
@@ -137,13 +143,11 @@ export function registerRefiningRoutes(app) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     }
 
-    // AB#744: the run as the mutation set it up.
-    const started = account.state.corp.refineries.find((r) => r.name === targetLabel);
     const receipt = startRefineryReceipt({
       refineryName: targetLabel,
       input: chain.input,
       inputQuantity: actualQuantity,
-      outputs: chain.outputs.map((o) => ({ item: o.item, quantity: o.quantityPerCycle * actualScale })),
+      outputs: chain.outputs.map((o) => ({ item: o.item, quantity: delivers(o) })),
       hours: actualDurationHours,
       endsAt: started?.endsAt
     });

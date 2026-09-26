@@ -17,6 +17,9 @@
     "ferricMiningComplexCost": 90000,
     "ferricMiningComplexAssetValue": 65000,
     "ferricMiningComplexMetalMultiplier": 1.25,
+    "refineryComplexCost": 100000,
+    "refineryComplexAssetValue": 70000,
+    "refineryComplexOutputMultiplier": 1.5,
     "supplyForecastCostMultiplier": 0.94,
     "extractorYardUpkeepPctPerDay": 2,
     "extractorYardUpgrades": [

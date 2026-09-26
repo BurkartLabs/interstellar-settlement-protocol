@@ -57,7 +57,7 @@ async function openPanel(browser, viewport, kind) {
   await page.waitForURL(/\/\?account=/);
   await page.click('.tab-btn[data-tab="station"]');
   const section = page.locator("#station-construction-section");
-  await expect(section.locator("[data-building-row]")).toHaveCount(4); // the catalogue's four since ISP-96
+  await expect(section.locator("[data-building-row]")).toHaveCount(5); // the catalogue's five since ISP-97
   await section.scrollIntoViewIfNeeded();
   return { page, section, errors, close: async () => { await context.close(); child.kill(); } };
 }
@@ -82,7 +82,7 @@ for (const viewport of VIEWPORTS) {
     const { page, section, errors, close } = await openPanel(browser, viewport, "level5");
     try {
       await expect(page.locator("#construction-slots")).toHaveText("Building slots: 3 of 6 in use.") // the Headquarters every corporation starts with, and two yards;
-      await expect(section.locator("[data-build-id]")).toHaveCount(4); // the Ferric Mining Complex too, since ISP-96
+      await expect(section.locator("[data-build-id]")).toHaveCount(4); // the Ferric Mining Complex too (ISP-96); the Refinery Complex needs a Refinery
       await section.screenshot({ path: path.join(SHOT_DIR, `level5-before-${viewport.label}.png`) });
       await section.locator('[data-build-id="assembly-facility"]').click();
       await expect(section.locator('[data-building-row="assembly-facility"] .facility-blocked')).toHaveText("Built: your corporation operates the most it may, 1.");
@@ -130,6 +130,42 @@ for (const viewport of VIEWPORTS) {
       await expect(body).toContainText("25 units — Titanium (+5 from your Ferric Mining Complex)");
       await expect(body).toContainText("12 units — Silicates");
       await page.locator("#inbox-detail-view").screenshot({ path: path.join(SHOT_DIR, `ferric-report-${viewport.label}.png`) });
+      expect(errors).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+}
+
+// ISP-97 (AB#787): the Refinery Complex, built from the panel onto a Refinery already running; the Refinery page quotes
+// half as much again, and the server's own refinery tick delivers it to the station's stock.
+for (const viewport of VIEWPORTS) {
+  test(`the Refinery Complex upgrades a running Refinery from the panel, and its run delivers more, at ${viewport.label}`, async ({ browser }) => {
+    test.setTimeout(120_000);
+    const { page, section, errors, close } = await openPanel(browser, viewport, "refinery");
+    try {
+      const row = section.locator('[data-building-row="refinery-complex"]');
+      await expect(row).toContainText("Uses no slot: upgrades a Refinery in place.");
+      await expect(row.locator('[data-build-id="refinery-complex"]')).toHaveText("Build (¤100,000)");
+      await row.scrollIntoViewIfNeeded();
+      await section.screenshot({ path: path.join(SHOT_DIR, `refinery-complex-buildable-${viewport.label}.png`) });
+      await row.locator("[data-build-id]").click();
+      await expect(row.locator(".facility-blocked")).toHaveText("Every Refinery you have is already a Refinery Complex.");
+      await page.keyboard.press("Escape"); // the receipt
+      await section.screenshot({ path: path.join(SHOT_DIR, `refinery-complex-built-${viewport.label}.png`) });
+
+      await page.click('.tab-btn[data-tab="refinery"]');
+      const run = page.locator("#refinery-active-runs .queue-item").first();
+      await expect(run).toContainText("Refinery #1 · Refinery Complex");
+      await expect(run).toContainText("→ 60 Aerogel, 22 Quantum Insulators");
+      await page.locator("#refinery-active-runs").screenshot({ path: path.join(SHOT_DIR, `refinery-complex-run-${viewport.label}.png`) });
+
+      // The refinery tick runs every 10 seconds; the run is due 30 seconds after seeding.
+      await page.click('.tab-btn[data-tab="market"]');
+      const aerogel = page.locator("#market-sell-grid tr", { hasText: "Aerogel" });
+      await expect(aerogel).toContainText("60", { timeout: 60_000 });
+      await expect(page.locator("#market-sell-grid tr", { hasText: "Quantum Insulators" })).toContainText("22");
+      await page.locator("#market-sell-grid").screenshot({ path: path.join(SHOT_DIR, `refinery-complex-delivered-${viewport.label}.png`) });
       expect(errors).toEqual([]);
     } finally {
       await close();

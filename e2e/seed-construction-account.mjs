@@ -6,7 +6,10 @@
 // `ferric` (ISP-96) is level5 plus a Sol belt expedition due back 25 seconds after seeding, carrying 40 Nickel,
 // 20 Titanium and 12 Silicates and mining nothing more on the way: time to build the Ferric Mining Complex first.
 //
-// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric>
+// `refinery` (ISP-97) is level5 plus a Refinery built through construct(), running the Silicates chain and due to
+// finish 30 seconds after seeding: time to upgrade it to a Refinery Complex from the panel before it delivers.
+//
+// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery>
 const [, , dataDir, email, password, kind] = process.argv;
 process.env.ISP_DATA_DIR = dataDir;
 process.env.JWT_SECRET = process.env.JWT_SECRET || "construction-panel-e2e-fixture-secret-0123";
@@ -21,7 +24,7 @@ verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who c
 store.mutateAccountState(account.id, (state) => {
   const corp = state.corp;
   corp.currentStationId = "earth-station-prime";
-  if (kind !== "level5" && kind !== "ferric") return;
+  if (kind !== "level5" && kind !== "ferric" && kind !== "refinery") return;
   const lease = (id, body) => ({ id, body, leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: [], issuedAt: Date.now() });
   corp.level = 5;
   corp.buildingSlots = 6;
@@ -31,6 +34,13 @@ store.mutateAccountState(account.id, (state) => {
   for (let i = 0; i < 2; i += 1) {
     const built = construct(corp, playerBuilding("basic-extractor-yard"), "lease-earth-qa");
     if (built.outcome !== "ok") throw new Error(`seeding a yard: ${built.outcome}`);
+  }
+  if (kind === "refinery") {
+    const built = construct(corp, playerBuilding("refinery"), null);
+    if (built.outcome !== "ok") throw new Error(`seeding a refinery: ${built.outcome}`);
+    const due = Date.now() + 30_000;
+    Object.assign(corp.refineries[0], { active: true, chainId: "silicates-chain", stationId: "earth-station-prime", startedAt: due - 4 * 3_600_000, lastTickAt: due - 4 * 3_600_000, endsAt: due, cycleScale: 1 });
+    corp.inventory = { "earth-station-prime": {} };
   }
   if (kind === "ferric") {
     const due = Date.now() + 25_000;

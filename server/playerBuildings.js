@@ -27,6 +27,11 @@ export function playerBuildingProblems(catalogue, economy = ECONOMY) {
       if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) problems.push(`${at}.price names no buildings.${b?.price}${suffix} in data/economy.json.`);
     }
     if (!SLOTS.has(b?.slot)) problems.push(`${at}.slot must be one of ${[...SLOTS].join(", ")}.`);
+    // ISP-97 (AB#787): an upgrade names the catalogue building it upgrades; no other building names one.
+    if (b?.slot === "upgrade" && !buildings.some((other) => other?.id === b.upgrades && other?.slot !== "upgrade")) {
+      problems.push(`${at}.upgrades must name a building in data/player-buildings.json that is not itself an upgrade.`);
+    }
+    if (b?.slot !== "upgrade" && b?.upgrades !== undefined) problems.push(`${at}.upgrades is only for an upgrade.`);
     if (!Array.isArray(b?.researchGates) || b.researchGates.some((g) => typeof g !== "string" || !g)) problems.push(`${at}.researchGates must be a list of research ids.`);
     if (!b?.cap || typeof b.cap !== "object" || Array.isArray(b.cap) || Object.values(b.cap).some((n) => !Number.isInteger(n) || n < 1)) {
       problems.push(`${at}.cap must be an object of whole numbers of at least 1.`);
