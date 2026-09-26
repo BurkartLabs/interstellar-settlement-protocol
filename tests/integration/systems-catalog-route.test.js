@@ -7,7 +7,9 @@ import { mutateAccountState } from "../../server/gameState.js";
 
 // ISP-112 (AB#804): the page reads every per-system fact from GET /api/systems. It is data/systems.json as it is on
 // disk: served to anyone, the same to everyone, holding no player's data, and unchanged by anything a player does.
-const ON_DISK = JSON.parse(fs.readFileSync(new URL("../../data/systems.json", import.meta.url), "utf8"));
+// Bug #2355: less what is in each belt (its composition and resource profile), which scouting reveals.
+const ON_DISK = JSON.parse(fs.readFileSync(new URL("../../data/systems.json", import.meta.url), "utf8"))
+  .map((s) => ({ ...s, bodies: s.bodies.map((b) => { if (b.type !== "Field") return b; const { composition, resourceProfile, ...drawn } = b; return drawn; }) }));
 const PLAYER_FIELDS = /"(corp|accountId|email|credits|finances|inventory|unlockedTech|miningLeases|scoutedBelts|passwordHash|ownerAccountId)"/;
 
 describe("GET /api/systems (ISP-112)", () => {
@@ -17,6 +19,10 @@ describe("GET /api/systems (ISP-112)", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ systems: ON_DISK });
     expect(JSON.stringify(res.body)).not.toMatch(PLAYER_FIELDS);
+    // Every belt is on the map, and none says what is in it.
+    const belts = res.body.systems.flatMap((s) => s.bodies.filter((b) => b.type === "Field"));
+    expect(belts.length).toBe(ON_DISK.reduce((n, s) => n + s.bodies.filter((b) => b.type === "Field").length, 0));
+    for (const b of belts) expect([b.composition, b.resourceProfile], b.id).toEqual([undefined, undefined]);
   });
 
   it("answers the same after a player scouts, travels its research open and changes its own state", async () => {
