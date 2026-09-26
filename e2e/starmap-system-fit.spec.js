@@ -3,6 +3,7 @@
 // tests/unit/starmapFit.test.js; this is the look. Starts its own server (the logistics-shipments.spec.js pattern).
 import { test, expect } from "@playwright/test";
 import { openTab } from "./nav.mjs";
+import { tapStarByCatalog } from "./clusterStar.mjs"; // AB#808
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -50,7 +51,14 @@ const labelOf = (page, test) => page.evaluate((src) => {
  *  plus its radius before its label, or after it when the label is drawn to the left. */
 async function openSystem(page, canvas, name) {
   const label = await labelOf(page, `t === ${JSON.stringify(name)}`);
-  expect(label, `${name} is drawn on the cluster view`).toBeTruthy();
+  if (!label) {
+    // AB#808: a phone names only the current system, the selected one and its neighbours; the rest are dots.
+    await page.evaluate(() => { window.__labels = []; });
+    await tapStarByCatalog(canvas, name);
+    await page.waitForTimeout(400);
+    expect(await labelOf(page, `t.endsWith("Back To Cluster")`), `${name} opens from its star`).toBeTruthy();
+    return;
+  }
   for (const dx of [-17, -20, label.w + 17, label.w + 20]) {
     await page.evaluate(() => { window.__labels = []; });
     await canvas.click({ position: { x: label.x + dx, y: label.y - 1 } });
