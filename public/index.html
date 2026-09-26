@@ -617,37 +617,44 @@
             </section>
           </article>
 
-          <article id="market" class="tab-panel">
-            <h2>Galactic Exchange</h2>
-            <!-- Price history for the selected resource (AB#716); public/scripts/priceChart.js draws it -->
-            <section class="form-card price-chart" id="exchange-price-chart">
-              <div class="price-chart__head">
-                <h3 id="price-chart-title">Silicates: price history</h3>
-                <div class="price-chart__ranges" role="group" aria-label="Chart range">
-                  <button type="button" class="btn btn-outline" data-price-range="7" aria-pressed="true">7 days</button>
-                  <button type="button" class="btn btn-outline" data-price-range="30" aria-pressed="false">30 days</button>
-                </div>
-              </div>
-              <p id="price-chart-summary" class="muted">Loading price history...</p>
-              <div class="price-chart__canvas"><canvas id="price-chart-canvas" role="img" aria-label="Daily closing price and volume"></canvas></div>
-              <p class="muted price-chart__hint">Charts the resource picked in the filter below, or Silicates when All is picked. Daily close and volume, UTC days.</p>
-            </section>
+          <article id="market" class="tab-panel ui-screen">
+            <!-- ISP-80 (AB#769): the Galactic Exchange on the design system, in the flat direction (Decision AB#1801). -->
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title">Galactic Exchange</h2>
+              <p class="ui-screen__lede">Buy what other corporations list, sell into the standing buy orders, and list your own stock.</p>
+            </header>
             <div id="market-station-banner"></div>
 
-            <!-- Resource filter bar, order-type filter and sort (AB#402) -->
-            <div class="exchange-controls">
-              <div class="exchange-filter-bar" id="exchange-filter-bar" aria-label="Filter by resource"></div>
-              <div class="exchange-view-selects">
-                <label>Show
-                  <select id="exchange-type-filter">
+            <!-- Price history for the selected resource (AB#716); public/scripts/priceChart.js draws it -->
+            <section class="ui-panel exchange__chart" id="exchange-price-chart">
+              <header class="ui-panel__header">
+                <div>
+                  <h3 class="ui-panel__title" id="price-chart-title">Silicates: price history</h3>
+                  <p class="ui-panel__meta" id="price-chart-summary">Loading price history...</p>
+                </div>
+                <div class="ui-panel__actions" role="group" aria-label="Chart range">
+                  <button type="button" class="ui-button ui-button--secondary" data-price-range="7" aria-pressed="true">7 days</button>
+                  <button type="button" class="ui-button ui-button--secondary" data-price-range="30" aria-pressed="false">30 days</button>
+                </div>
+              </header>
+              <div class="ui-panel__body exchange__canvas"><canvas id="price-chart-canvas" role="img" aria-label="Daily closing price and volume"></canvas></div>
+              <div class="ui-panel__body"><p class="ui-panel__meta">Charts the resource picked in the filter below, or Silicates when All is picked. Daily close and volume, UTC days.</p></div>
+            </section>
+
+            <!-- Resource filter, order-type filter and sort (AB#402) -->
+            <section class="ui-panel exchange__filters" aria-label="Filters">
+              <div class="ui-tabs" id="exchange-filter-bar" role="tablist" aria-label="Filter by resource"></div>
+              <div class="exchange__selects">
+                <label class="ui-field"><span class="ui-field__label">Show</span>
+                  <select class="ui-select" id="exchange-type-filter">
                     <option value="all">All orders</option>
                     <option value="sell">Player sell orders</option>
                     <option value="standing">Standing buy orders</option>
                     <option value="mine">My listings</option>
                   </select>
                 </label>
-                <label>Sort
-                  <select id="exchange-sort">
+                <label class="ui-field"><span class="ui-field__label">Sort</span>
+                  <select class="ui-select" id="exchange-sort">
                     <option value="newest">Newest first</option>
                     <option value="oldest">Oldest first</option>
                     <option value="price-asc">Price: low to high</option>
@@ -657,130 +664,164 @@
                   </select>
                 </label>
               </div>
+            </section>
+
+            <div class="exchange__split">
+              <!-- Sell orders: others' items you can buy -->
+              <section class="ui-panel" id="exchange-sell-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title">Sell orders</h3>
+                    <p class="ui-panel__meta">Public sell orders on the exchange. Your own listings are never shown here.</p>
+                  </div>
+                </header>
+                <div class="ui-panel__body ui-stack">
+                  <div id="exchange-buy-empty" class="ui-state" hidden><p class="ui-state__title">Nothing for sale</p><p class="ui-state__why">No player has listed anything for sale yet.</p></div>
+                  <div id="exchange-buy-filtered" class="ui-state" hidden></div>
+                  <p id="buy-status" class="ui-panel__meta" role="status"></p>
+                  <div class="ui-table-wrap">
+                    <table class="ui-table">
+                      <thead>
+                        <tr>
+                          <th>Item</th>
+                          <th class="ui-table__num">Available</th>
+                          <th class="ui-table__num">Unit price</th>
+                          <th>Seller</th>
+                          <th>Buy quantity</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="exchange-buy-table"></tbody>
+                    </table>
+                  </div>
+                  <p id="exchange-buy-capped" class="ui-panel__meta" hidden></p>
+                </div>
+              </section>
+
+              <!-- Create a new sell listing -->
+              <section class="ui-panel" id="exchange-listing-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title">Create listing</h3>
+                    <p class="ui-panel__meta">List resources from this station&#39;s inventory as a public sell order.</p>
+                  </div>
+                </header>
+                <div class="ui-panel__body ui-stack">
+                  <div id="market-sell-empty" class="ui-state" hidden><p class="ui-state__title">Nothing to list here</p><p class="ui-state__why">Lease a claim and run an extractor yard (Station &gt; ISA Claims &amp; Leases) to have goods to sell.</p></div>
+                  <div class="ui-table-wrap">
+                    <table class="ui-table">
+                      <thead>
+                        <tr>
+                          <th>Item</th>
+                          <th class="ui-table__num">In stock</th>
+                          <th>Sell quantity</th>
+                          <th>Unit price</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="market-sell-grid"></tbody>
+                    </table>
+                  </div>
+                  <p id="listing-status" class="ui-panel__meta" role="status"></p>
+                </div>
+              </section>
             </div>
 
-            <div class="split-grid exchange-layout">
-              <!-- Left: Sell Orders (others' items you can buy) -->
-              <section class="form-card exchange-section" id="exchange-sell-section">
-                <h3>Sell Orders</h3>
-                <p class="muted">Public sell orders available on the exchange. You will never see your own listings here.</p>
-                <p id="exchange-buy-empty" class="muted" hidden>No player has listed anything for sale yet.</p>
-                <div id="exchange-buy-filtered" class="exchange-filtered-empty" hidden></div>
-                <p id="buy-status" class="muted"></p>
-                <div class="table-wrap">
-                  <table class="data-table data-table--stack">
+            <!-- Standing NPC buy orders -->
+            <section class="ui-panel" id="exchange-standing-section">
+              <header class="ui-panel__header">
+                <div>
+                  <h3 class="ui-panel__title">Standing buy orders</h3>
+                  <p class="ui-panel__meta">Recurring NPC buyers: sell into them and a buyer is always there. The price falls as the day&#39;s quota fills and recovers overnight, so a glutted market pays less and a quiet one pays more. Quantities and prices reset daily at midnight EST.</p>
+                </div>
+              </header>
+              <div class="ui-panel__body ui-stack">
+                <div id="npc-buy-empty" class="ui-state" hidden><p class="ui-state__title">No standing buy orders</p><p class="ui-state__why">There are no standing buy orders today.</p></div>
+                <div id="npc-buy-filtered" class="ui-state" hidden></div>
+                <p id="npc-buy-status" class="ui-panel__meta" role="status"></p>
+                <div class="ui-table-wrap">
+                  <table class="ui-table">
                     <thead>
                       <tr>
                         <th>Item</th>
-                        <th>Available</th>
-                        <th>Unit Price</th>
-                        <th>Seller</th>
-                        <th>Buy Qty</th>
+                        <th>Buyer</th>
+                        <th class="ui-table__num">Price per unit</th>
+                        <th>Remaining today</th>
+                        <th>Sell quantity</th>
                         <th>Action</th>
                       </tr>
                     </thead>
-                    <tbody id="exchange-buy-table"></tbody>
+                    <tbody id="npc-buy-table"></tbody>
                   </table>
                 </div>
-                <p id="exchange-buy-capped" class="muted" hidden></p>
-              </section>
+              </div>
+            </section>
 
-              <!-- Right: Create a new sell listing -->
-              <section class="form-card exchange-section action-surface">
-                <h3>Create Listing</h3>
-                <p class="muted">List resources from your inventory as a public sell order.</p>
-                <p id="market-sell-empty" class="muted" hidden>Nothing in inventory here to list yet. Lease a claim and run an extractor yard (Station &gt; ISA Claims &amp; Leases) to have goods to sell.</p>
-                <div class="table-wrap">
-                  <table class="data-table data-table--stack">
+            <!-- My active listings -->
+            <section class="ui-panel" id="exchange-mine-section">
+              <header class="ui-panel__header">
+                <div>
+                  <h3 class="ui-panel__title">My active listings</h3>
+                </div>
+              </header>
+              <div class="ui-panel__body ui-stack">
+                <div id="my-sell-orders-empty" class="ui-state" hidden><p class="ui-state__title">No active listings</p><p class="ui-state__why">You have no active sell orders on the exchange.</p></div>
+                <div id="my-sell-orders-filtered" class="ui-state" hidden></div>
+                <div class="ui-table-wrap">
+                  <table class="ui-table">
                     <thead>
                       <tr>
                         <th>Item</th>
-                        <th>In Stock</th>
-                        <th>Sell Quantity</th>
-                        <th>Unit Price</th>
+                        <th class="ui-table__num">Remaining</th>
+                        <th class="ui-table__num">Unit price</th>
+                        <th>Listed at</th>
                         <th>Action</th>
                       </tr>
                     </thead>
-                    <tbody id="market-sell-grid"></tbody>
+                    <tbody id="my-sell-orders-table"></tbody>
                   </table>
                 </div>
-                <p id="listing-status" class="muted"></p>
-              </section>
-            </div>
-
-            <!-- Standing NPC Buy Orders -->
-            <section class="form-card" id="exchange-standing-section" style="margin-top:1.6rem">
-              <h3>Standing Buy Orders</h3>
-              <p class="muted">These are recurring NPC buy orders: sell into them and a buyer is always there. The price falls as the day&#39;s quota fills and recovers overnight, so a glutted market pays less and a quiet one pays more. Quantities and prices reset daily at midnight EST.</p>
-              <p id="npc-buy-empty" class="muted" hidden>There are no standing buy orders today.</p>
-              <div id="npc-buy-filtered" class="exchange-filtered-empty" hidden></div>
-              <p id="npc-buy-status" class="muted"></p>
-              <div class="table-wrap">
-                <table class="data-table data-table--stack">
-                  <thead>
-                    <tr>
-                      <th>Item</th>
-                      <th>Buyer</th>
-                      <th>Price / Unit</th>
-                      <th>Remaining Today</th>
-                      <th>Sell Qty</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="npc-buy-table"></tbody>
-                </table>
+                <p id="my-sell-orders-capped" class="ui-panel__meta" hidden></p>
               </div>
             </section>
 
-            <!-- My Active Listings -->
-            <section class="form-card" id="exchange-mine-section" style="margin-top:1.6rem">
-              <h3>My Active Listings</h3>
-              <p id="my-sell-orders-empty" class="muted" hidden>You have no active sell orders on the exchange.</p>
-              <div id="my-sell-orders-filtered" class="exchange-filtered-empty" hidden></div>
-              <div class="table-wrap">
-                <table class="data-table data-table--stack">
-                  <thead>
-                    <tr>
-                      <th>Item</th>
-                      <th>Remaining Qty</th>
-                      <th>Unit Price</th>
-                      <th>Listed At</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="my-sell-orders-table"></tbody>
-                </table>
+            <section class="ui-panel" id="exchange-inventory-section">
+              <header class="ui-panel__header">
+                <div>
+                  <h3 class="ui-panel__title">Inventory at this station</h3>
+                </div>
+              </header>
+              <div class="ui-panel__body">
+                <ul id="inventory-list" class="ui-list"></ul>
               </div>
-              <p id="my-sell-orders-capped" class="muted" hidden></p>
             </section>
 
-            <div class="split-grid">
-              <section class="form-card">
-                <h3>Exchange Inventory Snapshot</h3>
-                <ul id="inventory-list" class="text-list"></ul>
-              </section>
-            </div>
-
-            <!-- Trade History -->
-            <section class="form-card" style="margin-top:1.6rem">
-              <h3>Trade History</h3>
-              <p class="muted">A record of all your market activity — listings, purchases, and sales.</p>
-              <p id="trade-history-empty" class="muted" hidden>No trade activity recorded yet.</p>
-              <div class="table-wrap">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Time</th>
-                      <th>Type</th>
-                      <th>Item</th>
-                      <th>Qty</th>
-                      <th>Unit Price</th>
-                      <th>Total</th>
-                      <th>Counterparty</th>
-                    </tr>
-                  </thead>
-                  <tbody id="trade-history-table"></tbody>
-                </table>
+            <!-- Trade history -->
+            <section class="ui-panel" id="exchange-history-section">
+              <header class="ui-panel__header">
+                <div>
+                  <h3 class="ui-panel__title">Trade history</h3>
+                  <p class="ui-panel__meta">Every listing, purchase and sale you have made.</p>
+                </div>
+              </header>
+              <div class="ui-panel__body ui-stack">
+                <div id="trade-history-empty" class="ui-state" hidden><p class="ui-state__title">No trades yet</p><p class="ui-state__why">No trade activity recorded yet.</p></div>
+                <div class="ui-table-wrap">
+                  <table class="ui-table">
+                    <thead>
+                      <tr>
+                        <th>Time</th>
+                        <th>Type</th>
+                        <th>Item</th>
+                        <th class="ui-table__num">Quantity</th>
+                        <th class="ui-table__num">Unit price</th>
+                        <th class="ui-table__num">Total</th>
+                        <th>Counterparty</th>
+                      </tr>
+                    </thead>
+                    <tbody id="trade-history-table"></tbody>
+                  </table>
+                </div>
               </div>
             </section>
           </article>
@@ -804,109 +845,120 @@
             <div id="logistics-content" class="ui-stack"></div>
           </article>
 
-          <article id="chat" class="tab-panel">
-            <h2>Real-time Communications</h2>
-            <div class="split-grid">
-              <section>
-                <p class="muted" style="margin-bottom:0.45rem">Channel</p>
-                <div id="chat-channel-tabs" class="chat-channel-tabs" role="tablist" aria-label="Comms Channels">
-                  <button class="chat-channel-tab active" type="button" role="tab" aria-selected="true" data-chat-channel-tab="global">Global</button>
-                  <button class="chat-channel-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="local">Local</button>
-                  <button class="chat-channel-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="trade">Trade</button>
-                </div>
-                <ul id="chat-log" class="chat-log"></ul>
-                <form id="chat-form" class="inline-form">
-                  <label class="sr-only" for="chat-input">Message</label>
-                  <input id="chat-input" name="message" required maxlength="300" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-                  <button class="btn btn-accent" type="submit">Send</button>
-                </form>
-              </section>
-            </div>
+          <article id="chat" class="tab-panel ui-screen">
+            <!-- ISP-81 (AB#770): Comms on the design system, in the flat direction (Decision AB#1801). -->
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title">Real-time Communications</h2>
+              <p class="ui-screen__lede">Global and Trade reach every corporation; Local reaches only those in your current system.</p>
+            </header>
+            <section class="ui-panel chat">
+              <div id="chat-channel-tabs" class="ui-tabs chat__tabs" role="tablist" aria-label="Comms Channels">
+                <button class="ui-tab" type="button" role="tab" aria-selected="true" data-chat-channel-tab="global">Global</button>
+                <button class="ui-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="local">Local</button>
+                <button class="ui-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="trade">Trade</button>
+              </div>
+              <ul id="chat-log" class="chat__log"></ul>
+              <form id="chat-form" class="chat__form">
+                <label class="sr-only" for="chat-input">Message</label>
+                <input id="chat-input" class="ui-input" name="message" required maxlength="300" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Message the channel…" />
+                <button class="ui-button ui-button--primary" type="submit">Send</button>
+              </form>
+            </section>
           </article>
 
-          <article id="forums" class="tab-panel">
+          <article id="forums" class="tab-panel ui-screen">
+            <!-- ISP-81 (AB#770): the Forums on the design system, in the flat direction (Decision AB#1801). -->
             <!-- Overview: category filter + thread list -->
-            <div id="forum-overview-view">
-              <h2>Corporate Forums</h2>
-              <div class="forums-nav">
-                <div id="forum-categories" class="forum-category-nav"></div>
-                <button id="forum-new-thread-btn" class="btn btn-accent" type="button">+ New Thread</button>
-                <button id="forum-recent-btn" class="btn btn-outline" type="button">Recent Threads</button>
-              </div>
-              <!-- Inline composer revealed by the New Thread button. -->
-              <form id="forum-new-thread-form" class="form-card" hidden>
-                <h3>Start a New Thread</h3>
-                <label>
-                  <span>Category</span>
-                  <select id="forum-new-thread-category" required></select>
-                </label>
-                <label>
-                  <span>Title</span>
-                  <input id="forum-new-thread-title" type="text" maxlength="200" required>
-                </label>
-                <label>
-                  <span>Body</span>
-                  <textarea id="forum-new-thread-body" rows="6" maxlength="8000" required></textarea>
-                </label>
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-accent">Post Thread</button>
-                  <button type="button" id="forum-new-thread-cancel" class="btn btn-outline">Cancel</button>
+            <div id="forum-overview-view" class="forums__view">
+              <header class="ui-screen__header forums__header">
+                <h2 class="ui-screen__title">Corporate Forums</h2>
+                <div class="forums__actions">
+                  <button id="forum-new-thread-btn" class="ui-button ui-button--primary" type="button">+ New Thread</button>
+                  <button id="forum-recent-btn" class="ui-button ui-button--secondary" type="button">Recent Threads</button>
                 </div>
-                <p id="forum-new-thread-status" class="muted"></p>
+              </header>
+              <div id="forum-categories" class="ui-tabs" role="tablist" aria-label="Forum categories"></div>
+              <!-- Inline composer revealed by the New Thread button. -->
+              <form id="forum-new-thread-form" class="ui-panel" aria-labelledby="forum-new-thread-heading" hidden>
+                <header class="ui-panel__header"><h3 id="forum-new-thread-heading" class="ui-panel__title">Start a New Thread</h3></header>
+                <div class="ui-panel__body ui-stack">
+                  <div class="ui-field">
+                    <label class="ui-field__label" for="forum-new-thread-category">Category</label>
+                    <select id="forum-new-thread-category" class="ui-select" required></select>
+                  </div>
+                  <div class="ui-field">
+                    <label class="ui-field__label" for="forum-new-thread-title">Title</label>
+                    <input id="forum-new-thread-title" class="ui-input" type="text" maxlength="200" required>
+                  </div>
+                  <div class="ui-field">
+                    <label class="ui-field__label" for="forum-new-thread-body">Body</label>
+                    <textarea id="forum-new-thread-body" class="ui-input ui-textarea" rows="6" maxlength="8000" required></textarea>
+                  </div>
+                  <div class="forums__actions">
+                    <button type="submit" class="ui-button ui-button--primary">Post Thread</button>
+                    <button type="button" id="forum-new-thread-cancel" class="ui-button ui-button--secondary">Cancel</button>
+                  </div>
+                  <p id="forum-new-thread-status" class="ui-screen__meta" aria-live="polite"></p>
+                </div>
               </form>
-              <div id="forum-threads" class="forum-thread-list"></div>
+              <div id="forum-threads" class="forums__threads"></div>
             </div>
             <!-- Thread detail: full-page view -->
-            <div id="forum-thread-view" hidden>
-              <div class="forum-thread-header" hidden>
-                <button id="forum-back-btn" class="btn btn-outline" type="button">&#8592; Back to Forums</button>
+            <div id="forum-thread-view" class="forums__view" hidden>
+              <div hidden>
+                <button id="forum-back-btn" class="ui-button ui-button--secondary" type="button">&#8592; Back to Forums</button>
               </div>
-              <div id="forum-thread-detail-body" class="forum-thread-full"></div>
+              <div id="forum-thread-detail-body"></div>
             </div>
           </article>
 
-          <article id="missions" class="tab-panel">
+          <article id="missions" class="tab-panel ui-screen">
+            <!-- ISP-81 (AB#770): the Assignments Bureau on the design system, in the flat direction (Decision AB#1801). -->
             <!-- Bureau hub: list of mission agents -->
-            <div id="missions-board-view">
-              <h2>ISA Contracting &amp; Assignments Bureau</h2>
-              <p class="muted lede">Registered mission agents maintain offices within this bureau. Select an agent to enter their office and review available contracts.</p>
-              <div id="agent-list" class="card-grid"></div>
-              <section class="form-card" id="active-missions-section">
-                <h3>Active Contracts</h3>
-                <p id="active-missions-empty" class="muted">No active contracts. Visit an agent's office to accept assignments.</p>
-                <div id="active-mission-list" class="card-grid"></div>
+            <div id="missions-board-view" class="missions__view">
+              <header class="ui-screen__header">
+                <h2 class="ui-screen__title">ISA Contracting &amp; Assignments Bureau</h2>
+                <p class="ui-screen__lede">Registered mission agents maintain offices within this bureau. Select an agent to enter their office and review available contracts.</p>
+              </header>
+              <div id="agent-list" class="ui-grid missions__agents"></div>
+              <section class="ui-panel missions__panel" id="active-missions-section">
+                <h3 class="ui-panel__title">Active Contracts</h3>
+                <p id="active-missions-empty" class="missions__note">No active contracts. Visit an agent's office to accept assignments.</p>
+                <div id="active-mission-list" class="ui-grid"></div>
               </section>
-              <section class="form-card mission-log-section" id="completed-missions-section" hidden>
-                <div class="mission-log-header">
-                  <h3>Mission Log</h3>
-                  <span class="mission-log-count" id="mission-log-count"></span>
+              <section class="ui-panel missions__panel" id="completed-missions-section" hidden>
+                <div class="missions__panel-head">
+                  <h3 class="ui-panel__title">Mission Log</h3>
+                  <span class="ui-badge" id="mission-log-count"></span>
                 </div>
-                <div class="mission-log-list" id="completed-mission-log"></div>
+                <ul class="missions__log" id="completed-mission-log"></ul>
               </section>
             </div>
 
             <!-- Agent office view -->
-            <div id="agent-office-view" hidden>
-              <button id="agent-back-btn" class="btn btn-outline" type="button">&#8592; Back to Assignments Bureau</button>
-              <div class="agent-office-layout">
-                <div class="agent-portrait-section">
-                  <img id="agent-portrait" class="agent-portrait" src="" alt="" />
-                  <div class="agent-nameplate">
-                    <p class="agent-title overline" id="agent-title"></p>
-                    <h2 id="agent-name"></h2>
+            <div id="agent-office-view" class="missions__view" hidden>
+              <div>
+                <button id="agent-back-btn" class="ui-button ui-button--secondary" type="button">&#8592; Back to Assignments Bureau</button>
+              </div>
+              <div class="missions__office">
+                <div class="missions__agent">
+                  <img id="agent-portrait" class="missions__portrait" src="" alt="" />
+                  <div>
+                    <p class="missions__overline" id="agent-title"></p>
+                    <h2 class="ui-screen__title" id="agent-name"></h2>
                   </div>
-                  <div class="agent-reputation-section" id="agent-reputation"></div>
+                  <section class="ui-panel missions__panel" id="agent-reputation"></section>
                 </div>
-                <div class="agent-info-section">
-                  <div class="agent-bio form-card" id="agent-bio"></div>
-                  <div class="agent-dialogue form-card" id="agent-dialogue"></div>
-                  <div class="agent-missions-section">
-                    <h3>Available Contracts</h3>
-                    <p class="muted" id="agent-missions-empty">No contracts currently available from this agent.</p>
-                    <div id="agent-mission-list" class="card-grid"></div>
-                    <p class="contract-refresh-timer muted" id="contract-refresh-timer" hidden></p>
-                  </div>
-                  <div class="agent-completed-section form-card" id="agent-completed-missions" hidden></div>
+                <div class="missions__office-main">
+                  <section class="ui-panel missions__panel" id="agent-bio"></section>
+                  <section class="ui-panel missions__panel" id="agent-dialogue"></section>
+                  <section class="ui-stack">
+                    <h3 class="missions__heading">Available Contracts</h3>
+                    <p class="missions__note" id="agent-missions-empty">No contracts currently available from this agent.</p>
+                    <div id="agent-mission-list" class="ui-grid"></div>
+                    <p class="missions__hint" id="contract-refresh-timer" hidden></p>
+                  </section>
+                  <section class="ui-panel missions__panel" id="agent-completed-missions" hidden></section>
                 </div>
               </div>
             </div>
@@ -1022,47 +1074,39 @@
     </div>
 
     <!-- Contract briefing (AB#1832): at body level, not in #missions, whose .tab-panel backdrop-filter would pin a fixed modal to the scrolled panel. -->
-    <div id="mission-detail-modal" class="mission-modal-backdrop" hidden>
-      <article class="mission-modal-card">
-        <button id="mission-modal-close" class="mission-modal-close" type="button" aria-label="Close">&times;</button>
-        <div class="mission-modal-header">
-          <div class="mission-modal-img-placeholder">
-            <span>CONTRACT<br/>BRIEFING</span>
+    <!-- ISP-81 (AB#770): a contract's briefing, on the game's modal card. -->
+    <div id="mission-detail-modal" class="modal-backdrop" hidden>
+      <article class="modal-card missions__modal" role="dialog" aria-modal="true" aria-labelledby="mission-detail-title">
+        <header class="missions__modal-header">
+          <div class="missions__modal-heading">
+            <p class="missions__overline" id="mission-detail-type"></p>
+            <h2 id="mission-detail-title" class="ui-screen__title"></h2>
           </div>
-          <div class="mission-modal-meta">
-            <p class="overline" id="mission-detail-type"></p>
-            <h2 id="mission-detail-title"></h2>
-            <div class="mission-modal-badges">
-              <span id="mission-detail-risk-badge" class="mission-card-risk"></span>
-              <span id="mission-detail-reward-badge" class="mission-modal-reward-badge"></span>
-            </div>
-          </div>
+          <button id="mission-modal-close" class="ui-button ui-button--ghost" type="button" aria-label="Close">&times;</button>
+        </header>
+        <div class="missions__badges">
+          <span id="mission-detail-risk-badge" class="ui-badge"></span>
+          <span id="mission-detail-reward-badge" class="ui-badge ui-badge--accent"></span>
         </div>
-        <div class="mission-modal-body">
-          <div class="mission-modal-section">
-            <h4>Briefing</h4>
-            <p id="mission-detail-text"></p>
-          </div>
-          <div id="mission-quota-section" class="mission-modal-section" hidden>
-            <h4>Quota Progress</h4>
-            <div class="mission-quota-info">
-              <div class="mission-quota-bar-container">
-                <div id="mission-quota-bar" class="mission-quota-bar"></div>
-              </div>
-              <p id="mission-quota-text" class="mission-quota-text"></p>
-            </div>
-          </div>
-          <div id="mission-location-section" class="mission-modal-section" hidden>
-            <div id="mission-location-warning" class="mission-location-warning"></div>
-          </div>
-          <div class="mission-modal-section">
-            <h4>Intelligence</h4>
-            <p id="mission-detail-risk" class="muted"></p>
-          </div>
-        </div>
-        <div class="mission-modal-actions">
-          <button id="mission-accept-btn" class="btn btn-accent btn-command" type="button">Accept Contract</button>
-          <button id="mission-complete-btn" class="btn btn-accent btn-command" type="button" hidden>Complete Contract</button>
+        <section class="missions__modal-section">
+          <h3 class="missions__heading">Briefing</h3>
+          <p id="mission-detail-text" class="missions__note"></p>
+        </section>
+        <section id="mission-quota-section" class="missions__modal-section" hidden>
+          <h3 class="missions__heading">Quota Progress</h3>
+          <div class="progress-wrap"><div id="mission-quota-bar" class="progress-bar"></div></div>
+          <p id="mission-quota-text" class="missions__note"></p>
+        </section>
+        <section id="mission-location-section" class="missions__modal-section" hidden>
+          <p id="mission-location-warning" class="missions__warning"></p>
+        </section>
+        <section class="missions__modal-section">
+          <h3 class="missions__heading">Intelligence</h3>
+          <p id="mission-detail-risk" class="missions__hint"></p>
+        </section>
+        <div class="missions__modal-actions">
+          <button id="mission-accept-btn" class="ui-button ui-button--primary" type="button">Accept Contract</button>
+          <button id="mission-complete-btn" class="ui-button ui-button--primary" type="button" hidden>Complete Contract</button>
         </div>
       </article>
     </div>

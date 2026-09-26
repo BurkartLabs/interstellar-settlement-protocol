@@ -155,7 +155,7 @@ for (const viewport of VIEWPORTS) {
 
     // ── sell: to a standing buy order, now that some has accrued ────────────
     await openTab(page, "market");
-    const sellBtn = page.locator('.npc-sell-btn[data-npc-item="Silicates"]').first();
+    const sellBtn = page.locator('[data-npc-item="Silicates"]').first();
     await expect(sellBtn).toBeEnabled();
     await sellBtn.click();
     await page.click("#trade-confirm-ok");

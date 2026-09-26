@@ -47,7 +47,6 @@ export function renderChatChannelTabs() {
   tabs.forEach((tab) => {
     const tabKey = tab.getAttribute("data-chat-channel-tab");
     const selected = tabKey === appState.chatChannel;
-    tab.classList.toggle("active", selected);
     tab.setAttribute("aria-selected", String(selected));
     // Decorate the Local tab with the player's current system name so it
     // is obvious that comms only reach corporations in that system.

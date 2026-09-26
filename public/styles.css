@@ -254,20 +254,6 @@ body {
   position: relative;
   z-index: 2;
 }
-/* Make Create Listing and Sell Orders the same height */
-.exchange-layout {
-  align-items: stretch;
-}
-.exchange-layout > .exchange-section {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-.exchange-layout > .exchange-section .table-wrap {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-}
 /* ─── Starfield canvas ─── */
 #starfield-canvas {
   position: fixed;
@@ -930,49 +916,6 @@ button:disabled {
   gap: 0.7rem;
 }
 
-/* ─── Exchange price chart (AB#716) ─── */
-.price-chart {
-  margin-bottom: 1.2rem;
-}
-
-.price-chart__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.price-chart__ranges {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.price-chart__ranges [aria-pressed="true"] {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.price-chart__canvas {
-  position: relative;
-  height: 240px;
-}
-
-.price-chart--empty .price-chart__canvas {
-  display: none;
-}
-
-.price-chart__hint {
-  font-size: var(--font-size-2);
-  margin-top: 0.4rem;
-}
-
-@media (max-width: 600px) {
-  .price-chart__canvas {
-    height: 200px;
-  }
-}
-
 /* ─── Financial Control Board (CORP-FIN-1) ───────────────────────────────── */
 
 .kpi-strip {
@@ -1052,13 +995,6 @@ button:disabled {
 .kpi-tile__value--negative { color: var(--danger); }
 
 /* Daily statements (AB#714): the books closed at 00:00 UTC, a day at a time. */
-
-.inline-form {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.6rem;
-  align-items: end;
-}
 
 label {
   display: grid;
@@ -1184,185 +1120,13 @@ textarea {
   background: var(--surface-2);
 }
 
-.sell-input {
-  width: 100%;
-  min-width: 88px;
-}
-
-.exchange-layout,
 .forums-layout {
   align-items: start;
-}
-
-.forum-thread-card {
-  width: 100%;
-  text-align: left;
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-2);
-  color: inherit;
-  padding: 1.1rem var(--space-5);
-  cursor: pointer;
-  display: grid;
-  gap: 0.55rem;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-  position: relative;
-}
-
-.forum-thread-card:hover,
-.forum-thread-card.active {
-  border-color: var(--accent);
-  border-left-color: var(--accent);
-  transform: translateY(-1px);
-}
-
-.forum-thread-card__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.forum-thread-card__category {
-  display: inline-block;
-  padding: 0.18rem 0.6rem;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--accent);
-  font-size: var(--font-size-1);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-
-.forum-thread-card__title {
-  margin: 0;
-  font-size: var(--font-size-4);
-  line-height: 1.3;
-  color: var(--text);
-}
-
-.forum-thread-card__excerpt {
-  margin: 0;
-  color: var(--text-soft);
-  font-size: var(--font-size-3);
-  line-height: 1.45;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.forum-thread-card__meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.85rem;
-  font-size: var(--font-size-2);
-  color: var(--muted);
-  border-top: 1px solid var(--border);
-  padding-top: 0.55rem;
-  margin-top: var(--space-1);
-}
-
-.forum-thread-card__meta strong {
-  color: var(--text);
-  font-weight: 600;
-}
-
-.forum-thread-card__stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
 }
 
 .forum-thread-detail {
   position: sticky;
   top: 5.8rem;
-}
-
-.thread-reply-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 0.65rem;
-}
-
-.thread-reply {
-  padding: 0.7rem 0.8rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-2);
-}
-
-#chat {
-  max-width:50vw;
-}
-
-.chat-log {
-  height: min(400px, 56vh);
-  margin: 0.6rem 0;
-  max-height: min(400px, 56vh);
-  min-height: 240px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.6rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  align-items: stretch;
-  list-style: none;
-}
-
-.chat-msg {
-  flex: 0 0 auto;
-  display: block;
-  border-top: 1px solid var(--border);
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  border-bottom: 2px solid var(--border);
-  border-radius: 8px;
-  padding: 0.35rem var(--space-2);
-  background: var(--surface-2);
-  line-height: 1.35;
-  white-space: normal;
-  word-break: break-word;
-}
-
-.chat-msg:last-child {
-  border-bottom: none;
-}
-
-.chat-meta {
-  margin-bottom: 0.2rem;
-  font-size: var(--font-size-2);
-  line-height: 1.2;
-  color: var(--muted);
-}
-
-.chat-channel-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.chat-channel-tab {
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text);
-  border-radius: 999px;
-  padding: 0.35rem var(--space-3);
-  cursor: pointer;
-  font-size: var(--font-size-2);
-}
-
-.chat-channel-tab.active,
-.chat-channel-tab:hover {
-  border-color: var(--accent);
 }
 
 #starmap-canvas {
@@ -1680,7 +1444,7 @@ body.walkthrough--open .layout-grid {
   flex-direction: column;
   gap: var(--space-4);
   max-width: 820px;
-  
+
 }
 
 /* Header */
@@ -1888,7 +1652,6 @@ body.walkthrough--open .layout-grid {
 .form-card > .card-grid,
 .form-card > .split-grid,
 .form-card > .choice-row,
-.form-card > .inline-form,
 .form-card > .data-card,
 .form-card > .queue-list {
   margin-top: 1.1rem;
@@ -1904,15 +1667,6 @@ body.walkthrough--open .layout-grid {
   position: relative;
   overflow: hidden;
   transition: box-shadow 0.18s ease, transform 0.14s ease;
-}
-
-.btn-command {
-  padding: 0.68rem 1.4rem;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-3);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 @keyframes btn-ripple-anim {
@@ -1943,1551 +1697,15 @@ body.walkthrough--open .layout-grid {
   animation: btn-pulse-success 0.75s ease-out forwards;
 }
 
-/* ─── Forum redesign ─────────────────────────────────────── */
-#forum-overview-view {
-  max-width: 50vw;
-}
-
-.forums-nav {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.9rem;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  margin-bottom: 1.15rem;
-}
-
-.forum-category-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  flex: 1;
-}
-
-.forum-category-btn {
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text);
-  padding: 0.32rem 0.72rem;
-  font-size: var(--font-size-2);
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s, color 0.15s;
-}
-
-.forum-category-btn.active,
-.forum-category-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.forum-thread-list {
-  display: grid;
-  gap: 0.6rem;
-}
-
-.forum-thread-header {
-  margin-bottom: 1.1rem;
-}
-
-.forum-thread-full {
-  max-width: 860px;
-}
-
-.forum-thread-full .form-card {
-  margin-top: 0;
-}
-
-.forum-thread-full .form-card {
-  border-color: var(--border);
-  background:
-    var(--surface-1);
-  box-shadow:
-    inset 0 0 0 1px var(--border);
-}
-
-.forum-thread-full .form-card h2 {
-  margin-bottom: 0.8rem;
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border);
-}
-
-.forum-thread-full .thread-reply-list {
-  margin-top: var(--space-4);
-  padding-top: 0.9rem;
-  border-top: 1px dashed var(--border);
-}
-
-.forum-thread-full .thread-reply {
-  border-color: var(--border);
-  background: var(--surface-2);
-}
-
-.thread-op-block {
-  margin-top: 0.9rem;
-  padding: 0.8rem 0.9rem;
-  border-radius: 9px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-}
-
-/* ─── Premium Thread Detail View ────────────────────────────────────────── */
-.forum-thread-full {
-  max-width: 920px;
-}
-
-.thread-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 1.4rem;
-  color: var(--text);
-}
-
-.thread-detail__topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.thread-back-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--accent);
-  padding: 0.4rem 0.85rem;
-  font-size: var(--font-size-2);
-  border-radius: 999px;
-  cursor: pointer;
-  letter-spacing: 0.04em;
-  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
-}
-
-.thread-back-btn:hover {
-  background: var(--surface-2);
-  border-color: var(--accent);
-  transform: translateX(-2px);
-}
-
-.thread-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.2rem 0.65rem;
-  font-size: var(--font-size-1);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  border-radius: 999px;
-  border: 1px solid transparent;
-}
-
-.thread-badge--category {
-  background: var(--surface-3);
-  border-color: var(--border);
-  color: var(--accent);
-}
-
-.thread-badge--op {
-  background: var(--surface-3);
-  border-color: var(--accent);
-  color: var(--text);
-}
-
-.thread-badge--reply {
-  background: var(--surface-3);
-  border-color: var(--border);
-  color: var(--muted);
-}
-
-.thread-detail__header {
-  padding: 0.4rem 0 0.6rem;
-}
-
-.thread-detail__title {
-  margin: 0 0 var(--space-2);
-  font-size: clamp(1.55rem, 2.6vw, 2.05rem);
-  line-height: 1.18;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--text);
-}
-
-.thread-detail__meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-.thread-meta-dot {
-  color: var(--accent);
-}
-
-.thread-card {
-  position: relative;
-  border-radius: 14px;
-  padding: 1.1rem var(--space-5) 0.9rem;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  box-shadow:
-    inset 0 0 0 1px var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  min-width: 0;
-}
-
-.thread-card--op {
-  border-color: var(--border);
-  box-shadow:
-    0 0 0 1px var(--border);
-  padding-top: 1.55rem;
-}
-
-.thread-card__op-tag {
-  position: absolute;
-  top: -0.7rem;
-  left: 1.1rem;
-  font-size: var(--font-size-1);
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--on-accent);
-  padding: var(--space-1) 0.7rem;
-  border-radius: 999px;
-  background: var(--accent);
-}
-
-.thread-card--reply {
-  background: var(--surface-2);
-}
-
-.thread-card__head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-
-.thread-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: var(--font-size-3);
-  letter-spacing: 0.04em;
-  color: var(--on-accent);
-  background: hsl(var(--avatar-hue, 190), 90%, 70%);
-  flex-shrink: 0;
-}
-
-.thread-avatar--op {
-  width: 50px;
-  height: 50px;
-  font-size: var(--font-size-4);
-  border: 2px solid var(--accent);
-}
-
-.thread-card__head-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.thread-card__author {
-  font-weight: 600;
-  color: var(--text);
-  font-size: var(--font-size-3);
-}
-
-.thread-card__timestamp {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-.thread-card__body {
-  font-size: var(--font-size-3);
-  line-height: 1.62;
-  color: var(--text-soft);
-  word-wrap: break-word;
-}
-
-.thread-card__body p {
-  margin: 0 0 0.7rem;
-}
-
-.thread-card__body p:last-child {
-  margin-bottom: 0;
-}
-
-.thread-card__body--op {
-  font-size: var(--font-size-3);
-  color: var(--text);
-}
-
-.thread-card__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  padding-top: 0.7rem;
-  border-top: 1px solid var(--border);
-}
-
-.thread-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  padding: 0.35rem 0.8rem;
-  font-size: var(--font-size-2);
-  border-radius: 6px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
-}
-
-.thread-action-btn:hover {
-  background: var(--surface-2);
-  border-color: var(--border);
-  color: var(--text);
-}
-
-.thread-action-btn--primary {
-  border-color: var(--accent);
-  background: var(--surface-2);
-  color: var(--text);
-}
-
-.thread-action-btn--primary:hover {
-  background: var(--surface-3);
-}
-
-.thread-action-btn--like .thread-action-count {
-  font-weight: 700;
-  color: var(--accent);
-}
-
-.thread-action-btn--like.is-liked {
-  background: var(--surface-3);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.thread-action-btn--like.is-liked .thread-action-count {
-  color: var(--text);
-}
-
-/* Replies section */
-.thread-replies {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  position: relative;
-}
-
-.thread-replies__heading {
-  font-size: var(--font-size-2);
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin: var(--space-2) 0 0;
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--border);
-}
-
-.thread-reply-list {
-  list-style: none;
-  margin: 0;
-  padding: 0 0 0 1.6rem;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  position: relative;
-}
-
-.thread-reply-list::before {
-  content: "";
-  position: absolute;
-  left: 0.4rem;
-  top: 0.4rem;
-  bottom: 0.4rem;
-  width: 1px;
-  background: var(--surface-3);
-}
-
-.thread-reply {
-  position: relative;
-  display: block;
-}
-
-.thread-reply__connector {
-  position: absolute;
-  left: -1.2rem;
-  top: 1.55rem;
-  width: 1rem;
-  height: 1px;
-  background: var(--surface-3);
-}
-
-.thread-reply--empty {
-  padding: 0.6rem 0.9rem;
-}
-
-@media (max-width: 600px) {
-  .thread-card { padding: 0.95rem 0.95rem 0.8rem; }
-  .thread-card--op { padding-top: var(--space-6); }
-  .thread-reply-list { padding-left: 1.1rem; }
-  .thread-reply__connector { left: -0.9rem; }
-  .thread-detail__title { font-size: var(--font-size-5); }
-}
-
-/* ─── Mission detail modal ───────────────────────────────── */
-.mission-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  background: var(--scrim-modal);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  display: grid;
-  place-items: center;
-  padding: var(--space-4);
-  animation: modalFadeIn 0.2s ease;
-}
-
-@keyframes modalFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-.mission-modal-card {
-  position: relative;
-  /* 100% of the backdrop's padded area, as .modal-card has since AB#585: 94vw is 352.5px at 375 wide, 9.5px more than
-     the space, and during modalSlideIn the card reached past the viewport's right edge (AB#1781). */
-  width: min(640px, 100%);
-  max-height: 90vh;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background:
-    var(--surface-1);
-  padding: 0;
-  box-shadow: var(--elevation-overlay);
-  animation: modalSlideIn 0.25s ease;
-}
-
-@keyframes modalSlideIn {
-  from { opacity: 0; transform: translateY(16px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.mission-modal-close {
-  position: absolute;
-  top: 0.65rem;
-  right: 0.75rem;
-  z-index: 2;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  width: 2rem;
-  height: 2rem;
-  display: grid;
-  place-items: center;
-  font-size: var(--font-size-4);
-  color: var(--muted);
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-}
-
-.mission-modal-close:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
-.mission-modal-header {
-  display: flex;
-  gap: 1.4rem;
-  padding: 1.4rem 1.6rem 0;
-  align-items: flex-start;
-}
-
-.mission-modal-img-placeholder {
-  flex-shrink: 0;
-  width: 120px;
-  aspect-ratio: 1;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background:
-    var(--surface-1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-1);
-  letter-spacing: 0.18em;
-  color: var(--accent);
-  text-transform: uppercase;
-  line-height: 1.8;
-}
-
-.mission-modal-meta {
-  flex: 1;
-  min-width: 0;
-}
-
-.mission-modal-meta .overline {
-  margin-bottom: 0.3rem;
-}
-
-.mission-modal-meta h2 {
-  font-size: var(--font-size-4);
-  margin-bottom: 0.6rem;
-  line-height: 1.35;
-}
-
-.mission-modal-badges {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.mission-modal-reward-badge {
-  font-size: var(--font-size-2);
-  font-weight: 600;
-  color: var(--warn);
-  padding: 0.15rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-2);
-  letter-spacing: 0.04em;
-}
-
-.mission-modal-body {
-  padding: 1.2rem 1.6rem;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.mission-modal-section h4 {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-1);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 0.4rem;
-  opacity: 0.7;
-}
-
-.mission-modal-section p {
-  font-size: var(--font-size-3);
-  line-height: 1.65;
-  color: var(--text);
-}
-
-.mission-modal-section .muted {
-  color: var(--muted);
-  font-size: var(--font-size-2);
-}
-
-.mission-modal-actions {
-  padding: 0 1.6rem 1.4rem;
-  display: flex;
-  gap: 0.8rem;
-  justify-content: flex-end;
-}
-
-/* ─── Mission quota bar ──────────────────────────────────── */
-.mission-quota-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.mission-quota-bar-container {
-  width: 100%;
-  height: 8px;
-  background: var(--surface-2);
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-}
-
-.mission-quota-bar {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 4px;
-  transition: width 0.4s ease;
-  opacity: 0.7;
-}
-
-.mission-quota-bar.quota-fulfilled {
-  background: var(--success);
-  opacity: 1;
-}
-
-.mission-quota-text {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-.mission-quota-text strong {
-  color: var(--text);
-}
-
-/* Bug #1058: what to do while the quota is short. */
-.mission-quota-hint {
-  display: block;
-  margin-top: 0.35rem;
-  color: var(--text);
-}
-
-/* ─── Mission location tags ──────────────────────────────── */
-.mission-location-tag {
-  font-size: var(--font-size-1);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  padding: 0.12rem var(--space-2);
-  border-radius: 5px;
-  white-space: nowrap;
-}
-
-.mission-location-local {
-  color: var(--success);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-}
-
-.mission-location-remote {
-  color: var(--warn);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-}
-
-.mission-location-warning {
-  font-size: var(--font-size-2);
-  line-height: 1.5;
-  color: var(--warn);
-  padding: 0.6rem 0.8rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-2);
-}
-
-.mission-location-warning strong {
-  color: var(--text);
-}
-
-#active-missions-section {
-  margin-top: 1.6rem;
-}
-
-/* ─── Agent card (bureau hub) ────────────────────────────── */
-.agent-card {
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  /* AB#1055: a fixed 30em ran out of the Assignments board (320 px on desktop, 94 px on a phone); now it fills the
-     board up to 30em */
-  width: 100%;
-  max-width: 30em;
-}
-
-.agent-card:hover,
-.agent-card:focus-visible {
-  border-color: var(--border);
-}
-
-.agent-card-inner {
-  display: flex;
-  gap: 1.2rem;
-  align-items: center;
-}
-
-.agent-card-thumb {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid var(--border);
-  flex-shrink: 0;
-}
-
-.agent-card-info .overline {
-  margin-bottom: 0.15rem;
-}
-
-.agent-card-info h3 {
-  margin-bottom: 0.2rem;
-}
-
-/* ─── Agent office view ──────────────────────────────────── */
-/* AB#1762: no width cap (it was 50vw); the office fills the content column like every other tab */
-
-#agent-back-btn {
-  margin-bottom: 1.2rem;
-}
-
-.agent-office-layout {
-  display: grid;
-  grid-template-columns: min(300px, 36%) 1fr;
-  gap: var(--space-8);
-  align-items: start;
-}
-
-.agent-portrait-section {
-  text-align: center;
-}
-
-.agent-portrait {
-  width: 100%;
-  max-width: 280px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  object-fit: cover;
-  aspect-ratio: 3 / 4;
-  background:
-    var(--surface-1);
-}
-
-.agent-nameplate {
-  margin-top: var(--space-4);
-}
-
-.agent-nameplate .overline {
-  margin-bottom: 0.15rem;
-  font-size: var(--font-size-2);
-}
-
-.agent-nameplate h2 {
-  margin: 0;
-  font-size: var(--font-size-5);
-}
-
-.agent-info-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-}
-
-.agent-bio h3 {
-  margin-bottom: 0.7rem;
-  font-size: var(--font-size-3);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.agent-bio p {
-  color: var(--text);
-  line-height: 1.7;
-  font-size: var(--font-size-3);
-}
-
-.agent-bio p + p {
-  margin-top: 0.7rem;
-}
-
-/* ─── Agent dialogue bubble ──────────────────────────────── */
-.agent-dialogue {
-  position: relative;
-}
-
-.agent-dialogue-bubble {
-  padding: 0.2rem 0;
-}
-
-.agent-dialogue-speaker {
-  display: block;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: var(--space-2);
-  opacity: 0.7;
-}
-
-.agent-dialogue-text {
-  font-size: var(--font-size-3);
-  line-height: 1.65;
-  color: var(--text);
-  font-style: italic;
-  border-left: 3px solid var(--border);
-  padding-left: var(--space-4);
-  margin: 0;
-}
-
-/* ─── Agent missions section ─────────────────────────────── */
-.agent-missions-section {
-  margin-top: 0.4rem;
-}
-
-.agent-missions-section h3 {
-  margin-bottom: 0.6rem;
-}
-
-.contract-refresh-timer {
-  margin-top: 0.7rem;
-  font-size: var(--font-size-2);
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  gap: 0.4em;
-}
-
-.contract-refresh-timer::before {
-  content: "⏱";
-  font-size: var(--font-size-2);
-  opacity: 0.65;
-}
-
-/* ─── Agent reputation display ───────────────────────────── */
-.agent-reputation-section {
-  margin-top: 1.2rem;
-  padding: 0.8rem 0.9rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  text-align: center;
-}
-
-.agent-reputation-section h3,
-.agent-completed-section h3 {
-  margin-bottom: 0.7rem;
-  font-size: var(--font-size-3);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.agent-reputation-section h3 {
-  font-size: var(--font-size-1);
-  margin-bottom: 0.45rem;
-  opacity: 0.6;
-}
-
-.agent-rep-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1rem;
-  margin-bottom: 0.45rem;
-}
-
-.agent-rep-title {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--text);
-}
-
-.agent-rep-level {
-  font-size: var(--font-size-1);
-  color: var(--muted);
-  letter-spacing: 0.06em;
-}
-
-.agent-rep-stars {
-  display: flex;
-  justify-content: center;
-  gap: 0.2rem;
-  margin-bottom: var(--space-2);
-}
-
-.rep-star {
-  font-size: var(--font-size-3);
-  color: var(--accent);
-  transition: color 0.3s;
-}
-
-.rep-star--filled {
-  color: var(--accent);
-}
-
-.agent-rep-bar-container {
-  width: 100%;
-  height: 4px;
-  background: var(--surface-2);
-  border-radius: 2px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  margin-bottom: 0.35rem;
-}
-
-.agent-rep-bar {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 2px;
-  transition: width 0.5s ease;
-}
-
-.agent-rep-detail {
-  font-size: var(--font-size-1);
-  line-height: 1.4;
-}
-
-.agent-card-standing {
-  font-size: var(--font-size-2);
-  margin-top: 0.15rem;
-  color: var(--accent);
-  opacity: 0.7;
-}
-
-/* ─── Mission Log section ────────────────────────────────── */
-.mission-log-section {
-  margin-top: 1.2rem;
-}
-
-/* AB#1762: #missions-board-view has no width cap (it was 25vw); it fills the content column */
-
-.mission-log-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.6rem;
-}
-
-.mission-log-header h3 {
-  margin: 0;
-}
-
-.mission-log-count {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.mission-log-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  max-height: 19rem;
-  overflow-y: auto;
-  padding-right: 0.3rem;
-}
-
-.mission-log-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.mission-log-list::-webkit-scrollbar-thumb {
-  background: var(--surface-3);
-  border-radius: 999px;
-}
-
-/* ─── Completed mission entries ──────────────────────────── */
-.completed-mission-entry {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  grid-template-rows: auto auto;
-  column-gap: 0.7rem;
-  row-gap: 0.1rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: 6px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.completed-mission-entry:hover {
-  background: var(--surface-2);
-  border-color: var(--border);
-}
-
-.completed-mission-icon {
-  grid-row: 1 / 3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--surface-2);
-  color: var(--accent);
-  font-size: var(--font-size-2);
-  align-self: center;
-  flex-shrink: 0;
-}
-
-.completed-mission-title {
-  grid-column: 2;
-  font-size: var(--font-size-2);
-  color: var(--text);
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: 1.3;
-}
-
-.completed-mission-reward {
-  grid-column: 3;
-  grid-row: 1 / 3;
-  align-self: center;
-  font-size: var(--font-size-2);
-  font-weight: 600;
-  color: var(--warn);
-  white-space: nowrap;
-  letter-spacing: 0.02em;
-}
-
-.completed-mission-meta {
-  grid-column: 2;
-  font-size: var(--font-size-1);
-  color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.3;
-}
-
-.completed-mission-type {
-  display: inline-block;
-  font-size: var(--font-size-1);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 0.1em 0.45em;
-  border-radius: 3px;
-  background: var(--surface-2);
-  color: var(--accent);
-  margin-right: 0.4em;
-  vertical-align: middle;
-  font-weight: 600;
-}
-
-#completed-missions-section {
-  margin-top: 1.2rem;
-}
-
-/* ─── Mission complete celebration overlay ───────────────── */
-.mission-complete-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-  background: var(--scrim-modal);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: grid;
-  place-items: center;
-  padding: var(--space-4);
-  animation: modalFadeIn 0.25s ease;
-}
-
-.mission-complete-overlay--exit {
-  animation: modalFadeOut 0.3s ease forwards;
-}
-
-@keyframes modalFadeOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-
-.mission-complete-card {
-  position: relative;
-  text-align: center;
-  max-width: 440px;
-  width: 94vw;
-  padding: 2.4rem var(--space-8) var(--space-8);
-  border: 1px solid var(--success);
-  border-radius: 16px;
-  background:
-    var(--surface-1);
-  animation: completePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes completePop {
-  0%   { opacity: 0; transform: scale(0.7) translateY(20px); }
-  60%  { opacity: 1; transform: scale(1.04) translateY(-4px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.mission-complete-icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto var(--space-4);
-  border-radius: 50%;
-  border: 2px solid var(--success);
-  background: var(--surface-2);
-  display: grid;
-  place-items: center;
-  font-size: var(--font-size-6);
-  color: var(--success);
-  animation: checkPulse 0.6s ease 0.3s both;
-}
-
-@keyframes checkPulse {
-  0%   { transform: scale(0); opacity: 0; }
-  50%  { transform: scale(1.25); }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.mission-complete-heading {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-4);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--success);
-  margin-bottom: 0.4rem;
-}
-
-.mission-complete-title {
-  font-size: var(--font-size-3);
-  color: var(--text);
-  margin-bottom: 1.4rem;
-  line-height: 1.4;
-}
-
-.mission-complete-reward,
-.mission-complete-rep {
-  display: flex;
-  justify-content: space-between;
-  padding: var(--space-2) 0;
-  border-top: 1px solid var(--border);
-}
-
-.mission-complete-reward-label,
-.mission-complete-rep-label {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.mission-complete-reward-value {
-  font-size: var(--font-size-3);
-  font-weight: 700;
-  color: var(--warn);
-}
-
-.mission-complete-rep-value {
-  font-size: var(--font-size-2);
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.mission-complete-levelup {
-  margin-top: 0.8rem;
-  padding: 0.65rem 0.8rem;
-  border: 1px solid var(--warn);
-  border-radius: 8px;
-  background: var(--surface-2);
-  font-size: var(--font-size-2);
-  color: var(--warn);
-  animation: levelGlow 1.2s ease infinite alternate;
-}
-
-@keyframes levelGlow {
-  from { }
-  to   { }
-}
-
-.mission-complete-dismiss {
-  margin-top: 1.4rem;
-}
-
-/* Celebration particles */
-.mission-complete-particle {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: hsl(var(--hue, 180), 85%, 60%);
-  top: 50%;
-  left: 50%;
-  pointer-events: none;
-  animation: particleBurst 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) var(--delay, 0s) forwards;
-  opacity: 0;
-}
-
-@keyframes particleBurst {
-  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
-  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
-}
-
-/* ─── Mission cards ──────────────────────────────────────── */
-.mission-card {
-  position: relative;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background:
-    var(--surface-2);
-  padding: 1.2rem 1.4rem 1.1rem;
-  cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.25s ease, transform 0.18s ease;
-  overflow: hidden;
-  max-width:25vw;
-}
-
-.mission-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background:
-    none;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-
-.mission-card:hover,
-.mission-card:focus-visible {
-  border-color: var(--border);
-  transform: translateY(-2px);
-}
-
-.mission-card:hover::before,
-.mission-card:focus-visible::before {
-  opacity: 1;
-}
-
-/* AB#1760: its keyboard ring comes from the one focus rule under "Focus and motion", like every other control. */
-
-/* Header row: type badge + risk badge */
-.mission-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-bottom: 0.7rem;
-}
-
-.mission-card-type {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-1);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-  opacity: 0.72;
-}
-
-.mission-card-risk {
-  font-size: var(--font-size-1);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 0.18rem 0.6rem;
-  border-radius: 999px;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.mission-card-risk.risk-low {
-  color: var(--success);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-}
-
-.mission-card-risk.risk-med {
-  color: var(--warn);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-}
-
-.mission-card-risk.risk-high {
-  color: var(--danger);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-}
-
-/* ISP-298 (AB#1791): a fourth risk value, "None" (the Salvage Assignment) — neutral, not red like risk-high. */
-.mission-card-risk.risk-none {
-  color: var(--muted);
-  background: var(--surface-3);
-  border: 1px solid var(--border);
-}
-
-/* Title */
-.mission-card-title {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-3);
-  font-weight: 600;
-  color: var(--text);
-  margin: 0 0 0.55rem;
-  line-height: 1.35;
-}
-
-/* Description text */
-.mission-card-text {
-  color: var(--muted);
-  font-size: var(--font-size-2);
-  line-height: 1.6;
-  margin: 0 0 0.9rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Footer row: reward + CTA */
-.mission-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
-  padding-top: 0.7rem;
-  border-top: 1px solid var(--border);
-}
-
-.mission-card-reward {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2);
-  font-weight: 600;
-  color: var(--success);
-  letter-spacing: 0.03em;
-}
-
-.mission-card-cta {
-  font-size: var(--font-size-2);
-  color: var(--accent);
-  letter-spacing: 0.04em;
-  opacity: 0.6;
-  transition: opacity 0.2s ease;
-}
-
-/* ISP-298 (AB#1791): the Salvage Assignment's countdown, ticking every second (startMiningUiTicker). */
-.mission-card-countdown {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-  letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
-}
-
-.mission-card:hover .mission-card-cta {
-  opacity: 1;
-}
-
-/* Active contract variant */
-.mission-card--active {
-  border-color: var(--border);
-  background:
-    var(--surface-2);
-}
-
-.mission-card--active:hover {
-  border-color: var(--success);
-}
-
-.mission-card--active .mission-card-type {
-  color: var(--success);
-}
-
-@media (max-width: 700px) {
-  .agent-office-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .agent-portrait {
-    max-width: 180px;
-  }
-
-  .agent-card-thumb {
-    width: 56px;
-    height: 56px;
-  }
-}
-
-/* ─── Exchange buy button ─────────────────────────────────── */
-.exchange-buy-btn {
-  white-space: nowrap;
-  font-size: var(--font-size-2);
-  padding: 0.34rem 0.7rem;
-}
-
-/* ─── Exchange resource filter bar ───────────────────────── */
-.exchange-filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 1.2rem;
-}
-
 /* AB#402: the resource pills, with the order-type filter and sort beside them. */
-.exchange-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.6rem 1.2rem;
-  margin-bottom: 1.2rem;
-}
-
-.exchange-controls .exchange-filter-bar {
-  margin-bottom: 0;
-  flex: 1 1 18rem;
-}
-
-.exchange-view-selects {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
-.exchange-view-selects label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-.exchange-view-selects select {
-  width: auto;
-  min-width: 0;
-  padding: 0.3rem var(--space-2);
-  font-size: var(--font-size-2);
-}
 
 /* A filter hid every order: unlike the muted "nothing listed" line, this names the filter and offers a way out. */
-.exchange-filtered-empty {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin: 0.6rem 0;
-  padding: 0.7rem 0.9rem;
-  border: 1px dashed var(--warn);
-  border-radius: 8px;
-  background: var(--surface-2);
-  color: var(--text);
-  font-size: var(--font-size-2);
-}
-
-.exchange-filtered-empty p {
-  margin: 0;
-}
-
-@media (max-width: 640px) {
-  .exchange-view-selects,
-  .exchange-view-selects label {
-    width: 100%;
-  }
-
-  .exchange-view-selects select {
-    flex: 1;
-  }
-}
-
-.exchange-filter-pill {
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--muted);
-  padding: 0.28rem var(--space-3);
-  font-size: var(--font-size-2);
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
-}
-
-.exchange-filter-pill:hover {
-  border-color: var(--accent);
-  color: var(--text);
-}
-
-.exchange-filter-pill.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--surface-2);
-}
 
 /* ─── NPC standing buy orders ────────────────────────────── */
-.npc-order-remaining {
-  font-size: var(--font-size-3);
-  font-weight: 600;
-  margin-bottom: var(--space-1);
-}
-
-.npc-order-drift {
-  font-size: var(--font-size-2);
-  color: var(--warn);
-  margin-top: 0.15rem;
-}
-
-.npc-order-of-total {
-  font-weight: 400;
-  color: var(--muted);
-  font-size: var(--font-size-2);
-}
-
-.npc-order-track {
-  height: 5px;
-  background: var(--surface-2);
-  border-radius: 99px;
-  overflow: hidden;
-  min-width: 80px;
-}
-
-.npc-order-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 99px;
-  transition: width 0.4s ease;
-}
-
-tr.npc-order-exhausted {
-  opacity: 0.45;
-}
 
 /* ─── Trade history ──────────────────────────────────────── */
-.trade-type-badge {
-  font-size: var(--font-size-2);
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 0.15rem var(--space-2);
-  border-radius: 3px;
-  border: 1px solid transparent;
-  white-space: nowrap;
-}
-
-.trade-type-listed {
-  color: var(--muted);
-  border-color: var(--border);
-  background: var(--surface-3);
-}
 
 /* AB#1168: a listing taken down moved no goods and no money; dashed so it is not mistaken for Listed */
-.trade-type-cancelled {
-  color: var(--muted);
-  border-color: var(--border);
-  border-style: dashed;
-}
-
-.trade-type-sold {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-}
-
-.trade-type-bought {
-  color: var(--warn);
-  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
-  background: color-mix(in srgb, var(--warn) 8%, transparent);
-}
-
-.trade-tax-note {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-  opacity: 0.8;
-}
 
 /* ─── Action receipt (AB#743): what a committing action did, and the milestone variant for a level reached ─── */
 /* It never blocks the next action: the backdrop dims the page but lets the pointer through, so a click anywhere
@@ -3629,23 +1847,6 @@ tr.npc-order-exhausted {
 
 .trade-confirm-muted .trade-confirm-value {
   color: var(--warn);
-}
-
-.trade-time,
-.trade-counterparty {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-@media (max-width: 700px) {
-  .mission-modal-header {
-    flex-direction: column;
-    gap: 0.8rem;
-  }
-
-  .mission-modal-img-placeholder {
-    width: 80px;
-  }
 }
 
 /* ─── Asteroid Belt Mining / Expeditions ─────────────────── */
@@ -3897,25 +2098,12 @@ tr.npc-order-exhausted {
   }
 }
 
-/* ─── Galactic Exchange: tables side by side only when they fit (AB#1055, AB#1165) ─── */
-/* Sell Orders and Create Listing sat side by side from 500 px of panel, while each table needs about 520 px: at
-   1280x800 the Buy and Create Listing buttons were outside their cards. Two columns only when each card can hold its
-   table; below that they stack full width. */
-.exchange-layout {
-  grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr));
-}
-
 /* ─── Phone: panels fill the screen (AB#1055) ─── */
 /* Whole panels were capped with vw max-widths, a design choice on a desktop that a phone turns into a column 94 to
    188 px wide. At phone width they fill the space they are given. tests/unit/phonePanels.test.js derives the list of
    capped rules from this stylesheet, so a new one added above without a line here fails the suite. 767px is
    NARROW_MAX_WIDTH in public/scripts/firstAction.js. */
 @media (max-width: 767px) {
-  #chat,
-  #forum-overview-view,
-  .mission-card {
-    max-width: none;
-  }
   /* The Exchange tables with an action in every row: a six-column table does not fit 280 px, and the Buy and Create
      Listing buttons were off to the right. One card per row; each cell names its column (tableLabels.js). */
   .data-table--stack thead {
@@ -3948,29 +2136,7 @@ tr.npc-order-exhausted {
     text-align: left;
     font-size: var(--font-size-2);
   }
-  .data-table--stack .sell-input {
-    width: 7rem;
-    min-width: 0;
-  }
-  /* AB#2057: on a stacked card, Create Listing's word on the row takes a line of its own under the button. */
-  .data-table--stack td:has(> .listing-row-status) {
-    flex-wrap: wrap;
-    row-gap: var(--space-1);
-  }
-  .data-table--stack .listing-row-status {
-    flex-basis: 100%;
-    margin: 0;
-  }
-}
 
-/* Bug #1132: a quoted post inside a forum reply, as Quote writes it ("> " lines). */
-.thread-card__body .forum-quote {
-  margin: 0 0 0.6rem;
-  padding: 0.35rem var(--space-3);
-  border-left: 3px solid var(--border);
-  background: var(--surface-2);
-  color: var(--muted);
-  font-size: 0.92em;
 }
 
 /* ─── Style guide: the design-token specimen at /styleguide/tokens (ISP-70, AB#759) ───
@@ -4252,23 +2418,6 @@ body.sg {
   }
 }
 
-/* AB#2057: Create Listing's word on the row that was acted on, under its button. Empty and collapsed until then;
-   brought into view with room to spare, not flush with the screen's edge. */
-.listing-row-status {
-  margin: var(--space-1) 0 0;
-  font-size: var(--font-size-2);
-  scroll-margin: var(--space-6) 0;
-}
-.listing-row-status:empty {
-  display: none;
-}
-.listing-row-status--error {
-  color: var(--danger);
-}
-.listing-row-status--ok {
-  color: var(--accent);
-}
-
 /* ─── Core components (ISP-72, AB#761): button, input and select, card, panel, tabs, badge, tooltip ───
    The flat direction (Decision AB#1801), in tokens only. Every one is shown in every state at /styleguide. A screen
    adopts them when it is rebuilt (ISP-76 to ISP-79); until then the game's own .btn and .pill are unchanged.
@@ -4515,6 +2664,7 @@ body.sg {
   overflow-x: auto;
 }
 .ui-tab {
+  flex: 0 0 auto; /* the strip scrolls; a tab never shrinks under its label (ISP-81) */
   min-height: 36px;
   padding: 0 var(--space-3);
   background: transparent;
@@ -4639,8 +2789,9 @@ body.sg {
   .ui-tab {
     min-height: 44px;
   }
-  .ui-button {
-    min-width: 44px;
+  .ui-button,
+  .ui-tab {
+    min-width: 44px; /* ISP-80 (AB#769): a one-letter-wide tab (All) was 43px */
   }
 }
 
@@ -5707,6 +3858,421 @@ img.station__body {
   }
 }
 
+/* ─── Comms, the Forums and the Assignments Bureau on the design system (ISP-81, AB#770) ───
+   The flat direction (Decision AB#1801). Channels and forum categories are the design system's tabs; a thread, a post,
+   an agent and a contract are cards; the contract briefing is the game's modal card. What is each screen's own is
+   named chat__, forums__ and missions__. tests/unit/commsScreens.test.js holds them to it. */
+
+/* Comms: the channel tabs over the log, the line to write under it. */
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+.chat__log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: min(420px, 56vh);
+  min-height: 240px;
+  margin: 0;
+  padding: var(--space-3);
+  overflow-x: hidden;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.chat__line {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.chat__meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-1);
+}
+.chat__meta strong {
+  color: var(--accent);
+  font-weight: var(--font-weight-semibold);
+}
+.chat__text {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+  overflow-wrap: anywhere;
+}
+.chat__form {
+  display: flex;
+  gap: var(--space-2);
+}
+.chat__form .ui-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The Forums: the thread list, a thread with its posts, and the composers. */
+.forums__view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.forums__view[hidden] {
+  display: none;
+}
+.forums__header {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+.forums__actions,
+.forums__topbar,
+.forums__post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.forums__threads,
+.forums__replies {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.forums__thread-card {
+  width: 100%;
+}
+.forums__thread-head,
+.forums__thread-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+.forums__excerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.forums__last {
+  margin-left: auto;
+}
+.forums__note {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+}
+.forums__thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.forums__post {
+  gap: var(--space-3);
+}
+.forums__post--op {
+  border-color: var(--accent);
+}
+.forums__post-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.forums__avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--text);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-semibold);
+}
+.forums__post--op .forums__avatar {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.forums__byline {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+.forums__author {
+  color: var(--text);
+  font-size: var(--font-size-2);
+}
+.forums__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  color: var(--text);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+  overflow-wrap: anywhere;
+}
+.forums__body p {
+  margin: 0;
+}
+.forums__quote {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-soft);
+}
+.forums__like[aria-pressed="true"] {
+  color: var(--accent);
+}
+.forums__like-count {
+  font-variant-numeric: tabular-nums;
+}
+.forums__heading {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-semibold);
+}
+.forums__status--warn {
+  color: var(--warn);
+}
+
+/* The Assignments Bureau: agents, contracts, the log, an agent's office and the contract briefing. */
+.missions__view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.missions__view[hidden] {
+  display: none;
+}
+.missions__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+.missions__panel-head,
+.missions__card-head,
+.missions__card-foot,
+.missions__badges,
+.missions__modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.missions__panel-head,
+.missions__card-foot {
+  justify-content: space-between;
+}
+.missions__note {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+}
+.missions__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-2);
+}
+.missions__overline {
+  margin: 0;
+  color: var(--accent);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+}
+.missions__heading {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-semibold);
+}
+.missions__agent-card {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+.missions__thumb {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}
+.missions__agent-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.missions__contract {
+  width: 100%;
+}
+.missions__reward {
+  color: var(--success);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.missions__cta {
+  color: var(--accent);
+  font-size: var(--font-size-2);
+}
+.missions__risk-none {
+  color: var(--text-soft);
+}
+.missions__log {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.missions__log-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+.missions__log-title {
+  flex: 1 1 240px;
+  color: var(--text);
+  font-size: var(--font-size-2);
+}
+/* The agent beside the office's contents while both fit the content column, above them when not: the column, not the
+   viewport, decides it (at 768 wide the column beside the navigation is 420px). */
+.missions__office {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-6);
+}
+.missions__agent,
+.missions__office-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.missions__agent {
+  flex: 1 1 220px;
+  max-width: 280px;
+}
+.missions__office-main {
+  flex: 999 1 320px;
+}
+.missions__portrait {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+  background: var(--surface-1);
+}
+.missions__standing {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-semibold);
+}
+.missions__stars {
+  margin: 0;
+  color: var(--muted);
+  letter-spacing: var(--letter-spacing-caps);
+}
+.missions__star.is-filled {
+  color: var(--accent);
+}
+.missions__quote {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-3);
+  font-style: italic;
+  line-height: var(--line-height-body);
+}
+.missions__modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: min(640px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.missions__modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.missions__modal-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.missions__modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.missions__modal-section[hidden] {
+  display: none;
+}
+.missions__advice {
+  display: block;
+  margin-top: var(--space-2);
+  color: var(--warn);
+}
+.missions__warning {
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-md);
+  color: var(--warn);
+  font-size: var(--font-size-2);
+}
+.missions__levelup {
+  margin: 0;
+  color: var(--success);
+  font-size: var(--font-size-2);
+}
+.progress-bar.is-complete {
+  background: var(--success);
+}
+/* A track on a panel is a step lighter than the panel, or an empty bar is not seen at all. */
+:is(.missions__panel, .missions__modal) .progress-wrap {
+  background: var(--surface-3);
+}
+#mission-modal-close {
+  font-size: var(--font-size-5);
+  line-height: 1;
+}
+
+@media (max-width: 767px) {
+  .missions__portrait {
+    width: min(200px, 100%);
+  }
+}
+
 /* ─── The Starmap, the dialogue and the walkthrough on the design system (ISP-82, AB#771) ───
    The flat direction (Decision AB#1801), in tokens only. A dialogue (and the walkthrough, which is one) is the game's
    modal card holding a row: the speaker's portrait, then a column of who speaks, the heading, the words and the
@@ -5874,10 +4440,201 @@ img.station__body {
 
 /* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */
 @media (max-width: 600px) {
-  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-kv, .station__overline, .station__note, .station__hint, .station__flavor, .station__blocked, .station__form label, .extractor__stat-label, .extractor__stat-value, .extractor__pct, .extractor__time, .extractor__cycle-status) {
+  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-kv, .station__overline, .station__note, .station__hint, .station__flavor, .station__blocked, .station__form label, .extractor__stat-label, .extractor__stat-value, .extractor__pct, .extractor__time, .extractor__cycle-status, .chat__meta, .chat__text, .forums__note, .forums__avatar, .forums__author, .forums__body, .missions__note, .missions__hint, .missions__overline, .missions__reward, .missions__cta, .missions__log-title, .missions__warning, .missions__levelup) {
     font-size: var(--font-size-3);
   }
   .ui-screen .ui-table td::before {
+    font-size: var(--font-size-3);
+  }
+  /* The contract briefing and the offline completion card are dialogs over the page, outside any screen (ISP-81). */
+  .missions__modal :is(.ui-button, .ui-badge, .ui-kv, .missions__note, .missions__hint, .missions__overline, .missions__warning, .missions__levelup) {
+    font-size: var(--font-size-3);
+  }
+}
+
+/* ─── Galactic Exchange on the design system (ISP-80, AB#769; flat direction, Decision AB#1801) ─── */
+#market > .ui-panel,
+#market > .exchange__split {
+  margin-top: var(--space-4);
+}
+/* Sell orders and Create listing side by side only when each card can hold its table, about 560px (AB#1055). */
+.exchange__split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+.exchange__canvas {
+  position: relative;
+  height: 220px;
+}
+.exchange__filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+.exchange__selects {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: var(--space-3);
+}
+.exchange__qty {
+  width: 7rem;
+  max-width: 100%;
+}
+/* A standing order's price, and a note under it when today's volume has pushed it down (ISP-87). */
+.exchange__price {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+.exchange__drift {
+  font-size: var(--font-size-1);
+  color: var(--warn);
+}
+.exchange__remaining {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 8rem;
+}
+/* How much of today's quota is bought: a native progress bar, drawn flat in the tokens. */
+.exchange__fill {
+  width: 100%;
+  height: 6px;
+  appearance: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.exchange__fill::-webkit-progress-bar {
+  background: var(--surface-3);
+}
+.exchange__fill::-webkit-progress-value {
+  background: var(--muted);
+}
+.exchange__fill::-moz-progress-bar {
+  background: var(--muted);
+}
+.exchange__tax {
+  font-size: var(--font-size-1);
+  color: var(--muted);
+}
+.exchange__stock {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-variant-numeric: tabular-nums;
+}
+/* AB#2057: what Create listing said, under the button that was pressed, in that row; nothing until it speaks. */
+.exchange__action {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+.exchange__row-status:empty {
+  display: none;
+}
+.exchange__row-status {
+  font-size: var(--font-size-2);
+  color: var(--text-soft);
+  scroll-margin: var(--space-6) 0; /* AB#2057: revealed with room around it, not at the viewport's edge */
+}
+.exchange__row-status--error {
+  color: var(--danger);
+}
+.exchange__row-status--ok {
+  color: var(--success);
+}
+@media (max-width: 767px) {
+  .exchange__qty {
+    width: 7rem;
+  }
+  .exchange__price,
+  .exchange__action {
+    align-items: flex-end;
+  }
+  .exchange__canvas {
+    height: 260px;
+  }
+  /* A card has less room than a column: the quota bar takes what is left beside its label, never more (it pushed the
+     row, its input and its Sell button past the card's edge at 375). */
+  .exchange__remaining {
+    min-width: 0;
+    width: min(8rem, 50%);
+    align-items: flex-end;
+  }
+  #market .ui-table tbody tr,
+  #market .ui-table td {
+    min-width: 0;
+  }
+}
+@media (max-width: 600px) {
+  .ui-screen :is(.exchange__drift, .exchange__tax, .exchange__row-status) {
+    font-size: var(--font-size-3);
+  }
+  /* The shared docked-at banner (views/shared.js) is legacy until the Station rebuild; on this screen it is raised too. */
+  #market .station-location-banner :is(.station-location-icon, .station-location-text, strong) {
+    font-size: var(--font-size-3);
+  }
+}
+
+/* Narrower than its table though wider than a phone (768 with the side menu leaves the column about 420px): each table
+   here is cards by its own width, as the design system makes every table below 768px, so nothing spills its panel. */
+#market .ui-table-wrap {
+  container-type: inline-size;
+}
+@container (max-width: 720px) {
+  #market .ui-table thead {
+    display: none;
+  }
+  #market .ui-table,
+  #market .ui-table tbody {
+    display: block;
+  }
+  #market .ui-table tbody tr {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    margin-bottom: var(--space-3);
+    padding: var(--space-4);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  #market .ui-table td,
+  #market .ui-table .ui-table__num {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    text-align: right;
+  }
+  #market .ui-table td::before {
+    content: attr(data-label);
+    font-size: var(--font-size-1);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-caps);
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--muted);
+  }
+  #market .exchange__remaining {
+    min-width: 0;
+    width: min(8rem, 50%);
+    align-items: flex-end;
+  }
+}
+/* The container rule above is the more specific: on a phone its column names are raised to 14px again, as ui-table's are. */
+@media (max-width: 600px) {
+  #market .ui-table td::before {
     font-size: var(--font-size-3);
   }
 }

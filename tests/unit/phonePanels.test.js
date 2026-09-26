@@ -34,10 +34,10 @@ describe("phone panels (AB#1055)", () => {
   it("finds the capped panels it is meant to find", () => {
     const capped = vwCapped(CSS);
     // #missions-board-view and #agent-office-view are no longer capped at all (AB#1762, tests/unit/panelWidth.test.js),
-    // nor is #inbox since ISP-77 rebuilt it on the design system at the content's width (AB#766), nor the Starmap's
-    // details since ISP-82 made them a panel under the map (AB#771).
-    for (const s of ["#chat", "#forum-overview-view", ".mission-card"]) expect(capped).toContain(s);
-    expect(capped).not.toContain("#map-details");
+    // nor is #inbox since ISP-77 rebuilt it on the design system at the content's width (AB#766), nor Comms, the
+    // Forums and the contract cards since ISP-81 did the same for them (AB#770), nor the Starmap's details since ISP-82
+    // made them a panel under the map (AB#771).
+    for (const s of ["#chat", "#forum-overview-view", "#map-details"]) expect(capped).not.toContain(s);
   });
 
   it("lifts every vw-capped rule at phone width", () => {
@@ -47,13 +47,14 @@ describe("phone panels (AB#1055)", () => {
     expect(PHONE_BLOCK).toMatch(/max-width:\s*none/);
   });
 
-  it("gives the agent card a cap rather than a fixed width, so it cannot run out of its board", () => {
-    const rule = CSS.match(/\n\.agent-card\s*{([^}]*)}/)?.[1] || "";
-    expect(rule).not.toMatch(/(^|\s|;)width:\s*30em/);
-    expect(rule).toMatch(/max-width:\s*30em/);
+  it("gives the agent card no fixed width, so it cannot run out of its board", () => {
+    // ISP-81 (AB#770): the card fills its column of the design system's grid, which is never wider than the board.
+    const rule = CSS.match(/\n\.missions__agent-card\s*{([^}]*)}/)?.[1] || "";
+    expect(rule).toMatch(/width:\s*100%/);
+    expect(rule).not.toMatch(/(^|\s|;)(min-)?width:\s*[\d.]+(em|px)/);
   });
 
   it("lets the Galactic Exchange tables sit side by side only when each card can hold its table (AB#1165)", () => {
-    expect(CSS).toMatch(/\.exchange-layout\s*{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(560px,\s*100%\),\s*1fr\)\)/);
+    expect(CSS).toMatch(/\.exchange__split\s*{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(560px,\s*100%\),\s*1fr\)\)/); // ISP-80 (AB#769)
   });
 });

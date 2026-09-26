@@ -135,9 +135,9 @@ export function notificationItemsHtml(items, formatTime) {
  */
 export function chatLineHtml(msg, formatTime) {
   return `
-      <li class="chat-msg">
-        <div class="chat-meta">${escapeHtml(msg.author)} | ${escapeHtml(formatTime(msg.createdAt))}</div>
-        <div>${escapeHtml(msg.content)}</div>
+      <li class="chat__line">
+        <p class="chat__meta"><strong>${escapeHtml(msg.author)}</strong> · ${escapeHtml(formatTime(msg.createdAt))}</p>
+        <p class="chat__text">${escapeHtml(msg.content)}</p>
       </li>
       `;
 }
@@ -206,7 +206,7 @@ export function forumPostBodyHtml(text) {
     .filter((b) => b.kind !== "gap")
     .map((b) => {
       const inner = b.lines.map(escapeHtml).join("<br>");
-      return b.kind === "quote" ? `<blockquote class="forum-quote">${inner}</blockquote>` : `<p>${inner}</p>`;
+      return b.kind === "quote" ? `<blockquote class="forums__quote">${inner}</blockquote>` : `<p>${inner}</p>`;
     })
     .join("");
 }

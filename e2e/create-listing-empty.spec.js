@@ -43,7 +43,7 @@ function startServer(dir) {
 
 async function openCreateListing(page) {
   await openTab(page, "market");
-  const card = page.locator("section.form-card", { has: page.locator("#market-sell-grid") });
+  const card = page.locator("#exchange-listing-section");
   await expect(card).toBeVisible();
   await card.scrollIntoViewIfNeeded();
   return card;
@@ -79,10 +79,10 @@ for (const viewport of VIEWPORTS) {
 
       let card = await openCreateListing(page);
       await expect(card.locator("#market-sell-empty")).toBeVisible();
-      await expect(card.locator(".table-wrap")).toBeHidden();
+      await expect(card.locator(".ui-table-wrap")).toBeHidden();
       // On a phone the stacked table draws no headers anyway, and an empty wrap has no size, so toBeHidden alone
       // passes there without the fix: assert the flag itself as well.
-      await expect(card.locator(".table-wrap")).toHaveJSProperty("hidden", true);
+      await expect(card.locator(".ui-table-wrap")).toHaveJSProperty("hidden", true);
       await expect(card.getByRole("columnheader", { name: "Sell Quantity" })).toBeHidden();
       await page.screenshot({ path: path.join(SHOT_DIR, `empty-${viewport.label}.png`) });
 
@@ -96,8 +96,8 @@ for (const viewport of VIEWPORTS) {
 
       card = await openCreateListing(page);
       await expect(card.locator("#market-sell-empty")).toBeHidden();
-      await expect(card.locator(".table-wrap")).toBeVisible();
-      await expect(card.locator(".table-wrap")).toHaveJSProperty("hidden", false);
+      await expect(card.locator(".ui-table-wrap")).toBeVisible();
+      await expect(card.locator(".ui-table-wrap")).toHaveJSProperty("hidden", false);
       await expect(card.locator("#market-sell-grid tr")).toHaveCount(1);
       await expect(card.locator('[data-sell-item="Silicates"]')).toBeVisible();
       await page.screenshot({ path: path.join(SHOT_DIR, `with-goods-${viewport.label}.png`) });

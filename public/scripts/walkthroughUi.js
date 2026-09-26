@@ -87,7 +87,7 @@ let walkthroughOfferPending = false;
 
 /** A real dialogue is open (a trade confirmation, a mission, a dialogue). The briefing never moves or appears over one. */
 function otherModalOpen() {
-  return [...document.querySelectorAll(".modal-backdrop, .mission-modal-backdrop")].some(
+  return [...document.querySelectorAll(".modal-backdrop")].some(
     (modal) => modal !== walkthroughModal && !modal.hidden
   );
 }

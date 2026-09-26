@@ -14,12 +14,13 @@ import { flashButtonSuccess, getInventory, pushFeedback, salvageRemainingMs, upd
 // ISP-297 (AB#1789) gave the Salvage Assignment risk: "None" — a real fourth value this ternary did not have a
 // class for, which fell through to risk-high and painted a riskless contract red. Named so a future risk value
 // fails the same way loudly (a blank badge) rather than quietly inheriting "high".
+// ISP-81 (AB#770): the design system's badge tones, the plain badge for no risk.
 export function missionRiskClass(risk) {
-  if (risk === "Low") return "risk-low";
-  if (risk === "Medium") return "risk-med";
-  if (risk === "High") return "risk-high";
-  if (risk === "None") return "risk-none";
-  return "risk-high";
+  if (risk === "Low") return "ui-badge--success";
+  if (risk === "Medium") return "ui-badge--warn";
+  if (risk === "High") return "ui-badge--danger";
+  if (risk === "None") return "missions__risk-none";
+  return "ui-badge--danger";
 }
 
 // AB#1051: the reputation tiers and the agent registry (bio, dialogue, station, availability) both come from
@@ -97,7 +98,7 @@ export function openMissionModal(missionId, data) {
   }
   if (riskBadge) {
     const riskClass = missionRiskClass(mission.risk);
-    riskBadge.className = `mission-card-risk ${riskClass}`;
+    riskBadge.className = `ui-badge ${riskClass}`;
     riskBadge.textContent = `${mission.risk} Risk`;
   }
   if (rewardBadge) rewardBadge.textContent = mission.reward;
@@ -115,7 +116,7 @@ export function openMissionModal(missionId, data) {
     const remaining = salvageRemainingMs(mission);
     canComplete = remaining <= 0;
     quotaSection.hidden = false;
-    if (quotaBar) quotaBar.style.display = "none";
+    if (quotaBar) quotaBar.parentElement.hidden = true;
     if (quotaText) {
       quotaText.innerHTML = canComplete
         ? "<strong>Time served.</strong> Report to collect payment."
@@ -132,9 +133,9 @@ export function openMissionModal(missionId, data) {
 
     quotaSection.hidden = false;
     if (quotaBar) {
-      quotaBar.style.display = "";
+      quotaBar.parentElement.hidden = false;
       quotaBar.style.width = pct + "%";
-      quotaBar.className = "mission-quota-bar" + (isFulfilled ? " quota-fulfilled" : "");
+      quotaBar.classList.toggle("is-complete", isFulfilled);
     }
     const currentStation = appState.stationRegistry.find(s => s.id === currentStationId);
     const stationLabel = currentStation ? currentStation.name : "this station";
@@ -146,7 +147,7 @@ export function openMissionModal(missionId, data) {
       if (!isFulfilled && isAtAgentStation) {
         const stationName = (id) => appState.stationRegistry.find((s) => s.id === id)?.name || id;
         const advice = missionShortAdvice({ resource, stationId: currentStationId, inventory: data?.corp?.inventory, stationName });
-        quotaText.innerHTML += `<span class="mission-quota-hint">${escapeHtml(advice)}</span>`;
+        quotaText.innerHTML += `<span class="missions__advice">${escapeHtml(advice)}</span>`;
       }
     }
   } else if (quotaSection) {
@@ -190,48 +191,29 @@ export function showMissionCompleteOverlay(mission, rep, agentName, creditedAmou
   }
   const leveledUp = rep.level > prevLevel;
 
+  // ISP-81 (AB#770): the game's modal card, as the receipt that replaces it when signed in (AB#744) is.
   const overlay = document.createElement("div");
-  overlay.className = "mission-complete-overlay";
+  overlay.className = "modal-backdrop";
+  overlay.dataset.role = "mission-complete";
   overlay.innerHTML = `
-    <div class="mission-complete-card">
-      <div class="mission-complete-icon">\u2713</div>
-      <h2 class="mission-complete-heading">Contract Fulfilled</h2>
-      <p class="mission-complete-title">${escapeHtml(mission.title)}</p>
-      <div class="mission-complete-reward">
-        <span class="mission-complete-reward-label">Reward Credited</span>
-        <span class="mission-complete-reward-value">${creditedAmount ? toCurrency(creditedAmount) : escapeHtml(mission.reward)}</span>
+    <article class="modal-card missions__modal" role="dialog" aria-modal="true" aria-labelledby="mission-complete-heading">
+      <p class="missions__overline">Contract Fulfilled</p>
+      <h2 id="mission-complete-heading" class="ui-screen__title">${escapeHtml(mission.title)}</h2>
+      <dl class="ui-kv">
+        <dt>Reward Credited</dt><dd>${creditedAmount ? toCurrency(creditedAmount) : escapeHtml(mission.reward)}</dd>
+        <dt>Standing with ${escapeHtml(agentName)}</dt><dd>${escapeHtml(rep.title)} (Level ${rep.level})</dd>
+      </dl>
+      ${leveledUp ? `<p class="missions__levelup">Reputation level up: you are now <strong>${escapeHtml(rep.title)}</strong> with ${escapeHtml(agentName)}.</p>` : ""}
+      <div class="missions__modal-actions">
+        <button class="ui-button ui-button--primary" type="button" data-action="dismiss">Dismiss</button>
       </div>
-      <div class="mission-complete-rep">
-        <span class="mission-complete-rep-label">Standing with ${escapeHtml(agentName)}</span>
-        <span class="mission-complete-rep-value">${escapeHtml(rep.title)} (Level ${rep.level})</span>
-      </div>
-      ${leveledUp ? `<div class="mission-complete-levelup">\u2B50 Reputation Level Up! You are now <strong>${escapeHtml(rep.title)}</strong> with ${escapeHtml(agentName)}.</div>` : ""}
-      <button class="btn btn-accent btn-command mission-complete-dismiss" type="button">Dismiss</button>
-    </div>
+    </article>
   `;
-
-  // TODO(AB#738): Should visual effects be moved to their own file?
-  // Spawn celebration particles
-  const particleCount = leveledUp ? 40 : 16;
-  for (let i = 0; i < particleCount; i++) {
-    const particle = document.createElement("span");
-    particle.className = "mission-complete-particle";
-    const angle = Math.random() * Math.PI * 2;
-    const dist = 60 + Math.random() * 120;
-    particle.style.setProperty("--tx", `${Math.cos(angle) * dist}px`);
-    particle.style.setProperty("--ty", `${Math.sin(angle) * dist}px`);
-    particle.style.setProperty("--delay", `${Math.random() * 0.3}s`);
-    particle.style.setProperty("--hue", `${Math.random() * 60 + 160}`);
-    overlay.querySelector(".mission-complete-card").appendChild(particle);
-  }
 
   document.body.appendChild(overlay);
 
-  const dismiss = () => {
-    overlay.classList.add("mission-complete-overlay--exit");
-    setTimeout(() => overlay.remove(), 300);
-  };
-  overlay.querySelector(".mission-complete-dismiss").addEventListener("click", dismiss);
+  const dismiss = () => overlay.remove();
+  overlay.querySelector('[data-action="dismiss"]').addEventListener("click", dismiss);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) dismiss(); });
 }
 
@@ -263,7 +245,7 @@ export function renderMissions(data) {
     if (portraitEl) { portraitEl.src = agent.portrait; portraitEl.alt = agent.name; }
     if (titleEl) titleEl.textContent = `${agent.factionCode} // ${agent.title}`;
     if (nameEl) nameEl.textContent = agent.name;
-    if (bioEl) bioEl.innerHTML = `<h3>Personnel Dossier</h3>` + agent.bio.split("\n\n").map(p => `<p>${escapeHtml(p)}</p>`).join("");
+    if (bioEl) bioEl.innerHTML = `<h3 class="ui-panel__title">Personnel Dossier</h3>` + agent.bio.split("\n\n").map(p => `<p class="missions__note">${escapeHtml(p)}</p>`).join("");
 
     // Reputation display
     const repEl = document.getElementById("agent-reputation");
@@ -273,18 +255,14 @@ export function renderMissions(data) {
         ? Math.round(((rep.count - REPUTATION_THRESHOLDS[rep.level]) / (rep.nextThreshold - REPUTATION_THRESHOLDS[rep.level])) * 100)
         : 0;
       const starsHtml = Array.from({ length: rep.maxLevel }, (_, i) =>
-        `<span class="rep-star ${i < rep.level ? "rep-star--filled" : ""}">\u2726</span>`
+        `<span class="missions__star${i < rep.level ? " is-filled" : ""}">\u2726</span>`
       ).join("");
       repEl.innerHTML = `
-        <h3>Standing</h3>
-        <div class="agent-rep-header">
-          <span class="agent-rep-title">${escapeHtml(rep.title)}</span>
-        </div>
-        <div class="agent-rep-stars">${starsHtml}</div>
-        <div class="agent-rep-bar-container">
-          <div class="agent-rep-bar" style="width: ${pct}%"></div>
-        </div>
-        <p class="muted agent-rep-detail">${rep.level < rep.maxLevel ? `${(rep.nextThreshold - rep.count).toLocaleString()} more to next level` : "Maximum standing"}</p>
+        <h3 class="ui-panel__title">Standing</h3>
+        <p class="missions__standing">${escapeHtml(rep.title)}</p>
+        <p class="missions__stars" aria-label="Level ${rep.level} of ${rep.maxLevel}">${starsHtml}</p>
+        <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+        <p class="missions__hint">${rep.level < rep.maxLevel ? `${(rep.nextThreshold - rep.count).toLocaleString()} more to next level` : "Maximum standing"}</p>
       `;
     }
 
@@ -298,10 +276,8 @@ export function renderMissions(data) {
     if (dialogueEl) {
       const randomLine = agent.dialogue[Math.floor(Math.random() * agent.dialogue.length)];
       dialogueEl.innerHTML = `
-        <div class="agent-dialogue-bubble">
-          <span class="agent-dialogue-speaker">${escapeHtml(agent.name)}</span>
-          <p class="agent-dialogue-text">\u201C${escapeHtml(randomLine)}\u201D</p>
-        </div>
+        <p class="missions__overline">${escapeHtml(agent.name)}</p>
+        <blockquote class="missions__quote">\u201C${escapeHtml(randomLine)}\u201D</blockquote>
       `;
     }
 
@@ -313,18 +289,18 @@ export function renderMissions(data) {
         missionListEl.innerHTML = agentMissions.map((mission) => {
           const riskClass = missionRiskClass(mission.risk);
           return `
-          <section class="mission-card" data-mission-id="${mission.id}" role="button" tabindex="0">
-            <div class="mission-card-header">
-              <span class="mission-card-type">${escapeHtml(mission.type)}</span>
-              <span class="mission-card-risk ${riskClass}">${escapeHtml(mission.risk)} Risk</span>
-            </div>
-            <h3 class="mission-card-title">${escapeHtml(mission.title)}</h3>
-            <p class="mission-card-text">${escapeHtml(mission.text)}</p>
-            <div class="mission-card-footer">
-              <span class="mission-card-reward">${escapeHtml(mission.reward)}</span>
-              <span class="mission-card-cta">View Briefing \u2192</span>
-            </div>
-          </section>`;
+          <button type="button" class="ui-card ui-card--interactive missions__contract" data-mission-id="${mission.id}">
+            <span class="missions__card-head">
+              <span class="ui-badge">${escapeHtml(mission.type)}</span>
+              <span class="ui-badge ${riskClass}">${escapeHtml(mission.risk)} Risk</span>
+            </span>
+            <span class="ui-card__title">${escapeHtml(mission.title)}</span>
+            <span class="ui-card__body">${escapeHtml(mission.text)}</span>
+            <span class="missions__card-foot">
+              <span class="missions__reward">${escapeHtml(mission.reward)}</span>
+              <span class="missions__cta">View Briefing \u2192</span>
+            </span>
+          </button>`;
         }).join("");
       } else {
         if (missionsEmptyEl) missionsEmptyEl.hidden = false;
@@ -365,19 +341,17 @@ export function renderMissions(data) {
           const station = appState.stationRegistry.find(s => s.id === agent.stationId);
           const stationLabel = station ? station.name : agent.stationId;
           return `
-      <section class="data-card agent-card" data-agent-id="${agent.id}" role="button" tabindex="0" style="cursor:pointer">
-        <div class="agent-card-inner">
-          <img class="agent-card-thumb" src="${escapeHtml(agent.portrait)}" alt="${escapeHtml(agent.name)}" />
-          <div class="agent-card-info">
-            <p class="overline">${escapeHtml(agent.factionCode)} // ${escapeHtml(agent.title)}</p>
-            <h3>${escapeHtml(agent.name)}</h3>
-            <p class="muted">${escapeHtml(agent.missionType)} Contracts &middot; ${escapeHtml(stationLabel)}</p>
-            <p class="agent-card-standing muted">Standing: ${escapeHtml(getAgentRepLevel(agent.id).title)}</p>
-          </div>
-        </div>
-      </section>`;
+      <button type="button" class="ui-card ui-card--interactive missions__agent-card" data-agent-id="${agent.id}">
+        <img class="missions__thumb" src="${escapeHtml(agent.portrait)}" alt="${escapeHtml(agent.name)}" />
+        <span class="missions__agent-info">
+          <span class="missions__overline">${escapeHtml(agent.factionCode)} // ${escapeHtml(agent.title)}</span>
+          <span class="ui-card__title">${escapeHtml(agent.name)}</span>
+          <span class="ui-card__body">${escapeHtml(agent.missionType)} Contracts &middot; ${escapeHtml(stationLabel)}</span>
+          <span class="ui-card__meta">Standing: ${escapeHtml(getAgentRepLevel(agent.id).title)}</span>
+        </span>
+      </button>`;
         }).join("")
-      : `<p class="muted">No contracting agents are stationed here.</p>`;
+      : `<p class="missions__note">No contracting agents are stationed here.</p>`;
   }
 
   // Render active contracts
@@ -400,31 +374,32 @@ export function renderMissions(data) {
             const locationTag = isSalvage
               ? ""
               : isRemote && stationObj
-                ? `<span class="mission-location-tag mission-location-remote" title="Agent is at ${escapeHtml(stationObj.name)}">⚠ ${escapeHtml(stationObj.body || stationObj.name)}</span>`
+                ? `<span class="ui-badge ui-badge--warn" data-location="remote" title="Agent is at ${escapeHtml(stationObj.name)}">⚠ ${escapeHtml(stationObj.body || stationObj.name)}</span>`
                 : isRemote
-                  ? `<span class="mission-location-tag mission-location-remote">⚠ Remote</span>`
-                  : `<span class="mission-location-tag mission-location-local">● Local</span>`;
+                  ? `<span class="ui-badge ui-badge--warn" data-location="remote">⚠ Remote</span>`
+                  : `<span class="ui-badge ui-badge--success" data-location="local">● Local</span>`;
             // The Assignment is paid in time served, not a delivered quota, so its footer is a countdown until it
             // can be completed, and then a Complete button — never Abandon (ECONOMY.md: accepting, waiting and
             // completing are the only three actions).
             const salvageFooter = isSalvage
               ? (salvageRemainingMs(mission) > 0
-                  ? `<span class="mission-card-countdown" data-salvage-countdown="${mission.id}">${formatDurationHours(salvageRemainingMs(mission))} remaining</span>`
-                  : `<button class="btn btn-accent btn-sm" type="button" data-complete-mission="${mission.id}">Complete</button>`)
-              : `<button class="btn btn-outline btn-sm" type="button" data-abandon-mission="${mission.id}">Abandon</button>`;
+                  ? `<span class="missions__hint" data-salvage-countdown="${mission.id}">${formatDurationHours(salvageRemainingMs(mission))} remaining</span>`
+                  : `<button class="ui-button ui-button--primary" type="button" data-complete-mission="${mission.id}">Complete</button>`)
+              : `<button class="ui-button ui-button--secondary" type="button" data-abandon-mission="${mission.id}">Abandon</button>`;
+            // A card holding buttons cannot be a button itself, so it is a card with a role (ISP-81 kept it so).
             return `
-          <section class="mission-card mission-card--active" data-mission-id="${mission.id}" role="button" tabindex="0" style="cursor:pointer">
-            <div class="mission-card-header">
-              <span class="mission-card-type">${escapeHtml(mission.type)}</span>
-              <span class="mission-card-risk ${riskClass}">${escapeHtml(mission.risk)} Risk</span>
+          <article class="ui-card ui-card--interactive missions__contract" data-mission-id="${mission.id}" data-state="active" role="button" tabindex="0">
+            <div class="missions__card-head">
+              <span class="ui-badge">${escapeHtml(mission.type)}</span>
+              <span class="ui-badge ${riskClass}">${escapeHtml(mission.risk)} Risk</span>
               ${locationTag}
             </div>
-            <h3 class="mission-card-title">${escapeHtml(mission.title)}</h3>
-            <div class="mission-card-footer">
-              <span class="mission-card-reward">${escapeHtml(mission.reward)}</span>
+            <h4 class="ui-card__title">${escapeHtml(mission.title)}</h4>
+            <div class="missions__card-foot">
+              <span class="missions__reward">${escapeHtml(mission.reward)}</span>
               ${salvageFooter}
             </div>
-          </section>`;
+          </article>`;
           }
         )
         .join("");
@@ -447,12 +422,11 @@ export function renderMissions(data) {
         const agent = MISSION_AGENTS.find(a => a.id === m.agentId);
         const agentLabel = agent ? agent.name : "Unknown Agent";
         return `
-          <div class="completed-mission-entry">
-            <div class="completed-mission-icon">✓</div>
-            <span class="completed-mission-title"><span class="completed-mission-type">${escapeHtml(m.type || "Mission")}</span>${escapeHtml(m.title)}</span>
-            <span class="completed-mission-reward">${escapeHtml(m.reward)}</span>
-            <span class="completed-mission-meta">${escapeHtml(agentLabel)} &middot; ${formatTime(m.completedAt)}</span>
-          </div>`;
+          <li class="missions__log-entry">
+            <span class="missions__log-title"><span class="ui-badge ui-badge--success">✓ ${escapeHtml(m.type || "Mission")}</span> ${escapeHtml(m.title)}</span>
+            <span class="missions__reward">${escapeHtml(m.reward)}</span>
+            <span class="missions__hint">${escapeHtml(agentLabel)} &middot; ${formatTime(m.completedAt)}</span>
+          </li>`;
       }).join("");
     } else {
       completedSection.hidden = true;

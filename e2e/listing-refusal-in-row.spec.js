@@ -79,7 +79,7 @@ for (const viewport of VIEWPORTS) {
         await row.locator("[data-sell-price]").fill("");
         await button.click();
 
-        const status = row.locator(".listing-row-status");
+        const status = row.locator(".exchange__row-status");
         await expect(status, `${which} row (${item})`).toHaveText(/Sell listing failed: .+/);
         await expect(status).toHaveAttribute("role", "alert");
         const box = await status.boundingBox();
@@ -90,7 +90,7 @@ for (const viewport of VIEWPORTS) {
         const buttonBox = await button.boundingBox();
         expect(box.y - (buttonBox.y + buttonBox.height), "right under the button").toBeLessThan(40);
         // Said once, in that row only; the line below the table is empty.
-        await expect(page.locator(".listing-row-status--error")).toHaveCount(1);
+        await expect(page.locator(".exchange__row-status--error")).toHaveCount(1);
         await expect(page.locator("#listing-status")).toHaveText("");
         await page.screenshot({ path: path.join(SHOT_DIR, `refusal-${which}-row-${viewport.label}.png`) });
       }
@@ -103,8 +103,8 @@ for (const viewport of VIEWPORTS) {
       await first.locator("[data-sell-qty]").fill("0");
       await first.locator("[data-sell-item]").evaluate((el) => el.scrollIntoView({ block: "end" }));
       await first.locator("[data-sell-item]").click();
-      await expect(first.locator(".listing-row-status")).toHaveText(/Sell listing failed: .+/);
-      await expect(page.locator(".listing-row-status--error")).toHaveCount(1);
+      await expect(first.locator(".exchange__row-status")).toHaveText(/Sell listing failed: .+/);
+      await expect(page.locator(".exchange__row-status--error")).toHaveCount(1);
 
       // A listing that goes through says so in the same place, and the refusal is gone.
       const firstItem = await first.locator("[data-sell-item]").getAttribute("data-sell-item");
@@ -117,7 +117,7 @@ for (const viewport of VIEWPORTS) {
       await expect(listed).toHaveAttribute("data-sell-status", firstItem);
       await expect(listed).toHaveText(new RegExp(`^Listing created: 5 ${firstItem} @ .*30`));
       await expect(listed).toHaveAttribute("role", "status");
-      await expect(page.locator(".listing-row-status--error")).toHaveCount(0);
+      await expect(page.locator(".exchange__row-status--error")).toHaveCount(0);
       await listed.evaluate((el) => el.scrollIntoView({ block: "center" }));
       await page.screenshot({ path: path.join(SHOT_DIR, `listed-first-row-${viewport.label}.png`) });
       expect(errors).toEqual([]);

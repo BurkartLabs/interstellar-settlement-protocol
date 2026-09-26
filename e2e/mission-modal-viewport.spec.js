@@ -68,7 +68,9 @@ for (const viewport of VIEWPORTS) {
       await openTab(page, "missions");
       await page.locator("[data-agent-id]").first().click();
       const offered = page.locator("#agent-mission-list [data-mission-id]").first();
-      await offered.scrollIntoViewIfNeeded();
+      // ISP-81 (AB#770): the rebuilt office is shorter, and at 1280 the list is nearly above the fold; scrolling it to the
+      // top of the screen, as a player reading down to it does, keeps the page scrolled whatever the office measures.
+      await offered.evaluate((el) => el.scrollIntoView({ block: "start" }));
       // The bug only shows from a scrolled page; if the list ever fits above the fold, this check is not testing it.
       expect(await page.evaluate(() => window.scrollY), "page scrolled to the contract list").toBeGreaterThan(100);
       await offered.click();
@@ -77,7 +79,7 @@ for (const viewport of VIEWPORTS) {
       await expect(modal).toBeVisible();
       const box = await page.evaluate(() => {
         const r = (sel) => document.querySelector(sel).getBoundingClientRect();
-        return { card: r(".mission-modal-card"), accept: r("#mission-accept-btn"), innerHeight: window.innerHeight };
+        return { card: r("#mission-detail-modal .modal-card"), accept: r("#mission-accept-btn"), innerHeight: window.innerHeight };
       });
       expect(box.card.top, "briefing's top edge on screen").toBeGreaterThanOrEqual(0);
       expect(box.card.top, "briefing's top edge on screen").toBeLessThan(box.innerHeight);

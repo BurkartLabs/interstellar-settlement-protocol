@@ -61,7 +61,7 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
 
       // ── a sale to a standing order ──────────────────────────────────────────
       await openTab(page, "market");
-      const sell = page.locator('.npc-sell-btn[data-npc-item="Silicates"]').first();
+      const sell = page.locator('[data-npc-item="Silicates"]').first();
       await expect(sell).toBeEnabled();
       const orderId = await sell.getAttribute("data-npc-order-id");
       await page.fill(`[data-npc-sell-qty="${orderId}"]`, "10");
