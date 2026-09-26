@@ -6,6 +6,7 @@
 // the rest. Starts its own server
 // (the starmap-system-fit.spec.js pattern).
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -117,7 +118,7 @@ for (const viewport of VIEWPORTS) {
       await page.fill("#login-password", PASSWORD);
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
-      await page.click('.tab-btn[data-tab="starmap"]');
+      await openTab(page, "starmap");
       const canvas = page.locator("#starmap-canvas");
       await canvas.scrollIntoViewIfNeeded();
       await page.waitForTimeout(800);

@@ -7,6 +7,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
+import { openTab } from "../e2e/nav.mjs";
 
 const [base, outDir, prefix = "look"] = process.argv.slice(2);
 fs.mkdirSync(outDir, { recursive: true });
@@ -37,9 +38,9 @@ await page.waitForURL(/\/\?account=/);
 await page.getByRole("button", { name: "I'll find my own way" }).click({ timeout: 10_000 });
 await page.locator("#dialogue-modal").waitFor({ state: "hidden" });
 
-const tabs = await page.locator(".tab-btn[data-tab]").evaluateAll((els) => els.filter((e) => e.offsetParent !== null).map((e) => e.dataset.tab));
+const tabs = await page.locator(".nav-tab[data-tab]").evaluateAll((els) => els.filter((e) => e.offsetParent !== null).map((e) => e.dataset.tab));
 for (const tab of tabs) {
-  await page.click(`.tab-btn[data-tab="${tab}"]`);
+  await openTab(page, tab);
   await page.waitForTimeout(700);
   await shoot(`tab-${tab}`);
 }

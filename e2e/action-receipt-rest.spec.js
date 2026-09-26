@@ -5,6 +5,7 @@
 //
 // Run: npx playwright test e2e/action-receipt-rest.spec.js (no server needed).
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -59,7 +60,7 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
       await page.waitForURL(/\/\?account=/);
 
       // ── a sale to a standing order ──────────────────────────────────────────
-      await page.click('.tab-btn[data-tab="market"]');
+      await openTab(page, "market");
       const sell = page.locator('.npc-sell-btn[data-npc-item="Silicates"]').first();
       await expect(sell).toBeEnabled();
       const orderId = await sell.getAttribute("data-npc-order-id");
@@ -76,7 +77,7 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
       await acknowledgeReceipt(page);
 
       // ── queueing research ───────────────────────────────────────────────────
-      await page.click('.tab-btn[data-tab="rnd"]');
+      await openTab(page, "rnd");
       await page.click('.rnd-enqueue-btn[data-tech-id="tt-basic-extraction"]');
       await expect(page.locator("#action-receipt-title")).toHaveText("Research Queued", { timeout: 10_000 });
       await expect(page.locator("#action-receipt-body")).toContainText("Basic Extraction Analytics");
@@ -86,8 +87,8 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
       await acknowledgeReceipt(page);
 
       // A refusal is an error, not a confirmation: the same research again is refused, and no receipt appears.
-      await page.click('.tab-btn[data-tab="overview"]');
-      await page.click('.tab-btn[data-tab="rnd"]');
+      await openTab(page, "overview");
+      await openTab(page, "rnd");
       const again = page.locator('.rnd-enqueue-btn[data-tech-id="tt-basic-extraction"]');
       // Queued research usually loses its enqueue button; when one is still there and enabled, press it.
       if ((await again.count()) > 0 && (await again.first().isEnabled())) {

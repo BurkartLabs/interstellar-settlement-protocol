@@ -3,6 +3,7 @@
 // panel, and the row and the slot counter change without a reload. At 1440x900 and 390x844. Starts its own server on a
 // seeded data directory (the listing-refusal-in-row.spec.js pattern); screenshots go to e2e/screenshots/ab-785/.
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -55,7 +56,7 @@ async function openPanel(browser, viewport, kind) {
   await page.fill("#login-password", PASSWORD);
   await page.click('#login-form button[type="submit"]');
   await page.waitForURL(/\/\?account=/);
-  await page.click('.tab-btn[data-tab="station"]');
+  await openTab(page, "station");
   const section = page.locator("#station-construction-section");
   await expect(section.locator("[data-building-row]")).toHaveCount(3);
   await section.scrollIntoViewIfNeeded();

@@ -12,6 +12,7 @@
 // process reading that fixture from disk at boot, the same as a real restart.
 import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743, AB#744
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -101,7 +102,7 @@ for (const viewport of VIEWPORTS) {
 
       // ── it actually links to Assignments ────────────────────────────────────────────────────────────────
       await salvageCard.click();
-      await expect(page.locator('.tab-btn[data-tab="missions"]')).toHaveClass(/active/);
+      await expect(page.locator('.nav-tab[data-tab="missions"]')).toHaveClass(/active/);
     } finally {
       child.kill();
       fs.rmSync(dir, { recursive: true, force: true });
@@ -125,8 +126,8 @@ for (const viewport of VIEWPORTS) {
       await page.waitForURL(/\/\?account=/);
       await expect(page.locator("#dialogue-modal")).toBeHidden();
 
-      await page.click('.tab-btn[data-tab="missions"]');
-      await expect(page.locator('.tab-btn[data-tab="missions"]')).toHaveClass(/active/);
+      await openTab(page, "missions");
+      await expect(page.locator('.nav-tab[data-tab="missions"]')).toHaveClass(/active/);
 
       // ── one hour in of four: a countdown, not a Complete button yet ────────────────────────────────────
       const activeCard = page.locator(".mission-card--active", { hasText: "ISA Salvage Assignment" });
@@ -160,7 +161,7 @@ for (const viewport of VIEWPORTS) {
       await page.waitForURL(/\/\?account=/);
       await expect(page.locator("#dialogue-modal")).toBeHidden();
 
-      await page.click('.tab-btn[data-tab="missions"]');
+      await openTab(page, "missions");
       const activeCard = page.locator(".mission-card--active", { hasText: "ISA Salvage Assignment" });
       await expect(activeCard).toBeVisible();
       await expect(activeCard.locator("[data-salvage-countdown]")).toHaveCount(0);
@@ -177,7 +178,7 @@ for (const viewport of VIEWPORTS) {
       await acknowledgeReceipt(page);
       await expect(page.locator(".mission-complete-overlay")).toHaveCount(0);
 
-      await page.click('.tab-btn[data-tab="overview"]');
+      await openTab(page, "overview");
       await expect(page.locator("#overview-cards .data-card", { hasText: "Cash Reserves" })).toContainText("$3,000");
     } finally {
       child.kill();

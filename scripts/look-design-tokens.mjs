@@ -8,6 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
+import { openTab } from "../e2e/nav.mjs";
 
 const [base, outDir] = process.argv.slice(2);
 fs.mkdirSync(outDir, { recursive: true });
@@ -52,7 +53,7 @@ for (const [width, height] of [[1280, 800], [375, 812]]) {
   await skip.click({ timeout: 10_000 });
   await page.locator("#dialogue-modal").waitFor({ state: "hidden" });
   await shoot(page, `isp70-overview-${size}`);
-  await page.click('.tab-btn[data-tab="station"]');
+  await openTab(page, "station");
   await page.waitForTimeout(500);
   await shoot(page, `isp70-station-${size}`);
 

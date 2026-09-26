@@ -2,6 +2,7 @@
 // carries a badge like every other row, and neither it nor the Listed row shows a Total, because neither moved money.
 // Starts its own server on a seeded data directory (the logistics-shipments.spec.js pattern), so no server is needed.
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -64,7 +65,7 @@ for (const viewport of VIEWPORTS) {
       await page.fill("#login-password", PASSWORD);
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
-      await page.click('.tab-btn[data-tab="market"]');
+      await openTab(page, "market");
 
       await page.fill('[data-sell-qty="Silicates"]', "2");
       await page.fill('[data-sell-price="Silicates"]', "25");

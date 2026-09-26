@@ -6,6 +6,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/hire-blank-count.spec.js`.
 
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -27,7 +28,7 @@ async function withOffice(page) {
   await page.click('#register-form button[type="submit"]');
   await page.waitForURL(/\/\?account=/);
   await page.getByRole("button", { name: "I'll find my own way" }).click();
-  await page.click('.tab-btn[data-tab="station"]');
+  await openTab(page, "station");
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   await page.selectOption("#rent-office-duration", "7");
   await page.click("#rent-office-btn");

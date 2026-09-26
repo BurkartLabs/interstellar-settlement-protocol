@@ -9,6 +9,7 @@
 // Earth-Mars approach five seconds.
 
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743
@@ -19,7 +20,7 @@ const shot = (page, name) => page.screenshot({ path: path.join(SHOT_DIR, `${name
 
 /** Open a station building from the Station tab, which reopens whichever building was viewed last. */
 async function enterBuilding(page, action) {
-  await page.click('.tab-btn[data-tab="station"]');
+  await openTab(page, "station");
   const back = page.locator("#station-back-btn");
   if (await back.isVisible()) await back.click();
   await page.click(`[data-building-action="building:${action}"]`);
@@ -52,7 +53,7 @@ test("the Level 2 lease card keeps a five-staff player at home, and Mars can be 
   await expect(page.locator("#office-hire-hint")).toContainText("Staffing: 5 /");
 
   // The Level 2 lease card, before any lease: filed here, not a journey to Mars.
-  await page.click('.tab-btn[data-tab="overview"]');
+  await openTab(page, "overview");
   const leaseCard = page.locator(".requirement-card", { hasText: "Purchase a Mining Lease" });
   await expect(leaseCard).toBeVisible();
   await expect(leaseCard).not.toContainText("Mars");
@@ -64,7 +65,7 @@ test("the Level 2 lease card keeps a five-staff player at home, and Mars can be 
   await page.click('.purchase-lease-btn[data-body="Earth"]');
   await acknowledgeReceipt(page);
   await expect(page.locator(".lease-card")).toHaveCount(1);
-  await page.click('.tab-btn[data-tab="overview"]');
+  await openTab(page, "overview");
   await expect(leaseCard.locator(".requirement-state")).toHaveText("Completed");
   await shot(page, "02-level2-card-after-earth-lease");
 
