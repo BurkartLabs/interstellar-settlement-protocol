@@ -168,6 +168,9 @@ The cost now rises faster than the rate (`operationCostPerHourFor`, server/econo
 
 **cost per hour = 16 x T x (1 + (T / 420)^2)**, never below the 600 floor.
 
+**Pre-tuning (AB#2324):** these numbers assume today's shared 7,000 t/day quota ("Demand: the Board's rule" below) and
+are not recomputed until demand is tuned.
+
 Profit per hour for Earth silicates at 24 credits and 8% tax, with no research, one yard running every hour of the
 day and each tonne sold to the standing bid as it is mined, from the opening bid it settles into (AB#2334,
 `steadyBidDay` in scripts/economy-model.mjs). The flat column is what the table said when every tonne fetched 24:
@@ -225,6 +228,27 @@ gets tomorrow - and a corporation that did not sell finds the market where it le
 What this is for: at 40,000 units a day and a bid that falls as you sell, a second corporation's listing becomes
 worth buying, and a seller with more than a day's quota has a reason to list rather than dump. The suggested price
 on Create Listing no longer floors itself at the NPC bid, so a glutted market can be listed below it.
+
+## Demand: the Board's rule (AB#2324)
+
+The Board answered Decision AB#2324 on 2026-09-26: "New functionality will be created." It came after the finding that
+the game's only Silicates buyer, one standing order of 7,000 t a day for the whole world, stalls the level ladder and
+makes a third yard lose money (AB#2321, AB#2323, AB#2334). The Director's interpretation, which this file owns and every
+other design cites rather than restates:
+
+1. **Progress never waits on the market.** No level, sink check or expansion step is gated on what NPC buyers absorb.
+   Ladder requirements count what a corporation produces (mined, refined, built, expeditions), never NPC sales.
+2. **Demand will be tuned later, to one stated goal:** a corporation running its yards at the best rate sells its
+   output at a profit at any size, so yards 3 to 6 pay. The mechanism (per-corporation orders, a larger quota, more
+   buyers) is chosen then. AB#2327's scratch value, 46,000 t per corporation per day, is one measured point, not a final
+   value: it is cited here and adopted nowhere, and nothing under `data/` carries it.
+3. **Until that tuning, nothing makes the market bind harder.** PR 820 (AB#2356, a lot walks down the bid) and PR 822
+   (AB#2357, the recovered bid is paid) are correct to today's design but do not merge alone: PR 820 alone stops the
+   ladder bot at Level 4 after 240 days. Both land together with the demand tuning (Feature AB#2374). The sink check
+   (AB#2323) waits on the same tuning.
+
+So every table in this file that prices a yard's day against the shared 7,000 t quota is **pre-tuning**. Its numbers
+say what today's single order does, not what the tuned market will.
 
 ## The Nickel-Iron track: refining against selling raw (AB#831)
 
@@ -474,6 +498,9 @@ Director's ruling on AB#2287; flagged for the Board).
 - Proposed key: `buildings.extractorYardPriceGrowth`, 1.25.
 
 ### What they add up to
+
+**Pre-tuning (AB#2324):** this table assumes today's shared 7,000 t/day quota ("Demand: the Board's rule" above) and is
+not recomputed until demand is tuned.
 
 **Corrected by AB#2334:** the table below sells every tonne at the flat 24, so its profit column grows by 11,106 a
 yard. Along the falling bid one corporation's day peaks at two yards (about 3,500, the model's yard table above) and a
