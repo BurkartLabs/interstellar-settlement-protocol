@@ -3,6 +3,7 @@
 // switch to it, so a click on any other tab no longer pays for them. Starts its own server (the suites-flavor.spec.js
 // pattern) and drives the page's own updateAllViews, the call every action and refresh makes.
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -80,7 +81,7 @@ test("the market and the finance charts draw only on their own tab, and on the s
     expect(await chartsDrawn(page), "a finance chart was drawn on a tab nobody opened").toEqual(CHARTS.map(() => null));
 
     // Opening the Exchange draws it from the current state.
-    await page.click('.tab-btn[data-tab="market"]');
+    await openTab(page, "market");
     await expect(page.locator("#market-station-banner")).not.toBeEmpty();
     await expect(page.locator("#exchange-filter-bar")).toBeAttached();
     // While it is on screen, a re-render does redraw it.
@@ -88,7 +89,7 @@ test("the market and the finance charts draw only on their own tab, and on the s
     await page.screenshot({ path: path.join(SCREEN_DIR, "hidden-views-market-1280x800.png") });
 
     // Opening Finance draws all six charts, each with a real size (not the 0x0 of a canvas drawn while hidden).
-    await page.click('.tab-btn[data-tab="finance"]');
+    await openTab(page, "finance");
     const drawn = await chartsDrawn(page);
     for (const [i, chart] of drawn.entries()) {
       expect(chart, `${CHARTS[i]} was not drawn on opening Finance`).not.toBeNull();

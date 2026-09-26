@@ -1,6 +1,7 @@
 // AB#1169: with 35 player listings on the book, Sell Orders draws 30 and says so, instead of letting 30 rows read as
 // the whole book. Starts its own server on a seeded data directory (the logistics-shipments.spec.js pattern).
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -58,7 +59,7 @@ for (const viewport of VIEWPORTS) {
       await page.fill("#login-password", PASSWORD);
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
-      await page.click('.tab-btn[data-tab="market"]');
+      await openTab(page, "market");
 
       await expect(page.locator("#exchange-buy-table tr")).toHaveCount(30, { timeout: 10_000 });
       const note = page.locator("#exchange-buy-capped");

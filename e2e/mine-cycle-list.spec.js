@@ -6,6 +6,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/mine-cycle-list.spec.js`.
 
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -28,7 +29,7 @@ test("an idle extractor yard shows up in Active Mining Cycles before any cycle i
   await page.getByRole("button", { name: "I'll find my own way" }).click();
   await expect(page.locator("#dialogue-modal")).toBeHidden();
 
-  await page.click('.tab-btn[data-tab="station"]');
+  await openTab(page, "station");
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   await page.selectOption("#rent-office-duration", "7");
   await page.click("#rent-office-btn");

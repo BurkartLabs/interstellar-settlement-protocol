@@ -3,6 +3,7 @@
 // panel, and the row and the slot counter change without a reload. At 1440x900 and 390x844. Starts its own server on a
 // seeded data directory (the listing-refusal-in-row.spec.js pattern); screenshots go to e2e/screenshots/ab-785/.
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -55,7 +56,7 @@ async function openPanel(browser, viewport, kind) {
   await page.fill("#login-password", PASSWORD);
   await page.click('#login-form button[type="submit"]');
   await page.waitForURL(/\/\?account=/);
-  await page.click('.tab-btn[data-tab="station"]');
+  await openTab(page, "station");
   const section = page.locator("#station-construction-section");
   await expect(section.locator("[data-building-row]")).toHaveCount(6); // the catalogue's six since ISP-98
   await section.scrollIntoViewIfNeeded();
@@ -123,7 +124,7 @@ for (const viewport of VIEWPORTS) {
       await page.screenshot({ path: path.join(SHOT_DIR, `ferric-notification-${viewport.label}.png`) });
       await page.click("#notification-toggle");
 
-      await page.click('.tab-btn[data-tab="inbox"]');
+      await openTab(page, "inbox");
       await page.locator("#inbox-message-list li", { hasText: "Mining Probe Return" }).first().click();
       const body = page.locator("#inbox-detail-body");
       await expect(body).toContainText("50 units — Nickel (+10 from your Ferric Mining Complex)");
@@ -154,14 +155,14 @@ for (const viewport of VIEWPORTS) {
       await page.keyboard.press("Escape"); // the receipt
       await section.screenshot({ path: path.join(SHOT_DIR, `refinery-complex-built-${viewport.label}.png`) });
 
-      await page.click('.tab-btn[data-tab="refinery"]');
+      await openTab(page, "refinery");
       const run = page.locator("#refinery-active-runs .queue-item").first();
       await expect(run).toContainText("Refinery #1 · Refinery Complex");
       await expect(run).toContainText("→ 60 Aerogel, 22 Quantum Insulators");
       await page.locator("#refinery-active-runs").screenshot({ path: path.join(SHOT_DIR, `refinery-complex-run-${viewport.label}.png`) });
 
       // The refinery tick runs every 10 seconds; the run is due 30 seconds after seeding.
-      await page.click('.tab-btn[data-tab="market"]');
+      await openTab(page, "market");
       const aerogel = page.locator("#market-sell-grid tr", { hasText: "Aerogel" });
       await expect(aerogel).toContainText("60", { timeout: 60_000 });
       await expect(page.locator("#market-sell-grid tr", { hasText: "Quantum Insulators" })).toContainText("22");

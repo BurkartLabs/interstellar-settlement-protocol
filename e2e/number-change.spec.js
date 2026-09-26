@@ -4,6 +4,7 @@
 // and its frames to e2e/screenshots/isp-59/, both gitignored; the committed frames and the converted recording are in
 // docs/isp-59/, copied there by hand (AB#2251).
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -57,7 +58,7 @@ async function logIn(page, url, email) {
 }
 
 async function openSuitesAndRent(page) {
-  await page.click('.tab-btn[data-tab="station"]');
+  await openTab(page, "station");
   const back = page.locator("#station-back-btn");
   if (await back.isVisible()) await back.click();
   await page.click('[data-building-action="building:orbital-executive-suites"]');
@@ -130,7 +131,7 @@ test("a hire counts the sidebar up in green, and a sale counts the inventory dow
     await page.screenshot({ path: path.join(SHOT_DIR, "02-hire-settled.png") });
 
     // The sale: 10 Silicates to a standing buy order; the Exchange's inventory goes 40 -> 30.
-    await page.click('.tab-btn[data-tab="market"]');
+    await openTab(page, "market");
     const inventory = '[data-num-key="exchange:inventory:earth-station-prime:Silicates"]';
     await expect(page.locator(inventory)).toHaveText("40");
     await page.locator(inventory).scrollIntoViewIfNeeded();
@@ -207,7 +208,7 @@ test("a hire made while the tab is hidden is not replayed when the player comes 
       document.dispatchEvent(new Event("visibilitychange"));
     });
     await startSampling(page, '[data-num-key="sidebar:employees"]', 1200);
-    await page.click('.tab-btn[data-tab="overview"]'); // the next render after coming back
+    await openTab(page, "overview"); // the next render after coming back
     await page.waitForTimeout(1300);
     const back = summarise(await collectFrames(page), "up");
     console.log("hidden", JSON.stringify(back));

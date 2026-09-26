@@ -10,6 +10,7 @@
 // finished and measured again. Run against a server you started: `npx playwright test e2e/modal-fit.spec.js`.
 
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import { verifyAndLogIn } from "./verification.mjs";
 
 const WIDTH = 375;
@@ -58,7 +59,7 @@ function expectFits(m, label) {
 test(`the contract briefing card fits at ${WIDTH}px, from its first frame to its last`, async ({ page }) => {
   test.setTimeout(60_000);
   await register(page);
-  await page.click('.tab-btn[data-tab="missions"]');
+  await openTab(page, "missions");
   await page.locator("[data-agent-id]").first().click();
   await page.locator("[data-mission-id]").first().click();
   await expect(page.locator("#mission-accept-btn")).toBeVisible();

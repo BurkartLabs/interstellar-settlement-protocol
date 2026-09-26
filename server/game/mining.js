@@ -232,6 +232,117 @@ export function takeWhole(amount, carried) {
   return { whole, rest: Math.max(0, total - whole) };
 }
 
+// AB#2296: breakdowns are settled as events inside the interval, not as one roll over it. The old step drew one
+// breakdown roll for everything since lastTickAt and, on a hit, returned before mining, so a breakdown anywhere in an
+// hour forfeited the whole hour; its recovery roll measured from a lastTickAt that did not move while broken, and on
+// recovery restarted from the read time, dropping what came before. So a cycle's output and its downtime depended on
+// how often the account was read, the class Bug #1138 fixed for fees. Now: mine until a breakdown time drawn from the
+// per-second chance, stay down at least MIN_DOWNTIME_MS, recover at a time drawn the same way, mine again. Each draw
+// is memoryless, so one call over an hour and 720 calls five seconds apart settle it the same way in distribution.
+const MIN_DOWNTIME_MS = 15 * 60 * 1000;
+const RECOVERY_PROB_PER_SEC = 0.000276; // 0.0276% a second, once the minimum is over
+
+/**
+ * Seconds until the first event of a chance of `probPerSec` each second: P(within s) = 1 - (1 - p)^s, the per-call
+ * formula this replaces, drawn once. Math.random() of 0 is an event at once; close to 1, practically never.
+ */
+function secondsUntil(probPerSec) {
+  if (!(probPerSec > 0)) return Infinity;
+  const u = Math.min(Math.random(), 1 - 1e-12);
+  return Math.log(1 - u) / Math.log(1 - probPerSec);
+}
+
+/** Mine and charge an extractor for [from, to] at its rate. Returns the share of the span it could afford. */
+function mineSpan(corp, extractor, from, to, now) {
+  const elapsedMs = Math.max(0, to - from);
+  if (elapsedMs <= 0) return 1;
+  const elapsedHours = elapsedMs / (60 * 60 * 1000);
+  const throughput = Math.max(0, Number(extractor.throughputPerHour || 0));
+  // ISP-98 (AB#788): research, and a Cryo-vapor Extractor Array on the extractor's lease; one rule with the panel.
+  const efficiency = miningEfficiency(corp, (corp.miningLeases || []).find((l) => l.id === extractor.leaseId), ECONOMY.buildings);
+  const projectedMined = elapsedHours * throughput * efficiency;
+  const projectedCost = elapsedHours * Math.max(0, Number(extractor.operationCostPerHour || 0));
+
+  let affordabilityRatio = 1;
+  if (projectedCost > 0) {
+    const byCredits = corp.finances.credits / projectedCost;
+    affordabilityRatio = Math.max(0, Math.min(1, byCredits));
+  }
+
+  const mined = takeWhole(projectedMined * affordabilityRatio, extractor.minedRemainder);
+  const actualMined = mined.whole;
+  extractor.minedRemainder = mined.rest;
+  const cost = takeWhole(projectedCost * affordabilityRatio, extractor.costRemainder);
+  const actualCost = cost.whole;
+  extractor.costRemainder = cost.rest;
+
+  if (actualCost > 0) {
+    const charged = -applyCredits(corp, -Math.min(actualCost, Math.max(0, Math.round(Number(corp.finances.credits) || 0))), "mining-ops", now);
+    extractor.totalSpent += charged;
+    if (extractor.spentThisCycle != null) extractor.spentThisCycle += charged; // AB#746
+  }
+
+  if (actualMined > 0) {
+    // Deposit at the station orbiting the extractor's lease body
+    const lease = (corp.miningLeases || []).find((l) => l.id === extractor.leaseId);
+    const depositStation = (lease && BODY_TO_STATION[lease.body]) || corp.currentStationId || "earth-station-prime";
+    const stationInv = getStationInventory(corp, depositStation);
+    stationInv.Silicates = (stationInv.Silicates || 0) + actualMined;
+    extractor.totalMined += actualMined;
+    extractor.minedThisCycle = Number(extractor.minedThisCycle || 0) + actualMined;
+    // Bug #984: mined silicates are inventory, not income; revenue is booked when they are sold.
+  }
+
+  extractor.lastTickAt = from + Math.round(elapsedMs * affordabilityRatio);
+  return affordabilityRatio;
+}
+
+/** Settle one active extractor up to `now`: mining, breakdowns and recoveries, in the order they happen. */
+function settleExtractor(corp, extractor, now) {
+  const maxEnd = Number(extractor.endsAt || now);
+  const miningUntil = Math.min(now, maxEnd);
+  let t = Number(extractor.lastTickAt || extractor.startedAt || now);
+  if (!Number.isFinite(t)) t = now;
+  if (extractor.downtimeActive) {
+    // A breakdown saved without its time is taken to have started where settling stopped.
+    if (!(Number(extractor.downtimeStartedAt) > 0)) extractor.downtimeStartedAt = t;
+  } else {
+    extractor.downtimeStartedAt = null;
+  }
+
+  // Each pass settles up to one event; the minimum downtime bounds the count (at most one breakdown per 15 minutes).
+  for (let pass = 0; pass < 100_000; pass += 1) {
+    if (extractor.downtimeActive) {
+      // Broken down: repairs can run past the cycle's end, as before; only `now` bounds them.
+      const from = Math.max(t, Number(extractor.downtimeStartedAt) + MIN_DOWNTIME_MS);
+      if (from >= now) { t = Math.max(t, Math.min(now, from)); break; }
+      const recoverAt = Math.round(from + secondsUntil(RECOVERY_PROB_PER_SEC) * 1000);
+      if (recoverAt >= now) { t = now; break; }
+      extractor.downtimeActive = false;
+      extractor.downtimeRecoveredAt = recoverAt;
+      extractor.downtimeStartedAt = null;
+      t = recoverAt;
+      continue;
+    }
+    if (t >= miningUntil) break;
+    const breakAt = Math.round(t + secondsUntil(extractorDowntimeProbPerSec(corp)) * 1000);
+    const spanEnd = Math.min(breakAt, miningUntil);
+    if (mineSpan(corp, extractor, t, spanEnd, now) < 1) {
+      stopExtractorCycle(extractor, now); // out of credit: the cycle ends, as it always has
+      return;
+    }
+    t = spanEnd;
+    if (breakAt < miningUntil) {
+      extractor.downtimeActive = true;
+      extractor.downtimeStartedAt = breakAt;
+      extractor.downtimeRecoveredAt = null;
+    }
+  }
+
+  extractor.lastTickAt = Math.max(Number(extractor.lastTickAt) || 0, Math.min(t, now));
+  if (now >= maxEnd && !extractor.downtimeActive) stopExtractorCycle(extractor, now);
+}
+
 export function applyMiningOperations(corp, now = Date.now()) {
   ensureCorpMiningModel(corp);
 
@@ -240,114 +351,7 @@ export function applyMiningOperations(corp, now = Date.now()) {
     if (!extractor.active) {
       return;
     }
-
-    // --- Downtime logic ---
-    if (extractor.downtimeActive) {
-      // If downtimeStartedAt is not a valid timestamp, forcibly set it to now (first tick only)
-      if (!Number.isFinite(Number(extractor.downtimeStartedAt)) || Number(extractor.downtimeStartedAt) <= 0) {
-        extractor.downtimeStartedAt = now;
-      }
-      // Enforce minimum downtime duration (15 minutes = 900,000 ms)
-      const minDowntimeMs = 15 * 60 * 1000;
-      const nowMs = now;
-      const startedAt = Number(extractor.downtimeStartedAt);
-      if (nowMs - startedAt < minDowntimeMs) {
-        // Still within minimum downtime, cannot recover yet
-        return;
-      }
-      // Per-tick recovery probability (default: 0.0276% per second)
-      const lastTick = Number(extractor.lastTickAt || extractor.downtimeStartedAt || now);
-      const intervalEnd = now;
-      const elapsedMs = Math.max(0, intervalEnd - lastTick);
-      const recoveryProbPerSec = 0.000276; // 0.0276% per second
-      const tickSeconds = elapsedMs / 1000;
-      const tickProb = 1 - Math.pow(1 - recoveryProbPerSec, tickSeconds);
-      if (Math.random() < tickProb) {
-        // Recovery!
-        extractor.downtimeActive = false;
-        extractor.downtimeRecoveredAt = now;
-        extractor.downtimeStartedAt = null;
-        // Resume mining: update lastTickAt so mining resumes from now
-        extractor.lastTickAt = now;
-      }
-      // If not recovered, remain in downtime (mining paused)
-      return;
-    } else {
-      // If not in downtime, always clear downtimeStartedAt
-      extractor.downtimeStartedAt = null;
-    }
-
-    // Per-tick downtime probability (default: 0.005% per second)
-    // If tick is longer than 1s, scale probability accordingly
-    const lastTick = Number(extractor.lastTickAt || extractor.startedAt || now);
-    const maxEnd = Number(extractor.endsAt || now);
-    const intervalEnd = Math.min(now, maxEnd);
-    const elapsedMs = Math.max(0, intervalEnd - lastTick);
-
-    if (elapsedMs <= 0) {
-      if (now >= maxEnd) {
-        stopExtractorCycle(extractor, now);
-      }
-      return;
-    }
-
-    // Calculate downtime probability for this tick
-    const probPerSec = extractorDowntimeProbPerSec(corp);
-    const tickSeconds = elapsedMs / 1000;
-    // Probability of at least one event in tickSeconds: P = 1 - (1 - p)^n
-    const tickProb = 1 - Math.pow(1 - probPerSec, tickSeconds);
-    if (Math.random() < tickProb) {
-      // Trigger downtime
-      extractor.downtimeActive = true;
-      extractor.downtimeStartedAt = now;
-      extractor.downtimeRecoveredAt = null;
-      return; // Mining is paused this tick
-    }
-
-    // --- Normal mining logic ---
-    const elapsedHours = elapsedMs / (60 * 60 * 1000);
-    const throughput = Math.max(0, Number(extractor.throughputPerHour || 0));
-    // ISP-98 (AB#788): research, and a Cryo-vapor Extractor Array on the extractor's lease; one rule with the panel.
-    const efficiency = miningEfficiency(corp, (corp.miningLeases || []).find((l) => l.id === extractor.leaseId), ECONOMY.buildings);
-    const projectedMined = elapsedHours * throughput * efficiency;
-    const projectedCost = elapsedHours * Math.max(0, Number(extractor.operationCostPerHour || 0));
-
-    let affordabilityRatio = 1;
-    if (projectedCost > 0) {
-      const byCredits = corp.finances.credits / projectedCost;
-      affordabilityRatio = Math.max(0, Math.min(1, byCredits));
-    }
-
-    const mined = takeWhole(projectedMined * affordabilityRatio, extractor.minedRemainder);
-    const actualMined = mined.whole;
-    extractor.minedRemainder = mined.rest;
-    const cost = takeWhole(projectedCost * affordabilityRatio, extractor.costRemainder);
-    const actualCost = cost.whole;
-    extractor.costRemainder = cost.rest;
-
-    if (actualCost > 0) {
-      const charged = -applyCredits(corp, -Math.min(actualCost, Math.max(0, Math.round(Number(corp.finances.credits) || 0))), "mining-ops", now);
-      extractor.totalSpent += charged;
-      if (extractor.spentThisCycle != null) extractor.spentThisCycle += charged; // AB#746
-    }
-
-    if (actualMined > 0) {
-      // Deposit at the station orbiting the extractor's lease body
-      const lease = (corp.miningLeases || []).find((l) => l.id === extractor.leaseId);
-      const depositStation = (lease && BODY_TO_STATION[lease.body]) || corp.currentStationId || "earth-station-prime";
-      const stationInv = getStationInventory(corp, depositStation);
-      stationInv.Silicates = (stationInv.Silicates || 0) + actualMined;
-      extractor.totalMined += actualMined;
-      extractor.minedThisCycle = Number(extractor.minedThisCycle || 0) + actualMined;
-      // Bug #984: mined silicates are inventory, not income; revenue is booked when they are sold.
-    }
-
-    const consumedMs = Math.round(elapsedMs * affordabilityRatio);
-    extractor.lastTickAt = lastTick + consumedMs;
-
-    if (affordabilityRatio < 1 || now >= maxEnd) {
-      stopExtractorCycle(extractor, now);
-    }
+    settleExtractor(corp, extractor, now);
   });
 
   corp.mining.silicateExtractor = extractors[0];

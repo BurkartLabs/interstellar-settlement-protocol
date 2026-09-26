@@ -171,7 +171,7 @@ export function updateTravelProgress(travel) {
   if (remaining <= 0) {
     clearTravelTimer();
     refreshFromServer().then(() => {
-      const activeTab = document.querySelector(".tab-btn.active");
+      const activeTab = document.querySelector(".nav-tab.active");
       if (activeTab?.dataset?.tab === "travel") {
         // Check if server resolved the travel
         const stillTraveling = isPlayerTraveling(appState.data || {});

@@ -263,25 +263,55 @@
       </header>
 
       <div class="layout-grid">
-        <!-- ISP-74 (AB#763): the app shell's navigation, a column beside the content on a desktop and a bar along the
-             bottom on a phone (styles.css, "App shell"). -->
-        <nav class="tab-nav app-nav" aria-label="Game modules">
-          <button class="tab-btn active" data-tab="overview">Overview</button>
-          <button class="tab-btn" data-tab="inbox">Inbox</button>
-          <button class="tab-btn" data-tab="travel" hidden>Travel</button>
-          <button class="tab-btn" data-tab="station">Station</button>
-          <button class="tab-btn" data-tab="finance">Financial Core</button>
-          <button class="tab-btn" data-tab="rnd">Corporate R&D</button>
-          <button class="tab-btn" data-tab="ceo">CEO Insight</button>
-          <button class="tab-btn" data-tab="refinery">Refinery Chains</button>
-          <button class="tab-btn" data-tab="market">Galactic Exchange</button>
-          <button class="tab-btn" data-tab="assets">Assets</button>
-          <button class="tab-btn" data-tab="logistics">Logistics</button>
-          <button class="tab-btn" data-tab="chat">Comms</button>
-          <button class="tab-btn" data-tab="forums">Forums</button>
-          <button class="tab-btn" data-tab="missions">Assignments</button>
-
-          <button class="tab-btn" data-tab="starmap">Starmap</button>
+        <!-- ISP-74 (AB#763), ISP-75 (AB#764): the navigation, in six groups (public/scripts/navGroups.js). On a desktop
+             a column beside the content, each group's name over its tabs; on a phone the six groups are the bar along
+             the bottom and the open group's tabs sit just above it (styles.css, "App shell"). -->
+        <nav class="app-nav" aria-label="Game modules">
+          <section class="nav-group is-open" data-group="company">
+            <button class="nav-group__button" type="button" data-group="company">Company</button>
+            <div class="nav-group__tabs">
+              <button class="nav-tab active" data-tab="overview" type="button">Overview</button>
+              <button class="nav-tab" data-tab="inbox" type="button">Inbox</button>
+              <button class="nav-tab" data-tab="finance" type="button">Financial Core</button>
+              <button class="nav-tab" data-tab="ceo" type="button">CEO Insight</button>
+              <button class="nav-tab" data-tab="missions" type="button">Assignments</button>
+            </div>
+          </section>
+          <section class="nav-group" data-group="station">
+            <button class="nav-group__button" type="button" data-group="station">Station</button>
+            <div class="nav-group__tabs">
+              <button class="nav-tab" data-tab="station" type="button">Station</button>
+            </div>
+          </section>
+          <section class="nav-group" data-group="industry">
+            <button class="nav-group__button" type="button" data-group="industry">Industry</button>
+            <div class="nav-group__tabs">
+              <button class="nav-tab" data-tab="rnd" type="button">Corporate R&D</button>
+              <button class="nav-tab" data-tab="refinery" type="button">Refinery Chains</button>
+              <button class="nav-tab" data-tab="logistics" type="button">Logistics</button>
+            </div>
+          </section>
+          <section class="nav-group" data-group="market">
+            <button class="nav-group__button" type="button" data-group="market">Market</button>
+            <div class="nav-group__tabs">
+              <button class="nav-tab" data-tab="market" type="button">Galactic Exchange</button>
+              <button class="nav-tab" data-tab="assets" type="button">Assets</button>
+            </div>
+          </section>
+          <section class="nav-group" data-group="comms">
+            <button class="nav-group__button" type="button" data-group="comms">Comms</button>
+            <div class="nav-group__tabs">
+              <button class="nav-tab" data-tab="chat" type="button">Chat</button>
+              <button class="nav-tab" data-tab="forums" type="button">Forums</button>
+            </div>
+          </section>
+          <section class="nav-group" data-group="map">
+            <button class="nav-group__button" type="button" data-group="map">Map</button>
+            <div class="nav-group__tabs">
+              <button class="nav-tab" data-tab="starmap" type="button">Starmap</button>
+              <button class="nav-tab" data-tab="travel" type="button" hidden>Travel</button>
+            </div>
+          </section>
         </nav>
         <aside class="side-panel">
           <section class="panel-block collapsible-block">

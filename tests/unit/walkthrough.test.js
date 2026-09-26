@@ -109,15 +109,15 @@ describe("walkthrough steps (AB#404)", () => {
     });
 
     it(`step ${i + 1} "${step.title}": opens a tab that exists`, () => {
-      expect(matches(INDEX_HTML, `.tab-btn[data-tab="${step.tab}"]`)).toBe(1);
+      expect(matches(INDEX_HTML, `.nav-tab[data-tab="${step.tab}"]`)).toBe(1);
     });
   }
 
   it("the matcher finds nothing for an element that is not there, and refuses syntax it does not understand", () => {
-    expect(matches(INDEX_HTML, '.tab-btn[data-tab="no-such-tab"]')).toBe(0);
+    expect(matches(INDEX_HTML, '.nav-tab[data-tab="no-such-tab"]')).toBe(0);
     expect(matches(html.stationBuildingCardsHtml(startStationBuildings), '[data-building-action="building:no-such-office"]')).toBe(0);
     expect(() => matches(INDEX_HTML, "#walkthrough-modal")).toThrow(/unsupported selector/);
-    expect(() => matches(INDEX_HTML, ".tab-btn .x")).toThrow(/unsupported selector/);
+    expect(() => matches(INDEX_HTML, ".nav-tab .x")).toThrow(/unsupported selector/);
   });
 
   // The figures a step quotes that live in a catalog are checked against that catalog, so a price change there fails
@@ -191,20 +191,27 @@ describe("interactive walkthrough (AB#581)", () => {
     const page = (visible, present = visible) => (selector) => ({ exists: present.includes(selector), visible: visible.includes(selector) });
 
     it("the control that does the step, when the player is where it is", () => {
-      const all = [...office.actionSelectors, office.selector, '.tab-btn[data-tab="station"]'];
+      const all = [...office.actionSelectors, office.selector, '.nav-tab[data-tab="station"]'];
       expect(chooseHighlight(office, page(all))).toEqual({ selector: '[id="rent-office-btn"]', missing: false });
     });
 
     it("the way in, then the way out of another building, then the tab", () => {
-      expect(chooseHighlight(office, page([office.selector, '.tab-btn[data-tab="station"]'])).selector).toBe(office.selector);
-      const inAnotherBuilding = page(['[id="station-back-btn"]', '.tab-btn[data-tab="station"]'], [office.selector, '[id="station-back-btn"]']);
+      expect(chooseHighlight(office, page([office.selector, '.nav-tab[data-tab="station"]'])).selector).toBe(office.selector);
+      const inAnotherBuilding = page(['[id="station-back-btn"]', '.nav-tab[data-tab="station"]'], [office.selector, '[id="station-back-btn"]']);
       expect(chooseHighlight(office, inAnotherBuilding).selector).toBe('[id="station-back-btn"]');
-      const onAnotherTab = page(['.tab-btn[data-tab="station"]'], [office.selector, '.tab-btn[data-tab="station"]']);
-      expect(chooseHighlight(office, onAnotherTab).selector).toBe('.tab-btn[data-tab="station"]');
+      const onAnotherTab = page(['.nav-tab[data-tab="station"]'], [office.selector, '.nav-tab[data-tab="station"]']);
+      expect(chooseHighlight(office, onAnotherTab).selector).toBe('.nav-tab[data-tab="station"]');
+    });
+
+    // ISP-75 (AB#764): on a phone a closed group's tabs are out of sight, so the group's button is the way in.
+    it("the group's button, when the tab is in a closed group", () => {
+      const group = '.nav-group:has(.nav-tab[data-tab="station"]) > .nav-group__button';
+      const closed = page([group], [office.selector, '.nav-tab[data-tab="station"]', group]);
+      expect(chooseHighlight(office, closed).selector).toBe(group);
     });
 
     it("nothing, and reports it missing, when the step's own selector is not on the page", () => {
-      expect(chooseHighlight(office, page(['.tab-btn[data-tab="station"]']))).toEqual({ selector: null, missing: true });
+      expect(chooseHighlight(office, page(['.nav-tab[data-tab="station"]']))).toEqual({ selector: null, missing: true });
     });
 
     // A source check, weaker than rendering: these controls are drawn by client render functions the test cannot call.

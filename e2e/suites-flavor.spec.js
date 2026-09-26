@@ -1,6 +1,7 @@
 // AB#1269: docked at Mars Orbital Dock, the Orbital Executive Suites card no longer talks about an Earth Station Prime
 // office. Starts its own server on a seeded data directory (the logistics-shipments.spec.js pattern).
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -58,7 +59,7 @@ for (const viewport of VIEWPORTS) {
       await page.fill("#login-password", PASSWORD);
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
-      await page.click('.tab-btn[data-tab="station"]');
+      await openTab(page, "station");
 
       const card = page.locator(".building-card", { has: page.locator('[data-building-action="building:orbital-executive-suites"]') });
       await expect(card).toBeVisible();

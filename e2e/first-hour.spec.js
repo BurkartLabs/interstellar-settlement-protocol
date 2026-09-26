@@ -13,6 +13,7 @@
 // production default is 5/address/hour (AB#752), and this script registers one account per viewport.
 
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -81,7 +82,7 @@ for (const viewport of VIEWPORTS) {
     await page.click('#register-form button[type="submit"]');
     await verifyAndLogIn(page, "", account.email, account.password); // AB#2288: verify, then log in
     await page.waitForURL(/\/\?account=/);
-    await expect(page.locator(".tab-btn.active")).toHaveText("Overview");
+    await expect(page.locator(".nav-tab.active")).toHaveText("Overview");
     // The coordinator's one-time offer ("Brief me" / "I'll find my own way") — this script plays the actions
     // directly rather than through the walkthrough overlay, so it declines the guided briefing.
     await page.getByRole("button", { name: "I'll find my own way" }).click();
@@ -90,14 +91,14 @@ for (const viewport of VIEWPORTS) {
     await shoot(page, viewport.label, "01-registered", viewport.width);
 
     // ── licence: the inbox (WALKTHROUGH_STEPS "licence") ───────────────────
-    await page.click('.tab-btn[data-tab="inbox"]');
-    await expect(page.locator('.tab-btn[data-tab="inbox"]')).toHaveClass(/active/);
+    await openTab(page, "inbox");
+    await expect(page.locator('.nav-tab[data-tab="inbox"]')).toHaveClass(/active/);
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "02-licence", viewport.width);
 
     // ── station: Earth Station Prime ────────────────────────────────────────
-    await page.click('.tab-btn[data-tab="station"]');
-    await expect(page.locator('.tab-btn[data-tab="station"]')).toHaveClass(/active/);
+    await openTab(page, "station");
+    await expect(page.locator('.nav-tab[data-tab="station"]')).toHaveClass(/active/);
     if (mobile) await assertNoHorizontalScroll(page);
     await shoot(page, viewport.label, "03-station", viewport.width);
 
@@ -153,7 +154,7 @@ for (const viewport of VIEWPORTS) {
     await shoot(page, viewport.label, "08-cycle", viewport.width);
 
     // ── sell: to a standing buy order, now that some has accrued ────────────
-    await page.click('.tab-btn[data-tab="market"]');
+    await openTab(page, "market");
     const sellBtn = page.locator('.npc-sell-btn[data-npc-item="Silicates"]').first();
     await expect(sellBtn).toBeEnabled();
     await sellBtn.click();
@@ -164,7 +165,7 @@ for (const viewport of VIEWPORTS) {
     await shoot(page, viewport.label, "09-sell", viewport.width);
 
     // ── research: queue Basic Extraction Analytics ─────────────────────────
-    await page.click('.tab-btn[data-tab="rnd"]');
+    await openTab(page, "rnd");
     await page.click('.rnd-enqueue-btn[data-tech-id="tt-basic-extraction"]');
     await acknowledgeReceipt(page); // AB#744: the research receipt
     await expectFeedback(page, /research|queue|analytics/i);
@@ -172,7 +173,7 @@ for (const viewport of VIEWPORTS) {
     await shoot(page, viewport.label, "10-research", viewport.width);
 
     // ── bureau: accept a contract from the Contracting & Assignments Bureau ─
-    await page.click('.tab-btn[data-tab="missions"]');
+    await openTab(page, "missions");
     const agentCard = page.locator("[data-agent-id]").first();
     await expect(agentCard, "FIRST_CONTRACT_ID guarantees a new corporation is offered one (server/game/corporation.js)").toBeVisible();
     await agentCard.click();

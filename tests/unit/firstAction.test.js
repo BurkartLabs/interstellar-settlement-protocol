@@ -47,13 +47,14 @@ describe("Phone width (AB#1056)", () => {
 });
 
 describe("One breakpoint for the phone layout (AB#1056)", () => {
-  // ISP-74 (AB#763) replaced the one scrolling row of tabs with the bottom bar; the invariant is unchanged: the CSS
-  // that lays out the phone shell uses the width the script collapses the sidebar at, and keeps the tabs in one row.
+  // ISP-74 (AB#763) replaced the one scrolling row of tabs with the bottom bar, and ISP-75 (AB#764) made the bar six
+  // groups; the invariant is unchanged: the CSS that lays out the phone shell uses the width the script collapses the
+  // sidebar at, and keeps the navigation in one row.
   it("the CSS that puts the tabs in one row uses the width the script collapses the sidebar at", () => {
     const css = readFileSync(new URL("../../public/styles.css", import.meta.url), "utf8").replace(/\r\n/g, "\n");
-    const block = css.split("/* ─── App shell (ISP-74, AB#763) ─── */")[1] || "";
+    const block = css.split("/* ─── App shell (ISP-74, AB#763; ISP-75, AB#764) ─── */")[1] || "";
     expect(block).toContain(`@media (max-width: ${NARROW_MAX_WIDTH}px)`);
-    expect(block).toMatch(/\.app-nav\s*{[^}]*flex-direction:\s*row;[^}]*flex-wrap:\s*nowrap/);
+    expect(block).toMatch(/\.app-nav\s*{[^}]*display:\s*flex;[^}]*flex-direction:\s*row;/);
   });
 });
 

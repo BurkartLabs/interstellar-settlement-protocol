@@ -6,6 +6,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/stop-mining.spec.js`.
 
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -70,7 +71,7 @@ for (const viewport of VIEWPORTS) {
     await expect(page.locator("#dialogue-modal")).toBeHidden();
 
     // ── office, hire, lease, yard ────────────────────────────────────────────
-    await page.click('.tab-btn[data-tab="station"]');
+    await openTab(page, "station");
     await page.click('[data-building-action="building:orbital-executive-suites"]');
     await expect(page.locator("#rent-office-duration")).toBeVisible();
     await page.selectOption("#rent-office-duration", "7");

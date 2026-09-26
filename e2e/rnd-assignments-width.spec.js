@@ -5,6 +5,7 @@
 //
 // Run: ISP_DEV=1 npm run dev, then BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/rnd-assignments-width.spec.js
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -59,14 +60,14 @@ for (const vp of VIEWPORTS) {
 
     const measured = {};
 
-    await page.click('.tab-btn[data-tab="rnd"]');
+    await openTab(page, "rnd");
     await expect(page.locator("#rnd .rnd-panel")).toBeVisible();
     await expect(page.locator("#rnd-tech-tree .rnd-row").first()).toBeVisible();
     await toTop(page, "#rnd");
     await page.screenshot({ path: path.join(SHOT_DIR, `${PREFIX}-rnd-${vp.label}.png`) });
     measured.rnd = await widths(page, "#rnd .rnd-panel");
 
-    await page.click('.tab-btn[data-tab="missions"]');
+    await openTab(page, "missions");
     await expect(page.locator("#missions-board-view")).toBeVisible();
     await expect(page.locator("#agent-list [data-agent-id]").first()).toBeVisible();
     await toTop(page, "#missions");

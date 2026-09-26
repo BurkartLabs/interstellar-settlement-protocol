@@ -2,6 +2,7 @@
 // Division no longer offers a lease application it would refuse server-side. Starts its own server on a seeded
 // data directory (the suites-flavor.spec.js pattern).
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -60,7 +61,7 @@ for (const viewport of VIEWPORTS) {
       await page.fill("#login-password", PASSWORD);
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
-      await page.click('.tab-btn[data-tab="station"]');
+      await openTab(page, "station");
       await page.click('[data-building-action="building:isa-claims-leases"]');
 
       const content = page.locator("#station-building-content");

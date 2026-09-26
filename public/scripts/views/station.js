@@ -18,6 +18,7 @@ import { leaseFullAdvice } from "../slotAdvice.js";
 import { appState, techTree } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
 import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
+import { upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795)
 import { renderMissions } from "./assignments.js";
 import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHeader, setTab, showTradeConfirmation, stationLocationBanner, updateAllViews } from "./shared.js";
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
@@ -711,17 +712,21 @@ export function renderLeaseManagement(building, lease, data) {
         <p class="muted action-hint lease-stop-status" data-for="${escapeHtml(ex.id)}"></p>`
       : "";
 
-    const mineFormVisible = !ex.active && !ex.downtimeActive;
+    // ISP-103 (AB#795): a yard being upgraded is offline; the upgrade control says until when.
+    const upgrading = Number(ex.upgradingUntil) > Date.now();
+    const mineFormVisible = !ex.active && !ex.downtimeActive && !upgrading;
+    const upgradeHtml = yardUpgradeHtml(yardUpgradeView(ex, data.corp, appState.economy, { efficiency: miningEfficiencyOf(data.corp) }), ex.id);
     extractorRows += `
       <div class="extractor-row ${statusClass}" data-live-ex="${escapeHtml(ex.id)}" data-live-state="${extractorState(ex)}">
         <div class="extractor-row-header">
           <strong>${escapeHtml(ex.name)}</strong>
-          <span class="building-status-badge ${statusClass}">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : "Idle")}</span>
+          <span class="building-status-badge ${statusClass}">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : (upgrading ? "Upgrading" : "Idle"))}</span>
         </div>
         ${ex.downtimeActive ? cycleInfo : (ex.active ? "" : cycleInfo)}
         ${progressBarHtml}
         ${mineFormVisible ? mineFormHtml : ""}
         ${ex.active ? stopButtonHtml : ""}
+        ${upgradeHtml}
       </div>
     `;
   }
@@ -918,6 +923,47 @@ export function bindLeaseManagementActions(building, lease, data) {
   });
 
   // AB#1052: stop a running cycle early, keeping what has been mined and settling the cost for the time used.
+  // ISP-103 (AB#795): upgrade a yard by one tier. The control was drawn from the server's tier table; the server checks
+  // everything again, and the page draws itself from the account that comes back.
+  document.querySelectorAll(".yard-upgrade-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const extractorId = btn.getAttribute("data-extractor-id");
+      const buildingId = btn.getAttribute("data-upgrade-building");
+      const ex = (appState.data?.corp?.mining?.silicateExtractors || []).find((e) => e.id === extractorId);
+      const view = ex ? yardUpgradeView(ex, appState.data.corp, appState.economy, { efficiency: miningEfficiencyOf(appState.data.corp) }) : null;
+      const statusEl = document.querySelector(`.yard-upgrade-status[data-for="${CSS.escape(extractorId)}"]`);
+      if (!view?.next || view.locked || view.blocked || !appState.accountId) return;
+      const { next } = view;
+      const confirmed = await showTradeConfirmation({
+        heading: "Upgrade Extractor Yard",
+        title: `Upgrade ${ex.name} to tier ${next.tier}?`,
+        confirmLabel: `Upgrade (${toCurrency(next.cost)})`,
+        rows: [
+          { label: "Cost", value: `${toCurrency(next.cost)} credits` },
+          { label: "Cap", value: `${next.before.cap} → ${next.after.cap} t/h` },
+          { label: "Best rate", value: `${next.before.rate} → ${next.after.rate} t/h, netting ${toCurrency(next.before.netPerHour)} → ${toCurrency(next.after.netPerHour)}/h` },
+          { label: "Offline", value: `${next.offlineHours} hours while it upgrades: no cycle can run` }
+        ]
+      });
+      if (!confirmed) return;
+
+      btn.disabled = true;
+      if (statusEl) statusEl.textContent = "Upgrading...";
+      try {
+        const response = await apiFetch(upgradePath(appState.accountId, buildingId), { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        const account = await parseJsonResponse(response);
+        appState.data = deepClone(account.state);
+        appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+        updateAllViews();
+        renderBuildingDetail(building, appState.data);
+        showActionReceipt(account, { returnFocusTo: firstPresent(`.yard-upgrade[data-upgrade-for="${CSS.escape(extractorId)}"] button`, ".lease-mine-form button[type=submit]") });
+      } catch (error) {
+        btn.disabled = false;
+        if (statusEl) statusEl.textContent = error?.message || "The upgrade was refused.";
+      }
+    });
+  });
+
   document.querySelectorAll(".lease-stop-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const extractorId = btn.getAttribute("data-extractor-id");
@@ -1048,7 +1094,7 @@ export function renderStation(data) {
       appState.data = deepClone(account.state);
       updateAllViews();
       pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok");
-      showActionReceipt(account, { returnFocusTo: firstPresent('[data-corp-building="Assembly Facility"]', ".tab-btn[data-tab='station']") }); // AB#744
+      showActionReceipt(account, { returnFocusTo: firstPresent('[data-corp-building="Assembly Facility"]', ".nav-tab[data-tab='station']") }); // AB#744
     },
     onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
   }, clientPrices(appState.economy).assemblyFacilityCost);
@@ -1061,7 +1107,7 @@ export function renderStation(data) {
       appState.data = deepClone(account.state);
       updateAllViews();
       pushFeedback(account.receipt?.title || "Construction complete.", "ok");
-      showActionReceipt(account, { returnFocusTo: firstPresent("#station-construction-section h3", ".tab-btn[data-tab='station']") }); // AB#744
+      showActionReceipt(account, { returnFocusTo: firstPresent("#station-construction-section h3", ".nav-tab[data-tab='station']") }); // AB#744
     },
     onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
   }, {

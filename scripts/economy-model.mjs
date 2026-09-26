@@ -23,8 +23,8 @@ export const CODE_RULES = {
   maxThroughput: { value: 250, where: "server/routes/mining.js, start-mining clamps throughput to 10 and the yard's tier cap, 250 at tier 1 (server/economy.js BASE_THROUGHPUT_CAP)" },
   maxCycleHours: { value: 72, where: "server/routes/mining.js, start-mining hours max 72" },
   downtimeStartPerSecond: { value: 0.00005, where: "server/gameState.js, extractorDowntimeProbPerSec" },
-  recoveryPerSecond: { value: 0.000276, where: "server/gameState.js, recoveryProbPerSec" },
-  minDowntimeMinutes: { value: 15, where: "server/gameState.js, minDowntimeMs" }
+  recoveryPerSecond: { value: 0.000276, where: "server/game/mining.js, RECOVERY_PROB_PER_SEC" },
+  minDowntimeMinutes: { value: 15, where: "server/game/mining.js, MIN_DOWNTIME_MS" }
 };
 
 const round = (n) => Math.round(n);

@@ -5,6 +5,7 @@
 // after a reload, the spend is the server's own figure (not the clock estimate), and "Mined this cycle" rises on the
 // 5-second mining:updated event without a reload. Starts its own server.
 import { test, expect } from "@playwright/test";
+import { openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -84,7 +85,7 @@ for (const offset of OFFSETS) {
         await page.fill("#login-password", PASSWORD);
         await page.click('#login-form button[type="submit"]');
         await page.waitForURL(/\/\?account=/);
-        await page.click('.tab-btn[data-tab="station"]');
+        await openTab(page, "station");
 
         const expectedPct = () => ((Date.now() - startedAt) / CYCLE_MS) * 100;
         const first = await panelFigures(page);
@@ -105,7 +106,7 @@ for (const offset of OFFSETS) {
         // After a reload the bar is still the elapsed fraction.
         await page.reload();
         await page.waitForURL(/\/\?account=|\/$/);
-        await page.click('.tab-btn[data-tab="station"]');
+        await openTab(page, "station");
         const reloaded = await panelFigures(page);
         expect(Math.abs(reloaded.width - expectedPct()), `after reload: bar ${reloaded.width}% vs ${expectedPct().toFixed(1)}%`).toBeLessThan(2);
 

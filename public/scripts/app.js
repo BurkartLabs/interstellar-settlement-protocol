@@ -34,13 +34,15 @@ connectWalkthroughUi({ updateAllViews, setTab });
 connectViews({ updateAllViews, setTab, refreshFromServer, showAuthScreen });
 
 // ------------- ELEMENTS ------------- //
-const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+const tabButtons = Array.from(document.querySelectorAll(".nav-tab"));
+const groupButtons = Array.from(document.querySelectorAll(".nav-group__button")); // ISP-75 (AB#764)
 const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
 
 const authShell = document.getElementById("auth-shell");
 const gameShell = document.getElementById("game-shell");
 
-import { starmapMiningState } from "./beltCompositions.js"; // Bug #1264 (placed here, apart from the imports at the top that parallel PRs edit)
+import { starmapMiningState } from "./beltCompositions.js";
+import { openGroupOf, tabForGroup, lockEmptyGroups } from "./navGroups.js"; // ISP-75 (AB#764) // Bug #1264 (placed here, apart from the imports at the top that parallel PRs edit)
 
 // ─── Tabs allowed during travel ──────────────────────────────────────────────
 // TODO(AB#1053): Overhaul Travel Page design
@@ -54,7 +56,7 @@ function enforceTravelTabLockdown(data) {
   const traveling = isPlayerTraveling(data);
   const inSpace = isPlayerInSpace(data);
   const showTravelTab = traveling || inSpace;
-  const travelTabBtn = document.querySelector('.tab-btn[data-tab="travel"]');
+  const travelTabBtn = document.querySelector('.nav-tab[data-tab="travel"]');
 
   // Show/hide the Travel tab button
   if (travelTabBtn) travelTabBtn.hidden = !showTravelTab;
@@ -64,16 +66,17 @@ function enforceTravelTabLockdown(data) {
     const tabId = btn.dataset.tab;
     if (traveling && !TRAVEL_ALLOWED_TABS.has(tabId)) {
       btn.disabled = true;
-      btn.classList.add("tab-btn--locked");
+      btn.classList.add("nav-tab--locked");
     } else {
       btn.disabled = false;
-      btn.classList.remove("tab-btn--locked");
+      btn.classList.remove("nav-tab--locked");
     }
   });
+  lockEmptyGroups();
 
   // If currently on a locked tab, switch to travel
   if (traveling) {
-    const activeTab = document.querySelector(".tab-btn.active");
+    const activeTab = document.querySelector(".nav-tab.active");
     const activeId = activeTab?.dataset?.tab;
     if (!activeId || !TRAVEL_ALLOWED_TABS.has(activeId)) {
       setTab("travel");
@@ -82,7 +85,7 @@ function enforceTravelTabLockdown(data) {
 
   // If in space (just arrived in system), switch to travel to show docking options
   if (inSpace) {
-    const activeTab = document.querySelector(".tab-btn.active");
+    const activeTab = document.querySelector(".nav-tab.active");
     const activeId = activeTab?.dataset?.tab;
     if (activeId === "station") {
       setTab("travel");
@@ -163,7 +166,10 @@ function setTab(targetId) {
 
   tabButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.tab === targetId);
+    if (btn.dataset.tab === targetId) btn.setAttribute("aria-current", "page");
+    else btn.removeAttribute("aria-current");
   });
+  openGroupOf(targetId);
 
   tabPanels.forEach((panel) => {
     panel.classList.toggle("active", panel.id === targetId);
@@ -212,6 +218,13 @@ function goToTab(targetId) {
 function bindTabs() {
   tabButtons.forEach((button) => {
     button.addEventListener("click", () => goToTab(button.dataset.tab));
+  });
+  // ISP-75 (AB#764): a group's button opens the tab that group last showed, or its first.
+  groupButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const tab = tabForGroup(button.dataset.group);
+      if (tab) goToTab(tab);
+    });
   });
 
   document.querySelectorAll("[data-jump]").forEach((button) => {
@@ -602,7 +615,7 @@ function bindRealtimeEvents() {
     clearTravelTimer();
     refreshFromServer().then(() => {
       // Switch to station tab on arrival
-      const activeTab = document.querySelector(".tab-btn.active");
+      const activeTab = document.querySelector(".nav-tab.active");
       if (activeTab?.dataset?.tab === "travel") {
         setTab("station");
       }
