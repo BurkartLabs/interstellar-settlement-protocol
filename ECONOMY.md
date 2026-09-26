@@ -447,7 +447,9 @@ seeds 7000 and 7001, at day 3, 7 and 30:
 
 1. **The acceptance target still holds:** banked/spent below 3x for planner, greedy and reserve at every checkpoint.
    Today it is 0.00x to 0.22x, so this is a guard that the sinks did not break the floor.
-2. **The squeezed are untouched:** with `--supply low` (one yard each), each bot's spend in the three categories is
+2. **The squeezed are untouched:** with `--supply low` (each bot's ore to market capped at 2,000 a day; it still
+   owns the starting kit, one lease and its two yards, the squeezed corporation of the Director's AB#2287 ruling;
+   Bug AB#2303 corrected "one yard each", which the probe never ran), each bot's spend in the three categories is
    **0**, and planner's and greedy's Salvage Assignment counts at day 30 stay within 10% of 22 and 56 (the counts
    above).
 3. **The expanded pay:** with `--supply high`, the reserve bot's spend in the three categories on day 30 is **more
