@@ -721,9 +721,18 @@ body {
   margin: 0;
 }
 
-/* Bug #1059: the next step after an error, and the links in the intro copy. AB#748: and the playtest briefing's. */
+/* AB#988: "Forgot your password?", under the password it is about. */
+.login-forgot {
+  margin: var(--space-1) 0 0;
+  text-align: right;
+  font-size: var(--font-size-2);
+}
+
+/* Bug #1059: the next step after an error, and the links in the intro copy. AB#748: and the playtest briefing's.
+   AB#988: and the forgotten-password link. */
 .login-status-link,
 .login-copy a,
+.login-forgot a,
 .landing-howto a,
 .howto a:not(.btn-hero) {
   color: var(--accent);

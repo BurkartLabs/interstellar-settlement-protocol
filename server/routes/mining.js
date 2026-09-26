@@ -1,132 +1,21 @@
 // server/routes/mining.js: the mining routes, split out of server/index.js (AB#1815).
 import { bodyNumber } from "../bodyNumber.js";
-import { buildCostFor, operationCostPerHourFor, startupCostFor, yardUpkeepPerHourFor } from "../economy.js";
+import { operationCostPerHourFor, startupCostFor, yardUpkeepPerHourFor } from "../economy.js";
 import { addAccountNotification, mutateAccountState } from "../gameState.js";
 import { startExtractorCycle, stopExtractorCycle } from "../gameState.js"; // AB#575, AB#1052
 import { applyCredits } from "../finances.js";
 // Bug #1058: refusals that say what to do next. Imported beside their first use, away from the import block.
 import { miningCreditsAdvice } from "../nextStep.js";
-import { leaseSlotsFullMessage } from "../../public/scripts/slotAdvice.js";
 import { emitToAccount } from "../realtime.js";
-import { unleasedFor, corpSlotsFull, fundingRequirementMessage, activeOfficeAt } from "./helpers.js";
+// ISP-94 (AB#784): buildHandler builds the yard, as it builds every player building (server/construction.js).
+import { fundingRequirementMessage, activeOfficeAt, buildHandler } from "./helpers.js";
 // AB#743: what each committing action did, from the values its mutation used, for the confirmation modal.
-import { buildExtractorReceipt, startMiningReceipt } from "../receipts.js";
-// AB#783: the Basic Extractor Yard's cost, asset value, research and cap come from data/player-buildings.json.
-import { catalogueRefusal, playerBuilding } from "../playerBuildings.js";
-import { RESEARCH_LIBRARY } from "../game/catalog.js";
-
-const YARD = playerBuilding("basic-extractor-yard");
+import { startMiningReceipt } from "../receipts.js";
 
 export function registerMiningRoutes(app) {
   // ─── Lease-scoped: Build an extractor yard on a specific lease ──────────────
-  app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", (req, res) => {
-    const { leaseId } = req.params;
-    const BASE_BUILD_COST = YARD.cost;
-    const ASSET_VALUE = YARD.assetValue;
-    let outcome = "ok";
-    let slotInfo = "";
-    let built = null;
-
-    const account = mutateAccountState(req.params.accountId, (state) => {
-      const corp = state.corp;
-      const hasSupplyForecast = (corp.unlockedTech || []).includes("tt-supply-forecast");
-      const buildCost = buildCostFor(BASE_BUILD_COST, hasSupplyForecast);
-
-      if (!Array.isArray(corp.miningLeases)) corp.miningLeases = [];
-      const lease = corp.miningLeases.find((l) => l.id === leaseId);
-      if (!lease) {
-        outcome = "no-lease";
-        return;
-      }
-
-      // The yard has no research gate or cap today; one added to the catalogue is enforced here.
-      const refused = catalogueRefusal(YARD, corp);
-      if (refused) {
-        outcome = refused;
-        return;
-      }
-
-      if (!Array.isArray(lease.extractorIds)) lease.extractorIds = [];
-      if (lease.extractorIds.length >= lease.buildingSlots) {
-        outcome = "lease-slots-full";
-        slotInfo = `${lease.extractorIds.length}/${lease.buildingSlots}`;
-        return;
-      }
-
-      if ((corp.buildings || []).length >= (corp.buildingSlots || 2)) {
-        outcome = "no-corp-slot";
-        slotInfo = `${corp.buildings.length}/${corp.buildingSlots}`;
-        return;
-      }
-
-      if ((corp.finances.credits || 0) < buildCost) {
-        outcome = "insufficient-credits";
-        return;
-      }
-
-      if (!Array.isArray(corp.buildings)) corp.buildings = [];
-      if (!corp.mining || typeof corp.mining !== "object") corp.mining = {};
-      if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];
-
-      const nextIndex = corp.mining.silicateExtractors.length + 1;
-      const newExtractorId = `ext-basic-${nextIndex}`;
-
-      corp.buildings.push({ name: "Basic Extractor Yard", tier: 1, status: "Operational" }); // the catalogue name; a test holds them equal
-      corp.mining.silicateExtractors.push({
-        id: newExtractorId,
-        name: `${YARD.name} #${nextIndex}`,
-        tier: 1,
-        active: false,
-        startedAt: null,
-        lastTickAt: null,
-        endsAt: null,
-        throughputPerHour: 0,
-        operationCostPerHour: 0,
-        totalMined: 0,
-        totalSpent: 0,
-        lastCompletedAt: null,
-        leaseId,
-        // Record the lease body directly on the yard so the location survives
-        // any future leaseId namespacing or reference loss.
-        body: lease?.body || null
-      });
-
-      lease.extractorIds.push(newExtractorId);
-      applyCredits(corp, -buildCost, "construction");
-      built = { extractorName: `${YARD.name} #${nextIndex}`, body: lease?.body || null, cost: buildCost, assetValue: ASSET_VALUE };
-      corp.finances.assets = (corp.finances.assets || 0) + ASSET_VALUE;
-    });
-
-    if (!account) {
-      res.status(404).json({ error: "Account not found." });
-      return;
-    }
-
-    if (outcome !== "ok") {
-      const corp = account.state.corp;
-      const messageMap = {
-        "no-lease": "The specified lease could not be found on your account.",
-        "missing-research": `${YARD.name} construction requires ${YARD.researchGates.map((id) => RESEARCH_LIBRARY[id]?.name || id).join(" and ")} research.`,
-        "at-cap": `You already operate the maximum of ${YARD.cap.perCorporation} of the ${YARD.name}.`,
-        "lease-slots-full": leaseSlotsFullMessage(corp, (corp.miningLeases || []).find((l) => l.id === leaseId), unleasedFor(corp)),
-        "no-corp-slot": corpSlotsFull(corp),
-        "insufficient-credits": fundingRequirementMessage("Basic Extractor Yard construction", corp, BASE_BUILD_COST)
-      };
-      res.status(400).json({ error: messageMap[outcome] || "Build action failed." });
-      return;
-    }
-
-    const notification = addAccountNotification(req.params.accountId, {
-      type: "infrastructure",
-      title: "Extractor Commissioned",
-      body: "Basic Extractor Yard is now operational and linked to your mining lease."
-    });
-    if (notification) {
-      emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
-    }
-
-    res.json({ ...account, receipt: buildExtractorReceipt(built) });
-  });
+  // ISP-94 (AB#784): POST /gameplay/build with the yard and this lease (server/routes/construction.js).
+  app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/build-extractor", buildHandler((req) => ({ buildingId: "basic-extractor-yard", leaseId: req.params.leaseId })));
 
   // ─── Lease-scoped: Start a mining cycle on a lease extractor ───────────────
   app.post("/api/accounts/:accountId/gameplay/lease/:leaseId/start-mining", (req, res) => {

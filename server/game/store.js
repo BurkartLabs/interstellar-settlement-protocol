@@ -400,6 +400,27 @@ export async function authenticateAccount(email, password) {
 export const EMAIL_MAX_LENGTH = 254; // RFC 5321's practical mailbox-address limit
 export const PASSWORD_MIN_LENGTH = 10;
 export const PASSWORD_MAX_LENGTH = 128;
+
+/** The password rule, in one place for registration and reset (AB#988): the refusal, or null for a good password. */
+export function passwordRuleError(password) {
+  if (typeof password === "string" && password.length >= PASSWORD_MIN_LENGTH && password.length <= PASSWORD_MAX_LENGTH) return null;
+  return { error: `Password must be ${PASSWORD_MIN_LENGTH} to ${PASSWORD_MAX_LENGTH} characters.`, field: "password" };
+}
+
+/**
+ * Set a new password (AB#988) and revoke every refresh token the account holds, so each signed-in device has to log
+ * in again. The caller has checked passwordRuleError. Access tokens already issued stay valid until they expire.
+ */
+export function setAccountPassword(accountId, password, now = Date.now()) {
+  const account = accountsStore.accounts?.[accountId];
+  if (!account) return false;
+  account.passwordHash = bcrypt.hashSync(password, PASSWORD_SALT_ROUNDS);
+  account.passwordChangedAt = now;
+  account.refreshTokens = [];
+  scheduleAccountsSave();
+  return true;
+}
+
 export const CEO_NAME_MIN_LENGTH = 2;
 export const CEO_NAME_MAX_LENGTH = 40;
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -409,9 +430,8 @@ export async function createAccount({ email, password, ceoName, corpName }) {
   // password anyone can guess, and a one-element array into its element. A wrong type gets the message and field its
   // length or shape rule gives, and the value is never read.
   if (typeof email !== "string") return { error: "Enter a valid email address.", field: "email" };
-  if (typeof password !== "string") {
-    return { error: `Password must be ${PASSWORD_MIN_LENGTH} to ${PASSWORD_MAX_LENGTH} characters.`, field: "password" };
-  }
+  const passwordError = passwordRuleError(password);
+  if (typeof password !== "string") return passwordError;
   if (typeof ceoName !== "string") {
     return { error: `CEO name must be ${CEO_NAME_MIN_LENGTH} to ${CEO_NAME_MAX_LENGTH} characters.`, field: "ceoName" };
   }
@@ -423,8 +443,8 @@ export async function createAccount({ email, password, ceoName, corpName }) {
     return { error: "Enter a valid email address.", field: "email" };
   }
 
-  if (normalizedPassword.length < PASSWORD_MIN_LENGTH || normalizedPassword.length > PASSWORD_MAX_LENGTH) {
-    return { error: `Password must be ${PASSWORD_MIN_LENGTH} to ${PASSWORD_MAX_LENGTH} characters.`, field: "password" };
+  if (passwordError) {
+    return passwordError;
   }
 
   // Bug #1187: no stand-in name, so an empty field is refused here rather than defaulted — the same reasoning that

@@ -23,6 +23,8 @@ import { registerLogisticsRoutes } from "./routes/logistics.js";
 import { registerMiningRoutes } from "./routes/mining.js";
 import { registerAsteroidRoutes } from "./routes/asteroids.js";
 import { registerRefiningRoutes } from "./routes/refining.js";
+import { registerConstructionRoutes } from "./routes/construction.js"; // ISP-94 (AB#784)
+import { PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
 import { registerMissionRoutes } from "./routes/missions.js";
 import { registerResearchRoutes } from "./routes/research.js";
 import { registerMessagingRoutes } from "./routes/messaging.js";
@@ -81,6 +83,12 @@ if (!process.env.ISP_DISABLE_TICKERS) {
 registerCatalogRoutes(app);
 
 registerAuthRoutes(app);
+// AB#987: email verification's routes, imported beside their one caller (P-SHARED-LINE).
+import { registerVerificationRoutes } from "./routes/verification.js";
+registerVerificationRoutes(app);
+// AB#988: password reset's routes.
+import { registerPasswordResetRoutes } from "./routes/passwordReset.js";
+registerPasswordResetRoutes(app);
 
 // AB#734 (ISP-48): the per-account throttle runs right after requireAuth sets req.auth, so it always has the
 // verified account to key on.
@@ -99,6 +107,7 @@ const INPUT_CHECKS = {
     belts: new Set(Object.keys(BELT_COMPOSITIONS)),
     expeditionDurations: new Set(Object.keys(EXPEDITION_DURATIONS)),
     refineryChains: new Set(Object.keys(REFINERY_CHAINS)),
+    playerBuildings: new Set(PLAYER_BUILDING_CATALOGUE.map((b) => b.id)), // ISP-94: POST /gameplay/build
     // AB#732: what can be listed or charted (every raw resource and refinery output), standing orders, forum categories.
     tradeItems: new Set([...REFINERY_CHAINS_DATA_FOR_INPUT.resourceCatalog, ...REFINERY_CHAINS_DATA_FOR_INPUT.chains.flatMap((c) => [c.input, ...c.outputs.map((o) => o.item)])]),
     npcOrders: { has: (orderId) => (getState().market?.npcBuyOrders || []).some((o) => o.id === orderId) },
@@ -128,6 +137,8 @@ registerMiningRoutes(app);
 registerAsteroidRoutes(app);
 
 registerRefiningRoutes(app);
+
+registerConstructionRoutes(app);
 
 registerMissionRoutes(app);
 

@@ -18,7 +18,11 @@ const PUBLIC = {
   "GET /api/buildings": "a static catalog",
   "GET /api/ceo-insight": "a static catalog",
   "GET /api/mission-agents": "a static catalog",
-  "GET /api/research": "a static catalog"
+  "GET /api/research": "a static catalog",
+  "POST /api/auth/verify-email": "spending a verification token, which is itself the credential (AB#987)",
+  "POST /api/auth/resend-verification": "asking for a new verification link before anyone can sign in; rate-limited, one answer for every address (AB#987)",
+  "POST /api/auth/forgot-password": "asking for a password-reset link by someone who cannot sign in; rate-limited, one answer for every address (AB#988)",
+  "POST /api/auth/reset-password": "spending a reset token, which is itself the credential (AB#988)"
 };
 
 /** Routes that exist only when ISP_DEV=1 outside production (the test process sets it); they answer without a login by design. */
@@ -26,7 +30,8 @@ const DEV_ONLY = {
   "POST /api/auth/dummy-login": "the shared demo account",
   "POST /api/auth/dummy-reset": "resetting the shared demo account",
   "GET /kanban/api": "the developer kanban board (Bug #1069)",
-  "POST /kanban/api": "the developer kanban board (Bug #1069)"
+  "POST /kanban/api": "the developer kanban board (Bug #1069)",
+  "GET /api/dev/outbox": "the test mail transport's outbox, for local play and e2e (AB#987); there is no outbox in production"
 };
 
 /** Open today and removed by a pull request not yet merged; skipped if the route no longer exists. */

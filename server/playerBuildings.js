@@ -2,7 +2,7 @@
 // shape is docs/design/buildings.md, AB#782). Each build route reads its building's cost, asset value, research gates
 // and cap from here. A building's price stays in data/economy.json, the one file the balance pass edits (AB#726,
 // ECONOMY.md): an entry names it by `price` ("extractorYard" is buildings.extractorYardCost and ...AssetValue), and
-// the loaded entry carries it as cost and assetValue. What a building does stays in its route's code.
+// the loaded entry carries it as cost and assetValue. What a building does is its entry in server/construction.js (ISP-94).
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

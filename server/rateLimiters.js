@@ -109,6 +109,32 @@ export const registerLimiter = limiter("register", {
   productionDefault: 5
 });
 
+// Five verification resends per address per hour (AB#987): each one sends mail, so it is a cost and a nuisance to
+// whoever owns the address, and the same answer comes back whether or not an account has it.
+export const resendVerificationLimiter = limiter("resend-verification", {
+  windowMs: 60 * 60_000,
+  envName: "ISP_RATE_LIMIT_RESEND_MAX",
+  productionDefault: 5
+});
+
+// Password-reset requests (AB#988), limited twice: ten an hour from one client, whatever the addresses, and three an
+// hour for one address, whoever asks, so nobody can fill an owner's inbox from many clients. Both answer 429 the same
+// way whether or not the address has an account.
+export const forgotPasswordIpLimiter = limiter("forgot-password-ip", {
+  windowMs: 60 * 60_000,
+  envName: "ISP_RATE_LIMIT_FORGOT_IP_MAX",
+  productionDefault: 10
+});
+
+export const forgotPasswordAccountLimiter = limiter("forgot-password-account", {
+  windowMs: 60 * 60_000,
+  envName: "ISP_RATE_LIMIT_FORGOT_ACCOUNT_MAX",
+  productionDefault: 3,
+  extra: {
+    keyGenerator: (req) => (typeof req.body?.email === "string" && req.body.email.trim().toLowerCase()) || ipKeyGenerator(req.ip)
+  }
+});
+
 // Sixty refreshes per address per minute.
 export const refreshLimiter = limiter("refresh", {
   windowMs: 60_000,
