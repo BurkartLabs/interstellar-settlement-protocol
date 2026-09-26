@@ -140,7 +140,7 @@ export function renderLevel2Progress(data) {
     expeditions3:               "starmap",
     expeditions10:              "starmap",
     refine1000:                 "refinery",
-    refine10000:                "refinery",
+    refine2000:                 "refinery",
     sell100000Silicate:         "market",
     researchAssemblyFabrication: "rnd",
     researchAsteroidProspecting: "rnd",

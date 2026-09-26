@@ -58,7 +58,7 @@ describe("the milestone roadmap (AB#798)", () => {
         "Reached Corporation Level 9",
         "Research Near-Star Navigation Array",
         "Complete 10 Asteroid Expeditions",
-        "Refine 10,000 Units of Goods",
+        "Refine 2,000 Units of Goods",
         "Sell 100,000 Silicate",
         "Reached Corporation Level 10",
       ]

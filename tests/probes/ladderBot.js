@@ -238,6 +238,7 @@ export async function climb({ request, account, clock, tick, levels, research, m
   const done = (corp, level) => (levels.find((l) => l.level === level)?.requirements || [])
     .map((r) => ({ ...r, progress: corp.levelProgress?.[`level${level}`]?.requirements?.find((x) => x.id === r.id)?.progress ?? 0 }));
 
+  let loggedDay = -1;
   for (;;) {
     await signIn();
     let corp = await corpNow();
@@ -258,6 +259,12 @@ export async function climb({ request, account, clock, tick, levels, research, m
     }
     const next = done(corp, level + 1);
     const unmet = next.filter((r) => Number(r.progress) < Number(r.target));
+    // Once a simulated day, the next level's every requirement against its target: which one binds (AB#2312).
+    const day = Math.floor((clock.now() - start) / 86_400_000);
+    if (day !== loggedDay) {
+      loggedDay = day;
+      log(`day ${day} L${level} -> L${level + 1}: ${next.map((r) => `${r.metric} ${Math.round(Number(r.progress) || 0)}/${r.target}`).join(", ")}`);
+    }
     const needs = { refine: unmet.some((r) => r.metric === "stat:refinedUnitsProduced"), contracts: unmet.some((r) => r.metric === "stat:missionsCompleted") };
     // A trip away is finished before anything else: the yards' ore and the standing bid are at Earth.
     const away = (corp.currentStationId || EARTH) !== EARTH;
