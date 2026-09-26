@@ -3,6 +3,25 @@
 import { ECONOMY } from "../economy.js";
 import { STATION_REGISTRY_CACHE, createId, getStationInventory } from "./catalog.js";
 import { bumpStat } from "./progression.js";
+import { countBuilt, playerBuilding } from "../playerBuildings.js";
+
+// ISP-96 (AB#786): the Ferric Mining Complex multiplies the Nickel and Titanium a returning expedition deposits, by
+// data/economy.json's buildings.ferricMiningComplexMetalMultiplier, in whole units rounded down.
+const FERRIC_MINING_COMPLEX = playerBuilding("ferric-mining-complex");
+export const FERRIC_METALS = Object.freeze(["Nickel", "Titanium"]);
+
+/** What a corporation's Ferric Mining Complex adds to these yields, { Nickel: n, ... }, or null when it adds nothing. */
+export function ferricBonus(corp, yields) {
+  if (countBuilt(FERRIC_MINING_COMPLEX, corp) === 0) return null;
+  const multiplier = ECONOMY.buildings.ferricMiningComplexMetalMultiplier;
+  const bonus = {};
+  for (const metal of FERRIC_METALS) {
+    const carried = Number(yields?.[metal] || 0);
+    const added = Math.floor(carried * multiplier) - carried;
+    if (added > 0) bonus[metal] = added;
+  }
+  return Object.keys(bonus).length ? bonus : null;
+}
 
 // ─── Asteroid Belt Mining ────────────────────────────────────────────────────
 
@@ -199,6 +218,13 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
       const depositStationId = (stationsInSystem.length > 0)
         ? (stationsInSystem.find(s => s.id === corp.currentStationId)?.id || stationsInSystem[0].id)
         : (corp.currentStationId || "earth-station-prime");
+
+      // ISP-96 (AB#786): what the Ferric Mining Complex adds is deposited with the rest and named in the report.
+      const bonus = ferricBonus(corp, exp.yields);
+      if (bonus) {
+        for (const [metal, added] of Object.entries(bonus)) exp.yields[metal] += added;
+        exp.ferricBonus = bonus;
+      }
 
       const stationInv = getStationInventory(corp, depositStationId);
       for (const [resource, qty] of Object.entries(exp.yields)) {

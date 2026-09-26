@@ -16,7 +16,9 @@ const BEFORE_THE_MOVE = {
   buildings: {                                                              // build-extractor routes, build-assembly-facility, build-refinery
     extractorYardCost: 50000, extractorYardAssetValue: 36000, assemblyFacilityCost: 60000, assemblyFacilityAssetValue: 40000,
     refineryCost: 75000, refineryAssetValue: 55000, supplyForecastCostMultiplier: 0.94,
-    extractorYardUpkeepPctPerDay: 2                                         // ISP-301 (AB#2284): new, not moved
+    extractorYardUpkeepPctPerDay: 2,                                        // ISP-301 (AB#2284): new, not moved
+    ferricMiningComplexCost: 90000, ferricMiningComplexAssetValue: 65000,   // ISP-96 (AB#786): new, not moved
+    ferricMiningComplexMetalMultiplier: 1.25
   },
   operations: { costPerThroughputUnit: 16, minCostPerHour: 600, startupShareOfHourlyCost: 0.35, minStartupCost: 500, throughputReferencePerHour: 420 },
   probes: { buildCost: 8000, assetValue: 5000 },                            // gameState.js PROBE_BUILD_COST, PROBE_ASSET_VALUE

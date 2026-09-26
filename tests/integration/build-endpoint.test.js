@@ -54,8 +54,9 @@ const OLD_ROUTES = {
 };
 
 describe("POST /gameplay/build (ISP-94)", () => {
-  it("has an old route for every building in the catalogue, and the old routes are the only buildings", () => {
-    expect(Object.keys(OLD_ROUTES).sort()).toEqual(PLAYER_BUILDING_CATALOGUE.map((b) => b.id).sort());
+  it("every building in the catalogue has a construction, and each old route builds one of them", () => {
+    // ISP-96 (AB#786): buildings added since ISP-94 have no old route; they are built through /build only.
+    expect(Object.keys(OLD_ROUTES).filter((id) => !PLAYER_BUILDING_CATALOGUE.some((b) => b.id === id))).toEqual([]);
     expect(Object.keys(CONSTRUCTIONS).sort()).toEqual(PLAYER_BUILDING_CATALOGUE.map((b) => b.id).sort());
   });
 
@@ -164,7 +165,7 @@ describe("construct() fails closed (ISP-94)", () => {
   it("a catalogue entry with no construction of its own is not built, and nothing changes", () => {
     const c = corp();
     const before = JSON.stringify(c);
-    const building = { id: "ferric-mining-complex", name: "Ferric Mining Complex", slot: "corporation", researchGates: [], cap: {}, cost: 10, assetValue: 10 };
+    const building = { id: "orbital-foundry", name: "Orbital Foundry", slot: "corporation", researchGates: [], cap: {}, cost: 10, assetValue: 10 };
     expect(construct(c, building, null)).toMatchObject({ outcome: "not-constructible" });
     expect(JSON.stringify(c)).toBe(before);
   });

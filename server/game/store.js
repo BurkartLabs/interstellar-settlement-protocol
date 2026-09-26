@@ -421,7 +421,8 @@ export function passwordRuleError(password) {
 
 /**
  * Set a new password (AB#988) and revoke every refresh token the account holds, so each signed-in device has to log
- * in again. The caller has checked passwordRuleError. Access tokens already issued stay valid until they expire.
+ * in again. The caller has checked passwordRuleError. Access tokens issued before it stop working too: each carries
+ * the passwordChangedAt it was issued under, and server/auth.js refuses one that no longer matches (Bug #2291).
  */
 export function setAccountPassword(accountId, password, now = Date.now()) {
   const account = accountsStore.accounts?.[accountId];
@@ -431,6 +432,11 @@ export function setAccountPassword(accountId, password, now = Date.now()) {
   account.refreshTokens = [];
   scheduleAccountsSave();
   return true;
+}
+
+/** When the account's password was last changed (ms), 0 if never or no such account: what an access token must carry (Bug #2291). */
+export function passwordChangedAtOf(accountId) {
+  return Number(accountsStore.accounts?.[accountId]?.passwordChangedAt) || 0;
 }
 
 export const CEO_NAME_MIN_LENGTH = 2;

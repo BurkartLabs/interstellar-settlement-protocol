@@ -113,6 +113,11 @@ describe("every committing action has its confirmation modal (AB#744)", () => {
   it("the receipts module has a builder for every mapped route, and no builder nothing uses", () => {
     const receipts = read("server/receipts.js");
     const builders = [...receipts.matchAll(/export function (\w+Receipt)\(/g)].map((m) => m[1]);
-    expect(builders.sort()).toEqual(Object.values(RECEIPTS).map((r) => r.builder).sort());
+    // ISP-96 (AB#786): a building added since ISP-94 is built through the one build route only, so its receipt
+    // builder is used by its construction (server/construction.js) and by no mapped route.
+    const byConstruction = builders.filter((b) => Object.values(CONSTRUCTIONS).some((c) => c.receipt.toString().includes(b)));
+    const used = new Set([...Object.values(RECEIPTS).map((r) => r.builder), ...byConstruction]);
+    expect(builders.filter((b) => !used.has(b)), "a builder nothing uses").toEqual([]);
+    expect(Object.values(RECEIPTS).map((r) => r.builder).filter((b) => !builders.includes(b)), "a mapped builder the module lacks").toEqual([]);
   });
 });
