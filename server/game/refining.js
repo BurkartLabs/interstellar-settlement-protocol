@@ -1,7 +1,7 @@
 // server/game/refining.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import { REFINERY_CHAINS, getStationInventory } from "./catalog.js";
-import { bumpStat } from "./progression.js";
+import { bumpStat, COUNTED_STATS } from "./progression.js";
 import { ECONOMY } from "../economy.js";
 // ISP-97 (AB#787): a Refinery Complex (tier 2) delivers 1.5 times; the rule is shared with the page and the receipt.
 import { refineryMultiplierFor, refineryOutput } from "../../public/scripts/refineryOutput.js";
@@ -100,6 +100,9 @@ export function applyRefineryOperations(corp, now = Date.now()) {
     }));
     for (const { item, quantity } of delivered) {
       bumpStat(corp, "refinedUnitsProduced", quantity); // Bug #424: levels 9 and 10
+      // AB#831: per product. A run's record names only catalog items (server/game/items.js refuses any other at start),
+      // but a record from an older save is checked rather than trusted.
+      if (COUNTED_STATS.includes(`manufactured:${item}`)) bumpStat(corp, `manufactured:${item}`, quantity);
       refStationInv[item] = (refStationInv[item] || 0) + quantity;
       ref.totalOutputProduced += quantity;
     }

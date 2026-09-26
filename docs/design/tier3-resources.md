@@ -92,8 +92,8 @@ A profile is what an extraction on a body yields, as shares of 100, the way a be
 
 Mars and Luna gain their v0.8 items only once the track that uses them is built. Until then their profile stays
 Silicates 100, so no player holds an item nothing buys. Since the Fuel track (AB#830) and the Light Metals track (AB#833)
-Luna yields its full profile, Silicates 60, Helium-3 25, Bauxite 15. Mars yields Silicates 90, Bauxite 10 until the
-Metals track moves 30 of its Silicates to Iron Ore.
+Luna yields its full profile, Silicates 60, Helium-3 25, Bauxite 15. Since the Metals track (AB#831) Mars does too:
+Silicates 60, Iron Ore 30, Bauxite 10.
 
 ### The rule for any other body (new bodies, and Sol's unsurveyed ones)
 
@@ -157,7 +157,8 @@ Every name below is kept exactly as it is. Places, from the data files on main:
 | --- | --- | --- | --- | --- | --- |
 | Silicates | 1 | 7 belts | yes | yes | silicates-chain input |
 | Helium-3 | 1 | 11 belts | yes | yes | he3-chain, fusion-fuel-chain input |
-| Nickel | 1 | 18 belts | yes | yes | nickel-chain input |
+| Nickel | 1 | 18 belts | yes | yes | nickel-chain, smelting-chain input |
+| Iron Ore | 1 | | yes | | smelting-chain input |
 | Carbon | 1 | 9 belts | yes | yes | carbon-chain input |
 | Water Ice | 1 | 4 belts | yes | yes | cryogenics-chain input |
 | Hydrogen | 1 | 7 belts | yes | | cryogenics-chain input |
@@ -174,7 +175,7 @@ Every name below is kept exactly as it is. Places, from the data files on main:
 The chains' twelve products (section 1, row 3) are Tier 3 and keep their names, and so are the Fuel track's two (AB#830):
 Fusion Pellets and Cryogenic Coolant, and the Light Metals track's three (AB#833): Aluminium Ingots,
 Aluminium-Lithium Alloy and Battery Cells. Deuterium is in the build since AB#830 (ice worlds and moons, and Rime's
-lease), Bauxite since AB#833 (Mars and Luna, section 3); Iron Ore appears nowhere yet. tests/unit/tier3Resources.test.js holds this table to the data files, so a renamed or new raw item fails
+lease), Bauxite since AB#833 (Mars and Luna, section 3); Iron Ore since AB#831 (Mars, section 3, and the smelting chain). tests/unit/tier3Resources.test.js holds this table to the data files, so a renamed or new raw item fails
 it until this document names it. The belt counts are the 22 systems' since AB#807; sections 2 to 5 were written against the
 first twelve belts, and their per-belt lists name those twelve only.
 
