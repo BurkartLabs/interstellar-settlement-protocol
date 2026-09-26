@@ -1,9 +1,11 @@
-// Companion to e2e/every-screen.spec.js (ISP-83, AB#772): a corporation part-way through a docking approach from Earth
-// Station Prime to Luna Gateway, so the Travel screen shows its route, its progress and the time left. Built with the
-// server's own account code in a separate process (see seed-logistics-account.mjs for why).
+// Companion to e2e/every-screen.spec.js (ISP-83, AB#772) and e2e/travel-screen.spec.js (AB#1053): a corporation in one of
+// the Travel screen's three states. "local" (the default) is part-way through a docking approach from Earth Station Prime
+// to Luna Gateway; "interstellar" is part-way through a jump from Sol to Alpha Centauri; "space" has arrived in Sol and
+// is in open space, choosing a station to dock at. Built with the server's own account code in a separate process (see
+// seed-logistics-account.mjs for why).
 //
-// Usage: node e2e/seed-travel-account.mjs <dataDir> <email> <password>
-const [, , dataDir, email, password] = process.argv;
+// Usage: node e2e/seed-travel-account.mjs <dataDir> <email> <password> [local|interstellar|space]
+const [, , dataDir, email, password, kind = "local"] = process.argv;
 process.env.ISP_DATA_DIR = dataDir;
 process.env.JWT_SECRET = process.env.JWT_SECRET || "every-screen-e2e-fixture-secret-0123456789";
 process.env.NODE_ENV = "test";
@@ -17,14 +19,9 @@ store.mutateAccountState(account.id, (state) => {
   const now = Date.now();
   corp.currentSystemId = "sol";
   corp.currentStationId = null;
-  corp.travel = {
-    travelType: "local",
-    fromStationId: "earth-station-prime",
-    toStationId: "luna-gateway",
-    toSystemId: "sol",
-    departedAt: now - 10 * 60_000,
-    arrivesAt: now + 30 * 60_000
-  };
+  corp.travel = kind === "space" ? null : kind === "interstellar"
+    ? { travelType: "interstellar", fromSystemId: "sol", toSystemId: "alpha-centauri", fromStationId: "earth-station-prime", departedAt: now - 2 * 3_600_000, arrivesAt: now + 4 * 3_600_000 }
+    : { travelType: "local", fromStationId: "earth-station-prime", toStationId: "luna-gateway", toSystemId: "sol", departedAt: now - 10 * 60_000, arrivesAt: now + 30 * 60_000 };
 });
 store.markWalkthroughCompleted(account.id);
 await store.saveAccountsNow();
