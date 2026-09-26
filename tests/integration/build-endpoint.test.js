@@ -35,13 +35,15 @@ async function corporation(setup = () => {}) {
 
 const build = (c, body) => c.api.post(`/api/accounts/${c.id}/gameplay/build`).send(body);
 
-/** What a build changes, without the ledger's timestamps. */
+/** A building or extractor without the random id the server gives it after every change (AB#792). */
+const withoutIds = ({ id, buildingId, ...rest }) => rest;
+/** What a build changes, without the ledger's timestamps or the server-made ids. */
 const built = (corp) => ({
-  buildings: corp.buildings,
+  buildings: corp.buildings.map(withoutIds),
   credits: corp.finances.credits,
   assets: corp.finances.assets,
   refineries: corp.refineries ?? [],
-  extractors: corp.mining?.silicateExtractors ?? [],
+  extractors: (corp.mining?.silicateExtractors ?? []).map(withoutIds),
   leases: corp.miningLeases
 });
 
@@ -68,6 +70,7 @@ describe("POST /gameplay/build (ISP-94)", () => {
       expect(built(b.corp())).toEqual(built(a.corp()));
       expect(viaNew.body.receipt).toEqual(viaOld.body.receipt);
       expect(b.corp().buildings.map((x) => x.name)).toEqual([PLAYER_BUILDING_CATALOGUE.find((x) => x.id === buildingId).name]);
+      expect(b.corp().buildings[0].id).toMatch(/^bld-/); // AB#792 gives it one after the build's mutation
       expect(b.corp().finances.credits).toBeLessThan(1_000_000);
     });
   }
@@ -128,7 +131,7 @@ describe("POST /gameplay/build (ISP-94)", () => {
     const res = await build(c, { buildingId: "refinery", cost: 0, credits: 9_999_999, assetValue: 1e9, quantity: 50, tier: 9 });
     expect(res.status).toBe(200);
     const corp = c.corp();
-    expect(corp.buildings).toEqual([{ name: "Refinery", tier: 1, status: "Operational" }]);
+    expect(corp.buildings.map(withoutIds)).toEqual([{ name: "Refinery", tier: 1, status: "Operational" }]);
     expect(corp.finances.credits).toBe(1_000_000 - PLAYER_BUILDING_CATALOGUE.find((b) => b.id === "refinery").cost);
   });
 
@@ -149,7 +152,8 @@ describe("POST /gameplay/build (ISP-94)", () => {
     const { loadAccountsSnapshotFromDisk } = await import("../../server/game/store.js");
     const onDisk = loadAccountsSnapshotFromDisk();
     const account = Object.values(onDisk.accounts).find((a) => a.id === c.id);
-    expect(account.state.corp.buildings).toEqual([{ name: "Refinery", tier: 1, status: "Operational" }]);
+    expect(account.state.corp.buildings.map(withoutIds)).toEqual([{ name: "Refinery", tier: 1, status: "Operational" }]);
+    expect(account.state.corp.buildings[0].id).toBe(c.corp().buildings[0].id);
     expect(account.state.corp.refineries.map((r) => r.id)).toEqual(["ref-1"]);
   });
 });
