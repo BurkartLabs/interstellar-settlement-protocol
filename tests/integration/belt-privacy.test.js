@@ -3,6 +3,7 @@ import request from "supertest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { getState, mutateAccountState } from "../../server/gameState.js";
+import { SYSTEMS_DATA } from "../../server/game/catalog.js";
 
 // Bug #2355, and AB#837's acceptance: what is in a belt is revealed by scouting it, so the server sends a player only
 // the belts that player has scouted. Before, GET /api/bootstrap sent every belt's live state (the global `belts`,
@@ -70,6 +71,8 @@ describe("a belt's contents go only to a player who scouted it (Bug #2355, AB#83
   it("a planet's or moon's profile stays public: it is what a lease yields, shown before one is bought (AB#829)", async () => {
     const { app } = await getApp();
     const sol = (await request(app).get("/api/systems")).body.systems.find((s) => s.id === "sol");
-    expect(sol.bodies.find((x) => x.id === "luna").resourceProfile).toEqual([{ item: "Silicates", concentration: 0.75 }, { item: "Helium-3", concentration: 0.25 }]);
+    const catalogLuna = SYSTEMS_DATA.find((s) => s.id === "sol").bodies.find((x) => x.id === "luna");
+    expect(sol.bodies.find((x) => x.id === "luna").resourceProfile).toEqual(catalogLuna.resourceProfile);
+    expect(catalogLuna.resourceProfile.find((p) => p.item === "Helium-3").concentration).toBe(0.25); // AB#830
   });
 });
