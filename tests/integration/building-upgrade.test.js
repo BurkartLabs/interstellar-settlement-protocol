@@ -10,7 +10,7 @@ import { ECONOMY, operationCostPerHourFor, yardUpgradeTo } from "../../server/ec
 const EARTH = "lease-793";
 
 /** A corporation at `level` with one tier-1 yard (bld-793a / ext-793a) on Earth, plus a Ferric Mining Complex (no tiers). */
-async function corporation({ level = 8, credits = 1_000_000 } = {}) {
+async function corporation({ level = 8, credits = 1_000_000, maxUpgradeTier } = {}) {
   const { app } = await getApp();
   const { account, accessToken } = await registerAccount(app);
   mutateAccountState(account.id, (state) => {
@@ -23,6 +23,8 @@ async function corporation({ level = 8, credits = 1_000_000 } = {}) {
     corp.miningLeases = [{ id: EARTH, body: "Earth", leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: ["ext-793a"] }];
     corp.buildings = [...corp.buildings, { id: "bld-793a", name: "Basic Extractor Yard", tier: 1, status: "Operational" }, { id: "bld-793f", name: "Ferric Mining Complex", tier: 1, status: "Operational" }];
     corp.mining.silicateExtractors = [{ id: "ext-793a", name: "Basic Extractor Yard #1", tier: 1, active: false, leaseId: EARTH, body: "Earth", buildingId: "bld-793a", totalMined: 0, totalSpent: 0 }];
+    // AB#2308: no level grants tiers 6 to 8 yet (AB#800 to AB#802 will), so a test that needs them grants the unlock.
+    if (maxUpgradeTier) corp.unlocks = { ...corp.unlocks, maxUpgradeTier };
   });
   const api = authed(app, accessToken);
   const upgrade = (buildingId, body = {}) => api.post(`/api/accounts/${account.id}/gameplay/buildings/${encodeURIComponent(buildingId)}/upgrade`).send(body);
@@ -36,13 +38,13 @@ async function corporation({ level = 8, credits = 1_000_000 } = {}) {
 }
 
 describe("upgrading an extractor yard (AB#793)", () => {
-  it("each upgrade from tier 1 to 5 charges the table's price, raises the tier by one, and sets the table's cap and cost curve", async () => {
-    const c = await corporation();
+  it("each upgrade from tier 1 to 8 charges the table's price, raises the tier by one, and sets the table's cap and cost curve", async () => {
+    const c = await corporation({ credits: 2_000_000, maxUpgradeTier: 8 });
     // Tier 1 first: the yard as built.
     expect((await c.start(610)).status).toBe(200);
     expect(c.corp().mining.silicateExtractors[0].throughputPerHour).toBe(250);
     c.idle();
-    for (const to of [2, 3, 4, 5]) {
+    for (const to of [2, 3, 4, 5, 6, 7, 8]) {
       const row = yardUpgradeTo(to);
       const before = c.corp();
       const res = await c.upgrade("bld-793a");
@@ -60,9 +62,9 @@ describe("upgrading an extractor yard (AB#793)", () => {
       expect(offline.body.error).toMatch(/offline until/);
       c.backOnline();
       // Back online, the cap is the tier's and the running cost follows the tier's curve.
-      expect((await c.start(9999 % 611)).status).toBe(200);
+      expect((await c.start(1192)).status).toBe(200);
       const ex = c.corp().mining.silicateExtractors[0];
-      expect(ex.throughputPerHour).toBe(Math.min(row.throughputCap, 9999 % 611));
+      expect(ex.throughputPerHour).toBe(Math.min(row.throughputCap, 1192));
       expect(ex.operationCostPerHour).toBe(operationCostPerHourFor(ex.throughputPerHour, undefined, { tier: to }));
       c.idle();
     }
@@ -75,12 +77,12 @@ describe("upgrading an extractor yard (AB#793)", () => {
   });
 
   it("past the last tier: 400 with the reason, and nothing changes", async () => {
-    const c = await corporation();
-    mutateAccountState(c.id, (s) => { s.corp.buildings.find((b) => b.id === "bld-793a").tier = 5; s.corp.mining.silicateExtractors[0].tier = 5; });
+    const c = await corporation({ maxUpgradeTier: 8 });
+    mutateAccountState(c.id, (s) => { s.corp.buildings.find((b) => b.id === "bld-793a").tier = 8; s.corp.mining.silicateExtractors[0].tier = 8; });
     const before = c.snapshot();
     const res = await c.upgrade("bld-793a");
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/tier 5, its last/);
+    expect(res.body.error).toMatch(/tier 8, its last/); // AB#2308: tiers 6 to 8 are in the table
     expect(c.snapshot()).toBe(before);
   });
 
@@ -112,6 +114,22 @@ describe("upgrading an extractor yard (AB#793)", () => {
     const res = await c.upgrade("bld-793a");
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/allows tier 3; tier 4 needs a higher Corporation Level/);
+    expect(c.snapshot()).toBe(before);
+  });
+
+  // AB#2308: tiers 6 to 8 go through the same level check as 2 to 5.
+  it("a tier-5 yard whose corporation is allowed tier 6 upgrades to 6 for 202,500 and is refused tier 7", async () => {
+    const c = await corporation({ maxUpgradeTier: 6 });
+    mutateAccountState(c.id, (s) => { s.corp.buildings.find((b) => b.id === "bld-793a").tier = 5; s.corp.mining.silicateExtractors[0].tier = 5; });
+    const credits = c.corp().finances.credits;
+    expect((await c.upgrade("bld-793a")).status).toBe(200);
+    expect(credits - c.corp().finances.credits).toBe(202_500);
+    expect(c.corp().mining.silicateExtractors[0].tier).toBe(6);
+    c.backOnline();
+    const before = c.snapshot();
+    const res = await c.upgrade("bld-793a");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/allows tier 6; tier 7 needs a higher Corporation Level/);
     expect(c.snapshot()).toBe(before);
   });
 

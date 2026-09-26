@@ -140,9 +140,9 @@ At v0.6 nothing a level from 11 to 40 could grant is something a player can use,
 - **`maxDeployments` is an unlock key since AB#2307:** in AB#796's allowlist (`LEVEL_UNLOCK_KEYS`, server/game/catalog.js)
   with an applier that raises `corp.asteroidMining.maxDeployments` from `BASE_MAX_DEPLOYMENTS` and never lowers it; the
   launch route already read that field, and the level notice names it "Deployment slots".
-- **Proposed, needing a story before the data may carry it:** yard tiers 6
-  to 8 on AB#791's curve (`T_ref` and the cap x1.25 a tier, the price x1.5: 202,500, 303,750 and 455,625, paybacks
-  lengthening past 30 days). If they are not built, AB#800 to AB#802 keep `maxUpgradeTier` at 5.
+- **Yard tiers 6 to 8 are in the data since AB#2308:** AB#791's curve (`T_ref` and the cap x1.25 a tier, the price
+  x1.5: 202,500, 303,750 and 455,625), with paybacks of 32.9, 39.7 and 47.2 days (docs/design/upgrades.md's table).
+  A level's `maxUpgradeTier` may now go up to 8.
 
 ## What AB#798 must change
 

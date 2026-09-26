@@ -32,7 +32,7 @@ The decision comes from three things pulling against that gain:
    sold, so a higher tier needs a larger float. The superlinear running cost makes that float grow faster than the
    profit does.
 
-## Basic Extractor Yard: five tiers
+## Basic Extractor Yard: eight tiers
 
 For tier `n`:
 
@@ -57,10 +57,15 @@ The model's assumptions, as `npm run economy:model`: Earth Silicates at 24, 8% t
 | 3 | 656 | 391 | 232 | 947 | 4,176 | 18,546 | 81,783 | 60,000 | 12 h | 3,721 | 18.1 days |
 | 4 | 820 | 488 | 288 | 1,183 | 5,176 | 23,168 | 101,367 | 90,000 | 18 h | 4,622 | 22.5 days |
 | 5 | 1,025 | 610 | 361 | 1,479 | 6,492 | 28,965 | 127,139 | 135,000 | 24 h | 5,797 | 27.3 days |
+| 6 | 1,282 | 763 | 457 | 1,850 | 8,241 | 36,230 | 161,392 | 202,500 | 30 h | 7,266 | 32.9 days |
+| 7 | 1,602 | 954 | 564 | 2,311 | 10,142 | 45,259 | 198,621 | 303,750 | 36 h | 9,028 | 39.7 days |
+| 8 | 2,003 | 1,192 | 707 | 2,890 | 12,721 | 56,598 | 249,128 | 455,625 | 42 h | 11,339 | 47.2 days |
 
 Tiers 4 and 5 are computed from `T_ref` as rounded in the table (820 and 1,025), which is what `data/economy.json` holds; the first version of this table used the unrounded values for those two rows (AB#793 corrected them). "Payback" is (upgrade cost + the previous tier's profit lost while offline) / gain per day. It lengthens at every
 tier: a corporation that plans 30 days ahead takes a yard to tier 4 and has reason to stop before 5. That interior
-optimum is what T-018 asks for.
+optimum is what T-018 asks for. Tiers 6 to 8 (AB#2308) continue the same curve for the levels past 10 whose reward is a
+higher `maxUpgradeTier` (docs/design/ladder-11-40.md); their paybacks, 32.9, 39.7 and 47.2 days, are all past 30, so they
+are for a corporation with no slot left and a longer horizon, as that design says.
 
 ### Build another, upgrade this one, or wait
 

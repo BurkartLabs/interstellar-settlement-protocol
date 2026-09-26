@@ -123,7 +123,7 @@ export const BASE_THROUGHPUT_CAP = 250;
 
 /**
  * ISP-101 (AB#793), docs/design/upgrades.md: what an extractor yard's tier sets. Tier 1 is the running cost's own
- * reference throughput and the 250 cap; tiers 2 to 5 come from buildings.extractorYardUpgrades. A stored tier the table
+ * reference throughput and the 250 cap; tiers 2 to 8 come from buildings.extractorYardUpgrades. A stored tier the table
  * does not have runs as tier 1, the lowest cap and the dearest curve, so a bad save can never mine above what it paid
  * for. The upgrade route refuses such a tier outright (server/upgrades.js).
  */
