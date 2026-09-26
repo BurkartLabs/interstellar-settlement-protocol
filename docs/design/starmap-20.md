@@ -218,6 +218,34 @@ nobody hauls Silicates far); running expeditions away from Sol's yards and offic
 own system, and start-mining needs an office where the corporation is docked); and, once v0.7 ships them, pirates
 and prices.
 
+## Stations (ISP-118, AB#810)
+
+**Neutral** means a station no corporation owns, open to every corporation to dock at and rent an office in, as
+distinct from the conglomerate-owned stations of v0.12. `data/stations.json` records it as `"jurisdiction": "neutral"`
+on every station. The server refuses to start with a station whose jurisdiction is missing or unknown
+(`STATION_JURISDICTIONS`, server/game/catalog.js). All eight existing stations are neutral.
+
+Each first-half system (AB#806) gets one neutral station, on a body this design already names. Each carries the three
+buildings every frontier station has (Orbital Executive Suites, ISA Claims & Leases, Galactic Exchange Hub). Its tier
+follows the pattern the existing stations set: 2 for a Near-Star system, 3 for a Deep-Star one.
+
+| station | id | designation | system | body | tier | jurisdiction |
+|---|---|---|---|---|---|---|
+| Lalande Registry Station | `lalande-registry-station` | L21-STATION-001 | Lalande 21185 | Lalande 21185 b | 2 | neutral |
+| Compact Hall | `compact-hall` | R15-STATION-001 | Ross 154 | Ross 154 I | 2 | neutral |
+| Sirius Exchange Anchorage | `sirius-exchange-anchorage` | SIR-STATION-001 | Sirius | Canis Anchorage | 3 | neutral |
+| Frost Relay Depot | `frost-relay-depot` | R24-STATION-001 | Ross 248 | Rime | 3 | neutral |
+| Twin Flare Outpost | `twin-flare-outpost` | L72-STATION-001 | Luyten 726-8 | BL Ceti I | 3 | neutral |
+| Southern Reef Platform | `southern-reef-platform` | LAC-STATION-001 | Lacaille 9352 | Lacaille 9352 c | 3 | neutral |
+
+**Office cost** is the one rate every station charges, 1,000 credits a day for a 7, 14, 21 or 28-day term
+(`officeLeaseCost`, public/scripts/ceoEffects.js). No station carries its own price: Bug #1032 found a per-station
+`officeCost` in this file that the server never read and the page showed. A station-specific rent is a balance change
+for its own story.
+
+The second half's systems (AB#807) follow the same rule: one neutral station on a planet or moon the design names,
+the three buildings, tier 3.
+
 ## Flagged, not decided here
 
 - **Two frontier systems pay mostly in resources nobody buys.** Kapteyn's Star (36% sellable) and van Maanen's Star
