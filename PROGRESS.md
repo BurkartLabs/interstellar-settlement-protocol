@@ -18,6 +18,19 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#765 — ISP-76, the pages before play on the design system)
+
+- The landing, login and register, and the pages that share their parts (check your email, verify, forgot and reset
+  the password, how to start) are on the design system in the flat direction (AB#1801). A card page is
+  `main.auth-page > section.ui-panel.auth-page__card` with `.ui-field`/`.ui-input` and `.ui-button`; the landing and
+  how to start are `.landing` with `.ui-card` and `.ui-badge`. Each keeps one primary action, first (AB#1759). On a
+  phone these pages raise the design system's 11px and 13px text to 15px. Ids the flows and specs use are unchanged.
+- The landing lost its glowing SVG logo, its divider and its hidden "Enter The Protocol" section (it was
+  `display: none`); its copy is otherwise unchanged. Register's own field errors are tied to their inputs.
+- `tests/unit/authPages.test.js` fails if an old class of these pages comes back as a class, selector or class toggle
+  anywhere in the pages, scripts, stylesheet or specs. `e2e/auth-pages.spec.js` holds all eight at 375/768/1280.
+  Screens in `docs/ab-765/`. Bug AB#2297 (a boot error's message inserted unescaped) is fixed with it.
+
 ## What's now true (AB#764 — ISP-75, the navigation in six groups)
 
 - The fifteen tabs are six groups (`public/scripts/navGroups.js`): Company (Overview, Inbox, Financial Core, CEO
@@ -171,7 +184,7 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 - Controls are 36px on a desktop and 44px on a phone. `e2e/styleguide.spec.js` measures every control at 375 wide and
   walks the page with Tab, checking the ring on each stop. Tabs follow the ARIA pattern (arrow keys, Home, End) and a
   tooltip closes on Escape: `public/scripts/uiComponents.js`.
-- **The primary fill ISP-71 owed:** login and register's submit (`.btn-hero-fill`) is a solid `--accent`. The game's
+- **The primary fill ISP-71 owed:** login and register's submit (primary hero button) is a solid `--accent`. The game's
   per-item `.btn-accent` (Enroll, Enqueue, Send...) is accent text and border: many to a screen, so not filled; each
   screen's one filled primary is chosen when it is rebuilt.
 - Looked at: `docs/isp-72/` (the style guide at both sizes, the login page and CEO Insight after the change).
@@ -849,18 +862,18 @@ files, 1784 tests, all green.
 
 - **AB#1759 is done: login and register each show exactly one primary (cyan) control now.** Visual-design
   Critique AB#1757 (POLISH 2.4/5) flagged "cyan on at most one primary control per screen" as a session-sized
-  quick win — both screens' `.btn-hero-outline` secondary actions (Developer demo login, Register Corporation,
+  quick win — both screens' outline hero button secondary actions (Developer demo login, Register Corporation,
   Back To Login, Return To Landing Page) carried the same cyan border/text/glow as the one primary
-  `.btn-hero-fill` button, so nothing stood out as *the* action.
-  - New `.btn-hero-secondary` class (`public/styles.css`): a muted border/text (`--text-muted`), no cyan, no
+  primary hero button button, so nothing stood out as *the* action.
+  - New muted secondary hero button class (`public/styles.css`): a muted border/text (`--text-muted`), no cyan, no
     glow. Deliberately scoped to `public/login.html` and `public/register.html` only —
-    `.btn-hero-outline` itself is untouched, since `public/index.html` (the landing page, out of this story's
+    outline hero button itself is untouched, since `public/index.html` (the landing page, out of this story's
     scope) still uses it.
-  - `tests/unit/authPrimaryButton.test.js` (new): both pages have exactly one `.btn-hero-fill`, zero leftover
-    `.btn-hero-outline`, and the primary control is still first in tab order. T-047 verified: reverted, watched
+  - `tests/unit/authPrimaryButton.test.js` (new): both pages have exactly one primary hero button, zero leftover
+    outline hero button, and the primary control is still first in tab order. T-047 verified: reverted, watched
     2 of 4 fail (2 leftover cyan actions found on register), restored.
   - `tests/unit/no-payments.test.js`'s allowlist line number for the forum-thread CSS comment moved (4206→4221,
-    `.btn-hero-secondary` added above it).
+    muted secondary hero button added above it).
   - **Looked at it**: `e2e/auth-primary-button.spec.js` (new), before/after screenshots of both pages at
     1280×800 and 375×812 against a real dev server, opened and read directly. Before: all four login actions
     (and both register secondary actions) glow cyan, none reads as *the* button. After: exactly one cyan
@@ -1188,7 +1201,7 @@ that changed anything.
   characters (was "at least 8"), and a CEO name (2–40 characters, the same `NAME_CHARS` set a corporation name
   already uses — now exported from `server/corporationName.js` instead of a second regex). Every rejection
   carries `field` in the JSON body (`POST /api/auth/register`, `server/index.js`); `register-page.js` reads it
-  and shows the message in a `<p class="field-error">` beside that input, clearing it on the next submit, not
+  and shows the message in a field error line paragraph beside that input, clearing it on the next submit, not
   the shared status line — the two never say the same thing twice.
   - **The client pre-check (`registerFormProblem`) had to become field-aware too.** It used to just short-circuit
     with a generic message in the status line before ever reaching the server, which meant an empty field never
