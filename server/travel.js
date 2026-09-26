@@ -65,11 +65,16 @@ function getTravelTimeMs(fromId, toId) {
   return Math.max(1, hops) * 60 * 60 * 1000;
 }
 
+/** ISP-117 (AB#809): an interstellar jump takes an hour a hop along the catalog's adjacency, never less than one. */
+function interstellarTravelMs(hops) {
+  return Math.max(1, Number(hops) || 0) * 60 * 60 * 1000;
+}
+
 // Interstellar travel time (system-to-system, no station context)
 function getInterstellarTravelTimeMs(fromSystemId, toSystemId) {
   if (IS_DEV) return 5 * 1000;
-  const hops = getSystemHops(fromSystemId, toSystemId);
-  return Math.max(1, hops) * 60 * 60 * 1000;
+  // No route is refused by the travel route, except home to Sol (Bug #976): that trip counts as one hop, not 99.
+  return interstellarTravelMs(NAVIGATION.systemHops(fromSystemId, toSystemId) ?? 1);
 }
 
 // ─── Station & Travel constants ──────────────────────────────────────────────
@@ -79,4 +84,4 @@ for (const s of STATIONS_DATA.stations) {
   STATION_REGISTRY[s.id] = s;
 }
 
-export { STATION_REGISTRY, SYSTEMS_CATALOG, STATIONS_DATA, getInterstellarTravelTimeMs, getTravelTimeMs };
+export { STATION_REGISTRY, SYSTEMS_CATALOG, STATIONS_DATA, getInterstellarTravelTimeMs, getTravelTimeMs, interstellarTravelMs };

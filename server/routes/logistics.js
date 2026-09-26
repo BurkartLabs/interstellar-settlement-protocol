@@ -157,6 +157,9 @@ export function registerLogisticsRoutes(app) {
 
         // Research gate: Sol needs none, so a corporation can always come home (Bug #976).
         if (!NAVIGATION.canReachSystem(corp.unlockedTech, fromSystemId, toSystemId)) { outcome = "missing-research"; return; }
+        // ISP-117 (AB#809): no route through the catalog's lanes is no jump, not a 99-hour one. Sol is the exception, as
+        // the gate's is (Bug #976): a corporation left in a system the catalog no longer has can always go home.
+        if (NAVIGATION.systemHops(fromSystemId, toSystemId) === null && toSystemId !== "sol") { outcome = "no-route"; return; }
 
         const durationMs = getInterstellarTravelTimeMs(fromSystemId, toSystemId);
         const now = Date.now();
@@ -222,7 +225,8 @@ export function registerLogisticsRoutes(app) {
         // Bug #1270: name the research, and what stands before it, from the research library.
         "missing-research": NAVIGATION.travelResearchLock(RESEARCH_LIBRARY, account.state.corp.unlockedTech, account.state.corp.level,
           account.state.corp.currentSystemId, toSystemId) || "You lack the required navigation research to travel to that system.",
-        "wrong-system": "That station is in a different system. Travel to the system first."
+        "wrong-system": "That station is in a different system. Travel to the system first.",
+        "no-route": "No jump route reaches that system from here. Jump to a charted system first."
       };
       res.status(400).json({ error: messageMap[outcome] || "Travel request failed." });
       return;
