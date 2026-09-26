@@ -2,6 +2,7 @@
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
 import { apiFetch } from "../apiClient.js";
+import { setGroupCount } from "../navGroups.js"; // ISP-75 (AB#764)
 import { inboxEmptyText } from "../emptyStates.js";
 import { formatInboxDate } from "../helpers.js";
 import { escapeHtml, messageListItemsHtml } from "../html.js";
@@ -60,11 +61,11 @@ export function updateInboxSubtabBadges() {
     btn.textContent = n > 0 ? `${baseLabel} (${n})` : baseLabel;
   });
   // Bug #1130: the Inbox tab carries the unread count too, so a player on any other tab is told that mail has arrived.
-  const inboxTab = document.querySelector('.tab-btn[data-tab="inbox"]');
-  if (inboxTab) {
-    const unread = counts.official + counts.players;
-    inboxTab.textContent = unread > 0 ? `Inbox (${unread})` : "Inbox";
-  }
+  const inboxTab = document.querySelector('.nav-tab[data-tab="inbox"]');
+  const unread = counts.official + counts.players;
+  if (inboxTab) inboxTab.textContent = unread > 0 ? `Inbox (${unread})` : "Inbox";
+  // ISP-75 (AB#764): on a phone the Inbox tab is out of sight while Company is closed, so its group carries the count.
+  setGroupCount("company", unread);
 }
 
 export function inboxMsgsForView() {

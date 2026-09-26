@@ -36,7 +36,7 @@ const credits = (value) => `$${value.toLocaleString("en-US")}`;
 export const WALKTHROUGH_STEPS = [
   {
     id: "licence",
-    selector: '.tab-btn[data-tab="inbox"]',
+    selector: '.nav-tab[data-tab="inbox"]',
     renderedBy: "index.html",
     title: "Your licence",
     text: "Elara Voss, Contracting & Assignments Bureau. I have been assigned to your corporation, and I will take you through your first day on the station. Start with your inbox: your settlement licence is there, with your Founding Charter reference. Keep it. The ISA will ask for it.",
@@ -44,7 +44,7 @@ export const WALKTHROUGH_STEPS = [
   },
   {
     id: "station",
-    selector: '.tab-btn[data-tab="station"]',
+    selector: '.nav-tab[data-tab="station"]',
     renderedBy: "index.html",
     title: "Earth Station Prime",
     text: "You are docked at Earth Station Prime, above Earth, and your first day happens here. Open the Station tab: it houses the offices you will need: the executive suites, the claims office, the Exchange hub, and my Bureau. The claims office will not file a lease for a corporation with no registered office here. We fix that first.",
@@ -101,7 +101,7 @@ export const WALKTHROUGH_STEPS = [
   },
   {
     id: "sell",
-    selector: '.tab-btn[data-tab="market"]',
+    selector: '.nav-tab[data-tab="market"]',
     renderedBy: "index.html",
     title: "Your first sale",
     text: "When you have silicates in stock, take them to the Galactic Exchange. You can list them for other corporations to buy, or sell straight into a Standing Buy Order from an NPC buyer at the posted price. The standing order settles at once; a listing waits for a buyer.",
@@ -110,7 +110,7 @@ export const WALKTHROUGH_STEPS = [
   },
   {
     id: "research",
-    selector: '.tab-btn[data-tab="rnd"]',
+    selector: '.nav-tab[data-tab="rnd"]',
     renderedBy: "index.html",
     title: "Research",
     text: "Queue Basic Extraction Analytics in Corporate R&D. It is a 2-hour project, and the result is a permanent 10% boost to extraction throughput on every yard you run. It is the first research I would fund.",
@@ -119,7 +119,7 @@ export const WALKTHROUGH_STEPS = [
   },
   {
     id: "bureau",
-    selector: '.tab-btn[data-tab="missions"]',
+    selector: '.nav-tab[data-tab="missions"]',
     renderedBy: "index.html",
     title: "My Bureau",
     text: "Open Assignments: the Contracting & Assignments Bureau, where I work. Agents here issue contracts, each with a quota and a reward, and no clock: deliver when you have the goods. Every contract you complete raises your standing with the agent who issued it.",
@@ -127,7 +127,7 @@ export const WALKTHROUGH_STEPS = [
   },
   {
     id: "overview",
-    selector: '.tab-btn[data-tab="overview"]',
+    selector: '.nav-tab[data-tab="overview"]',
     renderedBy: "index.html",
     title: "Your milestones",
     text: "Open your Overview. It is where the ISA tells you what it expects next: your milestones, and the requirements for your next corporation level. When you are unsure what to do, start here.",
@@ -135,7 +135,7 @@ export const WALKTHROUGH_STEPS = [
   },
   {
     id: "starmap",
-    selector: '.tab-btn[data-tab="starmap"]',
+    selector: '.nav-tab[data-tab="starmap"]',
     renderedBy: "index.html",
     title: "From here",
     text: "That is the procedure, and you can take it from here. Open the starmap: every system, body and station the ISA administers. When your corporation outgrows Earth Station Prime, this is where you look next. Before that, once your corporation is established, come and see me on Deck 7. I have a Silicate Requisition Order — Batch 4-7A that needs an operator who delivers what they sign for.",
@@ -205,7 +205,8 @@ export function nextStepIndex(from, state, events = new Set(), now = Date.now())
  * What to highlight for a step. `find(selector)` returns { exists, visible } for the live page. The step's own
  * `selector` must exist or the step has drifted: then nothing is highlighted and `missing` is true, for app.js to
  * warn about. Otherwise the first visible of: the control that does it, the way in, the way back out of another
- * station building, and the tab it lives on.
+ * station building, the tab it lives on, and (ISP-75, on a phone, where a closed group's tabs are out of sight) the
+ * button of the group that holds that tab.
  */
 export function chooseHighlight(step, find) {
   if (!find(step.selector).exists) return { selector: null, missing: true };
@@ -213,7 +214,8 @@ export function chooseHighlight(step, find) {
     ...(step.actionSelectors || []),
     step.selector,
     ...(step.renderedBy === "stationBuildingCardsHtml" ? ['[id="station-back-btn"]'] : []),
-    `.tab-btn[data-tab="${step.tab}"]`
+    `.nav-tab[data-tab="${step.tab}"]`,
+    `.nav-group:has(.nav-tab[data-tab="${step.tab}"]) > .nav-group__button`
   ];
   return { selector: candidates.find((c) => find(c).visible) || null, missing: false };
 }

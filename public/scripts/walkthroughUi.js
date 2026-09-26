@@ -1,6 +1,7 @@
 // AB#738 (ISP-52): the walkthrough's page side (the briefing card, its highlight and its controls), moved out of
 // app.js. The steps themselves and the rules for advancing them stay in walkthrough.js, which the tests run in node.
 import { WALKTHROUGH_STEPS as walkthroughSteps, chooseHighlight, nextStepIndex } from "./walkthrough.js";
+import { revealedGroups, showOnlyGroups } from "./navGroups.js"; // ISP-75 (AB#764)
 import { walkthroughScrollDelta } from "./walkthrough.js"; // Bug #1083
 import { setWalkthroughEconomy } from "./walkthrough.js"; // AB#1430
 import { appState, STORAGE_KEYS } from "./state.js";
@@ -59,9 +60,15 @@ function clearWalkthroughFocus() {
   });
 }
 
+/** ISP-75 (AB#764): the navigation groups a new corporation's briefing has reached so far; all of them otherwise. */
+function revealNavGroups() {
+  showOnlyGroups(revealedGroups({ walkthroughOpen: !walkthroughModal.hidden, level: appState.data?.corp?.level ?? 0, stepIndex: appState.walkthroughIndex }));
+}
+
 function stopWalkthrough() {
   walkthroughModal.hidden = true;
   document.body.classList.remove("walkthrough-open");
+  revealNavGroups();
   clearWalkthroughFocus();
   clearInterval(walkthroughWatch);
   walkthroughTarget = null;
@@ -229,6 +236,7 @@ function renderWalkthroughStep() {
   const card = walkthroughModal.querySelector(".modal-card");
   if (card) document.body.style.setProperty("--walkthrough-card-height", `${card.offsetHeight + 24}px`);
   walkthroughTarget = null;
+  revealNavGroups();
   refreshWalkthroughHighlight();
 }
 
