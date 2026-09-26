@@ -133,9 +133,9 @@ describe("data/research.json", () => {
   // (scripts/bench-ticks.mjs): keeping it here, beside the data it checks, means a new numeric effect with no
   // reader fails this test instead of shipping quietly.
   const RESEARCH_EFFECT_READERS = {
-    "tt-basic-extraction": "server/game/mining.js",
+    "tt-basic-extraction": "public/scripts/miningEfficiency.js", // ISP-98: the tick's efficiency, shared with the panel
     "tt-industrial-safety": "server/game/mining.js",
-    "tt-supply-forecast": "server/game/mining.js",
+    "tt-supply-forecast": "public/scripts/miningEfficiency.js",
     "tt-fleet-coordination": "server/game/catalog.js"
   };
 

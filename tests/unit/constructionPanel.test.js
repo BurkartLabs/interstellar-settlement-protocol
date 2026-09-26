@@ -71,6 +71,21 @@ describe("the construction panel (ISP-95)", () => {
     expect(Number.isNaN(buildingCost(byId("basic-extractor-yard"), corp({ unlockedTech: ["tt-supply-forecast"] }), {}))).toBe(true);
   });
 
+  it("a building for one body's leases offers only those, and names the body in its reasons (ISP-98)", () => {
+    const array = byId("cryo-vapor-extractor-array");
+    const researched = { unlockedTech: [...ALL_GATES] };
+    expect(constructionRow(array, corp({ ...researched, miningLeases: [lease(0, 2, "Earth")] }), ctx).reason).toBe("Needs a Luna lease: file one at the ISA Claims & Leases Division.");
+    const hasOne = { ...lease(0, 2, "Luna"), facilities: ["Cryo-vapor Extractor Array"] };
+    expect(constructionRow(array, corp({ ...researched, miningLeases: [hasOne] }), ctx).reason).toBe("Your Luna lease already has a Cryo-vapor Extractor Array.");
+    expect(constructionRow(array, corp({ ...researched, miningLeases: [lease(2, 2, "Luna")] }), ctx).reason).toBe("Every Luna lease's building slots are in use.");
+    const row = constructionRow(array, corp({ ...researched, miningLeases: [lease(0, 2, "Earth"), lease(1, 2, "Luna")] }), ctx);
+    expect(row.reason).toBe("");
+    expect(row.leases.map((l) => l.id)).toEqual(["lease-luna"]);
+    // and a yard sees the array's slot as taken
+    const yardRow = constructionRow(byId("basic-extractor-yard"), corp({ ...researched, miningLeases: [{ ...lease(1, 2, "Luna"), facilities: ["Cryo-vapor Extractor Array"] }] }), ctx);
+    expect(yardRow.reason).toBe("Every mining lease's building slots are in use.");
+  });
+
   it("an upgrade takes no slot, needs the building it upgrades, and locks once every one carries it (ISP-97)", () => {
     const ctxWithCatalogue = { ...ctx, catalogue: PLAYER_BUILDING_CATALOGUE };
     const complex = byId("refinery-complex");
