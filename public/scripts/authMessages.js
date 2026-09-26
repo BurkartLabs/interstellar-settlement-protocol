@@ -42,6 +42,8 @@ export function registerErrorMessage(status, payload = {}, retryAfter) {
     return { text: "An account with this email already exists.", link: LOGIN_LINK };
   }
   if (status === 400 && payload?.error) return { text: payload.error };
+  // AB#781: the Board closed registration (REGISTRATION_OPEN); say that rather than "failed on our side".
+  if (status === 403 && payload?.code === "registration-closed") return { text: payload.error };
   if (status === 429) return tooManyAttempts(payload, retryAfter);
   if (status === 0) return { text: `The server could not be reached. Check your connection. ${TRY_AGAIN}` };
   return { text: `Registering failed on our side. ${TRY_AGAIN}` };

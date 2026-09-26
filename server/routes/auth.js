@@ -4,9 +4,15 @@ import { loginIpLimiter, loginAccountLimiter, registerLimiter, refreshLimiter } 
 import { createAccount, authenticateAccount, getAccountById, getDummyAccount, hasRefreshToken, revokeRefreshToken, resetDummyAccountProgress } from "../gameState.js";
 import { DEV_SURFACE } from "../app.js";
 import { issueTokens, JWT_SECRET, requireAuth, sendSession, clearRefreshCookie, readRefreshCookie } from "../auth.js";
+import { registrationOpen, REGISTRATION_CLOSED_MESSAGE } from "../registration.js";
 
 export function registerAuthRoutes(app) {
   app.post("/api/auth/register", registerLimiter, async (req, res) => {
+    // AB#781: open to anyone, with no invitation, unless the Board has closed it (REGISTRATION_OPEN). Fails closed.
+    if (!registrationOpen()) {
+      res.status(403).json({ error: REGISTRATION_CLOSED_MESSAGE, code: "registration-closed" });
+      return;
+    }
     try {
       const { email, password, ceoName, corpName } = req.body ?? {};
       const result = await createAccount({ email, password, ceoName, corpName });

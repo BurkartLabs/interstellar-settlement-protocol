@@ -46,6 +46,12 @@ describe("register errors (Bug #1059)", () => {
     expect(registerErrorMessage(0).text).toMatch(/could not be reached/);
   });
 
+  it("registration closed by the Board says so, not that the server failed (AB#781)", () => {
+    expect(registerErrorMessage(403, { error: "Registration is closed for now.", code: "registration-closed" }))
+      .toEqual({ text: "Registration is closed for now." });
+    expect(registerErrorMessage(403, { error: "anything else" }).text).toMatch(/on our side/); // only the named refusal
+  });
+
   it("names the missing field before sending, including an empty corporation or CEO name (Bug #1187, ISP-66)", () => {
     const ok = { email: "ceo@example.com", password: "password123", ceoName: "Alex Rivera", corpName: "Helios Mining" };
     expect(registerFormProblem(ok)).toBeNull();
