@@ -8,7 +8,8 @@ const { STARMAP_OVERLAYS, overlayColor } = await import("../../public/scripts/st
 // AB#1459: the Starmap offered "Resource Concentration", which coloured each system by (100 - pirateDensity +
 // gdpIndex) / 150. No system carries resource data, so a player comparing systems for mining was shown GDP and
 // pirates under a resource label. Every overlay the picker offers now colours by one field data/systems.json holds.
-// The real resource overlay is a v0.8 item in DEVELOPMENT_PHASES.md.
+// The real resource overlay is ISP-143 (AB#837): a picker of its own (#map-resource, public/scripts/resourceOverlay.js)
+// that colours by the concentration the catalog and the player's scouted belts give, tested in resourceOverlay.test.js.
 const HTML = readFileSync(new URL("../../public/index.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 const SYSTEMS = JSON.parse(readFileSync(new URL("../../data/systems.json", import.meta.url), "utf8"));
 const SYSTEM_LIST = Array.isArray(SYSTEMS) ? SYSTEMS : SYSTEMS.systems || Object.values(SYSTEMS);
@@ -23,11 +24,13 @@ describe("Starmap overlays show only what systems hold (AB#1459)", () => {
     expect(OPTIONS.slice(1).map((o) => o.label)).toEqual(Object.values(STARMAP_OVERLAYS).map((o) => o.label));
   });
 
-  it("offers no resource overlay, and the page does not promise one", () => {
+  it("offers no resource overlay under a system field, and the page promises only the real one (AB#837)", () => {
     expect(OPTIONS.map((o) => o.label).join(" ")).not.toMatch(/resource/i);
     const intro = HTML.match(/<h2 class="ui-screen__title">Interstellar Starmap<\/h2>\s*<p class="ui-screen__lede">([\s\S]*?)<\/p>/)?.[1] || "";
     expect(intro).not.toBe("");
-    expect(intro).not.toMatch(/resource|dominance/i);
+    expect(intro).not.toMatch(/dominance/i);
+    // The resource overlay is its own picker, which the page fills from what the player can see.
+    expect(HTML).toMatch(/<select id="map-resource" class="ui-select">\s*<option value="none">None<\/option>\s*<\/select>/);
   });
 
   it("colours each overlay by a number every system in data/systems.json carries", () => {

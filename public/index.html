@@ -1147,7 +1147,7 @@
               <h2 class="ui-screen__title">Interstellar Starmap</h2>
               <p class="ui-screen__lede">
                 Pan and zoom from the nearby-star cluster down to a single system. Overlays show GDP, activity and
-                pirate density.
+                pirate density, or where a resource is richest.
               </p>
             </header>
             <div class="starmap__toolbar">
@@ -1160,8 +1160,16 @@
                   <option value="pirates">Pirate Density</option>
                 </select>
               </div>
+              <!-- ISP-143 (AB#837): the resource concentration overlay; the items are filled from what the player can see -->
+              <div class="ui-field">
+                <label class="ui-field__label" for="map-resource">Resource</label>
+                <select id="map-resource" class="ui-select">
+                  <option value="none">None</option>
+                </select>
+              </div>
               <button id="map-reset" class="ui-button ui-button--secondary" type="button">Reset View</button>
             </div>
+            <div id="starmap-resource-legend" class="starmap__resource-legend" role="note" hidden></div>
             <canvas id="starmap-canvas" width="1200" height="680" aria-label="Interactive starmap"></canvas>
             <!-- ISP-119 (AB#811): what the station marks on the map mean -->
             <p id="starmap-legend" class="starmap__legend"><span class="starmap__legend-mark" aria-hidden="true"></span><span><strong>Neutral station</strong>: no corporation owns it, and any corporation can dock and rent an office there. The number beside a star is how many a system has; in a system, select a marker to open its station.</span></p>

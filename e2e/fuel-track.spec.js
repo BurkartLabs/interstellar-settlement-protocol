@@ -39,7 +39,8 @@ function startServer(dir) {
 }
 
 async function look(page, locator, name) {
-  await locator.scrollIntoViewIfNeeded();
+  // The Exchange redraws its rows as the market updates; a row redrawn mid-scroll is found again, once.
+  await locator.scrollIntoViewIfNeeded().catch(() => locator.scrollIntoViewIfNeeded());
   await page.screenshot({ path: path.join(SCREEN_DIR, `${name}.png`) });
   await test.info().attach(name, { body: await page.screenshot(), contentType: "image/png" });
 }

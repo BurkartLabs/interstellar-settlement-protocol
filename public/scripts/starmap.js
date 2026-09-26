@@ -6,6 +6,7 @@ import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 import { PLANET_IMAGE_PATHS } from "./planetImages.js";
 import { officeLeaseCost } from "./ceoEffects.js"; // Bug #2340: the one office rate (Bug #1032)
 import { isNeutralStation } from "./stationMarkers.js";
+import { concentrationBand, concentrationLegendHtml, concentrationRows, concentrationText, overlayItems, systemConcentration, bodyConcentration } from "./resourceOverlay.js"; // ISP-143 (AB#837)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 
 // ISP-112 (AB#804): each system's place on the cluster view is its `mapPosition` in data/systems.json, as fractions of
@@ -513,6 +514,8 @@ export function createStarmapController({
   fallbackEl,
   detailsEl,
   overlaySelect,
+  resourceSelect, // ISP-143 (AB#837): the resource concentration overlay's item
+  resourceLegend,
   resetButton,
   onTravelToSystem,
   onDockAtStation,
@@ -532,6 +535,7 @@ export function createStarmapController({
     currentStationId: null,
     currentSystemId: "sol",
     overlay: "none",
+    resource: "none", // ISP-143 (AB#837): the item the concentration overlay shows, or "none"
     view: "cluster",
     selectedSystemId: null,
     selectedBodyId: null,
@@ -736,6 +740,13 @@ export function createStarmapController({
       const isSelected = state.selectedSystemId === system.id;
       const lines = [{ text: system.name, font: `${isSelected ? "bold " : ""}${sizes(isSelected).name}px "Inter", sans-serif`, color: isSelected ? "rgba(255, 255, 255, 0.95)" : "rgba(200, 220, 240, 0.8)" }];
       if (system.id === currentSystemId) lines.push({ text: "YOU ARE HERE", font: `${sizes(isSelected).here}px "Inter", sans-serif`, color: "rgba(0, 247, 255, 0.6)" });
+      // ISP-143 (AB#837): the system's best share of the chosen item, in words under its name (colour is not the only cue).
+      // Not on a phone: a third line crowds the few names it draws into the station badges, and the panel under the map
+      // lists the richest systems, and every body of the one opened, with their shares.
+      if (state.resource !== "none" && !compact) {
+        const { best } = systemConcentration(system, state.resource, beltSlots());
+        lines.push({ text: `${state.resource} ${concentrationText(best)}`, font: `${sizes(isSelected).here}px "Inter", sans-serif`, color: "rgba(236, 242, 247, 0.9)" });
+      }
       // On a phone the gate stays in the panel under the map: the line is wider than a phone's canvas.
       if (isSelected && !compact && !canTravelToSystem(system.id)) {
         const research = getNavigation().travelResearchName(researchCatalog, system.id);
@@ -775,7 +786,10 @@ export function createStarmapController({
       const isCurrent = system.id === currentSystemId;
       const baseRadius = isSelected ? 10 : 7;
       const locked = !canTravelToSystem(system.id);
-      const color = locked ? LOCKED_STAR_COLOR : overlayColor(system, state.overlay);
+      // ISP-143 (AB#837): with a resource chosen, every star takes its band's colour, locked or not: where to go is the question.
+      const color = state.resource !== "none"
+        ? concentrationBand(systemConcentration(system, state.resource, beltSlots()).best).color
+        : locked ? LOCKED_STAR_COLOR : overlayColor(system, state.overlay);
 
       // Outer glow halo
       const haloRadius = baseRadius + 20;
@@ -1028,8 +1042,30 @@ export function createStarmapController({
       ctx.fillStyle = "rgba(200, 225, 245, 0.88)";
       ctx.font = `${chartFont(11)}px "Inter", sans-serif`;
       const bodyR = body.type === "Field" ? Math.max(10, body.radius + 5) : Math.max(4, body.radius);
-      const label = bodyLabelAt(body.name, x, y, bodyR, { x: cx, y: cy, r: starHaloR });
-      ctx.fillText(body.name, label.x, label.y);
+      // ISP-143 (AB#837): with a resource chosen, a ring in the body's band and its share in its label.
+      let bodyText = body.name;
+      if (state.resource !== "none") {
+        const value = bodyConcentration(system, body, state.resource, beltSlots());
+        const band = concentrationBand(value);
+        if (band) {
+          ctx.save();
+          ctx.strokeStyle = band.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(x, y, bodyR + 4, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+          ctx.fillStyle = "rgba(200, 225, 245, 0.88)";
+        }
+        // On a phone's canvas only a share there is: "· none" and "· not scouted" crowded Sol's inner names into each
+        // other, and the panel under the map lists every body's, those included.
+        const narrow = canvas.clientWidth < COMPACT_CLUSTER_WIDTH;
+        if (!narrow || value > 0) bodyText = `${body.name} · ${concentrationText(value)}`;
+      }
+      const label = bodyLabelAt(bodyText, x, y, bodyR, { x: cx, y: cy, r: starHaloR });
+      // AB#837: a name beside its body starts clear of the band's ring (it began 8px from the centre, over a big planet).
+      if (state.resource !== "none" && label.x === x + 8) label.x = Math.min(x + bodyR + 8, canvas.clientWidth - 4 - ctx.measureText(bodyText).width);
+      ctx.fillText(bodyText, label.x, label.y);
 
       drawnAt.set(body.id, { x, y, r: bodyR });
 
@@ -1213,6 +1249,56 @@ export function createStarmapController({
     renderDetails();
   }
 
+  // ─── ISP-143 (AB#837): the resource concentration overlay ────────────────────
+  /** This player's belt slots (GET .../belt-compositions, AB#2331): a belt counts only when scouted. */
+  function beltSlots() {
+    return state.asteroidMining?.belts || {};
+  }
+
+  function setResource(item) {
+    const items = overlayItems(state.systems, beltSlots());
+    state.resource = item && items.includes(item) ? item : "none";
+    if (resourceSelect && resourceSelect.value !== state.resource) resourceSelect.value = state.resource;
+    if (resourceLegend) {
+      resourceLegend.hidden = state.resource === "none";
+      resourceLegend.innerHTML = concentrationLegendHtml(state.resource === "none" ? "" : state.resource);
+    }
+  }
+
+  /** The picker lists every item the player can see a source of; a chosen item stays chosen while it is listed. */
+  function syncResourcePicker() {
+    if (!resourceSelect) return;
+    const items = overlayItems(state.systems, beltSlots());
+    const options = ["none", ...items];
+    const have = [...(resourceSelect.options || [])].map((o) => o.value);
+    if (have.join("|") !== options.join("|")) {
+      resourceSelect.innerHTML = options.map((value) =>
+        `<option value="${escapeHtmlAttr(value)}">${value === "none" ? "None" : escapeHtmlAttr(value)}</option>`).join("");
+    }
+    setResource(state.resource);
+  }
+
+  /** The cluster panel with a resource chosen: the richest systems, so a phone that names few stars still says where. */
+  function richestHtml() {
+    if (state.resource === "none") return "";
+    const ranked = state.systems
+      .map((system) => ({ system, ...systemConcentration(system, state.resource, beltSlots()) }))
+      .filter((r) => r.best > 0)
+      .sort((a, b) => b.best - a.best || a.system.name.localeCompare(b.system.name))
+      .slice(0, 6);
+    if (!ranked.length) return `<p class="ui-panel__meta">No body you can see yields ${escapeHtmlAttr(state.resource)}.</p>`;
+    return `<h4 class="starmap__subhead">Richest in ${escapeHtmlAttr(state.resource)}</h4><ul class="ui-list" data-overlay-richest>${
+      ranked.map((r) => `<li>${escapeHtmlAttr(r.system.name)}: ${concentrationText(r.best)} (${escapeHtmlAttr(r.body.name)})</li>`).join("")}</ul>`;
+  }
+
+  /** A system's panel with a resource chosen: every body, moons included, best first, belts named when not scouted. */
+  function systemConcentrationHtml(system) {
+    if (state.resource === "none") return "";
+    const rows = concentrationRows(system, state.resource, beltSlots());
+    return `<h4 class="starmap__subhead">${escapeHtmlAttr(state.resource)} here</h4><ul class="ui-list" data-overlay-bodies>${
+      rows.map((r) => `<li>${escapeHtmlAttr(r.name)} (${escapeHtmlAttr(r.type)}): ${escapeHtmlAttr(r.text)}</li>`).join("")}</ul>`;
+  }
+
   function getSelectedSystem() {
     return state.systems.find((item) => item.id === state.selectedSystemId) || null;
   }
@@ -1245,7 +1331,7 @@ export function createStarmapController({
       const lock = system && !canTravelToSystem(system.id)
         ? `<p class="starmap__status starmap__status--locked">${escapeHtmlAttr(system.name)}: ${escapeHtmlAttr(travelLockText(system.id))}</p>`
         : "";
-      detailsEl.innerHTML = detailsHtml("Star Cluster", `<p class="ui-panel__meta">Select a system to enter solar view mode.</p>${lock}`);
+      detailsEl.innerHTML = detailsHtml("Star Cluster", `<p class="ui-panel__meta">Select a system to enter solar view mode.</p>${lock}${richestHtml()}`);
       return;
     }
 
@@ -1270,6 +1356,7 @@ export function createStarmapController({
         <p class="ui-panel__meta">GDP ${system.gdpIndex} | Activity ${system.activityLevel} | Pirates ${system.pirateDensity}</p>
         <p>${escapeHtmlAttr(system.ownerRule || "Ownership available via territorial dominance and treaties.")}</p>
         <ul class="ui-list">${bodyLines}</ul>
+        ${systemConcentrationHtml(system)}
         ${jumpHtml}
       `);
       // Bind the jump button rendered in the system view.
@@ -1765,7 +1852,16 @@ export function createStarmapController({
 
     overlaySelect?.addEventListener("change", () => {
       state.overlay = overlaySelect.value;
+      // ISP-143 (AB#837): the two overlays both colour the stars, so choosing one clears the other.
+      if (state.overlay !== "none") setResource("none");
       render();
+    });
+
+    resourceSelect?.addEventListener("change", () => {
+      setResource(resourceSelect.value);
+      if (state.resource !== "none" && overlaySelect) { overlaySelect.value = "none"; state.overlay = "none"; }
+      render();
+      renderDetails();
     });
 
     resetButton?.addEventListener("click", () => {
@@ -1812,6 +1908,7 @@ export function createStarmapController({
     mount,
     setSystems(nextSystems) {
       state.systems = nextSystems || [];
+      syncResourcePicker(); // AB#837
       if (!state.systems.some((item) => item.id === state.selectedSystemId)) {
         state.selectedSystemId = state.systems[0]?.id || null;
         state.selectedBodyId = null;
@@ -1860,8 +1957,16 @@ export function createStarmapController({
       state.beltNotice = notice && notice.message ? notice : null;
       if (state.view === "body") renderDetails();
     },
+    /** ISP-143 (AB#837): show an item's concentration ("none" hides the overlay). */
+    setResourceOverlay(item) {
+      setResource(item);
+      if (state.resource !== "none" && overlaySelect) { overlaySelect.value = "none"; state.overlay = "none"; }
+      render();
+      renderDetails();
+    },
     setAsteroidMining(amState) {
       state.asteroidMining = amState || null;
+      syncResourcePicker(); // AB#837: a newly scouted belt can add an item
       // Re-render details panel if we're viewing a belt
       if (state.view === "body" || state.view === "asteroid") {
         renderDetails();
