@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CODE_RULES, computeModel, leaseCatalog, modelText } from "../../scripts/economy-model.mjs";
-import { economyNumbers, operationCostPerHourFor, startupCostFor, bestThroughputFor } from "../../server/economy.js";
+import { CODE_RULES, computeModel, leaseCatalog, modelText, bidDay, steadyBidDay } from "../../scripts/economy-model.mjs";
+import { economyNumbers, operationCostPerHourFor, startupCostFor, bestThroughputFor, npcBidFor, npcBidAfterRecovery } from "../../server/economy.js";
 import { EMPLOYEES_PER_LEASE } from "../../public/scripts/leaseStaffing.js";
 
 // AB#727: ECONOMY.md explains every key of data/economy.json and quotes the model; this keeps both true.
@@ -66,7 +66,8 @@ describe("the model reads the game, not a copy of it (AB#727)", () => {
       /hours, \{ fallback: 24, min: 1, max: 72 \}/,
       /let probPerSec = 0\.00005;/,
       /const RECOVERY_PROB_PER_SEC = 0\.000276;/, // AB#2296: now module constants in server/game/mining.js
-      /const MIN_DOWNTIME_MS = 15 \* 60 \* 1000;/
+      /const MIN_DOWNTIME_MS = 15 \* 60 \* 1000;/,
+      /buildingSlots: 2,\s+extractorIds: \[\]/ // AB#2334: a new lease's two slots, the model's yards per lease
     ]) {
       expect(server, String(rule)).toMatch(rule);
     }
@@ -102,7 +103,7 @@ describe("the model reads the game, not a copy of it (AB#727)", () => {
     const silicates = economy.npcBuyers.find((b) => b.item === "Silicates");
     const best = bestThroughputFor({ unitPrice: silicates.unitPrice, taxPct: economy.exchange.salesTaxPct, min: 10, max: 250 });
     const m = computeModel(economy, leaseCatalog());
-    expect(m.best).toEqual(best);
+    expect(m.flatBest).toEqual(best); // AB#2334: the flat-price figure, kept for comparison
   });
 
   it("a margin at or below zero makes every setting lose, and the model says never", () => {
@@ -110,5 +111,52 @@ describe("the model reads the game, not a copy of it (AB#727)", () => {
     const m = computeModel(worse, leaseCatalog());
     expect(m.rows.every((r) => r.paybackIdeal === Infinity)).toBe(true);
     expect(m.best.profitPerHour).toBeLessThan(0);
+  });
+});
+
+// AB#2334: the model priced every tonne at the flat base bid; it sells along the standing bid now (ISP-87).
+describe("the model sells along the standing bid (AB#2334)", () => {
+  const bid = economy.npcBid;
+  const base = economy.npcBuyers.find((b) => b.item === "Silicates").unitPrice;
+
+  it("a day's sales are npcBidFor unit by unit from the opening bid, and the order takes no more than its quota", () => {
+    expect(bidDay(0, { base, npcBid: bid })).toMatchObject({ sold: 0, gross: 0, close: base });
+    let quota = 0;
+    for (let k = 0; k < bid.quotaPerDay; k += 1) quota += npcBidFor(base, k, bid);
+    expect(bidDay(bid.quotaPerDay, { base, npcBid: bid }).gross).toBe(quota);
+    expect(quota).toBe(126_299); // 18.04 a tonne, against 168,000 at the flat 24
+    expect(bidDay(bid.quotaPerDay + 500, { base, npcBid: bid })).toMatchObject({ sold: bid.quotaPerDay, units: bid.quotaPerDay + 500 });
+    // From a lower opening the curve continues where that bid sits: the first unit is paid the opening bid.
+    expect(bidDay(1, { base, opening: 20, npcBid: bid }).gross).toBe(20);
+  });
+
+  it("settles on the opening bid the night's recovery gives the close it leads to", () => {
+    const day = steadyBidDay(146 * 24, base, bid);
+    expect(npcBidAfterRecovery(base, day.close, bid)).toBe(day.opening);
+    // The row AB#2334 was filed on: a 146 t/h yard's day averages 17, not 24.
+    expect([day.opening, day.close, (day.gross / day.sold).toFixed(2)]).toEqual([20, 14, "17.00"]);
+  });
+
+  it("puts the best setting well under the flat-price one, and a third yard in the red", () => {
+    const m = computeModel(economy, leaseCatalog());
+    expect(m.best).toMatchObject({ throughput: 60, profitPerHour: 224 });
+    expect(m.flatBest).toMatchObject({ throughput: 146, profitPerHour: 606 });
+    expect(m.yards.map((y) => [y.yards, y.leases, y.throughput, Math.round(y.profitPerDay)])).toEqual([
+      [1, 1, 74, 3234], [2, 1, 37, 3479], [3, 2, 39, 1009], [4, 2, 38, -2837]
+    ]);
+  });
+
+  it("ECONOMY.md's T-018 table is the model's arithmetic, row by row", () => {
+    const section = doc.slice(doc.indexOf("## T-018"), doc.indexOf("The maximum is at"));
+    const rows = [...section.matchAll(/^\| (\d+) \| ([\d.]+) \| ([\d,]+) \| ([\d,]+) \| (-?[\d,]+) \| (-?[\d,]+) \|$/gm)];
+    expect(rows.length).toBe(7);
+    const n = (s) => Number(s.replace(/,/g, ""));
+    for (const [, t, avg, rev, cost, profit, flat] of rows) {
+      const day = steadyBidDay(Number(t) * 24, base, bid);
+      const revenue = Math.round((day.gross * 0.92) / 24);
+      const c = operationCostPerHourFor(Number(t), economy.operations);
+      expect([(day.gross / day.sold).toFixed(2), revenue, c, Math.round((day.gross * 0.92) / 24 - c), Math.round(Number(t) * base * 0.92 - c)], `T = ${t}`)
+        .toEqual([avg, n(rev), n(cost), n(profit), n(flat)]);
+    }
   });
 });

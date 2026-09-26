@@ -111,8 +111,11 @@ The model shows two things about expeditions today that are not about depletion,
 
 1. **A Sol expedition barely pays.** A standard expedition on a common belt yields 180 units worth 3,213 credits at the
    standing bids, against a 3,000 launch cost: 213 credits net (14 before AB#830 gave Water Ice a buyer). A tier-1 extractor yard at its best setting nets about
-   606 an hour at ideal uptime (`npm run economy:model`). The TODO's "belts should yield more than extractor yards" is far from true in
-   Sol, and depletion makes Sol belts no more attractive. Base yield (`baseYieldPerMin`, 3) or the launch cost is the
+   224 an hour at ideal uptime, 60 t/h sold along the falling standing bid (`npm run economy:model`; this said 606
+   until AB#2334 priced the yard's tonnes along the bid rather than at a flat 24). A standard expedition's 213 is
+   about an hour of a yard. The belt model still prices a haul at each bid's base, so the expedition side is high by
+   the same kind of error, less (a haul is 180 units across several orders). The TODO's "belts should yield more than
+   extractor yards" is still not true in Sol, and depletion makes Sol belts no more attractive. Base yield (`baseYieldPerMin`, 3) or the launch cost is the
    lever.
 2. **Half of an exotic belt sells to no standing order.** With twelve systems an exotic belt paid less per unit than a
    rare one (35.16 against 35.57 credits). AB#807's Frontier belts, heavy in Helium-3 and Rare Earths, moved the exotic
