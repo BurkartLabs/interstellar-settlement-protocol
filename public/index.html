@@ -888,69 +888,81 @@
             </div>
           </article>
 
-          <article id="inbox" class="tab-panel">
-            <h2>Inbox</h2>
+          <article id="inbox" class="tab-panel ui-screen">
+            <!-- ISP-77 (AB#766): the Inbox on the design system, in the flat direction (Decision AB#1801). -->
+            <header class="ui-screen__header inbox__header">
+              <h2 class="ui-screen__title">Inbox</h2>
+              <button class="ui-button ui-button--primary" id="inbox-compose-trigger" type="button">Compose</button>
+            </header>
 
-            <!-- Folder tabs -->
-            <nav class="inbox-folder-nav" aria-label="Mail folders">
-              <button class="inbox-folder-btn active" data-folder="inbox">Inbox</button>
-              <button class="inbox-folder-btn" data-folder="sent">Outbox</button>
-              <button class="inbox-folder-btn" data-folder="draft">Drafts</button>
-              <button class="inbox-folder-btn" data-folder="archive">Archive</button>
-              <button class="inbox-folder-btn" data-folder="trash">Trash</button>
-              <button class="inbox-compose-btn btn btn-primary" id="inbox-compose-trigger">+ Compose</button>
+            <nav id="inbox-folders" class="ui-tabs" role="tablist" aria-label="Mail folders">
+              <button class="ui-tab" type="button" role="tab" aria-selected="true" aria-controls="inbox-list-view" data-folder="inbox">Inbox</button>
+              <button class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="inbox-list-view" data-folder="sent">Outbox</button>
+              <button class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="inbox-list-view" data-folder="draft">Drafts</button>
+              <button class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="inbox-list-view" data-folder="archive">Archive</button>
+              <button class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="inbox-list-view" data-folder="trash">Trash</button>
             </nav>
 
-            <!-- Inbox sub-tabs (visible only when folder = inbox) -->
-            <nav class="inbox-subtab-nav" id="inbox-subtab-nav" aria-label="Inbox sub-tabs">
-              <button class="inbox-subtab-btn active" data-subtype="official">System &amp; NPC</button>
-              <button class="inbox-subtab-btn" data-subtype="players">Players</button>
+            <!-- The inbox's own sub-tabs, shown only on the Inbox folder's list. -->
+            <nav id="inbox-subtab-nav" class="ui-tabs" role="tablist" aria-label="Inbox sub-tabs">
+              <button class="ui-tab" type="button" role="tab" aria-selected="true" aria-controls="inbox-list-view" data-subtype="official">System &amp; NPC</button>
+              <button class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="inbox-list-view" data-subtype="players">Players</button>
             </nav>
 
-            <!-- Message list -->
-            <div id="inbox-list-view">
-              <ul id="inbox-message-list" class="inbox-message-list"></ul>
-              <p id="inbox-empty-notice" class="muted" style="display:none;">No messages here.</p>
+            <div id="inbox-list-view" role="tabpanel" aria-label="Messages">
+              <ul id="inbox-message-list" class="inbox__messages"></ul>
+              <p id="inbox-empty-notice" class="ui-state" role="status" hidden>No messages here.</p>
             </div>
 
-            <!-- Message detail view (hidden until a message is opened) -->
-            <div id="inbox-detail-view" style="display:none;">
-              <button class="btn btn-ghost inbox-back-btn" id="inbox-back-btn">&#8592; Back</button>
-              <div class="inbox-detail-card card">
-                <div class="inbox-detail-meta">
-                  <span class="inbox-detail-from" id="inbox-detail-from"></span>
-                  <span class="inbox-detail-date" id="inbox-detail-date"></span>
+            <!-- A message, when one is opened. -->
+            <div id="inbox-detail-view" class="ui-stack" hidden>
+              <button class="ui-button ui-button--ghost inbox__back" id="inbox-back-btn" type="button">&#8592; Back</button>
+              <article class="ui-panel" aria-labelledby="inbox-detail-subject">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title" id="inbox-detail-subject"></h3>
+                    <p class="ui-panel__meta"><span id="inbox-detail-from"></span> · <span id="inbox-detail-date"></span></p>
+                  </div>
+                </header>
+                <div class="ui-panel__body ui-stack">
+                  <pre class="inbox__body" id="inbox-detail-body"></pre>
+                  <div class="inbox__actions">
+                    <button class="ui-button ui-button--secondary" id="inbox-action-archive" type="button" hidden>Archive</button>
+                    <button class="ui-button ui-button--secondary" id="inbox-action-restore" type="button" hidden>Move to Inbox</button>
+                    <button class="ui-button ui-button--danger" id="inbox-action-trash" type="button" hidden>Move to Trash</button>
+                  </div>
                 </div>
-                <h3 class="inbox-detail-subject" id="inbox-detail-subject"></h3>
-                <pre class="inbox-detail-body" id="inbox-detail-body"></pre>
-                <div class="inbox-detail-actions">
-                  <button class="btn btn-ghost" id="inbox-action-archive" style="display:none;">Archive</button>
-                  <button class="btn btn-ghost" id="inbox-action-restore" style="display:none;">Move to Inbox</button>
-                  <button class="btn btn-danger" id="inbox-action-trash" style="display:none;">Move to Trash</button>
-                </div>
-              </div>
+              </article>
             </div>
 
-            <!-- Compose view (hidden until triggered) -->
-            <div id="inbox-compose-view" style="display:none;">
-              <button class="btn btn-ghost inbox-back-btn" id="inbox-compose-back-btn">&#8592; Back</button>
-              <form class="card inbox-compose-form" id="inbox-compose-form" autocomplete="off">
-                <h3>New Message</h3>
-                <input type="hidden" id="compose-draft-id" value="" />
-                <input type="hidden" id="compose-to-id" value="" />
-                <label for="compose-to">To (Corporation Name)</label>
-                <input type="text" id="compose-to" placeholder="Exact corporation name…" required />
-                <div id="compose-candidates" class="compose-candidates" hidden></div>
-                <label for="compose-subject">Subject</label>
-                <input type="text" id="compose-subject" placeholder="Subject…" maxlength="200" required />
-                <label for="compose-body">Message</label>
-                <textarea id="compose-body" class="compose-body-area" rows="10" maxlength="8000" placeholder="Write your message…" required></textarea>
-                <div class="inbox-compose-actions">
-                  <button type="submit" class="btn btn-primary">Send</button>
-                  <button type="button" class="btn btn-ghost" id="compose-save-draft-btn">Save Draft</button>
-                  <!-- Bug #1137: a draft opens here, so it is deleted here. Shown only while a saved draft is open. -->
-                  <button type="button" class="btn btn-danger" id="compose-delete-draft-btn" hidden>Delete Draft</button>
-                  <span class="inbox-compose-status" id="compose-status"></span>
+            <!-- Writing a message. -->
+            <div id="inbox-compose-view" class="ui-stack" hidden>
+              <button class="ui-button ui-button--ghost inbox__back" id="inbox-compose-back-btn" type="button">&#8592; Back</button>
+              <form class="ui-panel" id="inbox-compose-form" autocomplete="off" aria-labelledby="inbox-compose-title">
+                <header class="ui-panel__header"><h3 id="inbox-compose-title" class="ui-panel__title">New Message</h3></header>
+                <div class="ui-panel__body ui-stack">
+                  <input type="hidden" id="compose-draft-id" value="" />
+                  <input type="hidden" id="compose-to-id" value="" />
+                  <div class="ui-field">
+                    <label class="ui-field__label" for="compose-to">To (Corporation Name)</label>
+                    <input class="ui-input" type="text" id="compose-to" placeholder="Exact corporation name…" required />
+                  </div>
+                  <div id="compose-candidates" class="inbox__candidates" hidden></div>
+                  <div class="ui-field">
+                    <label class="ui-field__label" for="compose-subject">Subject</label>
+                    <input class="ui-input" type="text" id="compose-subject" placeholder="Subject…" maxlength="200" required />
+                  </div>
+                  <div class="ui-field">
+                    <label class="ui-field__label" for="compose-body">Message</label>
+                    <textarea class="ui-input ui-textarea" id="compose-body" rows="10" maxlength="8000" placeholder="Write your message…" required></textarea>
+                  </div>
+                  <div class="inbox__actions">
+                    <button type="submit" class="ui-button ui-button--primary">Send</button>
+                    <button type="button" class="ui-button ui-button--secondary" id="compose-save-draft-btn">Save Draft</button>
+                    <!-- Bug #1137: a draft opens here, so it is deleted here. Shown only while a saved draft is open. -->
+                    <button type="button" class="ui-button ui-button--danger" id="compose-delete-draft-btn" hidden>Delete Draft</button>
+                  </div>
+                  <p class="ui-screen__meta" id="compose-status" aria-live="polite"></p>
                 </div>
               </form>
             </div>
