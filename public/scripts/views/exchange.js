@@ -29,14 +29,16 @@ export function getClientExchangeTaxPct() {
   return getClientExchangeTaxBreakdown().ratePct;
 }
 
-/** A sale's tax lines, as the server will book them (taxOnSale): the sales tax, the royalty when there is one, the rest. */
+/**
+ * A sale's tax lines, as the server will book them (taxOnSale): the sales tax, the royalty when there is one, the rest.
+ * Labels stay short: the confirmation's label column does not wrap, and a longer one pushed the values off a phone.
+ */
 function saleTaxRows(gross) {
   const breakdown = getClientExchangeTaxBreakdown();
   const sale = taxOnSale(gross, breakdown);
-  const leases = `${breakdown.leasesHeld} lease${breakdown.leasesHeld === 1 ? "" : "s"} held`;
   return [
     { label: `GEX Sales Tax (${breakdown.salesTaxPct}%)`, value: `− ${toCurrency(sale.salesTax)}`, muted: true },
-    ...(breakdown.royaltyPct > 0 ? [{ label: `ISA Lease Royalty (${breakdown.royaltyPct}%, ${leases})`, value: `− ${toCurrency(sale.royalty)}`, muted: true }] : []),
+    ...(breakdown.royaltyPct > 0 ? [{ label: `ISA Lease Royalty (${breakdown.royaltyPct}%)`, value: `− ${toCurrency(sale.royalty)}`, muted: true }] : []),
     { label: "You Receive", value: toCurrency(sale.proceeds), highlight: true }
   ];
 }
