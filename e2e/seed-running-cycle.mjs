@@ -19,7 +19,7 @@ const SECRET = process.env.JWT_SECRET || "cycle-e2e-fixture-secret-0123456789abc
 function startServer() {
   const child = spawn(process.execPath, ["server/index.js"], {
     cwd: ROOT,
-    env: { ...process.env, ISP_DATA_DIR: dataDir, PORT: "0", NODE_ENV: "test", ISP_DEV: "", ISP_DISABLE_TICKERS: "1", JWT_SECRET: SECRET },
+    env: { ...process.env, ISP_DATA_DIR: dataDir, PORT: "0", NODE_ENV: "test", ISP_DEV: "1", ISP_DISABLE_TICKERS: "1", JWT_SECRET: SECRET },
     stdio: ["ignore", "pipe", "pipe"]
   });
   return new Promise((resolve, reject) => {
@@ -50,7 +50,12 @@ async function api(port, method, url, body, token) {
 const { child, port } = await startServer();
 let id;
 try {
-  const reg = await api(port, "POST", "/api/auth/register", { email, password, ceoName: "Cycle QA", corpName: `Cycle QA Corp ${Date.now()}` });
+  await api(port, "POST", "/api/auth/register", { email, password, ceoName: "Cycle QA", corpName: `Cycle QA Corp ${Date.now()}` });
+  // AB#2288: registering gives no session: follow the verification link from the server's outbox, then log in.
+  const outbox = await api(port, "GET", "/api/dev/outbox");
+  const token = outbox.messages.filter((m) => m.to === email.toLowerCase()).at(-1)?.text.match(/#token=([A-Za-z0-9_-]+)/)?.[1];
+  await api(port, "POST", "/api/auth/verify-email", { token });
+  const reg = await api(port, "POST", "/api/auth/login", { email, password });
   id = reg.account.id;
   const a = (route, body) => api(port, "POST", `/api/accounts/${id}/${route}`, body, reg.accessToken);
   await a("walkthrough-complete");

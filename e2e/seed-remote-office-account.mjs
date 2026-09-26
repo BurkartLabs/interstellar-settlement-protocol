@@ -8,7 +8,9 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "remote-office-e2e-fixture-se
 process.env.NODE_ENV = "test";
 
 const store = await import("../server/gameState.js");
+const { issueVerificationToken, verifyEmailToken } = await import("../server/emailVerification.js");
 const { account } = await store.createAccount({ email, password, ceoName: "Remote Office QA", corpName: `Remote Office QA Corp ${Date.now()}` });
+verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who can log in has verified
 const now = Date.now();
 store.mutateAccountState(account.id, (state) => {
   state.corp.offices = [{

@@ -63,7 +63,8 @@ test("open: a stranger registers with no invitation", async ({ page }) => {
     await fill(page, `${Date.now()}-open`);
     await page.screenshot({ path: path.join(SCREEN_DIR, "registration-open-375x812.png") });
     await page.click('#register-form button[type="submit"]');
-    await page.waitForURL(/\/\?account=/);
+    // AB#2288: registering now lands on "Check your email"; the account plays once the link is followed.
+    await page.waitForURL(/\/check-email\.html$/);
   });
 });
 

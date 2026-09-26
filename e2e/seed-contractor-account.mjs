@@ -11,9 +11,11 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "contract-e2e-fixture-secret-
 process.env.NODE_ENV = "test";
 
 const store = await import("../server/gameState.js");
+const { issueVerificationToken, verifyEmailToken } = await import("../server/emailVerification.js");
 const missions = JSON.parse(fs.readFileSync(new URL("../data/missions.json", import.meta.url), "utf8"));
 const stock = Object.fromEntries([...new Set(missions.templates.map((t) => t.resource))].map((r) => [r, 100_000]));
 const { account } = await store.createAccount({ email, password, ceoName: "Contract QA", corpName: `Contract QA Corp ${Date.now()}` });
+verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who can log in has verified
 store.mutateAccountState(account.id, (state) => {
   state.corp.currentStationId = "earth-station-prime";
   state.corp.inventory = { "earth-station-prime": stock };

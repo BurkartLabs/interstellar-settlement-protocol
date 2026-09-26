@@ -10,9 +10,11 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "construction-panel-e2e-fixtu
 process.env.NODE_ENV = "test";
 
 const store = await import("../server/gameState.js");
+const { issueVerificationToken, verifyEmailToken } = await import("../server/emailVerification.js");
 const { PLAYER_BUILDING_CATALOGUE, playerBuilding } = await import("../server/playerBuildings.js");
 const { construct } = await import("../server/construction.js");
 const { account } = await store.createAccount({ email, password, ceoName: "Construction QA", corpName: `Construction QA ${Date.now() % 100000}` });
+verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who can log in has verified
 store.mutateAccountState(account.id, (state) => {
   const corp = state.corp;
   corp.currentStationId = "earth-station-prime";

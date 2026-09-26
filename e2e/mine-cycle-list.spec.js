@@ -8,6 +8,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { verifyAndLogIn } from "./verification.mjs";
 import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743
 
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -22,6 +23,7 @@ test("an idle extractor yard shows up in Active Mining Cycles before any cycle i
   await page.fill("#register-ceo", "AB1806 Test CEO");
   await page.fill("#register-corp", `AB1806 Corp ${stamp}`);
   await page.click('#register-form button[type="submit"]');
+  await verifyAndLogIn(page, "", `ab1806-${stamp}@example.test`, "password123!"); // AB#2288: verify, then log in
   await page.waitForURL(/\/\?account=/);
   await page.getByRole("button", { name: "I'll find my own way" }).click();
   await expect(page.locator("#dialogue-modal")).toBeHidden();

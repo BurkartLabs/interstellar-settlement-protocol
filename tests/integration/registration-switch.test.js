@@ -5,6 +5,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { getApp } from "../helpers/app.js";
+import { storedAccountByEmail } from "../helpers/api.js";
 import { REGISTRATION_CLOSED_MESSAGE, registrationOpen } from "../../server/registration.js";
 
 const saved = process.env.REGISTRATION_OPEN;
@@ -24,9 +25,10 @@ describe("registration is open to anyone, with no invitation (AB#781)", () => {
   it("registers with an email, a password and two names, and nothing else", async () => {
     delete process.env.REGISTRATION_OPEN;
     const { app } = await getApp();
-    const res = await request(app).post("/api/auth/register").send(applicant());
+    const who = applicant();
+    const res = await request(app).post("/api/auth/register").send(who);
     expect(res.status).toBe(201);
-    expect(res.body.account?.id).toBeTruthy();
+    expect((await storedAccountByEmail(who.email)).account?.id).toBeTruthy(); // AB#2288: read by email
   });
 
   it("an invitation field in the request is ignored, not required and not checked", async () => {
