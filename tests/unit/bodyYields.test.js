@@ -56,11 +56,11 @@ describe("an extractor on a body yields that body's resources (AB#828)", () => {
     expect(ext.minedByItem).toEqual(got);
   });
 
-  it("on Mars, the same Silicates an hour as before, and nothing else", () => {
+  it("on Mars, the same tonnes an hour as before, a tenth of them Bauxite since the Light Metals track (AB#833)", () => {
     const corp = yardOn("Mars", { throughputPerHour: 146, hours: 3 });
     applyMiningOperations(corp, START + 3 * HOUR);
-    expect(held(corp)).toEqual({ Silicates: 438 });
-    expect(corp.mining.silicateExtractors[0].totalMined).toBe(438);
+    expect(held(corp)).toEqual({ Silicates: 394, Bauxite: 43 }); // 394.2 and 43.8; the fractions carry to the next tick
+    expect(corp.mining.silicateExtractors[0].totalMined).toBe(437); // whole tonnes; the fractions hold the 438th
   });
 
   it("on a body the catalog no longer has (a lease Bug #691 kept), Silicates, as every lease mined", () => {

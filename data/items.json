@@ -182,6 +182,24 @@
       "name": "Catalyst Substrates",
       "tier": 3,
       "category": "refined"
+    },
+    {
+      "id": "aluminium-ingots",
+      "name": "Aluminium Ingots",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "aluminium-lithium-alloy",
+      "name": "Aluminium-Lithium Alloy",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "battery-cells",
+      "name": "Battery Cells",
+      "tier": 3,
+      "category": "refined"
     }
   ]
 }

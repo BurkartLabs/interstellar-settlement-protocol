@@ -97,7 +97,7 @@ export function renderRefinery(data) {
       const outputLabel = Array.isArray(chain.outputs)
         ? chain.outputs.map((o) => typeof o === "string" ? o : `${o.quantityPerCycle} ${o.item}`).join(", ")
         : String(chain.outputs);
-      // AB#825: a chain takes `inputs`. Every chain in data has one; a chain with several shows them all, and its start
+      // AB#825: a chain takes `inputs`. A chain with several (the v0.8 tracks', AB#833) shows them all, and its start
       // form is the multi-input panel's (AB#836).
       const inputs = chain.inputs || [];
       const input = inputs[0]?.item || "";
@@ -141,7 +141,7 @@ export function renderRefinery(data) {
                 ${quantityError ? `<p id="${escapeHtml(errorId)}" class="ui-field__error" role="alert">${escapeHtml(quantityError)}</p>` : ""}
               </div>
               <button class="ui-button ui-button--secondary refinery__start" type="button" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}" data-per-cycle="${perCycle}" data-input="${escapeHtml(input)}" data-available="${inputAvailable}" data-hours="${Number(chain.cycleDurationHours) || 0}">Start Run</button>`
-            // AB#825: no chain in data takes several inputs yet; their start form is AB#836's, and until then the card says so.
+            // AB#825: a chain of several inputs starts from AB#836's form; until then the card says so.
             : multiInput && hasRefinery && !techGated
               ? `<p class="ui-card__meta">This chain takes several inputs. Starting it from this page arrives in a later build.</p>`
             : belowRefineryCap && canBuildRefinery

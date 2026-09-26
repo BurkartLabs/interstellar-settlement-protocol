@@ -78,7 +78,13 @@ const BEFORE_THE_MOVE = {
     { item: "Plasma Conduits", buyer: "Lunar Helium Consortium", unitPrice: 159, dailyQty: 80 },
     { item: "Dark-Matter Capacitors", buyer: "Lunar Helium Consortium", unitPrice: 423, dailyQty: 20 },
     { item: "Fusion Pellets", buyer: "Lunar Helium Consortium", unitPrice: 198, dailyQty: 160 },
-    { item: "Cryogenic Coolant", buyer: "Lunar Helium Consortium", unitPrice: 54, dailyQty: 360 }
+    { item: "Cryogenic Coolant", buyer: "Lunar Helium Consortium", unitPrice: 54, dailyQty: 360 },
+    // AB#833: the Light Metals track's, on the same rule.
+    { item: "Lithium", buyer: "Synthorium Trading House", unitPrice: 70, dailyQty: 7000 },
+    { item: "Bauxite", buyer: "Belt Refining Cooperative", unitPrice: 14, dailyQty: 7000 },
+    { item: "Aluminium Ingots", buyer: "Olympus Heavy Industries", unitPrice: 64, dailyQty: 240 },
+    { item: "Aluminium-Lithium Alloy", buyer: "Olympus Heavy Industries", unitPrice: 114, dailyQty: 160 },
+    { item: "Battery Cells", buyer: "Synthorium Trading House", unitPrice: 123, dailyQty: 120 }
   ]
 };
 

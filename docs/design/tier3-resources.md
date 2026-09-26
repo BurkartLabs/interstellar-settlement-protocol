@@ -91,8 +91,9 @@ A profile is what an extraction on a body yields, as shares of 100, the way a be
 | The 12 belts | their `composition` | **Unchanged** (section 4) |
 
 Mars and Luna gain their v0.8 items only once the track that uses them is built. Until then their profile stays
-Silicates 100, so no player holds an item nothing buys. Since the Fuel track (AB#830) Luna yields Silicates 75, Helium-3
-25; the Light Metals track moves 15 of its Silicates to Bauxite.
+Silicates 100, so no player holds an item nothing buys. Since the Fuel track (AB#830) and the Light Metals track (AB#833)
+Luna yields its full profile, Silicates 60, Helium-3 25, Bauxite 15. Mars yields Silicates 90, Bauxite 10 until the
+Metals track moves 30 of its Silicates to Iron Ore.
 
 ### The rule for any other body (new bodies, and Sol's unsurveyed ones)
 
@@ -163,15 +164,17 @@ Every name below is kept exactly as it is. Places, from the data files on main:
 | Deuterium | 1 | | yes | | fusion-fuel-chain input |
 | Titanium | 2 | 20 belts | yes | yes | titanium-chain input |
 | Rare Earths | 2 | 16 belts | yes | yes | rare-earths-chain input |
-| Lithium | 2 | 14 belts | | yes | |
-| Cobalt | 2 | 13 belts | | yes | |
+| Lithium | 2 | 14 belts | yes | yes | al-li-chain, battery-chain input |
+| Cobalt | 2 | 13 belts | | yes | battery-chain input |
 | Thorium | 2 | 10 belts | | yes | |
 | Uranium | 2 | 8 belts | | | |
 | Exotic Matter | 2 | 7 belts | | | |
+| Bauxite | 1 | | yes | | aluminium-chain input |
 
 The chains' twelve products (section 1, row 3) are Tier 3 and keep their names, and so are the Fuel track's two (AB#830):
-Fusion Pellets and Cryogenic Coolant. Deuterium is in the build since AB#830 (ice worlds and moons, and Rime's lease);
-Iron Ore and Bauxite appear nowhere yet. tests/unit/tier3Resources.test.js holds this table to the data files, so a renamed or new raw item fails
+Fusion Pellets and Cryogenic Coolant, and the Light Metals track's three (AB#833): Aluminium Ingots,
+Aluminium-Lithium Alloy and Battery Cells. Deuterium is in the build since AB#830 (ice worlds and moons, and Rime's
+lease), Bauxite since AB#833 (Mars and Luna, section 3); Iron Ore appears nowhere yet. tests/unit/tier3Resources.test.js holds this table to the data files, so a renamed or new raw item fails
 it until this document names it. The belt counts are the 22 systems' since AB#807; sections 2 to 5 were written against the
 first twelve belts, and their per-belt lists name those twelve only.
 
