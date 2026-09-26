@@ -26,6 +26,46 @@ export function nameKey(name) {
 
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// ISP-121 (AB#813): letters that pass for Latin ones. The character rule below already refuses anything but ASCII, so
+// these are defence in depth: the reserved-name check runs on the folded name first, and would still hold if the
+// character rule were ever widened.
+const LOOKALIKES = {
+  // Cyrillic
+  а: "a", в: "b", е: "e", ё: "e", к: "k", м: "m", н: "h", о: "o", р: "p", с: "c", т: "t", у: "y", х: "x", ѕ: "s",
+  і: "i", ї: "i", ј: "j", ԁ: "d", ӏ: "l", ɡ: "g", ԛ: "q", ԝ: "w",
+  // Greek
+  α: "a", β: "b", ε: "e", η: "n", ι: "i", κ: "k", μ: "u", ν: "v", ο: "o", ρ: "p", τ: "t", υ: "u", χ: "x", γ: "y"
+};
+// ASCII stand-ins: digits and symbols for the letters they are read as. "i", "l", "1", "|" and "!" are one letter here,
+// so "GEX Commodltles" and "1SA System" are the names they imitate.
+const ASCII_LOOKALIKES = { 0: "o", 1: "l", 3: "e", 4: "a", 5: "s", 7: "t", 8: "b", $: "s", "@": "a", "|": "l", "!": "l", i: "l" };
+
+/**
+ * A name as a reader would take it (AB#813): accents dropped, look-alike letters and digits made the letters they
+ * imitate, "rn" read as "m" and "vv" as "w", lower case, and every run of spaces or separators (- ' . & _) one space.
+ */
+export function foldName(name) {
+  let s = String(name || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  s = [...s].map((ch) => LOOKALIKES[ch] ?? ch).join("");
+  s = [...s].map((ch) => ASCII_LOOKALIKES[ch] ?? ch).join("");
+  s = s.replace(/rn/g, "m").replace(/vv/g, "w");
+  return s.replace(/[\s\-'.&_]+/g, " ").trim();
+}
+
+/** Whether `name` passes for a reserved name: as whole words anywhere in it, or, run together, as the whole of it (or
+ *  inside it, for names long enough that it cannot be chance). "Visa Systems" does not contain "ISA System". */
+function passesFor(name, reserved) {
+  const key = foldName(name);
+  const compact = key.replace(/ /g, "");
+  return reserved.some((r) => {
+    const want = foldName(r);
+    if (!want) return false;
+    if (new RegExp(`(^|[^a-z0-9])${escapeRegExp(want)}($|[^a-z0-9])`).test(key)) return true;
+    const run = want.replace(/ /g, "");
+    return compact === run || (run.length >= 12 && compact.includes(run));
+  });
+}
+
 /**
  * The name to store, or why not. `existingNames` are the other corporations' names; `reservedNames` are the game's own
  * institutions, refused when they appear as whole words anywhere in the name ("GEX Commodities Authority Holdings"),
@@ -41,11 +81,11 @@ export function validateCorporationName(raw, { existingNames = [], reservedNames
   if (name.length < CORPORATION_NAME_MIN_LENGTH || name.length > CORPORATION_NAME_MAX_LENGTH) {
     return { error: `A corporation name must be ${CORPORATION_NAME_MIN_LENGTH} to ${CORPORATION_NAME_MAX_LENGTH} characters.` };
   }
+  // AB#813: an institution's name is refused however it is dressed up, before the character rule, so a look-alike is
+  // told it is taken rather than only that a letter is not allowed. The message never repeats the name back.
+  if (passesFor(name, reservedNames)) return { error: "That name belongs to an institution in the game; choose another." };
   if (!ALLOWED.test(name)) return { error: "A corporation name may use letters, digits, spaces and - ' . & only." };
-
-  const key = nameKey(name);
-  const reserved = reservedNames.some((r) => new RegExp(`(^|[^a-z0-9])${escapeRegExp(nameKey(r))}($|[^a-z0-9])`).test(key));
-  if (reserved) return { error: "That name belongs to an institution in the game; choose another." };
-  if (existingNames.some((n) => nameKey(n) === key)) return { error: "A corporation with this name already exists." };
+  // AB#813: another player's name, the same way ("Kessler 0re Brokers" is Kessler Ore Brokers).
+  if (existingNames.some((n) => foldName(n) === foldName(name))) return { error: "A corporation with this name already exists." };
   return { name };
 }

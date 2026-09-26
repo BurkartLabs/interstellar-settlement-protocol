@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateCorporationName, CORPORATION_NAME_MAX_LENGTH, CORPORATION_NAME_MIN_LENGTH } from "../../server/corporationName.js";
+import { foldName, validateCorporationName, CORPORATION_NAME_MAX_LENGTH, CORPORATION_NAME_MIN_LENGTH } from "../../server/corporationName.js";
 
 // Bug #433: the corporation name is the only trust signal on the order book, in trade history, on the forums and in
 // mail, and it was never checked. It is now validated when the corporation is created.
@@ -38,5 +38,29 @@ describe("validateCorporationName (Bug #433)", () => {
     expect(ok("gex commodities authority holdings", { reservedNames }).error).toBe("That name belongs to an institution in the game; choose another.");
     expect(ok("The ISA  System Office", { reservedNames }).error).toBe("That name belongs to an institution in the game; choose another.");
     expect(ok("Visa Systems Inc", { reservedNames }).name).toBe("Visa Systems Inc");
+  });
+});
+
+describe("foldName and look-alike names (ISP-121, AB#813)", () => {
+  const reserved = ["GEX Commodities Authority", "ISA System", "Meridian Glassworks"];
+  const refused = (raw) => ok(raw, { reservedNames: reserved }).error === "That name belongs to an institution in the game; choose another.";
+
+  it("reads a name as a reader would: case, separators, accents, look-alike letters and digits", () => {
+    expect(foldName("  GEX-Commodities   Authority ")).toBe(foldName("gex commodities authority"));
+    expect(foldName("GЕX Commodities Authority")).toBe(foldName("GEX Commodities Authority")); // Cyrillic Е
+    expect(foldName("GEX C0mm0dit1es Authority")).toBe(foldName("GEX Commodities Authority"));
+    expect(foldName("Méridian Glassvvorks")).toBe(foldName("Meridian Glassworks"));
+  });
+
+  it("refuses an institution's name dressed up, before the character rule, and nothing else near it", () => {
+    for (const raw of ["GEX C0mmodities Authority", "GЕX Commodities Authority", "GEXCommodities Authority", "GEX-Commodities-Authority", "1SA System", "Meridian G1assworks Ltd", "TheMeridianGlassworksCo"]) {
+      expect(refused(raw), raw).toBe(true);
+    }
+    for (const raw of ["Visa Systems", "Meridian Mining", "Glassworks of Mars", "Isabel Systems"]) expect(refused(raw), raw).toBe(false);
+  });
+
+  it("treats another player's name dressed up as taken", () => {
+    expect(ok("Kessler 0re Brokers", { existingNames: ["Kessler Ore Brokers"] }).error).toBe("A corporation with this name already exists.");
+    expect(ok("Kessler Ore Brokerage", { existingNames: ["Kessler Ore Brokers"] })).toEqual({ name: "Kessler Ore Brokerage" });
   });
 });

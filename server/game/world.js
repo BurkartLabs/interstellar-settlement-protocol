@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import { ECONOMY } from "../economy.js";
 import { SYSTEM_SENDERS } from "../corporationName.js";
+import { NPC_NAMES } from "../npcCorporations.js"; // ISP-121 (AB#813)
 import { normalizePriceHistory } from "../priceHistory.js";
 import { MAX_DEFINED_LEVEL, REFINERY_CHAINS_DATA, SYSTEMS_DATA, deepClone, safeWriteFile, statePath } from "./catalog.js";
 import { normalizeStateShape } from "./shape.js";
@@ -213,10 +214,11 @@ export function ensureBidShape(order) {
  * Names no player may take (Bug #433): every name the game's own messages are signed with, and every NPC buyer on the
  * exchange, derived from the lists the server uses so a new sender or buyer is reserved without anyone retyping it.
  */
-export const RESERVED_CORPORATION_NAMES = Object.freeze([
+export const RESERVED_CORPORATION_NAMES = Object.freeze([...new Set([
   ...Object.values(SYSTEM_SENDERS),
-  ...NPC_BUY_SEED.map((seed) => seed.buyer)
-]);
+  ...NPC_BUY_SEED.map((seed) => seed.buyer),
+  ...NPC_NAMES // ISP-121 (AB#813): Sol's NPC corporations and the authorities, data/npc-corporations.json
+])]);
 
 /** Give the global state a market: an order book, and every standing buy order it lacks. Keeps what exists. */
 export function ensureMarketState(globalState) {

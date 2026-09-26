@@ -26,7 +26,9 @@ export function registerAuthRoutes(app) {
 
       if (result.error) {
         // ISP-66: `field` names which input the register page shows the message beside.
-        res.status(400).json({ error: result.error, ...(result.code ? { code: result.code } : {}), ...(result.field ? { field: result.field } : {}) });
+        // AB#813: a reserved-name list that could not be read is the server's fault, not the player's: 503, nothing created.
+        const status = result.code === "names-unavailable" ? 503 : 400;
+        res.status(status).json({ error: result.error, ...(result.code ? { code: result.code } : {}), ...(result.field ? { field: result.field } : {}) });
         return;
       }
 

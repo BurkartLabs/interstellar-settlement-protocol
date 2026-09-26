@@ -18,6 +18,7 @@ import { createStarterCorporationState, refreshContractOfferings } from "./corpo
 import { backfillBuildingIds, ensureBuildingIds } from "./buildingIds.js";
 import { backfillVerificationPolicy, loginBlockedByVerification, REQUIRED, verificationPrompted } from "./verificationPolicy.js";
 import { RESERVED_CORPORATION_NAMES, ensureStateFile, getSeedState } from "./world.js";
+import { reservedNamesError } from "../npcCorporations.js"; // AB#813: fail closed
 
 // Bug #1480: the statements live in one file per corporation (declared here, before the load-time
 // migration below uses it), written when a day closes, not in the accounts snapshot.
@@ -483,6 +484,10 @@ export async function createAccount({ email, password, ceoName, corpName }) {
   // Bug #433: the name is the only trust signal on the order book, the forums and in mail. Checked before anything is
   // created: 3 to 40 plain characters, unique ignoring case and spacing, and not the name of
   // anything the game itself speaks as.
+  // AB#813: without the reserved list every name would pass, so registration is refused until it can be read.
+  if (reservedNamesError) {
+    return { error: "Registration is unavailable just now; try again later.", code: "names-unavailable" };
+  }
   const corporation = validateCorporationName(corpName, {
     existingNames: Object.values(accountsStore.accounts || {}).map((item) => item?.state?.corp?.corporationName).filter(Boolean),
     reservedNames: RESERVED_CORPORATION_NAMES
