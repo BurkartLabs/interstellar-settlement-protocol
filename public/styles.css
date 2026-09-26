@@ -3788,7 +3788,7 @@ img.station__body {
   flex: none;
   width: 8px;
   height: 8px;
-  background: rgba(255, 210, 80, 0.95);
+  background: var(--warn); /* the map's station diamond is amber */
   transform: rotate(45deg) translateY(-1px);
 }
 .starmap__overline {
