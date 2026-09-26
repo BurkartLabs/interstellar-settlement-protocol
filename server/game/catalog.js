@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { navigationFor } from "../../public/scripts/navigation.js";
+import "./items.js"; // ISP-130 (AB#824): the item catalog; the server does not start while a data file names an item it lacks
 
 export const __filename = fileURLToPath(import.meta.url);
 export const __dirname = path.dirname(__filename);
