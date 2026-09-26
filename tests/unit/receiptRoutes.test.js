@@ -40,10 +40,11 @@ const RECEIPTS = {
 const EXEMPT = {
   "/api/accounts/:accountId/gameplay/lease/:leaseId/stop-mining": "stops a running cycle (AB#1052); it has its own confirmation before it runs",
   "/api/market/orders/:orderId/cancel": "withdraws the player's own listing and returns the goods; nothing is bought or spent",
-  "/api/accounts/:accountId/gameplay/abandon-mission": "gives a contract back; nothing is delivered, paid or charged",
-  // ISP-94 (AB#784): it answers with the receipt of the building it built, the same one each build route above answers with.
-  "/api/accounts/:accountId/gameplay/build": "no page calls it yet (ISP-95, AB#785, will); its receipts are the build routes', from server/construction.js"
+  "/api/accounts/:accountId/gameplay/abandon-mission": "gives a contract back; nothing is delivered, paid or charged"
 };
+
+/** ISP-94/95: the one build route answers with the receipt of whichever building it built; checked on its own below. */
+const BUILD_ROUTE = "/api/accounts/:accountId/gameplay/build";
 
 function committingRoutes() {
   const out = new Map();
@@ -68,7 +69,7 @@ describe("every committing action has its confirmation modal (AB#744)", () => {
   });
 
   it("each committing route is mapped to a receipt or exempted with a reason, never both, and no entry is stale", () => {
-    const unaccounted = [...routes.keys()].filter((p) => !(p in RECEIPTS) && !(p in EXEMPT));
+    const unaccounted = [...routes.keys()].filter((p) => !(p in RECEIPTS) && !(p in EXEMPT) && p !== BUILD_ROUTE);
     expect(unaccounted, "a committing route with no confirmation mapping").toEqual([]);
     expect(Object.keys(RECEIPTS).filter((p) => p in EXEMPT)).toEqual([]);
     expect([...Object.keys(RECEIPTS), ...Object.keys(EXEMPT)].filter((p) => !routes.has(p)), "an entry naming no route").toEqual([]);
@@ -96,6 +97,17 @@ describe("every committing action has its confirmation modal (AB#744)", () => {
     const rest = src.slice(at, at + 4000);
     const end = Math.min(...["} catch", "\n  });", "\n    },"].map((e) => rest.indexOf(e)).filter((i) => i > 0));
     expect(rest.slice(0, end), `${file}: showActionReceipt after ${fragment}`).toContain("showActionReceipt(");
+  });
+
+  it("the one build route answers with its building's receipt, and the construction panel shows it (ISP-94, ISP-95)", () => {
+    expect(routes.has(BUILD_ROUTE)).toBe(true);
+    for (const [id, construction] of Object.entries(CONSTRUCTIONS)) expect(typeof construction.receipt, id).toBe("function");
+    expect(read("server/routes/helpers.js")).toMatch(/res\.json\(\{[^;]*\breceipt\b/);
+    const station = read("public/scripts/views/station.js");
+    const at = station.indexOf("renderConstructionPanel(document");
+    expect(at, "station.js draws the construction panel").toBeGreaterThanOrEqual(0);
+    const call = station.slice(at, station.indexOf("\n  });", at));
+    expect(call.slice(call.indexOf("onBuilt:"), call.indexOf("onError:")), "showActionReceipt in the panel's onBuilt").toContain("showActionReceipt(");
   });
 
   it("the receipts module has a builder for every mapped route, and no builder nothing uses", () => {

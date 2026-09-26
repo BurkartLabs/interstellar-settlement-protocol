@@ -315,6 +315,8 @@ async function loadBootstrap() {
   // ISP-86: the economy's constants are fixed for the life of the server, and `state:init` replaces serverData
   // wholesale with a payload that does not carry them. Kept here, they survive that.
   if (appState.serverData?.economy) appState.economy = appState.serverData.economy;
+  // ISP-95 (AB#785): the building catalogue, for the construction panel; kept for the same reason as the economy.
+  if (Array.isArray(appState.serverData?.playerBuildings)) appState.playerBuildings = appState.serverData.playerBuildings;
 
   const version = appState.serverData?.version;
   if (version) {

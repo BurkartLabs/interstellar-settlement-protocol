@@ -15,6 +15,8 @@ export const appState = {
   serverData: null,
   /** The economy's constants from /api/bootstrap (ISP-86): what an hour of mining costs and what ore fetches. */
   economy: null,
+  /** The building catalogue from /api/bootstrap (ISP-95): what the construction panel lists. */
+  playerBuildings: [],
   data: null,
   authenticated: false,
   accountId: null,
