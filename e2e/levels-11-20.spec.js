@@ -62,8 +62,8 @@ for (const viewport of VIEWPORTS) {
       await expect(title).toHaveText("Corporation Level 11 Milestones");
       const section = page.locator("#overview-milestones");
       await expect(section).toContainText("Build a Fourth Extractor Yard");
-      await expect(section).toContainText("Mine 260,000 Silicate");
-      await expect(section).toContainText("150,000 / 260,000"); // AB#2322: grouped, as the title is
+      await expect(section).toContainText("Mine 225,000 Silicate");
+      await expect(section).toContainText("150,000 / 225,000"); // AB#2322: grouped, as the title is
       await title.evaluate((el) => el.scrollIntoView({ block: "center" }));
       await page.screenshot({ path: path.join(SHOT_DIR, `level10-next-${viewport.label}.png`) });
       expect(errors).toEqual([]);

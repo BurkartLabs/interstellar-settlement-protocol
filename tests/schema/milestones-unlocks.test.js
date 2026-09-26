@@ -90,6 +90,6 @@ describe("a corporation saved at Level 10 before levels 11 to 20 existed (AB#800
     expect(corp.unlocks).toEqual(before.unlocks);
     for (const key of ["employeeCap", "buildingSlots", "maxFleetSize"]) expect(corp[key], key).toBe(before[key]);
     expect(corp.asteroidMining.maxDeployments).toBe(before.asteroidMining.maxDeployments);
-    expect(corp.levelProgress.level11.requirements.map((r) => r.id)).toEqual(["extractor4", "mine260kSilicate"]);
+    expect(corp.levelProgress.level11.requirements.map((r) => r.id)).toEqual(["extractor4", "mine225kSilicate"]);
   });
 });

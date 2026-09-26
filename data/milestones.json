@@ -154,7 +154,7 @@
       "level": 11,
       "requirements": [
         { "id": "extractor4", "title": "Build a Fourth Extractor Yard", "target": 4, "metric": "building-count:Basic Extractor Yard" },
-        { "id": "mine260kSilicate", "title": "Mine 260,000 Silicate", "target": 260000, "metric": "totalMined:silicate" }
+        { "id": "mine225kSilicate", "title": "Mine 225,000 Silicate", "target": 225000, "metric": "totalMined:silicate" }
       ],
       "unlocks": {
         "employeeCap": 210,
@@ -168,7 +168,7 @@
       "level": 12,
       "requirements": [
         { "id": "yards3AtTier2", "title": "Upgrade 3 Extractor Yards to Tier 2", "target": 3, "metric": "building-tier:basic-extractor-yard:2" },
-        { "id": "mine470kSilicate", "title": "Mine 470,000 Silicate", "target": 470000, "metric": "totalMined:silicate" }
+        { "id": "mine306kSilicate", "title": "Mine 306,000 Silicate", "target": 306000, "metric": "totalMined:silicate" }
       ],
       "unlocks": {
         "employeeCap": 220,
@@ -183,7 +183,7 @@
       "requirements": [
         { "id": "extractor5", "title": "Build a Fifth Extractor Yard", "target": 5, "metric": "building-count:Basic Extractor Yard" },
         { "id": "thirdLease", "title": "Purchase a Third Mining Lease", "target": 3, "metric": "stat:miningLeasesCount" },
-        { "id": "mine700kSilicate", "title": "Mine 700,000 Silicate", "target": 700000, "metric": "totalMined:silicate" }
+        { "id": "mine394kSilicate", "title": "Mine 394,000 Silicate", "target": 394000, "metric": "totalMined:silicate" }
       ],
       "unlocks": {
         "employeeCap": 230,
@@ -197,7 +197,7 @@
       "level": 14,
       "requirements": [
         { "id": "yards6AtTier2", "title": "Upgrade 6 Extractor Yards to Tier 2", "target": 6, "metric": "building-tier:basic-extractor-yard:2" },
-        { "id": "mine920kSilicate", "title": "Mine 920,000 Silicate", "target": 920000, "metric": "totalMined:silicate" }
+        { "id": "mine476kSilicate", "title": "Mine 476,000 Silicate", "target": 476000, "metric": "totalMined:silicate" }
       ],
       "unlocks": {
         "employeeCap": 240,
@@ -212,7 +212,7 @@
       "requirements": [
         { "id": "extractor6", "title": "Build a Sixth Extractor Yard", "target": 6, "metric": "building-count:Basic Extractor Yard" },
         { "id": "yards3AtTier3", "title": "Upgrade 3 Extractor Yards to Tier 3", "target": 3, "metric": "building-tier:basic-extractor-yard:3" },
-        { "id": "mine1100kSilicate", "title": "Mine 1,100,000 Silicate", "target": 1100000, "metric": "totalMined:silicate" }
+        { "id": "mine557kSilicate", "title": "Mine 557,000 Silicate", "target": 557000, "metric": "totalMined:silicate" }
       ],
       "unlocks": {
         "employeeCap": 250,
