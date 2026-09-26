@@ -160,14 +160,15 @@ Every name below is kept exactly as it is. Places, from the data files on main:
 | Water Ice | 1 | 4 belts | | yes | |
 | Hydrogen | 1 | 7 belts | | | |
 | Titanium | 2 | 20 belts | yes | yes | titanium-chain input |
-| Rare Earths | 2 | 16 belts | yes | yes | rare-earths-chain input |
+| Rare Earths | 2 | 16 belts | yes | yes | rare-earths-chain, magnet-chain input |
 | Lithium | 2 | 14 belts | | yes | |
-| Cobalt | 2 | 13 belts | | yes | |
-| Thorium | 2 | 10 belts | | yes | |
+| Cobalt | 2 | 13 belts | yes | yes | magnet-chain input |
+| Thorium | 2 | 10 belts | yes | yes | thorium-fuel-chain input |
 | Uranium | 2 | 8 belts | | | |
 | Exotic Matter | 2 | 7 belts | | | |
 
-The chains' twelve products (section 1, row 3) are Tier 3 and keep their names. Deuterium, Iron Ore and Bauxite appear
+The chains' twelve products (section 1, row 3) are Tier 3 and keep their names, and so are the tracks' products as they
+land: Rare-Earth Magnets and Thorium Fuel Rods (AB#832). Deuterium, Iron Ore and Bauxite appear
 nowhere yet. tests/unit/tier3Resources.test.js holds this table to the data files, so a renamed or new raw item fails
 it until this document names it. The belt counts are the 22 systems' since AB#807; sections 2 to 5 were written against the
 first twelve belts, and their per-belt lists name those twelve only.

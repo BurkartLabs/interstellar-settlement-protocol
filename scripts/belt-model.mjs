@@ -90,7 +90,11 @@ export function computeBeltModel(economy, systems, rules = CODE_RULES, assumed =
   for (let k = 1; k < 100; k++) lost += (1 - p) ** (design.ladderCheckInHours * k);
   const ladder = { launchesPerBelt: perBelt, lostPerBelt: lost, lostShare: lost / (perBelt + lost) };
 
-  return { tiers, systems: systemRows, respawn, population, ladder, design, launchCost: economy.expeditions.launchCost };
+  // AB#832: which belt resources no standing order buys, from the data (it was a written list, and went stale when
+  // Thorium and Cobalt gained bids).
+  const unbought = [...new Set(systems.flatMap((s) => (s.bodies || []).flatMap((b) => Object.keys(b.composition || {}))))]
+    .filter((item) => price[item] === undefined);
+  return { tiers, systems: systemRows, respawn, population, ladder, design, unbought, launchCost: economy.expeditions.launchCost };
 }
 
 const fmt = (n, d = 0) => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -100,7 +104,7 @@ const pct = (x, d = 1) => `${(x * 100).toFixed(d)}%`;
 export function renderBeltModel(m) {
   const lines = [];
   lines.push(`Launch cost ${fmt(m.launchCost)}. Credits are what the standing orders pay for the belt's mix, after the 8% tax;`);
-  lines.push("a resource no standing order buys (Water Ice, Hydrogen, Lithium, Cobalt, Thorium, Uranium, Exotic Matter) counts 0.");
+  lines.push(`a resource no standing order buys (${m.unbought.join(", ")}) counts 0.`);
   lines.push("");
   lines.push("Per tier, from its template (today's belts of that label, averaged):");
   lines.push("  tier     | units/h | sold share | credits/unit | standard: units, credits, net | extended: units, net | reserve (units)");

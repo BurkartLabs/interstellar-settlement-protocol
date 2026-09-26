@@ -6,12 +6,13 @@ import { freshGlobalState, normalizeGlobalState, CHAT_CHANNELS, storedCombatRepo
 // and no NPC standing buy orders, because the market setup ran only when a state file already existed.
 const NPC_ITEMS = ["Silicates", "Helium-3", "Nickel", "Titanium", "Carbon", "Rare Earths"];
 // AB#2341: standing bids for six products too; no NPC corporation sells them (no asks).
-const BID_ITEMS = [...NPC_ITEMS, "Aerogel", "Quantum Insulators", "Armour Plating", "Precision Frames", "Carbon Fibre Sheets", "Graphene Lattice"];
+const BID_ITEMS = [...NPC_ITEMS, "Aerogel", "Quantum Insulators", "Armour Plating", "Precision Frames", "Carbon Fibre Sheets", "Graphene Lattice",
+  "Thorium", "Cobalt", "Sensor Arrays", "Catalyst Substrates", "Rare-Earth Magnets", "Thorium Fuel Rods"]; // AB#832
 
 describe("the global state a fresh install starts with (Bug #588, #574)", () => {
   const state = freshGlobalState();
 
-  it("has a market with no player listings, the six NPC asks, and the twelve standing buy orders", () => {
+  it("has a market with no player listings, the six NPC asks, and the standing buy orders every bid in data makes", () => {
     expect(state.market.orderBook.filter((o) => !o.npc)).toEqual([]);
     expect(state.market.orderBook.filter((o) => o.npc).map((o) => o.id).sort()).toEqual(NPC_ITEMS.map((i) => `npc-sell-${i.toLowerCase().replace(/\s+/g, "-")}`).sort()); // ISP-122 (AB#815)
     expect(state.market.npcBuyOrders.map((o) => o.item)).toEqual(BID_ITEMS);

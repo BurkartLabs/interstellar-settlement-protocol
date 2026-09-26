@@ -171,6 +171,18 @@
       "name": "Catalyst Substrates",
       "tier": 3,
       "category": "refined"
+    },
+    {
+      "id": "rare-earth-magnets",
+      "name": "Rare-Earth Magnets",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "thorium-fuel-rods",
+      "name": "Thorium Fuel Rods",
+      "tier": 3,
+      "category": "refined"
     }
   ]
 }

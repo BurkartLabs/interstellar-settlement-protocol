@@ -69,7 +69,14 @@ const BEFORE_THE_MOVE = {
     { item: "Armour Plating", buyer: "Olympus Heavy Industries", unitPrice: 118, dailyQty: 103 },
     { item: "Precision Frames", buyer: "Olympus Heavy Industries", unitPrice: 94, dailyQty: 86 },
     { item: "Carbon Fibre Sheets", buyer: "Tycho Carbon Works", unitPrice: 21, dailyQty: 480 },
-    { item: "Graphene Lattice", buyer: "Tycho Carbon Works", unitPrice: 37, dailyQty: 180 }
+    { item: "Graphene Lattice", buyer: "Tycho Carbon Works", unitPrice: 37, dailyQty: 180 },
+    // AB#832: the Rare Metals track's bids (tier3-recipes.md section 4), all to Synthorium Trading House.
+    { item: "Thorium", buyer: "Synthorium Trading House", unitPrice: 160, dailyQty: 7000 },
+    { item: "Cobalt", buyer: "Synthorium Trading House", unitPrice: 110, dailyQty: 7000 },
+    { item: "Sensor Arrays", buyer: "Synthorium Trading House", unitPrice: 215, dailyQty: 54 },
+    { item: "Catalyst Substrates", buyer: "Synthorium Trading House", unitPrice: 215, dailyQty: 36 },
+    { item: "Rare-Earth Magnets", buyer: "Synthorium Trading House", unitPrice: 276, dailyQty: 120 },
+    { item: "Thorium Fuel Rods", buyer: "Synthorium Trading House", unitPrice: 552, dailyQty: 30 }
   ]
 };
 

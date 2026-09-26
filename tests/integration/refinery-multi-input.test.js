@@ -47,7 +47,8 @@ async function refiner(stock) {
 }
 
 describe("the six chains in data run exactly as before (AB#825)", () => {
-  it.each(REFINERY_CHAINS_DATA.chains.map((c) => [c.id, c]))("%s: takes its one input, runs its hours, delivers its outputs", async (_, chain) => {
+  // AB#832: the one-input chains in data; the tracks' several-input chains are the rest of this file's subject.
+  it.each(REFINERY_CHAINS_DATA.chains.filter((c) => c.inputs.length === 1).map((c) => [c.id, c]))("%s: takes its one input, runs its hours, delivers its outputs", async (_, chain) => {
     const [{ item, quantityPerCycle: per }] = chain.inputs;
     const qty = refineMinimum(per);
     const batches = qty / per;

@@ -27,7 +27,9 @@ const graph = tableRows(between(DOC, "## 2.", "## 3.")).map(([id, track, stage, 
 }));
 const rawRows = tableRows(between(DOC, "### Raw items", "### Products"));
 const productRows = tableRows(between(DOC, "### Products", "## 5."));
-const newNodes = tableRows(between(DOC, "## 3.", "## 4.")).map(([id, , , needs]) => ({ id: ticked(id)[0], needs: ticked(needs) }));
+const newNodes = tableRows(between(DOC, "## 3.", "## 4.")).map(([id, name, tier, needs, cost, hours]) => ({
+  id: ticked(id)[0], name, tier: Number(tier), needs: ticked(needs), cost: Number(String(cost).replace(/,/g, "")), hours: Number(hours)
+}));
 
 const bids = Object.fromEntries(ECONOMY.npcBuyers.map((b) => [b.item, b.unitPrice]));
 const base = { ...bids };
@@ -40,8 +42,10 @@ const madeBy = new Map(graph.flatMap((c) => c.outputs.map(([item]) => [item, c])
 const value = (list, price) => list.reduce((s, [item, q]) => s + q * price(item), 0);
 
 describe("the v0.8 recipe graph (AB#823)", () => {
-  it("has the six chains in data unchanged and thirteen new ones", () => {
-    expect(graph.filter((c) => !c.isNew).map((c) => c.id).sort()).toEqual(CHAINS.map((c) => c.id).sort());
+  it("has the six chains in data unchanged and thirteen new ones, each in data only as the table gives it", () => {
+    // The six are in data; a new chain is in data once its track lands (AB#832 onward), and then exactly as designed.
+    for (const id of graph.filter((c) => !c.isNew).map((c) => c.id)) expect(CHAINS.map((c) => c.id), id).toContain(id);
+    for (const c of CHAINS) expect(graph.map((g) => g.id), c.id).toContain(c.id);
     expect(graph.filter((c) => c.isNew)).toHaveLength(13);
     for (const c of CHAINS) {
       const g = graph.find((x) => x.id === c.id);
@@ -69,7 +73,9 @@ describe("the v0.8 recipe graph (AB#823)", () => {
 
   it("prices every raw item and product: bids that exist are kept, bases follow the 1.15 rule, floors are npcBidFor's", () => {
     for (const [item, , , today, b, f] of rawRows) {
-      if (bids[item] !== undefined) expect(Number(today), item).toBe(bids[item]);
+      // A bid in data is the design's base: today's bid for the items that had one, the new base once a track lands.
+      if (bids[item] !== undefined) expect(bids[item], item).toBe(Number(b));
+      if (Number.isFinite(Number(today))) expect(Number(today), item).toBe(Number(b));
       expect(Number(f), item).toBe(floorOf(item));
       expect(catalogueRaw.has(item), item).toBe(true);
     }
@@ -111,8 +117,11 @@ describe("the v0.8 recipe graph (AB#823)", () => {
     const designed = new Set(newNodes.map((n) => n.id));
     for (const c of graph) for (const id of c.research) expect(existing.has(id) || designed.has(id), `${c.id}: ${id}`).toBe(true);
     for (const n of newNodes) {
-      expect(existing.has(n.id), `${n.id} is new`).toBe(false);
       for (const p of n.needs) expect(existing.has(p), `${n.id} needs ${p}`).toBe(true);
+      // Absent until its track lands; then exactly as section 3 gives it.
+      const node = RESEARCH.find((x) => x.id === n.id);
+      if (node) expect({ name: node.name, tier: node.tier, prereqs: node.prereqs, cost: node.costCredits, hours: node.durationHours }, n.id)
+        .toEqual({ name: n.name, tier: n.tier, prereqs: n.needs, cost: n.cost, hours: n.hours });
     }
   });
 

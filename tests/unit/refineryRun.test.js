@@ -5,6 +5,8 @@ import { refineMinimum, refineQuantityCheck } from "../../public/scripts/refineQ
 
 // ISP-131 (AB#825): a chain takes `inputs`, one or several; a start takes every one in full or is refused whole.
 const CHAINS = JSON.parse(readFileSync(new URL("../../data/refinery-chains.json", import.meta.url), "utf8")).chains;
+// AB#832: the tracks bring chains with several inputs; the one-input rules below are held for the chains with one.
+const ONE_INPUT = CHAINS.filter((c) => c.inputs.length === 1);
 const ALLOY = {
   id: "alloy",
   inputs: [{ item: "Iron Ore", quantityPerCycle: 150 }, { item: "Nickel", quantityPerCycle: 50 }],
@@ -14,9 +16,10 @@ const ALLOY = {
 const stock = (held) => (item) => held[item] ?? 0;
 
 describe("a chain's inputs", () => {
-  it("every chain in data has a list of one, with a whole quantity", () => {
+  it("every chain in data has a list of one or more different items, each with a whole quantity", () => {
+    expect(CHAINS.some((c) => c.inputs.length > 1)).toBe(true); // magnet-chain (AB#832)
     for (const c of CHAINS) {
-      expect(chainInputs(c), c.id).toHaveLength(1);
+      expect(chainInputs(c), c.id).toHaveLength(c.inputs.length);
       expect(c.input, `${c.id} keeps no legacy field`).toBeUndefined();
       expect(c.inputQuantityPerCycle, c.id).toBeUndefined();
     }
@@ -47,14 +50,15 @@ describe("how long a run may be", () => {
   });
 
   it("starts at the one-input chains' 100 units, and at one batch of several inputs", () => {
-    for (const c of CHAINS) expect(minBatches(c) * c.inputs[0].quantityPerCycle, c.id).toBe(refineMinimum(c.inputs[0].quantityPerCycle));
+    for (const c of ONE_INPUT) expect(minBatches(c) * c.inputs[0].quantityPerCycle, c.id).toBe(refineMinimum(c.inputs[0].quantityPerCycle));
     expect(minBatches(ALLOY)).toBe(1);
+    for (const c of CHAINS.filter((x) => x.inputs.length > 1)) expect(minBatches(c), c.id).toBe(1);
   });
 });
 
 describe("a one-input chain runs exactly as before (AB#1255's rule)", () => {
-  it("gives the same batches, debit and refusals as refineQuantityCheck, for every chain", () => {
-    for (const c of CHAINS) {
+  it("gives the same batches, debit and refusals as refineQuantityCheck, for every one-input chain", () => {
+    for (const c of ONE_INPUT) {
       const { item, quantityPerCycle: per } = c.inputs[0];
       for (const q of [0, 5, per, refineMinimum(per), refineMinimum(per) + 1, refineMinimum(per) + per, "abc", "", -per]) {
         const before = refineQuantityCheck(q, { perCycle: per, input: item });
