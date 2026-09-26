@@ -20,7 +20,9 @@ const PUBLIC = {
   "GET /api/mission-agents": "a static catalog",
   "GET /api/research": "a static catalog",
   "POST /api/auth/verify-email": "spending a verification token, which is itself the credential (AB#987)",
-  "POST /api/auth/resend-verification": "asking for a new verification link before anyone can sign in; rate-limited, one answer for every address (AB#987)"
+  "POST /api/auth/resend-verification": "asking for a new verification link before anyone can sign in; rate-limited, one answer for every address (AB#987)",
+  "POST /api/auth/forgot-password": "asking for a password-reset link by someone who cannot sign in; rate-limited, one answer for every address (AB#988)",
+  "POST /api/auth/reset-password": "spending a reset token, which is itself the credential (AB#988)"
 };
 
 /** Routes that exist only when ISP_DEV=1 outside production (the test process sets it); they answer without a login by design. */
