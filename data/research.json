@@ -78,6 +78,17 @@
       "category": "Refining"
     },
     {
+      "id": "tt-ferrous-metallurgy",
+      "name": "Ferrous Metallurgy",
+      "effect": "Unlocks the Nickel-Iron smelting and Pressure Vessel refinery chains",
+      "description": "Blast-free reduction of iron ore with belt nickel into a Nickel-Iron alloy, and the forging of that alloy into pressure vessels. The metals half of the v0.8 production tracks.",
+      "durationHours": 10,
+      "costCredits": 8000,
+      "prereqs": ["tt-material-compression"],
+      "tier": 2,
+      "category": "Refining"
+    },
+    {
       "id": "tt-containment-physics",
       "name": "Containment Physics I",
       "effect": "Unlocks the Helium-3 and cryogenics refinery chains",

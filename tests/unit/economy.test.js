@@ -84,7 +84,13 @@ const BEFORE_THE_MOVE = {
     { item: "Bauxite", buyer: "Belt Refining Cooperative", unitPrice: 14, dailyQty: 7000 },
     { item: "Aluminium Ingots", buyer: "Olympus Heavy Industries", unitPrice: 64, dailyQty: 240 },
     { item: "Aluminium-Lithium Alloy", buyer: "Olympus Heavy Industries", unitPrice: 114, dailyQty: 160 },
-    { item: "Battery Cells", buyer: "Synthorium Trading House", unitPrice: 123, dailyQty: 120 }
+    { item: "Battery Cells", buyer: "Synthorium Trading House", unitPrice: 123, dailyQty: 120 },
+    // AB#831: the Nickel-Iron track's raw item and products (docs/design/tier3-recipes.md section 4).
+    { item: "Iron Ore", buyer: "Belt Refining Cooperative", unitPrice: 10, dailyQty: 7000 },
+    { item: "Nickel-Iron Alloy", buyer: "Belt Refining Cooperative", unitPrice: 35, dailyQty: 384 },
+    { item: "Pressure Vessels", buyer: "Olympus Heavy Industries", unitPrice: 129, dailyQty: 100 },
+    { item: "Structural Alloys", buyer: "Belt Refining Cooperative", unitPrice: 25, dailyQty: 288 },
+    { item: "Magnetic Cores", buyer: "Belt Refining Cooperative", unitPrice: 50, dailyQty: 96 }
   ]
 };
 

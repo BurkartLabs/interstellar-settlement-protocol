@@ -4,6 +4,7 @@
     "Helium-3",
     "Deuterium",
     "Nickel",
+    "Iron Ore",
     "Titanium",
     "Carbon",
     "Water Ice",
@@ -179,6 +180,35 @@
       "requiresTechIds": ["tt-light-metal-electrolysis"],
       "stage": 1,
       "category": "Light Metals"
+    },
+    {
+      "id": "smelting-chain",
+      "inputs": [
+        { "item": "Iron Ore", "quantityPerCycle": 150 },
+        { "item": "Nickel", "quantityPerCycle": 50 }
+      ],
+      "outputs": [
+        { "item": "Nickel-Iron Alloy", "quantityPerCycle": 80 }
+      ],
+      "cycleDurationHours": 5,
+      "requiresResearch": ["Ferrous Metallurgy"],
+      "requiresTechIds": ["tt-ferrous-metallurgy"],
+      "stage": 1,
+      "category": "Metal Smelting"
+    },
+    {
+      "id": "pressure-vessel-chain",
+      "inputs": [
+        { "item": "Nickel-Iron Alloy", "quantityPerCycle": 80 }
+      ],
+      "outputs": [
+        { "item": "Pressure Vessels", "quantityPerCycle": 25 }
+      ],
+      "cycleDurationHours": 6,
+      "requiresResearch": ["Ferrous Metallurgy"],
+      "requiresTechIds": ["tt-ferrous-metallurgy"],
+      "stage": 2,
+      "category": "Metal Processing"
     }
   ]
 }

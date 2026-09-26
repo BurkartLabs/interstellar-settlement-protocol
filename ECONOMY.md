@@ -80,8 +80,8 @@ question in the retune (AB#728).
 | `salvage.hoursRequired` | 4 | How long the Assignment takes: paid in time served, not delivered quota, so nothing the player sets — throughput, research, a lever of any kind — changes how fast it pays (T-018). |
 | `salvage.payoutCredits` | 3,000 | The flat payout: exactly the threshold above, so completing one contract is enough to be offered a real one again, not two. |
 | `salvage.cooldownHours` | 8 | How long after completion before another is offered, so it is a stopgap and not a standing income. |
-| `npcBuyers.unitPrice` | Silicates 24, Helium-3 92, Nickel 18, Titanium 64, Carbon 12, Rare Earths 140; products (AB#2341): Aerogel 41, Quantum Insulators 74, Armour Plating 118, Precision Frames 94, Carbon Fibre Sheets 21, Graphene Lattice 37; the Fuel track (AB#830, all the Lunar Helium Consortium's): Deuterium 40, Water Ice 8, Hydrogen 6, Plasma Conduits 159, Dark-Matter Capacitors 423, Fusion Pellets 198, Cryogenic Coolant 54; the Light Metals track (AB#833): Lithium 70, Bauxite 14, Aluminium Ingots 64, Aluminium-Lithium Alloy 114, Battery Cells 123 | The standing bids. They are the only steady faucet of new credits in the game (see below). Silicates at 24 is the one a first session sells into. No derivation is recorded for any of them. |
-| `npcBuyers.dailyQty` | Silicates 1,000,000, Helium-3 250,000, Nickel 750,000, Titanium 400,000, Carbon 1,500,000, Rare Earths 120,000; products: Aerogel 240, Quantum Insulators 90, Armour Plating 103, Precision Frames 86, Carbon Fibre Sheets 480, Graphene Lattice 180; the Fuel track (AB#830): Deuterium, Water Ice and Hydrogen 7,000 each (the raw quota), Plasma Conduits 80, Dark-Matter Capacitors 20, Fusion Pellets 160, Cryogenic Coolant 360; the Light Metals track (AB#833): Lithium and Bauxite 7,000 each, Aluminium Ingots 240, Aluminium-Lithium Alloy 160, Battery Cells 120 (products: a day of one Refinery's output, docs/design/tier3-recipes.md section 4; the bid still moves on `npcBid.quotaPerDay` until npcBidFor takes a per-item quota) | How much each buyer takes a day. One extractor at 250 t/h makes 6,000 a day, 0.6% of the Silicates bid, so in practice the bid has no bottom (DEPTH.md, review #1, epic 3). |
+| `npcBuyers.unitPrice` | Silicates 24, Helium-3 92, Nickel 18, Titanium 64, Carbon 12, Rare Earths 140; products (AB#2341): Aerogel 41, Quantum Insulators 74, Armour Plating 118, Precision Frames 94, Carbon Fibre Sheets 21, Graphene Lattice 37; the Fuel track (AB#830, all the Lunar Helium Consortium's): Deuterium 40, Water Ice 8, Hydrogen 6, Plasma Conduits 159, Dark-Matter Capacitors 423, Fusion Pellets 198, Cryogenic Coolant 54; the Light Metals track (AB#833): Lithium 70, Bauxite 14, Aluminium Ingots 64, Aluminium-Lithium Alloy 114, Battery Cells 123; the Nickel-Iron track (AB#831): Iron Ore 10, Nickel-Iron Alloy 35, Pressure Vessels 129, Structural Alloys 25, Magnetic Cores 50 | The standing bids. They are the only steady faucet of new credits in the game (see below). Silicates at 24 is the one a first session sells into. No derivation is recorded for any of them. |
+| `npcBuyers.dailyQty` | Silicates 1,000,000, Helium-3 250,000, Nickel 750,000, Titanium 400,000, Carbon 1,500,000, Rare Earths 120,000; products: Aerogel 240, Quantum Insulators 90, Armour Plating 103, Precision Frames 86, Carbon Fibre Sheets 480, Graphene Lattice 180; the Fuel track (AB#830): Deuterium, Water Ice and Hydrogen 7,000 each (the raw quota), Plasma Conduits 80, Dark-Matter Capacitors 20, Fusion Pellets 160, Cryogenic Coolant 360; the Light Metals track (AB#833): Lithium and Bauxite 7,000 each, Aluminium Ingots 240, Aluminium-Lithium Alloy 160, Battery Cells 120; the Nickel-Iron track (AB#831): Iron Ore 7,000, Nickel-Iron Alloy 384, Pressure Vessels 100, Structural Alloys 288, Magnetic Cores 96 (products: a day of one Refinery's output, docs/design/tier3-recipes.md section 4; the bid still moves on `npcBid.quotaPerDay` until npcBidFor takes a per-item quota) | How much each buyer takes a day. One extractor at 250 t/h makes 6,000 a day, 0.6% of the Silicates bid, so in practice the bid has no bottom (DEPTH.md, review #1, epic 3). |
 
 `npcBuyers.item` and `npcBuyers.buyer` are the only words in the file: which good and who buys it.
 
@@ -225,6 +225,32 @@ gets tomorrow - and a corporation that did not sell finds the market where it le
 What this is for: at 40,000 units a day and a bid that falls as you sell, a second corporation's listing becomes
 worth buying, and a seller with more than a day's quota has a reason to list rather than dump. The suggested price
 on Create Listing no longer floors itself at the NPC bid, so a glutted market can be listed below it.
+
+## The Nickel-Iron track: refining against selling raw (AB#831)
+
+Arithmetic from data, not play. Bids at base and at floor (`npcBid.floorPct` 55%, as `npcBidFor` rounds it); the
+exchange's sales tax takes the same share of either sale, so it scales both columns and changes no sign. Gain is what
+a cycle's outputs fetch minus what its inputs would have fetched sold raw, per hour the Refinery is busy.
+
+| Chain | Inputs sold raw | Outputs sold | Gain per refinery-hour |
+| --- | --- | --- | --- |
+| `smelting-chain` (5 h): 150 Iron Ore + 50 Nickel → 80 Nickel-Iron Alloy | base 2,400; floor 1,400 | base 2,800; floor 1,520 | both at base +80; both at floor +24; inputs at base, alloy at floor −176 |
+| `pressure-vessel-chain` (6 h): 80 Nickel-Iron Alloy → 25 Pressure Vessels | base 2,800; floor 1,520 | base 3,225; floor 1,775 | both at base +71; both at floor +43; alloy at base, vessels at floor −171 |
+
+So refining pays when the Refinery is free and the inputs' bids have fallen below the outputs' value, and loses when
+the product's bid is the one that has fallen: docs/design/tier3-recipes.md section 5's rule, with its numbers.
+
+**Mars now mines Iron Ore.** With Light Metals (AB#833) and this track both built, Mars has the design's whole profile,
+Silicates 60, Iron Ore 30, Bauxite 10 (docs/design/tier3-resources.md section 3). Sold raw, a ton from a Mars yard
+fetches `0.6 × 24 + 0.3 × 10 + 0.1 × 14 = 18.8` at base bids, against 23.0 with Light Metals alone (Silicates 90,
+Bauxite 10) and 24 before either: 18% and 22% less. At floors it is `0.6 × 13 + 0.3 × 6 + 0.1 × 8 = 10.4` against
+12.5 and 13. A Mars lease pays back more slowly for a corporation that sells raw, until it smelts. Earth is unchanged.
+
+The runway probe (ops/probes/isp-runway.ts, seed 7000, 30 bot days; bot numbers, P-PROXY) was run before AB#833 merged,
+on main then (Mars all Silicates) and with this track (Mars 70:30). It printed the same figures except Mars' yards
+mining 613 units instead of 614. That is not evidence the change is
+harmless: only the expander leases Mars, it mines 613 units there in 30 days against Earth's 11,644, and no bot sells
+Iron Ore or smelts. The probe cannot see Mars' lower raw value; a bot that plays this track is AB#835's.
 
 ## Faucets and sinks
 
