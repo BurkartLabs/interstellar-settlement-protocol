@@ -10,6 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { verifyAndLogIn } from "./verification.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -24,7 +25,7 @@ const VIEWPORTS = [
 function startServer(dir) {
   const child = spawn(process.execPath, ["server/index.js"], {
     cwd: REPO_ROOT,
-    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", NODE_ENV: "test", JWT_SECRET: SECRET, ISP_DEV: "" },
+    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", NODE_ENV: "test", JWT_SECRET: SECRET, ISP_DEV: "1" },
     stdio: ["ignore", "pipe", "pipe"]
   });
   return new Promise((resolve, reject) => {
@@ -65,6 +66,7 @@ for (const vp of VIEWPORTS) {
         await page.fill("#register-ceo", "Typewriter QA");
         await page.fill("#register-corp", `Typewriter Corp ${stamp}`);
         await page.click('#register-form button[type="submit"]');
+        await verifyAndLogIn(page, url, `typewriter-${stamp}@example.test`, "playtest-password-not-real"); // AB#2288: verify, then log in
         await page.waitForURL(/\/\?account=/);
 
         // 1. The first-day offer, typing: a click (desktop) or a tap (phone) finishes it.

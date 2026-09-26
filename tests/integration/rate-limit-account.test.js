@@ -4,6 +4,7 @@
 // NODE_ENV=test defaults from server/rateLimiters.js.
 import { describe, it, expect, beforeAll } from "vitest";
 import request from "supertest";
+import { verifyEmailFor } from "../helpers/api.js";
 
 process.env.ISP_RATE_LIMIT_LOGIN_IP_MAX = "1000";
 process.env.ISP_RATE_LIMIT_LOGIN_ACCOUNT_MAX = "3";
@@ -26,6 +27,7 @@ async function register(email) {
     corpName: `LockoutCorp-${unique()}`
   });
   expect(res.status).toBe(201);
+  await verifyEmailFor(app, email); // AB#2288: these accounts log in, so they verify first
 }
 
 describe("per-account login lockout (ISP-64)", () => {

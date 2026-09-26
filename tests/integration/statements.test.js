@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import request from "supertest";
 import { getApp } from "../helpers/app.js";
-import { registerAccount, authed } from "../helpers/api.js";
+import { registerAccount, authed, verifyEmailOnServer } from "../helpers/api.js";
 import { mutateAccountState, getAccountById } from "../../server/gameState.js";
 import { DAY_MS, utcDayStart } from "../../server/finances.js";
 
@@ -80,7 +80,7 @@ afterAll(() => { for (const child of children) child.kill(); });
 function startServer(dir) {
   const child = spawn(process.execPath, ["server/index.js"], {
     cwd: repo,
-    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", ISP_DISABLE_TICKERS: "1", ISP_DEV: "", NODE_ENV: "test", JWT_SECRET: "statements-test-secret-0123456789abcdef" },
+    env: { ...process.env, ISP_DATA_DIR: dir, PORT: "0", ISP_DISABLE_TICKERS: "1", ISP_DEV: "1", NODE_ENV: "test", JWT_SECRET: "statements-test-secret-0123456789abcdef" },
     stdio: ["ignore", "pipe", "pipe"]
   });
   children.push(child);
@@ -98,6 +98,11 @@ function startServer(dir) {
   });
 }
 
+/** AB#2288: registration no longer answers with the account, so its id is read from the saved snapshot. */
+const idIn = (snapshot, email) => {
+  const saved = JSON.parse(fs.readFileSync(snapshot, "utf8"));
+  return Object.values(saved.accounts || saved).find((a) => a?.email === email)?.id;
+};
 const waitFor = async (check) => { for (let i = 0; i < 50 && !check(); i++) await new Promise((r) => setTimeout(r, 100)); };
 
 describe("statements survive a restart (AB#713)", () => {
@@ -109,8 +114,9 @@ describe("statements survive a restart (AB#713)", () => {
     const first = await startServer(dir);
     const reg = await request(first.url).post("/api/auth/register").send(who);
     expect(reg.status).toBe(201);
-    const id = reg.body.account.id;
-    await waitFor(() => fs.existsSync(snapshot) && fs.readFileSync(snapshot, "utf8").includes(who.email));
+    await verifyEmailOnServer(first.url, who.email); // AB#2288: a new account logs in once verified
+    await waitFor(() => fs.existsSync(snapshot) && fs.readFileSync(snapshot, "utf8").includes('"emailVerifiedAt"'));
+    const id = idIn(snapshot, who.email);
     first.child.kill();
 
     // While it was stopped a day went by with a book open: the fake clock is a book dated yesterday.
@@ -144,8 +150,10 @@ describe("statements survive a restart (AB#713)", () => {
     const snapshot = path.join(dir, "accounts-snapshot.json");
     const who = { email: `migrate-${Date.now()}@example.com`, password: "supersecret123", ceoName: "Old Save", corpName: `Old Save ${Date.now() % 100000}` };
     const first = await startServer(dir);
-    const id = (await request(first.url).post("/api/auth/register").send(who)).body.account.id;
-    await waitFor(() => fs.existsSync(snapshot) && fs.readFileSync(snapshot, "utf8").includes(who.email));
+    expect((await request(first.url).post("/api/auth/register").send(who)).status).toBe(201);
+    await verifyEmailOnServer(first.url, who.email); // AB#2288
+    await waitFor(() => fs.existsSync(snapshot) && fs.readFileSync(snapshot, "utf8").includes('"emailVerifiedAt"'));
+    const id = idIn(snapshot, who.email);
     first.child.kill();
 
     // The first version of AB#713 kept statements inside the account.

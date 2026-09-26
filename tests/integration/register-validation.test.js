@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import request from "supertest";
 import { getApp } from "../helpers/app.js";
+import { storedAccountByEmail, verifyEmailFor } from "../helpers/api.js";
 import { EMAIL_MAX_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, CEO_NAME_MAX_LENGTH, CEO_NAME_MIN_LENGTH } from "../../server/game/store.js";
 
 let seq = 0;
@@ -70,9 +71,10 @@ describe("POST /api/auth/register field validation (ISP-66)", () => {
       const res = await request(app).post("/api/auth/register").send(good({ ceoName }));
       expect(res.status, `len ${ceoName.length}`).toBe(201);
     }
-    const spaced = await request(app).post("/api/auth/register").send(good({ ceoName: "  Alex   Rivera  " }));
+    const body = good({ ceoName: "  Alex   Rivera  " });
+    const spaced = await request(app).post("/api/auth/register").send(body);
     expect(spaced.status).toBe(201);
-    expect(spaced.body.account.state.corp.ceo).toBe("Alex Rivera");
+    expect((await storedAccountByEmail(body.email)).account.state.corp.ceo).toBe("Alex Rivera");
   });
 
   it("never echoes the password back, in a rejection or otherwise", async () => {
@@ -84,13 +86,17 @@ describe("POST /api/auth/register field validation (ISP-66)", () => {
 
   it("only email, password hash and names are stored — no other field a hostile body adds is written", async () => {
     const { app } = await getApp();
-    const res = await request(app)
-      .post("/api/auth/register")
-      .send({ ...good(), admin: true, level: 99, credits: 1_000_000 });
+    const body = { ...good(), admin: true, level: 99, credits: 1_000_000 };
+    const res = await request(app).post("/api/auth/register").send(body);
     expect(res.status).toBe(201);
-    expect(res.body.account).not.toHaveProperty("admin");
-    expect(res.body.account.state.corp.level).toBe(0);
-    expect(res.body.account.state.corp.finances.credits).not.toBe(1_000_000);
+    expect(res.body).toEqual({ verificationSent: true }); // AB#2288: nothing of the account comes back
+    const { account, raw } = await storedAccountByEmail(body.email);
+    for (const field of ["admin", "level", "credits"]) {
+      expect(account).not.toHaveProperty(field);
+      expect(raw).not.toHaveProperty(field);
+    }
+    expect(account.state.corp.level).toBe(0);
+    expect(account.state.corp.finances.credits).not.toBe(1_000_000);
   });
 });
 
@@ -134,6 +140,7 @@ describe("POST /api/auth/login compares strings only (Bug #2050)", () => {
     const { app } = await getApp();
     const body = good({ password: "[object Object]" }); // 15 characters, a legitimate password typed as text
     expect((await request(app).post("/api/auth/register").send(body)).status).toBe(201);
+    await verifyEmailFor(app, body.email); // AB#2288: a new account logs in once verified
     expect((await request(app).post("/api/auth/login").send({ email: body.email, password: "[object Object]" })).status).toBe(200);
     for (const password of [{ x: 1 }, {}, ["[object Object]"], 12345, true]) {
       const res = await request(app).post("/api/auth/login").send({ email: body.email, password });

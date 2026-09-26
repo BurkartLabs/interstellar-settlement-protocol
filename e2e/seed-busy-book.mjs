@@ -11,11 +11,14 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "busy-book-e2e-fixture-secret
 process.env.NODE_ENV = "test";
 
 const store = await import("../server/gameState.js");
+const { issueVerificationToken, verifyEmailToken } = await import("../server/emailVerification.js");
 const { account: buyer } = await store.createAccount({ email, password, ceoName: "Buyer QA", corpName: `Buyer QA Corp ${Date.now()}` });
+verifyEmailToken(issueVerificationToken(buyer.id)); // AB#2288: a player who can log in has verified
 store.markWalkthroughCompleted(buyer.id);
 const { account: seller } = await store.createAccount({
   email: `seller-${email}`, password, ceoName: "Seller QA", corpName: `Seller QA Corp ${Date.now()}`
 });
+verifyEmailToken(issueVerificationToken(seller.id)); // AB#2288: a player who can log in has verified
 const now = Date.now();
 const orders = Array.from({ length: Number(listings) }, (_, i) => ({
   id: `ord-${randomUUID()}`, type: "sell", item: "Silicates", quantity: 1, unitPrice: 41 + i,

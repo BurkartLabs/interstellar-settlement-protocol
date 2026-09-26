@@ -5,6 +5,7 @@
 //   const { agent, account, accessToken } = await registerAccount(app);
 
 import request from "supertest";
+import { testOutbox } from "../../server/mail.js";
 
 let registerSeq = 0;
 
@@ -13,9 +14,62 @@ export function freshAgent(app) {
 }
 
 /**
- * Register a brand-new account through the live HTTP route and return the
+ * AB#2288: follow the newest verification link the test transport captured for this address, as a player follows it
+ * from their mail. Throws if there is none or it does not verify.
+ */
+export async function verifyEmailFor(app, email) {
+  const mail = testOutbox().filter((m) => m.to === String(email).trim().toLowerCase() && /verify-email\.html#token=/.test(m.text)).at(-1);
+  const token = mail?.text.match(/#token=([A-Za-z0-9_-]+)/)?.[1];
+  if (!token) throw new Error("verifyEmailFor: no verification link in the test outbox for that address");
+  const res = await request(app).post("/api/auth/verify-email").send({ token });
+  if (res.status !== 200) throw new Error(`verifyEmailFor: ${res.status} ${JSON.stringify(res.body)}`);
+}
+
+/**
+ * AB#2288: the same, against a server running in its own process (its outbox is there, not in this one), read through
+ * GET /api/dev/outbox; the server must be started with ISP_DEV=1.
+ */
+export async function verifyEmailOnServer(url, email) {
+  const outbox = await request(url).get("/api/dev/outbox");
+  if (outbox.status !== 200) throw new Error(`verifyEmailOnServer: GET /api/dev/outbox answered ${outbox.status}; start the server with ISP_DEV=1`);
+  const mail = outbox.body.messages.filter((m) => m.to === String(email).trim().toLowerCase() && /verify-email\.html#token=/.test(m.text)).at(-1);
+  const token = mail?.text.match(/#token=([A-Za-z0-9_-]+)/)?.[1];
+  if (!token) throw new Error("verifyEmailOnServer: no verification link in that server's outbox for that address");
+  const res = await request(url).post("/api/auth/verify-email").send({ token });
+  if (res.status !== 200) throw new Error(`verifyEmailOnServer: ${res.status} ${JSON.stringify(res.body)}`);
+}
+
+/**
+ * AB#2288: registration answers with no account, so a test that checks what registering stored reads it here: the
+ * account as the API shows it (getAccountById), found by the email it was registered with, and the raw stored record.
+ */
+export async function storedAccountByEmail(email) {
+  const { accountsStore, getAccountById } = await import("../../server/game/store.js");
+  const raw = Object.values(accountsStore.accounts).find((a) => a.email === String(email).trim().toLowerCase());
+  return raw ? { account: getAccountById(raw.id), raw } : { account: undefined, raw: undefined };
+}
+
+/**
+ * AB#2288: register an account and stop there, unverified and without a session, as a player is between registering
+ * and opening the link. Returns what it registered with and the new account's id.
+ */
+export async function registerUnverified(app, overrides = {}) {
+  registerSeq += 1;
+  const unique = `${Date.now()}-${registerSeq}-${Math.random().toString(36).slice(2, 6)}`;
+  const body = { email: `unverified+${unique}@example.com`, password: "supersecret123", ceoName: "Test CEO", corpName: `Unverified-${unique}`, ...overrides };
+  const res = await request(app).post("/api/auth/register").send(body);
+  if (res.status !== 201) throw new Error(`registerUnverified failed: ${res.status} ${JSON.stringify(res.body)}`);
+  const { accountsStore } = await import("../../server/game/store.js");
+  const id = Object.values(accountsStore.accounts).find((a) => a.email === body.email.trim().toLowerCase())?.id;
+  return { body, email: body.email.trim().toLowerCase(), id };
+}
+
+/**
+ * Register a brand-new account through the live HTTP routes and return the
  * resulting account + tokens. Each call uses a unique email so multiple
- * accounts can coexist in the same test run.
+ * accounts can coexist in the same test run. AB#2288: registration gives no
+ * session, so this registers, follows the verification link from the test
+ * outbox, and logs in; `response` is the login's, which carries the session.
  */
 export async function registerAccount(app, overrides = {}) {
   registerSeq += 1;
@@ -27,14 +81,20 @@ export async function registerAccount(app, overrides = {}) {
     corpName: `TestCorp-${unique}`,
     ...overrides
   };
-  const res = await request(app).post("/api/auth/register").send(body);
-  if (res.status !== 200 && res.status !== 201) {
+  const registered = await request(app).post("/api/auth/register").send(body);
+  if (registered.status !== 201) {
     throw new Error(
-      `registerAccount failed: ${res.status} ${JSON.stringify(res.body)}`
+      `registerAccount failed: ${registered.status} ${JSON.stringify(registered.body)}`
     );
+  }
+  await verifyEmailFor(app, body.email);
+  const res = await request(app).post("/api/auth/login").send({ email: body.email, password: body.password });
+  if (res.status !== 200) {
+    throw new Error(`registerAccount: login after verifying failed: ${res.status} ${JSON.stringify(res.body)}`);
   }
   return {
     body,
+    registered,
     response: res,
     account: res.body.account,
     accessToken: res.body.accessToken,
