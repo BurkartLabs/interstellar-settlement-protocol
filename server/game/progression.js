@@ -3,7 +3,7 @@
 import { ECONOMY } from "../economy.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
 import { taxBreakdown } from "../../public/scripts/exchangeTax.js";
-import { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, REQ_ID_TO_TITLE, createId } from "./catalog.js";
+import { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, LEVEL_UNLOCK_KEYS, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, REQ_ID_TO_TITLE, createId } from "./catalog.js";
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
 // The base rate is in data/economy.json (AB#726); the ISA lease royalty adds to it by leases held (ISP-302, AB#2285);
@@ -150,6 +150,29 @@ export function fleetRaiseText(raises) {
   return parts.length ? `${parts.join("; ")}.` : "This is the highest Fleet Cap in this build.";
 }
 
+/**
+ * ISP-104 (AB#796): what each unlock key does to a corporation, one applier per LEVEL_UNLOCK_KEYS entry. Each merges
+ * upward: a level never lowers a value the corporation already has (a larger cap from research or a later level, a
+ * sector opened another way), so evaluating again, or in any order, is harmless.
+ */
+const raise = (current, value) => Math.max(Number(current) || 0, Number(value) || 0);
+export const UNLOCK_APPLIERS = Object.freeze({
+  employeeCap: (corp, v) => { corp.employeeCap = raise(corp.employeeCap, v); },
+  buildingSlots: (corp, v) => { corp.buildingSlots = raise(corp.buildingSlots, v); },
+  maxFleetSize: (corp, v) => { corp.unlocks.maxFleetSize = raise(corp.unlocks.maxFleetSize, v); },
+  // AB#793: the highest building tier this level allows (docs/design/upgrades.md), never below 1.
+  maxUpgradeTier: (corp, v) => { corp.unlocks.maxUpgradeTier = Math.max(1, raise(corp.unlocks.maxUpgradeTier, v)); },
+  marketSectors: (corp, v) => {
+    if (!Array.isArray(corp.unlocks.marketSectors)) corp.unlocks.marketSectors = [];
+    for (const sector of Array.isArray(v) ? v : []) if (!corp.unlocks.marketSectors.includes(sector)) corp.unlocks.marketSectors.push(sector);
+  }
+});
+{
+  const missing = LEVEL_UNLOCK_KEYS.filter((k) => !UNLOCK_APPLIERS[k]);
+  const extra = Object.keys(UNLOCK_APPLIERS).filter((k) => !LEVEL_UNLOCK_KEYS.includes(k));
+  if (missing.length || extra.length) throw new Error(`Unlock appliers and LEVEL_UNLOCK_KEYS differ (AB#796): missing ${missing.join(", ") || "none"}, extra ${extra.join(", ") || "none"}.`);
+}
+
 export function evaluateLevelProgress(profileState) {
   const corp = profileState.corp;
   corp.levelCap = MAX_DEFINED_LEVEL; // Bug #424: saves carried a literal 40
@@ -204,19 +227,9 @@ export function evaluateLevelProgress(profileState) {
     if (!corp.milestonesCompleted.includes(tag)) {
       corp.milestonesCompleted.push(tag);
     }
-    const u = levelDef.unlocks;
-    if (u.employeeCap) corp.employeeCap = Math.max(corp.employeeCap, u.employeeCap);
-    if (u.buildingSlots) corp.buildingSlots = Math.max(corp.buildingSlots, u.buildingSlots);
-    if (u.maxFleetSize) corp.unlocks.maxFleetSize = Math.max(corp.unlocks.maxFleetSize, u.maxFleetSize);
-    // AB#793: the highest building tier this level allows (docs/design/upgrades.md); a level never lowers it.
-    if (u.maxUpgradeTier) corp.unlocks.maxUpgradeTier = Math.max(Number(corp.unlocks.maxUpgradeTier) || 1, u.maxUpgradeTier);
-    if (Array.isArray(u.marketSectors)) {
-      for (const sector of u.marketSectors) {
-        if (!corp.unlocks.marketSectors.includes(sector)) {
-          corp.unlocks.marketSectors.push(sector);
-        }
-      }
-    }
+    // ISP-104 (AB#796): every key the level names, through its applier; catalog.js refused any other at load.
+    if (!corp.unlocks || typeof corp.unlocks !== "object") corp.unlocks = {};
+    for (const [key, value] of Object.entries(levelDef.unlocks || {})) UNLOCK_APPLIERS[key](corp, value);
   }
 
   corp.fleet = fleetStatus(corp); // Bug #586: derived every evaluation, like levelProgress

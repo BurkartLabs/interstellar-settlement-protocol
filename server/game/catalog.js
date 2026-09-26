@@ -70,6 +70,23 @@ export function safeWriteFile(filePath, data) {
 // ─── Milestones: single source of truth from data/milestones.json ──────────
 export const MILESTONES_DATA = JSON.parse(fs.readFileSync(milestonesPath, "utf8"));
 export const MILESTONE_LEVELS = MILESTONES_DATA.levels;
+
+/**
+ * ISP-104 (AB#796): the only keys a level's `unlocks` may name. Each has its applier in server/game/progression.js
+ * (UNLOCK_APPLIERS), which refuses to load if the two lists differ. A key not listed here used to be ignored in
+ * silence (AB#586's probe cap came apart from Fleet Cap that way): a reward the player earned and never got. Now the
+ * server does not start with one, and tests/schema/milestones-unlocks.test.js fails.
+ */
+export const LEVEL_UNLOCK_KEYS = Object.freeze(["employeeCap", "buildingSlots", "maxFleetSize", "maxUpgradeTier", "marketSectors"]);
+
+/** Every unlock key in `levels` that is not allowed, as "level N: key". */
+export function unknownUnlockKeys(levels) {
+  return (levels || []).flatMap((l) => Object.keys(l?.unlocks || {}).filter((k) => !LEVEL_UNLOCK_KEYS.includes(k)).map((k) => `level ${l?.level}: ${k}`));
+}
+{
+  const unknown = unknownUnlockKeys(MILESTONE_LEVELS);
+  if (unknown.length) throw new Error(`data/milestones.json names unlock keys nothing applies (AB#796): ${unknown.join(", ")}. Add each to LEVEL_UNLOCK_KEYS and its applier, or remove it.`);
+}
 // The top of the ladder is the highest level the data defines (Bug #424: the cap shown to players was a literal 40).
 export const MAX_DEFINED_LEVEL = Math.max(...MILESTONE_LEVELS.map((l) => l.level));           // [{level, requirements, unlocks}, ...]
 export const MILESTONE_ROADMAP = MILESTONES_DATA.roadmap;          // ["Rent an Office", ...]
