@@ -1199,8 +1199,19 @@ button:disabled {
 .layout-grid {
   display: grid;
   grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas: "nav main" "side main";
+  align-items: start;
   gap: var(--space-4);
   padding: var(--space-4);
+}
+
+.side-panel {
+  grid-area: side;
+}
+
+.main-panel {
+  grid-area: main;
 }
 
 .side-panel,
@@ -2418,14 +2429,8 @@ textarea {
   font-size: var(--font-size-3);
 }
 
-/* Bug #1083: on a phone the card spans the width, so it must leave the upper half for what it points at (app.js
-   scrolls the control into the band above it); a long step scrolls inside the card instead. */
-@media (max-width: 767px) {
-  #walkthrough-modal .modal-card {
-    max-height: 45vh;
-    overflow-y: auto;
-  }
-}
+/* Bug #1083: on a phone the card spans the width and is capped at 45vh; that rule is in the app shell's phone query
+   ("App shell", below), with the room the card leaves for the bottom bar. */
 
 /* While the briefing is up the page can scroll anything clear of the card (walkthroughUi.js sets the height it
    measures), so the card never hides for good what it is describing. AB#1756: the room goes under the layout grid, not
@@ -2492,13 +2497,6 @@ body.walkthrough-open .layout-grid {
     margin-left: 0;
   }
 
-  .layout-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .side-panel {
-    max-height: none;
-  }
 }
 
 @media (max-width: 600px) {
@@ -6105,19 +6103,94 @@ tr.npc-order-exhausted {
   flex: 1 1 22rem;
 }
 
-/* ─── Phone: one row of tabs (AB#1056) ─── */
-/* At phone width the fifteen tabs wrapped into six rows and pushed every panel's first action below the fold. One row
-   that scrolls sideways; the tab cut off at the right edge says there is more. 767px matches NARROW_MAX_WIDTH in
-   public/scripts/firstAction.js. */
+/* ─── App shell (ISP-74, AB#763) ─── */
+/* The flat direction (Decision AB#1801): on a desktop the navigation is a column at the top of the left side, above
+   the corporation panel, with the content beside it; on a phone it is a bar along the bottom of the screen and the
+   content has the full width. One query decides it, at NARROW_MAX_WIDTH in public/scripts/firstAction.js, where the
+   scripts already call a screen a phone; tests/unit/appShell.test.js fails if another query reaches the shell. The
+   fifteen tabs scroll sideways in the bar until ISP-75 (AB#764) groups them. Focus and reduced motion come from the
+   global rules at the top of this file, which the shell does not override. */
+.app-nav {
+  grid-area: nav;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-2);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.app-nav .tab-btn {
+  min-height: 36px;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-soft);
+  text-align: left;
+}
+.app-nav .tab-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.app-nav .tab-btn.active {
+  background: var(--surface-3);
+  border-left-color: var(--accent);
+  color: var(--text);
+}
+
 @media (max-width: 767px) {
-  .tab-nav {
+  /* What the browser scrolls into view (keyboard focus, scrollIntoView) stops above the bar, not under it. */
+  html {
+    scroll-padding-bottom: calc(var(--space-4) + var(--space-16));
+  }
+  .layout-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "side" "main";
+    padding-bottom: calc(var(--space-4) + var(--space-16));
+  }
+  .side-panel {
+    max-height: none;
+  }
+  /* The bar: below every dialog (60) and the briefing (55), above the page. */
+  .app-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    flex-direction: row;
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding-bottom: var(--space-1);
+    padding: var(--space-2) var(--space-2) calc(var(--space-2) + env(safe-area-inset-bottom));
+    border-width: 1px 0 0;
+    border-radius: 0;
     scrollbar-width: thin;
   }
-  .tab-btn {
+  .app-nav .tab-btn {
     flex: 0 0 auto;
+    min-height: 44px;
+    border-left: 0;
+    border-top: 2px solid transparent;
+    text-align: center;
+  }
+  .app-nav .tab-btn.active {
+    border-top-color: var(--accent);
+  }
+  /* Bug #1083: the briefing card spans the width, so it must leave the upper half for what it points at (app.js
+     scrolls the control into the band above it); a long step scrolls inside the card instead. */
+  #walkthrough-modal .modal-card {
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+  /* The briefing card sits above the bar, so the tab a step asks for is never under it. */
+  #walkthrough-modal {
+    padding-bottom: calc(var(--space-4) + var(--space-16));
+  }
+  body.walkthrough-open .layout-grid {
+    padding-bottom: calc(var(--space-4) + var(--space-16) + var(--walkthrough-card-height, var(--space-16)));
   }
 }
 
