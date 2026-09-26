@@ -40,7 +40,7 @@ describe("data/items.json (AB#824)", () => {
     // Section 6's table of items already in the build: every row, at its tier.
     const section = DESIGN.split("## 6. Items already in the build")[1].split("\n## ")[0];
     const rows = [...section.matchAll(/^\| ([A-Z][^|]+?) \| ([123]) \|/gm)].map((m) => [m[1].trim(), Number(m[2])]);
-    expect(rows.length).toBe(13);
+    expect(rows.length).toBe(14); // thirteen, and Deuterium since the Fuel track (AB#830) put it in the build
     for (const [name, tier] of rows) expect(tierOf[name], name).toBe(tier);
   });
 });

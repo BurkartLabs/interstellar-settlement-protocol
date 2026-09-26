@@ -6,7 +6,7 @@ import { refineMinimum, refineQuantityCheck, refineQuantityFieldValue } from "..
 // spent it. The field now keeps what was typed, and Start Run checks it with this rule, which the route uses too.
 const CHAINS = Object.fromEntries(
   JSON.parse(readFileSync(new URL("../../data/refinery-chains.json", import.meta.url), "utf8")).chains
-    .filter((c) => c.inputs.length === 1) // AB#832: the one-input chains; Rare Earths also feeds magnet-chain now
+    .filter((c) => c.inputs.length === 1) // AB#830: a chain of several inputs is run in batches (refineryRun.js)
     .map((c) => [c.inputs[0].item, c.inputs[0].quantityPerCycle])
 );
 const silicates = { perCycle: CHAINS.Silicates, input: "Silicates" };

@@ -24,7 +24,7 @@ for (const s of SYSTEMS) for (const b of s.bodies) for (const k of Object.keys(b
 const products = new Set(CHAINS.chains.flatMap((c) => (c.outputs || []).map((o) => o.item)));
 const bids = new Set(ECONOMY.npcBuyers.map((n) => n.item).filter((item) => !products.has(item)));
 const quotas = new Set(MISSIONS.templates.map((t) => t.resource).filter(Boolean));
-// AB#832: an item may feed several chains (Rare Earths: rare-earths-chain and magnet-chain), each named, in data order.
+// AB#830: an item may feed several chains (Helium-3: he3-chain and fusion-fuel-chain), named in data order.
 const chainInputs = new Map();
 for (const c of CHAINS.chains) for (const i of c.inputs) chainInputs.set(i.item, [...(chainInputs.get(i.item) || []), c.id]);
 const raw = new Set([...beltCount.keys(), ...CHAINS.resourceCatalog, ...bids, ...quotas, ...chainInputs.keys()]);

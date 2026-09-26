@@ -17,7 +17,7 @@ const starmap = read("public/scripts/starmap.js");
 describe("the starmap body panel (AB#740)", () => {
   it("every leasable body shows its catalogue lease cost, where it is filed and what it produces", () => {
     const leasable = bodies.filter((b) => Number(b.leaseCost) > 0);
-    expect(leasable.map((b) => b.name).sort()).toEqual(["BL Ceti I", "Earth", "Kestrel", "Luna", "Mars"]); // AB#832
+    expect(leasable.map((b) => b.name).sort()).toEqual(["BL Ceti I", "Earth", "Kestrel", "Luna", "Mars", "Rime"]); // AB#830 Rime; AB#832 BL Ceti I, Kestrel
     for (const b of leasable) {
       const html = bodyResourceHtml(b, stations);
       expect(html, b.name).toContain(`data-lease-cost="${b.leaseCost}">${b.leaseCost.toLocaleString("en-US")} credits`);

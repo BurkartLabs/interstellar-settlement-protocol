@@ -58,6 +58,9 @@ export function computeBeltModel(economy, systems, rules = CODE_RULES, assumed =
     const reserve = beltReserve(tier, design.reserveStandardExpeditions);
     return { tier, composition, valuePerUnit, sellableShare, perHour, byDuration, reserve };
   });
+  // AB#830: the resources in the templates no standing order buys, from the data (it was a fixed list, and went stale
+  // when the Fuel track gave Water Ice and Hydrogen a buyer).
+  const unbought = [...new Set(tiers.flatMap((t) => Object.keys(t.composition)))].filter((res) => !price[res]);
   const tierBy = Object.fromEntries(tiers.map((t) => [t.tier, t]));
 
   // Per system: the chance of each tier for a belt that respawns there, and what that does to its average yield.
@@ -90,11 +93,7 @@ export function computeBeltModel(economy, systems, rules = CODE_RULES, assumed =
   for (let k = 1; k < 100; k++) lost += (1 - p) ** (design.ladderCheckInHours * k);
   const ladder = { launchesPerBelt: perBelt, lostPerBelt: lost, lostShare: lost / (perBelt + lost) };
 
-  // AB#832: which belt resources no standing order buys, from the data (it was a written list, and went stale when
-  // Thorium and Cobalt gained bids).
-  const unbought = [...new Set(systems.flatMap((s) => (s.bodies || []).flatMap((b) => Object.keys(b.composition || {}))))]
-    .filter((item) => price[item] === undefined);
-  return { tiers, systems: systemRows, respawn, population, ladder, design, unbought, launchCost: economy.expeditions.launchCost };
+  return { tiers, unbought, systems: systemRows, respawn, population, ladder, design, launchCost: economy.expeditions.launchCost };
 }
 
 const fmt = (n, d = 0) => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });

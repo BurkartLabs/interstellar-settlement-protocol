@@ -41,8 +41,7 @@
       "id": "deuterium",
       "name": "Deuterium",
       "tier": 1,
-      "category": "raw",
-      "note": "New in v0.8 (AB#822); no source in the data yet."
+      "category": "raw"
     },
     {
       "id": "iron-ore",
@@ -121,6 +120,18 @@
     {
       "id": "dark-matter-capacitors",
       "name": "Dark-Matter Capacitors",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "fusion-pellets",
+      "name": "Fusion Pellets",
+      "tier": 3,
+      "category": "refined"
+    },
+    {
+      "id": "cryogenic-coolant",
+      "name": "Cryogenic Coolant",
       "tier": 3,
       "category": "refined"
     },

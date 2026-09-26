@@ -2,6 +2,7 @@
   "resourceCatalog": [
     "Silicates",
     "Helium-3",
+    "Deuterium",
     "Nickel",
     "Titanium",
     "Carbon",
@@ -44,6 +45,36 @@
       "requiresTechIds": ["tt-containment-physics", "tt-exotic-energy-routing"],
       "stage": 1,
       "category": "Exotic Processing"
+    },
+    {
+      "id": "fusion-fuel-chain",
+      "inputs": [
+        { "item": "Helium-3", "quantityPerCycle": 40 },
+        { "item": "Deuterium", "quantityPerCycle": 80 }
+      ],
+      "outputs": [
+        { "item": "Fusion Pellets", "quantityPerCycle": 40 }
+      ],
+      "cycleDurationHours": 6,
+      "requiresResearch": ["Fusion Fuel Cycle"],
+      "requiresTechIds": ["tt-fusion-fuel-cycle"],
+      "stage": 1,
+      "category": "Fusion Fuel"
+    },
+    {
+      "id": "cryogenics-chain",
+      "inputs": [
+        { "item": "Water Ice", "quantityPerCycle": 200 },
+        { "item": "Hydrogen", "quantityPerCycle": 200 }
+      ],
+      "outputs": [
+        { "item": "Cryogenic Coolant", "quantityPerCycle": 60 }
+      ],
+      "cycleDurationHours": 4,
+      "requiresResearch": ["Containment Physics I"],
+      "requiresTechIds": ["tt-containment-physics"],
+      "stage": 1,
+      "category": "Fusion Fuel"
     },
     {
       "id": "nickel-chain",

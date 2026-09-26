@@ -91,7 +91,8 @@ A profile is what an extraction on a body yields, as shares of 100, the way a be
 | The 12 belts | their `composition` | **Unchanged** (section 4) |
 
 Mars and Luna gain their v0.8 items only once the track that uses them is built. Until then their profile stays
-Silicates 100, so no player holds an item nothing buys.
+Silicates 100, so no player holds an item nothing buys. Since the Fuel track (AB#830) Luna yields Silicates 75, Helium-3
+25; the Light Metals track moves 15 of its Silicates to Bauxite.
 
 ### The rule for any other body (new bodies, and Sol's unsurveyed ones)
 
@@ -154,11 +155,12 @@ Every name below is kept exactly as it is. Places, from the data files on main:
 | Item | Tier | Belt compositions | NPC bid (economy.json) | Mission quotas (missions.json) | Refinery chains |
 | --- | --- | --- | --- | --- | --- |
 | Silicates | 1 | 7 belts | yes | yes | silicates-chain input |
-| Helium-3 | 1 | 11 belts | yes | yes | he3-chain input |
+| Helium-3 | 1 | 11 belts | yes | yes | he3-chain, fusion-fuel-chain input |
 | Nickel | 1 | 18 belts | yes | yes | nickel-chain input |
 | Carbon | 1 | 9 belts | yes | yes | carbon-chain input |
-| Water Ice | 1 | 4 belts | | yes | |
-| Hydrogen | 1 | 7 belts | | | |
+| Water Ice | 1 | 4 belts | yes | yes | cryogenics-chain input |
+| Hydrogen | 1 | 7 belts | yes | | cryogenics-chain input |
+| Deuterium | 1 | | yes | | fusion-fuel-chain input |
 | Titanium | 2 | 20 belts | yes | yes | titanium-chain input |
 | Rare Earths | 2 | 16 belts | yes | yes | rare-earths-chain, magnet-chain input |
 | Lithium | 2 | 14 belts | | yes | |
@@ -167,9 +169,10 @@ Every name below is kept exactly as it is. Places, from the data files on main:
 | Uranium | 2 | 8 belts | | | |
 | Exotic Matter | 2 | 7 belts | | | |
 
-The chains' twelve products (section 1, row 3) are Tier 3 and keep their names, and so are the tracks' products as they
-land: Rare-Earth Magnets and Thorium Fuel Rods (AB#832). Deuterium, Iron Ore and Bauxite appear
-nowhere yet. tests/unit/tier3Resources.test.js holds this table to the data files, so a renamed or new raw item fails
+The chains' twelve products (section 1, row 3) are Tier 3 and keep their names, and so are the tracks' products as
+they land: Fusion Pellets and Cryogenic Coolant (AB#830), Rare-Earth Magnets and Thorium Fuel Rods (AB#832). Deuterium
+is in the build since AB#830 (ice worlds and moons, and Rime's lease); Iron Ore and Bauxite appear nowhere yet.
+tests/unit/tier3Resources.test.js holds this table to the data files, so a renamed or new raw item fails
 it until this document names it. The belt counts are the 22 systems' since AB#807; sections 2 to 5 were written against the
 first twelve belts, and their per-belt lists name those twelve only.
 
