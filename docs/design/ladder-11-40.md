@@ -47,7 +47,8 @@ uptime, six yards):
 
 Silicates sold are the mined, less what goes into refineries (100 in for 55 out) and contracts (about 400 each). Each
 target below is 90% of the curve at its level's day, rounded down, so the bot meets it on that day or a little before.
-Level 10's own targets are the curve's starting point.
+Level 10's own targets are the curve's starting point. The refined curve is anchored at Level 10's 2,000 refined units (AB#2312, which lowered it from 10,000):
+every `stat:refinedUnitsProduced` target from Level 16 on is 7,200 (90% of the 8,000 difference) below its first version.
 
 ## The levels
 
@@ -62,11 +63,11 @@ change"). The `maxUpgradeTier` values above 5 are a **proposal** that needs a st
 | 13 | 64 | `building-count:Basic Extractor Yard` 5<br>`stat:miningLeasesCount` 3<br>`totalMined:silicate` 700,000 | 230 | 12 | 155 | 5 | 2 |
 | 14 | 75 | `building-tier:basic-extractor-yard:2` 6<br>`totalMined:silicate` 920,000 | 240 | 12 | 160 | 5 | 2 |
 | 15 | 86 | `building-count:Basic Extractor Yard` 6<br>`building-tier:basic-extractor-yard:3` 3<br>`totalMined:silicate` 1,100,000 | 250 | 13 | 165 | 5 | 2 |
-| 16 | 97 | `building-count:Refinery` 2<br>`stat:refinedUnitsProduced` 33,000 | 260 | 13 | 170 | 5 | 2 |
-| 17 | 108 | `building:Refinery Complex` 1<br>`stat:refinedUnitsProduced` 42,000 | 270 | 13 | 175 | 5 | 2 |
-| 18 | 119 | `unlockedTech:tt-containment-physics` 1<br>`stat:refinedUnitsProduced` 52,000 | 280 | 13 | 180 | 5 | 2 |
-| 19 | 131 | `building-tier:basic-extractor-yard:3` 6<br>`stat:refinedUnitsProduced` 63,000 | 290 | 13 | 185 | 5 | 2 |
-| 20 | 142 | `building-tier:refinery:3` 1<br>`stat:refinedUnitsProduced` 73,000 | 300 | 14 | 190 | 6 | 2 |
+| 16 | 97 | `building-count:Refinery` 2<br>`stat:refinedUnitsProduced` 25,800 | 260 | 13 | 170 | 5 | 2 |
+| 17 | 108 | `building:Refinery Complex` 1<br>`stat:refinedUnitsProduced` 34,800 | 270 | 13 | 175 | 5 | 2 |
+| 18 | 119 | `unlockedTech:tt-containment-physics` 1<br>`stat:refinedUnitsProduced` 44,800 | 280 | 13 | 180 | 5 | 2 |
+| 19 | 131 | `building-tier:basic-extractor-yard:3` 6<br>`stat:refinedUnitsProduced` 55,800 | 290 | 13 | 185 | 5 | 2 |
+| 20 | 142 | `building-tier:refinery:3` 1<br>`stat:refinedUnitsProduced` 65,800 | 300 | 14 | 190 | 6 | 2 |
 | 21 | 153 | `building:Ferric Mining Complex` 1<br>`stat:asteroidExpeditionsCompleted` 230 | 310 | 14 | 195 | 6 | 2 |
 | 22 | 164 | `building-tier:assembly-facility:2` 1<br>`stat:asteroidExpeditionsCompleted` 250 | 320 | 14 | 200 | 6 | 2 |
 | 23 | 175 | `unlockedTech:tt-exotic-energy-routing` 1<br>`stat:asteroidExpeditionsCompleted` 270 | 330 | 14 | 205 | 6 | 2 |
@@ -83,10 +84,10 @@ change"). The `maxUpgradeTier` values above 5 are a **proposal** that needs a st
 | 34 | 298 | `totalMined:silicate` 7,800,000<br>`stat:silicateSoldOnExchange` 7,100,000 | 440 | 16 | 260 | 7 | 4 |
 | 35 | 309 | `building-tier:basic-extractor-yard:5` 6<br>`totalMined:silicate` 8,200,000 | 450 | 17 | 265 | 7 | 4 |
 | 36 | 320 | `totalMined:silicate` 8,700,000<br>`stat:silicateSoldOnExchange` 7,900,000 | 460 | 17 | 270 | 7 | 4 |
-| 37 | 332 | `stat:silicateSoldOnExchange` 8,300,000<br>`stat:refinedUnitsProduced` 290,000 | 470 | 17 | 275 | 7 | 4 |
-| 38 | 343 | `stat:refinedUnitsProduced` 300,000<br>`stat:asteroidExpeditionsCompleted` 572 | 480 | 17 | 280 | 7 | 4 |
+| 37 | 332 | `stat:silicateSoldOnExchange` 8,300,000<br>`stat:refinedUnitsProduced` 282,800 | 470 | 17 | 275 | 7 | 4 |
+| 38 | 343 | `stat:refinedUnitsProduced` 292,800<br>`stat:asteroidExpeditionsCompleted` 572 | 480 | 17 | 280 | 7 | 4 |
 | 39 | 354 | `stat:asteroidExpeditionsCompleted` 592<br>`stat:missionsCompleted` 843 | 490 | 17 | 285 | 7 | 4 |
-| 40 | 365 | `totalMined:silicate` 10,000,000<br>`stat:silicateSoldOnExchange` 9,500,000<br>`stat:refinedUnitsProduced` 330,000<br>`stat:asteroidExpeditionsCompleted` 612<br>`stat:missionsCompleted` 873 | 500 | 18 | 290 | 8 | 4 |
+| 40 | 365 | `totalMined:silicate` 10,000,000<br>`stat:silicateSoldOnExchange` 9,500,000<br>`stat:refinedUnitsProduced` 322,800<br>`stat:asteroidExpeditionsCompleted` 612<br>`stat:missionsCompleted` 873 | 500 | 18 | 290 | 8 | 4 |
 
 ## The six bands
 

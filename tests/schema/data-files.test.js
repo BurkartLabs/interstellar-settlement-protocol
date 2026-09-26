@@ -320,6 +320,8 @@ describe("data/milestones.json", () => {
 // 0 for them and nobody could pass Level 5. Every requirement must name something the build contains.
 describe("data/milestones.json names only what this build has (Bug #424)", async () => {
   const { STAT_KEYS, PLAYER_BUILDINGS } = await import("../../server/gameState.js");
+  const { PLAYER_BUILDING_CATALOGUE } = await import("../../server/playerBuildings.js");
+  const { tierTableFor } = await import("../../server/buildingTiers.js");
   const milestones = load("milestones.json");
   const researchIds = new Set(load("research.json").nodes.map((t) => t.id));
   const leasable = new Set(load("systems.json").flatMap((s) => (s.bodies || []).filter((b) => b.leaseCost).map((b) => b.name)));
@@ -334,6 +336,14 @@ describe("data/milestones.json names only what this build has (Bug #424)", async
     if (kind === "building" || kind === "building-count") return PLAYER_BUILDINGS.includes(arg) ? null : `players cannot build "${arg}"`;
     // "any" (Bug #1753) is a sentinel for "a lease on any body", not a body name to look up in systems.json.
     if (kind === "miningLease") return arg === "any" || leasable.has(arg) ? null : `"${arg}" cannot be leased (no leaseCost in systems.json)`;
+    // ISP-108 (AB#800): building-tier:<id>:<n>, a catalogue building whose upgrade table reaches tier n.
+    if (kind === "building-tier") {
+      const [id, n] = rest;
+      const entry = PLAYER_BUILDING_CATALOGUE.find((b) => b.id === id);
+      if (!entry) return `no catalogue building "${id}"`;
+      const top = 1 + (tierTableFor(entry) || []).length;
+      return Number(n) >= 1 && Number(n) <= top ? null : `"${id}" has no tier ${n} (its last is ${top})`;
+    }
     if (kind === "totalMined") return arg === "silicate" ? null : `the resolver counts only silicate mined, not "${arg}"`;
     return `unknown metric "${metric}"`;
   };

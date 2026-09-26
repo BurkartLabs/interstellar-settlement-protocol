@@ -44,13 +44,19 @@ describe("the maxDeployments unlock (AB#2307)", () => {
     expect(corp.asteroidMining.maxDeployments).toBe(3);
   });
 
-  it("a corporation no level has granted it keeps BASE_MAX_DEPLOYMENTS", () => {
+  it("a corporation below Level 12 keeps BASE_MAX_DEPLOYMENTS, and Level 12 grants a second slot (AB#800)", () => {
     expect(BASE_MAX_DEPLOYMENTS).toBe(1);
-    const state = createStarterCorporationState(normalizeStateShape(getSeedState()), "Test CEO", "Test Corp"); // as registering builds it
-    state.corp.level = MAX_DEFINED_LEVEL; // every defined level held; none of them grants maxDeployments today
-    evaluateLevelProgress(state);
-    evaluateLevelProgress(state);
-    expect(state.corp.asteroidMining.maxDeployments).toBe(BASE_MAX_DEPLOYMENTS);
+    const at = (level) => {
+      const state = createStarterCorporationState(normalizeStateShape(getSeedState()), "Test CEO", "Test Corp"); // as registering builds it
+      state.corp.level = level;
+      evaluateLevelProgress(state);
+      evaluateLevelProgress(state);
+      return state.corp.asteroidMining.maxDeployments;
+    };
+    expect(at(10)).toBe(BASE_MAX_DEPLOYMENTS); // levels 1 to 10 grant none
+    expect(at(11)).toBe(BASE_MAX_DEPLOYMENTS); // Level 11 names 1, the base
+    expect(at(12)).toBe(2);
+    expect(at(MAX_DEFINED_LEVEL)).toBe(2);
   });
 
   it("the level notice names the raised cap as the expedition panel does", () => {
@@ -61,5 +67,29 @@ describe("the maxDeployments unlock (AB#2307)", () => {
       [{ key: "maxDeployments", label: "Deployment slots", value: "2" }],
       []
     ]);
+  });
+});
+
+// ISP-108 (AB#800): levels 11 to 20 were added under corporations already saved at the old top, Level 10.
+describe("a corporation saved at Level 10 before levels 11 to 20 existed (AB#800)", () => {
+  it("loads at Level 10 with every unlock it had, and is shown Level 11's requirements", () => {
+    const saved = createStarterCorporationState(normalizeStateShape(getSeedState()), "Test CEO", "Test Corp");
+    saved.corp.level = 10;
+    evaluateLevelProgress(saved);
+    saved.corp.levelCap = 10; // what the save carried when 10 was the top
+    const before = JSON.parse(JSON.stringify(saved.corp));
+    expect(before.unlocks).toMatchObject({ maxFleetSize: 140, maxUpgradeTier: 5 });
+    expect([before.employeeCap, before.buildingSlots]).toEqual([200, 12]);
+
+    const loaded = normalizeStateShape(JSON.parse(JSON.stringify(saved))); // written to disk and read back
+    evaluateLevelProgress(loaded);
+    evaluateLevelProgress(loaded);
+    const corp = loaded.corp;
+    expect(corp.level).toBe(10); // Level 11's yards and Silicates are not met, and nothing is taken away
+    expect(corp.levelCap).toBe(MAX_DEFINED_LEVEL);
+    expect(corp.unlocks).toEqual(before.unlocks);
+    for (const key of ["employeeCap", "buildingSlots", "maxFleetSize"]) expect(corp[key], key).toBe(before[key]);
+    expect(corp.asteroidMining.maxDeployments).toBe(before.asteroidMining.maxDeployments);
+    expect(corp.levelProgress.level11.requirements.map((r) => r.id)).toEqual(["extractor4", "mine260kSilicate"]);
   });
 });

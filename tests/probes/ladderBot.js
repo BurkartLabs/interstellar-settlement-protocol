@@ -22,6 +22,17 @@ const SOL_BELT = "sol:belt";
 const YARD_RESOURCE = "Silicates";
 /** Credits the bot keeps for running costs: no building, research, probe or lease is bought below it. */
 const RESERVE = 40_000;
+/** ISP-108 (AB#800): the catalogue ids a building-tier:<id>:<n> requirement names, by the name corp.buildings records. */
+const CATALOGUE_NAME = { "basic-extractor-yard": "Basic Extractor Yard", refinery: "Refinery", "assembly-facility": "Assembly Facility" };
+/** A yard's best throughput at each tier, docs/design/upgrades.md's "best T" column: the rate a cycle is started at. */
+const BEST_RATE = { 1: 146, 2: 182, 3: 232, 4: 288, 5: 361, 6: 457, 7: 564, 8: 707 };
+/** And its running cost an hour at that rate ("cost/h at best"): the float the yards need is a day of it. */
+/** The model's expected uptime (ECONOMY.md): the design's float is one expected day, cost x 24 x this. */
+const UPTIME = 0.816;
+/** Unsold Silicates at Earth past which a remote yard only adds cost: the standing buy order takes 7,000 a day for
+ *  the whole world (data/economy.json npcBid.quotaPerDay), so ore beyond about a day and a half of it does not sell. */
+const GLUT = 10_000;
+const COST_AT_BEST = { 1: 2618, 2: 3262, 3: 4176, 4: 5176, 5: 6492, 6: 8241, 7: 10142, 8: 12721 };
 const SALVAGE = "ms-salvage-001"; // server/game/corporation.js SALVAGE_ASSIGNMENT_ID: the way back from broke
 
 export async function climb({ request, account, clock, tick, levels, research, maxLevel, maxDays = 400, stepHours = 12, log = () => {} }) {
@@ -49,6 +60,7 @@ export async function climb({ request, account, clock, tick, levels, research, m
   const refusals = new Map();
 
   /** A request that changes state: counted, and its cost measured from the credits it moved. */
+  let needs = {}; // what the next level asks for this step, set in the loop below (AB#800)
   let known = null; // the corporation as last read, so an action's cost is measured without an extra read
   async function act(label, send) {
     const before = Number((known || (await corpNow())).finances?.credits || 0);
@@ -78,10 +90,18 @@ export async function climb({ request, account, clock, tick, levels, research, m
     return techId;
   }
 
+  /** AB#800: a day of running cost for the yards that run (Earth's, and every yard while the next level asks for
+   *  Silicates mined). Ore pays only when it is sold, a check-in or two later, so the reserve is RESERVE plus this;
+   *  with a fixed 40,000 the bot ran six yards on nothing and went broke (docs/design/upgrades.md, "float"). */
+  function floatFor(corp, everyYard) {
+    const running = (corp.mining?.silicateExtractors || []).filter((e) => everyYard || e.body === "Earth");
+    return running.reduce((sum, e) => sum + (COST_AT_BEST[Number(e.tier) || 1] || COST_AT_BEST[1]) * 24 * UPTIME, 0);
+  }
+
   /** The actions a requirement asks for, against the corporation as it is now. */
   async function pursue(req, corp) {
     // Purchases wait while credits are under the reserve: running out stops the yards, and with them the ladder.
-    if (Number(corp.finances?.credits || 0) < RESERVE && !/^stat:(silicateSoldOnExchange|missionsCompleted)$|^totalMined:/.test(req.metric)) return null;
+    if (Number(corp.finances?.credits || 0) < RESERVE + floatFor(corp, needs.mine) && !/^stat:(silicateSoldOnExchange|missionsCompleted)$|^totalMined:/.test(req.metric)) return null;
     const [kind, ...rest] = req.metric.split(":");
     const arg = rest.join(":");
     const here = corp.currentStationId || EARTH;
@@ -103,7 +123,10 @@ export async function climb({ request, account, clock, tick, levels, research, m
       const body = kind === "miningLease" && arg !== "any" ? arg : nextUnleased(corp);
       return body ? leaseOn(body, corp) : null;
     }
+    // ISP-97 (AB#787): the Refinery Complex is a Refinery's tier 2, bought through the upgrade route.
+    if (kind === "building" && arg === "Refinery Complex") return upgradeTo("refinery", 2, 1, corp);
     if (kind === "building" || kind === "building-count") return build(arg, corp);
+    if (kind === "building-tier") { const [id, n] = arg.split(":"); return upgradeTo(id, Number(n), Number(req.target), corp); }
     if (kind === "stat" && arg === "asteroidExpeditionsCompleted") return expedition(corp);
     if (kind === "stat" && arg === "refinedUnitsProduced") {
       if (!(corp.buildings || []).some((b) => b.name === "Refinery")) return build("Refinery", corp);
@@ -177,11 +200,36 @@ export async function climb({ request, account, clock, tick, levels, research, m
   }
 
   async function refine(corp) {
-    const idle = (corp.refineries || []).find((r) => !r.active);
-    const held = Number(corp.inventory?.[corp.currentStationId || EARTH]?.Silicates || 0);
-    if (!idle || held < 100) return null;
-    const inputQuantity = Math.min(held - (held % 100), 600);
-    return act("refine Silicates", () => play("start-refinery", { refineryId: idle.id, chainId: "silicates-chain", inputQuantity }));
+    // Every idle refinery, while Silicates last (AB#800: two refineries from Level 16).
+    let last = null;
+    for (const idle of (corp.refineries || []).filter((r) => !r.active)) {
+      const held = Number(known.inventory?.[known.currentStationId || EARTH]?.Silicates || 0);
+      if (held < 100) break;
+      const inputQuantity = Math.min(held - (held % 100), 600);
+      last = await act("refine Silicates", () => play("start-refinery", { refineryId: idle.id, chainId: "silicates-chain", inputQuantity }));
+    }
+    return last;
+  }
+
+  /** ISP-108 (AB#800): `count` of a catalogue building at `tier` or above, one upgrade a step. The yard or refinery must
+   *  be idle, so a mining yard is upgraded at the check-in its cycle has ended, before standing work restarts it. */
+  async function upgradeTo(id, tier, count, corp) {
+    const name = CATALOGUE_NAME[id];
+    const own = (corp.buildings || []).filter((b) => b.name === name);
+    if (own.filter((b) => (Number(b.tier) || 1) >= tier).length >= count) return null;
+    if (own.length < count) return build(name, corp);
+    const extractorOf = (b) => (corp.mining?.silicateExtractors || []).find((e) => e.buildingId === b.id);
+    const refineryOf = (b) => (corp.refineries || [])[own.indexOf(b)];
+    const free = (b) => {
+      const record = id === "basic-extractor-yard" ? extractorOf(b) : id === "refinery" ? refineryOf(b) : b;
+      return record && !record.active && !(Number(record.upgradingUntil || b.upgradingUntil || 0) > clock.now());
+    };
+    // Closest to the tier first, and a yard that mines (Earth's) before one that only stands.
+    const earth = (b) => (extractorOf(b)?.body === "Earth" ? 0 : 1);
+    const next = own.filter((b) => (Number(b.tier) || 1) < tier && free(b))
+      .sort((a, b) => (Number(b.tier) || 1) - (Number(a.tier) || 1) || earth(a) - earth(b))[0];
+    if (!next) return null;
+    return act(`upgrade ${name} to tier ${(Number(next.tier) || 1) + 1}`, () => play(`buildings/${encodeURIComponent(next.id)}/upgrade`, {}));
   }
 
   /** Every contract move open this step: hand in what is held, drop what cannot be filled soon, take what can. */
@@ -215,19 +263,41 @@ export async function climb({ request, account, clock, tick, levels, research, m
     } else if (credits < 3000 && !(corp.mining?.silicateExtractors || []).some((e) => e.active)) {
       await act("accept salvage", () => play("accept-mission", { missionId: SALVAGE }));
     }
-    // Cycles start where the office is (Earth). Only yards whose ore lands at Earth are run: ore mined elsewhere lands
-    // at that body's station, where this bot never sells, so a Mars yard would pay its running cost for ore that
-    // earns nothing. The ladder asks for yards to exist (building-count), not for each to run.
-    for (const lease of (corp.currentStationId || EARTH) === EARTH ? (corp.miningLeases || []).filter((l) => l.body === "Earth") : []) {
+    // Cycles start where the office is (Earth), on any lease. Earth's yards always run. Ore mined elsewhere lands at
+    // that body's station, so a Mars or Luna yard runs only while the next level asks for Silicates mined (Levels 11
+    // to 15, AB#800), and its ore is shipped home below to be sold; otherwise it would pay its running cost for ore
+    // that earns nothing.
+    // Earth's first, then each other yard while the credits cover a day of running every yard started so far.
+    let committed = RESERVE + floatFor(corp, false);
+    const leases = (corp.currentStationId || EARTH) === EARTH ? [...(corp.miningLeases || [])].sort((x, y) => (x.body === "Earth" ? 0 : 1) - (y.body === "Earth" ? 0 : 1)) : [];
+    for (const lease of leases) {
+      // Past the glut a yard only adds running cost, Earth's too, unless the next level counts Silicates mined.
+      const glut = Number(known.inventory?.[EARTH]?.Silicates || 0) > GLUT;
+      if (lease.body !== "Earth" && (!needs.mine || glut)) continue;
+      if (lease.body === "Earth" && glut && !needs.mine) continue;
       for (const extractorId of lease.extractorIds || []) {
         const ex = (corp.mining?.silicateExtractors || []).find((e) => e.id === extractorId);
-        if (ex && !ex.active) await act("mine", () => play(`lease/${lease.id}/start-mining`, { amount: 146, hours: 24, extractorId }));
+        if (!ex) continue;
+        if (lease.body !== "Earth") {
+          committed += (COST_AT_BEST[Number(ex.tier) || 1] || COST_AT_BEST[1]) * 24 * UPTIME;
+          if (!ex.active && Number(known.finances?.credits || 0) < committed) continue;
+        }
+        const upgrading = Number(ex.upgradingUntil || 0) > clock.now();
+        if (!ex.active && !upgrading) await act("mine", () => play(`lease/${lease.id}/start-mining`, { amount: BEST_RATE[Number(ex.tier) || 1] || 146, hours: 24, extractorId }));
       }
     }
     const here = corp.currentStationId || EARTH;
-    const held = Number(corp.inventory?.[here]?.Silicates || 0);
+    // AB#800: what the Mars and Luna yards mined comes home to be sold, 2 credits a unit and 30 minutes within Sol.
+    if (here === EARTH) {
+      for (const station of Object.values(STATION_OF).filter((s) => s !== EARTH)) {
+        const away = Math.floor(Number(known.inventory?.[station]?.Silicates || 0));
+        if (away >= 100) await act(`ship Silicates from ${station}`, () => play("transfer-resources", { fromStationId: station, lines: [{ item: "Silicates", quantity: away }] }));
+      }
+    }
+    const held = Number(known.inventory?.[here]?.Silicates || 0);
     // Keep enough for refining and contracts when the next level asks for them; sell the rest.
     const keep = (needs.refine ? 1200 : 0) + (needs.contracts ? 800 : 0);
+    if (needs.refine && here === EARTH) await refine(known); // AB#800: refineries kept busy, before the sale
     if (here === EARTH && held - keep >= 100) {
       const order = ((await request.get("/api/bootstrap").set(auth)).body.market?.npcBuyOrders || []).find((o) => o.id === SILICATE_ORDER);
       const quantity = Math.min(held - keep, Number(order?.remainingQty || 0));
@@ -265,7 +335,12 @@ export async function climb({ request, account, clock, tick, levels, research, m
       loggedDay = day;
       log(`day ${day} L${level} -> L${level + 1}: ${next.map((r) => `${r.metric} ${Math.round(Number(r.progress) || 0)}/${r.target}`).join(", ")}`);
     }
-    const needs = { refine: unmet.some((r) => r.metric === "stat:refinedUnitsProduced"), contracts: unmet.some((r) => r.metric === "stat:missionsCompleted") };
+    // ISP-108 (AB#800): refined units are cumulative and a refinery makes a few hundred a day, so once one exists the
+    // bot keeps it running while any later level asks for more than it has made (docs/design/ladder-11-40.md draws its
+    // refined curve from a refinery kept busy from day 30). Levels 11 to 15 ask for none, and Level 16 asks for 25,800.
+    const refinedMade = Number(corp.stats?.refinedUnitsProduced || 0);
+    const refineAhead = (corp.refineries || []).length > 0 && levels.some((l) => l.level > level && l.requirements.some((r) => r.metric === "stat:refinedUnitsProduced" && Number(r.target) > refinedMade));
+    needs = { refine: refineAhead || unmet.some((r) => r.metric === "stat:refinedUnitsProduced"), contracts: unmet.some((r) => r.metric === "stat:missionsCompleted"), mine: unmet.some((r) => r.metric === "totalMined:silicate") };
     // A trip away is finished before anything else: the yards' ore and the standing bid are at Earth.
     const away = (corp.currentStationId || EARTH) !== EARTH;
     const leaseStillWanted = unmet.some((r) => /^(miningLease:|stat:miningLeasesCount|building-count:Basic Extractor Yard)/.test(r.metric));

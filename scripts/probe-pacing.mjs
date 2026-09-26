@@ -31,6 +31,7 @@ const START = Date.UTC(2026, 0, 1, 9, 0, 0); // AB#799's start: a Thursday morni
 const TOLERANCE = 0.15;
 const LEVEL_40_WINDOW = [330, 400];
 const MAX_DAYS = Number(process.env.PACING_DAYS || 400);
+const ALWAYS_ON_DAYS = Number(process.env.PACING_ALWAYS_ON_DAYS || 20);
 
 /** Per-level target days from the design: Level 10's from its text, 11 to 40 from the table's "probe day" column. */
 export function targetDays(doc) {
@@ -118,6 +119,7 @@ async function runProfile(name) {
     ticks.fabricationTick();
     ticks.asteroidExpeditionTick();
     ticks.travelTick();
+    ticks.shipmentTick(); // AB#800: ore shipped home from Mars and Luna
     ticks.processRndCompletions();
   };
   let records = [];
@@ -164,12 +166,11 @@ function child(name, maxDays) {
 async function main() {
   const began = performance.now();
   const targets = targetDays(fs.readFileSync(path.join(ROOT, "docs/design/ladder-11-40.md"), "utf8"));
-  const checkIn = await child("check-in", MAX_DAYS);
-  // A lower bound that has not finished by the day the check-in profile did is not a lower bound, so the always-on
-  // run (twelve steps to the check-in's one) stops there: that keeps the probe inside its five minutes.
-  const last = checkIn.records.at(-1);
-  const alwaysOnDays = !checkIn.stopped && last ? Math.ceil(last.totalHours / 24) : Math.min(MAX_DAYS, 60);
-  const alwaysOn = await child("always-on", alwaysOnDays);
+  // AB#800: with 20 levels the check-in profile runs about half a simulated year (about 3 minutes), and an hourly step
+  // costs about 12 seconds of wall time a simulated day, so the always-on run covers only its first ALWAYS_ON_DAYS, in
+  // parallel: the lower bound for the early levels, not the whole ladder, inside the probe's five minutes.
+  const alwaysOnDays = Math.min(MAX_DAYS, ALWAYS_ON_DAYS);
+  const [checkIn, alwaysOn] = await Promise.all([child("check-in", MAX_DAYS), child("always-on", alwaysOnDays)]);
   const byLevel = (run, level) => run.records.find((r) => r.level === level);
   const day = (r) => (r ? (r.totalHours / 24).toFixed(1) : "—");
   const n = (v) => (v === undefined ? "—" : v.toLocaleString("en-US"));
@@ -191,7 +192,7 @@ async function main() {
   if (checkIn.stopped) failures.push(`check-in: ${checkIn.stopped}`);
   // The acceptance judges the check-in profile only; a stalled lower bound is reported, and is a finding about the bot.
   if (alwaysOn.stopped) console.log(`
-always-on did not finish within ${alwaysOnDays} simulated days, so it is no lower bound this run: ${alwaysOn.stopped}`);
+always-on ran its first ${alwaysOnDays} simulated days (the cap, PACING_ALWAYS_ON_DAYS) and reached Level ${alwaysOn.records.at(-1)?.level ?? 0}.`);
   failures.push(...judge(checkIn.records, targets, checkIn.maxDefined).map((f) => `check-in: ${f}`));
   console.log(`\n(${((performance.now() - began) / 1000).toFixed(0)} s of wall time)`);
   if (failures.length) {
