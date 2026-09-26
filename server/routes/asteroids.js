@@ -1,5 +1,7 @@
 // server/routes/asteroids.js: the asteroids routes, split out of server/index.js (AB#1815).
-import { addAccountNotification, saveAccountsNow, getAccountById, mutateAccountState } from "../gameState.js";
+import { addAccountNotification, saveAccountsNow, getAccountById, getState, mutateAccountState } from "../gameState.js";
+import { beltAt, isBeltPresent } from "../game/belts.js"; // AB#2330
+import { emptyBeltMessage } from "../expeditionText.js"; // AB#2330
 import { BELT_KEYS, EXPEDITION_DURATIONS, beltComposition, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_FABRICATION_MS, BASE_MAX_DEPLOYMENTS } from "../gameState.js";
 import { applyCredits } from "../finances.js";
 import { fleetStatus } from "../gameState.js"; // Bug #586
@@ -119,6 +121,10 @@ export function registerAsteroidRoutes(app) {
       return;
     }
 
+    // AB#2330: a mined-out slot has nothing to scout until a belt forms there again.
+    const scoutedBelt = beltAt(getState(), beltKey);
+    if (!isBeltPresent(scoutedBelt)) { res.status(400).json({ error: emptyBeltMessage(scoutedBelt) }); return; }
+
     let outcome = "ok";
     const account = mutateAccountState(req.params.accountId, (state) => {
       const corp = state.corp;
@@ -167,6 +173,10 @@ export function registerAsteroidRoutes(app) {
       res.status(400).json({ error: "Invalid expedition duration. Choose: short, standard, or extended." });
       return;
     }
+
+    // AB#2330: a mined-out slot is refused before anything is spent; an expedition mines the belt's generation it left for.
+    const belt = beltAt(getState(), beltKey);
+    if (!isBeltPresent(belt)) { res.status(400).json({ error: emptyBeltMessage(belt) }); return; }
 
     let outcome = "ok";
     let launchCost = EXPEDITION_LAUNCH_COST;
@@ -227,6 +237,7 @@ export function registerAsteroidRoutes(app) {
         deployedAt: now,
         completesAt: now + durationMs,
         lastTickAt: now,
+        generation: belt.generation, // AB#2330
         launchCost,
         yields: {},
         status: "active"
@@ -278,7 +289,9 @@ export function registerAsteroidRoutes(app) {
     const scouted = account.state?.corp?.asteroidMining?.scoutedBelts || [];
     const result = {};
     for (const key of scouted) {
-      const composition = beltComposition(key);
+      // AB#2330: the composition of the belt there now, which a respawn draws afresh; the catalog's is generation 1.
+      const belt = beltAt(getState(), key);
+      const composition = beltComposition(key) && (belt?.composition || beltComposition(key));
       if (composition) {
         result[key] = composition;
       }

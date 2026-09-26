@@ -2,8 +2,8 @@
 // Field body in data/systems.json) holds a belt: its generation, its rarity, its composition, its reserve and what
 // remains. A slot whose belt was mined out draws on the hour (UTC) and spawns a new belt with the design's chance, its
 // rarity from its system's distribution and its composition its tier's template, jittered. The numbers are
-// data/economy.json's `belts`. Expeditions do not draw from the reserve yet: that, and emptying a belt when it runs out,
-// is AB#2330; markBeltEmpty below is what it calls.
+// data/economy.json's `belts`. Expeditions mine a belt out of its reserve and call markBeltEmpty on the unit that
+// empties it (applyAsteroidExpeditions, AB#2330).
 
 import { ECONOMY } from "../economy.js";
 import { SYSTEMS_DATA } from "./catalog.js";
@@ -55,7 +55,13 @@ export function beltAt(globalState, key) {
   return globalState?.belts?.[key] || null;
 }
 
-/** A belt mined out at `now` (AB#2330 calls this when its reserve runs out): nothing remains; the next draw is at the next hour. */
+/** AB#2330: when an empty slot next draws: the hour after its last draw, or the first hour after it emptied. */
+export function nextBeltDrawAt(belt) {
+  if (!belt || isBeltPresent(belt)) return null;
+  return belt.lastDrawAt ? belt.lastDrawAt + HOUR : nextHourAfter(Number(belt.emptiedAt) || 0);
+}
+
+/** A belt mined out at `now` (the expedition tick calls this when its reserve runs out, AB#2330): nothing remains; the next draw is at the next hour. */
 export function markBeltEmpty(globalState, key, now = Date.now()) {
   const belt = beltAt(globalState, key);
   if (!belt) return null;
