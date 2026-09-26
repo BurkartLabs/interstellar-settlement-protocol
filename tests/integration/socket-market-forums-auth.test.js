@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import jwt from "jsonwebtoken";
 import { io as connect } from "socket.io-client";
 import { getApp, serverUrl } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
-import { shortLivedToken, untilExpired } from "../helpers/shortToken.js";
 import { mutateAccountState } from "../../server/gameState.js";
 
 // Bug #1766: emitMarketUpdated, emitForumsUpdated and local chat's system lookup read peer.data.accountId
@@ -56,16 +56,16 @@ async function heard(s, event, action, ms = 300) {
 describe("market and forum broadcasts stop personalizing for an expired-token socket (Bug #1766)", () => {
   it("emitMarketUpdated: stops marking the expired socket's own listing 'mine'", async () => {
     const a = await player();
-    const { token: soonToExpire, expiresAt } = shortLivedToken(a.id); // AB#2302
+    const soonToExpire = jwt.sign({ sub: a.id, kind: "access" }, process.env.JWT_SECRET, { expiresIn: 1 });
     const sa = await socket(soonToExpire);
 
     const list = await a.api.post("/api/market/orders").send({ type: "sell", item: "Silicates", quantity: 10, unitPrice: 25 });
     expect(list.status).toBe(200);
 
-    // Let the short-lived token actually expire while the connection stays open (ISP-67's own idiom), rather than
+    // Let the 1-second token actually expire while the connection stays open (ISP-67's own idiom), rather than
     // forging an already-expired one: the point of this bug is a socket that was authenticated and stops being
     // so mid-connection.
-    await untilExpired(expiresAt);
+    await new Promise((resolve) => setTimeout(resolve, 1300));
 
     const b = await player();
     const got = await heard(sa, "market:updated", () =>
@@ -78,7 +78,7 @@ describe("market and forum broadcasts stop personalizing for an expired-token so
 
   it("emitForumsUpdated: stops marking the expired socket's own like 'likedByMe'", async () => {
     const a = await player();
-    const { token: soonToExpire, expiresAt } = shortLivedToken(a.id); // AB#2302
+    const soonToExpire = jwt.sign({ sub: a.id, kind: "access" }, process.env.JWT_SECRET, { expiresIn: 1 });
     const sa = await socket(soonToExpire);
 
     const thread = await a.api.post("/api/forums/threads").send({ category: "General", title: "Bug #1766 thread", body: "b" });
@@ -87,7 +87,7 @@ describe("market and forum broadcasts stop personalizing for an expired-token so
     const like = await a.api.post(`/api/forums/threads/${threadId}/like`).send({});
     expect(like.status).toBe(200);
 
-    await untilExpired(expiresAt);
+    await new Promise((resolve) => setTimeout(resolve, 1300));
 
     const b = await player();
     const got = await heard(sa, "forums:updated", () =>
@@ -100,11 +100,11 @@ describe("market and forum broadcasts stop personalizing for an expired-token so
 
   it("local chat: stops delivering to an expired-token socket in that system", async () => {
     const a = await player();
-    const { token: soonToExpire, expiresAt } = shortLivedToken(a.id); // AB#2302
+    const soonToExpire = jwt.sign({ sub: a.id, kind: "access" }, process.env.JWT_SECRET, { expiresIn: 1 });
     const sa = await socket(soonToExpire);
     // A is in "sol" (the default currentSystemId), same as everyone's starter corp.
 
-    await untilExpired(expiresAt);
+    await new Promise((resolve) => setTimeout(resolve, 1300));
 
     const b = await player();
     const sb = await socket(b.token);

@@ -5,13 +5,14 @@ import { getAccountById, mutateAccountState } from "../../server/gameState.js";
 import { yardUpkeepPerHourFor } from "../../server/economy.js";
 import { miningTick } from "../../server/ticks.js";
 
-// ISP-307 (AB#2299): through the real routes, the second yard's price above the first is booked as yard-price-growth,
-// and a cycle on it books its upkeep as yard-upkeep when the server's mining tick charges it.
+// ISP-307 (AB#2299): through the real routes, a yard's price above the base is booked as yard-price-growth, and a cycle on
+// a yard that pays upkeep books it as yard-upkeep when the server's mining tick charges it. Both start at the third yard
+// since ISP-309 (AB#2305) and ISP-308 (AB#2304): the first two are the starting kit (extractorYardsInStartingKit).
 
 afterEach(() => vi.restoreAllMocks());
 
 describe("the sinks' own ledger lines through the routes (ISP-307)", () => {
-  it("a third yard books its extra price apart, and a second yard's cycle books its upkeep apart", async () => {
+  it("a third yard books its extra price and its cycle's upkeep apart; the starting kit's second books neither", async () => {
     const { app } = await getApp();
     const { account, accessToken } = await registerAccount(app);
     const api = authed(app, accessToken);
@@ -34,21 +35,33 @@ describe("the sinks' own ledger lines through the routes (ISP-307)", () => {
     expect(third.status, JSON.stringify(third.body.error)).toBe(200);
     expect(corp().finances.expensesByCategory["yard-price-growth"]).toBe(third.body.receipt.costCredits - 50_000);
 
-    const extractorId = corp().mining.silicateExtractors[1].id;
-    const started = await play(`lease/${leaseId}/start-mining`, { amount: 40, hours: 2, extractorId });
-    expect(started.status).toBe(200);
-    expect(corp().mining.silicateExtractors[1].upkeepPerHour).toBe(yardUpkeepPerHourFor(1));
-
+    // ISP-308 (AB#2304): the starting kit, one lease and its two yards, pays no upkeep; the third yard does.
+    const yards = () => corp().mining.silicateExtractors;
     vi.spyOn(Math, "random").mockReturnValue(0.999); // no breakdown
-    const opsBefore = corp().finances.expensesByCategory["mining-ops"] || 0;
-    mutateAccountState(account.id, (state) => {
-      const ex = state.corp.mining.silicateExtractors[1];
-      ex.startedAt -= 3_600_000; ex.lastTickAt -= 3_600_000;
-    }, { settleMining: false });
-    miningTick();
-    const upkeep = corp().finances.expensesByCategory["yard-upkeep"];
-    const ops = corp().finances.expensesByCategory["mining-ops"] - opsBefore;
-    expect(upkeep).toBeGreaterThan(0);
-    expect(upkeep / (upkeep + ops)).toBeCloseTo(yardUpkeepPerHourFor(1) / corp().mining.silicateExtractors[1].operationCostPerHour, 2);
+    const runAnHour = async (index) => {
+      const started = await play(`lease/${leaseId}/start-mining`, { amount: 40, hours: 2, extractorId: yards()[index].id });
+      expect(started.status, `yard ${index + 1} starts`).toBe(200);
+      const opsBefore = corp().finances.expensesByCategory["mining-ops"] || 0;
+      const upkeepBefore = corp().finances.expensesByCategory["yard-upkeep"] || 0;
+      mutateAccountState(account.id, (state) => {
+        const ex = state.corp.mining.silicateExtractors[index];
+        ex.startedAt -= 3_600_000; ex.lastTickAt -= 3_600_000;
+      }, { settleMining: false });
+      miningTick();
+      return {
+        upkeep: (corp().finances.expensesByCategory["yard-upkeep"] || 0) - upkeepBefore,
+        ops: corp().finances.expensesByCategory["mining-ops"] - opsBefore
+      };
+    };
+
+    const secondHour = await runAnHour(1);
+    expect(yards()[1].upkeepPerHour || 0).toBe(0);
+    expect(secondHour.upkeep, "the second yard of the starting kit").toBe(0);
+    expect(secondHour.ops).toBeGreaterThan(0);
+
+    const thirdHour = await runAnHour(2);
+    expect(yards()[2].upkeepPerHour).toBe(yardUpkeepPerHourFor(2));
+    expect(thirdHour.upkeep, "the third yard").toBeGreaterThan(0);
+    expect(thirdHour.upkeep / (thirdHour.upkeep + thirdHour.ops)).toBeCloseTo(yardUpkeepPerHourFor(2) / yards()[2].operationCostPerHour, 2);
   });
 });

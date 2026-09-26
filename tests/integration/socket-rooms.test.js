@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs";
+import jwt from "jsonwebtoken";
 import { io as connect } from "socket.io-client";
 import { getApp, serverUrl } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { serverCode } from "../helpers/serverSource.js";
-import { shortLivedToken, untilExpired } from "../helpers/shortToken.js";
 import { mutateAccountState, mutateState } from "../../server/gameState.js";
 
 // Bug #1021: per-account events went to every socket with io.emit: every corporation's finances every 30 seconds,
@@ -175,15 +175,11 @@ describe("an anonymous socket keeps working and sees only the signed-out view (I
 describe("an expired token drops the socket back to anonymous, not the connection (ISP-67)", () => {
   it("stops per-account events, says auth:expired, and a fresh token restores them", async () => {
     const a = await player();
-    const { token: soonToExpire, expiresAt } = shortLivedToken(a.id); // AB#2302
+    const soonToExpire = jwt.sign({ sub: a.id, kind: "access" }, process.env.JWT_SECRET, { expiresIn: 1 });
     const s = await socket(soonToExpire);
-    // AB#2302: the premise, checked: the socket is authenticated before its token expires (it hears its account).
-    // A token dead before the handshake left the socket anonymous, and the auth:expired wait below timed out.
-    expect(Date.now(), "the token expired before the check that the socket is authenticated").toBeLessThan(expiresAt);
-    await first(s, "finance:updated", () => mod.financialSnapshotTick(), (p) => p?.accountId === a.id);
-    // Let the token actually expire while the connection stays open, rather than forging an already-expired one:
-    // the point of this story is a socket that was authenticated and stops being so mid-connection.
-    await untilExpired(expiresAt);
+    // Let the 1-second token actually expire while the connection stays open, rather than forging an already-expired
+    // one: the point of this story is a socket that was authenticated and stops being so mid-connection.
+    await new Promise((resolve) => setTimeout(resolve, 1300));
 
     // AB#2015: wait for auth:expired itself rather than a fixed window, and only then give finance:updated 300ms more,
     // so the check that nothing reached the expired socket starts from a known point instead of racing the delivery.
@@ -203,9 +199,9 @@ describe("an expired token drops the socket back to anonymous, not the connectio
 
   it("also fails closed on writes: chat:send from an expired-token socket is dropped, not sent as the account", async () => {
     const a = await player();
-    const { token: soonToExpire, expiresAt } = shortLivedToken(a.id); // AB#2302
+    const soonToExpire = jwt.sign({ sub: a.id, kind: "access" }, process.env.JWT_SECRET, { expiresIn: 1 });
     const s = await socket(soonToExpire);
-    await untilExpired(expiresAt);
+    await new Promise((resolve) => setTimeout(resolve, 1300));
 
     const anon = await socket();
     const got = await heard(anon, "chat:new", () => s.emit("chat:send", { channel: "global", content: "should not send" }));

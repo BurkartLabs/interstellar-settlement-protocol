@@ -83,19 +83,35 @@ describe("data/economy.json (AB#726)", () => {
   });
 
   // ISP-301 (AB#2284), ECONOMY.md "Sinks that scale with income" sink 1. Chosen, not derived: the Board has not seen it.
-  it("a corporation's first yard costs what it did at every throughput, and each later yard exactly 41.67 an hour more", () => {
+  // ISP-308 (AB#2304, the Director's ruling on AB#2287): the first two yards, a new lease's starting kit, are free; where
+  // that line falls is a balance call the Board has not seen either.
+  it("a corporation's first two yards cost what they did at every throughput, and each later yard exactly 41.67 an hour more", () => {
     const { minCostPerHour, costPerThroughputUnit, throughputReferencePerHour } = ECONOMY.operations;
     const before = (t) => Math.max(minCostPerHour, Math.round(t * costPerThroughputUnit * (1 + (t / throughputReferencePerHour) ** 2)));
+    expect(ECONOMY.buildings.extractorYardsInStartingKit).toBe(2);
     expect(yardUpkeepPerHourFor(0)).toBe(0);
-    expect(yardUpkeepPerHourFor(1)).toBe(41.67);
+    expect(yardUpkeepPerHourFor(1)).toBe(0);
+    expect(yardUpkeepPerHourFor(2)).toBe(41.67);
     expect(yardUpkeepPerHourFor(5)).toBe(41.67);
     expect(yardUpkeepPerHourFor(-1)).toBe(0);
     for (let t = 10; t <= 250; t += 1) {
       expect(operationCostPerHourFor(t), `default, ${t} t/h`).toBe(before(t));
       expect(operationCostPerHourFor(t, undefined, { yardIndex: 0 }), `first yard, ${t} t/h`).toBe(before(t));
-      expect(operationCostPerHourFor(t, undefined, { yardIndex: 1 }) - before(t), `second yard, ${t} t/h`).toBeCloseTo(41.67, 10);
+      expect(operationCostPerHourFor(t, undefined, { yardIndex: 1 }), `second yard, ${t} t/h`).toBe(before(t));
       expect(operationCostPerHourFor(t, undefined, { yardIndex: 2 }) - before(t), `third yard, ${t} t/h`).toBeCloseTo(41.67, 10);
+      expect(operationCostPerHourFor(t, undefined, { yardIndex: 3 }) - before(t), `fourth yard, ${t} t/h`).toBeCloseTo(41.67, 10);
     }
+  });
+
+  it("a one-lease, two-yard corporation, the starting kit, pays no upkeep at any throughput; the line follows the key", () => {
+    for (const yardIndex of [0, 1]) {
+      for (let t = 10; t <= 250; t += 1) expect(yardUpkeepPerHourFor(yardIndex), `yard ${yardIndex + 1}, ${t} t/h`).toBe(0);
+    }
+    const oneFree = { ...ECONOMY.buildings, extractorYardsInStartingKit: 1 };
+    expect(yardUpkeepPerHourFor(1, oneFree)).toBe(41.67);
+    const threeFree = { ...ECONOMY.buildings, extractorYardsInStartingKit: 3 };
+    expect(yardUpkeepPerHourFor(2, threeFree)).toBe(0);
+    expect(yardUpkeepPerHourFor(3, threeFree)).toBe(41.67);
   });
 
   it("every value is a finite positive number, every buyer is named, and the loaded economy cannot be changed at run time", () => {
