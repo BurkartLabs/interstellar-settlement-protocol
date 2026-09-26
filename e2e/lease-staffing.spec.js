@@ -3,7 +3,7 @@
 // The bug, as filed on 2026-09-21: Level 2's "Purchase a Mining Lease on Mars" card sent a Level 1 player holding
 // an Earth lease and five staff to Mars Orbital Dock, where a second lease needs ten on payroll and there was no
 // office to hire at. This plays that path on the current build: the Level 2 card, then the claims office and the
-// Executive Suites at Mars. Screenshots go to docs/ab-1202/.
+// Executive Suites at Mars. Screenshots go to e2e/screenshots/ab-1202/.
 //
 // Run: start a dev server (npm run dev), then `npx playwright test e2e/lease-staffing.spec.js`. Dev timings make the
 // Earth-Mars approach five seconds.
@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { acknowledgeReceipt } from "./receipt.mjs"; // AB#743
 
-const SHOT_DIR = path.join(process.cwd(), "docs", "ab-1202");
+const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-1202");
 fs.mkdirSync(SHOT_DIR, { recursive: true });
 const shot = (page, name) => page.screenshot({ path: path.join(SHOT_DIR, `${name}.png`) });
 

@@ -1,6 +1,6 @@
 // AB#1857: Create Listing with nothing in inventory said so, then drew its column headers over an empty table. The
 // other Exchange tables hide theirs when empty (AB#402). With goods the table is drawn as before. Starts its own server
-// on a seeded data directory (the sell-orders-capped.spec.js pattern); screenshots go to docs/ab-1857/.
+// on a seeded data directory (the sell-orders-capped.spec.js pattern); screenshots go to e2e/screenshots/ab-1857/.
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import os from "node:os";
@@ -9,7 +9,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SHOT_DIR = path.join(REPO_ROOT, "docs", "ab-1857");
+const SHOT_DIR = path.join(REPO_ROOT, "e2e", "screenshots", "ab-1857");
 fs.mkdirSync(SHOT_DIR, { recursive: true });
 const PASSWORD = "playtest-password-not-real";
 const SECRET = "create-listing-e2e-fixture-secret-0123456789";

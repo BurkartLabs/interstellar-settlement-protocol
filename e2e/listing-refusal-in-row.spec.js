@@ -3,7 +3,7 @@
 // This clears the price in the first and the last row at 1280x800 and 375x812, presses Create Listing with only that
 // button brought into view, and measures the refusal: inside the viewport, beside that row, and in no other row.
 // Starts its own server on a seeded data directory (the create-listing-empty.spec.js pattern); screenshots go to
-// docs/ab-2057/.
+// e2e/screenshots/ab-2057/.
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import os from "node:os";
@@ -12,7 +12,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SHOT_DIR = path.join(REPO_ROOT, "docs", "ab-2057");
+const SHOT_DIR = path.join(REPO_ROOT, "e2e", "screenshots", "ab-2057");
 fs.mkdirSync(SHOT_DIR, { recursive: true });
 const PASSWORD = "playtest-password-not-real";
 const SECRET = "listing-refusal-e2e-fixture-secret-012345";
