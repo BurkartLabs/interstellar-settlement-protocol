@@ -294,7 +294,7 @@ Single ~3,500-line ES module. No framework, no bundler.
 - **`updateAllViews()`** — re-renders every tab section from `appState.data`; called after every mutation
 - **Dummy mode** — when `appState.accountId` is falsy, all gameplay actions mutate `appState.data` directly in memory (no API calls); mimics authenticated play
 - **Socket.io** — listens for `market:updated`, `chat:message`, `notifications:new`, `finance:updated`
-- **Tab system** — `setTab(id)` toggles `.active` on `.tab-btn` and `.tab-panel`
+- **Tab system** — `setTab(id)` toggles `.active` on `.nav-tab` and `.tab-panel` and opens the tab's group; the six groups are in `public/scripts/navGroups.js` (ISP-75, AB#764)
 
 ### Tabs
 

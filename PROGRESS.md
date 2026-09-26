@@ -18,9 +18,24 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#764 — ISP-75, the navigation in six groups)
+
+- The fifteen tabs are six groups (`public/scripts/navGroups.js`): Company (Overview, Inbox, Financial Core, CEO
+  Insight, Assignments), Station, Industry (Corporate R&D, Refinery Chains, Logistics), Market (Galactic Exchange,
+  Assets), Comms (Chat, Forums), Map (Starmap, and Travel in transit). The chat tab is now called Chat. Markup:
+  `nav.app-nav > section.nav-group > button.nav-group__button + div.nav-group__tabs > button.nav-tab`. A group's
+  button opens the tab it last showed; `setTab` opens the group. On a desktop every group and tab is in the column;
+  on a phone the six groups are the bar (never scrolls, each name its own width) and the open group's tabs sit in a
+  row above it; a one-tab group has no row. Unread mail shows on the Company button (a dot on a phone).
+- A new corporation's first briefing shows a group once a step reaches it (Company from the start; Comms when it
+  ends); anyone else sees all six (`revealedGroups`). The briefing highlights a closed group's button when its tab is
+  out of sight (`chooseHighlight`).
+- Specs open tabs through `e2e/nav.mjs` `openTab(page, tab)`, never by a class. `git grep` for the old tab row's
+  class names returns nothing. `e2e/nav-groups.spec.js` holds 375/768/1280; screens in `docs/ab-764/`.
+
 ## What's now true (AB#763 — ISP-74, the app shell)
 
-- The game's shell is `div.layout-grid` holding `nav.tab-nav.app-nav`, `aside.side-panel` and `main.main-panel`
+- The game's shell is `div.layout-grid` holding `nav.app-nav`, `aside.side-panel` and `main.main-panel`
   (`<main>` is the content alone, so nothing fixed sits in it, Bug AB#1832). On a desktop the navigation is a column at
   the top of the left side, above the corporation panel; below 768px it is a bar fixed to the bottom, each tab 44px,
   the content full width, and the page and the briefing card both leave room above it. One media query at

@@ -38,7 +38,7 @@
         "label": "Accept the Silicate Requisition Order in the Assignments Bureau",
         "all": [{ "metric": "missionActive:ms-log-001", "atLeast": 1 }]
       },
-      "guide": { "tab": "missions", "selector": ".tab-btn[data-tab=\"missions\"]" },
+      "guide": { "tab": "missions", "selector": ".nav-tab[data-tab=\"missions\"]" },
       "uses": {
         "routes": ["gameplay/accept-mission"],
         "data": ["server/game/corporation.js MISSION_TEMPLATES ms-log-001"]
@@ -96,7 +96,7 @@
           { "metric": "unlockedTech:tt-basic-extraction", "atLeast": 1 }
         ]
       },
-      "guide": { "tab": "rnd", "selector": ".tab-btn[data-tab=\"rnd\"]" },
+      "guide": { "tab": "rnd", "selector": ".nav-tab[data-tab=\"rnd\"]" },
       "uses": { "routes": ["gameplay/queue-rnd"], "data": ["data/research.json tt-basic-extraction"] },
       "skipIfAlreadyMet": true,
       "pending": [
@@ -116,7 +116,7 @@
         "all": [{ "metric": "missionCompleted:ms-log-001", "atLeast": 1 }]
       },
       "progress": { "metric": "stationStock:earth-station-prime:Silicates", "target": 400 },
-      "guide": { "tab": "missions", "selector": ".tab-btn[data-tab=\"missions\"]" },
+      "guide": { "tab": "missions", "selector": ".nav-tab[data-tab=\"missions\"]" },
       "uses": { "routes": ["gameplay/complete-mission"], "data": ["server/game/corporation.js MISSION_TEMPLATES ms-log-001 quota"] },
       "pending": [
         { "source": "extractor.endsAt", "label": "Your Earth cycle ends", "payoff": "The last of the 400 units" }
@@ -139,7 +139,7 @@
         "label": "Sell 300 Silicates on the Galactic Exchange",
         "all": [{ "metric": "stat:silicateSoldOnExchange", "atLeast": 300 }]
       },
-      "guide": { "tab": "market", "selector": ".tab-btn[data-tab=\"market\"]" },
+      "guide": { "tab": "market", "selector": ".nav-tab[data-tab=\"market\"]" },
       "uses": { "routes": ["market/npc-orders/:orderId/sell"], "data": ["data/milestones.json level 3"] },
       "skipIfAlreadyMet": true,
       "pending": [
@@ -164,7 +164,7 @@
         { "when": { "metric": "employeeCount", "below": 10 }, "text": "Hire to ten first: five per lease." },
         { "when": { "metric": "dockedAt:mars-orbital-dock", "below": 1 }, "text": "Travel to the Mars Orbital Dock." }
       ],
-      "guide": { "tab": "starmap", "selector": ".tab-btn[data-tab=\"starmap\"]" },
+      "guide": { "tab": "starmap", "selector": ".nav-tab[data-tab=\"starmap\"]" },
       "uses": {
         "routes": ["gameplay/hire", "gameplay/travel", "gameplay/purchase-lease"],
         "data": ["data/stations.json mars-orbital-dock", "data/systems.json Mars leaseCost", "data/milestones.json level 2"]
@@ -185,7 +185,7 @@
         "label": "Reach Corporation Level 3",
         "all": [{ "metric": "level", "atLeast": 3 }]
       },
-      "guide": { "tab": "overview", "selector": ".tab-btn[data-tab=\"overview\"]" },
+      "guide": { "tab": "overview", "selector": ".nav-tab[data-tab=\"overview\"]" },
       "uses": { "routes": [], "data": ["data/milestones.json level 3"] },
       "skipIfAlreadyMet": true,
       "pending": [
