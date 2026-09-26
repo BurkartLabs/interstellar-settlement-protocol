@@ -20,6 +20,9 @@
     "refineryComplexCost": 100000,
     "refineryComplexAssetValue": 70000,
     "refineryComplexOutputMultiplier": 1.5,
+    "cryoVaporExtractorArrayCost": 80000,
+    "cryoVaporExtractorArrayAssetValue": 58000,
+    "cryoVaporExtractorArrayMiningMultiplier": 1.2,
     "supplyForecastCostMultiplier": 0.94,
     "extractorYardUpkeepPctPerDay": 2,
     "extractorYardUpgrades": [

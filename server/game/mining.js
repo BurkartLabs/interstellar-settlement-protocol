@@ -1,7 +1,8 @@
 // server/game/mining.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import { applyCredits } from "../finances.js";
-import { operationCostPerHourFor } from "../economy.js";
+import { ECONOMY, operationCostPerHourFor } from "../economy.js";
+import { miningEfficiency } from "../../public/scripts/miningEfficiency.js"; // ISP-98 (AB#788)
 import { BODY_TO_STATION, getStationInventory } from "./catalog.js";
 
 export function ensureCorpMiningModel(corp) {
@@ -306,9 +307,8 @@ export function applyMiningOperations(corp, now = Date.now()) {
     // --- Normal mining logic ---
     const elapsedHours = elapsedMs / (60 * 60 * 1000);
     const throughput = Math.max(0, Number(extractor.throughputPerHour || 0));
-    let efficiency = 1;
-    if ((corp.unlockedTech || []).includes("tt-basic-extraction")) efficiency *= 1.1;
-    if ((corp.unlockedTech || []).includes("tt-supply-forecast")) efficiency *= 1.06;
+    // ISP-98 (AB#788): research, and a Cryo-vapor Extractor Array on the extractor's lease; one rule with the panel.
+    const efficiency = miningEfficiency(corp, (corp.miningLeases || []).find((l) => l.id === extractor.leaseId), ECONOMY.buildings);
     const projectedMined = elapsedHours * throughput * efficiency;
     const projectedCost = elapsedHours * Math.max(0, Number(extractor.operationCostPerHour || 0));
 

@@ -8,7 +8,9 @@
 import { buildCostFor } from "./economy.js";
 import { applyCredits } from "./finances.js";
 import { catalogueRefusal, PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
-import { buildAssemblyReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildRefineryComplexReceipt, buildRefineryReceipt } from "./receipts.js";
+import { buildAssemblyReceipt, buildCryoVaporArrayReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildRefineryComplexReceipt, buildRefineryReceipt } from "./receipts.js";
+// ISP-98 (AB#788): a lease's slots are its extractors and the other buildings on it, counted in one place.
+import { leaseFacilities, leaseHasRoom } from "../public/scripts/leaseSlots.js";
 import { ECONOMY } from "./economy.js";
 
 const hasTech = (corp, id) => (corp.unlockedTech || []).includes(id);
@@ -93,6 +95,15 @@ export const CONSTRUCTIONS = Object.freeze({
     },
     notification: { title: "Refinery Complex Online", body: "One of your Refineries is now a Refinery Complex: its runs deliver more of every output." },
     receipt: (built) => buildRefineryComplexReceipt({ cost: built.cost, assetValue: built.assetValue, refineryName: built.refineryName, multiplier: ECONOMY.buildings.refineryComplexOutputMultiplier })
+  },
+  // ISP-98 (AB#788): stands on a Luna lease beside its extractors; its effect is on their mining (miningEfficiency).
+  "cryo-vapor-extractor-array": {
+    place(corp, building, lease) {
+      lease.facilities = [...leaseFacilities(lease), building.name];
+      return { body: lease.body || "Luna" };
+    },
+    notification: { title: "Cryo-vapor Extractor Array Online", body: "The extractors on your Luna lease now mine more Silicates." },
+    receipt: (built, corp) => buildCryoVaporArrayReceipt({ cost: built.cost, assetValue: built.assetValue, body: built.body, multiplier: ECONOMY.buildings.cryoVaporExtractorArrayMiningMultiplier, ...slotCount(corp) })
   }
 });
 
@@ -113,6 +124,7 @@ export function construct(corp, building, leaseId) {
     if (!leaseId) return { outcome: "no-lease-named" };
     lease = (corp.miningLeases || []).find((l) => l?.id === leaseId);
     if (!lease) return { outcome: "no-lease" };
+    if (building.lease && String(lease.body || "").toLowerCase() !== building.lease) return { outcome: "wrong-lease" }; // ISP-98
   } else if (leaseId) {
     return { outcome: "not-on-lease" };
   }
@@ -120,7 +132,9 @@ export function construct(corp, building, leaseId) {
   const refused = catalogueRefusal(building, corp);
   if (refused) return { outcome: refused };
   if (building.slot === "upgrade") return upgrade(corp, building, construction);
-  if (lease && (lease.extractorIds || []).length >= lease.buildingSlots) return { outcome: "lease-slots-full" };
+  const perLease = building.cap?.perLease;
+  if (lease && perLease !== undefined && leaseFacilities(lease).filter((n) => n === building.name).length >= perLease) return { outcome: "lease-at-cap" };
+  if (lease && !leaseHasRoom(lease)) return { outcome: "lease-slots-full" };
   if ((corp.buildings || []).length >= (corp.buildingSlots || 2)) return { outcome: "no-corp-slot" };
   const cost = construction.cost ? construction.cost(building, corp) : building.cost;
   if ((corp.finances?.credits || 0) < cost) return { outcome: "insufficient-credits" };

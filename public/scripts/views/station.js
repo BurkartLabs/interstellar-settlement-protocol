@@ -10,6 +10,8 @@ import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml, stationBuildingCardsHtml } from "../html.js";
 import { activeCycleFigures, extractorState, spentText } from "../leaseLive.js";
 import { probeFabricationStartedText } from "../miningFeedback.js";
+import { leaseFacilities, leaseSlotsUsed } from "../leaseSlots.js"; // ISP-98 (AB#788)
+import { miningEfficiency } from "../miningEfficiency.js"; // ISP-98 (AB#788): research and a Cryo-vapor Extractor Array
 import { bestThroughput, costPerHourFor, miningProjection, operationsForTier, startupCostFor as clientStartupCostFor, yardTierFor, yardUpkeepPerHourFor } from "../miningProjection.js";
 import { clientPrices } from "../clientPrices.js";
 import { leaseFullAdvice } from "../slotAdvice.js";
@@ -440,7 +442,7 @@ export function renderISAClaimsLeases(building, data) {
   } else {
     leasesHtml = `<div class="lease-card-grid">`;
     for (const lease of leases) {
-      const extractorCount = (lease.extractorIds || []).length;
+      const extractorCount = leaseSlotsUsed(lease); // ISP-98 (AB#788): extractors and the other buildings on the lease
       const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
         year: "numeric", month: "short", day: "numeric"
       });
@@ -597,7 +599,9 @@ export function refreshOpenLeaseView(extractors) {
 export function renderLeaseManagement(building, lease, data) {
   const corp = data.corp;
   const extractors = (corp?.mining?.silicateExtractors || []).filter((ex) => ex.leaseId === lease.id);
-  const usedSlots = extractors.length;
+  // ISP-98 (AB#788): the lease's other buildings (a Cryo-vapor Extractor Array) take its slots too.
+  const facilities = leaseFacilities(lease);
+  const usedSlots = extractors.length + facilities.length;
   const totalSlots = lease.buildingSlots || 2;
   const hasSlotAvailable = usedSlots < totalSlots;
   const buildCost = clientPrices(appState.economy).extractorYardCost;
@@ -765,6 +769,7 @@ export function renderLeaseManagement(building, lease, data) {
     <section class="form-card lease-management-card" style="margin-top:1rem;">
       <h3>Extraction Facilities</h3>
       ${extractorSection}
+      ${facilities.map((name) => `<p class="lease-facility"><strong>${escapeHtml(name)}</strong> <span class="muted">&middot; operational, one building slot</span></p>`).join("")}
     </section>
 
     <section class="form-card action-surface lease-management-card" style="margin-top:1rem;">
@@ -1228,11 +1233,13 @@ export function bindBuildingActions() {
 export function mineProjectionText(rate, extractorId) {
   const economy = appState.economy;
   if (!economy?.operations) return "";
-  const efficiency = miningEfficiencyOf(appState.data?.corp);
-  // ISP-301 (AB#2284): a yard after the corporation's first pays upkeep while it runs, and the line says so.
-  const upkeepPerHour = yardUpkeepPerHourFor(yardIndexOf(appState.data?.corp, extractorId), economy.buildings);
   // ISP-101 (AB#793): the yard's tier sets its curve and its cap, so the projection and the best rate follow it.
   const ex = (appState.data?.corp?.mining?.silicateExtractors || []).find((e) => e.id === extractorId);
+  // ISP-98 (AB#788): the same efficiency the server's tick applies, the lease's Cryo-vapor Extractor Array included.
+  const lease = (appState.data?.corp?.miningLeases || []).find((l) => l.id === ex?.leaseId);
+  const efficiency = miningEfficiency(appState.data?.corp, lease, economy.buildings);
+  // ISP-301 (AB#2284): a yard after the corporation's first pays upkeep while it runs, and the line says so.
+  const upkeepPerHour = yardUpkeepPerHourFor(yardIndexOf(appState.data?.corp, extractorId), economy.buildings);
   const tierOf = yardTierFor(ex?.tier, economy.operations, economy.buildings);
   const operations = operationsForTier(tierOf.tier, economy.operations, economy.buildings);
   const at = miningProjection(rate, { operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour });
@@ -1250,11 +1257,4 @@ export function yardIndexOf(corp, extractorId) {
   return (corp?.mining?.silicateExtractors || []).findIndex((e) => e.id === extractorId);
 }
 
-/** What the corporation's research multiplies an hour of extraction by (ISP-86; the server applies the same two). */
-export function miningEfficiencyOf(corp) {
-  const tech = corp?.unlockedTech || [];
-  let efficiency = 1;
-  if (tech.includes("tt-basic-extraction")) efficiency *= 1.1;
-  if (tech.includes("tt-supply-forecast")) efficiency *= 1.06;
-  return efficiency;
-}
+

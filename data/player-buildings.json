@@ -50,6 +50,17 @@
       "cap": { "perBuilding": 1 },
       "effect": "Upgrades one Refinery in place: its production runs deliver half as much again of every output.",
       "since": "0.6"
+    },
+    {
+      "id": "cryo-vapor-extractor-array",
+      "name": "Cryo-vapor Extractor Array",
+      "price": "cryoVaporExtractorArray",
+      "slot": "corporation+lease",
+      "lease": "luna",
+      "researchGates": ["tt-containment-physics"],
+      "cap": { "perLease": 1 },
+      "effect": "Built on a Luna lease, it cools that lease's extractors: they mine a fifth more Silicates.",
+      "since": "0.6"
     }
   ]
 }

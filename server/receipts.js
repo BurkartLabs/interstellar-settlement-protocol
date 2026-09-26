@@ -202,6 +202,21 @@ export function buildRefineryComplexReceipt({ cost, assetValue, refineryName, mu
   });
 }
 
+// ISP-98 (AB#788): built through POST /gameplay/build only, so no route of its own names this builder.
+export function buildCryoVaporArrayReceipt({ cost, assetValue, body, multiplier, slotsUsed, slotsTotal }) {
+  return receipt("build-cryo-vapor-extractor-array", {
+    title: "Cryo-vapor Extractor Array Commissioned",
+    summary: `A Cryo-vapor Extractor Array is operational on the ${body} lease.`,
+    costCredits: cost,
+    grants: [
+      { label: "Added to assets", value: formatCredits(assetValue) },
+      { label: "Building slots used", value: `${slotsUsed} / ${slotsTotal}, and one on the ${body} lease` },
+      { label: "Now possible", value: `${Math.round((multiplier - 1) * 100)}% more Silicates from every extractor on the ${body} lease` }
+    ],
+    next: `Run an extractor cycle on the ${body} lease; it mines with the bonus.`
+  });
+}
+
 export function startRefineryReceipt({ refineryName, input, inputQuantity, outputs, hours, endsAt }) {
   return receipt("start-refinery", {
     title: "Production Run Started",

@@ -32,6 +32,10 @@ export function playerBuildingProblems(catalogue, economy = ECONOMY) {
       problems.push(`${at}.upgrades must name a building in data/player-buildings.json that is not itself an upgrade.`);
     }
     if (b?.slot !== "upgrade" && b?.upgrades !== undefined) problems.push(`${at}.upgrades is only for an upgrade.`);
+    // ISP-98 (AB#788): a lease building may be for one body's leases only, named in lower case.
+    if (b?.lease !== undefined && (b?.slot !== "corporation+lease" || typeof b.lease !== "string" || !b.lease || b.lease !== b.lease.toLowerCase())) {
+      problems.push(`${at}.lease is only for a lease building, and names one body in lower case.`);
+    }
     if (!Array.isArray(b?.researchGates) || b.researchGates.some((g) => typeof g !== "string" || !g)) problems.push(`${at}.researchGates must be a list of research ids.`);
     if (!b?.cap || typeof b.cap !== "object" || Array.isArray(b.cap) || Object.values(b.cap).some((n) => !Number.isInteger(n) || n < 1)) {
       problems.push(`${at}.cap must be an object of whole numbers of at least 1.`);
