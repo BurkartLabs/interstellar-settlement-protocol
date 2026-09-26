@@ -677,38 +677,6 @@ h1 {
   border-color: var(--border);
 }
 
-.data-card.requirement-done {
-  border-color: var(--accent);
-}
-
-.requirement-card {
-  position: relative;
-}
-
-.requirement-card.requirement-clickable {
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.requirement-card.requirement-clickable:hover {
-  border-color: var(--border);
-  background: var(--surface-2);
-}
-
-.requirement-title {
-  position: relative;
-  display: inline-block;
-  padding-right: 0.2rem;
-}
-
-.requirement-card.requirement-done .requirement-title {
-  color: var(--text-soft);
-}
-
-.requirement-card.requirement-done .requirement-state {
-  color: var(--text-soft);
-}
-
 @keyframes milestoneStrike {
   0% {
     width: 0%;
@@ -721,17 +689,6 @@ h1 {
     width: 100%;
     opacity: 1;
   }
-}
-
-.requirement-card.just-completed .requirement-title::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 53%;
-  height: 2px;
-  width: 0;
-  background: var(--success);
-  animation: milestoneStrike 0.8s ease-out forwards;
 }
 
 .data-card h3 {
@@ -751,22 +708,6 @@ h1 {
 
 .compact-card {
   min-height: 100%;
-}
-
-.feedback-panel {
-  margin-top: 0.8rem;
-}
-
-.feedback-success {
-  color: var(--success);
-}
-
-.feedback-error {
-  color: var(--danger);
-}
-
-.feedback-info {
-  color: var(--text-soft);
 }
 
 /* ─── App header (game shell) ─── */
@@ -926,7 +867,6 @@ button:disabled {
 }
 
 .panel-block,
-.chart-card,
 .form-card,
 .tab-panel,
 .side-panel {
@@ -954,21 +894,15 @@ button:disabled {
   padding: 1.15rem 1.2rem;
 }
 
-.chart-card {
-  padding: var(--space-4);
-}
-
 .tab-panel > h2,
 .panel-block h2,
 .form-card > h3,
-.chart-card > h3,
 .modal-card > h2 {
   margin-bottom: 0.95rem;
 }
 
 .tab-panel > .muted,
-.form-card > .muted,
-.chart-card > .muted {
+.form-card > .muted {
   margin-bottom: var(--space-4);
 }
 
@@ -1115,25 +1049,6 @@ button:disabled {
   gap: 0.7rem;
 }
 
-.chart-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 0.7rem;
-}
-
-.chart-card {
-  padding: 0.7rem;
-  min-height: 280px;
-  height: 280px;
-}
-
-.chart-card canvas {
-  display: block;
-  width: 100% !important;
-  height: 210px !important;
-  max-height: 210px !important;
-}
-
 /* ─── Exchange price chart (AB#716) ─── */
 .price-chart {
   margin-bottom: 1.2rem;
@@ -1178,49 +1093,6 @@ button:disabled {
 }
 
 /* ─── Financial Control Board (CORP-FIN-1) ───────────────────────────────── */
-
-.finance-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: 0.85rem;
-  padding-bottom: 0.6rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.finance-header h2 {
-  margin: 0 0 0.15rem;
-}
-
-.finance-header__doc {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2);
-  letter-spacing: 0.05em;
-  color: var(--accent);
-  text-transform: uppercase;
-}
-
-.finance-header__meta {
-  text-align: right;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.finance-meta__label {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-1);
-  letter-spacing: 0.18em;
-  color: var(--muted);
-}
-
-.finance-meta__value {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-3);
-  color: var(--text);
-}
 
 .kpi-strip {
   display: grid;
@@ -1298,202 +1170,7 @@ button:disabled {
 .kpi-tile__value--positive { color: var(--success); }
 .kpi-tile__value--negative { color: var(--danger); }
 
-.finance-chart-grid {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-
-.finance-chart-grid .chart-card {
-  grid-column: span 2;
-}
-
-.finance-chart-grid .chart-card--wide {
-  grid-column: span 3;
-}
-
-@media (max-width: 1100px) {
-  .finance-chart-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .finance-chart-grid .chart-card,
-  .finance-chart-grid .chart-card--wide {
-    grid-column: span 1;
-  }
-}
-
-@media (max-width: 640px) {
-  .finance-chart-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.chart-card__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-bottom: 0.45rem;
-  padding-bottom: 0.35rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.chart-card__head h3 {
-  margin: 0;
-  font-size: var(--font-size-3);
-}
-
-.chart-card__sub {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-1);
-  letter-spacing: 0.05em;
-  color: var(--muted);
-}
-
-.chart-duration-picker {
-  margin-left: auto;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-1);
-  letter-spacing: 0.04em;
-  padding: 0.18rem 0.4rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.chart-duration-picker:hover,
-.chart-duration-picker:focus {
-  border-color: var(--accent);
-}
-
-.chart-duration-picker option {
-  background: var(--bg);
-  color: var(--text);
-}
-
-.finance-tables {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 0.7rem;
-  margin-top: 0.95rem;
-}
-
-.finance-table-card {
-  padding: 0.85rem 0.95rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-
-.finance-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2);
-  font-variant-numeric: tabular-nums;
-}
-
-.finance-table th,
-.finance-table td {
-  padding: 0.42rem 0.55rem;
-  text-align: left;
-  border-bottom: 1px dashed var(--border);
-}
-
-.finance-table th {
-  color: var(--muted);
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: var(--font-size-1);
-}
-
-.finance-table td.num,
-.finance-table th.num {
-  text-align: right;
-}
-
-.finance-table tfoot td {
-  border-top: 1px solid var(--border);
-  border-bottom: none;
-  color: var(--text);
-  font-size: var(--font-size-3);
-  padding-top: 0.55rem;
-}
-
-.finance-table tbody tr:hover {
-  background: var(--surface-2);
-}
-
-.finance-table .num--positive { color: var(--success); }
-.finance-table .num--negative { color: var(--danger); }
-
 /* Daily statements (AB#714): the books closed at 00:00 UTC, a day at a time. */
-.finance-statements {
-  margin-top: 0.95rem;
-  padding: 0.85rem 0.95rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-
-.finance-statements__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  justify-content: space-between;
-  gap: 0.6rem var(--space-4);
-  margin-bottom: 0.7rem;
-}
-
-.finance-statements__head h3 { margin: 0 0 0.15rem; }
-
-.finance-statements__picker {
-  display: grid;
-  gap: var(--space-1);
-  font-size: var(--font-size-2);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-  min-width: 0;
-}
-
-.finance-statements__picker select { min-width: 14rem; max-width: 100%; }
-
-.statement-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 0.7rem;
-}
-
-.statement-card .chart-card__head { flex-direction: column; align-items: flex-start; gap: 0.15rem; }
-.statement-card h4 { margin: 0; font-size: var(--font-size-3); }
-
-.finance-table .statement-heading th { padding-top: 0.6rem; }
-.finance-table .statement-heading--in th { color: var(--success); }
-.finance-table .statement-heading--out th { color: var(--warn); }
-
-.finance-table .statement-total td {
-  border-top: 1px solid var(--border);
-  color: var(--text);
-  font-weight: 600;
-}
-
-.finance-table .statement-muted td { color: var(--muted); }
-
-.statement-empty {
-  padding: var(--space-4) 1.1rem;
-  border: 1px dashed var(--border);
-  border-radius: 6px;
-}
-
-.statement-empty p { margin: 0 0 0.35rem; }
-.statement-empty .num--positive { color: var(--success); }
-.statement-empty .num--negative { color: var(--danger); }
-
-@media (max-width: 600px) {
-  .finance-statements__picker, .finance-statements__picker select { width: 100%; min-width: 0; }
-}
 
 .inline-form {
   display: grid;
@@ -2142,223 +1819,8 @@ body.walkthrough-open .layout-grid {
   border: 0;
 }
 
-/* ─── Inbox ────────────────────────────────────────────────────────────────── */
-
-#inbox {
-  max-width: 33vw;
-}
-
-.inbox-folder-nav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-2);
-  border-bottom: 1px solid var(--border);
-  padding-bottom: var(--space-2);
-}
-
-.inbox-folder-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--muted);
-  padding: 0.3rem 0.85rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: var(--font-size-2);
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-}
-
-.inbox-folder-btn:hover {
-  color: var(--accent);
-  border-color: var(--border);
-}
-
-.inbox-folder-btn.active {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--surface-2);
-}
-
-.inbox-compose-btn {
-  margin-left: auto;
-  font-size: var(--font-size-2);
-  padding: 0.28rem 0.85rem;
-}
-
-.inbox-subtab-nav {
-  display: flex;
-  gap: var(--space-1);
-  margin-bottom: var(--space-3);
-}
-
-.inbox-subtab-btn {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--muted);
-  padding: var(--space-1) 0.65rem;
-  cursor: pointer;
-  font-size: var(--font-size-2);
-  transition: color 0.15s, border-color 0.15s;
-}
-
-.inbox-subtab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-
-.inbox-message-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.inbox-msg-item {
-  padding: 0.55rem var(--space-3);
-  border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.inbox-msg-item:hover {
-  background: var(--surface-2);
-  border-color: var(--border);
-}
-
-.inbox-msg-item.unread {
-  border-left: 2px solid var(--accent);
-  background: var(--surface-2);
-}
-
-.inbox-msg-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-4);
-  margin-bottom: 0.15rem;
-}
-
-.inbox-msg-from,
-.inbox-msg-to {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.inbox-msg-date {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.inbox-msg-subject {
-  font-size: var(--font-size-3);
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.inbox-unread-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-
-/* Detail view */
-.inbox-back-btn {
-  margin-bottom: var(--space-3);
-}
-
-.inbox-detail-card {
-  padding: var(--space-5);
-}
-
-.inbox-detail-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: 0.35rem;
-}
-
-.inbox-detail-from,
-.inbox-detail-date {
-  font-size: var(--font-size-2);
-  color: var(--muted);
-}
-
-.inbox-detail-subject {
-  margin: 0.35rem 0 var(--space-3);
-  font-size: var(--font-size-3);
-  color: var(--text);
-}
-
-.inbox-detail-body {
-  font-family: inherit;
-  font-size: var(--font-size-3);
-  line-height: 1.65;
-  color: var(--muted);
-  white-space: pre-wrap;
-  word-break: break-word;
-  margin: 0 0 var(--space-4);
-  border-top: 1px solid var(--border);
-  padding-top: var(--space-3);
-}
-
-.inbox-detail-actions {
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-/* Compose form */
-.inbox-compose-form {
-  max-width: 680px;
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-.inbox-compose-form h3 {
-  margin: 0 0 var(--space-1);
-}
-
-.compose-body-area {
-  resize: vertical;
-  min-height: 220px;
-}
-
-.inbox-compose-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-}
-
-.inbox-compose-status {
-  font-size: var(--font-size-2);
-  color: var(--accent);
-}
-
 /* ─── Vertical rhythm: tab panel ─────────────────────────── */
 .tab-panel > .card-grid,
-.tab-panel > .chart-grid,
 .tab-panel > .queue-list,
 .tab-panel > .pill-grid {
   margin-top: var(--space-4);
@@ -5685,23 +5147,6 @@ tr.npc-order-exhausted {
   margin-bottom: var(--space-2);
 }
 
-/* ─── Mail recipient chooser (Bug #711) ─── */
-.compose-candidates {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin: var(--space-1) 0 var(--space-3);
-}
-
-.compose-candidate {
-  text-align: left;
-}
-
-.compose-candidate.is-selected {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 /* ─── Start here (AB#1056) ─── */
 /* The Station's first action, shown above the station description until the corporation has an office. */
 .start-here {
@@ -5922,16 +5367,6 @@ tr.npc-order-exhausted {
   }
 }
 
-/* ─── Overview: milestones first (AB#1056) ─── */
-/* At levels 0 to 2 the milestones are moved to the top of the Overview; the gap a card gets between siblings is not
-   wanted above the first one, and a heading after it needs the gap instead. */
-#overview > .form-card:first-child {
-  margin-top: 0;
-}
-#overview > .form-card:first-child + h2 {
-  margin-top: 1.6rem;
-}
-
 /* ─── Galactic Exchange: tables side by side only when they fit (AB#1055, AB#1165) ─── */
 /* Sell Orders and Create Listing sat side by side from 500 px of panel, while each table needs about 520 px: at
    1280x800 the Buy and Create Listing buttons were outside their cards. Two columns only when each card can hold its
@@ -5946,7 +5381,6 @@ tr.npc-order-exhausted {
    capped rules from this stylesheet, so a new one added above without a line here fails the suite. 767px is
    NARROW_MAX_WIDTH in public/scripts/firstAction.js. */
 @media (max-width: 767px) {
-  #inbox,
   #chat,
   #map-details,
   #forum-overview-view,
@@ -6988,5 +6422,267 @@ body.sg {
 @media (max-width: 600px) {
   .sg-pair {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Screens on the design system (ISP-77, AB#766) ───
+   The parts every rebuilt screen shares, in tokens only: a screen is a column of its header, its panels and its
+   grids; figures carry a tone, never a colour written where they are drawn. A table's group headings and totals
+   are rows of their own, and below 768px its rows, footer included, are cards like its body (ISP-73). The Company
+   group's screens (Overview, Inbox, Financial Core) are built from these; tests/unit/companyScreens.test.js holds them
+   to it. */
+.ui-screen.active {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.ui-screen__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.ui-screen__title {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-5);
+  line-height: var(--line-height-tight);
+}
+.ui-screen__lede {
+  max-width: 72ch;
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+}
+.ui-screen__meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-2);
+}
+.ui-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+  gap: var(--space-4);
+}
+.ui-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.ui-list {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+}
+.ui-list__item--success {
+  color: var(--success);
+}
+.ui-list__item--error {
+  color: var(--danger);
+}
+.ui-card__figure {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.ui-panel__meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-2);
+}
+.ui-figure {
+  font-variant-numeric: tabular-nums;
+}
+.ui-figure--positive {
+  color: var(--success);
+}
+.ui-figure--negative {
+  color: var(--danger);
+}
+.ui-table td.ui-figure {
+  text-align: right;
+}
+.ui-table__group th {
+  padding-top: var(--space-4);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--muted);
+}
+.ui-table__group--in th {
+  color: var(--success);
+}
+.ui-table__group--out th {
+  color: var(--danger);
+}
+.ui-table__total td {
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-weight: var(--font-weight-semibold);
+}
+.ui-table__muted td {
+  color: var(--muted);
+}
+.ui-textarea {
+  min-height: 160px;
+  padding: var(--space-2) var(--space-3);
+  line-height: var(--line-height-body);
+  resize: vertical;
+}
+
+/* The Overview's milestones: done is quieter, and one just done is struck through as it happens. */
+.overview__milestone.is-complete {
+  border-color: var(--success);
+}
+.overview__milestone.is-complete .overview__milestone-title,
+.overview__milestone.is-complete .overview__milestone-state {
+  color: var(--text-soft);
+}
+.overview__milestone-title {
+  position: relative;
+  display: inline-block;
+}
+.overview__milestone.is-just-completed .overview__milestone-title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 53%;
+  width: 0;
+  height: 2px;
+  background: var(--success);
+  animation: milestoneStrike 0.8s ease-out forwards;
+}
+
+/* The Inbox: its message rows, an open message and the compose form's recipient chooser (Bug #711). */
+.inbox__header {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+.inbox__messages {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.inbox__message {
+  width: 100%;
+}
+.inbox__message.is-unread {
+  border-left: 3px solid var(--accent);
+}
+.inbox__message-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.inbox__back {
+  align-self: flex-start;
+}
+.inbox__body {
+  margin: 0;
+  color: var(--text-soft);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.inbox__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.inbox__candidates {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.inbox__candidate[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--surface-3);
+}
+
+/* The Financial Core: charts two across (the wide ones span both), the two statements and the daily statements. */
+.finance__charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+.finance__chart--wide {
+  grid-column: 1 / -1;
+}
+.finance__canvas {
+  position: relative;
+  height: 210px;
+}
+.finance__tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
+  gap: var(--space-4);
+}
+.finance__statements {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: var(--space-4);
+}
+.finance__day {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+@media (max-width: 767px) {
+  .finance__charts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .finance__canvas {
+    height: 260px;
+  }
+  /* A table's footer is cards like its body, and a group heading a line of its own, not a card. */
+  .ui-table tfoot {
+    display: block;
+  }
+  .ui-table tfoot tr {
+    display: grid;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    padding: var(--space-4);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .ui-table tr.ui-table__group {
+    display: block;
+    margin: 0;
+    padding: var(--space-3) 0 var(--space-1);
+    background: none;
+    border: 0;
+  }
+  .ui-table tr.ui-table__group th {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+}
+
+/* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */
+@media (max-width: 600px) {
+  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend) {
+    font-size: var(--font-size-3);
+  }
+  .ui-screen .ui-table td::before {
+    font-size: var(--font-size-3);
   }
 }

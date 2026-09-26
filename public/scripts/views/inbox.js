@@ -29,8 +29,8 @@ export async function loadMessages() {
         const unreadOfficial = inboxMsgs.some((m) => (m.fromType === "system" || m.fromType === "npc") && !m.readAt);
         if (unreadPlayer && !unreadOfficial) {
           appState.inbox.subtype = "players";
-          document.querySelectorAll(".inbox-subtab-btn").forEach((b) => {
-            b.classList.toggle("active", b.dataset.subtype === "players");
+          document.querySelectorAll("#inbox-subtab-nav [data-subtype]").forEach((b) => {
+            b.setAttribute("aria-selected", String(b.dataset.subtype === "players"));
           });
         }
       }
@@ -48,7 +48,7 @@ export function updateInboxSubtabBadges() {
     official: msgs.filter((m) => (m.fromType === "system" || m.fromType === "npc") && !m.readAt).length,
     players: msgs.filter((m) => m.fromType === "player" && !m.readAt).length
   };
-  document.querySelectorAll(".inbox-subtab-btn").forEach((btn) => {
+  document.querySelectorAll("#inbox-subtab-nav [data-subtype]").forEach((btn) => {
     const subtype = btn.dataset.subtype;
     const baseLabel = btn.dataset.baseLabel || (() => {
       // Cache the original label text once so re-renders don't accumulate
@@ -96,15 +96,15 @@ export function renderInboxMessageList() {
   if (!msgs.length) {
     list.innerHTML = "";
     emptyNotice.textContent = inboxEmptyText(appState.inbox.folder, appState.inbox.subtype); // Bug #1060
-    emptyNotice.style.display = "";
+    emptyNotice.hidden = false;
     return;
   }
-  emptyNotice.style.display = "none";
+  emptyNotice.hidden = true;
 
   // Bug #754: every field escaped (public/scripts/html.js, tested in tests/unit/inboxList.test.js).
   list.innerHTML = messageListItemsHtml(msgs, formatInboxDate);
 
-  list.querySelectorAll(".inbox-msg-item").forEach((el) => {
+  list.querySelectorAll("[data-msg-id]").forEach((el) => {
     el.addEventListener("click", () => openMessage(el.dataset.msgId));
   });
 }
@@ -141,18 +141,18 @@ export function openMessage(messageId) {
   const archiveBtn = document.getElementById("inbox-action-archive");
   const restoreBtn = document.getElementById("inbox-action-restore");
   const trashBtn = document.getElementById("inbox-action-trash");
-  archiveBtn.style.display = "none";
-  restoreBtn.style.display = "none";
-  trashBtn.style.display = "none";
+  archiveBtn.hidden = true;
+  restoreBtn.hidden = true;
+  trashBtn.hidden = true;
 
   if (msg.folder === "inbox") {
-    archiveBtn.style.display = "";
-    trashBtn.style.display = "";
+    archiveBtn.hidden = false;
+    trashBtn.hidden = false;
   } else if (msg.folder === "archive") {
-    restoreBtn.style.display = "";
-    trashBtn.style.display = "";
+    restoreBtn.hidden = false;
+    trashBtn.hidden = false;
   } else if (msg.folder === "trash") {
-    restoreBtn.style.display = "";
+    restoreBtn.hidden = false;
   }
 
   // Mark read. Bug #1136: here and now, so the counts and the list are right the moment the player goes Back (it used
@@ -179,36 +179,36 @@ export function syncComposeDraftControls() {
 
 export function showInboxView(view) {
   // view: "list" | "detail" | "compose"
-  document.getElementById("inbox-list-view").style.display = view === "list" ? "" : "none";
-  document.getElementById("inbox-detail-view").style.display = view === "detail" ? "" : "none";
-  document.getElementById("inbox-compose-view").style.display = view === "compose" ? "" : "none";
+  document.getElementById("inbox-list-view").hidden = !(view === "list");
+  document.getElementById("inbox-detail-view").hidden = !(view === "detail");
+  document.getElementById("inbox-compose-view").hidden = !(view === "compose");
   const subtabNav = document.getElementById("inbox-subtab-nav");
   // Subtabs (System & NPC / Players) only make sense on the inbox-folder list view.
   if (subtabNav) {
-    subtabNav.style.display = (view === "list" && appState.inbox.folder === "inbox") ? "" : "none";
+    subtabNav.hidden = !(view === "list" && appState.inbox.folder === "inbox");
   }
 }
 
 export function bindInboxControls() {
   // Folder tabs
-  document.querySelectorAll(".inbox-folder-btn").forEach((btn) => {
+  document.querySelectorAll("#inbox-folders [data-folder]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".inbox-folder-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
+      document.querySelectorAll("#inbox-folders [data-folder]").forEach((b) => b.setAttribute("aria-selected", "false"));
+      btn.setAttribute("aria-selected", "true");
       appState.inbox.folder = btn.dataset.folder;
       appState.inbox.openMessageId = null;
       showInboxView("list");
       const subtabNav = document.getElementById("inbox-subtab-nav");
-      if (subtabNav) subtabNav.style.display = appState.inbox.folder === "inbox" ? "" : "none";
+      if (subtabNav) subtabNav.hidden = !(appState.inbox.folder === "inbox");
       renderInboxMessageList();
     });
   });
 
   // Sub-tabs
-  document.querySelectorAll(".inbox-subtab-btn").forEach((btn) => {
+  document.querySelectorAll("#inbox-subtab-nav [data-subtype]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".inbox-subtab-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
+      document.querySelectorAll("#inbox-subtab-nav [data-subtype]").forEach((b) => b.setAttribute("aria-selected", "false"));
+      btn.setAttribute("aria-selected", "true");
       appState.inbox.subtype = btn.dataset.subtype;
       // Once the user picks a subtab, stop auto-switching it on reload.
       appState.inbox.subtypeChosenByUser = true;
@@ -273,7 +273,7 @@ export function bindInboxControls() {
     status.textContent = "";
     syncComposeDraftControls();
     appState.inbox.folder = "draft";
-    document.querySelectorAll(".inbox-folder-btn").forEach((b) => b.classList.toggle("active", b.dataset.folder === "draft"));
+    document.querySelectorAll("#inbox-folders [data-folder]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.folder === "draft")));
     showInboxView("list");
     renderInboxMessageList();
     pushFeedback("Draft deleted.", "success");
@@ -310,8 +310,8 @@ export function bindInboxControls() {
       appState.inbox.folder = "sent";
       appState.inbox.composeDraftId = null;
       syncComposeDraftControls();
-      document.querySelectorAll(".inbox-folder-btn").forEach((b) => {
-        b.classList.toggle("active", b.dataset.folder === "sent");
+      document.querySelectorAll("#inbox-folders [data-folder]").forEach((b) => {
+        b.setAttribute("aria-selected", String(b.dataset.folder === "sent"));
       });
       status.textContent = `Sent to ${data.toName}.`;
       showInboxView("list");
@@ -384,7 +384,7 @@ export function onInboxTabActivated() {
   if (appState.inbox.loaded) renderInboxMessageList();
   loadMessages();
   const subtabNav = document.getElementById("inbox-subtab-nav");
-  if (subtabNav) subtabNav.style.display = appState.inbox.folder === "inbox" ? "" : "none";
+  if (subtabNav) subtabNav.hidden = !(appState.inbox.folder === "inbox");
 }
 
 // ─── Mail recipients (Bug #711) ──────────────────────────────────────────────
@@ -400,15 +400,15 @@ export function clearComposeCandidates() {
 export function showComposeCandidates(candidates) {
   const box = document.getElementById("compose-candidates");
   if (!box) return;
-  box.innerHTML = `<p class="muted">Choose which corporation you mean, then press Send:</p>` + candidates
-    .map((c) => `<button type="button" class="btn btn-outline compose-candidate" data-corp-id="${escapeHtml(c.publicId)}" data-corp-name="${escapeHtml(c.corporationName)}">`
+  box.innerHTML = `<p class="ui-field__hint">Choose which corporation you mean, then press Send:</p>` + candidates
+    .map((c) => `<button type="button" class="ui-button ui-button--secondary inbox__candidate" aria-pressed="false" data-corp-id="${escapeHtml(c.publicId)}" data-corp-name="${escapeHtml(c.corporationName)}">`
       + `${escapeHtml(c.corporationName)} · CEO ${escapeHtml(c.ceo || "unknown")} · ${escapeHtml(c.location || "unknown")}</button>`)
     .join("");
   box.hidden = false;
-  box.querySelectorAll(".compose-candidate").forEach((btn) => {
+  box.querySelectorAll("[data-corp-id]").forEach((btn) => {
     btn.addEventListener("click", () => {
       document.getElementById("compose-to-id").value = btn.dataset.corpId;
-      box.querySelectorAll(".compose-candidate").forEach((b) => b.classList.toggle("is-selected", b === btn));
+      box.querySelectorAll("[data-corp-id]").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
       document.getElementById("compose-status").textContent = `Addressed to ${btn.textContent}. Press Send.`;
     });
   });

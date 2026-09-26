@@ -18,6 +18,24 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#766 — ISP-77, Overview, Inbox and the Financial Core on the design system)
+
+- The Company group's three screens are `.ui-screen` tab panels built from the design system in the flat direction
+  (AB#1801). New shared layout parts every later screen story can use: `.ui-screen__header/__title/__lede/__meta`,
+  `.ui-grid`, `.ui-stack`, `.ui-list` (tones), `.ui-card__figure`, `.ui-panel__meta`, `.ui-figure` (tones),
+  `.ui-table__group/__total/__muted` (a table's footer and group rows are cards and lines below 768px), `.ui-textarea`.
+  Screen-specific blocks: `.overview__milestone`, `.inbox__*`, `.finance__*`. On a phone the small sizes on a
+  `.ui-screen` are raised to 15px, and the charts draw 14px text through `chartFont` (charts.js).
+- Overview cards that lead somewhere are buttons; milestones escape their titles. The Inbox's folders and sub-tabs are
+  `ui-tabs` (`aria-selected`), rows are buttons styled as cards (an unread one says New), and every view and button
+  shows and hides with `hidden`, not inline styles. The Inbox is no longer capped at 33vw on a desktop. The Financial
+  Core's tables and daily statements are `ui-table` with `data-label`, so a phone shows cards; no colour is written
+  in the renderers any more.
+- `tests/unit/companyScreens.test.js` fails if an old class of these screens returns anywhere, or if the screens or
+  their renderers use a shared legacy component, an inline style or a literal colour. The shared legacy classes
+  (`.btn`, `.form-card`, `.data-card`, `.muted` and the rest) stay for the screens not yet rebuilt (ISP-78, ISP-79).
+  `e2e/company-screens.spec.js` holds the three at 375/768/1280. Screens in `docs/ab-766/`.
+
 ## What's now true (ISP-307, AB#2299 — the sinks' own ledger categories, Builder)
 
 - Yard upkeep and the rising yard price are booked as `yard-upkeep` and `yard-price-growth` (AB#712 categories), so

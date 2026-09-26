@@ -94,7 +94,7 @@ for (const viewport of VIEWPORTS) {
       await expect(page.locator("#dialogue-modal")).toBeHidden();
 
       // ── Overview (the default tab) names the Assignment and links to it ────────────────────────────────
-      const salvageCard = page.locator("#overview-cards .data-card", { hasText: "ISA Salvage Assignment" });
+      const salvageCard = page.locator("#overview-cards .ui-card", { hasText: "ISA Salvage Assignment" });
       await expect(salvageCard).toBeVisible();
       await expect(salvageCard).toContainText("Available");
       if (mobile) await assertNoHorizontalScroll(page);
@@ -179,7 +179,7 @@ for (const viewport of VIEWPORTS) {
       await expect(page.locator(".mission-complete-overlay")).toHaveCount(0);
 
       await openTab(page, "overview");
-      await expect(page.locator("#overview-cards .data-card", { hasText: "Cash Reserves" })).toContainText("$3,000");
+      await expect(page.locator("#overview-cards .ui-card", { hasText: "Cash Reserves" })).toContainText("$3,000");
     } finally {
       child.kill();
       fs.rmSync(dir, { recursive: true, force: true });

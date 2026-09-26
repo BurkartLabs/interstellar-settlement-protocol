@@ -56,7 +56,7 @@ export async function loadStatements() {
     renderStatements();
   } catch (err) {
     const body = document.getElementById("statement-body");
-    if (body) body.innerHTML = `<p class="muted">The statements could not be loaded: ${escapeHtml(err.message || "try again shortly")}.</p>`;
+    if (body) body.innerHTML = `<div class="ui-state ui-state--error" role="alert"><p class="ui-state__title">The statements could not be loaded</p><p class="ui-state__why">${escapeHtml(err.message || "Try again shortly")}. Nothing you own has changed.</p></div>`;
   } finally {
     statementsState.loading = false;
   }
@@ -137,6 +137,13 @@ export function renderFinanceDashboard(finances) {
   renderBalanceTable(finances, { credits, assets, inventory, liabilities, netWorth });
 }
 
+// ISP-77 (AB#766): the two statements as design-system tables. Each cell names its column, so below 768px each row is a
+// card (ISP-73); a group heading is a row of its own; figures carry a tone instead of a colour written here.
+const TONE = { positive: " ui-figure--positive", negative: " ui-figure--negative", neutral: "" };
+const figureRow = (labels, label, shown, tone = "neutral", { total = false } = {}) =>
+  `<tr${total ? ' class="ui-table__total"' : ""}><td data-label="${labels[0]}">${label}</td><td data-label="${labels[1]}" class="ui-figure${TONE[tone]}">${shown}</td></tr>`;
+const groupRow = (text, tone) => `<tr class="ui-table__group ui-table__group--${tone}"><th colspan="2" scope="rowgroup">${text}</th></tr>`;
+
 export function renderPnlTable(finances) {
   const table = document.getElementById("finance-pnl-table");
   if (!table) return;
@@ -157,31 +164,20 @@ export function renderPnlTable(finances) {
     .filter(([, v]) => Number(v) > 0)
     .sort((a, b) => Number(b[1]) - Number(a[1]));
 
-  const rowsHtml = [];
-  rowsHtml.push(`<tr><th colspan="2" style="color:#6cf0c2">Revenue</th></tr>`);
-  if (incomeRows.length === 0) {
-    rowsHtml.push(`<tr><td>—</td><td class="num">0</td></tr>`);
-  } else {
-    for (const [k, v] of incomeRows) {
-      rowsHtml.push(`<tr><td>${escapeHtml(prettifyLedgerLabel(k))}</td><td class="num num--positive">+${fmtCredits(v)}</td></tr>`);
-    }
-  }
-  rowsHtml.push(`<tr><th colspan="2" style="color:#f0a06a">Expenses</th></tr>`);
-  if (expenseRows.length === 0) {
-    rowsHtml.push(`<tr><td>—</td><td class="num">0</td></tr>`);
-  } else {
-    for (const [k, v] of expenseRows) {
-      rowsHtml.push(`<tr><td>${escapeHtml(prettifyLedgerLabel(k))}</td><td class="num num--negative">−${fmtCredits(v)}</td></tr>`);
-    }
-  }
+  const L = ["Category", "Amount ($)"];
+  const rowsHtml = [groupRow("Revenue", "in")];
+  if (incomeRows.length === 0) rowsHtml.push(figureRow(L, "—", "0"));
+  else for (const [k, v] of incomeRows) rowsHtml.push(figureRow(L, escapeHtml(prettifyLedgerLabel(k)), `+${fmtCredits(v)}`, "positive"));
+  rowsHtml.push(groupRow("Expenses", "out"));
+  if (expenseRows.length === 0) rowsHtml.push(figureRow(L, "—", "0"));
+  else for (const [k, v] of expenseRows) rowsHtml.push(figureRow(L, escapeHtml(prettifyLedgerLabel(k)), `−${fmtCredits(v)}`, "negative"));
   tbody.innerHTML = rowsHtml.join("");
 
-  const netClass = net >= 0 ? "num--positive" : "num--negative";
-  tfoot.innerHTML = `
-    <tr><td>Lifetime Revenue</td><td class="num num--positive">+${fmtCredits(lifetimeRevenue)}</td></tr>
-    <tr><td>Lifetime Costs</td><td class="num num--negative">−${fmtCredits(lifetimeCosts)}</td></tr>
-    <tr><td><strong>Net Position</strong></td><td class="num ${netClass}"><strong>${fmtSignedCredits(net)}</strong></td></tr>
-  `;
+  tfoot.innerHTML = [
+    figureRow(L, "Lifetime Revenue", `+${fmtCredits(lifetimeRevenue)}`, "positive"),
+    figureRow(L, "Lifetime Costs", `−${fmtCredits(lifetimeCosts)}`, "negative"),
+    figureRow(L, "Net Position", fmtSignedCredits(net), net >= 0 ? "positive" : "negative", { total: true })
+  ].join("");
 }
 
 export function renderBalanceTable(finances, derived) {
@@ -202,25 +198,25 @@ export function renderBalanceTable(finances, derived) {
   const staff = Math.max(0, Math.floor(Number(appState.data?.corp?.employeeCount) || 0));
   const { payrollPerDay } = clientPrices(appState.economy);
 
-  tbody.innerHTML = `
-    <tr><th colspan="2" style="color:#6cf0c2">Assets</th></tr>
-    <tr><td>Liquid Credits</td><td class="num">${fmtCredits(credits)}</td></tr>
-    <tr><td>Facilities &amp; Probes</td><td class="num">${fmtCredits(assets)}</td></tr>
-    <tr><td>Inventory (at standing bids)</td><td class="num">${fmtCredits(inventory)}</td></tr>
-    <tr><th colspan="2" style="color:#f0a06a">Liabilities</th></tr>
-    <tr><td>Forward Operating (7d)</td><td class="num">${fmtCredits(forwardOps)}</td></tr>
-    <tr><td>Lease Commitments</td><td class="num">${fmtCredits(leaseShare)}</td></tr>
-    ${payrollOwed > 0 ? `<tr><td>Payroll Owed</td><td class="num num--negative">${fmtCredits(payrollOwed)}</td></tr>` : ""}
-    <tr><th colspan="2" style="color:#89a7bd">Operating Profile</th></tr>
-    <tr><td>Daily Revenue</td><td class="num num--positive">+${fmtCredits(dailyRevenue)}</td></tr>
-    <tr><td>Daily Costs</td><td class="num num--negative">−${fmtCredits(dailyExpenses)}</td></tr>
-    <tr><td>Payroll (${staff} staff × ${fmtCredits(payrollPerDay)} a day)</td><td class="num num--negative">−${fmtCredits(staff * payrollPerDay)}</td></tr>
-  `;
+  const L = ["Line item", "Value ($)"];
+  tbody.innerHTML = [
+    groupRow("Assets", "in"),
+    figureRow(L, "Liquid Credits", fmtCredits(credits)),
+    figureRow(L, "Facilities &amp; Probes", fmtCredits(assets)),
+    figureRow(L, "Inventory (at standing bids)", fmtCredits(inventory)),
+    groupRow("Liabilities", "out"),
+    figureRow(L, "Forward Operating (7d)", fmtCredits(forwardOps)),
+    figureRow(L, "Lease Commitments", fmtCredits(leaseShare)),
+    ...(payrollOwed > 0 ? [figureRow(L, "Payroll Owed", fmtCredits(payrollOwed), "negative")] : []),
+    groupRow("Operating Profile", "neutral"),
+    figureRow(L, "Daily Revenue", `+${fmtCredits(dailyRevenue)}`, "positive"),
+    figureRow(L, "Daily Costs", `−${fmtCredits(dailyExpenses)}`, "negative"),
+    figureRow(L, `Payroll (${staff} staff × ${fmtCredits(payrollPerDay)} a day)`, `−${fmtCredits(staff * payrollPerDay)}`, "negative")
+  ].join("");
 
-  const nwClass = netWorth >= 0 ? "num--positive" : "num--negative";
-  tfoot.innerHTML = `
-    <tr><td>Total Assets</td><td class="num num--positive">${fmtCredits(credits + assets + inventory)}</td></tr>
-    <tr><td>Total Liabilities</td><td class="num num--negative">−${fmtCredits(liabilities)}</td></tr>
-    <tr><td><strong>Net Worth</strong></td><td class="num ${nwClass}"><strong>${fmtSignedCredits(netWorth)}</strong></td></tr>
-  `;
+  tfoot.innerHTML = [
+    figureRow(L, "Total Assets", fmtCredits(credits + assets + inventory), "positive"),
+    figureRow(L, "Total Liabilities", `−${fmtCredits(liabilities)}`, "negative"),
+    figureRow(L, "Net Worth", fmtSignedCredits(netWorth), netWorth >= 0 ? "positive" : "negative", { total: true })
+  ].join("");
 }

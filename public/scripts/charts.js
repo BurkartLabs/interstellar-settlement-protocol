@@ -56,6 +56,14 @@ let _lastFinances = null;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+/**
+ * ISP-77 (AB#766): the text a chart draws, in pixels. On a phone nothing a player reads is under 14px, so the axis and
+ * legend text is 14 there; on a wider screen the smaller size keeps the axes uncrowded.
+ */
+export function chartFont(base, narrow = typeof window !== "undefined" && window.matchMedia?.("(max-width: 600px)").matches) {
+  return narrow ? 14 : base;
+}
+
 function baseOptions(extra = {}) {
   const { beginAtZero = false, ...rest } = extra;
   return {
@@ -63,7 +71,7 @@ function baseOptions(extra = {}) {
     maintainAspectRatio: false,
     interaction: { mode: "index", intersect: false },
     plugins: {
-      legend: { labels: { color: COLOR.text, font: { size: 11 } } },
+      legend: { labels: { color: COLOR.text, font: { size: chartFont(11) } } },
       tooltip: {
         backgroundColor: "rgba(5, 12, 24, 0.95)",
         borderColor: COLOR.cyanSoft,
@@ -74,12 +82,12 @@ function baseOptions(extra = {}) {
       }
     },
     scales: {
-      x: { ticks: { color: COLOR.muted, font: { size: 10 } }, grid: { color: COLOR.grid } },
+      x: { ticks: { color: COLOR.muted, font: { size: chartFont(10) } }, grid: { color: COLOR.grid } },
       y: {
         beginAtZero,
         ticks: {
           color: COLOR.muted,
-          font: { size: 10 },
+          font: { size: chartFont(10) },
           callback: (v) => formatCompact(v)
         },
         grid: { color: COLOR.grid }
@@ -326,7 +334,7 @@ function renderIncomeBySource(finances) {
         plugins: {
           legend: {
             position: "right",
-            labels: { color: COLOR.text, font: { size: 11 }, boxWidth: 10 }
+            labels: { color: COLOR.text, font: { size: chartFont(11) }, boxWidth: 10 }
           },
           tooltip: {
             callbacks: {
@@ -372,8 +380,8 @@ function renderAssetComposition(finances) {
         ...baseOptions(),
         indexAxis: "y",
         scales: {
-          x: { stacked: true, ticks: { color: COLOR.muted, font: { size: 10 }, callback: (v) => formatCompact(v) }, grid: { color: COLOR.grid } },
-          y: { stacked: true, ticks: { color: COLOR.muted, font: { size: 10 } }, grid: { display: false } }
+          x: { stacked: true, ticks: { color: COLOR.muted, font: { size: chartFont(10) }, callback: (v) => formatCompact(v) }, grid: { color: COLOR.grid } },
+          y: { stacked: true, ticks: { color: COLOR.muted, font: { size: chartFont(10) } }, grid: { display: false } }
         }
       }
     });

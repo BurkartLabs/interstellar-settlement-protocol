@@ -33,8 +33,9 @@ function vwCapped(css) {
 describe("phone panels (AB#1055)", () => {
   it("finds the capped panels it is meant to find", () => {
     const capped = vwCapped(CSS);
-    // #missions-board-view and #agent-office-view are no longer capped at all (AB#1762, tests/unit/panelWidth.test.js).
-    for (const s of ["#inbox", "#chat", "#forum-overview-view", "#map-details", ".mission-card"]) expect(capped).toContain(s);
+    // #missions-board-view and #agent-office-view are no longer capped at all (AB#1762, tests/unit/panelWidth.test.js),
+    // nor is #inbox since ISP-77 rebuilt it on the design system at the content's width (AB#766).
+    for (const s of ["#chat", "#forum-overview-view", "#map-details", ".mission-card"]) expect(capped).toContain(s);
   });
 
   it("lifts every vw-capped rule at phone width", () => {
