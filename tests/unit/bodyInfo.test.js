@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { bodyResourceHtml, LEASE_RESOURCE } from "../../public/scripts/bodyInfo.js";
+import { bodyResourceHtml } from "../../public/scripts/bodyInfo.js";
+import { profileText } from "../../public/scripts/bodyYield.js";
 import { clientCode } from "../helpers/clientSource.js";
 
 // AB#740: the starmap's body panel shows the server's catalogue, and nothing derived from a hash of a body's id.
@@ -16,14 +17,17 @@ const starmap = read("public/scripts/starmap.js");
 describe("the starmap body panel (AB#740)", () => {
   it("every leasable body shows its catalogue lease cost, where it is filed and what it produces", () => {
     const leasable = bodies.filter((b) => Number(b.leaseCost) > 0);
-    expect(leasable.map((b) => b.name).sort()).toEqual(["Earth", "Luna", "Mars"]);
+    expect(leasable.map((b) => b.name).sort()).toEqual(["BL Ceti I", "Earth", "Kestrel", "Luna", "Mars"]); // AB#832
     for (const b of leasable) {
       const html = bodyResourceHtml(b, stations);
       expect(html, b.name).toContain(`data-lease-cost="${b.leaseCost}">${b.leaseCost.toLocaleString("en-US")} credits`);
       expect(html).toContain(stations.find((s) => s.body === b.name).name);
-      expect(html).toContain(`<strong>${LEASE_RESOURCE}</strong>`);
-      expect(html).not.toMatch(/\d+%/);
+      // What a yard there mines: the catalog's profile, the only percentages the panel shows (AB#826, AB#828).
+      expect(html).toContain(`<strong data-body-yield>${profileText(b.resourceProfile)}</strong>`);
+      expect([...html.matchAll(/(\d+)%/g)].map((m) => Number(m[1]))).toEqual(b.resourceProfile.map((p) => Math.round(p.concentration * 100)));
     }
+    expect(bodyResourceHtml(leasable.find((b) => b.name === "Kestrel"), stations)).toContain("Cobalt 10%");
+    expect(bodyResourceHtml(leasable.find((b) => b.name === "BL Ceti I"), stations)).toContain("Thorium 10%");
   });
 
   it("a body with no lease terms says Not surveyed, with no number", () => {
