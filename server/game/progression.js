@@ -2,29 +2,45 @@
 
 import { ECONOMY } from "../economy.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
+import { taxBreakdown } from "../../public/scripts/exchangeTax.js";
 import { BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, REQ_ID_TO_TITLE, createId } from "./catalog.js";
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
-// The base rate is in data/economy.json (AB#726); CEO insights lower it from there.
+// The base rate is in data/economy.json (AB#726); the ISA lease royalty adds to it by leases held (ISP-302, AB#2285);
+// CEO insights lower it from there. The arithmetic is public/scripts/exchangeTax.js, shared with the Exchange page.
 export const BASE_EXCHANGE_SALES_TAX_PCT = ECONOMY.exchange.salesTaxPct;
 
-export function getEffectiveExchangeTaxRate(state) {
-  let taxPct = BASE_EXCHANGE_SALES_TAX_PCT;
-
+/** The rate and its parts for this corporation: base, royalty for its leases, discount, and the lines they make. */
+export function exchangeTaxBreakdown(state) {
   // CEO Insight: Negotiation Fundamentals reduces tax by 2% per completion (max 3 completions = 6%)
   // BRIEF.md, Monetization (Board decision AB#980, 2026-09-21): "Research and Insight should never be sellable."
   // This program, and every level or wait inside it, may never be bought or sped up with real money - only ever
   // earned with in-game credits and time, the way every other player already earns their own discount.
   const completedInsights = state.corp.completedInsights || [];
   const negLevels = completedInsights.filter((id) => id === "ceo-negotiation-fundamentals").length;
-  if (negLevels > 0) {
-    const prog = CEO_INSIGHT_LIBRARY["ceo-negotiation-fundamentals"];
-    const maxLevels = prog?.maxLevels || 3;
-    const effectiveLevels = Math.min(negLevels, maxLevels);
-    taxPct -= effectiveLevels * 2; // 2% per level
-  }
+  const maxLevels = CEO_INSIGHT_LIBRARY["ceo-negotiation-fundamentals"]?.maxLevels || 3;
+  return taxBreakdown({
+    basePct: BASE_EXCHANGE_SALES_TAX_PCT,
+    discountPoints: Math.min(negLevels, maxLevels) * 2, // 2% per level
+    leasesHeld: (state.corp.miningLeases || []).length,
+    royaltyPointsByLeasesHeld: ECONOMY.leases.royaltyPointsByLeasesHeld
+  });
+}
 
-  return Math.max(0, taxPct);
+export function getEffectiveExchangeTaxRate(state) {
+  return exchangeTaxBreakdown(state).ratePct;
+}
+
+/**
+ * Keep the corporation's stored rate and its breakdown current (ISP-302, AB#2285). The Exchange page reads them from
+ * finances, which the finance:updated event replaces whole, so they are stored rather than worked out on the page; and
+ * with the royalty the rate moves with leases held, so it is refreshed after every change, not only an insight's.
+ */
+export function refreshExchangeTax(state) {
+  if (!state?.corp?.finances) return;
+  const breakdown = exchangeTaxBreakdown(state);
+  state.corp.finances.exchangeSalesTaxPct = breakdown.ratePct;
+  state.corp.finances.exchangeTaxBreakdown = breakdown;
 }
 
 // ─── What the level ladder may name (Bug #424) ────────────────────────────────

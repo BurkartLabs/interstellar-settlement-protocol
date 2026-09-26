@@ -98,7 +98,8 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "research",
     "ceo-insight",
     "exchange-purchases",
-    "exchange-tax"
+    "exchange-tax",
+    "lease-royalty" // ISP-302 (AB#2285): the royalty's share of a sale's tax, booked apart so it can be counted
   ])
 });
 

@@ -13,6 +13,7 @@ const root = path.resolve(import.meta.dirname, "..", "..");
 const BEFORE_THE_MOVE = {
   employees: { hireCost: 2000, payrollPerDay: 150 },                       // server/routes/corporation.js hire: hired * 2000, hired * 150
   office: { rentPerDay: 1000, termDays: [7, 14, 21, 28] },                  // ceoEffects.js OFFICE_PER_DAY, OFFICE_TERMS_DAYS (Bug #1032)
+  leases: { royaltyPointsByLeasesHeld: { 2: 1, 3: 2, 5: 3 } },              // ISP-302 (AB#2285): new, not moved
   buildings: {                                                              // build-extractor routes, build-assembly-facility, build-refinery
     extractorYardCost: 50000, extractorYardAssetValue: 36000, assemblyFacilityCost: 60000, assemblyFacilityAssetValue: 40000,
     refineryCost: 75000, refineryAssetValue: 55000, supplyForecastCostMultiplier: 0.94,

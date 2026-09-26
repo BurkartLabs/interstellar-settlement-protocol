@@ -7,13 +7,38 @@ import { DEFAULT_EXCHANGE_VIEW, MY_LISTINGS_SHOWN, SELL_ORDERS_SHOWN, cappedNote
 import { deepClone, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { appState, viewerStorage } from "../state.js";
+import { taxOnSale } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
 import { suggestedListingPrice } from "../suggestedPrice.js";
 import { labelTableCells } from "../tableLabels.js";
 import { tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
 import { flashButtonSuccess, getCurrentStationInfo, getInventory, pushFeedback, refreshFromServer, showTradeConfirmation, stationLocationBanner } from "./shared.js";
 
+/**
+ * The tax rate and its parts, as the server last stored them (ISP-302, AB#2285: finances.exchangeTaxBreakdown). A
+ * response from before the breakdown existed has the rate alone, which is then all sales tax.
+ */
+export function getClientExchangeTaxBreakdown() {
+  const finances = appState.data?.corp?.finances;
+  const stored = finances?.exchangeTaxBreakdown;
+  if (stored && Number.isFinite(stored.ratePct)) return stored;
+  const ratePct = Number(finances?.exchangeSalesTaxPct ?? 8);
+  return { ratePct, salesTaxPct: ratePct, royaltyPct: 0, royaltyPoints: 0, leasesHeld: (appState.data?.corp?.miningLeases || []).length };
+}
+
 export function getClientExchangeTaxPct() {
-  return Number(appState.data?.corp?.finances?.exchangeSalesTaxPct ?? 8);
+  return getClientExchangeTaxBreakdown().ratePct;
+}
+
+/** A sale's tax lines, as the server will book them (taxOnSale): the sales tax, the royalty when there is one, the rest. */
+function saleTaxRows(gross) {
+  const breakdown = getClientExchangeTaxBreakdown();
+  const sale = taxOnSale(gross, breakdown);
+  const leases = `${breakdown.leasesHeld} lease${breakdown.leasesHeld === 1 ? "" : "s"} held`;
+  return [
+    { label: `GEX Sales Tax (${breakdown.salesTaxPct}%)`, value: `− ${toCurrency(sale.salesTax)}`, muted: true },
+    ...(breakdown.royaltyPct > 0 ? [{ label: `ISA Lease Royalty (${breakdown.royaltyPct}%, ${leases})`, value: `− ${toCurrency(sale.royalty)}`, muted: true }] : []),
+    { label: "You Receive", value: toCurrency(sale.proceeds), highlight: true }
+  ];
 }
 
 import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
@@ -321,8 +346,6 @@ export function bindExchangeForms() {
     if (numbers.ok) {
       const { quantity, unitPrice } = numbers.values;
       const gross = quantity * unitPrice;
-      const taxPct = getClientExchangeTaxPct();
-      const tax = Math.round(gross * taxPct / 100);
       const confirmed = await showTradeConfirmation({
         heading: "Create Listing",
         title: `List ${item}`,
@@ -332,8 +355,7 @@ export function bindExchangeForms() {
           { label: "Quantity", value: quantity.toLocaleString() },
           { label: "Unit Price", value: toCurrency(unitPrice), highlight: true },
           { label: "If it all sells", value: toCurrency(gross) },
-          { label: `GEX Sales Tax (${taxPct}%)`, value: `− ${toCurrency(tax)}`, muted: true },
-          { label: "You Receive", value: toCurrency(gross - tax), highlight: true }
+          ...saleTaxRows(gross)
         ]
       });
       if (!confirmed) return;
@@ -498,8 +520,6 @@ export function bindExchangeForms() {
 
     if (ok) {
       const grossTotal = qty * price;
-      const taxPct = getClientExchangeTaxPct();
-      const taxAmount = Math.round(grossTotal * taxPct / 100);
       const buyer = row?.children[1]?.textContent || "NPC";
       const confirmed = await showTradeConfirmation({
         heading: "Sell to Standing Buy Order",
@@ -511,8 +531,7 @@ export function bindExchangeForms() {
           { label: "Unit Price", value: toCurrency(price) },
           { label: "Buyer", value: buyer },
           { label: "Gross Total", value: toCurrency(grossTotal) },
-          { label: `GEX Sales Tax (${taxPct}%)`, value: `− ${toCurrency(taxAmount)}`, muted: true },
-          { label: "You Receive", value: toCurrency(grossTotal - taxAmount), highlight: true }
+          ...saleTaxRows(grossTotal)
         ]
       });
       if (!confirmed) return;

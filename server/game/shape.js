@@ -2,7 +2,7 @@
 
 import { ensureFinanceTracking } from "../finances.js";
 import { MAX_DEFINED_LEVEL, REFINERY_CHAINS_DATA, STATION_REGISTRY_CACHE, SYSTEM_DETAILS, SYSTEMS_DATA } from "./catalog.js";
-import { getEffectiveExchangeTaxRate } from "./progression.js";
+import { refreshExchangeTax } from "./progression.js";
 import { ensureCorpMiningModel } from "./mining.js";
 import { ensureCorpRefineryModel } from "./refining.js";
 import { ensureCorpAsteroidMiningModel } from "./asteroids.js";
@@ -164,8 +164,8 @@ export function normalizeStateShape(rawState) {
     rawState.corp.completedInsights = [];
   }
 
-  // Always reconcile tax rate from completedInsights (authoritative source)
-  rawState.corp.finances.exchangeSalesTaxPct = getEffectiveExchangeTaxRate(rawState);
+  // Always reconcile the tax rate and its breakdown from insights and leases held (ISP-302, AB#2285)
+  refreshExchangeTax(rawState);
 
   if (!rawState.queues) rawState.queues = {};
   if (!Array.isArray(rawState.queues.ceoInsight)) {

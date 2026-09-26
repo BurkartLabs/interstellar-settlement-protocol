@@ -11,7 +11,7 @@ import { directInvestmentRecords } from "../legacyInvestments.js";
 import { NAME_CHARS, validateCorporationName, SYSTEM_SENDERS } from "../corporationName.js";
 import { settlePayroll, payrollNotice } from "../payroll.js";
 import { PASSWORD_SALT_ROUNDS, SYSTEMS_DATA, accountsSnapshotPath, createId, dataDir, deepClone, safeWriteFile, statePath } from "./catalog.js";
-import { evaluateAccountLevel, evaluateLevelProgress, pushSystemNotification, sanitizeNotification } from "./progression.js";
+import { evaluateAccountLevel, evaluateLevelProgress, pushSystemNotification, refreshExchangeTax, sanitizeNotification } from "./progression.js";
 import { applyMiningOperations, ensureCorpMiningModel } from "./mining.js";
 import { normalizeStateShape } from "./shape.js";
 import { createStarterCorporationState, refreshContractOfferings } from "./corporation.js";
@@ -756,6 +756,7 @@ export function mutateAccountState(accountId, mutator, { sanitize = true, settle
   refreshContractOfferings(account.state.corp);
   ensureCorpMiningModel(account.state.corp);
   ensureBuildingIds(account.state.corp); // AB#792: whatever route built it, a building has an id when this returns
+  refreshExchangeTax(account.state); // ISP-302 (AB#2285): the tax moves with leases held, so after every change
   const levelsReached = evaluateAccountLevel(accountId, account); // Bug #1260
   scheduleAccountsSave();
   // AB#743: the levels this change reached ride on the response, so the page can show the milestone modal from the
