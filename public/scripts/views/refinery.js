@@ -6,12 +6,46 @@ import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { deepClone, formatDurationHours, toCurrency } from "../helpers.js";
 import { escapeHtml, refineryBuildButtonHtml } from "../html.js";
 import { refineMinimum, refineQuantityCheck, refineQuantityFieldValue } from "../refineQuantity.js";
-import { inputsLabel, maxBatches } from "../refineryRun.js"; // AB#825: "150 Iron Ore + 50 Nickel"
+import { inputsLabel, maxBatches, minBatches, refineRunCheck } from "../refineryRun.js"; // AB#825: "150 Iron Ore + 50 Nickel"
+// ISP-142 (AB#836): each input's need and stock, what is short, and which chain makes or takes each item.
+import { amountsText, chainTitle, consumersOf, defaultBatches, inputRows, outputRows, producersOf, startLabel } from "../chainPlan.js";
+import { wholeNumber } from "../wholeNumber.js";
+import { scrollBehavior } from "../motion.js";
 import { appState } from "../state.js";
 import { clientPrices } from "../clientPrices.js";
 import { refineryMultiplierFor, refineryOutput } from "../refineryOutput.js"; // ISP-97 (AB#787), AB#794: output by tier
 import { cycleProgressPercent, pushFeedback, updateAllViews } from "./shared.js";
 
+
+/** "Made by: <link>", or where an item comes from when no chain makes it. Links sit in running text (a <p>). */
+function linksHtml(label, links, none) {
+  if (!links.length) return `<p class="ui-card__meta">${escapeHtml(label)}: ${escapeHtml(none)}</p>`;
+  const anchors = links.map((l) => `<a class="refinery__link" href="#chain-${escapeHtml(l.id)}" data-chain-link="${escapeHtml(l.id)}">${escapeHtml(l.recipe)}</a>`);
+  return `<p class="ui-card__meta">${escapeHtml(label)}: ${anchors.join(", ")}</p>`;
+}
+
+/** AB#836: a chain of several inputs, each on its own row with what the run needs, what is held here, and its maker. */
+function multiInputHtml(chain, batches, inventory, chains) {
+  const rows = inputRows(chain, batches, inventory, chains);
+  const outputs = outputRows(chain, batches, chains);
+  const n = Math.max(0, Number(batches) || 0);
+  const inputsHtml = rows.map((r) => `
+    <li class="refinery__input${r.short ? " refinery__input--short" : ""}" data-input-item="${escapeHtml(r.item)}">
+      <p class="ui-card__meta"><strong class="refinery__input-name">${escapeHtml(r.item)}</strong> <span data-role="amounts">${escapeHtml(amountsText(r))}</span>
+        ${r.short ? `<span class="ui-badge ui-badge--warn" data-role="short">Short by ${r.shortBy.toLocaleString("en-US")}</span>` : `<span class="ui-badge ui-badge--success" data-role="enough">Enough</span>`}</p>
+      ${linksHtml("Made by", r.madeBy, "no chain; mined or bought")}
+    </li>`).join("");
+  const outputsHtml = outputs.map((o) => `
+    <li class="refinery__input" data-output-item="${escapeHtml(o.item)}">
+      <p class="ui-card__meta"><strong class="refinery__input-name">${escapeHtml(o.item)}</strong> <span data-role="amounts">Makes ${o.made.toLocaleString("en-US")}</span></p>
+      ${linksHtml("Used by", o.usedBy, "no chain; a final product")}
+    </li>`).join("");
+  return `
+    <h5 class="refinery__list-title">Inputs for ${n.toLocaleString("en-US")} batch${n === 1 ? "" : "es"} at this station</h5>
+    <ul class="refinery__inputs">${inputsHtml}</ul>
+    <h5 class="refinery__list-title">Output</h5>
+    <ul class="refinery__inputs">${outputsHtml}</ul>`;
+}
 
 export function renderRefinery(data) {
   const catalog = document.getElementById("resource-catalog");
@@ -80,6 +114,8 @@ export function renderRefinery(data) {
         selEnd: document.activeElement.selectionEnd
       }
     : null;
+  // AB#836: a card a "Made by" link focused keeps its focus through the redraw, as a field does.
+  const focusedCardId = document.activeElement?.classList?.contains("refinery__chain") ? document.activeElement.id : null;
   // The last start or build outcome, above the chains: a tone class, never a colour written here.
   const statusHtml = refineryStatus?.text
     ? `<p class="refinery__status refinery__status--${refineryStatus.type === "ok" ? "ok" : "warn"}" role="status">${escapeHtml(refineryStatus.text)}</p>`
@@ -114,10 +150,16 @@ export function renderRefinery(data) {
       const quantityError = appState.refineQuantityErrors[chain.id];
       const inputId = `refine-qty-${chain.id}`;
       const errorId = `${inputId}-error`;
+      // AB#836: a chain of several inputs is run in batches; the rows follow what is typed, or as many as the stock covers.
+      const batchesId = `refine-batches-${chain.id}`;
+      const batchesValue = refineQuantityFieldValue(appState.refineQuantityOverrides[chain.id], defaultBatches(chain, inventory));
+      const batches = wholeNumber(batchesValue) ?? 0;
+      const rows = multiInput ? inputRows(chain, batches, inventory, refineryChains) : [];
+      const canStartMulti = multiInput && hasRefinery && !techGated && idleRefinery;
 
       return `
-        <section class="ui-card refinery__chain">
-          <h4 class="ui-card__title">${escapeHtml(inputs.map((i) => i.item).join(" + "))} Refining</h4>
+        <section class="ui-card refinery__chain" id="chain-${escapeHtml(chain.id)}" tabindex="-1">
+          <h4 class="ui-card__title">${escapeHtml(chainTitle(chain))}</h4>
           <p class="ui-card__body">${escapeHtml(inputsLabel(inputs.map((i) => ({ item: i.item, quantity: i.quantityPerCycle }))))} per batch → ${escapeHtml(outputLabel)}</p>
           <p class="ui-card__meta">Cycle: ${chain.cycleDurationHours || "?"}h per batch</p>
           ${techGated
@@ -126,8 +168,10 @@ export function renderRefinery(data) {
             : `<p class="ui-card__meta"><span class="ui-badge ui-badge--success">Research unlocked</span></p>`
           }
           ${multiInput
-            ? `<p class="ui-card__meta">Inventory: ${escapeHtml(inputs.map((i) => `${Number(inventory[i.item] || 0).toLocaleString()} ${i.item}`).join(", "))}</p>`
-            : `<p class="ui-card__meta">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(input)}${!hasInput && !techGated ? ` (need ${minQty})` : ""}</p>`}
+            ? multiInputHtml(chain, batches, inventory, refineryChains)
+            : `<p class="ui-card__meta">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(input)}${!hasInput && !techGated ? ` (need ${minQty})` : ""}</p>
+              ${linksHtml("Made by", producersOf(input, refineryChains), "no chain; mined or bought")}
+              ${linksHtml("Used by", [...new Map((chain.outputs || []).flatMap((o) => consumersOf(o.item, refineryChains)).map((c) => [c.id, c])).values()], "no chain; final products")}`}
           ${canStart
             ? `<div class="ui-field">
                 <label for="${escapeHtml(inputId)}" class="ui-field__label">Quantity</label>
@@ -137,9 +181,16 @@ export function renderRefinery(data) {
                 ${quantityError ? `<p id="${escapeHtml(errorId)}" class="ui-field__error" role="alert">${escapeHtml(quantityError)}</p>` : ""}
               </div>
               <button class="ui-button ui-button--secondary refinery__start" type="button" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}" data-per-cycle="${perCycle}" data-input="${escapeHtml(input)}" data-available="${inputAvailable}" data-hours="${Number(chain.cycleDurationHours) || 0}">Start Run</button>`
-            // AB#825: a chain of several inputs starts from AB#836's form; until then the card says so.
-            : multiInput && hasRefinery && !techGated
-              ? `<p class="ui-card__meta">This chain takes several inputs. Starting it from this page arrives in a later build.</p>`
+            // AB#836: a chain of several inputs, run in batches; the button names what is short.
+            : canStartMulti
+              ? `<div class="ui-field">
+                  <label for="${escapeHtml(batchesId)}" class="ui-field__label">Batches</label>
+                  <input id="${escapeHtml(batchesId)}" class="ui-input refinery__quantity refinery__batches" type="number" inputmode="numeric"
+                    min="${minBatches(chain)}" max="${maxBatches(chain)}" step="1" value="${escapeHtml(batchesValue)}" data-chain-id="${escapeHtml(chain.id)}"${quantityError ? ` aria-invalid="true" aria-describedby="${escapeHtml(errorId)}"` : ""} />
+                  <span class="ui-field__hint">${minBatches(chain)} to ${maxBatches(chain)}, ${Number(chain.cycleDurationHours) || 0}h each</span>
+                  ${quantityError ? `<p id="${escapeHtml(errorId)}" class="ui-field__error" role="alert">${escapeHtml(quantityError)}</p>` : ""}
+                </div>
+                <button class="ui-button ui-button--secondary refinery__start" type="button" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-batches-input="${escapeHtml(batchesId)}" data-hours="${Number(chain.cycleDurationHours) || 0}"${rows.some((r) => r.short) || batches < 1 ? " disabled" : ""}>${escapeHtml(batches < 1 ? "Enter a number of batches" : startLabel(rows))}</button>`
             : belowRefineryCap && canBuildRefinery
               ? refineryBuildButtonHtml({ hasRefinery, used: buildings.length, slots: buildingSlots })
               : !hasRefinery && !canBuildRefinery
@@ -163,7 +214,10 @@ export function renderRefinery(data) {
     if (!chainId) return;
     appState.refineQuantityOverrides[chainId] = qty.value;
     delete appState.refineQuantityErrors[chainId]; // the reason was about the old value
+    if (qty.classList.contains("refinery__batches")) updateAllViews(); // AB#836: the rows follow the batches
   };
+
+  if (focusedCardId) document.getElementById(focusedCardId)?.focus({ preventScroll: true });
 
   // Restore focus/caret on the quantity input that was being edited.
   if (focusedInput?.id) {
@@ -179,6 +233,59 @@ export function renderRefinery(data) {
   }
 
   chainsEl.onclick = async (e) => {
+    // AB#836: "Made by" and "Used by" go to that chain's card, here on the page.
+    const link = e.target.closest("[data-chain-link]");
+    if (link) {
+      e.preventDefault();
+      const card = document.getElementById(`chain-${link.getAttribute("data-chain-link")}`);
+      if (card) {
+        card.scrollIntoView({ block: "start", behavior: scrollBehavior() }); // AB#1760: still under reduced motion
+        card.focus({ preventScroll: true });
+      }
+      return;
+    }
+
+    const multiBtn = e.target.closest(".refinery__start[data-batches-input]");
+    if (multiBtn && appState.accountId) {
+      const chainId = multiBtn.getAttribute("data-chain-id");
+      const chain = refineryChains.find((c) => c.id === chainId);
+      const field = document.getElementById(multiBtn.getAttribute("data-batches-input"));
+      // The server's own rule, on what this station holds: whole batches, a week at most, every input in full.
+      const check = refineRunCheck(chain, { batches: field ? field.value : "" }, (item) => inventory[item]);
+      if (!check.ok) {
+        appState.refineQuantityErrors[chainId] = check.reason;
+        updateAllViews();
+        return;
+      }
+      multiBtn.disabled = true;
+      multiBtn.textContent = "Starting…";
+      try {
+        const receiptTrigger = document.activeElement;
+        const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/start-refinery`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chainId, refineryId: multiBtn.getAttribute("data-refinery-id"), batches: check.batches })
+        });
+        const account = await parseJsonResponse(response);
+        delete appState.refineQuantityOverrides[chainId];
+        delete appState.refineQuantityErrors[chainId];
+        const started = `Refinery run started: ${inputsLabel(check.debits)}, ready in ${Number(multiBtn.getAttribute("data-hours")) * check.batches}h.`;
+        appState.refineryStatus = { type: "ok", text: started };
+        pushFeedback(started, "ok");
+        appState.data = deepClone(account.state);
+        appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+        updateAllViews();
+        showActionReceipt(account, { returnFocusTo: receiptTrigger });
+      } catch (error) {
+        multiBtn.disabled = false;
+        multiBtn.textContent = "Start Run";
+        appState.refineQuantityErrors[chainId] = error.message;
+        pushFeedback(`Refinery error: ${error.message}`, "warn");
+        updateAllViews();
+      }
+      return;
+    }
+
     const startBtn = e.target.closest(".refinery__start");
     if (startBtn && appState.accountId) {
       const chainId = startBtn.getAttribute("data-chain-id");

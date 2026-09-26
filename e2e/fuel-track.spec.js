@@ -68,8 +68,8 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
       const fusion = shown("40 Helium-3 + 80 Deuterium per batch → 40 Fusion Pellets");
       await expect(fusion).toBeVisible();
       await expect(shown("200 Water Ice + 200 Hydrogen per batch → 60 Cryogenic Coolant")).toBeVisible();
-      // Starting a chain of several inputs from the page is AB#836's; until then the card says so.
-      await expect(shown("This chain takes several inputs. Starting it from this page arrives in a later build.")).toBeVisible();
+      // AB#836: a chain of several inputs lists each one, with what a run needs and where it comes from.
+      await expect(page.locator('#chain-fusion-fuel-chain [data-input-item="Deuterium"]')).toBeVisible();
       await look(page, fusion, `ab830-refinery-${vp.label}`);
 
       await openTab(page, "rnd");

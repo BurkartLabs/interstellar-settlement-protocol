@@ -65,10 +65,12 @@ for (const [width, height] of [[375, 812], [1280, 800]]) {
       await shot("mars-lease");
 
       await openTab(page, "refinery");
-      const smelting = page.locator("#refinery-chains .refinery__chain", { hasText: "Iron Ore + Nickel Refining" });
+      const smelting = page.locator("#chain-smelting-chain");
       await expect(smelting).toContainText("150 Iron Ore + 50 Nickel per batch → 80 Nickel-Iron Alloy");
-      await expect(smelting).toContainText("Inventory: 300 Iron Ore, 100 Nickel");
-      const vessels = page.locator("#refinery-chains .refinery__chain", { hasText: "Nickel-Iron Alloy Refining" });
+      // AB#836: two batches is what 300 Iron Ore and 100 Nickel cover, so each row needs what it holds.
+      await expect(smelting.locator('[data-input-item="Iron Ore"] [data-role="amounts"]')).toHaveText("Needs 300 · holds 300");
+      await expect(smelting.locator('[data-input-item="Nickel"] [data-role="amounts"]')).toHaveText("Needs 100 · holds 100");
+      const vessels = page.locator("#chain-pressure-vessel-chain");
       await expect(vessels).toContainText("80 Nickel-Iron Alloy per batch → 25 Pressure Vessels");
       await expect(vessels.locator(".refinery__quantity")).toHaveValue("160");
       // AB#2353: the Resource catalog is data/refinery-chains.json's list, Iron Ore included.
