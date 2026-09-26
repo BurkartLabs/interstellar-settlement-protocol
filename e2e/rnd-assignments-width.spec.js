@@ -61,7 +61,7 @@ for (const vp of VIEWPORTS) {
     const measured = {};
 
     await openTab(page, "rnd");
-    await expect(page.locator("#rnd .ui-panel")).toBeVisible();
+    await expect(page.locator("#rnd .ui-panel").first()).toBeVisible();
     await expect(page.locator("#rnd-tech-tree .research__node").first()).toBeVisible();
     await toTop(page, "#rnd");
     await page.screenshot({ path: path.join(SHOT_DIR, `${PREFIX}-rnd-${vp.label}.png`) });

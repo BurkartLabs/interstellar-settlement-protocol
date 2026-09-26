@@ -28,7 +28,7 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
     await page.waitForURL(/\/\?account=/);
     await page.getByRole("button", { name: "I'll find my own way" }).click();
     await openTab(page, "logistics");
-    const values = page.locator(".kpi-tile__value");
+    const values = page.locator("#logistics .kpi-tile__value");
     await expect(values).toHaveCount(4);
 
     const fee = page.locator("#logistics .kpi-tile", { hasText: "Transfer fee" }).locator(".kpi-tile__value");

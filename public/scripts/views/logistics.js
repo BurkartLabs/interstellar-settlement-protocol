@@ -147,7 +147,7 @@ export function renderLogistics(data) {
             <tbody>${shipments.map((s) => {
             const remainingMs = Math.max(0, (s.arrivesAt || 0) - Date.now());
             const eta = s.status === "held"
-              ? `<span class="ui-badge ui-badge--warn">Held — destination unreachable</span>`
+              ? `<span class="ui-badge ui-badge--warn">Held</span> Destination unreachable`
               : `<span class="logistics__eta" data-arrives-at="${escapeHtml(String(s.arrivesAt || 0))}">${remainingMs > 0 ? escapeHtml(formatDuration(remainingMs)) : "Arriving"}</span>`;
             return `<tr class="logistics__shipment${s.status === "held" ? " logistics__shipment--held" : ""}">
               <td data-label="Route">${escapeHtml(stationName(s.fromStationId))} → ${escapeHtml(stationName(s.toStationId))}</td>

@@ -18,6 +18,28 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#768 — ISP-79, Corporate R&D, CEO Insight, Refinery Chains, Assets and Logistics on the design system)
+
+- The Industry group's screens and Assets are `.ui-screen` tab panels in the flat direction (AB#1801), built from
+  AB#766's shared parts: a screen header, `ui-panel`s, `ui-grid`s of `ui-card`s, `ui-badge` tones, `ui-field`,
+  `ui-tabs` and the KPI tiles. Screen-specific blocks: `.research__*` (R&D and CEO Insight share one node card,
+  `researchNodeHtml` in html.js), `.refinery__*`, `.logistics__*`. Progress uses the game's `.progress-wrap`, now a
+  labelled `role="progressbar"`.
+- Assets' inventory is a `ui-table` with a group row per resource (the rowspan layout could not become cards); its
+  tabs are `ui-tabs` with `aria-selected` and panels shown with `hidden`. Logistics' shipments in transit and its
+  history are `ui-table`s, so a phone shows cards; the docked station moved into the screen header (Station's banner
+  stays Station's). Logistics' pick box is drawn from tokens and 44px on a phone; a held shipment is a short warn
+  badge beside its reason.
+- A planned CEO program keeps its effect struck through (Bug #983). The screens' old rules (about 690 lines) are out
+  of styles.css; `.queue-item`, `.queue-list`, `.card-grid`, `.pill` and `.building-status-badge` stay for the
+  screens that still use them (Station, Missions, Exchange, Overview's expeditions).
+- `tests/unit/industryScreens.test.js` fails if an old class of these screens returns anywhere, or if the screens,
+  their renderers or their html.js helpers use a shared legacy component, a colour or an inline style other than a
+  bar's width. `e2e/industry-screens.spec.js` seeds a corporation with every state (e2e/seed-industry-account.mjs)
+  and holds the five at 375/768/1280. Screens in `docs/ab-768/`.
+- Not changed, noticed while looking: with every refinery busy and room for another, each chain card offers "Build
+  2nd Refinery", six identical buttons. That is the old logic, kept as it was.
+
 ## What's now true (AB#766 — ISP-77, Overview, Inbox and the Financial Core on the design system)
 
 - The Company group's three screens are `.ui-screen` tab panels built from the design system in the flat direction
