@@ -31,6 +31,18 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
   The metric resolves to 1 after the build (tested); whether the ladder should use it is the PM's.
 - Screens: `docs/ab-786/`, from `e2e/construction-panel.spec.js` (the probe comes home on the server's own tick).
 
+## What's now true (AB#763 — ISP-74, the app shell)
+
+- The game's shell is `div.layout-grid` holding `nav.tab-nav.app-nav`, `aside.side-panel` and `main.main-panel`
+  (`<main>` is the content alone, so nothing fixed sits in it, Bug AB#1832). On a desktop the navigation is a column at
+  the top of the left side, above the corporation panel; below 768px it is a bar fixed to the bottom, each tab 44px,
+  the content full width, and the page and the briefing card both leave room above it. One media query at
+  `NARROW_MAX_WIDTH` decides it (`styles.css`, "App shell"); `tests/unit/appShell.test.js` fails if another reaches the
+  shell. The briefing card's phone cap (Bug #1083) moved into that query. Media queries: 32 before, 31 after.
+- The fifteen tabs scroll sideways in the bar until ISP-75 (AB#764) groups them into six. The phone header is still
+  tall (the title wraps to three lines and the three buttons stack, about 175px of the first screen); owed.
+- `e2e/app-shell.spec.js` measures both layouts, the bar's 44px tabs, no sideways scroll, the last content clear of the
+  bar, a tab pressed in the bar, the focus ring on every tab, and reduced motion. Screens in `docs/ab-763/`.
 ## What's now true (ISP-95, AB#785 — the construction panel on the Station, Builder)
 
 - The Station has a **Construction** section (`public/scripts/constructionPanel.js`, drawn by `renderStation`): one row
