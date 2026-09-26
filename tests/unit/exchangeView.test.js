@@ -94,7 +94,7 @@ describe("filteredEmptyHtml (AB#402)", () => {
     const html = filteredEmptyHtml("player sell orders", "Helium-3", 4);
     expect(html).toContain("No player sell orders for <strong>Helium-3</strong>");
     expect(html).toContain("hiding 4 other orders");
-    expect(html).toContain('class="btn btn-ghost exchange-clear-filters"');
+    expect(html).toContain('class="ui-button ui-button--secondary" type="button" data-clear-filters'); // ISP-80 (AB#769)
     expect(filteredEmptyHtml("standing buy orders", "Nickel", 1)).toContain("hiding 1 other order.");
     expect(filteredEmptyHtml("x", "<img src=x onerror=alert(1)>", 2)).not.toContain("<img");
   });

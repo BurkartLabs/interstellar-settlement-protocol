@@ -72,7 +72,7 @@ for (const viewport of VIEWPORTS) {
       await page.click('[data-sell-item="Silicates"]');
       await page.waitForTimeout(300);
       await confirmIfAsked(page);
-      const cancelBtn = page.locator(".exchange-cancel-btn").first();
+      const cancelBtn = page.locator("[data-cancel-order-id]").first();
       await expect(cancelBtn).toBeVisible({ timeout: 10_000 });
       await cancelBtn.click();
       await page.waitForTimeout(300);
@@ -81,8 +81,8 @@ for (const viewport of VIEWPORTS) {
       const rows = page.locator("#trade-history-table tr");
       await expect(rows).toHaveCount(2, { timeout: 10_000 });
       const cancelled = rows.nth(0);
-      await expect(cancelled.locator(".trade-type-badge.trade-type-cancelled")).toHaveText(/cancelled/i);
-      await expect(rows.nth(1).locator(".trade-type-badge.trade-type-listed")).toBeVisible();
+      await expect(cancelled.locator('.ui-badge[data-trade-type="cancelled"]')).toHaveText(/cancelled/i);
+      await expect(rows.nth(1).locator('.ui-badge[data-trade-type="listed"]')).toBeVisible();
       for (const row of [rows.nth(0), rows.nth(1)]) await expect(row.locator("td").nth(5)).toHaveText("-");
 
       const table = page.locator("#trade-history-table").locator("xpath=ancestor::*[contains(@class,'panel') or contains(@class,'card')][1]");

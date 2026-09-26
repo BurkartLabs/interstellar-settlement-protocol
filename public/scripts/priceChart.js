@@ -3,6 +3,8 @@
 // days, from GET /api/market/history/:item (AB#715). The resource is the one selected in the Exchange's filter bar,
 // Silicates when none is. shapePriceHistory is pure so it can be tested against the API without a browser.
 
+import { chartFont } from "./charts.js"; // ISP-80 (AB#769): 14px chart text on a phone
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const PRICE_CHART_RANGES = [7, 30];
 export const DEFAULT_CHART_ITEM = "Silicates";
@@ -48,7 +50,10 @@ export function priceChartSummary(item, shaped, rangeDays, formatCredits) {
   return `${last} ${rangeDays}-day high ${formatCredits(shaped.high)}, low ${formatCredits(shaped.low)}; ${shaped.volume.toLocaleString()} units in ${shaped.trades.toLocaleString()} trade${shaped.trades === 1 ? "" : "s"}.`;
 }
 
-const COLOR = { line: "#00f7ff", lineFill: "rgba(0, 247, 255, 0.12)", bar: "rgba(137, 167, 189, 0.45)", grid: "rgba(137, 167, 189, 0.12)", muted: "#89a7bd" };
+// ISP-80 (AB#769): the chart's colours are the design tokens (styles.css :root), read when it is drawn, so the chart
+// follows the palette; its text is 14px on a phone like the Financial Core's (chartFont, charts.js).
+const token = (name) => (typeof document === "undefined" ? "" : getComputedStyle(document.documentElement).getPropertyValue(name).trim());
+const palette = () => ({ line: token("--accent"), lineFill: token("--accent-soft") || "transparent", bar: token("--border"), grid: token("--surface-3") || token("--border"), muted: token("--muted") });
 
 /**
  * Wire the chart to the Exchange: the filter bar picks the item, the 7/30 buttons pick the range, and the chart
@@ -70,20 +75,23 @@ export function bindPriceChart({ fetchHistory, formatCredits }) {
   let latest = 0;
   let charted = null;
   const filterBar = document.getElementById("exchange-filter-bar");
-  const selectedItem = () => filterBar?.querySelector(".exchange-filter-pill.active")?.getAttribute("data-filter") || "";
+  const selectedItem = () => filterBar?.querySelector('[data-filter][aria-selected="true"]')?.getAttribute("data-filter") || "";
 
   const draw = (item, buckets) => {
     const shaped = shapePriceHistory(buckets, range);
     title.textContent = `${item}: price history`;
     summary.textContent = priceChartSummary(item, shaped, range, formatCredits);
-    card.classList.toggle("price-chart--empty", !shaped.hasAny);
     canvas.hidden = !shaped.hasAny;
+    // ISP-80 (AB#769): with nothing to chart, the chart's body goes too, not only the canvas: no empty box.
+    if (canvas.parentElement) canvas.parentElement.hidden = !shaped.hasAny;
     if (!shaped.hasAny || typeof window.Chart !== "function") {
       chart?.destroy();
       chart = null;
       return;
     }
     const labels = shaped.days.map((d) => d.slice(5));
+    const COLOR = palette();
+    const font = { size: chartFont(12) };
     const data = {
       labels,
       datasets: [
@@ -104,12 +112,12 @@ export function bindPriceChart({ fetchHistory, formatCredits }) {
         maintainAspectRatio: false,
         animation: false,
         interaction: { mode: "index", intersect: false },
-        plugins: { legend: { labels: { color: COLOR.muted, boxWidth: 12 } } },
+        plugins: { legend: { labels: { color: COLOR.muted, boxWidth: 12, font } } },
         scales: {
-          x: { ticks: { color: COLOR.muted, maxRotation: 0, autoSkip: true }, grid: { color: COLOR.grid } },
+          x: { ticks: { color: COLOR.muted, maxRotation: 0, autoSkip: true, font }, grid: { color: COLOR.grid } },
           // Whole credits and whole units: fractional ticks printed as rounded money repeated their labels ($25, $25).
-          price: { position: "left", ticks: { color: COLOR.muted, precision: 0, callback: (v) => formatCredits(v) }, grid: { color: COLOR.grid } },
-          volume: { position: "right", beginAtZero: true, ticks: { color: COLOR.muted, precision: 0 }, grid: { display: false } }
+          price: { position: "left", ticks: { color: COLOR.muted, precision: 0, callback: (v) => formatCredits(v), font }, grid: { color: COLOR.grid } },
+          volume: { position: "right", beginAtZero: true, ticks: { color: COLOR.muted, precision: 0, font }, grid: { display: false } }
         }
       }
     });
@@ -128,6 +136,7 @@ export function bindPriceChart({ fetchHistory, formatCredits }) {
       title.textContent = `${item}: price history`;
       summary.textContent = `Price history for ${item} is unavailable right now.`;
       canvas.hidden = true;
+      if (canvas.parentElement) canvas.parentElement.hidden = true;
     }
   };
 

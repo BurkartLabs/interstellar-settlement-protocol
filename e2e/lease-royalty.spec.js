@@ -53,7 +53,7 @@ async function openSellConfirmation(page, leases, viewport) {
   await exchangeTab.click();
   const row = page.locator("#npc-buy-table tr", { has: page.locator('[data-npc-item="Silicates"]') }).first();
   await row.locator("[data-npc-sell-qty]").fill("100");
-  await row.locator(".npc-sell-btn").click();
+  await row.locator("[data-npc-order-id]").click();
   return { child };
 }
 

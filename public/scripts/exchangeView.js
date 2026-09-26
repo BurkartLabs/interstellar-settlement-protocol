@@ -116,6 +116,7 @@ export function cappedNote(shown, total, label) {
  */
 export function filteredEmptyHtml(label, resource, hiddenCount) {
   const noun = hiddenCount === 1 ? "order" : "orders";
-  return `<p>No ${escapeHtml(label)} for <strong>${escapeHtml(resource)}</strong>: the resource filter is hiding ${Number(hiddenCount) || 0} other ${noun}.</p>
-    <button class="btn btn-ghost exchange-clear-filters" type="button">Clear filters</button>`;
+  // ISP-80 (AB#769): a design-system empty state; the button is found by its data attribute.
+  return `<p class="ui-state__why">No ${escapeHtml(label)} for <strong>${escapeHtml(resource)}</strong>: the resource filter is hiding ${Number(hiddenCount) || 0} other ${noun}.</p>
+    <button class="ui-button ui-button--secondary" type="button" data-clear-filters>Clear filters</button>`;
 }

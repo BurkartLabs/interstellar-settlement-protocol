@@ -52,6 +52,6 @@ describe("phone panels (AB#1055)", () => {
   });
 
   it("lets the Galactic Exchange tables sit side by side only when each card can hold its table (AB#1165)", () => {
-    expect(CSS).toMatch(/\.exchange-layout\s*{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(560px,\s*100%\),\s*1fr\)\)/);
+    expect(CSS).toMatch(/\.exchange__split\s*{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(560px,\s*100%\),\s*1fr\)\)/); // ISP-80 (AB#769)
   });
 });

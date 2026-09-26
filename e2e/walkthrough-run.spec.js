@@ -87,7 +87,7 @@ test("the walkthrough runs start to finish with no console error, at 1280x800", 
   await atStep(8); // sell, once something has been mined (the 5s server tick, pushed live over the socket)
   await expect(page.locator('.extractor-row [data-live="mined"]')).not.toHaveText(/^0( t)?$/, { timeout: 60_000 }); // AB#746: "0 t"
   await openTab(page, "market");
-  const sellBtn = page.locator('.npc-sell-btn[data-npc-item="Silicates"]').first();
+  const sellBtn = page.locator('[data-npc-item="Silicates"]').first();
   await expect(sellBtn).toBeEnabled();
   await sellBtn.click();
   await page.click("#trade-confirm-ok");
