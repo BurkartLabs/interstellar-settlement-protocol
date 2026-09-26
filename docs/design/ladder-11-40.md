@@ -38,12 +38,21 @@ DEPTH.md) is why every band below has a name and a reward to use, not only a big
 Per simulated day, for the check-in bot, from the tier table in docs/design/upgrades.md (best rate x 24 x 81.6%
 uptime, six yards):
 
-| days | yards at tier | Silicates mined | refined units | expeditions | contracts |
-|---|---|---|---|---|---|
-| 30-90 | 2 | 21,384 | 330 (one Refinery, 3 batches a check-in) | 2 (one out, relaunched each check-in) | 2 |
-| 90-150 | 3 | 27,258 | 990 (two, one a Complex) | 2 | 3 |
-| 150-210 | 4 | 33,840 | 1,320 (both tier 3) | 2 | 3 |
-| 210-365 | 5 | 42,420 | 1,320 | 2 | 3 |
+| days | yards at tier | Silicates mined (capacity) | Silicates the world buys (GEX quota) | refined units | expeditions | contracts |
+|---|---|---|---|---|---|---|
+| 30-90 | 2 | 21,384 | 7,000 | 330 (one Refinery, 3 batches a check-in) | 2 (one out, relaunched each check-in) | 2 |
+| 90-150 | 3 | 27,258 | 7,000 | 990 (two, one a Complex) | 2 | 3 |
+| 150-210 | 4 | 33,840 | 7,000 | 1,320 (both tier 3) | 2 | 3 |
+| 210-365 | 5 | 42,420 | 7,000 | 1,320 | 2 | 3 |
+
+**The quota binds (AB#2321, Director ruling 2026-09-26).** The GEX standing buy order takes 7,000 t of Silicates a
+day for the whole world (`npcBid.quotaPerDay` in data/economy.json), and a yard costs about 80% of its best-rate
+revenue to run, so ore past the quota and the refineries' take is pure cost. A profitable corporation mines about
+8,200 t a day, not the capacity above (bot, days 49 to 71). Levels 11 to 15's `totalMined:silicate` targets are drawn
+from that: about 160,000 mined at day 30 plus 8,200 a day, 90% of it at the level's day. The quota is not raised: it is
+a world economy lever, not a pacing one, and the design already has too many credits. The targets from Level 21 on
+still assume capacity; what happens past Level 20 is AB#2324 (Board), and AB#801 and AB#802 wait for it. The probe
+runs one corporation alone, so these are numbers for an empty server.
 
 Silicates sold are the mined, less what goes into refineries (100 in for 55 out) and contracts (about 400 each). Each
 target below is 90% of the curve at its level's day, rounded down, so the bot meets it on that day or a little before.
@@ -58,11 +67,11 @@ change"). The `maxUpgradeTier` values above 5 are a **proposal** that needs a st
 
 | level | probe day | requirements (metric, target) | employeeCap | buildingSlots | maxFleetSize | maxUpgradeTier | maxDeployments (proposed) |
 |---|---|---|---|---|---|---|---|
-| 11 | 41 | `building-count:Basic Extractor Yard` 4<br>`totalMined:silicate` 260,000 | 210 | 12 | 145 | 5 | 1 |
-| 12 | 52 | `building-tier:basic-extractor-yard:2` 3<br>`totalMined:silicate` 470,000 | 220 | 12 | 150 | 5 | 2 |
-| 13 | 64 | `building-count:Basic Extractor Yard` 5<br>`stat:miningLeasesCount` 3<br>`totalMined:silicate` 700,000 | 230 | 12 | 155 | 5 | 2 |
-| 14 | 75 | `building-tier:basic-extractor-yard:2` 6<br>`totalMined:silicate` 920,000 | 240 | 12 | 160 | 5 | 2 |
-| 15 | 86 | `building-count:Basic Extractor Yard` 6<br>`building-tier:basic-extractor-yard:3` 3<br>`totalMined:silicate` 1,100,000 | 250 | 13 | 165 | 5 | 2 |
+| 11 | 41 | `building-count:Basic Extractor Yard` 4<br>`totalMined:silicate` 225,000 | 210 | 12 | 145 | 5 | 1 |
+| 12 | 52 | `building-tier:basic-extractor-yard:2` 3<br>`totalMined:silicate` 306,000 | 220 | 12 | 150 | 5 | 2 |
+| 13 | 64 | `building-count:Basic Extractor Yard` 5<br>`stat:miningLeasesCount` 3<br>`totalMined:silicate` 394,000 | 230 | 12 | 155 | 5 | 2 |
+| 14 | 75 | `building-tier:basic-extractor-yard:2` 6<br>`totalMined:silicate` 476,000 | 240 | 12 | 160 | 5 | 2 |
+| 15 | 86 | `building-count:Basic Extractor Yard` 6<br>`building-tier:basic-extractor-yard:3` 3<br>`totalMined:silicate` 557,000 | 250 | 13 | 165 | 5 | 2 |
 | 16 | 97 | `building-count:Refinery` 2<br>`stat:refinedUnitsProduced` 25,800 | 260 | 13 | 170 | 5 | 2 |
 | 17 | 108 | `building:Refinery Complex` 1<br>`stat:refinedUnitsProduced` 34,800 | 270 | 13 | 175 | 5 | 2 |
 | 18 | 119 | `unlockedTech:tt-containment-physics` 1<br>`stat:refinedUnitsProduced` 44,800 | 280 | 13 | 180 | 5 | 2 |
