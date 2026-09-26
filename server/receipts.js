@@ -157,6 +157,21 @@ export function buildAssemblyReceipt({ cost, assetValue, slotsUsed, slotsTotal }
   });
 }
 
+// ISP-96 (AB#786): built through POST /gameplay/build only, so no route of its own names this builder.
+export function buildFerricMiningComplexReceipt({ cost, assetValue, slotsUsed, slotsTotal, multiplier }) {
+  return receipt("build-ferric-mining-complex", {
+    title: "Ferric Mining Complex Commissioned",
+    summary: "A Ferric Mining Complex is operational at your corporation.",
+    costCredits: cost,
+    grants: [
+      { label: "Added to assets", value: formatCredits(assetValue) },
+      { label: "Building slots used", value: `${slotsUsed} / ${slotsTotal}` },
+      { label: "Now possible", value: `${Math.round((multiplier - 1) * 100)}% more Nickel and Titanium from every returning probe` }
+    ],
+    next: "Launch an asteroid expedition from the Starmap; its Nickel and Titanium arrive with the bonus."
+  });
+}
+
 export function startRefineryReceipt({ refineryName, input, inputQuantity, outputs, hours, endsAt }) {
   return receipt("start-refinery", {
     title: "Production Run Started",

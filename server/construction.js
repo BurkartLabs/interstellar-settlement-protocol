@@ -8,7 +8,8 @@
 import { buildCostFor } from "./economy.js";
 import { applyCredits } from "./finances.js";
 import { catalogueRefusal } from "./playerBuildings.js";
-import { buildAssemblyReceipt, buildExtractorReceipt, buildRefineryReceipt } from "./receipts.js";
+import { buildAssemblyReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildRefineryReceipt } from "./receipts.js";
+import { ECONOMY } from "./economy.js";
 
 const hasTech = (corp, id) => (corp.unlockedTech || []).includes(id);
 const slotCount = (corp) => ({ slotsUsed: (corp.buildings || []).length, slotsTotal: corp.buildingSlots || 2 });
@@ -75,6 +76,12 @@ export const CONSTRUCTIONS = Object.freeze({
     },
     notification: { title: "Refinery Commissioned", body: "A new Refinery is now operational and ready for production runs." },
     receipt: (built, corp) => buildRefineryReceipt({ refineryName: built.refineryName, cost: built.cost, ...slotCount(corp) })
+  },
+  // ISP-96 (AB#786): it adds nothing when built; its effect is on returning expeditions (server/game/asteroids.js).
+  "ferric-mining-complex": {
+    place: () => ({}),
+    notification: { title: "Ferric Mining Complex Online", body: "Returning mining probes now deposit more Nickel and Titanium." },
+    receipt: (built, corp) => buildFerricMiningComplexReceipt({ cost: built.cost, assetValue: built.assetValue, multiplier: ECONOMY.buildings.ferricMiningComplexMetalMultiplier, ...slotCount(corp) })
   }
 });
 
