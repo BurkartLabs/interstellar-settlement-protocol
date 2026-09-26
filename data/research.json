@@ -102,8 +102,8 @@
     {
       "id": "tt-proxima-navigation",
       "name": "Near-Star Navigation Array",
-      "effect": "Enables travel to Alpha Centauri and Barnard's Star",
-      "description": "Commissions a calibrated navigation array tuned to the nearest stellar neighbours. Required before any vessel in your fleet can plot an interstellar course to Alpha Centauri or Barnard's Star.",
+      "effect": "Enables travel to Alpha Centauri, Barnard's Star, Lalande 21185 and Ross 154",
+      "description": "Commissions a calibrated navigation array tuned to the nearest stellar neighbours. Required before any vessel in your fleet can plot an interstellar course to Alpha Centauri, Barnard's Star, Lalande 21185 or Ross 154.",
       "durationHours": 8,
       "costCredits": 10000,
       "prereqs": ["tt-fleet-coordination"],
@@ -114,14 +114,38 @@
     {
       "id": "tt-deep-star-navigation",
       "name": "Deep-Star Cartography Suite",
-      "effect": "Enables travel to all charted star systems",
-      "description": "Deploys a full deep-space cartography suite capable of plotting routes to any charted system within the local stellar neighbourhood. Unlocks Wolf 359, Tau Ceti, Epsilon Eridani, and all future systems.",
+      "effect": "Enables travel to Wolf 359, Tau Ceti, Epsilon Eridani, Sirius, Ross 248, Luyten 726-8 and Lacaille 9352",
+      "description": "Deploys a full deep-space cartography suite capable of plotting routes across the local stellar neighbourhood. Unlocks Wolf 359, Tau Ceti, Epsilon Eridani, Sirius, Ross 248, Luyten 726-8 and Lacaille 9352; the systems beyond them need Long-Baseline Jump Plotting.",
       "durationHours": 14,
       "costCredits": 20000,
       "prereqs": ["tt-proxima-navigation"],
       "tier": 3,
       "category": "Navigation",
       "requiresCorpLevel": 10
+    },
+    {
+      "id": "tt-long-baseline-navigation",
+      "name": "Long-Baseline Jump Plotting",
+      "effect": "Enables travel to Procyon, Ross 128, 61 Cygni, Kapteyn's Star and Epsilon Indi, once they are charted in a later build",
+      "description": "Extends the cartography suite's baseline across the nearest dozen light years, so a jump can be plotted past the Deep-Star systems. Opens the Long-Baseline systems of docs/design/starmap-20.md as they are charted.",
+      "durationHours": 20,
+      "costCredits": 35000,
+      "prereqs": ["tt-deep-star-navigation"],
+      "tier": 4,
+      "category": "Navigation",
+      "requiresCorpLevel": 28
+    },
+    {
+      "id": "tt-frontier-cartography",
+      "name": "Frontier Cartography",
+      "effect": "Enables travel to Kruger 60, Wolf 1061, Altair, 70 Ophiuchi and van Maanen's Star, once they are charted in a later build",
+      "description": "Charts the frontier of the neighbourhood, where the richest belts and the fewest authorities are. Opens the Frontier systems of docs/design/starmap-20.md as they are charted.",
+      "durationHours": 28,
+      "costCredits": 60000,
+      "prereqs": ["tt-long-baseline-navigation"],
+      "tier": 5,
+      "category": "Navigation",
+      "requiresCorpLevel": 34
     },
     {
       "id": "tt-assembly-fabrication",
