@@ -4,6 +4,8 @@ import { bodyResourceHtml } from "./bodyInfo.js"; // AB#740: what the catalogue 
 import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 import { PLANET_IMAGE_PATHS } from "./planetImages.js";
+import { officeLeaseCost } from "./ceoEffects.js"; // Bug #2340: the one office rate (Bug #1032)
+import { isNeutralStation } from "./stationMarkers.js";
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 
 // ISP-112 (AB#804): each system's place on the cluster view is its `mapPosition` in data/systems.json, as fractions of
@@ -1603,10 +1605,13 @@ export function createStarmapController({
     overlay.className = "modal-backdrop";
     overlay.id = "starmap-station-modal";
 
-    const buildingCount = station.buildings ? station.buildings.length : 0;
-    const officeRent = station.officeRentPerCycle
-      ? `¤${Number(station.officeRentPerCycle).toLocaleString()} / cycle`
-      : "—";
+    // Bug #2340: the catalog's buildingIds, the one office rate, and the station's jurisdiction (AB#810). The modal read
+    // buildings, officeRentPerCycle and ownership, which no station has, so every one said 0, "—" and NPC-controlled.
+    const buildingCount = Array.isArray(station.buildingIds) ? station.buildingIds.length : 0;
+    const officeRent = `¤${officeLeaseCost(1).toLocaleString("en-US")} a day, for 7 to 28 days`;
+    const jurisdiction = isNeutralStation(station)
+      ? "Neutral: no corporation owns it; any corporation may dock and rent an office here."
+      : `Jurisdiction: ${station.jurisdiction || "not recorded"}`;
 
     overlay.innerHTML = `
       <article class="modal-card starmap__station" role="dialog" aria-modal="true" aria-labelledby="starmap-station-title">
@@ -1617,7 +1622,7 @@ export function createStarmapController({
           </div>
           <button class="ui-button ui-button--ghost starmap__close" type="button" aria-label="Close">&times;</button>
         </header>
-        <p class="ui-panel__meta">${escapeHtmlAttr(station.body)} — ${escapeHtmlAttr(station.ownership || "NPC")}-controlled</p>
+        <p class="ui-panel__meta">In orbit of ${escapeHtmlAttr(station.body)}. ${escapeHtmlAttr(jurisdiction)}</p>
 
         <dl class="ui-kv">
           <dt>Buildings</dt><dd>${buildingCount}</dd>

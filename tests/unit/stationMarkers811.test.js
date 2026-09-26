@@ -140,6 +140,27 @@ describe("the starmap draws what the fixture's field says (AB#811)", () => {
     }
   });
 
+  it("the modal a marker opens says the station is neutral, counts its buildings and quotes the office rate (Bug #2340)", () => {
+    const { rec } = mapWith(STATIONS);
+    openSystem(rec, SOL);
+    const earth = STATIONS.find((s) => s.id === "earth-station-prime");
+    // Earth Station Prime's marker: the diamonds are drawn in marker order, Earth's first of the Earth-orbit pair.
+    let opened = null;
+    for (const d of rec.diamonds) {
+      document.getElementById("starmap-station-modal")?.remove();
+      const { rec: again } = mapWith(STATIONS);
+      openSystem(again, SOL);
+      again.canvas.handlers.click({ clientX: d.x, clientY: d.y });
+      const modal = document.getElementById("starmap-station-modal");
+      if (modal?.textContent.includes(earth.name)) { opened = modal.textContent.replace(/\s+/g, " "); break; }
+    }
+    expect(opened).not.toBeNull();
+    expect(opened).toContain("Neutral: no corporation owns it");
+    expect(opened).toContain(`Buildings${earth.buildingIds.length}`); // textContent joins the <dt> and <dd>
+    expect(opened).toContain("¤1,000 a day, for 7 to 28 days");
+    expect(opened).not.toContain("NPC-controlled");
+  });
+
   it("with the real catalog, every station of Sol has a marker in its system view", () => {
     const { rec } = mapWith(STATIONS);
     openSystem(rec, SOL);
