@@ -61,7 +61,8 @@ describe("the model reads the game, not a copy of it (AB#727)", () => {
     for (const rule of [
       /credits: 250000/,
       /currentStationId: "earth-station-prime"/,
-      /Math\.max\(10, Math\.min\(250, amount\)\)/,
+      /Math\.max\(10, Math\.min\(throughputCap, amount\)\)/, // AB#793: the yard's tier cap
+      /export const BASE_THROUGHPUT_CAP = 250;/, // ... which is 250 at tier 1, the model's yard
       /hours, \{ fallback: 24, min: 1, max: 72 \}/,
       /let probPerSec = 0\.00005;/,
       /const recoveryProbPerSec = 0\.000276;/,

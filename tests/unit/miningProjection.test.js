@@ -3,8 +3,8 @@
 // test that the copy cannot drift from the original.
 
 import { describe, it, expect } from "vitest";
-import { ECONOMY, operationCostPerHourFor, startupCostFor, miningProfitPerHourFor, bestThroughputFor, yardUpkeepPerHourFor } from "../../server/economy.js";
-import { costPerHourFor, startupCostFor as clientStartup, miningProjection, bestThroughput, yardUpkeepPerHourFor as clientUpkeep } from "../../public/scripts/miningProjection.js";
+import { ECONOMY, operationCostPerHourFor, startupCostFor, miningProfitPerHourFor, bestThroughputFor, yardUpkeepPerHourFor, yardTierFor } from "../../server/economy.js";
+import { costPerHourFor, startupCostFor as clientStartup, miningProjection, bestThroughput, yardUpkeepPerHourFor as clientUpkeep, yardTierFor as clientTier, operationsForTier } from "../../public/scripts/miningProjection.js";
 
 const operations = ECONOMY.operations;
 const SILICATES = ECONOMY.npcBuyers.find((b) => b.item === "Silicates");
@@ -50,6 +50,16 @@ describe("the panel's projection is the server's rule (ISP-86)", () => {
       const at = miningProjection(t, { operations, unitPrice: 24, taxPct: 8, upkeepPerHour: clientUpkeep(1, ECONOMY.buildings) });
       expect(at.costPerHour, `throughput ${t}`).toBe(operationCostPerHourFor(t, undefined, { yardIndex: 1 }));
       expect(at.startupCost, `throughput ${t}`).toBe(startupCostFor(operationCostPerHourFor(t)));
+    }
+  });
+
+  // ISP-101 (AB#793): each yard tier's cap and curve, from the same bootstrap constants.
+  it("agrees on each tier's cap, curve and best rate, and an unknown tier runs as tier 1", () => {
+    for (const tier of [1, 2, 3, 4, 5, 6, 0, undefined]) {
+      expect(clientTier(tier, operations, ECONOMY.buildings), `tier ${tier}`).toEqual(yardTierFor(tier));
+      const ops = operationsForTier(tier, operations, ECONOMY.buildings);
+      for (let t = 10; t <= yardTierFor(tier).throughputCap; t += 7) expect(costPerHourFor(t, ops), `tier ${tier}, ${t} t/h`).toBe(operationCostPerHourFor(t, undefined, { tier }));
+      expect(bestThroughput({ operations: ops, unitPrice: 24, taxPct: 8, max: yardTierFor(tier).throughputCap }).throughputPerHour).toBe(bestThroughputFor({ unitPrice: 24, taxPct: 8, tier }).throughput);
     }
   });
 

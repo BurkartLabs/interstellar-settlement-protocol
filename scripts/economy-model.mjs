@@ -20,7 +20,7 @@ export const CODE_RULES = {
   startingStation: { value: "earth-station-prime", where: "server/gameState.js, currentStationId" },
   employeesPerLease: { value: 5, where: "public/scripts/leaseStaffing.js, EMPLOYEES_PER_LEASE" },
   minThroughput: { value: 10, where: "server/routes/mining.js, start-mining clamps throughput to 10..250" },
-  maxThroughput: { value: 250, where: "server/routes/mining.js, start-mining clamps throughput to 10..250" },
+  maxThroughput: { value: 250, where: "server/routes/mining.js, start-mining clamps throughput to 10 and the yard's tier cap, 250 at tier 1 (server/economy.js BASE_THROUGHPUT_CAP)" },
   maxCycleHours: { value: 72, where: "server/routes/mining.js, start-mining hours max 72" },
   downtimeStartPerSecond: { value: 0.00005, where: "server/gameState.js, extractorDowntimeProbPerSec" },
   recoveryPerSecond: { value: 0.000276, where: "server/gameState.js, recoveryProbPerSec" },
