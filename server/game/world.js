@@ -1,7 +1,7 @@
 // server/game/world.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import fs from "node:fs";
-import { ECONOMY } from "../economy.js";
+import { ECONOMY, npcBidFor } from "../economy.js";
 import { SYSTEM_SENDERS } from "../corporationName.js";
 import { NPC_NAMES } from "../npcCorporations.js"; // ISP-121 (AB#813)
 import { placeNpcAsks } from "./npcAsks.js"; // ISP-122 (AB#815)
@@ -197,16 +197,36 @@ export function ensureStateFile() {
 export const NPC_BUY_SEED = ECONOMY.npcBuyers;
 
 /**
- * An order saved before ISP-87 has no basePrice, no soldToday and a quota of a million. Bring it up to date in
- * place, so an existing install starts drifting instead of carrying the old fixed bid for ever.
+ * AB#2365: an item's daily quota, the volume its bid drifts across (docs/design/tier3-recipes.md section 4). A product's
+ * is its npcBuyers dailyQty, a day of one Refinery's output (Fusion Pellets 160, Ion Thrusters 12); a raw item's is the
+ * world's npcBid.quotaPerDay (7,000), because its dailyQty is the old fixed bid's volume (Silicates 1,000,000), far
+ * above it. So: the smaller of the two, and the world's for an item with no dailyQty.
+ */
+export function bidQuotaFor(item, economy = ECONOMY) {
+  const world = economy.npcBid.quotaPerDay;
+  const own = Number(economy.npcBuyers.find((b) => b.item === item)?.dailyQty);
+  return own > 0 ? Math.min(own, world) : world;
+}
+
+/** The bid rule for one order: the economy's drift and floor, over the order's own quota (AB#2365). */
+export function bidRuleFor(order) {
+  return { ...ECONOMY.npcBid, quotaPerDay: Number(order?.totalQtyPerDay) > 0 ? Number(order.totalQtyPerDay) : bidQuotaFor(order?.item) };
+}
+
+/**
+ * An order saved before ISP-87 has no basePrice, no soldToday and a quota of a million; one saved before AB#2365 has
+ * the world's 7,000 for a product. Bring it up to date in place, keeping what was sold today: the new quota less
+ * today's volume remains, and the bid is recomputed on the new quota.
  */
 export function ensureBidShape(order) {
   if (!order || typeof order !== "object") return order;
   if (!Number.isFinite(Number(order.basePrice))) order.basePrice = Number(order.unitPrice) || 0;
   if (!Number.isFinite(Number(order.soldToday))) order.soldToday = 0;
-  if (Number(order.totalQtyPerDay) !== ECONOMY.npcBid.quotaPerDay) {
-    order.totalQtyPerDay = ECONOMY.npcBid.quotaPerDay;
-    order.remainingQty = Math.min(Number(order.remainingQty) || 0, ECONOMY.npcBid.quotaPerDay);
+  const quota = bidQuotaFor(order.item);
+  if (Number(order.totalQtyPerDay) !== quota) {
+    order.totalQtyPerDay = quota;
+    order.remainingQty = Math.max(0, Math.min(Number(order.remainingQty) || 0, quota - Number(order.soldToday)));
+    if (Number(order.soldToday) > 0) order.unitPrice = npcBidFor(order.basePrice, order.soldToday, bidRuleFor(order));
   }
   return order;
 }
@@ -240,12 +260,15 @@ export function ensureMarketState(globalState) {
         basePrice: seed.unitPrice,
         unitPrice: seed.unitPrice,
         soldToday: 0,
-        totalQtyPerDay: ECONOMY.npcBid.quotaPerDay,
-        remainingQty: ECONOMY.npcBid.quotaPerDay,
+        totalQtyPerDay: bidQuotaFor(seed.item), // AB#2365: the item's own quota
+        remainingQty: bidQuotaFor(seed.item),
         lastResetDate: ""
       });
     }
   }
+  // AB#2365: an order a saved state already has is brought to its item's quota now, not at its next sale or reset,
+  // so the Exchange never shows a product's order at the world's 7,000.
+  for (const order of globalState.market.npcBuyOrders) ensureBidShape(order);
   // ISP-122 (AB#815): the NPC corporations' asks, added if missing and never refilled here, so a restart neither
   // duplicates them nor tops them up; the daily tick refills them (server/ticks.js).
   placeNpcAsks(globalState.market, { refill: false });

@@ -4,7 +4,7 @@ import { bodyCount } from "../bodyNumber.js";
 import { randomUUID } from "node:crypto";
 import { npcBidFor } from "../economy.js";
 import { accountActionLimiter } from "../rateLimiters.js";
-import { getAccountById, getState, mutateAccountState, mutateState, ensureBidShape } from "../gameState.js";
+import { getAccountById, getState, mutateAccountState, mutateState, ensureBidShape, bidRuleFor } from "../gameState.js";
 import { exchangeTaxBreakdown } from "../game/progression.js"; // ISP-302 (AB#2285): the rate and its royalty share
 import { taxOnSale } from "../../public/scripts/exchangeTax.js";
 import { getStationInventory } from "../gameState.js";
@@ -313,6 +313,8 @@ export function registerMarketRoutes(app) {
       return;
     }
 
+    // AB#2365: shaped before the quota checks, so an order saved with the world's 7,000 is checked against its own.
+    ensureBidShape(npcOrder);
     if (npcOrder.remainingQty <= 0) {
       res.status(400).json({ error: "This order has been fully filled for today. It resets at midnight EST." });
       return;
@@ -324,8 +326,8 @@ export function registerMarketRoutes(app) {
     }
 
     // ISP-87: the bid is what today's volume has left it at, computed here and never taken from the request.
-    ensureBidShape(npcOrder);
-    const unitPrice = npcBidFor(npcOrder.basePrice, npcOrder.soldToday);
+    // AB#2365: over the order's own quota, so a product's bid moves at a Refinery's rate, not the world's 7,000.
+    const unitPrice = npcBidFor(npcOrder.basePrice, npcOrder.soldToday, bidRuleFor(npcOrder));
     const tradeTotal = requestedQty * unitPrice;
     let rejectReason = "";
     let tradeTaxPct = 0;
@@ -387,7 +389,7 @@ export function registerMarketRoutes(app) {
         ensureBidShape(target);
         target.remainingQty = Math.max(0, target.remainingQty - requestedQty);
         target.soldToday = Math.max(0, Number(target.soldToday) || 0) + requestedQty;
-        target.unitPrice = npcBidFor(target.basePrice, target.soldToday);
+        target.unitPrice = npcBidFor(target.basePrice, target.soldToday, bidRuleFor(target));
       }
       if (!draft.market.priceHistory) draft.market.priceHistory = {};
       recordTrade(draft.market.priceHistory, npcOrder.item, unitPrice, requestedQty); // AB#715, at the price paid
