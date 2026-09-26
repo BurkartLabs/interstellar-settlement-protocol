@@ -18,6 +18,19 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (ISP-98, AB#788 — the Cryo-vapor Extractor Array, Builder)
+
+- The sixth catalogue entry: 80,000 / 58,000, Containment Physics, on a Luna lease only (`"lease": "luna"`), one per
+  Luna lease (`cap.perLease`), a lease slot and a corporation slot like an extractor. It is recorded on the lease as
+  `facilities: ["Cryo-vapor Extractor Array"]`.
+- **Effect: the design's fallback**, taken without an answer from the PM: the lease's extractors mine 1.2 times
+  (`public/scripts/miningEfficiency.js`, one rule for the tick and the extractor panel's projection, which had two
+  copies of the research part). Helium-3 from Luna is left to v0.8 (DEVELOPMENT_PHASES.md, AB#830). A veto swaps it.
+- **A lease's slots are its extractors and its facilities**, counted by `public/scripts/leaseSlots.js` everywhere a lease's
+  room is read: construct(), the panel, slotAdvice, Assets, the Claims & Leases cards and the lease page. `extractorIds`
+  stays the extractors only (server/game/mining.js rebuilds it). The lease page lists its facilities.
+- Level 9 does not name the array (AB#798's drift, as levels 6 and 7). Screens: `docs/ab-788/`.
+
 ## What's now true (ISP-97, AB#787 — the Refinery Complex, the first upgrade, Builder)
 
 - The fifth catalogue entry and the first `"slot": "upgrade"` (`"upgrades": "refinery"`, `cap.perBuilding` 1):
