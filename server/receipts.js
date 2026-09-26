@@ -110,6 +110,21 @@ export function buildExtractorReceipt({ extractorName, body, cost, assetValue })
   });
 }
 
+/** ISP-101 (AB#793): a building upgraded by one tier. */
+export function upgradeReceipt({ name, tier, cost, assetValue, offlineUntil, throughputCap }) {
+  return receipt("upgrade-building", {
+    title: "Building Upgraded",
+    summary: `${name}, now tier ${tier}.`,
+    costCredits: cost,
+    grants: [
+      { label: "Throughput cap", value: `${throughputCap} tons per hour` },
+      { label: "Added to assets", value: formatCredits(assetValue) },
+      { label: "Offline until", value: formatUtc(offlineUntil) }
+    ],
+    next: "Start its next mining cycle once it is back online: at this tier it pays best a little hotter than before."
+  });
+}
+
 export function startMiningReceipt({ extractorName, cost, hours, throughputPerHour, operationCostPerHour, endsAt }) {
   return receipt("start-mining", {
     title: "Mining Cycle Started",

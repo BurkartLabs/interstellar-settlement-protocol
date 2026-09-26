@@ -29,6 +29,7 @@ const BASELINE = {
   "POST /build-mining-probe": {},
   "POST /build-refinery": {},
   "POST /build": { body: { buildingId: "basic-extractor-yard", leaseId: "lease-731" } }, // ISP-94
+  "POST /buildings/:buildingId/upgrade": { params: { buildingId: "bld-731" } }, // ISP-101 (AB#793)
   "GET /belt-compositions": {},
   "POST /scout-belt": { body: { beltKey: "sol:belt" } },
   "POST /launch-expedition": { body: { beltKey: "sol:belt", duration: "short" } },
@@ -89,7 +90,8 @@ async function playerWithEverything() {
     const corp = state.corp;
     corp.currentStationId = "earth-station-prime";
     corp.miningLeases = [{ id: "lease-731", body: "Earth", slots: 2, extractorIds: ["ext-731"] }];
-    corp.mining = { ...(corp.mining || {}), silicateExtractors: [{ id: "ext-731", leaseId: "lease-731", active: false, totalMined: 0, totalSpent: 0 }] };
+    corp.mining = { ...(corp.mining || {}), silicateExtractors: [{ id: "ext-731", leaseId: "lease-731", buildingId: "bld-731", active: false, totalMined: 0, totalSpent: 0 }] };
+    corp.buildings = [...(corp.buildings || []), { id: "bld-731", name: "Basic Extractor Yard", tier: 1, status: "Operational" }]; // AB#793
     corp.refineries = [{ id: "ref-731", name: "Refinery #1", tier: 1, active: false, chainId: null }];
     corp.inventory = { "mars-orbital-dock": { Silicates: 50 } };
     // Two active contracts: the abandon baseline gives one up, and complete still has the other.

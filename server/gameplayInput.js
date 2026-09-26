@@ -7,6 +7,11 @@
 // tests/integration/gameplay-input.test.js enumerates the routes Express has registered and fails if one is missing
 // here, then posts "abc", NaN, Infinity, -5, 0, 2.5, a missing field and a 10,000-character string to every field.
 
+import { yardMaxTier, yardTierFor } from "./economy.js";
+
+/** The highest cap any yard tier has (AB#793): what start-mining accepts before the route clamps to the yard's own. */
+const TOP_THROUGHPUT_CAP = yardTierFor(yardMaxTier()).throughputCap;
+
 /** Longer than any id or name the game uses; anything longer is refused unread. */
 export const MAX_ID_LENGTH = 64;
 /** Lines one transfer may carry (AB#717). */
@@ -52,10 +57,14 @@ export const GAMEPLAY_INPUT = {
   "GET /shipments/:shipmentId": { params: { shipmentId: ref("a shipment") } },
   "POST /travel": { oneOf: { toSystemId: id("systems", "a star system"), toStationId: id("stations", "a station") } },
   "POST /lease/:leaseId/build-extractor": { params: { leaseId: id("ownLeases", "one of your mining leases") } },
+  // ISP-101 (AB#793): an id that is not one of the caller's buildings - unknown, another corporation's, or malformed -
+  // gets this one answer, so ids cannot be probed.
+  "POST /buildings/:buildingId/upgrade": { params: { buildingId: id("ownBuildings", "one of your buildings") } },
   "POST /lease/:leaseId/start-mining": {
     params: { leaseId: id("ownLeases", "one of your mining leases") },
     body: {
-      amount: int(10, 250, "a throughput from 10 to 250 tons per hour"),
+      // AB#793: a tier raises a yard's cap, at most to the last tier's; the route clamps to the yard's own cap.
+      amount: int(10, TOP_THROUGHPUT_CAP, `a throughput from 10 to ${TOP_THROUGHPUT_CAP} tons per hour`),
       hours: int(1, 72, "a cycle length from 1 to 72 hours"),
       extractorId: id("ownExtractors", "one of your extractors")
     }
@@ -303,6 +312,7 @@ export function gameplayInputMiddleware({ catalogs, corpOf, stationNames, routes
     const has = (catalog, value) => {
       if (catalog === "ownLeases") return (own().miningLeases || []).some((l) => l?.id === value);
       if (catalog === "ownExtractors") return (own().mining?.silicateExtractors || []).some((x) => x?.id === value);
+      if (catalog === "ownBuildings") return (own().buildings || []).some((b) => typeof b?.id === "string" && b.id === value);
       if (catalog === "ownRefineries") return (own().refineries || []).some((r) => r?.id === value);
       if (catalog === "ownMissions") return (own().activeMissions || []).some((m) => m?.id === value);
       if (catalog === "ownStock") {

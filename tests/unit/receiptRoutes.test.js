@@ -43,6 +43,15 @@ const EXEMPT = {
   "/api/accounts/:accountId/gameplay/abandon-mission": "gives a contract back; nothing is delivered, paid or charged"
 };
 
+/**
+ * A committing route whose receipt the server already makes but whose page does not exist yet: the modal is owed, by
+ * the story named. It is held to its receipt builder here, and fails the moment a page calls it, so it moves to
+ * RECEIPTS with its modal instead of staying on this list.
+ */
+const OWED = {
+  "/api/accounts/:accountId/gameplay/buildings/:buildingId/upgrade": { builder: "upgradeReceipt", story: "AB#795", call: "/upgrade`" } // ISP-101 (AB#793)
+};
+
 /** ISP-94/95: the one build route answers with the receipt of whichever building it built; checked on its own below. */
 const BUILD_ROUTE = "/api/accounts/:accountId/gameplay/build";
 
@@ -69,10 +78,10 @@ describe("every committing action has its confirmation modal (AB#744)", () => {
   });
 
   it("each committing route is mapped to a receipt or exempted with a reason, never both, and no entry is stale", () => {
-    const unaccounted = [...routes.keys()].filter((p) => !(p in RECEIPTS) && !(p in EXEMPT) && p !== BUILD_ROUTE);
+    const unaccounted = [...routes.keys()].filter((p) => !(p in RECEIPTS) && !(p in EXEMPT) && !(p in OWED) && p !== BUILD_ROUTE);
     expect(unaccounted, "a committing route with no confirmation mapping").toEqual([]);
     expect(Object.keys(RECEIPTS).filter((p) => p in EXEMPT)).toEqual([]);
-    expect([...Object.keys(RECEIPTS), ...Object.keys(EXEMPT)].filter((p) => !routes.has(p)), "an entry naming no route").toEqual([]);
+    expect([...Object.keys(RECEIPTS), ...Object.keys(EXEMPT), ...Object.keys(OWED)].filter((p) => !routes.has(p)), "an entry naming no route").toEqual([]);
   });
 
   it.each(Object.entries(RECEIPTS))("%s answers with the receipt its builder makes", (path, { builder }) => {
@@ -110,13 +119,22 @@ describe("every committing action has its confirmation modal (AB#744)", () => {
     expect(call.slice(call.indexOf("onBuilt:"), call.indexOf("onError:")), "showActionReceipt in the panel's onBuilt").toContain("showActionReceipt(");
   });
 
+  it.each(Object.entries(OWED))("%s answers with its receipt, and no page calls it until its modal is built (owed by the story named)", (path, { builder, story, call }) => {
+    const { handler } = routes.get(path);
+    expect(handler, path).toContain(`${builder}(`);
+    expect(handler, path).toMatch(/res\.json\(\{[^;]*\breceipt\b/);
+    expect(story).toMatch(/^AB#\d+$/);
+    const pages = readdirSync(new URL("public/scripts/", ROOT), { recursive: true }).map(String).filter((f) => f.endsWith(".js"));
+    expect(pages.filter((f) => read(`public/scripts/${f.split("\\").join("/")}`).includes(call)), `a page calls ${path}: move it to RECEIPTS with its modal`).toEqual([]);
+  });
+
   it("the receipts module has a builder for every mapped route, and no builder nothing uses", () => {
     const receipts = read("server/receipts.js");
     const builders = [...receipts.matchAll(/export function (\w+Receipt)\(/g)].map((m) => m[1]);
     // ISP-96 (AB#786): a building added since ISP-94 is built through the one build route only, so its receipt
     // builder is used by its construction (server/construction.js) and by no mapped route.
     const byConstruction = builders.filter((b) => Object.values(CONSTRUCTIONS).some((c) => c.receipt.toString().includes(b)));
-    const used = new Set([...Object.values(RECEIPTS).map((r) => r.builder), ...byConstruction]);
+    const used = new Set([...Object.values(RECEIPTS).map((r) => r.builder), ...Object.values(OWED).map((r) => r.builder), ...byConstruction]);
     expect(builders.filter((b) => !used.has(b)), "a builder nothing uses").toEqual([]);
     expect(Object.values(RECEIPTS).map((r) => r.builder).filter((b) => !builders.includes(b)), "a mapped builder the module lacks").toEqual([]);
   });

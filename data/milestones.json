@@ -10,6 +10,7 @@
         "employeeCap": 20,
         "buildingSlots": 2,
         "maxFleetSize": 8,
+        "maxUpgradeTier": 1,
         "marketSectors": ["Raw Materials"]
       }
     },
@@ -24,6 +25,7 @@
         "employeeCap": 30,
         "buildingSlots": 3,
         "maxFleetSize": 14,
+        "maxUpgradeTier": 2,
         "marketSectors": ["Logistics Services"]
       }
     },
@@ -37,6 +39,7 @@
         "employeeCap": 45,
         "buildingSlots": 4,
         "maxFleetSize": 22,
+        "maxUpgradeTier": 2,
         "marketSectors": []
       }
     },
@@ -52,6 +55,7 @@
         "employeeCap": 60,
         "buildingSlots": 5,
         "maxFleetSize": 30,
+        "maxUpgradeTier": 3,
         "marketSectors": ["Refined Goods"]
       }
     },
@@ -67,6 +71,7 @@
         "employeeCap": 80,
         "buildingSlots": 6,
         "maxFleetSize": 40,
+        "maxUpgradeTier": 3,
         "marketSectors": ["Industrial Goods"]
       }
     },
@@ -81,6 +86,7 @@
         "employeeCap": 100,
         "buildingSlots": 7,
         "maxFleetSize": 55,
+        "maxUpgradeTier": 4,
         "marketSectors": ["Advanced Materials"]
       }
     },
@@ -94,6 +100,7 @@
         "employeeCap": 120,
         "buildingSlots": 8,
         "maxFleetSize": 70,
+        "maxUpgradeTier": 4,
         "marketSectors": []
       }
     },
@@ -108,6 +115,7 @@
         "employeeCap": 145,
         "buildingSlots": 9,
         "maxFleetSize": 90,
+        "maxUpgradeTier": 5,
         "marketSectors": []
       }
     },
@@ -122,6 +130,7 @@
         "employeeCap": 170,
         "buildingSlots": 10,
         "maxFleetSize": 110,
+        "maxUpgradeTier": 5,
         "marketSectors": ["Military Contracts"]
       }
     },
@@ -137,6 +146,7 @@
         "employeeCap": 200,
         "buildingSlots": 12,
         "maxFleetSize": 140,
+        "maxUpgradeTier": 5,
         "marketSectors": ["Sovereign Infrastructure"]
       }
     }

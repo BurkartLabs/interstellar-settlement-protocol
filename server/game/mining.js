@@ -70,7 +70,7 @@ export function ensureCorpMiningModel(corp) {
     // Only auto-fix throughput/cost if NOT active
     if (!extractor.active) {
       if (throughput <= 0) throughput = 40;
-      if (operationCost <= 0) operationCost = operationCostPerHourFor(throughput, undefined, { yardIndex: index }); // AB#2284
+      if (operationCost <= 0) operationCost = operationCostPerHourFor(throughput, undefined, { yardIndex: index, tier: extractor.tier }); // AB#2284, AB#793
     }
     const normalized = {
       id: String(extractor.id || `ext-basic-${index + 1}`),
@@ -96,6 +96,8 @@ export function ensureCorpMiningModel(corp) {
       leaseId: extractor.leaseId ?? null,
       // AB#792: the id of this extractor's yard in corp.buildings, given by ensureBuildingIds (server/game/buildingIds.js).
       buildingId: extractor.buildingId ?? null,
+      // AB#793: while an upgrade is under way the yard is offline until this time (ms); no cycle starts before it.
+      upgradingUntil: Number(extractor.upgradingUntil) > 0 ? Number(extractor.upgradingUntil) : null,
       // Authoritative location string (planet/moon name). Persisted on the
       // extractor row directly so we don't have to chase leaseId references
       // across hydrations to know where the yard physically lives.

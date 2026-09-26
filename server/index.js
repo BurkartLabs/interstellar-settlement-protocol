@@ -24,6 +24,7 @@ import { registerMiningRoutes } from "./routes/mining.js";
 import { registerAsteroidRoutes } from "./routes/asteroids.js";
 import { registerRefiningRoutes } from "./routes/refining.js";
 import { registerConstructionRoutes } from "./routes/construction.js"; // ISP-94 (AB#784)
+import { registerUpgradeRoutes } from "./routes/upgrades.js"; // ISP-101 (AB#793)
 import { PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
 import { registerMissionRoutes } from "./routes/missions.js";
 import { registerResearchRoutes } from "./routes/research.js";
@@ -139,6 +140,7 @@ registerAsteroidRoutes(app);
 registerRefiningRoutes(app);
 
 registerConstructionRoutes(app);
+registerUpgradeRoutes(app);
 
 registerMissionRoutes(app);
 

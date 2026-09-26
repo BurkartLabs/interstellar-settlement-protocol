@@ -26,6 +26,7 @@ describe("what a level's notice says (Bug #1260)", () => {
         { key: "employeeCap", label: "Employee cap", value: String(u.employeeCap) },
         { key: "buildingSlots", label: "Building slots", value: String(u.buildingSlots) },
         { key: "maxFleetSize", label: "Fleet cap", value: String(u.maxFleetSize) },
+        { key: "maxUpgradeTier", label: "Highest building tier", value: String(u.maxUpgradeTier) }, // AB#793
         { key: "marketSectors", label: "Market sectors opened", value: u.marketSectors.join(", ") }
       ]
     });

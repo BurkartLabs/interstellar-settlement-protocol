@@ -109,11 +109,40 @@ export function buildCostFor(baseCost, hasSupplyForecast) {
 // `operations` override so a caller can ask "what would this be under a different economy" — scripts/economy-model.mjs
 // uses the override to price the numbers ECONOMY.md quotes from the same file it reads, rather than re-deriving them
 // (AB#1754: it used to reimplement this formula from before AB#775 and silently fell out of step with it).
-export function operationCostPerHourFor(throughputPerHour, operations = ECONOMY.operations, { yardIndex = 0, buildings = ECONOMY.buildings } = {}) {
-  const { minCostPerHour, costPerThroughputUnit, throughputReferencePerHour } = operations;
+export function operationCostPerHourFor(throughputPerHour, operations = ECONOMY.operations, { yardIndex = 0, buildings = ECONOMY.buildings, tier = 1 } = {}) {
+  const { minCostPerHour, costPerThroughputUnit } = operations;
+  // ISP-101 (AB#793): a yard's tier sets the reference throughput the running cost curves around.
+  const { throughputReferencePerHour } = yardTierFor(tier, operations, buildings);
   const rate = Math.max(0, Number(throughputPerHour) || 0);
   const curved = rate * costPerThroughputUnit * (1 + (rate / throughputReferencePerHour) ** 2);
   return Math.max(minCostPerHour, Math.round(curved)) + yardUpkeepPerHourFor(yardIndex, buildings);
+}
+
+/** The throughput cap every yard had before tiers, and still has at tier 1 (routes/mining.js clamps to it). */
+export const BASE_THROUGHPUT_CAP = 250;
+
+/**
+ * ISP-101 (AB#793), docs/design/upgrades.md: what an extractor yard's tier sets. Tier 1 is the running cost's own
+ * reference throughput and the 250 cap; tiers 2 to 5 come from buildings.extractorYardUpgrades. A stored tier the table
+ * does not have runs as tier 1, the lowest cap and the dearest curve, so a bad save can never mine above what it paid
+ * for. The upgrade route refuses such a tier outright (server/upgrades.js).
+ */
+export function yardTierFor(tier, operations = ECONOMY.operations, buildings = ECONOMY.buildings) {
+  const n = Number(tier) || 1;
+  if (n <= 1) return { tier: 1, throughputReferencePerHour: operations.throughputReferencePerHour, throughputCap: BASE_THROUGHPUT_CAP };
+  const row = yardUpgradeTo(n, buildings);
+  if (!row) return { tier: 1, throughputReferencePerHour: operations.throughputReferencePerHour, throughputCap: BASE_THROUGHPUT_CAP };
+  return { tier: n, throughputReferencePerHour: row.throughputReferencePerHour, throughputCap: row.throughputCap };
+}
+
+/** The upgrade that takes a yard to `tier`: { toTier, upgradeCost, assetValue, offlineHours, ... }, or null. */
+export function yardUpgradeTo(tier, buildings = ECONOMY.buildings) {
+  return (buildings?.extractorYardUpgrades || []).find((u) => u.toTier === Number(tier)) || null;
+}
+
+/** A yard's last tier: 1 plus the upgrades the table holds. */
+export function yardMaxTier(buildings = ECONOMY.buildings) {
+  return 1 + (buildings?.extractorYardUpgrades || []).length;
 }
 
 /**
@@ -135,10 +164,10 @@ export function yardUpkeepPerHourFor(yardIndex, buildings = ECONOMY.buildings) {
  * panel shows so the curve is visible rather than hidden. `unitPrice` is what the ore sells for and `taxPct` the
  * sales tax the corporation pays on it; `efficiency` is the multiplier its research has earned.
  */
-export function miningProfitPerHourFor(throughputPerHour, { unitPrice, taxPct, efficiency = 1 }, operations = ECONOMY.operations) {
+export function miningProfitPerHourFor(throughputPerHour, { unitPrice, taxPct, efficiency = 1, tier = 1 }, operations = ECONOMY.operations) {
   const rate = Math.max(0, Number(throughputPerHour) || 0);
   const revenue = rate * efficiency * Number(unitPrice || 0) * (1 - Number(taxPct || 0) / 100);
-  const cost = operationCostPerHourFor(rate, operations);
+  const cost = operationCostPerHourFor(rate, operations, { tier });
   return { revenuePerHour: Math.round(revenue), costPerHour: cost, profitPerHour: Math.round(revenue - cost) };
 }
 
@@ -147,10 +176,11 @@ export function miningProfitPerHourFor(throughputPerHour, { unitPrice, taxPct, e
  * range the rules allow. Walked rather than solved: the floor makes the curve piecewise, and a walk of 241 points
  * is cheaper than being clever about it.
  */
-export function bestThroughputFor({ unitPrice, taxPct, efficiency = 1, min = 10, max = 250 }, operations = ECONOMY.operations) {
+export function bestThroughputFor({ unitPrice, taxPct, efficiency = 1, tier = 1, min = 10, max }, operations = ECONOMY.operations) {
+  if (max === undefined) max = yardTierFor(tier, operations).throughputCap;
   let best = { throughput: min, profitPerHour: -Infinity };
   for (let t = min; t <= max; t += 1) {
-    const { profitPerHour } = miningProfitPerHourFor(t, { unitPrice, taxPct, efficiency }, operations);
+    const { profitPerHour } = miningProfitPerHourFor(t, { unitPrice, taxPct, efficiency, tier }, operations);
     if (profitPerHour > best.profitPerHour) best = { throughput: t, profitPerHour };
   }
   return best;
