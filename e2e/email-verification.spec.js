@@ -69,12 +69,15 @@ for (const vp of VIEWPORTS) {
       // The primary fill as the stylesheet defines it: a fresh button, never hovered and with nothing to transition.
       const primaryFill = await page.evaluate(() => {
         const probe = document.createElement("button");
-        probe.className = "btn-hero btn-hero-fill";
+        probe.className = "ui-button ui-button--primary";
         document.body.append(probe);
         const fill = getComputedStyle(probe).backgroundColor;
         probe.remove();
         return fill;
       });
+      // AB#765: the Verify button hides and Log In moves up under the pointer that pressed it; the design system's
+      // primary has a hover colour, so the pointer moves off before the resting fill is read.
+      await page.mouse.move(0, 0);
       await expect(page.locator("#verify-login")).toHaveCSS("background-color", primaryFill);
       await page.screenshot({ path: path.join(SCREEN_DIR, `email-verified-${vp.label}.png`) });
 

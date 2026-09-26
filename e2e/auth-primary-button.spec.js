@@ -25,7 +25,7 @@ for (const page of PAGES) {
     test(`${page.id} at ${viewport.label}`, async ({ page: p }) => {
       await p.setViewportSize({ width: viewport.width, height: viewport.height });
       await p.goto(page.url);
-      await p.waitForSelector(".login-actions");
+      await p.waitForSelector(".auth-page__actions");
       await p.screenshot({ path: path.join(SCREEN_DIR, `after-${page.id}-${viewport.label}.png`), fullPage: true });
     });
   }
