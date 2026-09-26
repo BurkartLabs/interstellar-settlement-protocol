@@ -174,9 +174,10 @@ describe("applyMiningOperations", () => {
       expect(ext.active).toBe(false);
     });
 
-    // ISP-301 (AB#2284): a second yard's upkeep is part of its running cost, so a corporation short of credit mines
-    // less with it and owes nothing; the first yard, charged first and paying no upkeep, runs in full.
-    it("with too little credit, a second yard paying upkeep mines in proportion and records no debt; the first runs in full", () => {
+    // ISP-301 (AB#2284): a yard's upkeep is part of its running cost, so a corporation short of credit mines less with
+    // it and owes nothing; the first yard, charged first and paying no upkeep, runs in full. The second extractor here
+    // carries the upkeep of a paying yard, the third since ISP-308 (AB#2304).
+    it("with too little credit, a later yard paying upkeep mines in proportion and records no debt; the first runs in full", () => {
       pinRandom(0.999);
       const start = 1_700_000_000_000;
       const cycle = { startedAt: start, lastTickAt: start, endsAt: start + 60 * 60 * 1000, throughputPerHour: 600, leaseId: "lease-1" };
@@ -186,7 +187,7 @@ describe("applyMiningOperations", () => {
         mining: {
           silicateExtractors: [
             makeExtractor({ ...cycle, id: "ext-basic-1", operationCostPerHour: 1000 + yardUpkeepPerHourFor(0) }),
-            makeExtractor({ ...cycle, id: "ext-basic-2", operationCostPerHour: 1000 + yardUpkeepPerHourFor(1) })
+            makeExtractor({ ...cycle, id: "ext-basic-2", operationCostPerHour: 1000 + yardUpkeepPerHourFor(2) })
           ]
         }
       });

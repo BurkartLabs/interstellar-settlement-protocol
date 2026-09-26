@@ -123,7 +123,7 @@ export const BASE_THROUGHPUT_CAP = 250;
 
 /**
  * ISP-101 (AB#793), docs/design/upgrades.md: what an extractor yard's tier sets. Tier 1 is the running cost's own
- * reference throughput and the 250 cap; tiers 2 to 5 come from buildings.extractorYardUpgrades. A stored tier the table
+ * reference throughput and the 250 cap; tiers 2 to 8 come from buildings.extractorYardUpgrades. A stored tier the table
  * does not have runs as tier 1, the lowest cap and the dearest curve, so a bad save can never mine above what it paid
  * for. The upgrade route refuses such a tier outright (server/upgrades.js).
  */
@@ -147,14 +147,17 @@ export function yardMaxTier(buildings = ECONOMY.buildings) {
 
 /**
  * ISP-301 (AB#2284), ECONOMY.md "Sinks that scale with income" sink 1: every extractor yard after the corporation's
- * first pays an upkeep of extractorYardUpkeepPctPerDay of the yard's price per running day, added to its hourly cost
- * after the floor: 50,000 x 2% / 24 = 41.67. `yardIndex` is the yard's place in corp.mining.silicateExtractors (build
- * order); the first, index 0, pays none. It is charged only while the yard runs, as part of the running cost, so a
- * corporation that cannot pay it mines less (applyMiningOperations' affordabilityRatio) and never owes it.
- * The Board has not seen this number: chosen, not derived (AB#778).
+ * first extractorYardsInStartingKit pays an upkeep of extractorYardUpkeepPctPerDay of the yard's price per running
+ * day, added to its hourly cost after the floor: 50,000 x 2% / 24 = 41.67. `yardIndex` is the yard's place in
+ * corp.mining.silicateExtractors (build order); indexes 0 and 1 pay none. ISP-308 (AB#2304, the Director's ruling on
+ * AB#2287): the free yards are the starting kit, a lease's two building slots, not one. It is charged only while the
+ * yard runs, as part of the running cost, so a corporation that cannot pay it mines less (applyMiningOperations'
+ * affordabilityRatio) and never owes it. The Board has not seen either number, nor where the line falls: chosen, not
+ * derived (AB#778, AB#2287).
  */
 export function yardUpkeepPerHourFor(yardIndex, buildings = ECONOMY.buildings) {
-  if (!(Number(yardIndex) > 0)) return 0;
+  const freeYards = Number(buildings?.extractorYardsInStartingKit) || 1; // an economy without the key keeps AB#2284's one
+  if (!(Number(yardIndex) >= freeYards)) return 0;
   const perHour = (Number(buildings?.extractorYardCost) || 0) * (Number(buildings?.extractorYardUpkeepPctPerDay) || 0) / 100 / 24;
   return Math.round(perHour * 100) / 100;
 }

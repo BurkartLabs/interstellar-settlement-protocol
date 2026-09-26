@@ -33,9 +33,9 @@ question in the retune (AB#728).
 | `buildings.cryoVaporExtractorArrayAssetValue` | 58,000 | 72.5% of cost on the balance sheet, in line with the other buildings. From the design, no further reason. |
 | `buildings.cryoVaporExtractorArrayMiningMultiplier` | 1.2 | Extractors on the array's Luna lease mine this many times (it multiplies the research efficiency, not the running cost). The design's fallback effect, taken because Helium-3 extraction is v0.8's (DEVELOPMENT_PHASES.md, AB#830); a Board or PM veto swaps it for Helium-3. |
 | `buildings.supplyForecastCostMultiplier` | 0.94 | Supply Forecast research takes 6% off a yard or refinery: 3,000 on an extractor yard. It is small next to the research's other effect, +6% output. |
-| `buildings.extractorYardUpkeepPctPerDay` | 2 | Every extractor yard after a corporation's first adds 2% of the yard's price per running day to its hourly running cost: 50,000 x 2% / 24 = 41.67 an hour, after the 600 floor, and not in the startup (ISP-301, AB#2284; sink 1 of "Sinks that scale with income" below). Its share of each running charge is booked as its own ledger category, `yard-upkeep` (ISP-307, AB#2299). A one-yard corporation never pays it; one short of credit mines less and owes nothing. Chosen, not derived: the Board has not seen it. |
+| `buildings.extractorYardUpkeepPctPerDay` | 2 | Every extractor yard past the starting kit (`extractorYardsInStartingKit`, the first two) adds 2% of the yard's price per running day to its hourly running cost: 50,000 x 2% / 24 = 41.67 an hour, after the 600 floor, and not in the startup (ISP-301, AB#2284; ISP-308, AB#2304; sink 1 of "Sinks that scale with income" below). Its share of each running charge is booked as its own ledger category, `yard-upkeep` (ISP-307, AB#2299). A corporation with the starting kit, one lease and its two yards, never pays it; one short of credit mines less and owes nothing. Chosen, not derived: the Board has not seen it. |
 | `buildings.extractorYardPriceGrowth` | 1.25 | Each extractor yard past the starting kit costs a quarter more than the last: the n-th is `extractorYardCost x 1.25^max(0, n - extractorYardsInStartingKit)` rounded to the nearest 1,000, so 50,000, 50,000, 63,000, 78,000, 98,000, 122,000 and 153,000 for yards 1 to 7, with the Supply Forecast discount after (ISP-303, AB#2286; ISP-309, AB#2305; sink 3 of "Sinks that scale with income" below). The first yard's price is booked as `construction` and the rest as its own ledger category, `yard-price-growth` (ISP-307, AB#2299). A yard already built keeps its book value (`extractorYardAssetValue`); only the next purchase costs more. The rule is `public/scripts/yardPrice.js`, shared by the build and the page. Chosen, not derived: the Board has not seen it. |
-| `buildings.extractorYardsInStartingKit` | 2 | The starting kit, one lease and two yards: the yards a corporation buys up to this count pay no price growth (ISP-309, AB#2305). **A balance call on the opening, from the Director's ruling on AB#2287 (2026-09-26), made on model numbers the Board has not seen: not final until the Board has looked.** One key so the yard-upkeep rework (ISP-308, AB#2304), which moves to the same boundary, can read it too. |
+| `buildings.extractorYardsInStartingKit` | 2 | The starting kit, one lease and two yards: the yards a corporation buys up to this count pay no price growth (ISP-309, AB#2305), and its yards up to this count, in build order, pay no upkeep (ISP-308, AB#2304). **A balance call on the opening, from the Director's ruling on AB#2287 (2026-09-26), made on model numbers the Board has not seen: not final until the Board has looked.** One key so the yard-upkeep rework (ISP-308, AB#2304), which moves to the same boundary, can read it too. |
 | `buildings.assemblyFacilityUpgrades.toTier` | 2 | The Assembly Facility's one upgrade (ISP-102, AB#794; docs/design/upgrades.md). Chosen, not derived: the Board has not seen it. |
 | `buildings.assemblyFacilityUpgrades.upgradeCost` | 30,000 | Half the facility's own price: worth it only to a corporation whose expeditions wait on probes. |
 | `buildings.assemblyFacilityUpgrades.assetValue` | 21,000 | 70% of the upgrade's cost, as every upgrade books. |
@@ -366,12 +366,14 @@ that a growing corporation stops noticing.
 
 ### The three sinks
 
-**1. Yard upkeep, while a yard runs.** Every extractor yard after the corporation's first adds an upkeep to its
+**1. Yard upkeep, while a yard runs.** Every extractor yard after the corporation's first two adds an upkeep to its
 hourly running cost, of 2% of the yard's price per running day:
 
-upkeep per hour = 50,000 x 2% / 24 = **41.67 credits an hour**, for yards 2 onward, added after the 600 floor.
+upkeep per hour = 50,000 x 2% / 24 = **41.67 credits an hour**, for yards 3 onward, added after the 600 floor.
 
-- *Scales with:* yards running. The first yard never pays it, and an idle yard costs nothing.
+- *Scales with:* yards running. The first two yards never pay it (the starting kit: one lease's two building slots;
+  ISP-308, AB#2304, moved the line from the first yard on the Director's ruling on AB#2287), and an idle yard costs
+  nothing.
 - *Unpaid:* it is part of the running cost, so it inherits what the mining tick already does when credits cannot
   cover a cycle (`server/game/mining.js`, `affordabilityRatio`). The yard mines in proportion to what the
   corporation can pay, with no debt and no arrears, and a broke corporation's first yard is exempt. **It degrades
@@ -422,17 +424,17 @@ day:
 | yards | tax | profit today | yard upkeep | lease royalty | share of profit | this yard's price | its payback |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 8% | 11,106 | 0 | 0 | 0% | 50,000 | today's path |
-| 2 | 9% | 22,212 | 816 | 1,372 | 9.9% | 50,000 | 5.6 days |
-| 3 | 10% | 33,318 | 1,632 | 4,117 | 17.3% | 63,000 | 8.3 days |
-| 4 | 10% | 44,425 | 2,448 | 5,490 | 17.9% | 78,000 | 8.7 days |
-| 5 | 11% | 55,531 | 3,264 | 10,293 | 24.4% | 98,000 | 17.9 days |
-| 6 | 11% | 66,637 | 4,080 | 12,352 | 24.7% | 122,000 | 14.8 days |
+| 2 | 9% | 22,212 | 0 | 1,372 | 6.2% | 50,000 | 5.1 days |
+| 3 | 10% | 33,318 | 816 | 4,117 | 14.8% | 63,000 | 8.3 days |
+| 4 | 10% | 44,425 | 1,632 | 5,490 | 16.0% | 78,000 | 8.7 days |
+| 5 | 11% | 55,531 | 2,448 | 10,293 | 22.9% | 98,000 | 17.9 days |
+| 6 | 11% | 66,637 | 3,264 | 12,352 | 23.4% | 122,000 | 14.8 days |
 
 "Its payback" is the yard's price over what that yard adds to the day's profit after both sinks. Under today's
-rules every yard after the first pays back its 50,000 in 4.5 days. After this design the 2nd yard does so in under
-six days, and the 5th takes two and a half weeks: the step to 5 leases is where the royalty tier rises. The price
-column is ISP-309's (AB#2305, growth from yard 3); the upkeep column is still sink 1 as built (yards 2 onward) until
-ISP-308 (AB#2304) moves it to the same boundary, and whichever of the two lands second recomputes both columns. A corporation that
+rules every yard after the first pays back its 50,000 in 4.5 days. After this design the 2nd yard does so in about
+five days, and the 5th takes two and a half weeks: the step to 5 leases is where the royalty tier rises. The price
+column is ISP-309's (AB#2305, growth from yard 3) and the upkeep column ISP-308's (AB#2304, upkeep from yard 3: 816 a
+day is a yard's 41.67 an hour over 24 hours at 81.6% uptime); both read `extractorYardsInStartingKit`. A corporation that
 stops at 4 has made a real decision (T-018), not hit a wall. **These are model numbers, not play** (P-PROXY): perfect
 play, every unit sold at the standing bid.
 
@@ -445,7 +447,9 @@ seeds 7000 and 7001, at day 3, 7 and 30:
 
 1. **The acceptance target still holds:** banked/spent below 3x for planner, greedy and reserve at every checkpoint.
    Today it is 0.00x to 0.22x, so this is a guard that the sinks did not break the floor.
-2. **The squeezed are untouched:** with `--supply low` (one yard each), each bot's spend in the three categories is
+2. **The squeezed are untouched:** with `--supply low` (each bot's ore to market capped at 2,000 a day; it still
+   owns the starting kit, one lease and its two yards, the squeezed corporation of the Director's AB#2287 ruling;
+   Bug AB#2303 corrected "one yard each", which the probe never ran), each bot's spend in the three categories is
    **0**, and planner's and greedy's Salvage Assignment counts at day 30 stay within 10% of 22 and 56 (the counts
    above).
 3. **The expanded pay:** with `--supply high`, the reserve bot's spend in the three categories on day 30 is **more
@@ -486,6 +490,12 @@ own tests). Either the squeezed player of the design owns two yards and the prem
 lease in 30 days (it reaches level 2), so on day 30 it builds nothing, has no royalty tier, and its second yard's
 upkeep is 0. The expanded corporation of the model (2 to 6 yards) is not a bot the probe has yet. Planner's Salvage
 count, 38 against 22, moved with ISP-299's and the sinks' changes; greedy's (53) is within 10% of 56.
+
+**The Director's ruling on check 2 (AB#2287, 2026-09-26):** the squeezed player is the one with the starting kit, one
+lease and its two yards, so the line belongs there. ISP-308 (AB#2304) moved `yard-upkeep`'s and ISP-309 (AB#2305)
+`yard-price-growth`'s, both to `extractorYardsInStartingKit`. **Flagged for the Board:** where the line falls
+is itself a balance call on the game's opening, made on model numbers the Board has not seen; it is built to the
+ruling, not settled.
 
 
 ### The Soul and Charter check, per sink

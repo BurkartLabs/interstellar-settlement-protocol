@@ -949,7 +949,7 @@ export function bindLeaseManagementActions(building, lease, data) {
           const operations = operationsForTier(tierOf.tier, appState.economy?.operations, appState.economy?.buildings);
           const baseCostPerHour = costPerHourFor(throughputPerHour, operations);
           const startupCost = clientStartupCostFor(baseCostPerHour, operations);
-          // AB#2284: upkeep for yards after the first, by the hour only, as the server charges it.
+          // AB#2284: upkeep for yards past the free ones (the first two since AB#2304), by the hour only, as the server charges it.
           const operationCostPerHour = baseCostPerHour + yardUpkeepPerHourFor(yardIndexOf(corp, extractorId), appState.economy?.buildings);
           if ((corp.finances.credits || 0) < startupCost) throw new Error(`Startup requires ${toCurrency(startupCost)} credits.`);
           const ex = corp.mining.silicateExtractors.find((e) => e.id === extractorId);
@@ -1327,6 +1327,12 @@ export function bindBuildingActions() {
  * the extractor row itself, because the row is rewritten whenever a cycle ticks and anything written to it
  * afterwards is wiped by the next rewrite.
  */
+/** "two" for the yards that pay no upkeep, from the economy (extractorYardsInStartingKit; ISP-308, AB#2304). */
+export function freeYardsText(buildings) {
+  const free = Number(buildings?.extractorYardsInStartingKit) || 1;
+  return ["", "one", "two", "three", "four", "five"][free] || String(free);
+}
+
 export function mineProjectionText(rate, extractorId) {
   const economy = appState.economy;
   if (!economy?.operations) return "";
@@ -1335,14 +1341,15 @@ export function mineProjectionText(rate, extractorId) {
   // ISP-98 (AB#788): the same efficiency the server's tick applies, the lease's Cryo-vapor Extractor Array included.
   const lease = (appState.data?.corp?.miningLeases || []).find((l) => l.id === ex?.leaseId);
   const efficiency = miningEfficiency(appState.data?.corp, lease, economy.buildings);
-  // ISP-301 (AB#2284): a yard after the corporation's first pays upkeep while it runs, and the line says so.
+  // ISP-301 (AB#2284): a yard past the corporation's free ones (its first two since ISP-308, AB#2304) pays upkeep while
+  // it runs, and the line says so.
   const upkeepPerHour = yardUpkeepPerHourFor(yardIndexOf(appState.data?.corp, extractorId), economy.buildings);
   const tierOf = yardTierFor(ex?.tier, economy.operations, economy.buildings);
   const operations = operationsForTier(tierOf.tier, economy.operations, economy.buildings);
   const at = miningProjection(rate, { operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour });
   const best = bestThroughput({ operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour, max: tierOf.throughputCap });
   const net = at.profitPerHour >= 0 ? `nets ${toCurrency(at.profitPerHour)}/hour` : `loses ${toCurrency(Math.abs(at.profitPerHour))}/hour`;
-  const upkeep = upkeepPerHour > 0 ? ` (including ${upkeepPerHour.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 })}/hour upkeep, paid by every yard after your first)` : "";
+  const upkeep = upkeepPerHour > 0 ? ` (including ${upkeepPerHour.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 })}/hour upkeep, paid by every yard after your first ${freeYardsText(economy.buildings)})` : "";
   return `At ${rate} t/h: earns ${toCurrency(at.revenuePerHour)}/hour, costs ${toCurrency(at.costPerHour)}/hour${upkeep}, ${net}. `
     + (best.throughputPerHour === rate
       ? "That is the best rate for your research."
