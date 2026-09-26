@@ -3,6 +3,7 @@ import { bodyResourceHtml } from "./bodyInfo.js"; // AB#740: what the catalogue 
 import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 import { PLANET_IMAGE_PATHS } from "./planetImages.js";
+import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 
 const CLUSTER_LAYOUT = {
   sol: { x: 0.16, y: 0.5 },
@@ -74,7 +75,7 @@ function hashSeed(input) {
 
 /** A scouted belt whose composition has not reached the page yet (Bug #1264): say so rather than show nothing. */
 export function scoutedBeltLoadingHtml() {
-  return `<p class="muted" data-belt-composition="loading">Scouted. Loading composition…</p>`;
+  return `<p class="ui-panel__meta" data-belt-composition="loading">Scouted. Loading composition…</p>`;
 }
 
 function styleForBody(body) {
@@ -85,18 +86,18 @@ function styleForBody(body) {
  * will let scout (Asteroid Prospecting Arrays, in the belt's system: AB#1256); anyone else is told what to do instead
  * of meeting a button whose refusal only shows on the Overview tab. */
 export function unscoutedBeltHtml({ hasProspecting, inSameSystem, systemName }) {
-  const unknown = `<p class="muted">Material composition unknown. Scout this belt to reveal resource data.</p>`;
+  const unknown = `<p class="ui-panel__meta">Material composition unknown. Scout this belt to reveal resource data.</p>`;
   if (!hasProspecting) {
     return `${unknown}
-            <p class="muted" style="margin-top:0.5rem;">🔒 Research <em>Asteroid Prospecting Arrays</em> in Corporate R&amp;D to scout this belt.</p>`;
+            <p class="starmap__status starmap__status--locked">Research <em>Asteroid Prospecting Arrays</em> in Corporate R&amp;D to scout this belt.</p>`;
   }
   if (!inSameSystem) {
     const name = String(systemName || "this system").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     return `${unknown}
-            <p class="muted" style="margin-top:0.5rem;">Travel to ${name} to scout this belt.</p>`;
+            <p class="ui-panel__meta">Travel to ${name} to scout this belt.</p>`;
   }
   return `${unknown}
-            <button id="scout-belt-btn" class="btn btn-accent" style="margin-top:0.5rem;">Scout Asteroid Belt</button>`;
+            <div><button id="scout-belt-btn" class="ui-button ui-button--secondary" type="button">Scout Asteroid Belt</button></div>`;
 }
 
 // ─── Planet image assets ─────────────────────────────────────────────────────
@@ -631,13 +632,13 @@ export function createStarmapController({
 
       // System name label
       ctx.fillStyle = isSelected ? "rgba(255, 255, 255, 0.95)" : "rgba(200, 220, 240, 0.8)";
-      ctx.font = isSelected ? 'bold 12px "Inter", sans-serif' : '11px "Inter", sans-serif';
+      ctx.font = isSelected ? `bold ${chartFont(12)}px "Inter", sans-serif` : `${chartFont(11)}px "Inter", sans-serif`;
       ctx.fillText(system.name, labelX(system.name, x, baseRadius + 10), y + 1);
 
       // "YOU ARE HERE" label for current system
       if (isCurrent) {
         ctx.fillStyle = "rgba(0, 247, 255, 0.6)";
-        ctx.font = '9px "Inter", sans-serif';
+        ctx.font = `${chartFont(9)}px "Inter", sans-serif`;
         ctx.fillText("YOU ARE HERE", labelX("YOU ARE HERE", x, baseRadius + 10), y + 13);
       }
 
@@ -673,7 +674,7 @@ export function createStarmapController({
 
     // Arrow + text
     ctx.fillStyle = "rgba(0, 220, 255, 0.85)";
-    ctx.font = '10px "Inter", sans-serif';
+    ctx.font = `${chartFont(10)}px "Inter", sans-serif`;
     ctx.fillText("◂ " + label, x - textWidth / 2 - 4, y + 3.5);
 
     return width;
@@ -687,7 +688,7 @@ export function createStarmapController({
 
   /** The width drawBackButton will draw `label` at. */
   function backButtonWidth(label) {
-    ctx.font = '10px "Inter", sans-serif';
+    ctx.font = `${chartFont(10)}px "Inter", sans-serif`;
     return Math.max(88, Math.ceil(ctx.measureText(label).width + 28));
   }
 
@@ -809,7 +810,7 @@ export function createStarmapController({
       }
 
       ctx.fillStyle = "rgba(200, 225, 245, 0.88)";
-      ctx.font = '11px "Inter", sans-serif';
+      ctx.font = `${chartFont(11)}px "Inter", sans-serif`;
       const bodyR = body.type === "Field" ? Math.max(10, body.radius + 5) : Math.max(4, body.radius);
       const label = bodyLabelAt(body.name, x, y, bodyR, { x: cx, y: cy, r: starHaloR });
       ctx.fillText(body.name, label.x, label.y);
@@ -929,7 +930,7 @@ export function createStarmapController({
         }
 
         ctx.fillStyle = "rgba(216, 235, 245, 0.9)";
-        ctx.font = "11px Inter";
+        ctx.font = `${chartFont(11)}px Inter`;
         ctx.fillText(moon.name, x + bmr + 5, y - 4);
 
         state.clickTargets.push({
@@ -996,6 +997,12 @@ export function createStarmapController({
     return (system.bodies || []).find((item) => item.id === state.selectedBodyId) || null;
   }
 
+  /** ISP-82 (AB#771): the details panel is a design-system panel: its heading, then a stack of what it says. */
+  function detailsHtml(title, body) {
+    return `<header class="ui-panel__header"><h3 class="ui-panel__title">${escapeHtmlAttr(title)}</h3></header>
+      <div class="ui-panel__body ui-stack">${body}</div>`;
+  }
+
   function renderDetails() {
     const system = getSelectedSystem();
     const body = getSelectedBody();
@@ -1005,39 +1012,35 @@ export function createStarmapController({
     }
 
     if (state.view === "cluster") {
-      detailsEl.innerHTML = `
-        <h3>Star Cluster</h3>
-        <p class="muted">Select a system to enter solar view mode.</p>
-      `;
+      detailsEl.innerHTML = detailsHtml("Star Cluster", `<p class="ui-panel__meta">Select a system to enter solar view mode.</p>`);
       return;
     }
 
     if (state.view === "system" && system) {
       const bodyLines = (system.bodies || [])
         .filter((entry) => entry.type === "Planet" || entry.type === "Field")
-        .map((entry) => `<li>${entry.name} (${entry.type})</li>`)
+        .map((entry) => `<li>${escapeHtmlAttr(entry.name)} (${escapeHtmlAttr(entry.type)})</li>`)
         .join("");
       const currentSystemId = state.currentSystemId || "sol";
       const isCurrentSystem = system.id === currentSystemId;
       const reachable = canTravelToSystem(system.id);
       let jumpHtml = "";
       if (isCurrentSystem) {
-        jumpHtml = `<p class="muted" style="color:rgba(0,247,255,0.85);margin-top:0.5rem;">Currently in this system. Select a body to view stations.</p>`;
+        jumpHtml = `<p class="starmap__status starmap__status--here">Currently in this system. Select a body to view stations.</p>`;
       } else if (!reachable) {
-        jumpHtml = `<p class="muted" style="color:rgba(255,180,60,0.85);margin-top:0.5rem;">🔒 ${escapeHtmlAttr(travelLockText(system.id))}</p>`;
+        jumpHtml = `<p class="starmap__status starmap__status--locked">${escapeHtmlAttr(travelLockText(system.id))}</p>`;
       } else if (onTravelToSystem) {
-        jumpHtml = `<button class="btn btn-accent starmap-travel-system-btn" data-system-id="${system.id}" style="margin-top:0.75rem;">Jump to ${escapeHtmlAttr(system.name)}</button>
-          <p class="muted" style="font-size:0.78rem;margin-top:0.4rem;">Stations can only be docked from inside the destination system.</p>`;
+        jumpHtml = `<div><button class="ui-button ui-button--secondary starmap__jump" type="button" data-system-id="${escapeHtmlAttr(system.id)}">Jump to ${escapeHtmlAttr(system.name)}</button></div>
+          <p class="ui-panel__meta">Stations can only be docked from inside the destination system.</p>`;
       }
-      detailsEl.innerHTML = `
-        <h3>${system.name}</h3>
-        <p class="muted">GDP ${system.gdpIndex} | Activity ${system.activityLevel} | Pirates ${system.pirateDensity}</p>
-        <p>${system.ownerRule || "Ownership available via territorial dominance and treaties."}</p>
-        <ul class="text-list">${bodyLines}</ul>
+      detailsEl.innerHTML = detailsHtml(system.name, `
+        <p class="ui-panel__meta">GDP ${system.gdpIndex} | Activity ${system.activityLevel} | Pirates ${system.pirateDensity}</p>
+        <p>${escapeHtmlAttr(system.ownerRule || "Ownership available via territorial dominance and treaties.")}</p>
+        <ul class="ui-list">${bodyLines}</ul>
         ${jumpHtml}
-      `;
+      `);
       // Bind the jump button rendered in the system view.
-      detailsEl.querySelectorAll(".starmap-travel-system-btn").forEach((btn) => {
+      detailsEl.querySelectorAll(".starmap__jump").forEach((btn) => {
         btn.addEventListener("click", () => {
           const systemId = btn.getAttribute("data-system-id");
           if (systemId && onTravelToSystem) {
@@ -1055,20 +1058,20 @@ export function createStarmapController({
         (s) => s.systemId === system.id && s.body === body.name
       );
       const stationListHtml = bodyStations.length
-        ? `<h4 style="margin-top:1rem;">Stations</h4><ul class="text-list">${bodyStations.map((s) => {
+        ? `<h4 class="starmap__subhead">Stations</h4><ul class="starmap__stations">${bodyStations.map((s) => {
             const isCurrent = s.id === state.currentStationId;
             const reachable = canTravelToSystem(s.systemId);
             const inSameSystem = (state.currentSystemId || "sol") === s.systemId;
             const dockLabel = isCurrent
-              ? `<span style="color:rgba(0,247,255,0.85);font-size:0.8rem;margin-left:0.4rem;">[DOCKED]</span>`
+              ? `<span class="ui-badge ui-badge--accent">Docked</span>`
               : !reachable
-                ? `<span style="color:rgba(255,180,60,0.85);font-size:0.75rem;margin-left:0.4rem;">🔒 Needs ${escapeHtmlAttr(travelResearchName(researchCatalog, s.systemId) || "navigation research")}</span>`
+                ? `<span class="starmap__status starmap__status--locked">Needs ${escapeHtmlAttr(travelResearchName(researchCatalog, s.systemId) || "navigation research")}</span>`
               : inSameSystem && onDockAtStation
-                ? `<button class="btn btn-outline starmap-dock-btn" data-station-id="${s.id}" style="margin-left:0.5rem;font-size:0.75rem;padding:0.15em 0.5em;">Dock</button>`
+                ? `<button class="ui-button ui-button--secondary starmap__dock" type="button" data-station-id="${escapeHtmlAttr(s.id)}">Dock</button>`
               : !inSameSystem
-                ? `<span style="color:rgba(180,180,180,0.7);font-size:0.75rem;margin-left:0.4rem;">Jump to ${escapeHtmlAttr(s.systemId)} system first</span>`
+                ? `<span class="ui-panel__meta">Jump to ${escapeHtmlAttr(s.systemId)} system first</span>`
                 : "";
-            return `<li><strong>${s.name}</strong> <span style="opacity:0.6;">${s.designation}</span>${dockLabel}</li>`;
+            return `<li class="starmap__station-row"><span><strong>${escapeHtmlAttr(s.name)}</strong> <span class="ui-panel__meta">${escapeHtmlAttr(s.designation)}</span></span>${dockLabel}</li>`;
           }).join("")}</ul>`
         : "";
 
@@ -1088,8 +1091,8 @@ export function createStarmapController({
         let compositionHtml = isBeltScouted && !beltComps[beltKey] ? scoutedBeltLoadingHtml() : "";
         if (isBeltScouted && beltComps[beltKey]) {
           const comp = beltComps[beltKey];
-          compositionHtml = `<h4 style="margin-top:0.75rem;">Material Composition</h4><ul class="text-list">${
-            Object.entries(comp).map(([name, pct]) => `<li>${name}: ${pct}%</li>`).join("")
+          compositionHtml = `<h4 class="starmap__subhead">Material Composition</h4><ul class="ui-list">${
+            Object.entries(comp).map(([name, pct]) => `<li>${escapeHtmlAttr(name)}: ${pct}%</li>`).join("")
           }</ul>`;
         } else if (!isBeltScouted) {
           compositionHtml = unscoutedBeltHtml({ hasProspecting, inSameSystem, systemName: system.name });
@@ -1097,14 +1100,14 @@ export function createStarmapController({
 
         let miningHtml = "";
         if (!hasAssemblyTech && !hasProspecting) {
-          miningHtml = `<div class="starmap-mining-locked">
-            <p class="muted" style="margin-top:1rem;">🔒 <strong>Mining Operations Locked</strong></p>
-            <p class="muted">Research <em>Assembly &amp; Fabrication Systems</em> and <em>Asteroid Prospecting Arrays</em> in Corporate R&amp;D to unlock asteroid belt mining.</p>
+          miningHtml = `<div class="ui-state">
+            <p class="ui-state__title">Mining Operations Locked</p>
+            <p class="ui-state__why">Research <em>Assembly &amp; Fabrication Systems</em> and <em>Asteroid Prospecting Arrays</em> in Corporate R&amp;D to unlock asteroid belt mining.</p>
           </div>`;
         } else if (hasAssemblyTech && !hasProspecting) {
-          miningHtml = `<div class="starmap-mining-locked">
-            <p class="muted" style="margin-top:1rem;">🔒 <strong>Mining Probes Locked</strong></p>
-            <p class="muted">Research <em>Asteroid Prospecting Arrays</em> to unlock Mining Probe fabrication and expedition operations.</p>
+          miningHtml = `<div class="ui-state">
+            <p class="ui-state__title">Mining Probes Locked</p>
+            <p class="ui-state__why">Research <em>Asteroid Prospecting Arrays</em> to unlock Mining Probe fabrication and expedition operations.</p>
           </div>`;
         } else if (hasProspecting) {
           const probeCount = am.probeCount || 0;
@@ -1114,7 +1117,7 @@ export function createStarmapController({
 
           let activeExpHtml = "";
           if (activeExps.length > 0) {
-            activeExpHtml = `<h4 style="margin-top:0.75rem;">Active Expeditions</h4>` + activeExps.map(exp => {
+            activeExpHtml = `<h4 class="starmap__subhead">Active Expeditions</h4>` + activeExps.map(exp => {
               const elapsed = Date.now() - exp.deployedAt;
               const total = exp.completesAt - exp.deployedAt;
               const pct = Math.min(100, Math.max(0, (elapsed / total) * 100));
@@ -1123,48 +1126,47 @@ export function createStarmapController({
               const secs = Math.floor((remainMs % 60000) / 1000);
               const yieldEntries = Object.entries(exp.yields || {});
               const yieldText = yieldEntries.length ? yieldEntries.map(([r, q]) => `${q} ${r}`).join(", ") : "Scanning...";
-              return `<div class="starmap-expedition-card">
-                <p class="muted" style="font-size:0.8rem;">${exp.duration} expedition &mdash; ${mins}m ${secs}s remaining</p>
-                <div class="progress-wrap"><div class="progress-bar" style="width:${pct.toFixed(1)}%"></div></div>
-                <p class="muted" style="font-size:0.78rem;margin-top:0.3rem;">Yields so far: ${yieldText}</p>
+              return `<div class="ui-card starmap__expedition">
+                <p class="ui-card__meta starmap__expedition-time">${escapeHtmlAttr(exp.duration)} expedition — ${mins}m ${secs}s remaining</p>
+                <div class="progress-wrap" role="progressbar" aria-label="${escapeHtmlAttr(`${exp.duration} expedition`)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><div class="progress-bar" style="width:${pct.toFixed(1)}%"></div></div>
+                <p class="ui-card__meta">Yields so far: ${escapeHtmlAttr(yieldText)}</p>
               </div>`;
             }).join("");
           }
 
           miningHtml = `
-            <div class="starmap-mining-panel" style="margin-top:1rem;">
-              <h4>Asteroid Belt Mining</h4>
-              <p class="muted">Probes: <strong>${probeCount}</strong> available | Deployment Slots: <strong>${activeCount}/${maxDeployments}</strong></p>
+            <section class="ui-stack starmap__mining">
+              <h4 class="starmap__subhead">Asteroid Belt Mining</h4>
+              <p class="ui-panel__meta">Probes: <strong>${probeCount}</strong> available | Deployment Slots: <strong>${activeCount}/${maxDeployments}</strong></p>
               ${activeExpHtml}
               ${canLaunch ? `
-                <div style="margin-top:0.75rem;">
-                  <label class="muted" style="font-size:0.8rem;">Mission Duration</label>
-                  <select id="expedition-duration" class="starmap-exp-select">
+                <div class="ui-field">
+                  <label class="ui-field__label" for="expedition-duration">Mission Duration</label>
+                  <select id="expedition-duration" class="ui-select">
                     <option value="short">Short Sweep (30 min)</option>
                     <option value="standard" selected>Standard Survey (1 hr)</option>
                     <option value="extended">Deep Core Drill (2 hr)</option>
                   </select>
-                  <button id="launch-expedition-btn" class="btn btn-accent" style="margin-top:0.5rem;">Launch Expedition (¤3,000)</button>
                 </div>
+                <div><button id="launch-expedition-btn" class="ui-button ui-button--secondary" type="button">Launch Expedition (¤3,000)</button></div>
               ` : !isBeltScouted
-                ? `<p class="muted" style="margin-top:0.5rem;">Scout this asteroid belt before launching expeditions.</p>`
+                ? `<p class="ui-panel__meta">Scout this asteroid belt before launching expeditions.</p>`
                 : !inSameSystem
-                ? `<p class="muted" style="margin-top:0.5rem;">You must be in this system to launch expeditions.</p>`
+                ? `<p class="ui-panel__meta">You must be in this system to launch expeditions.</p>`
                 : probeCount <= 0
-                  ? `<p class="muted" style="margin-top:0.5rem;">No probes available. Fabricate probes at your Assembly Facility.</p>`
-                  : `<p class="muted" style="margin-top:0.5rem;">All deployment slots occupied. Wait for a probe to return.</p>`
+                  ? `<p class="ui-panel__meta">No probes available. Fabricate probes at your Assembly Facility.</p>`
+                  : `<p class="ui-panel__meta">All deployment slots occupied. Wait for a probe to return.</p>`
               }
-            </div>
+            </section>
           `;
         }
 
-        detailsEl.innerHTML = `
-          <h3>${body.name} — ${system.name}</h3>
-          <p class="muted">Type: Asteroid Belt</p>
+        detailsEl.innerHTML = detailsHtml(`${body.name} — ${system.name}`, `
+          <p class="ui-panel__meta">Type: Asteroid Belt</p>
           ${compositionHtml}
           ${miningHtml}
           ${stationListHtml}
-        `;
+        `);
 
         // Bind scout belt button
         const scoutBeltBtn = detailsEl.querySelector("#scout-belt-btn");
@@ -1186,16 +1188,15 @@ export function createStarmapController({
         }
       } else {
         // Non-field body (planet/moon)
-        detailsEl.innerHTML = `
-          <h3>${body.name} - ${system.name}</h3>
-          <p class="muted">Type: ${body.type}</p>
+        detailsEl.innerHTML = detailsHtml(`${body.name} - ${system.name}`, `
+          <p class="ui-panel__meta">Type: ${escapeHtmlAttr(body.type)}</p>
           ${bodyResourceHtml(body, state.stations)}
           ${stationListHtml}
-        `;
+        `);
       }
 
       // Bind dock buttons in starmap details
-      detailsEl.querySelectorAll(".starmap-dock-btn").forEach((btn) => {
+      detailsEl.querySelectorAll(".starmap__dock").forEach((btn) => {
         btn.addEventListener("click", () => {
           const stationId = btn.getAttribute("data-station-id");
           if (stationId && onDockAtStation) {
@@ -1204,7 +1205,7 @@ export function createStarmapController({
         });
       });
       // Bind travel-to-system buttons in starmap details
-      detailsEl.querySelectorAll(".starmap-travel-system-btn").forEach((btn) => {
+      detailsEl.querySelectorAll(".starmap__jump").forEach((btn) => {
         btn.addEventListener("click", () => {
           const systemId = btn.getAttribute("data-system-id");
           if (systemId && onTravelToSystem) {
@@ -1225,14 +1226,13 @@ export function createStarmapController({
         ? Object.entries(surveyed).sort((x, y) => y[1] - x[1]).map(([name, pct]) => `${name} ${pct}%`).join(", ")
         : "Not surveyed (scout the belt)";
       const hasProspecting = state.unlockedTech.has("tt-asteroid-prospecting");
-      detailsEl.innerHTML = `
-        <h3>Asteroid Sample — ${body.name}</h3>
-        <p class="muted">Catalog ID: ${asteroidId.split(":").slice(-1)[0]} | Belt composition: ${profile}</p>
+      detailsEl.innerHTML = detailsHtml(`Asteroid Sample — ${body.name}`, `
+        <p class="ui-panel__meta">Catalog ID: ${escapeHtmlAttr(asteroidId.split(":").slice(-1)[0])} | Belt composition: ${escapeHtmlAttr(profile)}</p>
         ${hasProspecting
-          ? `<p class="muted" style="margin-top:0.5rem;">Use the belt-level view to launch mining expeditions to this asteroid field.</p>`
-          : `<p class="muted" style="margin-top:0.5rem;">Research Asteroid Prospecting Arrays to unlock mining operations in this belt.</p>`
+          ? `<p class="ui-panel__meta">Use the belt-level view to launch mining expeditions to this asteroid field.</p>`
+          : `<p class="ui-panel__meta">Research Asteroid Prospecting Arrays to unlock mining operations in this belt.</p>`
         }
-      `;
+      `);
     }
   }
 
@@ -1242,13 +1242,13 @@ export function createStarmapController({
     }
 
     const rows = state.systems
-      .map((system) => `<li><strong>${system.name}</strong> - ${(system.bodies || []).length} catalogued bodies.</li>`)
+      .map((system) => `<li><strong>${escapeHtmlAttr(system.name)}</strong> - ${(system.bodies || []).length} catalogued bodies.</li>`)
       .join("");
 
     fallbackEl.innerHTML = `
-      <h3>Text-mode Starmap Summary</h3>
-      <p class="muted">Graphical mode unavailable. Use list navigation to inspect systems and body counts.</p>
-      <ul class="text-list">${rows}</ul>
+      <p class="ui-state__title">Text-mode Starmap Summary</p>
+      <p class="ui-state__why">Graphical mode unavailable. Use list navigation to inspect systems and body counts.</p>
+      <ul class="ui-list">${rows}</ul>
     `;
   }
 
@@ -1387,8 +1387,8 @@ export function createStarmapController({
   function ensureTooltip() {
     if (tooltip) return tooltip;
     tooltip = document.createElement("div");
-    tooltip.className = "starmap-tooltip";
-    tooltip.style.display = "none";
+    tooltip.className = "starmap__tooltip";
+    tooltip.hidden = true;
     document.body.appendChild(tooltip);
     return tooltip;
   }
@@ -1407,12 +1407,12 @@ export function createStarmapController({
     if (hit) {
       const station = state.stations.find((s) => s.id === hit.stationId);
       tip.textContent = station ? station.name : hit.stationId;
-      tip.style.display = "block";
+      tip.hidden = false;
       tip.style.left = `${event.clientX + 12}px`;
       tip.style.top = `${event.clientY - 8}px`;
       canvas.style.cursor = "pointer";
     } else {
-      tip.style.display = "none";
+      tip.hidden = true;
       canvas.style.cursor = "";
     }
   }
@@ -1427,8 +1427,8 @@ export function createStarmapController({
 
     const isCurrent = station.id === state.currentStationId;
 
-    const overlay = document.createElement("div");
-    overlay.className = "starmap-modal-overlay";
+    const overlay = document.createElement("section");
+    overlay.className = "modal-backdrop";
     overlay.id = "starmap-station-modal";
 
     const buildingCount = station.buildings ? station.buildings.length : 0;
@@ -1437,68 +1437,53 @@ export function createStarmapController({
       : "—";
 
     overlay.innerHTML = `
-      <div class="starmap-modal-card">
-        <button class="starmap-modal-close" aria-label="Close">&times;</button>
-        <p class="overline starmap-modal-overline">${escapeHtmlAttr(station.designation || "")} // ${escapeHtmlAttr((station.systemId || "").toUpperCase())}</p>
-        <h2 class="starmap-modal-title">${escapeHtmlAttr(station.name)}</h2>
-        <p class="muted" style="margin-bottom:1rem;">${escapeHtmlAttr(station.body)} &mdash; ${escapeHtmlAttr(station.ownership || "NPC")}-controlled</p>
-
-        <div class="starmap-modal-stats">
-          <div class="starmap-modal-stat">
-            <span class="starmap-modal-stat-label">Buildings</span>
-            <span class="starmap-modal-stat-value">${buildingCount}</span>
+      <article class="modal-card starmap__station" role="dialog" aria-modal="true" aria-labelledby="starmap-station-title">
+        <header class="starmap__station-head">
+          <div>
+            <p class="starmap__overline">${escapeHtmlAttr(station.designation || "")} // ${escapeHtmlAttr((station.systemId || "").toUpperCase())}</p>
+            <h2 id="starmap-station-title" class="starmap__station-title">${escapeHtmlAttr(station.name)}</h2>
           </div>
-          <div class="starmap-modal-stat">
-            <span class="starmap-modal-stat-label">Office Rent</span>
-            <span class="starmap-modal-stat-value">${officeRent}</span>
-          </div>
-          <div class="starmap-modal-stat">
-            <span class="starmap-modal-stat-label">Status</span>
-            <span class="starmap-modal-stat-value">${isCurrent ? "Docked" : "Not docked"}</span>
-          </div>
-        </div>
+          <button class="ui-button ui-button--ghost starmap__close" type="button" aria-label="Close">&times;</button>
+        </header>
+        <p class="ui-panel__meta">${escapeHtmlAttr(station.body)} — ${escapeHtmlAttr(station.ownership || "NPC")}-controlled</p>
 
-        ${station.description ? `<p class="muted" style="margin-top:1rem;font-size:0.85rem;">${escapeHtmlAttr(station.description)}</p>` : ""}
+        <dl class="ui-kv">
+          <dt>Buildings</dt><dd>${buildingCount}</dd>
+          <dt>Office Rent</dt><dd>${officeRent}</dd>
+          <dt>Status</dt><dd>${isCurrent ? "Docked" : "Not docked"}</dd>
+        </dl>
 
-        <div class="starmap-modal-actions">
+        ${station.description ? `<p class="ui-panel__meta">${escapeHtmlAttr(station.description)}</p>` : ""}
+
+        <div class="starmap__station-actions">
           ${isCurrent
-            ? `<span class="muted" style="font-size:0.85rem;">You are currently docked at this station.</span>`
+            ? `<p class="ui-panel__meta">You are currently docked at this station.</p>`
             : !canTravelToSystem(station.systemId)
-              ? `<span class="muted" style="font-size:0.85rem;color:rgba(255,180,60,0.85);">🔒 ${escapeHtmlAttr(travelLockText(station.systemId))}</span>`
+              ? `<p class="starmap__status starmap__status--locked">${escapeHtmlAttr(travelLockText(station.systemId))}</p>`
             : (state.currentSystemId || "sol") === station.systemId
-              ? `<button class="btn btn-accent starmap-modal-dock-btn" data-station-id="${escapeHtmlAttr(station.id)}">Dock at Station</button>`
-              : `<span class="muted" style="font-size:0.85rem;">Jump to <strong>${escapeHtmlAttr(systemName(state.systems, station.systemId) || "its system")}</strong> from the system view, then dock here.</span>`
+              ? `<button class="ui-button ui-button--primary starmap__station-dock" type="button" data-station-id="${escapeHtmlAttr(station.id)}">Dock at Station</button>`
+              : `<p class="ui-panel__meta">Jump to <strong>${escapeHtmlAttr(systemName(state.systems, station.systemId) || "its system")}</strong> from the system view, then dock here.</p>`
           }
         </div>
-      </div>
+      </article>
     `;
 
     document.body.appendChild(overlay);
 
     // Bind close
-    overlay.querySelector(".starmap-modal-close")?.addEventListener("click", closeStationModal);
+    overlay.querySelector(".starmap__close")?.addEventListener("click", closeStationModal);
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) closeStationModal();
     });
 
     // Bind travel/dock
-    const dockBtn = overlay.querySelector(".starmap-modal-dock-btn");
+    const dockBtn = overlay.querySelector(".starmap__station-dock");
     if (dockBtn) {
       dockBtn.addEventListener("click", () => {
         const sid = dockBtn.getAttribute("data-station-id");
         if (sid && onDockAtStation) {
           closeStationModal();
           onDockAtStation(sid);
-        }
-      });
-    }
-    const systemBtn = overlay.querySelector(".starmap-modal-system-btn");
-    if (systemBtn) {
-      systemBtn.addEventListener("click", () => {
-        const sysId = systemBtn.getAttribute("data-system-id");
-        if (sysId && onTravelToSystem) {
-          closeStationModal();
-          onTravelToSystem(sysId);
         }
       });
     }
@@ -1525,7 +1510,7 @@ export function createStarmapController({
     canvas.addEventListener("click", handleClick);
     canvas.addEventListener("mousemove", handleMouseMove);
     canvas.addEventListener("mouseleave", () => {
-      if (tooltip) tooltip.style.display = "none";
+      if (tooltip) tooltip.hidden = true;
       canvas.style.cursor = "";
     });
 
@@ -1593,6 +1578,24 @@ export function createStarmapController({
       render();
     },
     setGraphicsMode,
+    /**
+     * ISP-82 (AB#771): show a system, or one of its bodies, as a click on the map would, and say whether it could.
+     * e2e/starmap-screen.spec.js opens a belt and a planet this way rather than hunting for them on the canvas.
+     */
+    show({ systemId, bodyId = null } = {}) {
+      const system = state.systems.find((item) => item.id === systemId);
+      if (!system || (bodyId && !(system.bodies || []).some((item) => item.id === bodyId))) return false;
+      state.selectedSystemId = systemId;
+      state.selectedBodyId = bodyId;
+      state.selectedAsteroidId = null;
+      state.view = bodyId ? "body" : "system";
+      render();
+      return true;
+    },
+    /** A station's detail modal, as a click on the station does. */
+    openStation(stationId) {
+      openStationModal(stationId);
+    },
     setOverlay(value) {
       state.overlay = value;
       render();
@@ -1619,7 +1622,7 @@ export function createStarmapController({
       if (!system || !body || body.type !== "Field") return;
       const beltKey = `${system.id}:${body.id}`;
       const activeExps = (am.activeExpeditions || []).filter(e => e.beltKey === beltKey);
-      const cards = detailsEl.querySelectorAll(".starmap-expedition-card");
+      const cards = detailsEl.querySelectorAll(".starmap__expedition");
       cards.forEach((card, i) => {
         const exp = activeExps[i];
         if (!exp) return;
@@ -1631,7 +1634,9 @@ export function createStarmapController({
         const secs = Math.floor((remainMs % 60000) / 1000);
         const bar = card.querySelector(".progress-bar");
         if (bar) bar.style.width = pct.toFixed(1) + "%";
-        const timeEl = card.querySelector("p.muted");
+        const timeEl = card.querySelector(".starmap__expedition-time");
+        const barWrap = card.querySelector(".progress-wrap");
+        if (barWrap) barWrap.setAttribute("aria-valuenow", String(Math.round(pct)));
         if (timeEl) timeEl.textContent = `${exp.duration} expedition — ${mins}m ${secs}s remaining`;
       });
     },

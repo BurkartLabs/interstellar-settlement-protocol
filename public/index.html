@@ -992,27 +992,30 @@
             </div>
           </article>
 
-          <article id="starmap" class="tab-panel">
-            <h2>Interstellar Starmap</h2>
-            <p class="muted">
-              Smooth pan/zoom canvas map from nearby-star cluster to intra-system detail. Includes overlays for
-              GDP, activity, and pirate density.
-            </p>
-            <div class="toolbar">
-              <label>
-                Overlay
-                <select id="map-overlay">
+          <article id="starmap" class="tab-panel ui-screen">
+            <!-- ISP-82 (AB#771): on the design system, in the flat direction (Decision AB#1801). -->
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title">Interstellar Starmap</h2>
+              <p class="ui-screen__lede">
+                Pan and zoom from the nearby-star cluster down to a single system. Overlays show GDP, activity and
+                pirate density.
+              </p>
+            </header>
+            <div class="starmap__toolbar">
+              <div class="ui-field">
+                <label class="ui-field__label" for="map-overlay">Overlay</label>
+                <select id="map-overlay" class="ui-select">
                   <option value="none">None</option>
                   <option value="gdp">GDP Index</option>
                   <option value="activity">Activity Level</option>
                   <option value="pirates">Pirate Density</option>
                 </select>
-              </label>
-              <button id="map-reset" class="btn btn-outline">Reset View</button>
+              </div>
+              <button id="map-reset" class="ui-button ui-button--secondary" type="button">Reset View</button>
             </div>
             <canvas id="starmap-canvas" width="1200" height="680" aria-label="Interactive starmap"></canvas>
-            <div id="starmap-fallback" class="starmap-fallback" hidden></div>
-            <div id="map-details" class="panel-block"></div>
+            <div id="starmap-fallback" class="ui-state" hidden></div>
+            <section id="map-details" class="ui-panel starmap__details" aria-live="polite"></section>
           </article>
         </main>
       </div>
@@ -1089,29 +1092,34 @@
     </section>
 
     <section id="dialogue-modal" class="modal-backdrop" hidden>
-      <article class="modal-card">
-        <img id="dialogue-portrait" class="dialogue-portrait" alt="" hidden />
-        <p class="overline" id="dialogue-speaker"></p>
-        <h2 id="dialogue-title">Corporate Confirmation</h2>
-        <p id="dialogue-text" class="lede"></p>
-        <div id="dialogue-choices" class="choice-row"></div>
-        <button id="dialogue-continue" class="btn btn-accent" hidden>Continue</button>
+      <!-- ISP-82 (AB#771): on the design system, in the flat direction (Decision AB#1801). -->
+      <article class="modal-card dialogue" role="dialog" aria-modal="true" aria-labelledby="dialogue-title">
+        <img id="dialogue-portrait" class="dialogue__portrait" alt="" hidden />
+        <div class="dialogue__content">
+          <p id="dialogue-speaker" class="dialogue__speaker"></p>
+          <h2 id="dialogue-title" class="dialogue__title">Corporate Confirmation</h2>
+          <p id="dialogue-text" class="dialogue__text"></p>
+          <div id="dialogue-choices" class="dialogue__actions"></div>
+          <button id="dialogue-continue" class="ui-button ui-button--primary dialogue__continue" type="button" hidden>Continue</button>
+        </div>
       </article>
     </section>
 
     <section id="walkthrough-modal" class="modal-backdrop" hidden>
-      <article class="modal-card has-portrait">
-        <!-- AB#579: a briefing from the assigned coordinator; app.js fills the portrait and byline from liaison.js. -->
-        <img id="walkthrough-portrait" class="dialogue-portrait" alt="" />
-        <p class="overline" id="walkthrough-speaker"></p>
-        <h2 id="walkthrough-title"></h2>
-        <p id="walkthrough-text" class="lede"></p>
-        <div class="choice-row">
-          <button id="walkthrough-prev" class="btn btn-outline">Previous</button>
-          <button id="walkthrough-next" class="btn btn-accent">Next</button>
-          <button id="walkthrough-end" class="btn btn-outline">End briefing</button>
+      <!-- AB#579: a briefing from the assigned coordinator; app.js fills the portrait and byline from liaison.js. -->
+      <article class="modal-card dialogue walkthrough" role="dialog" aria-labelledby="walkthrough-title">
+        <img id="walkthrough-portrait" class="dialogue__portrait" alt="" />
+        <div class="dialogue__content">
+          <p id="walkthrough-speaker" class="dialogue__speaker"></p>
+          <h2 id="walkthrough-title" class="dialogue__title"></h2>
+          <p id="walkthrough-text" class="dialogue__text"></p>
+          <div class="dialogue__actions">
+            <button id="walkthrough-prev" class="ui-button ui-button--secondary" type="button">Previous</button>
+            <button id="walkthrough-next" class="ui-button ui-button--primary" type="button">Next</button>
+            <button id="walkthrough-end" class="ui-button ui-button--ghost" type="button">End briefing</button>
+          </div>
+          <p id="walkthrough-progress" class="walkthrough__progress"></p>
         </div>
-        <p id="walkthrough-progress" class="walkthrough-progress muted"></p>
       </article>
     </section>
   </body>

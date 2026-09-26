@@ -12,7 +12,7 @@ const { STARMAP_OVERLAYS, overlayColor } = await import("../../public/scripts/st
 const HTML = readFileSync(new URL("../../public/index.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 const SYSTEMS = JSON.parse(readFileSync(new URL("../../data/systems.json", import.meta.url), "utf8"));
 const SYSTEM_LIST = Array.isArray(SYSTEMS) ? SYSTEMS : SYSTEMS.systems || Object.values(SYSTEMS);
-const SELECT = HTML.match(/<select id="map-overlay">([\s\S]*?)<\/select>/)?.[1] || "";
+const SELECT = HTML.match(/<select id="map-overlay"[^>]*>([\s\S]*?)<\/select>/)?.[1] || "";
 const OPTIONS = [...SELECT.matchAll(/<option value="([^"]+)">([^<]+)<\/option>/g)].map(([, value, label]) => ({ value, label: label.trim() }));
 const NONE_COLOR = overlayColor({ gdpIndex: 50, activityLevel: 50, pirateDensity: 20 }, "none");
 
@@ -25,7 +25,7 @@ describe("Starmap overlays show only what systems hold (AB#1459)", () => {
 
   it("offers no resource overlay, and the page does not promise one", () => {
     expect(OPTIONS.map((o) => o.label).join(" ")).not.toMatch(/resource/i);
-    const intro = HTML.match(/<h2>Interstellar Starmap<\/h2>\s*<p class="muted">([\s\S]*?)<\/p>/)?.[1] || "";
+    const intro = HTML.match(/<h2 class="ui-screen__title">Interstellar Starmap<\/h2>\s*<p class="ui-screen__lede">([\s\S]*?)<\/p>/)?.[1] || "";
     expect(intro).not.toBe("");
     expect(intro).not.toMatch(/resource|dominance/i);
   });

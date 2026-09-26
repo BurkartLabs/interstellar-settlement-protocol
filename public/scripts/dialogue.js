@@ -78,11 +78,11 @@ function typeDialogueText(text, onDone) {
 export function showDialogue({ speaker, title, text, choices = [], continueText = "", onContinue, portrait = "" }) {
   dialogueSpeaker.textContent = speaker;
   dialogueTitle.textContent = title;
-  // A speaker with a portrait shows it (AB#585); every other dialogue keeps the text-only card.
+  // A speaker with a portrait shows it (AB#585); every other dialogue keeps the text-only card. ISP-82 (AB#771): the
+  // portrait is a column of the card's flex row, so hiding it is all the text-only card needs.
   const dialoguePortrait = document.getElementById("dialogue-portrait");
   if (dialoguePortrait) {
     dialoguePortrait.hidden = !portrait;
-    dialoguePortrait.closest(".modal-card")?.classList.toggle("has-portrait", Boolean(portrait));
     if (portrait) {
       dialoguePortrait.src = portrait;
       dialoguePortrait.alt = speaker;
@@ -97,7 +97,9 @@ export function showDialogue({ speaker, title, text, choices = [], continueText 
   typeDialogueText(text, () => {
     choices.forEach((choice) => {
       const button = document.createElement("button");
-      button.className = `btn ${choice.accent ? "btn-accent" : "btn-outline"}`;
+      button.type = "button";
+      // ISP-82 (AB#771): the accented choice is the dialogue's one primary, the others secondary.
+      button.className = `ui-button ${choice.accent ? "ui-button--primary" : "ui-button--secondary"}`;
       button.textContent = choice.label;
       button.addEventListener("click", choice.onClick);
       dialogueChoices.append(button);

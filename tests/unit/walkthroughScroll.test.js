@@ -85,9 +85,9 @@ describe("the briefing card leaves room on a phone (Bug #1083)", () => {
   it("adds the room the card needs under the content that scrolls, not under the 100vh shell", () => {
     const css = readFileSync(new URL("../../public/styles.css", import.meta.url), "utf8");
     expect(css).toMatch(/#game-shell \{\s*height:\s*100vh;/); // if this goes, the body could carry the room again
-    const rule = css.match(/body\.walkthrough-open \.layout-grid \{([^}]*)\}/);
+    const rule = css.match(/body\.walkthrough--open \.layout-grid \{([^}]*)\}/);
     expect(rule, "walkthrough room on the layout grid").toBeTruthy();
     expect(rule[1]).toMatch(/padding-bottom:[^;]*var\(--walkthrough-card-height/);
-    expect(css).not.toMatch(/body\.walkthrough-open \{[^}]*padding-bottom/);
+    expect(css).not.toMatch(/body\.walkthrough--open \{[^}]*padding-bottom/);
   });
 });
