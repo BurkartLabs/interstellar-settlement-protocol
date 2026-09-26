@@ -13,18 +13,26 @@ export function getTechNode(techId) {
   return techTree.find((item) => item.id === techId) || null;
 }
 
+/**
+ * Why a node cannot be queued yet, in the words its card shows, or null when it can: the server's own order of
+ * refusals (server/routes/research.js, queue-rnd), prerequisites, then corporation level, then Tier 1. Bug AB#2338:
+ * the level was not checked here, so a card below its level offered Enqueue and the server refused the click.
+ */
+export function researchLockReason(node, { done, corpLevel, tree = techTree }) {
+  if (!node.prereqs.every((req) => done.has(req))) {
+    return `Requires: ${node.prereqs.map((id) => tree.find((it) => it.id === id)?.name || id).join(", ")}`;
+  }
+  const level = Number(node.requiresCorpLevel) || 0;
+  const current = Number(corpLevel) || 0;
+  if (level && current < level) return `Requires Corporation Level ${level} (you are level ${current})`;
+  if (node.tier >= 2 && !tree.filter((n) => n.tier === 1).every((n) => done.has(n.id))) return "Complete all Tier 1 research first";
+  return null;
+}
+
 export function availableTechNodes(data) {
   const done = new Set(data.corp.unlockedTech || []);
   const inQueue = new Set((data.queues.corporateRnD || []).map((item) => item.techId).filter(Boolean));
-  const tier1Ids = techTree.filter((n) => n.tier === 1).map((n) => n.id);
-  const allTier1Done = tier1Ids.every((id) => done.has(id));
-
-  return techTree.filter((node) => {
-    if (done.has(node.id) || inQueue.has(node.id)) return false;
-    if (!node.prereqs.every((req) => done.has(req))) return false;
-    if (node.tier >= 2 && !allTier1Done) return false;
-    return true;
-  });
+  return techTree.filter((node) => !done.has(node.id) && !inQueue.has(node.id) && !researchLockReason(node, { done, corpLevel: data.corp.level }));
 }
 
 export function renderTechTree(data) {
@@ -44,22 +52,16 @@ export function renderTechTree(data) {
   }
 
   // Render tech rows grouped by tier, then by status
-  const tier1Ids = techTree.filter((n) => n.tier === 1).map((n) => n.id);
-  const allTier1Done = tier1Ids.every((id) => done.has(id));
-
   const rows = techTree
     .map((node) => {
       const prereqLabel = node.prereqs.length ? node.prereqs.map((id) => techTree.find((it) => it.id === id)?.name || id).join(", ") : "None";
-      const prereqsMet = node.prereqs.every((req) => done.has(req));
-      const tierGated = node.tier >= 2 && !allTier1Done;
       const cost = `${node.durationHours}h · ${toCurrency(node.costCredits)}`;
       const card = { name: node.name, tier: node.tier, effect: node.effect };
 
       if (done.has(node.id)) return researchNodeHtml({ ...card, state: "done" });
       if (inQueue.has(node.id)) return researchNodeHtml({ ...card, state: "queued", meta: [cost] });
-      if (!prereqsMet || tierGated) {
-        return researchNodeHtml({ ...card, state: "locked", meta: [tierGated ? "Complete all Tier 1 research first" : `Requires: ${prereqLabel}`] });
-      }
+      const lock = researchLockReason(node, { done, corpLevel: data.corp.level });
+      if (lock) return researchNodeHtml({ ...card, state: "locked", meta: [lock] });
       return researchNodeHtml({
         ...card,
         state: "available",
