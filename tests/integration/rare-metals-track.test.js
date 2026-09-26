@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
-import { applyMiningOperations, applyRefineryOperations, getAccountById, mutateAccountState } from "../../server/gameState.js";
+import { applyMiningOperations, applyRefineryOperations, bidQuotaFor, getAccountById, mutateAccountState } from "../../server/gameState.js";
 import { REFINERY_CHAINS } from "../../server/game/catalog.js";
 import { refineMinimum } from "../../public/scripts/refineQuantity.js";
 import { ECONOMY, npcBidFor } from "../../server/economy.js";
@@ -65,9 +65,10 @@ async function refine(c, chainId, body) {
 /** Sell `quantity` of `item` to its standing bid: 200, and the balance moves by what the bid paid less the tax. */
 async function sellsToItsBid(c, item, quantity) {
   const before = c.credits();
+  const held = c.held(item);
   const res = await c.sell(item, quantity);
   expect(res.status, `${item}: ${JSON.stringify(res.body.error)}`).toBe(200);
-  expect(c.held(item)).toBe(0);
+  expect(c.held(item)).toBe(held - quantity);
   expect(c.credits()).toBeGreaterThan(before);
   return c.credits() - before;
 }
@@ -81,7 +82,8 @@ describe("the Rare Metals track, lease to sale (AB#832)", () => {
     const qty = Math.floor(thorium / 30) * 30;
     await refine(c, "thorium-fuel-chain", { inputQuantity: qty });
     expect(c.held("Thorium Fuel Rods")).toBe((qty / 30) * 10);
-    const paid = await sellsToItsBid(c, "Thorium Fuel Rods", c.held("Thorium Fuel Rods"));
+    // AB#2365: the rods' bid takes a Refinery's day of them (its own quota), so a larger batch sells over days
+    const paid = await sellsToItsBid(c, "Thorium Fuel Rods", Math.min(c.held("Thorium Fuel Rods"), bidQuotaFor("Thorium Fuel Rods")));
     expect(paid).toBeGreaterThan(0);
   }, 60_000);
 

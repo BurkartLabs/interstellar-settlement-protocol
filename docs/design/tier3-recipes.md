@@ -179,7 +179,8 @@ bid would never move and the product-glut state could not happen in play. With a
 running both Refineries on one product all day pushes its bid to the floor by its own selling. What to refine then
 becomes a question too, not only whether to. Raw quotas stay at 7,000.
 
-This needs `npcBidFor` to take a per-item quota (the track stories).
+Built by AB#2365: each order's quota is `bidQuotaFor(item)` (server/game/world.js), a product's `dailyQty` and a raw
+item's 7,000, and the sell route drifts the bid across it.
 
 ## 5. When refining beats selling raw
 
@@ -280,8 +281,8 @@ Their `tier` field (2 or 3) is not an item tier (tier3-resources.md) and no page
   Quantum Insulators, Armour Plating, Precision Frames, Carbon Fibre Sheets, Graphene Lattice) belong to no track, so no
   story in AB#830 to AB#834 puts their bids into data. They need an owner: AB#834, or a story of their own. docs/design/npc-corporations.md already names buyers for six of
   the twelve.
-- **The per-product quota** (section 4) changes `npcBidFor`'s signature. It is the only engine change here beyond
-  AB#825's multi-input starts.
+- **The per-product quota** (section 4) is the only engine change here beyond AB#825's multi-input starts. It shipped
+  as AB#2365: `npcBidFor` already took a bid rule, so the sell route passes the order's own quota in it.
 - `tests/unit/tier3Recipes.test.js` holds this document to itself and to `data/`. It checks:
   - every input resolves;
   - every base follows the rule;
