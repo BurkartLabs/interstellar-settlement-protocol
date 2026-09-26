@@ -1,6 +1,6 @@
 import { renderFinanceCharts, bindChartDurationPickers } from "./charts.js";
 
-import { escapeHtml } from "./html.js";
+import { escapeHtml, bootFailureHtml } from "./html.js";
 
 // AB#738 (ISP-52): the shared pieces app.js used to define itself.
 import { appState, IS_DEV_ACCESS, techTree } from "./state.js";
@@ -736,12 +736,12 @@ async function boot() {
         }
 
         console.error("[boot/restoreAuthenticatedSession]", error);
-        authShell.innerHTML = `<article class="auth-card"><p class="alert">Session restore failed: ${escapeHtml(error.message || "Unknown error")}</p></article>`;
+        authShell.innerHTML = bootFailureHtml("Session restore failed", error.message);
         return;
       }
     }
   } catch (error) {
-    authShell.innerHTML = `<article class="auth-card"><p class="alert">Bootstrap failed: ${error.message}</p></article>`;
+    authShell.innerHTML = bootFailureHtml("Bootstrap failed", error?.message); // Bug AB#2297: escaped
   }
 }
 
