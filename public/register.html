@@ -19,40 +19,48 @@
     <canvas id="starfield-canvas" aria-hidden="true"></canvas>
     <div class="app-bg" aria-hidden="true"></div>
 
-    <main class="auth-shell login-shell">
-      <section class="login-card" aria-labelledby="register-title">
-        <p class="hero-overline">EARTH ASSEMBLY ACT 2147</p>
-        <h1 id="register-title" class="login-title">Corporate Charter Portal</h1>
-        <p class="hero-tagline">"Every empire begins as approved paperwork."</p>
-        <p class="login-copy">
+    <main class="auth-page">
+      <section class="ui-panel auth-page__card" aria-labelledby="register-title">
+        <p class="auth-page__overline">Earth Assembly Act 2147</p>
+        <h1 id="register-title" class="auth-page__title">Corporate Charter Portal</h1>
+        <p class="auth-page__tagline">"Every empire begins as approved paperwork."</p>
+        <p class="auth-page__lede">
           File your corporation charter below to establish a new command identity, register a secure account,
           and enter the Interstellar Settlement Protocol under your own executive authority.
           Already registered? <a href="/login.html">Log in</a>.
         </p>
 
-        <form id="register-form" class="login-form" novalidate>
-          <label for="register-email">Email</label>
-          <input id="register-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="ceo@corporation.com" />
-          <p id="register-email-error" class="field-error" aria-live="polite"></p>
+        <form id="register-form" class="auth-page__form" novalidate>
+          <div class="ui-field">
+            <label class="ui-field__label" for="register-email">Email</label>
+            <input class="ui-input" id="register-email" aria-describedby="register-email-error" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="ceo@corporation.com" />
+            <p id="register-email-error" class="ui-field__error" aria-live="polite"></p>
+          </div>
 
-          <label for="register-password">Password</label>
-          <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="128" placeholder="10 to 128 characters" />
-          <p id="register-password-error" class="field-error" aria-live="polite"></p>
+          <div class="ui-field">
+            <label class="ui-field__label" for="register-password">Password</label>
+            <input class="ui-input" id="register-password" aria-describedby="register-password-error" name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="128" placeholder="10 to 128 characters" />
+            <p id="register-password-error" class="ui-field__error" aria-live="polite"></p>
+          </div>
 
-          <label for="register-ceo">CEO Name</label>
-          <input id="register-ceo" name="ceoName" required minlength="2" maxlength="40" pattern="[A-Za-z0-9 \-'.&amp;]+" title="2 to 40 letters, digits, spaces and - ' . &amp;" placeholder="e.g. Alex Rivera" />
-          <p id="register-ceo-error" class="field-error" aria-live="polite"></p>
+          <div class="ui-field">
+            <label class="ui-field__label" for="register-ceo">CEO Name</label>
+            <input class="ui-input" id="register-ceo" aria-describedby="register-ceo-error" name="ceoName" required minlength="2" maxlength="40" pattern="[A-Za-z0-9 \-'.&amp;]+" title="2 to 40 letters, digits, spaces and - ' . &amp;" placeholder="e.g. Alex Rivera" />
+            <p id="register-ceo-error" class="ui-field__error" aria-live="polite"></p>
+          </div>
 
-          <label for="register-corp">Corporation Name</label>
-          <input id="register-corp" name="corpName" required minlength="3" maxlength="40" pattern="[A-Za-z0-9 \-'.&amp;]+" title="3 to 40 letters, digits, spaces and - ' . &amp;" placeholder="Frontier Protocol Ventures" />
-          <p id="register-corp-error" class="field-error" aria-live="polite"></p>
+          <div class="ui-field">
+            <label class="ui-field__label" for="register-corp">Corporation Name</label>
+            <input class="ui-input" id="register-corp" aria-describedby="register-corp-error" name="corpName" required minlength="3" maxlength="40" pattern="[A-Za-z0-9 \-'.&amp;]+" title="3 to 40 letters, digits, spaces and - ' . &amp;" placeholder="Frontier Protocol Ventures" />
+            <p id="register-corp-error" class="ui-field__error" aria-live="polite"></p>
+          </div>
 
-          <p id="register-status" class="login-status" aria-live="polite"></p>
+          <p id="register-status" class="auth-page__status" aria-live="polite"></p>
 
-          <div class="login-actions">
-            <button class="btn-hero btn-hero-fill" type="submit">Register And Continue</button>
-            <a href="/login.html" class="btn-hero btn-hero-secondary">Back To Login</a>
-            <a href="/" class="btn-hero btn-hero-secondary">Return To Landing Page</a>
+          <div class="auth-page__actions">
+            <button class="ui-button ui-button--primary" type="submit">Register And Continue</button>
+            <a href="/login.html" class="ui-button ui-button--secondary">Back To Login</a>
+            <a href="/" class="ui-button ui-button--secondary">Return To Landing Page</a>
           </div>
         </form>
       </section>
