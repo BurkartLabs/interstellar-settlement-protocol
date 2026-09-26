@@ -5,6 +5,7 @@ import { BASE_MAX_DEPLOYMENTS, MINEABLE_RESOURCES, STATION_REGISTRY_CACHE, SYSTE
 import { bumpStat } from "./progression.js";
 import { countBuilt, playerBuilding } from "../playerBuildings.js";
 import { BASE_YIELD_PER_MIN, RARITY_YIELD_MULTIPLIER } from "./beltRules.js"; // AB#2329: one copy, with the belt rules
+import { beltAt, isBeltPresent, markBeltEmpty } from "./belts.js";
 
 // ISP-96 (AB#786): the Ferric Mining Complex multiplies the Nickel and Titanium a returning expedition deposits, by
 // data/economy.json's buildings.ferricMiningComplexMetalMultiplier, in whole units rounded down.
@@ -27,15 +28,12 @@ export function ferricBonus(corp, yields) {
 // ─── Asteroid Belt Mining ────────────────────────────────────────────────────
 
 // Deterministic belt compositions per system — scoutable
-/*
-  TODO(AB#2330): expeditions draw from the belt's reserve in the world state (server/game/belts.js, AB#2329) and read its
-  composition and rarity there; the tick that empties it ends the expeditions on it and calls markBeltEmpty. Until then
-  they use the catalog's composition below, which is each belt's generation 1. Whether belts should out-earn extractor
-  yards (a Sol expedition breaks even today) is left to the economy: see docs/design/belts.md (AB#1050).
-*/
 /**
  * ISP-112 (AB#804): each belt's composition is its Field body's `composition` in data/systems.json, keyed
- * "<system id>:<body id>" as a scout and an expedition name it.
+ * "<system id>:<body id>" as a scout and an expedition name it. AB#2330: that is the belt's generation 1; in play an
+ * expedition mines the belt in the world state (server/game/belts.js), its composition and rarity, out of its reserve.
+ * Whether belts should out-earn extractor yards (a Sol expedition breaks even today) is left to the economy: see
+ * docs/design/belts.md (AB#1050).
  */
 const BELT_COMPOSITION_BY_KEY = new Map(SYSTEMS_DATA.flatMap((system) =>
   (system.bodies || []).filter((b) => b.composition).map((b) => [`${system.id}:${b.id}`, Object.freeze({ ...b.composition })])));
@@ -102,6 +100,8 @@ export function ensureCorpAsteroidMiningModel(corp) {
     deployedAt: exp.deployedAt || Date.now(),
     completesAt: exp.completesAt || Date.now(),
     lastTickAt: exp.lastTickAt || exp.deployedAt || Date.now(),
+    // AB#2330: the belt generation it was launched at; an expedition saved before belts had generations was at the first.
+    generation: Number(exp.generation) || 1,
     launchCost: Number(exp.launchCost || EXPEDITION_LAUNCH_COST),
     yields: exp.yields || {},
     // Bug #1274: the fraction of a unit carried to the next tick; an expedition saved before it starts at 0.
@@ -157,33 +157,92 @@ export function splitExactly(whole, weights) {
   return shares;
 }
 
-export function applyAsteroidExpeditions(corp, now = Date.now()) {
+/**
+ * Settle a corporation's expeditions to `now`, and bring home each one that is due. Returns the expeditions that came
+ * home, as filed in completedExpeditions.
+ *
+ * AB#2330: given the world state, an expedition mines its belt there: the belt's composition and rarity, its yield
+ * taken out of the belt's remaining reserve, which every corporation on the belt shares. The tick that takes the last
+ * unit marks the belt empty, and an expedition whose belt is empty or has since respawned (a later generation) comes
+ * home that tick with what it carried, its report saying it ended early; the launch cost is not refunded. The ticker
+ * reaches corporations in turn, so on the tick that empties a belt the one it reaches first takes its full share and
+ * the next what is left. Without the world state (unit tests and fixtures that settle one corporation alone) the
+ * belt is the catalog's generation 1, never running out.
+ */
+export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
   ensureCorpAsteroidMiningModel(corp);
 
   const am = corp.asteroidMining;
   const expeditionsToRemove = [];
+  const cameHome = [];
+
+  const bringHome = (exp, endedEarly) => {
+    exp.status = "completed";
+    if (endedEarly) exp.endedEarly = { reason: "belt-depleted", at: now, scheduledAt: Number(exp.completesAt) };
+
+    // Deposit yields into nearest station in the expedition's system
+    const stationsInSystem = Object.values(STATION_REGISTRY_CACHE).filter(s => s.systemId === exp.systemId);
+    const depositStationId = (stationsInSystem.length > 0)
+      ? (stationsInSystem.find(s => s.id === corp.currentStationId)?.id || stationsInSystem[0].id)
+      : (corp.currentStationId || "earth-station-prime");
+
+    // ISP-96 (AB#786): what the Ferric Mining Complex adds is deposited with the rest and named in the report.
+    const bonus = ferricBonus(corp, exp.yields);
+    if (bonus) {
+      for (const [metal, added] of Object.entries(bonus)) exp.yields[metal] += added;
+      exp.ferricBonus = bonus;
+    }
+
+    const stationInv = getStationInventory(corp, depositStationId);
+    for (const [resource, qty] of Object.entries(exp.yields)) {
+      stationInv[resource] = (stationInv[resource] || 0) + qty;
+      // ISP-106 (AB#798): counted for totalMined:<resource>; only the catalogue's raw resources have a counter.
+      if (MINEABLE_RESOURCES.includes(resource) && qty > 0) bumpStat(corp, `mined:${resource}`, qty);
+    }
+
+    // Return the probe
+    am.probeCount = (am.probeCount || 0) + 1; // it counted against the Fleet Cap while away
+
+    // Move to completed log (keep last 20)
+    const record = { ...exp, completedAt: now, depositStationId };
+    am.completedExpeditions.unshift(record);
+    bumpStat(corp, "asteroidExpeditionsCompleted", 1); // Bug #424: levels 7 and 10
+    if (am.completedExpeditions.length > 20) am.completedExpeditions.length = 20;
+
+    expeditionsToRemove.push(exp.id);
+    cameHome.push(record);
+  };
 
   am.activeExpeditions.forEach((exp) => {
     if (exp.status !== "active") return;
 
     const lastTick = Number(exp.lastTickAt || exp.deployedAt);
     const completesAt = Number(exp.completesAt);
+
+    // AB#2330: the belt this expedition was launched at, or null when it has been mined out or replaced since.
+    const belt = world ? beltAt(world, exp.beltKey) : null;
+    if (world && (!isBeltPresent(belt) || belt.generation !== exp.generation)) {
+      exp.lastTickAt = now;
+      bringHome(exp, now < completesAt);
+      return;
+    }
+
     const intervalEnd = Math.min(now, completesAt);
     const elapsedMs = Math.max(0, intervalEnd - lastTick);
 
     if (elapsedMs <= 0 && now < completesAt) return;
 
     // Determine belt composition
-    const composition = beltComposition(exp.beltKey);
-    if (!composition) {
+    const composition = belt ? belt.composition : beltComposition(exp.beltKey);
+    if (!composition || !beltComposition(exp.beltKey)) {
       exp.status = "completed";
       expeditionsToRemove.push(exp.id);
       return;
     }
 
     // AB#804: every system in the catalog has a rarity (tests/schema/data-files.test.js); "common" is only for an
-    // expedition sent to a system since taken out of the catalog.
-    const rarity = systemRarity(exp.systemId) || "common";
+    // expedition sent to a system since taken out of the catalog. AB#2330: in play, the belt's own rarity.
+    const rarity = belt?.rarity || systemRarity(exp.systemId) || "common";
     const rarityMult = RARITY_YIELD_MULTIPLIER[rarity];
     const durationDef = EXPEDITION_DURATIONS[exp.duration] || EXPEDITION_DURATIONS.standard;
     const tickMult = durationDef.tickYieldMultiplier;
@@ -192,8 +251,10 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
     const tickMinutes = elapsedMs / (60 * 1000);
     // Base: ~2-5 units per resource per tick minute
     const units = takeWholeUnits(tickMinutes * BASE_YIELD_PER_MIN * rarityMult * tickMult, exp.yieldCarry);
-    const totalYield = units.whole;
-    exp.yieldCarry = units.rest;
+    // AB#2330: never more than the belt has left; what it could not have is not carried either.
+    const totalYield = belt ? Math.min(units.whole, belt.remaining) : units.whole;
+    exp.yieldCarry = totalYield < units.whole ? 0 : units.rest;
+    if (belt) belt.remaining -= totalYield;
 
     if (totalYield > 0) {
       // Generate a tick-unique seed from expedition id + tick timestamp
@@ -212,46 +273,22 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
 
     exp.lastTickAt = now;
 
-    // Check completion
-    if (now >= completesAt) {
-      exp.status = "completed";
-
-      // Deposit yields into nearest station in the expedition's system
-      const stationsInSystem = Object.values(STATION_REGISTRY_CACHE).filter(s => s.systemId === exp.systemId);
-      const depositStationId = (stationsInSystem.length > 0)
-        ? (stationsInSystem.find(s => s.id === corp.currentStationId)?.id || stationsInSystem[0].id)
-        : (corp.currentStationId || "earth-station-prime");
-
-      // ISP-96 (AB#786): what the Ferric Mining Complex adds is deposited with the rest and named in the report.
-      const bonus = ferricBonus(corp, exp.yields);
-      if (bonus) {
-        for (const [metal, added] of Object.entries(bonus)) exp.yields[metal] += added;
-        exp.ferricBonus = bonus;
-      }
-
-      const stationInv = getStationInventory(corp, depositStationId);
-      for (const [resource, qty] of Object.entries(exp.yields)) {
-        stationInv[resource] = (stationInv[resource] || 0) + qty;
-        // ISP-106 (AB#798): counted for totalMined:<resource>; only the catalogue's raw resources have a counter.
-        if (MINEABLE_RESOURCES.includes(resource) && qty > 0) bumpStat(corp, `mined:${resource}`, qty);
-      }
-
-      // Return the probe
-      am.probeCount = (am.probeCount || 0) + 1; // it counted against the Fleet Cap while away
-
-      // Move to completed log (keep last 20)
-      am.completedExpeditions.unshift({ ...exp, completedAt: now, depositStationId });
-      bumpStat(corp, "asteroidExpeditionsCompleted", 1); // Bug #424: levels 7 and 10
-      if (am.completedExpeditions.length > 20) am.completedExpeditions.length = 20;
-
-      expeditionsToRemove.push(exp.id);
+    // AB#2330: the unit that empties the belt ends every expedition on it; this one comes home now.
+    if (belt && belt.remaining <= 0) {
+      markBeltEmpty(world, exp.beltKey, now);
+      bringHome(exp, now < completesAt);
+      return;
     }
+
+    // Check completion
+    if (now >= completesAt) bringHome(exp, false);
   });
 
   // Remove completed expeditions from active list
   if (expeditionsToRemove.length > 0) {
     am.activeExpeditions = am.activeExpeditions.filter((e) => !expeditionsToRemove.includes(e.id));
   }
+  return cameHome;
 }
 
 export function hashSeedStr(input) {

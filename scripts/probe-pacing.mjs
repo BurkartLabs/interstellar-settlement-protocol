@@ -118,6 +118,8 @@ async function runProfile(name) {
     ticks.refineryTick();
     ticks.fabricationTick();
     ticks.asteroidExpeditionTick();
+
+    ticks.beltTick(); // AB#2330: a mined-out belt forms anew on the hour, as the server's minute ticker has it
     ticks.travelTick();
     ticks.shipmentTick(); // AB#800: ore shipped home from Mars and Luna
     ticks.processRndCompletions();

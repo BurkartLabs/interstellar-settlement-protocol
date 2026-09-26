@@ -12,10 +12,10 @@ import { scheduleRndQueue, rndItemStatus } from "../public/scripts/rndQueue.js";
 import { refreshDailyExpenses } from "./finances.js"; // Bug #1022 (placed apart from the import below, which parallel PRs append to)
 import { buildSnapshot, pushSnapshot, refreshDailyRevenue } from "./finances.js";
 import { recordTransfer, describeLines } from "../public/scripts/logistics.js";
-import { beltRespawnTick } from "./game/belts.js"; // AB#2329
+import { beltRespawnTick, ensureBeltState, isBeltPresent } from "./game/belts.js"; // AB#2329, AB#2330
 import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
 import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
-import { expeditionNotificationBody, expeditionPlaces } from "./expeditionText.js"; // AB#1295
+import { expeditionNotificationBody, expeditionPlaces, minutesEarly } from "./expeditionText.js"; // AB#1295, AB#2330
 import { emitMarketUpdated, emitToAccount } from "./realtime.js";
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
@@ -79,28 +79,38 @@ function refineryTick() {
 // ─── Asteroid expedition tick ────────────────────────────────────────────────
 // TODO(AB#729): Consider implementation of unified tick system where all tick based actions are performed at once, rather than a separate ticker calculation
 //       for each function.
-function asteroidExpeditionTick() {
-  const now = Date.now();
-  for (const accountId of getAllAccountIds()) {
-    let corpName = "";
-    let completedExpeditions = [];
-    mutateAccountState(accountId, (state) => {
-      if (!state?.corp) return;
-      corpName = state.corp.corporationName || "";
-      const prevActive = (state.corp.asteroidMining?.activeExpeditions || []).length;
-      applyAsteroidExpeditions(state.corp, now);
-      const afterActive = (state.corp.asteroidMining?.activeExpeditions || []).length;
-      if (afterActive < prevActive) {
-        // Some expeditions completed — gather details for notifications
-        completedExpeditions = (state.corp.asteroidMining?.completedExpeditions || [])
-          .filter(e => e.completedAt && e.completedAt >= now - 15000);
-      }
-    }, { sanitize: false, settleMining: false });
+//
+// AB#2330: expeditions mine the belts in the world state, whose reserves every corporation shares, so each corporation
+// settles against the same belts in turn. When a belt runs out, a second pass ends the expeditions on it that the first
+// pass had already settled, and forgets it from every corporation's scouting: a belt that forms there later is a new
+// generation, unscouted.
+function asteroidExpeditionTick(now = Date.now()) {
+  const home = new Map(); // accountId → { corpName, completedExpeditions }
+  const settle = (accountId, world, emptied) => mutateAccountState(accountId, (state) => {
+    if (!state?.corp) return;
+    const am = state.corp.asteroidMining;
+    if (emptied && Array.isArray(am?.scoutedBelts)) am.scoutedBelts = am.scoutedBelts.filter((k) => !emptied.includes(k));
+    const came = applyAsteroidExpeditions(state.corp, now, world);
+    if (!came.length) return;
+    const entry = home.get(accountId) || { corpName: "", completedExpeditions: [] };
+    entry.corpName = state.corp.corporationName || "";
+    entry.completedExpeditions.push(...came);
+    home.set(accountId, entry);
+  }, { sanitize: false, settleMining: false });
 
+  mutateState((world) => {
+    ensureBeltState(world, now);
+    const present = Object.keys(world.belts).filter((k) => isBeltPresent(world.belts[k]));
+    for (const accountId of getAllAccountIds()) settle(accountId, world, null);
+    const emptied = present.filter((k) => !isBeltPresent(world.belts[k]));
+    if (emptied.length) for (const accountId of getAllAccountIds()) settle(accountId, world, emptied);
+  });
+
+  for (const [accountId, { corpName, completedExpeditions }] of home) {
     for (const exp of completedExpeditions) {
       const notification = addAccountNotification(accountId, {
         type: "mining",
-        title: "Expedition Complete",
+        title: exp.endedEarly ? "Expedition Ended Early" : "Expedition Complete", // AB#2330
         body: expeditionNotificationBody(exp) // AB#1295: names, not the belt key's suffix and the station id
       });
       if (notification) {
@@ -127,7 +137,9 @@ function asteroidExpeditionTick() {
         body:
           `Attn: ${corpName || "Registered Operator"},\n\n` +
           `This report confirms the return of one (1) mining probe from the ${beltLabel} asteroid field, ${systemLabel} system. ` +
-          `The probe completed a ${durationLabel} operation and has been recovered intact.\n\n` +
+          (exp.endedEarly // AB#2330
+            ? `The probe's ${durationLabel} operation was cut short ${minutesEarly(exp)} minute(s) before its scheduled return: the belt was mined out. The probe has been recovered intact. The launch fee is not refundable.\n\n`
+            : `The probe completed a ${durationLabel} operation and has been recovered intact.\n\n`) +
           `RECOVERED MATERIAL MANIFEST\n` +
           `${"─".repeat(40)}\n` +
           `${yieldBlock}\n` +
