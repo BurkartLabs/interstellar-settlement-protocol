@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { navigationFor } from "../../public/scripts/navigation.js";
-import "./items.js"; // ISP-130 (AB#824): the item catalog; the server does not start while a data file names an item it lacks
+import { ITEMS } from "./items.js"; // ISP-130 (AB#824): the item catalog; the server does not start while a data file names an item it lacks
 
 export const __filename = fileURLToPath(import.meta.url);
 export const __dirname = path.dirname(__filename);
@@ -146,6 +146,18 @@ const deepFreeze = (value) => {
 export const SYSTEMS_DATA = deepFreeze(JSON.parse(fs.readFileSync(path.join(catalogueDir, "systems.json"), "utf8")));
 /** ISP-112 (AB#804): each system by id, for its bodies, owner rule, rarity, routes and access research. */
 export const SYSTEMS_BY_ID = new Map(SYSTEMS_DATA.map((s) => [s.id, s]));
+/**
+ * AB#828: what an extractor on a body yields, as { item, concentration } adding to 1 (data/systems.json
+ * resourceProfile, AB#826). Keyed by the body's name, which is what a lease stores (names are unique across the
+ * catalog). A lease on a body the catalog no longer has (Bug #691 keeps them) mines Silicates, as every lease did.
+ */
+const BODY_RESOURCE_PROFILES = new Map(SYSTEMS_DATA.flatMap((s) => (s.bodies || [])
+  .filter((b) => Array.isArray(b.resourceProfile) && b.resourceProfile.length)
+  .map((b) => [b.name, b.resourceProfile])));
+const LEGACY_PROFILE = Object.freeze([Object.freeze({ item: "Silicates", concentration: 1 })]);
+export function bodyResourceProfile(bodyName) {
+  return BODY_RESOURCE_PROFILES.get(bodyName) || LEGACY_PROFILE;
+}
 /** ISP-112 (AB#804): the travel gate and the jump routes over the catalog (public/scripts/navigation.js). */
 export const NAVIGATION = navigationFor(SYSTEMS_DATA);
 
@@ -153,7 +165,10 @@ export const NAVIGATION = navigationFor(SYSTEMS_DATA);
 export const refineryChainsPath = path.join(catalogueDir, "refinery-chains.json");
 export const REFINERY_CHAINS_DATA = JSON.parse(fs.readFileSync(refineryChainsPath, "utf8"));
 /** ISP-106 (AB#798): the raw resources, each countable as mined for totalMined:<resource>. */
-export const MINEABLE_RESOURCES = Object.freeze([...REFINERY_CHAINS_DATA.resourceCatalog]);
+// AB#828: what can be mined is every raw item in the item catalog (AB#824), so a body whose profile yields Deuterium,
+// Iron Ore or Bauxite (AB#826) counts it towards totalMined:<item>. What can be listed on the exchange is still the
+// refinery file's own list; making the new raws tradeable is its own story.
+export const MINEABLE_RESOURCES = Object.freeze(ITEMS.filter((item) => item.category === "raw").map((item) => item.name));
 export const REFINERY_CHAINS = {};
 for (const chain of REFINERY_CHAINS_DATA.chains) {
   REFINERY_CHAINS[chain.id] = chain;
