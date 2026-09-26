@@ -89,14 +89,16 @@ function baseOptions(extra = {}) {
   };
 }
 
-function formatCompact(n) {
+export function formatCompact(n) {
   const v = Number(n);
   if (!Number.isFinite(v)) return "—";
   const abs = Math.abs(v);
   if (abs >= 1_000_000_000) return (v / 1_000_000_000).toFixed(2) + "B";
   if (abs >= 1_000_000) return (v / 1_000_000).toFixed(2) + "M";
   if (abs >= 1_000) return (v / 1_000).toFixed(1) + "K";
-  return Math.round(v).toString();
+  // AB#2089: a fraction keeps up to two decimals. Around a flat zero line Chart.js picks ticks like 0.2 and 0.4, and
+  // rounding them printed the axis as 1, 1, 1, 0, 0, 0.
+  return Number(v.toFixed(2)).toString();
 }
 
 function snapshotLabel(snap) {
