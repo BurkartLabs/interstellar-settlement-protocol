@@ -15,6 +15,7 @@ import { evaluateAccountLevel, evaluateLevelProgress, pushSystemNotification, sa
 import { applyMiningOperations, ensureCorpMiningModel } from "./mining.js";
 import { normalizeStateShape } from "./shape.js";
 import { createStarterCorporationState, refreshContractOfferings } from "./corporation.js";
+import { backfillBuildingIds, ensureBuildingIds } from "./buildingIds.js";
 import { RESERVED_CORPORATION_NAMES, ensureStateFile, getSeedState } from "./world.js";
 
 // Bug #1480: the statements live in one file per corporation (declared here, before the load-time
@@ -140,6 +141,8 @@ export let accountsStore = loadAccountsStore(createSeedAccountsStore());
 }
 // Bug #711: saves from before corporations had a public id get one on load, so they can be addressed by mail.
 backfillCorpPublicIds();
+// AB#792: saves from before buildings had ids get them on load, once; later loads find them and change nothing.
+if (backfillBuildingIds(accountsStore.accounts).migrated) scheduleAccountsSave();
 // Bug #1480: statements saved inside the snapshot by the first version of AB#713 move to their own files.
 {
   let moved = 0;
@@ -713,6 +716,7 @@ export function mutateAccountState(accountId, mutator, { sanitize = true, settle
   if (settleMining) applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
   ensureCorpMiningModel(account.state.corp);
+  ensureBuildingIds(account.state.corp); // AB#792: whatever route built it, a building has an id when this returns
   const levelsReached = evaluateAccountLevel(accountId, account); // Bug #1260
   scheduleAccountsSave();
   // AB#743: the levels this change reached ride on the response, so the page can show the milestone modal from the
