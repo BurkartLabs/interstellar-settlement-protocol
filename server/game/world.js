@@ -6,6 +6,7 @@ import { SYSTEM_SENDERS } from "../corporationName.js";
 import { normalizePriceHistory } from "../priceHistory.js";
 import { MAX_DEFINED_LEVEL, REFINERY_CHAINS_DATA, SYSTEMS_DATA, deepClone, safeWriteFile, statePath } from "./catalog.js";
 import { normalizeStateShape } from "./shape.js";
+import { ensureBeltState } from "./belts.js"; // AB#2329
 
 export function getSeedState() {
   return {
@@ -249,7 +250,7 @@ export function ensureMarketState(globalState) {
 
 /** Everything the server needs in its global state, from a saved state or the seed. Idempotent. */
 export function normalizeGlobalState(raw) {
-  return ensureMarketState(ensureGlobalSocialState(normalizeStateShape(raw)));
+  return ensureBeltState(ensureMarketState(ensureGlobalSocialState(normalizeStateShape(raw))));
 }
 
 /** The global state a fresh install starts with: what tests check the shape of, instead of data/state.json. */

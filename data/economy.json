@@ -60,6 +60,12 @@
   "expeditions": {
     "launchCost": 3000
   },
+  "belts": {
+    "reserveStandardExpeditions": 14,
+    "respawnChancePerHour": 0.2,
+    "rarityStepWeight": 0.25,
+    "compositionJitter": 0.25
+  },
   "exchange": {
     "salesTaxPct": 8
   },

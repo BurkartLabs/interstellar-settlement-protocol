@@ -46,6 +46,8 @@ const BEFORE_THE_MOVE = {
   operations: { costPerThroughputUnit: 16, minCostPerHour: 600, startupShareOfHourlyCost: 0.35, minStartupCost: 500, throughputReferencePerHour: 420 },
   probes: { buildCost: 8000, assetValue: 5000 },                            // gameState.js PROBE_BUILD_COST, PROBE_ASSET_VALUE
   expeditions: { launchCost: 3000 },                                        // gameState.js EXPEDITION_LAUNCH_COST
+  // AB#2329: new, not moved; sized in docs/design/belts.md (AB#1050).
+  belts: { reserveStandardExpeditions: 14, respawnChancePerHour: 0.2, rarityStepWeight: 0.25, compositionJitter: 0.25 },
   exchange: { salesTaxPct: 8 },                                             // gameState.js BASE_EXCHANGE_SALES_TAX_PCT
   // AB#718 replaced the flat 2 a unit with a fee by distance; 2 a unit is still the in-system rate.
   logistics: { sameSystemFeePerUnit: 2, perJumpFeePerUnit: 3, sameSystemTransitMinutes: 30, perJumpTransitMinutes: 120 },

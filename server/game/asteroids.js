@@ -4,6 +4,7 @@ import { ECONOMY } from "../economy.js";
 import { BASE_MAX_DEPLOYMENTS, MINEABLE_RESOURCES, STATION_REGISTRY_CACHE, SYSTEMS_BY_ID, SYSTEMS_DATA, createId, getStationInventory } from "./catalog.js";
 import { bumpStat } from "./progression.js";
 import { countBuilt, playerBuilding } from "../playerBuildings.js";
+import { BASE_YIELD_PER_MIN, RARITY_YIELD_MULTIPLIER } from "./beltRules.js"; // AB#2329: one copy, with the belt rules
 
 // ISP-96 (AB#786): the Ferric Mining Complex multiplies the Nickel and Titanium a returning expedition deposits, by
 // data/economy.json's buildings.ferricMiningComplexMetalMultiplier, in whole units rounded down.
@@ -27,10 +28,10 @@ export function ferricBonus(corp, yields) {
 
 // Deterministic belt compositions per system — scoutable
 /*
-  TODO(AB#2329, AB#2330): belts become finite and respawn, as designed in docs/design/belts.md (AB#1050): a reserve of 14
-  standard expeditions' yield by tier, shared by every corporation on the belt; gone when mined out; an empty slot
-  spawning a new belt with a 20% chance each hour on the hour, its composition its tier's template jittered. Whether
-  belts should out-earn extractor yards (a Sol expedition breaks even today) is left to the economy: see the design.
+  TODO(AB#2330): expeditions draw from the belt's reserve in the world state (server/game/belts.js, AB#2329) and read its
+  composition and rarity there; the tick that empties it ends the expeditions on it and calls markBeltEmpty. Until then
+  they use the catalog's composition below, which is each belt's generation 1. Whether belts should out-earn extractor
+  yards (a Sol expedition breaks even today) is left to the economy: see docs/design/belts.md (AB#1050).
 */
 /**
  * ISP-112 (AB#804): each belt's composition is its Field body's `composition` in data/systems.json, keyed
@@ -48,17 +49,16 @@ export function beltComposition(beltKey) {
 }
 
 // Rarity tiers control yield multiplier and the chance of bonus "jackpot" drops
-/*
-  TODO(AB#2329): a respawned belt's rarity is drawn from its system's distribution, the label below being its centre and
-  each tier further away 0.25 times as likely, so Sol spawns an exotic belt 1.2% of the time (docs/design/belts.md).
-*/
-/** ISP-112 (AB#804): a system's rarity is its `rarity` in data/systems.json. */
+/**
+ * ISP-112 (AB#804): a system's rarity is its `rarity` in data/systems.json. AB#2329: a new belt's rarity is drawn from a
+ * distribution centred on this label (server/game/belts.js); the label is its generation 1's rarity.
+ */
 export function systemRarity(systemId) {
   return SYSTEMS_BY_ID.get(systemId)?.rarity || null;
 }
 
 // TODO(AB#822): In addition to rarity improving yields, it should also determine what types of raw resources are available
-export const RARITY_YIELD_MULTIPLIER = { common: 1.0, uncommon: 1.15, rare: 1.35, exotic: 1.6 };
+export { RARITY_YIELD_MULTIPLIER }; // in beltRules.js since AB#2329
 
 export const IS_DEV = !process.env.NODE_ENV || process.env.NODE_ENV !== "production";
 
@@ -191,8 +191,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now()) {
     // Roll resources for this tick interval
     const tickMinutes = elapsedMs / (60 * 1000);
     // Base: ~2-5 units per resource per tick minute
-    const baseYieldPerMin = 3;
-    const units = takeWholeUnits(tickMinutes * baseYieldPerMin * rarityMult * tickMult, exp.yieldCarry);
+    const units = takeWholeUnits(tickMinutes * BASE_YIELD_PER_MIN * rarityMult * tickMult, exp.yieldCarry);
     const totalYield = units.whole;
     exp.yieldCarry = units.rest;
 
