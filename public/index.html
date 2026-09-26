@@ -659,6 +659,7 @@
                   <select class="ui-select" id="exchange-type-filter">
                     <option value="all">All orders</option>
                     <option value="sell">Player sell orders</option>
+                    <option value="bids">Player buy orders</option>
                     <option value="standing">Standing buy orders</option>
                     <option value="mine">My listings</option>
                   </select>
@@ -734,6 +735,63 @@
                   </div>
                   <p id="listing-status" class="ui-panel__meta" role="status"></p>
                 </div>
+              </section>
+            </div>
+
+            <!-- AB#1054: players' buy orders, the book's other side, beside a form to place one -->
+            <div class="exchange__split">
+              <section class="ui-panel" id="exchange-bids-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title">Buy orders</h3>
+                    <p class="ui-panel__meta">What corporations will pay. A listing at or under a price sells to it at once, at the listing&#39;s price.</p>
+                  </div>
+                </header>
+                <div class="ui-panel__body ui-stack">
+                  <div id="exchange-bids-empty" class="ui-state" hidden><p class="ui-state__title">No buy orders</p><p class="ui-state__why">No corporation has a buy order waiting.</p></div>
+                  <div id="exchange-bids-filtered" class="ui-state" hidden></div>
+                  <p id="bids-status" class="ui-panel__meta" role="status"></p>
+                  <div class="ui-table-wrap">
+                    <table class="ui-table">
+                      <thead>
+                        <tr>
+                          <th>Item</th>
+                          <th class="ui-table__num">Wanted</th>
+                          <th class="ui-table__num">Price</th>
+                          <th>Buyer</th>
+                          <th>Placed</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="exchange-bids-table"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
+
+              <section class="ui-panel" id="exchange-bid-form-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title">Place a buy order</h3>
+                    <p class="ui-panel__meta">The credits are held now. It buys from listings at or under your price, oldest first, at their price, and the rest waits.</p>
+                  </div>
+                </header>
+                <form class="ui-panel__body ui-stack exchange__bid-form" id="bid-form" novalidate>
+                  <label class="ui-field"><span class="ui-field__label">Item</span>
+                    <select class="ui-select" id="bid-item" name="item"></select>
+                  </label>
+                  <div class="exchange__bid-row">
+                    <label class="ui-field"><span class="ui-field__label">Quantity</span>
+                      <input class="ui-input exchange__qty" id="bid-quantity" name="quantity" type="number" inputmode="numeric" min="1" step="1" value="100" />
+                    </label>
+                    <label class="ui-field"><span class="ui-field__label">Price per unit</span>
+                      <input class="ui-input exchange__qty" id="bid-price" name="unitPrice" type="number" inputmode="numeric" min="1" step="1" value="20" />
+                    </label>
+                  </div>
+                  <p class="ui-panel__meta" id="bid-total" aria-live="polite"></p>
+                  <div><button class="ui-button ui-button--primary" type="submit" id="bid-submit">Place buy order</button></div>
+                  <p id="bid-status" class="ui-panel__meta" role="status"></p>
+                </form>
               </section>
             </div>
 

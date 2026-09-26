@@ -4111,6 +4111,12 @@ img.station__body {
   width: 7rem;
   max-width: 100%;
 }
+/* AB#1054: the buy-order form's quantity and price side by side, wrapping on a phone. */
+.exchange__bid-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
 /* A standing order's price, and a note under it when today's volume has pushed it down (ISP-87). */
 .exchange__price {
   display: inline-flex;

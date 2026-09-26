@@ -9,7 +9,8 @@ export const TRADE_TYPES = {
   cancelled: { label: "Cancelled", tone: "warn", movedMoney: false },
   sold: { label: "Sold", tone: "success", movedMoney: true },
   "sold-npc": { label: "Sold (NPC)", tone: "success", movedMoney: true },
-  bought: { label: "Bought", tone: "accent", movedMoney: true }
+  bought: { label: "Bought", tone: "accent", movedMoney: true },
+  bid: { label: "Buy order", tone: "", movedMoney: false } // AB#1054: credits held, nothing bought yet
 };
 
 export function tradeTypeBadge(t) {
