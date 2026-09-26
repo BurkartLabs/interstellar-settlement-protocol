@@ -10,6 +10,7 @@ import {
   REPUTATION_TIERS_DATA // AB#744: the standing on a completion's receipt
 } from "../gameState.js";
 import { applyCredits } from "../finances.js";
+import { bumpStat } from "../game/progression.js"; // ISP-106 (AB#798)
 import { acceptMissionReceipt, completeMissionReceipt, standingFor } from "../receipts.js"; // AB#744
 // Bug #1058: refusals that say what to do next. Imported beside their first use, away from the import block.
 import { missionShortMessage } from "../nextStep.js";
@@ -161,6 +162,8 @@ export function registerMissionRoutes(app) {
         completedAt: Date.now()
       });
       state.corp.completedMissions = state.corp.completedMissions.slice(0, 200);
+      // AB#798: the running total the ladder counts; the list above keeps only the last 200.
+      bumpStat(state.corp, "missionsCompletedTotal", 1);
 
       // Update agent reputation
       if (!state.corp.agentReputation || typeof state.corp.agentReputation !== "object") state.corp.agentReputation = {};

@@ -89,7 +89,17 @@ export function unknownUnlockKeys(levels) {
 }
 // The top of the ladder is the highest level the data defines (Bug #424: the cap shown to players was a literal 40).
 export const MAX_DEFINED_LEVEL = Math.max(...MILESTONE_LEVELS.map((l) => l.level));           // [{level, requirements, unlocks}, ...]
-export const MILESTONE_ROADMAP = MILESTONES_DATA.roadmap;          // ["Rent an Office", ...]
+/**
+ * ISP-106 (AB#798): the roadmap the sidebar lists, derived from `levels`: each level's requirement titles in order,
+ * then "Reached Corporation Level N". It was a hand-written array in data/milestones.json (and a third copy in
+ * public/scripts/views/chrome.js) that repeated levels 1 to 10 and drifted: from level 6 on it named an old plan
+ * (Ferric and Refinery Complexes, cryo-vapor, belt mining) that no level requires. These are the same strings
+ * evaluateLevelProgress records in milestonesCompleted, so an item is marked done exactly when it is.
+ */
+export function deriveRoadmap(levels) {
+  return [...(levels || [])].sort((a, b) => a.level - b.level).flatMap((l) => [...(l.requirements || []).map((r) => r.title), `Reached Corporation Level ${l.level}`]);
+}
+export const MILESTONE_ROADMAP = Object.freeze(deriveRoadmap(MILESTONE_LEVELS));
 
 // ─── CEO Insight programs ────────────────────────────────────────────────────
 export const ceoInsightPath = path.join(catalogueDir, "ceo-insight.json");
@@ -116,6 +126,8 @@ export const SYSTEMS_DATA = JSON.parse(fs.readFileSync(path.join(catalogueDir, "
 // ─── Refinery chains ────────────────────────────────────────────────────────
 export const refineryChainsPath = path.join(catalogueDir, "refinery-chains.json");
 export const REFINERY_CHAINS_DATA = JSON.parse(fs.readFileSync(refineryChainsPath, "utf8"));
+/** ISP-106 (AB#798): the raw resources, each countable as mined for totalMined:<resource>. */
+export const MINEABLE_RESOURCES = Object.freeze([...REFINERY_CHAINS_DATA.resourceCatalog]);
 export const REFINERY_CHAINS = {};
 for (const chain of REFINERY_CHAINS_DATA.chains) {
   REFINERY_CHAINS[chain.id] = chain;
