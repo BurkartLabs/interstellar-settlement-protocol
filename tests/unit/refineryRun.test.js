@@ -24,7 +24,7 @@ describe("a chain's inputs", () => {
       expect(c.inputQuantityPerCycle, c.id).toBeUndefined();
     }
     // AB#830: the Fuel track's two chains take two inputs each.
-    expect(ALL_CHAINS.filter((c) => c.inputs.length > 1).map((c) => c.id).sort()).toEqual(["cryogenics-chain", "fusion-fuel-chain"]);
+    expect(ALL_CHAINS.filter((c) => c.inputs.length > 1).map((c) => c.id).sort()).toEqual(["al-li-chain", "battery-chain", "cryogenics-chain", "fusion-fuel-chain"]); // AB#830, AB#833
   });
 
   it("is null for anything the refinery cannot run, so the route fails closed", () => {

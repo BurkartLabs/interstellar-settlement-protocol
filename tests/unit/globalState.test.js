@@ -8,7 +8,9 @@ const NPC_ITEMS = ["Silicates", "Helium-3", "Nickel", "Titanium", "Carbon", "Rar
 // AB#2341: standing bids for six products too; no NPC corporation sells them (no asks).
 const BID_ITEMS = [...NPC_ITEMS, "Aerogel", "Quantum Insulators", "Armour Plating", "Precision Frames", "Carbon Fibre Sheets", "Graphene Lattice",
   // AB#830: the Fuel track's raw items and products, all bought by the Lunar Helium Consortium.
-  "Deuterium", "Water Ice", "Hydrogen", "Plasma Conduits", "Dark-Matter Capacitors", "Fusion Pellets", "Cryogenic Coolant"];
+  "Deuterium", "Water Ice", "Hydrogen", "Plasma Conduits", "Dark-Matter Capacitors", "Fusion Pellets", "Cryogenic Coolant",
+  // AB#833: the Light Metals track's two raw items and three products.
+  "Lithium", "Bauxite", "Aluminium Ingots", "Aluminium-Lithium Alloy", "Battery Cells"];
 
 describe("the global state a fresh install starts with (Bug #588, #574)", () => {
   const state = freshGlobalState();

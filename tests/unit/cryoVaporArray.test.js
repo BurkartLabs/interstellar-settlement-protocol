@@ -75,8 +75,8 @@ describe("the Cryo-vapor Extractor Array (ISP-98)", () => {
     });
     applyMiningOperations(c, start + 3_600_000);
     expect(c.inventory["earth-station-prime"].Silicates).toBe(100);
-    // AB#830: Luna yields Silicates 75, Helium-3 25; the array multiplies the whole yield.
-    expect(c.inventory["luna-gateway"]).toEqual({ Silicates: 90, "Helium-3": 30 });
+    // AB#830, AB#833: Luna yields Silicates 60, Helium-3 25, Bauxite 15; the array multiplies the whole yield.
+    expect(c.inventory["luna-gateway"]).toEqual({ Silicates: 72, "Helium-3": 30, Bauxite: 18 });
   });
 
   it("the ladder's building: metric resolves to 1 once it is built", () => {
