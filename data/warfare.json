@@ -1,5 +1,5 @@
 {
-  "_comment": "ISP-225 (AB#920): the warfare catalog. Every number in docs/design/TERRITORY.md (AB#916, v0.13-01), under the same key its number table uses; the system rule table (each ownerRule as a rule) and the never-concedable systems. server/warfare.js reads it at startup and the server refuses to start if it is malformed or names a system data/systems.json does not define (T-019). tests/schema/warfare.test.js holds it to the design, value for value. v0.13-02 to 04 (tariffs and dumping, patents and lobbying, arbitration claims: AB#917 to AB#919) add their sections when their designs are written. tariffs and dumping: docs/design/WARFARE.md, ISP-222 (AB#917). arbitration: the same file, ISP-224 (AB#919).",
+  "_comment": "ISP-225 (AB#920): the warfare catalog. Every number in docs/design/TERRITORY.md (AB#916, v0.13-01), under the same key its number table uses; the system rule table (each ownerRule as a rule) and the never-concedable systems. server/warfare.js reads it at startup and the server refuses to start if it is malformed or names a system data/systems.json does not define (T-019). tests/schema/warfare.test.js holds it to the design, value for value. v0.13-02 to 04 (tariffs and dumping, patents and lobbying, arbitration claims: AB#917 to AB#919) add their sections when their designs are written. tariffs and dumping: docs/design/WARFARE.md, ISP-222 (AB#917). arbitration: the same file, ISP-224 (AB#919). patents, standing and lobbying: docs/design/WARFARE.md, ISP-223 (AB#918).",
   "concessionGrantPct": 40,
   "concessionLeadRatio": 1.5,
   "concessionEligibleDays": 14,
@@ -47,6 +47,39 @@
       { "id": "patent-royalty", "open": false },
       { "id": "credit-default", "open": true }
     ]
+  },
+  "patents": {
+    "minResearchTier": 3,
+    "minChainStage": 2,
+    "filingWindowHours": 72,
+    "filingFee": 5000,
+    "termDays": 28,
+    "royaltyMaxPct": 25,
+    "chainRoyaltyMaxPct": 5,
+    "rateNoticeHours": 72,
+    "withholdPct": 50
+  },
+  "standing": {
+    "max": 100,
+    "decayPctPerDay": 2,
+    "eaTaxPerPoint": 10000,
+    "itcTradePerPoint": 20000,
+    "itcFindingPenalty": 10
+  },
+  "lobbying": {
+    "openStandingMin": 20,
+    "openStandingCost": 5,
+    "pledgeStandingMin": 5,
+    "creditsPerStandingPoint": 2500,
+    "pledgeHours": 72,
+    "durationDays": 28,
+    "cooldownDays": 7,
+    "parameters": {
+      "tariffCapPct": { "faction": "earth-assembly", "step": 0.25, "maxShift": 1, "min": 0, "max": 5, "spendScale": 20000 },
+      "salesTaxPct": { "faction": "earth-assembly", "step": 0.5, "maxShift": 1, "min": 6, "max": 10, "spendScale": 50000 },
+      "dumpingPriceThresholdPct": { "faction": "interplanetary-trade-commission", "step": 1, "maxShift": 5, "min": 75, "max": 95, "spendScale": 30000 },
+      "dumpingVolumeThresholdPct": { "faction": "interplanetary-trade-commission", "step": 1, "maxShift": 5, "min": 5, "max": 20, "spendScale": 30000 }
+    }
   },
   "neverConcedable": [
     {

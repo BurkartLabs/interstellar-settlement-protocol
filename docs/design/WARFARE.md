@@ -448,3 +448,218 @@ veto point.
 The claim type ids, in the order the table above lists them, are the catalog's `arbitration.claimTypes`, each with
 whether it is open: `mercenary-readiness`, `tariff-overcharge`, `concession-arbitrated` and `credit-default` are open;
 `patent-royalty` is reserved until AB#918's records exist.
+
+## Lawfare: patents that earn royalties, and lobbying that moves bounded rules (ISP-223, AB#918)
+
+Plan line "Lawfare: patents, NPC faction lobbying". The build stories are ISP-235 to ISP-240 (AB#930 to AB#935), with
+ISP-271 (AB#967) balancing them against the rest of v0.13.
+
+Two instruments, each a lever a corporation pulls with in-game credits and standing, never with real money:
+
+- **Patents.** The first corporation to complete a patentable research node or refinery chain may file a patent at
+  Corporate Registry & Charters. For the term, every other corporation that researches the node or runs the chain pays
+  the holder a royalty. **A patent never prevents use.** Nobody is ever refused the node or the chain because of it,
+  and a user who cannot pay the royalty still gets what it paid for (below).
+- **Lobbying.** A corporation with standing at the Earth Assembly or the Interplanetary Trade Commission opens a
+  campaign to move one bounded parameter in one system for 28 days. Others pledge for or against it. What each side
+  spends moves the parameter along a curve of diminishing returns, and the two sides net against each other. The
+  parameter never leaves its bounds, and it reverts when the campaign ends.
+
+### What this keeps from TERRITORY.md, the warfare catalog and the economic-warfare section
+
+- **A royalty is below 100%.** The warfare catalog already refuses a `patents.royaltyMaxPct` at or above 100
+  (`server/warfare.js`, AB#920). This design's own ceiling is 25% for a node and 5% for a chain run, inside that
+  bound.
+- **The never-concedable systems are not lobbied**: Sol, Lalande 21185, Ross 128, Kapteyn's Star and van Maanen's
+  Star (TERRITORY.md, `neverConcedable`). They are where a new corporation starts and takes its first leases. A rule
+  there that a veteran could move would reach into the opening, which TERRITORY.md keeps out of anyone's hands. Procyon's
+  tariff cap is not lobbied either: 0% is what makes it a free port.
+- **A tariff cap moved by lobbying stays inside `tariffs.maxPct`** (5%) and AB#920's 25% ceiling. The holder still
+  sets its own rate under the cap, and the ISA levy is computed on the cap in force that day. **A lobbied cap is
+  temporary**: no system's rule-table cap changes, which is what the economic-warfare section promised.
+- **The dumping watch reads the system's lines in force.** A campaign may move `dumping.priceThresholdPct` or
+  `dumping.volumeThresholdPct` in one system, within bounds. The catalog's values are the base the watch uses
+  everywhere else.
+- **Never a ban.** A patent is a charge on use that goes ahead, as a tariff is a charge on trade that goes ahead
+  (ECONOMY.md and the monetization review: "never gate access").
+- **The Arbitration Council's `patent-royalty` claim** (AB#919, reserved until these records exist) reads the use and
+  royalty records below: royalty due = Σ uses × the rate − royalty paid. Most royalty is collected without a claim
+  (charged at completion, the rest withheld from sales). The claim is the holder's remedy for what withholding has
+  not yet recovered, and the Council's ruling then collects it as its section describes. ISP-235 and ISP-236 write
+  those records; the claim type opens when they exist (ISP-241).
+
+### Prior art
+
+| Source | What it says | ISP |
+| --- | --- | --- |
+| **EVE Online, blueprint originals and copies (BPOs and BPCs)** | The owner of a blueprint original can research it and make copies with a limited number of runs, and sells or contracts the copies. Others build from the copies; the original's owner earns on each. | **Adopted**: the discoverer earns from others' use. **Rejected**: exclusion. In EVE, a corporation without a copy cannot build the item at all. Here everyone can; they pay the holder while the patent runs. |
+| **FRAND licensing** (fair, reasonable and non-discriminatory terms; for example the ETSI IPR Policy, Annex 6, clause 6.1, for standard-essential patents) | The holder of a patent on a standard must license it to anyone on the same reasonable terms. It may not refuse a licensee or charge rivals more. | **Adopted**: one royalty rate for every user but the holder, under a published ceiling, and no right to refuse. A royalty rate may rise only on notice, as a tariff may. |
+| **Victoria 3 (Paradox, 2022), interest groups** | Interest groups have clout, and their support or opposition sets the chance that a law passes. Several groups pull for and against the same law at once, and enactment is a contest, not a purchase. | **Adopted**: campaigns for and against one parameter at once, netted. **Rejected**: a random roll. Here the outcome is a formula anyone can compute. |
+| **Democracy series (Positech Games), policy pressure** | Voter groups push on each policy slider. A policy's effect builds up over turns and saturates, and every policy has a bounded range. | **Adopted**: a bounded parameter, pressure that saturates (the curve below), and an effect that lasts a set time. |
+
+### Patents
+
+**What is patentable.** Everything a corporation works for past the opening:
+
+| kind | patentable | not patentable | count today |
+| --- | --- | --- | --: |
+| Research node | tier 3 and above (`patents.minResearchTier`) | tiers 1 and 2: the ladder's first years, which every corporation needs | 18 |
+| Refinery chain | stage 2 and above (`patents.minChainStage`), in a Refinery or the Synthesis Array | stage 1: the first refining of a raw resource | 12 |
+
+**Who may file, and when.** The first corporation to complete the node (research done) or the chain (its first
+production run delivered) may file within `patents.filingWindowHours` (72) of completing it. It files at Corporate
+Registry & Charters and pays `patents.filingFee` (5,000 credits), which is a sink to the ISA. The second corporation to
+complete it may not file, whether or not the first did. A thing nobody patents in its window is public for good.
+
+**The term.** `patents.termDays` (28) from filing. When it ends, nothing more is charged, and it cannot be renewed.
+
+**The royalty.** The holder sets one rate for everyone, in whole points, and may change it. A rise takes effect
+`patents.rateNoticeHours` (72) after filing it, and a cut at once, as tariffs do.
+
+| used how | charged when | royalty | bound |
+| --- | --- | --- | --- |
+| researching a patented node | the research completes | rate × the node's `costCredits` | 0 to `patents.royaltyMaxPct` (25%) |
+| running a patented chain | each production run delivers | rate × its outputs at their standing bids' base | 0 to `patents.chainRoyaltyMaxPct` (5%) |
+
+The holder never pays its own royalty. A conglomerate partner pays like anyone else, because FRAND means one rate.
+
+**A user who cannot pay still gets what it used.** The royalty is charged at completion, never at the start, so
+nothing is refused for it. It comes out of credits. What credits cannot cover is owed to the holder, and
+`patents.withholdPct` (50%) of each later sale's net proceeds is withheld toward it, the same mechanism as a dumping
+duty owed. Research finishes; the run delivers its full output.
+
+**Worked example.** Helios holds a patent on Antimatter Confinement (60,000 research cost) at 20%, and on
+`breeder-core-chain` at 5%. Kestrel researches the node: at completion it pays Helios 12,000. Kestrel then runs one
+batch of Breeder Reactor Cores: four units at the 2,708 base is 10,832, and 5% is 542. One licensee repays the 5,000
+filing fee two times over. The patent is worth filing when others will follow within the term, and the rate is the
+holder's decision (T-018). At 25% a researcher pays 15,000 more for the node. Waiting 28 days for the term to end
+saves it that, at the cost of 28 days without the node.
+
+### Faction standing (ISP-238)
+
+A standing value per corporation with the **Earth Assembly** and with the **Interplanetary Trade Commission**, between 0
+and `standing.max` (100). It is private to the corporation. The ISA has no lobbyable parameters here, so there is no ISA
+standing. **Lobbying spends standing** (next section). Without it, lobbying would be a credit auction won by whoever is
+richest. Standing is earned only in play, never bought, and it decays.
+
+| faction | earned by | lost by |
+| --- | --- | --- |
+| Earth Assembly | +1 per `standing.eaTaxPerPoint` (10,000) credits of Exchange sales tax paid | spending it on a campaign |
+| Interplanetary Trade Commission | +1 per `standing.itcTradePerPoint` (20,000) credits of goods sold at or above the item's normal value | a dumping finding: `standing.itcFindingPenalty` (10); spending it |
+
+Standing is kept to two decimals and decays by `standing.decayPctPerDay` (2%) of the value each day, so a corporation
+that stops trading drifts back. A corporation selling 1,000,000 credits a week (80,000 of tax) reaches 26 in a
+month, and levels off near 57.
+
+### Lobbying
+
+**What can be lobbied.** One parameter, in one system, at a time. Every parameter has a step, the most one campaign can
+move it, and bounds the result never leaves:
+
+| parameter | faction | base | step | most a campaign moves it | bounds | spend scale K |
+| --- | --- | --- | --: | --: | --- | --: |
+| `tariffCapPct` (the system's tariff cap) | Earth Assembly | the rule table's `tariffCapPct` | 0.25 | 1 | 0 to `tariffs.maxPct` (5) | 20,000 |
+| `salesTaxPct` (the Exchange's sales tax on sales settled at the system's stations) | Earth Assembly | `exchange.salesTaxPct` (8) | 0.5 | 1 | 6 to 10 | 50,000 |
+| `dumpingPriceThresholdPct` (the ITC's price line in the system) | ITC | `dumping.priceThresholdPct` (85) | 1 | 5 | 75 to 95 | 30,000 |
+| `dumpingVolumeThresholdPct` (the ITC's volume line in the system) | ITC | `dumping.volumeThresholdPct` (10) | 1 | 5 | 5 to 20 | 30,000 |
+
+Only concedable systems can be lobbied, and Procyon's tariff cap cannot, as above.
+
+**A campaign.** A corporation with at least `lobbying.openStandingMin` (20) standing with the parameter's faction opens a
+campaign: which parameter, which system, which direction. Opening spends `lobbying.openStandingCost` (5) standing.
+For `lobbying.pledgeHours` (72) after it opens, any corporation with at least `lobbying.pledgeStandingMin` (5)
+standing with that faction may pledge to either side: credits, standing, or both. Campaigns are public (who pledged,
+which side, when it closes), because a registered intermediary's filings are public. Pledges are final and are a sink
+to the faction. A refundable pledge would be a free threat. One campaign per parameter per system runs at a time, and
+another may not open on it for `lobbying.cooldownDays` (7) after the last ends.
+
+**The curve.** Each side's influence is its credits plus `lobbying.creditsPerStandingPoint` (2,500) for each standing
+point it pledged. A side's pull on the parameter is
+
+> **E(I) = M × (1 − e^(−I / K))**
+
+where M is the most a campaign moves the parameter, and K is the parameter's spend scale. At I = K a side has 63% of
+M; at 2K, 86%; at 3K, 95%. Doubling a spend never doubles its effect. When the pledging closes, the parameter moves by
+
+> **E(for) − E(against)**, rounded toward zero to the parameter's step, then held inside its bounds,
+
+for `lobbying.durationDays` (28). Then it returns to its base. Each side's curve is taken on the side's total, not per
+pledger, so splitting a pledge across corporations earns nothing extra. Standing is where a small corporation
+counts: 20 points of standing is 50,000 of influence that no amount of money buys.
+
+**Worked example: a holder and a trader.** *Placeholders for ECONOMY.md, on the economic-warfare section's Alpha
+Centauri mix and levy rule (cap 3%, best rate 2%, holder keeps 6,000 a day).* A raised cap lowers the levy at any
+rate, and it lets the holder charge a little more. At a cap of 3.5% the best rate is 2.25%, and the holder keeps 6,991
+a day; at 3.75%, 2.5% and 7,500. Helios holds Alpha Centauri's concession and lobbies the cap up; nobody opposes it.
+Its gain is over the campaign's 28 days:
+
+| Helios pledges | E (points) | cap | best rate | keeps a day | gain in 28 days | net of the pledge |
+| --: | --: | --: | --: | --: | --: | --: |
+| 0 | 0 | 3 | 2% | 6,000 | 0 | 0 |
+| 5,000 | 0.221 | 3 | 2% | 6,000 | 0 | −5,000 |
+| 10,000 | 0.393 | 3.25 | 2.25% | 6,490 | 13,720 | 3,720 |
+| **15,000** | 0.528 | 3.5 | 2.25% | 6,991 | 27,748 | **12,748** |
+| 20,000 | 0.632 | 3.5 | 2.25% | 6,991 | 27,748 | 7,748 |
+| 30,000 | 0.777 | 3.75 | 2.5% | 7,500 | 42,000 | 12,000 |
+| 40,000 | 0.865 | 3.75 | 2.5% | 7,500 | 42,000 | 2,000 |
+| 60,000 | 0.950 | 3.75 | 2.5% | 7,500 | 42,000 | −18,000 |
+
+**Extra spending stops paying at 15,000.** The next step, 0.75, costs 15,000 more for 14,252 more of gain. The full
+point of M is never reached before the pledge costs more than the point is worth.
+
+Now Kestrel, which sells 150,000 of Titanium a day in Alpha Centauri, opposes. Titanium stays until 7.8%, so Kestrel
+pays whatever rate Helios sets. Each quarter point of rate costs it 10,500 over the campaign. Against Helios's 15,000,
+Kestrel's best reply is **10,000**: E(15,000) − E(10,000) = 0.528 − 0.393 = 0.135, under one step, so the cap does not
+move. Helios, facing 10,000, does best to pledge 5,000 (keeping the cap from falling costs less than the fall), and so
+on. With both sides answering, the pledges cancel, both corporations are down what they pledged, and the Assembly keeps
+it. That is the arms race opposing campaigns are meant to be. The curve's steep start is what lets the smaller
+side hold the line for less than the larger side spends. A campaign pays when nobody who loses by it is paying
+attention.
+
+### What the server stores (for the build stories)
+
+- **Patents**: `patents.json` in the data directory. One record per patent: `{ id, kind: "research"|"chain",
+  subjectId, holder publicId, filedAt, endsAt, ratePct, pending: { pct, effectiveAt } | null }`. Also the first
+  completion of each patentable subject, `{ subjectId, corporation publicId, completedAt }`, which is what decides who
+  may file. And one **use record** per use in the term, `{ patentId, user publicId, at, base, ratePct, royalty, paid }`:
+  what the Council's `patent-royalty` claim sums (AB#919). Royalties settle through `settleTransfer` with a reason `patent-royalty` (both P&Ls, a named source). Debt
+  owed goes on the payer, as dumping duty does.
+- **Standing**: on each corporation, `standing: { "earth-assembly": n, "interplanetary-trade-commission": n }`. It is
+  written by server code only: the sales-tax booking, the sale settlement and the ITC's finding.
+- **Campaigns**: `lobbying.json`. `{ id, parameter, systemId, direction, openedBy, opensAt, closesAt, pledges: [{
+  corporation publicId, side, credits, standing }], result: { shift, from, to, endsAt } | null }`. The value in force
+  for a system's parameter is its base plus any active campaign's shift, read by one function that the tariff, the sales
+  tax and the dumping watch all call.
+
+### Every number this section introduces
+
+The catalog's `patents`, `standing` and `lobbying` sections (`data/warfare.json`), held to these tables by
+`tests/schema/warfare.test.js`. They are placeholders until ECONOMY.md prices them against the probe (ISP-271), and
+each one is a Board or Director veto point.
+
+| key | value | what it is |
+| --- | --- | --- |
+| `patents.minResearchTier` | 3 | The lowest research tier that can be patented. |
+| `patents.minChainStage` | 2 | The lowest chain stage that can be patented. |
+| `patents.filingWindowHours` | 72 | Hours after completing a subject in which its first completer may file. |
+| `patents.filingFee` | 5000 | Credits to file, a sink to the ISA. |
+| `patents.termDays` | 28 | Days a patent runs from filing. It cannot be renewed. |
+| `patents.royaltyMaxPct` | 25 | The highest royalty on a node, as a share (%) of its research cost. AB#920 requires it below 100. |
+| `patents.chainRoyaltyMaxPct` | 5 | The highest royalty on a chain run, as a share (%) of its outputs at base. |
+| `patents.rateNoticeHours` | 72 | Hours between filing a royalty rise and its taking effect. A cut takes effect at once. |
+| `patents.withholdPct` | 50 | Share (%) of each later sale's net proceeds withheld toward royalty owed. |
+| `standing.max` | 100 | The most standing a corporation can hold with a faction. |
+| `standing.decayPctPerDay` | 2 | Standing lost each day, as a share (%) of the value (kept to two decimals). |
+| `standing.eaTaxPerPoint` | 10000 | Credits of Exchange sales tax paid per point of Earth Assembly standing. |
+| `standing.itcTradePerPoint` | 20000 | Credits of goods sold at or above normal value per point of ITC standing. |
+| `standing.itcFindingPenalty` | 10 | ITC standing lost to a dumping finding. |
+| `lobbying.openStandingMin` | 20 | Standing needed with the faction to open a campaign. |
+| `lobbying.openStandingCost` | 5 | Standing opening a campaign spends. |
+| `lobbying.pledgeStandingMin` | 5 | Standing needed with the faction to pledge. |
+| `lobbying.creditsPerStandingPoint` | 2500 | Influence one pledged standing point adds, in credits. |
+| `lobbying.pledgeHours` | 72 | Hours a campaign takes pledges. |
+| `lobbying.durationDays` | 28 | Days a campaign's shift holds. |
+| `lobbying.cooldownDays` | 7 | Days before another campaign may open on the same parameter in the same system. |
+
+The lobbyable parameters are `lobbying.parameters`, one entry each, as in the lobbying table above: `faction`, `step`,
+`maxShift`, `min`, `max` and `spendScale`.

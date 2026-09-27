@@ -60,6 +60,35 @@ const ARBITRATION = { responseHours: COUNT, filingFeeMin: COUNT, filingFeePct: P
 /** The claim types the design defines; a catalog may mark one closed, never add one the design lacks. */
 export const CLAIM_TYPES = Object.freeze(["mercenary-readiness", "tariff-overcharge", "concession-arbitrated", "patent-royalty", "credit-default"]);
 
+/** ISP-223 (AB#918): the patents, standing and lobbying sections (WARFARE.md, Lawfare), and what each must be. */
+const PATENTS = {
+  minResearchTier: POSITIVE, minChainStage: POSITIVE, filingWindowHours: POSITIVE, filingFee: COUNT, termDays: POSITIVE,
+  royaltyMaxPct: (v) => PCT(v) && v < 100, chainRoyaltyMaxPct: (v) => PCT(v) && v < 100, rateNoticeHours: COUNT, withholdPct: PCT
+};
+const STANDING = { max: POSITIVE, decayPctPerDay: (v) => PCT(v) && v < 100, eaTaxPerPoint: POSITIVE, itcTradePerPoint: POSITIVE, itcFindingPenalty: COUNT };
+const LOBBYING = {
+  openStandingMin: COUNT, openStandingCost: COUNT, pledgeStandingMin: COUNT, creditsPerStandingPoint: COUNT, pledgeHours: POSITIVE,
+  durationDays: POSITIVE, cooldownDays: COUNT, parameters: (v) => v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length > 0
+};
+/** The lobbyable parameters a campaign may move, and the factions that hear it (WARFARE.md, Lawfare). */
+export const LOBBY_PARAMETERS = ["tariffCapPct", "salesTaxPct", "dumpingPriceThresholdPct", "dumpingVolumeThresholdPct"];
+const FACTIONS = ["earth-assembly", "interplanetary-trade-commission"];
+
+/** One lobbyable parameter's problems: its faction, a step and a reach that fit inside its bounds. */
+function lobbyParameterProblems(key, p) {
+  const out = [];
+  const at = `lobbying.parameters.${key}`;
+  if (!LOBBY_PARAMETERS.includes(key)) return [`${at} is not a parameter a campaign may move`];
+  if (!FACTIONS.includes(p?.faction)) out.push(`${at}.faction is ${JSON.stringify(p?.faction)}`);
+  for (const k of ["step", "maxShift", "spendScale"]) if (!(typeof p?.[k] === "number" && p[k] > 0)) out.push(`${at}.${k} must be above 0`);
+  for (const k of ["min", "max"]) if (typeof p?.[k] !== "number") out.push(`${at}.${k} must be a number`);
+  if (out.length) return out;
+  if (!(p.min < p.max)) out.push(`${at}: min (${p.min}) is not below max (${p.max})`);
+  if (p.maxShift > p.max - p.min) out.push(`${at}.maxShift (${p.maxShift}) is wider than its bounds`);
+  if (Math.abs(p.maxShift / p.step - Math.round(p.maxShift / p.step)) > 1e-9) out.push(`${at}.maxShift (${p.maxShift}) is not a whole number of ${p.step} steps`);
+  return out;
+}
+
 /** A section's missing and invalid keys, as sentences. */
 function sectionProblems(name, section, spec) {
   const out = [];
@@ -121,6 +150,20 @@ export function warfareSchemaProblems(c) {
       if (!PCT(r?.tariffCapPct)) continue;
       if (PCT(maxPct) && r.tariffCapPct > maxPct) out.push(`${id}'s tariffCapPct (${r.tariffCapPct}%) is above tariffs.maxPct (${maxPct}%)`);
       if (TARIFFS.stepPct(stepPct) && Math.abs(r.tariffCapPct / stepPct - Math.round(r.tariffCapPct / stepPct)) > 1e-9) out.push(`${id}'s tariffCapPct (${r.tariffCapPct}%) is not a whole number of ${stepPct}-point steps`);
+    }
+  }
+  // ISP-223 (AB#918): patents, standing and lobbying; a lobbied tariff cap stays inside tariffs.maxPct, and each
+  // dumping line's base is inside the bounds a campaign may move it within.
+  if (c.patents) out.push(...sectionProblems("patents", c.patents, PATENTS).filter((p) => !p.startsWith("patents.royaltyMaxPct is ")));
+  if (c.standing) out.push(...sectionProblems("standing", c.standing, STANDING));
+  if (c.lobbying) {
+    out.push(...sectionProblems("lobbying", c.lobbying, LOBBYING));
+    for (const [key, p] of Object.entries(c.lobbying.parameters || {})) out.push(...lobbyParameterProblems(key, p));
+    const params = c.lobbying.parameters || {};
+    if (params.tariffCapPct && PCT(c.tariffs?.maxPct) && params.tariffCapPct.max > c.tariffs.maxPct) out.push(`lobbying.parameters.tariffCapPct.max (${params.tariffCapPct.max}) is above tariffs.maxPct (${c.tariffs.maxPct})`);
+    for (const [key, base] of [["dumpingPriceThresholdPct", c.dumping?.priceThresholdPct], ["dumpingVolumeThresholdPct", c.dumping?.volumeThresholdPct]]) {
+      const p = params[key];
+      if (p && typeof base === "number" && !(base >= p.min && base <= p.max)) out.push(`lobbying.parameters.${key}: the base ${base} is outside ${p.min} to ${p.max}`);
     }
   }
   if (c.dumping) {

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { CLAIM_TYPES, MAX_TARIFF_PCT, WARFARE_CATALOG, concessionTermsFor, readSystemIds, readWarfareCatalog, warfareReferenceProblems, warfareSchemaProblems } from "../../server/warfare.js";
+import { CLAIM_TYPES, LOBBY_PARAMETERS, MAX_TARIFF_PCT, WARFARE_CATALOG, concessionTermsFor, readSystemIds, readWarfareCatalog, warfareReferenceProblems, warfareSchemaProblems } from "../../server/warfare.js";
 
 // ISP-225 (AB#920): data/warfare.json is docs/design/TERRITORY.md's numbers (AB#916), checked three ways: against the
 // design, value for value and row for row; against its own schema and bounds; and against data/systems.json, the
@@ -130,7 +130,7 @@ describe("the catalog's schema and bounds (AB#920)", () => {
   it("holds the later sections to their bounds once they exist: a royalty below 100%, a tariff at most 25%", () => {
     expect(warfareSchemaProblems({ ...copy(), patents: { royaltyMaxPct: 100 } })).toContain("patents.royaltyMaxPct is 100; it must be below 100%");
     expect(warfareSchemaProblems({ ...copy(), tariffs: { maxPct: 26 } })).toContain("tariffs.maxPct is 26; it must be at most 25%");
-    expect(warfareSchemaProblems({ ...copy(), patents: { royaltyMaxPct: 40 }, tariffs: { ...C.tariffs, maxPct: 10 } })).toEqual([]);
+    expect(warfareSchemaProblems({ ...copy(), patents: { ...C.patents, royaltyMaxPct: 40 }, tariffs: { ...C.tariffs, maxPct: 10 } })).toEqual([]); // AB#918: the whole section
   });
 });
 
@@ -231,4 +231,61 @@ describe("the server refuses to start on a catalog it cannot use (fails closed, 
     expect(out).toMatch(/data\/warfare\.json cannot be used \(AB#920\)/);
     expect(out).not.toMatch(/listening/i);
   }, 30_000);
+});
+
+// ISP-223 (AB#918): the patents, standing and lobbying sections are WARFARE.md's Lawfare number table, and the lobbyable
+// parameters its lobbying table; the worked example's pulls follow from the curve and the catalog's spend scale.
+const LAWFARE = WARFARE.slice(WARFARE.indexOf("## Lawfare"));
+const LAWFARE_TABLE = [...LAWFARE.matchAll(/^\| `(patents|standing|lobbying)\.([A-Za-z]+)` \| ([^|]+) \| ([^|]+) \|$/gm)].map((m) => [m[1], m[2], m[3].trim()]);
+const PARAM_TABLE = [...LAWFARE.matchAll(/^\| `([A-Za-z]+)` \([^)]*\) \| (Earth Assembly|ITC) \| [^|]+ \| ([\d.]+) \| ([\d.]+) \| (\d+) to (?:`[^`]+` \()?(\d+)\)? \| ([\d,]+) \|$/gm)]
+  .map((m) => ({ key: m[1], faction: m[2] === "ITC" ? "interplanetary-trade-commission" : "earth-assembly", step: num(m[3]), maxShift: num(m[4]), min: num(m[5]), max: num(m[6]), spendScale: num(m[7]) }));
+const ECONOMY_DATA = JSON.parse(fs.readFileSync(new URL("../../data/economy.json", import.meta.url), "utf8"));
+
+describe("the patents, standing and lobbying sections hold WARFARE.md's numbers (ISP-223, AB#918)", () => {
+  it("has every key the Lawfare number table lists, with the same value, and no key the table lacks", () => {
+    expect(LAWFARE_TABLE.length).toBe(21);
+    for (const [section, key, value] of LAWFARE_TABLE) expect(C[section][key], `${section}.${key}`).toBe(num(value));
+    for (const section of ["patents", "standing"]) {
+      expect(Object.keys(C[section]).sort(), section).toEqual(LAWFARE_TABLE.filter((r) => r[0] === section).map((r) => r[1]).sort());
+    }
+    expect(Object.keys(C.lobbying).filter((k) => k !== "parameters").sort()).toEqual(LAWFARE_TABLE.filter((r) => r[0] === "lobbying").map((r) => r[1]).sort());
+  });
+
+  it("has the lobbying table's four parameters, each as the table gives it, and every base inside its bounds", () => {
+    expect(PARAM_TABLE.map((p) => p.key)).toEqual(LOBBY_PARAMETERS);
+    for (const { key, ...p } of PARAM_TABLE) expect(C.lobbying.parameters[key], key).toEqual(p);
+    const P = C.lobbying.parameters;
+    expect(P.tariffCapPct.max).toBe(C.tariffs.maxPct);
+    expect(ECONOMY_DATA.exchange.salesTaxPct).toBeGreaterThanOrEqual(P.salesTaxPct.min);
+    expect(ECONOMY_DATA.exchange.salesTaxPct).toBeLessThanOrEqual(P.salesTaxPct.max);
+    for (const cap of Object.values(C.systemRules).map((r) => r.tariffCapPct)) expect(cap >= P.tariffCapPct.min && cap <= P.tariffCapPct.max, String(cap)).toBe(true);
+    expect(C.patents.royaltyMaxPct).toBeLessThan(100); // AB#920's bound
+  });
+
+  it("the worked example's pulls are the curve's, E = M(1 - e^(-I/K)), at the tariff cap's K", () => {
+    const rows = [...LAWFARE.matchAll(/^\| (?:\*\*)?([\d,]+)(?:\*\*)? \| ([\d.]+) \| ([\d.]+) \| [\d.]+% \|/gm)].map((m) => [num(m[1]), num(m[2]), num(m[3])]);
+    expect(rows.length).toBe(8);
+    const { maxShift: M, spendScale: K, step } = C.lobbying.parameters.tariffCapPct;
+    for (const [spend, pull, cap] of rows) {
+      expect(pull, String(spend)).toBeCloseTo(M * (1 - Math.exp(-spend / K)), 3);
+      expect(cap, String(spend)).toBe(3 + Math.floor(pull / step + 1e-9) * step); // Alpha Centauri's 3%, rounded down to a step
+    }
+  });
+
+  it("fails on a missing key, a royalty at 100%, a parameter nobody may lobby, a reach wider than its bounds, and a cap above the ceiling", () => {
+    const c = copy();
+    delete c.patents.termDays;
+    c.patents.chainRoyaltyMaxPct = 100;
+    c.lobbying.parameters.landingFee = { faction: "earth-assembly", step: 1, maxShift: 1, min: 0, max: 2, spendScale: 1 };
+    c.lobbying.parameters.salesTaxPct.maxShift = 5;
+    c.lobbying.parameters.tariffCapPct.max = 6;
+    c.lobbying.parameters.dumpingPriceThresholdPct.min = 90;
+    const p = warfareSchemaProblems(c);
+    expect(p).toContain("patents.termDays is missing");
+    expect(p).toContain("patents.chainRoyaltyMaxPct is 100, which is not a valid value");
+    expect(p).toContain("lobbying.parameters.landingFee is not a parameter a campaign may move");
+    expect(p).toContain("lobbying.parameters.salesTaxPct.maxShift (5) is wider than its bounds");
+    expect(p).toContain("lobbying.parameters.tariffCapPct.max (6) is above tariffs.maxPct (5)");
+    expect(p).toContain("lobbying.parameters.dumpingPriceThresholdPct: the base 85 is outside 90 to 95");
+  });
 });
