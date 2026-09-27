@@ -6,6 +6,7 @@ import { applyMiningOperations, getStationInventory } from "./gameState.js";
 import { applyAsteroidExpeditions, EXPEDITION_DURATIONS, PROBE_ASSET_VALUE } from "./gameState.js";
 // Bug #1097: payroll is settled on this same 5-second tick, for every account, online or not.
 import { settleAccountPayroll } from "./gameState.js";
+import { settleAccountUpkeep } from "./upkeep.js"; // ISP-173 (AB#867)
 // The R&D schedule lives in public/scripts/rndQueue.js, which the R&D panel reads too; imported here beside its use
 // (Bug #1258), away from the import block other branches edit.
 import { scheduleRndQueue, rndItemStatus } from "../public/scripts/rndQueue.js"; // Bug #1258
@@ -67,6 +68,7 @@ function miningTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
     settleAccountPayroll(accountId, now);
+    settleAccountUpkeep(accountId, now); // ISP-173 (AB#867): after wages, so staff are paid first
     mutateAccountState(accountId, (state) => {
       if (state && state.corp) {
         applyMiningOperations(state.corp, now);

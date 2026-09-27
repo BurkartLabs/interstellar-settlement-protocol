@@ -132,7 +132,8 @@ describe("corp.military in the catalog's terms (AB#861)", () => {
       units: { lf: 14, ds: 2, se: 0, at: 0, dt: 0 },
       modifiers: { rdBonusPct: 5, ceoLeadershipPct: 3 },
       power: { attack: 14 * UNITS.lf.attack + 2 * UNITS.ds.attack, defense: 14 * UNITS.lf.hp + 2 * UNITS.ds.hp },
-      garrisons: {} // ISP-172 (AB#866)
+      garrisons: {}, // ISP-172 (AB#866)
+      readiness: 100 // ISP-173 (AB#867)
     });
     expect(ensureCorpMilitary(corp)).toBe(false); // its own output changes nothing
   });

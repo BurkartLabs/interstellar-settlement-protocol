@@ -95,6 +95,10 @@ export const SHIP_UNIT_IDS = Object.freeze(UNIT_IDS.filter((id) => UNITS[id].bui
 /** The units trained at Headquarters: the troops (ISP-172, AB#866). */
 export const TROOP_UNIT_IDS = Object.freeze(UNIT_IDS.filter((id) => UNITS[id].builtAt === "headquarters"));
 
+/** Readiness, in points: full, and the floor unpaid upkeep lowers it to (ISP-173, AB#867; design section 7). */
+export const READINESS_FULL = 100;
+export const READINESS_FLOOR = 40;
+
 /** The legacy corp.military counters (before v0.10) and the unit each one is. */
 export const LEGACY_MILITARY_FIELDS = Object.freeze({ lightFighters: "lf", destroyers: "ds", siegeEngines: "se" });
 
@@ -129,7 +133,10 @@ export function ensureCorpMilitary(corp) {
   // ISP-172 (AB#866): where each station's defense troops stand, by station id; whole numbers above 0 only
   const garrisons = Object.fromEntries(Object.entries(m.garrisons && typeof m.garrisons === "object" ? m.garrisons : {})
     .map(([station, n]) => [station, Math.floor(Number(n) || 0)]).filter(([, n]) => n > 0));
-  corp.military = { units: clean, modifiers, power: militaryPower(clean), garrisons };
+  // ISP-173 (AB#867): readiness, 40 to 100, and the upkeep clock, kept as they are
+  const r = Number(m.readiness);
+  const readiness = Number.isFinite(r) ? Math.min(READINESS_FULL, Math.max(READINESS_FLOOR, r)) : READINESS_FULL;
+  corp.military = { units: clean, modifiers, power: militaryPower(clean), garrisons, readiness, ...(m.upkeep && typeof m.upkeep === "object" ? { upkeep: m.upkeep } : {}) };
   return JSON.stringify(corp.military) !== before;
 }
 
