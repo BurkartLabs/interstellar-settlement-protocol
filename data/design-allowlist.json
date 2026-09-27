@@ -848,6 +848,24 @@
       "where": "public/index.html:1206"
     },
     {
+      "file": "public/scripts/arbitrationCouncil.js",
+      "key": "class: gac-case__status",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/arbitrationCouncil.js:198 (AB#939, merged while AB#942 was open)"
+    },
+    {
+      "file": "public/scripts/arbitrationCouncil.js",
+      "key": "class: gac-docket__parties",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/arbitrationCouncil.js:235 (AB#939, merged while AB#942 was open)"
+    },
+    {
+      "file": "public/scripts/arbitrationCouncil.js",
+      "key": "class: gac-preview__evidence",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/arbitrationCouncil.js:163 (AB#939, merged while AB#942 was open)"
+    },
+    {
       "file": "public/scripts/concessionOverlay.js",
       "key": "class: concession-petitions",
       "story": "ISP-252 (AB#948)",

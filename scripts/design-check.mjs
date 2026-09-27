@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // ISP-246 (AB#942): the design-system check. No bundler (README: no build step); plain reads of the public files. It fails
 // on four kinds of drift from ISP-25's design system (docs/design/BUREAUCRATIC_UI.md and VISUAL.md sit on top of it):
 //   literal  a colour, font size, spacing, radius or z-index written as a value outside the token block
