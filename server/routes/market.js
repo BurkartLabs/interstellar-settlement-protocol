@@ -22,6 +22,7 @@ import { cancelBuyOrder, matchListing, placeBuyOrder } from "../buyOrders.js"; /
 import { paySeller, takeFromListing, tellSeller } from "../marketSettlement.js";
 import { chargeTariff, tariffRateFor } from "../tariffService.js"; // ISP-230 (AB#925)
 import { watchView, withholdDuty } from "../itcService.js"; // ISP-232 (AB#927); ISP-233 (AB#928): the watch's view
+import { withholdRoyaltyDebt } from "../patents.js"; // ISP-236 (AB#931)
 import { buyOrderView } from "../publicViews.js";
 import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
@@ -353,6 +354,7 @@ export function registerMarketRoutes(app) {
     let tradeTariff = { pct: 0, amount: 0 };
     let tradeWithheld = 0;
     let tradeProceeds = tradeTotal;
+    let tradeRoyaltyWithheld = 0; // ISP-236 (AB#931)
     let royaltyPaid = 0, saleStationId = null; // ISP-228 (AB#923): the concession holder's share, paid once the seller is saved
 
     const seller = mutateAccountState(req.auth.accountId, (state) => {
@@ -382,7 +384,9 @@ export function registerMarketRoutes(app) {
       recordSale(state.corp, npcStationId, tradeTotal); // ISP-217 (AB#912): an NPC buyer is never a partner
       tradeTariff = chargeTariff(state.corp, { stationId: npcStationId, base: tradeTotal }); // ISP-230 (AB#925)
       tradeWithheld = withholdDuty(state.corp, sellerProceeds - tradeTariff.amount); // ISP-232 (AB#927): toward ITC duty owed
-      tradeProceeds = sellerProceeds - tradeTariff.amount - tradeWithheld;
+      // ISP-236 (AB#931): then royalty owed on others' patents takes its share of what is left after the duty
+      tradeRoyaltyWithheld = withholdRoyaltyDebt(state.corp, sellerProceeds - tradeTariff.amount - tradeWithheld);
+      tradeProceeds = sellerProceeds - tradeTariff.amount - tradeWithheld - tradeRoyaltyWithheld;
 
       if (!state.corp.stats) state.corp.stats = {};
       state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
@@ -399,6 +403,7 @@ export function registerMarketRoutes(app) {
         taxAmount,
         ...(tradeTariff.amount ? { tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount } : {}),
         ...(tradeWithheld ? { dutyWithheld: tradeWithheld } : {}),
+        ...(tradeRoyaltyWithheld ? { royaltyWithheld: tradeRoyaltyWithheld } : {}),
         proceeds: tradeProceeds,
         counterparty: npcOrder.buyer,
         at: Date.now()
