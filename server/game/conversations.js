@@ -242,7 +242,9 @@ export function listConversations(accountId, { cursor, limit, archived = false }
   const page = start < 0 ? [] : rows.slice(start, start + n);
   const more = start >= 0 && start + n < rows.length;
   const last = page[page.length - 1];
-  return { conversations: page.map(conversationView), nextCursor: more && last ? encodeCursor([last.lastMessageAt, last.conversationId]) : null };
+  // AB#911: the Inbox tab's count is every unread message, not only the page returned
+  const unreadTotal = Object.values(loadInbox(accountId)).reduce((n, m) => n + (m.archived ? 0 : m.unread || 0), 0);
+  return { conversations: page.map(conversationView), nextCursor: more && last ? encodeCursor([last.lastMessageAt, last.conversationId]) : null, unreadTotal };
 }
 
 /** The member row for this account in this conversation, or null when it is not one of the two. */
@@ -301,6 +303,20 @@ export function recordLegacyMessage(m) {
     console.warn("[conversations] the old mail's copy could not be written; migrate-mail will copy it:", error?.message || error);
     return false;
   }
+}
+
+/**
+ * AB#911: the Inbox reads player mail from conversations now, so the mail sent before AB#910 is copied in once, when the
+ * server starts, rather than waiting for someone to run scripts/migrate-mail.mjs. A marker in data/messages records that
+ * it ran (and its counts); it is idempotent anyway, so a lost marker only costs one more pass.
+ */
+export function migrateLegacyMailOnce(store = accountsStore) {
+  const marker = path.join(messagesDir(), ".legacy-mail-migrated.json");
+  if (io.read(marker)) return null;
+  const report = migrateLegacyMail(store);
+  // Nothing to copy (a new install, or a test's empty data directory) leaves the directory as it was; the scan is cheap.
+  if (report.messages) io.write(marker, JSON.stringify({ at: new Date().toISOString(), ...report }));
+  return report;
 }
 
 // ─── The old mail, into conversations ────────────────────────────────────────

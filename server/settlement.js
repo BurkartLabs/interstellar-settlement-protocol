@@ -34,11 +34,14 @@ import { applyCredits } from "./finances.js";
 
 /** Why credits may move. Anything else is refused. */
 export const REASONS = Object.freeze([
-  "loan-disbursal", "loan-repayment", "bond-subscription", "coupon", "dividend", "share-purchase", "escrow-hold", "escrow-release", "fee"
+  "loan-disbursal", "loan-repayment", "bond-subscription", "coupon", "dividend", "share-purchase", "escrow-hold", "escrow-release", "fee",
+  "loan-interest" // ISP-150 (AB#844): a loan's interest, apart from its principal (docs/design/v0.9-debt.md, sections 2 and 9)
 ]);
 
 /** The named sinks: credits paid into one leave the money supply, counted. */
-export const SINKS = Object.freeze(["fee"]);
+export const SINKS = Object.freeze(["fee", "loan-interest"]);
+/** Which sink each reason may pay into: a fee is never booked as interest, nor interest as a fee (AB#844). */
+const SINK_FOR = { fee: "fee", "loan-interest": "loan-interest" };
 
 /** The named taps: an NPC lender's account, which creates what it pays out (AB#843: the Development Bank). */
 export const TAPS = Object.freeze(["dsdb"]);
@@ -57,7 +60,9 @@ const SHAPES = {
   fee: [["corp", "sink"]],
   // AB#843: a loan is disbursed by a player lender or by an NPC lender's tap, and repaid to the one that lent it
   "loan-disbursal": [["corp", "corp"], ["tap", "corp"]],
-  "loan-repayment": [["corp", "corp"], ["corp", "tap"]]
+  "loan-repayment": [["corp", "corp"], ["corp", "tap"]],
+  // AB#844: an NPC loan's interest is destroyed, counted in its sink; a player lender's is paid to the lender
+  "loan-interest": [["corp", "sink"], ["corp", "corp"]]
 };
 const shapesOf = (reason) => SHAPES[reason] ?? [["corp", "corp"]];
 
@@ -145,6 +150,7 @@ export function settleTransfer({ fromAccountId, toAccountId, credits, reason, id
   if (!shapes.some(([f, t]) => from.kind === f && to.kind === t)) {
     return refuse(`${reason} moves credits ${shapes.map(([f, t]) => `from a ${f} to a ${t}`).join(" or ")}`);
   }
+  if (to.kind === "sink" && SINK_FOR[reason] !== to.name) return refuse(`${reason} is not paid into sink:${to.name}`);
   if (balanceOf(from) < credits) return refuse("the payer does not have the credits");
 
   // The debit, checked again inside the mutation: settling a corporation's mining first can change its balance.

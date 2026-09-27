@@ -25,6 +25,7 @@ const OUT_OF_SCOPE = {
   "GET /how-to-start": "a static page, with no input (AB#748)",
   "GET /api/bootstrap": "a public read with no input",
   "GET /api/corporations/:corpId/credit-rating": "a read; its one input, a public corporation id, is only ever compared with existing ids (AB#842)",
+  "GET /api/conglomerates": "a read with no input: the public directory (ISP-197, AB#891)",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
   "GET /api/buildings": "a static catalog",
@@ -110,6 +111,12 @@ const BASELINE = {
   "/api/accounts/:accountId": {
     "POST /notifications/:notificationId/read": { params: { notificationId: "n-732" } },
     "GET /corporations": { query: { name: "Frontier" } },
+    "POST /conglomerates": { body: { name: "Baseline Frontier Group", emblem: 1, colour: 1 } },
+    "POST /conglomerates/:conglomerateId/invitations": { params: { conglomerateId: "cgl-732" }, body: { corpId: "corp-732" } },
+    "POST /conglomerates/:conglomerateId/invitations/:invitationId/:answer": { params: { conglomerateId: "cgl-732", invitationId: "cinv-732", answer: "accept" } },
+    "POST /conglomerates/:conglomerateId/applications": { params: { conglomerateId: "cgl-732" } },
+    "POST /conglomerates/:conglomerateId/applications/:applicationId/:answer": { params: { conglomerateId: "cgl-732", applicationId: "capp-732", answer: "decline" } },
+    "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: "cgl-732" } },
     "GET /finances/statements": { query: { days: "7" } },
     "POST /messages/send": { body: { toCorpName: "Frontier", subject: "s", body: "b" } },
     "POST /messages/draft": { body: { subject: "s", body: "b" } },
@@ -121,7 +128,8 @@ const BASELINE = {
     "POST /messages/:messageId/read": { params: { messageId: "m-732" } },
     "POST /messages/:messageId/move": { params: { messageId: "m-732" }, body: { folder: "archive" } },
     "POST /loans/quote": { body: { productId: "dsdb-90", principal: 5000 } }, // ISP-149 (AB#843): a quote changes nothing
-    "POST /loans/accept": { body: { quoteId: "lq-732" } } // no such quote: refused, nothing lent
+    "POST /loans/accept": { body: { quoteId: "lq-732" } }, // no such quote: refused, nothing lent
+    "POST /loans/:loanId/payoff": { params: { loanId: "loan-732" } } // no such loan: 404, nothing taken
   },
   "/api/market": {
     "POST /orders": { body: { type: "sell", item: "Silicates", quantity: 1, unitPrice: 30 } },

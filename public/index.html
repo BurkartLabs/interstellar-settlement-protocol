@@ -1093,6 +1093,9 @@
 
             <div id="inbox-list-view" role="tabpanel" aria-label="Messages">
               <ul id="inbox-message-list" class="inbox__messages"></ul>
+              <!-- AB#911: the Players tab lists conversations, 30 at a time. -->
+              <ul id="inbox-conversation-list" class="inbox__messages" hidden></ul>
+              <button class="ui-button ui-button--secondary" id="inbox-conversation-more" type="button" hidden>Load more conversations</button>
               <p id="inbox-empty-notice" class="ui-state" role="status" hidden>No messages here.</p>
             </div>
 
@@ -1117,6 +1120,24 @@
               </article>
             </div>
 
+            <!-- AB#911: one conversation. It opens on its latest page; scrolling up loads older ones. -->
+            <div id="inbox-thread-view" class="ui-stack" hidden>
+              <button class="ui-button ui-button--ghost inbox__back" id="inbox-thread-back-btn" type="button">&#8592; Back</button>
+              <section class="ui-panel thread" aria-labelledby="thread-title">
+                <header class="ui-panel__header"><h3 class="ui-panel__title" id="thread-title"></h3></header>
+                <div class="thread__scroll" id="thread-scroll" tabindex="0" aria-label="Messages">
+                  <p class="thread__older" id="thread-older-status" aria-live="polite"></p>
+                  <ul class="thread__messages" id="thread-messages"></ul>
+                </div>
+                <form class="thread__reply" id="thread-reply-form" autocomplete="off">
+                  <label class="ui-field__label" for="thread-reply-body">Reply</label>
+                  <textarea class="ui-input ui-textarea" id="thread-reply-body" rows="3" maxlength="8000" placeholder="Write a reply… (Ctrl+Enter sends)"></textarea>
+                  <div class="inbox__actions"><button type="submit" class="ui-button ui-button--primary">Send</button></div>
+                  <p class="ui-screen__meta" id="thread-status" aria-live="polite"></p>
+                </form>
+              </section>
+            </div>
+
             <!-- Writing a message. -->
             <div id="inbox-compose-view" class="ui-stack" hidden>
               <button class="ui-button ui-button--ghost inbox__back" id="inbox-compose-back-btn" type="button">&#8592; Back</button>
@@ -1126,14 +1147,11 @@
                   <input type="hidden" id="compose-draft-id" value="" />
                   <input type="hidden" id="compose-to-id" value="" />
                   <div class="ui-field">
-                    <label class="ui-field__label" for="compose-to">To (Corporation Name)</label>
-                    <input class="ui-input" type="text" id="compose-to" placeholder="Exact corporation name…" required />
+                    <label class="ui-field__label" for="compose-to">To (any corporation)</label>
+                    <input class="ui-input" type="text" id="compose-to" placeholder="Corporation name…" required />
                   </div>
                   <div id="compose-candidates" class="inbox__candidates" hidden></div>
-                  <div class="ui-field">
-                    <label class="ui-field__label" for="compose-subject">Subject</label>
-                    <input class="ui-input" type="text" id="compose-subject" placeholder="Subject…" maxlength="200" required />
-                  </div>
+                  <input type="hidden" id="compose-subject" value="" />
                   <div class="ui-field">
                     <label class="ui-field__label" for="compose-body">Message</label>
                     <textarea class="ui-input ui-textarea" id="compose-body" rows="10" maxlength="8000" placeholder="Write your message…" required></textarea>

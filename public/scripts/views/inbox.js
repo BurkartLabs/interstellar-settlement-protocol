@@ -8,11 +8,21 @@ import { formatInboxDate } from "../helpers.js";
 import { escapeHtml, messageListItemsHtml } from "../html.js";
 import { appState } from "../state.js";
 import { pushFeedback } from "./shared.js";
+import { convState, setConversationHooks, loadConversations, renderConversationList, sendNew, sendInThread, onThreadScroll, closeConversation } from "./conversations.js"; // AB#911
+
+// AB#911: the Players tab is conversations. The module tells the Inbox when its counts change and asks it to switch view.
+setConversationHooks({
+  onChange: () => { updateInboxSubtabBadges(); if (playersListShown()) renderConversationList(); },
+  show: (view) => showInboxView(view),
+  formatDate: (t) => formatInboxDate(t)
+});
+const playersListShown = () => appState.inbox.folder === "inbox" && appState.inbox.subtype === "players" && !document.getElementById("inbox-list-view")?.hidden;
 
 // ─── Inbox ────────────────────────────────────────────────────────────────────
 
 export async function loadMessages() {
   if (!appState.accountId) return;
+  loadConversations().catch(() => {}); // AB#911: the Players tab and its unread count
   try {
     const res = await apiFetch(`/api/accounts/${appState.accountId}/messages`);
     const data = await res.json();
@@ -25,7 +35,7 @@ export async function loadMessages() {
       // official subtab.
       if (!appState.inbox.subtypeChosenByUser && appState.inbox.folder === "inbox") {
         const inboxMsgs = data.messages.filter((m) => m.folder === "inbox");
-        const unreadPlayer = inboxMsgs.some((m) => m.fromType === "player" && !m.readAt);
+        const unreadPlayer = convState.unreadTotal > 0 || inboxMsgs.some((m) => m.fromType === "player" && !m.readAt);
         const unreadOfficial = inboxMsgs.some((m) => (m.fromType === "system" || m.fromType === "npc") && !m.readAt);
         if (unreadPlayer && !unreadOfficial) {
           appState.inbox.subtype = "players";
@@ -46,7 +56,8 @@ export function updateInboxSubtabBadges() {
   const msgs = (appState.inbox.messages || []).filter((m) => m.folder === "inbox");
   const counts = {
     official: msgs.filter((m) => (m.fromType === "system" || m.fromType === "npc") && !m.readAt).length,
-    players: msgs.filter((m) => m.fromType === "player" && !m.readAt).length
+    // AB#911: player mail is conversations now; the count covers every conversation, not only the page held
+    players: convState.unreadTotal
   };
   document.querySelectorAll("#inbox-subtab-nav [data-subtype]").forEach((btn) => {
     const subtype = btn.dataset.subtype;
@@ -91,6 +102,15 @@ export function renderInboxMessageList() {
   const list = document.getElementById("inbox-message-list");
   const emptyNotice = document.getElementById("inbox-empty-notice");
   if (!list || !emptyNotice) return;
+
+  // AB#911: the Players tab lists conversations, not single messages.
+  const players = appState.inbox.folder === "inbox" && appState.inbox.subtype === "players";
+  list.hidden = players;
+  const convList = document.getElementById("inbox-conversation-list");
+  if (convList) convList.hidden = !players;
+  const more = document.getElementById("inbox-conversation-more");
+  if (more && !players) more.hidden = true;
+  if (players) { renderConversationList(); return; }
 
   const msgs = inboxMsgsForView();
   if (!msgs.length) {
@@ -178,8 +198,10 @@ export function syncComposeDraftControls() {
 }
 
 export function showInboxView(view) {
-  // view: "list" | "detail" | "compose"
+  // view: "list" | "detail" | "compose" | "thread" (AB#911)
   document.getElementById("inbox-list-view").hidden = !(view === "list");
+  const thread = document.getElementById("inbox-thread-view");
+  if (thread) thread.hidden = !(view === "thread");
   document.getElementById("inbox-detail-view").hidden = !(view === "detail");
   document.getElementById("inbox-compose-view").hidden = !(view === "compose");
   const subtabNav = document.getElementById("inbox-subtab-nav");
@@ -222,6 +244,24 @@ export function bindInboxControls() {
     appState.inbox.openMessageId = null;
     renderInboxMessageList(); // Bug #1136: the message just read is no longer marked unread
   });
+  // AB#911: a thread's Back, Load more conversations, older pages on scroll, and the reply box.
+  document.getElementById("inbox-thread-back-btn")?.addEventListener("click", () => {
+    closeConversation();
+    showInboxView("list");
+    renderInboxMessageList();
+    loadConversations();
+  });
+  document.getElementById("inbox-conversation-more")?.addEventListener("click", () => loadConversations({ more: true }));
+  document.getElementById("thread-scroll")?.addEventListener("scroll", onThreadScroll);
+  document.getElementById("thread-reply-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const box = document.getElementById("thread-reply-body");
+    if (await sendInThread(box.value)) box.value = "";
+  });
+  document.getElementById("thread-reply-body")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); document.getElementById("thread-reply-form")?.requestSubmit(); }
+  });
+
   document.getElementById("inbox-compose-back-btn")?.addEventListener("click", () => {
     appState.inbox.composeDraftId = null;
     syncComposeDraftControls();
@@ -284,38 +324,29 @@ export function bindInboxControls() {
   composeForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const status = document.getElementById("compose-status");
+    const text = document.getElementById("compose-body").value.trim();
+    if (!text) { status.textContent = "Write a message first."; return; }
     status.textContent = "Sending…";
-    const body = {
-      toCorpId: document.getElementById("compose-to-id").value.trim() || undefined,
-      toCorpName: document.getElementById("compose-to").value.trim(),
-      subject: document.getElementById("compose-subject").value.trim(),
-      body: document.getElementById("compose-body").value.trim()
-    };
-    const draftId = document.getElementById("compose-draft-id").value.trim();
-    if (draftId) body.draftId = draftId;
     try {
-      const res = await apiFetch(`/api/accounts/${appState.accountId}/messages/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json();
-      if (data.error) {
-        status.textContent = data.error;
-        // Bug #711: several corporations share the name. Nothing was sent; the player picks which one they mean.
-        if (Array.isArray(data.candidates)) showComposeCandidates(data.candidates);
-        return;
+      // AB#911: a message goes to a corporation by its publicId. A typed name is looked up; if several corporations
+      // share it, nothing is sent and the player picks which one they mean (Bug #711).
+      let toCorpId = document.getElementById("compose-to-id").value.trim();
+      if (!toCorpId) {
+        const picked = await recipientByName(document.getElementById("compose-to").value);
+        if (picked.error) { status.textContent = picked.error; if (picked.candidates) showComposeCandidates(picked.candidates); return; }
+        toCorpId = picked.publicId;
       }
-      appState.inbox.messages = data.messages;
-      appState.inbox.folder = "sent";
+      const draftId = document.getElementById("compose-draft-id").value.trim();
+      showPlayersTab();
+      const sent = await sendNew(toCorpId, text);
+      if (sent.error) { showInboxView("compose"); status.textContent = sent.error; return; }
+      if (draftId) {
+        apiFetch(`/api/accounts/${appState.accountId}/messages/draft/${encodeURIComponent(draftId)}`, { method: "DELETE" }).catch(() => {});
+        appState.inbox.messages = appState.inbox.messages.filter((m) => m.id !== draftId);
+      }
       appState.inbox.composeDraftId = null;
       syncComposeDraftControls();
-      document.querySelectorAll("#inbox-folders [data-folder]").forEach((b) => {
-        b.setAttribute("aria-selected", String(b.dataset.folder === "sent"));
-      });
-      status.textContent = `Sent to ${data.toName}.`;
-      showInboxView("list");
-      renderInboxMessageList();
+      status.textContent = "";
     } catch (err) {
       status.textContent = `Error: ${err.message}`;
     }
@@ -356,6 +387,30 @@ export function bindInboxControls() {
       status.textContent = `Error: ${err.message}`;
     }
   });
+}
+
+/** AB#911: the Inbox folder's Players tab, where a sent message's thread belongs. */
+function showPlayersTab() {
+  appState.inbox.folder = "inbox";
+  appState.inbox.subtype = "players";
+  appState.inbox.subtypeChosenByUser = true;
+  document.querySelectorAll("#inbox-folders [data-folder]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.folder === "inbox")));
+  document.querySelectorAll("#inbox-subtab-nav [data-subtype]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.subtype === "players")));
+}
+
+/** A corporation by the name typed in To: exactly one match is it; several are candidates to choose from (Bug #711). */
+export async function recipientByName(typed) {
+  const name = String(typed || "").trim();
+  if (!name) return { error: "Say which corporation the message is for." };
+  const res = await apiFetch(`/api/accounts/${appState.accountId}/corporations?name=${encodeURIComponent(name.slice(0, 64))}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return { error: data.error || "The corporation directory could not be searched." };
+  const all = data.corporations || [];
+  const exact = all.filter((c) => c.corporationName.trim().toLowerCase() === name.toLowerCase());
+  const matches = exact.length ? exact : all;
+  if (matches.length === 1) return { publicId: matches[0].publicId };
+  if (!matches.length) return { error: "No corporation has that name." };
+  return { error: `${matches.length} corporations match that name. Choose which one you mean.`, candidates: matches.slice(0, 10) };
 }
 
 export async function moveCurrentMessage(folder) {
