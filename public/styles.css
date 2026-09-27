@@ -41,6 +41,7 @@
   --success-hover: #86edb8;
   --success-pressed: #45d18a;
   --on-success: #04180d;
+  --station-owned: #c496ff; /* ISP-210 (AB#905): a conglomerate's station on the starmap (public/scripts/starmap.js draws the same) */
 
   /* Behind text laid over station artwork (the Director's note on the mockup: its gradient was lightest where the
      title sat), and behind a modal. */
@@ -4210,7 +4211,7 @@ img.station__body {
   background: var(--warn); /* the map's station diamond is amber */
   transform: rotate(45deg) translateY(-1px);
 }
-.starmap__legend-mark--owned { background: rgb(196, 150, 255); } /* ISP-210 (AB#905): the conglomerate station's violet, as drawn */
+.starmap__legend-mark--owned { background: var(--station-owned); } /* ISP-210 (AB#905): the conglomerate station's violet, as drawn */
 .starmap__overline {
   margin: 0;
   font-size: var(--font-size-1);
