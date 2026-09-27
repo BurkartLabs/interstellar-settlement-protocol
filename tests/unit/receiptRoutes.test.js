@@ -56,7 +56,12 @@ const EXEMPT = {
   "/api/accounts/:accountId/gameplay/fleets/:fleetId/split": "divides the player's own fleet; nothing is bought or spent",
   "/api/accounts/:accountId/gameplay/fleets/:fleetId/merge": "joins two of the player's own fleets; nothing is bought or spent",
   "/api/accounts/:accountId/gameplay/fleets/:fleetId/deploy": "moves the player's own fleet; travel costs nothing",
-  "/api/accounts/:accountId/gameplay/fleets/:fleetId/disband": "returns a fleet's units to the reserve; nothing is sold or refunded"
+  "/api/accounts/:accountId/gameplay/fleets/:fleetId/disband": "returns a fleet's units to the reserve; nothing is sold or refunded",
+  // ISP-176 (AB#870): no page calls these yet. The Mercenary Rentals screen (ISP-177, AB#871) is theirs, and maps the
+  // hire, which holds credits, to its receipt when it lands; offering and withdrawing move no credits at all.
+  "/api/accounts/:accountId/gameplay/mercenaries/offer": "puts the player's own fleet under an offer; no credits move",
+  "/api/accounts/:accountId/gameplay/mercenaries/:offerId/withdraw": "withdraws the player's own offer; nothing moved, so nothing moves back",
+  "/api/accounts/:accountId/gameplay/mercenaries/:offerId/hire": "no page calls it until ISP-177 (AB#871), which adds its receipt"
 };
 
 /** ISP-94/95: the one build route answers with the receipt of whichever building it built; checked on its own below. */

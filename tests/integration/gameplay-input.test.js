@@ -48,6 +48,10 @@ const BASELINE = {
   "POST /fleets/:fleetId/deploy": { params: { fleetId: "flt-does-not-exist" }, body: { toStationId: "mars-orbital-dock" } },
   "POST /fleets/:fleetId/disband": { params: { fleetId: "flt-does-not-exist" } },
   "GET /fleets/:fleetId/destinations": { params: { fleetId: "flt-does-not-exist" } }, // ISP-175 (AB#869)
+  "GET /mercenaries": {}, // ISP-176 (AB#870)
+  "POST /mercenaries/offer": { body: { fleetId: "flt-does-not-exist", termHours: 24, price: 5000, collateral: 1, allowedUse: "defense" } },
+  "POST /mercenaries/:offerId/withdraw": { params: { offerId: "mo-does-not-exist" } },
+  "POST /mercenaries/:offerId/hire": { params: { offerId: "mo-does-not-exist" } },
   "POST /queue-ceo": { body: { programId: "ceo-negotiation-fundamentals" } }
 };
 

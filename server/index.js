@@ -40,6 +40,7 @@ import { SHIP_IDS } from "./shipyard.js";
 import { registerTrainingRoutes } from "./routes/training.js"; // ISP-172 (AB#866)
 import { TROOP_IDS } from "./training.js";
 import { registerFleetRoutes } from "./routes/fleets.js"; // ISP-174 (AB#868)
+import { registerMercenaryRoutes } from "./routes/mercenaries.js"; // ISP-176 (AB#870)
 import { registerRefiningRoutes } from "./routes/refining.js";
 import { registerConstructionRoutes } from "./routes/construction.js"; // ISP-94 (AB#784)
 import { registerUpgradeRoutes } from "./routes/upgrades.js"; // ISP-101 (AB#793)
@@ -175,6 +176,7 @@ registerAsteroidRoutes(app);
 registerShipyardRoutes(app);
 registerTrainingRoutes(app);
 registerFleetRoutes(app);
+registerMercenaryRoutes(app);
 
 registerRefiningRoutes(app);
 
