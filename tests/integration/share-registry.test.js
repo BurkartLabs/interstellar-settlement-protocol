@@ -138,8 +138,8 @@ describe("ISP-157 the cap table route", () => {
   });
 });
 
-describe("ISP-157 nothing is sold yet", () => {
-  it("no route can move a share: every route naming shares or the cap table only reads, and only the registry module writes one", () => {
+describe("ISP-157 shares move only where ISP-158 moves them", () => {
+  it("the only routes that change shares are the offering's three; only the equity modules write a registry", () => {
     const routes = [];
     for (const layer of app._router.stack) {
       if (!layer.route) continue;
@@ -147,15 +147,20 @@ describe("ISP-157 nothing is sold yet", () => {
     }
     const equity = routes.filter((r) => /share|cap-table|equity|stock/i.test(r));
     expect(equity).toContain("GET /api/corporations/:corpId/cap-table");
-    expect(equity.filter((r) => !r.startsWith("GET "))).toEqual([]);
+    // AB#852: listing, opening an offering and buying in one (server/shareOfferings.js); nothing else
+    expect(equity.filter((r) => !r.startsWith("GET ")).sort()).toEqual([
+      "POST /api/accounts/:accountId/equity/list",
+      "POST /api/accounts/:accountId/equity/offerings",
+      "POST /api/accounts/:accountId/equity/offerings/:offeringId/buy"
+    ]);
 
-    // outside server/shareRegistry.js, the registry is only created (the factory), migrated (the loader) and read
+    // outside the equity modules, the registry is only created (the factory), migrated (the loader) and read
     const writers = [];
     const walk = (dir) => {
       for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
         const p = path.join(dir, e.name);
         if (e.isDirectory()) walk(p);
-        else if (p.endsWith(".js") && !p.endsWith(`${path.sep}shareRegistry.js`)) {
+        else if (p.endsWith(".js") && !p.endsWith(`${path.sep}shareRegistry.js`) && !p.endsWith(`${path.sep}shareOfferings.js`)) {
           for (const line of fs.readFileSync(p, "utf8").split("\n")) {
             if (/shareRegistry\.(holders|founderShares|unissued|authorized|state)\s*(=|\+=|-=|\.push|\.splice)|shareRegistry\s*=(?!=)/.test(line)) writers.push(`${path.relative(ROOT, p).split(path.sep).join("/")}: ${line.trim()}`);
           }

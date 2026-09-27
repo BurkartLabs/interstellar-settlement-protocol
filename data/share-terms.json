@@ -1,6 +1,10 @@
 {
-  "_source": "docs/design/v0.9-equity.md, section 1 (ISP-157, AB#851): every corporation's share registry. tests/integration/share-registry.test.js reads the design's table and this file together.",
+  "_source": "docs/design/v0.9-equity.md, sections 1, 2, 3 and 5 (ISP-157, AB#851; ISP-158, AB#852): every corporation's share registry, the listing gate, offerings and the IGSX market maker's fill. tests/integration/share-registry.test.js and share-offerings.test.js read the design and this file together.",
   "authorized": 100000,
   "founderShares": 10000,
-  "payoutRatioPct": { "min": 0, "max": 80, "step": 5, "default": 25 }
+  "payoutRatioPct": { "min": 0, "max": 80, "step": 5, "default": 25 },
+  "listing": { "minLevel": 15, "grades": ["AAA", "AA", "A", "BBB"], "minStatements": 30, "feePct": 1 },
+  "buyerMinLevel": 8,
+  "offering": { "minQuantity": 100, "maxPctOfOutstanding": 20, "founderFloorPct": 51, "holderCapPct": 20, "feePct": 2, "openDays": 7, "cadenceDays": 30 },
+  "marketMaker": { "id": "igsx-mm", "account": "tap:igsx", "yieldFloorPct": 0.5, "yieldSpanPct": 2, "gradeFactor": { "AAA": 1, "AA": 1, "A": 1, "BBB": 0.75 } }
 }

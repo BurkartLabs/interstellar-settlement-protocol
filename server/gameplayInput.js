@@ -162,6 +162,11 @@ export const ACCOUNT_INPUT = {
       maturityDays: choice(BOND_TERMS.maturityDays, "a maturity of 30, 60 or 90 days")
     }
   },
+  // ISP-158 (AB#852): listing takes nothing; an offering and a purchase take a whole number of shares, never a price
+  "GET /equity/offerings": NOTHING,
+  "POST /equity/list": NOTHING,
+  "POST /equity/offerings": { body: { quantity: int(100, 90_000, "a number of shares to offer, at least 100") } },
+  "POST /equity/offerings/:offeringId/buy": { params: { offeringId: ref("a share offering") }, body: { quantity: int(1, 90_000, "a number of shares") } },
   "POST /bonds/:seriesId/subscribe": { params: { seriesId: ref("a bond series") }, body: { units: int(1, BOND_TERMS.maxQuantity, "a number of units") } },
   // ISP-152 (AB#846): player loan offers. Numbers and enums only; the floor rate and the per-pair cap are the route's too.
   "GET /loan-offers": NOTHING,
