@@ -1,5 +1,5 @@
 {
-  "_comment": "ISP-225 (AB#920): the warfare catalog. Every number in docs/design/TERRITORY.md (AB#916, v0.13-01), under the same key its number table uses; the system rule table (each ownerRule as a rule) and the never-concedable systems. server/warfare.js reads it at startup and the server refuses to start if it is malformed or names a system data/systems.json does not define (T-019). tests/schema/warfare.test.js holds it to the design, value for value. v0.13-02 to 04 (tariffs and dumping, patents and lobbying, arbitration claims: AB#917 to AB#919) add their sections when their designs are written.",
+  "_comment": "ISP-225 (AB#920): the warfare catalog. Every number in docs/design/TERRITORY.md (AB#916, v0.13-01), under the same key its number table uses; the system rule table (each ownerRule as a rule) and the never-concedable systems. server/warfare.js reads it at startup and the server refuses to start if it is malformed or names a system data/systems.json does not define (T-019). tests/schema/warfare.test.js holds it to the design, value for value. v0.13-02 to 04 (tariffs and dumping, patents and lobbying, arbitration claims: AB#917 to AB#919) add their sections when their designs are written. tariffs and dumping: docs/design/WARFARE.md, ISP-222 (AB#917).",
   "concessionGrantPct": 40,
   "concessionLeadRatio": 1.5,
   "concessionEligibleDays": 14,
@@ -16,6 +16,23 @@
   "concessionOwnLeaseDiscountPct": 25,
   "concessionTariffCapPct": 3,
   "concessionsPerSystem": 1,
+  "tariffs": {
+    "maxPct": 5,
+    "stepPct": 0.25,
+    "noticeHours": 72,
+    "isaLevyAtCapPct": 75
+  },
+  "dumping": {
+    "priceThresholdPct": 85,
+    "volumeThresholdPct": 10,
+    "windowDays": 3,
+    "normalValueDays": 7,
+    "minTradedDays": 3,
+    "minValue": 25000,
+    "dutyMarginPct": 100,
+    "levyAfterHours": 24,
+    "withholdPct": 50
+  },
   "neverConcedable": [
     {
       "systemId": "sol",
