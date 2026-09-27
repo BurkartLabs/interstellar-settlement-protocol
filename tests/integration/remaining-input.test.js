@@ -139,6 +139,7 @@ const BASELINE = {
     "POST /bonds/preview": { body: { quantity: 100, couponPct30: 6, maturityDays: 60 } }, // AB#850: changes nothing
     "POST /bonds/:seriesId/subscribe": { params: { seriesId: "bond-732" }, body: { units: 5 } }, // no such series: 404
     "GET /loan-offers": {}, // ISP-152 (AB#846)
+    "GET /player-loans": {}, // ISP-153 (AB#847)
     "POST /loan-offers": { body: { principal: 5000, ratePct30: 3.25, termDays: 30, minGrade: "BBB" } },
     "POST /loan-offers/:offerId/cancel": { params: { offerId: "lo-732" } }, // no such offer: 404
     "POST /loan-offers/:offerId/accept": { params: { offerId: "lo-732" } }

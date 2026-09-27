@@ -9,6 +9,7 @@ import { appState } from "../state.js";
 import { showActionReceipt } from "./receiptModal.js";
 import { showTradeConfirmation, updateAllViews } from "./shared.js";
 import { renderBondBoard } from "./bondBoard.js"; // ISP-156 (AB#850)
+import { loanBoardSectionsHtml, renderLoanBoard } from "./loanBoard.js"; // ISP-153 (AB#847)
 
 // The view's own state survives a redraw: the offers read once per visit, the open quote, and what the form holds.
 const bank = { accountId: null, offers: null, loading: false, quote: null, form: {}, mode: "loans", last: null };
@@ -22,7 +23,8 @@ function redraw(data) {
   if (!slot("bank-offers")) return; // the player has left the Bank
   slot("bank-offers").innerHTML = bankOffersHtml(bank.offers, bank.form);
   slot("bank-quote-slot").innerHTML = bankQuoteHtml(bank.quote);
-  slot("bank-loans").innerHTML = bankLoansHtml(data?.corp?.loans);
+  // AB#847: the Bank's own facilities only; loans from other corporations are on the loan board below
+  slot("bank-loans").innerHTML = bankLoansHtml((data?.corp?.loans || []).filter((l) => l?.lender?.kind !== "player"));
 }
 
 async function loadOffers() {
@@ -138,8 +140,10 @@ export function renderDevelopmentBank(contentEl, data, header) {
     <section class="ui-panel station__panel bank-panel">
       <h3>Your facilities</h3>
       <div class="bank-loans" data-role="bank-loans"></div>
-    </section>`;
+    </section>
+    ${loanBoardSectionsHtml()}`;
   redraw(data);
+  renderLoanBoard(contentEl); // ISP-153 (AB#847)
   if (!bank.offers) loadOffers();
   }
   if (bound.has(contentEl)) return;

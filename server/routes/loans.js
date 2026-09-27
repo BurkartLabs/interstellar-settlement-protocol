@@ -35,7 +35,7 @@ function payoffReceipt(loan, paid) {
 }
 const answer = (accountId, extra) => ({ ...sanitizeAccount(getAccountById(accountId)), ...extra });
 import { payOffLoan } from "../loanServicing.js"; // ISP-150 (AB#844)
-import { listLoanOffers, postLoanOffer, cancelLoanOffer, acceptLoanOffer, OFFER_RULES, MIN_GRADES } from "../playerLoans.js"; // ISP-152 (AB#846)
+import { listLoanOffers, postLoanOffer, cancelLoanOffer, acceptLoanOffer, OFFER_RULES, MIN_GRADES, gradeOf, playerLoansOf } from "../playerLoans.js"; // ISP-152 (AB#846), ISP-153 (AB#847)
 import { bodyNumber } from "../bodyNumber.js";
 
 export function registerLoanRoutes(app) {
@@ -68,7 +68,14 @@ export function registerLoanRoutes(app) {
   // ISP-152 (AB#846): the player loan board. Offers are numbers and enums only; the lender's principal is held in
   // escrow while an offer is open. Every rule (the floor rate, the per-pair cap, self-dealing) is checked on the server.
   app.get("/api/accounts/:accountId/loan-offers", (req, res) => {
-    res.json({ offers: listLoanOffers(req.params.accountId, Date.now()), rules: OFFER_RULES, minGrades: MIN_GRADES });
+    const now = Date.now();
+    // AB#847: the caller's own grade, so the board can say which offers it may take
+    res.json({ offers: listLoanOffers(req.params.accountId, now), rules: OFFER_RULES, minGrades: MIN_GRADES, grade: gradeOf(req.params.accountId, now) });
+  });
+
+  // ISP-153 (AB#847): the caller's player loans, lent and borrowed, with each borrower's grade and any recovery.
+  app.get("/api/accounts/:accountId/player-loans", (req, res) => {
+    res.json(playerLoansOf(req.params.accountId, Date.now()));
   });
 
   app.post("/api/accounts/:accountId/loan-offers", (req, res) => {

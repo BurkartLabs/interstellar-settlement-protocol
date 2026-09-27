@@ -198,7 +198,9 @@ function runRecovery(debtorAccountId, debt, now, options = {}) {
   const collect = () => debt.collect(`${tag}:${step++}`);
   const owed = () => debt.owed();
 
-  collect(); // 1. credits
+  // AB#847: how much of what was collected came from each step, so the lender is told what went to the debt
+  const applied = { fromCredits: 0, fromGoods: 0, fromHoldings: 0, fromAssets: 0 };
+  applied.fromCredits += collect(); // 1. credits
   if (owed() > 0) { // 2. station inventory at the NPC standing bid
     const npc = getState()?.market?.npcBuyOrders || [];
     if (liquidInventory(corpOf(debtorAccountId), npc).length) {
@@ -207,11 +209,11 @@ function runRecovery(debtorAccountId, debt, now, options = {}) {
         if (options.faultAfterSale === "inventory") throw new Error("injected fault after the inventory sale");
         return raised;
       });
-      collect();
+      applied.fromGoods += collect();
     }
   }
   if (owed() > 0) { // 3. bond holdings, to the NPC underwriter at 90% of face (Bug #2574)
-    if (sellHoldingsToUnderwriter(debtorAccountId, owed(), now, `${tag}:${step}`, sold) > 0) collect();
+    if (sellHoldingsToUnderwriter(debtorAccountId, owed(), now, `${tag}:${step}`, sold) > 0) applied.fromHoldings += collect();
   }
   // 4. buildings, then empty leases, one at a time
   for (let guard = 0; owed() > 0 && guard < 100; guard++) {
@@ -222,9 +224,9 @@ function runRecovery(debtorAccountId, debt, now, options = {}) {
       if (options.faultAfterSale === "asset") throw new Error("injected fault after the asset sale");
       return raised;
     });
-    collect();
+    applied.fromAssets += collect();
   }
-  return { ok: true, owedBefore, collected: owedBefore - owed(), shortfall: owed(), sold };
+  return { ok: true, owedBefore, collected: owedBefore - owed(), shortfall: owed(), applied, sold };
 }
 
 /**
@@ -255,7 +257,7 @@ export function defaultRecoveryTick(now) {
         continue;
       }
       const r = recoverDefault(accountId, loan.id, now);
-      const result = { collected: r.collected, shortfall: r.shortfall, sold: r.sold.map((s) => ({ kind: s.kind, name: s.name || s.item, credits: s.credits })) };
+      const result = { collected: r.collected, shortfall: r.shortfall, applied: r.applied, sold: r.sold.map((s) => ({ kind: s.kind, name: s.name || s.item, credits: s.credits })) };
       save(accountId, r.loan, { ...existing, state: "done", closedAt: now, result });
       tell(accountId, "Debt recovered", `${fmt(r.collected)} credits were taken for your defaulted loan${r.sold.length ? `, selling ${r.sold.map((s) => s.name || `${s.units} ${s.item}`).join(", ")}` : ""}.${r.shortfall ? ` ${fmt(r.shortfall)} credits are still owed and are collected as your credits allow.` : " The loan is closed."}`);
       tell(lenderAccountId, "Debt recovered", `${fmt(r.collected)} credits were recovered from ${corp.corporationName || "your borrower"}.${r.shortfall ? ` ${fmt(r.shortfall)} could not be recovered yet and is collected as its credits allow.` : " The loan is closed."}`);
