@@ -21,7 +21,7 @@ import { buyOrderReceipt, buyReceipt, listingReceipt, sellToOrderReceipt } from 
 import { cancelBuyOrder, matchListing, placeBuyOrder } from "../buyOrders.js"; // AB#1054
 import { paySeller, takeFromListing, tellSeller } from "../marketSettlement.js";
 import { chargeTariff, tariffRateFor } from "../tariffService.js"; // ISP-230 (AB#925)
-import { watchView, withholdDuty } from "../itcService.js"; // ISP-232 (AB#927); ISP-233 (AB#928): the watch's view
+import { watchView, withholdCouncilDebt, withholdDuty } from "../itcService.js"; // ISP-232 (AB#927); ISP-233 (AB#928): the watch's view
 import { withholdRoyaltyDebt } from "../patents.js"; // ISP-236 (AB#931)
 import { onSale } from "../standingService.js"; // ISP-238 (AB#933)
 import { salesTaxBaseAt } from "../lobbyingService.js"; // ISP-239 (AB#934)
@@ -357,6 +357,7 @@ export function registerMarketRoutes(app) {
     let tradeWithheld = 0;
     let tradeProceeds = tradeTotal;
     let tradeRoyaltyWithheld = 0; // ISP-236 (AB#931)
+    let tradeCouncilWithheld = 0; // ISP-242 (AB#938)
     let royaltyPaid = 0, saleStationId = null; // ISP-228 (AB#923): the concession holder's share, paid once the seller is saved
 
     const seller = mutateAccountState(req.auth.accountId, (state) => {
@@ -387,9 +388,10 @@ export function registerMarketRoutes(app) {
       recordSale(state.corp, npcStationId, tradeTotal); // ISP-217 (AB#912): an NPC buyer is never a partner
       tradeTariff = chargeTariff(state.corp, { stationId: npcStationId, base: tradeTotal }); // ISP-230 (AB#925)
       tradeWithheld = withholdDuty(state.corp, sellerProceeds - tradeTariff.amount); // ISP-232 (AB#927): toward ITC duty owed
+      tradeCouncilWithheld = withholdCouncilDebt(state.corp, sellerProceeds - tradeTariff.amount, tradeWithheld); // ISP-242 (AB#938): the same 50%
       // ISP-236 (AB#931): then royalty owed on others' patents takes its share of what is left after the duty
-      tradeRoyaltyWithheld = withholdRoyaltyDebt(state.corp, sellerProceeds - tradeTariff.amount - tradeWithheld);
-      tradeProceeds = sellerProceeds - tradeTariff.amount - tradeWithheld - tradeRoyaltyWithheld;
+      tradeRoyaltyWithheld = withholdRoyaltyDebt(state.corp, sellerProceeds - tradeTariff.amount - tradeWithheld - tradeCouncilWithheld);
+      tradeProceeds = sellerProceeds - tradeTariff.amount - tradeWithheld - tradeCouncilWithheld - tradeRoyaltyWithheld;
 
       if (!state.corp.stats) state.corp.stats = {};
       state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
@@ -407,6 +409,7 @@ export function registerMarketRoutes(app) {
         ...(tradeTariff.amount ? { tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount, tariffRecord: tradeTariff } : {}), // ISP-241 (AB#937)
         ...(tradeWithheld ? { dutyWithheld: tradeWithheld } : {}),
         ...(tradeRoyaltyWithheld ? { royaltyWithheld: tradeRoyaltyWithheld } : {}),
+        ...(tradeCouncilWithheld ? { councilWithheld: tradeCouncilWithheld } : {}),
         proceeds: tradeProceeds,
         counterparty: npcOrder.buyer,
         at: Date.now()
@@ -433,7 +436,7 @@ export function registerMarketRoutes(app) {
     });
 
     emitMarketUpdated();
-    const traded = { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount, dutyWithheld: tradeWithheld, proceeds: tradeProceeds };
+    const traded = { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount, dutyWithheld: tradeWithheld, ...(tradeCouncilWithheld ? { councilWithheld: tradeCouncilWithheld } : {}), proceeds: tradeProceeds };
     res.json({ ok: true, traded, account: seller, receipt: sellToOrderReceipt(traded) }); // AB#744
   });
 }

@@ -42,6 +42,7 @@ import { registerControlRoutes } from "./routes/control.js"; // ISP-226 (AB#921)
 import { registerConcessionRoutes } from "./routes/concessions.js"; // ISP-227 (AB#922)
 import { registerPatentRoutes } from "./routes/patents.js"; // ISP-235 (AB#930)
 import { registerArbitrationRoutes } from "./routes/arbitration.js"; // ISP-241 (AB#937)
+import { arbitrationTick } from "./arbitration.js"; // ISP-242 (AB#938)
 import { patentTick } from "./patents.js"; // ISP-236 (AB#931)
 import { concessionTick } from "./concessions.js"; // ISP-227 (AB#922)
 import { dominanceTick } from "./dominanceService.js"; // ISP-217 (AB#912)
@@ -201,6 +202,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondWindowTick(Date.now(
 // ISP-217 (AB#912): dominance, computed at the first minute after 00:00 UTC (and at start when today has none)
 if (!process.env.ISP_DISABLE_TICKERS) { dominanceTick(Date.now()); setInterval(() => dominanceTick(Date.now()), 60_000); }
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => concessionTick(Date.now()), 60_000); // ISP-227 (AB#922): reviews, renewals, the day's upkeep
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => arbitrationTick(Date.now()), 60_000); // ISP-242 (AB#938): rulings, enforcement, Council debts passed on
 // ISP-230 (AB#925): each holder's tariffs, less the ISA's levy, paid once a UTC day
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => tariffTick(Date.now()), 60_000);
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => patentTick(Date.now()), 60_000); // ISP-236 (AB#931): royalties charged and paid

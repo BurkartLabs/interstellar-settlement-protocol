@@ -184,7 +184,7 @@ describe("credit-default (AB#937)", () => {
     }, { sanitize: false, settleMining: false });
     const r = recoverDefault(debtor.id, loan.id, T0 + 10 * DAY);
     const cases = await docket();
-    expect(cases).toEqual([expect.objectContaining({ type: "credit-default", claimant: "Interstellar Settlement Authority", respondent: debtor.holder.name, state: "ruled", ruling: { outcome: "upheld", amount: r.shortfall } })]);
+    expect(cases).toEqual([expect.objectContaining({ type: "credit-default", claimant: "Interstellar Settlement Authority", respondent: debtor.holder.name, state: "ruled", ruling: { outcome: "upheld", amount: r.shortfall, order: null } })]);
     recoverDefault(debtor.id, loan.id, T0 + 11 * DAY);
     expect(await docket()).toHaveLength(1); // once per record
     expect((await lender.file({ type: "credit-default", recordId: loan.id })).status).toBe(403);
@@ -258,7 +258,7 @@ describe("filing's refusals and the public docket (AB#937)", () => {
     const filed = await renter.file({ type: "mercenary-readiness", recordId: offerId });
     expect(filed.status, JSON.stringify(filed.body)).toBe(201);
     const pub = await docket();
-    expect(pub).toEqual([{ ref: filed.body.case.ref, type: "mercenary-readiness", claimant: renter.holder.name, respondent: owner.holder.name, state: "answering", ruling: null, amountClaimed: 0, filedAt: expect.any(Number), windowEndsAt: filed.body.case.filedAt + W.arbitration.responseHours * H }]);
+    expect(pub).toEqual([{ ref: filed.body.case.ref, type: "mercenary-readiness", claimant: renter.holder.name, respondent: owner.holder.name, state: "answering", ruling: null, paid: 0, amountClaimed: 0, filedAt: expect.any(Number), windowEndsAt: filed.body.case.filedAt + W.arbitration.responseHours * H }]);
     const text = JSON.stringify(pub);
     for (const secret of [renter.id, owner.id, renter.holder.id, owner.holder.id, offerId, "hourlyReadiness"]) expect(text).not.toContain(secret);
     for (const party of [renter, owner]) expect((await party.api.get(`/api/accounts/${party.id}/arbitration/cases`)).body.cases[0].evidence.hireReadiness).toBe(100);

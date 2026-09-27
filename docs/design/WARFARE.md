@@ -487,7 +487,37 @@ chose what the text left open, each for the Board's veto:
 - **A mercenary case freezes the contract's escrow** (`frozenBy`), and the term's settlement waits. ISP-242's ruling
   lifts the freeze, so ISP-242 must ship before the Council's screens (ISP-243) open.
 - **`credit-default`** is docketed when a player loan's or bond series' recovery runs, already `ruled` and upheld with
-  the recovery's shortfall. The Council debt that follows is ISP-242's.
+  the recovery's shortfall.
+
+**As built (ISP-242, AB#938): rulings and enforcement.** `arbitrationTick` runs each minute and rules on a case at the
+first 00:00 UTC after its window, or after its 7-day review for an arbitrated petition. It rules on the evidence stored
+at filing. Two claim types re-read a record that moves after filing, from the server's own store: the owner's
+readiness log for the rest of a mercenary term, and the control readings at an arbitrated review's end. Where the build
+chose, each for the Board's veto:
+- **The fee.** It goes back to an upheld claimant from the case's escrow, which is this section's worked example
+  (the renter gets 6,667 and its 1,000 back). It is forfeited to the fee sink on dismissal, through a new reason,
+  `arbitration-fee`. The petition fee of an arbitrated concession is kept either way, as it is everywhere.
+- **A cure** pays the amount claimed to the claimant, and the claimant's fee comes back from escrow. The respondent
+  pays no more than losing would cost. It gains a closed case now, with no docketed ruling, no debt and no hit to its
+  credit rating. The text above ("the claimed amount plus the claimant's filing fee") would make curing cost more
+  than losing, which is why the build departs from it.
+- **The award's sources**, in order:
+  1. The contract's escrow: the renter is refunded, and the owner's price at the term's end is reduced.
+  2. What the ISA holds for the respondent: tariff revenue and patent royalties accrued and not yet paid out. For a
+     tariff overcharge, the levy's share also comes back from the ISA's levy count at once, and each holder repays its
+     share of the rest.
+  3. A Council debt on the corporation (`councilDebts`). It is withheld inside the ITC's one 50%, the duty first, and
+     counted in the credit rating's debt. The tick passes each withholding on to the claimant.
+
+  Awards are booked `arbitration-award-received` and `-paid`.
+- **Upheld tariff overcharges** are logged as `[arbitration] BUG` and kept in `arbitration.json`'s `defects`. The game
+  server has no Azure DevOps access, so it does not file the Bug itself.
+- **`credit-default` adds no Council debt.** The shortfall stays owed on the loan or bond, which its own servicing
+  collects, so a second debt would collect it twice.
+- **The tie-break cannot happen today.** Eligibility needs a 1.5x lead over the runner-up, so two eligible petitioners
+  never tie. The rule is built and waits for a system whose lead ratio allows one.
+- **Failing closed.** A rule that cannot be evaluated (a record gone, readings stale), or a fee that cannot move, leaves
+  the case `answering` with an alert and nothing moved.
 
 ## Lawfare: patents that earn royalties, and lobbying that moves bounded rules (ISP-223, AB#918)
 

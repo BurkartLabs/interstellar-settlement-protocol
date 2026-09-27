@@ -45,3 +45,26 @@ describe("the Council's rules (AB#937)", () => {
     expect(corp.military.readinessLog).toEqual([{ at: DAY / 2, readiness: 95 }, { at: DAY, readiness: 90 }]);
   });
 });
+
+// ISP-242 (AB#938): a Council debt shares the ITC's one withholding, and counts in the credit rating.
+import { councilWithholding } from "../../public/scripts/itcDuty.js";
+import { computeCreditRating } from "../../server/creditRating.js";
+
+describe("Council debts (AB#938)", () => {
+  it("take what the ITC's 50% leaves after duty, oldest first, never more than owed", () => {
+    expect(councilWithholding(1_000, 0, [{ ref: "a", owed: 300 }, { ref: "b", owed: 900 }], 50)).toEqual([{ ref: "a", credits: 300 }, { ref: "b", credits: 200 }]);
+    expect(councilWithholding(1_000, 450, [{ ref: "a", owed: 300 }], 50)).toEqual([{ ref: "a", credits: 50 }]); // the duty took 450 of the 500
+    expect(councilWithholding(1_000, 500, [{ ref: "a", owed: 300 }], 50)).toEqual([]);
+    expect(councilWithholding(0, 0, [{ ref: "a", owed: 300 }], 50)).toEqual([]);
+  });
+
+  it("count as debt in the rating's leverage input", () => {
+    const NOW = Date.UTC(2026, 8, 27);
+    const sts = Array.from({ length: 30 }, (_, i) => ({ day: "", dayStart: NOW - (30 - i) * DAY, pnl: { income: {}, expenses: {}, totalIncome: 30_000, totalExpenses: 26_500, net: 3_500 }, balanceSheet: { credits: 150_000, facilities: 0, inventory: 0, liabilities: 20_000, totalAssets: 330_000, netWorth: 310_000 } }));
+    const base = { finances: { credits: 150_000, payrollArrears: 0 }, loans: [] };
+    expect(computeCreditRating(base, NOW, sts).inputs.leverage.raw).toBe(0);
+    const owing = computeCreditRating({ ...base, councilDebts: [{ ref: "GAC-2026-000001:corp-x", owed: 63_000 }] }, NOW, sts);
+    expect(owing.inputs.leverage.raw).toBeCloseTo(63_000 / 900_000, 4);
+    expect(owing.score).toBeLessThan(computeCreditRating(base, NOW, sts).score);
+  });
+});

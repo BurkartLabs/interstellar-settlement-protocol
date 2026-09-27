@@ -50,7 +50,7 @@ describe("ISP-146 settleTransfer refuses what it cannot vouch for, and moves not
   });
 
   it("the reasons are exactly the instruments, and the list cannot be changed", () => {
-    expect([...REASONS].sort()).toEqual(["bond-redemption", "bond-sale", "bond-subscription", "coupon", "dividend", "escrow-hold", "escrow-release", "fee", "loan-disbursal", "loan-interest", "loan-repayment", "share-purchase"]); // AB#844 adds loan-interest
+    expect([...REASONS].sort()).toEqual(["arbitration-award", "arbitration-fee", "bond-redemption", "bond-sale", "bond-subscription", "coupon", "dividend", "escrow-hold", "escrow-release", "fee", "loan-disbursal", "loan-interest", "loan-repayment", "share-purchase"]); // AB#844 adds loan-interest; ISP-242 (AB#938) the Council's award and forfeited fee
     expect(Object.isFrozen(REASONS)).toBe(true);
   });
 });

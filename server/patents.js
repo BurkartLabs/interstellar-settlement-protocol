@@ -182,6 +182,17 @@ export function patentInForce(kind, subjectId, now = Date.now()) {
   return store.patents.find((p) => p.kind === kind && p.subjectId === subjectId && p.filedAt <= now && now < p.endsAt) || null;
 }
 
+/** ISP-242 (AB#938): take up to `amount` of the royalties accrued to `publicId` and not yet paid, for an arbitration award. */
+export function takeRoyaltyAccrual(publicId, amount) {
+  const books = royaltyBooks();
+  const x = Math.min(Math.max(0, Math.floor(amount)), Math.floor(books.accrued[publicId] || 0));
+  if (!(x > 0)) return 0;
+  books.accrued[publicId] -= x;
+  if (!(books.accrued[publicId] > 0)) delete books.accrued[publicId];
+  save();
+  return x;
+}
+
 /** ISP-241 (AB#937): a patent as stored (a copy), or null. */
 export function patentRecord(patentId) {
   const p = store.patents.find((x) => x.id === patentId);

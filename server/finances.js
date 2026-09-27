@@ -102,7 +102,8 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "forced-sale", // ISP-286 (AB#993): goods and buildings sold to recover a defaulted player debt
     "concession-fee-share", // ISP-228 (AB#923): an ISA concession holder's share of the lease fees paid in its system
     "tariff-revenue", // ISP-230 (AB#925): a concession holder's tariffs, less the ISA's levy, paid daily
-    "patent-royalty-revenue" // ISP-236 (AB#931): royalties others paid on the corporation's patents
+    "patent-royalty-revenue", // ISP-236 (AB#931): royalties others paid on the corporation's patents
+    "arbitration-award-received" // ISP-242 (AB#938): an arbitration award: from escrow, ISA-held income, a cure or a withheld Council debt
   ]),
   expense: Object.freeze([
     "hiring",
@@ -124,6 +125,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "lease-royalty", // ISP-302 (AB#2285): the royalty's share of a sale's tax, booked apart so it can be counted
     "tariff", // ISP-230 (AB#925): a concession holder's tariff on a sale or a transfer into its system
     "patent-royalty", // ISP-236 (AB#931): royalty on another corporation's patented node or chain, at use or withheld from a sale
+    "arbitration-award-paid", // ISP-242 (AB#938): an arbitration award paid by the respondent: a cure, or a Council debt withheld from a sale
     "anti-dumping-duty", // ISP-232 (AB#927): the ITC's duty on dumped sales, levied or withheld from later sales
     "lobbying-pledge", // ISP-239 (AB#934): credits pledged to a lobbying campaign, final, a sink to the faction
     "loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",

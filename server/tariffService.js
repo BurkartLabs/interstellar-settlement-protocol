@@ -278,6 +278,32 @@ export function tariffSummary(corp, now = Date.now()) {
 /** ISP-241 (AB#937): a system's filed rates (copies): each holder's { holder, grantedAt, pct, pending, history }. */
 export const tariffRates = (systemId) => JSON.parse(JSON.stringify(Object.values(store.systems[systemId]?.rates || {})));
 
+/**
+ * ISP-242 (AB#938; WARFARE.md, Enforcement): take up to `amount` of what the ISA holds for `holder` ({ type, id }) in
+ * tariff revenue not yet paid, across its systems, for an arbitration award. Returns what was taken.
+ */
+export function takeTariffAccrual(holder, amount) {
+  let left = Math.max(0, Math.floor(amount));
+  const key = `${holder.type}:${holder.id}`;
+  for (const rec of Object.values(store.systems)) {
+    if (!(left > 0)) break;
+    const has = Math.floor(rec.accrued?.[key] || 0);
+    const x = Math.min(has, left);
+    if (x > 0) { rec.accrued[key] = has - x; left -= x; }
+  }
+  const taken = Math.max(0, Math.floor(amount)) - left;
+  if (taken) save();
+  return taken;
+}
+/** ISP-242 (AB#938): an upheld tariff-overcharge case repays the ISA's levy share out of the levy counted. Returns what was taken. */
+export function refundLevy(amount) {
+  const x = Math.min(Math.max(0, Math.floor(amount)), Math.floor(levyTotal()));
+  if (!(x > 0)) return 0;
+  store.levyTotal = (store.levyTotal || 0) - x; // may go below the counted total's settled part only by what this day's levies hold
+  save();
+  return x;
+}
+
 /** The levy counted so far: what the ISA kept of every tariff, a sink. */
 export const levyTotal = () => (store.levyTotal || 0) + Object.values(store.systems).reduce((s, r) => s + (r.levy || 0), 0);
 

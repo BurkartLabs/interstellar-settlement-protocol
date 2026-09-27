@@ -13,7 +13,7 @@ import { formatCredits } from "./receipts.js";
 import { recordSale, sameConglomerate } from "./game/dominanceCounters.js"; // ISP-217 (AB#912)
 import { accountsStore } from "./game/store.js";
 import { chargeTariff } from "./tariffService.js"; // ISP-230 (AB#925)
-import { recordOwnSale, withholdDuty } from "./itcService.js"; // ISP-232 (AB#927)
+import { recordOwnSale, withholdCouncilDebt, withholdDuty } from "./itcService.js"; // ISP-232 (AB#927); ISP-242 (AB#938)
 import { withholdRoyaltyDebt } from "./patents.js"; // ISP-236 (AB#931)
 import { onSale } from "./standingService.js"; // ISP-238 (AB#933)
 import { salesTaxBaseAt } from "./lobbyingService.js"; // ISP-239 (AB#934)
@@ -51,10 +51,11 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
     const tariff = chargeTariff(state.corp, { stationId: order.stationId, base: total, postedPct: order.tariffPct ?? null });
     // ISP-232 (AB#927): duty owed to the ITC takes its share of what is left
     const withheld = withholdDuty(state.corp, afterTax - tariff.amount);
+    const councilWithheld = withholdCouncilDebt(state.corp, afterTax - tariff.amount, withheld); // ISP-242 (AB#938): the same 50%
     // ISP-236 (AB#931): then royalty owed on others' patents takes its share of what is left after the duty
-    const royaltyWithheld = withholdRoyaltyDebt(state.corp, afterTax - tariff.amount - withheld);
-    const proceeds = afterTax - tariff.amount - withheld - royaltyWithheld;
-    sale = { taxPct, taxAmount, tariffPct: tariff.pct, tariffAmount: tariff.amount, dutyWithheld: withheld, ...(royaltyWithheld ? { royaltyWithheld } : {}), proceeds, buyer: publicName(buyerName) };
+    const royaltyWithheld = withholdRoyaltyDebt(state.corp, afterTax - tariff.amount - withheld - councilWithheld);
+    const proceeds = afterTax - tariff.amount - withheld - councilWithheld - royaltyWithheld;
+    sale = { taxPct, taxAmount, tariffPct: tariff.pct, tariffAmount: tariff.amount, dutyWithheld: withheld, ...(councilWithheld ? { councilWithheld } : {}), ...(royaltyWithheld ? { royaltyWithheld } : {}), proceeds, buyer: publicName(buyerName) };
     royaltyPaid = royalty;
     sellerCorp = state.corp;
     if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
@@ -69,6 +70,7 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
       taxAmount,
       ...(tariff.amount ? { tariffPct: tariff.pct, tariffAmount: tariff.amount, tariffRecord: tariff } : {}), // ISP-241 (AB#937): what a tariff-overcharge case reads
       ...(withheld ? { dutyWithheld: withheld } : {}),
+      ...(councilWithheld ? { councilWithheld } : {}), // ISP-242 (AB#938)
       ...(royaltyWithheld ? { royaltyWithheld } : {}),
       proceeds,
       counterparty: sale.buyer,
@@ -108,7 +110,8 @@ export function tellSeller(order, quantity, sale, leftAfterSale) {
       `${sale.buyer} bought ${quantity.toLocaleString("en-US")} ${order.item} at ${formatCredits(order.unitPrice)} each: ` +
       `${formatCredits(total)}, less ${formatCredits(sale.taxAmount)} exchange tax (${sale.taxPct}%)` +
       (sale.tariffAmount ? ` and ${formatCredits(sale.tariffAmount)} concession tariff (${sale.tariffPct}%)` : "") +
-      (sale.dutyWithheld ? `, with ${formatCredits(sale.dutyWithheld)} withheld toward ITC duty owed` : "") + ", " +
+      (sale.dutyWithheld ? `, with ${formatCredits(sale.dutyWithheld)} withheld toward ITC duty owed` : "") +
+      (sale.councilWithheld ? `, ${formatCredits(sale.councilWithheld)} withheld toward an Arbitration Council award` : "") + ", " +
       `${formatCredits(sale.proceeds)} paid to you. ` +
       (leftAfterSale > 0 ? `${leftAfterSale.toLocaleString("en-US")} still listed.` : "The listing is sold out.")
   });
