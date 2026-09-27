@@ -23,6 +23,7 @@
     "probe:conglomerate": "node scripts/probe-conglomerate.mjs",
     "probe:tier4": "node scripts/probe-tier4.mjs",
     "check:design": "node scripts/design-check.mjs",
+    "design:prune": "node scripts/design-allowlist-prune.mjs",
     "probe:tariffs": "node scripts/probe-tariffs.mjs"
   },
   "dependencies": {
