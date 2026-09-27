@@ -4,7 +4,8 @@ import { unleasedBodies } from "../leases.js";
 import { corporationSlotsFullMessage } from "../../public/scripts/slotAdvice.js";
 import { activeOfficeAt } from "../../public/scripts/officeStatus.js";
 import { MILESTONE_LEVELS, addAccountNotification, mutateAccountState, saveAccountsNow } from "../gameState.js";
-import { SYSTEMS_CATALOG, STATIONS_DATA } from "../travel.js";
+import { SYSTEMS_CATALOG } from "../travel.js";
+import { allStations } from "../game/stations.js"; // ISP-209 (AB#904)
 // AB#743: defined in server/receipts.js, below the route modules, so a receipt and a refusal say credits the same way.
 import { formatCredits } from "../receipts.js";
 // ISP-94 (AB#784): the one build handler every build route module shares.
@@ -31,7 +32,7 @@ function fundingRequirementMessage(actionLabel, corp, requiredCredits, extra = "
 // office registers a corporation's presence at one station, not company-wide, and only while its lease has not
 // lapsed. Hiring, filing a lease and operating a lease all read this same check, so an office rented somewhere
 // else, or one that has expired, cannot stand in for one here.
-const unleasedFor = (corp) => unleasedBodies(SYSTEMS_CATALOG, STATIONS_DATA.stations, corp);
+const unleasedFor = (corp) => unleasedBodies(SYSTEMS_CATALOG, allStations(), corp);
 /** The corporation-slots message for this corporation, from its leases, what it can reach and the level table. */
 const corpSlotsFull = (corp) => corporationSlotsFullMessage(corp, unleasedFor(corp), MILESTONE_LEVELS);
 

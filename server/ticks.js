@@ -15,7 +15,8 @@ import { buildSnapshot, pushSnapshot, refreshDailyRevenue } from "./finances.js"
 import { recordTransfer, describeLines } from "../public/scripts/logistics.js";
 import { beltRespawnTick, ensureBeltState, isBeltPresent } from "./game/belts.js"; // AB#2329, AB#2330
 import { placeNpcAsks } from "./game/npcAsks.js"; // ISP-122 (AB#815)
-import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
+import { SYSTEMS_CATALOG } from "./travel.js";
+import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 import { completeShipJobs } from "./shipyard.js"; // ISP-171 (AB#865)
 import { completeTroopJobs } from "./training.js"; // ISP-172 (AB#866)
 import { settleFleets } from "./fleets.js"; // ISP-174 (AB#868)
@@ -262,7 +263,7 @@ function travelTick() {
         travelResult = { type: "interstellar", systemId: travel.toSystemId };
       } else {
         // Local dock — arrive at station
-        const dest = STATION_REGISTRY[travel.toStationId];
+        const dest = stationById(travel.toStationId);
         if (dest) {
           state.corp.currentStationId = travel.toStationId;
           state.corp.currentSystemId = dest.systemId;
@@ -285,7 +286,7 @@ function travelTick() {
         });
         emitToAccount(accountId, "travel:arrived", { accountId, systemId: travelResult.systemId });
       } else {
-        const station = STATION_REGISTRY[travelResult.stationId];
+        const station = stationById(travelResult.stationId);
         if (station) {
           notification = addAccountNotification(accountId, {
             type: "travel",
@@ -449,7 +450,7 @@ function shipmentTick() {
       for (const shipment of corp.shipments) {
         if (shipment.status !== "in-transit" || now < shipment.arrivesAt) continue;
 
-        const destination = STATION_REGISTRY[shipment.toStationId];
+        const destination = stationById(shipment.toStationId);
         if (!destination) {
           // The destination is no longer in the catalog (a decommissioned station). Nothing is destroyed: the
           // shipment stays held rather than delivered or dropped, for the Board to resolve.
@@ -473,7 +474,7 @@ function shipmentTick() {
     }, { sanitize: false, settleMining: false });
 
     for (const { shipment, delivered } of outcomes) {
-      const destinationName = STATION_REGISTRY[shipment.toStationId]?.name || shipment.toStationId;
+      const destinationName = stationById(shipment.toStationId)?.name || shipment.toStationId;
       const notification = addAccountNotification(accountId, delivered
         ? { type: "logistics", title: "Shipment Received", body: `${describeLines(shipment.lines)} has arrived at ${destinationName}.` }
         : { type: "logistics", title: "Shipment Held", body: `A shipment bound for ${destinationName} could not be delivered: the destination is not recognized. Reference number: ${shipment.id}.` });

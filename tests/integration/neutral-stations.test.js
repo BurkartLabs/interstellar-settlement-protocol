@@ -3,7 +3,8 @@ import fs from "node:fs";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { getAccountById, mutateAccountState } from "../../server/gameState.js";
-import { STATION_JURISDICTIONS, stationJurisdictionProblems, SYSTEMS_DATA } from "../../server/game/catalog.js";
+import { SYSTEMS_DATA } from "../../server/game/catalog.js";
+import { STATION_JURISDICTIONS, stationJurisdictionProblems } from "../../server/game/stations.js"; // ISP-209 (AB#904)
 import { travelTick } from "../../server/ticks.js";
 
 // ISP-118 (AB#810): every station says who holds it, and each of AB#806's systems has a neutral station a player can

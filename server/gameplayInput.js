@@ -502,7 +502,7 @@ export function gameplayInputMiddleware({ catalogs, corpOf, stationNames, routes
       if (catalog === "leaseBodies") return catalogs.leaseBodies?.has(value.toLowerCase()) === true;
       return catalogs[catalog]?.has(value) === true;
     };
-    const result = validateGameplayRequest(match.entry, { body: req.body, params: match.params, query: req.query }, has, (sid) => stationNames?.[sid] || "That station");
+    const result = validateGameplayRequest(match.entry, { body: req.body, params: match.params, query: req.query }, has, (sid) => (typeof stationNames?.get === "function" ? stationNames.get(sid) : stationNames?.[sid]) || "That station");
     if (!result.ok) return res.status(400).json({ error: result.error });
     return next();
   };

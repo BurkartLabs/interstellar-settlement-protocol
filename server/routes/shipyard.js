@@ -2,7 +2,7 @@
 // these routes say what happened. The input check (server/gameplayInput.js) has already refused a unit that is not a
 // ship, a quantity that is not a whole number in range, and a job id of the wrong shape.
 import { addAccountNotification, fleetStatus, mutateAccountState, saveAccountsNow, RESEARCH_LIBRARY } from "../gameState.js";
-import { STATION_REGISTRY } from "../travel.js";
+import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { emitToAccount } from "../realtime.js";
 import { fundingRequirementMessage } from "./helpers.js";
 import { MAX_JOB_QUANTITY, MAX_QUEUED_JOBS, SHIPYARD, cancelShipJob, queueShips } from "../shipyard.js";
@@ -22,7 +22,7 @@ function refusal(result, corp, unitId, quantity) {
     case "queue-full": return `The shipyard's queue holds ${MAX_QUEUED_JOBS} jobs. Wait for one to finish, or cancel one.`;
     case "fleet-cap": return `Your fleet is at its Fleet Cap: ${result.fleet.vessels} of ${result.fleet.cap} vessels, and ${plural(quantity, unit.name)} would pass it. ${result.fleet.raiseText}`.trim();
     case "insufficient-credits": return fundingRequirementMessage(`${plural(quantity, unit.name)}`, corp, result.cost.credits);
-    case "insufficient-goods": return `${plural(quantity, unit.name)} need ${result.needed.toLocaleString("en-US")} ${result.item} at ${STATION_REGISTRY[result.stationId]?.name || "your station"}; it holds ${result.have.toLocaleString("en-US")}.`;
+    case "insufficient-goods": return `${plural(quantity, unit.name)} need ${result.needed.toLocaleString("en-US")} ${result.item} at ${stationById(result.stationId)?.name || "your station"}; it holds ${result.have.toLocaleString("en-US")}.`;
     default: return "The shipyard could not queue that.";
   }
 }

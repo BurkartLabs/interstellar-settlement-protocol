@@ -3,13 +3,13 @@
 // and nothing changes, so ids cannot be probed. Names come from a fixed list; nothing here takes free text.
 import { getAccountById, mutateAccountState, saveAccountsNow, RESEARCH_LIBRARY } from "../gameState.js";
 import { NAVIGATION } from "../game/catalog.js";
-import { STATION_REGISTRY } from "../travel.js";
+import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { UNITS } from "../game/units.js";
 import { bodyNumber } from "../bodyNumber.js";
 import { FLEET_NAMES, MAX_FLEETS, deployFleet, disbandFleet, fleetDestinations, formFleet, mergeFleets, splitFleet } from "../fleets.js";
 import { SYSTEMS_BY_ID } from "../game/catalog.js";
 
-const stationName = (id) => STATION_REGISTRY[id]?.name || "that station";
+const stationName = (id) => stationById(id)?.name || "that station";
 const whole = (v) => bodyNumber(v, { fallback: 0, min: 0, integer: true }); // Bug #1014: the one way a body number is read
 const unitsOf = (body) => ({ lf: whole(body?.lf), ds: whole(body?.ds), se: whole(body?.se), at: whole(body?.at) });
 
@@ -58,7 +58,7 @@ export function registerFleetRoutes(app) {
     const list = fleetDestinations(corp, req.params.fleetId);
     if (!list) { res.status(404).json({ error: "That fleet is not one of yours." }); return; }
     res.json({ destinations: list.map((d) => ({ ...d, systemName: SYSTEMS_BY_ID.get(d.systemId)?.name || d.systemId,
-      why: d.blocked === "missing-research" ? NAVIGATION.travelResearchLock(RESEARCH_LIBRARY, corp.unlockedTech, corp.level, STATION_REGISTRY[(corp.military.fleets || []).find((f) => f.id === req.params.fleetId)?.stationId]?.systemId || "sol", d.systemId) || "Needs navigation research."
+      why: d.blocked === "missing-research" ? NAVIGATION.travelResearchLock(RESEARCH_LIBRARY, corp.unlockedTech, corp.level, stationById((corp.military.fleets || []).find((f) => f.id === req.params.fleetId)?.stationId)?.systemId || "sol", d.systemId) || "Needs navigation research."
         : d.blocked === "no-route" ? "No charted jump route." : null })) });
   });
   app.post("/api/accounts/:accountId/gameplay/fleets/form", fleetRoute((corp, req) => formFleet(corp, { units: unitsOf(req.body), name: req.body?.name })));

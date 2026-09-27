@@ -20,7 +20,7 @@ import { buyOrderReceipt, buyReceipt, listingReceipt, sellToOrderReceipt } from 
 import { cancelBuyOrder, matchListing, placeBuyOrder } from "../buyOrders.js"; // AB#1054
 import { paySeller, takeFromListing, tellSeller } from "../marketSettlement.js";
 import { buyOrderView } from "../publicViews.js";
-import { STATION_REGISTRY } from "../travel.js";
+import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
 
 /** How many sell listings one seller may have open at once (Bug #425). */
@@ -70,7 +70,7 @@ export function registerMarketRoutes(app) {
       const receipt = buyOrderReceipt({
         item: placed.order.item, quantity: normalizedQty, unitPrice: normalizedUnitPrice, filled, paid,
         held: (normalizedQty - filled) * normalizedUnitPrice,
-        stationName: STATION_REGISTRY[placed.order.stationId]?.name || "your station"
+        stationName: stationById(placed.order.stationId)?.name || "your station"
       });
       const waiting = (getState().market.buyOrders || []).find((o) => o.id === placed.order.id);
       res.json({ ok: true, order: waiting ? buyOrderView(waiting, req.auth.accountId) : null, fills: placed.fills, spent: before - Number(buyerNow?.state?.corp?.finances?.credits || 0), account: buyerNow, receipt });
@@ -145,7 +145,7 @@ export function registerMarketRoutes(app) {
       item: order.item,
       quantity: order.quantity,
       unitPrice: order.unitPrice,
-      stationName: STATION_REGISTRY[order.stationId]?.name || "your station",
+      stationName: stationById(order.stationId)?.name || "your station",
       soldAtOnce: fills.reduce((sum, f) => sum + f.quantity, 0)
     });
     res.json({ ok: true, order, fills, account: sellerNow, receipt });
@@ -278,7 +278,7 @@ export function registerMarketRoutes(app) {
       quantity: tradeQuantity,
       unitPrice: Number(order.unitPrice || 0),
       total: tradeTotal,
-      stationName: STATION_REGISTRY[buyer.state.corp.currentStationId || "earth-station-prime"]?.name || "your station"
+      stationName: stationById(buyer.state.corp.currentStationId || "earth-station-prime")?.name || "your station"
     });
     res.json({
       ok: true,
