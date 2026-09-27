@@ -19,6 +19,7 @@ import { bindExchangeForms, renderMarket } from "./views/exchange.js";
 import { loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } from "./views/finance.js";
 import { bindForumForms, renderForums } from "./views/forums.js";
 import { bindInboxControls, loadMessages, onInboxTabActivated, renderInboxMessageList } from "./views/inbox.js";
+import { onConversationEvent } from "./views/conversations.js"; // AB#911
 import { renderLogistics } from "./views/logistics.js";
 import { renderMiningCyclePanel, startMiningUiTicker, stopMiningUiTicker } from "./views/miningTicker.js";
 import { renderExpeditionPanel, renderLevel2Progress, updateOverview } from "./views/overview.js";
@@ -598,6 +599,8 @@ function bindRealtimeEvents() {
   socket.on("messages:new", () => {
     loadMessages();
   });
+  // AB#911: a private message arrived (or this account sent one from another tab): the open thread and the unread count
+  socket.on("conversations:new", (payload) => onConversationEvent(payload));
 
   socket.on("ceo:completed", (payload) => {
     if (!appState.accountId || payload?.accountId !== appState.accountId) {

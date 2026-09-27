@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { accountsStore } from "../../server/game/store.js";
-import { migrateLegacyMail, listConversations, listConversationMessages, conversationIdFor, resetConversationCache } from "../../server/game/conversations.js";
+import { migrateLegacyMail, migrateLegacyMailOnce, listConversations, listConversationMessages, conversationIdFor, resetConversationCache } from "../../server/game/conversations.js";
 
 // AB#910: the old player mail (two copies of every message, inside the accounts snapshot) becomes one message in the
 // conversation between the two corporations, with sender, recipient, subject and time kept. Run on a fixture store.
@@ -60,5 +60,14 @@ describe("migrating the old mail (AB#910)", () => {
     expect(migrateLegacyMail(fixture)).toMatchObject({ written: 0, alreadyPresent: 3 });
     expect(listConversationMessages(alpha.id, conversationIdFor(alpha.id, beta.id)).messages).toHaveLength(2);
     expect(alpha.messages).toHaveLength(5); // two sent copies, beta's reply, the draft, the letter: not removed: the Inbox still reads it until it moves to conversations
+  });
+});
+
+describe("copying the old mail at startup (AB#911)", () => {
+  it("runs once, and records that it ran", () => {
+    const first = migrateLegacyMailOnce(fixture); // this file never starts the server, so nothing has run it yet
+    expect(first).toMatchObject({ messages: 3 });
+    expect(first.written + first.alreadyPresent).toBe(3);
+    expect(migrateLegacyMailOnce(fixture)).toBeNull();
   });
 });
