@@ -19,7 +19,7 @@ function titleOf(section) {
   return h ? text(h) : "";
 }
 const pageSections = [...doc.querySelectorAll("article.tab-panel section")].filter((s) => titleOf(s));
-const all = [...R.screens, ...R.sections];
+const all = [...R.screens, ...R.sections, ...(R.drawn || [])]; // drawn: ISP-250 (AB#946)
 
 describe("the document-code registry (ISP-247, AB#943)", () => {
   it("every code is DEPT-FUNC-N with a known department and function, and unique, retired codes included", () => {
@@ -58,6 +58,29 @@ describe("the document-code registry (ISP-247, AB#943)", () => {
     const finance = R.screens.find((s) => s.id === "finance");
     expect(finance.code).toBe("CORP-FIN-1");
     expect(doc.querySelector('#finance .ui-screen__title [data-code-for="finance"]')).toBeTruthy();
+  });
+});
+
+describe("sections a view draws (ISP-250, AB#946)", () => {
+  /** The ids a file fills slots for: codeSlotHtml("id"), or a template such as `building-${building.id}` as a pattern. */
+  const slotsIn = (file) => [...read(file).matchAll(/codeSlotHtml\((["`])(.+?)\1\)/g)].map(([, q, arg]) =>
+    q === '"' ? { literal: arg } : { pattern: new RegExp(`^${arg.replace(/[.*+?^()|[\]\\]/g, "\\$&").replace(/\$\{[^}]+\}/g, ".+")}$`) });
+
+  it("each drawn section's file draws its slot, and no drawn id repeats a page one", () => {
+    const pageIds = new Set([...R.screens, ...R.sections].map((e) => e.id));
+    for (const d of R.drawn) {
+      expect(fs.existsSync(new URL(`../../${d.file}`, import.meta.url)), d.file).toBe(true);
+      const slots = slotsIn(d.file);
+      expect(slots.some((s) => s.literal === d.id || s.pattern?.test(d.id)), `${d.id} in ${d.file}`).toBe(true);
+      expect(pageIds.has(d.id), d.id).toBe(false);
+      expect(["station", "fleet", "conglomerate", ...R.screens.map((s) => s.id)], d.id).toContain(d.screen);
+    }
+  });
+
+  it("gives every building the Station opens a title code", () => {
+    const buildings = JSON.parse(read("data/buildings.json"));
+    const open = (buildings.buildings || buildings).filter((b) => b.available && b.action === `building:${b.id}` && b.id !== "isa-contracting-assignments");
+    for (const b of open) expect(R.drawn.map((d) => d.id), b.id).toContain(`building-${b.id}`);
   });
 });
 

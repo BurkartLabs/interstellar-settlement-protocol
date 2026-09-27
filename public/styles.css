@@ -776,12 +776,12 @@ button:disabled {
 
 /* ISP-203 (AB#897): the level panel: each requirement with its bar */
 .cong-level { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-3) 0; padding: 0; list-style: none; }
-.cong-level__req { display: grid; grid-template-columns: minmax(0, 1fr) 10rem auto; align-items: center; gap: var(--space-2) var(--space-3); }
+.cong-level__req { display: grid; grid-template-columns: minmax(0, 1fr) minmax(4rem, 10rem) minmax(0, auto); align-items: center; gap: var(--space-2) var(--space-3); }
 .cong-level__label { overflow-wrap: anywhere; }
 .cong-level__bar { display: block; height: 8px; border-radius: 4px; background: var(--surface-2, var(--border)); overflow: hidden; }
 .cong-level__bar > span { display: block; height: 100%; background: var(--warn); }
 .cong-level__req--met .cong-level__bar > span { background: var(--success); }
-.cong-level__progress { color: var(--text-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cong-level__progress { color: var(--text-soft); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; text-align: right; } /* ISP-250 (AB#946): no nowrap, which pushed a 768 page sideways */
 .cong-level__why { padding-left: var(--space-4); }
 @media (max-width: 600px) {
   .cong-level__req { grid-template-columns: minmax(0, 1fr) auto; }
@@ -2685,6 +2685,7 @@ body.sg {
    fact about the game and says what to do; a failure says what failed and offers to try again. */
 .ui-table-wrap {
   max-width: 100%;
+  overflow-x: auto; /* ISP-250 (AB#946): a table wider than its column scrolls inside its wrap, never the page */
 }
 .ui-table {
   width: 100%;
@@ -4830,6 +4831,11 @@ img.station__body {
 
 /* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */
 @media (max-width: 600px) {
+  /* ISP-250 (AB#946): the floor as tokens. Inside a screen the two small sizes are 14px on a phone, so a screen's own
+     class that takes --font-size-1 or -2 (the Conglomerate's, the Bank's, the lobbying rules') is on the floor without a
+     rule of its own; the list below remains for what sets a size some other way. Shown on /styleguide. */
+  .ui-screen { --font-size-1: 14px; --font-size-2: 14px; }
+  .ref-no { font-size: var(--font-size-3); } /* a reference number outside any screen (the sidebar's licence), Bug #4688 */
   .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .thread__meta, .thread__older, .thread__body, .bank-quote-form__field, .bank-loan__terms dt, .bank-quote__terms dt, .loan-board__only, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-kv, .station__overline, .station__note, .station__hint, .station__flavor, .station__blocked, .station__form label, .extractor__stat-label, .extractor__stat-value, .extractor__pct, .extractor__time, .extractor__cycle-status, .chat__meta, .chat__text, .forums__note, .forums__avatar, .forums__author, .forums__body, .missions__note, .missions__hint, .missions__overline, .missions__reward, .missions__cta, .missions__log-title, .missions__warning, .missions__levelup) {
     font-size: var(--font-size-3);
   }

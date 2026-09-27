@@ -9,6 +9,7 @@ import { deepClone } from "../helpers.js";
 import { appState } from "../state.js";
 import { showActionReceipt } from "./receiptModal.js";
 import { showTradeConfirmation, updateAllViews } from "./shared.js";
+import { codeSlotHtml } from "../sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 
 // Survives a redraw: which desk is shown and what was last read.
 const ex = { accountId: null, mode: "offerings", offerings: null, holdings: null, capTable: null, error: null, last: null };
@@ -30,7 +31,7 @@ function draw() {
   } else if (ex.mode === "issuer") {
     el.innerHTML = `<section class="ui-panel station__panel bank-panel"><h3>Your corporation's shares</h3>${d ? issuerHtml(d, ex.capTable) : `<p class="station__note">Reading your registry…</p>`}</section>`;
   } else {
-    el.innerHTML = `<section class="ui-panel station__panel bank-panel"><h3>Primary offerings</h3>${d ? offeringsHtml(d, d.issuer?.corpId) : `<p class="station__note">Reading the Exchange's offerings…</p>`}</section>`;
+    el.innerHTML = `<section class="ui-panel station__panel bank-panel"><h3>${codeSlotHtml("igsx-offerings")}Primary offerings</h3>${d ? offeringsHtml(d, d.issuer?.corpId) : `<p class="station__note">Reading the Exchange's offerings…</p>`}</section>`;
   }
 }
 
