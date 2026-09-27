@@ -6,6 +6,7 @@
 // server would refuse is drawn disabled with the reason beside it, never as a button that does nothing.
 
 import { escapeHtml } from "./html.js";
+import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 import { utcTime } from "./timeFormat.js"; // ISP-249 (AB#945)
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
@@ -60,7 +61,7 @@ export function charterHtml(view, form = {}) {
   const refusal = c.refusal;
   return `
     <section class="ui-panel station__panel cong-panel" data-role="cong-charter" id="cong-charter">
-      <h3>File a conglomerate charter</h3>
+      <h3>${codeSlotHtml("cong-charter")}File a conglomerate charter</h3>
       <p class="cong-panel__lede">A conglomerate is a group of corporations under one name, one treasury and one roster. You would be its founder and first member, at level 1 with room for 5.</p>
       <dl class="ui-kv cong-terms">
         <dt>Charter fee</dt><dd>${n(c.fee)} credits, paid to the ISA</dd>
@@ -117,7 +118,7 @@ export function invitationsHtml(view) {
   const cooldown = view.joinCooldownUntil ? `<p class="cong-refusal">Your corporation left a conglomerate recently. It can accept an invitation or apply from ${bureauTime(view.joinCooldownUntil)}.</p>` : "";
   return `
     <section class="ui-panel station__panel cong-panel" data-role="cong-invitations">
-      <h3>Invitations and applications</h3>
+      <h3>${codeSlotHtml("cong-invitations")}Invitations and applications</h3>
       ${cooldown}
       ${items ? `<ul class="cong-list">${items}</ul>` : empty}
       ${application}
@@ -162,7 +163,7 @@ export function directoryHtml(list, view, { error } = {}) {
   }
   return `
     <section class="ui-panel station__panel cong-panel" data-role="cong-directory" id="cong-directory">
-      <h3>Conglomerates</h3>
+      <h3>${codeSlotHtml("cong-directory")}Conglomerates</h3>
       ${body}
     </section>`;
 }
@@ -186,8 +187,8 @@ export function levelHtml(view) {
   const s = c?.levels;
   if (!c || !s) return "";
   const head = `<p class="ui-card__meta">Level ${n(c.level)} · room for ${n(c.maxMembers)} members, ${n(c.memberCount)} now</p>`;
-  if (s.refusal) return `<section class="ui-panel station__panel cong-panel" data-role="cong-level"><h3>Level</h3>${head}<p class="station__note">${escapeHtml(s.refusal)}</p></section>`;
-  if (s.top) return `<section class="ui-panel station__panel cong-panel" data-role="cong-level"><h3>Level</h3>${head}<p class="cong-panel__lede">${escapeHtml(c.name)} is at the highest level.</p></section>`;
+  if (s.refusal) return `<section class="ui-panel station__panel cong-panel" data-role="cong-level"><h3>${codeSlotHtml("cong-level")}Level</h3>${head}<p class="station__note">${escapeHtml(s.refusal)}</p></section>`;
+  if (s.top) return `<section class="ui-panel station__panel cong-panel" data-role="cong-level"><h3>${codeSlotHtml("cong-level")}Level</h3>${head}<p class="cong-panel__lede">${escapeHtml(c.name)} is at the highest level.</p></section>`;
   const funds = s.requirements.find((r) => r.id === "funds");
   const reserve = funds ? funds.need - s.next.cost : 0;
   const bar = (share) => `<span class="cong-level__bar" aria-hidden="true"><span style="width:${Math.round(Math.max(0, Math.min(1, share)) * 100)}%"></span></span>`;
@@ -212,7 +213,7 @@ export function levelHtml(view) {
   if (unmet) why.push(`${unmet} of the ${s.requirements.length} requirements above ${unmet === 1 ? "is" : "are"} not met yet.`);
   return `
     <section class="ui-panel station__panel cong-panel" data-role="cong-level">
-      <h3>Level</h3>
+      <h3>${codeSlotHtml("cong-level")}Level</h3>
       ${head}
       <p class="cong-panel__lede">Level ${n(s.next.level)} makes room for ${n(s.next.maxMembers)}. It costs ${n(s.next.cost)} credits from the treasury, which must keep ${n(reserve)} more for upkeep.</p>
       <ul class="cong-level">${s.requirements.map(row).join("")}</ul>
@@ -275,7 +276,7 @@ export function memberHtml(view, { search } = {}) {
       <div class="cong-summary">
         ${emblemSvg(c.emblem, c.colour, { size: "lg" })}
         <div class="cong-item__text">
-          <h3 class="cong-summary__name">${escapeHtml(c.name)}</h3>
+          <h3 class="cong-summary__name">${codeSlotHtml("cong-summary")}${escapeHtml(c.name)}</h3>
           <p class="ui-card__meta"><span class="ui-badge ui-badge--accent">${ROLE_LABEL[c.role]}</span> Level ${n(c.level)} · ${n(c.memberCount)} of ${n(c.maxMembers)} members · treasury ${n(c.treasury?.credits)} credits</p>
         </div>
       </div>
@@ -283,7 +284,7 @@ export function memberHtml(view, { search } = {}) {
     </section>
     ${levelHtml(view)}
     <section class="ui-panel station__panel cong-panel" data-role="cong-roster">
-      <h3>Roster</h3>
+      <h3>${codeSlotHtml("cong-roster")}Roster</h3>
       <div class="ui-table-wrap"><table class="ui-table cong-roster">
         <caption class="ui-table__caption">${n(c.memberCount)} member${c.memberCount === 1 ? "" : "s"}, ${n(directors)} of at most ${n(c.maxDirectors)} directors</caption>
         <thead><tr><th scope="col">Corporation</th><th scope="col">Role</th><th scope="col">Joined</th><th scope="col">Actions</th></tr></thead>
@@ -293,15 +294,15 @@ export function memberHtml(view, { search } = {}) {
       <p class="cong-form-status" data-role="cong-roster-status" role="status"></p>
     </section>
     <section class="ui-panel station__panel cong-panel" data-role="cong-admissions">
-      <h3>Applications</h3>
+      <h3>${codeSlotHtml("cong-admissions")}Applications</h3>
       ${applications}
       <h3>Invitations sent</h3>
       ${invitations}
       ${inviteForm}
     </section>
-    ${identity ? `<section class="ui-panel station__panel cong-panel" data-role="cong-identity"><h3>Emblem and colour</h3>${identity}</section>` : ""}
+    ${identity ? `<section class="ui-panel station__panel cong-panel" data-role="cong-identity"><h3>${codeSlotHtml("cong-identity")}Emblem and colour</h3>${identity}</section>` : ""}
     <section class="ui-panel station__panel cong-panel" data-role="cong-exit">
-      <h3>${may("dissolve") ? "Dissolve" : "Leave"}</h3>
+      <h3>${codeSlotHtml("cong-exit")}${may("dissolve") ? "Dissolve" : "Leave"}</h3>
       ${leaveOrDissolve}
     </section>`;
 }
@@ -320,14 +321,14 @@ export function hqHtml(view, directory, { search, error } = {}) {
   if (view.conglomerate) {
     return memberHtml(view, { search }) + `
     <section class="ui-panel station__panel cong-panel" data-role="cong-bureau-link">
-      <h3>At the Bureau</h3>
+      <h3>${codeSlotHtml("cong-bureau-link")}At the Bureau</h3>
       <p class="cong-panel__lede">Everything above works from any station. Paperwork that costs credits (levels, and dissolving) is filed at the Conglomerate Affairs Bureau.</p>
       ${bureauButton}
     </section>`;
   }
   return `
     <section class="ui-panel station__panel cong-panel" data-role="cong-independent">
-      <h3>Your corporation is independent</h3>
+      <h3>${codeSlotHtml("cong-independent")}Your corporation is independent</h3>
       <p class="cong-panel__lede">A conglomerate pools a treasury and a roster under one name. Found one at the Conglomerate Affairs Bureau (it costs ${n((view.charter?.fee || 0) + (view.charter?.deposit || 0))} credits), or apply to one below from any station.</p>
       ${bureauButton}
     </section>` + invitationsHtml(view) + directoryHtml(directory, view, { error });

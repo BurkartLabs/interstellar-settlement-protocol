@@ -16,6 +16,7 @@ import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { openTab } from "./nav.mjs";
+import { findings } from "./screenFindings.mjs"; // ISP-250 (AB#946): shared with the Company and Station audit
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-772");
@@ -25,9 +26,6 @@ const PASSWORD = "playtest-password-not-real";
 const SIZES = [[375, 812], [768, 1024], [1280, 800]];
 const PAGES = ["/", "/login.html", "/register.html", "/forgot-password.html", "/reset-password.html", "/check-email.html", "/verify-email.html", "/how-to-start.html"];
 const TABS = ["overview", "inbox", "finance", "ceo", "missions", "station", "rnd", "refinery", "logistics", "market", "assets", "chat", "forums", "starmap"];
-/** The components the design system replaced (ISP-72 to ISP-82). None may be in sight on any screen. */
-const LEGACY = ["btn", "btn-accent", "btn-outline", "btn-ghost", "muted", "overline", "lede", "choice-row", "form-card", "data-card", "card-grid", "text-list", "panel-block", "pill", "queue-item", "queue-list"];
-
 function startServer(dir) {
   const child = spawn(process.execPath, ["server/index.js"], {
     cwd: REPO_ROOT,
@@ -51,58 +49,6 @@ function startServer(dir) {
 function seed(script, dir, email) {
   const run = spawnSync(process.execPath, [script, dir, email, PASSWORD], { cwd: REPO_ROOT, encoding: "utf8", env: { ...process.env, JWT_SECRET: SECRET } });
   if (run.status !== 0) throw new Error(`${script} failed: ${run.stdout}\n${run.stderr}`);
-}
-
-/**
- * What is wrong on the screen in sight, as lines: sideways scroll at any width; at 375 text under 14px and controls
- * under 44px; legacy components. `scope` is where to look (the whole page, or a tab with the shell around it).
- */
-async function findings(page, name, width, scope = "body") {
-  return page.evaluate(({ name, narrow, scope, legacy }) => {
-    const out = [];
-    const overflow = document.documentElement.scrollWidth - document.documentElement.clientWidth;
-    if (overflow > 0) out.push(`${name}: sideways scroll ${overflow}px`);
-    const shown = (el) => el.getClientRects().length && !el.closest("[hidden]") && getComputedStyle(el).visibility !== "hidden";
-    const roots = [...document.querySelectorAll(scope)].filter(shown);
-    const label = (el) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.className && typeof el.className === "string" ? `.${el.className.trim().split(/\s+/).join(".")}` : ""}`;
-    // What the sideways-scroll check cannot see (found by looking): a box past the left edge, which never scrolls, or past
-    // the right inside something that clips it; and a control whose words are wider than it.
-    const vw = document.documentElement.clientWidth;
-    const inScroller = (el) => {
-      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
-        const ox = getComputedStyle(a).overflowX;
-        if (ox !== "visible" && a.scrollWidth > a.clientWidth + 1) return true;
-      }
-      return false;
-    };
-    for (const root of roots) {
-      for (const el of root.querySelectorAll(legacy.map((c) => `.${c}`).join(","))) {
-        if (shown(el)) out.push(`${name}: legacy ${label(el)}`);
-      }
-      for (const el of root.querySelectorAll("*")) {
-        if (!shown(el) || el.closest("canvas, svg, [aria-hidden='true']")) continue; // decoration may bleed
-        const r = el.getBoundingClientRect();
-        if (r.width > 0 && (r.left < -1 || r.right > vw + 1) && !inScroller(el)) out.push(`${name}: off screen ${label(el)} ${Math.round(r.left)}..${Math.round(r.right)}`);
-      }
-      for (const el of root.querySelectorAll("button, [role=tab], .ui-badge")) {
-        if (shown(el) && el.scrollWidth > el.clientWidth + 1) out.push(`${name}: words wider than ${label(el)} "${el.textContent.trim().slice(0, 24)}"`);
-      }
-      if (!narrow) continue;
-      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-        const el = n.parentElement;
-        if (!n.textContent.trim() || !shown(el) || el.closest("canvas, option, .sr-only")) continue;
-        const f = parseFloat(getComputedStyle(el).fontSize);
-        if (f < 14) out.push(`${name}: ${f}px text ${label(el)} "${n.textContent.trim().slice(0, 30)}"`);
-      }
-      for (const el of root.querySelectorAll("button, input, select, textarea, a, [role=button], [role=tab]")) {
-        if (!shown(el) || (el.tagName === "A" && el.closest("p, li"))) continue; // a link in running text is exempt
-        const r = el.getBoundingClientRect();
-        if (r.width > 0 && (r.width < 44 || r.height < 44)) out.push(`${name}: control ${Math.round(r.width)}x${Math.round(r.height)} ${label(el)} "${(el.textContent || el.getAttribute("aria-label") || "").trim().slice(0, 24)}"`);
-      }
-    }
-    return [...new Set(out)];
-  }, { name, narrow: width === 375, scope, legacy: LEGACY });
 }
 
 const shot = (page, name, width, height) => page.screenshot({ path: path.join(SHOT_DIR, `${name}-${width}x${height}.png`), fullPage: true });

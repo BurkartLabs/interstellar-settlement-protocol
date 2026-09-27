@@ -8,6 +8,7 @@
 
 import { escapeHtml } from "./html.js";
 import { bureauTime } from "./conglomerateBureau.js";
+import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 const signed = (v) => (v > 0 ? `+${n(v)}` : v < 0 ? `−${n(-v)}` : "0");
@@ -114,7 +115,7 @@ export function treasuryHtml(t, { may = [], status = {}, form = {} } = {}) {
     <div class="cong-actions">${may.includes("block-withdrawal") && w.corp !== t.me ? `<button type="button" class="ui-button ui-button--danger" data-role="cong-withdrawal-block" data-withdrawal="${escapeHtml(w.id)}">Block</button>` : ""}</div></li>`).join("")}</ul>` : "";
   return `
     <section class="ui-panel station__panel cong-panel" data-role="cong-treasury">
-      <h3>Treasury</h3>
+      <h3>${codeSlotHtml("cong-treasury")}Treasury</h3>
       <dl class="ui-kv cong-terms">
         <dt>Balance</dt><dd data-role="cong-treasury-balance">${n(t.balance)} credits</dd>
         <dt>Upkeep</dt><dd>${n(t.upkeepPerDay)} credits a day, next at ${bureauTime(t.nextUpkeepAt)}</dd>
@@ -124,7 +125,7 @@ export function treasuryHtml(t, { may = [], status = {}, form = {} } = {}) {
       ${pending}
     </section>
     <section class="ui-panel station__panel cong-panel" data-role="cong-treasury-ledger">
-      <h3>Ledger</h3>
+      <h3>${codeSlotHtml("cong-treasury-ledger")}Ledger</h3>
       ${ledgerHtml(t.ledger, { which: "treasury" })}
     </section>`;
 }
@@ -161,12 +162,12 @@ export function hangarHtml(h, { may = [], own = {}, status = {}, docked = false 
     </form>` : held.length ? `<p class="cong-item__why">Nothing more can be withdrawn today: each role takes a share of each item's stock at 00:00 UTC, and the share resets then.</p>` : "") : "";
   return `
     <section class="ui-panel station__panel cong-panel" data-role="cong-hangar">
-      <h3>Hangar</h3>
+      <h3>${codeSlotHtml("cong-hangar")}Hangar</h3>
       ${stock}
       <div class="cong-money">${deposit}${withdraw}</div>
     </section>
     <section class="ui-panel station__panel cong-panel" data-role="cong-hangar-ledger">
-      <h3>Ledger</h3>
+      <h3>${codeSlotHtml("cong-hangar-ledger")}Ledger</h3>
       ${ledgerHtml(h.ledger, { which: "hangar", goods: true })}
     </section>`;
 }

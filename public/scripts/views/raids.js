@@ -8,6 +8,7 @@ import { battleReportHtml, countdown, garrisonPanelHtml, incomingAlertHtml, outg
 import { unitsText } from "../fleetView.js";
 import { appState } from "../state.js";
 import { pushFeedback, setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { codeSlotHtml } from "../sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 
 const raids = { accountId: null, data: null, at: 0, loading: false, targets: {}, pick: { fleetId: "", stationId: "" }, report: null };
 const REFRESH_MS = 15_000;
@@ -67,15 +68,15 @@ function draw(data) {
   const report = raids.report ? (corp.raidReports || []).find((r) => r.raidId === raids.report) : null;
   root.innerHTML = `
     <section class="ui-stack" aria-labelledby="raid-garrisons-title">
-      <h4 id="raid-garrisons-title" class="raid-heading">Garrisons</h4>
+      <h4 id="raid-garrisons-title" class="raid-heading">${codeSlotHtml("raid-garrisons")}Garrisons</h4>
       <div class="ui-grid station__grid">${garrisonPanelHtml(corp, heldStations(corp, incoming), { stationName, now, incoming })}</div>
     </section>
     <section class="ui-stack" aria-labelledby="raid-picker-title">
-      <h4 id="raid-picker-title" class="raid-heading">Raid a corporation</h4>
+      <h4 id="raid-picker-title" class="raid-heading">${codeSlotHtml("raid-picker")}Raid a corporation</h4>
       ${targetPickerHtml({ fleets, stationId: raids.pick.stationId, stations, list, stationName, catalog })}
     </section>
     <section class="ui-stack" aria-labelledby="raid-mine-title">
-      <h4 id="raid-mine-title" class="raid-heading">Your raids and reports</h4>
+      <h4 id="raid-mine-title" class="raid-heading">${codeSlotHtml("raid-mine")}Your raids and reports</h4>
       ${outgoingRaidsHtml(raids.data?.outgoing || [], { now, stationName, reports: corp.raidReports || [] })}
       ${(corp.raidReports || []).filter((r) => r.side === "defender").slice(0, 5).map((r) => `<p class="raid-list__item"><span>Raided by ${r.attacker.name ?? "a corporation"} at ${r.station}</span> <button type="button" class="ui-button ui-button--secondary" data-raid-report="${r.raidId}">Report</button></p>`).join("")}
       ${report ? battleReportHtml(report, { catalog }) : ""}
