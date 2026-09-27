@@ -3628,6 +3628,17 @@ img.station__body {
   white-space: normal;
   text-align: left;
 }
+/* ISP-231 (AB#926): a holder files its system's tariff in the starmap's system panel: a short number and its button, in
+   one row where they fit. */
+.starmap__tariff-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+.starmap__tariff-form .ui-input {
+  width: 7em;
+}
 .station__probe-img {
   width: 96px;
   height: auto;

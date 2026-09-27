@@ -9,6 +9,7 @@ import { officeLeaseCost } from "./ceoEffects.js"; // Bug #2340: the one office 
 import { isMemberStation, memberOfficeCost } from "./memberRates.js"; // ISP-212 (AB#907)
 import { isConglomerateStation, isNeutralStation } from "./stationMarkers.js";
 import { concentrationBand, concentrationLegendHtml, concentrationRows, concentrationText, overlayItems, systemConcentration, bodyConcentration } from "./resourceOverlay.js"; // ISP-143 (AB#837)
+import { tariffPanelHtml } from "./tariffPanel.js"; // ISP-231 (AB#926)
 import { DOMINANCE_OVERLAYS, QUIET_TOKEN, dominanceDetailsHtml, dominanceKey, dominanceLegendHtml, isDominanceOverlay, tokenRgba } from "./dominanceOverlay.js"; // ISP-218 (AB#913)
 import { CONCESSION_OVERLAY, concessionDetailsHtml, concessionKey, concessionLegendHtml } from "./concessionOverlay.js"; // ISP-229 (AB#924)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
@@ -529,6 +530,7 @@ export function createStarmapController({
   onConcessionAction, // ISP-229 (AB#924): petition, set the lease discount, relinquish: the page confirms and posts
   resetButton,
   onTravelToSystem,
+  onFileTariff, // ISP-231 (AB#926): (systemId, pct) => Promise<string | null>, the refusal to show, or null when filed
   onDockAtStation,
   onScoutBelt,
   onLaunchExpedition,
@@ -1456,6 +1458,7 @@ export function createStarmapController({
         ${systemConcentrationHtml(system)}
         ${dominanceSystemHtml(system)}
         ${concessionSystemHtml(system)}
+        ${tariffPanelHtml(system.id, state.tariffs, system.name)}
         ${jumpHtml}
       `);
       // ISP-229 (AB#924): the page reads this system's control and the viewer's status; its buttons are the page's.
@@ -1463,6 +1466,18 @@ export function createStarmapController({
       detailsEl.querySelector('[data-role="concession-petition"]')?.addEventListener("click", (e) => onConcessionAction?.("petition", system.id, { ...e.currentTarget.dataset }));
       detailsEl.querySelector('[data-role="concession-relinquish"]')?.addEventListener("click", () => onConcessionAction?.("relinquish", system.id, {}));
       detailsEl.querySelector('[data-role="concession-discount"]')?.addEventListener("submit", (e) => { e.preventDefault(); onConcessionAction?.("discount", system.id, { discountPct: Number(e.currentTarget.discountPct.value) }); });
+      // ISP-231 (AB#926): a holder docked in the system files a rate here
+      detailsEl.querySelector('[data-form="file-tariff"]')?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const status = detailsEl.querySelector('[data-role="tariff-status"]');
+        const button = form.querySelector('button[type="submit"]');
+        if (!onFileTariff) return;
+        button.disabled = true;
+        const refusal = await onFileTariff(form.getAttribute("data-system-id"), Number(form.elements.pct.value));
+        button.disabled = false;
+        if (status && refusal) status.textContent = refusal;
+      });
       // Bind the jump button rendered in the system view.
       detailsEl.querySelectorAll(".starmap__jump").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -2101,6 +2116,11 @@ export function createStarmapController({
     setSystemConcession(systemId, read) {
       state.systemConcession[systemId] = read;
       if (state.view === "system" && state.selectedSystemId === systemId) renderDetails();
+    },
+    /** ISP-231 (AB#926): the viewer's tariff summary (GET /api/accounts/:id/tariffs): held systems' rates and its own. */
+    setTariffs(summary) {
+      state.tariffs = summary || null;
+      if (state.view === "system") renderDetails();
     },
     /** ISP-218 (AB#913): the dominance reading, and the viewer's own corporation and conglomerate names. */
     setDominance(reading, { corporation = "", conglomerate = "" } = {}) {

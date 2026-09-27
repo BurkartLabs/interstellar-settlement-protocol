@@ -26,7 +26,8 @@ const systemName = (systems, id) => (systems || []).find((s) => s.id === id)?.na
 export function stationTabHtml(sp, gov, ctx = {}) {
   if (!sp) return `<p class="station__note">Reading the station project…</p>`;
   if (sp.error) return `<div class="ui-state ui-state--error" role="alert"><p class="ui-state__title">The station could not be loaded</p><p class="ui-state__why">${escapeHtml(sp.error)} Nothing has changed.</p><button type="button" class="ui-button ui-button--secondary" data-role="cong-reload">Try again</button></div>`;
-  if (sp.station && gov) return coOwnedStationHtml(gov, ctx);
+  // Bug #4669: the member rate from this screen's own read, which a membership read from before the station opened lacks
+  if (sp.station && gov) return coOwnedStationHtml(gov, { ...ctx, memberRentPct: sp.memberRentPct });
   if (sp.project) return projectHtml(sp.project, ctx);
   return noStationHtml(sp, ctx);
 }
@@ -138,7 +139,7 @@ export function projectHtml(p, { may = [], systems = [], own = {}, hangar = {}, 
 }
 
 /** The built station: art, stakes, what a member gets there, and the stake vote. */
-export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], stations = [], memberStation = null, directory = [], standardRent = 0, conglomerateId = null, status = {} } = {}) {
+export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], stations = [], memberStation = null, memberRentPct = null, directory = [], standardRent = 0, conglomerateId = null, status = {} } = {}) {
   const st = stations.find((s) => s.id === gov.station.id) || gov.station;
   const mine = gov.stakes.find((s) => s.corp === me);
   const stakes = gov.stakes.length ? `<div class="ui-table-wrap"><table class="ui-table cong-station__stakes">
@@ -146,9 +147,9 @@ export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], sta
       <thead><tr><th scope="col">Corporation</th><th scope="col" class="ui-table__num">Stake</th><th scope="col" class="ui-table__num">Put in</th></tr></thead>
       <tbody>${gov.stakes.map((s) => `<tr data-role="cong-stake" data-corp="${escapeHtml(s.corp)}"><td data-label="Corporation">${escapeHtml(s.corpName || "A corporation")}${s.corp === me ? " (you)" : ""}</td><td data-label="Stake" class="ui-table__num">${s.pct.toFixed(2)}%</td><td data-label="Put in" class="ui-table__num">${n(s.value)}</td></tr>`).join("")}</tbody>
     </table></div>` : `<p class="cong-panel__lede">Nobody holds a stake: the station was built from the pool, so the founder decides its settings.</p>`;
-  const rate = memberStation?.officeRentPct ?? null;
+  const rate = memberRentPct ?? memberStation?.officeRentPct ?? null; // Bug #4669: the screen's fresh read first
   const benefits = `<ul class="cong-station__benefits" data-role="cong-station-benefits">
-      <li><strong>Offices at ${n(rate)}%.</strong> A member's suite here costs ${n((standardRent * rate) / 100)} credits a day, not ${n(standardRent)}: lease or renew it in the Orbital Executive Suites once docked.</li>
+      ${rate === null ? "" : `<li><strong>Offices at ${n(rate)}%.</strong> A member's suite here costs ${n((standardRent * rate) / 100)} credits a day, not ${n(standardRent)}: lease or renew it in the Orbital Executive Suites once docked.</li>`}
       <li><strong>Free logistics in ${escapeHtml(systemName(systems, st.systemId))}.</strong> Goods move between ${escapeHtml(st.name)} and any other station in the system for nothing.</li>
     </ul>`;
   const open = gov.proposals.filter((p) => p.state === "open");

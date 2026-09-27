@@ -7,6 +7,7 @@ import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { MAX_TRANSFER_LINES, describeHops, describeLines, feePerUnit, stationHops, transferFee, transitMinutes } from "../logistics.js";
 import { transferFeeWaived } from "../memberRates.js"; // ISP-212 (AB#907)
+import { transferTariff } from "../tariffs.js"; // ISP-231 (AB#926): the tariff the server charges at dispatch
 import { appState } from "../state.js";
 import { formatSystemLabel, getAllInventory, getCurrentStationInfo, pushFeedback, updateAllViews } from "./shared.js";
 
@@ -34,6 +35,11 @@ export function renderLogistics(data) {
   const hopsFrom = (fromStation) => stationHops(stationRegistry, fromStation, currentStationId, appState.navigation);
   // ISP-212 (AB#907): a member moving goods to or from its conglomerate's station, in its system, pays nothing
   const waived = (fromStation, hops) => transferFeeWaived(appState.conglomerate?.station?.id ?? null, fromStation, currentStationId, hops);
+  // ISP-231 (AB#926): the concession tariff on goods shipped here from another system (none from inside it), and each
+  // item's value for it, from the tariff summary for this station; 0 until it has loaded (the server still charges it)
+  const tariffHere = appState.tariffs?.here?.stationId === currentStationId ? appState.tariffs.here : null;
+  const normalValues = appState.tariffs?.normalValues || {};
+  const tariffInto = (fromSystemId) => (tariffHere && fromSystemId && fromSystemId !== tariffHere.systemId ? tariffHere.pct : 0);
   // The last outcome on a station card (AB#717): errors name the fix, and survive the re-renders a tick causes.
   const status = appState.logisticsStatus || null;
   // Picks and typed quantities survive those re-renders too, until the transfer goes through.
@@ -78,10 +84,11 @@ export function renderLogistics(data) {
     const badge = isCurrent ? `<span class="ui-badge ui-badge--accent">Docked</span>` : "";
     const subhead = `${escapeHtml(st.body || "")}${st.systemId ? ` · ${escapeHtml(formatSystemLabel(st.systemId))}` : ""}`;
     const hops = isCurrent ? null : hopsFrom(st.id);
+    const tariffPct = isCurrent ? 0 : tariffInto(st.systemId);
     // ISP-279 (AB#986): the quote now names the arrival time too, not just the fee — a delay the player cannot
     // see before sending reads as goods going missing (D-0.5-1's third story, after AB#985's server-side transit).
     const routeFee = rates && hops !== null && entries.length
-      ? `<p class="ui-card__body logistics__route-fee">Fee to ${escapeHtml(currentName)}: <strong>${waived(st.id, hops) ? "free for members" : `${toCurrency(feePerUnit(rates, hops))} per unit`}</strong>, <strong>${escapeHtml(formatDuration(transitMinutes(rates, hops) * 60_000))} transit</strong> (${escapeHtml(describeHops(hops))})</p>`
+      ? `<p class="ui-card__body logistics__route-fee">Fee to ${escapeHtml(currentName)}: <strong>${waived(st.id, hops) ? "free for members" : `${toCurrency(feePerUnit(rates, hops))} per unit`}</strong>, <strong>${escapeHtml(formatDuration(transitMinutes(rates, hops) * 60_000))} transit</strong> (${escapeHtml(describeHops(hops))})${tariffPct > 0 ? `, plus this system's concession tariff: <strong>${tariffPct}% of the goods' value</strong>, charged at dispatch` : ""}</p>`
       : "";
 
     let itemsHtml = "";
@@ -102,7 +109,7 @@ export function renderLogistics(data) {
           <input type="checkbox" id="${pickId}" class="logistics__pick" data-from-station="${escapeHtml(st.id)}" data-item="${escapeHtml(item)}"${kept.picked ? " checked" : ""} />
           <label class="logistics__item-label" for="${pickId}">
             <span class="logistics__item-name">${escapeHtml(item)}</span>
-            <span class="ui-card__meta">${maxQty.toLocaleString()} avail</span>
+            <span class="ui-card__meta">${maxQty.toLocaleString()} avail${tariffPct > 0 ? ` · tariff ${toCurrency(transferTariff([{ item, quantity: maxQty }], normalValues, tariffPct))} for all` : ""}</span>
           </label>
           <div class="logistics__controls">
             <input type="number" class="ui-input logistics__qty" min="1" step="1" max="${maxQty}" value="${escapeHtml(kept.qty ?? maxQty)}"
@@ -205,8 +212,10 @@ export function renderLogistics(data) {
     btn.textContent = lines.length ? `Move ${lines.length} picked → ${currentName}` : "Move picked items";
     const hops = hopsFrom(fromStation);
     const fee = rates && hops !== null ? (waived(fromStation, hops) ? "no fee (member, in system)" : `fee ${toCurrency(transferFee(rates, hops, [{ quantity: units }]))}`) : "fee quoted when you move";
+    const fromSystem = stationRegistry.find((s) => s.id === fromStation)?.systemId;
+    const tariff = transferTariff(lines, normalValues, tariffInto(fromSystem)); // ISP-231 (AB#926)
     feeEl.textContent = lines.length
-      ? `${units.toLocaleString()} units, ${fee}${lines.length > MAX_TRANSFER_LINES ? `. At most ${MAX_TRANSFER_LINES} items per transfer.` : ""}`
+      ? `${units.toLocaleString()} units, ${fee}${tariff > 0 ? `, concession tariff ${toCurrency(tariff)}` : ""}${lines.length > MAX_TRANSFER_LINES ? `. At most ${MAX_TRANSFER_LINES} items per transfer.` : ""}`
       : `Pick up to ${MAX_TRANSFER_LINES} items to move together.`;
   };
   const remember = (el) => {
@@ -241,7 +250,7 @@ export function renderLogistics(data) {
       const shipment = account.shipment;
       const etaMin = shipment ? Math.max(1, Math.round((shipment.arrivesAt - shipment.dispatchedAt) / 60_000)) : null;
       appState.logisticsStatus = { stationId: fromStation, tone: "ok", text: shipment
-        ? `Dispatched ${describeLines(shipment.lines)} to ${currentName} for ${toCurrency(shipment.fee)} — arriving in ${etaMin} min.`
+        ? `Dispatched ${describeLines(shipment.lines)} to ${currentName} for ${toCurrency(shipment.fee)}${shipment.tariff?.amount ? ` and ${toCurrency(shipment.tariff.amount)} concession tariff` : ""} — arriving in ${etaMin} min.`
         : "Transfer dispatched." };
       for (const key of Object.keys(draft)) if (key.startsWith(`${fromStation}|`)) delete draft[key];
       appState.data = deepClone(account.state);

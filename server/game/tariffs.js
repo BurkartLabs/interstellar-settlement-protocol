@@ -49,10 +49,8 @@ export function listingRate(postedPct, nowPct) {
   return Number.isFinite(postedPct) ? Math.min(postedPct, nowPct) : nowPct;
 }
 
-/** The tariff on `base` credits at `pct`, in whole credits (rounded as the exchange tax is). */
-export function tariffOn(base, pct) {
-  return pct > 0 && base > 0 ? Math.round((base * pct) / 100) : 0;
-}
+// ISP-231 (AB#926): the tariff on a base is the client's quote too, so it is one function in public/scripts
+export { tariffOn } from "../../public/scripts/tariffs.js";
 
 /** The ISA's levy out of `amount` collected at `pct` in a system capped at `cap`: isaLevyAtCapPct x pct / cap of it. */
 export function levyOf(amount, pct, cap, terms) {
