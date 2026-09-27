@@ -48,6 +48,9 @@ export function refineryBuildButtonHtml({ hasRefinery, used, slots }) {
 export function tradeConfirmRowsHtml(rows) {
   return rows
     .map((r) => {
+      // ISP-233 (AB#928): a note is one line across both columns, which wraps (the label column does not); a warning is marked
+      if (r.note) return `<tr class="trade-confirm-note${r.warn ? " trade-confirm-warn" : ""}"><td colspan="2">${escapeHtml(r.note)}</td></tr>`;
+      if (r.warn) return `<tr class="trade-confirm-warn"><td>${escapeHtml(r.label)}</td><td class="trade-confirm-value">${escapeHtml(r.value)}</td></tr>`;
       const cls = r.highlight ? ` class="trade-confirm-highlight"` : r.muted ? ` class="trade-confirm-muted"` : "";
       return `<tr${cls}><td>${escapeHtml(r.label)}</td><td class="trade-confirm-value">${escapeHtml(r.value)}</td></tr>`;
     })

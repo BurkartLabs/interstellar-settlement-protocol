@@ -8,6 +8,7 @@ import { getState, listAccountNotifications } from "../../server/gameState.js";
 import { dutyOwed, findingsFor, itcSinkTotal, itcTick, recordOwnSale, resetItc } from "../../server/itcService.js";
 import { saleQuote } from "../../public/scripts/tariffs.js";
 import { withheldFrom } from "../../public/scripts/itcDuty.js"; // the sale confirmation's own arithmetic
+import { listingWarning } from "../../public/scripts/dumping.js"; // ISP-233 (AB#928): the listing warning's rule
 
 // ISP-232 (AB#927; docs/design/WARFARE.md, "Dumping, and the Trade Commission's watch"): the daily watch over sales at
 // a price the seller chose, the investigation notice with its numbers, the duty levied a day later and never below
@@ -140,5 +141,59 @@ describe("one withholding, on both sale paths (P-HALF-FIX, AB#927)", () => {
     for (const f of ["marketSettlement.js", "routes/market.js"]) expect(read(f), f).toMatch(/withholdDuty\(/);
     expect(read("marketSettlement.js")).toMatch(/recordOwnSale\(/);
     expect(read("routes/market.js")).not.toMatch(/recordOwnSale\(/); // the standing bid's price is the ISA's
+  });
+});
+
+describe("flooding made visible before it is found (ISP-233, AB#928)", () => {
+  /** Normal trade at `price` on the 7 days the next tick reads as normal (9 to 3 days ago), and `lastDay` yesterday. */
+  function seedForNextTick(price = 270, volume = 1000, lastDay = null) {
+    const today = Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
+    const b = (offset, close, vol) => ({ day: new Date(today - offset * DAY).toISOString().slice(0, 10), open: close, high: close, low: close, close, volume: vol, trades: 10, value: close * vol });
+    getState().market.priceHistory[ITEM] = [...Array.from({ length: 7 }, (_, i) => b(9 - i, price, volume)), ...(lastDay ? [b(1, lastDay.close, lastDay.volume)] : [])];
+  }
+
+  it("alerts on the Exchange's item view when the last day closed under the line, with the volume behind it", async () => {
+    seedForNextTick(270, 1000, { close: 160, volume: 600 });
+    const viewer = await corp();
+    const res = await viewer.api.get(`/api/market/history/${encodeURIComponent(ITEM)}`);
+    expect(res.status).toBe(200);
+    expect(res.body.watch).toMatchObject({ normal: { price: 270, dailyVolume: 1000 }, line: 229.5, volumeLine: 300, alert: { close: 160, volume: 600, dropPct: 41, volumePct: 60 } });
+    seedForNextTick(270, 1000, { close: 240, volume: 600 }); // 11% under: above the line, no alert
+    expect((await viewer.api.get(`/api/market/history/${encodeURIComponent(ITEM)}`)).body.watch.alert).toBeNull();
+  });
+
+  it.each([
+    ["at the volume line", 300, 229, true],
+    ["one unit under the volume line", 299, 229, false],
+    ["at the price line", 400, 229.5, false]
+  ])("warns exactly as the watch then decides: %s", async (_, quantity, unitPrice, expected) => {
+    seedForNextTick();
+    const seller = await corp({ stock: { [ITEM]: quantity } }), buyer = await corp({ credits: 5_000_000 });
+    const mine = (await seller.api.get(`/api/accounts/${seller.id}/itc/${encodeURIComponent(ITEM)}`)).body;
+    expect(mine).toMatchObject({ line: 229.5, volumeLine: 300, sales: [], owed: 0 });
+    const warned = listingWarning(mine, quantity, unitPrice);
+    const posted = await seller.api.post("/api/market/orders").send({ type: "sell", item: ITEM, quantity, unitPrice: Math.ceil(unitPrice) === unitPrice ? unitPrice : Math.floor(unitPrice) });
+    // prices are whole credits: 229 is under the 229.5 line, and 229.5 cannot be listed, so the line case lists at 230
+    if (unitPrice === 229.5) {
+      expect(warned).toBeNull();
+      return;
+    }
+    expect(posted.status, JSON.stringify(posted.body)).toBe(200);
+    await buyer.api.post(`/api/market/orders/${posted.body.order.id}/buy`).send({ quantity });
+    const found = itcTick(later(1)).opened.length > 0;
+    expect(warned.found).toBe(expected);
+    expect(found).toBe(expected);
+    if (expected) expect(findingsFor(seller.corp.publicId)[0].duty).toBe(warned.duty);
+  });
+
+  it("counts what the seller already sold below the line in the window", async () => {
+    seedForNextTick();
+    const seller = await corp({ stock: { [ITEM]: 200 } }), buyer = await corp({ credits: 5_000_000 });
+    await sellTo(seller, buyer, 200, 200);
+    const mine = (await seller.api.get(`/api/accounts/${seller.id}/itc/${encodeURIComponent(ITEM)}`)).body;
+    expect(mine.sales).toEqual([expect.objectContaining({ quantity: 200, unitPrice: 200 })]);
+    expect(listingWarning(mine, 100, 200)).toMatchObject({ already: 200, Q: 300, found: true });
+    expect(listingWarning(mine, 99, 200)).toMatchObject({ already: 200, Q: 299, found: false });
+    expect((await seller.api.get(`/api/accounts/${seller.id}/itc/Unobtainium`)).status).toBe(404);
   });
 });

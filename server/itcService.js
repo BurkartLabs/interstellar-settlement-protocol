@@ -164,6 +164,36 @@ export function itcTick(now = Date.now()) {
   return { levied, opened };
 }
 
+/**
+ * ISP-233 (AB#928): the watch as the next tick will read an item (public, aggregate): its normal value and daily volume,
+ * the price line and the volume line for a window, and an alert when the last complete day closed under the line, with
+ * the volume behind it. `normal` is null (and there is no alert) when the item has no normal value: the watch would
+ * find nothing either. Sales made today are judged from the next tick, so its days are the ones shown.
+ */
+export function watchView(item, now = Date.now()) {
+  const { window, normal: normalDays } = watchDays(now + DAY_MS, TERMS);
+  const buckets = getState().market?.priceHistory?.[item] || [];
+  const n = normalOf(buckets, normalDays, TERMS);
+  const terms = { ...TERMS };
+  const base = { item, terms, window: [window[0], window.at(-1)] };
+  if (!n) return { ...base, normal: null, line: null, volumeLine: null, alert: null };
+  const line = (n.price * TERMS.priceThresholdPct) / 100;
+  const volumeLine = (TERMS.volumeThresholdPct / 100) * n.dailyVolume * TERMS.windowDays;
+  const yesterday = new Date(now - DAY_MS).toISOString().slice(0, 10);
+  const last = buckets.find((b) => b.day === yesterday && b.volume > 0);
+  const alert = last && last.close < line
+    ? { day: last.day, close: last.close, volume: last.volume, dropPct: Math.round(((n.price - last.close) / n.price) * 100), volumePct: Math.round((last.volume / n.dailyVolume) * 100) }
+    : null;
+  return { ...base, normal: { price: n.price, dailyVolume: n.dailyVolume }, line, volumeLine, alert };
+}
+
+/** ISP-233 (AB#928): the watch as it applies to one corporation: the public view, its own sales of the item not yet in a finding in that window, and what it owes. */
+export function ownWatch(corp, item, now = Date.now()) {
+  const { windowStartAt } = watchDays(now + DAY_MS, TERMS);
+  const sales = store.sales.filter((s) => s.corp === corp?.publicId && s.item === item && !s.findingId && s.at >= windowStartAt).map(({ id, quantity, unitPrice }) => ({ id, quantity, unitPrice }));
+  return { ...watchView(item, now), sales, owed: dutyOwed(corp) };
+}
+
 /** The Commission's findings about a corporation, newest first (for ISP-233's surfaces and tests). */
 export function findingsFor(publicId) {
   return store.findings.filter((f) => f.corp === publicId).slice().reverse();
