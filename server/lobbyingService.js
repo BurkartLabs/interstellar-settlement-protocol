@@ -15,7 +15,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { dataDir, safeWriteFile } from "./game/catalog.js";
+import { SYSTEMS_BY_ID, dataDir, safeWriteFile } from "./game/catalog.js";
 import { WARFARE_CATALOG } from "./warfare.js";
 import { ECONOMY } from "./economy.js";
 import { applyCredits } from "./finances.js";
@@ -174,6 +174,44 @@ export function lobbyingRegister(now = Date.now()) {
     .filter((c) => !c.result || now < c.result.endsAt + TERMS.cooldownDays * DAY_MS)
     .sort((a, b) => b.opensAt - a.opensAt)
     .map((c) => publicCampaign(c, now));
+}
+
+/**
+ * ISP-240 (AB#935): the lobbying office as the caller sees it: its standing with each faction, the terms, the lobbyable
+ * parameters, every concedable system's base and in-force value for each (with the campaign on it, or when the next may
+ * open), and the register, with the caller's own pledge amounts on its own lines only.
+ */
+export function lobbyingOffice(corp, now = Date.now()) {
+  const systems = Object.keys(WARFARE_CATALOG.systemRules).map((id) => ({
+    id,
+    name: SYSTEMS_BY_ID.get(id)?.name || id,
+    values: Object.fromEntries(Object.keys(PARAMS).map((parameter) => {
+      const last = store.campaigns.filter((c) => c.systemId === id && c.parameter === parameter).sort((a, b) => b.opensAt - a.opensAt)[0];
+      const running = last && (!last.result || now < last.result.endsAt) ? last : null;
+      const cooldownUntil = last?.result && !running ? last.result.endsAt + TERMS.cooldownDays * DAY_MS : null;
+      return [parameter, {
+        base: baseOf(id, parameter), inForce: parameterInForce(id, parameter, now), lobbyable: !lobbyableProblem(id, parameter),
+        campaign: running ? { id: running.id, direction: running.direction, state: publicCampaign(running, now).state } : null,
+        cooldownUntil: cooldownUntil && cooldownUntil > now ? cooldownUntil : null
+      }];
+    }))
+  }));
+  const mine = corp?.publicId;
+  const campaigns = lobbyingRegister(now).map((pub) => {
+    const c = store.campaigns.find((x) => x.id === pub.id);
+    const own = c.pledges.filter((p) => p.corp === mine).map(({ side, credits, standing, at }) => ({ side, credits, standing, at }));
+    return { ...pub, systemName: SYSTEMS_BY_ID.get(pub.systemId)?.name || pub.systemId, openedByYou: c.openedBy === mine, own };
+  });
+  return {
+    standing: { "earth-assembly": standingOf(corp, "earth-assembly"), "interplanetary-trade-commission": standingOf(corp, "interplanetary-trade-commission") },
+    standingMax: WARFARE_CATALOG.standing.max,
+    terms: { openStandingMin: TERMS.openStandingMin, openStandingCost: TERMS.openStandingCost, pledgeStandingMin: TERMS.pledgeStandingMin, creditsPerStandingPoint: TERMS.creditsPerStandingPoint, pledgeHours: TERMS.pledgeHours, durationDays: TERMS.durationDays, cooldownDays: TERMS.cooldownDays },
+    parameters: PARAMS,
+    systems,
+    campaigns,
+    credits: Math.floor(Number(corp?.finances?.credits) || 0),
+    currentSystemId: corp?.currentSystemId || "sol"
+  };
 }
 
 /** For tests: forget every campaign (and optionally the file). */
