@@ -18,7 +18,7 @@
 // `ledger` (Bug AB#2315) is level5 plus a third yard built through construct() on the Mars lease: the first yard past the
 // starting kit, so the first to pay price growth since ISP-309 (AB#2305), for e2e/ledger-categories.spec.js.
 //
-// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked|ledger|level10|level20|military|shipyard|shipyard-built|troops|unpaid|fleet-tab|mercs|cg-station|cg-station-closed>
+// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked|ledger|level10|level20|military|shipyard|shipyard-built|troops|unpaid|fleet-tab|mercs|cg-station|cg-station-closed|cg-station-member>
 //
 // `level10` (ISP-108, AB#800) is level5 raised to Level 10, the old top, with 150,000 Silicates mined: the Overview shows
 // Level 11's requirements, which did not exist before. `level20` (ISP-109, AB#801) is the same at Level 20, the next old top,
@@ -38,7 +38,7 @@ verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who c
 store.mutateAccountState(account.id, (state) => {
   const corp = state.corp;
   corp.currentStationId = "earth-station-prime";
-  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked", "ledger", "level10", "level20", "military", "shipyard", "shipyard-built", "troops", "unpaid", "fleet-tab", "mercs", "cg-station", "cg-station-closed"].includes(kind)) return;
+  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked", "ledger", "level10", "level20", "military", "shipyard", "shipyard-built", "troops", "unpaid", "fleet-tab", "mercs", "cg-station", "cg-station-closed", "cg-station-member"].includes(kind)) return;
   const lease = (id, body) => ({ id, body, leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: [], issuedAt: Date.now() });
   corp.level = 5;
   corp.buildingSlots = 6;
@@ -163,12 +163,12 @@ if (kind === "mercs") { // ISP-177 (AB#871): another corporation offers three fl
 }
 // ISP-211 (AB#906): cg-station-closed is the same station built by another corporation, whose stake voted it members-only;
 // the player is an outsider docked at Earth.
-if (kind === "cg-station" || kind === "cg-station-closed") { // ISP-210 (AB#905): Venus Platform, built through the real project
+if (kind === "cg-station" || kind === "cg-station-closed" || kind === "cg-station-member") { // ISP-210 (AB#905): Venus Platform, built through the real project
   const { accountsStore } = await import("../server/game/store.js");
   const { conglomerateList, foundConglomerate } = await import("../server/game/conglomerates.js");
   const { CONGLOMERATE_CATALOG: C } = await import("../server/conglomerates.js");
   const { billOfMaterials, contributeToStationProject, settleStationProject, startStationProject } = await import("../server/game/stationProjects.js");
-  const builderId = kind === "cg-station" ? account.id
+  const builderId = kind !== "cg-station-closed" ? account.id
     : (await store.createAccount({ email: `venus-${Date.now()}@example.test`, password, ceoName: "Iris Venn", corpName: `Venus Holdings ${Date.now() % 1000}` })).account.id;
   const raw = accountsStore.accounts[builderId];
   if (!raw.state.corp.miningLeases?.length) raw.state.corp.miningLeases = [{ id: "lease-venus-builder", body: "Earth", leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: [], issuedAt: Date.now() }];
@@ -190,6 +190,11 @@ if (kind === "cg-station" || kind === "cg-station-closed") { // ISP-210 (AB#905)
   }
   settleStationProject(c, c.stationProject.completesAt);
   if (!c.station) throw new Error("seeding a station: the project did not complete");
+  if (kind === "cg-station-member") { // ISP-212 (AB#907): docked at its own station, with goods at Earth to bring over
+    raw.state.corp.currentStationId = c.station.id;
+    const earth = (raw.state.corp.inventory["earth-station-prime"] ||= {});
+    earth.Silicates = (earth.Silicates || 0) + 600;
+  }
   if (kind === "cg-station-closed") {
     const { proposeStationSetting } = await import("../server/game/stationGovernance.js");
     const vote = proposeStationSetting(builderId, c.id, { setting: "access", value: "members" }); // its whole stake: passes at once

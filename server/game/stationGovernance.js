@@ -188,6 +188,16 @@ export function voteOnStationProposal(accountId, conglomerateId, proposalId, vot
 }
 
 /**
+ * ISP-212 (AB#907): `corp`'s own conglomerate's station as the member rates need it, { id, officeRentPct }, or null.
+ * Read from the roster at the moment of the order, so a corporation removed a moment ago is charged as anyone else.
+ */
+export function memberStation(corp, catalog = CONGLOMERATE_CATALOG) {
+  const c = findConglomerate(corp?.conglomerateId);
+  if (!c?.station || !stationById(c.station.id) || !c.members.some((m) => m.corp === corp.publicId)) return null;
+  return { id: c.station.id, officeRentPct: catalog.stationMemberRentPct };
+}
+
+/**
  * Why `corp` may not dock at `stationId`, or null. Only a conglomerate's station can refuse anyone, by its access
  * setting; a station whose conglomerate is gone refuses nobody.
  */

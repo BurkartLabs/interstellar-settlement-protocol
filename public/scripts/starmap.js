@@ -5,6 +5,7 @@ import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 import { PLANET_IMAGE_PATHS } from "./planetImages.js";
 import { officeLeaseCost } from "./ceoEffects.js"; // Bug #2340: the one office rate (Bug #1032)
+import { isMemberStation, memberOfficeCost } from "./memberRates.js"; // ISP-212 (AB#907)
 import { isConglomerateStation, isNeutralStation } from "./stationMarkers.js";
 import { concentrationBand, concentrationLegendHtml, concentrationRows, concentrationText, overlayItems, systemConcentration, bodyConcentration } from "./resourceOverlay.js"; // ISP-143 (AB#837)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
@@ -527,6 +528,7 @@ export function createStarmapController({
   getAsteroidMiningState,
   researchCatalog = [], // Bug #1270: to name the research a locked jump needs
   getCorpLevel = () => 0,
+  getMemberStation = () => null, // ISP-212 (AB#907): the corporation's own conglomerate's station, for the member office rate
   // ISP-112 (AB#804): data/systems.json's list, and the travel gate and routes over it (public/scripts/navigation.js).
   getSystemsCatalog = () => [],
   getNavigation = () => navigationFor(getSystemsCatalog())
@@ -1792,7 +1794,8 @@ export function createStarmapController({
     // Bug #2340: the catalog's buildingIds, the one office rate, and the station's jurisdiction (AB#810). The modal read
     // buildings, officeRentPerCycle and ownership, which no station has, so every one said 0, "—" and NPC-controlled.
     const buildingCount = Array.isArray(station.buildingIds) ? station.buildingIds.length : 0;
-    const officeRent = `¤${officeLeaseCost(1).toLocaleString("en-US")} a day, for 7 to 28 days`;
+    const memberStation = getMemberStation();
+    const officeRent = `¤${memberOfficeCost(officeLeaseCost(1), memberStation, station.id).toLocaleString("en-US")} a day, for 7 to 28 days${isMemberStation(memberStation, station.id) ? " (member rate)" : ""}`;
     const jurisdiction = isNeutralStation(station)
       ? "Neutral: no corporation owns it; any corporation may dock and rent an office here."
       : isConglomerateStation(station) // ISP-210 (AB#905): built by a conglomerate; GET /api/stations names it, never its id

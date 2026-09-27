@@ -18,6 +18,8 @@ import { emitToAccount } from "../realtime.js";
 import { activeOfficeAt, fundingRequirementMessage, formatCredits } from "./helpers.js";
 // AB#743: what each committing action did, from the values its mutation used, for the confirmation modal.
 import { hireReceipt, rentOfficeReceipt, renewOfficeReceipt, purchaseLeaseReceipt } from "../receipts.js";
+import { memberOfficeCost } from "../../public/scripts/memberRates.js"; // ISP-212 (AB#907)
+import { memberStation } from "../game/stationGovernance.js";
 
 export function registerCorporationRoutes(app) {
   app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
@@ -92,7 +94,7 @@ export function registerCorporationRoutes(app) {
   app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
     const requestedStationId = String(req.body?.stationId || "earth-station-prime").trim();
     const durationDays = OFFICE_TERMS_DAYS.includes(Number(req.body?.durationDays)) ? Number(req.body.durationDays) : 7;
-    const officeCost = officeLeaseCost(durationDays); // Bug #1032: the figure the Suites panel quotes
+    let officeCost = officeLeaseCost(durationDays); // Bug #1032: the figure the Suites panel quotes
     let outcome = "ok";
     let stationName = "Earth Station Prime";
     let dockedStationName = "";
@@ -126,6 +128,8 @@ export function registerCorporationRoutes(app) {
         outcome = "already-rented";
         return;
       }
+      // ISP-212 (AB#907): the member rate at the corporation's own conglomerate's station, membership read now
+      officeCost = memberOfficeCost(officeCost, memberStation(corp), station.id);
 
       if (corp.finances.credits < officeCost) {
         outcome = "insufficient-credits";
@@ -208,6 +212,7 @@ export function registerCorporationRoutes(app) {
         return;
       }
       renewalCost = officeRenewalCost(corp.completedInsights, durationDays);
+      renewalCost = memberOfficeCost(renewalCost, memberStation(corp), station.id); // ISP-212 (AB#907)
       if (corp.finances.credits < renewalCost) {
         outcome = "insufficient-credits";
         return;

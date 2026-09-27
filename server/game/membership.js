@@ -309,6 +309,8 @@ export function membershipView(accountId, now = Date.now()) {
       founderAbsentDays: CONGLOMERATE_CATALOG.founderAbsentDays,
       members: mine.members.map((m) => ({ corp: m.corp, corpName: corpName(m.corp), role: m.role, joinedAt: m.joinedAt })),
       treasury: { ...mine.treasury },
+      // ISP-212 (AB#907): its station and the member office rate there, so the page quotes what the server charges
+      station: mine.station ? { id: mine.station.id, officeRentPct: CONGLOMERATE_CATALOG.stationMemberRentPct } : null,
       invitations: mine.invitations.filter((r) => r.state === "invited").map(entryView),
       applications: mine.applications.filter((r) => r.state === "applied").map(entryView)
     } : null,

@@ -7,6 +7,8 @@
 // `logistics`, which the server reads and sends to the Logistics tab with the stations, so the quote and the charge
 // come from the same numbers and the same function.
 
+import { transferFeeWaived } from "./memberRates.js"; // ISP-212 (AB#907)
+
 /** Resource lines one request may carry. */
 export const MAX_TRANSFER_LINES = 10;
 /** Completed transfers kept in corp.logisticsHistory, newest first. */
@@ -88,7 +90,7 @@ export function parseTransferRequest(body) {
  * `stations` maps id to { name, systemId }; `rates` is data/economy.json's `logistics`; `inventory` is corp.inventory.
  * Returns { ok: true, fee, hops } or { ok: false, error }.
  */
-export function planTransfer({ fromStationId, toStationId, lines, inventory, credits, stations, rates, navigation }) {
+export function planTransfer({ fromStationId, toStationId, lines, inventory, credits, stations, rates, navigation, memberStationId = null }) {
   // Own keys only: a plain object answers "__proto__" and "constructor" too.
   const station = (id) => (typeof id === "string" && Object.hasOwn(stations || {}, id) ? stations[id] : null);
   const from = station(fromStationId);
@@ -108,13 +110,15 @@ export function planTransfer({ fromStationId, toStationId, lines, inventory, cre
   }
   const hops = stationHops(stations, fromStationId, toStationId, navigation);
   if (hops === null) return { ok: false, error: `No shipping route joins ${from.name} and ${to?.name || "your station"}.` };
-  const fee = transferFee(rates, hops, lines);
+  // ISP-212 (AB#907): a conglomerate member moves goods to or from its own station, within its system, for nothing
+  const waived = transferFeeWaived(memberStationId, fromStationId, toStationId, hops);
+  const fee = waived ? 0 : transferFee(rates, hops, lines);
   const units = lines.reduce((s, l) => s + l.quantity, 0);
   if (Number(credits || 0) < fee) {
     const distance = hops === 0 ? "" : `, ${describeHops(hops)}`;
     return { ok: false, error: `The fee is ${fee.toLocaleString()} credits (${feePerUnit(rates, hops)} per unit for ${units.toLocaleString()} units${distance}); you have ${Math.floor(Number(credits || 0)).toLocaleString()}. Move fewer units or sell goods first.` };
   }
-  return { ok: true, fee, hops };
+  return { ok: true, fee, hops, waived };
 }
 
 /** Add a completed transfer to the front of the history, keeping the last LOGISTICS_HISTORY_LIMIT. Returns the history. */
