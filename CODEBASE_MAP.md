@@ -773,7 +773,7 @@ account.state
    ├─ level, levelCap=40, milestonesCompleted[string], levelProgress{levelN:{requirements[{id,title,progress,target,complete}],allCompleted}} (derived, 1024)
    ├─ employeeCap, employeeCount, buildingSlots
    ├─ buildings[{name, tier, status}]       (index.js:1599,1797,1901,2195; phase-2 overlay adds id/stationId/builtAt/completesAt)
-   ├─ military {lightFighters, destroyers, siegeEngines, attackValue, defenseValue, modifiers{rdBonusPct, ceoLeadershipPct}}
+   ├─ military {units{lf, ds, se, at, dt}, modifiers{rdBonusPct, ceoLeadershipPct}, power{attack, defense}} (AB#861: units from data/units.json, power derived)
    ├─ finances {credits, liabilities, assets, dailyRevenue, dailyCosts, taxRatePct, bondYieldPct, exchangeSalesTaxPct(derived 340), lifetimeRevenue, lifetimeCosts, incomeBySource{}, expensesByCategory{}, snapshots[{t,credits,assets,liabilities,dailyRevenue,dailyCosts,netFlow,netWorth}] max 60; liquidity/liquidityCap/liquidityRegenPerHour/lastLiquidityTick only via phase-1 overlay}
    ├─ credits                               ← STRAY field written by complete-mission (index.js:2445), never read
    ├─ inventory {stationId: {item: qty}}    (flat→per-station migration at 254-260)
@@ -862,7 +862,7 @@ Global `state` (data/state.json): world, corp/queues/missions/playerProfile (leg
 - `corp.employeeCount`
 - `corp.buildingSlots`
 - `corp.buildings`
-- `corp.military.{lightFighters,destroyers,siegeEngines,attackValue,defenseValue,modifiers}`
+- `corp.military.{units,modifiers,power}` (AB#861; server/game/units.js ensureCorpMilitary)
 - `corp.finances.{credits,liabilities,assets,dailyRevenue,dailyCosts,taxRatePct,bondYieldPct,exchangeSalesTaxPct}`
 - `corp.finances.{lifetimeRevenue,lifetimeCosts,incomeBySource,expensesByCategory,snapshots}`
 - `corp.finances.{liquidity,liquidityCap,liquidityRegenPerHour,lastLiquidityTick} (phase-1 overlay only)`
@@ -1065,8 +1065,8 @@ The shell is a single-page vanilla-JS app. public/index.html holds an unauthenti
 - `corp.finances.dailyRevenue`
 - `corp.finances.dailyCosts`
 - `corp.finances.snapshots (via charts.js)`
-- `corp.military.attackValue`
-- `corp.military.defenseValue`
+- `corp.military.power.attack` (AB#861)
+- `corp.military.power.defense` (AB#861)
 - `corp.conglomerateId`
 - `corp.travel.arrivesAt`
 - `corp.currentStationId`
@@ -1222,7 +1222,7 @@ All fifteen tabs live in one 6,641-line ES module (public/scripts/app.js) that h
 - `corp.finances.lifetimeRevenue`
 - `corp.finances.lifetimeCosts`
 - `corp.finances.exchangeSalesTaxPct`
-- `corp.military.attackValue / defenseValue`
+- `corp.military.power` (AB#861, derived from the unit catalog)
 - `corp.conglomerateId`
 - `corp.currentStationId`
 - `corp.currentSystemId`

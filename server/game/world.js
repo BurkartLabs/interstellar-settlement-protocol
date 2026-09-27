@@ -45,11 +45,7 @@ export function getSeedState() {
         { name: "Refinery Annex", tier: 1, status: "Constructing" }
       ],
       military: {
-        lightFighters: 14,
-        destroyers: 2,
-        siegeEngines: 0,
-        attackValue: 284,
-        defenseValue: 219,
+        units: { lf: 14, ds: 2, se: 0, at: 0, dt: 0 }, // AB#861: power comes from data/units.json, not a typed figure
         modifiers: {
           rdBonusPct: 5,
           ceoLeadershipPct: 3

@@ -6,6 +6,7 @@ import { ensureCorpMiningModel } from "./mining.js";
 import { ensureCorpRefineryModel } from "./refining.js";
 import { ECONOMY } from "../economy.js";
 import { ensureBuildingIds } from "./buildingIds.js";
+import { ensureCorpMilitary } from "./units.js";
 
 /* TODO(AB#726): Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
 export function createStarterCorporationState(baseState, ceoName, corpName) {
@@ -29,12 +30,9 @@ export function createStarterCorporationState(baseState, ceoName, corpName) {
     employeeCount: 0,
     buildingSlots: 2,
     buildings: [{ name: "Headquarters", tier: 1, status: "Operational" }],
+    // AB#861: units by the catalog's ids (data/units.json); power is worked out from them by ensureCorpMilitary
     military: {
-      lightFighters: 0,
-      destroyers: 0,
-      siegeEngines: 0,
-      attackValue: 0,
-      defenseValue: 0,
+      units: { lf: 0, ds: 0, se: 0, at: 0, dt: 0 },
       modifiers: {
         rdBonusPct: 0,
         ceoLeadershipPct: 0
@@ -99,6 +97,7 @@ export function createStarterCorporationState(baseState, ceoName, corpName) {
   ensureCorpMiningModel(next.corp);
   ensureCorpRefineryModel(next.corp);
   ensureBuildingIds(next.corp); // AB#792: Headquarters has an id from the start
+  ensureCorpMilitary(next.corp); // AB#861: the unit catalog's shape, with its power
   return next;
 }
 

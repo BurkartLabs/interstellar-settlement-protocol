@@ -25,6 +25,11 @@ export function registerResearchRoutes(app) {
       res.status(400).json({ error: "Unknown research node." });
       return;
     }
+    // AB#861: a planned node unlocks something no route builds yet (v0.10's units), so it is shown and not sold
+    if (tech.status === "planned") {
+      res.status(400).json({ error: `${tech.name} is not available yet: what it unlocks is planned for a later version.` });
+      return;
+    }
 
     const account = mutateAccountState(req.params.accountId, (state) => {
       const corp = state.corp;

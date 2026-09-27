@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { availableTechNodes, researchLockReason } from "../../public/scripts/views/research.js";
+import { PLANNED_RESEARCH, availableTechNodes, researchLockReason } from "../../public/scripts/views/research.js";
 import { techTree } from "../../public/scripts/state.js";
 
 // Bug AB#2338: a research card below its node's corporation level offered Enqueue, and the server refused the click
@@ -42,5 +42,16 @@ describe("a research card below its level (AB#2338)", () => {
     expect(availableTechNodes(data(5)).map((n) => n.id)).not.toContain(DEEP_STAR.id);
     expect(availableTechNodes(data(10)).map((n) => n.id)).toContain(DEEP_STAR.id);
     techTree.length = 0;
+  });
+});
+
+// AB#861: a planned node (v0.10's ship research) is never offered, whatever the corporation has done.
+describe("a planned research node (AB#861)", () => {
+  it("is locked as planned even with every prerequisite, and never offered as available", () => {
+    const done = new Set(TREE.filter((n) => n.status !== "planned").map((n) => n.id));
+    for (const n of TREE.filter((t) => t.status === "planned")) {
+      expect(researchLockReason(n, { done, corpLevel: 40, tree: TREE }), n.id).toBe(PLANNED_RESEARCH);
+    }
+    expect(TREE.filter((t) => t.status === "planned").map((t) => t.id).sort()).toEqual(["tt-capital-hulls", "tt-siege-ordnance"]);
   });
 });

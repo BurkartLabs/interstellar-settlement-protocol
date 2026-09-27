@@ -5,22 +5,23 @@
 /** Reference prices for the goods in a unit's cost: each product's NPC standing bid in data/economy.json. */
 export const GOODS_PRICE = { 'Carbon Fibre Sheets': 21, 'Armour Plating': 118, 'Pressure Vessels': 129, 'Battery Cells': 123, 'Structural Alloys': 25 };
 
+import fs from 'node:fs';
+
 /**
- * The unit catalog. `atk` is damage per unit per round, `hp` is the damage a unit absorbs before it is lost, `acc` and
- * `eva` meet in the hit fraction, `supply` is what a unit counts towards the fleet size that upkeep is charged on.
+ * The unit catalog, read from data/units.json (ISP-167, AB#861), the one copy the server loads too. `atk` is damage
+ * per unit per round, `hp` is the damage a unit absorbs before it is lost, `acc` and `eva` meet in the hit fraction,
+ * `supply` is what a unit counts towards the fleet size that upkeep is charged on.
  */
-export const UNITS = {
-  lf: { name: 'Light fighter', credits: 1150, goods: { 'Carbon Fibre Sheets': 10 }, buildMin: 30, supply: 1, upkeep: 20, atk: 12, hp: 40, acc: 11, eva: 10, mobile: true },
-  ds: { name: 'Destroyer', credits: 3350, goods: { 'Armour Plating': 8 }, buildMin: 150, supply: 4, upkeep: 80, atk: 34, hp: 200, acc: 10, eva: 5, mobile: true },
-  se: { name: 'Siege engine', credits: 3600, goods: { 'Pressure Vessels': 8 }, buildMin: 180, supply: 5, upkeep: 100, atk: 60, hp: 170, acc: 8, eva: 3, mobile: true },
-  at: { name: 'Attack troops', credits: 700, goods: { 'Battery Cells': 2 }, buildMin: 20, supply: 1, upkeep: 12, atk: 10, hp: 30, acc: 9, eva: 7, mobile: true },
-  dt: { name: 'Defense troops', credits: 800, goods: { 'Structural Alloys': 6 }, buildMin: 20, supply: 1, upkeep: 8, atk: 8, hp: 40, acc: 9, eva: 6, mobile: true },
-};
+const FILE = JSON.parse(fs.readFileSync(new URL('../data/units.json', import.meta.url), 'utf8'));
+export const UNITS = Object.fromEntries(FILE.units.map((u) => [u.id, {
+  name: u.name, credits: u.credits, goods: u.goods, buildMin: u.buildMinutes, supply: u.supply, upkeep: u.upkeepPerDay,
+  atk: u.attack, hp: u.hp, acc: u.accuracy, eva: u.evasion, mobile: true,
+}]));
 export const TYPES = Object.keys(UNITS);
 
 /** Each unit is strong against exactly one other and weak against exactly one: lf > se > dt > at > ds > lf. */
-export const STRONG_VS = { lf: 'se', se: 'dt', dt: 'at', at: 'ds', ds: 'lf' };
-export const STRONG = 2.0, WEAK = 0.5;
+export const STRONG_VS = Object.fromEntries(FILE.units.map((u) => [u.id, u.strongAgainst]));
+export const STRONG = FILE.counters.strong, WEAK = FILE.counters.weak;
 export function counter(a, b) {
   if (STRONG_VS[a] === b) return STRONG;
   if (STRONG_VS[b] === a) return WEAK;
