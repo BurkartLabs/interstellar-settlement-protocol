@@ -31,6 +31,7 @@ import { renderDevelopmentBank } from "./developmentBank.js"; // ISP-151 (AB#845
 import { renderStockExchange } from "./stockExchange.js"; // ISP-161 (AB#855)
 import { openConglomerateStation, renderConglomerateBureau } from "./conglomerateBureau.js"; // ISP-200 (AB#894); ISP-213 (AB#908)
 import { dockedAtOwnStationHtml } from "../conglomerateStation.js"; // ISP-213 (AB#908)
+import { renderArbitrationCouncil } from "./arbitrationCouncil.js"; // ISP-243 (AB#939)
 import { renderPatentOffice } from "./patentOffice.js"; // ISP-237 (AB#932)
 import { renderLobbyingOffice } from "./lobbyingOffice.js"; // ISP-240 (AB#935)
 const firstPresent = (...selectors) => () => selectors.map((sel) => document.querySelector(sel)).find(Boolean) || null;
@@ -190,6 +191,17 @@ export function renderBuildingDetail(building, data) {
     // ISP-240 (AB#935): the faction's lobbying office: standing, the rules in force, campaigns and pledges
     const station = getCurrentStationInfo(data);
     renderLobbyingOffice(contentEl, building.id, `
+      <div class="station__building-header">
+        <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      </div>
+      ${dockedHtml(station)}
+      <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
+      <p class="station__flavor">${escapeHtml(building.flavor)}</p>`);
+  } else if (building.id === "galactic-arbitration-council") {
+    // ISP-243 (AB#939): the Council's chambers: filing, your cases and the docket
+    const station = getCurrentStationInfo(data);
+    renderArbitrationCouncil(contentEl, `
       <div class="station__building-header">
         <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
         <h2 class="station__building-title">${escapeHtml(building.name)}</h2>

@@ -4419,6 +4419,48 @@ img.station__body {
   .patent-office, .patent-card__meta, .patent-terms-list, .patent-status, .patent-office .ui-panel__meta, .patent-office .ui-state__why { font-size: var(--font-size-3); }
 }
 
+/* ISP-243 (AB#939): the Galactic Arbitration Council's chambers, read like a court registry */
+.gac-chambers { display: flex; flex-direction: column; gap: var(--space-4); }
+.gac-section { display: flex; flex-direction: column; gap: var(--space-3); }
+.gac-step { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); margin: 0; min-width: 0; }
+.gac-step__title { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--font-size-3); font-weight: 600; padding: 0; }
+.gac-step__n { display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: 50%; border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.gac-choices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.gac-choice { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); background: var(--surface-2); cursor: pointer; overflow-wrap: anywhere; }
+.gac-choice:has(input:checked) { border-color: var(--accent); }
+.gac-choice input { margin-top: 0.25em; flex: none; }
+.gac-choice > span { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.gac-choice__meta { color: var(--muted); font-size: var(--font-size-2); }
+.gac-choice--off { cursor: not-allowed; opacity: 0.7; }
+.gac-preview { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-3); }
+.gac-preview__rule { border-left: 3px solid var(--accent); padding: var(--space-2) var(--space-3); background: var(--surface-2); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.gac-preview__rule p { margin: 0; }
+.gac-rule__head { font-weight: 600; margin-bottom: var(--space-1) !important; }
+.gac-terms { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); }
+.gac-terms dt { color: var(--muted); }
+.gac-terms dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.gac-status:empty { display: none; }
+.gac-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
+.gac-ref { font-family: var(--font-mono, ui-monospace, monospace); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.gac-cases, .gac-docket { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.gac-case details { border: 1px solid var(--border); border-radius: var(--radius-2, 8px); background: var(--surface-2); }
+.gac-case__summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-3); cursor: pointer; overflow-wrap: anywhere; }
+.gac-case__title { flex: 1 1 16rem; min-width: 0; }
+.gac-case__body { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-3) var(--space-3); }
+.gac-case__sub { margin: var(--space-2) 0 0; font-size: var(--font-size-2); color: var(--muted); font-weight: 600; }
+.gac-protocol { margin: 0; font-size: var(--font-size-2); color: var(--muted); font-style: italic; }
+.gac-ruling { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--accent); background: var(--surface); line-height: var(--line-height-body); }
+.gac-docket__row { border-bottom: 1px solid var(--border); padding: var(--space-2) 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.gac-docket__row p { margin: 0; overflow-wrap: anywhere; }
+.gac-docket__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.gac-docket__meta { color: var(--muted); font-size: var(--font-size-2); }
+@media (max-width: 600px) {
+  .gac-preview { grid-template-columns: minmax(0, 1fr); }
+  .gac-terms { grid-template-columns: minmax(0, 1fr); }
+  .gac-terms dt { margin-top: var(--space-1); }
+  .gac-chambers, .gac-choice, .gac-choice__meta, .gac-terms, .gac-status, .gac-protocol, .gac-docket__meta, .gac-case__sub, .gac-preview__rule, .gac-chambers .ui-panel__meta, .gac-chambers .ui-state__why { font-size: var(--font-size-3); }
+}
+
 /* ISP-229 (AB#924): the Concessions overlay's extra marks, and a system's concession section and holder view */
 .dominance-swatch--muted { background: var(--muted); }
 .concession-swatch--pending { background: transparent; border: 2px dashed var(--series-3); }
