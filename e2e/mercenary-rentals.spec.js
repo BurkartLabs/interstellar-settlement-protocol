@@ -68,6 +68,7 @@ ${seeded.stderr}`);
       const corsair = rows.filter({ hasText: "Corsair" });
       await expect(corsair).toContainText("12 Light Fighters, 2 Destroyers");
       await expect(corsair).toContainText(/[\d,]+\s+ATK \/ [\d,]+\s+DEF/);
+      await expect(corsair).toContainText("100%"); // the owner's readiness
       await expect(corsair).toContainText("1 day");
       await expect(corsair).toContainText("¤6,500");
       await expect(corsair).toContainText("¤12,000");

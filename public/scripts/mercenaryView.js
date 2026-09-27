@@ -10,6 +10,7 @@ export const TERMS_HOURS = [12, 24, 72, 168];
 export const USES = [["defense", "Defense only"], ["pve", "PvE and defense"], ["raids", "Raids, PvE and defense"]];
 const useLabel = (u) => USES.find(([id]) => id === u)?.[1] || u;
 const power = (o) => `${Number(o.attack || 0).toLocaleString("en-US")} ATK / ${Number(o.defense || 0).toLocaleString("en-US")} DEF`; // a number keeps its unit
+const readinessText = (o) => (o.readiness == null ? "—" : `${Math.round(o.readiness)}%`);
 const money = (n) => `¤${Math.round(Number(n) || 0).toLocaleString("en-US")}`;
 const termText = (h) => (h % 24 === 0 ? `${h / 24} day${h === 24 ? "" : "s"}` : `${h} hours`);
 
@@ -20,6 +21,7 @@ export function offersTableHtml(offers = [], catalog = []) {
       <td data-label="Fleet"><span class="mercs__who"><strong>${escapeHtml(o.fleetName)}</strong><span class="station__note">${escapeHtml(o.ownerName)}</span></span></td>
       <td data-label="Units">${escapeHtml(unitsText(o.units, catalog))}</td>
       <td class="ui-table__num" data-label="Attack / defense">${power(o)}</td>
+      <td class="ui-table__num" data-label="Readiness">${readinessText(o)}</td>
       <td data-label="Term">${escapeHtml(termText(o.termHours))}</td>
       <td class="ui-table__num" data-label="Price">${money(o.price)}</td>
       <td class="ui-table__num" data-label="Collateral">${money(o.collateral)}</td>
@@ -27,7 +29,7 @@ export function offersTableHtml(offers = [], catalog = []) {
       <td data-label="Action">${o.mine ? `<span class="station__note">Your offer</span>` : `<button class="ui-button ui-button--primary" type="button" data-merc-hire="${escapeHtml(o.id)}">Hire</button>`}</td>
     </tr>`).join("");
   return `<div class="ui-table-wrap"><table class="ui-table mercs__offers">
-      <thead><tr><th>Fleet</th><th>Units</th><th class="ui-table__num">Attack / defense</th><th>Term</th><th class="ui-table__num">Price</th><th class="ui-table__num">Collateral</th><th>Allowed use</th><th>Action</th></tr></thead>
+      <thead><tr><th>Fleet</th><th>Units</th><th class="ui-table__num">Attack / defense</th><th class="ui-table__num">Readiness</th><th>Term</th><th class="ui-table__num">Price</th><th class="ui-table__num">Collateral</th><th>Allowed use</th><th>Action</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
 }
 
@@ -73,7 +75,7 @@ export function contractRowHtml(c, side, catalog = [], now = Date.now()) {
   } else status = c.state === "expired" ? "Closed unhired." : c.state;
   return `<li class="mercs__contract" data-merc-contract="${escapeHtml(c.id)}">
       <p><strong>${escapeHtml(c.fleetName)}</strong> <span class="ui-badge">${escapeHtml(c.state === "hired" ? "Hired" : c.state === "open" ? "On offer" : c.state === "completed" ? "Ended" : c.state)}</span></p>
-      <p class="station__note">${escapeHtml(unitsText(c.units, catalog))} · ${power(c)} · ${escapeHtml(termText(c.termHours))} · ${money(c.price)} · collateral ${money(c.collateral)} · ${escapeHtml(useLabel(c.allowedUse))}</p>
+      <p class="station__note">${escapeHtml(unitsText(c.units, catalog))} · ${power(c)} · ${readinessText(c)} readiness · ${escapeHtml(termText(c.termHours))} · ${money(c.price)} · collateral ${money(c.collateral)} · ${escapeHtml(useLabel(c.allowedUse))}</p>
       <p>${escapeHtml(other)}. ${escapeHtml(status)}</p>
       ${side === "offered" && c.state === "open" ? `<button class="ui-button ui-button--secondary" type="button" data-merc-withdraw="${escapeHtml(c.id)}">Withdraw offer</button>` : ""}
     </li>`;

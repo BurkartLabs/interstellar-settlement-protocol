@@ -324,7 +324,7 @@ export function mercenaryHireReceipt({ offer }) {
     grants: [
       { label: "Price", value: `${formatCredits(offer.price)}, paid to the owner when the term ends` },
       { label: "Collateral", value: `${formatCredits(offer.collateral)}, back to you at the end less the value of any units lost` },
-      { label: "Fleet", value: `${offer.attack} ATK / ${offer.defense} DEF` },
+      { label: "Fleet", value: `${offer.attack} ATK / ${offer.defense} DEF, at ${offer.readiness ?? 100}% readiness` },
       { label: "Term ends", value: formatUtc(offer.endsAt) },
       { label: "Allowed use", value: { defense: "Defense only", pve: "PvE and defense", raids: "Raids, PvE and defense" }[offer.allowedUse] || offer.allowedUse }
     ],

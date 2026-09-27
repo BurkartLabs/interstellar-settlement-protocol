@@ -69,6 +69,8 @@ export function offerView(offer, viewerCorpId = null) {
     // ISP-177 (AB#871): what the fleet fights with, beside its price, so a hire can be weighed against building one
     ...militaryPower(offer.units),
     mine: Boolean(viewerCorpId) && offer.ownerCorpId === viewerCorpId,
+    // AB#859 section 7: a hired fleet fights at its owner's readiness, so the renter sees it before hiring
+    readiness: owner ? Number(corpOf(owner)?.military?.readiness ?? 100) : null,
     postedAt: offer.postedAt, expiresAt: offer.expiresAt, endsAt: offer.endsAt ?? null
   };
 }

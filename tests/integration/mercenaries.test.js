@@ -191,7 +191,7 @@ describe("the Mercenary Rentals panel's routes (AB#871)", () => {
     const grants = Object.fromEntries(res.body.receipt.grants.map((g) => [g.label, g.value]));
     expect(grants.Price).toContain("5,000 credits");
     expect(grants.Collateral).toContain("15,000 credits");
-    expect(grants.Fleet).toMatch(/^\d+ ATK \/ \d+ DEF$/);
+    expect(grants.Fleet).toMatch(/^\d+ ATK \/ \d+ DEF, at 100% readiness$/);
     expect(grants["Allowed use"]).toBe("Defense only");
   });
 
@@ -203,6 +203,7 @@ describe("the Mercenary Rentals panel's routes (AB#871)", () => {
     expect(seen).toBeTruthy();
     expect(seen.attack).toBeGreaterThan(0);
     expect(seen.defense).toBeGreaterThan(0);
+    expect(seen.readiness).toBe(100); // AB#859 section 7: the owner's readiness, which the hired fleet fights at
     expect((await owner.api.get(owner.at("/mercenaries"))).body.offers.some((o) => o.id === seen.id && o.mine)).toBe(true);
     const account = await renter.api.get(`/api/accounts/${renter.id}`);
     expect(JSON.stringify(account.body)).not.toContain("mercenaryOffers");

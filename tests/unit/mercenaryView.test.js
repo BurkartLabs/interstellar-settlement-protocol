@@ -8,7 +8,7 @@ const CATALOG = UNITS_DATA.units;
 const NOW = Date.UTC(2026, 8, 27, 12);
 const HOUR = 3_600_000;
 const offer = (over = {}) => ({
-  id: "m1", state: "open", fleetName: "Corsair", ownerName: "Vega Freight", units: { lf: 8, ds: 2 }, attack: 64, defense: 88,
+  id: "m1", state: "open", fleetName: "Corsair", ownerName: "Vega Freight", units: { lf: 8, ds: 2 }, attack: 64, defense: 88, readiness: 70,
   termHours: 24, price: 5000, collateral: 15000, allowedUse: "defense", mine: false, expiresAt: NOW + 48 * HOUR, ...over
 });
 
@@ -19,6 +19,7 @@ describe("the offers table (AB#871)", () => {
     expect(html).toContain("1 Siege Engine, 3 squads of Attack Troops");
     expect(html).toContain("64 ATK / 88 DEF");
     expect(offersTableHtml([offer({ attack: 316, defense: 1320 })], CATALOG)).toContain("316 ATK / 1,320 DEF");
+    expect(html).toContain(">70%<"); // the owner's readiness, which a hired fleet fights at (AB#859 section 7)
     expect(html).toContain("1 day");
     expect(html).toContain("12 hours");
     expect(html).toContain("¤5,000");
