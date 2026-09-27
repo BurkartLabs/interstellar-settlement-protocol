@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const DATA = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "data");
 const read = (file) => JSON.parse(fs.readFileSync(path.join(DATA, file), "utf8"));
 
-export const ITEM_TIERS = Object.freeze([1, 2, 3]);
+export const ITEM_TIERS = Object.freeze([1, 2, 3, 4]); // AB#879: tier 4, v0.11-tier4.md section 2
 export const ITEM_CATEGORIES = Object.freeze(["raw", "refined"]);
 
 /** Each entry of `items` whose id, name, tier or category is missing or wrong, or whose id or name repeats. */
@@ -27,7 +27,8 @@ export function itemSchemaProblems(items) {
     if (typeof item?.name !== "string" || !item.name.trim()) problems.push(`${at}: no name`);
     if (!ITEM_TIERS.includes(item?.tier)) problems.push(`${at}: tier must be one of ${ITEM_TIERS.join(", ")}`);
     if (!ITEM_CATEGORIES.includes(item?.category)) problems.push(`${at}: category must be one of ${ITEM_CATEGORIES.join(", ")}`);
-    if ((item?.category === "refined") !== (item?.tier === 3)) problems.push(`${at}: tier 3 is refined, and only tier 3`);
+    // Tiers 1 and 2 are mined and tier 3 is made; tier 4 is either, extracted or synthesized (AB#879).
+    if (item?.tier !== 4 && (item?.category === "refined") !== (item?.tier === 3)) problems.push(`${at}: tier 3 is refined, tiers 1 and 2 raw`);
     if (ids.has(item?.id)) problems.push(`${at}: id repeats`);
     if (names.has(item?.name)) problems.push(`${at}: name repeats`);
     ids.add(item?.id);

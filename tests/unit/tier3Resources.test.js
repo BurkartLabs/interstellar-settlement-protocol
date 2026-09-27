@@ -29,7 +29,10 @@ const quotas = new Set(MISSIONS.templates.map((t) => t.resource).filter(Boolean)
 const chainInputs = new Map();
 // AB#833: a product another chain takes (Aluminium Ingots, into al-li-chain) is not a raw item.
 for (const c of CHAINS.chains) for (const i of c.inputs) if (!products.has(i.item)) chainInputs.set(i.item, [...(chainInputs.get(i.item) || []), c.id]);
-const raw = new Set([...beltCount.keys(), ...CHAINS.resourceCatalog, ...bids, ...quotas, ...chainInputs.keys()]);
+// AB#879: Tier 4 items belong to docs/design/v0.11-tier4.md (tests/unit/tier4Items.test.js), not this v0.8 table.
+const TIER4 = new Set(ITEMS.filter((i) => i.tier === 4).map((i) => i.name));
+for (const item of TIER4) rows.delete(item);
+const raw = new Set([...beltCount.keys(), ...CHAINS.resourceCatalog, ...bids, ...quotas, ...chainInputs.keys()].filter((item) => !TIER4.has(item)));
 
 describe("the v0.8 resource catalogue matches the build (AB#822)", () => {
   it("lists every raw item the build names, and no other", () => {
