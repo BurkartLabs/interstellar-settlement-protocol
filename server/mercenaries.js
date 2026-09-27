@@ -214,6 +214,26 @@ export function freezeContractEscrow(offerId, caseRef) {
   setOffer(offerId, { frozenBy: caseRef });
 }
 
+/**
+ * ISP-242 (AB#938): an upheld readiness case's refund, paid to the renter from the contract's escrow and taken off the
+ * price the owner is paid at the term's end. At most the price not yet refunded. Returns what was paid (0 when the
+ * escrow was already settled, or the transfer failed; the caller then collects it elsewhere).
+ */
+export function refundFromEscrow(offerId, renterAccountId, amount, caseRef, now = Date.now()) {
+  const o = allOffers().find((x) => x.id === offerId);
+  if (!o || o.state !== "hired" || !renterAccountId) return 0;
+  const credits = Math.min(Math.max(0, Math.floor(amount)), o.price - (o.refunded || 0));
+  if (!(credits > 0)) return 0;
+  const paid = settleTransfer({ fromAccountId: escrowOf(o.id), toAccountId: renterAccountId, credits, reason: "arbitration-award", idempotencyKey: `merc:${o.id}:${caseRef}:refund` }, now);
+  if (!paid.ok) return 0;
+  setOffer(o.id, { refunded: (o.refunded || 0) + credits });
+  return credits;
+}
+/** ISP-242 (AB#938): the ruling lifts an arbitration freeze, and the contract settles at its term's end as usual. */
+export function unfreezeContractEscrow(offerId) {
+  setOffer(offerId, { frozenBy: null });
+}
+
 /** Record units a hired fleet lost (the raids stories call this; a test injects losses through it). */
 export function recordContractLosses(offerId, lost) {
   mutateState((draft) => {
@@ -244,7 +264,8 @@ export function settleContracts(now = Date.now()) {
     const pay = (to, credits, part) => (credits > 0 && to
       ? settleTransfer({ fromAccountId: escrowOf(offer.id), toAccountId: to, credits, reason: "escrow-release", idempotencyKey: `merc:${offer.id}:${part}` }, now)
       : { ok: true });
-    const paid = [pay(ownerId, offer.price, "price"), pay(ownerId, compensation, "losses"), pay(renterId, refund, "collateral")];
+    // ISP-242 (AB#938): an arbitration refund came out of the price
+    const paid = [pay(ownerId, offer.price - (offer.refunded || 0), "price"), pay(ownerId, compensation, "losses"), pay(renterId, refund, "collateral")];
     if (paid.some((r) => !r.ok)) continue; // tried again on the next tick; what was paid is not paid twice
     if (ownerId) mutateAccountState(ownerId, (state) => {
       const c = state.corp;
@@ -263,6 +284,6 @@ export function settleContracts(now = Date.now()) {
     if (renterId) mutateAccountState(renterId, (state) => {
       state.corp.military.hired = (state.corp.military?.hired || []).filter((h) => h.contractId !== offer.id);
     }, { sanitize: false });
-    setOffer(offer.id, { state: "completed", closedAt: now, settlement: { price: offer.price, compensation, refund } });
+    setOffer(offer.id, { state: "completed", closedAt: now, settlement: { price: offer.price - (offer.refunded || 0), compensation, refund, ...(offer.refunded ? { arbitrationRefund: offer.refunded } : {}) } });
   }
 }

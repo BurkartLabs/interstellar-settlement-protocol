@@ -30,7 +30,7 @@ import { addAccountNotification, getState, mutateAccountState } from "./gameStat
 import { accountByCorp } from "./game/membership.js";
 import { formatCredits } from "./receipts.js";
 import { assess, normalOf, watchDays } from "./game/dumping.js";
-import { withheldFrom } from "../public/scripts/itcDuty.js";
+import { councilWithholding, withheldFrom } from "../public/scripts/itcDuty.js";
 import { onDumpingFinding } from "./standingService.js"; // ISP-238 (AB#933)
 import { dumpingTermsIn } from "./lobbyingService.js"; // ISP-239 (AB#934): the lines in force in a sale's system
 import { stationById } from "./game/stations.js";
@@ -92,6 +92,29 @@ export function withholdDuty(corp, net) {
     return withheld;
   } catch (error) {
     console.error(`[itc] duty was not withheld: ${error?.message || error}`);
+    return 0;
+  }
+}
+
+/**
+ * ISP-242 (AB#938): inside the seller's state change, after withholdDuty: withhold toward its Council debts what the
+ * ITC's withholdPct of `net` leaves after `itcWithheld`, oldest debt first, booked as "arbitration-award-paid". The
+ * arbitration tick passes what was collected on to each claimant. Returns the credits withheld. Never throws.
+ */
+export function withholdCouncilDebt(corp, net, itcWithheld = 0) {
+  try {
+    const debts = Array.isArray(corp?.councilDebts) ? corp.councilDebts : [];
+    let total = 0;
+    for (const { ref, credits } of councilWithholding(net, itcWithheld, debts, TERMS.withholdPct)) {
+      const d = debts.find((x) => x.ref === ref);
+      applyCredits(corp, -credits, "arbitration-award-paid");
+      d.owed -= credits;
+      d.collected = (d.collected || 0) + credits;
+      total += credits;
+    }
+    return total;
+  } catch (error) {
+    console.error(`[itc] a Council debt was not withheld: ${error?.message || error}`);
     return 0;
   }
 }

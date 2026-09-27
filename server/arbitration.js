@@ -16,17 +16,18 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createId, dataDir, safeWriteFile } from "./game/catalog.js";
-import { addAccountNotification } from "./gameState.js";
+import { addAccountNotification, mutateAccountState } from "./gameState.js";
+import { applyCredits } from "./finances.js";
 import { accountsStore } from "./game/store.js";
 import { settleTransfer } from "./settlement.js";
 import { WARFARE_CATALOG, concessionTermsFor } from "./warfare.js";
 import { accountByCorp, findConglomerate, roleOf } from "./game/membership.js";
 import { currentConglomerateOf } from "./game/intel.js";
-import { contractRecord, freezeContractEscrow, myContracts } from "./mercenaries.js";
-import { concessionRegister, petitionRecord, petitionsIn } from "./concessions.js";
+import { contractRecord, freezeContractEscrow, myContracts, refundFromEscrow, unfreezeContractEscrow } from "./mercenaries.js";
+import { concessionRegister, decideAtCouncil, markPetitionCouncil, petitionRecord, petitionsIn } from "./concessions.js";
 import { controlNow } from "./controlService.js";
-import { tariffCap, tariffRates } from "./tariffService.js";
-import { patentOffice, patentRecord, patentUsers, patentUsesBy } from "./patents.js";
+import { refundLevy, takeTariffAccrual, tariffCap, tariffRates } from "./tariffService.js";
+import { patentOffice, patentRecord, patentUsers, patentUsesBy, takeRoyaltyAccrual } from "./patents.js";
 import { councilFee, rateInForceAt, readinessRefund, royaltyShortfall, tariffExcess } from "./game/arbitration.js";
 
 const FILE = path.join(dataDir, "arbitration.json");
@@ -235,6 +236,7 @@ export function fileCase(accountId, { type, recordId } = {}, now = Date.now()) {
   store.cases.push(c);
   save();
   if (ev.escrow) freezeContractEscrow(ev.escrow, c.ref);
+  if (type === "concession-arbitrated") markPetitionCouncil(c.evidence.petition.id, c.ref); // ISP-242 (AB#938): the Council decides it
   notifyRespondent(c);
   return { case: partyView(c) };
 }
@@ -260,10 +262,234 @@ export function docketDefault(record, now = Date.now()) {
   return partyView(c);
 }
 
+// ─── Rulings and enforcement (ISP-242, AB#938; WARFARE.md, "A case, as a state list" and "Enforcement") ────────
+// At the first 00:00 UTC tick after the response window (an arbitrated petition's, after its 7-day review), the claim
+// type's rule is applied to the evidence stored at filing. Two claim types read a record that keeps moving after
+// filing, again from the server's own store: the owner's readiness for the rest of a mercenary term, and the control
+// readings at an arbitrated review's end. Nothing a client sends is read. Dismissed: the fee goes to the fee sink.
+// Upheld: the fee goes back to the claimant, and the award is paid from the contract's escrow, then from what the ISA
+// holds for the respondent (tariff revenue and patent royalties not yet paid out, and for a tariff overcharge the ISA's
+// own levy share at once), then as a Council debt: withheld from the respondent's later sales inside the ITC's one 50%
+// (itcService withholdCouncilDebt), counted in its credit rating, and passed on to the claimant here, tick by tick.
+// A rule that cannot be evaluated leaves the case pending, with an alert, and moves nothing.
+
+const DAY_START = (t) => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
+/** When a case is ruled on: the first 00:00 UTC at or after its window's end (or an arbitrated review's end, if later). */
+export function decideAt(c) {
+  const end = Math.max(c.windowEndsAt, Number(c.evidence?.petition?.reviewEndsAt) || 0);
+  return DAY_START(end) === end ? end : DAY_START(end) + DAY;
+}
+
+/** Each claim type's rule: { outcome: "upheld" | "dismissed", amount, reason, reading? } or { pending }. May throw. */
+const RULES = {
+  "mercenary-readiness"(c, now) {
+    const contract = contractRecord(c.evidence.contract.id);
+    const owner = corpById(c.respondent.id);
+    if (!contract || !owner) throw new Error("the contract or its owner is no longer on record");
+    const r = readinessRefund({ price: contract.price, termHours: contract.termHours, hireReadiness: c.evidence.hireReadiness, hiredAt: contract.hiredAt }, owner.military?.readinessLog || [], Math.min(now, contract.endsAt));
+    return {
+      outcome: r.refund > 0 ? "upheld" : "dismissed", amount: r.refund, reading: { hourlyReadiness: r.hours, hoursBelow: r.hoursBelow },
+      reason: `Readiness below hire readiness (${c.evidence.hireReadiness}) for ${r.hoursBelow} of ${r.hours.length} contract hours.`
+    };
+  },
+  "tariff-overcharge"(c) {
+    const e = c.evidence;
+    return { outcome: e.excess > 0 ? "upheld" : "dismissed", amount: e.excess, reason: `Tariff charged ${e.settlement.chargedPct}%, lawful ${e.lawfulPct}%, on a base of ${e.settlement.base.toLocaleString("en-US")} credits.` };
+  },
+  "patent-royalty"(c) {
+    const e = c.evidence;
+    return { outcome: e.shortfall > 0 ? "upheld" : "dismissed", amount: e.shortfall, reason: `Royalty due ${e.due.toLocaleString("en-US")} credits at ${e.patent.ratePct}%, recorded ${e.recorded.toLocaleString("en-US")}.` };
+  },
+  "concession-arbitrated"(c, now) {
+    const r = decideAtCouncil(c.evidence.petition.id, now, terms().tieMarginPts);
+    if (r.pending) return { pending: true };
+    const mine = r.decided.find((d) => keyOf(d.holder) === keyOf(c.evidence.claimant.holder));
+    const won = Boolean(mine?.granted);
+    return { outcome: won ? "upheld" : "dismissed", amount: 0, order: won ? "granted" : "not granted", reason: `${r.already ? "Decided before the ruling. " : ""}TERRITORY.md's rules at the review's end${r.tie ? `, a tie within ${terms().tieMarginPts} point decided by extraction share, then filing order` : ""}: the concession ${won ? "is granted to" : "is not granted to"} ${c.claimant.name}.`, reading: { scores: r.scores || null } };
+  }
+};
+
+/** Credit an award to the claimant's corporation, booked "arbitration-award-received". */
+function award(c, credits, now) {
+  const account = accountOf(c.claimant);
+  if (!(credits > 0) || !account) return 0;
+  mutateAccountState(account.id, (state) => applyCredits(state.corp, credits, "arbitration-award-received", now), { sanitize: false });
+  c.paid = (c.paid || 0) + credits;
+  return credits;
+}
+
+/** Collect `amount` from `party` for case `c`: what the ISA holds for it, then a Council debt. Returns { income, debt }. */
+function collect(c, party, amount, now) {
+  let left = Math.max(0, Math.round(amount));
+  const fromTariffs = takeTariffAccrual(party, left);
+  const fromIncome = fromTariffs + (party.type === "corp" ? takeRoyaltyAccrual(party.id, left - fromTariffs) : 0);
+  award(c, fromIncome, now);
+  left -= fromIncome;
+  if (left > 0) {
+    const debtor = accountOf(party);
+    const ref = `${c.ref}:${party.id}`;
+    if (debtor) {
+      mutateAccountState(debtor.id, (state) => {
+        if (!Array.isArray(state.corp.councilDebts)) state.corp.councilDebts = [];
+        state.corp.councilDebts.push({ ref, caseRef: c.ref, claimant: { type: c.claimant.type, id: c.claimant.id }, owed: left, collected: 0, forwarded: 0, at: now });
+      }, { sanitize: false });
+      c.debts = [...(c.debts || []), { ref, party: { type: party.type, id: party.id }, owed: left }];
+      notifyParty(party, `${c.ref}: Arbitration Council debt recorded`, `${c.ref}. ${left.toLocaleString("en-US")} credits of the Council's award could not be paid from ISA-held income and are recorded as a debt to ${c.claimant.name}. ${WARFARE_CATALOG.dumping.withholdPct}% of the net proceeds of each exchange sale, shared with any ITC duty owed, is withheld toward it until it is paid. No interest is charged. It counts as debt in your credit rating.`);
+    }
+  }
+  return { income: fromIncome, debt: left };
+}
+
+/** Apply an upheld ruling's award. Each step is recorded on the case before the next, so a tick that stops part way finishes on the next without paying twice. */
+function enforce(c, now) {
+  c.steps ||= {};
+  const claimant = accountOf(c.claimant);
+  let left = c.ruling.amount;
+  if (c.type === "mercenary-readiness" && c.frozenContract) {
+    if (c.steps.escrow === undefined) {
+      c.steps.escrow = refundFromEscrow(c.frozenContract, claimant?.id, left, c.ref, now);
+      c.paid = (c.paid || 0) + c.steps.escrow;
+    }
+    left -= c.steps.escrow;
+  }
+  if (c.type === "tariff-overcharge" && left > 0) {
+    const s = c.evidence.settlement;
+    const levyPart = s.amount > 0 ? Math.round((left * (s.levy || 0)) / s.amount) : 0;
+    if (c.steps.levy === undefined) c.steps.levy = award(c, refundLevy(levyPart), now);
+    // the holders' part, in the shares they were accrued; the last takes the rounding
+    const holderPart = left - c.steps.levy;
+    const total = s.to.reduce((a, h) => a + (h.share || 0), 0) || 1;
+    const parts = s.to.map((h) => Math.round((holderPart * (h.share || 0)) / total));
+    parts[parts.length - 1] += holderPart - parts.reduce((a, b) => a + b, 0);
+    s.to.forEach((h, i) => {
+      const key = `holder:${h.type}:${h.id}`;
+      if (c.steps[key] === undefined) c.steps[key] = collect(c, holderParty(h) || { type: h.type, id: h.id, name: "A former holder" }, parts[i], now);
+    });
+    left = 0;
+  }
+  if (left > 0 && c.steps.respondent === undefined) c.steps.respondent = collect(c, c.respondent, left, now);
+}
+
+/** Pass on what each Council debt of `c` has collected since the last tick; true when every debt is paid and passed on. */
+function forwardDebts(c, now) {
+  let open = false;
+  for (const d of c.debts || []) {
+    const debtor = accountOf(d.party);
+    const entry = debtor?.state?.corp?.councilDebts?.find((x) => x.ref === d.ref);
+    if (!entry) continue; // the debtor is gone: nothing more can be collected
+    const pending = (entry.collected || 0) - (entry.forwarded || 0);
+    if (pending > 0) {
+      award(c, pending, now);
+      mutateAccountState(debtor.id, (state) => { const e = state.corp.councilDebts.find((x) => x.ref === d.ref); e.forwarded = (e.forwarded || 0) + pending; }, { sanitize: false });
+    }
+    if (entry.owed > 0) open = true;
+    else mutateAccountState(debtor.id, (state) => { state.corp.councilDebts = state.corp.councilDebts.filter((x) => x.ref !== d.ref); }, { sanitize: false });
+  }
+  return !open;
+}
+
+function notifyParty(party, title, body) {
+  const account = accountOf(party);
+  if (account) addAccountNotification(account.id, { type: "finance", title, body });
+}
+
+/** Rule on one case and enforce it; leaves it pending (with `alert`) when its rule cannot be evaluated. */
+function rule(c, now) {
+  let r;
+  try {
+    r = RULES[c.type](c, now);
+  } catch (error) {
+    c.alert = `The rule could not be evaluated: ${error?.message || error}`;
+    console.error(`[arbitration] ${c.ref} left pending: ${c.alert}`);
+    return;
+  }
+  if (r.pending) return;
+  // the fee first: an arbitrated petition's is the petition fee, kept as it is everywhere; else back to an upheld
+  // claimant. If it cannot move, nothing is recorded and the case stays pending (no partial ruling).
+  const toSink = c.type === "concession-arbitrated" || r.outcome === "dismissed";
+  if (c.feePaid > 0 && !c.steps?.fee) {
+    const moved = toSink
+      ? settleTransfer({ fromAccountId: c.feeEscrow, toAccountId: "sink:fee", credits: c.feePaid, reason: "arbitration-fee", idempotencyKey: `${c.id}:fee-out` }, now)
+      : settleTransfer({ fromAccountId: c.feeEscrow, toAccountId: accountOf(c.claimant)?.id, credits: c.feePaid, reason: "escrow-release", idempotencyKey: `${c.id}:fee-out` }, now);
+    if (!moved.ok) { c.alert = `The fee could not be settled: ${moved.error}`; console.error(`[arbitration] ${c.ref}: ${c.alert}`); return; }
+    c.steps = { ...(c.steps || {}), fee: toSink ? "sink" : "returned" };
+  }
+  delete c.alert;
+  c.ruling = { outcome: r.outcome, amount: r.amount, order: r.order ?? null, reason: r.reason, at: now, ...(r.reading ? { reading: r.reading } : {}) };
+  c.state = "ruled";
+  if (r.outcome === "upheld" && r.amount > 0) {
+    c.state = "enforcing";
+    enforce(c, now);
+    if (c.type === "tariff-overcharge") {
+      // WARFARE.md: the settlement function should have prevented it, so the server reports it as a defect too
+      store.defects = [...(store.defects || []), { at: now, ref: c.ref, systemId: c.evidence.settlement.systemId, chargedPct: c.evidence.settlement.chargedPct, lawfulPct: c.evidence.lawfulPct }];
+      console.error(`[arbitration] BUG: ${c.ref} upheld a tariff overcharge (${c.evidence.settlement.chargedPct}% charged, ${c.evidence.lawfulPct}% lawful in ${c.evidence.settlement.systemId}): the settlement function let it through`);
+    }
+  }
+  if (c.frozenContract) unfreezeContractEscrow(c.frozenContract);
+  if (c.state === "ruled") c.state = "closed";
+  if (c.state === "enforcing" && forwardDebts(c, now)) c.state = "closed";
+  const text = `${c.ref}. ${c.ruling.reason} ${r.outcome === "upheld" ? (r.amount > 0 ? `Upheld: ${r.amount.toLocaleString("en-US")} credits awarded to ${c.claimant.name}.` : `Upheld: ${c.ruling.order}.`) : "Dismissed."} ${toSink ? `The filing fee of ${c.feePaid.toLocaleString("en-US")} credits is forfeited.` : `The filing fee of ${c.feePaid.toLocaleString("en-US")} credits is returned to the claimant.`}`;
+  c.ruling.text = text;
+  for (const p of [c.claimant, c.respondent]) notifyParty(p, `${c.ref}: Arbitration Council ruling`, text);
+}
+
+/**
+ * The adjudication tick (after the concession tick): rule on every case whose time has come, pass on what Council
+ * debts collected, and close what is paid. Final and idempotent: a decided case is never ruled again, and every money
+ * move is keyed or recorded on the case. Returns the refs it ruled.
+ */
+export function arbitrationTick(now = Date.now()) {
+  const ruled = [];
+  let changed = false;
+  for (const c of store.cases) {
+    if (c.state === "answering" && now >= decideAt(c)) {
+      const before = JSON.stringify(c);
+      rule(c, now);
+      if (c.state !== "answering") ruled.push(c.ref);
+      if (JSON.stringify(c) !== before) changed = true;
+    } else if (c.state === "enforcing") {
+      const before = c.paid;
+      if (forwardDebts(c, now)) c.state = "closed";
+      if (c.paid !== before || c.state === "closed") changed = true;
+    } else if (c.type === "credit-default" && c.state === "ruled") {
+      c.state = "closed"; // WARFARE.md: no remedy beyond v0.9's own recovery; the shortfall stays owed on the loan or bond
+      changed = true;
+    }
+  }
+  if (changed) save();
+  return ruled;
+}
+
+/**
+ * The respondent cures, inside the window, in one action: it pays the amount claimed to the claimant, and the claimant's
+ * filing fee is returned (WARFARE.md: the claimant is made whole, and the fee is not forfeited). Closes the case, and
+ * lifts a contract's freeze. Returns { case } (the parties' view) or { refused }.
+ */
+export function cureCase(accountId, ref, now = Date.now()) {
+  const c = store.cases.find((x) => x.ref === ref);
+  if (!c) return no(404, "no-case", "No such case.");
+  if (accountOf(c.respondent)?.id !== accountId) return no(403, "not-respondent", "Only the respondent (for a conglomerate, its founder) can cure a case.");
+  if (c.state !== "answering" || now >= c.windowEndsAt) return no(409, "window-closed", "The response window has closed: the Council's rule decides the case now.");
+  if (c.type === "concession-arbitrated" || c.type === "credit-default") return no(409, "nothing-to-cure", "This case is an order, not a payment: there is nothing to cure.");
+  const claimant = accountOf(c.claimant);
+  if (!claimant) return no(409, "no-claimant", "The claimant no longer exists.");
+  if (c.amountClaimed > 0) {
+    const paid = settleTransfer({ fromAccountId: accountId, toAccountId: claimant.id, credits: c.amountClaimed, reason: "arbitration-award", idempotencyKey: `${c.id}:cure` }, now);
+    if (!paid.ok) return no(402, "cannot-pay", `Curing costs ${c.amountClaimed.toLocaleString("en-US")} credits, paid to ${c.claimant.name} at once.`);
+  }
+  if (c.feePaid > 0) settleTransfer({ fromAccountId: c.feeEscrow, toAccountId: claimant.id, credits: c.feePaid, reason: "escrow-release", idempotencyKey: `${c.id}:fee-out` }, now);
+  if (c.frozenContract) unfreezeContractEscrow(c.frozenContract);
+  Object.assign(c, { state: "closed", paid: c.amountClaimed, ruling: { outcome: "cured", amount: c.amountClaimed, order: null, at: now, reason: "Cured by the respondent inside the response window.", text: `${c.ref}. Cured by ${c.respondent.name}: ${c.amountClaimed.toLocaleString("en-US")} credits paid to ${c.claimant.name}, and the filing fee returned.` } });
+  save();
+  notifyParty(c.claimant, `${c.ref}: case cured`, c.ruling.text);
+  return { case: partyView(c) };
+}
+
 // ─── Reading ────────────────────────────────────────────────────────────────
 
-const publicView = (c) => ({ ref: c.ref, type: c.type, claimant: c.claimant.name, respondent: c.respondent.name, state: c.state, ruling: c.ruling ? { outcome: c.ruling.outcome, amount: c.ruling.amount } : null, amountClaimed: c.amountClaimed, filedAt: c.filedAt, windowEndsAt: c.windowEndsAt });
-const partyView = (c) => ({ ...publicView(c), recordRef: c.recordRef, claimant: { ...c.claimant }, respondent: { ...c.respondent }, evidence: c.evidence, feePaid: c.feePaid });
+const publicView = (c) => ({ ref: c.ref, type: c.type, claimant: c.claimant.name, respondent: c.respondent.name, state: c.state, ruling: c.ruling ? { outcome: c.ruling.outcome, amount: c.ruling.amount, order: c.ruling.order ?? null } : null, paid: c.paid || 0, amountClaimed: c.amountClaimed, filedAt: c.filedAt, windowEndsAt: c.windowEndsAt });
+const partyView = (c) => ({ ...publicView(c), recordRef: c.recordRef, claimant: { ...c.claimant }, respondent: { ...c.respondent }, evidence: c.evidence, feePaid: c.feePaid, decideAt: decideAt(c), ruling: c.ruling ? { ...c.ruling } : null, paid: c.paid || 0, debts: c.debts || [], ...(c.alert ? { alert: c.alert } : {}) });
 
 /** The public docket: every case, newest first, its public fields only (WARFARE.md, "Public and private"). */
 export function publicDocket() {
@@ -305,6 +531,9 @@ export function fileableRecords(accountId, type, now = Date.now()) {
   }
   return { type, open: Boolean(claimType(type).open) && type !== "credit-default", records };
 }
+
+/** For tests: the stored case itself (not a copy), to stage a defect the rules must catch. */
+export const caseRecordForTests = (ref) => store.cases.find((c) => c.ref === ref) || null;
 
 /** For tests: forget every case (and optionally the file). */
 export function resetArbitration({ removeFile = false } = {}) {

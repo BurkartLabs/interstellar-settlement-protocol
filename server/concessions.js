@@ -164,7 +164,9 @@ export function reviewConcessions(now = Date.now(), onlySystemId = null) {
   let changed = false;
   for (const rec of Object.values(store.systems)) {
     if (onlySystemId && rec.systemId !== onlySystemId) continue;
-    const due = rec.petitions.filter((p) => p.state === "open" && p.reviewEndsAt <= now);
+    // ISP-242 (AB#938): a petition or challenge before the Arbitration Council is decided by its ruling, not here
+    const atCouncil = (p) => Boolean(p.councilRef) || rec.petitions.some((q) => q.state === "open" && q.councilRef && q.kind === "petition" && p.kind === "petition");
+    const due = rec.petitions.filter((p) => p.state === "open" && p.reviewEndsAt <= now && !atCouncil(p));
     if (!due.length) continue;
     const ctl = controlNow(rec.systemId, now);
     if (!ctl.terms || ctl.stale) continue;
@@ -456,6 +458,61 @@ export function petitionRecord(petitionId) {
   }
   return null;
 }
+/** ISP-242 (AB#938): mark a petition or challenge as before the Council (the ordinary review leaves it), or clear it. */
+export function markPetitionCouncil(petitionId, caseRef) {
+  for (const rec of Object.values(store.systems)) {
+    const p = rec.petitions.find((x) => x.id === petitionId);
+    if (p) { p.councilRef = caseRef || null; save(); return true; }
+  }
+  return false;
+}
+
+/**
+ * ISP-242 (AB#938; WARFARE.md, `concession-arbitrated`): the Council decides a petition or challenge in an arbitrated
+ * system by TERRITORY.md's rules at `now`, with its tie-break: two eligible petitioners' scores within `tieMarginPts`
+ * points go to the higher extraction share, then to the earlier filing. A petition is decided with every petition open
+ * beside it, as the review would. Returns { pending } while the readings are stale (nothing decided on data that cannot
+ * be read), else { decided: [{ holder, kind, granted }], tie } and the concessions it changed.
+ */
+export function decideAtCouncil(petitionId, now = Date.now(), tieMarginPts = 1) {
+  const rec = Object.values(store.systems).find((r) => r.petitions.some((p) => p.id === petitionId));
+  const p = rec?.petitions.find((x) => x.id === petitionId);
+  if (!p || p.state !== "open") return { decided: [], tie: false, already: true };
+  const ctl = controlNow(rec.systemId, now);
+  if (!ctl.terms || ctl.stale) return { pending: true };
+  const terms = ctl.terms;
+  const decided = [];
+  let tie = false;
+  if (p.kind === "challenge") {
+    const target = rec.holders.find((h) => keyOf(h.holder) === keyOf(p.target));
+    const mine = scoreOf(ctl.scores, p.holder)?.score || 0;
+    const wins = Boolean(target) && ctl.eligible.has(keyOf(p.holder)) && mine > barFor(scoreOf(ctl.scores, target.holder), terms);
+    Object.assign(p, { state: wins ? "granted" : "failed", decidedAt: now, councilRef: null });
+    if (wins) { lapse(rec, target, now, "challenged", terms); grant(rec, p.holder, now, terms); }
+    else note(rec, now, "challenge-failed", p.holder);
+    decided.push({ holder: p.holder, kind: "challenge", granted: wins });
+  } else {
+    const open = rec.petitions.filter((x) => x.state === "open" && x.kind === "petition");
+    const places = Math.max(0, terms.concessionsPerSystem - rec.holders.length);
+    const s = (x) => scoreOf(ctl.scores, x.holder) || { score: 0, extraction: 0 };
+    const ranked = open.filter((x) => ctl.eligible.has(keyOf(x.holder))).sort((a, b) => {
+      const d = s(b).score - s(a).score;
+      if (Math.abs(d) * 100 > tieMarginPts) return d;
+      return (s(b).extraction - s(a).extraction) || a.filedAt - b.filedAt;
+    });
+    tie = ranked.length > 1 && Math.abs(s(ranked[0]).score - s(ranked[1]).score) * 100 <= tieMarginPts;
+    const winners = new Set(ranked.slice(0, places));
+    for (const x of open) {
+      Object.assign(x, { state: winners.has(x) ? "granted" : "failed", decidedAt: now, councilRef: null });
+      if (winners.has(x)) grant(rec, x.holder, now, terms);
+      else note(rec, now, "petition-failed", x.holder);
+      decided.push({ holder: x.holder, kind: "petition", granted: winners.has(x) });
+    }
+  }
+  save();
+  return { decided, tie, scores: ctl.scores.map((x) => ({ type: x.type, id: x.id, score: x.score, extraction: x.extraction })) };
+}
+
 /** ISP-241 (AB#937): a system's open petitions and challenges (copies). */
 export const petitionsIn = (systemId) => JSON.parse(JSON.stringify((store.systems[systemId]?.petitions || []).filter((p) => p.state === "open")));
 /** ISP-241 (AB#937): a system's public register of concession events (a copy), oldest first. */

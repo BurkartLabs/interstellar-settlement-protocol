@@ -37,13 +37,15 @@ export const REASONS = Object.freeze([
   "loan-disbursal", "loan-repayment", "bond-subscription", "coupon", "dividend", "share-purchase", "escrow-hold", "escrow-release", "fee",
   "loan-interest", // ISP-150 (AB#844): a loan's interest, apart from its principal (docs/design/v0.9-debt.md, sections 2 and 9)
   "bond-redemption", // ISP-155 (AB#849): a bond's face repaid to its holder at maturity
-  "bond-sale" // Bug #2574: a bond holding sold, in default recovery to the NPC underwriter at 90% of face
+  "bond-sale", // Bug #2574: a bond holding sold, in default recovery to the NPC underwriter at 90% of face
+  "arbitration-award", // ISP-242 (AB#938): an upheld or cured case's award, from the respondent or the contract's escrow
+  "arbitration-fee" // ISP-242 (AB#938): a dismissed case's filing fee, from its escrow to the fee sink
 ]);
 
 /** The named sinks: credits paid into one leave the money supply, counted. */
 export const SINKS = Object.freeze(["fee", "loan-interest"]);
 /** Which sink each reason may pay into: a fee is never booked as interest, nor interest as a fee (AB#844). */
-const SINK_FOR = { fee: "fee", "loan-interest": "loan-interest" };
+const SINK_FOR = { fee: "fee", "loan-interest": "loan-interest", "arbitration-fee": "fee" };
 
 /** The named taps: an NPC lender's account, which creates what it pays out (AB#843: the Development Bank). */
 export const TAPS = Object.freeze(["dsdb", "igsx"]); // igsx: the Stock Exchange's market maker (ISP-158, AB#852)
@@ -75,7 +77,10 @@ const SHAPES = {
   // AB#852: a corporation buys another's new shares, or the IGSX market maker does from its tap at an offering's close
   "share-purchase": [["corp", "corp"], ["tap", "corp"]],
   // AB#853: a dividend goes to each holder; the market maker's part goes to its tap, and is destroyed
-  dividend: [["corp", "corp"], ["corp", "tap"]]
+  dividend: [["corp", "corp"], ["corp", "tap"]],
+  // ISP-242 (AB#938): a cure is paid by the respondent, a readiness refund from the contract's escrow; a forfeited fee is destroyed
+  "arbitration-award": [["corp", "corp"], ["escrow", "corp"]],
+  "arbitration-fee": [["escrow", "sink"]]
 };
 const shapesOf = (reason) => SHAPES[reason] ?? [["corp", "corp"]];
 
