@@ -150,6 +150,7 @@ export const GAMEPLAY_INPUT = {
     }
   },
   "POST /raids/:raidId/recall": { params: { raidId: ref("one of your raids") } },
+  "GET /raids/:raidId/report": { params: { raidId: ref("one of your raids") } }, // ISP-179 (AB#873)
   "POST /queue-ceo": { body: { programId: id("programs", "a CEO Insight program") } }
 };
 

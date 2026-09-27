@@ -55,6 +55,19 @@ export function protectedUntil(accountId) {
 }
 
 /**
+ * The buildings that stand at a station, as the raid design places them (section 1): one on a lease stands at the
+ * station whose body is the lease's body; every other building stands at the corporation's home station. The
+ * Headquarters is never a target. Returns the corp.buildings entries themselves (the caller may change them in a draft).
+ */
+export function buildingsAtStation(corp, stationId) {
+  const station = STATION_REGISTRY[stationId];
+  if (!corp || !station) return [];
+  const leaseBody = new Map((corp.miningLeases || []).map((l) => [l.id, l.body]));
+  const home = stationId === (corp.homeStationId || RAID_RULES.homeStationId);
+  return (corp.buildings || []).filter((b) => b?.name && b.name !== "Headquarters" && (b.leaseId ? leaseBody.get(b.leaseId) === station.body : home));
+}
+
+/**
  * What a corporation holds at a station, as the raid design counts it (section 1): its defense troops there, its fleets
  * stationed there, its goods there, and the buildings standing there (on a lease whose body the station serves, or, for
  * any other building, at its home station). Pure.
@@ -65,13 +78,7 @@ export function holdingsAt(corp, stationId) {
   const garrison = unitCount(corp.military?.garrisons?.[stationId], "dt");
   const fleets = (corp.military?.fleets || []).filter((f) => f.stationId === stationId && !f.transit).length;
   const goods = Object.values(corp.inventory?.[stationId] || {}).reduce((a, q) => a + Math.max(0, Number(q) || 0), 0);
-  // on a lease whose body the station serves: its extractors (by id) and facilities (by name)
-  const onLeases = (corp.miningLeases || []).filter((l) => l.body === station.body)
-    .reduce((a, l) => a + (l.extractorIds || []).length + (l.facilities || []).length, 0);
-  // every other building stands at the home station; the Headquarters is never a target
-  const atHome = stationId === (corp.homeStationId || RAID_RULES.homeStationId)
-    ? (corp.buildings || []).filter((b) => b?.name && b.name !== "Headquarters").length : 0;
-  const buildings = onLeases + atHome;
+  const buildings = buildingsAtStation(corp, stationId).length;
   return { any: garrison + fleets + goods + buildings > 0, garrison, fleets, goods, buildings };
 }
 

@@ -3,6 +3,7 @@
 // always the caller's own corporation. Every field is an id checked for shape by server/gameplayInput.js and against
 // what exists by server/raids.js; ids that are not the caller's answer 404 and change nothing.
 import { declareRaid, raidsFor, recallRaid } from "../raids.js";
+import { raidReportFor } from "../raidResolution.js"; // ISP-179 (AB#873)
 
 const answer = (res, result) => {
   if (!result?.ok) { res.status(result?.status || 400).json({ error: result?.error || "The raid could not be declared." }); return; }
@@ -20,4 +21,10 @@ export function registerRaidRoutes(app) {
     fleetId: str(req.body?.fleetId), contractId: str(req.body?.contractId), targetCorpId: str(req.body?.targetCorpId), targetStationId: str(req.body?.targetStationId)
   })));
   app.post("/api/accounts/:accountId/gameplay/raids/:raidId/recall", (req, res) => answer(res, recallRaid(req.params.accountId, req.params.raidId)));
+  // ISP-179 (AB#873): a raid's report, private to the two sides; anyone else, or an id that does not exist, gets 404
+  app.get("/api/accounts/:accountId/gameplay/raids/:raidId/report", (req, res) => {
+    const report = raidReportFor(req.params.accountId, req.params.raidId);
+    if (!report) { res.status(404).json({ error: "No such raid report." }); return; }
+    res.json({ report });
+  });
 }
