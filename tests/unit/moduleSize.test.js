@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 // modules earlier in the layer order, so there are no import cycles. AB#1815 split server/index.js — the one file this
 // rule used to except — into route modules under server/routes/, so the rule has no carve-out left.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const ORDER = ["items", "catalog", "buildingIds", "progression", "mining", "refining", "beltRules", "belts", "asteroids", "shape", "corporation", "npcAsks", "world", "verificationPolicy", "store", "messaging"];
+const ORDER = ["items", "catalog", "buildingIds", "progression", "mining", "refining", "beltRules", "belts", "asteroids", "shape", "corporation", "npcAsks", "world", "verificationPolicy", "store", "messaging", "conversations"];
 
 function serverFiles(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? serverFiles(path.join(dir, e.name)) : e.name.endsWith(".js") ? [path.join(dir, e.name)] : []));
