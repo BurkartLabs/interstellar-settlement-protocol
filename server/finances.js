@@ -196,6 +196,20 @@ export function openDayBook(corp, now = Date.now()) {
 const total = (o) => Object.values(o || {}).reduce((sum, v) => sum + (Number(v) || 0), 0);
 
 /**
+ * Bug #2575: the categories that are financing, not profit or loss: principal lent and repaid, capital raised by bonds
+ * and shares and returned at redemption, bonds sold, escrow held and released, and dividends paid (a distribution to
+ * owners). They are cash, so the cash flow counts them and still reconciles; the P&L leaves them out, so borrowing or
+ * raising capital is never income and repaying it never a loss. Interest, coupons, dividends received and fees stay in.
+ */
+export const FINANCING_CATEGORIES = Object.freeze([
+  "loan-disbursal-received", "loan-disbursal-paid", "loan-repayment-received", "loan-repayment-paid",
+  "bond-subscription-received", "bond-subscription-paid", "bond-redemption-received", "bond-redemption-paid",
+  "bond-sale-received", "bond-sale-paid", "share-purchase-received", "share-purchase-paid",
+  "escrow-hold-paid", "escrow-release-received", "dividend-paid"
+]);
+const operating = (o) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => !FINANCING_CATEGORIES.includes(k)));
+
+/**
  * The three statements for the day that starts at `dayStart`, from the corporation's open day book. Pure: reads the
  * corporation and changes nothing. A day with no book (the server was not running, or nothing moved) is a day of no
  * movement at the current balance.
@@ -208,10 +222,10 @@ export function closeDay(corp, dayStart, market = null) {
   const f = corp?.finances || {};
   const book = f.dayBook && f.dayBook.dayStart === dayStart ? f.dayBook : null;
   const closing = Math.round(Number(f.credits) || 0);
-  const income = { ...(book?.income || {}) };
-  const expenses = { ...(book?.expenses || {}) };
-  const inflows = total(income);
-  const outflows = total(expenses);
+  const inflows = total(book?.income);
+  const outflows = total(book?.expenses);
+  const income = operating(book?.income); // Bug #2575: the P&L is profit and loss only; financing is in the cash flow
+  const expenses = operating(book?.expenses);
   const opening = book ? Math.round(Number(book.opening) || 0) : closing;
   const facilities = Math.max(0, Math.round(Number(f.assets) || 0));
   const inventory = market ? valueInventory(corp, market) : Math.max(0, Math.round(Number(f.inventoryValue) || 0));
@@ -219,7 +233,7 @@ export function closeDay(corp, dayStart, market = null) {
   return {
     day: new Date(dayStart).toISOString().slice(0, 10),
     dayStart,
-    pnl: { income, expenses, totalIncome: inflows, totalExpenses: outflows, net: inflows - outflows },
+    pnl: { income, expenses, totalIncome: total(income), totalExpenses: total(expenses), net: total(income) - total(expenses) },
     cashFlow: { opening, inflows, outflows, closing, unrecorded: closing - (opening + inflows - outflows) },
     balanceSheet: {
       credits: closing,

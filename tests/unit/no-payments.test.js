@@ -60,6 +60,12 @@ const ALLOWLIST = [
     '"loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",',
     "a bond subscription: buying into an in-game corporate bond with credits (docs/design/v0.9-equity.md, v0.9-debt.md), not a recurring real-money payment (Bug #2570)"
   ],
+  // Bug #2575: the statements name the in-game bond purchase as financing, kept out of the P&L
+  [
+    "server/finances.js",
+    '"bond-subscription-received", "bond-subscription-paid", "bond-redemption-received", "bond-redemption-paid",',
+    "an in-game bond bought at issue with credits, listed as financing so it is not counted as profit (Bug #2575)"
+  ],
   // ISP-154 (AB#848): the bond module names the reason once, and settlement says which parties it moves between
   [
     "server/bonds.js",
