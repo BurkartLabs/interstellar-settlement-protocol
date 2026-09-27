@@ -12,6 +12,7 @@ import { escapeHtml } from "../html.js";
 import { appState, viewerStorage } from "../state.js";
 import { taxOnSale } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
 import { saleQuote, utcMinute } from "../tariffs.js"; // ISP-231 (AB#926): the tariff the server settles
+import { withheldFrom } from "../itcDuty.js"; // ISP-232 (AB#927): what the server withholds toward ITC duty owed
 import { suggestedListingPrice } from "../suggestedPrice.js";
 import { labelTableCells } from "../tableLabels.js";
 import { tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
@@ -45,12 +46,14 @@ function saleTaxRows(gross) {
   // ISP-231 (AB#926): the concession tariff where the goods are held, quoted with the server's own arithmetic
   const here = clientTariffHere();
   const sale = saleQuote(gross, breakdown, here?.pct || 0);
+  const withheld = withheldFrom(sale.proceeds, appState.data?.corp?.itcDuty);
   return [
     { label: `GEX Sales Tax (${breakdown.salesTaxPct}%)`, value: `− ${toCurrency(sale.salesTax)}`, muted: true },
     ...(breakdown.royaltyPct > 0 ? [{ label: `ISA Lease Royalty (${breakdown.royaltyPct}%)`, value: `− ${toCurrency(sale.royalty)}`, muted: true }] : []),
     ...(sale.tariff > 0 ? [{ label: `Concession Tariff (${here.pct}%)`, value: `− ${toCurrency(sale.tariff)}`, muted: true }] : []),
     ...(here?.pending ? [{ label: "Tariff Pending", value: `${here.pending.pct}% from ${utcMinute(here.pending.effectiveAt)}`, muted: true }] : []),
-    { label: "You Receive", value: toCurrency(sale.proceeds), highlight: true }
+    ...(withheld > 0 ? [{ label: "Withheld for ITC Duty", value: `− ${toCurrency(withheld)}`, muted: true }] : []),
+    { label: "You Receive", value: toCurrency(sale.proceeds - withheld), highlight: true }
   ];
 }
 
@@ -734,7 +737,9 @@ export function bindExchangeForms() {
       const proceeds = traded.proceeds != null ? traded.proceeds : qty * price;
       const taxAmt = traded.taxAmount || 0;
       if (npcStatus) {
-        const taxNote = taxAmt > 0 ? ` (${toCurrency(taxAmt)} tax)` : "";
+        // ISP-232 (AB#927): everything the sale took, not only the tax: the tariff and any duty withheld too
+        const taken = [taxAmt > 0 ? `${toCurrency(taxAmt)} tax` : "", traded.tariffAmount > 0 ? `${toCurrency(traded.tariffAmount)} tariff` : "", traded.dutyWithheld > 0 ? `${toCurrency(traded.dutyWithheld)} withheld for ITC duty` : ""].filter(Boolean);
+        const taxNote = taken.length ? ` (${taken.join(", ")})` : "";
         npcStatus.textContent = `Sold ${qty.toLocaleString()} × ${escapeHtml(item)} at ${toCurrency(price)}/unit — ${toCurrency(proceeds)} credited${taxNote}.`;
       }
       pushFeedback(`Sold ${item} × ${qty} @ ${toCurrency(price)}/unit to ${escapeHtml(button.closest("tr")?.children[1]?.textContent || "NPC")}. ${toCurrency(proceeds)} credited.`, "success");
