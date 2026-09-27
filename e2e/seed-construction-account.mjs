@@ -18,7 +18,7 @@
 // `ledger` (Bug AB#2315) is level5 plus a third yard built through construct() on the Mars lease: the first yard past the
 // starting kit, so the first to pay price growth since ISP-309 (AB#2305), for e2e/ledger-categories.spec.js.
 //
-// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked|ledger|level10|level20|military|shipyard|shipyard-built|troops|unpaid>
+// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked|ledger|level10|level20|military|shipyard|shipyard-built|troops|unpaid|fleet-tab>
 //
 // `level10` (ISP-108, AB#800) is level5 raised to Level 10, the old top, with 150,000 Silicates mined: the Overview shows
 // Level 11's requirements, which did not exist before. `level20` (ISP-109, AB#801) is the same at Level 20, the next old top,
@@ -38,7 +38,7 @@ verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who c
 store.mutateAccountState(account.id, (state) => {
   const corp = state.corp;
   corp.currentStationId = "earth-station-prime";
-  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked", "ledger", "level10", "level20", "military", "shipyard", "shipyard-built", "troops", "unpaid"].includes(kind)) return;
+  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked", "ledger", "level10", "level20", "military", "shipyard", "shipyard-built", "troops", "unpaid", "fleet-tab"].includes(kind)) return;
   const lease = (id, body) => ({ id, body, leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: [], issuedAt: Date.now() });
   corp.level = 5;
   corp.buildingSlots = 6;
@@ -61,6 +61,24 @@ store.mutateAccountState(account.id, (state) => {
     corp.military = { ...corp.military, units: { lf: 14, ds: 2, se: 0, at: 6, dt: 10 } };
     const { RESEARCH_LIBRARY } = store;
     corp.unlockedTech = Object.values(RESEARCH_LIBRARY).filter((t) => t.status !== "planned").map((t) => t.id);
+  }
+  if (kind === "fleet-tab") { // ISP-175 (AB#869): two fleets, one in transit, and something in each production queue
+    const now = Date.now();
+    corp.level = 10;
+    corp.unlockedTech = [...new Set([...corp.unlockedTech, "tt-fleet-coordination", "tt-capital-hulls"])];
+    const built = construct(corp, playerBuilding("orbital-shipyard"), null);
+    if (built.outcome !== "ok") throw new Error(`seeding a shipyard: ${built.outcome}`);
+    corp.military = {
+      units: { lf: 20, ds: 4, se: 0, at: 10, dt: 6 }, readiness: 85, garrisons: { "earth-station-prime": 6 },
+      fleets: [
+        { id: "flt-e2e-aegis", name: "Aegis", units: { lf: 8, ds: 2, se: 0, at: 4 }, stationId: "earth-station-prime", transit: null, formedAt: now },
+        { id: "flt-e2e-talon", name: "Talon", units: { lf: 6, ds: 0, se: 0, at: 0 }, stationId: null, formedAt: now,
+          transit: { fromStationId: "earth-station-prime", toStationId: "mars-orbital-dock", toSystemId: "sol", departedAt: now, arrivesAt: now + 45 * 60_000 } }
+      ]
+    };
+    corp.shipyard = { queue: [{ id: "ship-e2e-1", unitId: "lf", quantity: 3, stationId: "earth-station-prime", credits: 3450, goods: { "Carbon Fibre Sheets": 30 }, queuedAt: now, startsAt: now, completesAt: now + 90 * 60_000 }] };
+    corp.training = { queue: [{ id: "troop-e2e-1", unitId: "at", quantity: 2, stationId: "earth-station-prime", credits: 1400, goods: { "Battery Cells": 4 }, queuedAt: now, startsAt: now, completesAt: now + 40 * 60_000 }] };
+    corp.inventory = { ...corp.inventory, "earth-station-prime": { ...(corp.inventory?.["earth-station-prime"] || {}), "Carbon Fibre Sheets": 60, "Battery Cells": 10 } };
   }
   if (kind === "unpaid") { // ISP-173 (AB#867): a fleet whose upkeep has gone unpaid for three days
     corp.military = { ...corp.military, units: { ...(corp.military?.units || {}), lf: 14, ds: 2, dt: 10 }, readiness: 70, upkeep: { paidThrough: Date.now(), remainder: 0, short: true } };

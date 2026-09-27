@@ -13,35 +13,32 @@
 
 import { applyCredits } from "./finances.js";
 import { countBuilt, playerBuilding } from "./playerBuildings.js";
-import { READINESS_FLOOR, READINESS_FULL, UNITS, UNIT_IDS, ensureCorpMilitary } from "./game/units.js";
+import { READINESS_FLOOR, READINESS_FULL, UNITS, ensureCorpMilitary } from "./game/units.js";
+import { K_PER_SHIPYARD_TIER, shipyardTierOf, upkeepBreakdown } from "../public/scripts/militaryUpkeep.js";
 import { accountsStore, scheduleAccountsSave } from "./game/store.js";
 import { pushSystemNotification } from "./game/progression.js";
 
-export const K_PER_SHIPYARD_TIER = 40;
+export { K_PER_SHIPYARD_TIER }; // AB#869: the rule is public/scripts/militaryUpkeep.js, shared with the Fleet tab
 export const READINESS_LOSS_PER_DAY = 10;
 export const READINESS_GAIN_PER_DAY = 20;
 const DAY_MS = 86_400_000;
 const CARRY_TOLERANCE = 1e-6;
 const SHIPYARD = playerBuilding("orbital-shipyard");
+const tierOf = (corp) => (countBuilt(SHIPYARD, corp) > 0 ? shipyardTierOf(corp.buildings) : 0);
 
 /** The corporation's total supply: every unit it holds, in fleets and garrisons, weighted by the catalog's supply. */
 export function totalSupply(corp) {
-  return UNIT_IDS.reduce((sum, id) => sum + (Number(corp?.military?.units?.[id]) || 0) * UNITS[id].supply, 0);
+  return upkeepBreakdown(UNITS, corp?.military?.units, tierOf(corp)).supply;
 }
 
 /** Its logistics capacity K: 40 per tier of its Orbital Shipyard, and 40 without one. */
 export function logisticsCapacity(corp) {
-  const yard = (corp?.buildings || []).find((b) => b?.name === SHIPYARD.name);
-  const tier = countBuilt(SHIPYARD, corp) > 0 ? Math.max(1, Number(yard?.tier) || 1) : 1;
-  return K_PER_SHIPYARD_TIER * tier;
+  return upkeepBreakdown(UNITS, {}, tierOf(corp)).capacity;
 }
 
-/** What the corporation's units cost a day, on the design's curve. */
+/** What the corporation's units cost a day, on the design's curve (public/scripts/militaryUpkeep.js). */
 export function dailyUpkeep(corp) {
-  const base = UNIT_IDS.reduce((sum, id) => sum + (Number(corp?.military?.units?.[id]) || 0) * UNITS[id].upkeepPerDay, 0);
-  if (base <= 0) return 0;
-  const ratio = totalSupply(corp) / logisticsCapacity(corp);
-  return base * (1 + ratio * ratio);
+  return upkeepBreakdown(UNITS, corp?.military?.units, tierOf(corp)).total;
 }
 
 /**

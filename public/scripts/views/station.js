@@ -19,8 +19,6 @@ import { appState, techTree } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
 import { paintStationArt, stationArtHtml } from "../stationArt.js"; // ISP-78 (AB#767)
 import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
-import { renderShipyardPanel } from "../shipyardPanel.js"; // ISP-171 (AB#865)
-import { renderTrainingPanel } from "../trainingPanel.js"; // ISP-172 (AB#866)
 import { nextYardPriceFor } from "../yardPrice.js"; // ISP-303 (AB#2286)
 import { facilityUpgradeHtml, facilityUpgradeView, upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795), ISP-102 (AB#794)
 import { renderMissions } from "./assignments.js";
@@ -1196,17 +1194,7 @@ export function renderStation(data) {
     economy: appState.economy
   });
 
-  // ── The Orbital Shipyard's production (ISP-171, AB#865): shown once the corporation has one ──
-  renderShipyardPanel(document, appState.units || [], data.corp || {}, {
-    queue: (unitId, quantity) => queueShips(unitId, quantity),
-    cancel: (jobId) => cancelShipJob(jobId)
-  }, { fleet: data.corp?.fleet || null, researchName: (id) => techTree.find((t) => t.id === id)?.name || id });
-
-  // ── Troop training at Headquarters (ISP-172, AB#866): every corporation has one ──
-  renderTrainingPanel(document, appState.units || [], data.corp || {}, {
-    train: (unitId, quantity) => trainTroops(unitId, quantity),
-    cancel: (jobId) => cancelTroopJob(jobId)
-  }, { researchName: (id) => techTree.find((t) => t.id === id)?.name || id, stationName: (id) => (appState.stationRegistry || []).find((s) => s.id === id)?.name || id });
+  // ISP-175 (AB#869): the shipyard and troop training moved to the Fleet tab (views/fleet.js)
 
   // ── Licensed Corporate Holdings (Extractor Yards — filtered to current station body) ──
   const stationBody = station.body;
@@ -1406,48 +1394,4 @@ export function extractorEfficiency(corp, ex) {
 /** An extractor's place among the corporation's yards, in build order: 0 is its first, -1 when it is not found. */
 export function yardIndexOf(corp, extractorId) {
   return (corp?.mining?.silicateExtractors || []).findIndex((e) => e.id === extractorId);
-}
-
-
-
-// ISP-171 (AB#865): the shipyard's two actions. The server takes a ship and a quantity and nothing else.
-async function queueShips(unitId, quantity) {
-  const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/shipyard/queue`, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ unitId, quantity })
-  }));
-  appState.data = deepClone(account.state);
-  updateAllViews();
-  pushFeedback(account.receipt?.title || "Ships queued.", "ok");
-  showActionReceipt(account, { returnFocusTo: firstPresent("#station-shipyard [data-ship-queue]", ".nav-tab[data-tab='station']") });
-}
-
-async function cancelShipJob(jobId) {
-  const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/shipyard/cancel`, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId })
-  }));
-  appState.data = deepClone(account.state);
-  updateAllViews();
-  pushFeedback(account.receipt?.title || "Production cancelled.", "ok");
-  showActionReceipt(account, { returnFocusTo: firstPresent("#station-shipyard [data-ship-queue]", ".nav-tab[data-tab='station']") });
-}
-
-// ISP-172 (AB#866): troop training's two actions. The server takes the troops and a number of squads, nothing else.
-async function trainTroops(unitId, quantity) {
-  const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/training/queue`, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ unitId, quantity })
-  }));
-  appState.data = deepClone(account.state);
-  updateAllViews();
-  pushFeedback(account.receipt?.title || "Training started.", "ok");
-  showActionReceipt(account, { returnFocusTo: firstPresent("#station-training [data-troop-train]", ".nav-tab[data-tab='station']") });
-}
-
-async function cancelTroopJob(jobId) {
-  const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/training/cancel`, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId })
-  }));
-  appState.data = deepClone(account.state);
-  updateAllViews();
-  pushFeedback(account.receipt?.title || "Training cancelled.", "ok");
-  showActionReceipt(account, { returnFocusTo: firstPresent("#station-training [data-troop-train]", ".nav-tab[data-tab='station']") });
 }

@@ -13,6 +13,8 @@ export const shipsOf = (units = []) => units.filter((u) => u.builtAt === "orbita
 
 /** How long, in words: "30 min", "2 h 30 min". */
 export function durationText(ms) {
+  // ISP-175 (AB#869): under a minute says its seconds (a dev server's 5-second trips), never "0 min"
+  if (ms > 0 && ms < 60_000) return `${Math.ceil(ms / 1000)} s`;
   const minutes = Math.max(0, Math.round(ms / 60_000));
   const h = Math.floor(minutes / 60), m = minutes % 60;
   return h ? `${h} h${m ? ` ${m} min` : ""}` : `${m} min`;

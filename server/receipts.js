@@ -196,7 +196,7 @@ export function buildOrbitalShipyardReceipt({ cost, assetValue, slotsUsed, slots
     grants: [
       { label: "Added to assets", value: formatCredits(assetValue) },
       { label: "Building slots used", value: `${slotsUsed} / ${slotsTotal}` },
-      { label: "Now possible", value: "Queue ships in the Orbital Shipyard section of the Station page" }
+      { label: "Now possible", value: "Queue ships on the Fleet tab" }
     ],
     next: "Light Fighters, Destroyers and Siege Engines are built here, at the catalog's cost and time, and join your fleet."
   });
@@ -278,7 +278,7 @@ export function shipCancelReceipt({ job, unitName, refund }) {
       { label: "Goods returned", value: goods },
       { label: "Share returned", value: refund.share === 1 ? "all of it: the job had not started" : "half: the job was under way" }
     ],
-    next: "Queue ships again from the Orbital Shipyard when you are ready."
+    next: "Queue ships again on the Fleet tab when you are ready."
   });
 }
 
@@ -311,7 +311,7 @@ export function troopCancelReceipt({ what, refund }) {
       { label: "Goods returned", value: goods },
       { label: "Share returned", value: refund.share === 1 ? "all of it: training had not started" : "half: training was under way" }
     ],
-    next: "Train troops again from Headquarters when you are ready."
+    next: "Train troops again on the Fleet tab when you are ready."
   });
 }
 

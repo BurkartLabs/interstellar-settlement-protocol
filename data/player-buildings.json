@@ -76,7 +76,7 @@
       "researchGates": ["tt-fleet-coordination"],
       "minLevel": 10,
       "cap": { "perCorporation": 1 },
-      "effect": "Where your corporation's ships are built: Light Fighters, Destroyers and Siege Engines, each at its catalog cost and build time. They join your fleet and count against its Fleet Cap. Queue them in the Orbital Shipyard section below.",
+      "effect": "Where your corporation's ships are built: Light Fighters, Destroyers and Siege Engines, each at its catalog cost and build time. They join your fleet and count against its Fleet Cap. Queue them on the Fleet tab.",
       "since": "0.10",
       "tiers": "none"
     }

@@ -89,7 +89,7 @@ describe("the Orbital Shipyard (AB#864)", () => {
     expect(after.buildings).toBe(before.buildings + 1);
     expect(after.assets).toBe(before.assets + ECONOMY.buildings.orbitalShipyardAssetValue);
     expect(c.corp().buildings.at(-1)).toMatchObject({ name: "Orbital Shipyard", status: "Operational" });
-    expect(res.body.receipt.grants).toContainEqual({ label: "Now possible", value: "Queue ships in the Orbital Shipyard section of the Station page" });
+    expect(res.body.receipt.grants).toContainEqual({ label: "Now possible", value: "Queue ships on the Fleet tab" });
     const again = await build(c);
     expect(again.res.status).toBe(400);
     expect(again.res.body.error).toBe("You already operate the maximum of 1 of the Orbital Shipyard.");

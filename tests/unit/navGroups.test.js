@@ -15,7 +15,7 @@ describe("the six navigation groups (ISP-75)", () => {
   });
 
   it("hold every panel on the page exactly once, and nothing else", () => {
-    expect(PANELS.length).toBe(16); // ISP-201 (AB#895) added the Conglomerate tab
+    expect(PANELS.length).toBe(17); // ISP-201 (AB#895) added the Conglomerate tab; ISP-175 (AB#869) the Fleet tab
     const grouped = NAV_GROUPS.flatMap((g) => g.tabs);
     expect([...grouped].sort()).toEqual([...PANELS].sort());
     expect(new Set(grouped).size).toBe(grouped.length);
@@ -44,6 +44,7 @@ describe("the six navigation groups (ISP-75)", () => {
   it("groupOf names the group a tab is in, and nothing for a tab that does not exist", () => {
     expect(groupOf("inbox")).toBe("company");
     expect(groupOf("station")).toBe("station");
+    expect(groupOf("fleet")).toBe("station"); // ISP-175 (AB#869)
     expect(groupOf("rnd")).toBe("industry");
     expect(groupOf("market")).toBe("market");
     expect(groupOf("forums")).toBe("comms");
