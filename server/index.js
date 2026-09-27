@@ -32,6 +32,8 @@ import { registerMiningRoutes } from "./routes/mining.js";
 import { registerAsteroidRoutes } from "./routes/asteroids.js";
 import { registerShipyardRoutes } from "./routes/shipyard.js"; // ISP-171 (AB#865)
 import { SHIP_IDS } from "./shipyard.js";
+import { registerTrainingRoutes } from "./routes/training.js"; // ISP-172 (AB#866)
+import { TROOP_IDS } from "./training.js";
 import { registerRefiningRoutes } from "./routes/refining.js";
 import { registerConstructionRoutes } from "./routes/construction.js"; // ISP-94 (AB#784)
 import { registerUpgradeRoutes } from "./routes/upgrades.js"; // ISP-101 (AB#793)
@@ -122,6 +124,7 @@ const INPUT_CHECKS = {
     refineryChains: new Set(Object.keys(REFINERY_CHAINS)),
     playerBuildings: new Set(PLAYER_BUILDING_CATALOGUE.map((b) => b.id)), // ISP-94: POST /gameplay/build
     ships: new Set(SHIP_IDS), // ISP-171 (AB#865): POST /gameplay/shipyard/queue
+    troops: new Set(TROOP_IDS), // ISP-172 (AB#866): POST /gameplay/training/queue
     // AB#732: what can be listed or charted (every raw resource and refinery output), standing orders, forum categories.
     // ISP-130 (AB#824): the price history's set, which the server holds to data/items.json at load: one list, not two.
     tradeItems: PRICE_HISTORY_ITEMS,
@@ -160,6 +163,7 @@ registerMiningRoutes(app);
 
 registerAsteroidRoutes(app);
 registerShipyardRoutes(app);
+registerTrainingRoutes(app);
 
 registerRefiningRoutes(app);
 

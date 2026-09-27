@@ -20,6 +20,7 @@ import { renderStationFacilities } from "../stationFacilities.js";
 import { paintStationArt, stationArtHtml } from "../stationArt.js"; // ISP-78 (AB#767)
 import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
 import { renderShipyardPanel } from "../shipyardPanel.js"; // ISP-171 (AB#865)
+import { renderTrainingPanel } from "../trainingPanel.js"; // ISP-172 (AB#866)
 import { nextYardPriceFor } from "../yardPrice.js"; // ISP-303 (AB#2286)
 import { facilityUpgradeHtml, facilityUpgradeView, upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795), ISP-102 (AB#794)
 import { renderMissions } from "./assignments.js";
@@ -1191,6 +1192,12 @@ export function renderStation(data) {
     cancel: (jobId) => cancelShipJob(jobId)
   }, { fleet: data.corp?.fleet || null, researchName: (id) => techTree.find((t) => t.id === id)?.name || id });
 
+  // ── Troop training at Headquarters (ISP-172, AB#866): every corporation has one ──
+  renderTrainingPanel(document, appState.units || [], data.corp || {}, {
+    train: (unitId, quantity) => trainTroops(unitId, quantity),
+    cancel: (jobId) => cancelTroopJob(jobId)
+  }, { researchName: (id) => techTree.find((t) => t.id === id)?.name || id, stationName: (id) => (appState.stationRegistry || []).find((s) => s.id === id)?.name || id });
+
   // ── Licensed Corporate Holdings (Extractor Yards — filtered to current station body) ──
   const stationBody = station.body;
   const leases = data.corp?.miningLeases || [];
@@ -1412,4 +1419,25 @@ async function cancelShipJob(jobId) {
   updateAllViews();
   pushFeedback(account.receipt?.title || "Production cancelled.", "ok");
   showActionReceipt(account, { returnFocusTo: firstPresent("#station-shipyard [data-ship-queue]", ".nav-tab[data-tab='station']") });
+}
+
+// ISP-172 (AB#866): troop training's two actions. The server takes the troops and a number of squads, nothing else.
+async function trainTroops(unitId, quantity) {
+  const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/training/queue`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ unitId, quantity })
+  }));
+  appState.data = deepClone(account.state);
+  updateAllViews();
+  pushFeedback(account.receipt?.title || "Training started.", "ok");
+  showActionReceipt(account, { returnFocusTo: firstPresent("#station-training [data-troop-train]", ".nav-tab[data-tab='station']") });
+}
+
+async function cancelTroopJob(jobId) {
+  const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/training/cancel`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId })
+  }));
+  appState.data = deepClone(account.state);
+  updateAllViews();
+  pushFeedback(account.receipt?.title || "Training cancelled.", "ok");
+  showActionReceipt(account, { returnFocusTo: firstPresent("#station-training [data-troop-train]", ".nav-tab[data-tab='station']") });
 }

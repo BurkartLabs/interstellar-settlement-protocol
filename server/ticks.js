@@ -16,6 +16,7 @@ import { beltRespawnTick, ensureBeltState, isBeltPresent } from "./game/belts.js
 import { placeNpcAsks } from "./game/npcAsks.js"; // ISP-122 (AB#815)
 import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
 import { completeShipJobs } from "./shipyard.js"; // ISP-171 (AB#865)
+import { completeTroopJobs } from "./training.js"; // ISP-172 (AB#866)
 import { UNITS } from "./game/units.js";
 import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
 import { expeditionNotificationBody, expeditionPlaces, minutesEarly } from "./expeditionText.js"; // AB#1295, AB#2330
@@ -181,10 +182,13 @@ function fabricationTick() {
   for (const accountId of getAllAccountIds()) {
     let completed = false;
     const shipsDone = [];
+    const troopsDone = [];
     mutateAccountState(accountId, (state) => {
       // ISP-171 (AB#865): the shipyard's jobs complete on the same tick; delivered once, then gone from the queue
       const ships = completeShipJobs(state.corp, now);
       if (ships.length) shipsDone.push(...ships);
+      const troops = completeTroopJobs(state.corp, now); // ISP-172 (AB#866): the same tick, once
+      if (troops.length) troopsDone.push(...troops);
       if (!state?.corp?.asteroidMining?.fabricationQueue?.length) return;
       const am = state.corp.asteroidMining;
       const done = am.fabricationQueue.filter(j => now >= j.completesAt);
@@ -208,6 +212,16 @@ function fabricationTick() {
       });
       if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
       emitToAccount(accountId, "fabrication:completed", { accountId });
+    }
+    for (const job of troopsDone) {
+      const unit = UNITS[job.unitId];
+      const garrisoned = job.unitId === "dt" ? " and joined the station garrison" : ""; // AB#1336: no id in the words
+      const notification = addAccountNotification(accountId, {
+        type: "infrastructure",
+        title: "Troops Trained",
+        body: `${job.quantity} squad${job.quantity === 1 ? "" : "s"} of ${unit.name} finished training${garrisoned}.`
+      });
+      if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
     }
     for (const job of shipsDone) {
       const notification = addAccountNotification(accountId, {

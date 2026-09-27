@@ -92,6 +92,8 @@ export const UNITS = Object.freeze(Object.fromEntries(UNITS_DATA.units.map((u) =
 export const UNIT_IDS = Object.freeze(UNITS_DATA.units.map((u) => u.id));
 /** The units that are ships, built at the Orbital Shipyard: what counts against the Fleet Cap (ISP-171, AB#865). */
 export const SHIP_UNIT_IDS = Object.freeze(UNIT_IDS.filter((id) => UNITS[id].builtAt === "orbital-shipyard"));
+/** The units trained at Headquarters: the troops (ISP-172, AB#866). */
+export const TROOP_UNIT_IDS = Object.freeze(UNIT_IDS.filter((id) => UNITS[id].builtAt === "headquarters"));
 
 /** The legacy corp.military counters (before v0.10) and the unit each one is. */
 export const LEGACY_MILITARY_FIELDS = Object.freeze({ lightFighters: "lf", destroyers: "ds", siegeEngines: "se" });
@@ -108,7 +110,8 @@ export function militaryPower(units = {}) {
 }
 
 /**
- * The shape corp.military has since AB#861: { units: { lf, ds, se, at, dt }, modifiers, power }. A save from before
+ * The shape corp.military has since AB#861: { units: { lf, ds, se, at, dt }, modifiers, power, garrisons } (garrisons since
+ * ISP-172: defense troops by station). A save from before
  * keeps its fighters, destroyers and siege engines as units; its attackValue and defenseValue were figures typed into
  * the seed, not derived from anything, so they go, and power is worked out from the units every time. Returns true
  * when it changed something; running it on its own output changes nothing.
@@ -123,7 +126,10 @@ export function ensureCorpMilitary(corp) {
   }
   const clean = Object.fromEntries(UNIT_IDS.map((id) => [id, Math.max(0, Math.floor(Number(units[id]) || 0))]));
   const modifiers = { rdBonusPct: 0, ceoLeadershipPct: 0, ...(m.modifiers || {}) };
-  corp.military = { units: clean, modifiers, power: militaryPower(clean) };
+  // ISP-172 (AB#866): where each station's defense troops stand, by station id; whole numbers above 0 only
+  const garrisons = Object.fromEntries(Object.entries(m.garrisons && typeof m.garrisons === "object" ? m.garrisons : {})
+    .map(([station, n]) => [station, Math.floor(Number(n) || 0)]).filter(([, n]) => n > 0));
+  corp.military = { units: clean, modifiers, power: militaryPower(clean), garrisons };
   return JSON.stringify(corp.military) !== before;
 }
 

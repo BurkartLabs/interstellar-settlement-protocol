@@ -25,6 +25,9 @@ const RECEIPTS = {
   // ISP-171 (AB#865): the Orbital Shipyard's production
   "/api/accounts/:accountId/gameplay/shipyard/queue": { builder: "shipQueueReceipt", client: ["public/scripts/views/station.js", "/gameplay/shipyard/queue`"] },
   "/api/accounts/:accountId/gameplay/shipyard/cancel": { builder: "shipCancelReceipt", client: ["public/scripts/views/station.js", "/gameplay/shipyard/cancel`"] },
+  // ISP-172 (AB#866): troop training at Headquarters
+  "/api/accounts/:accountId/gameplay/training/queue": { builder: "troopTrainingReceipt", client: ["public/scripts/views/station.js", "/gameplay/training/queue`"] },
+  "/api/accounts/:accountId/gameplay/training/cancel": { builder: "troopCancelReceipt", client: ["public/scripts/views/station.js", "/gameplay/training/cancel`"] },
   "/api/accounts/:accountId/gameplay/build-mining-probe": { builder: "probeFabricationReceipt", client: ["public/scripts/views/station.js", "/gameplay/build-mining-probe`"] },
   "/api/accounts/:accountId/gameplay/scout-belt": { builder: "scoutBeltReceipt", client: ["public/scripts/views/starmap.js", "/gameplay/scout-belt`"] },
   "/api/accounts/:accountId/gameplay/launch-expedition": { builder: "launchExpeditionReceipt", client: ["public/scripts/views/starmap.js", "/gameplay/launch-expedition`"] },

@@ -40,6 +40,8 @@ const BASELINE = {
   "POST /queue-rnd": { body: { techId: "tt-basic-extraction" } },
   "POST /shipyard/queue": { body: { unitId: "lf", quantity: 1 } }, // ISP-171 (AB#865)
   "POST /shipyard/cancel": { body: { jobId: "ship-does-not-exist" } },
+  "POST /training/queue": { body: { unitId: "dt", quantity: 1 } }, // ISP-172 (AB#866)
+  "POST /training/cancel": { body: { jobId: "troop-does-not-exist" } },
   "POST /queue-ceo": { body: { programId: "ceo-negotiation-fundamentals" } }
 };
 

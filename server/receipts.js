@@ -282,6 +282,39 @@ export function shipCancelReceipt({ job, unitName, refund }) {
   });
 }
 
+/** ISP-172 (AB#866): troops training at Headquarters, at the catalog's cost and time. */
+export function troopTrainingReceipt({ job, what, garrison }) {
+  const goods = Object.entries(job.goods).map(([item, qty]) => `${qty.toLocaleString("en-US")} ${item}`).join(", ");
+  return receipt("training-queue", {
+    title: "Troop Training Started",
+    summary: `${what}, at your Headquarters.`,
+    costCredits: job.credits,
+    grants: [
+      { label: "Goods used", value: goods },
+      { label: "Starts", value: formatUtc(job.startsAt) },
+      { label: "Ready", value: formatUtc(job.completesAt) },
+      { label: garrison ? "Garrison" : "Stationed", value: garrison ? `${garrison}, where you queued them` : "with your fleet" }
+    ],
+    next: "They are yours when training completes. No employees are taken: payroll and your leases' staffing are unchanged."
+  });
+}
+
+/** ISP-172 (AB#866): a training job cancelled, and what came back. */
+export function troopCancelReceipt({ what, refund }) {
+  const goods = Object.entries(refund.goods).filter(([, qty]) => qty > 0).map(([item, qty]) => `${qty.toLocaleString("en-US")} ${item}`).join(", ") || "none";
+  return receipt("training-cancel", {
+    title: "Troop Training Cancelled",
+    summary: `${what}, sent home.`,
+    costCredits: 0,
+    grants: [
+      { label: "Credits returned", value: formatCredits(refund.credits) },
+      { label: "Goods returned", value: goods },
+      { label: "Share returned", value: refund.share === 1 ? "all of it: training had not started" : "half: training was under way" }
+    ],
+    next: "Train troops again from Headquarters when you are ready."
+  });
+}
+
 export function probeFabricationReceipt({ cost, completesAt, vessels, cap }) {
   return receipt("build-mining-probe", {
     title: "Probe Fabrication Started",
