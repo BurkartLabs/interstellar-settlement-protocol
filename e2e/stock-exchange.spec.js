@@ -73,6 +73,14 @@ const tinyText = (page) => page.evaluate(() => {
   }
   return [...new Set(out)];
 });
+/** The whole panel in one picture: a viewport tall enough to hold it, so the fixed header and phone nav sit clear of it. */
+async function panelShot(page, name, [width, height]) {
+  const tall = await page.evaluate(() => Math.ceil(document.querySelector('[data-role="igsx"] section').getBoundingClientRect().height) + 400);
+  await page.setViewportSize({ width, height: Math.max(height, tall) });
+  await showPanel(page);
+  await page.locator('[data-role="igsx"] section').screenshot({ path: path.join(SHOT_DIR, `${name}-panel-${width}x${height}.png`), animations: "disabled" });
+  await page.setViewportSize({ width, height });
+}
 const sideways = (page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 const checkPhone = async (page, width) => {
   expect(await sideways(page), "sideways scroll").toBe(0);
@@ -120,7 +128,7 @@ for (const size of SIZES) {
     await expect(page.locator('[data-role="igsx-total"]')).toContainText("Dividends received");
     await showPanel(page);
     await page.screenshot({ path: path.join(SHOT_DIR, `portfolio-${width}x${height}.png`), animations: "disabled" });
-    await page.locator('[data-role="igsx"] section').screenshot({ path: path.join(SHOT_DIR, `portfolio-panel-${width}x${height}.png`), animations: "disabled" }); // the whole panel
+    await panelShot(page, "portfolio", size);
     await checkPhone(page, width);
 
     // the exit to the market maker, at the server's price
@@ -149,7 +157,7 @@ for (const size of SIZES) {
     await expect(page.locator('[data-role="igsx-payout"]')).toContainText("0–80%, in steps of 5");
     await showPanel(page);
     await page.screenshot({ path: path.join(SHOT_DIR, `issuer-${width}x${height}.png`), animations: "disabled" });
-    await page.locator('[data-role="igsx"] section').screenshot({ path: path.join(SHOT_DIR, `issuer-panel-${width}x${height}.png`), animations: "disabled" }); // the whole panel
+    await panelShot(page, "issuer", size);
     await checkPhone(page, width);
   });
   });
