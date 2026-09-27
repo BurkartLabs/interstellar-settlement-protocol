@@ -177,10 +177,10 @@
       "owner": "npc",
       "category": "finance",
       "description": "A government-backed financial institution that issues corporate bonds, expansion loans, and ISA-guaranteed financing instruments for corporations pursuing large-scale infrastructure and colonization projects.",
-      "flavor": "The Bank does not fund speculation. It funds expansion with a track record behind it. Loan terms are long, rates are fair, and defaults are handled through the Arbitration Council rather than SolSec — unless you are significantly past due.",
+      "flavor": "The Bank does not fund speculation. It funds expansion with a track record behind it. Its terms are plain, its rates follow your record, and a corporation that falls behind answers to the Arbitration Council, not SolSec: it loses its credit standing, never its stations.",
       "imageFile": "buildings/development-bank.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:deep-space-development-bank",
+      "available": true
     },
     {
       "id": "isa-enforcement-division",

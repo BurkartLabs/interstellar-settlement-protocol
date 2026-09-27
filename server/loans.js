@@ -162,7 +162,31 @@ export function acceptLoan(accountId, { quoteId } = {}, now = Date.now()) {
     state.corp.loans.push(loan);
   }, { sanitize: false });
   quote.state = "accepted";
-  return { ok: true, loan };
+  return { ok: true, loan, fee: fee.ok ? t.originationFee : 0 };
+}
+
+/**
+ * ISP-151 (AB#845): what the Development Bank offers this corporation now: its grade, and for each product the most it
+ * would lend (NR: the one product NR may use, up to its cap; D: nothing). Limits only: every rate is quoted.
+ */
+export function loanOffers(accountId, now = Date.now()) {
+  const corp = getAccountById(accountId)?.state?.corp;
+  if (!corp) return null;
+  const statements = statementsOf(accountId, now);
+  const rating = computeCreditRating(corp, now, statements);
+  const window = [...statements].sort((a, b) => a.dayStart - b.dayStart).slice(-30);
+  const income30 = window.reduce((s, st) => s + (Number(st.pnl?.totalIncome) || 0), 0);
+  const products = LOAN_CATALOG.products.map((p) => {
+    let maxPrincipal = 0, why = null;
+    if (rating.grade === "D") why = "No new credit at grade D.";
+    else if (rating.grade === "NR") {
+      if (p.id === LOAN_CATALOG.notRated.productId) maxPrincipal = LOAN_CATALOG.notRated.maxPrincipal;
+      else why = `Unrated corporations borrow on ${LOAN_CATALOG.notRated.productId} only.`;
+    } else maxPrincipal = Math.floor(p.maxPrincipalMultiple * income30);
+    if (!why && maxPrincipal < LOAN_CATALOG.minPrincipal) { why = "Too little income over the last 30 days to borrow on this product."; maxPrincipal = 0; }
+    return { ...p, maxPrincipal, available: !why, ...(why ? { why } : {}) };
+  });
+  return { grade: rating.grade, minPrincipal: LOAN_CATALOG.minPrincipal, originationPct: LOAN_CATALOG.originationPct, quoteMinutes: LOAN_CATALOG.quoteMinutes, products };
 }
 
 /** For tests: forget every quote. */
