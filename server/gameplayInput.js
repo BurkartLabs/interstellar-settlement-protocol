@@ -179,6 +179,7 @@ export const ACCOUNT_INPUT = {
   "GET /tariffs": NOTHING, // ISP-231 (AB#926): the caller's own tariffs
   "GET /standing": NOTHING, // ISP-238 (AB#933): the caller's own faction standing
   // ISP-239 (AB#934): open a campaign, and pledge to one; lobbyable, concedable, in bounds and held are the route's (400/403/409)
+  "GET /lobbying": NOTHING, // ISP-240 (AB#935): the caller's lobbying office
   "POST /lobbying": { body: { parameter: text(40, "a lobbyable parameter"), systemId: ref("a system"), direction: word(["raise", "lower"], "raise or lower") } },
   "POST /lobbying/:campaignId/pledges": { params: { campaignId: ref("a campaign") }, body: { side: word(["for", "against"], "for or against"), credits: int(0, 1_000_000_000, "whole credits", { optional: true }), standing: decimal(0, 100, 0.01, "standing points", { optional: true }) } },
   "GET /itc/:item": { params: { item: ref("an item") } }, // ISP-233 (AB#928): the ITC's watch as it applies to the caller

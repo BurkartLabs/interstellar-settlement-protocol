@@ -4386,6 +4386,31 @@ img.station__body {
 .patent-terms-list dt { color: var(--muted); }
 .patent-terms-list dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .patent-total { margin: 0; font-variant-numeric: tabular-nums; }
+/* ISP-240 (AB#935): the lobbying office at the Earth Assembly and the ITC */
+.lobby-section { display: flex; flex-direction: column; gap: var(--space-3); }
+.lobby-standing { margin: 0; font-size: var(--font-size-4, 1.5rem); font-variant-numeric: tabular-nums; }
+.lobby-values td { vertical-align: top; font-variant-numeric: tabular-nums; }
+.lobby-values .lobby-moved { color: var(--accent); font-weight: 700; }
+.lobby-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--space-3); align-items: end; }
+.lobby-form .lobby-preview, .lobby-form .ui-panel__meta, .lobby-form .lobby-status { grid-column: 1 / -1; margin: 0; }
+.lobby-form button { justify-self: start; }
+.lobby-preview { padding: var(--space-2) var(--space-3); border-left: 3px solid var(--accent); background: var(--surface-2); line-height: var(--line-height-body); }
+.lobby-status { color: var(--warn); }
+.lobby-group { margin: var(--space-2) 0 0; }
+.lobby-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.lobby-campaign { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.lobby-campaign p { margin: 0; overflow-wrap: anywhere; }
+.lobby-sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--space-2); }
+.lobby-side { display: inline-block; min-width: 4.5rem; margin-right: var(--space-2); font-weight: 700; }
+.lobby-side--for { color: var(--success); }
+.lobby-side--against { color: var(--danger); }
+.lobby-pledge { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: flex-end; }
+.lobby-glossary { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); color: var(--muted); }
+.lobby-glossary dt { font-weight: 700; color: var(--text); }
+.lobby-glossary dd { margin: 0; }
+@media (max-width: 560px) { .lobby-glossary { grid-template-columns: minmax(0, 1fr); } .lobby-glossary dd { margin-bottom: var(--space-2); } }
+.lobby-pledge .ui-input { width: 8rem; }
+.lobby-pledge .ui-select { width: auto; }
 .patent-status:empty { display: none; }
 .patent-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
 @media (max-width: 600px) {
