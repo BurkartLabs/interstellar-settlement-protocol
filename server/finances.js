@@ -97,6 +97,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "troop-training-refund", // ISP-172 (AB#866): what cancelling a training job returns
     "conglomerate-dissolution", // ISP-199 (AB#893): a member's share of a dissolved conglomerate's treasury
     "conglomerate-withdrawal", // ISP-204 (AB#898): credits a founder or director took from the treasury
+    "conglomerate-station-refund", // ISP-210 (AB#905): a member's own credits back from a cancelled station project
     "forced-sale" // ISP-286 (AB#993): goods and buildings sold to recover a defaulted player debt
   ]),
   expense: Object.freeze([
@@ -124,6 +125,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "bond-sale-paid", // Bug #2574: a corporation buying another's bonds
     "conglomerate-charter", "conglomerate-deposit", // ISP-197 (AB#891): the charter fee, a sink, and the deposit into the new treasury
     "conglomerate-contribution", // ISP-204 (AB#898): credits a member put into the treasury (the custody fee comes out of it there)
+    "conglomerate-station", // ISP-210 (AB#905): a member's own credits put into its conglomerate's station project
     "ship-production", // ISP-171 (AB#865): ships queued at the Orbital Shipyard
     "troop-training", // ISP-172 (AB#866): troops trained at Headquarters
     "military-upkeep" // ISP-173 (AB#867): what ships and troops cost to keep, on the design's curve

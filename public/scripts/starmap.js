@@ -5,7 +5,7 @@ import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 import { PLANET_IMAGE_PATHS } from "./planetImages.js";
 import { officeLeaseCost } from "./ceoEffects.js"; // Bug #2340: the one office rate (Bug #1032)
-import { isNeutralStation } from "./stationMarkers.js";
+import { isConglomerateStation, isNeutralStation } from "./stationMarkers.js";
 import { concentrationBand, concentrationLegendHtml, concentrationRows, concentrationText, overlayItems, systemConcentration, bodyConcentration } from "./resourceOverlay.js"; // ISP-143 (AB#837)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 
@@ -930,14 +930,16 @@ export function createStarmapController({
     return Math.max(88, Math.ceil(ctx.measureText(label).width + 28));
   }
 
-  function drawStationMarker(x, y, isCurrent) {
+  /** A station's diamond: cyan where you are docked, gold for a neutral station, violet for a conglomerate's (ISP-210). */
+  function drawStationMarker(x, y, isCurrent, owned = false) {
     const size = isCurrent ? 5 : 4;
+    const rgb = isCurrent ? "0, 247, 255" : owned ? "196, 150, 255" : "255, 210, 80";
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(Math.PI / 4);
 
     // Glow
-    const glowColor = isCurrent ? "rgba(0, 247, 255, 0.3)" : "rgba(255, 210, 80, 0.25)";
+    const glowColor = `rgba(${rgb}, ${isCurrent ? 0.3 : 0.25})`;
     const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 3);
     glow.addColorStop(0, glowColor);
     glow.addColorStop(1, "rgba(0,0,0,0)");
@@ -945,11 +947,11 @@ export function createStarmapController({
     ctx.fillRect(-size * 3, -size * 3, size * 6, size * 6);
 
     // Diamond shape
-    ctx.fillStyle = isCurrent ? "rgba(0, 247, 255, 0.95)" : "rgba(255, 210, 80, 0.9)";
+    ctx.fillStyle = `rgba(${rgb}, ${isCurrent ? 0.95 : 0.9})`;
     ctx.fillRect(-size, -size, size * 2, size * 2);
 
     // Outline
-    ctx.strokeStyle = isCurrent ? "rgba(0, 247, 255, 0.5)" : "rgba(255, 210, 80, 0.4)";
+    ctx.strokeStyle = `rgba(${rgb}, ${isCurrent ? 0.5 : 0.4})`;
     ctx.lineWidth = 1;
     ctx.strokeRect(-size - 2, -size - 2, size * 2 + 4, size * 2 + 4);
     ctx.restore();
@@ -1081,22 +1083,22 @@ export function createStarmapController({
     });
 
     // ISP-119 (AB#811): a marker per neutral station, from the catalog field, above the body it orbits (below it at
-    // the canvas top; a moon's station on its planet). Its click target goes before the bodies', after the back
+    // the canvas top; a moon's station on its planet); ISP-210 (AB#905): a conglomerate's station too, in its own colour. Its click target goes before the bodies', after the back
     // button, so a tap on a marker opens the station, not the planet under it.
     const markerTargets = [];
     const perBody = new Map();
-    for (const { station, bodyId } of systemStationMarkers(system, state.stations)) {
+    for (const { station, bodyId, owned } of systemStationMarkers(system, state.stations)) {
       if (!perBody.has(bodyId)) perBody.set(bodyId, []);
-      perBody.get(bodyId).push(station);
+      perBody.get(bodyId).push({ station, owned });
     }
     for (const [bodyId, stations] of perBody) {
       const place = drawnAt.get(bodyId);
       if (!place) continue;
       const above = place.y - place.r - 10 >= 8;
-      stations.forEach((station, i) => {
+      stations.forEach(({ station, owned }, i) => {
         const mx = place.x + (i - (stations.length - 1) / 2) * 13;
         const my = above ? place.y - place.r - 10 : place.y + place.r + 10;
-        drawStationMarker(mx, my, station.id === state.currentStationId);
+        drawStationMarker(mx, my, station.id === state.currentStationId, owned);
         markerTargets.push({ type: "station", stationId: station.id, x: mx, y: my, radius: 8 });
       });
     }
@@ -1148,7 +1150,7 @@ export function createStarmapController({
         const markerX = cx + Math.cos(angle) * (radius * 0.7);
         const markerY = cy + Math.sin(angle) * (radius * 0.7);
         const isCurrent = station.id === state.currentStationId;
-        drawStationMarker(markerX, markerY, isCurrent);
+        drawStationMarker(markerX, markerY, isCurrent, isConglomerateStation(station));
         state.clickTargets.push({
           type: "station",
           stationId: station.id,
@@ -1590,6 +1592,9 @@ export function createStarmapController({
   // frame's cost can be read from DevTools or a script; e2e/procedural-bodies.spec.js holds it under 16 ms throttled.
   function render() {
     const start = performance.now();
+    // ISP-210 (AB#905): the legend explains the violet marker only when there is one to explain
+    const ownedLegend = typeof document !== "undefined" ? document.getElementById("starmap-legend-owned") : null;
+    if (ownedLegend) ownedLegend.hidden = !(state.stations || []).some(isConglomerateStation);
     try {
       renderFrame();
     } finally {
@@ -1771,7 +1776,9 @@ export function createStarmapController({
     const officeRent = `¤${officeLeaseCost(1).toLocaleString("en-US")} a day, for 7 to 28 days`;
     const jurisdiction = isNeutralStation(station)
       ? "Neutral: no corporation owns it; any corporation may dock and rent an office here."
-      : `Jurisdiction: ${station.jurisdiction || "not recorded"}`;
+      : isConglomerateStation(station) // ISP-210 (AB#905): built by a conglomerate; GET /api/stations names it, never its id
+        ? `Owned by ${station.ownerName || "a conglomerate"}, the conglomerate that built it.`
+        : `Jurisdiction: ${station.jurisdiction || "not recorded"}`;
 
     overlay.innerHTML = `
       <article class="modal-card starmap__station" role="dialog" aria-modal="true" aria-labelledby="starmap-station-title">

@@ -4210,6 +4210,7 @@ img.station__body {
   background: var(--warn); /* the map's station diamond is amber */
   transform: rotate(45deg) translateY(-1px);
 }
+.starmap__legend-mark--owned { background: rgb(196, 150, 255); } /* ISP-210 (AB#905): the conglomerate station's violet, as drawn */
 .starmap__overline {
   margin: 0;
   font-size: var(--font-size-1);
