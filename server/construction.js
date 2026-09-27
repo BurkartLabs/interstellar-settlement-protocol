@@ -112,7 +112,7 @@ export const CONSTRUCTIONS = Object.freeze({
   // (ISP-171, AB#865) is what reads that it stands.
   "orbital-shipyard": {
     place: () => ({}),
-    notification: { title: "Orbital Shipyard Commissioned", body: "Your Orbital Shipyard is operational. Ship production opens later in v0.10." },
+    notification: { title: "Orbital Shipyard Commissioned", body: "Your Orbital Shipyard is operational. Queue ships from the Station page." },
     receipt: (built, corp) => buildOrbitalShipyardReceipt({ cost: built.cost, assetValue: built.assetValue, ...slotCount(corp) })
   }
 });

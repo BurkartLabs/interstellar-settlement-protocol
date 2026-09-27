@@ -19,6 +19,7 @@ import { appState, techTree } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
 import { paintStationArt, stationArtHtml } from "../stationArt.js"; // ISP-78 (AB#767)
 import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
+import { renderShipyardPanel } from "../shipyardPanel.js"; // ISP-171 (AB#865)
 import { nextYardPriceFor } from "../yardPrice.js"; // ISP-303 (AB#2286)
 import { facilityUpgradeHtml, facilityUpgradeView, upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795), ISP-102 (AB#794)
 import { renderMissions } from "./assignments.js";
@@ -1173,6 +1174,12 @@ export function renderStation(data) {
     economy: appState.economy
   });
 
+  // ── The Orbital Shipyard's production (ISP-171, AB#865): shown once the corporation has one ──
+  renderShipyardPanel(document, appState.units || [], data.corp || {}, {
+    queue: (unitId, quantity) => queueShips(unitId, quantity),
+    cancel: (jobId) => cancelShipJob(jobId)
+  }, { fleet: data.corp?.fleet || null, researchName: (id) => techTree.find((t) => t.id === id)?.name || id });
+
   // ── Licensed Corporate Holdings (Extractor Yards — filtered to current station body) ──
   const stationBody = station.body;
   const leases = data.corp?.miningLeases || [];
@@ -1374,3 +1381,24 @@ export function yardIndexOf(corp, extractorId) {
 }
 
 
+
+// ISP-171 (AB#865): the shipyard's two actions. The server takes a ship and a quantity and nothing else.
+async function queueShips(unitId, quantity) {
+  const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/shipyard/queue`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ unitId, quantity })
+  }));
+  appState.data = deepClone(account.state);
+  updateAllViews();
+  pushFeedback(account.receipt?.title || "Ships queued.", "ok");
+  showActionReceipt(account, { returnFocusTo: firstPresent("#station-shipyard [data-ship-queue]", ".nav-tab[data-tab='station']") });
+}
+
+async function cancelShipJob(jobId) {
+  const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/shipyard/cancel`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId })
+  }));
+  appState.data = deepClone(account.state);
+  updateAllViews();
+  pushFeedback(account.receipt?.title || "Production cancelled.", "ok");
+  showActionReceipt(account, { returnFocusTo: firstPresent("#station-shipyard [data-ship-queue]", ".nav-tab[data-tab='station']") });
+}

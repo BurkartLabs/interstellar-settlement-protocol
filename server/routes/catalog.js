@@ -1,4 +1,5 @@
 // server/routes/catalog.js: the catalog routes, split out of server/index.js (AB#1815).
+import { UNITS_DATA } from "../game/units.js"; // ISP-171 (AB#865)
 import fs from "node:fs";
 import path from "node:path";
 import { ECONOMY } from "../economy.js";
@@ -60,6 +61,8 @@ export function registerCatalogRoutes(app) {
       },
       // AB#783: what a corporation can build, read-only: the same for every caller, and nothing of any player's.
       playerBuildings: PLAYER_BUILDING_CATALOGUE,
+      // ISP-171 (AB#865): the unit catalog, read-only, for the shipyard's panel (data/units.json)
+      units: UNITS_DATA.units,
       // ISP-106 (AB#798): the sidebar's roadmap, derived from the levels (server/game/catalog.js deriveRoadmap).
       milestoneRoadmap: MILESTONE_ROADMAP,
       // AB#803: each level's own unlocks, labelled, for the level panel's browser; its progress rides on the corporation.

@@ -3,6 +3,7 @@
 import { ECONOMY } from "../economy.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
 import { taxBreakdown } from "../../public/scripts/exchangeTax.js";
+import { SHIP_UNIT_IDS } from "./units.js"; // ISP-171 (AB#865): ships share the Fleet Cap with probes
 import { BASE_MAX_DEPLOYMENTS, BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, LEVEL_UNLOCK_KEYS, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, MINEABLE_RESOURCES, REFINED_ITEMS, REQ_ID_TO_TITLE, createId } from "./catalog.js";
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
@@ -172,7 +173,10 @@ export function fleetStatus(corp) {
   const coordinated = (corp?.unlockedTech || []).includes(FLEET_COORDINATION_TECH);
   const bonus = coordinated ? FLEET_COORDINATION_BONUS : 0;
   const cap = granted + bonus;
-  const vessels = Number(am.probeCount || 0) + (am.fabricationQueue || []).length + (am.activeExpeditions || []).length;
+  // ISP-171 (AB#865): the ships a corporation has and every ship its shipyard is building are vessels too
+  const ships = SHIP_UNIT_IDS.reduce((sum, id) => sum + (Number(corp?.military?.units?.[id]) || 0), 0)
+    + (corp?.shipyard?.queue || []).reduce((sum, job) => sum + (Number(job.quantity) || 0), 0);
+  const vessels = Number(am.probeCount || 0) + (am.fabricationQueue || []).length + (am.activeExpeditions || []).length + ships;
   const raises = [];
   const nextLevel = [...MILESTONE_LEVELS]
     .sort((a, b) => a.level - b.level)

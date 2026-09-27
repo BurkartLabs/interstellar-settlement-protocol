@@ -124,7 +124,7 @@
     {
       "id": "tt-fleet-coordination",
       "name": "Fleet Coordination Matrix",
-      "effect": "+12 fleet cap. Light Fighters and Attack Troops will need it once v0.10 builds them",
+      "effect": "+12 fleet cap. Light Fighters and Attack Troops need it",
       "description": "Integrates command-layer coordination software across all vessel classes. Expands the effective fleet size your corporation can sustain in active deployment.",
       "durationHours": 16,
       "costCredits": 12000,
@@ -135,26 +135,24 @@
     {
       "id": "tt-capital-hulls",
       "name": "Capital Hull Engineering",
-      "effect": "Unlocks Destroyer construction at the Orbital Shipyard (v0.10)",
-      "description": "Armoured line-ship hulls with point-defence flak, built on titanium-chain Armour Plating. Destroyers screen a fleet against fighters and are the backbone of a raid or a garrison. Planned: nothing builds ships until v0.10's shipyard, so it cannot be queued yet.",
+      "effect": "Unlocks Destroyer construction at the Orbital Shipyard",
+      "description": "Armoured line-ship hulls with point-defence flak, built on titanium-chain Armour Plating. Destroyers screen a fleet against fighters and are the backbone of a raid or a garrison.",
       "durationHours": 18,
       "costCredits": 16000,
       "prereqs": ["tt-fleet-coordination", "tt-material-compression"],
       "tier": 3,
-      "category": "Military",
-      "status": "planned"
+      "category": "Military"
     },
     {
       "id": "tt-siege-ordnance",
       "name": "Siege Ordnance",
-      "effect": "Unlocks Siege Engine construction at the Orbital Shipyard (v0.10)",
-      "description": "Heavy mass-driver platforms on Pressure Vessel frames: slow, but able to break an entrenched garrison. Planned: nothing builds ships until v0.10's shipyard, so it cannot be queued yet.",
+      "effect": "Unlocks Siege Engine construction at the Orbital Shipyard",
+      "description": "Heavy mass-driver platforms on Pressure Vessel frames: slow, but able to break an entrenched garrison.",
       "durationHours": 20,
       "costCredits": 20000,
       "prereqs": ["tt-capital-hulls", "tt-ferrous-metallurgy"],
       "tier": 3,
-      "category": "Military",
-      "status": "planned"
+      "category": "Military"
     },
     {
       "id": "tt-fire-control",

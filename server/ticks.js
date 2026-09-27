@@ -15,6 +15,8 @@ import { recordTransfer, describeLines } from "../public/scripts/logistics.js";
 import { beltRespawnTick, ensureBeltState, isBeltPresent } from "./game/belts.js"; // AB#2329, AB#2330
 import { placeNpcAsks } from "./game/npcAsks.js"; // ISP-122 (AB#815)
 import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
+import { completeShipJobs } from "./shipyard.js"; // ISP-171 (AB#865)
+import { UNITS } from "./game/units.js";
 import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
 import { expeditionNotificationBody, expeditionPlaces, minutesEarly } from "./expeditionText.js"; // AB#1295, AB#2330
 import { emitBeltsChanged, emitMarketUpdated, emitToAccount } from "./realtime.js";
@@ -177,7 +179,11 @@ function fabricationTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
     let completed = false;
+    const shipsDone = [];
     mutateAccountState(accountId, (state) => {
+      // ISP-171 (AB#865): the shipyard's jobs complete on the same tick; delivered once, then gone from the queue
+      const ships = completeShipJobs(state.corp, now);
+      if (ships.length) shipsDone.push(...ships);
       if (!state?.corp?.asteroidMining?.fabricationQueue?.length) return;
       const am = state.corp.asteroidMining;
       const done = am.fabricationQueue.filter(j => now >= j.completesAt);
@@ -201,6 +207,14 @@ function fabricationTick() {
       });
       if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
       emitToAccount(accountId, "fabrication:completed", { accountId });
+    }
+    for (const job of shipsDone) {
+      const notification = addAccountNotification(accountId, {
+        type: "infrastructure",
+        title: "Ships Delivered",
+        body: `${job.quantity} ${UNITS[job.unitId].name}${job.quantity === 1 ? "" : "s"} left the Orbital Shipyard and joined your fleet.`
+      });
+      if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
     }
   }
 }

@@ -333,6 +333,7 @@ async function loadBootstrap() {
   if (appState.serverData?.economy) appState.economy = appState.serverData.economy;
   // ISP-95 (AB#785): the building catalogue, for the construction panel; kept for the same reason as the economy.
   if (Array.isArray(appState.serverData?.playerBuildings)) appState.playerBuildings = appState.serverData.playerBuildings;
+  if (Array.isArray(appState.serverData?.units)) appState.units = appState.serverData.units; // ISP-171 (AB#865)
   if (Array.isArray(appState.serverData?.milestoneRoadmap)) appState.milestoneRoadmap = appState.serverData.milestoneRoadmap; // AB#798
   if (Array.isArray(appState.serverData?.levelLadder)) appState.levelLadder = appState.serverData.levelLadder; // AB#803
 
