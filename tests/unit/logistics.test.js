@@ -78,7 +78,7 @@ describe("planTransfer (AB#717)", () => {
     inventory: { "mars-orbital-dock": { Silicates: 40, Nickel: 10 } } };
 
   it("allows a transfer the corporation can make, with its fee", () => {
-    expect(planTransfer({ ...base, lines: [{ item: "Silicates", quantity: 40 }, { item: "Nickel", quantity: 10 }] })).toEqual({ ok: true, fee: 100, hops: 0 });
+    expect(planTransfer({ ...base, lines: [{ item: "Silicates", quantity: 40 }, { item: "Nickel", quantity: 10 }] })).toEqual({ ok: true, fee: 100, hops: 0, waived: false }); // ISP-212 (AB#907): no member station, so nothing waived
   });
 
   it.each([
@@ -136,7 +136,7 @@ describe("the fee and the time grow with distance (AB#718)", () => {
 
   it("charges a transfer across systems by its jumps, and says so when it cannot be paid", () => {
     const from = { fromStationId: "kestrel-platform", toStationId: "earth-station-prime", stations: STATIONS, rates: RATES, navigation: NAVIGATION, inventory: { "kestrel-platform": { Silicates: 100 } } };
-    expect(planTransfer({ ...from, credits: 5000, lines: [{ item: "Silicates", quantity: 100 }] })).toEqual({ ok: true, fee: 1100, hops: 3 });
+    expect(planTransfer({ ...from, credits: 5000, lines: [{ item: "Silicates", quantity: 100 }] })).toEqual({ ok: true, fee: 1100, hops: 3, waived: false });
     expect(planTransfer({ ...from, credits: 1000, lines: [{ item: "Silicates", quantity: 100 }] })).toEqual({
       ok: false, error: "The fee is 1,100 credits (11 per unit for 100 units, 3 jumps); you have 1,000. Move fewer units or sell goods first."
     });

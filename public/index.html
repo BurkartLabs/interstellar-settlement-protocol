@@ -1253,6 +1253,8 @@
                   <option value="gdp">GDP Index</option>
                   <option value="activity">Activity Level</option>
                   <option value="pirates">Pirate Density</option>
+                  <option value="corp-dominance">Corporate dominance</option>
+                  <option value="cong-dominance">Conglomerate dominance</option>
                 </select>
               </div>
               <!-- ISP-143 (AB#837): the resource concentration overlay; the items are filled from what the player can see -->
@@ -1265,6 +1267,8 @@
               <button id="map-reset" class="ui-button ui-button--secondary" type="button">Reset View</button>
             </div>
             <div id="starmap-resource-legend" class="starmap__resource-legend" role="note" hidden></div>
+            <!-- ISP-218 (AB#913): the dominance overlays' legend: every colour on the map, named -->
+            <div id="starmap-dominance-legend" class="starmap__resource-legend" role="note" hidden></div>
             <canvas id="starmap-canvas" width="1200" height="680" aria-label="Interactive starmap"></canvas>
             <!-- ISP-119 (AB#811): what the station marks on the map mean -->
             <p id="starmap-legend" class="starmap__legend"><span class="starmap__legend-mark" aria-hidden="true"></span><span><strong>Neutral station</strong>: no corporation owns it, and any corporation can dock and rent an office there. Every system has at least one neutral station; a number beside a star marks a system with more. In a system, select a marker to open its station.</span></p>

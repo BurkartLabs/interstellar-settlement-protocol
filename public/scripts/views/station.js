@@ -4,6 +4,7 @@
 
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { OFFICE_TERMS_DAYS, officeLeaseCost, officeRenewalCost } from "../ceoEffects.js";
+import { isMemberStation, memberOfficeCost } from "../memberRates.js"; // ISP-212 (AB#907)
 import { claimsAllTakenText, claimsNoLeasesText } from "../emptyStates.js";
 import { stationStartPromptHtml } from "../firstAction.js";
 import { deepClone, formatDuration, toCurrency } from "../helpers.js";
@@ -208,6 +209,12 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const currentBody = station?.body || corp?.location || "Earth";
   const stationId = station?.id || "earth-station-prime";
   const existingOffice = (corp.offices || []).find((o) => o.stationId === stationId);
+  // ISP-212 (AB#907): at its own conglomerate's station a member pays the member rate, which the server charges too
+  const memberStation = appState.conglomerate?.station || null;
+  const rate = (cost) => memberOfficeCost(cost, memberStation, stationId);
+  const memberNote = isMemberStation(memberStation, stationId)
+    ? `<p class="station__note station__member-rate">Member rate: your conglomerate's station, so the rent is ${memberStation.officeRentPct}% of the standard ${toCurrency(officeLeaseCost(1))} credits a day.</p>`
+    : "";
 
   const headerHtml = `
     <div class="station__building-header">
@@ -226,16 +233,17 @@ export function renderOrbitalExecutiveSuites(building, data) {
         <h3>Lease an Office Suite</h3>
         <p class="station__note">Establish a registered corporate presence at ${escapeHtml(station?.name || "this station")} by leasing a suite. This is required before your corporation can hire personnel or engage with station services.</p>
         <dl class="ui-kv">
-          <dt>Lease Cost</dt><dd>${toCurrency(officeLeaseCost(1))} credits a day</dd>
+          <dt>Lease Cost</dt><dd>${toCurrency(rate(officeLeaseCost(1)))} credits a day</dd>
           <dt>Station</dt><dd>${escapeHtml(station?.name || stationId)}</dd>
           <dt>Location</dt><dd>${escapeHtml(currentBody)}, ${escapeHtml(formatSystemLabel(station?.systemId || "sol"))}</dd>
         </dl>
+        ${memberNote}
         <p class="station__note">The lease runs for the term you choose and can be extended from this office before or after it ends. Without an active office you cannot start a mining cycle.</p>
         <div class="station__form">
           <label>
             Term
             <select class="ui-select" id="rent-office-duration">
-              ${OFFICE_TERMS_DAYS.map((days) => `<option value="${days}">${days} days — ${toCurrency(officeLeaseCost(days))}</option>`).join("")}
+              ${OFFICE_TERMS_DAYS.map((days) => `<option value="${days}">${days} days — ${toCurrency(rate(officeLeaseCost(days)))}</option>`).join("")}
             </select>
           </label>
           <button id="rent-office-btn" class="ui-button ui-button--primary" type="button">Execute Lease Agreement</button>
@@ -289,7 +297,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
         <label>
           Duration
           <select class="ui-select" id="renew-office-duration">
-            ${[7, 14, 21, 28].map((days) => `<option value="${days}"${days === 28 ? " selected" : ""}>${days} days — ${toCurrency(officeRenewalCost(corp.completedInsights, days))}</option>`).join("")}
+            ${[7, 14, 21, 28].map((days) => `<option value="${days}"${days === 28 ? " selected" : ""}>${days} days — ${toCurrency(rate(officeRenewalCost(corp.completedInsights, days)))}</option>`).join("")}
           </select>
         </label>
         <button class="ui-button ui-button--primary" type="submit">${leaseExpired ? "Renew Lease" : "Extend Lease"}</button>

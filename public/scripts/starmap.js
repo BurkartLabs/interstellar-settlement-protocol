@@ -5,8 +5,10 @@ import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 import { PLANET_IMAGE_PATHS } from "./planetImages.js";
 import { officeLeaseCost } from "./ceoEffects.js"; // Bug #2340: the one office rate (Bug #1032)
+import { isMemberStation, memberOfficeCost } from "./memberRates.js"; // ISP-212 (AB#907)
 import { isConglomerateStation, isNeutralStation } from "./stationMarkers.js";
 import { concentrationBand, concentrationLegendHtml, concentrationRows, concentrationText, overlayItems, systemConcentration, bodyConcentration } from "./resourceOverlay.js"; // ISP-143 (AB#837)
+import { DOMINANCE_OVERLAYS, QUIET_TOKEN, dominanceDetailsHtml, dominanceKey, dominanceLegendHtml, isDominanceOverlay, tokenRgba } from "./dominanceOverlay.js"; // ISP-218 (AB#913)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 
 // ISP-112 (AB#804): each system's place on the cluster view is its `mapPosition` in data/systems.json, as fractions of
@@ -519,6 +521,8 @@ export function createStarmapController({
   overlaySelect,
   resourceSelect, // ISP-143 (AB#837): the resource concentration overlay's item
   resourceLegend,
+  dominanceLegend, // ISP-218 (AB#913): the dominance overlays' legend
+  onOverlayChange, // ISP-218 (AB#913): told when the overlay changes, so the page can fetch what it needs
   resetButton,
   onTravelToSystem,
   onDockAtStation,
@@ -527,6 +531,7 @@ export function createStarmapController({
   getAsteroidMiningState,
   researchCatalog = [], // Bug #1270: to name the research a locked jump needs
   getCorpLevel = () => 0,
+  getMemberStation = () => null, // ISP-212 (AB#907): the corporation's own conglomerate's station, for the member office rate
   // ISP-112 (AB#804): data/systems.json's list, and the travel gate and routes over it (public/scripts/navigation.js).
   getSystemsCatalog = () => [],
   getNavigation = () => navigationFor(getSystemsCatalog())
@@ -539,6 +544,8 @@ export function createStarmapController({
     currentSystemId: "sol",
     overlay: "none",
     resource: "none", // ISP-143 (AB#837): the item the concentration overlay shows, or "none"
+    dominance: null, // ISP-218 (AB#913): GET /api/starmap/dominance
+    ownNames: { corporation: "", conglomerate: "" }, // ISP-218 (AB#913): the viewer's own, marked on the map
     view: "cluster",
     selectedSystemId: null,
     selectedBodyId: null,
@@ -784,6 +791,16 @@ export function createStarmapController({
     });
     const badges = counted.map((s) => ({ id: s.id, text: s.text, box: badgeBoxes.get(s.id) }));
     const entryOf = new Map(entries.map((e) => [e.id, e]));
+    // ISP-218 (AB#913): under a dominance overlay each system takes its leader's colour, from the design system's tokens.
+    const domKey = currentDominanceKey();
+    const tokenColors = new Map();
+    const tokenColor = (token) => {
+      if (!tokenColors.has(token)) {
+        const hex = typeof document !== "undefined" ? getComputedStyle(document.documentElement).getPropertyValue(token) : "";
+        tokenColors.set(token, tokenRgba(hex));
+      }
+      return tokenColors.get(token);
+    };
     state.systems.forEach((system) => {
       const { x, y } = at(system);
       const isSelected = state.selectedSystemId === system.id;
@@ -793,6 +810,7 @@ export function createStarmapController({
       // ISP-143 (AB#837): with a resource chosen, every star takes its band's colour, locked or not: where to go is the question.
       const color = state.resource !== "none"
         ? concentrationBand(systemConcentration(system, state.resource, beltSlots()).best).color
+        : domKey ? tokenColor(domKey.bySystem[system.id]?.token || QUIET_TOKEN)
         : locked ? LOCKED_STAR_COLOR : overlayColor(system, state.overlay);
 
       // Outer glow halo
@@ -835,6 +853,17 @@ export function createStarmapController({
         ctx.setLineDash([3, 4]);
         ctx.stroke();
         ctx.setLineDash([]);
+        ctx.restore();
+      }
+
+      // ISP-218 (AB#913): a solid ring in the viewer's colour round each system it leads, as the legend says.
+      if (domKey?.bySystem[system.id]?.own) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, baseRadius + 16, 0, Math.PI * 2);
+        ctx.strokeStyle = color.replace(/[\d.]+\)$/, "0.9)");
+        ctx.lineWidth = 2;
+        ctx.stroke();
         ctx.restore();
       }
 
@@ -1325,6 +1354,26 @@ export function createStarmapController({
       <div class="ui-panel__body ui-stack">${body}</div>`;
   }
 
+  /** ISP-218 (AB#913): the colours and legend for the dominance overlay shown now, or null. */
+  function currentDominanceKey() {
+    if (!isDominanceOverlay(state.overlay)) return null;
+    const own = DOMINANCE_OVERLAYS[state.overlay].view === "byCorporation" ? state.ownNames.corporation : state.ownNames.conglomerate;
+    return dominanceKey(state.dominance, state.overlay, own);
+  }
+
+  function renderDominanceLegend() {
+    if (!dominanceLegend) return;
+    const key = currentDominanceKey();
+    dominanceLegend.hidden = !key;
+    dominanceLegend.innerHTML = key ? dominanceLegendHtml(key, state.overlay, { computedAt: state.dominance?.computedAt }) : "";
+  }
+
+  function dominanceSystemHtml(system) {
+    if (!isDominanceOverlay(state.overlay)) return "";
+    const own = DOMINANCE_OVERLAYS[state.overlay].view === "byCorporation" ? state.ownNames.corporation : state.ownNames.conglomerate;
+    return dominanceDetailsHtml(state.dominance?.systems?.[system.id], state.overlay, own);
+  }
+
   function renderDetails() {
     const system = getSelectedSystem();
     const body = getSelectedBody();
@@ -1339,7 +1388,8 @@ export function createStarmapController({
       const lock = system && !canTravelToSystem(system.id)
         ? `<p class="starmap__status starmap__status--locked">${escapeHtmlAttr(system.name)}: ${escapeHtmlAttr(travelLockText(system.id))}</p>`
         : "";
-      detailsEl.innerHTML = detailsHtml("Star Cluster", `<p class="ui-panel__meta">Select a system to enter solar view mode.</p>${lock}${richestHtml()}`);
+      const domHint = isDominanceOverlay(state.overlay) ? `<p class="ui-panel__meta">Select a system to see who leads it, and by how much.</p>` : "";
+      detailsEl.innerHTML = detailsHtml("Star Cluster", `<p class="ui-panel__meta">Select a system to enter solar view mode.</p>${lock}${domHint}${richestHtml()}`);
       return;
     }
 
@@ -1365,6 +1415,7 @@ export function createStarmapController({
         <p>${escapeHtmlAttr(system.ownerRule || "Ownership available via territorial dominance and treaties.")}</p>
         <ul class="ui-list">${bodyLines}</ul>
         ${systemConcentrationHtml(system)}
+        ${dominanceSystemHtml(system)}
         ${jumpHtml}
       `);
       // Bind the jump button rendered in the system view.
@@ -1792,7 +1843,8 @@ export function createStarmapController({
     // Bug #2340: the catalog's buildingIds, the one office rate, and the station's jurisdiction (AB#810). The modal read
     // buildings, officeRentPerCycle and ownership, which no station has, so every one said 0, "—" and NPC-controlled.
     const buildingCount = Array.isArray(station.buildingIds) ? station.buildingIds.length : 0;
-    const officeRent = `¤${officeLeaseCost(1).toLocaleString("en-US")} a day, for 7 to 28 days`;
+    const memberStation = getMemberStation();
+    const officeRent = `¤${memberOfficeCost(officeLeaseCost(1), memberStation, station.id).toLocaleString("en-US")} a day, for 7 to 28 days${isMemberStation(memberStation, station.id) ? " (member rate)" : ""}`;
     const jurisdiction = isNeutralStation(station)
       ? "Neutral: no corporation owns it; any corporation may dock and rent an office here."
       : isConglomerateStation(station) // ISP-210 (AB#905): built by a conglomerate; GET /api/stations names it, never its id
@@ -1891,6 +1943,9 @@ export function createStarmapController({
       // ISP-143 (AB#837): the two overlays both colour the stars, so choosing one clears the other.
       if (state.overlay !== "none") setResource("none");
       render();
+      renderDominanceLegend(); // ISP-218 (AB#913)
+      renderDetails();
+      onOverlayChange?.(state.overlay);
     });
 
     resourceSelect?.addEventListener("change", () => {
@@ -1981,6 +2036,15 @@ export function createStarmapController({
     setOverlay(value) {
       state.overlay = value;
       render();
+      renderDominanceLegend();
+    },
+    /** ISP-218 (AB#913): the dominance reading, and the viewer's own corporation and conglomerate names. */
+    setDominance(reading, { corporation = "", conglomerate = "" } = {}) {
+      state.dominance = reading && reading.systems ? reading : null;
+      state.ownNames = { corporation, conglomerate };
+      render();
+      renderDominanceLegend();
+      renderDetails();
     },
     rerender() {
       render();

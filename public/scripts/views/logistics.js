@@ -6,6 +6,7 @@ import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { MAX_TRANSFER_LINES, describeHops, describeLines, feePerUnit, stationHops, transferFee, transitMinutes } from "../logistics.js";
+import { transferFeeWaived } from "../memberRates.js"; // ISP-212 (AB#907)
 import { appState } from "../state.js";
 import { formatSystemLabel, getAllInventory, getCurrentStationInfo, pushFeedback, updateAllViews } from "./shared.js";
 
@@ -31,6 +32,8 @@ export function renderLogistics(data) {
   // AB#718: the fee depends on how far the goods go. Null until the rates have loaded; the server quotes it then.
   const rates = appState.logisticsRates || null;
   const hopsFrom = (fromStation) => stationHops(stationRegistry, fromStation, currentStationId, appState.navigation);
+  // ISP-212 (AB#907): a member moving goods to or from its conglomerate's station, in its system, pays nothing
+  const waived = (fromStation, hops) => transferFeeWaived(appState.conglomerate?.station?.id ?? null, fromStation, currentStationId, hops);
   // The last outcome on a station card (AB#717): errors name the fix, and survive the re-renders a tick causes.
   const status = appState.logisticsStatus || null;
   // Picks and typed quantities survive those re-renders too, until the transfer goes through.
@@ -78,7 +81,7 @@ export function renderLogistics(data) {
     // ISP-279 (AB#986): the quote now names the arrival time too, not just the fee — a delay the player cannot
     // see before sending reads as goods going missing (D-0.5-1's third story, after AB#985's server-side transit).
     const routeFee = rates && hops !== null && entries.length
-      ? `<p class="ui-card__body logistics__route-fee">Fee to ${escapeHtml(currentName)}: <strong>${toCurrency(feePerUnit(rates, hops))} per unit</strong>, <strong>${escapeHtml(formatDuration(transitMinutes(rates, hops) * 60_000))} transit</strong> (${escapeHtml(describeHops(hops))})</p>`
+      ? `<p class="ui-card__body logistics__route-fee">Fee to ${escapeHtml(currentName)}: <strong>${waived(st.id, hops) ? "free for members" : `${toCurrency(feePerUnit(rates, hops))} per unit`}</strong>, <strong>${escapeHtml(formatDuration(transitMinutes(rates, hops) * 60_000))} transit</strong> (${escapeHtml(describeHops(hops))})</p>`
       : "";
 
     let itemsHtml = "";
@@ -201,7 +204,7 @@ export function renderLogistics(data) {
     btn.disabled = lines.length === 0;
     btn.textContent = lines.length ? `Move ${lines.length} picked → ${currentName}` : "Move picked items";
     const hops = hopsFrom(fromStation);
-    const fee = rates && hops !== null ? `fee ${toCurrency(transferFee(rates, hops, [{ quantity: units }]))}` : "fee quoted when you move";
+    const fee = rates && hops !== null ? (waived(fromStation, hops) ? "no fee (member, in system)" : `fee ${toCurrency(transferFee(rates, hops, [{ quantity: units }]))}`) : "fee quoted when you move";
     feeEl.textContent = lines.length
       ? `${units.toLocaleString()} units, ${fee}${lines.length > MAX_TRANSFER_LINES ? `. At most ${MAX_TRANSFER_LINES} items per transfer.` : ""}`
       : `Pick up to ${MAX_TRANSFER_LINES} items to move together.`;

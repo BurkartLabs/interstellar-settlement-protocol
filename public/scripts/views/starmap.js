@@ -9,6 +9,7 @@ import { beltScoutedText } from "../miningFeedback.js";
 import { createStarmapController } from "../starmap.js";
 import { appState, techTree } from "../state.js";
 import { pushFeedback, setTab, updateAllViews } from "./shared.js";
+import { isDominanceOverlay } from "../dominanceOverlay.js"; // ISP-218 (AB#913)
 
 export const starmap = createStarmapController({
   canvas: document.getElementById("starmap-canvas"),
@@ -17,9 +18,12 @@ export const starmap = createStarmapController({
   overlaySelect: document.getElementById("map-overlay"),
   resourceSelect: document.getElementById("map-resource"), // ISP-143 (AB#837)
   resourceLegend: document.getElementById("starmap-resource-legend"),
+  dominanceLegend: document.getElementById("starmap-dominance-legend"), // ISP-218 (AB#913)
+  onOverlayChange(overlay) { if (isDominanceOverlay(overlay)) loadDominanceIntoStarmap(); }, // ISP-218 (AB#913)
   resetButton: document.getElementById("map-reset"),
   researchCatalog: techTree, // Bug #1270: the lock names the research a jump needs
   getCorpLevel: () => appState.data?.corp?.level || 0,
+  getMemberStation: () => appState.conglomerate?.station || null, // ISP-212 (AB#907)
   getSystemsCatalog: () => appState.systemsCatalog, // ISP-112 (AB#804)
   getNavigation: () => appState.navigation,
   async onTravelToSystem(systemId) {
@@ -130,4 +134,17 @@ export async function refreshBeltCompositions() {
 export function loadBeltCompositionsIntoStarmap() {
   return refreshBeltCompositions().then(() => starmap.setAsteroidMining(starmapMiningState(appState.data, appState.beltCompositions,
     { belts: appState.belts, respawnChancePerHour: appState.beltRespawnChance })));
+}
+
+/**
+ * ISP-218 (AB#913): the dominance reading (GET /api/starmap/dominance, ISP-217), handed to the Starmap with the viewer's
+ * own corporation and conglomerate, which the map marks. Read when a dominance overlay is chosen; it changes once a day.
+ */
+export async function loadDominanceIntoStarmap() {
+  try {
+    const reading = await parseJsonResponse(await apiFetch("/api/starmap/dominance"));
+    starmap.setDominance(reading, { corporation: appState.data?.corp?.corporationName || "", conglomerate: appState.conglomerate?.name || "" });
+  } catch (err) {
+    pushFeedback(err.message || "The dominance reading could not be loaded.", "warn");
+  }
 }
