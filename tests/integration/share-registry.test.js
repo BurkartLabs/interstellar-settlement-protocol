@@ -147,8 +147,10 @@ describe("ISP-157 shares move only where ISP-158 moves them", () => {
     }
     const equity = routes.filter((r) => /share|cap-table|equity|stock/i.test(r));
     expect(equity).toContain("GET /api/corporations/:corpId/cap-table");
-    // AB#852: listing, opening an offering and buying in one (server/shareOfferings.js); nothing else
+    // AB#852: listing, opening an offering and buying in one (server/shareOfferings.js); AB#854: the exit to the market
+    // maker; nothing else
     expect(equity.filter((r) => !r.startsWith("GET ")).sort()).toEqual([
+      "POST /api/accounts/:accountId/equity/holdings/:issuerCorpId/exit",
       "POST /api/accounts/:accountId/equity/list",
       "POST /api/accounts/:accountId/equity/offerings",
       "POST /api/accounts/:accountId/equity/offerings/:offeringId/buy",

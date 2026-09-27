@@ -3,7 +3,7 @@
 // body (ACCOUNT_INPUT): the only numbers a request carries are a quantity of shares. Every price is the server's
 // (server/shareOfferings.js); a price in a request is never read.
 import { bodyNumber } from "../bodyNumber.js";
-import { buyShares, listCorporation, listingProblem, openOffering, publicOffering, shareOfferingList } from "../shareOfferings.js";
+import { buyShares, exitShares, holdingsOfAccount, listCorporation, listingProblem, openOffering, publicOffering, shareOfferingList } from "../shareOfferings.js";
 import { setPayoutRatio } from "../dividends.js"; // ISP-159 (AB#853)
 import { getAccountById } from "../gameState.js";
 import { sanitizeAccount } from "../game/store.js";
@@ -47,5 +47,18 @@ export function registerEquityRoutes(app) {
     const r = buyShares(req.params.accountId, { offeringId: req.params.offeringId, quantity: num(req.body?.quantity) });
     if (!r.ok) return res.status(r.status).json({ error: r.error });
     res.json(answer(req.params.accountId, { offering: publicOffering(r.offering), shares: r.shares, paid: r.paid }));
+  });
+
+  // ISP-160 (AB#854): the caller's holdings, each at the Board's value per share (company value / shares outstanding)
+  app.get("/api/accounts/:accountId/equity/holdings", (req, res) => {
+    res.json({ holdings: holdingsOfAccount(req.params.accountId) });
+  });
+
+  // ISP-160 (AB#854): sell shares back to the market maker at floor(value x 0.95). Only the issuer and the quantity are
+  // read; a price in the request is ignored.
+  app.post("/api/accounts/:accountId/equity/holdings/:issuerCorpId/exit", (req, res) => {
+    const r = exitShares(req.params.accountId, { issuerCorpId: req.params.issuerCorpId, quantity: num(req.body?.quantity) });
+    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    res.json(answer(req.params.accountId, { shares: r.shares, valuePerShare: r.valuePerShare, pricePerShare: r.pricePerShare, paid: r.paid }));
   });
 }

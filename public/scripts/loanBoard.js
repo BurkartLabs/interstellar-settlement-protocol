@@ -128,7 +128,7 @@ export function recoveredFromText(result) {
   if (a) {
     if (a.fromCredits > 0) parts.push(`${cr(a.fromCredits)} from credits`);
     if (a.fromGoods > 0) parts.push(`${cr(a.fromGoods)} from goods sold at the exchange (${escapeHtml(goodsNames)})`);
-    if (a.fromHoldings > 0) parts.push(`${cr(a.fromHoldings)} from bonds sold to the underwriter`); // Bug #2574's stage
+    if (a.fromHoldings > 0) parts.push(`${cr(a.fromHoldings)} from holdings sold (${escapeHtml(sold.filter((x) => x.kind === "bond" || x.kind === "shares").map((x) => x.name).join(", "))})`); // bonds (Bug #2574) and shares (AB#854)
     if (a.fromAssets > 0) parts.push(`${cr(a.fromAssets)} from force-sold assets (${assetList}; what they raised beyond the debt stayed with the borrower)`);
   } else {
     if (goodsNames) parts.push(`goods sold at the exchange (${escapeHtml(goodsNames)})`);

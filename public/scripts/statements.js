@@ -91,6 +91,9 @@ export function statementHtml(s) {
     row("Credits", "balanceSheet.credits", b.credits),
     row("Facilities & probes", "balanceSheet.facilities", b.facilities),
     row("Inventory (at standing bids)", "balanceSheet.inventory", b.inventory),
+    // ISP-160 (AB#854): shares held in other corporations, at company value / shares outstanding. A statement closed
+    // before holdings were counted has none, and shows 0.
+    row("Share holdings (at company value)", "balanceSheet.holdings", b.holdings || 0),
     row("Total assets", "balanceSheet.totalAssets", b.totalAssets, { strong: true }),
     heading("Liabilities", "out"),
     row("Obligations", "balanceSheet.liabilities", b.liabilities, { sign: "out" }),

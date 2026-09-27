@@ -67,7 +67,7 @@ describe("the daily close (AB#713)", () => {
     closeDueDays(state, at(0, 1));
     closeDueDays(state, at(1, 1));
     expect(state.statements[0].balanceSheet).toEqual({
-      credits: 50_000, facilities: 30_000, inventory: 4_000, liabilities: 600 * 7 + 3_000, totalAssets: 84_000, netWorth: 84_000 - 7_200
+      credits: 50_000, facilities: 30_000, inventory: 4_000, holdings: 0, liabilities: 600 * 7 + 3_000, totalAssets: 84_000, netWorth: 84_000 - 7_200
     });
   });
 

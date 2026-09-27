@@ -56,6 +56,31 @@ up first. Two of them bind systems that are not built yet, so whoever starts v0.
    *"We don't want any player to be able to gain an unfair advantage by trading anything in game for real money.
    This would be a violation of the Real Money Trading rule"*.)
 
+   **The v0.9 never-sell list** (AB#857). The Board's answer is read conservatively, so it forbids both ways money
+   could buy an advantage: **(a)** the game selling, speeding up or improving any of these for real money, and
+   **(b)** players trading any of them, or the credits, goods, loans, bonds or shares they move, with each other for
+   real money. Every financial mechanic v0.9 built is on it:
+
+   - **The credit grade and every rating input:** the score, the grade and its caps, the statements it reads, and
+     the not-rated threshold (`server/creditRating.js`, `data/credit-rating.json`).
+   - **Loans:** the Development Bank's rates, spreads, principal limits, origination fee, quotes and their expiry
+     (`data/loan-products.json`); player loan offers, their rates, and the per-pair cap.
+   - **Bonds:** issuing and its level and grade gate, the coupon, the subscription window, the underwriter's fill,
+     coupons and redemption (`data/bond-terms.json`).
+   - **Shares:** listing, its gate and fee, offering size and allocation, the share price (company value divided by
+     shares outstanding), the holder cap and the founder floor, and the market maker's fill and exit
+     (`data/share-terms.json`).
+   - **Dividends:** the payout ratio, the pool, and each holder's share of it.
+   - **Arrears relief and default recovery:** late fees, penalty interest, the grace period, what is sold, at what
+     price and in what order.
+   - **The conglomerate treasury:** deposits, withdrawals, pooling, the charter fee and its levels
+     (`data/conglomerates.json`).
+
+   **No cosmetic carve-out.** The Decision offered one (convenience that changes no number, option B); the answer did
+   not take it, so none is open. **Not listed is not permitted:** anything v0.9 or later adds that could give one
+   player an advantage over another needs a Board Decision before it is sold, not a reading of this list.
+   `tests/unit/no-payments.test.js` also fails when any of those data files gains a price or currency field.
+
 2. **Research and CEO Insight may never be sold or sped up for real money: not a node, a level, a completion, or
    the wait for one. Items may always be sold**, meaning a player can always put an item up for sale in the game;
    rule 1 still decides whether anything may be sold for real money. This binds systems that exist today: the
