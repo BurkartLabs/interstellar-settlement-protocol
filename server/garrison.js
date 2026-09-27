@@ -17,7 +17,8 @@
 import { getAccountById, getState, mutateAccountState } from "./gameState.js";
 import { accountIdOfCorp } from "./playerLoans.js";
 import { ensureCorpMilitary } from "./game/units.js";
-import { STATION_REGISTRY, getTravelTimeMs } from "./travel.js";
+import { getTravelTimeMs } from "./travel.js";
+import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 import { holdingsAt, reachable } from "./raids.js";
 
 /** The postures and what each multiplies (the design's table, section 2a). */
@@ -45,7 +46,7 @@ export function withPosture(modifiers, posture) {
 export function setPosture(accountId, stationId, posture) {
   const corp = corpOf(accountId);
   if (!corp) return { ok: false, status: 404, error: "No such corporation." };
-  if (!STATION_REGISTRY[stationId]) return { ok: false, status: 404, error: "No such station." };
+  if (!stationById(stationId)) return { ok: false, status: 404, error: "No such station." };
   if (!POSTURE_IDS.includes(posture)) return { ok: false, status: 400, error: `Choose a posture: ${POSTURE_IDS.join(", ")}.` };
   if (!holdingsAt(corp, stationId).any) return { ok: false, status: 409, error: "You hold nothing at that station to defend." };
   mutateAccountState(accountId, (state) => {
@@ -91,7 +92,7 @@ export const troopsArrivedAfter = (corp, stationId, at) =>
 export function moveTroops(accountId, { fromStationId, toStationId, quantity } = {}, now = Date.now()) {
   const corp = corpOf(accountId);
   if (!corp) return { ok: false, status: 404, error: "No such corporation." };
-  if (!STATION_REGISTRY[fromStationId] || !STATION_REGISTRY[toStationId]) return { ok: false, status: 404, error: "No such station." };
+  if (!stationById(fromStationId) || !stationById(toStationId)) return { ok: false, status: 404, error: "No such station." };
   if (fromStationId === toStationId) return { ok: false, status: 400, error: "Choose a different station to send them to." };
   if (!Number.isInteger(quantity) || quantity < 1) return { ok: false, status: 400, error: "Send a whole number of troops, at least 1." };
   const here = n(corp.military?.garrisons?.[fromStationId]);
@@ -119,7 +120,7 @@ export function deployHiredFleet(accountId, contractId, toStationId, now = Date.
   const hired = (renter?.military?.hired || []).find((h) => h.contractId === contractId);
   const offer = (getState()?.market?.mercenaryOffers || []).find((o) => o.id === contractId && o.state === "hired" && o.renterCorpId === renter?.publicId);
   if (!hired || !offer) return { ok: false, status: 404, error: "No such hired fleet." };
-  if (!STATION_REGISTRY[toStationId]) return { ok: false, status: 404, error: "No such station." };
+  if (!stationById(toStationId)) return { ok: false, status: 404, error: "No such station." };
   if (!holdingsAt(renter, toStationId).any) return { ok: false, status: 409, error: "A hired fleet can only be sent to a station where you hold something." };
   const ownerAccountId = accountIdOfCorp(offer.ownerCorpId);
   const fleet = corpOf(ownerAccountId)?.military?.fleets?.find((f) => f.id === offer.fleetId);
@@ -131,7 +132,7 @@ export function deployHiredFleet(accountId, contractId, toStationId, now = Date.
   const arrivesAt = now + getTravelTimeMs(from, toStationId);
   mutateAccountState(ownerAccountId, (state) => {
     const f = (state.corp.military?.fleets || []).find((x) => x.id === offer.fleetId);
-    f.transit = { fromStationId: from, toStationId, toSystemId: STATION_REGISTRY[toStationId].systemId, departedAt: now, arrivesAt };
+    f.transit = { fromStationId: from, toStationId, toSystemId: stationById(toStationId).systemId, departedAt: now, arrivesAt };
     f.stationId = null;
   }, { sanitize: false });
   mutateAccountState(accountId, (state) => {
