@@ -19,6 +19,7 @@ import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
 import { completeShipJobs } from "./shipyard.js"; // ISP-171 (AB#865)
 import { completeTroopJobs } from "./training.js"; // ISP-172 (AB#866)
 import { settleFleets } from "./fleets.js"; // ISP-174 (AB#868)
+import { expireOffers, settleContracts } from "./mercenaries.js"; // ISP-176 (AB#870)
 import { UNITS } from "./game/units.js";
 import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
 import { expeditionNotificationBody, expeditionPlaces, minutesEarly } from "./expeditionText.js"; // AB#1295, AB#2330
@@ -182,6 +183,9 @@ function asteroidExpeditionTick(now = Date.now()) {
 // ─── Fabrication queue tick ──────────────────────────────────────────────────
 function fabricationTick() {
   const now = Date.now();
+  // ISP-176 (AB#870): offers whose window closed free their fleets; contracts whose term ended settle, before any account's turn
+  expireOffers(now);
+  settleContracts(now);
   for (const accountId of getAllAccountIds()) {
     let completed = false;
     const shipsDone = [];

@@ -30,6 +30,8 @@ const fleetsOf = (corp) => {
 const count = (units, id) => Math.max(0, Math.floor(Number(units?.[id]) || 0));
 const sizeOf = (units) => FLEET_UNIT_IDS.reduce((sum, id) => sum + count(units, id), 0);
 const inTransit = (fleet, now) => Boolean(fleet.transit) && now < fleet.transit.arrivesAt;
+/** ISP-176 (AB#870): a fleet offered or hired out takes no order from its owner until the contract ends. */
+const contracted = (fleet) => Boolean(fleet?.contract);
 
 /** What no fleet holds: the corporation's units of each fleet type, less every fleet's. */
 export function reserveOf(corp) {
@@ -92,6 +94,7 @@ export function splitFleet(corp, fleetId, { units: input, name } = {}, now = Dat
   settleFleets(corp, now);
   const fleet = owned(corp, fleetId);
   if (!fleet) return { outcome: "no-fleet" };
+  if (contracted(fleet)) return { outcome: "under-contract" };
   if (inTransit(fleet, now)) return { outcome: "in-transit" };
   const units = unitsFrom(input);
   if (!units) return { outcome: "no-units" };
@@ -114,6 +117,7 @@ export function mergeFleets(corp, fleetId, intoFleetId, now = Date.now()) {
   settleFleets(corp, now);
   const from = owned(corp, fleetId), into = owned(corp, intoFleetId);
   if (!from || !into) return { outcome: "no-fleet" };
+  if (contracted(from) || contracted(into)) return { outcome: "under-contract" };
   if (from === into) return { outcome: "same-fleet" };
   if (inTransit(from, now) || inTransit(into, now)) return { outcome: "in-transit" };
   if (from.stationId !== into.stationId) return { outcome: "not-together" };
@@ -128,6 +132,7 @@ export function disbandFleet(corp, fleetId, now = Date.now()) {
   settleFleets(corp, now);
   const fleet = owned(corp, fleetId);
   if (!fleet) return { outcome: "no-fleet" };
+  if (contracted(fleet)) return { outcome: "under-contract" };
   if (inTransit(fleet, now)) return { outcome: "in-transit" };
   if (fleet.stationId !== corp.currentStationId) return { outcome: "not-here", stationId: fleet.stationId };
   corp.military.fleets = corp.military.fleets.filter((f) => f !== fleet);
@@ -143,6 +148,7 @@ export function deployFleet(corp, fleetId, toStationId, now = Date.now()) {
   settleFleets(corp, now);
   const fleet = owned(corp, fleetId);
   if (!fleet) return { outcome: "no-fleet" };
+  if (contracted(fleet)) return { outcome: "under-contract" };
   if (inTransit(fleet, now)) return { outcome: "in-transit" };
   const from = STATION_REGISTRY[fleet.stationId], to = STATION_REGISTRY[toStationId];
   if (!to) return { outcome: "no-station" };

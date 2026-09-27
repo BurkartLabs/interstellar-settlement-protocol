@@ -125,6 +125,19 @@ export const GAMEPLAY_INPUT = {
   "POST /fleets/:fleetId/deploy": { params: { fleetId: ref("one of your fleets") }, body: { toStationId: id("stations", "a station") } },
   "POST /fleets/:fleetId/disband": { params: { fleetId: ref("one of your fleets") } },
   "GET /fleets/:fleetId/destinations": { params: { fleetId: ref("one of your fleets") } }, // ISP-175 (AB#869)
+  // ISP-176 (AB#870): mercenary contracts. Terms are numbers and enums only; ids not the caller's are the route's 404.
+  "GET /mercenaries": NOTHING,
+  "POST /mercenaries/offer": {
+    body: {
+      fleetId: ref("one of your fleets"),
+      termHours: choice([12, 24, 72, 168], "a term of 12, 24, 72 or 168 hours"),
+      price: int(100, 10_000_000, "a price from 100 to 10,000,000 credits"),
+      collateral: int(1, 1_000_000_000, "a collateral of at least 1 credit, up to the fleet's value"),
+      allowedUse: word(["defense", "pve", "raids"], "an allowed use: defense, pve or raids")
+    }
+  },
+  "POST /mercenaries/:offerId/withdraw": { params: { offerId: ref("one of your mercenary offers") } },
+  "POST /mercenaries/:offerId/hire": { params: { offerId: ref("a mercenary offer") } },
   "POST /queue-ceo": { body: { programId: id("programs", "a CEO Insight program") } }
 };
 
