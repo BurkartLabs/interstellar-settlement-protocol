@@ -144,6 +144,13 @@ export const ACCOUNT_INPUT = {
       windowHours: choice(BOND_TERMS.windowHours, "24 or 48 hours open for subscribing")
     }
   },
+  "POST /bonds/preview": { // ISP-156 (AB#850): the issue form's preview, with the issue's own checks
+    body: {
+      quantity: int(BOND_TERMS.minQuantity, BOND_TERMS.maxQuantity, "a number of 1,000-credit units"),
+      couponPct30: decimal(BOND_TERMS.minCouponPct30, BOND_TERMS.maxCouponPct30, BOND_TERMS.couponStepPct30, "a coupon per 30 days"),
+      maturityDays: choice(BOND_TERMS.maturityDays, "a maturity of 30, 60 or 90 days")
+    }
+  },
   "POST /bonds/:seriesId/subscribe": { params: { seriesId: ref("a bond series") }, body: { units: int(1, BOND_TERMS.maxQuantity, "a number of units") } },
   // ISP-152 (AB#846): player loan offers. Numbers and enums only; the floor rate and the per-pair cap are the route's too.
   "GET /loan-offers": NOTHING,

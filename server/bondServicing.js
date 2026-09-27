@@ -31,6 +31,7 @@ import { saveAccountsNow } from "./game/store.js";
 import { settleTransfer } from "./settlement.js";
 import { emitToAccount } from "./realtime.js";
 import { BOND_TERMS, bondSeriesList } from "./bonds.js";
+import { couponFor, couponSchedule } from "./bondTerms.js";
 
 const DAY = 86_400_000;
 /** Late fee on a missed payment, the penalty points over the coupon per 30 days, and the days before default. */
@@ -67,7 +68,7 @@ export function splitProRata(total, weights) {
 }
 
 /** A coupon for `days` on the series' sold units, rounded to the credit once (section 7). */
-export const couponTotal = (series, days) => Math.round((series.couponPct30 / 100) * (days / 30) * series.faceValue * series.sold);
+export const couponTotal = (series, days) => couponFor(series.couponPct30, days, series.faceValue, series.sold);
 
 /** The coupon days due on day `d` of the series (0 if none): 7 on each coupon date, the stub at maturity. */
 function couponDaysOn(series, d) {
@@ -227,4 +228,25 @@ export function bondHoldingsValue(corp) {
     return { seriesId: h.seriesId, units: h.units, value: counts ? Math.floor((h.units * s.faceValue * HOLDING_RECOVERY_PCT) / 100) : 0 };
   });
   return { total: holdings.reduce((a, h) => a + h.value, 0), holdings };
+}
+
+/**
+ * ISP-156 (AB#850): the series' next scheduled payment after the day it was last serviced: { at, day, coupon, face },
+ * as totals for the whole series, or null (not closed yet, or nothing left to pay). With `accountId`, the amounts are
+ * that holder's share, by the same split the servicing pays (splitProRata over holdersOf).
+ */
+export function nextPayment(series, accountId = null) {
+  if (!series?.closedAt || !SERVICED.has(series.state)) return null;
+  const through = series.servicedThrough || series.closedAt;
+  const next = couponSchedule(series.maturityDays, series.couponEveryDays).find((c) => series.closedAt + c.day * DAY > through);
+  if (!next) return null;
+  const total = couponTotal(series, next.days);
+  const maturity = next.day === series.maturityDays;
+  const at = series.closedAt + next.day * DAY;
+  if (!accountId) return { at, day: next.day, coupon: total, face: maturity ? series.sold * series.faceValue : 0 };
+  const holders = holdersOf(series);
+  const mine = holders.find((h) => h.account === accountId);
+  if (!mine) return null;
+  const coupon = splitProRata(total, holders).find((p) => p.account === accountId).amount;
+  return { at, day: next.day, coupon, face: maturity ? mine.units * series.faceValue : 0 };
 }

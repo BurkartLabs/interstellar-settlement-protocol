@@ -8,9 +8,10 @@ import { deepClone } from "../helpers.js";
 import { appState } from "../state.js";
 import { showActionReceipt } from "./receiptModal.js";
 import { showTradeConfirmation, updateAllViews } from "./shared.js";
+import { renderBondBoard } from "./bondBoard.js"; // ISP-156 (AB#850)
 
 // The view's own state survives a redraw: the offers read once per visit, the open quote, and what the form holds.
-const bank = { accountId: null, offers: null, loading: false, quote: null, form: {} };
+const bank = { accountId: null, offers: null, loading: false, quote: null, form: {}, mode: "loans", last: null };
 const bound = new WeakSet();
 const json = { "Content-Type": "application/json" };
 const base = () => `/api/accounts/${encodeURIComponent(appState.accountId)}/loans`;
@@ -115,9 +116,20 @@ async function payOff(loanId, btn) {
 
 /** Draw the Bank into the station's building panel and bind it. `header` is the building's shared header markup. */
 export function renderDevelopmentBank(contentEl, data, header) {
-  if (bank.accountId !== appState.accountId) Object.assign(bank, { accountId: appState.accountId, offers: null, quote: null, form: {} });
+  if (bank.accountId !== appState.accountId) Object.assign(bank, { accountId: appState.accountId, offers: null, quote: null, form: {}, mode: "loans" });
+  bank.last = { contentEl, header };
+  // ISP-156 (AB#850): the Bank lends (loans) and lists corporate bonds (bonds); one at a time
+  const modes = `
+    <div class="bank-modes" role="group" aria-label="Development Bank desk">
+      ${[["loans", "Loans"], ["bonds", "Bonds"]].map(([m, label]) => `<button type="button" class="ui-button ui-button--secondary bank-modes__button" data-role="bank-mode" data-mode="${m}" aria-pressed="${bank.mode === m}">${label}</button>`).join("")}
+    </div>`;
+  if (bank.mode === "bonds") {
+    contentEl.innerHTML = `${header}${modes}<div class="bond-board" data-role="bond-board"></div>`;
+    renderBondBoard(contentEl.querySelector('[data-role="bond-board"]'));
+  } else {
   contentEl.innerHTML = `
     ${header}
+    ${modes}
     <section class="ui-panel station__panel bank-panel">
       <h3>Borrow from the Bank</h3>
       <div data-role="bank-offers"></div>
@@ -129,6 +141,7 @@ export function renderDevelopmentBank(contentEl, data, header) {
     </section>`;
   redraw(data);
   if (!bank.offers) loadOffers();
+  }
   if (bound.has(contentEl)) return;
   bound.add(contentEl); // the panel is reused by every building: bind once, and only to the Bank's own controls
   contentEl.addEventListener("submit", (event) => {
@@ -140,7 +153,11 @@ export function renderDevelopmentBank(contentEl, data, header) {
   contentEl.addEventListener("click", (event) => {
     const t = event.target.closest("button");
     if (!t) return;
-    if (t.dataset.role === "bank-accept") acceptQuote();
+    if (t.dataset.role === "bank-mode") {
+      bank.mode = t.dataset.mode;
+      renderDevelopmentBank(bank.last.contentEl, appState.data, bank.last.header);
+      contentEl.querySelector(`[data-role="bank-mode"][data-mode="${bank.mode}"]`)?.focus();
+    } else if (t.dataset.role === "bank-accept") acceptQuote();
     else if (t.dataset.role === "bank-discard") { bank.quote = null; redraw(appState.data); }
     else if (t.dataset.role === "bank-payoff") payOff(t.dataset.loan, t);
   });
