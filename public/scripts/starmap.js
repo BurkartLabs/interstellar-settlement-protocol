@@ -107,7 +107,10 @@ export function scoutedBeltHtml(view, composition) {
             <div class="progress-wrap belt-reserve" role="progressbar" aria-label="Reserve left" aria-valuemin="0" aria-valuemax="${view.reserve}" aria-valuenow="${left}"><div class="progress-bar" style="width:${pct.toFixed(1)}%"></div></div>
             <p class="ui-panel__meta" data-belt-reserve>${left.toLocaleString("en-US")} of ${Number(view.reserve).toLocaleString("en-US")} units left (${Math.round(pct)}%). Every corporation mining here draws on it; when it runs out, the belt is gone.</p>`;
   }
+  // ISP-208 (AB#903): a belt a conglomerate partner scouted, named, where the expedition is chosen.
+  const shared = view?.sharedBy?.length ? `<p class="belt-shared" data-belt-shared><span class="ui-badge ui-badge--success">Shared intel</span> Scouted by ${escBelt(view.sharedBy.join(", "))}, ${view.sharedBy.length === 1 ? "a partner" : "partners"} in your conglomerate. You can launch here without scouting it yourself.</p>` : "";
   return `<h4 class="starmap__subhead">Material Composition${rarity}</h4>
+            ${shared}
             ${bar}
             ${legend}
             ${reserve}`;
@@ -1045,6 +1048,8 @@ export function createStarmapController({
       const bodyR = body.type === "Field" ? Math.max(10, body.radius + 5) : Math.max(4, body.radius);
       // ISP-143 (AB#837): with a resource chosen, a ring in the body's band and its share in its label.
       let bodyText = body.name;
+      // ISP-208 (AB#903): a belt shared by a conglomerate partner says so on the map; its panel names who scouted it.
+      if (body.type === "Field" && beltSlots()[`${system.id}:${body.id}`]?.sharedBy?.length) bodyText = `${body.name} · shared`;
       if (state.resource !== "none") {
         const value = bodyConcentration(system, body, state.resource, beltSlots());
         const band = concentrationBand(value);
