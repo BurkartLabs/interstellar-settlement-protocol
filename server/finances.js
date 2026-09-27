@@ -91,6 +91,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
   income: Object.freeze(["exchange", "missions", "salvage", "exchange-escrow-return",
     "loan-disbursal-received", "loan-repayment-received", "bond-subscription-received", "coupon-received", "dividend-received",
     "share-purchase-received", "escrow-release-received", "loan-interest-received",
+    "bond-redemption-received", // ISP-155 (AB#849): a bond's face back at maturity
     "ship-production-refund", // ISP-171 (AB#865): what cancelling a shipyard job returns
     "troop-training-refund", // ISP-172 (AB#866): what cancelling a training job returns
     "conglomerate-dissolution" // ISP-199 (AB#893): a member's share of a dissolved conglomerate's treasury
@@ -116,6 +117,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",
     "escrow-hold-paid", "fee-paid", // ISP-146 (AB#840): server/settlement.js
     "loan-interest-paid", // ISP-150 (AB#844): a loan's interest, on its own line of the statements
+    "bond-redemption-paid", // ISP-155 (AB#849): an issuer repaying its bonds' face at maturity
     "conglomerate-charter", "conglomerate-deposit", // ISP-197 (AB#891): the charter fee, a sink, and the deposit into the new treasury
     "ship-production", // ISP-171 (AB#865): ships queued at the Orbital Shipyard
     "troop-training", // ISP-172 (AB#866): troops trained at Headquarters
