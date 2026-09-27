@@ -56,8 +56,11 @@ export const starmap = createStarmapController({
       updateAllViews();
       showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       setTab("travel");
+      return { ok: true };
     } catch (err) {
       pushFeedback(err.message || "Docking request failed.", "warn");
+      // Bug #4651: the feedback list is on the Overview; the map shows the reason where the order was given
+      return { error: err.message || "Docking request failed." };
     }
   },
   async onScoutBelt(systemId, bodyId, beltKey) {
