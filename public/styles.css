@@ -2842,6 +2842,69 @@ body.sg {
   border-color: var(--accent);
   background: var(--surface-3);
 }
+/* AB#911: a conversation row's preview stays on one line; a thread scrolls inside its panel, newest at the bottom. */
+.inbox__preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.thread__scroll {
+  max-height: min(60vh, 560px);
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3);
+}
+.thread__older {
+  margin: 0 0 var(--space-2);
+  text-align: center;
+  color: var(--text-soft);
+  font-size: var(--font-size-1);
+}
+.thread__messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.thread__msg {
+  max-width: min(85%, 640px);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.thread__msg--mine {
+  align-self: flex-end;
+  border-color: var(--accent);
+  background: var(--surface-3);
+}
+.thread__meta {
+  display: block;
+  color: var(--text-soft);
+  font-size: var(--font-size-1);
+}
+.thread__subject {
+  display: block;
+  font-weight: 600;
+}
+.thread__body {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* A reply is a line or two: a short box leaves the thread its room on a phone (seen at 375x812). */
+.thread__reply .ui-textarea {
+  min-height: 88px;
+}
+.thread__reply {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+}
 
 /* The Financial Core: charts two across (the wide ones span both), the two statements and the daily statements. */
 .finance__charts {
@@ -4317,7 +4380,7 @@ img.station__body {
 
 /* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */
 @media (max-width: 600px) {
-  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-kv, .station__overline, .station__note, .station__hint, .station__flavor, .station__blocked, .station__form label, .extractor__stat-label, .extractor__stat-value, .extractor__pct, .extractor__time, .extractor__cycle-status, .chat__meta, .chat__text, .forums__note, .forums__avatar, .forums__author, .forums__body, .missions__note, .missions__hint, .missions__overline, .missions__reward, .missions__cta, .missions__log-title, .missions__warning, .missions__levelup) {
+  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .thread__meta, .thread__older, .thread__body, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-kv, .station__overline, .station__note, .station__hint, .station__flavor, .station__blocked, .station__form label, .extractor__stat-label, .extractor__stat-value, .extractor__pct, .extractor__time, .extractor__cycle-status, .chat__meta, .chat__text, .forums__note, .forums__avatar, .forums__author, .forums__body, .missions__note, .missions__hint, .missions__overline, .missions__reward, .missions__cta, .missions__log-title, .missions__warning, .missions__levelup) {
     font-size: var(--font-size-3);
   }
   .ui-screen .ui-table td::before {
