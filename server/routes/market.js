@@ -21,6 +21,7 @@ import { buyOrderReceipt, buyReceipt, listingReceipt, sellToOrderReceipt } from 
 import { cancelBuyOrder, matchListing, placeBuyOrder } from "../buyOrders.js"; // AB#1054
 import { paySeller, takeFromListing, tellSeller } from "../marketSettlement.js";
 import { chargeTariff, tariffRateFor } from "../tariffService.js"; // ISP-230 (AB#925)
+import { withholdDuty } from "../itcService.js"; // ISP-232 (AB#927)
 import { buyOrderView } from "../publicViews.js";
 import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
@@ -349,6 +350,7 @@ export function registerMarketRoutes(app) {
     let tradeTaxPct = 0;
     let tradeTaxAmount = 0;
     let tradeTariff = { pct: 0, amount: 0 };
+    let tradeWithheld = 0;
     let tradeProceeds = tradeTotal;
     let royaltyPaid = 0, saleStationId = null; // ISP-228 (AB#923): the concession holder's share, paid once the seller is saved
 
@@ -378,7 +380,8 @@ export function registerMarketRoutes(app) {
       royaltyPaid = royalty;
       recordSale(state.corp, npcStationId, tradeTotal); // ISP-217 (AB#912): an NPC buyer is never a partner
       tradeTariff = chargeTariff(state.corp, { stationId: npcStationId, base: tradeTotal }); // ISP-230 (AB#925)
-      tradeProceeds = sellerProceeds - tradeTariff.amount;
+      tradeWithheld = withholdDuty(state.corp, sellerProceeds - tradeTariff.amount); // ISP-232 (AB#927): toward ITC duty owed
+      tradeProceeds = sellerProceeds - tradeTariff.amount - tradeWithheld;
 
       if (!state.corp.stats) state.corp.stats = {};
       state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
@@ -394,6 +397,7 @@ export function registerMarketRoutes(app) {
         taxPct,
         taxAmount,
         ...(tradeTariff.amount ? { tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount } : {}),
+        ...(tradeWithheld ? { dutyWithheld: tradeWithheld } : {}),
         proceeds: tradeProceeds,
         counterparty: npcOrder.buyer,
         at: Date.now()
@@ -420,7 +424,7 @@ export function registerMarketRoutes(app) {
     });
 
     emitMarketUpdated();
-    const traded = { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount, proceeds: tradeProceeds };
+    const traded = { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount, dutyWithheld: tradeWithheld, proceeds: tradeProceeds };
     res.json({ ok: true, traded, account: seller, receipt: sellToOrderReceipt(traded) }); // AB#744
   });
 }

@@ -175,7 +175,7 @@ export function normalValue(item, now = Date.now()) {
   const days = (getState().market?.priceHistory?.[item] || []).filter((b) => b.day < today && b.day >= since && b.volume > 0);
   if (days.length >= WARFARE_CATALOG.dumping.minTradedDays) {
     const volume = days.reduce((s, b) => s + b.volume, 0);
-    return days.reduce((s, b) => s + b.close * b.volume, 0) / volume;
+    return days.reduce((s, b) => s + (Number.isFinite(b.value) ? b.value : b.close * b.volume), 0) / volume; // ISP-232 (AB#927): the traded value
   }
   return Number((ECONOMY.npcBuyers || []).find((b) => b.item === item)?.unitPrice) || 0;
 }

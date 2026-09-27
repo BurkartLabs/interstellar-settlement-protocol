@@ -4,7 +4,7 @@ import { registerAccount, authed } from "../helpers/api.js";
 import { accountsStore } from "../../server/game/store.js";
 import { findConglomerate, inviteCorporation, answerInvitation } from "../../server/game/membership.js";
 import { recordControlDay, resetControlHistory } from "../../server/controlService.js";
-import { chargeUpkeep, petitionConcession, publicConcession, relinquishConcession, renewConcessions, resetConcessions, reviewConcessions, upkeepFor } from "../../server/concessions.js";
+import { chargeUpkeep, concessionStatusFor, petitionConcession, publicConcession, relinquishConcession, renewConcessions, resetConcessions, reviewConcessions, upkeepFor } from "../../server/concessions.js";
 import { CONGLOMERATE_CATALOG as CC } from "../../server/conglomerates.js";
 import { WARFARE_CATALOG as W } from "../../server/warfare.js";
 
@@ -251,5 +251,29 @@ describe("renewal, upkeep, grace and lapse (AB#922)", () => {
     reviewConcessions(grantedAt + DAY + H + 72 * H);
     expect(stateOf("alpha-centauri", a.holder)).toBeNull();
     expect(stateOf("alpha-centauri", c.holder)).toBe("granted");
+  });
+});
+
+// ISP-229 (AB#924): what the starmap and the viewer's panel read.
+describe("the starmap register and the viewer's own status (AB#924)", () => {
+  it("lists every system's holders and open petitions publicly, and tells the viewer its own eligibility and costs", async () => {
+    const a = await corp(), b = await corp();
+    const T = Date.now();
+    readings({ "alpha-centauri": [[a.holder, 0.6], [b.holder, 0.2]] }, T - H);
+    const before = (await b.api.get(`/api/accounts/${b.id}/concessions/alpha-centauri`)).body;
+    expect(before).toMatchObject({ concedable: true, eligible: false, petition: { kind: "petition", fee: W.concessionPetitionFee } });
+    expect(before.petition.refusal).toMatch(/40% control/);
+    const mine = (await a.api.get(`/api/accounts/${a.id}/concessions/alpha-centauri`)).body;
+    expect(mine).toMatchObject({ eligible: true, streakDays: 14, petition: { refusal: null, upkeepIfGranted: expect.any(Number) } });
+    petitionConcession(a.id, "alpha-centauri", T);
+    const board = (await a.api.get("/api/starmap/concessions")).body;
+    expect(board.systems["alpha-centauri"].petitions).toEqual([expect.objectContaining({ kind: "petition", name: a.holder.name })]);
+    expect(board.systems.sol).toMatchObject({ concedable: false });
+    expect(JSON.stringify(board)).not.toMatch(/acc-/);
+    readings({ "alpha-centauri": [[a.holder, 0.6], [b.holder, 0.2]] }, T + 71 * H);
+    reviewConcessions(T + 72 * H);
+    const holds = concessionStatusFor(a.id, "alpha-centauri", T + 73 * H);
+    expect(holds.holds).toMatchObject({ state: "granted", ownLeaseDiscountPct: 25, leaseDiscountPct: 0, leaseDiscountMaxPct: 25 });
+    expect((await b.api.get(`/api/accounts/${b.id}/concessions/atlantis`)).status).toBe(404);
   });
 });

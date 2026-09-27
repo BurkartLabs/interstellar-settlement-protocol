@@ -197,6 +197,15 @@ sales into other corporations' buy orders. Two kinds of sale are left out:
 **Fails closed** (ISP-232): if fewer than `dumping.minTradedDays` (3) of the 7 normal-value days had trades in i,
 there is no normal value, and no finding. The watch never levies a duty on missing data.
 
+**As built (ISP-232, AB#927).** The rule is `server/game/dumping.js` and the watch is `server/itcService.js`, which
+runs at the first minute after 00:00 UTC. The own-priced sales are logged as they settle (`paySeller`), in `itc.json`
+beside the findings. The duty owed is on the corporation itself (`corp.itcDuty`), so the sale confirmation shows what
+will be withheld before the trader commits, using the same arithmetic as the settlement (`public/scripts/itcDuty.js`). Price history buckets now keep each day's traded `value`; a bucket saved before
+counts its close x volume. Duty is booked as `anti-dumping-duty` through `applyCredits` inside the payer's own state
+change, as the exchange tax is, rather than through `settleTransfer`, because a withholding happens in the middle of a
+sale's settlement. The Commission's sink is counted in `itc.json`. Both sale paths call the one `withholdDuty`, and a
+test holds them to it.
+
 **The investigation.** A finding opens an ITC investigation and notifies the corporation that same tick, in the ISA's
 voice and with its numbers: the item, N_i, the 85% line, Q_d, P_d, the volume line, and the duty. The duty is levied
 `dumping.levyAfterHours` (24) later, at the next tick, on exactly those sales. They are marked, so no later window

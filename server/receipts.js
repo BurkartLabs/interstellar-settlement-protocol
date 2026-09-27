@@ -451,16 +451,18 @@ export function buyReceipt({ item, quantity, unitPrice, total, stationName }) {
   });
 }
 
-export function sellToOrderReceipt({ item, quantity, unitPrice, total, taxPct, taxAmount, tariffPct = 0, tariffAmount = 0, proceeds }) {
+export function sellToOrderReceipt({ item, quantity, unitPrice, total, taxPct, taxAmount, tariffPct = 0, tariffAmount = 0, dutyWithheld = 0, proceeds }) {
   return receipt("sell-to-order", {
     title: "Sale Completed",
     summary: `${amount(quantity)} ${item} sold to a standing order at ${formatCredits(unitPrice)} each.`,
-    costCredits: taxAmount + tariffAmount,
+    costCredits: taxAmount + tariffAmount + dutyWithheld, // ISP-232 (AB#927): what was withheld is charged too
     grants: [
       { label: "Sale value", value: formatCredits(total) },
-      { label: "Exchange tax", value: `${formatCredits(taxAmount)} (${taxPct}%)${tariffAmount ? "" : ", the amount charged above"}` },
+      { label: "Exchange tax", value: `${formatCredits(taxAmount)} (${taxPct}%)${tariffAmount || dutyWithheld ? "" : ", the amount charged above"}` },
       // ISP-230 (AB#925): the concession holder's tariff, when the system has one
       ...(tariffAmount ? [{ label: "Concession tariff", value: `${formatCredits(tariffAmount)} (${tariffPct}%)` }] : []),
+      // ISP-232 (AB#927): toward anti-dumping duty owed to the ITC
+      ...(dutyWithheld ? [{ label: "Withheld for ITC duty", value: formatCredits(dutyWithheld) }] : []),
       { label: "Paid to your reserves", value: formatCredits(proceeds) }
     ],
     next: "The credits are in your reserves now."

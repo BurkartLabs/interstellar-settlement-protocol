@@ -53,8 +53,10 @@ export function recordTrade(history, item, price, qty, t = Date.now()) {
   const day = dayKey(t);
   const buckets = Array.isArray(history[item]) ? history[item] : (history[item] = []);
   let bucket = buckets.find((b) => b.day === day);
+  // ISP-232 (AB#927): a bucket saved before the traded value was kept starts from its close x volume
+  if (bucket && !Number.isFinite(bucket.value)) bucket.value = bucket.close * bucket.volume;
   if (!bucket) {
-    bucket = { day, open: unitPrice, high: unitPrice, low: unitPrice, close: unitPrice, volume: 0, trades: 0 };
+    bucket = { day, open: unitPrice, high: unitPrice, low: unitPrice, close: unitPrice, volume: 0, trades: 0, value: 0 };
     buckets.push(bucket);
     buckets.sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
   } else {
@@ -62,6 +64,7 @@ export function recordTrade(history, item, price, qty, t = Date.now()) {
     bucket.low = Math.min(bucket.low, unitPrice);
     bucket.close = unitPrice;
   }
+  bucket.value += unitPrice * quantity; // ISP-232 (AB#927): the day's traded value, for a true volume-weighted price
   bucket.volume += quantity;
   bucket.trades += 1;
 
@@ -78,7 +81,7 @@ export function normalizePriceHistory(raw) {
     if (!PRICE_HISTORY_ITEMS.has(item) || !Array.isArray(buckets)) continue;
     const kept = buckets
       .filter((b) => b && /^\d{4}-\d{2}-\d{2}$/.test(b.day) && ["open", "high", "low", "close", "volume", "trades"].every((k) => Number.isFinite(b[k])))
-      .map(({ day, open, high, low, close, volume, trades }) => ({ day, open, high, low, close, volume, trades }));
+      .map(({ day, open, high, low, close, volume, trades, value }) => ({ day, open, high, low, close, volume, trades, ...(Number.isFinite(value) ? { value } : {}) }));
     if (kept.length) clean[item] = kept.sort((a, b) => (a.day < b.day ? -1 : 1));
   }
   return clean;

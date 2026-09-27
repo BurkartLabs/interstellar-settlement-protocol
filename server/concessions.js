@@ -385,6 +385,66 @@ export function payConcessionShare(systemId, amount, payerCorp, now = Date.now()
   return paid;
 }
 
+// ─── ISP-229 (AB#924): what the starmap and a viewer's own panel read ────────────────────────────────────────────────
+
+/** Every system's concession for the starmap's overlay: holders and open petitions, public (names, types, dates). */
+export function starmapConcessions(systemIds, now = Date.now()) {
+  return { systems: Object.fromEntries([...systemIds].map((id) => {
+    const c = publicConcession(id, now);
+    return [id, { concedable: c.concedable, holders: c.holders.map((h) => ({ name: h.holder.name, type: h.holder.type, state: h.state, termEndsAt: h.termEndsAt })), petitions: c.petitions.map((p) => ({ kind: p.kind, name: p.holder.name, type: p.holder.type, reviewEndsAt: p.reviewEndsAt })) }];
+  })) };
+}
+
+/**
+ * The viewer's own reading of a system: who it would petition as, whether it may (and if not, why), its eligibility
+ * streak, the fee and the upkeep it would pay if granted (for the confirmation), and, when it holds the concession,
+ * what the holder manages: state, term, today's upkeep, the fee share collected and the lease discount in force or
+ * waiting. Nothing about any other corporation.
+ */
+export function concessionStatusFor(accountId, systemId, now = Date.now()) {
+  const corp = accountsStore.accounts?.[accountId]?.state?.corp;
+  if (!corp?.publicId) return no(404, "no-account", "Account not found.");
+  const c = currentConglomerateOf(corp);
+  const holder = c ? { type: "conglomerate", id: c.id, name: c.name } : { type: "corp", id: corp.publicId, name: corp.corporationName || "A corporation" };
+  const canAct = !c || can(roleOf(c, corp.publicId), "concession");
+  const ctl = controlNow(systemId, now);
+  const terms = ctl.terms;
+  const rec = store.systems[systemId];
+  const hk = keyOf(holder);
+  const entry = rec?.holders.find((h) => keyOf(h.holder) === hk) || null;
+  const open = rec?.petitions.find((p) => p.state === "open" && keyOf(p.holder) === hk) || null;
+  const base = { holder: { type: holder.type, name: holder.name }, concedable: Boolean(terms), canAct, docked: (corp.currentSystemId || "sol") === systemId };
+  if (!terms) return base;
+  let refusal = null;
+  if (!canAct) refusal = "Only your conglomerate's founder can petition for a concession, from its treasury.";
+  else if (open) refusal = "Your petition is under review.";
+  else if ((rec?.cooldowns?.[hk] || 0) > now) refusal = "Your last concession here lapsed recently; the ISA will hear a new petition after the cooldown.";
+  else if (!terms.holders.includes(holder.type)) refusal = "The ISA grants this system's concession only to a conglomerate.";
+  else if (ctl.stale) refusal = "The ISA cannot read this system's control scores just now.";
+  else if (!ctl.eligible.has(hk)) refusal = `A petition needs ${terms.concessionGrantPct}% control and a ${terms.concessionLeadRatio}x lead on each of the last ${terms.concessionEligibleDays} days.`;
+  else if (!base.docked) refusal = "A petition is filed at this system's ISA Claims & Leases: travel here first.";
+  const full = (rec?.holders.length || 0) >= terms.concessionsPerSystem;
+  const k = heldBy(holder).length + (entry ? 0 : 1);
+  const share = scoreOf(ctl.scores, holder)?.score || 0;
+  const upkeep = Math.round(terms.concessionUpkeepBase * k * (1 - (terms.concessionUseDiscountMaxPct / 100) * share) * terms.upkeepFactor);
+  const pending = entry?.leaseModifier?.pendingPct !== undefined && entry?.leaseModifier?.pendingPct !== null && now < entry.leaseModifier.effectiveAt;
+  return {
+    ...base,
+    eligible: ctl.eligible.has(hk),
+    streakDays: ctl.streaks?.get(hk) || 0,
+    needDays: terms.concessionEligibleDays,
+    stale: ctl.stale,
+    petition: entry ? null : { kind: full ? "challenge" : "petition", fee: terms.concessionPetitionFee, upkeepIfGranted: upkeep, concessionsAfter: k, refusal, open: open ? { reviewEndsAt: open.reviewEndsAt } : null },
+    holds: entry ? {
+      state: entry.state, grantedAt: entry.grantedAt, termEndsAt: entry.termEndsAt, graceSince: entry.graceSince,
+      upkeepToday: upkeep, feeShareCollected: entry.feeShareCollected || 0, feeSharePct: terms.concessionFeeSharePct * terms.feeShareFactor,
+      ownLeaseDiscountPct: terms.concessionOwnLeaseDiscountPct, leaseDiscountPct: modifierNow(entry, now, terms), leaseDiscountMaxPct: terms.concessionLeaseModifierMaxPct,
+      noticeHours: terms.concessionLeaseModifierNoticeHours,
+      pendingLeaseDiscount: pending ? { pct: entry.leaseModifier.pendingPct, effectiveAt: entry.leaseModifier.effectiveAt } : null
+    } : null
+  };
+}
+
 /** For tests: a system's stored record, to corrupt a value and see the reader fail closed. */
 export const concessionRecordForTests = (systemId) => store.systems[systemId] ?? null;
 
