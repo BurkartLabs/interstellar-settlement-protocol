@@ -13,19 +13,24 @@
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { charterHtml, directoryHtml, hqHtml, invitationsHtml, memberHtml } from "../conglomerateBureau.js";
 import { hangarHtml, hqTabsHtml, treasuryHtml } from "../conglomerateTreasury.js";
+import { ACCESS_LABELS, stationTabHtml } from "../conglomerateStation.js"; // ISP-213 (AB#908)
+import { officeLeaseCost } from "../ceoEffects.js";
 import { deepClone } from "../helpers.js";
 import { appState } from "../state.js";
 import { setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
 import { showActionReceipt } from "./receiptModal.js"; // ISP-203 (AB#897): the level-up overlay
 import { showStationBuilding } from "./station.js";
 import { scrollBehavior } from "../motion.js"; // AB#1760
+import { paintStationArt } from "../stationArt.js"; // ISP-213 (AB#908)
 
 const CHARTER_STATION = "earth-station-prime";
 // The view's own state survives a redraw: the last reads, the charter form, and the invite search.
 const bureau = {
   accountId: null, view: null, directory: null, error: null, loading: null, form: {}, search: null, target: null, mode: "bureau",
   // ISP-206 (AB#901): the Conglomerate tab's own tab, the treasury and hangar reads, the ledger pages and each form's line
-  hqTab: "roster", treasury: null, hangar: null, pages: { treasury: 0, hangar: 0 }, money: { treasury: {}, hangar: {} }
+  hqTab: "roster", treasury: null, hangar: null, pages: { treasury: 0, hangar: 0 }, money: { treasury: {}, hangar: {} },
+  // ISP-213 (AB#908): the Station tab: GET .../station-project, GET .../station once built, and each form's line
+  station: null, governance: null, stationStatus: {}
 };
 const listeners = new Set();
 const bound = new WeakSet();
@@ -44,9 +49,53 @@ export function onConglomerateChange(listener) {
   listeners.add(listener);
 }
 
+/**
+ * ISP-213 (AB#908): what the player has typed or chosen in the forms, kept across a redraw. A room event (another
+ * member's contribution, or this one's own echo) redraws the tab at any moment; without this it cleared a half-filled
+ * form, and the next submit sent nothing. An order empties its own form's fields as it is sent (takeFields), so no echo,
+ * before or after the answer, can clear what is typed next or bring the sent values back; a refusal puts them back.
+ */
+function fieldsOf(el) {
+  const out = {};
+  for (const f of el.querySelectorAll('[data-role="cong-body"] input[id], [data-role="cong-body"] select[id]')) out[f.id] = f.value;
+  return out;
+}
+function restoreFields(el, saved) {
+  for (const [id, value] of Object.entries(saved)) {
+    const f = el.querySelector(`#${CSS.escape(id)}`);
+    if (!f || f.type === "radio" || f.type === "checkbox") continue;
+    if (f.tagName === "SELECT" && ![...f.options].some((o) => o.value === value)) continue;
+    f.value = value;
+  }
+}
+
 function redraw() {
   const el = panel();
   if (!el) return; // the player has left the Bureau
+  const saved = fieldsOf(el);
+  drawInto(el);
+  restoreFields(el, saved);
+}
+
+/** Empty these fields on the page now (a select to its first option), so the next redraw saves them empty. */
+function clearFields(ids) {
+  const el = panel();
+  for (const id of ids) {
+    const f = el?.querySelector(`#${CSS.escape(id)}`);
+    if (f) f.value = f.tagName === "SELECT" ? f.options[0]?.value ?? "" : "";
+  }
+}
+const idsOf = (form) => [...(form?.querySelectorAll?.("input[id], select[id]") || [])].map((f) => f.id);
+/** Empty the fields as an order is sent; returns what they held, for giveBack when the order is refused. */
+function takeFields(ids) {
+  const el = panel();
+  const held = Object.fromEntries(ids.map((id) => [id, el?.querySelector(`#${CSS.escape(id)}`)?.value ?? ""]));
+  clearFields(ids);
+  return held;
+}
+const giveBack = (held) => { const el = panel(); if (el) restoreFields(el, held); };
+
+function drawInto(el) {
   const corp = appState.data?.corp || {};
   const view = bureau.view ? { ...bureau.view, me: corp.publicId, atBureau: corp.currentStationId === CHARTER_STATION } : null;
   if (bureau.mode === "hq") {
@@ -57,8 +106,16 @@ function redraw() {
     el.querySelector('[data-role="cong-body"]').innerHTML = hqTabsHtml(bureau.hqTab, {
       roster,
       treasury: treasuryHtml(bureau.treasury && { ...bureau.treasury, me: corp.publicId }, { may, status: bureau.money.treasury }),
-      hangar: hangarHtml(bureau.hangar, { may, status: bureau.money.hangar, own: stationId ? corp.inventory?.[stationId] || {} : {}, docked: corp.currentStationId === stationId })
+      hangar: hangarHtml(bureau.hangar, { may, status: bureau.money.hangar, own: stationId ? corp.inventory?.[stationId] || {} : {}, docked: corp.currentStationId === stationId }),
+      station: stationTabHtml(bureau.station, bureau.governance, {
+        may, me: corp.publicId, level: view.conglomerate.level, atBureau: view.atBureau, systems: appState.data?.world?.systems || [],
+        stations: appState.stationRegistry || [], memberStation: view.conglomerate.station, directory: bureau.directory || [],
+        conglomerateId: view.conglomerate.id, standardRent: officeLeaseCost(1), status: bureau.stationStatus,
+        own: corp.inventory?.[stationId || CHARTER_STATION] || {}, hangar: bureau.hangar?.items || {},
+        treasury: bureau.treasury && !bureau.treasury.error ? { credits: bureau.treasury.balance } : null
+      })
     });
+    if (bureau.hqTab === "station") paintStationArt(el, appState.data?.world?.systems || []);
     return;
   }
   el.querySelector('[data-role="cong-body"]').innerHTML = view
@@ -81,7 +138,7 @@ async function load() {
     ]);
     Object.assign(bureau, { view, directory: directory.conglomerates, error: null });
     appState.conglomerate = view.conglomerate ? { ...view.conglomerate } : null;
-    if (view.conglomerate && bureau.mode === "hq") await loadMoney();
+    if (view.conglomerate && bureau.mode === "hq") await Promise.all([loadMoney(), loadStation()]);
   } catch (error) {
     bureau.error = error?.message || "The Bureau did not answer.";
   }
@@ -127,6 +184,7 @@ async function moveMoney(kind, op, body, { confirm, done } = {}) {
   const key = op === "withdrawal-block" ? "withdraw" : op;
   bureau.money[kind] = {};
   if (confirm && !(await showTradeConfirmation(confirm))) return;
+  const held = takeFields(kind === "treasury" ? ["cong-deposit-amount", "cong-withdraw-amount"] : ["cong-goods-in-item", "cong-goods-in-qty", "cong-goods-out-item", "cong-goods-out-qty"]); // ISP-213 (AB#908)
   const path = op === "withdrawal-block" ? `treasury/withdrawals/${encodeURIComponent(body.id)}/block` : `${kind}/${op}`;
   try {
     const answer = await parseJsonResponse(await apiFetch(`${cong(bureau.view.conglomerate.id)}/${path}`, { method: "POST", headers: json, body: JSON.stringify(body) }));
@@ -135,6 +193,7 @@ async function moveMoney(kind, op, body, { confirm, done } = {}) {
     await refreshAccount();
   } catch (error) {
     bureau.money[kind] = { [key]: { text: error?.message || "The Bureau refused that." } };
+    giveBack(held);
   }
   await loadConglomerate();
 }
@@ -217,6 +276,12 @@ export function renderConglomerateHq(container) {
   bind(container);
 }
 
+/** ISP-213 (AB#908): the Conglomerate tab at its Station screen (the Station tab's "Stakes and votes"). */
+export function openConglomerateStation() {
+  bureau.hqTab = "station";
+  setTab("conglomerate");
+}
+
 /** Open the Bureau: its building on Earth Station Prime, from anywhere in the app. */
 export function openBureau() {
   setTab("station");
@@ -235,6 +300,9 @@ function bind(contentEl) {
     else if (form.matches('[data-role="cong-treasury-deposit"]')) depositCredits(form);
     else if (form.matches('[data-role="cong-treasury-withdraw"]')) withdrawCredits(form);
     else if (form.matches('[data-role="cong-hangar-deposit"], [data-role="cong-hangar-withdraw"]')) moveGoods(form);
+    else if (form.matches('[data-role="cong-station-start"]')) startStation(form); // ISP-213 (AB#908)
+    else if (form.matches('[data-role="cong-station-give"]')) giveToStation(form);
+    else if (form.matches('[data-role="cong-propose"]')) proposeSetting(form);
     else if (form.matches('[data-role="cong-identity-form"]')) {
       act(`${cong(bureau.view.conglomerate.id)}/identity`, { body: { emblem: Number(form.emblem.value), colour: Number(form.colour.value) }, status: "cong-roster-status" });
     }
@@ -242,7 +310,7 @@ function bind(contentEl) {
   contentEl.addEventListener("keydown", (event) => {
     const tab = event.target.closest?.('[data-role="cong-tab"]');
     if (!tab) return;
-    const order = ["roster", "treasury", "hangar"];
+    const order = ["roster", "treasury", "hangar", "station"];
     const i = order.indexOf(tab.dataset.tab);
     const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: order.length - 1 }[event.key];
     if (next === undefined) return;
@@ -267,6 +335,8 @@ function bind(contentEl) {
       case "cong-reload": bureau.error = null; redraw(); loadConglomerate(); break;
       case "cong-open-bureau": openBureau(); break;
       case "cong-tab": selectTab(d.tab); break;
+      case "cong-station-cancel": cancelStation(); break; // ISP-213 (AB#908)
+      case "cong-vote": voteOn(d.proposal, d.vote); break;
       case "cong-ledger-page": bureau.pages[d.which] = Math.max(0, Number(d.offset) || 0); loadMoney(d.which).then(redraw); break;
       case "cong-withdrawal-block":
         moveMoney("treasury", "withdrawal-block", { id: d.withdrawal }, {
@@ -296,7 +366,7 @@ function bind(contentEl) {
       case "cong-remove":
         act(`${cong(mine.id)}/members/${encodeURIComponent(d.corp)}/remove`, {
           status: "cong-roster-status",
-          confirm: { heading: "Conglomerate Affairs Bureau", title: `Remove ${memberName(d.corp)}?`, confirmLabel: "Remove", rows: [{ label: "What happens", value: "It leaves at once and cannot join any conglomerate for 24 hours. What it gave the treasury stays." }] }
+          confirm: { heading: "Conglomerate Affairs Bureau", title: `Remove ${memberName(d.corp)}?`, confirmLabel: "Remove", rows: [{ label: "What happens", value: "It leaves at once and cannot join any conglomerate for 24 hours. What it gave the treasury stays." }, { label: "Its station stake", value: "If it has one, the treasury buys it out in full over 30 days (ISP-211)." }] }
         });
         break;
       case "cong-transfer":
@@ -357,7 +427,7 @@ function bind(contentEl) {
 
 /** ISP-206 (AB#901): select one of the Conglomerate tab's own tabs, and keep the choice across redraws. */
 function selectTab(tab) {
-  if (!["roster", "treasury", "hangar"].includes(tab)) return;
+  if (!["roster", "treasury", "hangar", "station"].includes(tab)) return;
   bureau.hqTab = tab;
   redraw();
   panel()?.querySelector(`#cong-tab-${tab}`)?.focus();
@@ -418,3 +488,114 @@ async function refreshAccount() {
     if (account?.state) { appState.data = deepClone(account.state); updateAllViews(); }
   } catch { /* the Bureau already shows the outcome; the header catches up on its next update */ }
 }
+
+// ─── ISP-213 (AB#908): the Station tab ────────────────────────────────────────────────────────────────────────────
+
+/** Read the station project and, once the station is built, its stakes and votes. A new station joins the page's list. */
+async function loadStation() {
+  const id = bureau.view?.conglomerate?.id;
+  if (!id) return;
+  try {
+    bureau.station = await parseJsonResponse(await apiFetch(`${cong(id)}/station-project`));
+    bureau.governance = bureau.station.station ? await parseJsonResponse(await apiFetch(`${cong(id)}/station`)) : null;
+    const built = bureau.station.station?.id;
+    if (built && !(appState.stationRegistry || []).some((s) => s.id === built)) await refreshStations();
+  } catch (error) {
+    bureau.station = { error: error?.message || "The Bureau did not answer." };
+  }
+}
+
+/** The station list the Starmap, Logistics and Station tabs read, again from the server (GET /api/stations). */
+export async function refreshStations() {
+  try {
+    const data = await parseJsonResponse(await apiFetch("/api/stations"));
+    appState.stationRegistry = data.stations || appState.stationRegistry;
+    updateAllViews();
+  } catch { /* the list catches up on the next load */ }
+}
+
+/** Post a Station-tab order; the line under its form says what happened. Reads everything again after. */
+async function stationOrder(path, body, { line, confirm, done, form = null }) {
+  const ids = idsOf(form);
+  bureau.stationStatus = {};
+  if (confirm && !(await showTradeConfirmation(confirm))) return;
+  const held = takeFields(ids);
+  try {
+    const answer = await parseJsonResponse(await apiFetch(`${cong(bureau.view.conglomerate.id)}/${path}`, { method: "POST", headers: json, body: JSON.stringify(body || {}) }));
+    bureau.stationStatus = { [line]: { text: done(answer), ok: true } };
+    await refreshAccount();
+  } catch (error) {
+    bureau.stationStatus = { [line]: { text: error?.message || "The Bureau refused that." } };
+    giveBack(held); // refused: what was typed is still there to correct
+  }
+  await loadConglomerate();
+}
+
+async function startStation(form) {
+  const [systemId, body] = String(form.site.value).split("|");
+  const suffix = Number(form.suffix.value);
+  const name = `${body} ${form.suffix.selectedOptions[0]?.textContent || ""}`.trim();
+  const bill = bureau.station?.bill;
+  await stationOrder("station-project", { systemId, body, suffix }, {
+    line: "start",
+    confirm: {
+      heading: "Conglomerate Affairs Bureau", title: `File ${name}?`, confirmLabel: "File the project",
+      rows: [
+        { label: "Where", value: `In orbit of ${body}` },
+        { label: "It needs", value: bill ? [`${bill.credits.toLocaleString("en-US")} credits`, ...Object.entries(bill.goods).map(([i, q]) => `${q.toLocaleString("en-US")} ${i}`)].join(", ") : "Its bill of materials" },
+        { label: "Nothing is paid now", value: "Members fund it from here; you can cancel it until it is funded, and everything goes back" }
+      ]
+    },
+    done: (a) => `${a.project.name} is filed. Members can fund it now.`
+  });
+}
+
+async function giveToStation(form) {
+  const pool = form.dataset.source === "pool";
+  const credits = form.credits && String(form.credits.value).trim() ? typedWhole(form.credits.value) : null;
+  const item = form.item?.value || "";
+  const quantity = form.quantity && String(form.quantity.value).trim() ? typedWhole(form.quantity.value) : null;
+  const line = pool ? "pool" : "own";
+  const say = (text) => { bureau.stationStatus = { [line]: { text } }; redraw(); };
+  if (credits && item) return say("Put in credits or goods, one at a time.");
+  if (!credits && !item) return say("Enter a whole number of credits, or choose goods and a number of units.");
+  if (item && !quantity) return say("Enter a whole number of units, at least 1.");
+  const body = credits ? { source: pool ? "treasury" : "own", credits } : { source: pool ? "hangar" : "own", item, quantity };
+  const what = credits ? `${credits.toLocaleString("en-US")} credits` : `${quantity.toLocaleString("en-US")} ${item}`;
+  await stationOrder("station-project/contribute", body, {
+    line, form,
+    confirm: {
+      heading: "Station project", title: `Put ${what} into ${bureau.station?.project?.name || "the station"}?`, confirmLabel: "Put it in",
+      rows: pool
+        ? [{ label: "From", value: credits ? "The treasury" : "The hangar" }, { label: "Stake", value: "None: pooled value is nobody's stake" }]
+        : [{ label: "From", value: credits ? "Your corporation's credits" : "Your stock at the hangar's station" }, { label: "Stake", value: "Its value becomes your stake in the station" }, { label: "If the project is cancelled", value: "It comes back in full" }]
+    },
+    done: (a) => (a.project.state === "building" ? `Put in. ${a.project.name} is fully funded and under construction.` : `Put in: ${what}.`)
+  });
+}
+
+async function cancelStation() {
+  const name = bureau.station?.project?.name || "the project";
+  await stationOrder("station-project/cancel", {}, {
+    line: "cancel",
+    confirm: { heading: "Station project", title: `Cancel ${name}?`, confirmLabel: "Cancel the project", rows: [{ label: "What happens", value: "Every contribution goes back where it came from, in full: members' own credits and goods, the treasury, the hangar." }] },
+    done: () => `${name} is cancelled; everything has gone back.`
+  });
+}
+
+async function proposeSetting(form) {
+  const [setting, value] = String(form.what.value).split("|");
+  const body = setting === "access" ? { setting, value } : { setting, conglomerateId: value };
+  await stationOrder("station/proposals", body, {
+    line: "propose", form,
+    done: (a) => (a.proposal.state === "passed" ? `Passed at once: docking is now ${ACCESS_LABELS[a.settings.access] || a.settings.access}.` : `Put to the vote: ${a.proposal.text}.`)
+  });
+}
+
+async function voteOn(proposalId, vote) {
+  await stationOrder(`station/proposals/${encodeURIComponent(proposalId)}/vote`, { vote }, {
+    line: "vote",
+    done: (a) => (a.proposal.state === "passed" ? `Your vote carried it: ${a.proposal.text}, in force now.` : a.proposal.state === "rejected" ? "Your vote decided it: voted down." : `Your ${vote} is counted: yes ${a.proposal.yesPct}%, no ${a.proposal.noPct}% of all stake.`)
+  });
+}
+

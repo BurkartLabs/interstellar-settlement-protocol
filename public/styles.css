@@ -4940,3 +4940,20 @@ img.station__body {
   .raid-table th, .raid-table td { padding: var(--space-1); }
   .raid-report { padding: var(--space-3); }
 }
+/* ISP-213 (AB#908): the Conglomerate tab's Station screen: the body the station (or its project) orbits beside its name,
+   as every station header shows it (ISP-78); the bill of materials with a bar per input; the stakes and the vote. */
+.cong-station__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4); }
+.cong-station__head .station__art { width: 128px; }
+.cong-station__head h3 { margin: var(--space-1) 0; }
+.cong-station__bar { min-width: 8rem; background: var(--surface-3); } /* the track shows on a panel: an empty input reads as empty, not blank */
+.cong-station__votebar { position: relative; overflow: visible; }
+.cong-station__votebar::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: var(--text); } /* the 50% a change must pass */
+.cong-station__note { margin: 0; color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.cong-station__bill td[data-label="Progress"] { width: 30%; }
+.cong-station__benefits { margin: 0; padding-left: var(--space-5); display: grid; gap: var(--space-2); color: var(--text-soft); line-height: var(--line-height-body); }
+.cong-station__sites { margin: 0; padding-left: var(--space-5); color: var(--text-soft); }
+.cong-station__start { display: flex; flex-direction: column; gap: var(--space-4); max-width: 32rem; }
+.cong-station__start .ui-button { align-self: flex-start; }
+.cong-station__clock { display: grid; gap: var(--space-2); margin-top: var(--space-4); }
+.cong-station__docked { margin-top: var(--space-4); border-left: 3px solid var(--station-owned); }
+@media (max-width: 767px) { .cong-station__head .station__art { width: 96px; } .cong-station__bill td[data-label="Progress"] { width: auto; } }
