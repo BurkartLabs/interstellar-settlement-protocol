@@ -26,6 +26,7 @@ import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHead
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
 // back to the control that was pressed if it is still there, otherwise to the one the flow continues from.
 import { showActionReceipt } from "./receiptModal.js";
+import { renderDevelopmentBank } from "./developmentBank.js"; // ISP-151 (AB#845)
 const firstPresent = (...selectors) => () => selectors.map((sel) => document.querySelector(sel)).find(Boolean) || null;
 
 // ISP-78 (AB#767): where the corporation is docked, as a line under a building's name.
@@ -148,6 +149,16 @@ export function renderBuildingDetail(building, data) {
       contentEl.innerHTML = renderISAClaimsLeases(building, data);
       bindISAClaimsLeasesActions(building, data);
     }
+  } else if (building.id === "deep-space-development-bank") {
+    const station = getCurrentStationInfo(data);
+    renderDevelopmentBank(contentEl, data, `
+      <div class="station__building-header">
+        <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      </div>
+      ${dockedHtml(station)}
+      <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
+      <p class="station__flavor">${escapeHtml(building.flavor)}</p>`);
   } else {
     const station = getCurrentStationInfo(data);
     contentEl.innerHTML = `
