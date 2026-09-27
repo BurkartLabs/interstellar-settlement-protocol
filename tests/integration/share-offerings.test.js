@@ -226,7 +226,7 @@ describe("ISP-158 buying", () => {
       const row = issuer.corp().shareRegistry.holders.find((h) => h.holder.corpId === b.corp().publicId);
       expect(row ? 60_000 - b.credits() : 0).toBe(row ? row.costBasis : 0);
     }
-  });
+  }, 120_000); // 200 purchases through the API: slow under a full parallel run, not slow by design
 });
 
 describe("ISP-158 the close", () => {
@@ -270,7 +270,7 @@ describe("ISP-158 the close", () => {
 
 describe("ISP-158 shares are economic only", () => {
   it("nothing outside the equity modules reads who holds shares, so no stake grants an action", () => {
-    const allowed = new Set(["server/shareRegistry.js", "server/shareOfferings.js", "server/routes/capTable.js"]);
+    const allowed = new Set(["server/shareRegistry.js", "server/shareOfferings.js", "server/routes/capTable.js", "server/dividends.js"]); // AB#853: dividends pay by stake; they grant nothing
     const readers = [];
     const walk = (dir) => {
       for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
