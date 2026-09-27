@@ -22,6 +22,7 @@ import { applyCredits } from "./finances.js";
 import { ECONOMY } from "./economy.js";
 import { settleTransfer } from "./settlement.js";
 import { WARFARE_CATALOG } from "./warfare.js";
+import { ROYALTY_PAID, ROYALTY_RECEIVED, royaltyOn } from "../public/scripts/patentRoyalty.js"; // ISP-237 (AB#932): the quote's arithmetic
 
 const FILE = path.join(dataDir, "patents.json");
 const HOUR = 3_600_000;
@@ -132,6 +133,50 @@ export function publicPatents(now = Date.now()) {
   return { patents: [...store.patents].sort((a, b) => b.filedAt - a.filedAt).map((p) => publicView(p, now)) };
 }
 
+/**
+ * ISP-237 (AB#932): the Registry's patent office for one corporation. `filable`: what it may file now (patentable, not
+ * patented, completed first by it on a server record, inside the window), with the window's end; `mine`: its patents;
+ * `paying`: others' patents in force on chains it has run or research it completed after the filing; `royalties`: what
+ * its statements carry both ways (ISP-236 books them) and what it still owes holders. Null for an unknown account.
+ */
+export function patentOffice(accountId, now = Date.now()) {
+  const corp = accountsStore.accounts?.[accountId]?.state?.corp;
+  if (!corp?.publicId) return null;
+  const t = terms();
+  const filable = [];
+  const consider = (kind, ids) => {
+    for (const subjectId of ids) {
+      const subject = patentable(kind, subjectId);
+      if (!subject || store.patents.some((p) => p.kind === kind && p.subjectId === subjectId)) continue;
+      const at = completedAt(corp, kind, subjectId);
+      if (!(at > 0) || now > at + t.filingWindowHours * HOUR) continue;
+      const first = firstCompleter(kind, subjectId);
+      if (!first || first.unknown || first.publicId !== corp.publicId) continue;
+      filable.push({ kind, subjectId, subjectName: subject.name, maxPct: subject.maxPct, completedAt: at, windowEndsAt: at + t.filingWindowHours * HOUR });
+    }
+  };
+  consider("research", Object.keys(corp.researchCompletedAt || {}));
+  consider("chain", Object.keys(corp.chainFirstRunAt || {}));
+  filable.sort((a, b) => a.windowEndsAt - b.windowEndsAt);
+  const views = (list) => [...list].sort((a, b) => b.filedAt - a.filedAt).map((p) => publicView(p, now));
+  const uses = (p) => {
+    const at = completedAt(corp, p.kind, p.subjectId);
+    return p.kind === "chain" ? at !== null : at !== null && at >= p.filedAt;
+  };
+  const finances = corp.finances || {};
+  return {
+    terms: { filingFee: t.filingFee, filingWindowHours: t.filingWindowHours, termDays: t.termDays, royaltyMaxPct: t.royaltyMaxPct, chainRoyaltyMaxPct: t.chainRoyaltyMaxPct },
+    filable,
+    mine: views(store.patents.filter((p) => p.holder.publicId === corp.publicId)),
+    paying: views(store.patents.filter((p) => p.holder.publicId !== corp.publicId && p.filedAt <= now && now < p.endsAt && uses(p))),
+    royalties: {
+      received: Math.round(Number(finances.incomeBySource?.[ROYALTY_RECEIVED]) || 0),
+      paid: Math.round(Number(finances.expensesByCategory?.[ROYALTY_PAID]) || 0),
+      owed: Math.round(Object.values(corp.patentDebts || {}).reduce((s, v) => s + (Number(v) || 0), 0))
+    }
+  };
+}
+
 /** The patent in force on a subject at `now`, or null (ISP-236 charges its royalty). */
 export function patentInForce(kind, subjectId, now = Date.now()) {
   return store.patents.find((p) => p.kind === kind && p.subjectId === subjectId && p.filedAt <= now && now < p.endsAt) || null;
@@ -158,7 +203,7 @@ const royaltyBooks = () => { if (!Array.isArray(store.uses)) store.uses = []; if
 export function royaltyFor(corp, { kind, subjectId, at, base }) {
   const patent = patentInForce(kind, subjectId, at);
   if (!patent || patent.holder.publicId === corp?.publicId) return { patent: null, royalty: 0 };
-  return { patent, royalty: Math.round(Math.max(0, Number(base) || 0) * patent.ratePct / 100) };
+  return { patent, royalty: royaltyOn(Math.max(0, Number(base) || 0), patent.ratePct) }; // ISP-237 (AB#932): the quote's arithmetic
 }
 
 /** Inside a mutation of the user's state: charge its recorded uses. Returns the uses that owed a royalty. */

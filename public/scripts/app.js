@@ -30,6 +30,7 @@ import { renderRefinery } from "./views/refinery.js";
 import { bindResearchForms, renderQueue, renderTechTree } from "./views/research.js";
 import { connectViews, isPlayerTraveling, pushFeedback, renderFeedbackLog, revealUnderHeader } from "./views/shared.js";
 import { loadBeltCompositionsIntoStarmap, loadTariffs, starmap } from "./views/starmap.js";
+import { loadPatentRegister } from "./views/patentOffice.js"; // ISP-237 (AB#932): the Refinery's royalty quote reads it
 import { bindBuildingActions, refreshOpenLeaseView, renderStation } from "./views/station.js";
 import { clearTravelTimer, renderTravelPage } from "./views/travel.js";
 
@@ -309,6 +310,8 @@ function enterGame(mode, data, options = {}) {
   if (appState.accountId) loadBeltCompositionsIntoStarmap(); // Bug #1264
   appState.tariffs = null; // ISP-231 (AB#926): never another account's; this account's are fetched below
   if (appState.accountId) loadTariffs();
+  appState.patents = null; // ISP-237 (AB#932): the public register, for the royalty on a patented chain
+  if (appState.accountId && mode !== "dummy") loadPatentRegister();
   // ISP-201 (AB#895): the Overview's Conglomerate card reads this; never another account's.
   appState.conglomerate = undefined;
   if (appState.accountId && mode !== "dummy") loadConglomerate();

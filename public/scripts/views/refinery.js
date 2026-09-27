@@ -16,7 +16,28 @@ import { buildingLinkHtml, researchLinkHtml } from "../researchLinks.js"; // AB#
 import { resourceCatalogHtml } from "../resourceCatalog.js"; // AB#885
 import { clientPrices } from "../clientPrices.js";
 import { refineryMultiplierFor, refineryOutput } from "../refineryOutput.js"; // ISP-97 (AB#787), AB#794: output by tier
-import { cycleProgressPercent, pushFeedback, updateAllViews } from "./shared.js";
+import { cycleProgressPercent, pushFeedback, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { basePricesOf, patentToPay } from "../patentRoyalty.js"; // ISP-237 (AB#932)
+import { runRoyaltyQuote } from "../refineryRoyalty.js";
+
+/**
+ * ISP-237 (AB#932): before a run of a chain another corporation has patented, the royalty it will pay, confirmed; true
+ * to go on. A chain under no patent (or the caller's own) starts at once, as before.
+ */
+async function confirmRoyalty(chain, refineryId, batches) {
+  const corp = appState.data?.corp || {};
+  const patent = patentToPay(appState.patents, "chain", chain?.id, corp.corporationName);
+  if (!patent) return true;
+  const refinery = [...(corp.refineries || []), ...(corp.synthesisArrays || [])].find((r) => r.id === refineryId);
+  const tier = Number(refinery?.tier) || 1;
+  const quote = runRoyaltyQuote({ patent, chain, batches, tier, multiplier: refineryMultiplierFor(tier, appState.economy?.buildings), basePrices: basePricesOf(appState.data?.market?.npcBuyOrders) });
+  return showTradeConfirmation({
+    heading: "Patented chain",
+    title: `Start ${chainTitle(chain)}? It is under ${patent.holder}'s patent.`,
+    confirmLabel: `Start run (royalty ${quote.royalty.toLocaleString("en-US")} credits)`,
+    rows: quote.rows
+  });
+}
 
 
 /** "Made by: <link>", or where an item comes from when no chain makes it. Links sit in running text (a <p>). */
@@ -271,6 +292,7 @@ export function renderRefinery(data) {
         updateAllViews();
         return;
       }
+      if (!(await confirmRoyalty(chain, multiBtn.getAttribute("data-refinery-id"), check.batches))) return;
       multiBtn.disabled = true;
       multiBtn.textContent = "Starting…";
       try {
@@ -318,6 +340,7 @@ export function renderRefinery(data) {
         updateAllViews();
         return;
       }
+      if (!(await confirmRoyalty(refineryChains.find((c) => c.id === chainId), refineryId, check.batches))) return;
       startBtn.disabled = true;
       startBtn.textContent = "Starting…";
       try {

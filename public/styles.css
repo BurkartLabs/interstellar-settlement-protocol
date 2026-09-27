@@ -4351,6 +4351,28 @@ img.station__body {
 .dominance-details__own span { color: var(--text); font-weight: var(--font-weight-semibold); }
 .dominance-details__others { color: var(--muted); }
 
+/* ISP-237 (AB#932): the patent office at Corporate Registry & Charters */
+.patent-office { display: flex; flex-direction: column; gap: var(--space-4); }
+.patent-section { display: flex; flex-direction: column; gap: var(--space-3); }
+.patent-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.patent-card { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.patent-card__title { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); overflow-wrap: anywhere; }
+.patent-card__meta { margin: 0; color: var(--muted); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.patent-card__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); }
+.patent-card__form .ui-field__label { flex-basis: 100%; }
+.patent-card__form .ui-select { width: auto; min-width: 7rem; }
+.patent-terms-list { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); }
+.patent-terms-list dt { color: var(--muted); }
+.patent-terms-list dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.patent-total { margin: 0; font-variant-numeric: tabular-nums; }
+.patent-status:empty { display: none; }
+.patent-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
+@media (max-width: 600px) {
+  .patent-terms-list { grid-template-columns: minmax(0, 1fr); }
+  .patent-terms-list dt { margin-top: var(--space-1); }
+  .patent-office, .patent-card__meta, .patent-terms-list, .patent-status, .patent-office .ui-panel__meta, .patent-office .ui-state__why { font-size: var(--font-size-3); }
+}
+
 /* ISP-229 (AB#924): the Concessions overlay's extra marks, and a system's concession section and holder view */
 .dominance-swatch--muted { background: var(--muted); }
 .concession-swatch--pending { background: transparent; border: 2px dashed var(--series-3); }
