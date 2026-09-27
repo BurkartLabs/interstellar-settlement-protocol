@@ -3046,8 +3046,15 @@ body.sg {
   padding: 0;
   list-style: none;
 }
+/* Bug #4666: a grid item's minimum width is its content's unless it says otherwise. An unread row's preview is one
+   unwrapped line (nowrap, below), so the row grew to the whole sentence (501px on a 375px phone), the page scrolled
+   sideways and the tab bar went off screen. With min-width 0 the row fits its column and the preview ellipsises. */
+.inbox__messages > * {
+  min-width: 0;
+}
 .inbox__message {
   width: 100%;
+  min-width: 0;
 }
 .inbox__message.is-unread {
   border-left: 3px solid var(--accent);
@@ -3089,6 +3096,20 @@ body.sg {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Bug #4666: the preview and its unread count on one line: the text shortens with an ellipsis, the count never does */
+.inbox__preview-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.inbox__preview-line > .inbox__preview {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.inbox__preview-line > .ui-badge {
+  flex: none;
 }
 .thread__scroll {
   max-height: min(60vh, 560px);

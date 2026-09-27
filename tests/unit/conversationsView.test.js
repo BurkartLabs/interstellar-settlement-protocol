@@ -92,6 +92,16 @@ describe("merging pages", () => {
   });
 });
 
+describe("a conversation row on a phone (Bug #4666)", () => {
+  it("keeps the unread count outside the preview that shortens, so an ellipsis never hides it", () => {
+    document.body.innerHTML = `<ul>${view.conversationRowsHtml([{ id: "c1", with: { corporationName: "Orion Survey Company" }, lastMessage: "Venus Platform: file it this week? I will put in the goods.", lastMessageAt: 0, unread: 2 }], () => "now")}</ul>`;
+    const line = document.querySelector(".inbox__preview-line");
+    expect(line.querySelector(".inbox__preview").textContent).toBe("Venus Platform: file it this week? I will put in the goods.");
+    expect(line.querySelector(".inbox__preview .ui-badge")).toBeNull();
+    expect(line.querySelector(":scope > .ui-badge").textContent).toBe("2 new");
+  });
+});
+
 describe("message text renders as text, never HTML", () => {
   it("escapes bodies, names and previews", () => {
     const evil = '<img src=x onerror="window.__pwned=1"><script>alert(1)</script>';
