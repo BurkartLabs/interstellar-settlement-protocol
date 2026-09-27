@@ -1,0 +1,140 @@
+// server/patents.js: filing patents at Corporate Registry & Charters (ISP-235, AB#930; docs/design/WARFARE.md, Lawfare).
+// The first corporation to complete a patentable research node (tier `patents.minResearchTier` and up) or refinery chain
+// (stage `patents.minChainStage` and up) may file within `patents.filingWindowHours` of completing it, paying
+// `patents.filingFee` to the ISA. One patent per subject, ever: a term does not renew, and nobody files again after it.
+// The royalty rate is set at filing, within the catalog's bound for its kind. Charging it is ISP-236 (AB#931).
+//
+// Who completed first is read from server records only: `researchCompletedAt` (written by the R&D tick, the research's
+// scheduled end) and `chainFirstRunAt` (written when a run delivers) on each corporation. When the order cannot be
+// established, filing is refused: a corporation holds the subject with no record (completed before the records
+// existed, or granted), or two corporations completed it in the same millisecond.
+//
+// Kept in patents.json in the data directory. Holders are corporation publicIds and names, all public (the Registry's
+// list), never an account id. Filing is one synchronous check-then-write, so of two filings for one subject exactly
+// one succeeds.
+
+import fs from "node:fs";
+import path from "node:path";
+import { dataDir, safeWriteFile, createId, REFINERY_CHAINS, RESEARCH_LIBRARY } from "./game/catalog.js";
+import { accountsStore } from "./game/store.js";
+import { settleTransfer } from "./settlement.js";
+import { WARFARE_CATALOG } from "./warfare.js";
+
+const FILE = path.join(dataDir, "patents.json");
+const HOUR = 3_600_000;
+const DAY = 24 * HOUR;
+export const PATENT_KINDS = Object.freeze(["research", "chain"]);
+let store = readStore();
+
+function readStore() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(FILE, "utf8"));
+    return parsed && Array.isArray(parsed.patents) ? parsed : { patents: [] };
+  } catch {
+    return { patents: [] };
+  }
+}
+const save = () => safeWriteFile(FILE, JSON.stringify(store));
+const no = (status, code, error) => ({ refused: { status, code, error } });
+const terms = () => WARFARE_CATALOG.patents;
+
+/** The subject a kind and id name, if it is patentable: { name, maxPct }; otherwise null. */
+export function patentable(kind, subjectId) {
+  const t = terms();
+  if (kind === "research") {
+    const node = Object.hasOwn(RESEARCH_LIBRARY, subjectId) ? RESEARCH_LIBRARY[subjectId] : null;
+    return node && Number(node.tier) >= t.minResearchTier ? { name: node.name, maxPct: t.royaltyMaxPct } : null;
+  }
+  if (kind === "chain") {
+    const chain = Object.hasOwn(REFINERY_CHAINS, subjectId) ? REFINERY_CHAINS[subjectId] : null;
+    return chain && Number(chain.stage) >= t.minChainStage ? { name: chain.id, maxPct: t.chainRoyaltyMaxPct } : null;
+  }
+  return null;
+}
+
+/** When `corp` completed the subject, from its server record; 0 when it holds it with no record; null when it has not. */
+function completedAt(corp, kind, subjectId) {
+  if (kind === "research") {
+    const at = Number(corp?.researchCompletedAt?.[subjectId]);
+    if (at > 0) return at;
+    return (corp?.unlockedTech || []).includes(subjectId) ? 0 : null;
+  }
+  const at = Number(corp?.chainFirstRunAt?.[subjectId]);
+  if (at > 0) return at;
+  const chain = REFINERY_CHAINS[subjectId];
+  return chain?.outputs?.some((o) => Number(corp?.stats?.[`manufactured:${o.item}`]) > 0) ? 0 : null;
+}
+
+/**
+ * Who completed the subject first: { publicId, at }, or { unknown: reason } when the order cannot be established, or
+ * null when nobody has.
+ */
+export function firstCompleter(kind, subjectId, accounts = accountsStore.accounts) {
+  const done = [];
+  for (const account of Object.values(accounts || {})) {
+    const corp = account?.state?.corp;
+    const at = completedAt(corp, kind, subjectId);
+    if (at === null || !corp?.publicId) continue;
+    if (at === 0) return { unknown: "completed before the Registry kept completion records" };
+    done.push({ publicId: corp.publicId, at });
+  }
+  if (!done.length) return null;
+  done.sort((a, b) => a.at - b.at);
+  if (done.length > 1 && done[0].at === done[1].at) return { unknown: "two corporations completed it at the same moment" };
+  return done[0];
+}
+
+/** File a patent for the caller's corporation. { patent } or { refused }. Nothing is written or charged on a refusal. */
+export function filePatent(accountId, { kind, subjectId, ratePct }, now = Date.now()) {
+  const account = accountsStore.accounts?.[accountId];
+  const corp = account?.state?.corp;
+  if (!corp?.publicId) return no(404, "no-account", "Account not found.");
+  const subject = PATENT_KINDS.includes(kind) ? patentable(kind, subjectId) : null;
+  if (!subject) return no(400, "not-patentable", "That is not a patentable research node (tier 3 and up) or refinery chain (stage 2 and up).");
+  if (!(Number.isInteger(ratePct) && ratePct >= 0 && ratePct <= subject.maxPct)) {
+    return no(400, "rate-out-of-bounds", `A royalty on this is a whole number from 0 to ${subject.maxPct} percent.`);
+  }
+  if (store.patents.some((p) => p.kind === kind && p.subjectId === subjectId)) {
+    return no(409, "already-patented", "This has been patented already. A patent is filed once and is not renewed.");
+  }
+  const mine = completedAt(corp, kind, subjectId);
+  if (mine === null) return no(403, "not-completed", "Your corporation has not completed this, so it cannot patent it.");
+  const first = firstCompleter(kind, subjectId);
+  if (!first || first.unknown) return no(409, "order-unknown", `The Registry cannot establish who completed this first (${first?.unknown || "no record"}), so no patent can be filed.`);
+  if (first.publicId !== corp.publicId) return no(403, "not-first", "Another corporation completed this first; only it may patent it.");
+  const t = terms();
+  if (now > first.at + t.filingWindowHours * HOUR) {
+    return no(409, "window-closed", `The filing window closed ${t.filingWindowHours} hours after you completed it. It is now public for good.`);
+  }
+  const paid = t.filingFee > 0
+    ? settleTransfer({ fromAccountId: accountId, toAccountId: "sink:fee", credits: t.filingFee, reason: "fee", idempotencyKey: `patent:${kind}:${subjectId}:${corp.publicId}` }, now)
+    : { ok: true };
+  if (!paid.ok) return no(402, "insufficient-credits", `Filing costs ${t.filingFee.toLocaleString("en-US")} credits.`);
+  const patent = {
+    id: createId("pat"), kind, subjectId, subjectName: subject.name,
+    holder: { publicId: corp.publicId, name: corp.corporationName || "A corporation" },
+    completedAt: first.at, filedAt: now, endsAt: now + t.termDays * DAY, ratePct, pending: null
+  };
+  store.patents.push(patent);
+  save();
+  return { patent: publicView(patent, now) };
+}
+
+function publicView(p, now) {
+  return { id: p.id, kind: p.kind, subjectId: p.subjectId, subjectName: p.subjectName, holder: p.holder.name, ratePct: p.ratePct, filedAt: p.filedAt, endsAt: p.endsAt, active: now < p.endsAt };
+}
+
+/** The Registry's public list: every patent filed, newest first; holder by name only. */
+export function publicPatents(now = Date.now()) {
+  return { patents: [...store.patents].sort((a, b) => b.filedAt - a.filedAt).map((p) => publicView(p, now)) };
+}
+
+/** The patent in force on a subject at `now`, or null (ISP-236 charges its royalty). */
+export function patentInForce(kind, subjectId, now = Date.now()) {
+  return store.patents.find((p) => p.kind === kind && p.subjectId === subjectId && p.filedAt <= now && now < p.endsAt) || null;
+}
+
+/** Tests only: forget every patent. */
+export function resetPatentsForTests() {
+  store = { patents: [] };
+}

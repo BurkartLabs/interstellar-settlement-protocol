@@ -23,6 +23,7 @@ const PUBLIC = {
   "GET /api/starmap/dominance": "aggregate dominance shares per system, names and rounded shares only, for the starmap overlay (ISP-217, AB#912)",
   "GET /api/systems/:id/control": "a system's control scores and concession eligibility: names, rounded scores and eligibility only (ISP-226, AB#921; Bug #4664)",
   "GET /api/systems/:id/concession": "a system's ISA concession register: holders, open petitions, dates, all public (ISP-227, AB#922)",
+  "GET /api/patents": "the Registry's patent list: holder names, subjects, rates and terms, all public (ISP-235, AB#930)",
   "GET /api/starmap/concessions": "every system's concession holders and open petitions for the starmap overlay: names, types, dates (ISP-229, AB#924)",
   "GET /api/systems/:id/tariff": "a system's tariff and any pending change with its effective time: traders must see it before they commit (ISP-230, AB#925)",
   "POST /api/auth/verify-email": "spending a verification token, which is itself the credential (AB#987)",

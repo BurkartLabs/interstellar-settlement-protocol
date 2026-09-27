@@ -144,6 +144,9 @@ function completeRun(corp, ref, now) {
       ref.totalOutputProduced += quantity;
     }
 
+    // ISP-235 (AB#930): when this corporation first delivered a run of the chain: what the Registry reads for patents.
+    if (!corp.chainFirstRunAt || typeof corp.chainFirstRunAt !== "object") corp.chainFirstRunAt = {};
+    if (ref.chainId && !(corp.chainFirstRunAt[ref.chainId] > 0)) corp.chainFirstRunAt[ref.chainId] = endsAt;
     ref.cyclesCompleted += scale;
     ref.active = false;
     ref.chainId = null;
