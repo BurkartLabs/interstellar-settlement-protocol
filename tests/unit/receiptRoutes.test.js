@@ -64,7 +64,11 @@ const EXEMPT = {
   "/api/accounts/:accountId/gameplay/mercenaries/:offerId/withdraw": "withdraws the player's own offer; nothing moved, so nothing moves back",
   // ISP-178 (AB#872): no page calls these until the raid screens (ISP-181, AB#875); neither moves credits or goods
   "/api/accounts/:accountId/gameplay/raids": "sends the player's own fleet on a raid; nothing is bought, spent or taken until it resolves",
-  "/api/accounts/:accountId/gameplay/raids/:raidId/recall": "turns the player's own fleet round; nothing moves"
+  "/api/accounts/:accountId/gameplay/raids/:raidId/recall": "turns the player's own fleet round; nothing moves",
+  // ISP-180 (AB#874): no page calls these until the raid screens (ISP-181, AB#875); none moves credits or goods
+  "/api/accounts/:accountId/gameplay/garrisons/:stationId/posture": "sets how the player's own garrison fights; nothing moves",
+  "/api/accounts/:accountId/gameplay/garrisons/move": "sends the player's own troops between its stations; nothing is bought or spent",
+  "/api/accounts/:accountId/gameplay/mercenaries/:contractId/deploy": "sends a fleet the player has hired to its own station; nothing is bought or spent"
 };
 
 /** ISP-94/95: the one build route answers with the receipt of whichever building it built; checked on its own below. */
