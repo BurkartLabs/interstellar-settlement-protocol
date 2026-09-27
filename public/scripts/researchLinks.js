@@ -13,6 +13,11 @@ export function researchLinkHtml(id, tree = []) {
   return `<a class="refinery__link" href="#${escapeHtml(researchNodeId(id))}" data-research-link="${escapeHtml(id)}">${escapeHtml(name)}</a>`;
 }
 
+/** AB#885 part 2: a link to a building's entry in the Station's construction list (constructionPanel.js). */
+export function buildingLinkHtml(id, name) {
+  return `<a class="refinery__link" href="#station-construction-section" data-building-link="${escapeHtml(id)}">${escapeHtml(name)}</a>`;
+}
+
 /** Each research-gated item and the node that recovers it. */
 export function itemGates(tree = []) {
   const gates = new Map();
@@ -33,11 +38,20 @@ export function unrecoveredItemsHtml(items, tree = [], unlockedTech = new Set())
 }
 
 /**
- * Follow a research link from anywhere: open the R&D tab and bring the node's card on screen. Installed once, on the
- * document, so a link drawn after this runs still works.
+ * Follow a research link from anywhere: open the R&D tab and bring the node's card on screen; a building link opens the
+ * Station tab at that building's entry. Installed once, on the document, so a link drawn after this runs still works.
  */
 export function bindResearchLinks(setTab, doc = document) {
   doc.addEventListener("click", (event) => {
+    const building = event.target.closest?.("[data-building-link]");
+    if (building) {
+      event.preventDefault();
+      setTab("station");
+      const row = doc.querySelector(`[data-building-row="${CSS.escape(building.getAttribute("data-building-link"))}"]`) || doc.getElementById("station-construction-section");
+      row?.scrollIntoView({ block: "center" });
+      (row?.querySelector("button, select") || row)?.focus({ preventScroll: true }); // the card, when nothing in it can be pressed yet
+      return;
+    }
     const link = event.target.closest?.("[data-research-link]");
     if (!link) return;
     event.preventDefault();
