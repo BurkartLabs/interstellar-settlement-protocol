@@ -185,7 +185,7 @@ Each `ownerRule` string becomes a rule. "Standard" means the rules above, unchan
   that has outgrown Sol, and it stays on Sol's terms for the same reason.
 - **Ross 128**: a research reserve held in trust by the Quiet Star Trust. The ISA has leased it sparingly by charter, and
   it cannot license a fee share in a system it has already put in trust.
-- **Kapteyn's Star** and **Van Maanen's Star**: no authority, and claimed by no one. A concession is an ISA licence, and
+- **Kapteyn's Star** and **van Maanen's Star**: no authority, and claimed by no one. A concession is an ISA licence, and
   the ISA has no writ to grant one there. These are the lawless systems, and they stay lawless: salvage law, not
   licences.
 
