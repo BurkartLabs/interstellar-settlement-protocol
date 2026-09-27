@@ -68,7 +68,7 @@ export function contractStatus(c, now = Date.now()) {
   const at = (t) => utcTime(t, { now, withDate: true });
   if (c.state === "open") return { plain: "Pending", protocol: `Filed, awaiting a renter; closes ${deadline(c.expiresAt, now)}`, tone: "" };
   if (c.state === "taking") return { plain: "Pending", protocol: "Filed; the hire is being settled", tone: "" };
-  if (c.state === "hired") return { plain: "Active", protocol: `In force until ${deadline(c.endsAt, now)}`, tone: " ui-badge--success" };
+  if (c.state === "hired") return { plain: "Active", protocol: `In force; ends ${deadline(c.endsAt, now)}`, tone: " ui-badge--success" };
   if (c.state === "completed") return { plain: "Complete", protocol: c.endsAt ? `Concluded ${at(c.endsAt)}` : "Concluded", tone: "" };
   if (c.state === "expired") return { plain: "Expired", protocol: c.expiresAt ? `Lapsed ${at(c.expiresAt)}, unhired` : "Lapsed, unhired", tone: "" };
   if (c.state === "withdrawn") return { plain: "Cancelled", protocol: "Withdrawn by the owner", tone: "" };

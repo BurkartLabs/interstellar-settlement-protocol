@@ -88,7 +88,7 @@ function costText(p, ctx) {
 export function payingHtml(office, ctx) {
   const rows = office.paying.map((p) => `<li class="patent-card" data-patent-paying="${escapeHtml(p.id)}">
       <p class="patent-card__title"><strong>${escapeHtml(nameFor(p, ctx))}</strong> <span class="ui-badge">${KIND[p.kind]}</span></p>
-      ${patentDl(p, [["Holder", escapeHtml(p.holder)], ["Royalty", costText(p, ctx)], ["Ends", escapeHtml(utcMinute(p.endsAt))]])}
+      ${patentDl(p, [["Holder", escapeHtml(p.holder)], ["Royalty", costText(p, ctx)], ["In force until", escapeHtml(utcMinute(p.endsAt))]])}
     </li>`).join("");
   return `<section class="ui-panel station__panel patent-section" data-patent-paying-list aria-labelledby="patent-paying-title">
     <h3 id="patent-paying-title">${codeSlotHtml("patent-paying")}Patents you pay royalties on</h3>
