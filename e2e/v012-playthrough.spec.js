@@ -224,8 +224,10 @@ for (const [passName, sizeA, sizeB] of [["a-desktop", DESKTOP, PHONE], ["a-phone
         await page.waitForTimeout(500);
         expect(await mapShow(page, { systemId: "sol", bodyId: "belt" })).toBe(true);
         await page.waitForTimeout(1000);
+        // Bug #4665: the scout reaches B's open page through the conglomerate's room (conglomerate:intel), with no reload
         await expect(page.locator("[data-belt-shared]")).toBeVisible({ timeout: 5_000 });
-      }, { knownBug: "AB#4665" });
+        return page.locator("[data-belt-shared]");
+      });
       await step("B", "Shared intel after a reload", async (page) => {
         await page.reload();
         await page.locator(".nav-tab").first().waitFor();

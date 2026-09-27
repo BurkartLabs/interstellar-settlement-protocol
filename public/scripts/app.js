@@ -725,6 +725,12 @@ function bindRealtimeEvents() {
     if (!appState.accountId) return;
     loadBeltCompositionsIntoStarmap();
   });
+  // Bug #4665: a partner scouted a belt (the conglomerate's room): what this corporation may see of the belts, read
+  // again, so an open belt panel shows the shared intel without a reload.
+  socket.on("conglomerate:intel", () => {
+    if (!appState.accountId) return;
+    loadBeltCompositionsIntoStarmap();
+  });
 
   socket.on("fabrication:completed", async (payload) => {
     if (!appState.data || !appState.accountId || payload?.accountId !== appState.accountId) return;
