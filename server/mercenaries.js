@@ -181,6 +181,9 @@ export function recordContractLosses(offerId, lost) {
 export function settleContracts(now = Date.now()) {
   for (const offer of allOffers().filter((o) => o.state === "hired" && o.endsAt <= now)) {
     const ownerId = accountIdOfCorp(offer.ownerCorpId), renterId = accountIdOfCorp(offer.renterCorpId);
+    // ISP-178 (AB#872; the raid design, section 7): a hired fleet out on a raid finishes it first; the term waits, at no
+    // extra price, until the fleet is home
+    if (getAccountById(ownerId)?.state?.corp?.military?.fleets?.find((f) => f.id === offer.fleetId)?.transit?.raidId) continue;
     const lostValue = unitsValue(offer.lost);
     const compensation = Math.min(offer.collateral, lostValue);
     const refund = offer.collateral - compensation;

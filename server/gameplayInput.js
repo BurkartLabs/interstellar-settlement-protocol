@@ -138,6 +138,17 @@ export const GAMEPLAY_INPUT = {
   },
   "POST /mercenaries/:offerId/withdraw": { params: { offerId: ref("one of your mercenary offers") } },
   "POST /mercenaries/:offerId/hire": { params: { offerId: ref("a mercenary offer") } },
+  // ISP-178 (AB#872): a raid names a fleet (own, or hired by contract), a target corporation by public id, and a station
+  "GET /raids": NOTHING,
+  "POST /raids": {
+    body: {
+      fleetId: ref("one of your fleets", { optional: true }),
+      contractId: ref("a fleet you have hired", { optional: true }),
+      targetCorpId: ref("a corporation to raid"),
+      targetStationId: id("stations", "a station")
+    }
+  },
+  "POST /raids/:raidId/recall": { params: { raidId: ref("one of your raids") } },
   "POST /queue-ceo": { body: { programId: id("programs", "a CEO Insight program") } }
 };
 
