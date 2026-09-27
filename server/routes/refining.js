@@ -12,6 +12,7 @@ import { startRefineryReceipt } from "../receipts.js"; // AB#744
 // ISP-97 (AB#787): what a run delivers, the Refinery Complex's 1.5 times included, as the tick delivers it.
 import { refineryMultiplierFor, refineryOutput } from "../../public/scripts/refineryOutput.js";
 import { ECONOMY } from "../economy.js";
+import { chainResearchMissing } from "../game/researchGates.js";
 
 export function registerRefiningRoutes(app) {
   // ─── Refinery ────────────────────────────────────────────────────────────────
@@ -40,10 +41,8 @@ export function registerRefiningRoutes(app) {
 
     const account = mutateAccountState(req.params.accountId, (state) => {
       const corp = state.corp;
-      const unlockedTech = corp.unlockedTech || [];
-
       // Check tech prerequisites for this chain
-      if (Array.isArray(chain.requiresTechIds) && !chain.requiresTechIds.every((t) => unlockedTech.includes(t))) {
+      if (chainResearchMissing(chain, corp)) {
         outcome = "missing-research";
         return;
       }

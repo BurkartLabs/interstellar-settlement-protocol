@@ -269,6 +269,76 @@
       "prereqs": ["tt-nano-lattice", "tt-exotic-energy-routing"],
       "tier": 4,
       "category": "Refining"
+    },
+    {
+      "id": "tt-actinide-handling",
+      "name": "Actinide Handling",
+      "effect": "Unlocks Uranium: without it, an expedition or an extractor recovers none of the Uranium it digs",
+      "description": "Shielded handling and remote assay for the actinides. Belts past Sol carry Uranium in their ore; until a corporation can handle it, its share of the haul is left in the tailings.",
+      "durationHours": 24,
+      "costCredits": 30000,
+      "prereqs": ["tt-rare-metal-separation"],
+      "tier": 4,
+      "category": "Extraction",
+      "recovers": ["Uranium"]
+    },
+    {
+      "id": "tt-deep-core-extraction",
+      "name": "Deep-Core Extraction",
+      "effect": "Unlocks Platinum-Group Metals: without it, an expedition or an extractor recovers none of the Platinum-Group Metals it digs",
+      "description": "Bore-hole mining under the crater floors and lava plains of exotic-system worlds, where the platinum-group metals sit below the iron.",
+      "durationHours": 24,
+      "costCredits": 30000,
+      "prereqs": ["tt-ferrous-metallurgy", "tt-long-baseline-navigation"],
+      "tier": 4,
+      "category": "Extraction",
+      "recovers": ["Platinum-Group Metals"]
+    },
+    {
+      "id": "tt-deep-atmosphere-extraction",
+      "name": "Deep-Atmosphere Extraction",
+      "effect": "Unlocks Metallic Hydrogen: without it, an expedition or an extractor recovers none of the Metallic Hydrogen it digs",
+      "description": "Pressure-hulled skimmers that drop below a gas giant's cloud decks to the layers where hydrogen turns metallic, and hold it there on the way up.",
+      "durationHours": 24,
+      "costCredits": 30000,
+      "prereqs": ["tt-fusion-fuel-cycle", "tt-long-baseline-navigation"],
+      "tier": 4,
+      "category": "Extraction",
+      "recovers": ["Metallic Hydrogen"]
+    },
+    {
+      "id": "tt-high-energy-synthesis",
+      "name": "High-Energy Synthesis",
+      "effect": "Unlocks the Synthesis Array, the one building that makes Tier 4 products",
+      "description": "Particle-beam and plasma-forge synthesis at energies no refinery reaches. It licenses the Synthesis Array; each Tier 4 product also needs the research for its exotic input.",
+      "durationHours": 28,
+      "costCredits": 36000,
+      "prereqs": ["tt-integrated-manufacturing"],
+      "tier": 4,
+      "category": "Manufacturing"
+    },
+    {
+      "id": "tt-exotic-containment",
+      "name": "Exotic Containment",
+      "effect": "Unlocks Exotic Matter: without it, an expedition or an extractor recovers none of the Exotic Matter it digs",
+      "description": "Field-stabilised containment for matter that does not stay put. The rarest belts carry it; without containment, it decays before the hauler docks.",
+      "durationHours": 32,
+      "costCredits": 45000,
+      "prereqs": ["tt-containment-physics", "tt-exotic-energy-routing", "tt-frontier-cartography"],
+      "tier": 5,
+      "category": "Extraction",
+      "recovers": ["Exotic Matter"]
+    },
+    {
+      "id": "tt-antimatter-confinement",
+      "name": "Antimatter Confinement",
+      "effect": "Unlocks Antimatter synthesis and the Antimatter Drive, in the Synthesis Array",
+      "description": "Penning-trap confinement at industrial scale: Exotic Matter and fusion pellets made into antimatter, and antimatter held long enough to fuel a drive.",
+      "durationHours": 36,
+      "costCredits": 60000,
+      "prereqs": ["tt-exotic-containment", "tt-high-energy-synthesis"],
+      "tier": 5,
+      "category": "Manufacturing"
     }
   ]
 }
