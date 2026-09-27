@@ -268,3 +268,19 @@ describe("membership events reach the conglomerate's room and the affected accou
     }
   });
 });
+
+describe("the Bureau's view of a corporation (ISP-200, AB#894)", () => {
+  it("carries the server's charter verdict, and a member's permissions from can()", async () => {
+    const p = await player();
+    const fresh = await view(p);
+    expect(fresh.charter).toMatchObject({ fee: C.charterFee, deposit: C.charterDeposit, minFounderAgeDays: C.minFounderAgeDays });
+    expect(fresh.charter.refusal.code).toBe("founder-too-young");
+    const f = await founded();
+    expect((await view(f)).charter.refusal.code).toBe("already-in-conglomerate");
+    const mine = (await view(f)).conglomerate;
+    expect(mine.permissions).toEqual(C.permissions.filter((x) => x.founder).map((x) => x.id));
+    expect(mine).toMatchObject({ maxDirectors: C.maxDirectors, founderAbsentDays: C.founderAbsentDays });
+    const m = await joined(f);
+    expect((await view(m)).conglomerate.permissions).toEqual(C.permissions.filter((x) => x.member).map((x) => x.id));
+  });
+});

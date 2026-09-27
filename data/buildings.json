@@ -137,8 +137,8 @@
       "description": "Manages the formal registration of conglomerates, alliance governance frameworks, membership rules, and approvals for shared infrastructure and co-owned station assets.",
       "flavor": "A conglomerate without a filed charter is an informal agreement waiting to collapse. Registered conglomerates gain access to co-ownership frameworks, pooled credit instruments, and coordinated ISA standing.",
       "imageFile": "buildings/conglomerate-affairs.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:conglomerate-affairs-bureau",
+      "available": true
     },
     {
       "id": "risk-assessment-insurance",

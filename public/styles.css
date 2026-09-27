@@ -720,6 +720,69 @@ button:disabled {
 .bank-loan__badge { color: var(--danger); border-color: currentColor; }
 .bank-loan__badge--ok { color: var(--success); }
 .bank-loan__arrears { color: var(--danger); }
+
+/* ISP-200 (AB#894): the Conglomerate Affairs Bureau's view */
+.cong-body { display: flex; flex-direction: column; gap: var(--space-4); }
+.cong-panel h3 { margin: 0 0 var(--space-3); }
+.cong-panel h3 + * { margin-top: 0; }
+.cong-panel__lede { margin: 0 0 var(--space-3); color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.cong-terms { margin-bottom: var(--space-4); }
+.cong-charter-form,
+.cong-identity { display: flex; flex-direction: column; gap: var(--space-4); }
+.cong-picker { margin: 0; padding: 0; border: 0; min-width: 0; }
+.cong-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.cong-picker__option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  cursor: pointer;
+  font-size: var(--font-size-1);
+  color: var(--text-soft);
+  text-align: center;
+}
+.cong-picker__option:hover { background: var(--surface-hover); }
+.cong-picker__option input { margin: 0; accent-color: var(--accent); }
+.cong-picker__option:has(input:checked) { border-color: var(--accent); color: var(--text); background: var(--surface-2); }
+.cong-emblem { flex: none; fill: currentColor; }
+.cong-emblem--sm { width: 24px; height: 24px; }
+.cong-emblem--md { width: 36px; height: 36px; }
+.cong-emblem--lg { width: 56px; height: 56px; }
+.cong-colour--1 { color: var(--accent); }
+.cong-colour--2 { color: var(--accent-pressed); }
+.cong-colour--3 { color: var(--success); }
+.cong-colour--4 { color: var(--success-pressed); }
+.cong-colour--5 { color: var(--warn); }
+.cong-colour--6 { color: var(--warn-pressed); }
+.cong-colour--7 { color: var(--danger); }
+.cong-colour--8 { color: var(--danger-pressed); }
+.cong-colour--9 { color: var(--text); }
+.cong-colour--10 { color: var(--muted); }
+.cong-list,
+.cong-directory { display: flex; flex-direction: column; gap: var(--space-2); margin: 0 0 var(--space-3); padding: 0; list-style: none; }
+.ui-card.cong-item { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.cong-item__text { flex: 1 1 12rem; min-width: 0; }
+.cong-item__text .ui-card__title { overflow-wrap: anywhere; }
+.cong-item__why,
+.cong-refusal { margin: var(--space-1) 0 0; color: var(--warn); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.cong-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.cong-form-status:empty { display: none; }
+.cong-form-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
+.cong-muted { color: var(--muted); font-size: var(--font-size-2); }
+.cong-summary { display: flex; align-items: center; gap: var(--space-4); }
+.cong-summary__name { margin: 0; font-size: var(--font-size-4); overflow-wrap: anywhere; }
+.cong-succession { margin: var(--space-3) 0 0; color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.cong-search { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); margin-top: var(--space-4); }
+.cong-search .ui-field { flex: 1 1 14rem; }
 .bank-loans__closed { margin: 0; padding-left: var(--space-4); color: var(--muted); font-size: var(--font-size-2); }
 
 .rating-card {
