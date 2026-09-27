@@ -9,6 +9,7 @@
 
 import { yardMaxTier, yardTierFor } from "./economy.js";
 import { MAX_RUN_HOURS } from "../public/scripts/refineryRun.js"; // AB#825
+import { FLEET_NAMES } from "./fleets.js"; // ISP-174 (AB#868)
 import { CONGLOMERATE_CATALOG } from "./conglomerates.js"; // ISP-197 (AB#891)
 import { BOND_TERMS } from "./bondTerms.js"; // ISP-154 (AB#848)
 
@@ -40,6 +41,8 @@ const ref = (label, extra = {}) => ({ kind: "ref", label, ...extra });
 const ACCEPT_MISSION = { body: { missionId: id("missions", "a contract") } };
 const OWN_MISSION = { body: { missionId: id("ownMissions", "one of your active contracts") } };
 const NOTHING = {};
+/** ISP-174 (AB#868): how many of each fleet unit type an order moves; each optional, the route refuses none at all. */
+const FLEET_UNITS = Object.fromEntries(["lf", "ds", "se", "at"].map((u) => [u, int(1, 100_000, "a number of units from 1 to 100,000", { optional: true })]));
 
 /**
  * Every gameplay route, keyed "METHOD /path" below the /gameplay mount. `optional: true` marks the few fields the
@@ -114,6 +117,13 @@ export const GAMEPLAY_INPUT = {
   // ISP-172 (AB#866): troops from the unit catalog and how many squads; the cost and the time are the catalog's
   "POST /training/queue": { body: { unitId: id("troops", "troops: Attack Troops or Defense Troops"), quantity: int(1, 100, "a number of squads from 1 to 100") } },
   "POST /training/cancel": { body: { jobId: ref("one of your training jobs") } },
+  // ISP-174 (AB#868): fleets. Counts are whole numbers; a name is one of the list's, never free text; a fleet id that
+  // is not the caller's is the route's 404.
+  "POST /fleets/form": { body: { ...FLEET_UNITS, name: word(FLEET_NAMES, "a fleet name from the list", { optional: true }) } },
+  "POST /fleets/:fleetId/split": { params: { fleetId: ref("one of your fleets") }, body: { ...FLEET_UNITS, name: word(FLEET_NAMES, "a fleet name from the list", { optional: true }) } },
+  "POST /fleets/:fleetId/merge": { params: { fleetId: ref("one of your fleets") }, body: { intoFleetId: ref("one of your fleets to merge into") } },
+  "POST /fleets/:fleetId/deploy": { params: { fleetId: ref("one of your fleets") }, body: { toStationId: id("stations", "a station") } },
+  "POST /fleets/:fleetId/disband": { params: { fleetId: ref("one of your fleets") } },
   "POST /queue-ceo": { body: { programId: id("programs", "a CEO Insight program") } }
 };
 
