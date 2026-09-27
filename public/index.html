@@ -304,6 +304,7 @@
                 and each unlock expands market access, infrastructure depth, and interstellar reach.
               </p>
             </header>
+            <div id="overview-raid-alert"></div><!-- ISP-181 (AB#875): an incoming raid, with a countdown and a route to its garrison -->
             <div id="overview-cards" class="ui-grid"></div>
 
             <section id="expedition-panel" class="ui-panel" aria-labelledby="expedition-panel-title" hidden>
@@ -968,6 +969,7 @@
               <p class="ui-screen__lede">Your ships and troops: what they cost to keep, how ready they are, where your fleets are, and what is being built.</p>
             </header>
             <div class="ui-stack">
+              <div id="fleet-raid-alert"></div><!-- ISP-181 (AB#875) -->
               <section class="ui-stack" id="fleet-forces-section">
                 <h3 class="station__heading">Forces</h3>
                 <div id="fleet-summary"></div>
@@ -976,6 +978,12 @@
               <section class="ui-stack" id="fleet-fleets-section">
                 <h3 class="station__heading">Fleets</h3>
                 <div id="fleet-list" class="ui-grid station__grid"></div>
+              </section>
+
+              <section class="ui-stack" id="fleet-raids-section">
+                <!-- ISP-181 (AB#875): garrisons and posture, the target picker, your raids and their private reports -->
+                <h3 class="station__heading">Raids</h3>
+                <div id="fleet-raids" class="ui-stack"></div>
               </section>
 
               <section class="ui-stack" id="station-training-section">
