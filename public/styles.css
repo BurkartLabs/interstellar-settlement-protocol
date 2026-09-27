@@ -4211,6 +4211,8 @@ img.station__body {
   background: var(--warn); /* the map's station diamond is amber */
   transform: rotate(45deg) translateY(-1px);
 }
+/* Bug #4651: why a Dock order was refused, where it was given */
+.starmap__dock-refused { margin: var(--space-2) 0 0; color: var(--warn); font-size: var(--font-size-1); }
 .starmap__legend-mark--owned { background: var(--station-owned); } /* ISP-210 (AB#905): the conglomerate station's violet, as drawn */
 .starmap__overline {
   margin: 0;

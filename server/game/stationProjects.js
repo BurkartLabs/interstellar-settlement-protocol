@@ -24,6 +24,7 @@ import { conglomerateList, moveTreasury, noteTreasury, publicConglomerate } from
 import { NOT_FOUND, accountByCorp, context, corpName, no, roomEvent } from "./membership.js";
 import { ensureHangar, hangarItem, hangarQuantity, moveHangar } from "./hangar.js";
 import { treasuryAmount } from "./treasury.js";
+import { contributedValues, stakesFrom } from "./stakes.js"; // ISP-211 (AB#906)
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const plain = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
@@ -247,7 +248,8 @@ export function settleStationProject(c, now = Date.now(), catalog = CONGLOMERATE
     if (!added.ok) return blocked(c, p, added.error);
     station = added.station;
   }
-  c.station = { id: station.id, builtAt: now, projectId: p.id, contributions: p.contributions };
+  // ISP-211 (AB#906): the stakes, fixed from the contributions now, and the settings the stakeholders govern
+  c.station = { id: station.id, builtAt: now, projectId: p.id, contributions: p.contributions, stakes: stakesFrom(contributedValues(p.contributions)), settings: { access: "open", listed: [] }, proposals: [] };
   c.stationProject = null;
   noteTreasury(c, { at: now, kind: "station-built", corp: null, by: "bureau", note: `${station.name} opened` });
   saveAccountsNow();
