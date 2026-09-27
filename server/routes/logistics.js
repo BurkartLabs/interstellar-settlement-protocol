@@ -13,7 +13,7 @@ import { SYSTEMS_CATALOG, getInterstellarTravelTimeMs, getTravelTimeMs } from ".
 import { allStations, stationById, stationMap } from "../game/stations.js"; // ISP-209 (AB#904)
 import { systemName } from "../../public/scripts/displayNames.js"; // AB#1336
 import { emitToAccount } from "../realtime.js";
-import { dockRefusal } from "../game/stationGovernance.js"; // ISP-211 (AB#906)
+import { dockRefusal, memberStation } from "../game/stationGovernance.js"; // ISP-211 (AB#906), ISP-212 (AB#907)
 
 export function registerLogisticsRoutes(app) {
   // ─── Logistics: transfer resources between stations ──────────────────────────
@@ -38,7 +38,8 @@ export function registerLogisticsRoutes(app) {
       const plan = planTransfer({
         navigation: NAVIGATION,
         fromStationId: request.fromStationId, toStationId, lines: request.lines,
-        inventory: corp.inventory, credits: corp.finances.credits, stations: stationMap(), rates: ECONOMY.logistics
+        inventory: corp.inventory, credits: corp.finances.credits, stations: stationMap(), rates: ECONOMY.logistics,
+        memberStationId: memberStation(corp)?.id ?? null // ISP-212 (AB#907): resolved now, not when the page was drawn
       });
       if (!plan.ok) {
         refusal = plan.error; // nothing has moved

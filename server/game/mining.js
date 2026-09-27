@@ -7,6 +7,7 @@ import { bodyResourceProfile, getStationInventory } from "./catalog.js";
 import { canRecover } from "./researchGates.js";
 import { stationAtBody } from "./stations.js"; // ISP-209 (AB#904)
 import { bumpStat } from "./progression.js"; // AB#828: mined:<item>, what totalMined:<item> reads
+import { recordExtraction, systemOfBody } from "./dominanceCounters.js"; // ISP-217 (AB#912)
 
 export function ensureCorpMiningModel(corp) {
   if (!corp.mining || typeof corp.mining !== "object") {
@@ -347,6 +348,8 @@ function mineSpan(corp, extractor, from, to, now) {
     }
     extractor.totalMined += deposited;
     extractor.minedThisCycle = Number(extractor.minedThisCycle || 0) + deposited;
+    // ISP-217 (AB#912): the tonnes count toward dominance in the lease body's system, on the day they were mined.
+    recordExtraction(corp, systemOfBody(lease?.body ?? extractor.body), deposited, to);
     // Bug #984: mined goods are inventory, not income; revenue is booked when they are sold.
   }
 

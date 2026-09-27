@@ -24,6 +24,16 @@ function receiptBody(receipt) {
  * has no receipt yet). Returns { variant, heading, title, bodyHtml }.
  */
 export function actionReceiptView(answer) {
+  // ISP-203 (AB#897): a conglomerate's level-up, shown once to each member (the ISP-25 milestone moment)
+  const cl = answer?.conglomerateLevel;
+  if (cl?.level) {
+    return {
+      variant: "milestone", heading: "Conglomerate Affairs Bureau", title: `${cl.name} reached level ${cl.level}`,
+      bodyHtml: `<p class="action-receipt-summary">Your conglomerate now has room for ${escapeHtml(Number(cl.maxMembers).toLocaleString("en-US"))} members.</p>
+    <dl class="action-receipt-list">${rows([{ label: "Level", value: String(cl.level) }, { label: "Member cap", value: Number(cl.maxMembers).toLocaleString("en-US") }, ...(cl.next ? [{ label: "Next level", value: `${cl.next.level}, room for ${Number(cl.next.maxMembers).toLocaleString("en-US")}` }] : [])])}</dl>
+    <p class="action-receipt-next"><span class="action-receipt-next-label">Next</span> ${escapeHtml(cl.next ? "Invite corporations to fill the new places; the next level's requirements are in the Conglomerate tab." : "This is the highest level.")}</p>`
+    };
+  }
   const receipt = answer?.receipt || null;
   const levels = Array.isArray(answer?.levelsReached) ? answer.levelsReached.filter((l) => l && l.level) : [];
   if (!receipt && levels.length === 0) return null;

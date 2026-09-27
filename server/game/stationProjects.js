@@ -31,6 +31,12 @@ const plain = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 /** What a new station is called: its body and one of these, chosen by the founder by number from 1. No free text (Decision D-0.12-1). */
 export const STATION_NAME_SUFFIXES = Object.freeze(["Station", "Anchorage", "Platform", "Outpost", "Hold", "Relay"]);
 const SOURCES = ["own", "treasury", "hangar"];
+/**
+ * ISP-212 (AB#907): what a built station opens with. The Orbital Executive Suites are where an office is leased, the
+ * member rate included; without them the rate would have no counter to be paid at. Ids from data/buildings.json
+ * (tests/integration/conglomerate-station-benefits.test.js checks them).
+ */
+export const STATION_BUILDINGS = Object.freeze(["orbital-executive-suites"]);
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 /** The item's NPC reference price, what a stake counts goods at (stakeGoodsPriceBasis). */
 const referencePrice = (item) => (ECONOMY.npcBuyers || []).find((b) => b.item === item)?.unitPrice || 0;
@@ -244,7 +250,7 @@ export function settleStationProject(c, now = Date.now(), catalog = CONGLOMERATE
       return blocked(c, p, `the bill of materials cannot be read (${error?.message || error})`);
     }
     if (!funded(p, bom)) return blocked(c, p, "the project is short of its bill of materials");
-    const added = addStation({ id: p.stationId, name: p.name, systemId: p.systemId, body: p.body, owner: { type: "conglomerate", id: c.id } });
+    const added = addStation({ id: p.stationId, name: p.name, systemId: p.systemId, body: p.body, owner: { type: "conglomerate", id: c.id }, buildingIds: [...STATION_BUILDINGS] });
     if (!added.ok) return blocked(c, p, added.error);
     station = added.station;
   }

@@ -39,9 +39,27 @@ export function buyConglomerateLevel(accountId, conglomerateId, requested, now =
   c.levelSince = now;
   saveAccountsNow();
   for (const m of c.members) {
+    m.levelReached = c.level; // ISP-203 (AB#897): each member sees the level-up once, then says it has (ackConglomerateLevel)
     const account = accountByCorp(m.corp);
     if (account) pushSystemNotification(account, { type: "system", title: `${c.name} reached level ${c.level}`, body: `Your conglomerate now has room for ${c.maxMembers} members.` });
   }
   roomEvent(c, "conglomerate:levelled", { level: c.level, maxMembers: c.maxMembers, cost: status.next.cost });
   return { conglomerate: publicConglomerate(c), treasury: { credits: c.treasury.credits } };
+}
+
+/**
+ * ISP-203 (AB#897): the caller has seen its conglomerate's level-up overlay for `level`, so it is not shown again, on
+ * this device or another. A level it has not reached yet, or an older one, clears nothing newer.
+ */
+export function ackConglomerateLevel(accountId, conglomerateId, level, now = Date.now()) {
+  const ctx = context(accountId, conglomerateId, now);
+  if (ctx.refused) return ctx;
+  const { corp, c, role } = ctx;
+  if (!role) return NOT_FOUND.conglomerate();
+  const me = c.members.find((m) => m.corp === corp.publicId);
+  if (me?.levelReached && Number.isInteger(level) && level >= me.levelReached && level <= c.level) {
+    delete me.levelReached;
+    saveAccountsNow();
+  }
+  return { levelReached: me?.levelReached ?? null };
 }

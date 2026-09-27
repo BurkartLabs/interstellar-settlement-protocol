@@ -57,7 +57,7 @@ function fill(listing, bid, quantity, actorId) {
   });
 
   const leftOnListing = Math.max(0, Number(listing.quantity || 0) - quantity);
-  const sale = paySeller(listing, quantity, buyerName);
+  const sale = paySeller(listing, quantity, buyerName, bid.buyerAccountId); // ISP-217 (AB#912): the buyer, for dominance
   takeFromListing(listing.id, listing.item, unitPrice, quantity);
   let leftOnBid = 0;
   mutateState((draft) => {
