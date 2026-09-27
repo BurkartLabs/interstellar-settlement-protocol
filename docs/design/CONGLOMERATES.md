@@ -464,6 +464,7 @@ Proposed keys under `conglomerates` in `data/economy.json`.
 | `colours` | 10 | How many colours the fixed list has. |
 | `inviteExpiryDays` | 7 | An unanswered invitation expires. |
 | `applicationExpiryDays` | 7 | An unanswered application expires. |
+| `invitesPerDay` | 20 | Invitations one conglomerate may send in any 24 hours, so invitations cannot be used to flood a corporation's mail (ISP-198). |
 | `joinCooldownHours` | 24 | After leaving or removal, before joining anywhere. |
 | `nameReleaseDays` | 30 | After dissolution, before the name can be used again. |
 | `maxDirectors` | 5 | Directors a conglomerate may have. |
