@@ -2,25 +2,37 @@
 // that costs), browse the directory and apply, answer invitations, and for a member its conglomerate: roster, roles,
 // removal, the founder's transfer, emblem and colour, succession, leaving and dissolution. The HTML is
 // conglomerateBureau.js; this file fetches and binds. The server decides everything; this only asks and redraws.
+//
+// ISP-201 (AB#895): the same view, bindings and state draw the Company group's Conglomerate tab (the headquarters:
+// the member view anywhere, and for an independent corporation its invitations, the directory and the way to the
+// Bureau). The last read is kept on appState.conglomerate, which the Overview's card reads.
 
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
-import { charterHtml, directoryHtml, invitationsHtml, memberHtml } from "../conglomerateBureau.js";
+import { charterHtml, directoryHtml, hqHtml, invitationsHtml, memberHtml } from "../conglomerateBureau.js";
 import { deepClone } from "../helpers.js";
 import { appState } from "../state.js";
-import { showTradeConfirmation, updateAllViews } from "./shared.js";
+import { setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { showStationBuilding } from "./station.js";
 import { scrollBehavior } from "../motion.js"; // AB#1760
 
 const CHARTER_STATION = "earth-station-prime";
 // The view's own state survives a redraw: the last reads, the charter form, and the invite search.
-const bureau = { accountId: null, view: null, directory: null, error: null, loading: false, form: {}, search: null };
+const bureau = { accountId: null, view: null, directory: null, error: null, loading: null, form: {}, search: null, target: null, mode: "bureau" };
+const listeners = new Set();
 const bound = new WeakSet();
 const json = { "Content-Type": "application/json" };
 const acct = () => `/api/accounts/${encodeURIComponent(appState.accountId)}`;
 const cong = (id) => `${acct()}/conglomerates/${encodeURIComponent(id)}`;
 
+/** The element the view is drawn in now (the Bureau's building panel, or the Conglomerate tab), while it is on the page. */
 function panel() {
-  const el = document.getElementById("station-building-content");
-  return el?.querySelector('[data-role="cong-body"]') ? el : null;
+  const el = bureau.target;
+  return el?.isConnected && el.querySelector('[data-role="cong-body"]') ? el : null;
+}
+
+/** Hear each fresh read of the corporation's conglomerate (the Overview's card). */
+export function onConglomerateChange(listener) {
+  listeners.add(listener);
 }
 
 function redraw() {
@@ -28,26 +40,35 @@ function redraw() {
   if (!el) return; // the player has left the Bureau
   const corp = appState.data?.corp || {};
   const view = bureau.view ? { ...bureau.view, me: corp.publicId, atBureau: corp.currentStationId === CHARTER_STATION } : null;
+  if (bureau.mode === "hq") {
+    el.querySelector('[data-role="cong-body"]').innerHTML = hqHtml(view, bureau.directory, { search: bureau.search, error: bureau.error });
+    return;
+  }
   el.querySelector('[data-role="cong-body"]').innerHTML = view
     ? memberHtml(view, { search: bureau.search }) + invitationsHtml(view) + charterHtml(view, bureau.form) + directoryHtml(bureau.directory, view, { error: bureau.error })
     : bureau.error ? directoryHtml(null, null, { error: bureau.error }) : `<p class="station__note">Opening the Bureau's register…</p>`;
 }
 
+/** Read the corporation's conglomerate and the directory, then redraw whichever view is open. One read at a time. */
+export function loadConglomerate() {
+  if (bureau.accountId !== appState.accountId) Object.assign(bureau, { accountId: appState.accountId, view: null, directory: null, error: null, form: {}, search: null });
+  bureau.loading ??= load().finally(() => { bureau.loading = null; });
+  return bureau.loading;
+}
+
 async function load() {
-  if (bureau.loading) return;
-  bureau.loading = true;
   try {
     const [view, directory] = await Promise.all([
       parseJsonResponse(await apiFetch(`${acct()}/conglomerate`)),
       parseJsonResponse(await apiFetch("/api/conglomerates"))
     ]);
     Object.assign(bureau, { view, directory: directory.conglomerates, error: null });
+    appState.conglomerate = view.conglomerate ? { ...view.conglomerate } : null;
   } catch (error) {
     bureau.error = error?.message || "The Bureau did not answer.";
-  } finally {
-    bureau.loading = false;
   }
   redraw();
+  for (const listener of listeners) listener(appState.conglomerate);
 }
 
 /** Run one Bureau request; on success reload the register (and the account, when it changed), on refusal say why. */
@@ -59,7 +80,7 @@ async function act(url, { body, status, confirm, account = false } = {}) {
       appState.data = deepClone(answer.state);
       updateAllViews();
     }
-    await load();
+    await loadConglomerate();
     return answer;
   } catch (error) {
     const line = panel()?.querySelector(`[data-role="${status}"]`);
@@ -111,12 +132,32 @@ async function searchCorporations(form) {
 
 /** Draw the Bureau into the station's building panel and bind it. `header` is the building's shared header markup. */
 export function renderConglomerateBureau(contentEl, data, header) {
-  if (bureau.accountId !== appState.accountId) Object.assign(bureau, { accountId: appState.accountId, view: null, directory: null, error: null, form: {}, search: null });
+  Object.assign(bureau, { target: contentEl, mode: "bureau" });
   contentEl.innerHTML = `${header}<div class="cong-body" data-role="cong-body"></div>`;
   redraw();
-  load();
+  loadConglomerate();
+  bind(contentEl); // the panel is reused by every building: bind once, and only to the Bureau's own controls
+}
+
+/** ISP-201 (AB#895): draw the Company group's Conglomerate tab into `container` and bind it. */
+export function renderConglomerateHq(container) {
+  if (!container) return;
+  Object.assign(bureau, { target: container, mode: "hq" });
+  if (!container.querySelector('[data-role="cong-body"]')) container.innerHTML = '<div class="cong-body" data-role="cong-body"></div>';
+  redraw();
+  loadConglomerate();
+  bind(container);
+}
+
+/** Open the Bureau: its building on Earth Station Prime, from anywhere in the app. */
+export function openBureau() {
+  setTab("station");
+  showStationBuilding("conglomerate-affairs-bureau");
+}
+
+function bind(contentEl) {
   if (bound.has(contentEl)) return;
-  bound.add(contentEl); // the panel is reused by every building: bind once, and only to the Bureau's own controls
+  bound.add(contentEl);
   contentEl.addEventListener("submit", (event) => {
     const form = event.target;
     if (!form.closest?.('[data-role="cong-body"]')) return;
@@ -142,9 +183,13 @@ export function renderConglomerateBureau(contentEl, data, header) {
     const mine = bureau.view?.conglomerate;
     const scrollTo = (id) => panel()?.querySelector(`#${id}`)?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
     switch (d.role) {
-      case "cong-reload": bureau.error = null; redraw(); load(); break;
+      case "cong-reload": bureau.error = null; redraw(); loadConglomerate(); break;
+      case "cong-open-bureau": openBureau(); break;
       case "cong-goto-directory": scrollTo("cong-directory"); break;
-      case "cong-goto-charter": scrollTo("cong-charter"); panel()?.querySelector("#cong-name")?.focus(); break;
+      case "cong-goto-charter":
+        // In the Conglomerate tab the charter is the Bureau's: go there, or, away from Earth Station Prime, to the reason.
+        if (bureau.mode === "hq") { if (appState.data?.corp?.currentStationId === CHARTER_STATION) openBureau(); else scrollTo("cong-bureau-why"); break; }
+        scrollTo("cong-charter"); panel()?.querySelector("#cong-name")?.focus(); break;
       case "cong-apply": act(`${cong(d.conglomerate)}/applications`, { status: "cong-charter-status" }); break;
       case "cong-invitation-accept": act(`${cong(d.conglomerate)}/invitations/${encodeURIComponent(d.invitation)}/accept`, { status: "cong-charter-status" }); break;
       case "cong-invitation-decline": act(`${cong(d.conglomerate)}/invitations/${encodeURIComponent(d.invitation)}/decline`, { status: "cong-charter-status" }); break;

@@ -159,3 +159,37 @@ describe("what a player typed never reaches the page unescaped, and nothing is s
     expect(emblemSvg(99, 99)).toContain('aria-label="Cyan circle emblem"'); // out of range falls back, never breaks
   });
 });
+
+describe("the headquarters tab (ISP-201, AB#895)", () => {
+  it("shows a member its conglomerate, and the way to the Bureau, disabled away from Earth Station Prime with the reason", async () => {
+    const { hqHtml } = await import("../../public/scripts/conglomerateBureau.js");
+    const here = hqHtml(member("founder"), [summary()]);
+    expect(roles(here)).toEqual(expect.arrayContaining(["cong-mine", "cong-roster", "cong-open-bureau"]));
+    expect(here).not.toContain("cong-directory"); // a member's tab is its conglomerate
+    const away = hqHtml({ ...member("member"), atBureau: false }, []);
+    expect(away).toMatch(/data-role="cong-open-bureau" disabled aria-describedby="cong-bureau-why"/);
+    expect(away).toContain("The Bureau is on Earth Station Prime. Travel there to file a charter, buy a level or dissolve.");
+  });
+
+  it("shows an independent corporation the Bureau, its invitations and the directory, each with a next action", async () => {
+    const { hqHtml } = await import("../../public/scripts/conglomerateBureau.js");
+    const html = hqHtml({ ...outsider(), atBureau: true }, []);
+    expect(html).toContain("Your corporation is independent");
+    expect(html).toContain("it costs 110,000 credits");
+    expect(roles(html)).toEqual(expect.arrayContaining(["cong-open-bureau", "cong-goto-directory", "cong-goto-charter"]));
+    expect(html).not.toContain('data-role="cong-charter"'); // the charter is filed at the Bureau
+    expect(hqHtml(null, null)).toContain("Reading your conglomerate");
+    expect(hqHtml(null, null, { error: "The Bureau did not answer." })).toContain('role="alert"');
+  });
+});
+
+describe("the Overview's Conglomerate card (ISP-201, AB#895)", () => {
+  it("names a member's conglomerate with its members and cap, and opens the roster; an independent one opens the Bureau", async () => {
+    const { conglomerateCard } = await import("../../public/scripts/conglomerateBureau.js");
+    const card = conglomerateCard({ ...summary({ memberCount: 3 }), role: "director", treasury: { credits: 12_500 } });
+    expect(card).toMatchObject({ value: "Halcyon Accord: 3 / 5 members", jump: "conglomerate" });
+    expect(card.body).toBe("Director. Level 1; the treasury holds 12,500 credits. Open the roster.");
+    expect(conglomerateCard(null)).toMatchObject({ value: "Independent", jump: "bureau" });
+    expect(conglomerateCard(undefined).jump).toBeUndefined(); // not read yet: no promise it cannot keep
+  });
+});

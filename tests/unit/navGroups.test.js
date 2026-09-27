@@ -15,7 +15,7 @@ describe("the six navigation groups (ISP-75)", () => {
   });
 
   it("hold every panel on the page exactly once, and nothing else", () => {
-    expect(PANELS.length).toBe(15);
+    expect(PANELS.length).toBe(16); // ISP-201 (AB#895) added the Conglomerate tab
     const grouped = NAV_GROUPS.flatMap((g) => g.tabs);
     expect([...grouped].sort()).toEqual([...PANELS].sort());
     expect(new Set(grouped).size).toBe(grouped.length);

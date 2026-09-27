@@ -7,6 +7,7 @@ import { escapeHtml } from "../html.js";
 import { requirementLink } from "../levelLinks.js";
 import { levelPanelView } from "../levelPanel.js"; // AB#803
 import { appState } from "../state.js";
+import { conglomerateCard } from "../conglomerateBureau.js"; // ISP-201 (AB#895)
 import { salvageRemainingMs } from "./shared.js";
 
 import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
@@ -50,19 +51,11 @@ export function updateOverview(data) {
       value: toCurrency((Number(data.corp.finances.dailyRevenue) || 0) - (Number(data.corp.finances.dailyExpenses) || 0)),
       body: "Income minus costs booked in the last 24 hours. This drives long-horizon compounding over years."
     },
-    {
-      title: "Conglomerate Status",
-      value: (() => {
-        const playerCong = (data.conglomerates || []).find((c) => c.id === data.corp?.conglomerateId);
-        return playerCong ? `${playerCong.name} — ${playerCong.memberCount} / ${playerCong.maxMembers} members` : "Independent";
-      })(),
-      body: (() => {
-        const playerCong = (data.conglomerates || []).find((c) => c.id === data.corp?.conglomerateId);
-        return playerCong
-          ? "Alliance scaling path: early groups stay small and unlock higher membership over time."
-          : "You are not affiliated with a conglomerate. Joining one unlocks pooled resources, co-ownership, and alliance operations.";
-      })()
-    },
+    // ISP-201 (AB#895): the corporation's conglomerate as the server last described it (appState.conglomerate, read by
+    // views/conglomerateBureau.js; undefined until that read lands). It read data.conglomerates, which nothing supplied,
+    // so it said "Independent" to every member (P-STALE-AFFORDANCE). A member's card opens the Conglomerate tab; an
+    // independent corporation's opens the Bureau.
+    conglomerateCard(appState.conglomerate),
     {
       title: "Military Power",
       // AB#861: the sum over the corporation's units of the unit catalog's attack and defense (data/units.json)

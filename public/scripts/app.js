@@ -23,6 +23,7 @@ import { onConversationEvent } from "./views/conversations.js"; // AB#911
 import { renderLogistics } from "./views/logistics.js";
 import { renderMiningCyclePanel, startMiningUiTicker, stopMiningUiTicker } from "./views/miningTicker.js";
 import { renderExpeditionPanel, renderLevel2Progress, updateOverview } from "./views/overview.js";
+import { loadConglomerate, onConglomerateChange, openBureau, renderConglomerateHq } from "./views/conglomerateBureau.js"; // ISP-201 (AB#895)
 import { renderRefinery } from "./views/refinery.js";
 import { bindResearchForms, renderQueue, renderTechTree } from "./views/research.js";
 import { connectViews, isPlayerTraveling, pushFeedback, renderFeedbackLog, revealUnderHeader } from "./views/shared.js";
@@ -49,7 +50,10 @@ import { openGroupOf, tabForGroup, lockEmptyGroups } from "./navGroups.js"; // I
 // ─── Tabs allowed during travel ──────────────────────────────────────────────
 // The Travel screen itself is views/travel.js, on the design system since ISP-83 (AB#772); e2e/travel-screen.spec.js
 // looks at its three states (AB#1053).
-const TRAVEL_ALLOWED_TABS = new Set(["overview", "inbox", "chat", "forums", "starmap", "travel"]);
+// ISP-201 (AB#895): membership moves happen anywhere (docs/design/CONGLOMERATES.md), so the Conglomerate tab stays open in transit.
+const TRAVEL_ALLOWED_TABS = new Set(["overview", "inbox", "chat", "forums", "starmap", "travel", "conglomerate"]);
+// ISP-201 (AB#895): each fresh read of the conglomerate redraws the Overview's card.
+onConglomerateChange(() => { if (appState.authenticated && appState.data) updateOverview(appState.data); });
 
 function isPlayerInSpace(data) {
   return !data?.corp?.currentStationId && !isPlayerTraveling(data);
@@ -195,6 +199,8 @@ function setTab(targetId) {
     onInboxTabActivated();
   }
 
+  if (targetId === "conglomerate" && shown) renderConglomerateHq(document.getElementById("conglomerate-hq"));
+
   if (targetId === "chat") {
     requestAnimationFrame(() => {
       const chatLog = document.getElementById("chat-log");
@@ -213,6 +219,12 @@ function setTab(targetId) {
  * changes, and only when the panel's top is not already in the upper part of the screen.
  */
 function goToTab(targetId) {
+  // ISP-201 (AB#895): "bureau" is the Conglomerate Affairs Bureau: its building when docked at Earth Station Prime, where
+  // it is, and otherwise the Conglomerate tab, which says where to go.
+  if (targetId === "bureau") {
+    if (appState.data?.corp?.currentStationId === "earth-station-prime") return openBureau();
+    targetId = "conglomerate";
+  }
   setTab(targetId);
   const panel = document.getElementById(targetId);
   if (panel?.classList.contains("active")) revealUnderHeader(panel);
@@ -283,6 +295,9 @@ function enterGame(mode, data, options = {}) {
 
   persistSession();
   if (appState.accountId) loadBeltCompositionsIntoStarmap(); // Bug #1264
+  // ISP-201 (AB#895): the Overview's Conglomerate card reads this; never another account's.
+  appState.conglomerate = undefined;
+  if (appState.accountId && mode !== "dummy") loadConglomerate();
 
   authShell.hidden = true;
   gameShell.hidden = false;
@@ -595,6 +610,12 @@ function bindRealtimeEvents() {
     appState.unreadNotifications += 1;
     renderNotifications();
   });
+
+  // ISP-201 (AB#895): a membership change in this corporation's conglomerate, or one addressed to it (the server sends
+  // these to the conglomerate's room and the affected account only): read the conglomerate again.
+  for (const event of ["invited", "applied", "joined", "left", "invitation-closed", "application-closed", "role-changed", "removed", "dissolved", "identity-changed"]) {
+    socket.on(`conglomerate:${event}`, () => { if (appState.accountId) loadConglomerate(); });
+  }
 
   // Bug #1130: mail for this account arrived (the server sends it to this account's room only, with no payload).
   socket.on("messages:new", () => {
