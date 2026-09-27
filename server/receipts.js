@@ -111,13 +111,15 @@ export function buildExtractorReceipt({ extractorName, body, cost, assetValue })
 }
 
 /** ISP-101 (AB#793), ISP-102 (AB#794): a building upgraded by one tier, with what that tier changes. */
-export function upgradeReceipt({ name, tier, cost, assetValue, offlineUntil, effect }) {
+export function upgradeReceipt({ name, tier, cost, assetValue, offlineUntil, effect, goods = [] }) {
   return receipt("upgrade-building", {
     title: "Building Upgraded",
     summary: `${name}, now tier ${tier}.`,
     costCredits: cost,
     grants: [
       ...(effect ? [effect] : []),
+      // ISP-192 (AB#886): what the tier took beside its credits
+      ...(goods.length ? [{ label: "Goods used", value: goods.map((g) => `${g.quantity.toLocaleString("en-US")} ${g.item}`).join(", ") }] : []),
       { label: "Added to assets", value: formatCredits(assetValue) },
       ...(offlineUntil ? [{ label: "Offline until", value: formatUtc(offlineUntil) }] : [])
     ],

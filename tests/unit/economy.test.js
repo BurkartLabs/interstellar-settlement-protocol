@@ -21,10 +21,12 @@ const BEFORE_THE_MOVE = {
     extractorYardPriceGrowth: 1.25,                                         // ISP-303 (AB#2286): new, not moved
     extractorYardsInStartingKit: 2,                                         // ISP-309 (AB#2305): new, not moved
     assemblyFacilityUpgrades: [                                             // ISP-102 (AB#794): new, not moved
-      { toTier: 2, upgradeCost: 30000, assetValue: 21000, offlineHours: 2, fabricationTimePct: 50 }
+      { toTier: 2, upgradeCost: 30000, assetValue: 21000, offlineHours: 2, fabricationTimePct: 50 },
+      { toTier: 3, upgradeCost: 60000, assetValue: 42000, offlineHours: 4, fabricationTimePct: 25, goods: [{ item: "Catalyst Beds", quantity: 20 }] } // ISP-192 (AB#886)
     ],
     refineryUpgrades: [                                                     // ISP-102 (AB#794): tier 3; tier 2 is the Refinery Complex
-      { toTier: 3, upgradeCost: 150000, assetValue: 105000, offlineHours: 8, outputMultiplier: 2 }
+      { toTier: 3, upgradeCost: 150000, assetValue: 105000, offlineHours: 8, outputMultiplier: 2 },
+      { toTier: 4, upgradeCost: 250000, assetValue: 175000, offlineHours: 12, outputMultiplier: 2.5, goods: [{ item: "Superconducting Coils", quantity: 10 }] } // ISP-192 (AB#886)
     ],
     extractorYardUpgrades: [                                                // ISP-101 (AB#793): new, not moved
       { toTier: 2, upgradeCost: 40000, assetValue: 28000, offlineHours: 6, throughputReferencePerHour: 525, throughputCap: 313 },

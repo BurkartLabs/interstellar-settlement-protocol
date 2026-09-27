@@ -57,6 +57,10 @@ export function itemReferences({ refineryChains, systems, economy, npcCorporatio
   }
   for (const buyer of economy?.npcBuyers || []) add("economy.json npcBuyers", buyer?.item);
   for (const ask of economy?.npcAsks?.dailyQty || []) add("economy.json npcAsks", ask?.item);
+  // ISP-192 (AB#886): the goods an upgrade tier takes beside its credits
+  for (const [key, rows] of Object.entries(economy?.buildings || {})) {
+    if (Array.isArray(rows)) for (const row of rows) for (const g of row?.goods || []) add(`economy.json buildings.${key} tier ${row?.toTier}`, g?.item);
+  }
   for (const corp of npcCorporations?.corporations || []) for (const name of corp?.trades || []) add(`npc-corporations.json ${corp.id}`, name);
   for (const template of missions?.templates || []) if (template?.resource) add(`missions.json ${template.id}`, template.resource);
   for (const unit of units?.units || []) for (const name of Object.keys(unit?.goods || {})) add(`units.json ${unit.id}`, name); // AB#861

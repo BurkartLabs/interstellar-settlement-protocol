@@ -56,9 +56,9 @@ describe("the upgrade control on a facility card (AB#794)", () => {
   const refinery = { id: "bld-r", name: "Refinery", tier: 1 };
   const html = (b, c = corp({ buildings: [b] }), e = economy()) => facilityUpgradeHtml(facilityUpgradeView(b, c, e, catalogue));
 
-  it("a Refinery: tier 1 of 3, the Complex's price, and output x1 to x1.5", () => {
+  it("a Refinery: tier 1 of 4, the Complex's price, and output x1 to x1.5", () => {
     const out = html(refinery);
-    expect(out).toContain("<strong>Tier 1</strong> of 3");
+    expect(out).toContain("<strong>Tier 1</strong> of 4"); // ISP-192 (AB#886): tier 4 takes Superconducting Coils
     expect(out).toContain("output per run &times;1 &rarr; &times;1.5");
     expect(out).toContain("Upgrade to tier 2 ($100,000)");
   });
@@ -78,7 +78,7 @@ describe("the upgrade control on a facility card (AB#794)", () => {
   });
 
   it("replaces the button with the reason at the last tier, at the level's limit, and on a building with no tiers", () => {
-    expect(html({ ...refinery, tier: 3 }, corp({ buildings: [{ ...refinery, tier: 3 }], unlocks: { maxUpgradeTier: 5 } }))).toMatch(/Tier 3 is its last\.(?![\s\S]*<button)/);
+    expect(html({ ...refinery, tier: 4 }, corp({ buildings: [{ ...refinery, tier: 4 }], unlocks: { maxUpgradeTier: 5 } }))).toMatch(/Tier 4 is its last\.(?![\s\S]*<button)/);
     expect(html(refinery, corp({ buildings: [refinery], level: 1, unlocks: { maxUpgradeTier: 1 } }))).toMatch(/Tier 2 opens at Corporation Level 2; you are Level 1\.(?![\s\S]*<button)/);
     expect(html({ id: "bld-f", name: "Ferric Mining Complex", tier: 1 })).toMatch(/has no upgrades\.(?![\s\S]*<button)/);
   });
@@ -86,6 +86,12 @@ describe("the upgrade control on a facility card (AB#794)", () => {
   it("keeps the button disabled with the reason while it runs or is short of credit", () => {
     expect(html(refinery, corp({ buildings: [refinery], refineries: [{ id: "ref-1", active: true }] }))).toMatch(/production run[\s\S]*disabled/);
     expect(html(refinery, corp({ buildings: [refinery], finances: { credits: 5_000 } }))).toMatch(/Needs \$100,000; you have \$5,000\.[\s\S]*disabled/);
+    // ISP-192 (AB#886): the Refinery's tier 4 also takes 10 Superconducting Coils from the docked station's stock
+    const t3 = { ...refinery, tier: 3 };
+    const short = (inventory, currentStationId = "earth-station-prime") => html(t3, corp({ buildings: [t3], unlocks: { maxUpgradeTier: 5 }, currentStationId, inventory }));
+    expect(short({ "earth-station-prime": { "Superconducting Coils": 4 } })).toMatch(/Needs 10 Superconducting Coils at this station; you hold 4\.[\s\S]*disabled[\s\S]*\$250,000 \+ 10 Superconducting Coils/);
+    expect(short({ "earth-station-prime": { "Superconducting Coils": 10 } })).not.toMatch(/disabled/);
+    expect(short({}, null)).toMatch(/Dock where you hold the goods it takes, then upgrade\.[\s\S]*disabled/);
   });
 
   it("a card with the control says the tier once, and Upgrading while it is offline", () => {

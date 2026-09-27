@@ -119,7 +119,9 @@ export function facilityUpgradeView(building, corp = {}, economy = {}, catalogue
   if (tier >= view.lastTier) { view.locked = `Tier ${tier} is its last.`; return view; }
   const row = table.find((r) => r.toTier === tier + 1);
   if (!row) { view.locked = "The next tier's price has not loaded; reload the page."; return view; }
-  view.next = { tier: tier + 1, cost: row.upgradeCost, offlineHours: row.offlineHours };
+  // ISP-192 (AB#886): a tier may take goods beside its credits, from the stock where the corporation is docked.
+  const goods = (Array.isArray(row.goods) ? row.goods : []).filter((g) => g?.item && Number(g.quantity) > 0);
+  view.next = { tier: tier + 1, cost: row.upgradeCost, offlineHours: row.offlineHours, goods };
 
   // The record that runs: the building itself for an Assembly Facility; the n-th refinery for the n-th Refinery.
   let record = building;
@@ -140,6 +142,7 @@ export function facilityUpgradeView(building, corp = {}, economy = {}, catalogue
     busy = (corp.asteroidMining?.fabricationQueue || []).length ? "Wait for the probe it is fabricating: it cannot upgrade while it works." : "";
   }
   if (row.offlineHours > 0) view.change += ` &middot; offline ${row.offlineHours} h while it upgrades`;
+  if (goods.length) view.change += ` &middot; also takes ${goods.map((g) => `${Number(g.quantity).toLocaleString("en-US")} ${escapeHtml(g.item)}`).join(" and ")}`;
   if (!record) { view.locked = "This building has nothing linked to it to upgrade."; return view; }
 
   const allowed = Math.max(1, Math.floor(Number(corp.unlocks?.maxUpgradeTier) || 1));
@@ -157,6 +160,12 @@ export function facilityUpgradeView(building, corp = {}, economy = {}, catalogue
   if (busy) view.blocked = busy;
   else if (Number(record.upgradingUntil) > now) view.blocked = `Upgrading: back online at ${utc(Number(record.upgradingUntil))} UTC.`;
   else if (credits < row.upgradeCost) view.blocked = `Needs ${money(row.upgradeCost)}; you have ${money(credits)}.`;
+  else if (goods.length) {
+    const stock = corp.inventory?.[corp.currentStationId] || {};
+    const short = goods.find((g) => (Number(stock[g.item]) || 0) < g.quantity);
+    if (!corp.currentStationId) view.blocked = "Dock where you hold the goods it takes, then upgrade.";
+    else if (short) view.blocked = `Needs ${Number(short.quantity).toLocaleString("en-US")} ${short.item} at this station; you hold ${Math.floor(Number(stock[short.item]) || 0).toLocaleString("en-US")}.`;
+  }
   return view;
 }
 
@@ -167,6 +176,6 @@ export function facilityUpgradeHtml(view) {
   const change = view.change ? `<p class="station__hint" data-role="yard-upgrade-change">${view.change}</p>` : "";
   const action = view.locked
     ? `<p class="station__hint">${escapeHtml(view.locked)}</p>`
-    : `${view.blocked ? `<p class="station__hint">${escapeHtml(view.blocked)}</p>` : ""}<button type="button" class="ui-button ui-button--secondary" data-action="upgrade" data-upgrade-building="${id}"${view.blocked ? " disabled" : ""}>Upgrade to tier ${view.next.tier} (${money(view.next.cost)})</button>`;
+    : `${view.blocked ? `<p class="station__hint">${escapeHtml(view.blocked)}</p>` : ""}<button type="button" class="ui-button ui-button--secondary" data-action="upgrade" data-upgrade-building="${id}"${view.blocked ? " disabled" : ""}>Upgrade to tier ${view.next.tier} (${money(view.next.cost)}${(view.next.goods || []).map((g) => ` + ${Number(g.quantity).toLocaleString("en-US")} ${escapeHtml(g.item)}`).join("")})</button>`;
   return `<div class="station__upgrade" data-role="yard-upgrade" data-upgrade-for="${id}">${head}${change}${action}<p class="station__hint" data-role="yard-upgrade-status" role="status" aria-live="polite" data-for="${id}"></p></div>`;
 }
