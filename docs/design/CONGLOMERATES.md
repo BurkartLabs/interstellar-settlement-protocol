@@ -199,7 +199,7 @@ To buy the next level, **all** of:
 "Members needed" is 80% of the previous level's cap, rounded up. Reaching level 13 from a charter takes at least 106
 days and 5,925,000 credits in level costs alone, before upkeep. Every level cost is a sink.
 
-**As built (ISP-202, AB#896).** `POST .../conglomerates/:id/level` with `{ level }`, the founder at the Bureau; `levelStatus` in server/game/conglomerates.js reads the requirements, and the member view carries them. The level named in the request makes a repeat harmless. Requirement 4 (not in arrears) arrives with upkeep in AB#898, the first thing that can put a conglomerate in arrears; until then the only credits a treasury holds are the charter's deposit, so level 2 is bought once contributions (AB#898) exist.
+**As built (ISP-202, AB#896).** `POST .../conglomerates/:id/level` with `{ level }`, the founder at the Bureau; `levelStatus` in server/game/conglomerates.js reads the requirements, and the member view carries them. The level named in the request makes a repeat harmless. Requirement 4 (not in arrears) came with upkeep in AB#898.
 
 ### T-018: why a bigger conglomerate is not always better
 
@@ -301,6 +301,8 @@ The worst a rogue founder can do is 20% a day, announced; a rogue director 50,00
 purchase, station contribution and payout is an entry `{ at, kind, corp, item | "credits", amount, balanceAfter, by }`,
 never edited or removed, visible to every member, and kept for the life of the conglomerate. A correction is a new
 entry. The Overview's treasury history is this ledger.
+
+**As built (ISP-204, AB#898): credits only; the hangar is AB#899.** Routes under `/conglomerates/:id/treasury`: `GET` (the balance for every member; the whole ledger for the founder and directors, a member's own rows for a member), `POST deposit`, `POST withdraw`, `POST withdrawals/:id/block`. The cap's day runs from 00:00 UTC, measured against the balance at that moment (for a treasury opened today, its first row). Upkeep is charged at each UTC midnight from the one after the charter. When unpaid, it adds to `arrearsOwed`, and a deposit that covers the whole amount pays it. `moveTreasury` is the only writer of the balance, and each call writes one frozen ledger row; older conglomerates get an opening row for what they held.
 
 #### T-018: why "pool everything" is not the best play
 

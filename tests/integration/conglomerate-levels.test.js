@@ -6,14 +6,15 @@ import * as conglomerates from "../../server/game/conglomerates.js";
 import * as membership from "../../server/game/membership.js";
 import * as roles from "../../server/game/conglomerateRoles.js";
 import * as levels from "../../server/game/conglomerateLevels.js";
+import * as treasury from "../../server/game/treasury.js";
 import { CONGLOMERATE_CATALOG as C } from "../../server/conglomerates.js";
 
 // ISP-202 (AB#896): the level ladder, 5 to 100 members. Every level is reachable through the server's own paths
 // (T-019), each requirement reads a stat some server code writes, a purchase is refused with the reason when a
 // requirement, the role or the place is missing, one request buys one level, and nothing lowers a level.
 //
-// The treasury is set directly where a level needs funds: contributions are AB#898 (ISP-204), the story after this one,
-// and until it lands the only credits a treasury holds are the charter's deposit.
+// ISP-204 (AB#898): the treasury is funded by the founder's deposits, as a player funds it, and pays each day's upkeep
+// as the clock moves; the climb never falls into arrears.
 const { dailyUpkeep, levelStatus, LEVEL_STAT_WRITERS } = conglomerates;
 const { findConglomerate, inviteCorporation, answerInvitation, leaveConglomerate, onConglomerateEvent } = membership;
 const { buyConglomerateLevel } = levels;
@@ -56,34 +57,45 @@ function fillTo(f, count, clock) {
 describe("every level is reachable, and the cap follows the catalog to 100 (T-019, AB#896)", () => {
   it("climbs from level 1 to the top through the server's own paths", async () => {
     const f = await founded();
+    f.raw.state.corp.finances.credits = 50_000_000_000; // the founder's own corporation pays for the whole climb
     const clock = { now: Date.now() };
     const caps = [f.c.maxMembers];
     for (let target = 2; target <= C.levels.length; target += 1) {
       const status = levelStatus(f.c, clock.now);
       expect(status.next.level).toBe(target);
+      const buffer = dailyUpkeep(C.levels[target - 1].maxMembers) * 60; // upkeep for the days this level takes
+      if (f.c.treasury.credits < buffer) treasury.depositToTreasury(f.id, f.c.id, Math.ceil(buffer / (1 - C.poolingFeePct / 100)), clock.now);
       fillTo(f, status.requirements.find((r) => r.id === "members").need, clock);
       clock.now = Math.max(clock.now, levelStatus(f.c, clock.now).requirements.find((r) => r.id === "days").need);
       f.raw.lastLoginAt = clock.now; // the founder keeps signing in, so succession never moves the role
-      f.c.treasury.credits = levelStatus(f.c, clock.now).requirements.find((r) => r.id === "funds").need; // contributions: AB#898
+      const need = levelStatus(f.c, clock.now).requirements.find((r) => r.id === "funds").need;
+      if (f.c.treasury.credits < need) {
+        const gross = Math.ceil((need - f.c.treasury.credits) / (1 - C.poolingFeePct / 100)) + 1;
+        expect(treasury.depositToTreasury(f.id, f.c.id, gross, clock.now).refused).toBeUndefined();
+      }
       const bought = buyConglomerateLevel(f.id, f.c.id, target, clock.now);
       expect(bought.refused, `level ${target}: ${bought.refused?.error}`).toBeUndefined();
-      expect(f.c.treasury.credits).toBe(dailyUpkeep(f.c.members.length) * C.levelReserveDays); // the reserve stays
+      expect(f.c.treasury.credits).toBeGreaterThanOrEqual(dailyUpkeep(f.c.members.length) * C.levelReserveDays); // the reserve stays
+      expect(f.c.arrearsSince).toBeNull();
       caps.push(f.c.maxMembers);
     }
     expect(caps).toEqual(C.levels.map((l) => l.maxMembers));
     expect(caps.at(-1)).toBe(100);
     expect(levelStatus(f.c, clock.now)).toEqual({ level: C.levels.length, top: true });
     expect(buyConglomerateLevel(f.id, f.c.id, C.levels.length + 1, clock.now).refused.code).toBe("top-level");
+    // ISP-204 (AB#898): every credit of the climb is in the ledger, and it sums to the balance.
+    expect(f.c.ledger.reduce((s, r) => s + r.amount, 0)).toBe(f.c.treasury.credits);
+    expect(f.c.ledger.filter((r) => r.kind === "level")).toHaveLength(C.levels.length - 1);
   }, 120_000);
 });
 
 describe("each requirement reads a stat the server writes (AB#896)", () => {
   it("names, for every stat a requirement reads, functions that exist and write it", () => {
-    const f = { members: [{ corp: "x", role: "founder", joinedAt: 0 }], treasury: { credits: 0 }, level: 1, foundedAt: 0, levelSince: 0 };
+    const f = { members: [{ corp: "x", role: "founder", joinedAt: 0 }], treasury: { credits: 0 }, level: 1, foundedAt: 0, levelSince: 0, arrearsSince: null };
     const stats = new Set(levelStatus(f, DAY).requirements.map((r) => r.stat));
     expect([...stats].sort()).toEqual(Object.keys(LEVEL_STAT_WRITERS).sort());
-    const writes = { "treasury.credits": /treasury/, members: /members|admit\(/, levelSince: /levelSince/ };
-    const modules = { ...conglomerates, ...membership, ...roles, ...levels };
+    const writes = { "treasury.credits": /treasury|moveTreasury\(/, members: /members|admit\(/, levelSince: /levelSince/, arrearsSince: /arrearsSince/ };
+    const modules = { ...conglomerates, ...membership, ...roles, ...levels, ...treasury };
     for (const stat of stats) {
       expect(LEVEL_STAT_WRITERS[stat].length, stat).toBeGreaterThan(0);
       for (const name of LEVEL_STAT_WRITERS[stat]) {
@@ -141,7 +153,8 @@ describe("one request buys one level, together with its payment, and members hea
     fillTo(f, 4, clock);
     f.c.levelSince -= 3 * DAY;
     f.raw.lastLoginAt = Date.now();
-    f.c.treasury.credits = 50_000 + dailyUpkeep(4) * C.levelReserveDays + 1_000;
+    f.raw.state.corp.finances.credits = 1_000_000;
+    expect(treasury.depositToTreasury(f.id, f.c.id, 60_000, Date.now()).refused).toBeUndefined(); // 58,800 after the fee
     return f;
   }
 
@@ -184,6 +197,6 @@ describe("one request buys one level, together with its payment, and members hea
     const f = await founded();
     const view = (await f.api.get(`/api/accounts/${f.id}/conglomerate`)).body.conglomerate.levels;
     expect(view.next).toEqual({ level: 2, maxMembers: 10, cost: 50_000 });
-    expect(view.requirements.map((r) => [r.id, r.met])).toEqual([["funds", false], ["members", false], ["days", false]]);
+    expect(view.requirements.map((r) => [r.id, r.met])).toEqual([["funds", false], ["members", false], ["days", false], ["arrears", true]]);
   });
 });

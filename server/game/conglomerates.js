@@ -159,7 +159,11 @@ export function foundConglomerate(accountId, { name, emblem, colour } = {}, now 
     levelSince: now, // ISP-202 (AB#896): when it reached its level; the next needs minDaysAtPrevious here
     founder: corp.publicId,
     members: [{ corp: corp.publicId, role: "founder", joinedAt: now }],
-    treasury: { credits: catalog.charterDeposit },
+    treasury: { credits: 0 },
+    ledger: [], // ISP-204 (AB#898): the deposit below is its first row
+    withdrawals: [],
+    upkeepPaidThrough: dayStartOf(now) + DAY_MS,
+    arrearsOwed: 0,
     invitations: [],
     applications: [],
     arrearsSince: null
@@ -168,6 +172,7 @@ export function foundConglomerate(accountId, { name, emblem, colour } = {}, now 
     applyCredits(corp, -catalog.charterFee, "conglomerate-charter", now);
     applyCredits(corp, -catalog.charterDeposit, "conglomerate-deposit", now);
     hooks.afterCharge?.();
+    moveTreasury(record, { at: now, kind: "charter-deposit", corp: corp.publicId, amount: catalog.charterDeposit, by: corp.publicId });
     insertConglomerate(record);
     corp.conglomerateId = record.id;
     corp.joinCooldownUntil = null;
@@ -193,13 +198,14 @@ export function dailyUpkeep(members, catalog = CONGLOMERATE_CATALOG) {
 /**
  * What each level requirement reads, and every server function that writes it (T-019: a requirement on a stat nothing
  * writes can never be met). tests/integration/conglomerate-levels.test.js holds each name to a function that writes
- * the stat. The design's fourth requirement, "not in arrears", reads arrearsSince, which only upkeep can set; it is
- * added with upkeep (AB#898), with its writer, rather than checked here against a field that is always empty.
+ * the stat. The fourth requirement, not in arrears, arrived with upkeep (ISP-204, AB#898), which is what sets it.
  */
 export const LEVEL_STAT_WRITERS = Object.freeze({
-  "treasury.credits": Object.freeze(["foundConglomerate", "buyConglomerateLevel", "dissolveConglomerate"]),
+  "treasury.credits": Object.freeze(["moveTreasury", "foundConglomerate", "buyConglomerateLevel", "dissolveConglomerate", "depositToTreasury", "withdrawFromTreasury", "settleTreasury"]),
   members: Object.freeze(["foundConglomerate", "answerInvitation", "answerApplication", "leaveConglomerate", "removeMember", "settleSuccession", "dissolveConglomerate"]),
-  levelSince: Object.freeze(["foundConglomerate", "buyConglomerateLevel"])
+  levelSince: Object.freeze(["foundConglomerate", "buyConglomerateLevel", "settleTreasury"]),
+  // ISP-204 (AB#898): upkeep puts a conglomerate in arrears; paying what is owed ends them.
+  arrearsSince: Object.freeze(["settleTreasury", "payArrears"])
 });
 
 const plain = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
@@ -227,7 +233,113 @@ export function levelStatus(c, now = Date.now(), catalog = CONGLOMERATE_CATALOG)
   const requirements = [
     { id: "funds", stat: "treasury.credits", label: `The treasury pays ${plain(next.cost)} credits and keeps ${plain(reserve)} (${catalog.levelReserveDays} days of upkeep for ${members})`, need: next.cost + reserve, have: treasury, met: treasury >= next.cost + reserve },
     { id: "members", stat: "members", label: `At least ${needed} members (${catalog.levelFillPct}% of ${current.maxMembers})`, need: needed, have: members, met: members >= needed },
-    { id: "days", stat: "levelSince", label: `${next.minDaysAtPrevious} days at level ${c.level}`, need: readyAt, have: now, met: now >= readyAt }
+    { id: "days", stat: "levelSince", label: `${next.minDaysAtPrevious} days at level ${c.level}`, need: readyAt, have: now, met: now >= readyAt },
+    { id: "arrears", stat: "arrearsSince", label: "No upkeep in arrears", need: 0, have: Math.floor(Number(c.arrearsOwed) || 0), met: !c.arrearsSince }
   ];
   return { level: c.level, next: { level: next.level, maxMembers: next.maxMembers, cost: next.cost }, requirements, ready: requirements.every((r) => r.met) };
+}
+
+// ─── The treasury: its ledger, upkeep and arrears (ISP-204, AB#898; docs/design/CONGLOMERATES.md, "The treasury and
+// upkeep" and "Pooling") ────────────────────────────────────────────────────────────────────────────────────────────
+//
+// moveTreasury is the only way the balance changes, and it writes exactly one ledger row, so the ledger's amounts sum to
+// the balance (an opening row stands for what an older conglomerate held before the ledger existed). Rows are frozen
+// and no route edits or removes one: a correction is a new row. settleTreasury brings a conglomerate up to `now` on
+// every read: announced withdrawals that are due, and each UTC midnight's upkeep, in the order they fell.
+
+export const dayStartOf = (t) => Math.floor(t / DAY_MS) * DAY_MS;
+
+/** Give an older conglomerate a ledger (one opening row for what it holds), a withdrawal list and an upkeep clock. */
+export function ensureTreasury(c, now = Date.now()) {
+  if (!c.treasury || typeof c.treasury !== "object") c.treasury = { credits: 0 };
+  if (!Array.isArray(c.ledger)) {
+    const credits = Math.max(0, Math.floor(Number(c.treasury.credits) || 0));
+    c.treasury.credits = credits;
+    c.ledger = credits ? [{ id: createId("cled"), at: Number(c.foundedAt) || now, kind: "opening", corp: c.founder, item: "credits", amount: credits, balanceAfter: credits, by: "bureau" }] : [];
+  }
+  if (!Array.isArray(c.withdrawals)) c.withdrawals = [];
+  if (!Number.isFinite(c.upkeepPaidThrough)) c.upkeepPaidThrough = dayStartOf(now) + DAY_MS; // the first charge: next midnight
+  if (!Number.isFinite(c.arrearsOwed)) c.arrearsOwed = 0;
+  if (c.arrearsSince === undefined) c.arrearsSince = null;
+}
+
+/**
+ * Move the treasury by `amount` (signed, whole credits) and write the one ledger row that says so. Throws, changing
+ * nothing, on an amount that is not a whole number or a balance that would fall below zero.
+ */
+export function moveTreasury(c, { at, kind, corp = null, amount, by = null, note }) {
+  if (!Number.isSafeInteger(amount)) throw new TypeError(`moveTreasury: ${String(amount)} is not a whole number of credits`);
+  const after = Math.floor(Number(c.treasury.credits) || 0) + amount;
+  if (after < 0) throw new RangeError("moveTreasury: the treasury cannot go below zero");
+  const row = Object.freeze({ id: createId("cled"), at, kind, corp, item: "credits", amount, balanceAfter: after, by, ...(note ? { note } : {}) });
+  c.ledger.push(row);
+  c.treasury.credits = after;
+  return row;
+}
+
+/** A ledger row that moves nothing: a withdrawal announced, blocked or failed, upkeep not paid, a level lost. */
+export function noteTreasury(c, { at, kind, corp = null, by = null, note }) {
+  const row = Object.freeze({ id: createId("cled"), at, kind, corp, item: "credits", amount: 0, balanceAfter: Math.floor(Number(c.treasury.credits) || 0), by, ...(note ? { note } : {}) });
+  c.ledger.push(row);
+  return row;
+}
+
+const accountOfCorp = (publicId) => Object.values(accountsStore.accounts || {}).find((a) => a?.state?.corp?.publicId === publicId) || null;
+
+/** Pay what upkeep is owed, if the treasury now holds it all: the arrears end. Returns whether it paid. */
+export function payArrears(c, now = Date.now()) {
+  if (!(c.arrearsOwed > 0) || c.treasury.credits < c.arrearsOwed) return false;
+  moveTreasury(c, { at: now, kind: "arrears-paid", amount: -c.arrearsOwed, by: "bureau", note: `upkeep owed since ${new Date(c.arrearsSince).toISOString().slice(0, 10)}` });
+  c.arrearsOwed = 0;
+  c.arrearsSince = null;
+  return true;
+}
+
+/**
+ * Bring the treasury up to `now`: due announced withdrawals are paid (or fail when the treasury no longer holds them),
+ * and each UTC midnight charges a day's upkeep, or, when the treasury cannot pay it, adds it to the arrears. After
+ * arrearsDropDays in arrears the conglomerate drops a level (nobody is removed) and the count starts again. Returns
+ * the events to tell members about: [{ event, payload, notify? }].
+ */
+export function settleTreasury(c, now = Date.now(), catalog = CONGLOMERATE_CATALOG) {
+  if (c.dissolvedAt) return [];
+  ensureTreasury(c, now);
+  const events = [];
+  for (;;) {
+    const due = c.withdrawals.filter((w) => w.state === "pending" && w.completesAt <= now).sort((a, b) => a.completesAt - b.completesAt)[0];
+    const midnight = c.upkeepPaidThrough <= now ? c.upkeepPaidThrough : Infinity;
+    if (!due && midnight === Infinity) break;
+    if (due && due.completesAt <= midnight) {
+      const account = accountOfCorp(due.corp);
+      if (account && c.treasury.credits >= due.amount) {
+        moveTreasury(c, { at: due.completesAt, kind: "withdrawal", corp: due.corp, amount: -due.amount, by: due.corp, note: "announced" });
+        applyCredits(account.state.corp, due.amount, "conglomerate-withdrawal", due.completesAt);
+        due.state = "paid";
+      } else {
+        noteTreasury(c, { at: due.completesAt, kind: "withdrawal-failed", corp: due.corp, by: "bureau", note: account ? "the treasury no longer held it" : "the corporation no longer exists" });
+        due.state = "failed";
+      }
+      events.push({ event: "conglomerate:treasury", payload: { kind: `withdrawal-${due.state}`, corp: due.corp, amount: due.amount } });
+      continue;
+    }
+    const day = midnight;
+    const upkeep = dailyUpkeep(c.members.length, catalog);
+    if (!(c.arrearsOwed > 0) && c.treasury.credits >= upkeep) {
+      if (upkeep > 0) moveTreasury(c, { at: day, kind: "upkeep", amount: -upkeep, by: "bureau", note: `${c.members.length} members` });
+    } else {
+      c.arrearsOwed = (c.arrearsOwed || 0) + upkeep;
+      if (!c.arrearsSince) c.arrearsSince = day;
+      noteTreasury(c, { at: day, kind: "upkeep-unpaid", by: "bureau", note: `${upkeep} owed for ${c.members.length} members; ${c.arrearsOwed} in arrears` });
+      if (!payArrears(c, day) && day - c.arrearsSince >= catalog.arrearsDropDays * DAY_MS && c.level > 1) {
+        c.level -= 1;
+        c.maxMembers = catalog.levels[c.level - 1].maxMembers;
+        c.levelSince = day;
+        c.arrearsSince = day; // another arrearsDropDays before the next
+        noteTreasury(c, { at: day, kind: "level-lost", by: "bureau", note: `level ${c.level}, room for ${c.maxMembers}` });
+        events.push({ event: "conglomerate:level-lost", payload: { level: c.level, maxMembers: c.maxMembers }, notify: { title: `${c.name} lost a level`, body: `Upkeep went unpaid for ${catalog.arrearsDropDays} days, so it dropped to level ${c.level} (room for ${c.maxMembers}). Nobody was removed; it cannot admit anyone until it is below the new cap. Deposit enough to pay the arrears to stop it.` } });
+      }
+    }
+    c.upkeepPaidThrough += DAY_MS;
+  }
+  return events;
 }
