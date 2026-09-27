@@ -3,11 +3,12 @@
 // Every term is priced on the server (server/loans.js); the body's only inputs are the product and principal to quote,
 // and the quote to accept.
 import { quoteLoan, acceptLoan } from "../loans.js";
+import { bodyNumber } from "../bodyNumber.js";
 import { payOffLoan } from "../loanServicing.js"; // ISP-150 (AB#844)
 
 export function registerLoanRoutes(app) {
   app.post("/api/accounts/:accountId/loans/quote", (req, res) => {
-    const r = quoteLoan(req.params.accountId, { productId: req.body?.productId, principal: Number(req.body?.principal) });
+    const r = quoteLoan(req.params.accountId, { productId: req.body?.productId, principal: bodyNumber(req.body?.principal, { fallback: NaN }) });
     if (!r.ok) return res.status(400).json({ error: r.error });
     res.json({ quote: r.quote });
   });
