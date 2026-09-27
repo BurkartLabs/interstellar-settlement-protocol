@@ -16,7 +16,7 @@ import { CONGLOMERATE_CATALOG, can } from "../conglomerates.js";
 import { createId } from "./catalog.js";
 import { pushSystemNotification } from "./progression.js";
 import { accountsStore, saveAccountsNow } from "./store.js";
-import { conglomerateList, publicConglomerate } from "./conglomerates.js";
+import { charterRefusal, conglomerateList, publicConglomerate } from "./conglomerates.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -264,7 +264,8 @@ export function leaveConglomerate(accountId, conglomerateId, now = Date.now()) {
  * applications), the invitations addressed to it, and its own open application.
  */
 export function membershipView(accountId, now = Date.now()) {
-  const corp = accountsStore.accounts?.[accountId]?.state?.corp;
+  const account = accountsStore.accounts?.[accountId];
+  const corp = account?.state?.corp;
   if (!corp?.publicId) return null;
   for (const c of conglomerateList()) expireOpen(c, now);
   const mine = findConglomerate(corp.conglomerateId);
@@ -280,6 +281,10 @@ export function membershipView(accountId, now = Date.now()) {
     conglomerate: mine && can(roleOf(mine, corp.publicId), "view") ? {
       ...publicConglomerate(mine),
       role: roleOf(mine, corp.publicId),
+      // ISP-200 (AB#894): what this role may do, from can(), so the Bureau offers only those controls and mirrors no table.
+      permissions: CONGLOMERATE_CATALOG.permissions.map((p) => p.id).filter((id) => can(roleOf(mine, corp.publicId), id)),
+      maxDirectors: CONGLOMERATE_CATALOG.maxDirectors,
+      founderAbsentDays: CONGLOMERATE_CATALOG.founderAbsentDays,
       members: mine.members.map((m) => ({ corp: m.corp, corpName: corpName(m.corp), role: m.role, joinedAt: m.joinedAt })),
       treasury: { ...mine.treasury },
       invitations: mine.invitations.filter((r) => r.state === "invited").map(entryView),
@@ -287,7 +292,15 @@ export function membershipView(accountId, now = Date.now()) {
     } : null,
     invitations,
     application,
-    joinCooldownUntil: Number(corp.joinCooldownUntil) > now ? corp.joinCooldownUntil : null
+    joinCooldownUntil: Number(corp.joinCooldownUntil) > now ? corp.joinCooldownUntil : null,
+    // ISP-200 (AB#894): whether this corporation may file a charter now, and if not the server's own reason, so the
+    // Bureau shows the refusal the route would give rather than working it out again in the page.
+    charter: {
+      fee: CONGLOMERATE_CATALOG.charterFee,
+      deposit: CONGLOMERATE_CATALOG.charterDeposit,
+      minFounderAgeDays: CONGLOMERATE_CATALOG.minFounderAgeDays,
+      refusal: (({ refused } = {}) => (refused ? { code: refused.code, error: refused.error } : null))(charterRefusal(account, now) || {})
+    }
   };
 }
 

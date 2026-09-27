@@ -21,6 +21,7 @@ import { cancelBuyOrder, matchListing, placeBuyOrder } from "../buyOrders.js"; /
 import { paySeller, takeFromListing, tellSeller } from "../marketSettlement.js";
 import { buyOrderView } from "../publicViews.js";
 import { STATION_REGISTRY } from "../travel.js";
+import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
 
 /** How many sell listings one seller may have open at once (Bug #425). */
 const MAX_OPEN_LISTINGS = 50;
@@ -37,6 +38,12 @@ export function registerMarketRoutes(app) {
     const account = getAccountById(req.auth.accountId);
     if (!account) {
       res.status(404).json({ error: "Account not found." });
+      return;
+    }
+    // ISP-286 (AB#993): a defaulted debtor in its grace period sells, buys and lends to nobody
+    const held = recoveryHold(account.state?.corp);
+    if (held) {
+      res.status(409).json({ error: held });
       return;
     }
 
@@ -192,6 +199,11 @@ export function registerMarketRoutes(app) {
     const buyerAccount = getAccountById(req.auth.accountId);
     if (!buyerAccount) {
       res.status(404).json({ error: "Account not found." });
+      return;
+    }
+    const buyerHeld = recoveryHold(buyerAccount.state?.corp); // ISP-286 (AB#993)
+    if (buyerHeld) {
+      res.status(409).json({ error: buyerHeld });
       return;
     }
 

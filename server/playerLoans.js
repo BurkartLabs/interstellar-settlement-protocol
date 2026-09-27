@@ -14,13 +14,14 @@
 // sanitizeAccount), so a stored account id would leak (Bug #711/#1134).
 //
 // Default (a player loan more than 7 days in arrears) is marked on the loan and told to both sides by the servicing
-// tick; the lender keeps receiving what the borrower's credits cover each day. Recovering liquid holdings and
-// force-selling assets (the Board's answer on AB#702) is AB#993, which needs a way to remove a building (AB#2569).
+// tick; recovery (credits, then goods, then force-sold buildings, the Board's answer on AB#702) is
+// server/defaultRecovery.js (AB#993), after a 24-hour grace period.
 import { computeCreditRating, GRADES } from "./creditRating.js";
 import { getAccountById, getStatements, getState, mutateState, mutateAccountState } from "./gameState.js";
 import { accountsStore } from "./game/store.js";
 import { settleTransfer } from "./settlement.js";
 import { paymentSchedule } from "./loans.js";
+import { recoveryHold } from "./recoveryHold.js"; // ISP-286 (AB#993)
 
 const DAY = 86_400_000;
 export const OFFER_RULES = Object.freeze({
@@ -117,6 +118,8 @@ let seq = 0;
 export function postLoanOffer(accountId, input, now) {
   const lender = corpOf(accountId);
   if (!lender?.publicId) return { ok: false, status: 404, error: "No such corporation." };
+  const onHold = recoveryHold(lender);
+  if (onHold) return { ok: false, status: 409, error: onHold };
   const checked = checkOfferTerms(input);
   if (!checked.ok) return { ok: false, status: 400, error: checked.error };
   const t = checked.terms;

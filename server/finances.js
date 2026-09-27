@@ -94,7 +94,8 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "bond-redemption-received", // ISP-155 (AB#849): a bond's face back at maturity
     "ship-production-refund", // ISP-171 (AB#865): what cancelling a shipyard job returns
     "troop-training-refund", // ISP-172 (AB#866): what cancelling a training job returns
-    "conglomerate-dissolution" // ISP-199 (AB#893): a member's share of a dissolved conglomerate's treasury
+    "conglomerate-dissolution", // ISP-199 (AB#893): a member's share of a dissolved conglomerate's treasury
+    "forced-sale" // ISP-286 (AB#993): goods and buildings sold to recover a defaulted player debt
   ]),
   expense: Object.freeze([
     "hiring",
