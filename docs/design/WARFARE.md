@@ -85,8 +85,11 @@ an unbounded charge.
   watch (ISP-232) adds each day's traded value to the price history.
 - **The levy** is one function, `levyOf` in `server/game/tariffs.js`, so the Board's answer on it changes one line.
   The ISA's share is counted as a sink in `tariffs.json`.
-- **The sell and transfer confirmations do not show the tariff yet** (ISP-231, AB#926); the receipt and the
-  notification do.
+- **Where traders and holders see it** (ISP-231, AB#926): the sale and listing confirmations show the tariff and any
+  pending change, and the net they show is the settlement's (one arithmetic, `public/scripts/tariffs.js`). Logistics
+  quotes the tariff on goods shipped in, per item and for the picked lines. The starmap's system panel shows a held
+  system's rate and pending change to everyone, and to the holder its schedule, what it collected and is owed, and
+  (docked there) the form that files a rate. `GET /api/accounts/:id/tariffs` serves all of it.
 
 ### Why the best tariff is below the cap
 

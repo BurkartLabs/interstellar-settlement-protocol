@@ -20,6 +20,8 @@ import path from "node:path";
 import { dataDir, safeWriteFile, createId } from "./game/catalog.js";
 import { dayKeyOf } from "./game/dominanceCounters.js";
 import { accountsStore, scheduleAccountsSave } from "./game/store.js";
+import { mutateAccountState } from "./gameState.js";
+import { applyCredits } from "./finances.js";
 import { accountByCorp, findConglomerate, roleOf } from "./game/membership.js";
 import { currentConglomerateOf } from "./game/intel.js";
 import { moveTreasury, settleTreasury } from "./game/conglomerates.js";
@@ -271,7 +273,12 @@ export function publicConcession(systemId, now = Date.now()) {
   return {
     systemId,
     concedable: Boolean(terms),
-    holders: (rec?.holders || []).map((h) => ({ holder: { type: h.holder.type, id: h.holder.id, name: h.holder.name }, state: h.state, grantedAt: h.grantedAt, termEndsAt: h.termEndsAt, benefits: h.state === "granted" })),
+    holders: (rec?.holders || []).map((h) => ({
+      holder: { type: h.holder.type, id: h.holder.id, name: h.holder.name }, state: h.state, grantedAt: h.grantedAt, termEndsAt: h.termEndsAt, benefits: h.state === "granted",
+      // ISP-228 (AB#923): the everyone-discount in force and any change waiting out its notice, both public
+      leaseDiscountPct: terms ? modifierNow(h, now, terms) : 0,
+      ...(h.leaseModifier?.pendingPct !== undefined && h.leaseModifier?.pendingPct !== null && now < h.leaseModifier.effectiveAt ? { pendingLeaseDiscount: { pct: h.leaseModifier.pendingPct, effectiveAt: h.leaseModifier.effectiveAt } } : {})
+    })),
     petitions: (rec?.petitions || []).filter((p) => p.state === "open").map(publicPetition),
     register: [...(rec?.register || [])].reverse()
   };
@@ -281,6 +288,105 @@ export function publicConcession(systemId, now = Date.now()) {
 export function concessionInForce(systemId, holder) {
   return Boolean(store.systems[systemId]?.holders.some((h) => keyOf(h.holder) === keyOf(holder) && h.state === "granted"));
 }
+
+// ─── ISP-228 (AB#923): what a concession grants ─────────────────────────────────────────────────────────────────────
+// TERRITORY.md, "What a concession grants": the fee share and the lease-fee modifier. Only a concession in force
+// (granted, not in grace) grants either; a lapse or grace simply stops them.
+
+const inForce = (systemId) => (store.systems[systemId]?.holders || []).filter((h) => h.state === "granted");
+/** Whether `corp` is, or belongs to, the holder: an independent corporation itself, or a member of the conglomerate. */
+function belongsTo(corp, holder) {
+  if (!corp?.publicId) return false;
+  if (holder.type === "corp") return holder.id === corp.publicId;
+  return Boolean(findConglomerate(holder.id)?.members?.some((m) => m.corp === corp.publicId));
+}
+/** A stored discount, or 0 when it is not a whole percentage within the catalog's bounds (fails closed: the base fee). */
+const validPct = (v, max) => (Number.isInteger(v) && v >= 0 && v <= max ? v : 0);
+
+/** The discount a holder's modifier gives now: the waiting change once its notice has passed, else the current one. */
+function modifierNow(entry, now, terms) {
+  const m = entry.leaseModifier;
+  if (!m || !terms) return 0;
+  const max = terms.concessionLeaseModifierMaxPct;
+  if (m.pendingPct !== undefined && m.pendingPct !== null && now >= m.effectiveAt) return validPct(m.pendingPct, max);
+  return validPct(m.pct, max);
+}
+
+/**
+ * What a new lease on a body in `systemId` costs `corp` now: the base `leaseCost`, less the larger of the holder's
+ * everyone-discount (after its notice) and, for the holder or its members, the own-lease discount. Never above the
+ * base. { cost, discountPct }.
+ */
+export function leaseCostFor(systemId, corp, base, now = Date.now()) {
+  const terms = concessionTermsFor(systemId);
+  const entries = inForce(systemId);
+  if (!terms || !entries.length || !(base > 0)) return { cost: base, discountPct: 0 };
+  let pct = 0;
+  for (const e of entries) {
+    pct = Math.max(pct, modifierNow(e, now, terms));
+    if (belongsTo(corp, e.holder)) pct = Math.max(pct, validPct(terms.concessionOwnLeaseDiscountPct, 100));
+  }
+  return { cost: Math.max(0, Math.min(base, Math.round((base * (100 - pct)) / 100))), discountPct: pct };
+}
+
+/**
+ * The holder sets the discount on everyone's new leases in its system: a whole percentage from 0 to
+ * concessionLeaseModifierMaxPct, applying after concessionLeaseModifierNoticeHours. Refused while a change is waiting,
+ * or when the caller does not hold the concession (for a conglomerate, only a role with the "concession" permission).
+ */
+export function setLeaseModifier(accountId, systemId, pct, now = Date.now()) {
+  const who = callerHolder(accountId);
+  if (who.refused) return who;
+  const terms = concessionTermsFor(systemId);
+  const entry = store.systems[systemId]?.holders.find((h) => keyOf(h.holder) === keyOf(who.holder));
+  if (!terms || !entry) return no(404, "not-held", "You hold no concession in this system.");
+  if (entry.state !== "granted") return no(409, "in-grace", "The concession's benefits are suspended until its upkeep is paid.");
+  const max = terms.concessionLeaseModifierMaxPct;
+  if (!Number.isInteger(pct) || pct < 0 || pct > max) return no(400, "out-of-bounds", `The lease discount is a whole percentage from 0 to ${max}.`);
+  const m = entry.leaseModifier || { pct: 0 };
+  if (m.pendingPct !== undefined && m.pendingPct !== null && now < m.effectiveAt) return no(409, "notice-period", "A change to the lease discount is already waiting out its notice period.");
+  const current = modifierNow(entry, now, terms);
+  entry.leaseModifier = { pct: current, pendingPct: pct, effectiveAt: now + terms.concessionLeaseModifierNoticeHours * HOUR };
+  note(store.systems[systemId], now, "lease-modifier", entry.holder, { pct, effectiveAt: entry.leaseModifier.effectiveAt });
+  save();
+  return { leaseModifier: { pct: current, pendingPct: pct, effectiveAt: entry.leaseModifier.effectiveAt } };
+}
+
+/**
+ * Pay each holder in force its share of an ISA fee paid in `systemId` by `payerCorp`: concessionFeeSharePct of `amount`
+ * (times the system's fee-share factor, halved in a condominium), in whole credits. Nothing for a fee the holder, or a
+ * member of the holding conglomerate, paid itself. Booked as "concession-fee-share" income (the holder's P&L) or into
+ * the conglomerate's treasury. Call it after the payer's own change is saved, never inside another account's mutation.
+ * Returns what was paid in all.
+ */
+export function payConcessionShare(systemId, amount, payerCorp, now = Date.now(), source = "lease") {
+  const terms = concessionTermsFor(systemId);
+  if (!terms || !(amount > 0)) return 0;
+  let paid = 0;
+  for (const entry of inForce(systemId)) {
+    if (belongsTo(payerCorp, entry.holder)) continue;
+    const share = Math.floor((amount * terms.concessionFeeSharePct * terms.feeShareFactor) / 100);
+    if (!(share > 0)) continue;
+    if (entry.holder.type === "corp") {
+      const account = accountByCorp(entry.holder.id);
+      if (!account) continue;
+      mutateAccountState(account.id, (state) => { applyCredits(state.corp, share, "concession-fee-share", now); }, { sanitize: false, settleMining: false });
+    } else {
+      const c = findConglomerate(entry.holder.id);
+      if (!c) continue;
+      settleTreasury(c, now);
+      moveTreasury(c, { at: now, kind: "concession-fee-share", corp: payerCorp?.publicId ?? null, amount: share, by: null, note: `${source}, ${systemId}` });
+      scheduleAccountsSave();
+    }
+    entry.feeShareCollected = (entry.feeShareCollected || 0) + share;
+    paid += share;
+  }
+  if (paid) save();
+  return paid;
+}
+
+/** For tests: a system's stored record, to corrupt a value and see the reader fail closed. */
+export const concessionRecordForTests = (systemId) => store.systems[systemId] ?? null;
 
 /** For tests: forget every concession (and optionally the file). */
 export function resetConcessions({ removeFile = false } = {}) {

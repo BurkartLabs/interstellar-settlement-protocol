@@ -127,6 +127,7 @@ const BASELINE = {
     "POST /patents": { body: { kind: "research", subjectId: "tt-actinide-handling", ratePct: 5 } }, // ISP-235 (AB#930): not completed by this corporation: 403
     "POST /concessions/:systemId/relinquish": { params: { systemId: "atlantis" } },
     "POST /tariffs/:systemId": { params: { systemId: "atlantis" }, body: { pct: 1 } }, // ISP-230 (AB#925): no such system: 404
+    "POST /concessions/:systemId/lease-modifier": { params: { systemId: "atlantis" }, body: { discountPct: 10 } }, // ISP-228 (AB#923)
     "POST /conglomerates/:conglomerateId/members/:corpId/role": { params: { conglomerateId: "cgl-732", corpId: "corp-732" }, body: { role: "director" } },
     "POST /conglomerates/:conglomerateId/members/:corpId/remove": { params: { conglomerateId: "cgl-732", corpId: "corp-732" } },
     "POST /conglomerates/:conglomerateId/founder": { params: { conglomerateId: "cgl-732" }, body: { corpId: "corp-732" } },

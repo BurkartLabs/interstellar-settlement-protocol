@@ -24,6 +24,7 @@ import { chargeTariff, tariffRateFor } from "../tariffService.js"; // ISP-230 (A
 import { buyOrderView } from "../publicViews.js";
 import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
+import { payConcessionShare } from "../concessions.js"; // ISP-228 (AB#923)
 
 /** How many sell listings one seller may have open at once (Bug #425). */
 const MAX_OPEN_LISTINGS = 50;
@@ -349,9 +350,11 @@ export function registerMarketRoutes(app) {
     let tradeTaxAmount = 0;
     let tradeTariff = { pct: 0, amount: 0 };
     let tradeProceeds = tradeTotal;
+    let royaltyPaid = 0, saleStationId = null; // ISP-228 (AB#923): the concession holder's share, paid once the seller is saved
 
     const seller = mutateAccountState(req.auth.accountId, (state) => {
       const npcStationId = state.corp.currentStationId || "earth-station-prime";
+      saleStationId = npcStationId;
       const inventory = getStationInventory(state.corp, npcStationId);
       const available = Number(inventory[npcOrder.item] || 0);
       if (available < requestedQty) {
@@ -372,6 +375,7 @@ export function registerMarketRoutes(app) {
       applyCredits(state.corp, tradeTotal, "exchange");
       applyCredits(state.corp, -salesTax, "exchange-tax");
       applyCredits(state.corp, -royalty, "lease-royalty");
+      royaltyPaid = royalty;
       recordSale(state.corp, npcStationId, tradeTotal); // ISP-217 (AB#912): an NPC buyer is never a partner
       tradeTariff = chargeTariff(state.corp, { stationId: npcStationId, base: tradeTotal }); // ISP-230 (AB#925)
       tradeProceeds = sellerProceeds - tradeTariff.amount;
@@ -401,6 +405,7 @@ export function registerMarketRoutes(app) {
       res.status(400).json({ error: rejectReason || "Trade failed." });
       return;
     }
+    if (royaltyPaid > 0) payConcessionShare(stationById(saleStationId)?.systemId, royaltyPaid, seller.state.corp, Date.now(), "royalty"); // AB#923
 
     mutateState((draft) => {
       const target = (draft.market.npcBuyOrders || []).find((o) => o.id === orderId);

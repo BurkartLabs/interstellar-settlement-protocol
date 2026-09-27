@@ -9,6 +9,7 @@ import { officeLeaseCost } from "./ceoEffects.js"; // Bug #2340: the one office 
 import { isMemberStation, memberOfficeCost } from "./memberRates.js"; // ISP-212 (AB#907)
 import { isConglomerateStation, isNeutralStation } from "./stationMarkers.js";
 import { concentrationBand, concentrationLegendHtml, concentrationRows, concentrationText, overlayItems, systemConcentration, bodyConcentration } from "./resourceOverlay.js"; // ISP-143 (AB#837)
+import { tariffPanelHtml } from "./tariffPanel.js"; // ISP-231 (AB#926)
 import { DOMINANCE_OVERLAYS, QUIET_TOKEN, dominanceDetailsHtml, dominanceKey, dominanceLegendHtml, isDominanceOverlay, tokenRgba } from "./dominanceOverlay.js"; // ISP-218 (AB#913)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 
@@ -526,6 +527,7 @@ export function createStarmapController({
   onOverlayChange, // ISP-218 (AB#913): told when the overlay changes, so the page can fetch what it needs
   resetButton,
   onTravelToSystem,
+  onFileTariff, // ISP-231 (AB#926): (systemId, pct) => Promise<string | null>, the refusal to show, or null when filed
   onDockAtStation,
   onScoutBelt,
   onLaunchExpedition,
@@ -1417,8 +1419,21 @@ export function createStarmapController({
         <ul class="ui-list">${bodyLines}</ul>
         ${systemConcentrationHtml(system)}
         ${dominanceSystemHtml(system)}
+        ${tariffPanelHtml(system.id, state.tariffs, system.name)}
         ${jumpHtml}
       `);
+      // ISP-231 (AB#926): a holder docked in the system files a rate here
+      detailsEl.querySelector('[data-form="file-tariff"]')?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const status = detailsEl.querySelector('[data-role="tariff-status"]');
+        const button = form.querySelector('button[type="submit"]');
+        if (!onFileTariff) return;
+        button.disabled = true;
+        const refusal = await onFileTariff(form.getAttribute("data-system-id"), Number(form.elements.pct.value));
+        button.disabled = false;
+        if (status && refusal) status.textContent = refusal;
+      });
       // Bind the jump button rendered in the system view.
       detailsEl.querySelectorAll(".starmap__jump").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -2044,6 +2059,11 @@ export function createStarmapController({
       state.overlay = value;
       render();
       renderDominanceLegend();
+    },
+    /** ISP-231 (AB#926): the viewer's tariff summary (GET /api/accounts/:id/tariffs): held systems' rates and its own. */
+    setTariffs(summary) {
+      state.tariffs = summary || null;
+      if (state.view === "system") renderDetails();
     },
     /** ISP-218 (AB#913): the dominance reading, and the viewer's own corporation and conglomerate names. */
     setDominance(reading, { corporation = "", conglomerate = "" } = {}) {

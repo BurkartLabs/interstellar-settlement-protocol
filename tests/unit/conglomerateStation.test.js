@@ -101,6 +101,17 @@ describe("the built station (AB#908)", () => {
     expect(director).toContain('value="list|cg-other">List Other Guild');
     expect(director).not.toContain("cg-self");
   });
+  it("takes the member rate from the screen's own read, never printing a missing one as 0 (Bug #4669)", () => {
+    // the membership read is from before the station opened: it has no station, and so no rate
+    const stale = stationTabHtml(sp({ station: { id: "cg-venus" }, memberRentPct: 50 }), gov(), { ...ctx, memberStation: null });
+    expect(stale).toContain("Offices at 50%.");
+    expect(stale).toContain("A member's suite here costs 500 credits a day, not 1,000");
+    expect(stale).not.toContain("Offices at 0%");
+    const none = coOwnedStationHtml(gov(), { ...ctx, memberStation: null });
+    expect(none).not.toContain("Offices at");
+    expect(none).toContain("Free logistics in Sol.");
+  });
+
   it("says who decides when nobody holds a stake, and shows buyouts under way", () => {
     const html = coOwnedStationHtml(gov({ stakes: [], buyouts: [{ corp: "corp-c", corpName: "Gamma", how: "left", total: 400_000, paid: 40_000, days: 30, startsAt: T0 }] }), ctx);
     expect(html).toContain("the founder decides its settings");

@@ -176,6 +176,7 @@ export const ACCOUNT_INPUT = {
   "GET /dominance": NOTHING, // ISP-217 (AB#912): the caller's own dominance components
   // ISP-230 (AB#925): a holder's tariff, 0 to the highest cap any system has, in the catalog's steps; the system's own
   // cap and whether the caller holds it are the route's (400 and 403)
+  "GET /tariffs": NOTHING, // ISP-231 (AB#926): the caller's own tariffs
   "POST /tariffs/:systemId": { params: { systemId: ref("a system") }, body: { pct: decimal(0, WARFARE_CATALOG.tariffs.maxPct, WARFARE_CATALOG.tariffs.stepPct, "a tariff in percentage points") } },
   // ISP-149 (AB#843): the product and principal to quote, and the quote to accept; the terms are the server's
   "GET /loans/offers": NOTHING, // ISP-151 (AB#845)
@@ -246,6 +247,7 @@ export const ACCOUNT_INPUT = {
   "POST /concessions/:systemId/relinquish": { params: { systemId: ref("a system") } },
   // ISP-235 (AB#930): the route checks the subject is patentable and the rate is inside its kind's own bound.
   "POST /patents": { body: { kind: word(["research", "chain"], "research or chain"), subjectId: ref("a research node or refinery chain"), ratePct: int(0, 25, "a royalty of 0 to 25 percent") } },
+  "POST /concessions/:systemId/lease-modifier": { params: { systemId: ref("a system") }, body: { discountPct: choice(Array.from({ length: WARFARE_CATALOG.concessionLeaseModifierMaxPct + 1 }, (_, i) => i), `a lease discount, in whole percent from 0 to ${WARFARE_CATALOG.concessionLeaseModifierMaxPct}`) } }, // ISP-228 (AB#923): 0 is a good discount, so a list (as the payout ratio, AB#853)
   // ISP-199 (AB#893): roles, removal, the founder's transfer, identity and dissolution. A member is named by its
   // corporation's public id; the route answers 404 for one that is not a member.
   "POST /conglomerates/:conglomerateId/members/:corpId/role": {

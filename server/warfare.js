@@ -39,7 +39,8 @@ const SCALARS = {
   concessionReviewHours: COUNT, concessionTermDays: POSITIVE, concessionRetainPct: PCT, concessionGraceDays: POSITIVE,
   concessionRepetitionCooldownDays: COUNT, concessionUpkeepBase: COUNT, concessionUseDiscountMaxPct: PCT,
   concessionAdmMaxPct: COUNT, concessionFeeSharePct: PCT, concessionOwnLeaseDiscountPct: PCT,
-  concessionTariffCapPct: PCT, concessionsPerSystem: POSITIVE
+  concessionTariffCapPct: PCT, concessionsPerSystem: POSITIVE,
+  concessionLeaseModifierMaxPct: PCT, concessionLeaseModifierNoticeHours: COUNT // AB#923
 };
 /** What a system's rule may change, and what each must be. */
 const OVERRIDES = {
