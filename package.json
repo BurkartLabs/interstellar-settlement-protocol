@@ -17,7 +17,8 @@
     "combat:model": "node scripts/combat-model.mjs",
     "belt:model": "node scripts/belt-model.mjs",
     "probe:pacing": "node scripts/probe-pacing.mjs",
-    "probe:chains": "node scripts/probe-chains.mjs"
+    "probe:chains": "node scripts/probe-chains.mjs",
+    "probe:markets": "node scripts/probe-markets.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
