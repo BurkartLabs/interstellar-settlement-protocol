@@ -571,6 +571,18 @@ Standing is kept to two decimals and decays by `standing.decayPctPerDay` (2%) of
 that stops trading drifts back. A corporation selling 1,000,000 credits a week (80,000 of tax) reaches 26 in a
 month, and levels off near 57.
 
+**As built (ISP-238, AB#933).** `server/game/standing.js` holds the rules and `server/standingService.js` the hooks.
+Earth Assembly standing counts the GEX sales tax booked as `exchange-tax`; the lease royalty is the ISA's, not the
+Assembly's. ITC standing judges a sale against the normal value the ITC's next watch reads, and earns nothing for an
+item with no normal value. Two choices the section did not make:
+- **A sale to a conglomerate partner earns no ITC standing**, so a group cannot farm it by trading among itself above
+  normal value. Its tax still earns Earth Assembly standing, because the tax is real money paid.
+- **Credits too few for a hundredth of a point are carried** (`corp.standingCarry`), so many small sales earn what one
+  large sale would.
+Decay runs at the first minute after 00:00 UTC, and each corporation's decayed day is kept, so a restart never decays it
+twice. The owner reads its standing at `GET /api/accounts/:id/standing`. Only the functions in `STANDING_WRITERS` write
+it, and a test fails on a write anywhere else.
+
 ### Lobbying
 
 **What can be lobbied.** One parameter, in one system, at a time. Every parameter has a step, the most one campaign can
