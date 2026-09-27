@@ -147,8 +147,7 @@ export function getSeedState() {
         agentId: "elara-voss",
         quota: { resource: "Silicates", amount: 400 }
       }
-    ],
-    combatReports: []
+    ]
   };
 }
 
@@ -181,7 +180,10 @@ export function ensureStateFile() {
   // Bug #588, #574: a missing file used to return the bare seed early, skipping the market setup below, so a fresh
   // install (and every test process) had no order book and no standing buy orders. Both paths now take the same route.
   const exists = fs.existsSync(statePath);
-  const normalized = normalizeGlobalState(exists ? JSON.parse(fs.readFileSync(statePath, "utf8")) : getSeedState());
+  const raw = exists ? JSON.parse(fs.readFileSync(statePath, "utf8")) : getSeedState();
+  const dropped = storedCombatReportSummary(raw);
+  if (dropped) console.warn(`[combat] removed ${dropped.count} combat report(s), ${dropped.bytes} bytes, left by the removed POST /api/combat/simulate (AB#860).`);
+  const normalized = normalizeGlobalState(raw);
   safeWriteFile(statePath, JSON.stringify(normalized, null, 2));
   return normalized;
 }
@@ -275,7 +277,27 @@ export function ensureMarketState(globalState) {
 
 /** Everything the server needs in its global state, from a saved state or the seed. Idempotent. */
 export function normalizeGlobalState(raw) {
-  return ensureBeltState(ensureMarketState(ensureGlobalSocialState(normalizeStateShape(raw))));
+  return ensureBeltState(ensureMarketState(ensureGlobalSocialState(normalizeStateShape(dropCombatReports(raw)))));
+}
+
+/**
+ * ISP-166 (AB#860): the global combat report feed is gone. Every report in it was written by POST /api/combat/simulate
+ * (removed for Bug #1036: no login, unbounded attacker-supplied names, sent to every client), and real combat reports
+ * are private to the two corporations (v0.10). A state file that still has the feed loses it on load.
+ */
+function dropCombatReports(raw) {
+  if (raw && typeof raw === "object" && "combatReports" in raw) delete raw.combatReports;
+  return raw;
+}
+
+/**
+ * How many combat reports a state file held, and how big they were, without anything from inside them: logged once, as
+ * the load drops them (AB#860). Null when there are none.
+ */
+export function storedCombatReportSummary(globalState) {
+  const reports = Array.isArray(globalState?.combatReports) ? globalState.combatReports : [];
+  if (!reports.length) return null;
+  return { count: reports.length, bytes: Buffer.byteLength(JSON.stringify(reports)) };
 }
 
 /** The global state a fresh install starts with: what tests check the shape of, instead of data/state.json. */

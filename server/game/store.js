@@ -29,11 +29,6 @@ export const statementsDir = path.join(dataDir, "statements");
 const statementsFile = (accountId) => path.join(statementsDir, `${encodeURIComponent(accountId)}.json`);
 
 export let state = ensureStateFile();
-// Bug #1036: report what the removed combat simulate route left in the global state, as a count and a size only.
-{
-  const summary = storedCombatReportSummary(state);
-  if (summary) console.warn(`[combat] ${summary.count} stored combat report(s), ${summary.bytes} bytes, from the removed POST /api/combat/simulate (Bug #1036); left in place.`);
-}
 export let saveTimer = null;
 export let accountsSaveTimer = null;
 
@@ -252,32 +247,6 @@ export function appendChatMessage(channel, message) {
   });
 }
 
-/**
- * How many combat reports the global state holds, and how big they are, without anything from inside them. Every one
- * was written by POST /api/combat/simulate, removed for Bug #1036 (no login, unbounded strings, sent to every client);
- * they are reported at startup for the PM rather than deleted. Null when there are none.
- */
-export function storedCombatReportSummary(globalState) {
-  const reports = Array.isArray(globalState?.combatReports) ? globalState.combatReports : [];
-  if (!reports.length) return null;
-  return { count: reports.length, bytes: Buffer.byteLength(JSON.stringify(reports)) };
-}
-
-// Kept for the combat system to come: nothing calls it since POST /api/combat/simulate was removed (Bug #1036).
-export function createCombatReport(payload) {
-  const report = {
-    id: `cmb-${Date.now()}`,
-    createdAt: Date.now(),
-    ...payload
-  };
-
-  mutateState((draft) => {
-    draft.combatReports.unshift(report);
-    draft.combatReports = draft.combatReports.slice(0, 50);
-  });
-
-  return report;
-}
 
 export function sanitizeAccount(account) {
   // The daily statements (AB#713) stay out: up to 90 days of them would ride on every response and socket event. They
