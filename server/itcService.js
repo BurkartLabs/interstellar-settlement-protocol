@@ -32,6 +32,8 @@ import { formatCredits } from "./receipts.js";
 import { assess, normalOf, watchDays } from "./game/dumping.js";
 import { withheldFrom } from "../public/scripts/itcDuty.js";
 import { onDumpingFinding } from "./standingService.js"; // ISP-238 (AB#933)
+import { dumpingTermsIn } from "./lobbyingService.js"; // ISP-239 (AB#934): the lines in force in a sale's system
+import { stationById } from "./game/stations.js";
 
 const FILE = path.join(dataDir, "itc.json");
 const DAY_MS = 86_400_000;
@@ -57,11 +59,11 @@ const dayText = (d) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-GB", { 
  * Record one of `seller`'s own-priced sales (a listing filled, or a sale into another's buy order) for the watch.
  * `partner` is true when the buyer is in the seller's conglomerate: such a sale is not recorded.
  */
-export function recordOwnSale(seller, { item, quantity, unitPrice, partner = false, at = Date.now() }) {
+export function recordOwnSale(seller, { item, quantity, unitPrice, partner = false, stationId = null, at = Date.now() }) {
   try {
     if (partner || !seller?.publicId || !(quantity > 0) || !(unitPrice > 0)) return;
     store.seq += 1;
-    store.sales.push({ id: `its-${store.seq}`, corp: seller.publicId, item, quantity, unitPrice, at, findingId: null });
+    store.sales.push({ id: `its-${store.seq}`, corp: seller.publicId, item, quantity, unitPrice, at, findingId: null, systemId: stationById(stationId)?.systemId || null });
     const keepFrom = at - (TERMS.windowDays + 1) * DAY_MS;
     store.sales = store.sales.filter((s) => s.at >= keepFrom);
     save();
@@ -139,12 +141,13 @@ export function itcTick(now = Date.now()) {
     const open = store.sales.filter((s) => !s.findingId && s.at >= windowStartAt && s.at < windowEndAt);
     const groups = new Map();
     for (const s of open) {
-      const key = `${s.corp}|${s.item}`;
+      const key = `${s.corp}|${s.item}|${s.systemId || ""}`; // ISP-239 (AB#934): a system's lines may be lobbied
       groups.set(key, [...(groups.get(key) || []), s]);
     }
     for (const [key, sales] of groups) {
-      const [corp, item] = key.split("|");
-      const r = assess(sales, normalOf(history[item], normal, TERMS), TERMS);
+      const [corp, item, systemId] = key.split("|");
+      const terms = dumpingTermsIn(systemId || null, now);
+      const r = assess(sales, normalOf(history[item], normal, terms), terms);
       if (!r.found) continue;
       store.findingSeq = (store.findingSeq || 0) + 1;
       const f = { id: `ITC-${day.slice(0, 4)}-${String(store.findingSeq).padStart(6, "0")}`, corp, item, window: [window[0], window.at(-1)], N: r.N, line: r.line, volumeLine: r.volumeLine, Q: r.Q, P: r.P, duty: r.duty, openedAt: now, leviedAt: null, sales: r.dumped };
@@ -173,7 +176,8 @@ export function itcTick(now = Date.now()) {
  * the volume behind it. `normal` is null (and there is no alert) when the item has no normal value: the watch would
  * find nothing either. Sales made today are judged from the next tick, so its days are the ones shown.
  */
-export function watchView(item, now = Date.now()) {
+export function watchView(item, now = Date.now(), dumpingTerms = TERMS) {
+  const TERMS = dumpingTerms; // ISP-239 (AB#934): a system's lobbied lines, when the view is for one
   const { window, normal: normalDays } = watchDays(now + DAY_MS, TERMS);
   const buckets = getState().market?.priceHistory?.[item] || [];
   const n = normalOf(buckets, normalDays, TERMS);
@@ -192,9 +196,12 @@ export function watchView(item, now = Date.now()) {
 
 /** ISP-233 (AB#928): the watch as it applies to one corporation: the public view, its own sales of the item not yet in a finding in that window, and what it owes. */
 export function ownWatch(corp, item, now = Date.now()) {
-  const { windowStartAt } = watchDays(now + DAY_MS, TERMS);
-  const sales = store.sales.filter((s) => s.corp === corp?.publicId && s.item === item && !s.findingId && s.at >= windowStartAt).map(({ id, quantity, unitPrice }) => ({ id, quantity, unitPrice }));
-  return { ...watchView(item, now), sales, owed: dutyOwed(corp) };
+  // ISP-239 (AB#934): judged by the lines in force where it is docked, against its sales in that system
+  const systemId = stationById(corp?.currentStationId)?.systemId || null;
+  const terms = dumpingTermsIn(systemId, now);
+  const { windowStartAt } = watchDays(now + DAY_MS, terms);
+  const sales = store.sales.filter((s) => s.corp === corp?.publicId && s.item === item && !s.findingId && s.at >= windowStartAt && (s.systemId || null) === systemId).map(({ id, quantity, unitPrice }) => ({ id, quantity, unitPrice }));
+  return { ...watchView(item, now, terms), sales, owed: dutyOwed(corp) };
 }
 
 /** The Commission's findings about a corporation, newest first (for ISP-233's surfaces and tests). */

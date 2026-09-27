@@ -24,6 +24,7 @@ import { chargeTariff, tariffRateFor } from "../tariffService.js"; // ISP-230 (A
 import { watchView, withholdDuty } from "../itcService.js"; // ISP-232 (AB#927); ISP-233 (AB#928): the watch's view
 import { withholdRoyaltyDebt } from "../patents.js"; // ISP-236 (AB#931)
 import { onSale } from "../standingService.js"; // ISP-238 (AB#933)
+import { salesTaxBaseAt } from "../lobbyingService.js"; // ISP-239 (AB#934)
 import { buyOrderView } from "../publicViews.js";
 import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
@@ -372,7 +373,7 @@ export function registerMarketRoutes(app) {
       if (inventory[npcOrder.item] <= 0) delete inventory[npcOrder.item];
 
       // ISP-302 (AB#2285): the rate includes the lease royalty; its share is booked apart, as "lease-royalty".
-      const breakdown = exchangeTaxBreakdown(state);
+      const breakdown = exchangeTaxBreakdown(state, salesTaxBaseAt(npcStationId)); // ISP-239 (AB#934): the system's tax in force
       const taxPct = breakdown.ratePct;
       const { tax: taxAmount, royalty, salesTax, proceeds: sellerProceeds } = taxOnSale(tradeTotal, breakdown);
       tradeTaxPct = taxPct;

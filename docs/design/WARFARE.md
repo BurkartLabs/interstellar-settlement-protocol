@@ -668,6 +668,21 @@ it. That is the arms race opposing campaigns are meant to be. The curve's steep 
 side hold the line for less than the larger side spends. A campaign pays when nobody who loses by it is paying
 attention.
 
+**As built (ISP-239, AB#934).** The arithmetic is `server/game/lobbying.js`; campaigns are `server/lobbyingService.js`,
+kept in `lobbying.json`. `parameterInForce(systemId, parameter)` is the one function the consumers read:
+- the tariff cap (`tariffCap`, which the levy reads too);
+- the Exchange's base sales tax on both sale paths, by the station's system (ISP-302's royalty and discounts still
+  apply on top), with the sale confirmation quoting it;
+- the ITC's price and volume lines, for which the dumping watch now judges each system's sales apart.
+
+Four notes:
+- **A campaign that moved nothing ends when its pledging closes**, so the cooldown runs from then, not 28 days later.
+- **M is never reached.** The pull approaches M without arriving, so rounding toward zero makes M − 1 steps the most any
+  spend moves a parameter (4 of the ITC lines' 5, 3 of the cap's 4 quarter points). The design's words, made exact.
+- **Standing pledged is two decimals**, and pledges must name something (credits, standing or both).
+- **The lobbying views are ISP-240 (AB#935).** Until then, campaigns are opened and pledged through the API, and read
+  at `GET /api/lobbying`, which shows who and which side, never the amounts.
+
 ### What the server stores (for the build stories)
 
 - **Patents**: `patents.json` in the data directory. One record per patent: `{ id, kind: "research"|"chain",

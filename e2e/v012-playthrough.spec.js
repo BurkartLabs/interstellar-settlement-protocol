@@ -224,8 +224,10 @@ for (const [passName, sizeA, sizeB] of [["a-desktop", DESKTOP, PHONE], ["a-phone
         await page.waitForTimeout(500);
         expect(await mapShow(page, { systemId: "sol", bodyId: "belt" })).toBe(true);
         await page.waitForTimeout(1000);
+        // Bug #4665: the scout reaches B's open page through the conglomerate's room (conglomerate:intel), with no reload
         await expect(page.locator("[data-belt-shared]")).toBeVisible({ timeout: 5_000 });
-      }, { knownBug: "AB#4665" });
+        return page.locator("[data-belt-shared]");
+      });
       await step("B", "Shared intel after a reload", async (page) => {
         await page.reload();
         await page.locator(".nav-tab").first().waitFor();
@@ -264,7 +266,7 @@ for (const [passName, sizeA, sizeB] of [["a-desktop", DESKTOP, PHONE], ["a-phone
         await page.getByRole("tab", { name: /Players/ }).click(); // a player's message is under Players
         await expect(page.locator("#inbox-list-view")).toContainText("Orion", { timeout: 15_000 });
         return page.locator("#inbox-list-view");
-      }, { knownBug: sizeB === PHONE ? "AB#4666" : null }); // on a phone the row overflows the page
+      });
       // ── 7. Dominance on the starmap (ISP-217, ISP-218) ──
       await step("A", "Corporate dominance overlay", async (page) => {
         await openTab(page, "starmap");
@@ -274,9 +276,7 @@ for (const [passName, sizeA, sizeB] of [["a-desktop", DESKTOP, PHONE], ["a-phone
         return page.locator("#starmap-dominance-legend");
       });
       await step("B", "Conglomerate dominance overlay", async (page) => {
-        // AB#4666: after the Inbox a phone's page is wider than the screen and the tab bar cannot be clicked; go by script
-        await page.evaluate(() => { window.scrollTo(0, 0); document.querySelector('.nav-tab[data-tab="starmap"]')?.click(); });
-        await page.waitForTimeout(500);
+        await openTab(page, "starmap"); // through the tab bar, which the Inbox once pushed off a phone's screen (AB#4666)
         await page.locator("#map-overlay").selectOption("cong-dominance");
         await page.locator("#map-reset").click();
         await expect(page.locator("#starmap-dominance-legend")).toBeVisible();

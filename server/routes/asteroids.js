@@ -1,7 +1,8 @@
 // server/routes/asteroids.js: the asteroids routes, split out of server/index.js (AB#1815).
 import { addAccountNotification, saveAccountsNow, getAccountById, getState, mutateAccountState } from "../gameState.js";
 import { beltAt, beltView, isBeltPresent, isBeltScoutedBy, recordBeltScouted } from "../game/belts.js"; // AB#2330, AB#2331
-import { beltSharedWith } from "../game/intel.js"; // ISP-207 (AB#902)
+import { beltSharedWith, currentConglomerateOf } from "../game/intel.js"; // ISP-207 (AB#902)
+import { roomEvent } from "../game/membership.js"; // Bug #4665: a partner's scouting reaches open pages
 import { ECONOMY } from "../economy.js";
 import { emptyBeltMessage } from "../expeditionText.js"; // AB#2330
 import { BELT_KEYS, EXPEDITION_DURATIONS, beltComposition, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_FABRICATION_MS, BASE_MAX_DEPLOYMENTS, NAVIGATION } from "../gameState.js";
@@ -159,6 +160,11 @@ export function registerAsteroidRoutes(app) {
       return;
     }
 
+    // Bug #4665: the scout's partners share this belt now (ISP-207); tell their open pages to read it again. A signal
+    // only: no composition, which each partner reads through its own intel-checked request.
+    const scout = getAccountById(req.params.accountId)?.state?.corp;
+    const conglomerate = currentConglomerateOf(scout);
+    if (conglomerate) roomEvent(conglomerate, "conglomerate:intel", { kind: "belt-scouted", corp: scout.publicId, corpName: scout.corporationName, beltKey });
     res.json({ ...account, receipt: scoutBeltReceipt({ beltLabel: beltPhrase(SYSTEMS_CATALOG, beltKey) }) }); // AB#744
   });
 
