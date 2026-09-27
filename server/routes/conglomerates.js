@@ -15,6 +15,11 @@ import { dissolveConglomerate, removeMember, setIdentity, setMemberRole, transfe
 import { buyConglomerateLevel } from "../game/conglomerateLevels.js";
 import { blockWithdrawal, depositToTreasury, treasuryView, withdrawFromTreasury } from "../game/treasury.js";
 import { depositGoods, hangarView, withdrawGoods } from "../game/hangar.js";
+import { conglomerateIntel } from "../game/intel.js";
+import { accountsStore } from "../game/store.js";
+import { BELT_KEYS } from "../game/asteroids.js";
+import { beltAt } from "../game/belts.js";
+import { getState } from "../gameState.js";
 import { bodyNumber } from "../bodyNumber.js";
 
 /** Send a rules result: its refusal as { error, code } with its status, or the result with `status`. */
@@ -28,11 +33,12 @@ function reply(res, result, status = 200) {
 }
 
 /** The handler, behind can(). `action` is a permission id, or a function of the request that names one. */
-function guarded(action, handler) {
+function guarded(action, handler, { outsider } = {}) {
   const route = (req, res) => {
     const act = typeof action === "function" ? action(req) : action;
     const role = actorRole(req.params.accountId, req.params.conglomerateId);
     if (!can(role, act)) {
+      if (!role && outsider) return res.status(outsider.status).json(outsider.body); // a route that answers outsiders its own way
       if (!role) return reply(res, { refused: { status: 404, code: "no-conglomerate", error: "No such conglomerate." } });
       if (act === "leave") return reply(res, { refused: { status: 409, code: "founder-cannot-leave", error: "The founder cannot leave. Transfer the founder role to a director first, or dissolve the conglomerate at the Bureau." } });
       return reply(res, { refused: { status: 403, code: "not-permitted", error: "Your role in this conglomerate cannot do that." } });
@@ -90,6 +96,17 @@ export function registerConglomerateRoutes(app) {
   app.post(`${base}/treasury/deposit`, guarded("contribute", (req, res) => reply(res, depositToTreasury(req.params.accountId, req.params.conglomerateId, number(req.body?.amount)))));
   app.post(`${base}/treasury/withdraw`, guarded("withdraw-credits", (req, res) => reply(res, withdrawFromTreasury(req.params.accountId, req.params.conglomerateId, number(req.body?.amount)))));
   app.post(`${base}/treasury/withdrawals/:withdrawalId/block`, guarded("block-withdrawal", (req, res) => reply(res, blockWithdrawal(req.params.accountId, req.params.conglomerateId, req.params.withdrawalId))));
+
+  // ISP-207 (AB#902): intel shared among members. Membership is confirmed on every read; anyone else gets 403 and
+  // nothing, whether the conglomerate exists or not.
+  const NO_INTEL = { status: 403, body: { error: "Only a conglomerate's current members see its intel.", code: "not-a-member", belts: [], listings: [] } };
+  app.get(`${base}/intel`, guarded("view", (req, res) => {
+    const corp = accountsStore.accounts?.[req.params.accountId]?.state?.corp;
+    const state = getState();
+    const intel = conglomerateIntel(corp, { belts: BELT_KEYS.map((key) => beltAt(state, key)).filter(Boolean), orderBook: state.market?.orderBook || [] });
+    if (!intel || intel.conglomerate.id !== req.params.conglomerateId) return res.status(NO_INTEL.status).json(NO_INTEL.body);
+    res.json(intel);
+  }, { outsider: NO_INTEL }));
 
   // ISP-205 (AB#899): the goods hangar. Its ledger, like the treasury's, is only ever read here.
   const goods = (req) => ({ stationId: req.body?.stationId, item: req.body?.item, quantity: number(req.body?.quantity) });

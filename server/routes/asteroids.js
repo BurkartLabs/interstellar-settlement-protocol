@@ -1,6 +1,7 @@
 // server/routes/asteroids.js: the asteroids routes, split out of server/index.js (AB#1815).
 import { addAccountNotification, saveAccountsNow, getAccountById, getState, mutateAccountState } from "../gameState.js";
 import { beltAt, beltView, isBeltPresent, isBeltScoutedBy, recordBeltScouted } from "../game/belts.js"; // AB#2330, AB#2331
+import { beltSharedWith } from "../game/intel.js"; // ISP-207 (AB#902)
 import { ECONOMY } from "../economy.js";
 import { emptyBeltMessage } from "../expeditionText.js"; // AB#2330
 import { BELT_KEYS, EXPEDITION_DURATIONS, beltComposition, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_FABRICATION_MS, BASE_MAX_DEPLOYMENTS } from "../gameState.js";
@@ -195,9 +196,11 @@ export function registerAsteroidRoutes(app) {
       if (typeof am.maxDeployments !== "number") am.maxDeployments = BASE_MAX_DEPLOYMENTS;
       if (!Array.isArray(am.activeExpeditions)) am.activeExpeditions = [];
 
-      if (!isBeltScoutedBy(am, belt)) { // AB#2331: this generation, not the key alone
-        outcome = "not-scouted";
-        return;
+      // AB#2331: this generation, not the key alone. ISP-207 (AB#902): or a current conglomerate partner scouted it.
+      let sharedBy = [];
+      if (!isBeltScoutedBy(am, belt)) {
+        sharedBy = beltSharedWith(corp, belt);
+        if (!sharedBy.length) { outcome = "not-scouted"; return; }
       }
 
       if (am.probeCount <= 0) {
@@ -237,6 +240,7 @@ export function registerAsteroidRoutes(app) {
         completesAt: now + durationMs,
         lastTickAt: now,
         generation: belt.generation, // AB#2330
+        ...(sharedBy.length ? { sharedIntel: true } : {}), // ISP-207 (AB#902): sent on a partner's scouting, so its use can be counted
         launchCost,
         yields: {},
         status: "active"
@@ -292,7 +296,9 @@ export function registerAsteroidRoutes(app) {
     const belts = {};
     const result = {};
     for (const key of BELT_KEYS) {
-      const view = beltView(beltAt(getState(), key), am);
+      const belt = beltAt(getState(), key);
+      // ISP-207 (AB#902): a partner's scouting shows too; getAccountById's copy is read, the roster checked now.
+      const view = beltView(belt, am, belt && !isBeltScoutedBy(am, belt) ? beltSharedWith(account.state.corp, belt) : []);
       if (!view) continue;
       belts[key] = view;
       if (view.scouted) result[key] = view.composition;
