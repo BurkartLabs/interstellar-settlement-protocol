@@ -7,6 +7,7 @@ import { ensureCorpRefineryModel } from "./refining.js";
 import { ECONOMY } from "../economy.js";
 import { ensureBuildingIds } from "./buildingIds.js";
 import { ensureCorpMilitary } from "./units.js";
+import { newShareRegistry } from "../shareRegistry.js"; // ISP-157 (AB#851)
 
 /* TODO(AB#726): Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
 export function createStarterCorporationState(baseState, ceoName, corpName) {
@@ -98,6 +99,7 @@ export function createStarterCorporationState(baseState, ceoName, corpName) {
   ensureCorpRefineryModel(next.corp);
   ensureBuildingIds(next.corp); // AB#792: Headquarters has an id from the start
   ensureCorpMilitary(next.corp); // AB#861: the unit catalog's shape, with its power
+  next.corp.shareRegistry = newShareRegistry(); // ISP-157 (AB#851): the founder owns it all from the first day
   return next;
 }
 

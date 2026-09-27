@@ -12,6 +12,7 @@ import { can } from "../conglomerates.js";
 import { conglomerateDirectory, foundConglomerate } from "../game/conglomerates.js";
 import { actorRole, answerApplication, answerInvitation, applyToConglomerate, inviteCorporation, leaveConglomerate, membershipView } from "../game/membership.js";
 import { dissolveConglomerate, removeMember, setIdentity, setMemberRole, transferFounder } from "../game/conglomerateRoles.js";
+import { buyConglomerateLevel } from "../game/conglomerateLevels.js";
 import { bodyNumber } from "../bodyNumber.js";
 
 /** Send a rules result: its refusal as { error, code } with its status, or the result with `status`. */
@@ -77,4 +78,6 @@ export function registerConglomerateRoutes(app) {
   app.post(`${base}/founder`, guarded("transfer-founder", (req, res) => reply(res, transferFounder(req.params.accountId, req.params.conglomerateId, req.body?.corpId))));
   app.post(`${base}/identity`, guarded("set-identity", (req, res) => reply(res, setIdentity(req.params.accountId, req.params.conglomerateId, { emblem: number(req.body?.emblem), colour: number(req.body?.colour) }))));
   app.post(`${base}/dissolve`, guarded("dissolve", (req, res) => reply(res, dissolveConglomerate(req.params.accountId, req.params.conglomerateId))));
+  // ISP-202 (AB#896): the next level, named in the body so a repeated request cannot buy two.
+  app.post(`${base}/level`, guarded("buy-level", (req, res) => reply(res, buyConglomerateLevel(req.params.accountId, req.params.conglomerateId, number(req.body?.level)))));
 }

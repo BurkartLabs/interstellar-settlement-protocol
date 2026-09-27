@@ -28,6 +28,7 @@ import { registerBondRoutes } from "./routes/bonds.js"; // ISP-154 (AB#848)
 import { bondWindowTick } from "./bonds.js";
 import { bondServicingTick } from "./bondServicing.js"; // ISP-155 (AB#849)
 import { registerCreditRatingRoutes } from "./routes/creditRating.js"; // ISP-148 (AB#842)
+import { registerCapTableRoutes } from "./routes/capTable.js"; // ISP-157 (AB#851)
 import { registerConglomerateRoutes } from "./routes/conglomerates.js"; // ISP-197 (AB#891)
 import { registerLogisticsRoutes } from "./routes/logistics.js";
 import { registerMiningRoutes } from "./routes/mining.js";
@@ -151,6 +152,7 @@ registerCorporationRoutes(app);
 registerLoanRoutes(app);
 registerBondRoutes(app);
 registerCreditRatingRoutes(app);
+registerCapTableRoutes(app);
 registerConglomerateRoutes(app);
 
 registerLogisticsRoutes(app);
