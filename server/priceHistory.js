@@ -31,7 +31,8 @@ export function tradeableItems(refineryData) {
 }
 
 const dataFile = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "refinery-chains.json");
-export const PRICE_HISTORY_ITEMS = tradeableItems(JSON.parse(fs.readFileSync(dataFile, "utf8")));
+// AB#884: and every item in the catalog, so a Tier 4 product trades before any chain makes it (the catalog is every item).
+export const PRICE_HISTORY_ITEMS = new Set([...tradeableItems(JSON.parse(fs.readFileSync(dataFile, "utf8"))), ...ITEM_NAMES]);
 // ISP-130 (AB#824): what can be listed, bought or charted is only ever an item in data/items.json.
 {
   const strays = [...PRICE_HISTORY_ITEMS].filter((item) => !ITEM_NAMES.has(item));

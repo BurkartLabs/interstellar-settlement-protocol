@@ -103,7 +103,9 @@ const pct = (x, d = 1) => `${(x * 100).toFixed(d)}%`;
 export function renderBeltModel(m) {
   const lines = [];
   lines.push(`Launch cost ${fmt(m.launchCost)}. Credits are what the standing orders pay for the belt's mix, after the 8% tax;`);
-  lines.push(`a resource no standing order buys (${m.unbought.join(", ")}) counts 0.`);
+  // AB#884: since every item has a standing order, the Tier 4 ones count too, which assumes their research (AB#880).
+  lines.push(m.unbought.length ? `a resource no standing order buys (${m.unbought.join(", ")}) counts 0.`
+    : "every resource has a standing order; Uranium and Exotic Matter count only with the research that recovers them.");
   lines.push("");
   lines.push("Per tier, from its template (today's belts of that label, averaged):");
   lines.push("  tier     | units/h | sold share | credits/unit | standard: units, credits, net | extended: units, net | reserve (units)");
