@@ -61,8 +61,10 @@ const EXEMPT = {
   "/api/accounts/:accountId/gameplay/fleets/:fleetId/disband": "returns a fleet's units to the reserve; nothing is sold or refunded",
   // ISP-176 (AB#870): offering and withdrawing move no credits at all; the hire does, and is mapped above (ISP-177)
   "/api/accounts/:accountId/gameplay/mercenaries/offer": "puts the player's own fleet under an offer; no credits move",
-  "/api/accounts/:accountId/gameplay/mercenaries/:offerId/withdraw": "withdraws the player's own offer; nothing moved, so nothing moves back"
-
+  "/api/accounts/:accountId/gameplay/mercenaries/:offerId/withdraw": "withdraws the player's own offer; nothing moved, so nothing moves back",
+  // ISP-178 (AB#872): no page calls these until the raid screens (ISP-181, AB#875); neither moves credits or goods
+  "/api/accounts/:accountId/gameplay/raids": "sends the player's own fleet on a raid; nothing is bought, spent or taken until it resolves",
+  "/api/accounts/:accountId/gameplay/raids/:raidId/recall": "turns the player's own fleet round; nothing moves"
 };
 
 /** ISP-94/95: the one build route answers with the receipt of whichever building it built; checked on its own below. */
