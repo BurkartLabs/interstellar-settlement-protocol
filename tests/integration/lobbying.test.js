@@ -10,6 +10,7 @@ import { itcTick, resetItc } from "../../server/itcService.js";
 import { listingWarning } from "../../public/scripts/dumping.js";
 import { withBasePct } from "../../public/scripts/exchangeTax.js";
 import { WARFARE_CATALOG } from "../../server/warfare.js";
+import { preview } from "../../public/scripts/lobbying.js"; // ISP-240 (AB#935): the office's preview
 
 // ISP-239 (AB#934; docs/design/WARFARE.md, "Lobbying"): a campaign opened with standing, pledged to with credits and
 // standing, closed on the curve, held for 28 days on the one function the tariff cap, the sales tax and the ITC's lines
@@ -159,5 +160,35 @@ describe("what a campaign refuses, charging nothing (AB#934)", () => {
     lobbyingTick(T + 73 * H);
     expect(openCampaign(helios.corp, { parameter: "tariffCapPct", systemId: ALPHA, direction: "raise" }, T + 73 * H + 30 * DAY)).toMatchObject({ status: 409 }); // in the cooldown
     expect(openCampaign(helios.corp, { parameter: "tariffCapPct", systemId: ALPHA, direction: "raise" }).ok).toBe(true); // 9 days after it ended
+  });
+});
+
+describe("the lobbying office (ISP-240, AB#935)", () => {
+  it("previews exactly what the server applies when the campaign closes, and shows only the caller's own amounts", async () => {
+    const helios = await corp({ standing: { [EA]: 25 } }), kestrel = await corp({ standing: { [EA]: 8 } });
+    const seen = (await helios.api.get(`/api/accounts/${helios.id}/lobbying`)).body;
+    const alpha = seen.systems.find((s) => s.id === ALPHA);
+    expect(alpha.values.tariffCapPct).toMatchObject({ base: 3, inForce: 3, lobbyable: true, campaign: null });
+    expect(seen.systems.find((s) => s.id === "procyon").values.tariffCapPct.lobbyable).toBe(false);
+    expect(seen.systems.some((s) => s.id === "sol")).toBe(false); // never concedable: not offered
+    for (const credits of [5_000, 10_000, 15_000, 30_000]) {
+      const p = preview(alpha.values.tariffCapPct.base, "raise", credits, 0, seen.parameters.tariffCapPct, seen.terms.creditsPerStandingPoint);
+      const T = Date.now() - 73 * H;
+      const opened = openCampaign(helios.corp, { parameter: "tariffCapPct", systemId: ALPHA, direction: "raise" }, T);
+      pledge(helios.corp, opened.campaign.id, { side: "for", credits }, T + H);
+      lobbyingTick(Date.now());
+      expect(parameterInForce(ALPHA, "tariffCapPct"), `${credits}`).toBe(p.to);
+      resetLobbying();
+      helios.corp.standing[EA] = 25;
+    }
+    // the register: Kestrel sees Helios's side, and its own amount, never Helios's
+    const id = openCampaign(helios.corp, { parameter: "tariffCapPct", systemId: ALPHA, direction: "raise" }).campaign.id;
+    pledge(helios.corp, id, { side: "for", credits: 15_000 });
+    pledge(kestrel.corp, id, { side: "against", credits: 4_000 });
+    const k = (await kestrel.api.get(`/api/accounts/${kestrel.id}/lobbying`)).body.campaigns.find((c) => c.id === id);
+    expect(k).toMatchObject({ systemName: "Alpha Centauri", openedByYou: false, own: [expect.objectContaining({ side: "against", credits: 4_000 })] });
+    expect(k.pledgers).toEqual(expect.arrayContaining([expect.objectContaining({ side: "for" }), expect.objectContaining({ side: "against" })]));
+    expect(JSON.stringify(k)).not.toContain("15000");
+    expect((await kestrel.api.get(`/api/accounts/${helios.id}/lobbying`)).status).toBe(403);
   });
 });

@@ -39,8 +39,8 @@
       "description": "The overarching governing body of humanity's settled territories. Issues executive mandates, ratifies inter-system treaties, and sets the legislative framework within which all ISA regulation operates.",
       "flavor": "Corporations do not lobby the Assembly directly — that is what the registered intermediaries are for. Still, a high standing with the Assembly opens doors that the ISA cannot close.",
       "imageFile": "buildings/earth-assembly.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:earth-assembly",
+      "available": true
     },
     {
       "id": "interstellar-settlement-authority",
@@ -123,8 +123,8 @@
       "description": "The regulatory body overseeing tariff schedules, trade route licenses, import and export quotas, and investigations into market manipulation across ISA-registered systems.",
       "flavor": "Trade route licenses are not automatic. Tariff regimes shift when powerful corporations bribe the right commissioners. Investigations are slow unless someone with standing requests expedited review.",
       "imageFile": "buildings/trade-commission.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:interplanetary-trade-commission",
+      "available": true
     },
     {
       "id": "conglomerate-affairs-bureau",
