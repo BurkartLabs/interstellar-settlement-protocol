@@ -29,7 +29,8 @@ import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHead
 import { showActionReceipt } from "./receiptModal.js";
 import { renderDevelopmentBank } from "./developmentBank.js"; // ISP-151 (AB#845)
 import { renderStockExchange } from "./stockExchange.js"; // ISP-161 (AB#855)
-import { renderConglomerateBureau } from "./conglomerateBureau.js"; // ISP-200 (AB#894)
+import { openConglomerateStation, renderConglomerateBureau } from "./conglomerateBureau.js"; // ISP-200 (AB#894); ISP-213 (AB#908)
+import { dockedAtOwnStationHtml } from "../conglomerateStation.js"; // ISP-213 (AB#908)
 const firstPresent = (...selectors) => () => selectors.map((sel) => document.querySelector(sel)).find(Boolean) || null;
 
 // ISP-78 (AB#767): where the corporation is docked, as a line under a building's name.
@@ -1155,6 +1156,8 @@ export function renderStation(data) {
 
   // ISP-78 (AB#767): the body the station orbits beside its name, so a screenshot says which station this is.
   const systems = data.world?.systems || appState.data?.world?.systems || [];
+  // ISP-213 (AB#908): docked at the member's own conglomerate's station, say what membership gets here
+  const ownStation = appState.conglomerate?.station?.id === station.id ? appState.conglomerate.station : null;
   header.innerHTML = `
     <div class="station__hero">
       ${stationArtHtml(station, systems)}
@@ -1166,8 +1169,10 @@ export function renderStation(data) {
       </div>
     </div>
     ${stationStartPromptHtml(corp)}
+    ${ownStation ? dockedAtOwnStationHtml(station, { memberStation: ownStation, standardRent: officeLeaseCost(1), systems }) : ""}
   `;
   paintStationArt(header, systems);
+  header.querySelector('[data-role="own-station-open"]')?.addEventListener("click", openConglomerateStation);
 
   // ── Station buildings ──
   const stationBuildings = station.buildingIds

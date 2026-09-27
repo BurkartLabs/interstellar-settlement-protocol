@@ -323,6 +323,8 @@ export function stationProjectView(accountId, conglomerateId, now = Date.now(), 
     project: projectView(c, now, catalog),
     station: station ? { id: station.id, name: station.name, systemId: station.systemId, body: station.body, builtAt: c.station.builtAt } : null,
     canStart: !startRefusal(c, catalog), minLevel: catalog.stationMinLevel, buildDays: catalog.stationBuildDays,
+    // ISP-213 (AB#908): what a station costs and the member office rate, for the screen before any project exists
+    bill: billOfMaterials(catalog), memberRentPct: catalog.stationMemberRentPct,
     nameSuffixes: STATION_NAME_SUFFIXES, openOrbits: c.station || c.stationProject ? [] : openOrbits(c)
   };
 }
