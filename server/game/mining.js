@@ -4,6 +4,7 @@ import { applyCredits } from "../finances.js";
 import { ECONOMY, operationCostPerHourFor } from "../economy.js";
 import { miningEfficiency } from "../../public/scripts/miningEfficiency.js"; // ISP-98 (AB#788)
 import { bodyResourceProfile, getStationInventory } from "./catalog.js";
+import { canRecover } from "./researchGates.js";
 import { stationAtBody } from "./stations.js"; // ISP-209 (AB#904)
 import { bumpStat } from "./progression.js"; // AB#828: mined:<item>, what totalMined:<item> reads
 
@@ -337,6 +338,7 @@ function mineSpan(corp, extractor, from, to, now) {
     if (!extractor.minedThisCycleByItem || typeof extractor.minedThisCycleByItem !== "object") extractor.minedThisCycleByItem = countsOf(null, extractor.minedThisCycle);
     let deposited = 0;
     for (const [item, units] of Object.entries(shareByProfile(actualMined, bodyResourceProfile(lease?.body ?? extractor.body), extractor.itemRemainders))) {
+      if (!canRecover(corp, item)) continue; // AB#880: mined from the body, not recovered without the research
       stationInv[item] = (stationInv[item] || 0) + units;
       extractor.minedByItem[item] = (extractor.minedByItem[item] || 0) + units;
       extractor.minedThisCycleByItem[item] = (extractor.minedThisCycleByItem[item] || 0) + units; // AB#829
