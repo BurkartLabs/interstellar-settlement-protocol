@@ -20,6 +20,9 @@ import { countBuilt, playerBuilding } from "../playerBuildings.js";
 
 const ASSEMBLY = playerBuilding("assembly-facility");
 import { launchExpeditionReceipt, probeFabricationReceipt, scoutBeltReceipt } from "../receipts.js"; // AB#744
+import { RATS, encounterChance, forcePower, forceSupply, nominalHours, seedFor } from "../game/rats.js"; // AB#820
+import { SYSTEMS_BY_ID } from "../game/catalog.js";
+import { stationById } from "../game/stations.js";
 
 export function registerAsteroidRoutes(app) {
   // ─── Asteroid Mining: Assembly Facility, Probes, Expeditions ─────────────────
@@ -171,6 +174,8 @@ export function registerAsteroidRoutes(app) {
   app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
     const beltKey = String(req.body?.beltKey || "").trim();
     const duration = String(req.body?.duration || "standard").trim();
+    // AB#820: an optional escort, one of the caller's own fleets by id; the input check has refused any other shape
+    const escortFleetId = req.body?.escortFleetId === undefined || req.body?.escortFleetId === null ? null : String(req.body.escortFleetId);
 
     if (!beltKey || !beltComposition(beltKey)) {
       res.status(400).json({ error: "Invalid asteroid belt identifier." });
@@ -188,6 +193,8 @@ export function registerAsteroidRoutes(app) {
 
     let outcome = "ok";
     let launchCost = EXPEDITION_LAUNCH_COST;
+    let provisions = 0;
+    let rats = null;
 
     const account = mutateAccountState(req.params.accountId, (state) => {
       const corp = state.corp;
@@ -232,12 +239,38 @@ export function registerAsteroidRoutes(app) {
         remote = true;
       }
 
-      if ((corp.finances.credits || 0) < launchCost) {
+      // AB#820 (docs/design/rats.md): the belt's danger, and the escort that goes with the probe. Fails closed: a belt
+      // whose system has no pirate density, or a seed that cannot be made, launches nothing.
+      const density = Number(SYSTEMS_BY_ID.get(beltSystemId)?.pirateDensity);
+      if (!Number.isFinite(density) || density < 0) { outcome = "no-danger-reading"; return; }
+      const hours = nominalHours(duration);
+      let escort = null;
+      if (escortFleetId !== null) {
+        escort = (corp.military?.fleets || []).find((f) => f.id === escortFleetId) || null;
+        if (!escort) { outcome = "no-such-fleet"; return; } // not the caller's: never looked up anywhere else
+        if (escort.contract) { outcome = "escort-contracted"; return; }
+        if (escort.escort) { outcome = "escort-busy"; return; }
+        if (escort.transit && Date.now() < escort.transit.arrivesAt) { outcome = "escort-travelling"; return; }
+        if (stationById(escort.stationId)?.systemId !== beltSystemId) { outcome = "escort-elsewhere"; return; }
+        if (!forceSupply(escort.units)) { outcome = "escort-empty"; return; }
+      }
+      const escortUnits = escort ? Object.fromEntries(Object.entries(escort.units || {}).filter(([, n]) => Number(n) > 0)) : null;
+      const escortPower = escortUnits ? forcePower(escortUnits) : 0;
+      provisions = escortUnits ? Math.round(RATS.escortCostPerSupplyHour * forceSupply(escortUnits) * hours) : 0;
+      try { seedFor("probe"); } catch { outcome = "no-seed"; return; }
+
+      if ((corp.finances.credits || 0) < launchCost + provisions) {
         outcome = "insufficient-credits";
         return;
       }
 
       applyCredits(corp, -launchCost, "expeditions");
+      if (provisions) applyCredits(corp, -provisions, "expeditions"); // AB#820: the escort's provisions, a sink
+      rats = {
+        density, hours, escortFleetId: escort?.id ?? null, escortUnits, escortPower,
+        chance: encounterChance(density, hours, escortPower), chanceUnescorted: encounterChance(density, hours, 0),
+        provisions, encounters: []
+      };
       am.probeCount -= 1;
 
       const now = Date.now();
@@ -256,8 +289,10 @@ export function registerAsteroidRoutes(app) {
         ...(remote ? { remote: true, remoteYieldPct: CONGLOMERATE_CATALOG.remoteDispatchYieldPct } : {}), // Bug #4656
         launchCost,
         yields: {},
+        rats, // AB#820: the belt's danger and the escort; each encounter is added when it happens
         status: "active"
       });
+      if (escort) escort.escort = { expeditionId: am.activeExpeditions.at(-1).id, since: now }; // committed until it comes home
     });
 
     if (!account) { res.status(404).json({ error: "Account not found." }); return; }
@@ -271,7 +306,16 @@ export function registerAsteroidRoutes(app) {
         "no-probes": "No mining probes available. Fabricate probes at your Assembly Facility.",
         "deployment-cap": `All deployment slots are occupied (${am.activeExpeditions?.length || 0}/${am.maxDeployments || BASE_MAX_DEPLOYMENTS}). Wait for a probe to return or research additional capacity.`,
         "wrong-system": "You must be in the same system as the asteroid belt to launch an expedition.",
-        "insufficient-credits": fundingRequirementMessage("Expedition launch", account.state.corp, launchCost)
+        "insufficient-credits": fundingRequirementMessage(provisions ? "Expedition launch with its escort's provisions" : "Expedition launch", account.state.corp, launchCost + provisions),
+        // AB#820: the escort, and a belt the server cannot read the danger of
+        "no-such-fleet": "Choose one of your own fleets to escort the probe.",
+        "escort-contracted": "That fleet is offered or hired out, and takes no order until its contract ends.",
+        "escort-busy": "That fleet is already escorting an expedition.",
+        "escort-travelling": "That fleet is travelling. Escort with it once it has arrived.",
+        "escort-elsewhere": "An escort must be stationed in the belt's system. Deploy the fleet there first.",
+        "escort-empty": "That fleet has no units to escort with.",
+        "no-danger-reading": "The ISA has no reading of that system's pirate activity, so no expedition can be launched there.",
+        "no-seed": "The Mineral Survey Office cannot plan an expedition just now; nothing was launched or charged."
       };
       res.status(400).json({ error: msgs[outcome] || "Expedition launch failed." });
       return;
@@ -293,7 +337,8 @@ export function registerAsteroidRoutes(app) {
       durationLabel,
       cost: launched?.launchCost ?? launchCost,
       completesAt: launched?.completesAt,
-      probesLeft: am.probeCount
+      probesLeft: am.probeCount,
+      rats: launched?.rats ?? null // AB#820: the chance of meeting Rats, and the escort
     });
     res.json({ ...account, receipt });
   });

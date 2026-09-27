@@ -139,6 +139,15 @@ are the optimising bot's (section 6), for one probe in one deployment slot, over
 - **Losses are real.** Units the resolver removes leave the owner's forces, as in a raid. Kills made by an escort earn no
   bounty; bounties are for hunts (section 5).
 
+**As built (AB#820).**
+- The numbers are `data/rats.json`, and the rules are `server/game/rats.js`. The expedition tick resolves encounters
+  (`settleRats`), and launch takes `escortFleetId`.
+- Escorts are the caller's own fleets for now. A hired fleet as escort is **AB#4678**.
+- An expedition's `rats` record holds its danger, its escort, the chances shown at launch, and each encounter as it
+  happens: the Rats met, the escort's fight with the resolver's rounds and losses, and the unescorted roll with the
+  haul it took.
+- The launch receipt states the chance of meeting Rats. The launch screen that shows it **before** launch is AB#821.
+
 ## 4. The unescorted outcome table
 
 Each encounter an expedition meets without a holding escort rolls once on this table. It takes a share of the haul
