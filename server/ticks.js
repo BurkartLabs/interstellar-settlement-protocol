@@ -24,7 +24,7 @@ import { expireOffers, settleContracts } from "./mercenaries.js"; // ISP-176 (AB
 import { UNITS } from "./game/units.js";
 import { recordResearchUse } from "./patents.js"; // ISP-236 (AB#931)
 import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
-import { expeditionNotificationBody, expeditionPlaces, minutesEarly } from "./expeditionText.js"; // AB#1295, AB#2330
+import { expeditionNotificationBody, expeditionPlaces, minutesEarly, expeditionRatsText } from "./expeditionText.js"; // AB#1295, AB#2330
 import { emitBeltsChanged, emitMarketUpdated, emitToAccount } from "./realtime.js";
 import { RATING, refreshCreditRating } from "./creditRating.js"; // ISP-147 (AB#841)
 import { bondsIssuedBy } from "./bonds.js"; // ISP-154 (AB#848)
@@ -173,6 +173,7 @@ function asteroidExpeditionTick(now = Date.now()) {
           `${"─".repeat(40)}\n` +
           `  Total: ${totalUnits} units\n\n` +
           `All extracted material has been deposited into your registered inventory at ${stationName}. Standard ISA handling fees have been waived under current extraction licence terms.\n\n` +
+          (expeditionRatsText(exp) ? `PIRATE ACTIVITY\n${"─".repeat(40)}\n  ${expeditionRatsText(exp)}\n\n` : "") + // AB#820
           `Probe status: Operational. Returned to available inventory.\n\n` +
           `This record is filed under your active extraction licence and may be subject to ISA audit. Retain for your records.\n\n` +
           `Ref: ${refNo}\nISA Mineral Survey Division — ${systemLabel} Sector Office`

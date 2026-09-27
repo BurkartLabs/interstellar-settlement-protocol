@@ -371,14 +371,19 @@ export function scoutBeltReceipt({ beltLabel }) {
   });
 }
 
-export function launchExpeditionReceipt({ beltLabel, durationLabel, cost, completesAt, probesLeft }) {
+export function launchExpeditionReceipt({ beltLabel, durationLabel, cost, completesAt, probesLeft, rats = null }) {
+  const pct = (p) => `${Math.round(p * 100)}%`;
+  const escorted = Boolean(rats?.escortFleetId);
   return receipt("launch-expedition", {
     title: "Expedition Launched",
-    summary: `A mining probe to ${beltLabel}, on a ${durationLabel} mission.`,
-    costCredits: cost,
+    summary: `A mining probe to ${beltLabel}, on a ${durationLabel} mission${escorted ? ", with an escort" : ""}.`,
+    costCredits: cost + (rats?.provisions || 0),
     grants: [
       { label: "Returns", value: formatUtc(completesAt) },
-      { label: "Probes still on hand", value: String(probesLeft) }
+      { label: "Probes still on hand", value: String(probesLeft) },
+      // AB#820 (docs/design/rats.md): the risk accepted at launch, as the launch screen states it
+      ...(rats ? [{ label: "Chance of meeting Rats", value: escorted ? `${pct(rats.chance)} with the escort (${pct(rats.chanceUnescorted)} without)` : pct(rats.chance) }] : []),
+      ...(escorted ? [{ label: "Escort provisions", value: `${formatCredits(rats.provisions)}, included above` }] : [])
     ],
     next: "Its yield is deposited at a station in that system when it returns. The Mineral Survey Office sends a report."
   });
