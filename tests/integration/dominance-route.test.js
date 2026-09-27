@@ -82,7 +82,10 @@ describe("GET /api/starmap/dominance (AB#912)", () => {
       expect(text).not.toContain(who.raw.state.corp.publicId);
       expect(text).not.toContain(who.raw.email);
     }
-    expect(text).not.toMatch(/750|250|credits|tonnes|leases"/);
+    // Bug #4673: the volumes as JSON values, not substrings, so a timestamp such as computedAt 1790528711750 does not match
+    expect(text).not.toMatch(/[:[,](750|250)[,\]}]|credits|tonnes|leases"/);
+    expect(JSON.stringify({ computedAt: 1790528711750, window: { from: 1789862400250 } })).not.toMatch(/[:[,](750|250)[,\]}]/);
+    expect(JSON.stringify({ share: 750 })).toMatch(/[:[,](750|250)[,\]}]/); // a leaked volume still would
   });
 
   it("filters to one system, and refuses a system the catalog does not have", async () => {
