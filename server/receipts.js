@@ -451,14 +451,16 @@ export function buyReceipt({ item, quantity, unitPrice, total, stationName }) {
   });
 }
 
-export function sellToOrderReceipt({ item, quantity, unitPrice, total, taxPct, taxAmount, proceeds }) {
+export function sellToOrderReceipt({ item, quantity, unitPrice, total, taxPct, taxAmount, tariffPct = 0, tariffAmount = 0, proceeds }) {
   return receipt("sell-to-order", {
     title: "Sale Completed",
     summary: `${amount(quantity)} ${item} sold to a standing order at ${formatCredits(unitPrice)} each.`,
-    costCredits: taxAmount,
+    costCredits: taxAmount + tariffAmount,
     grants: [
       { label: "Sale value", value: formatCredits(total) },
-      { label: "Exchange tax", value: `${formatCredits(taxAmount)} (${taxPct}%), the amount charged above` },
+      { label: "Exchange tax", value: `${formatCredits(taxAmount)} (${taxPct}%)${tariffAmount ? "" : ", the amount charged above"}` },
+      // ISP-230 (AB#925): the concession holder's tariff, when the system has one
+      ...(tariffAmount ? [{ label: "Concession tariff", value: `${formatCredits(tariffAmount)} (${tariffPct}%)` }] : []),
       { label: "Paid to your reserves", value: formatCredits(proceeds) }
     ],
     next: "The credits are in your reserves now."

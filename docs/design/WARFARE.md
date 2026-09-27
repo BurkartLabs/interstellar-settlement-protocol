@@ -74,6 +74,20 @@ concession's other lines. A conglomerate holder's share goes to its treasury.
 **Fails closed** (ISP-230): if the holder's rate cannot be read, the tariff is zero and an error is logged. It is never
 an unbounded charge.
 
+**As built (ISP-230, AB#925).** Where the build differs from the text above:
+- **The tariff lives in its own file**, `tariffs.json`, not in `concessions.json`. The concession register (ISP-227)
+  was built in parallel, and each file has one owner. A rate is kept against the grant it was filed under, so a holder
+  that lapses and is granted the system again starts at 0%.
+- **Condominium systems** (61 Cygni, 70 Ophiuchi), which this section did not cover: each holder files its own rate,
+  and the system charges the lower of the two, so raising it takes both. The revenue is split between them. For
+  the Board's veto.
+- **A transfer's normal value** is the volume-weighted daily close over the last 7 complete days, until the dumping
+  watch (ISP-232) adds each day's traded value to the price history.
+- **The levy** is one function, `levyOf` in `server/game/tariffs.js`, so the Board's answer on it changes one line.
+  The ISA's share is counted as a sink in `tariffs.json`.
+- **The sell and transfer confirmations do not show the tariff yet** (ISP-231, AB#926); the receipt and the
+  notification do.
+
 ### Why the best tariff is below the cap
 
 To escape a tariff on a sale, a trader ships the goods to a station in a neighbouring system and sells there. The

@@ -20,6 +20,7 @@ import { emitMarketUpdated } from "../realtime.js";
 import { buyOrderReceipt, buyReceipt, listingReceipt, sellToOrderReceipt } from "../receipts.js"; // AB#744
 import { cancelBuyOrder, matchListing, placeBuyOrder } from "../buyOrders.js"; // AB#1054
 import { paySeller, takeFromListing, tellSeller } from "../marketSettlement.js";
+import { chargeTariff, tariffRateFor } from "../tariffService.js"; // ISP-230 (AB#925)
 import { buyOrderView } from "../publicViews.js";
 import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
@@ -108,6 +109,7 @@ export function registerMarketRoutes(app) {
         seller: state.corp.corporationName || "Anonymous",
         sellerAccountId: req.auth.accountId,
         stationId,
+        tariffPct: tariffRateFor(state.corp, stationId), // ISP-230 (AB#925): the rate shown when posted; it pays no more
         createdAt: Date.now()
       };
       mutateState((draft) => {
@@ -346,6 +348,7 @@ export function registerMarketRoutes(app) {
     let rejectReason = "";
     let tradeTaxPct = 0;
     let tradeTaxAmount = 0;
+    let tradeTariff = { pct: 0, amount: 0 };
     let tradeProceeds = tradeTotal;
     let royaltyPaid = 0, saleStationId = null; // ISP-228 (AB#923): the concession holder's share, paid once the seller is saved
 
@@ -368,13 +371,14 @@ export function registerMarketRoutes(app) {
       const { tax: taxAmount, royalty, salesTax, proceeds: sellerProceeds } = taxOnSale(tradeTotal, breakdown);
       tradeTaxPct = taxPct;
       tradeTaxAmount = taxAmount;
-      tradeProceeds = sellerProceeds;
       // Bug #984: the gross the NPC paid is income and the tax an expense; the balance moves by the proceeds.
       applyCredits(state.corp, tradeTotal, "exchange");
       applyCredits(state.corp, -salesTax, "exchange-tax");
       applyCredits(state.corp, -royalty, "lease-royalty");
       royaltyPaid = royalty;
       recordSale(state.corp, npcStationId, tradeTotal); // ISP-217 (AB#912): an NPC buyer is never a partner
+      tradeTariff = chargeTariff(state.corp, { stationId: npcStationId, base: tradeTotal }); // ISP-230 (AB#925)
+      tradeProceeds = sellerProceeds - tradeTariff.amount;
 
       if (!state.corp.stats) state.corp.stats = {};
       state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
@@ -389,7 +393,8 @@ export function registerMarketRoutes(app) {
         total: tradeTotal,
         taxPct,
         taxAmount,
-        proceeds: sellerProceeds,
+        ...(tradeTariff.amount ? { tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount } : {}),
+        proceeds: tradeProceeds,
         counterparty: npcOrder.buyer,
         at: Date.now()
       });
@@ -415,7 +420,7 @@ export function registerMarketRoutes(app) {
     });
 
     emitMarketUpdated();
-    const traded = { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, proceeds: tradeProceeds };
+    const traded = { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount, proceeds: tradeProceeds };
     res.json({ ok: true, traded, account: seller, receipt: sellToOrderReceipt(traded) }); // AB#744
   });
 }
