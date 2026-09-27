@@ -18,6 +18,8 @@ import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
 import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
 import { expeditionNotificationBody, expeditionPlaces, minutesEarly } from "./expeditionText.js"; // AB#1295, AB#2330
 import { emitBeltsChanged, emitMarketUpdated, emitToAccount } from "./realtime.js";
+import { RATING, refreshCreditRating } from "./creditRating.js"; // ISP-147 (AB#841)
+import { getStatements } from "./gameState.js"; // ISP-147: the statements the rating reads
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
 function getESTDateString() {
@@ -372,6 +374,8 @@ function financialSnapshotTick() {
       refreshDailyExpenses(state.corp, now); // Bug #1022: and so do costs
       const snap = buildSnapshot(state.corp, now, getState().market);
       pushSnapshot(state.corp, snap);
+      // ISP-147 (AB#841): the credit rating, recomputed only when a statement closed or the debt or wages owed changed
+      refreshCreditRating(state.corp, now, () => getStatements(accountId, RATING.windowStatements, now)?.statements);
       finances = state.corp.finances;
     }, { sanitize: false, settleMining: false });
     if (finances) {

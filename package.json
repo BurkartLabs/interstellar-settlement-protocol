@@ -14,6 +14,7 @@
     "test:coverage": "vitest run --coverage",
     "playtest": "playwright test",
     "economy:model": "node scripts/economy-model.mjs",
+    "combat:model": "node scripts/combat-model.mjs",
     "belt:model": "node scripts/belt-model.mjs",
     "probe:pacing": "node scripts/probe-pacing.mjs",
     "probe:chains": "node scripts/probe-chains.mjs"

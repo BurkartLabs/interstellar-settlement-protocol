@@ -41,7 +41,7 @@ export function itemSchemaProblems(items) {
  * each belt's composition, the NPC bids and asks, what each NPC corporation trades, each contract's quota, and each
  * milestone's totalMined:<resource> (its lowercase key; "silicate" is the Silicate yards' own, AB#798).
  */
-export function itemReferences({ refineryChains, systems, economy, npcCorporations, missions, milestones }) {
+export function itemReferences({ refineryChains, systems, economy, npcCorporations, missions, milestones, units }) {
   const refs = [];
   const add = (source, name) => refs.push({ source, name });
   for (const name of refineryChains?.resourceCatalog || []) add("refinery-chains.json resourceCatalog", name);
@@ -58,6 +58,7 @@ export function itemReferences({ refineryChains, systems, economy, npcCorporatio
   for (const ask of economy?.npcAsks?.dailyQty || []) add("economy.json npcAsks", ask?.item);
   for (const corp of npcCorporations?.corporations || []) for (const name of corp?.trades || []) add(`npc-corporations.json ${corp.id}`, name);
   for (const template of missions?.templates || []) if (template?.resource) add(`missions.json ${template.id}`, template.resource);
+  for (const unit of units?.units || []) for (const name of Object.keys(unit?.goods || {})) add(`units.json ${unit.id}`, name); // AB#861
   for (const level of milestones?.levels || []) {
     for (const req of level?.requirements || []) {
       const key = String(req?.metric || "").match(/^totalMined:(.+)$/)?.[1];
@@ -85,7 +86,8 @@ export function dataItemSources() {
     economy: read("economy.json"),
     npcCorporations: read("npc-corporations.json"),
     missions: read("missions.json"),
-    milestones: read("milestones.json")
+    milestones: read("milestones.json"),
+    units: read("units.json") // AB#861: what a unit costs to build
   };
 }
 
