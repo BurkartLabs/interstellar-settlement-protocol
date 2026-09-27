@@ -129,6 +129,48 @@
       "quotaMax": 120,
       "rewardMin": 24000,
       "rewardMax": 36000
+    },
+    {
+      "id": "ms-log-011",
+      "title": "Field Emitters — Shield Grid Requisition",
+      "type": "Logistics",
+      "risk": "High",
+      "text": "The ISA is hardening its relay stations against solar storms and needs field emitters for the new shield grids. Delivered to the Bureau, sealed.",
+      "agentId": "elara-voss",
+      "resource": "Field Emitters",
+      "quotaMin": 3,
+      "quotaMax": 6,
+      "rewardMin": 9000,
+      "rewardMax": 18000,
+      "requiresTechIds": ["tt-exotic-containment"]
+    },
+    {
+      "id": "ms-log-012",
+      "title": "Breeder Reactor Cores — Outpost Power",
+      "type": "Logistics",
+      "risk": "High",
+      "text": "Frontier outposts are moving off fusion shipments to breeder reactors. The Bureau is buying the cores that make that possible.",
+      "agentId": "elara-voss",
+      "resource": "Breeder Reactor Cores",
+      "quotaMin": 4,
+      "quotaMax": 8,
+      "rewardMin": 17000,
+      "rewardMax": 34000,
+      "requiresTechIds": ["tt-actinide-handling"]
+    },
+    {
+      "id": "ms-log-013",
+      "title": "Antimatter Drives — Deep-Survey Requisition",
+      "type": "Logistics",
+      "risk": "High",
+      "text": "The ISA's deep-survey programme is fitting its long-range probes with antimatter drives. Few corporations can make them; the Bureau pays accordingly.",
+      "agentId": "elara-voss",
+      "resource": "Antimatter Drives",
+      "quotaMin": 2,
+      "quotaMax": 4,
+      "rewardMin": 16000,
+      "rewardMax": 32000,
+      "requiresTechIds": ["tt-antimatter-confinement"]
     }
   ],
   "agents": [

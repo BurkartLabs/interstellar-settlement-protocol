@@ -3622,6 +3622,12 @@ img.station__body {
   align-items: flex-start;
   gap: var(--space-2);
 }
+/* ISP-192 (AB#886): a tier that also takes goods names them on its button, which is longer than a phone's card. */
+.station__upgrade .ui-button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
 .station__probe-img {
   width: 96px;
   height: auto;

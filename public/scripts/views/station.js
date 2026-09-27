@@ -98,12 +98,14 @@ async function upgradeFacility(buildingId) {
   if (!view?.next || view.locked || view.blocked || !appState.accountId) return;
   const btn = document.querySelector(`[data-role="yard-upgrade"][data-upgrade-for="${CSS.escape(buildingId)}"] button`);
   const statusEl = document.querySelector(`[data-role="yard-upgrade-status"][data-for="${CSS.escape(buildingId)}"]`);
+  // ISP-192 (AB#886): a tier that also takes goods says so in the cost, not only in what changes
+  const goods = (view.next.goods || []).map((g) => `${Number(g.quantity).toLocaleString("en-US")} ${g.item}`).join(", ");
   const confirmed = await showTradeConfirmation({
     heading: `Upgrade ${building.name}`,
     title: `Upgrade the ${building.name} to tier ${view.next.tier}?`,
-    confirmLabel: `Upgrade (${toCurrency(view.next.cost)})`,
+    confirmLabel: `Upgrade (${toCurrency(view.next.cost)}${goods ? ` + ${goods}` : ""})`,
     rows: [
-      { label: "Cost", value: `${toCurrency(view.next.cost)} credits` },
+      { label: "Cost", value: `${toCurrency(view.next.cost)} credits${goods ? ` and ${goods} from this station's stock` : ""}` },
       { label: "What changes", value: view.change.replace(/&times;/g, "×").replace(/&rarr;/g, "→").replace(/&middot;/g, "·") }
     ]
   });
