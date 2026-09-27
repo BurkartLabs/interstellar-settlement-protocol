@@ -21,6 +21,7 @@ import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
 import { expeditionNotificationBody, expeditionPlaces, minutesEarly } from "./expeditionText.js"; // AB#1295, AB#2330
 import { emitBeltsChanged, emitMarketUpdated, emitToAccount } from "./realtime.js";
 import { RATING, refreshCreditRating } from "./creditRating.js"; // ISP-147 (AB#841)
+import { bondsIssuedBy } from "./bonds.js"; // ISP-154 (AB#848)
 import { getStatements } from "./gameState.js"; // ISP-147: the statements the rating reads
 import { statementsVersion } from "./game/store.js"; // AB#842: the rating's basis follows the statements file
 
@@ -391,7 +392,7 @@ function financialSnapshotTick() {
       const snap = buildSnapshot(state.corp, now, getState().market);
       pushSnapshot(state.corp, snap);
       // ISP-147 (AB#841): the credit rating, recomputed only when a statement closed or the debt or wages owed changed
-      refreshCreditRating(state.corp, now, () => getStatements(accountId, RATING.windowStatements, now)?.statements, { statementsVersion: statementsVersion(accountId) });
+      refreshCreditRating(state.corp, now, () => getStatements(accountId, RATING.windowStatements, now)?.statements, { statementsVersion: statementsVersion(accountId), bonds: bondsIssuedBy(accountId) }); // AB#848: and its bonds
       finances = state.corp.finances;
       creditRating = state.corp.creditRating ?? null; // AB#842: the Finance tab's rating card rides on this event
     }, { sanitize: false, settleMining: false });

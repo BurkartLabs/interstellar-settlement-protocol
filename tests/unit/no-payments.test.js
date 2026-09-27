@@ -59,6 +59,17 @@ const ALLOWLIST = [
     "server/finances.js",
     '"loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",',
     "a bond subscription: buying into an in-game corporate bond with credits (docs/design/v0.9-equity.md, v0.9-debt.md), not a recurring real-money payment (Bug #2570)"
+  ],
+  // ISP-154 (AB#848): the bond module names the reason once, and settlement says which parties it moves between
+  [
+    "server/bonds.js",
+    'const REASON = "bond-subscription";',
+    "the settlement reason for buying an in-game bond at issue, with credits (docs/design/v0.9-debt.md, section 7)"
+  ],
+  [
+    "server/settlement.js",
+    '"bond-subscription": [["corp", "corp"], ["tap", "corp"]]',
+    "which parties an in-game bond purchase moves credits between: a corporation, or the NPC underwriter's tap (AB#848)"
   ]
 ];
 

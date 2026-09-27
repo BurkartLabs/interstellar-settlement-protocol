@@ -62,7 +62,9 @@ const SHAPES = {
   "loan-disbursal": [["corp", "corp"], ["tap", "corp"]],
   "loan-repayment": [["corp", "corp"], ["corp", "tap"]],
   // AB#844: an NPC loan's interest is destroyed, counted in its sink; a player lender's is paid to the lender
-  "loan-interest": [["corp", "sink"], ["corp", "corp"]]
+  "loan-interest": [["corp", "sink"], ["corp", "corp"]],
+  // AB#848: a player subscribes to a bond at face, or the NPC underwriter does from its tap when the window closes
+  "bond-subscription": [["corp", "corp"], ["tap", "corp"]]
 };
 const shapesOf = (reason) => SHAPES[reason] ?? [["corp", "corp"]];
 
