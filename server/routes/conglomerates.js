@@ -14,6 +14,7 @@ import { actorRole, answerApplication, answerInvitation, applyToConglomerate, in
 import { dissolveConglomerate, removeMember, setIdentity, setMemberRole, transferFounder } from "../game/conglomerateRoles.js";
 import { buyConglomerateLevel } from "../game/conglomerateLevels.js";
 import { blockWithdrawal, depositToTreasury, treasuryView, withdrawFromTreasury } from "../game/treasury.js";
+import { depositGoods, hangarView, withdrawGoods } from "../game/hangar.js";
 import { bodyNumber } from "../bodyNumber.js";
 
 /** Send a rules result: its refusal as { error, code } with its status, or the result with `status`. */
@@ -87,4 +88,10 @@ export function registerConglomerateRoutes(app) {
   app.post(`${base}/treasury/deposit`, guarded("contribute", (req, res) => reply(res, depositToTreasury(req.params.accountId, req.params.conglomerateId, number(req.body?.amount)))));
   app.post(`${base}/treasury/withdraw`, guarded("withdraw-credits", (req, res) => reply(res, withdrawFromTreasury(req.params.accountId, req.params.conglomerateId, number(req.body?.amount)))));
   app.post(`${base}/treasury/withdrawals/:withdrawalId/block`, guarded("block-withdrawal", (req, res) => reply(res, blockWithdrawal(req.params.accountId, req.params.conglomerateId, req.params.withdrawalId))));
+
+  // ISP-205 (AB#899): the goods hangar. Its ledger, like the treasury's, is only ever read here.
+  const goods = (req) => ({ stationId: req.body?.stationId, item: req.body?.item, quantity: number(req.body?.quantity) });
+  app.get(`${base}/hangar`, guarded("view", (req, res) => reply(res, hangarView(req.params.accountId, req.params.conglomerateId))));
+  app.post(`${base}/hangar/deposit`, guarded("contribute", (req, res) => reply(res, depositGoods(req.params.accountId, req.params.conglomerateId, goods(req)))));
+  app.post(`${base}/hangar/withdraw`, guarded("withdraw-goods", (req, res) => reply(res, withdrawGoods(req.params.accountId, req.params.conglomerateId, goods(req)))));
 }
