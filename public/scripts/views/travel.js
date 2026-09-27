@@ -31,7 +31,7 @@ export function renderTravelPage(data) {
       // In space — show system arrival / docking options
       const systemStations = (appState.stationRegistry || []).filter(s => s.systemId === systemId);
       const stationButtons = systemStations.map(s =>
-        `<button class="ui-card ui-card--interactive travel__dock" type="button" data-station-id="${escapeHtml(s.id)}">
+        `<button class="ui-card ui-card--interactive" data-role="travel-dock" type="button" data-station-id="${escapeHtml(s.id)}">
           <span class="ui-card__title">${escapeHtml(s.name)}</span>
           <span class="ui-card__meta">${escapeHtml(s.body)} — ${escapeHtml(s.designation)}</span>
         </button>`
@@ -44,7 +44,7 @@ export function renderTravelPage(data) {
           : `<div class="ui-state"><p class="ui-state__title">No stations found in this system.</p></div>`}
       `;
 
-      container.querySelectorAll(".travel__dock").forEach(btn => {
+      container.querySelectorAll("[data-role=travel-dock]").forEach(btn => {
         btn.addEventListener("click", async () => {
           const sid = btn.getAttribute("data-station-id");
           if (!sid || !appState.accountId) return;
@@ -93,7 +93,7 @@ export function renderTravelPage(data) {
     origin = { label: "Origin", name: from?.name || "Open Space", body: from?.body || "—" };
     dest = { label: "Destination", name: to?.name || travel.toStationId, body: to?.body || "—" };
   }
-  const node = (n) => `<section class="ui-card travel__node">
+  const node = (n) => `<section class="ui-card" data-role="travel-node">
       <p class="ui-card__meta">${escapeHtml(n.label)}</p>
       <p class="ui-card__title">${escapeHtml(n.name)}</p>
       ${n.body ? `<p class="ui-card__meta">${escapeHtml(n.body)}</p>` : ""}

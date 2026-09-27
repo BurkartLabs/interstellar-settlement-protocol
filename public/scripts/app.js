@@ -50,6 +50,8 @@ const gameShell = document.getElementById("game-shell");
 
 import { starmapMiningState } from "./beltCompositions.js";
 import { openGroupOf, tabForGroup, lockEmptyGroups } from "./navGroups.js"; // ISP-75 (AB#764) // Bug #1264 (placed here, apart from the imports at the top that parallel PRs edit)
+import { showTabGroup, toggleNavGroup } from "./sidebarState.js"; // AB#2481
+import { sidebarStartsCollapsed } from "./firstAction.js"; // AB#2481: a phone's width, where the groups are the bar
 
 // ─── Tabs allowed during travel ──────────────────────────────────────────────
 // The Travel screen itself is views/travel.js, on the design system since ISP-83 (AB#772); e2e/travel-screen.spec.js
@@ -191,6 +193,7 @@ function setTab(targetId) {
     else btn.removeAttribute("aria-current");
   });
   openGroupOf(targetId);
+  showTabGroup(targetId, sidebarStartsCollapsed(window.innerWidth)); // AB#2481: the open tab's group is expanded
 
   tabPanels.forEach((panel) => {
     panel.classList.toggle("active", panel.id === targetId);
@@ -248,9 +251,16 @@ function bindTabs() {
   tabButtons.forEach((button) => {
     button.addEventListener("click", () => goToTab(button.dataset.tab));
   });
-  // ISP-75 (AB#764): a group's button opens the tab that group last showed, or its first.
+  // ISP-75 (AB#764): a group's button opens the tab that group last showed, or its first. AB#2481: on a desktop, where
+  // the group's tabs are listed under its name, the name collapses and expands them instead; the briefing is told, so
+  // its highlight moves from the name to the tab it now shows.
   groupButtons.forEach((button) => {
     button.addEventListener("click", () => {
+      if (!sidebarStartsCollapsed(window.innerWidth)) {
+        toggleNavGroup(button.dataset.group);
+        noteWalkthroughEvent(`nav-group:${button.dataset.group}`);
+        return;
+      }
       const tab = tabForGroup(button.dataset.group);
       if (tab) goToTab(tab);
     });

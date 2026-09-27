@@ -1,6 +1,7 @@
 // ISP-75 (AB#764): the navigation in six groups, in a real browser. At 375x812 the six group buttons are the bar, the
 // bar does not scroll, every control in it is at least 44px and no text in it is under 14px, and every tab is reachable
-// from it; at 768x1024 and 1280x800 every group and tab is in the column. A new corporation's briefing shows a group
+// from it; at 768x1024 and 1280x800 every group is in the column, with only the open tab's group expanded, and each
+// group's name expands its tabs (AB#2481). A new corporation's briefing shows a group
 // once a step reaches it, and anyone else sees all six. Screenshots go to e2e/screenshots/ab-764/ (gitignored; the
 // ones the pull request shows were copied to docs/ab-764/ by hand).
 //
@@ -98,12 +99,15 @@ test.describe("at 375x812", () => {
 });
 
 for (const [width, height] of [[768, 1024], [1280, 800]]) {
-  test(`every group and every tab is in the column at ${width}x${height}, with no sideways scroll`, async ({ page }) => {
+  test(`every group is in the column at ${width}x${height}, the open one expanded, and each name expands its tabs`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await register(page);
     expect(await shownGroups(page)).toEqual(GROUPS);
-    const tabs = await page.locator(".nav-tab:visible").evaluateAll((els) => els.map((e) => e.dataset.tab));
-    expect(tabs.sort()).toEqual([...TABS].sort());
+    // AB#2481: only the open tab's group shows its tabs until the player expands another.
+    const shownTabs = () => page.locator(".nav-tab:visible").evaluateAll((els) => els.map((e) => e.dataset.tab));
+    expect(await shownTabs()).toEqual(["overview", "inbox", "finance", "ceo", "missions", "conglomerate"]);
+    for (const group of GROUPS.slice(1)) await page.locator(".nav-group__button", { hasText: group }).click();
+    expect(await shownTabs()).toEqual(expect.arrayContaining([...TABS, "conglomerate"]));
     const nav = await page.locator(".app-nav").boundingBox();
     const main = await page.locator(".main-panel").boundingBox();
     expect(nav.x + nav.width).toBeLessThanOrEqual(main.x);
