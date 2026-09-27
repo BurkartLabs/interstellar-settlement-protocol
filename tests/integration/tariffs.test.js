@@ -143,7 +143,7 @@ describe("the tariff on transfers into the system (AB#925)", () => {
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     const tariff = Math.round((1000 * 24 * 3) / 100); // no traded history yet: the NPC bid's base, 24
     expect(expense(shipper, "tariff")).toBe(tariff);
-    expect(shipper.corp.shipments[0].tariff).toEqual({ pct: 3, amount: tariff });
+    expect(shipper.corp.shipments[0].tariff).toMatchObject({ pct: 3, amount: tariff, base: expect.any(Number), stationId: STATION }); // ISP-241 (AB#937): the settlement record
     const poor = await corp({ credits: 100 });
     poor.corp.inventory = { "earth-station-prime": { Silicates: 1000 } };
     const refused = await poor.api.post(`/api/accounts/${poor.id}/gameplay/transfer-resources`).send({ fromStationId: "earth-station-prime", lines: [{ item: "Silicates", quantity: 1000 }] });

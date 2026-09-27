@@ -13,7 +13,7 @@ import { FLEET_NAMES } from "./fleets.js"; // ISP-174 (AB#868)
 import { POSTURE_IDS } from "./garrison.js"; // ISP-180 (AB#874)
 import { CONGLOMERATE_CATALOG } from "./conglomerates.js"; // ISP-197 (AB#891)
 import { BOND_TERMS } from "./bondTerms.js"; // ISP-154 (AB#848)
-import { WARFARE_CATALOG } from "./warfare.js"; // ISP-230 (AB#925)
+import { CLAIM_TYPES, WARFARE_CATALOG } from "./warfare.js"; // ISP-230 (AB#925); CLAIM_TYPES: ISP-241 (AB#937)
 
 /** The highest cap any yard tier has (AB#793): what start-mining accepts before the route clamps to the yard's own. */
 const TOP_THROUGHPUT_CAP = yardTierFor(yardMaxTier()).throughputCap;
@@ -251,6 +251,10 @@ export const ACCOUNT_INPUT = {
   "POST /patents": { body: { kind: word(["research", "chain"], "research or chain"), subjectId: ref("a research node or refinery chain"), ratePct: int(0, 25, "a royalty of 0 to 25 percent") } },
   "GET /patents": NOTHING, // ISP-237 (AB#932): the caller's own patent office
   "GET /concessions/:systemId": { params: { systemId: ref("a system") } }, // ISP-229 (AB#924)
+  // ISP-241 (AB#937): a case is a claim type and a record id, nothing else; the route derives the rest from the record
+  "POST /arbitration/cases": { body: { type: word([...CLAIM_TYPES], "a claim type the Council hears"), recordId: ref("a record you are a party to") } },
+  "GET /arbitration/cases": NOTHING,
+  "GET /arbitration/records/:type": { params: { type: word([...CLAIM_TYPES], "a claim type the Council hears") } },
   "POST /concessions/:systemId/lease-modifier": { params: { systemId: ref("a system") }, body: { discountPct: choice(Array.from({ length: WARFARE_CATALOG.concessionLeaseModifierMaxPct + 1 }, (_, i) => i), `a lease discount, in whole percent from 0 to ${WARFARE_CATALOG.concessionLeaseModifierMaxPct}`) } }, // ISP-228 (AB#923): 0 is a good discount, so a list (as the payout ratio, AB#853)
   // ISP-199 (AB#893): roles, removal, the founder's transfer, identity and dissolution. A member is named by its
   // corporation's public id; the route answers 404 for one that is not a member.

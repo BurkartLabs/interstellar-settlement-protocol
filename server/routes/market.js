@@ -403,7 +403,7 @@ export function registerMarketRoutes(app) {
         total: tradeTotal,
         taxPct,
         taxAmount,
-        ...(tradeTariff.amount ? { tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount } : {}),
+        ...(tradeTariff.amount ? { tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount, tariffRecord: tradeTariff } : {}), // ISP-241 (AB#937)
         ...(tradeWithheld ? { dutyWithheld: tradeWithheld } : {}),
         ...(tradeRoyaltyWithheld ? { royaltyWithheld: tradeRoyaltyWithheld } : {}),
         proceeds: tradeProceeds,

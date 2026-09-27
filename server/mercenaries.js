@@ -25,6 +25,7 @@ import { settleTransfer } from "./settlement.js";
 import { accountIdOfCorp } from "./playerLoans.js";
 import { UNITS, ensureCorpMilitary, militaryPower } from "./game/units.js";
 import { FLEET_UNIT_IDS, settleFleets } from "./fleets.js";
+import { noteReadiness } from "./upkeep.js"; // ISP-241 (AB#937)
 
 const HOUR = 3_600_000;
 export const CONTRACT_RULES = Object.freeze({
@@ -186,7 +187,11 @@ export function hireOffer(accountId, offerId, now = Date.now()) {
   const held = settleTransfer({ fromAccountId: accountId, toAccountId: escrowOf(offer.id), credits: total, reason: "escrow-hold", idempotencyKey: `merc:${offer.id}:hold` }, now);
   if (!held.ok) { setOffer(offer.id, { state: "open" }); return { ok: false, status: 409, error: `Price and collateral could not be held: ${held.error}` }; }
   const endsAt = now + offer.termHours * HOUR;
-  setOffer(offer.id, { state: "hired", renterCorpId: renter.publicId, hiredAt: now, endsAt, lost: {} });
+  // ISP-241 (AB#937): the readiness the renter was shown, kept on the contract for a mercenary-readiness case
+  const ownerAccountId = accountIdOfCorp(offer.ownerCorpId);
+  let hireReadiness = null;
+  if (ownerAccountId) mutateAccountState(ownerAccountId, (state) => { ensureCorpMilitary(state.corp); hireReadiness = Math.round(state.corp.military.readiness); noteReadiness(state.corp, now); }, { sanitize: false });
+  setOffer(offer.id, { state: "hired", renterCorpId: renter.publicId, hiredAt: now, endsAt, lost: {}, ...(hireReadiness !== null ? { hireReadiness } : {}) });
   freeFleet(offer.ownerCorpId, offer.fleetId, (fleet) => { fleet.contract = { offerId: offer.id, state: "hired", endsAt }; });
   mutateAccountState(accountId, (state) => {
     ensureCorpMilitary(state.corp);
@@ -194,6 +199,19 @@ export function hireOffer(accountId, offerId, now = Date.now()) {
     state.corp.military.hired.push({ contractId: offer.id, fleetName: offer.fleetName, units: { ...offer.units }, stationId: offer.stationId, allowedUse: offer.allowedUse, endsAt });
   }, { sanitize: false });
   return { ok: true, offer: offerView({ ...offer, state: "hired", endsAt }) };
+}
+
+/** ISP-241 (AB#937): a contract as stored (a copy), for an arbitration case's evidence; null when there is none. */
+export function contractRecord(offerId) {
+  const o = allOffers().find((x) => x.id === offerId);
+  return o ? JSON.parse(JSON.stringify(o)) : null;
+}
+/**
+ * ISP-241 (AB#937; WARFARE.md, "A case, as a state list"): a case filed on a hired contract freezes its escrow, so the
+ * ruling is paid from money that exists. settleContracts leaves a frozen contract alone; the ruling (ISP-242) lifts it.
+ */
+export function freezeContractEscrow(offerId, caseRef) {
+  setOffer(offerId, { frozenBy: caseRef });
 }
 
 /** Record units a hired fleet lost (the raids stories call this; a test injects losses through it). */
@@ -219,6 +237,7 @@ export function settleContracts(now = Date.now()) {
     // ISP-178 (AB#872; the raid design, section 7): a hired fleet out on a raid finishes it first; the term waits, at no
     // extra price, until the fleet is home
     if (getAccountById(ownerId)?.state?.corp?.military?.fleets?.find((f) => f.id === offer.fleetId)?.transit?.raidId) continue;
+    if (offer.frozenBy) continue; // ISP-241 (AB#937): an arbitration case holds the escrow until its ruling
     const lostValue = unitsValue(offer.lost);
     const compensation = Math.min(offer.collateral, lostValue);
     const refund = offer.collateral - compensation;

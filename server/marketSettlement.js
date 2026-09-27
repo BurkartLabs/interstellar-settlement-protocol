@@ -66,7 +66,7 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
       total,
       taxPct,
       taxAmount,
-      ...(tariff.amount ? { tariffPct: tariff.pct, tariffAmount: tariff.amount } : {}),
+      ...(tariff.amount ? { tariffPct: tariff.pct, tariffAmount: tariff.amount, tariffRecord: tariff } : {}), // ISP-241 (AB#937): what a tariff-overcharge case reads
       ...(withheld ? { dutyWithheld: withheld } : {}),
       ...(royaltyWithheld ? { royaltyWithheld } : {}),
       proceeds,

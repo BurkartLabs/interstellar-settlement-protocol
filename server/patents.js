@@ -182,6 +182,20 @@ export function patentInForce(kind, subjectId, now = Date.now()) {
   return store.patents.find((p) => p.kind === kind && p.subjectId === subjectId && p.filedAt <= now && now < p.endsAt) || null;
 }
 
+/** ISP-241 (AB#937): a patent as stored (a copy), or null. */
+export function patentRecord(patentId) {
+  const p = store.patents.find((x) => x.id === patentId);
+  return p ? JSON.parse(JSON.stringify(p)) : null;
+}
+/** ISP-241 (AB#937): the recorded uses of a patent by one corporation (copies), oldest first: a patent-royalty case's evidence. */
+export function patentUsesBy(patentId, userPublicId) {
+  return (Array.isArray(store.uses) ? store.uses : []).filter((u) => u.patentId === patentId && u.user === userPublicId).map((u) => ({ ...u }));
+}
+/** ISP-241 (AB#937): who has used a patent, by corporation publicId. */
+export function patentUsers(patentId) {
+  return [...new Set((Array.isArray(store.uses) ? store.uses : []).filter((u) => u.patentId === patentId).map((u) => u.user))];
+}
+
 /** Tests only: forget every patent. */
 export function resetPatentsForTests() {
   store = { patents: [], uses: [], accrued: {} };

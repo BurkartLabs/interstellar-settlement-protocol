@@ -310,7 +310,7 @@ enforces when the act is attempted needs no court: the act simply fails. Checked
 | Tariff bounds and notice (WARFARE.md, ISP-230) | Yes: one settlement function charges the lawful rate. | A claim type that *audits* it (`tariff-overcharge`). It should always be dismissed, and an upheld case is a bug report as well as a refund. |
 | Mercenary contracts (v0.10, server/mercenaries.js) | Mostly: the owner cannot order a hired fleet, and a use outside `allowedUse` is refused. **Readiness is not**: it falls 10 points a day while the owner leaves upkeep unpaid (v0.10-combat.md section 7), so a hired fleet can fight weaker than the readiness the renter was shown. | A claim type (`mercenary-readiness`). |
 | Concession petitions and challenges (TERRITORY.md) | Yes, by the state list, except where the rule table says a system is **arbitrated** (Wolf 359, Epsilon Indi), whose ties "the Galactic Arbitration Council decides". | A claim type (`concession-arbitrated`) that runs TERRITORY's rules with a published tie-break. |
-| Patents (v0.13-03, ISP-223, AB#918: in design) | Not known yet. | A claim type (`patent-royalty`), **reserved**. It opens when AB#918's royalty records exist. Until then a filing is refused with that reason (ISP-241). |
+| Patents (ISP-235, ISP-236: AB#930, AB#931) | Yes: the royalty is charged when a use is recorded, and what credits cannot cover is withheld from later sales. | A claim type (`patent-royalty`) that *audits* it, as `tariff-overcharge` audits tariffs. Open since ISP-241, because ISP-236's use records exist. |
 | Loan and bond default (v0.9, server/defaultRecovery.js) | Yes: arrears for 7 days, 24 h of grace, then recovery in stages; the shortfall stays owed. | No player files it. The ISA dockets every recovery as a case (`credit-default`), so that, as the Bank's own text says, "a corporation that falls behind answers to the Arbitration Council". |
 | Dumping (WARFARE.md) | The Trade Commission's watch levies the duty itself. | No claim. A claim would charge the same sales twice. |
 | Raids, conglomerate treasury and hangar caps | Yes: who may raid whom is checked at declaration, and a withdrawal over its cap is refused. | No claim. |
@@ -369,7 +369,7 @@ No field in any case is free text. "Who may file" is always a party to the recor
 | `mercenary-readiness` | a mercenary contract, `hired` or ended in the last 7 days | the renter | the contract's terms, the readiness shown at hire (stored on the contract), and the owner's readiness for each hour of the term | Upheld if the owner's readiness was below the hire readiness in any hour of the term. Refund = price × Σ over the term's hours of (hire readiness − that hour's readiness) ÷ hire readiness, ÷ the term's hours. | The refund. If the case is filed before the term ends, it comes from the contract's escrow, which the filing holds past the end. Filed after the end, it comes from the owner's ISA-held income, then as a debt. | Council fee |
 | `tariff-overcharge` | one of the claimant's sales or transfers that paid a tariff, in the last 30 days | the seller or shipper | the settlement record (rate charged, base, amount), the concession's state and tariff history at that moment, and the listing's posting rate | The lawful rate is 0 if the concession was not `granted`; otherwise the lower of the rate at posting and at fill (dispatch, for a transfer), capped at the system's `tariffCapPct`, with any increase counted only after its notice ended. Upheld if the rate charged was higher. Excess = (charged − lawful) × base. | The excess, repaid by those who received it, in the shares they received it: the holder (from its next tariff revenue, then as a debt) and the ISA's levy (from the fee sink, at once). **An upheld case is also filed as a Bug by the server**, because the settlement function should have prevented it. | Council fee |
 | `concession-arbitrated` | a petition, counter-petition or challenge in an arbitrated system (Wolf 359, Epsilon Indi) | the petitioner or challenger, filed at the Council instead of ISA Claims & Leases | the control scores and eligibility streaks TERRITORY.md's rules read, for both parties | TERRITORY.md's rules, with 7-day review. A **tie**, two scores within `arbitration.tieMarginPts` (1 point) at review end, goes to the higher extraction share over the eligible days, then to the earlier filing. | An order: the concession granted, kept or lapsed, as TERRITORY's state list says. | `concessionPetitionFee` (25,000), as everywhere else |
-| `patent-royalty` | **reserved** for a use of a patented node or chain (AB#918) | the patent holder | AB#918's use and royalty records | Royalty due = Σ uses × the patent's rate − royalty paid. Upheld if positive. | The shortfall, from ISA-held income, then as a debt. | Council fee |
+| `patent-royalty` | one corporation's recorded uses of a patented node or chain (ISP-236) | the patent holder | ISP-236's use records: each use's base, the royalty it recorded and what was paid, and the user's debt still being withheld | Royalty due = Σ uses × the patent's rate − royalty recorded. Upheld if positive. A debt still being withheld is being collected, so it is not a shortfall. | The shortfall, from ISA-held income, then as a debt. | Council fee |
 | `credit-default` | a v0.9 loan or bond series in default | nobody: the ISA files it when recovery starts (server/defaultRecovery.js) | the loan or series record and the recovery's result | Always upheld. The ruling is the recovery's result, stated. | None beyond v0.9's own recovery. The docket makes it public, and any shortfall is a Council debt from then on. | none |
 
 **The Council fee** is `max(arbitration.filingFeeMin, arbitration.filingFeePct × the amount claimed)`: 1,000, or 5%
@@ -467,7 +467,27 @@ veto point.
 
 The claim type ids, in the order the table above lists them, are the catalog's `arbitration.claimTypes`, each with
 whether it is open: `mercenary-readiness`, `tariff-overcharge`, `concession-arbitrated` and `credit-default` are open;
-`patent-royalty` is reserved until AB#918's records exist.
+`patent-royalty` opened with ISP-241, once ISP-236's use records existed.
+
+**As built (ISP-241, AB#937): filing.** `server/arbitration.js` files a case, and `server/game/arbitration.js` holds the
+arithmetic (fee, readiness refund, lawful tariff, royalty shortfall) for ISP-242's rulings to reuse. Where the build
+chose what the text left open, each for the Board's veto:
+- **The fee is held, not paid.** It goes to the case's own escrow (`escrow:<case id>`, `escrow-hold`), because the
+  ruling decides whether it goes back to the claimant or to the fee sink. The new settlement reasons this section names
+  (`arbitration-award`, `arbitration-fee`) arrive with ISP-242, which moves money out of escrow.
+- **One respondent per case.** A condominium's tariff went to two holders; the case names the first, and its evidence
+  lists every recipient and share for the ruling to repay.
+- **`concession-arbitrated`'s fee** is the petition fee, held the same way and paid from the filing corporation's
+  credits, including when it files as a conglomerate's founder. Its respondent is the challenged holder, or the
+  earliest counter-petitioner. A petition nobody contests has no other party and is refused.
+- **Records kept for the evidence:** the readiness shown at hire (`hireReadiness` on the contract), each corporation's
+  readiness log in whole points for 30 days (`military.readinessLog`, written as upkeep moves it), and every tariff's
+  settlement record: the base, posted rate, station and the holders with their shares (`tariffRecord` on a Sold row,
+  and on a shipment's `tariff`). A record from before these existed has no evidence, and a filing on it is refused.
+- **A mercenary case freezes the contract's escrow** (`frozenBy`), and the term's settlement waits. ISP-242's ruling
+  lifts the freeze, so ISP-242 must ship before the Council's screens (ISP-243) open.
+- **`credit-default`** is docketed when a player loan's or bond series' recovery runs, already `ruled` and upheld with
+  the recovery's shortfall. The Council debt that follows is ISP-242's.
 
 ## Lawfare: patents that earn royalties, and lobbying that moves bounded rules (ISP-223, AB#918)
 
@@ -502,7 +522,7 @@ Two instruments, each a lever a corporation pulls with in-game credits and stand
   everywhere else.
 - **Never a ban.** A patent is a charge on use that goes ahead, as a tariff is a charge on trade that goes ahead
   (ECONOMY.md and the monetization review: "never gate access").
-- **The Arbitration Council's `patent-royalty` claim** (AB#919, reserved until these records exist) reads the use and
+- **The Arbitration Council's `patent-royalty` claim** (AB#919; open since ISP-241, AB#937) reads the use and
   royalty records below: royalty due = Σ uses × the rate − royalty paid. Most royalty is collected without a claim
   (charged at completion, the rest withheld from sales). The claim is the holder's remedy for what withholding has
   not yet recovered, and the Council's ruling then collects it as its section describes. ISP-235 and ISP-236 write
