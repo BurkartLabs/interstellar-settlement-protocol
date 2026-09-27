@@ -170,7 +170,8 @@ describe('no payment code before 1.0 (ISP-89, BRIEF.md: "None yet, and none befo
 // which the scan above does not read (it reads code). A price or a currency in one of them is the first line of a shop
 // that sells a rate, a limit, a fill or a share: this fails on it. In-game credit amounts ("cost", "fee", "charterFee")
 // are not real money and are not matched.
-const INSTRUMENT_DATA = ["data/loan-products.json", "data/bond-terms.json", "data/share-terms.json", "data/credit-rating.json", "data/conglomerates.json"];
+const INSTRUMENT_DATA = ["data/loan-products.json", "data/bond-terms.json", "data/share-terms.json", "data/credit-rating.json", "data/conglomerates.json",
+  "data/units.json"]; // ISP-182 (AB#876): the military never-sell list's data
 const MONEY_KEY = /price|currency|usd|eur|gbp|sku|iap|real.?money|store|paypal|stripe/i;
 /** Keys that name an in-game price in credits, never real money, each with why. */
 const IN_GAME_PRICE_KEYS = new Map([["stakeGoodsPriceBasis", "which exchange price values a departing member's goods in credits (AB#889)"]]);
@@ -201,6 +202,17 @@ describe("the never-sell list's data carries no price (ISP-163, AB#857)", () => 
     expect(seeded((d) => { d.currency = "USD"; })).toEqual([".currency", ".currency"]);
     expect(seeded((d) => { d.products[0].priceUsd = 2; d.products[1].sku = "loan-boost"; })).toEqual([".products[0].priceUsd", ".products[1].sku"]);
     expect(seeded((d) => { d.products[2].rateBoost = "$4.99"; })).toEqual([".products[2].rateBoost"]);
+  });
+
+  it("a price, a currency or a store id added to data/units.json fails it (ISP-182, AB#876)", () => {
+    const seeded = (edit) => { const d = read("data/units.json"); edit(d); return realMoneyFields(d); };
+    const [ship] = read("data/units.json").units;
+    expect(ship).toBeTruthy();
+    expect(seeded((d) => { d.units[0].price = 0.99; })).toEqual([".units[0].price"]);
+    expect(seeded((d) => { d.units[0].skipBuildTime = "$1.99"; })).toEqual([".units[0].skipBuildTime"]);
+    expect(seeded((d) => { d.units[1].storeSku = "fleet-pack"; })).toEqual([".units[1].storeSku"]);
+    expect(seeded((d) => { d.currency = "EUR"; })).toEqual([".currency", ".currency"]);
+    expect(seeded(() => {})).toEqual([]); // the catalog's own credits, goods and build minutes are in-game
   });
 
   it("leaves in-game credit amounts alone", () => {

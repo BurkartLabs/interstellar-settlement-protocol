@@ -102,6 +102,32 @@ up first. Two of them bind systems that are not built yet, so whoever starts v0.
    2026-09-21, answering "which v0.10 military mechanics may never be sold or accelerated for real money?"
    verbatim: *"All"*.)
 
+   **The v0.10 never-sell list** (AB#876). As with v0.9's, the answer forbids both ways money could buy an
+   advantage: **(a)** the game selling, speeding up or improving any of these for real money, and **(b)** players
+   trading any of them, or the units, goods and credits they move, with each other for real money. Every military
+   mechanic v0.10 built is on it:
+
+   - **Units and troops:** every ship and troop type, its stats and its cost (`data/units.json`), and the Fleet Cap.
+   - **Build and training time:** the Orbital Shipyard's queue, Headquarters troop training, and the shipyard's
+     levels (`server/shipyard.js`, `server/training.js`).
+   - **Combat:** the resolver, the counters, accuracy and evasion, and every modifier (Fire Control, Evasive
+     Manoeuvres, CEO leadership) (`server/game/combat.js`).
+   - **Upkeep and readiness:** the daily upkeep, the logistics capacity, and readiness lost when it is unpaid; there
+     is no paid way to restore readiness.
+   - **Fleets:** forming, splitting, deploying, travel time, and the garrison and its posture.
+   - **Shields and protection:** the 14-day new-player protection, the post-raid cooldown, the repeat and rate
+     limits, and the raid warning window (`server/raids.js`).
+   - **Raids:** declaring, what a raid takes (the loot cap, its floor and the hold), losses, reinforcing in the
+     window, and the battle report (`server/raidResolution.js`, `server/garrison.js`).
+   - **Building damage and repair:** a damaged building's condition and output, and the repair price.
+   - **Mercenary contracts:** offering and hiring a fleet, the term, price, collateral, allowed use, and the
+     settlement of losses (`server/mercenaries.js`).
+
+   **Anything military not named here is covered too**: the answer was "All", so a mechanic v0.10 or later adds
+   that makes one corporation stronger in a fight is on this list the day it is built, without a new decision.
+   **No cosmetic carve-out**: the Decision offered fleet naming or livery (option B) and the answer did not take it.
+   `tests/unit/no-payments.test.js` also fails when `data/units.json` gains a price or currency field.
+
 The 8% base exchange tax is where a future business model would take its cut, a small fee on trades between
 players, instead of selling advantages (T-022). `tests/unit/no-payments.test.js` (AB#779) fails on payment code
 before 1.0, but it reads vocabulary, not intent: these three rules are what stop a shop that sells the wrong thing.
