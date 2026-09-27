@@ -157,6 +157,30 @@
       "status": "planned"
     },
     {
+      "id": "tt-fire-control",
+      "name": "Fire-Control Computers",
+      "effect": "+10% accuracy for every unit in battle",
+      "description": "Predictive targeting that leads a moving hull. Raises the share of every shot that lands, the one lever beyond the counters in a deterministic battle (docs/design/v0.10-combat.md). Planned: no battle is fought until v0.10's raids, so it cannot be queued yet.",
+      "durationHours": 16,
+      "costCredits": 14000,
+      "prereqs": ["tt-fleet-coordination"],
+      "tier": 3,
+      "category": "Military",
+      "status": "planned"
+    },
+    {
+      "id": "tt-evasive-manoeuvres",
+      "name": "Evasive Manoeuvres",
+      "effect": "+10% evasion for every unit in battle",
+      "description": "Drilled jinking patterns and decoy emitters. Lowers the share of every enemy shot that lands (docs/design/v0.10-combat.md). Planned: no battle is fought until v0.10's raids, so it cannot be queued yet.",
+      "durationHours": 16,
+      "costCredits": 14000,
+      "prereqs": ["tt-fleet-coordination"],
+      "tier": 3,
+      "category": "Military",
+      "status": "planned"
+    },
+    {
       "id": "tt-proxima-navigation",
       "name": "Near-Star Navigation Array",
       "effect": "Enables travel to Alpha Centauri, Barnard's Star, Lalande 21185 and Ross 154",

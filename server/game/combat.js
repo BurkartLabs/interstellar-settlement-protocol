@@ -12,6 +12,32 @@ export const MAX_ROUNDS = 6;
 export const GONE = 0.5;
 /** A side's multipliers when none are given. Research and CEO bonuses (ISP-169) and readiness (ISP-173) set them. */
 export const NEUTRAL_MODIFIERS = Object.freeze({ attack: 1, accuracy: 1, evasion: 1 });
+/**
+ * ISP-169 (AB#863): no bonus stack lifts a stat past +30% (section 3), so a 2x counter always outweighs any legal bonus.
+ * resolveBattle holds every modifier to it, whatever a caller passes.
+ */
+export const MODIFIER_CAP = 1.3;
+/** The research that raises a side's accuracy and evasion, and by how much (section 3). */
+export const FIRE_CONTROL_TECH = "tt-fire-control";
+export const EVASIVE_MANOEUVRES_TECH = "tt-evasive-manoeuvres";
+export const RESEARCH_BONUS = 0.1;
+
+/**
+ * A corporation's combat modifiers, from its own server state only: +10% accuracy for Fire Control, +10% evasion for
+ * Evasive Manoeuvres, and corp.military.modifiers.ceoLeadershipPct added to both. Each stat is capped at MODIFIER_CAP.
+ * A missing, negative or non-numeric leadership figure counts as 0.
+ */
+export function combatModifiersFor(corp) {
+  const tech = new Set(Array.isArray(corp?.unlockedTech) ? corp.unlockedTech : []);
+  const raw = Number(corp?.military?.modifiers?.ceoLeadershipPct);
+  const leadership = Number.isFinite(raw) && raw > 0 ? raw / 100 : 0;
+  const stat = (bonus) => Math.min(MODIFIER_CAP, 1 + bonus + leadership);
+  return {
+    attack: 1,
+    accuracy: stat(tech.has(FIRE_CONTROL_TECH) ? RESEARCH_BONUS : 0),
+    evasion: stat(tech.has(EVASIVE_MANOEUVRES_TECH) ? RESEARCH_BONUS : 0)
+  };
+}
 
 /** Section 2: 2 when `shooter` preys on `target`, 0.5 when `target` preys on `shooter`, 1 otherwise. */
 export function counterMultiplier(shooter, target, units = UNITS, counters = UNITS_DATA.counters) {
@@ -39,7 +65,7 @@ function modifiersOf(m, side) {
   for (const key of Object.keys(NEUTRAL_MODIFIERS)) {
     if (m?.[key] == null) continue;
     if (!(typeof m[key] === "number" && Number.isFinite(m[key]) && m[key] > 0)) throw new Error(`${side} modifier ${key} should be a number above 0.`);
-    out[key] = m[key];
+    out[key] = Math.min(MODIFIER_CAP, m[key]); // AB#863: the design's cap, whatever the caller passes
   }
   return out;
 }

@@ -136,7 +136,9 @@ describe("data/research.json", () => {
     "tt-basic-extraction": "public/scripts/miningEfficiency.js", // ISP-98: the tick's efficiency, shared with the panel
     "tt-industrial-safety": "server/game/mining.js",
     "tt-supply-forecast": "public/scripts/miningEfficiency.js",
-    "tt-fleet-coordination": "server/game/catalog.js"
+    "tt-fleet-coordination": "server/game/catalog.js",
+    "tt-fire-control": "server/game/combat.js", // AB#863: combatModifiersFor
+    "tt-evasive-manoeuvres": "server/game/combat.js"
   };
 
   it("every effect is a stated unlock, or has a reader that applies it (AB#1259)", () => {
