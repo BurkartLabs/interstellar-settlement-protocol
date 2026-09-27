@@ -14,7 +14,8 @@ import { gameplayInputMiddleware, ACCOUNT_INPUT, MARKET_INPUT, FORUM_INPUT } fro
 import { FORUM_CATEGORIES } from "./gameState.js";
 import { app, __dirname, DEV_SURFACE, server, io } from "./app.js";
 import { requireAuth, requireAccountAccess, verifyAccessToken, getBearerToken } from "./auth.js";
-import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
+import { SYSTEMS_CATALOG } from "./travel.js";
+import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 import { beltTick, checkAndResetNpcBuyOrders, miningTick, refineryTick, asteroidExpeditionTick, fabricationTick, travelTick, processRndCompletions, processCeoInsightCompletions, financialSnapshotTick, FINANCIAL_SNAPSHOT_INTERVAL_MS, shipmentTick } from "./ticks.js";
 import { registerRealtime } from "./realtime.js";
 import { registerCatalogRoutes } from "./routes/catalog.js";
@@ -120,7 +121,7 @@ registerPasswordResetRoutes(app);
 app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess, accountActionLimiter);
 const INPUT_CHECKS = {
   catalogs: {
-    stations: new Set(Object.keys(STATION_REGISTRY)),
+    stations: { has: (id) => Boolean(stationById(id)) }, // ISP-209 (AB#904): read live, so a built station is one
     systems: new Set(SYSTEMS_BY_ID.keys()),
     leaseBodies: new Set(SYSTEMS_CATALOG.flatMap((s) => (s.bodies || []).filter((b) => Number(b.leaseCost) > 0).flatMap((b) => [b.name, b.id])).map((x) => String(x).toLowerCase())),
     techs: new Set(Object.keys(RESEARCH_LIBRARY)),
@@ -140,7 +141,7 @@ const INPUT_CHECKS = {
     npcOrders: { has: (orderId) => (getState().market?.npcBuyOrders || []).some((o) => o.id === orderId) },
     forumCategories: new Set(FORUM_CATEGORIES)
   },
-  stationNames: Object.fromEntries(Object.entries(STATION_REGISTRY).map(([sid, st]) => [sid, st.name])),
+  stationNames: { get: (sid) => stationById(sid)?.name }, // read live, as above
   corpOf: (accountId) => getAccountById(accountId)?.state?.corp
 };
 app.use("/api/accounts/:accountId/gameplay", gameplayInputMiddleware(INPUT_CHECKS));

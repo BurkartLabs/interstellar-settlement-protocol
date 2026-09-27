@@ -17,6 +17,7 @@ import { foldName, validateCorporationName } from "../corporationName.js";
 import { applyCredits } from "../finances.js";
 import { reservedNamesError } from "../npcCorporations.js";
 import { createId, deepClone } from "./catalog.js";
+import { catalogStations } from "./stations.js"; // ISP-209 (AB#904)
 import { RESERVED_CORPORATION_NAMES } from "./world.js";
 import { accountsStore, closeFinancialDays, sanitizeAccount, saveAccountsNow } from "./store.js";
 
@@ -31,10 +32,8 @@ const DATA = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..",
 export const RESERVED_CONGLOMERATE_NAMES = Object.freeze([...new Set([
   ...RESERVED_CORPORATION_NAMES,
   "GEX",
-  ...["buildings.json", "stations.json"].flatMap((file) => {
-    const doc = JSON.parse(fs.readFileSync(path.join(DATA, file), "utf8"));
-    return Object.values(doc).filter(Array.isArray).flat().map((e) => e?.factionCode).filter((c) => typeof c === "string" && c);
-  })
+  ...[...Object.values(JSON.parse(fs.readFileSync(path.join(DATA, "buildings.json"), "utf8"))).filter(Array.isArray).flat(), ...catalogStations()]
+    .map((e) => e?.factionCode).filter((c) => typeof c === "string" && c)
 ])]);
 
 /** Every conglomerate, the stored list itself. */

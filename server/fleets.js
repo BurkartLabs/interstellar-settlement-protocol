@@ -13,7 +13,8 @@
 
 import { NAVIGATION } from "./game/catalog.js";
 import { ensureCorpMilitary } from "./game/units.js";
-import { STATION_REGISTRY, getTravelTimeMs } from "./travel.js";
+import { getTravelTimeMs } from "./travel.js";
+import { allStations, stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 
 /** The unit types a fleet may hold. */
 export const FLEET_UNIT_IDS = Object.freeze(["lf", "ds", "se", "at"]);
@@ -151,7 +152,7 @@ export function deployFleet(corp, fleetId, toStationId, now = Date.now()) {
   if (!fleet) return { outcome: "no-fleet" };
   if (contracted(fleet)) return { outcome: "under-contract" };
   if (inTransit(fleet, now)) return { outcome: "in-transit" };
-  const from = STATION_REGISTRY[fleet.stationId], to = STATION_REGISTRY[toStationId];
+  const from = stationById(fleet.stationId), to = stationById(toStationId);
   if (!to) return { outcome: "no-station" };
   if (fleet.stationId === toStationId) return { outcome: "already-there" };
   const fromSystemId = from?.systemId || "sol";
@@ -175,8 +176,8 @@ export function fleetDestinations(corp, fleetId, now = Date.now()) {
   const fleet = owned(corp, fleetId);
   if (!fleet) return null;
   if (inTransit(fleet, now) || !fleet.stationId) return [];
-  const fromSystemId = STATION_REGISTRY[fleet.stationId]?.systemId || "sol";
-  return Object.values(STATION_REGISTRY).filter((st) => st.id !== fleet.stationId).map((st) => {
+  const fromSystemId = stationById(fleet.stationId)?.systemId || "sol";
+  return allStations().filter((st) => st.id !== fleet.stationId).map((st) => {
     const same = st.systemId === fromSystemId;
     const researched = same || NAVIGATION.canReachSystem(corp.unlockedTech, fromSystemId, st.systemId);
     const charted = same || NAVIGATION.systemHops(fromSystemId, st.systemId) !== null || st.systemId === "sol";

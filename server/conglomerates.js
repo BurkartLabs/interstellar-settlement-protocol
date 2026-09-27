@@ -12,6 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { catalogStations } from "./game/stations.js"; // ISP-209 (AB#904)
 
 const DATA = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data");
 const DEFAULT_FILE = path.join(DATA, "conglomerates.json");
@@ -90,7 +91,7 @@ export function readReferenceCatalogs(dir = DATA) {
   const ids = (list) => new Set((list || []).map((x) => x?.id).filter(Boolean));
   return {
     buildings: ids(read("buildings.json").buildings),
-    stations: ids(read("stations.json").stations),
+    stations: ids(catalogStations()), // the NPC catalog: a data file cannot name a station built in play
     items: ids(read("items.json").items),
     research: ids(read("research.json").nodes)
   };

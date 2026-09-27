@@ -8,11 +8,11 @@
 import { buyOrderView, orderView } from "./publicViews.js";
 import { PRICE_HISTORY_ITEMS } from "./priceHistory.js";
 import { NPC_CATALOG } from "./npcCorporations.js";
-import { STATIONS_RAW } from "./game/catalog.js";
+import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 
 // ISP-124 (AB#818): who the NPCs are, for the badge and the profile card; the same for every viewer. The home station
 // goes by name: the view carries no station id (Bug #1171), and this one is public anyway.
-const stationNameOf = (id) => (STATIONS_RAW.stations || STATIONS_RAW).find((s) => s.id === id)?.name || "";
+const stationNameOf = (id) => stationById(id)?.name || "";
 const NPC_DIRECTORY = NPC_CATALOG
   ? {
       corporations: NPC_CATALOG.corporations.map(({ id, name, homeStationId, flavour, trades }) => ({ id, name, homeStation: stationNameOf(homeStationId), flavour, trades })),

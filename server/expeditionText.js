@@ -2,7 +2,8 @@
 // notification said "returned from belt" and "deposited at earth-station-prime" (a key's suffix and a station id), and
 // the inbox report title-cased ids ("Ac Belt", "Barnards Star"). Names come from the catalogs, never from the ids,
 // through the lookups the client shares (AB#1336).
-import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
+import { SYSTEMS_CATALOG } from "./travel.js";
+import { stationMap } from "./game/stations.js"; // ISP-209 (AB#904)
 import { beltPhrase, beltPlace, stationName } from "../public/scripts/displayNames.js";
 import { ECONOMY } from "./economy.js";
 import { nextBeltDrawAt } from "./game/belts.js"; // AB#2330
@@ -11,14 +12,14 @@ import { nextBeltDrawAt } from "./game/belts.js"; // AB#2330
 export function expeditionPlaces(exp) {
   return {
     ...beltPlace(SYSTEMS_CATALOG, exp?.beltKey, exp?.systemId),
-    station: stationName(STATION_REGISTRY, exp?.depositStationId)
+    station: stationName(stationMap(), exp?.depositStationId)
   };
 }
 
 /** The Expedition Complete notification's text. */
 export function expeditionNotificationBody(exp) {
   const yieldSummary = Object.entries(exp?.yields || {}).map(([r, q]) => `${q} ${r}`).join(", ") || "no resources";
-  const station = stationName(STATION_REGISTRY, exp?.depositStationId) || "your nearest station";
+  const station = stationName(stationMap(), exp?.depositStationId) || "your nearest station";
   // ISP-96 (AB#786): what the Ferric Mining Complex added, already counted in the yields above.
   const bonus = Object.entries(exp?.ferricBonus || {}).map(([r, q]) => `${q} ${r}`).join(" and ");
   const ferric = bonus ? ` Your Ferric Mining Complex added ${bonus}.` : "";

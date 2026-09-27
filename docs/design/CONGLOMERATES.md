@@ -349,6 +349,12 @@ member holds an active lease. It files the project at the Conglomerate Affairs B
   or directly into the project.
 - When it is fully funded it builds for `stationBuildDays` (14), then exists: `owner: "conglomerate:<id>"`,
   `jurisdiction: "conglomerate"` (the new value in `STATION_JURISDICTIONS`), at tier 3.
+  **As built (ISP-209, AB#904): the registry.** A station built in play is persisted to `<ISP_DATA_DIR>/stations-built.json`
+  and read through `server/game/stations.js` (`allStations`, `stationById`, `stationAtBody`) with the catalog; nothing
+  else reads `data/stations.json`. In memory its owner is `{ type: "conglomerate", id }` (a catalog station's is
+  `{ type: "npc", id: null }`) rather than the string above, and `GET /api/stations` sends `ownerType` and the
+  conglomerate's name only. `addStation` refuses a catalog id, a body that already has a station, and an unknown system
+  or body; a file that fails those checks stops the server. ISP-210 (AB#905) decides where and when a station is built.
 - An unfinished project can be cancelled by the founder; contributions return to contributors in full. The station's
   existence is the only thing that consumes them.
 
