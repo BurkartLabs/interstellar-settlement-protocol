@@ -4395,7 +4395,7 @@ img.station__body {
 .patent-office { display: flex; flex-direction: column; gap: var(--space-4); }
 .patent-section { display: flex; flex-direction: column; gap: var(--space-3); }
 .patent-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-.patent-card { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.patent-card { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); background: var(--surface-2); }
 .patent-card__title { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); overflow-wrap: anywhere; }
 .patent-card__meta { margin: 0; color: var(--muted); font-size: var(--font-size-2); line-height: var(--line-height-body); }
 .patent-card__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); }
@@ -4419,7 +4419,7 @@ img.station__body {
 .lobby-status { color: var(--warn); }
 .lobby-group { margin: var(--space-2) 0 0; }
 .lobby-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-.lobby-campaign { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.lobby-campaign { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); background: var(--surface-2); }
 .lobby-campaign p { margin: 0; overflow-wrap: anywhere; }
 .lobby-sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--space-2); }
 .lobby-side { display: inline-block; min-width: 4.5rem; margin-right: var(--space-2); font-weight: 700; }
@@ -4443,13 +4443,13 @@ img.station__body {
 /* ISP-243 (AB#939): the Galactic Arbitration Council's chambers, read like a court registry */
 .gac-chambers { display: flex; flex-direction: column; gap: var(--space-4); }
 .gac-section { display: flex; flex-direction: column; gap: var(--space-3); }
-.gac-step { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); margin: 0; min-width: 0; }
+.gac-step { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); margin: 0; min-width: 0; }
 .gac-step__title { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--font-size-3); font-weight: 600; padding: 0; }
 .gac-step__n { display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: 50%; border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
 .gac-choices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.gac-choice { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); background: var(--surface-2); cursor: pointer; overflow-wrap: anywhere; }
+.gac-choice { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); cursor: pointer; overflow-wrap: anywhere; }
 .gac-choice:has(input:checked) { border-color: var(--accent); }
-.gac-choice input { margin-top: 0.25em; flex: none; }
+.gac-choice input { margin-top: var(--space-1); flex: none; }
 .gac-choice > span { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .gac-choice__meta { color: var(--muted); font-size: var(--font-size-2); }
 .gac-choice--off { cursor: not-allowed; opacity: 0.7; }
@@ -4464,7 +4464,7 @@ img.station__body {
 .gac-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
 .gac-ref { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 .gac-cases, .gac-docket { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.gac-case details { border: 1px solid var(--border); border-radius: var(--radius-2, 8px); background: var(--surface-2); }
+.gac-case details { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); }
 .gac-case__summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-3); cursor: pointer; overflow-wrap: anywhere; }
 .gac-case__title { flex: 1 1 16rem; min-width: 0; }
 .gac-case__body { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-3) var(--space-3); }
@@ -4490,7 +4490,7 @@ img.station__body {
 .concession-why { margin: 0; color: var(--warn); font-size: var(--font-size-2); line-height: var(--line-height-body); }
 .concession-status:empty { display: none; }
 .concession-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
-.concession-holder { display: flex; flex-direction: column; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.concession-holder { display: flex; flex-direction: column; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); background: var(--surface-2); }
 .concession-terms { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); }
 .concession-terms dt { color: var(--muted); }
 .concession-terms dd { margin: 0; color: var(--text); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
