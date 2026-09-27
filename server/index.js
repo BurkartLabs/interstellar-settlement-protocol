@@ -32,6 +32,7 @@ import { registerCreditRatingRoutes } from "./routes/creditRating.js"; // ISP-14
 import { registerCapTableRoutes } from "./routes/capTable.js"; // ISP-157 (AB#851)
 import { registerEquityRoutes } from "./routes/equity.js"; // ISP-158 (AB#852)
 import { shareOfferingTick } from "./shareOfferings.js";
+import "./balanceSheet.js"; // Bug #4647: the balance sheet's debt and receivables lines
 import { dividendTick } from "./dividends.js"; // ISP-159 (AB#853)
 import { registerConglomerateRoutes } from "./routes/conglomerates.js"; // ISP-197 (AB#891)
 import { registerLogisticsRoutes } from "./routes/logistics.js";

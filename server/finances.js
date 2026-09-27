@@ -228,6 +228,15 @@ const operating = (o) => Object.fromEntries(Object.entries(o || {}).filter(([k])
 let valueHoldings = () => 0;
 export function setHoldingsValuer(fn) { valueHoldings = typeof fn === "function" ? fn : () => 0; }
 
+/**
+ * Bug #4647: what a corporation owes (loans borrowed, bonds issued) and is owed (loans lent, offers in escrow, bonds
+ * held). Set by server/balanceSheet.js, which sees the other corporations and the markets; 0 until it loads.
+ */
+let valueDebt = () => 0;
+let valueReceivables = () => 0;
+export function setDebtValuer(fn) { valueDebt = typeof fn === "function" ? fn : () => 0; }
+export function setReceivablesValuer(fn) { valueReceivables = typeof fn === "function" ? fn : () => 0; }
+
 export function closeDay(corp, dayStart, market = null) {
   const f = corp?.finances || {};
   const book = f.dayBook && f.dayBook.dayStart === dayStart ? f.dayBook : null;
@@ -239,8 +248,11 @@ export function closeDay(corp, dayStart, market = null) {
   const opening = book ? Math.round(Number(book.opening) || 0) : closing;
   const facilities = Math.max(0, Math.round(Number(f.assets) || 0));
   const inventory = market ? valueInventory(corp, market) : Math.max(0, Math.round(Number(f.inventoryValue) || 0));
-  const liabilities = computeLiveLiabilities(corp);
   const holdings = Math.max(0, Math.round(Number(valueHoldings(corp)) || 0)); // AB#854: shares at the Board's value
+  // Bug #4647: debt is a liability and what others owe is an asset, so borrowing does not raise net worth
+  const debt = Math.max(0, Math.round(Number(valueDebt(corp)) || 0));
+  const receivables = Math.max(0, Math.round(Number(valueReceivables(corp)) || 0));
+  const liabilities = computeLiveLiabilities(corp) + debt;
   return {
     day: new Date(dayStart).toISOString().slice(0, 10),
     dayStart,
@@ -251,9 +263,11 @@ export function closeDay(corp, dayStart, market = null) {
       facilities,
       inventory,
       holdings,
+      receivables,
       liabilities,
-      totalAssets: closing + facilities + inventory + holdings,
-      netWorth: closing + facilities + inventory + holdings - liabilities
+      debt,
+      totalAssets: closing + facilities + inventory + holdings + receivables,
+      netWorth: closing + facilities + inventory + holdings + receivables - liabilities
     }
   };
 }

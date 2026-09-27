@@ -78,15 +78,23 @@ export function computeCreditRating(corp, now = Date.now(), statements = [], opt
   const income = sum((st) => st.pnl.totalIncome);
   const net = sum((st) => st.pnl.net);
   const avgExpenses = sum((st) => st.pnl.totalExpenses) / h;
-  const avgAssets = sum((st) => st.balanceSheet.totalAssets) / h + extraAssets;
+  // Bug #4647: a statement now carries debt in its liabilities and receivables in its assets. Section 4's inputs were set
+  // on the sheet without them, and add the live debt themselves, so both lines are taken back out: the grades are the
+  // ones the design tuned, and debt is not counted twice.
+  const bare = (st) => ({
+    totalAssets: st.balanceSheet.totalAssets - (Number(st.balanceSheet.receivables) || 0),
+    liabilities: st.balanceSheet.liabilities - (Number(st.balanceSheet.debt) || 0),
+    netWorth: st.balanceSheet.netWorth + (Number(st.balanceSheet.debt) || 0) - (Number(st.balanceSheet.receivables) || 0)
+  });
+  const avgAssets = sum((st) => bare(st).totalAssets) / h + extraAssets;
   const credits = latest.balanceSheet.credits;
 
   // Section 4's inputs, each a raw value and the sub-score it maps to, clipped to 0..1. No income scores 0 on margin,
   // leverage and turnover.
   const days = avgExpenses > 0 ? credits / avgExpenses : credits > 0 ? Infinity : 0;
   const margin = income > 0 ? net / income : null;
-  const coverDenominator = latest.balanceSheet.liabilities + debt;
-  const cover = coverDenominator > 0 ? latest.balanceSheet.netWorth / coverDenominator : latest.balanceSheet.netWorth > 0 ? Infinity : 0;
+  const coverDenominator = bare(latest).liabilities + debt;
+  const cover = coverDenominator > 0 ? bare(latest).netWorth / coverDenominator : bare(latest).netWorth > 0 ? Infinity : 0;
   const leverage = income > 0 ? debt / income : null;
   const turnover = income > 0 ? (avgAssets > 0 ? income / avgAssets : Infinity) : null;
   const sub = {
