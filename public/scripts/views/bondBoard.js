@@ -120,7 +120,7 @@ async function subscribe(form) {
   if (!Number.isInteger(units) || units < 1 || units > s.left) { status.textContent = `Enter 1 to ${s.left} units.`; return; }
   const confirmed = await showTradeConfirmation({
     heading: "Deep Space Development Bank",
-    title: `Buy ${cr(units)} unit${units === 1 ? "" : "s"} of ${s.issuerName ?? "this"} series?`,
+    title: `Buy ${cr(units)} unit${units === 1 ? "" : "s"} of ${s.issuerName ? `${s.issuerName}'s` : "this"} series?`,
     confirmLabel: `Pay ${cr(units * s.faceValue)} credits`,
     rows: [
       { label: "Cost", value: `${cr(units * s.faceValue)} credits, at face` },
@@ -137,7 +137,7 @@ async function subscribe(form) {
     showActionReceipt(account, { returnFocusTo: () => document.querySelector('[data-role="bond-board"] h3') });
     await load();
   } catch (error) {
-    status.textContent = error?.message || "The Bank refused the subscription.";
+    status.textContent = error?.message || "The Bank refused to sell those units.";
   }
 }
 

@@ -756,6 +756,8 @@ button:disabled {
 .bond-terms__aside { color: var(--muted); font-size: var(--font-size-2); }
 .bond-subscribe,
 .bond-issue { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
+.bond-subscribe .bank-quote-form__field { flex: 0 1 10rem; }
+.bond-subscribe .bank-quote-form__status { flex-basis: 100%; }
 .bond-issue > .bond-preview,
 .bond-issue > .bank-quote__actions { flex-basis: 100%; }
 .bond-issue__coupon { flex: 2 1 16rem; }
