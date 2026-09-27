@@ -107,7 +107,7 @@ describe("ISP-146 a transfer moves once, is booked on both statements, and is wr
     expect(moved).toBeGreaterThan(800); // the rest were overdrafts, refused
     expect((settlementTotals().sinks.fee ?? 0) - feeBefore).toBe(fees);
     expect(fees).toBeGreaterThan(0);
-  });
+  }, 120_000); // Bug #2567: 1,000 transfers are 1,000 synchronous snapshot saves, which is the behaviour under test
 
   it("the ledger and the balances survive a restart", () => {
     const [a, b] = ids;
