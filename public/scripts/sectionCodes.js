@@ -11,7 +11,7 @@ let codes = new Map();
 
 /** Take the registry: every screen's and section's code by its id. */
 export function setSectionCodes(registry) {
-  codes = new Map([...(registry?.screens || []), ...(registry?.sections || [])].map((e) => [e.id, e.code]));
+  codes = new Map([...(registry?.screens || []), ...(registry?.sections || []), ...(registry?.drawn || [])].map((e) => [e.id, e.code])); // drawn: ISP-250 (AB#946)
 }
 
 /** What a slot shows for `id`: "CODE // ", or "" for an id the registry lacks. */

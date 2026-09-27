@@ -163,7 +163,7 @@ export function renderBuildingDetail(building, data) {
     renderDevelopmentBank(contentEl, data, `
       <div class="station__building-header">
         <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
-        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+        <h2 class="station__building-title">${codeSlotHtml(`building-${building.id}`)}${escapeHtml(building.name)}</h2>
       </div>
       ${dockedHtml(station)}
       <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
@@ -173,7 +173,7 @@ export function renderBuildingDetail(building, data) {
     renderStockExchange(contentEl, `
       <div class="station__building-header">
         <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
-        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+        <h2 class="station__building-title">${codeSlotHtml(`building-${building.id}`)}${escapeHtml(building.name)}</h2>
       </div>
       ${dockedHtml(station)}
       <p class="ui-screen__lede">${escapeHtml(building.description)}</p>`);
@@ -183,7 +183,7 @@ export function renderBuildingDetail(building, data) {
     renderPatentOffice(contentEl, `
       <div class="station__building-header">
         <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
-        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+        <h2 class="station__building-title">${codeSlotHtml(`building-${building.id}`)}${escapeHtml(building.name)}</h2>
       </div>
       ${dockedHtml(station)}
       <p class="ui-screen__lede">Patents are filed here: the first corporation to complete a research node or refinery chain may patent it, and every other corporation that uses it pays a royalty while the patent runs.</p>`);
@@ -193,7 +193,7 @@ export function renderBuildingDetail(building, data) {
     renderLobbyingOffice(contentEl, building.id, `
       <div class="station__building-header">
         <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
-        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+        <h2 class="station__building-title">${codeSlotHtml(`building-${building.id}`)}${escapeHtml(building.name)}</h2>
       </div>
       ${dockedHtml(station)}
       <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
@@ -204,7 +204,7 @@ export function renderBuildingDetail(building, data) {
     renderArbitrationCouncil(contentEl, `
       <div class="station__building-header">
         <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
-        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+        <h2 class="station__building-title">${codeSlotHtml(`building-${building.id}`)}${escapeHtml(building.name)}</h2>
       </div>
       ${dockedHtml(station)}
       <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
@@ -214,7 +214,7 @@ export function renderBuildingDetail(building, data) {
     renderConglomerateBureau(contentEl, data, `
       <div class="station__building-header">
         <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
-        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+        <h2 class="station__building-title">${codeSlotHtml(`building-${building.id}`)}${escapeHtml(building.name)}</h2>
       </div>
       ${dockedHtml(station)}
       <p class="ui-screen__lede">${escapeHtml(building.description)}</p>`);
@@ -223,7 +223,7 @@ export function renderBuildingDetail(building, data) {
     contentEl.innerHTML = `
       <div class="station__building-header">
         <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
-        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+        <h2 class="station__building-title">${codeSlotHtml(`building-${building.id}`)}${escapeHtml(building.name)}</h2>
       </div>
       ${dockedHtml(station)}
       <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
@@ -257,7 +257,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const headerHtml = `
     <div class="station__building-header">
       <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
-      <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      <h2 class="station__building-title">${codeSlotHtml(`building-${building.id}`)}${escapeHtml(building.name)}</h2>
     </div>
     ${dockedHtml(station)}
     <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
@@ -268,7 +268,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
     return `
       ${headerHtml}
       <section id="lease-suite-box" class="ui-panel station__panel">
-        <h3>Lease an Office Suite</h3>
+        <h3>${codeSlotHtml("suites-lease")}Lease an Office Suite</h3>
         <p class="station__note">Establish a registered corporate presence at ${escapeHtml(station?.name || "this station")} by leasing a suite. This is required before your corporation can hire personnel or engage with station services.</p>
         <dl class="ui-kv">
           <dt>Lease Cost</dt><dd>${toCurrency(rate(officeLeaseCost(1)))} credits a day</dd>
@@ -313,7 +313,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
     ${headerHtml}
 
     <section class="ui-panel station__panel">
-      <h3>Office Status</h3>
+      <h3>${codeSlotHtml("suites-status")}Office Status</h3>
       <dl class="ui-kv">
         <dt>Status</dt><dd>${leaseStatusBadge}</dd>
         <dt>Station</dt><dd>${escapeHtml(existingOffice.name)}</dd>
@@ -325,7 +325,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
     </section>
 
     <section class="ui-panel station__panel">
-      <h3>${leaseExpired ? "Renew Expired Lease" : "Extend Lease"}</h3>
+      <h3>${codeSlotHtml("suites-extend")}${leaseExpired ? "Renew Expired Lease" : "Extend Lease"}</h3>
       <p class="station__note">${leaseExpired ? "Your office lease has expired. Renew to restore access to station services." : "Extend your current lease term. The additional days will be added to your existing expiry date."}</p>
       <form id="renew-office-form" class="station__form">
         <label>
@@ -340,7 +340,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
     </section>
 
     <section class="ui-panel station__panel">
-      <h3>Workforce — Hire Personnel</h3>
+      <h3>${codeSlotHtml("suites-workforce")}Workforce — Hire Personnel</h3>
       <p class="station__note">Recruit employees through your registered office. Each hire costs ${toCurrency(clientPrices(appState.economy).hireCost)} credits and adds ${toCurrency(clientPrices(appState.economy).payrollPerDay)}/day to operational payroll.</p>
       <form id="office-hire-form" class="station__form">
         <label>
@@ -354,7 +354,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
     </section>
 
     <section class="ui-panel station__panel">
-      <h3>Station Services</h3>
+      <h3>${codeSlotHtml("suites-services")}Station Services</h3>
       <p class="station__note">Visit the ISA Claims &amp; Leases Division to file extraction rights applications. Each station's claims office files leases on the body it orbits.</p>
     </section>
   `;
@@ -550,7 +550,7 @@ export function renderISAClaimsLeases(building, data) {
   const headerHtml = `
     <div class="station__building-header">
       <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
-      <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      <h2 class="station__building-title">${codeSlotHtml(`building-${building.id}`)}${escapeHtml(building.name)}</h2>
     </div>
     ${dockedHtml(station)}
     <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
@@ -637,11 +637,11 @@ export function renderISAClaimsLeases(building, data) {
   return `
     ${headerHtml}
     <section class="ui-panel station__panel">
-      <h3>Active Mining Claims</h3>
+      <h3>${codeSlotHtml("claims-active")}Active Mining Claims</h3>
       ${leasesHtml}
     </section>
     <section class="ui-panel station__panel">
-      <h3>File Extraction Lease Application</h3>
+      <h3>${codeSlotHtml("claims-apply")}File Extraction Lease Application</h3>
       ${purchaseHtml}
     </section>
   `;
@@ -882,7 +882,7 @@ export function renderLeaseManagement(building, lease, data) {
   return `
     <div class="station__building-header">
       <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
-      <h2 class="station__building-title">Mining Lease — ${escapeHtml(lease.body)}</h2>
+      <h2 class="station__building-title">${codeSlotHtml("building-lease")}Mining Lease — ${escapeHtml(lease.body)}</h2>
     </div>
     ${dockedHtml(station)}
     <button id="lease-back-btn" class="ui-button ui-button--secondary" type="button">&#8592; Back to Claims &amp; Leases</button>
@@ -1349,7 +1349,7 @@ export function renderAssemblyFacility(data) {
   contentEl.innerHTML = `
     <div class="station__building-header">
       <span class="ui-badge ui-badge--accent">CORP</span>
-      <h2 class="station__building-title">Assembly Facility</h2>
+      <h2 class="station__building-title">${codeSlotHtml("building-assembly-facility")}Assembly Facility</h2>
     </div>
     ${dockedHtml(station)}
     <p class="ui-screen__lede">A modular manufacturing bay capable of fabricating autonomous mining probes and other deployable units.</p>

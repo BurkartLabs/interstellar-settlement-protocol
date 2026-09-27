@@ -213,7 +213,9 @@ export function renderLevel2Progress(data) {
   const isNext = view.state === "next";
 
   // "Level N of M", M the highest level the data defines (Bug #424: never a literal).
-  if (title) title.textContent = view.max ? `Level ${level} of ${view.max}` : `Level ${level}`;
+  // Bug #4679: only the words; the title keeps its document-code slot
+  const titleText = document.getElementById("level-requirements-text") || title;
+  if (titleText) titleText.textContent = view.max ? `Level ${level} of ${view.max}` : `Level ${level}`;
   const meta = document.getElementById("level-panel-meta");
   if (meta) {
     const badge = {

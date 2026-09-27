@@ -8,6 +8,7 @@ import { borrowedLoansHtml, lentLoansHtml, loanBoardHtml, postOfferFormHtml } fr
 import { cr } from "../devBank.js";
 import { appState } from "../state.js";
 import { pushFeedback, refreshFromServer, showTradeConfirmation } from "./shared.js";
+import { codeSlotHtml } from "../sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 
 const board = { accountId: null, offers: null, rules: null, minGrades: [], grade: "NR", sort: "rate-asc", onlyMine: false, loans: null, error: "", form: {} };
 const bound = new WeakSet();
@@ -18,20 +19,20 @@ const base = () => `/api/accounts/${encodeURIComponent(appState.accountId)}`;
 export function loanBoardSectionsHtml() {
   return `
     <section class="ui-panel station__panel bank-panel">
-      <h3>Loan board</h3>
+      <h3>${codeSlotHtml("loans-board")}Loan board</h3>
       <p class="station__note">Offers from other corporations, each fixed at its rate and term. Borrow one and it is repaid daily, to that corporation.</p>
       <div data-role="loan-board"></div>
     </section>
     <section class="ui-panel station__panel bank-panel">
-      <h3>Offer a loan</h3>
+      <h3>${codeSlotHtml("loans-offer")}Offer a loan</h3>
       <div data-role="loan-post"></div>
     </section>
     <section class="ui-panel station__panel bank-panel">
-      <h3>Loans you have made</h3>
+      <h3>${codeSlotHtml("loans-made")}Loans you have made</h3>
       <div class="bank-loans" data-role="loans-lent"></div>
     </section>
     <section class="ui-panel station__panel bank-panel">
-      <h3>Loans you owe other corporations</h3>
+      <h3>${codeSlotHtml("loans-owed")}Loans you owe other corporations</h3>
       <div class="bank-loans" data-role="loans-borrowed"></div>
     </section>`;
 }

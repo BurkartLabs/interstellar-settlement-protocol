@@ -9,6 +9,7 @@
 import { escapeHtml, refHtml } from "./html.js";
 import { preview } from "./lobbying.js";
 import { utcMinute } from "./tariffs.js";
+import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 
 export const FACTIONS = Object.freeze({
   "earth-assembly": { name: "Earth Assembly", building: "earth-assembly" },
@@ -50,7 +51,7 @@ function standingHtml(office, faction) {
   const s = office.standing?.[faction] ?? 0;
   const t = office.terms;
   return `<section class="ui-panel station__panel lobby-section" data-lobby-standing aria-labelledby="lobby-standing-title">
-    <h3 id="lobby-standing-title">Your standing</h3>
+    <h3 id="lobby-standing-title">${codeSlotHtml(`${faction}-standing`)}Your standing</h3>
     <p class="lobby-standing"><strong data-role="lobby-standing-value">${n(s)}</strong> of ${n(office.standingMax)}</p>
     <p class="ui-panel__meta">It decays by 2% of its value each day. Opening a campaign needs ${n(t.openStandingMin)} and spends ${n(t.openStandingCost)}; pledging needs ${n(t.pledgeStandingMin)}. A standing point pledged is worth ${n(t.creditsPerStandingPoint)} credits of influence.</p>
   </section>`;
@@ -69,7 +70,7 @@ function valuesHtml(office, faction, systemId) {
       <td data-label="Base">${escapeHtml(pct(v.base, p))}</td><td data-label="In force"${v.inForce !== v.base ? ' class="lobby-moved"' : ""}>${escapeHtml(pct(v.inForce, p))}</td><td data-label="Status">${escapeHtml(status)}</td></tr>`;
   }).join("");
   return `<section class="ui-panel station__panel lobby-section" data-lobby-values aria-labelledby="lobby-values-title">
-    <h3 id="lobby-values-title">The rules in a system</h3>
+    <h3 id="lobby-values-title">${codeSlotHtml(`${faction}-rules`)}The rules in a system</h3>
     <label class="ui-field"><span class="ui-field__label">System</span><select class="ui-select" data-role="lobby-system">${options}</select></label>
     <div class="ui-table-wrap"><table class="ui-table lobby-values"><thead><tr><th>Rule</th><th>Base</th><th>In force</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
     <dl class="lobby-glossary">${factionParameters(office, faction).map((p) => `<dt>${escapeHtml(PARAMETER_LABELS[p].name)}</dt><dd>${escapeHtml(PARAMETER_LABELS[p].what)}</dd>`).join("")}</dl>
@@ -82,7 +83,7 @@ function openFormHtml(office, faction, form) {
   const can = s >= office.terms.openStandingMin;
   const opt = (v, label, sel) => `<option value="${escapeHtml(v)}"${v === sel ? " selected" : ""}>${escapeHtml(label)}</option>`;
   return `<section class="ui-panel station__panel lobby-section" data-lobby-open aria-labelledby="lobby-open-title">
-    <h3 id="lobby-open-title">Open a campaign</h3>
+    <h3 id="lobby-open-title">${codeSlotHtml(`${faction}-open`)}Open a campaign</h3>
     ${can ? "" : `<p class="station__blocked">Opening a campaign needs ${n(office.terms.openStandingMin)} standing with the ${escapeHtml(FACTIONS[faction].name)}; you have ${n(s)}.</p>`}
     <form class="lobby-form" data-form="lobby-open">
       <label class="ui-field"><span class="ui-field__label">Rule</span><select class="ui-select" name="parameter">${params.map((p) => opt(p, PARAMETER_LABELS[p].name, form.parameter)).join("")}</select></label>
@@ -125,7 +126,7 @@ function registerHtml(office, faction) {
     return list.length ? `<h4 class="lobby-group" data-lobby-group="${escapeHtml(p)}">${escapeHtml(PARAMETER_LABELS[p].name)}</h4><ul class="lobby-list">${list.map((c) => campaignHtml(c, office)).join("")}</ul>` : "";
   }).join("");
   return `<section class="ui-panel station__panel lobby-section" data-lobby-register aria-labelledby="lobby-register-title">
-    <h3 id="lobby-register-title">The register</h3>
+    <h3 id="lobby-register-title">${codeSlotHtml(`${faction}-register`)}The register</h3>
     <p class="ui-panel__meta">Every campaign is registered: who opened it, who pledged and on which side. The amounts are not published.</p>
     ${groups || `<p class="ui-panel__meta">No campaigns are running at the ${escapeHtml(FACTIONS[faction].name)}.</p>`}
   </section>`;
