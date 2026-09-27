@@ -514,6 +514,7 @@ export function bindOfficeActions(building, data) {
 import { employeesForNextLease } from "../leaseStaffing.js"; // AB#1202: the server's rule, not a copy of it
 import { activeOfficeAt } from "../officeStatus.js"; // AB#1870: the server's rule, not a copy of it
 import { bodyProfile, cycleItemsText, leaseTypeLabel, profileText } from "../bodyYield.js"; // AB#829, Bug #2354
+import { codeSlotHtml } from "../sectionCodes.js"; // ISP-248 (AB#944)
 
 // The bodies the ISA leases. Module level so a full lease can say which are left (Bug #1057).
 export const LEASE_BODIES = [
@@ -1153,7 +1154,7 @@ export function renderStation(data) {
     const systemId = corp.currentSystemId || "sol";
     header.innerHTML = `
       <p class="station__overline">IN OPEN SPACE</p>
-      <h2 class="ui-screen__title">${escapeHtml(formatSystemLabel(systemId))} System</h2>
+      <h2 class="ui-screen__title">${codeSlotHtml("station")}${escapeHtml(formatSystemLabel(systemId))} System</h2>
       <p class="ui-screen__lede">You are not docked at any station. Use the Travel tab or Starmap to dock at a station in this system.</p>
     `;
     npcGrid.innerHTML = "";
@@ -1175,7 +1176,7 @@ export function renderStation(data) {
   if (overviewView && !buildingDetailOpen) overviewView.hidden = false;
 
   if (!station) {
-    header.innerHTML = `<h2 class="ui-screen__title">Station</h2><p class="station__note">No station data available for your current location.</p>`;
+    header.innerHTML = `<h2 class="ui-screen__title">${codeSlotHtml("station")}Station</h2><p class="station__note">No station data available for your current location.</p>`;
     return;
   }
 
@@ -1188,7 +1189,7 @@ export function renderStation(data) {
       ${stationArtHtml(station, systems)}
       <div class="station__identity">
         <p class="station__overline">${escapeHtml(station.designation)} &#47;&#47; ${escapeHtml(station.systemId.toUpperCase())}</p>
-        <h2 class="ui-screen__title">${escapeHtml(station.name)}</h2>
+        <h2 class="ui-screen__title">${codeSlotHtml("station")}${escapeHtml(station.name)}</h2>
         <p class="ui-screen__meta">In orbit of ${escapeHtml(station.body)}, ${escapeHtml(formatSystemLabel(station.systemId))} system</p>
         <p class="ui-screen__lede">${escapeHtml(station.description)}</p>
       </div>

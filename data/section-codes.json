@@ -137,19 +137,19 @@
       "code": "ISA-REG-1",
       "id": "login",
       "page": "login.html",
-      "title": "Log in"
+      "title": "Protocol Access Gate"
     },
     {
       "code": "ISA-REG-2",
       "id": "register",
       "page": "register.html",
-      "title": "Register a corporation"
+      "title": "Corporate Charter Portal"
     },
     {
       "code": "ISA-REG-3",
       "id": "check-email",
       "page": "check-email.html",
-      "title": "Check your email"
+      "title": "Check your email to verify your account."
     },
     {
       "code": "ISA-REG-4",
@@ -161,19 +161,19 @@
       "code": "ISA-REG-5",
       "id": "forgot-password",
       "page": "forgot-password.html",
-      "title": "Forgotten password"
+      "title": "Forgot your password?"
     },
     {
       "code": "ISA-REG-6",
       "id": "reset-password",
       "page": "reset-password.html",
-      "title": "Reset your password"
+      "title": "Choose a new password"
     },
     {
       "code": "ISA-REG-7",
       "id": "how-to-start",
       "page": "how-to-start.html",
-      "title": "How to start"
+      "title": "How to Start"
     }
   ],
   "sections": [

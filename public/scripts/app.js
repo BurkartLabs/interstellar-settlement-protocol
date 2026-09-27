@@ -4,6 +4,7 @@ import { escapeHtml, bootFailureHtml } from "./html.js";
 
 // AB#738 (ISP-52): the shared pieces app.js used to define itself.
 import { appState, IS_DEV_ACCESS, techTree } from "./state.js";
+import { loadSectionCodes } from "./sectionCodes.js"; // ISP-248 (AB#944)
 import { navigationFor } from "./navigation.js"; // ISP-112 (AB#804)
 import { connectApiClient, socket, reauthenticateSocket, persistSession, clearSession, redirectToLoginPage, handleSessionExpired, createInvalidSessionError, hydrateSession, refreshSessionToken, apiFetch, parseJsonResponse } from "./apiClient.js";
 import { toCurrency, deepClone } from "./helpers.js";
@@ -382,6 +383,7 @@ async function loadBootstrap() {
 }
 
 async function loadStationRegistry() {
+  loadSectionCodes(); // ISP-248 (AB#944): the document codes, filled into every title's slot; never awaited
   try {
     const [stationsRes, buildingsRes, insightRes, missionAgentsRes, researchRes, systemsRes] = await Promise.all([
       fetch("/api/stations"),
