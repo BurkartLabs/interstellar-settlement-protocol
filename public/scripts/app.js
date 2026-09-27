@@ -12,6 +12,7 @@ import { connectWalkthroughUi, hasSeenWalkthroughOffer, noteWalkthroughEvent, pr
 // AB#739 (ISP-53): one module per tab, and the shared pieces they use.
 import { renderAssets } from "./views/assets.js";
 import { renderFleet } from "./views/fleet.js"; // ISP-175 (AB#869)
+import { renderRaids } from "./views/raids.js"; // ISP-181 (AB#875)
 import { applyMissionAgentsCatalog, bindAssignmentForms, renderMissions } from "./views/assignments.js";
 import { renderInsightTree } from "./views/ceoInsight.js";
 import { bindCollapsibleSections, bindGlobalControls, loadNotifications, renderNotifications, updateCorpIdentity, updateReplayOnboardingVisibility } from "./views/chrome.js";
@@ -149,6 +150,7 @@ function renderAllViews() {
   renderTravelPage(data);
   renderStation(data);
   renderFleet(data); // ISP-175 (AB#869)
+  renderRaids(data); // ISP-181 (AB#875): the incoming-raid alert, garrisons, the target picker and reports
   renderLevel2Progress(data);
   renderQueue("rnd-queue", data.queues.corporateRnD, "Permanent corporate unlock track");
   renderQueue("ceo-queue", data.queues.ceoInsight, "CEO-centric growth track");

@@ -4871,3 +4871,52 @@ img.station__body {
 .mercs__contract { display: grid; gap: 4px; padding: var(--space-3, 12px); border: 1px solid var(--border); border-radius: var(--radius-md); }
 .mercs__contract p { margin: 0; }
 .mercs__who { display: grid; gap: 2px; }
+
+/* ISP-181 (AB#875): the raid screens */
+.raid-alert {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--danger);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+}
+.raid-alert__title { margin: 0 0 var(--space-2); font-size: var(--font-size-4); color: var(--danger); }
+.raid-alert__list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-3); }
+.raid-alert__item p { margin: 0 0 var(--space-2); }
+.raid-heading { margin: var(--space-2) 0 0; font-size: var(--font-size-3); }
+.raid-garrison--threat { border-color: var(--danger); }
+.raid-terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: var(--space-2) var(--space-4); margin: 0 0 var(--space-3); }
+.raid-terms dt { color: var(--muted); font-size: var(--font-size-1); text-transform: uppercase; letter-spacing: var(--letter-spacing-caps); }
+.raid-terms dd { margin: 0; font-variant-numeric: tabular-nums; }
+.raid-posture { margin: 0 0 var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-2); }
+.raid-posture legend { padding: 0 var(--space-1); color: var(--muted); font-size: var(--font-size-2); }
+.raid-posture__option { display: grid; grid-template-columns: auto 1fr; column-gap: var(--space-2); align-items: baseline; }
+.raid-posture__option input[type="radio"] { width: auto; margin: 0; grid-row: span 2; }
+.raid-posture__option .station__note { grid-column: 2; }
+.raid-posture .ui-button { align-self: flex-start; }
+.raid-reinforce, .raid-picker { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
+.raid-reinforce .ui-field, .raid-picker .ui-field { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; flex: 1 1 12rem; font-size: var(--font-size-2); color: var(--muted); }
+.raid-picker__you { margin: 0; color: var(--warn); }
+.raid-targets, .raid-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-2); }
+.raid-target, .raid-list__item {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3); background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.raid-target__name { font-weight: var(--font-weight-semibold); }
+.raid-target--closed .raid-target__name { color: var(--muted); }
+.raid-target__why { color: var(--text-soft); font-size: var(--font-size-2); }
+.raid-report { padding: var(--space-3) var(--space-4); background: var(--surface-1); border: 1px solid var(--accent); border-radius: var(--radius-md); }
+.raid-report__title { margin: 0 0 var(--space-2); font-size: var(--font-size-4); }
+.raid-report h5 { margin: var(--space-3) 0 var(--space-1); font-size: var(--font-size-3); }
+.raid-report ul { margin: 0; padding-left: var(--space-4); }
+.raid-table { width: 100%; border-collapse: collapse; margin: var(--space-2) 0; font-variant-numeric: tabular-nums; font-size: var(--font-size-2); }
+.raid-table caption { text-align: left; color: var(--muted); padding-bottom: var(--space-1); }
+.raid-table th, .raid-table td { padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--border); text-align: right; }
+.raid-table th[scope="row"], .raid-table thead th:first-child, .raid-table td:first-child { text-align: left; }
+.raid-rounds summary { cursor: pointer; color: var(--accent); }
+@media (max-width: 40rem) {
+  .raid-table { display: block; overflow-x: auto; font-size: var(--font-size-1); }
+  .raid-table th, .raid-table td { padding: var(--space-1); }
+  .raid-report { padding: var(--space-3); }
+}

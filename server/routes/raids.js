@@ -2,7 +2,7 @@
 // say what happened. Under /api/accounts/:accountId, so requireAuth and requireAccountAccess have run: the attacker is
 // always the caller's own corporation. Every field is an id checked for shape by server/gameplayInput.js and against
 // what exists by server/raids.js; ids that are not the caller's answer 404 and change nothing.
-import { declareRaid, raidsFor, recallRaid } from "../raids.js";
+import { declareRaid, raidTargets, raidsFor, recallRaid } from "../raids.js";
 import { raidReportFor } from "../raidResolution.js"; // ISP-179 (AB#873)
 
 const answer = (res, result) => {
@@ -16,6 +16,12 @@ export function registerRaidRoutes(app) {
     const raids = raidsFor(req.params.accountId);
     if (!raids) { res.status(404).json({ error: "Account not found." }); return; }
     res.json(raids);
+  });
+  // ISP-181 (AB#875): who may be raided at a station, and why the others may not
+  app.get("/api/accounts/:accountId/gameplay/raids/targets/:stationId", (req, res) => {
+    const list = raidTargets(req.params.accountId, req.params.stationId);
+    if (!list) { res.status(404).json({ error: "Account not found." }); return; }
+    res.json(list);
   });
   app.post("/api/accounts/:accountId/gameplay/raids", (req, res) => answer(res, declareRaid(req.params.accountId, {
     fleetId: str(req.body?.fleetId), contractId: str(req.body?.contractId), targetCorpId: str(req.body?.targetCorpId), targetStationId: str(req.body?.targetStationId)
