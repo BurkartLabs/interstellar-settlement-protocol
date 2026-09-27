@@ -38,6 +38,8 @@ const BASELINE = {
   "POST /abandon-mission": { body: { missionId: "ms-log-002" } },
   "POST /complete-mission": { body: { missionId: "ms-log-001" } },
   "POST /queue-rnd": { body: { techId: "tt-basic-extraction" } },
+  "POST /shipyard/queue": { body: { unitId: "lf", quantity: 1 } }, // ISP-171 (AB#865)
+  "POST /shipyard/cancel": { body: { jobId: "ship-does-not-exist" } },
   "POST /queue-ceo": { body: { programId: "ceo-negotiation-fundamentals" } }
 };
 

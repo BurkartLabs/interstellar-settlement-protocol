@@ -19,6 +19,7 @@ import { appState, techTree } from "../state.js";
 import { renderStationFacilities } from "../stationFacilities.js";
 import { paintStationArt, stationArtHtml } from "../stationArt.js"; // ISP-78 (AB#767)
 import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
+import { renderShipyardPanel } from "../shipyardPanel.js"; // ISP-171 (AB#865)
 import { nextYardPriceFor } from "../yardPrice.js"; // ISP-303 (AB#2286)
 import { facilityUpgradeHtml, facilityUpgradeView, upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795), ISP-102 (AB#794)
 import { renderMissions } from "./assignments.js";
@@ -26,6 +27,7 @@ import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHead
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
 // back to the control that was pressed if it is still there, otherwise to the one the flow continues from.
 import { showActionReceipt } from "./receiptModal.js";
+import { renderDevelopmentBank } from "./developmentBank.js"; // ISP-151 (AB#845)
 const firstPresent = (...selectors) => () => selectors.map((sel) => document.querySelector(sel)).find(Boolean) || null;
 
 // ISP-78 (AB#767): where the corporation is docked, as a line under a building's name.
@@ -148,6 +150,16 @@ export function renderBuildingDetail(building, data) {
       contentEl.innerHTML = renderISAClaimsLeases(building, data);
       bindISAClaimsLeasesActions(building, data);
     }
+  } else if (building.id === "deep-space-development-bank") {
+    const station = getCurrentStationInfo(data);
+    renderDevelopmentBank(contentEl, data, `
+      <div class="station__building-header">
+        <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      </div>
+      ${dockedHtml(station)}
+      <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
+      <p class="station__flavor">${escapeHtml(building.flavor)}</p>`);
   } else {
     const station = getCurrentStationInfo(data);
     contentEl.innerHTML = `
@@ -1173,6 +1185,12 @@ export function renderStation(data) {
     economy: appState.economy
   });
 
+  // ── The Orbital Shipyard's production (ISP-171, AB#865): shown once the corporation has one ──
+  renderShipyardPanel(document, appState.units || [], data.corp || {}, {
+    queue: (unitId, quantity) => queueShips(unitId, quantity),
+    cancel: (jobId) => cancelShipJob(jobId)
+  }, { fleet: data.corp?.fleet || null, researchName: (id) => techTree.find((t) => t.id === id)?.name || id });
+
   // ── Licensed Corporate Holdings (Extractor Yards — filtered to current station body) ──
   const stationBody = station.body;
   const leases = data.corp?.miningLeases || [];
@@ -1374,3 +1392,24 @@ export function yardIndexOf(corp, extractorId) {
 }
 
 
+
+// ISP-171 (AB#865): the shipyard's two actions. The server takes a ship and a quantity and nothing else.
+async function queueShips(unitId, quantity) {
+  const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/shipyard/queue`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ unitId, quantity })
+  }));
+  appState.data = deepClone(account.state);
+  updateAllViews();
+  pushFeedback(account.receipt?.title || "Ships queued.", "ok");
+  showActionReceipt(account, { returnFocusTo: firstPresent("#station-shipyard [data-ship-queue]", ".nav-tab[data-tab='station']") });
+}
+
+async function cancelShipJob(jobId) {
+  const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/shipyard/cancel`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId })
+  }));
+  appState.data = deepClone(account.state);
+  updateAllViews();
+  pushFeedback(account.receipt?.title || "Production cancelled.", "ok");
+  showActionReceipt(account, { returnFocusTo: firstPresent("#station-shipyard [data-ship-queue]", ".nav-tab[data-tab='station']") });
+}

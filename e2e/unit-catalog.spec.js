@@ -65,11 +65,12 @@ ${seeded.stderr}`);
       await card.scrollIntoViewIfNeeded();
       await page.screenshot({ path: path.join(SHOT_DIR, `military-power-${viewport.label}.png`) });
       await openTab(page, "rnd");
-      const planned = page.locator("#rnd-tech-tree > *", { hasText: "Capital Hull Engineering" });
+      // ISP-171 (AB#865): the ship research is live now; the combat bonuses stay planned until a battle can be fought
+      const planned = page.locator("#rnd-tech-tree > *", { hasText: "Fire-Control Computers" });
       await expect(planned).toContainText("Planned");
       await expect(planned).toContainText("No effect yet: planned for a later version.");
       await expect(planned.locator("button")).toHaveCount(0);
-      await expect(page.locator("#rnd-tech-tree > *", { hasText: "Siege Ordnance" })).toContainText("Planned");
+      await expect(page.locator("#rnd-tech-tree > *", { hasText: "Evasive Manoeuvres" })).toContainText("Planned");
       await planned.scrollIntoViewIfNeeded();
       await page.screenshot({ path: path.join(SHOT_DIR, `planned-research-${viewport.label}.png`) });
       expect(errors).toEqual([]);

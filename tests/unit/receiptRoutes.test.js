@@ -22,6 +22,9 @@ const RECEIPTS = {
   "/api/accounts/:accountId/gameplay/build-assembly-facility": { builder: "buildAssemblyReceipt", client: ["public/scripts/views/station.js", "onBuilt:"] },
   "/api/accounts/:accountId/gameplay/build-refinery": { builder: "buildRefineryReceipt", client: ["public/scripts/views/refinery.js", "/gameplay/build-refinery`"] },
   "/api/accounts/:accountId/gameplay/start-refinery": { builder: "startRefineryReceipt", client: ["public/scripts/views/refinery.js", "/gameplay/start-refinery`"] },
+  // ISP-171 (AB#865): the Orbital Shipyard's production
+  "/api/accounts/:accountId/gameplay/shipyard/queue": { builder: "shipQueueReceipt", client: ["public/scripts/views/station.js", "/gameplay/shipyard/queue`"] },
+  "/api/accounts/:accountId/gameplay/shipyard/cancel": { builder: "shipCancelReceipt", client: ["public/scripts/views/station.js", "/gameplay/shipyard/cancel`"] },
   "/api/accounts/:accountId/gameplay/build-mining-probe": { builder: "probeFabricationReceipt", client: ["public/scripts/views/station.js", "/gameplay/build-mining-probe`"] },
   "/api/accounts/:accountId/gameplay/scout-belt": { builder: "scoutBeltReceipt", client: ["public/scripts/views/starmap.js", "/gameplay/scout-belt`"] },
   "/api/accounts/:accountId/gameplay/launch-expedition": { builder: "launchExpeditionReceipt", client: ["public/scripts/views/starmap.js", "/gameplay/launch-expedition`"] },

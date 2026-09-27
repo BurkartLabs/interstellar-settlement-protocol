@@ -651,6 +651,77 @@ button:disabled {
   margin: var(--space-4) 0;
 }
 
+/* ISP-151 (AB#845): the Deep Space Development Bank's view */
+.bank-grade { margin: 0 0 var(--space-3); color: var(--text-soft); }
+.bank-products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.bank-product,
+.bank-quote,
+.bank-loan {
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.bank-product h4,
+.bank-quote h4,
+.bank-loan h4 { margin: 0; font-size: var(--font-size-3); }
+.bank-product p { margin: var(--space-1) 0 0; font-size: var(--font-size-2); }
+.bank-product__rate { color: var(--accent); font-variant-numeric: tabular-nums; }
+.bank-product__limit { color: var(--text-soft); }
+.bank-product--closed { opacity: 0.6; }
+.bank-quote-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.bank-quote-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1 1 12rem;
+  font-size: var(--font-size-2);
+  color: var(--muted);
+}
+.bank-quote-form__status:empty { display: none; }
+.bank-quote-form__status { flex-basis: 100%; margin: 0; color: var(--warn); font-size: var(--font-size-2); }
+.bank-quote { margin-top: var(--space-4); border-color: var(--accent); }
+.bank-quote__header,
+.bank-loan__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.bank-quote__expiry { color: var(--muted); font-size: var(--font-size-2); }
+.bank-quote__terms,
+.bank-loan__terms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-3);
+}
+.bank-quote__terms dt,
+.bank-loan__terms dt { color: var(--muted); font-size: var(--font-size-1); text-transform: uppercase; letter-spacing: var(--letter-spacing-caps); }
+.bank-quote__terms dd,
+.bank-loan__terms dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bank-quote__terms dd[data-term="Total repayable"] { font-weight: var(--font-weight-semibold); }
+.bank-quote__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.bank-loans { display: flex; flex-direction: column; gap: var(--space-3); }
+.bank-loan--arrears { border-color: var(--danger); }
+.bank-loan__badge { color: var(--danger); border-color: currentColor; }
+.bank-loan__badge--ok { color: var(--success); }
+.bank-loan__arrears { color: var(--danger); }
+.bank-loans__closed { margin: 0; padding-left: var(--space-4); color: var(--muted); font-size: var(--font-size-2); }
+
 .rating-card {
   display: flex;
   align-items: center;
@@ -4609,3 +4680,11 @@ img.station__body {
     font-size: var(--font-size-3);
   }
 }
+
+/* ISP-171 (AB#865): the Orbital Shipyard's production panel on the Station page. */
+.shipyard { display: grid; gap: var(--space-3, 12px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.shipyard__form { display: grid; gap: var(--space-2, 8px); align-content: start; }
+.shipyard__form .ui-select, .shipyard__form .ui-field { display: grid; gap: 4px; }
+.shipyard__form select, .shipyard__form input { width: 100%; min-width: 0; }
+.shipyard__jobs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 8px); }
+.shipyard__job { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2, 8px); }

@@ -90,6 +90,8 @@ export const UNITS_DATA = JSON.parse(fs.readFileSync(unitsPath, "utf8"));
 /** Each unit by id. */
 export const UNITS = Object.freeze(Object.fromEntries(UNITS_DATA.units.map((u) => [u.id, Object.freeze({ ...u })])));
 export const UNIT_IDS = Object.freeze(UNITS_DATA.units.map((u) => u.id));
+/** The units that are ships, built at the Orbital Shipyard: what counts against the Fleet Cap (ISP-171, AB#865). */
+export const SHIP_UNIT_IDS = Object.freeze(UNIT_IDS.filter((id) => UNITS[id].builtAt === "orbital-shipyard"));
 
 /** The legacy corp.military counters (before v0.10) and the unit each one is. */
 export const LEGACY_MILITARY_FIELDS = Object.freeze({ lightFighters: "lf", destroyers: "ds", siegeEngines: "se" });

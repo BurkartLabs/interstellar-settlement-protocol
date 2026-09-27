@@ -105,10 +105,10 @@ describe("data/units.json (AB#861)", () => {
     expect(ids.has("orbital-shipyard")).toBe(true); // ISP-170 (AB#864): a player building now, not a pending site
   });
 
-  it("keeps the new ship research planned, so nobody pays for an unlock no route honours yet", () => {
+  it("makes the ship research live, now that the shipyard builds ships (ISP-171, AB#865)", () => {
     for (const id of ["tt-capital-hulls", "tt-siege-ordnance"]) {
       const node = RESEARCH.find((n) => n.id === id);
-      expect(node?.status, id).toBe("planned");
+      expect(node?.status, id).toBeUndefined();
       expect(node.category).toBe("Military");
     }
   });
