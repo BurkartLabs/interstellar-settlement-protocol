@@ -63,7 +63,7 @@ export function depositToTreasury(accountId, conglomerateId, amount, now = Date.
   const fee = Math.round((amount * catalog.poolingFeePct) / 100);
   applyCredits(corp, -amount, "conglomerate-contribution", now);
   moveTreasury(c, { at: now, kind: "deposit", corp: corp.publicId, amount, by: corp.publicId });
-  if (fee > 0) moveTreasury(c, { at: now, kind: "custody-fee", corp: corp.publicId, amount: -fee, by: "bureau", note: `${catalog.poolingFeePct}% of ${amount}` });
+  if (fee > 0) moveTreasury(c, { at: now, kind: "custody-fee", corp: corp.publicId, amount: -fee, by: "bureau", note: `${catalog.poolingFeePct}% of ${plain(amount)}` });
   const cleared = payArrears(c, now);
   saveAccountsNow();
   roomEvent(c, "conglomerate:treasury", { kind: "deposit", corp: corp.publicId, corpName: corp.corporationName, amount, fee, balance: c.treasury.credits, arrearsCleared: cleared });
@@ -144,7 +144,15 @@ export function blockWithdrawal(accountId, conglomerateId, withdrawalId, now = D
  * The treasury as the caller may see it: the balance, upkeep, arrears and announced withdrawals for every member; the
  * whole ledger for the founder and directors (the roles that may withdraw), and a member's own rows for a member.
  */
-export function treasuryView(accountId, conglomerateId, now = Date.now(), catalog = CONGLOMERATE_CATALOG) {
+/** ISP-206 (AB#901): a page of ledger rows, newest first: `limit` (1 to 100, default 25) rows from `offset`. */
+export function ledgerPage(rows, { offset = 0, limit = 25 } = {}, name = () => "") {
+  const size = Math.min(100, Math.max(1, Math.floor(Number(limit) || 25)));
+  const from = Math.max(0, Math.floor(Number(offset) || 0));
+  const newest = rows.slice().reverse();
+  return { rows: newest.slice(from, from + size).map((r) => ({ ...r, corpName: r.corp ? name(r.corp) : "" })), total: rows.length, offset: from, limit: size };
+}
+
+export function treasuryView(accountId, conglomerateId, now = Date.now(), catalog = CONGLOMERATE_CATALOG, page = {}) {
   const ctx = context(accountId, conglomerateId, now);
   if (ctx.refused) return ctx;
   const { corp, c, role } = ctx;
@@ -157,8 +165,9 @@ export function treasuryView(accountId, conglomerateId, now = Date.now(), catalo
     nextUpkeepAt: c.upkeepPaidThrough,
     arrears: c.arrearsSince ? { owed: c.arrearsOwed, since: c.arrearsSince } : null,
     custodyFeePct: catalog.poolingFeePct,
+    noticePct: catalog.withdrawalNoticePct, // ISP-206 (AB#901): the page says where announcement starts
     allowance: full ? withdrawalAllowance(c, role, corp.publicId, now, catalog) : null,
     pending: c.withdrawals.filter((w) => w.state === "pending").map(withdrawalView),
-    ledger: { scope: full ? "all" : "own", rows: rows.slice(-200).reverse().map((r) => ({ ...r, corpName: r.corp ? corpName(r.corp) : "" })), total: rows.length }
+    ledger: { scope: full ? "all" : "own", ...ledgerPage(rows, page, corpName) }
   };
 }

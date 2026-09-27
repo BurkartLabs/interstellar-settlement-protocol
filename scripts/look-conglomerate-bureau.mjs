@@ -1,4 +1,5 @@
-// ISP-200 (AB#894), ISP-201 (AB#895): the Conglomerate Affairs Bureau, the Conglomerate tab and the Overview's card from
+// ISP-200 (AB#894), ISP-201 (AB#895), ISP-206 (AB#901): the Conglomerate Affairs Bureau, the Conglomerate tab (with its
+// Treasury and Hangar) and the Overview's card from
 // the running app, played as two players would, with screenshots
 // at 1280x800 and 375x812. The script starts its own server on a scratch data directory, because a corporation must be
 // seven days old to found a conglomerate and nothing in the page can age one: the founder registers, is refused (the
@@ -140,6 +141,9 @@ try {
   const snapshot = path.join(dataDir, "accounts-snapshot.json");
   const store = JSON.parse(fs.readFileSync(snapshot, "utf8"));
   store.accounts[founder.accountId].createdAt -= 8 * DAY;
+  // ISP-206 (AB#901): goods at Earth Station Prime, as a week of mining would leave them, for the hangar.
+  const corpInv = store.accounts[founder.accountId].state.corp.inventory ||= {};
+  corpInv["earth-station-prime"] = { ...(corpInv["earth-station-prime"] || {}), Silicates: 5_000, Nickel: 800 };
   fs.writeFileSync(snapshot, JSON.stringify(store));
   base = await startServer();
 
@@ -202,6 +206,55 @@ try {
   await shot(b, "hq-leave-confirm", { viewport: true, prefix: "ab895" });
   console.log("leave confirmation:", (await b.locator("#trade-confirm-modal").innerText()).replace(/\s+/g, " "));
   await b.click("#trade-confirm-cancel");
+
+  // 8. ISP-206 (AB#901): the Treasury and Hangar tabs. The founder deposits and withdraws; the director is refused over
+  // its cap and told why; a member sees deposit only; goods go into the hangar and a director sees its share.
+  const tab = async (page, name) => {
+    await openTab(page, "conglomerate");
+    await page.locator(`#conglomerate [data-role="cong-tab"][data-tab="${name}"]`).click();
+    await page.locator(`#conglomerate #cong-panel-${name} [data-role="cong-${name}"]`).waitFor({ timeout: 15_000 });
+  };
+  const status = async (page, role) => (await page.locator(`#conglomerate [data-role="${role}"]`).innerText()).trim();
+  await tab(a, "treasury");
+  await a.fill("#cong-deposit-amount", "50,000");
+  await a.locator('#conglomerate [data-role="cong-treasury-deposit"] button[type="submit"]').click();
+  await a.locator("#trade-confirm-modal").waitFor({ state: "visible" });
+  await shot(a, "treasury-deposit-confirm", { viewport: true, prefix: "ab901" });
+  await a.click("#trade-confirm-ok");
+  await a.locator('#conglomerate [data-role="cong-treasury-deposit-status"]', { hasText: "Deposited" }).waitFor({ timeout: 15_000 });
+  console.log("deposit:", await status(a, "cong-treasury-deposit-status"));
+  await a.fill("#cong-withdraw-amount", "1500");
+  await a.locator('#conglomerate [data-role="cong-treasury-withdraw"] button[type="submit"]').click();
+  await a.locator('#conglomerate [data-role="cong-treasury-withdraw-status"]', { hasText: "Withdrawn" }).waitFor({ timeout: 15_000 });
+  console.log("withdraw:", await status(a, "cong-treasury-withdraw-status"));
+  await shot(a, "treasury-founder", { sel: "#conglomerate", prefix: "ab901" });
+
+  await tab(b, "treasury");
+  console.log("director allowance:", await status(b, "cong-treasury-allowance"));
+  await b.fill("#cong-withdraw-amount", "900");
+  await b.locator('#conglomerate [data-role="cong-treasury-withdraw"] button[type="submit"]').click();
+  await b.locator('#conglomerate [data-role="cong-treasury-withdraw-status"]', { hasText: /today/ }).waitFor({ timeout: 15_000 });
+  console.log("director refused:", await status(b, "cong-treasury-withdraw-status"));
+  await shot(b, "treasury-director-over-cap", { sel: "#conglomerate", prefix: "ab901" });
+
+  await tab(a, "hangar");
+  await a.locator("#cong-goods-in-item").selectOption("Silicates");
+  await a.fill("#cong-goods-in-qty", "3000");
+  await a.locator('#conglomerate [data-role="cong-hangar-deposit"] button[type="submit"]').click();
+  await a.locator('#conglomerate [data-role="cong-hangar-deposit-status"]', { hasText: "Deposited" }).waitFor({ timeout: 15_000 });
+  await shot(a, "hangar-founder", { sel: "#conglomerate", prefix: "ab901" });
+  await tab(b, "hangar");
+  await shot(b, "hangar-director", { sel: "#conglomerate", prefix: "ab901" });
+
+  // The founder makes the director a member again; the member's Treasury offers deposit only.
+  await tab(a, "roster");
+  await a.locator('#conglomerate [data-role="cong-demote"]').first().click();
+  await a.locator('#conglomerate [data-role="cong-promote"]').first().waitFor({ timeout: 15_000 });
+  await b.reload();
+  await b.locator("#dialogue-modal").waitFor({ state: "hidden", timeout: 15_000 }).catch(() => {});
+  await tab(b, "treasury");
+  console.log("member forms:", await b.locator('#conglomerate form[data-role^="cong-treasury"]').evaluateAll((f) => f.map((x) => x.dataset.role)));
+  await shot(b, "treasury-member", { sel: "#conglomerate", prefix: "ab901" });
 } finally {
   await browser.close();
   if (server) server.kill();

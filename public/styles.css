@@ -793,6 +793,21 @@ button:disabled {
 .cong-succession { margin: var(--space-3) 0 0; color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
 .cong-search { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); margin-top: var(--space-4); }
 .cong-search .ui-field { flex: 1 1 14rem; }
+
+/* ISP-206 (AB#901): the Conglomerate tab's own tabs, and the Treasury and Hangar screens */
+.cong-tabpanel { display: flex; flex-direction: column; gap: var(--space-4); padding: 0; }
+.cong-form-status--ok { color: var(--success); }
+.cong-tabpanel[hidden] { display: none; }
+.cong-money { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--space-4); }
+.cong-money-form { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.cong-money-form .ui-button { align-self: flex-start; }
+.cong-allowance { margin: 0; color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.cong-allowance strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.cong-subhead { margin: var(--space-2) 0 0; font-size: var(--font-size-3); }
+.cong-ledger__note { display: block; color: var(--muted); font-size: var(--font-size-1); }
+.cong-ledger__amount--in { color: var(--success); }
+.cong-ledger__amount--out { color: var(--danger); }
+.cong-pager { justify-content: flex-end; }
 .bank-loans__closed { margin: 0; padding-left: var(--space-4); color: var(--muted); font-size: var(--font-size-2); }
 
 /* ISP-156 (AB#850): the Bank's desk switch and the bond board */
@@ -4844,3 +4859,13 @@ img.station__body {
 .fleet__split > summary { cursor: pointer; }
 .fleet__destinations { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 8px); max-height: 320px; overflow-y: auto; }
 .fleet__destination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2, 8px); }
+/* ISP-177 (AB#871): Mercenary Rentals on the Galactic Exchange. The offers table is cards on a narrow column like every
+   market table; the contracts are a list of sentences; the form's fields wrap. */
+.mercs__terms { display: grid; gap: var(--space-2, 8px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+.mercs__terms input, .mercs__terms select, .mercs__form select { width: 100%; min-width: 0; }
+.mercs__mine { display: grid; gap: var(--space-4, 16px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.mercs__mine h4 { margin: 0 0 var(--space-2, 8px); }
+.mercs__contracts { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 8px); }
+.mercs__contract { display: grid; gap: 4px; padding: var(--space-3, 12px); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.mercs__contract p { margin: 0; }
+.mercs__who { display: grid; gap: 2px; }

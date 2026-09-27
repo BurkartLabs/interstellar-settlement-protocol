@@ -20,6 +20,7 @@ import { dayStartOf, ensureHangar, moveHangar } from "./conglomerates.js";
 
 export { ensureHangar, moveHangar };
 import { NOT_FOUND, context, corpName, no, roomEvent } from "./membership.js";
+import { ledgerPage } from "./treasury.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** The most units one movement may carry: far above any stock the game makes, and exact in a double. */
@@ -127,7 +128,7 @@ export function withdrawGoods(accountId, conglomerateId, { stationId, item: rawI
  * The hangar as the caller may see it: its station and holdings for every member, and today's allowance per item for
  * the caller; the whole ledger for the founder and directors, a member's own rows for a member.
  */
-export function hangarView(accountId, conglomerateId, now = Date.now(), catalog = CONGLOMERATE_CATALOG) {
+export function hangarView(accountId, conglomerateId, now = Date.now(), catalog = CONGLOMERATE_CATALOG, page = {}) {
   const ctx = context(accountId, conglomerateId, now);
   if (ctx.refused) return ctx;
   const { corp, c, role } = ctx;
@@ -140,6 +141,6 @@ export function hangarView(accountId, conglomerateId, now = Date.now(), catalog 
     stationName: STATION_NAMES[h.stationId] || h.stationId,
     items: { ...h.items },
     allowance: Object.fromEntries(Object.keys(h.items).map((item) => [item, goodsAllowance(c, role, corp.publicId, item, now, catalog)])),
-    ledger: { scope: full ? "all" : "own", rows: rows.slice(-200).reverse().map((r) => ({ ...r, corpName: r.corp ? corpName(r.corp) : "" })), total: rows.length }
+    ledger: { scope: full ? "all" : "own", ...ledgerPage(rows, page, corpName) }
   };
 }

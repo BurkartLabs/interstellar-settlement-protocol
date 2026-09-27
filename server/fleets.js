@@ -49,7 +49,8 @@ export function unitsFrom(input) {
 export function settleFleets(corp, now = Date.now()) {
   const arrived = [];
   for (const fleet of corp?.military?.fleets || []) {
-    if (fleet.transit && now >= fleet.transit.arrivesAt) {
+    // ISP-178 (AB#872): a fleet out on a raid is not stationed at its target when it arrives; the raid resolves it
+    if (fleet.transit && !fleet.transit.raidId && now >= fleet.transit.arrivesAt) {
       fleet.stationId = fleet.transit.toStationId;
       fleet.transit = null;
       arrived.push(fleet);

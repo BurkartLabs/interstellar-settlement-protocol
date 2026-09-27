@@ -127,6 +127,7 @@ export const GAMEPLAY_INPUT = {
   "GET /fleets/:fleetId/destinations": { params: { fleetId: ref("one of your fleets") } }, // ISP-175 (AB#869)
   // ISP-176 (AB#870): mercenary contracts. Terms are numbers and enums only; ids not the caller's are the route's 404.
   "GET /mercenaries": NOTHING,
+  "GET /mercenaries/mine": NOTHING, // ISP-177 (AB#871)
   "POST /mercenaries/offer": {
     body: {
       fleetId: ref("one of your fleets"),
@@ -138,6 +139,17 @@ export const GAMEPLAY_INPUT = {
   },
   "POST /mercenaries/:offerId/withdraw": { params: { offerId: ref("one of your mercenary offers") } },
   "POST /mercenaries/:offerId/hire": { params: { offerId: ref("a mercenary offer") } },
+  // ISP-178 (AB#872): a raid names a fleet (own, or hired by contract), a target corporation by public id, and a station
+  "GET /raids": NOTHING,
+  "POST /raids": {
+    body: {
+      fleetId: ref("one of your fleets", { optional: true }),
+      contractId: ref("a fleet you have hired", { optional: true }),
+      targetCorpId: ref("a corporation to raid"),
+      targetStationId: id("stations", "a station")
+    }
+  },
+  "POST /raids/:raidId/recall": { params: { raidId: ref("one of your raids") } },
   "POST /queue-ceo": { body: { programId: id("programs", "a CEO Insight program") } }
 };
 
@@ -235,13 +247,13 @@ export const ACCOUNT_INPUT = {
   },
   "POST /conglomerates/:conglomerateId/dissolve": { params: { conglomerateId: ref("a conglomerate") } },
   // ISP-204 (AB#898): the treasury. An amount is a whole number of credits; the rules refuse anything else again.
-  "GET /conglomerates/:conglomerateId/treasury": { params: { conglomerateId: ref("a conglomerate") } },
+  "GET /conglomerates/:conglomerateId/treasury": { params: { conglomerateId: ref("a conglomerate") }, query: { offset: text(12, "a row to start from", { optional: true }), limit: text(4, "a page size from 1 to 100", { optional: true }) } },
   "POST /conglomerates/:conglomerateId/treasury/deposit": { params: { conglomerateId: ref("a conglomerate") }, body: { amount: int(1, 1_000_000_000_000, "an amount of credits") } },
   "POST /conglomerates/:conglomerateId/treasury/withdraw": { params: { conglomerateId: ref("a conglomerate") }, body: { amount: int(1, 1_000_000_000_000, "an amount of credits") } },
   "POST /conglomerates/:conglomerateId/treasury/withdrawals/:withdrawalId/block": { params: { conglomerateId: ref("a conglomerate"), withdrawalId: ref("a withdrawal") } },
   // ISP-205 (AB#899): the goods hangar. The station is one the registry knows (never a free string, the class of the
   // purchase-lease defect); the item's shape is checked here and its name against data/items.json by the rules.
-  "GET /conglomerates/:conglomerateId/hangar": { params: { conglomerateId: ref("a conglomerate") } },
+  "GET /conglomerates/:conglomerateId/hangar": { params: { conglomerateId: ref("a conglomerate") }, query: { offset: text(12, "a row to start from", { optional: true }), limit: text(4, "a page size from 1 to 100", { optional: true }) } },
   "POST /conglomerates/:conglomerateId/hangar/deposit": {
     params: { conglomerateId: ref("a conglomerate") },
     body: { stationId: id("stations", "a station"), item: text(64, "an item"), quantity: int(1, 1_000_000_000, "a number of units") }
