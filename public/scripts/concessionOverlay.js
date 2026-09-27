@@ -7,7 +7,7 @@
 // (the viewer's own eligibility, what a petition costs, and, for a holder, what it manages). Colours come from the
 // design system's series tokens, every one named in the legend; the viewer's own holder is always the first (cyan).
 
-import { escapeHtml } from "./html.js";
+import { escapeHtml, refHtml } from "./html.js";
 import { LEADER_TOKENS, OTHER_TOKEN, OWN_TOKEN, QUIET_TOKEN } from "./dominanceOverlay.js";
 import { utcTime } from "./timeFormat.js"; // ISP-249 (AB#945)
 
@@ -67,7 +67,7 @@ export function concessionLegendHtml(key) {
 function publicPart(summary, control, ownNames) {
   const holders = summary?.holders || [];
   const holderHtml = holders.length
-    ? `<ul class="dominance-details" data-concession-holders>${holders.map((h) => `<li><span>${escapeHtml(h.name)}${ownNames.includes(h.name) ? " (you)" : ""} · ${h.type === "conglomerate" ? "conglomerate" : "corporation"}${h.state === "grace" ? " · upkeep unpaid, benefits suspended" : ""}</span><strong>to ${isaTime(h.termEndsAt)}</strong></li>`).join("")}</ul>`
+    ? `<ul class="dominance-details" data-concession-holders>${holders.map((h) => `<li><span>${escapeHtml(h.name)}${ownNames.includes(h.name) ? " (you)" : ""} · ${h.type === "conglomerate" ? "conglomerate" : "corporation"}${h.state === "grace" ? " · Suspended: upkeep unpaid, benefits suspended" : ""} ${refHtml(h.ref)}</span><strong>to ${isaTime(h.termEndsAt)}</strong></li>`).join("")}</ul>`
     : `<p class="ui-panel__meta" data-concession-holders>No concession is held here.</p>`;
   const rows = (control?.holders || []).map((h) => `<li${ownNames.includes(h.name) ? ' class="dominance-details__own"' : ""}><span>${escapeHtml(h.name)}${h.eligible ? ' <span class="ui-badge ui-badge--success">Eligible</span>' : ""}</span><strong>${h.score}%</strong></li>`).join("");
   const others = control?.others > 0 ? `<li class="dominance-details__others"><span>Others</span><strong>${control.others}%</strong></li>` : "";
@@ -77,7 +77,7 @@ function publicPart(summary, control, ownNames) {
   const petitions = (summary?.petitions || []).map((p) => `<li><span>${escapeHtml(p.name)} · ${p.kind === "challenge" ? "challenge" : "petition"}</span><strong>review ends ${isaTime(p.reviewEndsAt)}</strong></li>`).join("");
   return `<h4 class="starmap__subhead">Holder</h4>${holderHtml}
     <h4 class="starmap__subhead">Control</h4>${controlHtml}
-    ${petitions ? `<h4 class="starmap__subhead">Under review</h4><ul class="dominance-details concession-petitions" data-concession-petitions>${petitions}</ul>` : ""}`;
+    ${petitions ? `<h4 class="starmap__subhead">Under review</h4><ul class="dominance-details" data-concession-petitions>${petitions}</ul>` : ""}`;
 }
 
 /** The viewer's petition: its streak, what it costs, and the action (or why not). */
@@ -101,7 +101,7 @@ export function holderPart(holds, holderName) {
       <h4 class="starmap__subhead">Your concession</h4>
       <dl class="concession-terms">
         <div><dt>Held by</dt><dd>${escapeHtml(holderName)}</dd></div>
-        <div><dt>State</dt><dd>${holds.state === "grace" ? `<span class="concession-grace">Upkeep unpaid since ${isaTime(holds.graceSince)}: benefits suspended</span>` : "In force"}</dd></div>
+        <div><dt>State</dt><dd>${holds.state === "grace" ? `<span class="concession-grace">Suspended: upkeep unpaid since ${isaTime(holds.graceSince)}, benefits suspended</span>` : `Active <span class="ui-protocol">In force</span>`}</dd></div>
         <div><dt>Term</dt><dd>to ${isaTime(holds.termEndsAt)}, renewed while you keep 25% control</dd></div>
         <div><dt>Upkeep</dt><dd>${n(holds.upkeepToday)} credits a day</dd></div>
         <div><dt>Fee share</dt><dd>${holds.feeSharePct}% of others' lease fees here: ${n(holds.feeShareCollected)} credits so far</dd></div>

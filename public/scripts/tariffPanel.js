@@ -15,7 +15,7 @@ const pctText = (p) => `${Number(p).toLocaleString("en-US", { maximumFractionDig
 export function tariffLineHtml(view) {
   if (!view?.held) return "";
   const pending = view.pending ? ` It becomes <strong>${pctText(view.pending.pct)}</strong> at ${escapeHtml(utcMinute(view.pending.effectiveAt))}.` : "";
-  return `<p class="starmap__tariff" data-role="system-tariff">ISA concession tariff: <strong>${pctText(view.pct)}</strong> on sales here and goods shipped in (cap ${pctText(view.cap)}).${pending}</p>`;
+  return `<p data-role="system-tariff">ISA concession tariff: <strong>${pctText(view.pct)}</strong> on sales here and goods shipped in (cap ${pctText(view.cap)}).${pending}</p>`;
 }
 
 /** The holder's schedule and, docked there, the form. "" when the viewer does not hold the system. */
@@ -32,7 +32,7 @@ export function tariffHoldingHtml(h, systemName) {
       <p class="ui-panel__meta">An increase takes effect 72 hours after it is filed, and traders see it meanwhile; a decrease takes effect at once.</p>
       <p class="ui-panel__meta" data-role="tariff-status" role="status" aria-live="polite"></p>`
     : `<p class="ui-panel__meta">A rate is filed at ${escapeHtml(systemName)}'s ISA Claims &amp; Leases: travel there to change it.</p>`;
-  return `<section class="starmap__tariff-holding" data-role="tariff-holding" aria-label="Your tariff">
+  return `<section data-role="tariff-holding" aria-label="Your tariff">
     <h4 class="starmap__subhead">Your tariff</h4>
     <ul class="ui-list">
       <li>In force: <strong>${pctText(h.pct)}</strong> of a ${pctText(h.cap)} cap</li>

@@ -178,10 +178,10 @@ build today (LIC's and MPR's) move to this one in ISP-249. The old references st
     findings keep theirs. New ones are `ARB-` and `ITC-` in this format.
   - No route takes a reference as a parameter.
 - **Shown** beside the Corporation Identity panel's licence, the Financial Core's header, trade history, contracts,
-  leases, bond series, patents, raid reports and the lobbying register, and in the licence and probe-return letters and
-  the ITC and arbitration notices.
-- **Owed:** served but not yet drawn on loans, share offerings and concession grants; and ITC findings and arbitration
-  cases, which have no screen of their own yet.
+  leases, bond series, patents, raid reports, the lobbying register, a system's concession holders on the starmap and
+  the Arbitration Council's docket, and in the licence and probe-return letters and the ITC and arbitration notices.
+- **Owed:** served but not yet drawn on loans and share offerings; and ITC findings, which have no screen of their own
+  yet.
 
 ## Accessibility
 

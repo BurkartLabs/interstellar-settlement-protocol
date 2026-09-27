@@ -1039,7 +1039,7 @@
               <p class="ui-screen__lede">Global and Trade reach every corporation; Local reaches only those in your current system.</p>
             </header>
             <section class="ui-panel chat">
-              <div id="chat-channel-tabs" class="ui-tabs chat__tabs" role="tablist" aria-label="Comms Channels">
+              <div id="chat-channel-tabs" class="ui-tabs" role="tablist" aria-label="Comms Channels">
                 <button class="ui-tab" type="button" role="tab" aria-selected="true" data-chat-channel-tab="global">Global</button>
                 <button class="ui-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="local">Local</button>
                 <button class="ui-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="trade">Trade</button>
@@ -1204,7 +1204,7 @@
             <!-- AB#911: one conversation. It opens on its latest page; scrolling up loads older ones. -->
             <div id="inbox-thread-view" class="ui-stack" hidden>
               <button class="ui-button ui-button--ghost inbox__back" id="inbox-thread-back-btn" type="button">&#8592; Back</button>
-              <section class="ui-panel thread" aria-labelledby="thread-title">
+              <section class="ui-panel" aria-labelledby="thread-title">
                 <header class="ui-panel__header"><h3 class="ui-panel__title" id="thread-title"></h3></header>
                 <div class="thread__scroll" id="thread-scroll" tabindex="0" aria-label="Messages">
                   <p class="thread__older" id="thread-older-status" aria-live="polite"></p>
@@ -1364,7 +1364,7 @@
 
     <!-- ISP-124 (AB#818): an NPC corporation's (or authority's) profile, from the catalog (public/scripts/views/npcProfileModal.js). -->
     <section id="npc-profile-modal" class="modal-backdrop" hidden>
-      <article class="modal-card dialogue npc-profile-card" role="dialog" aria-modal="true" aria-labelledby="npc-profile-title">
+      <article class="modal-card dialogue" data-role="npc-profile-card" role="dialog" aria-modal="true" aria-labelledby="npc-profile-title">
         <div class="dialogue__content">
           <p class="dialogue__speaker" id="npc-profile-heading">NPC corporation</p>
           <h2 id="npc-profile-title" class="dialogue__title"></h2>

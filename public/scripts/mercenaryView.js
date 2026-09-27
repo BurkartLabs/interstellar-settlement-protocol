@@ -3,6 +3,7 @@
 // sides, with time left or how they settled. Pure, so it loads in node; public/scripts/views/mercenaries.js fetches the
 // data (GET /gameplay/mercenaries and /mercenaries/mine) and sends the orders. The rules are server/mercenaries.js.
 import { escapeHtml } from "./html.js";
+import { deadline, utcTime } from "./timeFormat.js";
 import { durationText } from "./shipyardPanel.js";
 import { unitsText } from "./fleetView.js";
 
@@ -28,7 +29,7 @@ export function offersTableHtml(offers = [], catalog = []) {
       <td data-label="Allowed use">${escapeHtml(useLabel(o.allowedUse))}</td>
       <td data-label="Action">${o.mine ? `<span class="station__note">Your offer</span>` : `<button class="ui-button ui-button--primary" type="button" data-merc-hire="${escapeHtml(o.id)}">Hire</button>`}</td>
     </tr>`).join("");
-  return `<div class="ui-table-wrap"><table class="ui-table mercs__offers">
+  return `<div class="ui-table-wrap"><table class="ui-table">
       <thead><tr><th>Fleet</th><th>Units</th><th class="ui-table__num">Attack / defense</th><th class="ui-table__num">Readiness</th><th>Term</th><th class="ui-table__num">Price</th><th class="ui-table__num">Collateral</th><th>Allowed use</th><th>Action</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
 }
@@ -62,10 +63,23 @@ export function offerFormHtml(fleets = [], valueOf = () => 0, catalog = [], now 
     </form>`;
 }
 
+/** ISP-252 (AB#948): a contract's plain status and protocol phrase (docs/design/BUREAUCRATIC_UI.md, "Status vocabulary"). */
+export function contractStatus(c, now = Date.now()) {
+  const at = (t) => utcTime(t, { now, withDate: true });
+  if (c.state === "open") return { plain: "Pending", protocol: `Filed, awaiting a renter; closes ${deadline(c.expiresAt, now)}`, tone: "" };
+  if (c.state === "taking") return { plain: "Pending", protocol: "Filed; the hire is being settled", tone: "" };
+  if (c.state === "hired") return { plain: "Active", protocol: `In force until ${deadline(c.endsAt, now)}`, tone: " ui-badge--success" };
+  if (c.state === "completed") return { plain: "Complete", protocol: c.endsAt ? `Concluded ${at(c.endsAt)}` : "Concluded", tone: "" };
+  if (c.state === "expired") return { plain: "Expired", protocol: c.expiresAt ? `Lapsed ${at(c.expiresAt)}, unhired` : "Lapsed, unhired", tone: "" };
+  if (c.state === "withdrawn") return { plain: "Cancelled", protocol: "Withdrawn by the owner", tone: "" };
+  return { plain: String(c.state || ""), protocol: "", tone: "" };
+}
+
 /** One contract, from either side: state, the other party, time left or how it settled. */
 export function contractRowHtml(c, side, catalog = [], now = Date.now()) {
   const other = side === "offered" ? (c.renterName ? `Hired by ${c.renterName}` : "Not hired yet") : `From ${c.ownerName}`;
   let status;
+  const stamp = contractStatus(c, now);
   if (c.state === "open") status = `On offer, closes in ${durationText(c.expiresAt - now)}.`;
   else if (c.state === "hired") status = `Under contract: ${durationText(Math.max(0, c.endsAt - now))} left. Escrow holds ${money(c.escrow)}.`;
   else if (c.state === "completed") {
@@ -74,9 +88,10 @@ export function contractRowHtml(c, side, catalog = [], now = Date.now()) {
     status = `Ended. ${lost}Price ${money(s.price)} paid to the owner; collateral ${money(s.compensation)} paid for losses, ${money(s.refund)} returned to the renter.`;
   } else status = c.state === "expired" ? "Closed unhired." : c.state;
   return `<li class="mercs__contract" data-merc-contract="${escapeHtml(c.id)}">
-      <p><strong>${escapeHtml(c.fleetName)}</strong> <span class="ui-badge">${escapeHtml(c.state === "hired" ? "Hired" : c.state === "open" ? "On offer" : c.state === "completed" ? "Ended" : c.state)}</span></p>
+      <p><strong>${escapeHtml(c.fleetName)}</strong> <span class="ui-badge${stamp.tone}">${escapeHtml(stamp.plain)}</span></p>
       <p class="station__note">${escapeHtml(unitsText(c.units, catalog))} · ${power(c)} · ${readinessText(c)} readiness · ${escapeHtml(termText(c.termHours))} · ${money(c.price)} · collateral ${money(c.collateral)} · ${escapeHtml(useLabel(c.allowedUse))}</p>
       <p>${escapeHtml(other)}. ${escapeHtml(status)}</p>
+      ${stamp.protocol ? `<p class="ui-protocol">${escapeHtml(stamp.protocol)}.</p>` : ""}
       ${side === "offered" && c.state === "open" ? `<button class="ui-button ui-button--secondary" type="button" data-merc-withdraw="${escapeHtml(c.id)}">Withdraw offer</button>` : ""}
     </li>`;
 }

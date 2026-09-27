@@ -396,7 +396,7 @@ export function payConcessionShare(systemId, amount, payerCorp, now = Date.now()
 export function starmapConcessions(systemIds, now = Date.now()) {
   return { systems: Object.fromEntries([...systemIds].map((id) => {
     const c = publicConcession(id, now);
-    return [id, { concedable: c.concedable, holders: c.holders.map((h) => ({ name: h.holder.name, type: h.holder.type, state: h.state, termEndsAt: h.termEndsAt })), petitions: c.petitions.map((p) => ({ kind: p.kind, name: p.holder.name, type: p.holder.type, reviewEndsAt: p.reviewEndsAt })) }];
+    return [id, { concedable: c.concedable, holders: c.holders.map((h) => ({ name: h.holder.name, type: h.holder.type, state: h.state, termEndsAt: h.termEndsAt, ref: h.ref })), /* ISP-252 (AB#948): the grant's CSN reference, drawn */ petitions: c.petitions.map((p) => ({ kind: p.kind, name: p.holder.name, type: p.holder.type, reviewEndsAt: p.reviewEndsAt })) }];
   })) };
 }
 

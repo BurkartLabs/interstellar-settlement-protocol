@@ -1094,7 +1094,7 @@ textarea {
   height: min(62vh, 560px);
   max-width: 100%;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--bg);
   cursor: pointer;
   touch-action: none;
@@ -2451,6 +2451,9 @@ body.sg {
   font-weight: var(--font-weight-semibold);
   color: var(--text);
 }
+/* ISP-252 (AB#948): a record's protocol phrase (docs/design/BUREAUCRATIC_UI.md, "Status vocabulary"): the document's
+   words beside the plain status badge, never in place of it. Was the Arbitration Council's own .gac-protocol. */
+.ui-protocol { margin: 0; font-size: var(--font-size-2); color: var(--muted); font-style: italic; }
 /* ISP-248 (AB#944): the document code before a screen or section title (docs/design/BUREAUCRATIC_UI.md). Secondary
    text: mono, muted, one step below the body; on a phone at the 14px floor the screen specs measure. */
 .ui-code {
@@ -4442,14 +4445,12 @@ img.station__body {
 .gac-terms dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .gac-status:empty { display: none; }
 .gac-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
-.gac-ref { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 .gac-cases, .gac-docket { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .gac-case details { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); }
 .gac-case__summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-3); cursor: pointer; overflow-wrap: anywhere; }
 .gac-case__title { flex: 1 1 16rem; min-width: 0; }
 .gac-case__body { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-3) var(--space-3); }
 .gac-case__sub { margin: var(--space-2) 0 0; font-size: var(--font-size-2); color: var(--muted); font-weight: 600; }
-.gac-protocol { margin: 0; font-size: var(--font-size-2); color: var(--muted); font-style: italic; }
 .gac-ruling { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--accent); background: var(--surface-2); line-height: var(--line-height-body); }
 .gac-docket__row { border-bottom: 1px solid var(--border); padding: var(--space-2) 0; display: flex; flex-direction: column; gap: var(--space-1); }
 .gac-docket__row p { margin: 0; overflow-wrap: anywhere; }
@@ -4459,7 +4460,7 @@ img.station__body {
   .gac-preview { grid-template-columns: minmax(0, 1fr); }
   .gac-terms { grid-template-columns: minmax(0, 1fr); }
   .gac-terms dt { margin-top: var(--space-1); }
-  .gac-chambers, .gac-choice, .gac-choice__meta, .gac-terms, .gac-status, .gac-protocol, .gac-docket__meta, .gac-case__sub, .gac-preview__rule, .gac-chambers .ui-panel__meta, .gac-chambers .ui-state__why { font-size: var(--font-size-3); }
+  .gac-chambers, .gac-choice, .gac-choice__meta, .gac-terms, .gac-status, .ui-protocol, .gac-docket__meta, .gac-case__sub, .gac-preview__rule, .gac-chambers .ui-panel__meta, .gac-chambers .ui-state__why { font-size: var(--font-size-3); }
 }
 
 /* ISP-229 (AB#924): the Concessions overlay's extra marks, and a system's concession section and holder view */

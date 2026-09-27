@@ -1446,7 +1446,7 @@ export function createStarmapController({
       } else if (!reachable) {
         jumpHtml = `<p class="starmap__status starmap__status--locked">${escapeHtmlAttr(travelLockText(system.id))}</p>`;
       } else if (onTravelToSystem) {
-        jumpHtml = `<div><button class="ui-button ui-button--secondary starmap__jump" type="button" data-system-id="${escapeHtmlAttr(system.id)}">Jump to ${escapeHtmlAttr(system.name)}</button></div>
+        jumpHtml = `<div><button class="ui-button ui-button--secondary" data-role="starmap-jump" type="button" data-system-id="${escapeHtmlAttr(system.id)}">Jump to ${escapeHtmlAttr(system.name)}</button></div>
           <p class="ui-panel__meta">Stations can only be docked from inside the destination system.</p>`;
       }
       detailsEl.innerHTML = detailsHtml(system.name, `
@@ -1477,7 +1477,7 @@ export function createStarmapController({
         if (status && refusal) status.textContent = refusal;
       });
       // Bind the jump button rendered in the system view.
-      detailsEl.querySelectorAll(".starmap__jump").forEach((btn) => {
+      detailsEl.querySelectorAll("[data-role=starmap-jump]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const systemId = btn.getAttribute("data-system-id");
           if (systemId && onTravelToSystem) {
@@ -1504,7 +1504,7 @@ export function createStarmapController({
               : !reachable
                 ? `<span class="starmap__status starmap__status--locked">Needs ${escapeHtmlAttr(getNavigation().travelResearchName(researchCatalog, s.systemId) || "navigation research")}</span>`
               : inSameSystem && onDockAtStation
-                ? `<button class="ui-button ui-button--secondary starmap__dock" type="button" data-station-id="${escapeHtmlAttr(s.id)}">Dock</button>`
+                ? `<button class="ui-button ui-button--secondary" data-role="starmap-dock" type="button" data-station-id="${escapeHtmlAttr(s.id)}">Dock</button>`
               : !inSameSystem
                 ? `<span class="ui-panel__meta">Jump to ${escapeHtmlAttr(s.systemId)} system first</span>`
                 : "";
@@ -1572,8 +1572,8 @@ export function createStarmapController({
               const secs = Math.floor((remainMs % 60000) / 1000);
               const yieldEntries = Object.entries(exp.yields || {});
               const yieldText = yieldEntries.length ? yieldEntries.map(([r, q]) => `${q} ${r}`).join(", ") : "Scanning...";
-              return `<div class="ui-card starmap__expedition">
-                <p class="ui-card__meta starmap__expedition-time">${escapeHtmlAttr(exp.duration)} expedition — ${mins}m ${secs}s remaining</p>
+              return `<div class="ui-card" data-role="starmap-expedition">
+                <p class="ui-card__meta" data-role="starmap-expedition-time">${escapeHtmlAttr(exp.duration)} expedition — ${mins}m ${secs}s remaining</p>
                 <div class="progress-wrap" role="progressbar" aria-label="${escapeHtmlAttr(`${exp.duration} expedition`)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><div class="progress-bar" style="width:${pct.toFixed(1)}%"></div></div>
                 <p class="ui-card__meta">Yields so far: ${escapeHtmlAttr(yieldText)}</p>
               </div>`;
@@ -1581,7 +1581,7 @@ export function createStarmapController({
           }
 
           miningHtml = `
-            <section class="ui-stack starmap__mining">
+            <section class="ui-stack">
               <h4 class="starmap__subhead">Asteroid Belt Mining</h4>
               <p class="ui-panel__meta">Probes: <strong>${probeCount}</strong> available | Deployment Slots: <strong>${activeCount}/${maxDeployments}</strong></p>
               ${activeExpHtml}
@@ -1594,7 +1594,7 @@ export function createStarmapController({
                     <option value="extended">Deep Core Drill (2 hr)</option>
                   </select>
                 </div>
-                ${remoteLaunch ? `<p class="ui-panel__meta belt-remote" data-belt-remote>Remote launch on your partner's scouting: you are not in ${escapeHtmlAttr(system.name)}, so the probe works at range and brings home <strong>${remotePct}%</strong> of what it mines. The ore lands at this system's station.</p>` : ""}
+                ${remoteLaunch ? `<p class="ui-panel__meta" data-belt-remote>Remote launch on your partner's scouting: you are not in ${escapeHtmlAttr(system.name)}, so the probe works at range and brings home <strong>${remotePct}%</strong> of what it mines. The ore lands at this system's station.</p>` : ""}
                 <div><button id="launch-expedition-btn" class="ui-button ui-button--secondary" type="button">${remoteLaunch ? "Launch Remote Expedition" : "Launch Expedition"} (¤3,000)</button></div>
               ` : isEmptySlot
                 ? "" // AB#2331: the empty state above says why, and when
@@ -1646,7 +1646,7 @@ export function createStarmapController({
       }
 
       // Bind dock buttons in starmap details
-      detailsEl.querySelectorAll(".starmap__dock").forEach((btn) => {
+      detailsEl.querySelectorAll("[data-role=starmap-dock]").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const stationId = btn.getAttribute("data-station-id");
           if (stationId && onDockAtStation) {
@@ -1669,7 +1669,7 @@ export function createStarmapController({
         });
       });
       // Bind travel-to-system buttons in starmap details
-      detailsEl.querySelectorAll(".starmap__jump").forEach((btn) => {
+      detailsEl.querySelectorAll("[data-role=starmap-jump]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const systemId = btn.getAttribute("data-system-id");
           if (systemId && onTravelToSystem) {
@@ -1934,13 +1934,13 @@ export function createStarmapController({
 
         ${station.description ? `<p class="ui-panel__meta">${escapeHtmlAttr(station.description)}</p>` : ""}
 
-        <div class="starmap__station-actions">
+        <div>
           ${isCurrent
             ? `<p class="ui-panel__meta">You are currently docked at this station.</p>`
             : !canTravelToSystem(station.systemId)
               ? `<p class="starmap__status starmap__status--locked">${escapeHtmlAttr(travelLockText(station.systemId))}</p>`
             : (state.currentSystemId || "sol") === station.systemId
-              ? `<button class="ui-button ui-button--primary starmap__station-dock" type="button" data-station-id="${escapeHtmlAttr(station.id)}">Dock at Station</button><p class="starmap__dock-refused" role="alert" hidden></p>`
+              ? `<button class="ui-button ui-button--primary" data-role="starmap-station-dock" type="button" data-station-id="${escapeHtmlAttr(station.id)}">Dock at Station</button><p class="starmap__dock-refused" role="alert" hidden></p>`
               : `<p class="ui-panel__meta">Jump to <strong>${escapeHtmlAttr(systemName(state.systems, station.systemId) || "its system")}</strong> from the system view, then dock here.</p>`
           }
         </div>
@@ -1956,7 +1956,7 @@ export function createStarmapController({
     });
 
     // Bind travel/dock
-    const dockBtn = overlay.querySelector(".starmap__station-dock");
+    const dockBtn = overlay.querySelector("[data-role=starmap-station-dock]");
     if (dockBtn) {
       dockBtn.addEventListener("click", async () => {
         const sid = dockBtn.getAttribute("data-station-id");
@@ -2163,7 +2163,7 @@ export function createStarmapController({
       if (!system || !body || body.type !== "Field") return;
       const beltKey = `${system.id}:${body.id}`;
       const activeExps = (am.activeExpeditions || []).filter(e => e.beltKey === beltKey);
-      const cards = detailsEl.querySelectorAll(".starmap__expedition");
+      const cards = detailsEl.querySelectorAll("[data-role=starmap-expedition]");
       cards.forEach((card, i) => {
         const exp = activeExps[i];
         if (!exp) return;
@@ -2175,7 +2175,7 @@ export function createStarmapController({
         const secs = Math.floor((remainMs % 60000) / 1000);
         const bar = card.querySelector(".progress-bar");
         if (bar) bar.style.width = pct.toFixed(1) + "%";
-        const timeEl = card.querySelector(".starmap__expedition-time");
+        const timeEl = card.querySelector("[data-role=starmap-expedition-time]");
         const barWrap = card.querySelector(".progress-wrap");
         if (barWrap) barWrap.setAttribute("aria-valuenow", String(Math.round(pct)));
         if (timeEl) timeEl.textContent = `${exp.duration} expedition — ${mins}m ${secs}s remaining`;

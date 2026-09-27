@@ -84,3 +84,15 @@ describe("my contracts (AB#871)", () => {
     expect(empty).toContain("You have not hired a fleet.");
   });
 });
+
+describe("a contract's status in the guide's vocabulary (ISP-252, AB#948)", () => {
+  it("gives the plain word first and the protocol phrase with its UTC time, for every state", async () => {
+    const { contractStatus } = await import("../../public/scripts/mercenaryView.js");
+    const now = Date.UTC(2026, 8, 27, 10, 0);
+    expect(contractStatus({ state: "open", expiresAt: now + 115 * 60_000 }, now)).toEqual({ plain: "Pending", protocol: "Filed, awaiting a renter; closes in 1 h 55 min (2147-09-27 11:55 UTC)", tone: "" });
+    expect(contractStatus({ state: "hired", endsAt: now + 3 * 86_400_000 }, now).protocol).toBe("In force until 2147-09-30 10:00 UTC");
+    expect(contractStatus({ state: "completed", endsAt: now }, now).plain).toBe("Complete");
+    expect(contractStatus({ state: "expired", expiresAt: now }, now)).toMatchObject({ plain: "Expired", protocol: "Lapsed 2147-09-27 10:00 UTC, unhired" });
+    expect(contractStatus({ state: "withdrawn" }, now).plain).toBe("Cancelled");
+  });
+});

@@ -44,8 +44,8 @@ describe("the patent office (AB#932)", () => {
 
   it("draws the public register: holder, subject, rate and term end", () => {
     const t = text(patentOfficeHtml({ office: OFFICE, register: [{ id: "pat-2", ...PV }, { ...OFFICE.mine[0], active: false, endsAt: T - DAY }] }, ctx));
-    expect(t).toContain("Nickel-Iron Alloy Refining Refinery chain In force Holder Kestrel Mining Royalty 4% Ends 2147-10-28 12:00 UTC");
-    expect(t).toContain("Deep-Core Extraction Research node Expired Holder Nova Freight Royalty 12% Ended 2147-09-30 12:00 UTC");
+    expect(t).toContain("Nickel-Iron Alloy Refining Refinery chain Active Holder Kestrel Mining Royalty 4% In force until 2147-10-28 12:00 UTC");
+    expect(t).toContain("Deep-Core Extraction Research node Expired Holder Nova Freight Royalty 12% Lapsed 2147-09-30 12:00 UTC");
   });
 });
 

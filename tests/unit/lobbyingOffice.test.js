@@ -66,3 +66,14 @@ describe("the lobbying office (AB#935)", () => {
     expect(poor).toMatch(/<button type="submit" class="ui-button ui-button--primary" disabled>Open campaign<\/button>/);
   });
 });
+
+describe("a campaign's status in the guide's vocabulary (ISP-252, AB#948)", () => {
+  it("is Pending while it gathers pledges, Active in force, Expired after, and Failed when it moved nothing", async () => {
+    const { campaignStatus } = await import("../../public/scripts/lobbyingOffice.js");
+    const endsAt = Date.UTC(2026, 9, 4, 12, 0);
+    expect(campaignStatus({ state: "pledging" })).toMatchObject({ plain: "Pending", protocol: "Filed, awaiting pledges" });
+    expect(campaignStatus({ state: "in-force", result: { from: 3, to: 3.5, endsAt } })).toMatchObject({ plain: "Active", protocol: "In force until 2147-10-04 12:00 UTC" });
+    expect(campaignStatus({ state: "ended", result: { from: 3, to: 3.5, endsAt } })).toMatchObject({ plain: "Expired", protocol: "Lapsed 2147-10-04 12:00 UTC" });
+    expect(campaignStatus({ state: "in-force", result: { from: 3, to: 3, endsAt } }).plain).toBe("Failed");
+  });
+});

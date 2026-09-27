@@ -24,7 +24,7 @@ const day = (t) => utcMinute(t).slice(0, 10);
 const nameFor = (p, ctx) => ctx.nameOf?.(p.kind, p.subjectId) || p.subjectName || p.subjectId;
 
 function termsHtml(t) {
-  return `<p class="ui-panel__meta patent-terms" data-role="patent-terms">Filing costs <strong>${n(t.filingFee)} credits</strong>, paid to the ISA. Only the first corporation to complete a thing may patent it, within ${n(t.filingWindowHours)} hours of completing it. A patent runs ${n(t.termDays)} days and is never renewed. The royalty is one rate for everyone but you: up to ${n(t.royaltyMaxPct)}% of a research node's cost, or up to ${n(t.chainRoyaltyMaxPct)}% of a refinery chain's output at the standing bid.</p>`;
+  return `<p class="ui-panel__meta" data-role="patent-terms">Filing costs <strong>${n(t.filingFee)} credits</strong>, paid to the ISA. Only the first corporation to complete a thing may patent it, within ${n(t.filingWindowHours)} hours of completing it. A patent runs ${n(t.termDays)} days and is never renewed. The royalty is one rate for everyone but you: up to ${n(t.royaltyMaxPct)}% of a research node's cost, or up to ${n(t.chainRoyaltyMaxPct)}% of a refinery chain's output at the standing bid.</p>`;
 }
 
 /** What the corporation may file now, each with its window and a rate select, or why there is nothing. */
@@ -62,8 +62,8 @@ function patentDl(p, rows) {
 /** The corporation's own patents, and the royalties its statements show received. */
 export function minePatentsHtml(office, ctx) {
   const rows = office.mine.map((p) => `<li class="patent-card" data-patent-mine="${escapeHtml(p.id)}">
-      <p class="patent-card__title"><strong>${escapeHtml(nameFor(p, ctx))}</strong> <span class="ui-badge">${KIND[p.kind]}</span> ${p.active ? `<span class="ui-badge ui-badge--success">In force</span>` : `<span class="ui-badge">Expired</span>`} ${refHtml(p.ref)}</p>
-      ${patentDl(p, [["Royalty", `${n(p.ratePct)}%`], ["Filed", escapeHtml(day(p.filedAt))], [p.active ? "Ends" : "Ended", escapeHtml(utcMinute(p.endsAt))]])}
+      <p class="patent-card__title"><strong>${escapeHtml(nameFor(p, ctx))}</strong> <span class="ui-badge">${KIND[p.kind]}</span> ${p.active ? `<span class="ui-badge ui-badge--success">Active</span>` : `<span class="ui-badge">Expired</span>`} ${refHtml(p.ref)}</p>
+      ${patentDl(p, [["Royalty", `${n(p.ratePct)}%`], ["Filed", escapeHtml(day(p.filedAt))], [p.active ? "In force until" : "Lapsed", escapeHtml(utcMinute(p.endsAt))]])}
     </li>`).join("");
   return `<section class="ui-panel station__panel patent-section" data-patent-mine-list aria-labelledby="patent-mine-title">
     <h3 id="patent-mine-title">${codeSlotHtml("patent-mine")}Your patents</h3>
@@ -102,8 +102,8 @@ export function payingHtml(office, ctx) {
 /** The public register: every patent filed, newest first. */
 export function registerHtml(register, ctx) {
   const rows = (register || []).map((p) => `<li class="patent-card" data-patent-register="${escapeHtml(p.id)}">
-      <p class="patent-card__title"><strong>${escapeHtml(nameFor(p, ctx))}</strong> <span class="ui-badge">${KIND[p.kind] || escapeHtml(p.kind)}</span> ${p.active ? `<span class="ui-badge ui-badge--success">In force</span>` : `<span class="ui-badge">Expired</span>`}</p>
-      ${patentDl(p, [["Holder", escapeHtml(p.holder)], ["Royalty", `${n(p.ratePct)}%`], [p.active ? "Ends" : "Ended", escapeHtml(utcMinute(p.endsAt))]])}
+      <p class="patent-card__title"><strong>${escapeHtml(nameFor(p, ctx))}</strong> <span class="ui-badge">${KIND[p.kind] || escapeHtml(p.kind)}</span> ${p.active ? `<span class="ui-badge ui-badge--success">Active</span>` : `<span class="ui-badge">Expired</span>`}</p>
+      ${patentDl(p, [["Holder", escapeHtml(p.holder)], ["Royalty", `${n(p.ratePct)}%`], [p.active ? "In force until" : "Lapsed", escapeHtml(utcMinute(p.endsAt))]])}
     </li>`).join("");
   return `<section class="ui-panel station__panel patent-section" data-patent-register-list aria-labelledby="patent-register-title">
     <h3 id="patent-register-title">${codeSlotHtml("patent-register")}The patent register</h3>
