@@ -785,6 +785,59 @@ button:disabled {
 .cong-search .ui-field { flex: 1 1 14rem; }
 .bank-loans__closed { margin: 0; padding-left: var(--space-4); color: var(--muted); font-size: var(--font-size-2); }
 
+/* ISP-156 (AB#850): the Bank's desk switch and the bond board */
+.bank-modes { display: flex; gap: var(--space-2); margin: var(--space-4) 0; }
+.bank-modes__button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.bond-series-list,
+.bond-holdings { display: flex; flex-direction: column; gap: var(--space-3); }
+.bond-series,
+.bond-holding {
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.bond-holding--late { border-color: var(--danger); }
+.bond-series__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.bond-series__header h4 { margin: 0; font-size: var(--font-size-3); }
+.bond-grade { font-family: var(--font-mono); color: var(--accent); border-color: currentColor; }
+.bond-terms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-3);
+}
+.bond-terms dt { color: var(--muted); font-size: var(--font-size-1); text-transform: uppercase; letter-spacing: var(--letter-spacing-caps); }
+.bond-terms dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bond-terms__aside { color: var(--muted); font-size: var(--font-size-2); }
+.bond-subscribe,
+.bond-issue { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
+.bond-subscribe .bank-quote-form__field { flex: 0 1 10rem; }
+.bond-subscribe .bank-quote-form__status { flex-basis: 100%; }
+.bond-issue > .bond-preview,
+.bond-issue > .bank-quote__actions { flex-basis: 100%; }
+.bond-issue__coupon { flex: 2 1 16rem; }
+.bond-issue__coupon-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.bond-issue__coupon-row .ui-input { flex: 0 1 8rem; min-width: 0; }
+.bond-issue__yield { color: var(--text-soft); font-size: var(--font-size-2); }
+.bond-issue__yield strong { color: var(--accent); }
+.bond-preview { margin: 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--accent); border-radius: var(--radius-md); }
+.bond-preview--refused { border-color: var(--warn); color: var(--warn); }
+.bond-ineligible { padding: var(--space-3) var(--space-4); border: 1px solid var(--warn); border-radius: var(--radius-md); }
+.bond-ineligible p { margin: 0 0 var(--space-2); }
+.bond-badge { border-color: currentColor; }
+.bond-badge--open { color: var(--accent); }
+.bond-badge--ok { color: var(--success); }
+.bond-badge--late { color: var(--danger); }
+.bond-badge--done { color: var(--muted); }
+
 .rating-card {
   display: flex;
   align-items: center;

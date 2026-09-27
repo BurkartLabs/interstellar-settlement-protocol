@@ -22,7 +22,7 @@ import { recoveryHold } from "./recoveryHold.js"; // ISP-286 (AB#993)
 import { getAccountById, getStatements, mutateAccountState } from "./gameState.js";
 import { accountsStore, saveAccountsNow } from "./game/store.js";
 import { settleTransfer } from "./settlement.js";
-import { BOND_TERMS, COUPON_STEPS, underwriterShare } from "./bondTerms.js";
+import { BOND_TERMS, COUPON_STEPS, couponFor, couponSchedule, underwriterShare } from "./bondTerms.js";
 export { BOND_TERMS, COUPON_STEPS, underwriterShare };
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
@@ -67,6 +67,64 @@ function issueProblem(accountId, corp, t) {
   return null;
 }
 
+const gradeWhy = (grade, when) => (grade === "NR"
+  ? "An unrated corporation may not issue bonds: the Bank's credit desk needs more days of statements first."
+  : `Issuing takes a grade of B or better; your corporation is ${grade} ${when}.`);
+
+/** The issuer's grade now and with `face` more owed (a pro-forma rating): { before, after, error?, grade? }. */
+function gradeCheck(accountId, corp, face, now) {
+  const statements = statementsOf(accountId, now);
+  const bonds = bondsIssuedBy(accountId);
+  const before = computeCreditRating(corp, now, statements, { bonds });
+  const after = computeCreditRating(corp, now, statements, { bonds, proForma: { debt: face, assets: face } });
+  for (const [r, when] of [[before, "now"], [after, "with this series sold"]]) {
+    if (!BOND_TERMS.issuerGrades.includes(r.grade)) return { before, after, error: gradeWhy(r.grade, when), grade: r.grade };
+  }
+  return { before, after };
+}
+
+/**
+ * ISP-156 (AB#850): may this corporation issue at all, and if not, why: the level gate, its grade (NR, D, CCC to C),
+ * or a series already open. { eligible, why, grade, level, minLevel }. A series' own size can still refuse it (preview).
+ */
+export function bondEligibility(accountId, now = Date.now()) {
+  const corp = getAccountById(accountId)?.state?.corp;
+  if (!corp) return { eligible: false, why: "No such corporation.", grade: null, level: 0, minLevel: BOND_TERMS.minIssuerLevel };
+  const level = Number(corp.level) || 0;
+  const grade = computeCreditRating(corp, now, statementsOf(accountId, now), { bonds: bondsIssuedBy(accountId) }).grade;
+  const base = { grade, level, minLevel: BOND_TERMS.minIssuerLevel };
+  if (level < BOND_TERMS.minIssuerLevel) return { ...base, eligible: false, why: `Issuing bonds takes corporation level ${BOND_TERMS.minIssuerLevel}; yours is level ${level}.` };
+  if (!BOND_TERMS.issuerGrades.includes(grade)) return { ...base, eligible: false, why: gradeWhy(grade, "now") };
+  if (bondSeriesList().some((s) => s.issuerAccountId === accountId && s.state === "subscribing")) return { ...base, eligible: false, why: "Your corporation already has a series open for subscribing. It can issue again when that window closes." };
+  return { ...base, eligible: true, why: null };
+}
+
+/**
+ * ISP-156 (AB#850): what a series would be before it is issued: the grade it would carry (pro forma), that grade's
+ * implied yield, the underwriter's share at this coupon, and the coupons over its life if every unit sold. Changes
+ * nothing. { ok: true, preview } or { ok: false, error, grade? }.
+ */
+export function previewBond(accountId, { quantity, couponPct30, maturityDays } = {}, now = Date.now()) {
+  const corp = getAccountById(accountId)?.state?.corp;
+  if (!corp) return { ok: false, error: "No such corporation." };
+  const problem = issueProblem(accountId, corp, { quantity, couponPct30, maturityDays, windowHours: BOND_TERMS.windowHours[0] });
+  if (problem) return { ok: false, error: problem };
+  const face = BOND_TERMS.faceValue * quantity;
+  const { before, after, error, grade } = gradeCheck(accountId, corp, face, now);
+  if (error) return { ok: false, error, grade };
+  const schedule = couponSchedule(maturityDays);
+  const coupons = schedule.reduce((a, c) => a + couponFor(couponPct30, c.days, BOND_TERMS.faceValue, quantity), 0);
+  return {
+    ok: true,
+    preview: {
+      quantity, couponPct30, maturityDays, face,
+      gradeNow: before.grade, grade: after.grade, impliedYieldPct30: BOND_TERMS.impliedYieldPct30[after.grade],
+      underwriterShare: underwriterShare(couponPct30, after.grade),
+      schedule, couponCostIfSold: coupons, repayIfSold: face + coupons
+    }
+  };
+}
+
 /**
  * Issue a series: { ok: true, series } or { ok: false, error }. The request gives quantity, coupon, maturity and
  * window; the face value, the grade and everything after are the server's.
@@ -78,22 +136,14 @@ export function issueBond(accountId, { quantity, couponPct30, maturityDays, wind
   const problem = issueProblem(accountId, corp, t);
   if (problem) return { ok: false, error: problem };
 
-  const face = BOND_TERMS.faceValue * quantity;
-  const statements = statementsOf(accountId, now);
-  const bonds = bondsIssuedBy(accountId);
-  const before = computeCreditRating(corp, now, statements, { bonds });
-  const after = computeCreditRating(corp, now, statements, { bonds, proForma: { debt: face, assets: face } });
-  for (const [r, when] of [[before, "now"], [after, "with this series sold"]]) {
-    if (!BOND_TERMS.issuerGrades.includes(r.grade)) {
-      return { ok: false, error: r.grade === "NR" ? "An unrated corporation may not issue bonds." : `Issuing takes a grade of B or better; your corporation is ${r.grade} ${when}.`, grade: r.grade };
-    }
-  }
+  const { after, error, grade } = gradeCheck(accountId, corp, BOND_TERMS.faceValue * quantity, now);
+  if (error) return { ok: false, error, grade };
 
   const series = {
     id: `bond-${now.toString(36)}-${(bondSeriesList().length + 1).toString(36)}`,
     issuerAccountId: accountId,
     issuerCorpId: corp.publicId ?? null,
-    issuerName: corp.name ?? null,
+    issuerName: corp.corporationName ?? null, // Bug #2573: the record calls it corporationName
     faceValue: BOND_TERMS.faceValue,
     quantity,
     couponPct30,
@@ -192,10 +242,13 @@ export function bondWindowTick(now) {
 /** A series as any corporation may see it: no account ids. */
 export function publicSeries(s, now = Date.now()) {
   return {
-    id: s.id, issuerCorpId: s.issuerCorpId, issuerName: s.issuerName, grade: s.grade, faceValue: s.faceValue,
+    id: s.id, issuerCorpId: s.issuerCorpId, issuerName: s.issuerName ?? getAccountById(s.issuerAccountId)?.state?.corp?.corporationName ?? null, grade: s.grade, faceValue: s.faceValue,
     quantity: s.quantity, sold: s.sold, left: s.quantity - s.sold, couponPct30: s.couponPct30, couponEveryDays: s.couponEveryDays,
     maturityDays: s.maturityDays, state: s.state === "subscribing" && now >= s.closesAt ? "closing" : s.state,
     issuedAt: s.issuedAt, closesAt: s.closesAt, closedAt: s.closedAt, maturesAt: s.maturesAt,
-    underwriterUnits: s.underwriterUnits, lapsedUnits: s.lapsedUnits
+    underwriterUnits: s.underwriterUnits, lapsedUnits: s.lapsedUnits,
+    // ISP-156 (AB#850): what the board shows of a series' standing
+    impliedYieldPct30: s.impliedYieldPct30, windowHours: s.windowHours,
+    arrears: Number(s.arrears) || 0, arrearsSince: s.arrearsSince ?? null, defaultedAt: s.defaultedAt ?? null, redeemedAt: s.redeemedAt ?? null
   };
 }

@@ -136,6 +136,7 @@ const BASELINE = {
     "POST /loans/accept": { body: { quoteId: "lq-732" } }, // no such quote: refused, nothing lent
     "POST /loans/:loanId/payoff": { params: { loanId: "loan-732" } }, // no such loan: 404, nothing taken
     "POST /bonds/issue": { body: { quantity: 100, couponPct30: 6, maturityDays: 60, windowHours: 24 } }, // AB#848: level 0, refused
+    "POST /bonds/preview": { body: { quantity: 100, couponPct30: 6, maturityDays: 60 } }, // AB#850: changes nothing
     "POST /bonds/:seriesId/subscribe": { params: { seriesId: "bond-732" }, body: { units: 5 } }, // no such series: 404
     "GET /loan-offers": {}, // ISP-152 (AB#846)
     "POST /loan-offers": { body: { principal: 5000, ratePct30: 3.25, termDays: 30, minGrade: "BBB" } },

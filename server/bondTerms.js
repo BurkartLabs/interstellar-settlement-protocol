@@ -25,3 +25,17 @@ export function underwriterShare(couponPct30, grade) {
   const { pointsBelow, pointsSpan } = BOND_TERMS.underwriter;
   return Math.min(1, Math.max(0, (couponPct30 - (y - pointsBelow)) / pointsSpan));
 }
+
+/**
+ * ISP-156 (AB#850): a series' coupon dates, as days after its window closes and the days each covers: every 7 days,
+ * and at maturity the days since the last one (so 30 days is 7, 7, 7, 7 and 2). server/bondServicing.js pays on these.
+ */
+export function couponSchedule(maturityDays, everyDays = BOND_TERMS.couponEveryDays) {
+  const out = [];
+  for (let day = everyDays; day < maturityDays; day += everyDays) out.push({ day, days: everyDays });
+  out.push({ day: maturityDays, days: maturityDays - (out.at(-1)?.day ?? 0) });
+  return out;
+}
+
+/** One coupon payment's total: couponPct30 x days/30 x face x units, rounded to the credit once (section 7). */
+export const couponFor = (couponPct30, days, faceValue, units) => Math.round((couponPct30 / 100) * (days / 30) * faceValue * units);

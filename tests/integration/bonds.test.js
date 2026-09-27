@@ -78,6 +78,8 @@ describe("ISP-154 issuing a series", () => {
     expect(BOND_TERMS.issuerGrades).toContain(r.body.series.grade);
     expect(r.body.series.closesAt - r.body.series.issuedAt).toBe(24 * HOUR);
     expect(r.body.series).not.toHaveProperty("issuerAccountId");
+    expect(r.body.series.issuerName).toBe(c.corp().corporationName); // Bug #2573
+    expect(r.body.series.issuerName).toBeTruthy();
     expect((await c.issue(TERMS)).body.error).toMatch(/already has a series open/);
   });
 
