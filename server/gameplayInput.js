@@ -253,6 +253,7 @@ export const ACCOUNT_INPUT = {
   "POST /conglomerates/:conglomerateId/treasury/withdrawals/:withdrawalId/block": { params: { conglomerateId: ref("a conglomerate"), withdrawalId: ref("a withdrawal") } },
   // ISP-205 (AB#899): the goods hangar. The station is one the registry knows (never a free string, the class of the
   // purchase-lease defect); the item's shape is checked here and its name against data/items.json by the rules.
+  "GET /conglomerates/:conglomerateId/intel": { params: { conglomerateId: ref("a conglomerate") } }, // ISP-207 (AB#902)
   "GET /conglomerates/:conglomerateId/hangar": { params: { conglomerateId: ref("a conglomerate") }, query: { offset: text(12, "a row to start from", { optional: true }), limit: text(4, "a page size from 1 to 100", { optional: true }) } },
   "POST /conglomerates/:conglomerateId/hangar/deposit": {
     params: { conglomerateId: ref("a conglomerate") },
