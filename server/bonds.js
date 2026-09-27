@@ -142,7 +142,7 @@ export function issueBond(accountId, { quantity, couponPct30, maturityDays, wind
     id: `bond-${now.toString(36)}-${(bondSeriesList().length + 1).toString(36)}`,
     issuerAccountId: accountId,
     issuerCorpId: corp.publicId ?? null,
-    issuerName: corp.name ?? null,
+    issuerName: corp.corporationName ?? null, // Bug #2573: the record calls it corporationName
     faceValue: BOND_TERMS.faceValue,
     quantity,
     couponPct30,
@@ -239,7 +239,7 @@ export function bondWindowTick(now) {
 /** A series as any corporation may see it: no account ids. */
 export function publicSeries(s, now = Date.now()) {
   return {
-    id: s.id, issuerCorpId: s.issuerCorpId, issuerName: s.issuerName, grade: s.grade, faceValue: s.faceValue,
+    id: s.id, issuerCorpId: s.issuerCorpId, issuerName: s.issuerName ?? getAccountById(s.issuerAccountId)?.state?.corp?.corporationName ?? null, grade: s.grade, faceValue: s.faceValue,
     quantity: s.quantity, sold: s.sold, left: s.quantity - s.sold, couponPct30: s.couponPct30, couponEveryDays: s.couponEveryDays,
     maturityDays: s.maturityDays, state: s.state === "subscribing" && now >= s.closesAt ? "closing" : s.state,
     issuedAt: s.issuedAt, closesAt: s.closesAt, closedAt: s.closedAt, maturesAt: s.maturesAt,
