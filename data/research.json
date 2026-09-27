@@ -124,13 +124,59 @@
     {
       "id": "tt-fleet-coordination",
       "name": "Fleet Coordination Matrix",
-      "effect": "+12 fleet cap",
+      "effect": "+12 fleet cap. Light Fighters and Attack Troops need it",
       "description": "Integrates command-layer coordination software across all vessel classes. Expands the effective fleet size your corporation can sustain in active deployment.",
       "durationHours": 16,
       "costCredits": 12000,
       "prereqs": ["tt-energy-routing"],
       "tier": 2,
       "category": "Military"
+    },
+    {
+      "id": "tt-capital-hulls",
+      "name": "Capital Hull Engineering",
+      "effect": "Unlocks Destroyer construction at the Orbital Shipyard",
+      "description": "Armoured line-ship hulls with point-defence flak, built on titanium-chain Armour Plating. Destroyers screen a fleet against fighters and are the backbone of a raid or a garrison.",
+      "durationHours": 18,
+      "costCredits": 16000,
+      "prereqs": ["tt-fleet-coordination", "tt-material-compression"],
+      "tier": 3,
+      "category": "Military"
+    },
+    {
+      "id": "tt-siege-ordnance",
+      "name": "Siege Ordnance",
+      "effect": "Unlocks Siege Engine construction at the Orbital Shipyard",
+      "description": "Heavy mass-driver platforms on Pressure Vessel frames: slow, but able to break an entrenched garrison.",
+      "durationHours": 20,
+      "costCredits": 20000,
+      "prereqs": ["tt-capital-hulls", "tt-ferrous-metallurgy"],
+      "tier": 3,
+      "category": "Military"
+    },
+    {
+      "id": "tt-fire-control",
+      "name": "Fire-Control Computers",
+      "effect": "+10% accuracy for every unit in battle",
+      "description": "Predictive targeting that leads a moving hull. Raises the share of every shot that lands, the one lever beyond the counters in a deterministic battle (docs/design/v0.10-combat.md). Planned: no battle is fought until v0.10's raids, so it cannot be queued yet.",
+      "durationHours": 16,
+      "costCredits": 14000,
+      "prereqs": ["tt-fleet-coordination"],
+      "tier": 3,
+      "category": "Military",
+      "status": "planned"
+    },
+    {
+      "id": "tt-evasive-manoeuvres",
+      "name": "Evasive Manoeuvres",
+      "effect": "+10% evasion for every unit in battle",
+      "description": "Drilled jinking patterns and decoy emitters. Lowers the share of every enemy shot that lands (docs/design/v0.10-combat.md). Planned: no battle is fought until v0.10's raids, so it cannot be queued yet.",
+      "durationHours": 16,
+      "costCredits": 14000,
+      "prereqs": ["tt-fleet-coordination"],
+      "tier": 3,
+      "category": "Military",
+      "status": "planned"
     },
     {
       "id": "tt-proxima-navigation",

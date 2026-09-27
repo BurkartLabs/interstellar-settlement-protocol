@@ -22,6 +22,14 @@ const RECEIPTS = {
   "/api/accounts/:accountId/gameplay/build-assembly-facility": { builder: "buildAssemblyReceipt", client: ["public/scripts/views/station.js", "onBuilt:"] },
   "/api/accounts/:accountId/gameplay/build-refinery": { builder: "buildRefineryReceipt", client: ["public/scripts/views/refinery.js", "/gameplay/build-refinery`"] },
   "/api/accounts/:accountId/gameplay/start-refinery": { builder: "startRefineryReceipt", client: ["public/scripts/views/refinery.js", "/gameplay/start-refinery`"] },
+  // ISP-171 (AB#865): the Orbital Shipyard's production
+  "/api/accounts/:accountId/gameplay/shipyard/queue": { builder: "shipQueueReceipt", client: ["public/scripts/views/fleet.js", "/gameplay/shipyard/queue`"] },
+  "/api/accounts/:accountId/gameplay/shipyard/cancel": { builder: "shipCancelReceipt", client: ["public/scripts/views/fleet.js", "/gameplay/shipyard/cancel`"] },
+  // ISP-172 (AB#866): troop training at Headquarters
+  "/api/accounts/:accountId/gameplay/training/queue": { builder: "troopTrainingReceipt", client: ["public/scripts/views/fleet.js", "/gameplay/training/queue`"] },
+  "/api/accounts/:accountId/gameplay/training/cancel": { builder: "troopCancelReceipt", client: ["public/scripts/views/fleet.js", "/gameplay/training/cancel`"] },
+  // ISP-177 (AB#871): the Mercenary Rentals panel on the Galactic Exchange
+  "/api/accounts/:accountId/gameplay/mercenaries/:offerId/hire": { builder: "mercenaryHireReceipt", client: ["public/scripts/views/mercenaries.js", "/hire`"] },
   "/api/accounts/:accountId/gameplay/build-mining-probe": { builder: "probeFabricationReceipt", client: ["public/scripts/views/station.js", "/gameplay/build-mining-probe`"] },
   "/api/accounts/:accountId/gameplay/scout-belt": { builder: "scoutBeltReceipt", client: ["public/scripts/views/starmap.js", "/gameplay/scout-belt`"] },
   "/api/accounts/:accountId/gameplay/launch-expedition": { builder: "launchExpeditionReceipt", client: ["public/scripts/views/starmap.js", "/gameplay/launch-expedition`"] },
@@ -43,7 +51,24 @@ const RECEIPTS = {
 const EXEMPT = {
   "/api/accounts/:accountId/gameplay/lease/:leaseId/stop-mining": "stops a running cycle (AB#1052); it has its own confirmation before it runs",
   "/api/market/orders/:orderId/cancel": "withdraws the player's own listing and returns the goods; nothing is bought or spent",
-  "/api/accounts/:accountId/gameplay/abandon-mission": "gives a contract back; nothing is delivered, paid or charged"
+  "/api/accounts/:accountId/gameplay/abandon-mission": "gives a contract back; nothing is delivered, paid or charged",
+  // ISP-174 (AB#868): fleet orders rearrange and move the player's own units; nothing is bought, spent or charged. The
+  // Fleet tab (ISP-175, AB#869) is their screen, and shows the order's result rather than a transaction record.
+  "/api/accounts/:accountId/gameplay/fleets/form": "groups units the player already has; nothing is bought or spent",
+  "/api/accounts/:accountId/gameplay/fleets/:fleetId/split": "divides the player's own fleet; nothing is bought or spent",
+  "/api/accounts/:accountId/gameplay/fleets/:fleetId/merge": "joins two of the player's own fleets; nothing is bought or spent",
+  "/api/accounts/:accountId/gameplay/fleets/:fleetId/deploy": "moves the player's own fleet; travel costs nothing",
+  "/api/accounts/:accountId/gameplay/fleets/:fleetId/disband": "returns a fleet's units to the reserve; nothing is sold or refunded",
+  // ISP-176 (AB#870): offering and withdrawing move no credits at all; the hire does, and is mapped above (ISP-177)
+  "/api/accounts/:accountId/gameplay/mercenaries/offer": "puts the player's own fleet under an offer; no credits move",
+  "/api/accounts/:accountId/gameplay/mercenaries/:offerId/withdraw": "withdraws the player's own offer; nothing moved, so nothing moves back",
+  // ISP-178 (AB#872): no page calls these until the raid screens (ISP-181, AB#875); neither moves credits or goods
+  "/api/accounts/:accountId/gameplay/raids": "sends the player's own fleet on a raid; nothing is bought, spent or taken until it resolves",
+  "/api/accounts/:accountId/gameplay/raids/:raidId/recall": "turns the player's own fleet round; nothing moves",
+  // ISP-180 (AB#874): no page calls these until the raid screens (ISP-181, AB#875); none moves credits or goods
+  "/api/accounts/:accountId/gameplay/garrisons/:stationId/posture": "sets how the player's own garrison fights; nothing moves",
+  "/api/accounts/:accountId/gameplay/garrisons/move": "sends the player's own troops between its stations; nothing is bought or spent",
+  "/api/accounts/:accountId/gameplay/mercenaries/:contractId/deploy": "sends a fleet the player has hired to its own station; nothing is bought or spent"
 };
 
 /** ISP-94/95: the one build route answers with the receipt of whichever building it built; checked on its own below. */

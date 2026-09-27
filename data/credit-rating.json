@@ -1,0 +1,103 @@
+{
+  "_source": "docs/design/v0.9-debt.md, section 4 (ISP-147, AB#841). The design's table and this file must agree: tests/unit/creditRating.test.js reads both.",
+  "windowStatements": 30,
+  "minStatements": 7,
+  "inputs": [
+    {
+      "id": "history",
+      "name": "history",
+      "weight": 100
+    },
+    {
+      "id": "cashCover",
+      "name": "cash cover",
+      "weight": 150
+    },
+    {
+      "id": "margin",
+      "name": "margin",
+      "weight": 200
+    },
+    {
+      "id": "solvency",
+      "name": "solvency",
+      "weight": 200
+    },
+    {
+      "id": "leverage",
+      "name": "leverage",
+      "weight": 250
+    },
+    {
+      "id": "turnover",
+      "name": "turnover",
+      "weight": 100
+    }
+  ],
+  "grades": [
+    {
+      "grade": "AAA",
+      "minScore": 900
+    },
+    {
+      "grade": "AA",
+      "minScore": 800
+    },
+    {
+      "grade": "A",
+      "minScore": 700
+    },
+    {
+      "grade": "BBB",
+      "minScore": 600
+    },
+    {
+      "grade": "BB",
+      "minScore": 500
+    },
+    {
+      "grade": "B",
+      "minScore": 400
+    },
+    {
+      "grade": "CCC",
+      "minScore": 300
+    },
+    {
+      "grade": "CC",
+      "minScore": 200
+    },
+    {
+      "grade": "C",
+      "minScore": 100
+    },
+    {
+      "grade": "D",
+      "minScore": 0
+    }
+  ],
+  "caps": {
+    "payrollArrears": "B",
+    "debtArrears": "CCC",
+    "arrearsDaysToD": 7,
+    "defaultWindowDays": 30
+  },
+  "public": {
+    "_what": "What another corporation sees (docs/design/v0.9-debt.md, section 4, 'What others see'): the grade, the score in a band this wide, and each input as a band, never the raw values.",
+    "scoreBandWidth": 50,
+    "inputBands": [
+      {
+        "band": "strong",
+        "minSub": 0.67
+      },
+      {
+        "band": "fair",
+        "minSub": 0.34
+      },
+      {
+        "band": "weak",
+        "minSub": 0
+      }
+    ]
+  }
+}

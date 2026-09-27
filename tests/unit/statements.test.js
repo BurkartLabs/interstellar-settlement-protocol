@@ -31,6 +31,26 @@ describe("the daily close (AB#713)", () => {
     expect(c.finances.dayBook).toEqual({ dayStart: at(3), opening: 68_104, income: {}, expenses: {} });
   });
 
+  it("Bug #2575: financing is cash, not profit: the P&L leaves it out, the cash flow keeps it and still reconciles", () => {
+    const plain = newState(), financed = newState();
+    for (const s of [plain, financed]) {
+      closeDueDays(s, at(0, 1));
+      applyCredits(s.corp, 1_200, "exchange", at(0, 2));
+      applyCredits(s.corp, -300, "loan-interest-paid", at(0, 3));
+      applyCredits(s.corp, 150, "coupon-received", at(0, 3));
+    }
+    // the same day, with a loan taken, shares sold, a bond redeemed, a loan repaid and a dividend paid
+    for (const [n, cat] of [[63_000, "loan-disbursal-received"], [60_000, "share-purchase-received"], [-40_000, "bond-redemption-paid"], [-2_000, "loan-repayment-paid"], [-500, "dividend-paid"]]) {
+      applyCredits(financed.corp, n, cat, at(0, 4));
+    }
+    closeDueDays(plain, at(1, 1));
+    closeDueDays(financed, at(1, 1));
+    const [p] = plain.statements, [f] = financed.statements;
+    expect(f.pnl).toEqual(p.pnl);
+    expect(f.pnl).toEqual({ income: { exchange: 1_200, "coupon-received": 150 }, expenses: { "loan-interest-paid": 300 }, totalIncome: 1_350, totalExpenses: 300, net: 1_050 });
+    expect(f.cashFlow).toEqual({ opening: 100_000, inflows: 1_350 + 123_000, outflows: 300 + 42_500, closing: 100_000 + 1_050 + 80_500, unrecorded: 0 });
+  });
+
   it("closeDay is pure: it reads the corporation and changes nothing", () => {
     const state = newState();
     applyCredits(state.corp, -500, "hiring", at(0, 5));
@@ -47,7 +67,7 @@ describe("the daily close (AB#713)", () => {
     closeDueDays(state, at(0, 1));
     closeDueDays(state, at(1, 1));
     expect(state.statements[0].balanceSheet).toEqual({
-      credits: 50_000, facilities: 30_000, inventory: 4_000, liabilities: 600 * 7 + 3_000, totalAssets: 84_000, netWorth: 84_000 - 7_200
+      credits: 50_000, facilities: 30_000, inventory: 4_000, holdings: 0, receivables: 0, liabilities: 600 * 7 + 3_000, debt: 0, totalAssets: 84_000, netWorth: 84_000 - 7_200
     });
   });
 

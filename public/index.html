@@ -217,12 +217,14 @@
               <button class="nav-tab" data-tab="finance" type="button">Financial Core</button>
               <button class="nav-tab" data-tab="ceo" type="button">CEO Insight</button>
               <button class="nav-tab" data-tab="missions" type="button">Assignments</button>
+              <button class="nav-tab" data-tab="conglomerate" type="button">Conglomerate</button>
             </div>
           </section>
           <section class="nav-group" data-group="station">
             <button class="nav-group__button" type="button" data-group="station">Station</button>
             <div class="nav-group__tabs">
               <button class="nav-tab" data-tab="station" type="button">Station</button>
+              <button class="nav-tab" data-tab="fleet" type="button">Fleet</button>
             </div>
           </section>
           <section class="nav-group" data-group="industry">
@@ -302,6 +304,7 @@
                 and each unlock expands market access, infrastructure depth, and interstellar reach.
               </p>
             </header>
+            <div id="overview-raid-alert"></div><!-- ISP-181 (AB#875): an incoming raid, with a countdown and a route to its garrison -->
             <div id="overview-cards" class="ui-grid"></div>
 
             <section id="expedition-panel" class="ui-panel" aria-labelledby="expedition-panel-title" hidden>
@@ -429,6 +432,9 @@
                 <span class="kpi-tile__sub">days at current burn</span>
               </div>
             </section>
+
+            <!-- ISP-148 (AB#842): the corporation's credit rating, as lenders and investors will price it -->
+            <section id="finance-rating" class="finance__rating" aria-label="Credit rating" aria-live="polite"></section>
 
             <div class="finance__charts">
               <section class="ui-panel finance__chart finance__chart--wide">
@@ -588,6 +594,14 @@
             </form>
           </article>
 
+          <!-- ISP-201 (AB#895): the conglomerate's headquarters: views/conglomerateBureau.js draws it. -->
+          <article id="conglomerate" class="tab-panel ui-screen">
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title">Conglomerate</h2>
+              <p class="ui-screen__lede">Your conglomerate's roster, roles and treasury, or, while independent, the conglomerates you can join.</p>
+            </header>
+            <div id="conglomerate-hq"></div>
+          </article>
           <article id="ceo" class="tab-panel ui-screen">
             <!-- ISP-79 (AB#768): on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
@@ -662,6 +676,13 @@
                     <option value="bids">Player buy orders</option>
                     <option value="standing">Standing buy orders</option>
                     <option value="mine">My listings</option>
+                  </select>
+                </label>
+                <!-- ISP-208 (AB#903): shown only to a conglomerate member -->
+                <label class="ui-field" id="exchange-sellers-field" hidden><span class="ui-field__label">Sellers</span>
+                  <select class="ui-select" id="exchange-sellers-filter">
+                    <option value="all">Everyone</option>
+                    <option value="conglomerate">My conglomerate</option>
                   </select>
                 </label>
                 <label class="ui-field"><span class="ui-field__label">Sort</span>
@@ -824,6 +845,24 @@
               </div>
             </section>
 
+            <!-- ISP-177 (AB#871): Mercenary Rentals -->
+            <section class="ui-panel mercs" id="exchange-mercenary-section">
+              <header class="ui-panel__header">
+                <div>
+                  <h3 class="ui-panel__title">Mercenary Rentals</h3>
+                  <p class="ui-panel__meta">Hire another corporation&#39;s fleet for a fixed term, or rent yours out. The renter posts the price and a collateral into escrow; when the term ends the owner is paid, any units lost are paid for from the collateral, and the rest goes back to the renter.</p>
+                </div>
+              </header>
+              <div class="ui-panel__body ui-stack">
+                <p id="merc-status" class="ui-panel__meta" role="status"></p>
+                <div id="merc-offers"></div>
+                <h4>My contracts</h4>
+                <div id="merc-mine"></div>
+                <h4>Offer a fleet for hire</h4>
+                <div id="merc-offer-form"></div>
+              </div>
+            </section>
+
             <!-- Standing NPC buy orders -->
             <section class="ui-panel" id="exchange-standing-section">
               <header class="ui-panel__header">
@@ -921,6 +960,44 @@
                 </div>
               </div>
             </section>
+          </article>
+
+          <article id="fleet" class="tab-panel ui-screen">
+            <!-- ISP-175 (AB#869): units, upkeep and readiness, fleets, and the production that feeds them. -->
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title">Fleet</h2>
+              <p class="ui-screen__lede">Your ships and troops: what they cost to keep, how ready they are, where your fleets are, and what is being built.</p>
+            </header>
+            <div class="ui-stack">
+              <div id="fleet-raid-alert"></div><!-- ISP-181 (AB#875) -->
+              <section class="ui-stack" id="fleet-forces-section">
+                <h3 class="station__heading">Forces</h3>
+                <div id="fleet-summary"></div>
+                <div id="fleet-units"></div>
+              </section>
+              <section class="ui-stack" id="fleet-fleets-section">
+                <h3 class="station__heading">Fleets</h3>
+                <div id="fleet-list" class="ui-grid station__grid"></div>
+              </section>
+
+              <section class="ui-stack" id="fleet-raids-section">
+                <!-- ISP-181 (AB#875): garrisons and posture, the target picker, your raids and their private reports -->
+                <h3 class="station__heading">Raids</h3>
+                <div id="fleet-raids" class="ui-stack"></div>
+              </section>
+
+              <section class="ui-stack" id="station-training-section">
+                <h3 class="station__heading">Headquarters: Troop Training</h3>
+                <p class="ui-screen__lede">Train Attack Troops to raid with and Defense Troops to hold this station. Squads are paid when you start and ready when training ends.</p>
+                <div id="station-training" class="shipyard"></div>
+              </section>
+
+              <section class="ui-stack" id="station-shipyard-section" hidden>
+                <h3 class="station__heading">Orbital Shipyard</h3>
+                <p class="ui-screen__lede">Queue ships at the catalog's cost and build time. They join your fleet when they leave the slips.</p>
+                <div id="station-shipyard" class="shipyard"></div>
+              </section>
+            </div>
           </article>
 
           <article id="assets" class="tab-panel ui-screen">
@@ -1084,6 +1161,9 @@
 
             <div id="inbox-list-view" role="tabpanel" aria-label="Messages">
               <ul id="inbox-message-list" class="inbox__messages"></ul>
+              <!-- AB#911: the Players tab lists conversations, 30 at a time. -->
+              <ul id="inbox-conversation-list" class="inbox__messages" hidden></ul>
+              <button class="ui-button ui-button--secondary" id="inbox-conversation-more" type="button" hidden>Load more conversations</button>
               <p id="inbox-empty-notice" class="ui-state" role="status" hidden>No messages here.</p>
             </div>
 
@@ -1108,6 +1188,24 @@
               </article>
             </div>
 
+            <!-- AB#911: one conversation. It opens on its latest page; scrolling up loads older ones. -->
+            <div id="inbox-thread-view" class="ui-stack" hidden>
+              <button class="ui-button ui-button--ghost inbox__back" id="inbox-thread-back-btn" type="button">&#8592; Back</button>
+              <section class="ui-panel thread" aria-labelledby="thread-title">
+                <header class="ui-panel__header"><h3 class="ui-panel__title" id="thread-title"></h3></header>
+                <div class="thread__scroll" id="thread-scroll" tabindex="0" aria-label="Messages">
+                  <p class="thread__older" id="thread-older-status" aria-live="polite"></p>
+                  <ul class="thread__messages" id="thread-messages"></ul>
+                </div>
+                <form class="thread__reply" id="thread-reply-form" autocomplete="off">
+                  <label class="ui-field__label" for="thread-reply-body">Reply</label>
+                  <textarea class="ui-input ui-textarea" id="thread-reply-body" rows="3" maxlength="8000" placeholder="Write a reply… (Ctrl+Enter sends)"></textarea>
+                  <div class="inbox__actions"><button type="submit" class="ui-button ui-button--primary">Send</button></div>
+                  <p class="ui-screen__meta" id="thread-status" aria-live="polite"></p>
+                </form>
+              </section>
+            </div>
+
             <!-- Writing a message. -->
             <div id="inbox-compose-view" class="ui-stack" hidden>
               <button class="ui-button ui-button--ghost inbox__back" id="inbox-compose-back-btn" type="button">&#8592; Back</button>
@@ -1117,14 +1215,11 @@
                   <input type="hidden" id="compose-draft-id" value="" />
                   <input type="hidden" id="compose-to-id" value="" />
                   <div class="ui-field">
-                    <label class="ui-field__label" for="compose-to">To (Corporation Name)</label>
-                    <input class="ui-input" type="text" id="compose-to" placeholder="Exact corporation name…" required />
+                    <label class="ui-field__label" for="compose-to">To (any corporation)</label>
+                    <input class="ui-input" type="text" id="compose-to" placeholder="Corporation name…" required />
                   </div>
                   <div id="compose-candidates" class="inbox__candidates" hidden></div>
-                  <div class="ui-field">
-                    <label class="ui-field__label" for="compose-subject">Subject</label>
-                    <input class="ui-input" type="text" id="compose-subject" placeholder="Subject…" maxlength="200" required />
-                  </div>
+                  <input type="hidden" id="compose-subject" value="" />
                   <div class="ui-field">
                     <label class="ui-field__label" for="compose-body">Message</label>
                     <textarea class="ui-input ui-textarea" id="compose-body" rows="10" maxlength="8000" placeholder="Write your message…" required></textarea>
@@ -1158,6 +1253,8 @@
                   <option value="gdp">GDP Index</option>
                   <option value="activity">Activity Level</option>
                   <option value="pirates">Pirate Density</option>
+                  <option value="corp-dominance">Corporate dominance</option>
+                  <option value="cong-dominance">Conglomerate dominance</option>
                 </select>
               </div>
               <!-- ISP-143 (AB#837): the resource concentration overlay; the items are filled from what the player can see -->
@@ -1170,9 +1267,13 @@
               <button id="map-reset" class="ui-button ui-button--secondary" type="button">Reset View</button>
             </div>
             <div id="starmap-resource-legend" class="starmap__resource-legend" role="note" hidden></div>
+            <!-- ISP-218 (AB#913): the dominance overlays' legend: every colour on the map, named -->
+            <div id="starmap-dominance-legend" class="starmap__resource-legend" role="note" hidden></div>
             <canvas id="starmap-canvas" width="1200" height="680" aria-label="Interactive starmap"></canvas>
             <!-- ISP-119 (AB#811): what the station marks on the map mean -->
             <p id="starmap-legend" class="starmap__legend"><span class="starmap__legend-mark" aria-hidden="true"></span><span><strong>Neutral station</strong>: no corporation owns it, and any corporation can dock and rent an office there. Every system has at least one neutral station; a number beside a star marks a system with more. In a system, select a marker to open its station.</span></p>
+            <!-- ISP-210 (AB#905): shown when a conglomerate has built a station, which the system view marks in violet -->
+            <p id="starmap-legend-owned" class="starmap__legend" hidden><span class="starmap__legend-mark starmap__legend-mark--owned" aria-hidden="true"></span><span><strong>Conglomerate station</strong>: built and owned by a conglomerate. Select it to see whose it is.</span></p>
             <div id="starmap-fallback" class="ui-state" hidden></div>
             <section id="map-details" class="ui-panel starmap__details" aria-live="polite"></section>
           </article>

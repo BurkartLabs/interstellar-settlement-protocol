@@ -11,6 +11,8 @@ import { toCurrency, deepClone } from "./helpers.js";
 import { connectWalkthroughUi, hasSeenWalkthroughOffer, noteWalkthroughEvent, promptWalkthroughOffer } from "./walkthroughUi.js";
 // AB#739 (ISP-53): one module per tab, and the shared pieces they use.
 import { renderAssets } from "./views/assets.js";
+import { renderFleet } from "./views/fleet.js"; // ISP-175 (AB#869)
+import { renderRaids } from "./views/raids.js"; // ISP-181 (AB#875)
 import { applyMissionAgentsCatalog, bindAssignmentForms, renderMissions } from "./views/assignments.js";
 import { renderInsightTree } from "./views/ceoInsight.js";
 import { bindCollapsibleSections, bindGlobalControls, loadNotifications, renderNotifications, updateCorpIdentity, updateReplayOnboardingVisibility } from "./views/chrome.js";
@@ -19,9 +21,11 @@ import { bindExchangeForms, renderMarket } from "./views/exchange.js";
 import { loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } from "./views/finance.js";
 import { bindForumForms, renderForums } from "./views/forums.js";
 import { bindInboxControls, loadMessages, onInboxTabActivated, renderInboxMessageList } from "./views/inbox.js";
+import { onConversationEvent } from "./views/conversations.js"; // AB#911
 import { renderLogistics } from "./views/logistics.js";
 import { renderMiningCyclePanel, startMiningUiTicker, stopMiningUiTicker } from "./views/miningTicker.js";
 import { renderExpeditionPanel, renderLevel2Progress, updateOverview } from "./views/overview.js";
+import { loadConglomerate, onConglomerateChange, openBureau, renderConglomerateHq } from "./views/conglomerateBureau.js"; // ISP-201 (AB#895)
 import { renderRefinery } from "./views/refinery.js";
 import { bindResearchForms, renderQueue, renderTechTree } from "./views/research.js";
 import { connectViews, isPlayerTraveling, pushFeedback, renderFeedbackLog, revealUnderHeader } from "./views/shared.js";
@@ -48,7 +52,15 @@ import { openGroupOf, tabForGroup, lockEmptyGroups } from "./navGroups.js"; // I
 // ─── Tabs allowed during travel ──────────────────────────────────────────────
 // The Travel screen itself is views/travel.js, on the design system since ISP-83 (AB#772); e2e/travel-screen.spec.js
 // looks at its three states (AB#1053).
-const TRAVEL_ALLOWED_TABS = new Set(["overview", "inbox", "chat", "forums", "starmap", "travel"]);
+// ISP-201 (AB#895): membership moves happen anywhere (docs/design/CONGLOMERATES.md), so the Conglomerate tab stays open in transit.
+const TRAVEL_ALLOWED_TABS = new Set(["overview", "inbox", "chat", "forums", "starmap", "travel", "conglomerate"]);
+// ISP-201 (AB#895): each fresh read of the conglomerate redraws the Overview's card.
+onConglomerateChange(() => {
+  if (!appState.authenticated || !appState.data) return;
+  updateOverview(appState.data);
+  // ISP-208 (AB#903): the Exchange's Sellers filter and Partner badges follow membership.
+  if (document.getElementById("market")?.classList.contains("active")) renderMarket(appState.data);
+});
 
 function isPlayerInSpace(data) {
   return !data?.corp?.currentStationId && !isPlayerTraveling(data);
@@ -137,6 +149,8 @@ function renderAllViews() {
   enforceTravelTabLockdown(data);
   renderTravelPage(data);
   renderStation(data);
+  renderFleet(data); // ISP-175 (AB#869)
+  renderRaids(data); // ISP-181 (AB#875): the incoming-raid alert, garrisons, the target picker and reports
   renderLevel2Progress(data);
   renderQueue("rnd-queue", data.queues.corporateRnD, "Permanent corporate unlock track");
   renderQueue("ceo-queue", data.queues.ceoInsight, "CEO-centric growth track");
@@ -194,6 +208,8 @@ function setTab(targetId) {
     onInboxTabActivated();
   }
 
+  if (targetId === "conglomerate" && shown) renderConglomerateHq(document.getElementById("conglomerate-hq"));
+
   if (targetId === "chat") {
     requestAnimationFrame(() => {
       const chatLog = document.getElementById("chat-log");
@@ -212,6 +228,12 @@ function setTab(targetId) {
  * changes, and only when the panel's top is not already in the upper part of the screen.
  */
 function goToTab(targetId) {
+  // ISP-201 (AB#895): "bureau" is the Conglomerate Affairs Bureau: its building when docked at Earth Station Prime, where
+  // it is, and otherwise the Conglomerate tab, which says where to go.
+  if (targetId === "bureau") {
+    if (appState.data?.corp?.currentStationId === "earth-station-prime") return openBureau();
+    targetId = "conglomerate";
+  }
   setTab(targetId);
   const panel = document.getElementById(targetId);
   if (panel?.classList.contains("active")) revealUnderHeader(panel);
@@ -282,6 +304,9 @@ function enterGame(mode, data, options = {}) {
 
   persistSession();
   if (appState.accountId) loadBeltCompositionsIntoStarmap(); // Bug #1264
+  // ISP-201 (AB#895): the Overview's Conglomerate card reads this; never another account's.
+  appState.conglomerate = undefined;
+  if (appState.accountId && mode !== "dummy") loadConglomerate();
 
   authShell.hidden = true;
   gameShell.hidden = false;
@@ -318,7 +343,6 @@ function applySharedState(serverState) {
   appState.data.market = deepClone(serverState.market);
   appState.data.forums = deepClone(serverState.forums);
   appState.data.chatLog = deepClone(serverState.chatLog);
-  appState.data.combatReports = deepClone(serverState.combatReports);
   appState.data.conglomerates = deepClone(serverState.conglomerates);
 }
 
@@ -333,6 +357,7 @@ async function loadBootstrap() {
   if (appState.serverData?.economy) appState.economy = appState.serverData.economy;
   // ISP-95 (AB#785): the building catalogue, for the construction panel; kept for the same reason as the economy.
   if (Array.isArray(appState.serverData?.playerBuildings)) appState.playerBuildings = appState.serverData.playerBuildings;
+  if (Array.isArray(appState.serverData?.units)) appState.units = appState.serverData.units; // ISP-171 (AB#865)
   if (Array.isArray(appState.serverData?.milestoneRoadmap)) appState.milestoneRoadmap = appState.serverData.milestoneRoadmap; // AB#798
   if (Array.isArray(appState.serverData?.levelLadder)) appState.levelLadder = appState.serverData.levelLadder; // AB#803
 
@@ -558,6 +583,7 @@ function bindRealtimeEvents() {
 
     const financeState = payload.finances;
     appState.data.corp.finances = financeState;
+    if (payload.creditRating !== undefined) appState.data.corp.creditRating = payload.creditRating; // ISP-148 (AB#842)
     renderFinanceCharts(financeState);
     renderFinanceDashboard(financeState);
     updateCorpIdentity(appState.data);
@@ -593,10 +619,18 @@ function bindRealtimeEvents() {
     renderNotifications();
   });
 
+  // ISP-201 (AB#895): a membership change in this corporation's conglomerate, or one addressed to it (the server sends
+  // these to the conglomerate's room and the affected account only): read the conglomerate again.
+  for (const event of ["invited", "applied", "joined", "left", "invitation-closed", "application-closed", "role-changed", "removed", "dissolved", "identity-changed", "levelled", "level-lost", "treasury", "hangar"]) {
+    socket.on(`conglomerate:${event}`, () => { if (appState.accountId) loadConglomerate(); });
+  }
+
   // Bug #1130: mail for this account arrived (the server sends it to this account's room only, with no payload).
   socket.on("messages:new", () => {
     loadMessages();
   });
+  // AB#911: a private message arrived (or this account sent one from another tab): the open thread and the unread count
+  socket.on("conversations:new", (payload) => onConversationEvent(payload));
 
   socket.on("ceo:completed", (payload) => {
     if (!appState.accountId || payload?.accountId !== appState.accountId) {

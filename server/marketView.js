@@ -8,11 +8,11 @@
 import { buyOrderView, orderView } from "./publicViews.js";
 import { PRICE_HISTORY_ITEMS } from "./priceHistory.js";
 import { NPC_CATALOG } from "./npcCorporations.js";
-import { STATIONS_RAW } from "./game/catalog.js";
+import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 
 // ISP-124 (AB#818): who the NPCs are, for the badge and the profile card; the same for every viewer. The home station
 // goes by name: the view carries no station id (Bug #1171), and this one is public anyway.
-const stationNameOf = (id) => (STATIONS_RAW.stations || STATIONS_RAW).find((s) => s.id === id)?.name || "";
+const stationNameOf = (id) => stationById(id)?.name || "";
 const NPC_DIRECTORY = NPC_CATALOG
   ? {
       corporations: NPC_CATALOG.corporations.map(({ id, name, homeStationId, flavour, trades }) => ({ id, name, homeStation: stationNameOf(homeStationId), flavour, trades })),
@@ -35,8 +35,10 @@ export function marketView(market, accountId = null) {
   // AB#1054: players' buy orders, capped and viewed the same way.
   const bids = Array.isArray(market.buyOrders) ? market.buyOrders : [];
   const ownBids = accountId ? bids.slice(ORDER_BOOK_VIEW_LIMIT).filter((o) => o?.buyerAccountId === accountId) : [];
+  // ISP-177 (AB#871): the mercenary offers carry corporation ids and a renter; clients get them from GET /mercenaries
+  const { mercenaryOffers: _mercenaryOffers, ...rest } = market;
   return {
-    ...market,
+    ...rest,
     orderBook: newest.concat(own, npcAsks).map((order) => orderView(order, accountId)),
     buyOrders: bids.slice(0, ORDER_BOOK_VIEW_LIMIT).concat(ownBids).map((order) => buyOrderView(order, accountId)),
     tradeItems: [...PRICE_HISTORY_ITEMS].sort(), // what a buy order may name

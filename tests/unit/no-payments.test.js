@@ -44,6 +44,38 @@ const ALLOWLIST = [
     "public/scripts/helpers.js",
     'return new Intl.NumberFormat("en-US", {',
     "toCurrency: the sanctioned in-game credits formatter this story's own acceptance names as the one exception"
+  ],
+  [
+    "server/settlement.js",
+    '"loan-disbursal", "loan-repayment", "bond-subscription", "coupon", "dividend", "share-purchase", "escrow-hold", "escrow-release", "fee",',
+    "a bond subscription: buying into an in-game corporate bond with credits (docs/design/v0.9-equity.md, v0.9-debt.md), not a recurring real-money payment (Bug #2570)"
+  ],
+  [
+    "server/finances.js",
+    '"loan-disbursal-received", "loan-repayment-received", "bond-subscription-received", "coupon-received", "dividend-received",',
+    "a bond subscription: buying into an in-game corporate bond with credits (docs/design/v0.9-equity.md, v0.9-debt.md), not a recurring real-money payment (Bug #2570)"
+  ],
+  [
+    "server/finances.js",
+    '"loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",',
+    "a bond subscription: buying into an in-game corporate bond with credits (docs/design/v0.9-equity.md, v0.9-debt.md), not a recurring real-money payment (Bug #2570)"
+  ],
+  // Bug #2575: the statements name the in-game bond purchase as financing, kept out of the P&L
+  [
+    "server/finances.js",
+    '"bond-subscription-received", "bond-subscription-paid", "bond-redemption-received", "bond-redemption-paid",',
+    "an in-game bond bought at issue with credits, listed as financing so it is not counted as profit (Bug #2575)"
+  ],
+  // ISP-154 (AB#848): the bond module names the reason once, and settlement says which parties it moves between
+  [
+    "server/bonds.js",
+    'const REASON = "bond-subscription";',
+    "the settlement reason for buying an in-game bond at issue, with credits (docs/design/v0.9-debt.md, section 7)"
+  ],
+  [
+    "server/settlement.js",
+    '"bond-subscription": [["corp", "corp"], ["tap", "corp"]],',
+    "which parties an in-game bond purchase moves credits between: a corporation, or the NPC underwriter's tap (AB#848)"
   ]
 ];
 
@@ -131,5 +163,59 @@ describe('no payment code before 1.0 (ISP-89, BRIEF.md: "None yet, and none befo
   it("scans a real, non-trivial number of files, so a vacuous pass isn't mistaken for a clean one", () => {
     const files = SCAN_DIRS.flatMap((dir) => scanFiles(path.join(ROOT, dir)));
     expect(files.length).toBeGreaterThan(50);
+  });
+});
+
+// ISP-163 (AB#857): BRIEF.md's never-sell list names v0.9's financial instruments. Their numbers live in data files,
+// which the scan above does not read (it reads code). A price or a currency in one of them is the first line of a shop
+// that sells a rate, a limit, a fill or a share: this fails on it. In-game credit amounts ("cost", "fee", "charterFee")
+// are not real money and are not matched.
+const INSTRUMENT_DATA = ["data/loan-products.json", "data/bond-terms.json", "data/share-terms.json", "data/credit-rating.json", "data/conglomerates.json",
+  "data/units.json"]; // ISP-182 (AB#876): the military never-sell list's data
+const MONEY_KEY = /price|currency|usd|eur|gbp|sku|iap|real.?money|store|paypal|stripe/i;
+/** Keys that name an in-game price in credits, never real money, each with why. */
+const IN_GAME_PRICE_KEYS = new Map([["stakeGoodsPriceBasis", "which exchange price values a departing member's goods in credits (AB#889)"]]);
+const MONEY_VALUE = /[$€£]\s*\d|\b\d+(\.\d+)?\s*(USD|EUR|GBP)\b|^(USD|EUR|GBP)$/;
+
+/** Every real-money field in a parsed data file: a key that names money, or a string value that is an amount of it. */
+function realMoneyFields(value, where = "") {
+  if (Array.isArray(value)) return value.flatMap((v, i) => realMoneyFields(v, `${where}[${i}]`));
+  if (value && typeof value === "object") {
+    return Object.entries(value).flatMap(([k, v]) => [
+      ...(MONEY_KEY.test(k) && !IN_GAME_PRICE_KEYS.has(k) ? [`${where}.${k}`] : []),
+      ...realMoneyFields(v, `${where}.${k}`)
+    ]);
+  }
+  return typeof value === "string" && MONEY_VALUE.test(value) && !where.endsWith("._source") && !where.endsWith("._comment") ? [where] : [];
+}
+
+describe("the never-sell list's data carries no price (ISP-163, AB#857)", () => {
+  const read = (file) => JSON.parse(fs.readFileSync(path.join(ROOT, file), "utf8"));
+
+  it("no financial instrument's data file has a price or currency field", () => {
+    for (const file of INSTRUMENT_DATA) expect(realMoneyFields(read(file)), file).toEqual([]);
+  });
+
+  it("a price or currency added to data/loan-products.json fails it", () => {
+    const seeded = (edit) => { const d = read("data/loan-products.json"); edit(d); return realMoneyFields(d); };
+    expect(seeded((d) => { d.products[0].price = 4.99; })).toEqual([".products[0].price"]);
+    expect(seeded((d) => { d.currency = "USD"; })).toEqual([".currency", ".currency"]);
+    expect(seeded((d) => { d.products[0].priceUsd = 2; d.products[1].sku = "loan-boost"; })).toEqual([".products[0].priceUsd", ".products[1].sku"]);
+    expect(seeded((d) => { d.products[2].rateBoost = "$4.99"; })).toEqual([".products[2].rateBoost"]);
+  });
+
+  it("a price, a currency or a store id added to data/units.json fails it (ISP-182, AB#876)", () => {
+    const seeded = (edit) => { const d = read("data/units.json"); edit(d); return realMoneyFields(d); };
+    const [ship] = read("data/units.json").units;
+    expect(ship).toBeTruthy();
+    expect(seeded((d) => { d.units[0].price = 0.99; })).toEqual([".units[0].price"]);
+    expect(seeded((d) => { d.units[0].skipBuildTime = "$1.99"; })).toEqual([".units[0].skipBuildTime"]);
+    expect(seeded((d) => { d.units[1].storeSku = "fleet-pack"; })).toEqual([".units[1].storeSku"]);
+    expect(seeded((d) => { d.currency = "EUR"; })).toEqual([".currency", ".currency"]);
+    expect(seeded(() => {})).toEqual([]); // the catalog's own credits, goods and build minutes are in-game
+  });
+
+  it("leaves in-game credit amounts alone", () => {
+    expect(realMoneyFields({ cost: 5_000, charterFee: 25_000, feePct: 2, originationPct: 2.5, productId: "dsdb-7" })).toEqual([]);
   });
 });

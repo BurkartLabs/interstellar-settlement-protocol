@@ -4,6 +4,7 @@
 
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { OFFICE_TERMS_DAYS, officeLeaseCost, officeRenewalCost } from "../ceoEffects.js";
+import { isMemberStation, memberOfficeCost } from "../memberRates.js"; // ISP-212 (AB#907)
 import { claimsAllTakenText, claimsNoLeasesText } from "../emptyStates.js";
 import { stationStartPromptHtml } from "../firstAction.js";
 import { deepClone, formatDuration, toCurrency } from "../helpers.js";
@@ -26,6 +27,9 @@ import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHead
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
 // back to the control that was pressed if it is still there, otherwise to the one the flow continues from.
 import { showActionReceipt } from "./receiptModal.js";
+import { renderDevelopmentBank } from "./developmentBank.js"; // ISP-151 (AB#845)
+import { renderStockExchange } from "./stockExchange.js"; // ISP-161 (AB#855)
+import { renderConglomerateBureau } from "./conglomerateBureau.js"; // ISP-200 (AB#894)
 const firstPresent = (...selectors) => () => selectors.map((sel) => document.querySelector(sel)).find(Boolean) || null;
 
 // ISP-78 (AB#767): where the corporation is docked, as a line under a building's name.
@@ -148,6 +152,34 @@ export function renderBuildingDetail(building, data) {
       contentEl.innerHTML = renderISAClaimsLeases(building, data);
       bindISAClaimsLeasesActions(building, data);
     }
+  } else if (building.id === "deep-space-development-bank") {
+    const station = getCurrentStationInfo(data);
+    renderDevelopmentBank(contentEl, data, `
+      <div class="station__building-header">
+        <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      </div>
+      ${dockedHtml(station)}
+      <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
+      <p class="station__flavor">${escapeHtml(building.flavor)}</p>`);
+  } else if (building.id === "intergalactic-stock-exchange") {
+    const station = getCurrentStationInfo(data);
+    renderStockExchange(contentEl, `
+      <div class="station__building-header">
+        <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      </div>
+      ${dockedHtml(station)}
+      <p class="ui-screen__lede">${escapeHtml(building.description)}</p>`);
+  } else if (building.id === "conglomerate-affairs-bureau") {
+    const station = getCurrentStationInfo(data);
+    renderConglomerateBureau(contentEl, data, `
+      <div class="station__building-header">
+        <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      </div>
+      ${dockedHtml(station)}
+      <p class="ui-screen__lede">${escapeHtml(building.description)}</p>`);
   } else {
     const station = getCurrentStationInfo(data);
     contentEl.innerHTML = `
@@ -177,6 +209,12 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const currentBody = station?.body || corp?.location || "Earth";
   const stationId = station?.id || "earth-station-prime";
   const existingOffice = (corp.offices || []).find((o) => o.stationId === stationId);
+  // ISP-212 (AB#907): at its own conglomerate's station a member pays the member rate, which the server charges too
+  const memberStation = appState.conglomerate?.station || null;
+  const rate = (cost) => memberOfficeCost(cost, memberStation, stationId);
+  const memberNote = isMemberStation(memberStation, stationId)
+    ? `<p class="station__note station__member-rate">Member rate: your conglomerate's station, so the rent is ${memberStation.officeRentPct}% of the standard ${toCurrency(officeLeaseCost(1))} credits a day.</p>`
+    : "";
 
   const headerHtml = `
     <div class="station__building-header">
@@ -195,16 +233,17 @@ export function renderOrbitalExecutiveSuites(building, data) {
         <h3>Lease an Office Suite</h3>
         <p class="station__note">Establish a registered corporate presence at ${escapeHtml(station?.name || "this station")} by leasing a suite. This is required before your corporation can hire personnel or engage with station services.</p>
         <dl class="ui-kv">
-          <dt>Lease Cost</dt><dd>${toCurrency(officeLeaseCost(1))} credits a day</dd>
+          <dt>Lease Cost</dt><dd>${toCurrency(rate(officeLeaseCost(1)))} credits a day</dd>
           <dt>Station</dt><dd>${escapeHtml(station?.name || stationId)}</dd>
           <dt>Location</dt><dd>${escapeHtml(currentBody)}, ${escapeHtml(formatSystemLabel(station?.systemId || "sol"))}</dd>
         </dl>
+        ${memberNote}
         <p class="station__note">The lease runs for the term you choose and can be extended from this office before or after it ends. Without an active office you cannot start a mining cycle.</p>
         <div class="station__form">
           <label>
             Term
             <select class="ui-select" id="rent-office-duration">
-              ${OFFICE_TERMS_DAYS.map((days) => `<option value="${days}">${days} days — ${toCurrency(officeLeaseCost(days))}</option>`).join("")}
+              ${OFFICE_TERMS_DAYS.map((days) => `<option value="${days}">${days} days — ${toCurrency(rate(officeLeaseCost(days)))}</option>`).join("")}
             </select>
           </label>
           <button id="rent-office-btn" class="ui-button ui-button--primary" type="button">Execute Lease Agreement</button>
@@ -258,7 +297,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
         <label>
           Duration
           <select class="ui-select" id="renew-office-duration">
-            ${[7, 14, 21, 28].map((days) => `<option value="${days}"${days === 28 ? " selected" : ""}>${days} days — ${toCurrency(officeRenewalCost(corp.completedInsights, days))}</option>`).join("")}
+            ${[7, 14, 21, 28].map((days) => `<option value="${days}"${days === 28 ? " selected" : ""}>${days} days — ${toCurrency(rate(officeRenewalCost(corp.completedInsights, days)))}</option>`).join("")}
           </select>
         </label>
         <button class="ui-button ui-button--primary" type="submit">${leaseExpired ? "Renew Lease" : "Extend Lease"}</button>
@@ -1173,6 +1212,8 @@ export function renderStation(data) {
     economy: appState.economy
   });
 
+  // ISP-175 (AB#869): the shipyard and troop training moved to the Fleet tab (views/fleet.js)
+
   // ── Licensed Corporate Holdings (Extractor Yards — filtered to current station body) ──
   const stationBody = station.body;
   const leases = data.corp?.miningLeases || [];
@@ -1372,5 +1413,3 @@ export function extractorEfficiency(corp, ex) {
 export function yardIndexOf(corp, extractorId) {
   return (corp?.mining?.silicateExtractors || []).findIndex((e) => e.id === extractorId);
 }
-
-

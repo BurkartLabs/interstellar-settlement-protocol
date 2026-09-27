@@ -1,7 +1,5 @@
 // server/routes/corporation.js: the corporation routes, split out of server/index.js (AB#1815).
 import { bodyNumber } from "../bodyNumber.js";
-import fs from "node:fs";
-import path from "node:path";
 import { resolveLeaseBody } from "../leases.js";
 import { officeRenewalCost } from "../../public/scripts/ceoEffects.js";
 import { ECONOMY } from "../economy.js";
@@ -13,12 +11,15 @@ import { addAccountNotification, saveAccountsNow, mutateAccountState } from "../
 import { applyCredits } from "../finances.js";
 // Bug #1058: refusals that say what to do next. Imported beside their first use, away from the import block.
 import { employeeCapMessage, LEVELS } from "../nextStep.js";
-import { __dirname } from "../app.js";
-import { SYSTEMS_CATALOG, STATION_REGISTRY } from "../travel.js";
+
+import { SYSTEMS_CATALOG } from "../travel.js";
+import { allStations, stationMap } from "../game/stations.js"; // ISP-209 (AB#904)
 import { emitToAccount } from "../realtime.js";
 import { activeOfficeAt, fundingRequirementMessage, formatCredits } from "./helpers.js";
 // AB#743: what each committing action did, from the values its mutation used, for the confirmation modal.
 import { hireReceipt, rentOfficeReceipt, renewOfficeReceipt, purchaseLeaseReceipt } from "../receipts.js";
+import { memberOfficeCost } from "../../public/scripts/memberRates.js"; // ISP-212 (AB#907)
+import { memberStation } from "../game/stationGovernance.js";
 
 export function registerCorporationRoutes(app) {
   app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
@@ -93,18 +94,12 @@ export function registerCorporationRoutes(app) {
   app.post("/api/accounts/:accountId/gameplay/rent-office", (req, res) => {
     const requestedStationId = String(req.body?.stationId || "earth-station-prime").trim();
     const durationDays = OFFICE_TERMS_DAYS.includes(Number(req.body?.durationDays)) ? Number(req.body.durationDays) : 7;
-    const officeCost = officeLeaseCost(durationDays); // Bug #1032: the figure the Suites panel quotes
+    let officeCost = officeLeaseCost(durationDays); // Bug #1032: the figure the Suites panel quotes
     let outcome = "ok";
     let stationName = "Earth Station Prime";
     let dockedStationName = "";
 
-    let stationsData;
-    try {
-      stationsData = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "stations.json"), "utf8")).stations;
-    } catch {
-      res.status(500).json({ error: "Station registry unavailable." });
-      return;
-    }
+    const stationsData = allStations(); // ISP-209 (AB#904): built stations too
 
     const station = stationsData.find((s) => s.id === requestedStationId);
     if (!station) {
@@ -133,6 +128,8 @@ export function registerCorporationRoutes(app) {
         outcome = "already-rented";
         return;
       }
+      // ISP-212 (AB#907): the member rate at the corporation's own conglomerate's station, membership read now
+      officeCost = memberOfficeCost(officeCost, memberStation(corp), station.id);
 
       if (corp.finances.credits < officeCost) {
         outcome = "insufficient-credits";
@@ -194,13 +191,7 @@ export function registerCorporationRoutes(app) {
     let outcome = "ok";
     let stationName = "Earth Station Prime";
 
-    let stationsData;
-    try {
-      stationsData = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "stations.json"), "utf8")).stations;
-    } catch {
-      res.status(500).json({ error: "Station registry unavailable." });
-      return;
-    }
+    const stationsData = allStations(); // ISP-209 (AB#904): built stations too
 
     const station = stationsData.find((s) => s.id === requestedStationId);
     if (!station) {
@@ -221,6 +212,7 @@ export function registerCorporationRoutes(app) {
         return;
       }
       renewalCost = officeRenewalCost(corp.completedInsights, durationDays);
+      renewalCost = memberOfficeCost(renewalCost, memberStation(corp), station.id); // ISP-212 (AB#907)
       if (corp.finances.credits < renewalCost) {
         outcome = "insufficient-credits";
         return;
@@ -287,7 +279,7 @@ export function registerCorporationRoutes(app) {
       leaseCost = resolved.cost;
 
       // AB#1061: filed at the station that orbits the body, as the claims office offers it; in transit, nowhere.
-      const stationRefusal = leaseFilingRefusal(STATION_REGISTRY, corp.currentStationId || null, requestedBody);
+      const stationRefusal = leaseFilingRefusal(stationMap(), corp.currentStationId || null, requestedBody);
       if (stationRefusal) {
         outcome = "invalid-body";
         bodyError = stationRefusal;

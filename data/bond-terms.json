@@ -1,0 +1,16 @@
+{
+  "_source": "docs/design/v0.9-debt.md, sections 1 and 7 (ISP-154, AB#848): what a bond series may be, who may issue one, and the grade-implied yields the NPC underwriter subscribes against. tests/integration/bonds.test.js reads the design's tables and this file together.",
+  "minIssuerLevel": 10,
+  "issuerGrades": ["AAA", "AA", "A", "BBB", "BB", "B"],
+  "faceValue": 1000,
+  "minQuantity": 10,
+  "maxQuantity": 1000,
+  "minCouponPct30": 1.0,
+  "maxCouponPct30": 15.0,
+  "couponStepPct30": 0.25,
+  "couponEveryDays": 7,
+  "maturityDays": [30, 60, 90],
+  "windowHours": [24, 48],
+  "impliedYieldPct30": { "AAA": 3.0, "AA": 3.5, "A": 4.0, "BBB": 5.0, "BB": 6.0, "B": 8.0 },
+  "underwriter": { "account": "tap:dsdb", "pointsBelow": 2, "pointsSpan": 4 }
+}

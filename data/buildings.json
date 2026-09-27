@@ -137,8 +137,8 @@
       "description": "Manages the formal registration of conglomerates, alliance governance frameworks, membership rules, and approvals for shared infrastructure and co-owned station assets.",
       "flavor": "A conglomerate without a filed charter is an informal agreement waiting to collapse. Registered conglomerates gain access to co-ownership frameworks, pooled credit instruments, and coordinated ISA standing.",
       "imageFile": "buildings/conglomerate-affairs.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:conglomerate-affairs-bureau",
+      "available": true
     },
     {
       "id": "risk-assessment-insurance",
@@ -177,10 +177,10 @@
       "owner": "npc",
       "category": "finance",
       "description": "A government-backed financial institution that issues corporate bonds, expansion loans, and ISA-guaranteed financing instruments for corporations pursuing large-scale infrastructure and colonization projects.",
-      "flavor": "The Bank does not fund speculation. It funds expansion with a track record behind it. Loan terms are long, rates are fair, and defaults are handled through the Arbitration Council rather than SolSec — unless you are significantly past due.",
+      "flavor": "The Bank does not fund speculation. It funds expansion with a track record behind it. Its terms are plain, its rates follow your record, and a corporation that falls behind answers to the Arbitration Council, not SolSec: it loses its credit standing, never its stations.",
       "imageFile": "buildings/development-bank.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:deep-space-development-bank",
+      "available": true
     },
     {
       "id": "isa-enforcement-division",
@@ -235,8 +235,8 @@
       "description": "The primary equity market of the settled systems. Corporations can purchase shares in other player-owned and NPC-owned organizations, track valuations, and participate in structured financial instruments tied to corporate performance.",
       "flavor": "The Exchange does not care about your intentions. It prices information asymmetry. The players who win here are the ones who know what a corporation is worth before the market catches up.",
       "imageFile": "buildings/stock-exchange.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:intergalactic-stock-exchange",
+      "available": true
     }
   ]
 }

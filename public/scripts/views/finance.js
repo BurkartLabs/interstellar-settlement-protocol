@@ -8,6 +8,13 @@ import { escapeHtml } from "../html.js";
 import { appState } from "../state.js";
 import { clientPrices } from "../clientPrices.js";
 import { statementDayOptionsHtml, statementHtml, statementsEmptyHtml, statementsToSeries } from "../statements.js";
+import { ownRatingCardHtml } from "../ratingCard.js"; // ISP-148 (AB#842)
+
+/** ISP-148 (AB#842): the player's own credit rating card, from corp.creditRating (the server computes it). */
+export function renderOwnRating(rating = appState.data?.corp?.creditRating) {
+  const el = document.getElementById("finance-rating");
+  if (el) el.innerHTML = ownRatingCardHtml(rating);
+}
 
 // ─── Financial Control Board (CORP-FIN-1) — KPI strip and ledger tables ─────
 
@@ -94,6 +101,7 @@ export function refreshStatementsIfDayClosed() {
 }
 
 export function renderFinanceDashboard(finances) {
+  renderOwnRating();
   if (!finances) return;
   const credits = Number(finances.credits) || 0;
   const assets = Number(finances.assets) || 0;

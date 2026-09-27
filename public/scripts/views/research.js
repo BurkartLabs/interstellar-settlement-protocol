@@ -19,6 +19,8 @@ export function getTechNode(techId) {
  * the level was not checked here, so a card below its level offered Enqueue and the server refused the click.
  */
 export function researchLockReason(node, { done, corpLevel, tree = techTree }) {
+  // AB#861: what a planned node unlocks is not built yet; the server refuses it (server/routes/research.js)
+  if (node.status === "planned") return PLANNED_RESEARCH;
   if (!node.prereqs.every((req) => done.has(req))) {
     return `Requires: ${node.prereqs.map((id) => tree.find((it) => it.id === id)?.name || id).join(", ")}`;
   }
@@ -28,6 +30,8 @@ export function researchLockReason(node, { done, corpLevel, tree = techTree }) {
   if (node.tier >= 2 && !tree.filter((n) => n.tier === 1).every((n) => done.has(n.id))) return "Complete all Tier 1 research first";
   return null;
 }
+
+export const PLANNED_RESEARCH = "No effect yet: planned for a later version.";
 
 export function availableTechNodes(data) {
   const done = new Set(data.corp.unlockedTech || []);
@@ -61,6 +65,7 @@ export function renderTechTree(data) {
       if (done.has(node.id)) return researchNodeHtml({ ...card, state: "done" });
       if (inQueue.has(node.id)) return researchNodeHtml({ ...card, state: "queued", meta: [cost] });
       const lock = researchLockReason(node, { done, corpLevel: data.corp.level });
+      if (lock === PLANNED_RESEARCH) return researchNodeHtml({ ...card, state: "planned", meta: [cost, lock] });
       if (lock) return researchNodeHtml({ ...card, state: "locked", meta: [lock] });
       return researchNodeHtml({
         ...card,

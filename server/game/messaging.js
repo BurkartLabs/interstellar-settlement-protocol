@@ -173,8 +173,12 @@ export function sendPlayerMessage(fromAccountId, { toCorpId, toCorpName, subject
 
   scheduleAccountsSave();
   // recipientAccountId is for the server alone: the send route uses it to pick the recipient's socket room (Bug #1130)
-  // and must never put it in a response or an event (Bug #1134).
-  return { ok: true, toName, recipientAccountId: recipient.id };
+  // and must never put it in a response or an event (Bug #1134). So is `legacy`: the route copies it into the message's
+  // conversation (AB#910), matched to the migration by the same fields.
+  return {
+    ok: true, toName, recipientAccountId: recipient.id,
+    legacy: { fromId: fromAccountId, toAccountId: recipient.id, fromName, sentAt, subject: trimmedSubject, body: trimmedBody }
+  };
 }
 
 export function saveDraft(accountId, { draftId, toCorpId, toCorpName, subject, body }) {

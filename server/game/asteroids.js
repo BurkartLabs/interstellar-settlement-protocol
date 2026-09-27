@@ -1,11 +1,13 @@
 // server/game/asteroids.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import { ECONOMY } from "../economy.js";
-import { BASE_MAX_DEPLOYMENTS, MINEABLE_RESOURCES, STATION_REGISTRY_CACHE, SYSTEMS_BY_ID, SYSTEMS_DATA, createId, getStationInventory } from "./catalog.js";
+import { BASE_MAX_DEPLOYMENTS, MINEABLE_RESOURCES, SYSTEMS_BY_ID, SYSTEMS_DATA, createId, getStationInventory } from "./catalog.js";
+import { allStations } from "./stations.js"; // ISP-209 (AB#904)
 import { bumpStat } from "./progression.js";
 import { countBuilt, playerBuilding } from "../playerBuildings.js";
 import { BASE_YIELD_PER_MIN, RARITY_YIELD_MULTIPLIER } from "./beltRules.js"; // AB#2329: one copy, with the belt rules
 import { beltAt, isBeltPresent, markBeltEmpty } from "./belts.js";
+import { recordExtraction } from "./dominanceCounters.js"; // ISP-217 (AB#912)
 
 // ISP-96 (AB#786): the Ferric Mining Complex multiplies the Nickel and Titanium a returning expedition deposits, by
 // data/economy.json's buildings.ferricMiningComplexMetalMultiplier, in whole units rounded down.
@@ -181,7 +183,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
     if (endedEarly) exp.endedEarly = { reason: "belt-depleted", at: now, scheduledAt: Number(exp.completesAt) };
 
     // Deposit yields into nearest station in the expedition's system
-    const stationsInSystem = Object.values(STATION_REGISTRY_CACHE).filter(s => s.systemId === exp.systemId);
+    const stationsInSystem = allStations().filter(s => s.systemId === exp.systemId);
     const depositStationId = (stationsInSystem.length > 0)
       ? (stationsInSystem.find(s => s.id === corp.currentStationId)?.id || stationsInSystem[0].id)
       : (corp.currentStationId || "earth-station-prime");
@@ -255,6 +257,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
     const totalYield = belt ? Math.min(units.whole, belt.remaining) : units.whole;
     exp.yieldCarry = totalYield < units.whole ? 0 : units.rest;
     if (belt) belt.remaining -= totalYield;
+    recordExtraction(corp, exp.systemId, totalYield, intervalEnd); // ISP-217 (AB#912): drawn from the belt, in its system
 
     if (totalYield > 0) {
       // Generate a tick-unique seed from expedition id + tick timestamp

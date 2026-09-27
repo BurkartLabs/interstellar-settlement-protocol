@@ -8,10 +8,11 @@
 import { nextYardPrice, nextYardPriceFor } from "../public/scripts/yardPrice.js";
 import { applyCredits } from "./finances.js";
 import { catalogueRefusal, PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
-import { buildAssemblyReceipt, buildCryoVaporArrayReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildRefineryComplexReceipt, buildRefineryReceipt } from "./receipts.js";
+import { buildAssemblyReceipt, buildCryoVaporArrayReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildOrbitalShipyardReceipt, buildRefineryComplexReceipt, buildRefineryReceipt } from "./receipts.js";
 // ISP-98 (AB#788): a lease's slots are its extractors and the other buildings on it, counted in one place.
 import { leaseFacilities, leaseHasRoom } from "../public/scripts/leaseSlots.js";
 import { ECONOMY } from "./economy.js";
+import { nextFreeIndex } from "./buildingRemoval.js"; // AB#2569: after a removal, never an id still in use
 
 const hasTech = (corp, id) => (corp.unlockedTech || []).includes(id);
 const slotCount = (corp) => ({ slotsUsed: (corp.buildings || []).length, slotsTotal: corp.buildingSlots || 2 });
@@ -29,7 +30,7 @@ export const CONSTRUCTIONS = Object.freeze({
     place(corp, building, lease) {
       if (!corp.mining || typeof corp.mining !== "object") corp.mining = {};
       if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];
-      const nextIndex = corp.mining.silicateExtractors.length + 1;
+      const nextIndex = nextFreeIndex(corp.mining.silicateExtractors, "ext-basic-");
       const id = `ext-basic-${nextIndex}`;
       corp.mining.silicateExtractors.push({
         id,
@@ -63,7 +64,7 @@ export const CONSTRUCTIONS = Object.freeze({
   refinery: {
     place(corp) {
       if (!Array.isArray(corp.refineries)) corp.refineries = [];
-      const nextIndex = corp.refineries.length + 1;
+      const nextIndex = nextFreeIndex(corp.refineries, "ref-");
       corp.refineries.push({
         id: `ref-${nextIndex}`,
         name: `Refinery #${nextIndex}`,
@@ -107,6 +108,13 @@ export const CONSTRUCTIONS = Object.freeze({
     },
     notification: { title: "Cryo-vapor Extractor Array Online", body: "The extractors on your Luna lease now mine more Silicates." },
     receipt: (built, corp) => buildCryoVaporArrayReceipt({ cost: built.cost, assetValue: built.assetValue, body: built.body, multiplier: ECONOMY.buildings.cryoVaporExtractorArrayMiningMultiplier, ...slotCount(corp) })
+  },
+  // ISP-170 (AB#864): the build site data/units.json names for ships. It adds nothing when built: ship production
+  // (ISP-171, AB#865) is what reads that it stands.
+  "orbital-shipyard": {
+    place: () => ({}),
+    notification: { title: "Orbital Shipyard Commissioned", body: "Your Orbital Shipyard is operational. Queue ships on the Fleet tab." },
+    receipt: (built, corp) => buildOrbitalShipyardReceipt({ cost: built.cost, assetValue: built.assetValue, ...slotCount(corp) })
   }
 });
 
@@ -143,7 +151,9 @@ export function construct(corp, building, leaseId) {
   if ((corp.finances?.credits || 0) < cost) return { outcome: "insufficient-credits" };
 
   if (!Array.isArray(corp.buildings)) corp.buildings = [];
-  corp.buildings.push({ name: building.name, tier: 1, status: "Operational" }); // the catalogue name; a test holds them equal
+  // AB#2569: what was paid, the base default recovery salvages from, and the lease it stands on (which lease's slot a
+  // facility frees when it goes)
+  corp.buildings.push({ name: building.name, tier: 1, status: "Operational", paid: cost, ...(lease ? { leaseId: lease.id } : {}) }); // the catalogue name; a test holds them equal
   const placed = construction.place(corp, building, lease);
   // ISP-307 (AB#2299): a price above the building's base (a yard after the first, ISP-303) is booked apart. Together
   // the two lines are the price charged.
@@ -173,6 +183,7 @@ function upgrade(corp, building, construction) {
   if ((corp.finances?.credits || 0) < cost) return { outcome: "insufficient-credits" };
 
   target.upgrades = [...(target.upgrades || []), building.name];
+  if (Number.isFinite(target.paid)) target.paid += cost; // AB#2569: an older building with no record keeps the catalogue base
   target.tier = Math.max(Number(target.tier) || 1, 2);
   const placed = construction.place(corp, building, record);
   applyCredits(corp, -cost, "construction");

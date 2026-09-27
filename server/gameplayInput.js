@@ -9,6 +9,10 @@
 
 import { yardMaxTier, yardTierFor } from "./economy.js";
 import { MAX_RUN_HOURS } from "../public/scripts/refineryRun.js"; // AB#825
+import { FLEET_NAMES } from "./fleets.js"; // ISP-174 (AB#868)
+import { POSTURE_IDS } from "./garrison.js"; // ISP-180 (AB#874)
+import { CONGLOMERATE_CATALOG } from "./conglomerates.js"; // ISP-197 (AB#891)
+import { BOND_TERMS } from "./bondTerms.js"; // ISP-154 (AB#848)
 
 /** The highest cap any yard tier has (AB#793): what start-mining accepts before the route clamps to the yard's own. */
 const TOP_THROUGHPUT_CAP = yardTierFor(yardMaxTier()).throughputCap;
@@ -20,6 +24,9 @@ const MAX_TRANSFER_LINES = 10;
 
 const int = (min, max, label, extra = {}) => ({ kind: "int", min, max, label, ...extra });
 const choice = (values, label, extra = {}) => ({ kind: "choice", values, label, ...extra });
+/** ISP-152 (AB#846): a number from `min` to `max` in steps of `step` (a loan offer's rate, 2.0 to 25.0 by 0.25). */
+const decimal = (min, max, step, label, extra = {}) => ({ kind: "decimal", min, max, step, label, ...extra });
+export const onStep = (n, spec) => typeof n === "number" && Number.isFinite(n) && n >= spec.min && n <= spec.max && Math.abs(n / spec.step - Math.round(n / spec.step)) < 1e-9;
 const id = (catalog, label, extra = {}) => ({ kind: "id", catalog, label, ...extra });
 /** Free text: a string of at most `max` characters (AB#732). The client's own maxlength is the same. */
 const text = (max, label, extra = {}) => ({ kind: "text", max, label, ...extra });
@@ -35,6 +42,8 @@ const ref = (label, extra = {}) => ({ kind: "ref", label, ...extra });
 const ACCEPT_MISSION = { body: { missionId: id("missions", "a contract") } };
 const OWN_MISSION = { body: { missionId: id("ownMissions", "one of your active contracts") } };
 const NOTHING = {};
+/** ISP-174 (AB#868): how many of each fleet unit type an order moves; each optional, the route refuses none at all. */
+const FLEET_UNITS = Object.fromEntries(["lf", "ds", "se", "at"].map((u) => [u, int(1, 100_000, "a number of units from 1 to 100,000", { optional: true })]));
 
 /**
  * Every gameplay route, keyed "METHOD /path" below the /gameplay mount. `optional: true` marks the few fields the
@@ -103,6 +112,51 @@ export const GAMEPLAY_INPUT = {
   "POST /abandon-mission": OWN_MISSION,
   "POST /complete-mission": OWN_MISSION,
   "POST /queue-rnd": { body: { techId: id("techs", "a research project") } },
+  // ISP-171 (AB#865): a ship from the unit catalog and how many; the cost and the time are the catalog's, never sent
+  "POST /shipyard/queue": { body: { unitId: id("ships", "a ship: a Light Fighter, a Destroyer or a Siege Engine"), quantity: int(1, 100, "a quantity from 1 to 100") } },
+  "POST /shipyard/cancel": { body: { jobId: ref("one of your shipyard jobs") } },
+  // ISP-172 (AB#866): troops from the unit catalog and how many squads; the cost and the time are the catalog's
+  "POST /training/queue": { body: { unitId: id("troops", "troops: Attack Troops or Defense Troops"), quantity: int(1, 100, "a number of squads from 1 to 100") } },
+  "POST /training/cancel": { body: { jobId: ref("one of your training jobs") } },
+  // ISP-174 (AB#868): fleets. Counts are whole numbers; a name is one of the list's, never free text; a fleet id that
+  // is not the caller's is the route's 404.
+  "POST /fleets/form": { body: { ...FLEET_UNITS, name: word(FLEET_NAMES, "a fleet name from the list", { optional: true }) } },
+  "POST /fleets/:fleetId/split": { params: { fleetId: ref("one of your fleets") }, body: { ...FLEET_UNITS, name: word(FLEET_NAMES, "a fleet name from the list", { optional: true }) } },
+  "POST /fleets/:fleetId/merge": { params: { fleetId: ref("one of your fleets") }, body: { intoFleetId: ref("one of your fleets to merge into") } },
+  "POST /fleets/:fleetId/deploy": { params: { fleetId: ref("one of your fleets") }, body: { toStationId: id("stations", "a station") } },
+  "POST /fleets/:fleetId/disband": { params: { fleetId: ref("one of your fleets") } },
+  "GET /fleets/:fleetId/destinations": { params: { fleetId: ref("one of your fleets") } }, // ISP-175 (AB#869)
+  // ISP-176 (AB#870): mercenary contracts. Terms are numbers and enums only; ids not the caller's are the route's 404.
+  "GET /mercenaries": NOTHING,
+  "GET /mercenaries/mine": NOTHING, // ISP-177 (AB#871)
+  "POST /mercenaries/offer": {
+    body: {
+      fleetId: ref("one of your fleets"),
+      termHours: choice([12, 24, 72, 168], "a term of 12, 24, 72 or 168 hours"),
+      price: int(100, 10_000_000, "a price from 100 to 10,000,000 credits"),
+      collateral: int(1, 1_000_000_000, "a collateral of at least 1 credit, up to the fleet's value"),
+      allowedUse: word(["defense", "pve", "raids"], "an allowed use: defense, pve or raids")
+    }
+  },
+  "POST /mercenaries/:offerId/withdraw": { params: { offerId: ref("one of your mercenary offers") } },
+  "POST /mercenaries/:offerId/hire": { params: { offerId: ref("a mercenary offer") } },
+  // ISP-178 (AB#872): a raid names a fleet (own, or hired by contract), a target corporation by public id, and a station
+  "GET /raids": NOTHING,
+  "POST /raids": {
+    body: {
+      fleetId: ref("one of your fleets", { optional: true }),
+      contractId: ref("a fleet you have hired", { optional: true }),
+      targetCorpId: ref("a corporation to raid"),
+      targetStationId: id("stations", "a station")
+    }
+  },
+  "POST /raids/:raidId/recall": { params: { raidId: ref("one of your raids") } },
+  "GET /raids/:raidId/report": { params: { raidId: ref("one of your raids") } }, // ISP-179 (AB#873)
+  "GET /raids/targets/:stationId": { params: { stationId: id("stations", "a station") } }, // ISP-181 (AB#875)
+  // ISP-180 (AB#874): a garrison's posture, troops sent between stations, a hired fleet sent to one's own holdings
+  "POST /garrisons/:stationId/posture": { params: { stationId: id("stations", "a station") }, body: { posture: word(POSTURE_IDS, "a posture: balanced, fortified or aggressive") } },
+  "POST /garrisons/move": { body: { fromStationId: id("stations", "a station"), toStationId: id("stations", "a station"), quantity: int(1, 100_000, "a number of defense troops") } },
+  "POST /mercenaries/:contractId/deploy": { params: { contractId: ref("a fleet you have hired") }, body: { toStationId: id("stations", "a station") } },
   "POST /queue-ceo": { body: { programId: id("programs", "a CEO Insight program") } }
 };
 
@@ -118,6 +172,142 @@ export const ACCOUNT_INPUT = {
   "POST /notifications/:notificationId/read": { params: { notificationId: ref("a notification") } },
   "GET /messages": NOTHING,
   "GET /corporations": { query: { name: text(64, "a corporation name to search for", { optional: true }) } },
+  "GET /dominance": NOTHING, // ISP-217 (AB#912): the caller's own dominance components
+  // ISP-149 (AB#843): the product and principal to quote, and the quote to accept; the terms are the server's
+  "GET /loans/offers": NOTHING, // ISP-151 (AB#845)
+  "POST /loans/quote": { body: { productId: word(["dsdb-7", "dsdb-30", "dsdb-90"], "a Development Bank loan product"), principal: int(1_000, 100_000_000, "a principal of at least 1,000 credits") } },
+  "POST /loans/accept": { body: { quoteId: ref("a loan quote") } },
+  "POST /loans/:loanId/payoff": { params: { loanId: ref("one of your loans") } }, // ISP-150 (AB#844)
+  // ISP-154 (AB#848): a bond series' terms, each a number from the design's list; and the units to subscribe to
+  "GET /bonds": NOTHING,
+  "POST /bonds/issue": {
+    body: {
+      quantity: int(BOND_TERMS.minQuantity, BOND_TERMS.maxQuantity, "a number of 1,000-credit units"),
+      couponPct30: decimal(BOND_TERMS.minCouponPct30, BOND_TERMS.maxCouponPct30, BOND_TERMS.couponStepPct30, "a coupon per 30 days"),
+      maturityDays: choice(BOND_TERMS.maturityDays, "a maturity of 30, 60 or 90 days"),
+      windowHours: choice(BOND_TERMS.windowHours, "24 or 48 hours open for subscribing")
+    }
+  },
+  "POST /bonds/preview": { // ISP-156 (AB#850): the issue form's preview, with the issue's own checks
+    body: {
+      quantity: int(BOND_TERMS.minQuantity, BOND_TERMS.maxQuantity, "a number of 1,000-credit units"),
+      couponPct30: decimal(BOND_TERMS.minCouponPct30, BOND_TERMS.maxCouponPct30, BOND_TERMS.couponStepPct30, "a coupon per 30 days"),
+      maturityDays: choice(BOND_TERMS.maturityDays, "a maturity of 30, 60 or 90 days")
+    }
+  },
+  // ISP-158 (AB#852): listing takes nothing; an offering and a purchase take a whole number of shares, never a price
+  "GET /equity/offerings": NOTHING,
+  "POST /equity/list": NOTHING,
+  "POST /equity/offerings": { body: { quantity: int(100, 90_000, "a number of shares to offer, at least 100") } },
+  "POST /equity/payout-ratio": { body: { payoutRatioPct: choice(Array.from({ length: 17 }, (_, i) => i * 5), "a payout ratio of 0 to 80%, in steps of 5") } }, // ISP-159 (AB#853)
+  "POST /equity/offerings/:offeringId/buy": { params: { offeringId: ref("a share offering") }, body: { quantity: int(1, 90_000, "a number of shares") } },
+  "GET /equity/holdings": NOTHING, // ISP-160 (AB#854)
+  "POST /equity/holdings/:issuerCorpId/exit": { params: { issuerCorpId: ref("a corporation you hold shares in") }, body: { quantity: int(1, 90_000, "a number of shares") } },
+  "POST /bonds/:seriesId/subscribe": { params: { seriesId: ref("a bond series") }, body: { units: int(1, BOND_TERMS.maxQuantity, "a number of units") } },
+  // ISP-152 (AB#846): player loan offers. Numbers and enums only; the floor rate and the per-pair cap are the route's too.
+  "GET /loan-offers": NOTHING,
+  "GET /player-loans": NOTHING, // ISP-153 (AB#847)
+  "POST /loan-offers": {
+    body: {
+      principal: int(1_000, 100_000, "a principal from 1,000 to 100,000 credits"),
+      ratePct30: decimal(2, 25, 0.25, "a rate per 30 days"),
+      termDays: choice([7, 30, 90], "a term of 7, 30 or 90 days"),
+      minGrade: word(["AAA", "AA", "A", "BBB", "BB", "B", "CCC", "CC", "C", "NR-accepted"], "the lowest credit grade you will lend to")
+    }
+  },
+  "POST /loan-offers/:offerId/cancel": { params: { offerId: ref("one of your loan offers") } },
+  "POST /loan-offers/:offerId/accept": { params: { offerId: ref("a loan offer") } },
+  // ISP-197 (AB#891): the charter. The name is checked by the route against the corporation-name rules (3 to 40
+  // characters); this bounds what reaches it. Emblem and colour are numbered from 1 in the Bureau's fixed lists.
+  "POST /conglomerates": {
+    body: {
+      name: text(64, "a conglomerate name of 3 to 40 characters"),
+      emblem: choice(Array.from({ length: CONGLOMERATE_CATALOG.emblems }, (_, i) => i + 1), "an emblem from the Bureau's list"),
+      colour: choice(Array.from({ length: CONGLOMERATE_CATALOG.colours }, (_, i) => i + 1), "a colour from the Bureau's list")
+    }
+  },
+  // ISP-198 (AB#892): membership. Every id is looked up by the route, which answers 404 for one the caller cannot see; the
+  // answer is one of three words, and which side may give which is the rules' check.
+  "GET /conglomerate": NOTHING,
+  "POST /conglomerates/:conglomerateId/invitations": { params: { conglomerateId: ref("a conglomerate") }, body: { corpId: ref("a corporation to invite") } },
+  "POST /conglomerates/:conglomerateId/invitations/:invitationId/:answer": {
+    params: { conglomerateId: ref("a conglomerate"), invitationId: ref("an invitation"), answer: word(["accept", "decline", "withdraw"], "accept, decline or withdraw") }
+  },
+  "POST /conglomerates/:conglomerateId/applications": { params: { conglomerateId: ref("a conglomerate") } },
+  "POST /conglomerates/:conglomerateId/applications/:applicationId/:answer": {
+    params: { conglomerateId: ref("a conglomerate"), applicationId: ref("an application"), answer: word(["accept", "decline", "withdraw"], "accept, decline or withdraw") }
+  },
+  "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: ref("a conglomerate") } },
+  // ISP-199 (AB#893): roles, removal, the founder's transfer, identity and dissolution. A member is named by its
+  // corporation's public id; the route answers 404 for one that is not a member.
+  "POST /conglomerates/:conglomerateId/members/:corpId/role": {
+    params: { conglomerateId: ref("a conglomerate"), corpId: ref("a member") },
+    body: { role: word(["director", "member"], "director or member") }
+  },
+  "POST /conglomerates/:conglomerateId/members/:corpId/remove": { params: { conglomerateId: ref("a conglomerate"), corpId: ref("a member") } },
+  "POST /conglomerates/:conglomerateId/founder": { params: { conglomerateId: ref("a conglomerate") }, body: { corpId: ref("a director to hand the founder role to") } },
+  "POST /conglomerates/:conglomerateId/identity": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: {
+      emblem: choice(Array.from({ length: CONGLOMERATE_CATALOG.emblems }, (_, i) => i + 1), "an emblem from the Bureau's list"),
+      colour: choice(Array.from({ length: CONGLOMERATE_CATALOG.colours }, (_, i) => i + 1), "a colour from the Bureau's list")
+    }
+  },
+  "POST /conglomerates/:conglomerateId/dissolve": { params: { conglomerateId: ref("a conglomerate") } },
+  // ISP-204 (AB#898): the treasury. An amount is a whole number of credits; the rules refuse anything else again.
+  "GET /conglomerates/:conglomerateId/treasury": { params: { conglomerateId: ref("a conglomerate") }, query: { offset: text(12, "a row to start from", { optional: true }), limit: text(4, "a page size from 1 to 100", { optional: true }) } },
+  "POST /conglomerates/:conglomerateId/treasury/deposit": { params: { conglomerateId: ref("a conglomerate") }, body: { amount: int(1, 1_000_000_000_000, "an amount of credits") } },
+  "POST /conglomerates/:conglomerateId/treasury/withdraw": { params: { conglomerateId: ref("a conglomerate") }, body: { amount: int(1, 1_000_000_000_000, "an amount of credits") } },
+  "POST /conglomerates/:conglomerateId/treasury/withdrawals/:withdrawalId/block": { params: { conglomerateId: ref("a conglomerate"), withdrawalId: ref("a withdrawal") } },
+  // ISP-205 (AB#899): the goods hangar. The station is one the registry knows (never a free string, the class of the
+  // purchase-lease defect); the item's shape is checked here and its name against data/items.json by the rules.
+  "GET /conglomerates/:conglomerateId/intel": { params: { conglomerateId: ref("a conglomerate") } }, // ISP-207 (AB#902)
+  "GET /conglomerates/:conglomerateId/hangar": { params: { conglomerateId: ref("a conglomerate") }, query: { offset: text(12, "a row to start from", { optional: true }), limit: text(4, "a page size from 1 to 100", { optional: true }) } },
+  "POST /conglomerates/:conglomerateId/hangar/deposit": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: { stationId: id("stations", "a station"), item: text(64, "an item"), quantity: int(1, 1_000_000_000, "a number of units") }
+  },
+  "POST /conglomerates/:conglomerateId/hangar/withdraw": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: { stationId: id("stations", "a station"), item: text(64, "an item"), quantity: int(1, 1_000_000_000, "a number of units") }
+  },
+  // ISP-202 (AB#896): the level to buy, the one after the current; the route refuses any other.
+  // ISP-210 (AB#905): the station project. The body is a system's body by name (checked against that system by the
+  // rules), the name one of a fixed list by number, and a contribution either credits or one item with a quantity.
+  "GET /conglomerates/:conglomerateId/station-project": { params: { conglomerateId: ref("a conglomerate") } },
+  "POST /conglomerates/:conglomerateId/station-project": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: { systemId: id("systems", "a star system"), body: text(64, "a body"), suffix: int(1, 6, "a station name from the list") }
+  },
+  "POST /conglomerates/:conglomerateId/station-project/contribute": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: {
+      source: word(["own", "treasury", "hangar"], "where the contribution comes from: own, treasury or hangar"),
+      credits: int(1, 1_000_000_000_000, "an amount of credits", { optional: true }),
+      item: text(64, "an item", { optional: true }),
+      quantity: int(1, 1_000_000_000, "a number of units", { optional: true })
+    }
+  },
+  "POST /conglomerates/:conglomerateId/station-project/cancel": { params: { conglomerateId: ref("a conglomerate") } },
+  // ISP-211 (AB#906): a proposal names a setting from the fixed list, and a value or a conglomerate; a vote is yes or no.
+  "GET /conglomerates/:conglomerateId/station": { params: { conglomerateId: ref("a conglomerate") } },
+  "POST /conglomerates/:conglomerateId/station/proposals": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: {
+      setting: word(["access", "list", "unlist"], "a station setting: access, list or unlist"),
+      value: word(["open", "members", "members-and-listed"], "who may dock: open, members or members-and-listed", { optional: true }),
+      conglomerateId: ref("a conglomerate", { optional: true })
+    }
+  },
+  "POST /conglomerates/:conglomerateId/station/proposals/:proposalId/vote": { params: { conglomerateId: ref("a conglomerate"), proposalId: ref("a proposal") }, body: { vote: word(["yes", "no"], "a vote: yes or no") } },
+  "POST /conglomerates/:conglomerateId/level": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: { level: int(2, CONGLOMERATE_CATALOG.levels.length, "the level to buy") }
+  },
+  "POST /conglomerates/:conglomerateId/level-seen": { // ISP-203 (AB#897)
+    params: { conglomerateId: ref("a conglomerate") },
+    body: { level: int(2, CONGLOMERATE_CATALOG.levels.length, "the level seen") }
+  },
   "POST /messages/send": {
     body: {
       draftId: ref("a draft", { optional: true }),
@@ -138,6 +328,26 @@ export const ACCOUNT_INPUT = {
     }
   },
   "DELETE /messages/draft/:draftId": { params: { draftId: ref("a draft") } },
+  // AB#910: private messages. The body's own limit (8,000 characters, 32 KB) is the route's, answered 413; this only
+  // stops a string longer than any request body express accepts from reaching it.
+  "GET /conversations": {
+    query: {
+      cursor: text(200, "a page marker", { optional: true }),
+      limit: text(4, "a page size", { optional: true }),
+      archived: text(1, "1 for archived conversations", { optional: true })
+    }
+  },
+  "POST /conversations/send": {
+    body: {
+      toCorpId: ref("the corporation the message is for"),
+      body: text(100_000, "a message", { optional: true })
+    }
+  },
+  "GET /conversations/:conversationId/messages": {
+    params: { conversationId: ref("a conversation") },
+    query: { cursor: text(40, "a page marker", { optional: true }), limit: text(4, "a page size", { optional: true }) }
+  },
+  "POST /conversations/:conversationId/read": { params: { conversationId: ref("a conversation") } },
   "POST /messages/:messageId/read": { params: { messageId: ref("a message") } },
   "POST /messages/:messageId/move": {
     params: { messageId: ref("a message") },
@@ -217,6 +427,9 @@ function checkFieldOnce(spec, value, has) {
     const n = wholeNumber(value);
     if (n === null || n < spec.min || n > spec.max) return refuse(`Enter ${spec.label}: a whole number from ${spec.min.toLocaleString()} to ${spec.max.toLocaleString()}.`);
     return { ok: true };
+  }
+  if (spec.kind === "decimal") {
+    return onStep(value, spec) ? { ok: true } : refuse(`Enter ${spec.label}: from ${spec.min} to ${spec.max}, in steps of ${spec.step}.`);
   }
   if (spec.kind === "choice") {
     const n = wholeNumber(value);
@@ -328,7 +541,7 @@ export function gameplayInputMiddleware({ catalogs, corpOf, stationNames, routes
       if (catalog === "leaseBodies") return catalogs.leaseBodies?.has(value.toLowerCase()) === true;
       return catalogs[catalog]?.has(value) === true;
     };
-    const result = validateGameplayRequest(match.entry, { body: req.body, params: match.params, query: req.query }, has, (sid) => stationNames?.[sid] || "That station");
+    const result = validateGameplayRequest(match.entry, { body: req.body, params: match.params, query: req.query }, has, (sid) => (typeof stationNames?.get === "function" ? stationNames.get(sid) : stationNames?.[sid]) || "That station");
     if (!result.ok) return res.status(400).json({ error: result.error });
     return next();
   };

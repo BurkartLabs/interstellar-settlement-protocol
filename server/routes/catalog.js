@@ -1,4 +1,5 @@
 // server/routes/catalog.js: the catalog routes, split out of server/index.js (AB#1815).
+import { UNITS_DATA } from "../game/units.js"; // ISP-171 (AB#865)
 import fs from "node:fs";
 import path from "node:path";
 import { ECONOMY } from "../economy.js";
@@ -8,6 +9,8 @@ import { levelUnlockList } from "../game/progression.js"; // AB#803
 import { PROBE_FABRICATION_MS } from "../game/asteroids.js";
 import { getState, CEO_INSIGHT_LIBRARY, RESEARCH_LIBRARY, MISSION_AGENTS_DATA, REPUTATION_TIERS_DATA } from "../gameState.js";
 import { APP_VERSION, __dirname } from "../app.js";
+import { allStations, publicStation } from "../game/stations.js"; // ISP-209 (AB#904)
+import { conglomerateList } from "../game/conglomerates.js";
 import { verifyAccessToken, getBearerToken } from "../auth.js";
 import { checkAndResetNpcBuyOrders } from "../ticks.js";
 import { sharedStateView } from "../realtime.js";
@@ -60,6 +63,8 @@ export function registerCatalogRoutes(app) {
       },
       // AB#783: what a corporation can build, read-only: the same for every caller, and nothing of any player's.
       playerBuildings: PLAYER_BUILDING_CATALOGUE,
+      // ISP-171 (AB#865): the unit catalog, read-only, for the shipyard's panel (data/units.json)
+      units: UNITS_DATA.units,
       // ISP-106 (AB#798): the sidebar's roadmap, derived from the levels (server/game/catalog.js deriveRoadmap).
       milestoneRoadmap: MILESTONE_ROADMAP,
       // AB#803: each level's own unlocks, labelled, for the level panel's browser; its progress rides on the corporation.
@@ -67,14 +72,11 @@ export function registerCatalogRoutes(app) {
     });
   });
 
+  // ISP-209 (AB#904): the catalog's stations and those built in play, each owner as a type and a public name only.
   app.get("/api/stations", (_req, res) => {
-    try {
-      const raw = fs.readFileSync(path.join(__dirname, "..", "data", "stations.json"), "utf8");
-      // AB#718: the transfer rates ride with the stations, so the Logistics tab quotes what the server charges.
-      res.json({ ...JSON.parse(raw), logistics: ECONOMY.logistics });
-    } catch {
-      res.status(500).json({ error: "Stations data unavailable." });
-    }
+    const nameOf = (id) => conglomerateList().find((c) => c.id === id)?.name || null;
+    // AB#718: the transfer rates ride with the stations, so the Logistics tab quotes what the server charges.
+    res.json({ stations: allStations().map((s) => publicStation(s, nameOf)), logistics: ECONOMY.logistics });
   });
 
   // ISP-112 (AB#804): every per-system fact the page needs (bodies, map position, jump routes, the research a jump

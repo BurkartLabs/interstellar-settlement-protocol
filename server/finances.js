@@ -86,7 +86,21 @@ export function recordExpense(corp, category, amount, now = Date.now()) {
 export const CREDIT_CATEGORIES = Object.freeze({
   // AB#1054: "exchange-escrow" is credits held for a player's buy order, "exchange-escrow-return" their return when it
   // fills or is cancelled; over an order's life the two are equal, and what it bought is "exchange-purchases".
-  income: Object.freeze(["exchange", "missions", "salvage", "exchange-escrow-return"]),
+  // ISP-146 (AB#840): what server/settlement.js moves between parties, booked `<reason>-received` by the payee and
+  // `<reason>-paid` by the payer (its REASONS; a fee and an escrow hold only leave, an escrow release only arrives).
+  income: Object.freeze(["exchange", "missions", "salvage", "exchange-escrow-return",
+    "loan-disbursal-received", "loan-repayment-received", "bond-subscription-received", "coupon-received", "dividend-received",
+    "share-purchase-received", "escrow-release-received", "loan-interest-received",
+    "bond-redemption-received", // ISP-155 (AB#849): a bond's face back at maturity
+    "bond-sale-received", // Bug #2574: bonds sold in default recovery
+    "ship-production-refund", // ISP-171 (AB#865): what cancelling a shipyard job returns
+    "troop-training-refund", // ISP-172 (AB#866): what cancelling a training job returns
+    "conglomerate-dissolution", // ISP-199 (AB#893): a member's share of a dissolved conglomerate's treasury
+    "conglomerate-withdrawal", // ISP-204 (AB#898): credits a founder or director took from the treasury
+    "conglomerate-station-refund", // ISP-210 (AB#905): a member's own credits back from a cancelled station project
+    "conglomerate-stake-buyout", // ISP-211 (AB#906): a departed corporation's station stake, paid out by the treasury
+    "forced-sale" // ISP-286 (AB#993): goods and buildings sold to recover a defaulted player debt
+  ]),
   expense: Object.freeze([
     "hiring",
     "payroll",
@@ -104,7 +118,18 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "exchange-purchases",
     "exchange-escrow",
     "exchange-tax",
-    "lease-royalty" // ISP-302 (AB#2285): the royalty's share of a sale's tax, booked apart so it can be counted
+    "lease-royalty", // ISP-302 (AB#2285): the royalty's share of a sale's tax, booked apart so it can be counted
+    "loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",
+    "escrow-hold-paid", "fee-paid", // ISP-146 (AB#840): server/settlement.js
+    "loan-interest-paid", // ISP-150 (AB#844): a loan's interest, on its own line of the statements
+    "bond-redemption-paid", // ISP-155 (AB#849): an issuer repaying its bonds' face at maturity
+    "bond-sale-paid", // Bug #2574: a corporation buying another's bonds
+    "conglomerate-charter", "conglomerate-deposit", // ISP-197 (AB#891): the charter fee, a sink, and the deposit into the new treasury
+    "conglomerate-contribution", // ISP-204 (AB#898): credits a member put into the treasury (the custody fee comes out of it there)
+    "conglomerate-station", // ISP-210 (AB#905): a member's own credits put into its conglomerate's station project
+    "ship-production", // ISP-171 (AB#865): ships queued at the Orbital Shipyard
+    "troop-training", // ISP-172 (AB#866): troops trained at Headquarters
+    "military-upkeep" // ISP-173 (AB#867): what ships and troops cost to keep, on the design's curve
   ])
 });
 
@@ -176,6 +201,20 @@ export function openDayBook(corp, now = Date.now()) {
 const total = (o) => Object.values(o || {}).reduce((sum, v) => sum + (Number(v) || 0), 0);
 
 /**
+ * Bug #2575: the categories that are financing, not profit or loss: principal lent and repaid, capital raised by bonds
+ * and shares and returned at redemption, bonds sold, escrow held and released, and dividends paid (a distribution to
+ * owners). They are cash, so the cash flow counts them and still reconciles; the P&L leaves them out, so borrowing or
+ * raising capital is never income and repaying it never a loss. Interest, coupons, dividends received and fees stay in.
+ */
+export const FINANCING_CATEGORIES = Object.freeze([
+  "loan-disbursal-received", "loan-disbursal-paid", "loan-repayment-received", "loan-repayment-paid",
+  "bond-subscription-received", "bond-subscription-paid", "bond-redemption-received", "bond-redemption-paid",
+  "bond-sale-received", "bond-sale-paid", "share-purchase-received", "share-purchase-paid",
+  "escrow-hold-paid", "escrow-release-received", "dividend-paid"
+]);
+const operating = (o) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => !FINANCING_CATEGORIES.includes(k)));
+
+/**
  * The three statements for the day that starts at `dayStart`, from the corporation's open day book. Pure: reads the
  * corporation and changes nothing. A day with no book (the server was not running, or nothing moved) is a day of no
  * movement at the current balance.
@@ -184,30 +223,54 @@ const total = (o) => Object.values(o || {}).reduce((sum, v) => sum + (Number(v) 
  * outflows; `unrecorded` is the difference, 0 unless something moved credits outside the ledger, and is shown rather
  * than hidden so a statement never claims more than it knows.
  */
+/**
+ * ISP-160 (AB#854): what a corporation's share holdings are worth, for the balance sheet. It needs every issuer's
+ * statements, which this module does not see, so server/shareOfferings.js sets it when it loads; until then (a test
+ * that never loads the exchange) holdings count as 0.
+ */
+let valueHoldings = () => 0;
+export function setHoldingsValuer(fn) { valueHoldings = typeof fn === "function" ? fn : () => 0; }
+
+/**
+ * Bug #4647: what a corporation owes (loans borrowed, bonds issued) and is owed (loans lent, offers in escrow, bonds
+ * held). Set by server/balanceSheet.js, which sees the other corporations and the markets; 0 until it loads.
+ */
+let valueDebt = () => 0;
+let valueReceivables = () => 0;
+export function setDebtValuer(fn) { valueDebt = typeof fn === "function" ? fn : () => 0; }
+export function setReceivablesValuer(fn) { valueReceivables = typeof fn === "function" ? fn : () => 0; }
+
 export function closeDay(corp, dayStart, market = null) {
   const f = corp?.finances || {};
   const book = f.dayBook && f.dayBook.dayStart === dayStart ? f.dayBook : null;
   const closing = Math.round(Number(f.credits) || 0);
-  const income = { ...(book?.income || {}) };
-  const expenses = { ...(book?.expenses || {}) };
-  const inflows = total(income);
-  const outflows = total(expenses);
+  const inflows = total(book?.income);
+  const outflows = total(book?.expenses);
+  const income = operating(book?.income); // Bug #2575: the P&L is profit and loss only; financing is in the cash flow
+  const expenses = operating(book?.expenses);
   const opening = book ? Math.round(Number(book.opening) || 0) : closing;
   const facilities = Math.max(0, Math.round(Number(f.assets) || 0));
   const inventory = market ? valueInventory(corp, market) : Math.max(0, Math.round(Number(f.inventoryValue) || 0));
-  const liabilities = computeLiveLiabilities(corp);
+  const holdings = Math.max(0, Math.round(Number(valueHoldings(corp)) || 0)); // AB#854: shares at the Board's value
+  // Bug #4647: debt is a liability and what others owe is an asset, so borrowing does not raise net worth
+  const debt = Math.max(0, Math.round(Number(valueDebt(corp)) || 0));
+  const receivables = Math.max(0, Math.round(Number(valueReceivables(corp)) || 0));
+  const liabilities = computeLiveLiabilities(corp) + debt;
   return {
     day: new Date(dayStart).toISOString().slice(0, 10),
     dayStart,
-    pnl: { income, expenses, totalIncome: inflows, totalExpenses: outflows, net: inflows - outflows },
+    pnl: { income, expenses, totalIncome: total(income), totalExpenses: total(expenses), net: total(income) - total(expenses) },
     cashFlow: { opening, inflows, outflows, closing, unrecorded: closing - (opening + inflows - outflows) },
     balanceSheet: {
       credits: closing,
       facilities,
       inventory,
+      holdings,
+      receivables,
       liabilities,
-      totalAssets: closing + facilities + inventory,
-      netWorth: closing + facilities + inventory - liabilities
+      debt,
+      totalAssets: closing + facilities + inventory + holdings + receivables,
+      netWorth: closing + facilities + inventory + holdings + receivables - liabilities
     }
   };
 }

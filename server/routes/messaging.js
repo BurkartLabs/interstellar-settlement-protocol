@@ -1,6 +1,8 @@
 // server/routes/messaging.js: the messaging routes, split out of server/index.js (AB#1815).
 import { listAccountMessages, markMessageRead, moveMessage, sendPlayerMessage, findCorporations, saveDraft, deleteDraft } from "../gameState.js";
 import { emitToAccount } from "../realtime.js";
+import { recordLegacyMessage } from "../game/conversations.js";
+import { messageMinuteLimiter, messageHourLimiter } from "../rateLimiters.js";
 
 export function registerMessagingRoutes(app) {
   // ─── Messages ────────────────────────────────────────────────────────────────
@@ -26,7 +28,7 @@ export function registerMessagingRoutes(app) {
   });
 
   // Specific named routes FIRST (before :messageId wildcards)
-  app.post("/api/accounts/:accountId/messages/send", (req, res) => {
+  app.post("/api/accounts/:accountId/messages/send", messageMinuteLimiter, messageHourLimiter, (req, res) => {
     const { toCorpId, toCorpName, subject, body } = req.body ?? {};
     const result = sendPlayerMessage(req.params.accountId, {
       toCorpId: String(toCorpId || "").trim().slice(0, 64),
@@ -39,6 +41,8 @@ export function registerMessagingRoutes(app) {
       res.status(result.status || 400).json({ error: result.error, ...(result.candidates ? { candidates: result.candidates } : {}) });
       return;
     }
+    // AB#910: the same message goes into its conversation too, so conversations are complete from now on.
+    recordLegacyMessage(result.legacy);
     // Delete the draft if a draftId was provided
     if (req.body?.draftId) {
       deleteDraft(req.params.accountId, String(req.body.draftId));

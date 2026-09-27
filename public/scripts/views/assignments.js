@@ -435,7 +435,6 @@ export function renderMissions(data) {
   }
 }
 
-export function renderCombatReports() { /* removed: combat reports tab deprecated */ }
 
 /** Assignments: agents, the mission modal, accepting and completing contracts. */
 export function bindAssignmentForms() {

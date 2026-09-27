@@ -187,6 +187,21 @@ export function buildFerricMiningComplexReceipt({ cost, assetValue, slotsUsed, s
   });
 }
 
+// ISP-170 (AB#864): built through POST /gameplay/build only. ISP-171 (AB#865) builds ships there; the Fleet screen that queues them is ISP-175.
+export function buildOrbitalShipyardReceipt({ cost, assetValue, slotsUsed, slotsTotal }) {
+  return receipt("build-orbital-shipyard", {
+    title: "Orbital Shipyard Commissioned",
+    summary: "An Orbital Shipyard is operational at your corporation.",
+    costCredits: cost,
+    grants: [
+      { label: "Added to assets", value: formatCredits(assetValue) },
+      { label: "Building slots used", value: `${slotsUsed} / ${slotsTotal}` },
+      { label: "Now possible", value: "Queue ships on the Fleet tab" }
+    ],
+    next: "Light Fighters, Destroyers and Siege Engines are built here, at the catalog's cost and time, and join your fleet."
+  });
+}
+
 // ISP-97 (AB#787): built through POST /gameplay/build only, so no route of its own names this builder.
 export function buildRefineryComplexReceipt({ cost, assetValue, refineryName, multiplier }) {
   return receipt("build-refinery-complex", {
@@ -231,6 +246,89 @@ export function startRefineryReceipt({ refineryName, inputs, outputs, hours, end
       { label: "Run ends", value: formatUtc(endsAt) }
     ],
     next: "The output is added to this station's inventory when the run ends."
+  });
+}
+
+/** ISP-171 (AB#865): ships queued at the Orbital Shipyard, at the catalog's cost and time. */
+export function shipQueueReceipt({ job, unitName, vessels, cap }) {
+  const goods = Object.entries(job.goods).map(([item, qty]) => `${qty.toLocaleString("en-US")} ${item}`).join(", ");
+  return receipt("shipyard-queue", {
+    title: "Ship Production Queued",
+    summary: `${job.quantity} ${unitName}${job.quantity === 1 ? "" : "s"}, at your Orbital Shipyard.`,
+    costCredits: job.credits,
+    grants: [
+      { label: "Goods used", value: goods },
+      { label: "Starts", value: formatUtc(job.startsAt) },
+      { label: "Ready", value: formatUtc(job.completesAt) },
+      { label: "Fleet", value: `${vessels} / ${cap} vessels, these included` }
+    ],
+    next: "They join your fleet when the job completes. Cancelling returns all of a job not yet started, half of one under way."
+  });
+}
+
+/** ISP-171 (AB#865): a shipyard job cancelled, and what came back. */
+export function shipCancelReceipt({ job, unitName, refund }) {
+  const goods = Object.entries(refund.goods).filter(([, qty]) => qty > 0).map(([item, qty]) => `${qty.toLocaleString("en-US")} ${item}`).join(", ") || "none";
+  return receipt("shipyard-cancel", {
+    title: "Ship Production Cancelled",
+    summary: `${job.quantity} ${unitName}${job.quantity === 1 ? "" : "s"}, taken off the slips.`,
+    costCredits: 0,
+    grants: [
+      { label: "Credits returned", value: formatCredits(refund.credits) },
+      { label: "Goods returned", value: goods },
+      { label: "Share returned", value: refund.share === 1 ? "all of it: the job had not started" : "half: the job was under way" }
+    ],
+    next: "Queue ships again on the Fleet tab when you are ready."
+  });
+}
+
+/** ISP-172 (AB#866): troops training at Headquarters, at the catalog's cost and time. */
+export function troopTrainingReceipt({ job, what, garrison }) {
+  const goods = Object.entries(job.goods).map(([item, qty]) => `${qty.toLocaleString("en-US")} ${item}`).join(", ");
+  return receipt("training-queue", {
+    title: "Troop Training Started",
+    summary: `${what}, at your Headquarters.`,
+    costCredits: job.credits,
+    grants: [
+      { label: "Goods used", value: goods },
+      { label: "Starts", value: formatUtc(job.startsAt) },
+      { label: "Ready", value: formatUtc(job.completesAt) },
+      { label: garrison ? "Garrison" : "Stationed", value: garrison ? `${garrison}, where you queued them` : "with your fleet" }
+    ],
+    next: "They are yours when training completes. No employees are taken: payroll and your leases' staffing are unchanged."
+  });
+}
+
+/** ISP-172 (AB#866): a training job cancelled, and what came back. */
+export function troopCancelReceipt({ what, refund }) {
+  const goods = Object.entries(refund.goods).filter(([, qty]) => qty > 0).map(([item, qty]) => `${qty.toLocaleString("en-US")} ${item}`).join(", ") || "none";
+  return receipt("training-cancel", {
+    title: "Troop Training Cancelled",
+    summary: `${what}, sent home.`,
+    costCredits: 0,
+    grants: [
+      { label: "Credits returned", value: formatCredits(refund.credits) },
+      { label: "Goods returned", value: goods },
+      { label: "Share returned", value: refund.share === 1 ? "all of it: training had not started" : "half: training was under way" }
+    ],
+    next: "Train troops again on the Fleet tab when you are ready."
+  });
+}
+
+/** ISP-177 (AB#871): a mercenary fleet hired; price and collateral are held until the term ends. */
+export function mercenaryHireReceipt({ offer }) {
+  return receipt("mercenary-hire", {
+    title: "Mercenary Fleet Hired",
+    summary: `${offer.fleetName}, from ${offer.ownerName}, for ${offer.termHours} hours.`,
+    costCredits: offer.price + offer.collateral,
+    grants: [
+      { label: "Price", value: `${formatCredits(offer.price)}, paid to the owner when the term ends` },
+      { label: "Collateral", value: `${formatCredits(offer.collateral)}, back to you at the end less the value of any units lost` },
+      { label: "Fleet", value: `${offer.attack} ATK / ${offer.defense} DEF, at ${offer.readiness ?? 100}% readiness` },
+      { label: "Term ends", value: formatUtc(offer.endsAt) },
+      { label: "Allowed use", value: { defense: "Defense only", pve: "PvE and defense", raids: "Raids, PvE and defense" }[offer.allowedUse] || offer.allowedUse }
+    ],
+    next: "The fleet is under your command until the term ends, then it returns to its owner."
   });
 }
 

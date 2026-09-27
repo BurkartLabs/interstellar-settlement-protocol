@@ -6,7 +6,7 @@
 
 import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
-import { DEFAULT_EXCHANGE_VIEW, MY_LISTINGS_SHOWN, SELL_ORDERS_SHOWN, cappedNote, filteredEmptyHtml, saveExchangeView, tradeNumbers, viewOrders } from "../exchangeView.js";
+import { DEFAULT_EXCHANGE_VIEW, MY_LISTINGS_SHOWN, SELL_ORDERS_SHOWN, cappedNote, filteredEmptyHtml, partnerNames, partnersEmptyHtml, saveExchangeView, sellerKey, tradeNumbers, viewOrders } from "../exchangeView.js";
 import { deepClone, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { appState, viewerStorage } from "../state.js";
@@ -16,6 +16,7 @@ import { labelTableCells } from "../tableLabels.js";
 import { tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
 import { counterpartyHtml } from "../npcProfile.js"; // ISP-124 (AB#818)
 import { showNpcProfile } from "./npcProfileModal.js";
+import { renderMercenaries } from "./mercenaries.js"; // ISP-177 (AB#871)
 import { flashButtonSuccess, getCurrentStationInfo, getInventory, pushFeedback, refreshFromServer, showTradeConfirmation, stationLocationBanner } from "./shared.js";
 
 /**
@@ -53,6 +54,7 @@ export function renderMarket(data) {
   const station = getCurrentStationInfo(data);
   const bannerEl = document.getElementById("market-station-banner");
   if (bannerEl) bannerEl.innerHTML = stationLocationBanner(station);
+  renderMercenaries(data);
 
   const buyTable = document.getElementById("exchange-buy-table");
   const buyEmpty = document.getElementById("exchange-buy-empty");
@@ -84,7 +86,11 @@ export function renderMarket(data) {
   const npcBuyOrders = market.npcBuyOrders || [];
   const allBids = market.buyOrders || []; // AB#1054: players' buy orders, the viewer's own marked `mine`
 
-  const view = appState.exchangeView;
+  // ISP-208 (AB#903): the viewer's conglomerate partners, from the server's last read; the Sellers filter and the
+  // Partner badge use them. Outside a conglomerate the filter is not offered and has no effect.
+  const partners = partnerNames(appState.conglomerate, data?.corp?.publicId);
+  const inConglomerate = Boolean(appState.conglomerate);
+  const view = { ...appState.exchangeView, sellers: inConglomerate ? appState.exchangeView.sellers : "all" };
 
   // Build resource filter pills from all visible resources, keeping a remembered resource that has no orders today so
   // the viewer can see which filter is on
@@ -106,6 +112,10 @@ export function renderMarket(data) {
   if (typeSelect) typeSelect.value = view.type;
   const sortSelect = document.getElementById("exchange-sort");
   if (sortSelect) sortSelect.value = view.sort;
+  const sellersField = document.getElementById("exchange-sellers-field");
+  if (sellersField) sellersField.hidden = !inConglomerate;
+  const sellersSelect = document.getElementById("exchange-sellers-filter");
+  if (sellersSelect) sellersSelect.value = view.sellers;
 
   // Order-type filter: one table, or all of them (AB#402)
   const showSection = (id, type) => {
@@ -120,7 +130,7 @@ export function renderMarket(data) {
   showSection("exchange-mine-section", "mine");
 
   // Filter by resource and sort, then cap: the cap applies to what the viewer asked to see (AB#402)
-  const viewedSellOrders = viewOrders(allSellOrders, view);
+  const viewedSellOrders = viewOrders(allSellOrders, view, { partners });
   const filteredSellOrders = viewedSellOrders.slice(0, SELL_ORDERS_SHOWN);
   const filteredNpcOrders = viewOrders(npcBuyOrders, view);
   const viewedMySellOrders = viewOrders(allMySellOrders, view);
@@ -157,7 +167,7 @@ export function renderMarket(data) {
             <td>${escapeHtml(order.item)}</td>
             <td class="ui-table__num">${Number(order.quantity).toLocaleString()}</td>
             <td class="ui-table__num">${toCurrency(order.unitPrice)}</td>
-            <td>${escapeHtml(order.seller || "Anonymous")}</td>
+            <td>${escapeHtml(order.seller || "Anonymous")}${partners.has(sellerKey(order.seller)) ? ' <span class="ui-badge ui-badge--success">Partner</span>' : ""}</td>
             <td><input class="ui-input exchange__qty" type="number" min="1" max="${Number(order.quantity)}" value="1" aria-label="Quantity of ${escapeHtml(order.item)} to buy" data-buy-order-qty="${order.id}" /></td>
             <td><button class="ui-button ui-button--secondary" type="button" data-buy-order-id="${order.id}" data-buy-item="${escapeHtml(order.item)}" data-buy-price="${Number(order.unitPrice)}" data-buy-qty="${Number(order.quantity)}">Buy</button></td>
           </tr>
@@ -166,6 +176,11 @@ export function renderMarket(data) {
       .join("");
   }
   showEmpty(buyEmpty, "exchange-buy-filtered", allSellOrders.length, filteredSellOrders.length, "player sell orders");
+  // ISP-208 (AB#903): when the Sellers filter is what hid them, say so, and how many.
+  if (view.sellers === "conglomerate" && allSellOrders.length && !filteredSellOrders.length) {
+    const filteredEl = document.getElementById("exchange-buy-filtered");
+    if (filteredEl) filteredEl.innerHTML = partnersEmptyHtml(viewOrders(allSellOrders, { ...view, sellers: "all" }).length, view.resource);
+  }
 
   // AB#815: Standing sell orders, the NPC corporations' asks (player can buy from these), badged NPC. Same columns as Sell
   // orders, so the purchase handler reads the seller from the fourth cell of either.
@@ -640,6 +655,7 @@ export function bindExchangeForms() {
   });
   document.getElementById("exchange-type-filter")?.addEventListener("change", (event) => setExchangeView({ type: event.target.value }));
   document.getElementById("exchange-sort")?.addEventListener("change", (event) => setExchangeView({ sort: event.target.value }));
+  document.getElementById("exchange-sellers-filter")?.addEventListener("change", (event) => setExchangeView({ sellers: event.target.value })); // ISP-208 (AB#903)
   document.getElementById("market")?.addEventListener("click", (event) => {
     // ISP-124 (AB#818): an NPC's name opens its profile card.
     const npc = event.target.closest("[data-npc-profile]");

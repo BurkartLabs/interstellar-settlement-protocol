@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const DATA = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "data");
 const read = (file) => JSON.parse(fs.readFileSync(path.join(DATA, file), "utf8"));
 
-export const ITEM_TIERS = Object.freeze([1, 2, 3]);
+export const ITEM_TIERS = Object.freeze([1, 2, 3, 4]); // AB#879: tier 4, v0.11-tier4.md section 2
 export const ITEM_CATEGORIES = Object.freeze(["raw", "refined"]);
 
 /** Each entry of `items` whose id, name, tier or category is missing or wrong, or whose id or name repeats. */
@@ -27,7 +27,8 @@ export function itemSchemaProblems(items) {
     if (typeof item?.name !== "string" || !item.name.trim()) problems.push(`${at}: no name`);
     if (!ITEM_TIERS.includes(item?.tier)) problems.push(`${at}: tier must be one of ${ITEM_TIERS.join(", ")}`);
     if (!ITEM_CATEGORIES.includes(item?.category)) problems.push(`${at}: category must be one of ${ITEM_CATEGORIES.join(", ")}`);
-    if ((item?.category === "refined") !== (item?.tier === 3)) problems.push(`${at}: tier 3 is refined, and only tier 3`);
+    // Tiers 1 and 2 are mined and tier 3 is made; tier 4 is either, extracted or synthesized (AB#879).
+    if (item?.tier !== 4 && (item?.category === "refined") !== (item?.tier === 3)) problems.push(`${at}: tier 3 is refined, tiers 1 and 2 raw`);
     if (ids.has(item?.id)) problems.push(`${at}: id repeats`);
     if (names.has(item?.name)) problems.push(`${at}: name repeats`);
     ids.add(item?.id);
@@ -41,7 +42,7 @@ export function itemSchemaProblems(items) {
  * each belt's composition, the NPC bids and asks, what each NPC corporation trades, each contract's quota, and each
  * milestone's totalMined:<resource> (its lowercase key; "silicate" is the Silicate yards' own, AB#798).
  */
-export function itemReferences({ refineryChains, systems, economy, npcCorporations, missions, milestones }) {
+export function itemReferences({ refineryChains, systems, economy, npcCorporations, missions, milestones, units }) {
   const refs = [];
   const add = (source, name) => refs.push({ source, name });
   for (const name of refineryChains?.resourceCatalog || []) add("refinery-chains.json resourceCatalog", name);
@@ -58,6 +59,7 @@ export function itemReferences({ refineryChains, systems, economy, npcCorporatio
   for (const ask of economy?.npcAsks?.dailyQty || []) add("economy.json npcAsks", ask?.item);
   for (const corp of npcCorporations?.corporations || []) for (const name of corp?.trades || []) add(`npc-corporations.json ${corp.id}`, name);
   for (const template of missions?.templates || []) if (template?.resource) add(`missions.json ${template.id}`, template.resource);
+  for (const unit of units?.units || []) for (const name of Object.keys(unit?.goods || {})) add(`units.json ${unit.id}`, name); // AB#861
   for (const level of milestones?.levels || []) {
     for (const req of level?.requirements || []) {
       const key = String(req?.metric || "").match(/^totalMined:(.+)$/)?.[1];
@@ -85,7 +87,8 @@ export function dataItemSources() {
     economy: read("economy.json"),
     npcCorporations: read("npc-corporations.json"),
     missions: read("missions.json"),
-    milestones: read("milestones.json")
+    milestones: read("milestones.json"),
+    units: read("units.json") // AB#861: what a unit costs to build
   };
 }
 

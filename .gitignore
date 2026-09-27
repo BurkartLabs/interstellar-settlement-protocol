@@ -22,4 +22,5 @@ test-results/
 # password hashes and refresh tokens, including two real addresses, in a public repository (Orchestrata AB#415).
 # server/gameState.js recreates this file locally when it needs it and copes with it being absent.
 data/accounts-snapshot.json
+data/dominance.json
 data/*accounts*.json

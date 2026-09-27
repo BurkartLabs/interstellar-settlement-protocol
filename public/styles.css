@@ -41,6 +41,7 @@
   --success-hover: #86edb8;
   --success-pressed: #45d18a;
   --on-success: #04180d;
+  --station-owned: #c496ff; /* ISP-210 (AB#905): a conglomerate's station on the starmap (public/scripts/starmap.js draws the same) */
 
   /* Behind text laid over station artwork (the Director's note on the mockup: its gradient was lightest where the
      title sat), and behind a modal. */
@@ -645,6 +646,325 @@ button:disabled {
 .kpi-tile--primary::before {
   background: none;
 }
+
+/* ISP-148 (AB#842): the credit rating card: the grade, the score, and one line on what holds it back */
+.finance__rating {
+  margin: var(--space-4) 0;
+}
+
+/* ISP-151 (AB#845): the Deep Space Development Bank's view */
+.bank-grade { margin: 0 0 var(--space-3); color: var(--text-soft); }
+.bank-products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.bank-product,
+.bank-quote,
+.bank-loan {
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.bank-product h4,
+.bank-quote h4,
+.bank-loan h4 { margin: 0; font-size: var(--font-size-3); }
+.bank-product p { margin: var(--space-1) 0 0; font-size: var(--font-size-2); }
+.bank-product__rate { color: var(--accent); font-variant-numeric: tabular-nums; }
+.bank-product__limit { color: var(--text-soft); }
+.bank-product--closed { opacity: 0.6; }
+.bank-quote-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.bank-quote-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1 1 12rem;
+  font-size: var(--font-size-2);
+  color: var(--muted);
+}
+.bank-quote-form__status:empty { display: none; }
+.bank-quote-form__status { flex-basis: 100%; margin: 0; color: var(--warn); font-size: var(--font-size-2); }
+.bank-quote { margin-top: var(--space-4); border-color: var(--accent); }
+.bank-quote__header,
+.bank-loan__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.bank-quote__expiry { color: var(--muted); font-size: var(--font-size-2); }
+.bank-quote__terms,
+.bank-loan__terms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-3);
+}
+.bank-quote__terms dt,
+.bank-loan__terms dt { color: var(--muted); font-size: var(--font-size-1); text-transform: uppercase; letter-spacing: var(--letter-spacing-caps); }
+.bank-quote__terms dd,
+.bank-loan__terms dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bank-quote__terms dd[data-term="Total repayable"] { font-weight: var(--font-weight-semibold); }
+.bank-quote__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.bank-loans { display: flex; flex-direction: column; gap: var(--space-3); }
+.bank-loan--arrears { border-color: var(--danger); }
+.bank-loan__badge { color: var(--danger); border-color: currentColor; }
+.bank-loan__badge--ok { color: var(--success); }
+.bank-loan__arrears { color: var(--danger); }
+/* ISP-153 (AB#847): the loan board, in the Bank */
+.loan-board__controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); margin-bottom: var(--space-3); }
+.loan-board__only { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; font-size: var(--font-size-2); }
+.loan-board__only input { width: 22px; height: 22px; }
+.loan-board__offers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: var(--space-3); }
+.loan-offer--mine { border-style: dashed; }
+.loan-offer__why { margin: 0; }
+.loan-grade { margin-left: var(--space-1); }
+.loan-warning { margin-top: var(--space-2); padding: var(--space-3); border: 1px solid var(--danger); border-radius: var(--radius-md); color: var(--text); background: var(--surface-2); line-height: var(--line-height-body); }
+.loan-recovered dd { overflow-wrap: anywhere; }
+
+/* ISP-200 (AB#894): the Conglomerate Affairs Bureau's view */
+.cong-body { display: flex; flex-direction: column; gap: var(--space-4); }
+.cong-panel h3 { margin: 0 0 var(--space-3); }
+.cong-panel h3 + * { margin-top: 0; }
+.cong-panel__lede { margin: 0 0 var(--space-3); color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.cong-terms { margin-bottom: var(--space-4); }
+.cong-charter-form,
+.cong-identity { display: flex; flex-direction: column; gap: var(--space-4); }
+.cong-picker { margin: 0; padding: 0; border: 0; min-width: 0; }
+.cong-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.cong-picker__option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  cursor: pointer;
+  font-size: var(--font-size-1);
+  color: var(--text-soft);
+  text-align: center;
+}
+.cong-picker__option:hover { background: var(--surface-hover); }
+.cong-picker__option input { margin: 0; accent-color: var(--accent); }
+.cong-picker__option:has(input:checked) { border-color: var(--accent); color: var(--text); background: var(--surface-2); }
+.cong-emblem { flex: none; fill: currentColor; }
+.cong-emblem--sm { width: 24px; height: 24px; }
+.cong-emblem--md { width: 36px; height: 36px; }
+.cong-emblem--lg { width: 56px; height: 56px; }
+.cong-colour--1 { color: var(--accent); }
+.cong-colour--2 { color: var(--accent-pressed); }
+.cong-colour--3 { color: var(--success); }
+.cong-colour--4 { color: var(--success-pressed); }
+.cong-colour--5 { color: var(--warn); }
+.cong-colour--6 { color: var(--warn-pressed); }
+.cong-colour--7 { color: var(--danger); }
+.cong-colour--8 { color: var(--danger-pressed); }
+.cong-colour--9 { color: var(--text); }
+.cong-colour--10 { color: var(--muted); }
+.cong-list,
+.cong-directory { display: flex; flex-direction: column; gap: var(--space-2); margin: 0 0 var(--space-3); padding: 0; list-style: none; }
+.ui-card.cong-item { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.cong-item__text { flex: 1 1 12rem; min-width: 0; }
+.cong-item__text .ui-card__title { overflow-wrap: anywhere; }
+.cong-item__why,
+.cong-refusal { margin: var(--space-1) 0 0; color: var(--warn); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.cong-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.cong-form-status:empty { display: none; }
+.cong-form-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
+.cong-muted { color: var(--muted); font-size: var(--font-size-2); }
+.cong-summary { display: flex; align-items: center; gap: var(--space-4); }
+.cong-summary__name { margin: 0; font-size: var(--font-size-4); overflow-wrap: anywhere; }
+.cong-succession { margin: var(--space-3) 0 0; color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.cong-search { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); margin-top: var(--space-4); }
+.cong-search .ui-field { flex: 1 1 14rem; }
+
+/* ISP-203 (AB#897): the level panel: each requirement with its bar */
+.cong-level { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-3) 0; padding: 0; list-style: none; }
+.cong-level__req { display: grid; grid-template-columns: minmax(0, 1fr) 10rem auto; align-items: center; gap: var(--space-2) var(--space-3); }
+.cong-level__label { overflow-wrap: anywhere; }
+.cong-level__bar { display: block; height: 8px; border-radius: 4px; background: var(--surface-2, var(--border)); overflow: hidden; }
+.cong-level__bar > span { display: block; height: 100%; background: var(--warn); }
+.cong-level__req--met .cong-level__bar > span { background: var(--success); }
+.cong-level__progress { color: var(--text-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cong-level__why { padding-left: var(--space-4); }
+@media (max-width: 600px) {
+  .cong-level__req { grid-template-columns: minmax(0, 1fr) auto; }
+  .cong-level__label { grid-column: 1 / -1; }
+  .cong-level__progress { white-space: normal; text-align: right; }
+  .cong-level__why, .cong-level__progress, .cong-level__label, [data-role="cong-level"] .cong-panel__lede { font-size: var(--font-size-3); }
+}
+
+/* ISP-206 (AB#901): the Conglomerate tab's own tabs, and the Treasury and Hangar screens */
+.cong-tabpanel { display: flex; flex-direction: column; gap: var(--space-4); padding: 0; }
+.cong-form-status--ok { color: var(--success); }
+.cong-tabpanel[hidden] { display: none; }
+.cong-money { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--space-4); }
+.cong-money-form { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.cong-money-form .ui-button { align-self: flex-start; }
+.cong-allowance { margin: 0; color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.cong-allowance strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.cong-subhead { margin: var(--space-2) 0 0; font-size: var(--font-size-3); }
+.cong-ledger__note { display: block; color: var(--muted); font-size: var(--font-size-1); }
+.cong-ledger__amount--in { color: var(--success); }
+.cong-ledger__amount--out { color: var(--danger); }
+.cong-pager { justify-content: flex-end; }
+.bank-loans__closed { margin: 0; padding-left: var(--space-4); color: var(--muted); font-size: var(--font-size-2); }
+
+/* ISP-156 (AB#850): the Bank's desk switch and the bond board */
+.bank-modes { display: flex; gap: var(--space-2); margin: var(--space-4) 0; }
+.bank-modes__button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.bond-series-list,
+.bond-holdings { display: flex; flex-direction: column; gap: var(--space-3); }
+.bond-series,
+.bond-holding {
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.bond-holding--late { border-color: var(--danger); }
+.bond-series__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.bond-series__header h4 { margin: 0; font-size: var(--font-size-3); }
+.bond-grade { font-family: var(--font-mono); color: var(--accent); border-color: currentColor; }
+.bond-terms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-3);
+}
+.bond-terms dt { color: var(--muted); font-size: var(--font-size-1); text-transform: uppercase; letter-spacing: var(--letter-spacing-caps); }
+.bond-terms dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+/* ISP-161 (AB#855): the Stock Exchange reuses the bond board's cards; a return is coloured by its sign */
+.igsx-gain { color: var(--success); }
+.igsx-loss { color: var(--danger); }
+.igsx-total { margin-bottom: var(--space-4); }
+.igsx-payout p { margin: 0 0 var(--space-3); }
+.igsx-payout .ui-select { max-width: 16rem; }
+.igsx-hint { flex-basis: 100%; margin: 0; }
+@media (max-width: 600px) {
+  [data-role="igsx"] .bond-terms dt,
+  [data-role="igsx"] .bond-terms__aside,
+  [data-role="igsx"] .igsx-hint,
+  [data-role="igsx"] .bank-quote-form__status { font-size: var(--font-size-3); }
+}
+.bond-terms__aside { color: var(--muted); font-size: var(--font-size-2); }
+.bond-subscribe,
+.bond-issue { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
+.bond-subscribe .bank-quote-form__field { flex: 0 1 10rem; }
+.bond-subscribe .bank-quote-form__status { flex-basis: 100%; }
+.bond-issue > .bond-preview,
+.bond-issue > .bank-quote__actions { flex-basis: 100%; }
+.bond-issue__coupon { flex: 2 1 16rem; }
+.bond-issue__coupon-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.bond-issue__coupon-row .ui-input { flex: 0 1 8rem; min-width: 0; }
+.bond-issue__yield { color: var(--text-soft); font-size: var(--font-size-2); }
+.bond-issue__yield strong { color: var(--accent); }
+.bond-preview { margin: 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--accent); border-radius: var(--radius-md); }
+.bond-preview--refused { border-color: var(--warn); color: var(--warn); }
+.bond-ineligible { padding: var(--space-3) var(--space-4); border: 1px solid var(--warn); border-radius: var(--radius-md); }
+.bond-ineligible p { margin: 0 0 var(--space-2); }
+.bond-badge { border-color: currentColor; }
+.bond-badge--open { color: var(--accent); }
+.bond-badge--ok { color: var(--success); }
+.bond-badge--late { color: var(--danger); }
+.bond-badge--done { color: var(--muted); }
+
+.rating-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.rating-card__grade {
+  flex: none;
+  min-width: 4.5rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-6);
+  line-height: 1;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.rating-card__grade--strong { color: var(--success); }
+.rating-card__grade--fair { color: var(--accent); }
+.rating-card__grade--weak { color: var(--warn); }
+.rating-card__grade--default { color: var(--danger); }
+.rating-card__grade--unrated { color: var(--muted); }
+
+.rating-card__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.rating-card__title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-1);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rating-card__score {
+  margin-left: var(--space-2);
+  color: var(--text);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.rating-card__why {
+  margin: 0;
+  font-size: var(--font-size-3);
+  color: var(--text);
+}
+
+.rating-card__inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-2);
+  color: var(--text-soft);
+}
+
+.rating-card__input span { color: var(--muted); }
+.rating-card__input--weak span { color: var(--warn); }
+.rating-card__input--strong span { color: var(--success); }
 
 .kpi-tile__label {
   font-family: var(--font-mono);
@@ -2764,6 +3084,69 @@ body.sg {
   border-color: var(--accent);
   background: var(--surface-3);
 }
+/* AB#911: a conversation row's preview stays on one line; a thread scrolls inside its panel, newest at the bottom. */
+.inbox__preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.thread__scroll {
+  max-height: min(60vh, 560px);
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3);
+}
+.thread__older {
+  margin: 0 0 var(--space-2);
+  text-align: center;
+  color: var(--text-soft);
+  font-size: var(--font-size-1);
+}
+.thread__messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.thread__msg {
+  max-width: min(85%, 640px);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.thread__msg--mine {
+  align-self: flex-end;
+  border-color: var(--accent);
+  background: var(--surface-3);
+}
+.thread__meta {
+  display: block;
+  color: var(--text-soft);
+  font-size: var(--font-size-1);
+}
+.thread__subject {
+  display: block;
+  font-weight: 600;
+}
+.thread__body {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* A reply is a line or two: a short box leaves the thread its room on a phone (seen at 375x812). */
+.thread__reply .ui-textarea {
+  min-height: 88px;
+}
+.thread__reply {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+}
 
 /* The Financial Core: charts two across (the wide ones span both), the two statements and the daily statements. */
 .finance__charts {
@@ -3844,6 +4227,9 @@ img.station__body {
   background: var(--warn); /* the map's station diamond is amber */
   transform: rotate(45deg) translateY(-1px);
 }
+/* Bug #4651: why a Dock order was refused, where it was given */
+.starmap__dock-refused { margin: var(--space-2) 0 0; color: var(--warn); font-size: var(--font-size-1); }
+.starmap__legend-mark--owned { background: var(--station-owned); } /* ISP-210 (AB#905): the conglomerate station's violet, as drawn */
 .starmap__overline {
   margin: 0;
   font-size: var(--font-size-1);
@@ -3892,6 +4278,22 @@ img.station__body {
 }
 /* ISP-143 (AB#837): the resource concentration overlay's legend, above the map: the item, and each band's colour and
    range. The colours are the canvas's own (public/scripts/resourceOverlay.js), so they are set inline on each swatch. */
+/* ISP-218 (AB#913): the dominance overlays: a legend naming every colour on the map, and a system's top three */
+.dominance-legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: 0; padding: 0; list-style: none; font-size: var(--font-size-2); color: var(--text); }
+.dominance-legend__item { display: flex; align-items: center; gap: var(--space-2); min-width: 0; overflow-wrap: anywhere; }
+.dominance-legend__swatch { flex: none; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--border); }
+.dominance-legend__item--own .dominance-legend__swatch { box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--series-1); }
+.dominance-swatch--series-1 { background: var(--series-1); }
+.dominance-swatch--series-2 { background: var(--series-2); }
+.dominance-swatch--series-3 { background: var(--series-3); }
+.dominance-swatch--series-4 { background: var(--series-4); }
+.dominance-swatch--series-5 { background: var(--series-5); }
+.dominance-swatch--surface-3 { background: var(--surface-3); }
+.dominance-details { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: 0; list-style: none; font-size: var(--font-size-2); color: var(--text-soft); }
+.dominance-details li { display: flex; justify-content: space-between; gap: var(--space-3); }
+.dominance-details strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.dominance-details__own span { color: var(--text); font-weight: var(--font-weight-semibold); }
+.dominance-details__others { color: var(--muted); }
 .starmap__resource-legend {
   display: flex;
   flex-direction: column;
@@ -3943,6 +4345,8 @@ img.station__body {
   display: block;
   min-width: 2px;
 }
+/* ISP-208 (AB#903): a belt a conglomerate partner scouted, named in its panel */
+.belt-shared { margin: 0 0 var(--space-2); color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
 .belt-bar__legend {
   display: flex;
   flex-wrap: wrap;
@@ -4239,7 +4643,7 @@ img.station__body {
 
 /* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */
 @media (max-width: 600px) {
-  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-kv, .station__overline, .station__note, .station__hint, .station__flavor, .station__blocked, .station__form label, .extractor__stat-label, .extractor__stat-value, .extractor__pct, .extractor__time, .extractor__cycle-status, .chat__meta, .chat__text, .forums__note, .forums__avatar, .forums__author, .forums__body, .missions__note, .missions__hint, .missions__overline, .missions__reward, .missions__cta, .missions__log-title, .missions__warning, .missions__levelup) {
+  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .thread__meta, .thread__older, .thread__body, .bank-quote-form__field, .bank-loan__terms dt, .bank-quote__terms dt, .loan-board__only, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-kv, .station__overline, .station__note, .station__hint, .station__flavor, .station__blocked, .station__form label, .extractor__stat-label, .extractor__stat-value, .extractor__pct, .extractor__time, .extractor__cycle-status, .chat__meta, .chat__text, .forums__note, .forums__avatar, .forums__author, .forums__body, .missions__note, .missions__hint, .missions__overline, .missions__reward, .missions__cta, .missions__log-title, .missions__warning, .missions__levelup) {
     font-size: var(--font-size-3);
   }
   .ui-screen .ui-table td::before {
@@ -4467,4 +4871,88 @@ img.station__body {
   #market .ui-table td::before {
     font-size: var(--font-size-3);
   }
+}
+
+/* ISP-171 (AB#865): the Orbital Shipyard's production panel on the Station page. */
+.shipyard { display: grid; gap: var(--space-3, 12px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.shipyard__form { display: grid; gap: var(--space-2, 8px); align-content: start; }
+.shipyard__form .ui-select, .shipyard__form .ui-field { display: grid; gap: 4px; }
+.shipyard__form select, .shipyard__form input { width: 100%; min-width: 0; }
+.shipyard__jobs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 8px); }
+.shipyard__job { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2, 8px); }
+
+/* ISP-175 (AB#869): the Fleet tab. Text first: every figure is in a table cell or a sentence. */
+.fleet__summary { display: grid; gap: var(--space-2, 8px); margin: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.fleet__summary > div { display: grid; gap: 2px; }
+.fleet__summary dt { font-weight: 600; }
+.fleet__summary dd { margin: 0; }
+.fleet__table-wrap { overflow-x: auto; max-width: 100%; }
+@media (min-width: 768px) { .fleet__units { min-width: 640px; } }
+@media (max-width: 767px) { .fleet__units tfoot tr { display: grid; gap: var(--space-2, 8px); padding: var(--space-4, 16px); } .fleet__units tfoot td { display: flex; justify-content: space-between; } .fleet__units tfoot td::before { content: attr(data-label); } .fleet__units .fleet__spacer { display: none; } }
+.fleet__units td.num, .fleet__units th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.fleet__card { display: grid; gap: var(--space-2, 8px); align-content: start; }
+.fleet__orders { display: flex; flex-wrap: wrap; gap: var(--space-2, 8px); align-items: end; }
+.fleet__counts { display: grid; gap: var(--space-2, 8px); grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.fleet__count input { width: 100%; min-width: 0; }
+.fleet__split > summary { cursor: pointer; }
+.fleet__destinations { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 8px); max-height: 320px; overflow-y: auto; }
+.fleet__destination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2, 8px); }
+/* ISP-177 (AB#871): Mercenary Rentals on the Galactic Exchange. The offers table is cards on a narrow column like every
+   market table; the contracts are a list of sentences; the form's fields wrap. */
+.mercs__terms { display: grid; gap: var(--space-2, 8px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+.mercs__terms input, .mercs__terms select, .mercs__form select { width: 100%; min-width: 0; }
+.mercs__mine { display: grid; gap: var(--space-4, 16px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.mercs__mine h4 { margin: 0 0 var(--space-2, 8px); }
+.mercs__contracts { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 8px); }
+.mercs__contract { display: grid; gap: 4px; padding: var(--space-3, 12px); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.mercs__contract p { margin: 0; }
+.mercs__who { display: grid; gap: 2px; }
+
+/* ISP-181 (AB#875): the raid screens */
+.raid-alert {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--danger);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+}
+.raid-alert__title { margin: 0 0 var(--space-2); font-size: var(--font-size-4); color: var(--danger); }
+.raid-alert__list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-3); }
+.raid-alert__item p { margin: 0 0 var(--space-2); }
+.raid-heading { margin: var(--space-2) 0 0; font-size: var(--font-size-3); }
+.raid-garrison--threat { border-color: var(--danger); }
+.raid-terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: var(--space-2) var(--space-4); margin: 0 0 var(--space-3); }
+.raid-terms dt { color: var(--muted); font-size: var(--font-size-1); text-transform: uppercase; letter-spacing: var(--letter-spacing-caps); }
+.raid-terms dd { margin: 0; font-variant-numeric: tabular-nums; }
+.raid-posture { margin: 0 0 var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-2); }
+.raid-posture legend { padding: 0 var(--space-1); color: var(--muted); font-size: var(--font-size-2); }
+.raid-posture__option { display: grid; grid-template-columns: auto 1fr; column-gap: var(--space-2); align-items: baseline; }
+.raid-posture__option input[type="radio"] { width: auto; margin: 0; grid-row: span 2; }
+.raid-posture__option .station__note { grid-column: 2; }
+.raid-posture .ui-button { align-self: flex-start; }
+.raid-reinforce, .raid-picker { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
+.raid-reinforce .ui-field, .raid-picker .ui-field { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; flex: 1 1 12rem; font-size: var(--font-size-2); color: var(--muted); }
+.raid-picker__you { margin: 0; color: var(--warn); }
+.raid-targets, .raid-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-2); }
+.raid-target, .raid-list__item {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3); background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.raid-target__name { font-weight: var(--font-weight-semibold); }
+.raid-target--closed .raid-target__name { color: var(--muted); }
+.raid-target__why { color: var(--text-soft); font-size: var(--font-size-2); }
+.raid-report { padding: var(--space-3) var(--space-4); background: var(--surface-1); border: 1px solid var(--accent); border-radius: var(--radius-md); }
+.raid-report__title { margin: 0 0 var(--space-2); font-size: var(--font-size-4); }
+.raid-report h5 { margin: var(--space-3) 0 var(--space-1); font-size: var(--font-size-3); }
+.raid-report ul { margin: 0; padding-left: var(--space-4); }
+.raid-table { width: 100%; border-collapse: collapse; margin: var(--space-2) 0; font-variant-numeric: tabular-nums; font-size: var(--font-size-2); }
+.raid-table caption { text-align: left; color: var(--muted); padding-bottom: var(--space-1); }
+.raid-table th, .raid-table td { padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--border); text-align: right; }
+.raid-table th[scope="row"], .raid-table thead th:first-child, .raid-table td:first-child { text-align: left; }
+.raid-rounds summary { cursor: pointer; color: var(--accent); }
+@media (max-width: 40rem) {
+  .raid-table { display: block; overflow-x: auto; font-size: var(--font-size-1); }
+  .raid-table th, .raid-table td { padding: var(--space-1); }
+  .raid-report { padding: var(--space-3); }
 }

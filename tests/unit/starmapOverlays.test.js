@@ -4,6 +4,7 @@ import { readFileSync } from "fs";
 // starmap.js preloads planet images when it is imported; node has no Image.
 globalThis.Image ??= class { set src(_v) {} };
 const { STARMAP_OVERLAYS, overlayColor } = await import("../../public/scripts/starmap.js");
+const { DOMINANCE_OVERLAYS } = await import("../../public/scripts/dominanceOverlay.js"); // ISP-218 (AB#913)
 
 // AB#1459: the Starmap offered "Resource Concentration", which coloured each system by (100 - pirateDensity +
 // gdpIndex) / 150. No system carries resource data, so a player comparing systems for mining was shown GDP and
@@ -20,8 +21,9 @@ const NONE_COLOR = overlayColor({ gdpIndex: 50, activityLevel: 50, pirateDensity
 describe("Starmap overlays show only what systems hold (AB#1459)", () => {
   it("reads the picker: None first, then one option per overlay", () => {
     expect(OPTIONS[0]).toEqual({ value: "none", label: "None" });
-    expect(OPTIONS.slice(1).map((o) => o.value)).toEqual(Object.keys(STARMAP_OVERLAYS));
-    expect(OPTIONS.slice(1).map((o) => o.label)).toEqual(Object.values(STARMAP_OVERLAYS).map((o) => o.label));
+    // ISP-218 (AB#913): the system-field overlays, then the two dominance overlays.
+    expect(OPTIONS.slice(1).map((o) => o.value)).toEqual([...Object.keys(STARMAP_OVERLAYS), ...Object.keys(DOMINANCE_OVERLAYS)]);
+    expect(OPTIONS.slice(1).map((o) => o.label)).toEqual([...Object.values(STARMAP_OVERLAYS), ...Object.values(DOMINANCE_OVERLAYS)].map((o) => o.label));
   });
 
   it("offers no resource overlay under a system field, and the page promises only the real one (AB#837)", () => {

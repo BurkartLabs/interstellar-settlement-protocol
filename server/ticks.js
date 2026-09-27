@@ -6,6 +6,7 @@ import { applyMiningOperations, getStationInventory } from "./gameState.js";
 import { applyAsteroidExpeditions, EXPEDITION_DURATIONS, PROBE_ASSET_VALUE } from "./gameState.js";
 // Bug #1097: payroll is settled on this same 5-second tick, for every account, online or not.
 import { settleAccountPayroll } from "./gameState.js";
+import { settleAccountUpkeep } from "./upkeep.js"; // ISP-173 (AB#867)
 // The R&D schedule lives in public/scripts/rndQueue.js, which the R&D panel reads too; imported here beside its use
 // (Bug #1258), away from the import block other branches edit.
 import { scheduleRndQueue, rndItemStatus } from "../public/scripts/rndQueue.js"; // Bug #1258
@@ -14,10 +15,22 @@ import { buildSnapshot, pushSnapshot, refreshDailyRevenue } from "./finances.js"
 import { recordTransfer, describeLines } from "../public/scripts/logistics.js";
 import { beltRespawnTick, ensureBeltState, isBeltPresent } from "./game/belts.js"; // AB#2329, AB#2330
 import { placeNpcAsks } from "./game/npcAsks.js"; // ISP-122 (AB#815)
-import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
+import { SYSTEMS_CATALOG } from "./travel.js";
+import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
+import { completeShipJobs } from "./shipyard.js"; // ISP-171 (AB#865)
+import { completeTroopJobs } from "./training.js"; // ISP-172 (AB#866)
+import { settleFleets } from "./fleets.js"; // ISP-174 (AB#868)
+import { expireOffers, settleContracts } from "./mercenaries.js"; // ISP-176 (AB#870)
+import { UNITS } from "./game/units.js";
 import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
 import { expeditionNotificationBody, expeditionPlaces, minutesEarly } from "./expeditionText.js"; // AB#1295, AB#2330
 import { emitBeltsChanged, emitMarketUpdated, emitToAccount } from "./realtime.js";
+import { RATING, refreshCreditRating } from "./creditRating.js"; // ISP-147 (AB#841)
+import { bondsIssuedBy } from "./bonds.js"; // ISP-154 (AB#848)
+import { getStatements } from "./gameState.js"; // ISP-147: the statements the rating reads
+import { statementsVersion } from "./game/store.js"; // AB#842: the rating's basis follows the statements file
+import { settleStationProjects } from "./game/stationProjects.js"; // ISP-210 (AB#905)
+import { settleAllStationGovernance } from "./game/stationGovernance.js"; // ISP-211 (AB#906)
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
 function getESTDateString() {
@@ -60,6 +73,7 @@ function miningTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
     settleAccountPayroll(accountId, now);
+    settleAccountUpkeep(accountId, now); // ISP-173 (AB#867): after wages, so staff are paid first
     mutateAccountState(accountId, (state) => {
       if (state && state.corp) {
         applyMiningOperations(state.corp, now);
@@ -172,9 +186,22 @@ function asteroidExpeditionTick(now = Date.now()) {
 // ─── Fabrication queue tick ──────────────────────────────────────────────────
 function fabricationTick() {
   const now = Date.now();
+  // ISP-176 (AB#870): offers whose window closed free their fleets; contracts whose term ended settle, before any account's turn
+  expireOffers(now);
+  settleContracts(now);
+  settleStationProjects(now); // ISP-210 (AB#905): a station whose build time is over opens with nobody watching
+  settleAllStationGovernance(now); // ISP-211 (AB#906): votes that ran out close, and stake buyouts pay what is due
   for (const accountId of getAllAccountIds()) {
     let completed = false;
+    const shipsDone = [];
+    const troopsDone = [];
     mutateAccountState(accountId, (state) => {
+      // ISP-171 (AB#865): the shipyard's jobs complete on the same tick; delivered once, then gone from the queue
+      const ships = completeShipJobs(state.corp, now);
+      if (ships.length) shipsDone.push(...ships);
+      settleFleets(state.corp, now); // ISP-174 (AB#868): a fleet whose trip has ended is stationed where it went
+      const troops = completeTroopJobs(state.corp, now); // ISP-172 (AB#866): the same tick, once
+      if (troops.length) troopsDone.push(...troops);
       if (!state?.corp?.asteroidMining?.fabricationQueue?.length) return;
       const am = state.corp.asteroidMining;
       const done = am.fabricationQueue.filter(j => now >= j.completesAt);
@@ -199,6 +226,24 @@ function fabricationTick() {
       if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
       emitToAccount(accountId, "fabrication:completed", { accountId });
     }
+    for (const job of troopsDone) {
+      const unit = UNITS[job.unitId];
+      const garrisoned = job.unitId === "dt" ? " and joined the station garrison" : ""; // AB#1336: no id in the words
+      const notification = addAccountNotification(accountId, {
+        type: "infrastructure",
+        title: "Troops Trained",
+        body: `${job.quantity} squad${job.quantity === 1 ? "" : "s"} of ${unit.name} finished training${garrisoned}.`
+      });
+      if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
+    }
+    for (const job of shipsDone) {
+      const notification = addAccountNotification(accountId, {
+        type: "infrastructure",
+        title: "Ships Delivered",
+        body: `${job.quantity} ${UNITS[job.unitId].name}${job.quantity === 1 ? "" : "s"} left the Orbital Shipyard and joined your fleet.`
+      });
+      if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
+    }
   }
 }
 
@@ -222,7 +267,7 @@ function travelTick() {
         travelResult = { type: "interstellar", systemId: travel.toSystemId };
       } else {
         // Local dock — arrive at station
-        const dest = STATION_REGISTRY[travel.toStationId];
+        const dest = stationById(travel.toStationId);
         if (dest) {
           state.corp.currentStationId = travel.toStationId;
           state.corp.currentSystemId = dest.systemId;
@@ -245,7 +290,7 @@ function travelTick() {
         });
         emitToAccount(accountId, "travel:arrived", { accountId, systemId: travelResult.systemId });
       } else {
-        const station = STATION_REGISTRY[travelResult.stationId];
+        const station = stationById(travelResult.stationId);
         if (station) {
           notification = addAccountNotification(accountId, {
             type: "travel",
@@ -366,18 +411,22 @@ function financialSnapshotTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
     let finances = null;
+    let creditRating = null;
     mutateAccountState(accountId, (state) => {
       if (!state || !state.corp) return;
       refreshDailyRevenue(state.corp, now); // Bug #984: income older than 24 hours leaves the daily figure
       refreshDailyExpenses(state.corp, now); // Bug #1022: and so do costs
       const snap = buildSnapshot(state.corp, now, getState().market);
       pushSnapshot(state.corp, snap);
+      // ISP-147 (AB#841): the credit rating, recomputed only when a statement closed or the debt or wages owed changed
+      refreshCreditRating(state.corp, now, () => getStatements(accountId, RATING.windowStatements, now)?.statements, { statementsVersion: statementsVersion(accountId), bonds: bondsIssuedBy(accountId) }); // AB#848: and its bonds
       finances = state.corp.finances;
+      creditRating = state.corp.creditRating ?? null; // AB#842: the Finance tab's rating card rides on this event
     }, { sanitize: false, settleMining: false });
     if (finances) {
       // Reuse the existing finance:updated channel so clients refresh their snapshot-driven dashboard. Only this
       // account's sockets get it, with the account id so the client can check it (Bug #1021).
-      emitToAccount(accountId, "finance:updated", { accountId, finances });
+      emitToAccount(accountId, "finance:updated", { accountId, finances, creditRating });
     }
   }
 }
@@ -405,7 +454,7 @@ function shipmentTick() {
       for (const shipment of corp.shipments) {
         if (shipment.status !== "in-transit" || now < shipment.arrivesAt) continue;
 
-        const destination = STATION_REGISTRY[shipment.toStationId];
+        const destination = stationById(shipment.toStationId);
         if (!destination) {
           // The destination is no longer in the catalog (a decommissioned station). Nothing is destroyed: the
           // shipment stays held rather than delivered or dropped, for the Board to resolve.
@@ -429,7 +478,7 @@ function shipmentTick() {
     }, { sanitize: false, settleMining: false });
 
     for (const { shipment, delivered } of outcomes) {
-      const destinationName = STATION_REGISTRY[shipment.toStationId]?.name || shipment.toStationId;
+      const destinationName = stationById(shipment.toStationId)?.name || shipment.toStationId;
       const notification = addAccountNotification(accountId, delivered
         ? { type: "logistics", title: "Shipment Received", body: `${describeLines(shipment.lines)} has arrived at ${destinationName}.` }
         : { type: "logistics", title: "Shipment Held", body: `A shipment bound for ${destinationName} could not be delivered: the destination is not recognized. Reference number: ${shipment.id}.` });

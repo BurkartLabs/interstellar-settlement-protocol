@@ -20,29 +20,7 @@ export const accountsSnapshotPath = path.join(dataDir, "accounts-snapshot.json")
 export const milestonesPath = path.join(catalogueDir, "milestones.json");
 export const PASSWORD_SALT_ROUNDS = 10;
 
-// Load station data for body→station mapping
-export const STATIONS_RAW = JSON.parse(fs.readFileSync(path.join(catalogueDir, "stations.json"), "utf8"));
-/**
- * ISP-118 (AB#810): who holds a station. "neutral" is a station no corporation owns, open to every corporation to dock
- * and rent an office; v0.12's conglomerate-owned stations will add their own value here. The server does not start
- * with a station whose jurisdiction is missing or unknown (tests/schema/data-files.test.js).
- */
-export const STATION_JURISDICTIONS = Object.freeze(["neutral"]);
-/** Each station in `stations` without a known jurisdiction, as "id: what it has". */
-export function stationJurisdictionProblems(stations) {
-  return (stations || []).filter((s) => !STATION_JURISDICTIONS.includes(s?.jurisdiction))
-    .map((s) => `${s?.id ?? "a station with no id"}: ${JSON.stringify(s?.jurisdiction ?? null)}`);
-}
-{
-  const problems = stationJurisdictionProblems(STATIONS_RAW.stations);
-  if (problems.length) throw new Error(`data/stations.json: every station needs a jurisdiction, one of ${STATION_JURISDICTIONS.join(", ")} (AB#810): ${problems.join("; ")}.`);
-}
-export const BODY_TO_STATION = {};
-export const STATION_REGISTRY_CACHE = {};
-for (const station of STATIONS_RAW.stations) {
-  BODY_TO_STATION[station.body] = station.id;
-  STATION_REGISTRY_CACHE[station.id] = station;
-}
+// ISP-209 (AB#904): the stations, the catalog and those built in play, are server/game/stations.js.
 
 // The data directory may be a new, empty volume. Clean up any leftover .tmp files from interrupted atomic writes.
 fs.mkdirSync(dataDir, { recursive: true });

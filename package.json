@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "bench:ticks": "node scripts/bench-ticks.mjs",
+    "bench:messaging": "node scripts/bench-messaging.mjs",
     "dev": "node --watch-path=./server --watch-path=./public server/index.js",
     "check": "node --check server/index.js",
     "test": "node scripts/test-strict.mjs",
@@ -13,9 +14,12 @@
     "test:coverage": "vitest run --coverage",
     "playtest": "playwright test",
     "economy:model": "node scripts/economy-model.mjs",
+    "combat:model": "node scripts/combat-model.mjs",
     "belt:model": "node scripts/belt-model.mjs",
     "probe:pacing": "node scripts/probe-pacing.mjs",
-    "probe:chains": "node scripts/probe-chains.mjs"
+    "probe:chains": "node scripts/probe-chains.mjs",
+    "probe:markets": "node scripts/probe-markets.mjs",
+    "probe:combat": "node scripts/probe-combat.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

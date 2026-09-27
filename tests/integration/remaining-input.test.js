@@ -3,7 +3,7 @@ import request from "supertest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState, getAccountById, getState, listAccountMessages, listAccountNotifications } from "../../server/gameState.js";
-import { GAMEPLAY_INPUT, ACCOUNT_INPUT, MARKET_INPUT, FORUM_INPUT } from "../../server/gameplayInput.js";
+import { GAMEPLAY_INPUT, ACCOUNT_INPUT, MARKET_INPUT, FORUM_INPUT, onStep } from "../../server/gameplayInput.js";
 
 // AB#732: every route that changes state outside /gameplay is checked by the same input middleware as AB#731, before
 // its handler; the rest are named here with the reason they are out of scope. A new route fails this file until it is
@@ -24,6 +24,10 @@ const OUT_OF_SCOPE = {
   "GET /healthz": "the health probe, with no input (AB#735)",
   "GET /how-to-start": "a static page, with no input (AB#748)",
   "GET /api/bootstrap": "a public read with no input",
+  "GET /api/corporations/:corpId/credit-rating": "a read; its one input, a public corporation id, is only ever compared with existing ids (AB#842)",
+  "GET /api/corporations/:corpId/cap-table": "a read; its one input, a public corporation id, is only ever compared with existing ids (AB#851)",
+  "GET /api/conglomerates": "a read with no input: the public directory (ISP-197, AB#891)",
+  "GET /api/starmap/dominance": "a public read; its one input, an optional system id, is checked against the catalog by the route (ISP-217, AB#912)",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
   "GET /api/buildings": "a static catalog",
@@ -109,12 +113,62 @@ const BASELINE = {
   "/api/accounts/:accountId": {
     "POST /notifications/:notificationId/read": { params: { notificationId: "n-732" } },
     "GET /corporations": { query: { name: "Frontier" } },
+    "POST /conglomerates": { body: { name: "Baseline Frontier Group", emblem: 1, colour: 1 } },
+    "POST /conglomerates/:conglomerateId/invitations": { params: { conglomerateId: "cgl-732" }, body: { corpId: "corp-732" } },
+    "POST /conglomerates/:conglomerateId/invitations/:invitationId/:answer": { params: { conglomerateId: "cgl-732", invitationId: "cinv-732", answer: "accept" } },
+    "POST /conglomerates/:conglomerateId/applications": { params: { conglomerateId: "cgl-732" } },
+    "POST /conglomerates/:conglomerateId/applications/:applicationId/:answer": { params: { conglomerateId: "cgl-732", applicationId: "capp-732", answer: "decline" } },
+    "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: "cgl-732" } },
+    "POST /conglomerates/:conglomerateId/members/:corpId/role": { params: { conglomerateId: "cgl-732", corpId: "corp-732" }, body: { role: "director" } },
+    "POST /conglomerates/:conglomerateId/members/:corpId/remove": { params: { conglomerateId: "cgl-732", corpId: "corp-732" } },
+    "POST /conglomerates/:conglomerateId/founder": { params: { conglomerateId: "cgl-732" }, body: { corpId: "corp-732" } },
+    "POST /conglomerates/:conglomerateId/identity": { params: { conglomerateId: "cgl-732" }, body: { emblem: 1, colour: 1 } },
+    "POST /conglomerates/:conglomerateId/dissolve": { params: { conglomerateId: "cgl-732" } },
+    "POST /conglomerates/:conglomerateId/level": { params: { conglomerateId: "cgl-732" }, body: { level: 2 } },
+    "POST /conglomerates/:conglomerateId/level-seen": { params: { conglomerateId: "cgl-732" }, body: { level: 2 } }, // ISP-203 (AB#897)
+    // ISP-210 (AB#905): the station project
+    "GET /conglomerates/:conglomerateId/station-project": { params: { conglomerateId: "cgl-732" } },
+    "POST /conglomerates/:conglomerateId/station-project": { params: { conglomerateId: "cgl-732" }, body: { systemId: "sol", body: "Venus", suffix: 1 } },
+    "POST /conglomerates/:conglomerateId/station-project/contribute": { params: { conglomerateId: "cgl-732" }, body: { source: "own", credits: 100, item: "Structural Alloys", quantity: 10 } },
+    "POST /conglomerates/:conglomerateId/station-project/cancel": { params: { conglomerateId: "cgl-732" } },
+    "GET /conglomerates/:conglomerateId/station": { params: { conglomerateId: "cgl-732" } },
+    "POST /conglomerates/:conglomerateId/station/proposals": { params: { conglomerateId: "cgl-732" }, body: { setting: "access", value: "members", conglomerateId: "cgl-733" } }, // ISP-211 (AB#906)
+    "POST /conglomerates/:conglomerateId/station/proposals/:proposalId/vote": { params: { conglomerateId: "cgl-732", proposalId: "csv-732" }, body: { vote: "yes" } },
+    "GET /conglomerates/:conglomerateId/treasury": { params: { conglomerateId: "cgl-732" }, query: { offset: "0", limit: "25" } },
+    "GET /conglomerates/:conglomerateId/intel": { params: { conglomerateId: "cgl-732" } },
+    "GET /conglomerates/:conglomerateId/hangar": { params: { conglomerateId: "cgl-732" }, query: { offset: "0", limit: "25" } },
+    "POST /conglomerates/:conglomerateId/hangar/deposit": { params: { conglomerateId: "cgl-732" }, body: { stationId: "earth-station-prime", item: "Silicates", quantity: 10 } },
+    "POST /conglomerates/:conglomerateId/hangar/withdraw": { params: { conglomerateId: "cgl-732" }, body: { stationId: "earth-station-prime", item: "Silicates", quantity: 10 } },
+    "POST /conglomerates/:conglomerateId/treasury/deposit": { params: { conglomerateId: "cgl-732" }, body: { amount: 100 } },
+    "POST /conglomerates/:conglomerateId/treasury/withdraw": { params: { conglomerateId: "cgl-732" }, body: { amount: 100 } },
+    "POST /conglomerates/:conglomerateId/treasury/withdrawals/:withdrawalId/block": { params: { conglomerateId: "cgl-732", withdrawalId: "cwd-732" } },
     "GET /finances/statements": { query: { days: "7" } },
     "POST /messages/send": { body: { toCorpName: "Frontier", subject: "s", body: "b" } },
     "POST /messages/draft": { body: { subject: "s", body: "b" } },
     "DELETE /messages/draft/:draftId": { params: { draftId: "d-732" } },
+    "GET /conversations": { query: { limit: "10" } },
+    "POST /conversations/send": { body: { toCorpId: "corp-910-nobody", body: "b" } },
+    "GET /conversations/:conversationId/messages": { params: { conversationId: "cv_910" } },
+    "POST /conversations/:conversationId/read": { params: { conversationId: "cv_910" } },
     "POST /messages/:messageId/read": { params: { messageId: "m-732" } },
-    "POST /messages/:messageId/move": { params: { messageId: "m-732" }, body: { folder: "archive" } }
+    "POST /messages/:messageId/move": { params: { messageId: "m-732" }, body: { folder: "archive" } },
+    "POST /loans/quote": { body: { productId: "dsdb-90", principal: 5000 } }, // ISP-149 (AB#843): a quote changes nothing
+    "POST /loans/accept": { body: { quoteId: "lq-732" } }, // no such quote: refused, nothing lent
+    "POST /loans/:loanId/payoff": { params: { loanId: "loan-732" } }, // no such loan: 404, nothing taken
+    "POST /bonds/issue": { body: { quantity: 100, couponPct30: 6, maturityDays: 60, windowHours: 24 } }, // AB#848: level 0, refused
+    "POST /bonds/preview": { body: { quantity: 100, couponPct30: 6, maturityDays: 60 } }, // AB#850: changes nothing
+    "POST /equity/list": {}, // AB#852: level 0, refused, nothing listed
+    "POST /equity/offerings": { body: { quantity: 500 } }, // not listed: refused
+    "POST /equity/payout-ratio": { body: { payoutRatioPct: 30 } }, // AB#853: not listed, refused
+    "POST /equity/offerings/:offeringId/buy": { params: { offeringId: "so-732" }, body: { quantity: 5 } }, // no such offering: 404
+    "GET /equity/holdings": {}, // ISP-160 (AB#854)
+    "POST /equity/holdings/:issuerCorpId/exit": { params: { issuerCorpId: "corp-732" }, body: { quantity: 5 } }, // no such issuer: 404
+    "POST /bonds/:seriesId/subscribe": { params: { seriesId: "bond-732" }, body: { units: 5 } }, // no such series: 404
+    "GET /loan-offers": {}, // ISP-152 (AB#846)
+    "GET /player-loans": {}, // ISP-153 (AB#847)
+    "POST /loan-offers": { body: { principal: 5000, ratePct30: 3.25, termDays: 30, minGrade: "BBB" } },
+    "POST /loan-offers/:offerId/cancel": { params: { offerId: "lo-732" } }, // no such offer: 404
+    "POST /loan-offers/:offerId/accept": { params: { offerId: "lo-732" } }
   },
   "/api/market": {
     "POST /orders": { body: { type: "sell", item: "Silicates", quantity: 1, unitPrice: 30 } },
@@ -138,9 +192,11 @@ const BASELINE = {
 function checkRefuses(spec, where, value) {
   if (value === undefined) return !spec.optional;
   const sent = where === "body" ? value : String(value); // path and query values arrive as strings
-  if (["int", "id", "word", "choice"].includes(spec.kind)) return true;
+  if (spec.kind === "choice") return !spec.values.includes(sent); // AB#853: 0 is a good payout ratio; the list decides
+  if (["int", "id", "word"].includes(spec.kind)) return true;
   if (spec.kind === "text") return typeof sent !== "string" || sent.length > spec.max;
   if (spec.kind === "ref") return typeof sent !== "string" || sent.length > 64 || sent.trim() === "";
+  if (spec.kind === "decimal") return !onStep(sent, spec); // AB#846: 2.5 is a good rate, -5 and Infinity are not
   return true;
 }
 

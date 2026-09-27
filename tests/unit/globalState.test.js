@@ -52,8 +52,14 @@ describe("normalizeGlobalState repairs an older state and changes nothing it doe
   });
 });
 
-describe("combat reports left by the removed simulate route are reported, not deleted (Bug #1036)", () => {
-  it("counts them and their size, and names nothing from inside them", () => {
+describe("combat reports left by the removed simulate route are dropped on load (Bug #1036, AB#860)", () => {
+  it("a state file with the old feed loses it when normalized, and a fresh state never has one", () => {
+    const old = { ...structuredClone(freshGlobalState()), combatReports: [{ attackerName: "x".repeat(10_240) }] };
+    expect(normalizeGlobalState(old)).not.toHaveProperty("combatReports");
+    expect(freshGlobalState()).not.toHaveProperty("combatReports");
+  });
+
+  it("the load's log line counts them and their size, and names nothing from inside them", () => {
     expect(storedCombatReportSummary({ combatReports: [] })).toBeNull();
     expect(storedCombatReportSummary({})).toBeNull();
     const summary = storedCombatReportSummary({ combatReports: [{ attackerName: "x".repeat(1000) }, { attackerName: "<b>" }] });

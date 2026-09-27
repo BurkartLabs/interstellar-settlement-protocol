@@ -1,4 +1,6 @@
 import "./loadEnv.js";
+// ISP-196 (AB#890): the conglomerate catalog is checked here, before anything listens; a bad one stops the start.
+import "./conglomerates.js";
 import express from "express";
 import kanbanRouter from "./kanban.js";
 import fs from "node:fs";
@@ -12,16 +14,41 @@ import { gameplayInputMiddleware, ACCOUNT_INPUT, MARKET_INPUT, FORUM_INPUT } fro
 import { FORUM_CATEGORIES } from "./gameState.js";
 import { app, __dirname, DEV_SURFACE, server, io } from "./app.js";
 import { requireAuth, requireAccountAccess, verifyAccessToken, getBearerToken } from "./auth.js";
-import { STATION_REGISTRY, SYSTEMS_CATALOG } from "./travel.js";
+import { SYSTEMS_CATALOG } from "./travel.js";
+import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 import { beltTick, checkAndResetNpcBuyOrders, miningTick, refineryTick, asteroidExpeditionTick, fabricationTick, travelTick, processRndCompletions, processCeoInsightCompletions, financialSnapshotTick, FINANCIAL_SNAPSHOT_INTERVAL_MS, shipmentTick } from "./ticks.js";
 import { registerRealtime } from "./realtime.js";
 import { registerCatalogRoutes } from "./routes/catalog.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerAccountRoutes } from "./routes/account.js";
 import { registerCorporationRoutes } from "./routes/corporation.js";
+import { registerLoanRoutes } from "./routes/loans.js"; // ISP-149 (AB#843)
+import { loanServicingTick } from "./loanServicing.js"; // ISP-150 (AB#844)
+import { defaultRecoveryTick } from "./defaultRecovery.js"; // ISP-286 (AB#993)
+import { registerBondRoutes } from "./routes/bonds.js"; // ISP-154 (AB#848)
+import { bondWindowTick } from "./bonds.js";
+import { bondServicingTick } from "./bondServicing.js"; // ISP-155 (AB#849)
+import { registerCreditRatingRoutes } from "./routes/creditRating.js"; // ISP-148 (AB#842)
+import { registerCapTableRoutes } from "./routes/capTable.js"; // ISP-157 (AB#851)
+import { registerEquityRoutes } from "./routes/equity.js"; // ISP-158 (AB#852)
+import { shareOfferingTick } from "./shareOfferings.js";
+import "./balanceSheet.js"; // Bug #4647: the balance sheet's debt and receivables lines
+import { dividendTick } from "./dividends.js"; // ISP-159 (AB#853)
+import { registerConglomerateRoutes } from "./routes/conglomerates.js"; // ISP-197 (AB#891)
+import { registerDominanceRoutes } from "./routes/dominance.js"; // ISP-217 (AB#912)
+import { dominanceTick } from "./dominanceService.js"; // ISP-217 (AB#912)
 import { registerLogisticsRoutes } from "./routes/logistics.js";
 import { registerMiningRoutes } from "./routes/mining.js";
 import { registerAsteroidRoutes } from "./routes/asteroids.js";
+import { registerShipyardRoutes } from "./routes/shipyard.js"; // ISP-171 (AB#865)
+import { SHIP_IDS } from "./shipyard.js";
+import { registerTrainingRoutes } from "./routes/training.js"; // ISP-172 (AB#866)
+import { TROOP_IDS } from "./training.js";
+import { registerFleetRoutes } from "./routes/fleets.js"; // ISP-174 (AB#868)
+import { registerMercenaryRoutes } from "./routes/mercenaries.js"; // ISP-176 (AB#870)
+import { registerRaidRoutes } from "./routes/raids.js"; // ISP-178 (AB#872)
+import { raidTick } from "./raidResolution.js"; // ISP-179 (AB#873)
+import { registerGarrisonRoutes } from "./routes/garrison.js"; // ISP-180 (AB#874)
 import { registerRefiningRoutes } from "./routes/refining.js";
 import { registerConstructionRoutes } from "./routes/construction.js"; // ISP-94 (AB#784)
 import { registerUpgradeRoutes } from "./routes/upgrades.js"; // ISP-101 (AB#793)
@@ -29,6 +56,8 @@ import { PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
 import { registerMissionRoutes } from "./routes/missions.js";
 import { registerResearchRoutes } from "./routes/research.js";
 import { registerMessagingRoutes } from "./routes/messaging.js";
+import { registerConversationRoutes } from "./routes/conversations.js"; // AB#910
+import { migrateLegacyMailOnce } from "./game/conversations.js"; // AB#911
 import { registerForumRoutes } from "./routes/forums.js";
 import { registerMarketRoutes } from "./routes/market.js";
 
@@ -97,7 +126,7 @@ registerPasswordResetRoutes(app);
 app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess, accountActionLimiter);
 const INPUT_CHECKS = {
   catalogs: {
-    stations: new Set(Object.keys(STATION_REGISTRY)),
+    stations: { has: (id) => Boolean(stationById(id)) }, // ISP-209 (AB#904): read live, so a built station is one
     systems: new Set(SYSTEMS_BY_ID.keys()),
     leaseBodies: new Set(SYSTEMS_CATALOG.flatMap((s) => (s.bodies || []).filter((b) => Number(b.leaseCost) > 0).flatMap((b) => [b.name, b.id])).map((x) => String(x).toLowerCase())),
     techs: new Set(Object.keys(RESEARCH_LIBRARY)),
@@ -109,13 +138,15 @@ const INPUT_CHECKS = {
     expeditionDurations: new Set(Object.keys(EXPEDITION_DURATIONS)),
     refineryChains: new Set(Object.keys(REFINERY_CHAINS)),
     playerBuildings: new Set(PLAYER_BUILDING_CATALOGUE.map((b) => b.id)), // ISP-94: POST /gameplay/build
+    ships: new Set(SHIP_IDS), // ISP-171 (AB#865): POST /gameplay/shipyard/queue
+    troops: new Set(TROOP_IDS), // ISP-172 (AB#866): POST /gameplay/training/queue
     // AB#732: what can be listed or charted (every raw resource and refinery output), standing orders, forum categories.
     // ISP-130 (AB#824): the price history's set, which the server holds to data/items.json at load: one list, not two.
     tradeItems: PRICE_HISTORY_ITEMS,
     npcOrders: { has: (orderId) => (getState().market?.npcBuyOrders || []).some((o) => o.id === orderId) },
     forumCategories: new Set(FORUM_CATEGORIES)
   },
-  stationNames: Object.fromEntries(Object.entries(STATION_REGISTRY).map(([sid, st]) => [sid, st.name])),
+  stationNames: { get: (sid) => stationById(sid)?.name }, // read live, as above
   corpOf: (accountId) => getAccountById(accountId)?.state?.corp
 };
 app.use("/api/accounts/:accountId/gameplay", gameplayInputMiddleware(INPUT_CHECKS));
@@ -129,16 +160,37 @@ app.use("/api/forums", gameplayInputMiddleware({ ...INPUT_CHECKS, routes: FORUM_
 registerAccountRoutes(app);
 
 registerCorporationRoutes(app);
+registerLoanRoutes(app);
+registerBondRoutes(app);
+registerCreditRatingRoutes(app);
+registerCapTableRoutes(app);
+registerEquityRoutes(app);
+registerConglomerateRoutes(app);
+registerDominanceRoutes(app);
 
 registerLogisticsRoutes(app);
 
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(shipmentTick, 5000); // Every 5 seconds
 // AB#2329: an empty belt slot draws on the hour; checked every minute, so a draw is at most a minute late.
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(beltTick, 60_000);
+// ISP-150 (AB#844): loans' daily payments, arrears and penalty interest; a day due is collected within a minute
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now(); loanServicingTick(now); defaultRecoveryTick(now); }, 60_000); // AB#993: recovery right after servicing
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondWindowTick(Date.now()), 60_000); // ISP-154 (AB#848)
+// ISP-217 (AB#912): dominance, computed at the first minute after 00:00 UTC (and at start when today has none)
+if (!process.env.ISP_DISABLE_TICKERS) { dominanceTick(Date.now()); setInterval(() => dominanceTick(Date.now()), 60_000); }
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => raidTick(Date.now()), 30_000); // ISP-179 (AB#873): arrivals and returns
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondServicingTick(Date.now()), 60_000); // ISP-155 (AB#849)
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now(); shareOfferingTick(now); dividendTick(now); }, 60_000); // ISP-158 (AB#852), ISP-159 (AB#853)
 
 registerMiningRoutes(app);
 
 registerAsteroidRoutes(app);
+registerShipyardRoutes(app);
+registerTrainingRoutes(app);
+registerFleetRoutes(app);
+registerMercenaryRoutes(app);
+registerRaidRoutes(app);
+registerGarrisonRoutes(app);
 
 registerRefiningRoutes(app);
 
@@ -150,6 +202,14 @@ registerMissionRoutes(app);
 registerResearchRoutes(app);
 
 registerMessagingRoutes(app);
+registerConversationRoutes(app);
+// AB#911: the Inbox's Players tab reads conversations, so older player mail is copied into them once, at startup.
+try {
+  const migrated = migrateLegacyMailOnce();
+  if (migrated) console.log(`[conversations] old player mail copied: ${migrated.written} written, ${migrated.alreadyPresent} already there, ${migrated.skippedMissingAccount} skipped`);
+} catch (error) {
+  console.error("[conversations] the old player mail was not copied; run scripts/migrate-mail.mjs:", error?.message || error);
+}
 
 registerForumRoutes(app);
 

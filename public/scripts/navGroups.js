@@ -5,8 +5,8 @@
 import { WALKTHROUGH_STEPS } from "./walkthrough.js";
 
 export const NAV_GROUPS = [
-  { id: "company", label: "Company", tabs: ["overview", "inbox", "finance", "ceo", "missions"] },
-  { id: "station", label: "Station", tabs: ["station"] },
+  { id: "company", label: "Company", tabs: ["overview", "inbox", "finance", "ceo", "missions", "conglomerate"] },
+  { id: "station", label: "Station", tabs: ["station", "fleet"] }, // ISP-175 (AB#869): the Fleet tab
   { id: "industry", label: "Industry", tabs: ["rnd", "refinery", "logistics"] },
   { id: "market", label: "Market", tabs: ["market", "assets"] },
   { id: "comms", label: "Comms", tabs: ["chat", "forums"] },
@@ -19,8 +19,8 @@ export const NAV_GROUPS = [
  * tab the player will look for now. tests/unit/navGroups.test.js holds these to the buttons in index.html.
  */
 export const TAB_LABELS = {
-  overview: "Overview", inbox: "Inbox", finance: "Financial Core", ceo: "CEO Insight", missions: "Assignments",
-  station: "Station", rnd: "Corporate R&D", refinery: "Refinery Chains", logistics: "Logistics",
+  overview: "Overview", inbox: "Inbox", finance: "Financial Core", ceo: "CEO Insight", missions: "Assignments", conglomerate: "Conglomerate",
+  station: "Station", fleet: "Fleet", rnd: "Corporate R&D", refinery: "Refinery Chains", logistics: "Logistics",
   market: "Galactic Exchange", assets: "Assets", chat: "Chat", forums: "Forums", starmap: "Starmap", travel: "Travel"
 };
 

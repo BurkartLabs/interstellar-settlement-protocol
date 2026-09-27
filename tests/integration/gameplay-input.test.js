@@ -38,6 +38,29 @@ const BASELINE = {
   "POST /abandon-mission": { body: { missionId: "ms-log-002" } },
   "POST /complete-mission": { body: { missionId: "ms-log-001" } },
   "POST /queue-rnd": { body: { techId: "tt-basic-extraction" } },
+  "POST /shipyard/queue": { body: { unitId: "lf", quantity: 1 } }, // ISP-171 (AB#865)
+  "POST /shipyard/cancel": { body: { jobId: "ship-does-not-exist" } },
+  "POST /training/queue": { body: { unitId: "dt", quantity: 1 } }, // ISP-172 (AB#866)
+  "POST /training/cancel": { body: { jobId: "troop-does-not-exist" } },
+  "POST /fleets/form": { body: { lf: 1 } }, // ISP-174 (AB#868)
+  "POST /fleets/:fleetId/split": { params: { fleetId: "flt-does-not-exist" }, body: { lf: 1 } },
+  "POST /fleets/:fleetId/merge": { params: { fleetId: "flt-does-not-exist" }, body: { intoFleetId: "flt-other" } },
+  "POST /fleets/:fleetId/deploy": { params: { fleetId: "flt-does-not-exist" }, body: { toStationId: "mars-orbital-dock" } },
+  "POST /fleets/:fleetId/disband": { params: { fleetId: "flt-does-not-exist" } },
+  "GET /fleets/:fleetId/destinations": { params: { fleetId: "flt-does-not-exist" } }, // ISP-175 (AB#869)
+  "GET /mercenaries": {}, // ISP-176 (AB#870)
+  "GET /mercenaries/mine": {}, // ISP-177 (AB#871)
+  "POST /mercenaries/offer": { body: { fleetId: "flt-does-not-exist", termHours: 24, price: 5000, collateral: 1, allowedUse: "defense" } },
+  "POST /mercenaries/:offerId/withdraw": { params: { offerId: "mo-does-not-exist" } },
+  "POST /mercenaries/:offerId/hire": { params: { offerId: "mo-does-not-exist" } },
+  "GET /raids": {}, // ISP-178 (AB#872)
+  "POST /raids": { body: { fleetId: "flt-does-not-exist", targetCorpId: "corp-does-not-exist", targetStationId: "earth-station-prime" } },
+  "POST /raids/:raidId/recall": { params: { raidId: "raid-does-not-exist" } },
+  "GET /raids/:raidId/report": { params: { raidId: "raid-does-not-exist" } }, // ISP-179 (AB#873)
+  "GET /raids/targets/:stationId": { params: { stationId: "earth-station-prime" } }, // ISP-181 (AB#875)
+  "POST /garrisons/:stationId/posture": { params: { stationId: "earth-station-prime" }, body: { posture: "fortified" } }, // ISP-180 (AB#874)
+  "POST /garrisons/move": { body: { fromStationId: "earth-station-prime", toStationId: "luna-gateway", quantity: 5 } },
+  "POST /mercenaries/:contractId/deploy": { params: { contractId: "mo-does-not-exist" }, body: { toStationId: "earth-station-prime" } },
   "POST /queue-ceo": { body: { programId: "ceo-negotiation-fundamentals" } }
 };
 

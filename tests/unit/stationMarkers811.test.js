@@ -35,7 +35,8 @@ describe("which stations are marked (AB#811)", () => {
 
   it("each on the body it orbits, a moon's on its planet, and none for a body the system lacks", () => {
     const withGhost = [...FIXTURE, { id: "ghost", systemId: "sol", body: "Vulcan", jurisdiction: "neutral" }];
-    expect(systemStationMarkers(SOL, withGhost).map((m) => [m.station.id, m.bodyId])).toEqual([["fixture-neutral", "mars"], ["fixture-moon", "earth"]]);
+    // ISP-210 (AB#905): a conglomerate's station is marked too, as owned; one with no jurisdiction still is not
+    expect(systemStationMarkers(SOL, withGhost).map((m) => [m.station.id, m.bodyId, m.owned])).toEqual([["fixture-neutral", "mars", false], ["fixture-moon", "earth", false], ["fixture-owned", "venus", true]]);
   });
 });
 
@@ -139,11 +140,11 @@ describe("the starmap draws what the fixture's field says (AB#811)", () => {
     expect(rec.diamonds.length).toBe(1); // one badge: only Sol has stations in the fixture
   });
 
-  it("Sol's system view marks the two neutral ones, on Mars and on Earth for Luna's, and a marker opens that station's modal", () => {
+  it("Sol's system view marks the two neutral ones, on Mars and on Earth for Luna's, and the conglomerate's (ISP-210); a marker opens that station's modal", () => {
     const { rec } = mapWith(FIXTURE);
     openSystem(rec, SOL);
-    expect(rec.diamonds.length).toBe(2);
-    for (const [i, name] of [[0, "Fixture Neutral Dock"], [1, "Fixture Moon Dock"]]) {
+    expect(rec.diamonds.length).toBe(3);
+    for (const [i, name] of [[0, "Fixture Neutral Dock"], [1, "Fixture Moon Dock"], [2, "Fixture Owned Dock"]]) {
       document.getElementById("starmap-station-modal")?.remove();
       const { rec: again } = mapWith(FIXTURE);
       openSystem(again, SOL);
@@ -152,6 +153,8 @@ describe("the starmap draws what the fixture's field says (AB#811)", () => {
       const modal = document.getElementById("starmap-station-modal");
       expect(modal, name).not.toBeNull();
       expect(modal.textContent).toContain(name);
+      // ISP-210 (AB#905): the owned station names its owner, from GET /api/stations's ownerName
+      if (i === 2) expect(modal.textContent).toContain("Owned by a conglomerate, the conglomerate that built it.");
     }
   });
 

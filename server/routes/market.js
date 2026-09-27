@@ -1,4 +1,5 @@
 // server/routes/market.js: the market routes, split out of server/index.js (AB#1815).
+import { recordSale } from "../game/dominanceCounters.js"; // ISP-217 (AB#912)
 import { bodyNumber } from "../bodyNumber.js";
 import { bodyCount } from "../bodyNumber.js";
 import { randomUUID } from "node:crypto";
@@ -20,7 +21,8 @@ import { buyOrderReceipt, buyReceipt, listingReceipt, sellToOrderReceipt } from 
 import { cancelBuyOrder, matchListing, placeBuyOrder } from "../buyOrders.js"; // AB#1054
 import { paySeller, takeFromListing, tellSeller } from "../marketSettlement.js";
 import { buyOrderView } from "../publicViews.js";
-import { STATION_REGISTRY } from "../travel.js";
+import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
+import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
 
 /** How many sell listings one seller may have open at once (Bug #425). */
 const MAX_OPEN_LISTINGS = 50;
@@ -37,6 +39,12 @@ export function registerMarketRoutes(app) {
     const account = getAccountById(req.auth.accountId);
     if (!account) {
       res.status(404).json({ error: "Account not found." });
+      return;
+    }
+    // ISP-286 (AB#993): a defaulted debtor in its grace period sells, buys and lends to nobody
+    const held = recoveryHold(account.state?.corp);
+    if (held) {
+      res.status(409).json({ error: held });
       return;
     }
 
@@ -63,7 +71,7 @@ export function registerMarketRoutes(app) {
       const receipt = buyOrderReceipt({
         item: placed.order.item, quantity: normalizedQty, unitPrice: normalizedUnitPrice, filled, paid,
         held: (normalizedQty - filled) * normalizedUnitPrice,
-        stationName: STATION_REGISTRY[placed.order.stationId]?.name || "your station"
+        stationName: stationById(placed.order.stationId)?.name || "your station"
       });
       const waiting = (getState().market.buyOrders || []).find((o) => o.id === placed.order.id);
       res.json({ ok: true, order: waiting ? buyOrderView(waiting, req.auth.accountId) : null, fills: placed.fills, spent: before - Number(buyerNow?.state?.corp?.finances?.credits || 0), account: buyerNow, receipt });
@@ -138,7 +146,7 @@ export function registerMarketRoutes(app) {
       item: order.item,
       quantity: order.quantity,
       unitPrice: order.unitPrice,
-      stationName: STATION_REGISTRY[order.stationId]?.name || "your station",
+      stationName: stationById(order.stationId)?.name || "your station",
       soldAtOnce: fills.reduce((sum, f) => sum + f.quantity, 0)
     });
     res.json({ ok: true, order, fills, account: sellerNow, receipt });
@@ -192,6 +200,11 @@ export function registerMarketRoutes(app) {
     const buyerAccount = getAccountById(req.auth.accountId);
     if (!buyerAccount) {
       res.status(404).json({ error: "Account not found." });
+      return;
+    }
+    const buyerHeld = recoveryHold(buyerAccount.state?.corp); // ISP-286 (AB#993)
+    if (buyerHeld) {
+      res.status(409).json({ error: buyerHeld });
       return;
     }
 
@@ -255,7 +268,7 @@ export function registerMarketRoutes(app) {
     }
 
     // AB#1054: the seller's side, the book and the price history, as a buy order's fill settles them.
-    const sale = paySeller(order, tradeQuantity, buyerAccount.state?.corp?.corporationName);
+    const sale = paySeller(order, tradeQuantity, buyerAccount.state?.corp?.corporationName, req.auth.accountId); // ISP-217 (AB#912)
     takeFromListing(orderId, order.item, order.unitPrice, tradeQuantity);
     tellSeller(order, tradeQuantity, sale, leftAfterSale);
 
@@ -266,7 +279,7 @@ export function registerMarketRoutes(app) {
       quantity: tradeQuantity,
       unitPrice: Number(order.unitPrice || 0),
       total: tradeTotal,
-      stationName: STATION_REGISTRY[buyer.state.corp.currentStationId || "earth-station-prime"]?.name || "your station"
+      stationName: stationById(buyer.state.corp.currentStationId || "earth-station-prime")?.name || "your station"
     });
     res.json({
       ok: true,
@@ -357,6 +370,7 @@ export function registerMarketRoutes(app) {
       applyCredits(state.corp, tradeTotal, "exchange");
       applyCredits(state.corp, -salesTax, "exchange-tax");
       applyCredits(state.corp, -royalty, "lease-royalty");
+      recordSale(state.corp, npcStationId, tradeTotal); // ISP-217 (AB#912): an NPC buyer is never a partner
 
       if (!state.corp.stats) state.corp.stats = {};
       state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;

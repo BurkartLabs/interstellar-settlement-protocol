@@ -3,8 +3,10 @@
 import { applyCredits } from "../finances.js";
 import { ECONOMY, operationCostPerHourFor } from "../economy.js";
 import { miningEfficiency } from "../../public/scripts/miningEfficiency.js"; // ISP-98 (AB#788)
-import { BODY_TO_STATION, bodyResourceProfile, getStationInventory } from "./catalog.js";
+import { bodyResourceProfile, getStationInventory } from "./catalog.js";
+import { stationAtBody } from "./stations.js"; // ISP-209 (AB#904)
 import { bumpStat } from "./progression.js"; // AB#828: mined:<item>, what totalMined:<item> reads
+import { recordExtraction, systemOfBody } from "./dominanceCounters.js"; // ISP-217 (AB#912)
 
 export function ensureCorpMiningModel(corp) {
   if (!corp.mining || typeof corp.mining !== "object") {
@@ -325,7 +327,7 @@ function mineSpan(corp, extractor, from, to, now) {
   if (actualMined > 0) {
     // Deposit at the station orbiting the extractor's lease body
     const lease = (corp.miningLeases || []).find((l) => l.id === extractor.leaseId);
-    const depositStation = (lease && BODY_TO_STATION[lease.body]) || corp.currentStationId || "earth-station-prime";
+    const depositStation = (lease && stationAtBody(lease.body)?.id) || corp.currentStationId || "earth-station-prime";
     const stationInv = getStationInventory(corp, depositStation);
     // AB#828: the whole units are shared among the body's resources by concentration (data/systems.json
     // resourceProfile, AB#826), each item carrying its own fraction of a unit to the next span, so a cycle's output
@@ -344,6 +346,8 @@ function mineSpan(corp, extractor, from, to, now) {
     }
     extractor.totalMined += deposited;
     extractor.minedThisCycle = Number(extractor.minedThisCycle || 0) + deposited;
+    // ISP-217 (AB#912): the tonnes count toward dominance in the lease body's system, on the day they were mined.
+    recordExtraction(corp, systemOfBody(lease?.body ?? extractor.body), deposited, to);
     // Bug #984: mined goods are inventory, not income; revenue is booked when they are sold.
   }
 
