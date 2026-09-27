@@ -343,7 +343,6 @@ function applySharedState(serverState) {
   appState.data.market = deepClone(serverState.market);
   appState.data.forums = deepClone(serverState.forums);
   appState.data.chatLog = deepClone(serverState.chatLog);
-  appState.data.combatReports = deepClone(serverState.combatReports);
   appState.data.conglomerates = deepClone(serverState.conglomerates);
 }
 

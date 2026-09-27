@@ -51,7 +51,6 @@ describe("ISP-179 the worked raid", () => {
   it("the attacker wins with 5 destroyers and 2 attack troops; losses leave both sides; loot within the cap moves through escrow to the attacker at home", async () => {
     const { attacker, defender, fleetId, raid, qty } = await workedRaid();
     const credits = defender.corp().finances.credits;
-    const feed = JSON.stringify(getState().combatReports || []);
     raidTick(raid.arrivesAt - 1);
     expect(stored(raid.id).state).toBe("inbound");
     raidTick(raid.arrivesAt);
@@ -85,7 +84,7 @@ describe("ISP-179 the worked raid", () => {
     }
     const third = await corporation();
     expect((await third.api.get(third.at(`/raids/${raid.id}/report`))).status).toBe(404);
-    expect(JSON.stringify(getState().combatReports || [])).toBe(feed);
+    expect(getState()).not.toHaveProperty("combatReports"); // AB#860: there is no global feed to write to
     expect(listAccountNotifications(defender.id).notifications.some((n) => n.title === "Your holdings were raided")).toBe(true);
 
     // home: the loot is the attacker's at its origin, exactly what the defender lost; the fleet is stationed
