@@ -52,6 +52,6 @@ describe("a planned research node (AB#861)", () => {
     for (const n of TREE.filter((t) => t.status === "planned")) {
       expect(researchLockReason(n, { done, corpLevel: 40, tree: TREE }), n.id).toBe(PLANNED_RESEARCH);
     }
-    expect(TREE.filter((t) => t.status === "planned").map((t) => t.id).sort()).toEqual(["tt-capital-hulls", "tt-siege-ordnance"]);
+    expect(TREE.filter((t) => t.status === "planned").map((t) => t.id).sort()).toEqual(["tt-capital-hulls", "tt-evasive-manoeuvres", "tt-fire-control", "tt-siege-ordnance"]);
   });
 });
