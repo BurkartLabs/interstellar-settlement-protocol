@@ -42,6 +42,11 @@ const BASELINE = {
   "POST /shipyard/cancel": { body: { jobId: "ship-does-not-exist" } },
   "POST /training/queue": { body: { unitId: "dt", quantity: 1 } }, // ISP-172 (AB#866)
   "POST /training/cancel": { body: { jobId: "troop-does-not-exist" } },
+  "POST /fleets/form": { body: { lf: 1 } }, // ISP-174 (AB#868)
+  "POST /fleets/:fleetId/split": { params: { fleetId: "flt-does-not-exist" }, body: { lf: 1 } },
+  "POST /fleets/:fleetId/merge": { params: { fleetId: "flt-does-not-exist" }, body: { intoFleetId: "flt-other" } },
+  "POST /fleets/:fleetId/deploy": { params: { fleetId: "flt-does-not-exist" }, body: { toStationId: "mars-orbital-dock" } },
+  "POST /fleets/:fleetId/disband": { params: { fleetId: "flt-does-not-exist" } },
   "POST /queue-ceo": { body: { programId: "ceo-negotiation-fundamentals" } }
 };
 

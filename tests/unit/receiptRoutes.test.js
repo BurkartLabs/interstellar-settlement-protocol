@@ -49,7 +49,14 @@ const RECEIPTS = {
 const EXEMPT = {
   "/api/accounts/:accountId/gameplay/lease/:leaseId/stop-mining": "stops a running cycle (AB#1052); it has its own confirmation before it runs",
   "/api/market/orders/:orderId/cancel": "withdraws the player's own listing and returns the goods; nothing is bought or spent",
-  "/api/accounts/:accountId/gameplay/abandon-mission": "gives a contract back; nothing is delivered, paid or charged"
+  "/api/accounts/:accountId/gameplay/abandon-mission": "gives a contract back; nothing is delivered, paid or charged",
+  // ISP-174 (AB#868): fleet orders rearrange and move the player's own units; nothing is bought, spent or charged. The
+  // Fleet tab (ISP-175, AB#869) is their screen, and shows the order's result rather than a transaction record.
+  "/api/accounts/:accountId/gameplay/fleets/form": "groups units the player already has; nothing is bought or spent",
+  "/api/accounts/:accountId/gameplay/fleets/:fleetId/split": "divides the player's own fleet; nothing is bought or spent",
+  "/api/accounts/:accountId/gameplay/fleets/:fleetId/merge": "joins two of the player's own fleets; nothing is bought or spent",
+  "/api/accounts/:accountId/gameplay/fleets/:fleetId/deploy": "moves the player's own fleet; travel costs nothing",
+  "/api/accounts/:accountId/gameplay/fleets/:fleetId/disband": "returns a fleet's units to the reserve; nothing is sold or refunded"
 };
 
 /** ISP-94/95: the one build route answers with the receipt of whichever building it built; checked on its own below. */
