@@ -5,6 +5,11 @@
 // Everything is decided here, on the server, from data/economy.json and the caller's own state: the building is found
 // by the id AB#792 gave it, and the cost, the effect and every limit come from the tier table. The request carries the
 // id and nothing else. A refusal changes nothing (upgradeBuilding returns before its first write).
+//
+// ISP-192 (AB#886; docs/design/v0.11-tier4.md, section 6): a tier's row may take goods beside its credits (`goods`:
+// [{ item, quantity }]), from the corporation's stock at the station it is docked at: the Refinery's tier 4 takes
+// Superconducting Coils, the Assembly Facility's tier 3 Catalyst Beds. Credits and goods are debited together or not
+// at all, as a chain's inputs are.
 
 import { applyCredits } from "./finances.js";
 import { catalogueEntryFor, fabricationMsFor, tierTableFor } from "./buildingTiers.js";
@@ -79,8 +84,17 @@ export function upgradeBuilding(corp, buildingId, now = Date.now()) {
   if (busy) return { outcome: "running", name: label, busy };
   if (Number(record.upgradingUntil) > now) return { outcome: "already-upgrading", name: label, until: Number(record.upgradingUntil) };
   if ((Number(corp.finances?.credits) || 0) < row.upgradeCost) return { outcome: "insufficient-credits", cost: row.upgradeCost };
+  const goods = upgradeGoods(row);
+  const stock = goods.length ? corp.inventory?.[corp.currentStationId] || null : null;
+  if (goods.length && !corp.currentStationId) return { outcome: "goods-in-transit", goods };
+  const short = goods.find((g) => Math.floor(Number(stock?.[g.item]) || 0) < g.quantity);
+  if (short) return { outcome: "insufficient-goods", item: short.item, need: short.quantity, have: Math.floor(Number(stock?.[short.item]) || 0), goods };
 
   applyCredits(corp, -row.upgradeCost, "construction");
+  for (const g of goods) {
+    stock[g.item] -= g.quantity;
+    if (stock[g.item] <= 0) delete stock[g.item];
+  }
   if (Number.isFinite(building.paid)) building.paid += row.upgradeCost; // AB#2569: what default recovery salvages from
   corp.finances.assets = (Number(corp.finances.assets) || 0) + row.assetValue;
   building.tier = next;
@@ -98,8 +112,14 @@ export function upgradeBuilding(corp, buildingId, now = Date.now()) {
     assetValue: row.assetValue,
     offlineUntil: row.offlineHours > 0 ? record.upgradingUntil : null,
     effect: kind.effect(row),
-    throughputCap: row.throughputCap
+    throughputCap: row.throughputCap,
+    goods
   };
+}
+
+/** A tier row's goods cost, [{ item, quantity }] with whole quantities of at least 1; [] for a row with none. */
+export function upgradeGoods(row) {
+  return (Array.isArray(row?.goods) ? row.goods : []).filter((g) => typeof g?.item === "string" && g.item && Number.isInteger(g.quantity) && g.quantity > 0);
 }
 
 /** The player-facing reason for a refusal. It names no id and never repeats the request. */
@@ -114,6 +134,8 @@ export function upgradeRefusal(result, formatCredits, formatUtc) {
     case "running": return `${result.name} is running ${result.busy}. Stop it or let it finish before upgrading.`;
     case "already-upgrading": return `${result.name} is already being upgraded, until ${formatUtc(result.until)}.`;
     case "insufficient-credits": return `The upgrade costs ${formatCredits(result.cost)}.`;
+    case "insufficient-goods": return `The upgrade also takes ${result.need.toLocaleString("en-US")} ${result.item} from your stock at this station; you hold ${result.have.toLocaleString("en-US")} here.`;
+    case "goods-in-transit": return `The upgrade takes ${result.goods.map((g) => `${g.quantity} ${g.item}`).join(" and ")} from a station's stock. Dock where you hold them, then upgrade.`;
     default: return "The upgrade could not be made.";
   }
 }
