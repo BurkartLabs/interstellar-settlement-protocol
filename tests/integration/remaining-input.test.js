@@ -25,6 +25,7 @@ const OUT_OF_SCOPE = {
   "GET /how-to-start": "a static page, with no input (AB#748)",
   "GET /api/bootstrap": "a public read with no input",
   "GET /api/corporations/:corpId/credit-rating": "a read; its one input, a public corporation id, is only ever compared with existing ids (AB#842)",
+  "GET /api/conglomerates": "a read with no input: the public directory (ISP-197, AB#891)",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
   "GET /api/buildings": "a static catalog",
@@ -110,6 +111,7 @@ const BASELINE = {
   "/api/accounts/:accountId": {
     "POST /notifications/:notificationId/read": { params: { notificationId: "n-732" } },
     "GET /corporations": { query: { name: "Frontier" } },
+    "POST /conglomerates": { body: { name: "Baseline Frontier Group", emblem: 1, colour: 1 } },
     "GET /finances/statements": { query: { days: "7" } },
     "POST /messages/send": { body: { toCorpName: "Frontier", subject: "s", body: "b" } },
     "POST /messages/draft": { body: { subject: "s", body: "b" } },

@@ -8,7 +8,7 @@
 import { nextYardPrice, nextYardPriceFor } from "../public/scripts/yardPrice.js";
 import { applyCredits } from "./finances.js";
 import { catalogueRefusal, PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
-import { buildAssemblyReceipt, buildCryoVaporArrayReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildRefineryComplexReceipt, buildRefineryReceipt } from "./receipts.js";
+import { buildAssemblyReceipt, buildCryoVaporArrayReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildOrbitalShipyardReceipt, buildRefineryComplexReceipt, buildRefineryReceipt } from "./receipts.js";
 // ISP-98 (AB#788): a lease's slots are its extractors and the other buildings on it, counted in one place.
 import { leaseFacilities, leaseHasRoom } from "../public/scripts/leaseSlots.js";
 import { ECONOMY } from "./economy.js";
@@ -107,6 +107,13 @@ export const CONSTRUCTIONS = Object.freeze({
     },
     notification: { title: "Cryo-vapor Extractor Array Online", body: "The extractors on your Luna lease now mine more Silicates." },
     receipt: (built, corp) => buildCryoVaporArrayReceipt({ cost: built.cost, assetValue: built.assetValue, body: built.body, multiplier: ECONOMY.buildings.cryoVaporExtractorArrayMiningMultiplier, ...slotCount(corp) })
+  },
+  // ISP-170 (AB#864): the build site data/units.json names for ships. It adds nothing when built: ship production
+  // (ISP-171, AB#865) is what reads that it stands.
+  "orbital-shipyard": {
+    place: () => ({}),
+    notification: { title: "Orbital Shipyard Commissioned", body: "Your Orbital Shipyard is operational. Ship production opens later in v0.10." },
+    receipt: (built, corp) => buildOrbitalShipyardReceipt({ cost: built.cost, assetValue: built.assetValue, ...slotCount(corp) })
   }
 });
 

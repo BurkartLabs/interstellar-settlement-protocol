@@ -67,6 +67,18 @@
       "effect": "Built on a Luna lease, it cools that lease's extractors: they mine a fifth more Silicates.",
       "since": "0.6",
       "tiers": "none"
+    },
+    {
+      "id": "orbital-shipyard",
+      "name": "Orbital Shipyard",
+      "price": "orbitalShipyard",
+      "slot": "corporation",
+      "researchGates": ["tt-fleet-coordination"],
+      "minLevel": 10,
+      "cap": { "perCorporation": 1 },
+      "effect": "Where your corporation's ships are built: Light Fighters, Destroyers and Siege Engines. Ship production opens later in v0.10; until then the yard stands ready and builds nothing.",
+      "since": "0.10",
+      "tiers": "none"
     }
   ]
 }

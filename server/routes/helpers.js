@@ -70,6 +70,7 @@ function refusalMessage(outcome, building, corp, leaseId) {
     case "no-lease-named": return `Choose one of your mining leases for the ${building.name}.`;
     case "no-lease": return "The specified lease could not be found on your account.";
     case "not-on-lease": return `The ${building.name} is not built on a lease. Build it without choosing one.`;
+    case "level-too-low": return `${building.name} construction requires Corporation Level ${building.minLevel} (you are level ${Number(corp?.level) || 0}).`; // ISP-170
     case "missing-research": return `${building.name} construction requires ${researchNames(building)} research.`;
     case "at-cap":
       // ISP-97 (AB#787): an upgrade's cap is per building it upgrades.

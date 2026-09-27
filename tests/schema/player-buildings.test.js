@@ -23,6 +23,8 @@ function crossCatalogueProblems(buildings, research, milestones) {
   const problems = [];
   for (const b of buildings) {
     for (const id of b.researchGates) if (!researchIds.has(id)) problems.push(`${b.id} needs research "${id}", which data/research.json does not have.`);
+    // ISP-170 (AB#864): a level gate names a level the ladder has
+    if (b.minLevel !== undefined && !milestones.levels.some((l) => l.level === b.minLevel)) problems.push(`${b.id} needs Level ${b.minLevel}, which data/milestones.json does not have.`);
   }
   for (const level of milestones.levels) {
     for (const r of level.requirements) {
@@ -38,9 +40,9 @@ function crossCatalogueProblems(buildings, research, milestones) {
 describe("data/player-buildings.json (AB#783)", () => {
   it("holds the six buildings the game has (ISP-96 to ISP-98 added three), in the design's shape, each with its price from data/economy.json", () => {
     expect(playerBuildingProblems(FILE)).toEqual([]);
-    expect(PLAYER_BUILDING_CATALOGUE.map((b) => b.id)).toEqual(["basic-extractor-yard", "assembly-facility", "refinery", "ferric-mining-complex", "refinery-complex", "cryo-vapor-extractor-array"]);
+    expect(PLAYER_BUILDING_CATALOGUE.map((b) => b.id)).toEqual(["basic-extractor-yard", "assembly-facility", "refinery", "ferric-mining-complex", "refinery-complex", "cryo-vapor-extractor-array", "orbital-shipyard"]);
     for (const b of PLAYER_BUILDING_CATALOGUE) {
-      const shape = ["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot", "tiers", ...(b.slot === "upgrade" ? ["upgrades"] : []), ...(b.lease !== undefined ? ["lease"] : [])]; // tiers: ISP-102 (AB#794); lease: ISP-98
+      const shape = ["assetValue", "cap", "cost", "effect", "id", "name", "price", "researchGates", "since", "slot", "tiers", ...(b.slot === "upgrade" ? ["upgrades"] : []), ...(b.lease !== undefined ? ["lease"] : []), ...(b.minLevel !== undefined ? ["minLevel"] : [])]; // tiers: ISP-102 (AB#794); lease: ISP-98; minLevel: ISP-170
       expect(Object.keys(b).sort(), b.id).toEqual(shape.sort()); // an upgrade names what it upgrades (ISP-97)
       expect(b.cost, b.id).toBe(ECONOMY.buildings[`${b.price}Cost`]);
       expect(b.assetValue, b.id).toBe(ECONOMY.buildings[`${b.price}AssetValue`]);
@@ -57,7 +59,9 @@ describe("data/player-buildings.json (AB#783)", () => {
     const madeUp = [{ ...PLAYER_BUILDING_CATALOGUE[1], researchGates: ["tt-does-not-exist"] }];
     expect(crossCatalogueProblems(madeUp, RESEARCH, { levels: [] })).toEqual([`assembly-facility needs research "tt-does-not-exist", which data/research.json does not have.`]);
     const ladder = { levels: [{ level: 6, requirements: [{ id: "of", metric: "building:Orbital Foundry" }, { id: "ext", metric: "building-count:Basic Extractor Yard" }] }] };
-    expect(crossCatalogueProblems(PLAYER_BUILDING_CATALOGUE, RESEARCH, ladder)).toEqual([`level 6 of names building "Orbital Foundry", which data/player-buildings.json does not have.`]);
+    // the made-up ladder stops at level 6, so leave out a building gated above it (ISP-170's minLevel check)
+    expect(crossCatalogueProblems(PLAYER_BUILDING_CATALOGUE.filter((b) => !b.minLevel), RESEARCH, ladder)).toEqual([`level 6 of names building "Orbital Foundry", which data/player-buildings.json does not have.`]);
+    expect(crossCatalogueProblems([{ ...PLAYER_BUILDING_CATALOGUE[1], minLevel: 99 }], RESEARCH, MILESTONES).filter((p) => p.includes("needs Level"))).toEqual([`assembly-facility needs Level 99, which data/milestones.json does not have.`]);
   });
 
   it("a catalogue that is unusable stops the server at startup", () => {
@@ -68,6 +72,7 @@ describe("data/player-buildings.json (AB#783)", () => {
       [[good, { ...good }], /appears twice/],
       [[{ ...good, cap: { perCorporation: 0 } }], /cap must be/],
       [[{ ...good, researchGates: "tt-assembly-fabrication" }], /researchGates must be a list/],
+      [[{ ...good, minLevel: 0 }], /minLevel must be a whole number/], // ISP-170 (AB#864)
       [[], /must list its buildings/]
     ];
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "isp-buildings-"));

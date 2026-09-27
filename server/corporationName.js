@@ -69,23 +69,23 @@ function passesFor(name, reserved) {
 /**
  * The name to store, or why not. `existingNames` are the other corporations' names; `reservedNames` are the game's own
  * institutions, refused when they appear as whole words anywhere in the name ("GEX Commodities Authority Holdings"),
- * but not inside other words ("Visa Systems" does not contain "ISA System").
+ * but not inside other words ("Visa Systems" does not contain "ISA System"). ISP-197 (AB#891): a conglomerate's name is
+ * checked by this same function with `noun: "conglomerate"`, and every refusal carries a `code` saying which rule it broke.
  */
-export function validateCorporationName(raw, { existingNames = [], reservedNames = [] } = {}) {
+export function validateCorporationName(raw, { existingNames = [], reservedNames = [], noun = "corporation" } = {}) {
+  const length = { error: `A ${noun} name must be ${CORPORATION_NAME_MIN_LENGTH} to ${CORPORATION_NAME_MAX_LENGTH} characters.`, code: "name-length" };
   // Bug #2050: ["Type Corp Four"] was read as "Type Corp Four". A name is a string or it is refused.
-  if (raw !== undefined && raw !== null && typeof raw !== "string") {
-    return { error: `A corporation name must be ${CORPORATION_NAME_MIN_LENGTH} to ${CORPORATION_NAME_MAX_LENGTH} characters.` };
-  }
+  if (raw !== undefined && raw !== null && typeof raw !== "string") return length;
   const name = String(raw ?? "").trim().replace(/\s+/g, " ");
-  if (!name) return { error: "A corporation name is required." };
-  if (name.length < CORPORATION_NAME_MIN_LENGTH || name.length > CORPORATION_NAME_MAX_LENGTH) {
-    return { error: `A corporation name must be ${CORPORATION_NAME_MIN_LENGTH} to ${CORPORATION_NAME_MAX_LENGTH} characters.` };
-  }
+  if (!name) return { error: `A ${noun} name is required.`, code: "name-required" };
+  if (name.length < CORPORATION_NAME_MIN_LENGTH || name.length > CORPORATION_NAME_MAX_LENGTH) return length;
   // AB#813: an institution's name is refused however it is dressed up, before the character rule, so a look-alike is
   // told it is taken rather than only that a letter is not allowed. The message never repeats the name back.
-  if (passesFor(name, reservedNames)) return { error: "That name belongs to an institution in the game; choose another." };
-  if (!ALLOWED.test(name)) return { error: "A corporation name may use letters, digits, spaces and - ' . & only." };
+  if (passesFor(name, reservedNames)) return { error: "That name belongs to an institution in the game; choose another.", code: "name-reserved" };
+  if (!ALLOWED.test(name)) return { error: `A ${noun} name may use letters, digits, spaces and - ' . & only.`, code: "name-characters" };
   // AB#813: another player's name, the same way ("Kessler 0re Brokers" is Kessler Ore Brokers).
-  if (existingNames.some((n) => foldName(n) === foldName(name))) return { error: "A corporation with this name already exists." };
+  if (existingNames.some((n) => foldName(n) === foldName(name))) {
+    return { error: noun === "corporation" ? "A corporation with this name already exists." : "A corporation or conglomerate already has this name.", code: "name-taken" };
+  }
   return { name };
 }
