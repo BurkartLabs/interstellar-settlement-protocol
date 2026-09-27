@@ -3,6 +3,7 @@ import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { accountsStore } from "../../server/game/store.js";
 import { REFERENCE_PATTERN } from "../../server/references.js";
+import { docketDefault } from "../../server/arbitration.js";
 
 // ISP-249 (AB#945): records carry reference numbers: new ones from the start, those in an older save from the first time
 // they are read, kept; the licence letter names the licence, not the account; and no route finds a record by its
@@ -46,11 +47,19 @@ describe("reference numbers on records (AB#945)", () => {
     expect(`${letter.subject}\n${letter.body}`.toUpperCase()).not.toContain(reg.account.id.toUpperCase());
   });
 
-  it("is never a way in: no route takes a reference number, and a record is only ever served to its owner", async () => {
+  it("is never a way in: a route that takes a reference is the caller's own, and refuses a record that is not theirs", async () => {
     const stack = (app._router?.stack || []).flatMap((l) => (l.route ? [l.route.path] : l.handle?.stack ? l.handle.stack.filter((s) => s.route).map((s) => s.route.path) : []));
     expect(stack.length).toBeGreaterThan(50);
-    expect(stack.filter((p) => /:(ref|reference)\w*/i.test(String(p)))).toEqual([]);
-    const a = await registerAccount(app), b = await registerAccount(app);
-    expect((await authed(app, b.accessToken).get(`/api/accounts/${a.account.id}`)).status).toBe(403);
+    const byRef = stack.filter((p) => /:(ref|reference)\w*/i.test(String(p)));
+    for (const p of byRef) expect(String(p), p).toMatch(/^\/api\/accounts\/:accountId\//); // behind requireAccountAccess
+    expect(byRef).toEqual(["/api/accounts/:accountId/arbitration/cases/:ref/cure"]);
+    // a case on the docket, its respondent one corporation: another, on its own account, is refused it by reference
+    const debtor = await registerAccount(app), other = await registerAccount(app);
+    const c = docketDefault({ kind: "loan", id: `loan-ref-${Date.now()}`, debtorAccountId: debtor.account.id, shortfall: 100, owedBefore: 100, collected: 0 });
+    expect(c.ref).toMatch(REFERENCE_PATTERN);
+    const refused = await authed(app, other.accessToken).post(`/api/accounts/${other.account.id}/arbitration/cases/${encodeURIComponent(c.ref)}/cure`);
+    expect(refused.status).toBe(403);
+    expect((await authed(app, other.accessToken).post(`/api/accounts/${debtor.account.id}/arbitration/cases/${encodeURIComponent(c.ref)}/cure`)).status).toBe(403); // not its account
+    expect((await authed(app, other.accessToken).get(`/api/accounts/${debtor.account.id}`)).status).toBe(403);
   });
 });
