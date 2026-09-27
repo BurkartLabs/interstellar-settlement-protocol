@@ -4299,6 +4299,8 @@ img.station__body {
   color: var(--muted);
   font-size: var(--font-size-1);
 }
+/* ISP-252 (AB#948): on a phone the legend meets the 14px floor starmap-dialogue.spec measures. */
+@media (max-width: 600px) { .starmap__legend { font-size: var(--font-size-3); } }
 .starmap__legend-mark {
   flex: none;
   width: 8px;
@@ -4390,6 +4392,8 @@ img.station__body {
 .patent-total { margin: 0; font-variant-numeric: tabular-nums; }
 /* ISP-249 (AB#945): a record's reference number, secondary text in a fixed-width face so it reads and copies cleanly */
 .ref-no { font-family: var(--font-mono); font-size: var(--font-size-2); color: var(--muted); letter-spacing: 0.02em; white-space: nowrap; }
+/* ISP-252 (AB#948): a reference is read as text, so on a phone it meets the 14px floor (BUREAUCRATIC_UI.md, Accessibility). */
+@media (max-width: 600px) { .ref-no { font-size: var(--font-size-3); white-space: normal; } } /* and it breaks at its hyphens rather than widen a card */
 /* ISP-240 (AB#935): the lobbying office at the Earth Assembly and the ITC */
 .lobby-section { display: flex; flex-direction: column; gap: var(--space-3); }
 .lobby-standing { margin: 0; font-size: var(--font-size-4, 1.5rem); font-variant-numeric: tabular-nums; }
