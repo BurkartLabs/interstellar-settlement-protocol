@@ -23,6 +23,7 @@ import { registerAccountRoutes } from "./routes/account.js";
 import { registerCorporationRoutes } from "./routes/corporation.js";
 import { registerLoanRoutes } from "./routes/loans.js"; // ISP-149 (AB#843)
 import { registerCreditRatingRoutes } from "./routes/creditRating.js"; // ISP-148 (AB#842)
+import { registerConglomerateRoutes } from "./routes/conglomerates.js"; // ISP-197 (AB#891)
 import { registerLogisticsRoutes } from "./routes/logistics.js";
 import { registerMiningRoutes } from "./routes/mining.js";
 import { registerAsteroidRoutes } from "./routes/asteroids.js";
@@ -136,6 +137,7 @@ registerAccountRoutes(app);
 registerCorporationRoutes(app);
 registerLoanRoutes(app);
 registerCreditRatingRoutes(app);
+registerConglomerateRoutes(app);
 
 registerLogisticsRoutes(app);
 
