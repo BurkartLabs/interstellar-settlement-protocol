@@ -3299,6 +3299,10 @@ body.sg {
   margin: 0;
   list-style: none;
 }
+/* Bug #4661: a chain's start button names every short input (AB#836), so its label wraps inside the card */
+.refinery__start {
+  white-space: normal;
+}
 /* AB#885: the Resource catalog by tier: one row of badges under each tier's label */
 .refinery__tier {
   display: grid;
