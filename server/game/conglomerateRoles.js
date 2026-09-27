@@ -13,6 +13,7 @@ import { pushSystemNotification } from "./progression.js";
 import { saveAccountsNow } from "./store.js";
 import { ensureHangar, moveHangar, moveTreasury, publicConglomerate } from "./conglomerates.js";
 import { HOUR_MS, NOT_FOUND, accountByCorp, context, corpName, no, roomEvent } from "./membership.js";
+import { departStake, payBuyoutsInFull } from "./stakes.js"; // ISP-211 (AB#906)
 
 const ROLE_WORD = { founder: "founder", director: "director", member: "member" };
 
@@ -63,6 +64,7 @@ export function removeMember(accountId, conglomerateId, targetCorpId, now = Date
   c.past.push({ corp: target.corp, role: target.role, joinedAt: target.joinedAt, state: "removed", closedAt: now, by: corp.publicId });
   const joinCooldownUntil = now + CONGLOMERATE_CATALOG.joinCooldownHours * HOUR_MS;
   if (targetAccount) Object.assign(targetAccount.state.corp, { conglomerateId: null, joinCooldownUntil });
+  departStake(c, target.corp, "removed", now); // ISP-211 (AB#906): a removed corporation is paid its whole stake, so removal never profits those who stay
   saveAccountsNow();
   tell(targetAccount, "Removed from a conglomerate", `Your corporation was removed from ${c.name}. It can join another conglomerate after ${CONGLOMERATE_CATALOG.joinCooldownHours} hours.`);
   roomEvent(c, "conglomerate:removed", { corp: target.corp, corpName: corpName(target.corp) }, { accounts: [targetAccount?.id].filter(Boolean), leave: [targetAccount?.id].filter(Boolean) });
@@ -116,6 +118,7 @@ export function dissolveConglomerate(accountId, conglomerateId, now = Date.now()
   // ISP-210 (AB#905): a project holds members' own credits and goods; cancelling returns them, dissolving would not
   if (c.stationProject) return no(409, "station-project-open", `${c.name} has a station project under way. Cancel it first, which returns every contribution, then dissolve.`);
   const members = c.members.map((m) => ({ ...m, account: accountByCorp(m.corp) })).filter((m) => m.account);
+  payBuyoutsInFull(c, now); // ISP-211 (AB#906): what departed corporations are owed comes first, then the share-out
   const credits = Math.max(0, Math.floor(Number(c.treasury?.credits) || 0));
   const share = Math.floor(credits / members.length);
   const remainder = credits - share * members.length;

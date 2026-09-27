@@ -13,6 +13,7 @@ import { SYSTEMS_CATALOG, getInterstellarTravelTimeMs, getTravelTimeMs } from ".
 import { allStations, stationById, stationMap } from "../game/stations.js"; // ISP-209 (AB#904)
 import { systemName } from "../../public/scripts/displayNames.js"; // AB#1336
 import { emitToAccount } from "../realtime.js";
+import { dockRefusal } from "../game/stationGovernance.js"; // ISP-211 (AB#906)
 
 export function registerLogisticsRoutes(app) {
   // ─── Logistics: transfer resources between stations ──────────────────────────
@@ -139,6 +140,7 @@ export function registerLogisticsRoutes(app) {
 
     let outcome = "ok";
     let travelInfo = null;
+    let refusedDock = null;
 
     const account = mutateAccountState(req.params.accountId, (state) => {
       const corp = state.corp;
@@ -192,6 +194,12 @@ export function registerLogisticsRoutes(app) {
           outcome = "already-docked";
           return;
         }
+        // ISP-211 (AB#906): a conglomerate's station admits whom its stakeholders voted to admit
+        refusedDock = dockRefusal(corp, toStationId);
+        if (refusedDock) {
+          outcome = "dock-refused";
+          return;
+        }
 
         const durationMs = corp.currentStationId
           ? getTravelTimeMs(corp.currentStationId, toStationId)
@@ -227,7 +235,8 @@ export function registerLogisticsRoutes(app) {
         "missing-research": NAVIGATION.travelResearchLock(RESEARCH_LIBRARY, account.state.corp.unlockedTech, account.state.corp.level,
           account.state.corp.currentSystemId, toSystemId) || "You lack the required navigation research to travel to that system.",
         "wrong-system": "That station is in a different system. Travel to the system first.",
-        "no-route": "No jump route reaches that system from here. Jump to a charted system first."
+        "no-route": "No jump route reaches that system from here. Jump to a charted system first.",
+        "dock-refused": refusedDock
       };
       res.status(400).json({ error: messageMap[outcome] || "Travel request failed." });
       return;
