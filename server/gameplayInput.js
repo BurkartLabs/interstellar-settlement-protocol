@@ -138,6 +138,26 @@ export const ACCOUNT_INPUT = {
     }
   },
   "DELETE /messages/draft/:draftId": { params: { draftId: ref("a draft") } },
+  // AB#910: private messages. The body's own limit (8,000 characters, 32 KB) is the route's, answered 413; this only
+  // stops a string longer than any request body express accepts from reaching it.
+  "GET /conversations": {
+    query: {
+      cursor: text(200, "a page marker", { optional: true }),
+      limit: text(4, "a page size", { optional: true }),
+      archived: text(1, "1 for archived conversations", { optional: true })
+    }
+  },
+  "POST /conversations/send": {
+    body: {
+      toCorpId: ref("the corporation the message is for"),
+      body: text(100_000, "a message", { optional: true })
+    }
+  },
+  "GET /conversations/:conversationId/messages": {
+    params: { conversationId: ref("a conversation") },
+    query: { cursor: text(40, "a page marker", { optional: true }), limit: text(4, "a page size", { optional: true }) }
+  },
+  "POST /conversations/:conversationId/read": { params: { conversationId: ref("a conversation") } },
   "POST /messages/:messageId/read": { params: { messageId: ref("a message") } },
   "POST /messages/:messageId/move": {
     params: { messageId: ref("a message") },

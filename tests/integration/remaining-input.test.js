@@ -114,6 +114,10 @@ const BASELINE = {
     "POST /messages/send": { body: { toCorpName: "Frontier", subject: "s", body: "b" } },
     "POST /messages/draft": { body: { subject: "s", body: "b" } },
     "DELETE /messages/draft/:draftId": { params: { draftId: "d-732" } },
+    "GET /conversations": { query: { limit: "10" } },
+    "POST /conversations/send": { body: { toCorpId: "corp-910-nobody", body: "b" } },
+    "GET /conversations/:conversationId/messages": { params: { conversationId: "cv_910" } },
+    "POST /conversations/:conversationId/read": { params: { conversationId: "cv_910" } },
     "POST /messages/:messageId/read": { params: { messageId: "m-732" } },
     "POST /messages/:messageId/move": { params: { messageId: "m-732" }, body: { folder: "archive" } }
   },

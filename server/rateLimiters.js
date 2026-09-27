@@ -159,3 +159,28 @@ export const accountActionLimiter = limiter("account-action", {
     skip: (req) => req.method === "GET"
   }
 });
+
+// AB#910 (docs/design/messaging.md): private messages, per sender. These protect the server's write rate and the storage
+// one account can add (600 x 32 KB is about 19 MB an hour at worst); none of them reads a message or depends on who it
+// is for (Board, AB#707 and AB#696: no safety measures). Keyed on the sender's own account, after requireAuth.
+const bySender = { keyGenerator: (req) => req.auth?.accountId || ipKeyGenerator(req.ip) };
+export const messageMinuteLimiter = limiter("message-minute", {
+  windowMs: 60_000,
+  envName: "ISP_RATE_LIMIT_MESSAGE_MINUTE_MAX",
+  productionDefault: 30,
+  extra: bySender
+});
+export const messageHourLimiter = limiter("message-hour", {
+  windowMs: 60 * 60_000,
+  envName: "ISP_RATE_LIMIT_MESSAGE_HOUR_MAX",
+  productionDefault: 600,
+  extra: bySender
+});
+// A first message to a corporation creates a conversation and an entry in two inboxes; this bounds that fan-out. It
+// runs only for a sender's first message to a given corporation, and says nothing about whom a player may write to.
+export const newConversationLimiter = limiter("new-conversation", {
+  windowMs: 60 * 60_000,
+  envName: "ISP_RATE_LIMIT_NEW_CONVERSATION_MAX",
+  productionDefault: 60,
+  extra: bySender
+});

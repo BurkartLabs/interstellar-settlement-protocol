@@ -30,6 +30,7 @@ import { PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
 import { registerMissionRoutes } from "./routes/missions.js";
 import { registerResearchRoutes } from "./routes/research.js";
 import { registerMessagingRoutes } from "./routes/messaging.js";
+import { registerConversationRoutes } from "./routes/conversations.js"; // AB#910
 import { registerForumRoutes } from "./routes/forums.js";
 import { registerMarketRoutes } from "./routes/market.js";
 
@@ -152,6 +153,7 @@ registerMissionRoutes(app);
 registerResearchRoutes(app);
 
 registerMessagingRoutes(app);
+registerConversationRoutes(app);
 
 registerForumRoutes(app);
 
