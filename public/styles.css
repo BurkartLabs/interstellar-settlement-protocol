@@ -1094,7 +1094,7 @@ textarea {
   height: min(62vh, 560px);
   max-width: 100%;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--bg);
   cursor: pointer;
   touch-action: none;
@@ -2474,6 +2474,9 @@ body.sg {
   font-weight: var(--font-weight-semibold);
   color: var(--text);
 }
+/* ISP-252 (AB#948): a record's protocol phrase (docs/design/BUREAUCRATIC_UI.md, "Status vocabulary"): the document's
+   words beside the plain status badge, never in place of it. Was the Arbitration Council's own .gac-protocol. */
+.ui-protocol { margin: 0; font-size: var(--font-size-2); color: var(--muted); font-style: italic; }
 /* ISP-248 (AB#944): the document code before a screen or section title (docs/design/BUREAUCRATIC_UI.md). Secondary
    text: mono, muted, one step below the body; on a phone at the 14px floor the screen specs measure. */
 .ui-code {
@@ -4319,6 +4322,8 @@ img.station__body {
   color: var(--muted);
   font-size: var(--font-size-1);
 }
+/* ISP-252 (AB#948): on a phone the legend meets the 14px floor starmap-dialogue.spec measures. */
+@media (max-width: 600px) { .starmap__legend { font-size: var(--font-size-3); } }
 .starmap__legend-mark {
   flex: none;
   width: 8px;
@@ -4410,6 +4415,8 @@ img.station__body {
 .patent-total { margin: 0; font-variant-numeric: tabular-nums; }
 /* ISP-249 (AB#945): a record's reference number, secondary text in a fixed-width face so it reads and copies cleanly */
 .ref-no { font-family: var(--font-mono); font-size: var(--font-size-2); color: var(--muted); letter-spacing: 0.02em; white-space: nowrap; }
+/* ISP-252 (AB#948): a reference is read as text, so on a phone it meets the 14px floor (BUREAUCRATIC_UI.md, Accessibility). */
+@media (max-width: 600px) { .ref-no { font-size: var(--font-size-3); white-space: normal; } } /* and it breaks at its hyphens rather than widen a card */
 /* ISP-240 (AB#935): the lobbying office at the Earth Assembly and the ITC */
 .lobby-section { display: flex; flex-direction: column; gap: var(--space-3); }
 .lobby-standing { margin: 0; font-size: var(--font-size-4, 1.5rem); font-variant-numeric: tabular-nums; }
@@ -4432,7 +4439,7 @@ img.station__body {
 .lobby-glossary { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); color: var(--muted); }
 .lobby-glossary dt { font-weight: 700; color: var(--text); }
 .lobby-glossary dd { margin: 0; }
-@media (max-width: 560px) { .lobby-glossary { grid-template-columns: minmax(0, 1fr); } .lobby-glossary dd { margin-bottom: var(--space-2); } }
+@media (max-width: 560px) { .lobby-glossary { grid-template-columns: minmax(0, 1fr); font-size: var(--font-size-3); } .lobby-glossary dd { margin-bottom: var(--space-2); } } /* Bug #4681: the 14px floor */
 .lobby-pledge .ui-input { width: 8rem; }
 .lobby-pledge .ui-select { width: auto; }
 .patent-status:empty { display: none; }
@@ -4465,14 +4472,12 @@ img.station__body {
 .gac-terms dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .gac-status:empty { display: none; }
 .gac-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
-.gac-ref { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 .gac-cases, .gac-docket { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .gac-case details { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); }
 .gac-case__summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-3); cursor: pointer; overflow-wrap: anywhere; }
 .gac-case__title { flex: 1 1 16rem; min-width: 0; }
 .gac-case__body { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-3) var(--space-3); }
 .gac-case__sub { margin: var(--space-2) 0 0; font-size: var(--font-size-2); color: var(--muted); font-weight: 600; }
-.gac-protocol { margin: 0; font-size: var(--font-size-2); color: var(--muted); font-style: italic; }
 .gac-ruling { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--accent); background: var(--surface-2); line-height: var(--line-height-body); }
 .gac-docket__row { border-bottom: 1px solid var(--border); padding: var(--space-2) 0; display: flex; flex-direction: column; gap: var(--space-1); }
 .gac-docket__row p { margin: 0; overflow-wrap: anywhere; }
@@ -4482,7 +4487,7 @@ img.station__body {
   .gac-preview { grid-template-columns: minmax(0, 1fr); }
   .gac-terms { grid-template-columns: minmax(0, 1fr); }
   .gac-terms dt { margin-top: var(--space-1); }
-  .gac-chambers, .gac-choice, .gac-choice__meta, .gac-terms, .gac-status, .gac-protocol, .gac-docket__meta, .gac-case__sub, .gac-preview__rule, .gac-chambers .ui-panel__meta, .gac-chambers .ui-state__why { font-size: var(--font-size-3); }
+  .gac-chambers, .gac-choice, .gac-choice__meta, .gac-terms, .gac-status, .ui-protocol, .gac-docket__meta, .gac-case__sub, .gac-preview__rule, .gac-chambers .ui-panel__meta, .gac-chambers .ui-state__why { font-size: var(--font-size-3); }
 }
 
 /* ISP-229 (AB#924): the Concessions overlay's extra marks, and a system's concession section and holder view */
@@ -4495,6 +4500,7 @@ img.station__body {
 .concession-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
 .concession-holder { display: flex; flex-direction: column; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); background: var(--surface-2); }
 .concession-terms { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); }
+.concession-terms > div { display: contents; } /* Bug #4683: the pairs are wrapped; dt and dd are the grid's items */
 .concession-terms dt { color: var(--muted); }
 .concession-terms dd { margin: 0; color: var(--text); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .concession-grace { color: var(--warn); }
@@ -5118,6 +5124,7 @@ img.station__body {
 .fleet__destination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2); }
 /* ISP-177 (AB#871): Mercenary Rentals on the Galactic Exchange. The offers table is cards on a narrow column like every
    market table; the contracts are a list of sentences; the form's fields wrap. */
+.mercs h4 { margin: 0; font-size: var(--font-size-3); } /* ISP-252 (AB#948), Bug #4659: the section subheads were body size */
 .mercs__terms { display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
 .mercs__terms input, .mercs__terms select, .mercs__form select { width: 100%; min-width: 0; }
 .mercs__mine { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }

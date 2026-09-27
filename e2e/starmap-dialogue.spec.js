@@ -130,7 +130,7 @@ for (const [width, height] of SIZES) {
 
       expect(await mapShow(page, { systemId: "sol", bodyId: "belt" })).toBe(true);
       await expect(page.locator("#map-details")).toContainText("Material Composition", { timeout: 10_000 });
-      await expect(page.locator("#map-details .starmap__expedition .progress-wrap")).toBeVisible();
+      await expect(page.locator("#map-details [data-role=starmap-expedition] .progress-wrap")).toBeVisible();
       await expect(page.locator("#launch-expedition-btn")).toBeVisible();
       await measure(page, "#starmap", width);
       await page.locator("#map-details").scrollIntoViewIfNeeded();

@@ -64,3 +64,10 @@ describe("a system's concession section (AB#924)", () => {
     expect(text(concessionDetailsHtml(WORLD.systems.sol, { rule: "Every corporation is founded at Earth Station Prime." }, null))).toContain("ISA administered: never conceded. Every corporation is founded");
   });
 });
+
+describe("the concession grant's reference (ISP-252, AB#948)", () => {
+  it("draws each holder's CSN reference beside its name, as the guide's reference component", () => {
+    const summary = { concedable: true, holders: [{ name: "Halcyon Mining", type: "corp", state: "granted", termEndsAt: T, ref: "CSN-2147-7Q2K4M" }], petitions: [] };
+    expect(concessionDetailsHtml(summary, null, null, [])).toContain('<span class="ref-no">CSN-2147-7Q2K4M</span>');
+  });
+});

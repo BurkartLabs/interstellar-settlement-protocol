@@ -69,7 +69,7 @@ for (const viewport of VIEWPORTS) {
       await openStation(page, "cg-venus");
       const modal = page.locator("#starmap-station-modal");
       await expect(modal).toContainText("Owned by Venus Builders Guild, the conglomerate that built it.");
-      await modal.locator(".starmap__station-dock").click();
+      await modal.locator("[data-role=starmap-station-dock]").click();
       // Bug #4651: the refusal is said in the modal, where the order was given
       await expect(modal.locator(".starmap__dock-refused")).toHaveText("Venus Platform admits members only, by the vote of Venus Builders Guild's stakeholders.");
       await expect(modal.locator(".starmap__dock-refused")).toBeVisible();
@@ -80,7 +80,7 @@ for (const viewport of VIEWPORTS) {
       // and an order the server takes still closes the modal as the ship leaves (Bug #4651's other half)
       await page.locator("#starmap-station-modal .starmap__close").click();
       await openStation(page, "luna-gateway");
-      await page.locator("#starmap-station-modal .starmap__station-dock").click();
+      await page.locator("#starmap-station-modal [data-role=starmap-station-dock]").click();
       await expect(page.locator("#starmap-station-modal")).toHaveCount(0);
       await expect.poll(async () => (await page.evaluate(async () => (await import("/scripts/state.js")).appState.data?.corp?.travel?.toStationId))).toBe("luna-gateway");
       expect(errors).toEqual([]);

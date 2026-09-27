@@ -7,7 +7,7 @@
 // it, then the fee to confirm; no field is free text), the corporation's own cases (the evidence, the window, the cure
 // for a respondent, the ruling in the Council's words), and the public docket. Times are UTC in the ISA's year (the
 // real year + 121, BUREAUCRATIC_UI.md), each a <time> with the real instant, until ISP-249's one formatter replaces this.
-import { escapeHtml } from "./html.js";
+import { escapeHtml, refHtml } from "./html.js";
 import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 import { timeHtml } from "./timeFormat.js"; // ISP-249 (AB#945)
 
@@ -160,7 +160,7 @@ function previewStep(state, ctx) {
   return `<section class="gac-step" data-gac-step="preview" aria-labelledby="gac-preview-title">
     <h4 class="gac-step__title" id="gac-preview-title"><span class="gac-step__n" aria-hidden="true">3</span> Evidence the Council will attach</h4>
     <div class="gac-preview">
-      <div  data-gac-evidence>
+      <div data-gac-evidence>
         ${dl([["Claimant", escapeHtml(p.claimant.name)], ["Respondent", escapeHtml(p.respondent.name)], ["Amount claimed", cr(p.amountClaimed)], ...evidenceRows(p.type, p.evidence, ctx)])}
       </div>
       <aside class="gac-preview__rule" aria-label="The rule"><p class="gac-rule__head">The rule</p><p>${escapeHtml(claim(p.type).rule)}</p></aside>
@@ -193,12 +193,12 @@ export function caseHtml(c, ctx = {}) {
   return `<li class="gac-case" data-gac-case="${escapeHtml(c.ref)}">
     <details${ctx.open === c.ref ? " open" : ""}>
       <summary class="gac-case__summary">
-        <span class="gac-ref">${escapeHtml(c.ref)}</span>
+        ${refHtml(c.ref)}
         <span class="gac-case__title">${escapeHtml(claim(c.type).title)}: ${escapeHtml(c.claimant.name)} v. ${escapeHtml(c.respondent.name)}</span>
-        <span ><span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</span>
+        <span><span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</span>
       </summary>
       <div class="gac-case__body">
-        <p class="gac-protocol">${s.protocol}.</p>
+        <p class="ui-protocol">${s.protocol}.</p>
         ${dl([
           ["You are", ctx.isMe?.(c.claimant) ? "the claimant" : respondent ? "the respondent" : "a party"],
           ["Filed", isaTime(c.filedAt)],
@@ -231,8 +231,8 @@ export function docketHtml(cases, ctx = {}) {
   const rows = cases.map((c) => {
     const s = caseStatus(c, now);
     return `<li class="gac-docket__row" data-gac-docket="${escapeHtml(c.ref)}">
-      <p class="gac-docket__head"><span class="gac-ref">${escapeHtml(c.ref)}</span> <span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</p>
-      <p >${escapeHtml(claim(c.type).title)}: ${escapeHtml(c.claimant)} v. ${escapeHtml(c.respondent)}</p>
+      <p class="gac-docket__head">${refHtml(c.ref)} <span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</p>
+      <p>${escapeHtml(claim(c.type).title)}: ${escapeHtml(c.claimant)} v. ${escapeHtml(c.respondent)}</p>
       <p class="gac-docket__meta">Filed ${isaTime(c.filedAt)}${c.amountClaimed > 0 ? ` · claimed ${cr(c.amountClaimed)}` : ""}${c.state === "enforcing" ? ` · ${cr(c.paid)} paid` : ""}</p>
     </li>`;
   }).join("");
