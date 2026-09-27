@@ -12,6 +12,7 @@ import { emitToAccount } from "./realtime.js";
 import { formatCredits } from "./receipts.js";
 import { recordSale, sameConglomerate } from "./game/dominanceCounters.js"; // ISP-217 (AB#912)
 import { accountsStore } from "./game/store.js";
+import { chargeTariff } from "./tariffService.js"; // ISP-230 (AB#925)
 
 /**
  * Pay the seller of `order` for `quantity` at the listing's price, less the exchange tax, and write their Sold row.
@@ -25,8 +26,7 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
     // ISP-302 (AB#2285): the rate includes the lease royalty; its share is booked apart, as "lease-royalty".
     const breakdown = exchangeTaxBreakdown(state);
     const taxPct = breakdown.ratePct;
-    const { tax: taxAmount, royalty, salesTax, proceeds } = taxOnSale(total, breakdown);
-    sale = { taxPct, taxAmount, proceeds, buyer: publicName(buyerName) };
+    const { tax: taxAmount, royalty, salesTax, proceeds: afterTax } = taxOnSale(total, breakdown);
     // Bug #984: the gross the buyer paid is income and the tax an expense; the balance moves by the proceeds.
     applyCredits(state.corp, total, "exchange");
     // ISP-217 (AB#912): the sale counts toward dominance at the listing's station, unless the buyer is a conglomerate
@@ -34,6 +34,11 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
     if (!sameConglomerate(state.corp, accountsStore.accounts?.[buyerAccountId]?.state?.corp)) recordSale(state.corp, order.stationId, total);
     applyCredits(state.corp, -salesTax, "exchange-tax");
     applyCredits(state.corp, -royalty, "lease-royalty");
+    // ISP-230 (AB#925): the concession holder's tariff where the goods are held, at the lower of the listing's posted
+    // rate and today's (WARFARE.md: nobody pays a rate they were not shown)
+    const tariff = chargeTariff(state.corp, { stationId: order.stationId, base: total, postedPct: order.tariffPct ?? null });
+    const proceeds = afterTax - tariff.amount;
+    sale = { taxPct, taxAmount, tariffPct: tariff.pct, tariffAmount: tariff.amount, proceeds, buyer: publicName(buyerName) };
     if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
     state.corp.tradeHistory.unshift({
       id: `th-${Date.now() + 1}`,
@@ -44,6 +49,7 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
       total,
       taxPct,
       taxAmount,
+      ...(tariff.amount ? { tariffPct: tariff.pct, tariffAmount: tariff.amount } : {}),
       proceeds,
       counterparty: sale.buyer,
       at: Date.now()
@@ -78,7 +84,8 @@ export function tellSeller(order, quantity, sale, leftAfterSale) {
     title: "Listing Sold",
     body:
       `${sale.buyer} bought ${quantity.toLocaleString("en-US")} ${order.item} at ${formatCredits(order.unitPrice)} each: ` +
-      `${formatCredits(total)}, less ${formatCredits(sale.taxAmount)} exchange tax (${sale.taxPct}%), ` +
+      `${formatCredits(total)}, less ${formatCredits(sale.taxAmount)} exchange tax (${sale.taxPct}%)` +
+      (sale.tariffAmount ? ` and ${formatCredits(sale.tariffAmount)} concession tariff (${sale.tariffPct}%)` : "") + ", " +
       `${formatCredits(sale.proceeds)} paid to you. ` +
       (leftAfterSale > 0 ? `${leftAfterSale.toLocaleString("en-US")} still listed.` : "The listing is sold out.")
   });
