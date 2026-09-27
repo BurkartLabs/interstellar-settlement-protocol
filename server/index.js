@@ -23,6 +23,7 @@ import { registerAccountRoutes } from "./routes/account.js";
 import { registerCorporationRoutes } from "./routes/corporation.js";
 import { registerLoanRoutes } from "./routes/loans.js"; // ISP-149 (AB#843)
 import { loanServicingTick } from "./loanServicing.js"; // ISP-150 (AB#844)
+import { defaultRecoveryTick } from "./defaultRecovery.js"; // ISP-286 (AB#993)
 import { registerBondRoutes } from "./routes/bonds.js"; // ISP-154 (AB#848)
 import { bondWindowTick } from "./bonds.js";
 import { bondServicingTick } from "./bondServicing.js"; // ISP-155 (AB#849)
@@ -157,7 +158,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(shipmentTick, 5000); // Every 
 // AB#2329: an empty belt slot draws on the hour; checked every minute, so a draw is at most a minute late.
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(beltTick, 60_000);
 // ISP-150 (AB#844): loans' daily payments, arrears and penalty interest; a day due is collected within a minute
-if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => loanServicingTick(Date.now()), 60_000);
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now(); loanServicingTick(now); defaultRecoveryTick(now); }, 60_000); // AB#993: recovery right after servicing
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondWindowTick(Date.now()), 60_000); // ISP-154 (AB#848)
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondServicingTick(Date.now()), 60_000); // ISP-155 (AB#849)
 

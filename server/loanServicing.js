@@ -77,6 +77,29 @@ function collectArrears(accountId, loan, now, tag) {
 }
 
 /**
+ * ISP-286 (AB#993): what a defaulted loan owes in all: its arrears (late fees, interest and principal that fell due) and
+ * the principal still scheduled. Interest that had not yet fallen due is not owed.
+ */
+export const owedOnDefault = (loan) => (Number(loan?.arrears) || 0) + (Number(loan?.balance) || 0);
+
+/**
+ * ISP-286 (AB#993): collect what the borrower's credits cover of everything the loan owes: its arrears first (fees,
+ * interest, principal, as servicing does), then the principal still scheduled, to the lender. The loan closes, repaid,
+ * when nothing is owed. Returns the credits collected. Changes `loan`; the caller saves it. `tag` names the step, so
+ * each settleTransfer key is used once.
+ */
+export function collectOwed(accountId, loan, now, tag) {
+  const before = owedOnDefault(loan);
+  collectArrears(accountId, loan, now, tag);
+  if (loan.arrears === 0) {
+    const take = Math.min(Number(loan.balance) || 0, creditsOf(accountId));
+    if (take > 0 && pay(accountId, loan, "principal", take, `${tag}:balance`, now)) loan.balance -= take;
+  }
+  if (owedOnDefault(loan) === 0) Object.assign(loan, { state: "repaid", closedAt: now, arrearsSince: null });
+  return before - owedOnDefault(loan);
+}
+
+/**
  * Service one loan up to `now`: every day that has come due since nextDueAt, in order. Returns what happened, for the
  * tick's notifications: { paid, missed, repaid }. Changes `loan` in place; the caller saves it.
  */
