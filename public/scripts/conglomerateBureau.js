@@ -194,7 +194,7 @@ export function memberHtml(view, { search } = {}) {
       if (may("transfer-founder") && m.role === "director") controls.push(button("cong-transfer", "Hand over founder", { data: { corp: m.corp } }));
       if (may(m.role === "director" ? "remove-director" : "remove-member")) controls.push(button("cong-remove", "Remove", { variant: "danger", data: { corp: m.corp, name: m.corpName } }));
     }
-    return `<tr><td data-label="Corporation">${escapeHtml(m.corpName || "A corporation")}${self ? ' <span class="ui-badge ui-badge--accent">You</span>' : ""}</td><td data-label="Role">${ROLE_LABEL[m.role] || escapeHtml(m.role)}</td><td data-label="Joined">${bureauTime(m.joinedAt)}</td><td data-label="Actions"><div class="cong-actions">${controls.join("") || '<span class="cong-muted">None</span>'}</div></td></tr>`;
+    return `<tr><td data-label="Corporation">${escapeHtml(m.corpName || "A corporation")}</td><td data-label="Role">${ROLE_LABEL[m.role] || escapeHtml(m.role)}${self ? ' <span class="ui-badge ui-badge--accent">You</span>' : ""}</td><td data-label="Joined">${bureauTime(m.joinedAt)}</td><td data-label="Actions"><div class="cong-actions">${controls.join("") || '<span class="cong-muted">None</span>'}</div></td></tr>`;
   }).join("");
   const directorsFull = may("set-director") && directors >= c.maxDirectors ? `<p class="cong-item__why">${n(c.maxDirectors)} directors is the most a conglomerate may have. Make one a member before promoting another.</p>` : "";
   const applications = c.applications.length ? `<ul class="cong-list">${c.applications.map((a) => `
@@ -258,4 +258,51 @@ export function memberHtml(view, { search } = {}) {
       <h3>${may("dissolve") ? "Dissolve" : "Leave"}</h3>
       ${leaveOrDissolve}
     </section>`;
+}
+
+/**
+ * ISP-201 (AB#895): the Company group's Conglomerate tab. A member sees its conglomerate (the same view as the Bureau's,
+ * usable anywhere: the server refuses only what needs the Bureau, and says so); an independent corporation sees the
+ * way to the Bureau, its invitations and the directory, where it can apply from any station.
+ */
+export function hqHtml(view, directory, { search, error } = {}) {
+  if (!view) {
+    return error ? directoryHtml(null, null, { error }) : `<p class="station__note">Reading your conglomerate…</p>`;
+  }
+  const bureauWhy = view.atBureau ? "" : `<p class="cong-item__why" id="cong-bureau-why">The Bureau is on Earth Station Prime. Travel there to file a charter${view.conglomerate ? ", buy a level or dissolve" : ""}.</p>`;
+  const bureauButton = `<div class="cong-actions">${button("cong-open-bureau", "Open the Bureau", { variant: view.conglomerate ? "secondary" : "primary", disabled: !view.atBureau, describedBy: view.atBureau ? "" : "cong-bureau-why" })}</div>${bureauWhy}`;
+  if (view.conglomerate) {
+    return memberHtml(view, { search }) + `
+    <section class="ui-panel station__panel cong-panel" data-role="cong-bureau-link">
+      <h3>At the Bureau</h3>
+      <p class="cong-panel__lede">Everything above works from any station. Paperwork that costs credits (levels, and dissolving) is filed at the Conglomerate Affairs Bureau.</p>
+      ${bureauButton}
+    </section>`;
+  }
+  return `
+    <section class="ui-panel station__panel cong-panel" data-role="cong-independent">
+      <h3>Your corporation is independent</h3>
+      <p class="cong-panel__lede">A conglomerate pools a treasury and a roster under one name. Found one at the Conglomerate Affairs Bureau (it costs ${n((view.charter?.fee || 0) + (view.charter?.deposit || 0))} credits), or apply to one below from any station.</p>
+      ${bureauButton}
+    </section>` + invitationsHtml(view) + directoryHtml(directory, view, { error });
+}
+
+/** ISP-201 (AB#895): the Overview's Conglomerate card for the corporation's conglomerate, null, or undefined (not read yet). */
+export function conglomerateCard(cong) {
+  if (cong === undefined) return { title: "Conglomerate", value: "…", body: "Reading your conglomerate." };
+  if (!cong) {
+    return {
+      title: "Conglomerate",
+      value: "Independent",
+      body: "Your corporation is in no conglomerate. Found one or apply to one at the Conglomerate Affairs Bureau.",
+      jump: "bureau"
+    };
+  }
+  const role = { founder: "Founder", director: "Director", member: "Member" }[cong.role] || "Member";
+  return {
+    title: "Conglomerate",
+    value: `${cong.name}: ${cong.memberCount} / ${cong.maxMembers} members`,
+    body: `${role}. Level ${cong.level}; the treasury holds ${Math.round(Number(cong.treasury?.credits) || 0).toLocaleString("en-US")} credits. Open the roster.`,
+    jump: "conglomerate"
+  };
 }

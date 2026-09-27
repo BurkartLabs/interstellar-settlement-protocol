@@ -1,4 +1,5 @@
-// ISP-200 (AB#894): the Conglomerate Affairs Bureau from the running app, played as two players would, with screenshots
+// ISP-200 (AB#894), ISP-201 (AB#895): the Conglomerate Affairs Bureau, the Conglomerate tab and the Overview's card from
+// the running app, played as two players would, with screenshots
 // at 1280x800 and 375x812. The script starts its own server on a scratch data directory, because a corporation must be
 // seven days old to found a conglomerate and nothing in the page can age one: the founder registers, is refused (the
 // requirement shown), the server stops, the save's createdAt is moved back eight days, and the server starts again.
@@ -48,21 +49,23 @@ async function stopServer() {
 
 const browser = await chromium.launch();
 const shots = [];
-async function shot(page, name, { wide = true, narrow = true, role = "cong-body", viewport = false } = {}) {
+async function shot(page, name, { wide = true, narrow = true, role = "cong-body", sel, viewport = false, prefix = "ab894" } = {}) {
+  const selector = sel || (role ? `[data-role="${role}"]` : null);
   for (const [w, h, on] of [[1280, 800, wide], [375, 812, narrow]]) {
     if (!on) continue;
     await page.setViewportSize({ width: w, height: h });
     await wait(300);
     const sideways = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-    const file = path.join(outDir, `ab894-${name}-${w}.png`);
+    const file = path.join(outDir, `${prefix}-${name}-${w}.png`);
     // From the top of the page, so the sticky header sits where a player sees it; a panel is cut from the full page.
     if (viewport) { await page.screenshot({ path: file }); shots.push(path.basename(file)); continue; } // a modal, as it is seen
     await page.evaluate(() => window.scrollTo(0, 0));
     await wait(150);
-    const clip = role ? await page.evaluate((r) => {
-      const box = document.querySelector(`[data-role="${r}"]`)?.getBoundingClientRect();
+    // The visible match: the Bureau's panel and the Conglomerate tab both hold a cong-body, one of them hidden.
+    const clip = selector ? await page.evaluate((s) => {
+      const box = [...document.querySelectorAll(s)].find((el) => el.getClientRects().length && el.offsetParent !== null)?.getBoundingClientRect();
       return box ? { x: Math.max(0, box.left - 8), y: box.top + window.scrollY - 8, width: Math.min(box.width + 16, document.documentElement.clientWidth), height: box.height + 16 } : null;
-    }, role) : null;
+    }, selector) : null;
     await page.screenshot({ path: file, fullPage: true, ...(clip ? { clip } : {}) });
     shots.push(`${path.basename(file)} (sideways scroll ${sideways}px)`);
     if (sideways > 0) console.log(`!! ${name} at ${w}px scrolls sideways by ${sideways}px`);
@@ -124,6 +127,12 @@ try {
   console.log("refused charter:", (await a.locator('[data-role="cong-charter"] .cong-refusal').innerText()).trim());
   await shot(a, "charter-refused", { role: "cong-charter" });
   await shot(a, "bureau-new-corporation");
+  await openTab(a, "overview");
+  await a.locator("#overview-cards .ui-card", { hasText: "Independent" }).waitFor({ timeout: 15_000 });
+  await shot(a, "overview-independent", { sel: "#overview-cards", prefix: "ab895" });
+  await openTab(a, "conglomerate");
+  await a.locator('#conglomerate [data-role="cong-independent"]').waitFor({ timeout: 15_000 });
+  await shot(a, "hq-independent", { sel: "#conglomerate", prefix: "ab895" });
   await a.context().close();
   await stopServer();
 
@@ -177,6 +186,22 @@ try {
   await b.locator('[data-role="cong-mine"]').waitFor({ timeout: 15_000 });
   await shot(b, "roster-director");
   console.log("director's controls:", await b.locator('[data-role="cong-body"] button[data-role]').evaluateAll((els) => els.map((e) => e.dataset.role)));
+
+  // 7. ISP-201 (AB#895): the Overview's card for a member, and the Conglomerate tab for the founder and the director.
+  for (const [who, page] of [["founder", a], ["director", b]]) {
+    await openTab(page, "overview");
+    await page.locator("#overview-cards .ui-card", { hasText: "Halcyon Accord" }).waitFor({ timeout: 15_000 });
+    await shot(page, `overview-${who}`, { sel: "#overview-cards", prefix: "ab895" });
+    console.log(`${who}'s card:`, (await page.locator("#overview-cards .ui-card", { hasText: "Halcyon Accord" }).innerText()).replace(/\s+/g, " "));
+    await page.locator("#overview-cards .ui-card", { hasText: "Halcyon Accord" }).click();
+    await page.locator('#conglomerate [data-role="cong-roster"]').waitFor({ timeout: 15_000 });
+    await shot(page, `hq-${who}`, { sel: "#conglomerate", prefix: "ab895" });
+  }
+  await b.locator('#conglomerate [data-role="cong-leave"]').click();
+  await b.locator("#trade-confirm-modal").waitFor({ state: "visible" });
+  await shot(b, "hq-leave-confirm", { viewport: true, prefix: "ab895" });
+  console.log("leave confirmation:", (await b.locator("#trade-confirm-modal").innerText()).replace(/\s+/g, " "));
+  await b.click("#trade-confirm-cancel");
 } finally {
   await browser.close();
   if (server) server.kill();
