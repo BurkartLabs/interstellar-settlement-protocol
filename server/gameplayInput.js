@@ -148,6 +148,22 @@ export const ACCOUNT_INPUT = {
     params: { conglomerateId: ref("a conglomerate"), applicationId: ref("an application"), answer: word(["accept", "decline", "withdraw"], "accept, decline or withdraw") }
   },
   "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: ref("a conglomerate") } },
+  // ISP-199 (AB#893): roles, removal, the founder's transfer, identity and dissolution. A member is named by its
+  // corporation's public id; the route answers 404 for one that is not a member.
+  "POST /conglomerates/:conglomerateId/members/:corpId/role": {
+    params: { conglomerateId: ref("a conglomerate"), corpId: ref("a member") },
+    body: { role: word(["director", "member"], "director or member") }
+  },
+  "POST /conglomerates/:conglomerateId/members/:corpId/remove": { params: { conglomerateId: ref("a conglomerate"), corpId: ref("a member") } },
+  "POST /conglomerates/:conglomerateId/founder": { params: { conglomerateId: ref("a conglomerate") }, body: { corpId: ref("a director to hand the founder role to") } },
+  "POST /conglomerates/:conglomerateId/identity": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: {
+      emblem: choice(Array.from({ length: CONGLOMERATE_CATALOG.emblems }, (_, i) => i + 1), "an emblem from the Bureau's list"),
+      colour: choice(Array.from({ length: CONGLOMERATE_CATALOG.colours }, (_, i) => i + 1), "a colour from the Bureau's list")
+    }
+  },
+  "POST /conglomerates/:conglomerateId/dissolve": { params: { conglomerateId: ref("a conglomerate") } },
   "POST /messages/send": {
     body: {
       draftId: ref("a draft", { optional: true }),

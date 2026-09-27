@@ -113,7 +113,7 @@ describe("applications (ISP-198, AB#892)", () => {
     expect(p.raw.state.corp.conglomerateId).toBe(f.cid);
 
     const b = await apply(q, f.cid);
-    expect((await answerApp(p, f.cid, b.body.application.id, "decline")).status).toBe(404); // a member without the permission
+    expect((await answerApp(p, f.cid, b.body.application.id, "decline")).status).toBe(403); // a member without the permission (ISP-199: can() answers 403 to a member)
     expect((await answerApp(f, f.cid, b.body.application.id, "decline")).body.application.state).toBe("declined");
 
     const c = await apply(r, f.cid);

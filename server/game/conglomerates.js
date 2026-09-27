@@ -43,23 +43,23 @@ export function conglomerateList() {
   return accountsStore.conglomerates;
 }
 
-/** The unique index: folded name to conglomerate id, rebuilt from the list when the list is not the one it was built on. */
-let index = { list: null, byName: new Map() };
-function nameIndex() {
-  const list = conglomerateList();
-  if (index.list !== list || index.byName.size !== list.length) {
-    index = { list, byName: new Map(list.map((c) => [foldName(c.name), c.id])) };
-  }
-  return index.byName;
+/**
+ * Whether the conglomerate still holds its name: always while it exists, and for nameReleaseDays after it is dissolved,
+ * so a dissolved name cannot be seized at once to impersonate the old group (ISP-199, AB#893).
+ */
+export function holdsName(c, now = Date.now()) {
+  return !c.dissolvedAt || now < c.dissolvedAt + CONGLOMERATE_CATALOG.nameReleaseDays * DAY_MS;
+}
+
+/** The unique index: folded name to conglomerate id, over every conglomerate that holds its name, built at each insert. */
+function nameIndex(now = Date.now()) {
+  return new Map(conglomerateList().filter((c) => holdsName(c, now)).map((c) => [foldName(c.name), c.id]));
 }
 
 /** Add a conglomerate. Throws when its name is already held (the unique index), so no path can store two. */
 function insertConglomerate(record) {
-  const names = nameIndex();
-  const key = foldName(record.name);
-  if (names.has(key)) throw new Error("conglomerate name already held");
+  if (nameIndex().has(foldName(record.name))) throw new Error("conglomerate name already held");
   conglomerateList().push(record);
-  names.set(key, record.id);
 }
 
 /** What anyone signed in may see of a conglomerate: never an account id, never a corporation's own figures. */
@@ -69,7 +69,7 @@ export function publicConglomerate(c) {
 
 /** The public directory, oldest first. */
 export function conglomerateDirectory() {
-  return conglomerateList().map(publicConglomerate);
+  return conglomerateList().filter((c) => !c.dissolvedAt).map(publicConglomerate);
 }
 
 /** The refusal for each rule the charter checks: an HTTP status, a code, and copy saying what to do about it. */
@@ -112,7 +112,7 @@ export function charterNameCheck(raw) {
   if (reservedNamesError) return refuse("charter-unavailable");
   const existingNames = [
     ...Object.values(accountsStore.accounts || {}).map((a) => a?.state?.corp?.corporationName).filter(Boolean),
-    ...conglomerateList().map((c) => c.name)
+    ...conglomerateList().filter((c) => holdsName(c)).map((c) => c.name)
   ];
   const result = validateCorporationName(raw, { existingNames, reservedNames: RESERVED_CONGLOMERATE_NAMES, noun: "conglomerate" });
   if (result.error) return { refused: { status: result.code === "name-taken" ? 409 : 400, code: result.code, error: result.error } };
@@ -174,7 +174,6 @@ export function foundConglomerate(accountId, { name, emblem, colour } = {}, now 
     corp.finances = before.finances;
     corp.conglomerateId = before.conglomerateId;
     conglomerateList().splice(before.count);
-    index = { list: null, byName: new Map() };
     console.error("[conglomerates] a charter failed part-way and was undone:", error?.message || error);
     return refuse("charter-unavailable", { status: 500 });
   }
