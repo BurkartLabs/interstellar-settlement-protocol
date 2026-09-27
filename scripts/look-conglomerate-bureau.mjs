@@ -16,6 +16,7 @@ import { spawn } from "node:child_process";
 import { chromium } from "@playwright/test";
 import { openTab } from "../e2e/nav.mjs";
 import { verifyAndLogIn } from "../e2e/verification.mjs";
+import { openSystem, recordCanvas } from "../e2e/starmapCanvas.mjs";
 
 const [outDir] = process.argv.slice(2);
 if (!outDir) throw new Error("usage: node scripts/look-conglomerate-bureau.mjs <outDir>");
@@ -41,8 +42,17 @@ async function startServer() {
   server = child;
   return base;
 }
-async function stopServer() {
+async function stopServer(mustHold = []) {
   await wait(2000); // the accounts snapshot is written 500 ms after a change
+  // Under load the write can come later: wait until the snapshot holds every account the next step edits.
+  const snapshot = path.join(dataDir, "accounts-snapshot.json");
+  for (let i = 0; i < 40; i += 1) {
+    try {
+      const held = Object.values(JSON.parse(fs.readFileSync(snapshot, "utf8")).accounts || {}).map((a) => a.email);
+      if (mustHold.every((email) => held.includes(email))) break;
+    } catch { /* not written yet */ }
+    await wait(250);
+  }
   server.removeAllListeners("exit");
   server.kill();
   await wait(500);
@@ -62,10 +72,14 @@ async function shot(page, name, { wide = true, narrow = true, role = "cong-body"
     if (viewport) { await page.screenshot({ path: file }); shots.push(path.basename(file)); continue; } // a modal, as it is seen
     await page.evaluate(() => window.scrollTo(0, 0));
     await wait(150);
-    // The visible match: the Bureau's panel and the Conglomerate tab both hold a cong-body, one of them hidden.
+    // The visible matches, as one box: the Bureau's panel and the Conglomerate tab both hold a cong-body, one of them
+    // hidden; a selector list ("a, b") takes in every visible element it names.
     const clip = selector ? await page.evaluate((s) => {
-      const box = [...document.querySelectorAll(s)].find((el) => el.getClientRects().length && el.offsetParent !== null)?.getBoundingClientRect();
-      return box ? { x: Math.max(0, box.left - 8), y: box.top + window.scrollY - 8, width: Math.min(box.width + 16, document.documentElement.clientWidth), height: box.height + 16 } : null;
+      const boxes = [...document.querySelectorAll(s)].filter((el) => el.getClientRects().length && el.offsetParent !== null).map((el) => el.getBoundingClientRect());
+      if (!boxes.length) return null;
+      const top = Math.min(...boxes.map((b) => b.top)), bottom = Math.max(...boxes.map((b) => b.bottom));
+      const left = Math.min(...boxes.map((b) => b.left)), right = Math.max(...boxes.map((b) => b.right));
+      return { x: Math.max(0, left - 8), y: top + window.scrollY - 8, width: Math.min(right - left + 16, document.documentElement.clientWidth), height: bottom - top + 16 };
     }, selector) : null;
     await page.screenshot({ path: file, fullPage: true, ...(clip ? { clip } : {}) });
     shots.push(`${path.basename(file)} (sideways scroll ${sideways}px)`);
@@ -94,6 +108,7 @@ async function register(base, label) {
 async function logIn(base, who) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await context.newPage();
+  await recordCanvas(page); // ISP-208 (AB#903): the Starmap's labels and arcs, to find Sol's belt on the canvas
   await page.goto(`${base}/login.html`);
   await page.fill("#login-email", who.email);
   await page.fill("#login-password", who.password);
@@ -135,15 +150,36 @@ try {
   await a.locator('#conglomerate [data-role="cong-independent"]').waitFor({ timeout: 15_000 });
   await shot(a, "hq-independent", { sel: "#conglomerate", prefix: "ab895" });
   await a.context().close();
-  await stopServer();
+  await stopServer([founder.email, joiner.email]);
 
   // 2. Eight days on: the founder's save is moved back, as if it had been playing a week.
   const snapshot = path.join(dataDir, "accounts-snapshot.json");
   const store = JSON.parse(fs.readFileSync(snapshot, "utf8"));
+  // The account ids from the save, by email: the page's URL is rewritten after login, so the id read from it can be missing.
+  for (const who of [founder, joiner]) who.accountId = Object.values(store.accounts).find((a) => a.email === who.email.toLowerCase())?.id;
+  if (!founder.accountId || !joiner.accountId) throw new Error("the save does not hold both corporations");
   store.accounts[founder.accountId].createdAt -= 8 * DAY;
   // ISP-206 (AB#901): goods at Earth Station Prime, as a week of mining would leave them, for the hangar.
   const corpInv = store.accounts[founder.accountId].state.corp.inventory ||= {};
   corpInv["earth-station-prime"] = { ...(corpInv["earth-station-prime"] || {}), Silicates: 5_000, Nickel: 800 };
+  // ISP-208 (AB#903): the founder has scouted Sol's belt this generation; the joiner has the research and probes to go.
+  const world = JSON.parse(fs.readFileSync(path.join(dataDir, "state.json"), "utf8"));
+  const generation = world.belts?.["sol:belt"]?.generation ?? 1;
+  for (const who of [founder, joiner]) {
+    const c = store.accounts[who.accountId].state.corp;
+    c.unlockedTech = [...new Set([...(c.unlockedTech || []), "tt-asteroid-prospecting"])];
+    c.asteroidMining = { ...(c.asteroidMining || {}), probeCount: 2, maxDeployments: 2, activeExpeditions: c.asteroidMining?.activeExpeditions || [] };
+  }
+  Object.assign(store.accounts[founder.accountId].state.corp.asteroidMining, { scoutedBelts: ["sol:belt"], scoutedGenerations: { "sol:belt": generation } });
+  // Two listings on the Exchange: the founder's, and one from a corporation in no conglomerate.
+  const now = Date.now();
+  world.market ||= {};
+  world.market.orderBook = [
+    { id: "ord-look-partner", type: "sell", item: "Nickel", quantity: 300, unitPrice: 88, seller: founder.corp, sellerAccountId: founder.accountId, stationId: "earth-station-prime", createdAt: now - 60_000 },
+    { id: "ord-look-outsider", type: "sell", item: "Nickel", quantity: 120, unitPrice: 84, seller: "Outer Rim Salvage", sellerAccountId: "acc-look-outsider", stationId: "earth-station-prime", createdAt: now - 120_000 },
+    ...(world.market.orderBook || [])
+  ];
+  fs.writeFileSync(path.join(dataDir, "state.json"), JSON.stringify(world));
   fs.writeFileSync(snapshot, JSON.stringify(store));
   base = await startServer();
 
@@ -255,6 +291,38 @@ try {
   await tab(b, "treasury");
   console.log("member forms:", await b.locator('#conglomerate form[data-role^="cong-treasury"]').evaluateAll((f) => f.map((x) => x.dataset.role)));
   await shot(b, "treasury-member", { sel: "#conglomerate", prefix: "ab901" });
+
+  // 9. ISP-208 (AB#903): shared intel where it is used. The member's Exchange marks its partner's listing, and the Sellers
+  // filter narrows the book to partners; its Starmap belt panel names the partner who scouted Sol's belt, with Launch.
+  await openTab(b, "market");
+  await b.locator("#exchange-buy-table tr", { hasText: "Outer Rim Salvage" }).waitFor({ timeout: 15_000 });
+  await shot(b, "exchange-everyone", { sel: "#market .exchange__filters, #exchange-sell-section", prefix: "ab903" });
+  await b.locator("#exchange-sellers-filter").selectOption("conglomerate");
+  await b.waitForTimeout(300);
+  console.log("partner rows:", await b.locator("#exchange-buy-table tr").evaluateAll((rows) => rows.map((r) => r.innerText.replace(/\s+/g, " ").trim())));
+  await shot(b, "exchange-my-conglomerate", { sel: "#market .exchange__filters, #exchange-sell-section", prefix: "ab903" });
+  await openTab(b, "starmap");
+  const canvas = b.locator("#starmap-canvas");
+  await canvas.scrollIntoViewIfNeeded();
+  await b.waitForTimeout(800);
+  if (!(await b.evaluate(() => window.__labels.some((l) => l.t.endsWith("Back To Cluster"))))) await openSystem(b, canvas, "Sol");
+  await b.waitForTimeout(400);
+  const belt = await b.evaluate(() => {
+    const arcs = window.__arcs;
+    for (let i = arcs.length - 2; i >= 0; i -= 1) {
+      const [glow, ring] = [arcs[i], arcs[i + 1]];
+      if (glow.x === ring.x && glow.y === ring.y && Math.abs(glow.r - ring.r - 8) < 0.01 && ring.r >= 10) return { x: ring.x, y: ring.y };
+    }
+    return null;
+  });
+  if (!belt) throw new Error("Sol's belt is not drawn");
+  console.log("map label:", await b.evaluate(() => window.__labels.filter((l) => l.t.includes("shared")).map((l) => l.t).pop()));
+  // Sol's system view, the belt labelled as shared, before it is opened
+  await canvas.screenshot({ path: path.join(outDir, "ab903-starmap-shared-label-1280.png") });
+  await canvas.click({ position: belt });
+  await b.locator("#map-details [data-belt-shared]").waitFor({ timeout: 15_000 });
+  console.log("belt panel:", (await b.locator("#map-details [data-belt-shared]").innerText()).trim(), "| launch:", await b.locator("#map-details #launch-expedition-btn").count());
+  await shot(b, "expedition-picker", { sel: "#map-details", prefix: "ab903" });
 } finally {
   await browser.close();
   if (server) server.kill();

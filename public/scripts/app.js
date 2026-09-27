@@ -54,7 +54,12 @@ import { openGroupOf, tabForGroup, lockEmptyGroups } from "./navGroups.js"; // I
 // ISP-201 (AB#895): membership moves happen anywhere (docs/design/CONGLOMERATES.md), so the Conglomerate tab stays open in transit.
 const TRAVEL_ALLOWED_TABS = new Set(["overview", "inbox", "chat", "forums", "starmap", "travel", "conglomerate"]);
 // ISP-201 (AB#895): each fresh read of the conglomerate redraws the Overview's card.
-onConglomerateChange(() => { if (appState.authenticated && appState.data) updateOverview(appState.data); });
+onConglomerateChange(() => {
+  if (!appState.authenticated || !appState.data) return;
+  updateOverview(appState.data);
+  // ISP-208 (AB#903): the Exchange's Sellers filter and Partner badges follow membership.
+  if (document.getElementById("market")?.classList.contains("active")) renderMarket(appState.data);
+});
 
 function isPlayerInSpace(data) {
   return !data?.corp?.currentStationId && !isPlayerTraveling(data);

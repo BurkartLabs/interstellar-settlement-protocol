@@ -28,7 +28,10 @@ export const ORDER_TYPES = ["all", "sell", "bids", "standing", "mine"]; // "bids
 /** Sort orders, as the value of the sort control. */
 export const SORTS = ["newest", "oldest", "price-asc", "price-desc", "qty-desc", "qty-asc"];
 
-export const DEFAULT_EXCHANGE_VIEW = Object.freeze({ resource: "", type: "all", sort: "newest" });
+/** ISP-208 (AB#903): whose player listings to show: everyone's, or only the viewer's conglomerate partners'. */
+export const SELLERS = ["all", "conglomerate"];
+
+export const DEFAULT_EXCHANGE_VIEW = Object.freeze({ resource: "", type: "all", sort: "newest", sellers: "all" });
 
 /** Longer than any resource name, short enough that nothing unbounded is kept. */
 const RESOURCE_MAX_LENGTH = 40;
@@ -40,7 +43,8 @@ export function normalizeExchangeView(raw) {
   return {
     resource,
     type: ORDER_TYPES.includes(view.type) ? view.type : DEFAULT_EXCHANGE_VIEW.type,
-    sort: SORTS.includes(view.sort) ? view.sort : DEFAULT_EXCHANGE_VIEW.sort
+    sort: SORTS.includes(view.sort) ? view.sort : DEFAULT_EXCHANGE_VIEW.sort,
+    sellers: SELLERS.includes(view.sellers) ? view.sellers : DEFAULT_EXCHANGE_VIEW.sellers
   };
 }
 
@@ -94,10 +98,35 @@ export function orderComparator(sort) {
   }
 }
 
-/** The orders of one resource (or all), sorted; a new array, so the caller's list is never reordered. */
-export function viewOrders(orders, { resource = "", sort = DEFAULT_EXCHANGE_VIEW.sort } = {}) {
+/**
+ * The orders of one resource (or all), sorted; a new array, so the caller's list is never reordered. ISP-208 (AB#903):
+ * with `sellers: "conglomerate"` and a `partners` set, only listings whose seller is a current partner.
+ */
+export function viewOrders(orders, { resource = "", sort = DEFAULT_EXCHANGE_VIEW.sort, sellers = "all" } = {}, { partners = null } = {}) {
   const list = Array.isArray(orders) ? orders : [];
-  return list.filter((o) => !resource || o?.item === resource).sort(orderComparator(sort));
+  const partnerOnly = sellers === "conglomerate" && partners;
+  return list
+    .filter((o) => !resource || o?.item === resource)
+    .filter((o) => !partnerOnly || partners.has(sellerKey(o?.seller)))
+    .sort(orderComparator(sort));
+}
+
+/** A seller's name as the partner set holds it: corporation names are unique however they are cased or spaced. */
+export const sellerKey = (name) => String(name || "").trim().replace(/\s+/g, " ").toLowerCase();
+
+/**
+ * ISP-208 (AB#903): the names of the viewer's current conglomerate partners (every member but the viewer), from the
+ * server's last read of its conglomerate (appState.conglomerate). An empty set outside a conglomerate.
+ */
+export function partnerNames(conglomerate, myCorpId) {
+  return new Set((conglomerate?.members || []).filter((m) => m.corp !== myCorpId && m.corpName).map((m) => sellerKey(m.corpName)));
+}
+
+/** ISP-208 (AB#903): what the sell table says when the Sellers filter hides every listing. */
+export function partnersEmptyHtml(hiddenCount, resource = "") {
+  const noun = hiddenCount === 1 ? "listing" : "listings";
+  return `<p class="ui-state__why">No player sell orders from your conglomerate's members${resource ? ` for <strong>${escapeHtml(resource)}</strong>` : ""}. The Sellers filter is hiding ${Number(hiddenCount) || 0} ${noun} from other corporations.</p>
+    <button class="ui-button ui-button--secondary" type="button" data-clear-filters>Clear filters</button>`;
 }
 
 // AB#1169: how many rows the Sell Orders and My Active Listings tables draw, and what they say when that drops some.
