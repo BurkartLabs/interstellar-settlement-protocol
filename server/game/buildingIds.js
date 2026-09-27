@@ -6,8 +6,9 @@
 // by the time the mutation that made it returns (store.js calls this after every mutator, and on load).
 //
 // An extractor yard's building and its extractor record (corp.mining.silicateExtractors) are pushed together, in the
-// same order, by the build route; nothing has ever removed either. So the n-th yard building belongs to the n-th
-// extractor, and each extractor is given its building's id as `buildingId`. An extractor that already has one keeps it.
+// same order, by the build route, and server/buildingRemoval.js (AB#2569) removes them together. So an unlinked n-th yard
+// belongs to the n-th unlinked extractor, and each extractor is given its building's id as `buildingId`. An extractor that
+// already has one keeps it.
 
 import { createId } from "./catalog.js";
 

@@ -132,7 +132,7 @@ describe("POST /gameplay/build (ISP-94)", () => {
     const res = await build(c, { buildingId: "refinery", cost: 0, credits: 9_999_999, assetValue: 1e9, quantity: 50, tier: 9 });
     expect(res.status).toBe(200);
     const corp = c.corp();
-    expect(corp.buildings.map(withoutIds)).toEqual([{ name: "Refinery", tier: 1, status: "Operational" }]);
+    expect(corp.buildings.map(withoutIds)).toEqual([{ name: "Refinery", tier: 1, status: "Operational", paid: PLAYER_BUILDING_CATALOGUE.find((b) => b.id === "refinery").cost }]); // AB#2569: what was paid
     expect(corp.finances.credits).toBe(1_000_000 - PLAYER_BUILDING_CATALOGUE.find((b) => b.id === "refinery").cost);
   });
 
@@ -153,7 +153,7 @@ describe("POST /gameplay/build (ISP-94)", () => {
     const { loadAccountsSnapshotFromDisk } = await import("../../server/game/store.js");
     const onDisk = loadAccountsSnapshotFromDisk();
     const account = Object.values(onDisk.accounts).find((a) => a.id === c.id);
-    expect(account.state.corp.buildings.map(withoutIds)).toEqual([{ name: "Refinery", tier: 1, status: "Operational" }]);
+    expect(account.state.corp.buildings.map(withoutIds)).toEqual([{ name: "Refinery", tier: 1, status: "Operational", paid: PLAYER_BUILDING_CATALOGUE.find((b) => b.id === "refinery").cost }]); // AB#2569: what was paid
     expect(account.state.corp.buildings[0].id).toBe(c.corp().buildings[0].id);
     expect(account.state.corp.refineries.map((r) => r.id)).toEqual(["ref-1"]);
   });

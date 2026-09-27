@@ -81,6 +81,7 @@ export function upgradeBuilding(corp, buildingId, now = Date.now()) {
   if ((Number(corp.finances?.credits) || 0) < row.upgradeCost) return { outcome: "insufficient-credits", cost: row.upgradeCost };
 
   applyCredits(corp, -row.upgradeCost, "construction");
+  if (Number.isFinite(building.paid)) building.paid += row.upgradeCost; // AB#2569: what default recovery salvages from
   corp.finances.assets = (Number(corp.finances.assets) || 0) + row.assetValue;
   building.tier = next;
   record.tier = next;
