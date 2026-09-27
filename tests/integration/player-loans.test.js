@@ -153,7 +153,7 @@ describe("the per-pair cap: 100,000 principal per rolling 30 days, both directio
       expect(pairPrincipal(a.id, b.id, now)).toBe(window);
     }
     expect(accepted.length).toBeGreaterThan(2); // the probe did move credits, up to the cap
-  });
+  }, 120_000); // 400 steps, each a synchronous ledger and snapshot write: past 20 s in a full parallel run
 });
 
 describe("servicing a player loan on the Development Bank's tick", () => {

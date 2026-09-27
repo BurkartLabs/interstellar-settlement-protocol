@@ -18,6 +18,7 @@
 // This is an instrument module: it is what moves value through server/settlement.js; no route imports that directly.
 
 import { computeCreditRating } from "./creditRating.js";
+import { recoveryHold } from "./recoveryHold.js"; // ISP-286 (AB#993)
 import { getAccountById, getStatements, mutateAccountState } from "./gameState.js";
 import { accountsStore, saveAccountsNow } from "./game/store.js";
 import { settleTransfer } from "./settlement.js";
@@ -167,6 +168,8 @@ export function subscribeBond(accountId, { seriesId, units } = {}, now = Date.no
   const left = series.quantity - series.sold;
   if (units > left) return { ok: false, status: 409, error: `Only ${left} unit${left === 1 ? "" : "s"} of that series are left.` };
   if (!getAccountById(accountId)?.state?.corp) return { ok: false, status: 404, error: "No such corporation." };
+  const held = recoveryHold(getAccountById(accountId).state.corp); // ISP-286 (AB#993): no value out in the grace period
+  if (held) return { ok: false, status: 409, error: held };
 
   const credits = units * series.faceValue;
   const n = series.subscriptions + 1;
