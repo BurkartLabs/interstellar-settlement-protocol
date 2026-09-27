@@ -11,7 +11,9 @@ import { inputsLabel, maxBatches, minBatches, refineRunCheck } from "../refinery
 import { amountsText, chainTitle, consumersOf, defaultBatches, inputRows, outputRows, producersOf, startLabel } from "../chainPlan.js";
 import { wholeNumber } from "../wholeNumber.js";
 import { scrollBehavior } from "../motion.js";
-import { appState } from "../state.js";
+import { appState, techTree } from "../state.js";
+import { researchLinkHtml } from "../researchLinks.js"; // AB#885
+import { resourceCatalogHtml } from "../resourceCatalog.js"; // AB#885
 import { clientPrices } from "../clientPrices.js";
 import { refineryMultiplierFor, refineryOutput } from "../refineryOutput.js"; // ISP-97 (AB#787), AB#794: output by tier
 import { cycleProgressPercent, pushFeedback, updateAllViews } from "./shared.js";
@@ -51,7 +53,7 @@ export function renderRefinery(data) {
   const catalog = document.getElementById("resource-catalog");
   // AB#2353: data/refinery-chains.json's list, sent with the world (server/game/shape.js); the page kept a copy of it,
   // and the copy missed Iron Ore when AB#831 added it.
-  catalog.innerHTML = (data.world?.resourceCatalog || []).map((res) => `<li class="ui-badge">${escapeHtml(res)}</li>`).join("");
+  catalog.innerHTML = resourceCatalogHtml(data.world?.resourceCatalog || [], data.market?.itemTiers);
 
   const refineries = data.corp?.refineries || [];
   const corp = data.corp || {};
@@ -164,7 +166,8 @@ export function renderRefinery(data) {
           <p class="ui-card__meta">Cycle: ${chain.cycleDurationHours || "?"}h per batch</p>
           ${techGated
             // ISP-292 (AB#1761): a requirement not yet met, not a warning — the muted token, not amber.
-            ? `<p class="ui-card__meta">Requires: ${escapeHtml((chain.requiresResearch || []).join(", "))}</p>`
+            // AB#885: each research named links to its card on the R&D tab.
+            ? `<p class="ui-card__meta">Requires: ${(chain.requiresTechIds || []).map((id, i) => researchLinkHtml(id, [...techTree, { id, name: chain.requiresResearch?.[i] || id }])).join(", ")}</p>`
             : `<p class="ui-card__meta"><span class="ui-badge ui-badge--success">Research unlocked</span></p>`
           }
           ${multiInput

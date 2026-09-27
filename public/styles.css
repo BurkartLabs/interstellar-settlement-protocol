@@ -3299,6 +3299,19 @@ body.sg {
   margin: 0;
   list-style: none;
 }
+/* AB#885: the Resource catalog by tier: one row of badges under each tier's label */
+.refinery__tier {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+}
+.refinery__tier .refinery__catalog {
+  padding: 0;
+}
+.refinery__tier-label {
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-semibold);
+}
 .logistics__tile-text {
   font-size: var(--font-size-3);
   line-height: var(--line-height-body);

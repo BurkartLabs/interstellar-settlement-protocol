@@ -7,7 +7,8 @@ import { deepClone, toCurrency } from "../helpers.js";
 import { escapeHtml, queueItemsHtml, researchNodeHtml } from "../html.js";
 import { formatHoursMinutes, nextRndStart, rndItemStatus, scheduleRndQueue } from "../rndQueue.js";
 import { appState, techTree } from "../state.js";
-import { flashButtonSuccess, pushFeedback, updateAllViews } from "./shared.js";
+import { flashButtonSuccess, pushFeedback, setTab, updateAllViews } from "./shared.js";
+import { bindResearchLinks } from "../researchLinks.js"; // AB#885
 
 export function getTechNode(techId) {
   return techTree.find((item) => item.id === techId) || null;
@@ -60,7 +61,7 @@ export function renderTechTree(data) {
     .map((node) => {
       const prereqLabel = node.prereqs.length ? node.prereqs.map((id) => techTree.find((it) => it.id === id)?.name || id).join(", ") : "None";
       const cost = `${node.durationHours}h · ${toCurrency(node.costCredits)}`;
-      const card = { name: node.name, tier: node.tier, effect: node.effect };
+      const card = { id: node.id, name: node.name, tier: node.tier, effect: node.effect };
 
       if (done.has(node.id)) return researchNodeHtml({ ...card, state: "done" });
       if (inQueue.has(node.id)) return researchNodeHtml({ ...card, state: "queued", meta: [cost] });
@@ -166,6 +167,7 @@ export function bindResearchForms() {
   const rndSelect = document.getElementById("rnd-select");
 
   rndSelect?.addEventListener("change", () => renderResearchSelectionDetails(appState.data));
+  bindResearchLinks(setTab); // AB#885: a research link on any screen opens its card here
 
   rndForm.addEventListener("submit", async (event) => {
     event.preventDefault();
