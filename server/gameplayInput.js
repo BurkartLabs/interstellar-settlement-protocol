@@ -10,6 +10,7 @@
 import { yardMaxTier, yardTierFor } from "./economy.js";
 import { MAX_RUN_HOURS } from "../public/scripts/refineryRun.js"; // AB#825
 import { CONGLOMERATE_CATALOG } from "./conglomerates.js"; // ISP-197 (AB#891)
+import { BOND_TERMS } from "./bondTerms.js"; // ISP-154 (AB#848)
 
 /** The highest cap any yard tier has (AB#793): what start-mining accepts before the route clamps to the yard's own. */
 const TOP_THROUGHPUT_CAP = yardTierFor(yardMaxTier()).throughputCap;
@@ -130,6 +131,17 @@ export const ACCOUNT_INPUT = {
   "POST /loans/quote": { body: { productId: word(["dsdb-7", "dsdb-30", "dsdb-90"], "a Development Bank loan product"), principal: int(1_000, 100_000_000, "a principal of at least 1,000 credits") } },
   "POST /loans/accept": { body: { quoteId: ref("a loan quote") } },
   "POST /loans/:loanId/payoff": { params: { loanId: ref("one of your loans") } }, // ISP-150 (AB#844)
+  // ISP-154 (AB#848): a bond series' terms, each a number from the design's list; and the units to subscribe to
+  "GET /bonds": NOTHING,
+  "POST /bonds/issue": {
+    body: {
+      quantity: int(BOND_TERMS.minQuantity, BOND_TERMS.maxQuantity, "a number of 1,000-credit units"),
+      couponPct30: decimal(BOND_TERMS.minCouponPct30, BOND_TERMS.maxCouponPct30, BOND_TERMS.couponStepPct30, "a coupon per 30 days"),
+      maturityDays: choice(BOND_TERMS.maturityDays, "a maturity of 30, 60 or 90 days"),
+      windowHours: choice(BOND_TERMS.windowHours, "24 or 48 hours open for subscribing")
+    }
+  },
+  "POST /bonds/:seriesId/subscribe": { params: { seriesId: ref("a bond series") }, body: { units: int(1, BOND_TERMS.maxQuantity, "a number of units") } },
   // ISP-152 (AB#846): player loan offers. Numbers and enums only; the floor rate and the per-pair cap are the route's too.
   "GET /loan-offers": NOTHING,
   "POST /loan-offers": {
