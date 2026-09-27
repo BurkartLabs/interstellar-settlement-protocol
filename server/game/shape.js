@@ -6,6 +6,7 @@ import { refreshExchangeTax } from "./progression.js";
 import { ensureCorpMiningModel } from "./mining.js";
 import { ensureCorpRefineryModel } from "./refining.js";
 import { ensureCorpAsteroidMiningModel } from "./asteroids.js";
+import { ensureCorpMilitary } from "./units.js";
 
 // AB#742, Bug #2112: how a body is drawn, and which planet a moon orbits, are catalogue, not state. A saved world keeps
 // the bodies it was created with, so a style or parentId added to data/systems.json later would never reach an existing
@@ -87,6 +88,7 @@ export function normalizeStateShape(rawState) {
   }
 
   ensureCorpMiningModel(rawState.corp);
+  ensureCorpMilitary(rawState.corp); // AB#861: the unit catalog's shape, with its power
 
   if (!rawState.corp.inventory || typeof rawState.corp.inventory !== "object") {
     rawState.corp.inventory = {};

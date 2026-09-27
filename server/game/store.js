@@ -16,6 +16,7 @@ import { applyMiningOperations, ensureCorpMiningModel } from "./mining.js";
 import { normalizeStateShape } from "./shape.js";
 import { createStarterCorporationState, refreshContractOfferings } from "./corporation.js";
 import { backfillBuildingIds, ensureBuildingIds } from "./buildingIds.js";
+import { backfillCorpMilitary, ensureCorpMilitary } from "./units.js";
 import { backfillVerificationPolicy, loginBlockedByVerification, REQUIRED, verificationPrompted } from "./verificationPolicy.js";
 import { RESERVED_CORPORATION_NAMES, ensureStateFile, getSeedState } from "./world.js";
 import { reservedNamesError } from "../npcCorporations.js"; // AB#813: fail closed
@@ -145,6 +146,8 @@ export let accountsStore = loadAccountsStore(createSeedAccountsStore());
 backfillCorpPublicIds();
 // AB#792: saves from before buildings had ids get them on load, once; later loads find them and change nothing.
 if (backfillBuildingIds(accountsStore.accounts).migrated) scheduleAccountsSave();
+// AB#861: saves from before the unit catalog keep their fighters, destroyers and siege engines as units, once
+if (backfillCorpMilitary(accountsStore.accounts).migrated) scheduleAccountsSave();
 // AB#2288: accounts from before email verification are asked to verify at login, not refused; set once, here.
 if (backfillVerificationPolicy(accountsStore.accounts)) scheduleAccountsSave();
 // Bug #1480: statements saved inside the snapshot by the first version of AB#713 move to their own files.
@@ -776,6 +779,7 @@ export function mutateAccountState(accountId, mutator, { sanitize = true, settle
   refreshContractOfferings(account.state.corp);
   ensureCorpMiningModel(account.state.corp);
   ensureBuildingIds(account.state.corp); // AB#792: whatever route built it, a building has an id when this returns
+  ensureCorpMilitary(account.state.corp); // AB#861: power follows the units, whatever changed them
   refreshExchangeTax(account.state); // ISP-302 (AB#2285): the tax moves with leases held, so after every change
   const levelsReached = evaluateAccountLevel(accountId, account); // Bug #1260
   scheduleAccountsSave();

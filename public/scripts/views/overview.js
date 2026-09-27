@@ -65,8 +65,9 @@ export function updateOverview(data) {
     },
     {
       title: "Military Power",
-      value: `${data.corp.military.attackValue} ATK / ${data.corp.military.defenseValue} DEF`,
-      body: "Deterministic baseline before unit counters, R&D multipliers, and leadership effects."
+      // AB#861: the sum over the corporation's units of the unit catalog's attack and defense (data/units.json)
+      value: `${data.corp.military?.power?.attack ?? 0} ATK / ${data.corp.military?.power?.defense ?? 0} DEF`,
+      body: "Your units' attack and defense from the unit catalog, before counters, accuracy and evasion decide a battle."
     }
   );
 
