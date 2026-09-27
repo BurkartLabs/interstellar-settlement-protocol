@@ -122,6 +122,7 @@ const BASELINE = {
     "POST /conglomerates/:conglomerateId/founder": { params: { conglomerateId: "cgl-732" }, body: { corpId: "corp-732" } },
     "POST /conglomerates/:conglomerateId/identity": { params: { conglomerateId: "cgl-732" }, body: { emblem: 1, colour: 1 } },
     "POST /conglomerates/:conglomerateId/dissolve": { params: { conglomerateId: "cgl-732" } },
+    "POST /conglomerates/:conglomerateId/level": { params: { conglomerateId: "cgl-732" }, body: { level: 2 } },
     "GET /finances/statements": { query: { days: "7" } },
     "POST /messages/send": { body: { toCorpName: "Frontier", subject: "s", body: "b" } },
     "POST /messages/draft": { body: { subject: "s", body: "b" } },

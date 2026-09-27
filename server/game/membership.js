@@ -16,7 +16,7 @@ import { CONGLOMERATE_CATALOG, can } from "../conglomerates.js";
 import { createId } from "./catalog.js";
 import { pushSystemNotification } from "./progression.js";
 import { accountsStore, saveAccountsNow } from "./store.js";
-import { charterRefusal, conglomerateList, publicConglomerate } from "./conglomerates.js";
+import { charterRefusal, conglomerateList, levelStatus, publicConglomerate } from "./conglomerates.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -284,6 +284,8 @@ export function membershipView(accountId, now = Date.now()) {
       // ISP-200 (AB#894): what this role may do, from can(), so the Bureau offers only those controls and mirrors no table.
       permissions: CONGLOMERATE_CATALOG.permissions.map((p) => p.id).filter((id) => can(roleOf(mine, corp.publicId), id)),
       maxDirectors: CONGLOMERATE_CATALOG.maxDirectors,
+      // ISP-202 (AB#896): the next level, its price and each requirement as the server reads it (the Bureau shows these).
+      levels: levelStatus(mine, now),
       founderAbsentDays: CONGLOMERATE_CATALOG.founderAbsentDays,
       members: mine.members.map((m) => ({ corp: m.corp, corpName: corpName(m.corp), role: m.role, joinedAt: m.joinedAt })),
       treasury: { ...mine.treasury },
