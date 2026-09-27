@@ -4835,6 +4835,7 @@ img.station__body {
      class that takes --font-size-1 or -2 (the Conglomerate's, the Bank's, the lobbying rules') is on the floor without a
      rule of its own; the list below remains for what sets a size some other way. Shown on /styleguide. */
   .ui-screen { --font-size-1: 14px; --font-size-2: 14px; }
+  .ref-no { font-size: var(--font-size-3); } /* a reference number outside any screen (the sidebar's licence), Bug #4688 */
   .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .thread__meta, .thread__older, .thread__body, .bank-quote-form__field, .bank-loan__terms dt, .bank-quote__terms dt, .loan-board__only, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-kv, .station__overline, .station__note, .station__hint, .station__flavor, .station__blocked, .station__form label, .extractor__stat-label, .extractor__stat-value, .extractor__pct, .extractor__time, .extractor__cycle-status, .chat__meta, .chat__text, .forums__note, .forums__avatar, .forums__author, .forums__body, .missions__note, .missions__hint, .missions__overline, .missions__reward, .missions__cta, .missions__log-title, .missions__warning, .missions__levelup) {
     font-size: var(--font-size-3);
   }
