@@ -100,6 +100,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "conglomerate-station-refund", // ISP-210 (AB#905): a member's own credits back from a cancelled station project
     "conglomerate-stake-buyout", // ISP-211 (AB#906): a departed corporation's station stake, paid out by the treasury
     "forced-sale", // ISP-286 (AB#993): goods and buildings sold to recover a defaulted player debt
+    "concession-fee-share", // ISP-228 (AB#923): an ISA concession holder's share of the lease fees paid in its system
     "tariff-revenue" // ISP-230 (AB#925): a concession holder's tariffs, less the ISA's levy, paid daily
   ]),
   expense: Object.freeze([

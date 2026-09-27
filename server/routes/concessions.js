@@ -3,7 +3,8 @@
 // (the /api/accounts/:accountId mount), with ACCOUNT_INPUT's check of the system id; the holder is always the caller's
 // corporation or conglomerate, never read from the request. The register is public, like the dominance reading.
 import { SYSTEMS_BY_ID } from "../game/catalog.js";
-import { petitionConcession, publicConcession, relinquishConcession } from "../concessions.js";
+import { petitionConcession, publicConcession, relinquishConcession, setLeaseModifier } from "../concessions.js";
+import { bodyNumber } from "../bodyNumber.js";
 
 function reply(res, result, status = 200) {
   if (result?.refused) { res.status(result.refused.status).json({ error: result.refused.error, code: result.refused.code }); return; }
@@ -19,6 +20,11 @@ export function registerConcessionRoutes(app) {
   app.post("/api/accounts/:accountId/concessions/:systemId/petition", (req, res) => {
     if (!known(req.params.systemId)) { res.status(404).json({ error: "No such system." }); return; }
     reply(res, petitionConcession(req.params.accountId, req.params.systemId), 201);
+  });
+  // ISP-228 (AB#923): the holder's discount on everyone's new leases in its system, after a notice period
+  app.post("/api/accounts/:accountId/concessions/:systemId/lease-modifier", (req, res) => {
+    if (!known(req.params.systemId)) { res.status(404).json({ error: "No such system." }); return; }
+    reply(res, setLeaseModifier(req.params.accountId, req.params.systemId, bodyNumber(req.body?.discountPct, { fallback: NaN })));
   });
   app.post("/api/accounts/:accountId/concessions/:systemId/relinquish", (req, res) => {
     if (!known(req.params.systemId)) { res.status(404).json({ error: "No such system." }); return; }

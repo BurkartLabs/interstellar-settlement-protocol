@@ -13,6 +13,8 @@ import { formatCredits } from "./receipts.js";
 import { recordSale, sameConglomerate } from "./game/dominanceCounters.js"; // ISP-217 (AB#912)
 import { accountsStore } from "./game/store.js";
 import { chargeTariff } from "./tariffService.js"; // ISP-230 (AB#925)
+import { stationById } from "./game/stations.js";
+import { payConcessionShare } from "./concessions.js"; // ISP-228 (AB#923)
 
 /**
  * Pay the seller of `order` for `quantity` at the listing's price, less the exchange tax, and write their Sold row.
@@ -22,6 +24,7 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
   if (!order.sellerAccountId) return null;
   const total = quantity * Number(order.unitPrice || 0);
   let sale = null;
+  let royaltyPaid = 0, sellerCorp = null; // ISP-228 (AB#923): the concession holder's share, paid once the seller is saved
   mutateAccountState(order.sellerAccountId, (state) => {
     // ISP-302 (AB#2285): the rate includes the lease royalty; its share is booked apart, as "lease-royalty".
     const breakdown = exchangeTaxBreakdown(state);
@@ -39,6 +42,8 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
     const tariff = chargeTariff(state.corp, { stationId: order.stationId, base: total, postedPct: order.tariffPct ?? null });
     const proceeds = afterTax - tariff.amount;
     sale = { taxPct, taxAmount, tariffPct: tariff.pct, tariffAmount: tariff.amount, proceeds, buyer: publicName(buyerName) };
+    royaltyPaid = royalty;
+    sellerCorp = state.corp;
     if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
     state.corp.tradeHistory.unshift({
       id: `th-${Date.now() + 1}`,
@@ -56,6 +61,8 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
     });
     state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
   });
+  // ISP-228 (AB#923): the concession holder's share of the lease royalty on a sale settled at its system's station
+  if (royaltyPaid > 0) payConcessionShare(stationById(order.stationId)?.systemId, royaltyPaid, sellerCorp, Date.now(), "royalty");
   return sale;
 }
 
