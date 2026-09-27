@@ -4416,7 +4416,7 @@ img.station__body {
 .lobby-glossary { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); color: var(--muted); }
 .lobby-glossary dt { font-weight: 700; color: var(--text); }
 .lobby-glossary dd { margin: 0; }
-@media (max-width: 560px) { .lobby-glossary { grid-template-columns: minmax(0, 1fr); } .lobby-glossary dd { margin-bottom: var(--space-2); } }
+@media (max-width: 560px) { .lobby-glossary { grid-template-columns: minmax(0, 1fr); font-size: var(--font-size-3); } .lobby-glossary dd { margin-bottom: var(--space-2); } } /* Bug #4681: the 14px floor */
 .lobby-pledge .ui-input { width: 8rem; }
 .lobby-pledge .ui-select { width: auto; }
 .patent-status:empty { display: none; }
