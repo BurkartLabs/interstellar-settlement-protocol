@@ -678,6 +678,16 @@
                     <option value="mine">My listings</option>
                   </select>
                 </label>
+                <!-- AB#884: the catalog's item tiers (data/items.json) -->
+                <label class="ui-field"><span class="ui-field__label">Tier</span>
+                  <select class="ui-select" id="exchange-tier-filter">
+                    <option value="">All tiers</option>
+                    <option value="1">Tier 1: common raw</option>
+                    <option value="2">Tier 2: scarce raw</option>
+                    <option value="3">Tier 3: refined</option>
+                    <option value="4">Tier 4: exotic</option>
+                  </select>
+                </label>
                 <!-- ISP-208 (AB#903): shown only to a conglomerate member -->
                 <label class="ui-field" id="exchange-sellers-field" hidden><span class="ui-field__label">Sellers</span>
                   <select class="ui-select" id="exchange-sellers-filter">

@@ -9,6 +9,10 @@ import { buyOrderView, orderView } from "./publicViews.js";
 import { PRICE_HISTORY_ITEMS } from "./priceHistory.js";
 import { NPC_CATALOG } from "./npcCorporations.js";
 import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
+import { ITEMS } from "./game/items.js";
+
+// AB#884: each item's tier, for the Exchange's Tier filter; the same for every viewer.
+const ITEM_TIERS = Object.fromEntries(ITEMS.map((item) => [item.name, item.tier]));
 
 // ISP-124 (AB#818): who the NPCs are, for the badge and the profile card; the same for every viewer. The home station
 // goes by name: the view carries no station id (Bug #1171), and this one is public anyway.
@@ -42,6 +46,7 @@ export function marketView(market, accountId = null) {
     orderBook: newest.concat(own, npcAsks).map((order) => orderView(order, accountId)),
     buyOrders: bids.slice(0, ORDER_BOOK_VIEW_LIMIT).concat(ownBids).map((order) => buyOrderView(order, accountId)),
     tradeItems: [...PRICE_HISTORY_ITEMS].sort(), // what a buy order may name
+    itemTiers: ITEM_TIERS,
     npcDirectory: NPC_DIRECTORY
   };
 }

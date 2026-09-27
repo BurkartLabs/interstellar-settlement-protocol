@@ -193,6 +193,9 @@ export function ensureStateFile() {
 // TODO(AB#777): Reevaluate how we are storing the below information. Should it be hardcoded? Should it be more dynamic?
 // The exchange's NPC buyers and what they pay (data/economy.json, AB#726).
 export const NPC_BUY_SEED = ECONOMY.npcBuyers;
+// AB#884: the catalog items no NPC buys, on purpose. Every other item has a standing bid; tests/integration/
+// tier4Exchange.test.js fails on an item in neither. Empty: since v0.11 every item has a buyer.
+export const NO_NPC_BUYER = Object.freeze([]);
 
 /**
  * AB#2365: an item's daily quota, the volume its bid drifts across (docs/design/tier3-recipes.md section 4). A product's

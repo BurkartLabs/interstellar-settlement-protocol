@@ -4,7 +4,8 @@
 // orders are the shape POST /api/market/orders writes (server/routes/market.js).
 //
 // With a fourth argument `bids` (AB#1054), a third corporation has two buy orders waiting, placed through the server's own
-// placeBuyOrder (server/buyOrders.js), so its credits are held as a real order holds them.
+// placeBuyOrder (server/buyOrders.js), so its credits are held as a real order holds them. With `tier4` (AB#884), the
+// second corporation also lists two Tier 4 items, for scripts/look-tier4-exchange.mjs.
 //
 // Usage: node e2e/seed-exchange-account.mjs <dataDir> <email> <password> [bids]
 import { randomUUID } from "node:crypto";
@@ -30,7 +31,8 @@ const seller = await store.createAccount({ email: `seller-${email}`, password, c
 const now = Date.now();
 store.mutateState((draft) => {
   if (!Array.isArray(draft.market.orderBook)) draft.market.orderBook = [];
-  for (const [item, quantity, unitPrice, minutesAgo] of [["Silicates", 250, 27, 40], ["Nickel", 80, 64, 25], ["Titanium", 45, 118, 12], ["Carbon", 300, 19, 5]]) {
+  const tier4 = extra === "tier4" ? [["Uranium", 400, 260, 8], ["Antimatter Drives", 3, 5200, 3]] : [];
+  for (const [item, quantity, unitPrice, minutesAgo] of [["Silicates", 250, 27, 40], ["Nickel", 80, 64, 25], ["Titanium", 45, 118, 12], ["Carbon", 300, 19, 5], ...tier4]) {
     draft.market.orderBook.unshift({
       id: `ord-${randomUUID()}`, type: "sell", item, quantity, unitPrice, seller: "Kessler Ore Brokers",
       sellerAccountId: seller.account.id, stationId: "earth-station-prime", createdAt: now - minutesAgo * 60_000
