@@ -125,6 +125,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "tariff", // ISP-230 (AB#925): a concession holder's tariff on a sale or a transfer into its system
     "patent-royalty", // ISP-236 (AB#931): royalty on another corporation's patented node or chain, at use or withheld from a sale
     "anti-dumping-duty", // ISP-232 (AB#927): the ITC's duty on dumped sales, levied or withheld from later sales
+    "lobbying-pledge", // ISP-239 (AB#934): credits pledged to a lobbying campaign, final, a sink to the faction
     "loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",
     "escrow-hold-paid", "fee-paid", // ISP-146 (AB#840): server/settlement.js
     "loan-interest-paid", // ISP-150 (AB#844): a loan's interest, on its own line of the statements

@@ -32,6 +32,7 @@ const OUT_OF_SCOPE = {
   "GET /api/systems/:id/concession": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-227, AB#922)",
   "GET /api/patents": "a public read with no input (ISP-235, AB#930)",
   "GET /api/starmap/concessions": "a public read with no input: every system's concession holders and open petitions (ISP-229, AB#924)",
+  "GET /api/lobbying": "a public read with no input: the lobbying register (ISP-239, AB#934)",
   "GET /api/systems/:id/tariff": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-230, AB#925)",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
@@ -130,6 +131,8 @@ const BASELINE = {
     "GET /concessions/:systemId": { params: { systemId: "atlantis" } }, // ISP-229 (AB#924): no such system: 404
     "POST /tariffs/:systemId": { params: { systemId: "atlantis" }, body: { pct: 1 } }, // ISP-230 (AB#925): no such system: 404
     "GET /itc/:item": { params: { item: "Unobtainium" } }, // ISP-233 (AB#928): no such item: 404
+    "POST /lobbying": { body: { parameter: "gravityPct", systemId: "alpha-centauri", direction: "raise" } }, // ISP-239 (AB#934): not lobbyable: 400
+    "POST /lobbying/:campaignId/pledges": { params: { campaignId: "lob-none" }, body: { side: "for", credits: 1 } }, // no such campaign: 404
     "POST /concessions/:systemId/lease-modifier": { params: { systemId: "atlantis" }, body: { discountPct: 10 } }, // ISP-228 (AB#923)
     "POST /conglomerates/:conglomerateId/members/:corpId/role": { params: { conglomerateId: "cgl-732", corpId: "corp-732" }, body: { role: "director" } },
     "POST /conglomerates/:conglomerateId/members/:corpId/remove": { params: { conglomerateId: "cgl-732", corpId: "corp-732" } },

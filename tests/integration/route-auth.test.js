@@ -25,6 +25,7 @@ const PUBLIC = {
   "GET /api/systems/:id/concession": "a system's ISA concession register: holders, open petitions, dates, all public (ISP-227, AB#922)",
   "GET /api/patents": "the Registry's patent list: holder names, subjects, rates and terms, all public (ISP-235, AB#930)",
   "GET /api/starmap/concessions": "every system's concession holders and open petitions for the starmap overlay: names, types, dates (ISP-229, AB#924)",
+  "GET /api/lobbying": "the lobbying register: who opened and pledged, on which side, what and when, never the amounts; lobbying is registered (ISP-239, AB#934)",
   "GET /api/systems/:id/tariff": "a system's tariff and any pending change with its effective time: traders must see it before they commit (ISP-230, AB#925)",
   "POST /api/auth/verify-email": "spending a verification token, which is itself the credential (AB#987)",
   "POST /api/auth/resend-verification": "asking for a new verification link before anyone can sign in; rate-limited, one answer for every address (AB#987)",
