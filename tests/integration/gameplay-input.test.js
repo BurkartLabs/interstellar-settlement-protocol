@@ -56,6 +56,7 @@ const BASELINE = {
   "GET /raids": {}, // ISP-178 (AB#872)
   "POST /raids": { body: { fleetId: "flt-does-not-exist", targetCorpId: "corp-does-not-exist", targetStationId: "earth-station-prime" } },
   "POST /raids/:raidId/recall": { params: { raidId: "raid-does-not-exist" } },
+  "GET /raids/:raidId/report": { params: { raidId: "raid-does-not-exist" } }, // ISP-179 (AB#873)
   "POST /queue-ceo": { body: { programId: "ceo-negotiation-fundamentals" } }
 };
 

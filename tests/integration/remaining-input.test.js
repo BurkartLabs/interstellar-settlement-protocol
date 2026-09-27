@@ -125,6 +125,7 @@ const BASELINE = {
     "POST /conglomerates/:conglomerateId/dissolve": { params: { conglomerateId: "cgl-732" } },
     "POST /conglomerates/:conglomerateId/level": { params: { conglomerateId: "cgl-732" }, body: { level: 2 } },
     "GET /conglomerates/:conglomerateId/treasury": { params: { conglomerateId: "cgl-732" }, query: { offset: "0", limit: "25" } },
+    "GET /conglomerates/:conglomerateId/intel": { params: { conglomerateId: "cgl-732" } },
     "GET /conglomerates/:conglomerateId/hangar": { params: { conglomerateId: "cgl-732" }, query: { offset: "0", limit: "25" } },
     "POST /conglomerates/:conglomerateId/hangar/deposit": { params: { conglomerateId: "cgl-732" }, body: { stationId: "earth-station-prime", item: "Silicates", quantity: 10 } },
     "POST /conglomerates/:conglomerateId/hangar/withdraw": { params: { conglomerateId: "cgl-732" }, body: { stationId: "earth-station-prime", item: "Silicates", quantity: 10 } },

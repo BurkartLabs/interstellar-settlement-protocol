@@ -235,8 +235,8 @@
       "description": "The primary equity market of the settled systems. Corporations can purchase shares in other player-owned and NPC-owned organizations, track valuations, and participate in structured financial instruments tied to corporate performance.",
       "flavor": "The Exchange does not care about your intentions. It prices information asymmetry. The players who win here are the ones who know what a corporation is worth before the market catches up.",
       "imageFile": "buildings/stock-exchange.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:intergalactic-stock-exchange",
+      "available": true
     }
   ]
 }

@@ -82,12 +82,14 @@ export function recordBeltScouted(asteroidMining, belt) {
  * AB#2331: what a corporation is told about a slot. Anyone can see whether a belt is there, its generation and, when
  * it is not, when the next draw is; its rarity, composition and reserve are only for a corporation that scouted it.
  */
-export function beltView(belt, asteroidMining) {
+export function beltView(belt, asteroidMining, sharedBy = []) {
   if (!belt) return null;
   const present = isBeltPresent(belt);
   const view = { key: belt.key, generation: belt.generation, present, scouted: false, nextDrawAt: nextBeltDrawAt(belt) };
-  if (!isBeltScoutedBy(asteroidMining, belt)) return view;
-  return { ...view, scouted: true, rarity: belt.rarity, composition: { ...belt.composition }, reserve: belt.reserve, remaining: belt.remaining };
+  const own = isBeltScoutedBy(asteroidMining, belt);
+  // ISP-207 (AB#902): a belt a conglomerate partner scouted this generation is shown as scouted, and says by whom.
+  if (!own && !(present && sharedBy.length)) return view;
+  return { ...view, scouted: true, rarity: belt.rarity, composition: { ...belt.composition }, reserve: belt.reserve, remaining: belt.remaining, ...(own ? {} : { sharedBy: [...sharedBy] }) };
 }
 
 /** A belt mined out at `now` (the expedition tick calls this when its reserve runs out, AB#2330): nothing remains; the next draw is at the next hour. */

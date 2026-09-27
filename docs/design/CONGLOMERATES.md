@@ -336,6 +336,8 @@ cannot see. A future intel item joins this table only with an action; "members c
 Sharing is automatic while a corporation is a member and ends when it leaves: it keeps what it scouted itself and loses
 the rest (the relation is `scoutedBy` per belt generation, checked against the current roster at dispatch).
 
+**As built (ISP-207, AB#902).** `beltSharedWith` (server/game/intel.js) is the one check: the dispatch gate and the belt list both call it, and it reads the roster on every call. An expedition sent on a partner's scouting carries `sharedIntel: true`, which is the usage count this table asks for. The item also asked for members' sell listings grouped by item. They are in `GET /conglomerates/:id/intel`, with only the public order book's fields, so a member can price against partners rather than undercut them. That read answers 403 and nothing to anyone not a current member.
+
 ### Co-owned stations
 
 **How a conglomerate obtains one: a construction project.** Existing stations stay NPC and neutral; nobody takes Earth
