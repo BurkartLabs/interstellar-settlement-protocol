@@ -131,7 +131,7 @@ export function holdingsOf(corp, issuerOf) {
     if (!row || !(row.shares > 0)) continue;
     const outstanding = issuer.registry.authorized - issuer.registry.unissued;
     const perShare = valuePerShare(issuer.companyValue, outstanding);
-    out.push({ issuerCorpId, issuerName: issuer.name ?? null, shares: row.shares, costBasis: row.costBasis || 0, valuePerShare: perShare, value: row.shares * perShare, exitPrice: exitPrice(perShare) });
+    out.push({ issuerCorpId, issuerName: issuer.name ?? null, shares: row.shares, costBasis: row.costBasis || 0, dividendsReceived: row.dividendsReceived || 0, valuePerShare: perShare, value: row.shares * perShare, exitPrice: exitPrice(perShare) });
   }
   return out;
 }
