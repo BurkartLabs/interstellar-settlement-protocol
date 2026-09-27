@@ -145,6 +145,7 @@ const BASELINE = {
     "POST /bonds/preview": { body: { quantity: 100, couponPct30: 6, maturityDays: 60 } }, // AB#850: changes nothing
     "POST /equity/list": {}, // AB#852: level 0, refused, nothing listed
     "POST /equity/offerings": { body: { quantity: 500 } }, // not listed: refused
+    "POST /equity/payout-ratio": { body: { payoutRatioPct: 30 } }, // AB#853: not listed, refused
     "POST /equity/offerings/:offeringId/buy": { params: { offeringId: "so-732" }, body: { quantity: 5 } }, // no such offering: 404
     "POST /bonds/:seriesId/subscribe": { params: { seriesId: "bond-732" }, body: { units: 5 } }, // no such series: 404
     "GET /loan-offers": {}, // ISP-152 (AB#846)
@@ -175,7 +176,8 @@ const BASELINE = {
 function checkRefuses(spec, where, value) {
   if (value === undefined) return !spec.optional;
   const sent = where === "body" ? value : String(value); // path and query values arrive as strings
-  if (["int", "id", "word", "choice"].includes(spec.kind)) return true;
+  if (spec.kind === "choice") return !spec.values.includes(sent); // AB#853: 0 is a good payout ratio; the list decides
+  if (["int", "id", "word"].includes(spec.kind)) return true;
   if (spec.kind === "text") return typeof sent !== "string" || sent.length > spec.max;
   if (spec.kind === "ref") return typeof sent !== "string" || sent.length > 64 || sent.trim() === "";
   if (spec.kind === "decimal") return !onStep(sent, spec); // AB#846: 2.5 is a good rate, -5 and Infinity are not

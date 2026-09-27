@@ -31,6 +31,7 @@ import { registerCreditRatingRoutes } from "./routes/creditRating.js"; // ISP-14
 import { registerCapTableRoutes } from "./routes/capTable.js"; // ISP-157 (AB#851)
 import { registerEquityRoutes } from "./routes/equity.js"; // ISP-158 (AB#852)
 import { shareOfferingTick } from "./shareOfferings.js";
+import { dividendTick } from "./dividends.js"; // ISP-159 (AB#853)
 import { registerConglomerateRoutes } from "./routes/conglomerates.js"; // ISP-197 (AB#891)
 import { registerLogisticsRoutes } from "./routes/logistics.js";
 import { registerMiningRoutes } from "./routes/mining.js";
@@ -167,7 +168,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(beltTick, 60_000);
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now(); loanServicingTick(now); defaultRecoveryTick(now); }, 60_000); // AB#993: recovery right after servicing
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondWindowTick(Date.now()), 60_000); // ISP-154 (AB#848)
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondServicingTick(Date.now()), 60_000); // ISP-155 (AB#849)
-if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => shareOfferingTick(Date.now()), 60_000); // ISP-158 (AB#852)
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now(); shareOfferingTick(now); dividendTick(now); }, 60_000); // ISP-158 (AB#852), ISP-159 (AB#853)
 
 registerMiningRoutes(app);
 

@@ -151,7 +151,8 @@ describe("ISP-157 shares move only where ISP-158 moves them", () => {
     expect(equity.filter((r) => !r.startsWith("GET ")).sort()).toEqual([
       "POST /api/accounts/:accountId/equity/list",
       "POST /api/accounts/:accountId/equity/offerings",
-      "POST /api/accounts/:accountId/equity/offerings/:offeringId/buy"
+      "POST /api/accounts/:accountId/equity/offerings/:offeringId/buy",
+      "POST /api/accounts/:accountId/equity/payout-ratio" // AB#853: a setting on the issuer's registry; it moves no share
     ]);
 
     // outside the equity modules, the registry is only created (the factory), migrated (the loader) and read
