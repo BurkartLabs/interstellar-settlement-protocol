@@ -218,14 +218,14 @@ body {
   border: 1px solid var(--danger);
 }
 #market {
-  padding: 2em;
+  padding: var(--space-8);
 }
 
 /* Galactic Exchange background for #market */
 #market {
   background: url("/images/galactic_exchange.jpg") center center/cover no-repeat;
   background-attachment: local;
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
   position: relative;
   overflow: hidden;
 }
@@ -235,33 +235,12 @@ body {
   inset: 0;
   background: var(--bg);
   opacity: 0.78;
-  z-index: 1;
+  z-index: var(--z-base);
   pointer-events: none;
 }
 #market > * {
   position: relative;
-  z-index: 2;
-}
-/* Direct background for Galactic Exchange tab/page */
-#exchange-root {
-  background: url("/images/galactic_exchange.jpg") center center/cover no-repeat;
-  background-attachment: local;
-  border-radius: 18px;
-  position: relative;
-  overflow: hidden;
-}
-#exchange-root::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--bg);
-  opacity: 0.78;
-  z-index: 1;
-  pointer-events: none;
-}
-#exchange-root > * {
-  position: relative;
-  z-index: 2;
+  z-index: var(--z-raised);
 }
 /* ─── Starfield canvas ─── */
 #starfield-canvas {
@@ -900,7 +879,7 @@ button:disabled {
   padding: var(--space-3) var(--space-4);
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .rating-card__grade {
@@ -908,7 +887,7 @@ button:disabled {
   min-width: 4.5rem;
   padding: var(--space-2) var(--space-3);
   border: 1px solid currentColor;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-family: var(--font-mono);
   font-size: var(--font-size-6);
   line-height: 1;
@@ -1550,7 +1529,7 @@ body.walkthrough--open .layout-grid {
 }
 
 .action-receipt-order h3 {
-  margin: 0 0 0.35rem;
+  margin: 0 0 var(--space-1);
   font-size: var(--font-size-3);
 }
 
@@ -1590,7 +1569,7 @@ body.walkthrough--open .layout-grid {
 }
 
 .trade-confirm-table td {
-  padding: 0.35rem var(--space-2);
+  padding: var(--space-1) var(--space-2);
   border-bottom: 1px solid var(--border);
 }
 
@@ -1626,7 +1605,7 @@ body.walkthrough--open .layout-grid {
   border-top: 1px solid var(--border);
   border-bottom: none;
   font-weight: 700;
-  padding-top: 0.55rem;
+  padding-top: var(--space-2);
 }
 
 .trade-confirm-highlight td:first-child {
@@ -4395,7 +4374,7 @@ img.station__body {
 .patent-office { display: flex; flex-direction: column; gap: var(--space-4); }
 .patent-section { display: flex; flex-direction: column; gap: var(--space-3); }
 .patent-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-.patent-card { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.patent-card { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); background: var(--surface-2); }
 .patent-card__title { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); overflow-wrap: anywhere; }
 .patent-card__meta { margin: 0; color: var(--muted); font-size: var(--font-size-2); line-height: var(--line-height-body); }
 .patent-card__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); }
@@ -4419,7 +4398,7 @@ img.station__body {
 .lobby-status { color: var(--warn); }
 .lobby-group { margin: var(--space-2) 0 0; }
 .lobby-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-.lobby-campaign { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.lobby-campaign { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); background: var(--surface-2); }
 .lobby-campaign p { margin: 0; overflow-wrap: anywhere; }
 .lobby-sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--space-2); }
 .lobby-side { display: inline-block; min-width: 4.5rem; margin-right: var(--space-2); font-weight: 700; }
@@ -4443,13 +4422,13 @@ img.station__body {
 /* ISP-243 (AB#939): the Galactic Arbitration Council's chambers, read like a court registry */
 .gac-chambers { display: flex; flex-direction: column; gap: var(--space-4); }
 .gac-section { display: flex; flex-direction: column; gap: var(--space-3); }
-.gac-step { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); margin: 0; min-width: 0; }
+.gac-step { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); margin: 0; min-width: 0; }
 .gac-step__title { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--font-size-3); font-weight: 600; padding: 0; }
 .gac-step__n { display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: 50%; border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
 .gac-choices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.gac-choice { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); background: var(--surface-2); cursor: pointer; overflow-wrap: anywhere; }
+.gac-choice { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); cursor: pointer; overflow-wrap: anywhere; }
 .gac-choice:has(input:checked) { border-color: var(--accent); }
-.gac-choice input { margin-top: 0.25em; flex: none; }
+.gac-choice input { margin-top: var(--space-1); flex: none; }
 .gac-choice > span { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .gac-choice__meta { color: var(--muted); font-size: var(--font-size-2); }
 .gac-choice--off { cursor: not-allowed; opacity: 0.7; }
@@ -4464,7 +4443,7 @@ img.station__body {
 .gac-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
 .gac-ref { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 .gac-cases, .gac-docket { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.gac-case details { border: 1px solid var(--border); border-radius: var(--radius-2, 8px); background: var(--surface-2); }
+.gac-case details { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); }
 .gac-case__summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-3); cursor: pointer; overflow-wrap: anywhere; }
 .gac-case__title { flex: 1 1 16rem; min-width: 0; }
 .gac-case__body { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-3) var(--space-3); }
@@ -4490,7 +4469,7 @@ img.station__body {
 .concession-why { margin: 0; color: var(--warn); font-size: var(--font-size-2); line-height: var(--line-height-body); }
 .concession-status:empty { display: none; }
 .concession-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
-.concession-holder { display: flex; flex-direction: column; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.concession-holder { display: flex; flex-direction: column; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); background: var(--surface-2); }
 .concession-terms { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); }
 .concession-terms dt { color: var(--muted); }
 .concession-terms dd { margin: 0; color: var(--text); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
@@ -5082,39 +5061,39 @@ img.station__body {
 }
 
 /* ISP-171 (AB#865): the Orbital Shipyard's production panel on the Station page. */
-.shipyard { display: grid; gap: var(--space-3, 12px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
-.shipyard__form { display: grid; gap: var(--space-2, 8px); align-content: start; }
-.shipyard__form .ui-select, .shipyard__form .ui-field { display: grid; gap: 4px; }
+.shipyard { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.shipyard__form { display: grid; gap: var(--space-2); align-content: start; }
+.shipyard__form .ui-select, .shipyard__form .ui-field { display: grid; gap: var(--space-1); }
 .shipyard__form select, .shipyard__form input { width: 100%; min-width: 0; }
-.shipyard__jobs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 8px); }
-.shipyard__job { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2, 8px); }
+.shipyard__jobs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.shipyard__job { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
 
 /* ISP-175 (AB#869): the Fleet tab. Text first: every figure is in a table cell or a sentence. */
-.fleet__summary { display: grid; gap: var(--space-2, 8px); margin: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
-.fleet__summary > div { display: grid; gap: 2px; }
+.fleet__summary { display: grid; gap: var(--space-2); margin: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.fleet__summary > div { display: grid; gap: var(--space-1); }
 .fleet__summary dt { font-weight: 600; }
 .fleet__summary dd { margin: 0; }
 .fleet__table-wrap { overflow-x: auto; max-width: 100%; }
 @media (min-width: 768px) { .fleet__units { min-width: 640px; } }
-@media (max-width: 767px) { .fleet__units tfoot tr { display: grid; gap: var(--space-2, 8px); padding: var(--space-4, 16px); } .fleet__units tfoot td { display: flex; justify-content: space-between; } .fleet__units tfoot td::before { content: attr(data-label); } .fleet__units .fleet__spacer { display: none; } }
+@media (max-width: 767px) { .fleet__units tfoot tr { display: grid; gap: var(--space-2); padding: var(--space-4); } .fleet__units tfoot td { display: flex; justify-content: space-between; } .fleet__units tfoot td::before { content: attr(data-label); } .fleet__units .fleet__spacer { display: none; } }
 .fleet__units td.num, .fleet__units th.num { text-align: right; font-variant-numeric: tabular-nums; }
-.fleet__card { display: grid; gap: var(--space-2, 8px); align-content: start; }
-.fleet__orders { display: flex; flex-wrap: wrap; gap: var(--space-2, 8px); align-items: end; }
-.fleet__counts { display: grid; gap: var(--space-2, 8px); grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.fleet__card { display: grid; gap: var(--space-2); align-content: start; }
+.fleet__orders { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: end; }
+.fleet__counts { display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 .fleet__count input { width: 100%; min-width: 0; }
 .fleet__split > summary { cursor: pointer; }
-.fleet__destinations { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 8px); max-height: 320px; overflow-y: auto; }
-.fleet__destination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2, 8px); }
+.fleet__destinations { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); max-height: 320px; overflow-y: auto; }
+.fleet__destination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2); }
 /* ISP-177 (AB#871): Mercenary Rentals on the Galactic Exchange. The offers table is cards on a narrow column like every
    market table; the contracts are a list of sentences; the form's fields wrap. */
-.mercs__terms { display: grid; gap: var(--space-2, 8px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+.mercs__terms { display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
 .mercs__terms input, .mercs__terms select, .mercs__form select { width: 100%; min-width: 0; }
-.mercs__mine { display: grid; gap: var(--space-4, 16px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
-.mercs__mine h4 { margin: 0 0 var(--space-2, 8px); }
-.mercs__contracts { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 8px); }
-.mercs__contract { display: grid; gap: 4px; padding: var(--space-3, 12px); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.mercs__mine { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.mercs__mine h4 { margin: 0 0 var(--space-2); }
+.mercs__contracts { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.mercs__contract { display: grid; gap: var(--space-1); padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); }
 .mercs__contract p { margin: 0; }
-.mercs__who { display: grid; gap: 2px; }
+.mercs__who { display: grid; gap: var(--space-1); }
 
 /* ISP-181 (AB#875): the raid screens */
 .raid-alert {
@@ -5181,3 +5160,14 @@ img.station__body {
 .cong-station__clock { display: grid; gap: var(--space-2); margin-top: var(--space-4); }
 .cong-station__docked { margin-top: var(--space-4); border-left: 3px solid var(--station-owned); }
 @media (max-width: 767px) { .cong-station__head .station__art { width: 96px; } .cong-station__bill td[data-label="Progress"] { width: auto; } }
+
+/* ─── ISP-251 (AB#947): the Industry and Market screens' own classes, each styled from the tokens ─── */
+.bank-panel, .bond-board, .igsx-offering, .igsx-holding, .logistics__in-flight, .logistics__history, .refinery__chain { min-width: 0; }
+.igsx-cap-table { width: 100%; font-variant-numeric: tabular-nums; }
+.rating-card--own { border-color: var(--accent); }
+.rating-card--counterparty { background: var(--surface-2); }
+.refinery__build, .research__enqueue, .logistics__move-picked { justify-self: start; }
+.refinery__quantity, .refinery__batches, .logistics__eta { font-variant-numeric: tabular-nums; }
+.logistics__eta { white-space: nowrap; }
+.logistics__route-fee { overflow-wrap: anywhere; }
+.logistics__bulk-fee { color: var(--muted); }
