@@ -151,9 +151,10 @@ export function serviceSeries(s, now) {
       s.arrears = arrearsTotal(s);
       collectArrears(s, d, tag);
     }
-    // 2. the day's coupon, and at maturity the face, paid whole or not at all
-    const days = couponDaysOn(s, d);
-    const maturity = d === s.maturesAt;
+    // 2. the day's coupon, and at maturity the face, paid whole or not at all; nothing more falls due once default
+    //    recovery has made the whole face due (Bug #2574)
+    const days = s.accelerated ? 0 : couponDaysOn(s, d);
+    const maturity = !s.accelerated && d === s.maturesAt;
     if (days > 0 || maturity) {
       const coupons = splitProRata(couponTotal(s, days), holders);
       const faces = maturity ? holders.map((h) => ({ account: h.account, amount: h.units * s.faceValue })) : [];
@@ -249,4 +250,74 @@ export function nextPayment(series, accountId = null) {
   if (!mine) return null;
   const coupon = splitProRata(total, holders).find((p) => p.account === accountId).amount;
   return { at, day: next.day, coupon, face: maturity ? mine.units * series.faceValue : 0 };
+}
+
+// ─── Default recovery (Bug #2574; server/defaultRecovery.js runs it) ───────────────────────────────────────────────
+
+/**
+ * What a defaulted series owes in all: its arrears (coupon, face that fell due, penalty and fees) and, until it is
+ * accelerated or matures, the face still outstanding. Coupons not yet due are not owed (as a loan's unearned interest).
+ */
+export const bondOwedOnDefault = (s) => (Number(s?.arrears) || 0) + (s?.maturedAt ? 0 : (Number(s?.sold) || 0) * (Number(s?.faceValue) || 0));
+
+/**
+ * When recovery runs, the whole face falls due: each holder's units x face joins what it is owed, and no further
+ * coupon falls due. Changes `s`. Idempotent.
+ */
+export function accelerateSeries(s, now) {
+  if (s.maturedAt) return;
+  s.arrearsCoupon = s.arrearsCoupon || {};
+  s.arrearsFace = s.arrearsFace || {};
+  for (const h of holdersOf(s)) s.arrearsFace[h.account] = (s.arrearsFace[h.account] || 0) + h.units * s.faceValue;
+  s.maturedAt = now;
+  s.accelerated = true;
+  s.arrears = arrearsTotal(s);
+}
+
+/**
+ * Collect what the issuer's credits cover of a defaulted series' arrears, split to the holders pro rata (and the fee
+ * sink last), and close the series, redeemed, when nothing is owed. Returns the credits collected. Changes `s`.
+ */
+export function collectBondOwed(s, now, tag) {
+  const before = bondOwedOnDefault(s);
+  collectArrears(s, now, tag);
+  if (s.arrears === 0 && s.maturedAt && SERVICED.has(s.state)) {
+    Object.assign(s, { state: "redeemed", redeemedAt: now, arrearsSince: null });
+    clearHoldings(s);
+  }
+  saveAccountsNow();
+  return before - bondOwedOnDefault(s);
+}
+
+/** What one unit of a series fetches in default recovery: 90% of face (section 10). */
+export const recoveryPrice = (s) => Math.floor((s.faceValue * HOLDING_RECOVERY_PCT) / 100);
+
+/**
+ * Default recovery's liquid stage for bonds: sell the debtor's bond holdings to the NPC underwriter at 90% of face,
+ * only as many units as it takes to raise `needed`. The underwriter pays from its tap through settleTransfer
+ * (`bond-sale`) and holds the units from then on, so their coupons and face are paid to it. Returns the credits raised;
+ * each sale is pushed onto `sold`.
+ */
+export function sellHoldingsToUnderwriter(accountId, needed, now, tag, sold = []) {
+  let raised = 0;
+  const holdings = [...(getAccountById(accountId)?.state?.corp?.bondHoldings || [])].sort((a, b) => (a.seriesId < b.seriesId ? -1 : 1));
+  for (const h of holdings) {
+    if (raised >= needed) break;
+    const s = bondSeriesList().find((x) => x.id === h.seriesId);
+    if (!s || !(h.units > 0) || s.state === "redeemed" || s.state === "lapsed") continue;
+    const price = recoveryPrice(s);
+    const units = Math.min(h.units, Math.ceil((needed - raised) / price));
+    const credits = units * price;
+    if (!pay(BOND_TERMS.underwriter.account, accountId, credits, "bond-sale", `${tag}:bond-sale:${s.id}`, now)) continue;
+    mutateAccountState(accountId, (state) => {
+      const x = state.corp.bondHoldings.find((y) => y.seriesId === s.id);
+      x.units -= units;
+      if (x.units <= 0) state.corp.bondHoldings = state.corp.bondHoldings.filter((y) => y.seriesId !== s.id);
+    }, { sanitize: false, settleMining: false });
+    s.underwriterUnits = (s.underwriterUnits || 0) + units;
+    raised += credits;
+    sold.push({ kind: "bond", name: `${units} unit${units === 1 ? "" : "s"} of ${s.issuerName ?? "a"} bond series`, credits });
+  }
+  if (raised) saveAccountsNow();
+  return raised;
 }

@@ -199,6 +199,8 @@ To buy the next level, **all** of:
 "Members needed" is 80% of the previous level's cap, rounded up. Reaching level 13 from a charter takes at least 106
 days and 5,925,000 credits in level costs alone, before upkeep. Every level cost is a sink.
 
+**As built (ISP-202, AB#896).** `POST .../conglomerates/:id/level` with `{ level }`, the founder at the Bureau; `levelStatus` in server/game/conglomerates.js reads the requirements, and the member view carries them. The level named in the request makes a repeat harmless. Requirement 4 (not in arrears) arrives with upkeep in AB#898, the first thing that can put a conglomerate in arrears; until then the only credits a treasury holds are the charter's deposit, so level 2 is bought once contributions (AB#898) exist.
+
 ### T-018: why a bigger conglomerate is not always better
 
 T-018 (learnings/TRANSFERABLE.md): a knob whose revenue and cost are both linear in the number the player sets has no

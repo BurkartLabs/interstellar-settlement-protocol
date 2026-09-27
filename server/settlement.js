@@ -36,7 +36,8 @@ import { applyCredits } from "./finances.js";
 export const REASONS = Object.freeze([
   "loan-disbursal", "loan-repayment", "bond-subscription", "coupon", "dividend", "share-purchase", "escrow-hold", "escrow-release", "fee",
   "loan-interest", // ISP-150 (AB#844): a loan's interest, apart from its principal (docs/design/v0.9-debt.md, sections 2 and 9)
-  "bond-redemption" // ISP-155 (AB#849): a bond's face repaid to its holder at maturity
+  "bond-redemption", // ISP-155 (AB#849): a bond's face repaid to its holder at maturity
+  "bond-sale" // Bug #2574: a bond holding sold, in default recovery to the NPC underwriter at 90% of face
 ]);
 
 /** The named sinks: credits paid into one leave the money supply, counted. */
@@ -68,7 +69,9 @@ const SHAPES = {
   "bond-subscription": [["corp", "corp"], ["tap", "corp"]],
   // AB#849: coupons and redemption go to each holder; what the underwriter holds is paid to its tap, and destroyed
   coupon: [["corp", "corp"], ["corp", "tap"]],
-  "bond-redemption": [["corp", "corp"], ["corp", "tap"]]
+  "bond-redemption": [["corp", "corp"], ["corp", "tap"]],
+  // Bug #2574: the NPC underwriter buys a debtor's bonds from its tap; a player-to-player sale is corp to corp
+  "bond-sale": [["tap", "corp"], ["corp", "corp"]]
 };
 const shapesOf = (reason) => SHAPES[reason] ?? [["corp", "corp"]];
 

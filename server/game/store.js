@@ -20,6 +20,7 @@ import { backfillCorpMilitary, ensureCorpMilitary } from "./units.js";
 import { backfillVerificationPolicy, loginBlockedByVerification, REQUIRED, verificationPrompted } from "./verificationPolicy.js";
 import { RESERVED_CORPORATION_NAMES, ensureStateFile, getSeedState } from "./world.js";
 import { reservedNamesError } from "../npcCorporations.js"; // AB#813: fail closed
+import { migrateShareRegistries } from "../shareRegistry.js"; // ISP-157 (AB#851)
 
 // Bug #1480: the statements live in one file per corporation (declared here, before the load-time
 // migration below uses it), written when a day closes, not in the accounts snapshot.
@@ -148,6 +149,8 @@ backfillCorpPublicIds();
 if (backfillBuildingIds(accountsStore.accounts).migrated) scheduleAccountsSave();
 // AB#861: saves from before the unit catalog keep their fighters, destroyers and siege engines as units, once
 if (backfillCorpMilitary(accountsStore.accounts).migrated) scheduleAccountsSave();
+// ISP-157 (AB#851): saves from before equity get each corporation's share registry, founder-owned, once
+if (migrateShareRegistries(accountsStore.accounts)) scheduleAccountsSave();
 // AB#2288: accounts from before email verification are asked to verify at login, not refused; set once, here.
 if (backfillVerificationPolicy(accountsStore.accounts)) scheduleAccountsSave();
 // Bug #1480: statements saved inside the snapshot by the first version of AB#713 move to their own files.

@@ -212,6 +212,11 @@ export const ACCOUNT_INPUT = {
     }
   },
   "POST /conglomerates/:conglomerateId/dissolve": { params: { conglomerateId: ref("a conglomerate") } },
+  // ISP-202 (AB#896): the level to buy, the one after the current; the route refuses any other.
+  "POST /conglomerates/:conglomerateId/level": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: { level: int(2, CONGLOMERATE_CATALOG.levels.length, "the level to buy") }
+  },
   "POST /messages/send": {
     body: {
       draftId: ref("a draft", { optional: true }),

@@ -156,6 +156,7 @@ export function foundConglomerate(accountId, { name, emblem, colour } = {}, now 
     level: first.level,
     maxMembers: first.maxMembers,
     foundedAt: now,
+    levelSince: now, // ISP-202 (AB#896): when it reached its level; the next needs minDaysAtPrevious here
     founder: corp.publicId,
     members: [{ corp: corp.publicId, role: "founder", joinedAt: now }],
     treasury: { credits: catalog.charterDeposit },
@@ -179,4 +180,54 @@ export function foundConglomerate(accountId, { name, emblem, colour } = {}, now 
   }
   saveAccountsNow(); // a purchase: on disk now, the fee and the conglomerate in the same write
   return { account: sanitizeAccount(account), conglomerate: { ...publicConglomerate(record), treasury: { ...record.treasury }, role: "founder" } };
+}
+
+// ─── Levels (ISP-202, AB#896; docs/design/CONGLOMERATES.md, "The level ladder, 5 to 100 members") ───────────────────
+
+/** A day's upkeep at `members`: each member pays upkeepBase, plus upkeepPerMemberStep for every member above upkeepMinMembers. */
+export function dailyUpkeep(members, catalog = CONGLOMERATE_CATALOG) {
+  const n = Math.max(0, Math.floor(Number(members) || 0));
+  return n * (catalog.upkeepBase + catalog.upkeepPerMemberStep * Math.max(0, n - catalog.upkeepMinMembers));
+}
+
+/**
+ * What each level requirement reads, and every server function that writes it (T-019: a requirement on a stat nothing
+ * writes can never be met). tests/integration/conglomerate-levels.test.js holds each name to a function that writes
+ * the stat. The design's fourth requirement, "not in arrears", reads arrearsSince, which only upkeep can set; it is
+ * added with upkeep (AB#898), with its writer, rather than checked here against a field that is always empty.
+ */
+export const LEVEL_STAT_WRITERS = Object.freeze({
+  "treasury.credits": Object.freeze(["foundConglomerate", "buyConglomerateLevel", "dissolveConglomerate"]),
+  members: Object.freeze(["foundConglomerate", "answerInvitation", "answerApplication", "leaveConglomerate", "removeMember", "settleSuccession", "dissolveConglomerate"]),
+  levelSince: Object.freeze(["foundConglomerate", "buyConglomerateLevel"])
+});
+
+const plain = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
+
+/**
+ * The next level and whether the conglomerate may buy it now: { level, next, requirements, ready }, { top: true } at
+ * the last level, or { refusal } when the catalog's rows for this level cannot be read (fails closed). Each requirement
+ * is { id, stat, label, need, have, met }, read from server state only.
+ */
+export function levelStatus(c, now = Date.now(), catalog = CONGLOMERATE_CATALOG) {
+  const current = catalog?.levels?.[c.level - 1];
+  if (!current || current.level !== c.level) return { refusal: "This conglomerate's level is not one the Bureau knows." };
+  const next = catalog.levels[c.level];
+  if (!next) return { level: c.level, top: true };
+  const whole = (v) => Number.isInteger(v) && v >= 0;
+  if (next.level !== c.level + 1 || !whole(next.cost) || !whole(next.maxMembers) || !whole(next.minDaysAtPrevious) || (next.researchRequired || []).length) {
+    return { refusal: `The Bureau cannot read level ${c.level + 1}'s terms.` };
+  }
+  const members = c.members.length;
+  const treasury = Math.floor(Number(c.treasury?.credits) || 0);
+  const reserve = dailyUpkeep(members, catalog) * catalog.levelReserveDays;
+  const needed = Math.ceil((current.maxMembers * catalog.levelFillPct) / 100);
+  const since = Number(c.levelSince ?? c.foundedAt) || 0;
+  const readyAt = since + next.minDaysAtPrevious * DAY_MS;
+  const requirements = [
+    { id: "funds", stat: "treasury.credits", label: `The treasury pays ${plain(next.cost)} credits and keeps ${plain(reserve)} (${catalog.levelReserveDays} days of upkeep for ${members})`, need: next.cost + reserve, have: treasury, met: treasury >= next.cost + reserve },
+    { id: "members", stat: "members", label: `At least ${needed} members (${catalog.levelFillPct}% of ${current.maxMembers})`, need: needed, have: members, met: members >= needed },
+    { id: "days", stat: "levelSince", label: `${next.minDaysAtPrevious} days at level ${c.level}`, need: readyAt, have: now, met: now >= readyAt }
+  ];
+  return { level: c.level, next: { level: next.level, maxMembers: next.maxMembers, cost: next.cost }, requirements, ready: requirements.every((r) => r.met) };
 }
