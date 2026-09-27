@@ -86,7 +86,11 @@ export function recordExpense(corp, category, amount, now = Date.now()) {
 export const CREDIT_CATEGORIES = Object.freeze({
   // AB#1054: "exchange-escrow" is credits held for a player's buy order, "exchange-escrow-return" their return when it
   // fills or is cancelled; over an order's life the two are equal, and what it bought is "exchange-purchases".
-  income: Object.freeze(["exchange", "missions", "salvage", "exchange-escrow-return"]),
+  // ISP-146 (AB#840): what server/settlement.js moves between parties, booked `<reason>-received` by the payee and
+  // `<reason>-paid` by the payer (its REASONS; a fee and an escrow hold only leave, an escrow release only arrives).
+  income: Object.freeze(["exchange", "missions", "salvage", "exchange-escrow-return",
+    "loan-disbursal-received", "loan-repayment-received", "bond-subscription-received", "coupon-received", "dividend-received",
+    "share-purchase-received", "escrow-release-received"]),
   expense: Object.freeze([
     "hiring",
     "payroll",
@@ -104,7 +108,9 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "exchange-purchases",
     "exchange-escrow",
     "exchange-tax",
-    "lease-royalty" // ISP-302 (AB#2285): the royalty's share of a sale's tax, booked apart so it can be counted
+    "lease-royalty", // ISP-302 (AB#2285): the royalty's share of a sale's tax, booked apart so it can be counted
+    "loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",
+    "escrow-hold-paid", "fee-paid" // ISP-146 (AB#840): server/settlement.js
   ])
 });
 
