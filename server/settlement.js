@@ -46,7 +46,7 @@ export const SINKS = Object.freeze(["fee", "loan-interest"]);
 const SINK_FOR = { fee: "fee", "loan-interest": "loan-interest" };
 
 /** The named taps: an NPC lender's account, which creates what it pays out (AB#843: the Development Bank). */
-export const TAPS = Object.freeze(["dsdb"]);
+export const TAPS = Object.freeze(["dsdb", "igsx"]); // igsx: the Stock Exchange's market maker (ISP-158, AB#852)
 
 /**
  * How a transfer is booked on each corporation's statement (finances.js CREDIT_CATEGORIES): the payer's expense is
@@ -71,7 +71,9 @@ const SHAPES = {
   coupon: [["corp", "corp"], ["corp", "tap"]],
   "bond-redemption": [["corp", "corp"], ["corp", "tap"]],
   // Bug #2574: the NPC underwriter buys a debtor's bonds from its tap; a player-to-player sale is corp to corp
-  "bond-sale": [["tap", "corp"], ["corp", "corp"]]
+  "bond-sale": [["tap", "corp"], ["corp", "corp"]],
+  // AB#852: a corporation buys another's new shares, or the IGSX market maker does from its tap at an offering's close
+  "share-purchase": [["corp", "corp"], ["tap", "corp"]]
 };
 const shapesOf = (reason) => SHAPES[reason] ?? [["corp", "corp"]];
 
@@ -136,8 +138,11 @@ const refuse = (error) => ({ ok: false, error });
 /**
  * Move `credits` from one party to another for `reason`, once per `idempotencyKey`.
  * Returns { ok: true, entry, replayed? } or { ok: false, error }; it never throws for a bad request.
+ * AB#852: `withPayer(state)` and `withPayee(state)`, for a corporation party, change that corporation's record in the
+ * same mutation as its credits (a share purchase: the shares move with the money). They run only when the credits
+ * move, never on a replay or a refusal, and must not throw.
  */
-export function settleTransfer({ fromAccountId, toAccountId, credits, reason, idempotencyKey } = {}, now = Date.now()) {
+export function settleTransfer({ fromAccountId, toAccountId, credits, reason, idempotencyKey, withPayer = null, withPayee = null } = {}, now = Date.now()) {
   if (typeof credits !== "number" || !Number.isInteger(credits) || credits <= 0 || credits > Number.MAX_SAFE_INTEGER) {
     return refuse("credits must be a positive whole number");
   }
@@ -168,6 +173,7 @@ export function settleTransfer({ fromAccountId, toAccountId, credits, reason, id
     mutateAccountState(from.id, (state) => {
       if (Math.round(Number(state.corp.finances?.credits) || 0) < credits) return;
       applyCredits(state.corp, -credits, categoryPaid(reason), now);
+      if (withPayer) withPayer(state);
       debited = true;
     }, { sanitize: false });
   } else if (from.kind === "tap") {
@@ -184,7 +190,7 @@ export function settleTransfer({ fromAccountId, toAccountId, credits, reason, id
   if (!debited) return refuse("the payer does not have the credits");
 
   if (to.kind === "corp") {
-    mutateAccountState(to.id, (state) => { applyCredits(state.corp, credits, categoryReceived(reason), now); }, { sanitize: false });
+    mutateAccountState(to.id, (state) => { applyCredits(state.corp, credits, categoryReceived(reason), now); if (withPayee) withPayee(state); }, { sanitize: false });
   } else {
     mutateState((draft) => {
       const t = totals(draft);

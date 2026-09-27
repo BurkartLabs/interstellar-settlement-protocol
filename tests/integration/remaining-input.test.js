@@ -143,6 +143,9 @@ const BASELINE = {
     "POST /loans/:loanId/payoff": { params: { loanId: "loan-732" } }, // no such loan: 404, nothing taken
     "POST /bonds/issue": { body: { quantity: 100, couponPct30: 6, maturityDays: 60, windowHours: 24 } }, // AB#848: level 0, refused
     "POST /bonds/preview": { body: { quantity: 100, couponPct30: 6, maturityDays: 60 } }, // AB#850: changes nothing
+    "POST /equity/list": {}, // AB#852: level 0, refused, nothing listed
+    "POST /equity/offerings": { body: { quantity: 500 } }, // not listed: refused
+    "POST /equity/offerings/:offeringId/buy": { params: { offeringId: "so-732" }, body: { quantity: 5 } }, // no such offering: 404
     "POST /bonds/:seriesId/subscribe": { params: { seriesId: "bond-732" }, body: { units: 5 } }, // no such series: 404
     "GET /loan-offers": {}, // ISP-152 (AB#846)
     "GET /player-loans": {}, // ISP-153 (AB#847)

@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
 import { welcomeLetter } from "../../public/scripts/liaison.js";
 import { closeDueDays, MAX_STATEMENTS } from "../finances.js";
 import { unknownLeaseBodies } from "../leases.js";
-import { directInvestmentRecords } from "../legacyInvestments.js";
+import { reportAndArchiveInvestments } from "../legacyInvestments.js";
 import { NAME_CHARS, validateCorporationName, SYSTEM_SENDERS } from "../corporationName.js";
 import { settlePayroll, payrollNotice } from "../payroll.js";
 import { PASSWORD_SALT_ROUNDS, SYSTEMS_DATA, accountsSnapshotPath, createId, dataDir, deepClone, safeWriteFile, statePath } from "./catalog.js";
@@ -20,7 +20,7 @@ import { backfillCorpMilitary, ensureCorpMilitary } from "./units.js";
 import { backfillVerificationPolicy, loginBlockedByVerification, REQUIRED, verificationPrompted } from "./verificationPolicy.js";
 import { RESERVED_CORPORATION_NAMES, ensureStateFile, getSeedState } from "./world.js";
 import { reservedNamesError } from "../npcCorporations.js"; // AB#813: fail closed
-import { migrateShareRegistries } from "../shareRegistry.js"; // ISP-157 (AB#851)
+import { migrateShareRegistries, rebuildHoldingIndexes } from "../shareRegistry.js"; // ISP-157 (AB#851), ISP-158 (AB#852)
 
 // Bug #1480: the statements live in one file per corporation (declared here, before the load-time
 // migration below uses it), written when a day closes, not in the accounts snapshot.
@@ -151,6 +151,8 @@ if (backfillBuildingIds(accountsStore.accounts).migrated) scheduleAccountsSave()
 if (backfillCorpMilitary(accountsStore.accounts).migrated) scheduleAccountsSave();
 // ISP-157 (AB#851): saves from before equity get each corporation's share registry, founder-owned, once
 if (migrateShareRegistries(accountsStore.accounts)) scheduleAccountsSave();
+// ISP-158 (AB#852): each investor's index of the corporations it holds shares in is derived from the registries
+rebuildHoldingIndexes(accountsStore.accounts);
 // AB#2288: accounts from before email verification are asked to verify at login, not refused; set once, here.
 if (backfillVerificationPolicy(accountsStore.accounts)) scheduleAccountsSave();
 // Bug #1480: statements saved inside the snapshot by the first version of AB#713 move to their own files.
@@ -159,11 +161,8 @@ if (backfillVerificationPolicy(accountsStore.accounts)) scheduleAccountsSave();
   for (const account of Object.values(accountsStore.accounts || {})) moved += fileStatements(account);
   if (moved) { console.warn(`[statements] moved ${moved} daily statement(s) out of the accounts snapshot into ${statementsDir} (Bug #1480).`); scheduleAccountsSave(); }
 }
-// Bug #689: POST /api/investments is removed. Report what it stored, for the PM, and leave it in place.
-{
-  const records = directInvestmentRecords(Object.values(accountsStore.accounts || {}));
-  if (records.length) console.warn(`[investments] ${records.length} direct investment(s) from the removed route (Bug #689), left in place:`, JSON.stringify(records));
-}
+// Bug #689, ISP-158 (AB#852): what the removed POST /api/investments stored is reported, archived for the PM, and cleared
+if (reportAndArchiveInvestments(accountsStore.accounts, path.join(dataDir, "legacy-investments.json")).cleared) scheduleAccountsSave();
 
 // A write runs 300 ms after the first unsaved change. Later changes ride on that write rather than restarting the wait:
 // restarting it meant nothing was written while changes kept coming (Bug #1447). The write reads the state when it

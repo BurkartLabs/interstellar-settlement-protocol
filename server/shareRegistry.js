@@ -90,3 +90,21 @@ export function publicCapTable(corp, nameOf = () => null) {
     ]
   };
 }
+
+// ISP-158 (AB#852): the investor's side, derived here so the store's loader can call it without an import cycle.
+/** Rebuild every investor's holding index (issuer ids) from the registries: the index is derived, never trusted. */
+export function rebuildHoldingIndexes(accounts) {
+  const index = new Map();
+  for (const account of Object.values(accounts || {})) {
+    const corp = account?.state?.corp;
+    for (const h of corp?.shareRegistry?.holders || []) {
+      if (h.holder?.kind !== "corp") continue;
+      if (!index.has(h.holder.corpId)) index.set(h.holder.corpId, new Set());
+      index.get(h.holder.corpId).add(corp.publicId);
+    }
+  }
+  for (const account of Object.values(accounts || {})) {
+    const corp = account?.state?.corp;
+    if (corp) corp.holdingIndex = [...(index.get(corp.publicId) || [])];
+  }
+}
