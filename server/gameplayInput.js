@@ -125,6 +125,19 @@ export const GAMEPLAY_INPUT = {
   "POST /fleets/:fleetId/deploy": { params: { fleetId: ref("one of your fleets") }, body: { toStationId: id("stations", "a station") } },
   "POST /fleets/:fleetId/disband": { params: { fleetId: ref("one of your fleets") } },
   "GET /fleets/:fleetId/destinations": { params: { fleetId: ref("one of your fleets") } }, // ISP-175 (AB#869)
+  // ISP-176 (AB#870): mercenary contracts. Terms are numbers and enums only; ids not the caller's are the route's 404.
+  "GET /mercenaries": NOTHING,
+  "POST /mercenaries/offer": {
+    body: {
+      fleetId: ref("one of your fleets"),
+      termHours: choice([12, 24, 72, 168], "a term of 12, 24, 72 or 168 hours"),
+      price: int(100, 10_000_000, "a price from 100 to 10,000,000 credits"),
+      collateral: int(1, 1_000_000_000, "a collateral of at least 1 credit, up to the fleet's value"),
+      allowedUse: word(["defense", "pve", "raids"], "an allowed use: defense, pve or raids")
+    }
+  },
+  "POST /mercenaries/:offerId/withdraw": { params: { offerId: ref("one of your mercenary offers") } },
+  "POST /mercenaries/:offerId/hire": { params: { offerId: ref("a mercenary offer") } },
   "POST /queue-ceo": { body: { programId: id("programs", "a CEO Insight program") } }
 };
 
@@ -166,6 +179,7 @@ export const ACCOUNT_INPUT = {
   "GET /equity/offerings": NOTHING,
   "POST /equity/list": NOTHING,
   "POST /equity/offerings": { body: { quantity: int(100, 90_000, "a number of shares to offer, at least 100") } },
+  "POST /equity/payout-ratio": { body: { payoutRatioPct: choice(Array.from({ length: 17 }, (_, i) => i * 5), "a payout ratio of 0 to 80%, in steps of 5") } }, // ISP-159 (AB#853)
   "POST /equity/offerings/:offeringId/buy": { params: { offeringId: ref("a share offering") }, body: { quantity: int(1, 90_000, "a number of shares") } },
   "GET /equity/holdings": NOTHING, // ISP-160 (AB#854)
   "POST /equity/holdings/:issuerCorpId/exit": { params: { issuerCorpId: ref("a corporation you hold shares in") }, body: { quantity: int(1, 90_000, "a number of shares") } },
@@ -225,6 +239,17 @@ export const ACCOUNT_INPUT = {
   "POST /conglomerates/:conglomerateId/treasury/deposit": { params: { conglomerateId: ref("a conglomerate") }, body: { amount: int(1, 1_000_000_000_000, "an amount of credits") } },
   "POST /conglomerates/:conglomerateId/treasury/withdraw": { params: { conglomerateId: ref("a conglomerate") }, body: { amount: int(1, 1_000_000_000_000, "an amount of credits") } },
   "POST /conglomerates/:conglomerateId/treasury/withdrawals/:withdrawalId/block": { params: { conglomerateId: ref("a conglomerate"), withdrawalId: ref("a withdrawal") } },
+  // ISP-205 (AB#899): the goods hangar. The station is one the registry knows (never a free string, the class of the
+  // purchase-lease defect); the item's shape is checked here and its name against data/items.json by the rules.
+  "GET /conglomerates/:conglomerateId/hangar": { params: { conglomerateId: ref("a conglomerate") } },
+  "POST /conglomerates/:conglomerateId/hangar/deposit": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: { stationId: id("stations", "a station"), item: text(64, "an item"), quantity: int(1, 1_000_000_000, "a number of units") }
+  },
+  "POST /conglomerates/:conglomerateId/hangar/withdraw": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: { stationId: id("stations", "a station"), item: text(64, "an item"), quantity: int(1, 1_000_000_000, "a number of units") }
+  },
   // ISP-202 (AB#896): the level to buy, the one after the current; the route refuses any other.
   "POST /conglomerates/:conglomerateId/level": {
     params: { conglomerateId: ref("a conglomerate") },

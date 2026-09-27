@@ -73,7 +73,9 @@ const SHAPES = {
   // Bug #2574: the NPC underwriter buys a debtor's bonds from its tap; a player-to-player sale is corp to corp
   "bond-sale": [["tap", "corp"], ["corp", "corp"]],
   // AB#852: a corporation buys another's new shares, or the IGSX market maker does from its tap at an offering's close
-  "share-purchase": [["corp", "corp"], ["tap", "corp"]]
+  "share-purchase": [["corp", "corp"], ["tap", "corp"]],
+  // AB#853: a dividend goes to each holder; the market maker's part goes to its tap, and is destroyed
+  dividend: [["corp", "corp"], ["corp", "tap"]]
 };
 const shapesOf = (reason) => SHAPES[reason] ?? [["corp", "corp"]];
 

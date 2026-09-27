@@ -11,7 +11,7 @@ import { CONGLOMERATE_CATALOG, can } from "../conglomerates.js";
 import { applyCredits } from "../finances.js";
 import { pushSystemNotification } from "./progression.js";
 import { saveAccountsNow } from "./store.js";
-import { moveTreasury, publicConglomerate } from "./conglomerates.js";
+import { ensureHangar, moveHangar, moveTreasury, publicConglomerate } from "./conglomerates.js";
 import { HOUR_MS, NOT_FOUND, accountByCorp, context, corpName, no, roomEvent } from "./membership.js";
 
 const ROLE_WORD = { founder: "founder", director: "director", member: "member" };
@@ -103,8 +103,8 @@ export function setIdentity(accountId, conglomerateId, { emblem, colour } = {}, 
 /**
  * Dissolve the conglomerate, at the Bureau. The founder only. Every member leaves with no join cooldown; the treasury
  * is split equally among the corporations that were members at that moment, whole credits, the remainder to the
- * founder; the name stays held for nameReleaseDays. There is no hangar yet (Part 2): when there is, its goods are
- * split the same way. Pending invitations and applications are withdrawn.
+ * founder; the name stays held for nameReleaseDays. The hangar's goods are split the same way, per item, into each
+ * member's stock at the hangar's station (ISP-205, AB#899). Pending invitations and applications are withdrawn.
  */
 export function dissolveConglomerate(accountId, conglomerateId, now = Date.now()) {
   const ctx = context(accountId, conglomerateId, now);
@@ -126,6 +126,21 @@ export function dissolveConglomerate(accountId, conglomerateId, now = Date.now()
     }
     paid.push({ corp: m.corp, credits: amount });
   }
+  // ISP-205 (AB#899): the hangar, item by item, the same way.
+  const hangar = ensureHangar(c);
+  const goods = [];
+  for (const [item, stock] of Object.entries({ ...hangar.items })) {
+    const each = Math.floor(stock / members.length);
+    const rest = stock - each * members.length;
+    for (const m of members) {
+      const quantity = each + (m.role === "founder" ? rest : 0);
+      if (quantity <= 0) continue;
+      moveHangar(c, { at: now, kind: "dissolution", corp: m.corp, item, quantity: -quantity, by: corp.publicId });
+      const held = ((m.account.state.corp.inventory ||= {})[hangar.stationId] ||= {});
+      held[item] = Math.floor(Number(held[item]) || 0) + quantity;
+      goods.push({ corp: m.corp, item, quantity });
+    }
+  }
   // Tell the room before it empties, then empty it.
   roomEvent(c, "conglomerate:dissolved", { shares: paid }, { accounts: members.map((m) => m.account.id), leave: members.map((m) => m.account.id) });
   for (const m of members) {
@@ -138,5 +153,5 @@ export function dissolveConglomerate(accountId, conglomerateId, now = Date.now()
   c.members = [];
   c.dissolvedAt = now;
   saveAccountsNow();
-  return { dissolved: { id: c.id, name: c.name, shares: paid, nameReleasedAt: now + CONGLOMERATE_CATALOG.nameReleaseDays * 24 * HOUR_MS } };
+  return { dissolved: { id: c.id, name: c.name, shares: paid, goods, nameReleasedAt: now + CONGLOMERATE_CATALOG.nameReleaseDays * 24 * HOUR_MS } };
 }

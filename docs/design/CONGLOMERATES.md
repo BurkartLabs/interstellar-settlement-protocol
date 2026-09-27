@@ -304,6 +304,8 @@ entry. The Overview's treasury history is this ledger.
 
 **As built (ISP-204, AB#898): credits only; the hangar is AB#899.** Routes under `/conglomerates/:id/treasury`: `GET` (the balance for every member; the whole ledger for the founder and directors, a member's own rows for a member), `POST deposit`, `POST withdraw`, `POST withdrawals/:id/block`. The cap's day runs from 00:00 UTC, measured against the balance at that moment (for a treasury opened today, its first row). Upkeep is charged at each UTC midnight from the one after the charter. When unpaid, it adds to `arrearsOwed`, and a deposit that covers the whole amount pays it. `moveTreasury` is the only writer of the balance, and each call writes one frozen ledger row; older conglomerates get an opening row for what they held.
 
+**As built (ISP-205, AB#899): the goods hangar.** Routes under `/conglomerates/:id/hangar`: `GET`, `POST deposit`, `POST withdraw`, each with `{ stationId, item, quantity }`. The station must be one in the registry and the hangar's own (the home station); the item is a data/items.json name or id. A member must be docked there or already hold goods there. Caps are per item from its stock at 00:00 UTC. The announcement rule above is for credits only: goods withdrawals are not announced or delayed. The hangar keeps its own ledger (`hangar.ledger`), so each item's rows sum to its stock and the credit ledger's invariant is untouched. Dissolution splits each item like the treasury.
+
 #### T-018: why "pool everything" is not the best play
 
 Pooling costs something every time, so a corporation should pool what the next shared goal needs and no more:

@@ -4,6 +4,7 @@
 // (server/shareOfferings.js); a price in a request is never read.
 import { bodyNumber } from "../bodyNumber.js";
 import { buyShares, exitShares, holdingsOfAccount, listCorporation, listingProblem, openOffering, publicOffering, shareOfferingList } from "../shareOfferings.js";
+import { setPayoutRatio } from "../dividends.js"; // ISP-159 (AB#853)
 import { getAccountById } from "../gameState.js";
 import { sanitizeAccount } from "../game/store.js";
 
@@ -32,6 +33,14 @@ export function registerEquityRoutes(app) {
     const r = openOffering(req.params.accountId, { quantity: num(req.body?.quantity) });
     if (!r.ok) return res.status(409).json({ error: r.error });
     res.json({ offering: publicOffering(r.offering) });
+  });
+
+  // ISP-159 (AB#853): the payout ratio for the next dividend period (the one in progress keeps its own)
+  app.post("/api/accounts/:accountId/equity/payout-ratio", (req, res) => {
+    const r = setPayoutRatio(req.params.accountId, num(req.body?.payoutRatioPct));
+    if (!r.ok) return res.status(409).json({ error: r.error });
+    const { payoutRatioPct, payoutRatioNextPct, payoutRatioChangedAt } = r.registry;
+    res.json({ payoutRatioPct, payoutRatioNextPct, payoutRatioChangedAt });
   });
 
   app.post("/api/accounts/:accountId/equity/offerings/:offeringId/buy", (req, res) => {

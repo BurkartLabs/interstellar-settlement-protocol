@@ -165,3 +165,45 @@ describe('no payment code before 1.0 (ISP-89, BRIEF.md: "None yet, and none befo
     expect(files.length).toBeGreaterThan(50);
   });
 });
+
+// ISP-163 (AB#857): BRIEF.md's never-sell list names v0.9's financial instruments. Their numbers live in data files,
+// which the scan above does not read (it reads code). A price or a currency in one of them is the first line of a shop
+// that sells a rate, a limit, a fill or a share: this fails on it. In-game credit amounts ("cost", "fee", "charterFee")
+// are not real money and are not matched.
+const INSTRUMENT_DATA = ["data/loan-products.json", "data/bond-terms.json", "data/share-terms.json", "data/credit-rating.json", "data/conglomerates.json"];
+const MONEY_KEY = /price|currency|usd|eur|gbp|sku|iap|real.?money|store|paypal|stripe/i;
+/** Keys that name an in-game price in credits, never real money, each with why. */
+const IN_GAME_PRICE_KEYS = new Map([["stakeGoodsPriceBasis", "which exchange price values a departing member's goods in credits (AB#889)"]]);
+const MONEY_VALUE = /[$€£]\s*\d|\b\d+(\.\d+)?\s*(USD|EUR|GBP)\b|^(USD|EUR|GBP)$/;
+
+/** Every real-money field in a parsed data file: a key that names money, or a string value that is an amount of it. */
+function realMoneyFields(value, where = "") {
+  if (Array.isArray(value)) return value.flatMap((v, i) => realMoneyFields(v, `${where}[${i}]`));
+  if (value && typeof value === "object") {
+    return Object.entries(value).flatMap(([k, v]) => [
+      ...(MONEY_KEY.test(k) && !IN_GAME_PRICE_KEYS.has(k) ? [`${where}.${k}`] : []),
+      ...realMoneyFields(v, `${where}.${k}`)
+    ]);
+  }
+  return typeof value === "string" && MONEY_VALUE.test(value) && !where.endsWith("._source") && !where.endsWith("._comment") ? [where] : [];
+}
+
+describe("the never-sell list's data carries no price (ISP-163, AB#857)", () => {
+  const read = (file) => JSON.parse(fs.readFileSync(path.join(ROOT, file), "utf8"));
+
+  it("no financial instrument's data file has a price or currency field", () => {
+    for (const file of INSTRUMENT_DATA) expect(realMoneyFields(read(file)), file).toEqual([]);
+  });
+
+  it("a price or currency added to data/loan-products.json fails it", () => {
+    const seeded = (edit) => { const d = read("data/loan-products.json"); edit(d); return realMoneyFields(d); };
+    expect(seeded((d) => { d.products[0].price = 4.99; })).toEqual([".products[0].price"]);
+    expect(seeded((d) => { d.currency = "USD"; })).toEqual([".currency", ".currency"]);
+    expect(seeded((d) => { d.products[0].priceUsd = 2; d.products[1].sku = "loan-boost"; })).toEqual([".products[0].priceUsd", ".products[1].sku"]);
+    expect(seeded((d) => { d.products[2].rateBoost = "$4.99"; })).toEqual([".products[2].rateBoost"]);
+  });
+
+  it("leaves in-game credit amounts alone", () => {
+    expect(realMoneyFields({ cost: 5_000, charterFee: 25_000, feePct: 2, originationPct: 2.5, productId: "dsdb-7" })).toEqual([]);
+  });
+});

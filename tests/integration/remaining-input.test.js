@@ -125,6 +125,9 @@ const BASELINE = {
     "POST /conglomerates/:conglomerateId/dissolve": { params: { conglomerateId: "cgl-732" } },
     "POST /conglomerates/:conglomerateId/level": { params: { conglomerateId: "cgl-732" }, body: { level: 2 } },
     "GET /conglomerates/:conglomerateId/treasury": { params: { conglomerateId: "cgl-732" } },
+    "GET /conglomerates/:conglomerateId/hangar": { params: { conglomerateId: "cgl-732" } },
+    "POST /conglomerates/:conglomerateId/hangar/deposit": { params: { conglomerateId: "cgl-732" }, body: { stationId: "earth-station-prime", item: "Silicates", quantity: 10 } },
+    "POST /conglomerates/:conglomerateId/hangar/withdraw": { params: { conglomerateId: "cgl-732" }, body: { stationId: "earth-station-prime", item: "Silicates", quantity: 10 } },
     "POST /conglomerates/:conglomerateId/treasury/deposit": { params: { conglomerateId: "cgl-732" }, body: { amount: 100 } },
     "POST /conglomerates/:conglomerateId/treasury/withdraw": { params: { conglomerateId: "cgl-732" }, body: { amount: 100 } },
     "POST /conglomerates/:conglomerateId/treasury/withdrawals/:withdrawalId/block": { params: { conglomerateId: "cgl-732", withdrawalId: "cwd-732" } },
@@ -145,6 +148,7 @@ const BASELINE = {
     "POST /bonds/preview": { body: { quantity: 100, couponPct30: 6, maturityDays: 60 } }, // AB#850: changes nothing
     "POST /equity/list": {}, // AB#852: level 0, refused, nothing listed
     "POST /equity/offerings": { body: { quantity: 500 } }, // not listed: refused
+    "POST /equity/payout-ratio": { body: { payoutRatioPct: 30 } }, // AB#853: not listed, refused
     "POST /equity/offerings/:offeringId/buy": { params: { offeringId: "so-732" }, body: { quantity: 5 } }, // no such offering: 404
     "GET /equity/holdings": {}, // ISP-160 (AB#854)
     "POST /equity/holdings/:issuerCorpId/exit": { params: { issuerCorpId: "corp-732" }, body: { quantity: 5 } }, // no such issuer: 404
@@ -177,7 +181,8 @@ const BASELINE = {
 function checkRefuses(spec, where, value) {
   if (value === undefined) return !spec.optional;
   const sent = where === "body" ? value : String(value); // path and query values arrive as strings
-  if (["int", "id", "word", "choice"].includes(spec.kind)) return true;
+  if (spec.kind === "choice") return !spec.values.includes(sent); // AB#853: 0 is a good payout ratio; the list decides
+  if (["int", "id", "word"].includes(spec.kind)) return true;
   if (spec.kind === "text") return typeof sent !== "string" || sent.length > spec.max;
   if (spec.kind === "ref") return typeof sent !== "string" || sent.length > 64 || sent.trim() === "";
   if (spec.kind === "decimal") return !onStep(sent, spec); // AB#846: 2.5 is a good rate, -5 and Infinity are not
