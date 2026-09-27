@@ -47,6 +47,8 @@ import { dominanceTick } from "./dominanceService.js"; // ISP-217 (AB#912)
 import { registerTariffRoutes } from "./routes/tariffs.js"; // ISP-230 (AB#925)
 import { tariffTick } from "./tariffService.js";
 import { itcTick } from "./itcService.js"; // ISP-232 (AB#927)
+import { standingTick } from "./standingService.js"; // ISP-238 (AB#933)
+import { registerStandingRoutes } from "./routes/standing.js";
 import { registerLogisticsRoutes } from "./routes/logistics.js";
 import { registerMiningRoutes } from "./routes/mining.js";
 import { registerAsteroidRoutes } from "./routes/asteroids.js";
@@ -181,6 +183,7 @@ registerControlRoutes(app);
 registerConcessionRoutes(app);
 registerPatentRoutes(app);
 registerTariffRoutes(app);
+registerStandingRoutes(app);
 
 registerLogisticsRoutes(app);
 
@@ -198,6 +201,8 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => tariffTick(Date.now()), 
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => patentTick(Date.now()), 60_000); // ISP-236 (AB#931): royalties charged and paid
 // ISP-232 (AB#927): the ITC's dumping watch, once a UTC day: duties due, then the window that just closed
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => itcTick(Date.now()), 60_000);
+// ISP-238 (AB#933): faction standing decays once a UTC day
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => standingTick(Date.now()), 60_000);
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => raidTick(Date.now()), 30_000); // ISP-179 (AB#873): arrivals and returns
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondServicingTick(Date.now()), 60_000); // ISP-155 (AB#849)
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now(); shareOfferingTick(now); dividendTick(now); }, 60_000); // ISP-158 (AB#852), ISP-159 (AB#853)

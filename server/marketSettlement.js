@@ -15,6 +15,7 @@ import { accountsStore } from "./game/store.js";
 import { chargeTariff } from "./tariffService.js"; // ISP-230 (AB#925)
 import { recordOwnSale, withholdDuty } from "./itcService.js"; // ISP-232 (AB#927)
 import { withholdRoyaltyDebt } from "./patents.js"; // ISP-236 (AB#931)
+import { onSale } from "./standingService.js"; // ISP-238 (AB#933)
 import { stationById } from "./game/stations.js";
 import { payConcessionShare } from "./concessions.js"; // ISP-228 (AB#923)
 
@@ -41,6 +42,8 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
     // ISP-232 (AB#927): a sale at the seller's own price is what the ITC's dumping watch reads (a partner's is not)
     recordOwnSale(state.corp, { item: order.item, quantity, unitPrice: Number(order.unitPrice || 0), partner });
     applyCredits(state.corp, -salesTax, "exchange-tax");
+    // ISP-238 (AB#933): Earth Assembly standing for the tax, ITC standing for a sale at or above normal value
+    onSale(state.corp, { item: order.item, quantity, unitPrice: Number(order.unitPrice || 0), salesTax, partner });
     applyCredits(state.corp, -royalty, "lease-royalty");
     // ISP-230 (AB#925): the concession holder's tariff where the goods are held, at the lower of the listing's posted
     // rate and today's (WARFARE.md: nobody pays a rate they were not shown)

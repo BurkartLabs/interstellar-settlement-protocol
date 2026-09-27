@@ -23,6 +23,7 @@ import { paySeller, takeFromListing, tellSeller } from "../marketSettlement.js";
 import { chargeTariff, tariffRateFor } from "../tariffService.js"; // ISP-230 (AB#925)
 import { watchView, withholdDuty } from "../itcService.js"; // ISP-232 (AB#927); ISP-233 (AB#928): the watch's view
 import { withholdRoyaltyDebt } from "../patents.js"; // ISP-236 (AB#931)
+import { onSale } from "../standingService.js"; // ISP-238 (AB#933)
 import { buyOrderView } from "../publicViews.js";
 import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
@@ -379,6 +380,7 @@ export function registerMarketRoutes(app) {
       // Bug #984: the gross the NPC paid is income and the tax an expense; the balance moves by the proceeds.
       applyCredits(state.corp, tradeTotal, "exchange");
       applyCredits(state.corp, -salesTax, "exchange-tax");
+      onSale(state.corp, { item: npcOrder.item, quantity: requestedQty, unitPrice, salesTax }); // ISP-238 (AB#933): an NPC buyer is never a partner
       applyCredits(state.corp, -royalty, "lease-royalty");
       royaltyPaid = royalty;
       recordSale(state.corp, npcStationId, tradeTotal); // ISP-217 (AB#912): an NPC buyer is never a partner

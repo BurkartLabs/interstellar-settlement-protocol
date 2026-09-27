@@ -31,6 +31,7 @@ import { accountByCorp } from "./game/membership.js";
 import { formatCredits } from "./receipts.js";
 import { assess, normalOf, watchDays } from "./game/dumping.js";
 import { withheldFrom } from "../public/scripts/itcDuty.js";
+import { onDumpingFinding } from "./standingService.js"; // ISP-238 (AB#933)
 
 const FILE = path.join(dataDir, "itc.json");
 const DAY_MS = 86_400_000;
@@ -149,6 +150,8 @@ export function itcTick(now = Date.now()) {
       const f = { id: `ITC-${day.slice(0, 4)}-${String(store.findingSeq).padStart(6, "0")}`, corp, item, window: [window[0], window.at(-1)], N: r.N, line: r.line, volumeLine: r.volumeLine, Q: r.Q, P: r.P, duty: r.duty, openedAt: now, leviedAt: null, sales: r.dumped };
       for (const s of store.sales) if (r.dumped.includes(s.id)) s.findingId = f.id;
       store.findings.push(f);
+      const found = accountByCorp(corp); // ISP-238 (AB#933): a finding costs ITC standing
+      if (found) mutateAccountState(found.id, (state) => { onDumpingFinding(state.corp); });
       opened.push(f.id);
       notify(corp, "ITC Anti-Dumping Investigation",
         `${f.id}. The Interplanetary Trade Commission has opened an anti-dumping investigation. Between ${dayText(window[0])} and ${dayText(window.at(-1))} (UTC) ` +
