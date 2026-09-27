@@ -3190,6 +3190,28 @@ body.sg {
 }
 
 /* The Financial Core: charts two across (the wide ones span both), the two statements and the daily statements. */
+/* AB#2470: its four pages; each is a column like the screen it sits in. On a wide screen the Trends page's five charts
+   sit three across, so the page fits a desktop without the one wide chart leaving a hole. */
+.finance__subpage:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+@media (min-width: 1200px) {
+  #finance-sub-trends .finance__charts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  #finance-sub-trends .finance__chart--wide {
+    grid-column: span 2;
+  }
+}
+/* On a phone the four page tabs share the width, all of them in view rather than the last one scrolled out of it. */
+@media (max-width: 600px) {
+  #finance-subnav .ui-tab {
+    flex: 1 0 auto;
+    padding: 0 var(--space-2);
+  }
+}
 .finance__charts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3209,7 +3231,7 @@ body.sg {
 }
 .finance__statements {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
   gap: var(--space-4);
 }
 .finance__day {

@@ -84,9 +84,16 @@ for (const [width, height] of SIZES) {
     await openTab(page, "finance");
     await expect(page.locator("#finance-pnl-table tbody tr").first()).toBeAttached();
     await expect(page.locator("#statement-body")).not.toContainText("Loading");
-    await measure(page, "finance", width);
-    const rowDisplay = await page.locator("#finance-pnl-table tbody tr:not(.ui-table__group)").first().evaluate((r) => getComputedStyle(r).display);
-    expect(rowDisplay, "a table row below 768px is a card").toBe(width < 768 ? "grid" : "table-row");
-    await shot("finance");
+    // AB#2470: the Financial Core is four pages; each is measured and shot on its own
+    for (const sub of ["summary", "trends", "statements", "daily"]) {
+      await page.locator(`#finance-subnav [data-finance-sub="${sub}"]`).click();
+      await expect(page.locator(`#finance-sub-${sub}`)).toBeVisible();
+      await measure(page, "finance", width);
+      if (sub === "statements") {
+        const rowDisplay = await page.locator("#finance-pnl-table tbody tr:not(.ui-table__group)").first().evaluate((r) => getComputedStyle(r).display);
+        expect(rowDisplay, "a table row below 768px is a card").toBe(width < 768 ? "grid" : "table-row");
+      }
+      await shot(`finance-${sub}`);
+    }
   });
 }
