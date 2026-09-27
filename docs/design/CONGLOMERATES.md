@@ -133,6 +133,8 @@ the role, not a director spending without it.
 **An absent founder.** If the founder corporation has not signed in for `founderAbsentDays` (30), the longest-serving
 director may claim the founder role at the Bureau. A conglomerate is never locked forever by one missing player.
 
+**As built (ISP-199, AB#893).** Succession is automatic rather than claimed: the first read of the conglomerate after the founder has been absent `founderAbsentDays`, or its account deleted, hands the role to the longest-serving director (the longest-serving member if there are no directors), and the old founder becomes a director. The founder still cannot leave, even alone; it transfers the role or dissolves. Dissolution splits the treasury in whole credits and gives the remainder to the founder; there is no hangar yet. Every conglomerate route passes one check, `can(role, action)` in server/conglomerates.js.
+
 ### The treasury and upkeep
 
 A conglomerate has one treasury, in credits. Members put money in; money leaves only by upkeep, level-ups,
