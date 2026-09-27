@@ -18,7 +18,7 @@
 // A raid is a record in world state (`market.raids`), driven by stored times, so it survives a restart mid-flight.
 // No account id is stored: both sides are corporation publicIds. Time is passed in (P-TEST-TIME).
 
-import { addAccountNotification, getAccountById, getState, mutateAccountState, mutateState } from "./gameState.js";
+import { addAccountNotification, getAccountById, getAllAccountIds, getState, mutateAccountState, mutateState } from "./gameState.js";
 import { emitToAccount } from "./realtime.js";
 import { accountIdOfCorp } from "./playerLoans.js";
 import { NAVIGATION } from "./game/catalog.js";
@@ -205,6 +205,40 @@ export function recallRaid(accountId, raidId, now = Date.now()) {
   mutateState((draft) => { Object.assign(raidsDraft(draft).find((r) => r.id === raid.id), { state: "recalled", recalledAt: now, returnsAt }); });
   tell(accountIdOfCorp(raid.targetCorpId), "Raid called off", `${raid.attackerName ?? "The attacking corporation"} has recalled its raid on your holdings at ${stationById(raid.targetStationId)?.name ?? "the station"}.`);
   return { ok: true, raid: raidView({ ...raid, state: "recalled", returnsAt }) };
+}
+
+/**
+ * ISP-181 (AB#875): the target picker. Every other corporation with holdings at `stationId`, by name and public id,
+ * each eligible or with every reason it is not: new-player protection (with the days left), its post-raid cooldown
+ * (with its end), or the caller's repeat limit on it (with when it frees). And the caller's own standing: its own
+ * protection, and the hourly limit. The same checks declareRaid makes, so the list never offers a raid it would
+ * refuse. Nothing about what a target holds is shown. Null for an unknown caller.
+ */
+export function raidTargets(accountId, stationId, now = Date.now()) {
+  const attacker = corpOf(accountId);
+  if (!attacker?.publicId) return null;
+  if (!stationById(stationId)) return { stationId, you: [], targets: [] };
+  const mine = allRaids().filter((r) => r.attackerCorpId === attacker.publicId);
+  const you = [];
+  const own = protectedUntil(accountId);
+  if (now < own) you.push({ kind: "protected", until: own, daysLeft: Math.ceil((own - now) / DAY), text: `Your corporation cannot raid for ${Math.ceil((own - now) / DAY)} more day(s): new-player protection.` });
+  const lastHour = mine.filter((r) => r.declaredAt > now - RAID_RULES.rate.hours * HOUR).sort((a, b) => a.declaredAt - b.declaredAt);
+  if (lastHour.length >= RAID_RULES.rate.max) you.push({ kind: "rate", until: lastHour[0].declaredAt + RAID_RULES.rate.hours * HOUR, text: `You have declared ${RAID_RULES.rate.max} raids this hour.` });
+  const targets = [];
+  for (const id of getAllAccountIds()) {
+    if (id === accountId) continue;
+    const corp = corpOf(id);
+    if (!corp?.publicId || !holdingsAt(corp, stationId).any) continue;
+    const reasons = [];
+    const until = protectedUntil(id);
+    if (now < until) reasons.push({ kind: "protected", until, daysLeft: Math.ceil((until - now) / DAY), text: `New-player protection: ${Math.ceil((until - now) / DAY)} day(s) left.` });
+    if (Number(corp.raidCooldownUntil) > now) reasons.push({ kind: "cooldown", until: Number(corp.raidCooldownUntil), text: "Raided recently: protected until its cooldown ends." });
+    const onIt = mine.filter((r) => r.targetCorpId === corp.publicId && r.declaredAt > now - RAID_RULES.repeat.days * DAY).sort((a, b) => a.declaredAt - b.declaredAt);
+    if (onIt.length >= RAID_RULES.repeat.max) reasons.push({ kind: "repeat", until: onIt[0].declaredAt + RAID_RULES.repeat.days * DAY, text: `You have raided it ${RAID_RULES.repeat.max} times in ${RAID_RULES.repeat.days} days.` });
+    targets.push({ corpId: corp.publicId, name: corp.corporationName ?? "A corporation", eligible: !reasons.length && !you.length, reasons });
+  }
+  targets.sort((a, b) => (b.eligible - a.eligible) || a.name.localeCompare(b.name));
+  return { stationId, you, targets };
 }
 
 /** The caller's raids: those it declared, and those on it that have not resolved. No account ids. */

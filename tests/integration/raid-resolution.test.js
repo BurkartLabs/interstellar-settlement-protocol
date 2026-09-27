@@ -145,7 +145,7 @@ describe("ISP-179 buildings", () => {
     expect(byName.Refinery).toBe(80); // min(20, 4 x 6) = 20
     expect(byName["Orbital Shipyard"]).toBe(50); // 55 - 20, held at the floor
     expect(byName.Headquarters).toBeUndefined(); // never a target
-    expect(defender.corp().raidReports[0].buildingsDamaged).toEqual([{ name: "Refinery", before: 100, after: 80 }, { name: "Orbital Shipyard", before: 55, after: 50 }]);
+    expect(defender.corp().raidReports[0].buildingsDamaged).toEqual([{ name: "Refinery", before: 100, after: 80, repairCost: 2_000 }, { name: "Orbital Shipyard", before: 55, after: 50, repairCost: 7_500 }]);
   });
 });
 

@@ -32,6 +32,7 @@ import { postureAt, settleGarrisonMoves, troopsArrivedAfter, withPosture } from 
 import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 import { mercenaryUseAllowed, recordContractLosses } from "./mercenaries.js";
 import { buildingsAtStation } from "./raids.js";
+import { buildingCostBasis } from "./buildingRemoval.js"; // ISP-181 (AB#875): the repair price the report shows
 import { settleItems, itemEscrowOf } from "./itemSettlement.js";
 
 const HOUR = 3_600_000;
@@ -40,6 +41,7 @@ export const RAID_OUTCOME = Object.freeze({
   lootPct: 20, lootFloor: 10_000, holdPerSupply: 1_500,
   damagePerSiegeEngine: 4, maxDamage: 20, conditionFloor: 50,
   cooldownHours: 24,
+  repairPctOfCost: 25, // the design's repair price: (100 - condition)% of the building's cost basis x 25% (ISP-287 repairs)
   reportsKept: 20
 });
 const UNIT_IDS = [...FLEET_UNIT_IDS, "dt"];
@@ -218,7 +220,8 @@ export function resolveRaid(raid, now) {
         for (const b of buildingsAtStation(state.corp, raid.targetStationId)) {
           const before = Math.min(100, Math.max(RAID_OUTCOME.conditionFloor, Number(b.condition ?? 100)));
           b.condition = Math.max(RAID_OUTCOME.conditionFloor, before - points);
-          damage.push({ name: b.name, before, after: b.condition });
+          const repairCost = Math.round(((100 - b.condition) / 100) * buildingCostBasis(b) * (RAID_OUTCOME.repairPctOfCost / 100));
+          damage.push({ name: b.name, before, after: b.condition, repairCost });
         }
       }, { sanitize: false, settleMining: false });
     }
@@ -229,7 +232,7 @@ export function resolveRaid(raid, now) {
   const station = stationById(raid.targetStationId)?.name ?? raid.targetStationId;
   const rounds = battle.rounds.map((r) => ({ round: r.round, attacker: { lost: round2(r.attacker.lost), remaining: round2(r.attacker.remaining) }, defender: { lost: round2(r.defender.lost), remaining: round2(r.defender.remaining) } }));
   const common = { raidId: raid.id, at, stationId: raid.targetStationId, station, winner: battle.winner, posture, rounds, attacker: { name: raid.attackerName, before: attackers, lost: lostA, survivors: battle.survivors.attacker }, defender: { name: raid.targetName, before: defending, lost: lostD, survivors: battle.survivors.defender }, loot: loot.items };
-  keepReport(attackerAccountId, { ...common, side: "attacker", buildingsDamaged: damage.map(({ name, after, before }) => ({ name, points: before - after })) });
+  keepReport(attackerAccountId, { ...common, side: "attacker", buildingsDamaged: damage.map(({ name, after, before }) => ({ name, points: before - after })) }); // not the defender's repair bill
   keepReport(defenderAccountId, { ...common, side: "defender", buildingsDamaged: damage });
 
   const survivors = FLEET_UNIT_IDS.reduce((a, id) => a + n(battle.survivors.attacker[id]), 0);

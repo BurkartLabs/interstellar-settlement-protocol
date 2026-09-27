@@ -57,6 +57,7 @@ const BASELINE = {
   "POST /raids": { body: { fleetId: "flt-does-not-exist", targetCorpId: "corp-does-not-exist", targetStationId: "earth-station-prime" } },
   "POST /raids/:raidId/recall": { params: { raidId: "raid-does-not-exist" } },
   "GET /raids/:raidId/report": { params: { raidId: "raid-does-not-exist" } }, // ISP-179 (AB#873)
+  "GET /raids/targets/:stationId": { params: { stationId: "earth-station-prime" } }, // ISP-181 (AB#875)
   "POST /garrisons/:stationId/posture": { params: { stationId: "earth-station-prime" }, body: { posture: "fortified" } }, // ISP-180 (AB#874)
   "POST /garrisons/move": { body: { fromStationId: "earth-station-prime", toStationId: "luna-gateway", quantity: 5 } },
   "POST /mercenaries/:contractId/deploy": { params: { contractId: "mo-does-not-exist" }, body: { toStationId: "earth-station-prime" } },

@@ -148,6 +148,40 @@ describe("ISP-178 who may be raided", () => {
   });
 });
 
+describe("ISP-181 the target picker's list (AB#875)", () => {
+  it("offers exactly those declareRaid would accept, with every reason for the rest, and nothing about their holdings", async () => {
+    const now = Date.now();
+    const a = await corporation({ units: { lf: 12 } });
+    const open = await target(), young = await target(), cooled = await target(), repeated = await target();
+    age(young.id, 9 * DAY, now);
+    mutateAccountState(cooled.id, (s) => { s.corp.raidCooldownUntil = now + 20 * HOUR; }, { sanitize: false, settleMining: false });
+    for (const at of [now - 3 * DAY, now - 2 * DAY]) {
+      const f = await fleet(a, { lf: 2 });
+      expect(declareRaid(a.id, { fleetId: f, targetCorpId: repeated.publicId, targetStationId: EARTH }, at).ok).toBe(true);
+    }
+    const res = await a.api.get(a.at(`/raids/targets/${EARTH}`));
+    expect(res.status).toBe(200);
+    const by = Object.fromEntries(res.body.targets.map((t) => [t.corpId, t]));
+    expect(by[open.publicId]).toMatchObject({ eligible: true, reasons: [] });
+    expect(by[young.publicId]).toMatchObject({ eligible: false, reasons: [{ kind: "protected", daysLeft: 5 }] });
+    expect(by[cooled.publicId].reasons.map((r) => r.kind)).toEqual(["cooldown"]);
+    expect(by[repeated.publicId].reasons).toEqual([expect.objectContaining({ kind: "repeat", until: now - 3 * DAY + 7 * DAY })]);
+    expect(by[a.publicId]).toBeUndefined(); // never itself
+    expect(JSON.stringify(res.body)).not.toMatch(/Silicates|inventory|credits/);
+    // the list agrees with declaring: each offered target is accepted, each refused one refused
+    const f = await fleet(a, { lf: 2 });
+    for (const t of [by[young.publicId], by[cooled.publicId], by[repeated.publicId]]) {
+      expect(declareRaid(a.id, { fleetId: f, targetCorpId: t.corpId, targetStationId: EARTH }, now).ok, t.name).toBe(false);
+    }
+    expect(declareRaid(a.id, { fleetId: f, targetCorpId: open.publicId, targetStationId: EARTH }, now).ok).toBe(true);
+    // an attacker still inside its own 14 days sees why it cannot raid at all
+    const newcomer = await corporation({ days: 10 });
+    const mine = await newcomer.api.get(newcomer.at(`/raids/targets/${EARTH}`));
+    expect(mine.body.you[0]).toMatchObject({ kind: "protected", daysLeft: 4 });
+    expect(mine.body.targets.every((t) => !t.eligible)).toBe(true);
+  });
+});
+
 describe("ISP-178 recall", () => {
   it("turns the fleet round before arrival; it is home after the time it had flown; after arrival it cannot", async () => {
     const now = Date.now();

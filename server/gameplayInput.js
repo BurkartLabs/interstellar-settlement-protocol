@@ -152,6 +152,7 @@ export const GAMEPLAY_INPUT = {
   },
   "POST /raids/:raidId/recall": { params: { raidId: ref("one of your raids") } },
   "GET /raids/:raidId/report": { params: { raidId: ref("one of your raids") } }, // ISP-179 (AB#873)
+  "GET /raids/targets/:stationId": { params: { stationId: id("stations", "a station") } }, // ISP-181 (AB#875)
   // ISP-180 (AB#874): a garrison's posture, troops sent between stations, a hired fleet sent to one's own holdings
   "POST /garrisons/:stationId/posture": { params: { stationId: id("stations", "a station") }, body: { posture: word(POSTURE_IDS, "a posture: balanced, fortified or aggressive") } },
   "POST /garrisons/move": { body: { fromStationId: id("stations", "a station"), toStationId: id("stations", "a station"), quantity: int(1, 100_000, "a number of defense troops") } },
