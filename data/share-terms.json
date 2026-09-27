@@ -1,0 +1,6 @@
+{
+  "_source": "docs/design/v0.9-equity.md, section 1 (ISP-157, AB#851): every corporation's share registry. tests/integration/share-registry.test.js reads the design's table and this file together.",
+  "authorized": 100000,
+  "founderShares": 10000,
+  "payoutRatioPct": { "min": 0, "max": 80, "step": 5, "default": 25 }
+}
