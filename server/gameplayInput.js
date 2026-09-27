@@ -127,6 +127,7 @@ export const GAMEPLAY_INPUT = {
   "GET /fleets/:fleetId/destinations": { params: { fleetId: ref("one of your fleets") } }, // ISP-175 (AB#869)
   // ISP-176 (AB#870): mercenary contracts. Terms are numbers and enums only; ids not the caller's are the route's 404.
   "GET /mercenaries": NOTHING,
+  "GET /mercenaries/mine": NOTHING, // ISP-177 (AB#871)
   "POST /mercenaries/offer": {
     body: {
       fleetId: ref("one of your fleets"),
