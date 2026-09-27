@@ -615,7 +615,7 @@ function bindRealtimeEvents() {
 
   // ISP-201 (AB#895): a membership change in this corporation's conglomerate, or one addressed to it (the server sends
   // these to the conglomerate's room and the affected account only): read the conglomerate again.
-  for (const event of ["invited", "applied", "joined", "left", "invitation-closed", "application-closed", "role-changed", "removed", "dissolved", "identity-changed", "levelled", "level-lost", "treasury"]) {
+  for (const event of ["invited", "applied", "joined", "left", "invitation-closed", "application-closed", "role-changed", "removed", "dissolved", "identity-changed", "levelled", "level-lost", "treasury", "hangar"]) {
     socket.on(`conglomerate:${event}`, () => { if (appState.accountId) loadConglomerate(); });
   }
 

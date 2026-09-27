@@ -343,3 +343,30 @@ export function settleTreasury(c, now = Date.now(), catalog = CONGLOMERATE_CATAL
   }
   return events;
 }
+
+// ─── The goods hangar's store and ledger (ISP-205, AB#899): the rules are server/game/hangar.js ───────────────────
+
+/** Give a conglomerate its hangar, at its home station, with an empty ledger. */
+export function ensureHangar(c, catalog = CONGLOMERATE_CATALOG) {
+  if (!c.hangar || typeof c.hangar !== "object") c.hangar = {};
+  if (!c.hangar.stationId) c.hangar.stationId = catalog.homeStationId;
+  if (!c.hangar.items || typeof c.hangar.items !== "object") c.hangar.items = {};
+  if (!Array.isArray(c.hangar.ledger)) c.hangar.ledger = [];
+  return c.hangar;
+}
+
+/**
+ * Move `quantity` (signed, whole units) of `item` in the hangar and write the one ledger row that says so. Throws,
+ * changing nothing, on a quantity that is not whole or stock that would fall below zero.
+ */
+export function moveHangar(c, { at, kind, corp = null, item, quantity, by = null }) {
+  const h = ensureHangar(c);
+  if (!Number.isSafeInteger(quantity)) throw new TypeError(`moveHangar: ${String(quantity)} is not a whole number of units`);
+  const after = Math.floor(Number(h.items[item]) || 0) + quantity;
+  if (after < 0) throw new RangeError("moveHangar: hangar stock cannot go below zero");
+  const row = Object.freeze({ id: createId("chg"), at, kind, corp, item, amount: quantity, balanceAfter: after, by, stationId: h.stationId });
+  h.ledger.push(row);
+  if (after) h.items[item] = after;
+  else delete h.items[item];
+  return row;
+}
