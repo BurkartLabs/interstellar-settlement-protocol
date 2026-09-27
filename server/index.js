@@ -1,4 +1,6 @@
 import "./loadEnv.js";
+// ISP-196 (AB#890): the conglomerate catalog is checked here, before anything listens; a bad one stops the start.
+import "./conglomerates.js";
 import express from "express";
 import kanbanRouter from "./kanban.js";
 import fs from "node:fs";
