@@ -30,6 +30,7 @@ import { bondsIssuedBy } from "./bonds.js"; // ISP-154 (AB#848)
 import { getStatements } from "./gameState.js"; // ISP-147: the statements the rating reads
 import { statementsVersion } from "./game/store.js"; // AB#842: the rating's basis follows the statements file
 import { settleStationProjects } from "./game/stationProjects.js"; // ISP-210 (AB#905)
+import { settleAllStationGovernance } from "./game/stationGovernance.js"; // ISP-211 (AB#906)
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
 function getESTDateString() {
@@ -189,6 +190,7 @@ function fabricationTick() {
   expireOffers(now);
   settleContracts(now);
   settleStationProjects(now); // ISP-210 (AB#905): a station whose build time is over opens with nobody watching
+  settleAllStationGovernance(now); // ISP-211 (AB#906): votes that ran out close, and stake buyouts pay what is due
   for (const accountId of getAllAccountIds()) {
     let completed = false;
     const shipsDone = [];

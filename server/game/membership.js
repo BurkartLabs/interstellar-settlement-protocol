@@ -17,6 +17,7 @@ import { createId } from "./catalog.js";
 import { pushSystemNotification } from "./progression.js";
 import { accountsStore, saveAccountsNow } from "./store.js";
 import { charterRefusal, conglomerateList, levelStatus, publicConglomerate, settleTreasury } from "./conglomerates.js";
+import { departStake, settleBuyouts } from "./stakes.js"; // ISP-211 (AB#906)
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -119,6 +120,7 @@ function context(accountId, conglomerateId, now) {
 /** ISP-204 (AB#898): bring the treasury up to `now` (settleTreasury), and tell members what it did. */
 export function settle(c, now = Date.now()) {
   const events = settleTreasury(c, now);
+  if (settleBuyouts(c, now).length) saveAccountsNow(); // ISP-211 (AB#906): buyout instalments due, after upkeep
   if (!events.length) return;
   saveAccountsNow();
   for (const { event, payload, notify } of events) {
@@ -271,9 +273,10 @@ export function leaveConglomerate(accountId, conglomerateId, now = Date.now()) {
   c.past.push({ corp: corp.publicId, role: member.role, joinedAt: member.joinedAt, state: "left", closedAt: now });
   corp.conglomerateId = null;
   corp.joinCooldownUntil = now + CONGLOMERATE_CATALOG.joinCooldownHours * HOUR_MS;
+  const buyout = departStake(c, corp.publicId, "left", now); // ISP-211 (AB#906): its stake is bought out at the design's rate
   saveAccountsNow();
   roomEvent(c, "conglomerate:left", { corp: corp.publicId, corpName: corp.corporationName }, { accounts: [account.id], leave: [account.id] });
-  return { conglomerate: publicConglomerate(c), joinCooldownUntil: corp.joinCooldownUntil };
+  return { conglomerate: publicConglomerate(c), joinCooldownUntil: corp.joinCooldownUntil, ...(buyout ? { buyout: { total: buyout.total, days: buyout.days } } : {}) };
 }
 
 /**

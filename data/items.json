@@ -1,5 +1,5 @@
 {
-  "_comment": "ISP-130 (AB#824): every item the game names, once. Tiers and ids from docs/design/tier3-resources.md (AB#822): tier 1 common raw, tier 2 scarce raw, tier 3 refined (every refinery chain's output). Data files name an item by its `name`; the server refuses to start if any names one not here (server/game/items.js), so a typo cannot become a commodity (T-019).",
+  "_comment": "ISP-130 (AB#824): every item the game names, once. Tiers and ids from docs/design/tier3-resources.md (AB#822): tier 1 common raw, tier 2 scarce raw, tier 3 refined (every refinery chain's output); and from docs/design/v0.11-tier4.md (AB#878), tier 4 everything behind Tier 4 research, extracted (raw) or made in the Synthesis Array (refined). Data files name an item by its `name`; the server refuses to start if any names one not here (server/game/items.js), so a typo cannot become a commodity (T-019).",
   "items": [
     {
       "id": "silicates",
@@ -90,14 +90,30 @@
     {
       "id": "uranium",
       "name": "Uranium",
-      "tier": 2,
-      "category": "raw"
+      "tier": 4,
+      "category": "raw",
+      "note": "Tier 2 until v0.11, now behind Tier 4 research (AB#878, docs/design/v0.11-tier4.md section 2)."
     },
     {
       "id": "exotic-matter",
       "name": "Exotic Matter",
-      "tier": 2,
-      "category": "raw"
+      "tier": 4,
+      "category": "raw",
+      "note": "Tier 2 until v0.11, now behind Tier 4 research (AB#878, docs/design/v0.11-tier4.md section 2)."
+    },
+    {
+      "id": "platinum-group-metals",
+      "name": "Platinum-Group Metals",
+      "tier": 4,
+      "category": "raw",
+      "note": "New in v0.11 (AB#879). Crater and lava bodies in exotic systems yield it once AB#882 gives them a share."
+    },
+    {
+      "id": "metallic-hydrogen",
+      "name": "Metallic Hydrogen",
+      "tier": 4,
+      "category": "raw",
+      "note": "New in v0.11 (AB#879). Gas giants in exotic systems yield it once AB#882 gives them a share."
     },
     {
       "id": "aerogel",
@@ -248,6 +264,48 @@
       "name": "Ion Thrusters",
       "tier": 3,
       "category": "refined"
+    },
+    {
+      "id": "antimatter",
+      "name": "Antimatter",
+      "tier": 4,
+      "category": "refined",
+      "note": "New in v0.11 (AB#879). Made in the Synthesis Array (AB#883), docs/design/v0.11-tier4.md section 3."
+    },
+    {
+      "id": "superconducting-coils",
+      "name": "Superconducting Coils",
+      "tier": 4,
+      "category": "refined",
+      "note": "New in v0.11 (AB#879). Made in the Synthesis Array (AB#883), docs/design/v0.11-tier4.md section 3."
+    },
+    {
+      "id": "field-emitters",
+      "name": "Field Emitters",
+      "tier": 4,
+      "category": "refined",
+      "note": "New in v0.11 (AB#879). Made in the Synthesis Array (AB#883), docs/design/v0.11-tier4.md section 3."
+    },
+    {
+      "id": "breeder-reactor-cores",
+      "name": "Breeder Reactor Cores",
+      "tier": 4,
+      "category": "refined",
+      "note": "New in v0.11 (AB#879). Made in the Synthesis Array (AB#883), docs/design/v0.11-tier4.md section 3."
+    },
+    {
+      "id": "antimatter-drives",
+      "name": "Antimatter Drives",
+      "tier": 4,
+      "category": "refined",
+      "note": "New in v0.11 (AB#879). Made in the Synthesis Array (AB#883), docs/design/v0.11-tier4.md section 3."
+    },
+    {
+      "id": "catalyst-beds",
+      "name": "Catalyst Beds",
+      "tier": 4,
+      "category": "refined",
+      "note": "New in v0.11 (AB#879). Made in the Synthesis Array (AB#883), docs/design/v0.11-tier4.md section 3."
     }
   ]
 }

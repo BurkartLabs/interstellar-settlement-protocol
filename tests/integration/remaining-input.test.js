@@ -130,6 +130,9 @@ const BASELINE = {
     "POST /conglomerates/:conglomerateId/station-project": { params: { conglomerateId: "cgl-732" }, body: { systemId: "sol", body: "Venus", suffix: 1 } },
     "POST /conglomerates/:conglomerateId/station-project/contribute": { params: { conglomerateId: "cgl-732" }, body: { source: "own", credits: 100, item: "Structural Alloys", quantity: 10 } },
     "POST /conglomerates/:conglomerateId/station-project/cancel": { params: { conglomerateId: "cgl-732" } },
+    "GET /conglomerates/:conglomerateId/station": { params: { conglomerateId: "cgl-732" } },
+    "POST /conglomerates/:conglomerateId/station/proposals": { params: { conglomerateId: "cgl-732" }, body: { setting: "access", value: "members", conglomerateId: "cgl-733" } }, // ISP-211 (AB#906)
+    "POST /conglomerates/:conglomerateId/station/proposals/:proposalId/vote": { params: { conglomerateId: "cgl-732", proposalId: "csv-732" }, body: { vote: "yes" } },
     "GET /conglomerates/:conglomerateId/treasury": { params: { conglomerateId: "cgl-732" }, query: { offset: "0", limit: "25" } },
     "GET /conglomerates/:conglomerateId/intel": { params: { conglomerateId: "cgl-732" } },
     "GET /conglomerates/:conglomerateId/hangar": { params: { conglomerateId: "cgl-732" }, query: { offset: "0", limit: "25" } },

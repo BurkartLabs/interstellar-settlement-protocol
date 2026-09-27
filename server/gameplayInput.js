@@ -289,6 +289,17 @@ export const ACCOUNT_INPUT = {
     }
   },
   "POST /conglomerates/:conglomerateId/station-project/cancel": { params: { conglomerateId: ref("a conglomerate") } },
+  // ISP-211 (AB#906): a proposal names a setting from the fixed list, and a value or a conglomerate; a vote is yes or no.
+  "GET /conglomerates/:conglomerateId/station": { params: { conglomerateId: ref("a conglomerate") } },
+  "POST /conglomerates/:conglomerateId/station/proposals": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: {
+      setting: word(["access", "list", "unlist"], "a station setting: access, list or unlist"),
+      value: word(["open", "members", "members-and-listed"], "who may dock: open, members or members-and-listed", { optional: true }),
+      conglomerateId: ref("a conglomerate", { optional: true })
+    }
+  },
+  "POST /conglomerates/:conglomerateId/station/proposals/:proposalId/vote": { params: { conglomerateId: ref("a conglomerate"), proposalId: ref("a proposal") }, body: { vote: word(["yes", "no"], "a vote: yes or no") } },
   "POST /conglomerates/:conglomerateId/level": {
     params: { conglomerateId: ref("a conglomerate") },
     body: { level: int(2, CONGLOMERATE_CATALOG.levels.length, "the level to buy") }
