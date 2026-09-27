@@ -3,7 +3,7 @@ import request from "supertest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { mutateAccountState, getAccountById, getState, listAccountMessages, listAccountNotifications } from "../../server/gameState.js";
-import { GAMEPLAY_INPUT, ACCOUNT_INPUT, MARKET_INPUT, FORUM_INPUT } from "../../server/gameplayInput.js";
+import { GAMEPLAY_INPUT, ACCOUNT_INPUT, MARKET_INPUT, FORUM_INPUT, onStep } from "../../server/gameplayInput.js";
 
 // AB#732: every route that changes state outside /gameplay is checked by the same input middleware as AB#731, before
 // its handler; the rest are named here with the reason they are out of scope. A new route fails this file until it is
@@ -129,7 +129,11 @@ const BASELINE = {
     "POST /messages/:messageId/move": { params: { messageId: "m-732" }, body: { folder: "archive" } },
     "POST /loans/quote": { body: { productId: "dsdb-90", principal: 5000 } }, // ISP-149 (AB#843): a quote changes nothing
     "POST /loans/accept": { body: { quoteId: "lq-732" } }, // no such quote: refused, nothing lent
-    "POST /loans/:loanId/payoff": { params: { loanId: "loan-732" } } // no such loan: 404, nothing taken
+    "POST /loans/:loanId/payoff": { params: { loanId: "loan-732" } }, // no such loan: 404, nothing taken
+    "GET /loan-offers": {}, // ISP-152 (AB#846)
+    "POST /loan-offers": { body: { principal: 5000, ratePct30: 3.25, termDays: 30, minGrade: "BBB" } },
+    "POST /loan-offers/:offerId/cancel": { params: { offerId: "lo-732" } }, // no such offer: 404
+    "POST /loan-offers/:offerId/accept": { params: { offerId: "lo-732" } }
   },
   "/api/market": {
     "POST /orders": { body: { type: "sell", item: "Silicates", quantity: 1, unitPrice: 30 } },
@@ -156,6 +160,7 @@ function checkRefuses(spec, where, value) {
   if (["int", "id", "word", "choice"].includes(spec.kind)) return true;
   if (spec.kind === "text") return typeof sent !== "string" || sent.length > spec.max;
   if (spec.kind === "ref") return typeof sent !== "string" || sent.length > 64 || sent.trim() === "";
+  if (spec.kind === "decimal") return !onStep(sent, spec); // AB#846: 2.5 is a good rate, -5 and Infinity are not
   return true;
 }
 

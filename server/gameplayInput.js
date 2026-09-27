@@ -21,6 +21,9 @@ const MAX_TRANSFER_LINES = 10;
 
 const int = (min, max, label, extra = {}) => ({ kind: "int", min, max, label, ...extra });
 const choice = (values, label, extra = {}) => ({ kind: "choice", values, label, ...extra });
+/** ISP-152 (AB#846): a number from `min` to `max` in steps of `step` (a loan offer's rate, 2.0 to 25.0 by 0.25). */
+const decimal = (min, max, step, label, extra = {}) => ({ kind: "decimal", min, max, step, label, ...extra });
+export const onStep = (n, spec) => typeof n === "number" && Number.isFinite(n) && n >= spec.min && n <= spec.max && Math.abs(n / spec.step - Math.round(n / spec.step)) < 1e-9;
 const id = (catalog, label, extra = {}) => ({ kind: "id", catalog, label, ...extra });
 /** Free text: a string of at most `max` characters (AB#732). The client's own maxlength is the same. */
 const text = (max, label, extra = {}) => ({ kind: "text", max, label, ...extra });
@@ -127,6 +130,18 @@ export const ACCOUNT_INPUT = {
   "POST /loans/quote": { body: { productId: word(["dsdb-7", "dsdb-30", "dsdb-90"], "a Development Bank loan product"), principal: int(1_000, 100_000_000, "a principal of at least 1,000 credits") } },
   "POST /loans/accept": { body: { quoteId: ref("a loan quote") } },
   "POST /loans/:loanId/payoff": { params: { loanId: ref("one of your loans") } }, // ISP-150 (AB#844)
+  // ISP-152 (AB#846): player loan offers. Numbers and enums only; the floor rate and the per-pair cap are the route's too.
+  "GET /loan-offers": NOTHING,
+  "POST /loan-offers": {
+    body: {
+      principal: int(1_000, 100_000, "a principal from 1,000 to 100,000 credits"),
+      ratePct30: decimal(2, 25, 0.25, "a rate per 30 days"),
+      termDays: choice([7, 30, 90], "a term of 7, 30 or 90 days"),
+      minGrade: word(["AAA", "AA", "A", "BBB", "BB", "B", "CCC", "CC", "C", "NR-accepted"], "the lowest credit grade you will lend to")
+    }
+  },
+  "POST /loan-offers/:offerId/cancel": { params: { offerId: ref("one of your loan offers") } },
+  "POST /loan-offers/:offerId/accept": { params: { offerId: ref("a loan offer") } },
   // ISP-197 (AB#891): the charter. The name is checked by the route against the corporation-name rules (3 to 40
   // characters); this bounds what reaches it. Emblem and colour are numbered from 1 in the Bureau's fixed lists.
   "POST /conglomerates": {
@@ -267,6 +282,9 @@ function checkFieldOnce(spec, value, has) {
     const n = wholeNumber(value);
     if (n === null || n < spec.min || n > spec.max) return refuse(`Enter ${spec.label}: a whole number from ${spec.min.toLocaleString()} to ${spec.max.toLocaleString()}.`);
     return { ok: true };
+  }
+  if (spec.kind === "decimal") {
+    return onStep(value, spec) ? { ok: true } : refuse(`Enter ${spec.label}: from ${spec.min} to ${spec.max}, in steps of ${spec.step}.`);
   }
   if (spec.kind === "choice") {
     const n = wholeNumber(value);
