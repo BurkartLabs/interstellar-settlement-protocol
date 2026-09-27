@@ -44,6 +44,21 @@ const ALLOWLIST = [
     "public/scripts/helpers.js",
     'return new Intl.NumberFormat("en-US", {',
     "toCurrency: the sanctioned in-game credits formatter this story's own acceptance names as the one exception"
+  ],
+  [
+    "server/settlement.js",
+    '"loan-disbursal", "loan-repayment", "bond-subscription", "coupon", "dividend", "share-purchase", "escrow-hold", "escrow-release", "fee",',
+    "a bond subscription: buying into an in-game corporate bond with credits (docs/design/v0.9-equity.md, v0.9-debt.md), not a recurring real-money payment (Bug #2570)"
+  ],
+  [
+    "server/finances.js",
+    '"loan-disbursal-received", "loan-repayment-received", "bond-subscription-received", "coupon-received", "dividend-received",',
+    "a bond subscription: buying into an in-game corporate bond with credits (docs/design/v0.9-equity.md, v0.9-debt.md), not a recurring real-money payment (Bug #2570)"
+  ],
+  [
+    "server/finances.js",
+    '"loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",',
+    "a bond subscription: buying into an in-game corporate bond with credits (docs/design/v0.9-equity.md, v0.9-debt.md), not a recurring real-money payment (Bug #2570)"
   ]
 ];
 

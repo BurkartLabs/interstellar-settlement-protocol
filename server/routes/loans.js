@@ -47,7 +47,7 @@ export function registerLoanRoutes(app) {
   });
 
   app.post("/api/accounts/:accountId/loans/quote", (req, res) => {
-    const r = quoteLoan(req.params.accountId, { productId: req.body?.productId, principal: Number(req.body?.principal) });
+    const r = quoteLoan(req.params.accountId, { productId: req.body?.productId, principal: bodyNumber(req.body?.principal, { fallback: NaN }) });
     if (!r.ok) return res.status(400).json({ error: r.error });
     res.json({ quote: r.quote });
   });
