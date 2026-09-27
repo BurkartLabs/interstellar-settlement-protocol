@@ -841,6 +841,19 @@ button:disabled {
 }
 .bond-terms dt { color: var(--muted); font-size: var(--font-size-1); text-transform: uppercase; letter-spacing: var(--letter-spacing-caps); }
 .bond-terms dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+/* ISP-161 (AB#855): the Stock Exchange reuses the bond board's cards; a return is coloured by its sign */
+.igsx-gain { color: var(--success); }
+.igsx-loss { color: var(--danger); }
+.igsx-total { margin-bottom: var(--space-4); }
+.igsx-payout p { margin: 0 0 var(--space-3); }
+.igsx-payout .ui-select { max-width: 16rem; }
+.igsx-hint { flex-basis: 100%; margin: 0; }
+@media (max-width: 600px) {
+  [data-role="igsx"] .bond-terms dt,
+  [data-role="igsx"] .bond-terms__aside,
+  [data-role="igsx"] .igsx-hint,
+  [data-role="igsx"] .bank-quote-form__status { font-size: var(--font-size-3); }
+}
 .bond-terms__aside { color: var(--muted); font-size: var(--font-size-2); }
 .bond-subscribe,
 .bond-issue { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }

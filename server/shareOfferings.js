@@ -258,6 +258,45 @@ export function publicOffering(o, now = Date.now()) {
   };
 }
 
+// ─── ISP-161 (AB#855): an offering as the Exchange lists it ─────────────────
+/** An account's closed statements, newest first, at most `n`: filed and not yet filed. Reads only; never closes a day. */
+function closedReadOnly(accountId, n = 30) {
+  const byDay = new Map();
+  for (const s of [...readStatements(accountId), ...(accountsStore.accounts?.[accountId]?.state?.statements || [])]) byDay.set(s.dayStart, s);
+  return [...byDay.values()].sort((a, b) => b.dayStart - a.dayStart).slice(0, n);
+}
+
+/**
+ * An open offering with what an investor weighs beside its price: the issuer's grade, the company value and shares
+ * outstanding the price was set from, its net income over the last 30 closed days and its payout ratio.
+ */
+export function listedOffering(o, now = Date.now()) {
+  const issuer = corpOf(o.issuerAccountId);
+  const statements = issuer ? closedReadOnly(o.issuerAccountId) : [];
+  return {
+    ...publicOffering(o, now),
+    grade: issuer ? computeCreditRating(issuer, now, statements, { bonds: bondsIssuedBy(o.issuerAccountId) }).grade : "NR",
+    companyValue: o.companyValueAtOpen,
+    outstanding: o.outstandingAtOpen,
+    netIncome30: statements.reduce((a, s) => a + (Number(s.pnl?.net) || 0), 0),
+    payoutRatioPct: issuer?.shareRegistry?.payoutRatioPct ?? null
+  };
+}
+
+/** The caller's own standing as an issuer: listed or not, its payout ratio and the bounds a change must keep to. */
+export function issuerStanding(accountId, now = Date.now()) {
+  const corp = corpOf(accountId);
+  const r = corp?.shareRegistry;
+  if (!r) return null;
+  const nextChangeAt = r.payoutRatioChangedAt ? r.payoutRatioChangedAt + 7 * DAY : null; // once in 7 days (dividends.js)
+  return {
+    corpId: corp.publicId ?? null, state: r.state, outstanding: outstandingOf(r),
+    listingFee: r.state === "listed" ? 0 : Math.floor((companyValue(closedReadOnly(accountId)) * L.feePct) / 100),
+    payoutRatioPct: r.payoutRatioPct, payoutRatioNextPct: r.payoutRatioNextPct ?? null,
+    payoutRatioBounds: SHARE_TERMS.payoutRatioPct, canChangePayoutAt: nextChangeAt && now < nextChangeAt ? nextChangeAt : null
+  };
+}
+
 // ─── ISP-160 (AB#854): holding value and the investor exit ──────────────────
 // docs/design/v0.9-equity.md, sections 1, 5 and 8. A holding is worth the Board's value per share (company value /
 // shares outstanding, AB#704) times its shares; it counts in the investor's balance sheet (ISP-1) and so in its net
