@@ -48,6 +48,11 @@ function designed(system, body) {
     const e = out.find(([i]) => i === extra);
     if (e) e[1] += 10; else out.push([extra, 10]);
   }
+  // AB#882, docs/design/v0.11-tier4.md section 1: in exotic systems, 10 points of a crater planet's or a lava body's
+  // Iron Ore are Platinum-Group Metals, and 10 of a gas giant's Hydrogen are Metallic Hydrogen.
+  const deep = system.rarity !== "exotic" ? null
+    : cls === "lava" || cls === "crater planet" ? ["Iron Ore", "Platinum-Group Metals"] : cls === "gas giant" ? ["Hydrogen", "Metallic Hydrogen"] : null;
+  if (deep) out = [...out.map(([i, s]) => [i, i === deep[0] ? s - 10 : s]), [deep[1], 10]];
   return out;
 }
 const asMap = (list) => Object.fromEntries(list.map(([i, s]) => [i, Math.round(s * 1000) / 1000]));
