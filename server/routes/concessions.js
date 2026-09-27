@@ -3,7 +3,7 @@
 // (the /api/accounts/:accountId mount), with ACCOUNT_INPUT's check of the system id; the holder is always the caller's
 // corporation or conglomerate, never read from the request. The register is public, like the dominance reading.
 import { SYSTEMS_BY_ID } from "../game/catalog.js";
-import { petitionConcession, publicConcession, relinquishConcession, setLeaseModifier } from "../concessions.js";
+import { concessionStatusFor, petitionConcession, publicConcession, relinquishConcession, setLeaseModifier, starmapConcessions } from "../concessions.js";
 import { bodyNumber } from "../bodyNumber.js";
 
 function reply(res, result, status = 200) {
@@ -13,6 +13,13 @@ function reply(res, result, status = 200) {
 const known = (id) => typeof id === "string" && SYSTEMS_BY_ID.has(id);
 
 export function registerConcessionRoutes(app) {
+  // ISP-229 (AB#924): every system's holders and open petitions, for the starmap's Concessions overlay (public)
+  app.get("/api/starmap/concessions", (_req, res) => { res.json(starmapConcessions(SYSTEMS_BY_ID.keys())); });
+  // ISP-229 (AB#924): the caller's own reading of a system: eligibility, what a petition costs, and what it manages
+  app.get("/api/accounts/:accountId/concessions/:systemId", (req, res) => {
+    if (!known(req.params.systemId)) { res.status(404).json({ error: "No such system." }); return; }
+    reply(res, concessionStatusFor(req.params.accountId, req.params.systemId));
+  });
   app.get("/api/systems/:id/concession", (req, res) => {
     if (!known(req.params.id)) { res.status(404).json({ error: "No such system." }); return; }
     res.json(publicConcession(req.params.id));

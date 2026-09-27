@@ -245,6 +245,7 @@ export const ACCOUNT_INPUT = {
   "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: ref("a conglomerate") } },
   "POST /concessions/:systemId/petition": { params: { systemId: ref("a system") } }, // ISP-227 (AB#922)
   "POST /concessions/:systemId/relinquish": { params: { systemId: ref("a system") } },
+  "GET /concessions/:systemId": { params: { systemId: ref("a system") } }, // ISP-229 (AB#924)
   "POST /concessions/:systemId/lease-modifier": { params: { systemId: ref("a system") }, body: { discountPct: choice(Array.from({ length: WARFARE_CATALOG.concessionLeaseModifierMaxPct + 1 }, (_, i) => i), `a lease discount, in whole percent from 0 to ${WARFARE_CATALOG.concessionLeaseModifierMaxPct}`) } }, // ISP-228 (AB#923): 0 is a good discount, so a list (as the payout ratio, AB#853)
   // ISP-199 (AB#893): roles, removal, the founder's transfer, identity and dissolution. A member is named by its
   // corporation's public id; the route answers 404 for one that is not a member.
