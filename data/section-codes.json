@@ -1,0 +1,439 @@
+{
+  "_comment": "ISP-247 (AB#943): the document code of every screen and titled section, docs/design/BUREAUCRATIC_UI.md. A code is DEPT-FUNC-N: the issuing department, the function, and a number within that pair (the screen first, then its sections in page order). Codes are permanent: a section that goes keeps its code retired, never reused, and a new one takes the next free number. tests/unit/sectionCodes.test.js holds every screen and every titled section in public/index.html to this file.",
+  "departments": {
+    "CORP": "The corporation's own records: its operations, books, research, fleet and correspondence",
+    "ISA": "Interstellar Settlement Authority: registration, contracts, charts and travel clearance",
+    "STA": "Station Administration: the station you are docked at",
+    "GEX": "Galactic Exchange (GEX Commodities Authority): the market",
+    "CGL": "The conglomerate's register: a bloc of corporations",
+    "EA": "Earth Assembly: legislation and lobbying",
+    "ITC": "Interplanetary Trade Commission: tariffs, dumping and trade findings",
+    "GAC": "Galactic Arbitration Council: claims and rulings",
+    "SDSD": "Solar Defense & Security Directorate: military oversight"
+  },
+  "functions": {
+    "OPS": "operations",
+    "FIN": "finance",
+    "RND": "research",
+    "EXE": "executive programs",
+    "IND": "industry and refining",
+    "MKT": "markets",
+    "MIL": "military",
+    "AST": "assets",
+    "LOG": "logistics",
+    "COM": "communications",
+    "CON": "contracts",
+    "NAV": "navigation and charts",
+    "TRN": "transit",
+    "REG": "registration",
+    "ADM": "administration",
+    "LAW": "law and rulings"
+  },
+  "retired": [],
+  "screens": [
+    {
+      "code": "CORP-OPS-1",
+      "id": "overview",
+      "page": "index.html",
+      "title": "Overview"
+    },
+    {
+      "code": "ISA-TRN-1",
+      "id": "travel",
+      "page": "index.html",
+      "title": "Travel"
+    },
+    {
+      "code": "STA-OPS-1",
+      "id": "station",
+      "page": "index.html",
+      "title": "Station"
+    },
+    {
+      "code": "CORP-FIN-1",
+      "id": "finance",
+      "page": "index.html",
+      "title": "Financial Core"
+    },
+    {
+      "code": "CORP-RND-1",
+      "id": "rnd",
+      "page": "index.html",
+      "title": "Corporate R&D"
+    },
+    {
+      "code": "CGL-ADM-1",
+      "id": "conglomerate",
+      "page": "index.html",
+      "title": "Conglomerate"
+    },
+    {
+      "code": "CORP-EXE-1",
+      "id": "ceo",
+      "page": "index.html",
+      "title": "CEO Insight"
+    },
+    {
+      "code": "CORP-IND-1",
+      "id": "refinery",
+      "page": "index.html",
+      "title": "Refinery Chains"
+    },
+    {
+      "code": "GEX-MKT-1",
+      "id": "market",
+      "page": "index.html",
+      "title": "Galactic Exchange"
+    },
+    {
+      "code": "CORP-MIL-1",
+      "id": "fleet",
+      "page": "index.html",
+      "title": "Fleet"
+    },
+    {
+      "code": "CORP-AST-1",
+      "id": "assets",
+      "page": "index.html",
+      "title": "Assets"
+    },
+    {
+      "code": "CORP-LOG-1",
+      "id": "logistics",
+      "page": "index.html",
+      "title": "Logistics"
+    },
+    {
+      "code": "CORP-COM-1",
+      "id": "chat",
+      "page": "index.html",
+      "title": "Chat"
+    },
+    {
+      "code": "CORP-COM-2",
+      "id": "forums",
+      "page": "index.html",
+      "title": "Forums"
+    },
+    {
+      "code": "ISA-CON-1",
+      "id": "missions",
+      "page": "index.html",
+      "title": "Assignments"
+    },
+    {
+      "code": "CORP-COM-3",
+      "id": "inbox",
+      "page": "index.html",
+      "title": "Inbox"
+    },
+    {
+      "code": "ISA-NAV-1",
+      "id": "starmap",
+      "page": "index.html",
+      "title": "Starmap"
+    },
+    {
+      "code": "ISA-REG-1",
+      "id": "login",
+      "page": "login.html",
+      "title": "Log in"
+    },
+    {
+      "code": "ISA-REG-2",
+      "id": "register",
+      "page": "register.html",
+      "title": "Register a corporation"
+    },
+    {
+      "code": "ISA-REG-3",
+      "id": "check-email",
+      "page": "check-email.html",
+      "title": "Check your email"
+    },
+    {
+      "code": "ISA-REG-4",
+      "id": "verify-email",
+      "page": "verify-email.html",
+      "title": "Verify your email"
+    },
+    {
+      "code": "ISA-REG-5",
+      "id": "forgot-password",
+      "page": "forgot-password.html",
+      "title": "Forgotten password"
+    },
+    {
+      "code": "ISA-REG-6",
+      "id": "reset-password",
+      "page": "reset-password.html",
+      "title": "Reset your password"
+    },
+    {
+      "code": "ISA-REG-7",
+      "id": "how-to-start",
+      "page": "how-to-start.html",
+      "title": "How to start"
+    }
+  ],
+  "sections": [
+    {
+      "code": "CORP-OPS-2",
+      "id": "expedition-panel",
+      "screen": "overview",
+      "title": "Asteroid Belt Expeditions"
+    },
+    {
+      "code": "CORP-OPS-3",
+      "id": "overview-milestones",
+      "screen": "overview",
+      "title": "Corporation Advancement Requirements"
+    },
+    {
+      "code": "CORP-OPS-4",
+      "id": "feedback-log-title",
+      "screen": "overview",
+      "title": "Command Feedback"
+    },
+    {
+      "code": "STA-OPS-2",
+      "id": "station-authority-and-regulatory-offices",
+      "screen": "station",
+      "title": "Authority & Regulatory Offices"
+    },
+    {
+      "code": "STA-OPS-3",
+      "id": "station-facilities-section",
+      "screen": "station",
+      "title": "Operational Facilities"
+    },
+    {
+      "code": "STA-OPS-4",
+      "id": "station-construction-section",
+      "screen": "station",
+      "title": "Construction"
+    },
+    {
+      "code": "STA-OPS-5",
+      "id": "station-licensed-corporate-holdings",
+      "screen": "station",
+      "title": "Licensed Corporate Holdings"
+    },
+    {
+      "code": "STA-OPS-6",
+      "id": "station-active-mining-cycles",
+      "screen": "station",
+      "title": "Active Mining Cycles"
+    },
+    {
+      "code": "CORP-FIN-2",
+      "id": "finance-cash-reserves",
+      "screen": "finance",
+      "title": "Cash Reserves"
+    },
+    {
+      "code": "CORP-FIN-3",
+      "id": "finance-net-cash-flow",
+      "screen": "finance",
+      "title": "Net Cash Flow"
+    },
+    {
+      "code": "CORP-FIN-4",
+      "id": "finance-assets-vs-liabilities",
+      "screen": "finance",
+      "title": "Assets vs Liabilities"
+    },
+    {
+      "code": "CORP-FIN-5",
+      "id": "finance-income-by-source",
+      "screen": "finance",
+      "title": "Income by Source"
+    },
+    {
+      "code": "CORP-FIN-6",
+      "id": "finance-asset-composition",
+      "screen": "finance",
+      "title": "Asset Composition"
+    },
+    {
+      "code": "CORP-FIN-7",
+      "id": "finance-daily-profit-and-loss",
+      "screen": "finance",
+      "title": "Daily P&L"
+    },
+    {
+      "code": "CORP-FIN-8",
+      "id": "finance-profit-and-loss-statement",
+      "screen": "finance",
+      "title": "Profit & Loss Statement"
+    },
+    {
+      "code": "CORP-FIN-9",
+      "id": "finance-balance-sheet",
+      "screen": "finance",
+      "title": "Balance Sheet"
+    },
+    {
+      "code": "CORP-FIN-10",
+      "id": "finance-statements",
+      "screen": "finance",
+      "title": "Daily Statements"
+    },
+    {
+      "code": "CORP-RND-2",
+      "id": "rnd-queue-title",
+      "screen": "rnd",
+      "title": "Active and queued"
+    },
+    {
+      "code": "CORP-RND-3",
+      "id": "rnd-tree-title",
+      "screen": "rnd",
+      "title": "Research"
+    },
+    {
+      "code": "CORP-EXE-2",
+      "id": "ceo-queue-title",
+      "screen": "ceo",
+      "title": "Active program"
+    },
+    {
+      "code": "CORP-EXE-3",
+      "id": "ceo-tree-title",
+      "screen": "ceo",
+      "title": "Programs"
+    },
+    {
+      "code": "CORP-IND-2",
+      "id": "refinery-runs-title",
+      "screen": "refinery",
+      "title": "Active runs"
+    },
+    {
+      "code": "CORP-IND-3",
+      "id": "refinery-chains-title",
+      "screen": "refinery",
+      "title": "Available chains"
+    },
+    {
+      "code": "CORP-IND-4",
+      "id": "resource-catalog-title",
+      "screen": "refinery",
+      "title": "Resource catalog"
+    },
+    {
+      "code": "GEX-MKT-2",
+      "id": "exchange-price-chart",
+      "screen": "market",
+      "title": "Price history"
+    },
+    {
+      "code": "GEX-MKT-3",
+      "id": "exchange-sell-section",
+      "screen": "market",
+      "title": "Sell orders"
+    },
+    {
+      "code": "GEX-MKT-4",
+      "id": "exchange-listing-section",
+      "screen": "market",
+      "title": "Create listing"
+    },
+    {
+      "code": "GEX-MKT-5",
+      "id": "exchange-bids-section",
+      "screen": "market",
+      "title": "Buy orders"
+    },
+    {
+      "code": "GEX-MKT-6",
+      "id": "exchange-bid-form-section",
+      "screen": "market",
+      "title": "Place a buy order"
+    },
+    {
+      "code": "GEX-MKT-7",
+      "id": "exchange-npc-sell-section",
+      "screen": "market",
+      "title": "Standing sell orders"
+    },
+    {
+      "code": "GEX-MKT-8",
+      "id": "exchange-mercenary-section",
+      "screen": "market",
+      "title": "Mercenary Rentals"
+    },
+    {
+      "code": "GEX-MKT-9",
+      "id": "exchange-standing-section",
+      "screen": "market",
+      "title": "Standing buy orders"
+    },
+    {
+      "code": "GEX-MKT-10",
+      "id": "exchange-mine-section",
+      "screen": "market",
+      "title": "My active listings"
+    },
+    {
+      "code": "GEX-MKT-11",
+      "id": "exchange-inventory-section",
+      "screen": "market",
+      "title": "Inventory at this station"
+    },
+    {
+      "code": "GEX-MKT-12",
+      "id": "exchange-history-section",
+      "screen": "market",
+      "title": "Trade history"
+    },
+    {
+      "code": "CORP-MIL-2",
+      "id": "fleet-forces-section",
+      "screen": "fleet",
+      "title": "Forces"
+    },
+    {
+      "code": "CORP-MIL-3",
+      "id": "fleet-fleets-section",
+      "screen": "fleet",
+      "title": "Fleets"
+    },
+    {
+      "code": "CORP-MIL-4",
+      "id": "fleet-raids-section",
+      "screen": "fleet",
+      "title": "Raids"
+    },
+    {
+      "code": "CORP-MIL-5",
+      "id": "station-training-section",
+      "screen": "fleet",
+      "title": "Headquarters: Troop Training"
+    },
+    {
+      "code": "CORP-MIL-6",
+      "id": "station-shipyard-section",
+      "screen": "fleet",
+      "title": "Orbital Shipyard"
+    },
+    {
+      "code": "ISA-CON-2",
+      "id": "active-missions-section",
+      "screen": "missions",
+      "title": "Active Contracts"
+    },
+    {
+      "code": "ISA-CON-3",
+      "id": "completed-missions-section",
+      "screen": "missions",
+      "title": "Mission Log"
+    },
+    {
+      "code": "ISA-CON-4",
+      "id": "missions-available-contracts",
+      "screen": "missions",
+      "title": "Available Contracts"
+    }
+  ]
+}
