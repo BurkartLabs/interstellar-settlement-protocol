@@ -3,6 +3,10 @@
 import { REFINERY_CHAINS, getStationInventory } from "./catalog.js";
 import { bumpStat, COUNTED_STATS } from "./progression.js";
 import { ECONOMY } from "../economy.js";
+// ISP-236 (AB#931): which runs may owe a royalty. The warfare catalog, not server/patents.js, which reaches the store
+// and would import this module back.
+import { WARFARE_CATALOG } from "../warfare.js";
+const PATENT_USES_KEPT = 200;
 // ISP-97 (AB#787): a Refinery Complex (tier 2) delivers 1.5 times; the rule is shared with the page and the receipt.
 import { refineryMultiplierFor, refineryOutput } from "../../public/scripts/refineryOutput.js";
 
@@ -147,6 +151,12 @@ function completeRun(corp, ref, now) {
     // ISP-235 (AB#930): when this corporation first delivered a run of the chain: what the Registry reads for patents.
     if (!corp.chainFirstRunAt || typeof corp.chainFirstRunAt !== "object") corp.chainFirstRunAt = {};
     if (ref.chainId && !(corp.chainFirstRunAt[ref.chainId] > 0)) corp.chainFirstRunAt[ref.chainId] = endsAt;
+    // ISP-236 (AB#931): a run of a patentable chain is a use; patentTick charges it if a patent was in force at endsAt
+    if (chain && Number(chain.stage) >= WARFARE_CATALOG.patents.minChainStage) {
+      if (!Array.isArray(corp.patentUses)) corp.patentUses = [];
+      corp.patentUses.push({ kind: "chain", subjectId: ref.chainId, at: endsAt, delivered: delivered.map(({ item, quantity }) => ({ item, quantity })) });
+      if (corp.patentUses.length > PATENT_USES_KEPT) corp.patentUses.splice(0, corp.patentUses.length - PATENT_USES_KEPT);
+    }
     ref.cyclesCompleted += scale;
     ref.active = false;
     ref.chainId = null;

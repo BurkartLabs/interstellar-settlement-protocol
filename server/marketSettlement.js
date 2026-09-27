@@ -14,6 +14,7 @@ import { recordSale, sameConglomerate } from "./game/dominanceCounters.js"; // I
 import { accountsStore } from "./game/store.js";
 import { chargeTariff } from "./tariffService.js"; // ISP-230 (AB#925)
 import { recordOwnSale, withholdDuty } from "./itcService.js"; // ISP-232 (AB#927)
+import { withholdRoyaltyDebt } from "./patents.js"; // ISP-236 (AB#931)
 import { stationById } from "./game/stations.js";
 import { payConcessionShare } from "./concessions.js"; // ISP-228 (AB#923)
 
@@ -46,8 +47,10 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
     const tariff = chargeTariff(state.corp, { stationId: order.stationId, base: total, postedPct: order.tariffPct ?? null });
     // ISP-232 (AB#927): duty owed to the ITC takes its share of what is left
     const withheld = withholdDuty(state.corp, afterTax - tariff.amount);
-    const proceeds = afterTax - tariff.amount - withheld;
-    sale = { taxPct, taxAmount, tariffPct: tariff.pct, tariffAmount: tariff.amount, dutyWithheld: withheld, proceeds, buyer: publicName(buyerName) };
+    // ISP-236 (AB#931): then royalty owed on others' patents takes its share of what is left after the duty
+    const royaltyWithheld = withholdRoyaltyDebt(state.corp, afterTax - tariff.amount - withheld);
+    const proceeds = afterTax - tariff.amount - withheld - royaltyWithheld;
+    sale = { taxPct, taxAmount, tariffPct: tariff.pct, tariffAmount: tariff.amount, dutyWithheld: withheld, ...(royaltyWithheld ? { royaltyWithheld } : {}), proceeds, buyer: publicName(buyerName) };
     royaltyPaid = royalty;
     sellerCorp = state.corp;
     if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
@@ -62,6 +65,7 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
       taxAmount,
       ...(tariff.amount ? { tariffPct: tariff.pct, tariffAmount: tariff.amount } : {}),
       ...(withheld ? { dutyWithheld: withheld } : {}),
+      ...(royaltyWithheld ? { royaltyWithheld } : {}),
       proceeds,
       counterparty: sale.buyer,
       at: Date.now()
