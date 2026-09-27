@@ -19,8 +19,10 @@ describe("what feeds what", () => {
   it("links an input to the chains that make it, and an output to the chains that take it", () => {
     expect(producersOf("Nickel-Iron Alloy", CHAINS)).toEqual([{ id: "smelting-chain", title: "Nickel-Iron Alloy", recipe: "Iron Ore + Nickel → Nickel-Iron Alloy" }]);
     expect(producersOf("Iron Ore", CHAINS)).toEqual([]); // mined, not made
-    expect(consumersOf("Pressure Vessels", CHAINS)).toEqual([{ id: "fission-module-chain", title: "Compact Fission Modules", recipe: "Thorium Fuel Rods + Pressure Vessels → Compact Fission Modules" }]);
-    expect(consumersOf("Rare-Earth Magnets", CHAINS).map((c) => c.id).sort()).toEqual(["fusion-core-chain", "ion-thruster-chain"]);
+    expect(consumersOf("Pressure Vessels", CHAINS)[0]).toEqual({ id: "fission-module-chain", title: "Compact Fission Modules", recipe: "Thorium Fuel Rods + Pressure Vessels → Compact Fission Modules" });
+    expect(consumersOf("Pressure Vessels", CHAINS).map((c) => c.id)).toEqual(["fission-module-chain", "breeder-core-chain"]); // ISP-189 (AB#883): and the Tier 4 breeder
+    // ISP-189 (AB#883): superconductor-chain takes them too, in the Synthesis Array (v0.11-tier4.md, section 4).
+    expect(consumersOf("Rare-Earth Magnets", CHAINS).map((c) => c.id).sort()).toEqual(["fusion-core-chain", "ion-thruster-chain", "superconductor-chain"]);
     expect(consumersOf("Fusion Reactor Cores", CHAINS)).toEqual([]); // a final product
   });
 

@@ -15,6 +15,9 @@ const ALLOY = {
 };
 const stock = (held) => (item) => held[item] ?? 0;
 
+// ISP-189 (AB#883): the Tier 4 chains, run in the Synthesis Array.
+const TIER4_CHAINS = ["antimatter-chain", "superconductor-chain", "field-emitter-chain", "breeder-core-chain", "antimatter-drive-chain", "catalyst-bed-chain"];
+
 describe("a chain's inputs", () => {
   it("every chain in data has a list of one or more, each a whole quantity of a different item", () => {
     for (const c of ALL_CHAINS) {
@@ -24,7 +27,7 @@ describe("a chain's inputs", () => {
       expect(c.inputQuantityPerCycle, c.id).toBeUndefined();
     }
     // AB#830, AB#831, AB#832, AB#833: the tracks' chains of two inputs.
-    expect(ALL_CHAINS.filter((c) => c.inputs.length > 1).map((c) => c.id).sort()).toEqual(["al-li-chain", "battery-chain", "cryogenics-chain", "fission-module-chain", "fusion-core-chain", "fusion-fuel-chain", "ion-thruster-chain", "magnet-chain", "smelting-chain", "spaceframe-chain"]); // AB#834: the four cross-track chains
+    expect(ALL_CHAINS.filter((c) => c.inputs.length > 1).map((c) => c.id).sort()).toEqual(["al-li-chain", "battery-chain", "cryogenics-chain", "fission-module-chain", "fusion-core-chain", "fusion-fuel-chain", "ion-thruster-chain", "magnet-chain", "smelting-chain", "spaceframe-chain", ...TIER4_CHAINS].sort()); // AB#834: the four cross-track chains; ISP-189 (AB#883): the six Tier 4 chains, each of three inputs but antimatter-chain's two
   });
 
   it("is null for anything the refinery cannot run, so the route fails closed", () => {

@@ -202,6 +202,21 @@ export function buildOrbitalShipyardReceipt({ cost, assetValue, slotsUsed, slots
   });
 }
 
+// ISP-189 (AB#883): the Synthesis Array, where the Tier 4 chains run; built through POST /gameplay/build only.
+export function buildSynthesisArrayReceipt({ cost, assetValue, slotsUsed, slotsTotal }) {
+  return receipt("build-synthesis-array", {
+    title: "Synthesis Array Commissioned",
+    summary: "A Synthesis Array is operational at your corporation.",
+    costCredits: cost,
+    grants: [
+      { label: "Added to assets", value: formatCredits(assetValue) },
+      { label: "Building slots used", value: `${slotsUsed} / ${slotsTotal}` },
+      { label: "Now possible", value: "Run Tier 4 synthesis chains on the Refinery Chains tab" }
+    ],
+    next: "Each Tier 4 chain takes two refined intermediates and an exotic resource. One Array runs one chain at a time."
+  });
+}
+
 // ISP-97 (AB#787): built through POST /gameplay/build only, so no route of its own names this builder.
 export function buildRefineryComplexReceipt({ cost, assetValue, refineryName, multiplier }) {
   return receipt("build-refinery-complex", {

@@ -28,6 +28,8 @@
     "cryoVaporExtractorArrayMiningMultiplier": 1.2,
     "orbitalShipyardCost": 150000,
     "orbitalShipyardAssetValue": 105000,
+    "synthesisArrayCost": 200000,
+    "synthesisArrayAssetValue": 140000,
     "supplyForecastCostMultiplier": 0.94,
     "extractorYardUpkeepPctPerDay": 2,
     "extractorYardPriceGrowth": 1.25,
