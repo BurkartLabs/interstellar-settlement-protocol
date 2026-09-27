@@ -146,6 +146,8 @@ const BASELINE = {
     "POST /equity/list": {}, // AB#852: level 0, refused, nothing listed
     "POST /equity/offerings": { body: { quantity: 500 } }, // not listed: refused
     "POST /equity/offerings/:offeringId/buy": { params: { offeringId: "so-732" }, body: { quantity: 5 } }, // no such offering: 404
+    "GET /equity/holdings": {}, // ISP-160 (AB#854)
+    "POST /equity/holdings/:issuerCorpId/exit": { params: { issuerCorpId: "corp-732" }, body: { quantity: 5 } }, // no such issuer: 404
     "POST /bonds/:seriesId/subscribe": { params: { seriesId: "bond-732" }, body: { units: 5 } }, // no such series: 404
     "GET /loan-offers": {}, // ISP-152 (AB#846)
     "GET /player-loans": {}, // ISP-153 (AB#847)

@@ -108,3 +108,33 @@ export function rebuildHoldingIndexes(accounts) {
     if (corp) corp.holdingIndex = [...(index.get(corp.publicId) || [])];
   }
 }
+
+// ─── ISP-160 (AB#854): what a holding is worth ──────────────────────────────
+/**
+ * The Board's value per share (D-0.9-3, AB#704): company value / shares outstanding, floored; 0 for a corporation worth
+ * nothing (docs/design/v0.9-equity.md, section 1). Company value is the issuer's latest closed statement's net worth.
+ */
+export const valuePerShare = (companyValue, outstanding) => (outstanding > 0 ? Math.floor(Math.max(0, Number(companyValue) || 0) / outstanding) : 0);
+
+/** What the market maker pays for a share at an exit (section 5): the value per share less its 5% spread, floored. */
+export const exitPrice = (value) => Math.floor((Math.max(0, value) * (100 - SHARE_TERMS.marketMaker.exitSpreadPct)) / 100);
+
+/**
+ * A corporation's holdings, one per issuer, each at the Board's value. Pure: `issuerOf(corpId)` gives
+ * { registry, companyValue, name? } for an issuer, or null for one that no longer exists (counted at 0).
+ */
+export function holdingsOf(corp, issuerOf) {
+  const out = [];
+  for (const issuerCorpId of corp?.holdingIndex || []) {
+    const issuer = issuerOf(issuerCorpId);
+    const row = issuer?.registry?.holders?.find((h) => h.holder?.kind === "corp" && h.holder.corpId === corp.publicId);
+    if (!row || !(row.shares > 0)) continue;
+    const outstanding = issuer.registry.authorized - issuer.registry.unissued;
+    const perShare = valuePerShare(issuer.companyValue, outstanding);
+    out.push({ issuerCorpId, issuerName: issuer.name ?? null, shares: row.shares, costBasis: row.costBasis || 0, valuePerShare: perShare, value: row.shares * perShare, exitPrice: exitPrice(perShare) });
+  }
+  return out;
+}
+
+/** What the holdings are worth in all: the balance sheet's holdings line (ISP-1). */
+export const holdingsValue = (corp, issuerOf) => holdingsOf(corp, issuerOf).reduce((a, h) => a + h.value, 0);

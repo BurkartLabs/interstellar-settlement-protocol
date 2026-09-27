@@ -226,7 +226,7 @@ describe("ISP-158 buying", () => {
       const row = issuer.corp().shareRegistry.holders.find((h) => h.holder.corpId === b.corp().publicId);
       expect(row ? 60_000 - b.credits() : 0).toBe(row ? row.costBasis : 0);
     }
-  });
+  }, 120_000); // AB#854: 200 purchases, each a synchronous ledger and snapshot write, passed 20 s in a full parallel run
 });
 
 describe("ISP-158 the close", () => {

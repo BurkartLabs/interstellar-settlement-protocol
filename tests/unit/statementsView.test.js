@@ -27,7 +27,7 @@ describe("a day's statements (AB#714)", () => {
       "pnl.income.exchange": 1_200, "pnl.expenses.ceo-insight": 25_000, "pnl.expenses.hiring": 8_000,
       "pnl.totalIncome": 1_200, "pnl.totalExpenses": 33_000, "pnl.net": -31_800,
       "cashFlow.opening": 250_000, "cashFlow.inflows": 1_200, "cashFlow.outflows": 33_000, "cashFlow.closing": 218_200,
-      "balanceSheet.credits": 218_200, "balanceSheet.facilities": 30_000, "balanceSheet.inventory": 4_800,
+      "balanceSheet.credits": 218_200, "balanceSheet.facilities": 30_000, "balanceSheet.inventory": 4_800, "balanceSheet.holdings": 0, // AB#854: shown as 0 when the statement has none
       "balanceSheet.totalAssets": 253_000, "balanceSheet.liabilities": 7_200, "balanceSheet.netWorth": 245_800
     });
   });

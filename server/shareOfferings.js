@@ -22,10 +22,11 @@
 
 import { computeCreditRating } from "./creditRating.js";
 import { getAccountById, getStatements, mutateAccountState } from "./gameState.js";
-import { accountsStore, saveAccountsNow } from "./game/store.js";
+import { accountsStore, saveAccountsNow, readStatements } from "./game/store.js";
 import { settleTransfer } from "./settlement.js";
 import { bondsIssuedBy } from "./bonds.js";
-import { SHARE_TERMS, registryProblems } from "./shareRegistry.js";
+import { SHARE_TERMS, registryProblems, valuePerShare, exitPrice, holdingsOf, holdingsValue } from "./shareRegistry.js";
+import { setHoldingsValuer } from "./finances.js"; // ISP-160 (AB#854)
 
 const DAY = 86_400_000;
 const L = SHARE_TERMS.listing, O = SHARE_TERMS.offering, MM = SHARE_TERMS.marketMaker;
@@ -255,4 +256,131 @@ export function publicOffering(o, now = Date.now()) {
     pricePerShare: o.pricePerShare, state: o.state === "open" && now >= o.closesAt ? "closing" : o.state,
     openedAt: o.openedAt, closesAt: o.closesAt, closedAt: o.closedAt, soldToPlayers: o.soldToPlayers, soldToMarketMaker: o.soldToMarketMaker
   };
+}
+
+// ─── ISP-160 (AB#854): holding value and the investor exit ──────────────────
+// docs/design/v0.9-equity.md, sections 1, 5 and 8. A holding is worth the Board's value per share (company value /
+// shares outstanding, AB#704) times its shares; it counts in the investor's balance sheet (ISP-1) and so in its net
+// worth. An investor exits by selling to the IGSX market maker at floor(value x 0.95), from the market maker's tap, at
+// most 1% of the issuer's shares outstanding a day across every seller and never past the market maker's own 20%. A
+// defaulting investor's shares are sold the same way in recovery, with both limits waived (section 8).
+const accountOfCorp = (corpId) => (corpId ? Object.keys(accountsStore.accounts || {}).find((id) => accountsStore.accounts[id]?.state?.corp?.publicId === corpId) ?? null : null);
+
+/** The net worth on an account's latest closed statement (filed, or closed and not yet filed), never below 0. Reads only. */
+function latestClosedNetWorth(accountId) {
+  const unfiled = accountsStore.accounts?.[accountId]?.state?.statements || [];
+  return companyValue([...readStatements(accountId), ...unfiled]);
+}
+
+/** An issuer as a valuation needs it: { accountId, registry, companyValue, name }, or null. Never closes a day. */
+export function issuerFacts(corpId) {
+  const accountId = accountOfCorp(corpId);
+  const corp = accountId ? accountsStore.accounts[accountId].state.corp : null;
+  if (!corp?.shareRegistry) return null;
+  return { accountId, registry: corp.shareRegistry, companyValue: latestClosedNetWorth(accountId), name: corp.corporationName || "" };
+}
+setHoldingsValuer((corp) => holdingsValue(corp, issuerFacts)); // the balance sheet's holdings line (finances.js)
+
+/** The caller's holdings, each with its value, cost and exit price: what the investor's view shows. */
+export const holdingsOfAccount = (accountId) => holdingsOf(corpOf(accountId), issuerFacts);
+
+const dayOf = (now) => Math.floor(now / DAY) * DAY;
+
+/**
+ * Sell `quantity` of the caller's shares in `issuerCorpId` to the market maker, at `now`. The price is the server's:
+ * nothing in the request is read but the issuer and the quantity. { ok, shares, valuePerShare, pricePerShare, paid } or
+ * { ok: false, status, error }, with nothing moved. `recovery: true` (default recovery) waives the market maker's
+ * daily and 20% limits; `key` names the transfer then.
+ */
+export function exitShares(accountId, { issuerCorpId, quantity } = {}, now = Date.now(), { recovery = false, key } = {}) {
+  const investor = corpOf(accountId);
+  if (!investor?.publicId) return { ok: false, status: 404, error: "No such corporation." };
+  const facts = typeof issuerCorpId === "string" ? issuerFacts(issuerCorpId) : null;
+  if (!facts) return { ok: false, status: 404, error: "No such listed corporation." };
+  if (facts.accountId === accountId) return { ok: false, status: 409, error: "A corporation holds none of its own shares." };
+  const r = facts.registry;
+  const row = r.holders.find((h) => h.holder?.kind === "corp" && h.holder.corpId === investor.publicId);
+  const held = row?.shares || 0;
+  if (!Number.isInteger(quantity) || quantity < 1) return { ok: false, status: 400, error: "Sell a whole number of shares, at least 1." };
+  if (quantity > held) return { ok: false, status: 409, error: `You hold ${held.toLocaleString("en-US")} shares of ${facts.name}.` };
+  const outstanding = outstandingOf(r);
+  const perShare = valuePerShare(facts.companyValue, outstanding);
+  const price = exitPrice(perShare);
+  if (price < 1) return { ok: false, status: 409, error: `${facts.name} is worth nothing on its last statement: the market maker pays nothing for its shares now.` };
+  const today = dayOf(now);
+  const soldToday = r.marketMakerExits?.day === today ? r.marketMakerExits.shares : 0;
+  if (!recovery) {
+    const mmHeld = heldBy(r, (h) => h.holder?.kind === "npc" && h.holder.id === MM.id);
+    const room = Math.min(
+      Math.floor((outstanding * MM.exitDailyPctOfOutstanding) / 100) - soldToday, // 1% of outstanding a day, every seller
+      Math.floor((outstanding * O.holderCapPct) / 100) - mmHeld // and never past its own 20%
+    );
+    if (quantity > room) {
+      return { ok: false, status: 409, error: room > 0 ? `The market maker can take at most ${room.toLocaleString("en-US")} more shares of ${facts.name} today.` : `The market maker takes no more shares of ${facts.name} today. Try again tomorrow, or hold.` };
+    }
+  }
+  const paid = quantity * price;
+  const exitNo = (r.exits || 0) + 1;
+  // The shares move first, in the issuer's registry; then the market maker pays. The payment is from a tap, so only a
+  // malformed request fails it, and then the move is put back.
+  let removedCost = 0;
+  const move = (dir) => mutateAccountState(facts.accountId, (state) => {
+    const reg = state.corp.shareRegistry;
+    const mine = (h) => h.holder?.kind === "corp" && h.holder.corpId === investor.publicId;
+    const mm = (h) => h.holder?.kind === "npc" && h.holder.id === MM.id;
+    if (dir > 0) {
+      const from = reg.holders.find(mine);
+      removedCost = Math.round((from.costBasis || 0) * (quantity / from.shares));
+      from.shares -= quantity;
+      from.costBasis = (from.costBasis || 0) - removedCost;
+      if (from.shares === 0) reg.holders = reg.holders.filter((h) => h !== from);
+      let to = reg.holders.find(mm);
+      if (!to) { to = { holder: { kind: "npc", id: MM.id }, shares: 0, costBasis: 0, dividendsReceived: 0, acquiredAt: now }; reg.holders.push(to); }
+      to.shares += quantity;
+      to.costBasis += paid;
+      reg.exits = exitNo;
+      if (!recovery) reg.marketMakerExits = { day: today, shares: soldToday + quantity };
+    } else {
+      const to = reg.holders.find(mm);
+      to.shares -= quantity;
+      to.costBasis -= paid;
+      if (to.shares === 0) reg.holders = reg.holders.filter((h) => h !== to);
+      let from = reg.holders.find(mine);
+      if (!from) { from = { holder: { kind: "corp", corpId: investor.publicId }, shares: 0, costBasis: 0, dividendsReceived: 0, acquiredAt: now }; reg.holders.push(from); }
+      from.shares += quantity;
+      from.costBasis += removedCost;
+      reg.exits = exitNo - 1;
+      if (!recovery) reg.marketMakerExits = { day: today, shares: soldToday };
+    }
+    const problems = registryProblems(reg);
+    if (problems.length) throw new Error(`the registry would break its invariant: ${problems.join("; ")}`);
+  }, { sanitize: false, settleMining: false });
+  move(+1);
+  const leftAfter = held - quantity;
+  const moved = settleTransfer({
+    fromAccountId: MM.account, toAccountId: accountId, credits: paid, reason: "share-purchase",
+    idempotencyKey: key || `shares:exit:${issuerCorpId}:${exitNo}`,
+    withPayee: (state) => { if (leftAfter === 0) state.corp.holdingIndex = (state.corp.holdingIndex || []).filter((id) => id !== issuerCorpId); }
+  }, now);
+  if (!moved.ok) { move(-1); return { ok: false, status: 409, error: moved.error }; }
+  saveAccountsNow();
+  return { ok: true, shares: quantity, valuePerShare: perShare, pricePerShare: price, paid, issuerName: facts.name };
+}
+
+/**
+ * Default recovery's share stage (section 8, Board AB#702): sell the debtor's shares to the market maker at the exit
+ * price, limits waived, highest price first, only as many as it takes to raise `needed`. Returns the credits raised.
+ */
+export function sellSharesForRecovery(accountId, needed, now, tag, sold = []) {
+  let raised = 0;
+  const holdings = holdingsOfAccount(accountId).filter((h) => h.exitPrice > 0).sort((a, b) => b.exitPrice - a.exitPrice);
+  for (const h of holdings) {
+    if (raised >= needed) break;
+    const units = Math.min(h.shares, Math.ceil((needed - raised) / h.exitPrice));
+    const r = exitShares(accountId, { issuerCorpId: h.issuerCorpId, quantity: units }, now, { recovery: true, key: `${tag}:shares:${h.issuerCorpId}` });
+    if (!r.ok) continue;
+    raised += r.paid;
+    sold.push({ kind: "shares", name: `${units} share${units === 1 ? "" : "s"} of ${h.issuerName || "a corporation"}`, credits: r.paid });
+  }
+  return raised;
 }

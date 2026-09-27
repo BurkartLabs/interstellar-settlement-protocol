@@ -32,6 +32,7 @@ import { accountIdOfCorp } from "./playerLoans.js";
 import { removeBuilding, buildingCostBasis, NEVER_REMOVED } from "./buildingRemoval.js";
 import { bondSeriesList } from "./bonds.js";
 import { accelerateSeries, bondOwedOnDefault, collectBondOwed, holdersOf, sellHoldingsToUnderwriter } from "./bondServicing.js";
+import { sellSharesForRecovery } from "./shareOfferings.js"; // ISP-160 (AB#854): share holdings are liquid too
 
 const HOUR = 3_600_000;
 export const GRACE_HOURS = 24;
@@ -214,6 +215,9 @@ function runRecovery(debtorAccountId, debt, now, options = {}) {
   }
   if (owed() > 0) { // 3. bond holdings, to the NPC underwriter at 90% of face (Bug #2574)
     if (sellHoldingsToUnderwriter(debtorAccountId, owed(), now, `${tag}:${step}`, sold) > 0) applied.fromHoldings += collect();
+  }
+  if (owed() > 0) { // 3b. share holdings, to the IGSX market maker at the exit price, its limits waived (AB#854, equity section 8)
+    if (sellSharesForRecovery(debtorAccountId, owed(), now, `${tag}:${step}`, sold) > 0) applied.fromHoldings += collect();
   }
   // 4. buildings, then empty leases, one at a time
   for (let guard = 0; owed() > 0 && guard < 100; guard++) {
