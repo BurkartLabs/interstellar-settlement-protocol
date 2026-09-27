@@ -31,6 +31,7 @@ import { renderDevelopmentBank } from "./developmentBank.js"; // ISP-151 (AB#845
 import { renderStockExchange } from "./stockExchange.js"; // ISP-161 (AB#855)
 import { openConglomerateStation, renderConglomerateBureau } from "./conglomerateBureau.js"; // ISP-200 (AB#894); ISP-213 (AB#908)
 import { dockedAtOwnStationHtml } from "../conglomerateStation.js"; // ISP-213 (AB#908)
+import { renderPatentOffice } from "./patentOffice.js"; // ISP-237 (AB#932)
 const firstPresent = (...selectors) => () => selectors.map((sel) => document.querySelector(sel)).find(Boolean) || null;
 
 // ISP-78 (AB#767): where the corporation is docked, as a line under a building's name.
@@ -174,6 +175,16 @@ export function renderBuildingDetail(building, data) {
       </div>
       ${dockedHtml(station)}
       <p class="ui-screen__lede">${escapeHtml(building.description)}</p>`);
+  } else if (building.id === "corporate-registry-charters") {
+    // ISP-237 (AB#932): the Registry's patent office
+    const station = getCurrentStationInfo(data);
+    renderPatentOffice(contentEl, `
+      <div class="station__building-header">
+        <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      </div>
+      ${dockedHtml(station)}
+      <p class="ui-screen__lede">Patents are filed here: the first corporation to complete a research node or refinery chain may patent it, and every other corporation that uses it pays a royalty while the patent runs.</p>`);
   } else if (building.id === "conglomerate-affairs-bureau") {
     const station = getCurrentStationInfo(data);
     renderConglomerateBureau(contentEl, data, `

@@ -109,8 +109,8 @@
       "description": "The official body where new corporations are formally registered under ISP law and granted their operating charter. Certain corporation-level settings — name, registered CEO, and jurisdictional defaults — can only be amended here.",
       "flavor": "Your charter is the legal foundation of your corporation. Amendments require filing fees, a waiting period, and in some cases a compliance review. Make sure your initial details are correct.",
       "imageFile": "buildings/corporate-registry.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:corporate-registry-charters",
+      "available": true
     },
     {
       "id": "interplanetary-trade-commission",

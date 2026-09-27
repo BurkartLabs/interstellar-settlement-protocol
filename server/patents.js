@@ -19,6 +19,7 @@ import { dataDir, safeWriteFile, createId, REFINERY_CHAINS, RESEARCH_LIBRARY } f
 import { accountsStore } from "./game/store.js";
 import { settleTransfer } from "./settlement.js";
 import { WARFARE_CATALOG } from "./warfare.js";
+import { ROYALTY_CATEGORY } from "../public/scripts/patentRoyalty.js"; // ISP-237 (AB#932): one name for both statements
 
 const FILE = path.join(dataDir, "patents.json");
 const HOUR = 3_600_000;
@@ -127,6 +128,46 @@ function publicView(p, now) {
 /** The Registry's public list: every patent filed, newest first; holder by name only. */
 export function publicPatents(now = Date.now()) {
   return { patents: [...store.patents].sort((a, b) => b.filedAt - a.filedAt).map((p) => publicView(p, now)) };
+}
+
+/**
+ * ISP-237 (AB#932): the Registry's patent office for one corporation. `filable`: what it may file now (patentable, not
+ * patented, completed first by it on a server record, inside the window), with the window's end; `mine`: its patents;
+ * `paying`: others' patents in force on chains it has run or research it completed after the filing; `royalties`: what
+ * its statements carry under ROYALTY_CATEGORY both ways (ISP-236 books them). Null for an unknown account.
+ */
+export function patentOffice(accountId, now = Date.now()) {
+  const corp = accountsStore.accounts?.[accountId]?.state?.corp;
+  if (!corp?.publicId) return null;
+  const t = terms();
+  const filable = [];
+  const consider = (kind, ids) => {
+    for (const subjectId of ids) {
+      const subject = patentable(kind, subjectId);
+      if (!subject || store.patents.some((p) => p.kind === kind && p.subjectId === subjectId)) continue;
+      const at = completedAt(corp, kind, subjectId);
+      if (!(at > 0) || now > at + t.filingWindowHours * HOUR) continue;
+      const first = firstCompleter(kind, subjectId);
+      if (!first || first.unknown || first.publicId !== corp.publicId) continue;
+      filable.push({ kind, subjectId, subjectName: subject.name, maxPct: subject.maxPct, completedAt: at, windowEndsAt: at + t.filingWindowHours * HOUR });
+    }
+  };
+  consider("research", Object.keys(corp.researchCompletedAt || {}));
+  consider("chain", Object.keys(corp.chainFirstRunAt || {}));
+  filable.sort((a, b) => a.windowEndsAt - b.windowEndsAt);
+  const views = (list) => [...list].sort((a, b) => b.filedAt - a.filedAt).map((p) => publicView(p, now));
+  const uses = (p) => {
+    const at = completedAt(corp, p.kind, p.subjectId);
+    return p.kind === "chain" ? at !== null : at !== null && at >= p.filedAt;
+  };
+  const finances = corp.finances || {};
+  return {
+    terms: { filingFee: t.filingFee, filingWindowHours: t.filingWindowHours, termDays: t.termDays, royaltyMaxPct: t.royaltyMaxPct, chainRoyaltyMaxPct: t.chainRoyaltyMaxPct },
+    filable,
+    mine: views(store.patents.filter((p) => p.holder.publicId === corp.publicId)),
+    paying: views(store.patents.filter((p) => p.holder.publicId !== corp.publicId && p.filedAt <= now && now < p.endsAt && uses(p))),
+    royalties: { received: Math.round(Number(finances.incomeBySource?.[ROYALTY_CATEGORY]) || 0), paid: Math.round(Number(finances.expensesByCategory?.[ROYALTY_CATEGORY]) || 0) }
+  };
 }
 
 /** The patent in force on a subject at `now`, or null (ISP-236 charges its royalty). */
