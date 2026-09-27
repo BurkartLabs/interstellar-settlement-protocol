@@ -12,6 +12,7 @@
   "colours": 10,
   "inviteExpiryDays": 7,
   "applicationExpiryDays": 7,
+  "invitesPerDay": 20,
   "joinCooldownHours": 24,
   "nameReleaseDays": 30,
   "maxDirectors": 5,

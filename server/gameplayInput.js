@@ -133,6 +133,18 @@ export const ACCOUNT_INPUT = {
       colour: choice(Array.from({ length: CONGLOMERATE_CATALOG.colours }, (_, i) => i + 1), "a colour from the Bureau's list")
     }
   },
+  // ISP-198 (AB#892): membership. Every id is looked up by the route, which answers 404 for one the caller cannot see; the
+  // answer is one of three words, and which side may give which is the rules' check.
+  "GET /conglomerate": NOTHING,
+  "POST /conglomerates/:conglomerateId/invitations": { params: { conglomerateId: ref("a conglomerate") }, body: { corpId: ref("a corporation to invite") } },
+  "POST /conglomerates/:conglomerateId/invitations/:invitationId/:answer": {
+    params: { conglomerateId: ref("a conglomerate"), invitationId: ref("an invitation"), answer: word(["accept", "decline", "withdraw"], "accept, decline or withdraw") }
+  },
+  "POST /conglomerates/:conglomerateId/applications": { params: { conglomerateId: ref("a conglomerate") } },
+  "POST /conglomerates/:conglomerateId/applications/:applicationId/:answer": {
+    params: { conglomerateId: ref("a conglomerate"), applicationId: ref("an application"), answer: word(["accept", "decline", "withdraw"], "accept, decline or withdraw") }
+  },
+  "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: ref("a conglomerate") } },
   "POST /messages/send": {
     body: {
       draftId: ref("a draft", { optional: true }),

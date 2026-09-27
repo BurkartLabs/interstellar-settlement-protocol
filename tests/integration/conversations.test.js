@@ -140,6 +140,7 @@ describe("cursor pages", () => {
     const { conversationId } = (await send(a, b, "one")).body;
     await send(a, b, "two");
     expect((await b.api.get(`${b.base}/conversations`)).body.conversations[0].unread).toBe(2);
+    expect((await b.api.get(`${b.base}/conversations`)).body.unreadTotal).toBe(2); // AB#911: the Inbox tab's count
     expect((await b.api.post(`${b.base}/conversations/${conversationId}/read`)).body.conversation.unread).toBe(0);
     resetConversationCache(); // from the files, not memory
     expect((await b.api.get(`${b.base}/conversations`)).body.conversations[0].unread).toBe(0);

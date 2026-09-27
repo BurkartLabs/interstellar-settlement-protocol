@@ -8,6 +8,7 @@ import { appendChatMessage, getAccountById, getState } from "./gameState.js";
 import { onAccountNotification } from "./gameState.js";
 import { io } from "./app.js";
 import { verifyAccessToken } from "./auth.js";
+import { conglomerateRoomsFor, isMemberAccount, onConglomerateEvent } from "./game/membership.js"; // ISP-198 (AB#892)
 
 /** Characters in one chat line: the chat input's maxlength (Bug #1127). */
 const CHAT_MAX_LENGTH = 300;
@@ -112,7 +113,41 @@ function resolveChatChannel(requested, corp) {
   return null;
 }
 
+/** The socket.io room for one conglomerate's members (ISP-198, AB#892). */
+function conglomerateRoom(conglomerateId) {
+  return `cong:${conglomerateId}`;
+}
+
+/**
+ * A membership event (server/game/membership.js): the joining account's sockets enter the conglomerate's room and the
+ * leaving account's leave it, then the event goes to every socket in the room whose account is still a member (checked
+ * now, not when it joined) and to the affected accounts' own sockets, once each. A socket of any other account hears
+ * nothing.
+ */
+function deliverConglomerateEvent({ conglomerateId, event, payload, accounts = [], join = [], leave = [] }) {
+  const room = conglomerateRoom(conglomerateId);
+  const socketsOf = (accountId) => [...(io.sockets.adapter.rooms.get(accountRoom(accountId)) || [])].map((id) => io.sockets.sockets.get(id)).filter(Boolean);
+  for (const accountId of join) for (const socket of socketsOf(accountId)) socket.join(room);
+  for (const accountId of leave) for (const socket of socketsOf(accountId)) socket.leave(room);
+  const sent = new Set();
+  for (const socketId of [...(io.sockets.adapter.rooms.get(room) || [])]) {
+    const socket = io.sockets.sockets.get(socketId);
+    const accountId = socket && checkSocketAuth(socket);
+    if (!accountId || !isMemberAccount(accountId, conglomerateId)) { socket?.leave(room); continue; }
+    socket.emit(event, payload);
+    sent.add(socketId);
+  }
+  for (const accountId of accounts) {
+    for (const socket of socketsOf(accountId)) {
+      if (sent.has(socket.id) || checkSocketAuth(socket) !== accountId) continue;
+      socket.emit(event, payload);
+      sent.add(socket.id);
+    }
+  }
+}
+
 export function registerRealtime() {
+  onConglomerateEvent(deliverConglomerateEvent);
   onAccountNotification((accountId, notification) => emitToAccount(accountId, "notifications:new", { accountId, notification }));
 
   io.use((socket, next) => {
@@ -127,6 +162,8 @@ export function registerRealtime() {
   io.on("connection", (socket) => {
     // Bug #1021: an authenticated socket joins its account's room, so per-account events reach only its owner.
     if (socket.data.accountId) socket.join(accountRoom(socket.data.accountId));
+    // ISP-198 (AB#892): and its conglomerate's room, if its corporation is a member of one.
+    if (socket.data.accountId) for (const id of conglomerateRoomsFor(socket.data.accountId)) socket.join(conglomerateRoom(id));
     socket.emit("state:init", sharedStateView(socket.data.accountId || null));
 
     socket.on("chat:send", (payload) => {

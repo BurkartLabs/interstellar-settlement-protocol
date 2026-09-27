@@ -36,6 +36,7 @@ import { registerMissionRoutes } from "./routes/missions.js";
 import { registerResearchRoutes } from "./routes/research.js";
 import { registerMessagingRoutes } from "./routes/messaging.js";
 import { registerConversationRoutes } from "./routes/conversations.js"; // AB#910
+import { migrateLegacyMailOnce } from "./game/conversations.js"; // AB#911
 import { registerForumRoutes } from "./routes/forums.js";
 import { registerMarketRoutes } from "./routes/market.js";
 
@@ -163,6 +164,13 @@ registerResearchRoutes(app);
 
 registerMessagingRoutes(app);
 registerConversationRoutes(app);
+// AB#911: the Inbox's Players tab reads conversations, so older player mail is copied into them once, at startup.
+try {
+  const migrated = migrateLegacyMailOnce();
+  if (migrated) console.log(`[conversations] old player mail copied: ${migrated.written} written, ${migrated.alreadyPresent} already there, ${migrated.skippedMissingAccount} skipped`);
+} catch (error) {
+  console.error("[conversations] the old player mail was not copied; run scripts/migrate-mail.mjs:", error?.message || error);
+}
 
 registerForumRoutes(app);
 
