@@ -252,4 +252,185 @@ prices them against the probe (ISP-234), and each one is a Board or Director vet
 | `dumping.minValue` | 25000 | A finding needs dumped units worth at least this at normal value (credits). |
 | `dumping.dutyMarginPct` | 100 | The duty as a share (%) of the dumping margin. The WTO's ceiling is 100. |
 | `dumping.levyAfterHours` | 24 | Hours between the finding's notice and the duty's levy. |
-| `dumping.withholdPct` | 50 | Share (%) of each later sale's net proceeds withheld toward duty owed. |
+| `dumping.withholdPct` | 50 | Share (%) of each later sale's net proceeds withheld toward duty owed, and toward Arbitration Council debts (below): one withholding for both. |
+
+## The Galactic Arbitration Council: structured claims decided by rules on server evidence (ISP-224, AB#919)
+
+Plan line "Galactic Arbitration Council system". The build stories are ISP-241 to ISP-243 (AB#937 to AB#939). The
+Council is an existing NPC building, `galactic-arbitration-council` ("coming soon" today), at Earth Station Prime and
+at Wolf 359's anchorage.
+
+A case at the Council is a form with no words in it. The claimant picks a **record** (a contract, a sale, a transfer,
+a petition) and a claim type. The server attaches the evidence that claim type's query returns. After a response
+window, the claim type's rule decides the case, and the ruling is enforced through money the ISA already holds.
+Nothing in a case is written by a player, so nothing needs a moderator. No ruling needs a judge, and nobody can argue
+with one.
+
+### What the Council hears, and what it does not
+
+**The Council hears what the server can observe but does not stop at the moment it happens.** A rule the server
+enforces when the act is attempted needs no court: the act simply fails. Checked against every system the item names:
+
+| System | Enforced at the act? | So |
+| --- | --- | --- |
+| Tariff bounds and notice (WARFARE.md, ISP-230) | Yes: one settlement function charges the lawful rate. | A claim type that *audits* it (`tariff-overcharge`). It should always be dismissed, and an upheld case is a bug report as well as a refund. |
+| Mercenary contracts (v0.10, server/mercenaries.js) | Mostly: the owner cannot order a hired fleet, and a use outside `allowedUse` is refused. **Readiness is not**: it falls 10 points a day while the owner leaves upkeep unpaid (v0.10-combat.md section 7), so a hired fleet can fight weaker than the readiness the renter was shown. | A claim type (`mercenary-readiness`). |
+| Concession petitions and challenges (TERRITORY.md) | Yes, by the state list, except where the rule table says a system is **arbitrated** (Wolf 359, Epsilon Indi), whose ties "the Galactic Arbitration Council decides". | A claim type (`concession-arbitrated`) that runs TERRITORY's rules with a published tie-break. |
+| Patents (v0.13-03, ISP-223, AB#918: in design) | Not known yet. | A claim type (`patent-royalty`), **reserved**. It opens when AB#918's royalty records exist. Until then a filing is refused with that reason (ISP-241). |
+| Loan and bond default (v0.9, server/defaultRecovery.js) | Yes: arrears for 7 days, 24 h of grace, then recovery in stages; the shortfall stays owed. | No player files it. The ISA dockets every recovery as a case (`credit-default`), so that, as the Bank's own text says, "a corporation that falls behind answers to the Arbitration Council". |
+| Dumping (WARFARE.md) | The Trade Commission's watch levies the duty itself. | No claim. A claim would charge the same sales twice. |
+| Raids, conglomerate treasury and hangar caps | Yes: who may raid whom is checked at declaration, and a withdrawal over its cap is refused. | No claim. |
+
+### Why a court that reads records, and why it fits the Treaty
+
+EVE Online, and most MMOs with player contracts, leave disputes to the players. CCP's standing rule is that in-game
+scams are legal, and nothing in the game adjudicates a broken promise; players police each other by reputation.
+ISP does the opposite, deliberately. The ISP Treaty is a legal framework, not a government (LORE.md). The ISA
+"arbitrates resource disputes", every interaction with it "has a reference number", and the Council's rulings "carry
+binding authority across all ISA-registered jurisdictions" (data/buildings.json). A world whose whole premise is
+that space is run by leases, licences and registries should have disputes settled by registry. It also suits ISP's
+players: a corporation that is away for a week should find its contracts honoured by rule, not lose them to whoever
+was online to argue.
+
+The Council's building text also says it "has no enforcement arm of its own — it relies on the ISA and SolSec to
+execute its rulings, which means judgements can be delayed, challenged, or occasionally ignored by the powerful." This
+design keeps that honestly. A ruling is enforced through money the ISA holds, and a ruling against a corporation that
+routes no money through the ISA is recorded and waits (Enforcement, below).
+
+### Prior art
+
+| Source | What it does | ISP |
+| --- | --- | --- |
+| **EVE Online, courier contracts** | The courier posts collateral when accepting the contract. If the goods are not delivered by the deadline, the collateral goes to the issuer automatically. The contract enforces itself, because the money was posted up front, not collected after a judgment. | **Adopted**: a ruling is paid first from the underlying contract's escrow, and a case filed while that escrow is still held freezes its release until the ruling. ISP's mercenary contracts already escrow price and collateral this way. |
+| **EVE Online, "scams are legal"** | No in-game adjudication of player promises. | **Rejected**, for the Treaty reason above. |
+| **eBay Money Back Guarantee** | An "item not received" case is decided on tracking evidence, not on either party's story. If the buyer is refunded, eBay recovers the money from the seller's later payouts. | **Adopted**: rulings on records only, and a debt collected from the respondent's later proceeds through the platform's own settlement. |
+| **Judgment-proof defendants (common law)** | A judgment against a party with no reachable assets collects nothing. That is why commercial contracts demand security up front. | The reason escrow comes first, and why a debt ruling is a second best (Enforcement). |
+
+### A case, as a state list
+
+Everything is driven by stored times and the daily tick, so it survives a restart and needs nobody online.
+
+| State | Meaning | Leaves by |
+| --- | --- | --- |
+| `filed` | The claimant chose a record it is a party to, and a claim type that applies to that record, and paid the filing fee. The respondent is **the other party to the record**, derived, never typed. The evidence query ran and its result is attached, and the case has a reference number (`GAC-2026-000123`). Any escrow the record still holds is frozen. The respondent is notified in the ISA's voice. | At once to `answering`. If the evidence query fails, the case is not filed and the fee is not taken (fails closed, ISP-241). |
+| `answering` | The response window, `arbitration.responseHours` (72). The respondent may **cure**: pay the claimed amount plus the claimant's filing fee, in one action. There is nothing else to answer, because the evidence is the server's. | Cured -> `closed` (cured). Window ends -> `ruled`. |
+| `ruled` | At the first daily tick after the window, the claim type's rule is applied to the evidence, re-read at that moment. The ruling is `dismissed` or `upheld`, with an amount or an order. | Dismissed -> `closed`, fee forfeited to the fee sink, and any escrow freeze lifted. Upheld -> `enforcing`. |
+| `enforcing` | The remedy is applied: from escrow first, then from ISA-held income, then as a recorded debt (Enforcement). | Paid in full -> `closed`. |
+| `closed` | Final. Rulings are not appealed: the rule is public and the evidence is the server's, so a wrong ruling is a bug to fix, not a case to reargue. | — |
+
+**Limits on filing.** One case per record and claim type: filing on the same evidence twice is refused. At most
+`arbitration.maxOpenCasesPerPair` (3) open cases from one claimant against one respondent. A corporation cannot file
+against itself or inside its own conglomerate, because the record has no other party.
+
+**Public and private.** The docket is public: reference number, claim type, the two parties' names, state, the ruling,
+and the amount. The evidence is shown only to the two parties. Battle reports stay private to the two sides (v0.10
+section 5), and trade records are never public (the dominance metric's rule).
+
+### The claim types
+
+No field in any case is free text. "Who may file" is always a party to the record.
+
+| id | record it is filed on | who may file | evidence the server attaches | ruling rule | remedy | fee |
+| --- | --- | --- | --- | --- | --- | --- |
+| `mercenary-readiness` | a mercenary contract, `hired` or ended in the last 7 days | the renter | the contract's terms, the readiness shown at hire (stored on the contract), and the owner's readiness for each hour of the term | Upheld if the owner's readiness was below the hire readiness in any hour of the term. Refund = price × Σ over the term's hours of (hire readiness − that hour's readiness) ÷ hire readiness, ÷ the term's hours. | The refund. If the case is filed before the term ends, it comes from the contract's escrow, which the filing holds past the end. Filed after the end, it comes from the owner's ISA-held income, then as a debt. | Council fee |
+| `tariff-overcharge` | one of the claimant's sales or transfers that paid a tariff, in the last 30 days | the seller or shipper | the settlement record (rate charged, base, amount), the concession's state and tariff history at that moment, and the listing's posting rate | The lawful rate is 0 if the concession was not `granted`; otherwise the lower of the rate at posting and at fill (dispatch, for a transfer), capped at the system's `tariffCapPct`, with any increase counted only after its notice ended. Upheld if the rate charged was higher. Excess = (charged − lawful) × base. | The excess, repaid by those who received it, in the shares they received it: the holder (from its next tariff revenue, then as a debt) and the ISA's levy (from the fee sink, at once). **An upheld case is also filed as a Bug by the server**, because the settlement function should have prevented it. | Council fee |
+| `concession-arbitrated` | a petition, counter-petition or challenge in an arbitrated system (Wolf 359, Epsilon Indi) | the petitioner or challenger, filed at the Council instead of ISA Claims & Leases | the control scores and eligibility streaks TERRITORY.md's rules read, for both parties | TERRITORY.md's rules, with 7-day review. A **tie**, two scores within `arbitration.tieMarginPts` (1 point) at review end, goes to the higher extraction share over the eligible days, then to the earlier filing. | An order: the concession granted, kept or lapsed, as TERRITORY's state list says. | `concessionPetitionFee` (25,000), as everywhere else |
+| `patent-royalty` | **reserved** for a use of a patented node or chain (AB#918) | the patent holder | AB#918's use and royalty records | Royalty due = Σ uses × the patent's rate − royalty paid. Upheld if positive. | The shortfall, from ISA-held income, then as a debt. | Council fee |
+| `credit-default` | a v0.9 loan or bond series in default | nobody: the ISA files it when recovery starts (server/defaultRecovery.js) | the loan or series record and the recovery's result | Always upheld. The ruling is the recovery's result, stated. | None beyond v0.9's own recovery. The docket makes it public, and any shortfall is a Council debt from then on. | none |
+
+**The Council fee** is `max(arbitration.filingFeeMin, arbitration.filingFeePct × the amount claimed)`: 1,000, or 5%
+of the claim when that is more. The amount claimed is what the evidence shows at filing. On an upheld ruling or a
+cure, the respondent repays it to the claimant. On dismissal it is forfeited to the fee sink.
+
+### Enforcement
+
+A ruling is only as good as the money behind it. The Council has no enforcement arm, so this design never pretends it
+does. An upheld amount is paid from, in order:
+
+1. **The record's own escrow.** A mercenary contract's price and collateral sit in `escrow:merc-<id>` until the term
+   ends. A case filed before release freezes them, so the ruling is paid from money that already exists. This is
+   EVE's courier model, and it is certain.
+2. **Income the ISA pays the respondent.** Tariff revenue and concession fee shares (TERRITORY.md) pass through the
+   ISA's daily settlement. The Council takes what it is owed before paying them out.
+3. **A recorded debt**, for the rest. It is collected by the ITC's withholding (`dumping.withholdPct`, 50% of the net
+   proceeds of each later exchange sale; WARFARE.md above). Council debts and ITC duty owed share that one 50%, oldest
+   first, so a sale is never withheld more than half, and there is one withholding rate to tune, not two. The debt carries no interest, never takes goods, buildings,
+   leases or fleets, never pushes a balance below zero, and never blocks trading. It counts as debt in the v0.9 credit
+   rating's leverage and solvency inputs, so a corporation that ignores a ruling loses its credit standing, as the
+   Bank's own text says.
+
+Every payment goes through `settleTransfer` (reasons `arbitration-award`, `arbitration-fee`), so what the respondent
+loses equals what the claimant gains plus any fee sink (ISP-242's invariant).
+
+**Why a judgment without escrow would be unenforceable.** A ruling that only says "pay 20,000" reaches a respondent
+whose credits can be spent, contributed to a conglomerate treasury, or never earned again. A corporation that stops
+selling on the exchange and holds no concession routes nothing through the ISA, so a debt against it collects nothing,
+for as long as it chooses. That is the "occasionally ignored by the powerful" of the Council's lore, and the design
+leaves it visible rather than inventing a seizure: the docket shows the debt unpaid, and the credit rating falls.
+Where a claim can be backed by escrow, it is. That is why the one player-to-player contract with a real breach
+(mercenary readiness) has its remedy paid from escrow, and why any future contract type that wants the Council's
+protection should escrow at signing.
+
+### When filing is worth it
+
+The ruling is a published rule on evidence the claimant sees before paying: the wizard's evidence preview (ISP-243)
+shows exactly what will be attached, with the rule beside it. So the fee deters mistakes and harassment, and the real
+question is **collection**. A claimant who is upheld recovers D + F only as far as the respondent pays; dismissed, it
+loses F. With q the share it expects to collect, filing is worth it when q × (D + F) − F > 0, i.e. **q > F ÷ (D + F)**.
+
+*Placeholder example, from escrow.* A renter hires a fleet for 72 hours at 60,000, with 30,000 collateral, at readiness
+90. The owner misses two upkeep days: the fleet sits at 80 for 24 hours and at 70 for the last 24. Refund = 60,000 ×
+(24 × 10/90 + 24 × 20/90) ÷ 72 = **6,667**. The fee is max(1,000, 5% × 6,667) = 1,000. The price is in escrow, so
+q = 1. Filing is worth it: the renter gets 6,667 plus its 1,000 back, and the owner is paid 53,333.
+
+*Placeholder example, a debt.* A trader was charged 600 too much tariff by a holder whose concession has since
+lapsed, so there is no tariff revenue to take it from. D = 600, F = 1,000, and it is worth filing only if q > 1,000 ÷
+1,600 = 62.5%. The docket shows whether the former holder still sells on the exchange. If it does, the 50%
+withholding collects the 1,600 within its next few thousand credits of sales. If it has stopped, the trader should not
+file, and the server's own Bug filing for the overcharge still gets it fixed. The same 600 against a holder that still
+holds the concession is certain (q = 1), because the ISA pays that holder tariff revenue every day.
+
+*Frivolous.* A renter files `mercenary-readiness` on a contract where readiness never moved. The evidence preview shows
+a flat line, and the rule reads it at the end of the window. The ruling is dismissed, and the 1,000 is gone. The
+respondent was named on the public docket for three days, which is why the fee exists and why a claimant may hold
+only three open cases against any one respondent.
+
+### How it surfaces (ISP-243)
+
+The Council's chambers read like a court registry, in the ISA's voice, and every screen carries the reference number.
+
+- **File**: claim type, then the record (only records the viewer is a party to, and only those the type applies to),
+  then the evidence preview with the rule written beside it, then the fee to confirm.
+- **Docket**: every case, newest first, with its public fields. A viewer's own cases are pinned at the top.
+- **Case**: the evidence (parties only), the window's end in UTC, the cure action for the respondent, and the ruling,
+  written as the rule applied to the numbers: *"GAC-2026-000123. Readiness below hire readiness (90) for 48 of 72
+  contract hours. Refund 6,667 credits from contract escrow. Filing fee 1,000 credits returned to the claimant."*
+
+### What the server stores (for the build stories)
+
+- `arbitration.json` in the data directory: per case, `{ ref, type, recordRef, claimant, respondent, filedAt,
+  windowEndsAt, evidence, state, ruling: { outcome, amount, order } | null, paid, feePaid }`. Parties are corporation
+  publicIds. No account id appears.
+- **Council debts** per corporation, beside ITC duty owed (WARFARE.md), with one withholding function for both.
+- **New records the evidence queries need**: the readiness shown at hire, stored on the mercenary contract; the owner's
+  readiness each hour of a hire (a readiness change log, since readiness moves only at the daily upkeep charge); the
+  tariff rate at posting on each listing (WARFARE.md already asks for it). Patent records come with AB#918.
+- **One adjudication tick**, after the daily concession tick: window ends, rulings, enforcement, each keyed so a
+  repeated tick moves nothing twice (ISP-242: final and idempotent).
+
+### Every number this section introduces
+
+The catalog's `arbitration` section (`data/warfare.json`). They are placeholders, and each one is a Board or Director
+veto point.
+
+| key | value | what it is |
+| --- | --- | --- |
+| `arbitration.responseHours` | 72 | The respondent's window to cure before the rule is applied. |
+| `arbitration.filingFeeMin` | 1000 | The smallest Council fee, in credits. |
+| `arbitration.filingFeePct` | 5 | The Council fee as a share (%) of the amount claimed, when that is more than the minimum. |
+| `arbitration.tieMarginPts` | 1 | Control scores within this many points at an arbitrated review's end are a tie. |
+| `arbitration.maxOpenCasesPerPair` | 3 | Open cases one claimant may hold against one respondent. |
+
+The claim type ids, in the order the table above lists them, are the catalog's `arbitration.claimTypes`, each with
+whether it is open: `mercenary-readiness`, `tariff-overcharge`, `concession-arbitrated` and `credit-default` are open;
+`patent-royalty` is reserved until AB#918's records exist.

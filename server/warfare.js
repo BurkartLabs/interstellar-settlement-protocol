@@ -10,6 +10,7 @@
 // v0.13-02 to 04 (tariffs and dumping, patents and lobbying, arbitration claims: AB#917 to AB#919) add their sections
 // with their designs; the bounds their stories need are already here, and apply once a section exists. Tariffs and
 // dumping (docs/design/WARFARE.md, ISP-222, AB#917) are here: every key of each, and how they bound the rule table.
+// So is the Arbitration Council (the same file, ISP-224, AB#919): its numbers, and its claim types.
 //
 // ISP_WARFARE_CATALOG points at another file, for the test that proves the server refuses it.
 
@@ -53,6 +54,11 @@ const DUMPING = {
   priceThresholdPct: (v) => PCT(v) && v > 0 && v < 100, volumeThresholdPct: PCT, windowDays: POSITIVE, normalValueDays: POSITIVE,
   minTradedDays: POSITIVE, minValue: COUNT, dutyMarginPct: PCT, levyAfterHours: COUNT, withholdPct: PCT
 };
+
+/** The Arbitration Council's numbers (WARFARE.md, AB#919), and what each must be; claimTypes is checked on its own. */
+const ARBITRATION = { responseHours: COUNT, filingFeeMin: COUNT, filingFeePct: PCT, tieMarginPts: (v) => typeof v === "number" && v >= 0 && v <= 100, maxOpenCasesPerPair: POSITIVE };
+/** The claim types the design defines; a catalog may mark one closed, never add one the design lacks. */
+export const CLAIM_TYPES = Object.freeze(["mercenary-readiness", "tariff-overcharge", "concession-arbitrated", "patent-royalty", "credit-default"]);
 
 /** A section's missing and invalid keys, as sentences. */
 function sectionProblems(name, section, spec) {
@@ -121,6 +127,21 @@ export function warfareSchemaProblems(c) {
     out.push(...sectionProblems("dumping", c.dumping, DUMPING));
     const { minTradedDays, normalValueDays } = c.dumping;
     if (POSITIVE(minTradedDays) && POSITIVE(normalValueDays) && minTradedDays > normalValueDays) out.push(`dumping.minTradedDays (${minTradedDays}) is more than dumping.normalValueDays (${normalValueDays}), so there would never be a normal value`);
+  }
+  // ISP-224 (AB#919): the Council's numbers, and each claim type once, known, and marked open or not
+  if (c.arbitration) {
+    out.push(...sectionProblems("arbitration", c.arbitration, ARBITRATION));
+    const types = c.arbitration.claimTypes;
+    if (!Array.isArray(types) || !types.length) out.push("arbitration.claimTypes is missing");
+    else {
+      const ids = types.map((t) => t?.id);
+      for (const t of types) {
+        if (!CLAIM_TYPES.includes(t?.id)) out.push(`arbitration.claimTypes names ${JSON.stringify(t?.id)}, which the design does not define`);
+        if (typeof t?.open !== "boolean") out.push(`arbitration claim type ${JSON.stringify(t?.id)} has no open flag`);
+      }
+      for (const id of new Set(ids)) if (ids.filter((x) => x === id).length > 1) out.push(`arbitration.claimTypes lists ${id} twice`);
+    }
+    if (c.dumping && !c.dumping.withholdPct) out.push("arbitration debts are collected by dumping.withholdPct, which is 0 or missing");
   }
   return out;
 }
