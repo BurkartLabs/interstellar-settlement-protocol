@@ -41,6 +41,8 @@ export function playerBuildingProblems(catalogue, economy = ECONOMY) {
     if (b?.tiers !== "none" && !(typeof b?.tiers === "string" && Array.isArray(economy?.buildings?.[b.tiers]) && economy.buildings[b.tiers].length)) {
       problems.push(`${at}.tiers must be "none" or name a non-empty tier table in data/economy.json's buildings.`);
     }
+    // ISP-170 (AB#864): a building may need a corporation level, a whole number of at least 1.
+    if (b?.minLevel !== undefined && !(Number.isInteger(b.minLevel) && b.minLevel >= 1)) problems.push(`${at}.minLevel must be a whole number of at least 1.`);
     if (!b?.cap || typeof b.cap !== "object" || Array.isArray(b.cap) || Object.values(b.cap).some((n) => !Number.isInteger(n) || n < 1)) {
       problems.push(`${at}.cap must be an object of whole numbers of at least 1.`);
     }
@@ -92,11 +94,18 @@ export function countBuilt(building, corp) {
   return (corp?.buildings || []).filter((b) => b.name === building.name).length;
 }
 
+/** Whether a corporation has reached the level a building needs (ISP-170, AB#864); true when it names none. */
+export function hasLevelFor(building, corp) {
+  return !building.minLevel || (Number(corp?.level) || 0) >= building.minLevel;
+}
+
 /**
- * Why the catalogue says a corporation cannot build this yet, before slots and money: "missing-research", "at-cap",
- * or null. Every build route asks, so a research gate or cap added to the file is enforced without a code change.
+ * Why the catalogue says a corporation cannot build this yet, before slots and money: "level-too-low",
+ * "missing-research", "at-cap", or null. Every build route asks, so a gate or cap added to the file is enforced without
+ * a code change.
  */
 export function catalogueRefusal(building, corp) {
+  if (!hasLevelFor(building, corp)) return "level-too-low";
   if (!hasResearchFor(building, corp)) return "missing-research";
   const cap = building.cap.perCorporation;
   if (cap !== undefined && countBuilt(building, corp) >= cap) return "at-cap";

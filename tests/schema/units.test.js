@@ -102,7 +102,7 @@ describe("data/units.json (AB#861)", () => {
     }
     // when ISP-170 adds the Orbital Shipyard to data/player-buildings.json, this fails until it leaves the pending list
     for (const site of Object.keys(PENDING_BUILD_SITES)) expect(ids.has(site), `${site} is catalogued now: take it off PENDING_BUILD_SITES`).toBe(false);
-    expect(knownBuildSites().has("orbital-shipyard")).toBe(true);
+    expect(ids.has("orbital-shipyard")).toBe(true); // ISP-170 (AB#864): a player building now, not a pending site
   });
 
   it("keeps the new ship research planned, so nobody pays for an unlock no route honours yet", () => {

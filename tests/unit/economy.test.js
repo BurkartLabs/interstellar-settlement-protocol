@@ -41,7 +41,8 @@ const BEFORE_THE_MOVE = {
     refineryComplexCost: 100000, refineryComplexAssetValue: 70000,          // ISP-97 (AB#787): new, not moved
     refineryComplexOutputMultiplier: 1.5,
     cryoVaporExtractorArrayCost: 80000, cryoVaporExtractorArrayAssetValue: 58000, // ISP-98 (AB#788): new, not moved
-    cryoVaporExtractorArrayMiningMultiplier: 1.2
+    cryoVaporExtractorArrayMiningMultiplier: 1.2,
+    orbitalShipyardCost: 150000, orbitalShipyardAssetValue: 105000 // ISP-170 (AB#864): new, not moved
   },
   operations: { costPerThroughputUnit: 16, minCostPerHour: 600, startupShareOfHourlyCost: 0.35, minStartupCost: 500, throughputReferencePerHour: 420 },
   probes: { buildCost: 8000, assetValue: 5000 },                            // gameState.js PROBE_BUILD_COST, PROBE_ASSET_VALUE

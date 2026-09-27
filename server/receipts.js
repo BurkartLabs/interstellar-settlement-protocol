@@ -187,6 +187,21 @@ export function buildFerricMiningComplexReceipt({ cost, assetValue, slotsUsed, s
   });
 }
 
+// ISP-170 (AB#864): built through POST /gameplay/build only. It says plainly that it builds nothing yet.
+export function buildOrbitalShipyardReceipt({ cost, assetValue, slotsUsed, slotsTotal }) {
+  return receipt("build-orbital-shipyard", {
+    title: "Orbital Shipyard Commissioned",
+    summary: "An Orbital Shipyard is operational at your corporation.",
+    costCredits: cost,
+    grants: [
+      { label: "Added to assets", value: formatCredits(assetValue) },
+      { label: "Building slots used", value: `${slotsUsed} / ${slotsTotal}` },
+      { label: "Now possible", value: "Nothing yet: ship production opens later in v0.10" }
+    ],
+    next: "Light Fighters, Destroyers and Siege Engines will be built here when ship production opens."
+  });
+}
+
 // ISP-97 (AB#787): built through POST /gameplay/build only, so no route of its own names this builder.
 export function buildRefineryComplexReceipt({ cost, assetValue, refineryName, multiplier }) {
   return receipt("build-refinery-complex", {
