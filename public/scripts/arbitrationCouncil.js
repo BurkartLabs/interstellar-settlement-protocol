@@ -8,6 +8,7 @@
 // for a respondent, the ruling in the Council's words), and the public docket. Times are UTC in the ISA's year (the
 // real year + 121, BUREAUCRATIC_UI.md), each a <time> with the real instant, until ISP-249's one formatter replaces this.
 import { escapeHtml } from "./html.js";
+import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 const cr = (v) => `${n(v)} credits`;
@@ -174,7 +175,7 @@ function previewStep(state, ctx) {
 /** The filing wizard. */
 export function filingHtml(state, ctx = {}) {
   return `<section class="ui-panel station__panel gac-section" data-gac-filing aria-labelledby="gac-filing-title">
-    <h3 id="gac-filing-title">File a case</h3>
+    <h3 id="gac-filing-title">${codeSlotHtml("gac-filing")}File a case</h3>
     <p class="ui-panel__meta">A case has no words in it. You choose a claim type and a record you are party to; the Council attaches the ISA's own evidence and applies its published rule.</p>
     ${typeStep(state)}
     ${recordStep(state, ctx)}
@@ -220,7 +221,7 @@ export function caseHtml(c, ctx = {}) {
 /** The caller's own cases, pinned above the docket. */
 export function myCasesHtml(cases, ctx = {}) {
   return `<section class="ui-panel station__panel gac-section" data-gac-mine aria-labelledby="gac-mine-title">
-    <h3 id="gac-mine-title">Your cases</h3>
+    <h3 id="gac-mine-title">${codeSlotHtml("gac-mine")}Your cases</h3>
     ${cases.length ? `<ul class="gac-cases">${cases.map((c) => caseHtml(c, ctx)).join("")}</ul>` : `<p class="ui-panel__meta">Your corporation is party to no case.</p>`}
   </section>`;
 }
@@ -237,7 +238,7 @@ export function docketHtml(cases, ctx = {}) {
     </li>`;
   }).join("");
   return `<section class="ui-panel station__panel gac-section" data-gac-docket-list aria-labelledby="gac-docket-title">
-    <h3 id="gac-docket-title">The docket</h3>
+    <h3 id="gac-docket-title">${codeSlotHtml("gac-docket")}The docket</h3>
     <p class="ui-panel__meta">Every case before the Council, newest first: reference, claim type, the parties and the ruling. The evidence stays with the parties.</p>
     ${rows ? `<ul class="gac-docket">${rows}</ul>` : `<p class="ui-panel__meta">The docket is empty.</p>`}
   </section>`;

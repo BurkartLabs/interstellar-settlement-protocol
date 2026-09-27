@@ -102,7 +102,7 @@ export function registerCatalogRoutes(app) {
   // AB#1049: the research tree, the client's only copy (same pattern as /api/ceo-insight above).
   // ISP-248 (AB#944): the document codes (data/section-codes.json), public like every catalogue here
   app.get("/api/section-codes", (_req, res) => {
-    res.json({ screens: SECTION_CODES.screens.map(({ id, code }) => ({ id, code })), sections: SECTION_CODES.sections.map(({ id, code }) => ({ id, code })) });
+    res.json({ screens: SECTION_CODES.screens.map(({ id, code }) => ({ id, code })), sections: SECTION_CODES.sections.map(({ id, code }) => ({ id, code })), drawn: (SECTION_CODES.drawn || []).map(({ id, code }) => ({ id, code })) }); // drawn: ISP-250 (AB#946)
   });
   app.get("/api/research", (_req, res) => {
     res.json({ nodes: Object.values(RESEARCH_LIBRARY) });
