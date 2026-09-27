@@ -11,7 +11,8 @@ import { yardMaxTier, yardTierFor } from "./economy.js";
 import { MAX_RUN_HOURS } from "../public/scripts/refineryRun.js"; // AB#825
 import { FLEET_NAMES } from "./fleets.js"; // ISP-174 (AB#868)
 import { POSTURE_IDS } from "./garrison.js"; // ISP-180 (AB#874)
-import { CONGLOMERATE_CATALOG } from "./conglomerates.js"; // ISP-197 (AB#891)
+import { CONGLOMERATE_CATALOG } from "./conglomerates.js"; // ISP-197 (AB#891)
+import { WARFARE_CATALOG } from "./warfare.js"; // ISP-228 (AB#923): the lease discount's bound
 import { BOND_TERMS } from "./bondTerms.js"; // ISP-154 (AB#848)
 
 /** The highest cap any yard tier has (AB#793): what start-mining accepts before the route clamps to the yard's own. */
@@ -240,6 +241,7 @@ export const ACCOUNT_INPUT = {
   "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: ref("a conglomerate") } },
   "POST /concessions/:systemId/petition": { params: { systemId: ref("a system") } }, // ISP-227 (AB#922)
   "POST /concessions/:systemId/relinquish": { params: { systemId: ref("a system") } },
+  "POST /concessions/:systemId/lease-modifier": { params: { systemId: ref("a system") }, body: { discountPct: choice(Array.from({ length: WARFARE_CATALOG.concessionLeaseModifierMaxPct + 1 }, (_, i) => i), `a lease discount, in whole percent from 0 to ${WARFARE_CATALOG.concessionLeaseModifierMaxPct}`) } }, // ISP-228 (AB#923): 0 is a good discount, so a list (as the payout ratio, AB#853)
   // ISP-199 (AB#893): roles, removal, the founder's transfer, identity and dissolution. A member is named by its
   // corporation's public id; the route answers 404 for one that is not a member.
   "POST /conglomerates/:conglomerateId/members/:corpId/role": {

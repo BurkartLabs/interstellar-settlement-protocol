@@ -43,7 +43,7 @@ function stated(key, v) {
 
 describe("the warfare catalog holds the territory design's numbers (AB#920)", () => {
   it("has every key the design's number table lists, with the same value, and no scalar the table lacks", () => {
-    expect(Object.keys(TABLE).length).toBe(17); // AB#921 added concessionDataMaxAgeHours
+    expect(Object.keys(TABLE).length).toBe(19); // AB#921 added concessionDataMaxAgeHours; AB#923 the lease modifier's cap and notice
     for (const [key, value] of Object.entries(TABLE)) {
       expect(C, key).toHaveProperty(key);
       expect(C[key], key).toBe(num(value));

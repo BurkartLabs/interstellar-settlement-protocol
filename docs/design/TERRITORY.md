@@ -95,7 +95,7 @@ both paid knowingly and both stopping when the concession stops.
 | Benefit | What it is | Paid from |
 | --- | --- | --- |
 | **Fee share** | `concessionFeeSharePct` (20%) of every ISA lease fee paid in the system by others: new lease filings (a body's `leaseCost`), and the lease-royalty points of the sales tax on sales settled at the system's stations. Paid daily with the upkeep charge, as one ledger line each way. | The ISA's own take, so what goes to the holder no longer reaches the fee sink. The sink shrinks by that much, which ECONOMY.md must count. |
-| **Lease-fee modifier** | The holder (and, for a conglomerate, each member) files new leases in the system at `concessionOwnLeaseDiscountPct` (25%) off `leaseCost`. **Nobody else's price rises**: a concession never makes a system dearer for a newcomer. | The ISA takes less. |
+| **Lease-fee modifier** | The holder (and, for a conglomerate, each member) files new leases in the system at `concessionOwnLeaseDiscountPct` (25%) off `leaseCost`. The holder may also set a discount on **everyone's** new leases in the system, from 0 to `concessionLeaseModifierMaxPct` (25%), to draw activity (and fee share) to it. A change takes effect after `concessionLeaseModifierNoticeHours` (72), and another change is refused while one is waiting. It is a discount only: **nobody else's price rises**, so a concession never makes a system dearer for a newcomer. A holder's own lease takes the larger of the two discounts. (AB#923.) | The ISA takes less. |
 | **Tariff rights** | The right to set a tariff on sales settled at the system's stations, within the system's cap (the rule table below). Designed and built by v0.13-10 ("Economic warfare: tariffs"). This design fixes only which systems allow a tariff and how high. | v0.13-10. |
 | **The starmap and the register** | The system is drawn in the holder's colour, with its name in the panel (below). | Nothing. |
 
@@ -256,5 +256,7 @@ point.
 | `concessionAdmMaxPct` | 50 | A challenger must beat the holder's score x `concessionLeadRatio` x (1 + this/100 x the holder's extraction share) (Aegis ADM; Bug #4667). |
 | `concessionFeeSharePct` | 20 | Share of the ISA's lease fees in the system (others' lease filings, the lease royalty on sales there) paid to the holder. |
 | `concessionOwnLeaseDiscountPct` | 25 | Discount on `leaseCost` for the holder's (and its members') own new leases in the system. |
+| `concessionLeaseModifierMaxPct` | 25 | The most a holder may discount everyone's new leases in the system (never a surcharge; AB#923). |
+| `concessionLeaseModifierNoticeHours` | 72 | How long a change to that discount waits before it applies; another change is refused meanwhile. |
 | `concessionTariffCapPct` | 3 | The default tariff ceiling for v0.13-10; per-system caps are in the rule table. |
 | `concessionsPerSystem` | 1 | Concessions a system can hold at once (2 in the condominium systems). |

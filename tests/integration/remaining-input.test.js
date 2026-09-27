@@ -123,6 +123,7 @@ const BASELINE = {
     "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: "cgl-732" } },
     "POST /concessions/:systemId/petition": { params: { systemId: "atlantis" } }, // ISP-227 (AB#922): no such system: 404
     "POST /concessions/:systemId/relinquish": { params: { systemId: "atlantis" } },
+    "POST /concessions/:systemId/lease-modifier": { params: { systemId: "atlantis" }, body: { discountPct: 10 } }, // ISP-228 (AB#923)
     "POST /conglomerates/:conglomerateId/members/:corpId/role": { params: { conglomerateId: "cgl-732", corpId: "corp-732" }, body: { role: "director" } },
     "POST /conglomerates/:conglomerateId/members/:corpId/remove": { params: { conglomerateId: "cgl-732", corpId: "corp-732" } },
     "POST /conglomerates/:conglomerateId/founder": { params: { conglomerateId: "cgl-732" }, body: { corpId: "corp-732" } },

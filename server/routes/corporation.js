@@ -20,6 +20,7 @@ import { activeOfficeAt, fundingRequirementMessage, formatCredits } from "./help
 import { hireReceipt, rentOfficeReceipt, renewOfficeReceipt, purchaseLeaseReceipt } from "../receipts.js";
 import { memberOfficeCost } from "../../public/scripts/memberRates.js"; // ISP-212 (AB#907)
 import { memberStation } from "../game/stationGovernance.js";
+import { leaseCostFor, payConcessionShare } from "../concessions.js"; // ISP-228 (AB#923)
 
 export function registerCorporationRoutes(app) {
   app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
@@ -261,6 +262,7 @@ export function registerCorporationRoutes(app) {
     // from here on only the catalog's own name is used: in the lease, the error messages and the notification.
     let requestedBody = null;
     let leaseCost = 0;
+    let leaseSystemId = null; // ISP-228 (AB#923): a concession holder's share of the fee, paid once this lease is saved
     let bodyError = null;
     let outcome = "ok";
     let existingLeaseOnBody = false;
@@ -276,7 +278,9 @@ export function registerCorporationRoutes(app) {
         return;
       }
       requestedBody = resolved.body;
-      leaseCost = resolved.cost;
+      // ISP-228 (AB#923): a held system's lease discount (the holder's own 25%, or its everyone-discount after notice)
+      leaseCost = leaseCostFor(resolved.systemId, corp, resolved.cost).cost;
+      leaseSystemId = resolved.systemId;
 
       // AB#1061: filed at the station that orbits the body, as the claims office offers it; in transit, nowhere.
       const stationRefusal = leaseFilingRefusal(stationMap(), corp.currentStationId || null, requestedBody);
@@ -333,6 +337,7 @@ export function registerCorporationRoutes(app) {
       res.status(404).json({ error: "Account not found." });
       return;
     }
+    if (outcome === "ok") payConcessionShare(leaseSystemId, leaseCost, account.state.corp, Date.now(), "lease"); // AB#923
 
     if (outcome !== "ok") {
       const corp = account.state.corp;
