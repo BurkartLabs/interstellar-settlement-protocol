@@ -28,7 +28,7 @@ describe("Starmap overlays show only what systems hold (AB#1459)", () => {
 
   it("offers no resource overlay under a system field, and the page promises only the real one (AB#837)", () => {
     expect(OPTIONS.map((o) => o.label).join(" ")).not.toMatch(/resource/i);
-    const intro = HTML.match(/<h2 class="ui-screen__title">Interstellar Starmap<\/h2>\s*<p class="ui-screen__lede">([\s\S]*?)<\/p>/)?.[1] || "";
+    const intro = HTML.match(/<h2 class="ui-screen__title">(?:<span class="ui-code"[^>]*><\/span>)?Interstellar Starmap<\/h2>\s*<p class="ui-screen__lede">([\s\S]*?)<\/p>/)?.[1] || ""; // AB#944: after its code slot
     expect(intro).not.toBe("");
     expect(intro).not.toMatch(/dominance/i);
     // The resource overlay is its own picker, which the page fills from what the player can see.

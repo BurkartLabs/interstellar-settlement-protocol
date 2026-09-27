@@ -37,6 +37,7 @@ const OUT_OF_SCOPE = {
   "GET /api/systems/:id/tariff": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-230, AB#925)",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
+  "GET /api/section-codes": "a static catalog with no input (ISP-248, AB#944)",
   "GET /api/buildings": "a static catalog",
   "GET /api/ceo-insight": "a static catalog",
   "GET /api/mission-agents": "a static catalog",
