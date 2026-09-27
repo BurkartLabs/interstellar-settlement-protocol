@@ -189,7 +189,7 @@ function closeSeries(series, now) {
   const units = Math.floor(unsold * underwriterShare(series.couponPct30, series.grade));
   if (units > 0) {
     const paid = settleTransfer({ fromAccountId: BOND_TERMS.underwriter.account, toAccountId: series.issuerAccountId, credits: units * series.faceValue, reason: REASON, idempotencyKey: `bond:${series.id}:underwriter` }, now);
-    if (paid.ok) { series.underwriterUnits = units; series.sold += units; }
+    if (paid.ok) { series.underwriterUnits = (series.underwriterUnits || 0) + units; series.sold += units; } // += : it may already hold units bought in recovery (Bug #2574)
   }
   series.lapsedUnits = series.quantity - series.sold;
   series.closedAt = now;

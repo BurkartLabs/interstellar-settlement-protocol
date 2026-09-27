@@ -2,19 +2,23 @@
 //
 // The Board answered D-0.9-1 (AB#702): "Anything liquid, assets force sold if not able to cover." docs/design/v0.9-debt.md,
 // section 10, with the more protective reading wherever the answer leaves a gap:
-//   - Trigger: a player loan more than 7 days in arrears (marked defaultedAt by the servicing tick, AB#846).
+//   - Trigger: a player loan more than 7 days in arrears (marked defaultedAt by the servicing tick, AB#846), or a bond
+//     series more than 7 days in arrears (state `defaulted`, server/bondServicing.js, AB#849; Bug #2574).
 //   - Grace: a warning, then 24 hours before anything is sold. Paying the arrears in that time cancels the sale, and
 //     while the grace period runs the debtor cannot move value to another corporation (server/recoveryHold.js).
 //   - Order, stopping at the amount owed (the arrears and the principal still scheduled; loanServicing owedOnDefault):
 //       1. credits;
 //       2. station inventory, sold at the NPC standing bid, highest bid first, only as many units as it takes;
-//       3. (bond and share holdings join here in their own stories)
+//       3. bond holdings, sold to the NPC underwriter at 90% of face, only as many units as it takes (Bug #2574;
+//          share holdings join here in their own story)
 //       4. buildings, force-sold to the ISA at 40% of what was paid (server/buildingRemoval.js), then leases with
 //          nothing left on them at 40% of their price. Each time: the cheapest one that covers what is still owed,
 //          or, if none does, the dearest, and again.
 //     A sale can raise more than is owed; the surplus stays with the debtor, whose credits pay only what is owed.
 //   - Never sold: the office, research, the level and the Headquarters. A debtor is never removed from the game.
 // NPC loans are unchanged: the Development Bank never takes more than each day's collection (section 10).
+// A bond series owes its arrears and, once recovery runs, its whole face (it is accelerated, as a loan's balance falls
+// due in default); what is recovered is paid to its holders pro rata by what each is owed (server/bondServicing.js).
 //
 // Every credit moves through settleTransfer. Every sale is one mutation on a copy of the corporation, put in place only
 // when the whole sale is written, so a failure part way leaves the corporation as it was. Sale prices are the server's.
@@ -26,6 +30,8 @@ import { emitToAccount } from "./realtime.js";
 import { collectOwed, owedOnDefault } from "./loanServicing.js";
 import { accountIdOfCorp } from "./playerLoans.js";
 import { removeBuilding, buildingCostBasis, NEVER_REMOVED } from "./buildingRemoval.js";
+import { bondSeriesList } from "./bonds.js";
+import { accelerateSeries, bondOwedOnDefault, collectBondOwed, holdersOf, sellHoldingsToUnderwriter } from "./bondServicing.js";
 
 const HOUR = 3_600_000;
 export const GRACE_HOURS = 24;
@@ -50,6 +56,15 @@ function save(accountId, loan, recovery) {
       const j = state.corp.recoveries.findIndex((r) => r.id === recovery.id);
       if (j === -1) state.corp.recoveries.push({ ...recovery }); else state.corp.recoveries[j] = { ...recovery };
     }
+  }, { sanitize: false, settleMining: false });
+}
+
+/** Write a recovery record onto the debtor's corporation (a bond issuer's; a loan's goes with its loan in save()). */
+function saveRecovery(accountId, recovery) {
+  mutateAccountState(accountId, (state) => {
+    if (!Array.isArray(state.corp.recoveries)) state.corp.recoveries = [];
+    const j = state.corp.recoveries.findIndex((r) => r.id === recovery.id);
+    if (j === -1) state.corp.recoveries.push({ ...recovery }); else state.corp.recoveries[j] = { ...recovery };
   }, { sanitize: false, settleMining: false });
 }
 
@@ -144,12 +159,44 @@ function sellAsset(draft, asset, now, sold) {
 export function recoverDefault(debtorAccountId, loanId, now, options = {}) {
   const loan = corpOf(debtorAccountId)?.loans?.find((l) => l.id === loanId);
   if (!loan || loan.lender?.kind !== "player") return { ok: false, error: "No such player loan." };
-  const owedBefore = owedOnDefault(loan);
+  const r = runRecovery(debtorAccountId, {
+    tag: `recovery:${loan.id}:${now}`,
+    owed: () => owedOnDefault(loan),
+    collect: (key) => collectOwed(debtorAccountId, loan, now, key)
+  }, now, options);
+  save(debtorAccountId, loan, null);
+  return { ...r, loan };
+}
+
+/**
+ * Bug #2574: recover what the defaulted bond series `seriesId` owes from its issuer, at `now`: the whole face falls
+ * due (accelerateSeries), then the same stages as a loan, each collection split to the holders pro rata. Returns
+ * { ok, owedBefore, collected, shortfall, sold[], series }.
+ */
+export function recoverBondDefault(seriesId, now, options = {}) {
+  const series = bondSeriesList().find((x) => x.id === seriesId);
+  if (!series || series.state !== "defaulted") return { ok: false, error: "No such defaulted bond series." };
+  accelerateSeries(series, now);
+  const r = runRecovery(series.issuerAccountId, {
+    tag: `recovery:${series.id}:${now}`,
+    owed: () => bondOwedOnDefault(series),
+    collect: (key) => collectBondOwed(series, now, key)
+  }, now, options);
+  return { ...r, series };
+}
+
+/**
+ * The stages, for any debt: `debt.owed()` is what is still owed, `debt.collect(key)` takes what the debtor's credits
+ * cover of it. Credits, then station goods, then bond holdings, then buildings and leases, stopping when nothing is
+ * owed. { ok, owedBefore, collected, shortfall, sold[] }.
+ */
+function runRecovery(debtorAccountId, debt, now, options = {}) {
+  const owedBefore = debt.owed();
   const sold = [];
-  const tag = `recovery:${loan.id}:${now}`;
+  const tag = debt.tag;
   let step = 0;
-  const collect = () => collectOwed(debtorAccountId, loan, now, `${tag}:${step++}`);
-  const owed = () => owedOnDefault(loan);
+  const collect = () => debt.collect(`${tag}:${step++}`);
+  const owed = () => debt.owed();
 
   collect(); // 1. credits
   if (owed() > 0) { // 2. station inventory at the NPC standing bid
@@ -163,6 +210,9 @@ export function recoverDefault(debtorAccountId, loanId, now, options = {}) {
       collect();
     }
   }
+  if (owed() > 0) { // 3. bond holdings, to the NPC underwriter at 90% of face (Bug #2574)
+    if (sellHoldingsToUnderwriter(debtorAccountId, owed(), now, `${tag}:${step}`, sold) > 0) collect();
+  }
   // 4. buildings, then empty leases, one at a time
   for (let guard = 0; owed() > 0 && guard < 100; guard++) {
     const asset = pickAsset(saleableAssets(corpOf(debtorAccountId)), owed());
@@ -174,8 +224,7 @@ export function recoverDefault(debtorAccountId, loanId, now, options = {}) {
     });
     collect();
   }
-  save(debtorAccountId, loan, null);
-  return { ok: true, owedBefore, collected: owedBefore - owed(), shortfall: owed(), sold, loan };
+  return { ok: true, owedBefore, collected: owedBefore - owed(), shortfall: owed(), sold };
 }
 
 /**
@@ -211,5 +260,42 @@ export function defaultRecoveryTick(now) {
       tell(accountId, "Debt recovered", `${fmt(r.collected)} credits were taken for your defaulted loan${r.sold.length ? `, selling ${r.sold.map((s) => s.name || `${s.units} ${s.item}`).join(", ")}` : ""}.${r.shortfall ? ` ${fmt(r.shortfall)} credits are still owed and are collected as your credits allow.` : " The loan is closed."}`);
       tell(lenderAccountId, "Debt recovered", `${fmt(r.collected)} credits were recovered from ${corp.corporationName || "your borrower"}.${r.shortfall ? ` ${fmt(r.shortfall)} could not be recovered yet and is collected as its credits allow.` : " The loan is closed."}`);
     }
+  }
+  bondRecoveryTick(now);
+}
+
+/**
+ * Bug #2574: the same for bond series: a warning and 24 hours' grace from the issuer's default, the sale cancelled
+ * if the issuer brings the series back out of default in that time, otherwise recoverBondDefault. The holders are told
+ * at each step. A series left owing after recovery is still collected daily by its servicing, as its credits allow.
+ */
+export function bondRecoveryTick(now) {
+  for (const s of bondSeriesList()) {
+    if (!s.defaultedAt) continue;
+    const id = `rec-${s.id}-${s.defaultedAt}`;
+    const issuer = corpOf(s.issuerAccountId);
+    if (!issuer) continue;
+    const existing = (issuer.recoveries || []).find((r) => r.id === id);
+    const holders = holdersOf(s).map((h) => h.account).filter((a) => !a.startsWith("tap:"));
+    const name = `${s.quantity.toLocaleString("en-US")}-unit bond series at ${s.couponPct30}%`;
+    if (!existing) {
+      if (s.state !== "defaulted") continue;
+      saveRecovery(s.issuerAccountId, { id, seriesId: s.id, warnedAt: now, saleAt: now + GRACE_HOURS * HOUR, state: "grace" });
+      tell(s.issuerAccountId, "Your assets will be sold in 24 hours", `Your ${name} is in default: ${fmt(bondOwedOnDefault(s))} credits are owed to its holders, its whole face included. In 24 hours your credits, then your station goods at the exchange's bid, then your bond holdings at 90% of face, then your buildings at ${SALVAGE_PCT}% of what you paid will be taken until it is covered. Paying the ${fmt(s.arrears)} credits in arrears before then cancels the sale. Your office, research, level and Headquarters are never taken.`);
+      for (const h of holders) tell(h, "Bond recovery begins in 24 hours", `${s.issuerName || "The issuer"} is in default on its ${name}. If the arrears are not paid within 24 hours, what it owes will be recovered from its credits, goods, bonds and buildings and paid to holders by what each is owed.`);
+      continue;
+    }
+    if (existing.state !== "grace" || existing.saleAt > now) continue;
+    if (s.state !== "defaulted") { // brought back out of default in the grace period: the sale is cancelled
+      saveRecovery(s.issuerAccountId, { ...existing, state: "cancelled", closedAt: now });
+      tell(s.issuerAccountId, "Sale cancelled", "Your bond arrears were paid in time: nothing will be sold.");
+      for (const h of holders) tell(h, "Bond recovery cancelled", `${s.issuerName || "The issuer"} paid its bond arrears in time.`);
+      continue;
+    }
+    const r = recoverBondDefault(s.id, now);
+    const result = { collected: r.collected, shortfall: r.shortfall, sold: r.sold.map((x) => ({ kind: x.kind, name: x.name || x.item, credits: x.credits })) };
+    saveRecovery(s.issuerAccountId, { ...existing, state: "done", closedAt: now, result });
+    tell(s.issuerAccountId, "Debt recovered", `${fmt(r.collected)} credits were taken for your defaulted ${name}${r.sold.length ? `, selling ${r.sold.map((x) => x.name || `${x.units} ${x.item}`).join(", ")}` : ""}.${r.shortfall ? ` ${fmt(r.shortfall)} credits are still owed to its holders and are collected as your credits allow.` : " The series is repaid and closed."}`);
+    for (const h of holders) tell(h, "Bond recovery", `${fmt(r.collected)} credits were recovered from ${s.issuerName || "the issuer"} for its ${name} and paid to holders by what each was owed.${r.shortfall ? ` ${fmt(r.shortfall)} is still owed and is collected as its credits allow.` : " The series is closed."}`);
   }
 }
