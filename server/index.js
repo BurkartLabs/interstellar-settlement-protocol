@@ -25,6 +25,7 @@ import { registerLoanRoutes } from "./routes/loans.js"; // ISP-149 (AB#843)
 import { loanServicingTick } from "./loanServicing.js"; // ISP-150 (AB#844)
 import { registerBondRoutes } from "./routes/bonds.js"; // ISP-154 (AB#848)
 import { bondWindowTick } from "./bonds.js";
+import { bondServicingTick } from "./bondServicing.js"; // ISP-155 (AB#849)
 import { registerCreditRatingRoutes } from "./routes/creditRating.js"; // ISP-148 (AB#842)
 import { registerConglomerateRoutes } from "./routes/conglomerates.js"; // ISP-197 (AB#891)
 import { registerLogisticsRoutes } from "./routes/logistics.js";
@@ -158,6 +159,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(beltTick, 60_000);
 // ISP-150 (AB#844): loans' daily payments, arrears and penalty interest; a day due is collected within a minute
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => loanServicingTick(Date.now()), 60_000);
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondWindowTick(Date.now()), 60_000); // ISP-154 (AB#848)
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondServicingTick(Date.now()), 60_000); // ISP-155 (AB#849)
 
 registerMiningRoutes(app);
 

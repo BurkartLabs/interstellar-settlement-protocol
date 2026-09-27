@@ -35,7 +35,8 @@ import { applyCredits } from "./finances.js";
 /** Why credits may move. Anything else is refused. */
 export const REASONS = Object.freeze([
   "loan-disbursal", "loan-repayment", "bond-subscription", "coupon", "dividend", "share-purchase", "escrow-hold", "escrow-release", "fee",
-  "loan-interest" // ISP-150 (AB#844): a loan's interest, apart from its principal (docs/design/v0.9-debt.md, sections 2 and 9)
+  "loan-interest", // ISP-150 (AB#844): a loan's interest, apart from its principal (docs/design/v0.9-debt.md, sections 2 and 9)
+  "bond-redemption" // ISP-155 (AB#849): a bond's face repaid to its holder at maturity
 ]);
 
 /** The named sinks: credits paid into one leave the money supply, counted. */
@@ -64,7 +65,10 @@ const SHAPES = {
   // AB#844: an NPC loan's interest is destroyed, counted in its sink; a player lender's is paid to the lender
   "loan-interest": [["corp", "sink"], ["corp", "corp"]],
   // AB#848: a player subscribes to a bond at face, or the NPC underwriter does from its tap when the window closes
-  "bond-subscription": [["corp", "corp"], ["tap", "corp"]]
+  "bond-subscription": [["corp", "corp"], ["tap", "corp"]],
+  // AB#849: coupons and redemption go to each holder; what the underwriter holds is paid to its tap, and destroyed
+  coupon: [["corp", "corp"], ["corp", "tap"]],
+  "bond-redemption": [["corp", "corp"], ["corp", "tap"]]
 };
 const shapesOf = (reason) => SHAPES[reason] ?? [["corp", "corp"]];
 
