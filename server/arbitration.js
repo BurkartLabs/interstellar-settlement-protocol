@@ -201,10 +201,10 @@ function notifyRespondent(c) {
 }
 
 /**
- * File a case for the caller's corporation: `type` (a catalog claim type) on `recordId` (a record it is the filing party
- * to). Returns { case } (the parties' view, with the evidence) or { refused }. Nothing is written or charged on a refusal.
+ * ISP-243 (AB#939): everything filing checks and reads, without charging or writing anything: { corp, claimant, ev, fee }
+ * or { refused }. fileCase and previewCase both call it, so the preview is exactly what a filing attaches.
  */
-export function fileCase(accountId, { type, recordId } = {}, now = Date.now()) {
+function prepare(accountId, { type, recordId } = {}, now = Date.now()) {
   const corp = accountsStore.accounts?.[accountId]?.state?.corp;
   if (!corp?.publicId) return no(404, "no-account", "Account not found.");
   const t = claimType(type);
@@ -224,7 +224,27 @@ export function fileCase(accountId, { type, recordId } = {}, now = Date.now()) {
   const claimant = corpParty(corp);
   const openAgainst = store.cases.filter((c) => OPEN.has(c.state) && keyOf(c.claimant) === keyOf(claimant) && keyOf(c.respondent) === keyOf(ev.respondent)).length;
   if (openAgainst >= terms().maxOpenCasesPerPair) return no(409, "too-many", `You already have ${openAgainst} open cases against ${ev.respondent.name}, the most the Council hears at once.`);
-  const fee = ev.fee ?? councilFee(ev.amount, terms());
+  return { corp, claimant, ev, fee: ev.fee ?? councilFee(ev.amount, terms()) };
+}
+
+/**
+ * ISP-243 (AB#939): the filing wizard's evidence preview: what a filing of `type` on `recordId` would attach now, the
+ * respondent it names, the amount claimed and the fee, with nothing charged or written. { preview } or { refused }.
+ */
+export function previewCase(accountId, input, now = Date.now()) {
+  const p = prepare(accountId, input, now);
+  if (p.refused) return p;
+  return { preview: { type: input.type, recordRef: p.ev.recordRef, claimant: { ...p.claimant }, respondent: { ...p.ev.respondent }, amountClaimed: p.ev.amount, fee: p.fee, evidence: p.ev.evidence, responseHours: terms().responseHours, freezesEscrow: Boolean(p.ev.escrow) } };
+}
+
+/**
+ * File a case for the caller's corporation: `type` (a catalog claim type) on `recordId` (a record it is the filing party
+ * to). Returns { case } (the parties' view, with the evidence) or { refused }. Nothing is written or charged on a refusal.
+ */
+export function fileCase(accountId, { type, recordId } = {}, now = Date.now()) {
+  const p = prepare(accountId, { type, recordId }, now);
+  if (p.refused) return p;
+  const { claimant, ev, fee } = p;
   const id = createId("gac");
   const held = settleTransfer({ fromAccountId: accountId, toAccountId: `escrow:${id}`, credits: fee, reason: "escrow-hold", idempotencyKey: `${id}:fee` }, now);
   if (!held.ok) return no(402, "cannot-pay", `Filing costs ${fee.toLocaleString("en-US")} credits, held until the ruling.`);
@@ -331,7 +351,8 @@ function collect(c, party, amount, now) {
     if (debtor) {
       mutateAccountState(debtor.id, (state) => {
         if (!Array.isArray(state.corp.councilDebts)) state.corp.councilDebts = [];
-        state.corp.councilDebts.push({ ref, caseRef: c.ref, claimant: { type: c.claimant.type, id: c.claimant.id }, owed: left, collected: 0, forwarded: 0, at: now });
+        // withholdPct travels with the debt, as corp.itcDuty's does, so the sale confirmation quotes what will be withheld (ISP-243)
+        state.corp.councilDebts.push({ ref, caseRef: c.ref, claimant: { type: c.claimant.type, id: c.claimant.id }, owed: left, collected: 0, forwarded: 0, at: now, withholdPct: WARFARE_CATALOG.dumping.withholdPct });
       }, { sanitize: false });
       c.debts = [...(c.debts || []), { ref, party: { type: party.type, id: party.id }, owed: left }];
       notifyParty(party, `${c.ref}: Arbitration Council debt recorded`, `${c.ref}. ${left.toLocaleString("en-US")} credits of the Council's award could not be paid from ISA-held income and are recorded as a debt to ${c.claimant.name}. ${WARFARE_CATALOG.dumping.withholdPct}% of the net proceeds of each exchange sale, shared with any ITC duty owed, is withheld toward it until it is paid. No interest is charged. It counts as debt in your credit rating.`);
