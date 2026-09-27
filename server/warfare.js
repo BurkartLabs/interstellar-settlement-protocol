@@ -8,7 +8,9 @@
 // and server/index.js imports this before anything listens (fails closed).
 //
 // v0.13-02 to 04 (tariffs and dumping, patents and lobbying, arbitration claims: AB#917 to AB#919) add their sections
-// with their designs; the bounds their stories need are already here, and apply once a section exists.
+// with their designs; the bounds their stories need are already here, and apply once a section exists. Tariffs and
+// dumping (docs/design/WARFARE.md, ISP-222, AB#917) are here: every key of each, and how they bound the rule table.
+// So is the Arbitration Council (the same file, ISP-224, AB#919): its numbers, and its claim types.
 //
 // ISP_WARFARE_CATALOG points at another file, for the test that proves the server refuses it.
 
@@ -45,6 +47,28 @@ const OVERRIDES = {
   concessionTermDays: POSITIVE, concessionsPerSystem: (v) => v === 1 || v === 2, upkeepFactor: FACTOR, feeShareFactor: FACTOR,
   holders: (v) => Array.isArray(v) && v.length > 0 && v.every((h) => HOLDER_TYPES.includes(h)), counterPetitions: (v) => typeof v === "boolean"
 };
+
+/** The tariffs and dumping sections' numbers (WARFARE.md, AB#917), and what each must be. */
+const TARIFFS = { maxPct: PCT, stepPct: (v) => typeof v === "number" && v > 0 && v <= 100, noticeHours: COUNT, isaLevyAtCapPct: (v) => PCT(v) && v < 100 };
+const DUMPING = {
+  priceThresholdPct: (v) => PCT(v) && v > 0 && v < 100, volumeThresholdPct: PCT, windowDays: POSITIVE, normalValueDays: POSITIVE,
+  minTradedDays: POSITIVE, minValue: COUNT, dutyMarginPct: PCT, levyAfterHours: COUNT, withholdPct: PCT
+};
+
+/** The Arbitration Council's numbers (WARFARE.md, AB#919), and what each must be; claimTypes is checked on its own. */
+const ARBITRATION = { responseHours: COUNT, filingFeeMin: COUNT, filingFeePct: PCT, tieMarginPts: (v) => typeof v === "number" && v >= 0 && v <= 100, maxOpenCasesPerPair: POSITIVE };
+/** The claim types the design defines; a catalog may mark one closed, never add one the design lacks. */
+export const CLAIM_TYPES = Object.freeze(["mercenary-readiness", "tariff-overcharge", "concession-arbitrated", "patent-royalty", "credit-default"]);
+
+/** A section's missing and invalid keys, as sentences. */
+function sectionProblems(name, section, spec) {
+  const out = [];
+  for (const [key, ok] of Object.entries(spec)) {
+    if (!(key in section)) out.push(`${name}.${key} is missing`);
+    else if (!ok(section[key])) out.push(`${name}.${key} is ${JSON.stringify(section[key])}, which is not a valid value`);
+  }
+  return out;
+}
 
 /** What is wrong with the catalog's own shape and bounds, as sentences; [] when nothing is. */
 export function warfareSchemaProblems(c) {
@@ -88,6 +112,37 @@ export function warfareSchemaProblems(c) {
   // v0.13-02/03 bounds, applied once their sections exist (AB#920's acceptance names them now)
   if (c.patents && !(typeof c.patents.royaltyMaxPct === "number" && c.patents.royaltyMaxPct >= 0 && c.patents.royaltyMaxPct < 100)) out.push(`patents.royaltyMaxPct is ${JSON.stringify(c.patents?.royaltyMaxPct)}; it must be below 100%`);
   if (c.tariffs && !(typeof c.tariffs.maxPct === "number" && c.tariffs.maxPct >= 0 && c.tariffs.maxPct <= MAX_TARIFF_PCT)) out.push(`tariffs.maxPct is ${JSON.stringify(c.tariffs?.maxPct)}; it must be at most ${MAX_TARIFF_PCT}%`);
+  // ISP-222 (AB#917): every key of each section, and the rule table's caps inside the tariff section's ceiling and steps
+  if (c.tariffs) {
+    out.push(...sectionProblems("tariffs", c.tariffs, TARIFFS).filter((p) => !p.startsWith("tariffs.maxPct is ")));
+    const { maxPct, stepPct } = c.tariffs;
+    if (PCT(c.concessionTariffCapPct) && PCT(maxPct) && c.concessionTariffCapPct > maxPct) out.push(`concessionTariffCapPct (${c.concessionTariffCapPct}%) is above tariffs.maxPct (${maxPct}%)`);
+    for (const [id, r] of Object.entries(rules || {})) {
+      if (!PCT(r?.tariffCapPct)) continue;
+      if (PCT(maxPct) && r.tariffCapPct > maxPct) out.push(`${id}'s tariffCapPct (${r.tariffCapPct}%) is above tariffs.maxPct (${maxPct}%)`);
+      if (TARIFFS.stepPct(stepPct) && Math.abs(r.tariffCapPct / stepPct - Math.round(r.tariffCapPct / stepPct)) > 1e-9) out.push(`${id}'s tariffCapPct (${r.tariffCapPct}%) is not a whole number of ${stepPct}-point steps`);
+    }
+  }
+  if (c.dumping) {
+    out.push(...sectionProblems("dumping", c.dumping, DUMPING));
+    const { minTradedDays, normalValueDays } = c.dumping;
+    if (POSITIVE(minTradedDays) && POSITIVE(normalValueDays) && minTradedDays > normalValueDays) out.push(`dumping.minTradedDays (${minTradedDays}) is more than dumping.normalValueDays (${normalValueDays}), so there would never be a normal value`);
+  }
+  // ISP-224 (AB#919): the Council's numbers, and each claim type once, known, and marked open or not
+  if (c.arbitration) {
+    out.push(...sectionProblems("arbitration", c.arbitration, ARBITRATION));
+    const types = c.arbitration.claimTypes;
+    if (!Array.isArray(types) || !types.length) out.push("arbitration.claimTypes is missing");
+    else {
+      const ids = types.map((t) => t?.id);
+      for (const t of types) {
+        if (!CLAIM_TYPES.includes(t?.id)) out.push(`arbitration.claimTypes names ${JSON.stringify(t?.id)}, which the design does not define`);
+        if (typeof t?.open !== "boolean") out.push(`arbitration claim type ${JSON.stringify(t?.id)} has no open flag`);
+      }
+      for (const id of new Set(ids)) if (ids.filter((x) => x === id).length > 1) out.push(`arbitration.claimTypes lists ${id} twice`);
+    }
+    if (c.dumping && !c.dumping.withholdPct) out.push("arbitration debts are collected by dumping.withholdPct, which is 0 or missing");
+  }
   return out;
 }
 

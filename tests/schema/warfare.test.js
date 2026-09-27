@@ -3,12 +3,18 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { MAX_TARIFF_PCT, WARFARE_CATALOG, concessionTermsFor, readSystemIds, readWarfareCatalog, warfareReferenceProblems, warfareSchemaProblems } from "../../server/warfare.js";
+import { CLAIM_TYPES, MAX_TARIFF_PCT, WARFARE_CATALOG, concessionTermsFor, readSystemIds, readWarfareCatalog, warfareReferenceProblems, warfareSchemaProblems } from "../../server/warfare.js";
 
 // ISP-225 (AB#920): data/warfare.json is docs/design/TERRITORY.md's numbers (AB#916), checked three ways: against the
 // design, value for value and row for row; against its own schema and bounds; and against data/systems.json, the
 // catalog it names ids from (T-019). And the server refuses to start on a catalog it cannot use.
 const DESIGN = fs.readFileSync(new URL("../../docs/design/TERRITORY.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+// ISP-222 (AB#917): the tariffs and dumping sections are docs/design/WARFARE.md's number table: | `section.key` | value | ... |
+const WARFARE = fs.readFileSync(new URL("../../docs/design/WARFARE.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+// ISP-224 (AB#919): the Council's numbers, and its claim table's rows: | `claim-type` | record | ... (reserved rows say so)
+const ARBITRATION_TABLE = [...WARFARE.matchAll(/^\| `arbitration\.([A-Za-z]+)` \| ([^|]+) \| ([^|]+) \|$/gm)].map((m) => [m[1], m[2].trim()]);
+const CLAIM_ROWS = [...WARFARE.matchAll(/^\| `([a-z]+(?:-[a-z]+)+)` \| ([^\n]+)$/gm)].map((m) => ({ id: m[1], open: !/\*\*reserved\*\*/.test(m[2]) }));
+const SECTION_TABLE = [...WARFARE.matchAll(/^\| `(tariffs|dumping)\.([A-Za-z]+)` \| ([^|]+) \| ([^|]+) \|$/gm)].map((m) => [m[1], m[2], m[3].trim()]);
 const SYSTEMS = (() => { const raw = JSON.parse(fs.readFileSync(new URL("../../data/systems.json", import.meta.url), "utf8")); return Array.isArray(raw) ? raw : raw.systems; })();
 const C = WARFARE_CATALOG;
 const num = (s) => Number(String(s).replace(/,/g, ""));
@@ -124,7 +130,60 @@ describe("the catalog's schema and bounds (AB#920)", () => {
   it("holds the later sections to their bounds once they exist: a royalty below 100%, a tariff at most 25%", () => {
     expect(warfareSchemaProblems({ ...copy(), patents: { royaltyMaxPct: 100 } })).toContain("patents.royaltyMaxPct is 100; it must be below 100%");
     expect(warfareSchemaProblems({ ...copy(), tariffs: { maxPct: 26 } })).toContain("tariffs.maxPct is 26; it must be at most 25%");
-    expect(warfareSchemaProblems({ ...copy(), patents: { royaltyMaxPct: 40 }, tariffs: { maxPct: 10 } })).toEqual([]);
+    expect(warfareSchemaProblems({ ...copy(), patents: { royaltyMaxPct: 40 }, tariffs: { ...C.tariffs, maxPct: 10 } })).toEqual([]);
+  });
+});
+
+describe("the tariffs and dumping sections hold WARFARE.md's numbers (ISP-222, AB#917)", () => {
+  it("has every key the design's number table lists, with the same value, and no key the table lacks", () => {
+    expect(SECTION_TABLE.length).toBe(13);
+    for (const [section, key, value] of SECTION_TABLE) expect(C[section][key], `${section}.${key}`).toBe(num(value));
+    for (const section of ["tariffs", "dumping"]) {
+      expect(Object.keys(C[section]).sort(), section).toEqual(SECTION_TABLE.filter((r) => r[0] === section).map((r) => r[1]).sort());
+    }
+  });
+
+  it("holds the Arbitration Council's numbers and claim types to the design (ISP-224, AB#919)", () => {
+    expect(ARBITRATION_TABLE.length).toBe(5);
+    for (const [key, value] of ARBITRATION_TABLE) expect(C.arbitration[key], `arbitration.${key}`).toBe(num(value));
+    expect(Object.keys(C.arbitration).filter((k) => k !== "claimTypes").sort()).toEqual(ARBITRATION_TABLE.map((r) => r[0]).sort());
+    expect(C.arbitration.claimTypes).toEqual(CLAIM_ROWS);
+    expect(CLAIM_ROWS.map((r) => r.id)).toEqual([...CLAIM_TYPES]);
+  });
+
+  it("fails on a claim type the design lacks, one listed twice or without its flag, and a Council with no withholding", () => {
+    const c = copy();
+    c.arbitration.claimTypes = [...c.arbitration.claimTypes, { id: "defamation", open: true }, { id: "tariff-overcharge" }];
+    c.dumping.withholdPct = 0;
+    delete c.arbitration.responseHours;
+    const p = warfareSchemaProblems(c);
+    expect(p).toContain('arbitration.claimTypes names "defamation", which the design does not define');
+    expect(p).toContain('arbitration claim type "tariff-overcharge" has no open flag');
+    expect(p).toContain("arbitration.claimTypes lists tariff-overcharge twice");
+    expect(p).toContain("arbitration.responseHours is missing");
+    expect(p).toContain("arbitration debts are collected by dumping.withholdPct, which is 0 or missing");
+  });
+
+  it("keeps every system's cap inside the tariff ceiling, and the ceiling inside AB#920's 25%", () => {
+    const caps = Object.values(C.systemRules).map((r) => r.tariffCapPct);
+    expect(Math.max(...caps)).toBe(C.tariffs.maxPct);
+    expect(C.tariffs.maxPct).toBeLessThanOrEqual(MAX_TARIFF_PCT);
+  });
+
+  it("fails on a missing key, a cap above the ceiling or off its steps, a duty above the margin, and a normal value that can never exist", () => {
+    const c = copy();
+    delete c.tariffs.noticeHours;
+    c.systemRules["tau-ceti"].tariffCapPct = 6;
+    c.systemRules.altair.tariffCapPct = 3.1;
+    c.dumping.dutyMarginPct = 150;
+    c.dumping.minTradedDays = 8;
+    const p = warfareSchemaProblems(c);
+    expect(p).toContain("tariffs.noticeHours is missing");
+    expect(p).toContain("tau-ceti's tariffCapPct (6%) is above tariffs.maxPct (5%)");
+    expect(p).toContain("altair's tariffCapPct (3.1%) is not a whole number of 0.25-point steps");
+    expect(p).toContain("dumping.dutyMarginPct is 150, which is not a valid value");
+    expect(p).toContain("dumping.minTradedDays (8) is more than dumping.normalValueDays (7), so there would never be a normal value");
+    expect(warfareSchemaProblems({ ...copy(), tariffs: { ...C.tariffs, isaLevyAtCapPct: 100 } })).toContain("tariffs.isaLevyAtCapPct is 100, which is not a valid value");
   });
 });
 
