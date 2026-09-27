@@ -9,7 +9,7 @@ import { settleAccountPayroll } from "./gameState.js";
 import { settleAccountUpkeep } from "./upkeep.js"; // ISP-173 (AB#867)
 // The R&D schedule lives in public/scripts/rndQueue.js, which the R&D panel reads too; imported here beside its use
 // (Bug #1258), away from the import block other branches edit.
-import { scheduleRndQueue, rndItemStatus } from "../public/scripts/rndQueue.js"; // Bug #1258
+import { scheduleRndQueue, rndItemStatus, rndItemEndsAt } from "../public/scripts/rndQueue.js"; // Bug #1258; AB#930: rndItemEndsAt
 import { refreshDailyExpenses } from "./finances.js"; // Bug #1022 (placed apart from the import below, which parallel PRs append to)
 import { buildSnapshot, pushSnapshot, refreshDailyRevenue } from "./finances.js";
 import { recordTransfer, describeLines } from "../public/scripts/logistics.js";
@@ -324,9 +324,12 @@ function processRndCompletions() {
       if (completedItems.length === 0) return;
 
       if (!Array.isArray(state.corp.unlockedTech)) state.corp.unlockedTech = [];
+      // ISP-235 (AB#930): when each was completed, its scheduled end: what the Registry reads to know who was first.
+      if (!state.corp.researchCompletedAt || typeof state.corp.researchCompletedAt !== "object") state.corp.researchCompletedAt = {};
       for (const item of completedItems) {
         if (item.techId && !state.corp.unlockedTech.includes(item.techId)) {
           state.corp.unlockedTech.push(item.techId);
+          state.corp.researchCompletedAt[item.techId] = rndItemEndsAt(item);
         }
       }
       // By position, not id: two items queued in the same millisecond share an id.

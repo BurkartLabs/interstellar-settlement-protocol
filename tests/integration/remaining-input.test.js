@@ -30,6 +30,7 @@ const OUT_OF_SCOPE = {
   "GET /api/starmap/dominance": "a public read; its one input, an optional system id, is checked against the catalog by the route (ISP-217, AB#912)",
   "GET /api/systems/:id/control": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-226, AB#921; Bug #4664)",
   "GET /api/systems/:id/concession": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-227, AB#922)",
+  "GET /api/patents": "a public read with no input (ISP-235, AB#930)",
   "GET /api/systems/:id/tariff": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-230, AB#925)",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
@@ -123,6 +124,7 @@ const BASELINE = {
     "POST /conglomerates/:conglomerateId/applications/:applicationId/:answer": { params: { conglomerateId: "cgl-732", applicationId: "capp-732", answer: "decline" } },
     "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: "cgl-732" } },
     "POST /concessions/:systemId/petition": { params: { systemId: "atlantis" } }, // ISP-227 (AB#922): no such system: 404
+    "POST /patents": { body: { kind: "research", subjectId: "tt-actinide-handling", ratePct: 5 } }, // ISP-235 (AB#930): not completed by this corporation: 403
     "POST /concessions/:systemId/relinquish": { params: { systemId: "atlantis" } },
     "POST /tariffs/:systemId": { params: { systemId: "atlantis" }, body: { pct: 1 } }, // ISP-230 (AB#925): no such system: 404
     "POST /conglomerates/:conglomerateId/members/:corpId/role": { params: { conglomerateId: "cgl-732", corpId: "corp-732" }, body: { role: "director" } },
@@ -199,6 +201,7 @@ function checkRefuses(spec, where, value) {
   if (value === undefined) return !spec.optional;
   const sent = where === "body" ? value : String(value); // path and query values arrive as strings
   if (spec.kind === "choice") return !spec.values.includes(sent); // AB#853: 0 is a good payout ratio; the list decides
+  if (spec.kind === "int" && where === "body") return !(Number.isInteger(sent) && sent >= spec.min && sent <= spec.max); // AB#930: 0 is a good royalty; the range decides
   if (["int", "id", "word"].includes(spec.kind)) return true;
   if (spec.kind === "text") return typeof sent !== "string" || sent.length > spec.max;
   if (spec.kind === "ref") return typeof sent !== "string" || sent.length > 64 || sent.trim() === "";
