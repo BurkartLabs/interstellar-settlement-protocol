@@ -1,7 +1,5 @@
 // server/routes/corporation.js: the corporation routes, split out of server/index.js (AB#1815).
 import { bodyNumber } from "../bodyNumber.js";
-import fs from "node:fs";
-import path from "node:path";
 import { resolveLeaseBody } from "../leases.js";
 import { officeRenewalCost } from "../../public/scripts/ceoEffects.js";
 import { ECONOMY } from "../economy.js";
@@ -13,8 +11,9 @@ import { addAccountNotification, saveAccountsNow, mutateAccountState } from "../
 import { applyCredits } from "../finances.js";
 // Bug #1058: refusals that say what to do next. Imported beside their first use, away from the import block.
 import { employeeCapMessage, LEVELS } from "../nextStep.js";
-import { __dirname } from "../app.js";
-import { SYSTEMS_CATALOG, STATION_REGISTRY } from "../travel.js";
+
+import { SYSTEMS_CATALOG } from "../travel.js";
+import { allStations, stationMap } from "../game/stations.js"; // ISP-209 (AB#904)
 import { emitToAccount } from "../realtime.js";
 import { activeOfficeAt, fundingRequirementMessage, formatCredits } from "./helpers.js";
 // AB#743: what each committing action did, from the values its mutation used, for the confirmation modal.
@@ -98,13 +97,7 @@ export function registerCorporationRoutes(app) {
     let stationName = "Earth Station Prime";
     let dockedStationName = "";
 
-    let stationsData;
-    try {
-      stationsData = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "stations.json"), "utf8")).stations;
-    } catch {
-      res.status(500).json({ error: "Station registry unavailable." });
-      return;
-    }
+    const stationsData = allStations(); // ISP-209 (AB#904): built stations too
 
     const station = stationsData.find((s) => s.id === requestedStationId);
     if (!station) {
@@ -194,13 +187,7 @@ export function registerCorporationRoutes(app) {
     let outcome = "ok";
     let stationName = "Earth Station Prime";
 
-    let stationsData;
-    try {
-      stationsData = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "stations.json"), "utf8")).stations;
-    } catch {
-      res.status(500).json({ error: "Station registry unavailable." });
-      return;
-    }
+    const stationsData = allStations(); // ISP-209 (AB#904): built stations too
 
     const station = stationsData.find((s) => s.id === requestedStationId);
     if (!station) {
@@ -287,7 +274,7 @@ export function registerCorporationRoutes(app) {
       leaseCost = resolved.cost;
 
       // AB#1061: filed at the station that orbits the body, as the claims office offers it; in transit, nowhere.
-      const stationRefusal = leaseFilingRefusal(STATION_REGISTRY, corp.currentStationId || null, requestedBody);
+      const stationRefusal = leaseFilingRefusal(stationMap(), corp.currentStationId || null, requestedBody);
       if (stationRefusal) {
         outcome = "invalid-body";
         bodyError = stationRefusal;

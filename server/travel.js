@@ -1,8 +1,7 @@
 // server/travel.js: star systems, stations and travel times, split out of server/index.js (AB#1815).
-import fs from "node:fs";
-import path from "node:path";
 import { NAVIGATION, SYSTEMS_DATA } from "./game/catalog.js";
-import { IS_DEV, __dirname } from "./app.js";
+import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
+import { IS_DEV } from "./app.js";
 
 // ── Jumps between systems: data/systems.json's routes, through public/scripts/navigation.js (AB#718, AB#804) ──
 function getSystemHops(fromId, toId) {
@@ -29,8 +28,8 @@ for (const sys of SYSTEMS_CATALOG) {
 
 // Travel time in ms between two stations
 function getTravelTimeMs(fromId, toId) {
-  const from = STATION_REGISTRY[fromId];
-  const to = STATION_REGISTRY[toId];
+  const from = stationById(fromId);
+  const to = stationById(toId);
   if (!from || !to) return 0;
 
   if (IS_DEV) return 5 * 1000; // 5 seconds in dev
@@ -77,11 +76,5 @@ function getInterstellarTravelTimeMs(fromSystemId, toSystemId) {
   return interstellarTravelMs(NAVIGATION.systemHops(fromSystemId, toSystemId) ?? 1);
 }
 
-// ─── Station & Travel constants ──────────────────────────────────────────────
-const STATIONS_DATA = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "stations.json"), "utf8"));
-const STATION_REGISTRY = {};
-for (const s of STATIONS_DATA.stations) {
-  STATION_REGISTRY[s.id] = s;
-}
-
-export { STATION_REGISTRY, SYSTEMS_CATALOG, STATIONS_DATA, getInterstellarTravelTimeMs, getTravelTimeMs, interstellarTravelMs };
+// ISP-209 (AB#904): the stations are server/game/stations.js (allStations, stationById), built ones included.
+export { SYSTEMS_CATALOG, getInterstellarTravelTimeMs, getTravelTimeMs, interstellarTravelMs };

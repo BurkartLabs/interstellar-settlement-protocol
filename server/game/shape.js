@@ -1,7 +1,8 @@
 // server/game/shape.js: part of the game state, split out of server/gameState.js by system (AB#737).
 
 import { ensureFinanceTracking } from "../finances.js";
-import { MAX_DEFINED_LEVEL, REFINERY_CHAINS_DATA, STATION_REGISTRY_CACHE, SYSTEMS_BY_ID, SYSTEMS_DATA, deepClone } from "./catalog.js";
+import { MAX_DEFINED_LEVEL, REFINERY_CHAINS_DATA, SYSTEMS_BY_ID, SYSTEMS_DATA, deepClone } from "./catalog.js";
+import { stationById } from "./stations.js"; // ISP-209 (AB#904)
 import { refreshExchangeTax } from "./progression.js";
 import { ensureCorpMiningModel } from "./mining.js";
 import { ensureCorpRefineryModel } from "./refining.js";
@@ -129,8 +130,8 @@ export function normalizeStateShape(rawState) {
   if (!rawState.corp.currentSystemId) {
     // Derive from current station if possible
     const stationId = rawState.corp.currentStationId;
-    if (stationId && STATION_REGISTRY_CACHE) {
-      const station = STATION_REGISTRY_CACHE[stationId];
+    if (stationId) {
+      const station = stationById(stationId);
       rawState.corp.currentSystemId = station?.systemId || "sol";
     } else {
       rawState.corp.currentSystemId = "sol";

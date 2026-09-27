@@ -9,7 +9,8 @@ import { transferReceipt, travelReceipt } from "../receipts.js"; // AB#744
 import { transitTime } from "../transfers.js";
 // Bug #1270 (placed here, apart from the navigation.js import at the top that open PRs edit)
 import { IS_DEV } from "../app.js";
-import { STATION_REGISTRY, SYSTEMS_CATALOG, getInterstellarTravelTimeMs, getTravelTimeMs } from "../travel.js";
+import { SYSTEMS_CATALOG, getInterstellarTravelTimeMs, getTravelTimeMs } from "../travel.js";
+import { allStations, stationById, stationMap } from "../game/stations.js"; // ISP-209 (AB#904)
 import { systemName } from "../../public/scripts/displayNames.js"; // AB#1336
 import { emitToAccount } from "../realtime.js";
 
@@ -36,7 +37,7 @@ export function registerLogisticsRoutes(app) {
       const plan = planTransfer({
         navigation: NAVIGATION,
         fromStationId: request.fromStationId, toStationId, lines: request.lines,
-        inventory: corp.inventory, credits: corp.finances.credits, stations: STATION_REGISTRY, rates: ECONOMY.logistics
+        inventory: corp.inventory, credits: corp.finances.credits, stations: stationMap(), rates: ECONOMY.logistics
       });
       if (!plan.ok) {
         refusal = plan.error; // nothing has moved
@@ -82,8 +83,8 @@ export function registerLogisticsRoutes(app) {
     // AB#744: the shipment as dispatched.
     const receipt = transferReceipt({
       linesText: describeLines(dispatched.lines),
-      fromName: STATION_REGISTRY[dispatched.fromStationId]?.name || "the source station",
-      toName: STATION_REGISTRY[dispatched.toStationId]?.name || "this station",
+      fromName: stationById(dispatched.fromStationId)?.name || "the source station",
+      toName: stationById(dispatched.toStationId)?.name || "this station",
       fee: dispatched.fee,
       arrivesAt: dispatched.arrivesAt
     });
@@ -126,7 +127,7 @@ export function registerLogisticsRoutes(app) {
       return;
     }
 
-    if (isLocal && !STATION_REGISTRY[toStationId]) {
+    if (isLocal && !stationById(toStationId)) {
       res.status(400).json({ error: "Invalid destination station." });
       return;
     }
@@ -179,7 +180,7 @@ export function registerLogisticsRoutes(app) {
 
       } else {
         // ── Local docking ──
-        const station = STATION_REGISTRY[toStationId];
+        const station = stationById(toStationId);
         const currentSystemId = corp.currentSystemId || "sol";
 
         if (station.systemId !== currentSystemId) {
@@ -244,7 +245,7 @@ export function registerLogisticsRoutes(app) {
       const sysName = systemName(SYSTEMS_CATALOG, travelInfo.toSystemId) || "destination"; // AB#1336: "Barnard's Star", not "Barnards Star"
       notifBody = `Initiating interstellar jump to the ${sysName} system. ETA ${etaText}.`;
     } else {
-      const dest = STATION_REGISTRY[travelInfo.toStationId];
+      const dest = stationById(travelInfo.toStationId);
       notifBody = `Setting course for ${dest.name} (${dest.body}). ETA ${etaText}.`;
     }
 
@@ -264,10 +265,10 @@ export function registerLogisticsRoutes(app) {
       interstellar,
       destination: interstellar
         ? `the ${systemName(SYSTEMS_CATALOG, travelInfo.toSystemId) || "destination"} system`
-        : STATION_REGISTRY[travelInfo.toStationId]?.name || "the station",
+        : stationById(travelInfo.toStationId)?.name || "the station",
       arrivesAt: travelInfo.arrivesAt,
       // AB#2333: where the player can dock on arrival; none in a system whose stations are not built yet.
-      stations: interstellar ? Object.values(STATION_REGISTRY).filter((s) => s.systemId === travelInfo.toSystemId).map((s) => s.name) : []
+      stations: interstellar ? allStations().filter((s) => s.systemId === travelInfo.toSystemId).map((s) => s.name) : []
     });
     res.json({ ...account, receipt });
   });

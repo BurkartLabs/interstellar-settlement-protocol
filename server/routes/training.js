@@ -2,7 +2,7 @@
 // server/production.js; these routes say what happened. The input check (server/gameplayInput.js) has already refused a
 // unit that is not a troop, a quantity that is not a whole number in range, and a job id of the wrong shape.
 import { addAccountNotification, mutateAccountState, saveAccountsNow, RESEARCH_LIBRARY } from "../gameState.js";
-import { STATION_REGISTRY } from "../travel.js";
+import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { emitToAccount } from "../realtime.js";
 import { fundingRequirementMessage } from "./helpers.js";
 import { MAX_JOB_QUANTITY, MAX_QUEUED_JOBS, cancelTroopJob, queueTroops } from "../training.js";
@@ -22,7 +22,7 @@ function refusal(result, corp, unitId, quantity) {
     case "missing-research": return `${unit.name} need ${RESEARCH_LIBRARY[result.research]?.name || result.research} research.`;
     case "queue-full": return `Headquarters trains ${MAX_QUEUED_JOBS} jobs at most. Wait for one to finish, or cancel one.`;
     case "insufficient-credits": return fundingRequirementMessage(squads(quantity, unit), corp, result.cost.credits);
-    case "insufficient-goods": return `${squads(quantity, unit)} need ${result.needed.toLocaleString("en-US")} ${result.item} at ${STATION_REGISTRY[result.stationId]?.name || "your station"}; it holds ${result.have.toLocaleString("en-US")}.`;
+    case "insufficient-goods": return `${squads(quantity, unit)} need ${result.needed.toLocaleString("en-US")} ${result.item} at ${stationById(result.stationId)?.name || "your station"}; it holds ${result.have.toLocaleString("en-US")}.`;
     default: return "Headquarters could not train that.";
   }
 }
@@ -45,7 +45,7 @@ export function registerTrainingRoutes(app) {
     });
     if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     saveAccountsNow(); // a purchase: on disk now
-    res.json({ ...account, receipt: troopTrainingReceipt({ job, what: squads(job.quantity, UNITS[job.unitId]), garrison: job.unitId === "dt" ? STATION_REGISTRY[job.stationId]?.name || job.stationId : null }) });
+    res.json({ ...account, receipt: troopTrainingReceipt({ job, what: squads(job.quantity, UNITS[job.unitId]), garrison: job.unitId === "dt" ? stationById(job.stationId)?.name || job.stationId : null }) });
   });
 
   app.post("/api/accounts/:accountId/gameplay/training/cancel", (req, res) => {

@@ -28,7 +28,7 @@ import { accountIdOfCorp } from "./playerLoans.js";
 import { UNITS, ensureCorpMilitary } from "./game/units.js";
 import { combatModifiersFor, resolveBattle } from "./game/combat.js";
 import { FLEET_UNIT_IDS } from "./fleets.js";
-import { STATION_REGISTRY } from "./travel.js";
+import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 import { mercenaryUseAllowed, recordContractLosses } from "./mercenaries.js";
 import { buildingsAtStation } from "./raids.js";
 import { settleItems, itemEscrowOf } from "./itemSettlement.js";
@@ -164,7 +164,7 @@ export function resolveRaid(raid, now) {
     const returnsAt = from + Math.max(raid.travelMs || 0, 60_000);
     mutateAccountState(ownerAccountId, (state) => {
       const f = (state.corp.military?.fleets || []).find((x) => x.id === raid.fleet.fleetId);
-      if (f) f.transit = { fromStationId: raid.targetStationId, toStationId: raid.originStationId, toSystemId: STATION_REGISTRY[raid.originStationId]?.systemId ?? "sol", departedAt: from, arrivesAt: returnsAt, raidId: raid.id };
+      if (f) f.transit = { fromStationId: raid.targetStationId, toStationId: raid.originStationId, toSystemId: stationById(raid.originStationId)?.systemId ?? "sol", departedAt: from, arrivesAt: returnsAt, raidId: raid.id };
     }, { sanitize: false });
     return returnsAt;
   };
@@ -174,7 +174,7 @@ export function resolveRaid(raid, now) {
   if (!defender || Number(defender.raidCooldownUntil) > at) {
     const returnsAt = flyHome(at);
     setRaid(raid.id, { state: "recalled", turnedBackAt: at, returnsAt });
-    tell(attackerAccountId, "Raid turned back", `Your fleet reached ${STATION_REGISTRY[raid.targetStationId]?.name ?? "the station"} after ${raid.targetName ?? "the target"} had just been raided, and turned back without a fight.`);
+    tell(attackerAccountId, "Raid turned back", `Your fleet reached ${stationById(raid.targetStationId)?.name ?? "the station"} after ${raid.targetName ?? "the target"} had just been raided, and turned back without a fight.`);
     return "recalled";
   }
 
@@ -215,7 +215,7 @@ export function resolveRaid(raid, now) {
   mutateAccountState(defenderAccountId, (state) => { state.corp.raidCooldownUntil = at + RAID_OUTCOME.cooldownHours * HOUR; }, { sanitize: false, settleMining: false });
 
   // the reports: each side's own, never a feed
-  const station = STATION_REGISTRY[raid.targetStationId]?.name ?? raid.targetStationId;
+  const station = stationById(raid.targetStationId)?.name ?? raid.targetStationId;
   const rounds = battle.rounds.map((r) => ({ round: r.round, attacker: { lost: round2(r.attacker.lost), remaining: round2(r.attacker.remaining) }, defender: { lost: round2(r.defender.lost), remaining: round2(r.defender.remaining) } }));
   const common = { raidId: raid.id, at, stationId: raid.targetStationId, station, winner: battle.winner, rounds, attacker: { name: raid.attackerName, before: attackers, lost: lostA, survivors: battle.survivors.attacker }, defender: { name: raid.targetName, before: defending, lost: lostD, survivors: battle.survivors.defender }, loot: loot.items };
   keepReport(attackerAccountId, { ...common, side: "attacker", buildingsDamaged: damage.map(({ name, after, before }) => ({ name, points: before - after })) });

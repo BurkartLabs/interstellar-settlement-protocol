@@ -3,7 +3,8 @@
 import { applyCredits } from "../finances.js";
 import { ECONOMY, operationCostPerHourFor } from "../economy.js";
 import { miningEfficiency } from "../../public/scripts/miningEfficiency.js"; // ISP-98 (AB#788)
-import { BODY_TO_STATION, bodyResourceProfile, getStationInventory } from "./catalog.js";
+import { bodyResourceProfile, getStationInventory } from "./catalog.js";
+import { stationAtBody } from "./stations.js"; // ISP-209 (AB#904)
 import { bumpStat } from "./progression.js"; // AB#828: mined:<item>, what totalMined:<item> reads
 
 export function ensureCorpMiningModel(corp) {
@@ -325,7 +326,7 @@ function mineSpan(corp, extractor, from, to, now) {
   if (actualMined > 0) {
     // Deposit at the station orbiting the extractor's lease body
     const lease = (corp.miningLeases || []).find((l) => l.id === extractor.leaseId);
-    const depositStation = (lease && BODY_TO_STATION[lease.body]) || corp.currentStationId || "earth-station-prime";
+    const depositStation = (lease && stationAtBody(lease.body)?.id) || corp.currentStationId || "earth-station-prime";
     const stationInv = getStationInventory(corp, depositStation);
     // AB#828: the whole units are shared among the body's resources by concentration (data/systems.json
     // resourceProfile, AB#826), each item carrying its own fraction of a unit to the next span, so a cycle's output

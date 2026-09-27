@@ -14,7 +14,7 @@ import { bumpStat } from "../game/progression.js"; // ISP-106 (AB#798)
 import { acceptMissionReceipt, completeMissionReceipt, standingFor } from "../receipts.js"; // AB#744
 // Bug #1058: refusals that say what to do next. Imported beside their first use, away from the import block.
 import { missionShortMessage } from "../nextStep.js";
-import { STATIONS_DATA } from "../travel.js";
+import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 
 export function registerMissionRoutes(app) {
   // ── Mission contract endpoints ──────────────────────────────
@@ -179,13 +179,13 @@ export function registerMissionRoutes(app) {
       return res.status(400).json({ error: `Salvage work is not finished yet. ${hoursRemaining} hour${hoursRemaining === 1 ? "" : "s"} remaining.` });
     }
     if (outcome === "wrong-station") {
-      const name = (id) => STATIONS_DATA.stations.find((st) => st.id === id)?.name || "another station";
+      const name = (id) => stationById(id)?.name || "another station";
       return res.status(400).json({
         error: `You must be docked at ${name(wrongStation.agentStationId)} to complete this contract. You are at ${name(wrongStation.stationId)}: travel there on the Starmap first.`
       });
     }
     if (outcome === "insufficient") {
-      const stationName = (id) => STATIONS_DATA.stations.find((st) => st.id === id)?.name || id;
+      const stationName = (id) => stationById(id)?.name || id;
       return res.status(400).json({ error: missionShortMessage({ ...shortfall, inventory: account.state.corp.inventory, stationName }) });
     }
     // AB#744: standing after this contract, and whether it moved (the page's own overlay used to work this out).

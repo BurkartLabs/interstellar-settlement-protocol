@@ -9,11 +9,11 @@
 //   that item at 00:00 UTC (or, for an item first deposited today, its first row today), so splitting gains nothing.
 // - moveHangar is the only way stock changes, and it writes one frozen row to the hangar's own ledger, so each item's
 //   rows sum to its stock. The credit ledger is the treasury's; this one is goods only.
-// - Items are names from data/items.json (an id is read as its item's name); stations are ids from data/stations.json.
+// - Items are names from data/items.json (an id is read as its item's name); stations are ids in the station registry (server/game/stations.js), built ones included.
 //   Every check runs before anything moves, and a check that cannot run refuses with nothing written (fails closed).
 
 import { CONGLOMERATE_CATALOG, can } from "../conglomerates.js";
-import { STATIONS_RAW } from "./catalog.js";
+import { stationById } from "./stations.js"; // ISP-209 (AB#904): built stations too
 import { ITEMS } from "./items.js";
 import { saveAccountsNow } from "./store.js";
 import { dayStartOf, ensureHangar, moveHangar } from "./conglomerates.js";
@@ -25,8 +25,7 @@ import { ledgerPage } from "./treasury.js";
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** The most units one movement may carry: far above any stock the game makes, and exact in a double. */
 export const MAX_HANGAR_QUANTITY = 1_000_000_000;
-const STATION_IDS = new Set((STATIONS_RAW.stations || []).map((s) => s.id));
-const STATION_NAMES = Object.fromEntries((STATIONS_RAW.stations || []).map((s) => [s.id, s.name]));
+const stationName = (id) => stationById(id)?.name || id;
 const ITEM_BY_KEY = new Map(ITEMS.flatMap((i) => [[i.name, i.name], [i.id, i.name]]));
 const plain = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 
@@ -60,14 +59,14 @@ export function goodsAllowance(c, role, corpId, item, now = Date.now(), catalog 
 
 /** The request's station and item, checked: { stationId, item } or a refusal. The goods are at the hangar's station. */
 function where(c, corp, stationId, rawItem) {
-  if (typeof stationId !== "string" || !STATION_IDS.has(stationId)) return no(400, "unknown-station", "Choose a station from the game's list.");
+  if (typeof stationId !== "string" || !stationById(stationId)) return no(400, "unknown-station", "Choose a station from the game's list.");
   const item = hangarItem(rawItem);
   if (!item) return no(400, "unknown-item", "Choose an item from the game's list.");
   const h = ensureHangar(c);
-  if (stationId !== h.stationId) return no(409, "wrong-station", `${c.name}'s hangar is at ${STATION_NAMES[h.stationId] || h.stationId}.`);
+  if (stationId !== h.stationId) return no(409, "wrong-station", `${c.name}'s hangar is at ${stationName(h.stationId)}.`);
   const docked = corp.currentStationId === stationId;
   const holds = Object.values(corp.inventory?.[stationId] || {}).some((q) => Number(q) > 0);
-  if (!docked && !holds) return no(409, "not-at-station", `Goods move between your own stock at ${STATION_NAMES[stationId] || stationId} and the hangar. Dock there, or ship goods there, first.`);
+  if (!docked && !holds) return no(409, "not-at-station", `Goods move between your own stock at ${stationName(stationId)} and the hangar. Dock there, or ship goods there, first.`);
   return { stationId, item };
 }
 
@@ -83,7 +82,7 @@ export function depositGoods(accountId, conglomerateId, { stationId, item: rawIt
   if (hangarQuantity(quantity) === null) return no(400, "invalid-quantity", "Enter a whole number of units, at least 1.");
   const stock = corp.inventory?.[at.stationId] || {};
   const held = Math.floor(Number(stock[at.item]) || 0);
-  if (held < quantity) return no(409, "insufficient-stock", `Your corporation holds ${plain(held)} ${at.item} at ${STATION_NAMES[at.stationId]}; it cannot deposit ${plain(quantity)}.`);
+  if (held < quantity) return no(409, "insufficient-stock", `Your corporation holds ${plain(held)} ${at.item} at ${stationName(at.stationId)}; it cannot deposit ${plain(quantity)}.`);
   // One step: out of the corporation's stock, into the hangar, one row.
   if (held === quantity) delete stock[at.item];
   else stock[at.item] = held - quantity;
@@ -138,7 +137,7 @@ export function hangarView(accountId, conglomerateId, now = Date.now(), catalog 
   const rows = full ? h.ledger : h.ledger.filter((r) => r.corp === corp.publicId);
   return {
     stationId: h.stationId,
-    stationName: STATION_NAMES[h.stationId] || h.stationId,
+    stationName: stationName(h.stationId),
     items: { ...h.items },
     allowance: Object.fromEntries(Object.keys(h.items).map((item) => [item, goodsAllowance(c, role, corp.publicId, item, now, catalog)])),
     ledger: { scope: full ? "all" : "own", ...ledgerPage(rows, page, corpName) }

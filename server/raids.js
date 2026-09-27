@@ -24,7 +24,8 @@ import { accountIdOfCorp } from "./playerLoans.js";
 import { NAVIGATION } from "./game/catalog.js";
 import { UNITS, ensureCorpMilitary } from "./game/units.js";
 import { FLEET_UNIT_IDS } from "./fleets.js";
-import { STATION_REGISTRY, getTravelTimeMs } from "./travel.js";
+import { getTravelTimeMs } from "./travel.js";
+import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 import { mercenaryUseAllowed } from "./mercenaries.js";
 
 const HOUR = 3_600_000;
@@ -60,7 +61,7 @@ export function protectedUntil(accountId) {
  * Headquarters is never a target. Returns the corp.buildings entries themselves (the caller may change them in a draft).
  */
 export function buildingsAtStation(corp, stationId) {
-  const station = STATION_REGISTRY[stationId];
+  const station = stationById(stationId);
   if (!corp || !station) return [];
   const leaseBody = new Map((corp.miningLeases || []).map((l) => [l.id, l.body]));
   const home = stationId === (corp.homeStationId || RAID_RULES.homeStationId);
@@ -73,7 +74,7 @@ export function buildingsAtStation(corp, stationId) {
  * any other building, at its home station). Pure.
  */
 export function holdingsAt(corp, stationId) {
-  const station = STATION_REGISTRY[stationId];
+  const station = stationById(stationId);
   if (!corp || !station) return { any: false };
   const garrison = unitCount(corp.military?.garrisons?.[stationId], "dt");
   const fleets = (corp.military?.fleets || []).filter((f) => f.stationId === stationId && !f.transit).length;
@@ -106,8 +107,8 @@ function fleetFor(attackerAccountId, attacker, { fleetId, contractId }, now) {
 
 /** Whether the attacker's research reaches `toStationId` from `fromStationId` (the same gate a deployment uses). */
 function reachable(unlockedTech, fromStationId, toStationId) {
-  const fromSystemId = STATION_REGISTRY[fromStationId]?.systemId || "sol";
-  const toSystemId = STATION_REGISTRY[toStationId]?.systemId;
+  const fromSystemId = stationById(fromStationId)?.systemId || "sol";
+  const toSystemId = stationById(toStationId)?.systemId;
   if (!toSystemId) return false;
   if (toSystemId === fromSystemId) return true;
   return NAVIGATION.canReachSystem(unlockedTech, fromSystemId, toSystemId) && (NAVIGATION.systemHops(fromSystemId, toSystemId) !== null || toSystemId === "sol");
@@ -150,7 +151,7 @@ export function declareRaid(accountId, input = {}, now = Date.now()) {
   }
 
   const targetStationId = typeof input.targetStationId === "string" ? input.targetStationId : "";
-  if (!STATION_REGISTRY[targetStationId]) return { ok: false, status: 404, error: "No such station." };
+  if (!stationById(targetStationId)) return { ok: false, status: 404, error: "No such station." };
   if (!holdingsAt(target, targetStationId).any) return { ok: false, status: 409, error: "That corporation holds nothing at that station." };
 
   const pick = fleetFor(accountId, attacker, { fleetId: typeof input.fleetId === "string" ? input.fleetId : "", contractId: typeof input.contractId === "string" ? input.contractId : "" }, now);
@@ -176,12 +177,12 @@ export function declareRaid(accountId, input = {}, now = Date.now()) {
   mutateAccountState(pick.ownerAccountId, (state) => {
     ensureCorpMilitary(state.corp);
     const f = state.corp.military.fleets.find((x) => x.id === pick.fleet.id);
-    f.transit = { fromStationId: originStationId, toStationId: targetStationId, toSystemId: STATION_REGISTRY[targetStationId].systemId, departedAt: now, arrivesAt, raidId: raid.id };
+    f.transit = { fromStationId: originStationId, toStationId: targetStationId, toSystemId: stationById(targetStationId).systemId, departedAt: now, arrivesAt, raidId: raid.id };
     f.stationId = null;
   }, { sanitize: false });
   mutateState((draft) => { raidsDraft(draft).push(raid); });
 
-  const station = STATION_REGISTRY[targetStationId].name;
+  const station = stationById(targetStationId).name;
   tell(targetAccountId, "Raid incoming", `${raid.attackerName ?? "A corporation"} has declared a raid on your holdings at ${station}. Its fleet arrives ${utc(arrivesAt)}: ${unitsText(units)}. Whatever stands at ${station} then defends automatically; you can reinforce before it arrives.`);
   return { ok: true, raid: raidView(raid) };
 }
@@ -199,10 +200,10 @@ export function recallRaid(accountId, raidId, now = Date.now()) {
   const returnsAt = now + (now - raid.declaredAt);
   mutateAccountState(ownerAccountId, (state) => {
     const f = (state.corp.military?.fleets || []).find((x) => x.id === raid.fleet.fleetId);
-    if (f) f.transit = { fromStationId: raid.targetStationId, toStationId: raid.originStationId, toSystemId: STATION_REGISTRY[raid.originStationId]?.systemId ?? "sol", departedAt: now, arrivesAt: returnsAt };
+    if (f) f.transit = { fromStationId: raid.targetStationId, toStationId: raid.originStationId, toSystemId: stationById(raid.originStationId)?.systemId ?? "sol", departedAt: now, arrivesAt: returnsAt };
   }, { sanitize: false });
   mutateState((draft) => { Object.assign(raidsDraft(draft).find((r) => r.id === raid.id), { state: "recalled", recalledAt: now, returnsAt }); });
-  tell(accountIdOfCorp(raid.targetCorpId), "Raid called off", `${raid.attackerName ?? "The attacking corporation"} has recalled its raid on your holdings at ${STATION_REGISTRY[raid.targetStationId]?.name ?? "the station"}.`);
+  tell(accountIdOfCorp(raid.targetCorpId), "Raid called off", `${raid.attackerName ?? "The attacking corporation"} has recalled its raid on your holdings at ${stationById(raid.targetStationId)?.name ?? "the station"}.`);
   return { ok: true, raid: raidView({ ...raid, state: "recalled", returnsAt }) };
 }
 
