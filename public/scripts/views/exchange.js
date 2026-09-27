@@ -10,7 +10,7 @@ import { DEFAULT_EXCHANGE_VIEW, MY_LISTINGS_SHOWN, SELL_ORDERS_SHOWN, cappedNote
 import { deepClone, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { appState, viewerStorage } from "../state.js";
-import { taxOnSale } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
+import { taxOnSale, withBasePct } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
 import { saleQuote, utcMinute } from "../tariffs.js"; // ISP-231 (AB#926): the tariff the server settles
 import { withheldFrom } from "../itcDuty.js"; // ISP-232 (AB#927): what the server withholds toward ITC duty owed
 import { listingWarning } from "../dumping.js"; // ISP-233 (AB#928): the watch's own rule
@@ -44,9 +44,10 @@ export function getClientExchangeTaxPct() {
  * Labels stay short: the confirmation's label column does not wrap, and a longer one pushed the values off a phone.
  */
 function saleTaxRows(gross) {
-  const breakdown = getClientExchangeTaxBreakdown();
   // ISP-231 (AB#926): the concession tariff where the goods are held, quoted with the server's own arithmetic
   const here = clientTariffHere();
+  // ISP-239 (AB#934): and the sales tax in force there, which a lobbying campaign may have moved
+  const breakdown = withBasePct(getClientExchangeTaxBreakdown(), here?.salesTaxPct);
   const sale = saleQuote(gross, breakdown, here?.pct || 0);
   const withheld = withheldFrom(sale.proceeds, appState.data?.corp?.itcDuty);
   return [

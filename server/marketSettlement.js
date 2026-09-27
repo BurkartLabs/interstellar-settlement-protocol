@@ -16,6 +16,7 @@ import { chargeTariff } from "./tariffService.js"; // ISP-230 (AB#925)
 import { recordOwnSale, withholdDuty } from "./itcService.js"; // ISP-232 (AB#927)
 import { withholdRoyaltyDebt } from "./patents.js"; // ISP-236 (AB#931)
 import { onSale } from "./standingService.js"; // ISP-238 (AB#933)
+import { salesTaxBaseAt } from "./lobbyingService.js"; // ISP-239 (AB#934)
 import { stationById } from "./game/stations.js";
 import { payConcessionShare } from "./concessions.js"; // ISP-228 (AB#923)
 
@@ -30,7 +31,7 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
   let royaltyPaid = 0, sellerCorp = null; // ISP-228 (AB#923): the concession holder's share, paid once the seller is saved
   mutateAccountState(order.sellerAccountId, (state) => {
     // ISP-302 (AB#2285): the rate includes the lease royalty; its share is booked apart, as "lease-royalty".
-    const breakdown = exchangeTaxBreakdown(state);
+    const breakdown = exchangeTaxBreakdown(state, salesTaxBaseAt(order.stationId)); // ISP-239 (AB#934): the system's tax in force
     const taxPct = breakdown.ratePct;
     const { tax: taxAmount, royalty, salesTax, proceeds: afterTax } = taxOnSale(total, breakdown);
     // Bug #984: the gross the buyer paid is income and the tax an expense; the balance moves by the proceeds.
@@ -40,7 +41,7 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
     const partner = sameConglomerate(state.corp, accountsStore.accounts?.[buyerAccountId]?.state?.corp);
     if (!partner) recordSale(state.corp, order.stationId, total);
     // ISP-232 (AB#927): a sale at the seller's own price is what the ITC's dumping watch reads (a partner's is not)
-    recordOwnSale(state.corp, { item: order.item, quantity, unitPrice: Number(order.unitPrice || 0), partner });
+    recordOwnSale(state.corp, { item: order.item, quantity, unitPrice: Number(order.unitPrice || 0), partner, stationId: order.stationId });
     applyCredits(state.corp, -salesTax, "exchange-tax");
     // ISP-238 (AB#933): Earth Assembly standing for the tax, ITC standing for a sale at or above normal value
     onSale(state.corp, { item: order.item, quantity, unitPrice: Number(order.unitPrice || 0), salesTax, partner });

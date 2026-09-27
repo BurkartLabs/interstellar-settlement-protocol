@@ -213,7 +213,7 @@ describe("what a trader sees before committing, and the holder's schedule (ISP-2
     grant(holder, rival);
     inForce(holder, 3);
     const mine = (await seller.api.get(`/api/accounts/${seller.id}/tariffs`)).body;
-    expect(mine.here).toEqual({ stationId: STATION, systemId: ALPHA, cap: 3, pct: 3, exempt: false, pending: null });
+    expect(mine.here).toEqual({ stationId: STATION, systemId: ALPHA, cap: 3, pct: 3, exempt: false, pending: null, salesTaxPct: 8 }); // salesTaxPct: ISP-239 (AB#934)
     expect(mine.systems[ALPHA]).toMatchObject({ pct: 3, held: true });
     expect(mine.holdings).toEqual([]);
     expect(mine.normalValues).toEqual({ Silicates: 24, Titanium: 64 }); // the goods it holds outside this system

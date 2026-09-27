@@ -29,6 +29,18 @@ export function taxBreakdown({ basePct, discountPoints = 0, leasesHeld = 0, roya
 }
 
 /** A sale of `gross` credits: the whole tax, the royalty's share of it, the rest, and what the seller receives. */
+/**
+ * ISP-239 (AB#934): the same breakdown on another base rate (a system whose sales tax is lobbied): the royalty points
+ * and discount carry over, and the lines are drawn again as taxBreakdown draws them.
+ */
+export function withBasePct(breakdown, basePct) {
+  if (!Number.isFinite(basePct) || basePct === breakdown?.basePct) return breakdown;
+  const royaltyPoints = Number(breakdown?.royaltyPoints) || 0;
+  const ratePct = Math.max(0, basePct + royaltyPoints - (Number(breakdown?.discountPoints) || 0));
+  const royaltyPct = Math.min(royaltyPoints, ratePct);
+  return { ...breakdown, basePct, ratePct, royaltyPct, salesTaxPct: ratePct - royaltyPct };
+}
+
 export function taxOnSale(gross, breakdown) {
   const tax = Math.round(gross * breakdown.ratePct / 100);
   const royalty = Math.min(tax, Math.round(gross * breakdown.royaltyPct / 100));

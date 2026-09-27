@@ -32,6 +32,7 @@ import { getState, mutateAccountState } from "./gameState.js";
 import { accountByCorp, findConglomerate, roleOf } from "./game/membership.js";
 import { ensureTreasury, moveTreasury } from "./game/conglomerates.js";
 import { publicConcession } from "./concessions.js";
+import { parameterInForce, salesTaxBaseAt } from "./lobbyingService.js"; // ISP-239 (AB#934): the rules in force
 import { fileRate, levyOf, listingRate, rateAt, rateProblem, settle, tariffOn } from "./game/tariffs.js";
 import { transferBase as baseAt } from "../public/scripts/tariffs.js"; // ISP-231 (AB#926): the client quotes with it too
 
@@ -54,7 +55,8 @@ const systemRecord = (systemId) => (store.systems[systemId] ||= { rates: {}, acc
 
 /** A system's tariff cap (%): its rule's; 0 for a never-concedable system or one without a rule. */
 export function tariffCap(systemId) {
-  return Number(WARFARE_CATALOG.systemRules[systemId]?.tariffCapPct) || 0;
+  // ISP-239 (AB#934): the rule table's cap, or a lobbying campaign's while one holds
+  return Number(parameterInForce(systemId, "tariffCapPct")) || 0;
 }
 
 /** The system a station is in, or null. */
@@ -258,7 +260,7 @@ export function tariffSummary(corp, now = Date.now()) {
   if (systemIdHere) {
     const pct = tariffRateFor(corp, stationId, now);
     const exempt = isHolderSide(corp, holdersInForce(systemIdHere, now));
-    here = { stationId, systemId: systemIdHere, cap: tariffCap(systemIdHere), pct, exempt, pending: exempt ? null : systems[systemIdHere]?.pending || null };
+    here = { stationId, systemId: systemIdHere, cap: tariffCap(systemIdHere), pct, exempt, pending: exempt ? null : systems[systemIdHere]?.pending || null, salesTaxPct: salesTaxBaseAt(stationId, now) }; // ISP-239 (AB#934)
   }
   const normalValues = {};
   for (const [sid, inv] of Object.entries(corp?.inventory || {})) {
