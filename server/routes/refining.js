@@ -13,6 +13,7 @@ import { startRefineryReceipt } from "../receipts.js"; // AB#744
 import { refineryMultiplierFor, refineryOutput } from "../../public/scripts/refineryOutput.js";
 import { ECONOMY } from "../economy.js";
 import { chainResearchMissing } from "../game/researchGates.js";
+import { FACILITY_LISTS, chainBuilding } from "../game/refining.js"; // ISP-189 (AB#883)
 
 export function registerRefiningRoutes(app) {
   // ─── Refinery ────────────────────────────────────────────────────────────────
@@ -47,18 +48,22 @@ export function registerRefiningRoutes(app) {
         return;
       }
 
-      if (!Array.isArray(corp.refineries) || !corp.refineries.length) {
-        outcome = "no-refinery";
+      // ISP-189 (AB#883): a chain runs only in the building it names: a Refinery, or the Synthesis Array.
+      const kind = chainBuilding(chain);
+      const facilities = corp[FACILITY_LISTS[kind]];
+      if (!Array.isArray(facilities) || !facilities.length) {
+        outcome = kind === "synthesis-array" ? "no-synthesis-array" : "no-refinery";
         return;
       }
 
       const refinery = refineryId
-        ? corp.refineries.find((r) => r.id === refineryId)
-        : corp.refineries.find((r) => !r.active);
-      targetLabel = refinery?.name || refineryId || "Refinery";
+        ? facilities.find((r) => r.id === refineryId)
+        : facilities.find((r) => !r.active);
+      targetLabel = refinery?.name || (kind === "synthesis-array" ? "Synthesis Array" : "Refinery");
 
       if (!refinery) {
-        outcome = refineryId ? "refinery-not-found" : "all-busy";
+        const elsewhere = refineryId && Object.values(FACILITY_LISTS).some((list) => (corp[list] || []).some((r) => r.id === refineryId));
+        outcome = elsewhere ? "wrong-facility" : refineryId ? "refinery-not-found" : "all-busy";
         return;
       }
 
@@ -121,6 +126,9 @@ export function registerRefiningRoutes(app) {
       const messageMap = {
         "missing-research": `This chain requires: ${chain.requiresResearch.join(", ")}.`,
         "no-refinery": "Build a Refinery before starting a production run.",
+        // ISP-189 (AB#883)
+        "no-synthesis-array": "Tier 4 chains run in a Synthesis Array. Build one (it needs High-Energy Synthesis) before starting this chain.",
+        "wrong-facility": chainBuilding(chain) === "synthesis-array" ? "This is a Tier 4 chain: it runs in the Synthesis Array, not a Refinery." : "This chain runs in a Refinery, not the Synthesis Array.",
         "refinery-not-found": "That refinery was not found. It may have been removed; reload and choose another.", // AB#1336: no id echoed back
         "all-busy": "All refineries are currently running cycles.",
         "already-active": `${targetLabel} already has an active production cycle.`,
@@ -132,7 +140,7 @@ export function registerRefiningRoutes(app) {
     }
 
     // AB#744: the run as the mutation set it up, and what it recorded it will deliver.
-    const started = account.state.corp.refineries.find((r) => r.name === targetLabel);
+    const started = account.state.corp[FACILITY_LISTS[chainBuilding(chain)]].find((r) => r.name === targetLabel);
     const outputs = started?.outputs || [];
     const outputNames = outputs.map((o) => `${o.quantity} ${o.item}`).join(", ");
     const notification = addAccountNotification(req.params.accountId, {

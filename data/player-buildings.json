@@ -79,6 +79,17 @@
       "effect": "Where your corporation's ships are built: Light Fighters, Destroyers and Siege Engines, each at its catalog cost and build time. They join your fleet and count against its Fleet Cap. Queue them on the Fleet tab.",
       "since": "0.10",
       "tiers": "none"
+    },
+    {
+      "id": "synthesis-array",
+      "name": "Synthesis Array",
+      "price": "synthesisArray",
+      "slot": "corporation",
+      "researchGates": ["tt-high-energy-synthesis", "tt-integrated-manufacturing"],
+      "cap": { "perCorporation": 1 },
+      "effect": "Runs the six Tier 4 synthesis chains, each turning two refined intermediates and an exotic resource into a Tier 4 product. One chain at a time: its day is shared among them.",
+      "since": "0.11",
+      "tiers": "none"
     }
   ]
 }

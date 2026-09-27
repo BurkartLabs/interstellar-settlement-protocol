@@ -80,7 +80,8 @@ export function normalizeStateShape(rawState) {
       requiresResearch: c.requiresResearch,
       requiresTechIds: c.requiresTechIds,
       stage: c.stage, // AB#825: tier3-recipes.md's stage; the old `tier` was not an item tier
-      category: c.category
+      category: c.category,
+      building: c.building || "refinery" // ISP-189 (AB#883): where it runs, a Refinery or the Synthesis Array
     }));
   }
 

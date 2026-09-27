@@ -8,7 +8,7 @@
 import { nextYardPrice, nextYardPriceFor } from "../public/scripts/yardPrice.js";
 import { applyCredits } from "./finances.js";
 import { catalogueRefusal, PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
-import { buildAssemblyReceipt, buildCryoVaporArrayReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildOrbitalShipyardReceipt, buildRefineryComplexReceipt, buildRefineryReceipt } from "./receipts.js";
+import { buildAssemblyReceipt, buildCryoVaporArrayReceipt, buildExtractorReceipt, buildFerricMiningComplexReceipt, buildOrbitalShipyardReceipt, buildRefineryComplexReceipt, buildRefineryReceipt, buildSynthesisArrayReceipt } from "./receipts.js";
 // ISP-98 (AB#788): a lease's slots are its extractors and the other buildings on it, counted in one place.
 import { leaseFacilities, leaseHasRoom } from "../public/scripts/leaseSlots.js";
 import { ECONOMY } from "./economy.js";
@@ -115,6 +115,30 @@ export const CONSTRUCTIONS = Object.freeze({
     place: () => ({}),
     notification: { title: "Orbital Shipyard Commissioned", body: "Your Orbital Shipyard is operational. Queue ships on the Fleet tab." },
     receipt: (built, corp) => buildOrbitalShipyardReceipt({ cost: built.cost, assetValue: built.assetValue, ...slotCount(corp) })
+  },
+  // ISP-189 (AB#883; docs/design/v0.11-tier4.md, section 4): where the Tier 4 chains run. Its record, the same shape as
+  // a refinery's, is pushed here and runs through server/game/refining.js with the refineries.
+  "synthesis-array": {
+    place(corp) {
+      if (!Array.isArray(corp.synthesisArrays)) corp.synthesisArrays = [];
+      const nextIndex = nextFreeIndex(corp.synthesisArrays, "syn-");
+      corp.synthesisArrays.push({
+        id: `syn-${nextIndex}`,
+        name: nextIndex === 1 ? "Synthesis Array" : `Synthesis Array #${nextIndex}`,
+        tier: 1,
+        active: false,
+        chainId: null,
+        startedAt: null,
+        lastTickAt: null,
+        endsAt: null,
+        cyclesCompleted: 0,
+        totalInputConsumed: 0,
+        totalOutputProduced: 0
+      });
+      return {};
+    },
+    notification: { title: "Synthesis Array Commissioned", body: "Your Synthesis Array is operational. Tier 4 chains can now run in it." },
+    receipt: (built, corp) => buildSynthesisArrayReceipt({ cost: built.cost, assetValue: built.assetValue, ...slotCount(corp) })
   }
 });
 
