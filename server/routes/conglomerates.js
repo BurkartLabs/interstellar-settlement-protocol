@@ -12,7 +12,7 @@ import { can } from "../conglomerates.js";
 import { conglomerateDirectory, foundConglomerate } from "../game/conglomerates.js";
 import { actorRole, answerApplication, answerInvitation, applyToConglomerate, inviteCorporation, leaveConglomerate, membershipView } from "../game/membership.js";
 import { dissolveConglomerate, removeMember, setIdentity, setMemberRole, transferFounder } from "../game/conglomerateRoles.js";
-import { buyConglomerateLevel } from "../game/conglomerateLevels.js";
+import { ackConglomerateLevel, buyConglomerateLevel } from "../game/conglomerateLevels.js";
 import { blockWithdrawal, depositToTreasury, treasuryView, withdrawFromTreasury } from "../game/treasury.js";
 import { depositGoods, hangarView, withdrawGoods } from "../game/hangar.js";
 import { conglomerateIntel } from "../game/intel.js";
@@ -89,6 +89,8 @@ export function registerConglomerateRoutes(app) {
   app.post(`${base}/dissolve`, guarded("dissolve", (req, res) => reply(res, dissolveConglomerate(req.params.accountId, req.params.conglomerateId))));
   // ISP-202 (AB#896): the next level, named in the body so a repeated request cannot buy two.
   app.post(`${base}/level`, guarded("buy-level", (req, res) => reply(res, buyConglomerateLevel(req.params.accountId, req.params.conglomerateId, number(req.body?.level)))));
+  // ISP-203 (AB#897): the member has seen the level-up overlay; any member may say so for itself.
+  app.post(`${base}/level-seen`, guarded("view", (req, res) => reply(res, ackConglomerateLevel(req.params.accountId, req.params.conglomerateId, number(req.body?.level)))));
 
   // ISP-204 (AB#898): the treasury. The ledger has no route that edits or removes a row: it is only ever read here.
   // ISP-206 (AB#901): the ledger a page at a time, newest first (?offset=&limit=).
