@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { itemGates, researchLinkHtml, researchNodeId, unrecoveredItemsHtml } from "../../public/scripts/researchLinks.js";
+import { buildingLinkHtml, itemGates, researchLinkHtml, researchNodeId, unrecoveredItemsHtml } from "../../public/scripts/researchLinks.js";
 import { resourceCatalogHtml } from "../../public/scripts/resourceCatalog.js";
 import { bodyResourceHtml } from "../../public/scripts/bodyInfo.js";
 import { researchNodeHtml } from "../../public/scripts/html.js";
@@ -67,5 +67,26 @@ describe("ISP-191 the Resource catalog is grouped by the design's tiers", () => 
 
   it("without tiers (an older server), one list as before", () => {
     expect(resourceCatalogHtml(["Silicates", "Nickel"], undefined)).toBe('<li class="ui-badge">Silicates</li><li class="ui-badge">Nickel</li>');
+  });
+});
+
+describe("ISP-191 part 2: a Tier 4 chain names the facility it needs, as a link", () => {
+  const REFINERY_VIEW = readFileSync(new URL("../../public/scripts/views/refinery.js", import.meta.url), "utf8");
+
+  it("the building link points at its construction entry, which can take focus", () => {
+    const link = buildingLinkHtml("synthesis-array", "Synthesis Array");
+    expect(link).toContain('data-building-link="synthesis-array"');
+    expect(text(link)).toBe("Synthesis Array");
+    expect(readFileSync(new URL("../../public/scripts/constructionPanel.js", import.meta.url), "utf8")).toContain('data-building-row="${id}" tabindex="-1"');
+  });
+
+  it("the card without an Array links both the Array and the research that allows it", () => {
+    expect(REFINERY_VIEW).toContain('Runs in a ${buildingLinkHtml("synthesis-array", "Synthesis Array")}');
+    expect(REFINERY_VIEW).toContain('${researchLinkHtml("tt-high-energy-synthesis", techTree)} research.');
+  });
+
+  it("Bug #4661: the start button that names what is short wraps inside its card", () => {
+    const css = readFileSync(new URL("../../public/styles.css", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+    expect(css).toMatch(/\.refinery__start \{\n  white-space: normal;\n\}/);
   });
 });

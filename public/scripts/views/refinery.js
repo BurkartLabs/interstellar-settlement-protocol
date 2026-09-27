@@ -12,7 +12,7 @@ import { amountsText, chainTitle, consumersOf, defaultBatches, inputRows, output
 import { wholeNumber } from "../wholeNumber.js";
 import { scrollBehavior } from "../motion.js";
 import { appState, techTree } from "../state.js";
-import { researchLinkHtml } from "../researchLinks.js"; // AB#885
+import { buildingLinkHtml, researchLinkHtml } from "../researchLinks.js"; // AB#885
 import { resourceCatalogHtml } from "../resourceCatalog.js"; // AB#885
 import { clientPrices } from "../clientPrices.js";
 import { refineryMultiplierFor, refineryOutput } from "../refineryOutput.js"; // ISP-97 (AB#787), AB#794: output by tier
@@ -202,7 +202,8 @@ export function renderRefinery(data) {
             // ISP-189 (AB#883): a Tier 4 chain says where it runs, and what its Array needs, not the Refinery's.
             : onArray
               ? !hasFacility
-                ? `<p class="ui-card__meta">Runs in a Synthesis Array. Build one from the Station's construction list; it needs High-Energy Synthesis research.</p>`
+                // AB#885: the building and its research, each a link to where it is dealt with.
+                ? `<p class="ui-card__meta">Runs in a ${buildingLinkHtml("synthesis-array", "Synthesis Array")}. Build one from the Station's construction list; it needs ${researchLinkHtml("tt-high-energy-synthesis", techTree)} research.</p>`
                 : !idleRefinery ? `<p class="ui-card__meta"><span class="ui-badge ui-badge--warn">Synthesis Array busy</span></p>` : ""
             : belowRefineryCap && canBuildRefinery
               ? refineryBuildButtonHtml({ hasRefinery, used: buildings.length, slots: buildingSlots })

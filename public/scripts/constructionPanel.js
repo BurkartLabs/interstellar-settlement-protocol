@@ -101,7 +101,7 @@ function rowHtml({ building, cost, leases, reason, upgrades }) {
     ? `<p class="station__blocked">${escapeHtml(reason)}</p>`
     : `${leasePicker}<button class="ui-button ui-button--primary" data-build-id="${id}">Build (${money(cost)})</button>`;
   return `
-        <article class="ui-card station__card" data-building-row="${id}">
+        <article class="ui-card station__card" data-building-row="${id}" tabindex="-1">
           <header class="station__card-header"><h3>${escapeHtml(building.name)}</h3></header>
           <p class="ui-card__body">${escapeHtml(building.effect || "")}</p>
           <p class="station__note">${Number.isFinite(cost) ? money(cost) : "Price not loaded"} &middot; ${slotUse}</p>
