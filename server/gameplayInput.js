@@ -121,6 +121,7 @@ export const ACCOUNT_INPUT = {
   // ISP-149 (AB#843): the product and principal to quote, and the quote to accept; the terms are the server's
   "POST /loans/quote": { body: { productId: word(["dsdb-7", "dsdb-30", "dsdb-90"], "a Development Bank loan product"), principal: int(1_000, 100_000_000, "a principal of at least 1,000 credits") } },
   "POST /loans/accept": { body: { quoteId: ref("a loan quote") } },
+  "POST /loans/:loanId/payoff": { params: { loanId: ref("one of your loans") } }, // ISP-150 (AB#844)
   "POST /messages/send": {
     body: {
       draftId: ref("a draft", { optional: true }),

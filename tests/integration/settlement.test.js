@@ -49,8 +49,8 @@ describe("ISP-146 settleTransfer refuses what it cannot vouch for, and moves not
     expect(settleTransfer().ok).toBe(false);
   });
 
-  it("the reasons are exactly the nine instruments, and the list cannot be changed", () => {
-    expect([...REASONS].sort()).toEqual(["bond-subscription", "coupon", "dividend", "escrow-hold", "escrow-release", "fee", "loan-disbursal", "loan-repayment", "share-purchase"]);
+  it("the reasons are exactly the instruments, and the list cannot be changed", () => {
+    expect([...REASONS].sort()).toEqual(["bond-subscription", "coupon", "dividend", "escrow-hold", "escrow-release", "fee", "loan-disbursal", "loan-interest", "loan-repayment", "share-purchase"]); // AB#844 adds loan-interest
     expect(Object.isFrozen(REASONS)).toBe(true);
   });
 });
