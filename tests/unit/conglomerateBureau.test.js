@@ -83,7 +83,7 @@ describe("the directory's apply control (AB#894)", () => {
     const applied = outsider({ application: { id: "capp-1", at: T, conglomerate: summary() } });
     expect(applyRefusal(applied, list[0])).toMatch(/You have applied/);
     expect(applyRefusal(applied, list[1])).toMatch(/open application to Halcyon Accord. Withdraw it/);
-    expect(applyRefusal(outsider({ joinCooldownUntil: T }), list[0])).toBe("You can apply from 27 Sep 2026, 12:00 UTC.");
+    expect(applyRefusal(outsider({ joinCooldownUntil: T }), list[0])).toBe("You can apply from 2147-09-27 12:00 UTC.");
     expect(applyRefusal(member("member"), list[1])).toMatch(/already in a conglomerate/);
     const html = directoryHtml(list, applied);
     expect(html).toMatch(/data-role="cong-apply" data-conglomerate="cgl-2" disabled aria-describedby="cong-why-1"/);

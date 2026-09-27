@@ -5,14 +5,16 @@
 import { escapeHtml } from "./html.js";
 import { durationText } from "./shipyardPanel.js";
 import { unitsText } from "./fleetView.js";
+import { utcClock, utcDate, utcTime } from "./timeFormat.js";
+import { refHtml } from "./html.js"; // ISP-249 (AB#945)
 
 export const POSTURES = [
   { id: "balanced", label: "Balanced", note: "the default" },
   { id: "fortified", label: "Fortified", note: "harder to hit, hits back 20% less: keeps more of your units" },
   { id: "aggressive", label: "Aggressive", note: "hits 20% harder, easier to hit: costs a raider more, at more risk" }
 ]; // server/garrison.js's POSTURES
-const utc = (ms) => new Date(ms).toISOString().slice(11, 16) + " UTC";
-const day = (ms) => new Date(ms).toUTCString().slice(5, 11);
+const utc = (ms) => utcClock(ms); // ISP-249 (AB#945): the clock, beside its date
+const day = (ms) => utcDate(ms);
 const cr = (n) => `${Math.round(n).toLocaleString("en-US")} credits`;
 const n = (x) => Math.max(0, Math.floor(Number(x) || 0));
 const UNIT_IDS = ["lf", "ds", "se", "at", "dt"];
@@ -81,7 +83,7 @@ export function targetPickerHtml({ fleets = [], stationId = "", stations = [], l
       <li class="raid-target${t.eligible ? "" : " raid-target--closed"}" data-target="${escapeHtml(t.corpId)}">
         <span class="raid-target__name">${escapeHtml(t.name)}</span>
         ${t.eligible ? `<button type="button" class="ui-button ui-button--primary" data-raid-target="${escapeHtml(t.corpId)}">Raid</button>`
-          : `<span class="raid-target__why">${t.reasons.map((r) => escapeHtml(r.text) + (r.kind !== "protected" && r.until ? ` (${day(r.until)}, ${utc(r.until)})` : "")).join(" ")}</span>`}
+          : `<span class="raid-target__why">${t.reasons.map((r) => escapeHtml(r.text) + (r.kind !== "protected" && r.until ? ` (${utcTime(r.until, { withDate: true })})` : "")).join(" ")}</span>`}
       </li>`).join("");
   return `<form class="raid-picker" data-raid-picker>
       <label class="ui-field">Fleet <select class="ui-select" name="fleetId">${ready.map((f) => `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)}: ${escapeHtml(unitsText(f.units, catalog))}, at ${escapeHtml(stationName(f.stationId))}</option>`).join("")}</select></label>
@@ -122,8 +124,8 @@ export function battleReportHtml(report, { catalog = [] } = {}) {
   const lootRows = Object.entries(report.loot || {});
   const damage = report.buildingsDamaged || [];
   return `<article class="raid-report" data-raid-report-view="${escapeHtml(report.raidId)}" aria-label="Battle report">
-    <h4 class="raid-report__title">${WINNER[report.winner] || report.winner}</h4>
-    <p>${escapeHtml(report.attacker.name ?? "A corporation")} raided ${escapeHtml(report.defender.name ?? "a corporation")} at ${escapeHtml(report.station)}, ${new Date(report.at).toUTCString().slice(5, 22)} UTC. The defense stood ${escapeHtml(report.posture || "balanced")}.</p>
+    <h4 class="raid-report__title">${WINNER[report.winner] || report.winner}</h4>${refHtml(report.ref)}
+    <p>${escapeHtml(report.attacker.name ?? "A corporation")} raided ${escapeHtml(report.defender.name ?? "a corporation")} at ${escapeHtml(report.station)}, ${utcTime(report.at, { withDate: true })}. The defense stood ${escapeHtml(report.posture || "balanced")}.</p>
     <table class="raid-table"><caption>Forces and losses (you were the ${mine})</caption>
       <thead><tr><th scope="col">Unit</th><th scope="col">Attacker</th><th scope="col">Lost</th><th scope="col">Defender</th><th scope="col">Lost</th></tr></thead>
       <tbody>${fought.map((id) => `<tr><th scope="row">${escapeHtml(names[id] || id)}</th><td>${n(report.attacker.before?.[id])}</td><td>${n(report.attacker.lost?.[id])}</td><td>${n(report.defender.before?.[id])}</td><td>${n(report.defender.lost?.[id])}</td></tr>`).join("")}</tbody>

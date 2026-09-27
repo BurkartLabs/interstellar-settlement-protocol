@@ -13,6 +13,7 @@ import { tariffPanelHtml } from "./tariffPanel.js"; // ISP-231 (AB#926)
 import { DOMINANCE_OVERLAYS, QUIET_TOKEN, dominanceDetailsHtml, dominanceKey, dominanceLegendHtml, isDominanceOverlay, tokenRgba } from "./dominanceOverlay.js"; // ISP-218 (AB#913)
 import { CONCESSION_OVERLAY, concessionDetailsHtml, concessionKey, concessionLegendHtml } from "./concessionOverlay.js"; // ISP-229 (AB#924)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
+import { utcClock } from "./timeFormat.js"; // ISP-249 (AB#945)
 
 // ISP-112 (AB#804): each system's place on the cluster view is its `mapPosition` in data/systems.json, as fractions of
 // the canvas; the controller reads it from the catalog it is given (getSystemsCatalog).
@@ -121,13 +122,10 @@ export function scoutedBeltHtml(view, composition) {
             ${reserve}`;
 }
 
-/** AB#2331: when an empty slot next draws, as UTC on the hour and in the viewer's own time. */
+/** AB#2331: when an empty slot next draws, on the hour. ISP-249 (AB#945): in UTC only, as every time the game shows. */
 export function nextDrawText(nextDrawAt) {
   if (!nextDrawAt) return "the next hour";
-  const at = new Date(nextDrawAt);
-  const utc = `${String(at.getUTCHours()).padStart(2, "0")}:00 UTC`;
-  const local = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  return `${utc} (${local} your time)`;
+  return utcClock(nextDrawAt);
 }
 
 /** AB#2331: a slot whose belt was mined out: no belt, and when the next hourly chance of a new one is. */

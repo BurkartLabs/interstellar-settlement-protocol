@@ -23,6 +23,8 @@ import { accountByCorp } from "./game/membership.js";
 import { stationById } from "./game/stations.js";
 import { addStanding, standingOf } from "./game/standing.js";
 import { influence, outcome, specProblem } from "./game/lobbying.js";
+import { utcTime } from "../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
+import { ensureRef } from "./references.js"; // ISP-249 (AB#945): the record's reference, given on first read and kept
 
 const FILE = path.join(dataDir, "lobbying.json");
 const HOUR = 3_600_000;
@@ -98,7 +100,7 @@ export function openCampaign(corp, { parameter, systemId, direction } = {}, now 
   if (standingOf(corp, spec.faction) < TERMS.openStandingMin) return no(403, `Opening a campaign needs ${TERMS.openStandingMin} standing with the ${factionName(spec.faction)}.`);
   const last = store.campaigns.filter((c) => c.systemId === systemId && c.parameter === parameter).sort((a, b) => b.opensAt - a.opensAt)[0];
   if (last && (!last.result || now < last.result.endsAt)) return no(409, "A campaign on this parameter in this system is already running.");
-  if (last && now < last.result.endsAt + TERMS.cooldownDays * DAY_MS) return no(409, `Another campaign may open here from ${new Date(last.result.endsAt + TERMS.cooldownDays * DAY_MS).toISOString().slice(0, 16).replace("T", " ")} UTC.`);
+  if (last && now < last.result.endsAt + TERMS.cooldownDays * DAY_MS) return no(409, `Another campaign may open here from ${utcTime(last.result.endsAt + TERMS.cooldownDays * DAY_MS, { withDate: true })}.`);
   addStanding(corp, spec.faction, -TERMS.openStandingCost, WARFARE_CATALOG.standing);
   store.seq += 1;
   const campaign = { id: `lob-${store.seq}`, parameter, systemId, direction, faction: spec.faction, openedBy: corp.publicId, opensAt: now, closesAt: now + TERMS.pledgeHours * HOUR, base: baseOf(systemId, parameter), pledges: [], result: null };
@@ -161,7 +163,7 @@ const nameOf = (pub) => accountByCorp(pub)?.state?.corp?.corporationName || "A c
 export function publicCampaign(c, now = Date.now()) {
   const state = !c.result ? (now < c.closesAt ? "pledging" : "closing") : now < c.result.endsAt ? "in-force" : "ended";
   return {
-    id: c.id, parameter: c.parameter, systemId: c.systemId, direction: c.direction, faction: c.faction, state,
+    id: c.id, ref: ensureRef(c, "LOB", { issuedAt: c.opensAt })[0], parameter: c.parameter, systemId: c.systemId, direction: c.direction, faction: c.faction, state,
     openedBy: nameOf(c.openedBy), opensAt: c.opensAt, closesAt: c.closesAt, base: c.base,
     pledgers: c.pledges.map((p) => ({ name: nameOf(p.corp), side: p.side })),
     result: c.result ? { from: c.result.from, to: c.result.to, endsAt: c.result.endsAt } : null

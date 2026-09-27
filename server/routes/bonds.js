@@ -9,10 +9,11 @@ import { bondHoldingsValue, nextPayment } from "../bondServicing.js";
 import { bodyNumber } from "../bodyNumber.js";
 import { getAccountById } from "../gameState.js";
 import { sanitizeAccount } from "../game/store.js";
+import { utcTime } from "../../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
 
 const num = (v) => bodyNumber(v, { fallback: NaN });
 const credits = (n) => `${Math.round(n).toLocaleString("en-US")} credits`;
-const day = (t) => new Date(t).toUTCString().replace(/:\d\d GMT$/, " UTC").replace(/^\w+, /, "");
+const day = (t) => utcTime(t, { withDate: true }); // ISP-249 (AB#945)
 const answer = (accountId, extra) => ({ ...sanitizeAccount(getAccountById(accountId)), ...extra });
 
 /** ISP-19: what the confirmation after issuing says. */

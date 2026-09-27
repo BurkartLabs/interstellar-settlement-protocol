@@ -8,6 +8,7 @@ import { getAllInventory } from "./shared.js";
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
+import { refHtml } from "../html.js"; // ISP-249 (AB#945)
 export function renderAssets(data) {
   const contentEl = document.getElementById("assets-content");
   if (!contentEl) return;
@@ -89,7 +90,7 @@ export function renderAssets(data) {
     const exCount = leaseSlotsUsed(l); // ISP-98 (AB#788): extractors and the other buildings on the lease
     const leaseExtractors = extractors.filter(ex => ex.leaseId === l.id);
     const totalMined = leaseExtractors.reduce((sum, ex) => sum + Number(ex.totalMined || 0), 0);
-    infraRows += row("Mining Lease", escapeHtml(l.body), statusBadge("success", "Active"), `${exCount}/${l.buildingSlots || 2} slots · ${totalMined.toLocaleString()} mined`);
+    infraRows += row(`Mining Lease ${refHtml(l.ref)}`, escapeHtml(l.body), statusBadge("success", "Active"), `${exCount}/${l.buildingSlots || 2} slots · ${totalMined.toLocaleString()} mined`);
   }
 
   // Extractors — show actual location (lease body) in the location column

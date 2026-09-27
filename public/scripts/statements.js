@@ -3,6 +3,7 @@
 // field it shows (data-figure) and its exact value (data-value), so a test can hold the page to the endpoint.
 
 import { escapeHtml } from "./html.js";
+import { utcDate } from "./timeFormat.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -17,20 +18,18 @@ export function statementLabel(key) {
   return String(key).replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// Fixed names, not toLocaleDateString: its output varies by browser and ICU version ("Sep" or "Sept").
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// ISP-249 (AB#945): dates are the guide's (public/scripts/timeFormat.js), never the browser's locale.
 
-/** "21 Sep", in UTC. */
+/** "09-21": a chart's day label, month and day of the guide's date. */
 function shortDay(d) {
-  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+  return utcDate(d).slice(5);
 }
 
-/** "Mon 21 Sep 2026", read in UTC: a statement's day is a UTC day. */
+/** ISP-249 (AB#945): a statement's UTC day in the guide's date, "2147-09-21": no weekday (the 2147 weekday is not the real one). */
 export function statementDayLabel(day) {
   const d = new Date(`${day}T00:00:00Z`);
   if (Number.isNaN(d.getTime())) return String(day);
-  return `${WEEKDAYS[d.getUTCDay()]} ${shortDay(d)} ${d.getUTCFullYear()}`;
+  return utcDate(d);
 }
 
 /** The day picker's options, newest first; `selected` is a "YYYY-MM-DD" day, else the newest is chosen. */

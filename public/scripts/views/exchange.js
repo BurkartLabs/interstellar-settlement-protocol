@@ -95,6 +95,8 @@ export function clientTariffHere() {
 }
 
 import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
+import { refHtml } from "../html.js"; // ISP-249 (AB#945)
+import { timeHtml } from "../timeFormat.js";
 export function renderMarket(data) {
   const station = getCurrentStationInfo(data);
   const bannerEl = document.getElementById("market-station-banner");
@@ -371,7 +373,7 @@ export function renderMarket(data) {
           const totalCell = tradeTotalCell(t);
           return `
           <tr>
-            <td>${t.at ? formatTime(t.at) : "-"}</td>
+            <td>${t.at ? timeHtml(t.at) : "-"}${t.ref ? `<br>${refHtml(t.ref)}` : ""}</td>
             <td>${tradeTypeBadge(t)}</td>
             <td>${escapeHtml(t.item || "-")}</td>
             <td class="ui-table__num">${Number(t.quantity || 0).toLocaleString()}</td>

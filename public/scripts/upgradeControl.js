@@ -9,11 +9,12 @@ import { toCurrency } from "./helpers.js";
 import { bestThroughput, costPerHourFor, operationsForTier, yardTierFor, yardUpkeepPerHourFor } from "./miningProjection.js";
 import { fabricationMsFor, tierTableFor } from "./buildingTiers.js"; // ISP-102 (AB#794)
 import { refineryMultiplierFor } from "./refineryOutput.js";
+import { utcTime } from "./timeFormat.js";
 
 // The extractor card around this control prints money with toCurrency ("$1,234"), so the control does too.
 const money = (n) => toCurrency(Math.floor(n));
 const num = (n) => Math.round(n).toLocaleString("en-US");
-const utc = (ms) => new Date(ms).toISOString().slice(11, 16);
+const utc = (ms, now) => utcTime(ms, { now }).replace(/ UTC$/, ""); // ISP-249 (AB#945): the callers write " UTC" after it
 
 /** A tier's figures at its best rate: cap, best rate, running cost an hour (with this yard's upkeep) and net an hour. */
 function tierFigures(tier, yardIndex, economy, efficiency) {
@@ -72,7 +73,7 @@ export function yardUpgradeView(extractor, corp = {}, economy = {}, { now = Date
   }
   const credits = Number(corp.finances?.credits || 0);
   if (extractor.active) view.blocked = "Stop or finish its mining cycle first: the yard is offline while it upgrades.";
-  else if (Number(extractor.upgradingUntil) > now) view.blocked = `Upgrading: back online at ${utc(Number(extractor.upgradingUntil))} UTC.`;
+  else if (Number(extractor.upgradingUntil) > now) view.blocked = `Upgrading: back online at ${utc(Number(extractor.upgradingUntil), now)} UTC.`;
   else if (credits < row.upgradeCost) view.blocked = `Needs ${money(row.upgradeCost)}; you have ${money(credits)}.`;
   return view;
 }
@@ -158,7 +159,7 @@ export function facilityUpgradeView(building, corp = {}, economy = {}, catalogue
   }
   const credits = Number(corp.finances?.credits || 0);
   if (busy) view.blocked = busy;
-  else if (Number(record.upgradingUntil) > now) view.blocked = `Upgrading: back online at ${utc(Number(record.upgradingUntil))} UTC.`;
+  else if (Number(record.upgradingUntil) > now) view.blocked = `Upgrading: back online at ${utc(Number(record.upgradingUntil), now)} UTC.`;
   else if (credits < row.upgradeCost) view.blocked = `Needs ${money(row.upgradeCost)}; you have ${money(credits)}.`;
   else if (goods.length) {
     const stock = corp.inventory?.[corp.currentStationId] || {};

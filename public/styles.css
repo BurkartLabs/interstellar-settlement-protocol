@@ -4405,6 +4405,8 @@ img.station__body {
 .patent-terms-list dt { color: var(--muted); }
 .patent-terms-list dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .patent-total { margin: 0; font-variant-numeric: tabular-nums; }
+/* ISP-249 (AB#945): a record's reference number, secondary text in a fixed-width face so it reads and copies cleanly */
+.ref-no { font-family: var(--font-mono); font-size: var(--font-size-2); color: var(--muted); letter-spacing: 0.02em; white-space: nowrap; }
 /* ISP-240 (AB#935): the lobbying office at the Earth Assembly and the ITC */
 .lobby-section { display: flex; flex-direction: column; gap: var(--space-3); }
 .lobby-standing { margin: 0; font-size: var(--font-size-4, 1.5rem); font-variant-numeric: tabular-nums; }

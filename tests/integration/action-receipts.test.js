@@ -79,7 +79,7 @@ describe("receipts on the six core-loop actions (AB#743)", () => {
     const ends = new Date(ex.endsAt);
     const hh = String(ends.getUTCHours()).padStart(2, "0");
     const mm = String(ends.getUTCMinutes()).padStart(2, "0");
-    expect(steps.mine.body.receipt.grants.find((g) => g.label === "Cycle ends").value).toMatch(new RegExp(`^${ends.getUTCDate()} \\w{3}, ${hh}:${mm} UTC$`));
+    expect(steps.mine.body.receipt.grants.find((g) => g.label === "Cycle ends").value).toMatch(new RegExp(`^${ends.getUTCFullYear() + 121}-\\d{2}-\\d{2} ${hh}:${mm} UTC$`)); // ISP-249 (AB#945)
   });
 
   it("a refused action answers with its error and no receipt", () => {

@@ -8,6 +8,7 @@
 import { apiFetch } from "../apiClient.js";
 import { escapeHtml } from "../html.js";
 import { appState } from "../state.js";
+import { utcTime } from "../timeFormat.js";
 
 export const convState = {
   list: [],            // conversations, newest first
@@ -17,7 +18,7 @@ export const convState = {
   open: null           // { conversation, messages (oldest first), nextCursor, loading }
 };
 
-let hooks = { onChange: () => {}, show: () => {}, formatDate: (t) => new Date(t).toLocaleString() };
+let hooks = { onChange: () => {}, show: () => {}, formatDate: (t) => utcTime(t) }; // ISP-249 (AB#945)
 /** inbox.js passes what this module needs from it, so the two do not import each other. */
 export function setConversationHooks(next) { hooks = { ...hooks, ...next }; }
 

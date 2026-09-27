@@ -28,7 +28,7 @@ describe("the patent office (AB#932)", () => {
   it("lists what may be filed with its window and a rate select in its bound, and a button that names the fee", () => {
     const html = patentOfficeHtml({ office: OFFICE, register: [] }, ctx);
     const t = text(html);
-    for (const s of ["Filing costs 5,000 credits", "within 72 hours", "runs 28 days and is never renewed", "Actinide Handling", "The window closes 2026-10-04 07:00 UTC (67 hours left)", "File patent (5,000 credits)"]) expect(t).toContain(s);
+    for (const s of ["Filing costs 5,000 credits", "within 72 hours", "runs 28 days and is never renewed", "Actinide Handling", "The window closes 2147-10-04 07:00 UTC (67 hours left)", "File patent (5,000 credits)"]) expect(t).toContain(s);
     expect(html).toMatch(/data-role="patent-file" data-kind="research" data-subject-id="tt-actinide-handling"/);
     expect(html.match(/<option/g)).toHaveLength(26); // 0 to 25%
   });
@@ -44,8 +44,8 @@ describe("the patent office (AB#932)", () => {
 
   it("draws the public register: holder, subject, rate and term end", () => {
     const t = text(patentOfficeHtml({ office: OFFICE, register: [{ id: "pat-2", ...PV }, { ...OFFICE.mine[0], active: false, endsAt: T - DAY }] }, ctx));
-    expect(t).toContain("Nickel-Iron Alloy Refining Refinery chain In force Holder Kestrel Mining Royalty 4% Ends 2026-10-28 12:00 UTC");
-    expect(t).toContain("Deep-Core Extraction Research node Expired Holder Nova Freight Royalty 12% Ended 2026-09-30 12:00 UTC");
+    expect(t).toContain("Nickel-Iron Alloy Refining Refinery chain In force Holder Kestrel Mining Royalty 4% Ends 2147-10-28 12:00 UTC");
+    expect(t).toContain("Deep-Core Extraction Research node Expired Holder Nova Freight Royalty 12% Ended 2147-09-30 12:00 UTC");
   });
 });
 

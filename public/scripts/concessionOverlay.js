@@ -9,16 +9,15 @@
 
 import { escapeHtml } from "./html.js";
 import { LEADER_TOKENS, OTHER_TOKEN, OWN_TOKEN, QUIET_TOKEN } from "./dominanceOverlay.js";
+import { utcTime } from "./timeFormat.js"; // ISP-249 (AB#945)
 
 export const CONCESSION_OVERLAY = "concessions";
 /** A system the ISA never concedes: drawn muted and named "ISA administered". */
 export const ISA_TOKEN = "--muted";
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-/** A time as the ISA register writes it: "4 Oct, 10:04 UTC". */
+/** A time as the ISA register writes it (ISP-249, AB#945: the guide's format, public/scripts/timeFormat.js). */
 export function isaTime(t) {
-  const d = new Date(t);
-  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}, ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
+  return utcTime(t, { withDate: true });
 }
 
 /**

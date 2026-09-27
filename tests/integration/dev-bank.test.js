@@ -82,7 +82,7 @@ describe("ISP-151 borrowing and paying off answer with the account and a receipt
     expect(a.body.receipt.cost).toBe(`${q.body.quote.originationFee.toLocaleString("en-US")} credits origination fee, taken at disbursal`);
     const grants = Object.fromEntries(a.body.receipt.grants.map((g) => [g.label, g.value]));
     expect(grants.Received).toBe(`${(63_000 - q.body.quote.originationFee).toLocaleString("en-US")} credits`);
-    expect(grants["First payment"]).toContain(`${first.getUTCDate()} ${first.toUTCString().split(" ")[2]} ${first.getUTCFullYear()}`);
+    expect(grants["First payment"]).toContain(`${first.getUTCFullYear() + 121}-${String(first.getUTCMonth() + 1).padStart(2, "0")}-${String(first.getUTCDate()).padStart(2, "0")}`); // ISP-249 (AB#945)
     expect(grants["First payment"]).toMatch(/UTC$/);
 
     const p = await c.api.post(`/api/accounts/${c.id}/loans/${a.body.loan.id}/payoff`).send({});

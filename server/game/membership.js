@@ -18,6 +18,7 @@ import { pushSystemNotification } from "./progression.js";
 import { accountsStore, saveAccountsNow } from "./store.js";
 import { charterRefusal, conglomerateList, levelStatus, publicConglomerate, settleTreasury } from "./conglomerates.js";
 import { departStake, settleBuyouts } from "./stakes.js"; // ISP-211 (AB#906)
+import { utcTime } from "../../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -37,7 +38,7 @@ function publish(message) {
 
 const no = (status, code, error) => ({ refused: { status, code, error } });
 const NOT_FOUND = { conglomerate: () => no(404, "no-conglomerate", "No such conglomerate."), invitation: () => no(404, "no-invitation", "No such invitation."), application: () => no(404, "no-application", "No such application.") };
-const until = (t) => `${new Date(t).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+const until = (t) => utcTime(t, { withDate: true }); // ISP-249 (AB#945)
 
 /** The account whose corporation has this public id, or null. */
 export function accountByCorp(publicId) {
