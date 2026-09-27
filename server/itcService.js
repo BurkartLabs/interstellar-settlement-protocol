@@ -34,6 +34,8 @@ import { councilWithholding, withheldFrom } from "../public/scripts/itcDuty.js";
 import { onDumpingFinding } from "./standingService.js"; // ISP-238 (AB#933)
 import { dumpingTermsIn } from "./lobbyingService.js"; // ISP-239 (AB#934): the lines in force in a sale's system
 import { stationById } from "./game/stations.js";
+import { utcDate } from "../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
+import { referenceFor } from "./references.js"; // ISP-249 (AB#945)
 
 const FILE = path.join(dataDir, "itc.json");
 const DAY_MS = 86_400_000;
@@ -53,7 +55,7 @@ function readStore() {
 const save = () => safeWriteFile(FILE, JSON.stringify(store));
 const plain = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 const price = (v) => (Math.round(v * 100) / 100).toLocaleString("en-US", { maximumFractionDigits: 2 });
-const dayText = (d) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" });
+const dayText = (d) => utcDate(`${d}T00:00:00Z`); // ISP-249 (AB#945)
 
 /**
  * Record one of `seller`'s own-priced sales (a listing filled, or a sale into another's buy order) for the watch.
@@ -140,7 +142,7 @@ function levy(f, now) {
   store.sinkTotal += paid;
   Object.assign(f, { leviedAt: now, paid, owedAtLevy: rest });
   notify(f.corp, "ITC Anti-Dumping Duty Levied",
-    `${f.id}. The Interplanetary Trade Commission has levied the anti-dumping duty of ${formatCredits(f.duty)} on your ${plain(f.Q)} ${f.item}. ` +
+    `${f.ref || f.id}. The Interplanetary Trade Commission has levied the anti-dumping duty of ${formatCredits(f.duty)} on your ${plain(f.Q)} ${f.item}. ` +
     (rest > 0
       ? `${formatCredits(paid)} was taken from your reserves. The remaining ${formatCredits(rest)} is owed: ${TERMS.withholdPct}% of the net proceeds of each exchange sale will be withheld toward it until it is paid. No interest is charged.`
       : `It has been taken from your reserves. The investigation is closed.`));
@@ -173,14 +175,15 @@ export function itcTick(now = Date.now()) {
       const r = assess(sales, normalOf(history[item], normal, terms), terms);
       if (!r.found) continue;
       store.findingSeq = (store.findingSeq || 0) + 1;
-      const f = { id: `ITC-${day.slice(0, 4)}-${String(store.findingSeq).padStart(6, "0")}`, corp, item, window: [window[0], window.at(-1)], N: r.N, line: r.line, volumeLine: r.volumeLine, Q: r.Q, P: r.P, duty: r.duty, openedAt: now, leviedAt: null, sales: r.dumped };
+      const fid = `itf-${store.findingSeq}`; // ISP-249 (AB#945): an internal id; the notices cite the reference
+      const f = { id: fid, ref: referenceFor("ITC", fid, now), corp, item, window: [window[0], window.at(-1)], N: r.N, line: r.line, volumeLine: r.volumeLine, Q: r.Q, P: r.P, duty: r.duty, openedAt: now, leviedAt: null, sales: r.dumped };
       for (const s of store.sales) if (r.dumped.includes(s.id)) s.findingId = f.id;
       store.findings.push(f);
       const found = accountByCorp(corp); // ISP-238 (AB#933): a finding costs ITC standing
       if (found) mutateAccountState(found.id, (state) => { onDumpingFinding(state.corp); });
       opened.push(f.id);
       notify(corp, "ITC Anti-Dumping Investigation",
-        `${f.id}. The Interplanetary Trade Commission has opened an anti-dumping investigation. Between ${dayText(window[0])} and ${dayText(window.at(-1))} (UTC) ` +
+        `${f.ref || f.id}. The Interplanetary Trade Commission has opened an anti-dumping investigation. Between ${dayText(window[0])} and ${dayText(window.at(-1))} (UTC) ` +
         `you sold ${plain(r.Q)} ${item} at an average of ${price(r.P)} credits, below ${TERMS.priceThresholdPct}% of their normal value (${price(r.N)} credits; the line is ${price(r.line)}). ` +
         `The volume line for those ${TERMS.windowDays} days was ${plain(r.volumeLine)} units, and the sales were worth ${formatCredits(r.Q * r.N)} at normal value. ` +
         `A duty of ${formatCredits(r.duty)}, the dumping margin, will be levied at 00:00 UTC in ${TERMS.levyAfterHours} hours.`);

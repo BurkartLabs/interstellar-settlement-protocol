@@ -22,6 +22,7 @@ import { showActionReceipt } from "./receiptModal.js"; // ISP-203 (AB#897): the 
 import { showStationBuilding } from "./station.js";
 import { scrollBehavior } from "../motion.js"; // AB#1760
 import { paintStationArt } from "../stationArt.js"; // ISP-213 (AB#908)
+import { deadline } from "../timeFormat.js"; // ISP-249 (AB#945)
 
 const CHARTER_STATION = "earth-station-prime";
 // The view's own state survives a redraw: the last reads, the charter form, and the invite search.
@@ -468,7 +469,7 @@ async function withdrawCredits(form) {
         { label: "Then", value: "Every member is told; it is paid in 24 hours unless two directors block it" }
       ]
     } : null,
-    done: (a) => (a.withdrawal.state === "pending" ? `Announced. It is paid at ${new Date(a.withdrawal.completesAt).toISOString().slice(0, 16).replace("T", " ")} UTC unless blocked.` : `Withdrawn: ${a.withdrawal.amount.toLocaleString("en-US")} credits are in your corporation's account.`)
+    done: (a) => (a.withdrawal.state === "pending" ? `Announced. It is paid ${deadline(a.withdrawal.completesAt)} unless blocked.` : `Withdrawn: ${a.withdrawal.amount.toLocaleString("en-US")} credits are in your corporation's account.`)
   });
 }
 

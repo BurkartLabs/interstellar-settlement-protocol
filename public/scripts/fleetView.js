@@ -6,6 +6,7 @@
 import { escapeHtml } from "./html.js";
 import { durationText } from "./shipyardPanel.js";
 import { shipyardTierOf, upkeepBreakdown } from "./militaryUpkeep.js";
+import { utcTime } from "./timeFormat.js";
 
 export const FLEET_TYPES = ["lf", "ds", "se", "at"];
 export const FLEET_NAMES = ["Vanguard", "Aegis", "Bastion", "Corsair", "Halberd", "Lancer", "Meridian", "Nomad",
@@ -13,7 +14,7 @@ export const FLEET_NAMES = ["Vanguard", "Aegis", "Bastion", "Corsair", "Halberd"
 const money = (n) => `¤${Math.round(n).toLocaleString("en-US")}`;
 const plural = (n, name) => `${n} ${name}${n === 1 ? "" : "s"}`;
 const count = (units, id) => Math.max(0, Math.floor(Number(units?.[id]) || 0));
-const utc = (ms) => new Date(ms).toISOString().slice(11, 16) + " UTC";
+const utc = (ms, now) => utcTime(ms, { now }); // ISP-249 (AB#945): dated unless it falls on the screen's today
 
 /** How many of each type the fleets hold, and the reserve: what no fleet holds. */
 export function fleetTotals(corp) {
@@ -33,7 +34,7 @@ export function unitsText(units, catalog) {
 /** Where a fleet is, in words, with its arrival when it is on its way. */
 export function locationText(fleet, stationName, now = Date.now()) {
   if (fleet.transit && now < fleet.transit.arrivesAt) {
-    return `In transit to ${stationName(fleet.transit.toStationId)}, arrives in ${durationText(fleet.transit.arrivesAt - now)} (${utc(fleet.transit.arrivesAt)})`;
+    return `In transit to ${stationName(fleet.transit.toStationId)}, arrives in ${durationText(fleet.transit.arrivesAt - now)} (${utc(fleet.transit.arrivesAt, now)})`;
   }
   return `Stationed at ${stationName(fleet.transit?.toStationId || fleet.stationId)}`;
 }

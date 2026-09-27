@@ -20,6 +20,7 @@ import { createId, deepClone } from "./catalog.js";
 import { catalogStations } from "./stations.js"; // ISP-209 (AB#904)
 import { RESERVED_CORPORATION_NAMES } from "./world.js";
 import { accountsStore, closeFinancialDays, sanitizeAccount, saveAccountsNow } from "./store.js";
+import { utcDate, utcTime } from "../../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DATA = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "data");
@@ -75,8 +76,8 @@ export function conglomerateDirectory() {
 const REFUSALS = {
   "charter-unavailable": ({ status = 503 } = {}) => ({ status, error: "The Conglomerate Affairs Bureau cannot file charters just now; try again later." }),
   "already-in-conglomerate": () => ({ status: 409, error: "Your corporation is already in a conglomerate. Leave it before you found another." }),
-  "founder-too-young": ({ from }) => ({ status: 409, error: `A corporation can found a conglomerate ${CONGLOMERATE_CATALOG.minFounderAgeDays} days after it was registered. Yours can from ${new Date(from).toISOString().slice(0, 16).replace("T", " ")} UTC.` }),
-  "join-cooldown": ({ until }) => ({ status: 409, error: `Your corporation left a conglomerate recently and cannot found or join one until ${new Date(until).toISOString().slice(0, 16).replace("T", " ")} UTC.` }),
+  "founder-too-young": ({ from }) => ({ status: 409, error: `A corporation can found a conglomerate ${CONGLOMERATE_CATALOG.minFounderAgeDays} days after it was registered. Yours can from ${utcTime(from, { withDate: true })}.` }),
+  "join-cooldown": ({ until }) => ({ status: 409, error: `Your corporation left a conglomerate recently and cannot found or join one until ${utcTime(until, { withDate: true })}.` }),
   "not-at-bureau": () => ({ status: 409, error: "Charters are filed at the Conglomerate Affairs Bureau on Earth Station Prime. Travel there, then file." }),
   "insufficient-credits": ({ needed, held }) => ({ status: 409, error: `The charter costs ${needed.toLocaleString("en-US")} credits (a ${CONGLOMERATE_CATALOG.charterFee.toLocaleString("en-US")} fee and a ${CONGLOMERATE_CATALOG.charterDeposit.toLocaleString("en-US")} deposit into the new treasury). Your corporation holds ${held.toLocaleString("en-US")}.` }),
   "invalid-emblem": () => ({ status: 400, error: `Choose an emblem from the Bureau's ${CONGLOMERATE_CATALOG.emblems}.` }),
@@ -288,7 +289,7 @@ const accountOfCorp = (publicId) => Object.values(accountsStore.accounts || {}).
 /** Pay what upkeep is owed, if the treasury now holds it all: the arrears end. Returns whether it paid. */
 export function payArrears(c, now = Date.now()) {
   if (!(c.arrearsOwed > 0) || c.treasury.credits < c.arrearsOwed) return false;
-  moveTreasury(c, { at: now, kind: "arrears-paid", amount: -c.arrearsOwed, by: "bureau", note: `upkeep owed since ${new Date(c.arrearsSince).toISOString().slice(0, 10)}` });
+  moveTreasury(c, { at: now, kind: "arrears-paid", amount: -c.arrearsOwed, by: "bureau", note: `upkeep owed since ${utcDate(c.arrearsSince)}` });
   c.arrearsOwed = 0;
   c.arrearsSince = null;
   return true;

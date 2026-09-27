@@ -27,6 +27,8 @@ import { FLEET_UNIT_IDS } from "./fleets.js";
 import { getTravelTimeMs } from "./travel.js";
 import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 import { mercenaryUseAllowed } from "./mercenaries.js";
+import { utcTime } from "../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
+import { ensureRef } from "./references.js"; // ISP-249 (AB#945): the record's reference, given on first read and kept
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -115,7 +117,7 @@ export function reachable(unlockedTech, fromStationId, toStationId) {
 }
 
 const unitsText = (units) => FLEET_UNIT_IDS.filter((id) => unitCount(units, id) > 0).map((id) => `${unitCount(units, id)} ${UNITS[id].name}`).join(", ");
-const utc = (t) => new Date(t).toUTCString().replace(/:\d\d GMT$/, " UTC");
+const utc = (t) => utcTime(t, { withDate: true }); // ISP-249 (AB#945)
 function tell(accountId, title, body) {
   const n = accountId ? addAccountNotification(accountId, { type: "military", title, body }) : null;
   if (n) emitToAccount(accountId, "notifications:new", { accountId, notification: n });
@@ -124,7 +126,7 @@ function tell(accountId, title, body) {
 /** A raid as either side may see it: corporation names and public ids, stations, times and the attacking units. */
 export function raidView(r) {
   const { id, attackerCorpId, attackerName, targetCorpId, targetName, originStationId, targetStationId, units, declaredAt, arrivesAt, returnsAt, state, hired } = r;
-  return { id, attackerCorpId, attackerName, targetCorpId, targetName, originStationId, targetStationId, units, declaredAt, arrivesAt, returnsAt: returnsAt ?? null, state, hired: Boolean(hired) };
+  return { id, ref: ensureRef(r, "RAD", { issuedAt: declaredAt })[0], attackerCorpId, attackerName, targetCorpId, targetName, originStationId, targetStationId, units, declaredAt, arrivesAt, returnsAt: returnsAt ?? null, state, hired: Boolean(hired) };
 }
 
 /**

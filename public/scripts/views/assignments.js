@@ -10,6 +10,7 @@ import { escapeHtml } from "../html.js";
 import { ASSIGNED_COORDINATOR } from "../liaison.js";
 import { appState } from "../state.js";
 import { flashButtonSuccess, getInventory, pushFeedback, salvageRemainingMs, updateAllViews } from "./shared.js";
+import { refHtml } from "../html.js"; // ISP-249 (AB#945)
 
 // ISP-297 (AB#1789) gave the Salvage Assignment risk: "None" — a real fourth value this ternary did not have a
 // class for, which fell through to risk-high and painted a riskless contract red. Named so a future risk value
@@ -394,7 +395,7 @@ export function renderMissions(data) {
               <span class="ui-badge ${riskClass}">${escapeHtml(mission.risk)} Risk</span>
               ${locationTag}
             </div>
-            <h4 class="ui-card__title">${escapeHtml(mission.title)}</h4>
+            <h4 class="ui-card__title">${escapeHtml(mission.title)}</h4>${refHtml(mission.ref)}
             <div class="missions__card-foot">
               <span class="missions__reward">${escapeHtml(mission.reward)}</span>
               ${salvageFooter}
@@ -425,7 +426,7 @@ export function renderMissions(data) {
           <li class="missions__log-entry">
             <span class="missions__log-title"><span class="ui-badge ui-badge--success">✓ ${escapeHtml(m.type || "Mission")}</span> ${escapeHtml(m.title)}</span>
             <span class="missions__reward">${escapeHtml(m.reward)}</span>
-            <span class="missions__hint">${escapeHtml(agentLabel)} &middot; ${formatTime(m.completedAt)}</span>
+            <span class="missions__hint">${escapeHtml(agentLabel)} &middot; ${formatTime(m.completedAt)}${m.ref ? ` &middot; ${refHtml(m.ref)}` : ""}</span>
           </li>`;
       }).join("");
     } else {

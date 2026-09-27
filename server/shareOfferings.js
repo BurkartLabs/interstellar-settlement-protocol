@@ -27,6 +27,7 @@ import { settleTransfer } from "./settlement.js";
 import { bondsIssuedBy } from "./bonds.js";
 import { SHARE_TERMS, registryProblems, valuePerShare, exitPrice, holdingsOf, holdingsValue } from "./shareRegistry.js";
 import { setHoldingsValuer } from "./finances.js"; // ISP-160 (AB#854)
+import { ensureRef } from "./references.js"; // ISP-249 (AB#945): the record's reference, given on first read and kept
 
 const DAY = 86_400_000;
 const L = SHARE_TERMS.listing, O = SHARE_TERMS.offering, MM = SHARE_TERMS.marketMaker;
@@ -252,7 +253,7 @@ export function shareOfferingTick(now) {
 /** An offering as any corporation may see it: no account ids. */
 export function publicOffering(o, now = Date.now()) {
   return {
-    id: o.id, issuerCorpId: o.issuerCorpId, issuerName: o.issuerName, quantity: o.quantity, left: left(o),
+    id: o.id, ref: ensureRef(o, "SHR", { issuedAt: o.openedAt })[0], issuerCorpId: o.issuerCorpId, issuerName: o.issuerName, quantity: o.quantity, left: left(o),
     pricePerShare: o.pricePerShare, state: o.state === "open" && now >= o.closesAt ? "closing" : o.state,
     openedAt: o.openedAt, closesAt: o.closesAt, closedAt: o.closedAt, soldToPlayers: o.soldToPlayers, soldToMarketMaker: o.soldToMarketMaker
   };

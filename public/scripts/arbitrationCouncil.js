@@ -8,6 +8,7 @@
 // for a respondent, the ruling in the Council's words), and the public docket. Times are UTC in the ISA's year (the
 // real year + 121, BUREAUCRATIC_UI.md), each a <time> with the real instant, until ISP-249's one formatter replaces this.
 import { escapeHtml } from "./html.js";
+import { timeHtml } from "./timeFormat.js"; // ISP-249 (AB#945)
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 const cr = (v) => `${n(v)} credits`;
@@ -15,9 +16,7 @@ const pad = (v) => String(v).padStart(2, "0");
 
 /** A time as the ISA writes it: "2147-10-02 00:00 UTC", in a <time> carrying the real instant. */
 export function isaTime(t) {
-  const d = new Date(t);
-  const text = `${d.getUTCFullYear() + 121}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
-  return `<time datetime="${d.toISOString()}">${text}</time>`;
+  return timeHtml(t, { withDate: true }); // ISP-249 (AB#945): the one formatter
 }
 /** A deadline: within a day it also says how far away it is (BUREAUCRATIC_UI.md, Timestamps). */
 function deadline(t, now) {

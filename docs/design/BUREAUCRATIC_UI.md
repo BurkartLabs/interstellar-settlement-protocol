@@ -159,6 +159,30 @@ or support.
 Not a record: a notification, a chat message, a price. They cite a record's reference instead. The two formats in the
 build today (LIC's and MPR's) move to this one in ISP-249. The old references stay readable in mail already sent.
 
+**As built (ISP-249, AB#945).**
+- **One formatter.** `public/scripts/timeFormat.js` is it, on the client and in the server's own text (receipts,
+  notices, refusals). Every earlier formatter now calls it: the Bank's, the Bureau's, the ISA register's, the tariff's,
+  the Inbox's and the chat's. `tests/unit/timeFormat.test.js` fails on a locale or hand-made date format anywhere else.
+  One exception, outside the fiction and not for reading: an email's RFC 2822 `Date:` header.
+- **The standing bids' daily reset moved from New York's midnight to 00:00 UTC**, the one time on the Exchange that was
+  not UTC. Every other daily cycle already ran on the UTC day.
+- **References.** `server/references.js` issues them. The six characters are an HMAC of the record's type and own id
+  under this installation's secret (`references-salt` in the data directory), so they are stable and opaque, and a
+  sequential id (`lob-7`) gives no count away.
+  - Records a corporation holds are given theirs whenever its account is served, so an older save's records get them
+    on first read and keep them: the licence, leases, contracts, trade receipts, loans and battle reports.
+  - The shared stores' records get theirs in their public views: bond series, share offerings, patents, raids,
+    concession grants and lobbying campaigns.
+  - The licence letter's old `ISP-2147-<account id>-AUTH` put an account id in a letter, and is gone.
+  - A reference already given out is never rewritten: the docket's `GAC-` cases and AB#927's `ITC-2026-000001`
+    findings keep theirs. New ones are `ARB-` and `ITC-` in this format.
+  - No route takes a reference as a parameter.
+- **Shown** beside the Corporation Identity panel's licence, the Financial Core's header, trade history, contracts,
+  leases, bond series, patents, raid reports and the lobbying register, and in the licence and probe-return letters and
+  the ITC and arbitration notices.
+- **Owed:** served but not yet drawn on loans, share offerings and concession grants; and ITC findings and arbitration
+  cases, which have no screen of their own yet.
+
 ## Accessibility
 
 - **A code is secondary visual text.** The accessible name of every section is its plain title. The header's

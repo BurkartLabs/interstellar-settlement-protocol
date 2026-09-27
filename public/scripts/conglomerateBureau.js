@@ -6,6 +6,7 @@
 // server would refuse is drawn disabled with the reason beside it, never as a button that does nothing.
 
 import { escapeHtml } from "./html.js";
+import { utcTime } from "./timeFormat.js"; // ISP-249 (AB#945)
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 
@@ -34,11 +35,9 @@ export function emblemSvg(emblem, colour, { size = "md" } = {}) {
   return `<svg class="cong-emblem cong-emblem--${size} cong-colour--${tone}" viewBox="0 0 24 24" role="img" aria-label="${escapeHtml(`${COLOURS[tone - 1]} ${name.toLowerCase()} emblem`)}"><path fill-rule="evenodd" d="${d}"/></svg>`;
 }
 
-/** A time as the Bureau's register writes it: "28 Sep 2026, 14:05 UTC". Fixed names, so every browser and test agrees. */
+/** A time as the Bureau's register writes it (ISP-249, AB#945: the guide's format, public/scripts/timeFormat.js). */
 export function bureauTime(t) {
-  const d = new Date(t);
-  const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getUTCMonth()];
-  return `${d.getUTCDate()} ${month} ${d.getUTCFullYear()}, ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
+  return utcTime(t, { withDate: true });
 }
 
 const button = (role, label, { variant = "secondary", data = {}, disabled = false, describedBy = "" } = {}) =>
