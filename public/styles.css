@@ -3212,6 +3212,13 @@ body.sg {
     padding: 0 var(--space-2);
   }
 }
+/* Bug #4693: the licence reference in the header and the rating card's title were 13px and 11px on a phone, under the
+   14px floor the rest of a screen's small text is raised to. */
+@media (max-width: 600px) {
+  .ui-screen :is(.ref-no, .rating-card__title) {
+    font-size: var(--font-size-3);
+  }
+}
 .finance__charts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
