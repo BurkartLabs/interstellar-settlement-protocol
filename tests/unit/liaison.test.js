@@ -11,12 +11,12 @@ describe("the assigned coordinator (AB#585)", () => {
   });
 
   it("signs the welcome letter with her one title and says the Bureau assigned her", () => {
-    const letter = welcomeLetter("Orison Minerals", "acc-123");
-    expect(letter.subject).toBe("ISA Settlement Licence — Ref. ISP-2147-ACC-123-AUTH");
+    const letter = welcomeLetter("Orison Minerals", "LIC-2147-7K3Q9A"); // ISP-249 (AB#945): the licence's reference, never the account id
+    expect(letter.subject).toBe("ISA Settlement Licence — Ref. LIC-2147-7K3Q9A");
     expect(letter.body.startsWith("To the registered CEO of Orison Minerals,")).toBe(true);
     expect(letter.body).toContain("assigns every newly chartered corporation a coordinator. I have been assigned to yours.");
     expect(letter.body.trimEnd().endsWith(`Elara Voss\nSenior Logistics Coordinator\nInterstellar Settlement Authority — Earth Station Prime`)).toBe(true);
-    expect(letter.body).toContain("Founding Charter Ref: ISP/ACC-123/FC-001");
+    expect(letter.body).toContain("Founding Charter Ref: LIC-2147-7K3Q9A");
   });
 
   // A guard on text, not on behaviour: it fails if the removed name is written back into shipped source.

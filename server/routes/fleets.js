@@ -25,6 +25,7 @@ function refusal(result, corp) {
     case "name-taken": return "One of your fleets already has that name. Choose another from the list.";
     case "in-transit": return "That fleet is in transit. Wait for it to arrive.";
     case "under-contract": return "That fleet is under a mercenary contract and takes no orders until it ends.";
+    case "escorting": return "That fleet is escorting an expedition and takes no other order until it comes home."; // AB#820
     case "same-fleet": return "Choose a different fleet to merge into.";
     case "not-together": return "Both fleets must be at the same station to merge.";
     case "not-here": return `That fleet is at ${stationName(result.stationId)}. A fleet disbands where your corporation is docked.`;

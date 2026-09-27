@@ -6,7 +6,7 @@
 // base and in-force values in the chosen system, a form to open a campaign whose preview is the server's own outcome
 // for that spend (public/scripts/lobbying.js), and the faction's register, grouped by parameter so the campaigns on one
 // rule are read together, each with the pledgers on both sides. Amounts are shown only for the caller's own pledges.
-import { escapeHtml } from "./html.js";
+import { escapeHtml, refHtml } from "./html.js";
 import { preview } from "./lobbying.js";
 import { utcMinute } from "./tariffs.js";
 import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
@@ -112,7 +112,7 @@ function campaignHtml(c, office) {
       </form>`
     : "";
   return `<li class="lobby-campaign" data-lobby-campaign="${escapeHtml(c.id)}">
-    <p class="lobby-campaign__title"><strong>${escapeHtml(c.systemName)}</strong>: ${c.direction === "raise" ? "raise" : "lower"} it <span class="ui-badge">${escapeHtml(c.state === "in-force" ? "in force" : c.state)}</span></p>
+    <p class="lobby-campaign__title"><strong>${escapeHtml(c.systemName)}</strong>: ${c.direction === "raise" ? "raise" : "lower"} it <span class="ui-badge">${escapeHtml(c.state === "in-force" ? "in force" : c.state)}</span> ${refHtml(c.ref)}</p>
     <p class="ui-panel__meta">Opened by ${escapeHtml(c.openedBy)}${c.openedByYou ? " (you)" : ""}. ${escapeHtml(when)}.</p>
     <div class="lobby-sides"><p><span class="lobby-side lobby-side--for">For</span> ${side("for").join(", ") || "nobody yet"}</p><p><span class="lobby-side lobby-side--against">Against</span> ${side("against").join(", ") || "nobody yet"}</p></div>
     ${own}${pledgeForm}

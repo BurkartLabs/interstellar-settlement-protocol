@@ -50,8 +50,8 @@ describe("ISP-181 the target picker", () => {
     expect(html.match(/data-raid-target=/g)).toHaveLength(1);
     const t = text(html);
     expect(t).toContain("New-player protection: 5 day(s) left.");
-    expect(t).toContain("Raided recently: protected until its cooldown ends. (28 Sep, 06:00 UTC)");
-    expect(t).toContain("You have raided it 2 times in 7 days. (01 Oct, 10:00 UTC)");
+    expect(t).toContain("Raided recently: protected until its cooldown ends. (2147-09-28 06:00 UTC)");
+    expect(t).toContain("You have raided it 2 times in 7 days. (2147-10-01 10:00 UTC)");
     expect(html.match(/<option value="f\d"/g)).toEqual(['<option value="f1"']); // a travelling fleet cannot be chosen
   });
 

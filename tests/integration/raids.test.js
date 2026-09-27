@@ -5,6 +5,7 @@ import { spawn } from "node:child_process";
 import request from "supertest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
+import { utcTime } from "../../public/scripts/timeFormat.js"; // ISP-249 (AB#945)
 import { createAccount, getAccountById, getState, listAccountNotifications, mutateAccountState } from "../../server/gameState.js";
 import { accountsStore, saveAccountsNow, saveStateNow } from "../../server/game/store.js";
 import { dataDir } from "../../server/game/catalog.js";
@@ -58,7 +59,7 @@ describe("ISP-178 declaring a raid", () => {
     const warning = listAccountNotifications(d.id).notifications.find((n) => n.title === "Raid incoming");
     expect(warning.body).toContain(a.corp().corporationName);
     expect(warning.body).toContain("Earth Station Prime");
-    expect(warning.body).toContain(new Date(view.arrivesAt).toUTCString().replace(/:\d\d GMT$/, " UTC"));
+    expect(warning.body).toContain(utcTime(view.arrivesAt, { withDate: true })); // ISP-249 (AB#945)
     expect(warning.body).toContain("4 Light Fighter, 1 Destroyer");
     // the fleet takes no other order while it is out
     expect((await a.api.post(a.at(`/fleets/${fleetId}/deploy`)).send({ toStationId: "luna-gateway" })).status).not.toBe(200);

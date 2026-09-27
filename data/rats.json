@@ -1,0 +1,20 @@
+{
+  "_comment": "Rats in asteroid fields (AB#820). The numbers of docs/design/rats.md section 8; server/game/rats.js reads and checks them, and scripts/rats-model.mjs computes the design's tables from them. Change a number here first, then in the design (P-TWO-SOURCES).",
+  "design": "docs/design/rats.md",
+  "hazardPerDensityHour": 0.01,
+  "attentionHours": 1,
+  "groupPerDensity": { "lf": 0.3333333333333333, "ds": 0.1 },
+  "gathering": 0.5,
+  "deterrence": 1,
+  "unescorted": [
+    { "id": "harried", "chance": 0.4, "haulLost": 0.1 },
+    { "id": "raided", "chance": 0.4, "haulLost": 0.25 },
+    { "id": "stripped", "chance": 0.2, "haulLost": 0.4 }
+  ],
+  "escortCostPerSupplyHour": 30,
+  "bountyPctOfValue": 40,
+  "quietHours": 24,
+  "quietRateFactor": 0.25,
+  "lengthsHours": { "short": 0.5, "standard": 1, "extended": 2 },
+  "maxEncounters": 8
+}

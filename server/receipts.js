@@ -8,6 +8,7 @@
 // `cost` is the display text of what was charged ("12,500 credits"), `costCredits` the number, for tests. Every
 // string is in the ISA's register: no exclamation marks, no congratulations (CONTRIBUTING.md, "Tone Note").
 import { employeesForNextLease } from "../public/scripts/leaseStaffing.js";
+import { utcTime } from "../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
 
 /** "12,500 credits". The one formatter for credits in server text; server/routes/helpers.js re-exports it. */
 export function formatCredits(amount) {
@@ -16,13 +17,11 @@ export function formatCredits(amount) {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "25 Sep, 18:04 UTC": a fixed-name date a test can read on any machine (T-061). */
+/** ISP-249 (AB#945): "2147-09-25 18:04 UTC", the guide's format (public/scripts/timeFormat.js), dated because read later. */
 export function formatUtc(ms) {
   const d = new Date(Number(ms));
   if (!Number.isFinite(d.getTime())) return "an unrecorded time";
-  const hh = String(d.getUTCHours()).padStart(2, "0");
-  const mm = String(d.getUTCMinutes()).padStart(2, "0");
-  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}, ${hh}:${mm} UTC`;
+  return utcTime(d.getTime(), { withDate: true });
 }
 
 const receipt = (action, { title, summary, costCredits, grants, next }) => ({
@@ -372,14 +371,19 @@ export function scoutBeltReceipt({ beltLabel }) {
   });
 }
 
-export function launchExpeditionReceipt({ beltLabel, durationLabel, cost, completesAt, probesLeft }) {
+export function launchExpeditionReceipt({ beltLabel, durationLabel, cost, completesAt, probesLeft, rats = null }) {
+  const pct = (p) => `${Math.round(p * 100)}%`;
+  const escorted = Boolean(rats?.escortFleetId);
   return receipt("launch-expedition", {
     title: "Expedition Launched",
-    summary: `A mining probe to ${beltLabel}, on a ${durationLabel} mission.`,
-    costCredits: cost,
+    summary: `A mining probe to ${beltLabel}, on a ${durationLabel} mission${escorted ? ", with an escort" : ""}.`,
+    costCredits: cost + (rats?.provisions || 0),
     grants: [
       { label: "Returns", value: formatUtc(completesAt) },
-      { label: "Probes still on hand", value: String(probesLeft) }
+      { label: "Probes still on hand", value: String(probesLeft) },
+      // AB#820 (docs/design/rats.md): the risk accepted at launch, as the launch screen states it
+      ...(rats ? [{ label: "Chance of meeting Rats", value: escorted ? `${pct(rats.chance)} with the escort (${pct(rats.chanceUnescorted)} without)` : pct(rats.chance) }] : []),
+      ...(escorted ? [{ label: "Escort provisions", value: `${formatCredits(rats.provisions)}, included above` }] : [])
     ],
     next: "Its yield is deposited at a station in that system when it returns. The Mineral Survey Office sends a report."
   });

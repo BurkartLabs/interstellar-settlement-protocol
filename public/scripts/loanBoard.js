@@ -5,7 +5,7 @@
 // loan, because a lender who cannot see the grade cannot price the risk, which is the point of the rating. Every name
 // and number goes through escapeHtml or cr.
 
-import { escapeHtml } from "./html.js";
+import { escapeHtml, refHtml } from "./html.js";
 import { cr, bankTime } from "./devBank.js";
 
 /** The grades, best first; an offer's minimum may also be NR-accepted (it lends to unrated corporations). */
@@ -165,7 +165,7 @@ function loanCard(loan, side) {
   return `
     <article class="bank-loan${late ? " bank-loan--arrears" : ""}" data-player-loan="${escapeHtml(loan.id)}">
       <header class="bank-loan__header">
-        <h4>${cr(loan.principal)} credits · ${escapeHtml(String(loan.ratePct30))}% per 30 days</h4>
+        <h4>${cr(loan.principal)} credits · ${escapeHtml(String(loan.ratePct30))}% per 30 days ${refHtml(loan.ref)}</h4>
         ${stateBadge(loan)}
       </header>
       <dl class="bank-loan__terms">

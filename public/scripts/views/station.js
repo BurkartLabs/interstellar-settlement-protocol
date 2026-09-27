@@ -291,9 +291,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
     `;
   }
 
-  const rentedDate = new Date(existingOffice.rentedAt).toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric"
-  });
+  const rentedDate = utcDate(existingOffice.rentedAt); // ISP-249 (AB#945)
   const availableStaffCapacity = Math.max(1, corp.employeeCap - corp.employeeCount);
 
   const now = Date.now();
@@ -303,9 +301,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const daysRemaining = msRemaining / 86_400_000;
   const fullDays = Math.floor(daysRemaining);
   const hoursRemaining = Math.floor((msRemaining % 86_400_000) / 3_600_000);
-  const expiryDate = new Date(rentedUntil).toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
-  });
+  const expiryDate = utcTime(rentedUntil, { withDate: true });
   const leaseStatusBadge = leaseExpired
     ? `<span class="ui-badge ui-badge--danger">Expired</span>`
     : `<span class="ui-badge ui-badge--success">Active Lease</span>`;
@@ -527,6 +523,7 @@ import { employeesForNextLease } from "../leaseStaffing.js"; // AB#1202: the ser
 import { activeOfficeAt } from "../officeStatus.js"; // AB#1870: the server's rule, not a copy of it
 import { bodyProfile, cycleItemsText, leaseTypeLabel, profileText } from "../bodyYield.js"; // AB#829, Bug #2354
 import { codeSlotHtml } from "../sectionCodes.js"; // ISP-248 (AB#944)
+import { utcDate, utcTime } from "../timeFormat.js"; // ISP-249 (AB#945)
 
 // The bodies the ISA leases. Module level so a full lease can say which are left (Bug #1057).
 export const LEASE_BODIES = [
@@ -573,9 +570,7 @@ export function renderISAClaimsLeases(building, data) {
     leasesHtml = `<div class="ui-grid">`;
     for (const lease of leases) {
       const extractorCount = leaseSlotsUsed(lease); // ISP-98 (AB#788): extractors and the other buildings on the lease
-      const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
-        year: "numeric", month: "short", day: "numeric"
-      });
+      const issuedDate = utcDate(lease.issuedAt || Date.now()); // ISP-249 (AB#945)
       leasesHtml += `
         <div class="ui-card station__card" data-role="lease-card">
           <div class="station__card-header">
@@ -740,9 +735,7 @@ export function renderLeaseManagement(building, lease, data) {
   const buildCost = nextYardPriceFor(corp, appState.economy?.buildings); // AB#2286: the next yard's price, discount included
   const canAffordBuild = (corp?.finances?.credits || 0) >= buildCost;
 
-  const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric"
-  });
+  const issuedDate = utcDate(lease.issuedAt || Date.now()); // ISP-249 (AB#945)
 
   // Extractor list
   let extractorRows = "";

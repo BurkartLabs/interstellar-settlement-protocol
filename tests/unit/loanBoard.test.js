@@ -54,7 +54,7 @@ describe("the loans", () => {
     expect(html).toContain("Nadir Mining");
     expect(html).toMatch(/data-role="borrower-grade">CCC</);
     expect(html).toContain("In arrears");
-    expect(html).toContain("1,500 credits since 20 Sep");
+    expect(html).toContain("1,500 credits since 2147-09-20");
   });
 
   it("shows the lender what was recovered on default, and from what, as it went to the debt", () => {
@@ -67,7 +67,7 @@ describe("the loans", () => {
 
   it("warns the borrower, with the date, before anything is force-sold", () => {
     const html = borrowedLoansHtml([{ ...lent, lenderName: "Helios Freight", defaultedAt: 1, recovery: { state: "grace", warnedAt: 1, saleAt: Date.UTC(2026, 8, 30, 14, 5) } }]);
-    expect(html).toContain("Your assets will be sold on 30 Sep, 14:05 UTC.");
+    expect(html).toContain("Your assets will be sold on 2147-09-30 14:05 UTC.");
     expect(html).toContain("Pay the 1,500 credits in arrears before then and nothing is sold.");
     expect(html).toContain('role="alert"');
   });

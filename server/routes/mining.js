@@ -11,6 +11,7 @@ import { emitToAccount } from "../realtime.js";
 import { fundingRequirementMessage, activeOfficeAt, buildHandler } from "./helpers.js";
 // AB#743: what each committing action did, from the values its mutation used, for the confirmation modal.
 import { startMiningReceipt } from "../receipts.js";
+import { utcTime } from "../../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
 
 export function registerMiningRoutes(app) {
   // ─── Lease-scoped: Build an extractor yard on a specific lease ──────────────
@@ -126,7 +127,7 @@ export function registerMiningRoutes(app) {
         "no-lease-extractors": "No extraction facilities are assigned to this lease.",
         "missing-extractor-target": "That extractor is not on this lease. Reload the lease and choose one of its extractors.", // AB#1336
         "already-active": `${targetExtractorLabel} already has an active mining cycle in progress.`,
-        upgrading: `${targetExtractorLabel} is being upgraded and is offline until ${new Date(upgradingUntil).toISOString().slice(11, 16)} UTC.`,
+        upgrading: `${targetExtractorLabel} is being upgraded and is offline until ${utcTime(upgradingUntil, { withDate: true })}.`, // ISP-249 (AB#945)
         "insufficient-credits": fundingRequirementMessage("Starting this mining cycle", account.state.corp, neededStartup, miningCreditsAdvice(neededStartup))
       };
       res.status(400).json({ error: messageMap[outcome] || "Mining cycle failed to start." });

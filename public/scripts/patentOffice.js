@@ -10,6 +10,7 @@ import { escapeHtml } from "./html.js";
 import { utcMinute } from "./tariffs.js";
 import { chainRunRoyalty, researchRoyalty } from "./patentRoyalty.js";
 import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
+import { refHtml } from "./html.js"; // ISP-249 (AB#945)
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 const KIND = { research: "Research node", chain: "Refinery chain" };
@@ -61,7 +62,7 @@ function patentDl(p, rows) {
 /** The corporation's own patents, and the royalties its statements show received. */
 export function minePatentsHtml(office, ctx) {
   const rows = office.mine.map((p) => `<li class="patent-card" data-patent-mine="${escapeHtml(p.id)}">
-      <p class="patent-card__title"><strong>${escapeHtml(nameFor(p, ctx))}</strong> <span class="ui-badge">${KIND[p.kind]}</span> ${p.active ? `<span class="ui-badge ui-badge--success">In force</span>` : `<span class="ui-badge">Expired</span>`}</p>
+      <p class="patent-card__title"><strong>${escapeHtml(nameFor(p, ctx))}</strong> <span class="ui-badge">${KIND[p.kind]}</span> ${p.active ? `<span class="ui-badge ui-badge--success">In force</span>` : `<span class="ui-badge">Expired</span>`} ${refHtml(p.ref)}</p>
       ${patentDl(p, [["Royalty", `${n(p.ratePct)}%`], ["Filed", escapeHtml(day(p.filedAt))], [p.active ? "Ends" : "Ended", escapeHtml(utcMinute(p.endsAt))]])}
     </li>`).join("");
   return `<section class="ui-panel station__panel patent-section" data-patent-mine-list aria-labelledby="patent-mine-title">

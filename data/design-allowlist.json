@@ -1,0 +1,995 @@
+{
+  "_comment": "ISP-246 (AB#942): the design-system check's known violations on the day it landed (scripts/design-check.mjs), each with the v1.0 story that removes it: ISP-250 (AB#946) Company and Station, with the app shell and shared components; ISP-251 (AB#947) Industry and Market; ISP-252 (AB#948) Comms, Map and warfare. Nothing is added here: a new violation fails the check. An entry whose violation is gone fails it too (stale), so the list only shrinks. ISP-275's release gate (v1.0-31, AB#971) asserts it is empty. 'where' is informational: file:line (and the selector) when it was listed.",
+  "entries": [
+    {
+      "file": "public/index.html",
+      "key": "class: finance__chart",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/index.html:440"
+    },
+    {
+      "file": "public/index.html",
+      "key": "class: finance__duration",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/index.html:446"
+    },
+    {
+      "file": "public/index.html",
+      "key": "class: missions__agents",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/index.html:1109"
+    },
+    {
+      "file": "public/index.html",
+      "key": "class: side-panel__block",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/index.html:261"
+    },
+    {
+      "file": "public/index.html",
+      "key": "class: walkthrough",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/index.html:1394"
+    },
+    {
+      "file": "public/scripts/conglomerateBureau.js",
+      "key": "class: cong-picker__name",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/conglomerateBureau.js:51"
+    },
+    {
+      "file": "public/scripts/conglomerateBureau.js",
+      "key": "class: cong-picker__swatch",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/conglomerateBureau.js:51"
+    },
+    {
+      "file": "public/scripts/conglomerateBureau.js",
+      "key": "class: cong-roster",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/conglomerateBureau.js:288"
+    },
+    {
+      "file": "public/scripts/conglomerateStation.js",
+      "key": "class: cong-station",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/conglomerateStation.js:64"
+    },
+    {
+      "file": "public/scripts/conglomerateStation.js",
+      "key": "class: cong-station__stakes",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/conglomerateStation.js:145"
+    },
+    {
+      "file": "public/scripts/conglomerateTreasury.js",
+      "key": "class: cong-ledger",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/conglomerateTreasury.js:74"
+    },
+    {
+      "file": "public/scripts/conglomerateTreasury.js",
+      "key": "class: cong-tabs",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/conglomerateTreasury.js:45"
+    },
+    {
+      "file": "public/scripts/constructionPanel.js",
+      "key": "class: station__card",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/constructionPanel.js:104"
+    },
+    {
+      "file": "public/scripts/fleetView.js",
+      "key": "class: fleet__picker",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/fleetView.js:105"
+    },
+    {
+      "file": "public/scripts/html.js",
+      "key": "class: station__card",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/html.js:181"
+    },
+    {
+      "file": "public/scripts/shipyardPanel.js",
+      "key": "class: station__subheading",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/shipyardPanel.js:66"
+    },
+    {
+      "file": "public/scripts/statements.js",
+      "key": "class: finance__statement",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/statements.js:60"
+    },
+    {
+      "file": "public/scripts/stationFacilities.js",
+      "key": "class: station__card",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/stationFacilities.js:41"
+    },
+    {
+      "file": "public/scripts/trainingPanel.js",
+      "key": "class: station__subheading",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/trainingPanel.js:56"
+    },
+    {
+      "file": "public/scripts/views/ceoInsight.js",
+      "key": "class: insight__enroll",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/views/ceoInsight.js:50"
+    },
+    {
+      "file": "public/scripts/views/station.js",
+      "key": "class: station__card",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/views/station.js:568"
+    },
+    {
+      "file": "public/scripts/views/station.js",
+      "key": "class: station__member-rate",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/scripts/views/station.js:242"
+    },
+    {
+      "file": "public/styleguide/tokens.html",
+      "key": "class: sg-space",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styleguide/tokens.html:61"
+    },
+    {
+      "file": "public/styleguide/tokens.html",
+      "key": "class: sg-type",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styleguide/tokens.html:56"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 10px",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:576 .tab-panel"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 2px",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1207 .building-status-badge"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 3px",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1435 .office-nav-btn"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 4px",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:802 .cong-picker__option"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 4px",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1225 .station-location-banner"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 6px",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:623 .kpi-tile"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 8px",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1020 textarea"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 8px",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1269 .office-header"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 8px",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1316 .office-panel"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 8px",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1662 .expedition-card"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 999px",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1031 .progress-wrap"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 0.15rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1516 .action-receipt-row"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 0.2rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:626 .kpi-tile"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 0.3rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1009 label"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 0.3rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1362 .office-stat-cell"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 0.3rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1411 .office-hire-label"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 0.4rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1046 .cycle-figures"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 0.6rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:613 .kpi-strip"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 0.8rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1955 .data-table--stack td"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin-bottom: 0.35rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1676 .expedition-card-header"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin-bottom: 0.95rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:596 .modal-card > h2"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin-bottom: 0.95rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:614 .kpi-strip"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin-right: 0.35rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1539 .action-receipt-next-label"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin-top: 0.3rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1694 .expedition-yields"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin: 0 0 0.3rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1290 .office-header__title"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin: 0 0 0.6rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1503 .action-receipt-summary"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin: 0 0 0.85rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1330 .office-panel__label"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin: 0.1rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1058 .cycle-figures dd"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin: 0.6rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1047 .cycle-figures"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin: 0.85rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1533 .action-receipt-next"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding-bottom: calc(var(--space-4) + var(--walkthrough-card-height, 22rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1177 body.walkthrough--open .layout-grid"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding-left: 0.5em",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1376 .office-stat-cell__value"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding-left: 1em",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1386 .office-stat-cell__label"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding-right: 0.2rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:540 #notification-list"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 0.2em",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1206 .building-status-badge"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 0.2rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1956 .data-table--stack td"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 0.35rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1517 .action-receipt-row"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 0.45em",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1436 .office-nav-btn"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 0.45rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1221 .station-location-banner"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 0.55rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1948 .data-table--stack tr"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 0.65rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1663 .expedition-card"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 0.7rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1086 .data-table td"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 0.85rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:619 .kpi-tile"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 1.15rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:591 .tab-panel"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 1.1rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1317 .office-panel"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 1.2rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:524 .app-header"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 1.4rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1266 .office-header"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: var(--space-2) 0.6rem",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1021 textarea"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "z-index: z-index: -1",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:271 #starfield-canvas"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "z-index: z-index: -2",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:280 .app-bg"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "z-index: z-index: 20",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:530 .app-header"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "z-index: z-index: 20",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1840 .app-nav"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "z-index: z-index: 40",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:4742 .app-header__panel"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "z-index: z-index: 55",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1157 #walkthrough-modal"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "z-index: z-index: 60",
+      "story": "ISP-250 (AB#946)",
+      "where": "public/styles.css:1135 .modal-backdrop"
+    },
+    {
+      "file": "public/index.html",
+      "key": "class: exchange__bid-form",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/index.html:812"
+    },
+    {
+      "file": "public/index.html",
+      "key": "class: exchange__chart",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/index.html:653"
+    },
+    {
+      "file": "public/scripts/conglomerateTreasury.js",
+      "key": "class: cong-stock",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/conglomerateTreasury.js:137"
+    },
+    {
+      "file": "public/scripts/devBank.js",
+      "key": "class: bank-product__name",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/devBank.js:34"
+    },
+    {
+      "file": "public/scripts/html.js",
+      "key": "class: refinery__build",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/html.js:41"
+    },
+    {
+      "file": "public/scripts/ratingCard.js",
+      "key": "class: rating-card--counterparty",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/ratingCard.js:82"
+    },
+    {
+      "file": "public/scripts/ratingCard.js",
+      "key": "class: rating-card--own",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/ratingCard.js:58"
+    },
+    {
+      "file": "public/scripts/stockExchange.js",
+      "key": "class: igsx-cap-table",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/stockExchange.js:88"
+    },
+    {
+      "file": "public/scripts/stockExchange.js",
+      "key": "class: igsx-holding",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/stockExchange.js:63"
+    },
+    {
+      "file": "public/scripts/stockExchange.js",
+      "key": "class: igsx-offering",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/stockExchange.js:23"
+    },
+    {
+      "file": "public/scripts/views/bondBoard.js",
+      "key": "class: bank-panel",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/bondBoard.js:29"
+    },
+    {
+      "file": "public/scripts/views/developmentBank.js",
+      "key": "class: bank-panel",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/developmentBank.js:135"
+    },
+    {
+      "file": "public/scripts/views/developmentBank.js",
+      "key": "class: bond-board",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/developmentBank.js:129"
+    },
+    {
+      "file": "public/scripts/views/loanBoard.js",
+      "key": "class: bank-panel",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/loanBoard.js:20"
+    },
+    {
+      "file": "public/scripts/views/logistics.js",
+      "key": "class: logistics__bulk-fee",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/logistics.js:126"
+    },
+    {
+      "file": "public/scripts/views/logistics.js",
+      "key": "class: logistics__eta",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/logistics.js:161"
+    },
+    {
+      "file": "public/scripts/views/logistics.js",
+      "key": "class: logistics__history",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/logistics.js:180"
+    },
+    {
+      "file": "public/scripts/views/logistics.js",
+      "key": "class: logistics__in-flight",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/logistics.js:155"
+    },
+    {
+      "file": "public/scripts/views/logistics.js",
+      "key": "class: logistics__move-picked",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/logistics.js:125"
+    },
+    {
+      "file": "public/scripts/views/logistics.js",
+      "key": "class: logistics__route-fee",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/logistics.js:91"
+    },
+    {
+      "file": "public/scripts/views/refinery.js",
+      "key": "class: refinery__batches",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/refinery.js:217"
+    },
+    {
+      "file": "public/scripts/views/refinery.js",
+      "key": "class: refinery__chain",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/refinery.js:189"
+    },
+    {
+      "file": "public/scripts/views/refinery.js",
+      "key": "class: refinery__quantity",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/refinery.js:207"
+    },
+    {
+      "file": "public/scripts/views/research.js",
+      "key": "class: research__enqueue",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/research.js:75"
+    },
+    {
+      "file": "public/scripts/views/stockExchange.js",
+      "key": "class: bank-panel",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/scripts/views/stockExchange.js:29"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 18px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:228 #market"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 18px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:249 #exchange-root"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 6px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:903 .rating-card"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 6px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:911 .rating-card__grade"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 2px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5050 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 2px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5073 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 4px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5043 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 4px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5071 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5042 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5045 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5046 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5049 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5055 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5057 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5058 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5059 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5062 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5063 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5066 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5070 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-3, 12px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5041 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: var(--space-4, 16px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5068 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin: 0 0 0.35rem",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:1553 .action-receipt-order h3"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: margin: 0 0 var(--space-2, 8px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5069 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding-top: 0.55rem",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:1629 .trade-confirm-highlight td"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 0.35rem",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:1593 .trade-confirm-table td"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: 2em",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:221 #market"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: var(--space-3, 12px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5071 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: padding: var(--space-4, 16px",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:5055 #market .ui-table td::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "z-index: z-index: 1",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:238 #market::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "z-index: z-index: 1",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:259 #exchange-root::before"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "z-index: z-index: 2",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:243 #market > *"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "z-index: z-index: 2",
+      "story": "ISP-251 (AB#947)",
+      "where": "public/styles.css:264 #exchange-root > *"
+    },
+    {
+      "file": "public/index.html",
+      "key": "class: chat__tabs",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/index.html:1041"
+    },
+    {
+      "file": "public/index.html",
+      "key": "class: mercs",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/index.html:861"
+    },
+    {
+      "file": "public/index.html",
+      "key": "class: npc-profile-card",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/index.html:1366"
+    },
+    {
+      "file": "public/index.html",
+      "key": "class: thread",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/index.html:1206"
+    },
+    {
+      "file": "public/scripts/arbitrationCouncil.js",
+      "key": "class: gac-case__status",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/arbitrationCouncil.js:198 (AB#939, merged while AB#942 was open)"
+    },
+    {
+      "file": "public/scripts/arbitrationCouncil.js",
+      "key": "class: gac-docket__parties",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/arbitrationCouncil.js:235 (AB#939, merged while AB#942 was open)"
+    },
+    {
+      "file": "public/scripts/arbitrationCouncil.js",
+      "key": "class: gac-preview__evidence",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/arbitrationCouncil.js:163 (AB#939, merged while AB#942 was open)"
+    },
+    {
+      "file": "public/scripts/concessionOverlay.js",
+      "key": "class: concession-petitions",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/concessionOverlay.js:81"
+    },
+    {
+      "file": "public/scripts/lobbyingOffice.js",
+      "key": "class: lobby-campaign__title",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/lobbyingOffice.js:114"
+    },
+    {
+      "file": "public/scripts/mercenaryView.js",
+      "key": "class: mercs__offers",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/mercenaryView.js:31"
+    },
+    {
+      "file": "public/scripts/npcProfile.js",
+      "key": "class: npc-profile__facts",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/npcProfile.js:44"
+    },
+    {
+      "file": "public/scripts/npcProfile.js",
+      "key": "class: npc-profile__flavour",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/npcProfile.js:35"
+    },
+    {
+      "file": "public/scripts/patentOffice.js",
+      "key": "class: patent-terms",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/patentOffice.js:25"
+    },
+    {
+      "file": "public/scripts/resourceOverlay.js",
+      "key": "class: starmap__legend-title",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/resourceOverlay.js:95"
+    },
+    {
+      "file": "public/scripts/starmap.js",
+      "key": "class: belt-remote",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/starmap.js:1599"
+    },
+    {
+      "file": "public/scripts/starmap.js",
+      "key": "class: starmap__dock",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/starmap.js:1509"
+    },
+    {
+      "file": "public/scripts/starmap.js",
+      "key": "class: starmap__expedition",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/starmap.js:1577"
+    },
+    {
+      "file": "public/scripts/starmap.js",
+      "key": "class: starmap__expedition-time",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/starmap.js:1578"
+    },
+    {
+      "file": "public/scripts/starmap.js",
+      "key": "class: starmap__jump",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/starmap.js:1451"
+    },
+    {
+      "file": "public/scripts/starmap.js",
+      "key": "class: starmap__mining",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/starmap.js:1586"
+    },
+    {
+      "file": "public/scripts/starmap.js",
+      "key": "class: starmap__station-actions",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/starmap.js:1939"
+    },
+    {
+      "file": "public/scripts/starmap.js",
+      "key": "class: starmap__station-dock",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/starmap.js:1945"
+    },
+    {
+      "file": "public/scripts/tariffPanel.js",
+      "key": "class: starmap__tariff",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/tariffPanel.js:18"
+    },
+    {
+      "file": "public/scripts/tariffPanel.js",
+      "key": "class: starmap__tariff-holding",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/tariffPanel.js:35"
+    },
+    {
+      "file": "public/scripts/views/travel.js",
+      "key": "class: travel__dock",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/views/travel.js:34"
+    },
+    {
+      "file": "public/scripts/views/travel.js",
+      "key": "class: travel__node",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/scripts/views/travel.js:96"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "radius: border-radius: 10px",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/styles.css:1118 #starmap-canvas"
+    },
+    {
+      "file": "public/styles.css",
+      "key": "spacing: gap: 2px",
+      "story": "ISP-252 (AB#948)",
+      "where": "public/styles.css:4502 .belt-bar"
+    }
+  ]
+}

@@ -10,14 +10,14 @@ describe("the tariff in the system panel (AB#926)", () => {
   it("shows a held system's rate and a pending change with its time in UTC, and nothing where nobody holds it", () => {
     const html = tariffLineHtml({ systemId: "alpha-centauri", cap: 3, pct: 1, pending: { pct: 2, effectiveAt: AT }, held: true });
     expect(html).toContain("<strong>1%</strong> on sales here and goods shipped in (cap 3%)");
-    expect(html).toContain("It becomes <strong>2%</strong> at 2026-09-30 14:00 UTC.");
+    expect(html).toContain("It becomes <strong>2%</strong> at 2147-09-30 14:00 UTC.");
     expect(tariffLineHtml({ held: false, pct: 0, cap: 3 })).toBe("");
   });
 
   it("gives the holder its schedule, and the form only when docked in the system", () => {
     const html = tariffHoldingHtml(holding, "Alpha Centauri");
     expect(html).toContain("In force: <strong>1%</strong> of a 3% cap");
-    expect(html).toContain("Filed: <strong>2%</strong>, in force at 2026-09-30 14:00 UTC");
+    expect(html).toContain("Filed: <strong>2%</strong>, in force at 2147-09-30 14:00 UTC");
     expect(html).toContain("Collected to date: <strong>$5,400</strong>");
     expect(html).toContain("At the next payout (00:00 UTC): <strong>$180</strong>");
     expect(html).toContain('data-form="file-tariff"');

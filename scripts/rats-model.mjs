@@ -9,21 +9,9 @@ import { ECONOMY } from "../server/economy.js";
 import { SYSTEMS_DATA } from "../server/game/catalog.js";
 import { BASE_YIELD_PER_MIN, RARITY_YIELD_MULTIPLIER } from "../server/game/beltRules.js";
 
-// ── The design's numbers (docs/design/rats.md, "The numbers") ──
-export const RATS = {
-  hazardPerDensityHour: 0.01, // the base encounter rate: density d gives d / 100 encounters an hour
-  groupPerDensity: { lf: 1 / 3, ds: 1 / 10 }, // the belt's Rat group: round(d/3) Light Fighters, floor(d/10) Destroyers
-  deterrence: 1, // an escort of equal strength to the group halves the encounter chance: 1 / (1 + k * escort / group)
-  unescorted: [ // what an unescorted (or beaten) expedition loses when it meets Rats: a roll on this table
-    { name: "harried", chance: 0.4, haulLost: 0.1 },
-    { name: "raided", chance: 0.4, haulLost: 0.25 },
-    { name: "stripped", chance: 0.2, haulLost: 0.4 }
-  ],
-  escortCostPerSupplyHour: 30, // provisions for an escort, credits per supply point per hour, paid at launch
-  attentionHours: 1, // the hazard rises through an expedition: rate(t) = base * (1 + t / tau)
-  gathering: 0.5, // each later encounter in one expedition meets a group this much larger: Rats gather
-  lengthsHours: { short: 0.5, standard: 1, extended: 2 }
-};
+// ── The design's numbers: data/rats.json, through the server's own module (one source, P-TWO-SOURCES) ──
+import { RATS, forcePower, ratGroup as serverRatGroup, encounterRate as serverRate } from "../server/game/rats.js";
+export { RATS };
 export const ESCORTS = {
   none: {},
   "4 LF": { lf: 4 },
@@ -36,21 +24,14 @@ export const ESCORTS = {
 const price = (item) => (ECONOMY.npcBuyers || []).find((b) => b.item === item)?.unitPrice || 0;
 const unitValue = (id) => UNITS[id].credits + Object.entries(UNITS[id].goods).reduce((s, [g, q]) => s + price(g) * q, 0);
 const valueOf = (force) => Object.entries(force).reduce((s, [id, n]) => s + n * unitValue(id), 0);
-const power = (force) => Object.entries(force).reduce((s, [id, n]) => s + n * UNITS[id].attack * UNITS[id].hp, 0);
+const power = forcePower;
 const supply = (force) => Object.entries(force).reduce((s, [id, n]) => s + n * UNITS[id].supply, 0);
 export const meanHaulLost = RATS.unescorted.reduce((s, r) => s + r.chance * r.haulLost, 0);
 
-/** The belt's Rat group from its system's pirate density. */
-export function ratGroup(density) {
-  return { lf: Math.round(density * RATS.groupPerDensity.lf), ds: Math.floor(density * RATS.groupPerDensity.ds) };
-}
-/** Encounters an expedition of `hours` expects (a Poisson rate), with the escort's deterrence. */
-export function encounterRate(density, hours, escort = {}) {
-  const group = power(ratGroup(density));
-  const deter = group > 0 ? 1 / (1 + RATS.deterrence * power(escort) / group) : 1;
-  const exposure = hours + (hours * hours) / (2 * RATS.attentionHours); // the integral of (1 + t / tau) over the expedition
-  return density * RATS.hazardPerDensityHour * exposure * deter;
-}
+/** The belt's Rat group from its system's pirate density (the server's rule). */
+export const ratGroup = serverRatGroup;
+/** Encounters an expedition of `hours` expects, with the escort's deterrence (the server's rule). */
+export const encounterRate = (density, hours, escort = {}) => serverRate(density, hours, forcePower(escort));
 /** The chance an expedition of `hours` meets Rats at least once: what the launch screen shows. */
 export function encounterChance(density, hours, escort = {}) {
   return 1 - Math.exp(-encounterRate(density, hours, escort));

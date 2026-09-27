@@ -7,6 +7,7 @@ import { stationMap } from "./game/stations.js"; // ISP-209 (AB#904)
 import { beltPhrase, beltPlace, stationName } from "../public/scripts/displayNames.js";
 import { ECONOMY } from "./economy.js";
 import { nextBeltDrawAt } from "./game/belts.js"; // AB#2330
+import { UNITS } from "./game/units.js"; // AB#820: escort losses by name
 
 /** The belt, its system and the deposit station, by name. Anything unknown is null rather than an id. */
 export function expeditionPlaces(exp) {
@@ -24,7 +25,35 @@ export function expeditionNotificationBody(exp) {
   const bonus = Object.entries(exp?.ferricBonus || {}).map(([r, q]) => `${q} ${r}`).join(" and ");
   const ferric = bonus ? ` Your Ferric Mining Complex added ${bonus}.` : "";
   const early = exp?.endedEarly ? ` ${expeditionEndedEarlyText(exp)}` : ""; // AB#2330
-  return `Mining probe has returned from ${beltPhrase(SYSTEMS_CATALOG, exp?.beltKey, exp?.systemId)}. Yields: ${yieldSummary}.${ferric} Resources deposited at ${station}.${early}`;
+  const rats = expeditionRatsText(exp); // AB#820
+  return `Mining probe has returned from ${beltPhrase(SYSTEMS_CATALOG, exp?.beltKey, exp?.systemId)}. Yields: ${yieldSummary}.${ferric} Resources deposited at ${station}.${early}${rats ? ` ${rats}` : ""}`;
+}
+
+/**
+ * AB#820 (docs/design/rats.md): what the Rats did to this expedition, in one or two sentences, or "" for an expedition
+ * launched before Rats. The escort's losses by unit name; the haul lost in units.
+ */
+export function expeditionRatsText(exp) {
+  const r = exp?.rats;
+  if (!r || !Array.isArray(r.encounters)) return "";
+  const met = r.encounters.length;
+  if (!met) return r.escortFleetId ? "No Rats were met; the escort returns unharmed." : "No Rats were met.";
+  const times = met === 1 ? "once" : met === 2 ? "twice" : `${met} times`;
+  const lost = {};
+  let haul = 0;
+  for (const e of r.encounters) {
+    for (const [id, n] of Object.entries(e.escort?.lost || {})) lost[id] = (lost[id] || 0) + n;
+    haul += Object.values(e.haulLost || {}).reduce((s, n) => s + n, 0);
+  }
+  // troops' names are already plural: "2 squads of Attack Troops", as the Fleet tab says it
+  const named = (id, n) => (UNITS[id]?.role === "troop" || id === "at" || id === "dt" ? `${n} squad${n === 1 ? "" : "s"} of ${UNITS[id]?.name || id}` : `${n} ${UNITS[id]?.name || id}${n === 1 ? "" : "s"}`);
+  const unitWords = Object.entries(lost).map(([id, n]) => named(id, n)).join(", ");
+  const fought = r.encounters.filter((e) => e.escort).length;
+  const escort = !r.escortFleetId ? ""
+    : r.escortBeaten ? ` The escort was beaten${unitWords ? `, losing ${unitWords}` : ""}.`
+      : ` The escort held ${fought === 1 ? "the fight" : `all ${fought} fights`}${unitWords ? `, losing ${unitWords}` : " without a loss"}.`;
+  const taken = haul ? ` Rats took ${haul.toLocaleString("en-US")} units of the haul.` : " The haul is intact.";
+  return `Met Rats ${times}.${escort}${taken}`;
 }
 
 /** AB#2330: how many minutes before its scheduled return an expedition came home, at least 1. */

@@ -41,7 +41,7 @@ describe("each system takes its leader's colour, as the API reads it (AB#913)", 
     expect(html).toContain("<strong>You: Alder Mining</strong> · 1 system");
     expect(html).toContain("Birch Freight · 2 systems");
     expect(html).toContain("A ring in your colour (cyan) marks each system your corporation leads");
-    expect(html).toContain("Computed 2026-09-28 00:01 UTC");
+    expect(html).toContain("Computed 2147-09-28 00:01 UTC");
   });
 
   it("gathers leaders beyond the palette under 'Other leaders', still named in the legend", () => {

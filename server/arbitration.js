@@ -29,6 +29,8 @@ import { controlNow } from "./controlService.js";
 import { refundLevy, takeTariffAccrual, tariffCap, tariffRates } from "./tariffService.js";
 import { patentOffice, patentRecord, patentUsers, patentUsesBy, takeRoyaltyAccrual } from "./patents.js";
 import { councilFee, rateInForceAt, readinessRefund, royaltyShortfall, tariffExcess } from "./game/arbitration.js";
+import { utcTime } from "../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
+import { referenceFor } from "./references.js"; // ISP-249 (AB#945)
 
 const FILE = path.join(dataDir, "arbitration.json");
 const HOUR = 3_600_000;
@@ -184,9 +186,9 @@ const EVIDENCE = {
 /** The claim type's catalog row, or null for an unknown id. */
 const claimType = (type) => (terms().claimTypes || []).find((t) => t.id === type) || null;
 
-function nextRef(now) {
-  store.seq = (store.seq || 0) + 1;
-  return `GAC-${new Date(now).getUTCFullYear()}-${String(store.seq).padStart(6, "0")}`;
+/** ISP-249 (AB#945): a new case's reference, ARB-YYYY-XXXXXX (server/references.js): opaque, not the docket's count. */
+function nextRef(now, id) {
+  return referenceFor("ARB", id, now);
 }
 
 function notifyRespondent(c) {
@@ -196,7 +198,7 @@ function notifyRespondent(c) {
   addAccountNotification(account.id, {
     type: "finance",
     title: "Galactic Arbitration Council: case filed",
-    body: `${c.ref}. ${c.claimant.name} has filed a ${LABELS[c.type]} case against ${c.respondent.name} with the Galactic Arbitration Council.${amount} The evidence is the ISA's own record. The response window closes ${new Date(c.windowEndsAt).toISOString().slice(0, 16).replace("T", " ")} UTC; the Council then applies its published rule.`
+    body: `${c.ref}. ${c.claimant.name} has filed a ${LABELS[c.type]} case against ${c.respondent.name} with the Galactic Arbitration Council.${amount} The evidence is the ISA's own record. The response window closes ${utcTime(c.windowEndsAt, { withDate: true })}; the Council then applies its published rule.`
   });
 }
 
@@ -249,7 +251,7 @@ export function fileCase(accountId, { type, recordId } = {}, now = Date.now()) {
   const held = settleTransfer({ fromAccountId: accountId, toAccountId: `escrow:${id}`, credits: fee, reason: "escrow-hold", idempotencyKey: `${id}:fee` }, now);
   if (!held.ok) return no(402, "cannot-pay", `Filing costs ${fee.toLocaleString("en-US")} credits, held until the ruling.`);
   const c = {
-    id, ref: nextRef(now), type, recordRef: ev.recordRef, claimant, respondent: ev.respondent,
+    id, ref: nextRef(now, id), type, recordRef: ev.recordRef, claimant, respondent: ev.respondent,
     filedAt: now, windowEndsAt: now + terms().responseHours * HOUR, amountClaimed: ev.amount, evidence: ev.evidence,
     state: "answering", ruling: null, paid: 0, feePaid: fee, feeEscrow: `escrow:${id}`, ...(ev.escrow ? { frozenContract: ev.escrow } : {})
   };
@@ -270,8 +272,9 @@ export function docketDefault(record, now = Date.now()) {
   const debtor = accountsStore.accounts?.[record?.debtorAccountId]?.state?.corp;
   const recordRef = `${record?.kind}:${record?.id}`;
   if (!debtor?.publicId || hasCase("credit-default", recordRef)) return null;
+  const gacId = createId("gac");
   const c = {
-    id: createId("gac"), ref: nextRef(now), type: "credit-default", recordRef, claimant: { ...ISA_PARTY }, respondent: corpParty(debtor),
+    id: gacId, ref: nextRef(now, gacId), type: "credit-default", recordRef, claimant: { ...ISA_PARTY }, respondent: corpParty(debtor),
     filedAt: now, windowEndsAt: now, amountClaimed: Math.max(0, Math.round(Number(record.shortfall) || 0)),
     evidence: { record: { kind: record.kind, id: record.id }, owedBefore: record.owedBefore, collected: record.collected, shortfall: record.shortfall },
     state: "ruled", ruling: { outcome: "upheld", amount: Math.max(0, Math.round(Number(record.shortfall) || 0)), order: null }, paid: 0, feePaid: 0

@@ -19,6 +19,7 @@ import { pushSystemNotification } from "./progression.js";
 import { saveAccountsNow } from "./store.js";
 import { dailyUpkeep, dayStartOf, moveTreasury, noteTreasury, payArrears } from "./conglomerates.js";
 import { NOT_FOUND, accountByCorp, context, corpName, no, roomEvent } from "./membership.js";
+import { utcTime } from "../../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -95,7 +96,7 @@ export function withdrawFromTreasury(accountId, conglomerateId, amount, now = Da
   const w = { id: createId("cwd"), corp: corp.publicId, amount, at: now, state: announce ? "pending" : "paid", completesAt: announce ? now + catalog.withdrawalDelayHours * HOUR_MS : now, blockedBy: [] };
   if (announce) {
     c.withdrawals.push(w);
-    noteTreasury(c, { at: now, kind: "withdrawal-announced", corp: corp.publicId, by: corp.publicId, note: `${amount} credits, completes ${new Date(w.completesAt).toISOString().slice(0, 16).replace("T", " ")} UTC unless blocked` });
+    noteTreasury(c, { at: now, kind: "withdrawal-announced", corp: corp.publicId, by: corp.publicId, note: `${amount} credits, completes ${utcTime(w.completesAt, { withDate: true })} unless blocked` });
     saveAccountsNow();
     for (const m of c.members) {
       const account = accountByCorp(m.corp);

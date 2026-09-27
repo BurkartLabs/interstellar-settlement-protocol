@@ -86,11 +86,13 @@ export async function loadNotifications() {
 }
 
 import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
+import { refHtml } from "../html.js"; // ISP-249 (AB#945)
 export function updateCorpIdentity(data) {
   const identity = document.getElementById("corp-identity");
   const corp = data.corp;
   identity.innerHTML = `
     <dt>Corporation</dt><dd>${escapeHtml(corp.corporationName)}</dd>
+    ${corp.licenceRef ? `<dt>ISA Licence</dt><dd>${refHtml(corp.licenceRef)}</dd>` : ""}
     <dt>CEO</dt><dd>${escapeHtml(corp.ceo)}</dd>
     <dt>Location</dt><dd>${escapeHtml(corp.location || "Earth")}</dd>
     <dt>Level</dt><dd>${corp.level} / ${corp.levelCap}</dd>

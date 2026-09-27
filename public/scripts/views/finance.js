@@ -138,6 +138,9 @@ export function renderFinanceDashboard(finances) {
   const credTrend = describeTrend(credits, prev ? prev.credits : NaN);
   setTrend("kpi-credits-trend", credTrend.text, credTrend.direction);
 
+  // ISP-249 (AB#945): the corporation's ISA licence, the reference its filings are made under
+  const licence = document.getElementById("finance-licence-ref");
+  if (licence) licence.textContent = appState.data?.corp?.licenceRef || "—";
   const meta = document.getElementById("finance-last-snapshot");
   if (meta) meta.textContent = latest ? fmtTimestamp(latest.t) : "no snapshots yet";
 
