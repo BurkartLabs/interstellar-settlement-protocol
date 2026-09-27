@@ -4831,11 +4831,6 @@ img.station__body {
 
 /* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */
 @media (max-width: 600px) {
-  /* ISP-250 (AB#946): the floor as tokens. Inside a screen the two small sizes are 14px on a phone, so a screen's own
-     class that takes --font-size-1 or -2 (the Conglomerate's, the Bank's, the lobbying rules') is on the floor without a
-     rule of its own; the list below remains for what sets a size some other way. Shown on /styleguide. */
-  .ui-screen { --font-size-1: 14px; --font-size-2: 14px; }
-  .ref-no { font-size: var(--font-size-3); } /* a reference number outside any screen (the sidebar's licence), Bug #4688 */
   .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .thread__meta, .thread__older, .thread__body, .bank-quote-form__field, .bank-loan__terms dt, .bank-quote__terms dt, .loan-board__only, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-kv, .station__overline, .station__note, .station__hint, .station__flavor, .station__blocked, .station__form label, .extractor__stat-label, .extractor__stat-value, .extractor__pct, .extractor__time, .extractor__cycle-status, .chat__meta, .chat__text, .forums__note, .forums__avatar, .forums__author, .forums__body, .missions__note, .missions__hint, .missions__overline, .missions__reward, .missions__cta, .missions__log-title, .missions__warning, .missions__levelup) {
     font-size: var(--font-size-3);
   }
@@ -4846,6 +4841,14 @@ img.station__body {
   .missions__modal :is(.ui-button, .ui-badge, .ui-kv, .missions__note, .missions__hint, .missions__overline, .missions__warning, .missions__levelup) {
     font-size: var(--font-size-3);
   }
+}
+
+/* ISP-250 (AB#946): the floor as tokens, in a block of its own (Bug #4694: the Station's test pins the rule above as its
+   block's first). Inside a screen the two small sizes are 14px on a phone, so a screen's own class that takes
+   --font-size-1 or -2 is on the floor without a rule of its own. Shown on /styleguide. */
+@media (max-width: 600px) {
+  .ui-screen { --font-size-1: 14px; --font-size-2: 14px; }
+  .ref-no { font-size: var(--font-size-3); } /* a reference number outside any screen (the sidebar's licence), Bug #4688 */
 }
 
 /* ─── Galactic Exchange on the design system (ISP-80, AB#769; flat direction, Decision AB#1801) ─── */
