@@ -26,6 +26,20 @@ export const starmap = createStarmapController({
   getMemberStation: () => appState.conglomerate?.station || null, // ISP-212 (AB#907)
   getSystemsCatalog: () => appState.systemsCatalog, // ISP-112 (AB#804)
   getNavigation: () => appState.navigation,
+  // ISP-231 (AB#926): a holder files its system's tariff; the summary is read again so the panel shows the new schedule
+  async onFileTariff(systemId, pct) {
+    try {
+      await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/tariffs/${encodeURIComponent(systemId)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pct })
+      }));
+      await loadTariffs();
+      const name = (appState.systemsCatalog || []).find((s) => s.id === systemId)?.name || systemId;
+      pushFeedback(`Tariff filed for ${name}.`, "success");
+      return null;
+    } catch (err) {
+      return err.message || "The tariff could not be filed.";
+    }
+  },
   async onTravelToSystem(systemId) {
     if (!appState.accountId) return;
     try {
@@ -135,6 +149,20 @@ export async function refreshBeltCompositions() {
 export function loadBeltCompositionsIntoStarmap() {
   return refreshBeltCompositions().then(() => starmap.setAsteroidMining(starmapMiningState(appState.data, appState.beltCompositions,
     { belts: appState.belts, respawnChancePerHour: appState.beltRespawnChance, remoteDispatchYieldPct: appState.remoteDispatchYieldPct })));
+}
+
+/**
+ * ISP-231 (AB#926): the caller's tariff summary: the rate it pays where it is docked (the sell confirmations and the
+ * Logistics quotes read it from appState.tariffs), every held system's rate for the starmap, and its own holdings.
+ * Read on entry and on every refresh, like the belt compositions; the Logistics view is drawn again when it lands.
+ */
+export async function loadTariffs() {
+  if (!appState.accountId) return;
+  try {
+    appState.tariffs = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/tariffs`));
+    starmap.setTariffs(appState.tariffs);
+    if (appState.data) updateAllViews(); // the Logistics quotes name the tariff
+  } catch (_) { /* silent: the server's settlement and receipt still state the tariff */ }
 }
 
 /**

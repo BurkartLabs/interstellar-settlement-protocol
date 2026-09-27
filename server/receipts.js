@@ -467,12 +467,16 @@ export function sellToOrderReceipt({ item, quantity, unitPrice, total, taxPct, t
   });
 }
 
-export function transferReceipt({ linesText, fromName, toName, fee, arrivesAt }) {
+export function transferReceipt({ linesText, fromName, toName, fee, arrivesAt, tariff = null }) {
   return receipt("transfer-resources", {
     title: "Shipment Dispatched",
     summary: `${linesText}, from ${fromName} to ${toName}.`,
-    costCredits: fee,
-    grants: [{ label: "Arrives", value: formatUtc(arrivesAt) }],
+    costCredits: fee + (tariff?.amount || 0),
+    grants: [
+      { label: "Arrives", value: formatUtc(arrivesAt) },
+      // ISP-231 (AB#926): the destination system's concession tariff, charged at dispatch
+      ...(tariff?.amount ? [{ label: "Transfer fee", value: formatCredits(fee) }, { label: "Concession tariff", value: `${formatCredits(tariff.amount)} (${tariff.pct}%)` }] : [])
+    ],
     next: "It joins this station's inventory on arrival. Follow it under Logistics, Shipments."
   });
 }

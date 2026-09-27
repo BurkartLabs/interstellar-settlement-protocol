@@ -10,6 +10,7 @@ import { recordControlDay, resetControlHistory } from "../../server/controlServi
 import { chargeUpkeep, petitionConcession, publicConcession, resetConcessions, reviewConcessions } from "../../server/concessions.js";
 import { levyTotal, resetTariffs, setTariff, tariffTick, tariffView } from "../../server/tariffService.js";
 import { WARFARE_CATALOG as W } from "../../server/warfare.js";
+import { saleQuote, transferTariff } from "../../public/scripts/tariffs.js"; // ISP-231 (AB#926): the client's quotes
 
 // ISP-230 (AB#925; docs/design/WARFARE.md, "Tariffs"): a concession holder's tariff, charged on every exchange sale and
 // every transfer into its system through one settlement function, paid to the holder daily less the ISA's levy, with 72
@@ -202,5 +203,53 @@ describe("one settlement function (P-HALF-FIX, AB#925)", () => {
     const sites = files(root).filter((f) => /applyCredits\([^)]*"(exchange|transfer-fees)"\)/.test(fs.readFileSync(f, "utf8"))).map((f) => path.relative(root, f).replace(/\\/g, "/")).sort();
     expect(sites).toEqual(["marketSettlement.js", "routes/logistics.js", "routes/market.js"]);
     for (const f of sites) expect(fs.readFileSync(path.join(root, f), "utf8"), f).toMatch(/chargeTariff\(/);
+  });
+});
+
+describe("what a trader sees before committing, and the holder's schedule (ISP-231, AB#926)", () => {
+  it("quotes a sale and a transfer with the server's own arithmetic: the confirmation's net is the settlement's", async () => {
+    const holder = await corp(), rival = await corp(), seller = await corp({ stock: { Silicates: 1000 } });
+    seller.corp.inventory["earth-station-prime"] = { Silicates: 400, Titanium: 50 };
+    grant(holder, rival);
+    inForce(holder, 3);
+    const mine = (await seller.api.get(`/api/accounts/${seller.id}/tariffs`)).body;
+    expect(mine.here).toEqual({ stationId: STATION, systemId: ALPHA, cap: 3, pct: 3, exempt: false, pending: null });
+    expect(mine.systems[ALPHA]).toMatchObject({ pct: 3, held: true });
+    expect(mine.holdings).toEqual([]);
+    expect(mine.normalValues).toEqual({ Silicates: 24, Titanium: 64 }); // the goods it holds outside this system
+    // the sale: the confirmation's rows come from saleQuote with the stored breakdown and here.pct
+    const order = silicateOrder();
+    const unitPrice = order.unitPrice;
+    const quote = saleQuote(1000 * unitPrice, seller.corp.finances.exchangeTaxBreakdown, mine.here.pct);
+    const sold = await seller.api.post(`/api/market/npc-orders/${order.id}/sell`).send({ quantity: 1000 });
+    expect(sold.body.traded.total).toBe(1000 * unitPrice);
+    expect(quote.tariff).toBe(sold.body.traded.tariffAmount);
+    expect(quote.proceeds).toBe(sold.body.traded.proceeds);
+    // the transfer: the Logistics quote is transferTariff over the summary's normal values
+    const lines = [{ item: "Silicates", quantity: 400 }, { item: "Titanium", quantity: 50 }];
+    const quoted = transferTariff(lines, mine.normalValues, mine.here.pct);
+    const shipped = await seller.api.post(`/api/accounts/${seller.id}/gameplay/transfer-resources`).send({ fromStationId: "earth-station-prime", lines });
+    expect(shipped.status, JSON.stringify(shipped.body)).toBe(200);
+    expect(shipped.body.shipment.tariff.amount).toBe(quoted);
+    expect(shipped.body.receipt.grants).toEqual(expect.arrayContaining([{ label: "Concession tariff", value: expect.stringContaining("(3%)") }]));
+  });
+
+  it("shows a trader a pending increase with its time, and the holder its schedule, what it collected and what is owed", async () => {
+    const holder = await corp(), rival = await corp(), seller = await corp({ stock: { Silicates: 1000 } });
+    grant(holder, rival);
+    inForce(holder, 1);
+    const T = Date.now();
+    expect(setTariff(holder.corp, ALPHA, 2, T).ok).toBe(true);
+    const theirs = (await seller.api.get(`/api/accounts/${seller.id}/tariffs`)).body;
+    expect(theirs.here).toMatchObject({ pct: 1, pending: { pct: 2, effectiveAt: T + 72 * H } });
+    await seller.api.post(`/api/market/npc-orders/${silicateOrder().id}/sell`).send({ quantity: 1000 });
+    const before = (await holder.api.get(`/api/accounts/${holder.id}/tariffs`)).body;
+    expect(before.here).toMatchObject({ exempt: true, pct: 0, pending: null }); // the holder pays itself nothing
+    expect(before.holdings).toEqual([expect.objectContaining({ systemId: ALPHA, cap: 3, pct: 1, pending: { pct: 2, effectiveAt: T + 72 * H }, docked: true, paidTotal: 0 })]);
+    const owed = before.holdings[0].accrued;
+    expect(owed).toBeGreaterThan(0);
+    tariffTick(Date.now());
+    const after = (await holder.api.get(`/api/accounts/${holder.id}/tariffs`)).body.holdings[0];
+    expect(after).toMatchObject({ accrued: 0, paidTotal: owed });
   });
 });
