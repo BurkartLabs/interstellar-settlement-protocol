@@ -17,6 +17,7 @@ import { blockWithdrawal, depositToTreasury, treasuryView, withdrawFromTreasury 
 import { depositGoods, hangarView, withdrawGoods } from "../game/hangar.js";
 import { conglomerateIntel } from "../game/intel.js";
 import { cancelStationProject, contributeToStationProject, startStationProject, stationProjectView } from "../game/stationProjects.js"; // ISP-210 (AB#905)
+import { proposeStationSetting, stationGovernanceRead, voteOnStationProposal } from "../game/stationGovernance.js"; // ISP-211 (AB#906)
 import { accountsStore } from "../game/store.js";
 import { BELT_KEYS } from "../game/asteroids.js";
 import { beltAt } from "../game/belts.js";
@@ -121,6 +122,12 @@ export function registerConglomerateRoutes(app) {
     source: req.body?.source, credits: number(req.body?.credits), item: req.body?.item ?? null, quantity: number(req.body?.quantity)
   }))));
   app.post(`${base}/station-project/cancel`, guarded("station-project", (req, res) => reply(res, cancelStationProject(req.params.accountId, req.params.conglomerateId))));
+  // ISP-211 (AB#906): governing the built station by stake. Proposing needs the role; voting needs a stake, which the rules check.
+  app.get(`${base}/station`, guarded("view", (req, res) => reply(res, stationGovernanceRead(req.params.accountId, req.params.conglomerateId))));
+  app.post(`${base}/station/proposals`, guarded("propose-station-setting", (req, res) => reply(res, proposeStationSetting(req.params.accountId, req.params.conglomerateId, {
+    setting: req.body?.setting, value: req.body?.value ?? null, conglomerateId: req.body?.conglomerateId ?? null
+  }), 201)));
+  app.post(`${base}/station/proposals/:proposalId/vote`, guarded("view", (req, res) => reply(res, voteOnStationProposal(req.params.accountId, req.params.conglomerateId, req.params.proposalId, req.body?.vote))));
   app.get(`${base}/hangar`, guarded("view", (req, res) => reply(res, hangarView(req.params.accountId, req.params.conglomerateId, undefined, undefined, page(req)))));
   app.post(`${base}/hangar/deposit`, guarded("contribute", (req, res) => reply(res, depositGoods(req.params.accountId, req.params.conglomerateId, goods(req)))));
   app.post(`${base}/hangar/withdraw`, guarded("withdraw-goods", (req, res) => reply(res, withdrawGoods(req.params.accountId, req.params.conglomerateId, goods(req)))));

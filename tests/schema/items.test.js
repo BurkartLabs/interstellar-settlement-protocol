@@ -10,7 +10,7 @@ import { PRICE_HISTORY_ITEMS } from "../../server/priceHistory.js";
 const DESIGN = fs.readFileSync(new URL("../../docs/design/tier3-resources.md", import.meta.url), "utf8");
 
 describe("data/items.json (AB#824)", () => {
-  it("each item has a kebab-case id, a name, a tier of 1 to 3 and a category, with tier 3 the refined", () => {
+  it("each item has a kebab-case id, a name, a tier of 1 to 4 and a category, with tier 3 the refined (AB#879: tier 4 is either)", () => {
     expect(ITEMS.length).toBeGreaterThanOrEqual(28);
     expect(itemSchemaProblems(ITEMS)).toEqual([]);
     for (const item of ITEMS) expect(Object.keys(item).sort().filter((k) => k !== "note"), item.id).toEqual(["category", "id", "name", "tier"]);
@@ -21,10 +21,12 @@ describe("data/items.json (AB#824)", () => {
       { id: "Helium 3", name: "Helium-3", tier: 1, category: "raw" },
       { id: "aerogel", name: "Aerogel", tier: 2, category: "refined" },
       { id: "aerogel", name: "Aerogel", tier: 3, category: "refined" },
-      { id: "x", name: "", tier: 4, category: "gas" }
+      { id: "x", name: "", tier: 5, category: "gas" },
+      { id: "helium-4", name: "Helium-4", tier: 1, category: "refined" }
     ]);
     expect(problems.join("\n")).toMatch(/Helium 3.*kebab-case/);
     expect(problems.join("\n")).toMatch(/aerogel.*tier 3 is refined/);
+    expect(problems.join("\n")).toMatch(/helium-4.*tiers 1 and 2 raw/);
     expect(problems.join("\n")).toMatch(/id repeats/);
     expect(problems.join("\n")).toMatch(/name repeats/);
     expect(problems.join("\n")).toMatch(/x.*no name/);
@@ -34,14 +36,16 @@ describe("data/items.json (AB#824)", () => {
 
   it("holds the design's items at the design's tiers: AB#822's new raws and every item already in the build", () => {
     const tierOf = Object.fromEntries(ITEMS.map((i) => [i.name, i.tier]));
-    for (const [name, tier] of [["Deuterium", 1], ["Iron Ore", 1], ["Bauxite", 1], ["Helium-3", 1], ["Titanium", 2], ["Exotic Matter", 2]]) {
+    for (const [name, tier] of [["Deuterium", 1], ["Iron Ore", 1], ["Bauxite", 1], ["Helium-3", 1], ["Titanium", 2], ["Exotic Matter", 4]]) {
       expect(tierOf[name], name).toBe(tier);
     }
     // Section 6's table of items already in the build: every row, at its tier.
     const section = DESIGN.split("## 6. Items already in the build")[1].split("\n## ")[0];
     const rows = [...section.matchAll(/^\| ([A-Z][^|]+?) \| ([123]) \|/gm)].map((m) => [m[1].trim(), Number(m[2])]);
     expect(rows.length).toBe(16); // thirteen, Deuterium (AB#830), Bauxite (AB#833) and Iron Ore (AB#831)
-    for (const [name, tier] of rows) expect(tierOf[name], name).toBe(tier);
+    // AB#879: v0.11-tier4.md section 2 moves Uranium and Exotic Matter from 2 to 4; the v0.8 table keeps its history.
+    const MOVED = new Set(["Uranium", "Exotic Matter"]);
+    for (const [name, tier] of rows) expect(tierOf[name], name).toBe(MOVED.has(name) ? 4 : tier);
   });
 });
 

@@ -1532,10 +1532,24 @@ export function createStarmapController({
 
       // Bind dock buttons in starmap details
       detailsEl.querySelectorAll(".starmap__dock").forEach((btn) => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           const stationId = btn.getAttribute("data-station-id");
           if (stationId && onDockAtStation) {
-            onDockAtStation(stationId);
+            btn.disabled = true;
+            const result = await onDockAtStation(stationId);
+            // Bug #4651: a refusal is said beside the station it refused, not only on the Overview's feedback list
+            if (result?.error) {
+              btn.disabled = false;
+              const row = btn.closest(".starmap__station-row");
+              let why = row?.querySelector(".starmap__dock-refused");
+              if (row && !why) {
+                why = document.createElement("p");
+                why.className = "starmap__dock-refused";
+                why.setAttribute("role", "alert");
+                row.append(why);
+              }
+              if (why) why.textContent = result.error;
+            }
           }
         });
       });
@@ -1810,7 +1824,7 @@ export function createStarmapController({
             : !canTravelToSystem(station.systemId)
               ? `<p class="starmap__status starmap__status--locked">${escapeHtmlAttr(travelLockText(station.systemId))}</p>`
             : (state.currentSystemId || "sol") === station.systemId
-              ? `<button class="ui-button ui-button--primary starmap__station-dock" type="button" data-station-id="${escapeHtmlAttr(station.id)}">Dock at Station</button>`
+              ? `<button class="ui-button ui-button--primary starmap__station-dock" type="button" data-station-id="${escapeHtmlAttr(station.id)}">Dock at Station</button><p class="starmap__dock-refused" role="alert" hidden></p>`
               : `<p class="ui-panel__meta">Jump to <strong>${escapeHtmlAttr(systemName(state.systems, station.systemId) || "its system")}</strong> from the system view, then dock here.</p>`
           }
         </div>
@@ -1828,11 +1842,20 @@ export function createStarmapController({
     // Bind travel/dock
     const dockBtn = overlay.querySelector(".starmap__station-dock");
     if (dockBtn) {
-      dockBtn.addEventListener("click", () => {
+      dockBtn.addEventListener("click", async () => {
         const sid = dockBtn.getAttribute("data-station-id");
         if (sid && onDockAtStation) {
-          closeStationModal();
-          onDockAtStation(sid);
+          dockBtn.disabled = true;
+          const result = await onDockAtStation(sid);
+          // Bug #4651: the modal stays open on a refusal and says why; it closes once the ship is on its way
+          if (result?.error) {
+            dockBtn.disabled = false;
+            const why = overlay.querySelector(".starmap__dock-refused");
+            if (why) {
+              why.textContent = result.error;
+              why.hidden = false;
+            }
+          } else closeStationModal();
         }
       });
     }
