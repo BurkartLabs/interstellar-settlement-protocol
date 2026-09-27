@@ -1,0 +1,27 @@
+// server/routes/concessions.js: ISA concessions (ISP-227, AB#922; docs/design/TERRITORY.md). Petition (a challenge
+// when the system's places are full) and relinquish are the caller's own, behind requireAuth and requireAccountAccess
+// (the /api/accounts/:accountId mount), with ACCOUNT_INPUT's check of the system id; the holder is always the caller's
+// corporation or conglomerate, never read from the request. The register is public, like the dominance reading.
+import { SYSTEMS_BY_ID } from "../game/catalog.js";
+import { petitionConcession, publicConcession, relinquishConcession } from "../concessions.js";
+
+function reply(res, result, status = 200) {
+  if (result?.refused) { res.status(result.refused.status).json({ error: result.refused.error, code: result.refused.code }); return; }
+  res.status(status).json(result);
+}
+const known = (id) => typeof id === "string" && SYSTEMS_BY_ID.has(id);
+
+export function registerConcessionRoutes(app) {
+  app.get("/api/systems/:id/concession", (req, res) => {
+    if (!known(req.params.id)) { res.status(404).json({ error: "No such system." }); return; }
+    res.json(publicConcession(req.params.id));
+  });
+  app.post("/api/accounts/:accountId/concessions/:systemId/petition", (req, res) => {
+    if (!known(req.params.systemId)) { res.status(404).json({ error: "No such system." }); return; }
+    reply(res, petitionConcession(req.params.accountId, req.params.systemId), 201);
+  });
+  app.post("/api/accounts/:accountId/concessions/:systemId/relinquish", (req, res) => {
+    if (!known(req.params.systemId)) { res.status(404).json({ error: "No such system." }); return; }
+    reply(res, relinquishConcession(req.params.accountId, req.params.systemId));
+  });
+}

@@ -73,6 +73,18 @@ export function systemControl(systemId, now = Date.now(), knownSystems) {
   };
 }
 
+/**
+ * ISP-227 (AB#922): what a petition, a renewal or a challenge reads now: the system's terms (null when never
+ * concedable), whether the readings are stale, who is eligible ("type:id"), and the newest scores ({ type, id, name,
+ * score, extraction }). A stale reading or none is the caller's to refuse (fails closed).
+ */
+export function controlNow(systemId, now = Date.now()) {
+  const terms = concessionTermsFor(systemId);
+  const days = history.days.map((d) => ({ day: d.day, computedAt: d.computedAt, scores: d.systems[systemId] || [] }));
+  const { stale, eligible } = eligibility(days, terms, now);
+  return { terms, stale: stale || !days.length, eligible, scores: days[0]?.scores || [] };
+}
+
 /** For tests: forget the readings (and optionally the file). */
 export function resetControlHistory({ removeFile = false } = {}) {
   history = { days: [] };

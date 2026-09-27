@@ -39,6 +39,8 @@ import { dividendTick } from "./dividends.js"; // ISP-159 (AB#853)
 import { registerConglomerateRoutes } from "./routes/conglomerates.js"; // ISP-197 (AB#891)
 import { registerDominanceRoutes } from "./routes/dominance.js"; // ISP-217 (AB#912)
 import { registerControlRoutes } from "./routes/control.js"; // ISP-226 (AB#921)
+import { registerConcessionRoutes } from "./routes/concessions.js"; // ISP-227 (AB#922)
+import { concessionTick } from "./concessions.js"; // ISP-227 (AB#922)
 import { dominanceTick } from "./dominanceService.js"; // ISP-217 (AB#912)
 import { registerLogisticsRoutes } from "./routes/logistics.js";
 import { registerMiningRoutes } from "./routes/mining.js";
@@ -171,6 +173,7 @@ registerEquityRoutes(app);
 registerConglomerateRoutes(app);
 registerDominanceRoutes(app);
 registerControlRoutes(app);
+registerConcessionRoutes(app);
 
 registerLogisticsRoutes(app);
 
@@ -182,6 +185,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now()
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondWindowTick(Date.now()), 60_000); // ISP-154 (AB#848)
 // ISP-217 (AB#912): dominance, computed at the first minute after 00:00 UTC (and at start when today has none)
 if (!process.env.ISP_DISABLE_TICKERS) { dominanceTick(Date.now()); setInterval(() => dominanceTick(Date.now()), 60_000); }
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => concessionTick(Date.now()), 60_000); // ISP-227 (AB#922): reviews, renewals, the day's upkeep
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => raidTick(Date.now()), 30_000); // ISP-179 (AB#873): arrivals and returns
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondServicingTick(Date.now()), 60_000); // ISP-155 (AB#849)
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now(); shareOfferingTick(now); dividendTick(now); }, 60_000); // ISP-158 (AB#852), ISP-159 (AB#853)

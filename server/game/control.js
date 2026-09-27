@@ -21,7 +21,8 @@ export function controlScores(entry, weights) {
   const total = live.reduce((s, k) => s + weights[k], 0);
   if (!(total > 0)) return [];
   return (entry.groups || [])
-    .map((g) => ({ type: g.type, id: g.id, name: g.name, score: live.reduce((s, k) => s + (weights[k] / total) * (Number(g.parts?.[k]) || 0), 0) }))
+    // extraction: the holder's share of the system's tonnes, which a challenge's ADM bar reads (ISP-227, AB#922)
+    .map((g) => ({ type: g.type, id: g.id, name: g.name, score: live.reduce((s, k) => s + (weights[k] / total) * (Number(g.parts?.[k]) || 0), 0), extraction: Number(g.parts?.extraction) || 0 }))
     .filter((h) => h.score > 0)
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
 }
