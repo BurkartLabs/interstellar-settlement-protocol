@@ -9,6 +9,7 @@
 
 import { yardMaxTier, yardTierFor } from "./economy.js";
 import { MAX_RUN_HOURS } from "../public/scripts/refineryRun.js"; // AB#825
+import { CONGLOMERATE_CATALOG } from "./conglomerates.js"; // ISP-197 (AB#891)
 
 /** The highest cap any yard tier has (AB#793): what start-mining accepts before the route clamps to the yard's own. */
 const TOP_THROUGHPUT_CAP = yardTierFor(yardMaxTier()).throughputCap;
@@ -121,6 +122,15 @@ export const ACCOUNT_INPUT = {
   // ISP-149 (AB#843): the product and principal to quote, and the quote to accept; the terms are the server's
   "POST /loans/quote": { body: { productId: word(["dsdb-7", "dsdb-30", "dsdb-90"], "a Development Bank loan product"), principal: int(1_000, 100_000_000, "a principal of at least 1,000 credits") } },
   "POST /loans/accept": { body: { quoteId: ref("a loan quote") } },
+  // ISP-197 (AB#891): the charter. The name is checked by the route against the corporation-name rules (3 to 40
+  // characters); this bounds what reaches it. Emblem and colour are numbered from 1 in the Bureau's fixed lists.
+  "POST /conglomerates": {
+    body: {
+      name: text(64, "a conglomerate name of 3 to 40 characters"),
+      emblem: choice(Array.from({ length: CONGLOMERATE_CATALOG.emblems }, (_, i) => i + 1), "an emblem from the Bureau's list"),
+      colour: choice(Array.from({ length: CONGLOMERATE_CATALOG.colours }, (_, i) => i + 1), "a colour from the Bureau's list")
+    }
+  },
   "POST /messages/send": {
     body: {
       draftId: ref("a draft", { optional: true }),

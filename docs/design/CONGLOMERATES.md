@@ -445,6 +445,8 @@ state.dominanceCounters: { extraction: { <day>: { <system>: { <publicId>: tonnes
 state.dominance: { <system>: { computedAt, public: { byCorp: [top 3 + others], byConglomerate: [top 3 + others] } } }
 ```
 
+**As built (ISP-197, AB#891).** The list lives in the accounts snapshot (`accountsStore.conglomerates`, server/game/conglomerates.js), not the global state: the charter takes the fee and creates the conglomerate as one change, and one file written once keeps it one change on disk. Names are unique by folded name (an index there; `migrations/35_conglomerates.sql` for Postgres). Emblem and colour are numbered from 1. The reserved names add every faction code and GEX to the corporation list (`RESERVED_CONGLOMERATE_NAMES`). The directory, `GET /api/conglomerates`, needs a login.
+
 Sent to every client: each conglomerate's public summary `{ id, name, emblem, colour, level, memberCount, maxMembers }`
 (so the Overview card and an "apply" list work). Sent only to a conglomerate's own members: its roster, treasury and
 invitations. Corporations are always named by `publicId`, never by account id (Bugs #711, #754).
