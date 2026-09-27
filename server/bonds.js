@@ -35,13 +35,22 @@ export function bondSeriesList() {
 }
 
 const seriesById = (id) => (typeof id === "string" ? bondSeriesList().find((s) => s.id === id) ?? null : null);
-const OUTSTANDING = new Set(["subscribing", "live", "arrears"]);
+const OUTSTANDING = new Set(["subscribing", "live", "arrears", "defaulted"]);
 
-/** The bonds an account's corporation has issued, as the credit rating reads them (server/creditRating.js). */
+/**
+ * The bonds an account's corporation has issued, as the credit rating reads them (server/creditRating.js): the face
+ * still owed plus any arrears, in the rating's words. Bug #2571: the rating counts `active`, `arrears` and `defaulted`,
+ * so a bond that is subscribing or live is `active` to it.
+ */
 export function bondsIssuedBy(accountId) {
   return bondSeriesList()
     .filter((s) => s.issuerAccountId === accountId && OUTSTANDING.has(s.state))
-    .map((s) => ({ outstandingFace: s.sold * s.faceValue, state: s.state === "subscribing" ? "live" : s.state, arrearsSince: s.arrearsSince ?? null, defaultedAt: s.defaultedAt ?? null }));
+    .map((s) => ({
+      outstandingFace: s.sold * s.faceValue + Math.max(0, Number(s.arrears) || 0),
+      state: s.state === "subscribing" || s.state === "live" ? "active" : s.state,
+      arrearsSince: s.arrearsSince ?? null,
+      defaultedAt: s.defaultedAt ?? null
+    }));
 }
 
 const statementsOf = (accountId, now) => getStatements(accountId, 30, now)?.statements ?? [];

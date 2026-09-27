@@ -6,6 +6,7 @@ import { registerAccount, authed } from "../helpers/api.js";
 import { getAccountById, mutateAccountState, getStatements } from "../../server/gameState.js";
 import { BOND_TERMS, COUPON_STEPS, bondWindowTick, bondSeriesList, bondsIssuedBy, underwriterShare } from "../../server/bonds.js";
 import { ledgerEntries, settlementTotals } from "../../server/settlement.js";
+import { computeCreditRating } from "../../server/creditRating.js";
 
 // ISP-154 (AB#848): issuing a bond series and running its subscription window, from docs/design/v0.9-debt.md,
 // sections 1, 7 and 11, on injected time for the window (P-TEST-TIME). The issuer is the design's example corporation
@@ -119,7 +120,19 @@ describe("ISP-154 subscribing", () => {
     const moves = ledgerEntries().filter((e) => e.key.startsWith(`bond:${s.id}:`));
     expect(moves.map((e) => [e.from, e.to, e.credits, e.reason])).toEqual([[buyer.id, issuer.id, 30_000, "bond-subscription"]]);
     expect(issuer.corp().finances.incomeBySource["bond-subscription-received"]).toBe(30_000);
-    expect(bondsIssuedBy(issuer.id)).toEqual([{ outstandingFace: 30_000, state: "live", arrearsSince: null, defaultedAt: null }]);
+    expect(bondsIssuedBy(issuer.id)).toEqual([{ outstandingFace: 30_000, state: "active", arrearsSince: null, defaultedAt: null }]);
+  });
+
+  it("Bug #2571: the bonds a corporation sold are debt to its credit rating", async () => {
+    const issuer = await corporation();
+    const buyer = await corporation({ level: 1, credits: 500_000 });
+    const s = (await issuer.issue(TERMS)).body.series;
+    await buyer.subscribe(s.id, 100);
+    const now = Date.now();
+    const statements = getStatements(issuer.id, 30, now).statements;
+    const without = computeCreditRating(issuer.corp(), now, statements);
+    const withBonds = computeCreditRating(issuer.corp(), now, statements, { bonds: bondsIssuedBy(issuer.id) });
+    expect(withBonds.score).toBeLessThan(without.score);
   });
 
   it("refuses, moving nothing: more than is left (not cut down), the issuer itself, too few credits, an unknown series", async () => {
