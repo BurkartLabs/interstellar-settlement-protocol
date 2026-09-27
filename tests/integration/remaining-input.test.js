@@ -24,6 +24,7 @@ const OUT_OF_SCOPE = {
   "GET /healthz": "the health probe, with no input (AB#735)",
   "GET /how-to-start": "a static page, with no input (AB#748)",
   "GET /api/bootstrap": "a public read with no input",
+  "GET /api/corporations/:corpId/credit-rating": "a read; its one input, a public corporation id, is only ever compared with existing ids (AB#842)",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
   "GET /api/buildings": "a static catalog",

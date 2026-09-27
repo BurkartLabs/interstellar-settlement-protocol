@@ -646,6 +646,84 @@ button:disabled {
   background: none;
 }
 
+/* ISP-148 (AB#842): the credit rating card: the grade, the score, and one line on what holds it back */
+.finance__rating {
+  margin: var(--space-4) 0;
+}
+
+.rating-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.rating-card__grade {
+  flex: none;
+  min-width: 4.5rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-6);
+  line-height: 1;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.rating-card__grade--strong { color: var(--success); }
+.rating-card__grade--fair { color: var(--accent); }
+.rating-card__grade--weak { color: var(--warn); }
+.rating-card__grade--default { color: var(--danger); }
+.rating-card__grade--unrated { color: var(--muted); }
+
+.rating-card__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.rating-card__title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-1);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rating-card__score {
+  margin-left: var(--space-2);
+  color: var(--text);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.rating-card__why {
+  margin: 0;
+  font-size: var(--font-size-3);
+  color: var(--text);
+}
+
+.rating-card__inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-2);
+  color: var(--text-soft);
+}
+
+.rating-card__input span { color: var(--muted); }
+.rating-card__input--weak span { color: var(--warn); }
+.rating-card__input--strong span { color: var(--success); }
+
 .kpi-tile__label {
   font-family: var(--font-mono);
   font-size: var(--font-size-1);

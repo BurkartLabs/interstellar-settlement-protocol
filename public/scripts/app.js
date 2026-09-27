@@ -558,6 +558,7 @@ function bindRealtimeEvents() {
 
     const financeState = payload.finances;
     appState.data.corp.finances = financeState;
+    if (payload.creditRating !== undefined) appState.data.corp.creditRating = payload.creditRating; // ISP-148 (AB#842)
     renderFinanceCharts(financeState);
     renderFinanceDashboard(financeState);
     updateCorpIdentity(appState.data);
