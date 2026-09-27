@@ -38,6 +38,7 @@ import "./balanceSheet.js"; // Bug #4647: the balance sheet's debt and receivabl
 import { dividendTick } from "./dividends.js"; // ISP-159 (AB#853)
 import { registerConglomerateRoutes } from "./routes/conglomerates.js"; // ISP-197 (AB#891)
 import { registerDominanceRoutes } from "./routes/dominance.js"; // ISP-217 (AB#912)
+import { registerControlRoutes } from "./routes/control.js"; // ISP-226 (AB#921)
 import { dominanceTick } from "./dominanceService.js"; // ISP-217 (AB#912)
 import { registerLogisticsRoutes } from "./routes/logistics.js";
 import { registerMiningRoutes } from "./routes/mining.js";
@@ -169,6 +170,7 @@ registerCapTableRoutes(app);
 registerEquityRoutes(app);
 registerConglomerateRoutes(app);
 registerDominanceRoutes(app);
+registerControlRoutes(app);
 
 registerLogisticsRoutes(app);
 

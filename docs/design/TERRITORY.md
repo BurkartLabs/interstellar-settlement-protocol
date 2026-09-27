@@ -244,6 +244,7 @@ point.
 | `concessionGrantPct` | 40 | Control share (%) a holder needs on each of the eligible days to petition. |
 | `concessionLeadRatio` | 1.5 | And at least this multiple of the next holder's share on those days. |
 | `concessionEligibleDays` | 14 | Consecutive daily computations the grant conditions must hold before a petition. |
+| `concessionDataMaxAgeHours` | 26 | Eligibility reads false when the latest daily computation is older than this (fails closed, AB#921). |
 | `concessionPetitionFee` | 25000 | Credits to file a petition, counter-petition or challenge; a sink, never refunded. |
 | `concessionReviewHours` | 72 | How long a petition or challenge is open before the ISA decides. |
 | `concessionTermDays` | 30 | A concession's term; renewed at its end while the holder keeps `concessionRetainPct`. |
