@@ -448,6 +448,19 @@ export function concessionStatusFor(accountId, systemId, now = Date.now()) {
 /** For tests: a system's stored record, to corrupt a value and see the reader fail closed. */
 export const concessionRecordForTests = (systemId) => store.systems[systemId] ?? null;
 
+/** ISP-241 (AB#937): a petition or challenge by id, with its system's holders and open petitions (copies); or null. */
+export function petitionRecord(petitionId) {
+  for (const rec of Object.values(store.systems)) {
+    const petition = rec.petitions.find((p) => p.id === petitionId);
+    if (petition) return JSON.parse(JSON.stringify({ systemId: rec.systemId, petition, holders: rec.holders, petitions: rec.petitions.filter((p) => p.state === "open") }));
+  }
+  return null;
+}
+/** ISP-241 (AB#937): a system's open petitions and challenges (copies). */
+export const petitionsIn = (systemId) => JSON.parse(JSON.stringify((store.systems[systemId]?.petitions || []).filter((p) => p.state === "open")));
+/** ISP-241 (AB#937): a system's public register of concession events (a copy), oldest first. */
+export const concessionRegister = (systemId) => JSON.parse(JSON.stringify(store.systems[systemId]?.register || []));
+
 /** For tests: forget every concession (and optionally the file). */
 export function resetConcessions({ removeFile = false } = {}) {
   store = { systems: {}, lastUpkeepDay: null };

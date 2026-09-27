@@ -46,7 +46,7 @@
       { "id": "mercenary-readiness", "open": true },
       { "id": "tariff-overcharge", "open": true },
       { "id": "concession-arbitrated", "open": true },
-      { "id": "patent-royalty", "open": false },
+      { "id": "patent-royalty", "open": true },
       { "id": "credit-default", "open": true }
     ]
   },

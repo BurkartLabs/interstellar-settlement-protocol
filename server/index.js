@@ -41,6 +41,7 @@ import { registerDominanceRoutes } from "./routes/dominance.js"; // ISP-217 (AB#
 import { registerControlRoutes } from "./routes/control.js"; // ISP-226 (AB#921)
 import { registerConcessionRoutes } from "./routes/concessions.js"; // ISP-227 (AB#922)
 import { registerPatentRoutes } from "./routes/patents.js"; // ISP-235 (AB#930)
+import { registerArbitrationRoutes } from "./routes/arbitration.js"; // ISP-241 (AB#937)
 import { patentTick } from "./patents.js"; // ISP-236 (AB#931)
 import { concessionTick } from "./concessions.js"; // ISP-227 (AB#922)
 import { dominanceTick } from "./dominanceService.js"; // ISP-217 (AB#912)
@@ -184,6 +185,7 @@ registerDominanceRoutes(app);
 registerControlRoutes(app);
 registerConcessionRoutes(app);
 registerPatentRoutes(app);
+registerArbitrationRoutes(app);
 registerTariffRoutes(app);
 registerStandingRoutes(app);
 registerLobbyingRoutes(app);

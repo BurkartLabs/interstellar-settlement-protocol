@@ -33,6 +33,7 @@ import { removeBuilding, buildingCostBasis, NEVER_REMOVED } from "./buildingRemo
 import { bondSeriesList } from "./bonds.js";
 import { accelerateSeries, bondOwedOnDefault, collectBondOwed, holdersOf, sellHoldingsToUnderwriter } from "./bondServicing.js";
 import { sellSharesForRecovery } from "./shareOfferings.js"; // ISP-160 (AB#854): share holdings are liquid too
+import { docketDefault } from "./arbitration.js"; // ISP-241 (AB#937): the ISA dockets every recovery
 
 const HOUR = 3_600_000;
 export const GRACE_HOURS = 24;
@@ -166,6 +167,7 @@ export function recoverDefault(debtorAccountId, loanId, now, options = {}) {
     collect: (key) => collectOwed(debtorAccountId, loan, now, key)
   }, now, options);
   save(debtorAccountId, loan, null);
+  docketDefault({ kind: "loan", id: loan.id, debtorAccountId, owedBefore: r.owedBefore, collected: r.collected, shortfall: r.shortfall }, now); // ISP-241 (AB#937)
   return { ...r, loan };
 }
 
@@ -183,6 +185,7 @@ export function recoverBondDefault(seriesId, now, options = {}) {
     owed: () => bondOwedOnDefault(series),
     collect: (key) => collectBondOwed(series, now, key)
   }, now, options);
+  docketDefault({ kind: "bond", id: series.id, debtorAccountId: series.issuerAccountId, owedBefore: r.owedBefore, collected: r.collected, shortfall: r.shortfall }, now); // ISP-241 (AB#937)
   return { ...r, series };
 }
 

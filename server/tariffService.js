@@ -115,7 +115,9 @@ export function tariffRateFor(corp, stationId, now = Date.now()) {
 /**
  * The one settlement function (ISP-230). Charge `corp` the tariff on `base` credits settled at `stationId`: a sale's
  * gross, or a transfer's goods at normal value. `postedPct` is a listing's rate when it was posted: it pays the lower
- * of that and today's. Books the amount as "tariff" and accrues it to the holders, less the levy. Returns { pct, amount }.
+ * of that and today's. Books the amount as "tariff" and accrues it to the holders, less the levy. Returns { pct, amount },
+ * and for a tariff charged its settlement record too (ISP-241, AB#937: what an arbitration case reads): { base,
+ * postedPct, stationId, systemId, at, levy, to: [{ type, id, share }] }, each holder with the share it was accrued.
  * Never throws: a failure charges nothing and is logged.
  */
 export function chargeTariff(corp, { stationId, base, postedPct = null, now = Date.now() }) {
@@ -128,15 +130,18 @@ export function chargeTariff(corp, { stationId, base, postedPct = null, now = Da
     const levy = levyOf(amount, pct, tariffCap(systemId), TERMS);
     const rec = systemRecord(systemId);
     const share = Math.floor((amount - levy) / holders.length);
+    const to = [];
     holders.forEach(({ holder }, i) => {
       const key = keyOf(holder);
+      const credited = share + (i === 0 ? amount - levy - share * holders.length : 0);
       rec.holders[key] = holder;
-      rec.accrued[key] = (rec.accrued[key] || 0) + share + (i === 0 ? amount - levy - share * holders.length : 0);
+      rec.accrued[key] = (rec.accrued[key] || 0) + credited;
+      to.push({ type: holder.type, id: holder.id, share: credited });
     });
     rec.levy = (rec.levy || 0) + levy;
     applyCredits(corp, -amount, "tariff", now);
     save();
-    return { pct, amount };
+    return { pct, amount, base: Math.floor(Number(base) || 0), postedPct: Number.isFinite(postedPct) ? postedPct : null, stationId, systemId, at: now, levy, to };
   } catch (error) {
     console.error(`[tariffs] a tariff at ${stationId} was not charged: ${error?.message || error}`);
     return { pct: 0, amount: 0 };
@@ -269,6 +274,9 @@ export function tariffSummary(corp, now = Date.now()) {
   }
   return { here, systems, holdings, normalValues };
 }
+
+/** ISP-241 (AB#937): a system's filed rates (copies): each holder's { holder, grantedAt, pct, pending, history }. */
+export const tariffRates = (systemId) => JSON.parse(JSON.stringify(Object.values(store.systems[systemId]?.rates || {})));
 
 /** The levy counted so far: what the ISA kept of every tariff, a sink. */
 export const levyTotal = () => (store.levyTotal || 0) + Object.values(store.systems).reduce((s, r) => s + (r.levy || 0), 0);
