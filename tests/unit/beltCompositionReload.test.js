@@ -97,7 +97,8 @@ describe("a scouted belt after a reload (Bug #1264)", () => {
     expect(state).toEqual({
       probeCount: 2, maxProbes: 3, maxDeployments: 2, activeExpeditions: [],
       scoutedBelts: ["sol:belt"], beltCompositions: { "sol:belt": { Silicates: 35 } },
-      belts: {}, respawnChancePerHour: null // AB#2331: until the slots have been fetched
+      belts: {}, respawnChancePerHour: null, // AB#2331: until the slots have been fetched
+      remoteDispatchYieldPct: null // AB#4656, Bug #4662: the shared-intel yield, fetched with them
     });
     expect(starmapMiningState({}, undefined).beltCompositions).toEqual({});
   });
@@ -130,7 +131,8 @@ describe("a scouted belt after a reload (Bug #1264)", () => {
 
   it("when the fetch resolves, the compositions go to the Starmap", () => {
     // AB#2331: with the slots (appState.belts) and the respawn chance, fetched with them.
-    const slots = String.raw`\{ belts: appState\.belts, respawnChancePerHour: appState\.beltRespawnChance \}`;
+    // AB#4656, Bug #4662: and the shared-intel yield.
+    const slots = String.raw`\{ belts: appState\.belts, respawnChancePerHour: appState\.beltRespawnChance, remoteDispatchYieldPct: appState\.remoteDispatchYieldPct \}`;
     expect(body("function loadBeltCompositionsIntoStarmap(")).toMatch(new RegExp(
       String.raw`refreshBeltCompositions\(\)\.then\(\(\) => starmap\.setAsteroidMining\(starmapMiningState\(appState\.data, appState\.beltCompositions,\s*` + slots + String.raw`\)\)\)`
     ));
