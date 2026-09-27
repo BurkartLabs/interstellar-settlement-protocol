@@ -21,6 +21,7 @@ import { registerCatalogRoutes } from "./routes/catalog.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerAccountRoutes } from "./routes/account.js";
 import { registerCorporationRoutes } from "./routes/corporation.js";
+import { registerLoanRoutes } from "./routes/loans.js"; // ISP-149 (AB#843)
 import { registerCreditRatingRoutes } from "./routes/creditRating.js"; // ISP-148 (AB#842)
 import { registerLogisticsRoutes } from "./routes/logistics.js";
 import { registerMiningRoutes } from "./routes/mining.js";
@@ -133,6 +134,7 @@ app.use("/api/forums", gameplayInputMiddleware({ ...INPUT_CHECKS, routes: FORUM_
 registerAccountRoutes(app);
 
 registerCorporationRoutes(app);
+registerLoanRoutes(app);
 registerCreditRatingRoutes(app);
 
 registerLogisticsRoutes(app);

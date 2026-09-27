@@ -1,0 +1,15 @@
+{
+  "_source": "docs/design/v0.9-debt.md, section 5 (ISP-149, AB#843): the Deep Space Development Bank's products and spreads. tests/integration/npc-loans.test.js reads the design's tables and this file together.",
+  "lender": "deep-space-development-bank",
+  "tap": "tap:dsdb",
+  "products": [
+    { "id": "dsdb-7", "termDays": 7, "baseRatePct30": 3.0, "maxPrincipalMultiple": 0.2 },
+    { "id": "dsdb-30", "termDays": 30, "baseRatePct30": 4.0, "maxPrincipalMultiple": 0.5 },
+    { "id": "dsdb-90", "termDays": 90, "baseRatePct30": 5.0, "maxPrincipalMultiple": 1.0 }
+  ],
+  "spreadPct30": { "AAA": 0, "AA": 0.5, "A": 1, "BBB": 2, "BB": 3, "B": 5, "CCC": 8, "CC": 12, "C": 16 },
+  "notRated": { "productId": "dsdb-90", "spreadPct30": 16, "maxPrincipal": 25000 },
+  "originationPct": 2.5,
+  "minPrincipal": 1000,
+  "quoteMinutes": 10
+}

@@ -119,7 +119,9 @@ const BASELINE = {
     "GET /conversations/:conversationId/messages": { params: { conversationId: "cv_910" } },
     "POST /conversations/:conversationId/read": { params: { conversationId: "cv_910" } },
     "POST /messages/:messageId/read": { params: { messageId: "m-732" } },
-    "POST /messages/:messageId/move": { params: { messageId: "m-732" }, body: { folder: "archive" } }
+    "POST /messages/:messageId/move": { params: { messageId: "m-732" }, body: { folder: "archive" } },
+    "POST /loans/quote": { body: { productId: "dsdb-90", principal: 5000 } }, // ISP-149 (AB#843): a quote changes nothing
+    "POST /loans/accept": { body: { quoteId: "lq-732" } } // no such quote: refused, nothing lent
   },
   "/api/market": {
     "POST /orders": { body: { type: "sell", item: "Silicates", quantity: 1, unitPrice: 30 } },

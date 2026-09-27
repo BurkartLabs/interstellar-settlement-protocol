@@ -8,8 +8,11 @@
 // What moves: whole credits, from one party to another, for one of REASONS. A party is
 //   - a corporation: its account id; its balance moves through applyCredits (AB#712), so both statements book it;
 //   - an escrow: `escrow:<id>`, a balance held in the global state until it is released (escrow-hold, escrow-release);
-//   - a sink: `sink:fee`, a named total in the global state that credits go into and never come out of (fee).
-// So corporations + escrows + sinks is conserved by every transfer, and a fee is counted, not lost.
+//   - a sink: `sink:fee`, a named total in the global state that credits go into and never come out of (fee);
+//   - a tap: `tap:dsdb`, an NPC lender's account (ISP-149, AB#843): paying out of it creates credits, paying into it
+//     destroys them, and its total counts what it has created net (docs/design/v0.9-debt.md, section 9).
+// So corporations + escrows + sinks - taps is conserved by every transfer, a fee is counted, not lost, and what an NPC
+// lender puts into the money supply is counted too.
 //
 // It fails closed. Anything wrong with a request (an amount that is not a positive whole number, an unknown reason,
 // party or key, a payer paying itself, a payer without the funds) returns { ok: false, error } and nothing moves.
@@ -37,6 +40,9 @@ export const REASONS = Object.freeze([
 /** The named sinks: credits paid into one leave the money supply, counted. */
 export const SINKS = Object.freeze(["fee"]);
 
+/** The named taps: an NPC lender's account, which creates what it pays out (AB#843: the Development Bank). */
+export const TAPS = Object.freeze(["dsdb"]);
+
 /**
  * How a transfer is booked on each corporation's statement (finances.js CREDIT_CATEGORIES): the payer's expense is
  * `<reason>-paid`, the payee's income `<reason>-received`. Income and expense names never overlap.
@@ -45,15 +51,19 @@ export const categoryPaid = (reason) => `${reason}-paid`;
 export const categoryReceived = (reason) => `${reason}-received`;
 
 /** Which kinds of party each reason moves between: a reason that names the wrong kind of party is refused. */
-const SHAPE = {
-  "escrow-hold": ["corp", "escrow"],
-  "escrow-release": ["escrow", "corp"],
-  fee: ["corp", "sink"]
+const SHAPES = {
+  "escrow-hold": [["corp", "escrow"]],
+  "escrow-release": [["escrow", "corp"]],
+  fee: [["corp", "sink"]],
+  // AB#843: a loan is disbursed by a player lender or by an NPC lender's tap, and repaid to the one that lent it
+  "loan-disbursal": [["corp", "corp"], ["tap", "corp"]],
+  "loan-repayment": [["corp", "corp"], ["corp", "tap"]]
 };
-const shapeOf = (reason) => SHAPE[reason] ?? ["corp", "corp"];
+const shapesOf = (reason) => SHAPES[reason] ?? [["corp", "corp"]];
 
 const ESCROW = /^escrow:[\w.-]{1,80}$/;
 const SINK = /^sink:([\w-]{1,40})$/;
+const TAP = /^tap:([\w-]{1,40})$/;
 const KEY = /^[\w.:\-]{1,200}$/;
 
 /** The ledger file. Read at call time, so a test's data directory is the one used. */
@@ -84,6 +94,7 @@ function totals(draft) {
   if (!draft.settlement || typeof draft.settlement !== "object") draft.settlement = {};
   if (!draft.settlement.escrow || typeof draft.settlement.escrow !== "object") draft.settlement.escrow = {};
   if (!draft.settlement.sinks || typeof draft.settlement.sinks !== "object") draft.settlement.sinks = {};
+  if (!draft.settlement.taps || typeof draft.settlement.taps !== "object") draft.settlement.taps = {};
   return draft.settlement;
 }
 
@@ -93,6 +104,8 @@ function party(id) {
   if (ESCROW.test(id)) return { kind: "escrow", id };
   const sink = id.match(SINK);
   if (sink) return SINKS.includes(sink[1]) ? { kind: "sink", id, name: sink[1] } : null;
+  const tap = id.match(TAP);
+  if (tap) return TAPS.includes(tap[1]) ? { kind: "tap", id, name: tap[1] } : null;
   return getAccountById(id)?.state?.corp ? { kind: "corp", id } : null;
 }
 
@@ -100,6 +113,7 @@ function party(id) {
 function balanceOf(p) {
   if (p.kind === "corp") return Math.round(Number(getAccountById(p.id)?.state?.corp?.finances?.credits) || 0);
   if (p.kind === "escrow") return Math.round(Number(getState()?.settlement?.escrow?.[p.id]) || 0);
+  if (p.kind === "tap") return Number.MAX_SAFE_INTEGER; // a tap creates what it pays; its caps are the instrument's
   return 0;
 }
 
@@ -127,8 +141,10 @@ export function settleTransfer({ fromAccountId, toAccountId, credits, reason, id
   const from = party(fromAccountId), to = party(toAccountId);
   if (!from) return refuse("unknown payer");
   if (!to) return refuse("unknown payee");
-  const [fromKind, toKind] = shapeOf(reason);
-  if (from.kind !== fromKind || to.kind !== toKind) return refuse(`${reason} moves credits from a ${fromKind} to a ${toKind}`);
+  const shapes = shapesOf(reason);
+  if (!shapes.some(([f, t]) => from.kind === f && to.kind === t)) {
+    return refuse(`${reason} moves credits ${shapes.map(([f, t]) => `from a ${f} to a ${t}`).join(" or ")}`);
+  }
   if (balanceOf(from) < credits) return refuse("the payer does not have the credits");
 
   // The debit, checked again inside the mutation: settling a corporation's mining first can change its balance.
@@ -139,6 +155,8 @@ export function settleTransfer({ fromAccountId, toAccountId, credits, reason, id
       applyCredits(state.corp, -credits, categoryPaid(reason), now);
       debited = true;
     }, { sanitize: false });
+  } else if (from.kind === "tap") {
+    mutateState((draft) => { const t = totals(draft); t.taps[from.name] = (Number(t.taps[from.name]) || 0) + credits; debited = true; });
   } else {
     mutateState((draft) => {
       const t = totals(draft);
@@ -156,6 +174,7 @@ export function settleTransfer({ fromAccountId, toAccountId, credits, reason, id
     mutateState((draft) => {
       const t = totals(draft);
       if (to.kind === "escrow") t.escrow[to.id] = (Number(t.escrow[to.id]) || 0) + credits;
+      else if (to.kind === "tap") t.taps[to.name] = (Number(t.taps[to.name]) || 0) - credits; // repaid: destroyed
       else t.sinks[to.name] = (Number(t.sinks[to.name]) || 0) + credits;
     });
   }
@@ -169,8 +188,8 @@ export function settleTransfer({ fromAccountId, toAccountId, credits, reason, id
   return { ok: true, entry };
 }
 
-/** Escrow balances and sink totals now (for audits, tests and the conservation check). */
+/** Escrow balances, sink totals and what each tap has created net, now (for audits, tests and the conservation check). */
 export function settlementTotals() {
   const s = getState()?.settlement ?? {};
-  return { escrow: { ...(s.escrow ?? {}) }, sinks: { ...(s.sinks ?? {}) } };
+  return { escrow: { ...(s.escrow ?? {}) }, sinks: { ...(s.sinks ?? {}) }, taps: { ...(s.taps ?? {}) } };
 }
