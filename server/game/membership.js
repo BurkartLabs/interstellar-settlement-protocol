@@ -306,6 +306,8 @@ export function membershipView(accountId, now = Date.now()) {
       maxDirectors: CONGLOMERATE_CATALOG.maxDirectors,
       // ISP-202 (AB#896): the next level, its price and each requirement as the server reads it (the Bureau shows these).
       levels: levelStatus(mine, now),
+      // ISP-203 (AB#897): a level reached since this member last saw the overlay, or null
+      levelReached: mine.members.find((m) => m.corp === corp.publicId)?.levelReached ?? null,
       founderAbsentDays: CONGLOMERATE_CATALOG.founderAbsentDays,
       members: mine.members.map((m) => ({ corp: m.corp, corpName: corpName(m.corp), role: m.role, joinedAt: m.joinedAt })),
       treasury: { ...mine.treasury },

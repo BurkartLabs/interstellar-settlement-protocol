@@ -124,6 +124,7 @@ const BASELINE = {
     "POST /conglomerates/:conglomerateId/identity": { params: { conglomerateId: "cgl-732" }, body: { emblem: 1, colour: 1 } },
     "POST /conglomerates/:conglomerateId/dissolve": { params: { conglomerateId: "cgl-732" } },
     "POST /conglomerates/:conglomerateId/level": { params: { conglomerateId: "cgl-732" }, body: { level: 2 } },
+    "POST /conglomerates/:conglomerateId/level-seen": { params: { conglomerateId: "cgl-732" }, body: { level: 2 } }, // ISP-203 (AB#897)
     // ISP-210 (AB#905): the station project
     "GET /conglomerates/:conglomerateId/station-project": { params: { conglomerateId: "cgl-732" } },
     "POST /conglomerates/:conglomerateId/station-project": { params: { conglomerateId: "cgl-732" }, body: { systemId: "sol", body: "Venus", suffix: 1 } },

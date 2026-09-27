@@ -177,6 +177,52 @@ export function heirOf(members) {
 }
 
 /** The caller's own conglomerate: summary, succession, roster with the controls its role holds, and the paperwork. */
+/**
+ * ISP-203 (AB#897): the level panel: the level and its member cap, and for the next level its price, what the treasury
+ * must keep, and each requirement with a progress bar, every figure as levelStatus (server) reads it. The upgrade
+ * button is drawn disabled, with each reason under it, unless the server would sell the level now.
+ */
+export function levelHtml(view) {
+  const c = view?.conglomerate;
+  const s = c?.levels;
+  if (!c || !s) return "";
+  const head = `<p class="ui-card__meta">Level ${n(c.level)} · room for ${n(c.maxMembers)} members, ${n(c.memberCount)} now</p>`;
+  if (s.refusal) return `<section class="ui-panel station__panel cong-panel" data-role="cong-level"><h3>Level</h3>${head}<p class="station__note">${escapeHtml(s.refusal)}</p></section>`;
+  if (s.top) return `<section class="ui-panel station__panel cong-panel" data-role="cong-level"><h3>Level</h3>${head}<p class="cong-panel__lede">${escapeHtml(c.name)} is at the highest level.</p></section>`;
+  const funds = s.requirements.find((r) => r.id === "funds");
+  const reserve = funds ? funds.need - s.next.cost : 0;
+  const bar = (share) => `<span class="cong-level__bar" aria-hidden="true"><span style="width:${Math.round(Math.max(0, Math.min(1, share)) * 100)}%"></span></span>`;
+  const row = (r) => {
+    let share, progress;
+    if (r.id === "days") {
+      share = r.met ? 1 : (r.have - (r.from ?? r.have)) / Math.max(1, r.need - (r.from ?? r.have));
+      progress = r.met ? "met" : `from ${bureauTime(r.need)}`;
+    } else if (r.id === "arrears") {
+      share = r.met ? 1 : 0;
+      progress = r.met ? "met" : `${n(r.have)} credits owed`;
+    } else {
+      share = r.need > 0 ? r.have / r.need : 1;
+      progress = `${n(r.have)} of ${n(r.need)}${r.met ? " · met" : ""}`;
+    }
+    return `<li class="cong-level__req${r.met ? " cong-level__req--met" : ""}" data-requirement="${escapeHtml(r.id)}"><span class="cong-level__label">${escapeHtml(r.label)}</span>${bar(share)}<span class="cong-level__progress">${escapeHtml(progress)}</span></li>`;
+  };
+  const why = [];
+  if (!c.permissions.includes("buy-level")) why.push("Only the founder buys a level, from the treasury.");
+  if (!view.atBureau) why.push("Levels are bought at the Conglomerate Affairs Bureau, on Earth Station Prime.");
+  const unmet = s.requirements.filter((r) => !r.met).length;
+  if (unmet) why.push(`${unmet} of the ${s.requirements.length} requirements above ${unmet === 1 ? "is" : "are"} not met yet.`);
+  return `
+    <section class="ui-panel station__panel cong-panel" data-role="cong-level">
+      <h3>Level</h3>
+      ${head}
+      <p class="cong-panel__lede">Level ${n(s.next.level)} makes room for ${n(s.next.maxMembers)}. It costs ${n(s.next.cost)} credits from the treasury, which must keep ${n(reserve)} more for upkeep.</p>
+      <ul class="cong-level">${s.requirements.map(row).join("")}</ul>
+      <div class="cong-actions">${button("cong-level-buy", `Buy level ${n(s.next.level)} for ${n(s.next.cost)} credits`, { variant: "primary", data: { level: s.next.level, cost: s.next.cost, reserve }, disabled: why.length > 0, describedBy: why.length ? "cong-level-why" : "" })}</div>
+      ${why.length ? `<ul class="cong-item__why cong-level__why" id="cong-level-why">${why.map((w) => `<li>${escapeHtml(w)}</li>`).join("")}</ul>` : ""}
+      <p class="cong-form-status" data-role="cong-level-status" role="status"></p>
+    </section>`;
+}
+
 export function memberHtml(view, { search } = {}) {
   const c = view?.conglomerate;
   if (!c) return "";
@@ -236,6 +282,7 @@ export function memberHtml(view, { search } = {}) {
       </div>
       <p class="cong-succession" data-role="cong-succession">Succession: if ${escapeHtml(founder?.corpName || "the founder")} does not sign in for ${n(c.founderAbsentDays)} days, the founder role passes to ${heir ? `${escapeHtml(heir.corpName || "a corporation")}, the longest-serving ${heir.role}` : "the longest-serving director, once there is another member"}.</p>
     </section>
+    ${levelHtml(view)}
     <section class="ui-panel station__panel cong-panel" data-role="cong-roster">
       <h3>Roster</h3>
       <div class="ui-table-wrap"><table class="ui-table cong-roster">

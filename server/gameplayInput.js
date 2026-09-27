@@ -303,6 +303,10 @@ export const ACCOUNT_INPUT = {
     params: { conglomerateId: ref("a conglomerate") },
     body: { level: int(2, CONGLOMERATE_CATALOG.levels.length, "the level to buy") }
   },
+  "POST /conglomerates/:conglomerateId/level-seen": { // ISP-203 (AB#897)
+    params: { conglomerateId: ref("a conglomerate") },
+    body: { level: int(2, CONGLOMERATE_CATALOG.levels.length, "the level seen") }
+  },
   "POST /messages/send": {
     body: {
       draftId: ref("a draft", { optional: true }),
