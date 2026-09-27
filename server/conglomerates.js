@@ -118,3 +118,26 @@ export function readConglomerateCatalog(file = process.env.ISP_CONGLOMERATE_CATA
 
 /** The catalog. Reading it throws when it is unusable, which stops the server starting (fails closed). */
 export const CONGLOMERATE_CATALOG = readConglomerateCatalog();
+
+/**
+ * Actions anyone signed in may take whatever their role, including none: they are about the caller's own corporation,
+ * and their own rules refuse what does not apply (a member applying is told it already belongs). ISP-199 (AB#893).
+ */
+export const OPEN_ACTIONS = Object.freeze(["charter", "directory", "view-own", "apply", "answer-invitation", "withdraw-application"]);
+
+/**
+ * The one permission check (ISP-199, AB#893; P-HALF-FIX): may a corporation holding `role` (founder, director, member,
+ * or null for none) take `action`? Member actions are the catalog's roles table, read on every call; open actions are
+ * OPEN_ACTIONS. An unknown role or action is refused (fails closed).
+ */
+export function can(role, action, catalog = CONGLOMERATE_CATALOG) {
+  if (role !== null && !ROLES.includes(role)) return false;
+  if (OPEN_ACTIONS.includes(action)) return true;
+  const permission = catalog?.permissions?.find((p) => p.id === action);
+  return Boolean(permission && role && permission[role] === true);
+}
+
+/** Whether `action` is one can() knows: an open action or a row of the roles table. */
+export function isKnownAction(action, catalog = CONGLOMERATE_CATALOG) {
+  return OPEN_ACTIONS.includes(action) || Boolean(catalog?.permissions?.some((p) => p.id === action));
+}

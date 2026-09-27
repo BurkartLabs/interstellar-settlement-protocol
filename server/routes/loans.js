@@ -35,6 +35,8 @@ function payoffReceipt(loan, paid) {
 }
 const answer = (accountId, extra) => ({ ...sanitizeAccount(getAccountById(accountId)), ...extra });
 import { payOffLoan } from "../loanServicing.js"; // ISP-150 (AB#844)
+import { listLoanOffers, postLoanOffer, cancelLoanOffer, acceptLoanOffer, OFFER_RULES, MIN_GRADES } from "../playerLoans.js"; // ISP-152 (AB#846)
+import { bodyNumber } from "../bodyNumber.js";
 
 export function registerLoanRoutes(app) {
   // ISP-151 (AB#845): the products and this corporation's limit on each, for the Development Bank's view
@@ -61,5 +63,34 @@ export function registerLoanRoutes(app) {
     const r = payOffLoan(req.params.accountId, req.params.loanId, Date.now());
     if (!r.ok) return res.status(r.status).json({ error: r.error });
     res.json(answer(req.params.accountId, { loan: r.loan, paid: r.paid, receipt: payoffReceipt(r.loan, r.paid) }));
+  });
+
+  // ISP-152 (AB#846): the player loan board. Offers are numbers and enums only; the lender's principal is held in
+  // escrow while an offer is open. Every rule (the floor rate, the per-pair cap, self-dealing) is checked on the server.
+  app.get("/api/accounts/:accountId/loan-offers", (req, res) => {
+    res.json({ offers: listLoanOffers(req.params.accountId, Date.now()), rules: OFFER_RULES, minGrades: MIN_GRADES });
+  });
+
+  app.post("/api/accounts/:accountId/loan-offers", (req, res) => {
+    const r = postLoanOffer(req.params.accountId, {
+      principal: bodyNumber(req.body?.principal, { fallback: NaN }),
+      ratePct30: bodyNumber(req.body?.ratePct30, { fallback: NaN }),
+      termDays: bodyNumber(req.body?.termDays, { fallback: NaN }),
+      minGrade: typeof req.body?.minGrade === "string" ? req.body.minGrade : ""
+    }, Date.now());
+    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    res.status(201).json({ offer: r.offer });
+  });
+
+  app.post("/api/accounts/:accountId/loan-offers/:offerId/cancel", (req, res) => {
+    const r = cancelLoanOffer(req.params.accountId, req.params.offerId, Date.now());
+    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    res.json({ offer: r.offer });
+  });
+
+  app.post("/api/accounts/:accountId/loan-offers/:offerId/accept", (req, res) => {
+    const r = acceptLoanOffer(req.params.accountId, req.params.offerId, Date.now());
+    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    res.json({ loan: r.loan });
   });
 }

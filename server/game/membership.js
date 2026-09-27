@@ -1,6 +1,7 @@
 // server/game/membership.js: joining and leaving a conglomerate (ISP-198, AB#892; docs/design/CONGLOMERATES.md, Part 1,
-// "Membership"). Invitations and applications are the only ways in; leaving is the only way out this story builds
-// (removal and dissolution come with the roles story and succession).
+// "Membership"). Invitations and applications are the only ways in. Leaving is one way out; removal and dissolution
+// are server/game/conglomerateRoles.js (ISP-199, AB#893), which also holds succession's rules (settleSuccession here
+// runs them on every read of a conglomerate, so an absent founder is replaced before anything is decided).
 //
 // Every action names the acting account, and the corporation it acts for is that account's own: an invitation is
 // answered only by the corporation it is addressed to, an application only by a founder or director of the
@@ -11,8 +12,9 @@
 // Events go to the conglomerate's socket room (cong:<id>) and to the affected corporation's own account; the listener
 // in server/realtime.js delivers them. This module never imports the socket layer.
 
-import { CONGLOMERATE_CATALOG } from "../conglomerates.js";
+import { CONGLOMERATE_CATALOG, can } from "../conglomerates.js";
 import { createId } from "./catalog.js";
+import { pushSystemNotification } from "./progression.js";
 import { accountsStore, saveAccountsNow } from "./store.js";
 import { conglomerateList, publicConglomerate } from "./conglomerates.js";
 
@@ -43,8 +45,9 @@ export function accountByCorp(publicId) {
 }
 const corpName = (publicId) => accountByCorp(publicId)?.state?.corp?.corporationName || "";
 
+/** A conglomerate that exists now: a dissolved one is kept only to hold its name, and is found by nothing. */
 export function findConglomerate(id) {
-  return typeof id === "string" ? conglomerateList().find((c) => c.id === id) || null : null;
+  return typeof id === "string" ? conglomerateList().find((c) => c.id === id && !c.dissolvedAt) || null : null;
 }
 
 /** The corporation's role in the conglomerate, or null when it is not a member. */
@@ -52,9 +55,35 @@ export function roleOf(c, publicId) {
   return c?.members?.find((m) => m.corp === publicId)?.role || null;
 }
 
-/** Whether a role holds a permission, read from the catalog's roles table (AB#890). */
-export function roleMay(role, permissionId) {
-  return Boolean(role && CONGLOMERATE_CATALOG.permissions.find((p) => p.id === permissionId)?.[role]);
+/**
+ * ISP-199 (AB#893): the founder's account deleted, or not signed in for founderAbsentDays, hands the founder role to
+ * the longest-serving director (the longest-serving member when there is none). The old founder, if its account
+ * still exists, becomes a director; one whose account is gone leaves the roster. Returns whether anything changed.
+ */
+export function settleSuccession(c, now = Date.now()) {
+  const founder = c.members.find((m) => m.role === "founder");
+  const account = accountByCorp(founder?.corp);
+  const seen = Number(account?.lastLoginAt || account?.createdAt) || 0;
+  if (founder && account && now - seen < CONGLOMERATE_CATALOG.founderAbsentDays * DAY_MS) return false;
+  const byService = (role) => c.members.filter((m) => m.role === role).sort((a, b) => a.joinedAt - b.joinedAt)[0];
+  const heir = byService("director") || byService("member");
+  if (!heir) return false;
+  const heirWas = heir.role;
+  if (founder) {
+    if (account) founder.role = "director";
+    else {
+      c.members = c.members.filter((m) => m !== founder);
+      if (!Array.isArray(c.past)) c.past = [];
+      c.past.push({ corp: founder.corp, role: "founder", joinedAt: founder.joinedAt, state: "account-deleted", closedAt: now });
+    }
+  }
+  heir.role = "founder";
+  c.founder = heir.corp;
+  const heirAccount = accountByCorp(heir.corp);
+  if (heirAccount) pushSystemNotification(heirAccount, { type: "system", title: "You are now your conglomerate's founder", body: `${c.name}'s founder ${account ? `has not signed in for ${CONGLOMERATE_CATALOG.founderAbsentDays} days` : "no longer exists"}, so the founder role passed to your corporation, its longest-serving ${heirWas}.` });
+  saveAccountsNow();
+  roomEvent(c, "conglomerate:role-changed", { corp: heir.corp, corpName: corpName(heir.corp), role: "founder", reason: "succession" }, { accounts: [heirAccount?.id, account?.id].filter(Boolean) });
+  return true;
 }
 
 /** Close invitations and applications whose time has run out (inviteExpiryDays, applicationExpiryDays). */
@@ -82,6 +111,7 @@ function context(accountId, conglomerateId, now) {
   const c = findConglomerate(conglomerateId);
   if (!c) return NOT_FOUND.conglomerate();
   expireOpen(c, now);
+  settleSuccession(c, now);
   return { account, corp, c, role: roleOf(c, corp.publicId) };
 }
 
@@ -96,8 +126,17 @@ function admit(c, corp, now) {
   }
 }
 
-function roomEvent(c, event, extra, { accounts = [], join = [], leave = [] } = {}) {
+export function roomEvent(c, event, extra, { accounts = [], join = [], leave = [] } = {}) {
   publish({ conglomerateId: c.id, event, payload: { conglomerate: publicConglomerate(c), ...extra }, accounts, join, leave });
+}
+
+export { context, no, until, corpName, NOT_FOUND, DAY_MS, HOUR_MS };
+
+/** The acting account's role in the conglomerate now (after succession), or null: what the route guard asks can() about. */
+export function actorRole(accountId, conglomerateId, now = Date.now()) {
+  if (!conglomerateId) return null;
+  const ctx = context(accountId, conglomerateId, now);
+  return ctx.refused ? null : ctx.role;
 }
 
 const entryView = (r) => ({ id: r.id, corp: r.corp, corpName: corpName(r.corp), at: r.at, state: r.state });
@@ -108,7 +147,7 @@ export function inviteCorporation(accountId, conglomerateId, targetCorpId, now =
   if (ctx.refused) return ctx;
   const { corp, c, role } = ctx;
   if (!role) return NOT_FOUND.conglomerate();
-  if (!roleMay(role, "invite")) return no(403, "not-permitted", "Only the founder or a director can invite a corporation.");
+  if (!can(role, "invite")) return no(403, "not-permitted", "Only the founder or a director can invite a corporation.");
   if (targetCorpId === corp.publicId) return no(409, "invite-self", "Your corporation is already in this conglomerate.");
   const target = accountByCorp(targetCorpId);
   if (!target) return no(404, "no-corporation", "No such corporation.");
@@ -151,7 +190,7 @@ export function answerInvitation(accountId, conglomerateId, invitationId, answer
   const { account, corp, c, role } = ctx;
   const invitation = c.invitations.find((r) => r.id === invitationId);
   const invitee = invitation?.corp === corp.publicId;
-  const inviter = roleMay(role, "invite");
+  const inviter = can(role, "invite");
   // Only the two sides can see an invitation; anyone else is told it does not exist.
   if (!invitation || (answer === "withdraw" ? !inviter : !invitee)) return NOT_FOUND.invitation();
   if (invitation.state !== "invited") return no(409, "invitation-closed", `This invitation is ${invitation.state}; it cannot be answered again.`);
@@ -178,7 +217,7 @@ export function answerApplication(accountId, conglomerateId, applicationId, answ
   const { corp, c, role } = ctx;
   const application = c.applications.find((r) => r.id === applicationId);
   const applicant = application?.corp === corp.publicId;
-  const answerer = roleMay(role, "answer-application");
+  const answerer = can(role, "answer-application");
   if (!application || (answer === "withdraw" ? !applicant : !answerer)) return NOT_FOUND.application();
   if (application.state !== "applied") return no(409, "application-closed", `This application is ${application.state}; it cannot be answered again.`);
   const applicantAccount = accountByCorp(application.corp);
@@ -206,8 +245,8 @@ export function leaveConglomerate(accountId, conglomerateId, now = Date.now()) {
   if (ctx.refused) return ctx;
   const { account, corp, c, role } = ctx;
   if (!role) return NOT_FOUND.conglomerate();
-  if (role === "founder") {
-    return no(409, "founder-cannot-leave", "The founder cannot leave. Transferring the founder role to a director, and dissolving a conglomerate, are not open yet.");
+  if (!can(role, "leave")) {
+    return no(409, "founder-cannot-leave", "The founder cannot leave. Transfer the founder role to a director first, or dissolve the conglomerate at the Bureau.");
   }
   const member = c.members.find((m) => m.corp === corp.publicId);
   c.members = c.members.filter((m) => m !== member);
@@ -229,6 +268,7 @@ export function membershipView(accountId, now = Date.now()) {
   if (!corp?.publicId) return null;
   for (const c of conglomerateList()) expireOpen(c, now);
   const mine = findConglomerate(corp.conglomerateId);
+  if (mine) settleSuccession(mine, now);
   const invitations = [];
   let application = null;
   for (const c of conglomerateList()) {
@@ -237,7 +277,7 @@ export function membershipView(accountId, now = Date.now()) {
     if (open) application = { ...entryView(open), conglomerate: publicConglomerate(c) };
   }
   return {
-    conglomerate: mine && roleOf(mine, corp.publicId) ? {
+    conglomerate: mine && can(roleOf(mine, corp.publicId), "view") ? {
       ...publicConglomerate(mine),
       role: roleOf(mine, corp.publicId),
       members: mine.members.map((m) => ({ corp: m.corp, corpName: corpName(m.corp), role: m.role, joinedAt: m.joinedAt })),

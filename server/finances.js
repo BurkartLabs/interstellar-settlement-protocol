@@ -92,7 +92,9 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "loan-disbursal-received", "loan-repayment-received", "bond-subscription-received", "coupon-received", "dividend-received",
     "share-purchase-received", "escrow-release-received", "loan-interest-received",
     "ship-production-refund", // ISP-171 (AB#865): what cancelling a shipyard job returns
-    "troop-training-refund"]), // ISP-172 (AB#866): what cancelling a training job returns
+    "troop-training-refund", // ISP-172 (AB#866): what cancelling a training job returns
+    "conglomerate-dissolution" // ISP-199 (AB#893): a member's share of a dissolved conglomerate's treasury
+  ]),
   expense: Object.freeze([
     "hiring",
     "payroll",

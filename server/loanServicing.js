@@ -25,6 +25,7 @@ import { addAccountNotification, getAccountById, getAllAccountIds, mutateAccount
 import { settleTransfer } from "./settlement.js";
 import { emitToAccount } from "./realtime.js";
 import { LOAN_CATALOG } from "./loans.js";
+import { accountIdOfCorp } from "./playerLoans.js"; // ISP-152 (AB#846): a player lender is named by publicId
 
 const DAY = 86_400_000;
 /** Late fee on a missed payment, and the penalty rate over the loan's rate, per 30 days (section 2). */
@@ -50,8 +51,13 @@ export function paymentParts(loan, k) {
 }
 
 const open = (loan) => loan && (loan.state === "active" || loan.state === "arrears");
-const lenderAccount = (loan) => (loan.lender?.kind === "npc" ? LOAN_CATALOG.tap : loan.lender?.accountId);
+const lenderAccount = (loan) => (loan.lender?.kind === "npc" ? LOAN_CATALOG.tap : accountIdOfCorp(loan.lender?.corpId));
 const creditsOf = (accountId) => Math.round(Number(getAccountById(accountId)?.state?.corp?.finances?.credits) || 0);
+/** ISP-152 (AB#846): a player loan past this many days of arrears is in default (docs/design/v0.9-debt.md, section 10). */
+export const PLAYER_DEFAULT_DAYS = 7;
+const lenderName = (loan) => (loan.lender?.kind === "player"
+  ? `${getAccountById(accountIdOfCorp(loan.lender.corpId))?.state?.corp?.corporationName || "a former corporation"}'s loan`
+  : "Development Bank loan");
 
 /** Pay `credits` for a part of a loan: fees to the fee sink, interest to its sink (or the lender), principal to the lender. */
 function pay(accountId, loan, part, credits, key, now) {
@@ -147,14 +153,32 @@ export function loanServicingTick(now) {
       const i = (state.corp.loans || []).findIndex((l) => l.id === loan.id);
       if (i !== -1) state.corp.loans[i] = { ...loan };
     }, { sanitize: false, settleMining: false });
-    const tell = (title, body) => {
-      const n = addAccountNotification(accountId, { type: "finance", title, body });
-      if (n) emitToAccount(accountId, "notifications:new", { accountId, notification: n });
+    const tellTo = (id, title, body) => {
+      const n = id ? addAccountNotification(id, { type: "finance", title, body }) : null;
+      if (n) emitToAccount(id, "notifications:new", { accountId: id, notification: n });
     };
+    const tell = (title, body) => tellTo(accountId, title, body);
+    const player = loan.lender?.kind === "player";
+    const borrowerName = getAccountById(accountId)?.state?.corp?.corporationName || "A corporation";
     if (r.missed && before !== "arrears") {
-      tell("Loan payment missed", `A payment of ${loan.dailyPayment.toLocaleString("en-US")} credits on your Development Bank loan could not be collected. ${loan.arrears.toLocaleString("en-US")} credits are now in arrears, including a ${LATE_FEE_PCT}% late fee, and accrue penalty interest until paid. Your credit rating is capped at CCC while they are, and falls to D after 7 days.`);
+      tell("Loan payment missed", `A payment of ${loan.dailyPayment.toLocaleString("en-US")} credits on your ${lenderName(loan)} could not be collected. ${loan.arrears.toLocaleString("en-US")} credits are now in arrears, including a ${LATE_FEE_PCT}% late fee, and accrue penalty interest until paid. Your credit rating is capped at CCC while they are, and falls to D after 7 days.`);
+      if (player) tellTo(lenderAccount(loan), "A borrower missed a payment", `${borrowerName} missed a payment on your loan of ${loan.principal.toLocaleString("en-US")} credits. What its credits cover is collected for you each day.`);
     }
-    if (r.repaid) tell("Loan repaid", `Your Development Bank loan of ${loan.principal.toLocaleString("en-US")} credits is repaid in full.`);
+    if (r.repaid) {
+      tell("Loan repaid", `Your ${lenderName(loan)} of ${loan.principal.toLocaleString("en-US")} credits is repaid in full.`);
+      if (player) tellTo(lenderAccount(loan), "Loan repaid", `${borrowerName} has repaid your loan of ${loan.principal.toLocaleString("en-US")} credits in full.`);
+    }
+    // ISP-152 (AB#846): a player loan more than 7 days in arrears is in default, marked once and told to both sides.
+    // Collection of the borrower's credits goes on each day; recovering its other holdings is AB#993.
+    if (player && loan.state === "arrears" && loan.arrearsSince && now - loan.arrearsSince > PLAYER_DEFAULT_DAYS * DAY && !loan.defaultedAt) {
+      loan.defaultedAt = now;
+      mutateAccountState(accountId, (state) => {
+        const i = (state.corp.loans || []).findIndex((l) => l.id === loan.id);
+        if (i !== -1) state.corp.loans[i] = { ...loan };
+      }, { sanitize: false, settleMining: false });
+      tell("Loan in default", `Your ${lenderName(loan)} is more than ${PLAYER_DEFAULT_DAYS} days in arrears and is now in default. ${loan.arrears.toLocaleString("en-US")} credits are owed now; whatever credits you hold go to your lender each day until it is paid.`);
+      tellTo(lenderAccount(loan), "A loan is in default", `${borrowerName} is more than ${PLAYER_DEFAULT_DAYS} days in arrears on your loan of ${loan.principal.toLocaleString("en-US")} credits. Its credits are collected for you each day.`);
+    }
   }
 }
 
