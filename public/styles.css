@@ -4278,6 +4278,22 @@ img.station__body {
 }
 /* ISP-143 (AB#837): the resource concentration overlay's legend, above the map: the item, and each band's colour and
    range. The colours are the canvas's own (public/scripts/resourceOverlay.js), so they are set inline on each swatch. */
+/* ISP-218 (AB#913): the dominance overlays: a legend naming every colour on the map, and a system's top three */
+.dominance-legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: 0; padding: 0; list-style: none; font-size: var(--font-size-2); color: var(--text); }
+.dominance-legend__item { display: flex; align-items: center; gap: var(--space-2); min-width: 0; overflow-wrap: anywhere; }
+.dominance-legend__swatch { flex: none; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--border); }
+.dominance-legend__item--own .dominance-legend__swatch { box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--series-1); }
+.dominance-swatch--series-1 { background: var(--series-1); }
+.dominance-swatch--series-2 { background: var(--series-2); }
+.dominance-swatch--series-3 { background: var(--series-3); }
+.dominance-swatch--series-4 { background: var(--series-4); }
+.dominance-swatch--series-5 { background: var(--series-5); }
+.dominance-swatch--surface-3 { background: var(--surface-3); }
+.dominance-details { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: 0; list-style: none; font-size: var(--font-size-2); color: var(--text-soft); }
+.dominance-details li { display: flex; justify-content: space-between; gap: var(--space-3); }
+.dominance-details strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.dominance-details__own span { color: var(--text); font-weight: var(--font-weight-semibold); }
+.dominance-details__others { color: var(--muted); }
 .starmap__resource-legend {
   display: flex;
   flex-direction: column;

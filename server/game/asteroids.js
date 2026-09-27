@@ -7,6 +7,7 @@ import { bumpStat } from "./progression.js";
 import { countBuilt, playerBuilding } from "../playerBuildings.js";
 import { BASE_YIELD_PER_MIN, RARITY_YIELD_MULTIPLIER } from "./beltRules.js"; // AB#2329: one copy, with the belt rules
 import { beltAt, isBeltPresent, markBeltEmpty } from "./belts.js";
+import { canRecover } from "./researchGates.js";
 import { recordExtraction } from "./dominanceCounters.js"; // ISP-217 (AB#912)
 
 // ISP-96 (AB#786): the Ferric Mining Complex multiplies the Nickel and Titanium a returning expedition deposits, by
@@ -270,6 +271,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
       for (let i = 0; i < dropCount; i++) {
         if (shares[i] <= 0) continue;
         const resource = weightedPick(composition, tickSeed + i * 7919);
+        if (!canRecover(corp, resource)) continue; // AB#880: dug from the belt, not recovered without the research
         exp.yields[resource] = (exp.yields[resource] || 0) + shares[i];
       }
     }

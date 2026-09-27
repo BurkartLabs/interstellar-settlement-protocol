@@ -4,6 +4,7 @@ import { navigationFor } from "../../public/scripts/navigation.js";
 import { applyAsteroidExpeditions, BELT_KEYS, beltComposition, NAVIGATION } from "../../server/gameState.js";
 import { RARITY_YIELD_MULTIPLIER, systemRarity } from "../../server/game/asteroids.js";
 import { makeCorp } from "../fixtures/makeCorp.js";
+import { ITEM_RESEARCH_GATES } from "../../server/game/researchGates.js";
 
 // ISP-112 (AB#804): data/systems.json is the one source for every per-system fact: its bodies and owner rule, its
 // place on the starmap (mapPosition), its jump routes (adjacent), the research a jump to it needs (accessResearch),
@@ -125,8 +126,10 @@ describe("the six systems are what they were before the move (ISP-112)", () => {
     const START = 1_700_000_000_000;
     for (const [i, beltKey] of BELT_KEYS.entries()) {
       if (!BEFORE.yields[beltKey]) continue; // a belt added after the recording (AB#806); the six keep their seeds
+      // AB#880: the recording predates the Tier 4 gates; with the nodes that recover Uranium and Exotic Matter, a
+      // corporation still digs exactly what it did.
       const corp = makeCorp({
-        currentStationId: "earth-station-prime", buildings: [], inventory: {},
+        currentStationId: "earth-station-prime", buildings: [], inventory: {}, unlockedTech: Object.values(ITEM_RESEARCH_GATES),
         asteroidMining: { probeCount: 0, maxProbes: 2, completedExpeditions: [],
           activeExpeditions: [{ id: `exp-${i}`, status: "active", beltKey, systemId: beltKey.split(":")[0], duration: "standard",
             deployedAt: START, lastTickAt: START, completesAt: START + 20 * 60_000, yields: {} }] }
