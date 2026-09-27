@@ -6,7 +6,7 @@
 // Every figure is the server's (GET /equity/offerings, GET /equity/holdings, GET /corporations/:corpId/cap-table):
 // prices, values and the exit price are computed there. The page only formats them and adds them up.
 
-import { escapeHtml } from "./html.js";
+import { escapeHtml, refHtml } from "./html.js";
 import { bankTime, cr } from "./devBank.js";
 import { countdown } from "./bondBoard.js";
 
@@ -22,7 +22,7 @@ export function offeringsHtml(d, ownCorpId = null) {
   return `<div class="bond-series-list">${d.open.map((o) => `
     <article class="bond-series igsx-offering" data-offering="${escapeHtml(o.id)}">
       <header class="bond-series__header">
-        <h4>${escapeHtml(o.issuerName ?? "A corporation")}</h4>
+        <h4>${escapeHtml(o.issuerName ?? "A corporation")} ${refHtml(o.ref)}</h4>
         <span class="ui-badge bond-grade" title="The issuer's credit grade now">${escapeHtml(o.grade)}</span>
       </header>
       <dl class="bond-terms">

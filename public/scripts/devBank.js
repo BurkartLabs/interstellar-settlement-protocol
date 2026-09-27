@@ -4,7 +4,7 @@
 // Every figure here is the server's (GET /loans/offers, POST /loans/quote, corp.loans): nothing is priced in the page.
 // The quote shows the whole cost of the loan before anything is committed, so borrowing never looks free.
 
-import { escapeHtml } from "./html.js";
+import { escapeHtml, refHtml } from "./html.js";
 import { utcTime } from "./timeFormat.js"; // ISP-249 (AB#945)
 
 export const cr = (n) => `${Math.round(Number(n) || 0).toLocaleString("en-US")}`;
@@ -30,7 +30,7 @@ export function bankOffersHtml(offers, { productId, principal } = {}) {
   const chosen = usable.find((p) => p.id === productId) ?? usable[0] ?? null;
   const cards = offers.products.map((p) => `
     <article class="bank-product${p.available ? "" : " bank-product--closed"}" data-product="${escapeHtml(p.id)}">
-      <h4 class="bank-product__name">${escapeHtml(facilityName(p.termDays))}</h4>
+      <h4>${escapeHtml(facilityName(p.termDays))}</h4>
       <p class="bank-product__rate">from ${escapeHtml(String(p.baseRatePct30))}% per 30 days</p>
       <p class="bank-product__limit">${p.available ? `Up to ${cr(p.maxPrincipal)} credits` : escapeHtml(p.why || "Not open to you")}</p>
     </article>`).join("");
@@ -88,7 +88,7 @@ export function bankLoansHtml(loans, now = Date.now()) {
     return `
       <article class="bank-loan${late ? " bank-loan--arrears" : ""}" data-loan="${escapeHtml(l.id)}">
         <header class="bank-loan__header">
-          <h4>${escapeHtml(facilityName(l.termDays))} · ${cr(l.principal)} credits</h4>
+          <h4>${escapeHtml(facilityName(l.termDays))} · ${cr(l.principal)} credits ${refHtml(l.ref)}</h4>
           ${late ? `<span class="ui-badge bank-loan__badge" data-role="arrears-badge">In arrears</span>` : `<span class="ui-badge bank-loan__badge bank-loan__badge--ok">Current</span>`}
         </header>
         <dl class="bank-loan__terms">

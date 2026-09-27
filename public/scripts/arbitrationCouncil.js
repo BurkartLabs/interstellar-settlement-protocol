@@ -159,7 +159,7 @@ function previewStep(state, ctx) {
   return `<section class="gac-step" data-gac-step="preview" aria-labelledby="gac-preview-title">
     <h4 class="gac-step__title" id="gac-preview-title"><span class="gac-step__n" aria-hidden="true">3</span> Evidence the Council will attach</h4>
     <div class="gac-preview">
-      <div class="gac-preview__evidence" data-gac-evidence>
+      <div  data-gac-evidence>
         ${dl([["Claimant", escapeHtml(p.claimant.name)], ["Respondent", escapeHtml(p.respondent.name)], ["Amount claimed", cr(p.amountClaimed)], ...evidenceRows(p.type, p.evidence, ctx)])}
       </div>
       <aside class="gac-preview__rule" aria-label="The rule"><p class="gac-rule__head">The rule</p><p>${escapeHtml(claim(p.type).rule)}</p></aside>
@@ -194,7 +194,7 @@ export function caseHtml(c, ctx = {}) {
       <summary class="gac-case__summary">
         <span class="gac-ref">${escapeHtml(c.ref)}</span>
         <span class="gac-case__title">${escapeHtml(claim(c.type).title)}: ${escapeHtml(c.claimant.name)} v. ${escapeHtml(c.respondent.name)}</span>
-        <span class="gac-case__status"><span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</span>
+        <span ><span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</span>
       </summary>
       <div class="gac-case__body">
         <p class="gac-protocol">${s.protocol}.</p>
@@ -231,7 +231,7 @@ export function docketHtml(cases, ctx = {}) {
     const s = caseStatus(c, now);
     return `<li class="gac-docket__row" data-gac-docket="${escapeHtml(c.ref)}">
       <p class="gac-docket__head"><span class="gac-ref">${escapeHtml(c.ref)}</span> <span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</p>
-      <p class="gac-docket__parties">${escapeHtml(claim(c.type).title)}: ${escapeHtml(c.claimant)} v. ${escapeHtml(c.respondent)}</p>
+      <p >${escapeHtml(claim(c.type).title)}: ${escapeHtml(c.claimant)} v. ${escapeHtml(c.respondent)}</p>
       <p class="gac-docket__meta">Filed ${isaTime(c.filedAt)}${c.amountClaimed > 0 ? ` · claimed ${cr(c.amountClaimed)}` : ""}${c.state === "enforcing" ? ` · ${cr(c.paid)} paid` : ""}</p>
     </li>`;
   }).join("");
