@@ -206,6 +206,14 @@ change, as the exchange tax is, rather than through `settleTransfer`, because a 
 sale's settlement. The Commission's sink is counted in `itc.json`. Both sale paths call the one `withholdDuty`, and a
 test holds them to it.
 
+**As built (ISP-233, AB#928).** The rule moved to `public/scripts/dumping.js`, so the listing warning runs the watch's
+own function (`listingWarning`), with the seller's own sales below the line in the window the next tick reads
+(`GET /api/accounts/:id/itc/:item`). A test lists at the lines and checks the warning's verdict against the watch's.
+The price-impact alert is on the Exchange's price chart (`GET /api/market/history/:item` carries the watch's view),
+when the last complete day closed under the line. The line is shown with its cents ($229.50), because rounding it
+would name a price that is not below it. **Not built yet:** the ITC building as the place to read open investigations
+and the public register of findings; the notices carry each finding's numbers meanwhile.
+
 **The investigation.** A finding opens an ITC investigation and notifies the corporation that same tick, in the ISA's
 voice and with its numbers: the item, N_i, the 85% line, Q_d, P_d, the volume line, and the duty. The duty is levied
 `dumping.levyAfterHours` (24) later, at the next tick, on exactly those sales. They are marked, so no later window

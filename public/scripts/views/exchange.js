@@ -13,6 +13,8 @@ import { appState, viewerStorage } from "../state.js";
 import { taxOnSale } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
 import { saleQuote, utcMinute } from "../tariffs.js"; // ISP-231 (AB#926): the tariff the server settles
 import { withheldFrom } from "../itcDuty.js"; // ISP-232 (AB#927): what the server withholds toward ITC duty owed
+import { listingWarning } from "../dumping.js"; // ISP-233 (AB#928): the watch's own rule
+import { withCents } from "../priceChart.js";
 import { suggestedListingPrice } from "../suggestedPrice.js";
 import { labelTableCells } from "../tableLabels.js";
 import { tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
@@ -54,6 +56,30 @@ function saleTaxRows(gross) {
     ...(here?.pending ? [{ label: "Tariff Pending", value: `${here.pending.pct}% from ${utcMinute(here.pending.effectiveAt)}`, muted: true }] : []),
     ...(withheld > 0 ? [{ label: "Withheld for ITC Duty", value: `− ${toCurrency(withheld)}`, muted: true }] : []),
     { label: "You Receive", value: toCurrency(sale.proceeds - withheld), highlight: true }
+  ];
+}
+
+/**
+ * ISP-233 (AB#928): before a listing is posted, what the ITC's watch would make of it: nothing at or above the dumping
+ * line; below it, the line and how far this listing takes the seller toward an investigation, from its own view of the
+ * watch (GET /api/accounts/:id/itc/:item) and the watch's own rule. No warning when the view cannot be read: the
+ * listing is not blocked either way.
+ */
+async function listingWarningRows(item, quantity, unitPrice) {
+  let watch = null;
+  try {
+    watch = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/itc/${encodeURIComponent(item)}`));
+  } catch { return []; }
+  const w = listingWarning(watch, quantity, unitPrice);
+  if (!w) return [];
+  const pct = watch.terms.priceThresholdPct;
+  const units = (n) => Math.ceil(n).toLocaleString("en-US");
+  const note = w.found
+    ? `Below the ITC's dumping line. With ${units(w.already)} units already sold below it in this window, this listing takes you to ${units(w.Q)} against a volume line of ${units(w.volumeLine)}: if it all sells, the Interplanetary Trade Commission opens an investigation and levies about ${toCurrency(w.duty)}, the margin under normal value.`
+    : `Below the ITC's dumping line: it counts toward an investigation. With it you would have ${units(w.Q)} units below the line in this window, against a volume line of ${units(w.volumeLine)} and a minimum of ${toCurrency(watch.terms.minValue)} at normal value. The Commission opens an investigation only when both are crossed.`;
+  return [
+    { label: "ITC Dumping Line", value: `${withCents(w.line, toCurrency)} (${pct}% of ${withCents(w.N, toCurrency)})`, warn: true },
+    { note, warn: true }
   ];
 }
 
@@ -456,6 +482,7 @@ export function bindExchangeForms() {
     if (numbers.ok) {
       const { quantity, unitPrice } = numbers.values;
       const gross = quantity * unitPrice;
+      const warning = await listingWarningRows(item, quantity, unitPrice); // ISP-233 (AB#928)
       const confirmed = await showTradeConfirmation({
         heading: "Create Listing",
         title: `List ${item}`,
@@ -465,7 +492,8 @@ export function bindExchangeForms() {
           { label: "Quantity", value: quantity.toLocaleString() },
           { label: "Unit Price", value: toCurrency(unitPrice), highlight: true },
           { label: "If it all sells", value: toCurrency(gross) },
-          ...saleTaxRows(gross)
+          ...saleTaxRows(gross),
+          ...warning
         ]
       });
       if (!confirmed) return;

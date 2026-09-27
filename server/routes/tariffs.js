@@ -5,6 +5,8 @@
 import { SYSTEMS_BY_ID } from "../game/catalog.js";
 import { getAccountById } from "../gameState.js";
 import { setTariff, tariffSummary, tariffView } from "../tariffService.js";
+import { ownWatch } from "../itcService.js"; // ISP-233 (AB#928)
+import { PRICE_HISTORY_ITEMS } from "../priceHistory.js";
 
 export function registerTariffRoutes(app) {
   app.get("/api/systems/:id/tariff", (req, res) => {
@@ -18,6 +20,16 @@ export function registerTariffRoutes(app) {
     const corp = getAccountById(req.params.accountId)?.state?.corp;
     if (!corp) { res.status(404).json({ error: "Account not found." }); return; }
     res.json(tariffSummary(corp));
+  });
+
+  // ISP-233 (AB#928): the ITC's watch over one item as it applies to the caller: the lines, and its own sales below the
+  // line in the window, for the listing warning. Kept beside the tariffs: both are what a trader sees before it sells.
+  app.get("/api/accounts/:accountId/itc/:item", (req, res) => {
+    const item = String(req.params.item ?? "");
+    if (!PRICE_HISTORY_ITEMS.has(item)) { res.status(404).json({ error: "Unknown item." }); return; }
+    const corp = getAccountById(req.params.accountId)?.state?.corp;
+    if (!corp) { res.status(404).json({ error: "Account not found." }); return; }
+    res.json(ownWatch(corp, item));
   });
 
   app.post("/api/accounts/:accountId/tariffs/:systemId", (req, res) => {

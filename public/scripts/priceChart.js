@@ -61,12 +61,37 @@ const palette = () => ({ line: token("--accent"), lineFill: token("--accent-soft
  * `fetchHistory(item)` resolves to the route's JSON; `formatCredits(n)` prints money. The selected resource is read from
  * the filter bar's active pill, so the chart follows it however it changes (a click, a remembered view, a reset).
  */
+/**
+ * ISP-233 (AB#928): the price-impact alert for an item, from the history response's `watch` (server/itcService.js
+ * watchView): the last complete day's close against the normal value, the volume behind it, and the line under which
+ * the ITC counts sales toward a dumping investigation. "" when there is no alert.
+ */
+export function floodAlertText(item, watch, formatCredits) {
+  const a = watch?.alert;
+  if (!a || !watch.normal) return "";
+  const exact = (v) => withCents(v, formatCredits);
+  return `Price impact: ${item} closed ${a.day} at ${exact(a.close)}, ${a.dropPct}% under its normal value of ${exact(watch.normal.price)}, ` +
+    `on ${a.volume.toLocaleString("en-US")} units (${a.volumePct}% of a normal day). ` +
+    `The ITC counts sales below ${exact(watch.line)} toward a dumping investigation.`;
+}
+
+/**
+ * ISP-233 (AB#928): a price with its cents when it has any: the dumping line is often not a whole credit (85% of 270 is
+ * 229.50), and rounding it to $230 would name a price that is not below it.
+ */
+export function withCents(v, formatCredits) {
+  const cents = Math.round(Number(v) * 100);
+  if (cents % 100 === 0) return formatCredits(cents / 100);
+  return `${formatCredits(Math.trunc(cents / 100))}.${String(Math.abs(cents % 100)).padStart(2, "0")}`;
+}
+
 export function bindPriceChart({ fetchHistory, formatCredits }) {
   const card = document.getElementById("exchange-price-chart");
   if (!card) return;
   const title = document.getElementById("price-chart-title");
   const summary = document.getElementById("price-chart-summary");
   const canvas = document.getElementById("price-chart-canvas");
+  const alertEl = document.getElementById("price-chart-alert"); // ISP-233 (AB#928)
   const rangeButtons = [...card.querySelectorAll("[data-price-range]")];
   const panel = document.getElementById("market");
   if (!panel) return;
@@ -77,10 +102,14 @@ export function bindPriceChart({ fetchHistory, formatCredits }) {
   const filterBar = document.getElementById("exchange-filter-bar");
   const selectedItem = () => filterBar?.querySelector('[data-filter][aria-selected="true"]')?.getAttribute("data-filter") || "";
 
-  const draw = (item, buckets) => {
+  const draw = (item, buckets, watch = null) => {
     const shaped = shapePriceHistory(buckets, range);
     title.textContent = `${item}: price history`;
     summary.textContent = priceChartSummary(item, shaped, range, formatCredits);
+    if (alertEl) {
+      alertEl.textContent = floodAlertText(item, watch, formatCredits);
+      alertEl.hidden = !alertEl.textContent;
+    }
     canvas.hidden = !shaped.hasAny;
     // ISP-80 (AB#769): with nothing to chart, the chart's body goes too, not only the canvas: no empty box.
     if (canvas.parentElement) canvas.parentElement.hidden = !shaped.hasAny;
@@ -130,7 +159,7 @@ export function bindPriceChart({ fetchHistory, formatCredits }) {
     try {
       const res = await fetchHistory(item);
       if (ticket !== latest) return; // a newer request superseded this one
-      draw(item, res?.buckets || []);
+      draw(item, res?.buckets || [], res?.watch || null);
     } catch {
       if (ticket !== latest) return;
       title.textContent = `${item}: price history`;

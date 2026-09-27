@@ -21,7 +21,7 @@ import { buyOrderReceipt, buyReceipt, listingReceipt, sellToOrderReceipt } from 
 import { cancelBuyOrder, matchListing, placeBuyOrder } from "../buyOrders.js"; // AB#1054
 import { paySeller, takeFromListing, tellSeller } from "../marketSettlement.js";
 import { chargeTariff, tariffRateFor } from "../tariffService.js"; // ISP-230 (AB#925)
-import { withholdDuty } from "../itcService.js"; // ISP-232 (AB#927)
+import { watchView, withholdDuty } from "../itcService.js"; // ISP-232 (AB#927); ISP-233 (AB#928): the watch's view
 import { buyOrderView } from "../publicViews.js";
 import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
@@ -309,7 +309,8 @@ export function registerMarketRoutes(app) {
       res.status(400).json({ error: "Unknown item." });
       return;
     }
-    res.json({ item, days: PRICE_HISTORY_DAYS, buckets: historyFor(getState().market?.priceHistory, item) });
+    // ISP-233 (AB#928): and the ITC's watch over the item (aggregate: normal value, the lines, a price-impact alert)
+    res.json({ item, days: PRICE_HISTORY_DAYS, buckets: historyFor(getState().market?.priceHistory, item), watch: watchView(item) });
   });
 
   // ─── Sell player resources into an NPC standing buy order ────────────────────
