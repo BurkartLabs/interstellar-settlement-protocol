@@ -35,8 +35,10 @@ export function marketView(market, accountId = null) {
   // AB#1054: players' buy orders, capped and viewed the same way.
   const bids = Array.isArray(market.buyOrders) ? market.buyOrders : [];
   const ownBids = accountId ? bids.slice(ORDER_BOOK_VIEW_LIMIT).filter((o) => o?.buyerAccountId === accountId) : [];
+  // ISP-177 (AB#871): the mercenary offers carry corporation ids and a renter; clients get them from GET /mercenaries
+  const { mercenaryOffers: _mercenaryOffers, ...rest } = market;
   return {
-    ...market,
+    ...rest,
     orderBook: newest.concat(own, npcAsks).map((order) => orderView(order, accountId)),
     buyOrders: bids.slice(0, ORDER_BOOK_VIEW_LIMIT).concat(ownBids).map((order) => buyOrderView(order, accountId)),
     tradeItems: [...PRICE_HISTORY_ITEMS].sort(), // what a buy order may name

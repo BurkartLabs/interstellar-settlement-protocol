@@ -178,3 +178,53 @@ describe("allowed use (AB#870)", () => {
     expect(["defense", "pve", "raids"].every((u) => mercenaryUseAllowed({ allowedUse: "raids" }, u))).toBe(true);
   });
 });
+
+describe("the Mercenary Rentals panel's routes (AB#871)", () => {
+  it("a hire answers with its receipt: the price and collateral held, the fleet's attack and defense, and the term's end", async () => {
+    const { owner, fleetId } = await withFleet();
+    const offerId = (await offer(owner, fleetId)).body.offer.id;
+    const renter = await corporation(100_000, {});
+    const res = await renter.api.post(renter.at(`/mercenaries/${offerId}/hire`)).send({});
+    expect(res.status).toBe(200);
+    expect(res.body.state.corp.finances.credits).toBe(80_000);
+    expect(res.body.receipt).toMatchObject({ action: "mercenary-hire", title: "Mercenary Fleet Hired", costCredits: 20_000 });
+    const grants = Object.fromEntries(res.body.receipt.grants.map((g) => [g.label, g.value]));
+    expect(grants.Price).toContain("5,000 credits");
+    expect(grants.Collateral).toContain("15,000 credits");
+    expect(grants.Fleet).toMatch(/^\d+ ATK \/ \d+ DEF$/);
+    expect(grants["Allowed use"]).toBe("Defense only");
+  });
+
+  it("lists offers with their combat totals and whose they are, and never sends them in the shared market state", async () => {
+    const { owner, fleetId } = await withFleet();
+    await offer(owner, fleetId);
+    const renter = await corporation(100_000, {});
+    const seen = (await renter.api.get(renter.at("/mercenaries"))).body.offers.find((o) => o.fleetName === "Corsair" && !o.mine);
+    expect(seen).toBeTruthy();
+    expect(seen.attack).toBeGreaterThan(0);
+    expect(seen.defense).toBeGreaterThan(0);
+    expect((await owner.api.get(owner.at("/mercenaries"))).body.offers.some((o) => o.id === seen.id && o.mine)).toBe(true);
+    const account = await renter.api.get(`/api/accounts/${renter.id}`);
+    expect(JSON.stringify(account.body)).not.toContain("mercenaryOffers");
+  });
+
+  it("GET /mine shows both sides: the escrow while hired, then the losses and settlement after the term", async () => {
+    const { owner, fleetId } = await withFleet();
+    const offerId = (await offer(owner, fleetId)).body.offer.id;
+    const renter = await corporation(100_000, {});
+    const { endsAt } = (await renter.api.post(renter.at(`/mercenaries/${offerId}/hire`)).send({})).body.offer;
+    const ownerView = (await owner.api.get(owner.at("/mercenaries/mine"))).body;
+    expect(ownerView.offered.find((o) => o.id === offerId)).toMatchObject({ state: "hired", escrow: 20_000, mine: true });
+    expect(ownerView.offered.find((o) => o.id === offerId).renterName).toBeTruthy();
+    expect(ownerView.fleetValues[fleetId]).toBe(unitsValue({ lf: 8, ds: 2 }));
+    const renterView = (await renter.api.get(renter.at("/mercenaries/mine"))).body;
+    expect(renterView.hired.map((o) => o.id)).toEqual([offerId]);
+    expect(renterView.offered).toEqual([]);
+    expect(JSON.stringify(renterView)).not.toContain(owner.id);
+    recordContractLosses(offerId, { lf: 3 });
+    tickAt(endsAt + 1);
+    const after = (await renter.api.get(renter.at("/mercenaries/mine"))).body.hired[0];
+    expect(after).toMatchObject({ state: "completed", escrow: 0, lost: { lf: 3 } });
+    expect(after.settlement).toMatchObject({ price: 5_000, compensation: Math.min(15_000, 3 * unitValue("lf")) });
+  });
+});

@@ -23,7 +23,7 @@ import { ECONOMY } from "./economy.js";
 import { getAccountById, getState, mutateAccountState, mutateState } from "./gameState.js";
 import { settleTransfer } from "./settlement.js";
 import { accountIdOfCorp } from "./playerLoans.js";
-import { UNITS, ensureCorpMilitary } from "./game/units.js";
+import { UNITS, ensureCorpMilitary, militaryPower } from "./game/units.js";
 import { FLEET_UNIT_IDS, settleFleets } from "./fleets.js";
 
 const HOUR = 3_600_000;
@@ -60,13 +60,45 @@ const corpOf = (accountId) => getAccountById(accountId)?.state?.corp ?? null;
 let seq = 0;
 
 /** The public face of an offer: terms, the fleet's units and value, and whose it is, by corporation name only. */
-export function offerView(offer) {
+export function offerView(offer, viewerCorpId = null) {
   const owner = accountIdOfCorp(offer.ownerCorpId);
   return {
     id: offer.id, state: offer.state, fleetName: offer.fleetName, units: offer.units, stationId: offer.stationId,
     termHours: offer.termHours, price: offer.price, collateral: offer.collateral, allowedUse: offer.allowedUse,
     value: unitsValue(offer.units), ownerName: owner ? corpOf(owner)?.corporationName || "A corporation" : "A corporation",
+    // ISP-177 (AB#871): what the fleet fights with, beside its price, so a hire can be weighed against building one
+    ...militaryPower(offer.units),
+    mine: Boolean(viewerCorpId) && offer.ownerCorpId === viewerCorpId,
     postedAt: offer.postedAt, expiresAt: offer.expiresAt, endsAt: offer.endsAt ?? null
+  };
+}
+
+/**
+ * ISP-177 (AB#871): the caller's contracts, both sides: what it offered or hired out, and what it hired. A contract
+ * under way shows its term's end and what the escrow holds; a finished one its settlement (losses, what the collateral
+ * paid, what came back). The other side is named by corporation name only.
+ */
+export function myContracts(accountId, now = Date.now()) {
+  expireOffers(now);
+  const me = corpOf(accountId)?.publicId;
+  if (!me) return null;
+  const view = (o) => {
+    const renter = o.renterCorpId ? accountIdOfCorp(o.renterCorpId) : null;
+    return {
+      ...offerView(o, me),
+      renterName: renter ? corpOf(renter)?.corporationName || "A corporation" : null,
+      escrow: o.state === "hired" ? o.price + o.collateral : 0,
+      lost: o.lost && Object.values(o.lost).some((n) => n > 0) ? { ...o.lost } : null,
+      settlement: o.settlement || null, closedAt: o.closedAt ?? null
+    };
+  };
+  const recent = (o) => ["open", "hired", "taking"].includes(o.state) || (o.closedAt && now - o.closedAt < 7 * 24 * HOUR);
+  const byNewest = (a, b) => (b.hiredAt || b.postedAt) - (a.hiredAt || a.postedAt);
+  return {
+    offered: allOffers().filter((o) => o.ownerCorpId === me && recent(o) && o.state !== "withdrawn").sort(byNewest).map(view),
+    hired: allOffers().filter((o) => o.renterCorpId === me && recent(o)).sort(byNewest).map(view),
+    // each of the caller's own fleets' replacement value, the most a collateral may be, for the offer form
+    fleetValues: Object.fromEntries((corpOf(accountId)?.military?.fleets || []).map((f) => [f.id, unitsValue(f.units)]))
   };
 }
 
@@ -127,9 +159,10 @@ export function expireOffers(now = Date.now()) {
 }
 
 /** The open offers, newest first. */
-export function listOffers(now = Date.now()) {
+export function listOffers(now = Date.now(), viewerAccountId = null) {
   expireOffers(now);
-  return allOffers().filter((o) => o.state === "open").sort((a, b) => b.postedAt - a.postedAt).map(offerView);
+  const me = viewerAccountId ? corpOf(viewerAccountId)?.publicId ?? null : null;
+  return allOffers().filter((o) => o.state === "open").sort((a, b) => b.postedAt - a.postedAt).map((o) => offerView(o, me));
 }
 
 /**
