@@ -5092,6 +5092,7 @@ img.station__body {
 .fleet__destination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2); }
 /* ISP-177 (AB#871): Mercenary Rentals on the Galactic Exchange. The offers table is cards on a narrow column like every
    market table; the contracts are a list of sentences; the form's fields wrap. */
+.mercs h4 { margin: 0; font-size: var(--font-size-3); } /* ISP-252 (AB#948), Bug #4659: the section subheads were body size */
 .mercs__terms { display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
 .mercs__terms input, .mercs__terms select, .mercs__form select { width: 100%; min-width: 0; }
 .mercs__mine { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
