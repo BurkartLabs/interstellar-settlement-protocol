@@ -32,6 +32,7 @@ import { registerCreditRatingRoutes } from "./routes/creditRating.js"; // ISP-14
 import { registerCapTableRoutes } from "./routes/capTable.js"; // ISP-157 (AB#851)
 import { registerEquityRoutes } from "./routes/equity.js"; // ISP-158 (AB#852)
 import { shareOfferingTick } from "./shareOfferings.js";
+import "./balanceSheet.js"; // Bug #4647: the balance sheet's debt and receivables lines
 import { dividendTick } from "./dividends.js"; // ISP-159 (AB#853)
 import { registerConglomerateRoutes } from "./routes/conglomerates.js"; // ISP-197 (AB#891)
 import { registerLogisticsRoutes } from "./routes/logistics.js";
@@ -45,6 +46,7 @@ import { registerFleetRoutes } from "./routes/fleets.js"; // ISP-174 (AB#868)
 import { registerMercenaryRoutes } from "./routes/mercenaries.js"; // ISP-176 (AB#870)
 import { registerRaidRoutes } from "./routes/raids.js"; // ISP-178 (AB#872)
 import { raidTick } from "./raidResolution.js"; // ISP-179 (AB#873)
+import { registerGarrisonRoutes } from "./routes/garrison.js"; // ISP-180 (AB#874)
 import { registerRefiningRoutes } from "./routes/refining.js";
 import { registerConstructionRoutes } from "./routes/construction.js"; // ISP-94 (AB#784)
 import { registerUpgradeRoutes } from "./routes/upgrades.js"; // ISP-101 (AB#793)
@@ -183,6 +185,7 @@ registerTrainingRoutes(app);
 registerFleetRoutes(app);
 registerMercenaryRoutes(app);
 registerRaidRoutes(app);
+registerGarrisonRoutes(app);
 
 registerRefiningRoutes(app);
 

@@ -4310,6 +4310,8 @@ img.station__body {
   display: block;
   min-width: 2px;
 }
+/* ISP-208 (AB#903): a belt a conglomerate partner scouted, named in its panel */
+.belt-shared { margin: 0 0 var(--space-2); color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
 .belt-bar__legend {
   display: flex;
   flex-wrap: wrap;

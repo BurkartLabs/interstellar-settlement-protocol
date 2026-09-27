@@ -106,7 +106,7 @@ function fleetFor(attackerAccountId, attacker, { fleetId, contractId }, now) {
 }
 
 /** Whether the attacker's research reaches `toStationId` from `fromStationId` (the same gate a deployment uses). */
-function reachable(unlockedTech, fromStationId, toStationId) {
+export function reachable(unlockedTech, fromStationId, toStationId) {
   const fromSystemId = stationById(fromStationId)?.systemId || "sol";
   const toSystemId = stationById(toStationId)?.systemId;
   if (!toSystemId) return false;
