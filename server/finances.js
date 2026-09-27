@@ -99,7 +99,8 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "conglomerate-withdrawal", // ISP-204 (AB#898): credits a founder or director took from the treasury
     "conglomerate-station-refund", // ISP-210 (AB#905): a member's own credits back from a cancelled station project
     "conglomerate-stake-buyout", // ISP-211 (AB#906): a departed corporation's station stake, paid out by the treasury
-    "forced-sale" // ISP-286 (AB#993): goods and buildings sold to recover a defaulted player debt
+    "forced-sale", // ISP-286 (AB#993): goods and buildings sold to recover a defaulted player debt
+    "tariff-revenue" // ISP-230 (AB#925): a concession holder's tariffs, less the ISA's levy, paid daily
   ]),
   expense: Object.freeze([
     "hiring",
@@ -119,6 +120,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "exchange-escrow",
     "exchange-tax",
     "lease-royalty", // ISP-302 (AB#2285): the royalty's share of a sale's tax, booked apart so it can be counted
+    "tariff", // ISP-230 (AB#925): a concession holder's tariff on a sale or a transfer into its system
     "loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",
     "escrow-hold-paid", "fee-paid", // ISP-146 (AB#840): server/settlement.js
     "loan-interest-paid", // ISP-150 (AB#844): a loan's interest, on its own line of the statements

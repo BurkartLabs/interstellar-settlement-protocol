@@ -13,6 +13,7 @@ import { FLEET_NAMES } from "./fleets.js"; // ISP-174 (AB#868)
 import { POSTURE_IDS } from "./garrison.js"; // ISP-180 (AB#874)
 import { CONGLOMERATE_CATALOG } from "./conglomerates.js"; // ISP-197 (AB#891)
 import { BOND_TERMS } from "./bondTerms.js"; // ISP-154 (AB#848)
+import { WARFARE_CATALOG } from "./warfare.js"; // ISP-230 (AB#925)
 
 /** The highest cap any yard tier has (AB#793): what start-mining accepts before the route clamps to the yard's own. */
 const TOP_THROUGHPUT_CAP = yardTierFor(yardMaxTier()).throughputCap;
@@ -173,6 +174,9 @@ export const ACCOUNT_INPUT = {
   "GET /messages": NOTHING,
   "GET /corporations": { query: { name: text(64, "a corporation name to search for", { optional: true }) } },
   "GET /dominance": NOTHING, // ISP-217 (AB#912): the caller's own dominance components
+  // ISP-230 (AB#925): a holder's tariff, 0 to the highest cap any system has, in the catalog's steps; the system's own
+  // cap and whether the caller holds it are the route's (400 and 403)
+  "POST /tariffs/:systemId": { params: { systemId: ref("a system") }, body: { pct: decimal(0, WARFARE_CATALOG.tariffs.maxPct, WARFARE_CATALOG.tariffs.stepPct, "a tariff in percentage points") } },
   // ISP-149 (AB#843): the product and principal to quote, and the quote to accept; the terms are the server's
   "GET /loans/offers": NOTHING, // ISP-151 (AB#845)
   "POST /loans/quote": { body: { productId: word(["dsdb-7", "dsdb-30", "dsdb-90"], "a Development Bank loan product"), principal: int(1_000, 100_000_000, "a principal of at least 1,000 credits") } },

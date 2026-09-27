@@ -14,6 +14,8 @@ import { allStations, stationById, stationMap } from "../game/stations.js"; // I
 import { systemName } from "../../public/scripts/displayNames.js"; // AB#1336
 import { emitToAccount } from "../realtime.js";
 import { dockRefusal, memberStation } from "../game/stationGovernance.js"; // ISP-211 (AB#906), ISP-212 (AB#907)
+import { chargeTariff, systemOfStation, tariffRateFor, transferBase } from "../tariffService.js"; // ISP-230 (AB#925)
+import { tariffOn } from "../game/tariffs.js";
 
 export function registerLogisticsRoutes(app) {
   // ─── Logistics: transfer resources between stations ──────────────────────────
@@ -52,20 +54,32 @@ export function registerLogisticsRoutes(app) {
         return;
       }
 
+      // ISP-230 (AB#925): goods shipped into a system from outside it pay its holder's tariff at dispatch, on their
+      // normal value, beside the fee; the fee and the tariff are both covered, or nothing moves
+      const now = Date.now();
+      const intoSystem = systemOfStation(toStationId) !== systemOfStation(request.fromStationId);
+      const tariffBase = intoSystem ? transferBase(request.lines, now) : 0;
+      const tariffDue = intoSystem ? tariffOn(tariffBase, tariffRateFor(corp, toStationId, now)) : 0;
+      if (tariffDue > 0 && Number(corp.finances.credits) < plan.fee + tariffDue) {
+        refusal = `This shipment costs ${plan.fee.toLocaleString("en-US")} credits in fees and ${tariffDue.toLocaleString("en-US")} in the destination system's concession tariff; you have ${Math.floor(Number(corp.finances.credits)).toLocaleString("en-US")}.`;
+        return;
+      }
+
       const fromInv = getStationInventory(corp, request.fromStationId);
       for (const { item, quantity } of request.lines) {
         fromInv[item] -= quantity;
         if (fromInv[item] <= 0) delete fromInv[item];
       }
       applyCredits(corp, -plan.fee, "transfer-fees");
+      const tariff = intoSystem ? chargeTariff(corp, { stationId: toStationId, base: tariffBase, now }) : { pct: 0, amount: 0 };
 
-      const now = Date.now();
       dispatched = {
         id: `shp-${randomUUID()}`,
         fromStationId: request.fromStationId,
         toStationId, // pinned at dispatch (Bug #692's lesson: never re-read "wherever the corp is" at delivery time)
         lines: request.lines,
         fee: plan.fee,
+        ...(tariff.amount ? { tariff } : {}), // ISP-230 (AB#925): the rate and amount charged at dispatch
         dispatchedAt: now,
         arrivesAt: now + minutes * 60_000,
         status: "in-transit"
