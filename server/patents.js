@@ -23,6 +23,7 @@ import { ECONOMY } from "./economy.js";
 import { settleTransfer } from "./settlement.js";
 import { WARFARE_CATALOG } from "./warfare.js";
 import { ROYALTY_PAID, ROYALTY_RECEIVED, royaltyOn } from "../public/scripts/patentRoyalty.js"; // ISP-237 (AB#932): the quote's arithmetic
+import { ensureRef } from "./references.js"; // ISP-249 (AB#945): the record's reference, given on first read and kept
 
 const FILE = path.join(dataDir, "patents.json");
 const HOUR = 3_600_000;
@@ -125,7 +126,7 @@ export function filePatent(accountId, { kind, subjectId, ratePct }, now = Date.n
 }
 
 function publicView(p, now) {
-  return { id: p.id, kind: p.kind, subjectId: p.subjectId, subjectName: p.subjectName, holder: p.holder.name, ratePct: p.ratePct, filedAt: p.filedAt, endsAt: p.endsAt, active: now < p.endsAt };
+  return { id: p.id, ref: ensureRef(p, "PAT", { issuedAt: p.filedAt })[0], kind: p.kind, subjectId: p.subjectId, subjectName: p.subjectName, holder: p.holder.name, ratePct: p.ratePct, filedAt: p.filedAt, endsAt: p.endsAt, active: now < p.endsAt };
 }
 
 /** The Registry's public list: every patent filed, newest first; holder by name only. */

@@ -69,7 +69,7 @@ describe("ISP-161 the issuer", () => {
     expect(text(html)).toContain("From the next period: 40%");
     expect(html).toMatch(/<option value="40" selected>/);
     expect(html).toMatch(/name="payoutRatioPct" disabled/);
-    expect(text(html)).toContain("may change again 1 Oct, 12:00 UTC");
+    expect(text(html)).toContain("may change again 2147-10-01 12:00 UTC");
   });
 
   it("an unlisted corporation sees why it may not list, or the fee to list", () => {

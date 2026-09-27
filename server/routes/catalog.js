@@ -15,6 +15,7 @@ import { verifyAccessToken, getBearerToken } from "../auth.js";
 import { checkAndResetNpcBuyOrders } from "../ticks.js";
 import { sharedStateView } from "../realtime.js";
 import { publicSystems } from "../catalogView.js"; // Bug #2355
+import { SECTION_CODES } from "../sectionCodes.js"; // ISP-248 (AB#944)
 
 export function registerCatalogRoutes(app) {
   // TODO(AB#737): Consider moving API to a dedicated api.js file
@@ -99,6 +100,10 @@ export function registerCatalogRoutes(app) {
   });
 
   // AB#1049: the research tree, the client's only copy (same pattern as /api/ceo-insight above).
+  // ISP-248 (AB#944): the document codes (data/section-codes.json), public like every catalogue here
+  app.get("/api/section-codes", (_req, res) => {
+    res.json({ screens: SECTION_CODES.screens.map(({ id, code }) => ({ id, code })), sections: SECTION_CODES.sections.map(({ id, code }) => ({ id, code })) });
+  });
   app.get("/api/research", (_req, res) => {
     res.json({ nodes: Object.values(RESEARCH_LIBRARY) });
   });

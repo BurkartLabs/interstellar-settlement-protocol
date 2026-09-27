@@ -261,6 +261,7 @@ export const ACCOUNT_INPUT = {
   // ISP-241 (AB#937): a case is a claim type and a record id, nothing else; the route derives the rest from the record
   "POST /arbitration/cases": { body: { type: word([...CLAIM_TYPES], "a claim type the Council hears"), recordId: ref("a record you are a party to") } },
   "GET /arbitration/cases": NOTHING,
+  "POST /arbitration/preview": { body: { type: word([...CLAIM_TYPES], "a claim type the Council hears"), recordId: ref("a record you are a party to") } }, // ISP-243 (AB#939)
   "POST /arbitration/cases/:ref/cure": { params: { ref: ref("one of your cases") } }, // ISP-242 (AB#938)
   "GET /arbitration/records/:type": { params: { type: word([...CLAIM_TYPES], "a claim type the Council hears") } },
   "POST /concessions/:systemId/lease-modifier": { params: { systemId: ref("a system") }, body: { discountPct: choice(Array.from({ length: WARFARE_CATALOG.concessionLeaseModifierMaxPct + 1 }, (_, i) => i), `a lease discount, in whole percent from 0 to ${WARFARE_CATALOG.concessionLeaseModifierMaxPct}`) } }, // ISP-228 (AB#923): 0 is a good discount, so a list (as the payout ratio, AB#853)

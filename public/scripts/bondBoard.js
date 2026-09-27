@@ -7,6 +7,7 @@
 
 import { escapeHtml } from "./html.js";
 import { bankTime, cr } from "./devBank.js";
+import { refHtml } from "./html.js"; // ISP-249 (AB#945)
 
 const pct = (n) => `${Number(n).toFixed(2).replace(/\.?0+$/, "")}%`;
 
@@ -33,7 +34,7 @@ export function openSeriesHtml(board, ownIds = new Set()) {
   return `<div class="bond-series-list">${board.open.map((s) => `
     <article class="bond-series" data-series="${escapeHtml(s.id)}">
       <header class="bond-series__header">
-        <h4>${escapeHtml(s.issuerName ?? "A corporation")}</h4>
+        <h4>${escapeHtml(s.issuerName ?? "A corporation")} ${refHtml(s.ref)}</h4>
         <span class="ui-badge bond-grade" title="The issuer's grade with this series sold">${escapeHtml(s.grade)}</span>
       </header>
       <dl class="bond-terms">
@@ -115,7 +116,7 @@ export function holdingsHtml(board) {
   if (!board.holdings.length) return `<p class="station__note">You hold no bonds. Subscribe to an open series above.</p>`;
   return `<div class="bond-holdings">${board.holdings.map(({ units, series: s, next, value }) => `
     <article class="bond-holding${s.state === "arrears" || s.state === "defaulted" ? " bond-holding--late" : ""}" data-series="${escapeHtml(s.id)}">
-      <header class="bond-series__header"><h4>${escapeHtml(s.issuerName ?? "A corporation")} · ${cr(units)} unit${units === 1 ? "" : "s"}</h4>${seriesBadge(s)}</header>
+      <header class="bond-series__header"><h4>${escapeHtml(s.issuerName ?? "A corporation")} · ${cr(units)} unit${units === 1 ? "" : "s"} ${refHtml(s.ref)}</h4>${seriesBadge(s)}</header>
       <dl class="bond-terms">
         <div><dt>Coupon</dt><dd>${pct(s.couponPct30)} per 30 days, paid every ${s.couponEveryDays} days</dd></div>
         <div><dt>Next coupon</dt><dd data-role="bond-next">${next ? `${cr(next.coupon)} credits, ${bankTime(next.at)}${next.face ? `, with ${cr(next.face)} face back` : ""}` : s.state === "subscribing" || s.state === "closing" ? `${s.couponEveryDays} days after the window closes (${bankTime(s.closesAt)} at the latest)` : "none: nothing left to pay"}</dd></div>

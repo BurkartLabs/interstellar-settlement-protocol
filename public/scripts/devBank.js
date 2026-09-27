@@ -5,15 +5,14 @@
 // The quote shows the whole cost of the loan before anything is committed, so borrowing never looks free.
 
 import { escapeHtml } from "./html.js";
+import { utcTime } from "./timeFormat.js"; // ISP-249 (AB#945)
 
 export const cr = (n) => `${Math.round(Number(n) || 0).toLocaleString("en-US")}`;
 const DAY = 86_400_000;
 
-/** A time as the Bank's ledgers write it: "28 Sep, 14:05 UTC". Fixed names, so every browser and test agrees. */
+/** A time as the Bank's ledgers write it (ISP-249, AB#945: the guide's format, public/scripts/timeFormat.js). */
 export function bankTime(t) {
-  const d = new Date(t);
-  const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getUTCMonth()];
-  return `${d.getUTCDate()} ${month}, ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
+  return utcTime(t, { withDate: true });
 }
 
 /** What paying a loan off takes now: the principal still owed, the arrears, and 1% of that principal (AB#844). */

@@ -81,8 +81,8 @@
       "description": "A neutral legal body where corporations file lawsuits, territorial disputes, contract breaches, and cross-system claims against each other. Rulings carry binding authority across all ISA-registered jurisdictions.",
       "flavor": "Litigation is expensive. Losing is more expensive. The Council has no enforcement arm of its own — it relies on the ISA and SolSec to execute its rulings, which means judgements can be delayed, challenged, or occasionally ignored by the powerful.",
       "imageFile": "buildings/arbitration-council.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:galactic-arbitration-council",
+      "available": true
     },
     {
       "id": "isa-regulatory-compliance",

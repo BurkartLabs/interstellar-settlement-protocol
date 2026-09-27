@@ -14,6 +14,7 @@
     />
     <link rel="stylesheet" href="styles.css" />
     <script type="module" src="scripts/starfield.js"></script>
+    <script type="module" src="scripts/sectionCodesPage.js"></script>
     <script type="module" src="scripts/verify-email-page.js"></script>
   </head>
   <body>
@@ -23,7 +24,7 @@
     <main class="auth-page">
       <section class="ui-panel auth-page__card" aria-labelledby="verify-title">
         <p class="auth-page__overline">Earth Assembly Act 2147</p>
-        <h1 id="verify-title" class="auth-page__title">Verify your email</h1>
+        <h1 class="auth-page__title"><span class="ui-code" data-code-for="verify-email" aria-hidden="true"></span><span id="verify-title">Verify your email</span></h1>
         <p id="verify-copy" class="auth-page__lede">Confirm that this address belongs to your corporation's account.</p>
 
         <p id="verify-status" class="auth-page__status" aria-live="polite"></p>

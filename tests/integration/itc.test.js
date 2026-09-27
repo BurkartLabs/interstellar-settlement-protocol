@@ -58,7 +58,7 @@ describe("the ITC's dumping watch (AB#927)", () => {
     const [f] = findingsFor(seller.corp.publicId);
     expect(f).toMatchObject({ item: ITEM, N: 270, Q: 600, P: 160, duty: 66_000, volumeLine: 300, leviedAt: null });
     const notice = listAccountNotifications(seller.id).notifications.find((n) => n.title === "ITC Anti-Dumping Investigation");
-    expect(notice.body).toContain(`${f.id}. The Interplanetary Trade Commission has opened an anti-dumping investigation.`);
+    expect(notice.body).toContain(`${f.ref}. The Interplanetary Trade Commission has opened an anti-dumping investigation.`); // ISP-249 (AB#945): the finding's reference
     expect(notice.body).toContain("you sold 600 Rare-Earth Magnets at an average of 160 credits, below 85% of their normal value (270 credits; the line is 229.5)");
     expect(notice.body).toContain("The volume line for those 3 days was 300 units");
     expect(notice.body).toContain("A duty of 66,000 credits, the dumping margin, will be levied");

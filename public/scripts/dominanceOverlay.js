@@ -7,6 +7,7 @@
 // always takes the first token and is named "you" in the legend and the details panel.
 
 import { escapeHtml } from "./html.js";
+import { utcTime } from "./timeFormat.js";
 
 /** The two overlays, as the #map-overlay select names them. */
 export const DOMINANCE_OVERLAYS = {
@@ -70,7 +71,7 @@ export function dominanceLegendHtml(key, overlay, { computedAt } = {}) {
   const spec = DOMINANCE_OVERLAYS[overlay];
   if (!spec) return "";
   if (!key.legend.length) return `<p class="ui-panel__meta">No dominance reading yet. It is computed at 00:00 UTC each day.</p>`;
-  const when = computedAt ? ` Computed ${new Date(computedAt).toISOString().slice(0, 16).replace("T", " ")} UTC, over the 7 days before.` : "";
+  const when = computedAt ? ` Computed ${utcTime(computedAt, { withDate: true })}, over the 7 days before.` : ""; // ISP-249 (AB#945)
   return `<p class="starmap__subhead">${escapeHtml(spec.label)}: each system in its leading ${spec.noun}'s colour.${when}</p>
     <ul class="dominance-legend" data-dominance-legend>${key.legend.map((e) => `
       <li class="dominance-legend__item${e.own ? " dominance-legend__item--own" : ""}" data-legend-key="${escapeHtml(e.key)}"><span class="dominance-legend__swatch dominance-swatch--${e.token.slice(2)}" aria-hidden="true"></span><span>${e.own ? `<strong>You: ${escapeHtml(e.label)}</strong>` : escapeHtml(e.label)} · ${e.systems} system${e.systems === 1 ? "" : "s"}</span></li>`).join("")}

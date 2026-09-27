@@ -66,7 +66,7 @@ describe("the day picker and the first day (AB#714)", () => {
   it("lists the days newest first, yesterday chosen and marked", () => {
     const html = statementDayOptionsHtml(list, undefined, now);
     expect([...html.matchAll(/value="([^"]+)"/g)].map((m) => m[1])).toEqual(["2026-09-21", "2026-09-20", "2026-09-19"]);
-    expect(html).toContain(`<option value="2026-09-21" selected>Mon 21 Sep 2026 (yesterday)</option>`);
+    expect(html).toContain(`<option value="2026-09-21" selected>2147-09-21 (yesterday)</option>`);
   });
 
   it("keeps a chosen day selected", () => {
@@ -86,8 +86,8 @@ describe("chart points from the statements (AB#714)", () => {
   it("one point per closed day, at its close, oldest first, shaped like a snapshot", () => {
     const points = statementsToSeries([statement("2026-09-21"), statement("2026-09-20")]);
     expect(points.map((p) => [p.t, p.label])).toEqual([
-      [Date.parse("2026-09-21T00:00:00Z"), "20 Sep"],
-      [Date.parse("2026-09-22T00:00:00Z"), "21 Sep"]
+      [Date.parse("2026-09-21T00:00:00Z"), "09-20"], // ISP-249 (AB#945): the guide's month and day
+      [Date.parse("2026-09-22T00:00:00Z"), "09-21"]
     ]);
     expect(points[1]).toMatchObject({ credits: 218_200, assets: 30_000, inventory: 4_800, liabilities: 7_200, netFlow: -31_800, netWorth: 245_800 });
     expect(points[1].t - points[0].t).toBe(DAY);

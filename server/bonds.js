@@ -23,6 +23,7 @@ import { getAccountById, getStatements, mutateAccountState } from "./gameState.j
 import { accountsStore, saveAccountsNow } from "./game/store.js";
 import { settleTransfer } from "./settlement.js";
 import { BOND_TERMS, COUPON_STEPS, couponFor, couponSchedule, underwriterShare } from "./bondTerms.js";
+import { ensureRef } from "./references.js"; // ISP-249 (AB#945): the record's reference, given on first read and kept
 export { BOND_TERMS, COUPON_STEPS, underwriterShare };
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
@@ -242,7 +243,7 @@ export function bondWindowTick(now) {
 /** A series as any corporation may see it: no account ids. */
 export function publicSeries(s, now = Date.now()) {
   return {
-    id: s.id, issuerCorpId: s.issuerCorpId, issuerName: s.issuerName ?? getAccountById(s.issuerAccountId)?.state?.corp?.corporationName ?? null, grade: s.grade, faceValue: s.faceValue,
+    id: s.id, ref: ensureRef(s, "BND", { issuedAt: s.issuedAt })[0], issuerCorpId: s.issuerCorpId, issuerName: s.issuerName ?? getAccountById(s.issuerAccountId)?.state?.corp?.corporationName ?? null, grade: s.grade, faceValue: s.faceValue,
     quantity: s.quantity, sold: s.sold, left: s.quantity - s.sold, couponPct30: s.couponPct30, couponEveryDays: s.couponEveryDays,
     maturityDays: s.maturityDays, state: s.state === "subscribing" && now >= s.closesAt ? "closing" : s.state,
     issuedAt: s.issuedAt, closesAt: s.closesAt, closedAt: s.closedAt, maturesAt: s.maturesAt,

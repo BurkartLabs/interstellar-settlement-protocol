@@ -12,7 +12,7 @@ import { escapeHtml } from "../html.js";
 import { appState, viewerStorage } from "../state.js";
 import { taxOnSale, withBasePct } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
 import { saleQuote, utcMinute } from "../tariffs.js"; // ISP-231 (AB#926): the tariff the server settles
-import { withheldFrom } from "../itcDuty.js"; // ISP-232 (AB#927): what the server withholds toward ITC duty owed
+import { councilWithholding, withheldFrom } from "../itcDuty.js"; // ISP-232 (AB#927): what the server withholds toward ITC duty owed; ISP-243 (AB#939): and Council debts
 import { listingWarning } from "../dumping.js"; // ISP-233 (AB#928): the watch's own rule
 import { withCents } from "../priceChart.js";
 import { suggestedListingPrice } from "../suggestedPrice.js";
@@ -50,13 +50,17 @@ function saleTaxRows(gross) {
   const breakdown = withBasePct(getClientExchangeTaxBreakdown(), here?.salesTaxPct);
   const sale = saleQuote(gross, breakdown, here?.pct || 0);
   const withheld = withheldFrom(sale.proceeds, appState.data?.corp?.itcDuty);
+  // ISP-243 (AB#939): an Arbitration Council debt takes what the same 50% leaves, as the server's withholdCouncilDebt does
+  const debts = appState.data?.corp?.councilDebts || [];
+  const council = councilWithholding(sale.proceeds, withheld, debts, debts[0]?.withholdPct).reduce((s, d) => s + d.credits, 0);
   return [
     { label: `GEX Sales Tax (${breakdown.salesTaxPct}%)`, value: `− ${toCurrency(sale.salesTax)}`, muted: true },
     ...(breakdown.royaltyPct > 0 ? [{ label: `ISA Lease Royalty (${breakdown.royaltyPct}%)`, value: `− ${toCurrency(sale.royalty)}`, muted: true }] : []),
     ...(sale.tariff > 0 ? [{ label: `Concession Tariff (${here.pct}%)`, value: `− ${toCurrency(sale.tariff)}`, muted: true }] : []),
     ...(here?.pending ? [{ label: "Tariff Pending", value: `${here.pending.pct}% from ${utcMinute(here.pending.effectiveAt)}`, muted: true }] : []),
     ...(withheld > 0 ? [{ label: "Withheld for ITC Duty", value: `− ${toCurrency(withheld)}`, muted: true }] : []),
-    { label: "You Receive", value: toCurrency(sale.proceeds - withheld), highlight: true }
+    ...(council > 0 ? [{ label: "Withheld for GAC Award", value: `− ${toCurrency(council)}`, muted: true }] : []),
+    { label: "You Receive", value: toCurrency(sale.proceeds - withheld - council), highlight: true }
   ];
 }
 
@@ -91,6 +95,8 @@ export function clientTariffHere() {
 }
 
 import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
+import { refHtml } from "../html.js"; // ISP-249 (AB#945)
+import { timeHtml } from "../timeFormat.js";
 export function renderMarket(data) {
   const station = getCurrentStationInfo(data);
   const bannerEl = document.getElementById("market-station-banner");
@@ -367,7 +373,7 @@ export function renderMarket(data) {
           const totalCell = tradeTotalCell(t);
           return `
           <tr>
-            <td>${t.at ? formatTime(t.at) : "-"}</td>
+            <td>${t.at ? timeHtml(t.at) : "-"}${t.ref ? `<br>${refHtml(t.ref)}` : ""}</td>
             <td>${tradeTypeBadge(t)}</td>
             <td>${escapeHtml(t.item || "-")}</td>
             <td class="ui-table__num">${Number(t.quantity || 0).toLocaleString()}</td>

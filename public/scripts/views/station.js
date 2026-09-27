@@ -31,6 +31,7 @@ import { renderDevelopmentBank } from "./developmentBank.js"; // ISP-151 (AB#845
 import { renderStockExchange } from "./stockExchange.js"; // ISP-161 (AB#855)
 import { openConglomerateStation, renderConglomerateBureau } from "./conglomerateBureau.js"; // ISP-200 (AB#894); ISP-213 (AB#908)
 import { dockedAtOwnStationHtml } from "../conglomerateStation.js"; // ISP-213 (AB#908)
+import { renderArbitrationCouncil } from "./arbitrationCouncil.js"; // ISP-243 (AB#939)
 import { renderPatentOffice } from "./patentOffice.js"; // ISP-237 (AB#932)
 import { renderLobbyingOffice } from "./lobbyingOffice.js"; // ISP-240 (AB#935)
 const firstPresent = (...selectors) => () => selectors.map((sel) => document.querySelector(sel)).find(Boolean) || null;
@@ -197,6 +198,17 @@ export function renderBuildingDetail(building, data) {
       ${dockedHtml(station)}
       <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
       <p class="station__flavor">${escapeHtml(building.flavor)}</p>`);
+  } else if (building.id === "galactic-arbitration-council") {
+    // ISP-243 (AB#939): the Council's chambers: filing, your cases and the docket
+    const station = getCurrentStationInfo(data);
+    renderArbitrationCouncil(contentEl, `
+      <div class="station__building-header">
+        <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      </div>
+      ${dockedHtml(station)}
+      <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
+      <p class="station__flavor">${escapeHtml(building.flavor)}</p>`);
   } else if (building.id === "conglomerate-affairs-bureau") {
     const station = getCurrentStationInfo(data);
     renderConglomerateBureau(contentEl, data, `
@@ -279,9 +291,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
     `;
   }
 
-  const rentedDate = new Date(existingOffice.rentedAt).toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric"
-  });
+  const rentedDate = utcDate(existingOffice.rentedAt); // ISP-249 (AB#945)
   const availableStaffCapacity = Math.max(1, corp.employeeCap - corp.employeeCount);
 
   const now = Date.now();
@@ -291,9 +301,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const daysRemaining = msRemaining / 86_400_000;
   const fullDays = Math.floor(daysRemaining);
   const hoursRemaining = Math.floor((msRemaining % 86_400_000) / 3_600_000);
-  const expiryDate = new Date(rentedUntil).toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
-  });
+  const expiryDate = utcTime(rentedUntil, { withDate: true });
   const leaseStatusBadge = leaseExpired
     ? `<span class="ui-badge ui-badge--danger">Expired</span>`
     : `<span class="ui-badge ui-badge--success">Active Lease</span>`;
@@ -514,6 +522,8 @@ export function bindOfficeActions(building, data) {
 import { employeesForNextLease } from "../leaseStaffing.js"; // AB#1202: the server's rule, not a copy of it
 import { activeOfficeAt } from "../officeStatus.js"; // AB#1870: the server's rule, not a copy of it
 import { bodyProfile, cycleItemsText, leaseTypeLabel, profileText } from "../bodyYield.js"; // AB#829, Bug #2354
+import { codeSlotHtml } from "../sectionCodes.js"; // ISP-248 (AB#944)
+import { utcDate, utcTime } from "../timeFormat.js"; // ISP-249 (AB#945)
 
 // The bodies the ISA leases. Module level so a full lease can say which are left (Bug #1057).
 export const LEASE_BODIES = [
@@ -560,9 +570,7 @@ export function renderISAClaimsLeases(building, data) {
     leasesHtml = `<div class="ui-grid">`;
     for (const lease of leases) {
       const extractorCount = leaseSlotsUsed(lease); // ISP-98 (AB#788): extractors and the other buildings on the lease
-      const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
-        year: "numeric", month: "short", day: "numeric"
-      });
+      const issuedDate = utcDate(lease.issuedAt || Date.now()); // ISP-249 (AB#945)
       leasesHtml += `
         <div class="ui-card station__card" data-role="lease-card">
           <div class="station__card-header">
@@ -727,9 +735,7 @@ export function renderLeaseManagement(building, lease, data) {
   const buildCost = nextYardPriceFor(corp, appState.economy?.buildings); // AB#2286: the next yard's price, discount included
   const canAffordBuild = (corp?.finances?.credits || 0) >= buildCost;
 
-  const issuedDate = new Date(lease.issuedAt || Date.now()).toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric"
-  });
+  const issuedDate = utcDate(lease.issuedAt || Date.now()); // ISP-249 (AB#945)
 
   // Extractor list
   let extractorRows = "";
@@ -1153,7 +1159,7 @@ export function renderStation(data) {
     const systemId = corp.currentSystemId || "sol";
     header.innerHTML = `
       <p class="station__overline">IN OPEN SPACE</p>
-      <h2 class="ui-screen__title">${escapeHtml(formatSystemLabel(systemId))} System</h2>
+      <h2 class="ui-screen__title">${codeSlotHtml("station")}${escapeHtml(formatSystemLabel(systemId))} System</h2>
       <p class="ui-screen__lede">You are not docked at any station. Use the Travel tab or Starmap to dock at a station in this system.</p>
     `;
     npcGrid.innerHTML = "";
@@ -1175,7 +1181,7 @@ export function renderStation(data) {
   if (overviewView && !buildingDetailOpen) overviewView.hidden = false;
 
   if (!station) {
-    header.innerHTML = `<h2 class="ui-screen__title">Station</h2><p class="station__note">No station data available for your current location.</p>`;
+    header.innerHTML = `<h2 class="ui-screen__title">${codeSlotHtml("station")}Station</h2><p class="station__note">No station data available for your current location.</p>`;
     return;
   }
 
@@ -1188,7 +1194,7 @@ export function renderStation(data) {
       ${stationArtHtml(station, systems)}
       <div class="station__identity">
         <p class="station__overline">${escapeHtml(station.designation)} &#47;&#47; ${escapeHtml(station.systemId.toUpperCase())}</p>
-        <h2 class="ui-screen__title">${escapeHtml(station.name)}</h2>
+        <h2 class="ui-screen__title">${codeSlotHtml("station")}${escapeHtml(station.name)}</h2>
         <p class="ui-screen__meta">In orbit of ${escapeHtml(station.body)}, ${escapeHtml(formatSystemLabel(station.systemId))} system</p>
         <p class="ui-screen__lede">${escapeHtml(station.description)}</p>
       </div>

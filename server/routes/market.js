@@ -337,7 +337,7 @@ export function registerMarketRoutes(app) {
     // AB#2365: shaped before the quota checks, so an order saved with the world's 7,000 is checked against its own.
     ensureBidShape(npcOrder);
     if (npcOrder.remainingQty <= 0) {
-      res.status(400).json({ error: "This order has been fully filled for today. It resets at midnight EST." });
+      res.status(400).json({ error: "This order has been fully filled for today. It resets at 00:00 UTC." });
       return;
     }
 

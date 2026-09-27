@@ -4,9 +4,10 @@
 // arithmetic is patentRoyalty.js's, which the settlement uses too. Pure, so it loads in node.
 import { refineryOutput } from "./refineryOutput.js";
 import { chainRunRoyalty } from "./patentRoyalty.js";
+import { utcDate } from "./timeFormat.js";
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
-const day = (t) => new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }); // "24 Oct 2026": no hyphen to break at
+const day = (t) => utcDate(t); // ISP-249 (AB#945): the guide's date; was "24 Oct 2026": no hyphen to break at
 
 /**
  * The quote for `batches` of `chain` in a refinery at `tier` (output `multiplier`), under `patent` (a register row):

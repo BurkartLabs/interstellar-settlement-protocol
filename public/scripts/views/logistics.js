@@ -10,6 +10,7 @@ import { transferFeeWaived } from "../memberRates.js"; // ISP-212 (AB#907)
 import { transferTariff } from "../tariffs.js"; // ISP-231 (AB#926): the tariff the server charges at dispatch
 import { appState } from "../state.js";
 import { formatSystemLabel, getAllInventory, getCurrentStationInfo, pushFeedback, updateAllViews } from "./shared.js";
+import { timeHtml } from "../timeFormat.js"; // ISP-249 (AB#945)
 
 export function renderLogistics(data) {
   const station = getCurrentStationInfo(data);
@@ -183,7 +184,7 @@ export function renderLogistics(data) {
               <td data-label="Route">${escapeHtml(stationName(h.from))} → ${escapeHtml(stationName(h.to))}</td>
               <td data-label="Goods">${escapeHtml(describeLines(h.lines))}</td>
               <td class="ui-figure" data-label="Fee">${toCurrency(h.fee)}</td>
-              <td data-label="When"><time datetime="${escapeHtml(new Date(h.time).toISOString())}">${escapeHtml(new Date(h.time).toLocaleString())}</time></td>
+              <td data-label="When">${timeHtml(h.time)}</td>
             </tr>`).join("")}</tbody></table>`
         : `<div class="ui-state"><p class="ui-state__title">No transfers yet.</p><p class="ui-state__why">Goods held at another station can be moved here from its card above.</p></div>`}
       </div>

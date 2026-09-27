@@ -165,7 +165,7 @@
         <h2 class="sg-heading" id="sg-panels">Panel with header</h2>
         <div class="ui-panel" data-component="panel" data-state="with-header">
           <div class="ui-panel__header">
-            <h3 class="ui-panel__title">Active Mining Cycles</h3>
+            <h3 class="ui-panel__title"><span class="ui-code" data-code-for="station-active-mining-cycles" aria-hidden="true"></span>Active Mining Cycles</h3>
             <div class="ui-panel__actions">
               <button type="button" class="ui-button ui-button--secondary">View history</button>
               <button type="button" class="ui-button ui-button--primary">Start cycle</button>
@@ -174,6 +174,31 @@
           <div class="ui-panel__body">
             Silicates at the Basic Extractor Yard: 42 t of 120 t this cycle, 3 h 20 m left. The cycle pays out when it
             completes, into your inventory at Earth Station Prime.
+          </div>
+        </div>
+      </section>
+
+      <!-- ISP-248 (AB#944): the document-code header, every state. The codes come from data/section-codes.json through
+           GET /api/section-codes, as on every screen; nothing here writes one. -->
+      <section class="sg-section" aria-labelledby="sg-codes">
+        <h2 class="sg-heading" id="sg-codes">Document-code header</h2>
+        <p class="sg-note">CODE // Title, from the registry. The code is aria-hidden: each title's accessible name is its plain words. docs/design/BUREAUCRATIC_UI.md.</p>
+        <div class="ui-stack">
+          <header class="ui-screen__header" data-component="code-header" data-state="screen">
+            <h2 class="ui-screen__title"><span class="ui-code" data-code-for="finance" aria-hidden="true"></span>Financial Control Board</h2>
+            <p class="ui-screen__lede">A screen title: its code is the screen's own, from the registry.</p>
+          </header>
+          <div class="ui-panel" data-component="code-header" data-state="section">
+            <div class="ui-panel__header"><h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-standing-section" aria-hidden="true"></span>Standing buy orders</h3></div>
+            <div class="ui-panel__body">A section title, with a panel header's actions or none.</div>
+          </div>
+          <div class="ui-panel" data-component="code-header" data-state="long">
+            <div class="ui-panel__header"><h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-assets-vs-liabilities" aria-hidden="true"></span>Assets vs Liabilities, by day, for the last thirty days of trading</h3></div>
+            <div class="ui-panel__body">A long title wraps after the code; the code itself never breaks.</div>
+          </div>
+          <div class="ui-panel" data-component="code-header" data-state="no-code">
+            <div class="ui-panel__header"><h3 class="ui-panel__title"><span class="ui-code" data-code-for="not-in-the-registry" aria-hidden="true"></span>A title with no code</h3></div>
+            <div class="ui-panel__body">An id the registry lacks (or a registry that did not load) shows the plain title alone.</div>
           </div>
         </div>
       </section>

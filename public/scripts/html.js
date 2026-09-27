@@ -45,6 +45,14 @@ export function refineryBuildButtonHtml({ hasRefinery, used, slots }) {
  * The trade confirmation modal's rows. Label and value are text, escaped here, so callers pass raw strings
  * (Bug #1002: they went into innerHTML raw, and callers escaped some values themselves and not others).
  */
+/**
+ * ISP-249 (AB#945): a record's reference number (TYPE-YYYY-XXXXXX, server/references.js), as the guide shows it: secondary
+ * text beside the record, never its only label. "" when the record has none.
+ */
+export function refHtml(ref) {
+  return ref ? `<span class="ref-no">${escapeHtml(ref)}</span>` : "";
+}
+
 export function tradeConfirmRowsHtml(rows) {
   return rows
     .map((r) => {

@@ -21,6 +21,7 @@ import { backfillVerificationPolicy, loginBlockedByVerification, REQUIRED, verif
 import { RESERVED_CORPORATION_NAMES, ensureStateFile, getSeedState } from "./world.js";
 import { reservedNamesError } from "../npcCorporations.js"; // AB#813: fail closed
 import { migrateShareRegistries, rebuildHoldingIndexes } from "../shareRegistry.js"; // ISP-157 (AB#851), ISP-158 (AB#852)
+import { ensureCorpRefs, referenceFor } from "../references.js"; // ISP-249 (AB#945)
 
 // Bug #1480: the statements live in one file per corporation (declared here, before the load-time
 // migration below uses it), written when a day closes, not in the accounts snapshot.
@@ -249,6 +250,8 @@ export function appendChatMessage(channel, message) {
 
 
 export function sanitizeAccount(account) {
+  // ISP-249 (AB#945): records from a save made before reference numbers get theirs the first time they are read, kept
+  if (ensureCorpRefs(account?.state?.corp)) scheduleAccountsSave();
   // The daily statements (AB#713) stay out: up to 90 days of them would ride on every response and socket event. They
   // are served on their own by GET /finances/statements.
   const { statements: _statements, ...state } = account.state || {};
@@ -506,7 +509,9 @@ export async function createAccount({ email, password, ceoName, corpName }) {
   });
 
   // The letter's text lives in public/scripts/liaison.js with the coordinator who signs it (AB#585).
-  pushSystemMessage(account, welcomeLetter(corpName, accountId));
+  // ISP-249 (AB#945): the licence's reference, the corporation's own and not its account id
+  nextState.corp.licenceRef = referenceFor("LIC", nextState.corp.publicId, account.createdAt);
+  pushSystemMessage(account, welcomeLetter(corpName, nextState.corp.licenceRef));
 
   accountsStore.accounts[accountId] = account;
   scheduleAccountsSave();

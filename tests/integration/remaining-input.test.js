@@ -37,6 +37,7 @@ const OUT_OF_SCOPE = {
   "GET /api/systems/:id/tariff": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-230, AB#925)",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
+  "GET /api/section-codes": "a static catalog with no input (ISP-248, AB#944)",
   "GET /api/buildings": "a static catalog",
   "GET /api/ceo-insight": "a static catalog",
   "GET /api/mission-agents": "a static catalog",
@@ -131,6 +132,7 @@ const BASELINE = {
     "POST /arbitration/cases": { body: { type: "mercenary-readiness", recordId: "merc-732" } }, // ISP-241 (AB#937): no such contract: 404
     "GET /arbitration/records/:type": { params: { type: "tariff-overcharge" } },
     "POST /arbitration/cases/:ref/cure": { params: { ref: "GAC-2026-999999" } }, // ISP-242 (AB#938): no such case: 404
+    "POST /arbitration/preview": { body: { type: "mercenary-readiness", recordId: "merc-732" } }, // ISP-243 (AB#939): no such contract: 404
     "POST /concessions/:systemId/relinquish": { params: { systemId: "atlantis" } },
     "GET /concessions/:systemId": { params: { systemId: "atlantis" } }, // ISP-229 (AB#924): no such system: 404
     "POST /tariffs/:systemId": { params: { systemId: "atlantis" }, body: { pct: 1 } }, // ISP-230 (AB#925): no such system: 404

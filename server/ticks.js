@@ -32,15 +32,16 @@ import { getStatements } from "./gameState.js"; // ISP-147: the statements the r
 import { statementsVersion } from "./game/store.js"; // AB#842: the rating's basis follows the statements file
 import { settleStationProjects } from "./game/stationProjects.js"; // ISP-210 (AB#905)
 import { settleAllStationGovernance } from "./game/stationGovernance.js"; // ISP-211 (AB#906)
+import { referenceFor } from "./references.js"; // ISP-249 (AB#945)
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
-function getESTDateString() {
-  // "sv-SE" locale produces YYYY-MM-DD which is unambiguous
-  return new Date().toLocaleDateString("sv-SE", { timeZone: "America/New_York" });
+// ISP-249 (AB#945): on the UTC day, as every other daily cycle and every time the game shows (it was New York's).
+function getResetDateString() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function checkAndResetNpcBuyOrders() {
-  const today = getESTDateString();
+  const today = getResetDateString();
   // ISP-122 (AB#815): the NPC asks refill once a day, on the same date change as the bids. Only npc entries move.
   if (getState().market?.npcAsksRefilledOn !== today) {
     mutateState((draft) => {
@@ -155,7 +156,7 @@ function asteroidExpeditionTick(now = Date.now()) {
         ? yieldLines.map(([r, q]) => `  ${String(q).padStart(6)} units — ${r}${exp.ferricBonus?.[r] ? ` (+${exp.ferricBonus[r]} from your Ferric Mining Complex)` : ""}`).join("\n")
         : "  No recoverable material extracted.";
       const totalUnits = yieldLines.reduce((sum, [, q]) => sum + q, 0);
-      const refNo = `MPR-${(exp.systemId || "sol").slice(0, 3).toUpperCase()}-${String(exp.completedAt || Date.now()).slice(-8)}`;
+      const refNo = referenceFor("MPR", exp.id || `${exp.systemId}:${exp.completedAt}`, exp.completedAt || Date.now()); // ISP-249 (AB#945)
 
       addSystemMessageToAccount(accountId, {
         subject: `Mining Probe Return — ${beltLabel} [${refNo}]`,
