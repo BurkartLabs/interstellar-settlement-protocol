@@ -25,6 +25,7 @@ export const RESEARCH_BONUS = 0.1;
 /**
  * A corporation's combat modifiers, from its own server state only: +10% accuracy for Fire Control, +10% evasion for
  * Evasive Manoeuvres, and corp.military.modifiers.ceoLeadershipPct added to both. Each stat is capped at MODIFIER_CAP.
+ * Readiness (ISP-173) then scales attack and accuracy.
  * A missing, negative or non-numeric leadership figure counts as 0.
  */
 export function combatModifiersFor(corp) {
@@ -32,9 +33,12 @@ export function combatModifiersFor(corp) {
   const raw = Number(corp?.military?.modifiers?.ceoLeadershipPct);
   const leadership = Number.isFinite(raw) && raw > 0 ? raw / 100 : 0;
   const stat = (bonus) => Math.min(MODIFIER_CAP, 1 + bonus + leadership);
+  // ISP-173 (AB#867): readiness (40 to 100) scales attack and accuracy, never hit points or evasion (design section 7)
+  const rr = Number(corp?.military?.readiness);
+  const ready = Number.isFinite(rr) ? Math.min(100, Math.max(40, rr)) / 100 : 1;
   return {
-    attack: 1,
-    accuracy: stat(tech.has(FIRE_CONTROL_TECH) ? RESEARCH_BONUS : 0),
+    attack: ready,
+    accuracy: stat(tech.has(FIRE_CONTROL_TECH) ? RESEARCH_BONUS : 0) * ready,
     evasion: stat(tech.has(EVASIVE_MANOEUVRES_TECH) ? RESEARCH_BONUS : 0)
   };
 }

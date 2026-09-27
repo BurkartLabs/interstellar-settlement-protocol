@@ -118,7 +118,8 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "loan-interest-paid", // ISP-150 (AB#844): a loan's interest, on its own line of the statements
     "conglomerate-charter", "conglomerate-deposit", // ISP-197 (AB#891): the charter fee, a sink, and the deposit into the new treasury
     "ship-production", // ISP-171 (AB#865): ships queued at the Orbital Shipyard
-    "troop-training" // ISP-172 (AB#866): troops trained at Headquarters
+    "troop-training", // ISP-172 (AB#866): troops trained at Headquarters
+    "military-upkeep" // ISP-173 (AB#867): what ships and troops cost to keep, on the design's curve
   ])
 });
 

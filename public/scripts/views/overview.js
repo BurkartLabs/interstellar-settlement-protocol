@@ -67,7 +67,12 @@ export function updateOverview(data) {
       title: "Military Power",
       // AB#861: the sum over the corporation's units of the unit catalog's attack and defense (data/units.json)
       value: `${data.corp.military?.power?.attack ?? 0} ATK / ${data.corp.military?.power?.defense ?? 0} DEF`,
-      body: "Your units' attack and defense from the unit catalog, before counters, accuracy and evasion decide a battle."
+      // ISP-173 (AB#867): readiness, which unpaid upkeep lowers and battles read
+      body: (() => {
+        const readiness = Math.round(Number(data.corp.military?.readiness ?? 100));
+        const why = data.corp.military?.upkeep?.short ? " Upkeep is unpaid, so it falls 10 points a day, to 40; paying it restores 20 a day." : "";
+        return `Readiness ${readiness}%: it scales attack and accuracy in battle.${why} Attack and defense are your units' totals from the unit catalog, before counters, accuracy and evasion.`;
+      })()
     }
   );
 
