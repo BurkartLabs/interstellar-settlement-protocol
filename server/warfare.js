@@ -33,7 +33,7 @@ const FACTOR = (v) => typeof v === "number" && v > 0 && v <= 1;
 
 /** Every scalar the design's number table names, and what it must be. */
 const SCALARS = {
-  concessionGrantPct: PCT, concessionLeadRatio: RATIO, concessionEligibleDays: POSITIVE, concessionPetitionFee: COUNT,
+  concessionGrantPct: PCT, concessionLeadRatio: RATIO, concessionEligibleDays: POSITIVE, concessionDataMaxAgeHours: POSITIVE, concessionPetitionFee: COUNT,
   concessionReviewHours: COUNT, concessionTermDays: POSITIVE, concessionRetainPct: PCT, concessionGraceDays: POSITIVE,
   concessionRepetitionCooldownDays: COUNT, concessionUpkeepBase: COUNT, concessionUseDiscountMaxPct: PCT,
   concessionAdmMaxPct: COUNT, concessionFeeSharePct: PCT, concessionOwnLeaseDiscountPct: PCT,

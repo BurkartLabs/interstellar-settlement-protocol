@@ -13,6 +13,7 @@ import { computeDominance } from "./game/dominance.js";
 import { dayKeyOf } from "./game/dominanceCounters.js";
 import { dataDir, safeWriteFile } from "./game/catalog.js";
 import { accountsStore } from "./game/store.js";
+import { recordControlDay } from "./controlService.js"; // ISP-226 (AB#921): each day's control readings
 
 const FILE = path.join(dataDir, "dominance.json");
 let cache = readCache();
@@ -37,6 +38,7 @@ export function dominanceTick(now = Date.now(), compute = computeDominance) {
     cache = { ...result, durationMs: Date.now() - started };
     lastError = null;
     safeWriteFile(FILE, JSON.stringify(cache));
+    recordControlDay(cache); // ISP-226 (AB#921)
     return "computed";
   } catch (error) {
     lastError = { at: now, message: String(error?.message || error) };

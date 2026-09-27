@@ -3,6 +3,7 @@
   "concessionGrantPct": 40,
   "concessionLeadRatio": 1.5,
   "concessionEligibleDays": 14,
+  "concessionDataMaxAgeHours": 26,
   "concessionPetitionFee": 25000,
   "concessionReviewHours": 72,
   "concessionTermDays": 30,
