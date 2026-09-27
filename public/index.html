@@ -677,6 +677,13 @@
                     <option value="mine">My listings</option>
                   </select>
                 </label>
+                <!-- ISP-208 (AB#903): shown only to a conglomerate member -->
+                <label class="ui-field" id="exchange-sellers-field" hidden><span class="ui-field__label">Sellers</span>
+                  <select class="ui-select" id="exchange-sellers-filter">
+                    <option value="all">Everyone</option>
+                    <option value="conglomerate">My conglomerate</option>
+                  </select>
+                </label>
                 <label class="ui-field"><span class="ui-field__label">Sort</span>
                   <select class="ui-select" id="exchange-sort">
                     <option value="newest">Newest first</option>
