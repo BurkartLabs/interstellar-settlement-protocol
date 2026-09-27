@@ -94,9 +94,12 @@ export function statementHtml(s) {
     // ISP-160 (AB#854): shares held in other corporations, at company value / shares outstanding. A statement closed
     // before holdings were counted has none, and shows 0.
     row("Share holdings (at company value)", "balanceSheet.holdings", b.holdings || 0),
+    // Bug #4647: loans lent and still owed, offers held in escrow, and bonds held at face
+    row("Loans lent & bonds held", "balanceSheet.receivables", b.receivables || 0),
     row("Total assets", "balanceSheet.totalAssets", b.totalAssets, { strong: true }),
     heading("Liabilities", "out"),
-    row("Obligations", "balanceSheet.liabilities", b.liabilities, { sign: "out" }),
+    row("Loans & bonds owed", "balanceSheet.debt", b.debt || 0, { sign: "out" }),
+    row("All obligations, with the loans & bonds", "balanceSheet.liabilities", b.liabilities, { sign: "out" }),
     row("Net worth", "balanceSheet.netWorth", b.netWorth, { sign: "net", strong: true })
   ].join("");
   return `<div class="finance__statements" data-day="${escapeHtml(s.day)}">

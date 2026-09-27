@@ -20,10 +20,11 @@
 //     categories a mining corporation's statements carry. Capital bought with borrowed or raised credits is booked as
 //     construction, as a real building is. Capital never depreciates or breaks. No mining, market, research, other
 //     sellers or player loans: one world of bot corporations that meet only at the bank and the market maker.
-//   - Net worth is computed here, not read: the statement's net worth leaves debt out of liabilities (Bug AB#4647), so
-//     it would reward borrowing by the principal. The probe's figure is the statement's net worth less loans owed
-//     (balance and arrears) and bond face outstanding, times the founder's share of shares outstanding (equity raised
-//     belongs to the new holders, not the founder). The statement's own figure is printed beside it.
+//   - Net worth is the latest closed statement's, times the founder's share of shares outstanding (equity raised
+//     belongs to the new holders, not the founder). Bug AB#4647: the statement once left debt out of liabilities and
+//     rewarded borrowing by the principal. The probe counts every bot's debt itself (loans borrowed, balance and
+//     arrears; bond face outstanding) and reports whether the statement's debt line agrees, so a return of that bug
+//     shows as a disagreement.
 
 import { applyCredits } from "../../server/finances.js";
 import { getAccountById, getStatements, mutateAccountState } from "../../server/gameState.js";
@@ -80,7 +81,7 @@ function operate(bot, now) {
   book(bot.id, -bot.opex, "mining-ops", now);
 }
 
-/** Debt the statement leaves out (Bug AB#4647): loans borrowed (balance and arrears) and bond face outstanding. */
+/** The probe's own count of what a corporation owes (Bug AB#4647): loans borrowed (balance and arrears), bond face. */
 export function debtOf(id) {
   const loans = (corpOf(id).loans || []).filter((l) => l.state !== "repaid" && l.state !== "closed")
     .reduce((a, l) => a + (Number(l.balance) || 0) + (Number(l.arrears) || 0), 0);
@@ -88,14 +89,21 @@ export function debtOf(id) {
   return Math.round(loans + bonds);
 }
 
-/** { statement, economic, founder }: the latest closed statement's net worth, less the debt, times the founder's share. */
+/**
+ * { statement, founder, debtLine, probeDebt }: the latest closed statement's net worth and its founder's share, the
+ * statement's debt line, and the probe's own count of the debt. Read before anything moves on the day, so the two
+ * counts describe the same moment and must agree.
+ */
 export function netWorthOf(id, now) {
-  const statement = companyValue(statementsOf(id, now));
+  const statements = statementsOf(id, now);
+  const statement = companyValue(statements);
   const r = corpOf(id).shareRegistry;
   const founderShare = r ? r.founderShares / outstandingOf(r) : 1;
-  const economic = statement - debtOf(id);
-  return { statement, economic, founder: Math.round(economic * founderShare) };
+  return { statement, founder: Math.round(statement * founderShare), debtLine: Math.round(Number(statements[0]?.balanceSheet?.debt) || 0), probeDebt: debtOf(id) };
 }
+
+/** The bots whose statement's debt line disagrees with the probe's own count at the end (Bug AB#4647). */
+export const debtDisagreements = (report) => report.bots.filter((b) => b.nw30.debtLine !== b.nw30.probeDebt);
 
 // ─── The policies ──────────────────────────────────────────────────────────────
 
@@ -304,11 +312,11 @@ export function formatReport(report) {
   lines.push("ISP financial-markets probe (ISP-162, AB#856). BOT NUMBERS (P-PROXY): bots on the design's assumed business, not players.");
   lines.push(`${report.config.profiles} profiles x ${POLICIES.length} policies, ${report.config.warmupDays} warm-up days, ${report.config.days} measured days: ${report.botDays} bot days.`);
   lines.push("");
-  lines.push("Net worth at the last measured day (founder's share, debt counted; the statement's own figure in brackets, Bug AB#4647):");
+  lines.push("Net worth at the last measured day (the statement's, founder's share; debt owed in brackets):");
   for (const name of report.profileNames) {
     const row = POLICIES.map((policy) => {
       const b = report.bots.find((x) => x.profile === name && x.policy === policy);
-      return `${policy} ${n(b.nw30.founder)} [${n(b.nw30.statement)}]${b.borrowed ? `, borrowed ${n(b.borrowed)}` : ""}${b.raised ? `, raised ${n(b.raised)}` : ""}`;
+      return `${policy} ${n(b.nw30.founder)} [${n(b.nw30.debtLine)}]${b.borrowed ? `, borrowed ${n(b.borrowed)}` : ""}${b.raised ? `, raised ${n(b.raised)}` : ""}`;
     });
     const at = (p) => report.bots.find((x) => x.profile === name && x.policy === p).nw30.founder;
     lines.push(`  ${name}: ${row.join(" | ")} -> planner vs no-borrow ${pct(at("planner"), at("no-borrow")).toFixed(1)}%, vs max-borrow ${pct(at("planner"), at("max-borrow")).toFixed(1)}%`);
@@ -330,5 +338,7 @@ export function formatReport(report) {
   lines.push(`Underwriter bought ${n(f.underwriterCreated)} of bonds; market maker paid ${n(f.marketMakerPaid)}, took back ${n(f.marketMakerBack)}; other fees ${n(f.otherFees)}.`);
   lines.push("");
   for (const t of targets(report)) lines.push(`${t.result.padEnd(8)} ${t.target}: ${t.detail}`);
+  const off = debtDisagreements(report);
+  lines.push(`${off.length ? "FAIL" : "PASS"}     the statement's debt line matches the probe's own count (Bug AB#4647): ${off.length ? off.map((b) => `${b.policy} ${b.profile}: ${n(b.nw30.debtLine)} vs ${n(b.nw30.probeDebt)}`).join("; ") : `all ${report.bots.length} bots`}`);
   return lines.join("\n");
 }
