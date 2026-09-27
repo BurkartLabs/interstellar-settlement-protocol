@@ -4846,3 +4846,13 @@ img.station__body {
 .fleet__split > summary { cursor: pointer; }
 .fleet__destinations { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 8px); max-height: 320px; overflow-y: auto; }
 .fleet__destination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2, 8px); }
+/* ISP-177 (AB#871): Mercenary Rentals on the Galactic Exchange. The offers table is cards on a narrow column like every
+   market table; the contracts are a list of sentences; the form's fields wrap. */
+.mercs__terms { display: grid; gap: var(--space-2, 8px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+.mercs__terms input, .mercs__terms select, .mercs__form select { width: 100%; min-width: 0; }
+.mercs__mine { display: grid; gap: var(--space-4, 16px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.mercs__mine h4 { margin: 0 0 var(--space-2, 8px); }
+.mercs__contracts { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 8px); }
+.mercs__contract { display: grid; gap: 4px; padding: var(--space-3, 12px); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.mercs__contract p { margin: 0; }
+.mercs__who { display: grid; gap: 2px; }

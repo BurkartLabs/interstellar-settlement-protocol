@@ -315,6 +315,23 @@ export function troopCancelReceipt({ what, refund }) {
   });
 }
 
+/** ISP-177 (AB#871): a mercenary fleet hired; price and collateral are held until the term ends. */
+export function mercenaryHireReceipt({ offer }) {
+  return receipt("mercenary-hire", {
+    title: "Mercenary Fleet Hired",
+    summary: `${offer.fleetName}, from ${offer.ownerName}, for ${offer.termHours} hours.`,
+    costCredits: offer.price + offer.collateral,
+    grants: [
+      { label: "Price", value: `${formatCredits(offer.price)}, paid to the owner when the term ends` },
+      { label: "Collateral", value: `${formatCredits(offer.collateral)}, back to you at the end less the value of any units lost` },
+      { label: "Fleet", value: `${offer.attack} ATK / ${offer.defense} DEF, at ${offer.readiness ?? 100}% readiness` },
+      { label: "Term ends", value: formatUtc(offer.endsAt) },
+      { label: "Allowed use", value: { defense: "Defense only", pve: "PvE and defense", raids: "Raids, PvE and defense" }[offer.allowedUse] || offer.allowedUse }
+    ],
+    next: "The fleet is under your command until the term ends, then it returns to its owner."
+  });
+}
+
 export function probeFabricationReceipt({ cost, completesAt, vessels, cap }) {
   return receipt("build-mining-probe", {
     title: "Probe Fabrication Started",

@@ -16,6 +16,7 @@ import { labelTableCells } from "../tableLabels.js";
 import { tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
 import { counterpartyHtml } from "../npcProfile.js"; // ISP-124 (AB#818)
 import { showNpcProfile } from "./npcProfileModal.js";
+import { renderMercenaries } from "./mercenaries.js"; // ISP-177 (AB#871)
 import { flashButtonSuccess, getCurrentStationInfo, getInventory, pushFeedback, refreshFromServer, showTradeConfirmation, stationLocationBanner } from "./shared.js";
 
 /**
@@ -53,6 +54,7 @@ export function renderMarket(data) {
   const station = getCurrentStationInfo(data);
   const bannerEl = document.getElementById("market-station-banner");
   if (bannerEl) bannerEl.innerHTML = stationLocationBanner(station);
+  renderMercenaries(data);
 
   const buyTable = document.getElementById("exchange-buy-table");
   const buyEmpty = document.getElementById("exchange-buy-empty");
