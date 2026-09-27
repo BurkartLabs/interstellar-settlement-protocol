@@ -29,6 +29,7 @@ import { RATING, refreshCreditRating } from "./creditRating.js"; // ISP-147 (AB#
 import { bondsIssuedBy } from "./bonds.js"; // ISP-154 (AB#848)
 import { getStatements } from "./gameState.js"; // ISP-147: the statements the rating reads
 import { statementsVersion } from "./game/store.js"; // AB#842: the rating's basis follows the statements file
+import { settleStationProjects } from "./game/stationProjects.js"; // ISP-210 (AB#905)
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
 function getESTDateString() {
@@ -187,6 +188,7 @@ function fabricationTick() {
   // ISP-176 (AB#870): offers whose window closed free their fleets; contracts whose term ended settle, before any account's turn
   expireOffers(now);
   settleContracts(now);
+  settleStationProjects(now); // ISP-210 (AB#905): a station whose build time is over opens with nobody watching
   for (const accountId of getAllAccountIds()) {
     let completed = false;
     const shipsDone = [];

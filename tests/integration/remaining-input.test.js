@@ -124,6 +124,11 @@ const BASELINE = {
     "POST /conglomerates/:conglomerateId/identity": { params: { conglomerateId: "cgl-732" }, body: { emblem: 1, colour: 1 } },
     "POST /conglomerates/:conglomerateId/dissolve": { params: { conglomerateId: "cgl-732" } },
     "POST /conglomerates/:conglomerateId/level": { params: { conglomerateId: "cgl-732" }, body: { level: 2 } },
+    // ISP-210 (AB#905): the station project
+    "GET /conglomerates/:conglomerateId/station-project": { params: { conglomerateId: "cgl-732" } },
+    "POST /conglomerates/:conglomerateId/station-project": { params: { conglomerateId: "cgl-732" }, body: { systemId: "sol", body: "Venus", suffix: 1 } },
+    "POST /conglomerates/:conglomerateId/station-project/contribute": { params: { conglomerateId: "cgl-732" }, body: { source: "own", credits: 100, item: "Structural Alloys", quantity: 10 } },
+    "POST /conglomerates/:conglomerateId/station-project/cancel": { params: { conglomerateId: "cgl-732" } },
     "GET /conglomerates/:conglomerateId/treasury": { params: { conglomerateId: "cgl-732" }, query: { offset: "0", limit: "25" } },
     "GET /conglomerates/:conglomerateId/intel": { params: { conglomerateId: "cgl-732" } },
     "GET /conglomerates/:conglomerateId/hangar": { params: { conglomerateId: "cgl-732" }, query: { offset: "0", limit: "25" } },

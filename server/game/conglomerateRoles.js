@@ -113,6 +113,8 @@ export function dissolveConglomerate(accountId, conglomerateId, now = Date.now()
   if (!ctx.role) return NOT_FOUND.conglomerate();
   if (!can(ctx.role, "dissolve")) return no(403, "not-permitted", "Only the founder can dissolve the conglomerate.");
   if (corp.currentStationId !== CONGLOMERATE_CATALOG.charterStationId) return no(409, "not-at-bureau", "A conglomerate is dissolved at the Conglomerate Affairs Bureau on Earth Station Prime. Travel there, then dissolve it.");
+  // ISP-210 (AB#905): a project holds members' own credits and goods; cancelling returns them, dissolving would not
+  if (c.stationProject) return no(409, "station-project-open", `${c.name} has a station project under way. Cancel it first, which returns every contribution, then dissolve.`);
   const members = c.members.map((m) => ({ ...m, account: accountByCorp(m.corp) })).filter((m) => m.account);
   const credits = Math.max(0, Math.floor(Number(c.treasury?.credits) || 0));
   const share = Math.floor(credits / members.length);

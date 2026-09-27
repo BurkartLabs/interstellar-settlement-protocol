@@ -16,6 +16,7 @@ import { buyConglomerateLevel } from "../game/conglomerateLevels.js";
 import { blockWithdrawal, depositToTreasury, treasuryView, withdrawFromTreasury } from "../game/treasury.js";
 import { depositGoods, hangarView, withdrawGoods } from "../game/hangar.js";
 import { conglomerateIntel } from "../game/intel.js";
+import { cancelStationProject, contributeToStationProject, startStationProject, stationProjectView } from "../game/stationProjects.js"; // ISP-210 (AB#905)
 import { accountsStore } from "../game/store.js";
 import { BELT_KEYS } from "../game/asteroids.js";
 import { beltAt } from "../game/belts.js";
@@ -110,6 +111,14 @@ export function registerConglomerateRoutes(app) {
 
   // ISP-205 (AB#899): the goods hangar. Its ledger, like the treasury's, is only ever read here.
   const goods = (req) => ({ stationId: req.body?.stationId, item: req.body?.item, quantity: number(req.body?.quantity) });
+  // ISP-210 (AB#905): the station project. The founder files and cancels it; any member funds it from its own stock,
+  // the founder from the treasury and the hangar (the rules ask can() again per source).
+  app.get(`${base}/station-project`, guarded("view", (req, res) => reply(res, stationProjectView(req.params.accountId, req.params.conglomerateId))));
+  app.post(`${base}/station-project`, guarded("station-project", (req, res) => reply(res, startStationProject(req.params.accountId, req.params.conglomerateId, { systemId: req.body?.systemId, body: req.body?.body, suffix: number(req.body?.suffix) }), 201)));
+  app.post(`${base}/station-project/contribute`, guarded("contribute", (req, res) => reply(res, contributeToStationProject(req.params.accountId, req.params.conglomerateId, {
+    source: req.body?.source, credits: number(req.body?.credits), item: req.body?.item ?? null, quantity: number(req.body?.quantity)
+  }))));
+  app.post(`${base}/station-project/cancel`, guarded("station-project", (req, res) => reply(res, cancelStationProject(req.params.accountId, req.params.conglomerateId))));
   app.get(`${base}/hangar`, guarded("view", (req, res) => reply(res, hangarView(req.params.accountId, req.params.conglomerateId, undefined, undefined, page(req)))));
   app.post(`${base}/hangar/deposit`, guarded("contribute", (req, res) => reply(res, depositGoods(req.params.accountId, req.params.conglomerateId, goods(req)))));
   app.post(`${base}/hangar/withdraw`, guarded("withdraw-goods", (req, res) => reply(res, withdrawGoods(req.params.accountId, req.params.conglomerateId, goods(req)))));

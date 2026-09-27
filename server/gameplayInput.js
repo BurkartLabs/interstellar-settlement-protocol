@@ -271,6 +271,23 @@ export const ACCOUNT_INPUT = {
     body: { stationId: id("stations", "a station"), item: text(64, "an item"), quantity: int(1, 1_000_000_000, "a number of units") }
   },
   // ISP-202 (AB#896): the level to buy, the one after the current; the route refuses any other.
+  // ISP-210 (AB#905): the station project. The body is a system's body by name (checked against that system by the
+  // rules), the name one of a fixed list by number, and a contribution either credits or one item with a quantity.
+  "GET /conglomerates/:conglomerateId/station-project": { params: { conglomerateId: ref("a conglomerate") } },
+  "POST /conglomerates/:conglomerateId/station-project": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: { systemId: id("systems", "a star system"), body: text(64, "a body"), suffix: int(1, 6, "a station name from the list") }
+  },
+  "POST /conglomerates/:conglomerateId/station-project/contribute": {
+    params: { conglomerateId: ref("a conglomerate") },
+    body: {
+      source: word(["own", "treasury", "hangar"], "where the contribution comes from: own, treasury or hangar"),
+      credits: int(1, 1_000_000_000_000, "an amount of credits", { optional: true }),
+      item: text(64, "an item", { optional: true }),
+      quantity: int(1, 1_000_000_000, "a number of units", { optional: true })
+    }
+  },
+  "POST /conglomerates/:conglomerateId/station-project/cancel": { params: { conglomerateId: ref("a conglomerate") } },
   "POST /conglomerates/:conglomerateId/level": {
     params: { conglomerateId: ref("a conglomerate") },
     body: { level: int(2, CONGLOMERATE_CATALOG.levels.length, "the level to buy") }

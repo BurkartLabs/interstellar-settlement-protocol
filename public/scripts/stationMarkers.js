@@ -5,6 +5,8 @@
 
 /** Whether the catalog marks this station neutral. A station with no jurisdiction, or another one, is not. */
 export const isNeutralStation = (station) => station?.jurisdiction === "neutral";
+/** ISP-210 (AB#905): a station a conglomerate built and owns (`"jurisdiction": "conglomerate"`, from GET /api/stations). */
+export const isConglomerateStation = (station) => station?.jurisdiction === "conglomerate";
 
 /** How many neutral stations each system has: Map systemId -> count, only systems with at least one. */
 export function neutralStationCounts(stations) {
@@ -30,9 +32,11 @@ export function badgedStationCounts(stations, baseline = STATION_BADGE_BASELINE)
 }
 
 /**
- * The neutral stations of `system`, each with the body the system view marks it on: the body it orbits when that is a
- * planet or a belt, and the planet a moon orbits when it orbits a moon (the system view draws planets and belts only;
- * Luna Gateway is marked on Earth). A station naming no body of the system is left out, not guessed at.
+ * The neutral stations of `system`, and since ISP-210 (AB#905) the ones conglomerates built (`owned: true`), each with
+ * the body the system view marks it on: the body it orbits when that is a planet or a belt, and the planet a moon orbits
+ * when it orbits a moon (the system view draws planets and belts only; Luna Gateway is marked on Earth). A station naming
+ * no body of the system, or with no jurisdiction the page knows, is left out, not guessed at. The cluster view's count
+ * badges stay neutral stations only.
  */
 export function systemStationMarkers(system, stations) {
   const bodies = system?.bodies || [];
@@ -40,12 +44,12 @@ export function systemStationMarkers(system, stations) {
   const byId = new Map(bodies.map((b) => [b.id, b]));
   const markers = [];
   for (const station of stations || []) {
-    if (!isNeutralStation(station) || station.systemId !== system?.id) continue;
+    if (!(isNeutralStation(station) || isConglomerateStation(station)) || station.systemId !== system?.id) continue;
     const body = byName.get(station.body);
     if (!body) continue;
     const anchor = body.type === "Moon" ? byId.get(body.parentId) : body;
     if (!anchor || (anchor.type !== "Planet" && anchor.type !== "Field")) continue;
-    markers.push({ station, bodyId: anchor.id });
+    markers.push({ station, bodyId: anchor.id, owned: isConglomerateStation(station) });
   }
   return markers;
 }
