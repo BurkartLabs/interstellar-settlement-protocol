@@ -235,13 +235,13 @@ export const ACCOUNT_INPUT = {
   },
   "POST /conglomerates/:conglomerateId/dissolve": { params: { conglomerateId: ref("a conglomerate") } },
   // ISP-204 (AB#898): the treasury. An amount is a whole number of credits; the rules refuse anything else again.
-  "GET /conglomerates/:conglomerateId/treasury": { params: { conglomerateId: ref("a conglomerate") } },
+  "GET /conglomerates/:conglomerateId/treasury": { params: { conglomerateId: ref("a conglomerate") }, query: { offset: text(12, "a row to start from", { optional: true }), limit: text(4, "a page size from 1 to 100", { optional: true }) } },
   "POST /conglomerates/:conglomerateId/treasury/deposit": { params: { conglomerateId: ref("a conglomerate") }, body: { amount: int(1, 1_000_000_000_000, "an amount of credits") } },
   "POST /conglomerates/:conglomerateId/treasury/withdraw": { params: { conglomerateId: ref("a conglomerate") }, body: { amount: int(1, 1_000_000_000_000, "an amount of credits") } },
   "POST /conglomerates/:conglomerateId/treasury/withdrawals/:withdrawalId/block": { params: { conglomerateId: ref("a conglomerate"), withdrawalId: ref("a withdrawal") } },
   // ISP-205 (AB#899): the goods hangar. The station is one the registry knows (never a free string, the class of the
   // purchase-lease defect); the item's shape is checked here and its name against data/items.json by the rules.
-  "GET /conglomerates/:conglomerateId/hangar": { params: { conglomerateId: ref("a conglomerate") } },
+  "GET /conglomerates/:conglomerateId/hangar": { params: { conglomerateId: ref("a conglomerate") }, query: { offset: text(12, "a row to start from", { optional: true }), limit: text(4, "a page size from 1 to 100", { optional: true }) } },
   "POST /conglomerates/:conglomerateId/hangar/deposit": {
     params: { conglomerateId: ref("a conglomerate") },
     body: { stationId: id("stations", "a station"), item: text(64, "an item"), quantity: int(1, 1_000_000_000, "a number of units") }

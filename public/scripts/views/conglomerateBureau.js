@@ -6,9 +6,13 @@
 // ISP-201 (AB#895): the same view, bindings and state draw the Company group's Conglomerate tab (the headquarters:
 // the member view anywhere, and for an independent corporation its invitations, the directory and the way to the
 // Bureau). The last read is kept on appState.conglomerate, which the Overview's card reads.
+//
+// ISP-206 (AB#901): a member's tab has its own tabs, Roster, Treasury and Hangar. The Treasury and Hangar screens
+// (conglomerateTreasury.js) read GET .../treasury and .../hangar, a ledger page at a time, and move money and goods.
 
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { charterHtml, directoryHtml, hqHtml, invitationsHtml, memberHtml } from "../conglomerateBureau.js";
+import { hangarHtml, hqTabsHtml, treasuryHtml } from "../conglomerateTreasury.js";
 import { deepClone } from "../helpers.js";
 import { appState } from "../state.js";
 import { setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
@@ -17,7 +21,11 @@ import { scrollBehavior } from "../motion.js"; // AB#1760
 
 const CHARTER_STATION = "earth-station-prime";
 // The view's own state survives a redraw: the last reads, the charter form, and the invite search.
-const bureau = { accountId: null, view: null, directory: null, error: null, loading: null, form: {}, search: null, target: null, mode: "bureau" };
+const bureau = {
+  accountId: null, view: null, directory: null, error: null, loading: null, form: {}, search: null, target: null, mode: "bureau",
+  // ISP-206 (AB#901): the Conglomerate tab's own tab, the treasury and hangar reads, the ledger pages and each form's line
+  hqTab: "roster", treasury: null, hangar: null, pages: { treasury: 0, hangar: 0 }, money: { treasury: {}, hangar: {} }
+};
 const listeners = new Set();
 const bound = new WeakSet();
 const json = { "Content-Type": "application/json" };
@@ -41,7 +49,15 @@ function redraw() {
   const corp = appState.data?.corp || {};
   const view = bureau.view ? { ...bureau.view, me: corp.publicId, atBureau: corp.currentStationId === CHARTER_STATION } : null;
   if (bureau.mode === "hq") {
-    el.querySelector('[data-role="cong-body"]').innerHTML = hqHtml(view, bureau.directory, { search: bureau.search, error: bureau.error });
+    const roster = hqHtml(view, bureau.directory, { search: bureau.search, error: bureau.error });
+    if (!view?.conglomerate) { el.querySelector('[data-role="cong-body"]').innerHTML = roster; return; }
+    const may = view.conglomerate.permissions;
+    const stationId = bureau.hangar?.stationId;
+    el.querySelector('[data-role="cong-body"]').innerHTML = hqTabsHtml(bureau.hqTab, {
+      roster,
+      treasury: treasuryHtml(bureau.treasury && { ...bureau.treasury, me: corp.publicId }, { may, status: bureau.money.treasury }),
+      hangar: hangarHtml(bureau.hangar, { may, status: bureau.money.hangar, own: stationId ? corp.inventory?.[stationId] || {} : {}, docked: corp.currentStationId === stationId })
+    });
     return;
   }
   el.querySelector('[data-role="cong-body"]').innerHTML = view
@@ -64,11 +80,46 @@ async function load() {
     ]);
     Object.assign(bureau, { view, directory: directory.conglomerates, error: null });
     appState.conglomerate = view.conglomerate ? { ...view.conglomerate } : null;
+    if (view.conglomerate && bureau.mode === "hq") await loadMoney();
   } catch (error) {
     bureau.error = error?.message || "The Bureau did not answer.";
   }
   redraw();
   for (const listener of listeners) listener(appState.conglomerate);
+}
+
+/** ISP-206 (AB#901): read the treasury and the hangar, each at its ledger page, or only `which`. */
+async function loadMoney(which) {
+  const id = bureau.view?.conglomerate?.id;
+  if (!id) return;
+  const read = async (kind) => {
+    try {
+      bureau[kind] = await parseJsonResponse(await apiFetch(`${cong(id)}/${kind}?offset=${bureau.pages[kind]}&limit=25`));
+    } catch (error) {
+      bureau[kind] = { error: error?.message || "The Bureau did not answer." };
+    }
+  };
+  await Promise.all((which ? [which] : ["treasury", "hangar"]).map(read));
+}
+
+/** Parse a typed amount: digits, with or without thousands commas; anything else is null. */
+const typedWhole = (value) => (/^\s*\d{1,3}(,?\d{3})*\s*$|^\s*\d+\s*$/.test(String(value)) ? Number(String(value).replace(/[\s,]/g, "")) : null);
+
+/** Move money or goods: ask, reload the register and the ledgers, then say what happened on the form's own line. */
+async function moveMoney(kind, op, body, { confirm, done } = {}) {
+  const key = op === "withdrawal-block" ? "withdraw" : op;
+  bureau.money[kind] = {};
+  if (confirm && !(await showTradeConfirmation(confirm))) return;
+  const path = op === "withdrawal-block" ? `treasury/withdrawals/${encodeURIComponent(body.id)}/block` : `${kind}/${op}`;
+  try {
+    const answer = await parseJsonResponse(await apiFetch(`${cong(bureau.view.conglomerate.id)}/${path}`, { method: "POST", headers: json, body: JSON.stringify(body) }));
+    bureau.money[kind] = { [key]: { text: done ? done(answer) : "Done.", ok: true } };
+    bureau.pages[kind] = 0; // the new row is the newest
+    await refreshAccount();
+  } catch (error) {
+    bureau.money[kind] = { [key]: { text: error?.message || "The Bureau refused that." } };
+  }
+  await loadConglomerate();
 }
 
 /** Run one Bureau request; on success reload the register (and the account, when it changed), on refusal say why. */
@@ -164,9 +215,22 @@ function bind(contentEl) {
     event.preventDefault();
     if (form.matches('[data-role="cong-charter-form"]')) fileCharter(form);
     else if (form.matches('[data-role="cong-invite-search"]')) searchCorporations(form);
+    else if (form.matches('[data-role="cong-treasury-deposit"]')) depositCredits(form);
+    else if (form.matches('[data-role="cong-treasury-withdraw"]')) withdrawCredits(form);
+    else if (form.matches('[data-role="cong-hangar-deposit"], [data-role="cong-hangar-withdraw"]')) moveGoods(form);
     else if (form.matches('[data-role="cong-identity-form"]')) {
       act(`${cong(bureau.view.conglomerate.id)}/identity`, { body: { emblem: Number(form.emblem.value), colour: Number(form.colour.value) }, status: "cong-roster-status" });
     }
+  });
+  contentEl.addEventListener("keydown", (event) => {
+    const tab = event.target.closest?.('[data-role="cong-tab"]');
+    if (!tab) return;
+    const order = ["roster", "treasury", "hangar"];
+    const i = order.indexOf(tab.dataset.tab);
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: order.length - 1 }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    selectTab(order[(next + order.length) % order.length]);
   });
   contentEl.addEventListener("change", (event) => {
     // The pickers draw each other: an emblem in the chosen colour, a colour on the chosen emblem.
@@ -185,6 +249,14 @@ function bind(contentEl) {
     switch (d.role) {
       case "cong-reload": bureau.error = null; redraw(); loadConglomerate(); break;
       case "cong-open-bureau": openBureau(); break;
+      case "cong-tab": selectTab(d.tab); break;
+      case "cong-ledger-page": bureau.pages[d.which] = Math.max(0, Number(d.offset) || 0); loadMoney(d.which).then(redraw); break;
+      case "cong-withdrawal-block":
+        moveMoney("treasury", "withdrawal-block", { id: d.withdrawal }, {
+          confirm: { heading: "Conglomerate treasury", title: "Block this withdrawal?", confirmLabel: "Block it", rows: [{ label: "Then", value: "It is stopped once a second director blocks it too, or at once if you are the founder and a director made it." }] },
+          done: (a) => (a.withdrawal.state === "blocked" ? "Blocked: the withdrawal will not be paid." : "Your block is recorded. A second director's block stops it.")
+        });
+        break;
       case "cong-goto-directory": scrollTo("cong-directory"); break;
       case "cong-goto-charter":
         // In the Conglomerate tab the charter is the Bureau's: go there, or, away from Earth Station Prime, to the reason.
@@ -243,6 +315,62 @@ function bind(contentEl) {
       }
       default: break;
     }
+  });
+}
+
+/** ISP-206 (AB#901): select one of the Conglomerate tab's own tabs, and keep the choice across redraws. */
+function selectTab(tab) {
+  if (!["roster", "treasury", "hangar"].includes(tab)) return;
+  bureau.hqTab = tab;
+  redraw();
+  panel()?.querySelector(`#cong-tab-${tab}`)?.focus();
+}
+
+async function depositCredits(form) {
+  const amount = typedWhole(form.amount.value);
+  if (!amount) { bureau.money.treasury = { deposit: { text: "Enter a whole number of credits, at least 1." } }; redraw(); return; }
+  const t = bureau.treasury;
+  const fee = Math.round((amount * (t?.custodyFeePct ?? 2)) / 100);
+  await moveMoney("treasury", "deposit", { amount }, {
+    confirm: {
+      heading: "Conglomerate treasury",
+      title: `Deposit ${amount.toLocaleString("en-US")} credits?`,
+      confirmLabel: `Deposit ${amount.toLocaleString("en-US")} credits`,
+      rows: [
+        { label: "The treasury receives", value: `${(amount - fee).toLocaleString("en-US")} credits` },
+        { label: "Custody fee", value: `${fee.toLocaleString("en-US")} credits, kept by the ISA` },
+        { label: "Getting it back", value: "Only the founder and directors withdraw, within a daily cap" }
+      ]
+    },
+    done: (a) => `Deposited ${a.deposited.toLocaleString("en-US")} credits; ${a.fee.toLocaleString("en-US")} went to the custody fee.`
+  });
+}
+
+async function withdrawCredits(form) {
+  const amount = typedWhole(form.amount.value);
+  if (!amount) { bureau.money.treasury = { withdraw: { text: "Enter a whole number of credits, at least 1." } }; redraw(); return; }
+  const t = bureau.treasury;
+  const announced = t && amount > (t.balance * (t.noticePct ?? 10)) / 100;
+  await moveMoney("treasury", "withdraw", { amount }, {
+    confirm: announced ? {
+      heading: "Conglomerate treasury",
+      title: `Announce a withdrawal of ${amount.toLocaleString("en-US")} credits?`,
+      confirmLabel: "Announce it",
+      rows: [
+        { label: "Why announced", value: `It is more than ${t.noticePct ?? 10}% of the balance` },
+        { label: "Then", value: "Every member is told; it is paid in 24 hours unless two directors block it" }
+      ]
+    } : null,
+    done: (a) => (a.withdrawal.state === "pending" ? `Announced. It is paid at ${new Date(a.withdrawal.completesAt).toISOString().slice(0, 16).replace("T", " ")} UTC unless blocked.` : `Withdrawn: ${a.withdrawal.amount.toLocaleString("en-US")} credits are in your corporation's account.`)
+  });
+}
+
+async function moveGoods(form) {
+  const op = form.matches('[data-role="cong-hangar-deposit"]') ? "deposit" : "withdraw";
+  const quantity = typedWhole(form.quantity.value);
+  if (!quantity) { bureau.money.hangar = { [op]: { text: "Enter a whole number of units, at least 1." } }; redraw(); return; }
+  await moveMoney("hangar", op, { stationId: bureau.hangar?.stationId, item: form.item.value, quantity }, {
+    done: (a) => (op === "deposit" ? `Deposited ${a.deposited.quantity.toLocaleString("en-US")} ${a.deposited.item}.` : `Withdrew ${a.withdrawn.quantity.toLocaleString("en-US")} ${a.withdrawn.item} into your stock.`)
   });
 }
 
