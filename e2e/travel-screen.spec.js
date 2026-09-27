@@ -76,20 +76,20 @@ function findings(page, name, narrow) {
 
 const STATES = [
   { kind: "local", check: async (page) => {
-    await expect(page.locator("#travel .ui-screen__title")).toHaveText("Docking Approach");
+    await expect(page.locator("#travel .ui-screen__title")).toHaveText(/(^| \/\/ )Docking Approach$/);
     await expect(page.locator("#travel [data-role=travel-node]")).toHaveCount(2);
     await expect(page.locator("#travel [data-role=travel-node]").last()).toContainText("Luna Gateway");
     await expect(page.locator("#travel-progress")).toHaveAttribute("aria-valuenow", /^(2[0-9]|3[0-9])$/); // 10 of 40 minutes
     await expect(page.locator("#travel-eta")).toContainText("ETA");
   } },
   { kind: "interstellar", check: async (page) => {
-    await expect(page.locator("#travel .ui-screen__title")).toHaveText("Jump In Progress");
+    await expect(page.locator("#travel .ui-screen__title")).toHaveText(/(^| \/\/ )Jump In Progress$/);
     await expect(page.locator("#travel [data-role=travel-node]").first()).toContainText("Sol");
     await expect(page.locator("#travel [data-role=travel-node]").last()).toContainText("Alpha Centauri");
     await expect(page.locator("#travel-eta")).toContainText("ETA");
   } },
   { kind: "space", check: async (page) => {
-    await expect(page.locator("#travel .ui-screen__title")).toHaveText("In Open Space");
+    await expect(page.locator("#travel .ui-screen__title")).toHaveText(/(^| \/\/ )In Open Space$/);
     await expect(page.locator("#travel [data-role=travel-dock]").first()).toBeVisible();
     await expect(page.locator("#travel [data-role=travel-dock]", { hasText: "Earth Station Prime" })).toBeVisible();
   } }
