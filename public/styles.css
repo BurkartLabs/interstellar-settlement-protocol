@@ -4395,7 +4395,7 @@ img.station__body {
 .patent-office { display: flex; flex-direction: column; gap: var(--space-4); }
 .patent-section { display: flex; flex-direction: column; gap: var(--space-3); }
 .patent-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-.patent-card { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.patent-card { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); background: var(--surface-2); }
 .patent-card__title { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); overflow-wrap: anywhere; }
 .patent-card__meta { margin: 0; color: var(--muted); font-size: var(--font-size-2); line-height: var(--line-height-body); }
 .patent-card__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); }
@@ -4419,7 +4419,7 @@ img.station__body {
 .lobby-status { color: var(--warn); }
 .lobby-group { margin: var(--space-2) 0 0; }
 .lobby-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-.lobby-campaign { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.lobby-campaign { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); background: var(--surface-2); }
 .lobby-campaign p { margin: 0; overflow-wrap: anywhere; }
 .lobby-sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--space-2); }
 .lobby-side { display: inline-block; min-width: 4.5rem; margin-right: var(--space-2); font-weight: 700; }
@@ -4490,7 +4490,7 @@ img.station__body {
 .concession-why { margin: 0; color: var(--warn); font-size: var(--font-size-2); line-height: var(--line-height-body); }
 .concession-status:empty { display: none; }
 .concession-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
-.concession-holder { display: flex; flex-direction: column; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.concession-holder { display: flex; flex-direction: column; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); background: var(--surface-2); }
 .concession-terms { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); }
 .concession-terms dt { color: var(--muted); }
 .concession-terms dd { margin: 0; color: var(--text); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
