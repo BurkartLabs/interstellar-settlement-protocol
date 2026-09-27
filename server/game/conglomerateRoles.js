@@ -11,7 +11,7 @@ import { CONGLOMERATE_CATALOG, can } from "../conglomerates.js";
 import { applyCredits } from "../finances.js";
 import { pushSystemNotification } from "./progression.js";
 import { saveAccountsNow } from "./store.js";
-import { publicConglomerate } from "./conglomerates.js";
+import { moveTreasury, publicConglomerate } from "./conglomerates.js";
 import { HOUR_MS, NOT_FOUND, accountByCorp, context, corpName, no, roomEvent } from "./membership.js";
 
 const ROLE_WORD = { founder: "founder", director: "director", member: "member" };
@@ -120,7 +120,10 @@ export function dissolveConglomerate(accountId, conglomerateId, now = Date.now()
   const paid = [];
   for (const m of members) {
     const amount = share + (m.role === "founder" ? remainder : 0);
-    if (amount > 0) applyCredits(m.account.state.corp, amount, "conglomerate-dissolution", now);
+    if (amount > 0) {
+      moveTreasury(c, { at: now, kind: "dissolution", corp: m.corp, amount: -amount, by: corp.publicId }); // ISP-204 (AB#898)
+      applyCredits(m.account.state.corp, amount, "conglomerate-dissolution", now);
+    }
     paid.push({ corp: m.corp, credits: amount });
   }
   // Tell the room before it empties, then empty it.
@@ -133,7 +136,6 @@ export function dissolveConglomerate(accountId, conglomerateId, now = Date.now()
   for (const m of c.members) c.past.push({ corp: m.corp, role: m.role, joinedAt: m.joinedAt, state: "dissolved", closedAt: now });
   for (const r of [...c.invitations, ...c.applications]) if (r.state === "invited" || r.state === "applied") Object.assign(r, { state: "withdrawn", closedAt: now });
   c.members = [];
-  c.treasury = { credits: 0 };
   c.dissolvedAt = now;
   saveAccountsNow();
   return { dissolved: { id: c.id, name: c.name, shares: paid, nameReleasedAt: now + CONGLOMERATE_CATALOG.nameReleaseDays * 24 * HOUR_MS } };

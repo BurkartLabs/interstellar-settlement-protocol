@@ -9,7 +9,7 @@
 import { CONGLOMERATE_CATALOG, can } from "../conglomerates.js";
 import { pushSystemNotification } from "./progression.js";
 import { saveAccountsNow } from "./store.js";
-import { levelStatus, publicConglomerate } from "./conglomerates.js";
+import { levelStatus, moveTreasury, publicConglomerate } from "./conglomerates.js";
 import { NOT_FOUND, accountByCorp, context, no, roomEvent } from "./membership.js";
 
 /** Buy level `requested` (the one after the current) for the caller's conglomerate. */
@@ -33,7 +33,7 @@ export function buyConglomerateLevel(accountId, conglomerateId, requested, now =
     return no(409, "requirements-unmet", `Level ${status.next.level} needs: ${unmet.map((r) => r.label).join("; ")}.`);
   }
   // One step: the payment, the level, the room and the clock for the next.
-  c.treasury.credits = Math.floor(Number(c.treasury.credits) || 0) - status.next.cost;
+  moveTreasury(c, { at: now, kind: "level", corp: corp.publicId, amount: -status.next.cost, by: corp.publicId, note: `level ${status.next.level}` });
   c.level = status.next.level;
   c.maxMembers = status.next.maxMembers;
   c.levelSince = now;

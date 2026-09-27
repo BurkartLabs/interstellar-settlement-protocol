@@ -16,7 +16,7 @@ import { CONGLOMERATE_CATALOG, can } from "../conglomerates.js";
 import { createId } from "./catalog.js";
 import { pushSystemNotification } from "./progression.js";
 import { accountsStore, saveAccountsNow } from "./store.js";
-import { charterRefusal, conglomerateList, levelStatus, publicConglomerate } from "./conglomerates.js";
+import { charterRefusal, conglomerateList, levelStatus, publicConglomerate, settleTreasury } from "./conglomerates.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -112,7 +112,24 @@ function context(accountId, conglomerateId, now) {
   if (!c) return NOT_FOUND.conglomerate();
   expireOpen(c, now);
   settleSuccession(c, now);
+  settle(c, now);
   return { account, corp, c, role: roleOf(c, corp.publicId) };
+}
+
+/** ISP-204 (AB#898): bring the treasury up to `now` (settleTreasury), and tell members what it did. */
+export function settle(c, now = Date.now()) {
+  const events = settleTreasury(c, now);
+  if (!events.length) return;
+  saveAccountsNow();
+  for (const { event, payload, notify } of events) {
+    if (notify) for (const m of c.members) { const a = accountByCorp(m.corp); if (a) pushSystemNotification(a, { type: "system", ...notify }); }
+    roomEvent(c, event, payload);
+  }
+}
+
+/** A conglomerate in arrears admits nobody until it is paid up (the design's "Arrears"). */
+function arrearsRefusal(c) {
+  return c.arrearsSince ? no(409, "in-arrears", `${c.name} owes upkeep and cannot admit anyone until its treasury is paid up. A deposit that covers what is owed ends the arrears.`) : null;
 }
 
 /** Put the corporation in the conglomerate, and close every other invitation and application it holds. */
@@ -195,7 +212,7 @@ export function answerInvitation(accountId, conglomerateId, invitationId, answer
   if (!invitation || (answer === "withdraw" ? !inviter : !invitee)) return NOT_FOUND.invitation();
   if (invitation.state !== "invited") return no(409, "invitation-closed", `This invitation is ${invitation.state}; it cannot be answered again.`);
   if (answer === "accept") {
-    const refusal = joinRefusal(corp, now);
+    const refusal = joinRefusal(corp, now) || arrearsRefusal(c);
     if (refusal) return refusal;
     if (c.members.length >= c.maxMembers) return no(409, "conglomerate-full", `${c.name} has no room: it has ${c.members.length} of ${c.maxMembers} members. The invitation stays open until it has room or expires.`);
     Object.assign(invitation, { state: "member", closedAt: now });
@@ -224,7 +241,7 @@ export function answerApplication(accountId, conglomerateId, applicationId, answ
   if (answer === "accept") {
     if (!applicantAccount) return NOT_FOUND.application();
     const joiner = applicantAccount.state.corp;
-    const refusal = joinRefusal(joiner, now, "That corporation");
+    const refusal = joinRefusal(joiner, now, "That corporation") || arrearsRefusal(c);
     if (refusal) return refusal;
     if (c.members.length >= c.maxMembers) return no(409, "conglomerate-full", `${c.name} has no room: it has ${c.members.length} of ${c.maxMembers} members. Buy the next level at the Bureau, or wait for a place.`);
     Object.assign(application, { state: "member", closedAt: now });
@@ -269,7 +286,7 @@ export function membershipView(accountId, now = Date.now()) {
   if (!corp?.publicId) return null;
   for (const c of conglomerateList()) expireOpen(c, now);
   const mine = findConglomerate(corp.conglomerateId);
-  if (mine) settleSuccession(mine, now);
+  if (mine) { settleSuccession(mine, now); settle(mine, now); }
   const invitations = [];
   let application = null;
   for (const c of conglomerateList()) {

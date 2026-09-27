@@ -213,6 +213,11 @@ export const ACCOUNT_INPUT = {
     }
   },
   "POST /conglomerates/:conglomerateId/dissolve": { params: { conglomerateId: ref("a conglomerate") } },
+  // ISP-204 (AB#898): the treasury. An amount is a whole number of credits; the rules refuse anything else again.
+  "GET /conglomerates/:conglomerateId/treasury": { params: { conglomerateId: ref("a conglomerate") } },
+  "POST /conglomerates/:conglomerateId/treasury/deposit": { params: { conglomerateId: ref("a conglomerate") }, body: { amount: int(1, 1_000_000_000_000, "an amount of credits") } },
+  "POST /conglomerates/:conglomerateId/treasury/withdraw": { params: { conglomerateId: ref("a conglomerate") }, body: { amount: int(1, 1_000_000_000_000, "an amount of credits") } },
+  "POST /conglomerates/:conglomerateId/treasury/withdrawals/:withdrawalId/block": { params: { conglomerateId: ref("a conglomerate"), withdrawalId: ref("a withdrawal") } },
   // ISP-202 (AB#896): the level to buy, the one after the current; the route refuses any other.
   "POST /conglomerates/:conglomerateId/level": {
     params: { conglomerateId: ref("a conglomerate") },

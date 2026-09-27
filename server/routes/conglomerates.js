@@ -13,6 +13,7 @@ import { conglomerateDirectory, foundConglomerate } from "../game/conglomerates.
 import { actorRole, answerApplication, answerInvitation, applyToConglomerate, inviteCorporation, leaveConglomerate, membershipView } from "../game/membership.js";
 import { dissolveConglomerate, removeMember, setIdentity, setMemberRole, transferFounder } from "../game/conglomerateRoles.js";
 import { buyConglomerateLevel } from "../game/conglomerateLevels.js";
+import { blockWithdrawal, depositToTreasury, treasuryView, withdrawFromTreasury } from "../game/treasury.js";
 import { bodyNumber } from "../bodyNumber.js";
 
 /** Send a rules result: its refusal as { error, code } with its status, or the result with `status`. */
@@ -80,4 +81,10 @@ export function registerConglomerateRoutes(app) {
   app.post(`${base}/dissolve`, guarded("dissolve", (req, res) => reply(res, dissolveConglomerate(req.params.accountId, req.params.conglomerateId))));
   // ISP-202 (AB#896): the next level, named in the body so a repeated request cannot buy two.
   app.post(`${base}/level`, guarded("buy-level", (req, res) => reply(res, buyConglomerateLevel(req.params.accountId, req.params.conglomerateId, number(req.body?.level)))));
+
+  // ISP-204 (AB#898): the treasury. The ledger has no route that edits or removes a row: it is only ever read here.
+  app.get(`${base}/treasury`, guarded("view", (req, res) => reply(res, treasuryView(req.params.accountId, req.params.conglomerateId))));
+  app.post(`${base}/treasury/deposit`, guarded("contribute", (req, res) => reply(res, depositToTreasury(req.params.accountId, req.params.conglomerateId, number(req.body?.amount)))));
+  app.post(`${base}/treasury/withdraw`, guarded("withdraw-credits", (req, res) => reply(res, withdrawFromTreasury(req.params.accountId, req.params.conglomerateId, number(req.body?.amount)))));
+  app.post(`${base}/treasury/withdrawals/:withdrawalId/block`, guarded("block-withdrawal", (req, res) => reply(res, blockWithdrawal(req.params.accountId, req.params.conglomerateId, req.params.withdrawalId))));
 }
