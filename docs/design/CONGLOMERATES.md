@@ -436,6 +436,8 @@ and settled sales credits per corporation per station per day (where a sale is b
 - **Never published**: any corporation's lease count, tonnes or sales credits, any figure per account, and any share
   finer than the rounding. The overlay draws from the public reading only.
 
+**As built (ISP-217, AB#912).** The counters live on each corporation (`corp.dominance`, server/game/dominanceCounters.js) rather than in `state.dominanceCounters`, so the places that write them need no global state. Extraction counts both lease mining and asteroid expeditions, in the system mined. A sale counts at the listing's station (an NPC sale at the seller's station), and not at all when the buyer is a conglomerate partner. The result, which holds each corporation's own components, is cached in `dominance.json` in the data directory, never in the global state that is sent to every client. The public shares are rounded by largest remainder so a system's top three and others are whole 5% steps summing to exactly 100. `GET /api/starmap/dominance` is the public reading and `GET /api/accounts/:id/dominance` a corporation's own components.
+
 ## What the server stores (for the implementation stories)
 
 A proposal for v0.12-02's shape; the field names the Overview reads are fixed, the rest are the Builder's to adjust:

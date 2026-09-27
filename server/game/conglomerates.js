@@ -232,7 +232,7 @@ export function levelStatus(c, now = Date.now(), catalog = CONGLOMERATE_CATALOG)
   const requirements = [
     { id: "funds", stat: "treasury.credits", label: `The treasury pays ${plain(next.cost)} credits and keeps ${plain(reserve)} (${catalog.levelReserveDays} days of upkeep for ${members})`, need: next.cost + reserve, have: treasury, met: treasury >= next.cost + reserve },
     { id: "members", stat: "members", label: `At least ${needed} members (${catalog.levelFillPct}% of ${current.maxMembers})`, need: needed, have: members, met: members >= needed },
-    { id: "days", stat: "levelSince", label: `${next.minDaysAtPrevious} days at level ${c.level}`, need: readyAt, have: now, met: now >= readyAt },
+    { id: "days", stat: "levelSince", label: `${next.minDaysAtPrevious} days at level ${c.level}`, need: readyAt, have: now, met: now >= readyAt, from: since }, // from: AB#897's progress bar
     { id: "arrears", stat: "arrearsSince", label: "No upkeep in arrears", need: 0, have: Math.floor(Number(c.arrearsOwed) || 0), met: !c.arrearsSince }
   ];
   return { level: c.level, next: { level: next.level, maxMembers: next.maxMembers, cost: next.cost }, requirements, ready: requirements.every((r) => r.met) };

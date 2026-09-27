@@ -16,6 +16,7 @@ import { hangarHtml, hqTabsHtml, treasuryHtml } from "../conglomerateTreasury.js
 import { deepClone } from "../helpers.js";
 import { appState } from "../state.js";
 import { setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { showActionReceipt } from "./receiptModal.js"; // ISP-203 (AB#897): the level-up overlay
 import { showStationBuilding } from "./station.js";
 import { scrollBehavior } from "../motion.js"; // AB#1760
 
@@ -86,6 +87,22 @@ async function load() {
   }
   redraw();
   for (const listener of listeners) listener(appState.conglomerate);
+  showLevelReached();
+}
+
+/**
+ * ISP-203 (AB#897): a level reached since this member last saw it: the milestone overlay once, then the server is told,
+ * so a reload or another device does not show it again. Every member reads the view on the room's levelled event.
+ */
+let levelShown = null;
+function showLevelReached() {
+  const c = bureau.view?.conglomerate;
+  const level = c?.levelReached;
+  if (!level || levelShown === `${c.id}:${level}`) return;
+  levelShown = `${c.id}:${level}`;
+  const next = c.levels?.next ? { level: c.levels.next.level, maxMembers: c.levels.next.maxMembers } : null;
+  showActionReceipt({ conglomerateLevel: { name: c.name, level, maxMembers: c.maxMembers, next } });
+  apiFetch(`${cong(c.id)}/level-seen`, { method: "POST", headers: json, body: JSON.stringify({ level }) }).catch(() => { levelShown = null; });
 }
 
 /** ISP-206 (AB#901): read the treasury and the hangar, each at its ledger page, or only `which`. */
@@ -311,6 +328,26 @@ function bind(contentEl) {
             ]
           }
         }).then(() => refreshAccount());
+        break;
+      }
+      case "cong-level-buy": { // ISP-203 (AB#897): the price before anything is paid
+        const level = Number(d.level), cost = Number(d.cost), reserve = Number(d.reserve);
+        const treasury = Math.floor(Number(mine.treasury?.credits) || 0);
+        const next = mine.levels?.next;
+        act(`${cong(mine.id)}/level`, {
+          body: { level },
+          status: "cong-level-status",
+          confirm: {
+            heading: "Conglomerate Affairs Bureau",
+            title: `Buy level ${level} for ${mine.name}?`,
+            confirmLabel: `Pay ${cost.toLocaleString("en-US")} credits`,
+            rows: [
+              { label: "From the treasury", value: `${cost.toLocaleString("en-US")} credits, leaving ${(treasury - cost).toLocaleString("en-US")}` },
+              { label: "Kept for upkeep", value: `at least ${reserve.toLocaleString("en-US")} credits (the treasury keeps it; nothing is spent)` },
+              { label: "Room", value: `${(next?.maxMembers ?? 0).toLocaleString("en-US")} members, from ${mine.maxMembers.toLocaleString("en-US")}` }
+            ]
+          }
+        });
         break;
       }
       default: break;

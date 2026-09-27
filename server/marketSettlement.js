@@ -10,12 +10,14 @@ import { publicName } from "./publicViews.js";
 import { recordTrade } from "./priceHistory.js";
 import { emitToAccount } from "./realtime.js";
 import { formatCredits } from "./receipts.js";
+import { recordSale, sameConglomerate } from "./game/dominanceCounters.js"; // ISP-217 (AB#912)
+import { accountsStore } from "./game/store.js";
 
 /**
  * Pay the seller of `order` for `quantity` at the listing's price, less the exchange tax, and write their Sold row.
  * Returns what the seller is told (Bug #1167), or null for a listing with no seller account.
  */
-export function paySeller(order, quantity, buyerName) {
+export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
   if (!order.sellerAccountId) return null;
   const total = quantity * Number(order.unitPrice || 0);
   let sale = null;
@@ -27,6 +29,9 @@ export function paySeller(order, quantity, buyerName) {
     sale = { taxPct, taxAmount, proceeds, buyer: publicName(buyerName) };
     // Bug #984: the gross the buyer paid is income and the tax an expense; the balance moves by the proceeds.
     applyCredits(state.corp, total, "exchange");
+    // ISP-217 (AB#912): the sale counts toward dominance at the listing's station, unless the buyer is a conglomerate
+    // partner: selling to partners must not buy dominance.
+    if (!sameConglomerate(state.corp, accountsStore.accounts?.[buyerAccountId]?.state?.corp)) recordSale(state.corp, order.stationId, total);
     applyCredits(state.corp, -salesTax, "exchange-tax");
     applyCredits(state.corp, -royalty, "lease-royalty");
     if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
