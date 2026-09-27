@@ -33,6 +33,7 @@ import { accountByCorp, findConglomerate, roleOf } from "./game/membership.js";
 import { ensureTreasury, moveTreasury } from "./game/conglomerates.js";
 import { publicConcession } from "./concessions.js";
 import { fileRate, levyOf, listingRate, rateAt, rateProblem, settle, tariffOn } from "./game/tariffs.js";
+import { transferBase as baseAt } from "../public/scripts/tariffs.js"; // ISP-231 (AB#926): the client quotes with it too
 
 const FILE = path.join(dataDir, "tariffs.json");
 const DAY_MS = 86_400_000;
@@ -181,7 +182,7 @@ export function normalValue(item, now = Date.now()) {
 
 /** The tariff base of a transfer's lines: units x normal value, in whole credits. */
 export function transferBase(lines, now = Date.now()) {
-  return Math.floor((lines || []).reduce((s, l) => s + (Number(l.quantity) || 0) * normalValue(l.item, now), 0));
+  return baseAt(lines, Object.fromEntries((lines || []).map((l) => [l.item, normalValue(l.item, now)])));
 }
 
 /** Pay one holder its accrual; true when paid. A holder that cannot be found keeps its accrual for the next day. */
@@ -212,6 +213,7 @@ export function tariffTick(now = Date.now()) {
       const credits = Math.floor(owed);
       if (credits > 0 && payHolder(rec.holders[key], credits, now)) {
         delete rec.accrued[key];
+        rec.paid = { ...(rec.paid || {}), [key]: (rec.paid?.[key] || 0) + credits }; // ISP-231 (AB#926): collected to date
         paid.push({ systemId, holder: rec.holders[key], credits });
       }
     }
@@ -222,6 +224,48 @@ export function tariffTick(now = Date.now()) {
   store.paidDay = day;
   save();
   return paid;
+}
+
+/**
+ * ISP-231 (AB#926): what the corporation sees before it commits, and what it holds. `here`: the rate it pays where it is
+ * docked (0 on the holder's side) and a pending change it would pay; `systems`: every held system's public tariff (the
+ * starmap's panel); `holdings`: each system whose tariff it may set, with its own filed rate, the system's, and what it
+ * has collected and is owed; `normalValues`: what goods it holds outside this system are tariffed at when shipped here.
+ */
+export function tariffSummary(corp, now = Date.now()) {
+  const stationId = corp?.currentStationId || null;
+  const systemIdHere = systemOfStation(stationId);
+  const systems = {};
+  const holdings = [];
+  for (const systemId of Object.keys(WARFARE_CATALOG.systemRules)) {
+    if (!(tariffCap(systemId) > 0)) continue;
+    const holders = holdersInForce(systemId, now);
+    if (!holders.length) continue;
+    systems[systemId] = tariffView(systemId, now);
+    const mine = corp?.publicId ? holderSetBy(corp, holders) : null;
+    if (!mine) continue;
+    const key = keyOf(mine.holder);
+    const r = rateRecord(systemId, mine);
+    const rec = store.systems[systemId];
+    holdings.push({
+      systemId, cap: tariffCap(systemId), holder: mine.holder.type, docked: (corp.currentSystemId || "sol") === systemId,
+      pct: rateAt(r, now), pending: r?.pending && now < r.pending.effectiveAt ? { pct: r.pending.pct, effectiveAt: r.pending.effectiveAt } : null,
+      systemPct: systems[systemId].pct, systemPending: systems[systemId].pending, holders: holders.length,
+      accrued: Math.floor(rec?.accrued?.[key] || 0), paidTotal: rec?.paid?.[key] || 0
+    });
+  }
+  let here = null;
+  if (systemIdHere) {
+    const pct = tariffRateFor(corp, stationId, now);
+    const exempt = isHolderSide(corp, holdersInForce(systemIdHere, now));
+    here = { stationId, systemId: systemIdHere, cap: tariffCap(systemIdHere), pct, exempt, pending: exempt ? null : systems[systemIdHere]?.pending || null };
+  }
+  const normalValues = {};
+  for (const [sid, inv] of Object.entries(corp?.inventory || {})) {
+    if (systemOfStation(sid) === systemIdHere) continue;
+    for (const [item, qty] of Object.entries(inv || {})) if (Number(qty) > 0 && !(item in normalValues)) normalValues[item] = normalValue(item, now);
+  }
+  return { here, systems, holdings, normalValues };
 }
 
 /** The levy counted so far: what the ISA kept of every tariff, a sink. */

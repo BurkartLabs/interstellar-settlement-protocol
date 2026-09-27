@@ -176,6 +176,7 @@ export const ACCOUNT_INPUT = {
   "GET /dominance": NOTHING, // ISP-217 (AB#912): the caller's own dominance components
   // ISP-230 (AB#925): a holder's tariff, 0 to the highest cap any system has, in the catalog's steps; the system's own
   // cap and whether the caller holds it are the route's (400 and 403)
+  "GET /tariffs": NOTHING, // ISP-231 (AB#926): the caller's own tariffs
   "POST /tariffs/:systemId": { params: { systemId: ref("a system") }, body: { pct: decimal(0, WARFARE_CATALOG.tariffs.maxPct, WARFARE_CATALOG.tariffs.stepPct, "a tariff in percentage points") } },
   // ISP-149 (AB#843): the product and principal to quote, and the quote to accept; the terms are the server's
   "GET /loans/offers": NOTHING, // ISP-151 (AB#845)

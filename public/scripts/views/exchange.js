@@ -11,6 +11,7 @@ import { deepClone, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { appState, viewerStorage } from "../state.js";
 import { taxOnSale } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
+import { saleQuote, utcMinute } from "../tariffs.js"; // ISP-231 (AB#926): the tariff the server settles
 import { suggestedListingPrice } from "../suggestedPrice.js";
 import { labelTableCells } from "../tableLabels.js";
 import { tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
@@ -41,12 +42,22 @@ export function getClientExchangeTaxPct() {
  */
 function saleTaxRows(gross) {
   const breakdown = getClientExchangeTaxBreakdown();
-  const sale = taxOnSale(gross, breakdown);
+  // ISP-231 (AB#926): the concession tariff where the goods are held, quoted with the server's own arithmetic
+  const here = clientTariffHere();
+  const sale = saleQuote(gross, breakdown, here?.pct || 0);
   return [
     { label: `GEX Sales Tax (${breakdown.salesTaxPct}%)`, value: `− ${toCurrency(sale.salesTax)}`, muted: true },
     ...(breakdown.royaltyPct > 0 ? [{ label: `ISA Lease Royalty (${breakdown.royaltyPct}%)`, value: `− ${toCurrency(sale.royalty)}`, muted: true }] : []),
+    ...(sale.tariff > 0 ? [{ label: `Concession Tariff (${here.pct}%)`, value: `− ${toCurrency(sale.tariff)}`, muted: true }] : []),
+    ...(here?.pending ? [{ label: "Tariff Pending", value: `${here.pending.pct}% from ${utcMinute(here.pending.effectiveAt)}`, muted: true }] : []),
     { label: "You Receive", value: toCurrency(sale.proceeds), highlight: true }
   ];
+}
+
+/** ISP-231 (AB#926): the tariff summary's rate where the corporation is docked now, or null when it is for elsewhere. */
+export function clientTariffHere() {
+  const here = appState.tariffs?.here;
+  return here && here.stationId === (appState.data?.corp?.currentStationId || null) ? here : null;
 }
 
 import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes

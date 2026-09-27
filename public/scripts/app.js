@@ -29,7 +29,7 @@ import { loadConglomerate, onConglomerateChange, openBureau, refreshStations, re
 import { renderRefinery } from "./views/refinery.js";
 import { bindResearchForms, renderQueue, renderTechTree } from "./views/research.js";
 import { connectViews, isPlayerTraveling, pushFeedback, renderFeedbackLog, revealUnderHeader } from "./views/shared.js";
-import { loadBeltCompositionsIntoStarmap, starmap } from "./views/starmap.js";
+import { loadBeltCompositionsIntoStarmap, loadTariffs, starmap } from "./views/starmap.js";
 import { bindBuildingActions, refreshOpenLeaseView, renderStation } from "./views/station.js";
 import { clearTravelTimer, renderTravelPage } from "./views/travel.js";
 
@@ -307,6 +307,8 @@ function enterGame(mode, data, options = {}) {
 
   persistSession();
   if (appState.accountId) loadBeltCompositionsIntoStarmap(); // Bug #1264
+  appState.tariffs = null; // ISP-231 (AB#926): never another account's; this account's are fetched below
+  if (appState.accountId) loadTariffs();
   // ISP-201 (AB#895): the Overview's Conglomerate card reads this; never another account's.
   appState.conglomerate = undefined;
   if (appState.accountId && mode !== "dummy") loadConglomerate();
@@ -488,6 +490,7 @@ async function refreshFromServer() {
     appState.activeMissions = appState.data.corp?.activeMissions || [];
     loadBeltCompositionsIntoStarmap(); // Bug #1264
     updateAllViews();
+    loadTariffs(); // ISP-231 (AB#926): a jump or a dock changes the rate the corporation pays
     return;
   }
 

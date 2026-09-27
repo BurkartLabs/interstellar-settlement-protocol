@@ -102,7 +102,8 @@ export function registerLogisticsRoutes(app) {
       fromName: stationById(dispatched.fromStationId)?.name || "the source station",
       toName: stationById(dispatched.toStationId)?.name || "this station",
       fee: dispatched.fee,
-      arrivesAt: dispatched.arrivesAt
+      arrivesAt: dispatched.arrivesAt,
+      tariff: dispatched.tariff || null // ISP-231 (AB#926)
     });
     res.json({ ...account, shipment: dispatched, receipt });
   });
