@@ -157,3 +157,22 @@ export function deployFleet(corp, fleetId, toStationId, now = Date.now()) {
   fleet.stationId = null;
   return { outcome: "ok", fleet, durationMs };
 }
+
+/**
+ * ISP-175 (AB#869): where a stationed fleet can be sent, for the Fleet tab's destination picker: every other station,
+ * with the trip's length by the same rule deployFleet uses and whether its research gate is open. Null for a fleet
+ * that is not the corporation's; [] for one in transit.
+ */
+export function fleetDestinations(corp, fleetId, now = Date.now()) {
+  settleFleets(corp, now);
+  const fleet = owned(corp, fleetId);
+  if (!fleet) return null;
+  if (inTransit(fleet, now) || !fleet.stationId) return [];
+  const fromSystemId = STATION_REGISTRY[fleet.stationId]?.systemId || "sol";
+  return Object.values(STATION_REGISTRY).filter((st) => st.id !== fleet.stationId).map((st) => {
+    const same = st.systemId === fromSystemId;
+    const researched = same || NAVIGATION.canReachSystem(corp.unlockedTech, fromSystemId, st.systemId);
+    const charted = same || NAVIGATION.systemHops(fromSystemId, st.systemId) !== null || st.systemId === "sol";
+    return { stationId: st.id, name: st.name, systemId: st.systemId, travelMs: getTravelTimeMs(fleet.stationId, st.id), reachable: researched && charted, blocked: researched ? (charted ? null : "no-route") : "missing-research" };
+  }).sort((a, b) => (b.reachable - a.reachable) || (a.travelMs - b.travelMs));
+}

@@ -47,6 +47,7 @@ const BASELINE = {
   "POST /fleets/:fleetId/merge": { params: { fleetId: "flt-does-not-exist" }, body: { intoFleetId: "flt-other" } },
   "POST /fleets/:fleetId/deploy": { params: { fleetId: "flt-does-not-exist" }, body: { toStationId: "mars-orbital-dock" } },
   "POST /fleets/:fleetId/disband": { params: { fleetId: "flt-does-not-exist" } },
+  "GET /fleets/:fleetId/destinations": { params: { fleetId: "flt-does-not-exist" } }, // ISP-175 (AB#869)
   "POST /queue-ceo": { body: { programId: "ceo-negotiation-fundamentals" } }
 };
 

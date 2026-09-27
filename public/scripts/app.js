@@ -11,6 +11,7 @@ import { toCurrency, deepClone } from "./helpers.js";
 import { connectWalkthroughUi, hasSeenWalkthroughOffer, noteWalkthroughEvent, promptWalkthroughOffer } from "./walkthroughUi.js";
 // AB#739 (ISP-53): one module per tab, and the shared pieces they use.
 import { renderAssets } from "./views/assets.js";
+import { renderFleet } from "./views/fleet.js"; // ISP-175 (AB#869)
 import { applyMissionAgentsCatalog, bindAssignmentForms, renderMissions } from "./views/assignments.js";
 import { renderInsightTree } from "./views/ceoInsight.js";
 import { bindCollapsibleSections, bindGlobalControls, loadNotifications, renderNotifications, updateCorpIdentity, updateReplayOnboardingVisibility } from "./views/chrome.js";
@@ -142,6 +143,7 @@ function renderAllViews() {
   enforceTravelTabLockdown(data);
   renderTravelPage(data);
   renderStation(data);
+  renderFleet(data); // ISP-175 (AB#869)
   renderLevel2Progress(data);
   renderQueue("rnd-queue", data.queues.corporateRnD, "Permanent corporate unlock track");
   renderQueue("ceo-queue", data.queues.ceoInsight, "CEO-centric growth track");

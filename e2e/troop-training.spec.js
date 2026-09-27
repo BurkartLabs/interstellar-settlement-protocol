@@ -57,7 +57,7 @@ for (const viewport of VIEWPORTS) {
       await page.fill("#login-password", PASSWORD);
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\?account=/);
-      await openTab(page, "station");
+      await openTab(page, "fleet"); // ISP-175 (AB#869): production is on the Fleet tab
       const section = page.locator("#station-training-section");
       await expect(section).toBeVisible();
       await expect(section).toContainText("Earth Station Prime: 10 squads of Defense Troops");

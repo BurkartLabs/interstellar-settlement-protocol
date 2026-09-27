@@ -224,6 +224,7 @@
             <button class="nav-group__button" type="button" data-group="station">Station</button>
             <div class="nav-group__tabs">
               <button class="nav-tab" data-tab="station" type="button">Station</button>
+              <button class="nav-tab" data-tab="fleet" type="button">Fleet</button>
             </div>
           </section>
           <section class="nav-group" data-group="industry">
@@ -368,18 +369,6 @@
                 <p class="ui-screen__lede">Every building your corporation can construct: what it does, what it costs and what it needs first.</p>
                 <p id="construction-slots" class="ui-screen__meta"></p>
                 <div id="station-construction" class="ui-grid station__grid"></div>
-              </section>
-
-              <section class="ui-stack" id="station-training-section">
-                <h3 class="station__heading">Headquarters: Troop Training</h3>
-                <p class="ui-screen__lede">Train Attack Troops to raid with and Defense Troops to hold this station. Squads are paid when you start and ready when training ends.</p>
-                <div id="station-training" class="shipyard"></div>
-              </section>
-
-              <section class="ui-stack" id="station-shipyard-section" hidden>
-                <h3 class="station__heading">Orbital Shipyard</h3>
-                <p class="ui-screen__lede">Queue ships at the catalog's cost and build time. They join your fleet when they leave the slips.</p>
-                <div id="station-shipyard" class="shipyard"></div>
               </section>
 
               <section class="ui-stack">
@@ -945,6 +934,37 @@
                 </div>
               </div>
             </section>
+          </article>
+
+          <article id="fleet" class="tab-panel ui-screen">
+            <!-- ISP-175 (AB#869): units, upkeep and readiness, fleets, and the production that feeds them. -->
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title">Fleet</h2>
+              <p class="ui-screen__lede">Your ships and troops: what they cost to keep, how ready they are, where your fleets are, and what is being built.</p>
+            </header>
+            <div class="ui-stack">
+              <section class="ui-stack" id="fleet-forces-section">
+                <h3 class="station__heading">Forces</h3>
+                <div id="fleet-summary"></div>
+                <div id="fleet-units"></div>
+              </section>
+              <section class="ui-stack" id="fleet-fleets-section">
+                <h3 class="station__heading">Fleets</h3>
+                <div id="fleet-list" class="ui-grid station__grid"></div>
+              </section>
+
+              <section class="ui-stack" id="station-training-section">
+                <h3 class="station__heading">Headquarters: Troop Training</h3>
+                <p class="ui-screen__lede">Train Attack Troops to raid with and Defense Troops to hold this station. Squads are paid when you start and ready when training ends.</p>
+                <div id="station-training" class="shipyard"></div>
+              </section>
+
+              <section class="ui-stack" id="station-shipyard-section" hidden>
+                <h3 class="station__heading">Orbital Shipyard</h3>
+                <p class="ui-screen__lede">Queue ships at the catalog's cost and build time. They join your fleet when they leave the slips.</p>
+                <div id="station-shipyard" class="shipyard"></div>
+              </section>
+            </div>
           </article>
 
           <article id="assets" class="tab-panel ui-screen">

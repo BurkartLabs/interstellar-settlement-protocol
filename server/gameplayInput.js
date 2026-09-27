@@ -124,6 +124,7 @@ export const GAMEPLAY_INPUT = {
   "POST /fleets/:fleetId/merge": { params: { fleetId: ref("one of your fleets") }, body: { intoFleetId: ref("one of your fleets to merge into") } },
   "POST /fleets/:fleetId/deploy": { params: { fleetId: ref("one of your fleets") }, body: { toStationId: id("stations", "a station") } },
   "POST /fleets/:fleetId/disband": { params: { fleetId: ref("one of your fleets") } },
+  "GET /fleets/:fleetId/destinations": { params: { fleetId: ref("one of your fleets") } }, // ISP-175 (AB#869)
   "POST /queue-ceo": { body: { programId: id("programs", "a CEO Insight program") } }
 };
 

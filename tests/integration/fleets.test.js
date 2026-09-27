@@ -154,3 +154,23 @@ describe("through the routes (AB#868)", () => {
     expect(c.state()).toBe(before);
   });
 });
+
+describe("the destination picker's list (AB#869)", () => {
+  it("lists every other station with its trip length, the ones out of reach saying why, and 404s another corporation's fleet", async () => {
+    const { app } = await getApp();
+    const me = await registerAccount(app), them = await registerAccount(app);
+    for (const acc of [me, them]) mutateAccountState(acc.account.id, (state) => { state.corp.currentStationId = EARTH; state.corp.military = { units: { lf: 3 } }; }, { sanitize: false, settleMining: false });
+    const api = authed(app, me.accessToken);
+    const id = (await api.post(`/api/accounts/${me.account.id}/gameplay/fleets/form`).send({ lf: 3 })).body.fleet.id;
+    const res = await api.get(`/api/accounts/${me.account.id}/gameplay/fleets/${id}/destinations`);
+    expect(res.status).toBe(200);
+    const mars = res.body.destinations.find((d) => d.stationId === MARS);
+    expect(mars).toMatchObject({ reachable: true, travelMs: getTravelTimeMs(EARTH, MARS), systemName: "Sol" });
+    const centauri = res.body.destinations.find((d) => d.stationId === CENTAURI);
+    expect(centauri.reachable).toBe(false);
+    expect(centauri.why).toMatch(/Navigation/i);
+    expect(res.body.destinations.some((d) => d.stationId === EARTH)).toBe(false);
+    const theirs = authed(app, them.accessToken);
+    expect((await theirs.get(`/api/accounts/${them.account.id}/gameplay/fleets/${id}/destinations`)).status).toBe(404);
+  });
+});
