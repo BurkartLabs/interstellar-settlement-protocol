@@ -181,7 +181,8 @@ describe("renewal, upkeep, grace and lapse (AB#922)", () => {
     const before = a.credits();
     chargeUpkeep(one.grantedAt + DAY);
     expect(before - a.credits()).toBe(2400);
-    chargeUpkeep(one.grantedAt + DAY + H); // once a UTC day
+    // once a UTC day: an hour later, or the day's last millisecond when the run is in its last hour (Bug #4692)
+    chargeUpkeep(Math.min(one.grantedAt + DAY + H, Math.floor((one.grantedAt + DAY) / DAY) * DAY + DAY - 1));
     expect(before - a.credits()).toBe(2400);
   });
 
