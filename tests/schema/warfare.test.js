@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { MAX_TARIFF_PCT, WARFARE_CATALOG, concessionTermsFor, readSystemIds, readWarfareCatalog, warfareReferenceProblems, warfareSchemaProblems } from "../../server/warfare.js";
+import { CLAIM_TYPES, MAX_TARIFF_PCT, WARFARE_CATALOG, concessionTermsFor, readSystemIds, readWarfareCatalog, warfareReferenceProblems, warfareSchemaProblems } from "../../server/warfare.js";
 
 // ISP-225 (AB#920): data/warfare.json is docs/design/TERRITORY.md's numbers (AB#916), checked three ways: against the
 // design, value for value and row for row; against its own schema and bounds; and against data/systems.json, the
@@ -11,6 +11,9 @@ import { MAX_TARIFF_PCT, WARFARE_CATALOG, concessionTermsFor, readSystemIds, rea
 const DESIGN = fs.readFileSync(new URL("../../docs/design/TERRITORY.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 // ISP-222 (AB#917): the tariffs and dumping sections are docs/design/WARFARE.md's number table: | `section.key` | value | ... |
 const WARFARE = fs.readFileSync(new URL("../../docs/design/WARFARE.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+// ISP-224 (AB#919): the Council's numbers, and its claim table's rows: | `claim-type` | record | ... (reserved rows say so)
+const ARBITRATION_TABLE = [...WARFARE.matchAll(/^\| `arbitration\.([A-Za-z]+)` \| ([^|]+) \| ([^|]+) \|$/gm)].map((m) => [m[1], m[2].trim()]);
+const CLAIM_ROWS = [...WARFARE.matchAll(/^\| `([a-z]+(?:-[a-z]+)+)` \| ([^\n]+)$/gm)].map((m) => ({ id: m[1], open: !/\*\*reserved\*\*/.test(m[2]) }));
 const SECTION_TABLE = [...WARFARE.matchAll(/^\| `(tariffs|dumping)\.([A-Za-z]+)` \| ([^|]+) \| ([^|]+) \|$/gm)].map((m) => [m[1], m[2], m[3].trim()]);
 const SYSTEMS = (() => { const raw = JSON.parse(fs.readFileSync(new URL("../../data/systems.json", import.meta.url), "utf8")); return Array.isArray(raw) ? raw : raw.systems; })();
 const C = WARFARE_CATALOG;
@@ -138,6 +141,27 @@ describe("the tariffs and dumping sections hold WARFARE.md's numbers (ISP-222, A
     for (const section of ["tariffs", "dumping"]) {
       expect(Object.keys(C[section]).sort(), section).toEqual(SECTION_TABLE.filter((r) => r[0] === section).map((r) => r[1]).sort());
     }
+  });
+
+  it("holds the Arbitration Council's numbers and claim types to the design (ISP-224, AB#919)", () => {
+    expect(ARBITRATION_TABLE.length).toBe(5);
+    for (const [key, value] of ARBITRATION_TABLE) expect(C.arbitration[key], `arbitration.${key}`).toBe(num(value));
+    expect(Object.keys(C.arbitration).filter((k) => k !== "claimTypes").sort()).toEqual(ARBITRATION_TABLE.map((r) => r[0]).sort());
+    expect(C.arbitration.claimTypes).toEqual(CLAIM_ROWS);
+    expect(CLAIM_ROWS.map((r) => r.id)).toEqual([...CLAIM_TYPES]);
+  });
+
+  it("fails on a claim type the design lacks, one listed twice or without its flag, and a Council with no withholding", () => {
+    const c = copy();
+    c.arbitration.claimTypes = [...c.arbitration.claimTypes, { id: "defamation", open: true }, { id: "tariff-overcharge" }];
+    c.dumping.withholdPct = 0;
+    delete c.arbitration.responseHours;
+    const p = warfareSchemaProblems(c);
+    expect(p).toContain('arbitration.claimTypes names "defamation", which the design does not define');
+    expect(p).toContain('arbitration claim type "tariff-overcharge" has no open flag');
+    expect(p).toContain("arbitration.claimTypes lists tariff-overcharge twice");
+    expect(p).toContain("arbitration.responseHours is missing");
+    expect(p).toContain("arbitration debts are collected by dumping.withholdPct, which is 0 or missing");
   });
 
   it("keeps every system's cap inside the tariff ceiling, and the ceiling inside AB#920's 25%", () => {
