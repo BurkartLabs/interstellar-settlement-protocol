@@ -78,8 +78,10 @@ describe("recordTrade (AB#715)", () => {
 describe("the catalog, saved history and the served shape (AB#715)", () => {
   const refinery = JSON.parse(readFileSync(new URL("../../data/refinery-chains.json", import.meta.url), "utf8"));
 
-  it("covers every raw resource and every refinery output, and nothing else", () => {
-    expect(PRICE_HISTORY_ITEMS).toEqual(tradeableItems(refinery));
+  it("covers every raw resource and every refinery output, and every other catalog item (AB#884), and nothing else", () => {
+    const catalog = JSON.parse(readFileSync(new URL("../../data/items.json", import.meta.url), "utf8")).items.map((i) => i.name);
+    expect(PRICE_HISTORY_ITEMS).toEqual(new Set([...tradeableItems(refinery), ...catalog]));
+    expect(PRICE_HISTORY_ITEMS.has("Antimatter Drives")).toBe(true); // a Tier 4 product before any chain makes it
     for (const r of refinery.resourceCatalog) expect(PRICE_HISTORY_ITEMS.has(r)).toBe(true);
     for (const c of refinery.chains) for (const o of c.outputs) expect(PRICE_HISTORY_ITEMS.has(o.item)).toBe(true);
     for (const bad of ["__proto__", "constructor", "", "silicates", "Silicates ", "../state"]) expect(PRICE_HISTORY_ITEMS.has(bad)).toBe(false);

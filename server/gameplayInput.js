@@ -100,7 +100,7 @@ export const GAMEPLAY_INPUT = {
   },
   "POST /start-refinery": {
     body: {
-      refineryId: id("ownRefineries", "one of your refineries"),
+      refineryId: id("ownRefineries", "one of your refineries or your Synthesis Array"), // ISP-189 (AB#883): either facility
       chainId: id("refineryChains", "a refinery chain"),
       // AB#825: a run is `inputQuantity` of a one-input chain's input, or `batches` of any chain; the route refuses
       // neither or both, and a run longer than a week (public/scripts/refineryRun.js).
@@ -530,7 +530,7 @@ export function gameplayInputMiddleware({ catalogs, corpOf, stationNames, routes
       if (catalog === "ownLeases") return (own().miningLeases || []).some((l) => l?.id === value);
       if (catalog === "ownExtractors") return (own().mining?.silicateExtractors || []).some((x) => x?.id === value);
       if (catalog === "ownBuildings") return (own().buildings || []).some((b) => typeof b?.id === "string" && b.id === value);
-      if (catalog === "ownRefineries") return (own().refineries || []).some((r) => r?.id === value);
+      if (catalog === "ownRefineries") return [...(own().refineries || []), ...(own().synthesisArrays || [])].some((r) => r?.id === value); // ISP-189 (AB#883)
       if (catalog === "ownMissions") return (own().activeMissions || []).some((m) => m?.id === value);
       if (catalog === "ownStock") {
         const [station, item] = [value.slice(0, value.indexOf("|")), value.slice(value.indexOf("|") + 1)];

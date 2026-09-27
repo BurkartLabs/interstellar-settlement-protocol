@@ -41,39 +41,39 @@ perfectly and sells at the base bid; it is not a measurement of players (P-PROXY
 <!-- belt-model:start -->
 ```text
 Launch cost 3,000. Credits are what the standing orders pay for the belt's mix, after the 8% tax;
-a resource no standing order buys (Uranium, Exotic Matter) counts 0.
+every resource has a standing order; Uranium and Exotic Matter count only with the research that recovers them.
 
 Per tier, from its template (today's belts of that label, averaged):
   tier     | units/h | sold share | credits/unit | standard: units, credits, net | extended: units, net | reserve (units)
   common   |     180 |       100% |        17.85 |   180,  3,213,    213 |   360,  3,425 |  2,520
   uncommon |     207 |       100% |        29.39 |   207,  6,084,  3,084 |   414,  9,167 |  2,898
-  rare     |     243 |        97% |        67.92 |   243, 16,506, 13,506 |   486, 30,011 |  3,402
-  exotic   |     288 |        80% |        72.31 |   288, 20,825, 17,825 |   576, 38,650 |  4,032
+  rare     |     243 |       100% |        79.33 |   243, 19,278, 16,278 |   486, 35,556 |  3,402
+  exotic   |     288 |       100% |       175.35 |   288, 50,501, 47,501 |   576, 98,001 |  4,032
 
 Rarity of a respawned belt, per system (each tier away from the label 0.25 as likely):
   system            | label    | common | uncommon |  rare  | exotic | mean yield x | vs today | expected net, standard
-  Sol               | common   |  75.3% |    18.8% |   4.7% |   1.2% |        1.052 |    +5.2% | 1,586
-  Alpha Centauri    | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 4,881
-  Barnard's Star    | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 4,881
-  Wolf 359          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 11,998
-  Tau Ceti          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 11,998
-  Epsilon Eridani   | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 16,111
-  Lalande 21185     | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 4,881
-  Ross 154          | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 4,881
-  Sirius            | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 11,998
-  Ross 248          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 11,998
-  Luyten 726-8      | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 11,998
-  Lacaille 9352     | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 11,998
-  Procyon           | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 11,998
-  Ross 128          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 11,998
-  61 Cygni          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 11,998
-  Kapteyn's Star    | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 16,111
-  Epsilon Indi      | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 16,111
-  Kruger 60         | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 16,111
-  Wolf 1061         | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 16,111
-  Altair            | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 16,111
-  70 Ophiuchi       | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 16,111
-  van Maanen's Star | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 16,111
+  Sol               | common   |  75.3% |    18.8% |   4.7% |   1.2% |        1.052 |    +5.2% | 2,065
+  Alpha Centauri    | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 6,512
+  Barnard's Star    | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 6,512
+  Wolf 359          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 18,520
+  Tau Ceti          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 18,520
+  Epsilon Eridani   | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 38,977
+  Lalande 21185     | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 6,512
+  Ross 154          | uncommon |  16.0% |    64.0% |  16.0% |   4.0% |        1.176 |    +2.3% | 6,512
+  Sirius            | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 18,520
+  Ross 248          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 18,520
+  Luyten 726-8      | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 18,520
+  Lacaille 9352     | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 18,520
+  Procyon           | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 18,520
+  Ross 128          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 18,520
+  61 Cygni          | rare     |   4.0% |    16.0% |  64.0% |  16.0% |        1.344 |    -0.4% | 18,520
+  Kapteyn's Star    | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 38,977
+  Epsilon Indi      | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 38,977
+  Kruger 60         | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 38,977
+  Wolf 1061         | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 38,977
+  Altair            | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 38,977
+  70 Ophiuchi       | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 38,977
+  van Maanen's Star | exotic   |   1.2% |     4.7% |  18.8% |  75.3% |        1.525 |    -4.7% | 38,977
 
 Respawn: 20% each hour on the hour; mean wait 5.0 h; still empty after 12 h 6.9%, after 24 h 0.47%.
 
@@ -117,13 +117,16 @@ The model shows two things about expeditions today that are not about depletion,
    the same kind of error, less (a haul is 180 units across several orders). The TODO's "belts should yield more than
    extractor yards" is still not true in Sol, and depletion makes Sol belts no more attractive. Base yield (`baseYieldPerMin`, 3) or the launch cost is the
    lever.
-2. **Part of an exotic belt sells to no standing order.** With twelve systems an exotic belt paid less per unit than a
+2. **An exotic belt pays for its research.** With twelve systems an exotic belt paid less per unit than a
    rare one (35.16 against 35.57 credits). AB#807's Frontier belts, heavy in Helium-3 and Rare Earths, moved the exotic
    template to 46.37 against the rare one's 41.09. The tracks' bids since raised both: AB#830's Hydrogen and Water
    Ice, AB#832's Thorium and Cobalt and AB#833's Lithium bring the exotic template to 72.31 a unit against the rare
-   one's 67.92, and 20% of it is
-   still resources no standing order buys (Uranium, Exotic Matter). Their value is on the player market or in
-   refineries, which the model does not price. AB#822 (which bodies yield which resources) is where that belongs.
+   one's 67.92, and 20% of it was
+   resources no standing order bought (Uranium, Exotic Matter). AB#884 gave them bids at the Tier 4 design's bases
+   (Uranium 220, Exotic Matter 900; docs/design/v0.11-tier4.md), and the table above now counts them: 79.33 a unit on
+   a rare belt and 175.35 on an exotic one, more than twice. That holds only for a corporation with their research
+   (AB#880: without it the two are dug and not recovered, which is roughly the old 67.92 and 72.31). Whether an
+   exotic belt should pay that much once researched is for the economy review, not this design.
 
 Both are pricing questions for the economy, not for this design; the belt rules above hold whichever way they go.
 

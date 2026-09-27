@@ -91,6 +91,7 @@ export function renderMarket(data) {
   const partners = partnerNames(appState.conglomerate, data?.corp?.publicId);
   const inConglomerate = Boolean(appState.conglomerate);
   const view = { ...appState.exchangeView, sellers: inConglomerate ? appState.exchangeView.sellers : "all" };
+  const tierOf = market.itemTiers || null; // AB#884: the Tier filter's lookup
 
   // Build resource filter pills from all visible resources, keeping a remembered resource that has no orders today so
   // the viewer can see which filter is on
@@ -100,7 +101,7 @@ export function renderMarket(data) {
   allMySellOrders.forEach((o) => o.item && resourceSet.add(o.item));
   allBids.forEach((o) => o.item && resourceSet.add(o.item));
   if (view.resource) resourceSet.add(view.resource);
-  const resources = Array.from(resourceSet).sort();
+  const resources = Array.from(resourceSet).filter((r) => !view.tier || !tierOf || String(tierOf[r]) === view.tier || r === view.resource).sort();
 
   const filterBar = document.getElementById("exchange-filter-bar");
   if (filterBar) {
@@ -112,6 +113,8 @@ export function renderMarket(data) {
   if (typeSelect) typeSelect.value = view.type;
   const sortSelect = document.getElementById("exchange-sort");
   if (sortSelect) sortSelect.value = view.sort;
+  const tierSelect = document.getElementById("exchange-tier-filter");
+  if (tierSelect) tierSelect.value = view.tier;
   const sellersField = document.getElementById("exchange-sellers-field");
   if (sellersField) sellersField.hidden = !inConglomerate;
   const sellersSelect = document.getElementById("exchange-sellers-filter");
@@ -130,10 +133,10 @@ export function renderMarket(data) {
   showSection("exchange-mine-section", "mine");
 
   // Filter by resource and sort, then cap: the cap applies to what the viewer asked to see (AB#402)
-  const viewedSellOrders = viewOrders(allSellOrders, view, { partners });
+  const viewedSellOrders = viewOrders(allSellOrders, view, { partners, tierOf });
   const filteredSellOrders = viewedSellOrders.slice(0, SELL_ORDERS_SHOWN);
-  const filteredNpcOrders = viewOrders(npcBuyOrders, view);
-  const viewedMySellOrders = viewOrders(allMySellOrders, view);
+  const filteredNpcOrders = viewOrders(npcBuyOrders, view, { tierOf });
+  const viewedMySellOrders = viewOrders(allMySellOrders, view, { tierOf });
   const mySellOrders = viewedMySellOrders.slice(0, MY_LISTINGS_SHOWN);
 
   // AB#1169: say when the cap left some out, rather than letting 30 rows read as the whole book
@@ -155,7 +158,7 @@ export function renderMarket(data) {
     const tableWrap = filteredEl.parentElement?.querySelector(".ui-table-wrap");
     if (tableWrap) tableWrap.hidden = shown === 0;
     filteredEl.hidden = !(total > 0 && shown === 0);
-    filteredEl.innerHTML = filteredEl.hidden ? "" : filteredEmptyHtml(label, view.resource, total);
+    filteredEl.innerHTML = filteredEl.hidden ? "" : filteredEmptyHtml(label, view.resource || `Tier ${view.tier} items`, total, view.resource ? "resource" : "tier");
   };
 
   // Sell Orders table (player can buy from these)
@@ -179,13 +182,13 @@ export function renderMarket(data) {
   // ISP-208 (AB#903): when the Sellers filter is what hid them, say so, and how many.
   if (view.sellers === "conglomerate" && allSellOrders.length && !filteredSellOrders.length) {
     const filteredEl = document.getElementById("exchange-buy-filtered");
-    if (filteredEl) filteredEl.innerHTML = partnersEmptyHtml(viewOrders(allSellOrders, { ...view, sellers: "all" }).length, view.resource);
+    if (filteredEl) filteredEl.innerHTML = partnersEmptyHtml(viewOrders(allSellOrders, { ...view, sellers: "all" }, { tierOf }).length, view.resource);
   }
 
   // AB#815: Standing sell orders, the NPC corporations' asks (player can buy from these), badged NPC. Same columns as Sell
   // orders, so the purchase handler reads the seller from the fourth cell of either.
   const npcSellTable = document.getElementById("npc-sell-table");
-  const shownAsks = viewOrders(npcAsks, view);
+  const shownAsks = viewOrders(npcAsks, view, { tierOf });
   if (npcSellTable) {
     npcSellTable.innerHTML = shownAsks
       .map((order) => {
@@ -277,7 +280,7 @@ export function renderMarket(data) {
 
   // AB#1054: Buy Orders, the book's other side: the viewer's own can be cancelled, returning what they hold.
   const bidsTable = document.getElementById("exchange-bids-table");
-  const shownBids = viewOrders(allBids, view).slice(0, SELL_ORDERS_SHOWN);
+  const shownBids = viewOrders(allBids, view, { tierOf }).slice(0, SELL_ORDERS_SHOWN);
   if (bidsTable) {
     bidsTable.innerHTML = shownBids
       .map((order) => `
@@ -655,6 +658,8 @@ export function bindExchangeForms() {
   });
   document.getElementById("exchange-type-filter")?.addEventListener("change", (event) => setExchangeView({ type: event.target.value }));
   document.getElementById("exchange-sort")?.addEventListener("change", (event) => setExchangeView({ sort: event.target.value }));
+  // AB#884: a tier drops a resource pill chosen from another tier
+  document.getElementById("exchange-tier-filter")?.addEventListener("change", (event) => setExchangeView({ tier: event.target.value, resource: DEFAULT_EXCHANGE_VIEW.resource }));
   document.getElementById("exchange-sellers-filter")?.addEventListener("change", (event) => setExchangeView({ sellers: event.target.value })); // ISP-208 (AB#903)
   document.getElementById("market")?.addEventListener("click", (event) => {
     // ISP-124 (AB#818): an NPC's name opens its profile card.
@@ -664,7 +669,7 @@ export function bindExchangeForms() {
       return;
     }
     if (event.target.closest("[data-clear-filters]")) {
-      setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, type: DEFAULT_EXCHANGE_VIEW.type });
+      setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, type: DEFAULT_EXCHANGE_VIEW.type, tier: DEFAULT_EXCHANGE_VIEW.tier });
     }
   });
 

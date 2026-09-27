@@ -303,6 +303,107 @@
       "requiresTechIds": ["tt-integrated-manufacturing"],
       "stage": 2,
       "category": "Integrated Manufacturing"
+    },
+    {
+      "id": "antimatter-chain",
+      "inputs": [
+        { "item": "Exotic Matter", "quantityPerCycle": 5 },
+        { "item": "Fusion Pellets", "quantityPerCycle": 20 }
+      ],
+      "outputs": [
+        { "item": "Antimatter", "quantityPerCycle": 2 }
+      ],
+      "cycleDurationHours": 24,
+      "requiresResearch": ["Integrated Manufacturing", "Antimatter Confinement"],
+      "requiresTechIds": ["tt-integrated-manufacturing", "tt-antimatter-confinement"],
+      "stage": 2,
+      "category": "Tier 4 Synthesis",
+      "building": "synthesis-array"
+    },
+    {
+      "id": "superconductor-chain",
+      "inputs": [
+        { "item": "Rare-Earth Magnets", "quantityPerCycle": 10 },
+        { "item": "Cryogenic Coolant", "quantityPerCycle": 20 },
+        { "item": "Metallic Hydrogen", "quantityPerCycle": 10 }
+      ],
+      "outputs": [
+        { "item": "Superconducting Coils", "quantityPerCycle": 5 }
+      ],
+      "cycleDurationHours": 10,
+      "requiresResearch": ["Integrated Manufacturing", "Deep-Atmosphere Extraction"],
+      "requiresTechIds": ["tt-integrated-manufacturing", "tt-deep-atmosphere-extraction"],
+      "stage": 2,
+      "category": "Tier 4 Synthesis",
+      "building": "synthesis-array"
+    },
+    {
+      "id": "field-emitter-chain",
+      "inputs": [
+        { "item": "Dark-Matter Capacitors", "quantityPerCycle": 4 },
+        { "item": "Sensor Arrays", "quantityPerCycle": 6 },
+        { "item": "Exotic Matter", "quantityPerCycle": 2 }
+      ],
+      "outputs": [
+        { "item": "Field Emitters", "quantityPerCycle": 3 }
+      ],
+      "cycleDurationHours": 12,
+      "requiresResearch": ["Integrated Manufacturing", "Exotic Containment"],
+      "requiresTechIds": ["tt-integrated-manufacturing", "tt-exotic-containment"],
+      "stage": 2,
+      "category": "Tier 4 Synthesis",
+      "building": "synthesis-array"
+    },
+    {
+      "id": "breeder-core-chain",
+      "inputs": [
+        { "item": "Compact Fission Modules", "quantityPerCycle": 4 },
+        { "item": "Pressure Vessels", "quantityPerCycle": 10 },
+        { "item": "Uranium", "quantityPerCycle": 20 }
+      ],
+      "outputs": [
+        { "item": "Breeder Reactor Cores", "quantityPerCycle": 4 }
+      ],
+      "cycleDurationHours": 16,
+      "requiresResearch": ["Integrated Manufacturing", "Actinide Handling"],
+      "requiresTechIds": ["tt-integrated-manufacturing", "tt-actinide-handling"],
+      "stage": 4,
+      "category": "Tier 4 Synthesis",
+      "building": "synthesis-array"
+    },
+    {
+      "id": "antimatter-drive-chain",
+      "inputs": [
+        { "item": "Ion Thrusters", "quantityPerCycle": 4 },
+        { "item": "Lightweight Spaceframes", "quantityPerCycle": 6 },
+        { "item": "Antimatter", "quantityPerCycle": 1 }
+      ],
+      "outputs": [
+        { "item": "Antimatter Drives", "quantityPerCycle": 3 }
+      ],
+      "cycleDurationHours": 20,
+      "requiresResearch": ["Integrated Manufacturing", "Antimatter Confinement"],
+      "requiresTechIds": ["tt-integrated-manufacturing", "tt-antimatter-confinement"],
+      "stage": 4,
+      "category": "Tier 4 Synthesis",
+      "building": "synthesis-array"
+    },
+    {
+      "id": "catalyst-bed-chain",
+      "inputs": [
+        { "item": "Catalyst Substrates", "quantityPerCycle": 10 },
+        { "item": "Graphene Lattice", "quantityPerCycle": 20 },
+        { "item": "Platinum-Group Metals", "quantityPerCycle": 5 }
+      ],
+      "outputs": [
+        { "item": "Catalyst Beds", "quantityPerCycle": 5 }
+      ],
+      "cycleDurationHours": 8,
+      "requiresResearch": ["Integrated Manufacturing", "Deep-Core Extraction"],
+      "requiresTechIds": ["tt-integrated-manufacturing", "tt-deep-core-extraction"],
+      "stage": 2,
+      "category": "Tier 4 Synthesis",
+      "building": "synthesis-array"
     }
   ]
 }

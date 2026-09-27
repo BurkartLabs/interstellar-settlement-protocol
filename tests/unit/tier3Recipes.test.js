@@ -48,7 +48,8 @@ describe("the v0.8 recipe graph (AB#823)", () => {
     const inData = new Set(CHAINS.map((c) => c.id));
     for (const g of graph.filter((c) => !c.isNew)) expect(inData.has(g.id), g.id).toBe(true);
     expect(graph.filter((c) => c.isNew)).toHaveLength(13);
-    for (const c of CHAINS) {
+    // ISP-189 (AB#883): the Tier 4 chains are v0.11-tier4.md's, not this design's (tests/schema/tier4-chains.test.js).
+    for (const c of CHAINS.filter((x) => x.building !== "synthesis-array")) {
       expect(graph.some((x) => x.id === c.id), `${c.id} is in the design`).toBe(true);
       const g = graph.find((x) => x.id === c.id);
       expect(g, `${c.id} is in the design`).toBeDefined();

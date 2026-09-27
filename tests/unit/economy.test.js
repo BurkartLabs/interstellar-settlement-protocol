@@ -42,7 +42,8 @@ const BEFORE_THE_MOVE = {
     refineryComplexOutputMultiplier: 1.5,
     cryoVaporExtractorArrayCost: 80000, cryoVaporExtractorArrayAssetValue: 58000, // ISP-98 (AB#788): new, not moved
     cryoVaporExtractorArrayMiningMultiplier: 1.2,
-    orbitalShipyardCost: 150000, orbitalShipyardAssetValue: 105000 // ISP-170 (AB#864): new, not moved
+    orbitalShipyardCost: 150000, orbitalShipyardAssetValue: 105000, // ISP-170 (AB#864): new, not moved
+    synthesisArrayCost: 200000, synthesisArrayAssetValue: 140000 // ISP-189 (AB#883): new, not moved
   },
   operations: { costPerThroughputUnit: 16, minCostPerHour: 600, startupShareOfHourlyCost: 0.35, minStartupCost: 500, throughputReferencePerHour: 420 },
   probes: { buildCost: 8000, assetValue: 5000 },                            // gameState.js PROBE_BUILD_COST, PROBE_ASSET_VALUE
@@ -103,7 +104,18 @@ const BEFORE_THE_MOVE = {
     { item: "Fusion Reactor Cores", buyer: "Lunar Helium Consortium", unitPrice: 2243, dailyQty: 8 },
     { item: "Compact Fission Modules", buyer: "Synthorium Trading House", unitPrice: 932, dailyQty: 12 },
     { item: "Lightweight Spaceframes", buyer: "Olympus Heavy Industries", unitPrice: 451, dailyQty: 30 },
-    { item: "Ion Thrusters", buyer: "Olympus Heavy Industries", unitPrice: 1283, dailyQty: 12 }
+    { item: "Ion Thrusters", buyer: "Olympus Heavy Industries", unitPrice: 1283, dailyQty: 12 },
+    // AB#884: the Tier 4 bids, docs/design/v0.11-tier4.md section 3
+    { item: "Uranium", buyer: "Synthorium Trading House", unitPrice: 220, dailyQty: 7000 },
+    { item: "Exotic Matter", buyer: "ISA Materials Exchange", unitPrice: 900, dailyQty: 7000 },
+    { item: "Platinum-Group Metals", buyer: "Olympus Heavy Industries", unitPrice: 400, dailyQty: 7000 },
+    { item: "Metallic Hydrogen", buyer: "Lunar Helium Consortium", unitPrice: 260, dailyQty: 7000 },
+    { item: "Antimatter", buyer: "ISA Materials Exchange", unitPrice: 4865, dailyQty: 2 },
+    { item: "Superconducting Coils", buyer: "Synthorium Trading House", unitPrice: 1481, dailyQty: 12 },
+    { item: "Field Emitters", buyer: "ISA Materials Exchange", unitPrice: 1833, dailyQty: 6 },
+    { item: "Breeder Reactor Cores", buyer: "Synthorium Trading House", unitPrice: 2708, dailyQty: 6 },
+    { item: "Antimatter Drives", buyer: "Olympus Heavy Industries", unitPrice: 4869, dailyQty: 4 },
+    { item: "Catalyst Beds", buyer: "Belt Refining Cooperative", unitPrice: 1125, dailyQty: 15 }
   ]
 };
 

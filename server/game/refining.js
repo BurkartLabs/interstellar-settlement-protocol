@@ -6,11 +6,24 @@ import { ECONOMY } from "../economy.js";
 // ISP-97 (AB#787): a Refinery Complex (tier 2) delivers 1.5 times; the rule is shared with the page and the receipt.
 import { refineryMultiplierFor, refineryOutput } from "../../public/scripts/refineryOutput.js";
 
+// ─── Facilities that run chains ──────────────────────────────────────────────
+// ISP-189 (AB#883; docs/design/v0.11-tier4.md, section 3): a chain names the building it runs in. Refineries run the
+// v0.8 chains; the Synthesis Array runs the Tier 4 ones. Each kind keeps its own list on the corporation, so a
+// Refinery Complex still upgrades the n-th Refinery (server/construction.js), and both lists run through one engine.
+export const FACILITY_LISTS = Object.freeze({ refinery: "refineries", "synthesis-array": "synthesisArrays" });
+const FACILITY_NAMES = Object.freeze({ refinery: "Refinery", "synthesis-array": "Synthesis Array" });
+
+/** The building a chain runs in: its `building`, or a Refinery for every chain from before Tier 4. */
+export function chainBuilding(chain) {
+  return chain?.building || "refinery";
+}
+
 // ─── Refinery model ──────────────────────────────────────────────────────────
 export function ensureCorpRefineryModel(corp) {
   if (!Array.isArray(corp.refineries)) {
     corp.refineries = [];
   }
+  ensureCorpSynthesisModel(corp); // ISP-189 (AB#883)
 
   // Sync refineries array with built Refinery buildings
   const builtCount = (corp.buildings || []).filter((b) => b.name === "Refinery").length;
@@ -31,9 +44,28 @@ export function ensureCorpRefineryModel(corp) {
     });
   }
 
-  corp.refineries = corp.refineries.map((ref, i) => ({
-    id: String(ref.id || `ref-${i + 1}`),
-    name: String(ref.name || `Refinery #${i + 1}`),
+  corp.refineries = corp.refineries.map((ref, i) => facilityRecord(corp, ref, i, "ref", "Refinery"));
+}
+
+/**
+ * ISP-189 (AB#883): the Synthesis Array's record, one per built Synthesis Array, the same shape as a refinery's (tier 1:
+ * it has no upgrades), so the start route and the tick treat both alike.
+ */
+function ensureCorpSynthesisModel(corp) {
+  if (!Array.isArray(corp.synthesisArrays)) corp.synthesisArrays = [];
+  const built = (corp.buildings || []).filter((b) => b.name === FACILITY_NAMES["synthesis-array"]).length;
+  while (corp.synthesisArrays.length < built) {
+    const idx = corp.synthesisArrays.length + 1;
+    corp.synthesisArrays.push({ id: `syn-${idx}`, name: idx === 1 ? "Synthesis Array" : `Synthesis Array #${idx}`, tier: 1, active: false, chainId: null });
+  }
+  corp.synthesisArrays = corp.synthesisArrays.map((ref, i) => facilityRecord(corp, ref, i, "syn", "Synthesis Array"));
+}
+
+/** A facility's record, normalised: a refinery's or a Synthesis Array's. */
+function facilityRecord(corp, ref, i, prefix, label) {
+  return {
+    id: String(ref.id || `${prefix}-${i + 1}`),
+    name: String(ref.name || `${label} #${i + 1}`),
     tier: Number(ref.tier || 1),
     active: Boolean(ref.active),
     chainId: ref.chainId ?? null,
@@ -51,7 +83,7 @@ export function ensureCorpRefineryModel(corp) {
     // existed has none, and completes from its chain as before.
     inputs: ref.active ? runRecord(ref.inputs) : null,
     outputs: ref.active ? runRecord(ref.outputs) : null
-  }));
+  };
 }
 
 /** A run's `[{ item, quantity }]` record as stored, or null when there is none or it is not a list of whole amounts. */
@@ -73,8 +105,13 @@ export function refineryCycleStation(corp, ref) {
 
 export function applyRefineryOperations(corp, now = Date.now()) {
   ensureCorpRefineryModel(corp);
+  // ISP-189 (AB#883): the Synthesis Array's runs complete exactly as a refinery's do.
+  for (const list of Object.values(FACILITY_LISTS)) (corp[list] || []).forEach((ref) => completeRun(corp, ref, now));
+}
 
-  corp.refineries.forEach((ref) => {
+/** Deliver a facility's run if it has finished, and free the facility. */
+function completeRun(corp, ref, now) {
+  {
     if (!ref.active || !ref.chainId) return;
 
     // AB#825: a cycle delivers what it recorded at its start, even if its chain has since changed or gone. One started
@@ -117,6 +154,6 @@ export function applyRefineryOperations(corp, now = Date.now()) {
     ref.startedAt = null;
     ref.lastTickAt = null;
     ref.endsAt = null;
-  });
+  }
 }
 

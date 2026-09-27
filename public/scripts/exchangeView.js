@@ -31,7 +31,10 @@ export const SORTS = ["newest", "oldest", "price-asc", "price-desc", "qty-desc",
 /** ISP-208 (AB#903): whose player listings to show: everyone's, or only the viewer's conglomerate partners'. */
 export const SELLERS = ["all", "conglomerate"];
 
-export const DEFAULT_EXCHANGE_VIEW = Object.freeze({ resource: "", type: "all", sort: "newest", sellers: "all" });
+/** AB#884: which item tier to show: every tier ("") or one (the catalog's tier, data/items.json). */
+export const TIERS = ["", "1", "2", "3", "4"];
+
+export const DEFAULT_EXCHANGE_VIEW = Object.freeze({ resource: "", type: "all", sort: "newest", sellers: "all", tier: "" });
 
 /** Longer than any resource name, short enough that nothing unbounded is kept. */
 const RESOURCE_MAX_LENGTH = 40;
@@ -44,7 +47,8 @@ export function normalizeExchangeView(raw) {
     resource,
     type: ORDER_TYPES.includes(view.type) ? view.type : DEFAULT_EXCHANGE_VIEW.type,
     sort: SORTS.includes(view.sort) ? view.sort : DEFAULT_EXCHANGE_VIEW.sort,
-    sellers: SELLERS.includes(view.sellers) ? view.sellers : DEFAULT_EXCHANGE_VIEW.sellers
+    sellers: SELLERS.includes(view.sellers) ? view.sellers : DEFAULT_EXCHANGE_VIEW.sellers,
+    tier: TIERS.includes(view.tier) ? view.tier : DEFAULT_EXCHANGE_VIEW.tier
   };
 }
 
@@ -100,13 +104,15 @@ export function orderComparator(sort) {
 
 /**
  * The orders of one resource (or all), sorted; a new array, so the caller's list is never reordered. ISP-208 (AB#903):
- * with `sellers: "conglomerate"` and a `partners` set, only listings whose seller is a current partner.
+ * with `sellers: "conglomerate"` and a `partners` set, only listings whose seller is a current partner. AB#884: with a
+ * `tier` and the items' tiers (`tierOf`, the market's itemTiers), only that tier's items.
  */
-export function viewOrders(orders, { resource = "", sort = DEFAULT_EXCHANGE_VIEW.sort, sellers = "all" } = {}, { partners = null } = {}) {
+export function viewOrders(orders, { resource = "", sort = DEFAULT_EXCHANGE_VIEW.sort, sellers = "all", tier = "" } = {}, { partners = null, tierOf = null } = {}) {
   const list = Array.isArray(orders) ? orders : [];
   const partnerOnly = sellers === "conglomerate" && partners;
   return list
     .filter((o) => !resource || o?.item === resource)
+    .filter((o) => !tier || !tierOf || String(tierOf[o?.item]) === tier)
     .filter((o) => !partnerOnly || partners.has(sellerKey(o?.seller)))
     .sort(orderComparator(sort));
 }
@@ -143,9 +149,9 @@ export function cappedNote(shown, total, label) {
  * What a table says when its orders exist but the resource filter hides them all: which filter did it, how many it
  * hides, and a way out. Kept apart from the "nothing listed yet" line, which is plain muted text.
  */
-export function filteredEmptyHtml(label, resource, hiddenCount) {
+export function filteredEmptyHtml(label, resource, hiddenCount, filter = "resource") {
   const noun = hiddenCount === 1 ? "order" : "orders";
   // ISP-80 (AB#769): a design-system empty state; the button is found by its data attribute.
-  return `<p class="ui-state__why">No ${escapeHtml(label)} for <strong>${escapeHtml(resource)}</strong>: the resource filter is hiding ${Number(hiddenCount) || 0} other ${noun}.</p>
+  return `<p class="ui-state__why">No ${escapeHtml(label)} for <strong>${escapeHtml(resource)}</strong>: the ${escapeHtml(filter)} filter is hiding ${Number(hiddenCount) || 0} other ${noun}.</p>
     <button class="ui-button ui-button--secondary" type="button" data-clear-filters>Clear filters</button>`;
 }

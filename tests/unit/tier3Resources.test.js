@@ -54,7 +54,8 @@ describe("the v0.8 resource catalogue matches the build (AB#822)", () => {
   });
 
   it("has every chain product at Tier 3 in the item catalog (section 1: made, never mined)", () => {
-    for (const c of CHAINS.chains) for (const o of c.outputs) {
+    // ISP-189 (AB#883): the Synthesis Array's products are Tier 4 (v0.11-tier4.md, section 2), not this design's.
+    for (const c of CHAINS.chains.filter((x) => x.building !== "synthesis-array")) for (const o of c.outputs) {
       expect(ITEMS.find((i) => i.name === o.item), o.item).toMatchObject({ tier: 3, category: "refined" });
     }
   });
