@@ -6,5 +6,5 @@
   "listing": { "minLevel": 15, "grades": ["AAA", "AA", "A", "BBB"], "minStatements": 30, "feePct": 1 },
   "buyerMinLevel": 8,
   "offering": { "minQuantity": 100, "maxPctOfOutstanding": 20, "founderFloorPct": 51, "holderCapPct": 20, "feePct": 2, "openDays": 7, "cadenceDays": 30 },
-  "marketMaker": { "id": "igsx-mm", "account": "tap:igsx", "yieldFloorPct": 0.5, "yieldSpanPct": 2, "gradeFactor": { "AAA": 1, "AA": 1, "A": 1, "BBB": 0.75 } }
+  "marketMaker": { "id": "igsx-mm", "account": "tap:igsx", "yieldFloorPct": 0.5, "yieldSpanPct": 2, "gradeFactor": { "AAA": 1, "AA": 1, "A": 1, "BBB": 0.75 }, "exitSpreadPct": 5, "exitDailyPctOfOutstanding": 1 }
 }

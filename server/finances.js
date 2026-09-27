@@ -220,6 +220,14 @@ const operating = (o) => Object.fromEntries(Object.entries(o || {}).filter(([k])
  * outflows; `unrecorded` is the difference, 0 unless something moved credits outside the ledger, and is shown rather
  * than hidden so a statement never claims more than it knows.
  */
+/**
+ * ISP-160 (AB#854): what a corporation's share holdings are worth, for the balance sheet. It needs every issuer's
+ * statements, which this module does not see, so server/shareOfferings.js sets it when it loads; until then (a test
+ * that never loads the exchange) holdings count as 0.
+ */
+let valueHoldings = () => 0;
+export function setHoldingsValuer(fn) { valueHoldings = typeof fn === "function" ? fn : () => 0; }
+
 export function closeDay(corp, dayStart, market = null) {
   const f = corp?.finances || {};
   const book = f.dayBook && f.dayBook.dayStart === dayStart ? f.dayBook : null;
@@ -232,6 +240,7 @@ export function closeDay(corp, dayStart, market = null) {
   const facilities = Math.max(0, Math.round(Number(f.assets) || 0));
   const inventory = market ? valueInventory(corp, market) : Math.max(0, Math.round(Number(f.inventoryValue) || 0));
   const liabilities = computeLiveLiabilities(corp);
+  const holdings = Math.max(0, Math.round(Number(valueHoldings(corp)) || 0)); // AB#854: shares at the Board's value
   return {
     day: new Date(dayStart).toISOString().slice(0, 10),
     dayStart,
@@ -241,9 +250,10 @@ export function closeDay(corp, dayStart, market = null) {
       credits: closing,
       facilities,
       inventory,
+      holdings,
       liabilities,
-      totalAssets: closing + facilities + inventory,
-      netWorth: closing + facilities + inventory - liabilities
+      totalAssets: closing + facilities + inventory + holdings,
+      netWorth: closing + facilities + inventory + holdings - liabilities
     }
   };
 }

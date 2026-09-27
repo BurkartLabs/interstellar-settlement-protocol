@@ -181,6 +181,8 @@ export const ACCOUNT_INPUT = {
   "POST /equity/offerings": { body: { quantity: int(100, 90_000, "a number of shares to offer, at least 100") } },
   "POST /equity/payout-ratio": { body: { payoutRatioPct: choice(Array.from({ length: 17 }, (_, i) => i * 5), "a payout ratio of 0 to 80%, in steps of 5") } }, // ISP-159 (AB#853)
   "POST /equity/offerings/:offeringId/buy": { params: { offeringId: ref("a share offering") }, body: { quantity: int(1, 90_000, "a number of shares") } },
+  "GET /equity/holdings": NOTHING, // ISP-160 (AB#854)
+  "POST /equity/holdings/:issuerCorpId/exit": { params: { issuerCorpId: ref("a corporation you hold shares in") }, body: { quantity: int(1, 90_000, "a number of shares") } },
   "POST /bonds/:seriesId/subscribe": { params: { seriesId: ref("a bond series") }, body: { units: int(1, BOND_TERMS.maxQuantity, "a number of units") } },
   // ISP-152 (AB#846): player loan offers. Numbers and enums only; the floor rate and the per-pair cap are the route's too.
   "GET /loan-offers": NOTHING,
