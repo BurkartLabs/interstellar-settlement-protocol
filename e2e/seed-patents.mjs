@@ -3,8 +3,8 @@
 // it at 4%; Halcyon Mining patented Actinide Handling at 15%; Nova Freight, docked at Earth Station Prime (where the
 // Registry is), patented Deep-Core Extraction at 12%, completed Fusion Fuel Cycle first five hours ago (so it may still
 // file), and has run Kestrel's chain since, with a Refinery and 800 Nickel-Iron Alloy on hand. What is set rather than
-// played: the completion records (as the R&D tick and a run's delivery write them), and the royalties on Nova's
-// statements, because charging them is ISP-236 (AB#931), not on main yet.
+// played: the completion records (as the R&D tick and a run's delivery write them), and the royalty totals on Nova's
+// statements (ISP-236's patentTick books them; tests/integration/patent-office.test.js plays one through it).
 //
 // Usage: node e2e/seed-patents.mjs <dataDir> <password>   (prints the logins as JSON)
 import fs from "node:fs";
@@ -21,7 +21,7 @@ const store = await import("../server/gameState.js");
 const { accountsStore } = await import("../server/game/store.js");
 const { issueVerificationToken, verifyEmailToken } = await import("../server/emailVerification.js");
 const { filePatent } = await import("../server/patents.js");
-const { ROYALTY_CATEGORY } = await import("../public/scripts/patentRoyalty.js");
+const { ROYALTY_PAID, ROYALTY_RECEIVED } = await import("../public/scripts/patentRoyalty.js");
 
 const H = 3_600_000;
 const now = Date.now();
@@ -50,8 +50,8 @@ const nova = await corp("nova", "Nova Freight", (c) => {
   c.chainFirstRunAt = { "pressure-vessel-chain": now - 10 * H };
   c.refineries = [{ id: "ref-1", name: "Refinery #1", tier: 1, active: false, chainId: null, cyclesCompleted: 0, totalInputConsumed: 0, totalOutputProduced: 0 }];
   c.inventory = { "earth-station-prime": { "Nickel-Iron Alloy": 800 } };
-  c.finances.incomeBySource = { ...(c.finances.incomeBySource || {}), [ROYALTY_CATEGORY]: 9_000 };
-  c.finances.expensesByCategory = { ...(c.finances.expensesByCategory || {}), [ROYALTY_CATEGORY]: 1_290 };
+  c.finances.incomeBySource = { ...(c.finances.incomeBySource || {}), [ROYALTY_RECEIVED]: 9_000 };
+  c.finances.expensesByCategory = { ...(c.finances.expensesByCategory || {}), [ROYALTY_PAID]: 1_290 };
 });
 must(filePatent(kestrel, { kind: "chain", subjectId: "pressure-vessel-chain", ratePct: 4 }, now - 19 * H), "Kestrel's patent");
 must(filePatent(halcyon, { kind: "research", subjectId: "tt-actinide-handling", ratePct: 15 }, now - 39 * H), "Halcyon's patent");

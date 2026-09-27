@@ -90,7 +90,7 @@ export function payingHtml(office, ctx) {
     </li>`).join("");
   return `<section class="ui-panel station__panel patent-section" data-patent-paying-list aria-labelledby="patent-paying-title">
     <h3 id="patent-paying-title">Patents you pay royalties on</h3>
-    <p class="patent-total" data-role="royalties-paid">Royalties paid: <strong>${n(office.royalties.paid)} credits</strong></p>
+    <p class="patent-total" data-role="royalties-paid">Royalties paid: <strong>${n(office.royalties.paid)} credits</strong>${office.royalties.owed > 0 ? `; still owed to holders: <strong>${n(office.royalties.owed)} credits</strong>, half of each sale's proceeds going toward it` : ""}</p>
     ${rows
       ? `<ul class="patent-list">${rows}</ul><p class="ui-panel__meta">A royalty never stops you: the research finishes and the run delivers in full. What your credits cannot cover is owed to the holder, and half of each later sale's proceeds goes toward it.</p>`
       : `<p class="ui-panel__meta">None of the chains you run or the research you have completed is under another corporation's patent.</p>`}

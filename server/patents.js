@@ -22,7 +22,7 @@ import { applyCredits } from "./finances.js";
 import { ECONOMY } from "./economy.js";
 import { settleTransfer } from "./settlement.js";
 import { WARFARE_CATALOG } from "./warfare.js";
-import { ROYALTY_CATEGORY } from "../public/scripts/patentRoyalty.js"; // ISP-237 (AB#932): one name for both statements
+import { ROYALTY_PAID, ROYALTY_RECEIVED, royaltyOn } from "../public/scripts/patentRoyalty.js"; // ISP-237 (AB#932): the quote's arithmetic
 
 const FILE = path.join(dataDir, "patents.json");
 const HOUR = 3_600_000;
@@ -137,7 +137,7 @@ export function publicPatents(now = Date.now()) {
  * ISP-237 (AB#932): the Registry's patent office for one corporation. `filable`: what it may file now (patentable, not
  * patented, completed first by it on a server record, inside the window), with the window's end; `mine`: its patents;
  * `paying`: others' patents in force on chains it has run or research it completed after the filing; `royalties`: what
- * its statements carry under ROYALTY_CATEGORY both ways (ISP-236 books them). Null for an unknown account.
+ * its statements carry both ways (ISP-236 books them) and what it still owes holders. Null for an unknown account.
  */
 export function patentOffice(accountId, now = Date.now()) {
   const corp = accountsStore.accounts?.[accountId]?.state?.corp;
@@ -169,7 +169,11 @@ export function patentOffice(accountId, now = Date.now()) {
     filable,
     mine: views(store.patents.filter((p) => p.holder.publicId === corp.publicId)),
     paying: views(store.patents.filter((p) => p.holder.publicId !== corp.publicId && p.filedAt <= now && now < p.endsAt && uses(p))),
-    royalties: { received: Math.round(Number(finances.incomeBySource?.[ROYALTY_CATEGORY]) || 0), paid: Math.round(Number(finances.expensesByCategory?.[ROYALTY_CATEGORY]) || 0) }
+    royalties: {
+      received: Math.round(Number(finances.incomeBySource?.[ROYALTY_RECEIVED]) || 0),
+      paid: Math.round(Number(finances.expensesByCategory?.[ROYALTY_PAID]) || 0),
+      owed: Math.round(Object.values(corp.patentDebts || {}).reduce((s, v) => s + (Number(v) || 0), 0))
+    }
   };
 }
 
@@ -199,7 +203,7 @@ const royaltyBooks = () => { if (!Array.isArray(store.uses)) store.uses = []; if
 export function royaltyFor(corp, { kind, subjectId, at, base }) {
   const patent = patentInForce(kind, subjectId, at);
   if (!patent || patent.holder.publicId === corp?.publicId) return { patent: null, royalty: 0 };
-  return { patent, royalty: Math.round(Math.max(0, Number(base) || 0) * patent.ratePct / 100) };
+  return { patent, royalty: royaltyOn(Math.max(0, Number(base) || 0), patent.ratePct) }; // ISP-237 (AB#932): the quote's arithmetic
 }
 
 /** Inside a mutation of the user's state: charge its recorded uses. Returns the uses that owed a royalty. */

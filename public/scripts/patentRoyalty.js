@@ -1,12 +1,14 @@
 // public/scripts/patentRoyalty.js: a patent royalty's arithmetic (ISP-237, AB#932; docs/design/WARFARE.md, "Patents"),
 // shared by the quote a corporation sees before it starts a run of a patented chain and the settlement ISP-236 (AB#931)
-// charges when the run delivers, so the confirmation's number is the settlement's number (P-TWO-SOURCES). Pure.
+// charges when the use is recorded (server/patents.js royaltyFor), so the confirmation's number is the settlement's
+// number (P-TWO-SOURCES). Pure.
 //
 // The royalty on a chain is the holder's rate x the run's outputs at their standing bids' base price; on a research node,
 // the rate x the node's costCredits. Whole credits, rounded as the exchange tax and the tariff are.
 
-/** The statements' source for royalties, on both sides: the holder's income and the user's expense. */
-export const ROYALTY_CATEGORY = "patent-royalty";
+/** The statements' lines for royalties (ISP-236, server/finances.js): the user's expense and the holder's income. */
+export const ROYALTY_PAID = "patent-royalty";
+export const ROYALTY_RECEIVED = "patent-royalty-revenue";
 
 /** The royalty on `value` credits at `pct`, in whole credits. */
 export function royaltyOn(value, pct) {
