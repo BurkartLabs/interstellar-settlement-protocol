@@ -214,10 +214,11 @@ function fabricationTick() {
     }
     for (const job of troopsDone) {
       const unit = UNITS[job.unitId];
+      const garrisoned = job.unitId === "dt" ? " and joined the station garrison" : ""; // AB#1336: no id in the words
       const notification = addAccountNotification(accountId, {
         type: "infrastructure",
         title: "Troops Trained",
-        body: `${job.quantity} squad${job.quantity === 1 ? "" : "s"} of ${unit.name} finished training${job.unitId === "dt" ? " and joined the station garrison" : ""}.`
+        body: `${job.quantity} squad${job.quantity === 1 ? "" : "s"} of ${unit.name} finished training${garrisoned}.`
       });
       if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
     }
