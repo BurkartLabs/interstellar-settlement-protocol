@@ -70,6 +70,7 @@ export const appState = {
   // AB#2331: every belt slot as this account may see it (GET .../belt-compositions), and the hourly respawn chance.
   belts: {},
   beltRespawnChance: null,
+  remoteDispatchYieldPct: null, // Bug #4656
   inbox: {
     messages: [],
     folder: "inbox",          // active folder tab

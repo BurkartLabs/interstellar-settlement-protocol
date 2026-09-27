@@ -1496,7 +1496,11 @@ export function createStarmapController({
           const probeCount = am.probeCount || 0;
           const maxDeployments = am.maxDeployments || 1;
           const activeCount = (am.activeExpeditions || []).length;
-          const canLaunch = !isEmptySlot && isBeltScouted && probeCount > 0 && activeCount < maxDeployments && inSameSystem;
+          // Bug #4656: a belt a conglomerate partner scouted can be launched to from any system the research reaches,
+          // for a share of the yield (the server decides again: server/routes/asteroids.js)
+          const remoteLaunch = !inSameSystem && Boolean(slot?.sharedBy?.length) && canTravelToSystem(system.id);
+          const canLaunch = !isEmptySlot && isBeltScouted && probeCount > 0 && activeCount < maxDeployments && (inSameSystem || remoteLaunch);
+          const remotePct = am.remoteDispatchYieldPct ?? 50;
 
           let activeExpHtml = "";
           if (activeExps.length > 0) {
@@ -1531,13 +1535,14 @@ export function createStarmapController({
                     <option value="extended">Deep Core Drill (2 hr)</option>
                   </select>
                 </div>
-                <div><button id="launch-expedition-btn" class="ui-button ui-button--secondary" type="button">Launch Expedition (¤3,000)</button></div>
+                ${remoteLaunch ? `<p class="ui-panel__meta belt-remote" data-belt-remote>Remote launch on your partner's scouting: you are not in ${escapeHtmlAttr(system.name)}, so the probe works at range and brings home <strong>${remotePct}%</strong> of what it mines. The ore lands at this system's station.</p>` : ""}
+                <div><button id="launch-expedition-btn" class="ui-button ui-button--secondary" type="button">${remoteLaunch ? "Launch Remote Expedition" : "Launch Expedition"} (¤3,000)</button></div>
               ` : isEmptySlot
                 ? "" // AB#2331: the empty state above says why, and when
                 : !isBeltScouted
                 ? `<p class="ui-panel__meta">Scout this asteroid belt before launching expeditions.</p>`
                 : !inSameSystem
-                ? `<p class="ui-panel__meta">You must be in this system to launch expeditions.</p>`
+                ? `<p class="ui-panel__meta">${slot?.sharedBy?.length ? "Your research does not reach this system yet, so a probe cannot be launched to it from here." : "You must be in this system to launch expeditions. A belt a conglomerate partner has scouted can be launched to from anywhere your research reaches."}</p>`
                 : probeCount <= 0
                   ? `<p class="ui-panel__meta">No probes available. Fabricate probes at your Assembly Facility.</p>`
                   : `<p class="ui-panel__meta">All deployment slots occupied. Wait for a probe to return.</p>`

@@ -125,6 +125,7 @@ export async function refreshBeltCompositions() {
     appState.beltCompositions = data.compositions || {};
     appState.belts = data.belts || {};
     appState.beltRespawnChance = data.respawnChancePerHour ?? null;
+    appState.remoteDispatchYieldPct = data.remoteDispatchYieldPct ?? null; // Bug #4656
   } catch (_) { /* silent */ }
 }
 
@@ -133,7 +134,7 @@ export async function refreshBeltCompositions() {
  * before, a reload never fetched them, so a scouted belt showed neither its composition nor a Scout button. */
 export function loadBeltCompositionsIntoStarmap() {
   return refreshBeltCompositions().then(() => starmap.setAsteroidMining(starmapMiningState(appState.data, appState.beltCompositions,
-    { belts: appState.belts, respawnChancePerHour: appState.beltRespawnChance })));
+    { belts: appState.belts, respawnChancePerHour: appState.beltRespawnChance, remoteDispatchYieldPct: appState.remoteDispatchYieldPct })));
 }
 
 /**

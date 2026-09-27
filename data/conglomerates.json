@@ -62,6 +62,7 @@
   ],
 
   "poolingFeePct": 2,
+  "remoteDispatchYieldPct": 50,
   "founderWithdrawPct": 20,
   "directorWithdrawPct": 5,
   "directorWithdrawMax": 50000,

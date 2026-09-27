@@ -14,6 +14,7 @@ export function starmapMiningState(data, beltCompositions, beltSlots = {}) {
     beltCompositions: beltCompositions || {},
     // AB#2331: each slot's state (present, generation, next draw; for a scouted belt its rarity and reserve)
     belts: beltSlots.belts || {},
-    respawnChancePerHour: beltSlots.respawnChancePerHour ?? null
+    respawnChancePerHour: beltSlots.respawnChancePerHour ?? null,
+    remoteDispatchYieldPct: beltSlots.remoteDispatchYieldPct ?? null // Bug #4656: a remote launch's share of the yield
   };
 }

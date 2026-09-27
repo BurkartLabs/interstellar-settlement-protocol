@@ -24,12 +24,12 @@ describe("the conglomerate probe (AB#914)", () => {
       register: async () => { const { account } = await registerAccount(app); return { id: account.id, token: await longLivedAccessToken(account.id) }; },
       setTime: (t) => vi.setSystemTime(t),
       start: START,
-      sizes: FULL ? SIZES : [5],
+      sizes: process.env.CONGLOMERATE_PROBE_SIZES ? process.env.CONGLOMERATE_PROBE_SIZES.split(",").map(Number) : FULL ? SIZES : [5], // e.g. "100" to look at one size
       days: FULL ? 7 : 3
     });
     console.log(`\n${formatReport(report)}\n`);
     expect(report.botDays).toBe(report.accounts * (FULL ? 7 : 3)); // never a green run of nothing
     expect(report.rows.every((r) => Number.isFinite(r.member) && Number.isFinite(r.solo))).toBe(true);
     expect(targets(report)).toHaveLength(2);
-  }, FULL ? 1_800_000 : 240_000);
+  }, FULL || process.env.CONGLOMERATE_PROBE_SIZES ? 1_800_000 : 240_000);
 });

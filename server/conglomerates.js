@@ -29,7 +29,7 @@ const SCALARS = {
   minFounderAgeDays: COUNT, charterFee: POSITIVE, charterDeposit: COUNT, emblems: POSITIVE, colours: POSITIVE,
   inviteExpiryDays: POSITIVE, applicationExpiryDays: POSITIVE, invitesPerDay: POSITIVE, joinCooldownHours: COUNT, nameReleaseDays: COUNT,
   maxDirectors: POSITIVE, founderAbsentDays: POSITIVE, upkeepBase: COUNT, upkeepPerMemberStep: COUNT, upkeepMinMembers: POSITIVE,
-  arrearsDropDays: POSITIVE, levelReserveDays: COUNT, levelFillPct: PCT, poolingFeePct: PCT, founderWithdrawPct: PCT,
+  arrearsDropDays: POSITIVE, levelReserveDays: COUNT, levelFillPct: PCT, poolingFeePct: PCT, remoteDispatchYieldPct: PCT, founderWithdrawPct: PCT,
   directorWithdrawPct: PCT, directorWithdrawMax: COUNT, memberGoodsWithdrawPct: PCT, withdrawalNoticePct: PCT,
   withdrawalDelayHours: COUNT, stationMinLevel: POSITIVE, stationCostCredits: POSITIVE, stationBuildDays: POSITIVE,
   stationMemberRentPct: PCT, stationVoteHours: POSITIVE, assetSafetyFeePct: PCT, stakeBuyoutLeftPct: PCT,
