@@ -472,6 +472,15 @@ const BACK_TARGET_PAD = 6;
  * the button's width (67px for "Back To Cluster") about its centre, tested before any body, so on a phone every belt
  * drawn beside the button (AB#1287 cleared the drawn button, not that circle) went back to the cluster when tapped.
  */
+/**
+ * Bug #4687: the y of the right-hand of two back buttons. On a phone Bug #1286 pulls it left to stay on the canvas, and
+ * there it ran over the left one; when it would come within 6px it drops one target's height lower instead, so neither
+ * the buttons nor their tap targets overlap.
+ */
+export function rightBackButtonY(leftX, leftWidth, rightX, rightWidth, y = 36) {
+  return rightX - rightWidth / 2 < leftX + leftWidth / 2 + 6 ? y + BACK_BUTTON_HEIGHT + BACK_TARGET_PAD * 2 + 2 : y;
+}
+
 export function backButtonTarget(type, x, y, width) {
   return { type, x, y, w: width + BACK_TARGET_PAD * 2, h: BACK_BUTTON_HEIGHT + BACK_TARGET_PAD * 2 };
 }
@@ -1169,10 +1178,11 @@ export function createStarmapController({
     state.clickTargets = [];
     const backSysWidth = drawBackButton("Back To System", 108, 36);
     const backClusterX = rightBackButtonX("Back To Cluster", 250, width);
-    const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, 36);
+    const backClusterY = rightBackButtonY(108, backButtonWidth("Back To System"), backClusterX, backButtonWidth("Back To Cluster"));
+    const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, backClusterY);
 
     state.clickTargets.push(backButtonTarget("back-to-system", 108, 36, backSysWidth));
-    state.clickTargets.push(backButtonTarget("back-to-cluster", backClusterX, 36, backClusterWidth));
+    state.clickTargets.push(backButtonTarget("back-to-cluster", backClusterX, backClusterY, backClusterWidth));
 
     if (body.type === "Field") {
       const beltRadius = Math.min(width, height) * 0.2;
@@ -1276,10 +1286,11 @@ export function createStarmapController({
     state.clickTargets = [];
     const backBodyWidth = drawBackButton("Back To Belt", 98, 36);
     const backSystemX = rightBackButtonX("Back To System", 228, width);
-    const backSystemWidth = drawBackButton("Back To System", backSystemX, 36);
+    const backSystemY = rightBackButtonY(98, backButtonWidth("Back To Belt"), backSystemX, backButtonWidth("Back To System"));
+    const backSystemWidth = drawBackButton("Back To System", backSystemX, backSystemY);
 
     state.clickTargets.push(backButtonTarget("back-to-body", 98, 36, backBodyWidth));
-    state.clickTargets.push(backButtonTarget("back-to-system", backSystemX, 36, backSystemWidth));
+    state.clickTargets.push(backButtonTarget("back-to-system", backSystemX, backSystemY, backSystemWidth));
 
     const seed = hashSeed(asteroidId || `${system.id}:${body.id}:ast-0`);
     const radius = Math.min(width, height) * 0.11;
