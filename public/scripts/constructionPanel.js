@@ -62,7 +62,10 @@ export function constructionRow(building, corp = {}, { researchName = (id) => id
     else if (Number(corp.finances?.credits || 0) < cost) row.reason = `Needs ${money(cost)}; you have ${money(Number(corp.finances?.credits || 0))}.`;
     return row;
   }
-  if (missing) row.reason = `Requires ${researchName(missing)} research.`;
+  const level = Number(corp.level) || 0;
+  // ISP-170 (AB#864): the level first, as server/playerBuildings.js catalogueRefusal refuses it first
+  if (building.minLevel && level < building.minLevel) row.reason = `Requires Corporation Level ${building.minLevel} (you are level ${level}).`;
+  else if (missing) row.reason = `Requires ${researchName(missing)} research.`;
   else if (cap !== undefined && built >= cap) row.reason = `Built: your corporation operates the most it may, ${cap}.`;
   else if (onLease(building) && !leases.length) row.reason = leaseReason(building, corp);
   else if (used >= slots) row.reason = `No free building slot: ${used} of ${slots} in use.`;

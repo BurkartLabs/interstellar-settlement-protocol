@@ -115,3 +115,20 @@ describe("the construction panel (ISP-95)", () => {
     expect(slotCounterText({})).toBe("Building slots: 0 of 2 in use.");
   });
 });
+
+// ISP-170 (AB#864): the Orbital Shipyard's row names the level first, then the research, as the server refuses them.
+describe("the Orbital Shipyard's row (AB#864)", () => {
+  const yard = { id: "orbital-shipyard", name: "Orbital Shipyard", slot: "corporation", researchGates: ["tt-fleet-coordination"], minLevel: 10, cap: { perCorporation: 1 }, cost: 150000 };
+  const corp = (over) => ({ level: 10, unlockedTech: ["tt-fleet-coordination"], buildings: [{ name: "Headquarters" }], buildingSlots: 4, finances: { credits: 200000 }, ...over });
+  const name = { researchName: (id) => (id === "tt-fleet-coordination" ? "Fleet Coordination Matrix" : id) };
+
+  it("says the level it needs and the corporation's own, before the research", () => {
+    expect(constructionRow(yard, corp({ level: 7, unlockedTech: [] }), name).reason).toBe("Requires Corporation Level 10 (you are level 7).");
+    expect(constructionRow(yard, corp({ unlockedTech: [] }), name).reason).toBe("Requires Fleet Coordination Matrix research.");
+  });
+
+  it("offers Build once every gate is met, and says Built when it stands", () => {
+    expect(constructionRow(yard, corp(), name).reason).toBe("");
+    expect(constructionRow(yard, corp({ buildings: [{ name: "Headquarters" }, { name: "Orbital Shipyard" }] }), name).reason).toBe("Built: your corporation operates the most it may, 1.");
+  });
+});

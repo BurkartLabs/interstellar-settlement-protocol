@@ -22,11 +22,11 @@ export const UNIT_FIELDS = Object.freeze({
  */
 export const BUILD_SITES_OUTSIDE_CATALOGUE = Object.freeze({ headquarters: "every corporation's Headquarters" });
 /**
- * Build sites the design names that no catalogue has yet, each with the story that adds it. The Orbital Shipyard
- * becomes a player building in ISP-170 (AB#864); until then no unit can be built there, and nothing offers to. A site
- * here that a catalogue has gained fails tests/schema/units.test.js, so this list only shrinks.
+ * Build sites the design names that no catalogue has yet, each with the story that adds it. Empty since ISP-170 (AB#864)
+ * made the Orbital Shipyard a player building. A site here that a catalogue has gained fails tests/schema/units.test.js,
+ * so this list only shrinks.
  */
-export const PENDING_BUILD_SITES = Object.freeze({ "orbital-shipyard": "ISP-170 (AB#864)" });
+export const PENDING_BUILD_SITES = Object.freeze({}); // ISP-170 (AB#864) catalogued the Orbital Shipyard
 
 const playerBuildingIds = () =>
   JSON.parse(fs.readFileSync(path.join(catalogueDir, "player-buildings.json"), "utf8")).buildings.map((b) => b.id);

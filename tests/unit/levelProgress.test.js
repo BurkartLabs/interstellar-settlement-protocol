@@ -70,7 +70,7 @@ describe("statistics are kept through one helper (Bug #424)", () => {
 
   it("lists the statistics and buildings the ladder may name", () => {
     expect(STAT_KEYS).toEqual(expect.arrayContaining(["officeRented", "miningLeasesCount", "missionsCompleted", "silicateSoldOnExchange", "refinedUnitsProduced", "asteroidExpeditionsCompleted"]));
-    expect([...PLAYER_BUILDINGS].sort()).toEqual(["Assembly Facility", "Basic Extractor Yard", "Cryo-vapor Extractor Array", "Ferric Mining Complex", "Refinery", "Refinery Complex"]);
+    expect([...PLAYER_BUILDINGS].sort()).toEqual(["Assembly Facility", "Basic Extractor Yard", "Cryo-vapor Extractor Array", "Ferric Mining Complex", "Orbital Shipyard", "Refinery", "Refinery Complex"]);
   });
 
   it("counts refined units when a refinery cycle completes", () => {
