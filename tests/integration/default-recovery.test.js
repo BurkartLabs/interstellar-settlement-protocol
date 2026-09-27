@@ -80,6 +80,7 @@ describe("recovering a defaulted player loan (AB#993)", () => {
     expect((Number(settlementTotals().sinks?.fee) || 0) - feesBefore).toBe(100);
     // one Refinery sold at 40% of 75,000 = 30,000; after 3,000 in credits and the goods, 30,000 more than covers the rest
     const goods = units * bid;
+    expect(rec.result.applied).toEqual({ fromCredits: 3_000, fromGoods: goods, fromHoldings: 0, fromAssets: 22_000 - 3_000 - goods }); // AB#847: what each step put toward the debt
     expect(debtor.corp().buildings.filter((b) => b.name === "Refinery")).toHaveLength(1);
     expect(debtor.credits()).toBe(3_000 + goods + 30_000 - 22_000); // the surplus stays with the debtor
     expect(debtor.corp().inventory["earth-station-prime"]?.[item] || 0).toBe(0);

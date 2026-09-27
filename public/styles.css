@@ -720,6 +720,16 @@ button:disabled {
 .bank-loan__badge { color: var(--danger); border-color: currentColor; }
 .bank-loan__badge--ok { color: var(--success); }
 .bank-loan__arrears { color: var(--danger); }
+/* ISP-153 (AB#847): the loan board, in the Bank */
+.loan-board__controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); margin-bottom: var(--space-3); }
+.loan-board__only { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; font-size: var(--font-size-2); }
+.loan-board__only input { width: 22px; height: 22px; }
+.loan-board__offers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: var(--space-3); }
+.loan-offer--mine { border-style: dashed; }
+.loan-offer__why { margin: 0; }
+.loan-grade { margin-left: var(--space-1); }
+.loan-warning { margin-top: var(--space-2); padding: var(--space-3); border: 1px solid var(--danger); border-radius: var(--radius-md); color: var(--text); background: var(--surface-2); line-height: var(--line-height-body); }
+.loan-recovered dd { overflow-wrap: anywhere; }
 
 /* ISP-200 (AB#894): the Conglomerate Affairs Bureau's view */
 .cong-body { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -4567,7 +4577,7 @@ img.station__body {
 
 /* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */
 @media (max-width: 600px) {
-  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .thread__meta, .thread__older, .thread__body, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-kv, .station__overline, .station__note, .station__hint, .station__flavor, .station__blocked, .station__form label, .extractor__stat-label, .extractor__stat-value, .extractor__pct, .extractor__time, .extractor__cycle-status, .chat__meta, .chat__text, .forums__note, .forums__avatar, .forums__author, .forums__body, .missions__note, .missions__hint, .missions__overline, .missions__reward, .missions__cta, .missions__log-title, .missions__warning, .missions__levelup) {
+  .ui-screen :is(.ui-button, .ui-input, .ui-select, .ui-tab, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .ui-card__meta, .ui-panel__meta, .ui-screen__lede, .ui-screen__meta, .ui-state__why, .ui-list, .ui-table, .ui-table th, .inbox__body, .thread__meta, .thread__older, .thread__body, .bank-quote-form__field, .bank-loan__terms dt, .bank-quote__terms dt, .loan-board__only, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-kv, .station__overline, .station__note, .station__hint, .station__flavor, .station__blocked, .station__form label, .extractor__stat-label, .extractor__stat-value, .extractor__pct, .extractor__time, .extractor__cycle-status, .chat__meta, .chat__text, .forums__note, .forums__avatar, .forums__author, .forums__body, .missions__note, .missions__hint, .missions__overline, .missions__reward, .missions__cta, .missions__log-title, .missions__warning, .missions__levelup) {
     font-size: var(--font-size-3);
   }
   .ui-screen .ui-table td::before {

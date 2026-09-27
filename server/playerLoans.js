@@ -203,3 +203,48 @@ export function loanView(loan) {
   const { lender, ...rest } = loan;
   return { ...rest, lender: lender?.kind === "player" ? { ...lender, name: corpOf(accountIdOfCorp(lender.corpId))?.corporationName ?? "A former corporation" } : lender };
 }
+
+// ─── ISP-153 (AB#847): what the loan board shows ────────────────────────────
+/** The credit grade a corporation borrows at now, from its statements: what an offer's minimum grade is checked against. */
+export function gradeOf(accountId, now) {
+  const corp = corpOf(accountId);
+  return corp ? computeCreditRating(corp, now, getStatements(accountId, 30, now)?.statements ?? []).grade : "NR";
+}
+
+/** A recovery as the loan board shows it: when the sale is, or what was taken and from what (AB#993). */
+function recoveryView(corp, loanId) {
+  const r = [...(corp?.recoveries || [])].reverse().find((x) => x?.loanId === loanId);
+  if (!r) return null;
+  return { state: r.state, warnedAt: r.warnedAt, saleAt: r.saleAt, closedAt: r.closedAt ?? null, result: r.result ?? null };
+}
+
+const loanSummary = (loan) => ({
+  id: loan.id, principal: loan.principal, ratePct30: loan.ratePct30, termDays: loan.termDays, dailyPayment: loan.dailyPayment,
+  balance: loan.balance, arrears: loan.arrears || 0, state: loan.state, paymentsMade: loan.paymentsMade, nextDueAt: loan.nextDueAt,
+  arrearsSince: loan.arrearsSince ?? null, defaultedAt: loan.defaultedAt ?? null, openedAt: loan.openedAt, closedAt: loan.closedAt ?? null
+});
+
+/**
+ * The corporation's player loans both ways: `borrowed` (with the lender's name) and `lent` (with each borrower's name
+ * and current grade, so a lender sees the risk it holds). No account id is in either.
+ */
+export function playerLoansOf(accountId, now) {
+  const me = corpOf(accountId);
+  if (!me) return { lent: [], borrowed: [] };
+  const borrowed = (me.loans || []).filter((l) => l?.lender?.kind === "player").map((l) => ({
+    ...loanSummary(l), lenderCorpId: l.lender.corpId, lenderName: corpOf(accountIdOfCorp(l.lender.corpId))?.corporationName ?? "A former corporation",
+    recovery: recoveryView(me, l.id)
+  }));
+  const lent = [];
+  if (me.publicId) {
+    for (const [borrowerId, account] of Object.entries(accountsStore.accounts || {})) {
+      for (const l of account?.state?.corp?.loans || []) {
+        if (l?.lender?.kind !== "player" || l.lender.corpId !== me.publicId) continue;
+        const b = account.state.corp;
+        lent.push({ ...loanSummary(l), borrowerCorpId: b.publicId ?? null, borrowerName: b.corporationName || "A corporation", borrowerGrade: gradeOf(borrowerId, now), recovery: recoveryView(b, l.id) });
+      }
+    }
+  }
+  const newest = (a, b) => b.openedAt - a.openedAt;
+  return { lent: lent.sort(newest), borrowed: borrowed.sort(newest) };
+}

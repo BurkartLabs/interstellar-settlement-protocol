@@ -164,6 +164,7 @@ export const ACCOUNT_INPUT = {
   "POST /bonds/:seriesId/subscribe": { params: { seriesId: ref("a bond series") }, body: { units: int(1, BOND_TERMS.maxQuantity, "a number of units") } },
   // ISP-152 (AB#846): player loan offers. Numbers and enums only; the floor rate and the per-pair cap are the route's too.
   "GET /loan-offers": NOTHING,
+  "GET /player-loans": NOTHING, // ISP-153 (AB#847)
   "POST /loan-offers": {
     body: {
       principal: int(1_000, 100_000, "a principal from 1,000 to 100,000 credits"),
