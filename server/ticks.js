@@ -22,6 +22,7 @@ import { completeTroopJobs } from "./training.js"; // ISP-172 (AB#866)
 import { settleFleets } from "./fleets.js"; // ISP-174 (AB#868)
 import { expireOffers, settleContracts } from "./mercenaries.js"; // ISP-176 (AB#870)
 import { UNITS } from "./game/units.js";
+import { recordResearchUse } from "./patents.js"; // ISP-236 (AB#931)
 import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
 import { expeditionNotificationBody, expeditionPlaces, minutesEarly } from "./expeditionText.js"; // AB#1295, AB#2330
 import { emitBeltsChanged, emitMarketUpdated, emitToAccount } from "./realtime.js";
@@ -330,6 +331,7 @@ function processRndCompletions() {
         if (item.techId && !state.corp.unlockedTech.includes(item.techId)) {
           state.corp.unlockedTech.push(item.techId);
           state.corp.researchCompletedAt[item.techId] = rndItemEndsAt(item);
+          recordResearchUse(state.corp, item.techId, rndItemEndsAt(item)); // ISP-236 (AB#931): a patented node's royalty
         }
       }
       // By position, not id: two items queued in the same millisecond share an id.

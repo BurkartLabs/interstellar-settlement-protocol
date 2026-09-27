@@ -41,6 +41,7 @@ import { registerDominanceRoutes } from "./routes/dominance.js"; // ISP-217 (AB#
 import { registerControlRoutes } from "./routes/control.js"; // ISP-226 (AB#921)
 import { registerConcessionRoutes } from "./routes/concessions.js"; // ISP-227 (AB#922)
 import { registerPatentRoutes } from "./routes/patents.js"; // ISP-235 (AB#930)
+import { patentTick } from "./patents.js"; // ISP-236 (AB#931)
 import { concessionTick } from "./concessions.js"; // ISP-227 (AB#922)
 import { dominanceTick } from "./dominanceService.js"; // ISP-217 (AB#912)
 import { registerTariffRoutes } from "./routes/tariffs.js"; // ISP-230 (AB#925)
@@ -194,6 +195,7 @@ if (!process.env.ISP_DISABLE_TICKERS) { dominanceTick(Date.now()); setInterval((
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => concessionTick(Date.now()), 60_000); // ISP-227 (AB#922): reviews, renewals, the day's upkeep
 // ISP-230 (AB#925): each holder's tariffs, less the ISA's levy, paid once a UTC day
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => tariffTick(Date.now()), 60_000);
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => patentTick(Date.now()), 60_000); // ISP-236 (AB#931): royalties charged and paid
 // ISP-232 (AB#927): the ITC's dumping watch, once a UTC day: duties due, then the window that just closed
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => itcTick(Date.now()), 60_000);
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => raidTick(Date.now()), 30_000); // ISP-179 (AB#873): arrivals and returns

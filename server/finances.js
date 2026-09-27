@@ -101,7 +101,8 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "conglomerate-stake-buyout", // ISP-211 (AB#906): a departed corporation's station stake, paid out by the treasury
     "forced-sale", // ISP-286 (AB#993): goods and buildings sold to recover a defaulted player debt
     "concession-fee-share", // ISP-228 (AB#923): an ISA concession holder's share of the lease fees paid in its system
-    "tariff-revenue" // ISP-230 (AB#925): a concession holder's tariffs, less the ISA's levy, paid daily
+    "tariff-revenue", // ISP-230 (AB#925): a concession holder's tariffs, less the ISA's levy, paid daily
+    "patent-royalty-revenue" // ISP-236 (AB#931): royalties others paid on the corporation's patents
   ]),
   expense: Object.freeze([
     "hiring",
@@ -122,6 +123,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "exchange-tax",
     "lease-royalty", // ISP-302 (AB#2285): the royalty's share of a sale's tax, booked apart so it can be counted
     "tariff", // ISP-230 (AB#925): a concession holder's tariff on a sale or a transfer into its system
+    "patent-royalty", // ISP-236 (AB#931): royalty on another corporation's patented node or chain, at use or withheld from a sale
     "anti-dumping-duty", // ISP-232 (AB#927): the ITC's duty on dumped sales, levied or withheld from later sales
     "loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",
     "escrow-hold-paid", "fee-paid", // ISP-146 (AB#840): server/settlement.js

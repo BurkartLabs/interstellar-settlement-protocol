@@ -16,7 +16,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { dataDir, safeWriteFile, createId, REFINERY_CHAINS, RESEARCH_LIBRARY } from "./game/catalog.js";
-import { accountsStore } from "./game/store.js";
+import { accountsStore, mutateAccountState } from "./game/store.js";
+import { accountByCorp } from "./game/membership.js";
+import { applyCredits } from "./finances.js";
+import { ECONOMY } from "./economy.js";
 import { settleTransfer } from "./settlement.js";
 import { WARFARE_CATALOG } from "./warfare.js";
 import { ROYALTY_CATEGORY } from "../public/scripts/patentRoyalty.js"; // ISP-237 (AB#932): one name for both statements
@@ -177,5 +180,121 @@ export function patentInForce(kind, subjectId, now = Date.now()) {
 
 /** Tests only: forget every patent. */
 export function resetPatentsForTests() {
-  store = { patents: [] };
+  store = { patents: [], uses: [], accrued: {} };
 }
+
+// ─── Royalties (ISP-236, AB#931; WARFARE.md, "The royalty") ───────────────────
+// A use is recorded where it happens, on the user's own state (`patentUses`: research completing in the R&D tick, a run
+// delivering in the refinery code), and charged by patentTick: the rate in force at the moment of use times its base
+// (a node's research cost; a run's outputs at their standing bids' base), in whole credits. The holder pays nothing on
+// its own patent, and nothing is charged after the term. Credits pay what they can; the rest is the user's debt to
+// the holder, `patentDebts`, withheld from later sales at `patents.withholdPct`. Nothing is ever refused for it.
+// What is collected accrues to the holder and is paid by patentTick, so no sale or run moves two accounts at once.
+// Every use is kept (`uses`): what the Arbitration Council's patent-royalty claim sums (AB#919).
+
+const USES_KEPT = 10_000;
+const royaltyBooks = () => { if (!Array.isArray(store.uses)) store.uses = []; if (!store.accrued || typeof store.accrued !== "object") store.accrued = {}; return store; };
+
+/** The patent in force for a use, and the royalty it owes: 0 for the holder's own use, or when no patent is in force. */
+export function royaltyFor(corp, { kind, subjectId, at, base }) {
+  const patent = patentInForce(kind, subjectId, at);
+  if (!patent || patent.holder.publicId === corp?.publicId) return { patent: null, royalty: 0 };
+  return { patent, royalty: Math.round(Math.max(0, Number(base) || 0) * patent.ratePct / 100) };
+}
+
+/** Inside a mutation of the user's state: charge its recorded uses. Returns the uses that owed a royalty. */
+export function chargePendingUses(corp, now = Date.now()) {
+  const uses = Array.isArray(corp?.patentUses) ? corp.patentUses : [];
+  if (!corp || !uses.length) return [];
+  corp.patentUses = [];
+  const books = royaltyBooks();
+  const charged = [];
+  for (const raw of uses) {
+    // A run records what it delivered; its base is that at the standing bids' base (WARFARE.md)
+    const use = raw.kind === "chain" && raw.base === undefined ? { ...raw, base: runBase(raw.delivered) } : raw;
+    const { patent, royalty } = royaltyFor(corp, use);
+    if (!(royalty > 0)) continue;
+    const paid = Math.min(royalty, Math.max(0, Math.floor(Number(corp.finances?.credits) || 0)));
+    if (paid > 0) applyCredits(corp, -paid, "patent-royalty", now);
+    const owed = royalty - paid;
+    if (owed > 0) {
+      if (!corp.patentDebts || typeof corp.patentDebts !== "object") corp.patentDebts = {};
+      corp.patentDebts[patent.id] = (corp.patentDebts[patent.id] || 0) + owed;
+    }
+    books.accrued[patent.holder.publicId] = (books.accrued[patent.holder.publicId] || 0) + paid;
+    const record = { patentId: patent.id, user: corp.publicId, kind: use.kind, subjectId: use.subjectId, at: use.at, base: use.base, ratePct: patent.ratePct, royalty, paid };
+    books.uses.push(record);
+    charged.push(record);
+  }
+  if (books.uses.length > USES_KEPT) books.uses.splice(0, books.uses.length - USES_KEPT);
+  if (charged.length) save();
+  return charged;
+}
+
+/**
+ * Inside a sale's mutation of the seller: withhold `patents.withholdPct` of the sale's net proceeds toward its royalty
+ * debts, oldest first, and book it as patent royalty. Returns what was withheld (0 with no debt).
+ */
+export function withholdRoyaltyDebt(corp, proceeds, now = Date.now()) {
+  const debts = corp?.patentDebts;
+  if (!debts || !Object.keys(debts).length) return 0;
+  let room = Math.floor(Math.max(0, Number(proceeds) || 0) * terms().withholdPct / 100);
+  let taken = 0;
+  const books = royaltyBooks();
+  for (const id of Object.keys(debts)) {
+    const patent = store.patents.find((p) => p.id === id);
+    const x = patent ? Math.min(room, Math.max(0, debts[id])) : 0;
+    if (x > 0) {
+      books.accrued[patent.holder.publicId] = (books.accrued[patent.holder.publicId] || 0) + x;
+      patent.withheld = (patent.withheld || 0) + x;
+      debts[id] -= x;
+      room -= x;
+      taken += x;
+    }
+    if (!(debts[id] > 0)) delete debts[id];
+    if (room <= 0) break;
+  }
+  if (taken) { applyCredits(corp, -taken, "patent-royalty", now); save(); }
+  return taken;
+}
+
+/** Pay each holder what has accrued to it. A holder not found keeps its accrual. */
+export function payRoyalties(now = Date.now()) {
+  const books = royaltyBooks();
+  const paid = [];
+  for (const [publicId, credits] of Object.entries(books.accrued)) {
+    if (!(credits > 0)) { delete books.accrued[publicId]; continue; }
+    const account = accountByCorp(publicId);
+    if (!account?.state?.corp) continue;
+    mutateAccountState(account.id, (state) => { applyCredits(state.corp, credits, "patent-royalty-revenue", now); }, { sanitize: false, settleMining: false });
+    delete books.accrued[publicId];
+    paid.push({ publicId, credits });
+  }
+  if (paid.length) save();
+  return paid;
+}
+
+/** The minute tick: charge every corporation's recorded uses, then pay the holders. */
+export function patentTick(now = Date.now()) {
+  for (const [accountId, account] of Object.entries(accountsStore.accounts || {})) {
+    if (account?.state?.corp?.patentUses?.length) mutateAccountState(accountId, (state) => { chargePendingUses(state.corp, now); }, { sanitize: false, settleMining: false });
+  }
+  return payRoyalties(now);
+}
+
+/** Record a use on the user's own state, for patentTick to charge (only for a subject with a patent in force then). */
+export function recordPatentUse(corp, use) {
+  if (!corp || !patentInForce(use.kind, use.subjectId, use.at)) return;
+  if (!Array.isArray(corp.patentUses)) corp.patentUses = [];
+  corp.patentUses.push(use);
+}
+
+/** A research node completed at `at`: its base is the node's research cost. */
+export function recordResearchUse(corp, techId, at) {
+  const node = Object.hasOwn(RESEARCH_LIBRARY, techId) ? RESEARCH_LIBRARY[techId] : null;
+  if (node) recordPatentUse(corp, { kind: "research", subjectId: techId, at, base: Number(node.costCredits) || 0 });
+}
+
+/** A run's base: what it delivered at the standing bids' base (WARFARE.md). */
+export const runBase = (delivered) => (delivered || []).reduce((sum, { item, quantity }) => sum + (Number(quantity) || 0) * standingBase(item), 0);
+const standingBase = (item) => Number(ECONOMY.npcBuyers.find((b) => b.item === item)?.unitPrice) || 0;
