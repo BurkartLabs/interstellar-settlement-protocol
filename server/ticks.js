@@ -20,6 +20,7 @@ import { expeditionNotificationBody, expeditionPlaces, minutesEarly } from "./ex
 import { emitBeltsChanged, emitMarketUpdated, emitToAccount } from "./realtime.js";
 import { RATING, refreshCreditRating } from "./creditRating.js"; // ISP-147 (AB#841)
 import { getStatements } from "./gameState.js"; // ISP-147: the statements the rating reads
+import { statementsVersion } from "./game/store.js"; // AB#842: the rating's basis follows the statements file
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
 function getESTDateString() {
@@ -368,6 +369,7 @@ function financialSnapshotTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
     let finances = null;
+    let creditRating = null;
     mutateAccountState(accountId, (state) => {
       if (!state || !state.corp) return;
       refreshDailyRevenue(state.corp, now); // Bug #984: income older than 24 hours leaves the daily figure
@@ -375,13 +377,14 @@ function financialSnapshotTick() {
       const snap = buildSnapshot(state.corp, now, getState().market);
       pushSnapshot(state.corp, snap);
       // ISP-147 (AB#841): the credit rating, recomputed only when a statement closed or the debt or wages owed changed
-      refreshCreditRating(state.corp, now, () => getStatements(accountId, RATING.windowStatements, now)?.statements);
+      refreshCreditRating(state.corp, now, () => getStatements(accountId, RATING.windowStatements, now)?.statements, { statementsVersion: statementsVersion(accountId) });
       finances = state.corp.finances;
+      creditRating = state.corp.creditRating ?? null; // AB#842: the Finance tab's rating card rides on this event
     }, { sanitize: false, settleMining: false });
     if (finances) {
       // Reuse the existing finance:updated channel so clients refresh their snapshot-driven dashboard. Only this
       // account's sockets get it, with the account id so the client can check it (Bug #1021).
-      emitToAccount(accountId, "finance:updated", { accountId, finances });
+      emitToAccount(accountId, "finance:updated", { accountId, finances, creditRating });
     }
   }
 }

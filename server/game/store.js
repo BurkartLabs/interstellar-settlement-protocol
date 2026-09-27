@@ -290,6 +290,11 @@ export function sanitizeAccount(account) {
 
 
 /** A corporation's closed statements, oldest first; empty when it has none. */
+/** AB#842: the statements file's version (modified time, ms), 0 when there is none. The credit rating's basis. */
+export function statementsVersion(accountId) {
+  try { return fs.statSync(statementsFile(accountId)).mtimeMs; } catch { return 0; }
+}
+
 export function readStatements(accountId) {
   try {
     const list = JSON.parse(fs.readFileSync(statementsFile(accountId), "utf8"));

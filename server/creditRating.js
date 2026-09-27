@@ -61,12 +61,13 @@ const worse = (a, b) => (GRADES.indexOf(a) >= GRADES.indexOf(b) ? a : b);
  * and held, which is how a quote prices a loan by the grade after it (section 4, "Quoting uses the grade after the loan").
  */
 export function computeCreditRating(corp, now = Date.now(), statements = [], options = {}) {
-  const nr = (reason) => ({ grade: "NR", reason, inputs: null, computedAt: now });
+  // AB#842: NR says how many statements it had and how many it needs, for "Not rated: N more days of history needed"
+  const nr = (reason, have = 0) => ({ grade: "NR", reason, have, need: RATING.minStatements, inputs: null, computedAt: now });
   if (!Array.isArray(statements)) return nr("no statements");
   if (statements.some((st) => !readable(st))) return nr("a statement could not be read");
   const window = [...statements].sort((a, b) => a.dayStart - b.dayStart).slice(-RATING.windowStatements);
   const h = window.length;
-  if (h < RATING.minStatements) return nr(`${h} of ${RATING.minStatements} statements`);
+  if (h < RATING.minStatements) return nr(`${h} of ${RATING.minStatements} statements`, h);
 
   const extraDebt = Math.max(0, Number(options.proForma?.debt) || 0);
   const extraAssets = Math.max(0, Number(options.proForma?.assets) || 0);
@@ -115,11 +116,38 @@ export function computeCreditRating(corp, now = Date.now(), statements = [], opt
  * What the rating depends on that can change without a new statement, plus the open day (which moves when one
  * closes). The rating is recomputed when this differs from what it was computed on.
  */
-export function ratingBasis(corp, bonds = []) {
-  const day = Number(corp?.finances?.dayBook?.dayStart) || 0;
+export function ratingBasis(corp, bonds = [], statementsVersion = 0) {
+  // AB#842: the statements file's version (its modified time), not the open day: statements can also arrive by a
+  // restore or a migration, and a basis that missed them kept a stale NR. One stat per tick, not a read.
+  const day = `${Number(corp?.finances?.dayBook?.dayStart) || 0}:${Number(statementsVersion) || 0}`;
   const wages = (Number(corp?.finances?.payrollArrears) || 0) > 0 ? 1 : 0;
   const debt = instruments(corp, bonds).map((d) => `${d.state}:${d.owed}:${d.arrearsSince ?? ""}`).join(",");
   return `${day}|${wages}|${debt}`;
+}
+
+/** The band a sub-score falls in, for others to see (data/credit-rating.json, public.inputBands). */
+export function inputBand(sub) {
+  const bands = RATING.public.inputBands;
+  return (bands.find((b) => sub >= b.minSub) ?? bands[bands.length - 1]).band;
+}
+
+/**
+ * What another corporation may see of a rating (AB#842): the grade, the score in a band, each input's band, and
+ * when it was computed. Never a raw value, the score itself, a credit balance or a statement. `rating` is
+ * corp.creditRating; a corporation with none yet is NR.
+ */
+export function publicRating(rating) {
+  if (!rating || rating.grade === "NR" || !Number.isFinite(rating.score)) {
+    return { grade: "NR", scoreBand: null, inputs: null, computedAt: rating?.computedAt ?? null };
+  }
+  const w = RATING.public.scoreBandWidth;
+  const low = Math.floor(rating.score / w) * w;
+  return {
+    grade: rating.grade,
+    scoreBand: `${low}-${Math.min(1000, low + w - 1)}`,
+    inputs: Object.fromEntries(RATING.inputs.map((i) => [i.id, inputBand(Number(rating.inputs?.[i.id]?.sub) || 0)])),
+    computedAt: rating.computedAt ?? null
+  };
 }
 
 /**
@@ -128,7 +156,7 @@ export function ratingBasis(corp, bonds = []) {
  */
 export function refreshCreditRating(corp, now, loadStatements, options = {}) {
   if (!corp) return false;
-  const basis = ratingBasis(corp, options.bonds);
+  const basis = ratingBasis(corp, options.bonds, options.statementsVersion);
   if (corp.creditRating && corp.creditRating.basis === basis) return false;
   let statements;
   try { statements = loadStatements(); } catch { statements = null; }
