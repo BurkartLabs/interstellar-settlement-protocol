@@ -11,7 +11,7 @@ describe("recordTrade (AB#715)", () => {
   it("opens the day's bucket on the first trade", () => {
     const h = {};
     expect(recordTrade(h, "Silicates", 24, 100, T0)).toBe(true);
-    expect(h.Silicates).toEqual([{ day: "2147-03-10", open: 24, high: 24, low: 24, close: 24, volume: 100, trades: 1 }]);
+    expect(h.Silicates).toEqual([{ day: "2147-03-10", open: 24, high: 24, low: 24, close: 24, volume: 100, trades: 1, value: 2400 }]); // value: ISP-232 (AB#927)
   });
 
   it("raises the high on a higher trade and lowers the low on a lower one; the close is the latest; volume and trades add", () => {
@@ -20,7 +20,13 @@ describe("recordTrade (AB#715)", () => {
     recordTrade(h, "Silicates", 30, 10, T0 + 1000);
     expect(bucket(h, "Silicates", "2147-03-10")).toMatchObject({ open: 24, high: 30, low: 24, close: 30, volume: 110, trades: 2 });
     recordTrade(h, "Silicates", 20, 5, T0 + 2000);
-    expect(bucket(h, "Silicates", "2147-03-10")).toEqual({ day: "2147-03-10", open: 24, high: 30, low: 20, close: 20, volume: 115, trades: 3 });
+    expect(bucket(h, "Silicates", "2147-03-10")).toEqual({ day: "2147-03-10", open: 24, high: 30, low: 20, close: 20, volume: 115, trades: 3, value: 2400 + 300 + 100 });
+  });
+
+  it("keeps the day's traded value, and a bucket saved without one starts from its close x volume (ISP-232, AB#927)", () => {
+    const h = { Silicates: [{ day: "2147-03-10", open: 24, high: 24, low: 24, close: 24, volume: 100, trades: 1 }] };
+    recordTrade(h, "Silicates", 30, 10, T0);
+    expect(bucket(h, "Silicates", "2147-03-10").value).toBe(24 * 100 + 30 * 10);
   });
 
   it("starts a new bucket on a later day and leaves the earlier one alone", () => {

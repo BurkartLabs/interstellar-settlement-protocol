@@ -88,7 +88,9 @@ describe("price history from settled trades (AB#715)", () => {
     expect((await seller.api.post(`/api/market/npc-orders/${npc.id}/sell`).send({ quantity: 50 })).status).toBe(200);
     const saved = JSON.parse(JSON.stringify(getState()));
     const reloaded = normalizeGlobalState(saved);
-    expect(reloaded.market.priceHistory.Silicates).toEqual(historyFor(getState().market.priceHistory, "Silicates"));
+    // ISP-232 (AB#927): the saved buckets, traded value included (what is served leaves the value out)
+    expect(reloaded.market.priceHistory.Silicates).toEqual(saved.market.priceHistory.Silicates);
+    expect(historyFor(reloaded.market.priceHistory, "Silicates")[0]).not.toHaveProperty("value");
     expect(reloaded.market.priceHistory.Silicates.length).toBeGreaterThan(0);
   });
 });

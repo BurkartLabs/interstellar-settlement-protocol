@@ -44,6 +44,7 @@ import { concessionTick } from "./concessions.js"; // ISP-227 (AB#922)
 import { dominanceTick } from "./dominanceService.js"; // ISP-217 (AB#912)
 import { registerTariffRoutes } from "./routes/tariffs.js"; // ISP-230 (AB#925)
 import { tariffTick } from "./tariffService.js";
+import { itcTick } from "./itcService.js"; // ISP-232 (AB#927)
 import { registerLogisticsRoutes } from "./routes/logistics.js";
 import { registerMiningRoutes } from "./routes/mining.js";
 import { registerAsteroidRoutes } from "./routes/asteroids.js";
@@ -191,6 +192,8 @@ if (!process.env.ISP_DISABLE_TICKERS) { dominanceTick(Date.now()); setInterval((
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => concessionTick(Date.now()), 60_000); // ISP-227 (AB#922): reviews, renewals, the day's upkeep
 // ISP-230 (AB#925): each holder's tariffs, less the ISA's levy, paid once a UTC day
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => tariffTick(Date.now()), 60_000);
+// ISP-232 (AB#927): the ITC's dumping watch, once a UTC day: duties due, then the window that just closed
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => itcTick(Date.now()), 60_000);
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => raidTick(Date.now()), 30_000); // ISP-179 (AB#873): arrivals and returns
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondServicingTick(Date.now()), 60_000); // ISP-155 (AB#849)
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now(); shareOfferingTick(now); dividendTick(now); }, 60_000); // ISP-158 (AB#852), ISP-159 (AB#853)
