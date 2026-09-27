@@ -22,12 +22,13 @@
 // Every step is keyed by the raid, so a tick that runs twice, or a restart between steps, moves nothing twice.
 // Time is passed in (P-TEST-TIME).
 
-import { addAccountNotification, getAccountById, getState, mutateAccountState, mutateState } from "./gameState.js";
+import { addAccountNotification, getAccountById, getAllAccountIds, getState, mutateAccountState, mutateState } from "./gameState.js";
 import { emitToAccount } from "./realtime.js";
 import { accountIdOfCorp } from "./playerLoans.js";
 import { UNITS, ensureCorpMilitary } from "./game/units.js";
 import { combatModifiersFor, resolveBattle } from "./game/combat.js";
-import { FLEET_UNIT_IDS } from "./fleets.js";
+import { FLEET_UNIT_IDS, settleFleets } from "./fleets.js";
+import { postureAt, settleGarrisonMoves, troopsArrivedAfter, withPosture } from "./garrison.js"; // ISP-180 (AB#874)
 import { STATION_REGISTRY } from "./travel.js";
 import { mercenaryUseAllowed, recordContractLosses } from "./mercenaries.js";
 import { buildingsAtStation } from "./raids.js";
@@ -90,18 +91,20 @@ function shareLosses(total, groups) {
  * What the defender has at the station: groups of units that fight together. { garrison: dt }, its own fleets there
  * (stationed, not under contract), and fleets it has hired for defense that stand there.
  */
-function defendersAt(defenderAccountId, stationId) {
+function defendersAt(defenderAccountId, stationId, at) {
   const corp = corpOf(defenderAccountId);
   const groups = [];
-  const dt = n(corp?.military?.garrisons?.[stationId]); // a count of defense troops (ISP-172)
+  // ISP-180 (AB#874): only what had arrived by the raid's arrival fights, however late the tick that resolves it
+  const came = (f) => !(Number(f?.arrivedAt) > at);
+  const dt = Math.max(0, n(corp?.military?.garrisons?.[stationId]) - troopsArrivedAfter(corp, stationId, at)); // a count of defense troops (ISP-172)
   if (dt > 0) groups.push({ kind: "garrison", units: { dt } });
   for (const f of corp?.military?.fleets || []) {
-    if (f.stationId === stationId && !f.transit && !f.contract) groups.push({ kind: "fleet", fleetId: f.id, units: { ...f.units } });
+    if (f.stationId === stationId && !f.transit && !f.contract && came(f)) groups.push({ kind: "fleet", fleetId: f.id, units: { ...f.units } });
   }
   for (const o of getState()?.market?.mercenaryOffers || []) {
     if (o.state !== "hired" || o.renterCorpId !== corp?.publicId || !mercenaryUseAllowed(o, "defense")) continue;
     const ownerFleet = corpOf(accountIdOfCorp(o.ownerCorpId))?.military?.fleets?.find((f) => f.id === o.fleetId);
-    if (ownerFleet?.stationId === stationId && !ownerFleet.transit) {
+    if (ownerFleet?.stationId === stationId && !ownerFleet.transit && came(ownerFleet)) {
       const lost = o.lost || {};
       groups.push({ kind: "hired", contractId: o.id, units: Object.fromEntries(FLEET_UNIT_IDS.map((id) => [id, n(ownerFleet.units[id]) - n(lost[id])])) });
     }
@@ -178,12 +181,20 @@ export function resolveRaid(raid, now) {
     return "recalled";
   }
 
+  // ISP-180 (AB#874): reinforcements that have arrived by the raid's arrival join the defense, and none later: the
+  // defender's fleets and troop moves, and the fleets it has hired, are settled up to that moment
+  mutateAccountState(defenderAccountId, (state) => { settleFleets(state.corp, at); settleGarrisonMoves(state.corp, at); }, { sanitize: false });
+  for (const o of getState()?.market?.mercenaryOffers || []) {
+    if (o.state === "hired" && o.renterCorpId === raid.targetCorpId) mutateAccountState(accountIdOfCorp(o.ownerCorpId), (state) => { settleFleets(state.corp, at); }, { sanitize: false });
+  }
+  const posture = postureAt(corpOf(defenderAccountId), raid.targetStationId);
+
   // the battle
   const fleet = fleetOf();
   const attackers = Object.fromEntries(FLEET_UNIT_IDS.map((id) => [id, n(fleet?.units?.[id]) - n(raid.fleet.contractId ? (getState()?.market?.mercenaryOffers || []).find((o) => o.id === raid.fleet.contractId)?.lost?.[id] : 0)]));
-  const groups = defendersAt(defenderAccountId, raid.targetStationId).map((g) => (g.kind === "garrison" ? { ...g, stationId: raid.targetStationId } : g));
+  const groups = defendersAt(defenderAccountId, raid.targetStationId, at).map((g) => (g.kind === "garrison" ? { ...g, stationId: raid.targetStationId } : g));
   const defending = total(groups);
-  const battle = resolveBattle(attackers, defending, { attacker: combatModifiersFor(corpOf(ownerAccountId)), defender: combatModifiersFor(defender) });
+  const battle = resolveBattle(attackers, defending, { attacker: combatModifiersFor(corpOf(ownerAccountId)), defender: withPosture(combatModifiersFor(corpOf(defenderAccountId)), posture) });
   const lostA = Object.fromEntries(FLEET_UNIT_IDS.map((id) => [id, Math.max(0, attackers[id] - n(battle.survivors.attacker[id]))]));
   const lostD = Object.fromEntries(UNIT_IDS.map((id) => [id, Math.max(0, defending[id] - n(battle.survivors.defender[id]))]));
 
@@ -217,7 +228,7 @@ export function resolveRaid(raid, now) {
   // the reports: each side's own, never a feed
   const station = STATION_REGISTRY[raid.targetStationId]?.name ?? raid.targetStationId;
   const rounds = battle.rounds.map((r) => ({ round: r.round, attacker: { lost: round2(r.attacker.lost), remaining: round2(r.attacker.remaining) }, defender: { lost: round2(r.defender.lost), remaining: round2(r.defender.remaining) } }));
-  const common = { raidId: raid.id, at, stationId: raid.targetStationId, station, winner: battle.winner, rounds, attacker: { name: raid.attackerName, before: attackers, lost: lostA, survivors: battle.survivors.attacker }, defender: { name: raid.targetName, before: defending, lost: lostD, survivors: battle.survivors.defender }, loot: loot.items };
+  const common = { raidId: raid.id, at, stationId: raid.targetStationId, station, winner: battle.winner, posture, rounds, attacker: { name: raid.attackerName, before: attackers, lost: lostA, survivors: battle.survivors.attacker }, defender: { name: raid.targetName, before: defending, lost: lostD, survivors: battle.survivors.defender }, loot: loot.items };
   keepReport(attackerAccountId, { ...common, side: "attacker", buildingsDamaged: damage.map(({ name, after, before }) => ({ name, points: before - after })) });
   keepReport(defenderAccountId, { ...common, side: "defender", buildingsDamaged: damage });
 
@@ -264,6 +275,12 @@ export function raidTick(now) {
   }
   for (const r of allRaids()) {
     if ((r.state === "resolved" || (r.state === "recalled" && r.turnedBackAt)) && r.returnsAt <= now) completeRaid(r, now);
+  }
+  // ISP-180 (AB#874): troops sent between stations join their garrison when they arrive (after the raids above, which
+  // settled their own defenders only up to each raid's arrival)
+  for (const id of getAllAccountIds()) {
+    const moves = corpOf(id)?.garrisonMoves;
+    if (Array.isArray(moves) && moves.some((m) => m.arrivesAt <= now)) mutateAccountState(id, (state) => { settleGarrisonMoves(state.corp, now); }, { sanitize: false });
   }
 }
 
