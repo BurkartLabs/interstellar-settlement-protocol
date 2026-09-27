@@ -68,7 +68,7 @@ const ALLOWLIST = [
   ],
   [
     "server/settlement.js",
-    '"bond-subscription": [["corp", "corp"], ["tap", "corp"]]',
+    '"bond-subscription": [["corp", "corp"], ["tap", "corp"]],',
     "which parties an in-game bond purchase moves credits between: a corporation, or the NPC underwriter's tap (AB#848)"
   ]
 ];

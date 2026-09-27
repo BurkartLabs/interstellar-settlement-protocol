@@ -46,7 +46,7 @@ export function bondsIssuedBy(accountId) {
   return bondSeriesList()
     .filter((s) => s.issuerAccountId === accountId && OUTSTANDING.has(s.state))
     .map((s) => ({
-      outstandingFace: s.sold * s.faceValue + Math.max(0, Number(s.arrears) || 0),
+      outstandingFace: (s.maturedAt ? 0 : s.sold * s.faceValue) + Math.max(0, Number(s.arrears) || 0), // AB#849: at maturity the face owed is in the arrears
       state: s.state === "subscribing" || s.state === "live" ? "active" : s.state,
       arrearsSince: s.arrearsSince ?? null,
       defaultedAt: s.defaultedAt ?? null
