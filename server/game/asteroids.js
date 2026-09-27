@@ -106,6 +106,10 @@ export function ensureCorpAsteroidMiningModel(corp) {
     // AB#2330: the belt generation it was launched at; an expedition saved before belts had generations was at the first.
     generation: Number(exp.generation) || 1,
     launchCost: Number(exp.launchCost || EXPEDITION_LAUNCH_COST),
+    // ISP-207 (AB#902): sent on a partner's scouting (the usage count); Bug #4656: from another system, at a share of the
+    // yield. Kept through this normalization, which rebuilt each expedition from named fields and dropped both.
+    ...(exp.sharedIntel ? { sharedIntel: true } : {}),
+    ...(exp.remote ? { remote: true, remoteYieldPct: Number(exp.remoteYieldPct) || 0 } : {}),
     yields: exp.yields || {},
     // Bug #1274: the fraction of a unit carried to the next tick; an expedition saved before it starts at 0.
     yieldCarry: Math.max(0, Number(exp.yieldCarry) || 0),
@@ -253,7 +257,9 @@ export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
     // Roll resources for this tick interval
     const tickMinutes = elapsedMs / (60 * 1000);
     // Base: ~2-5 units per resource per tick minute
-    const units = takeWholeUnits(tickMinutes * BASE_YIELD_PER_MIN * rarityMult * tickMult, exp.yieldCarry);
+    // Bug #4656: a probe launched on a partner's scouting from another system works at range and brings home its share
+    const remoteMult = exp.remote ? Math.max(0, Math.min(100, Number(exp.remoteYieldPct) || 0)) / 100 : 1;
+    const units = takeWholeUnits(tickMinutes * BASE_YIELD_PER_MIN * rarityMult * tickMult * remoteMult, exp.yieldCarry);
     // AB#2330: never more than the belt has left; what it could not have is not carried either.
     const totalYield = belt ? Math.min(units.whole, belt.remaining) : units.whole;
     exp.yieldCarry = totalYield < units.whole ? 0 : units.rest;

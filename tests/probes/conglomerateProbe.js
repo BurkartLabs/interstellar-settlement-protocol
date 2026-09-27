@@ -11,7 +11,8 @@
 //   - Real: the charter (foundConglomerate), membership (inviteCorporation, answerInvitation, 20 invitations a day),
 //     treasury deposits with the 2% custody fee (depositToTreasury), upkeep charged at each UTC midnight
 //     (settleTreasury), scouting and launching through the routes (so the shared-intel gate, beltSharedWith, decides
-//     whether a member may launch on a partner's scouting), expeditions mined out of the shared belt reserves
+//     whether a member may launch on a partner's scouting, from its own system since Bug #4656, at the remote share of the
+//     yield), expeditions mined out of the shared belt reserves
 //     (asteroidExpeditionTick), and the standing bids ore is valued at.
 //   - Assumed: every corporation has the prospecting research and two probes, sits in one belt system for the week
 //     and launches both probes once a day on a standard survey. Nothing is sold: ore is counted at the standing bid, so
@@ -27,9 +28,11 @@ import { foundConglomerate, dailyUpkeep, settleTreasury } from "../../server/gam
 import { findConglomerate, inviteCorporation, answerInvitation } from "../../server/game/membership.js";
 import { depositToTreasury } from "../../server/game/treasury.js";
 import { CONGLOMERATE_CATALOG as C } from "../../server/conglomerates.js";
-import { BELT_KEYS } from "../../server/game/asteroids.js";
+import { BELT_KEYS, EXPEDITION_LAUNCH_COST } from "../../server/game/asteroids.js";
 import { allStations } from "../../server/game/stations.js";
 import { asteroidExpeditionTick } from "../../server/ticks.js";
+import { RESEARCH_LIBRARY } from "../../server/game/catalog.js";
+import { BASE_YIELD_PER_MIN, RARITY_YIELD_MULTIPLIER } from "../../server/game/beltRules.js";
 
 export const DAY = 86_400_000;
 const HOUR = 3_600_000;
@@ -75,10 +78,12 @@ export async function runConglomerateProbe({ app, register, setTime, start, size
     const { id, token } = await register();
     mutateAccountState(id, (s) => {
       s.corp.finances.credits = START_CREDITS;
-      s.corp.unlockedTech = [...new Set([...(s.corp.unlockedTech || []), "tt-asteroid-prospecting"])];
+      // every research: a mid-game corporation whose navigation reaches every belt system (Bug #4656's remote launch
+      // reads the same reach as travel)
+      s.corp.unlockedTech = [...new Set([...(s.corp.unlockedTech || []), ...Object.keys(RESEARCH_LIBRARY)])];
       s.corp.currentSystemId = systemId;
       s.corp.currentStationId = stationIn(systemId);
-      s.corp.asteroidMining = { ...(s.corp.asteroidMining || {}), probeCount: PROBES };
+      s.corp.asteroidMining = { ...(s.corp.asteroidMining || {}), probeCount: PROBES, maxDeployments: PROBES };
     }, { sanitize: false, settleMining: false });
     raw(id).createdAt = start - (C.minFounderAgeDays + 30) * DAY;
     return { id, token, systemId };
@@ -125,6 +130,7 @@ export async function runConglomerateProbe({ app, register, setTime, start, size
   for (const g of groups) settleTreasury(g.c, start);
   const at0 = new Map(everyone.map((b) => [b.id, worthOf(b.id)]));
   let botDays = 0, sharedLaunches = 0, scouts = 0;
+  const refused = {}; // launches the server refused, by side and reason: a policy the probe should see
   const post = (b, path, body) => request(app).post(`/api/accounts/${b.id}/gameplay/${path}`).set("Authorization", `Bearer ${b.token}`).send(body);
   // Two weeks over the same dates on the same belts: the conglomerates' members, then (the belts put back as they were)
   // their solo twins. Each side meets fresh belts and the same neighbours, and nobody mines a twin's reserve.
@@ -140,17 +146,45 @@ export async function runConglomerateProbe({ app, register, setTime, start, size
       const share = Math.ceil(dailyUpkeep(g.members.length) / g.members.length / (1 - C.poolingFeePct / 100));
       for (const m of g.members) depositToTreasury(m.id, g.c.id, share, morning);
     }
+    // What the morning's launches will draw from each belt, so a later choice sees what is left (the design's intel
+    // table: "choose between belts on what is left"). Reserves are the world's, so every bot reads the same claims.
+    const claimed = {};
     for (const b of bots) {
-      const beltKey = BELT_KEYS.find((k) => k.startsWith(`${b.systemId}:`));
+      const own = BELT_KEYS.find((k) => k.startsWith(`${b.systemId}:`));
+      // The belt to launch to: its own, or (a member) the partner-scouted belt that nets most after the remote share.
+      // Expected value of a standard survey: 60 min x the base yield x the rarity, at the standing bids, x the share.
+      const read = async () => (await request(app).get(`/api/accounts/${b.id}/gameplay/belt-compositions`).set("Authorization", `Bearer ${b.token}`)).body;
+      let view = await read();
+      // its own belt, whenever it is there and not scouted by itself: at the start, and after a belt is mined out and a
+      // new one forms (the tick forgets everyone's scouting of an emptied belt)
+      const mine = view.belts?.[own];
+      if (mine?.present && (!mine.scouted || mine.sharedBy?.length)) { scouts++; await post(b, "scout-belt", { beltKey: own }); view = await read(); }
+      const unitsOf = (v, share) => 60 * BASE_YIELD_PER_MIN * (RARITY_YIELD_MULTIPLIER[v.rarity] || 1) * share * PROBES;
+      const worth = (v, share, key) => {
+        // what the launches would bring home, no more than is left after the morning's claims
+        const units = Math.min(unitsOf(v, share), Math.max(0, Number(v.remaining) - (claimed[key] || 0)));
+        if (!(units > 0)) return -Infinity;
+        const total = Object.values(v.composition || {}).reduce((a, w) => a + w, 0) || 1;
+        // net of the launches' cost: a trip that brings home less than it costs is not made
+        return units * Object.entries(v.composition || {}).reduce((a, [item, w]) => a + (w / total) * bid(item), 0) - EXPEDITION_LAUNCH_COST * PROBES;
+      };
+      let beltKey = own, best = view.belts?.[own]?.scouted ? worth(view.belts[own], 1, own) : -Infinity, remote = false, share = 1;
+      if (pooled) {
+        const pct = (Number(view.remoteDispatchYieldPct) || 0) / 100;
+        for (const [key, v] of Object.entries(view.belts || {})) {
+          if (key === own || !v.sharedBy?.length || !v.present || key.split(":")[0] === b.systemId) continue;
+          const w = worth(v, pct, key);
+          if (w > best) { best = w; beltKey = key; remote = true; share = pct; }
+        }
+      }
+      if (!(best > 0)) { Math.random = realRandom; continue; } // nothing worth launching to today
+      if (view.belts?.[beltKey]) claimed[beltKey] = (claimed[beltKey] || 0) + unitsOf(view.belts[beltKey], share);
       const launch = (p) => { Math.random = seeded(keyed(`${b.key}:${d}:${p}`)); return post(b, "launch-expedition", { beltKey, duration: "standard" }); };
-      const first = await launch(0);
-      if (first.status === 400 && /not been scouted/.test(first.body?.error || "")) {
-        scouts++;
-        b.scouted = true;
-        await post(b, "scout-belt", { beltKey });
-        await launch(0);
-      } else if (first.status === 200 && pooled && !b.scouted) sharedLaunches++; // on a partner's scouting (beltSharedWith)
-      for (let p = 1; p < PROBES; p++) await launch(p);
+      for (let p = 0; p < PROBES; p++) {
+        const r = await launch(p);
+        if (r.status === 200 && remote) sharedLaunches++;
+        if (r.status !== 200) { const why = `${pooled ? "member" : "solo"}: ${r.body?.error || r.status}`; refused[why] = (refused[why] || 0) + 1; }
+      }
       Math.random = realRandom;
     }
     const later = morning + HOUR; // dev durations: a standard survey is 10 seconds with its yield scaled to the hour
@@ -178,7 +212,7 @@ export async function runConglomerateProbe({ app, register, setTime, start, size
   // when no size gains; the smaller on a tie.
   const choices = [{ n: 1, gain: 0 }, ...rows.map((r) => ({ n: r.n, gain: r.member - r.solo }))];
   const chosen = choices.reduce((best, x) => (x.gain > best.gain + 1e-9 ? x : best), choices[0]);
-  return { rows, chosen, choices, botDays, days, sharedLaunches, scouts, accounts: everyone.length };
+  return { rows, chosen, choices, botDays, days, sharedLaunches, scouts, refused, accounts: everyone.length };
 }
 
 // ─── The report ────────────────────────────────────────────────────────────────
@@ -205,7 +239,8 @@ export function formatReport(report) {
   for (const r of report.rows) {
     lines.push(`  ${String(r.n).padStart(3)} members (level ${r.level.level}, cap ${r.level.maxMembers}): member ${n0(r.member)} | solo twin ${n0(r.solo)} | edge ${r.edgePct === null ? "n/a" : `${r.edgePct >= 0 ? "+" : ""}${r.edgePct.toFixed(1)}%`} | upkeep ${n0(r.upkeepPerMember)} a member a day | levels to here ${n0(r.level.cost)} (${n0(r.level.cost / r.n)} a member, not counted)${r.arrears ? " | IN ARREARS" : ""}`);
   }
-  lines.push(`Members' launches on a partner's scouting (shared intel): ${report.sharedLaunches}; scouts made first: ${report.scouts}. Scouting is free and takes presence in the system, as launching does, so shared intel saves no credits.`);
+  lines.push(`Members' remote launches on a partner's scouting (Bug #4656): ${report.sharedLaunches}; own belts scouted: ${report.scouts}.`);
+  lines.push(`Launches refused: ${Object.entries(report.refused).map(([why, k]) => `${why} x${k}`).join("; ") || "none"}`);
   lines.push(`Planner's chosen size (the most gained a member a day over its solo twin): ${report.chosen.n === 1 ? "solo" : report.chosen.n} (${report.choices.map((c) => `${c.n === 1 ? "solo" : c.n} ${c.gain >= 0 ? "+" : ""}${n0(c.gain)}`).join(", ")})`);
   lines.push("");
   for (const t of targets(report)) lines.push(`${t.result.padEnd(8)} ${t.target}: ${t.detail}`);

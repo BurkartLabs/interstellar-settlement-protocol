@@ -338,6 +338,17 @@ the rest (the relation is `scoutedBy` per belt generation, checked against the c
 
 **As built (ISP-207, AB#902).** `beltSharedWith` (server/game/intel.js) is the one check: the dispatch gate and the belt list both call it, and it reads the roster on every call. An expedition sent on a partner's scouting carries `sharedIntel: true`, which is the usage count this table asks for. The item also asked for members' sell listings grouped by item. They are in `GET /conglomerates/:id/intel`, with only the public order book's fields, so a member can price against partners rather than undercut them. That read answers 403 and nothing to anyone not a current member.
 
+**Changed by Bug #4656 (2026-09-27; proposed, open to a Board or Director veto).** The AB#914 probe found that membership
+paid nothing back: scouting is free and needs presence in the belt's system, and so did launching, so a partner's scouting
+saved a member nothing it could not do itself. A member earned 5% to 19% less than a solo twin, which is exactly its
+upkeep and the custody fee. Now **a member may launch to a belt a current partner scouted this generation from any
+system its research reaches** (the travel gate, navigation.js). The probe works at range and brings home
+`remoteDispatchYieldPct` (50%) of what it mines, and the ore lands at that system's station. A belt the member scouted
+itself on an earlier visit still needs it there: the intel is a partner's. Why this and not the station perks: it is the
+action this table already names ("dispatch an expedition to it"), it is worth more the more systems the partners cover,
+which saturates at the 22 belt systems while upkeep keeps rising, so size keeps an interior optimum (T-018), and it
+needs no station. Probe output is in Bug #4656's resolution.
+
 ### Co-owned stations
 
 **How a conglomerate obtains one: a construction project.** Existing stations stay NPC and neutral; nobody takes Earth
@@ -495,6 +506,7 @@ Proposed keys under `conglomerates` in `data/economy.json`.
 | `levelFillPct` | 80 | How full the current level must be to buy the next. |
 | `levels` | the 13 rows above | Each level's `maxMembers`, `cost` and `minDaysAtPrevious`. |
 | `poolingFeePct` | 2 | Custody fee on every credit deposited into the treasury, a sink (Part 2). |
+| `remoteDispatchYieldPct` | 50 | A member's expedition to a belt a partner scouted, launched from another system its research reaches: the share of the yield it brings home (Bug #4656; a Board or Director veto point). |
 | `founderWithdrawPct` | 20 | The founder's credit and goods withdrawal cap per 24 h, % of the balance or stock. |
 | `directorWithdrawPct` | 5 | A director's credit and goods withdrawal cap per 24 h, %. |
 | `directorWithdrawMax` | 50,000 | A director's credit withdrawal ceiling per 24 h. |

@@ -173,7 +173,7 @@ function renderAllViews() {
   if (data.world?.systems) starmap.setSystems(data.world.systems);
   starmap.setStations(appState.stationRegistry, data.corp?.currentStationId, data.corp?.currentSystemId || "sol");
   starmap.setUnlockedTech(new Set(data.corp?.unlockedTech || []));
-  starmap.setAsteroidMining(starmapMiningState(data, appState.beltCompositions, { belts: appState.belts, respawnChancePerHour: appState.beltRespawnChance }));
+  starmap.setAsteroidMining(starmapMiningState(data, appState.beltCompositions, { belts: appState.belts, respawnChancePerHour: appState.beltRespawnChance, remoteDispatchYieldPct: appState.remoteDispatchYieldPct }));
   renderExpeditionPanel(data);
   renderInboxMessageList();
 }
