@@ -90,7 +90,8 @@ export const CREDIT_CATEGORIES = Object.freeze({
   // `<reason>-paid` by the payer (its REASONS; a fee and an escrow hold only leave, an escrow release only arrives).
   income: Object.freeze(["exchange", "missions", "salvage", "exchange-escrow-return",
     "loan-disbursal-received", "loan-repayment-received", "bond-subscription-received", "coupon-received", "dividend-received",
-    "share-purchase-received", "escrow-release-received", "loan-interest-received"]),
+    "share-purchase-received", "escrow-release-received", "loan-interest-received",
+    "ship-production-refund"]), // ISP-171 (AB#865): what cancelling a shipyard job returns
   expense: Object.freeze([
     "hiring",
     "payroll",
@@ -112,7 +113,8 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",
     "escrow-hold-paid", "fee-paid", // ISP-146 (AB#840): server/settlement.js
     "loan-interest-paid", // ISP-150 (AB#844): a loan's interest, on its own line of the statements
-    "conglomerate-charter", "conglomerate-deposit" // ISP-197 (AB#891): the charter fee, a sink, and the deposit into the new treasury
+    "conglomerate-charter", "conglomerate-deposit", // ISP-197 (AB#891): the charter fee, a sink, and the deposit into the new treasury
+    "ship-production" // ISP-171 (AB#865): ships queued at the Orbital Shipyard
   ])
 });
 

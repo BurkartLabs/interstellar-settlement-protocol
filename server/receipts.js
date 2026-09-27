@@ -187,7 +187,7 @@ export function buildFerricMiningComplexReceipt({ cost, assetValue, slotsUsed, s
   });
 }
 
-// ISP-170 (AB#864): built through POST /gameplay/build only. It says plainly that it builds nothing yet.
+// ISP-170 (AB#864): built through POST /gameplay/build only. ISP-171 (AB#865) builds ships there; the Fleet screen that queues them is ISP-175.
 export function buildOrbitalShipyardReceipt({ cost, assetValue, slotsUsed, slotsTotal }) {
   return receipt("build-orbital-shipyard", {
     title: "Orbital Shipyard Commissioned",
@@ -196,9 +196,9 @@ export function buildOrbitalShipyardReceipt({ cost, assetValue, slotsUsed, slots
     grants: [
       { label: "Added to assets", value: formatCredits(assetValue) },
       { label: "Building slots used", value: `${slotsUsed} / ${slotsTotal}` },
-      { label: "Now possible", value: "Nothing yet: ship production opens later in v0.10" }
+      { label: "Now possible", value: "Queue ships in the Orbital Shipyard section of the Station page" }
     ],
-    next: "Light Fighters, Destroyers and Siege Engines will be built here when ship production opens."
+    next: "Light Fighters, Destroyers and Siege Engines are built here, at the catalog's cost and time, and join your fleet."
   });
 }
 
@@ -246,6 +246,39 @@ export function startRefineryReceipt({ refineryName, inputs, outputs, hours, end
       { label: "Run ends", value: formatUtc(endsAt) }
     ],
     next: "The output is added to this station's inventory when the run ends."
+  });
+}
+
+/** ISP-171 (AB#865): ships queued at the Orbital Shipyard, at the catalog's cost and time. */
+export function shipQueueReceipt({ job, unitName, vessels, cap }) {
+  const goods = Object.entries(job.goods).map(([item, qty]) => `${qty.toLocaleString("en-US")} ${item}`).join(", ");
+  return receipt("shipyard-queue", {
+    title: "Ship Production Queued",
+    summary: `${job.quantity} ${unitName}${job.quantity === 1 ? "" : "s"}, at your Orbital Shipyard.`,
+    costCredits: job.credits,
+    grants: [
+      { label: "Goods used", value: goods },
+      { label: "Starts", value: formatUtc(job.startsAt) },
+      { label: "Ready", value: formatUtc(job.completesAt) },
+      { label: "Fleet", value: `${vessels} / ${cap} vessels, these included` }
+    ],
+    next: "They join your fleet when the job completes. Cancelling returns all of a job not yet started, half of one under way."
+  });
+}
+
+/** ISP-171 (AB#865): a shipyard job cancelled, and what came back. */
+export function shipCancelReceipt({ job, unitName, refund }) {
+  const goods = Object.entries(refund.goods).filter(([, qty]) => qty > 0).map(([item, qty]) => `${qty.toLocaleString("en-US")} ${item}`).join(", ") || "none";
+  return receipt("shipyard-cancel", {
+    title: "Ship Production Cancelled",
+    summary: `${job.quantity} ${unitName}${job.quantity === 1 ? "" : "s"}, taken off the slips.`,
+    costCredits: 0,
+    grants: [
+      { label: "Credits returned", value: formatCredits(refund.credits) },
+      { label: "Goods returned", value: goods },
+      { label: "Share returned", value: refund.share === 1 ? "all of it: the job had not started" : "half: the job was under way" }
+    ],
+    next: "Queue ships again from the Orbital Shipyard when you are ready."
   });
 }
 

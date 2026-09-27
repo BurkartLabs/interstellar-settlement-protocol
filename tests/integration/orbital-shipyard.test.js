@@ -81,7 +81,7 @@ describe("the Orbital Shipyard (AB#864)", () => {
     expect(unchanged, "nothing in the account changed").toBe(true);
   });
 
-  it("builds with every gate met: takes a slot, the price and the asset, says it builds nothing yet, and only one", async () => {
+  it("builds with every gate met: takes a slot, the price and the asset, says what it makes possible, and only one", async () => {
     const c = await corporation();
     const { res, before, after } = await build(c);
     expect(res.status).toBe(200);
@@ -89,7 +89,7 @@ describe("the Orbital Shipyard (AB#864)", () => {
     expect(after.buildings).toBe(before.buildings + 1);
     expect(after.assets).toBe(before.assets + ECONOMY.buildings.orbitalShipyardAssetValue);
     expect(c.corp().buildings.at(-1)).toMatchObject({ name: "Orbital Shipyard", status: "Operational" });
-    expect(res.body.receipt.grants).toContainEqual({ label: "Now possible", value: "Nothing yet: ship production opens later in v0.10" });
+    expect(res.body.receipt.grants).toContainEqual({ label: "Now possible", value: "Queue ships in the Orbital Shipyard section of the Station page" });
     const again = await build(c);
     expect(again.res.status).toBe(400);
     expect(again.res.body.error).toBe("You already operate the maximum of 1 of the Orbital Shipyard.");

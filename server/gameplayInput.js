@@ -104,6 +104,9 @@ export const GAMEPLAY_INPUT = {
   "POST /abandon-mission": OWN_MISSION,
   "POST /complete-mission": OWN_MISSION,
   "POST /queue-rnd": { body: { techId: id("techs", "a research project") } },
+  // ISP-171 (AB#865): a ship from the unit catalog and how many; the cost and the time are the catalog's, never sent
+  "POST /shipyard/queue": { body: { unitId: id("ships", "a ship: a Light Fighter, a Destroyer or a Siege Engine"), quantity: int(1, 100, "a quantity from 1 to 100") } },
+  "POST /shipyard/cancel": { body: { jobId: ref("one of your shipyard jobs") } },
   "POST /queue-ceo": { body: { programId: id("programs", "a CEO Insight program") } }
 };
 

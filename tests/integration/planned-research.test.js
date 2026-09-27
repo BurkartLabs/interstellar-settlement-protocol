@@ -17,13 +17,13 @@ describe("planned research (AB#861)", () => {
       state.corp.finances.credits = 1_000_000;
     });
     const before = getAccountById(account.id).state.corp.finances.credits;
-    for (const techId of ["tt-capital-hulls", "tt-siege-ordnance"]) {
+    for (const techId of ["tt-fire-control", "tt-evasive-manoeuvres"]) { // ISP-171 (AB#865): the ship research is live now
       const res = await authed(app, accessToken).post(`/api/accounts/${account.id}/gameplay/queue-rnd`).send({ techId });
       expect(res.status, techId).toBe(400);
       expect(res.body.error).toMatch(/is not available yet: what it unlocks is planned for a later version/);
     }
     const corp = getAccountById(account.id).state.corp;
     expect(corp.finances.credits).toBe(before);
-    expect((getAccountById(account.id).state.queues.corporateRnD || []).map((q) => q.techId)).not.toContain("tt-capital-hulls");
+    expect((getAccountById(account.id).state.queues.corporateRnD || []).map((q) => q.techId)).not.toContain("tt-fire-control");
   });
 });

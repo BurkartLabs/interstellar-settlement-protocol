@@ -4680,3 +4680,11 @@ img.station__body {
     font-size: var(--font-size-3);
   }
 }
+
+/* ISP-171 (AB#865): the Orbital Shipyard's production panel on the Station page. */
+.shipyard { display: grid; gap: var(--space-3, 12px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.shipyard__form { display: grid; gap: var(--space-2, 8px); align-content: start; }
+.shipyard__form .ui-select, .shipyard__form .ui-field { display: grid; gap: 4px; }
+.shipyard__form select, .shipyard__form input { width: 100%; min-width: 0; }
+.shipyard__jobs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 8px); }
+.shipyard__job { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2, 8px); }

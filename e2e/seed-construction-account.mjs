@@ -18,7 +18,7 @@
 // `ledger` (Bug AB#2315) is level5 plus a third yard built through construct() on the Mars lease: the first yard past the
 // starting kit, so the first to pay price growth since ISP-309 (AB#2305), for e2e/ledger-categories.spec.js.
 //
-// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked|ledger|level10|level20|military|shipyard>
+// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked|ledger|level10|level20|military|shipyard|shipyard-built>
 //
 // `level10` (ISP-108, AB#800) is level5 raised to Level 10, the old top, with 150,000 Silicates mined: the Overview shows
 // Level 11's requirements, which did not exist before. `level20` (ISP-109, AB#801) is the same at Level 20, the next old top,
@@ -38,7 +38,7 @@ verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who c
 store.mutateAccountState(account.id, (state) => {
   const corp = state.corp;
   corp.currentStationId = "earth-station-prime";
-  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked", "ledger", "level10", "level20", "military", "shipyard"].includes(kind)) return;
+  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked", "ledger", "level10", "level20", "military", "shipyard", "shipyard-built"].includes(kind)) return;
   const lease = (id, body) => ({ id, body, leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: [], issuedAt: Date.now() });
   corp.level = 5;
   corp.buildingSlots = 6;
@@ -61,6 +61,12 @@ store.mutateAccountState(account.id, (state) => {
     corp.military = { ...corp.military, units: { lf: 14, ds: 2, se: 0, at: 6, dt: 10 } };
     const { RESEARCH_LIBRARY } = store;
     corp.unlockedTech = Object.values(RESEARCH_LIBRARY).filter((t) => t.status !== "planned").map((t) => t.id);
+  }
+  if (kind === "shipyard-built") { // ISP-171 (AB#865): a built shipyard and the goods for a few fighters
+    corp.level = 10;
+    const built = construct(corp, playerBuilding("orbital-shipyard"), null);
+    if (built.outcome !== "ok") throw new Error(`seeding a shipyard: ${built.outcome}`);
+    corp.inventory = { ...corp.inventory, "earth-station-prime": { ...(corp.inventory?.["earth-station-prime"] || {}), "Carbon Fibre Sheets": 100 } };
   }
   if (kind === "shipyard") corp.level = 10; // ISP-170 (AB#864): the Orbital Shipyard's level, its research from the catalogue's gates above
   if (kind === "level20") {

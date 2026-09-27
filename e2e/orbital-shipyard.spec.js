@@ -84,7 +84,7 @@ for (const viewport of VIEWPORTS) {
       const receipt = s.page.locator("#action-receipt-modal");
       await expect(receipt).toBeVisible();
       await expect(receipt).toContainText("Orbital Shipyard Commissioned");
-      await expect(receipt).toContainText("Nothing yet: ship production opens later in v0.10");
+      await expect(receipt).toContainText("Queue ships in the Orbital Shipyard section of the Station page");
       await s.page.screenshot({ path: path.join(SHOT_DIR, `shipyard-receipt-${viewport.label}.png`) });
       await s.page.keyboard.press("Escape");
       await expect(s.row.locator(".station__blocked")).toHaveText("Built: your corporation operates the most it may, 1.");
