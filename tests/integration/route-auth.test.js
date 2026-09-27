@@ -20,6 +20,7 @@ const PUBLIC = {
   "GET /api/ceo-insight": "a static catalog",
   "GET /api/mission-agents": "a static catalog",
   "GET /api/research": "a static catalog",
+  "GET /api/starmap/dominance": "aggregate dominance shares per system, names and rounded shares only, for the starmap overlay (ISP-217, AB#912)",
   "POST /api/auth/verify-email": "spending a verification token, which is itself the credential (AB#987)",
   "POST /api/auth/resend-verification": "asking for a new verification link before anyone can sign in; rate-limited, one answer for every address (AB#987)",
   "POST /api/auth/forgot-password": "asking for a password-reset link by someone who cannot sign in; rate-limited, one answer for every address (AB#988)",

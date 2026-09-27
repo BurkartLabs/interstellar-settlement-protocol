@@ -1,4 +1,5 @@
 // server/routes/market.js: the market routes, split out of server/index.js (AB#1815).
+import { recordSale } from "../game/dominanceCounters.js"; // ISP-217 (AB#912)
 import { bodyNumber } from "../bodyNumber.js";
 import { bodyCount } from "../bodyNumber.js";
 import { randomUUID } from "node:crypto";
@@ -267,7 +268,7 @@ export function registerMarketRoutes(app) {
     }
 
     // AB#1054: the seller's side, the book and the price history, as a buy order's fill settles them.
-    const sale = paySeller(order, tradeQuantity, buyerAccount.state?.corp?.corporationName);
+    const sale = paySeller(order, tradeQuantity, buyerAccount.state?.corp?.corporationName, req.auth.accountId); // ISP-217 (AB#912)
     takeFromListing(orderId, order.item, order.unitPrice, tradeQuantity);
     tellSeller(order, tradeQuantity, sale, leftAfterSale);
 
@@ -369,6 +370,7 @@ export function registerMarketRoutes(app) {
       applyCredits(state.corp, tradeTotal, "exchange");
       applyCredits(state.corp, -salesTax, "exchange-tax");
       applyCredits(state.corp, -royalty, "lease-royalty");
+      recordSale(state.corp, npcStationId, tradeTotal); // ISP-217 (AB#912): an NPC buyer is never a partner
 
       if (!state.corp.stats) state.corp.stats = {};
       state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
