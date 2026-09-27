@@ -39,8 +39,8 @@
       "description": "The overarching governing body of humanity's settled territories. Issues executive mandates, ratifies inter-system treaties, and sets the legislative framework within which all ISA regulation operates.",
       "flavor": "Corporations do not lobby the Assembly directly — that is what the registered intermediaries are for. Still, a high standing with the Assembly opens doors that the ISA cannot close.",
       "imageFile": "buildings/earth-assembly.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:earth-assembly",
+      "available": true
     },
     {
       "id": "interstellar-settlement-authority",
@@ -81,8 +81,8 @@
       "description": "A neutral legal body where corporations file lawsuits, territorial disputes, contract breaches, and cross-system claims against each other. Rulings carry binding authority across all ISA-registered jurisdictions.",
       "flavor": "Litigation is expensive. Losing is more expensive. The Council has no enforcement arm of its own — it relies on the ISA and SolSec to execute its rulings, which means judgements can be delayed, challenged, or occasionally ignored by the powerful.",
       "imageFile": "buildings/arbitration-council.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:galactic-arbitration-council",
+      "available": true
     },
     {
       "id": "isa-regulatory-compliance",
@@ -109,8 +109,8 @@
       "description": "The official body where new corporations are formally registered under ISP law and granted their operating charter. Certain corporation-level settings — name, registered CEO, and jurisdictional defaults — can only be amended here.",
       "flavor": "Your charter is the legal foundation of your corporation. Amendments require filing fees, a waiting period, and in some cases a compliance review. Make sure your initial details are correct.",
       "imageFile": "buildings/corporate-registry.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:corporate-registry-charters",
+      "available": true
     },
     {
       "id": "interplanetary-trade-commission",
@@ -123,8 +123,8 @@
       "description": "The regulatory body overseeing tariff schedules, trade route licenses, import and export quotas, and investigations into market manipulation across ISA-registered systems.",
       "flavor": "Trade route licenses are not automatic. Tariff regimes shift when powerful corporations bribe the right commissioners. Investigations are slow unless someone with standing requests expedited review.",
       "imageFile": "buildings/trade-commission.png",
-      "action": "coming-soon",
-      "available": false
+      "action": "building:interplanetary-trade-commission",
+      "available": true
     },
     {
       "id": "conglomerate-affairs-bureau",

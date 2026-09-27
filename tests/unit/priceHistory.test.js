@@ -11,7 +11,7 @@ describe("recordTrade (AB#715)", () => {
   it("opens the day's bucket on the first trade", () => {
     const h = {};
     expect(recordTrade(h, "Silicates", 24, 100, T0)).toBe(true);
-    expect(h.Silicates).toEqual([{ day: "2147-03-10", open: 24, high: 24, low: 24, close: 24, volume: 100, trades: 1 }]);
+    expect(h.Silicates).toEqual([{ day: "2147-03-10", open: 24, high: 24, low: 24, close: 24, volume: 100, trades: 1, value: 2400 }]); // value: ISP-232 (AB#927)
   });
 
   it("raises the high on a higher trade and lowers the low on a lower one; the close is the latest; volume and trades add", () => {
@@ -20,7 +20,13 @@ describe("recordTrade (AB#715)", () => {
     recordTrade(h, "Silicates", 30, 10, T0 + 1000);
     expect(bucket(h, "Silicates", "2147-03-10")).toMatchObject({ open: 24, high: 30, low: 24, close: 30, volume: 110, trades: 2 });
     recordTrade(h, "Silicates", 20, 5, T0 + 2000);
-    expect(bucket(h, "Silicates", "2147-03-10")).toEqual({ day: "2147-03-10", open: 24, high: 30, low: 20, close: 20, volume: 115, trades: 3 });
+    expect(bucket(h, "Silicates", "2147-03-10")).toEqual({ day: "2147-03-10", open: 24, high: 30, low: 20, close: 20, volume: 115, trades: 3, value: 2400 + 300 + 100 });
+  });
+
+  it("keeps the day's traded value, and a bucket saved without one starts from its close x volume (ISP-232, AB#927)", () => {
+    const h = { Silicates: [{ day: "2147-03-10", open: 24, high: 24, low: 24, close: 24, volume: 100, trades: 1 }] };
+    recordTrade(h, "Silicates", 30, 10, T0);
+    expect(bucket(h, "Silicates", "2147-03-10").value).toBe(24 * 100 + 30 * 10);
   });
 
   it("starts a new bucket on a later day and leaves the earlier one alone", () => {
@@ -78,8 +84,10 @@ describe("recordTrade (AB#715)", () => {
 describe("the catalog, saved history and the served shape (AB#715)", () => {
   const refinery = JSON.parse(readFileSync(new URL("../../data/refinery-chains.json", import.meta.url), "utf8"));
 
-  it("covers every raw resource and every refinery output, and nothing else", () => {
-    expect(PRICE_HISTORY_ITEMS).toEqual(tradeableItems(refinery));
+  it("covers every raw resource and every refinery output, and every other catalog item (AB#884), and nothing else", () => {
+    const catalog = JSON.parse(readFileSync(new URL("../../data/items.json", import.meta.url), "utf8")).items.map((i) => i.name);
+    expect(PRICE_HISTORY_ITEMS).toEqual(new Set([...tradeableItems(refinery), ...catalog]));
+    expect(PRICE_HISTORY_ITEMS.has("Antimatter Drives")).toBe(true); // a Tier 4 product before any chain makes it
     for (const r of refinery.resourceCatalog) expect(PRICE_HISTORY_ITEMS.has(r)).toBe(true);
     for (const c of refinery.chains) for (const o of c.outputs) expect(PRICE_HISTORY_ITEMS.has(o.item)).toBe(true);
     for (const bad of ["__proto__", "constructor", "", "silicates", "Silicates ", "../state"]) expect(PRICE_HISTORY_ITEMS.has(bad)).toBe(false);

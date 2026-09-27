@@ -18,7 +18,7 @@
 // `ledger` (Bug AB#2315) is level5 plus a third yard built through construct() on the Mars lease: the first yard past the
 // starting kit, so the first to pay price growth since ISP-309 (AB#2305), for e2e/ledger-categories.spec.js.
 //
-// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked|ledger|level10|level20|military|shipyard|shipyard-built|troops|unpaid|fleet-tab|mercs|cg-station|cg-station-closed|cg-station-member>
+// Usage: node e2e/seed-construction-account.mjs <dataDir> <email> <password> <fresh|level5|ferric|refinery|cryo|tier5|tier5-locked|ledger|level10|level20|military|shipyard|shipyard-built|troops|unpaid|fleet-tab|mercs|cg-station|cg-station-closed|cg-station-member|cg-start|cg-opening|cg-gov>
 //
 // `level10` (ISP-108, AB#800) is level5 raised to Level 10, the old top, with 150,000 Silicates mined: the Overview shows
 // Level 11's requirements, which did not exist before. `level20` (ISP-109, AB#801) is the same at Level 20, the next old top,
@@ -38,7 +38,7 @@ verifyEmailToken(issueVerificationToken(account.id)); // AB#2288: a player who c
 store.mutateAccountState(account.id, (state) => {
   const corp = state.corp;
   corp.currentStationId = "earth-station-prime";
-  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked", "ledger", "level10", "level20", "military", "shipyard", "shipyard-built", "troops", "unpaid", "fleet-tab", "mercs", "cg-station", "cg-station-closed", "cg-station-member"].includes(kind)) return;
+  if (!["level5", "ferric", "refinery", "cryo", "tier5", "tier5-locked", "ledger", "level10", "level20", "military", "shipyard", "shipyard-built", "troops", "unpaid", "fleet-tab", "mercs", "cg-station", "cg-station-closed", "cg-station-member", "cg-start", "cg-opening", "cg-gov"].includes(kind)) return;
   const lease = (id, body) => ({ id, body, leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: [], issuedAt: Date.now() });
   corp.level = 5;
   corp.buildingSlots = 6;
@@ -199,6 +199,63 @@ if (kind === "cg-station" || kind === "cg-station-closed" || kind === "cg-statio
     const { proposeStationSetting } = await import("../server/game/stationGovernance.js");
     const vote = proposeStationSetting(builderId, c.id, { setting: "access", value: "members" }); // its whole stake: passes at once
     if (vote.refused || vote.proposal.state !== "passed") throw new Error(`seeding the access vote: ${vote.refused?.error || vote.proposal.state}`);
+  }
+}
+// ISP-213 (AB#908): the Station screen's states.
+// - cg-start: the player founds a level-4 conglomerate at the Bureau with the credits and goods for a station; no project.
+// - cg-opening: the same, with its Venus project funded and due to open ~15 s after seeding (the server's tick opens it).
+// - cg-gov: Venus Platform built by another founder and funded mostly by the player (a member, 61% of the stake), with
+//   the founder's proposal to make docking members-only open; the player is docked there.
+if (["cg-start", "cg-opening", "cg-gov"].includes(kind)) {
+  const { accountsStore } = await import("../server/game/store.js");
+  const { conglomerateList, foundConglomerate } = await import("../server/game/conglomerates.js");
+  const { answerInvitation, inviteCorporation } = await import("../server/game/membership.js");
+  const { CONGLOMERATE_CATALOG: C } = await import("../server/conglomerates.js");
+  const { billOfMaterials, contributeToStationProject, settleStationProject, startStationProject } = await import("../server/game/stationProjects.js");
+  const bom = billOfMaterials();
+  const must = (r, what) => { if (r?.refused) throw new Error(`seeding ${what}: ${r.refused.error}`); return r; };
+  const ready = (id, credits) => {
+    const raw = accountsStore.accounts[id];
+    raw.createdAt = Date.now() - (C.minFounderAgeDays + 1) * 86_400_000;
+    raw.state.corp.currentStationId = C.charterStationId;
+    raw.state.corp.finances.credits = credits;
+    if (!raw.state.corp.miningLeases?.length) raw.state.corp.miningLeases = [{ id: `lease-${id}`, body: "Earth", leaseType: "Silicate Extraction", buildingSlots: 2, extractorIds: [], issuedAt: Date.now() }];
+    const inv = ((raw.state.corp.inventory ||= {})[C.homeStationId] ||= {});
+    for (const [item, n] of Object.entries(bom.goods)) inv[item] = (inv[item] || 0) + n;
+    return raw;
+  };
+  const founderId = kind === "cg-gov"
+    ? (await store.createAccount({ email: `venus-founder-${Date.now()}@example.test`, password, ceoName: "Iris Venn", corpName: `Venus Holdings ${Date.now() % 1000}` })).account.id
+    : account.id;
+  ready(founderId, bom.credits + 500_000);
+  const founded = must(foundConglomerate(founderId, { name: "Venus Builders Guild", emblem: 2, colour: 3 }), "a conglomerate");
+  const c = conglomerateList().find((x) => x.id === founded.conglomerate.id);
+  c.level = C.stationMinLevel; // the level a station project needs; the ladder is ISP-202's to test
+  if (kind === "cg-gov") {
+    ready(account.id, 2_000_000);
+    const inv = must(inviteCorporation(founderId, c.id, accountsStore.accounts[account.id].state.corp.publicId), "an invitation");
+    must(answerInvitation(account.id, c.id, inv.invitation.id, "accept"), "joining");
+  }
+  if (kind !== "cg-start") {
+    must(startStationProject(founderId, c.id, { systemId: "sol", body: "Venus", suffix: 3 }), "a project");
+    const give = (id, body) => must(contributeToStationProject(id, c.id, body), "a contribution");
+    if (kind === "cg-gov") {
+      give(founderId, { source: "own", credits: 500_000 });
+      give(account.id, { source: "own", credits: 1_500_000 });
+    } else give(founderId, { source: "own", credits: bom.credits });
+    for (const [item, quantity] of Object.entries(bom.goods)) give(founderId, { source: "own", item, quantity });
+    if (kind === "cg-opening") {
+      const p = c.stationProject;
+      p.fundedAt = Date.now() - (C.stationBuildDays * 86_400_000 - 15_000); // as if built for 14 days less 15 s
+      p.completesAt = Date.now() + 15_000;
+    } else {
+      settleStationProject(c, c.stationProject.completesAt);
+      if (!c.station) throw new Error("seeding a station: the project did not complete");
+      const { proposeStationSetting } = await import("../server/game/stationGovernance.js");
+      const vote = must(proposeStationSetting(founderId, c.id, { setting: "access", value: "members" }), "a proposal");
+      if (vote.proposal.state !== "open") throw new Error(`seeding a proposal: it is ${vote.proposal.state}, not open`);
+      accountsStore.accounts[account.id].state.corp.currentStationId = c.station.id;
+    }
   }
 }
 store.markWalkthroughCompleted(account.id);

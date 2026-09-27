@@ -11,10 +11,33 @@ import { inputsLabel, maxBatches, minBatches, refineRunCheck } from "../refinery
 import { amountsText, chainTitle, consumersOf, defaultBatches, inputRows, outputRows, producersOf, startLabel } from "../chainPlan.js";
 import { wholeNumber } from "../wholeNumber.js";
 import { scrollBehavior } from "../motion.js";
-import { appState } from "../state.js";
+import { appState, techTree } from "../state.js";
+import { buildingLinkHtml, researchLinkHtml } from "../researchLinks.js"; // AB#885
+import { resourceCatalogHtml } from "../resourceCatalog.js"; // AB#885
 import { clientPrices } from "../clientPrices.js";
 import { refineryMultiplierFor, refineryOutput } from "../refineryOutput.js"; // ISP-97 (AB#787), AB#794: output by tier
-import { cycleProgressPercent, pushFeedback, updateAllViews } from "./shared.js";
+import { cycleProgressPercent, pushFeedback, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { basePricesOf, patentToPay } from "../patentRoyalty.js"; // ISP-237 (AB#932)
+import { runRoyaltyQuote } from "../refineryRoyalty.js";
+
+/**
+ * ISP-237 (AB#932): before a run of a chain another corporation has patented, the royalty it will pay, confirmed; true
+ * to go on. A chain under no patent (or the caller's own) starts at once, as before.
+ */
+async function confirmRoyalty(chain, refineryId, batches) {
+  const corp = appState.data?.corp || {};
+  const patent = patentToPay(appState.patents, "chain", chain?.id, corp.corporationName);
+  if (!patent) return true;
+  const refinery = [...(corp.refineries || []), ...(corp.synthesisArrays || [])].find((r) => r.id === refineryId);
+  const tier = Number(refinery?.tier) || 1;
+  const quote = runRoyaltyQuote({ patent, chain, batches, tier, multiplier: refineryMultiplierFor(tier, appState.economy?.buildings), basePrices: basePricesOf(appState.data?.market?.npcBuyOrders) });
+  return showTradeConfirmation({
+    heading: "Patented chain",
+    title: `Start ${chainTitle(chain)}? It is under ${patent.holder}'s patent.`,
+    confirmLabel: `Start run (royalty ${quote.royalty.toLocaleString("en-US")} credits)`,
+    rows: quote.rows
+  });
+}
 
 
 /** "Made by: <link>", or where an item comes from when no chain makes it. Links sit in running text (a <p>). */
@@ -51,9 +74,11 @@ export function renderRefinery(data) {
   const catalog = document.getElementById("resource-catalog");
   // AB#2353: data/refinery-chains.json's list, sent with the world (server/game/shape.js); the page kept a copy of it,
   // and the copy missed Iron Ore when AB#831 added it.
-  catalog.innerHTML = (data.world?.resourceCatalog || []).map((res) => `<li class="ui-badge">${escapeHtml(res)}</li>`).join("");
+  catalog.innerHTML = resourceCatalogHtml(data.world?.resourceCatalog || [], data.market?.itemTiers);
 
   const refineries = data.corp?.refineries || [];
+  // ISP-189 (AB#883): the Tier 4 chains run in the Synthesis Array, the rest in a Refinery; each card uses its own.
+  const synthesisArrays = data.corp?.synthesisArrays || [];
   const corp = data.corp || {};
   const unlockedTech = new Set(data.corp?.unlockedTech || []);
   const stationId = data.corp?.currentStationId || "earth-station-prime";
@@ -72,7 +97,7 @@ export function renderRefinery(data) {
   const refineryChains = data.world?.refineryChains || [];
 
   const activeEl = document.getElementById("refinery-active-runs");
-  const activeRefineries = refineries.filter((r) => r.active);
+  const activeRefineries = [...refineries, ...synthesisArrays].filter((r) => r.active);
   if (!activeRefineries.length) {
     activeEl.innerHTML = `<div class="ui-state"><p class="ui-state__title">${hasRefinery ? "No active refinery cycles." : "No refinery yet."}</p><p class="ui-state__why">${hasRefinery ? "Start a production run below." : "Build a Refinery to begin processing raw materials."}</p></div>`;
   } else {
@@ -139,8 +164,11 @@ export function renderRefinery(data) {
       // Whole batches, at least 100 units: the rule start-refinery checks too (refineQuantity.js).
       const minQty = refineMinimum(perCycle);
       const hasInput = inputAvailable >= minQty;
-      const idleRefinery = refineries.find((r) => !r.active);
-      const canStart = hasRefinery && !techGated && hasInput && idleRefinery && !multiInput;
+      const onArray = chain.building === "synthesis-array";
+      const facilities = onArray ? synthesisArrays : refineries;
+      const hasFacility = facilities.length > 0;
+      const idleRefinery = facilities.find((r) => !r.active);
+      const canStart = hasFacility && !techGated && hasInput && idleRefinery && !multiInput;
       // Default the quantity input to whichever is larger: the minimum, or as
       // much of the player's stock as fits in whole batches.
       // AB#825: never more than a week of batches, the most one run may take.
@@ -155,16 +183,17 @@ export function renderRefinery(data) {
       const batchesValue = refineQuantityFieldValue(appState.refineQuantityOverrides[chain.id], defaultBatches(chain, inventory));
       const batches = wholeNumber(batchesValue) ?? 0;
       const rows = multiInput ? inputRows(chain, batches, inventory, refineryChains) : [];
-      const canStartMulti = multiInput && hasRefinery && !techGated && idleRefinery;
+      const canStartMulti = multiInput && hasFacility && !techGated && idleRefinery;
 
       return `
         <section class="ui-card refinery__chain" id="chain-${escapeHtml(chain.id)}" tabindex="-1">
           <h4 class="ui-card__title">${escapeHtml(chainTitle(chain))}</h4>
           <p class="ui-card__body">${escapeHtml(inputsLabel(inputs.map((i) => ({ item: i.item, quantity: i.quantityPerCycle }))))} per batch → ${escapeHtml(outputLabel)}</p>
-          <p class="ui-card__meta">Cycle: ${chain.cycleDurationHours || "?"}h per batch</p>
+          <p class="ui-card__meta">Cycle: ${chain.cycleDurationHours || "?"}h per batch${onArray ? " · runs in the Synthesis Array" : ""}</p>
           ${techGated
             // ISP-292 (AB#1761): a requirement not yet met, not a warning — the muted token, not amber.
-            ? `<p class="ui-card__meta">Requires: ${escapeHtml((chain.requiresResearch || []).join(", "))}</p>`
+            // AB#885: each research named links to its card on the R&D tab.
+            ? `<p class="ui-card__meta">Requires: ${(chain.requiresTechIds || []).map((id, i) => researchLinkHtml(id, [...techTree, { id, name: chain.requiresResearch?.[i] || id }])).join(", ")}</p>`
             : `<p class="ui-card__meta"><span class="ui-badge ui-badge--success">Research unlocked</span></p>`
           }
           ${multiInput
@@ -191,6 +220,12 @@ export function renderRefinery(data) {
                   ${quantityError ? `<p id="${escapeHtml(errorId)}" class="ui-field__error" role="alert">${escapeHtml(quantityError)}</p>` : ""}
                 </div>
                 <button class="ui-button ui-button--secondary refinery__start" type="button" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-batches-input="${escapeHtml(batchesId)}" data-hours="${Number(chain.cycleDurationHours) || 0}"${rows.some((r) => r.short) || batches < 1 ? " disabled" : ""}>${escapeHtml(batches < 1 ? "Enter a number of batches" : startLabel(rows))}</button>`
+            // ISP-189 (AB#883): a Tier 4 chain says where it runs, and what its Array needs, not the Refinery's.
+            : onArray
+              ? !hasFacility
+                // AB#885: the building and its research, each a link to where it is dealt with.
+                ? `<p class="ui-card__meta">Runs in a ${buildingLinkHtml("synthesis-array", "Synthesis Array")}. Build one from the Station's construction list; it needs ${researchLinkHtml("tt-high-energy-synthesis", techTree)} research.</p>`
+                : !idleRefinery ? `<p class="ui-card__meta"><span class="ui-badge ui-badge--warn">Synthesis Array busy</span></p>` : ""
             : belowRefineryCap && canBuildRefinery
               ? refineryBuildButtonHtml({ hasRefinery, used: buildings.length, slots: buildingSlots })
               : !hasRefinery && !canBuildRefinery
@@ -257,6 +292,7 @@ export function renderRefinery(data) {
         updateAllViews();
         return;
       }
+      if (!(await confirmRoyalty(chain, multiBtn.getAttribute("data-refinery-id"), check.batches))) return;
       multiBtn.disabled = true;
       multiBtn.textContent = "Starting…";
       try {
@@ -304,6 +340,7 @@ export function renderRefinery(data) {
         updateAllViews();
         return;
       }
+      if (!(await confirmRoyalty(refineryChains.find((c) => c.id === chainId), refineryId, check.batches))) return;
       startBtn.disabled = true;
       startBtn.textContent = "Starting…";
       try {

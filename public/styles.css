@@ -1572,6 +1572,11 @@ body.walkthrough--open .layout-grid {
 /* ─── Trade Confirmation Modal ─── */
 .trade-confirm-card {
   width: min(480px, 100%); /* not 94vw: the same overflow as AB#1781, inside .modal-backdrop's padding */
+  /* ISP-233 (AB#928): a confirmation with a warning is taller than a phone; it scrolls inside the screen, so Cancel and
+     Confirm are always reachable (centred and unbounded, its top and its buttons went off-screen at 375x812) */
+  max-height: calc(100vh - 2 * var(--space-4));
+  max-height: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
 }
 
 .trade-confirm-body {
@@ -1600,6 +1605,23 @@ body.walkthrough--open .layout-grid {
   font-weight: 500;
 }
 
+/* ISP-233 (AB#928): the ITC's dumping warning on a listing, and the Exchange's price-impact alert */
+.trade-confirm-warn td,
+.trade-confirm-warn td:first-child {
+  color: var(--warn);
+}
+.trade-confirm-table .trade-confirm-note td,
+.trade-confirm-table .trade-confirm-note td:first-child { /* outranks the label column's nowrap: a note wraps */
+  white-space: normal;
+  line-height: var(--line-height-body, 1.5);
+}
+.exchange__flood-alert {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--warn);
+  color: var(--warn);
+  font-size: var(--font-size-2);
+}
 .trade-confirm-highlight td {
   border-top: 1px solid var(--border);
   border-bottom: none;
@@ -2450,6 +2472,25 @@ body.sg {
   font-weight: var(--font-weight-semibold);
   color: var(--text);
 }
+/* ISP-248 (AB#944): the document code before a screen or section title (docs/design/BUREAUCRATIC_UI.md). Secondary
+   text: mono, muted, one step below the body; on a phone at the 14px floor the screen specs measure. */
+.ui-code {
+  margin-inline-end: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--letter-spacing-caps);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.ui-code:empty {
+  display: none;
+}
+@media (max-width: 600px) {
+  .ui-code {
+    font-size: var(--font-size-3);
+  }
+}
 .ui-panel__actions {
   display: flex;
   flex-wrap: wrap;
@@ -3046,8 +3087,15 @@ body.sg {
   padding: 0;
   list-style: none;
 }
+/* Bug #4666: a grid item's minimum width is its content's unless it says otherwise. An unread row's preview is one
+   unwrapped line (nowrap, below), so the row grew to the whole sentence (501px on a 375px phone), the page scrolled
+   sideways and the tab bar went off screen. With min-width 0 the row fits its column and the preview ellipsises. */
+.inbox__messages > * {
+  min-width: 0;
+}
 .inbox__message {
   width: 100%;
+  min-width: 0;
 }
 .inbox__message.is-unread {
   border-left: 3px solid var(--accent);
@@ -3089,6 +3137,20 @@ body.sg {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Bug #4666: the preview and its unread count on one line: the text shortens with an ellipsis, the count never does */
+.inbox__preview-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.inbox__preview-line > .inbox__preview {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.inbox__preview-line > .ui-badge {
+  flex: none;
 }
 .thread__scroll {
   max-height: min(60vh, 560px);
@@ -3298,6 +3360,23 @@ body.sg {
   gap: var(--space-2);
   margin: 0;
   list-style: none;
+}
+/* Bug #4661: a chain's start button names every short input (AB#836), so its label wraps inside the card */
+.refinery__start {
+  white-space: normal;
+}
+/* AB#885: the Resource catalog by tier: one row of badges under each tier's label */
+.refinery__tier {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+}
+.refinery__tier .refinery__catalog {
+  padding: 0;
+}
+.refinery__tier-label {
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-semibold);
 }
 .logistics__tile-text {
   font-size: var(--font-size-3);
@@ -3604,6 +3683,23 @@ img.station__body {
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-2);
+}
+/* ISP-192 (AB#886): a tier that also takes goods names them on its button, which is longer than a phone's card. */
+.station__upgrade .ui-button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+/* ISP-231 (AB#926): a holder files its system's tariff in the starmap's system panel: a short number and its button, in
+   one row where they fit. */
+.starmap__tariff-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+.starmap__tariff-form .ui-input {
+  width: 7em;
 }
 .station__probe-img {
   width: 96px;
@@ -4294,6 +4390,116 @@ img.station__body {
 .dominance-details strong { color: var(--text); font-variant-numeric: tabular-nums; }
 .dominance-details__own span { color: var(--text); font-weight: var(--font-weight-semibold); }
 .dominance-details__others { color: var(--muted); }
+
+/* ISP-237 (AB#932): the patent office at Corporate Registry & Charters */
+.patent-office { display: flex; flex-direction: column; gap: var(--space-4); }
+.patent-section { display: flex; flex-direction: column; gap: var(--space-3); }
+.patent-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.patent-card { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.patent-card__title { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); overflow-wrap: anywhere; }
+.patent-card__meta { margin: 0; color: var(--muted); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.patent-card__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); }
+.patent-card__form .ui-field__label { flex-basis: 100%; }
+.patent-card__form .ui-select { width: auto; min-width: 7rem; }
+.patent-terms-list { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); }
+.patent-terms-list dt { color: var(--muted); }
+.patent-terms-list dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.patent-total { margin: 0; font-variant-numeric: tabular-nums; }
+/* ISP-240 (AB#935): the lobbying office at the Earth Assembly and the ITC */
+.lobby-section { display: flex; flex-direction: column; gap: var(--space-3); }
+.lobby-standing { margin: 0; font-size: var(--font-size-4, 1.5rem); font-variant-numeric: tabular-nums; }
+.lobby-values td { vertical-align: top; font-variant-numeric: tabular-nums; }
+.lobby-values .lobby-moved { color: var(--accent); font-weight: 700; }
+.lobby-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--space-3); align-items: end; }
+.lobby-form .lobby-preview, .lobby-form .ui-panel__meta, .lobby-form .lobby-status { grid-column: 1 / -1; margin: 0; }
+.lobby-form button { justify-self: start; }
+.lobby-preview { padding: var(--space-2) var(--space-3); border-left: 3px solid var(--accent); background: var(--surface-2); line-height: var(--line-height-body); }
+.lobby-status { color: var(--warn); }
+.lobby-group { margin: var(--space-2) 0 0; }
+.lobby-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.lobby-campaign { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.lobby-campaign p { margin: 0; overflow-wrap: anywhere; }
+.lobby-sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--space-2); }
+.lobby-side { display: inline-block; min-width: 4.5rem; margin-right: var(--space-2); font-weight: 700; }
+.lobby-side--for { color: var(--success); }
+.lobby-side--against { color: var(--danger); }
+.lobby-pledge { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: flex-end; }
+.lobby-glossary { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); color: var(--muted); }
+.lobby-glossary dt { font-weight: 700; color: var(--text); }
+.lobby-glossary dd { margin: 0; }
+@media (max-width: 560px) { .lobby-glossary { grid-template-columns: minmax(0, 1fr); } .lobby-glossary dd { margin-bottom: var(--space-2); } }
+.lobby-pledge .ui-input { width: 8rem; }
+.lobby-pledge .ui-select { width: auto; }
+.patent-status:empty { display: none; }
+.patent-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
+@media (max-width: 600px) {
+  .patent-terms-list { grid-template-columns: minmax(0, 1fr); }
+  .patent-terms-list dt { margin-top: var(--space-1); }
+  .patent-office, .patent-card__meta, .patent-terms-list, .patent-status, .patent-office .ui-panel__meta, .patent-office .ui-state__why { font-size: var(--font-size-3); }
+}
+
+/* ISP-243 (AB#939): the Galactic Arbitration Council's chambers, read like a court registry */
+.gac-chambers { display: flex; flex-direction: column; gap: var(--space-4); }
+.gac-section { display: flex; flex-direction: column; gap: var(--space-3); }
+.gac-step { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); margin: 0; min-width: 0; }
+.gac-step__title { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--font-size-3); font-weight: 600; padding: 0; }
+.gac-step__n { display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: 50%; border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.gac-choices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.gac-choice { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); background: var(--surface-2); cursor: pointer; overflow-wrap: anywhere; }
+.gac-choice:has(input:checked) { border-color: var(--accent); }
+.gac-choice input { margin-top: 0.25em; flex: none; }
+.gac-choice > span { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.gac-choice__meta { color: var(--muted); font-size: var(--font-size-2); }
+.gac-choice--off { cursor: not-allowed; opacity: 0.7; }
+.gac-preview { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-3); }
+.gac-preview__rule { border-left: 3px solid var(--accent); padding: var(--space-2) var(--space-3); background: var(--surface-2); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.gac-preview__rule p { margin: 0; }
+.gac-rule__head { font-weight: 600; margin-bottom: var(--space-1) !important; }
+.gac-terms { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); }
+.gac-terms dt { color: var(--muted); }
+.gac-terms dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.gac-status:empty { display: none; }
+.gac-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
+.gac-ref { font-family: var(--font-mono, ui-monospace, monospace); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.gac-cases, .gac-docket { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.gac-case details { border: 1px solid var(--border); border-radius: var(--radius-2, 8px); background: var(--surface-2); }
+.gac-case__summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-3); cursor: pointer; overflow-wrap: anywhere; }
+.gac-case__title { flex: 1 1 16rem; min-width: 0; }
+.gac-case__body { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-3) var(--space-3); }
+.gac-case__sub { margin: var(--space-2) 0 0; font-size: var(--font-size-2); color: var(--muted); font-weight: 600; }
+.gac-protocol { margin: 0; font-size: var(--font-size-2); color: var(--muted); font-style: italic; }
+.gac-ruling { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--accent); background: var(--surface); line-height: var(--line-height-body); }
+.gac-docket__row { border-bottom: 1px solid var(--border); padding: var(--space-2) 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.gac-docket__row p { margin: 0; overflow-wrap: anywhere; }
+.gac-docket__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.gac-docket__meta { color: var(--muted); font-size: var(--font-size-2); }
+@media (max-width: 600px) {
+  .gac-preview { grid-template-columns: minmax(0, 1fr); }
+  .gac-terms { grid-template-columns: minmax(0, 1fr); }
+  .gac-terms dt { margin-top: var(--space-1); }
+  .gac-chambers, .gac-choice, .gac-choice__meta, .gac-terms, .gac-status, .gac-protocol, .gac-docket__meta, .gac-case__sub, .gac-preview__rule, .gac-chambers .ui-panel__meta, .gac-chambers .ui-state__why { font-size: var(--font-size-3); }
+}
+
+/* ISP-229 (AB#924): the Concessions overlay's extra marks, and a system's concession section and holder view */
+.dominance-swatch--muted { background: var(--muted); }
+.concession-swatch--pending { background: transparent; border: 2px dashed var(--series-3); }
+.concession-section { display: flex; flex-direction: column; gap: var(--space-2); border-top: 1px solid var(--border); padding-top: var(--space-3); }
+.concession-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.concession-why { margin: 0; color: var(--warn); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.concession-status:empty { display: none; }
+.concession-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
+.concession-holder { display: flex; flex-direction: column; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.concession-terms { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); }
+.concession-terms dt { color: var(--muted); }
+.concession-terms dd { margin: 0; color: var(--text); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.concession-grace { color: var(--warn); }
+.concession-discount { display: flex; flex-direction: column; gap: var(--space-2); } .concession-discount .ui-select { max-width: 12rem; }
+@media (max-width: 600px) {
+  .concession-terms { grid-template-columns: minmax(0, 1fr); }
+  .concession-terms dt { margin-top: var(--space-1); }
+  .concession-section, .concession-terms, .concession-why, .concession-status, .concession-section .ui-panel__meta, .concession-section .dominance-details { font-size: var(--font-size-3); }
+  .dominance-legend { font-size: var(--font-size-3); } /* the dominance and concession legends, both 13px on a phone before */
+}
 .starmap__resource-legend {
   display: flex;
   flex-direction: column;
@@ -4956,3 +5162,20 @@ img.station__body {
   .raid-table th, .raid-table td { padding: var(--space-1); }
   .raid-report { padding: var(--space-3); }
 }
+/* ISP-213 (AB#908): the Conglomerate tab's Station screen: the body the station (or its project) orbits beside its name,
+   as every station header shows it (ISP-78); the bill of materials with a bar per input; the stakes and the vote. */
+.cong-station__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4); }
+.cong-station__head .station__art { width: 128px; }
+.cong-station__head h3 { margin: var(--space-1) 0; }
+.cong-station__bar { min-width: 8rem; background: var(--surface-3); } /* the track shows on a panel: an empty input reads as empty, not blank */
+.cong-station__votebar { position: relative; overflow: visible; }
+.cong-station__votebar::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: var(--text); } /* the 50% a change must pass */
+.cong-station__note { margin: 0; color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.cong-station__bill td[data-label="Progress"] { width: 30%; }
+.cong-station__benefits { margin: 0; padding-left: var(--space-5); display: grid; gap: var(--space-2); color: var(--text-soft); line-height: var(--line-height-body); }
+.cong-station__sites { margin: 0; padding-left: var(--space-5); color: var(--text-soft); }
+.cong-station__start { display: flex; flex-direction: column; gap: var(--space-4); max-width: 32rem; }
+.cong-station__start .ui-button { align-self: flex-start; }
+.cong-station__clock { display: grid; gap: var(--space-2); margin-top: var(--space-4); }
+.cong-station__docked { margin-top: var(--space-4); border-left: 3px solid var(--station-owned); }
+@media (max-width: 767px) { .cong-station__head .station__art { width: 96px; } .cong-station__bill td[data-label="Progress"] { width: auto; } }

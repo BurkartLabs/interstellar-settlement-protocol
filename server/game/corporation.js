@@ -207,8 +207,11 @@ export function refreshContractOfferings(corpState) {
     // Gather IDs that are currently active
     const activeIds = new Set((corpState.activeMissions || []).map(m => m.id));
 
-    // Filter eligible templates
-    const eligible = MISSION_TEMPLATES.filter(t => !cooldownIds.has(t.id) && !activeIds.has(t.id));
+    // Filter eligible templates. ISP-192 (AB#886): a requisition for a Tier 4 product is offered only to a corporation
+    // with the research that makes it, so it never takes an offer slot from one that cannot fill it.
+    const unlocked = corpState.unlockedTech || [];
+    const eligible = MISSION_TEMPLATES.filter(t => !cooldownIds.has(t.id) && !activeIds.has(t.id)
+      && (t.requiresTechIds || []).every((id) => unlocked.includes(id)));
 
     // Shuffle and pick; a corporation's first offering always includes the contract the walkthrough promised it.
     const shuffled = eligible.slice().sort(() => Math.random() - 0.5);

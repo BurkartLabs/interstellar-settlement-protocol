@@ -4,6 +4,7 @@ import { escapeHtml, bootFailureHtml } from "./html.js";
 
 // AB#738 (ISP-52): the shared pieces app.js used to define itself.
 import { appState, IS_DEV_ACCESS, techTree } from "./state.js";
+import { loadSectionCodes } from "./sectionCodes.js"; // ISP-248 (AB#944)
 import { navigationFor } from "./navigation.js"; // ISP-112 (AB#804)
 import { connectApiClient, socket, reauthenticateSocket, persistSession, clearSession, redirectToLoginPage, handleSessionExpired, createInvalidSessionError, hydrateSession, refreshSessionToken, apiFetch, parseJsonResponse } from "./apiClient.js";
 import { toCurrency, deepClone } from "./helpers.js";
@@ -25,11 +26,12 @@ import { onConversationEvent } from "./views/conversations.js"; // AB#911
 import { renderLogistics } from "./views/logistics.js";
 import { renderMiningCyclePanel, startMiningUiTicker, stopMiningUiTicker } from "./views/miningTicker.js";
 import { renderExpeditionPanel, renderLevel2Progress, updateOverview } from "./views/overview.js";
-import { loadConglomerate, onConglomerateChange, openBureau, renderConglomerateHq } from "./views/conglomerateBureau.js"; // ISP-201 (AB#895)
+import { loadConglomerate, onConglomerateChange, openBureau, refreshStations, renderConglomerateHq } from "./views/conglomerateBureau.js"; // ISP-201 (AB#895); refreshStations: ISP-213 (AB#908)
 import { renderRefinery } from "./views/refinery.js";
 import { bindResearchForms, renderQueue, renderTechTree } from "./views/research.js";
 import { connectViews, isPlayerTraveling, pushFeedback, renderFeedbackLog, revealUnderHeader } from "./views/shared.js";
-import { loadBeltCompositionsIntoStarmap, starmap } from "./views/starmap.js";
+import { loadBeltCompositionsIntoStarmap, loadTariffs, starmap } from "./views/starmap.js";
+import { loadPatentRegister } from "./views/patentOffice.js"; // ISP-237 (AB#932): the Refinery's royalty quote reads it
 import { bindBuildingActions, refreshOpenLeaseView, renderStation } from "./views/station.js";
 import { clearTravelTimer, renderTravelPage } from "./views/travel.js";
 
@@ -60,6 +62,9 @@ onConglomerateChange(() => {
   updateOverview(appState.data);
   // ISP-208 (AB#903): the Exchange's Sellers filter and Partner badges follow membership.
   if (document.getElementById("market")?.classList.contains("active")) renderMarket(appState.data);
+  // ISP-213 (AB#908): the Station tab's panel for a member docked at its own conglomerate's station. Drawn whether or
+  // not the tab is showing: switching to it does not draw it again, and the first draw often precedes this read.
+  renderStation(appState.data);
 });
 
 function isPlayerInSpace(data) {
@@ -170,7 +175,7 @@ function renderAllViews() {
   if (data.world?.systems) starmap.setSystems(data.world.systems);
   starmap.setStations(appState.stationRegistry, data.corp?.currentStationId, data.corp?.currentSystemId || "sol");
   starmap.setUnlockedTech(new Set(data.corp?.unlockedTech || []));
-  starmap.setAsteroidMining(starmapMiningState(data, appState.beltCompositions, { belts: appState.belts, respawnChancePerHour: appState.beltRespawnChance }));
+  starmap.setAsteroidMining(starmapMiningState(data, appState.beltCompositions, { belts: appState.belts, respawnChancePerHour: appState.beltRespawnChance, remoteDispatchYieldPct: appState.remoteDispatchYieldPct }));
   renderExpeditionPanel(data);
   renderInboxMessageList();
 }
@@ -304,6 +309,10 @@ function enterGame(mode, data, options = {}) {
 
   persistSession();
   if (appState.accountId) loadBeltCompositionsIntoStarmap(); // Bug #1264
+  appState.tariffs = null; // ISP-231 (AB#926): never another account's; this account's are fetched below
+  if (appState.accountId) loadTariffs();
+  appState.patents = null; // ISP-237 (AB#932): the public register, for the royalty on a patented chain
+  if (appState.accountId && mode !== "dummy") loadPatentRegister();
   // ISP-201 (AB#895): the Overview's Conglomerate card reads this; never another account's.
   appState.conglomerate = undefined;
   if (appState.accountId && mode !== "dummy") loadConglomerate();
@@ -374,6 +383,7 @@ async function loadBootstrap() {
 }
 
 async function loadStationRegistry() {
+  loadSectionCodes(); // ISP-248 (AB#944): the document codes, filled into every title's slot; never awaited
   try {
     const [stationsRes, buildingsRes, insightRes, missionAgentsRes, researchRes, systemsRes] = await Promise.all([
       fetch("/api/stations"),
@@ -485,6 +495,7 @@ async function refreshFromServer() {
     appState.activeMissions = appState.data.corp?.activeMissions || [];
     loadBeltCompositionsIntoStarmap(); // Bug #1264
     updateAllViews();
+    loadTariffs(); // ISP-231 (AB#926): a jump or a dock changes the rate the corporation pays
     return;
   }
 
@@ -621,9 +632,11 @@ function bindRealtimeEvents() {
 
   // ISP-201 (AB#895): a membership change in this corporation's conglomerate, or one addressed to it (the server sends
   // these to the conglomerate's room and the affected account only): read the conglomerate again.
-  for (const event of ["invited", "applied", "joined", "left", "invitation-closed", "application-closed", "role-changed", "removed", "dissolved", "identity-changed", "levelled", "level-lost", "treasury", "hangar"]) {
+  for (const event of ["invited", "applied", "joined", "left", "invitation-closed", "application-closed", "role-changed", "removed", "dissolved", "identity-changed", "levelled", "level-lost", "treasury", "hangar", "station-project", "station-vote"]) { // station-*: ISP-213 (AB#908)
     socket.on(`conglomerate:${event}`, () => { if (appState.accountId) loadConglomerate(); });
   }
+  // ISP-213 (AB#908): a station opened: the conglomerate again, and the station list every map and list reads
+  socket.on("conglomerate:station-built", () => { if (appState.accountId) { loadConglomerate(); refreshStations(); } });
 
   // Bug #1130: mail for this account arrived (the server sends it to this account's room only, with no payload).
   socket.on("messages:new", () => {
@@ -711,6 +724,12 @@ function bindRealtimeEvents() {
   // AB#2331: a belt emptied or formed anew somewhere: what this account may see of the slots, fetched again, so an
   // open belt panel shows it without a reload.
   socket.on("belts:changed", () => {
+    if (!appState.accountId) return;
+    loadBeltCompositionsIntoStarmap();
+  });
+  // Bug #4665: a partner scouted a belt (the conglomerate's room): what this corporation may see of the belts, read
+  // again, so an open belt panel shows the shared intel without a reload.
+  socket.on("conglomerate:intel", () => {
     if (!appState.accountId) return;
     loadBeltCompositionsIntoStarmap();
   });

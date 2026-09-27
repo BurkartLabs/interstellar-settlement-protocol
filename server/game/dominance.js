@@ -84,6 +84,10 @@ export function computeDominance({ accounts = [], conglomerates = [] } = {}, now
 
   const systems = {};
   const priv = {};
+  // ISP-226 (AB#921): each system's holders (a conglomerate as one, an independent corporation as itself) with their
+  // component shares and the components with any activity, for control scores at the system's own weights. Private: it
+  // is kept in dominance.json, never served (the control endpoint serves names, rounded scores and eligibility only).
+  const holdersBySystem = {};
   for (const [systemId, holders] of raw) {
     const totals = Object.fromEntries(COMPONENTS.map((k) => [k, [...holders.values()].reduce((s, r) => s + r[k], 0)]));
     const live = COMPONENTS.filter((k) => totals[k] > 0);
@@ -99,7 +103,7 @@ export function computeDominance({ accounts = [], conglomerates = [] } = {}, now
       (priv[publicId] ||= {})[systemId] = { ...parts, dominance: share };
       const c = conglomerateOf.get(publicId);
       const key = c ? `cgl:${c.id}` : `corp:${publicId}`;
-      const group = groups.get(key) || { name: c ? c.name : corp?.corporationName || "A corporation", share: 0, parts: { leases: 0, extraction: 0, sales: 0 }, conglomerateId: c?.id || null };
+      const group = groups.get(key) || { name: c ? c.name : corp?.corporationName || "A corporation", share: 0, parts: { leases: 0, extraction: 0, sales: 0 }, conglomerateId: c?.id || null, publicId };
       group.share += share;
       for (const k of COMPONENTS) group.parts[k] += parts[k];
       groups.set(key, group);
@@ -110,11 +114,15 @@ export function computeDominance({ accounts = [], conglomerates = [] } = {}, now
         if (priv[m.corp]?.[systemId]) priv[m.corp][systemId].conglomerate = { ...group.parts, dominance: group.share };
       }
     }
+    holdersBySystem[systemId] = {
+      live,
+      groups: [...groups.values()].map((g) => ({ type: g.conglomerateId ? "conglomerate" : "corp", id: g.conglomerateId || g.publicId, name: g.name, parts: { ...g.parts } }))
+    };
     systems[systemId] = {
       activity: true,
       byCorporation: publicView(corps, catalog),
       byConglomerate: publicView([...groups.values()].map(({ name, share }) => ({ name, share })), catalog)
     };
   }
-  return { computedAt: now, window: { from, to }, systems, private: priv };
+  return { computedAt: now, window: { from, to }, systems, private: priv, holders: holdersBySystem };
 }

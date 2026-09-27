@@ -21,10 +21,12 @@ const BEFORE_THE_MOVE = {
     extractorYardPriceGrowth: 1.25,                                         // ISP-303 (AB#2286): new, not moved
     extractorYardsInStartingKit: 2,                                         // ISP-309 (AB#2305): new, not moved
     assemblyFacilityUpgrades: [                                             // ISP-102 (AB#794): new, not moved
-      { toTier: 2, upgradeCost: 30000, assetValue: 21000, offlineHours: 2, fabricationTimePct: 50 }
+      { toTier: 2, upgradeCost: 30000, assetValue: 21000, offlineHours: 2, fabricationTimePct: 50 },
+      { toTier: 3, upgradeCost: 60000, assetValue: 42000, offlineHours: 4, fabricationTimePct: 25, goods: [{ item: "Catalyst Beds", quantity: 20 }] } // ISP-192 (AB#886)
     ],
     refineryUpgrades: [                                                     // ISP-102 (AB#794): tier 3; tier 2 is the Refinery Complex
-      { toTier: 3, upgradeCost: 150000, assetValue: 105000, offlineHours: 8, outputMultiplier: 2 }
+      { toTier: 3, upgradeCost: 150000, assetValue: 105000, offlineHours: 8, outputMultiplier: 2 },
+      { toTier: 4, upgradeCost: 250000, assetValue: 175000, offlineHours: 12, outputMultiplier: 2.5, goods: [{ item: "Superconducting Coils", quantity: 10 }] } // ISP-192 (AB#886)
     ],
     extractorYardUpgrades: [                                                // ISP-101 (AB#793): new, not moved
       { toTier: 2, upgradeCost: 40000, assetValue: 28000, offlineHours: 6, throughputReferencePerHour: 525, throughputCap: 313 },
@@ -42,7 +44,8 @@ const BEFORE_THE_MOVE = {
     refineryComplexOutputMultiplier: 1.5,
     cryoVaporExtractorArrayCost: 80000, cryoVaporExtractorArrayAssetValue: 58000, // ISP-98 (AB#788): new, not moved
     cryoVaporExtractorArrayMiningMultiplier: 1.2,
-    orbitalShipyardCost: 150000, orbitalShipyardAssetValue: 105000 // ISP-170 (AB#864): new, not moved
+    orbitalShipyardCost: 150000, orbitalShipyardAssetValue: 105000, // ISP-170 (AB#864): new, not moved
+    synthesisArrayCost: 200000, synthesisArrayAssetValue: 140000 // ISP-189 (AB#883): new, not moved
   },
   operations: { costPerThroughputUnit: 16, minCostPerHour: 600, startupShareOfHourlyCost: 0.35, minStartupCost: 500, throughputReferencePerHour: 420 },
   probes: { buildCost: 8000, assetValue: 5000 },                            // gameState.js PROBE_BUILD_COST, PROBE_ASSET_VALUE
@@ -103,7 +106,18 @@ const BEFORE_THE_MOVE = {
     { item: "Fusion Reactor Cores", buyer: "Lunar Helium Consortium", unitPrice: 2243, dailyQty: 8 },
     { item: "Compact Fission Modules", buyer: "Synthorium Trading House", unitPrice: 932, dailyQty: 12 },
     { item: "Lightweight Spaceframes", buyer: "Olympus Heavy Industries", unitPrice: 451, dailyQty: 30 },
-    { item: "Ion Thrusters", buyer: "Olympus Heavy Industries", unitPrice: 1283, dailyQty: 12 }
+    { item: "Ion Thrusters", buyer: "Olympus Heavy Industries", unitPrice: 1283, dailyQty: 12 },
+    // AB#884: the Tier 4 bids, docs/design/v0.11-tier4.md section 3
+    { item: "Uranium", buyer: "Synthorium Trading House", unitPrice: 220, dailyQty: 7000 },
+    { item: "Exotic Matter", buyer: "ISA Materials Exchange", unitPrice: 900, dailyQty: 7000 },
+    { item: "Platinum-Group Metals", buyer: "Olympus Heavy Industries", unitPrice: 400, dailyQty: 7000 },
+    { item: "Metallic Hydrogen", buyer: "Lunar Helium Consortium", unitPrice: 260, dailyQty: 7000 },
+    { item: "Antimatter", buyer: "ISA Materials Exchange", unitPrice: 4865, dailyQty: 2 },
+    { item: "Superconducting Coils", buyer: "Synthorium Trading House", unitPrice: 1481, dailyQty: 12 },
+    { item: "Field Emitters", buyer: "ISA Materials Exchange", unitPrice: 1833, dailyQty: 6 },
+    { item: "Breeder Reactor Cores", buyer: "Synthorium Trading House", unitPrice: 2708, dailyQty: 6 },
+    { item: "Antimatter Drives", buyer: "Olympus Heavy Industries", unitPrice: 4869, dailyQty: 4 },
+    { item: "Catalyst Beds", buyer: "Belt Refining Cooperative", unitPrice: 1125, dailyQty: 15 }
   ]
 };
 

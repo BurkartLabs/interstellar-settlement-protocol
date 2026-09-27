@@ -29,7 +29,11 @@ import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHead
 import { showActionReceipt } from "./receiptModal.js";
 import { renderDevelopmentBank } from "./developmentBank.js"; // ISP-151 (AB#845)
 import { renderStockExchange } from "./stockExchange.js"; // ISP-161 (AB#855)
-import { renderConglomerateBureau } from "./conglomerateBureau.js"; // ISP-200 (AB#894)
+import { openConglomerateStation, renderConglomerateBureau } from "./conglomerateBureau.js"; // ISP-200 (AB#894); ISP-213 (AB#908)
+import { dockedAtOwnStationHtml } from "../conglomerateStation.js"; // ISP-213 (AB#908)
+import { renderArbitrationCouncil } from "./arbitrationCouncil.js"; // ISP-243 (AB#939)
+import { renderPatentOffice } from "./patentOffice.js"; // ISP-237 (AB#932)
+import { renderLobbyingOffice } from "./lobbyingOffice.js"; // ISP-240 (AB#935)
 const firstPresent = (...selectors) => () => selectors.map((sel) => document.querySelector(sel)).find(Boolean) || null;
 
 // ISP-78 (AB#767): where the corporation is docked, as a line under a building's name.
@@ -97,12 +101,14 @@ async function upgradeFacility(buildingId) {
   if (!view?.next || view.locked || view.blocked || !appState.accountId) return;
   const btn = document.querySelector(`[data-role="yard-upgrade"][data-upgrade-for="${CSS.escape(buildingId)}"] button`);
   const statusEl = document.querySelector(`[data-role="yard-upgrade-status"][data-for="${CSS.escape(buildingId)}"]`);
+  // ISP-192 (AB#886): a tier that also takes goods says so in the cost, not only in what changes
+  const goods = (view.next.goods || []).map((g) => `${Number(g.quantity).toLocaleString("en-US")} ${g.item}`).join(", ");
   const confirmed = await showTradeConfirmation({
     heading: `Upgrade ${building.name}`,
     title: `Upgrade the ${building.name} to tier ${view.next.tier}?`,
-    confirmLabel: `Upgrade (${toCurrency(view.next.cost)})`,
+    confirmLabel: `Upgrade (${toCurrency(view.next.cost)}${goods ? ` + ${goods}` : ""})`,
     rows: [
-      { label: "Cost", value: `${toCurrency(view.next.cost)} credits` },
+      { label: "Cost", value: `${toCurrency(view.next.cost)} credits${goods ? ` and ${goods} from this station's stock` : ""}` },
       { label: "What changes", value: view.change.replace(/&times;/g, "×").replace(/&rarr;/g, "→").replace(/&middot;/g, "·") }
     ]
   });
@@ -171,6 +177,38 @@ export function renderBuildingDetail(building, data) {
       </div>
       ${dockedHtml(station)}
       <p class="ui-screen__lede">${escapeHtml(building.description)}</p>`);
+  } else if (building.id === "corporate-registry-charters") {
+    // ISP-237 (AB#932): the Registry's patent office
+    const station = getCurrentStationInfo(data);
+    renderPatentOffice(contentEl, `
+      <div class="station__building-header">
+        <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      </div>
+      ${dockedHtml(station)}
+      <p class="ui-screen__lede">Patents are filed here: the first corporation to complete a research node or refinery chain may patent it, and every other corporation that uses it pays a royalty while the patent runs.</p>`);
+  } else if (building.id === "earth-assembly" || building.id === "interplanetary-trade-commission") {
+    // ISP-240 (AB#935): the faction's lobbying office: standing, the rules in force, campaigns and pledges
+    const station = getCurrentStationInfo(data);
+    renderLobbyingOffice(contentEl, building.id, `
+      <div class="station__building-header">
+        <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      </div>
+      ${dockedHtml(station)}
+      <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
+      <p class="station__flavor">${escapeHtml(building.flavor)}</p>`);
+  } else if (building.id === "galactic-arbitration-council") {
+    // ISP-243 (AB#939): the Council's chambers: filing, your cases and the docket
+    const station = getCurrentStationInfo(data);
+    renderArbitrationCouncil(contentEl, `
+      <div class="station__building-header">
+        <span class="ui-badge">${escapeHtml(building.factionCode)}</span>
+        <h2 class="station__building-title">${escapeHtml(building.name)}</h2>
+      </div>
+      ${dockedHtml(station)}
+      <p class="ui-screen__lede">${escapeHtml(building.description)}</p>
+      <p class="station__flavor">${escapeHtml(building.flavor)}</p>`);
   } else if (building.id === "conglomerate-affairs-bureau") {
     const station = getCurrentStationInfo(data);
     renderConglomerateBureau(contentEl, data, `
@@ -488,6 +526,7 @@ export function bindOfficeActions(building, data) {
 import { employeesForNextLease } from "../leaseStaffing.js"; // AB#1202: the server's rule, not a copy of it
 import { activeOfficeAt } from "../officeStatus.js"; // AB#1870: the server's rule, not a copy of it
 import { bodyProfile, cycleItemsText, leaseTypeLabel, profileText } from "../bodyYield.js"; // AB#829, Bug #2354
+import { codeSlotHtml } from "../sectionCodes.js"; // ISP-248 (AB#944)
 
 // The bodies the ISA leases. Module level so a full lease can say which are left (Bug #1057).
 export const LEASE_BODIES = [
@@ -1127,7 +1166,7 @@ export function renderStation(data) {
     const systemId = corp.currentSystemId || "sol";
     header.innerHTML = `
       <p class="station__overline">IN OPEN SPACE</p>
-      <h2 class="ui-screen__title">${escapeHtml(formatSystemLabel(systemId))} System</h2>
+      <h2 class="ui-screen__title">${codeSlotHtml("station")}${escapeHtml(formatSystemLabel(systemId))} System</h2>
       <p class="ui-screen__lede">You are not docked at any station. Use the Travel tab or Starmap to dock at a station in this system.</p>
     `;
     npcGrid.innerHTML = "";
@@ -1149,25 +1188,29 @@ export function renderStation(data) {
   if (overviewView && !buildingDetailOpen) overviewView.hidden = false;
 
   if (!station) {
-    header.innerHTML = `<h2 class="ui-screen__title">Station</h2><p class="station__note">No station data available for your current location.</p>`;
+    header.innerHTML = `<h2 class="ui-screen__title">${codeSlotHtml("station")}Station</h2><p class="station__note">No station data available for your current location.</p>`;
     return;
   }
 
   // ISP-78 (AB#767): the body the station orbits beside its name, so a screenshot says which station this is.
   const systems = data.world?.systems || appState.data?.world?.systems || [];
+  // ISP-213 (AB#908): docked at the member's own conglomerate's station, say what membership gets here
+  const ownStation = appState.conglomerate?.station?.id === station.id ? appState.conglomerate.station : null;
   header.innerHTML = `
     <div class="station__hero">
       ${stationArtHtml(station, systems)}
       <div class="station__identity">
         <p class="station__overline">${escapeHtml(station.designation)} &#47;&#47; ${escapeHtml(station.systemId.toUpperCase())}</p>
-        <h2 class="ui-screen__title">${escapeHtml(station.name)}</h2>
+        <h2 class="ui-screen__title">${codeSlotHtml("station")}${escapeHtml(station.name)}</h2>
         <p class="ui-screen__meta">In orbit of ${escapeHtml(station.body)}, ${escapeHtml(formatSystemLabel(station.systemId))} system</p>
         <p class="ui-screen__lede">${escapeHtml(station.description)}</p>
       </div>
     </div>
     ${stationStartPromptHtml(corp)}
+    ${ownStation ? dockedAtOwnStationHtml(station, { memberStation: ownStation, standardRent: officeLeaseCost(1), systems }) : ""}
   `;
   paintStationArt(header, systems);
+  header.querySelector('[data-role="own-station-open"]')?.addEventListener("click", openConglomerateStation);
 
   // ── Station buildings ──
   const stationBuildings = station.buildingIds

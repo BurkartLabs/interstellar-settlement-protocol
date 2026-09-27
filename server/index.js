@@ -1,6 +1,8 @@
 import "./loadEnv.js";
 // ISP-196 (AB#890): the conglomerate catalog is checked here, before anything listens; a bad one stops the start.
 import "./conglomerates.js";
+// ISP-225 (AB#920): the warfare catalog, checked the same way before anything listens.
+import "./warfare.js";
 import express from "express";
 import kanbanRouter from "./kanban.js";
 import fs from "node:fs";
@@ -36,7 +38,21 @@ import "./balanceSheet.js"; // Bug #4647: the balance sheet's debt and receivabl
 import { dividendTick } from "./dividends.js"; // ISP-159 (AB#853)
 import { registerConglomerateRoutes } from "./routes/conglomerates.js"; // ISP-197 (AB#891)
 import { registerDominanceRoutes } from "./routes/dominance.js"; // ISP-217 (AB#912)
+import { registerControlRoutes } from "./routes/control.js"; // ISP-226 (AB#921)
+import { registerConcessionRoutes } from "./routes/concessions.js"; // ISP-227 (AB#922)
+import { registerPatentRoutes } from "./routes/patents.js"; // ISP-235 (AB#930)
+import { registerArbitrationRoutes } from "./routes/arbitration.js"; // ISP-241 (AB#937)
+import { arbitrationTick } from "./arbitration.js"; // ISP-242 (AB#938)
+import { patentTick } from "./patents.js"; // ISP-236 (AB#931)
+import { concessionTick } from "./concessions.js"; // ISP-227 (AB#922)
 import { dominanceTick } from "./dominanceService.js"; // ISP-217 (AB#912)
+import { registerTariffRoutes } from "./routes/tariffs.js"; // ISP-230 (AB#925)
+import { tariffTick } from "./tariffService.js";
+import { itcTick } from "./itcService.js"; // ISP-232 (AB#927)
+import { standingTick } from "./standingService.js"; // ISP-238 (AB#933)
+import { registerStandingRoutes } from "./routes/standing.js";
+import { registerLobbyingRoutes } from "./routes/lobbying.js"; // ISP-239 (AB#934)
+import { lobbyingTick } from "./lobbyingService.js";
 import { registerLogisticsRoutes } from "./routes/logistics.js";
 import { registerMiningRoutes } from "./routes/mining.js";
 import { registerAsteroidRoutes } from "./routes/asteroids.js";
@@ -167,6 +183,13 @@ registerCapTableRoutes(app);
 registerEquityRoutes(app);
 registerConglomerateRoutes(app);
 registerDominanceRoutes(app);
+registerControlRoutes(app);
+registerConcessionRoutes(app);
+registerPatentRoutes(app);
+registerArbitrationRoutes(app);
+registerTariffRoutes(app);
+registerStandingRoutes(app);
+registerLobbyingRoutes(app);
 
 registerLogisticsRoutes(app);
 
@@ -178,6 +201,17 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now()
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondWindowTick(Date.now()), 60_000); // ISP-154 (AB#848)
 // ISP-217 (AB#912): dominance, computed at the first minute after 00:00 UTC (and at start when today has none)
 if (!process.env.ISP_DISABLE_TICKERS) { dominanceTick(Date.now()); setInterval(() => dominanceTick(Date.now()), 60_000); }
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => concessionTick(Date.now()), 60_000); // ISP-227 (AB#922): reviews, renewals, the day's upkeep
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => arbitrationTick(Date.now()), 60_000); // ISP-242 (AB#938): rulings, enforcement, Council debts passed on
+// ISP-230 (AB#925): each holder's tariffs, less the ISA's levy, paid once a UTC day
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => tariffTick(Date.now()), 60_000);
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => patentTick(Date.now()), 60_000); // ISP-236 (AB#931): royalties charged and paid
+// ISP-232 (AB#927): the ITC's dumping watch, once a UTC day: duties due, then the window that just closed
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => itcTick(Date.now()), 60_000);
+// ISP-238 (AB#933): faction standing decays once a UTC day
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => standingTick(Date.now()), 60_000);
+// ISP-239 (AB#934): a lobbying campaign's pledging closes within a minute of its time
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => lobbyingTick(Date.now()), 60_000);
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => raidTick(Date.now()), 30_000); // ISP-179 (AB#873): arrivals and returns
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondServicingTick(Date.now()), 60_000); // ISP-155 (AB#849)
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now(); shareOfferingTick(now); dividendTick(now); }, 60_000); // ISP-158 (AB#852), ISP-159 (AB#853)

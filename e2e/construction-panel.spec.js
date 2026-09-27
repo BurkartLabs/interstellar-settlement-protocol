@@ -58,7 +58,7 @@ async function openPanel(browser, viewport, kind) {
   await page.waitForURL(/\/\?account=/);
   await openTab(page, "station");
   const section = page.locator("#station-construction-section");
-  await expect(section.locator("[data-building-row]")).toHaveCount(7); // six since ISP-98, and the Orbital Shipyard (ISP-170)
+  await expect(section.locator("[data-building-row]")).toHaveCount(8); // six since ISP-98, the Orbital Shipyard (ISP-170) and the Synthesis Array (ISP-189)
   await section.scrollIntoViewIfNeeded();
   return { page, section, errors, close: async () => { await context.close(); child.kill(); } };
 }

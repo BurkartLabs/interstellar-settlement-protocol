@@ -5,7 +5,7 @@
 function travelHeader(overline, heading, lede) {
   return `<header class="ui-screen__header">
       <p class="travel__overline">${escapeHtml(overline)}</p>
-      <h2 class="ui-screen__title">${escapeHtml(heading)}</h2>
+      <h2 class="ui-screen__title">${codeSlotHtml("travel")}${escapeHtml(heading)}</h2>
       ${lede ? `<p class="ui-screen__lede">${escapeHtml(lede)}</p>` : ""}
     </header>`;
 }
@@ -16,6 +16,7 @@ import { deepClone, formatDuration } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { appState } from "../state.js";
 import { formatSystemLabel, isPlayerTraveling, pushFeedback, refreshFromServer, setTab, updateAllViews } from "./shared.js";
+import { codeSlotHtml } from "../sectionCodes.js"; // ISP-248 (AB#944)
 
 export function renderTravelPage(data) {
   const container = document.getElementById("travel-page");

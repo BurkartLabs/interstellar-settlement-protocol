@@ -43,7 +43,9 @@ function instruments(corp, bonds = []) {
   const live = (s) => s === "active" || s === "arrears" || s === "defaulted";
   return [
     ...loans.map((l) => ({ owed: live(l?.state) ? Math.max(0, Number(l.balance) || 0) + Math.max(0, Number(l.arrears) || 0) : 0, state: l?.state, arrearsSince: l?.arrearsSince ?? null, defaultedAt: l?.defaultedAt ?? l?.closedAt ?? null })),
-    ...(Array.isArray(bonds) ? bonds : []).map((b) => ({ owed: live(b?.state) ? Math.max(0, Number(b.outstandingFace) || 0) : 0, state: b?.state, arrearsSince: b?.arrearsSince ?? null, defaultedAt: b?.defaultedAt ?? null }))
+    ...(Array.isArray(bonds) ? bonds : []).map((b) => ({ owed: live(b?.state) ? Math.max(0, Number(b.outstandingFace) || 0) : 0, state: b?.state, arrearsSince: b?.arrearsSince ?? null, defaultedAt: b?.defaultedAt ?? null })),
+    // ISP-242 (AB#938): a Council debt counts as debt in leverage and solvency, so ignoring a ruling costs credit standing
+    ...(Array.isArray(corp?.councilDebts) ? corp.councilDebts : []).map((d) => ({ owed: Math.max(0, Number(d.owed) || 0), state: "council", arrearsSince: null, defaultedAt: null }))
   ];
 }
 

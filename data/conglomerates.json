@@ -58,10 +58,12 @@
     { "id": "propose-station-setting", "label": "Propose a station setting for the stake vote (Part 2)", "founder": true, "director": true, "member": false },
     { "id": "set-identity", "label": "Choose the emblem and colour (from the fixed lists)", "founder": true, "director": false, "member": false },
     { "id": "transfer-founder", "label": "Transfer the founder role to a director", "founder": true, "director": false, "member": false },
-    { "id": "dissolve", "label": "Dissolve the conglomerate (at the Bureau)", "founder": true, "director": false, "member": false }
+    { "id": "dissolve", "label": "Dissolve the conglomerate (at the Bureau)", "founder": true, "director": false, "member": false },
+    { "id": "concession", "label": "Petition for, challenge or relinquish an ISA concession, from the treasury (v0.13)", "founder": true, "director": false, "member": false }
   ],
 
   "poolingFeePct": 2,
+  "remoteDispatchYieldPct": 50,
   "founderWithdrawPct": 20,
   "directorWithdrawPct": 5,
   "directorWithdrawMax": 50000,

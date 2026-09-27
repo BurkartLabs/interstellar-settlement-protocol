@@ -10,7 +10,11 @@ import { DEFAULT_EXCHANGE_VIEW, MY_LISTINGS_SHOWN, SELL_ORDERS_SHOWN, cappedNote
 import { deepClone, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { appState, viewerStorage } from "../state.js";
-import { taxOnSale } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
+import { taxOnSale, withBasePct } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
+import { saleQuote, utcMinute } from "../tariffs.js"; // ISP-231 (AB#926): the tariff the server settles
+import { councilWithholding, withheldFrom } from "../itcDuty.js"; // ISP-232 (AB#927): what the server withholds toward ITC duty owed; ISP-243 (AB#939): and Council debts
+import { listingWarning } from "../dumping.js"; // ISP-233 (AB#928): the watch's own rule
+import { withCents } from "../priceChart.js";
 import { suggestedListingPrice } from "../suggestedPrice.js";
 import { labelTableCells } from "../tableLabels.js";
 import { tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
@@ -40,13 +44,54 @@ export function getClientExchangeTaxPct() {
  * Labels stay short: the confirmation's label column does not wrap, and a longer one pushed the values off a phone.
  */
 function saleTaxRows(gross) {
-  const breakdown = getClientExchangeTaxBreakdown();
-  const sale = taxOnSale(gross, breakdown);
+  // ISP-231 (AB#926): the concession tariff where the goods are held, quoted with the server's own arithmetic
+  const here = clientTariffHere();
+  // ISP-239 (AB#934): and the sales tax in force there, which a lobbying campaign may have moved
+  const breakdown = withBasePct(getClientExchangeTaxBreakdown(), here?.salesTaxPct);
+  const sale = saleQuote(gross, breakdown, here?.pct || 0);
+  const withheld = withheldFrom(sale.proceeds, appState.data?.corp?.itcDuty);
+  // ISP-243 (AB#939): an Arbitration Council debt takes what the same 50% leaves, as the server's withholdCouncilDebt does
+  const debts = appState.data?.corp?.councilDebts || [];
+  const council = councilWithholding(sale.proceeds, withheld, debts, debts[0]?.withholdPct).reduce((s, d) => s + d.credits, 0);
   return [
     { label: `GEX Sales Tax (${breakdown.salesTaxPct}%)`, value: `− ${toCurrency(sale.salesTax)}`, muted: true },
     ...(breakdown.royaltyPct > 0 ? [{ label: `ISA Lease Royalty (${breakdown.royaltyPct}%)`, value: `− ${toCurrency(sale.royalty)}`, muted: true }] : []),
-    { label: "You Receive", value: toCurrency(sale.proceeds), highlight: true }
+    ...(sale.tariff > 0 ? [{ label: `Concession Tariff (${here.pct}%)`, value: `− ${toCurrency(sale.tariff)}`, muted: true }] : []),
+    ...(here?.pending ? [{ label: "Tariff Pending", value: `${here.pending.pct}% from ${utcMinute(here.pending.effectiveAt)}`, muted: true }] : []),
+    ...(withheld > 0 ? [{ label: "Withheld for ITC Duty", value: `− ${toCurrency(withheld)}`, muted: true }] : []),
+    ...(council > 0 ? [{ label: "Withheld for GAC Award", value: `− ${toCurrency(council)}`, muted: true }] : []),
+    { label: "You Receive", value: toCurrency(sale.proceeds - withheld - council), highlight: true }
   ];
+}
+
+/**
+ * ISP-233 (AB#928): before a listing is posted, what the ITC's watch would make of it: nothing at or above the dumping
+ * line; below it, the line and how far this listing takes the seller toward an investigation, from its own view of the
+ * watch (GET /api/accounts/:id/itc/:item) and the watch's own rule. No warning when the view cannot be read: the
+ * listing is not blocked either way.
+ */
+async function listingWarningRows(item, quantity, unitPrice) {
+  let watch = null;
+  try {
+    watch = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/itc/${encodeURIComponent(item)}`));
+  } catch { return []; }
+  const w = listingWarning(watch, quantity, unitPrice);
+  if (!w) return [];
+  const pct = watch.terms.priceThresholdPct;
+  const units = (n) => Math.ceil(n).toLocaleString("en-US");
+  const note = w.found
+    ? `Below the ITC's dumping line. With ${units(w.already)} units already sold below it in this window, this listing takes you to ${units(w.Q)} against a volume line of ${units(w.volumeLine)}: if it all sells, the Interplanetary Trade Commission opens an investigation and levies about ${toCurrency(w.duty)}, the margin under normal value.`
+    : `Below the ITC's dumping line: it counts toward an investigation. With it you would have ${units(w.Q)} units below the line in this window, against a volume line of ${units(w.volumeLine)} and a minimum of ${toCurrency(watch.terms.minValue)} at normal value. The Commission opens an investigation only when both are crossed.`;
+  return [
+    { label: "ITC Dumping Line", value: `${withCents(w.line, toCurrency)} (${pct}% of ${withCents(w.N, toCurrency)})`, warn: true },
+    { note, warn: true }
+  ];
+}
+
+/** ISP-231 (AB#926): the tariff summary's rate where the corporation is docked now, or null when it is for elsewhere. */
+export function clientTariffHere() {
+  const here = appState.tariffs?.here;
+  return here && here.stationId === (appState.data?.corp?.currentStationId || null) ? here : null;
 }
 
 import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
@@ -91,6 +136,7 @@ export function renderMarket(data) {
   const partners = partnerNames(appState.conglomerate, data?.corp?.publicId);
   const inConglomerate = Boolean(appState.conglomerate);
   const view = { ...appState.exchangeView, sellers: inConglomerate ? appState.exchangeView.sellers : "all" };
+  const tierOf = market.itemTiers || null; // AB#884: the Tier filter's lookup
 
   // Build resource filter pills from all visible resources, keeping a remembered resource that has no orders today so
   // the viewer can see which filter is on
@@ -100,7 +146,7 @@ export function renderMarket(data) {
   allMySellOrders.forEach((o) => o.item && resourceSet.add(o.item));
   allBids.forEach((o) => o.item && resourceSet.add(o.item));
   if (view.resource) resourceSet.add(view.resource);
-  const resources = Array.from(resourceSet).sort();
+  const resources = Array.from(resourceSet).filter((r) => !view.tier || !tierOf || String(tierOf[r]) === view.tier || r === view.resource).sort();
 
   const filterBar = document.getElementById("exchange-filter-bar");
   if (filterBar) {
@@ -112,6 +158,8 @@ export function renderMarket(data) {
   if (typeSelect) typeSelect.value = view.type;
   const sortSelect = document.getElementById("exchange-sort");
   if (sortSelect) sortSelect.value = view.sort;
+  const tierSelect = document.getElementById("exchange-tier-filter");
+  if (tierSelect) tierSelect.value = view.tier;
   const sellersField = document.getElementById("exchange-sellers-field");
   if (sellersField) sellersField.hidden = !inConglomerate;
   const sellersSelect = document.getElementById("exchange-sellers-filter");
@@ -130,10 +178,10 @@ export function renderMarket(data) {
   showSection("exchange-mine-section", "mine");
 
   // Filter by resource and sort, then cap: the cap applies to what the viewer asked to see (AB#402)
-  const viewedSellOrders = viewOrders(allSellOrders, view, { partners });
+  const viewedSellOrders = viewOrders(allSellOrders, view, { partners, tierOf });
   const filteredSellOrders = viewedSellOrders.slice(0, SELL_ORDERS_SHOWN);
-  const filteredNpcOrders = viewOrders(npcBuyOrders, view);
-  const viewedMySellOrders = viewOrders(allMySellOrders, view);
+  const filteredNpcOrders = viewOrders(npcBuyOrders, view, { tierOf });
+  const viewedMySellOrders = viewOrders(allMySellOrders, view, { tierOf });
   const mySellOrders = viewedMySellOrders.slice(0, MY_LISTINGS_SHOWN);
 
   // AB#1169: say when the cap left some out, rather than letting 30 rows read as the whole book
@@ -155,7 +203,7 @@ export function renderMarket(data) {
     const tableWrap = filteredEl.parentElement?.querySelector(".ui-table-wrap");
     if (tableWrap) tableWrap.hidden = shown === 0;
     filteredEl.hidden = !(total > 0 && shown === 0);
-    filteredEl.innerHTML = filteredEl.hidden ? "" : filteredEmptyHtml(label, view.resource, total);
+    filteredEl.innerHTML = filteredEl.hidden ? "" : filteredEmptyHtml(label, view.resource || `Tier ${view.tier} items`, total, view.resource ? "resource" : "tier");
   };
 
   // Sell Orders table (player can buy from these)
@@ -179,13 +227,13 @@ export function renderMarket(data) {
   // ISP-208 (AB#903): when the Sellers filter is what hid them, say so, and how many.
   if (view.sellers === "conglomerate" && allSellOrders.length && !filteredSellOrders.length) {
     const filteredEl = document.getElementById("exchange-buy-filtered");
-    if (filteredEl) filteredEl.innerHTML = partnersEmptyHtml(viewOrders(allSellOrders, { ...view, sellers: "all" }).length, view.resource);
+    if (filteredEl) filteredEl.innerHTML = partnersEmptyHtml(viewOrders(allSellOrders, { ...view, sellers: "all" }, { tierOf }).length, view.resource);
   }
 
   // AB#815: Standing sell orders, the NPC corporations' asks (player can buy from these), badged NPC. Same columns as Sell
   // orders, so the purchase handler reads the seller from the fourth cell of either.
   const npcSellTable = document.getElementById("npc-sell-table");
-  const shownAsks = viewOrders(npcAsks, view);
+  const shownAsks = viewOrders(npcAsks, view, { tierOf });
   if (npcSellTable) {
     npcSellTable.innerHTML = shownAsks
       .map((order) => {
@@ -277,7 +325,7 @@ export function renderMarket(data) {
 
   // AB#1054: Buy Orders, the book's other side: the viewer's own can be cancelled, returning what they hold.
   const bidsTable = document.getElementById("exchange-bids-table");
-  const shownBids = viewOrders(allBids, view).slice(0, SELL_ORDERS_SHOWN);
+  const shownBids = viewOrders(allBids, view, { tierOf }).slice(0, SELL_ORDERS_SHOWN);
   if (bidsTable) {
     bidsTable.innerHTML = shownBids
       .map((order) => `
@@ -439,6 +487,7 @@ export function bindExchangeForms() {
     if (numbers.ok) {
       const { quantity, unitPrice } = numbers.values;
       const gross = quantity * unitPrice;
+      const warning = await listingWarningRows(item, quantity, unitPrice); // ISP-233 (AB#928)
       const confirmed = await showTradeConfirmation({
         heading: "Create Listing",
         title: `List ${item}`,
@@ -448,7 +497,8 @@ export function bindExchangeForms() {
           { label: "Quantity", value: quantity.toLocaleString() },
           { label: "Unit Price", value: toCurrency(unitPrice), highlight: true },
           { label: "If it all sells", value: toCurrency(gross) },
-          ...saleTaxRows(gross)
+          ...saleTaxRows(gross),
+          ...warning
         ]
       });
       if (!confirmed) return;
@@ -655,6 +705,8 @@ export function bindExchangeForms() {
   });
   document.getElementById("exchange-type-filter")?.addEventListener("change", (event) => setExchangeView({ type: event.target.value }));
   document.getElementById("exchange-sort")?.addEventListener("change", (event) => setExchangeView({ sort: event.target.value }));
+  // AB#884: a tier drops a resource pill chosen from another tier
+  document.getElementById("exchange-tier-filter")?.addEventListener("change", (event) => setExchangeView({ tier: event.target.value, resource: DEFAULT_EXCHANGE_VIEW.resource }));
   document.getElementById("exchange-sellers-filter")?.addEventListener("change", (event) => setExchangeView({ sellers: event.target.value })); // ISP-208 (AB#903)
   document.getElementById("market")?.addEventListener("click", (event) => {
     // ISP-124 (AB#818): an NPC's name opens its profile card.
@@ -664,7 +716,7 @@ export function bindExchangeForms() {
       return;
     }
     if (event.target.closest("[data-clear-filters]")) {
-      setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, type: DEFAULT_EXCHANGE_VIEW.type });
+      setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, type: DEFAULT_EXCHANGE_VIEW.type, tier: DEFAULT_EXCHANGE_VIEW.tier });
     }
   });
 
@@ -718,7 +770,9 @@ export function bindExchangeForms() {
       const proceeds = traded.proceeds != null ? traded.proceeds : qty * price;
       const taxAmt = traded.taxAmount || 0;
       if (npcStatus) {
-        const taxNote = taxAmt > 0 ? ` (${toCurrency(taxAmt)} tax)` : "";
+        // ISP-232 (AB#927): everything the sale took, not only the tax: the tariff and any duty withheld too
+        const taken = [taxAmt > 0 ? `${toCurrency(taxAmt)} tax` : "", traded.tariffAmount > 0 ? `${toCurrency(traded.tariffAmount)} tariff` : "", traded.dutyWithheld > 0 ? `${toCurrency(traded.dutyWithheld)} withheld for ITC duty` : ""].filter(Boolean);
+        const taxNote = taken.length ? ` (${taken.join(", ")})` : "";
         npcStatus.textContent = `Sold ${qty.toLocaleString()} × ${escapeHtml(item)} at ${toCurrency(price)}/unit — ${toCurrency(proceeds)} credited${taxNote}.`;
       }
       pushFeedback(`Sold ${item} × ${qty} @ ${toCurrency(price)}/unit to ${escapeHtml(button.closest("tr")?.children[1]?.textContent || "NPC")}. ${toCurrency(proceeds)} credited.`, "success");

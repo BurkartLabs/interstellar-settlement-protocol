@@ -19,7 +19,10 @@
     "probe:pacing": "node scripts/probe-pacing.mjs",
     "probe:chains": "node scripts/probe-chains.mjs",
     "probe:markets": "node scripts/probe-markets.mjs",
-    "probe:combat": "node scripts/probe-combat.mjs"
+    "probe:combat": "node scripts/probe-combat.mjs",
+    "probe:conglomerate": "node scripts/probe-conglomerate.mjs",
+    "probe:tier4": "node scripts/probe-tier4.mjs",
+    "probe:tariffs": "node scripts/probe-tariffs.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

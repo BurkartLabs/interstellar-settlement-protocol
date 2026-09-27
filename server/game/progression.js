@@ -12,7 +12,7 @@ import { BASE_MAX_DEPLOYMENTS, BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORD
 export const BASE_EXCHANGE_SALES_TAX_PCT = ECONOMY.exchange.salesTaxPct;
 
 /** The rate and its parts for this corporation: base, royalty for its leases, discount, and the lines they make. */
-export function exchangeTaxBreakdown(state) {
+export function exchangeTaxBreakdown(state, basePct = BASE_EXCHANGE_SALES_TAX_PCT) { // ISP-239 (AB#934): a lobbied system's base
   // CEO Insight: Negotiation Fundamentals reduces tax by 2% per completion (max 3 completions = 6%)
   // BRIEF.md, Monetization (Board decision AB#980, 2026-09-21): "Research and Insight should never be sellable."
   // This program, and every level or wait inside it, may never be bought or sped up with real money - only ever
@@ -21,7 +21,7 @@ export function exchangeTaxBreakdown(state) {
   const negLevels = completedInsights.filter((id) => id === "ceo-negotiation-fundamentals").length;
   const maxLevels = CEO_INSIGHT_LIBRARY["ceo-negotiation-fundamentals"]?.maxLevels || 3;
   return taxBreakdown({
-    basePct: BASE_EXCHANGE_SALES_TAX_PCT,
+    basePct,
     discountPoints: Math.min(negLevels, maxLevels) * 2, // 2% per level
     leasesHeld: (state.corp.miningLeases || []).length,
     royaltyPointsByLeasesHeld: ECONOMY.leases.royaltyPointsByLeasesHeld

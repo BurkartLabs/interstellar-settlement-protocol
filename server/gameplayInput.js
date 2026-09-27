@@ -13,6 +13,7 @@ import { FLEET_NAMES } from "./fleets.js"; // ISP-174 (AB#868)
 import { POSTURE_IDS } from "./garrison.js"; // ISP-180 (AB#874)
 import { CONGLOMERATE_CATALOG } from "./conglomerates.js"; // ISP-197 (AB#891)
 import { BOND_TERMS } from "./bondTerms.js"; // ISP-154 (AB#848)
+import { CLAIM_TYPES, WARFARE_CATALOG } from "./warfare.js"; // ISP-230 (AB#925); CLAIM_TYPES: ISP-241 (AB#937)
 
 /** The highest cap any yard tier has (AB#793): what start-mining accepts before the route clamps to the yard's own. */
 const TOP_THROUGHPUT_CAP = yardTierFor(yardMaxTier()).throughputCap;
@@ -100,7 +101,7 @@ export const GAMEPLAY_INPUT = {
   },
   "POST /start-refinery": {
     body: {
-      refineryId: id("ownRefineries", "one of your refineries"),
+      refineryId: id("ownRefineries", "one of your refineries or your Synthesis Array"), // ISP-189 (AB#883): either facility
       chainId: id("refineryChains", "a refinery chain"),
       // AB#825: a run is `inputQuantity` of a one-input chain's input, or `batches` of any chain; the route refuses
       // neither or both, and a run longer than a week (public/scripts/refineryRun.js).
@@ -173,6 +174,16 @@ export const ACCOUNT_INPUT = {
   "GET /messages": NOTHING,
   "GET /corporations": { query: { name: text(64, "a corporation name to search for", { optional: true }) } },
   "GET /dominance": NOTHING, // ISP-217 (AB#912): the caller's own dominance components
+  // ISP-230 (AB#925): a holder's tariff, 0 to the highest cap any system has, in the catalog's steps; the system's own
+  // cap and whether the caller holds it are the route's (400 and 403)
+  "GET /tariffs": NOTHING, // ISP-231 (AB#926): the caller's own tariffs
+  "GET /standing": NOTHING, // ISP-238 (AB#933): the caller's own faction standing
+  // ISP-239 (AB#934): open a campaign, and pledge to one; lobbyable, concedable, in bounds and held are the route's (400/403/409)
+  "GET /lobbying": NOTHING, // ISP-240 (AB#935): the caller's lobbying office
+  "POST /lobbying": { body: { parameter: text(40, "a lobbyable parameter"), systemId: ref("a system"), direction: word(["raise", "lower"], "raise or lower") } },
+  "POST /lobbying/:campaignId/pledges": { params: { campaignId: ref("a campaign") }, body: { side: word(["for", "against"], "for or against"), credits: int(0, 1_000_000_000, "whole credits", { optional: true }), standing: decimal(0, 100, 0.01, "standing points", { optional: true }) } },
+  "GET /itc/:item": { params: { item: ref("an item") } }, // ISP-233 (AB#928): the ITC's watch as it applies to the caller
+  "POST /tariffs/:systemId": { params: { systemId: ref("a system") }, body: { pct: decimal(0, WARFARE_CATALOG.tariffs.maxPct, WARFARE_CATALOG.tariffs.stepPct, "a tariff in percentage points") } },
   // ISP-149 (AB#843): the product and principal to quote, and the quote to accept; the terms are the server's
   "GET /loans/offers": NOTHING, // ISP-151 (AB#845)
   "POST /loans/quote": { body: { productId: word(["dsdb-7", "dsdb-30", "dsdb-90"], "a Development Bank loan product"), principal: int(1_000, 100_000_000, "a principal of at least 1,000 credits") } },
@@ -238,6 +249,19 @@ export const ACCOUNT_INPUT = {
     params: { conglomerateId: ref("a conglomerate"), applicationId: ref("an application"), answer: word(["accept", "decline", "withdraw"], "accept, decline or withdraw") }
   },
   "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: ref("a conglomerate") } },
+  "POST /concessions/:systemId/petition": { params: { systemId: ref("a system") } }, // ISP-227 (AB#922)
+  "POST /concessions/:systemId/relinquish": { params: { systemId: ref("a system") } },
+  // ISP-235 (AB#930): the route checks the subject is patentable and the rate is inside its kind's own bound.
+  "POST /patents": { body: { kind: word(["research", "chain"], "research or chain"), subjectId: ref("a research node or refinery chain"), ratePct: int(0, 25, "a royalty of 0 to 25 percent") } },
+  "GET /patents": NOTHING, // ISP-237 (AB#932): the caller's own patent office
+  "GET /concessions/:systemId": { params: { systemId: ref("a system") } }, // ISP-229 (AB#924)
+  // ISP-241 (AB#937): a case is a claim type and a record id, nothing else; the route derives the rest from the record
+  "POST /arbitration/cases": { body: { type: word([...CLAIM_TYPES], "a claim type the Council hears"), recordId: ref("a record you are a party to") } },
+  "GET /arbitration/cases": NOTHING,
+  "POST /arbitration/preview": { body: { type: word([...CLAIM_TYPES], "a claim type the Council hears"), recordId: ref("a record you are a party to") } }, // ISP-243 (AB#939)
+  "POST /arbitration/cases/:ref/cure": { params: { ref: ref("one of your cases") } }, // ISP-242 (AB#938)
+  "GET /arbitration/records/:type": { params: { type: word([...CLAIM_TYPES], "a claim type the Council hears") } },
+  "POST /concessions/:systemId/lease-modifier": { params: { systemId: ref("a system") }, body: { discountPct: choice(Array.from({ length: WARFARE_CATALOG.concessionLeaseModifierMaxPct + 1 }, (_, i) => i), `a lease discount, in whole percent from 0 to ${WARFARE_CATALOG.concessionLeaseModifierMaxPct}`) } }, // ISP-228 (AB#923): 0 is a good discount, so a list (as the payout ratio, AB#853)
   // ISP-199 (AB#893): roles, removal, the founder's transfer, identity and dissolution. A member is named by its
   // corporation's public id; the route answers 404 for one that is not a member.
   "POST /conglomerates/:conglomerateId/members/:corpId/role": {
@@ -530,7 +554,7 @@ export function gameplayInputMiddleware({ catalogs, corpOf, stationNames, routes
       if (catalog === "ownLeases") return (own().miningLeases || []).some((l) => l?.id === value);
       if (catalog === "ownExtractors") return (own().mining?.silicateExtractors || []).some((x) => x?.id === value);
       if (catalog === "ownBuildings") return (own().buildings || []).some((b) => typeof b?.id === "string" && b.id === value);
-      if (catalog === "ownRefineries") return (own().refineries || []).some((r) => r?.id === value);
+      if (catalog === "ownRefineries") return [...(own().refineries || []), ...(own().synthesisArrays || [])].some((r) => r?.id === value); // ISP-189 (AB#883)
       if (catalog === "ownMissions") return (own().activeMissions || []).some((m) => m?.id === value);
       if (catalog === "ownStock") {
         const [station, item] = [value.slice(0, value.indexOf("|")), value.slice(value.indexOf("|") + 1)];

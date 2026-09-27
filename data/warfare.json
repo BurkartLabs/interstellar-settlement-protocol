@@ -1,0 +1,301 @@
+{
+  "_comment": "ISP-225 (AB#920): the warfare catalog. Every number in docs/design/TERRITORY.md (AB#916, v0.13-01), under the same key its number table uses; the system rule table (each ownerRule as a rule) and the never-concedable systems. server/warfare.js reads it at startup and the server refuses to start if it is malformed or names a system data/systems.json does not define (T-019). tests/schema/warfare.test.js holds it to the design, value for value. v0.13-02 to 04 (tariffs and dumping, patents and lobbying, arbitration claims: AB#917 to AB#919) add their sections when their designs are written. tariffs and dumping: docs/design/WARFARE.md, ISP-222 (AB#917). arbitration: the same file, ISP-224 (AB#919). patents, standing and lobbying: docs/design/WARFARE.md, ISP-223 (AB#918).",
+  "concessionGrantPct": 40,
+  "concessionLeadRatio": 1.5,
+  "concessionEligibleDays": 14,
+  "concessionDataMaxAgeHours": 26,
+  "concessionPetitionFee": 25000,
+  "concessionReviewHours": 72,
+  "concessionTermDays": 30,
+  "concessionRetainPct": 25,
+  "concessionGraceDays": 7,
+  "concessionRepetitionCooldownDays": 7,
+  "concessionUpkeepBase": 800,
+  "concessionUseDiscountMaxPct": 50,
+  "concessionAdmMaxPct": 50,
+  "concessionFeeSharePct": 20,
+  "concessionOwnLeaseDiscountPct": 25,
+  "concessionLeaseModifierMaxPct": 25,
+  "concessionLeaseModifierNoticeHours": 72,
+  "concessionTariffCapPct": 3,
+  "concessionsPerSystem": 1,
+  "tariffs": {
+    "maxPct": 5,
+    "stepPct": 0.25,
+    "noticeHours": 72,
+    "isaLevyAtCapPct": 75
+  },
+  "dumping": {
+    "priceThresholdPct": 85,
+    "volumeThresholdPct": 10,
+    "windowDays": 3,
+    "normalValueDays": 7,
+    "minTradedDays": 3,
+    "minValue": 25000,
+    "dutyMarginPct": 100,
+    "levyAfterHours": 24,
+    "withholdPct": 50
+  },
+  "arbitration": {
+    "responseHours": 72,
+    "filingFeeMin": 1000,
+    "filingFeePct": 5,
+    "tieMarginPts": 1,
+    "maxOpenCasesPerPair": 3,
+    "claimTypes": [
+      { "id": "mercenary-readiness", "open": true },
+      { "id": "tariff-overcharge", "open": true },
+      { "id": "concession-arbitrated", "open": true },
+      { "id": "patent-royalty", "open": true },
+      { "id": "credit-default", "open": true }
+    ]
+  },
+  "patents": {
+    "minResearchTier": 3,
+    "minChainStage": 2,
+    "filingWindowHours": 72,
+    "filingFee": 5000,
+    "termDays": 28,
+    "royaltyMaxPct": 25,
+    "chainRoyaltyMaxPct": 5,
+    "rateNoticeHours": 72,
+    "withholdPct": 50
+  },
+  "standing": {
+    "max": 100,
+    "decayPctPerDay": 2,
+    "eaTaxPerPoint": 10000,
+    "itcTradePerPoint": 20000,
+    "itcFindingPenalty": 10
+  },
+  "lobbying": {
+    "openStandingMin": 20,
+    "openStandingCost": 5,
+    "pledgeStandingMin": 5,
+    "creditsPerStandingPoint": 2500,
+    "pledgeHours": 72,
+    "durationDays": 28,
+    "cooldownDays": 7,
+    "parameters": {
+      "tariffCapPct": { "faction": "earth-assembly", "step": 0.25, "maxShift": 1, "min": 0, "max": 5, "spendScale": 20000 },
+      "salesTaxPct": { "faction": "earth-assembly", "step": 0.5, "maxShift": 1, "min": 6, "max": 10, "spendScale": 50000 },
+      "dumpingPriceThresholdPct": { "faction": "interplanetary-trade-commission", "step": 1, "maxShift": 5, "min": 75, "max": 95, "spendScale": 30000 },
+      "dumpingVolumeThresholdPct": { "faction": "interplanetary-trade-commission", "step": 1, "maxShift": 5, "min": 5, "max": 20, "spendScale": 30000 }
+    }
+  },
+  "neverConcedable": [
+    {
+      "systemId": "sol",
+      "reason": "Every corporation is founded at Earth Station Prime and takes its first lease in Sol; a concession would put a newcomer's first leases, sales and royalty inside someone else's fee share and let a veteran lock out the opening."
+    },
+    {
+      "systemId": "lalande-21185",
+      "reason": "The ISA's second registry, leasing on Sol's terms: a new corporation's second step, kept on Sol's terms for the same reason."
+    },
+    {
+      "systemId": "ross-128",
+      "reason": "A research reserve held in trust by the Quiet Star Trust: the ISA cannot license a fee share in a system it has put in trust."
+    },
+    {
+      "systemId": "kapteyns-star",
+      "reason": "No authority: a concession is an ISA licence, and the ISA has no writ to grant one here. Salvage law, not licences."
+    },
+    {
+      "systemId": "van-maanens-star",
+      "reason": "Claimed by no one: the ISA has no writ to grant a licence here. Salvage law, not licences."
+    }
+  ],
+  "systemRules": {
+    "alpha-centauri": {
+      "rule": "Standard",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 3
+    },
+    "barnards-star": {
+      "rule": "Low regulation: a petition needs 30% control, eligible after 7 days",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 3,
+      "overrides": {
+        "concessionGrantPct": 30,
+        "concessionEligibleDays": 7
+      }
+    },
+    "wolf-359": {
+      "rule": "Arbitrated: every petition and challenge is reviewed for 7 days (the Galactic Arbitration Council, v0.13, decides ties once it exists)",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 3,
+      "overrides": {
+        "concessionReviewHours": 168
+      }
+    },
+    "tau-ceti": {
+      "rule": "Tariff corridor: the highest tariff cap",
+      "weights": {
+        "leases": 0.3,
+        "extraction": 0.3,
+        "sales": 0.4
+      },
+      "tariffCapPct": 5
+    },
+    "epsilon-eridani": {
+      "rule": "Licensed: fee share 30%",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 3,
+      "overrides": {
+        "concessionFeeSharePct": 30
+      }
+    },
+    "ross-154": {
+      "rule": "One vote per lease: control is leases only",
+      "weights": {
+        "leases": 1.0,
+        "extraction": 0.0,
+        "sales": 0.0
+      },
+      "tariffCapPct": 3
+    },
+    "sirius": {
+      "rule": "Brokers: control is sales only",
+      "weights": {
+        "leases": 0.0,
+        "extraction": 0.0,
+        "sales": 1.0
+      },
+      "tariffCapPct": 3
+    },
+    "ross-248": {
+      "rule": "Lightly held: upkeep halved",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 3,
+      "overrides": {
+        "upkeepFactor": 0.5
+      }
+    },
+    "luyten-726-8": {
+      "rule": "Unregulated: no review. An eligible petition is granted at once, and a challenge is decided at once",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 3,
+      "overrides": {
+        "concessionReviewHours": 0
+      }
+    },
+    "lacaille-9352": {
+      "rule": "Conglomerates only",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 3,
+      "overrides": {
+        "holders": [
+          "conglomerate"
+        ]
+      }
+    },
+    "procyon": {
+      "rule": "Free port: no tariff; the fee share is the whole benefit",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 0
+    },
+    "61-cygni": {
+      "rule": "Condominium: two concessions, the top two eligible holders, each with half the fee share",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 3,
+      "overrides": {
+        "concessionsPerSystem": 2,
+        "feeShareFactor": 0.5
+      }
+    },
+    "epsilon-indi": {
+      "rule": "Arbitrated, as Wolf 359",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 3,
+      "overrides": {
+        "concessionReviewHours": 168
+      }
+    },
+    "kruger-60": {
+      "rule": "First recorded: a counter-petition cannot win a review that is already open; the first eligible petition stands",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 3,
+      "overrides": {
+        "counterPetitions": false
+      }
+    },
+    "wolf-1061": {
+      "rule": "Edge of the writ: the term is 14 days",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 3,
+      "overrides": {
+        "concessionTermDays": 14
+      }
+    },
+    "altair": {
+      "rule": "An exchange: control is sales-weighted",
+      "weights": {
+        "leases": 0.2,
+        "extraction": 0.2,
+        "sales": 0.6
+      },
+      "tariffCapPct": 3
+    },
+    "70-ophiuchi": {
+      "rule": "Condominium, as 61 Cygni",
+      "weights": {
+        "leases": 0.4,
+        "extraction": 0.4,
+        "sales": 0.2
+      },
+      "tariffCapPct": 3,
+      "overrides": {
+        "concessionsPerSystem": 2,
+        "feeShareFactor": 0.5
+      }
+    }
+  }
+}

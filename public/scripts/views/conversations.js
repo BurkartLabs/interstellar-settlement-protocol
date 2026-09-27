@@ -44,7 +44,7 @@ export function conversationRowsHtml(list, formatDate) {
     const preview = `${c.lastFromMe ? "You: " : ""}${c.lastMessage || ""}`;
     return `<li><button type="button" class="ui-card ui-card--interactive inbox__message inbox__conversation${unread ? " is-unread" : ""}" data-conv-id="${escapeHtml(c.id)}">
       <span class="ui-card__meta inbox__message-meta"><span>${who}</span><span>${escapeHtml(formatDate(c.lastMessageAt))}</span></span>
-      <span class="ui-card__title inbox__preview">${escapeHtml(preview)}${unread ? ` <span class="ui-badge ui-badge--accent">${c.unread} new</span>` : ""}</span>
+      <span class="ui-card__title inbox__preview-line"><span class="inbox__preview">${escapeHtml(preview)}</span>${unread ? `<span class="ui-badge ui-badge--accent">${c.unread} new</span>` : ""}</span>
     </button></li>`;
   }).join("");
 }

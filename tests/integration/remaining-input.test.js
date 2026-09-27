@@ -28,8 +28,16 @@ const OUT_OF_SCOPE = {
   "GET /api/corporations/:corpId/cap-table": "a read; its one input, a public corporation id, is only ever compared with existing ids (AB#851)",
   "GET /api/conglomerates": "a read with no input: the public directory (ISP-197, AB#891)",
   "GET /api/starmap/dominance": "a public read; its one input, an optional system id, is checked against the catalog by the route (ISP-217, AB#912)",
+  "GET /api/systems/:id/control": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-226, AB#921; Bug #4664)",
+  "GET /api/systems/:id/concession": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-227, AB#922)",
+  "GET /api/patents": "a public read with no input (ISP-235, AB#930)",
+  "GET /api/arbitration/docket": "a public read with no input (ISP-241, AB#937)",
+  "GET /api/starmap/concessions": "a public read with no input: every system's concession holders and open petitions (ISP-229, AB#924)",
+  "GET /api/lobbying": "a public read with no input: the lobbying register (ISP-239, AB#934)",
+  "GET /api/systems/:id/tariff": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-230, AB#925)",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
+  "GET /api/section-codes": "a static catalog with no input (ISP-248, AB#944)",
   "GET /api/buildings": "a static catalog",
   "GET /api/ceo-insight": "a static catalog",
   "GET /api/mission-agents": "a static catalog",
@@ -119,6 +127,19 @@ const BASELINE = {
     "POST /conglomerates/:conglomerateId/applications": { params: { conglomerateId: "cgl-732" } },
     "POST /conglomerates/:conglomerateId/applications/:applicationId/:answer": { params: { conglomerateId: "cgl-732", applicationId: "capp-732", answer: "decline" } },
     "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: "cgl-732" } },
+    "POST /concessions/:systemId/petition": { params: { systemId: "atlantis" } }, // ISP-227 (AB#922): no such system: 404
+    "POST /patents": { body: { kind: "research", subjectId: "tt-actinide-handling", ratePct: 5 } }, // ISP-235 (AB#930): not completed by this corporation: 403
+    "POST /arbitration/cases": { body: { type: "mercenary-readiness", recordId: "merc-732" } }, // ISP-241 (AB#937): no such contract: 404
+    "GET /arbitration/records/:type": { params: { type: "tariff-overcharge" } },
+    "POST /arbitration/cases/:ref/cure": { params: { ref: "GAC-2026-999999" } }, // ISP-242 (AB#938): no such case: 404
+    "POST /arbitration/preview": { body: { type: "mercenary-readiness", recordId: "merc-732" } }, // ISP-243 (AB#939): no such contract: 404
+    "POST /concessions/:systemId/relinquish": { params: { systemId: "atlantis" } },
+    "GET /concessions/:systemId": { params: { systemId: "atlantis" } }, // ISP-229 (AB#924): no such system: 404
+    "POST /tariffs/:systemId": { params: { systemId: "atlantis" }, body: { pct: 1 } }, // ISP-230 (AB#925): no such system: 404
+    "GET /itc/:item": { params: { item: "Unobtainium" } }, // ISP-233 (AB#928): no such item: 404
+    "POST /lobbying": { body: { parameter: "gravityPct", systemId: "alpha-centauri", direction: "raise" } }, // ISP-239 (AB#934): not lobbyable: 400
+    "POST /lobbying/:campaignId/pledges": { params: { campaignId: "lob-none" }, body: { side: "for", credits: 1 } }, // no such campaign: 404
+    "POST /concessions/:systemId/lease-modifier": { params: { systemId: "atlantis" }, body: { discountPct: 10 } }, // ISP-228 (AB#923)
     "POST /conglomerates/:conglomerateId/members/:corpId/role": { params: { conglomerateId: "cgl-732", corpId: "corp-732" }, body: { role: "director" } },
     "POST /conglomerates/:conglomerateId/members/:corpId/remove": { params: { conglomerateId: "cgl-732", corpId: "corp-732" } },
     "POST /conglomerates/:conglomerateId/founder": { params: { conglomerateId: "cgl-732" }, body: { corpId: "corp-732" } },
@@ -193,6 +214,7 @@ function checkRefuses(spec, where, value) {
   if (value === undefined) return !spec.optional;
   const sent = where === "body" ? value : String(value); // path and query values arrive as strings
   if (spec.kind === "choice") return !spec.values.includes(sent); // AB#853: 0 is a good payout ratio; the list decides
+  if (spec.kind === "int" && where === "body") return !(Number.isInteger(sent) && sent >= spec.min && sent <= spec.max); // AB#930: 0 is a good royalty; the range decides
   if (["int", "id", "word"].includes(spec.kind)) return true;
   if (spec.kind === "text") return typeof sent !== "string" || sent.length > spec.max;
   if (spec.kind === "ref") return typeof sent !== "string" || sent.length > 64 || sent.trim() === "";

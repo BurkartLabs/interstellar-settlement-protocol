@@ -8,8 +8,9 @@ import { deepClone } from "../helpers.js";
 import { beltScoutedText } from "../miningFeedback.js";
 import { createStarmapController } from "../starmap.js";
 import { appState, techTree } from "../state.js";
-import { pushFeedback, setTab, updateAllViews } from "./shared.js";
+import { pushFeedback, setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
 import { isDominanceOverlay } from "../dominanceOverlay.js"; // ISP-218 (AB#913)
+import { CONCESSION_OVERLAY } from "../concessionOverlay.js"; // ISP-229 (AB#924)
 
 export const starmap = createStarmapController({
   canvas: document.getElementById("starmap-canvas"),
@@ -19,13 +20,29 @@ export const starmap = createStarmapController({
   resourceSelect: document.getElementById("map-resource"), // ISP-143 (AB#837)
   resourceLegend: document.getElementById("starmap-resource-legend"),
   dominanceLegend: document.getElementById("starmap-dominance-legend"), // ISP-218 (AB#913)
-  onOverlayChange(overlay) { if (isDominanceOverlay(overlay)) loadDominanceIntoStarmap(); }, // ISP-218 (AB#913)
+  onOverlayChange(overlay) { if (isDominanceOverlay(overlay)) loadDominanceIntoStarmap(); if (overlay === CONCESSION_OVERLAY) loadConcessionsIntoStarmap(); }, // ISP-218 (AB#913), ISP-229 (AB#924)
+  onSystemShown(systemId) { loadSystemConcession(systemId); }, // ISP-229 (AB#924)
+  onConcessionAction(action, systemId, data) { concessionAction(action, systemId, data); }, // ISP-229 (AB#924)
   resetButton: document.getElementById("map-reset"),
   researchCatalog: techTree, // Bug #1270: the lock names the research a jump needs
   getCorpLevel: () => appState.data?.corp?.level || 0,
   getMemberStation: () => appState.conglomerate?.station || null, // ISP-212 (AB#907)
   getSystemsCatalog: () => appState.systemsCatalog, // ISP-112 (AB#804)
   getNavigation: () => appState.navigation,
+  // ISP-231 (AB#926): a holder files its system's tariff; the summary is read again so the panel shows the new schedule
+  async onFileTariff(systemId, pct) {
+    try {
+      await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/tariffs/${encodeURIComponent(systemId)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pct })
+      }));
+      await loadTariffs();
+      const name = (appState.systemsCatalog || []).find((s) => s.id === systemId)?.name || systemId;
+      pushFeedback(`Tariff filed for ${name}.`, "success");
+      return null;
+    } catch (err) {
+      return err.message || "The tariff could not be filed.";
+    }
+  },
   async onTravelToSystem(systemId) {
     if (!appState.accountId) return;
     try {
@@ -125,6 +142,7 @@ export async function refreshBeltCompositions() {
     appState.beltCompositions = data.compositions || {};
     appState.belts = data.belts || {};
     appState.beltRespawnChance = data.respawnChancePerHour ?? null;
+    appState.remoteDispatchYieldPct = data.remoteDispatchYieldPct ?? null; // Bug #4656
   } catch (_) { /* silent */ }
 }
 
@@ -133,7 +151,21 @@ export async function refreshBeltCompositions() {
  * before, a reload never fetched them, so a scouted belt showed neither its composition nor a Scout button. */
 export function loadBeltCompositionsIntoStarmap() {
   return refreshBeltCompositions().then(() => starmap.setAsteroidMining(starmapMiningState(appState.data, appState.beltCompositions,
-    { belts: appState.belts, respawnChancePerHour: appState.beltRespawnChance })));
+    { belts: appState.belts, respawnChancePerHour: appState.beltRespawnChance, remoteDispatchYieldPct: appState.remoteDispatchYieldPct })));
+}
+
+/**
+ * ISP-231 (AB#926): the caller's tariff summary: the rate it pays where it is docked (the sell confirmations and the
+ * Logistics quotes read it from appState.tariffs), every held system's rate for the starmap, and its own holdings.
+ * Read on entry and on every refresh, like the belt compositions; the Logistics view is drawn again when it lands.
+ */
+export async function loadTariffs() {
+  if (!appState.accountId) return;
+  try {
+    appState.tariffs = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/tariffs`));
+    starmap.setTariffs(appState.tariffs);
+    if (appState.data) updateAllViews(); // the Logistics quotes name the tariff
+  } catch (_) { /* silent: the server's settlement and receipt still state the tariff */ }
 }
 
 /**
@@ -147,4 +179,84 @@ export async function loadDominanceIntoStarmap() {
   } catch (err) {
     pushFeedback(err.message || "The dominance reading could not be loaded.", "warn");
   }
+}
+// ─── ISP-229 (AB#924): ISA concessions on the Starmap ──────────────────────────────────────────────────────────────
+
+const ownNames = () => ({ corporation: appState.data?.corp?.corporationName || "", conglomerate: appState.conglomerate?.name || "" });
+
+/** Every system's concession holders and open petitions (public), for the overlay and each system's panel. */
+export async function loadConcessionsIntoStarmap() {
+  try {
+    starmap.setConcessions(await parseJsonResponse(await apiFetch("/api/starmap/concessions")), ownNames());
+    concessionsRead = true;
+  } catch (err) {
+    pushFeedback(err.message || "The ISA's concession register could not be read.", "warn");
+  }
+}
+
+// One read of a system's control and the viewer's status at a time, and not again for a minute: the panel redraws often.
+const systemReads = new Map();
+async function loadSystemConcession(systemId, { force = false } = {}) {
+  const last = systemReads.get(systemId);
+  if (!force && last && (last.pending || Date.now() - last.at < 60_000)) return;
+  systemReads.set(systemId, { pending: true, at: Date.now() });
+  try {
+    if (!starmapConcessionsLoaded()) await loadConcessionsIntoStarmap();
+    const [control, status] = await Promise.all([
+      parseJsonResponse(await apiFetch(`/api/systems/${encodeURIComponent(systemId)}/control`)),
+      appState.accountId ? parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/concessions/${encodeURIComponent(systemId)}`)) : null
+    ]);
+    starmap.setSystemConcession(systemId, { control, status });
+  } catch (_) { /* the panel keeps saying it is reading */ }
+  systemReads.set(systemId, { pending: false, at: Date.now() });
+}
+let concessionsRead = false;
+const starmapConcessionsLoaded = () => concessionsRead;
+
+const cr = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
+const concessionUrl = (systemId, what) => `/api/accounts/${encodeURIComponent(appState.accountId)}/concessions/${encodeURIComponent(systemId)}/${what}`;
+
+/** Petition, set the lease discount or relinquish: the ISP-19 confirmation with what it costs, then the request. */
+async function concessionAction(action, systemId, data) {
+  if (!appState.accountId) return;
+  const system = (appState.systemsCatalog || []).find((s) => s.id === systemId);
+  const name = system?.name || systemId;
+  let confirm, body = {}, path;
+  if (action === "petition") {
+    const verb = data.kind === "challenge" ? "Challenge" : "Petition";
+    confirm = {
+      heading: "ISA Claims & Leases", title: `${verb} for ${name}'s concession?`, confirmLabel: `Pay ${cr(data.fee)} credits`,
+      rows: [
+        { label: "Fee", value: `${cr(data.fee)} credits, kept whatever the ISA decides` },
+        { label: "Review", value: "72 hours, in public; a rival may counter-petition" },
+        { label: "Upkeep if granted", value: `about ${cr(data.upkeep)} credits a day (${data.after} concession${Number(data.after) === 1 ? "" : "s"} held, each dearer than the last)` },
+        { label: "Grants", value: "a share of the ISA's lease fees here, and 25% off your own leases" }
+      ]
+    };
+    path = concessionUrl(systemId, "petition");
+  } else if (action === "discount") {
+    confirm = {
+      heading: "ISA Claims & Leases", title: `Discount everyone's new leases in ${name} by ${data.discountPct}%?`, confirmLabel: "Set the discount",
+      rows: [{ label: "Applies", value: "after 72 hours' notice; no other change until then" }, { label: "Your fee share", value: "is taken on the discounted fee" }]
+    };
+    body = { discountPct: data.discountPct };
+    path = concessionUrl(systemId, "lease-modifier");
+  } else if (action === "relinquish") {
+    confirm = {
+      heading: "ISA Claims & Leases", title: `Give up ${name}'s concession?`, confirmLabel: "Relinquish",
+      rows: [{ label: "Ends", value: "now: the fee share and the lease discounts stop" }, { label: "Kept", value: "every lease, building and good; nothing else changes" }, { label: "Then", value: "no new petition here for 7 days" }]
+    };
+    path = concessionUrl(systemId, "relinquish");
+  } else return;
+  if (!(await showTradeConfirmation(confirm))) return;
+  try {
+    await parseJsonResponse(await apiFetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }));
+    pushFeedback(action === "petition" ? "Petition filed with the ISA." : action === "discount" ? "Lease discount set; it applies after the notice." : "Concession relinquished.", "ok");
+  } catch (err) {
+    const line = document.querySelector('#map-details [data-role="concession-status"]');
+    if (line) line.textContent = err.message || "The ISA refused that.";
+    pushFeedback(err.message || "The ISA refused that.", "warn");
+  }
+  await loadConcessionsIntoStarmap();
+  await loadSystemConcession(systemId, { force: true });
 }

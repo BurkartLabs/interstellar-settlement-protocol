@@ -78,8 +78,28 @@ export function settleUpkeep(corp, now = Date.now()) {
     ? Math.max(READINESS_FLOOR, before - READINESS_LOSS_PER_DAY * days)
     : Math.min(READINESS_FULL, before + READINESS_GAIN_PER_DAY * days);
   m.upkeep = { paidThrough: now, remainder: Math.max(0, accrued - due), short };
+  if (m.readiness !== before) noteReadiness(corp, now);
   return { paid, unpaid, readiness: m.readiness, becameShort: short && !wasShort, recovered: before < READINESS_FULL && m.readiness >= READINESS_FULL };
 }
+
+/**
+ * ISP-241 (AB#937): log the corporation's readiness at `now` (after it moved, or at a hire), so a mercenary-readiness
+ * case can read the owner's readiness for each hour of a term. In whole points, a new entry only when the whole point
+ * changes (readiness moves a little at every tick while upkeep is short), kept for READINESS_LOG_DAYS; the latest entry
+ * before a moment is the readiness then.
+ */
+export function noteReadiness(corp, now = Date.now()) {
+  const m = corp?.military;
+  if (!m) return;
+  const log = Array.isArray(m.readinessLog) ? m.readinessLog : [];
+  const r = Math.round(Number(m.readiness) || 0);
+  if (!log.length || log.at(-1).readiness !== r) log.push({ at: now, readiness: r });
+  const keepFrom = now - READINESS_LOG_DAYS * DAY_MS;
+  const firstKept = log.findIndex((e) => e.at >= keepFrom);
+  // the entry in force at keepFrom stays, so every kept hour still has a readiness
+  m.readinessLog = firstKept > 0 ? log.slice(firstKept - 1) : log;
+}
+export const READINESS_LOG_DAYS = 30;
 
 /** The notification for a settlement that started a shortfall or restored full readiness, or null. */
 export function upkeepNotice(corp, result) {

@@ -13,7 +13,7 @@ describe("the Galactic Exchange ships no mercenary placeholder (AB#576)", () => 
   it("has no dead Mercenary Rentals card in index.html; the real one is ISP-177's", () => {
     const html = read("public/index.html");
     expect(html).not.toMatch(/id="mercenary-book"/);
-    expect(html.match(/<h3[^>]*>Mercenary Rentals<\/h3>/g)).toHaveLength(1);
+    expect(html.match(/<h3[^>]*>(?:<span class="ui-code"[^>]*><\/span>)?Mercenary Rentals<\/h3>/g)).toHaveLength(1); // AB#944: after its code slot
     expect(html).toContain('id="exchange-mercenary-section"');
   });
 

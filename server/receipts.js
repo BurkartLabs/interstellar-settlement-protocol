@@ -111,13 +111,15 @@ export function buildExtractorReceipt({ extractorName, body, cost, assetValue })
 }
 
 /** ISP-101 (AB#793), ISP-102 (AB#794): a building upgraded by one tier, with what that tier changes. */
-export function upgradeReceipt({ name, tier, cost, assetValue, offlineUntil, effect }) {
+export function upgradeReceipt({ name, tier, cost, assetValue, offlineUntil, effect, goods = [] }) {
   return receipt("upgrade-building", {
     title: "Building Upgraded",
     summary: `${name}, now tier ${tier}.`,
     costCredits: cost,
     grants: [
       ...(effect ? [effect] : []),
+      // ISP-192 (AB#886): what the tier took beside its credits
+      ...(goods.length ? [{ label: "Goods used", value: goods.map((g) => `${g.quantity.toLocaleString("en-US")} ${g.item}`).join(", ") }] : []),
       { label: "Added to assets", value: formatCredits(assetValue) },
       ...(offlineUntil ? [{ label: "Offline until", value: formatUtc(offlineUntil) }] : [])
     ],
@@ -199,6 +201,21 @@ export function buildOrbitalShipyardReceipt({ cost, assetValue, slotsUsed, slots
       { label: "Now possible", value: "Queue ships on the Fleet tab" }
     ],
     next: "Light Fighters, Destroyers and Siege Engines are built here, at the catalog's cost and time, and join your fleet."
+  });
+}
+
+// ISP-189 (AB#883): the Synthesis Array, where the Tier 4 chains run; built through POST /gameplay/build only.
+export function buildSynthesisArrayReceipt({ cost, assetValue, slotsUsed, slotsTotal }) {
+  return receipt("build-synthesis-array", {
+    title: "Synthesis Array Commissioned",
+    summary: "A Synthesis Array is operational at your corporation.",
+    costCredits: cost,
+    grants: [
+      { label: "Added to assets", value: formatCredits(assetValue) },
+      { label: "Building slots used", value: `${slotsUsed} / ${slotsTotal}` },
+      { label: "Now possible", value: "Run Tier 4 synthesis chains on the Refinery Chains tab" }
+    ],
+    next: "Each Tier 4 chain takes two refined intermediates and an exotic resource. One Array runs one chain at a time."
   });
 }
 
@@ -434,26 +451,34 @@ export function buyReceipt({ item, quantity, unitPrice, total, stationName }) {
   });
 }
 
-export function sellToOrderReceipt({ item, quantity, unitPrice, total, taxPct, taxAmount, proceeds }) {
+export function sellToOrderReceipt({ item, quantity, unitPrice, total, taxPct, taxAmount, tariffPct = 0, tariffAmount = 0, dutyWithheld = 0, proceeds }) {
   return receipt("sell-to-order", {
     title: "Sale Completed",
     summary: `${amount(quantity)} ${item} sold to a standing order at ${formatCredits(unitPrice)} each.`,
-    costCredits: taxAmount,
+    costCredits: taxAmount + tariffAmount + dutyWithheld, // ISP-232 (AB#927): what was withheld is charged too
     grants: [
       { label: "Sale value", value: formatCredits(total) },
-      { label: "Exchange tax", value: `${formatCredits(taxAmount)} (${taxPct}%), the amount charged above` },
+      { label: "Exchange tax", value: `${formatCredits(taxAmount)} (${taxPct}%)${tariffAmount || dutyWithheld ? "" : ", the amount charged above"}` },
+      // ISP-230 (AB#925): the concession holder's tariff, when the system has one
+      ...(tariffAmount ? [{ label: "Concession tariff", value: `${formatCredits(tariffAmount)} (${tariffPct}%)` }] : []),
+      // ISP-232 (AB#927): toward anti-dumping duty owed to the ITC
+      ...(dutyWithheld ? [{ label: "Withheld for ITC duty", value: formatCredits(dutyWithheld) }] : []),
       { label: "Paid to your reserves", value: formatCredits(proceeds) }
     ],
     next: "The credits are in your reserves now."
   });
 }
 
-export function transferReceipt({ linesText, fromName, toName, fee, arrivesAt }) {
+export function transferReceipt({ linesText, fromName, toName, fee, arrivesAt, tariff = null }) {
   return receipt("transfer-resources", {
     title: "Shipment Dispatched",
     summary: `${linesText}, from ${fromName} to ${toName}.`,
-    costCredits: fee,
-    grants: [{ label: "Arrives", value: formatUtc(arrivesAt) }],
+    costCredits: fee + (tariff?.amount || 0),
+    grants: [
+      { label: "Arrives", value: formatUtc(arrivesAt) },
+      // ISP-231 (AB#926): the destination system's concession tariff, charged at dispatch
+      ...(tariff?.amount ? [{ label: "Transfer fee", value: formatCredits(fee) }, { label: "Concession tariff", value: `${formatCredits(tariff.amount)} (${tariff.pct}%)` }] : [])
+    ],
     next: "It joins this station's inventory on arrival. Follow it under Logistics, Shipments."
   });
 }

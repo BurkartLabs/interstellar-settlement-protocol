@@ -48,6 +48,9 @@ export function refineryBuildButtonHtml({ hasRefinery, used, slots }) {
 export function tradeConfirmRowsHtml(rows) {
   return rows
     .map((r) => {
+      // ISP-233 (AB#928): a note is one line across both columns, which wraps (the label column does not); a warning is marked
+      if (r.note) return `<tr class="trade-confirm-note${r.warn ? " trade-confirm-warn" : ""}"><td colspan="2">${escapeHtml(r.note)}</td></tr>`;
+      if (r.warn) return `<tr class="trade-confirm-warn"><td>${escapeHtml(r.label)}</td><td class="trade-confirm-value">${escapeHtml(r.value)}</td></tr>`;
       const cls = r.highlight ? ` class="trade-confirm-highlight"` : r.muted ? ` class="trade-confirm-muted"` : "";
       return `<tr${cls}><td>${escapeHtml(r.label)}</td><td class="trade-confirm-value">${escapeHtml(r.value)}</td></tr>`;
     })
@@ -96,10 +99,11 @@ const NODE_BADGES = {
  * `action` (its button's markup, built by the caller), any other in a badge that says why it cannot be taken. Every
  * other string is text, escaped here.
  */
-export function researchNodeHtml({ name, tier, effect, meta = [], state, action = "" }) {
+export function researchNodeHtml({ id = "", name, tier, effect, meta = [], state, action = "" }) {
   const badge = NODE_BADGES[state];
   const tail = state === "available" || !badge ? action : `<span class="ui-badge ${badge[0]}">${badge[1]}</span>`;
-  return `<article class="ui-card research__node research__node--${escapeHtml(state)}">
+  // AB#885: the card is where a research link elsewhere lands (public/scripts/researchLinks.js).
+  return `<article class="ui-card research__node research__node--${escapeHtml(state)}"${id ? ` id="research-node-${escapeHtml(id)}" tabindex="-1"` : ""}>
     <div class="research__node-head">
       <h4 class="ui-card__title">${escapeHtml(name)}</h4>
       ${tier ? `<span class="ui-badge">T${escapeHtml(tier)}</span>` : ""}

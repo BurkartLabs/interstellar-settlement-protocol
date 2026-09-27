@@ -27,7 +27,12 @@ export const LEDGER_KINDS = {
   "arrears-paid": "Arrears paid",
   level: "Level bought",
   "level-lost": "Level lost",
-  dissolution: "Dissolution share"
+  dissolution: "Dissolution share",
+  // ISP-213 (AB#908): the rows the station chain writes (ISP-210, ISP-211)
+  "station-project": "Station project",
+  "station-project-refund": "Station project refund",
+  "station-built": "Station opened",
+  "stake-buyout": "Stake buyout"
 };
 const kindLabel = (k) => LEDGER_KINDS[k] || escapeHtml(k);
 /** A form's status line: a refusal in the warning tone, what happened in the success tone. */
@@ -35,7 +40,7 @@ const statusLine = (role, s) => `<p class="cong-form-status${s?.ok ? " cong-form
 
 /** The Conglomerate tab's own tabs: Roster, Treasury, Hangar. The panels are drawn by the caller. */
 export function hqTabsHtml(active, panels) {
-  const tabs = [["roster", "Roster"], ["treasury", "Treasury"], ["hangar", "Hangar"]];
+  const tabs = [["roster", "Roster"], ["treasury", "Treasury"], ["hangar", "Hangar"], ["station", "Station"]]; // Station: ISP-213 (AB#908)
   return `
     <div class="ui-tabs cong-tabs" role="tablist" aria-label="Conglomerate">
       ${tabs.map(([id, label]) => `<button type="button" class="ui-tab" role="tab" id="cong-tab-${id}" aria-controls="cong-panel-${id}" aria-selected="${id === active}" tabindex="${id === active ? 0 : -1}" data-role="cong-tab" data-tab="${id}">${label}</button>`).join("")}

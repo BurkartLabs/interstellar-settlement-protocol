@@ -1,10 +1,12 @@
 // server/routes/asteroids.js: the asteroids routes, split out of server/index.js (AB#1815).
 import { addAccountNotification, saveAccountsNow, getAccountById, getState, mutateAccountState } from "../gameState.js";
 import { beltAt, beltView, isBeltPresent, isBeltScoutedBy, recordBeltScouted } from "../game/belts.js"; // AB#2330, AB#2331
-import { beltSharedWith } from "../game/intel.js"; // ISP-207 (AB#902)
+import { beltSharedWith, currentConglomerateOf } from "../game/intel.js"; // ISP-207 (AB#902)
+import { roomEvent } from "../game/membership.js"; // Bug #4665: a partner's scouting reaches open pages
 import { ECONOMY } from "../economy.js";
 import { emptyBeltMessage } from "../expeditionText.js"; // AB#2330
-import { BELT_KEYS, EXPEDITION_DURATIONS, beltComposition, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_FABRICATION_MS, BASE_MAX_DEPLOYMENTS } from "../gameState.js";
+import { BELT_KEYS, EXPEDITION_DURATIONS, beltComposition, EXPEDITION_LAUNCH_COST, PROBE_BUILD_COST, PROBE_FABRICATION_MS, BASE_MAX_DEPLOYMENTS, NAVIGATION } from "../gameState.js";
+import { CONGLOMERATE_CATALOG } from "../conglomerates.js"; // Bug #4656: the remote launch's yield share
 import { applyCredits } from "../finances.js";
 import { fleetStatus } from "../gameState.js"; // Bug #586
 import { emitToAccount } from "../realtime.js";
@@ -158,6 +160,11 @@ export function registerAsteroidRoutes(app) {
       return;
     }
 
+    // Bug #4665: the scout's partners share this belt now (ISP-207); tell their open pages to read it again. A signal
+    // only: no composition, which each partner reads through its own intel-checked request.
+    const scout = getAccountById(req.params.accountId)?.state?.corp;
+    const conglomerate = currentConglomerateOf(scout);
+    if (conglomerate) roomEvent(conglomerate, "conglomerate:intel", { kind: "belt-scouted", corp: scout.publicId, corpName: scout.corporationName, beltKey });
     res.json({ ...account, receipt: scoutBeltReceipt({ beltLabel: beltPhrase(SYSTEMS_CATALOG, beltKey) }) }); // AB#744
   });
 
@@ -213,11 +220,16 @@ export function registerAsteroidRoutes(app) {
         return;
       }
 
-      // Player must be in the same system as the belt
+      // Player must be in the same system as the belt. Bug #4656: or, for a belt a conglomerate partner scouted this
+      // generation, anywhere its research reaches: the probe works at range and brings home remoteDispatchYieldPct of
+      // what it mines. This is what makes shared intel worth something; scouting it yourself needs you there.
       const beltSystemId = beltKey.split(":")[0];
-      if ((corp.currentSystemId || "sol") !== beltSystemId) {
-        outcome = "wrong-system";
-        return;
+      const here = corp.currentSystemId || "sol";
+      let remote = false;
+      if (here !== beltSystemId) {
+        if (!sharedBy.length) { outcome = "wrong-system"; return; }
+        if (!NAVIGATION.canReachSystem(corp.unlockedTech || [], here, beltSystemId)) { outcome = "out-of-reach"; return; }
+        remote = true;
       }
 
       if ((corp.finances.credits || 0) < launchCost) {
@@ -241,6 +253,7 @@ export function registerAsteroidRoutes(app) {
         lastTickAt: now,
         generation: belt.generation, // AB#2330
         ...(sharedBy.length ? { sharedIntel: true } : {}), // ISP-207 (AB#902): sent on a partner's scouting, so its use can be counted
+        ...(remote ? { remote: true, remoteYieldPct: CONGLOMERATE_CATALOG.remoteDispatchYieldPct } : {}), // Bug #4656
         launchCost,
         yields: {},
         status: "active"
@@ -254,6 +267,7 @@ export function registerAsteroidRoutes(app) {
       const msgs = {
         "missing-research": "Asteroid Prospecting Arrays research must be completed before launching expeditions.",
         "not-scouted": "This asteroid belt has not been scouted. Scout the belt first to reveal its composition before launching an expedition.",
+        "out-of-reach": "Your research does not reach that system yet, so a probe cannot be launched to it from here.", // Bug #4656
         "no-probes": "No mining probes available. Fabricate probes at your Assembly Facility.",
         "deployment-cap": `All deployment slots are occupied (${am.activeExpeditions?.length || 0}/${am.maxDeployments || BASE_MAX_DEPLOYMENTS}). Wait for a probe to return or research additional capacity.`,
         "wrong-system": "You must be in the same system as the asteroid belt to launch an expedition.",
@@ -303,6 +317,6 @@ export function registerAsteroidRoutes(app) {
       belts[key] = view;
       if (view.scouted) result[key] = view.composition;
     }
-    res.json({ compositions: result, belts, respawnChancePerHour: ECONOMY.belts.respawnChancePerHour, allBeltKeys: BELT_KEYS });
+    res.json({ compositions: result, belts, respawnChancePerHour: ECONOMY.belts.respawnChancePerHour, allBeltKeys: BELT_KEYS, remoteDispatchYieldPct: CONGLOMERATE_CATALOG.remoteDispatchYieldPct }); // Bug #4656
   });
 }

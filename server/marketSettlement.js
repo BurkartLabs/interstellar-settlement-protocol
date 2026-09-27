@@ -12,6 +12,13 @@ import { emitToAccount } from "./realtime.js";
 import { formatCredits } from "./receipts.js";
 import { recordSale, sameConglomerate } from "./game/dominanceCounters.js"; // ISP-217 (AB#912)
 import { accountsStore } from "./game/store.js";
+import { chargeTariff } from "./tariffService.js"; // ISP-230 (AB#925)
+import { recordOwnSale, withholdCouncilDebt, withholdDuty } from "./itcService.js"; // ISP-232 (AB#927); ISP-242 (AB#938)
+import { withholdRoyaltyDebt } from "./patents.js"; // ISP-236 (AB#931)
+import { onSale } from "./standingService.js"; // ISP-238 (AB#933)
+import { salesTaxBaseAt } from "./lobbyingService.js"; // ISP-239 (AB#934)
+import { stationById } from "./game/stations.js";
+import { payConcessionShare } from "./concessions.js"; // ISP-228 (AB#923)
 
 /**
  * Pay the seller of `order` for `quantity` at the listing's price, less the exchange tax, and write their Sold row.
@@ -21,19 +28,36 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
   if (!order.sellerAccountId) return null;
   const total = quantity * Number(order.unitPrice || 0);
   let sale = null;
+  let royaltyPaid = 0, sellerCorp = null; // ISP-228 (AB#923): the concession holder's share, paid once the seller is saved
   mutateAccountState(order.sellerAccountId, (state) => {
     // ISP-302 (AB#2285): the rate includes the lease royalty; its share is booked apart, as "lease-royalty".
-    const breakdown = exchangeTaxBreakdown(state);
+    const breakdown = exchangeTaxBreakdown(state, salesTaxBaseAt(order.stationId)); // ISP-239 (AB#934): the system's tax in force
     const taxPct = breakdown.ratePct;
-    const { tax: taxAmount, royalty, salesTax, proceeds } = taxOnSale(total, breakdown);
-    sale = { taxPct, taxAmount, proceeds, buyer: publicName(buyerName) };
+    const { tax: taxAmount, royalty, salesTax, proceeds: afterTax } = taxOnSale(total, breakdown);
     // Bug #984: the gross the buyer paid is income and the tax an expense; the balance moves by the proceeds.
     applyCredits(state.corp, total, "exchange");
     // ISP-217 (AB#912): the sale counts toward dominance at the listing's station, unless the buyer is a conglomerate
     // partner: selling to partners must not buy dominance.
-    if (!sameConglomerate(state.corp, accountsStore.accounts?.[buyerAccountId]?.state?.corp)) recordSale(state.corp, order.stationId, total);
+    const partner = sameConglomerate(state.corp, accountsStore.accounts?.[buyerAccountId]?.state?.corp);
+    if (!partner) recordSale(state.corp, order.stationId, total);
+    // ISP-232 (AB#927): a sale at the seller's own price is what the ITC's dumping watch reads (a partner's is not)
+    recordOwnSale(state.corp, { item: order.item, quantity, unitPrice: Number(order.unitPrice || 0), partner, stationId: order.stationId });
     applyCredits(state.corp, -salesTax, "exchange-tax");
+    // ISP-238 (AB#933): Earth Assembly standing for the tax, ITC standing for a sale at or above normal value
+    onSale(state.corp, { item: order.item, quantity, unitPrice: Number(order.unitPrice || 0), salesTax, partner });
     applyCredits(state.corp, -royalty, "lease-royalty");
+    // ISP-230 (AB#925): the concession holder's tariff where the goods are held, at the lower of the listing's posted
+    // rate and today's (WARFARE.md: nobody pays a rate they were not shown)
+    const tariff = chargeTariff(state.corp, { stationId: order.stationId, base: total, postedPct: order.tariffPct ?? null });
+    // ISP-232 (AB#927): duty owed to the ITC takes its share of what is left
+    const withheld = withholdDuty(state.corp, afterTax - tariff.amount);
+    const councilWithheld = withholdCouncilDebt(state.corp, afterTax - tariff.amount, withheld); // ISP-242 (AB#938): the same 50%
+    // ISP-236 (AB#931): then royalty owed on others' patents takes its share of what is left after the duty
+    const royaltyWithheld = withholdRoyaltyDebt(state.corp, afterTax - tariff.amount - withheld - councilWithheld);
+    const proceeds = afterTax - tariff.amount - withheld - councilWithheld - royaltyWithheld;
+    sale = { taxPct, taxAmount, tariffPct: tariff.pct, tariffAmount: tariff.amount, dutyWithheld: withheld, ...(councilWithheld ? { councilWithheld } : {}), ...(royaltyWithheld ? { royaltyWithheld } : {}), proceeds, buyer: publicName(buyerName) };
+    royaltyPaid = royalty;
+    sellerCorp = state.corp;
     if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
     state.corp.tradeHistory.unshift({
       id: `th-${Date.now() + 1}`,
@@ -44,12 +68,18 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
       total,
       taxPct,
       taxAmount,
+      ...(tariff.amount ? { tariffPct: tariff.pct, tariffAmount: tariff.amount, tariffRecord: tariff } : {}), // ISP-241 (AB#937): what a tariff-overcharge case reads
+      ...(withheld ? { dutyWithheld: withheld } : {}),
+      ...(councilWithheld ? { councilWithheld } : {}), // ISP-242 (AB#938)
+      ...(royaltyWithheld ? { royaltyWithheld } : {}),
       proceeds,
       counterparty: sale.buyer,
       at: Date.now()
     });
     state.corp.tradeHistory = state.corp.tradeHistory.slice(0, 200);
   });
+  // ISP-228 (AB#923): the concession holder's share of the lease royalty on a sale settled at its system's station
+  if (royaltyPaid > 0) payConcessionShare(stationById(order.stationId)?.systemId, royaltyPaid, sellerCorp, Date.now(), "royalty");
   return sale;
 }
 
@@ -78,7 +108,10 @@ export function tellSeller(order, quantity, sale, leftAfterSale) {
     title: "Listing Sold",
     body:
       `${sale.buyer} bought ${quantity.toLocaleString("en-US")} ${order.item} at ${formatCredits(order.unitPrice)} each: ` +
-      `${formatCredits(total)}, less ${formatCredits(sale.taxAmount)} exchange tax (${sale.taxPct}%), ` +
+      `${formatCredits(total)}, less ${formatCredits(sale.taxAmount)} exchange tax (${sale.taxPct}%)` +
+      (sale.tariffAmount ? ` and ${formatCredits(sale.tariffAmount)} concession tariff (${sale.tariffPct}%)` : "") +
+      (sale.dutyWithheld ? `, with ${formatCredits(sale.dutyWithheld)} withheld toward ITC duty owed` : "") +
+      (sale.councilWithheld ? `, ${formatCredits(sale.councilWithheld)} withheld toward an Arbitration Council award` : "") + ", " +
       `${formatCredits(sale.proceeds)} paid to you. ` +
       (leftAfterSale > 0 ? `${leftAfterSale.toLocaleString("en-US")} still listed.` : "The listing is sold out.")
   });

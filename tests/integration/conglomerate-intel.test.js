@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { getApp } from "../helpers/app.js";
+import { describe, it, expect, afterAll } from "vitest";
+import { io as connect } from "socket.io-client";
+import { getApp, serverUrl } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { accountsStore } from "../../server/game/store.js";
 import { getState } from "../../server/gameState.js";
@@ -31,7 +32,7 @@ async function prospector() {
   corp.asteroidMining = { ...(corp.asteroidMining || {}), probeCount: 3, maxDeployments: 5, activeExpeditions: [] };
   corp.currentSystemId = "sol";
   corp.finances.credits = 1_000_000;
-  return { id: reg.account.id, raw, corp, corpId: corp.publicId, api: authed(app, reg.accessToken), base: `/api/accounts/${reg.account.id}` };
+  return { id: reg.account.id, token: reg.accessToken, raw, corp, corpId: corp.publicId, api: authed(app, reg.accessToken), base: `/api/accounts/${reg.account.id}` };
 }
 
 /** A founder and one member, in one conglomerate. */
@@ -137,5 +138,45 @@ describe("the intel read (ISP-207, AB#902)", () => {
       expect(res.status, url).toBe(403);
       expect(res.body).toEqual({ error: "Only a conglomerate's current members see its intel.", code: "not-a-member", belts: [], listings: [] });
     }
+  });
+});
+
+// Bug #4665: a partner's scouting reached a member's page only after a reload. The scout now tells the conglomerate's
+// room, and an open page reads the belts again (public/scripts/app.js, "conglomerate:intel").
+describe("a partner's scouting reaches members' open pages (Bug #4665)", () => {
+  const sockets = [];
+  afterAll(() => { for (const s of sockets) s.close(); });
+  async function socket(token) {
+    const s = connect(await serverUrl(), { transports: ["websocket"], forceNew: true, auth: { token } });
+    sockets.push(s);
+    await new Promise((resolve, reject) => { s.once("connect", resolve); s.once("connect_error", reject); });
+    const got = [];
+    s.on("conglomerate:intel", (payload) => got.push(payload));
+    return got;
+  }
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 300));
+
+  it("the member's socket hears the scout, with the belt and no composition; an outsider's hears nothing", async () => {
+    const { f, m } = await partners();
+    const outsider = await prospector();
+    const [memberHeard, outsiderHeard] = [await socket(m.token), await socket(outsider.token)];
+    const belt = solBelt();
+    const res = await f.api.post(`${f.base}/gameplay/scout-belt`).send({ beltKey: belt.key });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    await settle();
+    expect(memberHeard).toHaveLength(1);
+    expect(memberHeard[0]).toMatchObject({ kind: "belt-scouted", corp: f.corpId, beltKey: belt.key });
+    expect(JSON.stringify(memberHeard[0])).not.toMatch(/composition|remaining|reserve/);
+    expect(outsiderHeard).toEqual([]);
+    // Scouting it again changes nothing, so it tells nobody.
+    await f.api.post(`${f.base}/gameplay/scout-belt`).send({ beltKey: belt.key });
+    await settle();
+    expect(memberHeard).toHaveLength(1);
+  });
+
+  it("the open page reads the belts again when it hears it", async () => {
+    const fs = await import("node:fs");
+    const app = fs.readFileSync(new URL("../../public/scripts/app.js", import.meta.url), "utf8");
+    expect(app).toMatch(/socket\.on\("conglomerate:intel", \(\) => \{\s*if \(!appState\.accountId\) return;\s*loadBeltCompositionsIntoStarmap\(\);/);
   });
 });
