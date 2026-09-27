@@ -352,7 +352,7 @@
             <div id="station-overview-view" class="station__view">
               <header id="station-location-header" class="ui-screen__header"></header>
 
-              <section class="ui-stack">
+              <section id="station-authority-and-regulatory-offices" class="ui-stack">
                 <h3 class="station__heading">Authority &amp; Regulatory Offices</h3>
                 <p class="ui-screen__lede">Government bodies, regulatory agencies, and institutional services present at this station. Access is open to all registered corporations.</p>
                 <div id="station-npc-buildings" class="ui-grid station__grid"></div>
@@ -372,13 +372,13 @@
                 <div id="station-construction" class="ui-grid station__grid"></div>
               </section>
 
-              <section class="ui-stack">
+              <section id="station-licensed-corporate-holdings" class="ui-stack">
                 <h3 class="station__heading">Licensed Corporate Holdings</h3>
                 <p class="ui-screen__lede">Extractor yards and infrastructure deployed at this station.</p>
                 <div id="station-player-buildings" class="ui-grid station__grid"></div>
               </section>
 
-              <section class="ui-stack">
+              <section id="station-active-mining-cycles" class="ui-stack">
                 <h3 class="station__heading">Active Mining Cycles</h3>
                 <p class="ui-screen__lede">Every extractor yard's current cycle, wherever it is leased.</p>
                 <div id="mine-cycle-list" class="ui-stack"></div>
@@ -437,7 +437,7 @@
             <section id="finance-rating" class="finance__rating" aria-label="Credit rating" aria-live="polite"></section>
 
             <div class="finance__charts">
-              <section class="ui-panel finance__chart finance__chart--wide">
+              <section id="finance-cash-reserves" class="ui-panel finance__chart finance__chart--wide">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title">Cash Reserves</h3>
@@ -455,7 +455,7 @@
                 </header>
                 <div class="ui-panel__body finance__canvas"><canvas id="cashflow-chart" aria-label="Cash reserves over time"></canvas></div>
               </section>
-              <section class="ui-panel finance__chart">
+              <section id="finance-net-cash-flow" class="ui-panel finance__chart">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title">Net Cash Flow</h3>
@@ -473,7 +473,7 @@
                 </header>
                 <div class="ui-panel__body finance__canvas"><canvas id="netflow-chart" aria-label="Net cash flow"></canvas></div>
               </section>
-              <section class="ui-panel finance__chart finance__chart--wide">
+              <section id="finance-assets-vs-liabilities" class="ui-panel finance__chart finance__chart--wide">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title">Assets vs Liabilities</h3>
@@ -491,7 +491,7 @@
                 </header>
                 <div class="ui-panel__body finance__canvas"><canvas id="asset-chart" aria-label="Assets vs liabilities"></canvas></div>
               </section>
-              <section class="ui-panel finance__chart">
+              <section id="finance-income-by-source" class="ui-panel finance__chart">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title">Income by Source</h3>
@@ -500,7 +500,7 @@
                 </header>
                 <div class="ui-panel__body finance__canvas"><canvas id="sector-chart" aria-label="Income by source"></canvas></div>
               </section>
-              <section class="ui-panel finance__chart">
+              <section id="finance-asset-composition" class="ui-panel finance__chart">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title">Asset Composition</h3>
@@ -509,7 +509,7 @@
                 </header>
                 <div class="ui-panel__body finance__canvas"><canvas id="composition-chart" aria-label="Asset composition"></canvas></div>
               </section>
-              <section class="ui-panel finance__chart">
+              <section id="finance-daily-profit-and-loss" class="ui-panel finance__chart">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title">Daily P&amp;L</h3>
@@ -521,7 +521,7 @@
             </div>
 
             <div class="finance__tables">
-              <section class="ui-panel">
+              <section id="finance-profit-and-loss-statement" class="ui-panel">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title">Profit &amp; Loss Statement</h3>
@@ -536,7 +536,7 @@
                   <tfoot></tfoot>
                 </table></div>
               </section>
-              <section class="ui-panel">
+              <section id="finance-balance-sheet" class="ui-panel">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title">Balance Sheet</h3>
@@ -1138,7 +1138,7 @@
                 <div class="missions__office-main">
                   <section class="ui-panel missions__panel" id="agent-bio"></section>
                   <section class="ui-panel missions__panel" id="agent-dialogue"></section>
-                  <section class="ui-stack">
+                  <section id="missions-available-contracts" class="ui-stack">
                     <h3 class="missions__heading">Available Contracts</h3>
                     <p class="missions__note" id="agent-missions-empty">No contracts currently available from this agent.</p>
                     <div id="agent-mission-list" class="ui-grid"></div>
