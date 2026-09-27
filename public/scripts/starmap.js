@@ -1,6 +1,7 @@
 import { lanePairs, navigationFor } from "./navigation.js";
 import { badgedStationCounts, placeStationBadges, systemStationMarkers } from "./stationMarkers.js"; // ISP-119 (AB#811), AB#2349
 import { bodyResourceHtml } from "./bodyInfo.js"; // AB#740: what the catalogue holds, not a hash of the name
+import { unrecoveredItemsHtml } from "./researchLinks.js"; // AB#885: a gated share on a scouted belt
 import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 import { PLANET_IMAGE_PATHS } from "./planetImages.js";
@@ -1476,7 +1477,8 @@ export function createStarmapController({
         if (isEmptySlot) {
           compositionHtml = emptyBeltHtml(slot, am.respawnChancePerHour);
         } else if (isBeltScouted && (slot?.composition || beltComps[beltKey])) {
-          compositionHtml = scoutedBeltHtml(slot, slot?.composition || beltComps[beltKey]); // AB#2331
+          compositionHtml = scoutedBeltHtml(slot, slot?.composition || beltComps[beltKey]) // AB#2331
+            + unrecoveredItemsHtml(Object.keys(slot?.composition || beltComps[beltKey] || {}), researchCatalog, state.unlockedTech); // AB#885
         } else if (!isBeltScouted) {
           compositionHtml = unscoutedBeltHtml({ hasProspecting, inSameSystem, systemName: system.name });
         }
@@ -1581,7 +1583,7 @@ export function createStarmapController({
         // Non-field body (planet/moon)
         detailsEl.innerHTML = detailsHtml(`${body.name} - ${system.name}`, `
           <p class="ui-panel__meta">Type: ${escapeHtmlAttr(body.type)}</p>
-          ${bodyResourceHtml(body, state.stations)}
+          ${bodyResourceHtml(body, state.stations, { tree: researchCatalog, unlockedTech: state.unlockedTech })}
           ${stationListHtml}
         `);
       }

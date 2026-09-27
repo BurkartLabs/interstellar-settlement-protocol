@@ -7,9 +7,13 @@
 
 import { escapeHtml } from "./html.js";
 import { profileText } from "./bodyYield.js";
+import { unrecoveredItemsHtml } from "./researchLinks.js"; // AB#885
 
-/** The panel's resource section for a planet or moon. `stations` are the stations in the catalogue. */
-export function bodyResourceHtml(body, stations = []) {
+/**
+ * The panel's resource section for a planet or moon. `stations` are the stations in the catalogue. AB#885: with the
+ * research tree and this corporation's research, a share it would not recover says which node recovers it.
+ */
+export function bodyResourceHtml(body, stations = [], { tree = [], unlockedTech = new Set() } = {}) {
   const cost = Number(body?.leaseCost);
   if (!(cost > 0)) {
     return `<p class="ui-panel__meta"><strong>Not surveyed.</strong> No mining data exists for ${escapeHtml(body?.name || "this body")}: it has no lease terms.</p>`;
@@ -20,5 +24,6 @@ export function bodyResourceHtml(body, stations = []) {
   return `<div class="ui-stack">
   <p><strong>Mining lease:</strong> <span data-lease-cost="${cost}">${cost.toLocaleString("en-US")} credits</span>, filed ${filed}.</p>
   <p class="ui-panel__meta">An extractor here produces <strong data-body-yield>${escapeHtml(profileText(body.resourceProfile))}</strong>. The lease needs an office and five employees per lease.</p>
+  ${unrecoveredItemsHtml((body.resourceProfile || []).map((p) => p.item), tree, unlockedTech)}
 </div>`;
 }

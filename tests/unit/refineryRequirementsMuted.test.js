@@ -16,7 +16,7 @@ describe("Refinery Chains: requirement text is muted, not amber (AB#1761)", () =
 
   // ISP-79 (AB#768): on the design system the muted token is the card's meta line, and the warning is a warn badge.
   it("still renders both requirement lines, in the muted token", () => {
-    expect(APP_JS).toContain('<p class="ui-card__meta">Requires: ${escapeHtml((chain.requiresResearch || []).join(", "))}</p>');
+    expect(APP_JS).toContain('<p class="ui-card__meta">Requires: ${(chain.requiresTechIds || []).map((id, i) => researchLinkHtml(id, '); // AB#885: each research a link
     expect(APP_JS).toContain('<p class="ui-card__meta">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>');
   });
 

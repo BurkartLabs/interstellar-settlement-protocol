@@ -96,10 +96,11 @@ const NODE_BADGES = {
  * `action` (its button's markup, built by the caller), any other in a badge that says why it cannot be taken. Every
  * other string is text, escaped here.
  */
-export function researchNodeHtml({ name, tier, effect, meta = [], state, action = "" }) {
+export function researchNodeHtml({ id = "", name, tier, effect, meta = [], state, action = "" }) {
   const badge = NODE_BADGES[state];
   const tail = state === "available" || !badge ? action : `<span class="ui-badge ${badge[0]}">${badge[1]}</span>`;
-  return `<article class="ui-card research__node research__node--${escapeHtml(state)}">
+  // AB#885: the card is where a research link elsewhere lands (public/scripts/researchLinks.js).
+  return `<article class="ui-card research__node research__node--${escapeHtml(state)}"${id ? ` id="research-node-${escapeHtml(id)}" tabindex="-1"` : ""}>
     <div class="research__node-head">
       <h4 class="ui-card__title">${escapeHtml(name)}</h4>
       ${tier ? `<span class="ui-badge">T${escapeHtml(tier)}</span>` : ""}
