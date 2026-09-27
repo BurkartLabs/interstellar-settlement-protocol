@@ -238,6 +238,8 @@ export const ACCOUNT_INPUT = {
     params: { conglomerateId: ref("a conglomerate"), applicationId: ref("an application"), answer: word(["accept", "decline", "withdraw"], "accept, decline or withdraw") }
   },
   "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: ref("a conglomerate") } },
+  "POST /concessions/:systemId/petition": { params: { systemId: ref("a system") } }, // ISP-227 (AB#922)
+  "POST /concessions/:systemId/relinquish": { params: { systemId: ref("a system") } },
   // ISP-199 (AB#893): roles, removal, the founder's transfer, identity and dissolution. A member is named by its
   // corporation's public id; the route answers 404 for one that is not a member.
   "POST /conglomerates/:conglomerateId/members/:corpId/role": {

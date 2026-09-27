@@ -28,6 +28,8 @@ const OUT_OF_SCOPE = {
   "GET /api/corporations/:corpId/cap-table": "a read; its one input, a public corporation id, is only ever compared with existing ids (AB#851)",
   "GET /api/conglomerates": "a read with no input: the public directory (ISP-197, AB#891)",
   "GET /api/starmap/dominance": "a public read; its one input, an optional system id, is checked against the catalog by the route (ISP-217, AB#912)",
+  "GET /api/systems/:id/control": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-226, AB#921; Bug #4664)",
+  "GET /api/systems/:id/concession": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-227, AB#922)",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
   "GET /api/buildings": "a static catalog",
@@ -119,6 +121,8 @@ const BASELINE = {
     "POST /conglomerates/:conglomerateId/applications": { params: { conglomerateId: "cgl-732" } },
     "POST /conglomerates/:conglomerateId/applications/:applicationId/:answer": { params: { conglomerateId: "cgl-732", applicationId: "capp-732", answer: "decline" } },
     "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: "cgl-732" } },
+    "POST /concessions/:systemId/petition": { params: { systemId: "atlantis" } }, // ISP-227 (AB#922): no such system: 404
+    "POST /concessions/:systemId/relinquish": { params: { systemId: "atlantis" } },
     "POST /conglomerates/:conglomerateId/members/:corpId/role": { params: { conglomerateId: "cgl-732", corpId: "corp-732" }, body: { role: "director" } },
     "POST /conglomerates/:conglomerateId/members/:corpId/remove": { params: { conglomerateId: "cgl-732", corpId: "corp-732" } },
     "POST /conglomerates/:conglomerateId/founder": { params: { conglomerateId: "cgl-732" }, body: { corpId: "corp-732" } },

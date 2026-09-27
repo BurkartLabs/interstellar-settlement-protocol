@@ -124,6 +124,7 @@ member. A permission not in this table does not exist.
 | Choose the emblem and colour (from the fixed lists) | yes | no | no |
 | Transfer the founder role to a director | yes | no | no |
 | Dissolve the conglomerate (at the Bureau) | yes | no | no |
+| Petition for, challenge or relinquish an ISA concession, from the treasury (v0.13) | yes | no | no |
 
 Why spending is the founder's alone: the treasury is other corporations' money, and the EVE lesson is that the power to
 admit people and the power to take money must not sit in the same hands by default. Directors run the roster; the
