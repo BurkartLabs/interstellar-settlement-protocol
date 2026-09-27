@@ -54,10 +54,10 @@ describe("the document-code registry (ISP-247, AB#943)", () => {
     expect(R.sections.map((s) => `${s.screen}/${s.id}`).sort()).toEqual(onPage.map((s) => `${s.screen}/${s.id}`).sort());
   });
 
-  it("keeps the code the build already shows: the Financial Core's lede is its screen code", () => {
+  it("keeps the code the build already showed: the Financial Core is CORP-FIN-1, now through its title's slot (AB#944)", () => {
     const finance = R.screens.find((s) => s.id === "finance");
     expect(finance.code).toBe("CORP-FIN-1");
-    expect(text(doc.querySelector("#finance .ui-screen__lede"))).toMatch(/^CORP-FIN-1 \/\/ /);
+    expect(doc.querySelector('#finance .ui-screen__title [data-code-for="finance"]')).toBeTruthy();
   });
 });
 

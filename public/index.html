@@ -298,7 +298,7 @@
           <article id="overview" class="tab-panel ui-screen active">
             <!-- ISP-77 (AB#766): the Overview on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
-              <h2 class="ui-screen__title">Executive Situation Brief</h2>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="overview" aria-hidden="true"></span>Executive Situation Brief</h2>
               <p class="ui-screen__lede">
                 ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated,
                 and each unlock expands market access, infrastructure depth, and interstellar reach.
@@ -308,14 +308,14 @@
             <div id="overview-cards" class="ui-grid"></div>
 
             <section id="expedition-panel" class="ui-panel" aria-labelledby="expedition-panel-title" hidden>
-              <header class="ui-panel__header"><h3 id="expedition-panel-title" class="ui-panel__title">Asteroid Belt Expeditions</h3></header>
+              <header class="ui-panel__header"><h3 id="expedition-panel-title" class="ui-panel__title"><span class="ui-code" data-code-for="expedition-panel" aria-hidden="true"></span>Asteroid Belt Expeditions</h3></header>
               <div id="expedition-list" class="ui-panel__body ui-stack"></div>
             </section>
 
             <section id="overview-milestones" class="ui-panel" aria-labelledby="level-requirements-title">
               <header class="ui-panel__header">
                 <div class="overview__level-heading">
-                  <h3 id="level-requirements-title" class="ui-panel__title">Corporation Advancement Requirements</h3>
+                  <h3 id="level-requirements-title" class="ui-panel__title"><span class="ui-code" data-code-for="overview-milestones" aria-hidden="true"></span>Corporation Advancement Requirements</h3>
                   <p id="level-panel-meta" class="ui-panel__meta"></p>
                 </div>
                 <!-- AB#803: one level at a time; the others are a step away -->
@@ -330,7 +330,7 @@
                 </section>
                 <p id="level2-status" class="ui-screen__meta"></p>
                 <section class="ui-card" aria-labelledby="feedback-log-title">
-                  <h4 id="feedback-log-title" class="ui-card__title">Command Feedback</h4>
+                  <h4 id="feedback-log-title" class="ui-card__title"><span class="ui-code" data-code-for="feedback-log-title" aria-hidden="true"></span>Command Feedback</h4>
                   <ul id="feedback-log" class="ui-list"></ul>
                 </section>
               </div>
@@ -353,33 +353,33 @@
               <header id="station-location-header" class="ui-screen__header"></header>
 
               <section id="station-authority-and-regulatory-offices" class="ui-stack">
-                <h3 class="station__heading">Authority &amp; Regulatory Offices</h3>
+                <h3 class="station__heading"><span class="ui-code" data-code-for="station-authority-and-regulatory-offices" aria-hidden="true"></span>Authority &amp; Regulatory Offices</h3>
                 <p class="ui-screen__lede">Government bodies, regulatory agencies, and institutional services present at this station. Access is open to all registered corporations.</p>
                 <div id="station-npc-buildings" class="ui-grid station__grid"></div>
               </section>
 
               <section class="ui-stack" id="station-facilities-section" hidden>
-                <h3 class="station__heading">Operational Facilities</h3>
+                <h3 class="station__heading"><span class="ui-code" data-code-for="station-facilities-section" aria-hidden="true"></span>Operational Facilities</h3>
                 <p class="ui-screen__lede">Corporation-owned facilities available for use at this station.</p>
                 <div id="station-facility-buildings"></div>
               </section>
 
               <!-- ISP-95 (AB#785): every catalogue building, with Build or what is in the way (constructionPanel.js). -->
               <section class="ui-stack" id="station-construction-section">
-                <h3 class="station__heading">Construction</h3>
+                <h3 class="station__heading"><span class="ui-code" data-code-for="station-construction-section" aria-hidden="true"></span>Construction</h3>
                 <p class="ui-screen__lede">Every building your corporation can construct: what it does, what it costs and what it needs first.</p>
                 <p id="construction-slots" class="ui-screen__meta"></p>
                 <div id="station-construction" class="ui-grid station__grid"></div>
               </section>
 
               <section id="station-licensed-corporate-holdings" class="ui-stack">
-                <h3 class="station__heading">Licensed Corporate Holdings</h3>
+                <h3 class="station__heading"><span class="ui-code" data-code-for="station-licensed-corporate-holdings" aria-hidden="true"></span>Licensed Corporate Holdings</h3>
                 <p class="ui-screen__lede">Extractor yards and infrastructure deployed at this station.</p>
                 <div id="station-player-buildings" class="ui-grid station__grid"></div>
               </section>
 
               <section id="station-active-mining-cycles" class="ui-stack">
-                <h3 class="station__heading">Active Mining Cycles</h3>
+                <h3 class="station__heading"><span class="ui-code" data-code-for="station-active-mining-cycles" aria-hidden="true"></span>Active Mining Cycles</h3>
                 <p class="ui-screen__lede">Every extractor yard's current cycle, wherever it is leased.</p>
                 <div id="mine-cycle-list" class="ui-stack"></div>
               </section>
@@ -397,8 +397,8 @@
           <article id="finance" class="tab-panel ui-screen">
             <!-- ISP-77 (AB#766): the Financial Core on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
-              <h2 class="ui-screen__title">Financial Control Board</h2>
-              <p class="ui-screen__lede">CORP-FIN-1 // Real-time consolidation of corporate balance sheet, cash flow, and revenue exposure.</p>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="finance" aria-hidden="true"></span>Financial Control Board</h2>
+              <p class="ui-screen__lede">Real-time consolidation of corporate balance sheet, cash flow, and revenue exposure.</p>
               <p class="ui-screen__meta">Last snapshot <span id="finance-last-snapshot" class="ui-figure">—</span></p>
             </header>
 
@@ -440,7 +440,7 @@
               <section id="finance-cash-reserves" class="ui-panel finance__chart finance__chart--wide">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title">Cash Reserves</h3>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-cash-reserves" aria-hidden="true"></span>Cash Reserves</h3>
                     <p class="ui-panel__meta">Balance over time</p>
                   </div>
                   <select class="ui-select finance__duration" data-chart-duration="cashflow" aria-label="Cash Reserves duration">
@@ -458,7 +458,7 @@
               <section id="finance-net-cash-flow" class="ui-panel finance__chart">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title">Net Cash Flow</h3>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-net-cash-flow" aria-hidden="true"></span>Net Cash Flow</h3>
                     <p class="ui-panel__meta">Net profit over time</p>
                   </div>
                   <select class="ui-select finance__duration" data-chart-duration="netflow" aria-label="Net Cash Flow duration">
@@ -476,7 +476,7 @@
               <section id="finance-assets-vs-liabilities" class="ui-panel finance__chart finance__chart--wide">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title">Assets vs Liabilities</h3>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-assets-vs-liabilities" aria-hidden="true"></span>Assets vs Liabilities</h3>
                     <p class="ui-panel__meta">Balance sheet trend</p>
                   </div>
                   <select class="ui-select finance__duration" data-chart-duration="asset" aria-label="Assets vs Liabilities duration">
@@ -494,7 +494,7 @@
               <section id="finance-income-by-source" class="ui-panel finance__chart">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title">Income by Source</h3>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-income-by-source" aria-hidden="true"></span>Income by Source</h3>
                     <p class="ui-panel__meta">Lifetime revenue split</p>
                   </div>
                 </header>
@@ -503,7 +503,7 @@
               <section id="finance-asset-composition" class="ui-panel finance__chart">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title">Asset Composition</h3>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-asset-composition" aria-hidden="true"></span>Asset Composition</h3>
                     <p class="ui-panel__meta">Liquid · Facilities · Inventory</p>
                   </div>
                 </header>
@@ -512,7 +512,7 @@
               <section id="finance-daily-profit-and-loss" class="ui-panel finance__chart">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title">Daily P&amp;L</h3>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-daily-profit-and-loss" aria-hidden="true"></span>Daily P&amp;L</h3>
                     <p class="ui-panel__meta">Today's revenue vs costs</p>
                   </div>
                 </header>
@@ -524,7 +524,7 @@
               <section id="finance-profit-and-loss-statement" class="ui-panel">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title">Profit &amp; Loss Statement</h3>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-profit-and-loss-statement" aria-hidden="true"></span>Profit &amp; Loss Statement</h3>
                     <p class="ui-panel__meta">Lifetime ledger</p>
                   </div>
                 </header>
@@ -539,7 +539,7 @@
               <section id="finance-balance-sheet" class="ui-panel">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title">Balance Sheet</h3>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-balance-sheet" aria-hidden="true"></span>Balance Sheet</h3>
                     <p class="ui-panel__meta">Current position</p>
                   </div>
                 </header>
@@ -557,7 +557,7 @@
             <section class="ui-panel" id="finance-statements" aria-labelledby="finance-statements-title">
               <header class="ui-panel__header">
                 <div>
-                  <h3 id="finance-statements-title" class="ui-panel__title">Daily Statements</h3>
+                  <h3 id="finance-statements-title" class="ui-panel__title"><span class="ui-code" data-code-for="finance-statements" aria-hidden="true"></span>Daily Statements</h3>
                   <p class="ui-panel__meta">Closed at 00:00 UTC · kept 90 days</p>
                 </div>
                 <label class="ui-field finance__day" hidden>
@@ -572,16 +572,16 @@
           <article id="rnd" class="tab-panel ui-screen">
             <!-- ISP-79 (AB#768): on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
-              <h2 class="ui-screen__title">Corporate R&amp;D</h2>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="rnd" aria-hidden="true"></span>Corporate R&amp;D</h2>
               <p class="ui-screen__lede">One technology researches at a time. Queue more and each one starts when the slot before it clears.</p>
             </header>
             <section class="ui-panel" aria-labelledby="rnd-queue-title">
-              <header class="ui-panel__header"><h3 id="rnd-queue-title" class="ui-panel__title">Active and queued</h3></header>
+              <header class="ui-panel__header"><h3 id="rnd-queue-title" class="ui-panel__title"><span class="ui-code" data-code-for="rnd-queue-title" aria-hidden="true"></span>Active and queued</h3></header>
               <div id="rnd-queue" class="ui-panel__body ui-stack"></div>
             </section>
             <section class="ui-panel" aria-labelledby="rnd-tree-title">
               <header class="ui-panel__header">
-                <h3 id="rnd-tree-title" class="ui-panel__title">Research</h3>
+                <h3 id="rnd-tree-title" class="ui-panel__title"><span class="ui-code" data-code-for="rnd-tree-title" aria-hidden="true"></span>Research</h3>
                 <p id="rnd-status" class="ui-panel__meta" role="status"></p>
               </header>
               <div id="rnd-tech-tree" class="ui-panel__body ui-grid"></div>
@@ -597,7 +597,7 @@
           <!-- ISP-201 (AB#895): the conglomerate's headquarters: views/conglomerateBureau.js draws it. -->
           <article id="conglomerate" class="tab-panel ui-screen">
             <header class="ui-screen__header">
-              <h2 class="ui-screen__title">Conglomerate</h2>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="conglomerate" aria-hidden="true"></span>Conglomerate</h2>
               <p class="ui-screen__lede">Your conglomerate's roster, roles and treasury, or, while independent, the conglomerates you can join.</p>
             </header>
             <div id="conglomerate-hq"></div>
@@ -605,15 +605,15 @@
           <article id="ceo" class="tab-panel ui-screen">
             <!-- ISP-79 (AB#768): on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
-              <h2 class="ui-screen__title">CEO Insight Program</h2>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="ceo" aria-hidden="true"></span>CEO Insight Program</h2>
               <p class="ui-screen__lede">Personal executive development programs that grant permanent corporate bonuses. One runs at a time.</p>
             </header>
             <section class="ui-panel" aria-labelledby="ceo-queue-title">
-              <header class="ui-panel__header"><h3 id="ceo-queue-title" class="ui-panel__title">Active program</h3></header>
+              <header class="ui-panel__header"><h3 id="ceo-queue-title" class="ui-panel__title"><span class="ui-code" data-code-for="ceo-queue-title" aria-hidden="true"></span>Active program</h3></header>
               <div id="ceo-queue" class="ui-panel__body ui-stack"></div>
             </section>
             <section class="ui-panel" aria-labelledby="ceo-tree-title">
-              <header class="ui-panel__header"><h3 id="ceo-tree-title" class="ui-panel__title">Programs</h3></header>
+              <header class="ui-panel__header"><h3 id="ceo-tree-title" class="ui-panel__title"><span class="ui-code" data-code-for="ceo-tree-title" aria-hidden="true"></span>Programs</h3></header>
               <div id="ceo-insight-tree" class="ui-panel__body ui-grid"></div>
             </section>
           </article>
@@ -621,22 +621,22 @@
           <article id="refinery" class="tab-panel ui-screen">
             <!-- ISP-79 (AB#768): on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
-              <h2 class="ui-screen__title">Refinery Chains</h2>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="refinery" aria-hidden="true"></span>Refinery Chains</h2>
               <p class="ui-screen__lede">Process raw materials into refined goods. Requires a Refinery building and completed R&amp;D.</p>
             </header>
             <section class="ui-panel" aria-labelledby="refinery-runs-title">
-              <header class="ui-panel__header"><h3 id="refinery-runs-title" class="ui-panel__title">Active runs</h3></header>
+              <header class="ui-panel__header"><h3 id="refinery-runs-title" class="ui-panel__title"><span class="ui-code" data-code-for="refinery-runs-title" aria-hidden="true"></span>Active runs</h3></header>
               <div id="refinery-active-runs" class="ui-panel__body ui-stack"></div>
             </section>
             <section class="ui-panel" aria-labelledby="refinery-chains-title">
-              <header class="ui-panel__header"><h3 id="refinery-chains-title" class="ui-panel__title">Available chains</h3></header>
+              <header class="ui-panel__header"><h3 id="refinery-chains-title" class="ui-panel__title"><span class="ui-code" data-code-for="refinery-chains-title" aria-hidden="true"></span>Available chains</h3></header>
               <div class="ui-panel__body ui-stack">
                 <div id="refinery-status"></div>
                 <div id="refinery-chains" class="ui-grid"></div>
               </div>
             </section>
             <section class="ui-panel" aria-labelledby="resource-catalog-title">
-              <header class="ui-panel__header"><h3 id="resource-catalog-title" class="ui-panel__title">Resource catalog</h3></header>
+              <header class="ui-panel__header"><h3 id="resource-catalog-title" class="ui-panel__title"><span class="ui-code" data-code-for="resource-catalog-title" aria-hidden="true"></span>Resource catalog</h3></header>
               <ul id="resource-catalog" class="ui-panel__body refinery__catalog"></ul>
             </section>
           </article>
@@ -644,7 +644,7 @@
           <article id="market" class="tab-panel ui-screen">
             <!-- ISP-80 (AB#769): the Galactic Exchange on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
-              <h2 class="ui-screen__title">Galactic Exchange</h2>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="market" aria-hidden="true"></span>Galactic Exchange</h2>
               <p class="ui-screen__lede">Buy what other corporations list, sell into the standing buy orders, and list your own stock.</p>
             </header>
             <div id="market-station-banner"></div>
@@ -653,7 +653,7 @@
             <section class="ui-panel exchange__chart" id="exchange-price-chart">
               <header class="ui-panel__header">
                 <div>
-                  <h3 class="ui-panel__title" id="price-chart-title">Silicates: price history</h3>
+                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-price-chart" aria-hidden="true"></span><span id="price-chart-title">Silicates: price history</span></h3>
                   <p class="ui-panel__meta" id="price-chart-summary">Loading price history...</p>
                   <!-- ISP-233 (AB#928): the ITC's price-impact alert when the item's last day closed under its dumping line -->
                   <p class="exchange__flood-alert" id="price-chart-alert" role="status" hidden></p>
@@ -715,7 +715,7 @@
               <section class="ui-panel" id="exchange-sell-section">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title">Sell orders</h3>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-sell-section" aria-hidden="true"></span>Sell orders</h3>
                     <p class="ui-panel__meta">Public sell orders on the exchange. Your own listings are never shown here.</p>
                   </div>
                 </header>
@@ -746,7 +746,7 @@
               <section class="ui-panel" id="exchange-listing-section">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title">Create listing</h3>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-listing-section" aria-hidden="true"></span>Create listing</h3>
                     <p class="ui-panel__meta">List resources from this station&#39;s inventory as a public sell order.</p>
                   </div>
                 </header>
@@ -776,7 +776,7 @@
               <section class="ui-panel" id="exchange-bids-section">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title">Buy orders</h3>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-bids-section" aria-hidden="true"></span>Buy orders</h3>
                     <p class="ui-panel__meta">What corporations will pay. A listing at or under a price sells to it at once, at the listing&#39;s price.</p>
                   </div>
                 </header>
@@ -805,7 +805,7 @@
               <section class="ui-panel" id="exchange-bid-form-section">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title">Place a buy order</h3>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-bid-form-section" aria-hidden="true"></span>Place a buy order</h3>
                     <p class="ui-panel__meta">The credits are held now. It buys from listings at or under your price, oldest first, at their price, and the rest waits.</p>
                   </div>
                 </header>
@@ -832,7 +832,7 @@
             <section class="ui-panel" id="exchange-npc-sell-section">
               <header class="ui-panel__header">
                 <div>
-                  <h3 class="ui-panel__title">Standing sell orders</h3>
+                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-npc-sell-section" aria-hidden="true"></span>Standing sell orders</h3>
                   <p class="ui-panel__meta">NPC corporations selling from their stations, refilled daily. The most anyone need pay: a player listing below it is the better buy.</p>
                 </div>
               </header>
@@ -861,7 +861,7 @@
             <section class="ui-panel mercs" id="exchange-mercenary-section">
               <header class="ui-panel__header">
                 <div>
-                  <h3 class="ui-panel__title">Mercenary Rentals</h3>
+                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-mercenary-section" aria-hidden="true"></span>Mercenary Rentals</h3>
                   <p class="ui-panel__meta">Hire another corporation&#39;s fleet for a fixed term, or rent yours out. The renter posts the price and a collateral into escrow; when the term ends the owner is paid, any units lost are paid for from the collateral, and the rest goes back to the renter.</p>
                 </div>
               </header>
@@ -879,7 +879,7 @@
             <section class="ui-panel" id="exchange-standing-section">
               <header class="ui-panel__header">
                 <div>
-                  <h3 class="ui-panel__title">Standing buy orders</h3>
+                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-standing-section" aria-hidden="true"></span>Standing buy orders</h3>
                   <p class="ui-panel__meta">Recurring NPC buyers: sell into them and a buyer is always there. The price falls as the day&#39;s quota fills and recovers overnight, so a glutted market pays less and a quiet one pays more. Quantities and prices reset daily at midnight EST.</p>
                 </div>
               </header>
@@ -909,7 +909,7 @@
             <section class="ui-panel" id="exchange-mine-section">
               <header class="ui-panel__header">
                 <div>
-                  <h3 class="ui-panel__title">My active listings</h3>
+                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-mine-section" aria-hidden="true"></span>My active listings</h3>
                 </div>
               </header>
               <div class="ui-panel__body ui-stack">
@@ -936,7 +936,7 @@
             <section class="ui-panel" id="exchange-inventory-section">
               <header class="ui-panel__header">
                 <div>
-                  <h3 class="ui-panel__title">Inventory at this station</h3>
+                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-inventory-section" aria-hidden="true"></span>Inventory at this station</h3>
                 </div>
               </header>
               <div class="ui-panel__body">
@@ -948,7 +948,7 @@
             <section class="ui-panel" id="exchange-history-section">
               <header class="ui-panel__header">
                 <div>
-                  <h3 class="ui-panel__title">Trade history</h3>
+                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-history-section" aria-hidden="true"></span>Trade history</h3>
                   <p class="ui-panel__meta">Every listing, purchase and sale you have made.</p>
                 </div>
               </header>
@@ -977,35 +977,35 @@
           <article id="fleet" class="tab-panel ui-screen">
             <!-- ISP-175 (AB#869): units, upkeep and readiness, fleets, and the production that feeds them. -->
             <header class="ui-screen__header">
-              <h2 class="ui-screen__title">Fleet</h2>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="fleet" aria-hidden="true"></span>Fleet</h2>
               <p class="ui-screen__lede">Your ships and troops: what they cost to keep, how ready they are, where your fleets are, and what is being built.</p>
             </header>
             <div class="ui-stack">
               <div id="fleet-raid-alert"></div><!-- ISP-181 (AB#875) -->
               <section class="ui-stack" id="fleet-forces-section">
-                <h3 class="station__heading">Forces</h3>
+                <h3 class="station__heading"><span class="ui-code" data-code-for="fleet-forces-section" aria-hidden="true"></span>Forces</h3>
                 <div id="fleet-summary"></div>
                 <div id="fleet-units"></div>
               </section>
               <section class="ui-stack" id="fleet-fleets-section">
-                <h3 class="station__heading">Fleets</h3>
+                <h3 class="station__heading"><span class="ui-code" data-code-for="fleet-fleets-section" aria-hidden="true"></span>Fleets</h3>
                 <div id="fleet-list" class="ui-grid station__grid"></div>
               </section>
 
               <section class="ui-stack" id="fleet-raids-section">
                 <!-- ISP-181 (AB#875): garrisons and posture, the target picker, your raids and their private reports -->
-                <h3 class="station__heading">Raids</h3>
+                <h3 class="station__heading"><span class="ui-code" data-code-for="fleet-raids-section" aria-hidden="true"></span>Raids</h3>
                 <div id="fleet-raids" class="ui-stack"></div>
               </section>
 
               <section class="ui-stack" id="station-training-section">
-                <h3 class="station__heading">Headquarters: Troop Training</h3>
+                <h3 class="station__heading"><span class="ui-code" data-code-for="station-training-section" aria-hidden="true"></span>Headquarters: Troop Training</h3>
                 <p class="ui-screen__lede">Train Attack Troops to raid with and Defense Troops to hold this station. Squads are paid when you start and ready when training ends.</p>
                 <div id="station-training" class="shipyard"></div>
               </section>
 
               <section class="ui-stack" id="station-shipyard-section" hidden>
-                <h3 class="station__heading">Orbital Shipyard</h3>
+                <h3 class="station__heading"><span class="ui-code" data-code-for="station-shipyard-section" aria-hidden="true"></span>Orbital Shipyard</h3>
                 <p class="ui-screen__lede">Queue ships at the catalog's cost and build time. They join your fleet when they leave the slips.</p>
                 <div id="station-shipyard" class="shipyard"></div>
               </section>
@@ -1015,7 +1015,7 @@
           <article id="assets" class="tab-panel ui-screen">
             <!-- ISP-79 (AB#768): on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
-              <h2 class="ui-screen__title">Corporate Assets</h2>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="assets" aria-hidden="true"></span>Corporate Assets</h2>
               <p class="ui-screen__lede">What the corporation holds, and where: goods at every station, and its offices, leases and extractors.</p>
             </header>
             <div id="assets-content" class="ui-stack"></div>
@@ -1024,7 +1024,7 @@
           <article id="logistics" class="tab-panel ui-screen">
             <!-- ISP-79 (AB#768): on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
-              <h2 class="ui-screen__title">Interstellar Logistics</h2>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="logistics" aria-hidden="true"></span>Interstellar Logistics</h2>
               <p class="ui-screen__lede">Transfer resources between stations for a logistics fee.</p>
               <p id="logistics-docked" class="ui-screen__meta"></p>
             </header>
@@ -1034,7 +1034,7 @@
           <article id="chat" class="tab-panel ui-screen">
             <!-- ISP-81 (AB#770): Comms on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
-              <h2 class="ui-screen__title">Real-time Communications</h2>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="chat" aria-hidden="true"></span>Real-time Communications</h2>
               <p class="ui-screen__lede">Global and Trade reach every corporation; Local reaches only those in your current system.</p>
             </header>
             <section class="ui-panel chat">
@@ -1057,7 +1057,7 @@
             <!-- Overview: category filter + thread list -->
             <div id="forum-overview-view" class="forums__view">
               <header class="ui-screen__header forums__header">
-                <h2 class="ui-screen__title">Corporate Forums</h2>
+                <h2 class="ui-screen__title"><span class="ui-code" data-code-for="forums" aria-hidden="true"></span>Corporate Forums</h2>
                 <div class="forums__actions">
                   <button id="forum-new-thread-btn" class="ui-button ui-button--primary" type="button">+ New Thread</button>
                   <button id="forum-recent-btn" class="ui-button ui-button--secondary" type="button">Recent Threads</button>
@@ -1103,18 +1103,18 @@
             <!-- Bureau hub: list of mission agents -->
             <div id="missions-board-view" class="missions__view">
               <header class="ui-screen__header">
-                <h2 class="ui-screen__title">ISA Contracting &amp; Assignments Bureau</h2>
+                <h2 class="ui-screen__title"><span class="ui-code" data-code-for="missions" aria-hidden="true"></span>ISA Contracting &amp; Assignments Bureau</h2>
                 <p class="ui-screen__lede">Registered mission agents maintain offices within this bureau. Select an agent to enter their office and review available contracts.</p>
               </header>
               <div id="agent-list" class="ui-grid missions__agents"></div>
               <section class="ui-panel missions__panel" id="active-missions-section">
-                <h3 class="ui-panel__title">Active Contracts</h3>
+                <h3 class="ui-panel__title"><span class="ui-code" data-code-for="active-missions-section" aria-hidden="true"></span>Active Contracts</h3>
                 <p id="active-missions-empty" class="missions__note">No active contracts. Visit an agent's office to accept assignments.</p>
                 <div id="active-mission-list" class="ui-grid"></div>
               </section>
               <section class="ui-panel missions__panel" id="completed-missions-section" hidden>
                 <div class="missions__panel-head">
-                  <h3 class="ui-panel__title">Mission Log</h3>
+                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="completed-missions-section" aria-hidden="true"></span>Mission Log</h3>
                   <span class="ui-badge" id="mission-log-count"></span>
                 </div>
                 <ul class="missions__log" id="completed-mission-log"></ul>
@@ -1139,7 +1139,7 @@
                   <section class="ui-panel missions__panel" id="agent-bio"></section>
                   <section class="ui-panel missions__panel" id="agent-dialogue"></section>
                   <section id="missions-available-contracts" class="ui-stack">
-                    <h3 class="missions__heading">Available Contracts</h3>
+                    <h3 class="missions__heading"><span class="ui-code" data-code-for="missions-available-contracts" aria-hidden="true"></span>Available Contracts</h3>
                     <p class="missions__note" id="agent-missions-empty">No contracts currently available from this agent.</p>
                     <div id="agent-mission-list" class="ui-grid"></div>
                     <p class="missions__hint" id="contract-refresh-timer" hidden></p>
@@ -1153,7 +1153,7 @@
           <article id="inbox" class="tab-panel ui-screen">
             <!-- ISP-77 (AB#766): the Inbox on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header inbox__header">
-              <h2 class="ui-screen__title">Inbox</h2>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="inbox" aria-hidden="true"></span>Inbox</h2>
               <button class="ui-button ui-button--primary" id="inbox-compose-trigger" type="button">Compose</button>
             </header>
 
@@ -1251,7 +1251,7 @@
           <article id="starmap" class="tab-panel ui-screen">
             <!-- ISP-82 (AB#771): on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
-              <h2 class="ui-screen__title">Interstellar Starmap</h2>
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="starmap" aria-hidden="true"></span>Interstellar Starmap</h2>
               <p class="ui-screen__lede">
                 Pan and zoom from the nearby-star cluster down to a single system. Overlays show GDP, activity and
                 pirate density, or where a resource is richest.

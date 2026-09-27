@@ -16,6 +16,7 @@ const PUBLIC = {
   "GET /api/bootstrap": "the global game state shown before login",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
+  "GET /api/section-codes": "the document-code registry, ids and codes only, for every page's headers (ISP-248, AB#944)",
   "GET /api/buildings": "a static catalog",
   "GET /api/ceo-insight": "a static catalog",
   "GET /api/mission-agents": "a static catalog",

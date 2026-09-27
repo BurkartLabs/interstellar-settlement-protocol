@@ -2472,6 +2472,25 @@ body.sg {
   font-weight: var(--font-weight-semibold);
   color: var(--text);
 }
+/* ISP-248 (AB#944): the document code before a screen or section title (docs/design/BUREAUCRATIC_UI.md). Secondary
+   text: mono, muted, one step below the body; on a phone at the 14px floor the screen specs measure. */
+.ui-code {
+  margin-inline-end: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--letter-spacing-caps);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.ui-code:empty {
+  display: none;
+}
+@media (max-width: 600px) {
+  .ui-code {
+    font-size: var(--font-size-3);
+  }
+}
 .ui-panel__actions {
   display: flex;
   flex-wrap: wrap;
