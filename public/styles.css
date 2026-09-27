@@ -4317,6 +4317,27 @@ img.station__body {
 .dominance-details strong { color: var(--text); font-variant-numeric: tabular-nums; }
 .dominance-details__own span { color: var(--text); font-weight: var(--font-weight-semibold); }
 .dominance-details__others { color: var(--muted); }
+
+/* ISP-229 (AB#924): the Concessions overlay's extra marks, and a system's concession section and holder view */
+.dominance-swatch--muted { background: var(--muted); }
+.concession-swatch--pending { background: transparent; border: 2px dashed var(--series-3); }
+.concession-section { display: flex; flex-direction: column; gap: var(--space-2); border-top: 1px solid var(--border); padding-top: var(--space-3); }
+.concession-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.concession-why { margin: 0; color: var(--warn); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.concession-status:empty { display: none; }
+.concession-status { margin: 0; color: var(--warn); font-size: var(--font-size-2); }
+.concession-holder { display: flex; flex-direction: column; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); padding: var(--space-3); background: var(--surface-2); }
+.concession-terms { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-2); }
+.concession-terms dt { color: var(--muted); }
+.concession-terms dd { margin: 0; color: var(--text); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.concession-grace { color: var(--warn); }
+.concession-discount { display: flex; flex-direction: column; gap: var(--space-2); } .concession-discount .ui-select { max-width: 12rem; }
+@media (max-width: 600px) {
+  .concession-terms { grid-template-columns: minmax(0, 1fr); }
+  .concession-terms dt { margin-top: var(--space-1); }
+  .concession-section, .concession-terms, .concession-why, .concession-status, .concession-section .ui-panel__meta, .concession-section .dominance-details { font-size: var(--font-size-3); }
+  .dominance-legend { font-size: var(--font-size-3); } /* the dominance and concession legends, both 13px on a phone before */
+}
 .starmap__resource-legend {
   display: flex;
   flex-direction: column;

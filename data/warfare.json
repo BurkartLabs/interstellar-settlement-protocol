@@ -116,7 +116,7 @@
       "tariffCapPct": 3
     },
     "barnards-star": {
-      "rule": "Low regulation: `concessionGrantPct` 30%, eligible after 7 days",
+      "rule": "Low regulation: a petition needs 30% control, eligible after 7 days",
       "weights": {
         "leases": 0.4,
         "extraction": 0.4,

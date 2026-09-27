@@ -81,8 +81,8 @@ export function systemControl(systemId, now = Date.now(), knownSystems) {
 export function controlNow(systemId, now = Date.now()) {
   const terms = concessionTermsFor(systemId);
   const days = history.days.map((d) => ({ day: d.day, computedAt: d.computedAt, scores: d.systems[systemId] || [] }));
-  const { stale, eligible } = eligibility(days, terms, now);
-  return { terms, stale: stale || !days.length, eligible, scores: days[0]?.scores || [] };
+  const { stale, eligible, streaks } = eligibility(days, terms, now);
+  return { terms, stale: stale || !days.length, eligible, streaks, scores: days[0]?.scores || [] }; // streaks: ISP-229 (AB#924)
 }
 
 /** For tests: forget the readings (and optionally the file). */

@@ -30,6 +30,7 @@ const OUT_OF_SCOPE = {
   "GET /api/starmap/dominance": "a public read; its one input, an optional system id, is checked against the catalog by the route (ISP-217, AB#912)",
   "GET /api/systems/:id/control": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-226, AB#921; Bug #4664)",
   "GET /api/systems/:id/concession": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-227, AB#922)",
+  "GET /api/starmap/concessions": "a public read with no input: every system's concession holders and open petitions (ISP-229, AB#924)",
   "GET /api/systems/:id/tariff": "a public read; its one input, the system id, must be one the registry has or it answers 404 (ISP-230, AB#925)",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
@@ -124,6 +125,7 @@ const BASELINE = {
     "POST /conglomerates/:conglomerateId/leave": { params: { conglomerateId: "cgl-732" } },
     "POST /concessions/:systemId/petition": { params: { systemId: "atlantis" } }, // ISP-227 (AB#922): no such system: 404
     "POST /concessions/:systemId/relinquish": { params: { systemId: "atlantis" } },
+    "GET /concessions/:systemId": { params: { systemId: "atlantis" } }, // ISP-229 (AB#924): no such system: 404
     "POST /tariffs/:systemId": { params: { systemId: "atlantis" }, body: { pct: 1 } }, // ISP-230 (AB#925): no such system: 404
     "POST /concessions/:systemId/lease-modifier": { params: { systemId: "atlantis" }, body: { discountPct: 10 } }, // ISP-228 (AB#923)
     "POST /conglomerates/:conglomerateId/members/:corpId/role": { params: { conglomerateId: "cgl-732", corpId: "corp-732" }, body: { role: "director" } },

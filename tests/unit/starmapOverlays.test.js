@@ -21,9 +21,9 @@ const NONE_COLOR = overlayColor({ gdpIndex: 50, activityLevel: 50, pirateDensity
 describe("Starmap overlays show only what systems hold (AB#1459)", () => {
   it("reads the picker: None first, then one option per overlay", () => {
     expect(OPTIONS[0]).toEqual({ value: "none", label: "None" });
-    // ISP-218 (AB#913): the system-field overlays, then the two dominance overlays.
-    expect(OPTIONS.slice(1).map((o) => o.value)).toEqual([...Object.keys(STARMAP_OVERLAYS), ...Object.keys(DOMINANCE_OVERLAYS)]);
-    expect(OPTIONS.slice(1).map((o) => o.label)).toEqual([...Object.values(STARMAP_OVERLAYS), ...Object.values(DOMINANCE_OVERLAYS)].map((o) => o.label));
+    // ISP-218 (AB#913): the system-field overlays, then the two dominance overlays; ISP-229 (AB#924): then concessions.
+    expect(OPTIONS.slice(1).map((o) => o.value)).toEqual([...Object.keys(STARMAP_OVERLAYS), ...Object.keys(DOMINANCE_OVERLAYS), "concessions"]);
+    expect(OPTIONS.slice(1).map((o) => o.label)).toEqual([...[...Object.values(STARMAP_OVERLAYS), ...Object.values(DOMINANCE_OVERLAYS)].map((o) => o.label), "ISA concessions"]);
   });
 
   it("offers no resource overlay under a system field, and the page promises only the real one (AB#837)", () => {

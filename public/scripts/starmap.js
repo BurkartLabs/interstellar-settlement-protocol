@@ -10,6 +10,7 @@ import { isMemberStation, memberOfficeCost } from "./memberRates.js"; // ISP-212
 import { isConglomerateStation, isNeutralStation } from "./stationMarkers.js";
 import { concentrationBand, concentrationLegendHtml, concentrationRows, concentrationText, overlayItems, systemConcentration, bodyConcentration } from "./resourceOverlay.js"; // ISP-143 (AB#837)
 import { DOMINANCE_OVERLAYS, QUIET_TOKEN, dominanceDetailsHtml, dominanceKey, dominanceLegendHtml, isDominanceOverlay, tokenRgba } from "./dominanceOverlay.js"; // ISP-218 (AB#913)
+import { CONCESSION_OVERLAY, concessionDetailsHtml, concessionKey, concessionLegendHtml } from "./concessionOverlay.js"; // ISP-229 (AB#924)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 
 // ISP-112 (AB#804): each system's place on the cluster view is its `mapPosition` in data/systems.json, as fractions of
@@ -524,6 +525,8 @@ export function createStarmapController({
   resourceLegend,
   dominanceLegend, // ISP-218 (AB#913): the dominance overlays' legend
   onOverlayChange, // ISP-218 (AB#913): told when the overlay changes, so the page can fetch what it needs
+  onSystemShown, // ISP-229 (AB#924): told when a system's panel opens, so the page can read its control and the viewer's status
+  onConcessionAction, // ISP-229 (AB#924): petition, set the lease discount, relinquish: the page confirms and posts
   resetButton,
   onTravelToSystem,
   onDockAtStation,
@@ -547,6 +550,8 @@ export function createStarmapController({
     resource: "none", // ISP-143 (AB#837): the item the concentration overlay shows, or "none"
     dominance: null, // ISP-218 (AB#913): GET /api/starmap/dominance
     ownNames: { corporation: "", conglomerate: "" }, // ISP-218 (AB#913): the viewer's own, marked on the map
+    concessions: null, // ISP-229 (AB#924): GET /api/starmap/concessions
+    systemConcession: {}, // ISP-229 (AB#924): per system, { control, status } as the page read them
     view: "cluster",
     selectedSystemId: null,
     selectedBodyId: null,
@@ -793,7 +798,7 @@ export function createStarmapController({
     const badges = counted.map((s) => ({ id: s.id, text: s.text, box: badgeBoxes.get(s.id) }));
     const entryOf = new Map(entries.map((e) => [e.id, e]));
     // ISP-218 (AB#913): under a dominance overlay each system takes its leader's colour, from the design system's tokens.
-    const domKey = currentDominanceKey();
+    const domKey = currentDominanceKey() || currentConcessionKey(); // ISP-229 (AB#924): the Concessions overlay colours the same way
     const tokenColors = new Map();
     const tokenColor = (token) => {
       if (!tokenColors.has(token)) {
@@ -865,6 +870,19 @@ export function createStarmapController({
         ctx.strokeStyle = color.replace(/[\d.]+\)$/, "0.9)");
         ctx.lineWidth = 2;
         ctx.stroke();
+        ctx.restore();
+      }
+
+      // ISP-229 (AB#924): a dashed amber ring round a system with a petition under review, as the legend says.
+      if (state.overlay === CONCESSION_OVERLAY && domKey?.bySystem[system.id]?.pending) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, baseRadius + 20, 0, Math.PI * 2);
+        ctx.strokeStyle = tokenColor("--series-3").replace(/[\d.]+\)$/, "0.95)");
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
         ctx.restore();
       }
 
@@ -1362,8 +1380,28 @@ export function createStarmapController({
     return dominanceKey(state.dominance, state.overlay, own);
   }
 
+  /** ISP-229 (AB#924): the colours and legend for the Concessions overlay, or null when it is not shown. */
+  function currentConcessionKey() {
+    if (state.overlay !== CONCESSION_OVERLAY) return null;
+    return concessionKey(state.concessions, [state.ownNames.corporation, state.ownNames.conglomerate].filter(Boolean));
+  }
+
+  /** ISP-229 (AB#924): a system's concession section, from what the page has read (the register, control, status). */
+  function concessionSystemHtml(system) {
+    if (!state.concessions) return "";
+    const own = [state.ownNames.corporation, state.ownNames.conglomerate].filter(Boolean);
+    const read = state.systemConcession[system.id] || {};
+    return concessionDetailsHtml(state.concessions.systems?.[system.id], read.control || null, read.status || null, own);
+  }
+
   function renderDominanceLegend() {
     if (!dominanceLegend) return;
+    if (state.overlay === CONCESSION_OVERLAY) { // ISP-229 (AB#924): the same legend slot
+      const key = currentConcessionKey();
+      dominanceLegend.hidden = false;
+      dominanceLegend.innerHTML = concessionLegendHtml(key);
+      return;
+    }
     const key = currentDominanceKey();
     dominanceLegend.hidden = !key;
     dominanceLegend.innerHTML = key ? dominanceLegendHtml(key, state.overlay, { computedAt: state.dominance?.computedAt }) : "";
@@ -1417,8 +1455,14 @@ export function createStarmapController({
         <ul class="ui-list">${bodyLines}</ul>
         ${systemConcentrationHtml(system)}
         ${dominanceSystemHtml(system)}
+        ${concessionSystemHtml(system)}
         ${jumpHtml}
       `);
+      // ISP-229 (AB#924): the page reads this system's control and the viewer's status; its buttons are the page's.
+      onSystemShown?.(system.id);
+      detailsEl.querySelector('[data-role="concession-petition"]')?.addEventListener("click", (e) => onConcessionAction?.("petition", system.id, { ...e.currentTarget.dataset }));
+      detailsEl.querySelector('[data-role="concession-relinquish"]')?.addEventListener("click", () => onConcessionAction?.("relinquish", system.id, {}));
+      detailsEl.querySelector('[data-role="concession-discount"]')?.addEventListener("submit", (e) => { e.preventDefault(); onConcessionAction?.("discount", system.id, { discountPct: Number(e.currentTarget.discountPct.value) }); });
       // Bind the jump button rendered in the system view.
       detailsEl.querySelectorAll(".starmap__jump").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -2044,6 +2088,19 @@ export function createStarmapController({
       state.overlay = value;
       render();
       renderDominanceLegend();
+    },
+    /** ISP-229 (AB#924): every system's concession, and the viewer's own names (the overlay marks its holder). */
+    setConcessions(reading, { corporation = "", conglomerate = "" } = {}) {
+      state.concessions = reading && reading.systems ? reading : null;
+      if (corporation || conglomerate) state.ownNames = { corporation, conglomerate };
+      render();
+      renderDominanceLegend();
+      renderDetails();
+    },
+    /** ISP-229 (AB#924): one system's control reading and the viewer's status, for its panel. */
+    setSystemConcession(systemId, read) {
+      state.systemConcession[systemId] = read;
+      if (state.view === "system" && state.selectedSystemId === systemId) renderDetails();
     },
     /** ISP-218 (AB#913): the dominance reading, and the viewer's own corporation and conglomerate names. */
     setDominance(reading, { corporation = "", conglomerate = "" } = {}) {

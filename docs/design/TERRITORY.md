@@ -155,7 +155,7 @@ Each `ownerRule` string becomes a rule. "Standard" means the rules above, unchan
 | --- | --- | --- | --- | --: |
 | **sol** | No direct ownership. Mining rights are leased. | **Never concedable** | n/a | 0% |
 | alpha-centauri | Neutral authority oversight with corporate lease competition. | Standard | 0.4 / 0.4 / 0.2 | 3% |
-| barnards-star | Frontier charter system with low-regulation extraction rights. | Low regulation: `concessionGrantPct` 30%, eligible after 7 days | 0.4 / 0.4 / 0.2 | 3% |
+| barnards-star | Frontier charter system with low-regulation extraction rights. | Low regulation: a petition needs 30% control, eligible after 7 days | 0.4 / 0.4 / 0.2 | 3% |
 | wolf-359 | High-risk conflict zone with arbitration-based claims. | Arbitrated: every petition and challenge is reviewed for 7 days (the Galactic Arbitration Council, v0.13, decides ties once it exists) | 0.4 / 0.4 / 0.2 | 3% |
 | tau-ceti | Treaty-governed commercial corridor with tariff controls. | Tariff corridor: the highest tariff cap | 0.3 / 0.3 / 0.4 | 5% |
 | epsilon-eridani | Semi-private jurisdiction with licensed station authorities. | Licensed: fee share 30% | 0.4 / 0.4 / 0.2 | 3% |
