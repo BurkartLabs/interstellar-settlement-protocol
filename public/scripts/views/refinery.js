@@ -8,7 +8,7 @@ import { escapeHtml, refineryBuildButtonHtml } from "../html.js";
 import { refineMinimum, refineQuantityCheck, refineQuantityFieldValue } from "../refineQuantity.js";
 import { inputsLabel, maxBatches, minBatches, refineRunCheck } from "../refineryRun.js"; // AB#825: "150 Iron Ore + 50 Nickel"
 // ISP-142 (AB#836): each input's need and stock, what is short, and which chain makes or takes each item.
-import { amountsText, chainTitle, consumersOf, defaultBatches, inputRows, outputRows, producersOf, startLabel } from "../chainPlan.js";
+import { amountsText, chainTitle, defaultBatches, inputRows, outputRows, startLabel } from "../chainPlan.js";
 import { wholeNumber } from "../wholeNumber.js";
 import { scrollBehavior } from "../motion.js";
 import { appState, techTree } from "../state.js";
@@ -19,6 +19,7 @@ import { refineryMultiplierFor, refineryOutput } from "../refineryOutput.js"; //
 import { cycleProgressPercent, pushFeedback, showTradeConfirmation, updateAllViews } from "./shared.js";
 import { basePricesOf, patentToPay } from "../patentRoyalty.js"; // ISP-237 (AB#932)
 import { runRoyaltyQuote } from "../refineryRoyalty.js";
+import { splitChains } from "../chainAvailability.js"; // AB#2485
 
 /**
  * ISP-237 (AB#932): before a run of a chain another corporation has patented, the royalty it will pay, confirmed; true
@@ -47,8 +48,11 @@ function linksHtml(label, links, none) {
   return `<p class="ui-card__meta">${escapeHtml(label)}: ${anchors.join(", ")}</p>`;
 }
 
-/** AB#836: a chain of several inputs, each on its own row with what the run needs, what is held here, and its maker. */
-function multiInputHtml(chain, batches, inventory, chains) {
+/**
+ * AB#836: a chain of several inputs, each on its own row with what the run needs, what is held here, and its maker.
+ * AB#2485: every chain's inputs are shown this way; an unavailable chain's card leaves out the Output list (`outputs`).
+ */
+function multiInputHtml(chain, batches, inventory, chains, { outputs: withOutputs = true } = {}) {
   const rows = inputRows(chain, batches, inventory, chains);
   const outputs = outputRows(chain, batches, chains);
   const n = Math.max(0, Number(batches) || 0);
@@ -65,9 +69,62 @@ function multiInputHtml(chain, batches, inventory, chains) {
     </li>`).join("");
   return `
     <h5 class="refinery__list-title">Inputs for ${n.toLocaleString("en-US")} batch${n === 1 ? "" : "es"} at this station</h5>
-    <ul class="refinery__inputs">${inputsHtml}</ul>
+    <ul class="refinery__inputs">${inputsHtml}</ul>${withOutputs ? `
     <h5 class="refinery__list-title">Output</h5>
-    <ul class="refinery__inputs">${outputsHtml}</ul>`;
+    <ul class="refinery__inputs">${outputsHtml}</ul>` : ""}`;
+}
+
+/** What a chain makes, per batch: "20 Aerogel, 5 Quantum Insulators". */
+function outputsText(chain) {
+  return Array.isArray(chain.outputs)
+    ? chain.outputs.map((o) => typeof o === "string" ? o : `${o.quantityPerCycle} ${o.item}`).join(", ")
+    : String(chain.outputs);
+}
+
+/** The smallest run a chain takes, in batches: its minimum batches, or a single-input chain's minimum quantity. */
+function firstRunBatches(chain) {
+  const inputs = chain.inputs || [];
+  if (inputs.length > 1) return minBatches(chain);
+  const perCycle = Number(inputs[0]?.quantityPerCycle || 100);
+  return Math.max(1, Math.ceil(refineMinimum(perCycle) / perCycle));
+}
+
+/** A chain's research, as links, with the chain's own names for them while the tree has not loaded. */
+function researchLinks(ids, chain) {
+  const names = (chain.requiresTechIds || []).map((id, i) => ({ id, name: chain.requiresResearch?.[i] || id }));
+  return ids.map((id) => researchLinkHtml(id, [...techTree, ...names]));
+}
+
+/**
+ * AB#2485: a chain the corporation cannot run yet: what it makes and takes, what is missing (research, its building, a
+ * level), and its inputs for the smallest run with what is short, as every other chain shows them.
+ */
+function unavailableChainHtml(chain, blockers, inventory, chains) {
+  const inputs = chain.inputs || [];
+  const b = blockers.building;
+  const missing = [
+    // ISP-292 (AB#1761): a requirement not yet met, not a warning — the muted token, not amber.
+    blockers.research.length ? `<li><p class="ui-card__meta">Requires: ${researchLinks(blockers.research, chain).join(", ")}</p></li>` : "",
+    b.owned ? "" : `<li><p class="ui-card__meta">Runs in a ${buildingLinkHtml(b.id, b.name)}, which your corporation has not built${b.minLevel ? `; building one needs Corporation Level ${b.minLevel}` : ""}.</p></li>`
+  ].join("");
+  return `
+    <section class="ui-card refinery__chain" id="chain-${escapeHtml(chain.id)}" tabindex="-1" data-chain-unavailable="${escapeHtml(chain.id)}">
+      <h4 class="ui-card__title">${escapeHtml(chainTitle(chain))}</h4>
+      <p class="ui-card__body">${escapeHtml(inputsLabel(inputs.map((i) => ({ item: i.item, quantity: i.quantityPerCycle }))))} per batch → ${escapeHtml(outputsText(chain))}</p>
+      <p class="ui-card__meta">Cycle: ${chain.cycleDurationHours || "?"}h per batch${chain.building === "synthesis-array" ? " · runs in the Synthesis Array" : ""}</p>
+      <h5 class="refinery__list-title">Missing</h5>
+      <ul class="refinery__inputs">${missing}</ul>
+      ${multiInputHtml(chain, firstRunBatches(chain), inventory, chains, { outputs: false })}
+    </section>`;
+}
+
+/** AB#2485: no chain can run yet: the one nearest to running (the least to research), and what it takes. */
+function noChainYetHtml(unavailable) {
+  const cost = ({ blockers }) => blockers.research.length + (blockers.building.minLevel ? 1 : 0);
+  const nearest = unavailable.reduce((best, u) => (!best || cost(u) < cost(best) ? u : best), null);
+  if (!nearest) return `<div class="ui-state"><p class="ui-state__title">No refinery chain is listed.</p><p class="ui-state__why">The chains have not loaded; reload the page.</p></div>`;
+  const research = researchLinks(nearest.blockers.research, nearest.chain);
+  return `<div class="ui-state"><p class="ui-state__title">No chain can run yet.</p><p class="ui-state__why">The nearest is ${escapeHtml(chainTitle(nearest.chain))}, which makes ${escapeHtml((nearest.chain.outputs || []).map((o) => o.item).join(" and "))}${research.length ? `: research ${research.join(" and ")}, and it can run once you build a ${escapeHtml(nearest.blockers.building.name)}` : ""}. Every chain, and what it is missing, is under Unavailable chains.</p></div>`;
 }
 
 export function renderRefinery(data) {
@@ -148,12 +205,20 @@ export function renderRefinery(data) {
   const statusEl = document.getElementById("refinery-status");
   if (statusEl) statusEl.innerHTML = statusHtml;
 
-  chainsEl.innerHTML = refineryChains
+  // AB#2485: Available lists the chains the corporation can run now (their research done, their building owned or
+  // buildable); Unavailable lists the rest, each with what it is missing.
+  const { available, unavailable } = splitChains(refineryChains, { unlockedTech: [...unlockedTech], refineries, synthesisArrays, playerBuildings: appState.playerBuildings || [], level: corp.level });
+  const unavailableEl = document.getElementById("refinery-unavailable-chains");
+  if (unavailableEl) {
+    unavailableEl.innerHTML = unavailable.length
+      ? unavailable.map(({ chain, blockers }) => unavailableChainHtml(chain, blockers, inventory, refineryChains)).join("")
+      : `<p class="ui-panel__meta">Every chain is available to your corporation.</p>`;
+  }
+  chainsEl.classList.toggle("ui-grid", available.length > 0); // the empty state spans the panel, not one column
+  chainsEl.innerHTML = !available.length ? noChainYetHtml(unavailable) : available
     .map((chain) => {
       const techGated = Array.isArray(chain.requiresTechIds) && !chain.requiresTechIds.every((t) => unlockedTech.has(t));
-      const outputLabel = Array.isArray(chain.outputs)
-        ? chain.outputs.map((o) => typeof o === "string" ? o : `${o.quantityPerCycle} ${o.item}`).join(", ")
-        : String(chain.outputs);
+      const outputLabel = outputsText(chain);
       // AB#825: a chain takes `inputs`. A chain with several (the v0.8 tracks', AB#833) shows them all, and its start
       // form is the multi-input panel's (AB#836).
       const inputs = chain.inputs || [];
@@ -184,23 +249,16 @@ export function renderRefinery(data) {
       const batches = wholeNumber(batchesValue) ?? 0;
       const rows = multiInput ? inputRows(chain, batches, inventory, refineryChains) : [];
       const canStartMulti = multiInput && hasFacility && !techGated && idleRefinery;
+      // AB#2485: a single-input chain's rows follow the quantity typed, in whole batches, as a multi-input chain's do.
+      const singleBatches = Math.max(1, Math.floor((wholeNumber(fieldValue) ?? minQty) / perCycle));
 
       return `
         <section class="ui-card refinery__chain" id="chain-${escapeHtml(chain.id)}" tabindex="-1">
           <h4 class="ui-card__title">${escapeHtml(chainTitle(chain))}</h4>
           <p class="ui-card__body">${escapeHtml(inputsLabel(inputs.map((i) => ({ item: i.item, quantity: i.quantityPerCycle }))))} per batch → ${escapeHtml(outputLabel)}</p>
           <p class="ui-card__meta">Cycle: ${chain.cycleDurationHours || "?"}h per batch${onArray ? " · runs in the Synthesis Array" : ""}</p>
-          ${techGated
-            // ISP-292 (AB#1761): a requirement not yet met, not a warning — the muted token, not amber.
-            // AB#885: each research named links to its card on the R&D tab.
-            ? `<p class="ui-card__meta">Requires: ${(chain.requiresTechIds || []).map((id, i) => researchLinkHtml(id, [...techTree, { id, name: chain.requiresResearch?.[i] || id }])).join(", ")}</p>`
-            : `<p class="ui-card__meta"><span class="ui-badge ui-badge--success">Research unlocked</span></p>`
-          }
-          ${multiInput
-            ? multiInputHtml(chain, batches, inventory, refineryChains)
-            : `<p class="ui-card__meta">Inventory: ${inputAvailable.toLocaleString()} ${escapeHtml(input)}${!hasInput && !techGated ? ` (need ${minQty})` : ""}</p>
-              ${linksHtml("Made by", producersOf(input, refineryChains), "no chain; mined or bought")}
-              ${linksHtml("Used by", [...new Map((chain.outputs || []).flatMap((o) => consumersOf(o.item, refineryChains)).map((c) => [c.id, c])).values()], "no chain; final products")}`}
+          <p class="ui-card__meta"><span class="ui-badge ui-badge--success">Research unlocked</span></p>
+          ${multiInputHtml(chain, multiInput ? batches : singleBatches, inventory, refineryChains)}
           ${canStart
             ? `<div class="ui-field">
                 <label for="${escapeHtml(inputId)}" class="ui-field__label">Quantity</label>
@@ -220,18 +278,19 @@ export function renderRefinery(data) {
                   ${quantityError ? `<p id="${escapeHtml(errorId)}" class="ui-field__error" role="alert">${escapeHtml(quantityError)}</p>` : ""}
                 </div>
                 <button class="ui-button ui-button--secondary refinery__start" type="button" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-batches-input="${escapeHtml(batchesId)}" data-hours="${Number(chain.cycleDurationHours) || 0}"${rows.some((r) => r.short) || batches < 1 ? " disabled" : ""}>${escapeHtml(batches < 1 ? "Enter a number of batches" : startLabel(rows))}</button>`
+            // AB#2485: a single-input chain short of its input, with a refinery free, says what is short, as a multi-input
+            // chain's button does (it offered to build another Refinery instead).
+            : !multiInput && hasFacility && idleRefinery && !hasInput
+              ? `<button class="ui-button ui-button--secondary refinery__start" type="button" disabled>${escapeHtml(startLabel(inputRows(chain, singleBatches, inventory, refineryChains)))}</button>`
             // ISP-189 (AB#883): a Tier 4 chain says where it runs, and what its Array needs, not the Refinery's.
             : onArray
               ? !hasFacility
                 // AB#885: the building and its research, each a link to where it is dealt with.
-                ? `<p class="ui-card__meta">Runs in a ${buildingLinkHtml("synthesis-array", "Synthesis Array")}. Build one from the Station's construction list; it needs ${researchLinkHtml("tt-high-energy-synthesis", techTree)} research.</p>`
+                ? `<p class="ui-card__meta">Runs in a ${buildingLinkHtml("synthesis-array", "Synthesis Array")}. Build one from the Station's construction list; .</p>`
                 : !idleRefinery ? `<p class="ui-card__meta"><span class="ui-badge ui-badge--warn">Synthesis Array busy</span></p>` : ""
             : belowRefineryCap && canBuildRefinery
               ? refineryBuildButtonHtml({ hasRefinery, used: buildings.length, slots: buildingSlots })
-              : !hasRefinery && !canBuildRefinery
-                // ISP-292 (AB#1761): a requirement not yet met, not a warning — the muted token, not amber.
-                ? `<p class="ui-card__meta">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>`
-                : hasRefinery && !idleRefinery
+              : hasRefinery && !idleRefinery
                   ? `<p class="ui-card__meta"><span class="ui-badge ui-badge--warn">All refineries busy</span></p>`
                   : ""
           }
