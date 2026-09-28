@@ -133,6 +133,13 @@
     --duration-slow: 0ms;
   }
 }
+
+/* ISP-250 (AB#946): the phone floor. Inside a screen the two small sizes are 14px on a phone, so a screen's own class
+   that takes --font-size-1 or -2 is on the floor without a rule of its own. Shown on /styleguide. Here, in the token
+   block, since it sets tokens (Bug #4744); in a media block of its own (Bug #4694). */
+@media (max-width: 600px) {
+  .ui-screen { --font-size-1: 14px; --font-size-2: 14px; }
+}
 /* ─── End of design tokens ─── */
 
 * {
@@ -5091,12 +5098,10 @@ img.station__body {
   }
 }
 
-/* ISP-250 (AB#946): the floor as tokens, in a block of its own (Bug #4694: the Station's test pins the rule above as its
-   block's first). Inside a screen the two small sizes are 14px on a phone, so a screen's own class that takes
-   --font-size-1 or -2 is on the floor without a rule of its own. Shown on /styleguide. */
+/* ISP-250 (AB#946): a reference number outside any screen (the sidebar's licence) on the phone floor, Bug #4688. The
+   floor itself is a token override, in the token block (Bug #4744). */
 @media (max-width: 600px) {
-  .ui-screen { --font-size-1: 14px; --font-size-2: 14px; }
-  .ref-no { font-size: var(--font-size-3); } /* a reference number outside any screen (the sidebar's licence), Bug #4688 */
+  .ref-no { font-size: var(--font-size-3); }
 }
 
 /* ─── Galactic Exchange on the design system (ISP-80, AB#769; flat direction, Decision AB#1801) ─── */
