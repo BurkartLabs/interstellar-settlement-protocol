@@ -13,13 +13,20 @@ const DEEP_STAR = RESEARCH.find((n) => n.id === "tt-deep-star-navigation").name;
 
 globalThis.Image ??= class { set src(_v) {} }; // starmap.js preloads planet images
 globalThis.window ??= { devicePixelRatio: 1, innerHeight: 900, innerWidth: 1440, addEventListener() {} };
-const { planClusterLabels, createStarmapController } = await import("../../public/scripts/starmap.js");
+const { planClusterLabels, createStarmapController, wrapName } = await import("../../public/scripts/starmap.js");
 
 /** An 11px Inter line is about 6.2px a character; the test only needs widths of the right size. */
 const widthOf = (text, size) => text.length * size * 0.56;
 const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 
-function entriesAt(width, height, { current = "sol", selected = null, compact = false } = {}) {
+/**
+ * AB#2343: on a phone, the widths Chromium measures in the Starmap's phone font (Inter 14px, bold for the selected
+ * system's name; scripts/measure-cluster-names.mjs). The guess above runs wide enough that Alpha Centauri, one line on
+ * a phone, wrapped here and took Lalande 21185's place.
+ */
+const MEASURED = read("tests/fixtures/cluster-name-widths-14.json");
+
+function entriesAt(width, height, { current = "sol", selected = null, compact = false, measured = false } = {}) {
   const nav = navigationFor(SYSTEMS);
   const adjacent = (id) => SYSTEMS.find((s) => s.id === id)?.adjacent || [];
   const neighbours = new Set(adjacent(selected || current)); // the selected system's, as drawClusterView takes them
@@ -28,9 +35,15 @@ function entriesAt(width, height, { current = "sol", selected = null, compact = 
     const size = compact ? 14 : isSelected ? 12 : 11;
     const lines = [s.name, ...(s.id === current ? ["YOU ARE HERE"] : [])];
     if (isSelected && !compact && !nav.canReachSystem([], current, s.id)) lines.push(`Requires ${nav.travelResearchName(RESEARCH, s.id)}`);
+    // AB#2343: the name over two lines, as drawClusterView offers it, for a name with nowhere to go on one
+    const split = wrapName(s.name);
+    const wrappedLines = split ? [...split, ...lines.slice(1)] : null;
+    const nameCount = split ? 2 : 1;
+    const widthsOf = (list, names) => list.map((t, i) => (measured ? MEASURED[i < names && isSelected ? "bold" : "regular"][t] : widthOf(t, size)));
     return {
       id: s.id, x: s.mapPosition.x * width, y: s.mapPosition.y * height, r: (isSelected ? 10 : 7) + 4,
-      widths: lines.map((t) => widthOf(t, size)), size, gap: (isSelected ? 10 : 7) + 10,
+      widths: widthsOf(lines, 1), size, gap: (isSelected ? 10 : 7) + 10,
+      wrapped: wrappedLines && { lines: wrappedLines, widths: widthsOf(wrappedLines, nameCount) },
       current: s.id === current, selected: isSelected, neighbour: neighbours.has(s.id)
     };
   });
@@ -72,6 +85,33 @@ describe("the cluster view's names (ISP-116)", () => {
       const picked = planClusterLabels({ entries: entriesAt(324, 320, { selected: far.id, compact: true }), compact: true, canvasWidth: 324, canvasHeight: 320 });
       check(picked, ["sol", far.id, ...far.adjacent], ["sol", far.id]);
     }
+  });
+
+  // AB#2343: as the Starmap opens on a phone (324x320 at 390x844, Sol current and selected) Lalande 21185, one of Sol's
+  // four neighbours, found no place on one line and was left a bare star. The design names every neighbour.
+  it("on a phone, as it opens, names every one of Sol's neighbours, a long name over two lines where one does not fit", () => {
+    const sol = SYSTEMS.find((s) => s.id === "sol");
+    const entries = entriesAt(324, 320, { selected: "sol", compact: true, measured: true });
+    const plan = planClusterLabels({ entries, compact: true, canvasWidth: 324, canvasHeight: 320 });
+    expect(sol.adjacent.filter((id) => !plan.has(id)), "Sol's neighbours left unnamed").toEqual([]);
+    expect(plan.get("lalande-21185").lines, "Lalande 21185 over two lines").toEqual(["Lalande", "21185"]);
+    const boxes = [...plan.entries()];
+    for (const [id, { box }] of boxes) {
+      expect(box.left, id).toBeGreaterThanOrEqual(0);
+      expect(box.right, id).toBeLessThanOrEqual(324);
+    }
+    for (let i = 0; i < boxes.length; i += 1) {
+      for (let j = i + 1; j < boxes.length; j += 1) expect(overlaps(boxes[i][1].box, boxes[j][1].box), `${boxes[i][0]} / ${boxes[j][0]}`).toBe(false);
+    }
+    // as the phone draws them (e2e/starmap-cluster-808.spec.js): a name that fits on one line keeps it
+    expect(plan.get("barnards-star").lines).toEqual(["Barnard's", "Star"]);
+    for (const id of ["alpha-centauri", "ross-154"]) expect(plan.get(id).lines, id).toBeUndefined();
+  });
+
+  it("breaks a name at the space nearest its middle, and leaves a one-word name alone", () => {
+    expect(wrapName("Lalande 21185")).toEqual(["Lalande", "21185"]);
+    expect(wrapName("Luyten's Star B")).toEqual(["Luyten's", "Star B"]);
+    expect(wrapName("Sol")).toBeNull();
   });
 
   it("keeps a name that finds no clear place on the canvas, rather than off its edge", async () => {

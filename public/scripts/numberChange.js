@@ -80,35 +80,72 @@ function isOnScreen(el, doc) {
   return el.isConnected && el.getClientRects().length > 0;
 }
 
-function acknowledge(el, change, win) {
+/**
+ * Bug #4771: each acknowledgement still running, by key. A view often renders again within a second of a change (the
+ * Exchange redraws its inventory three times after a sale: the response, the state refresh, the socket update), and
+ * each render is a fresh element. The count and the colour lived on the first one, so the next render drew the new
+ * value plain, 40 to 30 with no count. A new element for the same key and the same target value takes the
+ * acknowledgement over, from where it had got to.
+ */
+const inFlight = new Map();
+
+/** Acknowledge `change` on `el`. `startedAt` continues one already running on an element a render replaced (#4771). */
+function acknowledge(el, change, win, startedAt) {
+  const t0 = win.performance?.now?.() ?? Date.now();
+  const start = startedAt ?? t0;
+  const entry = { change, start };
+  inFlight.set(el.dataset.numKey, entry);
   const finalText = el.textContent;
   el.classList.remove(...HIGHLIGHT_CLASSES);
   el.classList.add(`num-change--${change.direction}`);
-  const clear = () => el.classList.remove(`num-change--${change.direction}`);
-  win.setTimeout(clear, HIGHLIGHT_MS);
+  const clear = () => {
+    el.classList.remove(`num-change--${change.direction}`);
+    if (inFlight.get(el.dataset.numKey) === entry) inFlight.delete(el.dataset.numKey);
+  };
+  win.setTimeout(clear, Math.max(0, HIGHLIGHT_MS - (t0 - start)));
 
   if (prefersReducedMotion(win)) return; // the value is already final; the colour is the acknowledgement
+  if (t0 - start >= COUNT_MS) return; // taken over after the count had finished: the rendered value is final
 
-  // The render has already written the new value; show the old one before the browser paints (a MutationObserver
-  // callback runs before the next frame), or the new value flashes for a frame before the count starts from below it.
-  el.textContent = textWith(finalText, change.from);
-  const start = win.performance?.now?.() ?? Date.now();
+  // The render has already written the new value; show where the count is (the old value, for a new change) before
+  // the browser paints (a MutationObserver callback runs before the next frame), or the new value flashes for a frame.
+  el.textContent = textWith(finalText, valueAt(change.from, change.to, t0 - start));
   let done = false;
   const finish = () => {
     if (done) return;
     done = true;
     if (el.isConnected && el.dataset.numValue === String(change.to)) el.textContent = finalText;
   };
-  const step = (now) => {
+  const step = (frameTime) => {
     if (done || !el.isConnected || el.dataset.numValue !== String(change.to)) return;
-    const elapsed = now - start;
+    // The same clock as `start`: a frame's timestamp is when the frame began, which can be well before a carried-over
+    // count's first write, and read against it the count stepped backwards (33, 36, 31; #4771).
+    const elapsed = (win.performance?.now?.() ?? frameTime) - start;
     if (elapsed >= COUNT_MS) return finish();
     el.textContent = textWith(finalText, valueAt(change.from, change.to, elapsed));
     win.requestAnimationFrame(step);
   };
   // requestAnimationFrame does not run in a hidden tab (T-028), so a timer always writes the final value.
-  win.setTimeout(finish, COUNT_MS + 50);
+  win.setTimeout(finish, COUNT_MS - (t0 - start) + 50);
   win.requestAnimationFrame(step);
+}
+
+/**
+ * Bug #4771: a render that replaced an element mid-acknowledgement. When the new element shows the value the running
+ * acknowledgement is counting to, and is on screen, it carries on there. A value that has moved on since is a new
+ * change (the tracker reports it), and one that is not on screen is recorded silently, as ever.
+ */
+function carryOver(el, value, win, doc) {
+  const key = el.dataset.numKey;
+  const entry = inFlight.get(key);
+  if (!entry) return;
+  const now = win.performance?.now?.() ?? Date.now();
+  if (entry.change.to !== value || now - entry.start >= HIGHLIGHT_MS) {
+    inFlight.delete(key);
+    return;
+  }
+  if (!isOnScreen(el, doc) || el.classList.contains(`num-change--${entry.change.direction}`)) return; // already carrying it
+  acknowledge(el, entry.change, win, entry.start);
 }
 
 /** Look at every marked number under `root` and acknowledge the ones that changed on screen. */
@@ -121,6 +158,7 @@ export function scanNumbers(root, { win = globalThis, doc = win.document } = {})
     if (!Number.isFinite(value)) continue;
     const change = tracker.observe(el.dataset.numKey, value, { visible: isOnScreen(el, doc) });
     if (change) acknowledge(el, change, win);
+    else carryOver(el, value, win, doc); // Bug #4771
   }
 }
 
