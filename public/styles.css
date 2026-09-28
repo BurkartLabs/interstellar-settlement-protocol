@@ -4533,6 +4533,17 @@ img.station__body {
   align-items: flex-end;
   gap: var(--space-3);
 }
+/* AB#2486: the Assets tabs' filter and sort, a toolbar like the Starmap's; each control takes the row's width on a phone. */
+.assets__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.assets__controls .ui-field {
+  flex: 1 1 14rem;
+  max-width: 20rem;
+}
 /* ISP-143 (AB#837): the resource concentration overlay's legend, above the map: the item, and each band's colour and
    range. The colours are the canvas's own (public/scripts/resourceOverlay.js), so they are set inline on each swatch. */
 /* ISP-218 (AB#913): the dominance overlays: a legend naming every colour on the map, and a system's top three */
