@@ -74,22 +74,10 @@
       "where": "public/scripts/conglomerateTreasury.js:45"
     },
     {
-      "file": "public/scripts/constructionPanel.js",
-      "key": "class: station__card",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/scripts/constructionPanel.js:104"
-    },
-    {
       "file": "public/scripts/fleetView.js",
       "key": "class: fleet__picker",
       "story": "ISP-250 (AB#946)",
       "where": "public/scripts/fleetView.js:105"
-    },
-    {
-      "file": "public/scripts/html.js",
-      "key": "class: station__card",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/scripts/html.js:181"
     },
     {
       "file": "public/scripts/shipyardPanel.js",
@@ -104,12 +92,6 @@
       "where": "public/scripts/statements.js:60"
     },
     {
-      "file": "public/scripts/stationFacilities.js",
-      "key": "class: station__card",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/scripts/stationFacilities.js:41"
-    },
-    {
       "file": "public/scripts/trainingPanel.js",
       "key": "class: station__subheading",
       "story": "ISP-250 (AB#946)",
@@ -120,12 +102,6 @@
       "key": "class: insight__enroll",
       "story": "ISP-250 (AB#946)",
       "where": "public/scripts/views/ceoInsight.js:50"
-    },
-    {
-      "file": "public/scripts/views/station.js",
-      "key": "class: station__card",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/scripts/views/station.js:568"
     },
     {
       "file": "public/scripts/views/station.js",
