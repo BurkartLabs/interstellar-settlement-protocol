@@ -148,7 +148,7 @@ export function designCheck(src = sources(), allowlist = JSON.parse(read("data/d
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const { violations, allowed, stale } = designCheck();
   for (const v of violations) console.log(`${v.file}:${v.line}  ${v.kind}  ${v.key}`);
-  for (const s of stale) console.log(`data/design-allowlist.json  stale  ${s.file} ${s.key} (fixed: take it off the list)`);
+  for (const s of stale) console.log(`data/design-allowlist.json  stale  ${s.file} ${s.key} (fixed: npm run design:prune takes it off)`);
   console.log(`[design-check] ${violations.length} violation(s), ${stale.length} stale allowlist entr${stale.length === 1 ? "y" : "ies"}, ${allowed.length} allowlisted.`);
   process.exit(violations.length || stale.length ? 1 : 0);
 }

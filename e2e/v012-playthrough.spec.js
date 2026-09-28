@@ -350,7 +350,7 @@ for (const [passName, sizeA, sizeB] of [["a-desktop", DESKTOP, PHONE], ["a-phone
         await page.waitForTimeout(500);
         expect(await mapShow(page, { systemId: "sol" })).toBe(true);
         await openStation(page, "cg-venus");
-        await page.locator("#starmap-station-modal .starmap__station-dock").click();
+        await page.locator("#starmap-station-modal [data-role=starmap-station-dock]").click();
         await expect.poll(async () => (await corpNow(page))?.currentStationId, { timeout: 45_000 }).toBe("cg-venus");
         return page.locator("#station-location-header");
       });

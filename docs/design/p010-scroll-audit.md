@@ -37,8 +37,16 @@ it does not need.
 - Start Milestones collapsed on desktop, or move it to Overview, which already shows "Level 5 of 30" and the
   milestone list.
 
-Either change alone brings most tabs under one screen. Until one of them lands, no tab can pass P-010, however short
-its content.
+This audit predicted that either change alone would bring most tabs under one screen. That was an estimate, and it
+was too hopeful.
+
+**As built (AB#2481),** measured by the same spec:
+- Collapsing the closed groups took the navigation to 494px. Milestones and Quick Actions now start collapsed, and
+  Corporation Identity stays open (about 300px).
+- At 1440×900 the short tabs went from 2.03 screens to between 1.13 and 1.26 (Inbox 1.13, Forums 1.26).
+- At 1920×1080 they fit in one screen (1.00 to 1.05).
+
+The long tabs below are unchanged: their own content is what sets their length.
 
 ## Every screen, by the tab's own content
 

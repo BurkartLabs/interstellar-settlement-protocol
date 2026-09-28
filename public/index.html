@@ -442,6 +442,17 @@
               <p class="ui-screen__meta">ISA licence <span id="finance-licence-ref" class="ref-no">—</span></p>
             </header>
 
+            <!-- AB#2470 (DOCTRINE P-010): the Financial Core in four pages, each short enough to read with little scrolling on a desktop:
+                 the position now, how it moved, the books to date, and the books of each closed day. Bound by bindFinanceSubpages in
+                 views/finance.js. -->
+            <nav id="finance-subnav" class="ui-tabs" role="tablist" aria-label="Financial Core pages">
+              <button id="finance-subtab-summary" class="ui-tab" type="button" role="tab" aria-selected="true" aria-controls="finance-sub-summary" data-finance-sub="summary">Summary</button>
+              <button id="finance-subtab-trends" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="finance-sub-trends" data-finance-sub="trends" tabindex="-1">Trends</button>
+              <button id="finance-subtab-statements" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="finance-sub-statements" data-finance-sub="statements" tabindex="-1">Statements</button>
+              <button id="finance-subtab-daily" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="finance-sub-daily" data-finance-sub="daily" tabindex="-1">Daily</button>
+            </nav>
+
+            <div id="finance-sub-summary" class="finance__subpage" role="tabpanel" aria-labelledby="finance-subtab-summary">
             <section class="kpi-strip" aria-label="Key financial indicators">
               <div class="kpi-tile kpi-tile--primary">
                 <span class="kpi-tile__label">Net Worth</span>
@@ -495,6 +506,11 @@
                 </header>
                 <div class="ui-panel__body finance__canvas"><canvas id="cashflow-chart" aria-label="Cash reserves over time"></canvas></div>
               </section>
+            </div>
+            </div>
+
+            <div id="finance-sub-trends" class="finance__subpage" role="tabpanel" aria-labelledby="finance-subtab-trends" hidden>
+            <div class="finance__charts">
               <section id="finance-net-cash-flow" class="ui-panel finance__chart">
                 <header class="ui-panel__header">
                   <div>
@@ -559,7 +575,9 @@
                 <div class="ui-panel__body finance__canvas"><canvas id="pnl-chart" aria-label="Daily profit and loss"></canvas></div>
               </section>
             </div>
+            </div>
 
+            <div id="finance-sub-statements" class="finance__subpage" role="tabpanel" aria-labelledby="finance-subtab-statements" hidden>
             <div class="finance__tables">
               <section id="finance-profit-and-loss-statement" class="ui-panel">
                 <header class="ui-panel__header">
@@ -592,7 +610,9 @@
                 </table></div>
               </section>
             </div>
+            </div>
 
+            <div id="finance-sub-daily" class="finance__subpage" role="tabpanel" aria-labelledby="finance-subtab-daily" hidden>
             <!-- AB#714: the books the server closes every day at 00:00 UTC (AB#713), 90 days of them. -->
             <section class="ui-panel" id="finance-statements" aria-labelledby="finance-statements-title">
               <header class="ui-panel__header">
@@ -607,6 +627,7 @@
               </header>
               <div id="statement-body" class="ui-panel__body" aria-live="polite"><p class="ui-screen__meta">Loading statements…</p></div>
             </section>
+            </div>
           </article>
 
           <article id="rnd" class="tab-panel ui-screen">
@@ -1078,7 +1099,7 @@
               <p class="ui-screen__lede">Global and Trade reach every corporation; Local reaches only those in your current system.</p>
             </header>
             <section class="ui-panel chat">
-              <div id="chat-channel-tabs" class="ui-tabs chat__tabs" role="tablist" aria-label="Comms Channels">
+              <div id="chat-channel-tabs" class="ui-tabs" role="tablist" aria-label="Comms Channels">
                 <button class="ui-tab" type="button" role="tab" aria-selected="true" data-chat-channel-tab="global">Global</button>
                 <button class="ui-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="local">Local</button>
                 <button class="ui-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="trade">Trade</button>
@@ -1243,7 +1264,7 @@
             <!-- AB#911: one conversation. It opens on its latest page; scrolling up loads older ones. -->
             <div id="inbox-thread-view" class="ui-stack" hidden>
               <button class="ui-button ui-button--ghost inbox__back" id="inbox-thread-back-btn" type="button">&#8592; Back</button>
-              <section class="ui-panel thread" aria-labelledby="thread-title">
+              <section class="ui-panel" aria-labelledby="thread-title">
                 <header class="ui-panel__header"><h3 class="ui-panel__title" id="thread-title"></h3></header>
                 <div class="thread__scroll" id="thread-scroll" tabindex="0" aria-label="Messages">
                   <p class="thread__older" id="thread-older-status" aria-live="polite"></p>
@@ -1403,7 +1424,7 @@
 
     <!-- ISP-124 (AB#818): an NPC corporation's (or authority's) profile, from the catalog (public/scripts/views/npcProfileModal.js). -->
     <section id="npc-profile-modal" class="modal-backdrop" hidden>
-      <article class="modal-card dialogue npc-profile-card" role="dialog" aria-modal="true" aria-labelledby="npc-profile-title">
+      <article class="modal-card dialogue" data-role="npc-profile-card" role="dialog" aria-modal="true" aria-labelledby="npc-profile-title">
         <div class="dialogue__content">
           <p class="dialogue__speaker" id="npc-profile-heading">NPC corporation</p>
           <h2 id="npc-profile-title" class="dialogue__title"></h2>

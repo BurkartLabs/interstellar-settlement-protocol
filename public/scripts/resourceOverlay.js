@@ -92,7 +92,7 @@ export function concentrationLegendHtml(item) {
   if (!item) return "";
   const swatches = CONCENTRATION_BANDS.map((band) =>
     `<li><span class="starmap__band" style="background:${band.color}" aria-hidden="true"></span>${esc(band.label)}</li>`).join("");
-  return `<p class="starmap__legend-title"><strong>${esc(item)}</strong>: the best share of an extraction in each system, and on each body in a system.</p>
+  return `<p><strong>${esc(item)}</strong>: the best share of an extraction in each system, and on each body in a system.</p>
     <ul class="starmap__bands" aria-label="${esc(`${item} concentration bands`)}">${swatches}</ul>
     <p class="ui-panel__meta">A belt counts once you have scouted it. The share is written beside each star and body, and listed when you open a system.</p>`;
 }

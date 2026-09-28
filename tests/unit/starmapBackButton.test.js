@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 
 // starmap.js preloads planet images when it is imported; node has no Image.
 globalThis.Image ??= class { set src(_v) {} };
-const { systemViewLayout } = await import("../../public/scripts/starmap.js");
+const { systemViewLayout, rightBackButtonY, backButtonTarget, targetHit } = await import("../../public/scripts/starmap.js");
 
 // AB#1287: on a phone (a 307x320 canvas: its 320px floor, since the map sits low on the page) the system view's
 // "Back To Cluster" button sat where the outer orbits reach, so Saturn was drawn over it and a tap there went Back.
@@ -51,5 +51,18 @@ describe("the system view keeps its back button clear of the orbits (AB#1287)", 
     const layout = systemViewLayout(307, 320, BUTTON_W);
     const before = Math.min(307 * 0.42, 307 / 2 - 56 - 20);
     expect(layout.orbitLimit).toBeGreaterThanOrEqual(before * 0.9);
+  });
+});
+
+// Bug #4687: on a phone the belt view's "Back To Cluster", pulled left to stay on the canvas, was drawn over "Back To
+// System". The right-hand button drops a row when the two would touch, and no tap lands on both.
+describe("two back buttons never overlap (Bug #4687)", () => {
+  it("keeps one row on a wide canvas and drops the right button a row on a phone's", () => {
+    expect(rightBackButtonY(108, 138, 250, 130)).toBe(36);
+    const y = rightBackButtonY(108, 138, 197, 130);
+    expect(y).toBeGreaterThan(36);
+    const left = backButtonTarget("back-to-system", 108, 36, 138);
+    const right = backButtonTarget("back-to-cluster", 197, y, 130);
+    for (let x = 60; x <= 262; x += 2) for (let ty = 10; ty <= y + 30; ty += 2) expect(targetHit(left, x, ty) && targetHit(right, x, ty)).toBe(false);
   });
 });

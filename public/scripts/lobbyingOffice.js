@@ -99,7 +99,18 @@ function openFormHtml(office, faction, form) {
   </section>`;
 }
 
+/** ISP-252 (AB#948): a campaign's plain status and protocol phrase (docs/design/BUREAUCRATIC_UI.md, "Status vocabulary"). */
+export function campaignStatus(c) {
+  if (c.state === "pledging") return { plain: "Pending", protocol: "Filed, awaiting pledges", tone: "" };
+  if (c.state === "closing") return { plain: "Pending", protocol: "Filed, awaiting the count", tone: "" };
+  const moved = c.result && c.result.to !== c.result.from;
+  if (!moved) return { plain: "Failed", protocol: "Unsuccessful: the pledges moved nothing", tone: "" };
+  if (c.state === "in-force") return { plain: "Active", protocol: `In force until ${utcMinute(c.result.endsAt)}`, tone: " ui-badge--success" };
+  return { plain: "Expired", protocol: `Lapsed ${utcMinute(c.result.endsAt)}`, tone: "" };
+}
+
 function campaignHtml(c, office) {
+  const stamp = campaignStatus(c);
   const side = (s) => c.pledgers.filter((p) => p.side === s).map((p) => escapeHtml(p.name));
   const own = c.own?.length ? `<p class="ui-panel__meta">Your pledges: ${c.own.map((p) => `${p.side}, ${[p.credits ? `${n(p.credits)} credits` : "", p.standing ? `${n(p.standing)} standing` : ""].filter(Boolean).join(" and ")}`).map(escapeHtml).join("; ")}</p>` : "";
   const when = c.state === "pledging" ? `Pledges close ${utcMinute(c.closesAt)}` : c.result ? (c.result.to !== c.result.from ? `${pct(c.result.from, c.parameter)} → ${pct(c.result.to, c.parameter)} until ${utcMinute(c.result.endsAt)}` : "It moved nothing") : "Closing";
@@ -112,7 +123,8 @@ function campaignHtml(c, office) {
       </form>`
     : "";
   return `<li class="lobby-campaign" data-lobby-campaign="${escapeHtml(c.id)}">
-    <p class="lobby-campaign__title"><strong>${escapeHtml(c.systemName)}</strong>: ${c.direction === "raise" ? "raise" : "lower"} it <span class="ui-badge">${escapeHtml(c.state === "in-force" ? "in force" : c.state)}</span> ${refHtml(c.ref)}</p>
+    <p><strong>${escapeHtml(c.systemName)}</strong>: ${c.direction === "raise" ? "raise" : "lower"} it <span class="ui-badge${stamp.tone}">${escapeHtml(stamp.plain)}</span> ${refHtml(c.ref)}</p>
+    <p class="ui-protocol">${escapeHtml(stamp.protocol)}.</p>
     <p class="ui-panel__meta">Opened by ${escapeHtml(c.openedBy)}${c.openedByYou ? " (you)" : ""}. ${escapeHtml(when)}.</p>
     <div class="lobby-sides"><p><span class="lobby-side lobby-side--for">For</span> ${side("for").join(", ") || "nobody yet"}</p><p><span class="lobby-side lobby-side--against">Against</span> ${side("against").join(", ") || "nobody yet"}</p></div>
     ${own}${pledgeForm}

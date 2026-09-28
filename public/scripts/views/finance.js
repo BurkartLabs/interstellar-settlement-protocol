@@ -2,13 +2,70 @@
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
-import { setStatementSeries } from "../charts.js";
+import { renderFinanceCharts, setStatementSeries } from "../charts.js";
 import { fmtCredits, fmtSignedCredits, fmtTimestamp, prettifyLedgerLabel } from "../helpers.js";
 import { escapeHtml } from "../html.js";
-import { appState } from "../state.js";
+import { appState, viewerStorage } from "../state.js";
 import { clientPrices } from "../clientPrices.js";
 import { statementDayOptionsHtml, statementHtml, statementsEmptyHtml, statementsToSeries } from "../statements.js";
 import { ownRatingCardHtml } from "../ratingCard.js"; // ISP-148 (AB#842)
+
+// ─── AB#2470 (DOCTRINE P-010): the Financial Core's four pages ──────────────
+// Summary (the position now), Trends (how it moved), Statements (the books to date) and Daily (each closed day's books).
+// The page last opened is remembered per viewer; a chart drawn while its page was hidden has no size, so the charts are
+// drawn again as a page with charts opens.
+export const FINANCE_SUBPAGES = ["summary", "trends", "statements", "daily"];
+const CHART_SUBPAGES = new Set(["summary", "trends"]);
+const SUBPAGE_KEY = "isp.financeSubpage";
+
+function savedSubpage() {
+  try {
+    const saved = viewerStorage()?.getItem(SUBPAGE_KEY);
+    return FINANCE_SUBPAGES.includes(saved) ? saved : "summary";
+  } catch {
+    return "summary";
+  }
+}
+
+export function showFinanceSubpage(name, { focus = false } = {}) {
+  if (!FINANCE_SUBPAGES.includes(name)) return;
+  for (const tab of document.querySelectorAll("#finance-subnav [data-finance-sub]")) {
+    const on = tab.dataset.financeSub === name;
+    tab.setAttribute("aria-selected", String(on));
+    tab.tabIndex = on ? 0 : -1;
+    const panel = document.getElementById(tab.getAttribute("aria-controls"));
+    if (panel) panel.hidden = !on;
+    if (on && focus) tab.focus();
+  }
+  try {
+    viewerStorage()?.setItem(SUBPAGE_KEY, name);
+  } catch {
+    // no storage (a private window, blocked site data): the choice lasts until the page reloads
+  }
+  const finances = appState.data?.corp?.finances;
+  if (CHART_SUBPAGES.has(name) && finances && document.getElementById("finance")?.classList.contains("active")) {
+    renderFinanceCharts(finances);
+  }
+}
+
+export function bindFinanceSubpages() {
+  const nav = document.getElementById("finance-subnav");
+  if (!nav) return;
+  nav.addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-finance-sub]");
+    if (tab) showFinanceSubpage(tab.dataset.financeSub);
+  });
+  nav.addEventListener("keydown", (event) => {
+    const tab = event.target.closest("[data-finance-sub]");
+    if (!tab) return;
+    const at = FINANCE_SUBPAGES.indexOf(tab.dataset.financeSub);
+    const to = { ArrowRight: at + 1, ArrowLeft: at - 1, Home: 0, End: FINANCE_SUBPAGES.length - 1 }[event.key];
+    if (to === undefined) return;
+    event.preventDefault();
+    showFinanceSubpage(FINANCE_SUBPAGES[(to + FINANCE_SUBPAGES.length) % FINANCE_SUBPAGES.length], { focus: true });
+  });
+  showFinanceSubpage(savedSubpage());
+}
 
 /** ISP-148 (AB#842): the player's own credit rating card, from corp.creditRating (the server computes it). */
 export function renderOwnRating(rating = appState.data?.corp?.creditRating) {

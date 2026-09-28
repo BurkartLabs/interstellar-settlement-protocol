@@ -73,7 +73,7 @@ for (const size of SIZES) {
       await expect(page.locator("#action-receipt-modal")).toBeVisible({ timeout: 15_000 });
       await page.screenshot({ path: path.join(SHOT_DIR, `remote-receipt-${width}x${height}.png`), animations: "disabled" });
       await page.keyboard.press("Escape");
-      await expect(details.locator(".starmap__expedition").first()).toBeVisible({ timeout: 15_000 });
+      await expect(details.locator("[data-role=starmap-expedition]").first()).toBeVisible({ timeout: 15_000 });
       // the whole panel in one picture: a viewport tall enough to hold it, so the phone's fixed nav sits clear of it
       await page.setViewportSize({ width, height: Math.max(height, Math.ceil((await details.boundingBox()).height) + 400) });
       await details.scrollIntoViewIfNeeded();

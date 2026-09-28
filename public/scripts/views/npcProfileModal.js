@@ -9,7 +9,7 @@ const headingEl = document.getElementById("npc-profile-heading");
 const titleEl = document.getElementById("npc-profile-title");
 const bodyEl = document.getElementById("npc-profile-body");
 const closeBtn = document.getElementById("npc-profile-close");
-const card = modal?.querySelector(".npc-profile-card");
+const card = modal?.querySelector("[data-role=npc-profile-card]");
 let returnTarget = null;
 
 function close({ restoreFocus = true } = {}) {

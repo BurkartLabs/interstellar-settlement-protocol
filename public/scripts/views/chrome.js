@@ -4,7 +4,7 @@
 
 import { apiFetch, clearSession } from "../apiClient.js";
 import { runIntroDialogue } from "../dialogue.js";
-import { sidebarStartsCollapsed } from "../firstAction.js";
+import { NARROW_MAX_WIDTH, sidebarStartsCollapsed } from "../firstAction.js";
 import { formatTime } from "../helpers.js";
 import { escapeHtml, notificationItemsHtml } from "../html.js";
 import { appState } from "../state.js";
@@ -12,6 +12,7 @@ import { bindWalkthroughControls, promptWalkthroughOffer, resetWalkthroughForAcc
 import { stopMiningUiTicker } from "./miningTicker.js";
 import { showAuthScreen } from "./shared.js";
 import { starmap } from "./starmap.js";
+import { applyNavGroups, applySidebarBlocks, toggleSidebarBlock } from "../sidebarState.js";
 
 export const replayOnboardingButton = document.getElementById("replay-onboarding-btn");
 
@@ -26,28 +27,20 @@ export const notificationList = document.getElementById("notification-list");
 export const notificationReadAllButton = document.getElementById("notification-read-all");
 
 export function bindCollapsibleSections() {
-  // AB#1056: at phone width the sidebar filled the first screen, so it starts collapsed there; its toggles still open it
-  if (sidebarStartsCollapsed(window.innerWidth)) {
-    document.querySelectorAll(".side-panel .side-panel__toggle").forEach((button) => {
-      const content = document.getElementById(button.getAttribute("aria-controls") || "");
-      if (!content) return;
-      button.setAttribute("aria-expanded", "false");
-      content.hidden = true;
-    });
-  }
+  // AB#1056: at phone width the sidebar filled the first screen, so it starts collapsed there; its toggles still open it.
+  // AB#2481: every section of the left column collapses, Milestones and Quick Actions start collapsed on a desktop, and each choice
+  // lasts the session (public/scripts/sidebarState.js).
+  const narrow = () => sidebarStartsCollapsed(window.innerWidth);
+  applySidebarBlocks(narrow());
+  applyNavGroups(narrow());
   document.querySelectorAll(".side-panel__toggle").forEach((button) => {
     button.addEventListener("click", () => {
       const controlsId = button.getAttribute("aria-controls");
-      const content = controlsId ? document.getElementById(controlsId) : null;
-      if (!content) {
-        return;
-      }
-
-      const isExpanded = button.getAttribute("aria-expanded") !== "false";
-      button.setAttribute("aria-expanded", String(!isExpanded));
-      content.hidden = isExpanded;
+      if (controlsId && document.getElementById(controlsId)) toggleSidebarBlock(controlsId, narrow());
     });
   });
+  // Crossing to a phone's width and back: the bar never has a collapsed group, the column has them again.
+  window.matchMedia?.(`(max-width: ${NARROW_MAX_WIDTH}px)`).addEventListener?.("change", () => applyNavGroups(narrow()));
 }
 
 export function renderNotifications() {
