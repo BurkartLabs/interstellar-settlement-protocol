@@ -328,6 +328,12 @@
       "title": "Resource catalog"
     },
     {
+      "code": "CORP-IND-6",
+      "id": "refinery-unavailable-title",
+      "screen": "refinery",
+      "title": "Unavailable chains"
+    },
+    {
       "code": "GEX-MKT-2",
       "id": "exchange-price-chart",
       "screen": "market",
