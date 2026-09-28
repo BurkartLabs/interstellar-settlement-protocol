@@ -5,7 +5,7 @@ import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { deepClone, toCurrency } from "../helpers.js";
 import { escapeHtml, queueItemsHtml, researchNodeHtml } from "../html.js";
-import { formatHoursMinutes, nextRndStart, rndItemStatus, scheduleRndQueue } from "../rndQueue.js";
+import { formatHoursMinutes, nextRndStart, rndItemStatus, rndQueueRoom, scheduleRndQueue } from "../rndQueue.js";
 import { appState, techTree } from "../state.js";
 import { flashButtonSuccess, pushFeedback, setTab, updateAllViews } from "./shared.js";
 import { bindResearchLinks } from "../researchLinks.js"; // AB#885
@@ -46,6 +46,10 @@ export function renderTechTree(data) {
   const treeWrap = document.getElementById("rnd-tech-tree");
   const done = new Set(data.corp.unlockedTech || []);
   const inQueue = new Set((data.queues.corporateRnD || []).map((item) => item.techId).filter(Boolean));
+  // AB#2476: the one in progress and one behind it. Full, every card says when a place opens, as the server refuses.
+  const now = Date.now();
+  const room = rndQueueRoom(data.queues.corporateRnD, now);
+  const fullReason = room.ok ? "" : `Queue full: a place opens in ${formatHoursMinutes(room.freesAt - now)}, when ${room.finishing.name || "the research ahead"} finishes`;
 
   // Still populate the ghost #rnd-select so the existing submit handler can read it
   const select = document.getElementById("rnd-select");
@@ -73,8 +77,8 @@ export function renderTechTree(data) {
       return researchNodeHtml({
         ...card,
         state: "available",
-        meta: [cost, `Prereqs: ${prereqLabel}`],
-        action: `<button class="ui-button ui-button--secondary research__enqueue" type="button" data-tech-id="${escapeHtml(node.id)}">Enqueue</button>`
+        meta: fullReason ? [cost, `Prereqs: ${prereqLabel}`, fullReason] : [cost, `Prereqs: ${prereqLabel}`],
+        action: `<button class="ui-button ui-button--secondary research__enqueue" type="button" data-tech-id="${escapeHtml(node.id)}"${fullReason ? " disabled" : ""}>Enqueue</button>`
       });
     })
     .join("");
