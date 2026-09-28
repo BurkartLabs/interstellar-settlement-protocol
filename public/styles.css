@@ -4517,6 +4517,7 @@ img.station__body {
 .dialogue__actions:empty {
   display: none;
 }
+.dialogue__actions--end { justify-content: flex-end; } /* AB#2492: the NPC profile's Close, at the card's bottom right */
 .dialogue__continue {
   align-self: flex-start;
   margin-top: var(--space-2);
