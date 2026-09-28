@@ -28,7 +28,7 @@ import { renderMiningCyclePanel, startMiningUiTicker, stopMiningUiTicker } from 
 import { renderExpeditionPanel, renderLevel2Progress, updateOverview } from "./views/overview.js";
 import { loadConglomerate, onConglomerateChange, openBureau, refreshStations, renderConglomerateHq } from "./views/conglomerateBureau.js"; // ISP-201 (AB#895); refreshStations: ISP-213 (AB#908)
 import { renderRefinery } from "./views/refinery.js";
-import { bindResearchForms, renderQueue, renderTechTree } from "./views/research.js";
+import { bindResearchForms, renderQueue, renderResearchTotals, renderTechTree } from "./views/research.js";
 import { connectViews, isPlayerTraveling, pushFeedback, renderFeedbackLog, revealUnderHeader } from "./views/shared.js";
 import { loadBeltCompositionsIntoStarmap, loadTariffs, starmap } from "./views/starmap.js";
 import { loadPatentRegister } from "./views/patentOffice.js"; // ISP-237 (AB#932): the Refinery's royalty quote reads it
@@ -163,6 +163,7 @@ function renderAllViews() {
   renderLevel2Progress(data);
   renderQueue("rnd-queue", data.queues.corporateRnD, "Permanent corporate unlock track");
   renderQueue("ceo-queue", data.queues.ceoInsight, "CEO-centric growth track");
+  renderResearchTotals(data); // AB#2475
   renderTechTree(data);
   renderInsightTree(data);
   renderRefinery(data);
