@@ -18,8 +18,8 @@ describe("the tariff in the system panel (AB#926)", () => {
     const html = tariffHoldingHtml(holding, "Alpha Centauri");
     expect(html).toContain("In force: <strong>1%</strong> of a 3% cap");
     expect(html).toContain("Filed: <strong>2%</strong>, in force at 2147-09-30 14:00 UTC");
-    expect(html).toContain("Collected to date: <strong>$5,400</strong>");
-    expect(html).toContain("At the next payout (00:00 UTC): <strong>$180</strong>");
+    expect(html).toContain("Collected to date: <strong>¤5,400</strong>");
+    expect(html).toContain("At the next payout (00:00 UTC): <strong>¤180</strong>");
     expect(html).toContain('data-form="file-tariff"');
     expect(html).toMatch(/max="3" step="0.25" value="2"/);
     const away = tariffHoldingHtml({ ...holding, docked: false }, "Alpha Centauri");

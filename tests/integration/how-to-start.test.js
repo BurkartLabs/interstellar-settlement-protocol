@@ -14,7 +14,7 @@ const json = (file) => JSON.parse(read(file));
 const PAGE_HTML = read("public/how-to-start.html");
 const PAGE = PAGE_HTML.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&rarr;/g, "→").replace(/\s+/g, " ")
   .replace(/ ([,.;:])/g, "$1"); // the text as read: no space left where a closing tag met punctuation
-const money = (n) => `$${Number(n).toLocaleString("en-US")}`;
+const money = (n) => `¤${Number(n).toLocaleString("en-US")}`;
 
 const economy = json("data/economy.json");
 const earth = json("data/systems.json").flatMap((s) => s.bodies || []).find((b) => b.name === "Earth");

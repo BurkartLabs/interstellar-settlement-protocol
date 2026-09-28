@@ -30,7 +30,7 @@ describe("Trade History rows (AB#1168)", () => {
 
   it("shows no total for rows that moved no money", () => {
     for (const type of ["listed", "cancelled"]) expect(tradeTotalCell({ type, total: 50 }), type).toBe("-");
-    expect(tradeTotalCell({ type: "bought", total: 50 })).toBe("$50");
+    expect(tradeTotalCell({ type: "bought", total: 50 })).toBe("¤50");
   });
 
   it("escapes a type it does not know rather than injecting it", () => {

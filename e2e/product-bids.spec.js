@@ -109,14 +109,14 @@ for (const [width, height] of SIZES) {
       await openTab(page, "market");
 
       for (const [item, base] of Object.entries(PRODUCTS)) {
-        await expect(page.locator("#npc-buy-table tr", { hasText: item }), item).toContainText(`$${base}`);
+        await expect(page.locator("#npc-buy-table tr", { hasText: item }), item).toContainText(`¤${base}`);
       }
       await page.locator('#exchange-filter-bar [data-filter="Aerogel"]').click();
       const row = page.locator("#npc-buy-table tr");
       await expect(row).toHaveCount(1);
       await expect(row).toContainText("Meridian Glassworks");
       await expect(row.locator("[data-npc-badge]")).toHaveText("NPC");
-      await expect(row).toContainText("$41");
+      await expect(row).toContainText("¤41");
       await measure(page, width);
       await page.evaluate(() => document.getElementById("exchange-standing-section").scrollIntoView({ block: "center" }));
       await page.screenshot({ path: path.join(SHOT_DIR, `aerogel-bid-${width}x${height}.png`) });

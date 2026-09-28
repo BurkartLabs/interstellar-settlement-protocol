@@ -115,7 +115,7 @@ for (const [width, height] of SIZES) {
       await expect(page.locator("#exchange-buy-table tr")).toHaveCount(4); // the seed's four player listings, untouched
 
       const row = page.locator("#npc-sell-table tr", { hasText: "Meridian Glassworks" });
-      await expect(row).toContainText("$36");
+      await expect(row).toContainText("¤36");
       await row.locator("[data-buy-order-qty]").fill("10");
       await row.locator("[data-buy-order-id]").click();
       await page.locator("#trade-confirm-ok").click();

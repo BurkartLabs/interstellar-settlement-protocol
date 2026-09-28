@@ -129,7 +129,7 @@ export function renderResearchSelectionDetails(data) {
   }
 
   const prereqLabel = node.prereqs.length ? node.prereqs.map((id) => getTechNode(id)?.name || id).join(", ") : "None";
-  details.textContent = `${node.name} costs ${toCurrency(node.costCredits)} credits, runs for ${node.durationHours}h, and requires: ${prereqLabel}.`;
+  details.textContent = `${node.name} costs ${toCurrency(node.costCredits)}, runs for ${node.durationHours}h, and requires: ${prereqLabel}.`;
 }
 
 export function queueProgress(item) {
@@ -220,7 +220,7 @@ export function bindResearchForms() {
         const credits = Number(appState.data.corp.finances.credits || 0);
         if (credits < node.costCredits) {
           throw new Error(
-            `${node.name} requires ${toCurrency(node.costCredits)} credits. Current reserves are ${toCurrency(credits)} credits.`
+            `${node.name} requires ${toCurrency(node.costCredits)}. Current reserves are ${toCurrency(credits)}.`
           );
         }
 
@@ -238,10 +238,10 @@ export function bindResearchForms() {
       }
 
       if (rndStatus) {
-        rndStatus.textContent = `${node.name} entered the queue. ${toCurrency(node.costCredits)} credits committed.`;
+        rndStatus.textContent = `${node.name} entered the queue. ${toCurrency(node.costCredits)} committed.`;
       }
       pushFeedback(
-        `${node.name} added to the corporate R&D queue. Funding locked: ${toCurrency(node.costCredits)} credits.`,
+        `${node.name} added to the corporate R&D queue. Funding locked: ${toCurrency(node.costCredits)}.`,
         "success"
       );
       flashButtonSuccess(rndForm.querySelector('button[type="submit"]'));

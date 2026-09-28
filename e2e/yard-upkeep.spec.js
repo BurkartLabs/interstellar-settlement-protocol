@@ -62,7 +62,7 @@ for (const [width, height] of [[1280, 800], [375, 812]]) {
         await expect(line(n), `yard ${n}`).toContainText(/At \d+ t\/h/); // AB#2480: each opens at its own best rate
         await expect(line(n), `yard ${n}, the starting kit`).not.toContainText("upkeep");
       }
-      await expect(line(3)).toContainText("including $41.67/hour upkeep, paid by every yard after your first two");
+      await expect(line(3)).toContainText("including ¤41.67/hour upkeep, paid by every yard after your first two");
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
       await line(3).scrollIntoViewIfNeeded();
       await page.screenshot({ path: path.join(SHOT_DIR, `ab2304-three-yards-${width}x${height}.png`), fullPage: true });

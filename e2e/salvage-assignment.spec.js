@@ -169,7 +169,7 @@ for (const viewport of VIEWPORTS) {
       const completeBtn = activeCard.locator("[data-complete-mission]");
       await expect(completeBtn).toBeVisible();
       await completeBtn.click();
-      await expect(page.locator("#feedback-log li").first()).toContainText(/\$3,000 credited/, { timeout: 10_000 });
+      await expect(page.locator("#feedback-log li").first()).toContainText(/¤3,000 credited/, { timeout: 10_000 });
       await expect(page.locator('[data-mission-id][data-state="active"]', { hasText: "ISA Salvage Assignment" })).toHaveCount(0);
 
       // AB#744: the completion is confirmed by the ISA receipt, with the flat payout the server paid.
@@ -179,7 +179,7 @@ for (const viewport of VIEWPORTS) {
       await expect(page.locator('[data-role="mission-complete"]')).toHaveCount(0);
 
       await openTab(page, "overview");
-      await expect(page.locator("#overview-cash")).toContainText("$3,000"); // AB#2483: the headline figure under the title
+      await expect(page.locator("#overview-cash")).toContainText("¤3,000"); // AB#2483: the headline figure under the title
     } finally {
       child.kill();
       fs.rmSync(dir, { recursive: true, force: true });
