@@ -4838,7 +4838,7 @@ img.station__body {
 .station__offices .station__card { gap: var(--space-2); }
 .station__card-agency { margin: 0; }
 .ops-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.ops-row { display: grid; grid-template-columns: 8rem minmax(0, 1fr) minmax(0, auto) auto; align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); background: var(--surface-2); }
+.ops-row { display: grid; grid-template-columns: 8rem minmax(12rem, 1fr) minmax(0, 1fr) auto; /* the name keeps its room; the time wraps */ align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); background: var(--surface-2); }
 .ops-row__kind { justify-self: start; }
 .ops-row__what { overflow-wrap: anywhere; }
 .ops-row__when { color: var(--text-soft); font-size: var(--font-size-2); font-variant-numeric: tabular-nums; text-align: right; }

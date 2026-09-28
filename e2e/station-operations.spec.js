@@ -1,6 +1,6 @@
 // AB#2471: the Station in subpages and the Operations view, in a real browser at 1280x800 and 375x812, for a busy
-// corporation (e2e/seed-industry-account.mjs: two yards cycling, a refinery run, research running, a shipment in
-// transit). Each Station subpage and each Operations subpage is screenshotted and measured: DOCTRINE P-010 asks that a
+// corporation (e2e/seed-industry-account.mjs: two idle yards, a refinery run, research and a CEO program running, a
+// shipment in transit). Each Station subpage and each Operations subpage is screenshotted and measured: DOCTRINE P-010 asks that a
 // desktop page need little scrolling, so the spec records how far each one's content runs (the PR states it) and holds
 // every one to no sideways scroll and, at 375, no text under 14px. Screenshots go to e2e/screenshots/ab-2471/
 // (gitignored; the PR's are copied to docs/ab-2471/).
@@ -87,20 +87,19 @@ for (const size of SIZES) {
 
       await openTab(page, "operations");
       await expect(page.locator("#operations-list .ops-row").first()).toBeVisible({ timeout: 15_000 });
-      await expect(page.locator("#operations-list")).toContainText("Research");
-      await expect(page.locator("#operations-list")).toContainText("Mining");
+      for (const kind of ["research", "program", "refining", "shipment"]) await expect(page.locator(`#operations-list [data-op-kind="${kind}"]`).first()).toBeVisible(); // the seed's; its yards are idle
       measures.push({ width, name: "operations/all", end: await contentEnd(page, "#operations") });
       await page.screenshot({ path: path.join(SHOT_DIR, `operations-all-${width}x${height}.png`), fullPage: true, animations: "disabled" });
       expect(await sideways(page), "operations sideways").toBe(0);
       if (width === 375) expect(await tinyText(page, "#operations"), "operations text under 14px").toEqual([]);
       await page.locator("#operations-subtab-mining").click();
-      await expect(page.locator("#mine-cycle-list .ui-card").first()).toBeVisible();
+      await expect(page.locator("#mine-cycle-list > *").first()).toBeVisible(); // each yard's card, idle or running
       measures.push({ width, name: "operations/mining", end: await contentEnd(page, "#operations") });
       await page.screenshot({ path: path.join(SHOT_DIR, `operations-mining-${width}x${height}.png`), fullPage: true, animations: "disabled" });
 
       // a row's Open takes the player to where the thing is run
       await page.locator("#operations-subtab-all").click();
-      await page.locator('#operations-list [data-op-kind="research"] [data-op-tab]').click();
+      await page.locator('#operations-list [data-op-kind="research"] [data-op-tab]').first().click();
       await expect(page.locator("#rnd")).toBeVisible();
     });
   });
