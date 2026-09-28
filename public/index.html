@@ -652,6 +652,11 @@
               <header class="ui-panel__header"><h3 id="rnd-queue-title" class="ui-panel__title"><span class="ui-code" data-code-for="rnd-queue-title" aria-hidden="true"></span>Active and queued</h3></header>
               <div id="rnd-queue" class="ui-panel__body ui-stack"></div>
             </section>
+            <!-- AB#2477: the prerequisites as a connected tree (views/prereqGraph.js) -->
+            <section class="ui-panel" aria-labelledby="rnd-graph-title">
+              <header class="ui-panel__header"><h3 id="rnd-graph-title" class="ui-panel__title"><span class="ui-code" data-code-for="rnd-graph-title" aria-hidden="true"></span>Prerequisite tree</h3></header>
+              <div id="rnd-prereq-graph" class="ui-panel__body prereq-graph"></div>
+            </section>
             <section class="ui-panel" aria-labelledby="rnd-tree-title">
               <header class="ui-panel__header">
                 <h3 id="rnd-tree-title" class="ui-panel__title"><span class="ui-code" data-code-for="rnd-tree-title" aria-hidden="true"></span>Research</h3>
@@ -685,6 +690,11 @@
             <section class="ui-panel" aria-labelledby="ceo-queue-title">
               <header class="ui-panel__header"><h3 id="ceo-queue-title" class="ui-panel__title"><span class="ui-code" data-code-for="ceo-queue-title" aria-hidden="true"></span>Active program</h3></header>
               <div id="ceo-queue" class="ui-panel__body ui-stack"></div>
+            </section>
+            <!-- AB#2477: the prerequisites as a connected tree (views/prereqGraph.js) -->
+            <section class="ui-panel" aria-labelledby="ceo-graph-title">
+              <header class="ui-panel__header"><h3 id="ceo-graph-title" class="ui-panel__title"><span class="ui-code" data-code-for="ceo-graph-title" aria-hidden="true"></span>Prerequisite tree</h3></header>
+              <div id="ceo-prereq-graph" class="ui-panel__body prereq-graph"></div>
             </section>
             <section class="ui-panel" aria-labelledby="ceo-tree-title">
               <!-- AB#2474: the section collapses as a whole, and each category inside it on its own (views/ceoInsight.js). -->
