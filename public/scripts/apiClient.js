@@ -17,14 +17,26 @@ function showAuthScreen() {
 // Bug #710: the socket carries the access token, so the server knows who is chatting. The callback runs on every
 // (re)connect, so a refreshed token is picked up; the page's own origin needs no CORS. AB#757: the token is the one
 // in memory; until the page has refreshed from its cookie the socket is anonymous, and the refresh reconnects it.
+// Bug AB#2154: the token each (re)connect was made with. The auth callback runs when the CONNECT is sent, not when the
+// server answers it.
+let connectedWith = null;
 export const socket = typeof io !== "undefined"
-  ? io({ auth: (cb) => cb({ token: appState.accessToken }) })
+  ? io({ auth: (cb) => { connectedWith = appState.accessToken ?? null; cb({ token: appState.accessToken }); } })
   : null;
 
 /** Reconnect so the socket authenticates with the current token (after a refresh or a login on this page). */
 export function reauthenticateSocket() {
   if (socket?.connected) socket.disconnect().connect();
 }
+
+// Bug AB#2154: a page loads, its socket sends CONNECT with no token (none until the page refreshes from its cookie),
+// and the refresh can finish before the server answers. reauthenticateSocket() then finds the socket not yet connected
+// and does nothing, and it connects anonymously: outside the account's room, so no mining:updated ever arrives and the
+// lease view's "Mined this cycle" stays at 0. Whenever the socket connects with a token that is no longer current, it
+// reconnects with the current one, whichever way the race went.
+socket?.on("connect", () => {
+  if (connectedWith !== (appState.accessToken ?? null)) socket.disconnect().connect();
+});
 
 // AB#757 (D-0.5-2): no token is ever written to storage. The refresh token is an HttpOnly cookie the page cannot
 // read, and the access token lives in appState only; only the account id, which is not a credential, is kept.
