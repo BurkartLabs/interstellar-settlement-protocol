@@ -3,7 +3,7 @@
 // panel, and the row and the slot counter change without a reload. At 1440x900 and 390x844. Starts its own server on a
 // seeded data directory (the listing-refusal-in-row.spec.js pattern); screenshots go to e2e/screenshots/ab-785/.
 import { test, expect } from "@playwright/test";
-import { openTab, openStationOffices, openStationSubpage } from "./nav.mjs";
+import { openTab, openExchangePage, openStationOffices, openStationSubpage } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -177,7 +177,7 @@ for (const viewport of VIEWPORTS) {
       await page.locator("#refinery-active-runs").screenshot({ path: path.join(SHOT_DIR, `refinery-complex-run-${viewport.label}.png`) });
 
       // The refinery tick runs every 10 seconds; the run is due 30 seconds after seeding.
-      await openTab(page, "market");
+      await openExchangePage(page, "players"); // AB#4747: the sell grid is on Player orders since AB#2472
       const aerogel = page.locator("#market-sell-grid tr", { hasText: "Aerogel" });
       await expect(aerogel).toContainText("60", { timeout: 60_000 });
       await expect(page.locator("#market-sell-grid tr", { hasText: "Quantum Insulators" })).toContainText("22");
