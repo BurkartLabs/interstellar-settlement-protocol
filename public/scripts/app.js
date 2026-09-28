@@ -424,6 +424,7 @@ async function loadStationRegistry() {
     if (insightRes.ok) {
       const data = await insightRes.json();
       appState.insightPrograms = data.programs || [];
+      appState.insightCategories = data.categories || []; // AB#2474
     }
     if (missionAgentsRes.ok) {
       const data = await missionAgentsRes.json();

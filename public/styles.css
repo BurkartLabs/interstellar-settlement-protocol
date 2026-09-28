@@ -4909,7 +4909,8 @@ img.station__body {
 .notifications__item.is-unread {
   border-color: var(--warn);
 }
-.side-panel__toggle {
+.side-panel__toggle,
+.insight__toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4926,13 +4927,79 @@ img.station__body {
 .side-panel__toggle[aria-expanded="true"] {
   border-bottom: 1px solid var(--border);
 }
-.side-panel__arrow {
+.side-panel__arrow,
+.insight__arrow {
   color: var(--muted);
   font-size: var(--font-size-3);
   transition: transform var(--duration-fast) var(--ease-standard);
 }
-.side-panel__toggle[aria-expanded="false"] .side-panel__arrow {
+.side-panel__toggle[aria-expanded="false"] .side-panel__arrow,
+.insight__toggle[aria-expanded="false"] .insight__arrow {
   transform: rotate(-90deg);
+}
+
+/* AB#2474: CEO Insight's Programs section and its categories collapse with the left column's toggle. The section's
+   title is its toggle, across the whole header; a category's title is a lighter one, its count beside its name. */
+.insight__header {
+  padding: 0;
+}
+.insight__heading {
+  flex: 1 1 auto;
+  font: inherit;
+}
+.insight__heading .insight__toggle {
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-semibold);
+}
+.ui-panel:has(> .insight__header [aria-expanded="false"]) > .insight__header {
+  border-bottom: 0;
+}
+.insight__category {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.insight__category-title {
+  margin: 0;
+  font: inherit;
+}
+.insight__toggle--category {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-semibold);
+}
+.insight__toggle--category[aria-expanded="true"] {
+  border-bottom: 1px solid var(--border);
+}
+.insight__category-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+.insight__category-count {
+  color: var(--muted);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-regular);
+}
+.insight__category-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+.insight__category-body[hidden] {
+  display: none;
+}
+.insight__category-summary {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+}
+/* On a phone a toggle is a 44px target, as every control is (after the rules above, which set 36px). */
+@media (max-width: 600px) {
+  .insight__toggle {
+    min-height: 44px;
+  }
 }
 .side-panel__identity dd {
   text-align: right;

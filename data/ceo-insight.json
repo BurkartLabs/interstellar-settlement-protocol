@@ -1,4 +1,10 @@
 {
+  "categories": [
+    { "name": "Trade", "summary": "Selling, contracts and reading the market." },
+    { "name": "Operations", "summary": "Keeping crews and extractors working." },
+    { "name": "Regulatory Affairs", "summary": "Dealing with the ISA: its leases and its favour." },
+    { "name": "Leadership", "summary": "The CEO's own reach: delegation, Focus and presence." }
+  ],
   "programs": [
     {
       "id": "ceo-negotiation-fundamentals",
@@ -49,7 +55,7 @@
       "costCredits": 15000,
       "prereqs": [],
       "tier": 1,
-      "category": "Finance",
+      "category": "Regulatory Affairs",
       "status": "live",
       "maxLevels": 1
     },
@@ -114,7 +120,7 @@
       "costCredits": 35000,
       "prereqs": ["ceo-team-efficiency"],
       "tier": 3,
-      "category": "Management",
+      "category": "Leadership",
       "status": "planned",
       "maxLevels": 1
     },
@@ -127,7 +133,7 @@
       "costCredits": 30000,
       "prereqs": ["ceo-isa-regulatory-navigation"],
       "tier": 3,
-      "category": "Diplomacy",
+      "category": "Regulatory Affairs",
       "status": "planned",
       "maxLevels": 1
     },

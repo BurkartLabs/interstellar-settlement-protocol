@@ -8,6 +8,7 @@ import { MILESTONE_LEVELS, MILESTONE_ROADMAP, SYSTEMS_DATA } from "../game/catal
 import { levelUnlockList } from "../game/progression.js"; // AB#803
 import { PROBE_FABRICATION_MS } from "../game/asteroids.js";
 import { getState, CEO_INSIGHT_LIBRARY, RESEARCH_LIBRARY, MISSION_AGENTS_DATA, REPUTATION_TIERS_DATA } from "../gameState.js";
+import { CEO_INSIGHT_DATA } from "../game/catalog.js"; // AB#2474: the categories
 import { APP_VERSION, __dirname } from "../app.js";
 import { allStations, publicStation } from "../game/stations.js"; // ISP-209 (AB#904)
 import { conglomerateList } from "../game/conglomerates.js";
@@ -88,8 +89,9 @@ export function registerCatalogRoutes(app) {
   });
 
   // The CEO Insight catalogue, with each program's live or planned status: the client's only copy (Bug #983).
+  // AB#2474: and its categories, in the order the screen shows them.
   app.get("/api/ceo-insight", (_req, res) => {
-    res.json({ programs: Object.values(CEO_INSIGHT_LIBRARY) });
+    res.json({ programs: Object.values(CEO_INSIGHT_LIBRARY), categories: CEO_INSIGHT_DATA.categories || [] });
   });
 
   // AB#1051: the mission agent registry and reputation tiers, the client's only copy of either (the CEO Insight
