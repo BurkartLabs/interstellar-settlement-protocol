@@ -134,3 +134,42 @@ export function fightEncounter(escort, group, modifiers = {}) {
 
 /** The unescorted table's row for an id. */
 export const unescortedRow = (id) => RATS.unescorted.find((r) => r.id === id) || null;
+
+/**
+ * AB#821 (docs/design/rats.md, section 7): what the launch panel shows for a belt of `density`, a stay of `hours` and an
+ * escort (units, or null for none) fighting with `modifiers`, from the functions the tick uses: the chance of meeting
+ * Rats (encounterChance, with and without the escort), the chance the escort holds, the expected share of the haul
+ * kept, and the provisions. Exact, not sampled: the resolver has no dice, so the escort holds the first `held`
+ * encounters (fought in order, survivors carried on, as settleRats fights them) and loses the next; the count of
+ * encounters is planEncounters' Poisson, capped at maxEncounters; and each encounter the escort does not hold keeps, on
+ * average, the unescorted table's share of the haul.
+ */
+export function launchOutlook(density, hours, escort = null, modifiers = {}) {
+  const units = escort ? Object.fromEntries(Object.entries(escort).filter(([, n]) => count(n) > 0)) : null;
+  const power = units ? forcePower(units) : 0;
+  const mu = encounterRate(density, hours, power);
+  // P(N = k) as planEncounters draws it: Poisson(mu), everything past the cap counted at the cap
+  const pk = [];
+  let p = Math.exp(-mu), below = 0;
+  for (let k = 0; k < RATS.maxEncounters; k += 1) { pk.push(p); below += p; p *= mu / (k + 1); }
+  pk.push(Math.max(0, 1 - below));
+  let held = 0;
+  if (units && Object.keys(units).length) {
+    let left = { ...units };
+    const group = ratGroup(density);
+    for (let i = 0; i < RATS.maxEncounters && Object.keys(left).length; i += 1) {
+      const fight = fightEncounter(left, gatheredGroup(group, i), modifiers);
+      if (!fight.held) break;
+      held += 1;
+      left = Object.fromEntries(Object.entries(left).map(([id, n]) => [id, count(n) - count(fight.lost[id])]).filter(([, n]) => n > 0));
+    }
+  }
+  const keptPerEncounter = RATS.unescorted.reduce((s, row) => s + row.chance * (1 - row.haulLost), 0);
+  const holdChance = pk.reduce((s, q, k) => s + (k <= held ? q : 0), 0);
+  const keptShare = pk.reduce((s, q, k) => s + q * keptPerEncounter ** Math.max(0, k - held), 0);
+  return {
+    chance: encounterChance(density, hours, power), chanceUnescorted: encounterChance(density, hours, 0),
+    holdChance: units ? holdChance : null, held: units ? held : null, keptShare,
+    provisions: units ? Math.round(RATS.escortCostPerSupplyHour * forceSupply(units) * hours) : 0
+  };
+}
