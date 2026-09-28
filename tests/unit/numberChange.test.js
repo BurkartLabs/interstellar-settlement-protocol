@@ -68,11 +68,12 @@ describe("the rules (AB#745)", () => {
 describe("on the page (AB#745)", () => {
   let reduced = false;
   let hidden = false;
+  let frameLag = 0; // how far a frame's timestamp trails the clock (it is when the frame began)
   const win = () => ({
     document,
     performance,
     setTimeout: (fn, ms) => setTimeout(fn, ms),
-    requestAnimationFrame: (fn) => setTimeout(() => fn(performance.now()), 16),
+    requestAnimationFrame: (fn) => setTimeout(() => fn(performance.now() - frameLag), 16),
     matchMedia: () => ({ matches: reduced })
   });
 
@@ -80,6 +81,7 @@ describe("on the page (AB#745)", () => {
     vi.useFakeTimers();
     reduced = false;
     hidden = false;
+    frameLag = 0;
     Object.defineProperty(document, "hidden", { configurable: true, get: () => hidden });
     document.body.innerHTML = "";
   });
@@ -126,6 +128,55 @@ describe("on the page (AB#745)", () => {
     expect(el.textContent).toBe("39"); // no count
     vi.advanceTimersByTime(HIGHLIGHT_MS);
     expect(el.classList.contains("num-change--down")).toBe(false);
+  });
+
+  // Bug #4771: the Exchange redraws its inventory three times after a sale, each a fresh element; the count and the
+  // colour lived on the first and vanished with it (40 to 30, one coloured frame).
+  it("a render that replaces the element mid-count carries the count and the colour on to the new one", () => {
+    frameLag = 100; // a loaded page: seen in e2e as 33, 36, 31
+    render("inventory:test7", 40, "40");
+    const first = render("inventory:test7", 30, "30");
+    expect(first.classList.contains("num-change--down")).toBe(true);
+    vi.advanceTimersByTime(150); // part-way through the count
+    const second = render("inventory:test7", 30, "30"); // the state refresh draws it again
+    expect(second.classList.contains("num-change--down")).toBe(true);
+    expect(Number(second.textContent)).toBeGreaterThan(30); // still counting, not jumped to the end
+    expect(Number(second.textContent)).toBeLessThan(40);
+    const shown = [Number(second.textContent)];
+    for (let i = 0; i < 6; i++) {
+      vi.advanceTimersByTime(16);
+      shown.push(Number(second.textContent));
+    }
+    for (let i = 1; i < shown.length; i++) expect(shown[i]).toBeLessThanOrEqual(shown[i - 1]); // never back up
+    vi.advanceTimersByTime(4);
+    const third = render("inventory:test7", 30, "30"); // and the socket update, once more
+    expect(Number(third.textContent)).toBeLessThanOrEqual(shown.at(-1));
+    expect(third.classList.contains("num-change--down")).toBe(true);
+    vi.advanceTimersByTime(COUNT_MS);
+    expect(third.textContent).toBe("30");
+    vi.advanceTimersByTime(HIGHLIGHT_MS);
+    expect(third.classList.contains("num-change--down")).toBe(false); // cleared at the original time, not restarted
+  });
+
+  it("a render after the colour has cleared is drawn plain; one with a different value is a new change", () => {
+    render("inventory:test8", 40, "40");
+    render("inventory:test8", 30, "30");
+    vi.advanceTimersByTime(HIGHLIGHT_MS + 50);
+    const later = render("inventory:test8", 30, "30");
+    expect(later.classList.contains("num-change--down")).toBe(false);
+    expect(later.textContent).toBe("30");
+    const again = render("inventory:test8", 35, "35");
+    expect(again.classList.contains("num-change--up")).toBe(true);
+  });
+
+  it("under reduced motion, a replaced element keeps the colour and no count", () => {
+    reduced = true;
+    render("inventory:test9", 40, "40");
+    render("inventory:test9", 30, "30");
+    vi.advanceTimersByTime(100);
+    const second = render("inventory:test9", 30, "30");
+    expect(second.classList.contains("num-change--down")).toBe(true);
+    expect(second.textContent).toBe("30");
   });
 
   it("does not replay changes made while the tab was hidden, however many arrived", () => {
