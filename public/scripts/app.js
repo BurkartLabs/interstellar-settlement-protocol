@@ -14,7 +14,7 @@ import { connectWalkthroughUi, hasSeenWalkthroughOffer, noteWalkthroughEvent, pr
 import { renderAssets } from "./views/assets.js";
 import { renderFleet } from "./views/fleet.js"; // ISP-175 (AB#869)
 import { renderRaids } from "./views/raids.js"; // ISP-181 (AB#875)
-import { applyMissionAgentsCatalog, bindAssignmentForms, renderMissions } from "./views/assignments.js";
+import { applyMissionAgentsCatalog, bindAssignmentForms, refreshOpenMissionModal, renderMissions } from "./views/assignments.js";
 import { renderInsightTree } from "./views/ceoInsight.js";
 import { bindCollapsibleSections, bindGlobalControls, loadNotifications, renderNotifications, updateCorpIdentity, updateReplayOnboardingVisibility } from "./views/chrome.js";
 import { bindCommsForms, renderChatChannelTabs, renderChatLog, resolveChatChannel } from "./views/comms.js";
@@ -726,6 +726,8 @@ function bindRealtimeEvents() {
     updateCorpIdentity(appState.data);
     refreshOpenLeaseView(payload.extractors); // Bug #1091: the open lease view follows the cycle
     renderMiningCyclePanel(appState.data); // AB#746: and so does Active Mining Cycles, on the event, not the next tick
+    renderMissions(appState.data); // AB#2484: and what an active contract still needs
+    refreshOpenMissionModal(appState.data);
   });
 
   socket.on("expedition:completed", (payload) => {

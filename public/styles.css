@@ -5494,3 +5494,11 @@ img.station__body {
 
 /* AB#2475: the time to finish all remaining research, under each research screen's lede (Bug #4743: it had no rule) */
 .research-total { color: var(--text-soft); font-variant-numeric: tabular-nums; }
+
+/* AB#2484: what a contract asks before it is accepted, and what remains while it is active (missionProgress.js) */
+.missions__target { color: var(--text-soft); font-size: var(--font-size-2); }
+.missions__target strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.missions__progress { display: grid; gap: var(--space-2); }
+.missions__remaining { margin: 0; display: grid; gap: var(--space-1); }
+.missions__remaining-figure { color: var(--text); font-size: var(--font-size-3); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }
+.missions__remaining-detail { display: block; color: var(--muted); font-size: var(--font-size-2); font-variant-numeric: tabular-nums; }
