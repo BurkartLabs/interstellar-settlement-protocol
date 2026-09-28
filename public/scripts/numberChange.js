@@ -33,7 +33,7 @@ export function valueAt(from, to, elapsed, duration = COUNT_MS) {
 
 /**
  * The rendered text with its first number replaced by `n`, rounded, so the count keeps the renderer's own prefix and
- * suffix ("$233,000", "5", "12,400"). Every number these views show is grouped from 1,000 up, so the count is too,
+ * suffix ("¤233,000", "5", "12,400"). Every number these views show is grouped from 1,000 up, so the count is too,
  * with fixed en-US grouping rather than the locale's (T-061). The values counted are never negative.
  */
 export function textWith(renderedText, n) {

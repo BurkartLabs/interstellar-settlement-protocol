@@ -36,7 +36,7 @@ export function paragraphsOf(text) {
 export function setWalkthroughEconomy(economy) {
   prices = clientPrices(economy);
 }
-const credits = (value) => `$${value.toLocaleString("en-US")}`;
+const credits = (value) => `¤${value.toLocaleString("en-US")}`;
 
 export const WALKTHROUGH_STEPS = [
   {
@@ -60,7 +60,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '[data-building-action="building:orbital-executive-suites"]',
     renderedBy: "stationBuildingCardsHtml",
     title: "An office",
-    text: "Enter the Orbital Executive Suites and execute a lease.\n\nSuites cost $1,000 a day: your first lease runs 7 days ($7,000), and you can extend it by 7, 14, 21 or 28 days from the same office.\n\nDo not let it lapse. Without an active office you cannot start a mining cycle.",
+    text: "Enter the Orbital Executive Suites and execute a lease.\n\nSuites cost ¤1,000 a day: your first lease runs 7 days (¤7,000), and you can extend it by 7, 14, 21 or 28 days from the same office.\n\nDo not let it lapse. Without an active office you cannot start a mining cycle.",
     tab: "station",
     actionSelectors: ['[id="rent-office-btn"]']
   },
@@ -80,7 +80,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '[data-building-action="building:isa-claims-leases"]',
     renderedBy: "stationBuildingCardsHtml",
     title: "A mining claim",
-    text: "Next, the ISA Claims & Leases Division. From Earth Station Prime the lease on offer is Earth, Silicate Extraction, for $20,000.\n\nThe Division checks your headcount before it files anything, so the five come first.",
+    text: "Next, the ISA Claims & Leases Division. From Earth Station Prime the lease on offer is Earth, Silicate Extraction, for ¤20,000.\n\nThe Division checks your headcount before it files anything, so the five come first.",
     tab: "station",
     actionSelectors: ['[data-action="purchase-lease"]']
   },

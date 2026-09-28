@@ -116,11 +116,11 @@ for (const [width, height] of SIZES) {
       await page.selectOption("#bid-item", "Carbon");
       await page.fill("#bid-quantity", "400");
       await page.fill("#bid-price", "20");
-      await expect(page.locator("#bid-total")).toContainText("Holds $8,000 now");
+      await expect(page.locator("#bid-total")).toContainText("Holds ¤8,000 now");
       await page.click("#bid-submit");
       await page.locator("#trade-confirm-ok").click();
       await expect(page.locator("#action-receipt-close")).toBeVisible();
-      await expect(page.locator("#bid-status")).toHaveText(/Bought 300 at once; 100 Carbon waiting at \$20/);
+      await expect(page.locator("#bid-status")).toHaveText(/Bought 300 at once; 100 Carbon waiting at ¤20/);
       await page.locator("#action-receipt-close").click();
 
       const mine = page.locator("#exchange-bids-table tr", { hasText: "You" });

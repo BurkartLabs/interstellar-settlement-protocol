@@ -108,7 +108,7 @@ async function upgradeFacility(buildingId) {
     title: `Upgrade the ${building.name} to tier ${view.next.tier}?`,
     confirmLabel: `Upgrade (${toCurrency(view.next.cost)}${goods ? ` + ${goods}` : ""})`,
     rows: [
-      { label: "Cost", value: `${toCurrency(view.next.cost)} credits${goods ? ` and ${goods} from this station's stock` : ""}` },
+      { label: "Cost", value: `${toCurrency(view.next.cost)}${goods ? ` and ${goods} from this station's stock` : ""}` },
       { label: "What changes", value: view.change.replace(/&times;/g, "×").replace(/&rarr;/g, "→").replace(/&middot;/g, "·") }
     ]
   });
@@ -251,7 +251,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const memberStation = appState.conglomerate?.station || null;
   const rate = (cost) => memberOfficeCost(cost, memberStation, stationId);
   const memberNote = isMemberStation(memberStation, stationId)
-    ? `<p class="station__note station__member-rate">Member rate: your conglomerate's station, so the rent is ${memberStation.officeRentPct}% of the standard ${toCurrency(officeLeaseCost(1))} credits a day.</p>`
+    ? `<p class="station__note station__member-rate">Member rate: your conglomerate's station, so the rent is ${memberStation.officeRentPct}% of the standard ${toCurrency(officeLeaseCost(1))} a day.</p>`
     : "";
 
   const headerHtml = `
@@ -271,7 +271,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
         <h3>${codeSlotHtml("suites-lease")}Lease an Office Suite</h3>
         <p class="station__note">Establish a registered corporate presence at ${escapeHtml(station?.name || "this station")} by leasing a suite. This is required before your corporation can hire personnel or engage with station services.</p>
         <dl class="ui-kv">
-          <dt>Lease Cost</dt><dd>${toCurrency(rate(officeLeaseCost(1)))} credits a day</dd>
+          <dt>Lease Cost</dt><dd>${toCurrency(rate(officeLeaseCost(1)))} a day</dd>
           <dt>Station</dt><dd>${escapeHtml(station?.name || stationId)}</dd>
           <dt>Location</dt><dd>${escapeHtml(currentBody)}, ${escapeHtml(formatSystemLabel(station?.systemId || "sol"))}</dd>
         </dl>
@@ -341,7 +341,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
 
     <section class="ui-panel station__panel">
       <h3>${codeSlotHtml("suites-workforce")}Workforce — Hire Personnel</h3>
-      <p class="station__note">Recruit employees through your registered office. Each hire costs ${toCurrency(clientPrices(appState.economy).hireCost)} credits and adds ${toCurrency(clientPrices(appState.economy).payrollPerDay)}/day to operational payroll.</p>
+      <p class="station__note">Recruit employees through your registered office. Each hire costs ${toCurrency(clientPrices(appState.economy).hireCost)} and adds ${toCurrency(clientPrices(appState.economy).payrollPerDay)}/day to operational payroll.</p>
       <form id="office-hire-form" class="station__form">
         <label>
           Head Count
@@ -391,7 +391,7 @@ export function bindOfficeActions(building, data) {
         } else {
           const cost = officeLeaseCost(durationDays);
           if ((appState.data.corp.finances.credits || 0) < cost) {
-            throw new Error(`Leasing requires ${toCurrency(cost)} credits. Current reserves: ${toCurrency(appState.data.corp.finances.credits)}.`);
+            throw new Error(`Leasing requires ${toCurrency(cost)}. Current reserves: ${toCurrency(appState.data.corp.finances.credits)}.`);
           }
           if (!Array.isArray(appState.data.corp.offices)) appState.data.corp.offices = [];
           appState.data.corp.finances.credits -= cost;
@@ -447,7 +447,7 @@ export function bindOfficeActions(building, data) {
         } else {
           const renewalCost = officeRenewalCost(corp.completedInsights, durationDays);
           if ((corp.finances.credits || 0) < renewalCost) {
-            throw new Error(`Renewal requires ${toCurrency(renewalCost)} credits. Current reserves: ${toCurrency(corp.finances.credits)}.`);
+            throw new Error(`Renewal requires ${toCurrency(renewalCost)}. Current reserves: ${toCurrency(corp.finances.credits)}.`);
           }
           const office = (corp.offices || []).find((o) => o.stationId === (station?.id || "earth-station-prime"));
           if (!office) throw new Error("No office found to renew.");
@@ -501,7 +501,7 @@ export function bindOfficeActions(building, data) {
           const { hireCost, payrollPerDay } = clientPrices(appState.economy);
           const cost = hired * hireCost;
           if (hired <= 0) throw new Error("No available headroom to hire additional personnel.");
-          if (corp.finances.credits < cost) throw new Error(`Hiring requires ${toCurrency(cost)} credits.`);
+          if (corp.finances.credits < cost) throw new Error(`Hiring requires ${toCurrency(cost)}.`);
           corp.employeeCount += hired;
           corp.finances.credits -= cost;
           corp.finances.dailyCosts += hired * payrollPerDay;
@@ -621,7 +621,7 @@ export function renderISAClaimsLeases(building, data) {
           <p class="station__note">${escapeHtml(entry.description)}</p>
           <dl class="ui-kv">
             <dt>Yields</dt><dd data-role="lease-yield">${escapeHtml(profileText(bodyProfile(appState.systemsCatalog, entry.body)))}</dd>
-            <dt>Lease Cost</dt><dd>${toCurrency(entry.cost)} credits (one-time)</dd>
+            <dt>Lease Cost</dt><dd>${toCurrency(entry.cost)} (one-time)</dd>
             <dt>Employee Requirement</dt><dd>${requiredForNext} on payroll (current: ${currentEmployees})</dd>
             <dt>Building Slots Granted</dt><dd>2 on-surface slots</dd>
           </dl>
@@ -869,8 +869,8 @@ export function renderLeaseManagement(building, lease, data) {
         <h4>Commission Basic Extractor Yard</h4>
         <p class="station__note">Deploys an extraction facility to this lease's surface allocation. Slot usage: ${usedSlots}/${totalSlots}.</p>
         <dl class="ui-kv">
-          <dt>Construction Cost</dt><dd>${toCurrency(buildCost)} credits</dd>
-          <dt>Asset Value</dt><dd>${toCurrency(clientPrices(appState.economy).extractorYardAssetValue)} credits</dd>
+          <dt>Construction Cost</dt><dd>${toCurrency(buildCost)}</dd>
+          <dt>Asset Value</dt><dd>${toCurrency(clientPrices(appState.economy).extractorYardAssetValue)}</dd>
         </dl>
         <button id="lease-build-extractor-btn" class="ui-button ui-button--primary" type="button" ${!canAffordBuild ? "disabled" : ""}>
           Commission Extractor Yard
@@ -947,7 +947,7 @@ export function bindLeaseManagementActions(building, lease, data) {
           const corp = appState.data.corp;
           const { extractorYardAssetValue } = clientPrices(appState.economy);
           const cost = nextYardPriceFor(corp, appState.economy?.buildings); // AB#2286
-          if ((corp.finances.credits || 0) < cost) throw new Error(`Construction requires ${toCurrency(cost)} credits.`);
+          if ((corp.finances.credits || 0) < cost) throw new Error(`Construction requires ${toCurrency(cost)}.`);
           if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];
           const nextIndex = corp.mining.silicateExtractors.length + 1;
           const newId = `ext-basic-${nextIndex}`;
@@ -1031,7 +1031,7 @@ export function bindLeaseManagementActions(building, lease, data) {
           const startupCost = clientStartupCostFor(baseCostPerHour, operations);
           // AB#2284: upkeep for yards past the free ones (the first two since AB#2304), by the hour only, as the server charges it.
           const operationCostPerHour = baseCostPerHour + yardUpkeepPerHourFor(yardIndexOf(corp, extractorId), appState.economy?.buildings);
-          if ((corp.finances.credits || 0) < startupCost) throw new Error(`Startup requires ${toCurrency(startupCost)} credits.`);
+          if ((corp.finances.credits || 0) < startupCost) throw new Error(`Startup requires ${toCurrency(startupCost)}.`);
           const ex = corp.mining.silicateExtractors.find((e) => e.id === extractorId);
           if (!ex) throw new Error("Extractor not found.");
           if (ex.active) throw new Error("Extractor already has an active cycle.");
@@ -1070,7 +1070,7 @@ export function bindLeaseManagementActions(building, lease, data) {
         title: `Upgrade ${ex.name} to tier ${next.tier}?`,
         confirmLabel: `Upgrade (${toCurrency(next.cost)})`,
         rows: [
-          { label: "Cost", value: `${toCurrency(next.cost)} credits` },
+          { label: "Cost", value: `${toCurrency(next.cost)}` },
           { label: "Cap", value: `${next.before.cap} → ${next.after.cap} t/h` },
           { label: "Best rate", value: `${next.before.rate} → ${next.after.rate} t/h, netting ${toCurrency(next.before.netPerHour)} → ${toCurrency(next.after.netPerHour)}/h` },
           { label: "Offline", value: `${next.offlineHours} hours while it upgrades: no cycle can run` }
@@ -1455,7 +1455,7 @@ export function mineProjectionText(rate, extractorId) {
     const best = bestRateAlongBid({ ...along, max: p.cap });
     const profit = Math.round(at.profitPerHour);
     const net = profit >= 0 ? `nets ${toCurrency(profit)}/hour` : `loses ${toCurrency(Math.abs(profit))}/hour`;
-    const upkeep = p.upkeepPerHour > 0 ? ` (including ${p.upkeepPerHour.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 })}/hour upkeep, paid by every yard after your first ${freeYardsText(economy.buildings)})` : "";
+    const upkeep = p.upkeepPerHour > 0 ? ` (including ¤${p.upkeepPerHour.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/hour upkeep, paid by every yard after your first ${freeYardsText(economy.buildings)})` : "";
     return `At ${rate} t/h: earns ${toCurrency(Math.round(at.revenuePerHour))}/hour, costs ${toCurrency(Math.round(at.costPerHour))}/hour${upkeep}, ${net}, with a day's ore averaging ${at.avgBid.toFixed(2)} a tonne on the standing bid. `
       + (best.throughputPerHour === rate
         ? "That is the best rate for your research and today's prices."
@@ -1474,7 +1474,7 @@ export function mineProjectionText(rate, extractorId) {
   const at = miningProjection(rate, { operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour });
   const best = bestThroughput({ operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour, max: tierOf.throughputCap });
   const net = at.profitPerHour >= 0 ? `nets ${toCurrency(at.profitPerHour)}/hour` : `loses ${toCurrency(Math.abs(at.profitPerHour))}/hour`;
-  const upkeep = upkeepPerHour > 0 ? ` (including ${upkeepPerHour.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 })}/hour upkeep, paid by every yard after your first ${freeYardsText(economy.buildings)})` : "";
+  const upkeep = upkeepPerHour > 0 ? ` (including ¤${upkeepPerHour.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/hour upkeep, paid by every yard after your first ${freeYardsText(economy.buildings)})` : "";
   return `At ${rate} t/h: earns ${toCurrency(at.revenuePerHour)}/hour, costs ${toCurrency(at.costPerHour)}/hour${upkeep}, ${net}. `
     + (best.throughputPerHour === rate
       ? "That is the best rate for your research."

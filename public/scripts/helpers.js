@@ -1,14 +1,15 @@
 // AB#738 (ISP-52): the shared formatting helpers, moved out of app.js so each is defined once. They are not merged
-// with each other: fmtCredits ("1,234"), toCurrency ("$1,234"), formatDuration ("1h 5m" / "5m 3s" / "3s") and
+// with each other: fmtCredits ("1,234"), toCurrency ("¤1,234"), formatDuration ("1h 5m" / "5m 3s" / "3s") and
 // formatDurationHours ("1h 5m", "0h") each render differently on screen, and this split changes no behaviour.
 import { utcTime } from "./timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
 
+// AB#2314: credits, in the credits sign every newer screen uses (constructionPanel.js: "¤63,000"). This was Intl's USD
+// currency style from before that convention, so the same screen said "¤63,000" in one row and "$63,000 credits" in
+// the next. Rounded and grouped exactly as before; only the sign changed, and a negative keeps its minus in front.
+const WHOLE = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 export function toCurrency(number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0
-  }).format(number);
+  const text = WHOLE.format(number);
+  return text.startsWith("-") ? `-¤${text.slice(1)}` : `¤${text}`;
 }
 
 

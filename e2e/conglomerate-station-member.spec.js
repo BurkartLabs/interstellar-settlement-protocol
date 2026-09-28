@@ -70,9 +70,9 @@ for (const viewport of VIEWPORTS) {
       await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
       await page.click('[data-building-action="building:orbital-executive-suites"]');
       const suite = page.locator("#lease-suite-box");
-      await expect(suite).toContainText("Member rate: your conglomerate's station, so the rent is 50% of the standard $1,000 credits a day.");
-      await expect(suite).toContainText("Lease Cost$500 credits a day");
-      await expect(page.locator("#rent-office-duration option").first()).toHaveText("7 days — $3,500");
+      await expect(suite).toContainText("Member rate: your conglomerate's station, so the rent is 50% of the standard ¤1,000 a day.");
+      await expect(suite).toContainText("Lease Cost¤500 a day");
+      await expect(page.locator("#rent-office-duration option").first()).toHaveText("7 days — ¤3,500");
       await suite.scrollIntoViewIfNeeded();
       await page.screenshot({ path: path.join(SHOT_DIR, `suites-member-rate-${viewport.label}.png`) });
       const before = (await corpNow(page)).finances.credits;
