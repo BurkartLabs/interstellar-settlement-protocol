@@ -8,6 +8,7 @@ import { deepClone, toCurrency } from "../helpers.js";
 import { escapeHtml, researchNodeHtml } from "../html.js";
 import { appState, viewerStorage } from "../state.js";
 import { pushFeedback, updateAllViews } from "./shared.js";
+import { renderPrereqGraph } from "./prereqGraph.js"; // AB#2477
 
 // ─── AB#2474 (Board review 2026-09-26, item 21): categories, each collapsible, in a collapsible Programs section ───
 // Which are collapsed is remembered per viewer: { programs: expanded, categories: { name: expanded } }. Everything
@@ -55,6 +56,24 @@ function applyProgramsToggle(expanded) {
   if (!button || !body) return;
   button.setAttribute("aria-expanded", String(expanded));
   body.hidden = !expanded;
+}
+
+/**
+ * AB#2477: the programs as the prerequisite tree draws them, in the same states their cards show. A program is met, for
+ * what depends on it, once one level is complete (the server's check, and the card's).
+ */
+export function insightGraphNodes(programs = [], completed = [], queuedIds = []) {
+  return programs.map((prog) => {
+    const done = completed.filter((id) => id === prog.id).length;
+    const queued = queuedIds.filter((id) => id === prog.id).length;
+    const levels = prog.maxLevels || 1;
+    const base = { id: prog.id, name: levels > 1 ? `${prog.name} (${done}/${levels})` : prog.name, prereqs: prog.prereqs || [], met: done > 0 };
+    if (done >= levels) return { ...base, state: "done" };
+    if (queued > 0) return { ...base, state: "queued" };
+    if (!isInsightProgramLive(prog)) return { ...base, state: "planned" };
+    if (!(prog.prereqs || []).every((req) => completed.includes(req))) return { ...base, state: "locked" };
+    return { ...base, state: "available" };
+  });
 }
 
 export function renderInsightTree(data) {
@@ -132,6 +151,9 @@ export function renderInsightTree(data) {
   }).join("");
 
   treeWrap.innerHTML = sections || '<div class="ui-state"><p class="ui-state__title">No insight programs configured.</p></div>';
+  renderPrereqGraph(document.getElementById("ceo-prereq-graph"), {
+    key: "ceo", nodes: insightGraphNodes(programs, completed, queuedIds), empty: "No insight programs configured."
+  }); // AB#2477
 
   treeWrap.onclick = async (e) => {
     const toggle = e.target.closest("[data-insight-category]");

@@ -5459,5 +5459,38 @@ img.station__body {
 .logistics__route-fee { overflow-wrap: anywhere; }
 .logistics__bulk-fee { color: var(--muted); }
 
+/* ─── AB#2477: the prerequisite tree on Corporate R&D and CEO Insight (views/prereqGraph.js), after the Starmap's nodes:
+   a glowing dot per node on the dark field, lanes between them, the selected node's chain lit. The shape tells the
+   state as well as the colour: filled done, ringed ready, ringed with a core queued, grey locked, dashed planned. ─── */
+.prereq-graph { display: grid; gap: var(--space-3); min-width: 0; }
+.prereq-graph__map { position: relative; width: 100%; overflow: hidden; border-radius: var(--radius-md); background: radial-gradient(ellipse at 50% 0%, var(--surface-2) 0%, var(--bg) 75%); }
+.prereq-graph__lanes { position: absolute; inset: 0; pointer-events: none; }
+.prereq-lane { fill: none; stroke-width: 1.5; }
+.prereq-lane--met { stroke: color-mix(in srgb, var(--accent) 45%, transparent); }
+.prereq-lane--waiting { stroke: color-mix(in srgb, var(--muted) 35%, transparent); stroke-dasharray: 4 6; }
+.prereq-lane--chain { stroke-width: 2.5; }
+.prereq-lane--chain.prereq-lane--met { stroke: var(--accent); }
+.prereq-lane--chain.prereq-lane--waiting { stroke: var(--warn); }
+.prereq-node { position: absolute; width: 28px; height: 28px; transform: translate(-50%, -50%); display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--radius-pill); background: none; color: var(--text-soft); cursor: pointer; }
+.prereq-node__dot { width: 14px; height: 14px; border-radius: var(--radius-pill); box-sizing: border-box; transition: transform var(--duration-fast) var(--ease-standard); }
+.prereq-node:hover .prereq-node__dot { transform: scale(1.2); }
+.prereq-node__name { position: absolute; top: 100%; left: 50%; font-size: var(--font-size-1); line-height: var(--line-height-tight); text-align: center; overflow-wrap: break-word; pointer-events: none; text-shadow: 0 0 3px var(--bg), 0 0 6px var(--bg), 0 0 10px var(--bg); } /* a lane passing behind a name does not cross it out */
+.prereq-graph__map--compact .prereq-node__name { padding: var(--space-1); border-radius: var(--radius-sm); background: var(--surface-1); }
+.prereq-node--done .prereq-node__dot { background: var(--accent); box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent); }
+.prereq-node--queued .prereq-node__dot { border: 2px solid var(--success); background: radial-gradient(circle, var(--success) 0 35%, transparent 40%); box-shadow: 0 0 10px color-mix(in srgb, var(--success) 60%, transparent); }
+.prereq-node--available .prereq-node__dot { border: 2px solid var(--accent); background: var(--bg); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 45%, transparent); }
+.prereq-node--locked .prereq-node__dot { background: var(--surface-3); border: 2px solid var(--border); }
+.prereq-node--planned .prereq-node__dot { border: 2px dashed var(--border); background: transparent; }
+.prereq-node--locked, .prereq-node--planned { color: var(--muted); }
+.prereq-node--lit { color: var(--text); }
+.prereq-node--selected { color: var(--text); }
+.prereq-node--selected .prereq-node__dot { transform: scale(1.35); outline: 2px solid var(--text); outline-offset: 3px; }
+.prereq-node--selected .prereq-node__name { font-weight: var(--font-weight-bold); }
+.prereq-graph__detail { margin: 0; color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.prereq-graph__detail strong { color: var(--text); }
+.prereq-graph__legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--font-size-1); }
+.prereq-graph__legend li { display: flex; align-items: center; gap: var(--space-2); }
+.prereq-graph__key { position: static; width: 14px; height: 14px; transform: none; cursor: default; }
+
 /* AB#2475: the time to finish all remaining research, under each research screen's lede (Bug #4743: it had no rule) */
 .research-total { color: var(--text-soft); font-variant-numeric: tabular-nums; }

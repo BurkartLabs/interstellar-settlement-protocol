@@ -298,6 +298,12 @@
       "title": "Research"
     },
     {
+      "code": "CORP-RND-4",
+      "id": "rnd-graph-title",
+      "screen": "rnd",
+      "title": "Prerequisite tree"
+    },
+    {
       "code": "CORP-EXE-2",
       "id": "ceo-queue-title",
       "screen": "ceo",
@@ -308,6 +314,12 @@
       "id": "ceo-tree-title",
       "screen": "ceo",
       "title": "Programs"
+    },
+    {
+      "code": "CORP-EXE-4",
+      "id": "ceo-graph-title",
+      "screen": "ceo",
+      "title": "Prerequisite tree"
     },
     {
       "code": "CORP-IND-2",
