@@ -4,7 +4,6 @@ import { bodyNumber } from "../bodyNumber.js";
 import { bodyCount } from "../bodyNumber.js";
 import { randomUUID } from "node:crypto";
 import { npcBidFor } from "../economy.js";
-import { accountActionLimiter } from "../rateLimiters.js";
 import { getAccountById, getState, mutateAccountState, mutateState, ensureBidShape, bidRuleFor } from "../gameState.js";
 import { exchangeTaxBreakdown } from "../game/progression.js"; // ISP-302 (AB#2285): the rate and its royalty share
 import { taxOnSale } from "../../public/scripts/exchangeTax.js";
@@ -34,7 +33,7 @@ import { payConcessionShare } from "../concessions.js"; // ISP-228 (AB#923)
 const MAX_OPEN_LISTINGS = 50;
 
 export function registerMarketRoutes(app) {
-  app.post("/api/market/orders", requireAuth, accountActionLimiter, (req, res) => {
+  app.post("/api/market/orders", requireAuth, (req, res) => { // AB#958: limited in server/index.js, ahead of the input checks
     const { type, item, quantity, unitPrice } = req.body ?? {};
     // AB#815: NPC orders are placed by the server's tick only; a request that names one is refused, whatever else it says.
     if (req.body && typeof req.body === "object" && "npc" in req.body) {
@@ -161,7 +160,7 @@ export function registerMarketRoutes(app) {
 
   // Bug #425: a seller can take a listing down, getting the unsold goods back at the station they were listed from.
   // Only the seller: anyone else gets 404, so the route says nothing about orders that are not theirs.
-  app.post("/api/market/orders/:orderId/cancel", requireAuth, accountActionLimiter, (req, res) => {
+  app.post("/api/market/orders/:orderId/cancel", requireAuth, (req, res) => { // AB#958: limited in server/index.js, ahead of the input checks
     const orderId = String(req.params.orderId || "").trim();
     const order = (getState().market.orderBook || []).find((o) => o.id === orderId && o.sellerAccountId === req.auth.accountId);
     if (!order) {
@@ -199,7 +198,7 @@ export function registerMarketRoutes(app) {
     res.json({ ok: true, cancelled: order.id, account });
   });
 
-  app.post("/api/market/orders/:orderId/buy", requireAuth, accountActionLimiter, (req, res) => {
+  app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => { // AB#958: limited in server/index.js, ahead of the input checks
     const orderId = String(req.params.orderId || "").trim();
     const requestedQty = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
     const normalizeIdentity = (value) => String(value || "").trim().toLowerCase();
@@ -317,7 +316,7 @@ export function registerMarketRoutes(app) {
   });
 
   // ─── Sell player resources into an NPC standing buy order ────────────────────
-  app.post("/api/market/npc-orders/:orderId/sell", requireAuth, accountActionLimiter, (req, res) => {
+  app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => { // AB#958: limited in server/index.js, ahead of the input checks
     const orderId = String(req.params.orderId || "").trim();
     // Bug #425: a whole number of at least 1, or refused; it used to fall back to 1 for "abc", 0 or -5.
     const requestedQty = bodyCount(req.body?.quantity);

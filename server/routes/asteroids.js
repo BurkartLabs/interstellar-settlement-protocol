@@ -22,6 +22,7 @@ import { countBuilt, playerBuilding } from "../playerBuildings.js";
 const ASSEMBLY = playerBuilding("assembly-facility");
 import { launchExpeditionReceipt, probeFabricationReceipt, scoutBeltReceipt } from "../receipts.js"; // AB#744
 import { RATS, encounterChance, forcePower, forceSupply, nominalHours, seedFor } from "../game/rats.js"; // AB#820
+import { rateFactorFor } from "../hunts.js"; // ISP-284 (AB#991): a belt a hunt cleared is quiet
 import { SYSTEMS_BY_ID } from "../game/catalog.js";
 import { stationById } from "../game/stations.js";
 import { commitHiredEscort } from "../hiredEscort.js"; // AB#4678
@@ -293,10 +294,12 @@ export function registerAsteroidRoutes(app) {
 
       applyCredits(corp, -launchCost, "expeditions");
       if (provisions) applyCredits(corp, -provisions, "expeditions"); // AB#820: the escort's provisions, a sink
+      // AB#991: a belt a hunt cleared is quiet for everyone; the rate is fixed at launch, so the plan drawn each tick is the same
+      const rateFactor = rateFactorFor(beltKey);
       rats = {
-        density, hours, escortFleetId: escort?.id ?? hiredEscort?.fleetId ?? null, escortUnits, escortPower,
+        density, hours, escortFleetId: escort?.id ?? hiredEscort?.fleetId ?? null, escortUnits, escortPower, rateFactor,
         ...(hiredEscort ? { escortContractId: hiredEscort.contractId, escortOwnerCorpId: hiredEscort.ownerCorpId } : {}), // AB#4678
-        chance: encounterChance(density, hours, escortPower), chanceUnescorted: encounterChance(density, hours, 0),
+        chance: encounterChance(density, hours, escortPower, rateFactor), chanceUnescorted: encounterChance(density, hours, 0, rateFactor),
         provisions, encounters: []
       };
       am.probeCount -= 1;

@@ -8,12 +8,14 @@ import { combatModifiersFor } from "./game/combat.js";
 import { hiredEscortFor } from "./hiredEscort.js"; // AB#4678
 import { getAccountById } from "./gameState.js";
 import { accountIdOfCorp } from "./playerLoans.js";
+import { rateFactorFor } from "./hunts.js"; // AB#991: a belt a hunt cleared is quiet
 
 /** What launch-expedition says when it refuses an escort, by outcome. */
 export const ESCORT_REFUSALS = {
   "no-such-fleet": "Choose one of your own fleets to escort the probe.",
   "escort-contracted": "That fleet is offered or hired out, and takes no order until its contract ends.",
   "escort-busy": "That fleet is already escorting an expedition.",
+  "escort-hunting": "That fleet is hunting Rats until it comes back.", // AB#991
   "escort-travelling": "That fleet is travelling. Escort with it once it has arrived.",
   "escort-elsewhere": "An escort must be stationed in the belt's system. Deploy the fleet there first.",
   "escort-empty": "That fleet has no units to escort with.",
@@ -31,6 +33,7 @@ export function ownEscortFor(corp, fleetId, beltSystemId, now = Date.now()) {
   if (!fleet) return { outcome: "no-such-fleet" }; // not the caller's: never looked up anywhere else
   if (fleet.contract) return { outcome: "escort-contracted" };
   if (fleet.escort) return { outcome: "escort-busy" };
+  if (fleet.hunt) return { outcome: "escort-hunting" }; // AB#991
   if (fleet.transit && now < fleet.transit.arrivesAt) return { outcome: "escort-travelling" };
   if (systemOf(fleet.stationId) !== beltSystemId) return { outcome: "escort-elsewhere" };
   if (!forceSupply(fleet.units)) return { outcome: "escort-empty" };
@@ -57,10 +60,11 @@ export function expeditionOutlook(corp, beltKey, duration, now = Date.now()) {
   const density = Number(SYSTEMS_BY_ID.get(beltSystemId)?.pirateDensity);
   if (!Number.isFinite(density) || density < 0) return null;
   const hours = nominalHours(duration);
-  const none = launchOutlook(density, hours, null);
+  const rateFactor = rateFactorFor(beltKey, now); // the factor launch fixes on the expedition
+  const none = launchOutlook(density, hours, null, {}, rateFactor);
   const option = (base, pick, modifiers) => (pick.outcome
     ? { ...base, eligible: false, why: ESCORT_REFUSALS[pick.outcome] }
-    : { ...base, eligible: true, units: pick.escort.units, ...launchOutlook(density, hours, pick.escort.units, modifiers) });
+    : { ...base, eligible: true, units: pick.escort.units, ...launchOutlook(density, hours, pick.escort.units, modifiers, rateFactor) });
   const own = (corp?.military?.fleets || []).map((f) => option(
     { kind: "own", id: f.id, name: f.name || f.id }, ownEscortFor(corp, f.id, beltSystemId, now), combatModifiersFor(corp)));
   const hired = (corp?.military?.hired || []).map((h) => {
@@ -68,7 +72,7 @@ export function expeditionOutlook(corp, beltKey, duration, now = Date.now()) {
     return option({ kind: "hired", id: h.contractId, name: h.fleetName || "Hired fleet" }, pick, pick.escort ? modifiersOfOwner(pick.escort.ownerCorpId) : {});
   });
   return {
-    beltKey, duration, hours, density,
+    beltKey, duration, hours, density, quiet: rateFactor < 1,
     unescorted: { chance: none.chance, keptShare: none.keptShare },
     escorts: [...own, ...hired]
   };

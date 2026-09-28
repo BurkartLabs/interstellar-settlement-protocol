@@ -71,6 +71,7 @@ export function launchRiskHtml(outlook, value) {
   } else {
     rows.push(["Haul expected home, unescorted", outlookPct(outlook.unescorted.keptShare), "kept-share-unescorted"]);
   }
-  return `<dl class="ui-kv launch-risk" data-role="launch-risk">${rows.map(([k, v, role]) =>
+  const quiet = outlook.quiet ? `<p class="ui-panel__meta" data-role="launch-quiet">A hunt has cleared this belt: the Rats are quiet here for now, and the chances below count it.</p>` : "";
+  return `${quiet}<dl class="ui-kv launch-risk" data-role="launch-risk">${rows.map(([k, v, role]) =>
     `<dt>${esc(k)}</dt><dd data-risk="${role}">${esc(v)}</dd>`).join("")}</dl>`;
 }

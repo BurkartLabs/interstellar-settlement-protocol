@@ -463,6 +463,28 @@ describe("the launch panel's Rats figures (AB#821)", () => {
     expect(escortLaunchFields(`hired:${pve.contractId}`)).toEqual({ escortContractId: pve.contractId });
   });
 
+  it("counts a hunted belt's quiet, as launch does (AB#991)", async () => {
+    const m = await miner();
+    const { mutateState } = await import("../../server/gameState.js");
+    const loud = (await outlook(m)).body;
+    expect(loud.quiet).toBe(false);
+    mutateState((w) => { ((w.rats ||= {}).quiet ||= {})[WOLF_BELT] = { until: Date.now() + HOUR }; });
+    try {
+      const quiet = (await outlook(m)).body;
+      expect(quiet.quiet).toBe(true);
+      expect(quiet.unescorted.chance).toBe(encounterChance(DENSITY, 2, 0, RATS.quietRateFactor));
+      expect(quiet.unescorted.chance).toBeLessThan(loud.unescorted.chance);
+      const a = quiet.escorts.find((o) => o.id === "flt-a");
+      expect(a.chance).toBe(encounterChance(DENSITY, 2, forcePower(STRONG), RATS.quietRateFactor));
+      expect(launchRiskHtml(quiet, "own:flt-a")).toMatch(/A hunt has cleared this belt/);
+      const launched = await launch(m, { escortFleetId: "flt-a" });
+      expect(launched.status, JSON.stringify(launched.body)).toBe(200);
+      expect(m.corp().asteroidMining.activeExpeditions[0].rats.chance).toBe(a.chance); // what launch fixes is what was shown
+    } finally {
+      mutateState((w) => { delete w.rats.quiet[WOLF_BELT]; });
+    }
+  });
+
   it("refuses a belt or a length it does not know", async () => {
     const m = await miner();
     expect((await m.api.get(m.at("/expedition-outlook")).query({ beltKey: "nowhere:belt" })).status).toBe(400);
