@@ -1,7 +1,46 @@
 # VISUAL — interstellar-settlement-protocol
 
 Visual-design reviews (RUBRIC.md "Visual design"), one section per review, newest last. Review #1
-(2026-09-25, POLISH 2.4/5) lives in Critique AB#1757 and its artifact; this file starts at #2.
+(2026-09-25, POLISH 2.4/5) was filed as Critique AB#1757 and is copied here from it, so every review is in this file.
+
+## Review #1 — 2026-09-25 · **2.4 / 5 · POLISH**
+
+Reviewer: Critic (interstellar-settlement-protocol), Claude Fable 5.1.
+Build: `origin/main` a271151 (Merge PR 392).
+
+**PROVISIONAL, unratified rubric.** RUBRIC.md has no visual-design table; the gates below are a Critic's draft for the Director to ratify. Nothing downstream should treat this score as a gate result.
+
+**Where it sits.** v0.5 Beta MVP (AB#389), the design-system work split from ISP-25 (AB#592): AB#758 mockups, AB#759 to AB#772 the system and each screen, all Proposed and waiting on AB#758 and Decision AB#695 (closed 2026-09-21 as prematurely opened). Build reviewed: origin/main a271151, Merge PR 392.
+
+**Verdict and score: POLISH, 2.4 / 5** (draft verdicts: FINISHED avg ≥ 3.5 with no gate below 2 and both person-judged gates ≥ 3; POLISH otherwise, at most five epics; PROTOTYPE if any gate is 1 or anything placeholder is visible). Gates 1–5, one sentence of evidence each, in the linked review. First impression 3, hierarchy 2, typography 2, colour and elevation 2, consistency 3, responsive 2, motion and states 2, art 3. Every gate had a subject; no floor scores.
+
+**The full review, with 20 screenshots, the draft rubric table and the instruments:** https://claude.ai/artifact/8oRjjjnwkzAxaywc8edGKg
+
+**Ranked epics** (product-scale sizes; the PM splits):
+
+1. **Flat surfaces, one accent, no glow** — keep void-black and cyan, remove the 62 box-shadows and 10 text-shadows, depth from three surface steps each ≥ 1.2:1; cyan on at most one primary control per screen plus the active tab; box-shadow rules ≤ 10. Size M. Existing: AB#759, AB#760.
+2. **One type system** — Inter only with weight and size doing hierarchy, tabular numerals in every numeric column, Orbitron at most in the logo mark; ≤ 2 families and ≤ 8 sizes in the stylesheet; the Assets 0 reads as a zero. Size S. Existing: AB#759.
+3. **An app shell that decides the layout** — sidebar with the corporation strip and nav grouped Company / Station / Industry / Market / Comms, a 56 px header, bottom nav on phones; first content ≤ 120 px from the top at 375; zero walkthrough steps where the card covers its target; no truncated nav label. Size M. Existing: AB#763, AB#764, AB#771.
+4. **Data screens as one instrument** — one KPI tile and one table component (sticky header, right-aligned tabular figures, hover row, empty state naming the next action) on Overview, Finance, Assets, Logistics and the Exchange; charts on ≤ 4 series colours plus one negative. Size M. Existing: AB#766, AB#769.
+5. **Let the art carry the atmosphere** — NASA planets at ≥ 64 px in the system view, the Voss portrait style extended to other agents, station interiors as a consistent header band, landing trimmed to hero plus three sections; an asset sheet with a style note per image. Size M. Existing: AB#767, AB#771, AB#949; AB#741 done.
+
+**Session-sized quick wins needing no direction decision:** login and register with one primary button; a focus-ring token and a prefers-reduced-motion block; Assets tiles off Orbitron (Bug AB#1755); the walkthrough scroll on a late-appearing target (Bug AB#1756); Refinery Chains requirements in muted text rather than amber; Corporate R&D and Assignments panels at full content width.
+
+**Bugs filed:** AB#1755 (Assets tiles show a checkbox-like glyph for 0), AB#1756 (phone walkthrough step 3 covers the lease button; a gap left after AB#1083).
+
+**What is already known:** EVE Photon UI (2022) solved readability at the same density by reskinning components and changing the font; dark-surface guidance puts depth in surface luminance, not shadow; tabular numerals for money columns. Sources in the review. Secondary web sources, not primary research.
+
+**Evidence:** npm test 148 files, 1,496 tests, all passed; contrast script over the tokens (text all AA, surfaces 1.12:1 apart, borders 1.57:1); stylesheet counts (4 families, 39 sizes, 74 literal hex, 0 reduced-motion, 4 focus-visible); 170 screenshots from a scripted first day and the demo account at 1440 and 375; a re-test of the walkthrough overlap with no scripted scrolling.
+
+**Blind class:** nobody moved a pointer: hover, scroll feel, pan and zoom, motion timing and the typewriter cadence were captured at rest only; headless Chromium at 1x and 2x, not a monitor; one reviewer's eye against an unratified rubric. The Board's own look outranks every number here.
+
+**Charter and Soul:** checked, no energy gates, fake urgency, inflated baselines or fabricated social proof. No monetization surface exists. Security in proportion: the visual layer touches no data; the developer login shows only on localhost. The Voss portrait and the station interiors carry no credit line in the repo; worth one each before Preview.
+
+**Read after scoring:** AB#592 diagnosed the same two tells (Orbitron, glow borders) on 2026-09-20 and named the same references. Nothing here disagrees with that plan; the evidence says the direction is not really open, so AB#758 could produce one Station mockup in the flat direction for a yes or no rather than three. That is the Board's call.
+
+Critic tab (interstellar-settlement-protocol), Claude Fable 5.1, 2026-09-25.
+
+_Backfilled on 2026-09-27 (hq AB#2501) from Critique AB#1757, where this review was filed: its text as filed, unedited. The full review, with 20 screenshots, the draft rubric table and the instruments, is the artifact linked above._
 
 ## Review #2 — 2026-09-27 · **2.9 / 5 · POLISH**
 
