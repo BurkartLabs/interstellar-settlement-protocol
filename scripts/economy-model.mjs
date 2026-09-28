@@ -11,7 +11,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { operationCostPerHourFor, startupCostFor, bestThroughputFor, npcBidFor, npcBidAfterRecovery } from "../server/economy.js";
+import { operationCostPerHourFor, startupCostFor, bestThroughputFor } from "../server/economy.js";
+// AB#2480: the bid day and the best rate along it are one copy, shared with the extractor panel, which opens its
+// throughput control at this best rate.
+import { bidDay, steadyBidDay, bestRateAlongBid } from "../public/scripts/standingBid.js";
+export { bidDay, steadyBidDay };
 import { taxBreakdown } from "../public/scripts/exchangeTax.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -34,32 +38,6 @@ export const CODE_RULES = {
   minDowntimeMinutes: { value: 15, where: "server/game/mining.js, MIN_DOWNTIME_MS" }
 };
 
-/**
- * A day of selling `units` into a standing bid, one unit at a time along npcBidFor from the day's opening bid, as
- * ECONOMY.md's ISP-87 section states the rule. The order takes at most its quota a day; the rest is not sold to it.
- */
-export function bidDay(units, { base, opening = base, npcBid }) {
-  const sold = Math.min(Math.max(0, Math.floor(units)), npcBid.quotaPerDay);
-  const drift = npcBid.driftAtFullQuotaPct / 100;
-  // The opening bid as the volume that would have brought the base down to it, so the curve continues from there.
-  const offset = opening >= base || drift <= 0 ? 0 : ((1 - opening / base) / drift) * npcBid.quotaPerDay;
-  let gross = 0;
-  for (let k = 0; k < sold; k += 1) gross += npcBidFor(base, offset + k, npcBid);
-  return { units: Math.floor(units), sold, gross, opening, close: npcBidFor(base, offset + sold, npcBid) };
-}
-
-/** The day a corporation settles into selling the same units every day: each night recovers from the last close. */
-export function steadyBidDay(units, base, npcBid) {
-  let opening = base;
-  let day = bidDay(units, { base, opening, npcBid });
-  for (let i = 0; i < 100; i += 1) {
-    const next = npcBidAfterRecovery(base, day.close, npcBid);
-    if (next === opening) break;
-    opening = next;
-    day = bidDay(units, { base, opening, npcBid });
-  }
-  return day;
-}
 
 const round = (n) => Math.round(n);
 const fmt = (n) => (n < 0 ? "-" : "") + Math.abs(round(n)).toLocaleString("en-US");
@@ -109,11 +87,9 @@ export function computeModel(economy, leases, rules = CODE_RULES) {
   // "the decision". `flatBest` is server/economy.js's at the flat base bid (what every tonne fetched before AB#2334);
   // `best` walks the same range with each hour priced along the bid, from the same cost function.
   const flatBest = bestThroughputFor({ unitPrice: silicates.unitPrice, taxPct: economy.exchange.salesTaxPct, min: r.minThroughput, max: r.maxThroughput }, economy.operations);
-  let best = { throughput: r.minThroughput, profitPerHour: -Infinity };
-  for (let t = r.minThroughput; t <= r.maxThroughput; t += 1) {
-    const profitPerHour = Math.round(netDay(t * 24).net / 24 - operationCostPerHourFor(t, economy.operations));
-    if (profitPerHour > best.profitPerHour) best = { throughput: t, profitPerHour, avgBid: netDay(t * 24).gross / (t * 24) };
-  }
+  // AB#2480: public/scripts/standingBid.js walks it, the same walk the extractor panel's default comes from.
+  const along = bestRateAlongBid({ operations: economy.operations, basePrice: silicates.unitPrice, taxPct: economy.exchange.salesTaxPct, npcBid, min: r.minThroughput, max: r.maxThroughput });
+  const best = { throughput: along.throughputPerHour, profitPerHour: along.profitPerHour, avgBid: along.avgBid };
 
   // A corporation of 1 to 4 yards, two to a lease (its two building slots), each lease staffed, all running at the rate
   // that pays best for the whole corporation, at expected uptime, per day: every yard sells into the one order, so each
