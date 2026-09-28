@@ -2,7 +2,7 @@
 // cost: the first two, the starting kit, with no upkeep, and the third paying 41.67 an hour of it. Starts its own server
 // on a seeded data directory (the suites-flavor.spec.js pattern). The screenshot replaces AB#2284's two-yard one.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -54,6 +54,7 @@ for (const [width, height] of [[1280, 800], [375, 812]]) {
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
       await openTab(page, "station");
+      await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
       await page.click('[data-building-action="building:isa-claims-leases"]');
       await page.click('[data-action="manage-lease"]');
       const line = (n) => page.locator(`[data-role="mine-projection"][data-for="ext-upkeep-${n}"]`);

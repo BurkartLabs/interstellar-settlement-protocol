@@ -6,7 +6,7 @@ import { WALKTHROUGH_STEPS } from "./walkthrough.js";
 
 export const NAV_GROUPS = [
   { id: "company", label: "Company", tabs: ["overview", "inbox", "finance", "ceo", "missions", "conglomerate"] },
-  { id: "station", label: "Station", tabs: ["station", "fleet"] }, // ISP-175 (AB#869): the Fleet tab
+  { id: "station", label: "Station", tabs: ["station", "operations", "fleet"] }, // ISP-175 (AB#869): the Fleet tab; AB#2471: Operations
   { id: "industry", label: "Industry", tabs: ["rnd", "refinery", "logistics"] },
   { id: "market", label: "Market", tabs: ["market", "assets"] },
   { id: "comms", label: "Comms", tabs: ["chat", "forums"] },
@@ -20,7 +20,7 @@ export const NAV_GROUPS = [
  */
 export const TAB_LABELS = {
   overview: "Overview", inbox: "Inbox", finance: "Financial Core", ceo: "CEO Insight", missions: "Assignments", conglomerate: "Conglomerate",
-  station: "Station", fleet: "Fleet", rnd: "Corporate R&D", refinery: "Refinery Chains", logistics: "Logistics",
+  station: "Station", operations: "Operations", fleet: "Fleet", rnd: "Corporate R&D", refinery: "Refinery Chains", logistics: "Logistics",
   market: "Galactic Exchange", assets: "Assets", chat: "Chat", forums: "Forums", starmap: "Starmap", travel: "Travel"
 };
 

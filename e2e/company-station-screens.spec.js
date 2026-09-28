@@ -15,7 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import { findings } from "./screenFindings.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -121,6 +121,7 @@ for (const [width, height] of SIZES) {
       const actions = await page.locator('#station-npc-buildings [data-building-action^="building:"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-building-action")));
       for (const action of actions) {
         await openTab(page, "station");
+        await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
         await page.locator(`#station-npc-buildings [data-building-action="${action}"]`).click();
         await page.waitForTimeout(300);
         if (!(await page.locator("#station-building-view").isVisible())) continue; // a building that opens a tab (the Bureau opens Assignments), audited there

@@ -1,7 +1,7 @@
 // ISP-170 (AB#864): the Orbital Shipyard on the Station's construction panel, locked with its reason and then built,
 // from the running app at 1440x900 and 390x844; screenshots go to e2e/screenshots/ab-864/.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationSubpage } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -55,6 +55,7 @@ async function signIn(browser, viewport, kind) {
   await page.click('#login-form button[type="submit"]');
   await page.waitForURL(/\?account=/);
   await openTab(page, "station");
+  await openStationSubpage(page, "construction"); // AB#2471
   const row = page.locator('#station-construction-section [data-building-row="orbital-shipyard"]');
   await row.scrollIntoViewIfNeeded();
   return { context, page, child, errors, row };

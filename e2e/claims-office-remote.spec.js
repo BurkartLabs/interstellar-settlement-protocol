@@ -2,7 +2,7 @@
 // Division no longer offers a lease application it would refuse server-side. Starts its own server on a seeded
 // data directory (the suites-flavor.spec.js pattern).
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -62,6 +62,7 @@ for (const viewport of VIEWPORTS) {
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
       await openTab(page, "station");
+      await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
       await page.click('[data-building-action="building:isa-claims-leases"]');
 
       const content = page.locator("#station-building-content");
@@ -71,6 +72,7 @@ for (const viewport of VIEWPORTS) {
 
       // Rent the Mars office, then the same page offers the lease it refused a moment ago.
       await page.click("#station-back-btn");
+      await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
       await page.click('[data-building-action="building:orbital-executive-suites"]');
       await page.click("#rent-office-btn");
       // AB#743: the server's receipt, not #rent-office-status, which this used to read while it still said
@@ -79,6 +81,7 @@ for (const viewport of VIEWPORTS) {
       await expect(page.locator("#action-receipt-body")).toContainText("Mars Orbital Dock");
       await acknowledgeReceipt(page);
       await page.click("#station-back-btn");
+      await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
       await page.click('[data-building-action="building:isa-claims-leases"]');
       await expect(page.locator('[data-action="purchase-lease"]').first()).toBeVisible();
       await page.screenshot({ path: path.join(SCREEN_DIR, `ab1870-claims-after-mars-office-${viewport.label}.png`) });

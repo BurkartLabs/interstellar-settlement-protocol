@@ -10,7 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-831");
@@ -58,6 +58,7 @@ for (const [width, height] of [[375, 812], [1280, 800]]) {
       const shot = (name) => page.screenshot({ path: path.join(SHOT_DIR, `${name}-${width}x${height}.png`), fullPage: true });
 
       await openTab(page, "station");
+      await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
       await page.click('[data-building-action="building:isa-claims-leases"]');
       const marsCard = page.locator('#station-building-content [data-role="lease-card"]', { hasText: "Mars" });
       await expect(marsCard.locator('[data-role="lease-yield"]')).toContainText("Iron Ore");

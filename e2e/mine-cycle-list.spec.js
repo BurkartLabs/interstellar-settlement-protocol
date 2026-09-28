@@ -6,7 +6,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/mine-cycle-list.spec.js`.
 
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices, openMiningCycles } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -30,6 +30,7 @@ test("an idle extractor yard shows up in Active Mining Cycles before any cycle i
   await expect(page.locator("#dialogue-modal")).toBeHidden();
 
   await openTab(page, "station");
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   await page.selectOption("#rent-office-duration", "7");
   await page.click("#rent-office-btn");
@@ -40,6 +41,7 @@ test("an idle extractor yard shows up in Active Mining Cycles before any cycle i
   await expect(page.locator("#office-hire-hint")).toContainText("5 / ");
 
   await page.click("#station-back-btn");
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:isa-claims-leases"]');
   await page.click('[data-action="purchase-lease"][data-body="Earth"]');
   await acknowledgeReceipt(page);
@@ -48,8 +50,9 @@ test("an idle extractor yard shows up in Active Mining Cycles before any cycle i
   await acknowledgeReceipt(page);
   await expect(page.locator(".extractor")).toBeVisible();
 
-  // Back to the Station overview, where the new Active Mining Cycles section lives.
+  // AB#2471: Active Mining Cycles lives on Operations, on its Mining cycles subpage.
   await page.click("#station-back-btn");
+  await openMiningCycles(page);
   await expect(page.locator("#mine-cycle-list")).toBeVisible();
   const items = page.locator("#mine-cycle-list .ui-card");
   await expect(items.first()).toBeVisible();

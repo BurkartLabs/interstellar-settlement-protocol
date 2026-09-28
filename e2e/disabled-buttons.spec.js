@@ -6,7 +6,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/disabled-buttons.spec.js`.
 
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -54,12 +54,14 @@ test("a disabled button is dimmed, shows not-allowed and loses its hover glow; e
 
   // ISA Claims & Leases with an office and no employees: every lease button is disabled.
   await openTab(page, "station");
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   await page.selectOption("#rent-office-duration", "7");
   await page.click("#rent-office-btn");
   await acknowledgeReceipt(page);
   await expect(page.getByText("Active Lease")).toBeVisible();
   await page.click("#station-back-btn");
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:isa-claims-leases"]');
   const lease = page.locator('[data-action="purchase-lease"][data-body="Earth"]');
   await expect(lease).toBeVisible();
@@ -78,12 +80,14 @@ test("a disabled button is dimmed, shows not-allowed and loses its hover glow; e
 
   // What the player does next: hire the five, come back, and the same button is enabled and drawn at full strength.
   await page.click("#station-back-btn");
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   await page.fill("#office-hire-count", "5");
   await page.click('#office-hire-form button[type="submit"]');
   await acknowledgeReceipt(page);
   await expect(page.locator("#office-hire-hint")).toContainText("5 / ");
   await page.click("#station-back-btn");
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:isa-claims-leases"]');
   await expect(lease).toBeEnabled();
   await lease.scrollIntoViewIfNeeded();
