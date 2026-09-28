@@ -39,10 +39,11 @@ const ALLOWLIST = [
   // AB#1051: the "premium-rate" flavour text this list once named moved to data/missions.json, which this scanner
   // does not read (SCAN_EXT is .js/.html/.css only), so its entry is gone rather than re-pointed.
   // ISP-81 (AB#770): the "Premium Thread Detail View" comment in styles.css went with the forum's old CSS.
-  // AB#738: toCurrency moved, unchanged, from app.js to the shared helpers module.
+  // AB#738: toCurrency moved, unchanged, from app.js to the shared helpers module. AB#2314: it writes the credits
+  // sign now, with no currency style at all; the one NumberFormat it keeps only groups digits.
   [
     "public/scripts/helpers.js",
-    'return new Intl.NumberFormat("en-US", {',
+    'const WHOLE = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });',
     "toCurrency: the sanctioned in-game credits formatter this story's own acceptance names as the one exception"
   ],
   [

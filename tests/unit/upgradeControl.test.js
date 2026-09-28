@@ -23,11 +23,11 @@ describe("the upgrade control (AB#795)", () => {
   it("shows the tier, the next tier's price, and what changes, from the server's numbers", () => {
     const out = html(yard(), corp());
     expect(out).toContain("<strong>Tier 1</strong> of 8"); // AB#2308
-    expect(out).toContain("Upgrade to tier 2 ($40,000)");
+    expect(out).toContain("Upgrade to tier 2 (¤40,000)");
     expect(out).toContain("cap 250 &rarr; 313 t/h");
     expect(out).toContain("best rate 146 &rarr; 182 t/h");
-    expect(out).toContain("running cost at best $2,618 &rarr; $3,262/h");
-    expect(out).toContain("nets $606 &rarr; $757/h");
+    expect(out).toContain("running cost at best ¤2,618 &rarr; ¤3,262/h");
+    expect(out).toContain("nets ¤606 &rarr; ¤757/h");
     expect(out).toContain("offline 6 h while it upgrades");
     expect(out).toContain('data-upgrade-building="bld-1"');
     expect(out).not.toContain("disabled");
@@ -36,7 +36,7 @@ describe("the upgrade control (AB#795)", () => {
   it("draws a changed server value: a different price and cap in the fixture are what the control shows", () => {
     const changed = { ...ECONOMY.buildings, extractorYardUpgrades: ECONOMY.buildings.extractorYardUpgrades.map((u) => (u.toTier === 2 ? { ...u, upgradeCost: 41_234, throughputCap: 350 } : u)) };
     const out = html(yard(), corp(), bootstrapEconomy(changed));
-    expect(out).toContain("Upgrade to tier 2 ($41,234)");
+    expect(out).toContain("Upgrade to tier 2 (¤41,234)");
     expect(out).toContain("cap 250 &rarr; 350 t/h");
   });
 
@@ -64,14 +64,14 @@ describe("the upgrade control (AB#795)", () => {
     expect(html(yard({ tier: 6 }), corp({ level: 20, unlocks: { maxUpgradeTier: 6 } }))).toContain("Tier 7 opens at Corporation Level 30; you are Level 20.");
     expect(html(yard({ tier: 7 }), corp({ level: 30, unlocks: { maxUpgradeTier: 7 } }))).toContain("Tier 8 is not open at any level yet.");
     const allowed = html(yard({ tier: 5 }), corp({ level: 10, unlocks: { maxUpgradeTier: 6 } }));
-    expect(allowed).toContain("Upgrade to tier 6 ($202,500)");
+    expect(allowed).toContain("Upgrade to tier 6 (¤202,500)");
   });
 
   it("keeps the button, disabled with the reason, while a cycle runs, while it upgrades, or short of credit", () => {
     expect(html(yard({ active: true }), corp())).toMatch(/Stop or finish its mining cycle first[\s\S]*disabled/);
     const until = Date.UTC(2026, 8, 26, 14, 5);
     expect(html(yard({ upgradingUntil: until }), corp(), bootstrapEconomy(), { now: until - 60_000 })).toMatch(/back online at 14:05 UTC[\s\S]*disabled/);
-    expect(html(yard(), corp({ finances: { credits: 12_500 } }))).toMatch(/Needs \$40,000; you have \$12,500\.[\s\S]*disabled/);
+    expect(html(yard(), corp({ finances: { credits: 12_500 } }))).toMatch(/Needs ¤40,000; you have ¤12,500\.[\s\S]*disabled/);
   });
 
   // ISP-308 (AB#2304): the first two yards are the starting kit and pay none; the third pays it.
@@ -79,8 +79,8 @@ describe("the upgrade control (AB#795)", () => {
     const second = yard({ id: "ext-2", buildingId: "bld-2" });
     const third = yard({ id: "ext-3", buildingId: "bld-3" });
     const yards = { mining: { silicateExtractors: [yard(), second, third] } };
-    expect(html(second, corp(yards))).toContain("running cost at best $2,618 &rarr; $3,262/h");
-    expect(html(third, corp(yards))).toContain("running cost at best $2,659 &rarr; $3,303/h");
+    expect(html(second, corp(yards))).toContain("running cost at best ¤2,618 &rarr; ¤3,262/h");
+    expect(html(third, corp(yards))).toContain("running cost at best ¤2,659 &rarr; ¤3,303/h");
   });
 
   it("fails closed: no prices loaded, or no building record, means no button", () => {

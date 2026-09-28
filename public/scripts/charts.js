@@ -341,7 +341,7 @@ function renderIncomeBySource(finances) {
               label(ctx) {
                 const total = ctx.dataset.data.reduce((a, b) => a + b, 0) || 1;
                 const pct = ((ctx.parsed / total) * 100).toFixed(1);
-                return `${ctx.label}: $${formatCompact(ctx.parsed)} (${pct}%)`;
+                return `${ctx.label}: ¤${formatCompact(ctx.parsed)} (${pct}%)`;
               }
             }
           }

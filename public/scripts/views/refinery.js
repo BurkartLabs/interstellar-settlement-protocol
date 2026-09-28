@@ -476,7 +476,7 @@ export function renderRefinery(data) {
           }
           const { refineryCost: buildCost, refineryAssetValue: assetValue } = clientPrices(appState.economy);
           if (Number(corp.finances.credits || 0) < buildCost) {
-            throw new Error(`Refinery construction requires ${toCurrency(buildCost)} credits.`);
+            throw new Error(`Refinery construction requires ${toCurrency(buildCost)}.`);
           }
 
           buildings.push({ name: "Refinery", tier: 1, status: "Operational" });

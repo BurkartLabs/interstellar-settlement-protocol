@@ -12,7 +12,7 @@ import { fabricationMsFor, tierTableFor } from "./buildingTiers.js"; // ISP-102 
 import { refineryMultiplierFor } from "./refineryOutput.js";
 import { utcTime } from "./timeFormat.js";
 
-// The extractor card around this control prints money with toCurrency ("$1,234"), so the control does too.
+// The extractor card around this control prints money with toCurrency ("¤1,234"), so the control does too.
 const money = (n) => toCurrency(Math.floor(n));
 const num = (n) => Math.round(n).toLocaleString("en-US");
 const utc = (ms, now) => utcTime(ms, { now }).replace(/ UTC$/, ""); // ISP-249 (AB#945): the callers write " UTC" after it

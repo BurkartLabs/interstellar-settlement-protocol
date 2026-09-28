@@ -69,13 +69,13 @@ ${seeded.stderr}`);
 }
 
 for (const viewport of VIEWPORTS) {
-  test(`a tier-5 yard allowed tier 6 offers it at $202,500, at ${viewport.label}`, async ({ browser }) => {
+  test(`a tier-5 yard allowed tier 6 offers it at ¤202,500, at ${viewport.label}`, async ({ browser }) => {
     test.setTimeout(90_000);
     const { page, control, errors, close } = await openYard(browser, viewport, "tier5");
     try {
       await expect(control).toContainText("Tier 5 of 8");
       await expect(control).toContainText("cap 610 → 763 t/h");
-      await expect(control.locator("button")).toHaveText("Upgrade to tier 6 ($202,500)");
+      await expect(control.locator("button")).toHaveText("Upgrade to tier 6 (¤202,500)");
       await page.screenshot({ path: path.join(SHOT_DIR, `tier5-allowed-${viewport.label}.png`) });
       expect(errors).toEqual([]);
     } finally {

@@ -126,7 +126,7 @@ describe("walkthrough steps (AB#404)", () => {
   it("quotes the Earth lease price from data/systems.json", () => {
     const earth = SYSTEMS.flatMap((s) => s.bodies || []).find((b) => b.id === "earth");
     const step = WALKTHROUGH_STEPS.find((s) => s.id === "lease");
-    expect(step.text).toContain(`Earth, Silicate Extraction, for $${earth.leaseCost.toLocaleString("en-US")}`);
+    expect(step.text).toContain(`Earth, Silicate Extraction, for ¤${earth.leaseCost.toLocaleString("en-US")}`);
   });
 
   it("quotes Basic Extraction Analytics' duration and effect from data/research.json", () => {
