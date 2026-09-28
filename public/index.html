@@ -687,8 +687,16 @@
               <div id="ceo-queue" class="ui-panel__body ui-stack"></div>
             </section>
             <section class="ui-panel" aria-labelledby="ceo-tree-title">
-              <header class="ui-panel__header"><h3 id="ceo-tree-title" class="ui-panel__title"><span class="ui-code" data-code-for="ceo-tree-title" aria-hidden="true"></span>Programs</h3></header>
-              <div id="ceo-insight-tree" class="ui-panel__body ui-grid"></div>
+              <!-- AB#2474: the section collapses as a whole, and each category inside it on its own (views/ceoInsight.js). -->
+              <header class="ui-panel__header insight__header">
+                <h3 id="ceo-tree-title" class="ui-panel__title insight__heading">
+                  <button id="ceo-programs-toggle" class="insight__toggle" type="button" aria-expanded="true" aria-controls="ceo-insight-tree">
+                    <span><span class="ui-code" data-code-for="ceo-tree-title" aria-hidden="true"></span>Programs</span>
+                    <span class="insight__arrow" aria-hidden="true">▾</span>
+                  </button>
+                </h3>
+              </header>
+              <div id="ceo-insight-tree" class="ui-panel__body ui-stack"></div>
             </section>
           </article>
 
