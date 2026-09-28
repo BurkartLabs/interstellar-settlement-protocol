@@ -99,7 +99,8 @@ export const GAMEPLAY_INPUT = {
   "POST /launch-expedition": {
     body: {
       beltKey: id("belts", "an asteroid belt"), duration: id("expeditionDurations", "an expedition length"),
-      escortFleetId: ref("one of your fleets", { optional: true }) // AB#820: the rules check it is the caller's own
+      escortFleetId: ref("one of your fleets", { optional: true }), // AB#820: the rules check it is the caller's own
+      escortContractId: ref("a fleet you have hired", { optional: true }) // AB#4678: a hired fleet as the escort
     }
   },
   "POST /start-refinery": {

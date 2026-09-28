@@ -1,11 +1,13 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
-import { getAccountById, mutateAccountState } from "../../server/gameState.js";
+import { getAccountById, getState, mutateAccountState } from "../../server/gameState.js";
 import { allStations } from "../../server/game/stations.js";
 import { applyAsteroidExpeditions, settleRats } from "../../server/game/asteroids.js";
 import { RATS, encounterChance, encounterRate, fightEncounter, forcePower, gatheredGroup, planEncounters, ratGroup, ratsTableProblems, seedFor } from "../../server/game/rats.js";
 import { combatModifiersFor } from "../../server/game/combat.js";
+import { hiredEscortHooks } from "../../server/hiredEscort.js"; // AB#4678
+import { recordContractLosses, settleContracts } from "../../server/mercenaries.js";
 
 // AB#820 (docs/design/rats.md): Rat encounters on the server. The roll is seeded and made on the server; an escort
 // fights each encounter through the combat resolver; its losses are real; the outcome is applied once.
@@ -248,5 +250,125 @@ describe("what the expedition's report says (AB#820)", () => {
     const beaten = { rats: { escortFleetId: "f", escortBeaten: true, encounters: [{ escort: { lost: { lf: 4 } }, haulLost: { Titanium: 250 } }, { escort: null, haulLost: { Titanium: 75 } }] } };
     expect(expeditionRatsText(beaten)).toBe("Met Rats twice. The escort was beaten, losing 4 Light Fighters. Rats took 325 units of the haul.");
     expect(expeditionNotificationBody({ beltKey: WOLF_BELT, systemId: WOLF, yields: { Titanium: 675 }, ...beaten })).toContain("Rats took 325 units of the haul.");
+  });
+});
+
+// AB#4678 (docs/design/rats.md, section 3): a hired mercenary fleet as the escort. Its owner's fleet is committed on the
+// owner's books until the expedition ends; it fights with what it has left and its owner's modifiers; its losses go on its
+// contract, paid from the collateral when the contract settles, as a raid's are.
+describe("a hired escort (AB#4678)", () => {
+  /** A corporation owning one fleet at `stationId` (Wolf 359's station unless given), offered for hire on `allowedUse`. */
+  async function mercenary(allowedUse = "pve", units = STRONG, stationId = wolfStation()) {
+    const { app } = await getApp();
+    const reg = await registerAccount(app);
+    mutateAccountState(reg.account.id, (s) => {
+      s.corp.finances.credits = 100_000;
+      s.corp.currentStationId = stationId;
+      s.corp.military = { units: { lf: 0, ds: 0, se: 0, at: 0, dt: 0, ...units }, readiness: 100,
+        fleets: [{ id: "flt-merc", name: "Grey Company", units: { ...units }, stationId, transit: null, formedAt: Date.now() }] };
+    }, { sanitize: false, settleMining: false });
+    const api = authed(app, reg.accessToken);
+    const at = (p) => `/api/accounts/${reg.account.id}/gameplay${p}`;
+    const offer = await api.post(at("/mercenaries/offer")).send({ fleetId: "flt-merc", termHours: 24, price: 5_000, collateral: 1_000, allowedUse });
+    if (offer.status !== 200) throw new Error(JSON.stringify(offer.body));
+    return { id: reg.account.id, contractId: offer.body.offer.id, corp: () => getAccountById(reg.account.id).state.corp, fleet: () => getAccountById(reg.account.id).state.corp.military.fleets.find((x) => x.id === "flt-merc") };
+  }
+  const hire = async (m, merc) => {
+    const res = await m.api.post(m.at(`/mercenaries/${merc.contractId}/hire`)).send({});
+    if (res.status !== 200) throw new Error(JSON.stringify(res.body));
+  };
+  const offerOf = (id) => getState().market.mercenaryOffers.find((o) => o.id === id);
+
+  it("escorts on a pve contract: provisions charged to the renter, the owner's fleet committed on its books, released when the expedition ends", async () => {
+    const merc = await mercenary("pve");
+    const m = await miner();
+    await hire(m, merc);
+    const before = m.corp().finances.credits;
+    const res = await launch(m, { escortContractId: merc.contractId });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    const provisions = RATS.escortCostPerSupplyHour * (6 * 4 + 6 * 1) * 2; // the hired fleet's supply, as for an own escort
+    expect(before - m.corp().finances.credits).toBe(3000 + provisions);
+    const exp = m.corp().asteroidMining.activeExpeditions[0];
+    expect(exp.rats).toMatchObject({ escortFleetId: "flt-merc", escortContractId: merc.contractId, escortOwnerCorpId: merc.corp().publicId, escortUnits: STRONG, provisions });
+    expect(exp.rats.chance).toBeCloseTo(encounterChance(DENSITY, 2, forcePower(STRONG)), 10);
+    expect(merc.fleet().escort).toMatchObject({ expeditionId: exp.id, contractId: merc.contractId });
+    // committed: no second escort, no deployment elsewhere (raids.js refuses it the same way as an own escorting fleet)
+    const again = await launch(m, { escortContractId: merc.contractId });
+    expect(again.status).toBe(400);
+    expect(again.body.error).toMatch(/already escorting/);
+    const deploy = await m.api.post(m.at(`/mercenaries/${merc.contractId}/deploy`)).send({ toStationId: "earth-station-prime" });
+    expect(deploy.status).toBe(409);
+    expect(deploy.body.error).toMatch(/escorting an expedition/);
+    // it comes home through the tick's hooks: the owner's fleet is released
+    mutateAccountState(m.id, (s) => {
+      const e = s.corp.asteroidMining.activeExpeditions[0];
+      e.completesAt = Date.now() - 1; e.deployedAt = e.completesAt - 2 * HOUR; e.lastTickAt = e.completesAt - 1000;
+    }, { sanitize: false, settleMining: false });
+    mutateAccountState(m.id, (s) => { applyAsteroidExpeditions(s.corp, Date.now(), null, hiredEscortHooks); }, { sanitize: false, settleMining: false });
+    expect(m.corp().asteroidMining.completedExpeditions[0].id).toBe(exp.id);
+    expect(merc.fleet().escort).toBeUndefined();
+  });
+
+  it("fights with what it has left and its owner's modifiers; its losses go on the contract, not off the fleet", async () => {
+    const merc = await mercenary("raids", WEAK); // a raids contract permits pve too
+    const m = await miner();
+    await hire(m, merc);
+    recordContractLosses(merc.contractId, { lf: 1 }); // lost on an earlier job: 3 of the 4 are left
+    const id = idWithEncounters({ lf: 3 }, 1);
+    const now = Date.now();
+    mutateAccountState(merc.id, (s) => { s.corp.military.fleets[0].escort = { expeditionId: id, since: now, contractId: merc.contractId }; }, { sanitize: false, settleMining: false });
+    const { exp } = fixture(id, null, now);
+    Object.assign(exp.rats, { escortFleetId: "flt-merc", escortContractId: merc.contractId, escortOwnerCorpId: merc.corp().publicId, escortUnits: { lf: 3 }, escortPower: forcePower({ lf: 3 }) });
+    const renterMilitary = JSON.stringify(m.corp().military);
+    const ownerUnits = JSON.stringify(merc.fleet().units);
+    mutateAccountState(m.id, (s) => { settleRats(s.corp, exp, exp.completesAt, hiredEscortHooks); }, { sanitize: false, settleMining: false });
+    const first = exp.rats.encounters[0];
+    expect(first.escort).toMatchObject({ fleetId: "flt-merc", contractId: merc.contractId, before: { lf: 3 } });
+    const expected = fightEncounter({ lf: 3 }, first.rats, combatModifiersFor(merc.corp()));
+    expect(first.escort.lost).toEqual(expected.lost);
+    const recorded = exp.rats.encounters.reduce((sum, e) => sum + (e.escort?.lost?.lf ?? 0), 1); // the 1 from before
+    expect(offerOf(merc.contractId).lost.lf).toBe(Math.min(4, recorded));
+    expect(JSON.stringify(merc.fleet().units)).toBe(ownerUnits); // the fleet itself loses them only when the contract settles
+    expect(JSON.stringify(m.corp().military)).toBe(renterMilitary); // and the renter's forces are not touched at all
+  });
+
+  it("refuses a defense-only contract, one it did not hire, a fleet elsewhere and two escorts at once, changing nothing", async () => {
+    const m = await miner();
+    const defense = await mercenary("defense");
+    await hire(m, defense);
+    const elsewhere = await mercenary("pve", STRONG, "earth-station-prime");
+    await hire(m, elsewhere);
+    const notMine = await mercenary("pve");
+    const state = m.state();
+    for (const [body, error] of [
+      [{ escortContractId: defense.contractId }, /does not permit escorting/],
+      [{ escortContractId: notMine.contractId }, /fleets you have hired/],
+      [{ escortContractId: elsewhere.contractId }, /stationed in the belt's system/],
+      [{ escortContractId: "offer-nope" }, /fleets you have hired/],
+      [{ escortContractId: defense.contractId, escortFleetId: "flt-a" }, /one escort/]
+    ]) {
+      const res = await launch(m, body);
+      expect(res.status, JSON.stringify(body)).toBe(400);
+      expect(res.body.error, JSON.stringify(body)).toMatch(error);
+    }
+    expect(m.state()).toBe(state);
+    for (const merc of [defense, elsewhere, notMine]) expect(merc.fleet().escort).toBeUndefined();
+  });
+
+  it("holds the contract's settlement until the escort is home, as for a raid", async () => {
+    const merc = await mercenary("pve");
+    const m = await miner();
+    await hire(m, merc);
+    expect((await launch(m, { escortContractId: merc.contractId })).status).toBe(200);
+    const after = offerOf(merc.contractId).endsAt + 1;
+    settleContracts(after);
+    expect(offerOf(merc.contractId).state).toBe("hired"); // escorting: the term waits
+    mutateAccountState(m.id, (s) => {
+      const e = s.corp.asteroidMining.activeExpeditions[0];
+      e.completesAt = Date.now() - 1; e.deployedAt = e.completesAt - 2 * HOUR; e.lastTickAt = e.completesAt - 1000;
+    }, { sanitize: false, settleMining: false });
+    mutateAccountState(m.id, (s) => { applyAsteroidExpeditions(s.corp, Date.now(), null, hiredEscortHooks); }, { sanitize: false, settleMining: false });
+    settleContracts(after);
+    expect(offerOf(merc.contractId).state).not.toBe("hired"); // home: it settles
   });
 });

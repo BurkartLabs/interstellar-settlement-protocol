@@ -97,6 +97,7 @@ function fleetFor(attackerAccountId, attacker, { fleetId, contractId }, now) {
     const fleet = owner?.military?.fleets?.find((f) => f.id === offer.fleetId);
     if (!fleet) return { status: 404, error: "No such hired fleet." };
     if (fleet.transit) return { status: 409, error: "That fleet is travelling." };
+    if (fleet.escort) return { status: 409, error: "That fleet is escorting an expedition until it comes home." }; // AB#4678
     return { fleet, ownerAccountId, contractId, ownerCorpId: offer.ownerCorpId };
   }
   const fleet = (attacker.military?.fleets || []).find((f) => f.id === fleetId);

@@ -186,8 +186,11 @@ export function splitExactly(whole, weights) {
  * happens); `exp.rats.encounters` holds those already applied, so a second tick applies nothing twice. Each is fought by
  * what is left of the escort; while it holds, the haul is safe; once beaten, or with none, each takes its row of the
  * unescorted table from the haul carried then.
+ * AB#4678: `hired` is the hired-escort hooks (server/hiredEscort.js, hiredEscortHooks). A hired escort fights with what it
+ * has left and its owner's modifiers, and its losses go on its contract; without the hooks it cannot be reached, so the
+ * expedition rolls unescorted.
  */
-export function settleRats(corp, exp, upTo) {
+export function settleRats(corp, exp, upTo, hired = null) {
   const r = exp.rats;
   if (!r || !Array.isArray(r.encounters)) return;
   const span = Number(exp.completesAt) - Number(exp.deployedAt);
@@ -198,16 +201,18 @@ export function settleRats(corp, exp, upTo) {
     if (enc.share > reached) break; // not yet
     const group = gatheredGroup(ratGroup(r.density), enc.index);
     const record = { index: enc.index, at: Number(exp.deployedAt) + Math.round(enc.share * span), rats: group, escort: null, roll: null, haulLost: {} };
-    const fleet = r.escortFleetId && !r.escortBeaten
+    const hiredEscort = r.escortContractId && !r.escortBeaten && hired ? hired.escort(exp) : null; // AB#4678
+    const fleet = !r.escortContractId && r.escortFleetId && !r.escortBeaten
       ? (corp.military?.fleets || []).find((f) => f.id === r.escortFleetId && f.escort?.expeditionId === exp.id) : null;
-    const escort = fleet ? Object.fromEntries(Object.entries(fleet.units || {}).filter(([, n]) => Number(n) > 0)) : {};
+    const escort = hiredEscort ? hiredEscort.units : fleet ? Object.fromEntries(Object.entries(fleet.units || {}).filter(([, n]) => Number(n) > 0)) : {};
     if (Object.keys(escort).length) {
-      const fight = fightEncounter(escort, group, combatModifiersFor(corp));
-      for (const [id, n] of Object.entries(fight.lost)) { // real losses: the fleet's and the corporation's
+      const fight = fightEncounter(escort, group, hiredEscort ? hiredEscort.modifiers : combatModifiersFor(corp));
+      if (hiredEscort) hired.lose(exp, fight.lost); // AB#4678: recorded on the contract, paid from its collateral
+      else for (const [id, n] of Object.entries(fight.lost)) { // real losses: the fleet's and the corporation's
         fleet.units[id] = Math.max(0, Number(fleet.units[id]) - n);
         corp.military.units[id] = Math.max(0, Number(corp.military.units[id]) - n);
       }
-      record.escort = { fleetId: fleet.id, before: escort, lost: fight.lost, winner: fight.winner, held: fight.held, rounds: fight.rounds };
+      record.escort = { fleetId: hiredEscort ? hiredEscort.fleetId : fleet.id, ...(hiredEscort ? { contractId: r.escortContractId } : {}), before: escort, lost: fight.lost, winner: fight.winner, held: fight.held, rounds: fight.rounds };
       if (fight.held) { r.encounters.push(record); continue; }
       r.escortBeaten = true;
     }
@@ -221,15 +226,17 @@ export function settleRats(corp, exp, upTo) {
   }
 }
 
-/** AB#820: the escort's commitment ends with its expedition. */
-function releaseEscort(corp, exp) {
+/** AB#820: the escort's commitment ends with its expedition. AB#4678: a hired one's, on its owner's books. */
+function releaseEscort(corp, exp, hired = null) {
   const id = exp.rats?.escortFleetId;
   if (!id) return;
+  if (exp.rats.escortContractId) { hired?.release(exp); return; }
   const fleet = (corp.military?.fleets || []).find((f) => f.id === id);
   if (fleet?.escort?.expeditionId === exp.id) delete fleet.escort;
 }
 
-export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
+/** AB#4678: `hired` is the hired-escort hooks (server/hiredEscort.js), which the expedition tick passes. */
+export function applyAsteroidExpeditions(corp, now = Date.now(), world = null, hired = null) {
   ensureCorpAsteroidMiningModel(corp);
 
   const am = corp.asteroidMining;
@@ -237,8 +244,8 @@ export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
   const cameHome = [];
 
   const bringHome = (exp, endedEarly) => {
-    settleRats(corp, exp, Math.min(now, Number(exp.completesAt))); // AB#820: every encounter due, before the haul is delivered
-    releaseEscort(corp, exp);
+    settleRats(corp, exp, Math.min(now, Number(exp.completesAt)), hired); // AB#820: every encounter due, before the haul is delivered
+    releaseEscort(corp, exp, hired);
     exp.status = "completed";
     if (endedEarly) exp.endedEarly = { reason: "belt-depleted", at: now, scheduledAt: Number(exp.completesAt) };
 
@@ -297,7 +304,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
     // Determine belt composition
     const composition = belt ? belt.composition : beltComposition(exp.beltKey);
     if (!composition || !beltComposition(exp.beltKey)) {
-      releaseEscort(corp, exp); // AB#820
+      releaseEscort(corp, exp, hired); // AB#820
       exp.status = "completed";
       expeditionsToRemove.push(exp.id);
       return;
@@ -339,7 +346,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
     }
 
     exp.lastTickAt = now;
-    settleRats(corp, exp, intervalEnd); // AB#820: the encounters due by now, on the haul carried now
+    settleRats(corp, exp, intervalEnd, hired); // AB#820: the encounters due by now, on the haul carried now
 
     // AB#2330: the unit that empties the belt ends every expedition on it; this one comes home now.
     if (belt && belt.remaining <= 0) {

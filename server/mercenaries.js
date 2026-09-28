@@ -257,7 +257,11 @@ export function settleContracts(now = Date.now()) {
     const ownerId = accountIdOfCorp(offer.ownerCorpId), renterId = accountIdOfCorp(offer.renterCorpId);
     // ISP-178 (AB#872; the raid design, section 7): a hired fleet out on a raid finishes it first; the term waits, at no
     // extra price, until the fleet is home
-    if (getAccountById(ownerId)?.state?.corp?.military?.fleets?.find((f) => f.id === offer.fleetId)?.transit?.raidId) continue;
+    const ownerFleet = getAccountById(ownerId)?.state?.corp?.military?.fleets?.find((f) => f.id === offer.fleetId);
+    if (ownerFleet?.transit?.raidId) continue;
+    // AB#4678 (the rats design, section 3): a hired fleet escorting an expedition is committed until it comes home; the
+    // term waits for it, at no extra price, as for a raid
+    if (ownerFleet?.escort) continue;
     if (offer.frozenBy) continue; // ISP-241 (AB#937): an arbitration case holds the escrow until its ruling
     const lostValue = unitsValue(offer.lost);
     const compensation = Math.min(offer.collateral, lostValue);
