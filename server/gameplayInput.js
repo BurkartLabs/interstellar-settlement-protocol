@@ -412,7 +412,7 @@ export const FORUM_INPUT = {
       body: text(8000, "a post of at most 8,000 characters")
     }
   },
-  "POST /threads/:threadId/replies": { params: { threadId: ref("a thread") }, body: { content: text(4000, "a reply of at most 4,000 characters") } },
+  "POST /threads/:threadId/replies": { params: { threadId: ref("a thread") }, body: { content: text(4000, "a reply of at most 4,000 characters"), replyToId: ref("a reply in this thread", { optional: true }) } }, // replyToId: AB#2466
   "POST /threads/:threadId/like": { params: { threadId: ref("a thread") }, body: { replyId: ref("a reply", { optional: true }) } }
 };
 
