@@ -102,7 +102,7 @@ export function renderTravelPage(data) {
   container.innerHTML = `
     ${travelHeader(overline, heading, isInterstellar
       ? "Interstellar jump drive engaged. All station services suspended until arrival."
-      : "Station services suspended during docking approach. Comms and Starmap remain available.")}
+      : "Station services suspended during docking approach. Chat and Starmap remain available.")}
     <section class="ui-panel" aria-label="Journey">
       <div class="ui-panel__body ui-stack">
         <div class="travel__route">
