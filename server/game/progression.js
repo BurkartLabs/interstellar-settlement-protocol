@@ -195,6 +195,30 @@ export function fleetRaiseText(raises) {
 }
 
 /**
+ * Bug AB#2310: what raises the expedition deployment cap next, from the level data, the only thing in this build
+ * that grants deployment slots: the first level above the corporation's whose maxDeployments exceeds its cap, or null.
+ * The refusal used to say "research additional capacity", written when research-granted slots were planned; no
+ * research ever granted one.
+ */
+export function deploymentRaise(corp) {
+  const am = corp?.asteroidMining || {};
+  const cap = typeof am.maxDeployments === "number" ? am.maxDeployments : BASE_MAX_DEPLOYMENTS;
+  const next = [...MILESTONE_LEVELS]
+    .sort((a, b) => a.level - b.level)
+    .find((l) => l.level > Number(corp?.level || 0) && Number(l.unlocks?.maxDeployments || 0) > cap);
+  return next ? { level: next.level, cap: next.unlocks.maxDeployments } : null;
+}
+
+/** Bug AB#2310: the launch refusal when every deployment slot is in use, naming only what really raises the cap. */
+export function deploymentCapText(corp) {
+  const am = corp?.asteroidMining || {};
+  const cap = typeof am.maxDeployments === "number" ? am.maxDeployments : BASE_MAX_DEPLOYMENTS;
+  const raise = deploymentRaise(corp);
+  return `All deployment slots are occupied (${am.activeExpeditions?.length || 0}/${cap}). Wait for a probe to return.`
+    + (raise ? ` Reaching Corporation Level ${raise.level} raises it to ${raise.cap}.` : "");
+}
+
+/**
  * ISP-104 (AB#796): what each unlock key does to a corporation, one applier per LEVEL_UNLOCK_KEYS entry. Each merges
  * upward: a level never lowers a value the corporation already has (a larger cap from research or a later level, a
  * sector opened another way), so evaluating again, or in any order, is harmless.

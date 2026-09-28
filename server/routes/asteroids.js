@@ -9,6 +9,7 @@ import { BELT_KEYS, EXPEDITION_DURATIONS, beltComposition, EXPEDITION_LAUNCH_COS
 import { CONGLOMERATE_CATALOG } from "../conglomerates.js"; // Bug #4656: the remote launch's yield share
 import { applyCredits } from "../finances.js";
 import { fleetStatus } from "../gameState.js"; // Bug #586
+import { deploymentCapText } from "../game/progression.js"; // Bug AB#2310
 import { emitToAccount } from "../realtime.js";
 import { SYSTEMS_CATALOG } from "../travel.js";
 import { beltPhrase } from "../../public/scripts/displayNames.js"; // AB#1336
@@ -304,7 +305,7 @@ export function registerAsteroidRoutes(app) {
         "not-scouted": "This asteroid belt has not been scouted. Scout the belt first to reveal its composition before launching an expedition.",
         "out-of-reach": "Your research does not reach that system yet, so a probe cannot be launched to it from here.", // Bug #4656
         "no-probes": "No mining probes available. Fabricate probes at your Assembly Facility.",
-        "deployment-cap": `All deployment slots are occupied (${am.activeExpeditions?.length || 0}/${am.maxDeployments || BASE_MAX_DEPLOYMENTS}). Wait for a probe to return or research additional capacity.`,
+        "deployment-cap": deploymentCapText(account.state.corp), // Bug AB#2310: no research raises this; a level does
         "wrong-system": "You must be in the same system as the asteroid belt to launch an expedition.",
         "insufficient-credits": fundingRequirementMessage(provisions ? "Expedition launch with its escort's provisions" : "Expedition launch", account.state.corp, launchCost + provisions),
         // AB#820: the escort, and a belt the server cannot read the danger of
