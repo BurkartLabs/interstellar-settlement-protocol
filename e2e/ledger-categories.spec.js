@@ -60,6 +60,7 @@ ${seeded.stderr}`);
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
       await openTab(page, "finance");
+      await page.locator('#finance-subnav [data-finance-sub="statements"]').click(); // AB#2470: the books to date are their own page
       const pnl = page.locator("#finance-pnl-table");
       await expect(pnl.locator("tr", { hasText: "Yard Price Growth" })).toContainText("13,000");
       await expect(pnl.locator("tr", { hasText: "Construction" })).toContainText("150,000");

@@ -19,7 +19,7 @@ import { renderInsightTree } from "./views/ceoInsight.js";
 import { bindCollapsibleSections, bindGlobalControls, loadNotifications, renderNotifications, updateCorpIdentity, updateReplayOnboardingVisibility } from "./views/chrome.js";
 import { bindCommsForms, renderChatChannelTabs, renderChatLog, resolveChatChannel } from "./views/comms.js";
 import { bindExchangeForms, renderMarket } from "./views/exchange.js";
-import { loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } from "./views/finance.js";
+import { bindFinanceSubpages, loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } from "./views/finance.js";
 import { bindForumForms, renderForums } from "./views/forums.js";
 import { bindInboxControls, loadMessages, onInboxTabActivated, renderInboxMessageList } from "./views/inbox.js";
 import { onConversationEvent } from "./views/conversations.js"; // AB#911
@@ -767,6 +767,7 @@ async function boot() {
   bindBuildingActions();
   bindInboxControls();
   bindChartDurationPickers();
+  bindFinanceSubpages(); // AB#2470
   bindPriceChart({
     fetchHistory: async (item) => parseJsonResponse(await apiFetch(`/api/market/history/${encodeURIComponent(item)}`)),
     formatCredits: toCurrency
