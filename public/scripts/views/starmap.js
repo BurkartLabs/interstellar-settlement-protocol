@@ -5,6 +5,7 @@ import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { starmapMiningState } from "../beltCompositions.js";
 import { deepClone } from "../helpers.js";
+import { clientPrices } from "../clientPrices.js"; // Bug #4775
 import { beltScoutedText } from "../miningFeedback.js";
 import { createStarmapController } from "../starmap.js";
 import { appState, techTree } from "../state.js";
@@ -26,6 +27,7 @@ export const starmap = createStarmapController({
   resetButton: document.getElementById("map-reset"),
   researchCatalog: techTree, // Bug #1270: the lock names the research a jump needs
   getCorpLevel: () => appState.data?.corp?.level || 0,
+  getExpeditionLaunchCost: () => clientPrices(appState.economy).expeditionLaunchCost, // Bug #4775
   getMemberStation: () => appState.conglomerate?.station || null, // ISP-212 (AB#907)
   getSystemsCatalog: () => appState.systemsCatalog, // ISP-112 (AB#804)
   getNavigation: () => appState.navigation,
