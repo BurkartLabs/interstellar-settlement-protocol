@@ -5,6 +5,7 @@ import { apiFetch } from "../apiClient.js";
 import { setGroupCount } from "../navGroups.js"; // ISP-75 (AB#764)
 import { inboxEmptyText } from "../emptyStates.js";
 import { formatInboxDate } from "../helpers.js";
+import { markdownHtml } from "../markdown.js"; // AB#2467
 import { escapeHtml, messageListItemsHtml } from "../html.js";
 import { appState } from "../state.js";
 import { pushFeedback } from "./shared.js";
@@ -156,7 +157,8 @@ export function openMessage(messageId) {
     msg.fromType === "player" ? `From: ${msg.fromName}` : `From: ${msg.fromName}`;
   document.getElementById("inbox-detail-date").textContent = formatInboxDate(msg.sentAt);
   document.getElementById("inbox-detail-subject").textContent = msg.subject || "(no subject)";
-  document.getElementById("inbox-detail-body").textContent = msg.body || "";
+  // AB#2467: the body's Markdown, every piece of its text escaped as it is built (public/scripts/markdown.js).
+  document.getElementById("inbox-detail-body").innerHTML = markdownHtml(msg.body || "");
 
   const archiveBtn = document.getElementById("inbox-action-archive");
   const restoreBtn = document.getElementById("inbox-action-restore");

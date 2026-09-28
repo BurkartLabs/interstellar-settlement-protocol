@@ -7,6 +7,7 @@
 
 import { apiFetch } from "../apiClient.js";
 import { escapeHtml } from "../html.js";
+import { markdownHtml } from "../markdown.js"; // AB#2467: a body renders its Markdown, escaped as it is built
 import { appState } from "../state.js";
 import { utcTime } from "../timeFormat.js";
 
@@ -54,7 +55,7 @@ export function threadMessagesHtml(messages, formatDate) {
   return messages.map((m) => `<li class="thread__msg ${m.mine ? "thread__msg--mine" : "thread__msg--theirs"}" data-message-id="${escapeHtml(m.id)}">
       <span class="thread__meta">${m.mine ? "You" : escapeHtml(m.fromName || "Unknown")} · ${escapeHtml(formatDate(m.sentAt))}</span>
       ${m.subject ? `<span class="thread__subject">${escapeHtml(m.subject)}</span>` : ""}
-      <p class="thread__body">${escapeHtml(m.body)}</p>
+      <div class="thread__body">${markdownHtml(m.body)}</div>
     </li>`).join("");
 }
 
