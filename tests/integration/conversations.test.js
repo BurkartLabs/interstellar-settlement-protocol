@@ -78,14 +78,15 @@ describe("sending by corporation id", () => {
     expect((await a.api.post(`/api/accounts/${c.id}/conversations/send`).send({ toCorpId: b.publicId, body: "x" })).status).toBe(403);
   });
 
-  it("stores and returns a body exactly as sent, <script> included, and the Inbox renders bodies as text", async () => {
+  it("stores and returns a body exactly as sent, <script> included, and the Inbox renders bodies through the escaping Markdown renderer", async () => {
     const a = await player(), b = await player();
     const body = '<script>alert("x")</script> & 10 < 20';
     const sent = await send(a, b, body);
     const page = await b.api.get(`${b.base}/conversations/${sent.body.conversationId}/messages`);
     expect(page.body.messages[0].body).toBe(body); // no filter and no stripping (AB#696): the client escapes
     const inbox = fs.readFileSync(path.resolve("public/scripts/views/inbox.js"), "utf8");
-    expect(inbox).toMatch(/inbox-detail-body"\)\.textContent = msg\.body/);
+    // AB#2467: Markdown, escaped as it is built (tests/unit/markdown.test.js renders real XSS payloads through it)
+    expect(inbox).toMatch(/inbox-detail-body"\)\.innerHTML = markdownHtml\(msg\.body/);
   });
 });
 
