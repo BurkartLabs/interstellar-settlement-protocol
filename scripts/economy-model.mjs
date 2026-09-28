@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import { operationCostPerHourFor, startupCostFor, bestThroughputFor } from "../server/economy.js";
 // AB#2480: the bid day and the best rate along it are one copy, shared with the extractor panel, which opens its
 // throughput control at this best rate.
-import { bidDay, steadyBidDay, bestRateAlongBid } from "../public/scripts/standingBid.js";
+import { bidDay, steadyBidDay, bestRateAlongBid, npcBidAfterRecovery } from "../public/scripts/standingBid.js";
 export { bidDay, steadyBidDay };
 import { taxBreakdown } from "../public/scripts/exchangeTax.js";
 
@@ -162,6 +162,22 @@ export function renderModel(m) {
 }
 
 /** The lease catalog: every body with lease terms. */
+/**
+ * AB#2362: a standing bid driven to its floor, and what it opens at on each of the next `days` mornings with nobody
+ * selling, by the game's own overnight recovery. ECONOMY.md quotes it in words, and tests/unit/economyModel.test.js
+ * holds the words to this, so the sentence cannot drift from the rate again (it quoted a 40% recovery's numbers).
+ */
+export function recoveryFromFloor(base, npcBid, days = 3) {
+  const floor = Math.round((base * npcBid.floorPct) / 100);
+  const opens = [];
+  let bid = floor;
+  for (let d = 0; d < days; d += 1) {
+    bid = npcBidAfterRecovery(base, bid, npcBid);
+    opens.push(bid);
+  }
+  return { floor, opens };
+}
+
 export function leaseCatalog() {
   const data = readJson("data/systems.json");
   const systems = Array.isArray(data) ? data : data.systems || [];

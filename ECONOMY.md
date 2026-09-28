@@ -227,8 +227,8 @@ For silicates at 24 credits:
 | 7,000 | 13 |
 | beyond the quota | 13 (the floor) |
 
-Overnight it recovers 60% of the gap back to base: a bid driven to the floor opens the next day at 17, then 20,
-then 22. A corporation that dumps volume therefore pays for it twice - in the price it gets and in the price it
+Overnight it recovers 60% of the gap back to base: a bid driven to the floor opens the next day at 20, then 22,
+then 23. A corporation that dumps volume therefore pays for it twice - in the price it gets and in the price it
 gets tomorrow - and a corporation that did not sell finds the market where it left it.
 
 What this is for: at 40,000 units a day and a bid that falls as you sell, a second corporation's listing becomes
@@ -363,8 +363,9 @@ promises the corporation is never in a state where nothing it can do changes any
 action changes nothing.* Once the Salvage Assignment exists, `ops/probes/isp-runway.ts` (or a variant of it) run
 with a bot forced to 0 credits and 0 ore — the planner and greedy bots' own day-2/3 collapse above is the natural
 seed to reuse — must show the bot accepting and completing a Salvage Assignment and its credits rising above 0
-within 4 simulated hours of hitting the floor, at seed 7000 and seed 7001 (a second seed, so the claim is not an
-artifact of one run), over both a 7-day and a 30-day horizon. If any run instead shows the bot still refused on
+within 4 simulated hours of hitting the floor, at seed 7000 and seed 7001 with `--vary-downtime` (a second seed, so
+the claim is not an artifact of one run; without that flag the probe pins one downtime roll, and seeds next to each
+other pin nearly the same one, so two seeds are one sample: Bug AB#2337), over both a 7-day and a 30-day horizon. If any run instead shows the bot still refused on
 every available action after reaching 0 credits, the claim is false and the design has not closed the wall it
 claims to.
 
