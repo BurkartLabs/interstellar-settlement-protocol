@@ -61,6 +61,7 @@ export function registerCatalogRoutes(app) {
         employees: ECONOMY.employees,
         buildings: ECONOMY.buildings,
         probes: ECONOMY.probes,
+        expeditions: { launchCost: ECONOMY.expeditions.launchCost }, // Bug #4775: the Starmap's Launch Expedition price
         // ISP-103 (AB#795): the highest building tier each level allows (data/milestones.json), so the upgrade control
         // can say which level opens the next tier.
         // ISP-102 (AB#794): how long a probe takes before any tier, for the Assembly Facility's upgrade control.

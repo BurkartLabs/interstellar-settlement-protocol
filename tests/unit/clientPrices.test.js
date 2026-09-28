@@ -15,7 +15,8 @@ const PRICES = {
   assemblyFacilityCost: ECONOMY.buildings.assemblyFacilityCost,
   refineryCost: ECONOMY.buildings.refineryCost,
   refineryAssetValue: ECONOMY.buildings.refineryAssetValue,
-  probeBuildCost: ECONOMY.probes.buildCost
+  probeBuildCost: ECONOMY.probes.buildCost,
+  expeditionLaunchCost: ECONOMY.expeditions.launchCost // Bug #4775: the Starmap quoted "(¤3,000)" as text
 };
 
 describe("the browser's prices come from data/economy.json (AB#1430)", () => {
