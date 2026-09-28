@@ -2,7 +2,7 @@
 // other Exchange tables hide theirs when empty (AB#402). With goods the table is drawn as before. Starts its own server
 // on a seeded data directory (the sell-orders-capped.spec.js pattern); screenshots go to e2e/screenshots/ab-1857/.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openExchangePage, openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -42,7 +42,7 @@ function startServer(dir) {
 }
 
 async function openCreateListing(page) {
-  await openTab(page, "market");
+  await openExchangePage(page, "players"); // AB#2472: Create listing is on Player orders
   const card = page.locator("#exchange-listing-section");
   await expect(card).toBeVisible();
   await card.scrollIntoViewIfNeeded();

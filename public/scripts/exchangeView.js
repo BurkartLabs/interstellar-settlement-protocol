@@ -22,8 +22,14 @@ export function tradeNumbers(raw) {
 
 export const EXCHANGE_VIEW_KEY = "isp.exchangeView";
 
-/** Which order tables to show: all of them, or one. */
-export const ORDER_TYPES = ["all", "sell", "bids", "standing", "mine"]; // "bids": players' buy orders (AB#1054)
+/**
+ * AB#2472: the Exchange's subpages, the first the default. They replaced the "Show" filter (AB#402), whose choice an
+ * older saved view may still hold: LEGACY_TYPE_PAGE reads it as the page with those orders.
+ */
+export const EXCHANGE_PAGES = ["standing", "players", "mine", "mercs", "history"];
+const LEGACY_TYPE_PAGE = { sell: "players", bids: "players", standing: "standing", mine: "mine" };
+/** The pages that show the price chart and the filters: the ones with orders to filter. */
+export const ORDER_PAGES = new Set(["standing", "players", "mine"]);
 
 /** Sort orders, as the value of the sort control. */
 export const SORTS = ["newest", "oldest", "price-asc", "price-desc", "qty-desc", "qty-asc"];
@@ -34,7 +40,7 @@ export const SELLERS = ["all", "conglomerate"];
 /** AB#884: which item tier to show: every tier ("") or one (the catalog's tier, data/items.json). */
 export const TIERS = ["", "1", "2", "3", "4"];
 
-export const DEFAULT_EXCHANGE_VIEW = Object.freeze({ resource: "", type: "all", sort: "newest", sellers: "all", tier: "" });
+export const DEFAULT_EXCHANGE_VIEW = Object.freeze({ resource: "", page: "standing", sort: "newest", sellers: "all", tier: "" });
 
 /** Longer than any resource name, short enough that nothing unbounded is kept. */
 const RESOURCE_MAX_LENGTH = 40;
@@ -45,7 +51,7 @@ export function normalizeExchangeView(raw) {
   const resource = typeof view.resource === "string" && view.resource.length <= RESOURCE_MAX_LENGTH ? view.resource : "";
   return {
     resource,
-    type: ORDER_TYPES.includes(view.type) ? view.type : DEFAULT_EXCHANGE_VIEW.type,
+    page: EXCHANGE_PAGES.includes(view.page) ? view.page : LEGACY_TYPE_PAGE[view.type] ?? DEFAULT_EXCHANGE_VIEW.page,
     sort: SORTS.includes(view.sort) ? view.sort : DEFAULT_EXCHANGE_VIEW.sort,
     sellers: SELLERS.includes(view.sellers) ? view.sellers : DEFAULT_EXCHANGE_VIEW.sellers,
     tier: TIERS.includes(view.tier) ? view.tier : DEFAULT_EXCHANGE_VIEW.tier

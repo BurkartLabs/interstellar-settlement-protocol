@@ -44,7 +44,7 @@ function startServer(dir) {
 /** Each screen: its tab, its title, the plain words, and one section whose heading is checked the same way. */
 const SCREENS = [
   { tab: "finance", title: "#finance .ui-screen__title", plain: "Financial Control Board", section: { id: "finance-cash-reserves", heading: "#finance-cash-reserves h3", plain: "Cash Reserves" } },
-  { tab: "market", title: "#market .ui-screen__title", plain: "Galactic Exchange", section: { id: "exchange-sell-section", heading: "#exchange-sell-section .ui-panel__title", plain: "Sell orders" } },
+  { tab: "market", title: "#market .ui-screen__title", plain: "Galactic Exchange", section: { id: "exchange-standing-section", heading: "#exchange-standing-section .ui-panel__title", plain: "Standing buy orders" } }, // AB#2472: on the default subpage
   { tab: "station", title: "#station .ui-screen__title", plain: null, section: { id: "station-construction-section", heading: "#station-construction-section h3", plain: "Construction" } }
 ];
 

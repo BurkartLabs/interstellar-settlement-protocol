@@ -650,329 +650,344 @@
             </header>
             <div id="market-station-banner"></div>
 
-            <!-- Price history for the selected resource (AB#716); public/scripts/priceChart.js draws it -->
-            <section class="ui-panel" id="exchange-price-chart">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-price-chart" aria-hidden="true"></span><span id="price-chart-title">Silicates: price history</span></h3>
-                  <p class="ui-panel__meta" id="price-chart-summary">Loading price history...</p>
-                  <!-- ISP-233 (AB#928): the ITC's price-impact alert when the item's last day closed under its dumping line -->
-                  <p class="exchange__flood-alert" id="price-chart-alert" role="status" hidden></p>
-                </div>
-                <div class="ui-panel__actions" role="group" aria-label="Chart range">
-                  <button type="button" class="ui-button ui-button--secondary" data-price-range="7" aria-pressed="true">7 days</button>
-                  <button type="button" class="ui-button ui-button--secondary" data-price-range="30" aria-pressed="false">30 days</button>
-                </div>
-              </header>
-              <div class="ui-panel__body exchange__canvas"><canvas id="price-chart-canvas" role="img" aria-label="Daily closing price and volume"></canvas></div>
-              <div class="ui-panel__body"><p class="ui-panel__meta">Charts the resource picked in the filter below, or Silicates when All is picked. Daily close and volume, UTC days.</p></div>
-            </section>
+            <!-- AB#2472 (DOCTRINE P-010, docs/design/p010-scroll-audit.md): the Exchange was one column of twelve sections, 7.3
+                 screens at 1440x900. Five subpages now (public/scripts/views/exchange.js, bindExchangePages); the price chart and
+                 the filters serve the three order pages and hide on the other two. The page is remembered with the view. -->
+            <div class="ui-tabs exchange__pages" id="exchange-pages" role="tablist" aria-label="Exchange pages">
+              <button class="ui-tab" type="button" role="tab" id="exchange-tab-standing" aria-controls="exchange-page-standing" aria-selected="true" tabindex="0" data-exchange-page="standing">Standing orders</button>
+              <button class="ui-tab" type="button" role="tab" id="exchange-tab-players" aria-controls="exchange-page-players" aria-selected="false" tabindex="-1" data-exchange-page="players">Player orders</button>
+              <button class="ui-tab" type="button" role="tab" id="exchange-tab-mine" aria-controls="exchange-page-mine" aria-selected="false" tabindex="-1" data-exchange-page="mine">My listings</button>
+              <button class="ui-tab" type="button" role="tab" id="exchange-tab-mercs" aria-controls="exchange-page-mercs" aria-selected="false" tabindex="-1" data-exchange-page="mercs">Mercenary Rentals</button>
+              <button class="ui-tab" type="button" role="tab" id="exchange-tab-history" aria-controls="exchange-page-history" aria-selected="false" tabindex="-1" data-exchange-page="history">Trade history</button>
+            </div>
 
-            <!-- Resource filter, order-type filter and sort (AB#402) -->
-            <section class="ui-panel exchange__filters" aria-label="Filters">
-              <div class="ui-tabs" id="exchange-filter-bar" role="tablist" aria-label="Filter by resource"></div>
-              <div class="exchange__selects">
-                <label class="ui-field"><span class="ui-field__label">Show</span>
-                  <select class="ui-select" id="exchange-type-filter">
-                    <option value="all">All orders</option>
-                    <option value="sell">Player sell orders</option>
-                    <option value="bids">Player buy orders</option>
-                    <option value="standing">Standing buy orders</option>
-                    <option value="mine">My listings</option>
-                  </select>
-                </label>
-                <!-- AB#884: the catalog's item tiers (data/items.json) -->
-                <label class="ui-field"><span class="ui-field__label">Tier</span>
-                  <select class="ui-select" id="exchange-tier-filter">
-                    <option value="">All tiers</option>
-                    <option value="1">Tier 1: common raw</option>
-                    <option value="2">Tier 2: scarce raw</option>
-                    <option value="3">Tier 3: refined</option>
-                    <option value="4">Tier 4: exotic</option>
-                  </select>
-                </label>
-                <!-- ISP-208 (AB#903): shown only to a conglomerate member -->
-                <label class="ui-field" id="exchange-sellers-field" hidden><span class="ui-field__label">Sellers</span>
-                  <select class="ui-select" id="exchange-sellers-filter">
-                    <option value="all">Everyone</option>
-                    <option value="conglomerate">My conglomerate</option>
-                  </select>
-                </label>
-                <label class="ui-field"><span class="ui-field__label">Sort</span>
-                  <select class="ui-select" id="exchange-sort">
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                    <option value="price-asc">Price: low to high</option>
-                    <option value="price-desc">Price: high to low</option>
-                    <option value="qty-desc">Quantity: most first</option>
-                    <option value="qty-asc">Quantity: fewest first</option>
-                  </select>
-                </label>
-              </div>
-            </section>
-
-            <div class="exchange__split">
-              <!-- Sell orders: others' items you can buy -->
-              <section class="ui-panel" id="exchange-sell-section">
+            <div id="exchange-tools">
+              <!-- Price history for the selected resource (AB#716); public/scripts/priceChart.js draws it -->
+              <section class="ui-panel" id="exchange-price-chart">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-sell-section" aria-hidden="true"></span>Sell orders</h3>
-                    <p class="ui-panel__meta">Public sell orders on the exchange. Your own listings are never shown here.</p>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-price-chart" aria-hidden="true"></span><span id="price-chart-title">Silicates: price history</span></h3>
+                    <p class="ui-panel__meta" id="price-chart-summary">Loading price history...</p>
+                    <!-- ISP-233 (AB#928): the ITC's price-impact alert when the item's last day closed under its dumping line -->
+                    <p class="exchange__flood-alert" id="price-chart-alert" role="status" hidden></p>
+                  </div>
+                  <div class="ui-panel__actions" role="group" aria-label="Chart range">
+                    <button type="button" class="ui-button ui-button--secondary" data-price-range="7" aria-pressed="true">7 days</button>
+                    <button type="button" class="ui-button ui-button--secondary" data-price-range="30" aria-pressed="false">30 days</button>
+                  </div>
+                </header>
+                <div class="ui-panel__body exchange__canvas"><canvas id="price-chart-canvas" role="img" aria-label="Daily closing price and volume"></canvas></div>
+                <div class="ui-panel__body"><p class="ui-panel__meta">Charts the resource picked in the filter below, or Silicates when All is picked. Daily close and volume, UTC days.</p></div>
+              </section>
+
+              <!-- Resource filter, tier and sort (AB#402); AB#2472: the subpages replaced the order-type filter -->
+              <section class="ui-panel exchange__filters" aria-label="Filters">
+                <div class="ui-tabs" id="exchange-filter-bar" role="tablist" aria-label="Filter by resource"></div>
+                <div class="exchange__selects">
+                  <!-- AB#884: the catalog's item tiers (data/items.json) -->
+                  <label class="ui-field"><span class="ui-field__label">Tier</span>
+                    <select class="ui-select" id="exchange-tier-filter">
+                      <option value="">All tiers</option>
+                      <option value="1">Tier 1: common raw</option>
+                      <option value="2">Tier 2: scarce raw</option>
+                      <option value="3">Tier 3: refined</option>
+                      <option value="4">Tier 4: exotic</option>
+                    </select>
+                  </label>
+                  <!-- ISP-208 (AB#903): shown only to a conglomerate member -->
+                  <label class="ui-field" id="exchange-sellers-field" hidden><span class="ui-field__label">Sellers</span>
+                    <select class="ui-select" id="exchange-sellers-filter">
+                      <option value="all">Everyone</option>
+                      <option value="conglomerate">My conglomerate</option>
+                    </select>
+                  </label>
+                  <label class="ui-field"><span class="ui-field__label">Sort</span>
+                    <select class="ui-select" id="exchange-sort">
+                      <option value="newest">Newest first</option>
+                      <option value="oldest">Oldest first</option>
+                      <option value="price-asc">Price: low to high</option>
+                      <option value="price-desc">Price: high to low</option>
+                      <option value="qty-desc">Quantity: most first</option>
+                      <option value="qty-asc">Quantity: fewest first</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+            </div>
+
+            <div class="exchange__page" role="tabpanel" id="exchange-page-standing" aria-labelledby="exchange-tab-standing">
+              <!-- AB#815: Standing NPC sell orders, the asks the NPC corporations post -->
+              <section class="ui-panel" id="exchange-npc-sell-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-npc-sell-section" aria-hidden="true"></span>Standing sell orders</h3>
+                    <p class="ui-panel__meta">NPC corporations selling from their stations, refilled daily. The most anyone need pay: a player listing below it is the better buy.</p>
                   </div>
                 </header>
                 <div class="ui-panel__body ui-stack">
-                  <div id="exchange-buy-empty" class="ui-state" hidden><p class="ui-state__title">Nothing for sale</p><p class="ui-state__why">No player has listed anything for sale yet.</p></div>
-                  <div id="exchange-buy-filtered" class="ui-state" hidden></div>
-                  <p id="buy-status" class="ui-panel__meta" role="status"></p>
+                  <div id="npc-sell-empty" class="ui-state" hidden><p class="ui-state__title">No standing sell orders</p><p class="ui-state__why">No NPC corporation is selling today.</p></div>
+                  <div id="npc-sell-filtered" class="ui-state" hidden></div>
                   <div class="ui-table-wrap">
                     <table class="ui-table">
                       <thead>
                         <tr>
                           <th>Item</th>
                           <th class="ui-table__num">Available</th>
-                          <th class="ui-table__num">Unit price</th>
+                          <th class="ui-table__num">Price</th>
                           <th>Seller</th>
                           <th>Buy quantity</th>
                           <th>Action</th>
                         </tr>
                       </thead>
-                      <tbody id="exchange-buy-table"></tbody>
+                      <tbody id="npc-sell-table"></tbody>
                     </table>
                   </div>
-                  <p id="exchange-buy-capped" class="ui-panel__meta" hidden></p>
                 </div>
               </section>
 
-              <!-- Create a new sell listing -->
-              <section class="ui-panel" id="exchange-listing-section">
+              <!-- Standing NPC buy orders -->
+              <section class="ui-panel" id="exchange-standing-section">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-listing-section" aria-hidden="true"></span>Create listing</h3>
-                    <p class="ui-panel__meta">List resources from this station&#39;s inventory as a public sell order.</p>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-standing-section" aria-hidden="true"></span>Standing buy orders</h3>
+                    <p class="ui-panel__meta">Recurring NPC buyers: sell into them and a buyer is always there. The price falls as the day&#39;s quota fills and recovers overnight, so a glutted market pays less and a quiet one pays more. Quantities and prices reset daily at 00:00 UTC.</p>
                   </div>
                 </header>
                 <div class="ui-panel__body ui-stack">
-                  <div id="market-sell-empty" class="ui-state" hidden><p class="ui-state__title">Nothing to list here</p><p class="ui-state__why">Lease a claim and run an extractor yard (Station &gt; ISA Claims &amp; Leases) to have goods to sell.</p></div>
+                  <div id="npc-buy-empty" class="ui-state" hidden><p class="ui-state__title">No standing buy orders</p><p class="ui-state__why">There are no standing buy orders today.</p></div>
+                  <div id="npc-buy-filtered" class="ui-state" hidden></div>
+                  <p id="npc-buy-status" class="ui-panel__meta" role="status"></p>
                   <div class="ui-table-wrap">
                     <table class="ui-table">
                       <thead>
                         <tr>
                           <th>Item</th>
-                          <th class="ui-table__num">In stock</th>
-                          <th>Sell quantity</th>
-                          <th>Unit price</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody id="market-sell-grid"></tbody>
-                    </table>
-                  </div>
-                  <p id="listing-status" class="ui-panel__meta" role="status"></p>
-                </div>
-              </section>
-            </div>
-
-            <!-- AB#1054: players' buy orders, the book's other side, beside a form to place one -->
-            <div class="exchange__split">
-              <section class="ui-panel" id="exchange-bids-section">
-                <header class="ui-panel__header">
-                  <div>
-                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-bids-section" aria-hidden="true"></span>Buy orders</h3>
-                    <p class="ui-panel__meta">What corporations will pay. A listing at or under a price sells to it at once, at the listing&#39;s price.</p>
-                  </div>
-                </header>
-                <div class="ui-panel__body ui-stack">
-                  <div id="exchange-bids-empty" class="ui-state" hidden><p class="ui-state__title">No buy orders</p><p class="ui-state__why">No corporation has a buy order waiting.</p></div>
-                  <div id="exchange-bids-filtered" class="ui-state" hidden></div>
-                  <p id="bids-status" class="ui-panel__meta" role="status"></p>
-                  <div class="ui-table-wrap">
-                    <table class="ui-table">
-                      <thead>
-                        <tr>
-                          <th>Item</th>
-                          <th class="ui-table__num">Wanted</th>
-                          <th class="ui-table__num">Price</th>
                           <th>Buyer</th>
-                          <th>Placed</th>
+                          <th class="ui-table__num">Price per unit</th>
+                          <th>Remaining today</th>
+                          <th>Sell quantity</th>
                           <th>Action</th>
                         </tr>
                       </thead>
-                      <tbody id="exchange-bids-table"></tbody>
+                      <tbody id="npc-buy-table"></tbody>
                     </table>
                   </div>
                 </div>
               </section>
 
-              <section class="ui-panel" id="exchange-bid-form-section">
+              <!-- AB#2472: beside the standing orders, where a sale counts it down (AB#745) -->
+              <section class="ui-panel" id="exchange-inventory-section">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-bid-form-section" aria-hidden="true"></span>Place a buy order</h3>
-                    <p class="ui-panel__meta">The credits are held now. It buys from listings at or under your price, oldest first, at their price, and the rest waits.</p>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-inventory-section" aria-hidden="true"></span>Inventory at this station</h3>
                   </div>
                 </header>
-                <form class="ui-panel__body ui-stack" id="bid-form" novalidate>
-                  <label class="ui-field"><span class="ui-field__label">Item</span>
-                    <select class="ui-select" id="bid-item" name="item"></select>
-                  </label>
-                  <div class="exchange__bid-row">
-                    <label class="ui-field"><span class="ui-field__label">Quantity</span>
-                      <input class="ui-input exchange__qty" id="bid-quantity" name="quantity" type="number" inputmode="numeric" min="1" step="1" value="100" />
-                    </label>
-                    <label class="ui-field"><span class="ui-field__label">Price per unit</span>
-                      <input class="ui-input exchange__qty" id="bid-price" name="unitPrice" type="number" inputmode="numeric" min="1" step="1" value="20" />
-                    </label>
-                  </div>
-                  <p class="ui-panel__meta" id="bid-total" aria-live="polite"></p>
-                  <div><button class="ui-button ui-button--primary" type="submit" id="bid-submit">Place buy order</button></div>
-                  <p id="bid-status" class="ui-panel__meta" role="status"></p>
-                </form>
+                <div class="ui-panel__body">
+                  <ul id="inventory-list" class="ui-list"></ul>
+                </div>
               </section>
             </div>
 
-            <!-- AB#815: Standing NPC sell orders, the asks the NPC corporations post -->
-            <section class="ui-panel" id="exchange-npc-sell-section">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-npc-sell-section" aria-hidden="true"></span>Standing sell orders</h3>
-                  <p class="ui-panel__meta">NPC corporations selling from their stations, refilled daily. The most anyone need pay: a player listing below it is the better buy.</p>
-                </div>
-              </header>
-              <div class="ui-panel__body ui-stack">
-                <div id="npc-sell-empty" class="ui-state" hidden><p class="ui-state__title">No standing sell orders</p><p class="ui-state__why">No NPC corporation is selling today.</p></div>
-                <div id="npc-sell-filtered" class="ui-state" hidden></div>
-                <div class="ui-table-wrap">
-                  <table class="ui-table">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th class="ui-table__num">Available</th>
-                        <th class="ui-table__num">Price</th>
-                        <th>Seller</th>
-                        <th>Buy quantity</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody id="npc-sell-table"></tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
+            <div class="exchange__page" role="tabpanel" id="exchange-page-players" aria-labelledby="exchange-tab-players" hidden>
+              <div class="exchange__split">
+                <!-- Sell orders: others' items you can buy -->
+                <section class="ui-panel" id="exchange-sell-section">
+                  <header class="ui-panel__header">
+                    <div>
+                      <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-sell-section" aria-hidden="true"></span>Sell orders</h3>
+                      <p class="ui-panel__meta">Public sell orders on the exchange. Your own listings are never shown here.</p>
+                    </div>
+                  </header>
+                  <div class="ui-panel__body ui-stack">
+                    <div id="exchange-buy-empty" class="ui-state" hidden><p class="ui-state__title">Nothing for sale</p><p class="ui-state__why">No player has listed anything for sale yet.</p></div>
+                    <div id="exchange-buy-filtered" class="ui-state" hidden></div>
+                    <p id="buy-status" class="ui-panel__meta" role="status"></p>
+                    <div class="ui-table-wrap">
+                      <table class="ui-table">
+                        <thead>
+                          <tr>
+                            <th>Item</th>
+                            <th class="ui-table__num">Available</th>
+                            <th class="ui-table__num">Unit price</th>
+                            <th>Seller</th>
+                            <th>Buy quantity</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody id="exchange-buy-table"></tbody>
+                      </table>
+                    </div>
+                    <p id="exchange-buy-capped" class="ui-panel__meta" hidden></p>
+                  </div>
+                </section>
 
-            <!-- ISP-177 (AB#871): Mercenary Rentals -->
-            <section class="ui-panel mercs" id="exchange-mercenary-section">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-mercenary-section" aria-hidden="true"></span>Mercenary Rentals</h3>
-                  <p class="ui-panel__meta">Hire another corporation&#39;s fleet for a fixed term, or rent yours out. The renter posts the price and a collateral into escrow; when the term ends the owner is paid, any units lost are paid for from the collateral, and the rest goes back to the renter.</p>
-                </div>
-              </header>
-              <div class="ui-panel__body ui-stack">
-                <p id="merc-status" class="ui-panel__meta" role="status"></p>
-                <div id="merc-offers"></div>
-                <h4>My contracts</h4>
-                <div id="merc-mine"></div>
-                <h4>Offer a fleet for hire</h4>
-                <div id="merc-offer-form"></div>
+                <!-- Create a new sell listing -->
+                <section class="ui-panel" id="exchange-listing-section">
+                  <header class="ui-panel__header">
+                    <div>
+                      <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-listing-section" aria-hidden="true"></span>Create listing</h3>
+                      <p class="ui-panel__meta">List resources from this station&#39;s inventory as a public sell order.</p>
+                    </div>
+                  </header>
+                  <div class="ui-panel__body ui-stack">
+                    <div id="market-sell-empty" class="ui-state" hidden><p class="ui-state__title">Nothing to list here</p><p class="ui-state__why">Lease a claim and run an extractor yard (Station &gt; ISA Claims &amp; Leases) to have goods to sell.</p></div>
+                    <div class="ui-table-wrap">
+                      <table class="ui-table">
+                        <thead>
+                          <tr>
+                            <th>Item</th>
+                            <th class="ui-table__num">In stock</th>
+                            <th>Sell quantity</th>
+                            <th>Unit price</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody id="market-sell-grid"></tbody>
+                      </table>
+                    </div>
+                    <p id="listing-status" class="ui-panel__meta" role="status"></p>
+                  </div>
+                </section>
               </div>
-            </section>
 
-            <!-- Standing NPC buy orders -->
-            <section class="ui-panel" id="exchange-standing-section">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-standing-section" aria-hidden="true"></span>Standing buy orders</h3>
-                  <p class="ui-panel__meta">Recurring NPC buyers: sell into them and a buyer is always there. The price falls as the day&#39;s quota fills and recovers overnight, so a glutted market pays less and a quiet one pays more. Quantities and prices reset daily at 00:00 UTC.</p>
-                </div>
-              </header>
-              <div class="ui-panel__body ui-stack">
-                <div id="npc-buy-empty" class="ui-state" hidden><p class="ui-state__title">No standing buy orders</p><p class="ui-state__why">There are no standing buy orders today.</p></div>
-                <div id="npc-buy-filtered" class="ui-state" hidden></div>
-                <p id="npc-buy-status" class="ui-panel__meta" role="status"></p>
-                <div class="ui-table-wrap">
-                  <table class="ui-table">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th>Buyer</th>
-                        <th class="ui-table__num">Price per unit</th>
-                        <th>Remaining today</th>
-                        <th>Sell quantity</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody id="npc-buy-table"></tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
+              <!-- AB#1054: players' buy orders, the book's other side, beside a form to place one -->
+              <div class="exchange__split">
+                <section class="ui-panel" id="exchange-bids-section">
+                  <header class="ui-panel__header">
+                    <div>
+                      <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-bids-section" aria-hidden="true"></span>Buy orders</h3>
+                      <p class="ui-panel__meta">What corporations will pay. A listing at or under a price sells to it at once, at the listing&#39;s price.</p>
+                    </div>
+                  </header>
+                  <div class="ui-panel__body ui-stack">
+                    <div id="exchange-bids-empty" class="ui-state" hidden><p class="ui-state__title">No buy orders</p><p class="ui-state__why">No corporation has a buy order waiting.</p></div>
+                    <div id="exchange-bids-filtered" class="ui-state" hidden></div>
+                    <p id="bids-status" class="ui-panel__meta" role="status"></p>
+                    <div class="ui-table-wrap">
+                      <table class="ui-table">
+                        <thead>
+                          <tr>
+                            <th>Item</th>
+                            <th class="ui-table__num">Wanted</th>
+                            <th class="ui-table__num">Price</th>
+                            <th>Buyer</th>
+                            <th>Placed</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody id="exchange-bids-table"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </section>
 
-            <!-- My active listings -->
-            <section class="ui-panel" id="exchange-mine-section">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-mine-section" aria-hidden="true"></span>My active listings</h3>
-                </div>
-              </header>
-              <div class="ui-panel__body ui-stack">
-                <div id="my-sell-orders-empty" class="ui-state" hidden><p class="ui-state__title">No active listings</p><p class="ui-state__why">You have no active sell orders on the exchange.</p></div>
-                <div id="my-sell-orders-filtered" class="ui-state" hidden></div>
-                <div class="ui-table-wrap">
-                  <table class="ui-table">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th class="ui-table__num">Remaining</th>
-                        <th class="ui-table__num">Unit price</th>
-                        <th>Listed at</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody id="my-sell-orders-table"></tbody>
-                  </table>
-                </div>
-                <p id="my-sell-orders-capped" class="ui-panel__meta" hidden></p>
+                <section class="ui-panel" id="exchange-bid-form-section">
+                  <header class="ui-panel__header">
+                    <div>
+                      <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-bid-form-section" aria-hidden="true"></span>Place a buy order</h3>
+                      <p class="ui-panel__meta">The credits are held now. It buys from listings at or under your price, oldest first, at their price, and the rest waits.</p>
+                    </div>
+                  </header>
+                  <form class="ui-panel__body ui-stack" id="bid-form" novalidate>
+                    <label class="ui-field"><span class="ui-field__label">Item</span>
+                      <select class="ui-select" id="bid-item" name="item"></select>
+                    </label>
+                    <div class="exchange__bid-row">
+                      <label class="ui-field"><span class="ui-field__label">Quantity</span>
+                        <input class="ui-input exchange__qty" id="bid-quantity" name="quantity" type="number" inputmode="numeric" min="1" step="1" value="100" />
+                      </label>
+                      <label class="ui-field"><span class="ui-field__label">Price per unit</span>
+                        <input class="ui-input exchange__qty" id="bid-price" name="unitPrice" type="number" inputmode="numeric" min="1" step="1" value="20" />
+                      </label>
+                    </div>
+                    <p class="ui-panel__meta" id="bid-total" aria-live="polite"></p>
+                    <div><button class="ui-button ui-button--primary" type="submit" id="bid-submit">Place buy order</button></div>
+                    <p id="bid-status" class="ui-panel__meta" role="status"></p>
+                  </form>
+                </section>
               </div>
-            </section>
+            </div>
 
-            <section class="ui-panel" id="exchange-inventory-section">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-inventory-section" aria-hidden="true"></span>Inventory at this station</h3>
+            <div class="exchange__page" role="tabpanel" id="exchange-page-mine" aria-labelledby="exchange-tab-mine" hidden>
+              <!-- My active listings -->
+              <section class="ui-panel" id="exchange-mine-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-mine-section" aria-hidden="true"></span>My active listings</h3>
+                  </div>
+                </header>
+                <div class="ui-panel__body ui-stack">
+                  <div id="my-sell-orders-empty" class="ui-state" hidden><p class="ui-state__title">No active listings</p><p class="ui-state__why">You have no active sell orders on the exchange.</p></div>
+                  <div id="my-sell-orders-filtered" class="ui-state" hidden></div>
+                  <div class="ui-table-wrap">
+                    <table class="ui-table">
+                      <thead>
+                        <tr>
+                          <th>Item</th>
+                          <th class="ui-table__num">Remaining</th>
+                          <th class="ui-table__num">Unit price</th>
+                          <th>Listed at</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="my-sell-orders-table"></tbody>
+                    </table>
+                  </div>
+                  <p id="my-sell-orders-capped" class="ui-panel__meta" hidden></p>
                 </div>
-              </header>
-              <div class="ui-panel__body">
-                <ul id="inventory-list" class="ui-list"></ul>
-              </div>
-            </section>
+              </section>
+            </div>
 
-            <!-- Trade history -->
-            <section class="ui-panel" id="exchange-history-section">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-history-section" aria-hidden="true"></span>Trade history</h3>
-                  <p class="ui-panel__meta">Every listing, purchase and sale you have made.</p>
+            <div class="exchange__page" role="tabpanel" id="exchange-page-mercs" aria-labelledby="exchange-tab-mercs" hidden>
+              <!-- ISP-177 (AB#871): Mercenary Rentals -->
+              <section class="ui-panel mercs" id="exchange-mercenary-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-mercenary-section" aria-hidden="true"></span>Mercenary Rentals</h3>
+                    <p class="ui-panel__meta">Hire another corporation&#39;s fleet for a fixed term, or rent yours out. The renter posts the price and a collateral into escrow; when the term ends the owner is paid, any units lost are paid for from the collateral, and the rest goes back to the renter.</p>
+                  </div>
+                </header>
+                <div class="ui-panel__body ui-stack">
+                  <p id="merc-status" class="ui-panel__meta" role="status"></p>
+                  <div id="merc-offers"></div>
+                  <h4>My contracts</h4>
+                  <div id="merc-mine"></div>
+                  <h4>Offer a fleet for hire</h4>
+                  <div id="merc-offer-form"></div>
                 </div>
-              </header>
-              <div class="ui-panel__body ui-stack">
-                <div id="trade-history-empty" class="ui-state" hidden><p class="ui-state__title">No trades yet</p><p class="ui-state__why">No trade activity recorded yet.</p></div>
-                <div class="ui-table-wrap">
-                  <table class="ui-table">
-                    <thead>
-                      <tr>
-                        <th>Time</th>
-                        <th>Type</th>
-                        <th>Item</th>
-                        <th class="ui-table__num">Quantity</th>
-                        <th class="ui-table__num">Unit price</th>
-                        <th class="ui-table__num">Total</th>
-                        <th>Counterparty</th>
-                      </tr>
-                    </thead>
-                    <tbody id="trade-history-table"></tbody>
-                  </table>
+              </section>
+            </div>
+
+            <div class="exchange__page" role="tabpanel" id="exchange-page-history" aria-labelledby="exchange-tab-history" hidden>
+              <!-- Trade history -->
+              <section class="ui-panel" id="exchange-history-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-history-section" aria-hidden="true"></span>Trade history</h3>
+                    <p class="ui-panel__meta">Every listing, purchase and sale you have made.</p>
+                  </div>
+                </header>
+                <div class="ui-panel__body ui-stack">
+                  <div id="trade-history-empty" class="ui-state" hidden><p class="ui-state__title">No trades yet</p><p class="ui-state__why">No trade activity recorded yet.</p></div>
+                  <div class="ui-table-wrap">
+                    <table class="ui-table">
+                      <thead>
+                        <tr>
+                          <th>Time</th>
+                          <th>Type</th>
+                          <th>Item</th>
+                          <th class="ui-table__num">Quantity</th>
+                          <th class="ui-table__num">Unit price</th>
+                          <th class="ui-table__num">Total</th>
+                          <th>Counterparty</th>
+                        </tr>
+                      </thead>
+                      <tbody id="trade-history-table"></tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            </div>
           </article>
 
           <article id="fleet" class="tab-panel ui-screen">
