@@ -127,6 +127,7 @@ export function offerFleet(accountId, fleetId, input, now = Date.now()) {
     if (!fleet) { result = { ok: false, status: 404, error: "That fleet is not one of yours." }; return; }
     if (fleet.transit && now < fleet.transit.arrivesAt) { result = { ok: false, status: 409, error: "That fleet is in transit. Offer it once it has arrived." }; return; }
     if (fleet.contract) { result = { ok: false, status: 409, error: "That fleet is already under contract." }; return; }
+    if (fleet.escort) { result = { ok: false, status: 409, error: "That fleet is escorting an expedition until it comes home." }; return; } // AB#820
     const checked = checkTerms(input, unitsValue(fleet.units));
     if (checked.error) { result = { ok: false, status: 400, error: checked.error }; return; }
     const id = `mo-${now.toString(36)}-${(++seq).toString(36)}${Math.random().toString(36).slice(2, 5)}`;

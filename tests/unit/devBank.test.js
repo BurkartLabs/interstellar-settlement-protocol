@@ -29,7 +29,7 @@ describe("ISP-151 the loans", () => {
     const html = bankLoansHtml([LOAN], T);
     const t = text(html);
     expect(t).toContain("Still owed 52,526 credits");
-    expect(t).toContain("Next payment 2,155 credits, 4 Oct, 14:05 UTC");
+    expect(t).toContain("Next payment 2,155 credits, 2147-10-04 14:05 UTC");
     expect(t).toContain("Payments 5 of 30");
     expect(t).toContain("Current");
     expect(html).not.toContain("arrears-badge");
@@ -41,7 +41,7 @@ describe("ISP-151 the loans", () => {
     const late = { ...LOAN, state: "arrears", arrears: 2_263, arrearsSince: T };
     const html = bankLoansHtml([late], T);
     expect(html).toContain('data-role="arrears-badge"');
-    expect(text(html)).toContain("Arrears 2,263 credits since 28 Sep, 14:05 UTC");
+    expect(text(html)).toContain("Arrears 2,263 credits since 2147-09-28 14:05 UTC");
     expect(payoffTotal(late)).toBe(52_526 + 2_263 + 525);
   });
 
@@ -49,7 +49,7 @@ describe("ISP-151 the loans", () => {
     expect(text(bankLoansHtml([{ ...LOAN, paymentsMade: 29 }], T))).toContain("Next payment 2,147 credits");
     const closed = bankLoansHtml([{ ...LOAN, state: "repaid", balance: 0, closedAt: T, paidOffEarly: true }], T);
     expect(closed).not.toContain("bank-payoff");
-    expect(text(closed)).toContain("repaid 28 Sep, 14:05 UTC (early)");
+    expect(text(closed)).toContain("repaid 2147-09-28 14:05 UTC (early)");
     expect(text(bankLoansHtml([], T))).toContain("No facilities with the Bank.");
   });
 });
@@ -90,6 +90,6 @@ describe("ISP-151 the copy", () => {
       expect(fs.readFileSync(path.join(root, f), "utf8"), f).not.toMatch(REAL);
     }
     expect(JSON.stringify(bank)).not.toMatch(REAL);
-    expect(bankTime(T)).toBe("28 Sep, 14:05 UTC");
+    expect(bankTime(T)).toBe("2147-09-28 14:05 UTC"); // ISP-249 (AB#945): the guide's format
   });
 });

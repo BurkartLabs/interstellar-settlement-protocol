@@ -4,7 +4,7 @@
 // and its frames to e2e/screenshots/isp-59/, both gitignored; the committed frames and the converted recording are in
 // docs/isp-59/, copied there by hand (AB#2251).
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -61,6 +61,7 @@ async function openSuitesAndRent(page) {
   await openTab(page, "station");
   const back = page.locator("#station-back-btn");
   if (await back.isVisible()) await back.click();
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   await page.selectOption("#rent-office-duration", "7");
   await page.click("#rent-office-btn");

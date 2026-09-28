@@ -47,6 +47,7 @@ async function openSheet(page, who, [width, height]) {
   await page.click("#credential-login-btn");
   await page.waitForURL(/\/\?account=/);
   await openTab(page, "finance");
+  await page.locator('#finance-subnav [data-finance-sub="daily"]').click(); // AB#2470: each closed day's books are their own page
   const sheet = page.locator(".finance__statement", { hasText: "Balance Sheet" });
   await expect(sheet).toBeVisible({ timeout: 15_000 });
   await sheet.scrollIntoViewIfNeeded();

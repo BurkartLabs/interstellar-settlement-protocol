@@ -37,13 +37,13 @@ const ALL_TRACKS = {
 // CHAIN_PROBE_TRACKS ("fuel,light metals") runs part of the sweep, for looking at one track without the whole table.
 const TRACKS = Object.fromEntries(Object.entries(ALL_TRACKS).filter(([name]) => !process.env.CHAIN_PROBE_TRACKS || process.env.CHAIN_PROBE_TRACKS.split(",").includes(name)));
 const STATION = "earth-station-prime";
-const START = Date.UTC(2026, 2, 2, 11, 0, 0); // Monday 2 March 2026, 06:00 in New York: the day's reset has run
+const START = Date.UTC(2026, 2, 2, 11, 0, 0); // Monday 2 March 2026, 11:00 UTC: the day's reset (00:00 UTC) has run
 const REFINERY_GATES = ["tt-material-compression", "tt-nano-lattice"];
 const T3_MULTIPLIER = ECONOMY.buildings.refineryUpgrades.find((u) => u.toTier === 3).outputMultiplier;
 
 /** Every standing order at its base, with today's quota unsold: the market a week starts from. */
 function freshBids() {
-  const today = new Date(Date.now()).toLocaleDateString("sv-SE", { timeZone: "America/New_York" });
+  const today = new Date(Date.now()).toISOString().slice(0, 10); // ISP-249 (AB#945): the reset day is UTC's
   mutateState((draft) => {
     for (const order of draft.market.npcBuyOrders) {
       ensureBidShape(order);

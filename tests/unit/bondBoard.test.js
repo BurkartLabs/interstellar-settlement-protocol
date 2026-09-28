@@ -58,7 +58,7 @@ describe("ISP-156 holdings and issued series", () => {
   it("a holding shows the next coupon's date and amount, maturity, its standing and its recovery value", () => {
     const b = board({ holdings: [{ units: 40, value: 36_000, next: { at: NOW + 4 * DAY, coupon: 583, face: 0 }, series: series({ state: "live", maturesAt: NOW + 87 * DAY, couponPct30: 6.25 }) }] });
     const t = text(holdingsHtml(b));
-    for (const s of ["40 units", "Current", "Next coupon 583 credits, 2 Oct, 12:00 UTC", "Matures 24 Dec, 12:00 UTC", "36,000 credits in default recovery"]) expect(t).toContain(s);
+    for (const s of ["40 units", "Current", "Next coupon 583 credits, 2147-10-02 12:00 UTC", "Matures 2147-12-24 12:00 UTC", "36,000 credits in default recovery"]) expect(t).toContain(s);
   });
 
   it("the last coupon names the face coming back; arrears and default show on the holding", () => {
@@ -75,6 +75,6 @@ describe("ISP-156 holdings and issued series", () => {
     const b = board({ issued: [{ ...series({ state: "live", sold: 150, underwriterUnits: 40, lapsedUnits: 50 }), next: { at: NOW + DAY, coupon: 1_925, face: 0 } }] });
     const t = text(issuedHtml(b));
     expect(t).toContain("150 of 200 (40 to the underwriter), 50 lapsed");
-    expect(t).toContain("Next payment due 1,925 credits, 29 Sep, 12:00 UTC");
+    expect(t).toContain("Next payment due 1,925 credits, 2147-09-29 12:00 UTC");
   });
 });

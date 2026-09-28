@@ -13,6 +13,7 @@ import { tariffPanelHtml } from "./tariffPanel.js"; // ISP-231 (AB#926)
 import { DOMINANCE_OVERLAYS, QUIET_TOKEN, dominanceDetailsHtml, dominanceKey, dominanceLegendHtml, isDominanceOverlay, tokenRgba } from "./dominanceOverlay.js"; // ISP-218 (AB#913)
 import { CONCESSION_OVERLAY, concessionDetailsHtml, concessionKey, concessionLegendHtml } from "./concessionOverlay.js"; // ISP-229 (AB#924)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
+import { utcClock } from "./timeFormat.js"; // ISP-249 (AB#945)
 
 // ISP-112 (AB#804): each system's place on the cluster view is its `mapPosition` in data/systems.json, as fractions of
 // the canvas; the controller reads it from the catalog it is given (getSystemsCatalog).
@@ -121,13 +122,10 @@ export function scoutedBeltHtml(view, composition) {
             ${reserve}`;
 }
 
-/** AB#2331: when an empty slot next draws, as UTC on the hour and in the viewer's own time. */
+/** AB#2331: when an empty slot next draws, on the hour. ISP-249 (AB#945): in UTC only, as every time the game shows. */
 export function nextDrawText(nextDrawAt) {
   if (!nextDrawAt) return "the next hour";
-  const at = new Date(nextDrawAt);
-  const utc = `${String(at.getUTCHours()).padStart(2, "0")}:00 UTC`;
-  const local = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  return `${utc} (${local} your time)`;
+  return utcClock(nextDrawAt);
 }
 
 /** AB#2331: a slot whose belt was mined out: no belt, and when the next hourly chance of a new one is. */
@@ -474,6 +472,15 @@ const BACK_TARGET_PAD = 6;
  * the button's width (67px for "Back To Cluster") about its centre, tested before any body, so on a phone every belt
  * drawn beside the button (AB#1287 cleared the drawn button, not that circle) went back to the cluster when tapped.
  */
+/**
+ * Bug #4687: the y of the right-hand of two back buttons. On a phone Bug #1286 pulls it left to stay on the canvas, and
+ * there it ran over the left one; when it would come within 6px it drops one target's height lower instead, so neither
+ * the buttons nor their tap targets overlap.
+ */
+export function rightBackButtonY(leftX, leftWidth, rightX, rightWidth, y = 36) {
+  return rightX - rightWidth / 2 < leftX + leftWidth / 2 + 6 ? y + BACK_BUTTON_HEIGHT + BACK_TARGET_PAD * 2 + 2 : y;
+}
+
 export function backButtonTarget(type, x, y, width) {
   return { type, x, y, w: width + BACK_TARGET_PAD * 2, h: BACK_BUTTON_HEIGHT + BACK_TARGET_PAD * 2 };
 }
@@ -1171,10 +1178,11 @@ export function createStarmapController({
     state.clickTargets = [];
     const backSysWidth = drawBackButton("Back To System", 108, 36);
     const backClusterX = rightBackButtonX("Back To Cluster", 250, width);
-    const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, 36);
+    const backClusterY = rightBackButtonY(108, backButtonWidth("Back To System"), backClusterX, backButtonWidth("Back To Cluster"));
+    const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, backClusterY);
 
     state.clickTargets.push(backButtonTarget("back-to-system", 108, 36, backSysWidth));
-    state.clickTargets.push(backButtonTarget("back-to-cluster", backClusterX, 36, backClusterWidth));
+    state.clickTargets.push(backButtonTarget("back-to-cluster", backClusterX, backClusterY, backClusterWidth));
 
     if (body.type === "Field") {
       const beltRadius = Math.min(width, height) * 0.2;
@@ -1278,10 +1286,11 @@ export function createStarmapController({
     state.clickTargets = [];
     const backBodyWidth = drawBackButton("Back To Belt", 98, 36);
     const backSystemX = rightBackButtonX("Back To System", 228, width);
-    const backSystemWidth = drawBackButton("Back To System", backSystemX, 36);
+    const backSystemY = rightBackButtonY(98, backButtonWidth("Back To Belt"), backSystemX, backButtonWidth("Back To System"));
+    const backSystemWidth = drawBackButton("Back To System", backSystemX, backSystemY);
 
     state.clickTargets.push(backButtonTarget("back-to-body", 98, 36, backBodyWidth));
-    state.clickTargets.push(backButtonTarget("back-to-system", backSystemX, 36, backSystemWidth));
+    state.clickTargets.push(backButtonTarget("back-to-system", backSystemX, backSystemY, backSystemWidth));
 
     const seed = hashSeed(asteroidId || `${system.id}:${body.id}:ast-0`);
     const radius = Math.min(width, height) * 0.11;
@@ -1448,7 +1457,7 @@ export function createStarmapController({
       } else if (!reachable) {
         jumpHtml = `<p class="starmap__status starmap__status--locked">${escapeHtmlAttr(travelLockText(system.id))}</p>`;
       } else if (onTravelToSystem) {
-        jumpHtml = `<div><button class="ui-button ui-button--secondary starmap__jump" type="button" data-system-id="${escapeHtmlAttr(system.id)}">Jump to ${escapeHtmlAttr(system.name)}</button></div>
+        jumpHtml = `<div><button class="ui-button ui-button--secondary" data-role="starmap-jump" type="button" data-system-id="${escapeHtmlAttr(system.id)}">Jump to ${escapeHtmlAttr(system.name)}</button></div>
           <p class="ui-panel__meta">Stations can only be docked from inside the destination system.</p>`;
       }
       detailsEl.innerHTML = detailsHtml(system.name, `
@@ -1479,7 +1488,7 @@ export function createStarmapController({
         if (status && refusal) status.textContent = refusal;
       });
       // Bind the jump button rendered in the system view.
-      detailsEl.querySelectorAll(".starmap__jump").forEach((btn) => {
+      detailsEl.querySelectorAll("[data-role=starmap-jump]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const systemId = btn.getAttribute("data-system-id");
           if (systemId && onTravelToSystem) {
@@ -1506,7 +1515,7 @@ export function createStarmapController({
               : !reachable
                 ? `<span class="starmap__status starmap__status--locked">Needs ${escapeHtmlAttr(getNavigation().travelResearchName(researchCatalog, s.systemId) || "navigation research")}</span>`
               : inSameSystem && onDockAtStation
-                ? `<button class="ui-button ui-button--secondary starmap__dock" type="button" data-station-id="${escapeHtmlAttr(s.id)}">Dock</button>`
+                ? `<button class="ui-button ui-button--secondary" data-role="starmap-dock" type="button" data-station-id="${escapeHtmlAttr(s.id)}">Dock</button>`
               : !inSameSystem
                 ? `<span class="ui-panel__meta">Jump to ${escapeHtmlAttr(s.systemId)} system first</span>`
                 : "";
@@ -1574,8 +1583,8 @@ export function createStarmapController({
               const secs = Math.floor((remainMs % 60000) / 1000);
               const yieldEntries = Object.entries(exp.yields || {});
               const yieldText = yieldEntries.length ? yieldEntries.map(([r, q]) => `${q} ${r}`).join(", ") : "Scanning...";
-              return `<div class="ui-card starmap__expedition">
-                <p class="ui-card__meta starmap__expedition-time">${escapeHtmlAttr(exp.duration)} expedition — ${mins}m ${secs}s remaining</p>
+              return `<div class="ui-card" data-role="starmap-expedition">
+                <p class="ui-card__meta" data-role="starmap-expedition-time">${escapeHtmlAttr(exp.duration)} expedition — ${mins}m ${secs}s remaining</p>
                 <div class="progress-wrap" role="progressbar" aria-label="${escapeHtmlAttr(`${exp.duration} expedition`)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><div class="progress-bar" style="width:${pct.toFixed(1)}%"></div></div>
                 <p class="ui-card__meta">Yields so far: ${escapeHtmlAttr(yieldText)}</p>
               </div>`;
@@ -1583,7 +1592,7 @@ export function createStarmapController({
           }
 
           miningHtml = `
-            <section class="ui-stack starmap__mining">
+            <section class="ui-stack">
               <h4 class="starmap__subhead">Asteroid Belt Mining</h4>
               <p class="ui-panel__meta">Probes: <strong>${probeCount}</strong> available | Deployment Slots: <strong>${activeCount}/${maxDeployments}</strong></p>
               ${activeExpHtml}
@@ -1596,7 +1605,7 @@ export function createStarmapController({
                     <option value="extended">Deep Core Drill (2 hr)</option>
                   </select>
                 </div>
-                ${remoteLaunch ? `<p class="ui-panel__meta belt-remote" data-belt-remote>Remote launch on your partner's scouting: you are not in ${escapeHtmlAttr(system.name)}, so the probe works at range and brings home <strong>${remotePct}%</strong> of what it mines. The ore lands at this system's station.</p>` : ""}
+                ${remoteLaunch ? `<p class="ui-panel__meta" data-belt-remote>Remote launch on your partner's scouting: you are not in ${escapeHtmlAttr(system.name)}, so the probe works at range and brings home <strong>${remotePct}%</strong> of what it mines. The ore lands at this system's station.</p>` : ""}
                 <div><button id="launch-expedition-btn" class="ui-button ui-button--secondary" type="button">${remoteLaunch ? "Launch Remote Expedition" : "Launch Expedition"} (¤3,000)</button></div>
               ` : isEmptySlot
                 ? "" // AB#2331: the empty state above says why, and when
@@ -1648,7 +1657,7 @@ export function createStarmapController({
       }
 
       // Bind dock buttons in starmap details
-      detailsEl.querySelectorAll(".starmap__dock").forEach((btn) => {
+      detailsEl.querySelectorAll("[data-role=starmap-dock]").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const stationId = btn.getAttribute("data-station-id");
           if (stationId && onDockAtStation) {
@@ -1671,7 +1680,7 @@ export function createStarmapController({
         });
       });
       // Bind travel-to-system buttons in starmap details
-      detailsEl.querySelectorAll(".starmap__jump").forEach((btn) => {
+      detailsEl.querySelectorAll("[data-role=starmap-jump]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const systemId = btn.getAttribute("data-system-id");
           if (systemId && onTravelToSystem) {
@@ -1936,13 +1945,13 @@ export function createStarmapController({
 
         ${station.description ? `<p class="ui-panel__meta">${escapeHtmlAttr(station.description)}</p>` : ""}
 
-        <div class="starmap__station-actions">
+        <div>
           ${isCurrent
             ? `<p class="ui-panel__meta">You are currently docked at this station.</p>`
             : !canTravelToSystem(station.systemId)
               ? `<p class="starmap__status starmap__status--locked">${escapeHtmlAttr(travelLockText(station.systemId))}</p>`
             : (state.currentSystemId || "sol") === station.systemId
-              ? `<button class="ui-button ui-button--primary starmap__station-dock" type="button" data-station-id="${escapeHtmlAttr(station.id)}">Dock at Station</button><p class="starmap__dock-refused" role="alert" hidden></p>`
+              ? `<button class="ui-button ui-button--primary" data-role="starmap-station-dock" type="button" data-station-id="${escapeHtmlAttr(station.id)}">Dock at Station</button><p class="starmap__dock-refused" role="alert" hidden></p>`
               : `<p class="ui-panel__meta">Jump to <strong>${escapeHtmlAttr(systemName(state.systems, station.systemId) || "its system")}</strong> from the system view, then dock here.</p>`
           }
         </div>
@@ -1958,7 +1967,7 @@ export function createStarmapController({
     });
 
     // Bind travel/dock
-    const dockBtn = overlay.querySelector(".starmap__station-dock");
+    const dockBtn = overlay.querySelector("[data-role=starmap-station-dock]");
     if (dockBtn) {
       dockBtn.addEventListener("click", async () => {
         const sid = dockBtn.getAttribute("data-station-id");
@@ -2165,7 +2174,7 @@ export function createStarmapController({
       if (!system || !body || body.type !== "Field") return;
       const beltKey = `${system.id}:${body.id}`;
       const activeExps = (am.activeExpeditions || []).filter(e => e.beltKey === beltKey);
-      const cards = detailsEl.querySelectorAll(".starmap__expedition");
+      const cards = detailsEl.querySelectorAll("[data-role=starmap-expedition]");
       cards.forEach((card, i) => {
         const exp = activeExps[i];
         if (!exp) return;
@@ -2177,7 +2186,7 @@ export function createStarmapController({
         const secs = Math.floor((remainMs % 60000) / 1000);
         const bar = card.querySelector(".progress-bar");
         if (bar) bar.style.width = pct.toFixed(1) + "%";
-        const timeEl = card.querySelector(".starmap__expedition-time");
+        const timeEl = card.querySelector("[data-role=starmap-expedition-time]");
         const barWrap = card.querySelector(".progress-wrap");
         if (barWrap) barWrap.setAttribute("aria-valuenow", String(Math.round(pct)));
         if (timeEl) timeEl.textContent = `${exp.duration} expedition — ${mins}m ${secs}s remaining`;

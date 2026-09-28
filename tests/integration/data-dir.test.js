@@ -68,7 +68,7 @@ describe("the data directory (Bug #578)", () => {
     const login = await request(second.url).post("/api/auth/login").send({ email: account.email, password: account.password });
     expect(login.status).toBe(200);
     expect(login.body.accessToken).toBeTruthy();
-    expect(fs.readdirSync(dir).sort()).toEqual(["accounts-snapshot.json", "state.json"]);
+    expect(fs.readdirSync(dir).sort()).toEqual(["accounts-snapshot.json", "references-salt", "state.json"]); // ISP-249 (AB#945): the references' secret
   }, 60000);
 });
 

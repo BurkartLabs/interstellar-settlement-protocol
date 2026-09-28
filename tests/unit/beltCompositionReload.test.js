@@ -190,7 +190,7 @@ describe("the belt panel shows the belt there now (AB#2331)", () => {
     controller.setAsteroidMining(withSlots({ "sol:belt": slot({ present: false, nextDrawAt }) }));
     const html = detailsEl.innerHTML;
     expect(html).toContain("No belt here");
-    expect(html).toContain("Each hour on the hour there is a 20% chance a new one forms here, unscouted by anyone; the next chance is at 14:00 UTC (");
+    expect(html).toContain("Each hour on the hour there is a 20% chance a new one forms here, unscouted by anyone; the next chance is at 14:00 UTC.");
     expect(html).not.toContain("Scout Asteroid Belt");
     expect(html).not.toContain("launch-expedition-btn");
     expect(html).not.toContain("Scout this asteroid belt before launching");

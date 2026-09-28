@@ -19,7 +19,7 @@ import { renderInsightTree } from "./views/ceoInsight.js";
 import { bindCollapsibleSections, bindGlobalControls, loadNotifications, renderNotifications, updateCorpIdentity, updateReplayOnboardingVisibility } from "./views/chrome.js";
 import { bindCommsForms, renderChatChannelTabs, renderChatLog, resolveChatChannel } from "./views/comms.js";
 import { bindExchangeForms, renderMarket } from "./views/exchange.js";
-import { loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } from "./views/finance.js";
+import { bindFinanceSubpages, loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } from "./views/finance.js";
 import { bindForumForms, renderForums } from "./views/forums.js";
 import { bindInboxControls, loadMessages, onInboxTabActivated, renderInboxMessageList } from "./views/inbox.js";
 import { onConversationEvent } from "./views/conversations.js"; // AB#911
@@ -33,6 +33,7 @@ import { connectViews, isPlayerTraveling, pushFeedback, renderFeedbackLog, revea
 import { loadBeltCompositionsIntoStarmap, loadTariffs, starmap } from "./views/starmap.js";
 import { loadPatentRegister } from "./views/patentOffice.js"; // ISP-237 (AB#932): the Refinery's royalty quote reads it
 import { bindBuildingActions, refreshOpenLeaseView, renderStation } from "./views/station.js";
+import { bindOperations, renderOperations } from "./views/operations.js"; // AB#2471
 import { clearTravelTimer, renderTravelPage } from "./views/travel.js";
 
 // The moved modules call back into the game screen app.js owns; hand them what they need before anything runs.
@@ -50,6 +51,8 @@ const gameShell = document.getElementById("game-shell");
 
 import { starmapMiningState } from "./beltCompositions.js";
 import { openGroupOf, tabForGroup, lockEmptyGroups } from "./navGroups.js"; // ISP-75 (AB#764) // Bug #1264 (placed here, apart from the imports at the top that parallel PRs edit)
+import { showTabGroup, toggleNavGroup } from "./sidebarState.js"; // AB#2481
+import { sidebarStartsCollapsed } from "./firstAction.js"; // AB#2481: a phone's width, where the groups are the bar
 
 // ─── Tabs allowed during travel ──────────────────────────────────────────────
 // The Travel screen itself is views/travel.js, on the design system since ISP-83 (AB#772); e2e/travel-screen.spec.js
@@ -154,6 +157,7 @@ function renderAllViews() {
   enforceTravelTabLockdown(data);
   renderTravelPage(data);
   renderStation(data);
+  renderOperations(data); // AB#2471: everything in progress
   renderFleet(data); // ISP-175 (AB#869)
   renderRaids(data); // ISP-181 (AB#875): the incoming-raid alert, garrisons, the target picker and reports
   renderLevel2Progress(data);
@@ -191,6 +195,7 @@ function setTab(targetId) {
     else btn.removeAttribute("aria-current");
   });
   openGroupOf(targetId);
+  showTabGroup(targetId, sidebarStartsCollapsed(window.innerWidth)); // AB#2481: the open tab's group is expanded
 
   tabPanels.forEach((panel) => {
     panel.classList.toggle("active", panel.id === targetId);
@@ -248,9 +253,16 @@ function bindTabs() {
   tabButtons.forEach((button) => {
     button.addEventListener("click", () => goToTab(button.dataset.tab));
   });
-  // ISP-75 (AB#764): a group's button opens the tab that group last showed, or its first.
+  // ISP-75 (AB#764): a group's button opens the tab that group last showed, or its first. AB#2481: on a desktop, where
+  // the group's tabs are listed under its name, the name collapses and expands them instead; the briefing is told, so
+  // its highlight moves from the name to the tab it now shows.
   groupButtons.forEach((button) => {
     button.addEventListener("click", () => {
+      if (!sidebarStartsCollapsed(window.innerWidth)) {
+        toggleNavGroup(button.dataset.group);
+        noteWalkthroughEvent(`nav-group:${button.dataset.group}`);
+        return;
+      }
       const tab = tabForGroup(button.dataset.group);
       if (tab) goToTab(tab);
     });
@@ -755,8 +767,10 @@ async function boot() {
   bindRealtimeEvents();
   bindGlobalControls();
   bindBuildingActions();
+  bindOperations(); // AB#2471: the Station's and Operations' subpages
   bindInboxControls();
   bindChartDurationPickers();
+  bindFinanceSubpages(); // AB#2470
   bindPriceChart({
     fetchHistory: async (item) => parseJsonResponse(await apiFetch(`/api/market/history/${encodeURIComponent(item)}`)),
     formatCredits: toCurrency

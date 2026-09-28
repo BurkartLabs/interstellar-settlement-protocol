@@ -189,9 +189,10 @@ describe("a corporation that has played a while keeps its state through the char
     const again = login.body.account.state.corp;
     expect(again.conglomerateId).toBe(res.body.conglomerate.id);
     expect(again.finances.credits).toBe(250_000 - COST);
-    expect(again.miningLeases).toEqual(kept.leases);
+    // ISP-249 (AB#945): each lease kept, with the reference it was given on first read
+    expect(again.miningLeases).toEqual(kept.leases.map((l) => ({ ...l, ref: expect.stringMatching(/^LSE-\d{4}-/) })));
     expect(again.inventory).toEqual(kept.inventory);
-    expect(again.tradeHistory).toEqual(kept.trades);
+    expect(again.tradeHistory).toEqual(kept.trades.map((t) => ({ ...t, ref: expect.stringMatching(/^RCP-\d{4}-/) })));
     const listed = await request(url).get("/api/conglomerates").set("Authorization", `Bearer ${login.body.accessToken}`);
     expect(listed.body.conglomerates.find((c) => c.id === res.body.conglomerate.id)).toMatchObject({ name, memberCount: 1 });
   }, 40_000);

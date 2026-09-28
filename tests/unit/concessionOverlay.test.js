@@ -37,7 +37,7 @@ describe("a system's concession section (AB#924)", () => {
 
   it("shows the holder, the control scores with eligibility, and the petition under review", () => {
     const t = text(concessionDetailsHtml(WORLD.systems["barnards-star"], control, null));
-    for (const s of ["Rule: Standard", "No concession is held here.", "Kestrel Mining Eligible 70%", "Drift Salvage 30%", "Kestrel Mining · petition", "review ends 4 Oct, 07:00 UTC"]) expect(t).toContain(s);
+    for (const s of ["Rule: Standard", "No concession is held here.", "Kestrel Mining Eligible 70%", "Drift Salvage 30%", "Kestrel Mining · petition", "review ends 2147-10-04 07:00 UTC"]) expect(t).toContain(s);
   });
 
   it("offers an eligible viewer the petition with its fee, and a refused one the reason instead", () => {
@@ -55,12 +55,19 @@ describe("a system's concession section (AB#924)", () => {
     const holds = { state: "granted", termEndsAt: T, upkeepToday: 552, feeShareCollected: 9_000, feeSharePct: 20, ownLeaseDiscountPct: 25, leaseDiscountPct: 10, leaseDiscountMaxPct: 25, noticeHours: 72, pendingLeaseDiscount: { pct: 20, effectiveAt: T + 3 * 86_400_000 } };
     const html = holderPart(holds, "Halcyon Mining");
     const t = text(html);
-    for (const s of ["552 credits a day", "9,000 credits so far", "10% off, 20% from 4 Oct, 12:00 UTC", "waiting out its notice"]) expect(t).toContain(s);
+    for (const s of ["552 credits a day", "9,000 credits so far", "10% off, 20% from 2147-10-04 12:00 UTC", "waiting out its notice"]) expect(t).toContain(s);
     expect(html).toMatch(/name="discountPct" disabled/);
     expect(html.match(/<option/g)).toHaveLength(26);
   });
 
   it("says a never-concedable system is ISA administered, with its reason", () => {
     expect(text(concessionDetailsHtml(WORLD.systems.sol, { rule: "Every corporation is founded at Earth Station Prime." }, null))).toContain("ISA administered: never conceded. Every corporation is founded");
+  });
+});
+
+describe("the concession grant's reference (ISP-252, AB#948)", () => {
+  it("draws each holder's CSN reference beside its name, as the guide's reference component", () => {
+    const summary = { concedable: true, holders: [{ name: "Halcyon Mining", type: "corp", state: "granted", termEndsAt: T, ref: "CSN-2147-7Q2K4M" }], petitions: [] };
+    expect(concessionDetailsHtml(summary, null, null, [])).toContain('<span class="ref-no">CSN-2147-7Q2K4M</span>');
   });
 });

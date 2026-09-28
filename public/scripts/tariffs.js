@@ -2,6 +2,7 @@
 // server/tariffService.js; ISP-230, AB#925) and the quotes a trader sees before committing (ISP-231, AB#926), so the
 // confirmation's numbers are the settlement's numbers (P-TWO-SOURCES).
 import { taxOnSale } from "./exchangeTax.js";
+import { utcTime } from "./timeFormat.js"; // ISP-249 (AB#945)
 
 /** The tariff on `base` credits at `pct`, in whole credits (rounded as the exchange tax is). */
 export function tariffOn(base, pct) {
@@ -25,7 +26,7 @@ export function saleQuote(gross, breakdown, tariffPct = 0) {
   return { ...taxed, tariff, proceeds: taxed.proceeds - tariff };
 }
 
-/** A time as the ISA writes it: "2026-09-30 14:00 UTC". */
+/** A time as the ISA writes it (ISP-249, AB#945: the guide's format, public/scripts/timeFormat.js). */
 export function utcMinute(t) {
-  return `${new Date(t).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+  return utcTime(t, { withDate: true });
 }

@@ -10,6 +10,7 @@ import { showActionReceipt } from "./receiptModal.js";
 import { showTradeConfirmation, updateAllViews } from "./shared.js";
 import { renderBondBoard } from "./bondBoard.js"; // ISP-156 (AB#850)
 import { loanBoardSectionsHtml, renderLoanBoard } from "./loanBoard.js"; // ISP-153 (AB#847)
+import { codeSlotHtml } from "../sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 
 // The view's own state survives a redraw: the offers read once per visit, the open quote, and what the form holds.
 const bank = { accountId: null, offers: null, loading: false, quote: null, form: {}, mode: "loans", last: null };
@@ -133,12 +134,12 @@ export function renderDevelopmentBank(contentEl, data, header) {
     ${header}
     ${modes}
     <section class="ui-panel station__panel bank-panel">
-      <h3>Borrow from the Bank</h3>
+      <h3>${codeSlotHtml("bank-borrow")}Borrow from the Bank</h3>
       <div data-role="bank-offers"></div>
       <div data-role="bank-quote-slot"></div>
     </section>
     <section class="ui-panel station__panel bank-panel">
-      <h3>Your facilities</h3>
+      <h3>${codeSlotHtml("bank-facilities")}Your facilities</h3>
       <div class="bank-loans" data-role="bank-loans"></div>
     </section>
     ${loanBoardSectionsHtml()}`;

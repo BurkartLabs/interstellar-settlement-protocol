@@ -9,6 +9,8 @@ import { BASE_YIELD_PER_MIN, RARITY_YIELD_MULTIPLIER } from "./beltRules.js"; //
 import { beltAt, isBeltPresent, markBeltEmpty } from "./belts.js";
 import { canRecover } from "./researchGates.js";
 import { recordExtraction } from "./dominanceCounters.js"; // ISP-217 (AB#912)
+import { fightEncounter, gatheredGroup, planEncounters, ratGroup, seedFor, unescortedRow } from "./rats.js"; // AB#820
+import { combatModifiersFor } from "./combat.js";
 
 // ISP-96 (AB#786): the Ferric Mining Complex multiplies the Nickel and Titanium a returning expedition deposits, by
 // data/economy.json's buildings.ferricMiningComplexMetalMultiplier, in whole units rounded down.
@@ -110,6 +112,8 @@ export function ensureCorpAsteroidMiningModel(corp) {
     // yield. Kept through this normalization, which rebuilt each expedition from named fields and dropped both.
     ...(exp.sharedIntel ? { sharedIntel: true } : {}),
     ...(exp.remote ? { remote: true, remoteYieldPct: Number(exp.remoteYieldPct) || 0 } : {}),
+    // AB#820: the belt's danger, the escort and the encounters applied; dropped here, every encounter would be lost
+    ...(exp.rats && typeof exp.rats === "object" ? { rats: exp.rats } : {}),
     yields: exp.yields || {},
     // Bug #1274: the fraction of a unit carried to the next tick; an expedition saved before it starts at 0.
     yieldCarry: Math.max(0, Number(exp.yieldCarry) || 0),
@@ -176,6 +180,55 @@ export function splitExactly(whole, weights) {
  * the next what is left. Without the world state (unit tests and fixtures that settle one corporation alone) the
  * belt is the catalog's generation 1, never running out.
  */
+/**
+ * AB#820 (docs/design/rats.md): resolve the expedition's Rat encounters whose time has come by `upTo`, once each.
+ * The plan is drawn again from the expedition's seed every time (nothing about an encounter is stored before it
+ * happens); `exp.rats.encounters` holds those already applied, so a second tick applies nothing twice. Each is fought by
+ * what is left of the escort; while it holds, the haul is safe; once beaten, or with none, each takes its row of the
+ * unescorted table from the haul carried then.
+ */
+export function settleRats(corp, exp, upTo) {
+  const r = exp.rats;
+  if (!r || !Array.isArray(r.encounters)) return;
+  const span = Number(exp.completesAt) - Number(exp.deployedAt);
+  const reached = span > 0 ? Math.min(1, Math.max(0, (upTo - Number(exp.deployedAt)) / span)) : 1;
+  const plan = planEncounters(seedFor(exp.id), r.density, r.hours, r.escortPower);
+  for (const enc of plan) {
+    if (enc.index < r.encounters.length) continue; // applied already
+    if (enc.share > reached) break; // not yet
+    const group = gatheredGroup(ratGroup(r.density), enc.index);
+    const record = { index: enc.index, at: Number(exp.deployedAt) + Math.round(enc.share * span), rats: group, escort: null, roll: null, haulLost: {} };
+    const fleet = r.escortFleetId && !r.escortBeaten
+      ? (corp.military?.fleets || []).find((f) => f.id === r.escortFleetId && f.escort?.expeditionId === exp.id) : null;
+    const escort = fleet ? Object.fromEntries(Object.entries(fleet.units || {}).filter(([, n]) => Number(n) > 0)) : {};
+    if (Object.keys(escort).length) {
+      const fight = fightEncounter(escort, group, combatModifiersFor(corp));
+      for (const [id, n] of Object.entries(fight.lost)) { // real losses: the fleet's and the corporation's
+        fleet.units[id] = Math.max(0, Number(fleet.units[id]) - n);
+        corp.military.units[id] = Math.max(0, Number(corp.military.units[id]) - n);
+      }
+      record.escort = { fleetId: fleet.id, before: escort, lost: fight.lost, winner: fight.winner, held: fight.held, rounds: fight.rounds };
+      if (fight.held) { r.encounters.push(record); continue; }
+      r.escortBeaten = true;
+    }
+    const row = unescortedRow(enc.roll);
+    record.roll = row.id;
+    for (const [resource, qty] of Object.entries(exp.yields || {})) {
+      const lost = Math.floor(Number(qty) * row.haulLost);
+      if (lost > 0) { exp.yields[resource] = Number(qty) - lost; record.haulLost[resource] = lost; }
+    }
+    r.encounters.push(record);
+  }
+}
+
+/** AB#820: the escort's commitment ends with its expedition. */
+function releaseEscort(corp, exp) {
+  const id = exp.rats?.escortFleetId;
+  if (!id) return;
+  const fleet = (corp.military?.fleets || []).find((f) => f.id === id);
+  if (fleet?.escort?.expeditionId === exp.id) delete fleet.escort;
+}
+
 export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
   ensureCorpAsteroidMiningModel(corp);
 
@@ -184,6 +237,8 @@ export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
   const cameHome = [];
 
   const bringHome = (exp, endedEarly) => {
+    settleRats(corp, exp, Math.min(now, Number(exp.completesAt))); // AB#820: every encounter due, before the haul is delivered
+    releaseEscort(corp, exp);
     exp.status = "completed";
     if (endedEarly) exp.endedEarly = { reason: "belt-depleted", at: now, scheduledAt: Number(exp.completesAt) };
 
@@ -242,6 +297,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
     // Determine belt composition
     const composition = belt ? belt.composition : beltComposition(exp.beltKey);
     if (!composition || !beltComposition(exp.beltKey)) {
+      releaseEscort(corp, exp); // AB#820
       exp.status = "completed";
       expeditionsToRemove.push(exp.id);
       return;
@@ -283,6 +339,7 @@ export function applyAsteroidExpeditions(corp, now = Date.now(), world = null) {
     }
 
     exp.lastTickAt = now;
+    settleRats(corp, exp, intervalEnd); // AB#820: the encounters due by now, on the haul carried now
 
     // AB#2330: the unit that empties the belt ends every expedition on it; this one comes home now.
     if (belt && belt.remaining <= 0) {

@@ -13,7 +13,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import { acknowledgeReceipt } from "./receipt.mjs";
 import { verifyAndLogIn } from "./verification.mjs";
 
@@ -86,6 +86,7 @@ for (const [width, height] of SIZES) {
     await shot("station");
 
     // The Orbital Executive Suites: rent an office, hire five.
+    await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
     await page.click('[data-building-action="building:orbital-executive-suites"]');
     await expect(page.locator("#rent-office-duration")).toBeVisible();
     await expectBuildingArt(page, "orbital_executive_suites");
@@ -104,6 +105,7 @@ for (const [width, height] of SIZES) {
 
     // The ISA Claims and Leases Division: file the Earth claim.
     await page.click("#station-back-btn");
+    await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
     await page.click('[data-building-action="building:isa-claims-leases"]');
     await expectBuildingArt(page, "isa_claims_leases_division");
     await measure(page, "claims", width);

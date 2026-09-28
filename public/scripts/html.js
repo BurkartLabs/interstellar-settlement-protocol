@@ -45,6 +45,14 @@ export function refineryBuildButtonHtml({ hasRefinery, used, slots }) {
  * The trade confirmation modal's rows. Label and value are text, escaped here, so callers pass raw strings
  * (Bug #1002: they went into innerHTML raw, and callers escaped some values themselves and not others).
  */
+/**
+ * ISP-249 (AB#945): a record's reference number (TYPE-YYYY-XXXXXX, server/references.js), as the guide shows it: secondary
+ * text beside the record, never its only label. "" when the record has none.
+ */
+export function refHtml(ref) {
+  return ref ? `<span class="ref-no">${escapeHtml(ref)}</span>` : "";
+}
+
 export function tradeConfirmRowsHtml(rows) {
   return rows
     .map((r) => {
@@ -167,7 +175,8 @@ export function messageListItemsHtml(msgs, formatDate) {
 
 /**
  * The Station tab's institutional office cards: the NPC buildings of the station the corporation is docked at, each
- * with its Enter button. `stationBuildings` is the station's buildingIds resolved against data/buildings.json.
+ * with its Enter button. AB#2471 (DOCTRINE P-010): a compact directory, the office's name, its agency and Enter; the
+ * description and lore are the office's own view, behind Enter, so eleven offices fit on one screen. `stationBuildings` is the station's buildingIds resolved against data/buildings.json.
  * The walkthrough highlights these buttons by their data-building-action (AB#404), so its test renders this.
  */
 export function stationBuildingCardsHtml(stationBuildings) {
@@ -183,8 +192,7 @@ export function stationBuildingCardsHtml(stationBuildings) {
             <span class="ui-badge">${escapeHtml(b.factionCode)}</span>
             <h3 class="ui-card__title">${escapeHtml(b.name)}</h3>
           </header>
-          <p class="ui-card__body">${escapeHtml(b.description)}</p>
-          <p class="station__flavor">${escapeHtml(b.flavor)}</p>
+          <p class="ui-card__meta station__card-agency">${escapeHtml(b.faction || "")}</p>
           <footer class="station__card-footer">${actionBtn}</footer>
         </article>
       `;

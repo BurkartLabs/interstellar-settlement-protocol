@@ -9,6 +9,8 @@
 import { escapeHtml } from "./html.js";
 import { utcMinute } from "./tariffs.js";
 import { chainRunRoyalty, researchRoyalty } from "./patentRoyalty.js";
+import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
+import { refHtml } from "./html.js"; // ISP-249 (AB#945)
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 const KIND = { research: "Research node", chain: "Refinery chain" };
@@ -22,7 +24,7 @@ const day = (t) => utcMinute(t).slice(0, 10);
 const nameFor = (p, ctx) => ctx.nameOf?.(p.kind, p.subjectId) || p.subjectName || p.subjectId;
 
 function termsHtml(t) {
-  return `<p class="ui-panel__meta patent-terms" data-role="patent-terms">Filing costs <strong>${n(t.filingFee)} credits</strong>, paid to the ISA. Only the first corporation to complete a thing may patent it, within ${n(t.filingWindowHours)} hours of completing it. A patent runs ${n(t.termDays)} days and is never renewed. The royalty is one rate for everyone but you: up to ${n(t.royaltyMaxPct)}% of a research node's cost, or up to ${n(t.chainRoyaltyMaxPct)}% of a refinery chain's output at the standing bid.</p>`;
+  return `<p class="ui-panel__meta" data-role="patent-terms">Filing costs <strong>${n(t.filingFee)} credits</strong>, paid to the ISA. Only the first corporation to complete a thing may patent it, within ${n(t.filingWindowHours)} hours of completing it. A patent runs ${n(t.termDays)} days and is never renewed. The royalty is one rate for everyone but you: up to ${n(t.royaltyMaxPct)}% of a research node's cost, or up to ${n(t.chainRoyaltyMaxPct)}% of a refinery chain's output at the standing bid.</p>`;
 }
 
 /** What the corporation may file now, each with its window and a rate select, or why there is nothing. */
@@ -44,7 +46,7 @@ export function filingHtml(office, ctx) {
     </li>`;
   }).join("");
   return `<section class="ui-panel station__panel patent-section" data-patent-filing aria-labelledby="patent-filing-title">
-    <h3 id="patent-filing-title">File a patent</h3>
+    <h3 id="patent-filing-title">${codeSlotHtml("patent-filing")}File a patent</h3>
     ${termsHtml(office.terms)}
     ${rows
       ? `<ul class="patent-list">${rows}</ul>`
@@ -60,11 +62,11 @@ function patentDl(p, rows) {
 /** The corporation's own patents, and the royalties its statements show received. */
 export function minePatentsHtml(office, ctx) {
   const rows = office.mine.map((p) => `<li class="patent-card" data-patent-mine="${escapeHtml(p.id)}">
-      <p class="patent-card__title"><strong>${escapeHtml(nameFor(p, ctx))}</strong> <span class="ui-badge">${KIND[p.kind]}</span> ${p.active ? `<span class="ui-badge ui-badge--success">In force</span>` : `<span class="ui-badge">Expired</span>`}</p>
-      ${patentDl(p, [["Royalty", `${n(p.ratePct)}%`], ["Filed", escapeHtml(day(p.filedAt))], [p.active ? "Ends" : "Ended", escapeHtml(utcMinute(p.endsAt))]])}
+      <p class="patent-card__title"><strong>${escapeHtml(nameFor(p, ctx))}</strong> <span class="ui-badge">${KIND[p.kind]}</span> ${p.active ? `<span class="ui-badge ui-badge--success">Active</span>` : `<span class="ui-badge">Expired</span>`} ${refHtml(p.ref)}</p>
+      ${patentDl(p, [["Royalty", `${n(p.ratePct)}%`], ["Filed", escapeHtml(day(p.filedAt))], [p.active ? "In force until" : "Lapsed", escapeHtml(utcMinute(p.endsAt))]])}
     </li>`).join("");
   return `<section class="ui-panel station__panel patent-section" data-patent-mine-list aria-labelledby="patent-mine-title">
-    <h3 id="patent-mine-title">Your patents</h3>
+    <h3 id="patent-mine-title">${codeSlotHtml("patent-mine")}Your patents</h3>
     <p class="patent-total" data-role="royalties-received">Royalties received: <strong>${n(office.royalties.received)} credits</strong></p>
     ${rows ? `<ul class="patent-list">${rows}</ul>` : `<p class="ui-panel__meta">You hold no patents.</p>`}
   </section>`;
@@ -86,10 +88,10 @@ function costText(p, ctx) {
 export function payingHtml(office, ctx) {
   const rows = office.paying.map((p) => `<li class="patent-card" data-patent-paying="${escapeHtml(p.id)}">
       <p class="patent-card__title"><strong>${escapeHtml(nameFor(p, ctx))}</strong> <span class="ui-badge">${KIND[p.kind]}</span></p>
-      ${patentDl(p, [["Holder", escapeHtml(p.holder)], ["Royalty", costText(p, ctx)], ["Ends", escapeHtml(utcMinute(p.endsAt))]])}
+      ${patentDl(p, [["Holder", escapeHtml(p.holder)], ["Royalty", costText(p, ctx)], ["In force until", escapeHtml(utcMinute(p.endsAt))]])}
     </li>`).join("");
   return `<section class="ui-panel station__panel patent-section" data-patent-paying-list aria-labelledby="patent-paying-title">
-    <h3 id="patent-paying-title">Patents you pay royalties on</h3>
+    <h3 id="patent-paying-title">${codeSlotHtml("patent-paying")}Patents you pay royalties on</h3>
     <p class="patent-total" data-role="royalties-paid">Royalties paid: <strong>${n(office.royalties.paid)} credits</strong>${office.royalties.owed > 0 ? `; still owed to holders: <strong>${n(office.royalties.owed)} credits</strong>, half of each sale's proceeds going toward it` : ""}</p>
     ${rows
       ? `<ul class="patent-list">${rows}</ul><p class="ui-panel__meta">A royalty never stops you: the research finishes and the run delivers in full. What your credits cannot cover is owed to the holder, and half of each later sale's proceeds goes toward it.</p>`
@@ -100,11 +102,11 @@ export function payingHtml(office, ctx) {
 /** The public register: every patent filed, newest first. */
 export function registerHtml(register, ctx) {
   const rows = (register || []).map((p) => `<li class="patent-card" data-patent-register="${escapeHtml(p.id)}">
-      <p class="patent-card__title"><strong>${escapeHtml(nameFor(p, ctx))}</strong> <span class="ui-badge">${KIND[p.kind] || escapeHtml(p.kind)}</span> ${p.active ? `<span class="ui-badge ui-badge--success">In force</span>` : `<span class="ui-badge">Expired</span>`}</p>
-      ${patentDl(p, [["Holder", escapeHtml(p.holder)], ["Royalty", `${n(p.ratePct)}%`], [p.active ? "Ends" : "Ended", escapeHtml(utcMinute(p.endsAt))]])}
+      <p class="patent-card__title"><strong>${escapeHtml(nameFor(p, ctx))}</strong> <span class="ui-badge">${KIND[p.kind] || escapeHtml(p.kind)}</span> ${p.active ? `<span class="ui-badge ui-badge--success">Active</span>` : `<span class="ui-badge">Expired</span>`}</p>
+      ${patentDl(p, [["Holder", escapeHtml(p.holder)], ["Royalty", `${n(p.ratePct)}%`], [p.active ? "In force until" : "Lapsed", escapeHtml(utcMinute(p.endsAt))]])}
     </li>`).join("");
   return `<section class="ui-panel station__panel patent-section" data-patent-register-list aria-labelledby="patent-register-title">
-    <h3 id="patent-register-title">The patent register</h3>
+    <h3 id="patent-register-title">${codeSlotHtml("patent-register")}The patent register</h3>
     <p class="ui-panel__meta">Every patent the Registry has filed, public to all.</p>
     ${rows ? `<ul class="patent-list">${rows}</ul>` : `<p class="ui-panel__meta">No patent has been filed yet.</p>`}
   </section>`;

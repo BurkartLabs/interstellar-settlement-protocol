@@ -5,7 +5,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/walkthrough-late-target.spec.js`.
 
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { WALKTHROUGH_STEPS } from "../public/scripts/walkthrough.js";
@@ -47,6 +47,7 @@ test("step 3's lease button, drawn after the step, is scrolled clear of the brie
   await openTab(page, "station");
   await expect(progress).toHaveText(`3 of ${TOTAL}`, { timeout: 10_000 });
 
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   const button = page.locator("#rent-office-btn");
   await expect(button).toHaveClass(/walkthrough__focus/, { timeout: 5_000 });

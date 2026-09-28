@@ -11,6 +11,7 @@ import { patentOfficeHtml } from "../patentOffice.js";
 import { basePricesOf } from "../patentRoyalty.js";
 import { appState, techTree } from "../state.js";
 import { pushFeedback, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { utcDate } from "../timeFormat.js"; // ISP-249 (AB#945)
 
 const office = { accountId: null, view: null, error: null, target: null, header: "" };
 const acct = () => `/api/accounts/${encodeURIComponent(appState.accountId)}`;
@@ -81,7 +82,7 @@ async function file(button) {
   button.disabled = true;
   try {
     const res = await parseJsonResponse(await apiFetch(`${acct()}/patents`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, subjectId, ratePct }) }));
-    pushFeedback(`Patent filed on ${name} at ${res.patent.ratePct}%, in force until ${new Date(res.patent.endsAt).toISOString().slice(0, 10)}.`, "ok");
+    pushFeedback(`Patent filed on ${name} at ${res.patent.ratePct}%, in force until ${utcDate(res.patent.endsAt)}.`, "ok");
     await Promise.all([load(), refreshAccount()]);
   } catch (error) {
     button.disabled = false;

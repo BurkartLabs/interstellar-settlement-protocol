@@ -7,7 +7,9 @@
 // it, then the fee to confirm; no field is free text), the corporation's own cases (the evidence, the window, the cure
 // for a respondent, the ruling in the Council's words), and the public docket. Times are UTC in the ISA's year (the
 // real year + 121, BUREAUCRATIC_UI.md), each a <time> with the real instant, until ISP-249's one formatter replaces this.
-import { escapeHtml } from "./html.js";
+import { escapeHtml, refHtml } from "./html.js";
+import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
+import { timeHtml } from "./timeFormat.js"; // ISP-249 (AB#945)
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 const cr = (v) => `${n(v)} credits`;
@@ -15,9 +17,7 @@ const pad = (v) => String(v).padStart(2, "0");
 
 /** A time as the ISA writes it: "2147-10-02 00:00 UTC", in a <time> carrying the real instant. */
 export function isaTime(t) {
-  const d = new Date(t);
-  const text = `${d.getUTCFullYear() + 121}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
-  return `<time datetime="${d.toISOString()}">${text}</time>`;
+  return timeHtml(t, { withDate: true }); // ISP-249 (AB#945): the one formatter
 }
 /** A deadline: within a day it also says how far away it is (BUREAUCRATIC_UI.md, Timestamps). */
 function deadline(t, now) {
@@ -160,7 +160,7 @@ function previewStep(state, ctx) {
   return `<section class="gac-step" data-gac-step="preview" aria-labelledby="gac-preview-title">
     <h4 class="gac-step__title" id="gac-preview-title"><span class="gac-step__n" aria-hidden="true">3</span> Evidence the Council will attach</h4>
     <div class="gac-preview">
-      <div class="gac-preview__evidence" data-gac-evidence>
+      <div data-gac-evidence>
         ${dl([["Claimant", escapeHtml(p.claimant.name)], ["Respondent", escapeHtml(p.respondent.name)], ["Amount claimed", cr(p.amountClaimed)], ...evidenceRows(p.type, p.evidence, ctx)])}
       </div>
       <aside class="gac-preview__rule" aria-label="The rule"><p class="gac-rule__head">The rule</p><p>${escapeHtml(claim(p.type).rule)}</p></aside>
@@ -174,7 +174,7 @@ function previewStep(state, ctx) {
 /** The filing wizard. */
 export function filingHtml(state, ctx = {}) {
   return `<section class="ui-panel station__panel gac-section" data-gac-filing aria-labelledby="gac-filing-title">
-    <h3 id="gac-filing-title">File a case</h3>
+    <h3 id="gac-filing-title">${codeSlotHtml("gac-filing")}File a case</h3>
     <p class="ui-panel__meta">A case has no words in it. You choose a claim type and a record you are party to; the Council attaches the ISA's own evidence and applies its published rule.</p>
     ${typeStep(state)}
     ${recordStep(state, ctx)}
@@ -193,12 +193,12 @@ export function caseHtml(c, ctx = {}) {
   return `<li class="gac-case" data-gac-case="${escapeHtml(c.ref)}">
     <details${ctx.open === c.ref ? " open" : ""}>
       <summary class="gac-case__summary">
-        <span class="gac-ref">${escapeHtml(c.ref)}</span>
+        ${refHtml(c.ref)}
         <span class="gac-case__title">${escapeHtml(claim(c.type).title)}: ${escapeHtml(c.claimant.name)} v. ${escapeHtml(c.respondent.name)}</span>
-        <span class="gac-case__status"><span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</span>
+        <span><span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</span>
       </summary>
       <div class="gac-case__body">
-        <p class="gac-protocol">${s.protocol}.</p>
+        <p class="ui-protocol">${s.protocol}.</p>
         ${dl([
           ["You are", ctx.isMe?.(c.claimant) ? "the claimant" : respondent ? "the respondent" : "a party"],
           ["Filed", isaTime(c.filedAt)],
@@ -220,7 +220,7 @@ export function caseHtml(c, ctx = {}) {
 /** The caller's own cases, pinned above the docket. */
 export function myCasesHtml(cases, ctx = {}) {
   return `<section class="ui-panel station__panel gac-section" data-gac-mine aria-labelledby="gac-mine-title">
-    <h3 id="gac-mine-title">Your cases</h3>
+    <h3 id="gac-mine-title">${codeSlotHtml("gac-mine")}Your cases</h3>
     ${cases.length ? `<ul class="gac-cases">${cases.map((c) => caseHtml(c, ctx)).join("")}</ul>` : `<p class="ui-panel__meta">Your corporation is party to no case.</p>`}
   </section>`;
 }
@@ -231,13 +231,13 @@ export function docketHtml(cases, ctx = {}) {
   const rows = cases.map((c) => {
     const s = caseStatus(c, now);
     return `<li class="gac-docket__row" data-gac-docket="${escapeHtml(c.ref)}">
-      <p class="gac-docket__head"><span class="gac-ref">${escapeHtml(c.ref)}</span> <span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</p>
-      <p class="gac-docket__parties">${escapeHtml(claim(c.type).title)}: ${escapeHtml(c.claimant)} v. ${escapeHtml(c.respondent)}</p>
+      <p class="gac-docket__head">${refHtml(c.ref)} <span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</p>
+      <p>${escapeHtml(claim(c.type).title)}: ${escapeHtml(c.claimant)} v. ${escapeHtml(c.respondent)}</p>
       <p class="gac-docket__meta">Filed ${isaTime(c.filedAt)}${c.amountClaimed > 0 ? ` · claimed ${cr(c.amountClaimed)}` : ""}${c.state === "enforcing" ? ` · ${cr(c.paid)} paid` : ""}</p>
     </li>`;
   }).join("");
   return `<section class="ui-panel station__panel gac-section" data-gac-docket-list aria-labelledby="gac-docket-title">
-    <h3 id="gac-docket-title">The docket</h3>
+    <h3 id="gac-docket-title">${codeSlotHtml("gac-docket")}The docket</h3>
     <p class="ui-panel__meta">Every case before the Council, newest first: reference, claim type, the parties and the ruling. The evidence stays with the parties.</p>
     ${rows ? `<ul class="gac-docket">${rows}</ul>` : `<p class="ui-panel__meta">The docket is empty.</p>`}
   </section>`;

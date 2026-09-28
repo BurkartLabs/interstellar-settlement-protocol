@@ -7,7 +7,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/walkthrough-run.spec.js`.
 
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { WALKTHROUGH_STEPS } from "../public/scripts/walkthrough.js";
@@ -56,6 +56,7 @@ test("the walkthrough runs start to finish with no console error, at 1280x800", 
   await openTab(page, "station");
 
   await atStep(3); // office
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:orbital-executive-suites"]');
   await page.selectOption("#rent-office-duration", "7");
   await page.click("#rent-office-btn");
@@ -68,6 +69,7 @@ test("the walkthrough runs start to finish with no console error, at 1280x800", 
 
   await atStep(5); // lease
   await page.click("#station-back-btn");
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:isa-claims-leases"]');
   await page.click('[data-action="purchase-lease"][data-body="Earth"]');
   await acknowledgeReceipt(page);

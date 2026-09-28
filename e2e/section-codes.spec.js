@@ -6,7 +6,7 @@
 // Run: npx playwright test e2e/section-codes.spec.js (no server needed). Screenshots: e2e/screenshots/ab-944/ (ignored by
 // git, AB#2251); the PR's copies are in docs/ab-944.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openStationSubpage, openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -77,6 +77,7 @@ for (const vp of [{ label: "1280", width: 1280, height: 800, mobile: false }, { 
         await expect(title).toMatchAriaSnapshot(`- heading "${plain}"`);
         await expect(title).toHaveAccessibleName(plain);
         const heading = page.locator(s.section.heading).first();
+        if (s.tab === "station") await openStationSubpage(page, "construction"); // AB#2471: Construction is its own subpage
         await expect(heading).toContainText(`${code(s.section.id)} // ${s.section.plain}`);
         await expect(heading).toHaveAccessibleName(s.section.plain);
         await title.scrollIntoViewIfNeeded();

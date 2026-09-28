@@ -3,7 +3,7 @@
 // Earth to Venus Platform (the same system) as free and moves them for nothing; the starmap modal says the rate is the
 // member's. At 1440x900 and 390x844; e2e/screenshots/ab-907/.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -67,6 +67,7 @@ for (const viewport of VIEWPORTS) {
 
       // the Suites at Venus Platform: the member rate, quoted and charged
       await openTab(page, "station");
+      await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
       await page.click('[data-building-action="building:orbital-executive-suites"]');
       const suite = page.locator("#lease-suite-box");
       await expect(suite).toContainText("Member rate: your conglomerate's station, so the rent is 50% of the standard $1,000 credits a day.");

@@ -1,5 +1,5 @@
 {
-  "_comment": "ISP-247 (AB#943): the document code of every screen and titled section, docs/design/BUREAUCRATIC_UI.md. A code is DEPT-FUNC-N: the issuing department, the function, and a number within that pair (the screen first, then its sections in page order). Codes are permanent: a section that goes keeps its code retired, never reused, and a new one takes the next free number. tests/unit/sectionCodes.test.js holds every screen and every titled section in public/index.html to this file.",
+  "_comment": "ISP-247 (AB#943): the document code of every screen and titled section, docs/design/BUREAUCRATIC_UI.md. A code is DEPT-FUNC-N: the issuing department, the function, and a number within that pair (the screen first, then its sections in page order). Codes are permanent: a section that goes keeps its code retired, never reused, and a new one takes the next free number. tests/unit/sectionCodes.test.js holds every screen and every titled section in public/index.html to this file. ISP-250 (AB#946): `drawn` holds the sections a view draws in JavaScript, each with the file that draws it; tests/unit/sectionCodes.test.js holds each to a codeSlotHtml call in that file.",
   "departments": {
     "CORP": "The corporation's own records: its operations, books, research, fleet and correspondence",
     "ISA": "Interstellar Settlement Authority: registration, contracts, charts and travel clearance",
@@ -174,6 +174,12 @@
       "id": "how-to-start",
       "page": "how-to-start.html",
       "title": "How to Start"
+    },
+    {
+      "code": "CORP-OPS-5",
+      "id": "operations",
+      "page": "index.html",
+      "title": "Operations"
     }
   ],
   "sections": [
@@ -222,7 +228,7 @@
     {
       "code": "STA-OPS-6",
       "id": "station-active-mining-cycles",
-      "screen": "station",
+      "screen": "operations",
       "title": "Active Mining Cycles"
     },
     {
@@ -434,6 +440,469 @@
       "id": "missions-available-contracts",
       "screen": "missions",
       "title": "Available Contracts"
+    },
+    {
+      "code": "CORP-OPS-6",
+      "id": "operations-in-progress",
+      "screen": "operations",
+      "title": "In progress"
+    }
+  ],
+  "drawn": [
+    {
+      "code": "STA-ADM-1",
+      "id": "building-orbital-executive-suites",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Orbital Executive Suites"
+    },
+    {
+      "code": "ISA-REG-8",
+      "id": "building-isa-claims-leases",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "ISA Claims & Leases Division"
+    },
+    {
+      "code": "EA-LAW-1",
+      "id": "building-earth-assembly",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Earth Assembly"
+    },
+    {
+      "code": "GAC-LAW-1",
+      "id": "building-galactic-arbitration-council",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Galactic Arbitration Council Chambers"
+    },
+    {
+      "code": "ISA-REG-9",
+      "id": "building-corporate-registry-charters",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Corporate Registry & Charters Division"
+    },
+    {
+      "code": "ITC-LAW-1",
+      "id": "building-interplanetary-trade-commission",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Interplanetary Trade Commission"
+    },
+    {
+      "code": "ISA-ADM-1",
+      "id": "building-conglomerate-affairs-bureau",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Conglomerate Affairs Bureau"
+    },
+    {
+      "code": "ISA-FIN-1",
+      "id": "building-deep-space-development-bank",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Deep Space Development Bank"
+    },
+    {
+      "code": "GEX-MKT-13",
+      "id": "building-intergalactic-stock-exchange",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Intergalactic Stock Exchange"
+    },
+    {
+      "code": "ISA-REG-10",
+      "id": "building-lease",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Mining Lease"
+    },
+    {
+      "code": "CORP-IND-5",
+      "id": "building-assembly-facility",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Assembly Facility"
+    },
+    {
+      "code": "STA-ADM-2",
+      "id": "suites-lease",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Lease an Office Suite"
+    },
+    {
+      "code": "STA-ADM-3",
+      "id": "suites-status",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Office Status"
+    },
+    {
+      "code": "STA-ADM-4",
+      "id": "suites-extend",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Extend Lease"
+    },
+    {
+      "code": "STA-ADM-5",
+      "id": "suites-workforce",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Workforce — Hire Personnel"
+    },
+    {
+      "code": "STA-ADM-6",
+      "id": "suites-services",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Station Services"
+    },
+    {
+      "code": "ISA-REG-11",
+      "id": "claims-active",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "Active Mining Claims"
+    },
+    {
+      "code": "ISA-REG-12",
+      "id": "claims-apply",
+      "screen": "station",
+      "file": "public/scripts/views/station.js",
+      "title": "File Extraction Lease Application"
+    },
+    {
+      "code": "ISA-REG-13",
+      "id": "patent-filing",
+      "screen": "station",
+      "file": "public/scripts/patentOffice.js",
+      "title": "File a patent"
+    },
+    {
+      "code": "ISA-REG-14",
+      "id": "patent-mine",
+      "screen": "station",
+      "file": "public/scripts/patentOffice.js",
+      "title": "Your patents"
+    },
+    {
+      "code": "ISA-REG-15",
+      "id": "patent-paying",
+      "screen": "station",
+      "file": "public/scripts/patentOffice.js",
+      "title": "Patents you pay royalties on"
+    },
+    {
+      "code": "ISA-REG-16",
+      "id": "patent-register",
+      "screen": "station",
+      "file": "public/scripts/patentOffice.js",
+      "title": "The patent register"
+    },
+    {
+      "code": "GAC-LAW-2",
+      "id": "gac-filing",
+      "screen": "station",
+      "file": "public/scripts/arbitrationCouncil.js",
+      "title": "File a case"
+    },
+    {
+      "code": "GAC-LAW-3",
+      "id": "gac-mine",
+      "screen": "station",
+      "file": "public/scripts/arbitrationCouncil.js",
+      "title": "Your cases"
+    },
+    {
+      "code": "GAC-LAW-4",
+      "id": "gac-docket",
+      "screen": "station",
+      "file": "public/scripts/arbitrationCouncil.js",
+      "title": "The docket"
+    },
+    {
+      "code": "EA-LAW-2",
+      "id": "earth-assembly-standing",
+      "screen": "station",
+      "file": "public/scripts/lobbyingOffice.js",
+      "title": "Your standing"
+    },
+    {
+      "code": "ITC-LAW-2",
+      "id": "interplanetary-trade-commission-standing",
+      "screen": "station",
+      "file": "public/scripts/lobbyingOffice.js",
+      "title": "Your standing"
+    },
+    {
+      "code": "EA-LAW-3",
+      "id": "earth-assembly-rules",
+      "screen": "station",
+      "file": "public/scripts/lobbyingOffice.js",
+      "title": "The rules in a system"
+    },
+    {
+      "code": "ITC-LAW-3",
+      "id": "interplanetary-trade-commission-rules",
+      "screen": "station",
+      "file": "public/scripts/lobbyingOffice.js",
+      "title": "The rules in a system"
+    },
+    {
+      "code": "EA-LAW-4",
+      "id": "earth-assembly-open",
+      "screen": "station",
+      "file": "public/scripts/lobbyingOffice.js",
+      "title": "Open a campaign"
+    },
+    {
+      "code": "ITC-LAW-4",
+      "id": "interplanetary-trade-commission-open",
+      "screen": "station",
+      "file": "public/scripts/lobbyingOffice.js",
+      "title": "Open a campaign"
+    },
+    {
+      "code": "EA-LAW-5",
+      "id": "earth-assembly-register",
+      "screen": "station",
+      "file": "public/scripts/lobbyingOffice.js",
+      "title": "The register"
+    },
+    {
+      "code": "ITC-LAW-5",
+      "id": "interplanetary-trade-commission-register",
+      "screen": "station",
+      "file": "public/scripts/lobbyingOffice.js",
+      "title": "The register"
+    },
+    {
+      "code": "ISA-FIN-2",
+      "id": "bank-borrow",
+      "screen": "station",
+      "file": "public/scripts/views/developmentBank.js",
+      "title": "Borrow from the Bank"
+    },
+    {
+      "code": "ISA-FIN-3",
+      "id": "bank-facilities",
+      "screen": "station",
+      "file": "public/scripts/views/developmentBank.js",
+      "title": "Your facilities"
+    },
+    {
+      "code": "ISA-FIN-4",
+      "id": "loans-board",
+      "screen": "station",
+      "file": "public/scripts/views/loanBoard.js",
+      "title": "Loan board"
+    },
+    {
+      "code": "ISA-FIN-5",
+      "id": "loans-offer",
+      "screen": "station",
+      "file": "public/scripts/views/loanBoard.js",
+      "title": "Offer a loan"
+    },
+    {
+      "code": "ISA-FIN-6",
+      "id": "loans-made",
+      "screen": "station",
+      "file": "public/scripts/views/loanBoard.js",
+      "title": "Loans you have made"
+    },
+    {
+      "code": "ISA-FIN-7",
+      "id": "loans-owed",
+      "screen": "station",
+      "file": "public/scripts/views/loanBoard.js",
+      "title": "Loans you owe other corporations"
+    },
+    {
+      "code": "GEX-MKT-14",
+      "id": "igsx-offerings",
+      "screen": "station",
+      "file": "public/scripts/views/stockExchange.js",
+      "title": "Primary offerings"
+    },
+    {
+      "code": "CORP-MIL-7",
+      "id": "raid-garrisons",
+      "screen": "fleet",
+      "file": "public/scripts/views/raids.js",
+      "title": "Garrisons"
+    },
+    {
+      "code": "CORP-MIL-8",
+      "id": "raid-picker",
+      "screen": "fleet",
+      "file": "public/scripts/views/raids.js",
+      "title": "Raid a corporation"
+    },
+    {
+      "code": "CORP-MIL-9",
+      "id": "raid-mine",
+      "screen": "fleet",
+      "file": "public/scripts/views/raids.js",
+      "title": "Your raids and reports"
+    },
+    {
+      "code": "CGL-REG-1",
+      "id": "cong-charter",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateBureau.js",
+      "title": "File a conglomerate charter"
+    },
+    {
+      "code": "CGL-ADM-2",
+      "id": "cong-invitations",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateBureau.js",
+      "title": "Invitations and applications"
+    },
+    {
+      "code": "CGL-REG-2",
+      "id": "cong-directory",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateBureau.js",
+      "title": "Conglomerates"
+    },
+    {
+      "code": "CGL-ADM-3",
+      "id": "cong-summary",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateBureau.js",
+      "title": "The conglomerate"
+    },
+    {
+      "code": "CGL-ADM-4",
+      "id": "cong-roster",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateBureau.js",
+      "title": "Roster"
+    },
+    {
+      "code": "CGL-ADM-5",
+      "id": "cong-admissions",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateBureau.js",
+      "title": "Applications"
+    },
+    {
+      "code": "CGL-ADM-6",
+      "id": "cong-identity",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateBureau.js",
+      "title": "Emblem and colour"
+    },
+    {
+      "code": "CGL-ADM-7",
+      "id": "cong-exit",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateBureau.js",
+      "title": "Dissolve or leave"
+    },
+    {
+      "code": "CGL-ADM-8",
+      "id": "cong-bureau-link",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateBureau.js",
+      "title": "At the Bureau"
+    },
+    {
+      "code": "CGL-ADM-9",
+      "id": "cong-independent",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateBureau.js",
+      "title": "Your corporation is independent"
+    },
+    {
+      "code": "CGL-ADM-10",
+      "id": "cong-level",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateBureau.js",
+      "title": "Level"
+    },
+    {
+      "code": "CGL-FIN-1",
+      "id": "cong-treasury",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateTreasury.js",
+      "title": "Treasury"
+    },
+    {
+      "code": "CGL-AST-1",
+      "id": "cong-hangar",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateTreasury.js",
+      "title": "Hangar"
+    },
+    {
+      "code": "CGL-FIN-2",
+      "id": "cong-treasury-ledger",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateTreasury.js",
+      "title": "Treasury ledger"
+    },
+    {
+      "code": "CGL-AST-2",
+      "id": "cong-hangar-ledger",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateTreasury.js",
+      "title": "Hangar ledger"
+    },
+    {
+      "code": "CGL-OPS-1",
+      "id": "cong-station-none",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateStation.js",
+      "title": "A station of your own"
+    },
+    {
+      "code": "CGL-OPS-2",
+      "id": "cong-station-project",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateStation.js",
+      "title": "The station project"
+    },
+    {
+      "code": "CGL-OPS-3",
+      "id": "cong-station-contributions",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateStation.js",
+      "title": "Who has put in"
+    },
+    {
+      "code": "CGL-OPS-4",
+      "id": "cong-station-built",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateStation.js",
+      "title": "The station"
+    },
+    {
+      "code": "CGL-OPS-5",
+      "id": "cong-station-stakes",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateStation.js",
+      "title": "Stakes"
+    },
+    {
+      "code": "CGL-OPS-6",
+      "id": "cong-station-governance",
+      "screen": "conglomerate",
+      "file": "public/scripts/conglomerateStation.js",
+      "title": "Governance"
+    },
+    {
+      "code": "STA-OPS-7",
+      "id": "own-station-panel",
+      "screen": "station",
+      "file": "public/scripts/conglomerateStation.js",
+      "title": "Your conglomerate's station"
     }
   ]
 }

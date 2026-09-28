@@ -9,6 +9,7 @@ import { renderTrainingPanel } from "../trainingPanel.js"; // ISP-172 (AB#866)
 import { appState, techTree } from "../state.js";
 import { pushFeedback, showTradeConfirmation, updateAllViews } from "./shared.js";
 import { showActionReceipt } from "./receiptModal.js";
+import { utcTime } from "../timeFormat.js";
 
 const stationName = (id) => (appState.stationRegistry || []).find((s) => s.id === id)?.name || "a station";
 const firstPresent = (...selectors) => () => selectors.map((sel) => document.querySelector(sel)).find(Boolean) || null;
@@ -95,7 +96,7 @@ function bindFleetList(list) {
         const ok = await showTradeConfirmation({ heading: "Fleet Orders", title: `Deploy ${card.querySelector("h4")?.textContent || "this fleet"}?`, confirmLabel: "Send",
           rows: [{ label: "Destination", value: target.getAttribute("data-deploy-name") },
             { label: "Travel time", value: durationText(ms) },
-            { label: "Arrives", value: `${new Date(Date.now() + ms).toISOString().slice(11, 16)} UTC` },
+            { label: "Arrives", value: utcTime(Date.now() + ms) }, // ISP-249 (AB#945)
             { label: "While in transit", value: "it takes no orders", muted: true }] });
         if (!ok) return;
         target.disabled = true;

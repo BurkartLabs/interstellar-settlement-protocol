@@ -11,6 +11,7 @@
 import { escapeHtml } from "./html.js";
 import { bureauTime } from "./conglomerateBureau.js";
 import { stationArtHtml } from "./stationArt.js";
+import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 const pct = (have, need) => (need > 0 ? Math.min(100, (100 * have) / need) : 100);
@@ -62,7 +63,7 @@ export function noStationHtml(sp, { may = [], level = 0, atBureau = false, syste
   }
   return `
     <section class="ui-panel station__panel cong-panel cong-station" data-role="cong-station-none">
-      <h3>A station of your own</h3>
+      <h3>${codeSlotHtml("cong-station-none")}A station of your own</h3>
       <p class="cong-panel__lede">A conglomerate can build a station. Members fund it together, each contribution becomes that corporation's stake, and the stakes govern it. Members rent offices there at ${n(sp.memberRentPct)}% and move goods within its system for nothing.</p>
       <dl class="ui-kv cong-terms"><dt>It costs</dt><dd>${cost}</dd><dt>It takes</dt><dd>${n(sp.buildDays)} days to build once fully funded</dd><dt>It needs</dt><dd>A level ${n(sp.minLevel)} conglomerate</dd></dl>
       ${body}
@@ -125,7 +126,7 @@ export function projectHtml(p, { may = [], systems = [], own = {}, hangar = {}, 
     <section class="ui-panel station__panel cong-panel cong-station" data-role="cong-station-project">
       <div class="cong-station__head">${artFor(p, systems)}<div>
         <p class="station__overline">${p.state === "building" ? "Under construction" : "Station project"} · ${escapeHtml(systemName(systems, p.systemId))}</p>
-        <h3>${escapeHtml(p.name)}</h3>
+        <h3>${codeSlotHtml("cong-station-project")}${escapeHtml(p.name)}</h3>
         <p class="cong-panel__lede">In orbit of ${escapeHtml(p.body)}. Filed ${bureauTime(p.startedAt)}.</p>
       </div></div>
       ${table}
@@ -133,7 +134,7 @@ export function projectHtml(p, { may = [], systems = [], own = {}, hangar = {}, 
       ${founder && p.state === "funding" ? `<button type="button" class="ui-button ui-button--danger" data-role="cong-station-cancel">Cancel the project</button>${statusLine("cong-station-cancel-status", status.cancel)}` : ""}
     </section>
     <section class="ui-panel station__panel cong-panel" data-role="cong-station-contributions">
-      <h3>Who has put in</h3>
+      <h3>${codeSlotHtml("cong-station-contributions")}Who has put in</h3>
       ${who}
     </section>`;
 }
@@ -186,19 +187,19 @@ export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], sta
     <section class="ui-panel station__panel cong-panel cong-station" data-role="cong-station-built">
       <div class="cong-station__head">${stationArtHtml(st, systems)}<div>
         <p class="station__overline">${escapeHtml(st.designation || "")} · ${escapeHtml(systemName(systems, st.systemId))}</p>
-        <h3>${escapeHtml(st.name)}</h3>
+        <h3>${codeSlotHtml("cong-station-built")}${escapeHtml(st.name)}</h3>
         <p class="cong-panel__lede">In orbit of ${escapeHtml(st.body)}. Built ${bureauTime(gov.station.builtAt)} and owned by your conglomerate.${mine ? ` Your stake: <strong>${mine.pct.toFixed(2)}%</strong>.` : ""}</p>
       </div></div>
       <h4 class="cong-subhead">What members get here</h4>
       ${benefits}
     </section>
     <section class="ui-panel station__panel cong-panel" data-role="cong-station-stakes">
-      <h3>Stakes</h3>
+      <h3>${codeSlotHtml("cong-station-stakes")}Stakes</h3>
       ${stakes}
       ${buyouts}
     </section>
     <section class="ui-panel station__panel cong-panel" data-role="cong-station-governance">
-      <h3>Governance</h3>
+      <h3>${codeSlotHtml("cong-station-governance")}Governance</h3>
       <dl class="ui-kv cong-terms"><dt>Who may dock</dt><dd data-role="cong-station-access">${escapeHtml(ACCESS_LABELS[gov.settings.access] || gov.settings.access)}</dd>
         <dt>Listed</dt><dd>${gov.settings.listed.length ? gov.settings.listed.map((l) => escapeHtml(l.name)).join(", ") : "None"}</dd></dl>
       ${open.length ? `<h4 class="cong-subhead">Open votes</h4><ul class="cong-list">${open.map(voteRow).join("")}</ul>` : `<p class="cong-panel__lede">No vote is open.</p>`}
@@ -212,7 +213,7 @@ export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], sta
 export function dockedAtOwnStationHtml(station, { memberStation, standardRent, systems = [] } = {}) {
   return `
     <section class="ui-panel station__panel cong-station__docked" data-role="own-station-panel">
-      <h3>Your conglomerate's station</h3>
+      <h3>${codeSlotHtml("own-station-panel")}Your conglomerate's station</h3>
       <p class="station__note">${escapeHtml(station.name)} belongs to your conglomerate. As a member, your suite here costs ${n((standardRent * memberStation.officeRentPct) / 100)} credits a day (${n(memberStation.officeRentPct)}% of ${n(standardRent)}), and goods move between here and the rest of ${escapeHtml(systemName(systems, station.systemId))} for nothing.</p>
       <button type="button" class="ui-button ui-button--secondary" data-role="own-station-open">Stakes and votes</button>
     </section>`;

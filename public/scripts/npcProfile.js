@@ -32,7 +32,7 @@ export function npcProfileView(entry) {
     return {
       heading: "Authority",
       title: entry.name,
-      bodyHtml: `<p class="npc-profile__flavour">${escapeHtml(entry.role || "")}</p><p class="npc-profile__note">An institution of the game, not a corporation: it runs part of the market and does not trade for itself.</p>`
+      bodyHtml: `<p>${escapeHtml(entry.role || "")}</p><p class="npc-profile__note">An institution of the game, not a corporation: it runs part of the market and does not trade for itself.</p>`
     };
   }
   const trades = (entry.trades || []).map((t) => escapeHtml(t)).join(", ");
@@ -40,8 +40,8 @@ export function npcProfileView(entry) {
     heading: "NPC corporation",
     title: entry.name,
     bodyHtml:
-      `<p class="npc-profile__flavour">${escapeHtml(entry.flavour || "")}</p>` +
-      `<dl class="ui-kv npc-profile__facts"><dt>Home station</dt><dd data-npc-field="home">${escapeHtml(entry.homeStation || "")}</dd>` +
+      `<p>${escapeHtml(entry.flavour || "")}</p>` +
+      `<dl class="ui-kv"><dt>Home station</dt><dd data-npc-field="home">${escapeHtml(entry.homeStation || "")}</dd>` +
       `<dt>Trades</dt><dd data-npc-field="trades">${trades}</dd></dl>` +
       `<p class="npc-profile__note">Run by the game. Its orders are posted by the exchange at published prices; it never takes a player's order and sees nothing a player cannot.</p>`
   };

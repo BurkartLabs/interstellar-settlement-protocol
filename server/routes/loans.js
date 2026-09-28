@@ -7,7 +7,7 @@ import { getAccountById } from "../gameState.js";
 import { sanitizeAccount } from "../game/store.js";
 
 const credits = (n) => `${Math.round(n).toLocaleString("en-US")} credits`;
-const day = (t) => new Date(t).toUTCString().replace(/:\d\d GMT$/, " UTC").replace(/^\w+, /, "");
+const day = (t) => utcTime(t, { withDate: true }); // ISP-249 (AB#945)
 
 /** ISP-19: what the confirmation after borrowing says. The Bank's voice; figures from the loan the server recorded. */
 function borrowReceipt(loan, fee) {
@@ -37,6 +37,7 @@ const answer = (accountId, extra) => ({ ...sanitizeAccount(getAccountById(accoun
 import { payOffLoan } from "../loanServicing.js"; // ISP-150 (AB#844)
 import { listLoanOffers, postLoanOffer, cancelLoanOffer, acceptLoanOffer, OFFER_RULES, MIN_GRADES, gradeOf, playerLoansOf } from "../playerLoans.js"; // ISP-152 (AB#846), ISP-153 (AB#847)
 import { bodyNumber } from "../bodyNumber.js";
+import { utcTime } from "../../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
 
 export function registerLoanRoutes(app) {
   // ISP-151 (AB#845): the products and this corporation's limit on each, for the Development Bank's view

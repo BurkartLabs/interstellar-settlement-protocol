@@ -9,7 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-939");
@@ -46,6 +46,7 @@ async function chambers(page, [width, height]) {
   await page.click("#credential-login-btn");
   await page.waitForURL(/\/\?account=/);
   await openTab(page, "station");
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.locator('[data-building-action="building:galactic-arbitration-council"]').click();
   await expect(page.locator("[data-gac-chambers] [data-gac-filing]")).toBeVisible({ timeout: 15_000 });
 }

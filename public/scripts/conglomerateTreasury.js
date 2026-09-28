@@ -8,6 +8,7 @@
 
 import { escapeHtml } from "./html.js";
 import { bureauTime } from "./conglomerateBureau.js";
+import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 const signed = (v) => (v > 0 ? `+${n(v)}` : v < 0 ? `−${n(-v)}` : "0");
@@ -114,7 +115,7 @@ export function treasuryHtml(t, { may = [], status = {}, form = {} } = {}) {
     <div class="cong-actions">${may.includes("block-withdrawal") && w.corp !== t.me ? `<button type="button" class="ui-button ui-button--danger" data-role="cong-withdrawal-block" data-withdrawal="${escapeHtml(w.id)}">Block</button>` : ""}</div></li>`).join("")}</ul>` : "";
   return `
     <section class="ui-panel station__panel cong-panel" data-role="cong-treasury">
-      <h3>Treasury</h3>
+      <h3>${codeSlotHtml("cong-treasury")}Treasury</h3>
       <dl class="ui-kv cong-terms">
         <dt>Balance</dt><dd data-role="cong-treasury-balance">${n(t.balance)} credits</dd>
         <dt>Upkeep</dt><dd>${n(t.upkeepPerDay)} credits a day, next at ${bureauTime(t.nextUpkeepAt)}</dd>
@@ -124,7 +125,7 @@ export function treasuryHtml(t, { may = [], status = {}, form = {} } = {}) {
       ${pending}
     </section>
     <section class="ui-panel station__panel cong-panel" data-role="cong-treasury-ledger">
-      <h3>Ledger</h3>
+      <h3>${codeSlotHtml("cong-treasury-ledger")}Ledger</h3>
       ${ledgerHtml(t.ledger, { which: "treasury" })}
     </section>`;
 }
@@ -134,7 +135,7 @@ export function hangarHtml(h, { may = [], own = {}, status = {}, docked = false 
   if (!h) return `<p class="station__note">Reading the hangar…</p>`;
   if (h.error) return `<div class="ui-state ui-state--error" role="alert"><p class="ui-state__title">The hangar could not be loaded</p><p class="ui-state__why">${escapeHtml(h.error)} Nothing has changed.</p><button type="button" class="ui-button ui-button--secondary" data-role="cong-reload">Try again</button></div>`;
   const held = Object.entries(h.items).sort(([a], [b]) => a.localeCompare(b));
-  const stock = held.length ? `<div class="ui-table-wrap"><table class="ui-table cong-stock">
+  const stock = held.length ? `<div class="ui-table-wrap"><table class="ui-table">
       <caption class="ui-table__caption">At ${escapeHtml(h.stationName)}</caption>
       <thead><tr><th scope="col">Item</th><th scope="col" class="ui-table__num">In the hangar</th><th scope="col" class="ui-table__num">You may take today</th></tr></thead>
       <tbody>${held.map(([item, units]) => `<tr><td data-label="Item">${escapeHtml(item)}</td><td data-label="In the hangar" class="ui-table__num">${n(units)}</td><td data-label="You may take today" class="ui-table__num">${n(h.allowance[item]?.remaining)}</td></tr>`).join("")}</tbody>
@@ -161,12 +162,12 @@ export function hangarHtml(h, { may = [], own = {}, status = {}, docked = false 
     </form>` : held.length ? `<p class="cong-item__why">Nothing more can be withdrawn today: each role takes a share of each item's stock at 00:00 UTC, and the share resets then.</p>` : "") : "";
   return `
     <section class="ui-panel station__panel cong-panel" data-role="cong-hangar">
-      <h3>Hangar</h3>
+      <h3>${codeSlotHtml("cong-hangar")}Hangar</h3>
       ${stock}
       <div class="cong-money">${deposit}${withdraw}</div>
     </section>
     <section class="ui-panel station__panel cong-panel" data-role="cong-hangar-ledger">
-      <h3>Ledger</h3>
+      <h3>${codeSlotHtml("cong-hangar-ledger")}Ledger</h3>
       ${ledgerHtml(h.ledger, { which: "hangar", goods: true })}
     </section>`;
 }

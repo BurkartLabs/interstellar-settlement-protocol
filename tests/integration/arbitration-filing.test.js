@@ -62,7 +62,7 @@ describe("mercenary-readiness (AB#937)", () => {
     expect(r.case).toMatchObject({ type: "mercenary-readiness", state: "answering", respondent: { type: "corp", id: owner.holder.id }, claimant: { id: renter.holder.id }, feePaid: 1_000 });
     expect(r.case.evidence.hourlyReadiness).toEqual([100, 100, 80, 80, 80, 80, 70, 70, 70, 70]); // at the start of each hour
     expect(r.case.amountClaimed).toBe(Math.round((5_000 * (4 * 0.2 + 4 * 0.3)) / 24)); // 417
-    expect(r.case.ref).toMatch(/^GAC-\d{4}-\d{6}$/);
+    expect(r.case.ref).toMatch(/^ARB-\d{4}-[0-9A-HJKMNP-TV-Z]{6}$/); // ISP-249 (AB#945): the reference format, opaque
     expect(renter.credits()).toBe(credits - 1_000); // the fee, held until the ruling
     expect(listAccountNotifications(owner.id).notifications.some((n) => n.title === "Galactic Arbitration Council: case filed" && n.body.includes(r.case.ref))).toBe(true);
     // the escrow is frozen: the term ends and nothing is released

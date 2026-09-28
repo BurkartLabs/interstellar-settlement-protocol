@@ -22,7 +22,11 @@ test("a fresh corporation sees its milestone roadmap in the sidebar", async ({ p
   await page.click('#register-form button[type="submit"]');
   await verifyAndLogIn(page, "", `ab1752-${stamp}@example.test`, "password123!"); // AB#2288: verify, then log in
 
-  await page.waitForSelector("#milestone-list");
+  await page.waitForSelector("#milestone-list", { state: "attached" });
+  await page.getByRole("button", { name: "I'll find my own way" }).click();
+  await expect(page.locator("#dialogue-modal")).toBeHidden();
+  // AB#2481: Milestones starts collapsed on a desktop (Overview shows the same list); its toggle opens it.
+  await page.locator('.side-panel__toggle[aria-controls="sidebar-milestones"]').click();
   const items = page.locator("#milestone-list .side-panel__milestone");
   await expect(items.first()).toBeVisible();
   const count = await items.count();

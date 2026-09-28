@@ -88,15 +88,21 @@ test("the market and the finance charts draw only on their own tab, and on the s
     expect(await rerenderCountingMarket(page), "the visible market was not redrawn").toBeGreaterThan(0);
     await page.screenshot({ path: path.join(SCREEN_DIR, "hidden-views-market-1280x800.png") });
 
-    // Opening Finance draws all six charts, each with a real size (not the 0x0 of a canvas drawn while hidden).
+    // Opening Finance draws its charts; the ones on its Trends page (AB#2470) are sized as that page opens. Each has a
+    // real size once its page is on screen (not the 0x0 of a canvas drawn while hidden).
     await openTab(page, "finance");
+    const summary = (await chartsDrawn(page))[0];
+    expect(summary?.width, "the Summary page's cash chart").toBeGreaterThan(0);
+    await page.locator('#finance-subnav [data-finance-sub="trends"]').click();
+    await expect(page.locator("#finance-sub-trends")).toBeVisible();
+    await page.waitForFunction(() => Chart.getChart("pnl-chart")?.width > 0);
     const drawn = await chartsDrawn(page);
     for (const [i, chart] of drawn.entries()) {
       expect(chart, `${CHARTS[i]} was not drawn on opening Finance`).not.toBeNull();
       expect(chart.width, CHARTS[i]).toBeGreaterThan(0);
       expect(chart.height, CHARTS[i]).toBeGreaterThan(0);
     }
-    await page.locator("#cashflow-chart").scrollIntoViewIfNeeded();
+    await page.locator("#netflow-chart").scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(SCREEN_DIR, "hidden-views-finance-1280x800.png") });
     expect(errors).toEqual([]);
   } finally {

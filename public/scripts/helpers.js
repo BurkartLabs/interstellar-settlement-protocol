@@ -1,6 +1,7 @@
 // AB#738 (ISP-52): the shared formatting helpers, moved out of app.js so each is defined once. They are not merged
 // with each other: fmtCredits ("1,234"), toCurrency ("$1,234"), formatDuration ("1h 5m" / "5m 3s" / "3s") and
 // formatDurationHours ("1h 5m", "0h") each render differently on screen, and this split changes no behaviour.
+import { utcTime } from "./timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
 
 export function toCurrency(number) {
   return new Intl.NumberFormat("en-US", {
@@ -18,9 +19,9 @@ export function deepClone(input) {
   return JSON.parse(JSON.stringify(input));
 }
 
+/** ISP-249 (AB#945): the guide's UTC time (public/scripts/timeFormat.js), not the viewer's locale. */
 export function formatTime(ts) {
-  const d = new Date(ts);
-  return d.toLocaleString();
+  return utcTime(ts);
 }
 
 export function formatDuration(ms) {
@@ -45,9 +46,7 @@ export function fmtSignedCredits(n) {
 }
 
 export function fmtTimestamp(t) {
-  if (!t) return "—";
-  const d = new Date(t);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  return utcTime(t); // ISP-249 (AB#945)
 }
 
 // Ledger names whose words are not simply capitalised (AB#712 books CEO programs as ceo-insight).
@@ -70,12 +69,7 @@ export function formatDurationHours(ms) {
   return `${h}h ${m}m`;
 }
 
+/** ISP-249 (AB#945): today's time alone, else the date and time, in UTC with the in-fiction year. */
 export function formatInboxDate(ts) {
-  if (!ts) return "";
-  const d = new Date(ts);
-  const now = new Date();
-  if (d.toDateString() === now.toDateString()) {
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-  return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+  return ts ? utcTime(ts) : "";
 }
