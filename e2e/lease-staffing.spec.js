@@ -9,7 +9,7 @@
 // Earth-Mars approach five seconds.
 
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -24,6 +24,7 @@ async function enterBuilding(page, action) {
   await openTab(page, "station");
   const back = page.locator("#station-back-btn");
   if (await back.isVisible()) await back.click();
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click(`[data-building-action="building:${action}"]`);
 }
 

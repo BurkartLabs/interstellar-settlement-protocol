@@ -1,0 +1,6 @@
+station/overview: content ends at 838px, 1.05 screens
+station/offices: content ends at 1187px, 1.48 screens
+station/construction: content ends at 1249px, 1.56 screens
+station/holdings: content ends at 571px, 0.71 screens
+operations/all: content ends at 618px, 0.77 screens
+operations/mining: content ends at 631px, 0.79 screens

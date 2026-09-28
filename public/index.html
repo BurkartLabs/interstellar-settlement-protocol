@@ -235,6 +235,7 @@
             <button class="nav-group__button" type="button" data-group="station">Station</button>
             <div class="nav-group__tabs">
               <button class="nav-tab" data-tab="station" type="button">Station</button>
+              <button class="nav-tab" data-tab="operations" type="button">Operations</button>
               <button class="nav-tab" data-tab="fleet" type="button">Fleet</button>
             </div>
           </section>
@@ -363,18 +364,33 @@
             <div id="station-overview-view" class="station__view">
               <header id="station-location-header" class="ui-screen__header"></header>
 
+              <!-- AB#2471 (DOCTRINE P-010; docs/design/p010-scroll-audit.md): the Station in four subpages, the markup
+                   AB#2470's Financial Core uses (public/scripts/subnav.js). Active Mining Cycles moved to Operations. -->
+              <nav id="station-subnav" class="ui-tabs station__subnav" role="tablist" aria-label="Station pages">
+                <button id="station-subtab-overview" class="ui-tab" type="button" role="tab" aria-selected="true" aria-controls="station-sub-overview" data-subpage="overview">Overview</button>
+                <button id="station-subtab-offices" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="station-sub-offices" data-subpage="offices" tabindex="-1">Offices</button>
+                <button id="station-subtab-construction" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="station-sub-construction" data-subpage="construction" tabindex="-1">Construction</button>
+                <button id="station-subtab-holdings" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="station-sub-holdings" data-subpage="holdings" tabindex="-1">Holdings</button>
+              </nav>
+
+              <div id="station-sub-overview" class="station__subpage ui-stack" role="tabpanel" aria-labelledby="station-subtab-overview">
+                <p class="ui-screen__lede station__overview-empty">No corporation-owned facilities here yet. The station's offices are under <strong>Offices</strong>; what you can build is under <strong>Construction</strong>; your yards and infrastructure are under <strong>Holdings</strong>, and every cycle in progress is in <strong>Operations</strong>.</p>
+                <section class="ui-stack" id="station-facilities-section" hidden>
+                  <h3 class="station__heading"><span class="ui-code" data-code-for="station-facilities-section" aria-hidden="true"></span>Operational Facilities</h3>
+                  <p class="ui-screen__lede">Corporation-owned facilities available for use at this station.</p>
+                  <div id="station-facility-buildings"></div>
+                </section>
+              </div>
+
+              <div id="station-sub-offices" class="station__subpage ui-stack" role="tabpanel" aria-labelledby="station-subtab-offices" hidden>
               <section id="station-authority-and-regulatory-offices" class="ui-stack">
                 <h3 class="station__heading"><span class="ui-code" data-code-for="station-authority-and-regulatory-offices" aria-hidden="true"></span>Authority &amp; Regulatory Offices</h3>
                 <p class="ui-screen__lede">Government bodies, regulatory agencies, and institutional services present at this station. Access is open to all registered corporations.</p>
-                <div id="station-npc-buildings" class="ui-grid station__grid"></div>
+                <div id="station-npc-buildings" class="ui-grid station__grid station__offices"></div>
               </section>
+              </div>
 
-              <section class="ui-stack" id="station-facilities-section" hidden>
-                <h3 class="station__heading"><span class="ui-code" data-code-for="station-facilities-section" aria-hidden="true"></span>Operational Facilities</h3>
-                <p class="ui-screen__lede">Corporation-owned facilities available for use at this station.</p>
-                <div id="station-facility-buildings"></div>
-              </section>
-
+              <div id="station-sub-construction" class="station__subpage ui-stack" role="tabpanel" aria-labelledby="station-subtab-construction" hidden>
               <!-- ISP-95 (AB#785): every catalogue building, with Build or what is in the way (constructionPanel.js). -->
               <section class="ui-stack" id="station-construction-section">
                 <h3 class="station__heading"><span class="ui-code" data-code-for="station-construction-section" aria-hidden="true"></span>Construction</h3>
@@ -382,18 +398,15 @@
                 <p id="construction-slots" class="ui-screen__meta"></p>
                 <div id="station-construction" class="ui-grid station__grid"></div>
               </section>
+              </div>
 
+              <div id="station-sub-holdings" class="station__subpage ui-stack" role="tabpanel" aria-labelledby="station-subtab-holdings" hidden>
               <section id="station-licensed-corporate-holdings" class="ui-stack">
                 <h3 class="station__heading"><span class="ui-code" data-code-for="station-licensed-corporate-holdings" aria-hidden="true"></span>Licensed Corporate Holdings</h3>
                 <p class="ui-screen__lede">Extractor yards and infrastructure deployed at this station.</p>
                 <div id="station-player-buildings" class="ui-grid station__grid"></div>
               </section>
-
-              <section id="station-active-mining-cycles" class="ui-stack">
-                <h3 class="station__heading"><span class="ui-code" data-code-for="station-active-mining-cycles" aria-hidden="true"></span>Active Mining Cycles</h3>
-                <p class="ui-screen__lede">Every extractor yard's current cycle, wherever it is leased.</p>
-                <div id="mine-cycle-list" class="ui-stack"></div>
-              </section>
+              </div>
             </div>
 
             <!-- Building detail view -->
@@ -402,6 +415,32 @@
                 <button id="station-back-btn" class="ui-button ui-button--secondary" type="button">&#8592; Back to Station</button>
               </div>
               <div id="station-building-content" class="station__building"></div>
+            </div>
+          </article>
+
+          <!-- AB#2471 (Board review item 30): everything in progress in one place, one row each, soonest first
+               (public/scripts/operations.js); the mining cycles' detail, which grows with every yard, is its own subpage. -->
+          <article id="operations" class="tab-panel ui-screen">
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="operations" aria-hidden="true"></span>Operations</h2>
+              <p class="ui-screen__lede" id="operations-summary">Everything your corporation has in progress.</p>
+            </header>
+            <nav id="operations-subnav" class="ui-tabs" role="tablist" aria-label="Operations pages">
+              <button id="operations-subtab-all" class="ui-tab" type="button" role="tab" aria-selected="true" aria-controls="operations-sub-all" data-subpage="all">In progress</button>
+              <button id="operations-subtab-mining" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="operations-sub-mining" data-subpage="mining" tabindex="-1">Mining cycles</button>
+            </nav>
+            <div id="operations-sub-all" class="ui-stack" role="tabpanel" aria-labelledby="operations-subtab-all">
+              <section id="operations-in-progress" class="ui-stack" aria-labelledby="operations-in-progress-title">
+                <h3 id="operations-in-progress-title" class="station__heading"><span class="ui-code" data-code-for="operations-in-progress" aria-hidden="true"></span>In progress</h3>
+                <div id="operations-list"></div>
+              </section>
+            </div>
+            <div id="operations-sub-mining" class="ui-stack" role="tabpanel" aria-labelledby="operations-subtab-mining" hidden>
+              <section id="station-active-mining-cycles" class="ui-stack">
+                <h3 class="station__heading"><span class="ui-code" data-code-for="station-active-mining-cycles" aria-hidden="true"></span>Active Mining Cycles</h3>
+                <p class="ui-screen__lede">Every extractor yard's current cycle, wherever it is leased.</p>
+                <div id="mine-cycle-list" class="ui-stack"></div>
+              </section>
             </div>
           </article>
 
