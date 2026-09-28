@@ -69,27 +69,43 @@ async function openSuitesAndRent(page) {
 }
 
 /**
- * Start sampling `selector` on every animation frame for `ms`: its text, and whether it carries an up or down class.
- * Call collectFrames() to read what was sampled.
+ * Start sampling `selector` on every animation frame: its text, and whether it carries an up or down class.
+ *
+ * Bug AB#2309: this sampled for a fixed 1.5 s from before the click, so under a full run's load a hire whose response
+ * landed late was never seen ("expected coloured frames > 0, received 0"). Now, with `{ until: "up" | "down" }`, it
+ * samples until a frame carrying that class has been recorded, then `settleMs` more for the count and the colour to
+ * finish, capped at `maxMs`. A plain number samples for that long: for a test that expects no change at all.
+ * finishSampling() waits for it to stop and returns the frames.
  */
-async function startSampling(page, selector, ms) {
-  await page.evaluate(({ selector, ms }) => {
+async function startSampling(page, selector, opts) {
+  const { until = null, settleMs = 1500, maxMs = 10_000 } = typeof opts === "number" ? { maxMs: opts } : opts;
+  await page.evaluate(({ selector, until, settleMs, maxMs }) => {
     window.__frames = [];
+    window.__samplingDone = false;
     const t0 = performance.now();
+    let seenAt = null;
     const tick = (now) => {
       const el = document.querySelector(selector);
-      window.__frames.push({
+      const frame = {
         t: Math.round(now - t0),
         text: el?.textContent ?? null,
         up: Boolean(el?.classList.contains("num-change--up")),
         down: Boolean(el?.classList.contains("num-change--down"))
-      });
-      if (now - t0 < ms) requestAnimationFrame(tick);
+      };
+      window.__frames.push(frame);
+      if (until && frame[until] && seenAt === null) seenAt = now;
+      const settled = until ? seenAt !== null && now - seenAt >= settleMs : false;
+      if (settled || now - t0 >= maxMs) window.__samplingDone = true;
+      else requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
-  }, { selector, ms });
+  }, { selector, until, settleMs, maxMs });
 }
-const collectFrames = (page) => page.evaluate(() => window.__frames);
+/** Wait for the sampling to stop (the change seen and settled, or the cap reached), and return what it recorded. */
+async function finishSampling(page) {
+  await page.waitForFunction(() => window.__samplingDone === true, null, { timeout: 20_000 });
+  return page.evaluate(() => window.__frames);
+}
 
 /** From sampled frames: the texts shown, and how long the colour was on, first frame to last. */
 function summarise(frames, kind) {
@@ -115,13 +131,12 @@ test("a hire counts the sidebar up in green, and a sale counts the inventory dow
     await page.waitForTimeout(600); // a beat on the video before the hire
 
     // The hire: sidebar Employees and the office's Staffing both go 0 -> 5.
-    await startSampling(page, '[data-num-key="sidebar:employees"]', 1500);
+    await startSampling(page, '[data-num-key="sidebar:employees"]', { until: "up" });
     await page.fill("#office-hire-count", "5");
     await page.click('#office-hire-form button[type="submit"]');
     await expect(page.locator('[data-num-key="sidebar:employees"].num-change--up')).toBeVisible();
     await page.screenshot({ path: path.join(SHOT_DIR, "01-hire-sidebar-counting-up.png") });
-    await page.waitForTimeout(1600);
-    const hire = summarise(await collectFrames(page), "up");
+    const hire = summarise(await finishSampling(page), "up");
     console.log("hire", JSON.stringify(hire));
     expect(hire.coloured).toBe(true);
     expect(hire.texts.some((t) => Number(t) > 0 && Number(t) < 5), `counted through: ${hire.texts}`).toBe(true);
@@ -142,12 +157,11 @@ test("a hire counts the sidebar up in green, and a sale counts the inventory dow
     await sell.click();
     await page.waitForTimeout(400);
     await page.locator(inventory).scrollIntoViewIfNeeded();
-    await startSampling(page, inventory, 1500);
+    await startSampling(page, inventory, { until: "down" });
     await page.click("#trade-confirm-ok");
     await expect(page.locator(`${inventory}.num-change--down`)).toBeVisible();
     await page.screenshot({ path: path.join(SHOT_DIR, "03-sale-inventory-counting-down.png") });
-    await page.waitForTimeout(1600);
-    const sale = summarise(await collectFrames(page), "down");
+    const sale = summarise(await finishSampling(page), "down");
     console.log("sale", JSON.stringify(sale));
     expect(sale.coloured).toBe(true);
     expect(sale.texts.some((t) => Number(t) > 30 && Number(t) < 40), `counted through: ${sale.texts}`).toBe(true);
@@ -171,13 +185,12 @@ test("with reduced motion, the hire shows 5 at once with a static green", async 
   try {
     await logIn(page, url, email);
     await openSuitesAndRent(page);
-    await startSampling(page, '[data-num-key="sidebar:employees"]', 1500);
+    await startSampling(page, '[data-num-key="sidebar:employees"]', { until: "up" });
     await page.fill("#office-hire-count", "5");
     await page.click('#office-hire-form button[type="submit"]');
     await expect(page.locator('[data-num-key="sidebar:employees"].num-change--up')).toBeVisible();
     await page.screenshot({ path: path.join(SHOT_DIR, "05-reduced-motion-hire.png") });
-    await page.waitForTimeout(1600);
-    const frames = await collectFrames(page);
+    const frames = await finishSampling(page);
     const coloured = frames.filter((f) => f.up);
     console.log("reduced", JSON.stringify(summarise(frames, "up")));
     expect(coloured.length).toBeGreaterThan(0);
@@ -208,10 +221,9 @@ test("a hire made while the tab is hidden is not replayed when the player comes 
       delete document.hidden; // back to the real getter: visible
       document.dispatchEvent(new Event("visibilitychange"));
     });
-    await startSampling(page, '[data-num-key="sidebar:employees"]', 1200);
+    await startSampling(page, '[data-num-key="sidebar:employees"]', 1200); // a fixed window: no change is expected
     await openTab(page, "overview"); // the next render after coming back
-    await page.waitForTimeout(1300);
-    const back = summarise(await collectFrames(page), "up");
+    const back = summarise(await finishSampling(page), "up");
     console.log("hidden", JSON.stringify(back));
     expect(back.coloured).toBe(false);
     expect(back.texts).toEqual(["5"]);
