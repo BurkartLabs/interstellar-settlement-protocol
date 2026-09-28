@@ -22,6 +22,7 @@ import { countBuilt, playerBuilding } from "../playerBuildings.js";
 const ASSEMBLY = playerBuilding("assembly-facility");
 import { launchExpeditionReceipt, probeFabricationReceipt, scoutBeltReceipt } from "../receipts.js"; // AB#744
 import { RATS, encounterChance, forcePower, forceSupply, nominalHours, seedFor } from "../game/rats.js"; // AB#820
+import { rateFactorFor } from "../hunts.js"; // ISP-284 (AB#991): a belt a hunt cleared is quiet
 import { SYSTEMS_BY_ID } from "../game/catalog.js";
 import { stationById } from "../game/stations.js";
 import { commitHiredEscort, hiredEscortFor } from "../hiredEscort.js"; // AB#4678
@@ -259,6 +260,7 @@ export function registerAsteroidRoutes(app) {
         if (!escort) { outcome = "no-such-fleet"; return; } // not the caller's: never looked up anywhere else
         if (escort.contract) { outcome = "escort-contracted"; return; }
         if (escort.escort) { outcome = "escort-busy"; return; }
+        if (escort.hunt) { outcome = "escort-hunting"; return; } // AB#991
         if (escort.transit && Date.now() < escort.transit.arrivesAt) { outcome = "escort-travelling"; return; }
         if (stationById(escort.stationId)?.systemId !== beltSystemId) { outcome = "escort-elsewhere"; return; }
         if (!forceSupply(escort.units)) { outcome = "escort-empty"; return; }
@@ -281,10 +283,12 @@ export function registerAsteroidRoutes(app) {
 
       applyCredits(corp, -launchCost, "expeditions");
       if (provisions) applyCredits(corp, -provisions, "expeditions"); // AB#820: the escort's provisions, a sink
+      // AB#991: a belt a hunt cleared is quiet for everyone; the rate is fixed at launch, so the plan drawn each tick is the same
+      const rateFactor = rateFactorFor(beltKey);
       rats = {
-        density, hours, escortFleetId: escort?.id ?? hiredEscort?.fleetId ?? null, escortUnits, escortPower,
+        density, hours, escortFleetId: escort?.id ?? hiredEscort?.fleetId ?? null, escortUnits, escortPower, rateFactor,
         ...(hiredEscort ? { escortContractId: hiredEscort.contractId, escortOwnerCorpId: hiredEscort.ownerCorpId } : {}), // AB#4678
-        chance: encounterChance(density, hours, escortPower), chanceUnescorted: encounterChance(density, hours, 0),
+        chance: encounterChance(density, hours, escortPower, rateFactor), chanceUnescorted: encounterChance(density, hours, 0, rateFactor),
         provisions, encounters: []
       };
       am.probeCount -= 1;
@@ -333,6 +337,7 @@ export function registerAsteroidRoutes(app) {
         "escort-not-permitted": "That contract does not permit escorting: only a contract for pve or raids does.",
         "escort-contracted": "That fleet is offered or hired out, and takes no order until its contract ends.",
         "escort-busy": "That fleet is already escorting an expedition.",
+        "escort-hunting": "That fleet is hunting Rats until it comes back.", // AB#991
         "escort-travelling": "That fleet is travelling. Escort with it once it has arrived.",
         "escort-elsewhere": "An escort must be stationed in the belt's system. Deploy the fleet there first.",
         "escort-empty": "That fleet has no units to escort with.",

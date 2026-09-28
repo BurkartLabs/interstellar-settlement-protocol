@@ -64,6 +64,8 @@ import { registerFleetRoutes } from "./routes/fleets.js"; // ISP-174 (AB#868)
 import { registerMercenaryRoutes } from "./routes/mercenaries.js"; // ISP-176 (AB#870)
 import { registerRaidRoutes } from "./routes/raids.js"; // ISP-178 (AB#872)
 import { raidTick } from "./raidResolution.js"; // ISP-179 (AB#873)
+import { registerHuntRoutes } from "./routes/hunts.js"; // ISP-284 (AB#991)
+import { huntTick } from "./hunts.js"; // ISP-284 (AB#991)
 import { registerGarrisonRoutes } from "./routes/garrison.js"; // ISP-180 (AB#874)
 import { registerRefiningRoutes } from "./routes/refining.js";
 import { registerConstructionRoutes } from "./routes/construction.js"; // ISP-94 (AB#784)
@@ -228,6 +230,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => standingTick(Date.now())
 // ISP-239 (AB#934): a lobbying campaign's pledging closes within a minute of its time
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => lobbyingTick(Date.now()), 60_000);
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => raidTick(Date.now()), 30_000); // ISP-179 (AB#873): arrivals and returns
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => huntTick(Date.now()), 5_000); // ISP-284 (AB#991): hunts that are due
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondServicingTick(Date.now()), 60_000); // ISP-155 (AB#849)
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now(); shareOfferingTick(now); dividendTick(now); }, 60_000); // ISP-158 (AB#852), ISP-159 (AB#853)
 
@@ -239,6 +242,7 @@ registerTrainingRoutes(app);
 registerFleetRoutes(app);
 registerMercenaryRoutes(app);
 registerRaidRoutes(app);
+registerHuntRoutes(app);
 registerGarrisonRoutes(app);
 
 registerRefiningRoutes(app);

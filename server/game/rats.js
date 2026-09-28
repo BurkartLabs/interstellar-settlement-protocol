@@ -63,15 +63,19 @@ export function deterrence(density, escortPower = 0) {
   const group = forcePower(ratGroup(density));
   return group > 0 && escortPower > 0 ? 1 / (1 + RATS.deterrence * escortPower / group) : 1;
 }
-/** Encounters an expedition of `hours` expects (the Poisson mean). */
-export function encounterRate(density, hours, escortPower = 0) {
+/**
+ * Encounters an expedition of `hours` expects (the Poisson mean). `factor` is the belt's: quietRateFactor for a belt
+ * a hunt cleared (ISP-284, AB#991: server/hunts.js rateFactorFor), 1 otherwise.
+ */
+export function encounterRate(density, hours, escortPower = 0, factor = 1) {
   const T = Math.max(0, Number(hours) || 0);
   const exposure = T + (T * T) / (2 * RATS.attentionHours);
-  return Math.max(0, Number(density) || 0) * RATS.hazardPerDensityHour * exposure * deterrence(density, escortPower);
+  const f = Number.isFinite(Number(factor)) ? Math.max(0, Number(factor)) : 1;
+  return Math.max(0, Number(density) || 0) * RATS.hazardPerDensityHour * exposure * deterrence(density, escortPower) * f;
 }
 /** The chance of meeting Rats at least once, what the launch screen shows. */
-export function encounterChance(density, hours, escortPower = 0) {
-  return 1 - Math.exp(-encounterRate(density, hours, escortPower));
+export function encounterChance(density, hours, escortPower = 0, factor = 1) {
+  return 1 - Math.exp(-encounterRate(density, hours, escortPower, factor));
 }
 /** The design's length in hours for an expedition duration id (the dev server's short runs use the same shape). */
 export const nominalHours = (duration) => RATS.lengthsHours[duration] ?? RATS.lengthsHours.standard;
@@ -97,9 +101,9 @@ function generator(seedHex) {
  * The encounters a seed gives an expedition: [{ index, share, roll }], `share` the point of the expedition it happens
  * at (0 to 1), `roll` the unescorted table's row for it. Deterministic in its arguments.
  */
-export function planEncounters(seedHex, density, hours, escortPower = 0) {
+export function planEncounters(seedHex, density, hours, escortPower = 0, factor = 1) {
   const rng = generator(seedHex);
-  const mu = encounterRate(density, hours, escortPower);
+  const mu = encounterRate(density, hours, escortPower, factor);
   // Poisson by inversion: the first k at which the running total passes a uniform draw
   let k = 0, p = Math.exp(-mu), sum = p;
   const u = rng();

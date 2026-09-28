@@ -136,7 +136,7 @@ export function ensureCorpMilitary(corp) {
   // ISP-173 (AB#867): readiness, 40 to 100, and the upkeep clock, kept as they are
   const r = Number(m.readiness);
   const readiness = Number.isFinite(r) ? Math.min(READINESS_FULL, Math.max(READINESS_FLOOR, r)) : READINESS_FULL;
-  corp.military = { units: clean, modifiers, power: militaryPower(clean), garrisons, readiness, ...(m.upkeep && typeof m.upkeep === "object" ? { upkeep: m.upkeep } : {}), ...(Array.isArray(m.fleets) ? { fleets: m.fleets } : {}), ...(Array.isArray(m.hired) ? { hired: m.hired } : {}), ...(Array.isArray(m.readinessLog) ? { readinessLog: m.readinessLog } : {}) }; // fleets: ISP-174 (AB#868), server/fleets.js; hired: ISP-176 (AB#870); readinessLog: ISP-241 (AB#937)
+  corp.military = { units: clean, modifiers, power: militaryPower(clean), garrisons, readiness, ...(m.upkeep && typeof m.upkeep === "object" ? { upkeep: m.upkeep } : {}), ...(Array.isArray(m.fleets) ? { fleets: m.fleets } : {}), ...(Array.isArray(m.hired) ? { hired: m.hired } : {}), ...(Array.isArray(m.readinessLog) ? { readinessLog: m.readinessLog } : {}), ...(Array.isArray(m.hunts) ? { hunts: m.hunts } : {}) }; // fleets: ISP-174 (AB#868), server/fleets.js; hired: ISP-176 (AB#870); readinessLog: ISP-241 (AB#937); hunts: ISP-284 (AB#991), server/hunts.js
   return JSON.stringify(corp.military) !== before;
 }
 
