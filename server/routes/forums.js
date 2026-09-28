@@ -69,6 +69,8 @@ export function registerForumRoutes(app) {
       return;
     }
     const author = String(account.state?.corp?.corporationName || "").trim() || UNNAMED_CORPORATION; // never the email (Bug #1134)
+    // AB#2466: the reply it answers, when it answers one: a reply already in this thread, or refused with nothing written
+    const replyToId = typeof req.body?.replyToId === "string" && req.body.replyToId.trim() ? req.body.replyToId.trim() : null;
 
     const reply = {
       id: `rep-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -76,18 +78,25 @@ export function registerForumRoutes(app) {
       authorAccountId: account.id,
       content,
       likes: 0,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      ...(replyToId ? { replyToId } : {})
     };
 
     let foundThread = null;
+    let unknownParent = false;
     const updated = mutateState((draft) => {
       const thread = (draft.forums?.threads || []).find((t) => t.id === req.params.threadId);
       if (!thread) return;
       if (!Array.isArray(thread.replies)) thread.replies = [];
+      if (replyToId && !thread.replies.some((r) => r.id === replyToId)) { unknownParent = true; return; }
       thread.replies.push(reply);
       foundThread = thread;
     });
 
+    if (unknownParent) {
+      res.status(400).json({ error: "That reply is not in this thread." });
+      return;
+    }
     if (!foundThread) {
       res.status(404).json({ error: "Thread not found." });
       return;

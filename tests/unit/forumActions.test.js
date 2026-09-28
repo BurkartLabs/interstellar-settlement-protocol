@@ -170,3 +170,23 @@ describe("a new thread is listed once, whichever of its two arrivals comes first
     expect(app).toMatch(/for \(const holder of \[appState\.data, appState\.serverData\]\)/);
   });
 });
+
+// AB#2466: replies nested under what they answer.
+import { replyTree } from "../../public/scripts/forumActions.js";
+describe("replyTree (AB#2466)", () => {
+  const r = (id, replyToId) => ({ id, ...(replyToId ? { replyToId } : {}) });
+  const shape = (nodes) => nodes.map((n) => [n.reply.id, n.depth, shape(n.children)]);
+  it("nests each reply under the one it answers, to any depth, in posting order within a level", () => {
+    const tree = replyTree([r("a"), r("b", "a"), r("c"), r("d", "b"), r("e", "a"), r("f", "d")]);
+    expect(shape(tree)).toEqual([["a", 0, [["b", 1, [["d", 2, [["f", 3, []]]]]], ["e", 1, []]]], ["c", 0, []]]);
+  });
+  it("puts a reply to a missing reply, and old replies with none, under the thread; a loop loses nothing", () => {
+    expect(shape(replyTree([r("a", "gone"), r("b")]))).toEqual([["a", 0, []], ["b", 0, []]]);
+    const loop = replyTree([r("x", "y"), r("y", "x"), r("z")]);
+    const ids = [];
+    const walk = (ns) => ns.forEach((n) => { ids.push(n.reply.id); walk(n.children); });
+    walk(loop);
+    expect(ids.sort()).toEqual(["x", "y", "z"]);
+    expect(replyTree(undefined)).toEqual([]);
+  });
+});
