@@ -95,12 +95,13 @@ describe("walkthrough steps (AB#404)", () => {
   });
 
   // AB#579: the briefing is in Elara Voss's voice; the old step-counter framing and the "Agent" address are gone.
-  it("reads as her briefing: no step counter, no 'Agent', and the first step introduces her", () => {
+  it("reads as her briefing: no step counter, no 'Agent', and the first step does not introduce her twice", () => {
     for (const step of WALKTHROUGH_STEPS) {
       expect(step.title).not.toMatch(/^Step \d/);
       expect(step.text).not.toMatch(/\bAgent\b/);
     }
-    expect(WALKTHROUGH_STEPS[0].text.startsWith("Elara Voss, Contracting & Assignments Bureau.")).toBe(true);
+    // AB#2463: the message before the walkthrough introduces her, and her byline heads every step; step 1 starts with the work
+    expect(WALKTHROUGH_STEPS[0].text.startsWith("Start with your inbox")).toBe(true);
   });
 
   for (const [i, step] of WALKTHROUGH_STEPS.entries()) {
