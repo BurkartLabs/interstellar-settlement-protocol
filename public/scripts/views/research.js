@@ -9,6 +9,8 @@ import { formatHoursMinutes, nextRndStart, rndItemStatus, scheduleRndQueue } fro
 import { appState, techTree } from "../state.js";
 import { flashButtonSuccess, pushFeedback, setTab, updateAllViews } from "./shared.js";
 import { bindResearchLinks } from "../researchLinks.js"; // AB#885
+import { insightRemaining, researchRemaining, totalText } from "../researchTotals.js"; // AB#2475
+import { isInsightProgramLive } from "../ceoEffects.js";
 
 export function getTechNode(techId) {
   return techTree.find((item) => item.id === techId) || null;
@@ -233,4 +235,17 @@ export function bindResearchForms() {
       pushFeedback(`R&D queue request rejected. ${error.message}`, "error");
     }
   });
+}
+
+/**
+ * AB#2475 (Board review item 22): the time to finish every research item still outstanding, on Corporate R&D and CEO
+ * Insight (researchTotals.js: each track runs one item at a time, so it is the sum of what is left). Drawn with the
+ * page and each second by the ticker, so it counts down and drops as items complete.
+ */
+export function renderResearchTotals(data, now = Date.now()) {
+  if (!data?.corp) return;
+  const rnd = document.getElementById("rnd-total");
+  if (rnd) rnd.textContent = `Total time to complete all remaining research: ${totalText(researchRemaining({ nodes: techTree, done: data.corp.unlockedTech || [], queue: data.queues?.corporateRnD || [] }, now), "technology", "technologies")}`;
+  const ceo = document.getElementById("ceo-total");
+  if (ceo) ceo.textContent = `Total time to complete all remaining programs: ${totalText(insightRemaining({ programs: appState.insightPrograms || [], completed: data.corp.completedInsights || [], queue: data.queues?.ceoInsight || [], isLive: isInsightProgramLive }, now), "program level", "program levels")}`;
 }
