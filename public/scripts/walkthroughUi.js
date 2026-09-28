@@ -1,6 +1,6 @@
 // AB#738 (ISP-52): the walkthrough's page side (the briefing card, its highlight and its controls), moved out of
 // app.js. The steps themselves and the rules for advancing them stay in walkthrough.js, which the tests run in node.
-import { WALKTHROUGH_STEPS as walkthroughSteps, chooseHighlight, nextStepIndex } from "./walkthrough.js";
+import { WALKTHROUGH_STEPS as walkthroughSteps, chooseHighlight, nextStepIndex, paragraphsOf } from "./walkthrough.js";
 import { revealedGroups, showOnlyGroups } from "./navGroups.js"; // ISP-75 (AB#764)
 import { walkthroughScrollDelta } from "./walkthrough.js"; // Bug #1083
 import { setWalkthroughEconomy } from "./walkthrough.js"; // AB#1430
@@ -221,7 +221,8 @@ function renderWalkthroughStep() {
   if (speaker) speaker.textContent = COORDINATOR_BYLINE;
   walkthroughTitle.textContent = step.title;
   setWalkthroughEconomy(appState.economy); // AB#1430: the steps that quote a price read it from here
-  walkthroughText.textContent = step.text;
+  // AB#2463: a step's paragraphs (split on a blank line) each their own <p>, spaced, so a turn in the briefing reads as one
+  walkthroughText.replaceChildren(...paragraphsOf(step.text).map((words) => Object.assign(document.createElement("p"), { textContent: words })));
   const progress = document.getElementById("walkthrough-progress");
   if (progress) {
     progress.textContent = walkthroughFinished

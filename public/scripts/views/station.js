@@ -6,7 +6,6 @@ import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { OFFICE_TERMS_DAYS, officeLeaseCost, officeRenewalCost } from "../ceoEffects.js";
 import { isMemberStation, memberOfficeCost } from "../memberRates.js"; // ISP-212 (AB#907)
 import { claimsAllTakenText, claimsNoLeasesText } from "../emptyStates.js";
-import { stationStartPromptHtml } from "../firstAction.js";
 import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml, stationBuildingCardsHtml } from "../html.js";
 import { activeCycleFigures, extractorState, spentText } from "../leaseLive.js";
@@ -1199,7 +1198,6 @@ export function renderStation(data) {
         <p class="ui-screen__lede">${escapeHtml(station.description)}</p>
       </div>
     </div>
-    ${stationStartPromptHtml(corp)}
     ${ownStation ? dockedAtOwnStationHtml(station, { memberStation: ownStation, standardRent: officeLeaseCost(1), systems }) : ""}
   `;
   paintStationArt(header, systems);
@@ -1396,14 +1394,7 @@ export function bindBuildingActions() {
     showStationOverview();
   });
 
-  // AB#1056: the Start here prompt opens the Suites; it has its own attribute so the walkthrough's highlight, which
-  // finds the Suites card by data-building-action, still lands on the card.
-  document.getElementById("station-location-header")?.addEventListener("click", (event) => {
-    if (!event.target.closest("[data-start-office]")) return;
-    showStationBuilding("orbital-executive-suites");
-    // straight to the lease form, which sits under the Suites' description and was below the fold on a phone
-    revealUnderHeader(document.getElementById("rent-office-btn")?.closest(".ui-panel") || document.getElementById("station-building-view"));
-  });
+  // AB#2463: the first-action prompt that opened the Suites is gone (Board review item 9); the walkthrough leads there.
 }
 
 /**

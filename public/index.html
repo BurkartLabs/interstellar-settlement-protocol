@@ -707,6 +707,13 @@
                 <div id="refinery-chains" class="ui-grid"></div>
               </div>
             </section>
+            <!-- AB#2485: the chains the corporation cannot run yet, each with what it is missing -->
+            <section class="ui-panel" aria-labelledby="refinery-unavailable-title">
+              <header class="ui-panel__header"><div><h3 id="refinery-unavailable-title" class="ui-panel__title"><span class="ui-code" data-code-for="refinery-unavailable-title" aria-hidden="true"></span>Unavailable chains</h3><p class="ui-panel__meta">What each chain still needs: research, the building it runs in, and its inputs.</p></div></header>
+              <div class="ui-panel__body ui-stack">
+                <div id="refinery-unavailable-chains" class="ui-grid"></div>
+              </div>
+            </section>
             <section class="ui-panel" aria-labelledby="resource-catalog-title">
               <header class="ui-panel__header"><h3 id="resource-catalog-title" class="ui-panel__title"><span class="ui-code" data-code-for="resource-catalog-title" aria-hidden="true"></span>Resource catalog</h3></header>
               <ul id="resource-catalog" class="ui-panel__body refinery__catalog"></ul>
@@ -1468,7 +1475,7 @@
         <div class="dialogue__content">
           <p id="walkthrough-speaker" class="dialogue__speaker"></p>
           <h2 id="walkthrough-title" class="dialogue__title"></h2>
-          <p id="walkthrough-text" class="dialogue__text"></p>
+          <div id="walkthrough-text" class="dialogue__text walkthrough__text"></div>
           <div class="dialogue__actions">
             <button id="walkthrough-prev" class="ui-button ui-button--secondary" type="button">Previous</button>
             <button id="walkthrough-next" class="ui-button ui-button--primary" type="button">Next</button>

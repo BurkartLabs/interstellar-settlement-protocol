@@ -16,8 +16,9 @@ describe("Refinery Chains: requirement text is muted, not amber (AB#1761)", () =
 
   // ISP-79 (AB#768): on the design system the muted token is the card's meta line, and the warning is a warn badge.
   it("still renders both requirement lines, in the muted token", () => {
-    expect(APP_JS).toContain('<p class="ui-card__meta">Requires: ${(chain.requiresTechIds || []).map((id, i) => researchLinkHtml(id, '); // AB#885: each research a link
-    expect(APP_JS).toContain('<p class="ui-card__meta">Refinery construction requires: Material Compression I and Nano-Lattice Weaving research.</p>');
+    // AB#2485: the requirements moved to the Unavailable chains' "Missing" list: the research, and the building.
+    expect(APP_JS).toContain('<li><p class="ui-card__meta">Requires: ${researchLinks(blockers.research, chain).join(", ")}</p></li>');
+    expect(APP_JS).toContain('<li><p class="ui-card__meta">Runs in a ${buildingLinkHtml(b.id, b.name)}, which your corporation has not built');
   });
 
   it("keeps amber for the real warning: all refineries busy", () => {
