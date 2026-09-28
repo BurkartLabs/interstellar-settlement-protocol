@@ -35,6 +35,8 @@ const inTransit = (fleet, now) => Boolean(fleet.transit) && now < fleet.transit.
 const contracted = (fleet) => Boolean(fleet?.contract);
 /** AB#820: a fleet escorting an expedition is committed until the expedition ends. */
 const escorting = (fleet) => Boolean(fleet?.escort);
+/** ISP-284 (AB#991): a fleet hunting a belt's Rats is committed until the hunt is over. */
+const hunting = (fleet) => Boolean(fleet?.hunt);
 
 /** What no fleet holds: the corporation's units of each fleet type, less every fleet's. */
 export function reserveOf(corp) {
@@ -101,6 +103,7 @@ export function splitFleet(corp, fleetId, { units: input, name } = {}, now = Dat
   if (!fleet) return { outcome: "no-fleet" };
   if (contracted(fleet)) return { outcome: "under-contract" };
   if (escorting(fleet)) return { outcome: "escorting" };
+  if (hunting(fleet)) return { outcome: "hunting" };
   if (inTransit(fleet, now)) return { outcome: "in-transit" };
   const units = unitsFrom(input);
   if (!units) return { outcome: "no-units" };
@@ -125,6 +128,7 @@ export function mergeFleets(corp, fleetId, intoFleetId, now = Date.now()) {
   if (!from || !into) return { outcome: "no-fleet" };
   if (contracted(from) || contracted(into)) return { outcome: "under-contract" };
   if (escorting(from) || escorting(into)) return { outcome: "escorting" };
+  if (hunting(from) || hunting(into)) return { outcome: "hunting" };
   if (from === into) return { outcome: "same-fleet" };
   if (inTransit(from, now) || inTransit(into, now)) return { outcome: "in-transit" };
   if (from.stationId !== into.stationId) return { outcome: "not-together" };
@@ -141,6 +145,7 @@ export function disbandFleet(corp, fleetId, now = Date.now()) {
   if (!fleet) return { outcome: "no-fleet" };
   if (contracted(fleet)) return { outcome: "under-contract" };
   if (escorting(fleet)) return { outcome: "escorting" };
+  if (hunting(fleet)) return { outcome: "hunting" }; // AB#991
   if (inTransit(fleet, now)) return { outcome: "in-transit" };
   if (fleet.stationId !== corp.currentStationId) return { outcome: "not-here", stationId: fleet.stationId };
   corp.military.fleets = corp.military.fleets.filter((f) => f !== fleet);
@@ -158,6 +163,7 @@ export function deployFleet(corp, fleetId, toStationId, now = Date.now()) {
   if (!fleet) return { outcome: "no-fleet" };
   if (contracted(fleet)) return { outcome: "under-contract" };
   if (escorting(fleet)) return { outcome: "escorting" };
+  if (hunting(fleet)) return { outcome: "hunting" }; // AB#991
   if (inTransit(fleet, now)) return { outcome: "in-transit" };
   const from = stationById(fleet.stationId), to = stationById(toStationId);
   if (!to) return { outcome: "no-station" };

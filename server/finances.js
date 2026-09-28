@@ -103,7 +103,8 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "concession-fee-share", // ISP-228 (AB#923): an ISA concession holder's share of the lease fees paid in its system
     "tariff-revenue", // ISP-230 (AB#925): a concession holder's tariffs, less the ISA's levy, paid daily
     "patent-royalty-revenue", // ISP-236 (AB#931): royalties others paid on the corporation's patents
-    "arbitration-award-received" // ISP-242 (AB#938): an arbitration award: from escrow, ISA-held income, a cure or a withheld Council debt
+    "arbitration-award-received", // ISP-242 (AB#938): an arbitration award: from escrow, ISA-held income, a cure or a withheld Council debt
+    "bounty-received" // ISP-284 (AB#991): the ISA's bounty for a won Rat hunt
   ]),
   expense: Object.freeze([
     "hiring",

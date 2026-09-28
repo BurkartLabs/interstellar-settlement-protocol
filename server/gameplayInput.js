@@ -131,6 +131,9 @@ export const GAMEPLAY_INPUT = {
   "POST /fleets/:fleetId/deploy": { params: { fleetId: ref("one of your fleets") }, body: { toStationId: id("stations", "a station") } },
   "POST /fleets/:fleetId/disband": { params: { fleetId: ref("one of your fleets") } },
   "GET /fleets/:fleetId/destinations": { params: { fleetId: ref("one of your fleets") } }, // ISP-175 (AB#869)
+  // ISP-284 (AB#991): a fleet sent to hunt a belt's Rats; server/hunts.js checks the fleet is the caller's and free
+  "GET /hunts": NOTHING, // ISP-284 (AB#991): the corporation's hunts and their reports
+  "POST /fleets/:fleetId/hunt": { params: { fleetId: ref("one of your fleets") }, body: { beltKey: id("belts", "an asteroid belt") } },
   // ISP-176 (AB#870): mercenary contracts. Terms are numbers and enums only; ids not the caller's are the route's 404.
   "GET /mercenaries": NOTHING,
   "GET /mercenaries/mine": NOTHING, // ISP-177 (AB#871)

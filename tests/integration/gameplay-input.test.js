@@ -46,6 +46,8 @@ const BASELINE = {
   "POST /fleets/:fleetId/split": { params: { fleetId: "flt-does-not-exist" }, body: { lf: 1 } },
   "POST /fleets/:fleetId/merge": { params: { fleetId: "flt-does-not-exist" }, body: { intoFleetId: "flt-other" } },
   "POST /fleets/:fleetId/deploy": { params: { fleetId: "flt-does-not-exist" }, body: { toStationId: "mars-orbital-dock" } },
+  "POST /fleets/:fleetId/hunt": { params: { fleetId: "flt-does-not-exist" }, body: { beltKey: "sol:belt" } }, // ISP-284 (AB#991)
+  "GET /hunts": {}, // ISP-284 (AB#991)
   "POST /fleets/:fleetId/disband": { params: { fleetId: "flt-does-not-exist" } },
   "GET /fleets/:fleetId/destinations": { params: { fleetId: "flt-does-not-exist" } }, // ISP-175 (AB#869)
   "GET /mercenaries": {}, // ISP-176 (AB#870)

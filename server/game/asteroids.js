@@ -195,7 +195,7 @@ export function settleRats(corp, exp, upTo, hired = null) {
   if (!r || !Array.isArray(r.encounters)) return;
   const span = Number(exp.completesAt) - Number(exp.deployedAt);
   const reached = span > 0 ? Math.min(1, Math.max(0, (upTo - Number(exp.deployedAt)) / span)) : 1;
-  const plan = planEncounters(seedFor(exp.id), r.density, r.hours, r.escortPower);
+  const plan = planEncounters(seedFor(exp.id), r.density, r.hours, r.escortPower, r.rateFactor ?? 1); // AB#991: a quiet belt's rate, fixed at launch
   for (const enc of plan) {
     if (enc.index < r.encounters.length) continue; // applied already
     if (enc.share > reached) break; // not yet
