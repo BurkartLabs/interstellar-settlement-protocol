@@ -5,6 +5,7 @@ import { ECONOMY } from "../../server/economy.js";
 import { CONSTRUCTIONS } from "../../server/construction.js";
 import { RESEARCH_LIBRARY } from "../../server/game/catalog.js";
 import { escapeHtml } from "../../public/scripts/html.js";
+import { toCurrency } from "../../public/scripts/helpers.js";
 
 // ISP-95 (AB#785): the construction panel. One row per catalogue entry, generated from the catalogue; a row either
 // offers Build or names the first thing in the way, in the order the server checks (server/construction.js).
@@ -58,6 +59,15 @@ describe("the construction panel (ISP-95)", () => {
     expect(html).toContain('<option value="lease-earth">');
     expect(html).not.toContain('value="lease-mars"');
     expect(html).toMatch(/Build \(¤[\d,]+\)/);
+  });
+
+  // Bug #2498: the panel had its own money() beside the shared toCurrency, and a review saw two glyphs on one screen
+  it("writes its prices with the shared toCurrency, and no dollar sign", () => {
+    const c = corp({ unlockedTech: [...ALL_GATES], miningLeases: [lease(0, 2, "Earth")] });
+    const html = constructionPanelHtml([byId("basic-extractor-yard")], c, ctx);
+    const cost = buildingCost(byId("basic-extractor-yard"), c, ctx.economy ?? economy);
+    expect(html).toContain(`Build (${toCurrency(cost)})`);
+    expect(html).not.toContain("$");
   });
 
   it("quotes the price the server charges, the Supply Forecast discount on a yard included", () => {
