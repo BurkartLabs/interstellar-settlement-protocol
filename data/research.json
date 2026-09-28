@@ -240,8 +240,8 @@
     {
       "id": "tt-asteroid-prospecting",
       "name": "Asteroid Prospecting Arrays",
-      "effect": "Unlocks Mining Probe fabrication",
-      "description": "Deploys long-range mineral scanning arrays and autonomous probe guidance firmware. Enables the Assembly Facility to fabricate Mining Probes for asteroid belt expedition operations.",
+      "effect": "Unlocks Mining Probe fabrication, scouting asteroid belts and launching expeditions",
+      "description": "Deploys long-range mineral scanning arrays and autonomous probe guidance firmware. Enables the Assembly Facility to fabricate Mining Probes, the arrays to scout an asteroid belt's composition, and expeditions to be launched to a belt.",
       "durationHours": 8,
       "costCredits": 8000,
       "prereqs": ["tt-assembly-fabrication", "tt-supply-forecast"],

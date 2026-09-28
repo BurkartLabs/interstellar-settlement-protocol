@@ -141,6 +141,24 @@ describe("data/research.json", () => {
     "tt-evasive-manoeuvres": "server/game/combat.js"
   };
 
+  // AB#2076: the reverse of AB#1259. A research the server gates an action on says so in its effect, so a player
+  // planning research can see it: Asteroid Prospecting Arrays gates building a Mining Probe, scouting a belt (since
+  // Bug #1256) and launching an expedition (server/routes/asteroids.js), and its effect named only the first.
+  it("Asteroid Prospecting Arrays' effect names every action the server gates on it (AB#2076)", () => {
+    const nodes = Array.isArray(data) ? data : data.nodes || data.tree;
+    const node = nodes.find((n) => n.id === "tt-asteroid-prospecting");
+    const routes = fs.readFileSync(path.resolve(__dirname, "..", "..", "server/routes/asteroids.js"), "utf8");
+    const gated = [];
+    let route = "";
+    for (const line of routes.split("\n")) {
+      const m = /app\.post\("[^"]*\/gameplay\/([a-z-]+)"/.exec(line);
+      if (m) route = m[1];
+      if (line.includes('"tt-asteroid-prospecting"')) gated.push(route);
+    }
+    expect(gated).toEqual(["build-mining-probe", "scout-belt", "launch-expedition"]);
+    for (const words of [/Mining Probe/, /scout/i, /expedition/i]) expect(node.effect).toMatch(words);
+  });
+
   it("every effect is a stated unlock, or has a reader that applies it (AB#1259)", () => {
     const nodes = Array.isArray(data) ? data : data.nodes || data.tree;
     const ids = new Set(nodes.map((n) => n.id));
