@@ -11,6 +11,7 @@ import { flashButtonSuccess, pushFeedback, setTab, updateAllViews } from "./shar
 import { bindResearchLinks } from "../researchLinks.js"; // AB#885
 import { insightRemaining, researchRemaining, totalText } from "../researchTotals.js"; // AB#2475
 import { isInsightProgramLive } from "../ceoEffects.js";
+import { renderPrereqGraph } from "./prereqGraph.js"; // AB#2477
 
 export function getTechNode(techId) {
   return techTree.find((item) => item.id === techId) || null;
@@ -63,8 +64,10 @@ export function renderTechTree(data) {
   }
 
   // Render tech rows grouped by tier, then by status
+  const graph = []; // AB#2477: each node's state, for the prerequisite tree
   const rows = techTree
     .map((node) => {
+      graph.push(techGraphNode(node, { done, inQueue, corpLevel: data.corp.level }));
       const prereqLabel = node.prereqs.length ? node.prereqs.map((id) => techTree.find((it) => it.id === id)?.name || id).join(", ") : "None";
       const cost = `${node.durationHours}h · ${toCurrency(node.costCredits)}`;
       const card = { id: node.id, name: node.name, tier: node.tier, effect: node.effect };
@@ -98,6 +101,18 @@ export function renderTechTree(data) {
   };
 
   renderResearchSelectionDetails(data);
+  renderPrereqGraph(document.getElementById("rnd-prereq-graph"), { key: "rnd", nodes: graph, empty: "No research nodes configured." });
+}
+
+/** AB#2477: a research node as the prerequisite tree draws it, in the same states its card shows. */
+export function techGraphNode(node, { done, inQueue, corpLevel }) {
+  const base = { id: node.id, name: node.name, prereqs: node.prereqs || [], met: done.has(node.id) };
+  if (done.has(node.id)) return { ...base, state: "done" };
+  if (inQueue.has(node.id)) return { ...base, state: "queued" };
+  const lock = researchLockReason(node, { done, corpLevel });
+  if (lock === PLANNED_RESEARCH) return { ...base, state: "planned" };
+  if (lock) return { ...base, state: "locked", lock: lock.startsWith("Requires: ") ? undefined : lock };
+  return { ...base, state: "available" };
 }
 
 export function renderResearchSelectionDetails(data) {
