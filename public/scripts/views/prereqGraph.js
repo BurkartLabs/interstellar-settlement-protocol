@@ -18,6 +18,12 @@ const LABELLED_ROW = 92; // a row's height when every node is named: the dot, tw
 const COMPACT_ROW = 60;  // and when only the selected node is
 const UNDER_NAME = 50;   // from a dot's centre to the foot of two lines of name: where its lanes leave
 const MIN_SLOT = 86;     // the narrowest a node's share of a row can be for its name to fit under it
+// Bug #4751: a node is a 44px target at every width (the 44px floor), and on a phone each gets at least a 48px share of
+// its row, so no two targets overlap. A row wider than the screen makes the tree scroll sideways inside its own box, as
+// a map pans; the page itself never does.
+const HIT = 44;
+const COMPACT_SLOT = 48;
+const NAME_TOP = 14;     // from a dot's centre to the top of its name
 const LABEL_MAX = 150;
 const STATE_WORD = { done: "researched", queued: "in the queue", available: "ready to start", locked: "locked", planned: "planned" };
 
@@ -70,10 +76,11 @@ function draw(el, focusId) {
   const { rows } = layoutPrereqs(nodes);
   const widest = Math.max(...rows.map((r) => r.length));
   const labelled = width / widest >= MIN_SLOT;
+  const mapW = labelled ? width : Math.max(width, COMPACT_SLOT * widest); // Bug #4751
   const rowH = labelled ? LABELLED_ROW : COMPACT_ROW;
-  const height = PAD + (rows.length - 1) * rowH + DOT / 2 + UNDER_NAME + PAD / 2;
+  const height = PAD + (rows.length - 1) * rowH + HIT / 2 + UNDER_NAME + PAD / 2;
   const pos = new Map();
-  rows.forEach((row, r) => row.forEach((id, i) => pos.set(id, { x: ((i + 0.5) / row.length) * width, y: PAD + r * rowH + DOT / 2, slot: width / row.length })));
+  rows.forEach((row, r) => row.forEach((id, i) => pos.set(id, { x: ((i + 0.5) / row.length) * mapW, y: PAD + r * rowH + HIT / 2, slot: mapW / row.length })));
 
   // a lane leaves under the prerequisite's name (or dot) and arrives at the top of the dependent's dot
   const below = labelled ? UNDER_NAME : DOT / 2 + 3;
@@ -91,29 +98,37 @@ function draw(el, focusId) {
   }
   lanes.sort((l, m) => Number(l.onChain) - Number(m.onChain)); // the lit chain is drawn last, on top
 
+  const names = [];
   const buttons = nodes.map((n) => {
     const { x, y, slot } = pos.get(n.id);
     const isSel = n.id === sel;
     const named = labelled || isSel;
     const labelW = Math.min(LABEL_MAX, labelled ? slot - 6 : LABEL_MAX);
     // keep a name inside the tree: shift it off an edge
-    const shift = named ? Math.min(Math.max(x, labelW / 2), width - labelW / 2) - x : 0;
+    const shift = named ? Math.min(Math.max(x, labelW / 2), mapW - labelW / 2) - x : 0;
     const cls = ["prereq-node", `prereq-node--${n.state}`, isSel ? "prereq-node--selected" : "", lit.has(n.id) ? "prereq-node--lit" : ""].filter(Boolean).join(" ");
     const label = `${n.name}: ${STATE_WORD[n.state] || n.state}`;
-    return `<button type="button" class="${cls}" data-prereq-id="${escapeHtml(n.id)}" aria-pressed="${isSel}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px">
-      <span class="prereq-node__dot" aria-hidden="true"></span>${named ? `<span class="prereq-node__name" aria-hidden="true" style="width:${labelW.toFixed(0)}px;margin-left:${(shift - labelW / 2).toFixed(1)}px">${escapeHtml(n.name)}</span>` : ""}
-    </button>`;
+    // Bug #4751: the name is the button's neighbour, not its content, so it never makes the button's words wider than
+    // the button; the button's aria-label says it for a screen reader
+    if (named) {
+      const nameCls = ["prereq-node__name", isSel ? "prereq-node__name--selected" : "", lit.has(n.id) || isSel ? "prereq-node__name--lit" : (n.state === "locked" || n.state === "planned") ? "prereq-node__name--muted" : ""].filter(Boolean).join(" ");
+      names.push(`<span class="${nameCls}" aria-hidden="true" style="left:${x.toFixed(1)}px;top:${(y + NAME_TOP).toFixed(1)}px;width:${labelW.toFixed(0)}px;margin-left:${(shift - labelW / 2).toFixed(1)}px">${escapeHtml(n.name)}</span>`);
+    }
+    return `<button type="button" class="${cls}" data-prereq-id="${escapeHtml(n.id)}" aria-pressed="${isSel}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"><span class="prereq-node__dot" aria-hidden="true"></span></button>`;
   }).join("");
 
-  el.innerHTML = `<div class="prereq-graph__map${labelled ? "" : " prereq-graph__map--compact"}" style="height:${height.toFixed(0)}px">
-      <svg class="prereq-graph__lanes" width="${width}" height="${height.toFixed(0)}" viewBox="0 0 ${width} ${height.toFixed(0)}" aria-hidden="true" focusable="false">${lanes.map((l) => l.svg).join("")}</svg>
-      ${buttons}
-    </div>
+  el.innerHTML = `<div class="prereq-graph__scroll"><div class="prereq-graph__map${labelled ? "" : " prereq-graph__map--compact"}" style="width:${mapW}px;height:${height.toFixed(0)}px">
+      <svg class="prereq-graph__lanes" width="${mapW}" height="${height.toFixed(0)}" viewBox="0 0 ${mapW} ${height.toFixed(0)}" aria-hidden="true" focusable="false">${lanes.map((l) => l.svg).join("")}</svg>
+      ${buttons}${names.join("")}
+    </div></div>${mapW > width ? '<p class="prereq-graph__hint">Drag the tree sideways to see all of it.</p>' : ""}
     <p class="prereq-graph__detail" role="status">${detailHtml(byId.get(sel), nodes)}</p>
     <ul class="prereq-graph__legend" aria-label="Key">
       ${["done", "queued", "available", "locked", "planned"].filter((s) => nodes.some((n) => n.state === s)).map((s) => `<li><span class="prereq-node prereq-node--${s} prereq-graph__key" aria-hidden="true"><span class="prereq-node__dot"></span></span>${escapeHtml(STATE_WORD[s])}</li>`).join("")}
     </ul>`;
-  if (focusId) el.querySelector(`[data-prereq-id="${CSS.escape(focusId)}"]`)?.focus();
+  // Bug #4751: a tree wider than its box opens on the selected node
+  const scroller = el.querySelector(".prereq-graph__scroll");
+  if (scroller && mapW > width) scroller.scrollLeft = Math.max(0, (pos.get(sel)?.x ?? 0) - width / 2);
+  if (focusId) el.querySelector(`[data-prereq-id="${CSS.escape(focusId)}"]`)?.focus({ preventScroll: true });
 }
 
 /** The selected node, and what it is still waiting on, in words. */
