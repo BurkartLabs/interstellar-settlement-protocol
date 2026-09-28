@@ -148,6 +148,22 @@ for (const [width, height] of SIZES) {
       expect(at.right).toBeLessThanOrEqual(1);
       expect(at.bottom).toBeLessThanOrEqual(1);
       expect(at.below).toBe(0);
+      // Bug #4749: a popup is on the phone floor too. The card's closing note was 11px, the screens' floor stopping at
+      // .ui-screen, which a modal is not inside.
+      if (width === 375) {
+        const tiny = await modal.evaluate((card) => {
+          const out = [];
+          const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+          for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+            const el = n.parentElement;
+            if (!n.textContent.trim() || !el.getClientRects().length || el.closest("[hidden], .sr-only")) continue;
+            const f = parseFloat(getComputedStyle(el).fontSize);
+            if (f < 14) out.push(`${el.tagName.toLowerCase()}.${el.className} "${n.textContent.trim().slice(0, 30)}" ${f}px`);
+          }
+          return out;
+        });
+        expect(tiny, "text under 14px in the profile card").toEqual([]);
+      }
       await page.screenshot({ path: path.join(SHOT_DIR, `profile-${width}x${height}.png`) });
       await page.keyboard.press("Escape");
       await expect(modal).toBeHidden();
