@@ -56,9 +56,22 @@ async function frame(page, fontPx) {
     return true;
   });
   // The text's own extent: an ascent of about 0.8 of the font and a descent of about 0.25 (a badge's pill adds 2px).
-  const box = (l, left = 0) => ({ left: l.x - left, right: l.x + l.w + 2, top: l.y - fontPx * 0.8 - (left ? 2 : 0), bottom: l.y + fontPx * 0.25 + (left ? 2 : 0) });
-  const names = labels.filter((l) => NAMES.has(l.t));
-  const badges = labels.filter((l) => /^\d+$/.test(l.t));
+  // A name over two lines runs down to its second line's baseline (lastY).
+  const box = (l, left = 0) => ({ left: l.x - left, right: l.x + l.w + 2, top: l.y - fontPx * 0.8 - (left ? 2 : 0), bottom: (l.lastY ?? l.y) + fontPx * 0.25 + (left ? 2 : 0) });
+  // Bug #4784: AB#2343 draws a name with no room on one line over two, a line at a time at the same x ("Lalande", then
+  // "21185" under it). Those two are one name; read as two labels, the name was missed and "21185" passed for a badge.
+  const names = [];
+  const inName = new Set();
+  labels.forEach((l, i) => {
+    if (inName.has(i)) return;
+    if (NAMES.has(l.t)) { names.push(l); inName.add(i); return; }
+    const next = labels[i + 1];
+    if (next && next.x === l.x && next.y > l.y && NAMES.has(`${l.t} ${next.t}`)) {
+      names.push({ t: `${l.t} ${next.t}`, x: l.x, y: l.y, w: Math.max(l.w, next.w), lastY: next.y });
+      inName.add(i).add(i + 1);
+    }
+  });
+  const badges = labels.filter((l, i) => !inName.has(i) && /^\d+$/.test(l.t));
   const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
   const covered = names.filter((n) => badges.some((b) => overlaps(box(n), box(b, 13))));
   return { names: names.map((n) => n.t), covered: covered.map((n) => n.t), badges: badges.map((b) => b.t) };
