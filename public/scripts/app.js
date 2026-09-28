@@ -552,6 +552,9 @@ function bindRealtimeEvents() {
       applySharedState(serverState);
     }
     updateAllViews();
+    // Bug #2364: state:init comes on every connect and reconnect, and notifications:new reaches only the sockets in
+    // the account's room when it is sent: read the list again, so a note made while this one was down is not lost.
+    if (appState.accountId) loadNotifications();
   });
 
   // ISP-67: the server drops a socket whose token has expired back to anonymous and says so here, rather than
