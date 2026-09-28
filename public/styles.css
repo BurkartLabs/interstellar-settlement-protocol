@@ -4868,6 +4868,11 @@ img.station__body {
 .starmap__station-row .ui-panel__meta {
   white-space: nowrap;
 }
+/* AB#821: the launch panel's Rats figures. The terms wrap and the figures keep their width, so a phone's narrow panel
+   does not squeeze a percentage into a column a letter wide. */
+.ui-kv.launch-risk {
+  grid-template-columns: minmax(0, max-content) max-content;
+}
 /* The close glyph keeps its size where the phone raises a modal's buttons to body size. */
 .starmap__station .starmap__close {
   font-size: var(--font-size-5);
