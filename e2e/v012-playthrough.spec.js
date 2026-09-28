@@ -12,7 +12,7 @@
 //
 // This is a local run: AB#915 asks for the deployed build, which is the Board's to deploy.
 import { test, expect } from "@playwright/test";
-import { openTab, openStationOffices } from "./nav.mjs";
+import { openExchangePage, openStationOffices, openTab } from "./nav.mjs";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -239,7 +239,7 @@ for (const [passName, sizeA, sizeB] of [["a-desktop", DESKTOP, PHONE], ["a-phone
         return page.locator("[data-belt-shared]");
       });
       await step("B", "List Silicates for sale", async (page) => {
-        await openTab(page, "market");
+        await openExchangePage(page, "players"); // AB#2472
         const row = page.locator("#market-sell-grid tr", { has: page.locator('[data-sell-qty="Silicates"]') });
         await row.locator('[data-sell-qty="Silicates"]').fill("100");
         await row.locator("button").first().click();
@@ -248,7 +248,7 @@ for (const [passName, sizeA, sizeB] of [["a-desktop", DESKTOP, PHONE], ["a-phone
         await page.locator("#action-receipt-close").click();
       });
       await step("A", "A partner's listing on the Exchange", async (page) => {
-        await openTab(page, "market");
+        await openExchangePage(page, "players"); // AB#2472
         await page.locator("#exchange-sellers-filter").selectOption("conglomerate");
         await expect(page.locator("#exchange-buy-table")).toContainText("Brightwater");
         return page.locator("#exchange-buy-table");

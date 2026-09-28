@@ -111,7 +111,8 @@ export const WALKTHROUGH_STEPS = [
     title: "Your first sale",
     text: "When you have silicates in stock, take them to the Galactic Exchange.\n\nYou can list them for other corporations to buy, or sell straight into a Standing Buy Order from an NPC buyer at the posted price. The standing order settles at once; a listing waits for a buyer.",
     tab: "market",
-    actionSelectors: ['[data-npc-item="Silicates"]']
+    // AB#2472: on another of the Exchange's subpages, the Standing orders tab is the way to the sale
+    actionSelectors: ['[data-npc-item="Silicates"]', '[data-exchange-page="standing"]']
   },
   {
     id: "research",

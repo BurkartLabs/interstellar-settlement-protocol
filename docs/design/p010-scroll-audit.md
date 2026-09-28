@@ -95,6 +95,24 @@ attacks*).
 4. **Mercenary Rentals** moves out of the Exchange to Fleet's subpages, where the fleets it hires out already are, or
    gets a subpage of its own. It is a contract market for fleets, not goods.
 
+**As built (AB#2472).** Five subpages. It differs from the recommendation above in three places:
+- **Standing orders is the default page.** Selling Silicates to a standing buy order is the first hour's sale.
+- **Inventory at this station** sits on the Standing orders page, where a sale counts it down (AB#745).
+- **Mercenary Rentals** got a subpage of its own rather than moving to Fleet.
+
+Measured at 1440×900, in screens:
+
+| Page | Screens |
+|---|---:|
+| Standing orders | 5.0 |
+| Player orders | 2.0 |
+| My listings | 1.0 |
+| Mercenary Rentals | 0.9 |
+| Trade history | 0.7 |
+
+Standing orders is still long: with All picked, the standing buy orders are about 50 rows. The filters narrow them,
+but only once the player picks something. Making the table short by default is its own story, AB#4710.
+
 ### Refinery Chains: 6.2 screens
 
 **The problem.** "Available chains" is **4,832px**: 29 chain cards, each with its inputs, outputs and uses.

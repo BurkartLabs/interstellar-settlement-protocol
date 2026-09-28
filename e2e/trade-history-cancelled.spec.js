@@ -2,7 +2,7 @@
 // carries a badge like every other row, and neither it nor the Listed row shows a Total, because neither moved money.
 // Starts its own server on a seeded data directory (the logistics-shipments.spec.js pattern), so no server is needed.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openExchangePage, openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -65,19 +65,24 @@ for (const viewport of VIEWPORTS) {
       await page.fill("#login-password", PASSWORD);
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
-      await openTab(page, "market");
+      await openExchangePage(page, "players"); // AB#2472: the player order books
 
       await page.fill('[data-sell-qty="Silicates"]', "2");
       await page.fill('[data-sell-price="Silicates"]', "25");
       await page.click('[data-sell-item="Silicates"]');
       await page.waitForTimeout(300);
       await confirmIfAsked(page);
+      const receipt = page.locator("#action-receipt-modal"); // the Listing Posted receipt, over the page
+      await expect(receipt).toBeVisible();
+      await page.locator("#action-receipt-close").click();
+      await page.locator("#exchange-tab-mine").click(); // AB#2472: listings are cancelled from My listings
       const cancelBtn = page.locator("[data-cancel-order-id]").first();
       await expect(cancelBtn).toBeVisible({ timeout: 10_000 });
       await cancelBtn.click();
       await page.waitForTimeout(300);
       await confirmIfAsked(page);
 
+      await page.locator("#exchange-tab-history").click();
       const rows = page.locator("#trade-history-table tr");
       await expect(rows).toHaveCount(2, { timeout: 10_000 });
       const cancelled = rows.nth(0);
