@@ -205,7 +205,7 @@ async function openLunaLease(page) {
   const line = page.locator('[data-role="mine-projection"]').first();
   await expect(line).toContainText("At 40 t/h: earns");
   const text = await line.innerText();
-  const earns = Number(text.match(/earns \$([\d,]+)\/hour/)[1].replace(/,/g, ""));
+  const earns = Number(text.match(/earns ¤([\d,]+)\/hour/)[1].replace(/,/g, "")); // credits, since AB#2314 (Bug AB#4791)
   const avg = Number(text.match(/averaging ([\d.]+) a tonne/)[1]);
   return earns / avg; // the tonnes an hour, after tax, give or take the rounding of the two
 }
