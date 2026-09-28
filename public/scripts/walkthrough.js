@@ -213,7 +213,7 @@ export function chooseHighlight(step, find) {
   const candidates = [
     ...(step.actionSelectors || []),
     step.selector,
-    ...(step.renderedBy === "stationBuildingCardsHtml" ? ['[id="station-back-btn"]'] : []),
+    ...(step.renderedBy === "stationBuildingCardsHtml" ? ['[id="station-back-btn"]', '[id="station-subtab-offices"]'] : []), // AB#2471: the Offices subpage's tab
     `.nav-tab[data-tab="${step.tab}"]`,
     `.nav-group:has(.nav-tab[data-tab="${step.tab}"]) > .nav-group__button`
   ];

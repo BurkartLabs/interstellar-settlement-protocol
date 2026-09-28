@@ -13,6 +13,7 @@ import { refreshFromServer, salvageRemainingMs } from "./shared.js";
 import { activeCycleFigures, spentText } from "../leaseLive.js"; // AB#746
 import { starmap } from "./starmap.js";
 import { renderAssemblyFacility } from "./station.js";
+import { renderOperations } from "./operations.js"; // AB#2471
 
 export function isExtractorCycleActive(extractor, now = Date.now()) {
   const startedAt = Number(extractor?.startedAt || 0);
@@ -38,6 +39,7 @@ export function startMiningUiTicker() {
       return;
     }
     renderMiningCyclePanel(appState.data);
+    if (document.getElementById("operations")?.classList.contains("active")) renderOperations(appState.data); // AB#2471: while it is open
     renderQueue("rnd-queue", appState.data.queues?.corporateRnD || [], "Permanent corporate unlock track");
     renderQueue("ceo-queue", appState.data.queues?.ceoInsight || [], "CEO-centric growth track");
 

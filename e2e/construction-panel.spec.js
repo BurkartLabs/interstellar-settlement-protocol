@@ -3,7 +3,7 @@
 // panel, and the row and the slot counter change without a reload. At 1440x900 and 390x844. Starts its own server on a
 // seeded data directory (the listing-refusal-in-row.spec.js pattern); screenshots go to e2e/screenshots/ab-785/.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices, openStationSubpage } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -57,6 +57,7 @@ async function openPanel(browser, viewport, kind) {
   await page.click('#login-form button[type="submit"]');
   await page.waitForURL(/\/\?account=/);
   await openTab(page, "station");
+  await openStationSubpage(page, "construction"); // AB#2471
   const section = page.locator("#station-construction-section");
   await expect(section.locator("[data-building-row]")).toHaveCount(8); // six since ISP-98, the Orbital Shipyard (ISP-170) and the Synthesis Array (ISP-189)
   await section.scrollIntoViewIfNeeded();
@@ -186,6 +187,7 @@ for (const viewport of VIEWPORTS) {
 // tests/integration/cryo-vapor-array.test.js: seconds at 40 t/h mine no whole tonne, so a playtest cannot see it.)
 async function openLunaLease(page) {
   await openTab(page, "station"); // AB#764: tabs sit in groups; the helper opens the group first
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:isa-claims-leases"]');
   await page.click('[data-action="manage-lease"][data-lease-id="lease-luna-qa"]');
   await expect(page.locator("#station-building-view")).toContainText("Mining Lease — Luna");
@@ -203,6 +205,7 @@ for (const viewport of VIEWPORTS) {
       // Back out of the lease page as a player does: to Claims & Leases, then to the Station.
       await page.click("#lease-back-btn");
       await page.getByRole("button", { name: /Back to Station/ }).first().click();
+      await openStationSubpage(page, "construction"); // AB#2471: back from an office lands on Offices
       await section.scrollIntoViewIfNeeded();
       const row = section.locator('[data-building-row="cryo-vapor-extractor-array"]');
       await expect(row.locator("[data-build-lease] option")).toHaveText(["Luna (1 of 2 in use)"]);

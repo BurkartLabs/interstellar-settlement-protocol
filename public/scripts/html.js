@@ -175,7 +175,8 @@ export function messageListItemsHtml(msgs, formatDate) {
 
 /**
  * The Station tab's institutional office cards: the NPC buildings of the station the corporation is docked at, each
- * with its Enter button. `stationBuildings` is the station's buildingIds resolved against data/buildings.json.
+ * with its Enter button. AB#2471 (DOCTRINE P-010): a compact directory, the office's name, its agency and Enter; the
+ * description and lore are the office's own view, behind Enter, so eleven offices fit on one screen. `stationBuildings` is the station's buildingIds resolved against data/buildings.json.
  * The walkthrough highlights these buttons by their data-building-action (AB#404), so its test renders this.
  */
 export function stationBuildingCardsHtml(stationBuildings) {
@@ -191,8 +192,7 @@ export function stationBuildingCardsHtml(stationBuildings) {
             <span class="ui-badge">${escapeHtml(b.factionCode)}</span>
             <h3 class="ui-card__title">${escapeHtml(b.name)}</h3>
           </header>
-          <p class="ui-card__body">${escapeHtml(b.description)}</p>
-          <p class="station__flavor">${escapeHtml(b.flavor)}</p>
+          <p class="ui-card__meta station__card-agency">${escapeHtml(b.faction || "")}</p>
           <footer class="station__card-footer">${actionBtn}</footer>
         </article>
       `;

@@ -13,7 +13,7 @@
 // production default is 5/address/hour (AB#752), and this script registers one account per viewport.
 
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -103,6 +103,7 @@ for (const viewport of VIEWPORTS) {
     await shoot(page, viewport.label, "03-station", viewport.width);
 
     // ── office: rent the Orbital Executive Suites for 7 days ───────────────
+    await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
     await page.click('[data-building-action="building:orbital-executive-suites"]');
     await expect(page.locator("#rent-office-duration")).toBeVisible();
     await page.selectOption("#rent-office-duration", "7");
@@ -123,6 +124,7 @@ for (const viewport of VIEWPORTS) {
 
     // ── lease: file the Earth Silicate Extraction claim ─────────────────────
     await page.click('#station-back-btn');
+    await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
     await page.click('[data-building-action="building:isa-claims-leases"]');
     await page.click('[data-action="purchase-lease"][data-body="Earth"]');
     await acknowledgeReceipt(page);

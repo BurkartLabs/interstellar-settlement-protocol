@@ -9,7 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import { runRoyaltyQuote } from "../public/scripts/refineryRoyalty.js";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -85,6 +85,7 @@ for (const size of SIZES) {
     test(`the patent office: file, own patents, patents paid on and the register at ${width}x${height}`, async ({ page }) => {
       await logIn(page, "nova", size);
       await openTab(page, "station");
+      await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
       await page.locator('[data-building-action="building:corporate-registry-charters"]').click();
       const officeEl = page.locator("[data-patent-office]");
       await expect(officeEl.locator("[data-patent-filable]")).toHaveCount(1, { timeout: 15_000 });
