@@ -3187,6 +3187,12 @@ body.sg {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* AB#2467: a message body's Markdown (public/scripts/markdown.js): paragraphs, lists, code and links. */
+:is(.inbox__body, .thread__body) :is(p, ul, ol) { margin: 0; }
+:is(.inbox__body, .thread__body) > :is(p, ul, ol) + :is(p, ul, ol) { margin-top: var(--space-2); }
+:is(.inbox__body, .thread__body) :is(ul, ol) { padding-left: var(--space-5); }
+:is(.inbox__body, .thread__body) code { font-family: var(--font-mono); }
+:is(.inbox__body, .thread__body) a { color: var(--accent); overflow-wrap: anywhere; }
 .inbox__actions {
   display: flex;
   flex-wrap: wrap;
