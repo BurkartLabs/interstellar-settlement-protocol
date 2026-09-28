@@ -25,7 +25,8 @@ import { RATS, encounterChance, forcePower, forceSupply, nominalHours, seedFor }
 import { rateFactorFor } from "../hunts.js"; // ISP-284 (AB#991): a belt a hunt cleared is quiet
 import { SYSTEMS_BY_ID } from "../game/catalog.js";
 import { stationById } from "../game/stations.js";
-import { commitHiredEscort, hiredEscortFor } from "../hiredEscort.js"; // AB#4678
+import { commitHiredEscort } from "../hiredEscort.js"; // AB#4678
+import { ESCORT_REFUSALS, expeditionOutlook, hiredEscortOption, ownEscortFor } from "../escorts.js"; // AB#821: one copy of the escort rules
 
 export function registerAsteroidRoutes(app) {
   // ─── Asteroid Mining: Assembly Facility, Probes, Expeditions ─────────────────
@@ -174,6 +175,22 @@ export function registerAsteroidRoutes(app) {
     res.json({ ...account, receipt: scoutBeltReceipt({ beltLabel: beltPhrase(SYSTEMS_CATALOG, beltKey) }) }); // AB#744
   });
 
+  // AB#821 (docs/design/rats.md, section 7): the launch panel's figures for a belt and a length, before anything is
+  // committed: the chance of meeting Rats, and for every fleet the caller could name (its own and those it has hired)
+  // the chance with it, the chance it holds, the share of the haul kept and the provisions, or why it cannot escort.
+  // Read only; the figures are launchOutlook's, the functions the tick resolves encounters with.
+  app.get("/api/accounts/:accountId/gameplay/expedition-outlook", (req, res) => {
+    const account = getAccountById(req.params.accountId);
+    if (!account) { res.status(404).json({ error: "Account not found." }); return; }
+    const beltKey = String(req.query?.beltKey || "").trim();
+    const duration = String(req.query?.duration || "standard").trim();
+    if (!beltKey || !beltComposition(beltKey)) { res.status(400).json({ error: "Invalid asteroid belt identifier." }); return; }
+    if (!EXPEDITION_DURATIONS[duration]) { res.status(400).json({ error: "Invalid expedition duration. Choose: short, standard, or extended." }); return; }
+    const outlook = expeditionOutlook(account.state.corp, beltKey, duration);
+    if (!outlook) { res.status(400).json({ error: "The ISA has no reading of that system's pirate activity." }); return; }
+    res.json(outlook);
+  });
+
   app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
     const beltKey = String(req.body?.beltKey || "").trim();
     const duration = String(req.body?.duration || "standard").trim();
@@ -255,20 +272,14 @@ export function registerAsteroidRoutes(app) {
       if (!Number.isFinite(density) || density < 0) { outcome = "no-danger-reading"; return; }
       const hours = nominalHours(duration);
       let escort = null;
-      if (escortFleetId !== null) {
-        escort = (corp.military?.fleets || []).find((f) => f.id === escortFleetId) || null;
-        if (!escort) { outcome = "no-such-fleet"; return; } // not the caller's: never looked up anywhere else
-        if (escort.contract) { outcome = "escort-contracted"; return; }
-        if (escort.escort) { outcome = "escort-busy"; return; }
-        if (escort.hunt) { outcome = "escort-hunting"; return; } // AB#991
-        if (escort.transit && Date.now() < escort.transit.arrivesAt) { outcome = "escort-travelling"; return; }
-        if (stationById(escort.stationId)?.systemId !== beltSystemId) { outcome = "escort-elsewhere"; return; }
-        if (!forceSupply(escort.units)) { outcome = "escort-empty"; return; }
+      if (escortFleetId !== null) { // AB#821: the rules in server/escorts.js, which the launch panel shows too
+        const pick = ownEscortFor(corp, escortFleetId, beltSystemId, Date.now());
+        if (pick.outcome) { outcome = pick.outcome; return; }
+        escort = corp.military.fleets.find((f) => f.id === pick.escort.fleetId);
       }
       if (escortContractId !== null) { // AB#4678 (section 3): a hired fleet whose contract allows pve or raids
-        const pick = hiredEscortFor(corp, escortContractId, beltSystemId, (sid) => stationById(sid)?.systemId, Date.now());
+        const pick = hiredEscortOption(corp, escortContractId, beltSystemId, Date.now());
         if (pick.outcome) { outcome = pick.outcome; return; }
-        if (!forceSupply(pick.escort.units)) { outcome = "escort-empty"; return; }
         hiredEscort = pick.escort;
       }
       const escortUnits = hiredEscort ? { ...hiredEscort.units } : escort ? Object.fromEntries(Object.entries(escort.units || {}).filter(([, n]) => Number(n) > 0)) : null;
@@ -330,17 +341,7 @@ export function registerAsteroidRoutes(app) {
         "deployment-cap": deploymentCapText(account.state.corp), // Bug AB#2310: no research raises this; a level does
         "wrong-system": "You must be in the same system as the asteroid belt to launch an expedition.",
         "insufficient-credits": fundingRequirementMessage(provisions ? "Expedition launch with its escort's provisions" : "Expedition launch", account.state.corp, launchCost + provisions),
-        // AB#820: the escort, and a belt the server cannot read the danger of
-        "no-such-fleet": "Choose one of your own fleets to escort the probe.",
-        // AB#4678: a hired escort
-        "no-such-contract": "Choose one of the fleets you have hired to escort the probe.",
-        "escort-not-permitted": "That contract does not permit escorting: only a contract for pve or raids does.",
-        "escort-contracted": "That fleet is offered or hired out, and takes no order until its contract ends.",
-        "escort-busy": "That fleet is already escorting an expedition.",
-        "escort-hunting": "That fleet is hunting Rats until it comes back.", // AB#991
-        "escort-travelling": "That fleet is travelling. Escort with it once it has arrived.",
-        "escort-elsewhere": "An escort must be stationed in the belt's system. Deploy the fleet there first.",
-        "escort-empty": "That fleet has no units to escort with.",
+        ...ESCORT_REFUSALS, // AB#820, AB#4678: the escort's refusals, one copy (server/escorts.js)
         "no-danger-reading": "The ISA has no reading of that system's pirate activity, so no expedition can be launched there.",
         "no-seed": "The Mineral Survey Office cannot plan an expedition just now; nothing was launched or charged."
       };

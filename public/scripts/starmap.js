@@ -17,6 +17,7 @@ import { CONCESSION_OVERLAY, concessionDetailsHtml, concessionKey, concessionLeg
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 import { utcClock } from "./timeFormat.js"; // ISP-249 (AB#945)
 import { toCurrency } from "./helpers.js"; // Bug #2498: every screen's credits through the one formatter
+import { escortLaunchFields, escortPickerHtml, launchRiskHtml } from "./launchOutlook.js"; // AB#821
 
 // ISP-112 (AB#804): each system's place on the cluster view is its `mapPosition` in data/systems.json, as fractions of
 // the canvas; the controller reads it from the catalog it is given (getSystemsCatalog).
@@ -582,6 +583,7 @@ export function createStarmapController({
   onDockAtStation,
   onScoutBelt,
   onLaunchExpedition,
+  onExpeditionOutlook, // AB#821: (beltKey, duration) => the page fetches GET /expedition-outlook and calls setExpeditionOutlook
   getAsteroidMiningState,
   // Bug #4775: what a launch costs, data/economy.json's expeditions.launchCost through clientPrices (the button quoted a
   // copy of it, "3,000", which the first balance change would have left quoting one price while the server charged another)
@@ -612,8 +614,37 @@ export function createStarmapController({
     selectedAsteroidId: null,
     clickTargets: [],
     asteroidMining: null,  // { probeCount, maxProbes, maxDeployments, activeExpeditions, scoutedBelts, beltCompositions, belts, respawnChancePerHour }
-    beltNotice: null       // Bug #2339: { beltKey, message }, the last refusal on a belt, shown in its panel
+    beltNotice: null,      // Bug #2339: { beltKey, message }, the last refusal on a belt, shown in its panel
+    launchChoice: { duration: "standard", escort: "" }, // AB#821: kept across the panel's redraws
+    outlook: null,         // AB#821: GET /expedition-outlook's answer for one belt and length
+    outlookAsked: null     // AB#821: the "beltKey|duration" last asked for, so a redraw does not ask again
   };
+
+  // AB#821: the escort picker and the Rats figures, redrawn in place (the duration select keeps its focus)
+  function outlookFor(beltKey) {
+    const o = state.outlook;
+    return o && o.beltKey === beltKey && o.duration === state.launchChoice.duration ? o : null;
+  }
+  function askOutlook(beltKey) {
+    const key = `${beltKey}|${state.launchChoice.duration}`;
+    if (!onExpeditionOutlook || state.outlookAsked === key) return;
+    state.outlookAsked = key;
+    queueMicrotask(() => onExpeditionOutlook(beltKey, state.launchChoice.duration));
+  }
+  function drawLaunchOutlook(beltKey, { picker = true } = {}) {
+    const wrap = detailsEl?.querySelector("[data-role=launch-outlook]");
+    if (!wrap) return;
+    const outlook = outlookFor(beltKey);
+    if (outlook && state.launchChoice.escort && !outlook.escorts.some((o) => o.eligible && `${o.kind}:${o.id}` === state.launchChoice.escort)) state.launchChoice.escort = "";
+    if (picker) {
+      wrap.querySelector("[data-role=launch-escort]").innerHTML = outlook ? escortPickerHtml(outlook, state.launchChoice.escort) : "";
+      wrap.querySelector("#expedition-escort")?.addEventListener("change", (e) => {
+        state.launchChoice.escort = e.target.value;
+        drawLaunchOutlook(beltKey, { picker: false });
+      });
+    }
+    wrap.querySelector("[data-role=launch-risk-wrap]").innerHTML = launchRiskHtml(outlook, state.launchChoice.escort);
+  }
 
   /** A system's place on the cluster view, from the catalog (AB#804); undefined for one it does not list. */
   const mapPositionOf = (systemId) => getSystemsCatalog().find((s) => s.id === systemId)?.mapPosition;
@@ -1669,11 +1700,11 @@ export function createStarmapController({
                 <div class="ui-field">
                   <label class="ui-field__label" for="expedition-duration">Mission Duration</label>
                   <select id="expedition-duration" class="ui-select">
-                    <option value="short">Short Sweep (30 min)</option>
-                    <option value="standard" selected>Standard Survey (1 hr)</option>
-                    <option value="extended">Deep Core Drill (2 hr)</option>
+                    ${[["short", "Short Sweep (30 min)"], ["standard", "Standard Survey (1 hr)"], ["extended", "Deep Core Drill (2 hr)"]]
+                      .map(([v, t]) => `<option value="${v}"${state.launchChoice.duration === v ? " selected" : ""}>${t}</option>`).join("")}
                   </select>
                 </div>
+                <div class="ui-stack" data-role="launch-outlook"><div class="ui-stack" data-role="launch-escort"></div><div data-role="launch-risk-wrap"></div></div>
                 ${remoteLaunch ? `<p class="ui-panel__meta" data-belt-remote>Remote launch on your partner's scouting: you are not in ${escapeHtmlAttr(system.name)}, so the probe works at range and brings home <strong>${remotePct}%</strong> of what it mines. The ore lands at this system's station.</p>` : ""}
                 <div><button id="launch-expedition-btn" class="ui-button ui-button--secondary" type="button">${remoteLaunch ? "Launch Remote Expedition" : "Launch Expedition"} (${Number.isFinite(getExpeditionLaunchCost()) ? toCurrency(getExpeditionLaunchCost()) : "Price not loaded"})</button></div>
               ` : isEmptySlot
@@ -1710,10 +1741,17 @@ export function createStarmapController({
         // Bind launch expedition button
         const launchBtn = detailsEl.querySelector("#launch-expedition-btn");
         if (launchBtn) {
+          drawLaunchOutlook(beltKey); // AB#821
+          askOutlook(beltKey);
+          detailsEl.querySelector("#expedition-duration")?.addEventListener("change", (e) => {
+            state.launchChoice.duration = e.target.value || "standard";
+            drawLaunchOutlook(beltKey, { picker: false });
+            askOutlook(beltKey);
+          });
           launchBtn.addEventListener("click", () => {
             const durationSelect = detailsEl.querySelector("#expedition-duration");
             const duration = durationSelect?.value || "standard";
-            if (onLaunchExpedition) onLaunchExpedition(beltKey, duration);
+            if (onLaunchExpedition) onLaunchExpedition(beltKey, duration, escortLaunchFields(state.launchChoice.escort)); // AB#821
           });
         }
       } else {
@@ -2227,6 +2265,12 @@ export function createStarmapController({
     setUnlockedTech(techSet) {
       state.unlockedTech = techSet instanceof Set ? techSet : new Set(techSet || []);
     },
+    /** AB#821: GET /expedition-outlook's answer; redraws the open belt panel's escort picker and Rats figures. */
+    setExpeditionOutlook(outlook) {
+      if (!outlook?.beltKey) return;
+      state.outlook = outlook;
+      if (state.view === "body" && detailsEl) drawLaunchOutlook(outlook.beltKey);
+    },
     /** Bug #2339: show a refused scout or launch in that belt's panel (null clears it). */
     setBeltNotice(notice) {
       state.beltNotice = notice && notice.message ? notice : null;
@@ -2241,6 +2285,7 @@ export function createStarmapController({
     },
     setAsteroidMining(amState) {
       state.asteroidMining = amState || null;
+      state.outlookAsked = null; // AB#821: fleets move and contracts end; the open panel asks again
       syncResourcePicker(); // AB#837: a newly scouted belt can add an item
       // Re-render details panel if we're viewing a belt
       if (state.view === "body" || state.view === "asteroid") {

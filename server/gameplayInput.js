@@ -95,6 +95,8 @@ export const GAMEPLAY_INPUT = {
     }
   },
   "GET /belt-compositions": NOTHING,
+  // AB#821: the launch panel's escort figures for a belt and a length
+  "GET /expedition-outlook": { query: { beltKey: id("belts", "an asteroid belt"), duration: id("expeditionDurations", "an expedition length", { optional: true }) } },
   "POST /scout-belt": { body: { beltKey: id("belts", "an asteroid belt") } },
   "POST /launch-expedition": {
     body: {

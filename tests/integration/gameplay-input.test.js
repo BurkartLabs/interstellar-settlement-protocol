@@ -31,6 +31,7 @@ const BASELINE = {
   "POST /build": { body: { buildingId: "basic-extractor-yard", leaseId: "lease-731" } }, // ISP-94
   "POST /buildings/:buildingId/upgrade": { params: { buildingId: "bld-731" } }, // ISP-101 (AB#793)
   "GET /belt-compositions": {},
+  "GET /expedition-outlook": { query: { beltKey: "sol:belt", duration: "short" } }, // AB#821
   "POST /scout-belt": { body: { beltKey: "sol:belt" } },
   "POST /launch-expedition": { body: { beltKey: "sol:belt", duration: "short" } },
   "POST /start-refinery": { body: { refineryId: "ref-731", chainId: "silicates-chain", inputQuantity: 100 } },
@@ -127,10 +128,10 @@ async function playerWithEverything() {
   });
   const api = authed(app, accessToken);
   const state = () => JSON.stringify(getAccountById(account.id).state);
-  const send = (key, { body = {}, params = {} }) => {
+  const send = (key, { body = {}, params = {}, query = {} }) => {
     const [method, pattern] = key.split(" ");
     const path = PREFIX.replace(":accountId", account.id) + pattern.replace(/:(\w+)/g, (_, p) => encodeURIComponent(params[p] ?? ""));
-    return method === "GET" ? api.get(path) : api.post(path).send(body);
+    return method === "GET" ? api.get(path).query(query) : api.post(path).send(body); // AB#821: a GET with a required query
   };
   return { app, send, state };
 }
