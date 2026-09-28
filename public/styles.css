@@ -3224,6 +3224,15 @@ body.sg {
   flex-direction: column;
   gap: var(--space-6);
 }
+/* The six headline figures in two even rows of three, not four and two with a hole; the page's gap spaces them. */
+#finance-sub-summary .kpi-strip {
+  margin-bottom: 0;
+}
+@media (min-width: 768px) {
+  #finance-sub-summary .kpi-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
 @media (min-width: 1200px) {
   #finance-sub-trends .finance__charts {
     grid-template-columns: repeat(3, minmax(0, 1fr));
