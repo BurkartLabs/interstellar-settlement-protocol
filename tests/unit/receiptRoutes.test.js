@@ -65,6 +65,8 @@ const EXEMPT = {
   // ISP-178 (AB#872): no page calls these until the raid screens (ISP-181, AB#875); neither moves credits or goods
   "/api/accounts/:accountId/gameplay/raids": "sends the player's own fleet on a raid; nothing is bought, spent or taken until it resolves",
   "/api/accounts/:accountId/gameplay/raids/:raidId/recall": "turns the player's own fleet round; nothing moves",
+  // ISP-284 (AB#991): no page sends a hunt until the hunt screen (AB#992), which maps it to a receipt with its provisions
+  "/api/accounts/:accountId/gameplay/fleets/:fleetId/hunt": "no page sends it yet: the hunt screen is AB#992, which adds its receipt (the provisions and when the fleet is back)",
   // ISP-180 (AB#874): no page calls these until the raid screens (ISP-181, AB#875); none moves credits or goods
   "/api/accounts/:accountId/gameplay/garrisons/:stationId/posture": "sets how the player's own garrison fights; nothing moves",
   "/api/accounts/:accountId/gameplay/garrisons/move": "sends the player's own troops between its stations; nothing is bought or spent",

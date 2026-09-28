@@ -242,7 +242,7 @@ registerTrainingRoutes(app);
 registerFleetRoutes(app);
 registerMercenaryRoutes(app);
 registerRaidRoutes(app);
-registerHuntRoutes(app); // ISP-284 (AB#991)
+registerHuntRoutes(app);
 registerGarrisonRoutes(app);
 
 registerRefiningRoutes(app);
