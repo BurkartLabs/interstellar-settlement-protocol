@@ -27,6 +27,9 @@ const LEGACY = ["btn", "btn-accent", "btn-ghost", "btn-outline", "form-card", "d
 
 /** Every place a class name is used as one: class="...", className = "...", classList.*("..."), and selectors. */
 function classUses(text, name) {
+  // Bug AB#4641: every pattern below contains the name, so a text without it has no use of it. Skipping those makes
+  // the repo-wide scan about 15 times faster (2.3 s to 0.15 s), which a full suite's load had pushed past 20 s.
+  if (!text.includes(name)) return [];
   const n = name.replace(/-/g, "\\-");
   const edge = "(?![\\w-])";
   const patterns = [
