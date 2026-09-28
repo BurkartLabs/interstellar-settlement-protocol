@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CODE_RULES, computeModel, leaseCatalog, modelText, bidDay, steadyBidDay } from "../../scripts/economy-model.mjs";
+import { CODE_RULES, computeModel, leaseCatalog, modelText, bidDay, steadyBidDay, recoveryFromFloor } from "../../scripts/economy-model.mjs";
 import { economyNumbers, operationCostPerHourFor, startupCostFor, bestThroughputFor, npcBidFor, npcBidAfterRecovery } from "../../server/economy.js";
 import { EMPLOYEES_PER_LEASE } from "../../public/scripts/leaseStaffing.js";
 
@@ -144,6 +144,16 @@ describe("the model sells along the standing bid (AB#2334)", () => {
     expect(m.yards.map((y) => [y.yards, y.leases, y.throughput, Math.round(y.profitPerDay)])).toEqual([
       [1, 1, 74, 3234], [2, 1, 37, 3479], [3, 2, 39, 1009], [4, 2, 38, -2837]
     ]);
+  });
+
+  // AB#2362: the sentence quoted 17, 20, 22, which is a 40% recovery; at data/economy.json's 60% it is 20, 22, 23.
+  it("ECONOMY.md's overnight recovery from the floor is the game's, morning by morning", () => {
+    const m = doc.match(/Overnight it recovers (\d+)% of the gap back to base: a bid driven to the floor opens the next day at (\d+), then (\d+),\s+then (\d+)\./);
+    expect(m, "the recovery sentence in ECONOMY.md's standing-bid section").not.toBeNull();
+    const { floor, opens } = recoveryFromFloor(base, bid, 3);
+    expect(floor).toBe(npcBidFor(base, 10 * bid.quotaPerDay, bid)); // the floor the curve itself stops at
+    expect(opens[0]).toBe(npcBidAfterRecovery(base, floor)); // the game's own recovery, with its own rate
+    expect([Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])]).toEqual([bid.recoveryPerDayPct, ...opens]);
   });
 
   it("ECONOMY.md's T-018 table is the model's arithmetic, row by row", () => {

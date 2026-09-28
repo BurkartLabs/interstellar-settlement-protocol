@@ -227,8 +227,8 @@ For silicates at 24 credits:
 | 7,000 | 13 |
 | beyond the quota | 13 (the floor) |
 
-Overnight it recovers 60% of the gap back to base: a bid driven to the floor opens the next day at 17, then 20,
-then 22. A corporation that dumps volume therefore pays for it twice - in the price it gets and in the price it
+Overnight it recovers 60% of the gap back to base: a bid driven to the floor opens the next day at 20, then 22,
+then 23. A corporation that dumps volume therefore pays for it twice - in the price it gets and in the price it
 gets tomorrow - and a corporation that did not sell finds the market where it left it.
 
 What this is for: at 40,000 units a day and a bid that falls as you sell, a second corporation's listing becomes
