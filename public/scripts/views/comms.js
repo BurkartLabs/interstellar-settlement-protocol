@@ -1,4 +1,4 @@
-// The Comms tab: chat channels and the log.
+// The Chat tab (called Comms until AB#2490): chat channels and the log.
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
 import { socket } from "../apiClient.js";
@@ -59,7 +59,7 @@ export function renderChatChannelTabs() {
   });
 }
 
-/** Comms: channel tabs and sending a message. */
+/** Chat: channel tabs and sending a message. */
 export function bindCommsForms() {
   const chatForm = document.getElementById("chat-form");
   const chatInput = document.getElementById("chat-input");

@@ -12,7 +12,7 @@ import { openTab } from "./nav.mjs";
 import { verifyAndLogIn } from "./verification.mjs";
 
 const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-764");
-const GROUPS = ["Company", "Station", "Industry", "Market", "Comms", "Map"];
+const GROUPS = ["Company", "Station", "Industry", "Market", "Chat", "Map"]; // AB#2490
 const TABS = ["overview", "inbox", "finance", "ceo", "missions", "station", "rnd", "refinery", "logistics", "market", "assets", "chat", "forums", "starmap"];
 
 async function register(page, { briefing = false } = {}) {
