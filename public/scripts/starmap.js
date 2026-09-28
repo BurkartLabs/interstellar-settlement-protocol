@@ -10,6 +10,8 @@ import { isMemberStation, memberOfficeCost } from "./memberRates.js"; // ISP-212
 import { isConglomerateStation, isNeutralStation } from "./stationMarkers.js";
 import { concentrationBand, concentrationLegendHtml, concentrationRows, concentrationText, overlayItems, systemConcentration, bodyConcentration } from "./resourceOverlay.js"; // ISP-143 (AB#837)
 import { tariffPanelHtml } from "./tariffPanel.js"; // ISP-231 (AB#926)
+import { STARMAP_OVERLAYS, overlayColor, fieldOverlayLegendHtml } from "./fieldOverlay.js"; // Bug AB#4745
+export { STARMAP_OVERLAYS, overlayColor, fieldOverlayLegendHtml };
 import { DOMINANCE_OVERLAYS, QUIET_TOKEN, dominanceDetailsHtml, dominanceKey, dominanceLegendHtml, isDominanceOverlay, tokenRgba } from "./dominanceOverlay.js"; // ISP-218 (AB#913)
 import { CONCESSION_OVERLAY, concessionDetailsHtml, concessionKey, concessionLegendHtml } from "./concessionOverlay.js"; // ISP-229 (AB#924)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
@@ -50,26 +52,14 @@ const PLANET_STYLE = {
 };
 
 /**
- * The Starmap's overlays, in picker order (index.html's #map-overlay lists the same, after None). Each colours a system
- * by one field data/systems.json holds, over its full scale. AB#1459: there is no resource overlay, because no system
- * carries resource data yet; the one that was here blended GDP and pirates under a resource label.
+ * Bug AB#4745: a star's colour on the cluster under no resource or dominance reading. A chosen field overlay (GDP,
+ * Activity, Pirates) colours every system, locked or not: a locked system keeps its thin grey ring, a cue that is not
+ * the star's colour. The locked grey used to win first, so a new corporation (21 of 22 systems locked) saw only Sol
+ * change and read the overlay as doing nothing. With no overlay a locked star is grey, as before.
  */
-export const STARMAP_OVERLAYS = {
-  gdp: { label: "GDP Index", field: "gdpIndex", scale: 100 },
-  activity: { label: "Activity Level", field: "activityLevel", scale: 100 },
-  pirates: { label: "Pirate Density", field: "pirateDensity", scale: 40 }
-};
-
-/** A system's colour under an overlay; "none", or any overlay not offered, draws the plain map. */
-export function overlayColor(system, overlay) {
-  const spec = Object.hasOwn(STARMAP_OVERLAYS, overlay) ? STARMAP_OVERLAYS[overlay] : null;
-  if (!spec) {
-    return "rgba(0, 247, 255, 0.88)";
-  }
-
-  const value = Number(system[spec.field]) / spec.scale;
-  const clamped = Math.max(0.1, Math.min(1, value));
-  return `rgba(${Math.floor((1 - clamped) * 180 + 40)}, ${Math.floor(clamped * 220 + 30)}, 255, 0.92)`;
+export function clusterStarColor(system, { overlay, locked }) {
+  if (Object.hasOwn(STARMAP_OVERLAYS, overlay)) return overlayColor(system, overlay);
+  return locked ? LOCKED_STAR_COLOR : overlayColor(system, overlay);
 }
 
 function hashSeed(input) {
@@ -881,7 +871,7 @@ export function createStarmapController({
       const color = state.resource !== "none"
         ? concentrationBand(systemConcentration(system, state.resource, beltSlots()).best).color
         : domKey ? tokenColor(domKey.bySystem[system.id]?.token || QUIET_TOKEN)
-        : locked ? LOCKED_STAR_COLOR : overlayColor(system, state.overlay);
+        : clusterStarColor(system, { overlay: state.overlay, locked }); // Bug AB#4745
 
       // Outer glow halo
       const haloRadius = baseRadius + 20;
@@ -1476,6 +1466,13 @@ export function createStarmapController({
 
   function renderDominanceLegend() {
     if (!dominanceLegend) return;
+    // Bug AB#4745: GDP, Activity and Pirates had no legend; theirs goes in the same slot
+    const fieldLegend = fieldOverlayLegendHtml(state.overlay);
+    if (fieldLegend) {
+      dominanceLegend.hidden = false;
+      dominanceLegend.innerHTML = fieldLegend;
+      return;
+    }
     if (state.overlay === CONCESSION_OVERLAY) { // ISP-229 (AB#924): the same legend slot
       const key = currentConcessionKey();
       dominanceLegend.hidden = false;
@@ -2109,6 +2106,7 @@ export function createStarmapController({
       if (state.resource !== "none" && overlaySelect) { overlaySelect.value = "none"; state.overlay = "none"; }
       render();
       renderDetails();
+      renderDominanceLegend(); // Bug AB#4745: the overlay just reset to none, so its legend goes too
     });
 
     resetButton?.addEventListener("click", () => {
