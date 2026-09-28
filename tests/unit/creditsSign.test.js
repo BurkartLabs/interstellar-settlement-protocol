@@ -54,6 +54,18 @@ describe("the station views show no dollar sign (AB#2314)", () => {
   });
 });
 
+// Bug #2498: the Station's Construction and Facilities cards and the Starmap's office rent each wrote the sign by hand
+// (constructionPanel.js had its own money()); they go through toCurrency, so a change to it reaches them too.
+describe("the Station's cards and the Starmap write credits through toCurrency (Bug #2498)", () => {
+  for (const name of ["constructionPanel.js", "stationFacilities.js", "starmap.js"]) {
+    it(`${name} builds no credits sign by hand`, () => {
+      const src = readFileSync(path.join("public", "scripts", name), "utf8");
+      expect(src).not.toMatch(/¤\$\{/);
+      expect(src).not.toMatch(/const money\s*=/);
+    });
+  }
+});
+
 describe("no script formats money in dollars (AB#2314)", () => {
   it("has no USD currency style and no \"$\" written before a number", () => {
     const dir = path.join(ROOT, "public/scripts");

@@ -14,6 +14,7 @@ import { DOMINANCE_OVERLAYS, QUIET_TOKEN, dominanceDetailsHtml, dominanceKey, do
 import { CONCESSION_OVERLAY, concessionDetailsHtml, concessionKey, concessionLegendHtml } from "./concessionOverlay.js"; // ISP-229 (AB#924)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 import { utcClock } from "./timeFormat.js"; // ISP-249 (AB#945)
+import { toCurrency } from "./helpers.js"; // Bug #2498: every screen's credits through the one formatter
 
 // ISP-112 (AB#804): each system's place on the cluster view is its `mapPosition` in data/systems.json, as fractions of
 // the canvas; the controller reads it from the catalog it is given (getSystemsCatalog).
@@ -1999,7 +2000,7 @@ export function createStarmapController({
     // buildings, officeRentPerCycle and ownership, which no station has, so every one said 0, "—" and NPC-controlled.
     const buildingCount = Array.isArray(station.buildingIds) ? station.buildingIds.length : 0;
     const memberStation = getMemberStation();
-    const officeRent = `¤${memberOfficeCost(officeLeaseCost(1), memberStation, station.id).toLocaleString("en-US")} a day, for 7 to 28 days${isMemberStation(memberStation, station.id) ? " (member rate)" : ""}`;
+    const officeRent = `${toCurrency(memberOfficeCost(officeLeaseCost(1), memberStation, station.id))} a day, for 7 to 28 days${isMemberStation(memberStation, station.id) ? " (member rate)" : ""}`;
     const jurisdiction = isNeutralStation(station)
       ? "Neutral: no corporation owns it; any corporation may dock and rent an office here."
       : isConglomerateStation(station) // ISP-210 (AB#905): built by a conglomerate; GET /api/stations names it, never its id
