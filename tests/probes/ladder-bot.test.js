@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterAll } from "vitest";
 import fs from "node:fs";
 import request from "supertest";
+import bcrypt from "bcryptjs";
 import { getApp } from "../helpers/app.js";
 import { registerAccount } from "../helpers/api.js";
 import { MILESTONE_LEVELS, MAX_DEFINED_LEVEL } from "../../server/game/catalog.js";
@@ -33,6 +34,18 @@ function seededRandom(seed) {
 }
 const LADDER_SEED = Number(process.env.LADDER_SEED || 1);
 
+/**
+ * Bug AB#2572: the bot signs in at every step (a token lasts 30 minutes of its clock, a step is 2 or 12 hours), 1,222
+ * times in a climb, and each login's bcrypt check took 109 ms at the server's cost of 10: 133 s of a 288 s test. The
+ * account is hashed at bcrypt's lowest cost instead, so a login costs about 1.5 ms. Login itself is unchanged, the real
+ * route with its real password check, and it settles mining and refreshes the contract board as it always did, so the
+ * game the bot plays is the same game.
+ */
+function cheapPasswordHashes() {
+  const hashSync = bcrypt.hashSync;
+  return vi.spyOn(bcrypt, "hashSync").mockImplementation((password) => hashSync(password, 4));
+}
+
 describe("the ladder bot (AB#799)", () => {
   it(`climbs Levels 1 to ${MAX_DEFINED_LEVEL} through the server's own routes, and reports each level`, async () => {
     // The clock the server reads, moved only by the bot, set before the corporation exists: whatever registration
@@ -40,6 +53,7 @@ describe("the ladder bot (AB#799)", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(Date.UTC(2026, 0, 1, 9, 0, 0));
     vi.spyOn(Math, "random").mockImplementation(seededRandom(LADDER_SEED)); // Bug AB#2360
+    cheapPasswordHashes(); // Bug AB#2572: before the account is registered
     const { app } = await getApp();
     const account = await registerAccount(app);
     const clock = { now: () => Date.now(), advance: (ms) => vi.setSystemTime(Date.now() + ms) };
