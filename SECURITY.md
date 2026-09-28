@@ -5,6 +5,8 @@ touch and does it need to; who can reach it and what happens if they are hostile
 leak; does it fail closed — for the four areas that carry risk: auth, persistence, the market and sockets. Every
 answer cites the file and line it is true of, so it goes stale the moment the code moves and someone can tell.
 
+The systems added in v0.6 to v0.13, and the economic abuse between them, are in [docs/SECURITY.md](docs/SECURITY.md) (ISP-261, AB#957).
+
 This is a design document, not a pass before launch (DOCTRINE, "Security first, at design time"). It answers
 what is built. It does not defer anything: gaps found while writing it are filed as bugs below, not fixed here.
 
