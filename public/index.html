@@ -255,7 +255,7 @@
             </div>
           </section>
           <section class="nav-group" data-group="comms">
-            <button class="nav-group__button" type="button" data-group="comms">Comms</button>
+            <button class="nav-group__button" type="button" data-group="comms">Chat</button>
             <div class="nav-group__tabs">
               <button class="nav-tab" data-tab="chat" type="button">Chat</button>
               <button class="nav-tab" data-tab="forums" type="button">Forums</button>
@@ -300,7 +300,7 @@
               <button class="ui-button ui-button--secondary" type="button" data-jump="finance">Finance</button>
               <button class="ui-button ui-button--secondary" type="button" data-jump="starmap">Starmap</button>
               <button class="ui-button ui-button--secondary" type="button" data-jump="market">Exchange</button>
-              <button class="ui-button ui-button--secondary" type="button" data-jump="chat">Comms</button>
+              <button class="ui-button ui-button--secondary" type="button" data-jump="chat">Chat</button>
             </div>
           </section>
         </aside>
@@ -1162,13 +1162,13 @@
           </article>
 
           <article id="chat" class="tab-panel ui-screen">
-            <!-- ISP-81 (AB#770): Comms on the design system, in the flat direction (Decision AB#1801). -->
+            <!-- ISP-81 (AB#770): Chat (called Comms until AB#2490) on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
               <h2 class="ui-screen__title"><span class="ui-code" data-code-for="chat" aria-hidden="true"></span>Real-time Communications</h2>
               <p class="ui-screen__lede">Global and Trade reach every corporation; Local reaches only those in your current system.</p>
             </header>
             <section class="ui-panel chat">
-              <div id="chat-channel-tabs" class="ui-tabs" role="tablist" aria-label="Comms Channels">
+              <div id="chat-channel-tabs" class="ui-tabs" role="tablist" aria-label="Chat channels">
                 <button class="ui-tab" type="button" role="tab" aria-selected="true" data-chat-channel-tab="global">Global</button>
                 <button class="ui-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="local">Local</button>
                 <button class="ui-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="trade">Trade</button>
@@ -1444,7 +1444,7 @@
           <p id="mission-detail-text" class="missions__note"></p>
         </section>
         <section id="mission-quota-section" class="missions__modal-section" hidden>
-          <h3 class="missions__heading">Quota Progress</h3>
+          <h3 id="mission-quota-heading" class="missions__heading">Quota Progress</h3>
           <div class="progress-wrap"><div id="mission-quota-bar" class="progress-bar"></div></div>
           <p id="mission-quota-text" class="missions__note"></p>
         </section>

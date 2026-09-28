@@ -115,6 +115,10 @@ export const FIRST_CONTRACT_ID = "ms-log-001";
 // is how the client gets its own copy instead of keeping a second one (the CEO Insight pattern, Bug #983).
 // A template carries a *range* (quotaMin/quotaMax, rewardMin/rewardMax), not a fixed value; materializeOffer
 // below rolls one instance of it per refresh, so the same template reads differently contract to contract.
+//
+// AB#2484: every mission kind shows its target before it is accepted and what REMAINS while it is active. That is the
+// pattern a new kind follows: add its case to missionTarget and missionProgress in public/scripts/missionProgress.js
+// (the header there says how), and the Assignments views show it with no template of their own.
 export const MISSION_TEMPLATES = MISSIONS_DATA.templates;
 export const MISSION_AGENTS_DATA = MISSIONS_DATA.agents;
 export const REPUTATION_TIERS_DATA = MISSIONS_DATA.reputationTiers;
