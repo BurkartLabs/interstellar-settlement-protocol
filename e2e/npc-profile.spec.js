@@ -1,4 +1,4 @@
-// ISP-124 (AB#818): NPC corporations visible on the Exchange, in a real browser at 1440x900 and 390x844. Player
+// ISP-124 (AB#818): NPC corporations visible on the Exchange, in a real browser at 1280x800 and 375x812 (AB#2492: the project's sizes; 1440x900 and 390x844 before). Player
 // listings and a rival's buy orders (seeded) sit with the NPCs' standing orders: every NPC row carries the badge ("NPC",
 // or "Authority" for the GEX and the ISA), no player row does, and an NPC's name opens its profile card with the
 // catalog's flavour, home station and trades. Screenshots, taken after the actions, to e2e/screenshots/ab-818/.
@@ -15,7 +15,7 @@ const SHOT_DIR = path.join(REPO_ROOT, "e2e", "screenshots", "ab-818");
 fs.mkdirSync(SHOT_DIR, { recursive: true });
 const PASSWORD = "playtest-password-not-real";
 const SECRET = "exchange-e2e-fixture-secret-0123456789abcd";
-const SIZES = [[1440, 900], [390, 844]];
+const SIZES = [[1280, 800], [375, 812]];
 
 function startServer(dir) {
   const child = spawn(process.execPath, ["server/index.js"], {
@@ -138,6 +138,16 @@ for (const [width, height] of SIZES) {
       await expect(page.locator('[data-npc-field="home"]')).toHaveText("Earth Station Prime");
       await expect(page.locator('[data-npc-field="trades"]')).toHaveText("Silicates");
       await expect(page.locator("#npc-profile-body")).toContainText("aerogel panels");
+      // AB#2492: Close sits at the card's bottom right: its right edge on the content's, nothing below it
+      const at = await page.evaluate(() => {
+        const btn = document.getElementById("npc-profile-close").getBoundingClientRect();
+        const content = document.querySelector("#npc-profile-modal .dialogue__content").getBoundingClientRect();
+        const below = [...document.querySelectorAll("#npc-profile-modal .dialogue__content *")].filter((el) => el.getClientRects().length && el.getBoundingClientRect().top >= btn.bottom).length;
+        return { right: content.right - btn.right, bottom: content.bottom - btn.bottom, below };
+      });
+      expect(at.right).toBeLessThanOrEqual(1);
+      expect(at.bottom).toBeLessThanOrEqual(1);
+      expect(at.below).toBe(0);
       await page.screenshot({ path: path.join(SHOT_DIR, `profile-${width}x${height}.png`) });
       await page.keyboard.press("Escape");
       await expect(modal).toBeHidden();
