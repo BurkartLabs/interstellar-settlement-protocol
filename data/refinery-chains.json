@@ -313,7 +313,7 @@
       "outputs": [
         { "item": "Antimatter", "quantityPerCycle": 2 }
       ],
-      "cycleDurationHours": 24,
+      "cycleDurationHours": 12,
       "requiresResearch": ["Integrated Manufacturing", "Antimatter Confinement"],
       "requiresTechIds": ["tt-integrated-manufacturing", "tt-antimatter-confinement"],
       "stage": 2,

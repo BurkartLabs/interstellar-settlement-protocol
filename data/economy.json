@@ -148,7 +148,7 @@
     { "item": "Exotic Matter", "buyer": "ISA Materials Exchange", "unitPrice": 900, "dailyQty": 7000 },
     { "item": "Platinum-Group Metals", "buyer": "Olympus Heavy Industries", "unitPrice": 400, "dailyQty": 7000 },
     { "item": "Metallic Hydrogen", "buyer": "Lunar Helium Consortium", "unitPrice": 260, "dailyQty": 7000 },
-    { "item": "Antimatter", "buyer": "ISA Materials Exchange", "unitPrice": 4865, "dailyQty": 2 },
+    { "item": "Antimatter", "buyer": "ISA Materials Exchange", "unitPrice": 4865, "dailyQty": 4 },
     { "item": "Superconducting Coils", "buyer": "Synthorium Trading House", "unitPrice": 1481, "dailyQty": 12 },
     { "item": "Field Emitters", "buyer": "ISA Materials Exchange", "unitPrice": 1833, "dailyQty": 6 },
     { "item": "Breeder Reactor Cores", "buyer": "Synthorium Trading House", "unitPrice": 2708, "dailyQty": 6 },

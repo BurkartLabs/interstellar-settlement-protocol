@@ -82,12 +82,12 @@ describe("running Tier 4 chains (AB#883)", () => {
     finishRuns(c);
     expect(c.corp().inventory[ESP]["Fusion Pellets"]).toBe(40);
 
-    // Tier 4, in the Synthesis Array: Exotic Matter 5 + Fusion Pellets 20 to Antimatter 2, in 24 hours.
+    // Tier 4, in the Synthesis Array: Exotic Matter 5 + Fusion Pellets 20 to Antimatter 2, in 12 hours (Bug AB#4663; it was 24).
     const antimatter = await c.start({ chainId: "antimatter-chain", batches: 1, refineryId: "syn-1" });
     expect(antimatter.status, JSON.stringify(antimatter.body)).toBe(200);
     const array = c.corp().synthesisArrays[0];
     expect(array).toMatchObject({ active: true, chainId: "antimatter-chain" });
-    expect(array.endsAt - array.startedAt).toBe(24 * 60 * 60 * 1000);
+    expect(array.endsAt - array.startedAt).toBe(12 * 60 * 60 * 1000);
     expect(c.corp().inventory[ESP]).toMatchObject({ "Fusion Pellets": 20 });
     expect(c.corp().inventory[ESP]["Exotic Matter"] ?? 0).toBe(0);
     finishRuns(c);
