@@ -129,12 +129,16 @@ function mapAt(width, height, { unlockedTech = [], graphics = true } = {}) {
 }
 
 describe("the cluster view on its canvas (ISP-116)", () => {
-  it("draws a lane for each pair of adjacent systems and no other", () => {
-    const { lines } = mapAt(1050, 558);
-    const pos = new Map(SYSTEMS.map((s) => [`${Math.round(s.mapPosition.x * 1050)},${Math.round(s.mapPosition.y * 558)}`, s.id]));
-    const key = ([a, b]) => [pos.get(`${Math.round(a[0])},${Math.round(a[1])}`), pos.get(`${Math.round(b[0])},${Math.round(b[1])}`)].sort().join("|");
-    const drawn = new Set(lines.filter(([a, b]) => pos.has(`${Math.round(a[0])},${Math.round(a[1])}`) && pos.has(`${Math.round(b[0])},${Math.round(b[1])}`)).map(key));
-    expect([...drawn].sort()).toEqual(lanePairs(SYSTEMS).map((p) => [...p].sort().join("|")).sort());
+  // Bug AB#2318 (fixed as #2328): the lanes were every pair closer than 42% of the canvas width, so a phone's tall canvas
+  // and a desktop's wide one drew different maps. They are the jump graph now, the same at every aspect ratio.
+  it("draws a lane for each pair of adjacent systems and no other, on a wide canvas and a phone's tall one", () => {
+    for (const [w, h] of [[1050, 558], [358, 520]]) {
+      const { lines } = mapAt(w, h);
+      const pos = new Map(SYSTEMS.map((s) => [`${Math.round(s.mapPosition.x * w)},${Math.round(s.mapPosition.y * h)}`, s.id]));
+      const key = ([a, b]) => [pos.get(`${Math.round(a[0])},${Math.round(a[1])}`), pos.get(`${Math.round(b[0])},${Math.round(b[1])}`)].sort().join("|");
+      const drawn = new Set(lines.filter(([a, b]) => pos.has(`${Math.round(a[0])},${Math.round(a[1])}`) && pos.has(`${Math.round(b[0])},${Math.round(b[1])}`)).map(key));
+      expect([...drawn].sort(), `${w}x${h}`).toEqual(lanePairs(SYSTEMS).map((p) => [...p].sort().join("|")).sort());
+    }
   });
 
   it("names a locked system's gate when it is selected: in its panel, and under its name back on the cluster", () => {
