@@ -22,8 +22,24 @@
     <div class="app-bg" aria-hidden="true"></div>
     <section id="auth-shell" class="landing" aria-labelledby="landing-title">
       <!-- ISP-76 (AB#765): the landing on the design system, in the flat direction (Decision AB#1801). -->
+      <!-- AB#2462 (Board review 2026-09-26, items 1 to 3): an introduction at the very top, the logo and the tagline under it. The
+           logo is the flat direction's "ISP" wordmark with an emblem: a settled world and its orbit, drawn from the tokens. -->
+      <section class="landing__intro" aria-label="Introduction">
+        <div class="landing__logo" role="img" aria-label="ISP, the Interstellar Settlement Protocol">
+          <svg class="landing__emblem" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+            <g transform="rotate(-20 32 32)">
+              <path class="landing__emblem-orbit" d="M3 32 A29 12 0 0 1 61 32" />
+              <circle class="landing__emblem-world" cx="32" cy="32" r="15" />
+              <path class="landing__emblem-orbit" d="M61 32 A29 12 0 0 1 3 32" />
+              <circle class="landing__emblem-moon" cx="56" cy="40" r="3.5" />
+            </g>
+          </svg>
+          <span class="landing__wordmark" aria-hidden="true">ISP</span>
+        </div>
+        <p class="landing__tagline">"Humanity did not conquer space. It privatized it."</p>
+      </section>
+
       <header class="landing__hero">
-        <p class="landing__wordmark">ISP</p>
         <p class="landing__overline">Earth Assembly Act 2147</p>
         <h1 id="landing-title" class="landing__title">The Interstellar Settlement Protocol</h1>
         <div class="landing__actions">
@@ -31,18 +47,13 @@
           <a href="/login.html" class="ui-button ui-button--secondary">Log In</a>
         </div>
         <p class="landing__aside">New to the Protocol? Read <a href="/how-to-start">how to start</a>.</p>
-        <p class="landing__tagline">"Humanity did not conquer space. It privatized it."</p>
+        <!-- AB#2462: the Board's own words (review 2026-09-26, item 2). -->
         <p class="landing__lede">
-          ISP is a long-horizon online strategy simulation where you operate as CEO of a corporate colonization firm
-          navigating industrial logistics, legal conflict, interstellar finance, and deterministic warfare at a
-          civilizational scale. A true slow-burn universe &mdash; level progression is milestone-based and full
-          corporate maturity unfolds over years of real-world play.
+          ISP is a long-term online strategy simulation where you operate as the CEO of a corporation colonizing the local
+          galaxy while navigating industrial logistics, legal conflict, interstellar finance, and deterministic warfare at a
+          civilizational scale. A true slow-burn universe. Level Progression is milestone-based and full corporate maturity
+          unfolds over years of real-world play.
         </p>
-        <div class="landing__promises" aria-label="Core play promises">
-          <span class="ui-badge">Persistent multiplayer state</span>
-          <span class="ui-badge">Milestone progression, not XP grind</span>
-          <span class="ui-badge">Text-first command interface</span>
-        </div>
       </header>
 
       <section class="landing__section">

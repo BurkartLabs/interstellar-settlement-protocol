@@ -368,12 +368,52 @@ body {
   padding-bottom: var(--space-10);
   border-bottom: 1px solid var(--border);
 }
+/* AB#2462: the introduction above the hero, the logo and the tagline under it. */
+.landing__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4) 0 var(--space-10);
+  margin-bottom: var(--space-10);
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.landing__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.landing__emblem {
+  width: calc(var(--space-16) * 1.5);
+  height: calc(var(--space-16) * 1.5);
+  flex: none;
+}
+.landing__emblem-orbit {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.landing__emblem-world {
+  fill: var(--surface-2);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.landing__emblem-moon {
+  fill: var(--text);
+}
 .landing__wordmark {
-  margin: 0;
-  color: var(--accent);
+  color: var(--text);
   font-family: var(--font-wordmark);
-  font-size: var(--font-size-3);
+  font-size: calc(var(--font-size-6) * 1.5);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
   letter-spacing: var(--letter-spacing-caps);
+}
+.landing__intro .landing__tagline {
+  max-width: 40ch;
+  font-size: var(--font-size-4);
 }
 .landing__title {
   max-width: 24ch;
@@ -399,11 +439,6 @@ body {
   color: var(--text-soft);
   font-size: var(--font-size-3);
   line-height: var(--line-height-body);
-}
-.landing__promises {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
 }
 .landing__section {
   padding-top: var(--space-10);
