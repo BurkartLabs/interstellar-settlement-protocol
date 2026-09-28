@@ -117,3 +117,44 @@ describe("Corporate R&D runs one project at a time (Bug #1258)", () => {
     expect(state().corp.finances.credits).toBe(before);
   });
 });
+
+// AB#2476 (Board review item 23): the queue holds the technology in progress and one more behind it. The queue is
+// seeded as a player would have left it, and the third technology goes through the real route at the real time.
+describe("Corporate R&D holds the research in progress and one behind it (AB#2476)", () => {
+  const seeded = (techId, name, durationHours, startedAt) => ({ id: `rnd-${techId}`, techId, name, effect: "", durationHours, startedAt, costCredits: 3000 });
+
+  it("a third technology, with one running and one waiting, is refused with when a place opens, and nothing is charged", async () => {
+    const { id, queue, state } = await corporation();
+    clockAt(T0);
+    mutateAccountState(id, (s) => {
+      s.queues.corporateRnD = [
+        seeded("tt-supply-forecast", "Supply Forecast Engine", 4, T0 - H), // running, 3 h left
+        seeded("tt-energy-routing", "High-Density Energy Routing", 6, T0 + 3 * H) // waiting behind it
+      ];
+    });
+    const res = await queue("tt-industrial-safety");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Corporate R&D runs one technology and holds one more behind it. Industrial Safety Protocols can be queued once Supply Forecast Engine finishes, in 3h 0m.");
+    expect(state().queues.corporateRnD.map((i) => i.techId)).toEqual(["tt-supply-forecast", "tt-energy-routing"]);
+    expect(state().corp.finances.credits).toBe(50_000);
+  });
+
+  it("when the one in progress completes, the waiting one runs and a new one can be queued behind it", async () => {
+    const { mod, id, queue, state } = await corporation();
+    clockAt(T0);
+    mutateAccountState(id, (s) => {
+      s.queues.corporateRnD = [
+        seeded("tt-supply-forecast", "Supply Forecast Engine", 4, T0 - 4 * H), // finished at T0
+        seeded("tt-energy-routing", "High-Density Energy Routing", 6, T0) // starts as it finishes
+      ];
+    });
+    mod.processRndCompletions();
+    expect(state().corp.unlockedTech).toContain("tt-supply-forecast");
+    expect(state().queues.corporateRnD.map((i) => i.techId)).toEqual(["tt-energy-routing"]);
+
+    const res = await queue("tt-industrial-safety");
+    expect(res.status).toBe(200);
+    expect(state().queues.corporateRnD.map((i) => [i.techId, i.startedAt])).toEqual([["tt-energy-routing", T0], ["tt-industrial-safety", T0 + 6 * H]]);
+    expect(state().corp.finances.credits).toBe(50_000 - 2_000);
+  });
+});
