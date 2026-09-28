@@ -60,10 +60,7 @@ for (const size of SIZES) {
   const [width, height] = size;
   test.describe(`${width}x${height}`, () => {
     test.beforeAll(start);
-    test.afterAll(() => {
-      server?.kill();
-      fs.writeFileSync(path.join(SHOT_DIR, `heights-${width}x${height}.txt`), measures.filter((m) => m.width === width).map((m) => `${m.name}: content ends at ${m.end}px, ${(m.end / height).toFixed(2)} screens`).join("\n"));
-    });
+    test.afterAll(() => server?.kill());
 
     test(`the Station's subpages and the Operations view at ${width}x${height}`, async ({ page }) => {
       await page.setViewportSize({ width, height });
@@ -95,6 +92,8 @@ for (const size of SIZES) {
       await page.locator("#operations-subtab-mining").click();
       await expect(page.locator("#mine-cycle-list > *").first()).toBeVisible(); // each yard's card, idle or running
       measures.push({ width, name: "operations/mining", end: await contentEnd(page, "#operations") });
+      // AB#4772: an attachment, not a file: specs make no raw file writes (tests/unit/e2eNoSourceWrites.test.js)
+      await test.info().attach(`heights-${width}x${height}`, { contentType: "text/plain", body: measures.filter((m) => m.width === width).map((m) => `${m.name}: content ends at ${m.end}px, ${(m.end / height).toFixed(2)} screens`).join("\n") });
       await page.screenshot({ path: path.join(SHOT_DIR, `operations-mining-${width}x${height}.png`), fullPage: true, animations: "disabled" });
 
       // a row's Open takes the player to where the thing is run
