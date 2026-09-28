@@ -24,9 +24,8 @@ function idWithEncounters(escort, k = 1, hours = 2) {
   }
   throw new Error("no fixture id");
 }
-/** A corporation holding one fleet, and an expedition of `id` in flight with it as escort (or none). */
-function fixture(id, escort) {
-  const now = Date.now();
+/** A corporation holding one fleet, and an expedition of `id` in flight with it as escort (or none), stamped at `now`. */
+function fixture(id, escort, now = Date.now()) {
   const units = escort ? { ...escort } : {};
   const corp = {
     unlockedTech: [],
@@ -44,7 +43,9 @@ describe("the encounter roll (AB#820)", () => {
   it("is deterministic for a fixed seed, and the same expedition resolves the same way twice", () => {
     const id = idWithEncounters(WEAK, 2);
     expect(planEncounters(seedFor(id), DENSITY, 2, forcePower(WEAK))).toEqual(planEncounters(seedFor(id), DENSITY, 2, forcePower(WEAK)));
-    const a = fixture(id, WEAK), b = fixture(id, WEAK);
+    // Bug AB#4782: one clock for both, or the escort's `since` differs by a millisecond whenever the two set-ups straddle one
+    const now = Date.now();
+    const a = fixture(id, WEAK, now), b = fixture(id, WEAK, now);
     settleRats(a.corp, a.exp, a.exp.completesAt);
     settleRats(b.corp, b.exp, b.exp.completesAt);
     expect(a.exp.rats.encounters.map(({ at, ...r }) => r)).toEqual(b.exp.rats.encounters.map(({ at, ...r }) => r));

@@ -84,7 +84,14 @@ for (const viewport of VIEWPORTS) {
     const { page, section, errors, close } = await openPanel(browser, viewport, "level5");
     try {
       await expect(page.locator("#construction-slots")).toHaveText("Building slots: 3 of 6 in use.") // the Headquarters every corporation starts with, and two yards;
-      await expect(section.locator("[data-build-id]")).toHaveCount(4); // the Ferric Mining Complex too (ISP-96); the Refinery Complex needs a Refinery
+      // Bug AB#4707: named, not counted, so a new building shows up as a name in the diff. The seed holds every research
+      // the catalogue gates on. Not buildable here: the Refinery Complex (needs a Refinery), the Cryo-vapor Extractor
+      // Array (a Luna lease, the `cryo` seed) and the Orbital Shipyard (Level 10).
+      await expect.poll(() => section.locator("[data-build-id]").evaluateAll((els) => els.map((e) => e.getAttribute("data-build-id")))).toEqual([
+        "basic-extractor-yard", "assembly-facility", "refinery",
+        "ferric-mining-complex", // ISP-96
+        "synthesis-array" // AB#883
+      ]);
       await section.screenshot({ path: path.join(SHOT_DIR, `level5-before-${viewport.label}.png`) });
       await section.locator('[data-build-id="assembly-facility"]').click();
       await expect(section.locator('[data-building-row="assembly-facility"] .station__blocked')).toHaveText("Built: your corporation operates the most it may, 1.");
@@ -198,7 +205,7 @@ async function openLunaLease(page) {
   const line = page.locator('[data-role="mine-projection"]').first();
   await expect(line).toContainText("At 40 t/h: earns");
   const text = await line.innerText();
-  const earns = Number(text.match(/earns ¤([\d,]+)\/hour/)[1].replace(/,/g, "")); // Bug #4792: credits, not dollars (AB#2314)
+  const earns = Number(text.match(/earns ¤([\d,]+)\/hour/)[1].replace(/,/g, "")); // credits, since AB#2314 (Bug AB#4791)
   const avg = Number(text.match(/averaging ([\d.]+) a tonne/)[1]);
   return earns / avg; // the tonnes an hour, after tax, give or take the rounding of the two
 }
