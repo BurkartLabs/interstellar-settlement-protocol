@@ -9,7 +9,7 @@ export function registerForumRoutes(app) {
   // Player-authored corporate forum threads & replies. Stored on the global
   // state.json under `forums.threads`, broadcast via socket so every connected
   // client sees new posts immediately.
-  app.post("/api/forums/threads", requireAuth, (req, res) => {
+  app.post("/api/forums/threads", requireAuth, (req, res) => { // AB#958: limited per account in server/index.js
     const { category, title, body } = req.body ?? {};
     const trimmedCategory = String(category || "").trim();
     const trimmedTitle = String(title || "").trim().slice(0, 200);

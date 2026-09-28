@@ -7,7 +7,7 @@ import express from "express";
 import kanbanRouter from "./kanban.js";
 import fs from "node:fs";
 import path from "node:path";
-import { accountActionLimiter } from "./rateLimiters.js";
+import { accountActionLimiter, mutationLimits } from "./rateLimiters.js";
 import { saveAccountsNow, getAccountById, getState, CEO_INSIGHT_LIBRARY, REFINERY_CHAINS, RESEARCH_LIBRARY, MISSION_TEMPLATES, SALVAGE_ASSIGNMENT_ID, SYSTEMS_BY_ID } from "./gameState.js";
 import { BELT_KEYS, EXPEDITION_DURATIONS } from "./gameState.js";
 // AB#731: every gameplay route's numbers and ids are checked against server/gameplayInput.js here, after the login and
@@ -85,6 +85,8 @@ process.on("unhandledRejection", (reason) => {
   console.error("[fatal] unhandledRejection", reason);
 });
 
+// AB#958: every mutating route is limited per address, by its cost group, before anything else reads the request.
+app.use(mutationLimits.address);
 app.use(express.json());
 
 app.use(express.static(path.join(__dirname, "..", "public")));
@@ -139,7 +141,20 @@ registerPasswordResetRoutes(app);
 
 // AB#734 (ISP-48): the per-account throttle runs right after requireAuth sets req.auth, so it always has the
 // verified account to key on.
-app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess, accountActionLimiter);
+app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess, accountActionLimiter, mutationLimits.account); // AB#958: and per account, by group
+// AB#958: the market and the forums check their login per route, since their reads are public, so their writes are
+// counted per account here, ahead of the input checks below. Counted after them, a script sending malformed orders was
+// answered 400 without ever being counted. AB#734's shared account-action bucket moves here from the market routes too.
+const WRITES = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+function writesOnly(...handlers) {
+  return (req, res, next) => {
+    if (!WRITES.has(req.method)) return next();
+    const step = (i) => (error) => (error ? next(error) : i === handlers.length ? next() : handlers[i](req, res, step(i + 1)));
+    step(0)();
+  };
+}
+app.use("/api/market", writesOnly(requireAuth, accountActionLimiter, mutationLimits.account));
+app.use("/api/forums", writesOnly(requireAuth, mutationLimits.account));
 const INPUT_CHECKS = {
   catalogs: {
     stations: { has: (id) => Boolean(stationById(id)) }, // ISP-209 (AB#904): read live, so a built station is one
