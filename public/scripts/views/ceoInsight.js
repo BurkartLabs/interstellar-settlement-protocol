@@ -133,11 +133,12 @@ export function renderInsightTree(data) {
   const doneCount = (group) => group.programs.filter((p) => completed.filter((id) => id === p.id).length >= (p.maxLevels || 1)).length;
   const sections = groups.map((group) => {
     const id = categoryDomId(group.name);
+    const titleId = `${id}-title`; // Bug #4746: every interpolated attribute ends at its quote (the Bug #1254 check)
     const expanded = viewState.categories[group.name] !== false;
     const count = `${group.programs.length} program${group.programs.length === 1 ? "" : "s"} · ${doneCount(group)} done`;
     // a group inside the Programs section, not a section of its own: the section's one document code covers it
-    return `<div class="insight__category" role="group" aria-labelledby="${id}-title">
-      <h4 id="${id}-title" class="insight__category-title">
+    return `<div class="insight__category" role="group" aria-labelledby="${titleId}">
+      <h4 id="${titleId}" class="insight__category-title">
         <button class="insight__toggle insight__toggle--category" type="button" aria-expanded="${expanded}" aria-controls="${id}" data-insight-category="${escapeHtml(group.name)}">
           <span class="insight__category-name">${escapeHtml(group.name)}<span class="insight__category-count">${count}</span></span>
           <span class="insight__arrow" aria-hidden="true">▾</span>

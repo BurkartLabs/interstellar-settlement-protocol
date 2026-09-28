@@ -240,7 +240,7 @@ function activeProgressHtml(mission, data, handInStationId) {
   if (!p) return "";
   return `<div class="missions__progress" data-mission-remaining="${escapeHtml(mission.id)}">
               <p class="missions__remaining"><strong class="missions__remaining-figure">${escapeHtml(p.remainingText)}</strong><span class="missions__remaining-detail">${escapeHtml(p.doneText)}</span></p>
-              <div class="progress-wrap" role="progressbar" aria-label="${escapeHtml(mission.title)}: delivered" aria-valuemin="0" aria-valuemax="${p.target.amount}" aria-valuenow="${p.done}"><div class="progress-bar${p.complete ? " is-complete" : ""}" style="width:${p.pct}%"></div></div>
+              <div class="progress-wrap" role="progressbar" aria-label="${escapeHtml(`${mission.title}: delivered`)}" aria-valuemin="0" aria-valuemax="${p.target.amount}" aria-valuenow="${p.done}"><div class="progress-bar${p.complete ? " is-complete" : ""}" style="width:${p.pct}%"></div></div>
             </div>`;
 }
 

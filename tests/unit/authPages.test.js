@@ -99,7 +99,11 @@ describe("the pages before play are on the design system (ISP-76)", () => {
     // The landing alone: the game's screens after it have their own badges (ISP-81, AB#770).
     const landing = page.slice(page.indexOf('<section id="auth-shell"'), page.indexOf('<div id="game-shell"'));
     expect((landing.match(/class="ui-card"/g) || []).length).toBeGreaterThanOrEqual(20);
-    expect((landing.match(/class="ui-badge"/g) || []).length).toBe(3);
+    // Bug #4709: AB#2462 (Board review 2026-09-26, items 1 and 3) took the three promise badges off and put the logo and
+    // the tagline at the top; the landing's shape is that now.
+    expect((landing.match(/class="ui-badge"/g) || []).length).toBe(0);
+    expect(landing.indexOf('class="landing__logo"')).toBeGreaterThan(-1);
+    expect(landing.indexOf('class="landing__tagline"')).toBeGreaterThan(landing.indexOf('class="landing__logo"'));
     expect(read("public/how-to-start.html")).toContain('<main class="landing">');
   });
 
