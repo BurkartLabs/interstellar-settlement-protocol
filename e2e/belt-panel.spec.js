@@ -125,7 +125,7 @@ for (const vp of VIEWPORTS) {
       details = await openBelt(page, canvas, vp, "Alpha Centauri", 10);
       await expect(details.locator("[data-belt-state=empty]")).toBeVisible();
       await expect(details).toContainText("No belt here");
-      await expect(details).toContainText(/20% chance a new one forms here, unscouted by anyone; the next chance is at \d\d:00 UTC \(/);
+      await expect(details).toContainText(/20% chance a new one forms here, unscouted by anyone; the next chance is at \d\d:00 UTC\./); // AB#4773: UTC only since AB#945
       await look(page, details, `ab2331-empty-${vp.label}`);
 
       // Nothing drawn off the panel's edge or clipped (the AB#772 sweep's checks, for this panel).
