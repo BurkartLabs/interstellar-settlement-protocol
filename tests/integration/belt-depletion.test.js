@@ -33,9 +33,15 @@ async function corp() {
     compositions: () => api.get(`/api/accounts/${account.id}/gameplay/belt-compositions`),
     credits: () => getAccountById(account.id).state.corp.finances.credits,
     ore: () => total(getAccountById(account.id).state.corp.inventory?.["earth-station-prime"]),
-    mined: () => total(am().activeExpeditions[0]?.yields) + am().completedExpeditions.reduce((s, e) => s + total(e.yields), 0)
+    mined: () => total(am().activeExpeditions[0]?.yields) + am().completedExpeditions.reduce((s, e) => s + total(e.yields), 0),
+    // Bug AB#4778: Sol has Rats (pirateDensity 11) and these probes fly unescorted, so an encounter can take part of the
+    // haul after the belt has paid for it. What the belt lost is what the probes hold plus what the Rats took.
+    raided: () => [...am().activeExpeditions, ...am().completedExpeditions].flatMap((e) => e.rats?.encounters || []).reduce((s, r) => s + total(r.haulLost), 0)
   };
 }
+
+/** Everything the corporations drew from the belt: what they carry and what Rats took from them on the way. */
+const drawn = (...corps) => corps.reduce((s, c) => s + c.mined() + c.raided(), 0);
 
 afterAll(() => mutateState((w) => { delete w.belts[BELT]; ensureBeltState(w); }));
 
@@ -58,13 +64,13 @@ describe("belts run out, and expeditions with them (AB#2330)", () => {
     asteroidExpeditionTick(t0 + 2000);
     expect(a.mined()).toBeGreaterThan(0);
     expect(b.mined()).toBeGreaterThan(0);
-    expect(a.mined() + b.mined()).toBe(1000 - belt().remaining);
+    expect(drawn(a, b), `carried ${a.mined() + b.mined()}, taken by Rats ${a.raided() + b.raided()}`).toBe(1000 - belt().remaining);
 
     // A tick it cannot: they take what is left, no more, and both come home now, seven seconds early.
-    const drawnBefore = a.mined() + b.mined();
+    const drawnBefore = drawn(a, b);
     setRemaining(5);
     asteroidExpeditionTick(t0 + 4000);
-    expect(a.mined() + b.mined()).toBe(drawnBefore + 5);
+    expect(drawn(a, b)).toBe(drawnBefore + 5);
     expect(belt()).toMatchObject({ remaining: 0, emptiedAt: t0 + 4000, generation: 1 });
     for (const [i, c] of [a, b].entries()) {
       const am = c.am();
