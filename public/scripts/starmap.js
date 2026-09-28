@@ -395,7 +395,12 @@ export function clusterLabelAt({ widths, size, x, y, gap, placed = [], stars = [
     { x: right.x, y: right.y - lift }, { x: right.x, y: right.y + lift },
     { x: left.x, y: left.y - lift }, { x: left.x, y: left.y + lift }
   ];
-  const candidates = [...(rightFits ? [right, left, below, above] : [left, right, below, above]), ...corners];
+  // AB#2343: a label of two or more lines hangs below its star from the sides above; last, it may sit beside the star
+  // centred on it, which is where a two-line name fits between two others ("Lalande" / "21185" on a phone). Last, so a
+  // label that fitted before still goes where it went.
+  const mid = ((widths.length - 1) * lineHeight) / 2;
+  const centredSides = mid > 0 ? (rightFits ? [right, left] : [left, right]).map((c) => ({ x: c.x, y: c.y - mid })) : [];
+  const candidates = [...(rightFits ? [right, left, below, above] : [left, right, below, above]), ...corners, ...centredSides];
   // Two labels need a little air between them, not only no overlap: 3px all round.
   const crosses = (a, b) => a.left - 3 < b.right && b.left - 3 < a.right && a.top - 3 < b.bottom && b.top - 3 < a.bottom;
   const covers = (b, s) => Math.hypot(
@@ -440,15 +445,29 @@ export function planClusterLabels({ entries, compact, canvasWidth, canvasHeight 
   for (const e of order) {
     const priority = rank(e) < 3;
     if (compact && !priority) continue;
-    const label = clusterLabelAt({
-      widths: e.widths, size: e.size, x: e.x, y: e.y, gap: e.gap, placed,
-      stars: stars.filter((s) => s.id !== e.id), canvasWidth, canvasHeight
-    });
+    const others = stars.filter((s) => s.id !== e.id);
+    let label = clusterLabelAt({ widths: e.widths, size: e.size, x: e.x, y: e.y, gap: e.gap, placed, stars: others, canvasWidth, canvasHeight });
+    // AB#2343: a name with nowhere to go on one line tries two ("Lalande" / "21185") before it is given up. On a phone,
+    // as the Starmap opens, Lalande 21185 was the one of Sol's four neighbours left a bare star. The plan says which
+    // lines it placed, and they are the ones drawn.
+    let lines;
+    if (!label.clear && rank(e) >= 2 && e.wrapped) {
+      const two = clusterLabelAt({ widths: e.wrapped.widths, size: e.size, x: e.x, y: e.y, gap: e.gap, placed, stars: others, canvasWidth, canvasHeight });
+      if (two.clear) { label = two; lines = e.wrapped.lines; }
+    }
     if (!label.clear && rank(e) >= 2) continue;
     placed.push(label.box);
-    plan.set(e.id, { x: label.x, y: label.y, box: label.box });
+    plan.set(e.id, { x: label.x, y: label.y, box: label.box, ...(lines ? { lines } : {}) });
   }
   return plan;
+}
+
+/** AB#2343: a system's name over two lines, broken at the space nearest its middle; null for a one-word name. */
+export function wrapName(name) {
+  const spaces = [...String(name)].flatMap((c, i) => (c === " " ? [i] : []));
+  if (!spaces.length) return null;
+  const at = spaces.reduce((best, i) => (Math.abs(i - name.length / 2) < Math.abs(best - name.length / 2) ? i : best));
+  return [name.slice(0, at), name.slice(at + 1)];
 }
 
 export function canvasBackingSize(cssWidth, cssHeight, devicePixelRatio) {
@@ -814,9 +833,13 @@ export function createStarmapController({
       const isSelected = state.selectedSystemId === system.id;
       const baseRadius = isSelected ? 10 : 7;
       const lines = linesOf(system);
-      const widths = lines.map((line) => { ctx.font = line.font; return ctx.measureText(line.text).width; });
+      const measure = (list) => list.map((line) => { ctx.font = line.font; return ctx.measureText(line.text).width; });
+      // AB#2343: the same lines with the name over two, for a name that finds no place on one
+      const split = wrapName(system.name);
+      const wrappedLines = split ? [...split.map((text) => ({ ...lines[0], text })), ...lines.slice(1)] : null;
       return {
-        id: system.id, ...at(system), r: baseRadius + 4, widths, lines, size: sizes(isSelected).name, gap: baseRadius + 10,
+        id: system.id, ...at(system), r: baseRadius + 4, widths: measure(lines), lines, size: sizes(isSelected).name, gap: baseRadius + 10,
+        wrapped: wrappedLines && { lines: wrappedLines, widths: measure(wrappedLines) },
         current: system.id === currentSystemId, selected: isSelected, neighbour: neighbours.has(system.id)
       };
     });
@@ -941,7 +964,7 @@ export function createStarmapController({
       const label = labelPlan.get(system.id);
       if (label) {
         const entry = entryOf.get(system.id);
-        entry.lines.forEach((line, i) => {
+        (label.lines || entry.lines).forEach((line, i) => { // AB#2343: the name over two lines where the plan placed it so
           ctx.fillStyle = line.color;
           ctx.font = line.font;
           ctx.fillText(line.text, label.x, label.y + i * (entry.size + 2));

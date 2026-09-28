@@ -44,13 +44,33 @@ function startServer(dir) {
   });
 }
 
-/** The names the cluster view wrote in its last frame, with their boxes (from the canvas's own measureText). */
-const clusterNames = (page) => page.evaluate((names) => {
-  const frame = window.__labels.slice(window.__frameStart || 0);
-  const latest = new Map();
-  for (const l of frame) if (names.includes(l.t)) latest.set(l.t, l);
-  return [...latest.values()].map((l) => ({ t: l.t, left: l.x, right: l.x + l.w, top: l.y - l.size * 0.8, bottom: l.y + l.size * 0.25 }));
-}, SYSTEMS.map((s) => s.name));
+/** AB#2343: a name over two lines, as starmap.js wrapName breaks it (at the space nearest its middle). */
+const halves = (name) => {
+  const spaces = [...name].flatMap((c, i) => (c === " " ? [i] : []));
+  if (!spaces.length) return null;
+  const at = spaces.reduce((best, i) => (Math.abs(i - name.length / 2) < Math.abs(best - name.length / 2) ? i : best));
+  return [name.slice(0, at), name.slice(at + 1)];
+};
+/**
+ * The names the cluster view wrote in its last frame, with their boxes (from the canvas's own measureText). A name
+ * drawn over two lines (AB#2343) is its two lines, each with its box, and `name` the system's whole name.
+ */
+const clusterNames = (page) => page.evaluate((systems) => {
+  const frame = window.__labels.slice(window.__frameStart || 0); // one draw: each system's lines appear once
+  const box = (l, name) => ({ t: l.t, name, left: l.x, right: l.x + l.w, top: l.y - l.size * 0.8, bottom: l.y + l.size * 0.25 });
+  const out = [];
+  for (const { name, halves } of systems) {
+    const whole = frame.find((l) => l.t === name);
+    if (whole) { out.push(box(whole, name)); continue; }
+    if (!halves) continue;
+    // the second line is under the first, at the same x, one line below
+    const first = frame.find((l) => l.t === halves[0] && frame.some((m) => m.t === halves[1] && m.x === l.x && m.y > l.y && m.y - l.y < 2 * l.size));
+    if (!first) continue;
+    const second = frame.find((m) => m.t === halves[1] && m.x === first.x && m.y > first.y && m.y - first.y < 2 * first.size);
+    out.push(box(first, name), box(second, name));
+  }
+  return out;
+}, SYSTEMS.map((s) => ({ name: s.name, halves: halves(s.name) })));
 
 test.describe.configure({ mode: "serial" });
 
@@ -111,9 +131,11 @@ for (const viewport of VIEWPORTS) {
       if (!viewport.mobile) {
         expect(names.map((n) => n.t).sort(), "every system named").toEqual(SYSTEMS.map((s) => s.name).sort());
       } else {
-        // On a phone: Sol (selected at first) and its neighbours that fit; nothing else.
-        expect(names.map((n) => n.t), "Sol named").toContain("Sol");
-        for (const n of names) expect(named(["sol", ...sol.adjacent]), `${n.t} may be named`).toContain(n.t);
+        // On a phone: Sol (selected at first) and every one of its neighbours (AB#2343: Lalande 21185 over two lines
+        // where one does not fit); nothing else.
+        expect(names.map((n) => n.name), "Sol named").toContain("Sol");
+        expect(named(sol.adjacent).filter((name) => !names.some((n) => n.name === name)), "Sol's neighbours left unnamed").toEqual([]);
+        for (const n of names) expect(named(["sol", ...sol.adjacent]), `${n.name} may be named`).toContain(n.name);
       }
       noneOverlap(names);
       fs.mkdirSync(SHOT_DIR, { recursive: true });
@@ -131,8 +153,8 @@ for (const viewport of VIEWPORTS) {
       if (!viewport.mobile) expect(written, "the gate under the locked system's name").toContain(GATE);
       await expect(page.locator("#map-details")).toContainText(GATE);
       names = await clusterNames(page);
-      expect(names.map((n) => n.t), "the selected locked system is named").toContain(LOCKED.name);
-      if (viewport.mobile) for (const n of names) expect(named(["sol", LOCKED.id, ...LOCKED.adjacent]), `${n.t} may be named`).toContain(n.t);
+      expect(names.map((n) => n.name), "the selected locked system is named").toContain(LOCKED.name);
+      if (viewport.mobile) for (const n of names) expect(named(["sol", LOCKED.id, ...LOCKED.adjacent]), `${n.name} may be named`).toContain(n.name);
       noneOverlap(names);
       await canvas.screenshot({ path: path.join(SHOT_DIR, `cluster-locked-selected-${viewport.label}.png`) });
       await page.screenshot({ path: path.join(SHOT_DIR, `page-locked-selected-${viewport.label}.png`), fullPage: false });
