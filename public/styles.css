@@ -1176,7 +1176,8 @@ textarea {
 
 #walkthrough-modal .modal-card {
   pointer-events: auto;
-  width: min(420px, 100%);
+  /* AB#2463: scales with the screen, about 600px at 1920 wide (31.25vw), 400px at 1280, never under 360px nor over 720px */
+  width: min(clamp(22.5rem, 31.25vw, 45rem), 100%);
   box-shadow: var(--elevation-overlay);
 }
 
@@ -1191,10 +1192,12 @@ body.walkthrough--open .layout-grid {
   padding-bottom: calc(var(--space-4) + var(--walkthrough-card-height, 22rem));
 }
 
-/* What a walkthrough step points at. */
+/* What a walkthrough step points at. AB#2463: the outline stands off the element, so what it frames is never jammed
+   against the border (the Suites' hiring form was the example). */
 .walkthrough__focus {
   position: relative;
   outline: 2px solid var(--warn);
+  outline-offset: var(--space-2);
   border-radius: var(--radius-md);
 }
 
@@ -3614,14 +3617,6 @@ img.station__body {
   font-size: var(--font-size-4);
   font-weight: var(--font-weight-semibold);
 }
-.station__start {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-color: var(--accent);
-}
 #station-facility-buildings {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); /* Bug #1283: a phone leaves the grid ~309px */
@@ -4359,10 +4354,18 @@ img.station__body {
   border-radius: 50%;
   object-fit: cover;
 }
+/* AB#2463: Elara Voss's portrait a larger square, in her colours: the image's own cyan brought up, framed in the accent */
 #walkthrough-modal .dialogue__portrait {
-  width: 52px;
-  height: 52px;
+  width: 104px;
+  height: 104px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--accent);
+  object-position: 50% 18%;
+  filter: saturate(1.6) contrast(1.05);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
 }
+.walkthrough__text { display: flex; flex-direction: column; gap: var(--space-3); }
+.walkthrough__text p { margin: 0; }
 .dialogue__content {
   display: flex;
   flex: 1;
@@ -4742,6 +4745,7 @@ img.station__body {
     height: 48px;
     margin: 0 var(--space-3) var(--space-1) 0;
   }
+  #walkthrough-modal .dialogue__portrait { width: 64px; height: 64px; } /* AB#2463: still the larger square */
   /* A flex column would stand beside the float, not flow round it: a block, spaced by margins, does. */
   .dialogue__content {
     display: block;
