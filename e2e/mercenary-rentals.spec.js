@@ -2,7 +2,7 @@
 // corporation and one the player has already hired, a hire through its confirmation and receipt, and an offer of the
 // player's own fleet with the form's preview. At 1440x900 and 390x844; screenshots go to e2e/screenshots/ab-871/.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openExchangePage, openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -59,7 +59,7 @@ ${seeded.stderr}`);
       await page.fill("#login-password", PASSWORD);
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\?account=/);
-      await openTab(page, "market");
+      await openExchangePage(page, "mercs"); // AB#2472: its own subpage
       const panel = page.locator("#exchange-mercenary-section");
       await expect(panel).toBeVisible();
       // two open offers, each with its units by type, attack and defense, term, price, collateral and allowed use

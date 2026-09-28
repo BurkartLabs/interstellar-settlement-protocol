@@ -6,7 +6,7 @@
 
 import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
-import { DEFAULT_EXCHANGE_VIEW, MY_LISTINGS_SHOWN, SELL_ORDERS_SHOWN, cappedNote, filteredEmptyHtml, partnerNames, partnersEmptyHtml, saveExchangeView, sellerKey, tradeNumbers, viewOrders } from "../exchangeView.js";
+import { DEFAULT_EXCHANGE_VIEW, EXCHANGE_PAGES, MY_LISTINGS_SHOWN, ORDER_PAGES, SELL_ORDERS_SHOWN, cappedNote, filteredEmptyHtml, partnerNames, partnersEmptyHtml, saveExchangeView, sellerKey, tradeNumbers, viewOrders } from "../exchangeView.js";
 import { deepClone, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { appState, viewerStorage } from "../state.js";
@@ -156,8 +156,6 @@ export function renderMarket(data) {
     const tab = (value, label) => `<button type="button" class="ui-tab" role="tab" aria-selected="${String(cur === value)}" data-filter="${escapeHtml(value)}">${escapeHtml(label)}</button>`;
     filterBar.innerHTML = tab("", "All") + resources.map((r) => tab(r, r)).join("");
   }
-  const typeSelect = document.getElementById("exchange-type-filter");
-  if (typeSelect) typeSelect.value = view.type;
   const sortSelect = document.getElementById("exchange-sort");
   if (sortSelect) sortSelect.value = view.sort;
   const tierSelect = document.getElementById("exchange-tier-filter");
@@ -167,17 +165,7 @@ export function renderMarket(data) {
   const sellersSelect = document.getElementById("exchange-sellers-filter");
   if (sellersSelect) sellersSelect.value = view.sellers;
 
-  // Order-type filter: one table, or all of them (AB#402)
-  const showSection = (id, type) => {
-    const el = document.getElementById(id);
-    if (el) el.hidden = view.type !== "all" && view.type !== type;
-  };
-  showSection("exchange-sell-section", "sell");
-  showSection("exchange-bids-section", "bids");
-  showSection("exchange-bid-form-section", "bids");
-  showSection("exchange-standing-section", "standing");
-  showSection("exchange-npc-sell-section", "standing");
-  showSection("exchange-mine-section", "mine");
+  showExchangePage(view.page); // AB#2472: the subpage the viewer last chose
 
   // Filter by resource and sort, then cap: the cap applies to what the viewer asked to see (AB#402)
   const viewedSellOrders = viewOrders(allSellOrders, view, { partners, tierOf });
@@ -402,6 +390,24 @@ export function renderMarket(data) {
  * a dead click. It lives in appState, so a redraw of the table keeps it. When that row is gone (the whole stock was
  * listed), it goes in the line below the table.
  */
+/**
+ * AB#2472 (DOCTRINE P-010): show one of the Exchange's subpages, as the ARIA tabs pattern has it (only the selected tab
+ * in the tab order), and the price chart and filters only on the pages with orders to filter.
+ */
+export function showExchangePage(page) {
+  const current = EXCHANGE_PAGES.includes(page) ? page : DEFAULT_EXCHANGE_VIEW.page;
+  const selected = document.querySelector(`#exchange-pages [data-exchange-page="${current}"]`);
+  document.querySelectorAll("#exchange-pages [data-exchange-page]").forEach((tab) => {
+    const on = tab === selected;
+    tab.setAttribute("aria-selected", String(on));
+    tab.tabIndex = on ? 0 : -1;
+    const panel = document.getElementById(tab.getAttribute("aria-controls") || "");
+    if (panel) panel.hidden = !on;
+  });
+  const tools = document.getElementById("exchange-tools");
+  if (tools) tools.hidden = !ORDER_PAGES.has(current);
+}
+
 export function paintListingStatus() {
   const status = appState.listingStatus;
   const rows = [...document.querySelectorAll("#market-sell-grid [data-sell-status]")];
@@ -705,7 +711,28 @@ export function bindExchangeForms() {
     const pill = event.target.closest("[data-filter]");
     if (pill) setExchangeView({ resource: pill.getAttribute("data-filter") || "" });
   });
-  document.getElementById("exchange-type-filter")?.addEventListener("change", (event) => setExchangeView({ type: event.target.value }));
+  // AB#2472: a subpage is chosen by click, or by the arrow keys, Home and End from the selected one. Only the page
+  // changes, so the tables are not redrawn.
+  const pages = document.getElementById("exchange-pages");
+  showExchangePage(appState.exchangeView.page); // before the market's data arrives, so the page never flips once drawn
+  const choosePage = (tab, focus) => {
+    appState.exchangeView = { ...appState.exchangeView, page: tab.dataset.exchangePage };
+    saveExchangeView(viewerStorage(), appState.exchangeView);
+    showExchangePage(appState.exchangeView.page);
+    if (focus) tab.focus();
+  };
+  pages?.addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-exchange-page]");
+    if (tab) choosePage(tab, false);
+  });
+  pages?.addEventListener("keydown", (event) => {
+    const all = [...pages.querySelectorAll("[data-exchange-page]")];
+    const i = all.indexOf(document.activeElement);
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: all.length - 1 }[event.key];
+    if (i < 0 || next === undefined) return;
+    event.preventDefault();
+    choosePage(all[(next + all.length) % all.length], true);
+  });
   document.getElementById("exchange-sort")?.addEventListener("change", (event) => setExchangeView({ sort: event.target.value }));
   // AB#884: a tier drops a resource pill chosen from another tier
   document.getElementById("exchange-tier-filter")?.addEventListener("change", (event) => setExchangeView({ tier: event.target.value, resource: DEFAULT_EXCHANGE_VIEW.resource }));
@@ -718,7 +745,7 @@ export function bindExchangeForms() {
       return;
     }
     if (event.target.closest("[data-clear-filters]")) {
-      setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, type: DEFAULT_EXCHANGE_VIEW.type, tier: DEFAULT_EXCHANGE_VIEW.tier });
+      setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, tier: DEFAULT_EXCHANGE_VIEW.tier });
     }
   });
 

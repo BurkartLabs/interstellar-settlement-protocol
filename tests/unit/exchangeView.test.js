@@ -67,8 +67,18 @@ describe("the view is remembered per viewer, and storage can never break the pag
 
   it("round-trips a chosen view", () => {
     const storage = memoryStorage();
-    saveExchangeView(storage, { resource: "Helium-3", type: "standing", sort: "price-desc", sellers: "conglomerate", tier: "4" });
-    expect(loadExchangeView(storage)).toEqual({ resource: "Helium-3", type: "standing", sort: "price-desc", sellers: "conglomerate", tier: "4" });
+    saveExchangeView(storage, { resource: "Helium-3", page: "history", sort: "price-desc", sellers: "conglomerate", tier: "4" });
+    expect(loadExchangeView(storage)).toEqual({ resource: "Helium-3", page: "history", sort: "price-desc", sellers: "conglomerate", tier: "4" });
+  });
+
+  it("AB#2472: an older view's Show choice opens the subpage with those orders, and 'all' the default page", () => {
+    expect(normalizeExchangeView({ type: "sell" }).page).toBe("players");
+    expect(normalizeExchangeView({ type: "bids" }).page).toBe("players");
+    expect(normalizeExchangeView({ type: "standing" }).page).toBe("standing");
+    expect(normalizeExchangeView({ type: "mine" }).page).toBe("mine");
+    expect(normalizeExchangeView({ type: "all" }).page).toBe(DEFAULT_EXCHANGE_VIEW.page);
+    expect(normalizeExchangeView({ type: "mine", page: "mercs" }).page).toBe("mercs"); // a page, once chosen, wins
+    expect(normalizeExchangeView({ type: "mine" })).not.toHaveProperty("type");
   });
 
   it("falls back to the defaults when storage is missing, blocked or throws", () => {
@@ -82,9 +92,9 @@ describe("the view is remembered per viewer, and storage can never break the pag
     const storage = memoryStorage();
     storage.setItem(EXCHANGE_VIEW_KEY, "{not json");
     expect(loadExchangeView(storage)).toEqual(DEFAULT_EXCHANGE_VIEW);
-    storage.setItem(EXCHANGE_VIEW_KEY, JSON.stringify({ resource: "x".repeat(500), type: "<script>", sort: "price-asc" }));
+    storage.setItem(EXCHANGE_VIEW_KEY, JSON.stringify({ resource: "x".repeat(500), page: "<script>", sort: "price-asc" }));
     expect(loadExchangeView(storage)).toEqual({ ...DEFAULT_EXCHANGE_VIEW, sort: "price-asc" });
-    expect(normalizeExchangeView({ resource: 42, type: "mine", sort: null, sellers: "everyone-else", tier: 4 })).toEqual({ resource: "", type: "mine", sort: "newest", sellers: "all", tier: "" });
+    expect(normalizeExchangeView({ resource: 42, page: "mine", sort: null, sellers: "everyone-else", tier: 4 })).toEqual({ resource: "", page: "mine", sort: "newest", sellers: "all", tier: "" });
     expect(normalizeExchangeView({ tier: "5" }).tier).toBe(""); // AB#884: only the catalog's tiers
     expect(normalizeExchangeView(["array"])).toEqual(DEFAULT_EXCHANGE_VIEW);
   });

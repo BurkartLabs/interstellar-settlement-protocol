@@ -26,7 +26,7 @@ const SIZES = [[1440, 900], [1920, 1080]];
 const PAGES = ["/", "/login.html", "/register.html", "/forgot-password.html", "/reset-password.html", "/check-email.html", "/verify-email.html", "/how-to-start.html"];
 const TABS = NAV_GROUPS.flatMap((g) => g.tabs).filter((t) => t !== "travel");
 /** Tab lists that switch between views of a tab (not filters inside one view): each view is measured on its own. */
-const VIEW_TABS = ["#inbox-subtab-nav", "#inbox-folders", "#assets [role=tablist]", "#conglomerate .cong-tabs", "#finance-subnav"]; // #finance-subnav: AB#2470
+const VIEW_TABS = ["#inbox-subtab-nav", "#inbox-folders", "#assets [role=tablist]", "#conglomerate .cong-tabs", "#finance-subnav", "#market #exchange-pages"]; // #finance-subnav: AB#2470; #exchange-pages: AB#2472
 
 function startServer(dir) {
   const child = spawn(process.execPath, ["server/index.js"], {
