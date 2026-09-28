@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scheduleRndQueue, nextRndStart, rndItemStatus, rndItemEndsAt, formatHoursMinutes } from "../../public/scripts/rndQueue.js";
+import { scheduleRndQueue, nextRndStart, rndItemStatus, rndItemEndsAt, formatHoursMinutes, rndQueueRoom, RND_QUEUE_LIMIT } from "../../public/scripts/rndQueue.js";
 
 // Bug #1258: Corporate R&D researches one technology at a time.
 const H = 3_600_000;
@@ -55,5 +55,34 @@ describe("the R&D schedule (Bug #1258)", () => {
   it("formats time as the queue cards show it", () => {
     expect(formatHoursMinutes(2 * H + 5 * 60_000 + 59_000)).toBe("2h 5m");
     expect(formatHoursMinutes(-5)).toBe("0h 0m");
+  });
+});
+
+describe("the R&D queue holds the item in progress and one behind it (AB#2476)", () => {
+  it("room while fewer than two are unfinished; full with one running and one waiting, until the running one ends", () => {
+    expect(RND_QUEUE_LIMIT).toBe(2);
+    expect(rndQueueRoom([], T0)).toEqual({ ok: true, pending: 0 });
+    expect(rndQueueRoom(undefined, T0).ok).toBe(true);
+    const running = item("safety", 3, T0);
+    expect(rndQueueRoom([running], T0 + H)).toEqual({ ok: true, pending: 1 });
+    const full = rndQueueRoom([running, item("forecast", 4, T0 + 3 * H)], T0 + H);
+    expect(full).toMatchObject({ ok: false, pending: 2, freesAt: T0 + 3 * H });
+    expect(full.finishing.techId).toBe("safety");
+  });
+
+  it("a finished item the tick has not removed yet takes no place, so the waiting one rolls forward and there is room", () => {
+    const queue = [item("safety", 3, T0), item("forecast", 4, T0 + 3 * H)];
+    expect(rndQueueRoom(queue, T0 + 3 * H - 1).ok).toBe(false);
+    expect(rndQueueRoom(queue, T0 + 3 * H)).toEqual({ ok: true, pending: 1 });
+  });
+
+  it("a queue saved longer than the limit keeps its items and takes nothing new until it is below it", () => {
+    // Three items saved the old way, all stamped T0: scheduled, they end at 2 h, 5 h and 9 h.
+    const queue = [item("a", 2, T0), item("b", 3, T0), item("c", 4, T0)];
+    const room = rndQueueRoom(queue, T0 + H);
+    expect(room).toMatchObject({ ok: false, pending: 3, freesAt: T0 + 5 * H });
+    expect(room.finishing.techId).toBe("b");
+    expect(queue.map((i) => i.startedAt)).toEqual([T0, T0, T0]); // measured on a copy: the saved queue is untouched
+    expect(rndQueueRoom(queue, T0 + 5 * H).ok).toBe(true);
   });
 });

@@ -10,6 +10,7 @@ import { emitToAccount } from "../realtime.js";
 import { fundingRequirementMessage } from "./helpers.js";
 import { queueInsightReceipt, queueResearchReceipt } from "../receipts.js"; // AB#744
 import { rndItemEndsAt } from "../../public/scripts/rndQueue.js"; // AB#744: the same end the R&D panel shows
+import { formatHoursMinutes, rndQueueRoom } from "../../public/scripts/rndQueue.js"; // AB#2476: the same limit the R&D panel shows
 
 // AB#1049: RESEARCH_LIBRARY is imported from gameState.js now — data/research.json is the only definition,
 // keyed by id in server/game/catalog.js. GET /api/research (below) is how the client gets the same tree.
@@ -20,6 +21,7 @@ export function registerResearchRoutes(app) {
     const techId = String(req.body?.techId || "").trim();
     const tech = RESEARCH_LIBRARY[techId];
     let outcome = "ok";
+    let room = null; // AB#2476: why the queue is full, and when a place opens
 
     if (!tech) {
       res.status(400).json({ error: "Unknown research node." });
@@ -64,6 +66,13 @@ export function registerResearchRoutes(app) {
         return;
       }
 
+      // AB#2476 (Board review item 23): the one in progress and one behind it; nothing is charged for a refusal
+      room = rndQueueRoom(queue, Date.now());
+      if (!room.ok) {
+        outcome = "queue-full";
+        return;
+      }
+
       if (corp.finances.credits < tech.costCredits) {
         outcome = "insufficient-credits";
         return;
@@ -94,7 +103,8 @@ export function registerResearchRoutes(app) {
         "missing-prereq": `${tech.name} requires: ${tech.prereqs.map((id) => RESEARCH_LIBRARY[id]?.name || id).join(", ")}.`,
         "corp-level-too-low": `${tech.name} requires Corp Level ${tech.requiresCorpLevel}.`,
         "tier-gate": `${tech.name} is Tier ${tech.tier} research. All Tier 1 research must be completed first.`,
-        "insufficient-credits": fundingRequirementMessage(`${tech.name} queueing`, corp, tech.costCredits)
+        "insufficient-credits": fundingRequirementMessage(`${tech.name} queueing`, corp, tech.costCredits),
+        "queue-full": `Corporate R&D runs one technology and holds one more behind it. ${tech.name} can be queued once ${room?.finishing?.name || "the research ahead"} finishes, in ${formatHoursMinutes((room?.freesAt || 0) - Date.now())}.`
       };
       res.status(400).json({ error: messageMap[outcome] || "Unable to queue research." });
       return;
