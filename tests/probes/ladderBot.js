@@ -13,6 +13,8 @@
 // on purchases and the research hours queued (from data/research.json, whatever the server's timings). When the
 // ladder stops, it throws naming the level and each requirement still unmet.
 
+import { officeLeaseCost } from "../../public/scripts/ceoEffects.js"; // Bug #2311: a trip's price, as the page quotes it
+
 const EARTH = "earth-station-prime";
 const STATION_OF = { Earth: EARTH, Mars: "mars-orbital-dock", Luna: "luna-gateway" };
 const SILICATE_ORDER = "npc-buy-silicates-daily";
@@ -48,6 +50,17 @@ export async function climb({ request, account, clock, tick, levels, research, m
   const post = (path, body = {}) => request.post(path).set(auth).send(body);
   const play = (path, body) => post(`/api/accounts/${id}/gameplay/${path}`, body);
   const corpNow = async () => { const r = await request.get(`/api/accounts/${id}`).set(auth); if (!r.body?.state) throw new Error(`reading the corporation: ${r.status} ${JSON.stringify(r.body)}`); known = r.body.state.corp; return known; };
+
+  // Bug #2311: what a trip away has to buy, read once from the route a page reads: each Sol body's lease.
+  const sol = ((await request.get("/api/systems")).body.systems || []).find((s) => s.id === "sol");
+  const LEASE_COST = Object.fromEntries((sol?.bodies || []).filter((b) => Number(b.leaseCost) > 0).map((b) => [b.name, Number(b.leaseCost)]));
+
+  // Bug #2311: a profile that looks more often than twice a day still sells only twice a day. Sold every hour, the ore
+  // went into the standing bid at its low points (17.33 credits a unit against the check-in's 19.81 over days 3 to 11
+  // of the pacing probe), so the hourly profile earned less and could not be the lower bound it is meant to be. The
+  // check-in profile, whose numbers the design's targets judge, is unchanged: it never steps slower than this.
+  const SELL_EVERY_MS = stepHours < 12 ? 12 * 3_600_000 : 0;
+  let lastSaleAt = -Infinity;
 
   const start = clock.now();
   const records = [];
@@ -142,13 +155,28 @@ export async function climb({ request, account, clock, tick, levels, research, m
     const held = new Set((corp.miningLeases || []).map((l) => l.body));
     return ["Earth", "Mars", "Luna"].find((b) => !held.has(b)) || null;
   }
-  /** A lease on `body`: staff for it are hired at Earth (hiring needs an office where you are), then the trip. */
+  /** Bug #2311: what is still to buy at `body`'s station: the office (the shortest term) and the lease, each only while
+   *  not held. The yard is not among them: it is built on the lease from anywhere, back at Earth where credits are
+   *  earned (counting it here held the check-in profile at Earth and cost it Level 30 inside 240 days). */
+  function stillToBuyAt(body, c) {
+    const station = STATION_OF[body];
+    const office = (c.offices || []).some((o) => o.stationId === station && Number(o.rentedUntil || 0) > clock.now()) ? 0 : officeLeaseCost(7);
+    const lease = (c.miningLeases || []).some((l) => l.body === body) ? 0 : LEASE_COST[body] || 0;
+    return office + lease;
+  }
+  /** Bug #2311: whether the credits cover that above the reserve. Nothing is bought away from Earth under the reserve,
+   *  and nothing is sold or hired there, so a corporation that arrives short can only wait: on an hourly step the bot
+   *  sat at Mars for the rest of the run at Level 4, its Earth yards idle. */
+  const canFinishAt = (body, c) => Number(c.finances?.credits || 0) >= RESERVE + floatFor(c, needs.mine) + stillToBuyAt(body, c);
+
+  /** A lease on `body`: staff for it are hired at Earth (hiring needs an office where you are), then the trip, once
+   *  the credits cover everything to be bought there (Bug #2311). */
   async function leaseOn(body, c) {
     const here = c.currentStationId || EARTH;
     const staffed = Number(c.employeeCount || 0) >= 5 * ((c.miningLeases || []).length + 1);
     if (!staffed) return here === EARTH ? act("hire for a lease", () => play("hire", { count: 5 })) : travel(EARTH, c);
     const station = STATION_OF[body];
-    if (here !== station) return travel(station, c);
+    if (here !== station) return canFinishAt(body, c) ? travel(station, c) : here === EARTH ? null : travel(EARTH, c);
     // A claim is filed through an office at that station: the shortest term there, then the lease.
     const officeHere = (c.offices || []).some((o) => o.stationId === station && Number(o.rentedUntil || 0) > clock.now());
     if (!officeHere) return act(`rent an office at ${station}`, () => play("rent-office", { stationId: station, durationDays: 7 }));
@@ -299,10 +327,10 @@ export async function climb({ request, account, clock, tick, levels, research, m
     // Keep enough for refining and contracts when the next level asks for them; sell the rest.
     const keep = (needs.refine ? 1200 : 0) + (needs.contracts || needs.contractsAhead ? 800 : 0);
     if (needs.refine && here === EARTH) await refine(known); // AB#800: refineries kept busy, before the sale
-    if (here === EARTH && held - keep >= 100) {
+    if (here === EARTH && held - keep >= 100 && clock.now() - lastSaleAt >= SELL_EVERY_MS) {
       const order = ((await request.get("/api/bootstrap").set(auth)).body.market?.npcBuyOrders || []).find((o) => o.id === SILICATE_ORDER);
       const quantity = Math.min(held - keep, Number(order?.remainingQty || 0));
-      if (quantity >= 1) await act("sell Silicates", () => post(`/api/market/npc-orders/${SILICATE_ORDER}/sell`, { quantity }));
+      if (quantity >= 1 && (await act("sell Silicates", () => post(`/api/market/npc-orders/${SILICATE_ORDER}/sell`, { quantity }))).status < 400) lastSaleAt = clock.now();
     }
   }
 
@@ -334,7 +362,7 @@ export async function climb({ request, account, clock, tick, levels, research, m
     const day = Math.floor((clock.now() - start) / 86_400_000);
     if (day !== loggedDay) {
       loggedDay = day;
-      log(`day ${day} L${level} -> L${level + 1}: ${next.map((r) => `${r.metric} ${Math.round(Number(r.progress) || 0)}/${r.target}`).join(", ")}`);
+      log(`day ${day} L${level} -> L${level + 1} (${Math.round(Number(corp.finances?.credits || 0))} cr, sold ${Math.round(Number(corp.stats?.silicateSoldOnExchange || 0))}): ${next.map((r) => `${r.metric} ${Math.round(Number(r.progress) || 0)}/${r.target}`).join(", ")}`);
     }
     // ISP-108 (AB#800): refined units are cumulative and a refinery makes a few hundred a day, so once one exists the
     // bot keeps it running while any later level asks for more than it has made (docs/design/ladder-11-40.md draws its
@@ -353,7 +381,11 @@ export async function climb({ request, account, clock, tick, levels, research, m
     // A trip away is finished before anything else: the yards' ore and the standing bid are at Earth.
     const away = (corp.currentStationId || EARTH) !== EARTH;
     const leaseStillWanted = unmet.some((r) => /^(miningLease:|stat:miningLeasesCount|building-count:Basic Extractor Yard)/.test(r.metric));
-    if (away && !leaseStillWanted) {
+    // Bug #2311: away with a lease wanted but the credits short of finishing it here, home to earn them (the yards'
+    // ore and the standing bid are at Earth) rather than waiting where nothing is earned.
+    const bodyHere = Object.keys(STATION_OF).find((b) => STATION_OF[b] === corp.currentStationId);
+    const stranded = away && (!bodyHere || !canFinishAt(bodyHere, corp));
+    if (away && (!leaseStillWanted || stranded)) {
       await travel(EARTH, corp);
     } else {
       for (const req of unmet) {
