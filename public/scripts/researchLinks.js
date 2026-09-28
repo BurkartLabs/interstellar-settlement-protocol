@@ -3,6 +3,7 @@
 // extraction offers it: the Starmap's body and belt panels. The tree is GET /api/research (appState's techTree).
 
 import { escapeHtml } from "./html.js";
+import { showSubpageOf } from "./subnav.js"; // AB#2471
 
 /** The id of a node's card on the R&D tab. */
 export const researchNodeId = (id) => `research-node-${id}`;
@@ -48,6 +49,7 @@ export function bindResearchLinks(setTab, doc = document) {
       event.preventDefault();
       setTab("station");
       const row = doc.querySelector(`[data-building-row="${CSS.escape(building.getAttribute("data-building-link"))}"]`) || doc.getElementById("station-construction-section");
+      showSubpageOf(row, doc); // AB#2471: the Construction subpage
       row?.scrollIntoView({ block: "center" });
       (row?.querySelector("button, select") || row)?.focus({ preventScroll: true }); // the card, when nothing in it can be pressed yet
       return;

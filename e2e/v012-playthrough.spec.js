@@ -12,7 +12,7 @@
 //
 // This is a local run: AB#915 asks for the deployed build, which is the Board's to deploy.
 import { test, expect } from "@playwright/test";
-import { openExchangePage, openTab } from "./nav.mjs";
+import { openExchangePage, openStationOffices, openTab } from "./nav.mjs";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -132,6 +132,7 @@ for (const [passName, sizeA, sizeB] of [["a-desktop", DESKTOP, PHONE], ["a-phone
       // ── 1. Found a conglomerate at the Bureau (ISP-197, ISP-200) ──
       await step("A", "Bureau before a charter", async (page) => {
         await openTab(page, "station");
+        await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
         await page.click('[data-building-action="building:conglomerate-affairs-bureau"]');
         await expect(BUREAU(page).locator('[data-role="cong-charter"]')).toBeVisible();
       });
@@ -356,6 +357,7 @@ for (const [passName, sizeA, sizeB] of [["a-desktop", DESKTOP, PHONE], ["a-phone
       await step("B", "The member rate at the Suites", async (page) => {
         await openTab(page, "station");
         await expect(page.locator('[data-role="own-station-panel"]')).toBeVisible();
+        await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
         await page.click('[data-building-action="building:orbital-executive-suites"]');
         await expect(page.locator("#lease-suite-box")).toContainText("Member rate");
         await page.click("#rent-office-btn");

@@ -2,7 +2,7 @@
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
-import { bindOnce, likeRequest, mergeThread, postFor, quoteDraft, replyDraft } from "../forumActions.js";
+import { INDENT_MAX_DEPTH, bindOnce, likeRequest, mergeThread, postFor, quoteDraft, replyDraft, replyTree } from "../forumActions.js";
 import { formatTime } from "../helpers.js";
 import { escapeHtml, forumPostBodyHtml } from "../html.js";
 import { appState } from "../state.js";
@@ -49,18 +49,20 @@ export function renderForums(data) {
         || selected.summary
         || `Filing this thread to consolidate strategy on predatory mineral leases. Recent ISA arbitration cases suggest a narrow window for procedural objections — particularly when the lessor has failed to publish quarterly extraction reports. Would appreciate input from any corporation that has successfully challenged a Tier-2 lease auction in the last 18 months. I am compiling a citation pack for the Sol jurisdiction sub-forum and will share the redacted draft with anyone willing to co-sign.`;
 
-      const repliesHtml = replies.length
-        ? replies.map((reply) => {
+      // AB#2466: each reply under the one it answers, to any depth; posting order within each level
+      const byId = new Map(replies.map((r) => [r.id, r]));
+      const nodeHtml = ({ reply, depth, children }) => {
             const author = reply.author || "Anonymous";
             const replyLiked = Boolean(myAccountId && reply.likedByMe);
+            const parent = reply.replyToId ? byId.get(reply.replyToId) : null;
             return `
-              <li>
-                <article class="ui-card forums__post">
+              <li class="forums__reply" data-reply-depth="${depth}">
+                <article class="ui-card forums__post" id="forum-reply-${escapeHtml(reply.id)}">
                   <header class="forums__post-head">
                     <span class="forums__avatar" aria-hidden="true">${escapeHtml(initials(author))}</span>
                     <span class="forums__byline">
                       <strong class="forums__author">${escapeHtml(author)}</strong>
-                      <span class="ui-card__meta">${formatTime(reply.createdAt)}</span>
+                      <span class="ui-card__meta">${formatTime(reply.createdAt)}${parent ? ` · replying to ${escapeHtml(parent.author || "Anonymous")}` : ""}</span>
                     </span>
                   </header>
                   <div class="forums__body">
@@ -72,9 +74,15 @@ export function renderForums(data) {
                     <button class="ui-button ui-button--ghost forums__like" type="button" data-action="like" data-target="reply" data-reply-id="${escapeHtml(reply.id)}" aria-pressed="${replyLiked}">▲ ${replyLiked ? "Liked" : "Like"} <span class="forums__like-count">${Number(reply.likes) || 0}</span></button>
                   </footer>
                 </article>
+                ${children.length ? `<ol class="forums__replies forums__replies--nested${depth + 1 >= INDENT_MAX_DEPTH ? " forums__replies--deep" : ""}">${children.map(nodeHtml).join("")}</ol>` : ""}
               </li>`;
-          }).join("")
+      };
+      const repliesHtml = replies.length
+        ? replyTree(replies).map(nodeHtml).join("")
         : `<li><p class="forums__note">No replies yet. Be the first to weigh in.</p></li>`;
+      // AB#2466: the reply the box will answer, while it is one in this thread
+      const target = appState.forumReplyTo?.threadId === selected.id ? byId.get(appState.forumReplyTo.replyId) : null;
+      if (!target) appState.forumReplyTo = null;
 
       // Bug #1222: the reply box is part of this HTML, so a re-render (any forum update) emptied a half-written reply.
       // Keep what is in it, where the cursor is and whether it had focus, for the same thread, and put them back below.
@@ -122,6 +130,7 @@ export function renderForums(data) {
           <form id="forum-reply-form" class="ui-panel" data-thread-id="${escapeHtml(selected.id)}" aria-labelledby="forum-reply-heading">
             <header class="ui-panel__header"><h3 id="forum-reply-heading" class="ui-panel__title">Post a Reply</h3></header>
             <div class="ui-panel__body ui-stack">
+              ${target ? `<p class="forums__reply-target" data-reply-target="${escapeHtml(target.id)}">Replying to <strong>${escapeHtml(target.author || "Anonymous")}</strong> <button class="ui-button ui-button--ghost" type="button" data-action="reply-to-thread">Reply to the thread instead</button></p>` : ""}
               <div class="ui-field">
                 <label class="ui-field__label" for="forum-reply-content">Your Reply</label>
                 <textarea id="forum-reply-content" class="ui-input ui-textarea" rows="4" maxlength="4000" required placeholder="Write your reply..."></textarea>
@@ -185,8 +194,19 @@ export function renderForums(data) {
 
       // Bug #1132: Reply and Quote work on the reply box at the foot of the thread. Bound once, like Like (Bug #1131).
       bindOnce(detailBody, "composeBound", "click", (event) => {
+        // AB#2466: back to answering the thread itself
+        if (event.target.closest('[data-action="reply-to-thread"]')) {
+          appState.forumReplyTo = null;
+          renderForums(appState.data);
+          return;
+        }
         const btn = event.target.closest('[data-action="reply"], [data-action="quote"]');
         if (!btn) return;
+        // AB#2466: Reply or Quote on a reply makes the new reply answer it (nested under it); on the thread, the thread
+        const replyId = btn.dataset.replyId || null;
+        const changed = (appState.forumReplyTo?.replyId || null) !== replyId;
+        appState.forumReplyTo = replyId ? { threadId: appState.selectedForumThreadId, replyId } : null;
+        if (changed) renderForums(appState.data); // shows "Replying to", keeping the draft (Bug #1222)
         const box = detailBody.querySelector("#forum-reply-content");
         const thread = (appState.data?.forums?.threads || []).find((t) => t.id === appState.selectedForumThreadId);
         const post = postFor(btn, thread);
@@ -217,10 +237,11 @@ export function renderForums(data) {
           const submitBtn = replyForm.querySelector('button[type="submit"]');
           if (submitBtn) submitBtn.disabled = true;
           try {
+            const replyToId = appState.forumReplyTo?.threadId === threadId ? appState.forumReplyTo.replyId : null; // AB#2466
             const response = await apiFetch(`/api/forums/threads/${encodeURIComponent(threadId)}/replies`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ content })
+              body: JSON.stringify(replyToId ? { content, replyToId } : { content })
             });
             const payload = await parseJsonResponse(response);
             // Splice the updated thread into the local cache so re-render
@@ -231,6 +252,7 @@ export function renderForums(data) {
             // contentEl is the old, detached box and the sent text would come back as a kept draft.
             const liveBox = document.getElementById("forum-reply-content");
             if (liveBox) liveBox.value = "";
+            appState.forumReplyTo = null; // AB#2466: the next reply answers the thread, until the player picks another
             renderForums(appState.data);
           } catch (err) {
             if (statusEl) {

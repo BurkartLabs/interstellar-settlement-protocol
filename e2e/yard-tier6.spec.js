@@ -3,7 +3,7 @@
 // maxUpgradeTier 5 it shows tier 6's comparison and the level that opens it.
 // At 1280x800 and 375x812; viewport screenshots of the yard row go to e2e/screenshots/ab-2308/.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -59,6 +59,7 @@ ${seeded.stderr}`);
   await page.waitForURL(/\/\?account=/);
   await openTab(page, "station");
   // The yards' controls are on the Earth lease's page, opened from the ISA Claims & Leases Division.
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:isa-claims-leases"]');
   await page.click('[data-action="manage-lease"][data-lease-id="lease-earth-qa"]');
   const control = page.locator('[data-role="yard-upgrade"]').first();

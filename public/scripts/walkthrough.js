@@ -28,6 +28,11 @@
 import { clientPrices } from "./clientPrices.js";
 
 let prices = clientPrices(undefined);
+/** AB#2463: a step's words as paragraphs: split on a blank line, each trimmed, none empty. */
+export function paragraphsOf(text) {
+  return String(text || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+}
+
 export function setWalkthroughEconomy(economy) {
   prices = clientPrices(economy);
 }
@@ -39,7 +44,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.nav-tab[data-tab="inbox"]',
     renderedBy: "index.html",
     title: "Your licence",
-    text: "Elara Voss, Contracting & Assignments Bureau. I have been assigned to your corporation, and I will take you through your first day on the station. Start with your inbox: your settlement licence is there, with your Founding Charter reference. Keep it. The ISA will ask for it.",
+    text: "Start with your inbox: your settlement licence is there, with your Founding Charter reference.\n\nKeep it. The ISA will ask for it.",
     tab: "inbox"
   },
   {
@@ -47,7 +52,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.nav-tab[data-tab="station"]',
     renderedBy: "index.html",
     title: "Earth Station Prime",
-    text: "You are docked at Earth Station Prime, above Earth, and your first day happens here. Open the Station tab: it houses the offices you will need: the executive suites, the claims office, the Exchange hub, and my Bureau. The claims office will not file a lease for a corporation with no registered office here. We fix that first.",
+    text: "You are docked at Earth Station Prime, above Earth, and your first day happens here.\n\nOpen the Station tab: it houses the offices you will need: the executive suites, the claims office, the Exchange hub, and my Bureau.\n\nThe claims office will not file a lease for a corporation with no registered office here. We fix that first.",
     tab: "station"
   },
   {
@@ -55,7 +60,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '[data-building-action="building:orbital-executive-suites"]',
     renderedBy: "stationBuildingCardsHtml",
     title: "An office",
-    text: "Enter the Orbital Executive Suites and execute a lease. Suites cost $1,000 a day: your first lease runs 7 days ($7,000), and you can extend it by 7, 14, 21 or 28 days from the same office. Do not let it lapse. Without an active office you cannot start a mining cycle.",
+    text: "Enter the Orbital Executive Suites and execute a lease.\n\nSuites cost $1,000 a day: your first lease runs 7 days ($7,000), and you can extend it by 7, 14, 21 or 28 days from the same office.\n\nDo not let it lapse. Without an active office you cannot start a mining cycle.",
     tab: "station",
     actionSelectors: ['[id="rent-office-btn"]']
   },
@@ -65,7 +70,7 @@ export const WALKTHROUGH_STEPS = [
     renderedBy: "stationBuildingCardsHtml",
     title: "Staff",
     get text() {
-      return `With the lease active, hire in the Workforce panel of the same suites. Each hire costs ${credits(prices.hireCost)} and adds ${credits(prices.payrollPerDay)} a day to payroll. The ISA requires five employees on payroll for each mining lease you hold, so hire at least five.`;
+      return `With the lease active, hire in the Workforce panel of the same suites. Each hire costs ${credits(prices.hireCost)} and adds ${credits(prices.payrollPerDay)} a day to payroll.\n\nThe ISA requires five employees on payroll for each mining lease you hold, so hire at least five.`;
     },
     tab: "station",
     actionSelectors: ['[id="office-hire-form"]']
@@ -75,7 +80,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '[data-building-action="building:isa-claims-leases"]',
     renderedBy: "stationBuildingCardsHtml",
     title: "A mining claim",
-    text: "Next, the ISA Claims & Leases Division. From Earth Station Prime the lease on offer is Earth, Silicate Extraction, for $20,000. The Division checks your headcount before it files anything, so the five come first.",
+    text: "Next, the ISA Claims & Leases Division. From Earth Station Prime the lease on offer is Earth, Silicate Extraction, for $20,000.\n\nThe Division checks your headcount before it files anything, so the five come first.",
     tab: "station",
     actionSelectors: ['[data-action="purchase-lease"]']
   },
@@ -85,7 +90,7 @@ export const WALKTHROUGH_STEPS = [
     renderedBy: "stationBuildingCardsHtml",
     title: "Equipment",
     get text() {
-      return `In the same office, open your Earth lease with Manage Lease and commission a Basic Extractor Yard for ${credits(prices.extractorYardCost)}. A lease without equipment is paperwork.`;
+      return `In the same office, open your Earth lease with Manage Lease and commission a Basic Extractor Yard for ${credits(prices.extractorYardCost)}.\n\nA lease without equipment is paperwork.`;
     },
     tab: "station",
     actionSelectors: ['[id="lease-build-extractor-btn"]', '[data-action="manage-lease"]']
@@ -95,7 +100,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '[data-building-action="building:isa-claims-leases"]',
     renderedBy: "stationBuildingCardsHtml",
     title: "Your first cycle",
-    text: "On that lease, set a throughput in tons per hour and a duration in hours, then start the cycle. Silicates accrue to your Earth Station Prime inventory while it runs. You do not have to wait for it to finish to sell them.",
+    text: "On that lease, set a throughput in tons per hour and a duration in hours, then start the cycle.\n\nSilicates accrue to your Earth Station Prime inventory while it runs. You do not have to wait for it to finish to sell them.",
     tab: "station",
     actionSelectors: ['[data-form="mine"]', '[data-action="manage-lease"]']
   },
@@ -104,7 +109,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.nav-tab[data-tab="market"]',
     renderedBy: "index.html",
     title: "Your first sale",
-    text: "When you have silicates in stock, take them to the Galactic Exchange. You can list them for other corporations to buy, or sell straight into a Standing Buy Order from an NPC buyer at the posted price. The standing order settles at once; a listing waits for a buyer.",
+    text: "When you have silicates in stock, take them to the Galactic Exchange.\n\nYou can list them for other corporations to buy, or sell straight into a Standing Buy Order from an NPC buyer at the posted price. The standing order settles at once; a listing waits for a buyer.",
     tab: "market",
     // AB#2472: on another of the Exchange's subpages, the Standing orders tab is the way to the sale
     actionSelectors: ['[data-npc-item="Silicates"]', '[data-exchange-page="standing"]']
@@ -114,7 +119,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.nav-tab[data-tab="rnd"]',
     renderedBy: "index.html",
     title: "Research",
-    text: "Queue Basic Extraction Analytics in Corporate R&D. It is a 2-hour project, and the result is a permanent 10% boost to extraction throughput on every yard you run. It is the first research I would fund.",
+    text: "Queue Basic Extraction Analytics in Corporate R&D.\n\nIt is a 2-hour project, and the result is a permanent 10% boost to extraction throughput on every yard you run. It is the first research I would fund.",
     tab: "rnd",
     actionSelectors: ['.research__enqueue[data-tech-id="tt-basic-extraction"]']
   },
@@ -123,7 +128,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.nav-tab[data-tab="missions"]',
     renderedBy: "index.html",
     title: "My Bureau",
-    text: "Open Assignments: the Contracting & Assignments Bureau, where I work. Agents here issue contracts, each with a quota and a reward, and no clock: deliver when you have the goods. Every contract you complete raises your standing with the agent who issued it.",
+    text: "Open Assignments: the Contracting & Assignments Bureau, where I work.\n\nAgents here issue contracts, each with a quota and a reward, and no clock: deliver when you have the goods. Every contract you complete raises your standing with the agent who issued it.",
     tab: "missions"
   },
   {
@@ -131,7 +136,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.nav-tab[data-tab="overview"]',
     renderedBy: "index.html",
     title: "Your milestones",
-    text: "Open your Overview. It is where the ISA tells you what it expects next: your milestones, and the requirements for your next corporation level. When you are unsure what to do, start here.",
+    text: "Open your Overview. It is where the ISA tells you what it expects next: your milestones, and the requirements for your next corporation level.\n\nWhen you are unsure what to do, come here first.",
     tab: "overview"
   },
   {
@@ -139,7 +144,7 @@ export const WALKTHROUGH_STEPS = [
     selector: '.nav-tab[data-tab="starmap"]',
     renderedBy: "index.html",
     title: "From here",
-    text: "That is the procedure, and you can take it from here. Open the starmap: every system, body and station the ISA administers. When your corporation outgrows Earth Station Prime, this is where you look next. Before that, once your corporation is established, come and see me on Deck 7. I have a Silicate Requisition Order — Batch 4-7A that needs an operator who delivers what they sign for.",
+    text: "That is the procedure, and you can take it from here.\n\nOpen the starmap: every system, body and station the ISA administers. When your corporation outgrows Earth Station Prime, this is where you look next.\n\nBefore that, once your corporation is established, come and see me on Deck 7. I have a Silicate Requisition Order — Batch 4-7A that needs an operator who delivers what they sign for.",
     tab: "starmap",
     handoffContractId: "ms-log-001"
   }
@@ -214,7 +219,7 @@ export function chooseHighlight(step, find) {
   const candidates = [
     ...(step.actionSelectors || []),
     step.selector,
-    ...(step.renderedBy === "stationBuildingCardsHtml" ? ['[id="station-back-btn"]'] : []),
+    ...(step.renderedBy === "stationBuildingCardsHtml" ? ['[id="station-back-btn"]', '[id="station-subtab-offices"]'] : []), // AB#2471: the Offices subpage's tab
     `.nav-tab[data-tab="${step.tab}"]`,
     `.nav-group:has(.nav-tab[data-tab="${step.tab}"]) > .nav-group__button`
   ];

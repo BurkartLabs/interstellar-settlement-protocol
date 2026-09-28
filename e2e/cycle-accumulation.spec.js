@@ -5,7 +5,7 @@
 // after a reload, the spend is the server's own figure (not the clock estimate), and "Mined this cycle" rises on the
 // 5-second mining:updated event without a reload. Starts its own server.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices, openMiningCycles } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -85,7 +85,7 @@ for (const offset of OFFSETS) {
         await page.fill("#login-password", PASSWORD);
         await page.click('#login-form button[type="submit"]');
         await page.waitForURL(/\/\?account=/);
-        await openTab(page, "station");
+        await openMiningCycles(page); // AB#2471: the cycles are on Operations now
 
         const expectedPct = () => ((Date.now() - startedAt) / CYCLE_MS) * 100;
         const first = await panelFigures(page);
@@ -106,11 +106,13 @@ for (const offset of OFFSETS) {
         // After a reload the bar is still the elapsed fraction.
         await page.reload();
         await page.waitForURL(/\/\?account=|\/$/);
-        await openTab(page, "station");
+        await openMiningCycles(page); // AB#2471: the cycles are on Operations now
         const reloaded = await panelFigures(page);
         expect(Math.abs(reloaded.width - expectedPct()), `after reload: bar ${reloaded.width}% vs ${expectedPct().toFixed(1)}%`).toBeLessThan(2);
 
         // The lease view's extractor panel, the other place a running cycle is shown.
+        await openTab(page, "station"); // AB#2471: back from Operations
+        await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
         await page.click('[data-building-action="building:isa-claims-leases"]');
         const manage = page.locator('[data-action="manage-lease"], [data-lease-manage], button:has-text("Manage")').first();
         if (await manage.count()) await manage.click();

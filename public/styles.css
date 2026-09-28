@@ -368,12 +368,52 @@ body {
   padding-bottom: var(--space-10);
   border-bottom: 1px solid var(--border);
 }
+/* AB#2462: the introduction above the hero, the logo and the tagline under it. */
+.landing__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4) 0 var(--space-10);
+  margin-bottom: var(--space-10);
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.landing__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.landing__emblem {
+  width: calc(var(--space-16) * 1.5);
+  height: calc(var(--space-16) * 1.5);
+  flex: none;
+}
+.landing__emblem-orbit {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.landing__emblem-world {
+  fill: var(--surface-2);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.landing__emblem-moon {
+  fill: var(--text);
+}
 .landing__wordmark {
-  margin: 0;
-  color: var(--accent);
+  color: var(--text);
   font-family: var(--font-wordmark);
-  font-size: var(--font-size-3);
+  font-size: calc(var(--font-size-6) * 1.5);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
   letter-spacing: var(--letter-spacing-caps);
+}
+.landing__intro .landing__tagline {
+  max-width: 40ch;
+  font-size: var(--font-size-4);
 }
 .landing__title {
   max-width: 24ch;
@@ -399,11 +439,6 @@ body {
   color: var(--text-soft);
   font-size: var(--font-size-3);
   line-height: var(--line-height-body);
-}
-.landing__promises {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
 }
 .landing__section {
   padding-top: var(--space-10);
@@ -1141,7 +1176,8 @@ textarea {
 
 #walkthrough-modal .modal-card {
   pointer-events: auto;
-  width: min(420px, 100%);
+  /* AB#2463: scales with the screen, about 600px at 1920 wide (31.25vw), 400px at 1280, never under 360px nor over 720px */
+  width: min(clamp(22.5rem, 31.25vw, 45rem), 100%);
   box-shadow: var(--elevation-overlay);
 }
 
@@ -1156,10 +1192,12 @@ body.walkthrough--open .layout-grid {
   padding-bottom: calc(var(--space-4) + var(--walkthrough-card-height, 22rem));
 }
 
-/* What a walkthrough step points at. */
+/* What a walkthrough step points at. AB#2463: the outline stands off the element, so what it frames is never jammed
+   against the border (the Suites' hiring form was the example). */
 .walkthrough__focus {
   position: relative;
   outline: 2px solid var(--warn);
+  outline-offset: var(--space-2);
   border-radius: var(--radius-md);
 }
 
@@ -3079,6 +3117,31 @@ body.sg {
   animation: milestoneStrike 0.8s ease-out forwards;
 }
 
+/* AB#2465 (Board review 2026-09-26, items 19 and 36): the Inbox and Chat are sized containers. The Board's reference is
+   70% of the column and 600px tall on a 1920x1080 screen; both scale with the screen. The width is 70% of the column,
+   but never narrower than a reading width unless the column itself is; the height is 600px at 1080px tall (55.5vh),
+   held between
+   36rem (so a shorter screen still shows a useful chat log) and 50rem. The Inbox's is a minimum: a long folder still
+   grows past it. Chat's is fixed: the log fills the panel and scrolls, whatever the number of messages. */
+#inbox.ui-screen,
+#chat.ui-screen {
+  width: max(70%, min(100%, 60rem));
+  margin-inline: auto;
+}
+#inbox.ui-screen {
+  min-height: clamp(36rem, 55.5vh, 50rem);
+}
+#chat.ui-screen {
+  height: clamp(36rem, 55.5vh, 50rem);
+}
+/* On a phone the screen's header takes a larger share of the panel, and the page scrolls anyway: Chat takes most of the
+   screen's height, so the log keeps room for several lines. */
+@media (max-width: 600px) {
+  #chat.ui-screen {
+    height: clamp(36rem, 85vh, 50rem);
+  }
+}
+
 /* The Inbox: its message rows, an open message and the compose form's recipient chooser (Bug #711). */
 .inbox__header {
   flex-direction: row;
@@ -3217,6 +3280,37 @@ body.sg {
 }
 
 /* The Financial Core: charts two across (the wide ones span both), the two statements and the daily statements. */
+/* AB#2470: its four pages; each is a column like the screen it sits in. On a wide screen the Trends page's five charts
+   sit three across, so the page fits a desktop without the one wide chart leaving a hole. */
+.finance__subpage:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+/* The six headline figures in two even rows of three, not four and two with a hole; the page's gap spaces them. */
+#finance-sub-summary .kpi-strip {
+  margin-bottom: 0;
+}
+@media (min-width: 768px) {
+  #finance-sub-summary .kpi-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1200px) {
+  #finance-sub-trends .finance__charts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  #finance-sub-trends .finance__chart--wide {
+    grid-column: span 2;
+  }
+}
+/* On a phone the four page tabs share the width, all of them in view rather than the last one scrolled out of it. */
+@media (max-width: 600px) {
+  #finance-subnav .ui-tab {
+    flex: 1 0 auto;
+    padding: 0 var(--space-2);
+  }
+}
 .finance__charts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3236,7 +3330,7 @@ body.sg {
 }
 .finance__statements {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
   gap: var(--space-4);
 }
 .finance__day {
@@ -3547,14 +3641,6 @@ img.station__body {
   color: var(--text);
   font-size: var(--font-size-4);
   font-weight: var(--font-weight-semibold);
-}
-.station__start {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-color: var(--accent);
 }
 #station-facility-buildings {
   display: grid;
@@ -3868,14 +3954,21 @@ img.station__body {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  flex: 1 1 auto;
+  min-height: 0;
   padding: var(--space-4);
+}
+/* AB#2465: only the log gives way to the panel's fixed height; the channel tabs (a strip that scrolls sideways, so it
+   would shrink to nothing) and the line to write keep theirs. */
+.chat > :not(.chat__log) {
+  flex: none;
 }
 .chat__log {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  height: min(420px, 56vh);
-  min-height: 240px;
+  flex: 1 1 auto;
+  min-height: 0;
   margin: 0;
   padding: var(--space-3);
   overflow-x: hidden;
@@ -3916,6 +4009,27 @@ img.station__body {
 }
 
 /* The Forums: the thread list, a thread with its posts, and the composers. */
+/* AB#2466: a sized container, as AB#2465 gives the Inbox (Board review 2026-09-26): 70% of the column, never narrower
+   than a reading width unless the column is, centred; at least 600px tall at 1080px (55.5vh, between 36rem and 50rem),
+   and growing past it with a long thread. */
+#forums.ui-screen {
+  width: max(70%, min(100%, 60rem));
+  margin-inline: auto;
+  min-height: clamp(36rem, 55.5vh, 50rem);
+}
+/* AB#2466: a reply sits under the one it answers, indented with a rule down its left; past INDENT_MAX_DEPTH levels
+   (forumActions.js) replies stay nested but indent no further, so a long exchange still fits a phone. */
+.forums__replies.forums__replies--nested { /* two classes: the base .forums__replies below zeroes padding and margin */
+  margin-top: var(--space-3);
+  padding-left: var(--space-5, 1.5rem);
+  border-left: 2px solid var(--border);
+}
+.forums__replies--deep .forums__replies.forums__replies--nested,
+.forums__replies.forums__replies--deep.forums__replies--nested { padding-left: var(--space-2); }
+.forums__reply-target { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); color: var(--text-soft); }
+@media (max-width: 600px) {
+  .forums__replies.forums__replies--nested { padding-left: var(--space-3); }
+}
 .forums__view {
   display: flex;
   flex-direction: column;
@@ -4293,10 +4407,18 @@ img.station__body {
   border-radius: 50%;
   object-fit: cover;
 }
+/* AB#2463: Elara Voss's portrait a larger square, in her colours: the image's own cyan brought up, framed in the accent */
 #walkthrough-modal .dialogue__portrait {
-  width: 52px;
-  height: 52px;
+  width: 104px;
+  height: 104px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--accent);
+  object-position: 50% 18%;
+  filter: saturate(1.6) contrast(1.05);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
 }
+.walkthrough__text { display: flex; flex-direction: column; gap: var(--space-3); }
+.walkthrough__text p { margin: 0; }
 .dialogue__content {
   display: flex;
   flex: 1;
@@ -4676,6 +4798,7 @@ img.station__body {
     height: 48px;
     margin: 0 var(--space-3) var(--space-1) 0;
   }
+  #walkthrough-modal .dialogue__portrait { width: 64px; height: 64px; } /* AB#2463: still the larger square */
   /* A flex column would stand beside the float, not flow round it: a block, spaced by margins, does. */
   .dialogue__content {
     display: block;
@@ -4856,6 +4979,25 @@ img.station__body {
 .side-panel__actions {
   display: grid;
   gap: var(--space-2);
+}
+
+/* AB#2471 (DOCTRINE P-010): the Station's subpages, the Offices directory and the Operations list */
+.station__subnav { margin-top: var(--space-2); }
+.station__subpage { margin-top: var(--space-3); }
+.station__overview-empty { display: none; }
+#station-sub-overview:not(:has(#station-facilities-section:not([hidden]))) .station__overview-empty { display: block; }
+.station__offices { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+.station__offices .station__card { gap: var(--space-2); }
+.station__card-agency { margin: 0; }
+.ops-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.ops-row { display: grid; grid-template-columns: 8rem minmax(12rem, 1fr) minmax(0, 1fr) auto; /* the name keeps its room; the time wraps */ align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); }
+.ops-row__kind { justify-self: start; }
+.ops-row__what { overflow-wrap: anywhere; }
+.ops-row__when { color: var(--text-soft); font-size: var(--font-size-2); font-variant-numeric: tabular-nums; text-align: right; }
+@media (max-width: 760px) {
+  .ops-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .ops-row__what { grid-column: 1 / -1; }
+  .ops-row__when { text-align: left; }
 }
 
 /* On a phone no text on a rebuilt screen is under 14px: the design system's small sizes are raised there. */

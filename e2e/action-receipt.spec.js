@@ -5,7 +5,7 @@
 // Run: npm start (or npm run dev) in one terminal, then `npx playwright test e2e/action-receipt.spec.js`.
 
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { verifyAndLogIn } from "./verification.mjs";
@@ -45,6 +45,7 @@ for (const vp of VIEWPORTS) {
 
       // Rent: the receipt; Escape closes it; the rent button is gone, so focus goes to where the flow continues.
       await openTab(page, "station");
+      await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
       await page.click('[data-building-action="building:orbital-executive-suites"]');
       await page.selectOption("#rent-office-duration", "7");
       await page.click("#rent-office-btn");

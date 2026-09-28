@@ -20,3 +20,27 @@ export async function openExchangePage(page, id) {
   await openTab(page, "market");
   await page.locator(`#exchange-tab-${id}`).click();
 }
+
+/**
+ * AB#2471: the Station's offices are its Offices subpage. Open it (from any Station subpage) before pressing an office's
+ * Enter, as a player does; a no-op when it is already open or the Station has no subpage bar.
+ */
+export async function openStationOffices(page) {
+  const tab = page.locator("#station-subtab-offices");
+  if ((await tab.count()) && (await tab.isVisible()) && (await tab.getAttribute("aria-selected")) !== "true") await tab.click();
+}
+
+/** AB#2471: open one of the Station's subpages (overview, offices, construction, holdings), from the Station tab. */
+export async function openStationSubpage(page, sub) {
+  const back = page.locator("#station-back-btn");
+  if (await back.isVisible()) await back.click();
+  const tab = page.locator(`#station-subtab-${sub}`);
+  if ((await tab.getAttribute("aria-selected")) !== "true") await tab.click();
+}
+
+/** AB#2471: the mining cycles moved from the Station to Operations, on its Mining cycles subpage. */
+export async function openMiningCycles(page) {
+  await openTab(page, "operations");
+  const tab = page.locator("#operations-subtab-mining");
+  if ((await tab.getAttribute("aria-selected")) !== "true") await tab.click();
+}

@@ -22,8 +22,24 @@
     <div class="app-bg" aria-hidden="true"></div>
     <section id="auth-shell" class="landing" aria-labelledby="landing-title">
       <!-- ISP-76 (AB#765): the landing on the design system, in the flat direction (Decision AB#1801). -->
+      <!-- AB#2462 (Board review 2026-09-26, items 1 to 3): an introduction at the very top, the logo and the tagline under it. The
+           logo is the flat direction's "ISP" wordmark with an emblem: a settled world and its orbit, drawn from the tokens. -->
+      <section class="landing__intro" aria-label="Introduction">
+        <div class="landing__logo" role="img" aria-label="ISP, the Interstellar Settlement Protocol">
+          <svg class="landing__emblem" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+            <g transform="rotate(-20 32 32)">
+              <path class="landing__emblem-orbit" d="M3 32 A29 12 0 0 1 61 32" />
+              <circle class="landing__emblem-world" cx="32" cy="32" r="15" />
+              <path class="landing__emblem-orbit" d="M61 32 A29 12 0 0 1 3 32" />
+              <circle class="landing__emblem-moon" cx="56" cy="40" r="3.5" />
+            </g>
+          </svg>
+          <span class="landing__wordmark" aria-hidden="true">ISP</span>
+        </div>
+        <p class="landing__tagline">"Humanity did not conquer space. It privatized it."</p>
+      </section>
+
       <header class="landing__hero">
-        <p class="landing__wordmark">ISP</p>
         <p class="landing__overline">Earth Assembly Act 2147</p>
         <h1 id="landing-title" class="landing__title">The Interstellar Settlement Protocol</h1>
         <div class="landing__actions">
@@ -31,18 +47,13 @@
           <a href="/login.html" class="ui-button ui-button--secondary">Log In</a>
         </div>
         <p class="landing__aside">New to the Protocol? Read <a href="/how-to-start">how to start</a>.</p>
-        <p class="landing__tagline">"Humanity did not conquer space. It privatized it."</p>
+        <!-- AB#2462: the Board's own words (review 2026-09-26, item 2). -->
         <p class="landing__lede">
-          ISP is a long-horizon online strategy simulation where you operate as CEO of a corporate colonization firm
-          navigating industrial logistics, legal conflict, interstellar finance, and deterministic warfare at a
-          civilizational scale. A true slow-burn universe &mdash; level progression is milestone-based and full
-          corporate maturity unfolds over years of real-world play.
+          ISP is a long-term online strategy simulation where you operate as the CEO of a corporation colonizing the local
+          galaxy while navigating industrial logistics, legal conflict, interstellar finance, and deterministic warfare at a
+          civilizational scale. A true slow-burn universe. Level Progression is milestone-based and full corporate maturity
+          unfolds over years of real-world play.
         </p>
-        <div class="landing__promises" aria-label="Core play promises">
-          <span class="ui-badge">Persistent multiplayer state</span>
-          <span class="ui-badge">Milestone progression, not XP grind</span>
-          <span class="ui-badge">Text-first command interface</span>
-        </div>
       </header>
 
       <section class="landing__section">
@@ -224,6 +235,7 @@
             <button class="nav-group__button" type="button" data-group="station">Station</button>
             <div class="nav-group__tabs">
               <button class="nav-tab" data-tab="station" type="button">Station</button>
+              <button class="nav-tab" data-tab="operations" type="button">Operations</button>
               <button class="nav-tab" data-tab="fleet" type="button">Fleet</button>
             </div>
           </section>
@@ -352,18 +364,33 @@
             <div id="station-overview-view" class="station__view">
               <header id="station-location-header" class="ui-screen__header"></header>
 
+              <!-- AB#2471 (DOCTRINE P-010; docs/design/p010-scroll-audit.md): the Station in four subpages, the markup
+                   AB#2470's Financial Core uses (public/scripts/subnav.js). Active Mining Cycles moved to Operations. -->
+              <nav id="station-subnav" class="ui-tabs station__subnav" role="tablist" aria-label="Station pages">
+                <button id="station-subtab-overview" class="ui-tab" type="button" role="tab" aria-selected="true" aria-controls="station-sub-overview" data-subpage="overview">Overview</button>
+                <button id="station-subtab-offices" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="station-sub-offices" data-subpage="offices" tabindex="-1">Offices</button>
+                <button id="station-subtab-construction" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="station-sub-construction" data-subpage="construction" tabindex="-1">Construction</button>
+                <button id="station-subtab-holdings" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="station-sub-holdings" data-subpage="holdings" tabindex="-1">Holdings</button>
+              </nav>
+
+              <div id="station-sub-overview" class="station__subpage ui-stack" role="tabpanel" aria-labelledby="station-subtab-overview">
+                <p class="ui-screen__lede station__overview-empty">No corporation-owned facilities here yet. The station's offices are under <strong>Offices</strong>; what you can build is under <strong>Construction</strong>; your yards and infrastructure are under <strong>Holdings</strong>, and every cycle in progress is in <strong>Operations</strong>.</p>
+                <section class="ui-stack" id="station-facilities-section" hidden>
+                  <h3 class="station__heading"><span class="ui-code" data-code-for="station-facilities-section" aria-hidden="true"></span>Operational Facilities</h3>
+                  <p class="ui-screen__lede">Corporation-owned facilities available for use at this station.</p>
+                  <div id="station-facility-buildings"></div>
+                </section>
+              </div>
+
+              <div id="station-sub-offices" class="station__subpage ui-stack" role="tabpanel" aria-labelledby="station-subtab-offices" hidden>
               <section id="station-authority-and-regulatory-offices" class="ui-stack">
                 <h3 class="station__heading"><span class="ui-code" data-code-for="station-authority-and-regulatory-offices" aria-hidden="true"></span>Authority &amp; Regulatory Offices</h3>
                 <p class="ui-screen__lede">Government bodies, regulatory agencies, and institutional services present at this station. Access is open to all registered corporations.</p>
-                <div id="station-npc-buildings" class="ui-grid station__grid"></div>
+                <div id="station-npc-buildings" class="ui-grid station__grid station__offices"></div>
               </section>
+              </div>
 
-              <section class="ui-stack" id="station-facilities-section" hidden>
-                <h3 class="station__heading"><span class="ui-code" data-code-for="station-facilities-section" aria-hidden="true"></span>Operational Facilities</h3>
-                <p class="ui-screen__lede">Corporation-owned facilities available for use at this station.</p>
-                <div id="station-facility-buildings"></div>
-              </section>
-
+              <div id="station-sub-construction" class="station__subpage ui-stack" role="tabpanel" aria-labelledby="station-subtab-construction" hidden>
               <!-- ISP-95 (AB#785): every catalogue building, with Build or what is in the way (constructionPanel.js). -->
               <section class="ui-stack" id="station-construction-section">
                 <h3 class="station__heading"><span class="ui-code" data-code-for="station-construction-section" aria-hidden="true"></span>Construction</h3>
@@ -371,18 +398,15 @@
                 <p id="construction-slots" class="ui-screen__meta"></p>
                 <div id="station-construction" class="ui-grid station__grid"></div>
               </section>
+              </div>
 
+              <div id="station-sub-holdings" class="station__subpage ui-stack" role="tabpanel" aria-labelledby="station-subtab-holdings" hidden>
               <section id="station-licensed-corporate-holdings" class="ui-stack">
                 <h3 class="station__heading"><span class="ui-code" data-code-for="station-licensed-corporate-holdings" aria-hidden="true"></span>Licensed Corporate Holdings</h3>
                 <p class="ui-screen__lede">Extractor yards and infrastructure deployed at this station.</p>
                 <div id="station-player-buildings" class="ui-grid station__grid"></div>
               </section>
-
-              <section id="station-active-mining-cycles" class="ui-stack">
-                <h3 class="station__heading"><span class="ui-code" data-code-for="station-active-mining-cycles" aria-hidden="true"></span>Active Mining Cycles</h3>
-                <p class="ui-screen__lede">Every extractor yard's current cycle, wherever it is leased.</p>
-                <div id="mine-cycle-list" class="ui-stack"></div>
-              </section>
+              </div>
             </div>
 
             <!-- Building detail view -->
@@ -391,6 +415,32 @@
                 <button id="station-back-btn" class="ui-button ui-button--secondary" type="button">&#8592; Back to Station</button>
               </div>
               <div id="station-building-content" class="station__building"></div>
+            </div>
+          </article>
+
+          <!-- AB#2471 (Board review item 30): everything in progress in one place, one row each, soonest first
+               (public/scripts/operations.js); the mining cycles' detail, which grows with every yard, is its own subpage. -->
+          <article id="operations" class="tab-panel ui-screen">
+            <header class="ui-screen__header">
+              <h2 class="ui-screen__title"><span class="ui-code" data-code-for="operations" aria-hidden="true"></span>Operations</h2>
+              <p class="ui-screen__lede" id="operations-summary">Everything your corporation has in progress.</p>
+            </header>
+            <nav id="operations-subnav" class="ui-tabs" role="tablist" aria-label="Operations pages">
+              <button id="operations-subtab-all" class="ui-tab" type="button" role="tab" aria-selected="true" aria-controls="operations-sub-all" data-subpage="all">In progress</button>
+              <button id="operations-subtab-mining" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="operations-sub-mining" data-subpage="mining" tabindex="-1">Mining cycles</button>
+            </nav>
+            <div id="operations-sub-all" class="ui-stack" role="tabpanel" aria-labelledby="operations-subtab-all">
+              <section id="operations-in-progress" class="ui-stack" aria-labelledby="operations-in-progress-title">
+                <h3 id="operations-in-progress-title" class="station__heading"><span class="ui-code" data-code-for="operations-in-progress" aria-hidden="true"></span>In progress</h3>
+                <div id="operations-list"></div>
+              </section>
+            </div>
+            <div id="operations-sub-mining" class="ui-stack" role="tabpanel" aria-labelledby="operations-subtab-mining" hidden>
+              <section id="station-active-mining-cycles" class="ui-stack">
+                <h3 class="station__heading"><span class="ui-code" data-code-for="station-active-mining-cycles" aria-hidden="true"></span>Active Mining Cycles</h3>
+                <p class="ui-screen__lede">Every extractor yard's current cycle, wherever it is leased.</p>
+                <div id="mine-cycle-list" class="ui-stack"></div>
+              </section>
             </div>
           </article>
 
@@ -403,6 +453,17 @@
               <p class="ui-screen__meta">ISA licence <span id="finance-licence-ref" class="ref-no">—</span></p>
             </header>
 
+            <!-- AB#2470 (DOCTRINE P-010): the Financial Core in four pages, each short enough to read with little scrolling on a desktop:
+                 the position now, how it moved, the books to date, and the books of each closed day. Bound by bindFinanceSubpages in
+                 views/finance.js. -->
+            <nav id="finance-subnav" class="ui-tabs" role="tablist" aria-label="Financial Core pages">
+              <button id="finance-subtab-summary" class="ui-tab" type="button" role="tab" aria-selected="true" aria-controls="finance-sub-summary" data-finance-sub="summary">Summary</button>
+              <button id="finance-subtab-trends" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="finance-sub-trends" data-finance-sub="trends" tabindex="-1">Trends</button>
+              <button id="finance-subtab-statements" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="finance-sub-statements" data-finance-sub="statements" tabindex="-1">Statements</button>
+              <button id="finance-subtab-daily" class="ui-tab" type="button" role="tab" aria-selected="false" aria-controls="finance-sub-daily" data-finance-sub="daily" tabindex="-1">Daily</button>
+            </nav>
+
+            <div id="finance-sub-summary" class="finance__subpage" role="tabpanel" aria-labelledby="finance-subtab-summary">
             <section class="kpi-strip" aria-label="Key financial indicators">
               <div class="kpi-tile kpi-tile--primary">
                 <span class="kpi-tile__label">Net Worth</span>
@@ -456,6 +517,11 @@
                 </header>
                 <div class="ui-panel__body finance__canvas"><canvas id="cashflow-chart" aria-label="Cash reserves over time"></canvas></div>
               </section>
+            </div>
+            </div>
+
+            <div id="finance-sub-trends" class="finance__subpage" role="tabpanel" aria-labelledby="finance-subtab-trends" hidden>
+            <div class="finance__charts">
               <section id="finance-net-cash-flow" class="ui-panel finance__chart">
                 <header class="ui-panel__header">
                   <div>
@@ -520,7 +586,9 @@
                 <div class="ui-panel__body finance__canvas"><canvas id="pnl-chart" aria-label="Daily profit and loss"></canvas></div>
               </section>
             </div>
+            </div>
 
+            <div id="finance-sub-statements" class="finance__subpage" role="tabpanel" aria-labelledby="finance-subtab-statements" hidden>
             <div class="finance__tables">
               <section id="finance-profit-and-loss-statement" class="ui-panel">
                 <header class="ui-panel__header">
@@ -553,7 +621,9 @@
                 </table></div>
               </section>
             </div>
+            </div>
 
+            <div id="finance-sub-daily" class="finance__subpage" role="tabpanel" aria-labelledby="finance-subtab-daily" hidden>
             <!-- AB#714: the books the server closes every day at 00:00 UTC (AB#713), 90 days of them. -->
             <section class="ui-panel" id="finance-statements" aria-labelledby="finance-statements-title">
               <header class="ui-panel__header">
@@ -568,6 +638,7 @@
               </header>
               <div id="statement-body" class="ui-panel__body" aria-live="polite"><p class="ui-screen__meta">Loading statements…</p></div>
             </section>
+            </div>
           </article>
 
           <article id="rnd" class="tab-panel ui-screen">
@@ -634,6 +705,13 @@
               <div class="ui-panel__body ui-stack">
                 <div id="refinery-status"></div>
                 <div id="refinery-chains" class="ui-grid"></div>
+              </div>
+            </section>
+            <!-- AB#2485: the chains the corporation cannot run yet, each with what it is missing -->
+            <section class="ui-panel" aria-labelledby="refinery-unavailable-title">
+              <header class="ui-panel__header"><div><h3 id="refinery-unavailable-title" class="ui-panel__title"><span class="ui-code" data-code-for="refinery-unavailable-title" aria-hidden="true"></span>Unavailable chains</h3><p class="ui-panel__meta">What each chain still needs: research, the building it runs in, and its inputs.</p></div></header>
+              <div class="ui-panel__body ui-stack">
+                <div id="refinery-unavailable-chains" class="ui-grid"></div>
               </div>
             </section>
             <section class="ui-panel" aria-labelledby="resource-catalog-title">
@@ -1412,7 +1490,7 @@
         <div class="dialogue__content">
           <p id="walkthrough-speaker" class="dialogue__speaker"></p>
           <h2 id="walkthrough-title" class="dialogue__title"></h2>
-          <p id="walkthrough-text" class="dialogue__text"></p>
+          <div id="walkthrough-text" class="dialogue__text walkthrough__text"></div>
           <div class="dialogue__actions">
             <button id="walkthrough-prev" class="ui-button ui-button--secondary" type="button">Previous</button>
             <button id="walkthrough-next" class="ui-button ui-button--primary" type="button">Next</button>

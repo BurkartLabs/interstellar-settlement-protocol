@@ -103,8 +103,8 @@ describe("the Station and its buildings are on the design system (ISP-78)", () =
     expect(text).not.toMatch(/#[0-9a-fA-F]{6}\b/);
   });
 
-  it("the station's building cards and first prompt are design-system parts", () => {
-    for (const html of [fnBody("public/scripts/html.js", "stationBuildingCardsHtml"), fnBody("public/scripts/firstAction.js", "stationStartPromptHtml")]) {
+  it("the station's building cards are design-system parts", () => { // AB#2463: the first prompt is gone
+    for (const html of [fnBody("public/scripts/html.js", "stationBuildingCardsHtml")]) {
       expect(LEGACY.flatMap((name) => classUses(html, name))).toEqual([]);
     }
   });

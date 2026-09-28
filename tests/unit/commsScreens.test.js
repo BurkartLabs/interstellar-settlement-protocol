@@ -136,3 +136,32 @@ describe("Comms, the Forums and the Assignments Bureau are on the design system 
     expect(read("public/styles.css")).toMatch(/@media \(max-width: 600px\) {\s*\.ui-screen :is\([^)]*\.chat__meta[^)]*\.missions__overline[^)]*\) {\s*font-size: var\(--font-size-3\);/);
   });
 });
+
+// AB#2465 (Board review 2026-09-26, items 19 and 36): the Inbox and Chat are sized containers, 70% of the column and 600px
+// tall at 1920x1080, scaling with the screen. The Inbox's height is a minimum it can grow past; Chat's is fixed and its
+// log scrolls. What they look like at 1920x1080, 1280x800 and 375x812 is in docs/ab-2465.
+describe("the Inbox and Chat containers (AB#2465)", () => {
+  const css = read("public/styles.css");
+  // one rule's body, by its whole selector: not a selector that follows a comma in a list
+  const rule = (selector) => css.match(new RegExp(`(?:^|(?<!,)\\n)${selector.replace(/[.#()*+?^$|[\]\\]/g, "\\$&")} {([^}]*)}`))?.[1] ?? "";
+
+  it("both are 70% of the column, never narrower than a reading width unless the column is, and centred", () => {
+    expect(css).toMatch(/#inbox\.ui-screen,\n#chat\.ui-screen {\s*width: max\(70%, min\(100%, 60rem\)\);\s*margin-inline: auto;/);
+  });
+
+  it("the Inbox has a minimum height, 600px at 1080px tall, and nothing caps it", () => {
+    expect(rule("#inbox.ui-screen")).toMatch(/min-height: clamp\(36rem, 55\.5vh, 50rem\);/);
+    expect(rule("#inbox.ui-screen")).not.toMatch(/(?:^|[^-])height:|max-height|overflow/);
+  });
+
+  it("Chat's height is fixed, and the log, not the page, takes the overflow", () => {
+    expect(rule("#chat.ui-screen")).toMatch(/(?:^|\s)height: clamp\(36rem, 55\.5vh, 50rem\);/);
+    expect(rule(".chat")).toMatch(/flex: 1 1 auto;[\s\S]*min-height: 0;/);
+    const log = rule(".chat__log");
+    expect(log).toMatch(/flex: 1 1 auto;/);
+    expect(log).toMatch(/overflow-y: auto;/);
+    expect(log).not.toMatch(/(?:^|\s)height:/); // the panel sets the height, so a log of its own height cannot outgrow it
+    // the channel tabs scroll sideways, so as a flex item they would shrink to nothing: only the log gives way
+    expect(rule(".chat > :not(.chat__log)")).toMatch(/flex: none;/);
+  });
+});

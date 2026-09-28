@@ -19,7 +19,7 @@ import { renderInsightTree } from "./views/ceoInsight.js";
 import { bindCollapsibleSections, bindGlobalControls, loadNotifications, renderNotifications, updateCorpIdentity, updateReplayOnboardingVisibility } from "./views/chrome.js";
 import { bindCommsForms, renderChatChannelTabs, renderChatLog, resolveChatChannel } from "./views/comms.js";
 import { bindExchangeForms, renderMarket } from "./views/exchange.js";
-import { loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } from "./views/finance.js";
+import { bindFinanceSubpages, loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } from "./views/finance.js";
 import { bindForumForms, renderForums } from "./views/forums.js";
 import { bindInboxControls, loadMessages, onInboxTabActivated, renderInboxMessageList } from "./views/inbox.js";
 import { onConversationEvent } from "./views/conversations.js"; // AB#911
@@ -33,6 +33,7 @@ import { connectViews, isPlayerTraveling, pushFeedback, renderFeedbackLog, revea
 import { loadBeltCompositionsIntoStarmap, loadTariffs, starmap } from "./views/starmap.js";
 import { loadPatentRegister } from "./views/patentOffice.js"; // ISP-237 (AB#932): the Refinery's royalty quote reads it
 import { bindBuildingActions, refreshOpenLeaseView, renderStation } from "./views/station.js";
+import { bindOperations, renderOperations } from "./views/operations.js"; // AB#2471
 import { clearTravelTimer, renderTravelPage } from "./views/travel.js";
 
 // The moved modules call back into the game screen app.js owns; hand them what they need before anything runs.
@@ -156,6 +157,7 @@ function renderAllViews() {
   enforceTravelTabLockdown(data);
   renderTravelPage(data);
   renderStation(data);
+  renderOperations(data); // AB#2471: everything in progress
   renderFleet(data); // ISP-175 (AB#869)
   renderRaids(data); // ISP-181 (AB#875): the incoming-raid alert, garrisons, the target picker and reports
   renderLevel2Progress(data);
@@ -765,8 +767,10 @@ async function boot() {
   bindRealtimeEvents();
   bindGlobalControls();
   bindBuildingActions();
+  bindOperations(); // AB#2471: the Station's and Operations' subpages
   bindInboxControls();
   bindChartDurationPickers();
+  bindFinanceSubpages(); // AB#2470
   bindPriceChart({
     fetchHistory: async (item) => parseJsonResponse(await apiFetch(`/api/market/history/${encodeURIComponent(item)}`)),
     formatCredits: toCurrency
