@@ -183,17 +183,24 @@ for (const viewport of VIEWPORTS) {
 }
 
 // ISP-98 (AB#788): the Cryo-vapor Extractor Array, built from the panel onto the Luna lease; the lease page lists it,
-// counts its slot, and quotes the Luna yard's hour at 1.2 times the revenue. (What the mining tick deposits at 1.2 times is
+// counts its slot, and quotes the Luna yard's hour at 1.2 times the tonnes. (What the mining tick deposits at 1.2 times is
 // tests/integration/cryo-vapor-array.test.js: seconds at 40 t/h mine no whole tonne, so a playtest cannot see it.)
+// AB#2480: the quote sells a day's ore along the standing bid, so 1.2 times the tonnes earns a little under 1.2 times
+// the money; the tonnes are the revenue over the day's average bid, both on the line. The rate is set to 40 t/h,
+// since the control now opens at each yard's best rate, which the array moves.
 async function openLunaLease(page) {
   await openTab(page, "station"); // AB#764: tabs sit in groups; the helper opens the group first
   await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.click('[data-building-action="building:isa-claims-leases"]');
   await page.click('[data-action="manage-lease"][data-lease-id="lease-luna-qa"]');
   await expect(page.locator("#station-building-view")).toContainText("Mining Lease — Luna");
+  await page.locator('[data-form="mine"] [name="amount"]').first().fill("40");
   const line = page.locator('[data-role="mine-projection"]').first();
-  await expect(line).toContainText("earns");
-  return Number((await line.innerText()).match(/earns \$([\d,]+)\/hour/)[1].replace(/,/g, ""));
+  await expect(line).toContainText("At 40 t/h: earns");
+  const text = await line.innerText();
+  const earns = Number(text.match(/earns \$([\d,]+)\/hour/)[1].replace(/,/g, ""));
+  const avg = Number(text.match(/averaging ([\d.]+) a tonne/)[1]);
+  return earns / avg; // the tonnes an hour, after tax, give or take the rounding of the two
 }
 
 for (const viewport of VIEWPORTS) {
@@ -201,7 +208,7 @@ for (const viewport of VIEWPORTS) {
     test.setTimeout(120_000);
     const { page, section, errors, close } = await openPanel(browser, viewport, "cryo");
     try {
-      const before = await openLunaLease(page);
+      const before = await openLunaLease(page); // tonnes an hour at 40 t/h
       // Back out of the lease page as a player does: to Claims & Leases, then to the Station.
       await page.click("#lease-back-btn");
       await page.getByRole("button", { name: /Back to Station/ }).first().click();

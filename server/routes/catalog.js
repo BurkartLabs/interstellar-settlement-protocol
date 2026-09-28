@@ -52,6 +52,10 @@ export function registerCatalogRoutes(app) {
         operations: ECONOMY.operations,
         salesTaxPct: ECONOMY.exchange.salesTaxPct,
         silicateUnitPrice: silicatesOrder ? Number(silicatesOrder.unitPrice) : (silicates ? silicates.unitPrice : 0),
+        // AB#2480: the base price and the bid's rules, so the extractor panel finds the best rate as the economy model
+        // does (AB#2334): a day's output sold along the bid, not every tonne at today's price.
+        silicateBasePrice: silicates ? silicates.unitPrice : 0,
+        npcBid: ECONOMY.npcBid,
         // AB#1430: the prices the panels quote (hire, payroll, construction, probes) come from here, not from copies
         // in the browser, so a balance change to data/economy.json reaches the page it is shown on.
         employees: ECONOMY.employees,
