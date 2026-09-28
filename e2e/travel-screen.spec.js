@@ -124,6 +124,22 @@ for (const [width, height] of SIZES) {
         await expect(page.locator("#travel")).toBeVisible();
         await check(page);
         found.push(...await findings(page, kind, width === 375));
+        // AB#2495: the card at about three quarters of the main panel's width (a phone's 17.5rem floor aside), centred
+        // both ways in a panel that fills the height the header leaves, and the panel draws no background of its own
+        const box = await page.evaluate(() => {
+          const r = (el) => el.getBoundingClientRect();
+          const main = document.querySelector(".main-panel"), card = document.getElementById("travel");
+          const m = r(main), c = r(card), header = r(document.querySelector(".app-header"));
+          return { ratio: c.width / m.width, dx: Math.abs((c.left - m.left) - (m.right - c.right)), dy: Math.abs((c.top - m.top) - (m.bottom - c.bottom)),
+            fills: m.bottom >= window.innerHeight - header.height - 64 || m.height > window.innerHeight, card: c.height, panel: m.height,
+            bg: getComputedStyle(main).backgroundColor, floor: 17.5 * parseFloat(getComputedStyle(document.documentElement).fontSize) };
+        });
+        if (width >= 768) expect(box.ratio).toBeCloseTo(0.75, 2);
+        else expect(box.ratio).toBeLessThan(1);
+        expect(box.dx).toBeLessThanOrEqual(1);
+        if (box.card < box.panel) expect(box.dy).toBeLessThanOrEqual(1);
+        expect(box.fills).toBe(true);
+        expect(box.bg).toBe("rgba(0, 0, 0, 0)");
         await page.locator("#travel").scrollIntoViewIfNeeded();
         await page.mouse.move(width - 2, height - 2); // the click on the tab leaves the pointer hovering the navigation
         await page.screenshot({ path: path.join(SHOT_DIR, `travel-${kind}-${width}x${height}.png`) });

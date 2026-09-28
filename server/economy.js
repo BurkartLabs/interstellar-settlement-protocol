@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { npcBidFor as sharedNpcBidFor, npcBidAfterRecovery as sharedNpcBidAfterRecovery } from "../public/scripts/standingBid.js"; // AB#2480
 
 const ECONOMY_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "economy.json");
 
@@ -67,14 +68,12 @@ export const ECONOMY = loadEconomy();
 // A seller dumping volume therefore moves the price against themselves and cannot stall the market for anyone
 // else: the floor is what a new corporation is always guaranteed.
 
-/** The bid for an item after `soldToday` units have gone into today's quota. Never below the floor. */
+/**
+ * The bid for an item after `soldToday` units have gone into today's quota. Never below the floor. AB#2480: the rule is
+ * public/scripts/standingBid.js's, shared with the extractor panel and the economy model.
+ */
 export function npcBidFor(basePrice, soldToday, bid = ECONOMY.npcBid) {
-  const base = Math.max(0, Number(basePrice) || 0);
-  const quota = Math.max(1, Number(bid?.quotaPerDay) || 1);
-  const drift = Math.max(0, Number(bid?.driftAtFullQuotaPct) || 0) / 100;
-  const floor = base * (Math.max(0, Number(bid?.floorPct) || 0) / 100);
-  const filled = Math.min(1, Math.max(0, Number(soldToday) || 0) / quota);
-  return Math.max(Math.round(floor), Math.round(base * (1 - drift * filled)));
+  return sharedNpcBidFor(basePrice, soldToday, bid);
 }
 
 /**
@@ -82,10 +81,7 @@ export function npcBidFor(basePrice, soldToday, bid = ECONOMY.npcBid) {
  * that fell hard comes back hard, and one that barely moved barely moves.
  */
 export function npcBidAfterRecovery(basePrice, currentBid, bid = ECONOMY.npcBid) {
-  const base = Math.max(0, Number(basePrice) || 0);
-  const now = Math.max(0, Number(currentBid) || 0);
-  const recovery = Math.min(1, Math.max(0, Number(bid?.recoveryPerDayPct) || 0) / 100);
-  return Math.round(now + (base - now) * recovery);
+  return sharedNpcBidAfterRecovery(basePrice, currentBid, bid);
 }
 
 /** What an extractor yard or refinery costs to build, with the Supply Forecast discount when it is researched. */

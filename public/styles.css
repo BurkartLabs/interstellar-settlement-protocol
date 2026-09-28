@@ -4517,6 +4517,7 @@ img.station__body {
 .dialogue__actions:empty {
   display: none;
 }
+.dialogue__actions--end { justify-content: flex-end; } /* AB#2492: the NPC profile's Close, at the card's bottom right */
 .dialogue__continue {
   align-self: flex-start;
   margin-top: var(--space-2);
@@ -4915,6 +4916,14 @@ img.station__body {
     font-size: var(--font-size-3);
   }
 }
+/* AB#2495: on Travel the main panel fills what the header leaves, below it and beside the sidebar, and the screen's
+   card sits in its middle, both ways, at about three quarters of the width it had. The panel has no background, so the
+   starfield shows all round the card. A phone keeps a floor of 17.5rem, so the route's two cards still hold a station
+   name. #game-shell is 100vh tall; as a column, the grid takes the height the header leaves. */
+#game-shell:not([hidden]):has(#travel.tab-panel.active) { display: flex; flex-direction: column; }
+#game-shell:has(#travel.tab-panel.active) > .layout-grid { flex: 1 0 auto; }
+.main-panel:has(> #travel.tab-panel.active) { align-self: stretch; display: grid; place-items: center; }
+#travel.tab-panel.active { width: max(75%, min(100%, 17.5rem)); }
 /* AB#1053: side by side, a phone's two cards were a word wide; the route reads top to bottom there instead. */
 @media (max-width: 480px) {
   .travel__route {
