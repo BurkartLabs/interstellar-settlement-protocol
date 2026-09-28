@@ -34,7 +34,8 @@ export function fieldOverlayLegendHtml(overlay) {
     const word = i === 0 ? "low, " : i === steps.length - 1 ? "high, " : "";
     return `<li><span class="starmap__band" style="background:${overlayColor({ [spec.field]: v }, overlay)}" aria-hidden="true"></span>${word}${v}</li>`;
   }).join("");
+  const scaleLabel = `${spec.label} scale, low to high`; // Bug #4790: the interpolation is the whole attribute (the Bug #1254 check)
   return `<p class="starmap__subhead">${spec.label}: each system coloured by its ${spec.label}, 0 to ${spec.scale}.</p>
-    <ul class="starmap__bands" aria-label="${spec.label} scale, low to high" data-field-legend="${overlay}">${swatches}</ul>
+    <ul class="starmap__bands" aria-label="${scaleLabel}" data-field-legend="${overlay}">${swatches}</ul>
     <p class="ui-panel__meta">A thin grey ring marks a system you cannot jump to yet. Its figures are in its panel when you open it.</p>`;
 }
