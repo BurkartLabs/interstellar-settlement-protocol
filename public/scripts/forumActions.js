@@ -68,6 +68,34 @@ export function quoteDraft(existing, post, { maxLines = 4, maxChars = 300 } = {}
 // poster saw it twice until a reload. Every path that puts one thread into the list goes through this, keyed by id.
 
 /** `threads` with `thread` in it once: replacing the copy with the same id where it is, or at the top if new. */
+/** AB#2466: how deep a reply indents; deeper ones stay nested, and keep this indent, so a long exchange fits a phone. */
+export const INDENT_MAX_DEPTH = 5;
+
+/**
+ * AB#2466: a thread's replies as a tree, each under the reply it answers, to any depth the data holds: [{ reply,
+ * depth, children }], each level in posting order. A reply that answers none, or one no longer in the thread, is a
+ * reply to the thread; a loop in the data (which the server never writes) cannot nest a reply under itself.
+ */
+export function replyTree(replies) {
+  const list = Array.isArray(replies) ? replies : [];
+  const ids = new Set(list.map((r) => r?.id));
+  const byParent = new Map();
+  for (const r of list) {
+    const parent = r?.replyToId && ids.has(r.replyToId) && r.replyToId !== r.id ? r.replyToId : null;
+    if (!byParent.has(parent)) byParent.set(parent, []);
+    byParent.get(parent).push(r);
+  }
+  const seen = new Set();
+  const grow = (parent, depth) => (byParent.get(parent) || []).filter((r) => !seen.has(r.id)).map((reply) => {
+    seen.add(reply.id);
+    return { reply, depth, children: grow(reply.id, depth + 1) };
+  });
+  const roots = grow(null, 0);
+  // what a loop left unplaced is shown as a reply to the thread, never lost
+  for (const r of list) if (!seen.has(r.id)) { seen.add(r.id); roots.push({ reply: r, depth: 0, children: grow(r.id, 1) }); }
+  return roots;
+}
+
 export function mergeThread(threads, thread) {
   const list = Array.isArray(threads) ? threads.filter((t) => t) : [];
   if (!thread?.id) return list;
