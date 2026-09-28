@@ -667,6 +667,20 @@ button:disabled {
 .kpi-tile--primary::before {
   background: none;
 }
+/* AB#2483: the Overview's cash figures under its title; the screen's gap spaces them. */
+.overview__figures {
+  margin-bottom: 0;
+}
+/* With no raid coming the alert's slot is empty; hidden, it takes no gap of the screen's column. */
+#overview-raid-alert:empty {
+  display: none;
+}
+.overview__figures .kpi-tile__value[data-tone="positive"] {
+  color: var(--success);
+}
+.overview__figures .kpi-tile__value[data-tone="negative"] {
+  color: var(--danger);
+}
 
 /* ISP-148 (AB#842): the credit rating card: the grade, the score, and one line on what holds it back */
 .finance__rating {

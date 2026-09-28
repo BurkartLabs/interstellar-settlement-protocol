@@ -197,9 +197,9 @@
     },
     {
       "code": "CORP-OPS-4",
-      "id": "feedback-log-title",
+      "id": "command-log",
       "screen": "overview",
-      "title": "Command Feedback"
+      "title": "Command Log"
     },
     {
       "code": "STA-OPS-2",
