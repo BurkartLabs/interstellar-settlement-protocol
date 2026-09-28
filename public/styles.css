@@ -3114,6 +3114,31 @@ body.sg {
   animation: milestoneStrike 0.8s ease-out forwards;
 }
 
+/* AB#2465 (Board review 2026-09-26, items 19 and 36): the Inbox and Chat are sized containers. The Board's reference is
+   70% of the column and 600px tall on a 1920x1080 screen; both scale with the screen. The width is 70% of the column,
+   but never narrower than a reading width unless the column itself is; the height is 600px at 1080px tall (55.5vh),
+   held between
+   36rem (so a shorter screen still shows a useful chat log) and 50rem. The Inbox's is a minimum: a long folder still
+   grows past it. Chat's is fixed: the log fills the panel and scrolls, whatever the number of messages. */
+#inbox.ui-screen,
+#chat.ui-screen {
+  width: max(70%, min(100%, 60rem));
+  margin-inline: auto;
+}
+#inbox.ui-screen {
+  min-height: clamp(36rem, 55.5vh, 50rem);
+}
+#chat.ui-screen {
+  height: clamp(36rem, 55.5vh, 50rem);
+}
+/* On a phone the screen's header takes a larger share of the panel, and the page scrolls anyway: Chat takes most of the
+   screen's height, so the log keeps room for several lines. */
+@media (max-width: 600px) {
+  #chat.ui-screen {
+    height: clamp(36rem, 85vh, 50rem);
+  }
+}
+
 /* The Inbox: its message rows, an open message and the compose form's recipient chooser (Bug #711). */
 .inbox__header {
   flex-direction: row;
@@ -3934,14 +3959,21 @@ img.station__body {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  flex: 1 1 auto;
+  min-height: 0;
   padding: var(--space-4);
+}
+/* AB#2465: only the log gives way to the panel's fixed height; the channel tabs (a strip that scrolls sideways, so it
+   would shrink to nothing) and the line to write keep theirs. */
+.chat > :not(.chat__log) {
+  flex: none;
 }
 .chat__log {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  height: min(420px, 56vh);
-  min-height: 240px;
+  flex: 1 1 auto;
+  min-height: 0;
   margin: 0;
   padding: var(--space-3);
   overflow-x: hidden;
