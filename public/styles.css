@@ -4021,8 +4021,12 @@ img.station__body {
    (forumActions.js) replies stay nested but indent no further, so a long exchange still fits a phone. */
 .forums__replies.forums__replies--nested { /* two classes: the base .forums__replies below zeroes padding and margin */
   margin-top: var(--space-3);
-  padding-left: var(--space-5, 1.5rem);
+  padding-left: var(--space-5);
   border-left: 2px solid var(--border);
+}
+/* Bug #4736: one reply and the replies under it; the nested-replies spec finds a reply by it. It fits its column. */
+.forums__reply {
+  min-width: 0;
 }
 .forums__replies--deep .forums__replies.forums__replies--nested,
 .forums__replies.forums__replies--deep.forums__replies--nested { padding-left: var(--space-2); }
