@@ -44,7 +44,7 @@ The voice is not new. Several things in the build already speak it, each its own
 - `FUNC` is the function.
 - `N` is a number within that pair: the screen first, then its sections in page order.
 
-A section header reads **`CORP-OPS-3 // Command Feedback`**: the code, two slashes, then the plain title.
+A section header reads **`CORP-OPS-3 // Command Log`**: the code, two slashes, then the plain title.
 
 | DEPT | Issuing department | FUNC | Function |
 | --- | --- | --- | --- |

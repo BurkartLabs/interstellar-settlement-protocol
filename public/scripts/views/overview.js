@@ -39,18 +39,18 @@ export function updateOverview(data) {
     });
   }
 
+  // AB#2483: the cash on hand and the day's net flow are the headline figures under the title, not cards among the rest.
+  const credits = Number(data.corp.finances.credits) || 0;
+  const cashEl = document.getElementById("overview-cash");
+  if (cashEl) cashEl.innerHTML = numberMarkup("overview:credits", credits, toCurrency(credits));
+  const flowEl = document.getElementById("overview-net-flow");
+  if (flowEl) {
+    const flow = (Number(data.corp.finances.dailyRevenue) || 0) - (Number(data.corp.finances.dailyExpenses) || 0);
+    flowEl.textContent = toCurrency(flow);
+    flowEl.dataset.tone = flow > 0 ? "positive" : flow < 0 ? "negative" : "";
+  }
+
   cards.push(
-    {
-      title: "Cash Reserves",
-      value: toCurrency(data.corp.finances.credits),
-      num: { key: "overview:credits", value: Number(data.corp.finances.credits) || 0 },
-      body: "Total corporate credits on hand."
-    },
-    {
-      title: "Net Daily Flow",
-      value: toCurrency((Number(data.corp.finances.dailyRevenue) || 0) - (Number(data.corp.finances.dailyExpenses) || 0)),
-      body: "Income minus costs booked in the last 24 hours. This drives long-horizon compounding over years."
-    },
     // ISP-201 (AB#895): the corporation's conglomerate as the server last described it (appState.conglomerate, read by
     // views/conglomerateBureau.js; undefined until that read lands). It read data.conglomerates, which nothing supplied,
     // so it said "Independent" to every member (P-STALE-AFFORDANCE). A member's card opens the Conglomerate tab; an
@@ -102,15 +102,14 @@ export function renderLevel2Progress(data) {
     return;
   }
 
-  // AB#1056: early on, the next milestones are the first thing on the Overview, above the brief and the stat cards
+  // AB#1056: early on, the next milestones come first on the Overview, above the stat cards. AB#2483: under the title,
+  // the cash figures and any raid alert, no longer above the whole screen, so the cash is near the top at every level.
   const milestonesSection = document.getElementById("overview-milestones");
-  const overviewPanel = document.getElementById("overview");
+  const earlyAnchor = document.getElementById("overview-raid-alert");
   const expeditionPanel = document.getElementById("expedition-panel");
-  if (milestonesSection && overviewPanel && expeditionPanel) {
-    const first = milestonesFirst(data?.corp?.level);
-    const isFirst = overviewPanel.firstElementChild === milestonesSection;
-    if (first && !isFirst) overviewPanel.prepend(milestonesSection);
-    if (!first && isFirst) expeditionPanel.after(milestonesSection);
+  if (milestonesSection && earlyAnchor && expeditionPanel) {
+    const anchor = milestonesFirst(data?.corp?.level) ? earlyAnchor : expeditionPanel;
+    if (anchor.nextElementSibling !== milestonesSection) anchor.after(milestonesSection);
   }
 
   // Map requirement IDs to the tab they should navigate to

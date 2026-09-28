@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 
 // starmap.js preloads planet images when it is imported; node has no Image.
 globalThis.Image ??= class { set src(_v) {} };
-const { systemViewLayout, rightBackButtonY, backButtonTarget, targetHit } = await import("../../public/scripts/starmap.js");
+const { systemViewLayout, rightBackButtonY, backButtonTarget, targetHit, backButtonRow, backButtonsBottom } = await import("../../public/scripts/starmap.js");
 
 // AB#1287: on a phone (a 307x320 canvas: its 320px floor, since the map sits low on the page) the system view's
 // "Back To Cluster" button sat where the outer orbits reach, so Saturn was drawn over it and a tap there went Back.
@@ -64,5 +64,41 @@ describe("two back buttons never overlap (Bug #4687)", () => {
     const left = backButtonTarget("back-to-system", 108, 36, 138);
     const right = backButtonTarget("back-to-cluster", 197, y, 130);
     for (let x = 60; x <= 262; x += 2) for (let ty = 10; ty <= y + 30; ty += 2) expect(targetHit(left, x, ty) && targetHit(right, x, ty)).toBe(false);
+  });
+});
+
+// AB#2482: a moon's view has three back buttons, Back To Planet, Back To System and Back To Cluster.
+describe("a row of back buttons (AB#2482)", () => {
+  const overlap = (a, b, wa, wb) => {
+    const ta = backButtonTarget("a", a.x, a.y, wa);
+    const tb = backButtonTarget("b", b.x, b.y, wb);
+    return Math.abs(ta.x - tb.x) * 2 < ta.w + tb.w && Math.abs(ta.y - tb.y) * 2 < ta.h + tb.h;
+  };
+  const widths = [130, 138, 130]; // at a phone's font
+
+  it("on a desktop canvas, three buttons in one row at the usual places", () => {
+    // The labels at a desktop's 10px font are about 100px wide (a phone's larger font makes them about 130).
+    expect(backButtonRow([100, 104, 106], 900)).toEqual([{ x: 108, y: 36 }, { x: 250, y: 36 }, { x: 392, y: 36 }]);
+  });
+
+  it("on a phone's canvas, packed from the left edge in rows; no two targets overlap and all stay on the canvas", () => {
+    for (const canvas of [292, 307, 343]) {
+      const placed = backButtonRow(widths, canvas);
+      expect(placed[0]).toEqual({ x: 6 + widths[0] / 2, y: 36 });
+      for (let i = 0; i < placed.length; i += 1) {
+        expect(placed[i].x + widths[i] / 2, `button ${i} at ${canvas}`).toBeLessThanOrEqual(canvas);
+        expect(placed[i].x - widths[i] / 2).toBeGreaterThanOrEqual(0);
+        for (let j = 0; j < i; j += 1) expect(overlap(placed[i], placed[j], widths[i], widths[j]), `${j} and ${i} at ${canvas}`).toBe(false);
+      }
+      expect(Math.max(...placed.map((p) => p.y))).toBeGreaterThan(36); // three do not fit one row there
+    }
+  });
+
+  it("packed, two share the first row on a 307px canvas (a 375px phone's), and the lowest edge is where the moon must clear", () => {
+    const placed = backButtonRow(widths, 307);
+    expect(placed.map((p) => p.y)).toEqual([36, 36, 78]);
+    expect(backButtonsBottom(placed)).toBe(78 + 14 + 6);
+    expect(backButtonsBottom(backButtonRow([100, 104, 106], 900))).toBe(36 + 14 + 6);
+    expect(backButtonsBottom([])).toBe(0);
   });
 });

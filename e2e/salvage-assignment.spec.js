@@ -179,7 +179,7 @@ for (const viewport of VIEWPORTS) {
       await expect(page.locator('[data-role="mission-complete"]')).toHaveCount(0);
 
       await openTab(page, "overview");
-      await expect(page.locator("#overview-cards .ui-card", { hasText: "Cash Reserves" })).toContainText("$3,000");
+      await expect(page.locator("#overview-cash")).toContainText("$3,000"); // AB#2483: the headline figure under the title
     } finally {
       child.kill();
       fs.rmSync(dir, { recursive: true, force: true });

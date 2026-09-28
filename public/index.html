@@ -316,6 +316,20 @@
                 and each unlock expands market access, infrastructure depth, and interstellar reach.
               </p>
             </header>
+            <!-- AB#2483 (Board review 2026-09-26, item 17): the cash on hand, right under the title at every level, in the
+                 Financial Core's headline figures (views/overview.js fills them). -->
+            <section id="overview-figures" class="kpi-strip overview__figures" aria-label="Cash position">
+              <div class="kpi-tile kpi-tile--primary">
+                <span class="kpi-tile__label">Cash Reserves</span>
+                <span id="overview-cash" class="kpi-tile__value">—</span>
+                <span class="kpi-tile__sub">credits on hand</span>
+              </div>
+              <div class="kpi-tile">
+                <span class="kpi-tile__label">Net Daily Flow</span>
+                <span id="overview-net-flow" class="kpi-tile__value">—</span>
+                <span class="kpi-tile__sub">income − costs, last 24 hours</span>
+              </div>
+            </section>
             <div id="overview-raid-alert"></div><!-- ISP-181 (AB#875): an incoming raid, with a countdown and a route to its garrison -->
             <div id="overview-cards" class="ui-grid"></div>
 
@@ -341,11 +355,13 @@
                   <dl id="level-unlocks-list" class="ui-kv"></dl>
                 </section>
                 <p id="level2-status" class="ui-screen__meta"></p>
-                <section class="ui-card" aria-labelledby="feedback-log-title">
-                  <h4 id="feedback-log-title" class="ui-card__title"><span class="ui-code" data-code-for="feedback-log-title" aria-hidden="true"></span>Command Feedback</h4>
-                  <ul id="feedback-log" class="ui-list"></ul>
-                </section>
               </div>
+            </section>
+
+            <!-- AB#2483 (Board review 2026-09-26, item 18): what every command answered, last of all on the page. -->
+            <section id="command-log" class="ui-panel" aria-labelledby="command-log-title">
+              <header class="ui-panel__header"><h3 id="command-log-title" class="ui-panel__title"><span class="ui-code" data-code-for="command-log" aria-hidden="true"></span>Command Log</h3></header>
+              <div class="ui-panel__body"><ul id="feedback-log" class="ui-list"></ul></div>
             </section>
           </article>
 

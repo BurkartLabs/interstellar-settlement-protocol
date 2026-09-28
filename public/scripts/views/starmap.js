@@ -101,7 +101,7 @@ export const starmap = createStarmapController({
       showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       pushFeedback(beltScoutedText(beltKey, appState.data?.world?.systems), "ok"); // AB#1257: names, not "sol:belt"
     } catch (err) {
-      // Bug #2339: the refusal beside the button that met it, as well as in the Overview's Command Feedback.
+      // Bug #2339: the refusal beside the button that met it, as well as in the Overview's Command Log.
       starmap.setBeltNotice({ beltKey, message: err.message || "Belt scouting failed." });
       pushFeedback(err.message || "Belt scouting failed.", "warn");
       loadBeltCompositionsIntoStarmap(); // AB#2331: a refusal may mean the belt is gone; show what is there
