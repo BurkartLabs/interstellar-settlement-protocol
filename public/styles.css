@@ -5444,3 +5444,6 @@ img.station__body {
 .logistics__eta { white-space: nowrap; }
 .logistics__route-fee { overflow-wrap: anywhere; }
 .logistics__bulk-fee { color: var(--muted); }
+
+/* AB#2475: the time to finish all remaining research, under each research screen's lede (Bug #4743: it had no rule) */
+.research-total { color: var(--text-soft); font-variant-numeric: tabular-nums; }
