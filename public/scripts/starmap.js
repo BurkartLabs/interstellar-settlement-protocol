@@ -593,6 +593,9 @@ export function createStarmapController({
   onScoutBelt,
   onLaunchExpedition,
   getAsteroidMiningState,
+  // Bug #4775: what a launch costs, data/economy.json's expeditions.launchCost through clientPrices (the button quoted a
+  // copy of it, "3,000", which the first balance change would have left quoting one price while the server charged another)
+  getExpeditionLaunchCost = () => NaN,
   researchCatalog = [], // Bug #1270: to name the research a locked jump needs
   getCorpLevel = () => 0,
   getMemberStation = () => null, // ISP-212 (AB#907): the corporation's own conglomerate's station, for the member office rate
@@ -1675,7 +1678,7 @@ export function createStarmapController({
                   </select>
                 </div>
                 ${remoteLaunch ? `<p class="ui-panel__meta" data-belt-remote>Remote launch on your partner's scouting: you are not in ${escapeHtmlAttr(system.name)}, so the probe works at range and brings home <strong>${remotePct}%</strong> of what it mines. The ore lands at this system's station.</p>` : ""}
-                <div><button id="launch-expedition-btn" class="ui-button ui-button--secondary" type="button">${remoteLaunch ? "Launch Remote Expedition" : "Launch Expedition"} (¤3,000)</button></div>
+                <div><button id="launch-expedition-btn" class="ui-button ui-button--secondary" type="button">${remoteLaunch ? "Launch Remote Expedition" : "Launch Expedition"} (${Number.isFinite(getExpeditionLaunchCost()) ? toCurrency(getExpeditionLaunchCost()) : "Price not loaded"})</button></div>
               ` : isEmptySlot
                 ? "" // AB#2331: the empty state above says why, and when
                 : !isBeltScouted

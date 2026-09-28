@@ -104,6 +104,8 @@ for (const vp of VIEWPORTS) {
       await expect(details).toContainText(/[\d,]+ of [\d,]+ units left \(37%\)/);
       await expect(details).toContainText("Generation 1");
       await look(page, details, `ab2331-scouted-${vp.label}`);
+      // Bug #4775: the launch price is data/economy.json's, sent by GET /api/bootstrap, not a copy in the page
+      await expect(details.locator("#launch-expedition-btn")).toHaveText(/^Launch (Remote )?Expedition \(¤[\d,]+\)$/);
 
       // Bug #2339: 100 credits, so the launch is refused, and the panel says why.
       await details.locator("#launch-expedition-btn").click();

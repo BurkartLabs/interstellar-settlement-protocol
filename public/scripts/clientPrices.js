@@ -15,6 +15,7 @@ export function clientPrices(economy) {
     assemblyFacilityCost: n(economy?.buildings?.assemblyFacilityCost),
     refineryCost: n(economy?.buildings?.refineryCost),
     refineryAssetValue: n(economy?.buildings?.refineryAssetValue),
-    probeBuildCost: n(economy?.probes?.buildCost)
+    probeBuildCost: n(economy?.probes?.buildCost),
+    expeditionLaunchCost: n(economy?.expeditions?.launchCost) // Bug #4775: the Starmap's Launch Expedition button
   };
 }
