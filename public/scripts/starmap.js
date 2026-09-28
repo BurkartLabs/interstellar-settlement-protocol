@@ -481,6 +481,37 @@ export function rightBackButtonY(leftX, leftWidth, rightX, rightWidth, y = 36) {
   return rightX - rightWidth / 2 < leftX + leftWidth / 2 + 6 ? y + BACK_BUTTON_HEIGHT + BACK_TARGET_PAD * 2 + 2 : y;
 }
 
+/**
+ * AB#2482: where a row of back buttons sits, each centre. At their usual places (`x0 + step * i`, as the body view's
+ * two have always sat) when every one fits there with both tap margins (12px) between neighbours. Otherwise, on a
+ * phone, packed from the canvas's left edge, 12px apart, a new row one target's height lower when the next would run
+ * past the right edge, so neither the buttons nor their tap targets overlap. `widths` are the drawn widths.
+ */
+export function backButtonRow(widths, canvasWidth, { x0 = 108, step = 142, y0 = 36 } = {}) {
+  const gap = BACK_TARGET_PAD * 2;
+  const rowGap = BACK_BUTTON_HEIGHT + BACK_TARGET_PAD * 2 + 2;
+  const usual = widths.map((w, i) => ({ x: x0 + step * i, w }));
+  const fits = usual.every((b, i) => b.x + b.w / 2 <= canvasWidth - BACK_BUTTON_INSET && (i === 0 || b.x - b.w / 2 >= usual[i - 1].x + usual[i - 1].w / 2 + gap));
+  if (fits) return usual.map(({ x }) => ({ x, y: y0 }));
+  const placed = [];
+  let left = BACK_BUTTON_INSET;
+  let y = y0;
+  for (const w of widths) {
+    if (left > BACK_BUTTON_INSET && left + w > canvasWidth - BACK_BUTTON_INSET) {
+      y += rowGap;
+      left = BACK_BUTTON_INSET;
+    }
+    placed.push({ x: left + w / 2, y });
+    left += w + gap;
+  }
+  return placed;
+}
+
+/** AB#2482: the lowest edge of a row of back buttons (backButtonRow's centres), with the tap margin below it. */
+export function backButtonsBottom(places) {
+  return places.length ? Math.max(...places.map((p) => p.y)) + BACK_BUTTON_HEIGHT / 2 + BACK_TARGET_PAD : 0;
+}
+
 export function backButtonTarget(type, x, y, width) {
   return { type, x, y, w: width + BACK_TARGET_PAD * 2, h: BACK_BUTTON_HEIGHT + BACK_TARGET_PAD * 2 };
 }
@@ -1173,16 +1204,30 @@ export function createStarmapController({
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
     const cx = width / 2;
-    const cy = height / 2;
+    let cy = height / 2;
 
     state.clickTargets = [];
-    const backSysWidth = drawBackButton("Back To System", 108, 36);
-    const backClusterX = rightBackButtonX("Back To Cluster", 250, width);
-    const backClusterY = rightBackButtonY(108, backButtonWidth("Back To System"), backClusterX, backButtonWidth("Back To Cluster"));
-    const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, backClusterY);
+    // AB#2482: a moon's view goes back to its own planet first, then the system and the cluster: the map's real order.
+    const planet = body.type === "Moon" ? (system.bodies || []).find((item) => item.id === body.parentId) : null;
+    if (planet) {
+      const buttons = [["back-to-planet", "Back To Planet"], ["back-to-system", "Back To System"], ["back-to-cluster", "Back To Cluster"]];
+      const places = backButtonRow(buttons.map(([, label]) => backButtonWidth(label)), width);
+      buttons.forEach(([type, label], i) => {
+        const drawn = drawBackButton(label, places[i].x, places[i].y);
+        state.clickTargets.push(backButtonTarget(type, places[i].x, places[i].y, drawn));
+      });
+      // On a phone the three take two rows or more: the moon moves down clear of them, as far as the canvas allows.
+      const moonRadius = Math.min(width, height) * 0.15;
+      cy = Math.min(height - moonRadius - 8, Math.max(cy, backButtonsBottom(places) + 12 + moonRadius));
+    } else {
+      const backSysWidth = drawBackButton("Back To System", 108, 36);
+      const backClusterX = rightBackButtonX("Back To Cluster", 250, width);
+      const backClusterY = rightBackButtonY(108, backButtonWidth("Back To System"), backClusterX, backButtonWidth("Back To Cluster"));
+      const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, backClusterY);
 
-    state.clickTargets.push(backButtonTarget("back-to-system", 108, 36, backSysWidth));
-    state.clickTargets.push(backButtonTarget("back-to-cluster", backClusterX, backClusterY, backClusterWidth));
+      state.clickTargets.push(backButtonTarget("back-to-system", 108, 36, backSysWidth));
+      state.clickTargets.push(backButtonTarget("back-to-cluster", backClusterX, backClusterY, backClusterWidth));
+    }
 
     if (body.type === "Field") {
       const beltRadius = Math.min(width, height) * 0.2;
@@ -1841,6 +1886,18 @@ export function createStarmapController({
       state.selectedBodyId = null;
       state.selectedAsteroidId = null;
       render();
+      return;
+    }
+
+    // AB#2482: from a moon, its own planet
+    if (hit.type === "back-to-planet") {
+      const moon = getSelectedSystem()?.bodies?.find((b) => b.id === state.selectedBodyId);
+      if (moon?.parentId) {
+        state.view = "body";
+        state.selectedBodyId = moon.parentId;
+        state.selectedAsteroidId = null;
+        render();
+      }
       return;
     }
 
