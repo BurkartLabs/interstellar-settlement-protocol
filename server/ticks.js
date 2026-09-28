@@ -33,6 +33,7 @@ import { statementsVersion } from "./game/store.js"; // AB#842: the rating's bas
 import { settleStationProjects } from "./game/stationProjects.js"; // ISP-210 (AB#905)
 import { settleAllStationGovernance } from "./game/stationGovernance.js"; // ISP-211 (AB#906)
 import { referenceFor } from "./references.js"; // ISP-249 (AB#945)
+import { hiredEscortHooks } from "./hiredEscort.js"; // AB#4678
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
 // ISP-249 (AB#945): on the UTC day, as every other daily cycle and every time the game shows (it was New York's).
@@ -115,7 +116,7 @@ function asteroidExpeditionTick(now = Date.now()) {
     if (!state?.corp) return;
     const am = state.corp.asteroidMining;
     if (emptied && Array.isArray(am?.scoutedBelts)) am.scoutedBelts = am.scoutedBelts.filter((k) => !emptied.includes(k));
-    const came = applyAsteroidExpeditions(state.corp, now, world);
+    const came = applyAsteroidExpeditions(state.corp, now, world, hiredEscortHooks); // AB#4678: hired escorts, on their owners' books
     if (!came.length) return;
     const entry = home.get(accountId) || { corpName: "", completedExpeditions: [] };
     entry.corpName = state.corp.corporationName || "";

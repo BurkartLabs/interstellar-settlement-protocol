@@ -24,6 +24,7 @@ import { launchExpeditionReceipt, probeFabricationReceipt, scoutBeltReceipt } fr
 import { RATS, encounterChance, forcePower, forceSupply, nominalHours, seedFor } from "../game/rats.js"; // AB#820
 import { SYSTEMS_BY_ID } from "../game/catalog.js";
 import { stationById } from "../game/stations.js";
+import { commitHiredEscort, hiredEscortFor } from "../hiredEscort.js"; // AB#4678
 
 export function registerAsteroidRoutes(app) {
   // ─── Asteroid Mining: Assembly Facility, Probes, Expeditions ─────────────────
@@ -177,6 +178,12 @@ export function registerAsteroidRoutes(app) {
     const duration = String(req.body?.duration || "standard").trim();
     // AB#820: an optional escort, one of the caller's own fleets by id; the input check has refused any other shape
     const escortFleetId = req.body?.escortFleetId === undefined || req.body?.escortFleetId === null ? null : String(req.body.escortFleetId);
+    // AB#4678: or a hired fleet, by its contract; one escort, not both
+    const escortContractId = req.body?.escortContractId === undefined || req.body?.escortContractId === null ? null : String(req.body.escortContractId);
+    if (escortFleetId !== null && escortContractId !== null) {
+      res.status(400).json({ error: "Choose one escort: one of your fleets or one you have hired, not both." });
+      return;
+    }
 
     if (!beltKey || !beltComposition(beltKey)) {
       res.status(400).json({ error: "Invalid asteroid belt identifier." });
@@ -196,6 +203,7 @@ export function registerAsteroidRoutes(app) {
     let launchCost = EXPEDITION_LAUNCH_COST;
     let provisions = 0;
     let rats = null;
+    let hiredEscort = null; // AB#4678: committed on its owner's books once the launch has gone through
 
     const account = mutateAccountState(req.params.accountId, (state) => {
       const corp = state.corp;
@@ -255,7 +263,13 @@ export function registerAsteroidRoutes(app) {
         if (stationById(escort.stationId)?.systemId !== beltSystemId) { outcome = "escort-elsewhere"; return; }
         if (!forceSupply(escort.units)) { outcome = "escort-empty"; return; }
       }
-      const escortUnits = escort ? Object.fromEntries(Object.entries(escort.units || {}).filter(([, n]) => Number(n) > 0)) : null;
+      if (escortContractId !== null) { // AB#4678 (section 3): a hired fleet whose contract allows pve or raids
+        const pick = hiredEscortFor(corp, escortContractId, beltSystemId, (sid) => stationById(sid)?.systemId, Date.now());
+        if (pick.outcome) { outcome = pick.outcome; return; }
+        if (!forceSupply(pick.escort.units)) { outcome = "escort-empty"; return; }
+        hiredEscort = pick.escort;
+      }
+      const escortUnits = hiredEscort ? { ...hiredEscort.units } : escort ? Object.fromEntries(Object.entries(escort.units || {}).filter(([, n]) => Number(n) > 0)) : null;
       const escortPower = escortUnits ? forcePower(escortUnits) : 0;
       provisions = escortUnits ? Math.round(RATS.escortCostPerSupplyHour * forceSupply(escortUnits) * hours) : 0;
       try { seedFor("probe"); } catch { outcome = "no-seed"; return; }
@@ -268,7 +282,8 @@ export function registerAsteroidRoutes(app) {
       applyCredits(corp, -launchCost, "expeditions");
       if (provisions) applyCredits(corp, -provisions, "expeditions"); // AB#820: the escort's provisions, a sink
       rats = {
-        density, hours, escortFleetId: escort?.id ?? null, escortUnits, escortPower,
+        density, hours, escortFleetId: escort?.id ?? hiredEscort?.fleetId ?? null, escortUnits, escortPower,
+        ...(hiredEscort ? { escortContractId: hiredEscort.contractId, escortOwnerCorpId: hiredEscort.ownerCorpId } : {}), // AB#4678
         chance: encounterChance(density, hours, escortPower), chanceUnescorted: encounterChance(density, hours, 0),
         provisions, encounters: []
       };
@@ -294,7 +309,10 @@ export function registerAsteroidRoutes(app) {
         status: "active"
       });
       if (escort) escort.escort = { expeditionId: am.activeExpeditions.at(-1).id, since: now }; // committed until it comes home
+      if (hiredEscort) hiredEscort.expeditionId = am.activeExpeditions.at(-1).id;
     });
+    // AB#4678: the hired fleet is committed on its owner's books, as a raid commits one
+    if (outcome === "ok" && hiredEscort?.expeditionId) commitHiredEscort(hiredEscort, hiredEscort.expeditionId);
 
     if (!account) { res.status(404).json({ error: "Account not found." }); return; }
 
@@ -310,6 +328,9 @@ export function registerAsteroidRoutes(app) {
         "insufficient-credits": fundingRequirementMessage(provisions ? "Expedition launch with its escort's provisions" : "Expedition launch", account.state.corp, launchCost + provisions),
         // AB#820: the escort, and a belt the server cannot read the danger of
         "no-such-fleet": "Choose one of your own fleets to escort the probe.",
+        // AB#4678: a hired escort
+        "no-such-contract": "Choose one of the fleets you have hired to escort the probe.",
+        "escort-not-permitted": "That contract does not permit escorting: only a contract for pve or raids does.",
         "escort-contracted": "That fleet is offered or hired out, and takes no order until its contract ends.",
         "escort-busy": "That fleet is already escorting an expedition.",
         "escort-travelling": "That fleet is travelling. Escort with it once it has arrived.",

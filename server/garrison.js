@@ -126,6 +126,7 @@ export function deployHiredFleet(accountId, contractId, toStationId, now = Date.
   const fleet = corpOf(ownerAccountId)?.military?.fleets?.find((f) => f.id === offer.fleetId);
   if (!fleet) return { ok: false, status: 404, error: "No such hired fleet." };
   if (fleet.transit && now < fleet.transit.arrivesAt) return { ok: false, status: 409, error: "That fleet is travelling." };
+  if (fleet.escort) return { ok: false, status: 409, error: "That fleet is escorting an expedition until it comes home." }; // AB#4678
   const from = fleet.stationId || fleet.transit?.toStationId;
   if (from === toStationId) return { ok: false, status: 409, error: "That fleet is already there." };
   if (!reachable(renter.unlockedTech, from, toStationId)) return { ok: false, status: 409, error: "Your research does not reach that station yet." };

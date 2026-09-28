@@ -142,7 +142,10 @@ are the optimising bot's (section 6), for one probe in one deployment slot, over
 **As built (AB#820).**
 - The numbers are `data/rats.json`, and the rules are `server/game/rats.js`. The expedition tick resolves encounters
   (`settleRats`), and launch takes `escortFleetId`.
-- Escorts are the caller's own fleets for now. A hired fleet as escort is **AB#4678**.
+- An escort is one of the caller's own fleets (`escortFleetId`) or, since AB#4678, a hired one (`escortContractId`): its
+  contract must allow pve or raids, its fleet stays committed on its owner's books (`server/hiredEscort.js`), it fights
+  with what it has left and its owner's modifiers, and its losses are recorded on the contract (`recordContractLosses`),
+  paid from the collateral when the contract settles, which waits until the escort is home, as it does for a raid.
 - An expedition's `rats` record holds its danger, its escort, the chances shown at launch, and each encounter as it
   happens: the Rats met, the escort's fight with the resolver's rounds and losses, and the unescorted roll with the
   haul it took.
