@@ -65,7 +65,7 @@ export function shipyardPanelHtml(units = [], corp = {}, { fleet = null, now = D
       <p class="station__hint" role="status" aria-live="polite"></p>
     </form>
     <div class="ui-card">
-      <h4 class="station__subheading">On the slips</h4>
+      <h4>On the slips</h4>
       ${queue.length ? `<ul class="shipyard__jobs">${queue.map((j) => jobRow(j, units, now)).join("")}</ul>` : `<p class="station__note">Nothing in production.</p>`}
     </div>`;
 }

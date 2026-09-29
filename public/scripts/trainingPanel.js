@@ -55,9 +55,9 @@ export function trainingPanelHtml(units = [], corp = {}, { now = Date.now(), res
       <p class="station__hint" role="status" aria-live="polite"></p>
     </form>
     <div class="ui-card">
-      <h4 class="station__subheading">In training</h4>
+      <h4>In training</h4>
       ${queue.length ? `<ul class="shipyard__jobs">${queue.map((j) => jobRow(j, units, now)).join("")}</ul>` : `<p class="station__note">Nobody in training.</p>`}
-      <h4 class="station__subheading">Garrisons</h4>
+      <h4>Garrisons</h4>
       ${garrison.length ? `<ul class="shipyard__jobs">${garrison.map((l) => `<li>${escapeHtml(l)} of Defense Troops</li>`).join("")}</ul>` : `<p class="station__note">No station has a garrison yet.</p>`}
     </div>`;
 }

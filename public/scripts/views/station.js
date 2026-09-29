@@ -314,7 +314,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const memberStation = appState.conglomerate?.station || null;
   const rate = (cost) => memberOfficeCost(cost, memberStation, stationId);
   const memberNote = isMemberStation(memberStation, stationId)
-    ? `<p class="station__note station__member-rate">Member rate: your conglomerate's station, so the rent is ${memberStation.officeRentPct}% of the standard ${toCurrency(officeLeaseCost(1))} a day.</p>`
+    ? `<p class="station__note">Member rate: your conglomerate's station, so the rent is ${memberStation.officeRentPct}% of the standard ${toCurrency(officeLeaseCost(1))} a day.</p>`
     : "";
 
   const headerHtml = `
