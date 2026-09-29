@@ -10,6 +10,7 @@ import { connectApiClient, socket, connectSocket, reauthenticateSocket, persistS
 import { toCurrency, deepClone } from "./helpers.js";
 
 import { connectWalkthroughUi, hasSeenWalkthroughOffer, noteWalkthroughEvent, promptWalkthroughOffer } from "./walkthroughUi.js";
+import { offersFirstDay } from "./walkthrough.js"; // Bug #4885
 // AB#739 (ISP-53): one module per tab, and the shared pieces they use.
 import { renderAssets } from "./views/assets.js";
 import { renderFleet } from "./views/fleet.js"; // ISP-175 (AB#869)
@@ -352,8 +353,7 @@ function enterGame(mode, data, options = {}) {
   if (
     options.autoPromptWalkthrough !== false &&
     (mode === "new" || mode === "account") &&
-    !appState.walkthroughCompleted &&
-    !hasSeenWalkthroughOffer(appState.accountId)
+    offersFirstDay({ walkthroughCompleted: appState.walkthroughCompleted, seenHere: hasSeenWalkthroughOffer(appState.accountId), corp: appState.data?.corp }) // Bug #4885
   ) {
     promptWalkthroughOffer();
   }
