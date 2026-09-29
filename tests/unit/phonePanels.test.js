@@ -41,11 +41,14 @@ describe("phone panels (AB#1055)", () => {
   });
 
   it("lifts every vw-capped rule at phone width", () => {
-    expect(PHONE_BLOCK).toContain(`@media (max-width: ${NARROW_MAX_WIDTH}px)`);
-    const lifted = PHONE_BLOCK.split("{")[1] || "";
-    for (const selector of vwCapped(CSS)) expect(lifted, selector).toContain(selector);
     // ISP-82 (AB#771) rebuilt the last capped panel, the Starmap's details: nothing is capped, so nothing is lifted.
-    if (vwCapped(CSS).length) expect(PHONE_BLOCK).toMatch(/max-width:\s*none/);
+    // Bug #4886 took out the block that was left holding only dead rules; a new vw cap needs it back, and says so.
+    const capped = vwCapped(CSS);
+    if (!capped.length) return;
+    expect(PHONE_BLOCK, `vw-capped ${capped.join(", ")}: lift it under "/* ─── Phone: panels fill the screen (AB#1055) ─── */" in an @media (max-width: ${NARROW_MAX_WIDTH}px) block`).toContain(`@media (max-width: ${NARROW_MAX_WIDTH}px)`);
+    const lifted = PHONE_BLOCK.split("{")[1] || "";
+    for (const selector of capped) expect(lifted, selector).toContain(selector);
+    expect(PHONE_BLOCK).toMatch(/max-width:\s*none/);
   });
 
   it("gives the agent card no fixed width, so it cannot run out of its board", () => {

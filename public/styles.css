@@ -1867,17 +1867,6 @@ body.walkthrough--open .layout-grid {
   }
 }
 
-/* ─── Phone: panels fill the screen (AB#1055) ─── */
-/* Whole panels were capped with vw max-widths, a design choice on a desktop that a phone turns into a column 94 to
-   188 px wide. At phone width they fill the space they are given. tests/unit/phonePanels.test.js derives the list of
-   capped rules from this stylesheet, so a new one added above without a line here fails the suite. 767px is
-   NARROW_MAX_WIDTH in public/scripts/firstAction.js. */
-@media (max-width: 767px) {
-  /* The Exchange tables with an action in every row: a six-column table does not fit 280 px, and the Buy and Create
-     Listing buttons were off to the right. One card per row; each cell names its column (tableLabels.js). */
-          
-}
-
 /* ─── Style guide: the design-token specimen at /styleguide/tokens (ISP-70, AB#759) ───
    Written in tokens only, as all new CSS is: tests/unit/designTokens.test.js counts the literals outside the block. */
 body.sg {
