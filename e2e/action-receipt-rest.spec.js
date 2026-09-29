@@ -81,7 +81,7 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
       await page.click('.research__enqueue[data-tech-id="tt-basic-extraction"]');
       await expect(page.locator("#action-receipt-title")).toHaveText("Research Queued", { timeout: 10_000 });
       await expect(page.locator("#action-receipt-body")).toContainText("Basic Extraction Analytics");
-      await expect(page.locator("#action-receipt-body")).toContainText(/Completes\s*\d+ \w+, \d\d:\d\d UTC/);
+      await expect(page.locator("#action-receipt-body")).toContainText(/Completes\s*(\d{4}-\d\d-\d\d )?\d\d:\d\d UTC/); // AB#945: YYYY-MM-DD HH:MM UTC, the date left out when today's
       await page.waitForTimeout(400);
       await page.screenshot({ path: path.join(SHOT_DIR, `receipt-research-${vp.label}.png`) });
       await acknowledgeReceipt(page);
