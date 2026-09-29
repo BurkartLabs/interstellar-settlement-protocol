@@ -18,6 +18,7 @@ import { onSale } from "./standingService.js"; // ISP-238 (AB#933)
 import { payStationTax, saleTaxBreakdownAt } from "./game/stationTax.js"; // ISP-212b (AB#4655)
 import { stationById } from "./game/stations.js";
 import { payConcessionShare } from "./concessions.js"; // ISP-228 (AB#923)
+import { bookableUnitPriceFor } from "./economy.js"; // Bug #4882
 
 /**
  * Pay the seller of `order` for `quantity` at the listing's price, less the exchange tax, and write their Sold row.
@@ -36,18 +37,25 @@ export function paySeller(order, quantity, buyerName, buyerAccountId = null) {
     saleBreakdown = breakdown;
     const taxPct = breakdown.ratePct;
     const { tax: taxAmount, royalty, salesTax, proceeds: afterTax } = taxOnSale(total, breakdown);
+    // Bug #4882: the seller receives every credit and pays tax on all of it, but only the price up to the ISA's own ask
+    // books as trade (revenue, dominance, standing): above it, two corporations are moving credits, not selling goods.
+    const bookable = bookableUnitPriceFor(order.item);
+    const bookedUnit = bookable === null ? Number(order.unitPrice || 0) : Math.min(Number(order.unitPrice || 0), bookable);
+    const booked = quantity * bookedUnit;
+    const bookedShare = total > 0 ? booked / total : 1;
     // Bug #984: the gross the buyer paid is income and the tax an expense; the balance moves by the proceeds.
-    applyCredits(state.corp, total, "exchange");
+    applyCredits(state.corp, booked, "exchange");
+    if (total > booked) applyCredits(state.corp, total - booked, "exchange-above-value");
     // ISP-217 (AB#912): the sale counts toward dominance at the listing's station, unless the buyer is a conglomerate
     // partner: selling to partners must not buy dominance.
     const partner = sameConglomerate(state.corp, accountsStore.accounts?.[buyerAccountId]?.state?.corp);
-    if (!partner) recordSale(state.corp, order.stationId, total);
+    if (!partner) recordSale(state.corp, order.stationId, booked);
     // ISP-232 (AB#927): a sale at the seller's own price is what the ITC's dumping watch reads (a partner's is not)
     recordOwnSale(state.corp, { item: order.item, quantity, unitPrice: Number(order.unitPrice || 0), partner, stationId: order.stationId });
     applyCredits(state.corp, -salesTax, breakdown.station ? "station-tax" : "exchange-tax");
     // ISP-238 (AB#933): Earth Assembly standing for the tax, ITC standing for a sale at or above normal value. A station's
     // tax goes to its conglomerate, not the ISA, so it earns no Earth Assembly standing (ISP-212b, AB#4655).
-    onSale(state.corp, { item: order.item, quantity, unitPrice: Number(order.unitPrice || 0), salesTax: breakdown.station ? 0 : salesTax, partner });
+    onSale(state.corp, { item: order.item, quantity, unitPrice: bookedUnit, salesTax: breakdown.station ? 0 : Math.round(salesTax * bookedShare), partner }); // Bug #4882: at the booked price
     applyCredits(state.corp, -royalty, "lease-royalty");
     // ISP-230 (AB#925): the concession holder's tariff where the goods are held, at the lower of the listing's posted
     // rate and today's (WARFARE.md: nobody pays a rate they were not shown)

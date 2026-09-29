@@ -61,7 +61,9 @@ describe("ISP-190 each Tier 4 item trades between players and is charted", () =>
     it(`${item}: listed by one corporation, bought by another, sold into its bid, and in the price history`, async () => {
       const seller = await corpWith({ [item]: 10 });
       const buyer = await corpWith({});
-      const listed = await seller.api.post("/api/market/orders").send({ type: "sell", item, quantity: 6, unitPrice: 5_000 });
+      // Bug #4797: at 1.5x the item's bid, what an NPC corporation asks, and under the line of 5x (a flat 5,000 was 22x Uranium's)
+      const unitPrice = Math.round(ECONOMY.npcBuyers.find((b) => b.item === item).unitPrice * 1.5);
+      const listed = await seller.api.post("/api/market/orders").send({ type: "sell", item, quantity: 6, unitPrice });
       expect(listed.status, JSON.stringify(listed.body)).toBe(200);
       expect(seller.held()[item]).toBe(4);
       const order = getState().market.orderBook.find((o) => o.sellerAccountId === seller.id && o.item === item);

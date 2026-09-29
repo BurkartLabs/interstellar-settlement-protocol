@@ -18,6 +18,7 @@ afterEach(() => { resetConcessions(); resetControlHistory(); });
 async function corp({ systemId = "alpha-centauri", credits = 500_000 } = {}) {
   const reg = await registerAccount(app);
   const raw = accountsStore.accounts[reg.account.id];
+  raw.createdAt = Date.now() - 8 * 86_400_000; // Bug #4801: registered long enough ago to join a conglomerate
   Object.assign(raw.state.corp, { currentSystemId: systemId });
   raw.state.corp.finances.credits = credits;
   const c = raw.state.corp;

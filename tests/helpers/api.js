@@ -57,7 +57,7 @@ export async function storedAccountByEmail(email) {
 export async function registerUnverified(app, overrides = {}) {
   registerSeq += 1;
   const unique = `${Date.now()}-${registerSeq}-${Math.random().toString(36).slice(2, 6)}`;
-  const body = { email: `unverified+${unique}@example.com`, password: "supersecret123", ceoName: "Test CEO", corpName: `Unverified-${unique}`, ...overrides };
+  const body = { email: `unverified-${unique}@example.com`, password: "supersecret123", ceoName: "Test CEO", corpName: `Unverified-${unique}`, ...overrides };
   const res = await request(app).post("/api/auth/register").send(body);
   if (res.status !== 201) throw new Error(`registerUnverified failed: ${res.status} ${JSON.stringify(res.body)}`);
   const { accountsStore } = await import("../../server/game/store.js");
@@ -76,7 +76,7 @@ export async function registerAccount(app, overrides = {}) {
   registerSeq += 1;
   const unique = `${Date.now()}-${registerSeq}-${Math.random().toString(36).slice(2, 6)}`;
   const body = {
-    email: `tester+${unique}@example.com`,
+    email: `tester-${unique}@example.com`,
     password: "supersecret123",
     ceoName: "Test CEO",
     corpName: `TestCorp-${unique}`,

@@ -21,6 +21,7 @@ async function player() {
   const { app } = await getApp();
   const reg = await registerAccount(app);
   const raw = accountsStore.accounts[reg.account.id];
+  raw.createdAt = Date.now() - (C.minMemberAgeDays + 1) * DAY; // Bug #4801: registered long enough ago to join a conglomerate
   const api = authed(app, reg.accessToken);
   const base = `/api/accounts/${reg.account.id}`;
   return { id: reg.account.id, token: reg.accessToken, raw, corpId: raw.state.corp.publicId, api, base };
@@ -51,6 +52,57 @@ async function joined(f) {
   expect((await answerInvite(p, f.cid, inv.body.invitation.id, "accept")).status).toBe(200);
   return p;
 }
+
+// Bug #4801: founding asked for a corporation minFounderAgeDays old, but joining asked nothing, so accounts made minutes
+// ago could each join and deposit their starting credits into one treasury. Joining now asks minMemberAgeDays (7), at
+// every door: being invited, applying, and either being accepted.
+describe("a corporation joins only once it is minMemberAgeDays old (Bug #4801)", () => {
+  const young = (p) => { p.raw.createdAt = Date.now() - (C.minMemberAgeDays * DAY - 60_000); return p; }; // a minute short
+  const refusedYoung = (res) => {
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("member-too-young");
+    expect(res.body.error).toMatch(new RegExp(`join a conglomerate ${C.minMemberAgeDays} days after it was registered`));
+  };
+
+  it("is the same age founding asks for", () => {
+    expect(C.minMemberAgeDays).toBe(7);
+    expect(C.minMemberAgeDays).toBe(C.minFounderAgeDays);
+  });
+
+  it("refuses to invite a corporation registered less than 7 days ago, and it cannot apply", async () => {
+    const f = await founded();
+    const p = young(await player());
+    refusedYoung(await invite(f, p));
+    refusedYoung(await apply(p, f.cid));
+    expect(p.raw.state.corp.conglomerateId || null).toBeNull();
+  });
+
+  it("refuses the acceptance too, of an invitation or application made before the gate (or a date gone wrong)", async () => {
+    const f = await founded();
+    const p = await player();
+    const inv = await invite(f, p);
+    expect(inv.status).toBe(201);
+    young(p);
+    refusedYoung(await answerInvite(p, f.cid, inv.body.invitation.id, "accept"));
+    const q = await player();
+    const app = await apply(q, f.cid);
+    expect(app.status).toBe(201);
+    young(q);
+    refusedYoung(await answerApp(f, f.cid, app.body.application.id, "accept"));
+    const members = (await view(f)).conglomerate.members.map((m) => m.corp);
+    expect(members).not.toContain(p.corpId);
+    expect(members).not.toContain(q.corpId);
+  });
+
+  it("admits a corporation 7 days old", async () => {
+    const f = await founded();
+    const p = await player();
+    p.raw.createdAt = Date.now() - C.minMemberAgeDays * DAY - 1_000;
+    const inv = await invite(f, p);
+    expect(inv.status).toBe(201);
+    expect((await answerInvite(p, f.cid, inv.body.invitation.id, "accept")).status).toBe(200);
+  });
+});
 
 describe("invitations (ISP-198, AB#892)", () => {
   it("invited -> member: the invited corporation accepts and joins; the invitation cannot be accepted again", async () => {
@@ -272,6 +324,7 @@ describe("membership events reach the conglomerate's room and the affected accou
 describe("the Bureau's view of a corporation (ISP-200, AB#894)", () => {
   it("carries the server's charter verdict, and a member's permissions from can()", async () => {
     const p = await player();
+    p.raw.createdAt = Date.now(); // registered today (Bug #4801 ages the helper's corporations so they may join)
     const fresh = await view(p);
     expect(fresh.charter).toMatchObject({ fee: C.charterFee, deposit: C.charterDeposit, minFounderAgeDays: C.minFounderAgeDays });
     expect(fresh.charter.refusal.code).toBe("founder-too-young");
