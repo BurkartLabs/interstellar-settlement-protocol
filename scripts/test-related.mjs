@@ -13,7 +13,9 @@
 // What it runs: every test file vitest itself collects (`vitest list --filesOnly`) that
 //   1. changed,
 //   2. imports a changed file, directly or through other files (relative import/export/require/import()/new URL), or
-//   3. names a changed file by its path, or a changed non-code file (data, fixtures, styles) by its file name.
+//   3. names a changed file by its path, a changed non-code file (data, fixtures, styles) by its file name, or the
+//      changed file's folder (two levels deep or more), or
+//   4. is one of the repo's whole-tree scanners (package.json "testRelated.alwaysRun"), whenever anything else runs.
 // A change to a config or setup file (package.json, vitest/vite/ts config, or package.json "testRelated.runAllOn")
 // runs everything, and so does a selection larger than "testRelated.maxFiles" (default 200).
 // The chosen files go to the repo's own strict runner ("testRelated.runner", default `node scripts/test-strict.mjs`),
@@ -89,7 +91,7 @@ export function globToRegExp(glob) {
  * posix paths); `testFiles` is what vitest collects. Returns { tests, runAll, reasons } where reasons says, for each
  * test, why it was chosen.
  */
-export function relatedTests({ changed, sources, testFiles, runAllOn = DEFAULT_RUN_ALL_ON }) {
+export function relatedTests({ changed, sources, testFiles, runAllOn = DEFAULT_RUN_ALL_ON, alwaysRun = [] }) {
   const triggers = runAllOn.map(globToRegExp);
   const runAllBy = changed.filter((f) => triggers.some((re) => re.test(f)));
   if (runAllBy.length) return { tests: [...testFiles], runAll: true, reasons: new Map(), runAllBy };
@@ -113,13 +115,19 @@ export function relatedTests({ changed, sources, testFiles, runAllOn = DEFAULT_R
         choose(importer, `imports ${file}`);
       }
     }
-    // tests that name it: by path always, by file name when it is not code (data read at runtime, fixtures, styles)
+    // tests that name it: by path always, by file name when it is not code (data read at runtime, fixtures, styles),
+    // and by its folder when that is two levels deep or more ("public/themes", not "public"): a test that scans it
     const name = path.posix.basename(file);
+    const dir = path.posix.dirname(file);
+    const namesDir = dir.split("/").length >= 2;
     for (const test of tests) {
       const text = sources.get(test) ?? "";
       if (text.includes(file) || (!isCode(file) && text.includes(name))) choose(test, `names ${file}`);
+      else if (namesDir && (text.includes(`"${dir}"`) || text.includes(`'${dir}'`) || text.includes(`${dir}/`))) choose(test, `names ${dir}`);
     }
   }
+  // the repo's whole-tree scanners (package.json "testRelated.alwaysRun"): they reach every file without naming it
+  if (changed.length) for (const test of alwaysRun) choose(test, "scans the repo");
   return { tests: [...reasons.keys()].sort(), runAll: false, reasons, runAllBy: [] };
 }
 
@@ -199,7 +207,7 @@ async function main() {
     try { sources.set(file, fs.readFileSync(path.join(cwd, file), "utf8")); } catch { /* deleted or unreadable */ }
   }
   const runAllOn = [...DEFAULT_RUN_ALL_ON, ...(config.runAllOn ?? [])];
-  const picked = relatedTests({ changed, sources, testFiles, runAllOn });
+  const picked = relatedTests({ changed, sources, testFiles, runAllOn, alwaysRun: config.alwaysRun ?? [] });
   const maxFiles = Number(config.maxFiles) || DEFAULT_MAX_FILES;
   const runAll = picked.runAll || picked.tests.length > maxFiles;
 
