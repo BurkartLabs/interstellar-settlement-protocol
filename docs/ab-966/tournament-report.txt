@@ -1,0 +1,89 @@
+ISP fleet composition tournament (ISP-270, AB#966). BOT NUMBERS (P-PROXY): every composition on the grid meets every other; a win rate is a share of that field, not of fights anybody chose.
+Grid: 70 compositions (the budget in quarters over lf, ds, se, at, dt), whole units at replacement value; budgets 30,000, 120,000, 480,000; both roles; modifier sets neutral, fireControl, evasive, tired for each side. The resolver has no dice, so each condition is fought once: 231,840 battles, 80.3% drawn.
+
+Win rate against the field (wins over fights; a draw is not a win), best first, with points (a draw is half):
+   22.8%  lf2 se2          won 1512, drew 4568, lost 544; points 57.3%
+   21.9%  se4              won 1448, drew 3140, lost 2036; points 45.6%
+   20.9%  lf1 se3          won 1386, drew 3872, lost 1366; points 50.2%
+   20.9%  se2 at2          won 1382, drew 4338, lost 904; points 53.6%
+   20.8%  lf1 se2 dt1      won 1378, drew 4906, lost 340; points 57.8%
+   19.6%  se3 dt1          won 1300, drew 3868, lost 1456; points 48.8%
+   19.3%  se2 dt2          won 1276, drew 4436, lost 912; points 52.7%
+   18.7%  lf1 se2 at1      won 1236, drew 4848, lost 540; points 55.3%
+   18.4%  se3 at1          won 1222, drew 3708, lost 1694; points 46.4%
+   18.3%  at4              won 1210, drew 4250, lost 1164; points 50.3%
+   17.7%  se2 at1 dt1      won 1170, drew 4660, lost 794; points 52.8%
+   17.4%  lf1 at3          won 1154, drew 4994, lost 476; points 55.1%
+   15.7%  lf4              won 1038, drew 5006, lost 580; points 53.5%
+   15.6%  se1 at3          won 1034, drew 4640, lost 950; points 50.6%
+   15.3%  at3 dt1          won 1012, drew 4880, lost 732; points 52.1%
+   14.9%  lf2 at2          won 990, drew 5590, lost 44; points 57.1%
+   14.8%  lf3 se1          won 982, drew 5084, lost 558; points 53.2%
+   13.1%  lf1 se1 at2      won 866, drew 5336, lost 422; points 53.4%
+   12.7%  lf3 at1          won 838, drew 5758, lost 28; points 56.1%
+   12.6%  lf3 dt1          won 832, drew 5688, lost 104; points 55.5%
+   12.4%  at2 dt2          won 820, drew 5202, lost 602; points 51.6%
+   12.3%  lf2 dt2          won 812, drew 5808, lost 4; points 56.1%
+   12.1%  lf2 se1 dt1      won 804, drew 5704, lost 116; points 55.2%
+   12.0%  lf1 ds1 se2      won 792, drew 4896, lost 936; points 48.9%
+   11.9%  lf2 se1 at1      won 790, drew 5684, lost 150; points 54.8%
+   11.5%  ds1 at3          won 762, drew 4746, lost 1116; points 47.3%
+   11.3%  lf1 at2 dt1      won 748, drew 5832, lost 44; points 55.3%
+   11.2%  se1 at2 dt1      won 740, drew 5164, lost 720; points 50.2%
+   10.4%  lf2 at1 dt1      won 692, drew 5932, lost 0; points 55.2%
+    9.9%  ds1 se3          won 654, drew 4064, lost 1906; points 40.5%
+    9.5%  lf2 ds2          won 630, drew 5768, lost 226; points 53.0%
+    9.2%  se1 dt3          won 608, drew 5088, lost 928; points 47.6%
+    9.0%  at1 dt3          won 598, drew 5260, lost 766; points 48.7%
+    8.9%  lf3 ds1          won 590, drew 5634, lost 400; points 51.4%
+    8.7%  ds2 se2          won 576, drew 5272, lost 776; points 48.5%
+    8.7%  dt4              won 574, drew 5040, lost 1010; points 46.7%
+    8.5%  lf1 dt3          won 566, drew 5932, lost 126; points 53.3%
+    8.3%  se1 at1 dt2      won 552, drew 5268, lost 804; points 48.1%
+    8.3%  lf1 se1 dt2      won 550, drew 5876, lost 198; points 52.7%
+    8.2%  ds1 se2 dt1      won 544, drew 5146, lost 934; points 47.1%
+    8.2%  ds2 at2          won 542, drew 5334, lost 748; points 48.4%
+    8.1%  lf1 at1 dt2      won 534, drew 6062, lost 28; points 53.8%
+    7.9%  lf1 ds3          won 526, drew 5564, lost 534; points 49.9%
+    7.7%  lf2 ds1 se1      won 510, drew 5330, lost 784; points 47.9%
+    7.5%  lf1 ds1 at2      won 496, drew 5626, lost 502; points 50.0%
+    7.0%  lf2 ds1 at1      won 466, drew 6008, lost 150; points 52.4%
+    6.9%  ds1 se2 at1      won 454, drew 4966, lost 1204; points 44.3%
+    5.9%  ds3 at1          won 390, drew 5512, lost 722; points 47.5%
+    5.9%  ds4              won 390, drew 5212, lost 1022; points 45.2%
+    5.9%  lf1 se1 at1 dt1  won 390, drew 6002, lost 232; points 51.2%
+    5.7%  lf2 ds1 dt1      won 378, drew 6196, lost 50; points 52.5%
+    5.4%  ds1 at2 dt1      won 356, drew 5628, lost 640; points 47.9%
+    5.3%  ds1 se1 at2      won 350, drew 4928, lost 1346; points 42.5%
+    5.1%  lf1 ds2 at1      won 338, drew 5920, lost 366; points 49.8%
+    4.8%  ds1 dt3          won 316, drew 5558, lost 750; points 46.7%
+    4.4%  ds3 dt1          won 290, drew 6118, lost 216; points 50.6%
+    4.2%  ds3 se1          won 280, drew 5402, lost 942; points 45.0%
+    3.9%  lf1 ds2 se1      won 258, drew 5612, lost 754; points 46.3%
+    3.7%  lf1 ds2 dt1      won 244, drew 6368, lost 12; points 51.8%
+    3.1%  ds2 dt2          won 208, drew 6100, lost 316; points 49.2%
+    3.0%  lf1 ds1 se1 at1  won 202, drew 5114, lost 1308; points 41.7%
+    2.9%  ds1 at1 dt2      won 194, drew 5840, lost 590; points 47.0%
+    2.7%  ds2 at1 dt1      won 178, drew 6190, lost 256; points 49.4%
+    2.2%  ds1 se1 dt2      won 148, drew 5676, lost 800; points 45.1%
+    2.2%  lf1 ds1 dt2      won 148, drew 6338, lost 138; points 50.1%
+    1.8%  lf1 ds1 at1 dt1  won 118, drew 6330, lost 176; points 49.6%
+    1.4%  ds2 se1 at1      won 96, drew 5490, lost 1038; points 42.9%
+    1.1%  lf1 ds1 se1 dt1  won 74, drew 5704, lost 846; points 44.2%
+    0.8%  ds2 se1 dt1      won 50, drew 6016, lost 558; points 46.2%
+    0.3%  ds1 se1 at1 dt1  won 22, drew 5422, lost 1180; points 41.3%
+Most points: lf1 se2 dt1 57.8%.
+Best-placed composition with each unit (rank of 70): lf #1, ds #24, se #1, at #4, dt #5
+Top quartile (18, cut at 13.1%): unit types in it: lf 9, ds 0, se 13, at 10, dt 5
+
+Raid ladder: 35 raiding compositions (lf, ds, se, at) against 70 defending ones (all five), every modifier pair, balanced posture. Success = attacker wins.
+  investment (x the raid's budget): 0 | 0.1 | 0.25 | 0.5 | 0.75 | 1 | 1.25 | 1.5 | 2 | 3
+   30,000: 100.0% | 100.0% | 100.0% | 95.3% | 56.6% | 18.0% | 1.0% | 0.2% | 0.0% | 0.0%
+  120,000: 100.0% | 100.0% | 100.0% | 88.2% | 46.9% | 8.5% | 0.8% | 0.1% | 0.0% | 0.0%
+  480,000: 100.0% | 100.0% | 100.0% | 86.4% | 44.9% | 7.3% | 0.8% | 0.1% | 0.0% | 0.0%
+  fully invested (1x, fortified, Fire Control and Evasive Manoeuvres, full readiness): 30,000 13.0%, 120,000 5.0%, 480,000 3.9%
+
+PASS  no composition wins more than 60.0% of its fights against the field: highest lf2 se2 22.8%
+FAIL  every unit type is in at least one top-quartile composition: missing ds (top 18, cut at 13.1%)
+PASS  raid success falls monotonically as defence investment rises: 30,000: never rises; 120,000: never rises; 480,000: never rises
+PASS  a fully invested defender is never guaranteed safe or guaranteed lost: 30,000: 13.0% of 9,800 raids succeed; 120,000: 5.0% of 9,800 raids succeed; 480,000: 3.9% of 9,800 raids succeed
