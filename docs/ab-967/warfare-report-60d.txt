@@ -1,0 +1,68 @@
+ISP warfare economy together (ISP-271, AB#967). BOT NUMBERS (P-PROXY): factions on fixed policies in an assumed economy; the numbers measure whether the rules let one run away, not how anybody plays.
+World: 60 days, 17 concedable systems, factions Head Start (focused, 2x budget), Focused (focused), Broad (broad), Challenger (challenger); base budget 60,000 a day, warfare income reinvested x1; locals 800 t and 20,000 of sales a day in every system.
+
+Concessions held, by day:
+  day | Head Start | Focused | Broad | Challenger
+    3 |          0 |       0 |     0 |          0
+    6 |          0 |       0 |     0 |          0
+    7 |          0 |       0 |     0 |          0
+    9 |          0 |       0 |     0 |          0
+   12 |          1 |       0 |     0 |          0
+   15 |          1 |       0 |     0 |          0
+   18 |          2 |       2 |     1 |          1
+   21 |          2 |       2 |     1 |          1
+   24 |          3 |       2 |     1 |          1
+   27 |          3 |       2 |     1 |          1
+   30 |          3 |       2 |     1 |          1
+   33 |          3 |       2 |     1 |          1
+   36 |          3 |       2 |     1 |          1
+   39 |          3 |       2 |     1 |          1
+   42 |          3 |       2 |     1 |          1
+   45 |          3 |       2 |     1 |          1
+   48 |          3 |       2 |     1 |          1
+   51 |          3 |       2 |     1 |          1
+   54 |          3 |       2 |     1 |          1
+   57 |          3 |       2 |     1 |          1
+   60 |          3 |       2 |     1 |          1
+Top faction at day 7: Head Start, 0 of 17 (0.0%)
+Top faction at day 30: Head Start, 3 of 17 (17.6%)
+Top faction at day 60: Head Start, 3 of 17 (17.6%)
+
+Each faction's warfare account over the run:
+  Head Start: control spent 7,515,068 (315,068 of it reinvested income); tariffs 529,000, upkeep 205,070, petition fees 75,000; 132 concession-days; by holdings: k1 7d, 1,161/day net; k2 4d, 2,540/day net; k3 39d, 7,837/day net
+  Focused: control spent 3,748,472 (148,472 of it reinvested income); tariffs 240,000, upkeep 94,360, petition fees 50,000; 86 concession-days; by holdings: k2 43d, 3,387/day net
+  Broad: control spent 3,692,880 (92,880 of it reinvested income); tariffs 120,000, upkeep 26,604, petition fees 25,000; 43 concession-days; by holdings: k1 43d, 2,172/day net
+  Challenger: control spent 3,695,535 (95,535 of it reinvested income); tariffs 120,000, upkeep 23,674, petition fees 25,000; 43 concession-days; by holdings: k1 43d, 2,240/day net
+  refused: nothing
+
+Concession lever (alpha-centauri's rule, 300,000 of trade a day, best rate 2%): what the k-th concession adds a day, net of the extra upkeep:
+  k1 2,200 (all k: 2,200) | k2 600 (all k: 2,800) | k3 -1,000 (all k: 1,800) | k4 -2,600 (all k: -800) | k5 -4,200 (all k: -5,000) | k6 -5,800 (all k: -10,800) | k7 -7,400 (all k: -18,200) | k8 -9,000 (all k: -27,200)
+Concession lever (alpha-centauri's rule, 3,000,000 of trade a day, best rate 2%): what the k-th concession adds a day, net of the extra upkeep:
+  k1 29,200 (all k: 29,200) | k2 27,600 (all k: 56,800) | k3 26,000 (all k: 82,800) | k4 24,400 (all k: 107,200) | k5 22,800 (all k: 130,000) | k6 21,200 (all k: 151,200) | k7 19,600 (all k: 170,800) | k8 18,000 (all k: 188,800)
+Patent lever (3 rivals each pay a 25% royalty; dearest research first): cumulative filing spend and royalties:
+  5,000 -> 45,000 (9.0x) | 30,000 -> 199,500 (6.7x) | 55,000 -> 286,500 (5.2x) | 75,000 -> 319,500 (4.3x)
+Lobbying lever (tariff cap at alpha-centauri, max shift 1, spend scale 20,000): pledge, cap moved, extra kept over the campaign:
+  5,000 -> +0 (0, 0.00x) | 20,000 -> +0.5 (32,368, 1.62x) | 50,000 -> +0.75 (49,000, 0.98x) | 100,000 -> +0.75 (49,000, 0.49x) | 200,000 -> +0.75 (49,000, 0.24x) | 500,000 -> +1 (65,072, 0.13x) | 1,000,000 -> +1 (65,072, 0.07x)
+
+Sensitivity, not a target: the same world with 10x the trade in every held system (the brake is the upkeep, sized against the trade):
+  day   6: Head Start 0, Focused 0, Broad 0, Challenger 0
+  day  12: Head Start 1, Focused 0, Broad 0, Challenger 0
+  day  18: Head Start 2, Focused 2, Broad 1, Challenger 1
+  day  24: Head Start 3, Focused 2, Broad 1, Challenger 1
+  day  30: Head Start 3, Focused 2, Broad 1, Challenger 1
+  day  36: Head Start 3, Focused 2, Broad 1, Challenger 1
+  day  42: Head Start 4, Focused 2, Broad 1, Challenger 1
+  day  48: Head Start 5, Focused 2, Broad 0, Challenger 1
+  day  54: Head Start 6, Focused 2, Broad 0, Challenger 1
+  day  60: Head Start 6, Focused 2, Broad 0, Challenger 2
+  top faction at day 30: Head Start, 3 of 17 (17.6%)
+  top faction at day 60: Head Start, 6 of 17 (35.3%)
+  Head Start: control 12,433,170 (5,233,170 reinvested); tariffs 5,920,000, upkeep 418,865
+  Focused: control 5,856,893 (2,256,893 reinvested); tariffs 2,400,000, upkeep 91,969
+  Broad: control 4,390,687 (790,687 reinvested); tariffs 810,000, upkeep 21,179
+  Challenger: control 4,724,630 (1,124,630 reinvested); tariffs 1,200,000, upkeep 24,306
+PASS    the top faction holds no more than 50% of concedable systems at day 30: Head Start holds 3 of 17 (17.6%)
+PASS    concessions: the return does not grow without bound as holdings grow: concession number 3 is the first to lose money a day (k1 2,200, k2 600, k3 -1,000, k4 -2,600, k5 -4,200, k6 -5,800, k7 -7,400, k8 -9,000)
+PASS    patents: return per credit of filing does not grow as filing spend grows: 5,000 spent returns 9.0x; 75,000 spent returns 4.3x
+PASS    lobbying: return per credit pledged does not grow as the pledge grows: 5,000: +0 cap, 0.00x; 20,000: +0.5 cap, 1.62x; 50,000: +0.75 cap, 0.98x; 100,000: +0.75 cap, 0.49x; 200,000: +0.75 cap, 0.24x; 500,000: +1 cap, 0.13x; 1,000,000: +1 cap, 0.07x
+NOT RUN arbitration: an award is bounded by its claim (not played): awards are the proven overcharge or shortfall, three open cases a pair (server/arbitration.js); this world makes no records to claim on
