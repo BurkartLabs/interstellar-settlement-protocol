@@ -30,7 +30,8 @@ import { loadConglomerate, onConglomerateChange, openBureau, refreshStations, re
 import { renderRefinery } from "./views/refinery.js";
 import { bindResearchForms, renderQueue, renderResearchTotals, renderTechTree } from "./views/research.js";
 import { connectViews, isPlayerTraveling, pushFeedback, renderFeedbackLog, revealUnderHeader } from "./views/shared.js";
-import { commsMeaning } from "./commsProtocol.js"; // ISP-255c1 (AB#4830)
+import { commsMeaning } from "./commsProtocol.js";
+import { noteLevel, startTelemetry } from "./telemetry.js"; // ISP-256 (AB#952) // ISP-255c1 (AB#4830)
 import { loadBeltCompositionsIntoStarmap, loadTariffs, starmap } from "./views/starmap.js";
 import { loadPatentRegister } from "./views/patentOffice.js"; // ISP-237 (AB#932): the Refinery's royalty quote reads it
 import { bindBuildingActions, refreshOpenLeaseView, renderStation } from "./views/station.js";
@@ -124,6 +125,7 @@ import { probeReadyText } from "./miningFeedback.js";
 // Timings track and scripts/bench-render.mjs reads. The cost is one performance.now() and one measure per render.
 function updateAllViews() {
   const start = performance.now();
+  noteLevel(appState.data?.corp?.level); // ISP-256 (AB#952): a rise in the corporation's level is rank_up
   renderAllViews();
   performance.measure("isp:updateAllViews", { start });
 }
@@ -313,6 +315,8 @@ function enterGame(mode, data, options = {}) {
   }
   appState.walkthroughCompleted = Boolean(options.walkthroughCompleted);
   appState.data = deepClone(data);
+  startTelemetry({ version: appState.appVersion }); // ISP-256 (AB#952): app_open, once a page, when the game is entered
+  noteLevel(appState.data?.corp?.level);
   appState.activeMissions = appState.data.corp?.activeMissions || [];
   appState.beltCompositions = {}; // Bug #1264: never another account's; this account's are fetched below
   appState.belts = {}; // AB#2331: likewise
@@ -385,6 +389,7 @@ async function loadBootstrap() {
   if (Array.isArray(appState.serverData?.levelLadder)) appState.levelLadder = appState.serverData.levelLadder; // AB#803
 
   const version = appState.serverData?.version;
+  appState.appVersion = version || null; // ISP-256 (AB#952): kept apart, since state:init replaces serverData wholesale
   if (version) {
     const versionLine = document.getElementById("app-version-line");
     if (versionLine) {

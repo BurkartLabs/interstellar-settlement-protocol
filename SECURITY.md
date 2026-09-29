@@ -261,3 +261,23 @@ any. `e2e/csp-report.spec.js` makes a real violation and waits for its report, s
 cannot see: a page no spec opens, and browsers other than Chromium. On 2026-09-28 the
 first 130 of 331 tests (the specs from action-receipt through hidden-views) reported 0 violations; the machine ran
 out of memory there and no worker started after it, so the rest of the suite is still owed a run.
+
+## Telemetry (ISP-256, AB#952)
+
+**What it touches.** `POST /api/telemetry` (server/routes/telemetry.js, server/telemetry.js) stores the page's
+minimum events on the data volume, one JSONL file a day, deleted after 90 days. A stored row holds only
+`{ at, event, distinct_id, session_id, app_version, platform, props }`. `distinct_id` is a random 128-bit id the
+browser keeps (public/scripts/telemetry.js), never the account id or email. The page sends events with plain fetch or
+sendBeacon, never apiFetch, so no Authorization header ties an event to an account. No IP address, user agent or
+account is stored. An error's message has URLs (which carry `?account=`), emails and account ids removed before
+it leaves the page, and is cut to 300 characters.
+
+**Who can reach it, and if they are hostile.** Anyone, as anyone can load the page: it is listed in
+tests/security/public-surface.js. Its own rate-limit group allows 30 requests a minute per address
+(server/rateLimitConfig.js, `telemetry`). Each request carries at most 20 events and 8 KB (a larger body is 413 before
+any route runs). Only the seven listed event names are accepted, each with exactly its properties and types, and the
+ids must be 32 hex digits. A hostile client can add noise to the numbers from its own address, within the limit; it
+cannot write anything but a well-formed row, and cannot reach any other file.
+
+**Fail closed.** An invalid event is dropped whole and counted in the answer, never stored raw. A store that cannot be
+written answers 503 and keeps nothing.

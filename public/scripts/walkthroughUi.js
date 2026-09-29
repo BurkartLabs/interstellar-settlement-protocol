@@ -10,6 +10,7 @@ import { showDialogue, closeDialogue } from "./dialogue.js";
 import { apiFetch, parseJsonResponse } from "./apiClient.js";
 import { deepClone } from "./helpers.js";
 import { scrollBehavior } from "./motion.js"; // AB#1760
+import { noteFunnelStep } from "./telemetry.js"; // ISP-256 (AB#952)
 
 // Finishing or resetting the walkthrough redraws the page and moves between tabs, which app.js owns; it hands those
 // over at load (connectWalkthroughUi) rather than this module importing the entry point back.
@@ -206,6 +207,7 @@ export async function resetWalkthroughForAccount() {
 
 function renderWalkthroughStep() {
   const step = walkthroughSteps[appState.walkthroughIndex];
+  if (step?.id) noteFunnelStep(step.id); // ISP-256 (AB#952): the onboarding funnel
   if (!step) {
     stopWalkthrough();
     return;
