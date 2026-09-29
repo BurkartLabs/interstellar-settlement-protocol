@@ -89,7 +89,7 @@ describe("starting a station project (ISP-210, AB#905)", () => {
     const view = (await g.m.api.get(g.url(g.m))).body;
     expect(view.project.name).toBe(res.body.project.name);
     expect(events.some((e) => e.conglomerateId === g.c.id && e.event === "conglomerate:station-project" && e.payload.kind === "started")).toBe(true);
-    expect(listAccountNotifications(g.m.id).notifications.some((n) => n.title === `${g.c.name} is building a station`)).toBe(true);
+    expect(listAccountNotifications(g.m.id).notifications.find((n) => n.title === `${g.c.name} is building a station`)?.protocol).toEqual({ meaning: "queued", screen: "conglomerate" }); // ISP-254 (AB#4821): Lodged
   });
 
   it("refuses each thing the design rules out, each with its own reason, and files nothing", async () => {
@@ -168,21 +168,27 @@ describe("funding it (ISP-210, AB#905)", () => {
     g.m.corp().finances.credits = 1_000;
     const before = holdings(g);
     const cases = [
-      [{ source: "own", credits: 1_001 }, 409, "insufficient-credits"],
-      [{ source: "own", credits: BOM.credits + 1 }, 409, "over-need"],
-      [{ source: "own", item: "Structural Alloys", quantity: 1 }, 409, "insufficient-stock"],
-      [{ source: "own", item: "Iron Ore", quantity: 1 }, 409, "not-needed"],
+      // AB#4821 (ISP-6): each says what to do next
+      [{ source: "own", credits: 1_001 }, 409, "insufficient-credits", /it cannot put in 1,001\. Put in 1,000 or less\.$/],
+      [{ source: "own", credits: BOM.credits + 1 }, 409, "over-need", /more credits\. Put in [\d,]+ or less\.$/],
+      [{ source: "own", item: "Structural Alloys", quantity: 1 }, 409, "insufficient-stock", /Bring more there, or put in fewer\.$/],
+      [{ source: "own", item: "Iron Ore", quantity: 1 }, 409, "not-needed", /Choose one of the goods its bill lists\.$/],
       [{ source: "own", credits: 10, item: "Structural Alloys", quantity: 1 }, 400, "credits-or-goods"],
       [{ source: "own" }, 400, "credits-or-goods"],
       [{ source: "treasury", item: "Structural Alloys", quantity: 1 }, 403, "not-permitted"] // a member, and the pool: permission first
     ];
-    for (const [body, status, code] of cases) {
+    for (const [body, status, code, next] of cases) {
       const res = await contribute(g.m, body);
       expect(res.status, JSON.stringify(body)).toBe(status);
       if (code) expect(res.body.code, JSON.stringify(body)).toBe(code);
+      if (next) expect(res.body.error, JSON.stringify(body)).toMatch(next);
     }
-    expect((await contribute(g.f, { source: "treasury", credits: g.c.treasury.credits + 1 })).body.code).toBe("insufficient-treasury");
-    expect((await contribute(g.f, { source: "hangar", item: "Structural Alloys", quantity: 1 })).body.code).toBe("insufficient-hangar");
+    const overTreasury = (await contribute(g.f, { source: "treasury", credits: g.c.treasury.credits + 1 })).body;
+    expect(overTreasury.code).toBe("insufficient-treasury");
+    expect(overTreasury.error).toMatch(/credits\. Put in [\d,]+ or less\.$/); // AB#4821 (ISP-6)
+    const overHangar = (await contribute(g.f, { source: "hangar", item: "Structural Alloys", quantity: 1 })).body;
+    expect(overHangar.code).toBe("insufficient-hangar");
+    expect(overHangar.error).toMatch(/Put in 0 or fewer\.$/);
     expect((await contribute(g.f, { source: "treasury", item: "Structural Alloys", quantity: 1 })).body.code).toBe("treasury-holds-credits");
     // an outsider, and a member of another conglomerate, cannot reach this project at all
     const other = await guild();
@@ -225,7 +231,8 @@ describe("building it (ISP-210, AB#905)", () => {
     expect(g.c.stationProject).toBeNull();
     const pub = (await request(g.f.app).get("/api/stations")).body.stations.find((s) => s.id === station.id);
     expect(pub).toMatchObject({ ownerType: "conglomerate", ownerName: g.c.name });
-    for (const p2 of [g.f, g.d, g.m]) expect(listAccountNotifications(p2.id).notifications.some((n) => n.title === `${station.name} is open`), p2.id).toBe(true);
+    for (const p2 of [g.f, g.d, g.m]) expect(listAccountNotifications(p2.id).notifications.find((n) => n.title === `${station.name} is open`)?.protocol, p2.id).toEqual({ meaning: "complete", screen: "conglomerate" }); // AB#4821: Concluded
+    expect(listAccountNotifications(g.d.id).notifications.find((n) => n.title === `${p.name} is fully funded`)?.protocol).toEqual({ meaning: "active", screen: "conglomerate" }); // In force
     expect(events.some((e) => e.conglomerateId === g.c.id && e.event === "conglomerate:station-built")).toBe(true);
     // twice is once
     const count = allStations().length;
@@ -283,6 +290,7 @@ describe("cancelling it (ISP-210, AB#905)", () => {
     const res = await g.f.api.post(`${g.url(g.f)}/cancel`).send({});
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(g.c.stationProject).toBeNull();
+    expect(listAccountNotifications(g.m.id).notifications.find((n) => /was cancelled$/.test(n.title))?.protocol).toEqual({ meaning: "cancelled", screen: "conglomerate" }); // AB#4821: Withdrawn
     expect(holdings(g)).toEqual(before);
     expect(g.m.corp().finances.credits).toBe(mBefore.credits);
     expect(g.m.corp().inventory[C.homeStationId]["Structural Alloys"]).toBe(mBefore.alloys);
