@@ -121,8 +121,9 @@ export function reachable(unlockedTech, fromStationId, toStationId) {
 
 const unitsText = (units) => FLEET_UNIT_IDS.filter((id) => unitCount(units, id) > 0).map((id) => `${unitCount(units, id)} ${UNITS[id].name}`).join(", ");
 const utc = (t) => utcTime(t, { withDate: true }); // ISP-249 (AB#945)
-function tell(accountId, title, body) {
-  const n = accountId ? addAccountNotification(accountId, { type: "military", title, body }) : null;
+// ISP-254 (AB#4817): `meaning` is the notice's protocol on the Fleet screen (public/scripts/protocol.js)
+function tell(accountId, title, body, meaning = null) {
+  const n = accountId ? addAccountNotification(accountId, { type: "military", title, body, ...(meaning ? { protocol: { meaning, screen: "fleet" } } : {}) }) : null;
   if (n) emitToAccount(accountId, "notifications:new", { accountId, notification: n });
 }
 
@@ -188,7 +189,7 @@ export function declareRaid(accountId, input = {}, now = Date.now()) {
   mutateState((draft) => { raidsDraft(draft).push(raid); });
 
   const station = stationById(targetStationId).name;
-  tell(targetAccountId, "Raid incoming", `${raid.attackerName ?? "A corporation"} has declared a raid on your holdings at ${station}. Its fleet arrives ${utc(arrivesAt)}: ${unitsText(units)}. Whatever stands at ${station} then defends automatically; you can reinforce before it arrives.`);
+  tell(targetAccountId, "Raid incoming", `${raid.attackerName ?? "A corporation"} has declared a raid on your holdings at ${station}. Its fleet arrives ${utc(arrivesAt)}: ${unitsText(units)}. Whatever stands at ${station} then defends automatically; you can reinforce before it arrives.`, "active");
   return { ok: true, raid: raidView(raid) };
 }
 
@@ -208,7 +209,7 @@ export function recallRaid(accountId, raidId, now = Date.now()) {
     if (f) f.transit = { fromStationId: raid.targetStationId, toStationId: raid.originStationId, toSystemId: stationById(raid.originStationId)?.systemId ?? "sol", departedAt: now, arrivesAt: returnsAt };
   }, { sanitize: false });
   mutateState((draft) => { Object.assign(raidsDraft(draft).find((r) => r.id === raid.id), { state: "recalled", recalledAt: now, returnsAt }); });
-  tell(accountIdOfCorp(raid.targetCorpId), "Raid called off", `${raid.attackerName ?? "The attacking corporation"} has recalled its raid on your holdings at ${stationById(raid.targetStationId)?.name ?? "the station"}.`);
+  tell(accountIdOfCorp(raid.targetCorpId), "Raid called off", `${raid.attackerName ?? "The attacking corporation"} has recalled its raid on your holdings at ${stationById(raid.targetStationId)?.name ?? "the station"}.`, "cancelled");
   return { ok: true, raid: raidView({ ...raid, state: "recalled", returnsAt }) };
 }
 
