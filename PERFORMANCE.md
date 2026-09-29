@@ -201,3 +201,26 @@ sanitising an already sanitised account.
 p95 did not move, because the handler no longer sets it. A request that arrives during a ticker run waits for the
 whole run: financialSnapshotTick p95 663 ms, miningTick 488 ms. That is Bug #4859, whose proposed fix is to walk the
 accounts in slices and yield between them.
+
+## Tickers that skip an account with nothing due (Bug #4848)
+
+Seven tickers (travel, shipments, research, CEO insight and fabrication every 5 s, refinery and expeditions every
+10 s) called `mutateAccountState` for every account on every run. That settles mining, closes days, refreshes the tax,
+evaluates the level and schedules a snapshot write, even when the ticker then found nothing due. Each now asks a pure
+predicate (`server/game/tickDue.js`) on a read-only look (`peekCorp`, `peekState`) and skips the account. miningTick
+still settles every account.
+
+**2026-09-29, 200 corporations, 5 minutes, 0.5 CPU, `/data` in memory, profiled; one run each, back to back** (bot numbers):
+
+| | before | after |
+|---|---|---|
+| the seven tickers, p50 per run | 13.0 to 16.2 ms | 0.05 to 0.46 ms |
+| the seven tickers, p95 per run | 74 to 191 ms | 0.30 to 1.34 ms |
+| every timer together, share of the run | 16.6% | 11.0% |
+| accounts snapshot writes | 158 (0.53 a second, 1,095 MB) | 69 (0.23 a second, 478 MB) |
+| `mutateAccountState` runs (profile) | 1,367 | 988 |
+| GET /api/accounts/:id p95 | 739 ms | 411 ms |
+| CPU mean (docker stats) | 16.5% | 13.7% |
+
+A ticker's single slowest run can still be long: the first run completes every clone's research and CEO programme
+at once (max 299 ms and 300 ms), because the clones were all queued at the same moment.
