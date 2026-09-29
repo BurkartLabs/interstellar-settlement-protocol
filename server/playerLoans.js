@@ -219,7 +219,8 @@ function recoveryView(corp, loanId) {
 }
 
 const loanSummary = (loan) => ({
-  id: loan.id, ref: loan.ref ?? null, principal: loan.principal, ratePct30: loan.ratePct30, // ref: ISP-249 (AB#945), drawn by ISP-251 (AB#947) termDays: loan.termDays, dailyPayment: loan.dailyPayment,
+  id: loan.id, ref: loan.ref ?? null, principal: loan.principal, ratePct30: loan.ratePct30, // ref: ISP-249 (AB#945), drawn by ISP-251 (AB#947)
+  termDays: loan.termDays, dailyPayment: loan.dailyPayment, // Bug #4833: these sat after the comment above, and were lost
   balance: loan.balance, arrears: loan.arrears || 0, state: loan.state, paymentsMade: loan.paymentsMade, nextDueAt: loan.nextDueAt,
   arrearsSince: loan.arrearsSince ?? null, defaultedAt: loan.defaultedAt ?? null, openedAt: loan.openedAt, closedAt: loan.closedAt ?? null
 });

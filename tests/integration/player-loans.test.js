@@ -65,6 +65,22 @@ describe("posting and cancelling an offer", () => {
   });
 });
 
+describe("the loans as the board reads them (Bug #4833)", () => {
+  it("each side's summary carries the loan's term and daily payment, which the cards print", async () => {
+    const a = await corp(100_000), b = await corp(1_000);
+    const o = offer(a, { principal: 10_000, ratePct30: 3, termDays: 30 });
+    const taken = acceptLoanOffer(b.id, o.offer.id, Date.now());
+    expect(taken.ok, taken.error).toBe(true);
+    const lent = (await a.api.get(`${a.base}/player-loans`)).body.lent.find((l) => l.id === taken.loan.id);
+    const borrowed = (await b.api.get(`${b.base}/player-loans`)).body.borrowed.find((l) => l.id === taken.loan.id);
+    for (const summary of [lent, borrowed]) {
+      expect(summary.termDays).toBe(30);
+      expect(summary.dailyPayment).toBe(taken.loan.dailyPayment);
+      expect(summary.dailyPayment).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe("accepting an offer", () => {
   it("releases the escrow to the borrower, takes the 0.5% fee, and writes the loan with the lender as counterparty", async () => {
     const a = await corp(100_000), b = await corp(1_000);
