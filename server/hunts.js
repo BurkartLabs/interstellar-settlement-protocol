@@ -69,9 +69,9 @@ export function huntRefusal(fleet, systemId, now = Date.now()) {
   if (fleet.contract) return { status: 409, error: "That fleet is offered or hired out, and takes no order from you until its contract ends." };
   if (fleet.escort) return { status: 409, error: "That fleet is escorting an expedition until it comes home." };
   if (fleet.hunt) return { status: 409, error: "That fleet is already hunting." };
-  if (fleet.transit && now < Number(fleet.transit.arrivesAt)) return { status: 409, error: "That fleet is travelling." };
+  if (fleet.transit && now < Number(fleet.transit.arrivesAt)) return { status: 409, error: "That fleet is travelling. Hunt with it once it has arrived." };
   if (stationById(fleet.stationId)?.systemId !== systemId) return { status: 409, error: "A fleet hunts a belt in the system it is stationed in: deploy it there first." };
-  if (!forceSupply(unitsOf(fleet.units))) return { status: 409, error: "That fleet has no ships to hunt with." };
+  if (!forceSupply(unitsOf(fleet.units))) return { status: 409, error: "That fleet has no ships to hunt with. Choose a fleet with ships." };
   return null;
 }
 
@@ -111,7 +111,7 @@ export function declareHunt(accountId, input = {}, now = Date.now()) {
       .filter((h) => Number(h.declaredAt) > now - HUNT_RATE.hours * HOUR).length;
     if (recent >= HUNT_RATE.max) { result = { ok: false, status: 429, error: `At most ${HUNT_RATE.max} hunts may be declared in an hour.` }; return; }
     const provisions = huntProvisions(units);
-    if ((Number(c.finances?.credits) || 0) < provisions) { result = { ok: false, status: 400, error: `The hunt's provisions cost ${provisions.toLocaleString("en-US")} credits.` }; return; }
+    if ((Number(c.finances?.credits) || 0) < provisions) { result = { ok: false, status: 400, code: "insufficient-credits", error: `The hunt's provisions cost ${provisions.toLocaleString("en-US")} credits; you have ${Math.floor(Number(c.finances?.credits) || 0).toLocaleString("en-US")}. Send a smaller fleet, or sell goods to raise the credits.` }; return; } // ISP-255d (AB#4826): the code and the next step
     if (provisions) applyCredits(c, -provisions, "expeditions"); // provisions, as an escort's: a sink
     fleet.hunt = {
       id: `hunt-${now}-${Math.random().toString(36).slice(2, 8)}`, beltKey, systemId, density, rats: group,
@@ -152,8 +152,9 @@ export function huntOutcome(units, group, modifiers = {}) {
   };
 }
 
-function tell(accountId, title, body) {
-  const n = addAccountNotification(accountId, { type: "military", title, body });
+/** `meaning` is the protocol line's (ISP-255d, AB#4826): a hunt is on the Starmap, where it is planned and reported. */
+function tell(accountId, title, body, meaning) {
+  const n = addAccountNotification(accountId, { type: "military", title, body, protocol: { meaning, screen: "starmap" } });
   if (n) emitToAccount(accountId, "notifications:new", { accountId, notification: n });
 }
 
@@ -203,9 +204,9 @@ export function resolveHunts(accountId, now = Date.now()) {
       });
     }
     const where = SYSTEMS_BY_ID.get(report.systemId)?.name || report.systemId;
-    if (report.outcome === "attacker") tell(accountId, "Hunt won", `Your fleet cleared the Rats at ${where}. The ISA paid a bounty of ${report.bounty.toLocaleString("en-US")} credits, and the belt is quiet until ${utc(report.quietUntil)}.`);
-    else if (report.outcome === "already-cleared") tell(accountId, "Hunt found nothing", `Another corporation had already cleared the Rats at ${where}. Your fleet is back.`);
-    else tell(accountId, report.outcome === "draw" ? "Hunt broke off" : "Hunt lost", `Your fleet did not clear the Rats at ${where}. No bounty is paid, and the belt is not quiet.`);
+    if (report.outcome === "attacker") tell(accountId, "Hunt won", `Your fleet cleared the Rats at ${where}. The ISA paid a bounty of ${report.bounty.toLocaleString("en-US")} credits, and the belt is quiet until ${utc(report.quietUntil)}.`, "complete");
+    else if (report.outcome === "already-cleared") tell(accountId, "Hunt found nothing", `Another corporation had already cleared the Rats at ${where}. Your fleet is back.`, "failed");
+    else tell(accountId, report.outcome === "draw" ? "Hunt broke off" : "Hunt lost", `Your fleet did not clear the Rats at ${where}. No bounty is paid, and the belt is not quiet.`, "failed");
     reports.push(report);
   }
   return reports;

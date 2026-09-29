@@ -18,7 +18,7 @@ export const ESCORT_REFUSALS = {
   "escort-hunting": "That fleet is hunting Rats until it comes back.", // AB#991
   "escort-travelling": "That fleet is travelling. Escort with it once it has arrived.",
   "escort-elsewhere": "An escort must be stationed in the belt's system. Deploy the fleet there first.",
-  "escort-empty": "That fleet has no units to escort with.",
+  "escort-empty": "That fleet has no units to escort with. Choose a fleet with ships.",
   // AB#4678: a hired escort
   "no-such-contract": "Choose one of the fleets you have hired to escort the probe.",
   "escort-not-permitted": "That contract does not permit escorting: only a contract for pve or raids does."

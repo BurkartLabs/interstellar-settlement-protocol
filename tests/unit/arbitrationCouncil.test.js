@@ -35,8 +35,8 @@ describe("the Council's chambers (AB#939)", () => {
 
   it("shows a party its case: status in the plain word and the protocol phrase, the evidence, and the ruling in the Council's words", () => {
     const t = text(chambersHtml({ state: { type: null }, cases: [CASE], docket: [] }, ctx));
-    for (const s of ["GAC-2026-000001", "Mercenary readiness: Nova Freight v. Halcyon Mining", "Complete", "Upheld: 6,667 credits", "Concluded 2147-09-30 00:00 UTC", "You are the claimant", "Evidence as filed (the parties only)", "Readiness below hire readiness (90) for 48 of 72 contract hours"]) expect(t).toContain(s);
-    expect(caseStatus({ state: "answering", decideAt: T }).plain).toBe("Pending");
+    for (const s of ["GAC-2026-000001", "Mercenary readiness: Nova Freight v. Halcyon Mining", "Complete Concluded", "Upheld: 6,667 credits", "Ruled 2147-09-30 00:00 UTC", "You are the claimant", "Evidence as filed (the parties only)", "Readiness below hire readiness (90) for 48 of 72 contract hours"]) expect(t).toContain(s);
+    expect(caseStatus({ state: "answering", decideAt: T })).toMatchObject({ plain: "Pending", meaning: "pending" }); // ISP-255d (AB#4826): the plain word, then its protocol line
   });
 
   it("offers the respondent its cure inside the window, and nobody else", () => {
@@ -49,7 +49,7 @@ describe("the Council's chambers (AB#939)", () => {
 
   it("draws the public docket from its public fields only", () => {
     const t = text(docketHtml([{ ref: "GAC-2026-000002", type: "tariff-overcharge", claimant: "Drift Salvage", respondent: "Halcyon Mining", state: "closed", ruling: { outcome: "dismissed", amount: 0 }, amountClaimed: 0, filedAt: T, paid: 0 }], ctx));
-    expect(t).toContain("GAC-2026-000002 Complete Dismissed Tariff overcharge: Drift Salvage v. Halcyon Mining Filed 2147-10-01 12:00 UTC");
+    expect(t).toContain("GAC-2026-000002 Complete Concluded Dismissed Tariff overcharge: Drift Salvage v. Halcyon Mining Filed 2147-10-01 12:00 UTC");
     expect(evidenceHtml("tariff-overcharge", null)).toBe("");
   });
 });

@@ -65,6 +65,8 @@ describe("mercenary-readiness (AB#937)", () => {
     expect(r.case.ref).toMatch(/^ARB-\d{4}-[0-9A-HJKMNP-TV-Z]{6}$/); // ISP-249 (AB#945): the reference format, opaque
     expect(renter.credits()).toBe(credits - 1_000); // the fee, held until the ruling
     expect(listAccountNotifications(owner.id).notifications.some((n) => n.title === "Galactic Arbitration Council: case filed" && n.body.includes(r.case.ref))).toBe(true);
+    // ISP-255d (AB#4826): the notice carries Filed, awaiting review on the Council's screen
+    expect(listAccountNotifications(owner.id).notifications.find((n) => n.title === "Galactic Arbitration Council: case filed").protocol).toEqual({ meaning: "pending", screen: "building-galactic-arbitration-council" });
     // the escrow is frozen: the term ends and nothing is released
     const ownerCredits = owner.credits();
     settleContracts(contract.endsAt + H);
@@ -241,7 +243,9 @@ describe("filing's refusals and the public docket (AB#937)", () => {
     }
     const recordId = `${pat.id}~${user.holder.id}`;
     mutateAccountState(holder.id, (s) => { s.corp.finances.credits = 10; }, { sanitize: false, settleMining: false });
-    expect(fileCase(holder.id, { type: "patent-royalty", recordId }).refused.code).toBe("cannot-pay");
+    const unpaid = fileCase(holder.id, { type: "patent-royalty", recordId }).refused;
+    expect(unpaid.code).toBe("cannot-pay");
+    expect(unpaid.error).toMatch(/Sell goods or finish an assignment to raise the credits, then file it\.$/); // ISP-255d (AB#4826): ISP-6's next step
     expect(await docket()).toEqual([]);
     // the respondent on the claimant's own side: the claimant itself as the user (a conglomerate partner reads the same)
     const selfId = `${pat.id}~${holder.holder.id}`;

@@ -204,6 +204,7 @@ function notifyRespondent(c) {
   const amount = c.amountClaimed > 0 ? ` The amount claimed is ${c.amountClaimed.toLocaleString("en-US")} credits.` : "";
   addAccountNotification(account.id, {
     type: "finance",
+    protocol: { meaning: "pending", screen: "building-galactic-arbitration-council" }, // ISP-255d (AB#4826): filed, awaiting the rule
     title: "Galactic Arbitration Council: case filed",
     body: `${c.ref}. ${c.claimant.name} has filed a ${LABELS[c.type]} case against ${c.respondent.name} with the Galactic Arbitration Council.${amount} The evidence is the ISA's own record. The response window closes ${utcTime(c.windowEndsAt, { withDate: true })}; the Council then applies its published rule.`
   });
@@ -225,14 +226,14 @@ function prepare(accountId, { type, recordId } = {}, now = Date.now()) {
     ev = EVIDENCE[type](corp, String(recordId ?? ""), now);
   } catch (error) {
     console.error(`[arbitration] the evidence for a ${type} case could not be read: ${error?.message || error}`);
-    return no(503, "evidence-unavailable", "The Council could not read the evidence, so nothing was filed and no fee was taken.");
+    return no(503, "evidence-unavailable", "The Council could not read the evidence, so nothing was filed and no fee was taken. Try again in a moment.");
   }
   if (ev.refused) return ev;
   if (sameSide(corp, ev.respondent)) return no(409, "own-side", "You cannot file against yourself or your own conglomerate: the record has no other party.");
   if (hasCase(type, ev.recordRef)) return no(409, "duplicate", "A case of this kind has already been filed on that record: one case per record.");
   const claimant = corpParty(corp);
   const openAgainst = store.cases.filter((c) => OPEN.has(c.state) && keyOf(c.claimant) === keyOf(claimant) && keyOf(c.respondent) === keyOf(ev.respondent)).length;
-  if (openAgainst >= terms().maxOpenCasesPerPair) return no(409, "too-many", `You already have ${openAgainst} open cases against ${ev.respondent.name}, the most the Council hears at once.`);
+  if (openAgainst >= terms().maxOpenCasesPerPair) return no(409, "too-many", `You already have ${openAgainst} open cases against ${ev.respondent.name}, the most the Council hears at once. File again once one of them is ruled.`);
   return { corp, claimant, ev, fee: ev.fee ?? councilFee(ev.amount, terms()) };
 }
 
@@ -256,7 +257,7 @@ export function fileCase(accountId, { type, recordId } = {}, now = Date.now()) {
   const { claimant, ev, fee } = p;
   const id = createId("gac");
   const held = settleTransfer({ fromAccountId: accountId, toAccountId: `escrow:${id}`, credits: fee, reason: "escrow-hold", idempotencyKey: `${id}:fee` }, now);
-  if (!held.ok) return no(402, "cannot-pay", `Filing costs ${fee.toLocaleString("en-US")} credits, held until the ruling.`);
+  if (!held.ok) return no(402, "cannot-pay", `Filing costs ${fee.toLocaleString("en-US")} credits, held until the ruling. Sell goods or finish an assignment to raise the credits, then file it.`);
   const c = {
     id, ref: nextRef(now, id), type, recordRef: ev.recordRef, claimant, respondent: ev.respondent,
     filedAt: now, windowEndsAt: now + terms().responseHours * HOUR, amountClaimed: ev.amount, evidence: ev.evidence,
@@ -365,7 +366,7 @@ function collect(c, party, amount, now) {
         state.corp.councilDebts.push({ ref, caseRef: c.ref, claimant: { type: c.claimant.type, id: c.claimant.id }, owed: left, collected: 0, forwarded: 0, at: now, withholdPct: WARFARE_CATALOG.dumping.withholdPct });
       }, { sanitize: false });
       c.debts = [...(c.debts || []), { ref, party: { type: party.type, id: party.id }, owed: left }];
-      notifyParty(party, `${c.ref}: Arbitration Council debt recorded`, `${c.ref}. ${left.toLocaleString("en-US")} credits of the Council's award could not be paid from ISA-held income and are recorded as a debt to ${c.claimant.name}. ${WARFARE_CATALOG.dumping.withholdPct}% of the net proceeds of each exchange sale, shared with any ITC duty owed, is withheld toward it until it is paid. No interest is charged. It counts as debt in your credit rating.`);
+      notifyParty(party, "owed", `${c.ref}: Arbitration Council debt recorded`, `${c.ref}. ${left.toLocaleString("en-US")} credits of the Council's award could not be paid from ISA-held income and are recorded as a debt to ${c.claimant.name}. ${WARFARE_CATALOG.dumping.withholdPct}% of the net proceeds of each exchange sale, shared with any ITC duty owed, is withheld toward it until it is paid. No interest is charged. It counts as debt in your credit rating.`);
     }
   }
   return { income: fromIncome, debt: left };
@@ -419,9 +420,10 @@ function forwardDebts(c, now) {
   return !open;
 }
 
-function notifyParty(party, title, body) {
+/** `meaning` is the protocol line's (ISP-255d, AB#4826), on the Arbitration Council's screen. */
+function notifyParty(party, meaning, title, body) {
   const account = accountOf(party);
-  if (account) addAccountNotification(account.id, { type: "finance", title, body });
+  if (account) addAccountNotification(account.id, { type: "finance", protocol: { meaning, screen: "building-galactic-arbitration-council" }, title, body });
 }
 
 /** Rule on one case and enforce it; leaves it pending (with `alert`) when its rule cannot be evaluated. */
@@ -462,7 +464,7 @@ function rule(c, now) {
   if (c.state === "enforcing" && forwardDebts(c, now)) c.state = "closed";
   const text = `${c.ref}. ${c.ruling.reason} ${r.outcome === "upheld" ? (r.amount > 0 ? `Upheld: ${r.amount.toLocaleString("en-US")} credits awarded to ${c.claimant.name}.` : `Upheld: ${c.ruling.order}.`) : "Dismissed."} ${toSink ? `The filing fee of ${c.feePaid.toLocaleString("en-US")} credits is forfeited.` : `The filing fee of ${c.feePaid.toLocaleString("en-US")} credits is returned to the claimant.`}`;
   c.ruling.text = text;
-  for (const p of [c.claimant, c.respondent]) notifyParty(p, `${c.ref}: Arbitration Council ruling`, text);
+  for (const p of [c.claimant, c.respondent]) notifyParty(p, "complete", `${c.ref}: Arbitration Council ruling`, text);
 }
 
 /**
@@ -507,13 +509,13 @@ export function cureCase(accountId, ref, now = Date.now()) {
   if (!claimant) return no(409, "no-claimant", "The claimant no longer exists.");
   if (c.amountClaimed > 0) {
     const paid = settleTransfer({ fromAccountId: accountId, toAccountId: claimant.id, credits: c.amountClaimed, reason: "arbitration-award", idempotencyKey: `${c.id}:cure` }, now);
-    if (!paid.ok) return no(402, "cannot-pay", `Curing costs ${c.amountClaimed.toLocaleString("en-US")} credits, paid to ${c.claimant.name} at once.`);
+    if (!paid.ok) return no(402, "cannot-pay", `Curing costs ${c.amountClaimed.toLocaleString("en-US")} credits, paid to ${c.claimant.name} at once. Sell goods to raise the credits, then cure it before the response window closes.`);
   }
   if (c.feePaid > 0) settleTransfer({ fromAccountId: c.feeEscrow, toAccountId: claimant.id, credits: c.feePaid, reason: "escrow-release", idempotencyKey: `${c.id}:fee-out` }, now);
   if (c.frozenContract) unfreezeContractEscrow(c.frozenContract);
   Object.assign(c, { state: "closed", paid: c.amountClaimed, ruling: { outcome: "cured", amount: c.amountClaimed, order: null, at: now, reason: "Cured by the respondent inside the response window.", text: `${c.ref}. Cured by ${c.respondent.name}: ${c.amountClaimed.toLocaleString("en-US")} credits paid to ${c.claimant.name}, and the filing fee returned.` } });
   save();
-  notifyParty(c.claimant, `${c.ref}: case cured`, c.ruling.text);
+  notifyParty(c.claimant, "complete", `${c.ref}: case cured`, c.ruling.text);
   return { case: partyView(c) };
 }
 
