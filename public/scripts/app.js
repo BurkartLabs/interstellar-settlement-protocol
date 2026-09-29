@@ -6,10 +6,11 @@ import { escapeHtml, bootFailureHtml } from "./html.js";
 import { appState, IS_DEV_ACCESS, techTree } from "./state.js";
 import { loadSectionCodes } from "./sectionCodes.js"; // ISP-248 (AB#944)
 import { navigationFor } from "./navigation.js"; // ISP-112 (AB#804)
-import { connectApiClient, socket, reauthenticateSocket, persistSession, clearSession, redirectToLoginPage, handleSessionExpired, createInvalidSessionError, hydrateSession, refreshSessionToken, apiFetch, parseJsonResponse } from "./apiClient.js";
+import { connectApiClient, socket, connectSocket, reauthenticateSocket, persistSession, clearSession, redirectToLoginPage, handleSessionExpired, createInvalidSessionError, hydrateSession, refreshSessionToken, apiFetch, parseJsonResponse } from "./apiClient.js";
 import { toCurrency, deepClone } from "./helpers.js";
 
 import { connectWalkthroughUi, hasSeenWalkthroughOffer, noteWalkthroughEvent, promptWalkthroughOffer } from "./walkthroughUi.js";
+import { offersFirstDay } from "./walkthrough.js"; // Bug #4885
 // AB#739 (ISP-53): one module per tab, and the shared pieces they use.
 import { renderAssets } from "./views/assets.js";
 import { renderFleet } from "./views/fleet.js"; // ISP-175 (AB#869)
@@ -352,8 +353,7 @@ function enterGame(mode, data, options = {}) {
   if (
     options.autoPromptWalkthrough !== false &&
     (mode === "new" || mode === "account") &&
-    !appState.walkthroughCompleted &&
-    !hasSeenWalkthroughOffer(appState.accountId)
+    offersFirstDay({ walkthroughCompleted: appState.walkthroughCompleted, seenHere: hasSeenWalkthroughOffer(appState.accountId), corp: appState.data?.corp }) // Bug #4885
   ) {
     promptWalkthroughOffer();
   }
@@ -772,6 +772,7 @@ function bindRealtimeEvents() {
 // AB#716: imported beside its one use, away from the import block that parallel pull requests edit.
 import { bindPriceChart } from "./priceChart.js";
 import { installNumberAcknowledgement } from "./numberChange.js"; // AB#745
+import { appStylesReady } from "./appStyles.js"; // Bug #4839
 
 async function boot() {
   hydrateSession();
@@ -780,7 +781,6 @@ async function boot() {
   bindCollapsibleSections();
   bindTabs();
   bindForms();
-  bindRealtimeEvents();
   bindGlobalControls();
   bindBuildingActions();
   bindOperations(); // AB#2471: the Station's and Operations' subpages
@@ -793,11 +793,16 @@ async function boot() {
   });
 
   try {
-    await Promise.all([loadBootstrap(), loadStationRegistry()]);
-
     const url = new URL(window.location.href);
     const accountId = url.searchParams.get("account") || appState.accountId;
     const shouldDummyLogin = url.searchParams.get("dummy") === "1";
+
+    // Bug #4840: the logged-out landing uses none of the game's data or its socket. Only a visit that is opening the
+    // game (an account to restore, or the dev dummy login) loads the bootstrap, the station registry and the socket.
+    if (!accountId && !(shouldDummyLogin && IS_DEV_ACCESS)) return;
+    // Bug #4839: and the whole stylesheet, which the landing no longer blocks on, so the game never draws without it
+    await Promise.all([loadBootstrap(), loadStationRegistry(), connectSocket(), appStylesReady]);
+    bindRealtimeEvents();
 
     if (shouldDummyLogin) {
       if (!IS_DEV_ACCESS) {
@@ -848,5 +853,7 @@ async function boot() {
   }
 }
 
-window.addEventListener("DOMContentLoaded", boot);
+// Bug #4836: scripts/boot.js imports this only when a visit opens the game, which can be after DOMContentLoaded has fired
+if (document.readyState === "loading") window.addEventListener("DOMContentLoaded", boot);
+else boot();
 

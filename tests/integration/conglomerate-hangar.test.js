@@ -27,6 +27,7 @@ async function player(goods = { Silicates: 20_000, Nickel: 5_000 }) {
   const { app } = await getApp();
   const reg = await registerAccount(app);
   const raw = accountsStore.accounts[reg.account.id];
+  raw.createdAt = Date.now() - (C.minMemberAgeDays + 1) * DAY; // Bug #4801: registered long enough ago to join a conglomerate
   raw.state.corp.inventory = { ...(raw.state.corp.inventory || {}), [HOME]: { ...goods } };
   return { id: reg.account.id, raw, reg, corpId: raw.state.corp.publicId, api: authed(app, reg.accessToken), base: `/api/accounts/${reg.account.id}` };
 }

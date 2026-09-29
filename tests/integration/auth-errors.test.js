@@ -15,6 +15,23 @@ describe("register and login errors (Bug #1059)", () => {
     expect(again.body).toEqual({ error: "An account with this email already exists.", code: "email-taken", field: "email" });
   });
 
+  it("a +tag or a Gmail dot is the same mailbox, so it is the same account (Bug #4798)", async () => {
+    const { app } = await getApp();
+    const register = (email) => request(app).post("/api/auth/register").send({ ...account(), email });
+    const base = `alias${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+    expect((await register(`${base}+1@example.com`)).status).toBe(201);
+    for (const alias of [`${base}+2@example.com`, `${base}@example.com`, `${base.toUpperCase()}+x@Example.com`]) {
+      const res = await register(alias);
+      expect(res.status, alias).toBe(400);
+      expect(res.body.code, alias).toBe("email-taken");
+    }
+    expect((await register(`${base}.two@example.com`)).status).toBe(201); // dots count everywhere but Gmail
+    expect((await register(`${base}@gmail.com`)).status).toBe(201);
+    for (const alias of [`${base.slice(0, 3)}.${base.slice(3)}@gmail.com`, `${base}+x@googlemail.com`]) {
+      expect((await register(alias)).body.code, alias).toBe("email-taken");
+    }
+  });
+
   it("other refusals carry no code, but do name the field (ISP-66): the page shows the server's reason beside it", async () => {
     const { app } = await getApp();
     const res = await request(app).post("/api/auth/register").send({ ...account(), corpName: "" });

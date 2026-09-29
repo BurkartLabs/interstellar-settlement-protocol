@@ -24,6 +24,7 @@ async function player(credits = 3_000_000) {
   const { app } = await getApp();
   const reg = await registerAccount(app);
   const raw = accountsStore.accounts[reg.account.id];
+  raw.createdAt = Date.now() - (C.minMemberAgeDays + 1) * DAY; // Bug #4801: registered long enough ago to join a conglomerate
   raw.state.corp.finances.credits = credits;
   raw.state.corp.currentStationId = C.charterStationId;
   return { id: reg.account.id, corp: () => raw.state.corp, corpId: raw.state.corp.publicId, api: authed(app, reg.accessToken), base: `/api/accounts/${reg.account.id}` };

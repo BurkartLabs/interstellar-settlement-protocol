@@ -257,11 +257,15 @@ export function evaluateLevelProgress(profileState) {
   // Build levelProgress from milestones.json definitions
   corp.levelProgress = {};
   const allRequirements = [];
+  // Bug #4850: a metric is read once per evaluation, however many levels name it (totalMined:silicate, eight times).
+  // This ran on every mutateAccountState, so it was most of the fixed cost of a ticker's call.
+  const measured = new Map();
+  const metricOf = (metric) => { if (!measured.has(metric)) measured.set(metric, resolveMetric(metric, corp)); return measured.get(metric); };
 
   for (const levelDef of MILESTONE_LEVELS) {
     const lvlNum = levelDef.level;
     const reqs = levelDef.requirements.map((r) => {
-      const progress = resolveMetric(r.metric, corp);
+      const progress = metricOf(r.metric);
       return {
         id: r.id,
         title: r.title,

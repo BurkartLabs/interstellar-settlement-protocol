@@ -71,6 +71,7 @@ export const DATA_FILES = Object.freeze({
   "tariffs.json": "shared",
   "stations-built.json": "none", // stations are owned by conglomerates, and name none of their members
   "references-salt": "none", // the server's reference salt
+  "kanbanState.json": "none", // the dev kanban board under test (Bug #4828): cards, never a player
   telemetry: "none", // telemetry/<day>.jsonl: a random browser id, never an account id or email (ISP-256, AB#952)
   "x.json.tmp": "none" // a write in progress (safeWriteFile)
 });

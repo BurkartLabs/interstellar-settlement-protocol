@@ -57,6 +57,23 @@ describe("offering (AB#870)", () => {
     expect(ok.body.offer).toMatchObject({ termHours: 24, price: 5000, collateral: 15000, allowedUse: "defense", fleetName: "Corsair", value });
   });
 
+  // Bug #4800: an offer took a price up to 10,000,000 whatever the fleet, and a hire that never fights pays the owner the
+  // whole price and returns the collateral: a transfer between two accounts every term. The price is now capped by the
+  // fleet's value, as the collateral is, so an unused hire moves no more than the owner's ships are worth.
+  it("refuses a price above the fleet's value, and so bounds what an unused hire can move (Bug #4800)", async () => {
+    const { owner, fleetId } = await withFleet();
+    const value = unitsValue({ lf: 8, ds: 2 });
+    for (const price of [10_000_000, value + 1]) {
+      const res = await offer(owner, fleetId, { ...TERMS, price, collateral: 1 });
+      expect(res.status, String(price)).toBe(400);
+      expect(res.body.error).toBe(`Choose a price from 100 to the fleet's value, ${value.toLocaleString("en-US")} credits.`);
+    }
+    expect(owner.corp().military.fleets[0].contract).toBeUndefined();
+    expect((await offer(owner, fleetId, { ...TERMS, price: value, collateral: 1 })).status).toBe(200); // the fleet's value itself is allowed
+    // and the offer form says so: GET /mine sends each fleet's value, the cap for both fields
+    expect((await owner.api.get(owner.at("/mercenaries/mine"))).body.fleetValues).toBeTruthy();
+  });
+
   it("escrows the fleet: its owner can give it no order while it is on offer", async () => {
     const { owner, fleetId } = await withFleet();
     await offer(owner, fleetId);

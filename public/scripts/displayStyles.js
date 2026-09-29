@@ -69,6 +69,23 @@
     remember("");
   }
 
+  // The game's page loads styles.css after this script, from scripts/appStyles.js (Bug #4839), so it would land after a
+  // style's sheets and its equal-specificity rules would win. When it arrives, move the style's sheets after it again.
+  function keepLast() {
+    var mine = document.querySelectorAll("link[data-display-style-fonts], link[data-display-style]");
+    for (var i = 0; i < mine.length; i += 1) document.head.appendChild(mine[i]);
+  }
+  if (window.MutationObserver) {
+    new MutationObserver(function (records) {
+      for (var i = 0; i < records.length; i += 1) {
+        for (var j = 0; j < records[i].addedNodes.length; j += 1) {
+          var n = records[i].addedNodes[j];
+          if (n.tagName === "LINK" && /(^|\/)styles\.css$/.test(n.getAttribute("href") || "")) keepLast();
+        }
+      }
+    }).observe(document.head, { childList: true });
+  }
+
   function current() {
     return root.getAttribute("data-theme") || "";
   }

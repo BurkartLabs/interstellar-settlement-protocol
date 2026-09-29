@@ -51,7 +51,13 @@ const now = Date.now();
 const a = must(issueBond(helios.id, { quantity: 200, couponPct30: 5.5, maturityDays: 60, windowHours: 48 }, now), "Helios issue").series;
 must(issueBond(kestrel.id, { quantity: 120, couponPct30: 3.75, maturityDays: 30, windowHours: 24 }, now - 5 * 3_600_000), "Kestrel issue");
 const c = must(issueBond(vanta.id, { quantity: 40, couponPct30: 6.25, maturityDays: 90, windowHours: 24 }, now - 3 * DAY), "Vanta issue").series;
-must(subscribeBond(viewer.id, { seriesId: c.id, units: 40 }, now - 3 * DAY + 3_600_000), "viewer buys Vanta out"); // closes it
+// Bug #4799: no holder takes more than 20% of a series, so the viewer takes its 8 of 40 and four others fill the rest,
+// which closes it: a live series the viewer holds
+must(subscribeBond(viewer.id, { seriesId: c.id, units: 8 }, now - 3 * DAY + 3_600_000), "viewer buys into Vanta");
+for (const name of ["Orion Holdings", "Pallas Capital", "Tethys Trust", "Umbra Partners"]) {
+  const h = await corporation(name, { level: 1 });
+  must(subscribeBond(h.id, { seriesId: c.id, units: 8 }, now - 3 * DAY + 3_600_000), `${name} buys into Vanta`);
+}
 must(subscribeBond(viewer.id, { seriesId: a.id, units: 10 }, now), "viewer buys into Helios");
 await store.saveAccountsNow();
 console.log(JSON.stringify({ viewer: viewer.email, newco: newco.email }));

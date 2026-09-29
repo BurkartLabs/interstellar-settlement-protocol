@@ -104,7 +104,7 @@ export function fleetCardHtml(fleet, corp, catalog, { stationName, now = Date.no
         ${nameSelect(`data-split-name="${escapeHtml(fleet.id)}"`, taken)}
         <button class="ui-button ui-button--secondary" type="button" data-fleet-split="${escapeHtml(fleet.id)}">Split</button>
       </details>
-      <div class="fleet__picker" data-fleet-picker="${escapeHtml(fleet.id)}" hidden></div>`;
+      <div data-fleet-picker="${escapeHtml(fleet.id)}" hidden></div>`;
   return `<article class="ui-card fleet__card" data-fleet="${escapeHtml(fleet.id)}">
       <header class="station__card-header"><h4>${escapeHtml(fleet.name)}</h4><span class="ui-badge">${moving ? "In transit" : "Stationed"}</span>${moving ? ` ${protocolLineHtml({ meaning: "active", screen: "fleet" })}` : ""}</header>
       <p class="ui-card__body">${escapeHtml(unitsText(fleet.units, catalog))}</p>

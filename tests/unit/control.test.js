@@ -40,7 +40,7 @@ describe("control scores rise and decay with the dominance window (AB#921)", () 
 
   it("counts a conglomerate as one holder, its members' shares summed", () => {
     const accounts2 = [...accounts, corp("corp-c", "Cinder Works", mined("alpha-centauri", 100, 0, 21))];
-    const d = computeDominance({ accounts: accounts2, conglomerates: [{ id: "cgl-1", name: "Aster Pact", members: [{ corp: "corp-a" }, { corp: "corp-c" }] }] }, T0 + 14 * DAY + 60_000);
+    const d = computeDominance({ accounts: accounts2, conglomerates: [{ id: "cgl-1", name: "Aster Pact", members: [{ corp: "corp-a", joinedAt: 0 }, { corp: "corp-c", joinedAt: 0 }] }] }, T0 + 14 * DAY + 60_000); // members since before the window (Bug #4802)
     const scores = controlScores(d.holders["alpha-centauri"], concessionTermsFor("alpha-centauri").weights);
     expect(scores).toEqual([{ type: "conglomerate", id: "cgl-1", name: "Aster Pact", score: 1, extraction: 1 }]);
   });

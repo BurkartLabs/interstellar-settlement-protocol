@@ -29,10 +29,12 @@
     "probe:conglomerate": "node scripts/probe-conglomerate.mjs",
     "probe:tier4": "node scripts/probe-tier4.mjs",
     "check:design": "node scripts/design-check.mjs",
+    "css:landing": "node scripts/landing-css.mjs",
     "design:prune": "node scripts/design-allowlist-prune.mjs",
     "probe:tariffs": "node scripts/probe-tariffs.mjs",
     "probe:tournament": "node scripts/probe-tournament.mjs",
-    "probe:warfare": "node scripts/probe-warfare.mjs"
+    "probe:warfare": "node scripts/probe-warfare.mjs",
+    "gate:rc": "node scripts/rc-gate.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

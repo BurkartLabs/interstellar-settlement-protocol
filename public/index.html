@@ -28,12 +28,14 @@
     <meta name="theme-color" content="#05070a" />
     <title>The Interstellar Settlement Protocol</title>
     <link rel="preload" href="/vendor/inter-5.3.0/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="styles.css" />
+    <!-- Bug #4839: only the landing's rules block first paint; styles.css loads beside them (scripts/appStyles.js) -->
+    <link rel="stylesheet" href="landing.css" />
+    <link rel="preload" href="styles.css" as="style" />
+    <script type="module" src="scripts/appStyles.js" async></script>
     <script src="/scripts/displayStyles.js"></script>
     <script type="module" src="scripts/starfield.js"></script>
-    <script src="/vendor/chart.js-4.4.3/chart.umd.min.js" defer></script>
-    <script src="/socket.io/socket.io.js" defer></script>
-    <script type="module" src="scripts/app.js" defer></script>
+    <!-- Bug #4836: the entry. The landing loads it and the starfield only; a visit that opens the game loads Chart.js and app.js -->
+    <script type="module" src="scripts/boot.js"></script>
   </head>
   <body>
     <canvas id="starfield-canvas" aria-hidden="true"></canvas>
@@ -204,7 +206,7 @@
           </section>
         </nav>
         <aside class="side-panel">
-          <section class="ui-panel side-panel__block">
+          <section class="ui-panel">
             <button class="side-panel__toggle" type="button" aria-expanded="true" aria-controls="sidebar-identity">
               <span class="ui-panel__title">Corporation Identity</span>
               <span class="side-panel__arrow" aria-hidden="true">▾</span>
@@ -214,7 +216,7 @@
             </div>
           </section>
 
-          <section class="ui-panel side-panel__block">
+          <section class="ui-panel">
             <button class="side-panel__toggle" type="button" aria-expanded="true" aria-controls="sidebar-milestones">
               <span class="ui-panel__title">Milestones</span>
               <span class="side-panel__arrow" aria-hidden="true">▾</span>
@@ -224,7 +226,7 @@
             </div>
           </section>
 
-          <section class="ui-panel side-panel__block">
+          <section class="ui-panel">
             <button class="side-panel__toggle" type="button" aria-expanded="true" aria-controls="sidebar-actions">
               <span class="ui-panel__title">Quick Actions</span>
               <span class="side-panel__arrow" aria-hidden="true">▾</span>
@@ -454,13 +456,13 @@
             <section id="finance-rating" class="finance__rating" aria-label="Credit rating" aria-live="polite"></section>
 
             <div class="finance__charts">
-              <section id="finance-cash-reserves" class="ui-panel finance__chart finance__chart--wide">
+              <section id="finance-cash-reserves" class="ui-panel finance__chart--wide">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-cash-reserves" aria-hidden="true"></span>Cash Reserves</h3>
                     <p class="ui-panel__meta">Balance over time</p>
                   </div>
-                  <select class="ui-select finance__duration" data-chart-duration="cashflow" aria-label="Cash Reserves duration">
+                  <select class="ui-select" data-chart-duration="cashflow" aria-label="Cash Reserves duration">
                     <option value="3600000">1 hour</option>
                     <option value="86400000">1 day</option>
                     <option value="604800000">1 week</option>
@@ -477,13 +479,13 @@
 
             <div id="finance-sub-trends" class="finance__subpage" role="tabpanel" aria-labelledby="finance-subtab-trends" hidden>
             <div class="finance__charts">
-              <section id="finance-net-cash-flow" class="ui-panel finance__chart">
+              <section id="finance-net-cash-flow" class="ui-panel">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-net-cash-flow" aria-hidden="true"></span>Net Cash Flow</h3>
                     <p class="ui-panel__meta">Net profit over time</p>
                   </div>
-                  <select class="ui-select finance__duration" data-chart-duration="netflow" aria-label="Net Cash Flow duration">
+                  <select class="ui-select" data-chart-duration="netflow" aria-label="Net Cash Flow duration">
                     <option value="3600000">1 hour</option>
                     <option value="86400000">1 day</option>
                     <option value="604800000">1 week</option>
@@ -495,13 +497,13 @@
                 </header>
                 <div class="ui-panel__body finance__canvas"><canvas id="netflow-chart" aria-label="Net cash flow"></canvas></div>
               </section>
-              <section id="finance-assets-vs-liabilities" class="ui-panel finance__chart finance__chart--wide">
+              <section id="finance-assets-vs-liabilities" class="ui-panel finance__chart--wide">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-assets-vs-liabilities" aria-hidden="true"></span>Assets vs Liabilities</h3>
                     <p class="ui-panel__meta">Balance sheet trend</p>
                   </div>
-                  <select class="ui-select finance__duration" data-chart-duration="asset" aria-label="Assets vs Liabilities duration">
+                  <select class="ui-select" data-chart-duration="asset" aria-label="Assets vs Liabilities duration">
                     <option value="3600000">1 hour</option>
                     <option value="86400000">1 day</option>
                     <option value="604800000">1 week</option>
@@ -513,7 +515,7 @@
                 </header>
                 <div class="ui-panel__body finance__canvas"><canvas id="asset-chart" aria-label="Assets vs liabilities"></canvas></div>
               </section>
-              <section id="finance-income-by-source" class="ui-panel finance__chart">
+              <section id="finance-income-by-source" class="ui-panel">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-income-by-source" aria-hidden="true"></span>Income by Source</h3>
@@ -522,7 +524,7 @@
                 </header>
                 <div class="ui-panel__body finance__canvas"><canvas id="sector-chart" aria-label="Income by source"></canvas></div>
               </section>
-              <section id="finance-asset-composition" class="ui-panel finance__chart">
+              <section id="finance-asset-composition" class="ui-panel">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-asset-composition" aria-hidden="true"></span>Asset Composition</h3>
@@ -531,7 +533,7 @@
                 </header>
                 <div class="ui-panel__body finance__canvas"><canvas id="composition-chart" aria-label="Asset composition"></canvas></div>
               </section>
-              <section id="finance-daily-profit-and-loss" class="ui-panel finance__chart">
+              <section id="finance-daily-profit-and-loss" class="ui-panel">
                 <header class="ui-panel__header">
                   <div>
                     <h3 class="ui-panel__title"><span class="ui-code" data-code-for="finance-daily-profit-and-loss" aria-hidden="true"></span>Daily P&amp;L</h3>
@@ -1178,7 +1180,7 @@
                 <h2 class="ui-screen__title"><span class="ui-code" data-code-for="missions" aria-hidden="true"></span>ISA Contracting &amp; Assignments Bureau</h2>
                 <p class="ui-screen__lede">Registered mission agents maintain offices within this bureau. Select an agent to enter their office and review available contracts.</p>
               </header>
-              <div id="agent-list" class="ui-grid missions__agents"></div>
+              <div id="agent-list" class="ui-grid"></div>
               <section class="ui-panel missions__panel" id="active-missions-section">
                 <h3 class="ui-panel__title"><span class="ui-code" data-code-for="active-missions-section" aria-hidden="true"></span>Active Contracts</h3>
                 <p id="active-missions-empty" class="missions__note">No active contracts. Visit an agent's office to accept assignments.</p>
@@ -1512,7 +1514,7 @@
 
     <section id="walkthrough-modal" class="modal-backdrop" hidden>
       <!-- AB#579: a briefing from the assigned coordinator; app.js fills the portrait and byline from liaison.js. -->
-      <article class="modal-card dialogue walkthrough" role="dialog" aria-labelledby="walkthrough-title">
+      <article class="modal-card dialogue" role="dialog" aria-labelledby="walkthrough-title">
         <img id="walkthrough-portrait" class="dialogue__portrait" alt="" />
         <div class="dialogue__content">
           <p id="walkthrough-speaker" class="dialogue__speaker"></p>

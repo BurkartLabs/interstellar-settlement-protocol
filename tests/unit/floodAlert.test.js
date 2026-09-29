@@ -11,7 +11,7 @@ const watch = { terms: WARFARE_CATALOG.dumping, normal: { price: 270, dailyVolum
 describe("the price-impact alert and the listing warning (AB#928)", () => {
   it("says how far under normal value the last day closed, on what volume, and where the ITC's line is", () => {
     expect(floodAlertText("Rare-Earth Magnets", watch, fc)).toBe(
-      "Price impact: Rare-Earth Magnets closed 2026-09-26 at $160, 41% under its normal value of $270, on 600 units (60% of a normal day). " +
+      "Price impact: Rare-Earth Magnets closed 2147-09-26 at $160, 41% under its normal value of $270, on 600 units (60% of a normal day). " +
       "The ITC counts sales below $229.50 toward a dumping investigation.");
     expect(floodAlertText("Rare-Earth Magnets", { ...watch, alert: null }, fc)).toBe("");
     expect(floodAlertText("Rare-Earth Magnets", null, fc)).toBe("");

@@ -222,6 +222,22 @@ async function completeWalkthroughForAccount() {
   }
 }
 
+/** Bug #4885: the offer turned down, recorded on the account, so no other browser offers it again. Best-effort, as completion is. */
+async function declineWalkthroughOffer() {
+  if (!appState.accountId || appState.walkthroughCompleted) return;
+  try {
+    const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/walkthrough-complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answer: "declined" })
+    });
+    const account = await parseJsonResponse(response);
+    appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
+  } catch {
+    // this browser still remembers the offer was seen (markWalkthroughOfferSeen)
+  }
+}
+
 export async function resetWalkthroughForAccount() {
   if (!appState.accountId) {
     appState.walkthroughCompleted = false;
@@ -322,6 +338,7 @@ export function promptWalkthroughOffer() {
         label: "I'll find my own way",
         onClick: () => {
           closeDialogue();
+          declineWalkthroughOffer(); // Bug #4885
         }
       }
     ]

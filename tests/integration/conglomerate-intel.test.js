@@ -27,6 +27,7 @@ async function prospector() {
   const { app } = await getApp();
   const reg = await registerAccount(app);
   const raw = accountsStore.accounts[reg.account.id];
+  raw.createdAt = Date.now() - 8 * DAY; // Bug #4801: registered long enough ago to join a conglomerate
   const corp = raw.state.corp;
   corp.unlockedTech = [...new Set([...(corp.unlockedTech || []), "tt-asteroid-prospecting"])];
   corp.asteroidMining = { ...(corp.asteroidMining || {}), probeCount: 3, maxDeployments: 5, activeExpeditions: [] };

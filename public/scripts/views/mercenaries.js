@@ -60,6 +60,7 @@ function bind(section) {
       const value = Number(fleet?.dataset.value) || 0;
       const coll = form.querySelector("[data-merc-collateral]");
       coll.max = String(value);
+      form.querySelector("[data-merc-price]").max = String(value); // Bug #4800: the price is capped by the fleet's value too
       form.querySelector("[data-merc-preview]").textContent = offerPreview({
         termHours: Number(form.querySelector("[data-merc-term]").value), price: form.querySelector("[data-merc-price]").value, collateral: coll.value, value
       }).text;

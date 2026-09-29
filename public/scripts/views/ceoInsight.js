@@ -129,7 +129,7 @@ export function renderInsightTree(data) {
         ...card,
         state: canEnqueue ? "available" : "waiting",
         meta: [cost, `Prereqs: ${prereqLabel}`],
-        action: `<button class="ui-button ui-button--secondary insight__enroll" type="button" data-program-id="${escapeHtml(prog.id)}">Enroll</button>`
+        action: `<button class="ui-button ui-button--secondary" type="button" data-program-id="${escapeHtml(prog.id)}">Enroll</button>`
       });
   };
 
@@ -173,7 +173,7 @@ export function renderInsightTree(data) {
       writeInsightState(state);
       return;
     }
-    const btn = e.target.closest(".insight__enroll");
+    const btn = e.target.closest("button[data-program-id]");
     if (!btn) return;
     const programId = btn.getAttribute("data-program-id");
     if (!programId || !appState.accountId) return;

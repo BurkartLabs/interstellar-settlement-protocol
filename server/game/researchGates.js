@@ -4,7 +4,44 @@
 // from the belt or the body all the same, and lost. What a corporation already holds is never taken back. The chain
 // gate lives here too, so a chain that names a node is refused by the same check whatever the building.
 
-import { RESEARCH_DATA } from "./catalog.js";
+import { ITEMS } from "./items.js";
+import { REFINERY_CHAINS_DATA, RESEARCH_DATA, SYSTEMS_DATA } from "./catalog.js";
+
+/** The lowest tier that is research-gated (docs/design/v0.11-tier4.md section 1). */
+export const GATED_TIER = 4;
+
+/**
+ * Bug #4804: canRecover lets anything no node names be recovered by everyone, which is right for ordinary resources
+ * and would be silent for a Tier 4 item left out of every node's `recovers`. So the data is held to it here, and the
+ * server does not start without it (as rats.js does): every Tier 4 item a body or a belt yields is recovered by some
+ * node, every Tier 4 item a chain makes comes from a chain that names research, and every `recovers` names an item.
+ * Returns the problems as sentences; none today.
+ */
+export function researchGateProblems({ items, systems, chains, nodes }) {
+  const names = new Set((items || []).map((i) => i.name));
+  const gatedTier = new Set((items || []).filter((i) => i.tier >= GATED_TIER).map((i) => i.name));
+  const recovered = new Set((nodes || []).flatMap((n) => n.recovers || []));
+  const problems = [];
+  for (const node of nodes || []) for (const item of node.recovers || []) {
+    if (!names.has(item)) problems.push(`research.json ${node.id} recovers "${item}", which is no item`);
+  }
+  const dug = new Map(); // item -> where it is dug
+  for (const system of systems || []) for (const body of system.bodies || []) {
+    const at = `systems.json ${system.id}:${body.id}`;
+    for (const item of Object.keys(body.composition || {})) if (!dug.has(item)) dug.set(item, `${at} composition`);
+    for (const p of body.resourceProfile || []) if (!dug.has(p?.item)) dug.set(p?.item, `${at} resourceProfile`);
+  }
+  for (const [item, at] of dug) {
+    if (gatedTier.has(item) && !recovered.has(item)) problems.push(`${at} yields Tier ${GATED_TIER} "${item}", which no research node recovers, so everyone would recover it from the start`);
+  }
+  for (const chain of chains || []) for (const out of chain.outputs || []) {
+    if (gatedTier.has(out?.item) && !(chain.requiresTechIds || []).length) problems.push(`refinery-chains.json ${chain.id} makes Tier ${GATED_TIER} "${out.item}" and names no research`);
+  }
+  return problems;
+}
+
+const GATE_PROBLEMS = researchGateProblems({ items: ITEMS, systems: SYSTEMS_DATA, chains: REFINERY_CHAINS_DATA.chains, nodes: RESEARCH_DATA.nodes });
+if (GATE_PROBLEMS.length) throw new Error(`Research gates: ${GATE_PROBLEMS.join("; ")}. The server does not start with a Tier ${GATED_TIER} item open to everyone (Bug #4804).`);
 
 /** Each research-gated item, and the node that lets a corporation recover it. */
 export const ITEM_RESEARCH_GATES = Object.freeze(Object.fromEntries(

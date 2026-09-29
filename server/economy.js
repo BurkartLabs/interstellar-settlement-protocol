@@ -84,6 +84,31 @@ export function npcBidAfterRecovery(basePrice, currentBid, bid = ECONOMY.npcBid)
   return sharedNpcBidAfterRecovery(basePrice, currentBid, bid);
 }
 
+/**
+ * Bug #4797: the most a player may ask or bid for one unit of `item`, or null for an item no NPC buys (none since v0.11).
+ * Listings and buy orders took any price up to a billion, so two accounts moved unlimited credits through one unit and
+ * the gross booked as revenue, dominance and standing. The line is a multiple of the item's catalog standing-bid price,
+ * not of its traded normal value: two accounts could ratchet a traded value up a day at a time, and the catalog price
+ * cannot be moved by trading.
+ */
+export function priceCeilingFor(item, economy = ECONOMY) {
+  const base = Number(economy.npcBuyers.find((b) => b.item === item)?.unitPrice);
+  if (!(base > 0)) return null;
+  return Math.floor(base * economy.exchange.maxPriceMultipleOfBid);
+}
+
+/**
+ * Bug #4882: the most of one unit's price a sale books as trade: revenue, dominance and standing. It is the ISA's own
+ * ask for the item (the catalog standing bid x npcAsks.askMultiple): no buyer need pay more than the NPC sellers ask,
+ * so a price above it moves credits between two corporations rather than paying for goods. Like the ceiling above, it
+ * is the catalog price, which trading cannot move. Null for an item no NPC buys (then the whole price books).
+ */
+export function bookableUnitPriceFor(item, economy = ECONOMY) {
+  const base = Number(economy.npcBuyers.find((b) => b.item === item)?.unitPrice);
+  if (!(base > 0)) return null;
+  return Math.round(base * (Number(economy.npcAsks?.askMultiple) || 1));
+}
+
 /** What an extractor yard or refinery costs to build, with the Supply Forecast discount when it is researched. */
 export function buildCostFor(baseCost, hasSupplyForecast) {
   return hasSupplyForecast ? Math.round(baseCost * ECONOMY.buildings.supplyForecastCostMultiplier) : baseCost;

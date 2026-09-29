@@ -1,7 +1,7 @@
 // AB#1269: docked at Mars Orbital Dock, the Orbital Executive Suites card no longer talks about an Earth Station Prime
 // office. Starts its own server on a seeded data directory (the logistics-shipments.spec.js pattern).
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, openStationOffices } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -60,13 +60,17 @@ for (const viewport of VIEWPORTS) {
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
       await openTab(page, "station");
+      await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
 
       const card = page.locator(".station__card", { has: page.locator('[data-building-action="building:orbital-executive-suites"]') });
       await expect(card).toBeVisible();
       await expect(page.locator("#station")).toContainText("Mars Orbital Dock");
-      await expect(card).toContainText("a registered office here tells the ISA");
-      await expect(card).not.toContainText("Earth Station Prime");
-      await card.scrollIntoViewIfNeeded();
+      // AB#2471: the card is a directory entry; the office's lore is its own view, behind Enter
+      await card.getByRole("button", { name: "Enter" }).click();
+      const flavor = page.locator("#station .station__flavor").first();
+      await expect(flavor).toContainText("a registered office here tells the ISA");
+      await expect(flavor).not.toContainText("Earth Station Prime");
+      await flavor.evaluate((el) => el.scrollIntoView({ block: "center" })); // clear of the sticky header
       await page.screenshot({ path: path.join(SCREEN_DIR, `ab1269-suites-at-mars-${viewport.label}.png`) });
       expect(errors).toEqual([]);
     } finally {

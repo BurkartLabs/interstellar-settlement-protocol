@@ -21,6 +21,7 @@ data/statements
 data/*.jsonl
 data/*.tmp
 data/arbitration.json
+data/kanbanState.json
 data/concessions.json
 data/control-history.json
 data/itc.json

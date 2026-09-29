@@ -95,7 +95,9 @@ describe("display styles (AB#4880)", () => {
   });
 
   it("loads the chooser on every page, straight after the stylesheet", () => {
-    const pages = ["index", "login", "register", "check-email", "verify-email", "forgot-password", "reset-password", "how-to-start"];
+    // the game's page loads styles.css from scripts/appStyles.js (Bug #4839); the chooser follows that module
+    expect(read("public/index.html")).toMatch(/src="scripts\/appStyles\.js" async><\/script>\s*<script src="\/scripts\/displayStyles\.js"><\/script>/);
+    const pages = ["login", "register", "check-email", "verify-email", "forgot-password", "reset-password", "how-to-start"];
     for (const p of pages) expect(read(`public/${p}.html`)).toMatch(/href="\/?styles\.css" \/>\s*<script src="\/scripts\/displayStyles\.js"><\/script>/);
   });
 });

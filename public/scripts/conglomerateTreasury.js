@@ -48,7 +48,7 @@ const unsuccessful = () => protocolLineHtml({ meaning: "failed", screen: "conglo
 export function hqTabsHtml(active, panels) {
   const tabs = [["roster", "Roster"], ["treasury", "Treasury"], ["hangar", "Hangar"], ["station", "Station"]]; // Station: ISP-213 (AB#908)
   return `
-    <div class="ui-tabs cong-tabs" role="tablist" aria-label="Conglomerate">
+    <div class="ui-tabs" role="tablist" aria-label="Conglomerate">
       ${tabs.map(([id, label]) => `<button type="button" class="ui-tab" role="tab" id="cong-tab-${id}" aria-controls="cong-panel-${id}" aria-selected="${id === active}" tabindex="${id === active ? 0 : -1}" data-role="cong-tab" data-tab="${id}">${label}</button>`).join("")}
     </div>
     ${tabs.map(([id]) => `<div class="ui-tabpanel cong-tabpanel" role="tabpanel" id="cong-panel-${id}" aria-labelledby="cong-tab-${id}"${id === active ? "" : " hidden"}>${id === active ? panels[id] || "" : ""}</div>`).join("")}`;
@@ -77,7 +77,7 @@ export function ledgerHtml(ledger, { which, goods = false } = {}) {
   const newer = ledger.offset > 0, older = last < ledger.total;
   return `
     <p class="cong-panel__lede">${scope}</p>
-    <div class="ui-table-wrap"><table class="ui-table cong-ledger">
+    <div class="ui-table-wrap"><table class="ui-table">
       <caption class="ui-table__caption">Rows ${n(first)} to ${n(last)} of ${n(ledger.total)}, newest first</caption>
       <thead><tr><th scope="col">Time</th><th scope="col">Corporation</th><th scope="col">Entry</th>${goods ? '<th scope="col">Item</th>' : ""}<th scope="col" class="ui-table__num">${goods ? "Units" : "Credits"}</th><th scope="col" class="ui-table__num">${goods ? "Stock after" : "Balance after"}</th></tr></thead>
       <tbody>${rows}</tbody>

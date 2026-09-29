@@ -201,3 +201,56 @@ sanitising an already sanitised account.
 p95 did not move, because the handler no longer sets it. A request that arrives during a ticker run waits for the
 whole run: financialSnapshotTick p95 663 ms, miningTick 488 ms. That is Bug #4859, whose proposed fix is to walk the
 accounts in slices and yield between them.
+
+## Tickers that skip an account with nothing due (Bug #4848)
+
+Seven tickers (travel, shipments, research, CEO insight and fabrication every 5 s, refinery and expeditions every
+10 s) called `mutateAccountState` for every account on every run. That settles mining, closes days, refreshes the tax,
+evaluates the level and schedules a snapshot write, even when the ticker then found nothing due. Each now asks a pure
+predicate (`server/game/tickDue.js`) on a read-only look (`peekCorp`, `peekState`) and skips the account. miningTick
+still settles every account.
+
+**2026-09-29, 200 corporations, 5 minutes, 0.5 CPU, `/data` in memory, profiled; one run each, back to back** (bot numbers):
+
+| | before | after |
+|---|---|---|
+| the seven tickers, p50 per run | 13.0 to 16.2 ms | 0.05 to 0.46 ms |
+| the seven tickers, p95 per run | 74 to 191 ms | 0.30 to 1.34 ms |
+| every timer together, share of the run | 16.6% | 11.0% |
+| accounts snapshot writes | 158 (0.53 a second, 1,095 MB) | 69 (0.23 a second, 478 MB) |
+| `mutateAccountState` runs (profile) | 1,367 | 988 |
+| GET /api/accounts/:id p95 | 739 ms | 411 ms |
+| CPU mean (docker stats) | 16.5% | 13.7% |
+
+A ticker's single slowest run can still be long: the first run completes every clone's research and CEO programme
+at once (max 299 ms and 300 ms), because the clones were all queued at the same moment.
+
+## What a mutation costs in itself (Bug #4850)
+
+Inside `mutateAccountState` (timers around each pass, bench-ticks' clones, 201 accounts, in-process), the fixed cost
+was `evaluateAccountLevel`: 65 us a call, 58% of miningTick and 33% of financialSnapshotTick. The ensure and refresh
+passes were 2 to 10 us each, about 15% together. `evaluateLevelProgress` rebuilt all 30 levels' progress through
+`resolveMetric`, and its 72 requirements name only 34 metrics; each is now read once a call (35 us). miningTick skips
+the normalising passes (mining touches no building, unit, lease or model shape) but still evaluates the level;
+financialSnapshotTick skips both (finances and the rating move no level metric).
+
+**In-process, 201 accounts, median of 5 runs after a warm-up** (bot numbers, no sockets):
+
+| | before | after |
+|---|---|---|
+| miningTick | 17.2 ms | 9.5 ms |
+| financialSnapshotTick | 31.3 ms | 13.7 ms |
+| evaluateAccountLevel, per call | 65 us | 35 us |
+
+**load:test, 200 corporations, 5 minutes, 0.5 CPU, `/data` in memory, profiled; two runs each** (bot numbers):
+
+| | main, run 1 | main, run 2 | after, run 1 | after, run 2 |
+|---|---|---|---|---|
+| miningTick p50 | 201 ms | 333 ms | 243 ms | 291 ms |
+| financialSnapshotTick p50 | 333 ms | 422 ms | 305 ms | 361 ms |
+| every timer together | 8.8% | 13.1% | 9.7% | 11.3% |
+
+At release scale this change is inside the run-to-run noise: main alone moved 65% between two runs. There a
+miningTick costs about 1 ms an account, twenty-five times what it costs in-process, so what sets it under load is not
+the fixed passes: the socket emit of each account's mining state, the 0.5 CPU cap and the profiler are the candidates,
+and profile-store.mjs, which reads store queries, cannot tell them apart.

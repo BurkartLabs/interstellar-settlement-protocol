@@ -25,7 +25,7 @@ let seq = 0;
 function outsider() {
   seq += 1;
   const id = `acc-ladder-${Date.now()}-${seq}`;
-  accountsStore.accounts[id] = { id, email: `${id}@example.test`, createdAt: Date.now(), notifications: [], state: { corp: { publicId: `corp-ladder-${Date.now()}-${seq}`, corporationName: `Ladder Member ${seq}` } } };
+  accountsStore.accounts[id] = { id, email: `${id}@example.test`, createdAt: Date.now() - (C.minMemberAgeDays + 1) * DAY, notifications: [], state: { corp: { publicId: `corp-ladder-${Date.now()}-${seq}`, corporationName: `Ladder Member ${seq}` } } };
   return accountsStore.accounts[id];
 }
 
@@ -34,6 +34,7 @@ async function founded() {
   const { app } = await getApp();
   const reg = await registerAccount(app);
   const raw = accountsStore.accounts[reg.account.id];
+  raw.createdAt = Date.now() - (C.minMemberAgeDays + 1) * DAY; // Bug #4801: registered long enough ago to join a conglomerate
   raw.createdAt = Date.now() - (C.minFounderAgeDays + 1) * DAY;
   raw.state.corp.finances.credits = 250_000;
   const api = authed(app, reg.accessToken);

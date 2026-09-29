@@ -52,7 +52,7 @@ function picker(kind, count, chosen, other) {
   const items = Array.from({ length: count }, (_, i) => i + 1).map((v) => {
     const label = kind === "emblem" ? EMBLEMS[v - 1][0] : COLOURS[v - 1];
     const art = kind === "emblem" ? emblemSvg(v, other, { size: "sm" }) : emblemSvg(1, v, { size: "sm" });
-    return `<label class="cong-picker__option"><input type="radio" name="${kind}" value="${v}"${v === chosen ? " checked" : ""}><span class="cong-picker__swatch">${art}</span><span class="cong-picker__name">${escapeHtml(label)}</span></label>`;
+    return `<label class="cong-picker__option"><input type="radio" name="${kind}" value="${v}"${v === chosen ? " checked" : ""}><span>${art}</span><span>${escapeHtml(label)}</span></label>`;
   }).join("");
   return `<fieldset class="cong-picker"><legend class="ui-field__label">${kind === "emblem" ? "Emblem" : "Colour"}</legend><div class="cong-picker__grid">${items}</div></fieldset>`;
 }
@@ -289,7 +289,7 @@ export function memberHtml(view, { search } = {}) {
     ${levelHtml(view)}
     <section class="ui-panel station__panel cong-panel" data-role="cong-roster">
       <h3>${codeSlotHtml("cong-roster")}Roster</h3>
-      <div class="ui-table-wrap"><table class="ui-table cong-roster">
+      <div class="ui-table-wrap"><table class="ui-table">
         <caption class="ui-table__caption">${n(c.memberCount)} member${c.memberCount === 1 ? "" : "s"}, ${n(directors)} of at most ${n(c.maxDirectors)} directors</caption>
         <thead><tr><th scope="col">Corporation</th><th scope="col">Role</th><th scope="col">Joined</th><th scope="col">Actions</th></tr></thead>
         <tbody>${rows}</tbody>

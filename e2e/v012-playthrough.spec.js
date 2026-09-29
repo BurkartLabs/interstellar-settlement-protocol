@@ -73,6 +73,8 @@ for (const [passName, sizeA, sizeB] of [["a-desktop", DESKTOP, PHONE], ["a-phone
       await page.fill("#login-password", PASSWORD);
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\?account=/);
+      // Bug #4836/AB#4840: the game, and its socket in the rooms, open after the page; a step starts once they have
+      await page.locator("#logout-btn").waitFor({ state: "visible", timeout: 20_000 });
       players[name] = { page, context, size };
       return page;
     }

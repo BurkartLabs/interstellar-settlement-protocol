@@ -43,9 +43,48 @@ function world() {
     sales: { [DAY_IN]: { "luna-gateway": 1_000 } }
   });
   const Cc = account("corp-c", "Cedar Trading", { sales: { [DAY_IN]: { "mars-orbital-dock": 6_000 } } });
-  const conglomerates = [{ id: "cgl-1", name: "Halcyon Accord", members: [{ corp: "corp-a", role: "founder" }, { corp: "corp-c", role: "member" }] }];
+  // both members since before the window (Bug #4802: only days begun as a member count toward the conglomerate)
+  const conglomerates = [{ id: "cgl-1", name: "Halcyon Accord", members: [{ corp: "corp-a", role: "founder", joinedAt: DAY_OUT - DAY }, { corp: "corp-c", role: "member", joinedAt: DAY_OUT - DAY }] }];
   return { accounts: [A, B, Cc], conglomerates };
 }
+
+// Bug #4802: a conglomerate's share summed each member's whole window, so a corporation that joined carried its week of
+// sales and extraction from before it was a member into the group the moment it joined. Only the days a corporation
+// began as a member count toward its conglomerate (the roster's joinedAt); the days before stay its own. Worked by hand
+// on the same world (Sol's shares above): A 0.56667 (leases 0.26667, extraction 0.24, sales 0.06), B 0.31333, C 0.12.
+describe("a member's activity from before it joined is not its conglomerate's (Bug #4802)", () => {
+  const joined = (a, c) => { const w = world(); w.conglomerates[0].members[0].joinedAt = a; w.conglomerates[0].members[1].joinedAt = c; return computeDominance(w, NOW); };
+  const groupShares = (r) => r.holders.sol.groups.map((g) => ({ type: g.type, id: g.id }));
+  const sumOf = (r) => r.holders.sol.groups.reduce((s, g) => s + Object.entries(g.parts).reduce((x, [k, v]) => x + (r.holders.sol.live.includes(k) ? C.dominanceWeights[k] * v : 0), 0), 0);
+
+  it("C joined three hours into the day it sold: its sales stay its own; the Accord is A's 0.56667 (55%)", () => {
+    const r = joined(DAY_OUT - DAY, DAY_IN + 3 * 60 * 60 * 1000);
+    expect(r.systems.sol.byConglomerate).toEqual({ leaders: [{ name: "Halcyon Accord", share: 55 }, { name: "Birch Freight", share: 30 }, { name: "Cedar Trading", share: 15 }], others: 0 });
+    expect(r.private["corp-c"].sol.conglomerate.dominance).toBeCloseTo(0.56667, 4);
+    expect(r.systems.sol.byCorporation).toEqual(computeDominance(world(), NOW).systems.sol.byCorporation); // a corporation's own share is unchanged
+  });
+
+  it("A joined an hour into its active day: its leases (held now) are the Accord's, that day's extraction and sales its own", () => {
+    // Accord = A's leases 0.26667 + C's 0.12 = 0.38667; Alder Mining alone = 0.24 + 0.06 = 0.3; Birch 0.31333.
+    // 20 units: 7.73, 6.0, 6.27 -> 7, 6, 6 = 19; the 20th to the Accord's .73 -> 40%, 30%, 30% (Birch ranked first, 0.31333 > 0.3).
+    const r = joined(DAY_IN + 60 * 60 * 1000, DAY_OUT - DAY);
+    expect(r.systems.sol.byConglomerate).toEqual({ leaders: [{ name: "Halcyon Accord", share: 40 }, { name: "Birch Freight", share: 30 }, { name: "Alder Mining", share: 30 }], others: 0 });
+    expect(r.private["corp-a"].sol.conglomerate.dominance).toBeCloseTo(0.38667, 4);
+    expect(groupShares(r)).toEqual(expect.arrayContaining([{ type: "conglomerate", id: "cgl-1" }, { type: "corp", id: "corp-a" }, { type: "corp", id: "corp-b" }]));
+    expect(sumOf(r)).toBeCloseTo(1, 9); // every unit counted once: the control scores' holders still sum to the whole
+  });
+
+  it("a member from the start of the day counts that day; the hand-worked 70% stands", () => {
+    const r = joined(DAY_IN, DAY_IN);
+    expect(r.systems.sol.byConglomerate).toEqual({ leaders: [{ name: "Halcyon Accord", share: 70 }, { name: "Birch Freight", share: 30 }], others: 0 });
+  });
+
+  it("a roster entry with no joinedAt counts nothing toward the group (fails closed)", () => {
+    const w = world();
+    delete w.conglomerates[0].members[1].joinedAt;
+    expect(computeDominance(w, NOW).private["corp-c"].sol.conglomerate.dominance).toBeCloseTo(0.56667, 4);
+  });
+});
 
 describe("the dominance metric on a hand-worked world (AB#912)", () => {
   const out = computeDominance(world(), NOW);

@@ -16,6 +16,7 @@ async function founder(credits) {
   const { app } = await getApp();
   const reg = await registerAccount(app);
   const raw = accountsStore.accounts[reg.account.id];
+  raw.createdAt = Date.now() - (C.minMemberAgeDays + 1) * DAY; // Bug #4801: registered long enough ago to join a conglomerate
   raw.createdAt = Date.now() - (C.minFounderAgeDays + 1) * DAY;
   raw.state.corp.currentStationId = C.charterStationId;
   raw.state.corp.finances.credits = credits;
@@ -48,6 +49,7 @@ describe("the Bureau's refusals and notices, from the server (AB#4811, Bug #4814
     const cid = made.body.conglomerate.id;
     const { app } = await getApp();
     const reg = await registerAccount(app);
+    accountsStore.accounts[reg.account.id].createdAt = Date.now() - (C.minMemberAgeDays + 1) * DAY; // Bug #4801: old enough to join
     const m = { corpId: accountsStore.accounts[reg.account.id].state.corp.publicId, api: authed(app, reg.accessToken), base: `/api/accounts/${reg.account.id}` };
     const inv = await f.api.post(`${f.base}/conglomerates/${cid}/invitations`).send({ corpId: m.corpId });
     expect((await m.api.post(`${m.base}/conglomerates/${cid}/invitations/${inv.body.invitation.id}/accept`)).status).toBe(200);
@@ -84,6 +86,7 @@ describe("the treasury and hangar's refusals and notices, from the server (AB#48
     // a member, told of the founder's large withdrawal
     const { app } = await getApp();
     const reg = await registerAccount(app);
+    accountsStore.accounts[reg.account.id].createdAt = Date.now() - (C.minMemberAgeDays + 1) * DAY; // Bug #4801: old enough to join
     const m = { corpId: accountsStore.accounts[reg.account.id].state.corp.publicId, api: authed(app, reg.accessToken), base: `/api/accounts/${reg.account.id}` };
     const inv = await f.api.post(`${f.base}/conglomerates/${cid}/invitations`).send({ corpId: m.corpId });
     expect((await m.api.post(`${m.base}/conglomerates/${cid}/invitations/${inv.body.invitation.id}/accept`)).status).toBe(200);

@@ -6,6 +6,7 @@
   "assetSafetyStationId": "earth-station-prime",
 
   "minFounderAgeDays": 7,
+  "minMemberAgeDays": 7,
   "charterFee": 100000,
   "charterDeposit": 10000,
   "emblems": 12,

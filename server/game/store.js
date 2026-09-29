@@ -9,6 +9,7 @@ import { closeDueDays, MAX_STATEMENTS } from "../finances.js";
 import { unknownLeaseBodies } from "../leases.js";
 import { reportAndArchiveInvestments } from "../legacyInvestments.js";
 import { NAME_CHARS, validateCorporationName, SYSTEM_SENDERS } from "../corporationName.js";
+import { mailboxKey } from "../mailboxKey.js"; // Bug #4798: one mailbox, one account
 import { settlePayroll, payrollNotice } from "../payroll.js";
 import { PASSWORD_SALT_ROUNDS, SYSTEMS_DATA, accountsSnapshotPath, createId, dataDir, deepClone, safeWriteFile, statePath } from "./catalog.js";
 import { evaluateAccountLevel, evaluateLevelProgress, pushSystemNotification, refreshExchangeTax, sanitizeNotification } from "./progression.js";
@@ -474,8 +475,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
   if (!NAME_CHARS.test(normalizedCeoName)) {
     return { error: "CEO name may use letters, digits, spaces and - ' . & only.", field: "ceoName" };
   }
-
-  const existing = Object.values(accountsStore.accounts || {}).find((item) => item.email === normalizedEmail);
+  const existing = Object.values(accountsStore.accounts || {}).find((item) => mailboxKey(item.email) === mailboxKey(normalizedEmail)); // Bug #4798
   if (existing) {
     // Bug #1059: the code lets the page offer the login instead.
     return { error: "An account with this email already exists.", code: "email-taken", field: "email" };
@@ -774,8 +774,8 @@ export function resetDummyAccountProgress() {
 // pass both false: none of them use the returned clone (sanitizeAccount deep-clones the whole account state, the
 // single largest cost per call), and mining only needs settling once per elapsed interval, which miningTick already
 // does itself inside its own mutator — the before/after calls here would otherwise re-run it (on the same `now`, so
-// idempotently, but not for free) on every ticker, mining or not.
-export function mutateAccountState(accountId, mutator, { sanitize = true, settleMining = true } = {}) {
+// idempotently, but not for free) on every ticker, mining or not. Bug #4850: a ticker whose mutator touches no subject of the passes below may skip them (`normalize`), and the level when it moves no metric (`evaluateLevel`); server/ticks.js says why for each.
+export function mutateAccountState(accountId, mutator, { sanitize = true, settleMining = true, normalize = true, evaluateLevel = true } = {}) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) {
     return null;
@@ -785,12 +785,12 @@ export function mutateAccountState(accountId, mutator, { sanitize = true, settle
   if (settleMining) applyMiningOperations(account.state.corp);
   mutator(account.state);
   if (settleMining) applyMiningOperations(account.state.corp);
-  refreshContractOfferings(account.state.corp);
-  ensureCorpMiningModel(account.state.corp);
-  ensureBuildingIds(account.state.corp); // AB#792: whatever route built it, a building has an id when this returns
-  ensureCorpMilitary(account.state.corp); // AB#861: power follows the units, whatever changed them
-  refreshExchangeTax(account.state); // ISP-302 (AB#2285): the tax moves with leases held, so after every change
-  const levelsReached = evaluateAccountLevel(accountId, account); // Bug #1260
+  if (normalize) refreshContractOfferings(account.state.corp);
+  if (normalize) ensureCorpMiningModel(account.state.corp);
+  if (normalize) ensureBuildingIds(account.state.corp); // AB#792: whatever route built it, a building has an id when this returns
+  if (normalize) ensureCorpMilitary(account.state.corp); // AB#861: power follows the units, whatever changed them
+  if (normalize) refreshExchangeTax(account.state); // ISP-302 (AB#2285): the tax moves with leases held, so after every change
+  const levelsReached = evaluateLevel ? evaluateAccountLevel(accountId, account) : []; // Bug #1260
   scheduleAccountsSave();
   // AB#743: the levels this change reached ride on the response, so the page can show the milestone modal from the
   // server's own figures. [] on every change that reaches none.

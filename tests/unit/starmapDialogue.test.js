@@ -86,7 +86,7 @@ describe("the Starmap, the walkthrough and the dialogue are on the design system
   it("the Starmap is a ui-screen, and each modal is the game's modal card holding a dialogue", () => {
     expect(SURFACES.starmap).toMatch(/<article id="starmap" class="tab-panel ui-screen/);
     expect(SURFACES.dialogue).toContain('class="modal-card dialogue"');
-    expect(SURFACES.walkthrough).toContain('class="modal-card dialogue walkthrough"');
+    expect(SURFACES.walkthrough).toContain('class="modal-card dialogue"'); // Bug #4886: "walkthrough" was styled by nothing
     expect(SURFACES.dialogue).toContain('class="dialogue__portrait"');
     expect(SURFACES.walkthrough).toContain('class="dialogue__portrait"');
   });

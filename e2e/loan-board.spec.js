@@ -10,6 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { openTab, openStationOffices } from "./nav.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-847");
@@ -46,9 +47,8 @@ async function openBank(page, who, [width, height]) {
   await page.fill("#login-password", PASSWORD);
   await page.click("#credential-login-btn");
   await page.waitForURL(/\/\?account=/);
-  const stationTab = page.locator('.nav-tab[data-tab="station"]');
-  if (!(await stationTab.isVisible())) await page.click('.nav-group__button[data-group="station"]');
-  if (await stationTab.isVisible()) await stationTab.click();
+  await openTab(page, "station");
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   // each of the station's buildings is a card with an Enter button
   await page.locator(".station__card", { hasText: "Deep Space Development Bank" }).getByRole("button", { name: "Enter" }).click();
   await expect(page.locator('[data-role="loan-board"] [data-offer-card]').first()).toBeVisible({ timeout: 15_000 });
@@ -123,7 +123,7 @@ for (const size of SIZES) {
   test(`the borrower's warning before a sale at ${width}x${height}`, async ({ page }) => {
     await openBank(page, "tessera", size);
     const warning = page.locator('[data-role="loans-borrowed"] [data-role="loan-warning"]');
-    await expect(warning).toContainText(/Your assets will be sold on \d+ \w{3}, \d\d:\d\d UTC\./);
+    await expect(warning).toContainText(/Your assets will be sold on \d{4}-\d\d-\d\d \d\d:\d\d UTC\./); // AB#945: one timestamp format
     await showSection(page, "loans-borrowed");
     await page.screenshot({ path: path.join(SHOT_DIR, `borrower-${width}x${height}.png`) });
 
