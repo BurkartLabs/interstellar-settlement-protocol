@@ -3,7 +3,8 @@
 import { ECONOMY } from "../economy.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
 import { taxBreakdown } from "../../public/scripts/exchangeTax.js";
-import { SHIP_UNIT_IDS } from "./units.js"; // ISP-171 (AB#865): ships share the Fleet Cap with probes
+import { SHIP_UNIT_IDS } from "./units.js";
+import { protocolOf } from "../../public/scripts/protocol.js"; // ISP-254 (AB#950): a notification's protocol line // ISP-171 (AB#865): ships share the Fleet Cap with probes
 import { BASE_MAX_DEPLOYMENTS, BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, LEVEL_UNLOCK_KEYS, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, MINEABLE_RESOURCES, REFINED_ITEMS, REQ_ID_TO_TITLE, createId } from "./catalog.js";
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
@@ -419,12 +420,14 @@ export function evaluateAccountLevel(accountId, account) {
 }
 
 export function sanitizeNotification(notification) {
+  const protocol = protocolOf(notification.protocol); // ISP-254 (AB#950): the protocol line beside the plain words
   return {
     id: notification.id,
     accountId: notification.accountId,
     type: notification.type,
     title: notification.title,
     body: notification.body,
+    ...(protocol ? { protocol } : {}),
     createdAt: notification.createdAt,
     readAt: notification.readAt || null
   };
@@ -441,6 +444,7 @@ export function pushSystemNotification(account, payload) {
     type: payload.type || "system",
     title: payload.title || "Notification",
     body: payload.body || "",
+    ...(protocolOf(payload.protocol) ? { protocol: protocolOf(payload.protocol) } : {}), // ISP-254 (AB#950)
     createdAt: Date.now(),
     readAt: null
   });

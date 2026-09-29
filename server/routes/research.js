@@ -113,7 +113,8 @@ export function registerResearchRoutes(app) {
     const notification = addAccountNotification(req.params.accountId, {
       type: "research",
       title: "R&D Queued",
-      body: `${tech.name} has been queued in corporate research.`
+      body: `${tech.name} has been queued in corporate research.`,
+      protocol: { meaning: "queued", screen: "rnd" } // ISP-254 (AB#950)
     });
     if (notification) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });

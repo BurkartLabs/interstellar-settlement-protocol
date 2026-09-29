@@ -8,6 +8,7 @@ import { escapeHtml, queueItemsHtml, researchNodeHtml } from "../html.js";
 import { formatHoursMinutes, nextRndStart, rndItemStatus, rndQueueRoom, scheduleRndQueue } from "../rndQueue.js";
 import { appState, techTree } from "../state.js";
 import { flashButtonSuccess, pushFeedback, setTab, updateAllViews } from "./shared.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 (AB#950)
 import { bindResearchLinks } from "../researchLinks.js"; // AB#885
 import { insightRemaining, researchRemaining, totalText } from "../researchTotals.js"; // AB#2475
 import { isInsightProgramLive } from "../ceoEffects.js";
@@ -72,8 +73,8 @@ export function renderTechTree(data) {
       const cost = `${node.durationHours}h · ${toCurrency(node.costCredits)}`;
       const card = { id: node.id, name: node.name, tier: node.tier, effect: node.effect };
 
-      if (done.has(node.id)) return researchNodeHtml({ ...card, state: "done" });
-      if (inQueue.has(node.id)) return researchNodeHtml({ ...card, state: "queued", meta: [cost] });
+      if (done.has(node.id)) return researchNodeHtml({ ...card, state: "done", protocolLine: protocolLineHtml({ meaning: "complete", screen: "rnd" }) });
+      if (inQueue.has(node.id)) return researchNodeHtml({ ...card, state: "queued", meta: [cost], protocolLine: protocolLineHtml({ meaning: "queued", screen: "rnd" }) });
       const lock = researchLockReason(node, { done, corpLevel: data.corp.level });
       if (lock === PLANNED_RESEARCH) return researchNodeHtml({ ...card, state: "planned", meta: [cost, lock] });
       if (lock) return researchNodeHtml({ ...card, state: "locked", meta: [lock] });
@@ -177,6 +178,8 @@ export function rndQueueHtml(queue, subtitle) {
       return status.state === "running" ? `${formatHoursMinutes(status.remainingMs)} remaining` : "Completing...";
     },
     statusOf: (item) => (rndItemStatus(item, now).state === "queued" ? "Queued" : "In progress"),
+    // ISP-254 (AB#950): Queued is Lodged, In progress is In force (docs/design/BUREAUCRATIC_UI.md)
+    protocolOf: (item) => protocolLineHtml({ meaning: rndItemStatus(item, now).state === "queued" ? "queued" : "active", screen: "rnd" }),
     formatCredits: toCurrency
   });
 }
@@ -237,21 +240,24 @@ export function bindResearchForms() {
         updateAllViews();
       }
 
+      const lodged = { meaning: "queued", screen: "rnd" }; // ISP-254 (AB#950)
       if (rndStatus) {
-        rndStatus.textContent = `${node.name} entered the queue. ${toCurrency(node.costCredits)} committed.`;
+        rndStatus.innerHTML = `${escapeHtml(`${node.name} entered the queue. ${toCurrency(node.costCredits)} committed.`)} ${protocolLineHtml(lodged)}`;
       }
       pushFeedback(
         `${node.name} added to the corporate R&D queue. Funding locked: ${toCurrency(node.costCredits)}.`,
-        "success"
+        "success",
+        lodged
       );
       flashButtonSuccess(rndForm.querySelector('button[type="submit"]'));
       rndForm.reset();
       renderResearchSelectionDetails(appState.data);
     } catch (error) {
+      const denied = { meaning: refusalMeaning(error.message), screen: "rnd" }; // ISP-254 (AB#950)
       if (rndStatus) {
-        rndStatus.textContent = `R&D queue action failed: ${error.message}`;
+        rndStatus.innerHTML = `${escapeHtml(`R&D queue action failed: ${error.message}`)} ${protocolLineHtml(denied)}`;
       }
-      pushFeedback(`R&D queue request rejected. ${error.message}`, "error");
+      pushFeedback(`R&D queue request rejected. ${error.message}`, "error", denied);
     }
   });
 }

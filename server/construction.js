@@ -80,7 +80,7 @@ export const CONSTRUCTIONS = Object.freeze({
       });
       return { refineryName: `Refinery #${nextIndex}` };
     },
-    notification: { title: "Refinery Commissioned", body: "A new Refinery is now operational and ready for production runs." },
+    notification: { title: "Refinery Commissioned", body: "A new Refinery is now operational and ready for production runs.", protocol: { meaning: "complete", screen: "refinery" } }, // ISP-254 (AB#950)
     receipt: (built, corp) => buildRefineryReceipt({ refineryName: built.refineryName, cost: built.cost, ...slotCount(corp) })
   },
   // ISP-96 (AB#786): it adds nothing when built; its effect is on returning expeditions (server/game/asteroids.js).
@@ -97,7 +97,7 @@ export const CONSTRUCTIONS = Object.freeze({
       refinery.tier = 2; // what server/game/refining.js reads for the larger output
       return { refineryName: refinery.name || "Refinery" };
     },
-    notification: { title: "Refinery Complex Online", body: "One of your Refineries is now a Refinery Complex: its runs deliver more of every output." },
+    notification: { title: "Refinery Complex Online", body: "One of your Refineries is now a Refinery Complex: its runs deliver more of every output.", protocol: { meaning: "complete", screen: "refinery" } }, // ISP-254 (AB#950)
     receipt: (built) => buildRefineryComplexReceipt({ cost: built.cost, assetValue: built.assetValue, refineryName: built.refineryName, multiplier: ECONOMY.buildings.refineryComplexOutputMultiplier })
   },
   // ISP-98 (AB#788): stands on a Luna lease beside its extractors; its effect is on their mining (miningEfficiency).
@@ -137,7 +137,7 @@ export const CONSTRUCTIONS = Object.freeze({
       });
       return {};
     },
-    notification: { title: "Synthesis Array Commissioned", body: "Your Synthesis Array is operational. Tier 4 chains can now run in it." },
+    notification: { title: "Synthesis Array Commissioned", body: "Your Synthesis Array is operational. Tier 4 chains can now run in it.", protocol: { meaning: "complete", screen: "refinery" } }, // ISP-254 (AB#950)
     receipt: (built, corp) => buildSynthesisArrayReceipt({ cost: built.cost, assetValue: built.assetValue, ...slotCount(corp) })
   }
 });

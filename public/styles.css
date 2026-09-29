@@ -2555,6 +2555,25 @@ body.sg {
     font-size: var(--font-size-3);
   }
 }
+/* ISP-254 (AB#950): the protocol line beside a plain status or message (docs/design/BUREAUCRATIC_UI.md, "Status
+   vocabulary"): the phrase in caps, then the screen's code, aria-hidden. Secondary text like .ui-code, but in the
+   colour of the text it sits in, so it keeps that text's contrast on a tinted status or alert. */
+.protocol-line {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+  color: inherit;
+}
+.protocol-line__code {
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .protocol-line {
+    font-size: var(--font-size-3);
+  }
+}
 .ui-panel__actions {
   display: flex;
   flex-wrap: wrap;

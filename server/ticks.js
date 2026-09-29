@@ -348,6 +348,7 @@ function processRndCompletions() {
     for (const item of completedItems) {
       const notification = addAccountNotification(accountId, {
         type: "research",
+        protocol: { meaning: "complete", screen: "rnd" }, // ISP-254 (AB#950)
         title: "R&D Complete",
         body: `${item.name} has been completed and applied to your corporation.`
       });
