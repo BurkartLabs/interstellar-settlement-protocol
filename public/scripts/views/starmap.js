@@ -9,9 +9,10 @@ import { clientPrices } from "../clientPrices.js"; // Bug #4775
 import { beltScoutedText } from "../miningFeedback.js";
 import { createStarmapController } from "../starmap.js";
 import { appState, techTree } from "../state.js";
-import { pushFeedback, setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { pushFeedback, refreshFromServer, setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
 import { isDominanceOverlay } from "../dominanceOverlay.js"; // ISP-218 (AB#913)
 import { CONCESSION_OVERLAY } from "../concessionOverlay.js"; // ISP-229 (AB#924)
+import { RATS_OVERLAY } from "../ratsOverlay.js"; // ISP-285 (AB#992)
 
 export const starmap = createStarmapController({
   canvas: document.getElementById("starmap-canvas"),
@@ -21,8 +22,12 @@ export const starmap = createStarmapController({
   resourceSelect: document.getElementById("map-resource"), // ISP-143 (AB#837)
   resourceLegend: document.getElementById("starmap-resource-legend"),
   dominanceLegend: document.getElementById("starmap-dominance-legend"), // ISP-218 (AB#913)
-  onOverlayChange(overlay) { if (isDominanceOverlay(overlay)) loadDominanceIntoStarmap(); if (overlay === CONCESSION_OVERLAY) loadConcessionsIntoStarmap(); }, // ISP-218 (AB#913), ISP-229 (AB#924)
-  onSystemShown(systemId) { loadSystemConcession(systemId); }, // ISP-229 (AB#924)
+  onOverlayChange(overlay) { if (isDominanceOverlay(overlay)) loadDominanceIntoStarmap(); if (overlay === CONCESSION_OVERLAY) loadConcessionsIntoStarmap(); if (overlay === RATS_OVERLAY) loadRatsActivity(); }, // ISP-218 (AB#913), ISP-229 (AB#924), ISP-285 (AB#992)
+  onSystemShown(systemId) { loadSystemConcession(systemId); loadRatsActivity(); }, // ISP-229 (AB#924); ISP-285 (AB#992): the panel's pirate activity
+  onHuntOpen(beltKey) { loadHuntPreview(beltKey); }, // ISP-285 (AB#992)
+  onHuntSend(beltKey, fleetId) { sendHunt(beltKey, fleetId); }, // ISP-285 (AB#992)
+  getMilitary: () => appState.data?.corp?.military || null, // ISP-285 (AB#992)
+  getUnitCatalog: () => appState.units || [], // ISP-285 (AB#992)
   onConcessionAction(action, systemId, data) { concessionAction(action, systemId, data); }, // ISP-229 (AB#924)
   resetButton: document.getElementById("map-reset"),
   researchCatalog: techTree, // Bug #1270: the lock names the research a jump needs
@@ -183,6 +188,48 @@ export async function loadTariffs() {
  * ISP-218 (AB#913): the dominance reading (GET /api/starmap/dominance, ISP-217), handed to the Starmap with the viewer's
  * own corporation and conglomerate, which the map marks. Read when a dominance overlay is chosen; it changes once a day.
  */
+// ─── ISP-285 (AB#992): Rats on the Starmap, and hunting them ────────────────────────────────────────────────────────
+
+const account = () => `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay`;
+/** Every system's pirate activity as the server has it now, for the overlay and the panels. */
+export async function loadRatsActivity() {
+  if (!appState.accountId) return;
+  try {
+    starmap.setRatsActivity(await parseJsonResponse(await apiFetch(`${account()}/rats/activity`)));
+  } catch (err) {
+    pushFeedback(err.message || "The Rats' activity could not be read.", "warn");
+  }
+}
+/** Send the chosen fleet; when the hunt is due, read the account and the activity again, for its report and the quiet belt. */
+async function sendHunt(beltKey, fleetId) {
+  try {
+    const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
+    const response = await apiFetch(`${account()}/fleets/${encodeURIComponent(fleetId)}/hunt`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ beltKey })
+    });
+    const answer = await parseJsonResponse(response);
+    appState.data = deepClone(answer.state);
+    starmap.setHuntPreview(beltKey, null);
+    starmap.setBeltNotice(null);
+    updateAllViews();
+    showActionReceipt(answer, { returnFocusTo: receiptTrigger });
+    const wait = Math.max(0, Number(answer.hunt?.endsAt) - Date.now()) + 6_000; // the server's hunt ticker runs every 5 s
+    setTimeout(async () => { await refreshFromServer(); loadRatsActivity(); starmap.rerender(); }, wait);
+  } catch (err) {
+    starmap.setBeltNotice({ beltKey, message: err.message || "The hunt could not be sent." });
+    loadHuntPreview(beltKey);
+  }
+}
+
+/** A belt's hunt screen: the fleets that can hunt it now, and the battle the resolver expects for each. */
+async function loadHuntPreview(beltKey) {
+  try {
+    starmap.setHuntPreview(beltKey, await parseJsonResponse(await apiFetch(`${account()}/belts/${encodeURIComponent(beltKey)}/hunt`)));
+  } catch (err) {
+    starmap.setHuntPreview(beltKey, null);
+    starmap.setBeltNotice({ beltKey, message: err.message || "The hunt screen could not be read." });
+  }
+}
 export async function loadDominanceIntoStarmap() {
   try {
     const reading = await parseJsonResponse(await apiFetch("/api/starmap/dominance"));

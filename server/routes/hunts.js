@@ -3,8 +3,12 @@
 // and the account-action limiter have run: the hunter is always the caller's own corporation. The fields are checked for
 // shape by server/gameplayInput.js; a fleet that is not the caller's, or a belt that does not exist, answers 400 and
 // changes nothing.
-import { declareHunt, huntPreview, ratsActivity } from "../hunts.js";
+import { declareHunt, huntOutcome, huntPreview, ratsActivity } from "../hunts.js";
 import { getAccountById } from "../gameState.js";
+import { huntReceipt } from "../receipts.js"; // ISP-285 (AB#992)
+import { beltPhrase } from "../../public/scripts/displayNames.js";
+import { SYSTEMS_CATALOG } from "../travel.js";
+import { combatModifiersFor } from "../game/combat.js";
 
 const str = (v) => (typeof v === "string" ? v : "");
 
@@ -12,7 +16,11 @@ export function registerHuntRoutes(app) {
   app.post("/api/accounts/:accountId/gameplay/fleets/:fleetId/hunt", (req, res) => {
     const result = declareHunt(req.params.accountId, { fleetId: str(req.params.fleetId), beltKey: str(req.body?.beltKey) });
     if (!result?.ok) { res.status(result?.status || 400).json({ error: result?.error || "The hunt could not be declared." }); return; }
-    res.json(result);
+    // ISP-285 (AB#992): the account as it is now, and the receipt the page shows (AB#744)
+    const account = getAccountById(req.params.accountId);
+    const fleet = (account?.state?.corp?.military?.fleets || []).find((f) => f.id === result.hunt.fleetId);
+    const expected = huntOutcome(result.hunt.units, result.hunt.rats, combatModifiersFor(account?.state?.corp));
+    res.json({ ...account, hunt: result.hunt, receipt: huntReceipt({ fleetName: fleet?.name || "Your fleet", beltLabel: beltPhrase(SYSTEMS_CATALOG, result.hunt.beltKey), provisions: result.hunt.provisions, endsAt: result.hunt.endsAt, expected }) });
   });
   // ISP-285 (AB#992): every system's pirate activity and the belts a hunt has cleared, as the server has them now
   app.get("/api/accounts/:accountId/gameplay/rats/activity", (_req, res) => res.json(ratsActivity()));
