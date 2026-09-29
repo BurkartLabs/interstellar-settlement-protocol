@@ -1280,12 +1280,10 @@ textarea {
    measures), so the card never hides for good what it is describing. AB#1756: the room goes under the layout grid, not
    the body: #game-shell is 100vh tall and the grid overflows it, so body padding landed inside the overflow and added
    no scroll room once a page was taller than the screen (step 3's lease button stayed under the card). */
-/* Bug #4886: until the card is measured, a height for it; the measured one, set on the body's own style, wins. */
-body.walkthrough--open {
-  --walkthrough-card-height: 22rem;
-}
+/* Bug #4886: the fallback is the phone rule's, --space-16; startWalkthrough() measures the card in the same task that
+   adds walkthrough--open, so the fallback is never painted (it was 22rem). */
 body.walkthrough--open .layout-grid {
-  padding-bottom: calc(var(--space-4) + var(--walkthrough-card-height));
+  padding-bottom: calc(var(--space-4) + var(--walkthrough-card-height, var(--space-16)));
 }
 
 /* What a walkthrough step points at. AB#2463: the outline stands off the element, so what it frames is never jammed
