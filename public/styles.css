@@ -1957,9 +1957,12 @@ body.walkthrough--open .layout-grid {
   html {
     scroll-padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
   }
+  /* Bug #4846: the screen first, then the sidebar's panels. Stacked above it, the three panels (collapsed on a phone,
+     AB#1056) put every screen's own title a third of the way down the first screenful; after it, they are one scroll
+     away at the end of every screen. A desktop keeps them in their column beside the content. */
   .layout-grid {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "side" "main";
+    grid-template-areas: "main" "side";
     padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
   }
   .side-panel {
