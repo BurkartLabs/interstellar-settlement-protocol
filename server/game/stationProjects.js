@@ -88,7 +88,7 @@ export function openOrbits(c) {
 function startRefusal(c, catalog) {
   if (c.station) return no(409, "owns-station", `${c.name} already owns a station.`);
   if (c.stationProject) return no(409, "project-open", `${c.name} already has a station project under way. Finish or cancel it first.`);
-  if (c.level < catalog.stationMinLevel) return no(409, "level-too-low", `A station project needs a level ${catalog.stationMinLevel} conglomerate; ${c.name} is level ${c.level}.`);
+  if (c.level < catalog.stationMinLevel) return no(409, "level-too-low", `A station project needs a level ${catalog.stationMinLevel} conglomerate; ${c.name} is level ${c.level}. Buy the levels at the Bureau first.`); // AB#4821 (ISP-6)
   if (c.arrearsSince) return no(409, "in-arrears", `${c.name} owes upkeep. Pay it up before starting a station project.`);
   return null;
 }
@@ -109,14 +109,14 @@ export function startStationProject(accountId, conglomerateId, { systemId, body,
   if (typeof body !== "string" || !(system.bodies || []).some((b) => b.name === body)) return no(400, "unknown-body", `Choose a body in ${system.name}.`);
   if (!Number.isInteger(suffix) || suffix < 1 || !STATION_NAME_SUFFIXES[suffix - 1]) return no(400, "unknown-name", "Choose the station's name from the list.");
   if (stationAtBody(body)) return no(409, "body-taken", `${body} already has a station.`);
-  if (claimedBodies(c).has(body)) return no(409, "body-claimed", `Another conglomerate is already building at ${body}.`);
-  if (!leasedSystems(c).has(system.id)) return no(409, "no-lease-in-system", `A station is built where a member mines: no member of ${c.name} holds a lease in ${system.name}.`);
+  if (claimedBodies(c).has(body)) return no(409, "body-claimed", `Another conglomerate is already building at ${body}. Choose another body.`); // AB#4821 (ISP-6)
+  if (!leasedSystems(c).has(system.id)) return no(409, "no-lease-in-system", `A station is built where a member mines: no member of ${c.name} holds a lease in ${system.name}. Choose a system where a member mines.`); // AB#4821 (ISP-6)
   let bom;
   try {
     bom = billOfMaterials(catalog);
   } catch (error) {
     console.error("[station-project] the bill of materials cannot be read:", error?.message || error);
-    return no(503, "project-unavailable", "The Bureau cannot price a station just now; nothing was filed.");
+    return no(503, "project-unavailable", "The Bureau cannot price a station just now; nothing was filed. Try again later."); // AB#4821 (ISP-6)
   }
   c.stationProject = {
     id: createId("csp"), state: "funding", systemId: system.id, body, name: `${body} ${STATION_NAME_SUFFIXES[suffix - 1]}`,
@@ -125,7 +125,7 @@ export function startStationProject(accountId, conglomerateId, { systemId, body,
   };
   noteTreasury(c, { at: now, kind: "station-project", corp: corp.publicId, by: corp.publicId, note: `station project filed: ${c.stationProject.name}, ${system.name}` });
   saveAccountsNow();
-  notifyMembers(c, `${c.name} is building a station`, `${corpName(corp.publicId)} filed a station project: ${c.stationProject.name} in ${system.name}. It needs ${plain(bom.credits)} credits and ${goodsText(bom.goods)}.`);
+  notifyMembers(c, `${c.name} is building a station`, `${corpName(corp.publicId)} filed a station project: ${c.stationProject.name} in ${system.name}. It needs ${plain(bom.credits)} credits and ${goodsText(bom.goods)}.`, "queued");
   roomEvent(c, "conglomerate:station-project", { kind: "started", project: projectView(c, now, catalog) });
   return { project: projectView(c, now, catalog) };
 }
@@ -155,13 +155,13 @@ export function contributeToStationProject(accountId, conglomerateId, { source, 
   let row;
   if (giveCredits) {
     if (treasuryAmount(credits) === null) return no(400, "invalid-amount", "Enter a whole number of credits, at least 1.");
-    if (credits > need.credits) return no(409, "over-need", `The project needs ${plain(need.credits)} more credits.`);
+    if (credits > need.credits) return no(409, "over-need", `The project needs ${plain(need.credits)} more credits. Put in ${plain(need.credits)} or less.`); // AB#4821 (ISP-6)
     if (source === "own") {
       const held = Number(corp.finances?.credits);
-      if (!Number.isFinite(held) || held < credits) return no(409, "insufficient-credits", `Your corporation holds ${plain(held)} credits; it cannot put in ${plain(credits)}.`);
+      if (!Number.isFinite(held) || held < credits) return no(409, "insufficient-credits", `Your corporation holds ${plain(held)} credits; it cannot put in ${plain(credits)}. Put in ${plain(held)} or less.`); // AB#4821 (ISP-6)
       applyCredits(corp, -credits, "conglomerate-station", now);
     } else {
-      if (credits > c.treasury.credits) return no(409, "insufficient-treasury", `The treasury holds ${plain(c.treasury.credits)} credits.`);
+      if (credits > c.treasury.credits) return no(409, "insufficient-treasury", `The treasury holds ${plain(c.treasury.credits)} credits. Put in ${plain(c.treasury.credits)} or less.`); // AB#4821 (ISP-6)
       moveTreasury(c, { at: now, kind: "station-project", corp: corp.publicId, amount: -credits, by: corp.publicId, note: p.name });
     }
     p.credits += credits;
@@ -169,17 +169,17 @@ export function contributeToStationProject(accountId, conglomerateId, { source, 
   } else {
     const item = hangarItem(rawItem);
     if (!item) return no(400, "unknown-item", "Choose an item from the game's list.");
-    if (!(item in bom.goods)) return no(409, "not-needed", `A station is not built from ${item}.`);
+    if (!(item in bom.goods)) return no(409, "not-needed", `A station is not built from ${item}. Choose one of the goods its bill lists.`); // AB#4821 (ISP-6)
     if (hangarQuantity(quantity) === null) return no(400, "invalid-quantity", "Enter a whole number of units, at least 1.");
-    if (quantity > need.goods[item]) return no(409, "over-need", `The project needs ${plain(need.goods[item])} more ${item}.`);
+    if (quantity > need.goods[item]) return no(409, "over-need", `The project needs ${plain(need.goods[item])} more ${item}. Put in ${plain(need.goods[item])} or fewer.`); // AB#4821 (ISP-6)
     if (source === "own") {
       const held = Math.floor(Number(corp.inventory?.[hangarStation]?.[item]) || 0);
-      if (held < quantity) return no(409, "insufficient-stock", `Your corporation holds ${plain(held)} ${item} at ${stationById(hangarStation)?.name || hangarStation}; goods for the project come from there.`);
+      if (held < quantity) return no(409, "insufficient-stock", `Your corporation holds ${plain(held)} ${item} at ${stationById(hangarStation)?.name || hangarStation}; goods for the project come from there. Bring more there, or put in fewer.`); // AB#4821 (ISP-6)
       corp.inventory[hangarStation][item] = held - quantity;
       if (!corp.inventory[hangarStation][item]) delete corp.inventory[hangarStation][item];
     } else {
       const held = Math.floor(Number(c.hangar.items[item]) || 0);
-      if (held < quantity) return no(409, "insufficient-hangar", `The hangar holds ${plain(held)} ${item}.`);
+      if (held < quantity) return no(409, "insufficient-hangar", `The hangar holds ${plain(held)} ${item}. Put in ${plain(held)} or fewer.`); // AB#4821 (ISP-6)
       moveHangar(c, { at: now, kind: "station-project", corp: corp.publicId, item, quantity: -quantity, by: corp.publicId });
     }
     p.goods[item] = (p.goods[item] || 0) + quantity;
@@ -193,7 +193,7 @@ export function contributeToStationProject(accountId, conglomerateId, { source, 
   }
   saveAccountsNow();
   roomEvent(c, "conglomerate:station-project", { kind: "contribution", contribution: contributionView(row), project: projectView(c, now, catalog) });
-  if (p.state === "building") notifyMembers(c, `${p.name} is fully funded`, `Construction has begun; ${p.name} opens in ${catalog.stationBuildDays} days.`);
+  if (p.state === "building") notifyMembers(c, `${p.name} is fully funded`, `Construction has begun; ${p.name} opens in ${catalog.stationBuildDays} days.`, "active");
   return { project: projectView(c, now, catalog), account: { credits: corp.finances.credits } };
 }
 
@@ -211,7 +211,7 @@ export function cancelStationProject(accountId, conglomerateId, now = Date.now()
   c.stationProject = null;
   noteTreasury(c, { at: now, kind: "station-project", corp: corp.publicId, by: corp.publicId, note: `station project cancelled: ${p.name}; every contribution returned` });
   saveAccountsNow();
-  notifyMembers(c, `${p.name} was cancelled`, `${corpName(corp.publicId)} cancelled the station project. Every contribution has gone back where it came from.`);
+  notifyMembers(c, `${p.name} was cancelled`, `${corpName(corp.publicId)} cancelled the station project. Every contribution has gone back where it came from.`, "cancelled");
   roomEvent(c, "conglomerate:station-project", { kind: "cancelled", name: p.name });
   return { cancelled: p.name, treasury: { credits: c.treasury.credits }, account: { credits: corp.finances.credits } };
 }
@@ -260,7 +260,7 @@ export function settleStationProject(c, now = Date.now(), catalog = CONGLOMERATE
   noteTreasury(c, { at: now, kind: "station-built", corp: null, by: "bureau", note: `${station.name} opened` });
   saveAccountsNow();
   const system = SYSTEMS_BY_ID.get(station.systemId)?.name || station.systemId;
-  notifyMembers(c, `${station.name} is open`, `${c.name}'s station at ${station.body}, ${system}, is built and on the starmap.`);
+  notifyMembers(c, `${station.name} is open`, `${c.name}'s station at ${station.body}, ${system}, is built and on the starmap.`, "complete");
   roomEvent(c, "conglomerate:station-built", { station: { id: station.id, name: station.name, systemId: station.systemId, body: station.body } });
   return { station };
 }
@@ -286,10 +286,11 @@ export function settleStationProjects(now = Date.now()) {
 }
 
 const goodsText = (goods) => Object.entries(goods).map(([item, n]) => `${plain(n)} ${item}`).join(", ");
-function notifyMembers(c, title, body) {
+// ISP-254 (AB#4821): `meaning` is the guide's phrase for the project's new state, drawn after the plain words
+function notifyMembers(c, title, body, meaning) {
   for (const m of c.members) {
     const account = accountByCorp(m.corp);
-    if (account) pushSystemNotification(account, { type: "system", title, body });
+    if (account) pushSystemNotification(account, { type: "system", title, body, protocol: { meaning, screen: "conglomerate" } });
   }
 }
 const contributionView = (r) => ({ at: r.at, source: r.source, corp: r.corp, corpName: r.corp ? corpName(r.corp) : null, byName: corpName(r.by), credits: r.credits ?? null, item: r.item ?? null, quantity: r.quantity ?? null, value: r.value });

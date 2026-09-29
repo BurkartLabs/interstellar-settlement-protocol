@@ -34,7 +34,7 @@ export function facilityStatus(building, corp = {}, now = Date.now()) {
 /** ISP-254 (AB#4818): a facility's status in protocol terms: Operational is In force, Upgrading (offline) Suspended. */
 export function facilityProtocolHtml(status) {
   const meaning = status === "Operational" ? "active" : status === "Upgrading" ? "suspended" : null;
-  return meaning ? protocolLineHtml({ meaning, screen: "station" }) : "";
+  return meaning ? protocolLineHtml({ meaning, screen: "station-facilities-section" }) : "";
 }
 
 /** The facility cards for a corporation, and the Construct card while it has the research and no facility yet. */

@@ -136,6 +136,7 @@ export function registerMiningRoutes(app) {
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "mining",
+      protocol: { meaning: "active", screen: "station-active-mining-cycles" }, // ISP-254 Bd (AB#4819)
       title: "Mining Cycle Started",
       body: `${targetExtractorLabel} has begun silicate extraction operations.`
     });
@@ -219,6 +220,7 @@ export function registerMiningRoutes(app) {
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "mining",
+      protocol: { meaning: "cancelled", screen: "station-active-mining-cycles" }, // ISP-254 Bd (AB#4819)
       title: "Mining Cycle Stopped",
       body: `${targetExtractorLabel} was stopped early, keeping ${minedThisCycle} t mined this cycle.`
     });

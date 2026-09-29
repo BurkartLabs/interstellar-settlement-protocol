@@ -164,7 +164,7 @@ export function bindConstructionPanel(grid, { accountId, request, onBuilt, onErr
       button.disabled = false;
       button.textContent = label;
       // ISP-254 (AB#4818): the refusal, then its protocol line (Denied, or Unfunded from the server's code)
-      if (status) status.innerHTML = `${escapeHtml(error?.message || "The build was refused.")} ${protocolLineHtml({ meaning: refusalMeaning(error), screen: "station" })}`;
+      if (status) status.innerHTML = `${escapeHtml(error?.message || "The build was refused.")} ${protocolLineHtml({ meaning: refusalMeaning(error), screen: "station-construction-section" })}`;
       onError(error);
     }
   };

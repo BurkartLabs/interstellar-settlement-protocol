@@ -8,7 +8,6 @@ import { isMemberStation, memberOfficeCost } from "../memberRates.js"; // ISP-21
 import { claimsAllTakenText, claimsNoLeasesText } from "../emptyStates.js";
 import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml, stationBuildingCardsHtml } from "../html.js";
-import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 (AB#4818)
 import { activeCycleFigures, extractorState, spentText } from "../leaseLive.js";
 import { probeFabricationStartedText } from "../miningFeedback.js";
 import { leaseFacilities, leaseSlotsUsed } from "../leaseSlots.js"; // ISP-98 (AB#788)
@@ -28,6 +27,7 @@ import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHead
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
 // back to the control that was pressed if it is still there, otherwise to the one the flow continues from.
 import { showActionReceipt } from "./receiptModal.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 Bd (AB#4819)
 import { renderDevelopmentBank } from "./developmentBank.js"; // ISP-151 (AB#845)
 import { renderStockExchange } from "./stockExchange.js"; // ISP-161 (AB#855)
 import { openConglomerateStation, renderConglomerateBureau } from "./conglomerateBureau.js"; // ISP-200 (AB#894); ISP-213 (AB#908)
@@ -74,21 +74,11 @@ export function showStationBuilding(buildingId) {
 }
 
 /**
- * ISP-254 (AB#4818; docs/design/BUREAUCRATIC_UI.md): a Station status line, the plain words first and then the protocol
- * line for `meaning` (a refusal's comes from refusalMeaning, which reads the server's code). No meaning, no line.
- */
-function stationStatus(el, text, meaning = null) {
-  if (!el) return;
-  el.innerHTML = `${escapeHtml(text)}${meaning ? ` ${protocolLineHtml({ meaning, screen: "station" })}` : ""}`;
-}
-const onStation = (meaning) => ({ meaning, screen: "station" });
-
-/**
  * ISP-103 (AB#795), ISP-102 (AB#794): post an upgrade the player has confirmed, draw the page from the account that
  * comes back (no reload), and show the receipt. One path for a yard's row and a facility's card; the server checks
  * everything again and a refusal is shown in the control's status line.
  */
-async function postUpgrade(buildingId, btn, statusEl, { redraw = () => {}, focus } = {}) {
+async function postUpgrade(buildingId, btn, statusEl, { redraw = () => {}, focus, screen } = {}) {
   btn.disabled = true;
   if (statusEl) statusEl.textContent = "Upgrading...";
   try {
@@ -101,8 +91,18 @@ async function postUpgrade(buildingId, btn, statusEl, { redraw = () => {}, focus
     showActionReceipt(account, { returnFocusTo: focus });
   } catch (error) {
     btn.disabled = false;
-    stationStatus(statusEl, error?.message || "The upgrade was refused.", refusalMeaning(error));
+    const message = error?.message || "The upgrade was refused.";
+    if (screen) setStatusLine(statusEl, message, { meaning: refusalMeaning(error), screen }); // ISP-254 Bd (AB#4819)
+    else if (statusEl) statusEl.textContent = message;
   }
+}
+
+/**
+ * ISP-254 Bd (AB#4819): a status line's plain words, then its protocol line (public/scripts/protocol.js; the guide's
+ * first rule: the plain words always stay, the phrase goes beside them).
+ */
+function setStatusLine(statusEl, text, protocol) {
+  if (statusEl) statusEl.innerHTML = `${escapeHtml(text)} ${protocolLineHtml(protocol)}`;
 }
 
 /** ISP-102 (AB#794): a facility card's Upgrade: confirm with the tier's before and after, then postUpgrade. */
@@ -171,11 +171,11 @@ async function repairBuilding(building, btn) {
     const account = await parseJsonResponse(await apiFetch(repairPath(appState.accountId, building.id), { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }));
     appState.data = deepClone(account.state);
     updateAllViews();
-    pushFeedback(`${building.name} repaired.`, "ok", onStation("complete"));
+    pushFeedback(`${building.name} repaired.`, "ok", { meaning: "complete", screen: "station-repairs-section" }); // ISP-254Bc (AB#4818)
     showActionReceipt(account, { returnFocusTo: firstPresent("#station-repairs-section h3", "#station-facilities-section h3", ".nav-tab[data-tab='station']") });
   } catch (error) {
     btn.disabled = false;
-    stationStatus(statusEl, error?.message || "The repair was refused.", refusalMeaning(error));
+    setStatusLine(statusEl, error?.message || "The repair was refused.", { meaning: refusalMeaning(error), screen: "station-repairs-section" }); // ISP-254Bc (AB#4818)
   }
 }
 
@@ -366,8 +366,8 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const hoursRemaining = Math.floor((msRemaining % 86_400_000) / 3_600_000);
   const expiryDate = utcTime(rentedUntil, { withDate: true });
   const leaseStatusBadge = leaseExpired
-    ? `<span class="ui-badge ui-badge--danger">Expired</span> ${protocolLineHtml({ meaning: "expired", screen: "station" })}`
-    : `<span class="ui-badge ui-badge--success">Active Lease</span> ${protocolLineHtml({ meaning: "active", screen: "station" })}`;
+    ? `<span class="ui-badge ui-badge--danger">Expired</span> ${protocolLineHtml({ meaning: "expired", screen: "building-orbital-executive-suites" })}`
+    : `<span class="ui-badge ui-badge--success">Active Lease</span> ${protocolLineHtml({ meaning: "active", screen: "building-orbital-executive-suites" })}`; // ISP-254Bc (AB#4818)
   const timeRemainingText = leaseExpired
     ? `<span class="station__danger">Lease expired</span>`
     : `${fullDays}d ${hoursRemaining}h remaining`;
@@ -471,10 +471,10 @@ export function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         }
-        pushFeedback(`Office lease confirmed at ${station?.name || "Earth Station Prime"}.`, "success", onStation("active"));
+        pushFeedback(`Office lease confirmed at ${station?.name || "Earth Station Prime"}.`, "success", { meaning: "active", screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       } catch (err) {
         rentBtn.disabled = false;
-        stationStatus(statusEl, err.message || "Lease agreement failed.", refusalMeaning(err));
+        setStatusLine(statusEl, err.message || "Lease agreement failed.", { meaning: refusalMeaning(err), screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       }
     });
   }
@@ -520,10 +520,10 @@ export function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         }
-        pushFeedback(`Lease extended by ${durationDays} days.`, "success", onStation("active"));
+        pushFeedback(`Lease extended by ${durationDays} days.`, "success", { meaning: "active", screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       } catch (err) {
         if (submitBtn) submitBtn.disabled = false;
-        stationStatus(statusEl, err.message || "Lease renewal failed.", refusalMeaning(err));
+        setStatusLine(statusEl, err.message || "Lease renewal failed.", { meaning: refusalMeaning(err), screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       }
     });
   }
@@ -571,10 +571,10 @@ export function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         }
-        pushFeedback(`Personnel hired successfully.`, "success", onStation("complete"));
+        pushFeedback(`Personnel hired successfully.`, "success", { meaning: "complete", screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       } catch (err) {
         if (submitBtn) submitBtn.disabled = false;
-        stationStatus(statusEl, err.message || "Hire action failed.", refusalMeaning(err));
+        setStatusLine(statusEl, err.message || "Hire action failed.", { meaning: refusalMeaning(err), screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       }
     });
   }
@@ -737,11 +737,11 @@ export function bindISAClaimsLeasesActions(building, data) {
           showStationBuilding(building.id);
           showActionReceipt(account, { returnFocusTo: firstPresent(`[data-action="purchase-lease"][data-body="${CSS.escape(body)}"]`, '[data-action="manage-lease"]') });
         }
-        pushFeedback(`${body} mining lease approved by the ISA.`, "success", onStation("active"));
+        pushFeedback(`${body} mining lease approved by the ISA.`, "success", { meaning: "active", screen: "building-isa-claims-leases" }); // ISP-254 Bd (AB#4819)
       } catch (err) {
         btn.disabled = false;
         btn.textContent = `File Lease Application — ${body}`;
-        pushFeedback(err.message || "Lease application failed.", "warn", onStation(refusalMeaning(err)));
+        pushFeedback(err.message || "Lease application failed.", "warn", { meaning: refusalMeaning(err), screen: "building-isa-claims-leases" });
       }
     });
   });
@@ -913,7 +913,7 @@ export function renderLeaseManagement(building, lease, data) {
       <div class="ui-card extractor is-${statusClass}" data-live-ex="${escapeHtml(ex.id)}" data-live-state="${extractorState(ex)}">
         <div class="extractor__header">
           <strong>${escapeHtml(ex.name)}</strong>
-          <span class="ui-badge station__status--${statusClass}" data-role="yard-status">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : (upgrading ? "Upgrading" : "Idle"))}</span>
+          <span class="extractor__status"><span class="ui-badge station__status--${statusClass}" data-role="yard-status">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : (upgrading ? "Upgrading" : "Idle"))}</span>${ex.downtimeActive || ex.active ? ` ${protocolLineHtml({ meaning: ex.downtimeActive ? "suspended" : "active", screen: "building-lease" })}` : ""}</span>
         </div>
         ${ex.downtimeActive ? cycleInfo : (ex.active ? "" : cycleInfo)}
         ${progressBarHtml}
@@ -1029,18 +1029,18 @@ export function bindLeaseManagementActions(building, lease, data) {
           const updatedLease = corp.miningLeases.find((l) => l.id === lease.id);
           renderBuildingDetail(building, appState.data);
         }
-        pushFeedback("Basic Extractor Yard commissioned and linked to lease.", "success", onStation("complete"));
+        pushFeedback("Basic Extractor Yard commissioned and linked to lease.", "success", { meaning: "complete", screen: "building-lease" }); // ISP-254 Bd (AB#4819)
       } catch (err) {
         buildBtn.disabled = false;
         // If the server can't find the lease (e.g. server restarted and lost in-memory state),
         // the client state is stale. Clear it and send the user back to the list view.
         if (err.message && err.message.includes("could not be found")) {
           appState.stationActiveLease = null;
-          pushFeedback("Session state out of sync — please re-purchase your lease.", "error", onStation("failed"));
+          pushFeedback("Session state out of sync — please re-purchase your lease.", "error", { meaning: "failed", screen: "building-lease" });
           renderBuildingDetail(building, appState.data);
           return;
         }
-        stationStatus(statusEl, err.message || "Construction failed.", refusalMeaning(err));
+        setStatusLine(statusEl, err.message || "Construction failed.", { meaning: refusalMeaning(err), screen: "building-lease" });
       }
     });
   }
@@ -1109,10 +1109,10 @@ export function bindLeaseManagementActions(building, lease, data) {
           updateAllViews();
           renderBuildingDetail(building, appState.data);
         }
-        pushFeedback("Mining cycle started.", "success");
+        pushFeedback("Mining cycle started.", "success", { meaning: "active", screen: "building-lease" }); // ISP-254 Bd (AB#4819)
       } catch (err) {
         if (submitBtn) submitBtn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Mining cycle failed to start.";
+        setStatusLine(statusEl, err.message || "Mining cycle failed to start.", { meaning: refusalMeaning(err), screen: "building-lease" });
       }
     });
   });
@@ -1142,6 +1142,7 @@ export function bindLeaseManagementActions(building, lease, data) {
       });
       if (!confirmed) return;
       await postUpgrade(buildingId, btn, statusEl, {
+        screen: "building-lease", // ISP-254 Bd (AB#4819)
         redraw: () => renderBuildingDetail(building, appState.data),
         focus: firstPresent(`[data-role="yard-upgrade"][data-upgrade-for="${CSS.escape(extractorId)}"] button`, '[data-form="mine"] button[type=submit]')
       });
@@ -1200,10 +1201,10 @@ export function bindLeaseManagementActions(building, lease, data) {
           updateAllViews();
           renderBuildingDetail(building, appState.data);
         }
-        pushFeedback("Mining cycle stopped.", "success");
+        pushFeedback("Mining cycle stopped.", "success", { meaning: "cancelled", screen: "building-lease" }); // ISP-254 Bd (AB#4819)
       } catch (err) {
         btn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Could not stop the mining cycle.";
+        setStatusLine(statusEl, err.message || "Could not stop the mining cycle.", { meaning: refusalMeaning(err), screen: "building-lease" });
       }
     });
   });
@@ -1291,10 +1292,10 @@ export function renderStation(data) {
     onBuilt: (account) => {
       appState.data = deepClone(account.state);
       updateAllViews();
-      pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok", onStation("complete"));
+      pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok", { meaning: "complete", screen: "building-assembly-facility" }); // ISP-254 Bd (AB#4819)
       showActionReceipt(account, { returnFocusTo: firstPresent('[data-corp-building="Assembly Facility"]', ".nav-tab[data-tab='station']") }); // AB#744
     },
-    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn", onStation(refusalMeaning(error))),
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn", { meaning: refusalMeaning(error), screen: "station-facilities-section" }), // ISP-254 Bd (AB#4819)
     onUpgrade: (buildingId) => upgradeFacility(buildingId) // ISP-102 (AB#794)
   }, clientPrices(appState.economy).assemblyFacilityCost,
   (b) => facilityUpgradeHtml(facilityUpgradeView(b, data.corp, appState.economy, appState.playerBuildings || [])));
@@ -1306,10 +1307,10 @@ export function renderStation(data) {
     onBuilt: (account) => {
       appState.data = deepClone(account.state);
       updateAllViews();
-      pushFeedback(account.receipt?.title || "Construction complete.", "ok", onStation("complete"));
+      pushFeedback(account.receipt?.title || "Construction complete.", "ok", { meaning: "complete", screen: "station-construction-section" }); // ISP-254Bc (AB#4818)
       showActionReceipt(account, { returnFocusTo: firstPresent("#station-construction-section h3", ".nav-tab[data-tab='station']") }); // AB#744
     },
-    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn", onStation(refusalMeaning(error)))
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn", { meaning: refusalMeaning(error), screen: "station-construction-section" }) // ISP-254Bc (AB#4818)
   }, {
     researchName: (id) => techTree.find((t) => t.id === id)?.name || id,
     economy: appState.economy
@@ -1390,7 +1391,7 @@ export function renderAssemblyFacility(data) {
       const remainMs = Math.max(0, activeFab.completesAt - Date.now());
       fabProgressHtml = `
         <div class="station__fab-progress">
-          <p class="station__note station__hint">Fabricating Mining Probe &mdash; ${formatDuration(remainMs)} remaining</p>
+          <p class="station__note station__hint">Fabricating Mining Probe &mdash; ${formatDuration(remainMs)} remaining ${protocolLineHtml({ meaning: "active", screen: "building-assembly-facility" })}</p>
           <div class="progress-wrap"><div class="progress-bar" id="fab-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
         </div>
       `;
@@ -1439,9 +1440,9 @@ export function renderAssemblyFacility(data) {
         showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
         renderAssemblyFacility(appState.data);
         // AB#1257: it said "fabricated" here, 30 minutes before the probe existed; that line now comes on completion.
-        pushFeedback(probeFabricationStartedText(appState.data?.corp?.asteroidMining?.fabricationQueue), "ok", onStation("active"));
+        pushFeedback(probeFabricationStartedText(appState.data?.corp?.asteroidMining?.fabricationQueue), "ok", { meaning: "queued", screen: "building-assembly-facility" }); // ISP-254 Bd (AB#4819)
       } catch (err) {
-        pushFeedback(err.message || "Probe fabrication failed.", "warn", onStation(refusalMeaning(err)));
+        pushFeedback(err.message || "Probe fabrication failed.", "warn", { meaning: refusalMeaning(err), screen: "building-assembly-facility" });
       }
     });
   }

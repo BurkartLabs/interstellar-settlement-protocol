@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { coOwnedStationHtml, dockedAtOwnStationHtml, noStationHtml, projectHtml, stationTabHtml } from "../../public/scripts/conglomerateStation.js";
+import { setSectionCodes } from "../../public/scripts/sectionCodes.js";
 
 // ISP-213 (AB#908): the Conglomerate tab's Station screen, as markup. Every figure is the server's; these check that
 // each state shows what it should, offers only what the role may do, and never works a figure out itself.
@@ -133,4 +134,32 @@ describe("the Station tab and the whole screen (AB#908)", () => {
     expect(html).toContain("the rest of Sol for nothing");
     expect(html).toContain('data-role="own-station-open"');
   });
+});
+
+// ISP-254 slice C1b (AB#4821): the project's state, the votes and the form lines carry the protocol line after their
+// plain words, with the Conglomerate screen's code.
+describe("the Station screen's protocol line (AB#4821)", () => {
+  const LINE = (phrase) => `<span class="protocol-line">${phrase}<span class="protocol-line__code" aria-hidden="true"> // CGL-ADM-1</span></span>`;
+  const withCodes = (fn) => { setSectionCodes({ screens: [{ id: "conglomerate", code: "CGL-ADM-1" }] }); try { fn(); } finally { setSectionCodes(null); } };
+
+  it("a project being funded is Lodged, one under construction In force", () => withCodes(() => {
+    expect(projectHtml(project(), { may: ["contribute"] })).toContain(`Station project · sol ${LINE("Lodged")}</p>`);
+    const building = projectHtml(project({ state: "building", fundedAt: T0, completesAt: T0 + 14 * 864e5 }), { may: ["contribute"], now: T0 + 864e5 });
+    expect(building).toContain(`Under construction · sol ${LINE("In force")}</p>`);
+  }));
+
+  it("an open vote is Filed, awaiting review; a closed one In force or Denied, and Lapsed says itself", () => withCodes(() => {
+    const closed = (state) => ({ id: `csv-${state}`, setting: "access", value: "members", text: `A ${state} proposal`, state, proposedBy: "corp-b", at: T0, closesAt: T0, closedAt: T0 + 1000, yesPct: 60, noPct: 0, votes: [] });
+    const html = coOwnedStationHtml(gov({ proposals: [...gov().proposals, closed("passed"), closed("rejected"), closed("expired")] }), { me: "corp-a", may: ["view"], memberStation: { id: "cg-venus", officeRentPct: 50 } });
+    expect(html).toContain(`no 0% of all stake ${LINE("Filed, awaiting review")}</p>`);
+    expect(html).toMatch(new RegExp(`Passed [^<]+ ${LINE("In force").replace(/[/()]/g, "\\$&")}</p>`));
+    expect(html).toMatch(new RegExp(`Voted down [^<]+ ${LINE("Denied").replace(/[/()]/g, "\\$&")}</p>`));
+    expect(html).toMatch(/Lapsed [^<]+<\/p>/); // the plain word is already the guide's phrase
+  }));
+
+  it("a form's line carries its phrase, and a station that did not load is Unsuccessful", () => withCodes(() => {
+    const html = projectHtml(project(), { may: ["contribute", "station-project"], status: { own: { text: "Put in: 10 credits.", ok: true, protocol: { meaning: "complete", screen: "conglomerate" } } } });
+    expect(html).toContain(`Put in: 10 credits. ${LINE("Concluded")}</p>`);
+    expect(stationTabHtml({ error: "down" }, null)).toContain(`Nothing has changed. ${LINE("Unsuccessful")}</p>`);
+  }));
 });

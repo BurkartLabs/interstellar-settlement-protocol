@@ -78,7 +78,7 @@ export function registerCorporationRoutes(app) {
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "workforce",
-      protocol: { meaning: "complete", screen: "station" }, // ISP-254 (AB#4818)
+      protocol: { meaning: "complete", screen: "building-orbital-executive-suites" }, // ISP-254Bc (AB#4818)
       title: "Hiring Order Confirmed",
       body: `${hiredCount} employee(s) were added to your workforce.`
     });
@@ -174,7 +174,7 @@ export function registerCorporationRoutes(app) {
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "administration",
-      protocol: { meaning: "active", screen: "station" }, // ISP-254 (AB#4818)
+      protocol: { meaning: "active", screen: "building-orbital-executive-suites" }, // ISP-254Bc (AB#4818)
       title: "Office Lease Confirmed",
       body: `Your corporation now maintains a registered operational office at ${stationName}.`
     });
@@ -247,7 +247,7 @@ export function registerCorporationRoutes(app) {
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "administration",
-      protocol: { meaning: "active", screen: "station" }, // ISP-254 (AB#4818)
+      protocol: { meaning: "active", screen: "building-orbital-executive-suites" }, // ISP-254Bc (AB#4818)
       title: "Office Lease Renewed",
       body: `Your office lease at ${stationName} has been extended by ${durationDays} days.`
     });
@@ -364,7 +364,7 @@ export function registerCorporationRoutes(app) {
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "administration",
-      protocol: { meaning: "active", screen: "station" }, // ISP-254 (AB#4818)
+      protocol: { meaning: "active", screen: "building-isa-claims-leases" }, // ISP-254 Bd (AB#4819)
       title: "Mining Lease Approved",
       body: `ISA Claims & Leases has approved your extraction rights application for ${requestedBody}. Two building slots have been allocated to your lease.`
     });

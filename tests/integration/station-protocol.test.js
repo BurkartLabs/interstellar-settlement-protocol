@@ -37,7 +37,7 @@ describe("the Station's refusals and notifications (ISP-254Bc, AB#4818)", () => 
     expect(refused.body.error).toMatch(/Rent for fewer days, or sell goods to raise the credits\.$/);
     seed((s) => { s.corp.finances.credits = 5_000_000; });
     expect((await api.post(at("/rent-office")).send({ stationId: EARTH, durationDays: 7 })).status).toBe(200);
-    expect(await noteTitled("Office Lease Confirmed")).toMatchObject({ protocol: { meaning: "active", screen: "station" } });
+    expect(await noteTitled("Office Lease Confirmed")).toMatchObject({ protocol: { meaning: "active", screen: "building-orbital-executive-suites" } });
   });
 
   it("hiring: without an office it says where to rent one; for credits it quotes the hire it would make (Bug #4823)", async () => {
@@ -60,7 +60,7 @@ describe("the Station's refusals and notifications (ISP-254Bc, AB#4818)", () => 
     expect(short.body.error).toMatch(/Hire fewer, or sell goods to raise the credits\.$/);
     seed((s) => { s.corp.finances.credits = 5_000_000; });
     expect((await api.post(at("/hire")).send({ count: 1 })).status).toBe(200);
-    expect(await noteTitled("Hiring Order Confirmed")).toMatchObject({ protocol: { meaning: "complete", screen: "station" } });
+    expect(await noteTitled("Hiring Order Confirmed")).toMatchObject({ protocol: { meaning: "complete", screen: "building-orbital-executive-suites" } });
   });
 
   it("building: unfunded with the next step, then Concluded once built", async () => {
@@ -76,7 +76,7 @@ describe("the Station's refusals and notifications (ISP-254Bc, AB#4818)", () => 
     expect(refused.body.error).toMatch(/Sell goods or finish an assignment to raise the credits, then build it\.$/);
     seed((s) => { s.corp.finances.credits = 5_000_000; });
     expect((await api.post(at("/build")).send({ buildingId: "assembly-facility" })).status).toBe(200);
-    expect(await noteTitled("Assembly Facility Online")).toMatchObject({ protocol: { meaning: "complete", screen: "station" } });
+    expect(await noteTitled("Assembly Facility Online")).toMatchObject({ protocol: { meaning: "complete", screen: "building-assembly-facility" } }); // slice Bd's (AB#4819)
   });
 
   it("an upgrade or a repair refused for credits says what to do next", () => {
