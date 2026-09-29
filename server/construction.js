@@ -53,12 +53,12 @@ export const CONSTRUCTIONS = Object.freeze({
       lease.extractorIds.push(id);
       return { extractorName: `${building.name} #${nextIndex}`, body: lease.body || null };
     },
-    notification: { title: "Extractor Commissioned", body: "Basic Extractor Yard is now operational and linked to your mining lease." },
+    notification: { title: "Extractor Commissioned", body: "Basic Extractor Yard is now operational and linked to your mining lease.", protocol: { meaning: "complete", screen: "building-lease" } }, // ISP-254 Bd (AB#4819)
     receipt: (built) => buildExtractorReceipt(built)
   },
   "assembly-facility": {
     place: () => ({}),
-    notification: { title: "Assembly Facility Online", body: "Your Assembly Facility is now operational. You may begin fabricating units." },
+    notification: { title: "Assembly Facility Online", body: "Your Assembly Facility is now operational. You may begin fabricating units.", protocol: { meaning: "complete", screen: "building-assembly-facility" } }, // ISP-254 Bd (AB#4819)
     receipt: (built, corp) => buildAssemblyReceipt({ cost: built.cost, assetValue: built.assetValue, ...slotCount(corp) })
   },
   refinery: {
