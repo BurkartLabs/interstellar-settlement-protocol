@@ -98,6 +98,7 @@
   --font-size-4: 18px; /* panel heading */
   --font-size-5: 22px; /* page heading */
   --font-size-6: 26px; /* hero */
+  --font-size-display: clamp(1.2rem, 2.6vw, 1.8rem); /* Bug #4844: the page title and the header's name, fluid from 19 to 29px */
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
@@ -621,7 +622,7 @@ h1, h2, h3, h4, p {
 
 h1 {
   margin-bottom: 0;
-  font-size: clamp(1.2rem, 2.6vw, 1.8rem);
+  font-size: var(--font-size-display);
   letter-spacing: 0.02em;
 }
 
@@ -5109,7 +5110,7 @@ img.station__body {
 .app-header__title {
   margin: 0;
   color: var(--text);
-  font-size: clamp(1.2rem, 2.6vw, 1.8rem);
+  font-size: var(--font-size-display);
   line-height: var(--line-height-tight);
 }
 .app-header__actions {
@@ -5276,12 +5277,15 @@ img.station__body {
 .station__offices { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
 .station__offices .station__card { gap: var(--space-2); }
 .station__card-agency { margin: 0; }
-.ops-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+/* Bug #4842: the list is its own container, so a row stacks when the list is narrow, not only the window: at 768 the
+   content column beside the navigation is narrower than the four-column row's minimum, and the Open buttons ran past
+   the edge. */
+.ops-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); container: ops / inline-size; }
 .ops-row { display: grid; grid-template-columns: 8rem minmax(12rem, 1fr) minmax(0, 1fr) auto; /* the name keeps its room; the time wraps */ align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); }
 .ops-row__kind { justify-self: start; }
 .ops-row__what { overflow-wrap: anywhere; }
 .ops-row__when { color: var(--text-soft); font-size: var(--font-size-2); font-variant-numeric: tabular-nums; text-align: right; }
-@media (max-width: 760px) {
+@container ops (max-width: 34rem) {
   .ops-row { grid-template-columns: minmax(0, 1fr) auto; }
   .ops-row__what { grid-column: 1 / -1; }
   .ops-row__when { text-align: left; }
