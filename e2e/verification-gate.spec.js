@@ -71,7 +71,7 @@ for (const vp of VIEWPORTS) {
 
       await status.locator("a").click();
       await page.waitForURL(`${url}/check-email.html`);
-      await expect(page.locator("#check-email-title")).toHaveText("Check your email to verify your account.");
+      await expect(page.locator("#check-email-title")).toHaveText(/Check your email to verify your account\.$/); // AB#943: after its document code
       await page.screenshot({ path: path.join(SCREEN_DIR, `gate-check-email-${vp.label}.png`) });
 
       // The link from the mail, opened as a player opens it.

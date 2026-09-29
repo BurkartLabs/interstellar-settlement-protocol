@@ -79,6 +79,8 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
 
       await openTab(page, "market");
       // The Lunar Helium Consortium's rows in the standing buy orders.
+      // AB#4710: the page lists the buyers for what the corporation holds here; every buyer is one press away.
+      await page.locator("#npc-buy-show-all").click();
       const bid = page.locator("#exchange-standing-section tr", { hasText: "Fusion Pellets" }).first();
       await expect(bid).toBeVisible();
       await expect(bid).toContainText("Lunar Helium Consortium");
