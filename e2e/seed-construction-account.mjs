@@ -141,8 +141,9 @@ if (kind === "mercs") { // ISP-177 (AB#871): another corporation offers three fl
   const fleetIds = [];
   store.mutateAccountState(seller.id, (state) => {
     state.corp.currentStationId = "earth-station-prime";
-    state.corp.military = { units: { lf: 30, ds: 6, se: 2, at: 8 } };
-    for (const [name, units] of [["Corsair", { lf: 12, ds: 2 }], ["Halberd", { ds: 4, se: 2, at: 6 }], ["Lancer", { lf: 10, at: 2 }]]) {
+    state.corp.military = { units: { lf: 30, ds: 7, se: 2, at: 8 } };
+    // Bug #4800: a price is at most the fleet's value; Lancer carries a destroyer so its 18,000 fits (about 19,800)
+    for (const [name, units] of [["Corsair", { lf: 12, ds: 2 }], ["Halberd", { ds: 4, se: 2, at: 6 }], ["Lancer", { lf: 10, ds: 1, at: 2 }]]) {
       const formed = formFleet(state.corp, { units, name });
       if (formed.outcome !== "ok") throw new Error(`seeding a fleet: ${formed.outcome}`);
       fleetIds.push(formed.fleet.id);

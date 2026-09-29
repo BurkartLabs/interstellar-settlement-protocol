@@ -100,7 +100,7 @@ export function myContracts(accountId, now = Date.now()) {
   return {
     offered: allOffers().filter((o) => o.ownerCorpId === me && recent(o) && o.state !== "withdrawn").sort(byNewest).map(view),
     hired: allOffers().filter((o) => o.renterCorpId === me && recent(o)).sort(byNewest).map(view),
-    // each of the caller's own fleets' replacement value, the most a collateral may be, for the offer form
+    // each of the caller's own fleets' replacement value, the most a price or a collateral may be (Bug #4800), for the offer form
     fleetValues: Object.fromEntries((corpOf(accountId)?.military?.fleets || []).map((f) => [f.id, unitsValue(f.units)]))
   };
 }
@@ -108,7 +108,11 @@ export function myContracts(accountId, now = Date.now()) {
 /** Check an offer's terms: every field a number or an enum, in range. Returns { terms } or { error }. */
 export function checkTerms({ termHours, price: p, collateral, allowedUse } = {}, fleetValue) {
   if (!CONTRACT_RULES.termsHours.includes(termHours)) return { error: `Choose a term of ${CONTRACT_RULES.termsHours.join(", ")} hours.` };
-  if (!Number.isInteger(p) || p < CONTRACT_RULES.minPrice || p > CONTRACT_RULES.maxPrice) return { error: `Choose a price from ${CONTRACT_RULES.minPrice} to ${CONTRACT_RULES.maxPrice.toLocaleString("en-US")} credits.` };
+  // Bug #4800: no more than the fleet is worth, as the collateral. The price is what moves from renter to owner, and a
+  // fleet that never fights returns the collateral whole, so a price the fleet does not bound made a hire a transfer of
+  // up to maxPrice between two accounts every term. Now what can move is bounded by the ships the owner paid for.
+  const maxPrice = Math.min(CONTRACT_RULES.maxPrice, Math.floor(Number(fleetValue) || 0));
+  if (!Number.isInteger(p) || p < CONTRACT_RULES.minPrice || p > maxPrice) return { error: `Choose a price from ${CONTRACT_RULES.minPrice} to the fleet's value, ${maxPrice.toLocaleString("en-US")} credits.` };
   if (!Number.isInteger(collateral) || collateral < 1 || collateral > fleetValue) return { error: `Choose a collateral from 1 to the fleet's value, ${fleetValue.toLocaleString("en-US")} credits.` };
   if (!CONTRACT_RULES.uses.includes(allowedUse)) return { error: "Choose an allowed use: defense, pve or raids." };
   return { terms: { termHours, price: p, collateral, allowedUse } };
