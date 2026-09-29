@@ -109,14 +109,23 @@ export const starmap = createStarmapController({
       loadBeltCompositionsIntoStarmap(); // AB#2331: a refusal may mean the belt is gone; show what is there
     }
   },
-  async onLaunchExpedition(beltKey, duration) {
+  /** AB#821: the launch panel's Rats figures and escorts, the server's (docs/design/rats.md, section 7). */
+  async onExpeditionOutlook(beltKey, duration) {
+    if (!appState.accountId) return;
+    try {
+      const query = new URLSearchParams({ beltKey, duration });
+      starmap.setExpeditionOutlook(await parseJsonResponse(await apiFetch(
+        `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/expedition-outlook?${query}`)));
+    } catch (_) { /* the panel keeps saying it is reading them; the launch route still decides */ }
+  },
+  async onLaunchExpedition(beltKey, duration, escort = {}) {
     if (!appState.accountId) return;
     try {
       const receiptTrigger = document.activeElement; // AB#744: focus goes back here when the receipt closes
       const response = await apiFetch(
         `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/launch-expedition`,
         { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ beltKey, duration }) }
+          body: JSON.stringify({ beltKey, duration, ...escort }) } // AB#821: escortFleetId or escortContractId
       );
       const account = await parseJsonResponse(response);
       appState.data = deepClone(account.state);

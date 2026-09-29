@@ -95,6 +95,8 @@ export const GAMEPLAY_INPUT = {
     }
   },
   "GET /belt-compositions": NOTHING,
+  // AB#821: the launch panel's escort figures for a belt and a length
+  "GET /expedition-outlook": { query: { beltKey: id("belts", "an asteroid belt"), duration: id("expeditionDurations", "an expedition length", { optional: true }) } },
   "POST /scout-belt": { body: { beltKey: id("belts", "an asteroid belt") } },
   "POST /launch-expedition": {
     body: {
@@ -131,6 +133,9 @@ export const GAMEPLAY_INPUT = {
   "POST /fleets/:fleetId/deploy": { params: { fleetId: ref("one of your fleets") }, body: { toStationId: id("stations", "a station") } },
   "POST /fleets/:fleetId/disband": { params: { fleetId: ref("one of your fleets") } },
   "GET /fleets/:fleetId/destinations": { params: { fleetId: ref("one of your fleets") } }, // ISP-175 (AB#869)
+  // ISP-284 (AB#991): a fleet sent to hunt a belt's Rats; server/hunts.js checks the fleet is the caller's and free
+  "GET /hunts": NOTHING, // ISP-284 (AB#991): the corporation's hunts and their reports
+  "POST /fleets/:fleetId/hunt": { params: { fleetId: ref("one of your fleets") }, body: { beltKey: id("belts", "an asteroid belt") } },
   // ISP-176 (AB#870): mercenary contracts. Terms are numbers and enums only; ids not the caller's are the route's 404.
   "GET /mercenaries": NOTHING,
   "GET /mercenaries/mine": NOTHING, // ISP-177 (AB#871)
@@ -414,7 +419,10 @@ export const FORUM_INPUT = {
     }
   },
   "POST /threads/:threadId/replies": { params: { threadId: ref("a thread") }, body: { content: text(4000, "a reply of at most 4,000 characters"), replyToId: ref("a reply in this thread", { optional: true }) } }, // replyToId: AB#2466
-  "POST /threads/:threadId/like": { params: { threadId: ref("a thread") }, body: { replyId: ref("a reply", { optional: true }) } }
+  "POST /threads/:threadId/like": { params: { threadId: ref("a thread") }, body: { replyId: ref("a reply", { optional: true }) } },
+  // AB#995: the forums a page at a time; the cursor, category and page size are checked by server/forumPages.js (400)
+  "GET /threads": NOTHING,
+  "GET /threads/:threadId": { params: { threadId: ref("a thread") } }
 };
 
 const refuse = (error) => ({ ok: false, error });

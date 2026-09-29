@@ -6,7 +6,28 @@
 data/accounts-snapshot.json
 data/*accounts*.json
 data/state.json
+data/dominance.json
+
+# What the server writes at runtime when ISP_DATA_DIR is unset: data/ is both the catalogues and, on a developer's
+# machine, the world (server/game/catalog.js). Never commit these or ship them in an image (Bug #4806): they hold
+# players' chat, mail and statements, and references-salt is the secret behind every record reference.
+# tests/unit/runtimeDataIgnored.test.js fails when the server writes a file into data/ that is not listed here.
+data/references-salt
+data/chat
+data/messages
+data/inbox
+data/statements
+data/*.jsonl
 data/*.tmp
+data/arbitration.json
+data/concessions.json
+data/control-history.json
+data/itc.json
+data/legacy-investments.json
+data/lobbying.json
+data/patents.json
+data/stations-built.json
+data/tariffs.json
 
 # Secrets and local configuration
 .env

@@ -3272,12 +3272,17 @@ body.sg {
   overflow-y: auto;
   padding: var(--space-2) var(--space-3);
 }
-.thread__older {
+.thread__older,
+.chat__older,
+.forums__more {
   margin: 0 0 var(--space-2);
   text-align: center;
   color: var(--text-soft);
   font-size: var(--font-size-1);
 }
+/* AB#995: the chat's "Load older messages" is a row of the log; the forums' "Load more" sits under its list */
+.chat__older { list-style: none; }
+.forums__more { margin-top: var(--space-3); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
 .thread__messages {
   display: flex;
   flex-direction: column;
@@ -4886,6 +4891,11 @@ img.station__body {
 }
 .starmap__station-row .ui-panel__meta {
   white-space: nowrap;
+}
+/* AB#821: the launch panel's Rats figures. The terms wrap and the figures keep their width, so a phone's narrow panel
+   does not squeeze a percentage into a column a letter wide. */
+.ui-kv.launch-risk {
+  grid-template-columns: minmax(0, max-content) max-content;
 }
 /* The close glyph keeps its size where the phone raises a modal's buttons to body size. */
 .starmap__station .starmap__close {

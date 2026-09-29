@@ -198,5 +198,32 @@ export function createMutationLimits(makeStore = () => new MemoryStore()) {
   return { address: gate("address"), account: gate("account") };
 }
 
+// AB#995: new forum threads and replies per account an hour (docs/design/messaging.md), counted in server/index.js
+// ahead of the forum input checks, like AB#958's gate. Keyed on the poster's own account, after requireAuth.
+export const forumThreadLimiter = limiter("forum-thread", { extra: bySender });
+export const forumPostLimiter = limiter("forum-post", { extra: bySender });
+
+/**
+ * AB#995: chat lines per account (10 per 10 seconds), for the chat:send socket event, which no HTTP middleware sees.
+ * Counted synchronously in a window per account, not through express-rate-limit's MemoryStore: that store hands back
+ * its own live counter, so a burst of lines on one socket, each handler awaiting the count, all read the burst's total
+ * and every line was refused (found by this item's test). Returns { ok } or { ok: false, retryAfterSeconds, limit,
+ * windowSeconds }. Expired windows are dropped as the map grows, so it holds only accounts chatting now.
+ */
+export function createChatLineGate() {
+  const { windowMs, envName, productionDefault } = RATE_LIMITS["chat-line"];
+  const limit = configuredLimit(envName, productionDefault);
+  const windows = new Map(); // accountId -> { count, resetAt }
+  return (accountId, now = Date.now()) => {
+    if (windows.size > 10_000) for (const [key, w] of windows) if (w.resetAt <= now) windows.delete(key);
+    let w = windows.get(accountId);
+    if (!w || w.resetAt <= now) { w = { count: 0, resetAt: now + windowMs }; windows.set(accountId, w); }
+    w.count += 1;
+    if (w.count <= limit) return { ok: true };
+    return { ok: false, retryAfterSeconds: Math.max(1, Math.ceil((w.resetAt - now) / 1000)), limit, windowSeconds: windowMs / 1000 };
+  };
+}
+export const chatLineGate = createChatLineGate();
+
 /** The server's own two layers (server/index.js, server/routes/market.js, server/routes/forums.js). */
 export const mutationLimits = createMutationLimits();

@@ -63,15 +63,19 @@ export function deterrence(density, escortPower = 0) {
   const group = forcePower(ratGroup(density));
   return group > 0 && escortPower > 0 ? 1 / (1 + RATS.deterrence * escortPower / group) : 1;
 }
-/** Encounters an expedition of `hours` expects (the Poisson mean). */
-export function encounterRate(density, hours, escortPower = 0) {
+/**
+ * Encounters an expedition of `hours` expects (the Poisson mean). `factor` is the belt's: quietRateFactor for a belt
+ * a hunt cleared (ISP-284, AB#991: server/hunts.js rateFactorFor), 1 otherwise.
+ */
+export function encounterRate(density, hours, escortPower = 0, factor = 1) {
   const T = Math.max(0, Number(hours) || 0);
   const exposure = T + (T * T) / (2 * RATS.attentionHours);
-  return Math.max(0, Number(density) || 0) * RATS.hazardPerDensityHour * exposure * deterrence(density, escortPower);
+  const f = Number.isFinite(Number(factor)) ? Math.max(0, Number(factor)) : 1;
+  return Math.max(0, Number(density) || 0) * RATS.hazardPerDensityHour * exposure * deterrence(density, escortPower) * f;
 }
 /** The chance of meeting Rats at least once, what the launch screen shows. */
-export function encounterChance(density, hours, escortPower = 0) {
-  return 1 - Math.exp(-encounterRate(density, hours, escortPower));
+export function encounterChance(density, hours, escortPower = 0, factor = 1) {
+  return 1 - Math.exp(-encounterRate(density, hours, escortPower, factor));
 }
 /** The design's length in hours for an expedition duration id (the dev server's short runs use the same shape). */
 export const nominalHours = (duration) => RATS.lengthsHours[duration] ?? RATS.lengthsHours.standard;
@@ -97,9 +101,9 @@ function generator(seedHex) {
  * The encounters a seed gives an expedition: [{ index, share, roll }], `share` the point of the expedition it happens
  * at (0 to 1), `roll` the unescorted table's row for it. Deterministic in its arguments.
  */
-export function planEncounters(seedHex, density, hours, escortPower = 0) {
+export function planEncounters(seedHex, density, hours, escortPower = 0, factor = 1) {
   const rng = generator(seedHex);
-  const mu = encounterRate(density, hours, escortPower);
+  const mu = encounterRate(density, hours, escortPower, factor);
   // Poisson by inversion: the first k at which the running total passes a uniform draw
   let k = 0, p = Math.exp(-mu), sum = p;
   const u = rng();
@@ -134,3 +138,43 @@ export function fightEncounter(escort, group, modifiers = {}) {
 
 /** The unescorted table's row for an id. */
 export const unescortedRow = (id) => RATS.unescorted.find((r) => r.id === id) || null;
+
+/**
+ * AB#821 (docs/design/rats.md, section 7): what the launch panel shows for a belt of `density`, a stay of `hours` and an
+ * escort (units, or null for none) fighting with `modifiers`, from the functions the tick uses: the chance of meeting
+ * Rats (encounterChance, with and without the escort), the chance the escort holds, the expected share of the haul
+ * kept, and the provisions. Exact, not sampled: the resolver has no dice, so the escort holds the first `held`
+ * encounters (fought in order, survivors carried on, as settleRats fights them) and loses the next; the count of
+ * encounters is planEncounters' Poisson, capped at maxEncounters; and each encounter the escort does not hold keeps, on
+ * average, the unescorted table's share of the haul. `factor` is the belt's rate factor (AB#991: a hunted belt is quiet),
+ * the one launch fixes on the expedition.
+ */
+export function launchOutlook(density, hours, escort = null, modifiers = {}, factor = 1) {
+  const units = escort ? Object.fromEntries(Object.entries(escort).filter(([, n]) => count(n) > 0)) : null;
+  const power = units ? forcePower(units) : 0;
+  const mu = encounterRate(density, hours, power, factor);
+  // P(N = k) as planEncounters draws it: Poisson(mu), everything past the cap counted at the cap
+  const pk = [];
+  let p = Math.exp(-mu), below = 0;
+  for (let k = 0; k < RATS.maxEncounters; k += 1) { pk.push(p); below += p; p *= mu / (k + 1); }
+  pk.push(Math.max(0, 1 - below));
+  let held = 0;
+  if (units && Object.keys(units).length) {
+    let left = { ...units };
+    const group = ratGroup(density);
+    for (let i = 0; i < RATS.maxEncounters && Object.keys(left).length; i += 1) {
+      const fight = fightEncounter(left, gatheredGroup(group, i), modifiers);
+      if (!fight.held) break;
+      held += 1;
+      left = Object.fromEntries(Object.entries(left).map(([id, n]) => [id, count(n) - count(fight.lost[id])]).filter(([, n]) => n > 0));
+    }
+  }
+  const keptPerEncounter = RATS.unescorted.reduce((s, row) => s + row.chance * (1 - row.haulLost), 0);
+  const holdChance = pk.reduce((s, q, k) => s + (k <= held ? q : 0), 0);
+  const keptShare = pk.reduce((s, q, k) => s + q * keptPerEncounter ** Math.max(0, k - held), 0);
+  return {
+    chance: encounterChance(density, hours, power, factor), chanceUnescorted: encounterChance(density, hours, 0, factor),
+    holdChance: units ? holdChance : null, held: units ? held : null, keptShare,
+    provisions: units ? Math.round(RATS.escortCostPerSupplyHour * forceSupply(units) * hours) : 0
+  };
+}
