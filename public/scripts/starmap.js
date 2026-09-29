@@ -8,6 +8,7 @@ import { PLANET_IMAGE_PATHS } from "./planetImages.js";
 import { officeLeaseCost } from "./ceoEffects.js"; // Bug #2340: the one office rate (Bug #1032)
 import { isMemberStation, memberOfficeCost } from "./memberRates.js"; // ISP-212 (AB#907)
 import { isConglomerateStation, isNeutralStation } from "./stationMarkers.js";
+import { protocolLineHtml, refusalMeaning } from "./protocol.js"; // ISP-255 (AB#951)
 import { concentrationBand, concentrationLegendHtml, concentrationRows, concentrationText, overlayItems, systemConcentration, bodyConcentration } from "./resourceOverlay.js"; // ISP-143 (AB#837)
 import { tariffPanelHtml } from "./tariffPanel.js"; // ISP-231 (AB#926)
 import { STARMAP_OVERLAYS, overlayColor, fieldOverlayLegendHtml } from "./fieldOverlay.js"; // Bug AB#4745
@@ -1641,7 +1642,8 @@ export function createStarmapController({
         button.disabled = true;
         const refusal = await onFileTariff(form.getAttribute("data-system-id"), Number(form.elements.pct.value));
         button.disabled = false;
-        if (status && refusal) status.textContent = refusal;
+        // ISP-255 (AB#951): the refusal's plain words, then its protocol line
+        if (status && refusal) status.innerHTML = `${escapeHtmlAttr(refusal.message ?? refusal)} ${protocolLineHtml({ meaning: refusalMeaning(refusal), screen: "starmap" })}`;
       });
       // Bind the jump button rendered in the system view.
       detailsEl.querySelectorAll("[data-role=starmap-jump]").forEach((btn) => {

@@ -44,10 +44,10 @@ export const starmap = createStarmapController({
       }));
       await loadTariffs();
       const name = (appState.systemsCatalog || []).find((s) => s.id === systemId)?.name || systemId;
-      pushFeedback(`Tariff filed for ${name}.`, "success");
+      pushFeedback(`Tariff filed for ${name}.`, "success", { meaning: "active", screen: "starmap" }); // ISP-255 (AB#951)
       return null;
     } catch (err) {
-      return err.message || "The tariff could not be filed.";
+      return { message: err.message || "The tariff could not be filed.", code: err.code }; // its code: Unfunded or Denied
     }
   },
   async onTravelToSystem(systemId) {

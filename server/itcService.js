@@ -128,9 +128,10 @@ export function withholdCouncilDebt(corp, net, itcWithheld = 0) {
   }
 }
 
-function notify(publicId, title, body) {
+// ISP-255 (AB#951): `meaning` is the notice's protocol, cited to the Trade Commission's building (ITC-LAW-1)
+function notify(publicId, title, body, meaning) {
   const account = accountByCorp(publicId);
-  if (account) addAccountNotification(account.id, { type: "market", title, body });
+  if (account) addAccountNotification(account.id, { type: "market", title, body, protocol: { meaning, screen: "building-interplanetary-trade-commission" } });
 }
 
 /** Levy one investigation's duty: from credits, never below zero; the rest owed. */
@@ -152,7 +153,7 @@ function levy(f, now) {
     `${f.ref || f.id}. The Interplanetary Trade Commission has levied the anti-dumping duty of ${formatCredits(f.duty)} on your ${plain(f.Q)} ${f.item}. ` +
     (rest > 0
       ? `${formatCredits(paid)} was taken from your reserves. The remaining ${formatCredits(rest)} is owed: ${TERMS.withholdPct}% of the net proceeds of each exchange sale will be withheld toward it until it is paid. No interest is charged.`
-      : `It has been taken from your reserves. The investigation is closed.`));
+      : `It has been taken from your reserves. The investigation is closed.`), rest > 0 ? "owed" : "complete");
 }
 
 /**
@@ -193,7 +194,7 @@ export function itcTick(now = Date.now()) {
         `${f.ref || f.id}. The Interplanetary Trade Commission has opened an anti-dumping investigation. Between ${dayText(window[0])} and ${dayText(window.at(-1))} (UTC) ` +
         `you sold ${plain(r.Q)} ${item} at an average of ${price(r.P)} credits, below ${TERMS.priceThresholdPct}% of their normal value (${price(r.N)} credits; the line is ${price(r.line)}). ` +
         `The volume line for those ${TERMS.windowDays} days was ${plain(r.volumeLine)} units, and the sales were worth ${formatCredits(r.Q * r.N)} at normal value. ` +
-        `A duty of ${formatCredits(r.duty)}, the dumping margin, will be levied at 00:00 UTC in ${TERMS.levyAfterHours} hours.`);
+        `A duty of ${formatCredits(r.duty)}, the dumping margin, will be levied at 00:00 UTC in ${TERMS.levyAfterHours} hours.`, "pending");
     }
   } catch (error) {
     console.error(`[itc] the dumping watch did not run: ${error?.message || error}`);
