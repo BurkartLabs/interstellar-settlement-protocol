@@ -24,7 +24,7 @@ import { WARFARE_CATALOG, concessionTermsFor } from "./warfare.js";
 import { accountByCorp, findConglomerate, roleOf } from "./game/membership.js";
 import { currentConglomerateOf } from "./game/intel.js";
 import { contractRecord, freezeContractEscrow, myContracts, refundFromEscrow, unfreezeContractEscrow } from "./mercenaries.js";
-import { concessionRegister, decideAtCouncil, markPetitionCouncil, petitionRecord, petitionsIn } from "./concessions.js";
+import { STATE_EVENTS, concessionRegister, decideAtCouncil, markPetitionCouncil, petitionRecord, petitionsIn } from "./concessions.js";
 import { controlNow } from "./controlService.js";
 import { refundLevy, takeTariffAccrual, tariffCap, tariffRates } from "./tariffService.js";
 import { patentOffice, patentRecord, patentUsers, patentUsesBy, takeRoyaltyAccrual } from "./patents.js";
@@ -118,10 +118,12 @@ const EVIDENCE = {
     const register = concessionRegister(rec.systemId);
     const rates = tariffRates(rec.systemId);
     const held = rec.to.map((h) => {
-      const events = register.filter((e) => e.holder?.type === h.type && e.holder?.id === h.id && e.at <= at);
-      const last = events.at(-1)?.event || null;
+      // Bug #4854: the holder's state then is the one its last state-changing event left it in; a lease-discount change
+      // or a petition in the register changes nothing about whether the concession was granted
+      const events = register.filter((e) => e.holder?.type === h.type && e.holder?.id === h.id && e.at <= at && Object.hasOwn(STATE_EVENTS, e.event));
+      const stateAt = events.length ? STATE_EVENTS[events.at(-1).event] : null;
       const record = rates.find((r) => r.holder.type === h.type && r.holder.id === h.id);
-      return { holder: { type: h.type, id: h.id }, share: h.share, stateAt: last, granted: last ? ["granted", "renewed", "upkeep-paid"].includes(last) : null, record };
+      return { holder: { type: h.type, id: h.id }, share: h.share, stateAt, granted: stateAt ? stateAt === "granted" : null, record };
     });
     if (held.some((h) => !h.record || h.record.grantedAt > at)) return no(409, "no-evidence", "A holder's filed rate at that moment is no longer on record, so the Council cannot read the lawful rate.");
     const holderRates = held.map((h) => rateInForceAt(h.record, at));
