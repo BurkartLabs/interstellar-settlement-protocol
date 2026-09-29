@@ -34,7 +34,8 @@ export const LEDGER_KINDS = {
   "station-project": "Station project",
   "station-project-refund": "Station project refund",
   "station-built": "Station opened",
-  "stake-buyout": "Stake buyout"
+  "stake-buyout": "Stake buyout",
+  relocated: "Moved to the station" // ISP-212a (AB#4654): the hangar's goods, moved with it when the station opened
 };
 const kindLabel = (k) => LEDGER_KINDS[k] || escapeHtml(k);
 /** A form's status line: a refusal in the warning tone, what happened in the success tone. */

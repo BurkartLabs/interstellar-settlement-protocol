@@ -347,13 +347,38 @@ export function settleTreasury(c, now = Date.now(), catalog = CONGLOMERATE_CATAL
 
 // ─── The goods hangar's store and ledger (ISP-205, AB#899): the rules are server/game/hangar.js ───────────────────
 
-/** Give a conglomerate its hangar, at its home station, with an empty ledger. */
+/**
+ * Give a conglomerate its hangar, at its home station, with an empty ledger. ISP-212a (AB#4654): the home station is
+ * Earth Station Prime until the conglomerate owns a station, then that station (CONGLOMERATES.md Part 2, "What the
+ * station gives members"), and the hangar moves there with everything in it, free. Every reader of the hangar comes
+ * through here (its routes, the station project's hangar source, dissolution), so a conglomerate whose station was built
+ * before the move existed has it moved on its next read, dated when the station opened.
+ */
 export function ensureHangar(c, catalog = CONGLOMERATE_CATALOG) {
   if (!c.hangar || typeof c.hangar !== "object") c.hangar = {};
-  if (!c.hangar.stationId) c.hangar.stationId = catalog.homeStationId;
+  const home = homeStationOf(c, catalog);
+  if (!c.hangar.stationId) c.hangar.stationId = home;
   if (!c.hangar.items || typeof c.hangar.items !== "object") c.hangar.items = {};
   if (!Array.isArray(c.hangar.ledger)) c.hangar.ledger = [];
+  if (c.hangar.stationId !== home) relocateHangar(c.hangar, home, Number(c.station?.builtAt) || Date.now());
   return c.hangar;
+}
+
+/** ISP-212a (AB#4654): where a conglomerate's hangar is: its own station once it has one, else the catalog's home. */
+export function homeStationOf(c, catalog = CONGLOMERATE_CATALOG) {
+  return c?.station?.id || catalog.homeStationId;
+}
+
+/**
+ * ISP-212a (AB#4654): move the hangar and its goods to `to`. Nothing is added, taken or charged: each item held gets
+ * one ledger row of amount 0 saying where it went (`from`, `stationId`), so every item's rows still sum to its stock.
+ */
+function relocateHangar(h, to, at) {
+  const from = h.stationId;
+  h.stationId = to;
+  for (const [item, units] of Object.entries(h.items)) {
+    h.ledger.push(Object.freeze({ id: createId("chg"), at, kind: "relocated", corp: null, item, amount: 0, balanceAfter: units, by: "bureau", stationId: to, from }));
+  }
 }
 
 /**

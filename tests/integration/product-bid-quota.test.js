@@ -3,7 +3,7 @@ import request from "supertest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount } from "../helpers/api.js";
 import { ECONOMY, npcBidFor } from "../../server/economy.js";
-import { bidQuotaFor, ensureBidShape, freshGlobalState, normalizeGlobalState, mutateAccountState, mutateState, getState } from "../../server/gameState.js";
+import { bidQuotaFor, bidRuleFor, ensureBidShape, freshGlobalState, normalizeGlobalState, mutateAccountState, mutateState, getState } from "../../server/gameState.js";
 
 // AB#2365: every standing bid drifted on the world's 7,000 quota, so a product sold at a Refinery's rate (Fusion
 // Pellets: 160 a day) barely moved its bid, and tier3-recipes.md section 4's "product glut" could not happen in play.
@@ -55,6 +55,9 @@ describe("each standing bid drifts on its own item's quota (AB#2365)", () => {
     expect(second.body.traded.unitPrice).toBe(expected);
     // the day's quota is the product's, so the order is full
     expect(order("Fusion Pellets").remainingQty).toBe(0);
+    // AB#2351: a product's own day takes its bid to the floor, as 7,000 does a raw item's
+    expect(order("Fusion Pellets").unitPrice).toBe(Math.round(base * ECONOMY.npcBid.floorPct / 100));
+    expect(order("Fusion Pellets").unitPrice).toBe(npcBidFor(base, quota, bidRuleFor(order("Fusion Pellets"))));
     expect((await s.sell(1)).status).toBe(400);
   });
 

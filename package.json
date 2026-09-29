@@ -30,7 +30,9 @@
     "probe:tier4": "node scripts/probe-tier4.mjs",
     "check:design": "node scripts/design-check.mjs",
     "design:prune": "node scripts/design-allowlist-prune.mjs",
-    "probe:tariffs": "node scripts/probe-tariffs.mjs"
+    "probe:tariffs": "node scripts/probe-tariffs.mjs",
+    "probe:tournament": "node scripts/probe-tournament.mjs",
+    "probe:warfare": "node scripts/probe-warfare.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
