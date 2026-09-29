@@ -70,7 +70,10 @@ describe("remote launch on a partner's scouting (Bug #4656)", () => {
     asteroidExpeditionTick(t0 + 11_000);
     const done = (p) => p.raw.state.corp.asteroidMining.completedExpeditions.at(-1);
     expect(done(m)).toMatchObject({ remote: true, sharedIntel: true }); // kept through the tick's normalization
-    const ratio = total(done(m).yields) / total(done(f).yields);
+    // Bug #4752: the belt has Rats, and an encounter on either probe (seeded by its id, so a different one each run)
+    // takes part of that probe's haul; the share is of what each probe mined, so what the Rats took is added back
+    const mined = (e) => total(e.yields) + (e.rats?.encounters || []).reduce((sum, enc) => sum + total(enc.haulLost), 0);
+    const ratio = mined(done(m)) / mined(done(f));
     expect(ratio).toBeGreaterThan(C.remoteDispatchYieldPct / 100 - 0.03);
     expect(ratio).toBeLessThan(C.remoteDispatchYieldPct / 100 + 0.03);
   });
