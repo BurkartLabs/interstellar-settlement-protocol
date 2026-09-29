@@ -20,6 +20,10 @@ screenshots in `shots/`. All 129 shots, including the 100 screens, are attached 
   the gate's two scripted players, not players. funnel_step is absent because the run declines the briefing; it
   fires when the briefing is played (AB#955).
 - Fresh clone at c0a03819: `npm test` passed all 496 files and 6,086 tests, none not run.
+- The same clone, `npx playwright test`: 154 spec files and 385 tests; 361 passed and 24 failed, none not run. All 24
+  were specs that predate a later change (the facelift's document codes, the Station's Offices subpage, the lazy game
+  boot, the held-items Exchange); the game was right each time. They are Bug #4888, fixed on its own branch. **Not green
+  until that merges.**
 
 ## Two fast-forwards, stated
 
@@ -35,7 +39,8 @@ targets on the return shot (e.g. 15 of 394,000 Silicates) come from the fast-for
 - Bug #4885: declining the first-day briefing is remembered only in localStorage, so it is offered again on every
   new browser. Severity 3. Fixed since the run (PR 1400).
 - Bug #4886: the design allowlist still holds 76 entries; the gate requires 0. Severity 3, effort 5.
-- Bug #4887: the Exchange price history printed the real year (2026-09-29). Fixed in its own pull request.
+- Bug #4887: the Exchange price history printed the real year (2026-09-29). Fixed, PR 1402.
+- Bug #4888: 24 Playwright tests in 11 specs fail on main; the specs are stale. Fixed on its own branch.
 - Not filed: the header says v0.4; the version is set when 1.0 is cut.
 
 ## Not met by this run
@@ -45,4 +50,5 @@ The item stays open for these:
 - a Critic review returning SHIP;
 - the Board playing it and looking at the screenshots;
 - the open predecessors AB#959 and AB#964, and the balance decisions in AB#968;
-- the empty allowlist (#4886).
+- the empty allowlist (#4886);
+- Playwright green on a fresh clone, once #4888 merges.
