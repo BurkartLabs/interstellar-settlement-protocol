@@ -82,6 +82,14 @@ describe("ISP-180 posture", () => {
   });
 });
 
+describe("Bug #4822: a troop move over the garrison says what to send instead", () => {
+  it("names the most that can go, or says to choose a station that has troops", async () => {
+    const c = await corporation({ garrisons: { [LUNA]: 4 } });
+    expect(moveTroops(c.id, { fromStationId: LUNA, toStationId: EARTH, quantity: 5 })).toMatchObject({ status: 409, error: "Only 4 defense troops stand at that station. Send 4 or fewer." });
+    expect(moveTroops(c.id, { fromStationId: EARTH, toStationId: LUNA, quantity: 1 }).error).toBe("No defense troops stand at that station. Choose a station that has troops.");
+  });
+});
+
 describe("ISP-180 reinforcing in the warning window", () => {
   it("troops that arrive before the raid join the defense; troops that arrive after do not", async () => {
     const hop = getTravelTimeMs(LUNA, EARTH);

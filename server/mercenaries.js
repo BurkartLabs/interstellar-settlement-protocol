@@ -183,7 +183,8 @@ export function hireOffer(accountId, offerId, now = Date.now()) {
   if (offer.state !== "open") return { ok: false, status: 409, error: "That offer is no longer open." };
   if (offer.ownerCorpId === renter.publicId || accountIdOfCorp(offer.ownerCorpId) === accountId) return { ok: false, status: 400, error: "You cannot hire your own fleet." };
   const total = offer.price + offer.collateral;
-  if (Math.floor(Number(renter.finances?.credits) || 0) < total) return { ok: false, status: 409, error: `Hiring holds ${total.toLocaleString("en-US")} credits (price and collateral) until the term ends, and you have ${Math.floor(Number(renter.finances?.credits) || 0).toLocaleString("en-US")}.` };
+  // Bug #4822: the refusal says what to do next (ISP-6), and its code tells the page it is Unfunded, not Denied
+  if (Math.floor(Number(renter.finances?.credits) || 0) < total) return { ok: false, status: 409, code: "insufficient-credits", error: `Hiring holds ${total.toLocaleString("en-US")} credits (price and collateral) until the term ends, and you have ${Math.floor(Number(renter.finances?.credits) || 0).toLocaleString("en-US")}. Sell goods or finish an assignment to raise the credits, then hire.` };
 
   setOffer(offer.id, { state: "taking" }); // taken now: a second hire is refused from here on
   const held = settleTransfer({ fromAccountId: accountId, toAccountId: escrowOf(offer.id), credits: total, reason: "escrow-hold", idempotencyKey: `merc:${offer.id}:hold` }, now);

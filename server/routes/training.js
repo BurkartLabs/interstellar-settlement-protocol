@@ -22,7 +22,7 @@ function refusal(result, corp, unitId, quantity) {
     case "missing-research": return `${unit.name} need ${RESEARCH_LIBRARY[result.research]?.name || result.research} research.`;
     case "queue-full": return `Headquarters trains ${MAX_QUEUED_JOBS} jobs at most. Wait for one to finish, or cancel one.`;
     case "insufficient-credits": return fundingRequirementMessage(squads(quantity, unit), corp, result.cost.credits);
-    case "insufficient-goods": return `${squads(quantity, unit)} need ${result.needed.toLocaleString("en-US")} ${result.item} at ${stationById(result.stationId)?.name || "your station"}; it holds ${result.have.toLocaleString("en-US")}.`;
+    case "insufficient-goods": return `${squads(quantity, unit)} need ${result.needed.toLocaleString("en-US")} ${result.item} at ${stationById(result.stationId)?.name || "your station"}; it holds ${result.have.toLocaleString("en-US")}. Bring more there, or train fewer squads.`; // AB#4810 (ISP-6)
     default: return "Headquarters could not train that.";
   }
 }
@@ -41,7 +41,8 @@ export function registerTrainingRoutes(app) {
     const notification = addAccountNotification(req.params.accountId, {
       type: "infrastructure",
       title: "Troop Training Started",
-      body: `${squads(job.quantity, UNITS[job.unitId])} training at your Headquarters.`
+      body: `${squads(job.quantity, UNITS[job.unitId])} training at your Headquarters.`,
+      protocol: { meaning: "queued", screen: "fleet" } // ISP-254 (AB#4810)
     });
     if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     saveAccountsNow(); // a purchase: on disk now
