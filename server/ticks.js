@@ -412,6 +412,7 @@ function processCeoInsightCompletions() {
     for (const item of completedItems) {
       const notification = addAccountNotification(accountId, {
         type: "insight",
+        protocol: { meaning: "complete", screen: "ceo" }, // ISP-254 C2 (AB#4812)
         title: "CEO Insight Complete",
         body: `${item.name} has been completed.`
       });

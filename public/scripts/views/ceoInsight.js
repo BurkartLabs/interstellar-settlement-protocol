@@ -9,6 +9,10 @@ import { escapeHtml, researchNodeHtml } from "../html.js";
 import { appState, viewerStorage } from "../state.js";
 import { pushFeedback, updateAllViews } from "./shared.js";
 import { renderPrereqGraph } from "./prereqGraph.js"; // AB#2477
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 C2 (AB#4812)
+
+/** ISP-254 C2 (AB#4812): a program's or an enrollment's protocol on the CEO Insight screen (CORP-EXE-1). */
+const onCeo = (meaning) => ({ meaning, screen: "ceo" });
 
 // ─── AB#2474 (Board review 2026-09-26, item 21): categories, each collapsible, in a collapsible Programs section ───
 // Which are collapsed is remembered per viewer: { programs: expanded, categories: { name: expanded } }. Everything
@@ -117,8 +121,8 @@ export function renderInsightTree(data) {
       const cost = `${prog.durationHours}h · ${toCurrency(prog.costCredits)}`;
       const card = { name: `${prog.name}${levelLabel}`, effect: prog.effect };
 
-      if (isDone) return researchNodeHtml({ ...card, state: "done", meta: [plannedNote] });
-      if (isQueued || queuedCount > 0) return researchNodeHtml({ ...card, state: "queued", meta: [cost, plannedNote] });
+      if (isDone) return researchNodeHtml({ ...card, state: "done", meta: [plannedNote], protocolLine: protocolLineHtml(onCeo("complete")) });
+      if (isQueued || queuedCount > 0) return researchNodeHtml({ ...card, state: "queued", meta: [cost, plannedNote], protocolLine: protocolLineHtml(onCeo("queued")) });
       if (isPlanned) return researchNodeHtml({ ...card, name: prog.name, state: "planned", meta: [plannedNote] });
       if (isLocked) return researchNodeHtml({ ...card, name: prog.name, state: "locked", meta: [`Requires: ${prereqLabel}`] });
       return researchNodeHtml({
@@ -193,7 +197,7 @@ export function renderInsightTree(data) {
     } catch (error) {
       btn.disabled = false;
       btn.textContent = "Enroll";
-      pushFeedback(`CEO Insight error: ${error.message}`, "warn");
+      pushFeedback(`CEO Insight error: ${error.message}`, "warn", onCeo(refusalMeaning(error)));
     }
   };
 }

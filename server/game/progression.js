@@ -381,6 +381,7 @@ export function levelReachedNotices(before, corp, levels = MILESTONE_LEVELS) {
     };
     notices.push({
       type: "level",
+      protocol: { meaning: "complete", screen: "overview" }, // ISP-254 C2 (AB#4812)
       title: `Corporation Level ${levelDef.level}`,
       body:
         `Your corporation reached Level ${levelDef.level} of ${MAX_DEFINED_LEVEL}. ` +

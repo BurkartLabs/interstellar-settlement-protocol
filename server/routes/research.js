@@ -208,7 +208,7 @@ export function registerResearchRoutes(app) {
       const corp = account.state.corp;
       const messageMap = {
         "max-level": `${prog.name} is already at maximum level.`,
-        "queue-full": "Only one CEO Insight program can be in progress at a time.",
+        "queue-full": "Only one CEO Insight program can be in progress at a time. Wait for it to finish, then enroll this one.", // Bug #4873
         "missing-prereq": `${prog.name} requires: ${prog.prereqs.map((id) => CEO_INSIGHT_LIBRARY[id]?.name || id).join(", ")}.`,
         "insufficient-credits": fundingRequirementMessage(`${prog.name} enrollment`, corp, prog.costCredits)
       };
@@ -218,6 +218,7 @@ export function registerResearchRoutes(app) {
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "insight",
+      protocol: { meaning: "queued", screen: "ceo" }, // ISP-254 C2 (AB#4812)
       title: "CEO Insight Queued",
       body: `${prog.name} has been enrolled in the CEO Insight Program.`
     });

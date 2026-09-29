@@ -55,6 +55,7 @@ describe("reaching a level (Bug #1260)", () => {
     const [notice, ...more] = levelNotices(a.id);
     expect(more).toEqual([]);
     expect(notice.title).toBe("Corporation Level 1");
+    expect(notice.protocol).toEqual({ meaning: "complete", screen: "overview" }); // ISP-254 C2 (AB#4812)
     // The figures are the sidebar's: Employees x / employeeCap, Building Slots, Fleet Cap.
     expect(notice.body).toContain(`Employee cap ${corp.employeeCap}, building slots ${corp.buildingSlots}, fleet cap ${corp.fleet.cap}.`);
     expect(notice.body).toContain(`Market sector opened: ${corp.unlocks.marketSectors.join(", ")}.`);

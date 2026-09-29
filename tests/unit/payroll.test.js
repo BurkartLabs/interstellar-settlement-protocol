@@ -52,6 +52,7 @@ describe("payroll (Bug #1097)", () => {
     expect(computeLiveLiabilities(c)).toBe(1500 * 7 + 1100);
     expect(payrollNotice(c, r)).toEqual({
       type: "finance",
+      protocol: { meaning: "owed", screen: "finance" }, // ISP-254 C2 (AB#4812): In arrears
       title: "Payroll unpaid",
       body: "Your corporation could not cover its wages and owes its staff 1,100 credits. Payroll keeps running at 1,500 credits a day, and what is owed is paid first from your next credits. No one has been let go."
     });
@@ -68,5 +69,6 @@ describe("payroll (Bug #1097)", () => {
     expect(r).toMatchObject({ paid: 1100, owed: 0, caughtUp: true });
     expect(c.finances.credits).toBe(3900);
     expect(payrollNotice(c, r)?.title).toBe("Payroll paid");
+    expect(payrollNotice(c, r)?.protocol).toEqual({ meaning: "complete", screen: "finance" }); // ISP-254 C2 (AB#4812)
   });
 });

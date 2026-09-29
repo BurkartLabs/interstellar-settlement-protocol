@@ -11,6 +11,7 @@ import { conglomerateCard } from "../conglomerateBureau.js"; // ISP-201 (AB#895)
 import { salvageRemainingMs } from "./shared.js";
 
 import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
+import { protocolLineHtml } from "../protocol.js"; // ISP-254 C2 (AB#4812)
 export function updateOverview(data) {
   const cards = [];
 
@@ -25,6 +26,8 @@ export function updateOverview(data) {
     cards.push({
       title: "ISA Salvage Assignment",
       value: remaining > 0 ? `${formatDurationHours(remaining)} remaining` : "Ready to report",
+      // ISP-254 C2 (AB#4812): the salvage work under way is In force; served, it is Concluded and waits to be reported
+      protocol: { meaning: remaining > 0 ? "active" : "complete", screen: "missions" },
       body: remaining > 0
         ? "Reporting for documented salvage work. Return to Assignments once your time is served to collect payment."
         : "Your time is served. Report to Assignments to collect payment.",
@@ -75,7 +78,7 @@ export function updateOverview(data) {
       // Bug #691 audit: the Conglomerate card's value carries a player-chosen conglomerate name.
       // ISP-77 (AB#766): a design-system card; one that leads somewhere is a real button (keyboard and all).
       (card) => {
-        const figure = card.num ? numberMarkup(card.num.key, card.num.value, card.value) : escapeHtml(card.value);
+        const figure = (card.num ? numberMarkup(card.num.key, card.num.value, card.value) : escapeHtml(card.value)) + (card.protocol ? ` ${protocolLineHtml(card.protocol)}` : "");
         return card.jump
           ? `<button type="button" class="ui-card ui-card--interactive" data-jump="${escapeHtml(card.jump)}">
         <span class="ui-card__title">${escapeHtml(card.title)}</span>
