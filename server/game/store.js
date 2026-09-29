@@ -14,6 +14,7 @@ import { PASSWORD_SALT_ROUNDS, SYSTEMS_DATA, accountsSnapshotPath, createId, dat
 import { evaluateAccountLevel, evaluateLevelProgress, pushSystemNotification, refreshExchangeTax, sanitizeNotification } from "./progression.js";
 import { applyMiningOperations, ensureCorpMiningModel } from "./mining.js";
 import { normalizeStateShape } from "./shape.js";
+import { publicWorld } from "../catalogView.js"; // Bug #4852: the world an account is read with
 import { createStarterCorporationState, refreshContractOfferings } from "./corporation.js";
 import { backfillBuildingIds, ensureBuildingIds } from "./buildingIds.js";
 import { backfillCorpMilitary, ensureCorpMilitary } from "./units.js";
@@ -153,6 +154,12 @@ rebuildHoldingIndexes(accountsStore.accounts);
 if (backfillVerificationPolicy(accountsStore.accounts)) scheduleAccountsSave();
 // ISP-249 (AB#945), AB#963: every record's reference, at load, so reads never have to write one
 if (Object.values(accountsStore.accounts || {}).map((a) => ensureCorpRefs(a?.state?.corp)).some(Boolean)) scheduleAccountsSave();
+// Bug #4852: saves from before hold a copy of the whole world catalog in every account; it is dropped, once
+{
+  let dropped = 0;
+  for (const account of Object.values(accountsStore.accounts || {})) if (account?.state && "world" in account.state) { delete account.state.world; dropped += 1; }
+  if (dropped) scheduleAccountsSave();
+}
 // Bug #1480: statements saved inside the snapshot by the first version of AB#713 move to their own files.
 {
   let moved = 0;
@@ -262,14 +269,15 @@ export function sanitizeAccount(account) {
   ensureCorpRefs(account?.state?.corp);
   // The daily statements (AB#713) stay out: up to 90 days of them would ride on every response and socket event. They
   // are served on their own by GET /finances/statements.
-  const { statements: _statements, ...state } = account.state || {};
+  // Bug #4852: nor the world an old save kept; the shared public view goes with every account instead
+  const { statements: _statements, world: _world, ...state } = account.state || {};
   return {
     id: account.id,
     email: account.email,
     createdAt: account.createdAt,
     lastLoginAt: account.lastLoginAt || null,
     walkthroughCompleted: account.walkthroughCompleted,
-    state: deepClone(state)
+    state: { ...deepClone(state), world: publicWorld() }
   };
 }
 
@@ -345,19 +353,20 @@ export function settleAccountPayroll(accountId, now = Date.now()) {
 }
 
 export function getAccountById(accountId) {
+  const account = settledAccount(accountId);
+  return account ? sanitizeAccount(account) : null;
+}
+/** The account as held, settled as a read settles it: for a caller that only serialises it (Bug #4849). Never change it. */
+export function settledAccount(accountId) {
   const account = accountsStore.accounts?.[accountId];
-  if (!account) {
-    return null;
-  }
-
+  if (!account) return null;
   closeFinancialDays(account);
   applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
   evaluateAccountLevel(accountId, account); // a read can raise the level too: mining settles here (Bug #1260)
-  // Bug #4815 (AB#963): a read schedules no write. What it settled above (mining, offers, the level) is time-derived: the
-  // next read settles it the same way, and the next change or ticker (mining's runs every 5 s) writes it. Scheduling here
-  // rewrote the whole snapshot about once a second under traffic, 40% of the server's time at 200 corporations.
-  return sanitizeAccount(account);
+  // Bug #4815 (AB#963): a read schedules no write. What it settled is time-derived: the next read settles it the same
+  // way, and the next change or ticker writes it (scheduling here rewrote the snapshot about once a second under traffic).
+  return account;
 }
 
 export async function authenticateAccount(email, password) {

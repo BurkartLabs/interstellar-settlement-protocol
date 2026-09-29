@@ -62,7 +62,7 @@ export function loanBoardHtml({ offers, grade, sort = "rate-asc", onlyMine = fal
   const controls = `
     <form class="loan-board__controls" data-role="loan-board-controls">
       <label class="bank-quote-form__field">Order by
-        <select class="ui-input" name="sort" data-role="loan-board-sort">
+        <select class="ui-select" name="sort" data-role="loan-board-sort">
           <option value="rate-asc"${sort === "rate-asc" ? " selected" : ""}>Rate, lowest first</option>
           <option value="rate-desc"${sort === "rate-desc" ? " selected" : ""}>Rate, highest first</option>
           <option value="grade"${sort === "grade" ? " selected" : ""}>Minimum grade, easiest first</option>
@@ -89,13 +89,13 @@ export function postOfferFormHtml(rules, minGrades, form = {}) {
         <input class="ui-input" type="number" name="principal" min="${rules.minPrincipal}" max="${rules.maxPrincipal}" step="1000" value="${escapeHtml(String(principal))}" required>
       </label>
       <label class="bank-quote-form__field">Rate per 30 days
-        <select class="ui-input" name="ratePct30">${rates.map((r) => `<option value="${r}"${r === rate ? " selected" : ""}>${r.toFixed(2)}%</option>`).join("")}</select>
+        <select class="ui-select" name="ratePct30">${rates.map((r) => `<option value="${r}"${r === rate ? " selected" : ""}>${r.toFixed(2)}%</option>`).join("")}</select>
       </label>
       <label class="bank-quote-form__field">Term
-        <select class="ui-input" name="termDays">${rules.terms.map((t) => `<option value="${t}"${t === (form.termDays ?? 30) ? " selected" : ""}>${t} days</option>`).join("")}</select>
+        <select class="ui-select" name="termDays">${rules.terms.map((t) => `<option value="${t}"${t === (form.termDays ?? 30) ? " selected" : ""}>${t} days</option>`).join("")}</select>
       </label>
       <label class="bank-quote-form__field">Lend to grades
-        <select class="ui-input" name="minGrade">${(minGrades || []).map((g) => `<option value="${escapeHtml(g)}"${g === (form.minGrade ?? "BBB") ? " selected" : ""}>${escapeHtml(gradeLabel(g))}</option>`).join("")}</select>
+        <select class="ui-select" name="minGrade">${(minGrades || []).map((g) => `<option value="${escapeHtml(g)}"${g === (form.minGrade ?? "BBB") ? " selected" : ""}>${escapeHtml(gradeLabel(g))}</option>`).join("")}</select>
       </label>
       <button type="submit" class="ui-button ui-button--primary">Post offer</button>
       <p class="bank-quote-form__status" data-role="loan-post-status"></p>
