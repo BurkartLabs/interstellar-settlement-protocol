@@ -71,7 +71,8 @@ for (const viewport of VIEWPORTS) {
       await expect(modal).toContainText("Owned by Venus Builders Guild, the conglomerate that built it.");
       await modal.locator("[data-role=starmap-station-dock]").click();
       // Bug #4651: the refusal is said in the modal, where the order was given
-      await expect(modal.locator(".starmap__dock-refused")).toHaveText("Venus Platform admits members only, by the vote of Venus Builders Guild's stakeholders.");
+      await expect(modal.locator(".starmap__dock-refused")).toContainText("Venus Platform admits members only, by the vote of Venus Builders Guild's stakeholders. Dock at another station in this system.");
+      await expect(modal.locator(".starmap__dock-refused .protocol-line")).toContainText("Denied"); // ISP-255 (AB#4831)
       await expect(modal.locator(".starmap__dock-refused")).toBeVisible();
       await page.screenshot({ path: path.join(SHOT_DIR, `dock-refused-${viewport.label}.png`) });
       const me = await page.evaluate(async () => (await import("/scripts/state.js")).appState.data?.corp);

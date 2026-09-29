@@ -148,7 +148,7 @@ describe("governing the station (ISP-211, AB#906)", () => {
     for (const p of [outsider, m2]) Object.assign(p.corp(), { currentSystemId: g.site.systemId, currentStationId: null, travel: null });
     const refused = await outsider.api.post(`${outsider.base}/gameplay/travel`).send({ toStationId: g.c.station.id });
     expect(refused.status).toBe(400);
-    expect(refused.body.error).toMatch(/admits members only/);
+    expect(refused.body.error).toMatch(/admits members only, by the vote of .+'s stakeholders\. Dock at another station in this system\.$/); // AB#4831 (ISP-6)
     expect(outsider.corp().travel ?? null).toBeNull();
     expect((await m2.api.post(`${m2.base}/gameplay/travel`).send({ toStationId: g.c.station.id })).status).toBe(200);
     // listing another conglomerate lets its members in once members-and-listed passes

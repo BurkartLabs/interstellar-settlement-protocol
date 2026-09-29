@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
-import { mutateAccountState, getAccountById } from "../../server/gameState.js";
+import { mutateAccountState, getAccountById, listAccountNotifications } from "../../server/gameState.js";
+import { vi } from "vitest";
+import { travelTick } from "../../server/ticks.js";
+import { allStations } from "../../server/game/stations.js";
 
 // Bug #976: POST /gameplay/travel refused a corporation at a near star the jump home to Sol unless it had
 // deep-star navigation, stranding anyone who had researched only Proxima navigation.
@@ -42,5 +45,24 @@ describe("POST /api/accounts/:id/gameplay/travel research gate (Bug #976)", () =
     const res = await travel("alpha-centauri");
     expect(res.status).toBe(400);
     expect(corp().travel).toBeFalsy();
+  });
+});
+
+// ISP-255 (AB#4831): a journey's notices carry the protocol line on the Travel screen: In force when the course is set,
+// Concluded on arrival.
+describe("the travel notices' protocol (AB#4831)", () => {
+  it("a course set is In force, and the docking on arrival Concluded", async () => {
+    const { app } = await getApp();
+    const { account, accessToken } = await registerAccount(app);
+    const to = allStations().find((st) => st.systemId === "sol" && st.id !== "earth-station-prime").id;
+    mutateAccountState(account.id, (state) => { state.corp.currentSystemId = "sol"; state.corp.currentStationId = "earth-station-prime"; state.corp.travel = null; });
+    const res = await authed(app, accessToken).post(`/api/accounts/${account.id}/gameplay/travel`).send({ toStationId: to });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    const notes = () => listAccountNotifications(account.id).notifications;
+    expect(notes().find((n) => n.title === "Undocking — Course Set")?.protocol).toEqual({ meaning: "active", screen: "travel" });
+    const arrives = getAccountById(account.id).state.corp.travel.arrivesAt;
+    vi.spyOn(Date, "now").mockReturnValue(arrives + 1000);
+    try { travelTick(); } finally { vi.restoreAllMocks(); }
+    expect(notes().find((n) => n.title === "Docking Complete")?.protocol).toEqual({ meaning: "complete", screen: "travel" });
   });
 });
