@@ -107,6 +107,9 @@ for (const [width, height] of SIZES) {
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
       await openTab(page, "market");
+      // AB#4710: with All picked the table lists the buyers for what the corporation holds here; every buyer is one
+      // press away, and a product the corporation has not made yet is among the rest
+      await page.locator("#npc-buy-show-all").click();
 
       for (const [item, base] of Object.entries(PRODUCTS)) {
         await expect(page.locator("#npc-buy-table tr", { hasText: item }), item).toContainText(`¤${base}`);

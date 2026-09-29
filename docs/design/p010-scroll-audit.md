@@ -113,6 +113,11 @@ Measured at 1440×900, in screens:
 Standing orders is still long: with All picked, the standing buy orders are about 50 rows. The filters narrow them,
 but only once the player picks something. Making the table short by default is its own story, AB#4710.
 
+**As built (AB#4710).** With All picked, the standing buy orders list the buyers for what the corporation holds at the
+station, the rest behind **Show all N buyers**; a resource or tier filter lists everything it leaves. Standing orders is
+**1.95 screens** at 1440×900 for the seeded industry corporation (was 5.0). On a phone the six standing sell orders are
+now most of the page (#4870).
+
 ### Refinery Chains: 6.2 screens
 
 **The problem.** "Available chains" is **4,832px**: 29 chain cards, each with its inputs, outputs and uses.
