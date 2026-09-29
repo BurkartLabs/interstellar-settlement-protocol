@@ -8,23 +8,26 @@
  *
  * AB#1760: loaded as a module so it can ask motion.js whether the player wants reduced motion. If so, the stars are
  * drawn once, still, and redrawn only when the window is resized.
+ *
+ * AB#964 (ISP-268): the loop stops outright while the tab is hidden, not only when the browser withholds frames: its
+ * 5-a-second timer kept waking a hidden tab. It starts again when the tab is shown, and a change to the reduced-motion
+ * setting applies at once. createStarfield takes its window and document so a test can drive it.
  */
-import { prefersReducedMotion } from "./motion.js";
+import { REDUCED_MOTION_QUERY, prefersReducedMotion } from "./motion.js";
 
-(function () {
-  const canvas = document.getElementById("starfield-canvas");
-  if (!canvas) return;
+const STAR_COUNT = 260;
+const FRAME_MS = 1000 / 5;
+const STEP_MS = 1000 / 60; // the speeds below are per 60th of a second
+const LAYERS = [
+  { speed: 0.012, radiusMax: 1.1, opacity: 0.55 }, // far stars
+  { speed: 0.022, radiusMax: 1.6, opacity: 0.80 }, // near stars
+];
 
+/** Draw the starfield on `canvas` and keep it moving while it may. Returns { running(), sync(), stop() }. */
+export function createStarfield(canvas, { win = globalThis.window, doc = globalThis.document } = {}) {
   const ctx = canvas.getContext("2d");
   let W, H, stars;
-
-  const STAR_COUNT = 260;
-  const FRAME_MS = 1000 / 5;
-  const STEP_MS = 1000 / 60; // the speeds below are per 60th of a second
-  const LAYERS = [
-    { speed: 0.012, radiusMax: 1.1, opacity: 0.55 }, // far stars
-    { speed: 0.022, radiusMax: 1.6, opacity: 0.80 }, // near stars
-  ];
+  let timer = null, frame = null, last = 0;
 
   function randomStar(layer) {
     return {
@@ -36,13 +39,6 @@ import { prefersReducedMotion } from "./motion.js";
       speed: layer.speed,
       opacity: layer.opacity,
     };
-  }
-
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-    buildStars();
-    if (prefersReducedMotion()) paint(0);
   }
 
   function buildStars() {
@@ -78,20 +74,47 @@ import { prefersReducedMotion } from "./motion.js";
     }
   }
 
-  let last = 0;
+  const mayMove = () => !doc?.hidden && !prefersReducedMotion(win);
 
   function draw(now) {
-    if (prefersReducedMotion()) {
-      paint(0);
-      return; // stop the loop; resize repaints the still field
-    }
-    // A long gap (the tab was hidden, so no frames ran) moves the stars at most a sixth of a second, never a jump.
+    frame = null;
+    if (!mayMove()) { sync(); return; }
+    // A long gap moves the stars at most a sixth of a second, never a jump.
     paint(last ? Math.min((now - last) / STEP_MS, 10) : 1);
     last = now;
-    setTimeout(() => requestAnimationFrame(draw), FRAME_MS);
+    timer = win.setTimeout(() => { timer = null; frame = win.requestAnimationFrame(draw); }, FRAME_MS);
   }
 
-  window.addEventListener("resize", resize, { passive: true });
+  function stop() {
+    if (timer !== null) win.clearTimeout(timer);
+    if (frame !== null) win.cancelAnimationFrame(frame);
+    timer = frame = null;
+  }
+
+  /** Start the loop if it may run and is not running; otherwise stop it (and, under reduced motion, draw it still). */
+  function sync() {
+    if (mayMove()) {
+      if (timer === null && frame === null) { last = 0; frame = win.requestAnimationFrame(draw); }
+      return;
+    }
+    stop();
+    if (!doc?.hidden) paint(0); // reduced motion: the field, still
+  }
+
+  function resize() {
+    W = canvas.width = win.innerWidth;
+    H = canvas.height = win.innerHeight;
+    buildStars();
+    if (!mayMove() && !doc?.hidden) paint(0);
+  }
+
+  win.addEventListener("resize", resize, { passive: true });
+  doc?.addEventListener?.("visibilitychange", sync);
+  win.matchMedia?.(REDUCED_MOTION_QUERY)?.addEventListener?.("change", sync);
   resize();
-  requestAnimationFrame(draw);
-})();
+  sync();
+  return { running: () => timer !== null || frame !== null, sync, stop };
+}
+
+const canvas = globalThis.document?.getElementById("starfield-canvas");
+if (canvas) createStarfield(canvas);
