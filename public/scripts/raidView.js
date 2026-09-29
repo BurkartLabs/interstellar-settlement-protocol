@@ -7,6 +7,10 @@ import { durationText } from "./shipyardPanel.js";
 import { unitsText } from "./fleetView.js";
 import { utcClock, utcDate, utcTime } from "./timeFormat.js";
 import { refHtml } from "./html.js"; // ISP-249 (AB#945)
+import { protocolLineHtml } from "./protocol.js"; // ISP-254 (AB#4817)
+
+/** ISP-254 (AB#4817): a raid's plain state and its protocol: on its way is In force, called off is Withdrawn, fought or done is Concluded. */
+const RAID_MEANING = { inbound: "active", resolved: "complete", recalled: "cancelled", completed: "complete" };
 
 export const POSTURES = [
   { id: "balanced", label: "Balanced", note: "the default" },
@@ -103,7 +107,7 @@ export function outgoingRaidsHtml(outgoing, { now = Date.now(), stationName, rep
       : r.state === "resolved" ? `fought; the fleet is on its way home (${utc(r.returnsAt)})`
       : r.state === "recalled" ? "called off" : "done";
     return `<li class="raid-list__item">
-      <span>${escapeHtml(r.targetName ?? "A corporation")} at ${escapeHtml(stationName(r.targetStationId))}: ${state}</span>
+      <span>${escapeHtml(r.targetName ?? "A corporation")} at ${escapeHtml(stationName(r.targetStationId))}: ${state} ${protocolLineHtml({ meaning: RAID_MEANING[r.state] || "complete", screen: "fleet" })}</span>
       ${r.state === "inbound" && r.arrivesAt > now ? `<button type="button" class="ui-button ui-button--secondary" data-raid-recall="${escapeHtml(r.id)}">Recall</button>` : ""}
       ${reported.has(r.id) ? `<button type="button" class="ui-button ui-button--secondary" data-raid-report="${escapeHtml(r.id)}">Report</button>` : ""}
     </li>`;

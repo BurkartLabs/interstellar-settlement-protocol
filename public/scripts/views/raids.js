@@ -8,6 +8,12 @@ import { battleReportHtml, countdown, garrisonPanelHtml, incomingAlertHtml, outg
 import { unitsText } from "../fleetView.js";
 import { appState } from "../state.js";
 import { pushFeedback, setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { escapeHtml } from "../html.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 (AB#4817)
+
+/** ISP-254 (AB#4817): an outcome's protocol on the Fleet screen (public/scripts/protocol.js). */
+const onFleet = (meaning) => ({ meaning, screen: "fleet" });
+const refusedOnFleet = (error) => onFleet(refusalMeaning(error));
 import { codeSlotHtml } from "../sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 
 const raids = { accountId: null, data: null, at: 0, loading: false, targets: {}, pick: { fleetId: "", stationId: "" }, report: null };
@@ -86,7 +92,7 @@ function draw(data) {
   if (raids.pick.stationId && !raids.targets[raids.pick.stationId]) { raids.targets[raids.pick.stationId] = null; loadTargets(raids.pick.stationId); }
 }
 
-function status(el, text) { const s = el?.closest("[data-garrison], .ui-stack")?.querySelector("[role=status]"); if (s) s.textContent = text; }
+function status(el, text, protocol = null) { const s = el?.closest("[data-garrison], .ui-stack")?.querySelector("[role=status]"); if (s) s.innerHTML = `${escapeHtml(text)}${protocol ? ` ${protocolLineHtml(protocol)}` : ""}`; }
 function redraw(account) { if (account?.state) appState.data = deepClone(account.state); updateAllViews(); }
 
 async function onClick(event) {
@@ -104,7 +110,7 @@ async function onClick(event) {
       b.disabled = true;
       await post(`/garrisons/${encodeURIComponent(id)}/posture`, { posture });
       appState.data.corp.garrisonPostures = { ...(appState.data.corp.garrisonPostures || {}), [id]: posture };
-      pushFeedback(`${stationName(id)} now defends ${posture}.`, "ok");
+      pushFeedback(`${stationName(id)} now defends ${posture}.`, "ok", onFleet("active"));
       updateAllViews();
     } else if (b.dataset.raidTarget) {
       const target = raids.targets[raids.pick.stationId]?.targets.find((t) => t.corpId === b.dataset.raidTarget);
@@ -120,7 +126,7 @@ async function onClick(event) {
       if (!ok) return;
       b.disabled = true;
       await post("/raids", { fleetId: raids.pick.fleetId, targetCorpId: b.dataset.raidTarget, targetStationId: raids.pick.stationId });
-      pushFeedback(`Raid declared on ${target?.name ?? "the corporation"}.`, "ok");
+      pushFeedback(`Raid declared on ${target?.name ?? "the corporation"}.`, "ok", onFleet("active"));
       raids.targets = {};
       await refreshAccount();
       await load(true);
@@ -136,8 +142,8 @@ async function onClick(event) {
     }
   } catch (error) {
     b.disabled = false;
-    status(b, error?.message || "That was refused.");
-    pushFeedback(error?.message || "That was refused.", "error");
+    status(b, error?.message || "That was refused.", refusedOnFleet(error));
+    pushFeedback(error?.message || "That was refused.", "error", refusedOnFleet(error));
   }
 }
 
@@ -147,9 +153,9 @@ async function onSubmit(event) {
     event.preventDefault();
     try {
       await post("/garrisons/move", { fromStationId: form.from.value, toStationId: form.dataset.reinforce, quantity: Number(form.quantity.value) });
-      pushFeedback(`${form.quantity.value} defense troops are on their way to ${stationName(form.dataset.reinforce)}.`, "ok");
+      pushFeedback(`${form.quantity.value} defense troops are on their way to ${stationName(form.dataset.reinforce)}.`, "ok", onFleet("active"));
       await refreshAccount();
-    } catch (error) { status(form, error?.message || "The troops could not be sent."); }
+    } catch (error) { status(form, error?.message || "The troops could not be sent.", refusedOnFleet(error)); }
   }
 }
 

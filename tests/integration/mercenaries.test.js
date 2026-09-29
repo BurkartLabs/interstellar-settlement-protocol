@@ -195,6 +195,17 @@ describe("the Mercenary Rentals panel's routes (AB#871)", () => {
     expect(grants["Allowed use"]).toBe("Defense only");
   });
 
+  it("Bug #4822: a hire the renter cannot fund says how to raise the credits, with its code, and moves nothing", async () => {
+    const { owner, fleetId } = await withFleet();
+    const offerId = (await offer(owner, fleetId)).body.offer.id;
+    const renter = await corporation(10_000, {});
+    const res = await renter.api.post(renter.at(`/mercenaries/${offerId}/hire`)).send({});
+    expect(res.status).toBe(409);
+    expect(res.body).toMatchObject({ code: "insufficient-credits" });
+    expect(res.body.error).toMatch(/holds 20,000 credits .* you have 10,000\. Sell goods or finish an assignment to raise the credits, then hire\.$/);
+    expect(renter.credits()).toBe(10_000);
+  });
+
   it("lists offers with their combat totals and whose they are, and never sends them in the shared market state", async () => {
     const { owner, fleetId } = await withFleet();
     await offer(owner, fleetId);

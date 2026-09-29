@@ -6,6 +6,12 @@ import { deepClone } from "../helpers.js";
 import { myContractsHtml, offerFormHtml, offerPreview, offersTableHtml } from "../mercenaryView.js";
 import { appState } from "../state.js";
 import { pushFeedback, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { escapeHtml } from "../html.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 (AB#4817)
+
+/** ISP-254 (AB#4817): Mercenary Rentals are on the Galactic Exchange: an outcome's protocol on that screen. */
+const onExchange = (meaning) => ({ meaning, screen: "market" });
+const refusedOnExchange = (error) => onExchange(refusalMeaning(error));
 import { showActionReceipt } from "./receiptModal.js";
 
 const MIN_REFETCH_MS = 5_000;
@@ -29,7 +35,7 @@ export async function renderMercenaries(data, { force = false } = {}) {
       ]);
       cache = { offers: offers.offers || [], mine };
     } catch (error) {
-      document.getElementById("merc-status").textContent = error?.message || "Mercenary offers could not be loaded.";
+      document.getElementById("merc-status").innerHTML = `${escapeHtml(error?.message || "Mercenary offers could not be loaded.")} ${protocolLineHtml(onExchange("failed"))}`;
       return;
     }
   }
@@ -74,10 +80,10 @@ function bind(section) {
             allowedUse: form.querySelector("[data-merc-use]").value
           })
         }));
-        pushFeedback("Your fleet is on offer.", "ok");
+        pushFeedback("Your fleet is on offer.", "ok", onExchange("pending"));
         await refreshAccount();
       } catch (error) {
-        status.textContent = error?.message || "The offer was refused.";
+        status.innerHTML = `${escapeHtml(error?.message || "The offer was refused.")} ${protocolLineHtml(refusedOnExchange(error))}`;
         button.disabled = false;
       }
     };
@@ -88,9 +94,9 @@ function bind(section) {
       withdraw.disabled = true;
       try {
         await parseJsonResponse(await apiFetch(path(`/${encodeURIComponent(withdraw.getAttribute("data-merc-withdraw"))}/withdraw`), { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }));
-        pushFeedback("Offer withdrawn.", "ok");
+        pushFeedback("Offer withdrawn.", "ok", onExchange("cancelled"));
         await refreshAccount();
-      } catch (error) { pushFeedback(error?.message || "Could not withdraw.", "warn"); withdraw.disabled = false; }
+      } catch (error) { pushFeedback(error?.message || "Could not withdraw.", "warn", refusedOnExchange(error)); withdraw.disabled = false; }
       return;
     }
     const hire = event.target.closest("[data-merc-hire]");
@@ -117,10 +123,10 @@ async function hireOffer(button) {
     appState.data = deepClone(account.state);
     lastFetch = 0;
     updateAllViews();
-    pushFeedback(account.receipt?.title || "Fleet hired.", "ok");
+    pushFeedback(account.receipt?.title || "Fleet hired.", "ok", onExchange("active"));
     showActionReceipt(account, { returnFocusTo: () => document.querySelector("#exchange-mercenary-section h3") });
   } catch (error) {
-    pushFeedback(error?.message || "The hire was refused.", "warn");
+    pushFeedback(error?.message || "The hire was refused.", "warn", refusedOnExchange(error));
     button.disabled = false;
   }
 }
