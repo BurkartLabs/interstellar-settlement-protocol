@@ -20,8 +20,9 @@ for (const entry of entries) for (const [file, text] of clientSources(entry)) so
 
 describe("login tokens are never put in web storage (AB#757)", () => {
   it("reads the modules the game, login and register pages load", () => {
-    expect(entries).toEqual(expect.arrayContaining(["public/scripts/app.js", "public/scripts/login-page.js", "public/scripts/register-page.js"]));
-    expect([...sources.keys()]).toContain("public/scripts/apiClient.js");
+    // Bug #4836: the game's page enters through boot.js, which reaches app.js by a dynamic import that clientSources follows
+    expect(entries).toEqual(expect.arrayContaining(["public/scripts/boot.js", "public/scripts/login-page.js", "public/scripts/register-page.js"]));
+    expect([...sources.keys()]).toEqual(expect.arrayContaining(["public/scripts/app.js", "public/scripts/apiClient.js"]));
   });
 
   it("no module writes anything token-shaped to storage, and none uses sessionStorage", () => {

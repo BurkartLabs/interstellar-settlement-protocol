@@ -853,5 +853,7 @@ async function boot() {
   }
 }
 
-window.addEventListener("DOMContentLoaded", boot);
+// Bug #4836: scripts/boot.js imports this only when a visit opens the game, which can be after DOMContentLoaded has fired
+if (document.readyState === "loading") window.addEventListener("DOMContentLoaded", boot);
+else boot();
 
