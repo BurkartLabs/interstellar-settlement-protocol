@@ -103,7 +103,8 @@ export function registerResearchRoutes(app) {
         "missing-prereq": `${tech.name} requires: ${tech.prereqs.map((id) => RESEARCH_LIBRARY[id]?.name || id).join(", ")}.`,
         "corp-level-too-low": `${tech.name} requires Corp Level ${tech.requiresCorpLevel}.`,
         "tier-gate": `${tech.name} is Tier ${tech.tier} research. All Tier 1 research must be completed first.`,
-        "insufficient-credits": fundingRequirementMessage(`${tech.name} queueing`, corp, tech.costCredits),
+        // Bug #4807 (ISP-6's rule): and how to raise it
+        "insufficient-credits": fundingRequirementMessage(`${tech.name} queueing`, corp, tech.costCredits, "Sell goods or finish an assignment to raise the credits, then queue it again."),
         "queue-full": `Corporate R&D runs one technology and holds one more behind it. ${tech.name} can be queued once ${room?.finishing?.name || "the research ahead"} finishes, in ${formatHoursMinutes((room?.freesAt || 0) - Date.now())}.`
       };
       res.status(400).json({ error: messageMap[outcome] || "Unable to queue research." });
@@ -113,7 +114,8 @@ export function registerResearchRoutes(app) {
     const notification = addAccountNotification(req.params.accountId, {
       type: "research",
       title: "R&D Queued",
-      body: `${tech.name} has been queued in corporate research.`
+      body: `${tech.name} has been queued in corporate research.`,
+      protocol: { meaning: "queued", screen: "rnd" } // ISP-254 (AB#950)
     });
     if (notification) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });

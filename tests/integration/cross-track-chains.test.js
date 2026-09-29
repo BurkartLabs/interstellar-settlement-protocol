@@ -67,7 +67,7 @@ describe("the cross-track chains (AB#834)", () => {
     const p = await assembler({ stock: fuelOnly });
     const res = await p.start("fusion-core-chain");
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Not enough Rare-Earth Magnets at this station. Need 10 but only have 0.");
+    expect(res.body.error).toBe("Not enough Rare-Earth Magnets at this station. Need 10 but only have 0. Bring more to this station, or run fewer batches.");
     expect(p.held()).toEqual(fuelOnly);
     expect(p.corp().refineries[0].active).toBe(false);
 
@@ -76,7 +76,7 @@ describe("the cross-track chains (AB#834)", () => {
     const q = await assembler({ stock: lightOnly });
     const refused = await q.start("spaceframe-chain");
     expect(refused.status).toBe(400);
-    expect(refused.body.error).toBe("Not enough Structural Alloys at this station. Need 20 but only have 0.");
+    expect(refused.body.error).toBe("Not enough Structural Alloys at this station. Need 20 but only have 0. Bring more to this station, or run fewer batches.");
     expect(q.held()).toEqual(lightOnly);
   });
 

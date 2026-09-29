@@ -7,6 +7,7 @@ import { runIntroDialogue } from "../dialogue.js";
 import { NARROW_MAX_WIDTH, sidebarStartsCollapsed } from "../firstAction.js";
 import { formatTime } from "../helpers.js";
 import { escapeHtml, notificationItemsHtml } from "../html.js";
+import { protocolLineHtml } from "../protocol.js"; // ISP-254 (AB#950)
 import { appState } from "../state.js";
 import { bindWalkthroughControls, promptWalkthroughOffer, resetWalkthroughForAccount } from "../walkthroughUi.js";
 import { stopMiningUiTicker } from "./miningTicker.js";
@@ -56,7 +57,7 @@ export function renderNotifications() {
   }
 
   // Bug #691: every field escaped (public/scripts/html.js, tested in tests/unit/html.test.js).
-  notificationList.innerHTML = notificationItemsHtml(appState.notifications.slice(0, 30), formatTime);
+  notificationList.innerHTML = notificationItemsHtml(appState.notifications.slice(0, 30), formatTime, protocolLineHtml);
 }
 
 export async function loadNotifications() {

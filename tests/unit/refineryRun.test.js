@@ -88,7 +88,7 @@ describe("a one-input chain runs exactly as before (AB#1255's rule)", () => {
   it("names what is short, in the words the route always used", () => {
     const carbon = CHAINS.find((c) => c.id === "carbon-chain");
     expect(refineRunCheck(carbon, { inputQuantity: 400 }, stock({ Carbon: 250 }))).toEqual({
-      ok: false, reason: "Not enough Carbon at this station. Need 400 but only have 250.", missing: ["Carbon"]
+      ok: false, reason: "Not enough Carbon at this station. Need 400 but only have 250. Bring more to this station, or run fewer batches.", missing: ["Carbon"]
     });
   });
 });
@@ -103,7 +103,7 @@ describe("a chain of several inputs takes all of them or none", () => {
   it("refuses when either input is short, naming only what is short", () => {
     const nickelShort = refineRunCheck(ALLOY, { batches: 3 }, stock({ "Iron Ore": 450, Nickel: 149 }));
     expect(nickelShort).toMatchObject({ ok: false, missing: ["Nickel"] });
-    expect(nickelShort.reason).toBe("Not enough Nickel at this station. Need 150 but only have 149.");
+    expect(nickelShort.reason).toBe("Not enough Nickel at this station. Need 150 but only have 149. Bring more to this station, or run fewer batches."); // Bug #4807
     expect(refineRunCheck(ALLOY, { batches: 3 }, stock({ Nickel: 150 }))).toMatchObject({ ok: false, missing: ["Iron Ore"] });
     expect(refineRunCheck(ALLOY, { batches: 3 }, stock({})).missing).toEqual(["Iron Ore", "Nickel"]);
   });

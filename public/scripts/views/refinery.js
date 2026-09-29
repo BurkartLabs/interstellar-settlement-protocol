@@ -17,6 +17,7 @@ import { resourceCatalogHtml } from "../resourceCatalog.js"; // AB#885
 import { clientPrices } from "../clientPrices.js";
 import { refineryMultiplierFor, refineryOutput } from "../refineryOutput.js"; // ISP-97 (AB#787), AB#794: output by tier
 import { cycleProgressPercent, pushFeedback, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 (AB#950)
 import { basePricesOf, patentToPay } from "../patentRoyalty.js"; // ISP-237 (AB#932)
 import { runRoyaltyQuote } from "../refineryRoyalty.js";
 import { splitChains } from "../chainAvailability.js"; // AB#2485
@@ -200,7 +201,7 @@ export function renderRefinery(data) {
   const focusedCardId = document.activeElement?.classList?.contains("refinery__chain") ? document.activeElement.id : null;
   // The last start or build outcome, above the chains: a tone class, never a colour written here.
   const statusHtml = refineryStatus?.text
-    ? `<p class="refinery__status refinery__status--${refineryStatus.type === "ok" ? "ok" : "warn"}" role="status">${escapeHtml(refineryStatus.text)}</p>`
+    ? `<p class="refinery__status refinery__status--${refineryStatus.type === "ok" ? "ok" : "warn"}" role="status">${escapeHtml(refineryStatus.text)}${refineryStatus.protocol ? ` ${protocolLineHtml(refineryStatus.protocol)}` : ""}</p>`
     : "";
   const statusEl = document.getElementById("refinery-status");
   if (statusEl) statusEl.innerHTML = statusHtml;
@@ -265,7 +266,7 @@ export function renderRefinery(data) {
                 <input id="${escapeHtml(inputId)}" class="ui-input refinery__quantity" type="number"
                   min="${minQty}" step="${perCycle}" value="${escapeHtml(fieldValue)}" data-chain-id="${escapeHtml(chain.id)}"${quantityError ? ` aria-invalid="true" aria-describedby="${escapeHtml(errorId)}"` : ""} />
                 <span class="ui-field__hint">Min ${minQty}, step ${perCycle}</span>
-                ${quantityError ? `<p id="${escapeHtml(errorId)}" class="ui-field__error" role="alert">${escapeHtml(quantityError)}</p>` : ""}
+                ${quantityError ? `<p id="${escapeHtml(errorId)}" class="ui-field__error" role="alert">${escapeHtml(quantityError)} ${protocolLineHtml({ meaning: refusalMeaning(quantityError), screen: "refinery" })}</p>` : ""}
               </div>
               <button class="ui-button ui-button--secondary refinery__start" type="button" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-quantity-input="${escapeHtml(inputId)}" data-per-cycle="${perCycle}" data-input="${escapeHtml(input)}" data-available="${inputAvailable}" data-hours="${Number(chain.cycleDurationHours) || 0}">Start Run</button>`
             // AB#836: a chain of several inputs, run in batches; the button names what is short.
@@ -275,7 +276,7 @@ export function renderRefinery(data) {
                   <input id="${escapeHtml(batchesId)}" class="ui-input refinery__quantity refinery__batches" type="number" inputmode="numeric"
                     min="${minBatches(chain)}" max="${maxBatches(chain)}" step="1" value="${escapeHtml(batchesValue)}" data-chain-id="${escapeHtml(chain.id)}"${quantityError ? ` aria-invalid="true" aria-describedby="${escapeHtml(errorId)}"` : ""} />
                   <span class="ui-field__hint">${minBatches(chain)} to ${maxBatches(chain)}, ${Number(chain.cycleDurationHours) || 0}h each</span>
-                  ${quantityError ? `<p id="${escapeHtml(errorId)}" class="ui-field__error" role="alert">${escapeHtml(quantityError)}</p>` : ""}
+                  ${quantityError ? `<p id="${escapeHtml(errorId)}" class="ui-field__error" role="alert">${escapeHtml(quantityError)} ${protocolLineHtml({ meaning: refusalMeaning(quantityError), screen: "refinery" })}</p>` : ""}
                 </div>
                 <button class="ui-button ui-button--secondary refinery__start" type="button" data-chain-id="${escapeHtml(chain.id)}" data-refinery-id="${escapeHtml(idleRefinery.id)}" data-batches-input="${escapeHtml(batchesId)}" data-hours="${Number(chain.cycleDurationHours) || 0}"${rows.some((r) => r.short) || batches < 1 ? " disabled" : ""}>${escapeHtml(batches < 1 ? "Enter a number of batches" : startLabel(rows))}</button>`
             // AB#2485: a single-input chain short of its input, with a refinery free, says what is short, as a multi-input
@@ -365,8 +366,8 @@ export function renderRefinery(data) {
         delete appState.refineQuantityOverrides[chainId];
         delete appState.refineQuantityErrors[chainId];
         const started = `Refinery run started: ${inputsLabel(check.debits)}, ready in ${Number(multiBtn.getAttribute("data-hours")) * check.batches}h.`;
-        appState.refineryStatus = { type: "ok", text: started };
-        pushFeedback(started, "ok");
+        appState.refineryStatus = { type: "ok", text: started, protocol: { meaning: "active", screen: "refinery" } }; // ISP-254 (AB#950)
+        pushFeedback(started, "ok", { meaning: "active", screen: "refinery" });
         appState.data = deepClone(account.state);
         appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
         updateAllViews();
@@ -375,7 +376,7 @@ export function renderRefinery(data) {
         multiBtn.disabled = false;
         multiBtn.textContent = "Start Run";
         appState.refineQuantityErrors[chainId] = error.message;
-        pushFeedback(`Refinery error: ${error.message}`, "warn");
+        pushFeedback(`Refinery error: ${error.message}`, "warn", { meaning: refusalMeaning(error.message), screen: "refinery" }); // ISP-254 (AB#950)
         updateAllViews();
       }
       return;
@@ -414,8 +415,8 @@ export function renderRefinery(data) {
         delete appState.refineQuantityErrors[chainId];
         const hours = Number(startBtn.getAttribute("data-hours")) * check.batches;
         const started = `Refinery run started: ${check.quantity.toLocaleString("en-US")} ${input}, ready in ${hours}h.`;
-        appState.refineryStatus = { type: "ok", text: started };
-        pushFeedback(started, "ok");
+        appState.refineryStatus = { type: "ok", text: started, protocol: { meaning: "active", screen: "refinery" } }; // ISP-254 (AB#950)
+        pushFeedback(started, "ok", { meaning: "active", screen: "refinery" });
         appState.data = deepClone(account.state);
         appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
         updateAllViews();
@@ -424,7 +425,7 @@ export function renderRefinery(data) {
         startBtn.disabled = false;
         startBtn.textContent = "Start Run";
         appState.refineQuantityErrors[chainId] = error.message;
-        pushFeedback(`Refinery error: ${error.message}`, "warn");
+        pushFeedback(`Refinery error: ${error.message}`, "warn", { meaning: refusalMeaning(error.message), screen: "refinery" }); // ISP-254 (AB#950)
         updateAllViews();
       }
       return;
@@ -434,9 +435,10 @@ export function renderRefinery(data) {
     if (buildBtn) {
       const disabledReason = buildBtn.getAttribute("data-disabled-reason");
       if (disabledReason) {
-        appState.refineryStatus = { type: "warn", text: disabledReason };
+        const denied = { meaning: refusalMeaning(disabledReason), screen: "refinery" }; // ISP-254 (AB#950)
+        appState.refineryStatus = { type: "warn", text: disabledReason, protocol: denied };
         updateAllViews();
-        pushFeedback(`Build error: ${disabledReason}`, "warn");
+        pushFeedback(`Build error: ${disabledReason}`, "warn", denied);
         return;
       }
 
@@ -501,14 +503,15 @@ export function renderRefinery(data) {
           corp.finances.assets = Number(corp.finances.assets || 0) + assetValue;
         }
 
-        appState.refineryStatus = { type: "ok", text: "Refinery commissioned." };
+        appState.refineryStatus = { type: "ok", text: "Refinery commissioned.", protocol: { meaning: "complete", screen: "refinery" } }; // ISP-254 (AB#950)
         updateAllViews();
         showActionReceipt(receiptAnswer, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
-        pushFeedback("Refinery commissioned.", "ok");
+        pushFeedback("Refinery commissioned.", "ok", { meaning: "complete", screen: "refinery" });
       } catch (error) {
-        appState.refineryStatus = { type: "warn", text: error.message };
+        const denied = { meaning: refusalMeaning(error.message), screen: "refinery" }; // ISP-254 (AB#950)
+        appState.refineryStatus = { type: "warn", text: error.message, protocol: denied };
         updateAllViews();
-        pushFeedback(`Build error: ${error.message}`, "warn");
+        pushFeedback(`Build error: ${error.message}`, "warn", denied);
       }
     }
   };

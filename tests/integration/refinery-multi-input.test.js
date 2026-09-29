@@ -99,7 +99,7 @@ describe("a chain of two inputs takes both, or neither (AB#825)", () => {
     const p = await refiner({});
     const res = await p.start({ chainId: ALLOY.id, batches: 1 });
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Not enough Nickel at this station. Need 50 but only have 0. Not enough Titanium at this station. Need 30 but only have 0.");
+    expect(res.body.error).toBe("Not enough Nickel at this station. Need 50 but only have 0. Not enough Titanium at this station. Need 30 but only have 0. Bring more to this station, or run fewer batches."); // Bug #4807: the next step once
   });
 });
 

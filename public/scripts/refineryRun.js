@@ -83,7 +83,8 @@ export function refineRunCheck(chain, { inputQuantity, batches } = {}, available
   if (short.length) {
     return {
       ok: false,
-      reason: short.map((d) => `Not enough ${d.item} at this station. Need ${d.quantity} but only have ${Number(availableOf(d.item) || 0)}.`).join(" "),
+      // Bug #4807 (ISP-6's rule): the next step once, after everything that is short
+      reason: `${short.map((d) => `Not enough ${d.item} at this station. Need ${d.quantity} but only have ${Number(availableOf(d.item) || 0)}.`).join(" ")} Bring more to this station, or run fewer batches.`,
       missing: short.map((d) => d.item)
     };
   }
