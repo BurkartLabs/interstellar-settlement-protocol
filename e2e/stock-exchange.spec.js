@@ -10,6 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { openTab, openStationOffices } from "./nav.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-855");
@@ -46,9 +47,8 @@ async function openExchange(page, who, [width, height]) {
   await page.fill("#login-password", PASSWORD);
   await page.click("#credential-login-btn");
   await page.waitForURL(/\/\?account=/);
-  const stationTab = page.locator('.nav-tab[data-tab="station"]');
-  if (!(await stationTab.isVisible())) await page.click('.nav-group__button[data-group="station"]');
-  if (await stationTab.isVisible()) await stationTab.click();
+  await openTab(page, "station");
+  await openStationOffices(page); // AB#2471: the offices are the Station's Offices subpage
   await page.locator(".station__card", { hasText: "Intergalactic Stock Exchange" }).getByRole("button", { name: "Enter" }).click();
   await expect(page.locator('[data-role="igsx"] .igsx-offering').first()).toBeVisible({ timeout: 15_000 });
 }

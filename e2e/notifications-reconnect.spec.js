@@ -51,7 +51,7 @@ test("a note made while the socket was down reaches the badge on reconnect", asy
     await page.click('#login-form button[type="submit"]');
     await page.waitForURL(/\?account=/);
     const badge = page.locator("#notification-count");
-    await page.waitForFunction(async () => (await import("/scripts/apiClient.js")).socket.connected);
+    await page.waitForFunction(async () => (await import("/scripts/apiClient.js")).socket?.connected); // AB#4840: no socket until the game opens
     await page.waitForTimeout(500); // the first state:init's read of the list
     const before = Number(await badge.textContent());
 

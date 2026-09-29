@@ -58,7 +58,7 @@ for (const viewport of VIEWPORTS) {
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\?account=/);
       await openTab(page, "overview");
-      const title = page.locator("#level-requirements-title");
+      const title = page.locator("#level-requirements-text"); // AB#943: the title carries its document code before the words
       // AB#803's panel (AB#2332): the heading is the corporation's level of the ladder's top, and the level shown under it
       // is the next one, Level 11, with its requirements.
       await expect(title).toHaveText(/^Level 10 of (20|30)$/); // AB#801: thirty levels since

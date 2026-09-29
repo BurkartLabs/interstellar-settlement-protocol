@@ -271,7 +271,7 @@ for (const [passName, sizes] of [["a-desktop", { A: DESKTOP, B: PHONE, C: DESKTO
         const table = page.locator("#trade-history-table");
         await expect(table).toContainText(/tariff/i, { timeout: 15_000 });
         return table;
-      }, { knownBug: "Bug #4853: Trade History shows the tax, not the tariff" });
+      }); // Bug #4853, fixed
 
       // ── 3. Bright floods Nickel at half its normal value; the ITC's warning; Cinder buys it all ──
       await step("B", "lists 1,500 Nickel at 12: the ITC's warning", async (page) => {
