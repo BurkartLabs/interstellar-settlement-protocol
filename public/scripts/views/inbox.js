@@ -303,7 +303,7 @@ export function bindInboxControls() {
     status.textContent = "Deleting…";
     try {
       const res = await apiFetch(`/api/accounts/${appState.accountId}/messages/draft/${encodeURIComponent(id)}`, { method: "DELETE" });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "the server refused");
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "the server did not answer. Try again in a minute"); // Bug #4832
     } catch (err) {
       status.textContent = `The draft was not deleted: ${err.message}.`;
       return;
@@ -350,7 +350,7 @@ export function bindInboxControls() {
       syncComposeDraftControls();
       status.textContent = "";
     } catch (err) {
-      status.textContent = `Error: ${err.message}`;
+      status.textContent = `The message was not sent: ${err.message}. Check your connection and press Send again.`; // Bug #4832
     }
   });
 
@@ -383,10 +383,10 @@ export function bindInboxControls() {
         else appState.inbox.messages.unshift(data.draft);
         status.textContent = "Draft saved.";
       } else {
-        status.textContent = data.error || "Failed to save draft.";
+        status.textContent = data.error || "The draft was not saved. Press Save Draft again.";
       }
     } catch (err) {
-      status.textContent = `Error: ${err.message}`;
+      status.textContent = `The draft was not saved: ${err.message}. Check your connection and press Save Draft again.`; // Bug #4832
     }
   });
 }
@@ -411,7 +411,7 @@ export async function recipientByName(typed) {
   const exact = all.filter((c) => c.corporationName.trim().toLowerCase() === name.toLowerCase());
   const matches = exact.length ? exact : all;
   if (matches.length === 1) return { publicId: matches[0].publicId };
-  if (!matches.length) return { error: "No corporation has that name." };
+  if (!matches.length) return { error: "No corporation has that name. Check the spelling: part of a name lists every corporation it matches." }; // Bug #4832: what to do next (ISP-6)
   return { error: `${matches.length} corporations match that name. Choose which one you mean.`, candidates: matches.slice(0, 10) };
 }
 
