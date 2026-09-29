@@ -8,7 +8,8 @@ literals across the group, counted by a regex that also catches some help text. 
 - Bd, Operations: AB#4819.
 
 Garrison orders are drawn in the Raids section, so their refusals (server/garrison.js) belong to Bb. Escort refusals
-(server/escorts.js) are shown on the Starmap's expedition panel, so they are the Map's.
+(server/escorts.js) are shown on the Starmap's expedition panel, so they are the Map's. The hangar (server/game/hangar.js) is the Conglomerate's,
+which slice C1b holds (docs/ab-4811).
 
 Slice A's rule still holds (docs/design/BUREAUCRATIC_UI.md): the plain words stay, and the protocol phrase and the
 screen's code are added after them, as `PHRASE // CODE`, with the code aria-hidden. This slice reuses
