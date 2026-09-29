@@ -21,8 +21,15 @@ The ~126 estimate counted the belt and expedition refusals in `server/routes/ast
 ownership badges, which are not statuses.
 
 Under docs/design/BUREAUCRATIC_UI.md's first rule the plain words stay. So most rows keep their text and gain a
-protocol line after it: the guide's phrase, then the screen's document code (STA-OPS-1, the Station), with the code
-aria-hidden. A refusal reads Denied, or Unfunded when the server's own code says so. Each Station refusal now sends its
+protocol line after it: the guide's phrase, then the document code of the section the record sits in, with the code
+aria-hidden. The codes follow slice Bd (AB#4819), which merged while this slice was open:
+- STA-ADM-1: the Orbital Executive Suites;
+- STA-OPS-4: the Construction list;
+- STA-OPS-3: the facility cards;
+- STA-OPS-8: Damaged Buildings.
+
+Slice Bd had already framed the ISA Claims & Leases office, the extractor yard, the Assembly Facility and probe
+fabrication, with the same meanings. Its lines are kept, and those rows are marked (Bd) below. A refusal reads Denied, or Unfunded when the server's own code says so. Each Station refusal now sends its
 outcome as `code`, so Unfunded does not depend on the words: the upgrade and repair refusals are not written by
 `fundingRequirementMessage`. Refusals that did not say what to do next were reworded; they are listed last.
 
@@ -30,26 +37,18 @@ outcome as `code`, so Unfunded does not depend on the words: the upgrade and rep
 
 | File | Old (unchanged plain words) | New: what is added after them |
 |---|---|---|
-| public/scripts/views/station.js | Upgrade status: {server message} / "The upgrade was refused." | `DENIED` or `UNFUNDED…` `// STA-OPS-1` |
-| same | Repair status: {server message} / "The repair was refused." | `DENIED` or `UNFUNDED…` |
-| same | Log: "{building} repaired." | `CONCLUDED // STA-OPS-1` |
-| same | Log: "Office lease confirmed at {station}." | `IN FORCE` |
-| same | Rent status: {server message} / "Lease agreement failed." | `DENIED` or `UNFUNDED…` |
-| same | Log: "Lease extended by {n} days." | `IN FORCE` |
-| same | Renew status: {server message} / "Lease renewal failed." | `DENIED` or `UNFUNDED…` |
-| same | Log: "Personnel hired successfully." | `CONCLUDED` |
-| same | Hire status: {server message} / "Hire action failed." | `DENIED` or `UNFUNDED…` |
-| same | Log: "{body} mining lease approved by the ISA." | `IN FORCE` |
-| same | Log: {server message} / "Lease application failed." | `DENIED` or `UNFUNDED…` |
-| same | Log: "Basic Extractor Yard commissioned and linked to lease." | `CONCLUDED` |
-| same | Log: "Session state out of sync — please re-purchase your lease." | `UNSUCCESSFUL` |
-| same | Yard build status: {server message} / "Construction failed." | `DENIED` or `UNFUNDED…` |
-| same | Log: "Assembly Facility online. Enter it to fabricate Mining Probes." | `CONCLUDED` |
-| same | Log (facility grid and Construction list): {server message} / "Construction failed." | `DENIED` or `UNFUNDED…` |
-| same | Log: {receipt title} / "Construction complete." | `CONCLUDED` |
-| same | Log: "Mining Probe fabrication started…" | `IN FORCE` |
-| same | Log: {server message} / "Probe fabrication failed." | `DENIED` or `UNFUNDED…` |
-| public/scripts/constructionPanel.js | Build status: {server message} / "The build was refused." | `DENIED` or `UNFUNDED…` |
+| public/scripts/views/station.js | Repair status: {server message} / "The repair was refused." | `DENIED` or `UNFUNDED…` `// STA-OPS-8` |
+| same | Log: "{building} repaired." | `CONCLUDED // STA-OPS-8` |
+| same | Log: "Office lease confirmed at {station}." | `IN FORCE // STA-ADM-1` |
+| same | Rent status: {server message} / "Lease agreement failed." | `DENIED` or `UNFUNDED…` `// STA-ADM-1` |
+| same | Log: "Lease extended by {n} days." | `IN FORCE // STA-ADM-1` |
+| same | Renew status: {server message} / "Lease renewal failed." | `DENIED` or `UNFUNDED…` `// STA-ADM-1` |
+| same | Log: "Personnel hired successfully." | `CONCLUDED // STA-ADM-1` |
+| same | Hire status: {server message} / "Hire action failed." | `DENIED` or `UNFUNDED…` `// STA-ADM-1` |
+| same | Log (Construction list): {receipt title} / "Construction complete." | `CONCLUDED // STA-OPS-4` |
+| same | Log (Construction list): {server message} / "Construction failed." | `DENIED` or `UNFUNDED…` `// STA-OPS-4` |
+| public/scripts/constructionPanel.js | Build status: {server message} / "The build was refused." | `DENIED` or `UNFUNDED…` `// STA-OPS-4` |
+| (Bd) public/scripts/views/station.js | the upgrade status; the lease application; the yard's build; the Assembly Facility's build and online; probe fabrication | slice Bd's lines, kept |
 
 In-progress lines ("Upgrading...", "Repairing...", "Processing lease agreement...", "Processing hire order...",
 "Commissioning extraction facility...") stay plain: they last until the answer arrives, and name no record's state.
@@ -58,10 +57,10 @@ In-progress lines ("Upgrading...", "Repairing...", "Processing lease agreement..
 
 | File | Label (unchanged) | New: added beside it |
 |---|---|---|
-| public/scripts/views/station.js (Office Status) | "Active Lease" | `IN FORCE // STA-OPS-1` |
-| same | "Expired" | `LAPSED // STA-OPS-1` |
-| public/scripts/stationFacilities.js (facility card) | "Operational" | `IN FORCE // STA-OPS-1` |
-| same | "Upgrading" (offline until the upgrade ends) | `SUSPENDED // STA-OPS-1` |
+| public/scripts/views/station.js (Office Status) | "Active Lease" | `IN FORCE // STA-ADM-1` |
+| same | "Expired" | `LAPSED // STA-ADM-1` |
+| public/scripts/stationFacilities.js (facility card) | "Operational" | `IN FORCE // STA-OPS-3` |
+| same | "Upgrading" (offline until the upgrade ends) | `SUSPENDED // STA-OPS-3` |
 
 Left without a line, because no plain status word from the guide's table sits there:
 - the repair card's DAMAGED badge (a damaged building still runs, at its condition);
@@ -74,16 +73,13 @@ Left without a line, because no plain status word from the guide's table sits th
 
 | File | Notification | Protocol |
 |---|---|---|
-| server/routes/corporation.js | "Hiring Order Confirmed" | Concluded, STA-OPS-1 |
-| same | "Office Lease Confirmed" | In force |
-| same | "Office Lease Renewed" | In force |
-| same | "Mining Lease Approved" | In force |
-| server/routes/asteroids.js | "Probe Fabrication Started" | In force |
-| server/construction.js | "Extractor Commissioned" | Concluded |
-| same | "Assembly Facility Online" | Concluded |
-| same | "Ferric Mining Complex Online" | Concluded |
-| same | "Cryo-vapor Extractor Array Online" | Concluded |
-| same | "Orbital Shipyard Commissioned" | Concluded |
+| server/routes/corporation.js | "Hiring Order Confirmed" | Concluded, STA-ADM-1 |
+| same | "Office Lease Confirmed" | In force, STA-ADM-1 |
+| same | "Office Lease Renewed" | In force, STA-ADM-1 |
+| server/construction.js | "Ferric Mining Complex Online" | Concluded, STA-OPS-4 |
+| same | "Cryo-vapor Extractor Array Online" | Concluded, STA-OPS-4 |
+| same | "Orbital Shipyard Commissioned" | Concluded, STA-OPS-4 |
+| (Bd) server/routes/corporation.js, server/construction.js, server/routes/asteroids.js | "Mining Lease Approved", "Extractor Commissioned", "Assembly Facility Online", "Probe Fabrication Started" | slice Bd's, kept |
 
 "Refinery Commissioned", "Refinery Complex Online" and "Synthesis Array Commissioned" already carry Concluded on the
 Refinery screen (slice A). The Station sends no inbox system message for these actions: none was found in its routes.
@@ -161,10 +157,11 @@ No string in this slice names Aria Voss (`grep -rn "Aria Voss"` over the changed
 
 ## What was looked at
 
-Five crops from this branch's running server at 1280, taken by e2e/station-protocol.spec.js after performing each action:
-1. `1-office-lease-in-force.png`: after renting, Office Status reads Active Lease, IN FORCE // STA-OPS-1.
+Five crops from this branch's running server at 1280, taken by e2e/station-protocol.spec.js after performing each
+action. They were retaken after merging slice Bd:
+1. `1-office-lease-in-force.png`: after renting, Office Status reads Active Lease, IN FORCE // STA-ADM-1.
 2. `2-hire-refused-unfunded.png`: hiring one with 1,000 credits. "Hiring requires 2,000 credits. Current reserves:
-   1,000 credits. Hire fewer, or sell goods to raise the credits." UNFUNDED, BALANCE INSUFFICIENT // STA-OPS-1.
-3. `3-notification-office-lease.png`: the bell, Office Lease Confirmed, IN FORCE // STA-OPS-1 after its time and type.
-4. `4-command-log.png`: "Office lease confirmed at Earth Station Prime." IN FORCE // STA-OPS-1.
-5. `5-facility-operational.png`: the Assembly Facility card, Operational, IN FORCE // STA-OPS-1.
+   1,000 credits. Hire fewer, or sell goods to raise the credits." UNFUNDED, BALANCE INSUFFICIENT // STA-ADM-1.
+3. `3-notification-office-lease.png`: the bell, Office Lease Confirmed, IN FORCE // STA-ADM-1.
+4. `4-command-log.png`: "Office lease confirmed at Earth Station Prime." IN FORCE // STA-ADM-1.
+5. `5-facility-operational.png`: the Assembly Facility card, Operational, IN FORCE // STA-OPS-3.
