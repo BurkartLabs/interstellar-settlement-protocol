@@ -28,7 +28,7 @@ describe("price history from settled trades (AB#715)", () => {
     const before = { aerogel: todays("Aerogel")?.volume || 0, silicates: todays("Silicates")?.volume || 0 };
 
     // A player lists through the real listing route and another buys through the real buy route.
-    const listed = await seller.api.post("/api/market/orders").send({ type: "sell", item: "Aerogel", quantity: 40, unitPrice: 310 });
+    const listed = await seller.api.post("/api/market/orders").send({ type: "sell", item: "Aerogel", quantity: 40, unitPrice: 61 }); // under Bug #4797's line (5x the bid of 41)
     expect(listed.status).toBe(200);
     const order = getState().market.orderBook.find((o) => o.sellerAccountId === seller.id && o.item === "Aerogel");
     expect((await buyer.api.post(`/api/market/orders/${order.id}/buy`).send({ quantity: 15 })).status).toBe(200);
@@ -36,13 +36,13 @@ describe("price history from settled trades (AB#715)", () => {
     const npc = getState().market.npcBuyOrders.find((o) => o.item === "Silicates");
     expect((await npcSeller.api.post(`/api/market/npc-orders/${npc.id}/sell`).send({ quantity: 200 })).status).toBe(200);
 
-    expect(todays("Aerogel")).toMatchObject({ close: 310, volume: before.aerogel + 15 });
+    expect(todays("Aerogel")).toMatchObject({ close: 61, volume: before.aerogel + 15 });
     expect(todays("Silicates")).toMatchObject({ close: npc.unitPrice, volume: before.silicates + 200 });
 
     const res = await seller.api.get("/api/market/history/Aerogel");
     expect(res.status).toBe(200);
     expect(res.body.item).toBe("Aerogel");
-    expect(res.body.buckets.at(-1)).toMatchObject({ day: dayKey(Date.now()), close: 310 });
+    expect(res.body.buckets.at(-1)).toMatchObject({ day: dayKey(Date.now()), close: 61 });
     const multiWord = await seller.api.get(`/api/market/history/${encodeURIComponent("Rare Earths")}`);
     expect(multiWord.status).toBe(200);
 

@@ -3,7 +3,7 @@ import { recordSale } from "../game/dominanceCounters.js"; // ISP-217 (AB#912)
 import { bodyNumber } from "../bodyNumber.js";
 import { bodyCount } from "../bodyNumber.js";
 import { randomUUID } from "node:crypto";
-import { npcBidFor } from "../economy.js";
+import { npcBidFor, priceCeilingFor, ECONOMY } from "../economy.js";
 import { getAccountById, getState, mutateAccountState, mutateState, ensureBidShape, bidRuleFor } from "../gameState.js";
 import { taxOnSale } from "../../public/scripts/exchangeTax.js";
 import { getStationInventory } from "../gameState.js";
@@ -27,6 +27,11 @@ import { buyOrderView } from "../publicViews.js";
 import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
 import { payConcessionShare } from "../concessions.js"; // ISP-228 (AB#923)
+
+/** Bug #4797: the refusal of a price over the line, saying what the line is and where it comes from. */
+function overCeiling(item, ceiling, verb) {
+  return `You can ${verb} ${item} at up to ${ceiling.toLocaleString("en-US")} a unit: ${ECONOMY.exchange.maxPriceMultipleOfBid} times its standing bid. Price it at or under that.`;
+}
 
 /** How many sell listings one seller may have open at once (Bug #425). */
 const MAX_OPEN_LISTINGS = 50;
@@ -57,6 +62,12 @@ export function registerMarketRoutes(app) {
     const normalizedUnitPrice = bodyCount(unitPrice);
     if (!type || !item || normalizedQty === null || normalizedUnitPrice === null || (type !== "sell" && type !== "buy")) {
       res.status(400).json({ error: "Missing required order fields." });
+      return;
+    }
+    // Bug #4797: a price far above the item's value is a transfer between accounts, not a trade; refused, listing or bid
+    const ceiling = priceCeilingFor(String(item));
+    if (ceiling !== null && normalizedUnitPrice > ceiling) {
+      res.status(400).json({ error: overCeiling(String(item), ceiling, type === "buy" ? "bid" : "list"), code: "price-above-ceiling" });
       return;
     }
 
@@ -217,6 +228,13 @@ export function registerMarketRoutes(app) {
     const order = (market.orderBook || []).find((entry) => entry.id === orderId && entry.type === "sell");
     if (!order) {
       res.status(404).json({ error: "Sell order not found." });
+      return;
+    }
+
+    // Bug #4797: a listing placed above the line before it existed is not bought either, so no old listing is a way round it
+    const listedCeiling = priceCeilingFor(String(order.item));
+    if (listedCeiling !== null && Number(order.unitPrice) > listedCeiling) {
+      res.status(400).json({ error: `This listing asks more than any ${order.item} may sell for, ${listedCeiling.toLocaleString("en-US")} a unit, so it cannot be bought. Its seller can cancel it and list again.`, code: "price-above-ceiling" });
       return;
     }
 

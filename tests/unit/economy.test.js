@@ -52,7 +52,7 @@ const BEFORE_THE_MOVE = {
   expeditions: { launchCost: 3000 },                                        // gameState.js EXPEDITION_LAUNCH_COST
   // AB#2329: new, not moved; sized in docs/design/belts.md (AB#1050).
   belts: { reserveStandardExpeditions: 14, respawnChancePerHour: 0.2, rarityStepWeight: 0.25, compositionJitter: 0.25 },
-  exchange: { salesTaxPct: 8 },                                             // gameState.js BASE_EXCHANGE_SALES_TAX_PCT
+  exchange: { salesTaxPct: 8, maxPriceMultipleOfBid: 5 },                   // gameState.js BASE_EXCHANGE_SALES_TAX_PCT; Bug #4797's line
   // AB#718 replaced the flat 2 a unit with a fee by distance; 2 a unit is still the in-system rate.
   logistics: { sameSystemFeePerUnit: 2, perJumpFeePerUnit: 3, sameSystemTransitMinutes: 30, perJumpTransitMinutes: 120 },
   // ISP-297 (AB#1789, AB#1741): the Salvage Assignment, ECONOMY.md "The way back from broke".
@@ -183,7 +183,7 @@ describe("data/economy.json (AB#726)", () => {
   it("a file with a zero, a negative, a string, a missing buyer or no buyers is refused at startup", () => {
     const bad = [
       [{ ...BEFORE_THE_MOVE, employees: { hireCost: 0, payrollPerDay: 150 } }, /employees.hireCost/],
-      [{ ...BEFORE_THE_MOVE, exchange: { salesTaxPct: -8 } }, /exchange.salesTaxPct/],
+      [{ ...BEFORE_THE_MOVE, exchange: { salesTaxPct: -8, maxPriceMultipleOfBid: 5 } }, /exchange.salesTaxPct/],
       [{ ...BEFORE_THE_MOVE, probes: { buildCost: "8000", assetValue: 5000 } }, /probes.buildCost/],
       [{ ...BEFORE_THE_MOVE, office: { rentPerDay: 1000, termDays: [7, null] } }, /office.termDays.1/],
       [{ ...BEFORE_THE_MOVE, npcBuyers: [{ item: "Carbon", unitPrice: 12, dailyQty: 5 }] }, /npcBuyers.0 needs an item and a buyer/],

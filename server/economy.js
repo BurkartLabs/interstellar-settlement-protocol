@@ -84,6 +84,19 @@ export function npcBidAfterRecovery(basePrice, currentBid, bid = ECONOMY.npcBid)
   return sharedNpcBidAfterRecovery(basePrice, currentBid, bid);
 }
 
+/**
+ * Bug #4797: the most a player may ask or bid for one unit of `item`, or null for an item no NPC buys (none since v0.11).
+ * Listings and buy orders took any price up to a billion, so two accounts moved unlimited credits through one unit and
+ * the gross booked as revenue, dominance and standing. The line is a multiple of the item's catalog standing-bid price,
+ * not of its traded normal value: two accounts could ratchet a traded value up a day at a time, and the catalog price
+ * cannot be moved by trading.
+ */
+export function priceCeilingFor(item, economy = ECONOMY) {
+  const base = Number(economy.npcBuyers.find((b) => b.item === item)?.unitPrice);
+  if (!(base > 0)) return null;
+  return Math.floor(base * economy.exchange.maxPriceMultipleOfBid);
+}
+
 /** What an extractor yard or refinery costs to build, with the Supply Forecast discount when it is researched. */
 export function buildCostFor(baseCost, hasSupplyForecast) {
   return hasSupplyForecast ? Math.round(baseCost * ECONOMY.buildings.supplyForecastCostMultiplier) : baseCost;

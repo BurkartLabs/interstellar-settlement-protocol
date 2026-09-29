@@ -6,7 +6,7 @@ import { escapeHtml, bootFailureHtml } from "./html.js";
 import { appState, IS_DEV_ACCESS, techTree } from "./state.js";
 import { loadSectionCodes } from "./sectionCodes.js"; // ISP-248 (AB#944)
 import { navigationFor } from "./navigation.js"; // ISP-112 (AB#804)
-import { connectApiClient, socket, reauthenticateSocket, persistSession, clearSession, redirectToLoginPage, handleSessionExpired, createInvalidSessionError, hydrateSession, refreshSessionToken, apiFetch, parseJsonResponse } from "./apiClient.js";
+import { connectApiClient, socket, connectSocket, reauthenticateSocket, persistSession, clearSession, redirectToLoginPage, handleSessionExpired, createInvalidSessionError, hydrateSession, refreshSessionToken, apiFetch, parseJsonResponse } from "./apiClient.js";
 import { toCurrency, deepClone } from "./helpers.js";
 
 import { connectWalkthroughUi, hasSeenWalkthroughOffer, noteWalkthroughEvent, promptWalkthroughOffer } from "./walkthroughUi.js";
@@ -780,7 +780,6 @@ async function boot() {
   bindCollapsibleSections();
   bindTabs();
   bindForms();
-  bindRealtimeEvents();
   bindGlobalControls();
   bindBuildingActions();
   bindOperations(); // AB#2471: the Station's and Operations' subpages
@@ -793,11 +792,15 @@ async function boot() {
   });
 
   try {
-    await Promise.all([loadBootstrap(), loadStationRegistry()]);
-
     const url = new URL(window.location.href);
     const accountId = url.searchParams.get("account") || appState.accountId;
     const shouldDummyLogin = url.searchParams.get("dummy") === "1";
+
+    // Bug #4840: the logged-out landing uses none of the game's data or its socket. Only a visit that is opening the
+    // game (an account to restore, or the dev dummy login) loads the bootstrap, the station registry and the socket.
+    if (!accountId && !(shouldDummyLogin && IS_DEV_ACCESS)) return;
+    await Promise.all([loadBootstrap(), loadStationRegistry(), connectSocket()]);
+    bindRealtimeEvents();
 
     if (shouldDummyLogin) {
       if (!IS_DEV_ACCESS) {

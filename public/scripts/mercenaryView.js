@@ -48,16 +48,16 @@ export function offerPreview({ termHours, price, collateral, value }) {
 export function offerFormHtml(fleets = [], valueOf = () => 0, catalog = [], now = Date.now()) {
   const free = fleets.filter((f) => !f.contract && !(f.transit && now < f.transit.arrivesAt));
   if (!free.length) return `<p class="station__note">None of your fleets can be offered: form a fleet on the Fleet tab, and it must be stationed and not already under contract.</p>`;
-  const cap = valueOf(free[0]), start = Math.min(10000, cap);
-  return `<form class="mercs__form ui-stack" data-merc-form>
+  const cap = valueOf(free[0]), start = Math.min(10000, cap), price = Math.min(5000, cap); // Bug #4800: the price, too, at most the fleet's value
+  return `<form class="mercs__form ui-stack" data-merc-form novalidate>
       <label class="ui-field"><span class="ui-field__label">Fleet</span><select class="ui-select" data-merc-fleet>${free.map((f) => `<option value="${escapeHtml(f.id)}" data-value="${valueOf(f)}">${escapeHtml(f.name)}: ${escapeHtml(unitsText(f.units, catalog))}</option>`).join("")}</select></label>
       <div class="mercs__terms">
         <label class="ui-field"><span class="ui-field__label">Term</span><select class="ui-select" data-merc-term>${TERMS_HOURS.map((h) => `<option value="${h}" ${h === 24 ? "selected" : ""}>${escapeHtml(termText(h))}</option>`).join("")}</select></label>
-        <label class="ui-field"><span class="ui-field__label">Price (credits)</span><input class="ui-input" type="number" min="100" max="10000000" step="1" value="5000" data-merc-price></label>
+        <label class="ui-field"><span class="ui-field__label">Price (credits)</span><input class="ui-input" type="number" min="100" max="${cap}" step="1" value="${price}" data-merc-price></label>
         <label class="ui-field"><span class="ui-field__label">Collateral (credits)</span><input class="ui-input" type="number" min="1" max="${cap}" step="1" value="${start}" data-merc-collateral></label>
         <label class="ui-field"><span class="ui-field__label">Allowed use</span><select class="ui-select" data-merc-use>${USES.map(([id, label]) => `<option value="${id}">${escapeHtml(label)}</option>`).join("")}</select></label>
       </div>
-      <p class="station__note" data-merc-preview>${escapeHtml(offerPreview({ termHours: 24, price: 5000, collateral: start, value: cap }).text)}</p>
+      <p class="station__note" data-merc-preview>${escapeHtml(offerPreview({ termHours: 24, price, collateral: start, value: cap }).text)}</p>
       <button class="ui-button ui-button--primary" type="submit" data-merc-offer-submit>Offer for hire</button>
       <p class="station__hint" role="status" aria-live="polite"></p>
     </form>`;
