@@ -772,6 +772,7 @@ function bindRealtimeEvents() {
 // AB#716: imported beside its one use, away from the import block that parallel pull requests edit.
 import { bindPriceChart } from "./priceChart.js";
 import { installNumberAcknowledgement } from "./numberChange.js"; // AB#745
+import { appStylesReady } from "./appStyles.js"; // Bug #4839
 
 async function boot() {
   hydrateSession();
@@ -799,7 +800,8 @@ async function boot() {
     // Bug #4840: the logged-out landing uses none of the game's data or its socket. Only a visit that is opening the
     // game (an account to restore, or the dev dummy login) loads the bootstrap, the station registry and the socket.
     if (!accountId && !(shouldDummyLogin && IS_DEV_ACCESS)) return;
-    await Promise.all([loadBootstrap(), loadStationRegistry(), connectSocket()]);
+    // Bug #4839: and the whole stylesheet, which the landing no longer blocks on, so the game never draws without it
+    await Promise.all([loadBootstrap(), loadStationRegistry(), connectSocket(), appStylesReady]);
     bindRealtimeEvents();
 
     if (shouldDummyLogin) {
@@ -851,5 +853,7 @@ async function boot() {
   }
 }
 
-window.addEventListener("DOMContentLoaded", boot);
+// Bug #4836: scripts/boot.js imports this only when a visit opens the game, which can be after DOMContentLoaded has fired
+if (document.readyState === "loading") window.addEventListener("DOMContentLoaded", boot);
+else boot();
 

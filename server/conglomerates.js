@@ -27,7 +27,7 @@ const COUNT = (v) => Number.isInteger(v) && v >= 0;
 const POSITIVE = (v) => Number.isInteger(v) && v > 0;
 const PCT = (v) => typeof v === "number" && v >= 0 && v <= 100;
 const SCALARS = {
-  minFounderAgeDays: COUNT, charterFee: POSITIVE, charterDeposit: COUNT, emblems: POSITIVE, colours: POSITIVE,
+  minFounderAgeDays: COUNT, minMemberAgeDays: COUNT, charterFee: POSITIVE, charterDeposit: COUNT, emblems: POSITIVE, colours: POSITIVE,
   inviteExpiryDays: POSITIVE, applicationExpiryDays: POSITIVE, invitesPerDay: POSITIVE, joinCooldownHours: COUNT, nameReleaseDays: COUNT,
   maxDirectors: POSITIVE, founderAbsentDays: POSITIVE, upkeepBase: COUNT, upkeepPerMemberStep: COUNT, upkeepMinMembers: POSITIVE,
   arrearsDropDays: POSITIVE, levelReserveDays: COUNT, levelFillPct: PCT, poolingFeePct: PCT, remoteDispatchYieldPct: PCT, founderWithdrawPct: PCT,

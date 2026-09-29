@@ -11,7 +11,9 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
 
 /**
  * Every module the entry reaches through relative imports ("./x.js", "../x.js"), keyed by repo-relative path, the
- * entry first. A module a later split adds is covered without editing any test.
+ * entry first. A module a later split adds is covered without editing any test. Bug #4836: a dynamic import("./x.js")
+ * is followed too, since index.html's entry (scripts/boot.js) reaches the whole game through one, and a scan that
+ * stopped at it would check the landing and nothing else.
  */
 export function clientSources(entry = "public/scripts/app.js") {
   const seen = new Map();
@@ -19,9 +21,11 @@ export function clientSources(entry = "public/scripts/app.js") {
     if (seen.has(rel)) return;
     const text = read(rel);
     seen.set(rel, text);
-    for (const [, spec] of text.matchAll(/(?:^|\n)\s*import\s[^;]*?["'](\.{1,2}\/[^"']+)["']/g)) {
-      visit(path.posix.join(path.posix.dirname(rel), spec));
-    }
+    const specs = [
+      ...[...text.matchAll(/(?:^|\n)\s*import\s[^;]*?["'](\.{1,2}\/[^"']+)["']/g)].map((m) => m[1]),
+      ...[...text.matchAll(/\bimport\(\s*["'](\.{1,2}\/[^"']+)["']\s*\)/g)].map((m) => m[1])
+    ];
+    for (const spec of specs) visit(path.posix.join(path.posix.dirname(rel), spec));
   };
   visit(entry);
   return seen;

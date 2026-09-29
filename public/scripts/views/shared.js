@@ -94,8 +94,10 @@ export function renderFeedbackLog() {
     return;
   }
 
+  // Bug #4809: the message is text, escaped here like every other value this file writes into markup. Today's messages
+  // quote only NAME_CHARS names, but the sink must not depend on that (Bug #691 was this pattern in another list).
   feedbackLog.innerHTML = appState.feedbackLog
-    .map((entry) => `<li class="ui-list__item ui-list__item--${entry.tone}"><strong>${formatTime(entry.createdAt)}</strong> | ${entry.message}${entry.protocol ? ` ${protocolLineHtml(entry.protocol)}` : ""}</li>`)
+    .map((entry) => `<li class="ui-list__item ui-list__item--${escapeHtml(entry.tone)}"><strong>${formatTime(entry.createdAt)}</strong> | ${escapeHtml(entry.message)}${entry.protocol ? ` ${protocolLineHtml(entry.protocol)}` : ""}</li>`)
     .join("");
 }
 

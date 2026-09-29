@@ -499,6 +499,7 @@ Proposed keys under `conglomerates` in `data/economy.json`.
 | Key | Value | What it is |
 | --- | --: | --- |
 | `minFounderAgeDays` | 7 | How old a corporation must be to found a conglomerate. |
+| `minMemberAgeDays` | 7 | How old a corporation must be to join one (Bug #4801): inviting it, its applying, and accepting either are refused before then, so new accounts cannot pool their starting credits into a treasury. |
 | `charterFee` | 100,000 | The charter's price, a sink. |
 | `charterDeposit` | 10,000 | Paid by the founder into the new treasury, for its first upkeep. |
 | `emblems` | 12 | How many emblems the fixed list has. |

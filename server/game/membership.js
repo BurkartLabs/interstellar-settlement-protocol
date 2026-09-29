@@ -97,9 +97,18 @@ function expireOpen(c, now) {
   }
 }
 
-/** Why the corporation cannot join anywhere now (already a member, or in its join cooldown), or null. */
-function joinRefusal(corp, now, who = "Your corporation") {
+/**
+ * Why `account`'s corporation cannot join anywhere now (already a member, too new, or in its join cooldown), or null.
+ * Bug #4801: a corporation joins minMemberAgeDays (7) after it was registered, the age founding already asks for, so
+ * accounts made minutes ago cannot pool their starting credits into one treasury.
+ */
+function joinRefusal(account, now, who = "Your corporation") {
+  const corp = account?.state?.corp || {};
   if (corp.conglomerateId) return no(409, "already-in-conglomerate", `${who} is already in a conglomerate. A corporation belongs to one at a time.`);
+  const from = Number(account?.createdAt) + CONGLOMERATE_CATALOG.minMemberAgeDays * DAY_MS;
+  if (!Number.isFinite(from) || now < from) {
+    return no(409, "member-too-young", `A corporation can join a conglomerate ${CONGLOMERATE_CATALOG.minMemberAgeDays} days after it was registered. ${who === "Your corporation" ? "Yours" : "That corporation"} can ${Number.isFinite(from) ? `from ${until(from)}` : "once its registration date is on record"}.`);
+  }
   const cooldown = Number(corp.joinCooldownUntil) || 0;
   if (cooldown > now) return no(409, "join-cooldown", `${who} left a conglomerate recently and cannot join one until ${until(cooldown)}.`);
   return null;
@@ -171,7 +180,7 @@ export function inviteCorporation(accountId, conglomerateId, targetCorpId, now =
   if (targetCorpId === corp.publicId) return no(409, "invite-self", "Your corporation is already in this conglomerate.");
   const target = accountByCorp(targetCorpId);
   if (!target) return no(404, "no-corporation", "No such corporation.");
-  const refusal = joinRefusal(target.state.corp, now, "That corporation");
+  const refusal = joinRefusal(target, now, "That corporation");
   if (refusal) return refusal;
   if (c.invitations.some((r) => r.corp === targetCorpId && r.state === "invited")) return no(409, "already-invited", "That corporation already has an open invitation from this conglomerate.");
   const sent = c.invitations.filter((r) => r.at > now - DAY_MS).length;
@@ -190,7 +199,7 @@ export function applyToConglomerate(accountId, conglomerateId, now = Date.now())
   const ctx = context(accountId, conglomerateId, now);
   if (ctx.refused) return ctx;
   const { account, corp, c } = ctx;
-  const refusal = joinRefusal(corp, now);
+  const refusal = joinRefusal(account, now);
   if (refusal) return refusal;
   for (const other of conglomerateList()) expireOpen(other, now);
   if (conglomerateList().some((o) => o.applications.some((r) => r.corp === corp.publicId && r.state === "applied"))) {
@@ -215,7 +224,7 @@ export function answerInvitation(accountId, conglomerateId, invitationId, answer
   if (!invitation || (answer === "withdraw" ? !inviter : !invitee)) return NOT_FOUND.invitation();
   if (invitation.state !== "invited") return no(409, "invitation-closed", `This invitation is ${invitation.state}; it cannot be answered again.`);
   if (answer === "accept") {
-    const refusal = joinRefusal(corp, now) || arrearsRefusal(c);
+    const refusal = joinRefusal(account, now) || arrearsRefusal(c);
     if (refusal) return refusal;
     if (c.members.length >= c.maxMembers) return no(409, "conglomerate-full", `${c.name} has no room: it has ${c.members.length} of ${c.maxMembers} members. The invitation stays open until it has room or expires.`);
     Object.assign(invitation, { state: "member", closedAt: now });
@@ -244,7 +253,7 @@ export function answerApplication(accountId, conglomerateId, applicationId, answ
   if (answer === "accept") {
     if (!applicantAccount) return NOT_FOUND.application();
     const joiner = applicantAccount.state.corp;
-    const refusal = joinRefusal(joiner, now, "That corporation") || arrearsRefusal(c);
+    const refusal = joinRefusal(applicantAccount, now, "That corporation") || arrearsRefusal(c);
     if (refusal) return refusal;
     if (c.members.length >= c.maxMembers) return no(409, "conglomerate-full", `${c.name} has no room: it has ${c.members.length} of ${c.maxMembers} members. Buy the next level at the Bureau, or wait for a place.`);
     Object.assign(application, { state: "member", closedAt: now });

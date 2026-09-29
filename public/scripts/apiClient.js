@@ -66,12 +66,8 @@ export function persistSession() {
   }
 }
 
-// Where tokens were kept before AB#757. Removed on every load, so a player who last signed in on an older build
-// does not keep a readable 30-day refresh token in this origin's storage.
-const LEGACY_TOKEN_KEYS = ["isp.accessToken", "isp.refreshToken"];
-function forgetLegacyTokens() {
-  for (const key of LEGACY_TOKEN_KEYS) localStorage.removeItem(key);
-}
+// AB#757's old token keys, removed here on sign-out and by scripts/boot.js on every load (Bug #4836: their own module)
+import { forgetLegacyTokens } from "./legacyTokens.js";
 
 export function clearSession() {
   clearTimeout(renewal);
