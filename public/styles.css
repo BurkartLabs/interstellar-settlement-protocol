@@ -2969,14 +2969,25 @@ body.sg {
   .ui-table .ui-table__num {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end; /* with the label's auto margin: label left, value right, and a value on a line of its own right too */
     gap: var(--space-4);
+    min-width: 0;
     padding: 0;
     border: 0;
     text-align: right;
+    /* Bug #4866: a value too wide to sit beside its label drops to the line under it, at the card's full width, and
+       only a word wider than the card breaks, anywhere, rather than running past it (a long corporation name in
+       Trade History was cut off mid-word) */
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
+    overflow-wrap: anywhere;
   }
   .ui-table td::before {
     content: attr(data-label);
+    margin-inline-end: auto;
+    /* the column name breaks at its spaces, and so never shrinks below its longest word: the value, which may break
+       anywhere, is what gives way (Bug #4866) */
+    overflow-wrap: normal;
     font-size: var(--font-size-1);
     font-weight: var(--font-weight-semibold);
     letter-spacing: var(--letter-spacing-caps);
@@ -5531,6 +5542,68 @@ img.station__body {
     min-width: 0;
     width: min(8rem, 50%);
     align-items: flex-end;
+  }
+}
+/* Bug #4870: a standing order as a compact card of three lines, whenever the Exchange draws its tables as cards: the
+   item and its price; who posts it and how much is left; the quantity field beside its Buy or Sell. The six-cell row was
+   one line a cell, about 300px an order, and the six standing sell orders were two screens of a phone. The item and the
+   counterparty need no label, and the field keeps its aria-label. After the container rule above, and as specific. */
+@container (max-width: 720px) {
+  /* Bug #4866, on the Exchange too (its card rule above is the more specific): a value that drops under its label sits
+     at the right, as the others do */
+  #market .ui-table td,
+  #market .ui-table .ui-table__num {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: var(--space-1);
+  }
+  #market .ui-table td::before {
+    margin-inline-end: auto;
+    overflow-wrap: normal;
+  }
+  #market .exchange__standing-table td::before {
+    margin-inline-end: 0;
+  }
+  #market .exchange__standing-table tbody tr {
+    grid-template-columns: minmax(0, 1fr) fit-content(45%);
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-3);
+  }
+  #market .exchange__standing-table td,
+  #market .exchange__standing-table .ui-table__num {
+    justify-content: flex-end;
+    gap: var(--space-2);
+  }
+  #market .exchange__standing-table td:nth-child(1),
+  #market .exchange__standing-table .exchange__party,
+  #market .exchange__standing-table td:nth-child(5) {
+    justify-content: flex-start;
+    text-align: left;
+  }
+  #market .exchange__standing-table td:nth-child(1) {
+    color: var(--text);
+    font-weight: var(--font-weight-semibold);
+  }
+  #market .exchange__standing-table td:nth-child(1)::before,
+  #market .exchange__standing-table .exchange__party::before,
+  #market .exchange__standing-table td:nth-child(5)::before,
+  #market .exchange__standing-table td:last-child::before {
+    content: none;
+  }
+  /* the lines: item and price; the counterparty across the card; what is left across it; field and button */
+  #market .exchange__standing-table td:nth-child(1) { order: 1; }
+  #market .exchange__standing-table .exchange__price-cell { order: 2; }
+  #market .exchange__standing-table .exchange__party { order: 3; grid-column: 1 / -1; }
+  #market .exchange__standing-table .exchange__left-cell { order: 4; grid-column: 1 / -1; justify-content: flex-start; }
+  #market .exchange__standing-table td:nth-child(5) { order: 5; }
+  #market .exchange__standing-table td:last-child { order: 6; }
+  #market .exchange__standing-table .exchange__seller {
+    justify-content: flex-start; /* the name and its badge read from the left, on the line of their own */
+  }
+  #market .exchange__standing-table td,
+  #market .exchange__standing-table .ui-table__num {
+    flex-wrap: nowrap; /* each cell here is one line: its label and one short value */
+    overflow-wrap: normal; /* a price or a count here is short: it wraps at its spaces, never mid-figure */
   }
 }
 /* The container rule above is the more specific: on a phone its column names are raised to 14px again, as ui-table's are. */

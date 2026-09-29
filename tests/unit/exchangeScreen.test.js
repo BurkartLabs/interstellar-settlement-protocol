@@ -85,7 +85,9 @@ describe("the Galactic Exchange is on the design system (ISP-80)", () => {
   it("every table is a ui-table, so a phone (and a column narrower than its table) shows cards", () => {
     const tables = MARKET.match(/<table\b[^>]*>/g) || [];
     expect(tables.length).toBe(7); // AB#1054: Buy orders; AB#815: Standing sell orders
-    for (const t of tables) expect(t).toBe('<table class="ui-table">');
+    // Bug #4870: the two standing tables add the compact card's class; every table is still a ui-table
+    for (const t of tables) expect(t).toMatch(/^<table class="ui-table( exchange__standing-table)?">$/);
+    expect(tables.filter((t) => t.includes("exchange__standing-table"))).toHaveLength(2);
     expect(read("public/scripts/views/exchange.js")).toContain('document.querySelectorAll("#market .ui-table").forEach(labelTableCells)');
   });
 
