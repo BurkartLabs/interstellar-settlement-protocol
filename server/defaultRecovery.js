@@ -23,7 +23,7 @@
 // Every credit moves through settleTransfer. Every sale is one mutation on a copy of the corporation, put in place only
 // when the whole sale is written, so a failure part way leaves the corporation as it was. Sale prices are the server's.
 // Time is passed in (P-TEST-TIME).
-import { addAccountNotification, getAccountById, getAllAccountIds, getState, mutateAccountState } from "./gameState.js";
+import { addAccountNotification, getAccountById, getAllAccountIds, getState, mutateAccountState, peekCorp } from "./gameState.js"; // peekCorp: Bug #4816
 import { deepClone } from "./game/catalog.js";
 import { applyCredits } from "./finances.js";
 import { emitToAccount } from "./realtime.js";
@@ -244,6 +244,8 @@ function runRecovery(debtorAccountId, debt, now, options = {}) {
  */
 export function defaultRecoveryTick(now) {
   for (const accountId of getAllAccountIds()) {
+    // Bug #4816: only a corporation holding a player loan in default is read and copied
+    if (!(peekCorp(accountId)?.loans || []).some((l) => l?.lender?.kind === "player" && l.defaultedAt)) continue;
     const corp = corpOf(accountId);
     for (const loan of corp?.loans || []) {
       if (loan?.lender?.kind !== "player" || !loan.defaultedAt) continue;
