@@ -162,12 +162,16 @@ describe("a new thread is listed once, whichever of its two arrivals comes first
     expect(mergeThread(undefined, posted)).toEqual([posted]);
   });
 
-  it("the client puts every thread from a response through putForumThread, into both copies (a source check)", () => {
+  it("the client puts every thread from a response through one merge by id (a source check)", () => {
     const app = clientCode();
     expect(app).not.toMatch(/threads\.unshift\(payload\.thread\)/);
     expect(app).not.toMatch(/forums\.threads\[idx\] = payload\.thread/);
-    expect(app.match(/putForumThread\(payload\?\.thread\)/g)).toHaveLength(3);
-    expect(app).toMatch(/for \(const holder of \[appState\.data, appState\.serverData\]\)/);
+    // AB#995: a like's and a reply's response, and a new thread through the same path as its forums:updated event
+    expect(app.match(/putForumThread\(payload\?\.thread\)/g)).toHaveLength(2);
+    expect(app).toMatch(/applyForumsEvent\(\{ kind: "thread", thread: payload\?\.thread \}\)/);
+    // AB#995: the paged-in threads are one cache (state:init replaces appState.data.forums), merged by id, listed once
+    expect(app).toMatch(/cache\.threads = mergeThread\(cache\.threads/);
+    expect(app).toMatch(/!list\.ids\.includes\(thread\.id\)/);
   });
 });
 

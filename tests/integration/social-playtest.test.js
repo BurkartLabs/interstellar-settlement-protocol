@@ -90,13 +90,14 @@ describe("two players on a fresh install use every player-to-player channel (AB#
     const threadId = (getState().forums.threads || []).find((t) => t.title === "Silicate prices")?.id;
     expect(threadId).toBeTruthy();
 
-    const seenByB = (await request(app).get("/api/bootstrap")).body.forums.threads.find((t) => t.id === threadId);
+    // AB#995: the forums are read a page at a time, no longer all of them in the bootstrap
+    const seenByB = (await b.api.get(`/api/forums/threads/${threadId}`)).body.thread;
     expect(seenByB).toMatchObject({ title: "Silicate prices", body: HOSTILE });
     expect(JSON.stringify(seenByB)).toContain(a.corpName);
 
     const replied = await b.api.post(`/api/forums/threads/${threadId}/replies`).send({ content: `Reply ${HOSTILE}` });
     expect(replied.status).toBe(200);
-    const seenByA = (await request(app).get("/api/bootstrap")).body.forums.threads.find((t) => t.id === threadId);
+    const seenByA = (await a.api.get(`/api/forums/threads/${threadId}`)).body;
     const reply = seenByA.replies.at(-1);
     expect(reply.content).toBe(`Reply ${HOSTILE}`);
     expect(JSON.stringify(reply)).toContain(b.corpName);

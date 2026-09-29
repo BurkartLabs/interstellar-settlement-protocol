@@ -1,10 +1,25 @@
 // server/routes/forums.js: the forums routes, split out of server/index.js (AB#1815).
-import { postView, threadView, UNNAMED_CORPORATION } from "../publicViews.js";
+import { postView, UNNAMED_CORPORATION } from "../publicViews.js";
+import { listThreads, threadRepliesPage, threadSummary } from "../forumPages.js"; // AB#995
 import { getAccountById, getState, mutateState } from "../gameState.js";
 import { requireAuth } from "../auth.js";
 import { emitForumsUpdated } from "../realtime.js";
 
+/** A paging result as a response: its status and error when it has one (400 for a bad cursor, 404 for no thread). */
+function sendPage(res, page) {
+  if (page.status) res.status(page.status).json({ error: page.error });
+  else res.json(page);
+}
+
 export function registerForumRoutes(app) {
+  // AB#995 (ISP-288): the forums a page at a time, so nobody is sent all of them (docs/design/messaging.md).
+  app.get("/api/forums/threads", requireAuth, (req, res) => {
+    sendPage(res, listThreads(getState().forums, { category: req.query.category, cursor: req.query.cursor, limit: req.query.limit, viewer: req.auth.accountId }));
+  });
+  app.get("/api/forums/threads/:threadId", requireAuth, (req, res) => {
+    sendPage(res, threadRepliesPage(getState().forums, req.params.threadId, { cursor: req.query.cursor, limit: req.query.limit, viewer: req.auth.accountId }));
+  });
+
   // ─── Forums ──────────────────────────────────────────────────────────────────
   // Player-authored corporate forum threads & replies. Stored on the global
   // state.json under `forums.threads`, broadcast via socket so every connected
@@ -45,15 +60,17 @@ export function registerForumRoutes(app) {
       createdAt: Date.now(),
       replies: []
     };
+    newThread.lastPostAt = newThread.createdAt; // AB#995: the thread list's order
 
-    const updated = mutateState((draft) => {
+    mutateState((draft) => {
       if (!draft.forums || typeof draft.forums !== "object") draft.forums = { categories: [], threads: [] };
       if (!Array.isArray(draft.forums.threads)) draft.forums.threads = [];
       draft.forums.threads.unshift(newThread);
     });
 
-    emitForumsUpdated(updated.forums);
-    res.json({ thread: threadView(newThread, account.id) });
+    // AB#995: the new thread, not all of them, to every socket; and a summary back, since replies page separately
+    emitForumsUpdated("thread", newThread);
+    res.json({ thread: threadSummary(newThread, account.id) });
   });
 
   app.post("/api/forums/threads/:threadId/replies", requireAuth, (req, res) => {
@@ -84,12 +101,13 @@ export function registerForumRoutes(app) {
 
     let foundThread = null;
     let unknownParent = false;
-    const updated = mutateState((draft) => {
+    mutateState((draft) => {
       const thread = (draft.forums?.threads || []).find((t) => t.id === req.params.threadId);
       if (!thread) return;
       if (!Array.isArray(thread.replies)) thread.replies = [];
       if (replyToId && !thread.replies.some((r) => r.id === replyToId)) { unknownParent = true; return; }
       thread.replies.push(reply);
+      thread.lastPostAt = reply.createdAt; // AB#995: the thread list's order
       foundThread = thread;
     });
 
@@ -102,8 +120,8 @@ export function registerForumRoutes(app) {
       return;
     }
 
-    emitForumsUpdated(updated.forums);
-    res.json({ reply: postView(reply, account.id), thread: threadView(foundThread, account.id) });
+    emitForumsUpdated("reply", foundThread, reply);
+    res.json({ reply: postView(reply, account.id), thread: threadSummary(foundThread, account.id) });
   });
 
   // Toggle a like on a thread or reply. Tracks `likedBy` (account IDs) so each
@@ -116,7 +134,8 @@ export function registerForumRoutes(app) {
 
     let result = null;
     let foundThread = null;
-    const updated = mutateState((draft) => {
+    let likedReply = null;
+    mutateState((draft) => {
       const thread = (draft.forums?.threads || []).find((t) => t.id === req.params.threadId);
       if (!thread) return;
       foundThread = thread;
@@ -136,6 +155,7 @@ export function registerForumRoutes(app) {
         target.likedBy.push(accountId);
       }
       target.likes = target.likedBy.length;
+      if (replyId) likedReply = target;
       result = { likes: target.likes, liked: idx < 0 };
     });
 
@@ -148,7 +168,7 @@ export function registerForumRoutes(app) {
       return;
     }
 
-    emitForumsUpdated(updated.forums);
-    res.json({ ...result, thread: threadView(foundThread, accountId) });
+    emitForumsUpdated("like", foundThread, likedReply);
+    res.json({ ...result, thread: threadSummary(foundThread, accountId), ...(likedReply ? { reply: postView(likedReply, accountId) } : {}) });
   });
 }

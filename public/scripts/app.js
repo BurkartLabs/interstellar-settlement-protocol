@@ -20,7 +20,7 @@ import { bindCollapsibleSections, bindGlobalControls, loadNotifications, renderN
 import { bindCommsForms, renderChatChannelTabs, renderChatLog, resolveChatChannel } from "./views/comms.js";
 import { bindExchangeForms, renderMarket } from "./views/exchange.js";
 import { bindFinanceSubpages, loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } from "./views/finance.js";
-import { bindForumForms, renderForums } from "./views/forums.js";
+import { applyForumsEvent, bindForumForms, renderForums } from "./views/forums.js";
 import { bindInboxControls, loadMessages, onInboxTabActivated, renderInboxMessageList } from "./views/inbox.js";
 import { onConversationEvent } from "./views/conversations.js"; // AB#911
 import { renderLogistics } from "./views/logistics.js";
@@ -563,6 +563,11 @@ function bindRealtimeEvents() {
     if (appState.accountId) refreshSessionToken();
   });
 
+  // AB#995: a chat line the server did not take (too long, or more than 10 in 10 seconds), with its reason
+  socket.on("chat:refused", (refusal) => {
+    if (refusal?.error) pushFeedback(refusal.error, "warn");
+  });
+
   socket.on("chat:new", (msg) => {
     if (!appState.data) {
       return;
@@ -588,13 +593,11 @@ function bindRealtimeEvents() {
     renderMarketIfOnScreen(appState.data); // AB#1452: another player's trade no longer redraws a hidden book
   });
 
-  socket.on("forums:updated", (forumsState) => {
-    // Forums are global state; refresh the local copy and re-render whichever
-    // forum view is currently visible so new threads/replies appear in real
-    // time across all sessions without requiring a manual refresh.
+  socket.on("forums:updated", (event) => {
+    // AB#995: one thread that changed (a new thread, a reply, a like), applied to what this player has paged in, and
+    // the visible forum view re-rendered, so new posts appear in real time without a reload.
     if (!appState.data) return;
-    appState.data.forums = forumsState;
-    if (appState.serverData) appState.serverData.forums = forumsState;
+    applyForumsEvent(event);
     const forumsPanel = document.getElementById("forums");
     if (forumsPanel?.classList.contains("active")) {
       renderForums(appState.data);
