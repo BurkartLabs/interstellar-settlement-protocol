@@ -15,6 +15,7 @@
     "test": "node scripts/test-strict.mjs",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "look:facelift": "node scripts/facelift-sweep.mjs && node scripts/facelift-inventory.mjs",
     "playtest": "playwright test",
     "economy:model": "node scripts/economy-model.mjs",
     "combat:model": "node scripts/combat-model.mjs",
