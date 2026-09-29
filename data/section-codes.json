@@ -220,6 +220,12 @@
       "title": "Construction"
     },
     {
+      "code": "STA-OPS-8",
+      "id": "station-repairs-section",
+      "screen": "station",
+      "title": "Damaged Buildings"
+    },
+    {
       "code": "STA-OPS-5",
       "id": "station-licensed-corporate-holdings",
       "screen": "station",

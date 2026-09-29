@@ -50,7 +50,7 @@ describe("ISP-146 settleTransfer refuses what it cannot vouch for, and moves not
   });
 
   it("the reasons are exactly the instruments, and the list cannot be changed", () => {
-    expect([...REASONS].sort()).toEqual(["arbitration-award", "arbitration-fee", "bond-redemption", "bond-sale", "bond-subscription", "bounty", "coupon", "dividend", "escrow-hold", "escrow-release", "fee", "loan-disbursal", "loan-interest", "loan-repayment", "share-purchase"]); // AB#844 adds loan-interest; ISP-242 (AB#938) the Council's award and forfeited fee; ISP-284 (AB#991) a hunt's bounty
+    expect([...REASONS].sort()).toEqual(["arbitration-award", "arbitration-fee", "bond-redemption", "bond-sale", "bond-subscription", "bounty", "coupon", "dividend", "escrow-hold", "escrow-release", "fee", "loan-disbursal", "loan-interest", "loan-repayment", "repair", "share-purchase"]); // AB#844 adds loan-interest; ISP-242 (AB#938) the Council's award and forfeited fee; ISP-284 (AB#991) a hunt's bounty; ISP-287 (AB#994) a building's repair
     expect(Object.isFrozen(REASONS)).toBe(true);
   });
 });

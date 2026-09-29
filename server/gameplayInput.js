@@ -71,6 +71,9 @@ export const GAMEPLAY_INPUT = {
   // ISP-101 (AB#793): an id that is not one of the caller's buildings - unknown, another corporation's, or malformed -
   // gets this one answer, so ids cannot be probed.
   "POST /buildings/:buildingId/upgrade": { params: { buildingId: id("ownBuildings", "one of your buildings") } },
+  // ISP-287 (AB#994): repairing a damaged building, and the list of them with their prices
+  "POST /buildings/:buildingId/repair": { params: { buildingId: id("ownBuildings", "one of your buildings") } },
+  "GET /building-repairs": NOTHING,
   "POST /lease/:leaseId/start-mining": {
     params: { leaseId: id("ownLeases", "one of your mining leases") },
     body: {

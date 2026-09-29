@@ -30,6 +30,8 @@ const BASELINE = {
   "POST /build-refinery": {},
   "POST /build": { body: { buildingId: "basic-extractor-yard", leaseId: "lease-731" } }, // ISP-94
   "POST /buildings/:buildingId/upgrade": { params: { buildingId: "bld-731" } }, // ISP-101 (AB#793)
+  "POST /buildings/:buildingId/repair": { params: { buildingId: "bld-731" } }, // ISP-287 (AB#994)
+  "GET /building-repairs": {}, // ISP-287 (AB#994)
   "GET /belt-compositions": {},
   "GET /expedition-outlook": { query: { beltKey: "sol:belt", duration: "short" } }, // AB#821
   "POST /scout-belt": { body: { beltKey: "sol:belt" } },

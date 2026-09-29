@@ -391,6 +391,11 @@
 
               <div id="station-sub-overview" class="station__subpage ui-stack" role="tabpanel" aria-labelledby="station-subtab-overview">
                 <p class="ui-screen__lede station__overview-empty">No corporation-owned facilities here yet. The station's offices are under <strong>Offices</strong>; what you can build is under <strong>Construction</strong>; your yards and infrastructure are under <strong>Holdings</strong>, and every cycle in progress is in <strong>Operations</strong>.</p>
+                <section class="ui-stack" id="station-repairs-section" hidden>
+                  <h3 class="station__heading"><span class="ui-code" data-code-for="station-repairs-section" aria-hidden="true"></span>Damaged Buildings</h3>
+                  <p class="ui-screen__lede">A raid damaged these buildings. Each runs at its condition until it is repaired, which restores it to full at once.</p>
+                  <div id="station-repair-buildings" class="ui-grid station__grid"></div>
+                </section>
                 <section class="ui-stack" id="station-facilities-section" hidden>
                   <h3 class="station__heading"><span class="ui-code" data-code-for="station-facilities-section" aria-hidden="true"></span>Operational Facilities</h3>
                   <p class="ui-screen__lede">Corporation-owned facilities available for use at this station.</p>

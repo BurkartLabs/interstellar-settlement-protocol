@@ -116,6 +116,58 @@ async function upgradeFacility(buildingId) {
   await postUpgrade(buildingId, btn, statusEl, { focus: firstPresent(`[data-role="yard-upgrade"][data-upgrade-for="${CSS.escape(buildingId)}"] button`, ".nav-tab[data-tab='station']") });
 }
 
+// ── ISP-287 (AB#994): Damaged Buildings ──
+// The section shows while any building is damaged; the prices are the server's (GET /building-repairs), read each time
+// the Station is drawn, and the last list stays on screen while the next is read.
+let repairsDrawn = 0;
+function renderRepairs(data) {
+  const section = document.getElementById("station-repairs-section");
+  const grid = document.getElementById("station-repair-buildings");
+  if (!section || !grid) return;
+  if (!appState.accountId || !anyDamaged(data.corp)) { section.hidden = true; grid.innerHTML = ""; return; }
+  section.hidden = false;
+  if (!grid.innerHTML.trim()) grid.innerHTML = `<p class="ui-panel__meta">Reading the repair prices…</p>`;
+  const drawn = ++repairsDrawn;
+  apiFetch(repairsListPath(appState.accountId)).then(parseJsonResponse).then((body) => {
+    if (drawn !== repairsDrawn) return; // a later draw has asked again
+    const list = body.buildings || [];
+    section.hidden = !list.length;
+    grid.innerHTML = repairCardsHtml(list, appState.data?.corp?.finances?.credits);
+    grid.onclick = (event) => {
+      const btn = event.target.closest("[data-repair-building]");
+      if (btn && grid.contains(btn) && !btn.disabled) repairBuilding(list.find((b) => b.id === btn.getAttribute("data-repair-building")), btn);
+    };
+  }).catch(() => { if (drawn === repairsDrawn) grid.innerHTML = `<p class="ui-panel__meta">The repair prices could not be read; reload the page.</p>`; });
+}
+
+/** Confirm a repair at the server's price, post it, and draw the page from the account that comes back. */
+async function repairBuilding(building, btn) {
+  if (!building || !appState.accountId) return;
+  const statusEl = btn.closest("[data-role=repair-card]")?.querySelector("[data-role=repair-status]");
+  const confirmed = await showTradeConfirmation({
+    heading: `Repair ${building.name}`,
+    title: `Repair the ${building.name} to full condition?`,
+    confirmLabel: `Repair (${toCurrency(building.repairCost)})`,
+    rows: [
+      { label: "Cost", value: toCurrency(building.repairCost) },
+      { label: "What changes", value: `Condition ${Math.round(building.condition)} → 100; output ${Math.round(building.outputPct)}% → 100%` }
+    ]
+  });
+  if (!confirmed) return;
+  btn.disabled = true;
+  if (statusEl) statusEl.textContent = "Repairing...";
+  try {
+    const account = await parseJsonResponse(await apiFetch(repairPath(appState.accountId, building.id), { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }));
+    appState.data = deepClone(account.state);
+    updateAllViews();
+    pushFeedback(`${building.name} repaired.`, "ok");
+    showActionReceipt(account, { returnFocusTo: firstPresent("#station-repairs-section h3", "#station-facilities-section h3", ".nav-tab[data-tab='station']") });
+  } catch (error) {
+    btn.disabled = false;
+    if (statusEl) statusEl.textContent = error?.message || "The repair was refused.";
+  }
+}
+
 export function renderBuildingDetail(building, data) {
   const contentEl = document.getElementById("station-building-content");
   if (!contentEl) return;
@@ -523,6 +575,7 @@ import { employeesForNextLease } from "../leaseStaffing.js"; // AB#1202: the ser
 import { activeOfficeAt } from "../officeStatus.js"; // AB#1870: the server's rule, not a copy of it
 import { bodyProfile, cycleItemsText, leaseTypeLabel, profileText } from "../bodyYield.js"; // AB#829, Bug #2354
 import { codeSlotHtml } from "../sectionCodes.js"; // ISP-248 (AB#944)
+import { anyDamaged, repairCardsHtml, repairPath, repairsListPath } from "../buildingRepairs.js"; // ISP-287 (AB#994)
 import { utcDate, utcTime } from "../timeFormat.js"; // ISP-249 (AB#945)
 
 // The bodies the ISA leases. Module level so a full lease can say which are left (Bug #1057).
@@ -1212,6 +1265,8 @@ export function renderStation(data) {
     .filter(Boolean);
 
   npcGrid.innerHTML = stationBuildingCardsHtml(stationBuildings);
+
+  renderRepairs(data); // ISP-287 (AB#994)
 
   // ── Operational Facilities (Assembly, Refinery — prominent usable cards, and Construct) ──
   // Bug #1253: rendered and bound in one place, stationFacilities.js.

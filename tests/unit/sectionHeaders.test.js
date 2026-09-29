@@ -27,7 +27,7 @@ function titleOf(doc, entry, isScreen) {
 describe("every registered screen and section has its header slot (ISP-248, AB#944)", () => {
   it("one empty, aria-hidden slot per entry, inside its own title", () => {
     const entries = [...R.screens.map((e) => [e, true]), ...R.sections.map((e) => [e, false])];
-    expect(entries.length).toBe(72); // AB#2477: the two prerequisite trees
+    expect(entries.length).toBe(73); // AB#2477: the two prerequisite trees; ISP-287 (AB#994): the Station's Damaged Buildings
     for (const [entry, isScreen] of entries) {
       if (DRAWN[entry.id]) {
         expect(read(DRAWN[entry.id]), entry.id).toContain(`codeSlotHtml("${entry.id}")`);

@@ -131,6 +131,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "lobbying-pledge", // ISP-239 (AB#934): credits pledged to a lobbying campaign, final, a sink to the faction
     "loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",
     "escrow-hold-paid", "fee-paid", // ISP-146 (AB#840): server/settlement.js
+    "repair-paid", // ISP-287 (AB#994): repairing a building a raid damaged
     "loan-interest-paid", // ISP-150 (AB#844): a loan's interest, on its own line of the statements
     "bond-redemption-paid", // ISP-155 (AB#849): an issuer repaying its bonds' face at maturity
     "bond-sale-paid", // Bug #2574: a corporation buying another's bonds

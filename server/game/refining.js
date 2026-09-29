@@ -9,6 +9,7 @@ import { WARFARE_CATALOG } from "../warfare.js";
 const PATENT_USES_KEPT = 200;
 // ISP-97 (AB#787): a Refinery Complex (tier 2) delivers 1.5 times; the rule is shared with the page and the receipt.
 import { refineryMultiplierFor, refineryOutput } from "../../public/scripts/refineryOutput.js";
+import { outputFactorOf } from "./buildingCondition.js"; // ISP-287 (AB#994)
 
 // ─── Facilities that run chains ──────────────────────────────────────────────
 // ISP-189 (AB#883; docs/design/v0.11-tier4.md, section 3): a chain names the building it runs in. Refineries run the
@@ -110,11 +111,18 @@ export function refineryCycleStation(corp, ref) {
 export function applyRefineryOperations(corp, now = Date.now()) {
   ensureCorpRefineryModel(corp);
   // ISP-189 (AB#883): the Synthesis Array's runs complete exactly as a refinery's do.
-  for (const list of Object.values(FACILITY_LISTS)) (corp[list] || []).forEach((ref) => completeRun(corp, ref, now));
+  for (const [kind, list] of Object.entries(FACILITY_LISTS)) {
+    // the n-th record runs in the n-th building of its name (as server/upgrades.js pairs them)
+    const own = (corp.buildings || []).filter((b) => b?.name === FACILITY_NAMES[kind]);
+    (corp[list] || []).forEach((ref, i) => completeRun(corp, ref, now, own[i]));
+  }
 }
 
-/** Deliver a facility's run if it has finished, and free the facility. */
-function completeRun(corp, ref, now) {
+/**
+ * Deliver a facility's run if it has finished, and free the facility. ISP-287 (AB#994): a facility a raid damaged
+ * delivers its run at its condition when the run completes (a Refinery at 80 condition delivers 80%, rounded down).
+ */
+function completeRun(corp, ref, now, building = null) {
   {
     if (!ref.active || !ref.chainId) return;
 
@@ -139,7 +147,9 @@ function completeRun(corp, ref, now) {
       item: output.item,
       quantity: refineryOutput(output.quantityPerCycle, scale, ref.tier, refineryMultiplierFor(ref.tier, ECONOMY.buildings)) // AB#794: by tier
     }));
-    for (const { item, quantity } of delivered) {
+    const factor = outputFactorOf(building);
+    const damaged = factor < 1 ? delivered.map((d) => ({ item: d.item, quantity: Math.floor(d.quantity * factor) })) : delivered;
+    for (const { item, quantity } of damaged) {
       bumpStat(corp, "refinedUnitsProduced", quantity); // Bug #424: levels 9 and 10
       // AB#831: per product. A run's record names only catalog items (server/game/items.js refuses any other at start),
       // but a record from an older save is checked rather than trusted.
@@ -154,7 +164,7 @@ function completeRun(corp, ref, now) {
     // ISP-236 (AB#931): a run of a patentable chain is a use; patentTick charges it if a patent was in force at endsAt
     if (chain && Number(chain.stage) >= WARFARE_CATALOG.patents.minChainStage) {
       if (!Array.isArray(corp.patentUses)) corp.patentUses = [];
-      corp.patentUses.push({ kind: "chain", subjectId: ref.chainId, at: endsAt, delivered: delivered.map(({ item, quantity }) => ({ item, quantity })) });
+      corp.patentUses.push({ kind: "chain", subjectId: ref.chainId, at: endsAt, delivered: damaged.map(({ item, quantity }) => ({ item, quantity })) });
       if (corp.patentUses.length > PATENT_USES_KEPT) corp.patentUses.splice(0, corp.patentUses.length - PATENT_USES_KEPT);
     }
     ref.cyclesCompleted += scale;

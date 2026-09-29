@@ -44,7 +44,8 @@ const RECEIPTS = {
   "/api/accounts/:accountId/gameplay/accept-mission": { builder: "acceptMissionReceipt", client: ["public/scripts/views/assignments.js", "/gameplay/accept-mission`"] },
   "/api/accounts/:accountId/gameplay/complete-mission": { builder: "completeMissionReceipt", client: ["public/scripts/views/assignments.js", "/gameplay/complete-mission`"] },
   // ISP-103 (AB#795): the upgrade control on an extractor yard
-  "/api/accounts/:accountId/gameplay/buildings/:buildingId/upgrade": { builder: "upgradeReceipt", client: ["public/scripts/views/station.js", "upgradePath(appState.accountId"] }
+  "/api/accounts/:accountId/gameplay/buildings/:buildingId/upgrade": { builder: "upgradeReceipt", client: ["public/scripts/views/station.js", "upgradePath(appState.accountId"] },
+  "/api/accounts/:accountId/gameplay/buildings/:buildingId/repair": { builder: "repairReceipt", client: ["public/scripts/views/station.js", "repairPath(appState.accountId"] } // ISP-287 (AB#994)
 };
 
 /** Routes that commit nothing new: each undoes or stops something the player already has, and says why. */

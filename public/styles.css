@@ -5108,7 +5108,7 @@ img.station__body {
 .station__subnav { margin-top: var(--space-2); }
 .station__subpage { margin-top: var(--space-3); }
 .station__overview-empty { display: none; }
-#station-sub-overview:not(:has(#station-facilities-section:not([hidden]))) .station__overview-empty { display: block; }
+#station-sub-overview:not(:has(#station-facilities-section:not([hidden]), #station-repairs-section:not([hidden]))) .station__overview-empty { display: block; }
 .station__offices { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
 .station__offices .station__card { gap: var(--space-2); }
 .station__card-agency { margin: 0; }
