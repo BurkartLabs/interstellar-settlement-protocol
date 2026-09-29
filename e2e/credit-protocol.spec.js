@@ -135,6 +135,14 @@ test("the Bank: a quote above the limit, and the Bond Board's badges and a subsc
     const series = sub.locator("xpath=ancestor::article[1]");
     await showUnderHeader(series);
     await shot(series, "6-bond-subscribe-denied");
+    // 6b. Bug #4799: everything that is left is more than one holder may own (20% of a series): Denied, saying how many more
+    await sub.locator('input[name="units"]').fill(String(left));
+    await sub.getByRole("button", { name: "Subscribe" }).click();
+    await page.getByRole("button", { name: /^Pay [\d,]+ credits$/ }).click(); // the trade confirmation: the server decides after it
+    await expect(sub.locator('[data-role="bond-status"]')).toContainText("No holder may own more than 20% of a series");
+    await expect(sub.locator('[data-role="bond-status"] .protocol-line')).toContainText("Denied");
+    await showUnderHeader(series);
+    await shot(series, "6b-bond-subscribe-holder-cap");
     const held = board.locator(".bond-holding").first();
     await showUnderHeader(held);
     await shot(held, "7-bond-holding-current");
