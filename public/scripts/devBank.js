@@ -6,6 +6,7 @@
 
 import { escapeHtml, refHtml } from "./html.js";
 import { utcTime } from "./timeFormat.js"; // ISP-249 (AB#945)
+import { protocolLineHtml } from "./protocol.js"; // ISP-255 (AB#4824)
 
 export const cr = (n) => `${Math.round(Number(n) || 0).toLocaleString("en-US")}`;
 const DAY = 86_400_000;
@@ -89,7 +90,7 @@ export function bankLoansHtml(loans, now = Date.now()) {
       <article class="bank-loan${late ? " bank-loan--arrears" : ""}" data-loan="${escapeHtml(l.id)}">
         <header class="bank-loan__header">
           <h4>${escapeHtml(facilityName(l.termDays))} · ${cr(l.principal)} credits ${refHtml(l.ref)}</h4>
-          ${late ? `<span class="ui-badge bank-loan__badge" data-role="arrears-badge">In arrears</span>` : `<span class="ui-badge bank-loan__badge bank-loan__badge--ok">Current</span>`}
+          ${late ? `<span class="ui-badge bank-loan__badge" data-role="arrears-badge">In arrears</span>` : `<span><span class="ui-badge bank-loan__badge bank-loan__badge--ok">Current</span> ${protocolLineHtml({ meaning: "active", screen: "building-deep-space-development-bank" })}</span>`}
         </header>
         <dl class="bank-loan__terms">
           <div><dt>Still owed</dt><dd>${cr(l.balance)} credits</dd></div>
@@ -100,7 +101,7 @@ export function bankLoansHtml(loans, now = Date.now()) {
         <button type="button" class="ui-button ui-button--secondary" data-role="bank-payoff" data-loan="${escapeHtml(l.id)}">Pay off now: ${cr(payoffTotal(l))} credits</button>
       </article>`;
   };
-  const done = (l) => `<li>${escapeHtml(facilityName(l.termDays))} · ${cr(l.principal)} credits · repaid ${bankTime(l.closedAt)}${l.paidOffEarly ? " (early)" : ""}</li>`;
+  const done = (l) => `<li>${escapeHtml(facilityName(l.termDays))} · ${cr(l.principal)} credits · repaid ${bankTime(l.closedAt)}${l.paidOffEarly ? " (early)" : ""} ${protocolLineHtml({ meaning: "complete", screen: "building-deep-space-development-bank" })}</li>`;
   return `${open.map(card).join("")}${closed.length ? `<ul class="bank-loans__closed">${closed.map(done).join("")}</ul>` : ""}`;
 }
 

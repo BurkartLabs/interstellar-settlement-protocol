@@ -7,6 +7,8 @@ import { formatTime } from "../helpers.js";
 import { chatLineHtml } from "../html.js";
 import { appState } from "../state.js";
 import { escapeHtml } from "../html.js";
+import { commsMeaning } from "../commsProtocol.js"; // ISP-255c1 (AB#4830)
+import { protocolLineHtml } from "../protocol.js";
 
 // AB#995 (ISP-288): state:init sends each channel's last 50 lines (the server's window); older lines are read from its
 // history a page at a time (GET /api/chat/:channel/history) and kept here, before the live ones.
@@ -35,6 +37,7 @@ async function loadOlderChat() {
   if (!oldest) return;
   state.loading = true;
   state.error = null;
+  state.errorMeaning = null;
   renderChatLog(appState.data);
   try {
     const page = await parseJsonResponse(await apiFetch(`/api/chat/${encodeURIComponent(tab)}/history?cursor=${encodeURIComponent(oldest.id)}`));
@@ -43,6 +46,7 @@ async function loadOlderChat() {
     anchorOlder = true;
   } catch (err) {
     state.error = err.message;
+    state.errorMeaning = commsMeaning(err); // ISP-255c1 (AB#4830)
   } finally {
     state.loading = false;
     renderChatLog(appState.data);
@@ -79,7 +83,7 @@ export function renderChatLog(data) {
   const state = olderOf(channel);
   const mayHaveMore = state.nextCursor === undefined ? (data?.chatLog?.[channel] || []).length >= WINDOW : Boolean(state.nextCursor);
   const olderHtml = mayHaveMore
-    ? `<li class="chat__older"><button class="ui-button ui-button--ghost" type="button" data-action="older-chat"${state.loading ? " disabled" : ""}>${state.loading ? "Loading…" : "Load older messages"}</button>${state.error ? ` <span class="ui-screen__meta">${escapeHtml(state.error)}</span>` : ""}</li>`
+    ? `<li class="chat__older"><button class="ui-button ui-button--ghost" type="button" data-action="older-chat"${state.loading ? " disabled" : ""}>${state.loading ? "Loading…" : "Load older messages"}</button>${state.error ? ` <span class="ui-screen__meta">${escapeHtml(state.error)} ${protocolLineHtml({ meaning: state.errorMeaning || "failed", screen: "chat" })}</span>` : ""}</li>`
     : state.nextCursor === null ? `<li class="chat__older"><span class="ui-screen__meta">Start of the channel</span></li>` : "";
   chatLog.innerHTML = olderHtml + messages
     .map((msg) => chatLineHtml(msg, formatTime))

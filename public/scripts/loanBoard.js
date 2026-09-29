@@ -7,6 +7,7 @@
 
 import { escapeHtml, refHtml } from "./html.js";
 import { cr, bankTime } from "./devBank.js";
+import { protocolLineHtml } from "./protocol.js"; // ISP-255 (AB#4824)
 
 /** The grades, best first; an offer's minimum may also be NR-accepted (it lends to unrated corporations). */
 export const GRADE_ORDER = ["AAA", "AA", "A", "BBB", "BB", "B", "CCC", "CC", "C"];
@@ -106,9 +107,13 @@ const STATE_BADGE = {
   active: ["Current", "bank-loan__badge--ok"], arrears: ["In arrears", ""], repaid: ["Repaid", "bank-loan__badge--ok"]
 };
 function stateBadge(loan) {
-  if (loan.defaultedAt && loan.state === "arrears") return `<span class="ui-badge bank-loan__badge" data-role="loan-state">In default</span>`;
+  // ISP-255 (AB#4824): the phrase after the badge; "In arrears" is already the guide's words
+  const line = (meaning) => ` ${protocolLineHtml({ meaning, screen: "loans-board" })}`;
+  if (loan.defaultedAt && loan.state === "arrears") return `<span><span class="ui-badge bank-loan__badge" data-role="loan-state">In default</span>${line("failed")}</span>`; // one span: the header is a flex row
   const [label, extra] = STATE_BADGE[loan.state] || [loan.state, ""];
-  return `<span class="ui-badge bank-loan__badge ${extra}" data-role="loan-state">${escapeHtml(label)}</span>`;
+  const meaning = { active: "active", repaid: "complete" }[loan.state];
+  const badge = `<span class="ui-badge bank-loan__badge ${extra}" data-role="loan-state">${escapeHtml(label)}</span>`;
+  return meaning ? `<span>${badge}${line(meaning)}</span>` : badge;
 }
 
 /** What recovery took, grouped by where it came from: credits, goods sold, buildings force-sold. */
@@ -143,15 +148,15 @@ function recoveryRow(loan, side) {
   if (!r) return "";
   if (r.state === "grace") {
     return side === "borrower"
-      ? `<div class="loan-warning" data-role="loan-warning" role="alert"><strong>Your assets will be sold on ${escapeHtml(bankTime(r.saleAt))}.</strong> Pay the ${cr(loan.arrears)} credits in arrears before then and nothing is sold. Until then you cannot sell, buy or lend to other corporations. Your office, research, level and Headquarters are never taken.</div>`
-      : `<div><dt>Recovery</dt><dd>Begins ${escapeHtml(bankTime(r.saleAt))} unless the arrears are paid</dd></div>`;
+      ? `<div class="loan-warning" data-role="loan-warning" role="alert"><strong>Your assets will be sold on ${escapeHtml(bankTime(r.saleAt))}.</strong> ${protocolLineHtml({ meaning: "pending", screen: "loans-board" })} Pay the ${cr(loan.arrears)} credits in arrears before then and nothing is sold. Until then you cannot sell, buy or lend to other corporations. Your office, research, level and Headquarters are never taken.</div>`
+      : `<div><dt>Recovery</dt><dd>Begins ${escapeHtml(bankTime(r.saleAt))} unless the arrears are paid ${protocolLineHtml({ meaning: "pending", screen: "loans-board" })}</dd></div>`;
   }
   if (r.state === "done" && r.result) {
     return side === "borrower"
       ? `<div class="loan-warning" data-role="loan-recovered">Recovered from you on ${escapeHtml(bankTime(r.closedAt))}: ${recoveredFromText(r.result)}</div>`
       : `<div class="loan-recovered" data-role="loan-recovered"><dt>Recovered</dt><dd>${recoveredFromText(r.result)}</dd></div>`;
   }
-  if (r.state === "cancelled") return side === "borrower" ? "" : `<div><dt>Recovery</dt><dd>Cancelled: the arrears were paid in time</dd></div>`;
+  if (r.state === "cancelled") return side === "borrower" ? "" : `<div><dt>Recovery</dt><dd>Cancelled: the arrears were paid in time ${protocolLineHtml({ meaning: "cancelled", screen: "loans-board" })}</dd></div>`;
   return "";
 }
 

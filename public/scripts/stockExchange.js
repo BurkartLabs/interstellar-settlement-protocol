@@ -9,6 +9,10 @@
 import { escapeHtml, refHtml } from "./html.js";
 import { bankTime, cr } from "./devBank.js";
 import { countdown } from "./bondBoard.js";
+import { protocolLineHtml } from "./protocol.js"; // ISP-255 (AB#951)
+
+/** ISP-255 (AB#951): a status's protocol line in the Stock Exchange's building (GEX-MKT-13). */
+const line = (meaning) => protocolLineHtml({ meaning, screen: "building-intergalactic-stock-exchange" });
 
 const signed = (n) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${cr(Math.abs(n))}`;
 const pctOf = (part, whole) => (whole > 0 ? `${part >= 0 ? "+" : "−"}${(Math.abs(part) * 100 / whole).toFixed(1)}%` : "");
@@ -100,12 +104,12 @@ export function payoutHtml(s) {
   return `
     <form class="igsx-payout" data-role="igsx-payout" novalidate>
       <p>Payout ratio now: <strong data-role="igsx-payout-now">${s.payoutRatioPct}%</strong> of each week's net income, paid to holders by shares.
-        ${s.payoutRatioNextPct != null && s.payoutRatioNextPct !== s.payoutRatioPct ? `From the next period: <strong>${s.payoutRatioNextPct}%</strong>.` : ""}</p>
+        ${s.payoutRatioNextPct != null && s.payoutRatioNextPct !== s.payoutRatioPct ? `From the next period: <strong>${s.payoutRatioNextPct}%</strong>. ${line("queued")}` : ""}</p>
       <label class="bank-quote-form__field">Next period's ratio (${b.min}–${b.max}%, in steps of ${b.step})
         <select class="ui-select" name="payoutRatioPct"${s.canChangePayoutAt ? " disabled" : ""}>${options.join("")}</select>
       </label>
       <button type="submit" class="ui-button ui-button--secondary"${s.canChangePayoutAt ? " disabled" : ""}>Set payout ratio</button>
-      <p class="station__note igsx-hint">${s.canChangePayoutAt ? `Changed this week: it may change again ${bankTime(s.canChangePayoutAt)}.` : "It may change once in 7 days; the period in progress keeps its ratio."}</p>
+      <p class="station__note igsx-hint">${s.canChangePayoutAt ? `Changed this week: it may change again ${bankTime(s.canChangePayoutAt)}. ${line("suspended")}` : "It may change once in 7 days; the period in progress keeps its ratio."}</p>
       <p class="bank-quote-form__status" data-role="igsx-payout-status" aria-live="polite"></p>
     </form>`;
 }
@@ -113,7 +117,7 @@ export function payoutHtml(s) {
 /** The caller as an issuer: listing (or why not), then the cap table, the payout ratio and its offerings. */
 export function issuerHtml(d, capTable) {
   const s = d.issuer;
-  if (!s) return `<p class="station__note">Your corporation could not be read.</p>`;
+  if (!s) return `<p class="station__note">Your corporation could not be read. ${line("failed")}</p>`;
   if (s.state !== "listed") {
     const why = d.listing?.why;
     return `
@@ -131,7 +135,7 @@ export function issuerHtml(d, capTable) {
     <h4>Dividends</h4>
     ${payoutHtml(s)}
     <h4>Offerings</h4>
-    ${open ? `<p>Open: ${cr(open.quantity)} shares at ${cr(open.pricePerShare)} credits, ${cr(open.left)} left; closes ${bankTime(open.closesAt)}.</p>` : `
+    ${open ? `<p>Open: ${cr(open.quantity)} shares at ${cr(open.pricePerShare)} credits, ${cr(open.left)} left; closes ${bankTime(open.closesAt)}. ${line("active")}</p>` : `
     <form class="bond-subscribe" data-role="igsx-offer" novalidate>
       <label class="bank-quote-form__field">New shares to offer
         <input class="ui-input" name="quantity" type="number" inputmode="numeric" min="100" step="1" value="${Math.max(100, Math.floor(s.outstanding / 20))}">
@@ -140,5 +144,5 @@ export function issuerHtml(d, capTable) {
       <p class="station__note igsx-hint">Priced at company value ÷ shares outstanding, open 7 days, then the market maker may take what is left.</p>
       <p class="bank-quote-form__status" data-role="igsx-offer-status" aria-live="polite"></p>
     </form>`}
-    ${d.mine.filter((o) => o.state === "closed").slice(-3).map((o) => `<p class="station__note">Closed ${bankTime(o.closedAt)}: ${cr(o.soldToPlayers)} sold to corporations and ${cr(o.soldToMarketMaker)} to the market maker, of ${cr(o.quantity)} at ${cr(o.pricePerShare)}.</p>`).join("")}`;
+    ${d.mine.filter((o) => o.state === "closed").slice(-3).map((o) => `<p class="station__note">Closed ${bankTime(o.closedAt)}: ${cr(o.soldToPlayers)} sold to corporations and ${cr(o.soldToMarketMaker)} to the market maker, of ${cr(o.quantity)} at ${cr(o.pricePerShare)}. ${line("complete")}</p>`).join("")}`;
 }

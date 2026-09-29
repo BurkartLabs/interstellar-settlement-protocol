@@ -191,9 +191,9 @@ export function registerRealtime() {
       // AB#995: the server's limits, said out loud to the sender rather than a line silently lost. Size and rate only:
       // nothing reads what the line says (D-0.5-4, AB#696).
       const refuse = (error, extra = {}) => socket.emit("chat:refused", { channel, error, ...extra });
-      if (content.length > CHAT_MAX_LENGTH) return refuse(`A chat line is at most ${CHAT_MAX_LENGTH} characters.`);
+      if (content.length > CHAT_MAX_LENGTH) return refuse(`A chat line is at most ${CHAT_MAX_LENGTH} characters.`, { code: "line-too-long" }); // ISP-255c1 (AB#4830)
       const gate = chatLineGate(accountId);
-      if (!gate.ok) return refuse(`That is more than ${gate.limit} lines in ${gate.windowSeconds} seconds. Try again in ${gate.retryAfterSeconds} seconds.`, { retryAfterSeconds: gate.retryAfterSeconds });
+      if (!gate.ok) return refuse(`That is more than ${gate.limit} lines in ${gate.windowSeconds} seconds. Try again in ${gate.retryAfterSeconds} seconds.`, { code: "rate-limited", retryAfterSeconds: gate.retryAfterSeconds });
 
       // The author is the sender's own corporation; payload.author is ignored. No account id goes in the broadcast.
       const message = {
@@ -205,7 +205,7 @@ export function registerRealtime() {
       };
 
       // AB#995: stored in the channel's history file first; a line that cannot be stored is not sent
-      try { appendChatLine(message, getState().chatLog?.[channel]); } catch { return refuse("Chat is unavailable right now. Try again in a minute."); }
+      try { appendChatLine(message, getState().chatLog?.[channel]); } catch { return refuse("Chat is unavailable right now. Try again in a minute.", { code: "store-unavailable" }); }
       appendChatMessage(channel, message);
       if (channel.startsWith("local:")) {
         // Local chat reaches the corporations in that system now, read at send time so travel needs no bookkeeping.

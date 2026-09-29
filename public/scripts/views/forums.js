@@ -10,6 +10,8 @@ import { formatTime } from "../helpers.js";
 import { escapeHtml, forumPostBodyHtml } from "../html.js";
 import { appState } from "../state.js";
 import { pushFeedback } from "./shared.js";
+import { commsMeaning, setStatusLine } from "../commsProtocol.js"; // ISP-255c1 (AB#4830)
+import { protocolLineHtml } from "../protocol.js";
 import { scrollBehavior } from "../motion.js"; // AB#1760
 
 // ─── What has been paged in (AB#995) ─────────────────────────────────────────
@@ -133,7 +135,7 @@ export function renderForums(data) {
     if (open.id !== appState.selectedForumThreadId || open.nextCursor === undefined) {
       if (detailBody && !open.loading) {
         detailBody.innerHTML = open.error && open.id === null
-          ? `<p class="forums__note">This thread could not be loaded: ${escapeHtml(open.error)}</p>`
+          ? `<p class="forums__note">This thread could not be loaded: ${escapeHtml(open.error)} ${protocolLineHtml({ meaning: "failed", screen: "forums" })}</p>`
           : `<p class="forums__note">Loading the thread…</p>`;
       }
       loadReplies();
@@ -291,7 +293,7 @@ export function renderForums(data) {
         const likeBtn = event.target.closest('[data-action="like"]');
         if (!likeBtn || likeBtn.disabled) return;
         if (!appState.accountId) {
-          pushFeedback("Sign in to like posts.", "warn");
+          pushFeedback("Sign in to like posts.", "warn", { meaning: "refused", screen: "forums" }); // ISP-255c1 (AB#4830)
           return;
         }
         const request = likeRequest(likeBtn, appState.selectedForumThreadId);
@@ -309,7 +311,7 @@ export function renderForums(data) {
           renderForums(appState.data);
         } catch (err) {
           likeBtn.disabled = false;
-          pushFeedback(`Like failed: ${err.message}`, "warn");
+          pushFeedback(`Like failed: ${err.message}`, "warn", { meaning: commsMeaning(err), screen: "forums" }); // ISP-255c1 (AB#4830)
         }
       });
 
@@ -350,7 +352,7 @@ export function renderForums(data) {
           const content = String(contentEl?.value || "").trim();
           if (!content) {
             if (statusEl) {
-              statusEl.textContent = "Reply cannot be empty.";
+              setStatusLine(statusEl, "Reply cannot be empty.", { meaning: "refused", screen: "forums" }); // ISP-255c1 (AB#4830)
               statusEl.classList.add("forums__status--warn");
             }
             return;
@@ -374,10 +376,10 @@ export function renderForums(data) {
             if (liveBox) liveBox.value = "";
             appState.forumReplyTo = null; // AB#2466: the next reply answers the thread, until the player picks another
             renderForums(appState.data);
-            if (open.nextCursor) pushFeedback("Reply posted. It is at the end of the thread: load more replies to see it.", "info");
+            if (open.nextCursor) pushFeedback("Reply posted. It is at the end of the thread: load more replies to see it.", "info", { meaning: "complete", screen: "forums" }); // ISP-255c1 (AB#4830)
           } catch (err) {
             if (statusEl) {
-              statusEl.textContent = `Failed to post reply: ${err.message}`;
+              setStatusLine(statusEl, `Failed to post reply: ${err.message}`, { meaning: commsMeaning(err), screen: "forums" }); // ISP-255c1 (AB#4830)
               statusEl.classList.add("forums__status--warn");
             }
           } finally {
@@ -412,7 +414,7 @@ export function renderForums(data) {
       threadsEl.innerHTML = list.loading || list.key !== key
         ? `<p class="forums__note">Loading threads…</p>`
         : list.error
-          ? `<p class="forums__note">The threads could not be loaded: ${escapeHtml(list.error)}</p>`
+          ? `<p class="forums__note">The threads could not be loaded: ${escapeHtml(list.error)} ${protocolLineHtml({ meaning: "failed", screen: "forums" })}</p>`
           : `<p class="forums__note">No threads in this category yet.</p>`;
     } else {
       threadsEl.innerHTML = shown
@@ -476,7 +478,7 @@ export function renderForums(data) {
       const statusEl = document.getElementById("forum-new-thread-status");
       if (!category || !title || !body) {
         if (statusEl) {
-          statusEl.textContent = "Category, title, and body are all required.";
+          setStatusLine(statusEl, "Category, title, and body are all required.", { meaning: "refused", screen: "forums" }); // ISP-255c1 (AB#4830)
           statusEl.classList.add("forums__status--warn");
         }
         return;
@@ -498,7 +500,7 @@ export function renderForums(data) {
         renderForums(appState.data);
       } catch (err) {
         if (statusEl) {
-          statusEl.textContent = `Failed to post thread: ${err.message}`;
+          setStatusLine(statusEl, `Failed to post thread: ${err.message}`, { meaning: commsMeaning(err), screen: "forums" }); // ISP-255c1 (AB#4830)
           statusEl.classList.add("forums__status--warn");
         }
       } finally {

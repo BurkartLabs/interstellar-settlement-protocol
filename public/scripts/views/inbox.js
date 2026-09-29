@@ -9,6 +9,7 @@ import { markdownHtml } from "../markdown.js"; // AB#2467
 import { escapeHtml, messageListItemsHtml } from "../html.js";
 import { appState } from "../state.js";
 import { pushFeedback } from "./shared.js";
+import { commsMeaning, setStatusLine } from "../commsProtocol.js"; // ISP-255c1 (AB#4830)
 import { convState, setConversationHooks, loadConversations, renderConversationList, sendNew, sendInThread, onThreadScroll, closeConversation } from "./conversations.js"; // AB#911
 
 // AB#911: the Players tab is conversations. The module tells the Inbox when its counts change and asks it to switch view.
@@ -303,9 +304,9 @@ export function bindInboxControls() {
     status.textContent = "Deleting…";
     try {
       const res = await apiFetch(`/api/accounts/${appState.accountId}/messages/draft/${encodeURIComponent(id)}`, { method: "DELETE" });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "the server refused");
+      if (!res.ok) throw Object.assign(new Error((await res.json().catch(() => ({}))).error || "the server did not answer. Try again in a minute"), { status: res.status }); // Bug #4832
     } catch (err) {
-      status.textContent = `The draft was not deleted: ${err.message}.`;
+      setStatusLine(status, `The draft was not deleted: ${err.message}.`, { meaning: commsMeaning(err), screen: "inbox" }); // ISP-255c1 (AB#4830)
       return;
     }
     appState.inbox.messages = appState.inbox.messages.filter((m) => m.id !== id);
@@ -318,7 +319,7 @@ export function bindInboxControls() {
     document.querySelectorAll("#inbox-folders [data-folder]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.folder === "draft")));
     showInboxView("list");
     renderInboxMessageList();
-    pushFeedback("Draft deleted.", "success");
+    pushFeedback("Draft deleted.", "success", { meaning: "cancelled", screen: "inbox" }); // ISP-255c1 (AB#4830)
   });
 
   // Compose form
@@ -327,7 +328,7 @@ export function bindInboxControls() {
     e.preventDefault();
     const status = document.getElementById("compose-status");
     const text = document.getElementById("compose-body").value.trim();
-    if (!text) { status.textContent = "Write a message first."; return; }
+    if (!text) { setStatusLine(status, "Write a message first.", { meaning: "refused", screen: "inbox" }); return; } // ISP-255c1 (AB#4830)
     status.textContent = "Sending…";
     try {
       // AB#911: a message goes to a corporation by its publicId. A typed name is looked up; if several corporations
@@ -335,13 +336,13 @@ export function bindInboxControls() {
       let toCorpId = document.getElementById("compose-to-id").value.trim();
       if (!toCorpId) {
         const picked = await recipientByName(document.getElementById("compose-to").value);
-        if (picked.error) { status.textContent = picked.error; if (picked.candidates) showComposeCandidates(picked.candidates); return; }
+        if (picked.error) { setStatusLine(status, picked.error, picked.protocol || { meaning: "refused", screen: "inbox" }); if (picked.candidates) showComposeCandidates(picked.candidates); return; } // ISP-255c1 (AB#4830)
         toCorpId = picked.publicId;
       }
       const draftId = document.getElementById("compose-draft-id").value.trim();
       showPlayersTab();
       const sent = await sendNew(toCorpId, text);
-      if (sent.error) { showInboxView("compose"); status.textContent = sent.error; return; }
+      if (sent.error) { showInboxView("compose"); setStatusLine(status, sent.error, sent.protocol || { meaning: "refused", screen: "inbox" }); return; } // ISP-255c1 (AB#4830)
       if (draftId) {
         apiFetch(`/api/accounts/${appState.accountId}/messages/draft/${encodeURIComponent(draftId)}`, { method: "DELETE" }).catch(() => {});
         appState.inbox.messages = appState.inbox.messages.filter((m) => m.id !== draftId);
@@ -350,7 +351,7 @@ export function bindInboxControls() {
       syncComposeDraftControls();
       status.textContent = "";
     } catch (err) {
-      status.textContent = `Error: ${err.message}`;
+      setStatusLine(status, `The message was not sent: ${err.message}. Check your connection and press Send again.`, { meaning: commsMeaning(err), screen: "inbox" }); // Bug #4832; AB#4830
     }
   });
 
@@ -381,12 +382,12 @@ export function bindInboxControls() {
         const idx = appState.inbox.messages.findIndex((m) => m.id === data.draft.id);
         if (idx >= 0) appState.inbox.messages[idx] = data.draft;
         else appState.inbox.messages.unshift(data.draft);
-        status.textContent = "Draft saved.";
+        setStatusLine(status, "Draft saved.", { meaning: "complete", screen: "inbox" }); // ISP-255c1 (AB#4830)
       } else {
-        status.textContent = data.error || "Failed to save draft.";
+        setStatusLine(status, data.error || "The draft was not saved. Press Save Draft again.", { meaning: commsMeaning({ status: res.status, code: data.code, error: data.error }), screen: "inbox" });
       }
     } catch (err) {
-      status.textContent = `Error: ${err.message}`;
+      setStatusLine(status, `The draft was not saved: ${err.message}. Check your connection and press Save Draft again.`, { meaning: commsMeaning(err), screen: "inbox" }); // Bug #4832; AB#4830
     }
   });
 }
@@ -406,12 +407,12 @@ export async function recipientByName(typed) {
   if (!name) return { error: "Say which corporation the message is for." };
   const res = await apiFetch(`/api/accounts/${appState.accountId}/corporations?name=${encodeURIComponent(name.slice(0, 64))}`);
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) return { error: data.error || "The corporation directory could not be searched." };
+  if (!res.ok) return { error: data.error || "The corporation directory could not be searched.", protocol: { meaning: commsMeaning({ status: res.status, code: data.code, error: data.error }), screen: "inbox" } }; // ISP-255c1 (AB#4830)
   const all = data.corporations || [];
   const exact = all.filter((c) => c.corporationName.trim().toLowerCase() === name.toLowerCase());
   const matches = exact.length ? exact : all;
   if (matches.length === 1) return { publicId: matches[0].publicId };
-  if (!matches.length) return { error: "No corporation has that name." };
+  if (!matches.length) return { error: "No corporation has that name. Check the spelling: part of a name lists every corporation it matches." }; // Bug #4832: what to do next (ISP-6)
   return { error: `${matches.length} corporations match that name. Choose which one you mean.`, candidates: matches.slice(0, 10) };
 }
 

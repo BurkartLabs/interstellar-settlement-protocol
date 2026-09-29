@@ -217,7 +217,7 @@ export function subscribeBond(accountId, { seriesId, units } = {}, now = Date.no
   if (series.state !== "subscribing" || now >= series.closesAt) return { ok: false, status: 409, error: "That series has closed to subscribers." };
   if (!Number.isInteger(units) || units < 1) return { ok: false, status: 400, error: "Units must be a whole number of at least 1." };
   const left = series.quantity - series.sold;
-  if (units > left) return { ok: false, status: 409, error: `Only ${left} unit${left === 1 ? "" : "s"} of that series are left.` };
+  if (units > left) return { ok: false, status: 409, error: `Only ${left} unit${left === 1 ? "" : "s"} of that series are left. Subscribe to ${left} or fewer.` }; // AB#4824 (ISP-6)
   if (!getAccountById(accountId)?.state?.corp) return { ok: false, status: 404, error: "No such corporation." };
   const held = recoveryHold(getAccountById(accountId).state.corp); // ISP-286 (AB#993): no value out in the grace period
   if (held) return { ok: false, status: 409, error: held };
@@ -225,7 +225,7 @@ export function subscribeBond(accountId, { seriesId, units } = {}, now = Date.no
   const credits = units * series.faceValue;
   const n = series.subscriptions + 1;
   const paid = settleTransfer({ fromAccountId: accountId, toAccountId: series.issuerAccountId, credits, reason: REASON, idempotencyKey: `bond:${series.id}:sub:${n}` }, now);
-  if (!paid.ok) return { ok: false, status: 409, error: paid.error === "the payer does not have the credits" ? `Subscribing takes ${credits.toLocaleString("en-US")} credits.` : paid.error };
+  if (!paid.ok) return { ok: false, status: 409, error: paid.error === "the payer does not have the credits" ? `Subscribing takes ${credits.toLocaleString("en-US")} credits. Subscribe to fewer units, or sell goods to raise the credits first.` : paid.error, ...(paid.error === "the payer does not have the credits" ? { code: "insufficient-credits" } : {}) }; // AB#4824 (ISP-6)
   series.subscriptions = n;
   series.sold += units;
   series.playerUnits += units;

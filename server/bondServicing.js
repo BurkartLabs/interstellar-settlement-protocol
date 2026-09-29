@@ -114,8 +114,9 @@ const listeners = new Set();
 /** Register a default-recovery listener (ISP-286): called with ({ series, owed, now }) when a series defaults. */
 export function onBondDefault(listener) { listeners.add(listener); return () => listeners.delete(listener); }
 
-function tell(accountId, title, body) {
-  const n = addAccountNotification(accountId, { type: "finance", title, body });
+// ISP-255 (AB#4824): every bond notice is the Bank's (its Bond Board), with the guide's phrase for what happened
+function tell(accountId, title, body, meaning) {
+  const n = addAccountNotification(accountId, { type: "finance", title, body, protocol: { meaning, screen: "building-deep-space-development-bank" } });
   if (n) emitToAccount(accountId, "notifications:new", { accountId, notification: n });
 }
 
@@ -212,13 +213,13 @@ export function bondServicingTick(now) {
     serviced = true;
     const name = `${s.quantity.toLocaleString("en-US")}-unit bond series at ${s.couponPct30}%`;
     if (r.missed && before === "live") {
-      tell(s.issuerAccountId, "Bond payment missed", `A payment on your ${name} could not be made. ${s.arrears.toLocaleString("en-US")} credits are now in arrears to its holders, including a ${LATE_FEE_PCT}% late fee, and accrue penalty interest until paid. After ${DEFAULT_AFTER_DAYS} days the series defaults.`);
+      tell(s.issuerAccountId, "Bond payment missed", `A payment on your ${name} could not be made. ${s.arrears.toLocaleString("en-US")} credits are now in arrears to its holders, including a ${LATE_FEE_PCT}% late fee, and accrue penalty interest until paid. After ${DEFAULT_AFTER_DAYS} days the series defaults.`, "owed");
     }
     if (r.defaulted) {
-      tell(s.issuerAccountId, "Bond series in default", `Your ${name} is more than ${DEFAULT_AFTER_DAYS} days in arrears and has defaulted. What is owed to its holders will be recovered from your corporation under the ISA's default rules.`);
-      for (const h of holders) tell(h.account, "A bond you hold has defaulted", `${s.issuerName ?? "The issuer"}'s ${name} has defaulted. What is recovered is paid to holders by units.`);
+      tell(s.issuerAccountId, "Bond series in default", `Your ${name} is more than ${DEFAULT_AFTER_DAYS} days in arrears and has defaulted. What is owed to its holders will be recovered from your corporation under the ISA's default rules.`, "failed");
+      for (const h of holders) tell(h.account, "A bond you hold has defaulted", `${s.issuerName ?? "The issuer"}'s ${name} has defaulted. What is recovered is paid to holders by units.`, "failed");
     }
-    if (r.redeemed) for (const h of holders) tell(h.account, "Bond redeemed", `${s.issuerName ?? "The issuer"}'s ${name} has matured and repaid its face value to you.`);
+    if (r.redeemed) for (const h of holders) tell(h.account, "Bond redeemed", `${s.issuerName ?? "The issuer"}'s ${name} has matured and repaid its face value to you.`, "complete");
   }
   // Bug AB#4649: one write for the tick, not one per series. Each was the whole accounts store and the global state,
   // synchronously, so a tick cost the number of due series times the size of the stores (bond-servicing.test.js: up to
