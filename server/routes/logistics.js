@@ -277,7 +277,8 @@ export function registerLogisticsRoutes(app) {
     const notification = addAccountNotification(req.params.accountId, {
       type: "travel",
       title: travelInfo.travelType === "interstellar" ? "Interstellar Jump Initiated" : "Undocking — Course Set",
-      body: notifBody
+      body: notifBody,
+      protocol: { meaning: "active", screen: "travel" } // ISP-255 (AB#4831): In force until arrival
     });
     if (notification) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });

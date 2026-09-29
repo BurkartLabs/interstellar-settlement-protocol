@@ -211,7 +211,7 @@ export function dockRefusal(corp, stationId) {
   const { access, listed } = ensureStation(c).settings;
   if (access === "open" || corp?.conglomerateId === c.id) return null;
   if (access === "members-and-listed" && listed.includes(corp?.conglomerateId)) return null;
-  return `${station.name} admits ${ACCESS_TEXT[access]}, by the vote of ${c.name}'s stakeholders.`;
+  return `${station.name} admits ${ACCESS_TEXT[access]}, by the vote of ${c.name}'s stakeholders. Dock at another station in this system.`; // AB#4831 (ISP-6)
 }
 
 function settingsView(c) {

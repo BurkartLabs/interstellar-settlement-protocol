@@ -300,7 +300,8 @@ function travelTick() {
         notification = addAccountNotification(accountId, {
           type: "travel",
           title: "System Arrival",
-          body: `Your ship has arrived in the ${sysLabel} system. You are in open space — select a station to dock.`
+          body: `Your ship has arrived in the ${sysLabel} system. You are in open space — select a station to dock.`,
+          protocol: { meaning: "complete", screen: "travel" } // ISP-255 (AB#4831)
         });
         emitToAccount(accountId, "travel:arrived", { accountId, systemId: travelResult.systemId });
       } else {
@@ -309,7 +310,8 @@ function travelTick() {
           notification = addAccountNotification(accountId, {
             type: "travel",
             title: "Docking Complete",
-            body: `Your ship has arrived at ${station.name} (${station.body}, ${systemName(SYSTEMS_CATALOG, station.systemId) || "open space"}).` // AB#1336: not "SOL"
+            body: `Your ship has arrived at ${station.name} (${station.body}, ${systemName(SYSTEMS_CATALOG, station.systemId) || "open space"}).`, // AB#1336: not "SOL"
+            protocol: { meaning: "complete", screen: "travel" } // ISP-255 (AB#4831)
           });
           emitToAccount(accountId, "travel:arrived", { accountId, stationId: travelResult.stationId });
         }

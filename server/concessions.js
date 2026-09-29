@@ -126,7 +126,7 @@ export function petitionConcession(accountId, systemId, now = Date.now()) {
   if (rec.petitions.some((p) => p.state === "open" && keyOf(p.holder) === hk)) return no(409, "already-petitioned", "Your petition for this system is already under review.");
   if ((rec.cooldowns[hk] || 0) > now) return no(409, "cooldown", "Your last concession here lapsed recently; the ISA will hear a new petition after the cooldown.");
   if (!terms.holders.includes(holder.type)) return no(409, "holder-type", "The ISA grants this system's concession only to a conglomerate.");
-  if (ctl.stale) return no(503, "no-reading", "The ISA cannot read this system's control scores just now, so it hears no petition.");
+  if (ctl.stale) return no(503, "no-reading", "The ISA cannot read this system's control scores just now, so it hears no petition. Try again later.");
   if (!ctl.eligible.has(hk)) return no(409, "not-eligible", `A petition needs ${terms.concessionGrantPct}% control and a ${terms.concessionLeadRatio}x lead, on each of the last ${terms.concessionEligibleDays} days.`);
   const full = rec.holders.length >= terms.concessionsPerSystem;
   const kind = full ? "challenge" : "petition";
@@ -432,7 +432,7 @@ export function concessionStatusFor(accountId, systemId, now = Date.now()) {
   else if (open) refusal = "Your petition is under review.";
   else if ((rec?.cooldowns?.[hk] || 0) > now) refusal = "Your last concession here lapsed recently; the ISA will hear a new petition after the cooldown.";
   else if (!terms.holders.includes(holder.type)) refusal = "The ISA grants this system's concession only to a conglomerate.";
-  else if (ctl.stale) refusal = "The ISA cannot read this system's control scores just now.";
+  else if (ctl.stale) refusal = "The ISA cannot read this system's control scores just now. Try again later.";
   else if (!ctl.eligible.has(hk)) refusal = `A petition needs ${terms.concessionGrantPct}% control and a ${terms.concessionLeadRatio}x lead on each of the last ${terms.concessionEligibleDays} days.`;
   else if (!base.docked) refusal = "A petition is filed at this system's ISA Claims & Leases: travel here first.";
   const full = (rec?.holders.length || 0) >= terms.concessionsPerSystem;
