@@ -208,9 +208,11 @@ function closeSeries(series, now) {
 /**
  * Subscribe to `units` of a series at face: { ok: true, series, units, paid } or { ok: false, status, error }.
  * Refused, with nothing moved: the issuer itself, a closed window (even before the tick closes it), more units than
- * are left, or credits that do not cover it. Filling the series closes it.
+ * are left, more than a holder may own (Bug #4799, below), or credits that do not cover it. Filling the series closes it.
+ * `holderCap: false` is for tests of servicing and recovery only: it seeds a holding as a series subscribed before the
+ * cap could have one, which servicing must still pay. No route passes it (server/routes/bonds.js).
  */
-export function subscribeBond(accountId, { seriesId, units } = {}, now = Date.now()) {
+export function subscribeBond(accountId, { seriesId, units } = {}, now = Date.now(), { holderCap = true } = {}) {
   const series = seriesById(seriesId);
   if (!series) return { ok: false, status: 404, error: "No such bond series." };
   if (series.issuerAccountId === accountId) return { ok: false, status: 409, error: "A corporation cannot subscribe to its own bonds." };
@@ -221,6 +223,8 @@ export function subscribeBond(accountId, { seriesId, units } = {}, now = Date.no
   if (!getAccountById(accountId)?.state?.corp) return { ok: false, status: 404, error: "No such corporation." };
   const held = recoveryHold(getAccountById(accountId).state.corp); // ISP-286 (AB#993): no value out in the grace period
   if (held) return { ok: false, status: 409, error: held };
+  const capped = holderCap ? holderCapRefusal(accountId, series, units) : null;
+  if (capped) return { ok: false, status: 409, error: capped, code: "holder-cap" };
 
   const credits = units * series.faceValue;
   const n = series.subscriptions + 1;
@@ -233,6 +237,35 @@ export function subscribeBond(accountId, { seriesId, units } = {}, now = Date.no
   if (series.sold === series.quantity) closeSeries(series, now);
   else saveAccountsNow();
   return { ok: true, series, units, paid: credits };
+}
+
+/**
+ * Bug #4799: what one holder may own, so a second account cannot take a series whole and book its coupons as income
+ * that lifts its credit rating (design section 11). Two limits, as the design's siblings have them:
+ *   - holderCapPct (20%) of a series' units, as equity caps a holder at 20% of shares outstanding;
+ *   - pairCapFace (100,000) of one issuer's bonds at face, across its series not yet redeemed or lapsed, as the loan
+ *     board caps a pair at 100,000 of principal: the issuer sets a series' size and may issue again as soon as one
+ *     closes, so a share of each series alone would not bound what moves between two corporations.
+ * The refusal says how many more units the holder may take. Null when the subscription fits both.
+ */
+function holderCapRefusal(accountId, series, units) {
+  const holdings = getAccountById(accountId)?.state?.corp?.bondHoldings || [];
+  const inSeries = Number(holdings.find((h) => h.seriesId === series.id)?.units) || 0;
+  const seriesCap = Math.floor((series.quantity * BOND_TERMS.holderCapPct) / 100);
+  if (inSeries + units > seriesCap) {
+    const more = Math.max(0, seriesCap - inSeries);
+    return `No holder may own more than ${BOND_TERMS.holderCapPct}% of a series (${seriesCap} of its ${series.quantity} units): you may subscribe to at most ${more} more.`;
+  }
+  let face = 0;
+  for (const h of holdings) {
+    const s = seriesById(h.seriesId);
+    if (s && s.issuerAccountId === series.issuerAccountId && s.state !== "redeemed" && s.state !== "lapsed") face += (Number(h.units) || 0) * s.faceValue;
+  }
+  if (face + units * series.faceValue > BOND_TERMS.pairCapFace) {
+    const more = Math.max(0, Math.floor((BOND_TERMS.pairCapFace - face) / series.faceValue));
+    return `No holder may own more than ${BOND_TERMS.pairCapFace.toLocaleString("en-US")} credits of one issuer's bonds at face: you may subscribe to at most ${more} more.`;
+  }
+  return null;
 }
 
 /** The window tick: close every series whose window has ended. `now` is passed in (the server passes Date.now()). */

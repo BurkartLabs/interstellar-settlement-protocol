@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { getAccountById, mutateAccountState, getStatements } from "../../server/gameState.js";
-import { bondSeriesList } from "../../server/bonds.js";
+import { bondSeriesList, subscribeBond } from "../../server/bonds.js";
 import { bondServicingTick } from "../../server/bondServicing.js";
 import { couponSchedule } from "../../server/bondTerms.js";
 import { ledgerEntries } from "../../server/settlement.js";
@@ -84,10 +84,10 @@ describe("ISP-156 the board", () => {
     expect(open).toMatchObject({ issuerName: issuer.corp().corporationName, left: 30, couponPct30: 5.25, grade: s.grade });
     expect(open).not.toHaveProperty("issuerAccountId");
 
-    await holder.api.post(`/api/accounts/${holder.id}/bonds/${s.id}/subscribe`).send({ units: 17 });
+    subscribeBond(holder.id, { seriesId: s.id, units: 17 }, Date.now(), { holderCap: false }); // Bug #4799: a pre-cap holding
     const pending = (await holder.board()).holdings.find((h) => h.series.id === s.id);
     expect(pending).toMatchObject({ units: 17, next: null, value: 15_300 });
-    await other.api.post(`/api/accounts/${other.id}/bonds/${s.id}/subscribe`).send({ units: 13 }); // fills and closes it
+    subscribeBond(other.id, { seriesId: s.id, units: 13 }, Date.now(), { holderCap: false }); // fills and closes it
 
     const held = (await holder.board()).holdings.find((h) => h.series.id === s.id);
     const series = bondSeriesList().find((x) => x.id === s.id);

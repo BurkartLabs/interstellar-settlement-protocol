@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { getAccountById, mutateAccountState, getStatements, listAccountNotifications } from "../../server/gameState.js";
-import { bondSeriesList, bondsIssuedBy, bondWindowTick } from "../../server/bonds.js";
+import { bondSeriesList, bondsIssuedBy, bondWindowTick, subscribeBond } from "../../server/bonds.js";
 import { bondServicingTick, bondHoldingsValue, couponTotal, onBondDefault, splitProRata, LATE_FEE_PCT } from "../../server/bondServicing.js";
 import { ledgerEntries, settlementTotals } from "../../server/settlement.js";
 import { computeCreditRating } from "../../server/creditRating.js";
@@ -42,7 +42,8 @@ async function soldSeries(maturityDays = 30) {
   const holders = [];
   for (const units of UNITS) {
     const h = await corporation({ level: 1, credits: 50_000 });
-    expect((await h.api.post(`/api/accounts/${h.id}/bonds/${r.body.series.id}/subscribe`).send({ units })).status).toBe(200);
+    // Bug #4799: 21 of 53 is over today's 20% cap; a series subscribed before the cap can hold it, and is still serviced
+    expect(subscribeBond(h.id, { seriesId: r.body.series.id, units }, Date.now(), { holderCap: false }).ok).toBe(true);
     holders.push({ ...h, units });
   }
   const series = bondSeriesList().find((s) => s.id === r.body.series.id);
