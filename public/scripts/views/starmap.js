@@ -219,7 +219,7 @@ async function sendHunt(beltKey, fleetId) {
     const wait = Math.max(0, Number(answer.hunt?.endsAt) - Date.now()) + 6_000; // the server's hunt ticker runs every 5 s
     setTimeout(async () => { await refreshFromServer(); loadRatsActivity(); starmap.rerender(); }, wait);
   } catch (err) {
-    starmap.setBeltNotice({ beltKey, message: err.message || "The hunt could not be sent." });
+    starmap.setBeltNotice({ beltKey, message: err.message || "The hunt could not be sent.", protocol: { meaning: refusalMeaning(err), screen: "starmap" } }); // ISP-255d (AB#4826)
     loadHuntPreview(beltKey);
   }
 }
@@ -230,7 +230,7 @@ async function loadHuntPreview(beltKey) {
     starmap.setHuntPreview(beltKey, await parseJsonResponse(await apiFetch(`${account()}/belts/${encodeURIComponent(beltKey)}/hunt`)));
   } catch (err) {
     starmap.setHuntPreview(beltKey, null);
-    starmap.setBeltNotice({ beltKey, message: err.message || "The hunt screen could not be read." });
+    starmap.setBeltNotice({ beltKey, message: err.message || "The hunt screen could not be read.", protocol: { meaning: "failed", screen: "starmap" } }); // ISP-255d (AB#4826)
   }
 }
 export async function loadDominanceIntoStarmap() {
