@@ -6,6 +6,7 @@
 // (raidView.js battleTablesHtml). Pure, so it loads in node: views/starmap.js fetches and binds, starmap.js draws.
 // Every figure is the server's; nothing here computes a chance, a fight or a bounty.
 import { escapeHtml } from "./html.js";
+import { protocolLineHtml } from "./protocol.js"; // ISP-255d (AB#4826)
 import { utcTime } from "./timeFormat.js";
 import { unitsText } from "./fleetView.js";
 import { battleTablesHtml } from "./raidView.js";
@@ -60,14 +61,17 @@ export function systemRatsHtml(reading, { catalog = [] } = {}) {
   </div>`;
 }
 
+/** ISP-255d (AB#4826): a hunt's protocol line; hunts are planned and reported on the Starmap. */
+const onMap = (meaning) => protocolLineHtml({ meaning, screen: "starmap" });
+
 /** The belt panel's Rats section: its chance now, a quiet period, a hunt under way, and the button to plan one. */
 export function beltRatsHtml({ beltKey, reading, quiet = null, hunting = [], catalog = [], open = false }) {
   const chance = quiet ? reading?.quietBelts?.find((q) => q.beltKey === beltKey)?.chance : reading?.chance;
-  const under = hunting.map((h) => `<li data-hunt-underway="${escapeHtml(h.fleetId)}">${escapeHtml(h.fleetName || h.fleetId)} is hunting here: back ${escapeHtml(utc(h.endsAt))}.</li>`).join("");
+  const under = hunting.map((h) => `<li data-hunt-underway="${escapeHtml(h.fleetId)}">${escapeHtml(h.fleetName || h.fleetId)} is hunting here: back ${escapeHtml(utc(h.endsAt))}. ${onMap("active")}</li>`).join("");
   return `<section class="ui-stack" data-belt-rats="${escapeHtml(beltKey)}">
     <h4 class="starmap__subhead">Rats in this belt</h4>
     ${reading ? `<p class="ui-panel__meta">An hour-long probe with no escort meets them <strong>${pct(chance)}</strong> of the time${reading.group ? `; each group is ${escapeHtml(unitsText(reading.group, catalog))}` : ""}.</p>` : `<p class="ui-panel__meta">Reading the Rats' activity from the ISA...</p>`}
-    ${quiet ? `<p class="ui-panel__meta" data-belt-quiet>Quiet: a hunt cleared this belt. Its Rats regrow at ${escapeHtml(utc(quiet.until))}.</p>` : ""}
+    ${quiet ? `<p class="ui-panel__meta" data-belt-quiet>Quiet: a hunt cleared this belt. Its Rats regrow at ${escapeHtml(utc(quiet.until))}. ${onMap("active")}</p>` : ""}
     ${under ? `<ul class="ui-panel__meta">${under}</ul>` : ""}
     ${quiet || open ? "" : `<div><button id="hunt-open-btn" class="ui-button ui-button--secondary" type="button">Hunt the Rats</button></div>`}
     <div id="hunt-panel" data-hunt-panel></div>
@@ -121,6 +125,7 @@ export function huntReportHtml(report, { catalog = [], systemName = "" } = {}) {
     : `The fleet fought the Rats at ${escapeHtml(where)}, ${escapeHtml(utc(report.resolvedAt))}.`;
   return `<article class="raid-report" data-hunt-report="${escapeHtml(report.id)}" aria-label="Hunt report">
     <h4 class="raid-report__title">${RESULT[report.outcome] || report.outcome}</h4>
+    ${onMap(report.outcome === "attacker" ? "complete" : "failed")}
     <p>${lead}</p>
     <dl class="raid-terms">
       <div><dt>Bounty</dt><dd>${report.bounty ? cr(report.bounty) : "none"}</dd></div>

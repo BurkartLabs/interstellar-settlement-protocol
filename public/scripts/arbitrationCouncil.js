@@ -8,6 +8,7 @@
 // for a respondent, the ruling in the Council's words), and the public docket. Times are UTC in the ISA's year (the
 // real year + 121, BUREAUCRATIC_UI.md), each a <time> with the real instant, until ISP-249's one formatter replaces this.
 import { escapeHtml, refHtml } from "./html.js";
+import { PROTOCOL, protocolLineHtml } from "./protocol.js"; // ISP-255d (AB#4826)
 import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 import { timeHtml } from "./timeFormat.js"; // ISP-249 (AB#945)
 
@@ -42,13 +43,21 @@ export const CLAIMS = [
 ];
 const claim = (type) => CLAIMS.find((c) => c.id === type) || { title: type, rule: "" };
 
-/** A case's state in the plain word and the protocol phrase (BUREAUCRATIC_UI.md, Status vocabulary). */
+/**
+ * A case's state (BUREAUCRATIC_UI.md, Status vocabulary): the plain word, its meaning in the guide's table (drawn by
+ * protocolLineHtml, ISP-255d, AB#4826), the detail the record adds (when it is ruled, what is paid), and the whole
+ * protocol sentence, "Filed, awaiting review; ruled …".
+ */
 export function caseStatus(c, now = Date.now()) {
-  if (c.state === "answering") return { plain: "Pending", protocol: `Filed, awaiting review; ruled ${c.decideAt ? isaTime(c.decideAt) : "after the window"}`, tone: "" };
-  if (c.state === "enforcing") return { plain: "Active", protocol: `In force; award being collected, ${cr(c.paid)} of ${cr(c.ruling?.amount)} paid`, tone: "ui-badge--warn" };
-  if (c.state === "ruled") return { plain: "Active", protocol: "Ruled", tone: "" };
-  return { plain: "Complete", protocol: `Concluded${c.ruling?.at ? ` ${isaTime(c.ruling.at)}` : ""}`, tone: "ui-badge--success" };
+  const of = (plain, meaning, detail, tone) => ({ plain, meaning, detail, tone, protocol: `${PROTOCOL[meaning]}${detail ? `; ${detail}` : ""}` });
+  if (c.state === "answering") return of("Pending", "pending", `ruling due ${c.decideAt ? isaTime(c.decideAt) : "after the window"}`, ""); // a time to come
+  if (c.state === "enforcing") return of("Active", "active", `award being collected, ${cr(c.paid)} of ${cr(c.ruling?.amount)} paid`, "ui-badge--warn");
+  if (c.state === "ruled") return of("Active", "active", "ruled", "");
+  return of("Complete", "complete", c.ruling?.at ? `ruled ${isaTime(c.ruling.at)}` : "", "ui-badge--success");
 }
+/** ISP-255d (AB#4826): the status badge and its protocol line, on the Council's screen. */
+const statusHtml = (s) => `<span class="ui-badge ${s.tone}">${s.plain}</span> ${protocolLineHtml({ meaning: s.meaning, screen: "building-galactic-arbitration-council" })}`;
+const sentence = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 const OUTCOME = { upheld: ["Upheld", "ui-badge--success"], dismissed: ["Dismissed", ""], cured: ["Cured", "ui-badge--success"] };
 const outcomeBadge = (r) => (r && OUTCOME[r.outcome] ? `<span class="ui-badge ${OUTCOME[r.outcome][1]}">${OUTCOME[r.outcome][0]}${r.amount > 0 ? `: ${cr(r.amount)}` : r.order ? `: ${escapeHtml(r.order)}` : ""}</span>` : "");
 const dl = (rows) => `<dl class="gac-terms">${rows.filter(Boolean).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`;
@@ -179,7 +188,7 @@ export function filingHtml(state, ctx = {}) {
     ${typeStep(state)}
     ${recordStep(state, ctx)}
     ${previewStep(state, ctx)}
-    <p class="gac-status" data-role="gac-status" role="status" aria-live="polite">${state.status ? escapeHtml(state.status) : ""}</p>
+    <p class="gac-status" data-role="gac-status" role="status" aria-live="polite">${state.status ? escapeHtml(state.status) : ""}${state.status && state.statusMeaning ? ` ${protocolLineHtml({ meaning: state.statusMeaning, screen: "building-galactic-arbitration-council" })}` : ""}</p>
   </section>`;
 }
 
@@ -195,10 +204,10 @@ export function caseHtml(c, ctx = {}) {
       <summary class="gac-case__summary">
         ${refHtml(c.ref)}
         <span class="gac-case__title">${escapeHtml(claim(c.type).title)}: ${escapeHtml(c.claimant.name)} v. ${escapeHtml(c.respondent.name)}</span>
-        <span><span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</span>
+        <span>${statusHtml(s)} ${outcomeBadge(c.ruling)}</span>
       </summary>
       <div class="gac-case__body">
-        <p class="ui-protocol">${s.protocol}.</p>
+        ${s.detail ? `<p class="ui-protocol">${sentence(s.detail)}.</p>` : ""}
         ${dl([
           ["You are", ctx.isMe?.(c.claimant) ? "the claimant" : respondent ? "the respondent" : "a party"],
           ["Filed", isaTime(c.filedAt)],
@@ -231,7 +240,7 @@ export function docketHtml(cases, ctx = {}) {
   const rows = cases.map((c) => {
     const s = caseStatus(c, now);
     return `<li class="gac-docket__row" data-gac-docket="${escapeHtml(c.ref)}">
-      <p class="gac-docket__head">${refHtml(c.ref)} <span class="ui-badge ${s.tone}">${s.plain}</span> ${outcomeBadge(c.ruling)}</p>
+      <p class="gac-docket__head">${refHtml(c.ref)} ${statusHtml(s)} ${outcomeBadge(c.ruling)}</p>
       <p>${escapeHtml(claim(c.type).title)}: ${escapeHtml(c.claimant)} v. ${escapeHtml(c.respondent)}</p>
       <p class="gac-docket__meta">Filed ${isaTime(c.filedAt)}${c.amountClaimed > 0 ? ` · claimed ${cr(c.amountClaimed)}` : ""}${c.state === "enforcing" ? ` · ${cr(c.paid)} paid` : ""}</p>
     </li>`;

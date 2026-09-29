@@ -8,6 +8,7 @@
     "bench:ticks": "node scripts/bench-ticks.mjs",
     "bench:messaging": "node scripts/bench-messaging.mjs",
     "bench:forums": "node scripts/bench-forums.mjs",
+    "telemetry:d3": "node scripts/telemetry-d3.mjs",
     "load:test": "node scripts/load-test.mjs",
     "audit:csp": "node scripts/csp-audit.mjs",
     "dev": "node --watch-path=./server --watch-path=./public server/index.js",

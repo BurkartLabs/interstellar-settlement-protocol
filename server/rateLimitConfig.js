@@ -66,6 +66,12 @@ export const MUTATION_GROUPS = [
     address: { windowMs: 60_000, productionDefault: 60 }
   },
   {
+    name: "telemetry", // ISP-256 (AB#952): the page's minimum events, at most 20 a request; open to anyone, so per address only
+    paths: [/^\/api\/telemetry$/],
+    account: null,
+    address: { windowMs: 60_000, productionDefault: 30 }
+  },
+  {
     name: "default", // every other mutating route, signing in included (its own ISP-64 limits still apply first)
     paths: [],
     account: null, // AB#734's account-action bucket

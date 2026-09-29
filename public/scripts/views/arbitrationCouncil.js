@@ -10,6 +10,11 @@ import { deepClone } from "../helpers.js";
 import { CLAIMS, chambersHtml } from "../arbitrationCouncil.js";
 import { appState, techTree } from "../state.js";
 import { formatSystemLabel, pushFeedback, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { refusalMeaning } from "../protocol.js"; // ISP-255d (AB#4826)
+
+/** ISP-255d (AB#4826): the Council refuses for want of credits with its own code, cannot-pay; any other refusal is Denied. */
+const councilRefusal = (error) => (error?.code === "cannot-pay" ? "unfunded" : refusalMeaning(error));
+const onCouncil = (meaning) => ({ meaning, screen: "building-galactic-arbitration-council" });
 
 const json = { "Content-Type": "application/json" };
 const chambers = { accountId: null, target: null, header: "", cases: null, docket: null, error: null, open: null, state: { type: null, records: null, recordId: null, preview: null, previewError: null, status: "" } };
@@ -57,6 +62,7 @@ async function chooseType(type) {
   } catch (error) {
     chambers.state.records = [];
     chambers.state.status = error?.message || "Your records could not be read.";
+    chambers.state.statusMeaning = "failed"; // ISP-255d (AB#4826)
   }
   if (chambers.state.type === type) draw();
 }
@@ -101,13 +107,14 @@ async function file() {
   if (button) button.disabled = true;
   try {
     const res = await parseJsonResponse(await apiFetch(`${acct()}/arbitration/cases`, { method: "POST", headers: json, body: JSON.stringify({ type: p.type, recordId: chambers.state.recordId }) }));
-    pushFeedback(`${res.case.ref}: case filed against ${res.case.respondent.name}.`, "ok");
+    pushFeedback(`${res.case.ref}: case filed against ${res.case.respondent.name}.`, "ok", onCouncil("pending"));
     chambers.open = res.case.ref;
-    Object.assign(chambers.state, { type: null, records: null, recordId: null, preview: null, previewError: null, status: `${res.case.ref} is filed. The respondent has been notified.` });
+    Object.assign(chambers.state, { type: null, records: null, recordId: null, preview: null, previewError: null, status: `${res.case.ref} is filed. The respondent has been notified.`, statusMeaning: "pending" });
     await Promise.all([loadRegistry(), refreshAccount()]);
   } catch (error) {
     if (button) button.disabled = false;
     chambers.state.status = error?.message || "The Council refused the filing.";
+    chambers.state.statusMeaning = councilRefusal(error);
     draw();
   }
 }
@@ -127,10 +134,10 @@ async function cure(ref) {
   if (!ok) return;
   try {
     await parseJsonResponse(await apiFetch(`${acct()}/arbitration/cases/${encodeURIComponent(ref)}/cure`, { method: "POST", headers: json, body: "{}" }));
-    pushFeedback(`${ref}: cured.`, "ok");
+    pushFeedback(`${ref}: cured.`, "ok", onCouncil("complete"));
     await Promise.all([loadRegistry(), refreshAccount()]);
   } catch (error) {
-    pushFeedback(error?.message || "The cure was refused.", "warn");
+    pushFeedback(error?.message || "The cure was refused.", "warn", onCouncil(councilRefusal(error)));
   }
 }
 

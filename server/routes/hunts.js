@@ -15,7 +15,7 @@ const str = (v) => (typeof v === "string" ? v : "");
 export function registerHuntRoutes(app) {
   app.post("/api/accounts/:accountId/gameplay/fleets/:fleetId/hunt", (req, res) => {
     const result = declareHunt(req.params.accountId, { fleetId: str(req.params.fleetId), beltKey: str(req.body?.beltKey) });
-    if (!result?.ok) { res.status(result?.status || 400).json({ error: result?.error || "The hunt could not be declared." }); return; }
+    if (!result?.ok) { res.status(result?.status || 400).json({ error: result?.error || "The hunt could not be declared.", ...(result?.code ? { code: result.code } : {}) }); return; } // ISP-255d (AB#4826)
     // ISP-285 (AB#992): the account as it is now, and the receipt the page shows (AB#744)
     const account = getAccountById(req.params.accountId);
     const fleet = (account?.state?.corp?.military?.fleets || []).find((f) => f.id === result.hunt.fleetId);

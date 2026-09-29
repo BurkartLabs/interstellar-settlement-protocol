@@ -9,6 +9,7 @@
 // backdrop takes no pointer events), so the player's next action is never spent dismissing this one. A second answer
 // while it is open replaces the first rather than stacking.
 import { actionReceiptView } from "../actionReceipt.js";
+import { noteVerb } from "../telemetry.js"; // ISP-256 (AB#952)
 
 const modal = document.getElementById("action-receipt-modal");
 const headingEl = document.getElementById("action-receipt-heading");
@@ -64,6 +65,7 @@ if (modal) {
 export function showActionReceipt(answer, { returnFocusTo = null } = {}) {
   const view = actionReceiptView(answer);
   if (!view || !modal) return false;
+  if (answer?.receipt) noteVerb(); // ISP-256 (AB#952): a committing action succeeded (an Allocate, the Brief's verb): verb_first, then verb_repeat
   headingEl.textContent = view.heading;
   titleEl.textContent = view.title;
   bodyEl.innerHTML = view.bodyHtml;
