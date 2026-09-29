@@ -2574,8 +2574,9 @@ body.sg {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.ui-input[aria-invalid="true"],
-.ui-select[aria-invalid="true"] {
+/* Bug #4861: as specific as the hover rule above, so an invalid field under the pointer stays marked invalid */
+.ui-input[aria-invalid="true"]:not(:disabled),
+.ui-select[aria-invalid="true"]:not(:disabled) {
   border-color: var(--danger);
 }
 
