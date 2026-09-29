@@ -5,11 +5,10 @@ import { unrecoveredItemsHtml } from "./researchLinks.js"; // AB#885: a gated sh
 import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 import { PLANET_IMAGE_PATHS } from "./planetImages.js";
-import { protocolLineHtml } from "./protocol.js"; // ISP-254 Bd (AB#4819)
+import { protocolLineHtml, refusalMeaning } from "./protocol.js"; // ISP-254 Bd (AB#4819); refusalMeaning: ISP-255 (AB#951)
 import { officeLeaseCost } from "./ceoEffects.js"; // Bug #2340: the one office rate (Bug #1032)
 import { isMemberStation, memberOfficeCost } from "./memberRates.js"; // ISP-212 (AB#907)
 import { isConglomerateStation, isNeutralStation } from "./stationMarkers.js";
-import { protocolLineHtml, refusalMeaning } from "./protocol.js"; // ISP-255 (AB#951)
 import { concentrationBand, concentrationLegendHtml, concentrationRows, concentrationText, overlayItems, systemConcentration, bodyConcentration } from "./resourceOverlay.js"; // ISP-143 (AB#837)
 import { tariffPanelHtml } from "./tariffPanel.js"; // ISP-231 (AB#926)
 import { STARMAP_OVERLAYS, overlayColor, fieldOverlayLegendHtml } from "./fieldOverlay.js"; // Bug AB#4745
