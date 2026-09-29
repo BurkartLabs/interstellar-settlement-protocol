@@ -39,7 +39,7 @@ describe("the tables that stack at phone width (AB#1055)", () => {
   it("the Exchange tables with an action in every row are design-system tables, cards below 768px (ISP-80, AB#769)", () => {
     for (const body of ["exchange-buy-table", "market-sell-grid", "npc-buy-table", "my-sell-orders-table"]) {
       const table = html.slice(html.lastIndexOf("<table", html.indexOf(`id="${body}"`)), html.indexOf(`id="${body}"`));
-      expect(table, body).toMatch(/^<table class="ui-table">/);
+      expect(table, body).toMatch(/^<table class="ui-table( exchange__standing-table)?">/); // Bug #4870's compact card
     }
   });
   it("are stacked only inside the phone block", () => {
