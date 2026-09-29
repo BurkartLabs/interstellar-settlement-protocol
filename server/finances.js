@@ -104,7 +104,8 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "tariff-revenue", // ISP-230 (AB#925): a concession holder's tariffs, less the ISA's levy, paid daily
     "patent-royalty-revenue", // ISP-236 (AB#931): royalties others paid on the corporation's patents
     "arbitration-award-received", // ISP-242 (AB#938): an arbitration award: from escrow, ISA-held income, a cure or a withheld Council debt
-    "bounty-received" // ISP-284 (AB#991): the ISA's bounty for a won Rat hunt
+    "bounty-received", // ISP-284 (AB#991): the ISA's bounty for a won Rat hunt
+    "exchange-above-value" // Bug #4882: what a player paid for goods above the ISA's own ask: a transfer, financing, not profit
   ]),
   expense: Object.freeze([
     "hiring",
@@ -222,7 +223,8 @@ export const FINANCING_CATEGORIES = Object.freeze([
   "loan-disbursal-received", "loan-disbursal-paid", "loan-repayment-received", "loan-repayment-paid",
   "bond-subscription-received", "bond-subscription-paid", "bond-redemption-received", "bond-redemption-paid",
   "bond-sale-received", "bond-sale-paid", "share-purchase-received", "share-purchase-paid",
-  "escrow-hold-paid", "escrow-release-received", "dividend-paid"
+  "escrow-hold-paid", "escrow-release-received", "dividend-paid",
+  "exchange-above-value" // Bug #4882: a sale's price above the ISA's own ask moves credits, not goods, so it is no revenue
 ]);
 const operating = (o) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => !FINANCING_CATEGORIES.includes(k)));
 
