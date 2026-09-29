@@ -16,6 +16,7 @@ export const PUBLIC_ROUTES = {
   "GET /healthz": "the container platform's health probe (AB#735)",
   "GET /how-to-start": "the playtest briefing, a static page for people who have not registered yet (AB#748)",
   "GET /api/bootstrap": "the global game state shown before login",
+  "POST /api/telemetry": "the page's minimum telemetry (ISP-256, AB#952): an event names no account, so none is asked for; only the listed events, 20 and 8 KB a request, its own rate-limit group, no address stored (SECURITY.md, Telemetry)",
   "GET /api/stations": "a static catalog",
   "GET /api/systems": "a static catalog (ISP-112, AB#804)",
   "GET /api/section-codes": "the document-code registry, ids and codes only, for every page's headers (ISP-248, AB#944)",

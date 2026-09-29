@@ -1,8 +1,8 @@
 // ISP-256 (AB#952): every minimum event fires at its trigger in a real session and is stored by the server, with no
 // account id, email or address in any row. A fresh corporation logs in (app_open), opens the briefing and steps once
 // (funnel_step), rents an office and hires five (verb_first, verb_repeat, and rank_up as it reaches level 1), the
-// page throws once (error), and the page is left (session_end, sent as a beacon). The stored rows are written to
-// e2e/screenshots/telemetry-rows.jsonl for the pull request.
+// page throws once (error), and the page is left (session_end, sent as a beacon). The stored rows are printed and
+// attached to the test's result, for the pull request.
 //
 // Run: `npx playwright test e2e/telemetry.spec.js` (it starts its own server).
 import { test, expect } from "@playwright/test";
@@ -16,8 +16,6 @@ import { acknowledgeReceipt } from "./receipt.mjs";
 import { verificationToken } from "./verification.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
-fs.mkdirSync(SCREEN_DIR, { recursive: true });
 const PASSWORD = "playtest-password-not-real";
 const SECRET = "telemetry-e2e-fixture-secret-0123456789abcd";
 
@@ -83,7 +81,9 @@ test("every minimum event fires at its trigger and is stored without an account,
     await expect.poll(() => storedRows(dir).some((r) => r.event === "session_end"), { timeout: 15_000 }).toBe(true);
 
     const rows = storedRows(dir);
-    fs.writeFileSync(path.join(SCREEN_DIR, "telemetry-rows.jsonl"), rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
+    const jsonl = rows.map((r) => JSON.stringify(r)).join("\n");
+    console.log(`[telemetry rows]\n${jsonl}\n[end telemetry rows]`);
+    await test.info().attach("telemetry-rows.jsonl", { body: jsonl, contentType: "application/x-ndjson" });
     const of = (name) => rows.filter((r) => r.event === name);
     expect(of("app_open")[0]).toMatchObject({ props: { source: "login" }, platform: "web-desktop" });
     expect(of("funnel_step").map((r) => r.props.step)).toEqual(expect.arrayContaining(["licence"]));
