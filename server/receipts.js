@@ -126,6 +126,17 @@ export function upgradeReceipt({ name, tier, cost, assetValue, offlineUntil, eff
   });
 }
 
+/** ISP-287 (AB#994): a building a raid damaged, repaired to full condition. */
+export function repairReceipt({ name, before, cost }) {
+  return receipt("repair-building", {
+    title: "Building Repaired",
+    summary: `${name}, from condition ${before} to 100.`,
+    costCredits: cost,
+    grants: [{ label: "Output", value: `back to full (it ran at ${Math.round(before)}% while damaged)` }],
+    next: "It works at full output from now on."
+  });
+}
+
 export function startMiningReceipt({ extractorName, cost, hours, throughputPerHour, operationCostPerHour, endsAt }) {
   return receipt("start-mining", {
     title: "Mining Cycle Started",

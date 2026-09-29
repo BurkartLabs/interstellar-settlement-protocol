@@ -139,7 +139,7 @@ export function battleReportHtml(report, { catalog = [] } = {}) {
     ${lootRows.length ? `<ul>${lootRows.map(([item, q]) => `<li>${n(q).toLocaleString("en-US")} ${escapeHtml(item)}</li>`).join("")}</ul>` : "<p>None. Credits are never taken.</p>"}
     <h5>Buildings</h5>
     ${damage.length ? `<ul>${damage.map((b) => mine === "defender"
-      ? `<li>${escapeHtml(b.name)}: condition ${b.before} to ${b.after}; repair ${cr(b.repairCost ?? 0)} (repairs open with ISP-287)</li>`
+      ? `<li>${escapeHtml(b.name)}: condition ${b.before} to ${b.after}; repair ${cr(b.repairCost ?? 0)}, at the Station's Damaged Buildings</li>`
       : `<li>${escapeHtml(b.name)}: ${b.points} condition points</li>`).join("")}</ul>` : "<p>No building was damaged.</p>"}
   </article>`;
 }

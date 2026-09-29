@@ -40,13 +40,14 @@ export const REASONS = Object.freeze([
   "bond-sale", // Bug #2574: a bond holding sold, in default recovery to the NPC underwriter at 90% of face
   "arbitration-award", // ISP-242 (AB#938): an upheld or cured case's award, from the respondent or the contract's escrow
   "arbitration-fee", // ISP-242 (AB#938): a dismissed case's filing fee, from its escrow to the fee sink
-  "bounty" // ISP-284 (AB#991): the ISA's bounty for a won Rat hunt, from its tap
+  "bounty", // ISP-284 (AB#991): the ISA's bounty for a won Rat hunt, from its tap
+  "repair" // ISP-287 (AB#994): repairing a building a raid damaged, paid into the fee sink
 ]);
 
 /** The named sinks: credits paid into one leave the money supply, counted. */
 export const SINKS = Object.freeze(["fee", "loan-interest"]);
 /** Which sink each reason may pay into: a fee is never booked as interest, nor interest as a fee (AB#844). */
-const SINK_FOR = { fee: "fee", "loan-interest": "loan-interest", "arbitration-fee": "fee" };
+const SINK_FOR = { fee: "fee", "loan-interest": "loan-interest", "arbitration-fee": "fee", repair: "fee" };
 
 /** The named taps: an NPC lender's account, which creates what it pays out (AB#843: the Development Bank). */
 export const TAPS = Object.freeze(["dsdb", "igsx", "isa"]); // igsx: the Stock Exchange's market maker (ISP-158, AB#852); isa: the ISA's Rat bounties (ISP-284, AB#991)
@@ -83,7 +84,9 @@ const SHAPES = {
   "arbitration-award": [["corp", "corp"], ["escrow", "corp"]],
   "arbitration-fee": [["escrow", "sink"]],
   // ISP-284 (AB#991): a hunt's bounty is paid by the ISA from its tap, creating the credits (docs/design/rats.md section 5)
-  bounty: [["tap", "corp"]]
+  bounty: [["tap", "corp"]],
+  // ISP-287 (AB#994): a repair's price leaves the money supply (docs/design/v0.10-raids-mercenaries.md, section 3)
+  repair: [["corp", "sink"]]
 };
 const shapesOf = (reason) => SHAPES[reason] ?? [["corp", "corp"]];
 

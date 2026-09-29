@@ -3,6 +3,7 @@
 import { applyCredits } from "../finances.js";
 import { ECONOMY, operationCostPerHourFor } from "../economy.js";
 import { miningEfficiency } from "../../public/scripts/miningEfficiency.js"; // ISP-98 (AB#788)
+import { outputFactorOf } from "./buildingCondition.js"; // ISP-287 (AB#994)
 import { bodyResourceProfile, getStationInventory } from "./catalog.js";
 import { canRecover } from "./researchGates.js";
 import { stationAtBody } from "./stations.js"; // ISP-209 (AB#904)
@@ -298,7 +299,9 @@ function mineSpan(corp, extractor, from, to, now) {
   const throughput = Math.max(0, Number(extractor.throughputPerHour || 0));
   // ISP-98 (AB#788): research, and a Cryo-vapor Extractor Array on the extractor's lease; one rule with the panel.
   const efficiency = miningEfficiency(corp, (corp.miningLeases || []).find((l) => l.id === extractor.leaseId), ECONOMY.buildings);
-  const projectedMined = elapsedHours * throughput * efficiency;
+  // ISP-287 (AB#994): a yard a raid damaged mines at its condition until it is repaired (an 80-condition yard mines 80%)
+  const yard = extractor.buildingId ? (corp.buildings || []).find((b) => b?.id === extractor.buildingId) : null;
+  const projectedMined = elapsedHours * throughput * efficiency * outputFactorOf(yard);
   const projectedCost = elapsedHours * Math.max(0, Number(extractor.operationCostPerHour || 0));
 
   let affordabilityRatio = 1;

@@ -33,6 +33,7 @@ import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 import { mercenaryUseAllowed, recordContractLosses } from "./mercenaries.js";
 import { buildingsAtStation } from "./raids.js";
 import { buildingCostBasis } from "./buildingRemoval.js"; // ISP-181 (AB#875): the repair price the report shows
+import { conditionOf } from "./game/buildingCondition.js"; // ISP-287 (AB#994)
 import { settleItems, itemEscrowOf } from "./itemSettlement.js";
 
 const HOUR = 3_600_000;
@@ -73,6 +74,12 @@ export function lootFor(stock, survivors) {
   const items = Object.fromEntries(valued.map((s) => [s.item, Math.floor(s.q * f)]).filter(([, q]) => q > 0));
   return { value, takeable, carried, lootValue, items };
 }
+
+/**
+ * ISP-287 (AB#994): what repairing a building to full condition costs, the price the defender's report quotes and the
+ * repair route charges: (100 - condition)% of its cost basis x repairPctOfCost%.
+ */
+export const repairCostFor = (building) => Math.round(((100 - conditionOf(building)) / 100) * buildingCostBasis(building) * (RAID_OUTCOME.repairPctOfCost / 100));
 
 /** Condition points a win takes from each building at the station: min(20, 4 x surviving siege engines). */
 export const damageFor = (survivors) => Math.min(RAID_OUTCOME.maxDamage, RAID_OUTCOME.damagePerSiegeEngine * n(survivors?.se));
@@ -220,7 +227,7 @@ export function resolveRaid(raid, now) {
         for (const b of buildingsAtStation(state.corp, raid.targetStationId)) {
           const before = Math.min(100, Math.max(RAID_OUTCOME.conditionFloor, Number(b.condition ?? 100)));
           b.condition = Math.max(RAID_OUTCOME.conditionFloor, before - points);
-          const repairCost = Math.round(((100 - b.condition) / 100) * buildingCostBasis(b) * (RAID_OUTCOME.repairPctOfCost / 100));
+          const repairCost = repairCostFor(b); // ISP-287 (AB#994): the price the repair route charges
           damage.push({ name: b.name, before, after: b.condition, repairCost });
         }
       }, { sanitize: false, settleMining: false });
