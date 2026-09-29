@@ -4,11 +4,9 @@
   "stuck": null,
   "clicks": 23,
   "fields": 7,
-  "covered": 1,
-  "coveredLog": [
-    "Back to the station: under account-data-btn"
-  ],
-  "scrolls": 1,
+  "covered": 0,
+  "coveredLog": [],
+  "scrolls": 0,
   "stages": [
     {
       "name": "landing",
@@ -97,7 +95,7 @@
       "fields": 0,
       "totalClicks": 20,
       "totalFields": 7,
-      "seconds": 4,
+      "seconds": 3,
       "walkthrough": "Equipment"
     },
     {
@@ -144,7 +142,7 @@
     {
       "event": "verb_first",
       "props": {
-        "latency_ms": 8704
+        "latency_ms": 8273
       }
     },
     {

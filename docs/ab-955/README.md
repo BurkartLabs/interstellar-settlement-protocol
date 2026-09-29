@@ -23,7 +23,7 @@ own store. The counts are per stage in `counts-*.json`, with every action listed
 | Fields, before | 7 | 7 |
 | Fields, after | 7 | 7 |
 | Controls the walkthrough left covered, before | **2** (the Offices tab under the card and the bottom nav; Back to Station under the header) | 0 |
-| Controls left covered, after | **1** (Back to Station, filed as #4860) | 0 |
+| Controls left covered, after | **0** | 0 |
 | Submits to see all four mistakes in a form with four, before | **4**: one message a submit (`register-four-mistakes-before.png` shows only the first) | same |
 | Submits, after | **1**: all four at once (`register-four-mistakes-after.png`) | same |
 
@@ -46,6 +46,11 @@ verb_first, rank_up and verb_repeat. Every walkthrough stage on the path sends i
 
 - **Bug #4858:** on a phone the walkthrough left its highlighted control under its own card and the fixed bottom nav
   after a tab opened. The cause was the tab's reveal scroll running after the walkthrough had placed the control.
+- **Bug #4860:** after hiring, at 375, Back to Station ended up under the header. The header is sticky only within its
+  container, so a scroll measured before it moved misjudged where the header would be.
+  - The walkthrough now scrolls, measures again and corrects, up to three times in one task.
+  - Its scroll is now a jump rather than smooth, so a control never slides away as the player reaches for it.
+    (e2e/walkthrough-polish's click raced the smooth scroll; revealUnderHeader already jumps.) **Board veto point.**
 - **Bug #4861:** the register form named one mistake a submit, and its first message did not say what was wrong.
   - It now names every mistake at once, each with the fix, by the server's own rules.
   - A taken email keeps its Log in link beside the field, and a taken corporation name says to choose another.
@@ -54,8 +59,6 @@ verb_first, rank_up and verb_repeat. Every walkthrough stage on the path sends i
 
 ## Filed, not fixed
 
-- **#4860:** after hiring, at 375, Back to Station ends up under the header (the header is sticky only within its
-  container).
 - **#4863:** after verifying, the player logs in again: 1 click and 2 fields. A Board call on the session rule.
 - **#4864:** four receipts to acknowledge on the path: 4 clicks. A Board call on AB#744.
 - **#4865:** the walkthrough leaves the Station group and the Offices subpage to the player: 2 clicks.

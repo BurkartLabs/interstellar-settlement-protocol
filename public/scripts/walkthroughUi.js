@@ -9,7 +9,6 @@ import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { showDialogue, closeDialogue } from "./dialogue.js";
 import { apiFetch, parseJsonResponse } from "./apiClient.js";
 import { deepClone } from "./helpers.js";
-import { scrollBehavior } from "./motion.js"; // AB#1760
 import { noteFunnelStep } from "./telemetry.js"; // ISP-256 (AB#952)
 
 // Finishing or resetting the walkthrough redraws the page and moves between tabs, which app.js owns; it hands those
@@ -171,16 +170,27 @@ function scrollWalkthroughTargetIntoView(target) {
   if (inFixedBar(target)) return;
   const card = walkthroughModal.querySelector(".modal-card");
   const header = document.querySelector(".app-header");
-  const barTops = [...document.querySelectorAll(".app-nav, .nav-group__tabs")]
-    .filter((bar) => bar.getClientRects().length && getComputedStyle(bar).position === "fixed")
-    .map((bar) => bar.getBoundingClientRect().top);
-  const delta = walkthroughScrollDelta({
-    viewportHeight: clearAreaBottom(barTops, window.innerHeight),
-    headerBottom: header ? header.getBoundingClientRect().bottom : 0,
-    card: card ? card.getBoundingClientRect() : null,
-    target: target.getBoundingClientRect()
-  });
-  if (delta) window.scrollBy({ top: delta, behavior: scrollBehavior() });
+  const deltaNow = () => {
+    const barTops = [...document.querySelectorAll(".app-nav, .nav-group__tabs")]
+      .filter((bar) => bar.getClientRects().length && getComputedStyle(bar).position === "fixed")
+      .map((bar) => bar.getBoundingClientRect().top);
+    return walkthroughScrollDelta({
+      viewportHeight: clearAreaBottom(barTops, window.innerHeight),
+      headerBottom: header ? header.getBoundingClientRect().bottom : 0,
+      card: card ? card.getBoundingClientRect() : null,
+      target: target.getBoundingClientRect()
+    });
+  };
+  // Bug #4860: the header moves with the scroll (on a phone it is sticky only within its container, so it is gone when
+  // the page is far down and back over the top when near it), so a delta measured before the scroll can land the
+  // control under it. So scroll, measure again and correct, at most three times, in one task: nothing is painted in
+  // between. The scroll is a jump, not smooth (AB#955): a control that slides while the player reaches for it gets the
+  // tap that was meant for it on whatever slid under the finger, and revealUnderHeader already jumps.
+  for (let pass = 0; pass < 3; pass++) {
+    const delta = deltaNow();
+    if (!delta) break;
+    window.scrollBy({ top: delta, behavior: "instant" });
+  }
 }
 
 /**
