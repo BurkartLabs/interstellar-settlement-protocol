@@ -657,11 +657,6 @@ export function peekCorp(accountId) {
   return accountsStore.accounts?.[accountId]?.state?.corp ?? null;
 }
 
-/** Bug #4848: the same read-only look at the whole account state, for what lives beside the corporation (its queues). */
-export function peekState(accountId) {
-  return accountsStore.accounts?.[accountId]?.state ?? null;
-}
-
 // Bug #1765: a refresh token is a bearer credential good for up to 30 days, and account.refreshTokens is
 // persisted to accounts-snapshot.json as-is. Unlike passwordHash (bcrypt, one-way), storing the token itself
 // meant a leaked snapshot handed out live, usable-as-is tokens with no cracking required. Only ever compared

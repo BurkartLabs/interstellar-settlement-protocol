@@ -7,7 +7,9 @@ import { applyAsteroidExpeditions, EXPEDITION_DURATIONS, PROBE_ASSET_VALUE } fro
 // Bug #1097: payroll is settled on this same 5-second tick, for every account, online or not.
 import { settleAccountPayroll } from "./gameState.js";
 // Bug #4848: each ticker skips an account with nothing due, read without a mutation (miningTick still settles every one)
-import { peekCorp, peekState } from "./gameState.js";
+import { peekCorp } from "./gameState.js";
+import { accountsStore } from "./game/store.js";
+const peekState = (accountId) => accountsStore.accounts?.[accountId]?.state ?? null; // the queues live beside the corporation
 import { ceoDue, expeditionsActive, fabricationDue, refineryDue, rndDue, scoutedAnyOf, shipmentsDue, travelDue } from "./game/tickDue.js";
 import { settleAccountUpkeep } from "./upkeep.js"; // ISP-173 (AB#867)
 // The R&D schedule lives in public/scripts/rndQueue.js, which the R&D panel reads too; imported here beside its use
