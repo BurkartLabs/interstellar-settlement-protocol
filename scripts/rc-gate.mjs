@@ -210,6 +210,16 @@ function watchErrors(page, who) {
   page.on("console", (m) => { if (m.type() === "error") results.pageErrors.push({ who, url: page.url(), message: `console: ${m.text().slice(0, 300)}` }); });
 }
 
+/** The Station's own list of buildings, however deep in a building the tab reopens (it keeps the player's place). */
+async function stationList(page) {
+  await openTab(page, "station");
+  for (let i = 0; i < 3 && await page.locator("#station-back-btn").isVisible().catch(() => false); i += 1) {
+    await page.locator("#station-back-btn").click();
+    await page.waitForTimeout(200);
+  }
+  await openStationOffices(page);
+}
+
 /** Every screen for a signed-in player at the page's current width: tabs, their subpages, the Station's buildings. */
 async function sweep(page, label) {
   const width = page.viewportSize().width;
@@ -223,12 +233,10 @@ async function sweep(page, label) {
   };
   await look("shell", null);
   try {
-    await openTab(page, "station");
-    await openStationOffices(page);
+    await stationList(page);
     const actions = await page.locator('#station-npc-buildings [data-building-action^="building:"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-building-action")));
     for (const action of actions) {
-      await openTab(page, "station");
-      await openStationOffices(page);
+      await stationList(page);
       await page.locator(`#station-npc-buildings [data-building-action="${action}"]`).click();
       await page.waitForTimeout(300);
       if (!(await page.locator("#station-building-view").isVisible())) continue;
