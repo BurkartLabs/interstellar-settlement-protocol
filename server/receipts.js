@@ -416,14 +416,16 @@ export function huntReceipt({ fleetName, beltLabel, provisions, endsAt, expected
   });
 }
 
-export function queueResearchReceipt({ name, cost, startsAt, endsAt, now }) {
+export function queueResearchReceipt({ name, cost, startsAt, endsAt, now, royalty = null }) {
   return receipt("queue-rnd", {
     title: "Research Queued",
     summary: `${name}, in the corporate R&D queue.`,
     costCredits: cost,
     grants: [
       { label: "Starts", value: Number(startsAt) <= Number(now) ? "Now" : formatUtc(startsAt) },
-      { label: "Completes", value: formatUtc(endsAt) }
+      { label: "Completes", value: formatUtc(endsAt) },
+      // Bug #4857: another corporation's patent in force at completion takes its royalty then; say so now
+      ...(royalty?.amount > 0 ? [{ label: "Patent royalty", value: `${formatCredits(royalty.amount)} to ${royalty.holder} (${royalty.ratePct}% of the research cost), charged when it completes. What your credits do not cover is owed to the holder.` }] : [])
     ],
     next: "It takes effect when it completes. Research queued after it starts when it ends."
   });

@@ -330,7 +330,7 @@ function enterGame(mode, data, options = {}) {
   appState.tariffs = null; // ISP-231 (AB#926): never another account's; this account's are fetched below
   if (appState.accountId) loadTariffs();
   appState.patents = null; // ISP-237 (AB#932): the public register, for the royalty on a patented chain
-  if (appState.accountId && mode !== "dummy") loadPatentRegister();
+  if (appState.accountId && mode !== "dummy") loadPatentRegister().then(() => { if (appState.data) updateAllViews(); }); // Bug #4857: the R&D cards quote it
   // ISP-201 (AB#895): the Overview's Conglomerate card reads this; never another account's.
   appState.conglomerate = undefined;
   if (appState.accountId && mode !== "dummy") loadConglomerate();
