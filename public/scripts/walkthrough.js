@@ -230,6 +230,16 @@ export function chooseHighlight(step, find) {
 export const WALKTHROUGH_SCROLL_MARGIN = 12;
 
 /**
+ * Bug #4858 (AB#955): where the part of the window a control can be seen in ends. On a phone the nav is fixed along the
+ * bottom (.app-nav, and the open group's tab row above it), so a control scrolled to the window's bottom is behind it.
+ * Takes the tops of the fixed bars and the window's height; bars in the upper half are not bottom bars.
+ */
+export function clearAreaBottom(barTops, viewportHeight) {
+  const bottomBars = (barTops || []).filter((top) => Number.isFinite(top) && top > viewportHeight / 2 && top < viewportHeight);
+  return Math.min(viewportHeight, ...bottomBars);
+}
+
+/**
  * Bug #1083: how far to scroll the page so the highlighted control can be seen. The briefing card sits at the bottom
  * of the screen, over more than half of it on a phone, and the sticky header covers the top; scrolling the control
  * to the centre of the window put it behind the card. The clear band runs from the header's bottom to the card's

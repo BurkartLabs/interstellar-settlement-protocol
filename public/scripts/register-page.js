@@ -1,4 +1,4 @@
-import { registerErrorMessage, registerFormProblem, showMessage } from "./authMessages.js";
+import { registerErrorMessage, registerFormProblems, showMessage } from "./authMessages.js";
 
 const registerForm = document.getElementById("register-form");
 const registerStatus = document.getElementById("register-status");
@@ -12,21 +12,42 @@ const FIELD_ERRORS = {
   corpName: document.getElementById("register-corp-error")
 };
 
+const inputOf = (el) => el && registerForm?.querySelector(`[aria-describedby~="${el.id}"]`);
+
 function clearFieldErrors() {
-  for (const el of Object.values(FIELD_ERRORS)) if (el) el.textContent = "";
+  for (const el of Object.values(FIELD_ERRORS)) {
+    if (!el) continue;
+    el.textContent = "";
+    inputOf(el)?.removeAttribute("aria-invalid");
+  }
+}
+
+/** Bug #4861: each mistake beside its own field, all at once, each field marked invalid; the first gets the focus. */
+function showFieldProblems(problems) {
+  clearFieldErrors();
+  registerStatus.textContent = "";
+  let first = null;
+  for (const { field, message } of problems) {
+    const el = FIELD_ERRORS[field];
+    if (!el) continue;
+    showMessage(el, message);
+    const input = inputOf(el);
+    input?.setAttribute("aria-invalid", "true");
+    first ??= input;
+  }
+  first?.focus();
 }
 
 /** `field` is the server's own name for what to fix, or undefined for an error that names no one field (a network
  *  failure, a 500). A named field's message goes beside that field, and nothing is left in the shared status line
- *  for it — the two never say the same thing twice. */
+ *  for it — the two never say the same thing twice. Bug #4861: it goes through registerErrorMessage there too, so a
+ *  taken email keeps its "Log in instead." link. */
 function showRegisterError(status, payload, retryAfter) {
-  clearFieldErrors();
-  const target = payload?.field ? FIELD_ERRORS[payload.field] : undefined;
-  if (target) {
-    target.textContent = payload.error;
-    registerStatus.textContent = "";
+  if (payload?.field && FIELD_ERRORS[payload.field]) {
+    showFieldProblems([{ field: payload.field, message: registerErrorMessage(status, payload, retryAfter) }]);
     return;
   }
+  clearFieldErrors();
   showMessage(registerStatus, registerErrorMessage(status, payload, retryAfter));
 }
 
@@ -46,9 +67,9 @@ if (registerForm) {
     const ceoName = String(formData.get("ceoName") || "").trim();
     const corpName = String(formData.get("corpName") || "").trim();
 
-    const problem = registerFormProblem({ email, password, ceoName, corpName });
-    if (problem) {
-      showRegisterError(0, { field: problem.field, error: problem.text });
+    const problems = registerFormProblems({ email, password, ceoName, corpName });
+    if (problems.length) {
+      showFieldProblems(problems.map((p) => ({ field: p.field, message: { text: p.text } })));
       return;
     }
 

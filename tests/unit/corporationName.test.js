@@ -29,7 +29,7 @@ describe("validateCorporationName (Bug #433)", () => {
   });
 
   it("refuses a name another corporation has, ignoring case and spacing", () => {
-    expect(ok("frontier  PROTOCOL ventures", { existingNames: ["Frontier Protocol Ventures"] }).error).toBe("A corporation with this name already exists.");
+    expect(ok("frontier  PROTOCOL ventures", { existingNames: ["Frontier Protocol Ventures"] }).error).toBe("A corporation with this name already exists. Choose another name.");
   });
 
   it("refuses a reserved name, or one containing it as whole words, and nothing more", () => {
@@ -60,7 +60,7 @@ describe("foldName and look-alike names (ISP-121, AB#813)", () => {
   });
 
   it("treats another player's name dressed up as taken", () => {
-    expect(ok("Kessler 0re Brokers", { existingNames: ["Kessler Ore Brokers"] }).error).toBe("A corporation with this name already exists.");
+    expect(ok("Kessler 0re Brokers", { existingNames: ["Kessler Ore Brokers"] }).error).toBe("A corporation with this name already exists. Choose another name.");
     expect(ok("Kessler Ore Brokerage", { existingNames: ["Kessler Ore Brokers"] })).toEqual({ name: "Kessler Ore Brokerage" });
   });
 });

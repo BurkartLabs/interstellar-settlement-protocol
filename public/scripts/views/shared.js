@@ -170,5 +170,8 @@ export function revealUnderHeader(el) {
   if (!el) return;
   const headerBottom = document.querySelector(".app-header")?.getBoundingClientRect().bottom ?? 0;
   const delta = revealScroll(el.getBoundingClientRect().top, headerBottom, window.innerHeight);
-  if (delta) window.scrollBy(0, delta);
+  if (!delta) return;
+  window.scrollBy(0, delta);
+  // Bug #4858: anything that had placed itself against the old scroll (the walkthrough's highlighted control) redoes it
+  document.dispatchEvent(new Event("isp:revealed"));
 }

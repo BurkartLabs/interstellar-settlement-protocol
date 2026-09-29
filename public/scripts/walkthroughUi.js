@@ -2,14 +2,13 @@
 // app.js. The steps themselves and the rules for advancing them stay in walkthrough.js, which the tests run in node.
 import { WALKTHROUGH_STEPS as walkthroughSteps, chooseHighlight, nextStepIndex, paragraphsOf } from "./walkthrough.js";
 import { revealedGroups, showOnlyGroups } from "./navGroups.js"; // ISP-75 (AB#764)
-import { walkthroughScrollDelta } from "./walkthrough.js"; // Bug #1083
+import { clearAreaBottom, walkthroughScrollDelta } from "./walkthrough.js"; // Bug #1083; Bug #4858
 import { setWalkthroughEconomy } from "./walkthrough.js"; // AB#1430
 import { appState, STORAGE_KEYS } from "./state.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { showDialogue, closeDialogue } from "./dialogue.js";
 import { apiFetch, parseJsonResponse } from "./apiClient.js";
 import { deepClone } from "./helpers.js";
-import { scrollBehavior } from "./motion.js"; // AB#1760
 import { noteFunnelStep } from "./telemetry.js"; // ISP-256 (AB#952)
 
 // Finishing or resetting the walkthrough redraws the page and moves between tabs, which app.js owns; it hands those
@@ -155,19 +154,55 @@ function refreshWalkthroughHighlight() {
 }
 
 
+// Bug #4858: a control in a bar that does not scroll (the phone's bottom nav, the pinned header) stays where it is when
+// the page scrolls, so scrolling for it only moves everything else under the player.
+// Only fixed bars and the app header count: other sticky elements move with the page until they stick.
+function inFixedBar(el) {
+  for (let node = el; node && node !== document.body; node = node.parentElement) {
+    if (getComputedStyle(node).position === "fixed" || node.classList.contains("app-header")) return true;
+  }
+  return false;
+}
+
 // Bug #1083: into the band between the sticky header and the briefing card, not the centre of the window, where the
-// card is on a phone.
+// card is on a phone. Bug #4858: and above the phone's fixed bottom nav, which covers the window's last 100-odd pixels.
 function scrollWalkthroughTargetIntoView(target) {
+  if (inFixedBar(target)) return;
   const card = walkthroughModal.querySelector(".modal-card");
   const header = document.querySelector(".app-header");
-  const delta = walkthroughScrollDelta({
-    viewportHeight: window.innerHeight,
-    headerBottom: header ? header.getBoundingClientRect().bottom : 0,
-    card: card ? card.getBoundingClientRect() : null,
-    target: target.getBoundingClientRect()
-  });
-  if (delta) window.scrollBy({ top: delta, behavior: scrollBehavior() });
+  const deltaNow = () => {
+    const barTops = [...document.querySelectorAll(".app-nav, .nav-group__tabs")]
+      .filter((bar) => bar.getClientRects().length && getComputedStyle(bar).position === "fixed")
+      .map((bar) => bar.getBoundingClientRect().top);
+    return walkthroughScrollDelta({
+      viewportHeight: clearAreaBottom(barTops, window.innerHeight),
+      headerBottom: header ? header.getBoundingClientRect().bottom : 0,
+      card: card ? card.getBoundingClientRect() : null,
+      target: target.getBoundingClientRect()
+    });
+  };
+  // Bug #4860: the header moves with the scroll (on a phone it is sticky only within its container, so it is gone when
+  // the page is far down and back over the top when near it), so a delta measured before the scroll can land the
+  // control under it. So scroll, measure again and correct, at most three times, in one task: nothing is painted in
+  // between. The scroll is a jump, not smooth (AB#955): a control that slides while the player reaches for it gets the
+  // tap that was meant for it on whatever slid under the finger, and revealUnderHeader already jumps.
+  for (let pass = 0; pass < 3; pass++) {
+    const delta = deltaNow();
+    if (!delta) break;
+    window.scrollBy({ top: delta, behavior: "instant" });
+  }
 }
+
+/**
+ * Bug #4858: the page scrolled a panel into view after the walkthrough had placed its control (a tab opened, the hire
+ * form revealed: revealUnderHeader), which could leave the control under the card or the bottom nav. Place it again.
+ */
+function recentreWalkthroughTarget() {
+  if (walkthroughModal.hidden || walkthroughFinished || !walkthroughTarget) return;
+  const target = document.querySelector(walkthroughTarget);
+  if (target?.getClientRects().length) scrollWalkthroughTargetIntoView(target);
+}
+document.addEventListener("isp:revealed", () => requestAnimationFrame(recentreWalkthroughTarget));
 
 async function completeWalkthroughForAccount() {
   if (!appState.accountId || appState.walkthroughCompleted) {

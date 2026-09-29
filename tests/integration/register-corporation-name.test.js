@@ -30,7 +30,7 @@ describe("POST /api/auth/register validates the corporation name (Bug #433)", ()
     expect((await register(name)).status).toBe(201);
     const again = await register(`  ${name.toUpperCase().replace(" ", "   ")} `);
     expect(again.status).toBe(400);
-    expect(again.body.error).toBe("A corporation with this name already exists.");
+    expect(again.body.error).toBe("A corporation with this name already exists. Choose another name.");
   });
 
   it("refuses a blank name instead of giving everyone the same default", async () => {
