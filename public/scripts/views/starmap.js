@@ -10,6 +10,7 @@ import { beltScoutedText } from "../miningFeedback.js";
 import { createStarmapController } from "../starmap.js";
 import { appState, techTree } from "../state.js";
 import { pushFeedback, refreshFromServer, setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { refusalMeaning } from "../protocol.js"; // ISP-254 Bd (AB#4819)
 import { isDominanceOverlay } from "../dominanceOverlay.js"; // ISP-218 (AB#913)
 import { CONCESSION_OVERLAY } from "../concessionOverlay.js"; // ISP-229 (AB#924)
 import { RATS_OVERLAY } from "../ratsOverlay.js"; // ISP-285 (AB#992)
@@ -106,11 +107,12 @@ export const starmap = createStarmapController({
       starmap.setBeltNotice(null);
       updateAllViews();
       showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
-      pushFeedback(beltScoutedText(beltKey, appState.data?.world?.systems), "ok"); // AB#1257: names, not "sol:belt"
+      pushFeedback(beltScoutedText(beltKey, appState.data?.world?.systems), "ok", { meaning: "complete", screen: "starmap" }); // AB#1257; ISP-254 Bd (AB#4819)
     } catch (err) {
       // Bug #2339: the refusal beside the button that met it, as well as in the Overview's Command Log.
-      starmap.setBeltNotice({ beltKey, message: err.message || "Belt scouting failed." });
-      pushFeedback(err.message || "Belt scouting failed.", "warn");
+      const denied = { meaning: refusalMeaning(err), screen: "starmap" }; // ISP-254 Bd (AB#4819)
+      starmap.setBeltNotice({ beltKey, message: err.message || "Belt scouting failed.", protocol: denied });
+      pushFeedback(err.message || "Belt scouting failed.", "warn", denied);
       loadBeltCompositionsIntoStarmap(); // AB#2331: a refusal may mean the belt is gone; show what is there
     }
   },
@@ -137,10 +139,11 @@ export const starmap = createStarmapController({
       starmap.setBeltNotice(null);
       updateAllViews();
       showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
-      pushFeedback("Mining expedition launched!", "ok");
+      pushFeedback("Mining expedition launched!", "ok", { meaning: "active", screen: "starmap" }); // ISP-254 Bd (AB#4819)
     } catch (err) {
-      starmap.setBeltNotice({ beltKey, message: err.message || "Expedition launch failed." }); // Bug #2339
-      pushFeedback(err.message || "Expedition launch failed.", "warn");
+      const denied = { meaning: refusalMeaning(err), screen: "starmap" }; // ISP-254 Bd (AB#4819)
+      starmap.setBeltNotice({ beltKey, message: err.message || "Expedition launch failed.", protocol: denied }); // Bug #2339
+      pushFeedback(err.message || "Expedition launch failed.", "warn", denied);
       loadBeltCompositionsIntoStarmap(); // AB#2331
     }
   }
