@@ -30,6 +30,7 @@ import { loadConglomerate, onConglomerateChange, openBureau, refreshStations, re
 import { renderRefinery } from "./views/refinery.js";
 import { bindResearchForms, renderQueue, renderResearchTotals, renderTechTree } from "./views/research.js";
 import { connectViews, isPlayerTraveling, pushFeedback, renderFeedbackLog, revealUnderHeader } from "./views/shared.js";
+import { commsMeaning } from "./commsProtocol.js"; // ISP-255c1 (AB#4830)
 import { loadBeltCompositionsIntoStarmap, loadTariffs, starmap } from "./views/starmap.js";
 import { loadPatentRegister } from "./views/patentOffice.js"; // ISP-237 (AB#932): the Refinery's royalty quote reads it
 import { bindBuildingActions, refreshOpenLeaseView, renderStation } from "./views/station.js";
@@ -565,7 +566,7 @@ function bindRealtimeEvents() {
 
   // AB#995: a chat line the server did not take (too long, or more than 10 in 10 seconds), with its reason
   socket.on("chat:refused", (refusal) => {
-    if (refusal?.error) pushFeedback(refusal.error, "warn");
+    if (refusal?.error) pushFeedback(refusal.error, "warn", { meaning: commsMeaning(refusal), screen: "chat" }); // ISP-255c1 (AB#4830)
   });
 
   socket.on("chat:new", (msg) => {

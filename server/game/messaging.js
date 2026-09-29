@@ -80,7 +80,7 @@ export function resolveMailRecipient({ toCorpId, toCorpName } = {}) {
   const name = typed.toLowerCase();
   const matches = accounts.filter((a) => String(a.state.corp.corporationName || "").trim().toLowerCase() === name);
   if (matches.length === 1) return { account: matches[0] };
-  if (!matches.length) return { status: 404, error: "No corporation has that name." };
+  if (!matches.length) return { status: 404, error: "No corporation has that name. Check the spelling: part of a name lists every corporation it matches." }; // Bug #4832: what to do next (ISP-6)
   return {
     status: 409,
     error: `${matches.length} corporations share that name. Choose which one you mean.`,
