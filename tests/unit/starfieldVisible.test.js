@@ -28,8 +28,10 @@ describe("the starfield reaches the screen", () => {
   });
 
   it("the starfield canvas sits above the .app-bg layer", () => {
-    const canvas = Number(declarations("#starfield-canvas")["z-index"]);
-    const appBg = Number(declarations(".app-bg")["z-index"]);
+    // Bug #4886: the two are z-index tokens now (--z-starfield, --z-backdrop); read through the token block
+    const layer = (v) => Number(/^-?\d+$/.test(v ?? "") ? v : new RegExp(`${v?.match(/var\((--z-[\w-]+)\)/)?.[1]}:\\s*(-?\\d+);`).exec(CSS)?.[1]);
+    const canvas = layer(declarations("#starfield-canvas")["z-index"]);
+    const appBg = layer(declarations(".app-bg")["z-index"]);
     expect(canvas).toBeGreaterThan(appBg);
     expect(canvas).toBeLessThan(0);
   });

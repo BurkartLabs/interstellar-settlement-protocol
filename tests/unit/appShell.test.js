@@ -64,9 +64,11 @@ describe("the app shell (ISP-74)", () => {
   });
 
   it("the bar sits under every dialog and the briefing, never over them", () => {
-    const z = Number(/\.app-nav {[^}]*z-index: (\d+);/.exec(mediaBlocks().find((b) => /\.app-nav/.test(b.body)).body)?.[1]);
-    const dialog = Number(/\.modal-backdrop {[^}]*z-index: (\d+);/.exec(CSS)?.[1]);
-    const briefing = Number(/#walkthrough-modal {[^}]*z-index: (\d+);/.exec(CSS)?.[1]);
+    // Bug #4886: the layers are tokens now; a value is a number or var(--z-...), read from the token block
+    const layer = (v) => Number(/^-?\d+$/.test(v ?? "") ? v : new RegExp(`${v?.match(/var\((--z-[\w-]+)\)/)?.[1]}:\\s*(-?\\d+);`).exec(CSS)?.[1]);
+    const z = layer(/\.app-nav {[^}]*z-index: ([^;]+);/.exec(mediaBlocks().find((b) => /\.app-nav/.test(b.body)).body)?.[1]);
+    const dialog = layer(/\.modal-backdrop {[^}]*z-index: ([^;]+);/.exec(CSS)?.[1]);
+    const briefing = layer(/#walkthrough-modal {[^}]*z-index: ([^;]+);/.exec(CSS)?.[1]);
     expect(z).toBeGreaterThan(0);
     expect(z).toBeLessThan(dialog);
     expect(z).toBeLessThan(briefing);
