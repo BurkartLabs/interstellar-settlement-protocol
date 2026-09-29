@@ -47,6 +47,13 @@ describe("security headers (AB#753)", () => {
     expect(csp["object-src"]).toEqual(["'none'"]);
     expect(csp["base-uri"]).toEqual(["'self'"]);
     expect(csp["default-src"]).toEqual(["'self'"]);
+    // AB#959: reports are on only when ISP_CSP_REPORT_FILE is set (tests/integration/csp-report.test.js)
+    expect(csp["report-uri"]).toBeUndefined();
+  });
+
+  it("has no CSP report route unless reporting is on (AB#959)", async () => {
+    const res = await request(app).post("/csp-report").set("Content-Type", "application/csp-report").send("{}");
+    expect(res.status).not.toBe(204);
   });
 
   it("allows the one CDN script the page loads by its exact path, not the whole CDN", async () => {
