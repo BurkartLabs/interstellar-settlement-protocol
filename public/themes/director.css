@@ -1,0 +1,561 @@
+/* AB#4880: display style "Director" (Round 2 mockup 18): a premium sci-fi game menu. Space-black with a vignette and
+   faint geometric line art far behind solid panels, Titillium Web for headings and labels, Nunito Sans for body, white
+   and cool greys, one warm gold accent, red for the deficit. A centred pause-menu tab row with a gold underline, the
+   open group's tabs as centred pills beneath it, tiles with a thin top line and corner brackets on the primary. */
+:root[data-theme="director"] {
+  --bg: #07080b;
+  --surface-1: #0f1218;
+  --surface-2: #161a22;
+  --surface-3: #212732;
+  --border: #303744;
+  --text: #f4f6f9;
+  --text-soft: #cfd4dc;
+  --muted: #9ea7b5;
+
+  --accent: #e2b659;
+  --accent-hover: #f0ca77;
+  --accent-pressed: #cfa24a;
+  --on-accent: #1a1204;
+  --warn: #f0a04b;
+  --warn-hover: #f5b46d;
+  --warn-pressed: #e08f3a;
+  --on-warn: #1f1203;
+  --danger: #ff7566;
+  --danger-hover: #ff8f82;
+  --danger-pressed: #f26050;
+  --on-danger: #250806;
+  --success: #6fdca4;
+  --success-hover: #90e6b9;
+  --success-pressed: #58c98f;
+  --on-success: #04180d;
+  --station-owned: #b9a4f0;
+
+  --scrim-hero: linear-gradient(90deg, rgb(7 8 11 / 0.92) 0%, rgb(7 8 11 / 0.78) 55%, rgb(7 8 11 / 0.45) 100%);
+  --scrim-modal: rgb(4 5 8 / 0.78);
+  --scrim-caption: linear-gradient(0deg, rgb(7 8 11 / 0.92) 0%, rgb(7 8 11 / 0.55) 40%, rgb(7 8 11 / 0) 75%);
+  --focus-ring: 2px solid var(--accent-hover);
+
+  --series-1: var(--accent);
+  --series-2: #8fb4e8;
+  --series-3: var(--success);
+  --series-4: var(--danger);
+  --series-5: var(--muted);
+
+  --font-sans: "Nunito Sans", "Segoe UI", Roboto, sans-serif;
+  --font-wordmark: "Titillium Web", "Segoe UI", sans-serif;
+  --font-mono: "Titillium Web", "Segoe UI", sans-serif;
+  --font-head: "Titillium Web", "Segoe UI", sans-serif;
+  --font-size-1: 12px;
+  --font-size-2: 14px;
+  --font-size-3: 15px;
+  --font-size-4: 17px;
+  --font-size-5: 26px;
+  --font-size-6: 30px;
+  --font-size-display: clamp(1.1rem, 2vw, 1.5rem);
+  --font-weight-semibold: 600;
+  --font-weight-bold: 600;
+  --letter-spacing-caps: 0.16em;
+
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --elevation-overlay: 0 18px 48px rgb(0 0 0 / 0.7);
+}
+
+/* Page: black, a vignette, and huge faint line art (rings and chevrons) far behind everything. */
+html[data-theme="director"] {
+  background-color: var(--bg);
+}
+[data-theme="director"] #starfield-canvas {
+  display: none;
+}
+[data-theme="director"] .app-bg {
+  animation: none;
+  will-change: auto;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 38%, rgb(0 0 0 / 0) 35%, rgb(0 0 0 / 0.7) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 900' fill='none' stroke='%23ffffff' stroke-opacity='0.05' stroke-width='1.5'%3E%3Ccircle cx='900' cy='330' r='300'/%3E%3Ccircle cx='900' cy='330' r='230'/%3E%3Ccircle cx='900' cy='330' r='120' stroke-opacity='0.04'/%3E%3Cpath d='M620 600 L900 250 L1180 600 M660 680 L900 380 L1140 680'/%3E%3Cpath d='M-40 760 L220 500 L480 760' stroke-opacity='0.035'/%3E%3C/svg%3E") 60% 30% / 1400px auto no-repeat,
+    var(--bg);
+}
+[data-theme="director"] body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+}
+[data-theme="director"] :is(h1, h2, h3, h4) {
+  font-family: var(--font-head);
+}
+
+/* Header: one compact row. */
+[data-theme="director"] .app-header {
+  align-items: center;
+  gap: var(--space-4);
+  padding: 6px var(--space-6);
+  background: #090b0f;
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--border);
+}
+[data-theme="director"] .app-header__brand {
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+}
+[data-theme="director"] .app-header__title {
+  order: 1;
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+[data-theme="director"] .app-header__overline {
+  order: 2;
+  color: var(--muted);
+  font-family: var(--font-head);
+  font-weight: 400;
+  letter-spacing: 0.12em;
+}
+[data-theme="director"] .app-header__actions {
+  gap: var(--space-2);
+}
+[data-theme="director"] .app-header .ui-button {
+  min-height: 30px;
+  padding: 0 var(--space-3);
+  font-size: 12px;
+}
+[data-theme="director"] .app-header__style-select {
+  min-height: 30px;
+  min-width: 8rem;
+}
+[data-theme="director"] .app-header__panel {
+  border-color: var(--accent);
+}
+
+/* Layout. */
+[data-theme="director"] .tab-panel {
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
+  padding: var(--space-4) 0 0;
+}
+
+/* Panels, cards. */
+[data-theme="director"] .ui-panel {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-top: 2px solid rgb(226 182 89 / 0.55);
+  border-radius: var(--radius-sm);
+}
+[data-theme="director"] .ui-panel__header {
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-3) var(--space-4);
+}
+[data-theme="director"] .ui-panel__title,
+[data-theme="director"] .side-panel__toggle {
+  font-family: var(--font-head);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+[data-theme="director"] .ui-panel__meta {
+  color: var(--muted);
+}
+[data-theme="director"] .ui-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-top: 2px solid rgb(226 182 89 / 0.4);
+  border-radius: var(--radius-sm);
+}
+[data-theme="director"] .ui-card__title {
+  font-family: var(--font-head);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+[data-theme="director"] .ui-card--interactive:hover,
+[data-theme="director"] .ui-card--interactive.is-hover {
+  background: var(--surface-3);
+  border-color: var(--muted);
+}
+[data-theme="director"] .ui-card--interactive.is-selected,
+[data-theme="director"] .ui-card--interactive[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgb(226 182 89 / 0.35);
+}
+
+/* Screen header. */
+[data-theme="director"] .ui-screen__header {
+  gap: var(--space-1);
+  padding-bottom: var(--space-3);
+}
+[data-theme="director"] .ui-screen__title {
+  position: relative;
+  padding-bottom: var(--space-2);
+  font-family: var(--font-head);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+[data-theme="director"] .ui-screen__title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 56px;
+  height: 2px;
+  background: var(--accent);
+}
+[data-theme="director"] .ui-code {
+  color: var(--accent);
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+[data-theme="director"] .ui-screen__lede {
+  color: var(--text-soft);
+}
+
+/* KPI tiles: thin top line, brackets on the primary. */
+[data-theme="director"] .kpi-tile {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-top: 2px solid rgb(226 182 89 / 0.5);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  overflow: visible;
+}
+[data-theme="director"] .kpi-tile--primary {
+  background: var(--surface-3);
+  border-color: rgb(226 182 89 / 0.45);
+  border-top-color: var(--accent);
+}
+[data-theme="director"] .kpi-tile--primary::before,
+[data-theme="director"] .kpi-tile--primary::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: none;
+  pointer-events: none;
+}
+[data-theme="director"] .kpi-tile--primary::before {
+  top: -5px;
+  left: -5px;
+  right: auto;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+}
+[data-theme="director"] .kpi-tile--primary::after {
+  right: -5px;
+  bottom: -5px;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
+[data-theme="director"] .kpi-tile__label {
+  font-family: var(--font-head);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+[data-theme="director"] .kpi-tile__value {
+  font-family: var(--font-head);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+[data-theme="director"] .kpi-tile--primary .kpi-tile__value {
+  color: var(--accent);
+}
+[data-theme="director"] .kpi-tile__sub,
+[data-theme="director"] .kpi-tile__trend {
+  font-family: var(--font-sans);
+  letter-spacing: 0.02em;
+}
+[data-theme="director"] .kpi-tile__value--negative,
+[data-theme="director"] .overview__figures .kpi-tile__value[data-tone="negative"] {
+  color: var(--danger);
+}
+[data-theme="director"] .kpi-tile:has(.kpi-tile__value--negative, .kpi-tile__value[data-tone="negative"]) {
+  border-color: rgb(255 117 102 / 0.55);
+  border-top-color: var(--danger);
+  background: #1a1214;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme="director"] :is(.kpi-tile, .ui-card--interactive) {
+    transition: transform 160ms var(--ease-out), background 160ms var(--ease-standard), border-color 160ms var(--ease-standard);
+  }
+  [data-theme="director"] :is(.kpi-tile, .ui-card--interactive):hover {
+    transform: translateY(-2px);
+    background: var(--surface-3);
+  }
+}
+
+/* Buttons. */
+[data-theme="director"] .ui-button {
+  border-radius: var(--radius-sm);
+  font-family: var(--font-head);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-theme="director"] .ui-button--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+[data-theme="director"] .ui-button--secondary {
+  background: transparent;
+  border-color: var(--muted);
+  color: var(--text);
+}
+[data-theme="director"] .ui-button--secondary:hover:not(:disabled) {
+  background: var(--surface-3);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+[data-theme="director"] .ui-button--ghost {
+  color: var(--accent);
+}
+[data-theme="director"] .ui-button--danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+[data-theme="director"] .ui-button--danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--on-danger);
+}
+
+/* Fields. */
+[data-theme="director"] :is(.ui-input, .ui-select) {
+  background: #0a0c10;
+  border-color: var(--border);
+  border-radius: var(--radius-sm);
+}
+[data-theme="director"] .ui-field__label {
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+/* Sub-tabs: pills, the selected one outlined in gold. */
+[data-theme="director"] .ui-tabs {
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  border-bottom: 0;
+}
+[data-theme="director"] .ui-tab {
+  min-height: 32px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-soft);
+  font-family: var(--font-head);
+  letter-spacing: 0.06em;
+}
+[data-theme="director"] .ui-tab:hover:not(:disabled) {
+  border-color: var(--muted);
+  color: var(--text);
+}
+[data-theme="director"] .ui-tab[aria-selected="true"] {
+  border-color: var(--accent);
+  background: rgb(226 182 89 / 0.12);
+  color: var(--accent-hover);
+}
+
+/* Data. */
+[data-theme="director"] .ui-table th {
+  font-family: var(--font-head);
+  letter-spacing: 0.16em;
+  border-bottom-color: var(--muted);
+}
+[data-theme="director"] .ui-table td {
+  border-bottom-color: var(--border);
+}
+[data-theme="director"] .ui-table tbody tr:hover {
+  background: var(--surface-2);
+}
+[data-theme="director"] .ui-badge {
+  background: transparent;
+  font-family: var(--font-head);
+  letter-spacing: 0.08em;
+}
+[data-theme="director"] .progress-wrap {
+  height: 4px;
+  background: var(--surface-3);
+  border-radius: 0;
+}
+[data-theme="director"] .progress-bar {
+  background: var(--accent);
+}
+[data-theme="director"] .ui-kv dt {
+  font-family: var(--font-head);
+  letter-spacing: 0.06em;
+}
+[data-theme="director"] .side-panel__toggle {
+  min-height: 40px;
+}
+
+/* Navigation base (phones keep the bottom bar, restyled). */
+[data-theme="director"] .app-nav {
+  background: #090b0f;
+  border-color: var(--border);
+  border-radius: 0;
+}
+[data-theme="director"] .nav-group__button {
+  font-family: var(--font-head);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+}
+[data-theme="director"] .nav-group__button:hover:not(:disabled) {
+  color: var(--text);
+}
+[data-theme="director"] .nav-tab {
+  font-family: var(--font-head);
+  letter-spacing: 0.05em;
+  color: var(--text-soft);
+}
+[data-theme="director"] .nav-tab.active {
+  background: rgb(226 182 89 / 0.12);
+  color: var(--accent-hover);
+}
+[data-theme="director"] .nav-count {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+@media (max-width: 767px) {
+  [data-theme="director"] .nav-group__button.active {
+    border-top-color: var(--accent);
+    color: var(--accent-hover);
+  }
+  [data-theme="director"] .nav-tab {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+  }
+  [data-theme="director"] .nav-tab.active {
+    border-color: var(--accent);
+  }
+  [data-theme="director"] .app-header__title {
+    font-size: 14px;
+  }
+  [data-theme="director"] .ui-tab {
+    min-height: 44px;
+  }
+  [data-theme="director"] .ui-code {
+    font-size: 15px;
+  }
+}
+
+/* Desktop: the pause-menu tab row, the open group's pills under it, the side panel a right column. */
+@media (min-width: 768px) {
+  [data-theme="director"] .layout-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "nav nav" "main side";
+    gap: 0 var(--space-6);
+    padding: 0 var(--space-6) var(--space-6);
+  }
+  [data-theme="director"] .side-panel {
+    padding-top: var(--space-4);
+    max-height: calc(100vh - 130px);
+  }
+  [data-theme="director"] .app-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    margin: 0 calc(-1 * var(--space-6));
+    padding: 0 var(--space-6);
+    border-width: 0 0 1px;
+  }
+  [data-theme="director"] .nav-group {
+    display: contents;
+  }
+  [data-theme="director"] .nav-group__button {
+    order: 1;
+    min-height: 40px;
+    margin: 0 var(--space-4);
+    padding: 0 var(--space-1);
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    font-size: 15px;
+    text-align: center;
+  }
+  [data-theme="director"] .nav-group__button[aria-expanded] {
+    padding-right: var(--space-1);
+  }
+  [data-theme="director"] .nav-group__button[aria-expanded]::after {
+    content: "";
+    display: none;
+  }
+  [data-theme="director"] .nav-group__button[aria-expanded="true"] {
+    color: var(--text);
+  }
+  [data-theme="director"] .nav-group__button.active {
+    border-bottom-color: var(--accent);
+    color: var(--accent-hover);
+  }
+  [data-theme="director"] .nav-group__button .nav-count {
+    position: absolute;
+    top: 4px;
+    right: -14px;
+    margin: 0;
+  }
+  [data-theme="director"] .nav-group__tabs {
+    display: contents;
+  }
+  /* The rule between the group row and the pills. */
+  [data-theme="director"] .app-nav::after {
+    content: "";
+    order: 1;
+    flex: 0 0 calc(100% + 2 * var(--space-6));
+    height: 1px;
+    margin: 0 calc(-1 * var(--space-6));
+    background: var(--border);
+  }
+  [data-theme="director"] .nav-group.is-collapsed .nav-group__tabs {
+    display: none;
+  }
+  [data-theme="director"] .nav-tab {
+    order: 2;
+    min-height: 30px;
+    margin: 6px var(--space-1);
+    padding: 0 var(--space-4);
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    font-size: 14px;
+    text-align: center;
+  }
+  [data-theme="director"] .nav-tab:hover:not(:disabled) {
+    background: transparent;
+    border-color: var(--muted);
+  }
+  [data-theme="director"] .nav-tab.active {
+    border-color: var(--accent);
+  }
+}
+
+/* Before play. */
+[data-theme="director"] :is(.landing__wordmark, .landing__title, .auth-page__title) {
+  font-family: var(--font-head);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+[data-theme="director"] .landing__wordmark {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+[data-theme="director"] :is(.auth-page__overline, .landing__overline) {
+  color: var(--accent);
+  font-family: var(--font-head);
+}
+[data-theme="director"] .auth-page__card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--accent);
+}

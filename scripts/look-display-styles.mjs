@@ -60,7 +60,8 @@ function visibleText(page, tab) {
     for (const scope of scopes) {
       for (const el of scope.querySelectorAll("*")) {
         const own = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join(" ").replace(/\s+/g, " ").trim();
-        if (own && shown(el)) words.add(own.toLowerCase());
+        // digits masked: a countdown or a progress figure that moved while the look ran is not text a style hid
+        if (own && shown(el)) words.add(own.toLowerCase().replace(/\d+/g, "#"));
       }
     }
     return [...words];

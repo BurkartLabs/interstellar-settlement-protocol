@@ -1,0 +1,555 @@
+/* AB#4880: display style "Constructivist" (Round 1 v2, 01-constructivist-v2). A Soviet poster: near-black ground, signal
+   red, bright bone; condensed caps for headings and figures, mono for data; diagonal red wedges and slanted tabs as the
+   structure; the navigation a row of angled tabs under a slim header, each group named above its tabs; a negative
+   figure is a red alarm block. Style and structure only: no text, glyphs or characters (docs/design/DISPLAY_STYLES.md). */
+
+:root[data-theme="constructivist"] {
+  --bg: #0c0a09;
+  --surface-1: #17120f;
+  --surface-2: #211a16;
+  --surface-3: #2e241e;
+  --border: #5a4b41;
+
+  --text: #f3ead8;
+  --text-soft: #d8cdb8;
+  --muted: #b3a690;
+
+  --accent: #ff5a3c;
+  --accent-hover: #ff7a5e;
+  --accent-pressed: #ee5034;
+  --on-accent: #14090a;
+  --warn: #e0a93c;
+  --warn-hover: #efbe5e;
+  --warn-pressed: #cf9a2f;
+  --on-warn: #1a1206;
+  --danger: #ff8672;
+  --danger-hover: #ffa08f;
+  --danger-pressed: #f57560;
+  --on-danger: #1f0a06;
+  --success: #9cc46a;
+  --success-hover: #b5d688;
+  --success-pressed: #8bb35a;
+  --on-success: #0e1706;
+
+  --scrim-hero: linear-gradient(90deg, rgb(12 10 9 / 0.92) 0%, rgb(12 10 9 / 0.8) 55%, rgb(12 10 9 / 0.5) 100%);
+  --scrim-modal: rgb(8 6 5 / 0.82);
+  --scrim-caption: linear-gradient(0deg, rgb(12 10 9 / 0.92) 0%, rgb(12 10 9 / 0.58) 40%, rgb(12 10 9 / 0) 75%);
+
+  --focus-ring: 2px solid var(--text);
+  --focus-ring-offset: 2px;
+
+  --series-1: var(--accent);
+  --series-2: var(--warn);
+  --series-3: var(--text-soft);
+  --series-4: var(--success);
+  --series-5: var(--muted);
+
+  --font-sans: "Oswald", "Arial Narrow", "Segoe UI", sans-serif;
+  --font-wordmark: "Big Shoulders Display", "Oswald", "Arial Narrow", sans-serif;
+  --font-heading: "Big Shoulders Display", "Oswald", "Arial Narrow", Impact, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  --font-size-2: 14px;
+  --font-size-3: 16px;
+  --font-size-4: 20px;
+  --font-size-5: 26px;
+  --font-size-6: 32px;
+  --font-size-display: clamp(1.5rem, 2.4vw, 2.1rem);
+  --letter-spacing-caps: 0.12em;
+
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --elevation-overlay: 0 0 0 2px #c8281a, 10px 10px 0 rgb(0 0 0 / 0.6);
+
+  /* this style's own: the poster red as a fill under bone text (the bright accent is for text on dark) */
+  --cx-red: #c8281a;
+  --cx-red-deep: #6b170e;
+  --cx-red-hover: #d93222;
+  --cx-red-pressed: #a82014;
+  --cx-cut: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%);
+  --cx-slant: polygon(11px 0, 100% 0, calc(100% - 11px) 100%, 0 100%);
+  --cx-slant-r: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+  --cx-dash: 1px dashed #6d5b4d;
+}
+
+/* ─── Page ─── */
+[data-theme="constructivist"] #starfield-canvas { display: none; }
+[data-theme="constructivist"] .app-bg {
+  animation: none;
+  background:
+    linear-gradient(118deg, transparent 0 84%, rgb(200 40 26 / 0.16) 84% 84.6%, transparent 84.6% 88%, rgb(200 40 26 / 0.1) 88% 89.2%, transparent 89.2%),
+    repeating-linear-gradient(118deg, transparent 0 22px, rgb(243 234 216 / 0.018) 22px 23px),
+    var(--bg);
+}
+[data-theme="constructivist"] body {
+  font-family: var(--font-sans);
+  letter-spacing: 0.01em;
+}
+[data-theme="constructivist"] :is(h1, h2, h3, h4) {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+[data-theme="constructivist"] ::selection { background: var(--cx-red); color: var(--text); }
+
+/* ─── Header: slim, red rule under it, a red star mark ─── */
+[data-theme="constructivist"] .app-header {
+  align-items: center;
+  padding: 10px var(--space-6);
+  background: #0a0807;
+  border-bottom: 3px solid var(--cx-red);
+  backdrop-filter: none;
+}
+[data-theme="constructivist"] .app-header__brand {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--space-3);
+  align-items: center;
+}
+[data-theme="constructivist"] .app-header__brand::before {
+  content: "";
+  grid-row: 1 / span 2;
+  width: 34px;
+  height: 34px;
+  background: var(--cx-red);
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+[data-theme="constructivist"] .app-header__overline {
+  grid-column: 2;
+  grid-row: 2;
+  font-family: var(--font-mono);
+  color: var(--warn);
+  letter-spacing: 0.2em;
+}
+[data-theme="constructivist"] .app-header__title {
+  grid-column: 2;
+  grid-row: 1;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+[data-theme="constructivist"] .app-header__actions { gap: var(--space-2); }
+[data-theme="constructivist"] .app-header__notifications > .ui-button {
+  background: var(--cx-red);
+  border-color: var(--cx-red);
+  color: var(--text);
+}
+[data-theme="constructivist"] .app-header__notifications > .ui-button:hover:not(:disabled) { background: var(--cx-red-hover); }
+[data-theme="constructivist"] .app-header__notifications .ui-badge {
+  background: var(--text);
+  border-color: var(--text);
+  color: #14090a;
+}
+[data-theme="constructivist"] .app-header__style-label { font-family: var(--font-mono); font-size: 10px; }
+[data-theme="constructivist"] .app-header__style-select { min-width: 9.5rem; }
+[data-theme="constructivist"] .app-header__panel {
+  border: 2px solid var(--cx-red);
+  box-shadow: var(--elevation-overlay);
+}
+
+/* ─── Navigation, desktop: a row of angled tabs across the top, each group named above its tabs ─── */
+@media (min-width: 768px) {
+  [data-theme="constructivist"] .layout-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 290px);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "nav nav" "main side";
+    gap: var(--space-5);
+    padding: 0 var(--space-6) var(--space-6);
+  }
+  [data-theme="constructivist"] .side-panel { max-height: calc(100vh - 190px); }
+  [data-theme="constructivist"] .app-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-2) var(--space-4);
+    margin: 0 calc(-1 * var(--space-6));
+    padding: var(--space-3) var(--space-6) var(--space-4);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #2f2621;
+  }
+  [data-theme="constructivist"] .nav-group { gap: 3px; }
+  [data-theme="constructivist"] .nav-group__button {
+    min-height: 20px;
+    padding: 0 2px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.24em;
+    color: var(--warn);
+  }
+  [data-theme="constructivist"] .nav-group__button[aria-expanded] { padding-right: 18px; }
+  [data-theme="constructivist"] .nav-group__button[aria-expanded]::after { right: 2px; font-size: 12px; color: var(--muted); }
+  [data-theme="constructivist"] .nav-group__button:hover:not(:disabled) { color: var(--text); }
+  [data-theme="constructivist"] .nav-group__tabs { flex-direction: row; flex-wrap: wrap; gap: 2px; }
+  [data-theme="constructivist"] .nav-tab {
+    min-height: 34px;
+    padding: 0 14px;
+    border: 0;
+    background: var(--surface-2);
+    color: var(--text-soft);
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-align: center;
+    clip-path: var(--cx-slant);
+  }
+  [data-theme="constructivist"] .nav-tab:hover:not(:disabled) { background: var(--surface-3); color: var(--text); }
+  [data-theme="constructivist"] .nav-tab.active { background: var(--cx-red); color: var(--text); }
+  [data-theme="constructivist"] .nav-tab:focus-visible,
+  [data-theme="constructivist"] .ui-tab:focus-visible { outline-offset: -4px; }
+}
+[data-theme="constructivist"] .nav-count {
+  background: var(--warn);
+  color: var(--on-warn);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ─── Navigation, phone: the bottom bar, restyled and still working ─── */
+@media (max-width: 767px) {
+  [data-theme="constructivist"] .app-nav {
+    background: #0a0807;
+    border-top: 3px solid var(--cx-red);
+  }
+  [data-theme="constructivist"] .nav-group__button {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  [data-theme="constructivist"] .nav-group__button.active {
+    border-top-color: var(--cx-red);
+    background: var(--surface-2);
+  }
+  [data-theme="constructivist"] .nav-group.is-open .nav-group__tabs:has(> .nav-tab:not([hidden]) ~ .nav-tab:not([hidden])) {
+    background: var(--surface-1);
+    border-top: 1px solid var(--border);
+  }
+  [data-theme="constructivist"] .nav-tab {
+    background: var(--surface-2);
+    color: var(--text-soft);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  [data-theme="constructivist"] .nav-tab.active {
+    background: var(--cx-red);
+    color: var(--text);
+    border-bottom-color: var(--text);
+  }
+  [data-theme="constructivist"] .app-header { border-bottom-width: 3px; }
+  [data-theme="constructivist"] .app-header__brand::before { width: 26px; height: 26px; }
+  [data-theme="constructivist"] .layout-grid { gap: var(--space-4); }
+}
+
+/* ─── Screen header: a poster block, a red bar and a wedge behind the big title ─── */
+[data-theme="constructivist"] .ui-screen__header {
+  position: relative;
+  padding: var(--space-5) var(--space-6) var(--space-5) var(--space-6);
+  border: 1px solid var(--border);
+  border-left: 8px solid var(--cx-red);
+  background:
+    linear-gradient(112deg, transparent 0 68%, var(--cx-red) 68% 90%, var(--cx-red-deep) 90% 100%),
+    var(--surface-1);
+}
+[data-theme="constructivist"] .ui-screen__header > * { max-width: 64%; }
+[data-theme="constructivist"] .ui-screen__title {
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+[data-theme="constructivist"] .ui-screen__title .ui-code {
+  display: block;
+  width: fit-content;
+  padding: 2px 8px;
+  margin: 0 0 var(--space-2);
+  background: var(--text);
+  color: #14090a;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+[data-theme="constructivist"] .ui-screen__lede {
+  padding-top: var(--space-3);
+  border-top: var(--cx-dash);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+}
+[data-theme="constructivist"] .ui-screen__meta { font-family: var(--font-mono); font-size: 12px; }
+@media (max-width: 767px) {
+  [data-theme="constructivist"] .ui-screen__header {
+    padding: var(--space-4);
+    border-top: 6px solid var(--cx-red);
+    background: var(--surface-1);
+  }
+  [data-theme="constructivist"] .ui-screen__header > * { max-width: 100%; }
+  [data-theme="constructivist"] .ui-screen__title { font-size: 2.1rem; }
+}
+
+/* ─── Panels, cards, section heads: red slanted tabs over dashed rules ─── */
+[data-theme="constructivist"] .tab-panel { border-radius: 0; backdrop-filter: none; border-color: transparent; background: transparent; padding: 0; }
+[data-theme="constructivist"] .ui-panel {
+  border-radius: 0;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+}
+[data-theme="constructivist"] .ui-panel__header {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--cx-dash);
+}
+[data-theme="constructivist"] .ui-panel__title,
+[data-theme="constructivist"] .station__heading {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 28px 3px 12px;
+  background: var(--cx-red);
+  color: var(--text);
+  clip-path: var(--cx-slant-r);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-4);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-theme="constructivist"] .ui-panel__title .ui-code,
+[data-theme="constructivist"] .station__heading .ui-code {
+  padding: 0 6px;
+  background: var(--text);
+  color: #14090a;
+  font-size: 12px;
+  font-weight: 700;
+}
+[data-theme="constructivist"] .side-panel__toggle { padding: var(--space-3); border-bottom: var(--cx-dash); }
+[data-theme="constructivist"] .side-panel__toggle[aria-expanded="true"] { border-bottom: var(--cx-dash); }
+[data-theme="constructivist"] .ui-panel__meta { font-family: var(--font-mono); font-size: 12px; }
+[data-theme="constructivist"] .ui-panel__body { font-size: var(--font-size-2); }
+[data-theme="constructivist"] .ui-card {
+  border-radius: 0;
+  background: var(--surface-2);
+  border: 1px solid #3a2f28;
+  border-left: 4px solid var(--warn);
+}
+[data-theme="constructivist"] .ui-card__title {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-4);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+[data-theme="constructivist"] .ui-card__meta { font-family: var(--font-mono); }
+[data-theme="constructivist"] .ui-card--interactive:hover { background: var(--surface-3); }
+[data-theme="constructivist"] .ui-card--interactive.is-selected,
+[data-theme="constructivist"] .ui-card--interactive[aria-pressed="true"] { border-color: var(--cx-red); border-left-color: var(--cx-red); }
+[data-theme="constructivist"] .ui-card__figure {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+}
+[data-theme="constructivist"] .ui-code { font-family: var(--font-mono); color: var(--warn); }
+[data-theme="constructivist"] .ui-kv dt { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+[data-theme="constructivist"] .ui-kv dd { color: var(--text); }
+[data-theme="constructivist"] .ui-list { font-family: var(--font-mono); font-size: 12px; }
+[data-theme="constructivist"] .ui-protocol,
+[data-theme="constructivist"] .protocol-line { font-family: var(--font-mono); }
+
+/* ─── Figures: big condensed numerals; a negative one is the red alarm block ─── */
+[data-theme="constructivist"] .kpi-strip { gap: var(--space-3); }
+[data-theme="constructivist"] .kpi-tile {
+  padding: var(--space-4) var(--space-4) var(--space-4);
+  border-radius: 0;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--warn);
+  background: var(--surface-1);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+}
+[data-theme="constructivist"] .kpi-tile::before {
+  width: 26px;
+  height: 26px;
+  background: var(--cx-red);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+[data-theme="constructivist"] .kpi-tile--primary { border-left-color: var(--cx-red); }
+[data-theme="constructivist"] .kpi-tile--primary::before { background: var(--cx-red); }
+[data-theme="constructivist"] .kpi-tile__label {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-soft);
+}
+[data-theme="constructivist"] .kpi-tile__value {
+  font-family: var(--font-heading);
+  font-size: clamp(2.2rem, 3.4vw, 3.2rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--text);
+}
+[data-theme="constructivist"] .kpi-tile--primary .kpi-tile__value { color: var(--warn); }
+[data-theme="constructivist"] .kpi-tile__sub,
+[data-theme="constructivist"] .kpi-tile__trend { font-family: var(--font-mono); font-size: 12px; }
+[data-theme="constructivist"] .kpi-tile:has(:is(.kpi-tile__value--negative, [data-tone="negative"])) {
+  background: var(--cx-red);
+  border-color: var(--cx-red);
+  border-left-color: var(--cx-red-deep);
+}
+[data-theme="constructivist"] .kpi-tile:has(:is(.kpi-tile__value--negative, [data-tone="negative"]))::before { background: var(--cx-red-deep); }
+[data-theme="constructivist"] .kpi-tile:has(:is(.kpi-tile__value--negative, [data-tone="negative"])) :is(.kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .kpi-tile__value) { color: var(--text); }
+[data-theme="constructivist"] .kpi-tile__value[data-tone="positive"] { color: var(--success); }
+[data-theme="constructivist"] .kpi-tile__value--positive { color: var(--success); }
+[data-theme="constructivist"] :is(.kpi-tile__value--negative, .kpi-tile__value[data-tone="negative"]) { color: var(--danger); }
+
+/* ─── Buttons: flat slabs with one cut corner, mono caps ─── */
+[data-theme="constructivist"] .ui-button {
+  border-radius: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  clip-path: var(--cx-cut);
+}
+[data-theme="constructivist"] .ui-button:focus-visible { outline-offset: -4px; }
+[data-theme="constructivist"] .ui-button--primary { background: var(--cx-red); border-color: var(--cx-red); color: var(--text); }
+[data-theme="constructivist"] .ui-button--primary:hover:not(:disabled) { background: var(--cx-red-hover); }
+[data-theme="constructivist"] .ui-button--primary:active:not(:disabled) { background: var(--cx-red-pressed); }
+[data-theme="constructivist"] .ui-button--secondary { background: transparent; border-color: #8a7869; color: var(--text); }
+[data-theme="constructivist"] .ui-button--secondary:hover:not(:disabled) { background: var(--surface-3); border-color: var(--text); }
+[data-theme="constructivist"] .ui-button--ghost { color: var(--accent); }
+[data-theme="constructivist"] .ui-button--ghost:hover:not(:disabled) { background: var(--surface-2); }
+[data-theme="constructivist"] .ui-button--danger { background: var(--danger); color: var(--on-danger); }
+[data-theme="constructivist"] .ui-button--danger:hover:not(:disabled) { background: var(--danger-hover); }
+[data-theme="constructivist"] .ui-button--danger:active:not(:disabled) { background: var(--danger-pressed); }
+
+/* ─── Fields ─── */
+[data-theme="constructivist"] :is(.ui-input, .ui-select) {
+  border-radius: 0;
+  background: #0d0a09;
+  border: 1px solid #6d5b4d;
+  border-bottom: 2px solid var(--cx-red);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+[data-theme="constructivist"] :is(.ui-input, .ui-select):focus-visible { border-color: var(--text); }
+[data-theme="constructivist"] .ui-field__label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+
+/* ─── Sub-tabs: the same angled tabs ─── */
+[data-theme="constructivist"] .ui-tabs { gap: 2px; border-bottom: 3px solid var(--cx-red); padding-inline: 2px; }
+[data-theme="constructivist"] .ui-tab {
+  min-height: 34px;
+  padding: 0 20px;
+  border: 0;
+  background: var(--surface-2);
+  color: var(--text-soft);
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+[data-theme="constructivist"] .ui-tab:hover:not(:disabled) { background: var(--surface-3); color: var(--text); }
+[data-theme="constructivist"] .ui-tab[aria-selected="true"] { background: var(--cx-red); color: var(--text); border: 0; }
+
+/* ─── Data ─── */
+[data-theme="constructivist"] .ui-table { font-family: var(--font-mono); font-size: 12.5px; }
+[data-theme="constructivist"] .ui-table th {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--warn);
+  border-bottom: 2px solid var(--cx-red);
+}
+[data-theme="constructivist"] .ui-table td { border-bottom: var(--cx-dash); }
+[data-theme="constructivist"] .ui-table__total td { border-top: 2px solid var(--text-soft); }
+[data-theme="constructivist"] .ui-table__caption { font-family: var(--font-heading); text-transform: uppercase; letter-spacing: 0.04em; }
+[data-theme="constructivist"] .ui-badge {
+  min-height: 20px;
+  padding: 0 10px;
+  border-radius: 0;
+  border-width: 1px;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+[data-theme="constructivist"] .ui-badge--warn { background: var(--warn); color: var(--on-warn); }
+[data-theme="constructivist"] .ui-badge--success { background: var(--success); color: var(--on-success); }
+[data-theme="constructivist"] .ui-badge--danger { background: var(--danger); color: var(--on-danger); }
+[data-theme="constructivist"] .ui-badge--accent { background: var(--cx-red); border-color: var(--cx-red); color: var(--text); }
+[data-theme="constructivist"] .progress-wrap { height: 10px; border-radius: 0; background: #2a211d; border: 1px solid #4a3d35; }
+[data-theme="constructivist"] .progress-bar {
+  background: repeating-linear-gradient(-45deg, var(--cx-red) 0 8px, #e0442f 8px 16px);
+}
+[data-theme="constructivist"] .progress-bar.is-complete { background: var(--success); }
+
+/* ─── The Exchange: its photograph goes, the poster stays ─── */
+[data-theme="constructivist"] #market { background: transparent; border-radius: 0; padding: 0; }
+[data-theme="constructivist"] #market::before { display: none; }
+
+/* ─── Dialogs ─── */
+[data-theme="constructivist"] .modal-card {
+  border-radius: 0;
+  border: 1px solid var(--border);
+  border-top: 6px solid var(--cx-red);
+  background: var(--surface-1);
+  box-shadow: var(--elevation-overlay);
+}
+
+/* ─── Before play: landing and the card pages ─── */
+[data-theme="constructivist"] .auth-page__card { border-top: 6px solid var(--cx-red); }
+[data-theme="constructivist"] :is(.auth-page__overline, .landing__overline) { font-family: var(--font-mono); letter-spacing: 0.24em; color: var(--warn); }
+[data-theme="constructivist"] :is(.auth-page__title, .landing__title, .landing__heading) {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+[data-theme="constructivist"] .auth-page__title { font-size: 2.6rem; line-height: 1; }
+[data-theme="constructivist"] .landing__title { font-size: clamp(2.6rem, 6vw, 4.6rem); line-height: 0.95; }
+[data-theme="constructivist"] .landing__wordmark { font-family: var(--font-heading); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+[data-theme="constructivist"] .landing__hero {
+  padding: var(--space-8) var(--space-6);
+  border: 1px solid var(--border);
+  border-left: 8px solid var(--cx-red);
+  background: linear-gradient(112deg, var(--surface-1) 0 74%, var(--cx-red) 74% 92%, var(--cx-red-deep) 92% 100%);
+}
+[data-theme="constructivist"] .landing__hero > * { max-width: 70%; }
+[data-theme="constructivist"] .landing__intro { border-bottom: var(--cx-dash); }
+@media (max-width: 767px) {
+  [data-theme="constructivist"] .landing__hero { background: var(--surface-1); border-top: 6px solid var(--cx-red); padding: var(--space-4); }
+  [data-theme="constructivist"] .landing__hero > * { max-width: 100%; }
+}
+[data-theme="constructivist"] .landing__proof,
+[data-theme="constructivist"] .landing__notice { border-radius: 0; }
+
+/* ─── Phone floor: the small sizes stay at 14px, the tabs stay a thumb high ─── */
+@media (max-width: 767px) {
+  [data-theme="constructivist"] :is(.ui-code, .ui-kv dt, .ui-panel__meta, .ui-screen__meta, .kpi-tile__sub, .kpi-tile__trend, .ui-list, .ui-table, .ui-badge, .ui-field__label, .ui-card__meta) { font-size: 14px; }
+  [data-theme="constructivist"] .ui-tab { min-height: 44px; }
+  [data-theme="constructivist"] .ui-screen__lede { font-size: 14px; }
+}
+@media (max-width: 767px) {
+  [data-theme="constructivist"] :is(.ui-panel__title, .station__heading) .ui-code { font-size: 14px; }
+}
