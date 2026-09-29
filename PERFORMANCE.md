@@ -68,3 +68,39 @@ Every ticker is within its own budget, and the total dropped from 35% to 2% of t
 - **The world (`state.json`, market, chat, forums):** a change schedules a write 300 ms later, **and every further
   change restarts the wait**. While changes keep coming faster than every 300 ms, nothing is written, and a crash
   loses everything since the last quiet moment. Filed as **Bug #1447**, with a repro.
+
+## At release scale, with sockets (ISP-266, AB#962)
+
+`npm run bench:ticks` above times eleven tickers in-process with no clients. It predates the seventeen tickers added
+since v0.6, and since AB#2288 it could not run at all (Bug #4813, fixed with this). `npm run load:test` is the whole
+server instead: the production image built from the checkout, run locally at production's size (0.5 CPU, 1 GiB,
+`ops/infra/isp/isp.bicep`), N cloned mid-game corporations (default 200; D-1.0-1 names no launch number), and one
+real socket.io client per corporation. Each client reads its account every 20 s and says a line in global chat about
+once a minute. `scripts/load-probe.mjs`, loaded with `NODE_OPTIONS=--import`, times every timer the server's own code
+registers, and samples event-loop delay (`monitorEventLoopDelay`) and memory. Nothing touches production.
+
+**2026-09-28, 200 corporations, 7 minutes, 0.5 CPU** (i7-8700K host, Docker Desktop). These are bot numbers: cloned
+corporations, one machine, loopback, and Docker's CPU cap rather than Azure's.
+
+| | p50 | p95 | share of the run |
+|---|---|---|---|
+| accounts snapshot write (407 in 7 min) | 398 ms | 526 ms | 39.7% |
+| loanServicingTick + defaultRecoveryTick (60 s) | 1,506 ms | 1,725 ms | 2.2% |
+| raidTick (30 s) | 791 ms | 1,010 ms | 2.4% |
+| shareOfferingTick + dividendTick (60 s) | 749 ms | 971 ms | 1.1% |
+| financialSnapshotTick (30 s) | 413 ms | 504 ms | 1.2% |
+| miningTick (5 s) | 199 ms | 311 ms | 3.8% |
+| every other ticker | under 16 ms | under 92 ms | under 1% each |
+
+All timers together held the event loop for 55% of the run. Event-loop delay p99 reached 1,699 ms (max 2,965 ms) in 38 of
+81 five-second windows, and `GET /api/accounts/:id` answered in p95 2,366 ms. Memory stayed small: RSS 218 MB at peak
+of 1,024 MB. Fan-out was 713 events a second on average (peak 1,142), almost all `chat:new`: one line reaches every
+socket. At 1 CPU the same load still reached p99 1,246 ms and HTTP p95 737 ms, so a bigger container does not fix it.
+
+Filed, not fixed here: **Bug #4815**. Every `getAccountById` read schedules a full snapshot write, so under traffic the
+whole store is stringified about once a second. **Bug #4816**: tickers that look for rare records (loans, raids,
+dividends) settle and copy every account through `getAccountById` to find none.
+
+What the harness cannot see: the seeded world has no concessions, arbitration, patents, lobbying, raids, bonds or
+offerings, so those tickers are timed over empty stores. Clones finish things at the same moments. No network sits
+between clients and server.
