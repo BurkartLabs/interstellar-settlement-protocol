@@ -1,21 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
-import { stationStartPromptHtml, milestonesFirst, sidebarStartsCollapsed, revealScroll, NARROW_MAX_WIDTH } from "../../public/scripts/firstAction.js";
+import { milestonesFirst, sidebarStartsCollapsed, revealScroll, NARROW_MAX_WIDTH } from "../../public/scripts/firstAction.js";
 
 // AB#1056: the first thing a new player has to do sat below the fold on Landing, Station and Overview, and at phone
 // width a tab tap changed a panel the player could not see. These are the decisions behind each fix; the layout itself
 // is checked by screenshot at 1280x800 and 375x812 (the PR has both, before and after).
 
-describe("Station: the Start here prompt (AB#1056)", () => {
-  it("shows while the corporation has no office, with a button into the Orbital Executive Suites", () => {
-    const html = stationStartPromptHtml({ offices: [] });
-    expect(html).toMatch(/Start here/);
-    expect(html).toMatch(/data-start-office/);
-    expect(html).toMatch(/Orbital Executive Suites/);
-  });
-  it("is gone once there is an office, and for a corporation with no data yet", () => {
-    expect(stationStartPromptHtml({ offices: [{ stationId: "earth-station-prime" }] })).toBe("");
-    expect(stationStartPromptHtml(undefined)).toMatch(/Start here/); // no corp yet reads as no office, which it is
+describe("Station: no first-action prompt (AB#2463, Board review item 9)", () => {
+  it("the Station draws no \"Start here\" and nothing binds one: the walkthrough leads to the Suites", () => {
+    for (const f of ["public/scripts/firstAction.js", "public/scripts/views/station.js", "public/index.html"]) {
+      expect(readFileSync(f, "utf8"), f).not.toMatch(/start here|data-start-office|stationStartPromptHtml/i);
+    }
   });
 });
 

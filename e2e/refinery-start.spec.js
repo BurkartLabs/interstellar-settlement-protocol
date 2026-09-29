@@ -70,7 +70,8 @@ for (const [width, height] of [[375, 812], [1280, 800]]) {
       await page.keyboard.press("Escape");
 
       await expect(page.locator("#refinery-active-runs")).toContainText("Processing: 1,800 Silicates → 720 Aerogel, 270 Quantum Insulators");
-      await expect(silicates).toContainText("Inventory: 0 Silicates");
+      // AB#2485: the stock is on the input row, as every chain shows it
+      await expect(silicates.locator('[data-input-item="Silicates"]')).toContainText("holds 0");
       await shot("running");
       expect(errors).toEqual([]);
     } finally {

@@ -14,6 +14,9 @@ export function setSectionCodes(registry) {
   codes = new Map([...(registry?.screens || []), ...(registry?.sections || []), ...(registry?.drawn || [])].map((e) => [e.id, e.code])); // drawn: ISP-250 (AB#946)
 }
 
+/** The bare code for `id` ("CORP-RND-1"), or "" for an id the registry lacks (ISP-254, AB#950: the protocol line). */
+export const codeOf = (id) => codes.get(id) || "";
+
 /** What a slot shows for `id`: "CODE // ", or "" for an id the registry lacks. */
 export const codeText = (id) => (codes.has(id) ? `${codes.get(id)} // ` : "");
 

@@ -40,7 +40,7 @@ describe("the office costs what the Suites panel quotes (Bug #1032)", () => {
       .send({ stationId: "earth-station-prime", durationDays: 28 });
     expect(res.status).toBe(400);
     expect(res.body.error).not.toMatch(/credits credits/);
-    expect(res.body.error).toMatch(/Current reserves: [\d,]+ credits\.$/);
+    expect(res.body.error).toMatch(/Current reserves: [\d,]+ credits\. /); // ISP-254Bc (AB#4818): the next step follows
   });
 
   it("renewing does not say the word 'credits' twice either", async () => {
@@ -52,7 +52,7 @@ describe("the office costs what the Suites panel quotes (Bug #1032)", () => {
     const res = await api.post(`/api/accounts/${account.id}/gameplay/renew-office`).send({ stationId: "earth-station-prime", durationDays: 28 });
     expect(res.status).toBe(400);
     expect(res.body.error).not.toMatch(/credits credits/);
-    expect(res.body.error).toMatch(/Current reserves: [\d,]+ credits\.$/);
+    expect(res.body.error).toMatch(/Current reserves: [\d,]+ credits\. /); // ISP-254Bc (AB#4818): the next step follows
   });
 
   // Source checks, weaker than rendering: the panel is drawn by client code the tests cannot call (the station view,

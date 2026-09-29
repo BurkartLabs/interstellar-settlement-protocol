@@ -76,7 +76,11 @@ for (const [width, height] of [[375, 812], [1280, 800]]) {
       await expect(vessels.locator(".refinery__quantity")).toHaveValue("160");
       // AB#2353: the Resource catalog is data/refinery-chains.json's list, Iron Ore included.
       const catalog = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "data", "refinery-chains.json"), "utf8")).resourceCatalog;
-      expect(await page.locator("#resource-catalog li").allTextContents()).toEqual(catalog);
+      // Bug #4706: AB#885 groups the chips by tier, each group an <li> holding its own list, so only the chips are read,
+      // and in any order: the tiers set the page's order, the data sets what is in it.
+      const chips = await page.locator("#resource-catalog li.ui-badge").allTextContents();
+      expect([...chips].sort()).toEqual([...catalog].sort());
+      expect(chips).toContain("Iron Ore");
       await shot("chains");
 
       await vessels.locator(".refinery__start").click();

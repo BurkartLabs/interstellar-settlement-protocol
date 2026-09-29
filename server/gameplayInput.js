@@ -71,6 +71,9 @@ export const GAMEPLAY_INPUT = {
   // ISP-101 (AB#793): an id that is not one of the caller's buildings - unknown, another corporation's, or malformed -
   // gets this one answer, so ids cannot be probed.
   "POST /buildings/:buildingId/upgrade": { params: { buildingId: id("ownBuildings", "one of your buildings") } },
+  // ISP-287 (AB#994): repairing a damaged building, and the list of them with their prices
+  "POST /buildings/:buildingId/repair": { params: { buildingId: id("ownBuildings", "one of your buildings") } },
+  "GET /building-repairs": NOTHING,
   "POST /lease/:leaseId/start-mining": {
     params: { leaseId: id("ownLeases", "one of your mining leases") },
     body: {
@@ -95,11 +98,14 @@ export const GAMEPLAY_INPUT = {
     }
   },
   "GET /belt-compositions": NOTHING,
+  // AB#821: the launch panel's escort figures for a belt and a length
+  "GET /expedition-outlook": { query: { beltKey: id("belts", "an asteroid belt"), duration: id("expeditionDurations", "an expedition length", { optional: true }) } },
   "POST /scout-belt": { body: { beltKey: id("belts", "an asteroid belt") } },
   "POST /launch-expedition": {
     body: {
       beltKey: id("belts", "an asteroid belt"), duration: id("expeditionDurations", "an expedition length"),
-      escortFleetId: ref("one of your fleets", { optional: true }) // AB#820: the rules check it is the caller's own
+      escortFleetId: ref("one of your fleets", { optional: true }), // AB#820: the rules check it is the caller's own
+      escortContractId: ref("a fleet you have hired", { optional: true }) // AB#4678: a hired fleet as the escort
     }
   },
   "POST /start-refinery": {
@@ -130,6 +136,11 @@ export const GAMEPLAY_INPUT = {
   "POST /fleets/:fleetId/deploy": { params: { fleetId: ref("one of your fleets") }, body: { toStationId: id("stations", "a station") } },
   "POST /fleets/:fleetId/disband": { params: { fleetId: ref("one of your fleets") } },
   "GET /fleets/:fleetId/destinations": { params: { fleetId: ref("one of your fleets") } }, // ISP-175 (AB#869)
+  // ISP-284 (AB#991): a fleet sent to hunt a belt's Rats; server/hunts.js checks the fleet is the caller's and free
+  "GET /hunts": NOTHING, // ISP-284 (AB#991): the corporation's hunts and their reports
+  "GET /rats/activity": NOTHING, // ISP-285 (AB#992): every system's pirate activity
+  "GET /belts/:beltKey/hunt": { params: { beltKey: id("belts", "an asteroid belt") } }, // ISP-285 (AB#992): a belt's hunt screen
+  "POST /fleets/:fleetId/hunt": { params: { fleetId: ref("one of your fleets") }, body: { beltKey: id("belts", "an asteroid belt") } },
   // ISP-176 (AB#870): mercenary contracts. Terms are numbers and enums only; ids not the caller's are the route's 404.
   "GET /mercenaries": NOTHING,
   "GET /mercenaries/mine": NOTHING, // ISP-177 (AB#871)
@@ -175,6 +186,9 @@ export const ACCOUNT_INPUT = {
   "POST /notifications/read-all": NOTHING,
   "POST /notifications/:notificationId/read": { params: { notificationId: ref("a notification") } },
   "GET /messages": NOTHING,
+  // ISP-264 (AB#960): the owner's data export, and deleting the account (its password is checked by the route)
+  "GET /export": NOTHING,
+  "POST /delete-account": { body: { password: text(1024, "your password"), confirm: word(["DELETE"], "the word DELETE") } },
   "GET /corporations": { query: { name: text(64, "a corporation name to search for", { optional: true }) } },
   "GET /dominance": NOTHING, // ISP-217 (AB#912): the caller's own dominance components
   // ISP-230 (AB#925): a holder's tariff, 0 to the highest cap any system has, in the catalog's steps; the system's own
@@ -321,7 +335,8 @@ export const ACCOUNT_INPUT = {
   "POST /conglomerates/:conglomerateId/station/proposals": {
     params: { conglomerateId: ref("a conglomerate") },
     body: {
-      setting: word(["access", "list", "unlist"], "a station setting: access, list or unlist"),
+      setting: word(["access", "list", "unlist", "tax"], "a station setting: access, list, unlist or tax"),
+      taxPct: int(0, 100, "a sales tax percentage", { optional: true }), // ISP-212b (AB#4655): the rules allow only stationTaxOptions
       value: word(["open", "members", "members-and-listed"], "who may dock: open, members or members-and-listed", { optional: true }),
       conglomerateId: ref("a conglomerate", { optional: true })
     }
@@ -412,8 +427,11 @@ export const FORUM_INPUT = {
       body: text(8000, "a post of at most 8,000 characters")
     }
   },
-  "POST /threads/:threadId/replies": { params: { threadId: ref("a thread") }, body: { content: text(4000, "a reply of at most 4,000 characters") } },
-  "POST /threads/:threadId/like": { params: { threadId: ref("a thread") }, body: { replyId: ref("a reply", { optional: true }) } }
+  "POST /threads/:threadId/replies": { params: { threadId: ref("a thread") }, body: { content: text(4000, "a reply of at most 4,000 characters"), replyToId: ref("a reply in this thread", { optional: true }) } }, // replyToId: AB#2466
+  "POST /threads/:threadId/like": { params: { threadId: ref("a thread") }, body: { replyId: ref("a reply", { optional: true }) } },
+  // AB#995: the forums a page at a time; the cursor, category and page size are checked by server/forumPages.js (400)
+  "GET /threads": NOTHING,
+  "GET /threads/:threadId": { params: { threadId: ref("a thread") } }
 };
 
 const refuse = (error) => ({ ok: false, error });

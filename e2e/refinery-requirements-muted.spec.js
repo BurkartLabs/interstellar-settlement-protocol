@@ -29,7 +29,7 @@ import { verifyAndLogIn } from "./verification.mjs";
  */
 function panelColors(page) {
   return page.evaluate(() => {
-    const ps = [...document.querySelectorAll("#refinery-chains p")];
+    const ps = [...document.querySelectorAll("#refinery-unavailable-chains p")]; // AB#2485: a fresh account can run none
     const color = (p) => (p ? getComputedStyle(p).color : null);
     return {
       requirement: color(ps.find((p) => p.textContent.startsWith("Requires:"))),
@@ -41,9 +41,8 @@ function panelColors(page) {
 /** The pre-fix panel code: AB#1761 removed the warning colour from exactly these two requirement lines. */
 function preFixPanelJs(fixed) {
   const REVERT = [
-    ['<p class="ui-card__meta">Requires: ', '<p class="ui-card__meta" style="color:var(--color-warn)">Requires: '],
-    ['<p class="ui-card__meta">Refinery construction requires: ', '<p class="ui-card__meta" style="color:var(--color-warn)">Refinery construction requires: ']
-  ];
+    ['<p class="ui-card__meta">Requires: ', '<p class="ui-card__meta" style="color:var(--color-warn)">Requires: ']
+  ]; // AB#2485: the building line is new since AB#1761, so only the research line has a pre-fix colour
   let text = fixed;
   for (const [now, before] of REVERT) {
     const n = text.split(now).length - 1;
@@ -126,7 +125,7 @@ for (const viewport of VIEWPORTS) {
       await page.getByRole("button", { name: "I'll find my own way" }).click();
       await expect(page.locator("#dialogue-modal")).toBeHidden();
       await openTab(page, "refinery");
-      const chainsEl = page.locator("#refinery-chains");
+      const chainsEl = page.locator("#refinery-unavailable-chains"); // AB#2485
       await expect(chainsEl).toBeVisible();
       const requirementRow = chainsEl.locator("p", { hasText: "Requires:" }).first();
       await expect(requirementRow).toBeVisible();

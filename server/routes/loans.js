@@ -4,7 +4,6 @@
 // and the quote to accept.
 import { quoteLoan, acceptLoan, loanOffers } from "../loans.js";
 import { getAccountById } from "../gameState.js";
-import { sanitizeAccount } from "../game/store.js";
 
 const credits = (n) => `${Math.round(n).toLocaleString("en-US")} credits`;
 const day = (t) => utcTime(t, { withDate: true }); // ISP-249 (AB#945)
@@ -33,7 +32,7 @@ function payoffReceipt(loan, paid) {
     next: "Your credit record will show the facility closed at the next rating."
   };
 }
-const answer = (accountId, extra) => ({ ...sanitizeAccount(getAccountById(accountId)), ...extra });
+const answer = (accountId, extra) => ({ ...getAccountById(accountId), ...extra }); // Bug #4849: getAccountById is already sanitised; sanitising again copied it twice
 import { payOffLoan } from "../loanServicing.js"; // ISP-150 (AB#844)
 import { listLoanOffers, postLoanOffer, cancelLoanOffer, acceptLoanOffer, OFFER_RULES, MIN_GRADES, gradeOf, playerLoansOf } from "../playerLoans.js"; // ISP-152 (AB#846), ISP-153 (AB#847)
 import { bodyNumber } from "../bodyNumber.js";
@@ -62,7 +61,7 @@ export function registerLoanRoutes(app) {
   // ISP-150 (AB#844): repay a loan early: the principal still owed, the arrears and a 1% fee, all at once.
   app.post("/api/accounts/:accountId/loans/:loanId/payoff", (req, res) => {
     const r = payOffLoan(req.params.accountId, req.params.loanId, Date.now());
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    if (!r.ok) return res.status(r.status).json({ error: r.error, ...(r.code ? { code: r.code } : {}) }); // ISP-255 (AB#4824)
     res.json(answer(req.params.accountId, { loan: r.loan, paid: r.paid, receipt: payoffReceipt(r.loan, r.paid) }));
   });
 
@@ -86,19 +85,19 @@ export function registerLoanRoutes(app) {
       termDays: bodyNumber(req.body?.termDays, { fallback: NaN }),
       minGrade: typeof req.body?.minGrade === "string" ? req.body.minGrade : ""
     }, Date.now());
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    if (!r.ok) return res.status(r.status).json({ error: r.error, ...(r.code ? { code: r.code } : {}) }); // ISP-255 (AB#4824)
     res.status(201).json({ offer: r.offer });
   });
 
   app.post("/api/accounts/:accountId/loan-offers/:offerId/cancel", (req, res) => {
     const r = cancelLoanOffer(req.params.accountId, req.params.offerId, Date.now());
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    if (!r.ok) return res.status(r.status).json({ error: r.error, ...(r.code ? { code: r.code } : {}) }); // ISP-255 (AB#4824)
     res.json({ offer: r.offer });
   });
 
   app.post("/api/accounts/:accountId/loan-offers/:offerId/accept", (req, res) => {
     const r = acceptLoanOffer(req.params.accountId, req.params.offerId, Date.now());
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    if (!r.ok) return res.status(r.status).json({ error: r.error, ...(r.code ? { code: r.code } : {}) }); // ISP-255 (AB#4824)
     res.json({ loan: r.loan });
   });
 }

@@ -10,8 +10,9 @@ const HTML = readFileSync(new URL("../../public/index.html", import.meta.url), "
 const PANELS = [...HTML.matchAll(/<article\b[^>]*\bclass="[^"]*\btab-panel\b[^"]*"[^>]*\bid="([^"]+)"|<article\b[^>]*\bid="([^"]+)"[^>]*\bclass="[^"]*\btab-panel\b/g)].map((m) => m[1] ?? m[2]);
 
 describe("the six navigation groups (ISP-75)", () => {
-  it("are Company, Station, Industry, Market, Comms and Map, in that order", () => {
-    expect(NAV_GROUPS.map((g) => g.label)).toEqual(["Company", "Station", "Industry", "Market", "Comms", "Map"]);
+  it("are Company, Station, Industry, Market, Chat and Map, in that order", () => {
+    // AB#2490: "Comms is now called Chat" (Board review item 40)
+    expect(NAV_GROUPS.map((g) => g.label)).toEqual(["Company", "Station", "Industry", "Market", "Chat", "Map"]);
   });
 
   it("hold every panel on the page exactly once, and nothing else", () => {
@@ -74,7 +75,7 @@ describe("the walkthrough reveals a group when it first becomes relevant (ISP-75
     expect(shown(rnd)).toContain("industry");
     const last = WALKTHROUGH_STEPS.length - 1;
     expect(shown(last)).toContain("map");
-    expect(shown(last), "no step is about Comms, so it waits for the briefing to end").not.toContain("comms");
+    expect(shown(last), "no step is about Chat, so it waits for the briefing to end").not.toContain("comms");
     expect(at("licence")).toBe(0);
   });
 

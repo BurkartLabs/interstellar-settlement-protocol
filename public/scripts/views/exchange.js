@@ -6,22 +6,29 @@
 
 import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
-import { DEFAULT_EXCHANGE_VIEW, MY_LISTINGS_SHOWN, SELL_ORDERS_SHOWN, cappedNote, filteredEmptyHtml, partnerNames, partnersEmptyHtml, saveExchangeView, sellerKey, tradeNumbers, viewOrders } from "../exchangeView.js";
+import { DEFAULT_EXCHANGE_VIEW, EXCHANGE_PAGES, MY_LISTINGS_SHOWN, ORDER_PAGES, SELL_ORDERS_SHOWN, cappedNote, filteredEmptyHtml, partnerNames, partnersEmptyHtml, saveExchangeView, sellerKey, standingBuyNote, standingBuyRows, standingBuyToggle, tradeNumbers, viewOrders } from "../exchangeView.js";
 import { deepClone, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-255 (AB#951)
 import { appState, viewerStorage } from "../state.js";
-import { taxOnSale, withBasePct } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
+import { stationTaxBreakdown, taxOnSale, withBasePct } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
 import { saleQuote, utcMinute } from "../tariffs.js"; // ISP-231 (AB#926): the tariff the server settles
 import { councilWithholding, withheldFrom } from "../itcDuty.js"; // ISP-232 (AB#927): what the server withholds toward ITC duty owed; ISP-243 (AB#939): and Council debts
 import { listingWarning } from "../dumping.js"; // ISP-233 (AB#928): the watch's own rule
 import { withCents } from "../priceChart.js";
 import { suggestedListingPrice } from "../suggestedPrice.js";
 import { labelTableCells } from "../tableLabels.js";
-import { tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
+import { saleDeductions, tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
 import { counterpartyHtml } from "../npcProfile.js"; // ISP-124 (AB#818)
 import { showNpcProfile } from "./npcProfileModal.js";
 import { renderMercenaries } from "./mercenaries.js"; // ISP-177 (AB#871)
 import { flashButtonSuccess, getCurrentStationInfo, getInventory, pushFeedback, refreshFromServer, showTradeConfirmation, stationLocationBanner } from "./shared.js";
+
+/** ISP-255 (AB#951): an outcome's protocol on the Galactic Exchange (public/scripts/protocol.js). */
+const onExchange = (meaning) => ({ meaning, screen: "market" });
+const refusedOnExchange = (error) => onExchange(refusalMeaning(error));
+/** A status line's plain words, then the protocol line: markup, so the text is escaped here. */
+const withProtocol = (text, protocol) => `${escapeHtml(text)}${protocol ? ` ${protocolLineHtml(protocol)}` : ""}`;
 
 /**
  * The tax rate and its parts, as the server last stored them (ISP-302, AB#2285: finances.exchangeTaxBreakdown). A
@@ -46,15 +53,19 @@ export function getClientExchangeTaxPct() {
 function saleTaxRows(gross) {
   // ISP-231 (AB#926): the concession tariff where the goods are held, quoted with the server's own arithmetic
   const here = clientTariffHere();
-  // ISP-239 (AB#934): and the sales tax in force there, which a lobbying campaign may have moved
-  const breakdown = withBasePct(getClientExchangeTaxBreakdown(), here?.salesTaxPct);
+  // ISP-239 (AB#934): and the sales tax in force there, which a lobbying campaign may have moved; ISP-212b (AB#4655): at
+  // a conglomerate's station, the station's tax in its place (none for a member), as server/game/stationTax.js charges it
+  const breakdown = here?.stationTax ? stationTaxBreakdown(here.stationTax) : withBasePct(getClientExchangeTaxBreakdown(), here?.salesTaxPct);
+  const st = breakdown.station;
   const sale = saleQuote(gross, breakdown, here?.pct || 0);
   const withheld = withheldFrom(sale.proceeds, appState.data?.corp?.itcDuty);
   // ISP-243 (AB#939): an Arbitration Council debt takes what the same 50% leaves, as the server's withholdCouncilDebt does
   const debts = appState.data?.corp?.councilDebts || [];
   const council = councilWithholding(sale.proceeds, withheld, debts, debts[0]?.withholdPct).reduce((s, d) => s + d.credits, 0);
   return [
-    { label: `GEX Sales Tax (${breakdown.salesTaxPct}%)`, value: `− ${toCurrency(sale.salesTax)}`, muted: true },
+    { label: st ? `${st.member ? "Member" : "Station"} Tax (${breakdown.salesTaxPct}%)` : `GEX Sales Tax (${breakdown.salesTaxPct}%)`, value: `− ${toCurrency(sale.salesTax)}`, muted: true },
+    // the label column does not wrap, and a conglomerate's name can be long: whose tax it is goes on a note, which wraps
+    ...(st ? [{ note: st.member ? `${st.conglomerateName}'s station: members pay no sales tax here.` : `${st.conglomerateName}'s station: its sales tax, set by its stakeholders' vote, goes to its treasury.` }] : []),
     ...(breakdown.royaltyPct > 0 ? [{ label: `ISA Lease Royalty (${breakdown.royaltyPct}%)`, value: `− ${toCurrency(sale.royalty)}`, muted: true }] : []),
     ...(sale.tariff > 0 ? [{ label: `Concession Tariff (${here.pct}%)`, value: `− ${toCurrency(sale.tariff)}`, muted: true }] : []),
     ...(here?.pending ? [{ label: "Tariff Pending", value: `${here.pending.pct}% from ${utcMinute(here.pending.effectiveAt)}`, muted: true }] : []),
@@ -156,8 +167,6 @@ export function renderMarket(data) {
     const tab = (value, label) => `<button type="button" class="ui-tab" role="tab" aria-selected="${String(cur === value)}" data-filter="${escapeHtml(value)}">${escapeHtml(label)}</button>`;
     filterBar.innerHTML = tab("", "All") + resources.map((r) => tab(r, r)).join("");
   }
-  const typeSelect = document.getElementById("exchange-type-filter");
-  if (typeSelect) typeSelect.value = view.type;
   const sortSelect = document.getElementById("exchange-sort");
   if (sortSelect) sortSelect.value = view.sort;
   const tierSelect = document.getElementById("exchange-tier-filter");
@@ -167,22 +176,14 @@ export function renderMarket(data) {
   const sellersSelect = document.getElementById("exchange-sellers-filter");
   if (sellersSelect) sellersSelect.value = view.sellers;
 
-  // Order-type filter: one table, or all of them (AB#402)
-  const showSection = (id, type) => {
-    const el = document.getElementById(id);
-    if (el) el.hidden = view.type !== "all" && view.type !== type;
-  };
-  showSection("exchange-sell-section", "sell");
-  showSection("exchange-bids-section", "bids");
-  showSection("exchange-bid-form-section", "bids");
-  showSection("exchange-standing-section", "standing");
-  showSection("exchange-npc-sell-section", "standing");
-  showSection("exchange-mine-section", "mine");
+  showExchangePage(view.page); // AB#2472: the subpage the viewer last chose
 
   // Filter by resource and sort, then cap: the cap applies to what the viewer asked to see (AB#402)
   const viewedSellOrders = viewOrders(allSellOrders, view, { partners, tierOf });
   const filteredSellOrders = viewedSellOrders.slice(0, SELL_ORDERS_SHOWN);
   const filteredNpcOrders = viewOrders(npcBuyOrders, view, { tierOf });
+  // AB#4710: with All picked, the buyers for what the player holds here, the rest one press away
+  const standing = standingBuyRows(filteredNpcOrders, { view, held: getInventory(), showAll: Boolean(appState.standingShowAll) });
   const viewedMySellOrders = viewOrders(allMySellOrders, view, { tierOf });
   const mySellOrders = viewedMySellOrders.slice(0, MY_LISTINGS_SHOWN);
 
@@ -243,9 +244,9 @@ export function renderMarket(data) {
         return `
           <tr>
             <td>${escapeHtml(order.item)}</td>
-            <td class="ui-table__num">${Number(order.quantity).toLocaleString()}</td>
-            <td class="ui-table__num">${toCurrency(order.unitPrice)}</td>
-            <td>${counterpartyHtml(order.seller, market.npcDirectory)}</td>
+            <td class="ui-table__num exchange__left-cell">${Number(order.quantity).toLocaleString()}</td>
+            <td class="ui-table__num exchange__price-cell">${toCurrency(order.unitPrice)}</td>
+            <td class="exchange__party">${counterpartyHtml(order.seller, market.npcDirectory)}</td>
             <td>${soldOut ? "-" : `<input class="ui-input exchange__qty" type="number" min="1" max="${Number(order.quantity)}" value="1" aria-label="Quantity of ${escapeHtml(order.item)} to buy" data-buy-order-qty="${escapeHtml(order.id)}" />`}</td>
             <td>${soldOut ? "Sold out until tomorrow" : `<button class="ui-button ui-button--secondary" type="button" data-buy-order-id="${escapeHtml(order.id)}" data-buy-item="${escapeHtml(order.item)}" data-buy-price="${Number(order.unitPrice)}" data-buy-qty="${Number(order.quantity)}">Buy</button>`}</td>
           </tr>`;
@@ -256,7 +257,7 @@ export function renderMarket(data) {
 
   // NPC Standing Buy Orders table (player can sell into these)
   if (npcBuyTable) {
-    npcBuyTable.innerHTML = filteredNpcOrders
+    npcBuyTable.innerHTML = standing.rows
       .map((order) => {
         const exhausted = order.remainingQty <= 0;
         const total = Math.max(0, Number(order.totalQtyPerDay) || 0);
@@ -265,8 +266,8 @@ export function renderMarket(data) {
         return `
           <tr${exhausted ? ' class="ui-table__muted"' : ""}>
             <td>${escapeHtml(order.item)}</td>
-            <td>${counterpartyHtml(order.buyer, market.npcDirectory)}</td>
-            <td class="ui-table__num">
+            <td class="exchange__party">${counterpartyHtml(order.buyer, market.npcDirectory)}</td>
+            <td class="ui-table__num exchange__price-cell">
               <span class="exchange__price">${toCurrency(order.unitPrice)}${
                 // ISP-87: the bid falls as the day's volume is sold into it. Saying so where the price is shown is
                 // the difference between a number that looks wrong and a market a player can read.
@@ -275,7 +276,7 @@ export function renderMarket(data) {
                   : ""
               }</span>
             </td>
-            <td>
+            <td class="exchange__left-cell">
               <span class="exchange__remaining"><span class="ui-figure">${Number(order.remainingQty).toLocaleString()} / ${total.toLocaleString()}</span>
               <progress class="exchange__fill" max="${total || 1}" value="${sold}" aria-label="${boughtLabel}"></progress></span>
             </td>
@@ -291,6 +292,22 @@ export function renderMarket(data) {
       .join("");
   }
   showEmpty(npcBuyEmpty, "npc-buy-filtered", npcBuyOrders.length, filteredNpcOrders.length, "standing buy orders");
+  // AB#4710: the note and the Show all control; no rows held here hides the empty table under the note
+  const heldNote = document.getElementById("npc-buy-held-note");
+  if (heldNote) {
+    heldNote.textContent = standingBuyNote(standing, getCurrentStationInfo(data)?.name);
+    heldNote.hidden = !heldNote.textContent;
+  }
+  const showAllButton = document.getElementById("npc-buy-show-all");
+  if (showAllButton) {
+    showAllButton.textContent = standingBuyToggle(standing);
+    showAllButton.hidden = !showAllButton.textContent;
+    showAllButton.setAttribute("aria-expanded", String(!standing.collapsed));
+  }
+  if (!standing.rows.length && filteredNpcOrders.length) {
+    const wrap = npcBuyTable?.closest(".ui-table-wrap");
+    if (wrap) wrap.hidden = true;
+  }
 
   // Inventory snapshot
   const inventory = getInventory();
@@ -402,6 +419,24 @@ export function renderMarket(data) {
  * a dead click. It lives in appState, so a redraw of the table keeps it. When that row is gone (the whole stock was
  * listed), it goes in the line below the table.
  */
+/**
+ * AB#2472 (DOCTRINE P-010): show one of the Exchange's subpages, as the ARIA tabs pattern has it (only the selected tab
+ * in the tab order), and the price chart and filters only on the pages with orders to filter.
+ */
+export function showExchangePage(page) {
+  const current = EXCHANGE_PAGES.includes(page) ? page : DEFAULT_EXCHANGE_VIEW.page;
+  const selected = document.querySelector(`#exchange-pages [data-exchange-page="${current}"]`);
+  document.querySelectorAll("#exchange-pages [data-exchange-page]").forEach((tab) => {
+    const on = tab === selected;
+    tab.setAttribute("aria-selected", String(on));
+    tab.tabIndex = on ? 0 : -1;
+    const panel = document.getElementById(tab.getAttribute("aria-controls") || "");
+    if (panel) panel.hidden = !on;
+  });
+  const tools = document.getElementById("exchange-tools");
+  if (tools) tools.hidden = !ORDER_PAGES.has(current);
+}
+
 export function paintListingStatus() {
   const status = appState.listingStatus;
   const rows = [...document.querySelectorAll("#market-sell-grid [data-sell-status]")];
@@ -416,7 +451,7 @@ export function paintListingStatus() {
   const inRow = rows.find((el) => el.getAttribute("data-sell-status") === status.item);
   const target = inRow || below;
   if (!target) return;
-  target.textContent = status.text;
+  target.innerHTML = withProtocol(status.text, status.protocol);
   if (inRow) {
     inRow.className = `exchange__row-status exchange__row-status--${status.tone === "ok" ? "ok" : "error"}`;
     inRow.setAttribute("role", status.tone === "ok" ? "status" : "alert");
@@ -447,8 +482,8 @@ function paintBidTotal() {
     : "Enter a whole quantity and price of at least 1.";
 }
 
-function sayListing(item, tone, text) {
-  appState.listingStatus = { item, tone, text, reveal: true };
+function sayListing(item, tone, text, protocol = null) {
+  appState.listingStatus = { item, tone, text, protocol, reveal: true };
   paintListingStatus();
 }
 
@@ -475,12 +510,12 @@ export function bindExchangeForms() {
     const available = Number(inventory[item] || 0);
 
     if (!item || available <= 0) {
-      sayListing(item, "error", "No stock available for this item.");
+      sayListing(item, "error", "No stock available for this item.", onExchange("refused"));
       return;
     }
 
     if (numbers.ok && numbers.values.quantity > available) {
-      sayListing(item, "error", "Quantity exceeds available inventory.");
+      sayListing(item, "error", `You hold ${available.toLocaleString("en-US")} here. List ${available.toLocaleString("en-US")} or fewer.`, onExchange("refused")); // Bug #4827
       return;
     }
 
@@ -534,15 +569,16 @@ export function bindExchangeForms() {
       }
 
       // the server's own record of what was listed, not what the form thought it sent
+      const stillListed = Number(payload.order?.quantity) - soldAtOnce;
       appState.listingStatus = soldAtOnce > 0
-        ? { item, tone: "ok", text: `Sold ${soldAtOnce} ${item} at once to buy orders; ${Number(payload.order?.quantity) - soldAtOnce} listed @ ${toCurrency(payload.order?.unitPrice)}.` }
-        : { item, tone: "ok", text: `Listing created: ${Number(payload.order?.quantity)} ${item} @ ${toCurrency(payload.order?.unitPrice)}.` };
+        ? { item, tone: "ok", text: `Sold ${soldAtOnce} ${item} at once to buy orders; ${stillListed} listed @ ${toCurrency(payload.order?.unitPrice)}.`, protocol: onExchange(stillListed > 0 ? "queued" : "complete") }
+        : { item, tone: "ok", text: `Listing created: ${Number(payload.order?.quantity)} ${item} @ ${toCurrency(payload.order?.unitPrice)}.`, protocol: onExchange("queued") };
       renderMarket(appState.data);
       showActionReceipt(payload, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       await refreshFromServer();
     } catch (error) {
-      sayListing(item, "error", `Sell listing failed: ${error.message}`);
-      pushFeedback(`Sell listing failed: ${error.message}`, "warn");
+      sayListing(item, "error", `Sell listing failed: ${error.message}`, refusedOnExchange(error));
+      pushFeedback(`Sell listing failed: ${error.message}`, "warn", refusedOnExchange(error));
     }
   });
 
@@ -561,10 +597,10 @@ export function bindExchangeForms() {
       renderMarket(appState.data);
       appState.listingStatus = null; // a refusal shown before the cancel no longer applies
       paintListingStatus();
-      pushFeedback("Listing cancelled; the goods are back in your station inventory.", "success");
+      pushFeedback("Listing cancelled; the goods are back in your station inventory.", "success", onExchange("cancelled"));
     } catch (error) {
       button.disabled = false;
-      pushFeedback(`Could not cancel the listing: ${error.message}`, "warn");
+      pushFeedback(`Could not cancel the listing: ${error.message}`, "warn", refusedOnExchange(error));
     }
   });
 
@@ -603,11 +639,11 @@ export function bindExchangeForms() {
       });
       const payload = await parseJsonResponse(response);
       const filled = (payload.fills || []).reduce((sum, f) => sum + f.quantity, 0);
-      if (status) status.textContent = payload.order ? `Bought ${filled} at once; ${payload.order.quantity} ${item} waiting at ${toCurrency(payload.order.unitPrice)}.` : `Bought ${filled} ${item}: the order is filled.`;
+      if (status) status.innerHTML = payload.order ? withProtocol(`Bought ${filled} at once; ${payload.order.quantity} ${item} waiting at ${toCurrency(payload.order.unitPrice)}.`, onExchange("queued")) : withProtocol(`Bought ${filled} ${item}: the order is filled.`, onExchange("complete"));
       showActionReceipt(payload, { returnFocusTo: receiptTrigger });
       await refreshFromServer();
     } catch (error) {
-      if (status) status.textContent = `Buy order refused: ${error.message}`;
+      if (status) status.innerHTML = withProtocol(`Buy order refused: ${error.message}`, refusedOnExchange(error));
     } finally {
       if (submit) submit.disabled = false;
     }
@@ -621,11 +657,11 @@ export function bindExchangeForms() {
     try {
       const response = await apiFetch(`/api/market/orders/${encodeURIComponent(button.getAttribute("data-cancel-bid-id"))}/cancel`, { method: "POST" });
       const payload = await parseJsonResponse(response);
-      pushFeedback(`Buy order cancelled; ${toCurrency(payload.refunded)} returned to your reserves.`, "success");
+      pushFeedback(`Buy order cancelled; ${toCurrency(payload.refunded)} returned to your reserves.`, "success", onExchange("cancelled"));
       await refreshFromServer();
     } catch (error) {
       button.disabled = false;
-      pushFeedback(`Could not cancel the buy order: ${error.message}`, "warn");
+      pushFeedback(`Could not cancel the buy order: ${error.message}`, "warn", refusedOnExchange(error));
     }
   });
 
@@ -677,19 +713,19 @@ export function bindExchangeForms() {
       const payload = await parseJsonResponse(response);
       appState.data = deepClone(payload.account.state);
       if (buyStatus) {
-        buyStatus.textContent = `Executed purchase: ${qty.toLocaleString()} \u00d7 ${escapeHtml(item)} at ${toCurrency(price)}/unit.`;
+        buyStatus.innerHTML = withProtocol(`Executed purchase: ${qty.toLocaleString()} \u00d7 ${item} at ${toCurrency(price)}/unit.`, onExchange("complete"));
       }
       appState.listingStatus = null;
       paintListingStatus();
-      pushFeedback(`Purchase executed: ${item} \u00d7 ${qty} @ ${toCurrency(price)}/unit.`, "success");
+      pushFeedback(`Purchase executed: ${item} \u00d7 ${qty} @ ${toCurrency(price)}/unit.`, "success", onExchange("complete"));
       flashButtonSuccess(button);
       await refreshFromServer();
       showActionReceipt(payload, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
     } catch (error) {
       if (buyStatus) {
-        buyStatus.textContent = `Buy order failed: ${error.message}`;
+        buyStatus.innerHTML = withProtocol(`Buy order failed: ${error.message}`, refusedOnExchange(error));
       }
-      pushFeedback(`Buy order rejected. ${error.message}`, "error");
+      pushFeedback(`Buy order rejected. ${error.message}`, "error", refusedOnExchange(error));
     }
   };
   buyTableEl?.addEventListener("click", buyFromBook);
@@ -705,7 +741,28 @@ export function bindExchangeForms() {
     const pill = event.target.closest("[data-filter]");
     if (pill) setExchangeView({ resource: pill.getAttribute("data-filter") || "" });
   });
-  document.getElementById("exchange-type-filter")?.addEventListener("change", (event) => setExchangeView({ type: event.target.value }));
+  // AB#2472: a subpage is chosen by click, or by the arrow keys, Home and End from the selected one. Only the page
+  // changes, so the tables are not redrawn.
+  const pages = document.getElementById("exchange-pages");
+  showExchangePage(appState.exchangeView.page); // before the market's data arrives, so the page never flips once drawn
+  const choosePage = (tab, focus) => {
+    appState.exchangeView = { ...appState.exchangeView, page: tab.dataset.exchangePage };
+    saveExchangeView(viewerStorage(), appState.exchangeView);
+    showExchangePage(appState.exchangeView.page);
+    if (focus) tab.focus();
+  };
+  pages?.addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-exchange-page]");
+    if (tab) choosePage(tab, false);
+  });
+  pages?.addEventListener("keydown", (event) => {
+    const all = [...pages.querySelectorAll("[data-exchange-page]")];
+    const i = all.indexOf(document.activeElement);
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: all.length - 1 }[event.key];
+    if (i < 0 || next === undefined) return;
+    event.preventDefault();
+    choosePage(all[(next + all.length) % all.length], true);
+  });
   document.getElementById("exchange-sort")?.addEventListener("change", (event) => setExchangeView({ sort: event.target.value }));
   // AB#884: a tier drops a resource pill chosen from another tier
   document.getElementById("exchange-tier-filter")?.addEventListener("change", (event) => setExchangeView({ tier: event.target.value, resource: DEFAULT_EXCHANGE_VIEW.resource }));
@@ -718,8 +775,14 @@ export function bindExchangeForms() {
       return;
     }
     if (event.target.closest("[data-clear-filters]")) {
-      setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, type: DEFAULT_EXCHANGE_VIEW.type, tier: DEFAULT_EXCHANGE_VIEW.tier });
+      setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, tier: DEFAULT_EXCHANGE_VIEW.tier });
     }
+  });
+
+  // AB#4710: every standing buyer, or back to what the player holds here
+  document.getElementById("npc-buy-show-all")?.addEventListener("click", () => {
+    appState.standingShowAll = !appState.standingShowAll;
+    renderMarket(appState.data);
   });
 
   // NPC standing buy order — sell buttons
@@ -770,22 +833,21 @@ export function bindExchangeForms() {
       appState.data = deepClone(payload.account.state);
       const traded = payload.traded || {};
       const proceeds = traded.proceeds != null ? traded.proceeds : qty * price;
-      const taxAmt = traded.taxAmount || 0;
       if (npcStatus) {
-        // ISP-232 (AB#927): everything the sale took, not only the tax: the tariff and any duty withheld too
-        const taken = [taxAmt > 0 ? `${toCurrency(taxAmt)} tax` : "", traded.tariffAmount > 0 ? `${toCurrency(traded.tariffAmount)} tariff` : "", traded.dutyWithheld > 0 ? `${toCurrency(traded.dutyWithheld)} withheld for ITC duty` : ""].filter(Boolean);
+        // ISP-232 (AB#927): everything the sale took, not only the tax; Bug #4853: the same list the Trade History shows
+        const taken = saleDeductions(traded);
         const taxNote = taken.length ? ` (${taken.join(", ")})` : "";
-        npcStatus.textContent = `Sold ${qty.toLocaleString()} × ${escapeHtml(item)} at ${toCurrency(price)}/unit — ${toCurrency(proceeds)} credited${taxNote}.`;
+        npcStatus.innerHTML = withProtocol(`Sold ${qty.toLocaleString()} × ${item} at ${toCurrency(price)}/unit — ${toCurrency(proceeds)} credited${taxNote}.`, onExchange("complete"));
       }
-      pushFeedback(`Sold ${item} × ${qty} @ ${toCurrency(price)}/unit to ${escapeHtml(button.closest("tr")?.children[1]?.textContent || "NPC")}. ${toCurrency(proceeds)} credited.`, "success");
+      pushFeedback(`Sold ${item} × ${qty} @ ${toCurrency(price)}/unit to ${escapeHtml(button.closest("tr")?.children[1]?.textContent || "NPC")}. ${toCurrency(proceeds)} credited.`, "success", onExchange("complete"));
       flashButtonSuccess(button);
       await refreshFromServer();
       showActionReceipt(payload, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
     } catch (error) {
       if (npcStatus) {
-        npcStatus.textContent = `Sale failed: ${error.message}`;
+        npcStatus.innerHTML = withProtocol(`Sale failed: ${error.message}`, refusedOnExchange(error));
       }
-      pushFeedback(`NPC sell rejected. ${error.message}`, "error");
+      pushFeedback(`NPC sell rejected. ${error.message}`, "error", refusedOnExchange(error));
     }
   });
 }

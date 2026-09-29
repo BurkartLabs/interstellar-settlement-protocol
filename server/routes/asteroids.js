@@ -9,6 +9,7 @@ import { BELT_KEYS, EXPEDITION_DURATIONS, beltComposition, EXPEDITION_LAUNCH_COS
 import { CONGLOMERATE_CATALOG } from "../conglomerates.js"; // Bug #4656: the remote launch's yield share
 import { applyCredits } from "../finances.js";
 import { fleetStatus } from "../gameState.js"; // Bug #586
+import { deploymentCapText } from "../game/progression.js"; // Bug AB#2310
 import { emitToAccount } from "../realtime.js";
 import { SYSTEMS_CATALOG } from "../travel.js";
 import { beltPhrase } from "../../public/scripts/displayNames.js"; // AB#1336
@@ -21,8 +22,11 @@ import { countBuilt, playerBuilding } from "../playerBuildings.js";
 const ASSEMBLY = playerBuilding("assembly-facility");
 import { launchExpeditionReceipt, probeFabricationReceipt, scoutBeltReceipt } from "../receipts.js"; // AB#744
 import { RATS, encounterChance, forcePower, forceSupply, nominalHours, seedFor } from "../game/rats.js"; // AB#820
+import { rateFactorFor } from "../hunts.js"; // ISP-284 (AB#991): a belt a hunt cleared is quiet
 import { SYSTEMS_BY_ID } from "../game/catalog.js";
 import { stationById } from "../game/stations.js";
+import { commitHiredEscort } from "../hiredEscort.js"; // AB#4678
+import { ESCORT_REFUSALS, expeditionOutlook, hiredEscortOption, ownEscortFor } from "../escorts.js"; // AB#821: one copy of the escort rules
 
 export function registerAsteroidRoutes(app) {
   // ─── Asteroid Mining: Assembly Facility, Probes, Expeditions ─────────────────
@@ -101,14 +105,15 @@ export function registerAsteroidRoutes(app) {
         "probe-cap": (() => { const fleet = fleetStatus(account.state.corp); return `Your fleet is at its Fleet Cap (${fleet.vessels}/${fleet.cap}). ${fleet.raiseText}`; })(),
         "already-fabricating": "A probe is already being fabricated. Wait for it to complete before starting another.",
         "assembly-upgrading": "The Assembly Facility is being upgraded and is offline until it finishes.",
-        "insufficient-credits": fundingRequirementMessage("Mining Probe fabrication", account.state.corp, PROBE_BUILD_COST)
+        "insufficient-credits": fundingRequirementMessage("Mining Probe fabrication", account.state.corp, PROBE_BUILD_COST, "Sell goods or finish an assignment to raise the credits, then fabricate it.")
       };
-      res.status(400).json({ error: msgs[outcome] || "Probe fabrication failed." });
+      res.status(400).json({ error: msgs[outcome] || "Probe fabrication failed.", code: outcome }); // ISP-254 (AB#4818)
       return;
     }
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "infrastructure",
+      protocol: { meaning: "queued", screen: "building-assembly-facility" }, // ISP-254 Bd (AB#4819)
       title: "Probe Fabrication Started",
       body: `Mining Probe fabrication has begun. Estimated completion: ${fabricationMs >= 60000 ? Math.round(fabricationMs / 60000) + " minute(s)" : Math.round(fabricationMs / 1000) + " second(s)"}.`
     });
@@ -171,11 +176,33 @@ export function registerAsteroidRoutes(app) {
     res.json({ ...account, receipt: scoutBeltReceipt({ beltLabel: beltPhrase(SYSTEMS_CATALOG, beltKey) }) }); // AB#744
   });
 
+  // AB#821 (docs/design/rats.md, section 7): the launch panel's figures for a belt and a length, before anything is
+  // committed: the chance of meeting Rats, and for every fleet the caller could name (its own and those it has hired)
+  // the chance with it, the chance it holds, the share of the haul kept and the provisions, or why it cannot escort.
+  // Read only; the figures are launchOutlook's, the functions the tick resolves encounters with.
+  app.get("/api/accounts/:accountId/gameplay/expedition-outlook", (req, res) => {
+    const account = getAccountById(req.params.accountId);
+    if (!account) { res.status(404).json({ error: "Account not found." }); return; }
+    const beltKey = String(req.query?.beltKey || "").trim();
+    const duration = String(req.query?.duration || "standard").trim();
+    if (!beltKey || !beltComposition(beltKey)) { res.status(400).json({ error: "Invalid asteroid belt identifier." }); return; }
+    if (!EXPEDITION_DURATIONS[duration]) { res.status(400).json({ error: "Invalid expedition duration. Choose: short, standard, or extended." }); return; }
+    const outlook = expeditionOutlook(account.state.corp, beltKey, duration);
+    if (!outlook) { res.status(400).json({ error: "The ISA has no reading of that system's pirate activity." }); return; }
+    res.json(outlook);
+  });
+
   app.post("/api/accounts/:accountId/gameplay/launch-expedition", (req, res) => {
     const beltKey = String(req.body?.beltKey || "").trim();
     const duration = String(req.body?.duration || "standard").trim();
     // AB#820: an optional escort, one of the caller's own fleets by id; the input check has refused any other shape
     const escortFleetId = req.body?.escortFleetId === undefined || req.body?.escortFleetId === null ? null : String(req.body.escortFleetId);
+    // AB#4678: or a hired fleet, by its contract; one escort, not both
+    const escortContractId = req.body?.escortContractId === undefined || req.body?.escortContractId === null ? null : String(req.body.escortContractId);
+    if (escortFleetId !== null && escortContractId !== null) {
+      res.status(400).json({ error: "Choose one escort: one of your fleets or one you have hired, not both." });
+      return;
+    }
 
     if (!beltKey || !beltComposition(beltKey)) {
       res.status(400).json({ error: "Invalid asteroid belt identifier." });
@@ -195,6 +222,7 @@ export function registerAsteroidRoutes(app) {
     let launchCost = EXPEDITION_LAUNCH_COST;
     let provisions = 0;
     let rats = null;
+    let hiredEscort = null; // AB#4678: committed on its owner's books once the launch has gone through
 
     const account = mutateAccountState(req.params.accountId, (state) => {
       const corp = state.corp;
@@ -245,16 +273,17 @@ export function registerAsteroidRoutes(app) {
       if (!Number.isFinite(density) || density < 0) { outcome = "no-danger-reading"; return; }
       const hours = nominalHours(duration);
       let escort = null;
-      if (escortFleetId !== null) {
-        escort = (corp.military?.fleets || []).find((f) => f.id === escortFleetId) || null;
-        if (!escort) { outcome = "no-such-fleet"; return; } // not the caller's: never looked up anywhere else
-        if (escort.contract) { outcome = "escort-contracted"; return; }
-        if (escort.escort) { outcome = "escort-busy"; return; }
-        if (escort.transit && Date.now() < escort.transit.arrivesAt) { outcome = "escort-travelling"; return; }
-        if (stationById(escort.stationId)?.systemId !== beltSystemId) { outcome = "escort-elsewhere"; return; }
-        if (!forceSupply(escort.units)) { outcome = "escort-empty"; return; }
+      if (escortFleetId !== null) { // AB#821: the rules in server/escorts.js, which the launch panel shows too
+        const pick = ownEscortFor(corp, escortFleetId, beltSystemId, Date.now());
+        if (pick.outcome) { outcome = pick.outcome; return; }
+        escort = corp.military.fleets.find((f) => f.id === pick.escort.fleetId);
       }
-      const escortUnits = escort ? Object.fromEntries(Object.entries(escort.units || {}).filter(([, n]) => Number(n) > 0)) : null;
+      if (escortContractId !== null) { // AB#4678 (section 3): a hired fleet whose contract allows pve or raids
+        const pick = hiredEscortOption(corp, escortContractId, beltSystemId, Date.now());
+        if (pick.outcome) { outcome = pick.outcome; return; }
+        hiredEscort = pick.escort;
+      }
+      const escortUnits = hiredEscort ? { ...hiredEscort.units } : escort ? Object.fromEntries(Object.entries(escort.units || {}).filter(([, n]) => Number(n) > 0)) : null;
       const escortPower = escortUnits ? forcePower(escortUnits) : 0;
       provisions = escortUnits ? Math.round(RATS.escortCostPerSupplyHour * forceSupply(escortUnits) * hours) : 0;
       try { seedFor("probe"); } catch { outcome = "no-seed"; return; }
@@ -266,9 +295,12 @@ export function registerAsteroidRoutes(app) {
 
       applyCredits(corp, -launchCost, "expeditions");
       if (provisions) applyCredits(corp, -provisions, "expeditions"); // AB#820: the escort's provisions, a sink
+      // AB#991: a belt a hunt cleared is quiet for everyone; the rate is fixed at launch, so the plan drawn each tick is the same
+      const rateFactor = rateFactorFor(beltKey);
       rats = {
-        density, hours, escortFleetId: escort?.id ?? null, escortUnits, escortPower,
-        chance: encounterChance(density, hours, escortPower), chanceUnescorted: encounterChance(density, hours, 0),
+        density, hours, escortFleetId: escort?.id ?? hiredEscort?.fleetId ?? null, escortUnits, escortPower, rateFactor,
+        ...(hiredEscort ? { escortContractId: hiredEscort.contractId, escortOwnerCorpId: hiredEscort.ownerCorpId } : {}), // AB#4678
+        chance: encounterChance(density, hours, escortPower, rateFactor), chanceUnescorted: encounterChance(density, hours, 0, rateFactor),
         provisions, encounters: []
       };
       am.probeCount -= 1;
@@ -293,7 +325,10 @@ export function registerAsteroidRoutes(app) {
         status: "active"
       });
       if (escort) escort.escort = { expeditionId: am.activeExpeditions.at(-1).id, since: now }; // committed until it comes home
+      if (hiredEscort) hiredEscort.expeditionId = am.activeExpeditions.at(-1).id;
     });
+    // AB#4678: the hired fleet is committed on its owner's books, as a raid commits one
+    if (outcome === "ok" && hiredEscort?.expeditionId) commitHiredEscort(hiredEscort, hiredEscort.expeditionId);
 
     if (!account) { res.status(404).json({ error: "Account not found." }); return; }
 
@@ -304,16 +339,10 @@ export function registerAsteroidRoutes(app) {
         "not-scouted": "This asteroid belt has not been scouted. Scout the belt first to reveal its composition before launching an expedition.",
         "out-of-reach": "Your research does not reach that system yet, so a probe cannot be launched to it from here.", // Bug #4656
         "no-probes": "No mining probes available. Fabricate probes at your Assembly Facility.",
-        "deployment-cap": `All deployment slots are occupied (${am.activeExpeditions?.length || 0}/${am.maxDeployments || BASE_MAX_DEPLOYMENTS}). Wait for a probe to return or research additional capacity.`,
+        "deployment-cap": deploymentCapText(account.state.corp), // Bug AB#2310: no research raises this; a level does
         "wrong-system": "You must be in the same system as the asteroid belt to launch an expedition.",
         "insufficient-credits": fundingRequirementMessage(provisions ? "Expedition launch with its escort's provisions" : "Expedition launch", account.state.corp, launchCost + provisions),
-        // AB#820: the escort, and a belt the server cannot read the danger of
-        "no-such-fleet": "Choose one of your own fleets to escort the probe.",
-        "escort-contracted": "That fleet is offered or hired out, and takes no order until its contract ends.",
-        "escort-busy": "That fleet is already escorting an expedition.",
-        "escort-travelling": "That fleet is travelling. Escort with it once it has arrived.",
-        "escort-elsewhere": "An escort must be stationed in the belt's system. Deploy the fleet there first.",
-        "escort-empty": "That fleet has no units to escort with.",
+        ...ESCORT_REFUSALS, // AB#820, AB#4678: the escort's refusals, one copy (server/escorts.js)
         "no-danger-reading": "The ISA has no reading of that system's pirate activity, so no expedition can be launched there.",
         "no-seed": "The Mineral Survey Office cannot plan an expedition just now; nothing was launched or charged."
       };
@@ -324,6 +353,7 @@ export function registerAsteroidRoutes(app) {
     const durationLabel = EXPEDITION_DURATIONS[duration]?.label || duration;
     const notification = addAccountNotification(req.params.accountId, {
       type: "mining",
+      protocol: { meaning: "active", screen: "expedition-panel" }, // ISP-254 Bd (AB#4819)
       title: "Expedition Launched",
       body: `Mining probe deployed to ${beltPhrase(SYSTEMS_CATALOG, beltKey)} on a ${durationLabel} mission. Resources will be deposited upon return.` // AB#1336
     });

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { LEDGER_KINDS, hangarHtml, hqTabsHtml, ledgerHtml, treasuryHtml } from "../../public/scripts/conglomerateTreasury.js";
 import { ledgerPage } from "../../server/game/treasury.js";
+import { setSectionCodes } from "../../public/scripts/sectionCodes.js";
 
 // ISP-206 (AB#901): the Treasury and Hangar screens. A member is offered deposit only; a role that may withdraw sees
 // what it may still take before it asks; the ledger shows who, what, how much, the balance after and when, newest
@@ -58,7 +59,7 @@ describe("the ledger (AB#901)", () => {
   });
 
   it("names every kind of row the server writes", () => {
-    for (const kind of ["opening", "charter-deposit", "deposit", "custody-fee", "withdrawal", "withdrawal-announced", "withdrawal-blocked", "withdrawal-failed", "upkeep", "upkeep-unpaid", "arrears-paid", "level", "level-lost", "dissolution"]) {
+    for (const kind of ["opening", "charter-deposit", "deposit", "custody-fee", "withdrawal", "withdrawal-announced", "withdrawal-blocked", "withdrawal-failed", "upkeep", "upkeep-unpaid", "arrears-paid", "level", "level-lost", "dissolution", "station-tax", "relocated"]) {
       expect(LEDGER_KINDS[kind], kind).toBeTruthy();
     }
   });
@@ -110,4 +111,28 @@ describe("the Conglomerate tab's own tabs (AB#901)", () => {
     expect(html).toMatch(/id="cong-panel-treasury" aria-labelledby="cong-tab-treasury">T</);
     expect(html).not.toMatch(/\sstyle=/);
   });
+});
+
+// ISP-254 slice C1b (AB#4821): each form's line, an announced withdrawal and a screen that did not load carry the
+// protocol line after their plain words, with the Conglomerate screen's code.
+describe("the Treasury and Hangar's protocol line (AB#4821)", () => {
+  const LINE = (phrase) => `<span class="protocol-line">${phrase}<span class="protocol-line__code" aria-hidden="true"> // CGL-ADM-1</span></span>`;
+  const withCodes = (fn) => { setSectionCodes({ screens: [{ id: "conglomerate", code: "CGL-ADM-1" }] }); try { fn(); } finally { setSectionCodes(null); } };
+
+  it("a form's line: the plain words, then the phrase it carries; none without one", () => withCodes(() => {
+    const refused = treasuryHtml(treasury(), { may: ALL, status: { deposit: { text: "Your corporation holds 10 credits; it cannot deposit 20. Deposit 10 or less.", protocol: { meaning: "unfunded", screen: "conglomerate" } } } });
+    expect(refused).toContain(`Deposit 10 or less. ${LINE("Unfunded, balance insufficient")}</p>`);
+    const announced = treasuryHtml(treasury(), { may: ALL, status: { withdraw: { text: "Announced.", ok: true, protocol: { meaning: "pending", screen: "conglomerate" } } } });
+    expect(announced).toContain(`Announced. ${LINE("Filed, awaiting review")}</p>`);
+    const moved = hangarHtml({ stationId: "earth-station-prime", items: {}, allowance: {}, ledger: ledger([]) }, { may: ALL, docked: true, own: { "Iron Ore": 5 }, status: { deposit: { text: "Deposited 5 Iron Ore.", ok: true, protocol: { meaning: "complete", screen: "conglomerate" } } } });
+    expect(moved).toContain(`Deposited 5 Iron Ore. ${LINE("Concluded")}</p>`);
+    expect(treasuryHtml(treasury(), { may: ALL, status: { deposit: { text: "Deposited." } } })).not.toContain("protocol-line");
+  }));
+
+  it("an announced withdrawal is Filed, awaiting review; a screen that did not load is Unsuccessful", () => withCodes(() => {
+    const pending = [{ id: "w1", corp: "corp-b", corpName: "Meridian", amount: 9_000, completesAt: T, blockedBy: [] }];
+    expect(treasuryHtml(treasury({ pending }), { may: ALL })).toContain(`unless blocked ${LINE("Filed, awaiting review")}</p>`);
+    expect(treasuryHtml({ error: "The Bureau did not answer." })).toContain(`Nothing has changed. ${LINE("Unsuccessful")}</p>`);
+    expect(hangarHtml({ error: "The Bureau did not answer." })).toContain(`Nothing has changed. ${LINE("Unsuccessful")}</p>`);
+  }));
 });

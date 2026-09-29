@@ -2,7 +2,8 @@
 // browser at 375x812, 768x1024 and 1280x800, with every table holding rows (e2e/seed-exchange-account.mjs, and one
 // listing made through the page): no sideways scroll; at 375, no visible text under 14px and every control at least
 // 44px each way; below 768px every table row is a card; an empty table shows its empty state and no table at all.
-// Screenshots to e2e/screenshots/ab-769/ (gitignored; the pull request's are copied to docs/ab-769/).
+// Screenshots to e2e/screenshots/ab-769/ (gitignored; the pull request's are copied to docs/ab-769/). AB#2472: the
+// Exchange is five subpages; each check runs on the page that holds it, and every page is measured and photographed.
 import { test, expect } from "@playwright/test";
 import { openTab } from "./nav.mjs";
 import fs from "node:fs";
@@ -101,11 +102,19 @@ async function shoot(page, label, sectionIds) {
     await page.screenshot({ path: path.join(SHOT_DIR, `${label}-${id.replace(/^exchange-/, "")}.png`) });
   }
 }
-const SECTIONS = ["exchange-price-chart", "exchange-sell-section", "exchange-listing-section", "exchange-standing-section", "exchange-mine-section", "exchange-history-section"];
+/** AB#2472: each subpage and the sections its screenshots show. */
+const PAGES = {
+  standing: ["exchange-price-chart", "exchange-standing-section", "exchange-inventory-section"],
+  players: ["exchange-sell-section", "exchange-listing-section"],
+  mine: ["exchange-mine-section"],
+  mercs: ["exchange-mercenary-section"],
+  history: ["exchange-history-section"]
+};
+const toPage = (page, id) => page.locator(`#exchange-tab-${id}`).click();
 
 for (const [width, height] of SIZES) {
   test(`the Galactic Exchange at ${width}x${height}`, async ({ browser }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000); // AB#2472: five subpages measured and photographed
     const context = await browser.newContext({ viewport: { width, height }, isMobile: width < 768, hasTouch: width < 768 });
     const page = await context.newPage();
     const email = `exchange-${Date.now()}-${width}@example.test`;
@@ -122,22 +131,32 @@ for (const [width, height] of SIZES) {
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
       await openTab(page, "market");
-      await expect(page.locator("#exchange-buy-table tr")).toHaveCount(4);
+      // The default subpage is the standing orders; the other pages' sections are out of sight until chosen.
+      await expect(page.locator("#exchange-tab-standing")).toHaveAttribute("aria-selected", "true");
       await expect(page.locator("#npc-buy-table tr").first()).toBeVisible();
+      await expect(page.locator("#exchange-sell-section")).toBeHidden();
+      await toPage(page, "players");
+      await expect(page.locator("#exchange-buy-table tr")).toHaveCount(4);
+      await expect(page.locator("#exchange-standing-section")).toBeHidden();
 
       // An empty table: its empty state, and no table, header or scroll furniture (ISP-20).
+      await toPage(page, "mine");
       await expect(page.locator("#my-sell-orders-empty")).toBeVisible();
       await expect(page.locator("#exchange-mine-section .ui-table-wrap")).toBeHidden();
+      await toPage(page, "history");
+      await expect(page.locator("#exchange-tools")).toBeHidden(); // no orders here to filter
       await expect(page.locator("#trade-history-empty")).toBeVisible();
       await expect(page.locator("#exchange-history-section .ui-table-wrap")).toBeHidden();
 
       // One purchase, so the price chart has a day to draw and Trade history a Bought row.
+      await toPage(page, "players");
       const buyRow = page.locator("#exchange-buy-table tr", { hasText: "Silicates" });
       await buyRow.locator("[data-buy-order-qty]").fill("5");
       await buyRow.locator("[data-buy-order-id]").click();
       await page.locator("#trade-confirm-ok").click();
-      await expect(page.locator('#trade-history-table .ui-badge[data-trade-type="bought"]')).toBeVisible();
+      await expect(page.locator("#action-receipt-modal")).toBeVisible(); // closed only once it is up: a click behind it waits
       await page.keyboard.press("Escape"); // the receipt
+      await expect(page.locator("#action-receipt-modal")).toBeHidden();
       await expect(page.locator("#price-chart-canvas")).toBeVisible({ timeout: 40_000 }); // the chart refreshes on its own
 
       // One listing through the page, so My listings and Trade history have rows too.
@@ -145,24 +164,42 @@ for (const [width, height] of SIZES) {
       await page.fill('[data-sell-price="Silicates"]', "30");
       await page.click('[data-sell-item="Silicates"]');
       await page.locator("#trade-confirm-ok").click();
-      await expect(page.locator("#my-sell-orders-table tr")).toHaveCount(1);
+      await expect(page.locator("#action-receipt-modal")).toBeVisible(); // closed only once it is up: a click behind it waits
       await page.keyboard.press("Escape"); // the receipt
-      await expect(page.locator("#trade-history-table tr").first()).toBeVisible();
+      await expect(page.locator("#action-receipt-modal")).toBeHidden();
+      await toPage(page, "mine");
+      await expect(page.locator("#my-sell-orders-table tr")).toHaveCount(1);
+      await toPage(page, "history");
+      await expect(page.locator('#trade-history-table .ui-badge[data-trade-type="bought"]')).toBeVisible();
       await expect(page.locator('#trade-history-table .ui-badge[data-trade-type="listed"]')).toBeVisible();
 
-      await measure(page, width);
-      await shoot(page, `exchange-${width}x${height}`, SECTIONS);
+      for (const [id, sections] of Object.entries(PAGES)) {
+        await toPage(page, id);
+        await measure(page, width);
+        await shoot(page, `exchange-${id}-${width}x${height}`, sections);
+      }
+
+      // The page is remembered: a reload opens the one last chosen.
+      await page.reload();
+      await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 }); // the game has drawn
+      await openTab(page, "market");
+      await expect(page.locator("#exchange-tab-history")).toHaveAttribute("aria-selected", "true");
+      await expect(page.locator("#exchange-history-section")).toBeVisible();
 
       // A resource filter: the tab is selected, and a table with nothing for it (My listings holds Silicates) says the
       // filter is hiding it, with Clear filters, and shows no table.
+      await toPage(page, "players");
       await page.locator('#exchange-filter-bar [data-filter="Carbon"]').click();
       await expect(page.locator('#exchange-filter-bar [data-filter="Carbon"]')).toHaveAttribute("aria-selected", "true");
       await expect(page.locator("#exchange-buy-table tr")).toHaveCount(1);
+      await measure(page, width);
+      await shoot(page, `exchange-filtered-${width}x${height}`, ["exchange-sell-section"]);
+      await toPage(page, "mine");
       await expect(page.locator("#my-sell-orders-filtered")).toBeVisible();
       await expect(page.locator("#my-sell-orders-filtered [data-clear-filters]")).toBeVisible();
       await expect(page.locator("#exchange-mine-section .ui-table-wrap")).toBeHidden();
       await measure(page, width);
-      await shoot(page, `exchange-filtered-${width}x${height}`, ["exchange-sell-section", "exchange-mine-section"]);
+      await shoot(page, `exchange-filtered-mine-${width}x${height}`, ["exchange-mine-section"]);
       expect(errors).toEqual([]);
     } finally {
       await context.close();

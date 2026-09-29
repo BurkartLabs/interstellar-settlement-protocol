@@ -5,10 +5,15 @@
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { bankLoansHtml, bankOffersHtml, bankQuoteHtml, cr, payoffTotal } from "../devBank.js";
 import { deepClone } from "../helpers.js";
+import { escapeHtml } from "../html.js";
 import { appState } from "../state.js";
 import { showActionReceipt } from "./receiptModal.js";
 import { showTradeConfirmation, updateAllViews } from "./shared.js";
 import { renderBondBoard } from "./bondBoard.js"; // ISP-156 (AB#850)
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-255 (AB#4824)
+
+/** A refusal on the quote form's line: the Bank's words, then Denied or Unfunded and the Bank's code. */
+const refusedHtml = (error, fallback) => `${escapeHtml(error?.message || fallback)} ${protocolLineHtml({ meaning: refusalMeaning(error), screen: "building-deep-space-development-bank" })}`;
 import { loanBoardSectionsHtml, renderLoanBoard } from "./loanBoard.js"; // ISP-153 (AB#847)
 import { codeSlotHtml } from "../sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 
@@ -51,7 +56,7 @@ async function requestQuote(form) {
     redraw(appState.data);
     document.querySelector('[data-role="bank-accept"]')?.focus();
   } catch (error) {
-    status.textContent = error?.message || "The Bank declined to quote.";
+    status.innerHTML = refusedHtml(error, "The Bank declined to quote.");
   }
 }
 
@@ -83,7 +88,7 @@ async function acceptQuote() {
     bank.quote = null;
     redraw(appState.data);
     const status = document.querySelector('[data-role="bank-quote-status"]');
-    if (status) status.textContent = error?.message || "The Bank refused the quote. Ask for a new one.";
+    if (status) status.innerHTML = refusedHtml(error, "The Bank refused the quote. Ask for a new one.");
   }
 }
 

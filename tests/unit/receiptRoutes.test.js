@@ -33,6 +33,7 @@ const RECEIPTS = {
   "/api/accounts/:accountId/gameplay/build-mining-probe": { builder: "probeFabricationReceipt", client: ["public/scripts/views/station.js", "/gameplay/build-mining-probe`"] },
   "/api/accounts/:accountId/gameplay/scout-belt": { builder: "scoutBeltReceipt", client: ["public/scripts/views/starmap.js", "/gameplay/scout-belt`"] },
   "/api/accounts/:accountId/gameplay/launch-expedition": { builder: "launchExpeditionReceipt", client: ["public/scripts/views/starmap.js", "/gameplay/launch-expedition`"] },
+  "/api/accounts/:accountId/gameplay/fleets/:fleetId/hunt": { builder: "huntReceipt", client: ["public/scripts/views/starmap.js", "/hunt`"] }, // ISP-285 (AB#992)
   "/api/accounts/:accountId/gameplay/queue-rnd": { builder: "queueResearchReceipt", client: ["public/scripts/views/research.js", "/gameplay/queue-rnd`"] },
   "/api/accounts/:accountId/gameplay/queue-ceo": { builder: "queueInsightReceipt", client: ["public/scripts/views/ceoInsight.js", "/gameplay/queue-ceo`"] },
   // AB#1054: one route, two answers: a listing, or a buy order (`also`).
@@ -44,7 +45,8 @@ const RECEIPTS = {
   "/api/accounts/:accountId/gameplay/accept-mission": { builder: "acceptMissionReceipt", client: ["public/scripts/views/assignments.js", "/gameplay/accept-mission`"] },
   "/api/accounts/:accountId/gameplay/complete-mission": { builder: "completeMissionReceipt", client: ["public/scripts/views/assignments.js", "/gameplay/complete-mission`"] },
   // ISP-103 (AB#795): the upgrade control on an extractor yard
-  "/api/accounts/:accountId/gameplay/buildings/:buildingId/upgrade": { builder: "upgradeReceipt", client: ["public/scripts/views/station.js", "upgradePath(appState.accountId"] }
+  "/api/accounts/:accountId/gameplay/buildings/:buildingId/upgrade": { builder: "upgradeReceipt", client: ["public/scripts/views/station.js", "upgradePath(appState.accountId"] },
+  "/api/accounts/:accountId/gameplay/buildings/:buildingId/repair": { builder: "repairReceipt", client: ["public/scripts/views/station.js", "repairPath(appState.accountId"] } // ISP-287 (AB#994)
 };
 
 /** Routes that commit nothing new: each undoes or stops something the player already has, and says why. */

@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { setSectionCodes } from "../../public/scripts/sectionCodes.js";
 import { capTableHtml, holdingReturn, issuerHtml, offeringsHtml, payoutHtml, portfolioHtml } from "../../public/scripts/stockExchange.js";
 
 // ISP-161 (AB#855): the Stock Exchange, as HTML. The figures are what GET /equity/offerings, GET /equity/holdings and
@@ -83,5 +85,18 @@ describe("ISP-161 the issuer", () => {
     const open = { id: "so-1", quantity: 1_500, left: 490, pricePerShare: 132, state: "open", closesAt: NOW + 6 * DAY };
     expect(text(issuerHtml({ issuer: standing(), listing: { why: "already listed" }, mine: [open] }, cap))).toContain("Open: 1,500 shares at 132 credits, 490 left");
     expect(issuerHtml({ issuer: standing(), listing: { why: "already listed" }, mine: [] }, cap)).toContain('data-role="igsx-offer"');
+  });
+
+  it("ISP-255 (AB#951): each status carries its protocol line, cited to the Stock Exchange (GEX-MKT-13)", () => {
+    setSectionCodes(JSON.parse(readFileSync("data/section-codes.json", "utf8")));
+    const open = { id: "so-1", quantity: 1_500, left: 490, pricePerShare: 132, state: "open", closesAt: NOW + 6 * DAY };
+    const closed = { id: "so-0", quantity: 1_000, left: 0, pricePerShare: 120, state: "closed", closedAt: NOW - DAY, soldToPlayers: 800, soldToMarketMaker: 200 };
+    expect(text(issuerHtml({ issuer: standing(), listing: {}, mine: [open] }, cap))).toMatch(/490 left; closes .*\. In force \/\/ GEX-MKT-13/);
+    expect(text(issuerHtml({ issuer: standing(), listing: {}, mine: [closed] }, cap))).toMatch(/at 120\. Concluded/);
+    const waiting = text(payoutHtml(standing({ payoutRatioNextPct: 40, canChangePayoutAt: NOW + 3 * DAY })));
+    expect(waiting).toMatch(/From the next period: 40% ?\. Lodged/);
+    expect(waiting).toMatch(/may change again .* UTC\. Suspended/);
+    expect(text(issuerHtml({ issuer: null }))).toMatch(/could not be read\. Unsuccessful/);
+    setSectionCodes(null);
   });
 });

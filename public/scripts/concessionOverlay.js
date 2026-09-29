@@ -10,6 +10,8 @@
 import { escapeHtml, refHtml } from "./html.js";
 import { LEADER_TOKENS, OTHER_TOKEN, OWN_TOKEN, QUIET_TOKEN } from "./dominanceOverlay.js";
 import { utcTime } from "./timeFormat.js"; // ISP-249 (AB#945)
+import { protocolLineHtml } from "./protocol.js"; // ISP-255 (AB#4831)
+const onMap = (meaning) => protocolLineHtml({ meaning, screen: "starmap" });
 
 export const CONCESSION_OVERLAY = "concessions";
 /** A system the ISA never concedes: drawn muted and named "ISA administered". */
@@ -74,7 +76,7 @@ function publicPart(summary, control, ownNames) {
   const controlHtml = control
     ? rows ? `<ol class="dominance-details" data-concession-control>${rows}${others}</ol><p class="ui-panel__meta">Control: shares of leases, tonnes and sales here over 7 days, at this system's weights, rounded to 5%.${control.stale ? " These readings are stale: nobody is eligible until they are fresh." : ""}</p>` : `<p class="ui-panel__meta" data-concession-control>No control here in the last 7 days.</p>`
     : `<p class="ui-panel__meta">Reading control scores…</p>`;
-  const petitions = (summary?.petitions || []).map((p) => `<li><span>${escapeHtml(p.name)} · ${p.kind === "challenge" ? "challenge" : "petition"}</span><strong>review ends ${isaTime(p.reviewEndsAt)}</strong></li>`).join("");
+  const petitions = (summary?.petitions || []).map((p) => `<li><span>${escapeHtml(p.name)} · ${p.kind === "challenge" ? "challenge" : "petition"}</span><strong>review ends ${isaTime(p.reviewEndsAt)} ${onMap("pending")}</strong></li>`).join("");
   return `<h4 class="starmap__subhead">Holder</h4>${holderHtml}
     <h4 class="starmap__subhead">Control</h4>${controlHtml}
     ${petitions ? `<h4 class="starmap__subhead">Under review</h4><ul class="dominance-details" data-concession-petitions>${petitions}</ul>` : ""}`;
@@ -85,7 +87,7 @@ function petitionPart(status) {
   const p = status?.petition;
   if (!p) return "";
   const streak = `<p class="ui-panel__meta" data-concession-streak>As ${escapeHtml(status.holder.name)}: eligible on ${status.streakDays} of the last ${status.needDays} days${status.eligible ? " (eligible now)" : ""}.</p>`;
-  if (p.open) return `${streak}<p class="ui-panel__meta">Your petition is under review until ${isaTime(p.open.reviewEndsAt)}.</p>`;
+  if (p.open) return `${streak}<p class="ui-panel__meta">Your petition is under review until ${isaTime(p.open.reviewEndsAt)}. ${onMap("pending")}</p>`;
   const verb = p.kind === "challenge" ? "Challenge" : "Petition";
   return `${streak}
     <div class="concession-actions"><button type="button" class="ui-button ui-button--primary" data-role="concession-petition" data-kind="${p.kind}" data-fee="${p.fee}" data-upkeep="${p.upkeepIfGranted}" data-after="${p.concessionsAfter}"${p.refusal ? ' disabled aria-describedby="concession-why"' : ""}>${verb} for ${n(p.fee)} credits</button></div>
@@ -101,7 +103,7 @@ export function holderPart(holds, holderName) {
       <h4 class="starmap__subhead">Your concession</h4>
       <dl class="concession-terms">
         <div><dt>Held by</dt><dd>${escapeHtml(holderName)}</dd></div>
-        <div><dt>State</dt><dd>${holds.state === "grace" ? `<span class="concession-grace">Suspended: upkeep unpaid since ${isaTime(holds.graceSince)}, benefits suspended</span>` : `Active <span class="ui-protocol">In force</span>`}</dd></div>
+        <div><dt>State</dt><dd>${holds.state === "grace" ? `<span class="concession-grace">Suspended: upkeep unpaid since ${isaTime(holds.graceSince)}, benefits suspended</span>` : `Active ${onMap("active")}`}</dd></div>
         <div><dt>Term</dt><dd>to ${isaTime(holds.termEndsAt)}, renewed while you keep 25% control</dd></div>
         <div><dt>Upkeep</dt><dd>${n(holds.upkeepToday)} credits a day</dd></div>
         <div><dt>Fee share</dt><dd>${holds.feeSharePct}% of others' lease fees here: ${n(holds.feeShareCollected)} credits so far</dd></div>
@@ -114,7 +116,7 @@ export function holderPart(holds, holderName) {
           <select class="ui-select" id="concession-discount-pct" name="discountPct"${pending ? " disabled" : ""}>${options}</select>
           <button type="submit" class="ui-button ui-button--secondary"${pending ? ' disabled aria-describedby="concession-discount-why"' : ""}>Set the discount</button>
         </div>
-        <p class="concession-why" id="concession-discount-why">${pending ? `A change is waiting out its notice until ${isaTime(pending.effectiveAt)}.` : `A change applies after ${holds.noticeHours} hours. It lowers everyone's price, never raises it.`}</p>
+        <p class="concession-why" id="concession-discount-why">${pending ? `A change is waiting out its notice until ${isaTime(pending.effectiveAt)}. ${onMap("queued")}` : `A change applies after ${holds.noticeHours} hours. It lowers everyone's price, never raises it.`}</p>
       </form>
       <div class="concession-actions"><button type="button" class="ui-button ui-button--danger" data-role="concession-relinquish">Relinquish the concession</button></div>
       <p class="concession-status" data-role="concession-status" role="status"></p>

@@ -3,6 +3,8 @@
 // extractor grid, found nothing, and the button never did anything. The cards and their clicks now live together: one
 // delegated handler on the grid they are rendered into, so a button cannot be drawn somewhere its handler is not.
 import { escapeHtml } from "./html.js";
+import { protocolLineHtml } from "./protocol.js"; // ISP-254 (AB#4818)
+import { toCurrency } from "./helpers.js"; // Bug #2498: every screen's credits through the one formatter
 
 // AB#1430: the Assembly Facility's price is the server's (data/economy.json, sent by GET /api/bootstrap), passed in
 // by the caller as `cost`: this module loads in node, without the page's state, and holds no copy of it.
@@ -29,6 +31,12 @@ export function facilityStatus(building, corp = {}, now = Date.now()) {
   return until > now ? "Upgrading" : String(building?.status || "Operational");
 }
 
+/** ISP-254 (AB#4818): a facility's status in protocol terms: Operational is In force, Upgrading (offline) Suspended. */
+export function facilityProtocolHtml(status) {
+  const meaning = status === "Operational" ? "active" : status === "Upgrading" ? "suspended" : null;
+  return meaning ? protocolLineHtml({ meaning, screen: "station-facilities-section" }) : "";
+}
+
 /** The facility cards for a corporation, and the Construct card while it has the research and no facility yet. */
 export function facilityCardsHtml(corp = {}, cost = NaN, upgradeFor = null) {
   const operational = (corp.buildings || []).filter((b) => b.status === "Operational");
@@ -45,6 +53,7 @@ export function facilityCardsHtml(corp = {}, cost = NaN, upgradeFor = null) {
           </header>
           <p class="ui-card__body">${DESCRIPTIONS[b.name]}</p>
           <p class="ui-badge">${upgradeFor ? escapeHtml(facilityStatus(b, corp)) : `Tier ${b.tier || 1} &mdash; ${escapeHtml(b.status)}`}</p>
+          ${facilityProtocolHtml(upgradeFor ? facilityStatus(b, corp) : b.status)}
           ${upgradeFor ? upgradeFor(b) : ""}
           <footer class="station__card-footer"><button class="ui-button ui-button--primary" data-corp-building="${escapeHtml(b.name)}">Enter</button></footer>
         </article>
@@ -60,7 +69,7 @@ export function facilityCardsHtml(corp = {}, cost = NaN, upgradeFor = null) {
          <header class="station__card-header"><span class="ui-badge ui-badge--accent">NEW</span><h3>Assembly Facility</h3></header>
          <p class="station__note">Modular manufacturing bay for fabricating deployable units.</p>
          ${blocked ? `<p class="station__blocked">${escapeHtml(blocked)}</p>` : ""}
-         <footer class="station__card-footer"><button id="build-assembly-btn" class="ui-button ui-button--primary" data-facility-action="construct-assembly"${blocked ? " disabled" : ""}>Construct (¤${cost.toLocaleString("en-US")})</button></footer>
+         <footer class="station__card-footer"><button id="build-assembly-btn" class="ui-button ui-button--primary" data-facility-action="construct-assembly"${blocked ? " disabled" : ""}>Construct (${toCurrency(cost)})</button></footer>
        </article>`;
   }
 
@@ -75,7 +84,7 @@ export function constructBlocker(corp = {}, cost = NaN) {
   if (!Number.isFinite(cost)) return "The price has not loaded; reload the page."; // fail closed, never a guessed price
   const credits = Number(corp.finances?.credits || 0);
   if (credits < cost) {
-    return `Needs ¤${cost.toLocaleString("en-US")}; you have ¤${Math.floor(credits).toLocaleString("en-US")}.`;
+    return `Needs ${toCurrency(cost)}; you have ${toCurrency(Math.floor(credits))}.`;
   }
   return "";
 }

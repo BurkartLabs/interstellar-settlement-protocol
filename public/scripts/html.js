@@ -71,7 +71,7 @@ export function tradeConfirmRowsHtml(rows) {
  * `remainingLabel(item)` the time left, `formatCredits(n)` the funding figure. ISP-79 (AB#768): each is a
  * design-system card with the game's progress bar, which says how far it is to a screen reader too.
  */
-export function queueItemsHtml(queue, subtitle, { progressOf, remainingLabel, formatCredits, statusOf }) {
+export function queueItemsHtml(queue, subtitle, { progressOf, remainingLabel, formatCredits, statusOf, protocolOf }) {
   return queue
     .map((item) => {
       const progress = Number(progressOf(item)) || 0;
@@ -84,7 +84,7 @@ export function queueItemsHtml(queue, subtitle, { progressOf, remainingLabel, fo
       <article class="ui-card">
         <h4 class="ui-card__title">${escapeHtml(item.name)}</h4>
         <p class="ui-card__body">${escapeHtml(item.effect)}</p>
-        <p class="ui-card__meta">${escapeHtml(subtitle)} · ${escapeHtml(facts.join(" · "))}</p>
+        <p class="ui-card__meta">${escapeHtml(subtitle)} · ${escapeHtml(facts.join(" · "))}${protocolOf ? ` ${protocolOf(item)}` : ""}</p>
         ${timing}
         <div class="progress-wrap" role="progressbar" aria-label="${escapeHtml(item.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress)}"><div class="progress-bar" style="width:${progress.toFixed(1)}%"></div></div>
       </article>
@@ -107,9 +107,10 @@ const NODE_BADGES = {
  * `action` (its button's markup, built by the caller), any other in a badge that says why it cannot be taken. Every
  * other string is text, escaped here.
  */
-export function researchNodeHtml({ id = "", name, tier, effect, meta = [], state, action = "" }) {
+export function researchNodeHtml({ id = "", name, tier, effect, meta = [], state, action = "", protocolLine = "" }) {
   const badge = NODE_BADGES[state];
-  const tail = state === "available" || !badge ? action : `<span class="ui-badge ${badge[0]}">${badge[1]}</span>`;
+  // ISP-254 (AB#950): `protocolLine` is the caller's protocol line (public/scripts/protocol.js), beside the badge
+  const tail = state === "available" || !badge ? action : `<span class="ui-badge ${badge[0]}">${badge[1]}</span>${protocolLine ? ` ${protocolLine}` : ""}`;
   // AB#885: the card is where a research link elsewhere lands (public/scripts/researchLinks.js).
   return `<article class="ui-card research__node research__node--${escapeHtml(state)}"${id ? ` id="research-node-${escapeHtml(id)}" tabindex="-1"` : ""}>
     <div class="research__node-head">
@@ -126,7 +127,7 @@ export function researchNodeHtml({ id = "", name, tier, effect, meta = [], state
  * The notification list's items. Every field is escaped: a notification's text can carry player-supplied strings
  * (Bug #691: a mining lease named "<img onerror=...>" ran script in the browser of anyone who opened the list).
  */
-export function notificationItemsHtml(items, formatTime) {
+export function notificationItemsHtml(items, formatTime, protocolLine = () => "") {
   return items
     .map((item) => {
       // ISP-83 (AB#772): a design-system card; an unread one carries the warn edge.
@@ -135,7 +136,7 @@ export function notificationItemsHtml(items, formatTime) {
         <li class="ui-card notifications__item${unreadClass}" data-notification-id="${escapeHtml(item.id)}">
           <p class="ui-card__title">${escapeHtml(item.title)}</p>
           <p class="ui-card__body">${escapeHtml(item.body)}</p>
-          <p class="ui-card__meta">${escapeHtml(formatTime(item.createdAt))} | ${escapeHtml(item.type)}</p>
+          <p class="ui-card__meta">${escapeHtml(formatTime(item.createdAt))} | ${escapeHtml(item.type)}${item.protocol ? ` ${protocolLine(item.protocol)}` : ""}</p>
         </li>
       `;
     })

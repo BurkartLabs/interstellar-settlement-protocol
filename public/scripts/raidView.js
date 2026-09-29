@@ -7,6 +7,10 @@ import { durationText } from "./shipyardPanel.js";
 import { unitsText } from "./fleetView.js";
 import { utcClock, utcDate, utcTime } from "./timeFormat.js";
 import { refHtml } from "./html.js"; // ISP-249 (AB#945)
+import { protocolLineHtml } from "./protocol.js"; // ISP-254 (AB#4817)
+
+/** ISP-254 (AB#4817): a raid's plain state and its protocol: on its way is In force, called off is Withdrawn, fought or done is Concluded. */
+const RAID_MEANING = { inbound: "active", resolved: "complete", recalled: "cancelled", completed: "complete" };
 
 export const POSTURES = [
   { id: "balanced", label: "Balanced", note: "the default" },
@@ -103,7 +107,7 @@ export function outgoingRaidsHtml(outgoing, { now = Date.now(), stationName, rep
       : r.state === "resolved" ? `fought; the fleet is on its way home (${utc(r.returnsAt)})`
       : r.state === "recalled" ? "called off" : "done";
     return `<li class="raid-list__item">
-      <span>${escapeHtml(r.targetName ?? "A corporation")} at ${escapeHtml(stationName(r.targetStationId))}: ${state}</span>
+      <span>${escapeHtml(r.targetName ?? "A corporation")} at ${escapeHtml(stationName(r.targetStationId))}: ${state} ${protocolLineHtml({ meaning: RAID_MEANING[r.state] || "complete", screen: "fleet" })}</span>
       ${r.state === "inbound" && r.arrivesAt > now ? `<button type="button" class="ui-button ui-button--secondary" data-raid-recall="${escapeHtml(r.id)}">Recall</button>` : ""}
       ${reported.has(r.id) ? `<button type="button" class="ui-button ui-button--secondary" data-raid-report="${escapeHtml(r.id)}">Report</button>` : ""}
     </li>`;
@@ -114,32 +118,41 @@ const WINNER = { attacker: "The raid succeeded", defender: "The raid was beaten 
 /** The resolver's counts are expected values; a report shows them to the nearest whole unit. */
 const whole = (x) => Math.round(Number(x) || 0);
 
+/**
+ * ISP-285 (AB#992): the two tables every v0.10 battle report shows, a raid's or a hunt's: each side's forces and losses,
+ * and the rounds with what was left after each. `battle` is { attacker: { before, lost }, defender: { before, lost },
+ * rounds: [{ round, attacker: { remaining }, defender: { remaining } }] }, the resolver's (raidResolution.js, hunts.js).
+ */
+export function battleTablesHtml(battle, { catalog = [], caption = "Forces and losses", attacker = "Attacker", defender = "Defender" } = {}) {
+  const names = Object.fromEntries((catalog || []).map((u) => [u.id, u.name]));
+  const fought = UNIT_IDS.filter((id) => n(battle.attacker.before?.[id]) + n(battle.defender.before?.[id]) > 0);
+  const left = (o) => fought.filter((id) => whole(o[id]) > 0).map((id) => `${whole(o[id])} ${escapeHtml(names[id] || id)}`).join(", ") || "none";
+  return `<table class="raid-table"><caption>${caption}</caption>
+      <thead><tr><th scope="col">Unit</th><th scope="col">${attacker}</th><th scope="col">Lost</th><th scope="col">${defender}</th><th scope="col">Lost</th></tr></thead>
+      <tbody>${fought.map((id) => `<tr><th scope="row">${escapeHtml(names[id] || id)}</th><td>${n(battle.attacker.before?.[id])}</td><td>${n(battle.attacker.lost?.[id])}</td><td>${n(battle.defender.before?.[id])}</td><td>${n(battle.defender.lost?.[id])}</td></tr>`).join("")}</tbody>
+    </table>
+    <details class="raid-rounds"><summary>The ${battle.rounds.length} round${battle.rounds.length === 1 ? "" : "s"}, and what was left after each (to the nearest unit)</summary>
+      <table class="raid-table"><thead><tr><th scope="col">Round</th><th scope="col">${attacker} left</th><th scope="col">${defender} left</th></tr></thead><tbody>
+      ${battle.rounds.map((r) => `<tr><td>${r.round}</td><td>${left(r.attacker.remaining)}</td><td>${left(r.defender.remaining)}</td></tr>`).join("")}
+      </tbody></table>
+    </details>`;
+}
+
 /** The battle report, text first: who, where, the outcome, each side's forces, losses, the rounds, loot and damage. */
 export function battleReportHtml(report, { catalog = [] } = {}) {
   if (!report) return "";
-  const names = Object.fromEntries((catalog || []).map((u) => [u.id, u.name]));
-  const fought = UNIT_IDS.filter((id) => n(report.attacker.before?.[id]) + n(report.defender.before?.[id]) > 0);
   const mine = report.side === "attacker" ? "attacker" : "defender";
-  const left = (o) => fought.filter((id) => whole(o[id]) > 0).map((id) => `${whole(o[id])} ${escapeHtml(names[id] || id)}`).join(", ") || "none";
   const lootRows = Object.entries(report.loot || {});
   const damage = report.buildingsDamaged || [];
   return `<article class="raid-report" data-raid-report-view="${escapeHtml(report.raidId)}" aria-label="Battle report">
     <h4 class="raid-report__title">${WINNER[report.winner] || report.winner}</h4>${refHtml(report.ref)}
     <p>${escapeHtml(report.attacker.name ?? "A corporation")} raided ${escapeHtml(report.defender.name ?? "a corporation")} at ${escapeHtml(report.station)}, ${utcTime(report.at, { withDate: true })}. The defense stood ${escapeHtml(report.posture || "balanced")}.</p>
-    <table class="raid-table"><caption>Forces and losses (you were the ${mine})</caption>
-      <thead><tr><th scope="col">Unit</th><th scope="col">Attacker</th><th scope="col">Lost</th><th scope="col">Defender</th><th scope="col">Lost</th></tr></thead>
-      <tbody>${fought.map((id) => `<tr><th scope="row">${escapeHtml(names[id] || id)}</th><td>${n(report.attacker.before?.[id])}</td><td>${n(report.attacker.lost?.[id])}</td><td>${n(report.defender.before?.[id])}</td><td>${n(report.defender.lost?.[id])}</td></tr>`).join("")}</tbody>
-    </table>
-    <details class="raid-rounds"><summary>The ${report.rounds.length} round${report.rounds.length === 1 ? "" : "s"}, and what was left after each (to the nearest unit)</summary>
-      <table class="raid-table"><thead><tr><th scope="col">Round</th><th scope="col">Attacker left</th><th scope="col">Defender left</th></tr></thead><tbody>
-      ${report.rounds.map((r) => `<tr><td>${r.round}</td><td>${left(r.attacker.remaining)}</td><td>${left(r.defender.remaining)}</td></tr>`).join("")}
-      </tbody></table>
-    </details>
+    ${battleTablesHtml(report, { catalog, caption: `Forces and losses (you were the ${mine})` })}
     <h5>Goods ${mine === "attacker" ? "taken" : "lost"}</h5>
     ${lootRows.length ? `<ul>${lootRows.map(([item, q]) => `<li>${n(q).toLocaleString("en-US")} ${escapeHtml(item)}</li>`).join("")}</ul>` : "<p>None. Credits are never taken.</p>"}
     <h5>Buildings</h5>
     ${damage.length ? `<ul>${damage.map((b) => mine === "defender"
-      ? `<li>${escapeHtml(b.name)}: condition ${b.before} to ${b.after}; repair ${cr(b.repairCost ?? 0)} (repairs open with ISP-287)</li>`
+      ? `<li>${escapeHtml(b.name)}: condition ${b.before} to ${b.after}; repair ${cr(b.repairCost ?? 0)}, at the Station's Damaged Buildings</li>`
       : `<li>${escapeHtml(b.name)}: ${b.points} condition points</li>`).join("")}</ul>` : "<p>No building was damaged.</p>"}
   </article>`;
 }

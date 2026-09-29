@@ -1,0 +1,5 @@
+# AB#954 (ISP-258): the landing, how to start and the sign-in pages may be indexed; the API and the style guide may not.
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /styleguide/

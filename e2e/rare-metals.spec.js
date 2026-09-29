@@ -98,7 +98,8 @@ for (const vp of VIEWPORTS) {
       const view = page.locator("#refinery");
       await expect(view).toContainText("Rare-Earth Magnets");
       await expect(view).toContainText("Thorium Fuel Rods");
-      await view.getByText("Rare-Earth Magnets").first().scrollIntoViewIfNeeded();
+      // Bug AB#4682: the view can redraw under a node being scrolled to ("not attached to the DOM"); find it afresh and retry
+      await expect(async () => { await view.getByText("Rare-Earth Magnets").first().scrollIntoViewIfNeeded({ timeout: 2_000 }); }).toPass({ timeout: 15_000 });
       await page.screenshot({ path: path.join(SHOT_DIR, `refinery-chains-${vp.label}.png`) });
       expect(errors).toEqual([]);
     } finally {

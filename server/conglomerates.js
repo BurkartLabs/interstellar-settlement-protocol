@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { catalogStations } from "./game/stations.js"; // ISP-209 (AB#904)
+import { ECONOMY } from "./economy.js"; // ISP-212b (AB#4655): the ISA's exchange tax, for a station's first rate
 
 const DATA = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data");
 const DEFAULT_FILE = path.join(DATA, "conglomerates.json");
@@ -119,6 +120,11 @@ export function readConglomerateCatalog(file = process.env.ISP_CONGLOMERATE_CATA
 
 /** The catalog. Reading it throws when it is unusable, which stops the server starting (fails closed). */
 export const CONGLOMERATE_CATALOG = readConglomerateCatalog();
+
+/** ISP-212b (AB#4655): a new station's sales tax: the option nearest the ISA's exchange tax (the lower on a tie). */
+export function defaultStationTaxPct(catalog = CONGLOMERATE_CATALOG, isaPct = ECONOMY.exchange.salesTaxPct) {
+  return [...catalog.stationTaxOptions].sort((a, b) => Math.abs(a - isaPct) - Math.abs(b - isaPct) || a - b)[0];
+}
 
 /**
  * Actions anyone signed in may take whatever their role, including none: they are about the caller's own corporation,

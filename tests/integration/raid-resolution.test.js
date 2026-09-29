@@ -85,7 +85,7 @@ describe("ISP-179 the worked raid", () => {
     const third = await corporation();
     expect((await third.api.get(third.at(`/raids/${raid.id}/report`))).status).toBe(404);
     expect(getState()).not.toHaveProperty("combatReports"); // AB#860: there is no global feed to write to
-    expect(listAccountNotifications(defender.id).notifications.some((n) => n.title === "Your holdings were raided")).toBe(true);
+    expect(listAccountNotifications(defender.id).notifications.find((n) => n.title === "Your holdings were raided")?.protocol?.screen).toBe("fleet"); // ISP-254 (AB#4817)
 
     // home: the loot is the attacker's at its origin, exactly what the defender lost; the fleet is stationed
     const before = stock(attacker);

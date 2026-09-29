@@ -19,10 +19,11 @@
 // destroys it (section 7). Idempotency keys name the issuer, the period and the holder, so a tick that runs twice pays
 // once. Time is passed in (P-TEST-TIME).
 
-import { getAccountById, getAllAccountIds, getStatements, mutateAccountState } from "./gameState.js";
+import { getAccountById, getAllAccountIds, getStatements, mutateAccountState, peekCorp } from "./gameState.js"; // peekCorp: Bug #4816
 import { saveAccountsNow } from "./game/store.js";
 import { settleTransfer } from "./settlement.js";
 import { SHARE_TERMS } from "./shareRegistry.js";
+import { utcTime } from "../public/scripts/timeFormat.js"; // Bug #4827: when it may change again
 
 const DAY = 86_400_000;
 export const PERIOD_DAYS = 7;
@@ -119,7 +120,7 @@ export function payDividends(accountId, now) {
 /** The dividend tick: every listed corporation's ended periods. `now` is passed in (the server passes Date.now()). */
 export function dividendTick(now) {
   for (const id of getAllAccountIds()) {
-    const r = getAccountById(id)?.state?.corp?.shareRegistry;
+    const r = peekCorp(id)?.shareRegistry; // Bug #4816: a look; payDividends reads and changes the few that are due
     if (r?.state === "listed" && r.listedAt && (r.lastDividendAt ?? r.listedAt) + PERIOD_DAYS * DAY <= now) payDividends(id, now);
   }
 }
@@ -135,7 +136,7 @@ export function setPayoutRatio(accountId, pct, now = Date.now()) {
   if (!r) return { ok: false, error: "No such corporation." };
   if (r.state !== "listed") return { ok: false, error: "Only a listed corporation pays dividends." };
   if (!(Number.isInteger(pct) && pct >= p.min && pct <= p.max && pct % p.step === 0)) return { ok: false, error: `The payout ratio is ${p.min} to ${p.max}%, in steps of ${p.step}.` };
-  if (r.payoutRatioChangedAt && now < r.payoutRatioChangedAt + PERIOD_DAYS * DAY) return { ok: false, error: "The payout ratio may be changed once in 7 days." };
+  if (r.payoutRatioChangedAt && now < r.payoutRatioChangedAt + PERIOD_DAYS * DAY) return { ok: false, error: `The payout ratio may be changed once in 7 days. It may change again ${utcTime(r.payoutRatioChangedAt + PERIOD_DAYS * DAY, { withDate: true })}.` }; // Bug #4827
   mutateAccountState(accountId, (state) => {
     state.corp.shareRegistry.payoutRatioNextPct = pct;
     state.corp.shareRegistry.payoutRatioChangedAt = now;

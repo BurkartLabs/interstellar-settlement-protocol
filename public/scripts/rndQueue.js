@@ -46,6 +46,26 @@ export function rndItemStatus(item, now) {
   return { state: "done", startsInMs: 0, remainingMs: 0 };
 }
 
+/**
+ * AB#2476 (Board review item 23): Corporate R&D holds the technology in progress and at most one more behind it, so a
+ * queue never runs on through the night and nobody sets an alarm to keep up with a rival's.
+ */
+export const RND_QUEUE_LIMIT = 2;
+
+/**
+ * Whether another technology can be queued at `now`: the unfinished items (running or waiting, scheduled on a copy
+ * so a queue saved before Bug #1258 counts as the server will run it) against RND_QUEUE_LIMIT. When the queue is
+ * full, `freesAt` is when a place opens (the item that must finish first ends) and `finishing` is that item. A
+ * queue saved longer than the limit keeps its items; it takes nothing new until it is below the limit.
+ */
+export function rndQueueRoom(queue, now) {
+  const scheduled = scheduleRndQueue((Array.isArray(queue) ? queue : []).filter((i) => i && typeof i === "object").map((i) => ({ ...i })), now);
+  const pending = scheduled.filter((item) => rndItemStatus(item, now).state !== "done");
+  if (pending.length < RND_QUEUE_LIMIT) return { ok: true, pending: pending.length };
+  const finishing = pending[pending.length - RND_QUEUE_LIMIT];
+  return { ok: false, pending: pending.length, finishing, freesAt: rndItemEndsAt(finishing) };
+}
+
 /** "3h 12m", as the queue cards show time. */
 export function formatHoursMinutes(ms) {
   const safe = Math.max(0, ms);

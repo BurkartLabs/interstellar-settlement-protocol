@@ -129,12 +129,12 @@ export function upgradeRefusal(result, formatCredits, formatUtc) {
     case "no-upgrades": return `The ${result.name} has no upgrades.`;
     case "last-tier": return `The ${result.name} is at tier ${result.tier}, its last.`;
     case "level-too-low": return `Your corporation's level allows tier ${result.allowed}; tier ${result.next} needs a higher Corporation Level.`;
-    case "missing-research": return `The ${result.name}'s next tier needs research you do not have yet.`;
+    case "missing-research": return `The ${result.name}'s next tier needs research you do not have yet. The Construction list names it; queue it in Corporate R&D.`;
     case "no-record": return `The ${result.name} has nothing linked to it to upgrade.`;
     case "running": return `${result.name} is running ${result.busy}. Stop it or let it finish before upgrading.`;
     case "already-upgrading": return `${result.name} is already being upgraded, until ${formatUtc(result.until)}.`;
-    case "insufficient-credits": return `The upgrade costs ${formatCredits(result.cost)}.`;
-    case "insufficient-goods": return `The upgrade also takes ${result.need.toLocaleString("en-US")} ${result.item} from your stock at this station; you hold ${result.have.toLocaleString("en-US")} here.`;
+    case "insufficient-credits": return `The upgrade costs ${formatCredits(result.cost)}. Sell goods or finish an assignment to raise the credits, then upgrade.`; // ISP-254 (AB#4818): the next step
+    case "insufficient-goods": return `The upgrade also takes ${result.need.toLocaleString("en-US")} ${result.item} from your stock at this station; you hold ${result.have.toLocaleString("en-US")} here. Bring more here, then upgrade.`;
     case "goods-in-transit": return `The upgrade takes ${result.goods.map((g) => `${g.quantity} ${g.item}`).join(" and ")} from a station's stock. Dock where you hold them, then upgrade.`;
     default: return "The upgrade could not be made.";
   }

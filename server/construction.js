@@ -53,12 +53,12 @@ export const CONSTRUCTIONS = Object.freeze({
       lease.extractorIds.push(id);
       return { extractorName: `${building.name} #${nextIndex}`, body: lease.body || null };
     },
-    notification: { title: "Extractor Commissioned", body: "Basic Extractor Yard is now operational and linked to your mining lease." },
+    notification: { title: "Extractor Commissioned", body: "Basic Extractor Yard is now operational and linked to your mining lease.", protocol: { meaning: "complete", screen: "building-lease" } }, // ISP-254 Bd (AB#4819)
     receipt: (built) => buildExtractorReceipt(built)
   },
   "assembly-facility": {
     place: () => ({}),
-    notification: { title: "Assembly Facility Online", body: "Your Assembly Facility is now operational. You may begin fabricating units." },
+    notification: { title: "Assembly Facility Online", body: "Your Assembly Facility is now operational. You may begin fabricating units.", protocol: { meaning: "complete", screen: "building-assembly-facility" } }, // ISP-254 Bd (AB#4819)
     receipt: (built, corp) => buildAssemblyReceipt({ cost: built.cost, assetValue: built.assetValue, ...slotCount(corp) })
   },
   refinery: {
@@ -80,13 +80,13 @@ export const CONSTRUCTIONS = Object.freeze({
       });
       return { refineryName: `Refinery #${nextIndex}` };
     },
-    notification: { title: "Refinery Commissioned", body: "A new Refinery is now operational and ready for production runs." },
+    notification: { title: "Refinery Commissioned", body: "A new Refinery is now operational and ready for production runs.", protocol: { meaning: "complete", screen: "refinery" } }, // ISP-254 (AB#950)
     receipt: (built, corp) => buildRefineryReceipt({ refineryName: built.refineryName, cost: built.cost, ...slotCount(corp) })
   },
   // ISP-96 (AB#786): it adds nothing when built; its effect is on returning expeditions (server/game/asteroids.js).
   "ferric-mining-complex": {
     place: () => ({}),
-    notification: { title: "Ferric Mining Complex Online", body: "Returning mining probes now deposit more Nickel and Titanium." },
+    notification: { protocol: { meaning: "complete", screen: "station-construction-section" }, title: "Ferric Mining Complex Online", body: "Returning mining probes now deposit more Nickel and Titanium." },
     receipt: (built, corp) => buildFerricMiningComplexReceipt({ cost: built.cost, assetValue: built.assetValue, multiplier: ECONOMY.buildings.ferricMiningComplexMetalMultiplier, ...slotCount(corp) })
   },
   // ISP-97 (AB#787): an upgrade. The n-th Refinery building and the n-th refinery record are pushed together by the
@@ -97,7 +97,7 @@ export const CONSTRUCTIONS = Object.freeze({
       refinery.tier = 2; // what server/game/refining.js reads for the larger output
       return { refineryName: refinery.name || "Refinery" };
     },
-    notification: { title: "Refinery Complex Online", body: "One of your Refineries is now a Refinery Complex: its runs deliver more of every output." },
+    notification: { title: "Refinery Complex Online", body: "One of your Refineries is now a Refinery Complex: its runs deliver more of every output.", protocol: { meaning: "complete", screen: "refinery" } }, // ISP-254 (AB#950)
     receipt: (built) => buildRefineryComplexReceipt({ cost: built.cost, assetValue: built.assetValue, refineryName: built.refineryName, multiplier: ECONOMY.buildings.refineryComplexOutputMultiplier })
   },
   // ISP-98 (AB#788): stands on a Luna lease beside its extractors; its effect is on their mining (miningEfficiency).
@@ -106,14 +106,14 @@ export const CONSTRUCTIONS = Object.freeze({
       lease.facilities = [...leaseFacilities(lease), building.name];
       return { body: lease.body || "Luna" };
     },
-    notification: { title: "Cryo-vapor Extractor Array Online", body: "The extractors on your Luna lease now mine more Silicates." },
+    notification: { protocol: { meaning: "complete", screen: "station-construction-section" }, title: "Cryo-vapor Extractor Array Online", body: "The extractors on your Luna lease now mine more Silicates." },
     receipt: (built, corp) => buildCryoVaporArrayReceipt({ cost: built.cost, assetValue: built.assetValue, body: built.body, multiplier: ECONOMY.buildings.cryoVaporExtractorArrayMiningMultiplier, ...slotCount(corp) })
   },
   // ISP-170 (AB#864): the build site data/units.json names for ships. It adds nothing when built: ship production
   // (ISP-171, AB#865) is what reads that it stands.
   "orbital-shipyard": {
     place: () => ({}),
-    notification: { title: "Orbital Shipyard Commissioned", body: "Your Orbital Shipyard is operational. Queue ships on the Fleet tab." },
+    notification: { protocol: { meaning: "complete", screen: "station-construction-section" }, title: "Orbital Shipyard Commissioned", body: "Your Orbital Shipyard is operational. Queue ships on the Fleet tab." },
     receipt: (built, corp) => buildOrbitalShipyardReceipt({ cost: built.cost, assetValue: built.assetValue, ...slotCount(corp) })
   },
   // ISP-189 (AB#883; docs/design/v0.11-tier4.md, section 4): where the Tier 4 chains run. Its record, the same shape as
@@ -137,7 +137,7 @@ export const CONSTRUCTIONS = Object.freeze({
       });
       return {};
     },
-    notification: { title: "Synthesis Array Commissioned", body: "Your Synthesis Array is operational. Tier 4 chains can now run in it." },
+    notification: { title: "Synthesis Array Commissioned", body: "Your Synthesis Array is operational. Tier 4 chains can now run in it.", protocol: { meaning: "complete", screen: "refinery" } }, // ISP-254 (AB#950)
     receipt: (built, corp) => buildSynthesisArrayReceipt({ cost: built.cost, assetValue: built.assetValue, ...slotCount(corp) })
   }
 });

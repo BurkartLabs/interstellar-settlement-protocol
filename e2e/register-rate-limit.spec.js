@@ -33,7 +33,7 @@ function startServer(dir) {
     const read = (chunk) => {
       out += chunk;
       const port = out.match(/listening on port (\d+)/)?.[1];
-      if (port) { clearTimeout(timer); resolve({ child, url: `http://127.0.0.1:${port}` }); }
+      if (port) { clearTimeout(timer); resolve({ child, url: `http://127.0.0.1:${port}`, output: () => out }); }
     };
     child.stdout.on("data", read);
     child.stderr.on("data", read);
@@ -41,8 +41,23 @@ function startServer(dir) {
   });
 }
 
-async function fillRegister(page, url, stamp) {
-  await page.goto(`${url}/register.html`);
+/**
+ * Bug AB#2363: once, in a full run, the 1280x800 case's first goto failed with net::ERR_ABORTED, and it has not failed
+ * since (24 repeats under load, a whole 321-test run). Nothing is retried, which would hide it. A failure instead says
+ * what the spec's own server printed and whether it was still running, so the next one can be read.
+ */
+async function openRegister(page, server) {
+  try {
+    await page.goto(`${server.url}/register.html`);
+  } catch (error) {
+    const { exitCode, signalCode } = server.child; // a killed child has no exit code, only a signal
+    const state = exitCode === null && signalCode === null ? "still running" : `stopped (${exitCode ?? signalCode})`;
+    throw new Error(`${error.message}\nThe spec's server (${server.url}) was ${state}. It printed:\n${server.output().slice(-4000)}`);
+  }
+}
+
+async function fillRegister(page, server, stamp) {
+  await openRegister(page, server);
   await page.fill("#register-email", `limit-${stamp}@example.test`);
   await page.fill("#register-password", PASSWORD);
   await page.fill("#register-ceo", "Playtest CEO");
@@ -54,17 +69,18 @@ for (const viewport of VIEWPORTS) {
   test(`a refused registration says to wait an hour at ${viewport.label}`, async ({ page }) => {
     test.setTimeout(60_000);
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "isp-register-limit-e2e-"));
-    const { child, url } = await startServer(dir);
+    const server = await startServer(dir);
+    const { child, url } = server;
     try {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       const first = `${Date.now()}-a`;
-      await fillRegister(page, url, first);
+      await fillRegister(page, server, first);
       await verifyAndLogIn(page, url, `limit-${first}@example.test`, PASSWORD); // AB#2288: verify, then log in
       await page.waitForURL(/\/\?account=/);
 
       await page.context().clearCookies();
       await page.evaluate(() => localStorage.clear());
-      await fillRegister(page, url, `${Date.now()}-b`);
+      await fillRegister(page, server, `${Date.now()}-b`);
       const status = page.locator("#register-status");
       await expect(status).toHaveText("Too many attempts. Try again in 60 minutes.");
       await expect(status).not.toContainText("in a minute");

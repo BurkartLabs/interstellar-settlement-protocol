@@ -3,7 +3,8 @@
 import { ECONOMY } from "../economy.js";
 import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
 import { taxBreakdown } from "../../public/scripts/exchangeTax.js";
-import { SHIP_UNIT_IDS } from "./units.js"; // ISP-171 (AB#865): ships share the Fleet Cap with probes
+import { SHIP_UNIT_IDS } from "./units.js";
+import { protocolOf } from "../../public/scripts/protocol.js"; // ISP-254 (AB#950): a notification's protocol line // ISP-171 (AB#865): ships share the Fleet Cap with probes
 import { BASE_MAX_DEPLOYMENTS, BASE_MAX_PROBES, CEO_INSIGHT_LIBRARY, FLEET_COORDINATION_BONUS, FLEET_COORDINATION_TECH, LEVEL_UNLOCK_KEYS, MAX_DEFINED_LEVEL, MILESTONE_LEVELS, MINEABLE_RESOURCES, REFINED_ITEMS, REQ_ID_TO_TITLE, createId } from "./catalog.js";
 
 // ─── Exchange sales tax ──────────────────────────────────────────────────────
@@ -195,6 +196,30 @@ export function fleetRaiseText(raises) {
 }
 
 /**
+ * Bug AB#2310: what raises the expedition deployment cap next, from the level data, the only thing in this build
+ * that grants deployment slots: the first level above the corporation's whose maxDeployments exceeds its cap, or null.
+ * The refusal used to say "research additional capacity", written when research-granted slots were planned; no
+ * research ever granted one.
+ */
+export function deploymentRaise(corp) {
+  const am = corp?.asteroidMining || {};
+  const cap = typeof am.maxDeployments === "number" ? am.maxDeployments : BASE_MAX_DEPLOYMENTS;
+  const next = [...MILESTONE_LEVELS]
+    .sort((a, b) => a.level - b.level)
+    .find((l) => l.level > Number(corp?.level || 0) && Number(l.unlocks?.maxDeployments || 0) > cap);
+  return next ? { level: next.level, cap: next.unlocks.maxDeployments } : null;
+}
+
+/** Bug AB#2310: the launch refusal when every deployment slot is in use, naming only what really raises the cap. */
+export function deploymentCapText(corp) {
+  const am = corp?.asteroidMining || {};
+  const cap = typeof am.maxDeployments === "number" ? am.maxDeployments : BASE_MAX_DEPLOYMENTS;
+  const raise = deploymentRaise(corp);
+  return `All deployment slots are occupied (${am.activeExpeditions?.length || 0}/${cap}). Wait for a probe to return.`
+    + (raise ? ` Reaching Corporation Level ${raise.level} raises it to ${raise.cap}.` : "");
+}
+
+/**
  * ISP-104 (AB#796): what each unlock key does to a corporation, one applier per LEVEL_UNLOCK_KEYS entry. Each merges
  * upward: a level never lowers a value the corporation already has (a larger cap from research or a later level, a
  * sector opened another way), so evaluating again, or in any order, is harmless.
@@ -356,6 +381,7 @@ export function levelReachedNotices(before, corp, levels = MILESTONE_LEVELS) {
     };
     notices.push({
       type: "level",
+      protocol: { meaning: "complete", screen: "overview" }, // ISP-254 C2 (AB#4812)
       title: `Corporation Level ${levelDef.level}`,
       body:
         `Your corporation reached Level ${levelDef.level} of ${MAX_DEFINED_LEVEL}. ` +
@@ -395,12 +421,14 @@ export function evaluateAccountLevel(accountId, account) {
 }
 
 export function sanitizeNotification(notification) {
+  const protocol = protocolOf(notification.protocol); // ISP-254 (AB#950): the protocol line beside the plain words
   return {
     id: notification.id,
     accountId: notification.accountId,
     type: notification.type,
     title: notification.title,
     body: notification.body,
+    ...(protocol ? { protocol } : {}),
     createdAt: notification.createdAt,
     readAt: notification.readAt || null
   };
@@ -417,6 +445,7 @@ export function pushSystemNotification(account, payload) {
     type: payload.type || "system",
     title: payload.title || "Notification",
     body: payload.body || "",
+    ...(protocolOf(payload.protocol) ? { protocol: protocolOf(payload.protocol) } : {}), // ISP-254 (AB#950)
     createdAt: Date.now(),
     readAt: null
   });

@@ -7,6 +7,8 @@
 
 import { apiFetch } from "../apiClient.js";
 import { escapeHtml } from "../html.js";
+import { commsMeaning, setStatusLine } from "../commsProtocol.js"; // ISP-255c1 (AB#4830)
+import { markdownHtml } from "../markdown.js"; // AB#2467: a body renders its Markdown, escaped as it is built
 import { appState } from "../state.js";
 import { utcTime } from "../timeFormat.js";
 
@@ -54,7 +56,7 @@ export function threadMessagesHtml(messages, formatDate) {
   return messages.map((m) => `<li class="thread__msg ${m.mine ? "thread__msg--mine" : "thread__msg--theirs"}" data-message-id="${escapeHtml(m.id)}">
       <span class="thread__meta">${m.mine ? "You" : escapeHtml(m.fromName || "Unknown")} · ${escapeHtml(formatDate(m.sentAt))}</span>
       ${m.subject ? `<span class="thread__subject">${escapeHtml(m.subject)}</span>` : ""}
-      <p class="thread__body">${escapeHtml(m.body)}</p>
+      <div class="thread__body">${markdownHtml(m.body)}</div>
     </li>`).join("");
 }
 
@@ -187,11 +189,14 @@ export async function sendInThread(body) {
   const text = String(body || "").trim();
   if (!open || !text) return false;
   status.textContent = "Sending…";
-  const { ok, data } = await getJson(`${base()}/send`, {
+  const { ok, status: code, data } = await getJson(`${base()}/send`, {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ toCorpId: open.conversation.with?.publicId, body: text })
   });
-  if (!ok) { status.textContent = data.error || "The message was not sent."; return false; }
+  if (!ok) {
+    setStatusLine(status, data.error || "The message was not sent.", { meaning: commsMeaning({ status: code, code: data.code, error: data.error }), screen: "inbox" }); // ISP-255c1 (AB#4830)
+    return false;
+  }
   open.messages = appendNewer(open.messages, data.message);
   status.textContent = "";
   renderThread({ keepBottom: true });
@@ -201,10 +206,10 @@ export async function sendInThread(body) {
 
 /** A first message from the composer: to a corporation by its publicId. Opens the thread it lands in. */
 export async function sendNew(toCorpId, body) {
-  const { ok, data } = await getJson(`${base()}/send`, {
+  const { ok, status, data } = await getJson(`${base()}/send`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ toCorpId, body })
   });
-  if (!ok) return { error: data.error || "The message was not sent." };
+  if (!ok) return { error: data.error || "The message was not sent.", protocol: { meaning: commsMeaning({ status, code: data.code, error: data.error }), screen: "inbox" } }; // ISP-255c1 (AB#4830)
   await loadConversations();
   await openConversation(data.conversationId);
   return { ok: true };

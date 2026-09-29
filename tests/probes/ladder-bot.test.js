@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterAll } from "vitest";
 import fs from "node:fs";
 import request from "supertest";
+import bcrypt from "bcryptjs";
 import { getApp } from "../helpers/app.js";
 import { registerAccount } from "../helpers/api.js";
 import { MILESTONE_LEVELS, MAX_DEFINED_LEVEL } from "../../server/game/catalog.js";
@@ -12,7 +13,38 @@ import { climb } from "./ladderBot.js";
 // (research instant, an expedition ten seconds), so simulated hours here are not the year-pacing probe's.
 const RESEARCH = JSON.parse(fs.readFileSync(new URL("../../data/research.json", import.meta.url), "utf8")).nodes;
 
-afterAll(() => vi.useRealTimers());
+afterAll(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+/**
+ * Bug AB#2360 (and #4653, #4657): the server draws Math.random for mining breakdowns, the contract board's quotas and
+ * rewards, belt compositions and more, so every run of this test was a different game, and one in a few hundred fell
+ * short of a level inside the 240 simulated days: at Level 4 once, at Level 29 more often. The draws are a seeded
+ * stream now (mulberry32; LADDER_SEED, default 1), so a run is the same run every time and a failure is a change in
+ * the game, not in its luck. Variance across seeds is a probe's question (LADDER_SEED=<n> answers it), not this test's.
+ */
+function seededRandom(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const LADDER_SEED = Number(process.env.LADDER_SEED || 1);
+
+/**
+ * Bug AB#2572: the bot signs in at every step (a token lasts 30 minutes of its clock, a step is 2 or 12 hours), 1,222
+ * times in a climb, and each login's bcrypt check took 109 ms at the server's cost of 10: 133 s of a 288 s test. The
+ * account is hashed at bcrypt's lowest cost instead, so a login costs about 1.5 ms. Login itself is unchanged, the real
+ * route with its real password check, and it settles mining and refreshes the contract board as it always did, so the
+ * game the bot plays is the same game.
+ */
+function cheapPasswordHashes() {
+  const hashSync = bcrypt.hashSync;
+  return vi.spyOn(bcrypt, "hashSync").mockImplementation((password) => hashSync(password, 4));
+}
 
 describe("the ladder bot (AB#799)", () => {
   it(`climbs Levels 1 to ${MAX_DEFINED_LEVEL} through the server's own routes, and reports each level`, async () => {
@@ -20,6 +52,8 @@ describe("the ladder bot (AB#799)", () => {
     // stamps (the contract board's next refresh) is on this clock too. Only Date is faked: timers stay real.
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(Date.UTC(2026, 0, 1, 9, 0, 0));
+    vi.spyOn(Math, "random").mockImplementation(seededRandom(LADDER_SEED)); // Bug AB#2360
+    cheapPasswordHashes(); // Bug AB#2572: before the account is registered
     const { app } = await getApp();
     const account = await registerAccount(app);
     const clock = { now: () => Date.now(), advance: (ms) => vi.setSystemTime(Date.now() + ms) };
@@ -44,12 +78,18 @@ describe("the ladder bot (AB#799)", () => {
       levels: MILESTONE_LEVELS,
       research: RESEARCH,
       maxLevel: MAX_DEFINED_LEVEL,
-      maxDays: Number(process.env.LADDER_DAYS || 240) // AB#800: Level 20 is about half a year in
+      // AB#800: Level 20 is about half a year in. The cap is a pacing check, kept (Bug #4657). Bug AB#2360: with the draws
+      // seeded, seed 1 reaches Level 30 on day 238.4, every run; seed 2 on day 236.2, seed 3 on day 241.8, so a failure
+      // here now means the pacing changed, not the luck. Whether Level 30 is meant to fit in 240 days for every seed is
+      // the economy's call (Bug #4653), not this test's.
+      maxDays: Number(process.env.LADDER_DAYS || 240)
     });
 
-    console.log(`[ladder bot, AB#799] BOT NUMBERS on development timings, not player time:\n${records
+    console.log(`[ladder bot, AB#799] BOT NUMBERS on development timings, not player time (seed ${LADDER_SEED}):\n${records
       .map((r) => `  Level ${r.level}: ${r.hours} h (at ${r.totalHours} h), ${r.actions} actions so far, ${r.spent.toLocaleString("en-US")} credits spent on purchases, ${r.researchHours} research hours queued (data), ${r.credits.toLocaleString("en-US")} credits held`)
       .join("\n")}`);
+    // Bug AB#2360: LADDER_OUT=<file> keeps the records, so two runs (or two seeds) can be compared
+    if (process.env.LADDER_OUT) fs.writeFileSync(process.env.LADDER_OUT, JSON.stringify({ seed: LADDER_SEED, records }, null, 1));
     expect(records.map((r) => r.level)).toEqual(Array.from({ length: MAX_DEFINED_LEVEL }, (_, i) => i + 1));
-  }, 240_000);
+  }, 600_000); // Bug AB#2360: a wall-clock limit measures the machine's load, not the game; 240 s timed out under load
 });

@@ -118,12 +118,12 @@ describe("each refusal debits nothing (AB#866)", () => {
 
   it("credits short of the catalog's price", async () => {
     const c = await corporation((corp) => { corp.finances.credits = DT.credits * 3 - 1; });
-    await refused(c, { unitId: "dt", quantity: 3 }, /Defense Troops/);
+    await refused(c, { unitId: "dt", quantity: 3 }, /^3 squads of Defense Troops requires .* Sell goods or finish an assignment to raise the credits, then try again\.$/); // Bug #4820
   });
 
   it("goods short at the station the corporation is docked at", async () => {
     const c = await corporation((corp) => { corp.inventory[EARTH]["Battery Cells"] = 3; });
-    await refused(c, { unitId: "at", quantity: 2 }, /need 4 Battery Cells at Earth Station Prime; it holds 3/);
+    await refused(c, { unitId: "at", quantity: 2 }, /need 4 Battery Cells at Earth Station Prime; it holds 3\. Bring more there, or train fewer squads\.$/); // AB#4810 (ISP-6)
   });
 
   it("a queue already ten jobs deep", async () => {

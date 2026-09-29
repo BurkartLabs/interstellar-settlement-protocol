@@ -73,6 +73,7 @@ function fill(listing, bid, quantity, actorId) {
     const notification = addAccountNotification(bid.buyerAccountId, {
       type: "market",
       title: "Buy Order Filled",
+      protocol: { meaning: leftOnBid > 0 ? "queued" : "complete", screen: "market" }, // ISP-255 (AB#951): the rest stays Lodged
       body:
         `${publicName(sellerName)} sold you ${quantity.toLocaleString("en-US")} ${listing.item} at ${formatCredits(unitPrice)} each ` +
         `against your order at ${formatCredits(bid.unitPrice)}: ${formatCredits(total)}. ` +
@@ -125,6 +126,7 @@ export function placeBuyOrder(accountId, { item, quantity, unitPrice }) {
   if (!PRICE_HISTORY_ITEMS.has(item)) return { error: "That item is not traded on the exchange." };
   const held = quantity * unitPrice;
   let error = "";
+  let code = null;
   let order = null;
   const account = mutateAccountState(accountId, (state) => {
     const corp = state.corp;
@@ -133,7 +135,8 @@ export function placeBuyOrder(accountId, { item, quantity, unitPrice }) {
       return;
     }
     if (Number(corp.finances?.credits || 0) < held) {
-      error = `This order holds ${formatCredits(held)}; you have ${formatCredits(corp.finances?.credits || 0)}.`;
+      error = `This order holds ${formatCredits(held)}; you have ${formatCredits(corp.finances?.credits || 0)}. Sell goods or finish an assignment to raise the credits, or buy fewer.`; // Bug #4827
+      code = "insufficient-credits";
       return;
     }
     order = {
@@ -156,7 +159,7 @@ export function placeBuyOrder(accountId, { item, quantity, unitPrice }) {
     trimHistory(corp);
   });
   if (!account) return { error: "Account not found." };
-  if (error || !order) return { error: error || "Unable to place the buy order." };
+  if (error || !order) return { error: error || "Unable to place the buy order.", ...(code ? { code } : {}) };
   return { order, fills: matchBuyOrder(order.id, accountId) };
 }
 

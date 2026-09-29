@@ -3,6 +3,7 @@
 // now and why a store failure has nothing to lose: on error we log and let the request through rather than
 // deny service because the counter broke (fail open, not fail closed, for a throttle that only slows abuse).
 import rateLimit, { MemoryStore, ipKeyGenerator } from "express-rate-limit";
+import { RATE_LIMITS, MUTATION_GROUPS, groupEnvName, groupOf } from "./rateLimitConfig.js"; // AB#958: the one configuration
 
 const isTest = process.env.NODE_ENV === "test";
 
@@ -69,7 +70,9 @@ export function failOpenStore(store, name) {
   };
 }
 
-function limiter(name, { windowMs, envName, productionDefault, extra }) {
+// AB#958: the window, the default and the variable come from rateLimitConfig.js, by the limiter's name.
+function limiter(name, { extra } = {}) {
+  const { windowMs, envName, productionDefault } = RATE_LIMITS[name];
   return rateLimit({
     windowMs,
     limit: configuredLimit(envName, productionDefault),
@@ -82,20 +85,13 @@ function limiter(name, { windowMs, envName, productionDefault, extra }) {
 }
 
 // Ten attempts a minute per address (ISP-64 acceptance #1).
-export const loginIpLimiter = limiter("login-ip", {
-  windowMs: 60_000,
-  envName: "ISP_RATE_LIMIT_LOGIN_IP_MAX",
-  productionDefault: 10
-});
+export const loginIpLimiter = limiter("login-ip");
 
 // Five failed logins per account per 15 minutes. Keyed on the normalized email in the body, not the address, and
 // only failed attempts count (skipSuccessfulRequests) so a real player who mistypes once and then logs in is never
 // locked out by their own success. AB#1747: the no-email fallback goes through ipKeyGenerator, not a raw req.ip —
 // without it, an IPv6 caller could get a fresh bucket per address within their own /56 by varying the low bits.
 export const loginAccountLimiter = limiter("login-account", {
-  windowMs: 15 * 60_000,
-  envName: "ISP_RATE_LIMIT_LOGIN_ACCOUNT_MAX",
-  productionDefault: 5,
   extra: {
     skipSuccessfulRequests: true,
     keyGenerator: (req) => String(req.body?.email || "").trim().toLowerCase() || ipKeyGenerator(req.ip)
@@ -103,44 +99,31 @@ export const loginAccountLimiter = limiter("login-account", {
 });
 
 // Five registrations per address per hour.
-export const registerLimiter = limiter("register", {
-  windowMs: 60 * 60_000,
-  envName: "ISP_RATE_LIMIT_REGISTER_MAX",
-  productionDefault: 5
-});
+export const registerLimiter = limiter("register");
 
 // Five verification resends per address per hour (AB#987): each one sends mail, so it is a cost and a nuisance to
 // whoever owns the address, and the same answer comes back whether or not an account has it.
-export const resendVerificationLimiter = limiter("resend-verification", {
-  windowMs: 60 * 60_000,
-  envName: "ISP_RATE_LIMIT_RESEND_MAX",
-  productionDefault: 5
-});
+export const resendVerificationLimiter = limiter("resend-verification");
 
 // Password-reset requests (AB#988), limited twice: ten an hour from one client, whatever the addresses, and three an
 // hour for one address, whoever asks, so nobody can fill an owner's inbox from many clients. Both answer 429 the same
 // way whether or not the address has an account.
-export const forgotPasswordIpLimiter = limiter("forgot-password-ip", {
-  windowMs: 60 * 60_000,
-  envName: "ISP_RATE_LIMIT_FORGOT_IP_MAX",
-  productionDefault: 10
-});
+export const forgotPasswordIpLimiter = limiter("forgot-password-ip");
 
 export const forgotPasswordAccountLimiter = limiter("forgot-password-account", {
-  windowMs: 60 * 60_000,
-  envName: "ISP_RATE_LIMIT_FORGOT_ACCOUNT_MAX",
-  productionDefault: 3,
   extra: {
     keyGenerator: (req) => (typeof req.body?.email === "string" && req.body.email.trim().toLowerCase()) || ipKeyGenerator(req.ip)
   }
 });
 
 // Sixty refreshes per address per minute.
-export const refreshLimiter = limiter("refresh", {
-  windowMs: 60_000,
-  envName: "ISP_RATE_LIMIT_REFRESH_MAX",
-  productionDefault: 60
-});
+export const refreshLimiter = limiter("refresh");
+
+// ISP-264 (AB#960): per account (the route's own, behind requireAccountAccess), so guessing a password to delete an
+// account is as slow as guessing it to log in, and an export cannot be pulled in a loop.
+const byRouteAccount = { keyGenerator: (req) => String(req.params?.accountId || "") || ipKeyGenerator(req.ip) };
+export const deleteAccountLimiter = limiter("delete-account", { extra: byRouteAccount });
+export const exportDataLimiter = limiter("export-data", { extra: byRouteAccount });
 
 // AB#734 (ISP-48): 120 state-changing game requests a minute, shared by every route under /api/accounts/:accountId
 // and /api/market — one limiter instance, so an account can't dodge the count by splitting a burst across the two
@@ -151,9 +134,6 @@ export const refreshLimiter = limiter("refresh", {
 // still answers 401 to them; the fallback only keeps a token-guessing burst from running unthrottled ahead of
 // that 401. GET requests are read-only and excluded by `skip`, matching the acceptance line's "state-changing".
 export const accountActionLimiter = limiter("account-action", {
-  windowMs: 60_000,
-  envName: "ISP_RATE_LIMIT_ACCOUNT_ACTION_MAX",
-  productionDefault: 120,
   extra: {
     keyGenerator: (req) => req.auth?.accountId || ipKeyGenerator(req.ip),
     skip: (req) => req.method === "GET"
@@ -165,22 +145,91 @@ export const accountActionLimiter = limiter("account-action", {
 // is for (Board, AB#707 and AB#696: no safety measures). Keyed on the sender's own account, after requireAuth.
 const bySender = { keyGenerator: (req) => req.auth?.accountId || ipKeyGenerator(req.ip) };
 export const messageMinuteLimiter = limiter("message-minute", {
-  windowMs: 60_000,
-  envName: "ISP_RATE_LIMIT_MESSAGE_MINUTE_MAX",
-  productionDefault: 30,
   extra: bySender
 });
 export const messageHourLimiter = limiter("message-hour", {
-  windowMs: 60 * 60_000,
-  envName: "ISP_RATE_LIMIT_MESSAGE_HOUR_MAX",
-  productionDefault: 600,
   extra: bySender
 });
 // A first message to a corporation creates a conversation and an entry in two inboxes; this bounds that fan-out. It
 // runs only for a sender's first message to a given corporation, and says nothing about whom a player may write to.
 export const newConversationLimiter = limiter("new-conversation", {
-  windowMs: 60 * 60_000,
-  envName: "ISP_RATE_LIMIT_NEW_CONVERSATION_MAX",
-  productionDefault: 60,
   extra: bySender
 });
+
+const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+/**
+ * AB#958 (ISP-262): every mutating route is limited per address and, once signed in, per account, by the cost group
+ * its path belongs to (rateLimitConfig.js: trade, chat, filing, construction, default). Two layers:
+ *
+ * - `address`, in front of every route (server/index.js): keyed on the caller's address as Express reads it with one
+ *   trusted proxy hop (server/app.js), so a spoofed X-Forwarded-For prefix changes nothing (ISP-64's test).
+ * - `account`, after requireAuth: keyed on the signed-in account, so players sharing an address do not share a bucket.
+ *   The default group has none here; AB#734's account-action bucket is its per-account limit.
+ *
+ * Unlike the per-route limiters above, this gate fails closed: if a counter cannot be read or written, the request is
+ * refused with 503 rather than let through, so a broken store cannot become an unlimited one (AB#958's acceptance).
+ * The counters hold a group, an address or account id, and a count; nothing is logged with the address.
+ * `makeStore` is for tests.
+ */
+export function createMutationLimits(makeStore = () => new MemoryStore()) {
+  const byAddress = (req) => ipKeyGenerator(req.ip);
+  const byAccount = (req) => req.auth?.accountId || ipKeyGenerator(req.ip);
+  const build = (group, scope) => rateLimit({
+    windowMs: group[scope].windowMs,
+    limit: configuredLimit(groupEnvName(group.name, scope), group[scope].productionDefault),
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: makeStore(),
+    passOnStoreError: false,
+    handler: throttledResponse,
+    keyGenerator: scope === "address" ? byAddress : byAccount
+  });
+  const layers = { address: new Map(), account: new Map() };
+  for (const group of MUTATION_GROUPS) {
+    layers.address.set(group.name, build(group, "address"));
+    if (group.account) layers.account.set(group.name, build(group, "account"));
+  }
+  const gate = (scope) => (req, res, next) => {
+    if (!MUTATING.has(req.method)) return next();
+    const group = groupOf(`${req.baseUrl}${req.path}`);
+    const limit = layers[scope].get(group);
+    if (!limit) return next();
+    const refuse = (error) => {
+      console.error(`[rate-limit] ${scope} limit for ${group} could not count this request; refusing it`, error?.message ?? error);
+      if (!res.headersSent) res.status(503).json({ error: "This request could not be processed right now. Try again in a minute." });
+    };
+    return Promise.resolve(limit(req, res, (error) => (error ? refuse(error) : next()))).catch(refuse);
+  };
+  return { address: gate("address"), account: gate("account") };
+}
+
+// AB#995: new forum threads and replies per account an hour (docs/design/messaging.md), counted in server/index.js
+// ahead of the forum input checks, like AB#958's gate. Keyed on the poster's own account, after requireAuth.
+export const forumThreadLimiter = limiter("forum-thread", { extra: bySender });
+export const forumPostLimiter = limiter("forum-post", { extra: bySender });
+
+/**
+ * AB#995: chat lines per account (10 per 10 seconds), for the chat:send socket event, which no HTTP middleware sees.
+ * Counted synchronously in a window per account, not through express-rate-limit's MemoryStore: that store hands back
+ * its own live counter, so a burst of lines on one socket, each handler awaiting the count, all read the burst's total
+ * and every line was refused (found by this item's test). Returns { ok } or { ok: false, retryAfterSeconds, limit,
+ * windowSeconds }. Expired windows are dropped as the map grows, so it holds only accounts chatting now.
+ */
+export function createChatLineGate() {
+  const { windowMs, envName, productionDefault } = RATE_LIMITS["chat-line"];
+  const limit = configuredLimit(envName, productionDefault);
+  const windows = new Map(); // accountId -> { count, resetAt }
+  return (accountId, now = Date.now()) => {
+    if (windows.size > 10_000) for (const [key, w] of windows) if (w.resetAt <= now) windows.delete(key);
+    let w = windows.get(accountId);
+    if (!w || w.resetAt <= now) { w = { count: 0, resetAt: now + windowMs }; windows.set(accountId, w); }
+    w.count += 1;
+    if (w.count <= limit) return { ok: true };
+    return { ok: false, retryAfterSeconds: Math.max(1, Math.ceil((w.resetAt - now) / 1000)), limit, windowSeconds: windowMs / 1000 };
+  };
+}
+export const chatLineGate = createChatLineGate();
+
+/** The server's own two layers (server/index.js, server/routes/market.js, server/routes/forums.js). */
+export const mutationLimits = createMutationLimits();

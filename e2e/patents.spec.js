@@ -114,8 +114,12 @@ for (const size of SIZES) {
       await logIn(page, "nova", size);
       await openTab(page, "refinery");
       const card = page.locator("#chain-pressure-vessel-chain");
-      await card.scrollIntoViewIfNeeded();
-      await card.locator(".refinery__start").click();
+      // Bug AB#4682: the Refinery redraws when its data arrives, so a node scrolled to before then can be gone by the
+      // click ("Element is not attached to the DOM"). The button is found by its chain at the moment of use, once drawn,
+      // and a click scrolls it into view and retries a node that was replaced.
+      const start = page.locator('.refinery__start[data-chain-id="pressure-vessel-chain"]');
+      await expect(start).toBeVisible({ timeout: 15_000 });
+      await start.click();
       await expect(page.locator("#trade-confirm-title")).toHaveText(/under Kestrel Mining .*'s patent/, { timeout: 15_000 });
       // the quote the page shows is the shared arithmetic's, for the run's own output (800 alloy: 10 batches, 250 vessels)
       const quote = runRoyaltyQuote({ patent: { holder: "Kestrel Mining", ratePct: 4, endsAt: Date.now() }, chain: { outputs: [{ item: "Pressure Vessels", quantityPerCycle: 25 }] }, batches: 10, basePrices: { "Pressure Vessels": 129 } });

@@ -139,7 +139,7 @@ No level requires them since AB#424, so those lines stay Open for ever. AB#798 (
 
 **Why:**
 - **Different readers.** data/buildings.json is the station's catalogue: stations resolve their `buildingIds` against it, and the station view renders it (public/scripts/html.js:131). The only thing telling player and station entries apart would be a filter every reader must remember. One reader already filters on `owner`; the others would not, and a player building would appear inside a station.
-- **Different fields.** Station entries carry faction, factionCode, imageFile, action and flavour. Player entries carry cost, asset value, slot, research gate, cap and effect. One file means one schema where every field is optional. Two files let the schema test require every field of each.
+- **Different fields.** Station entries carry faction, factionCode, action and flavour (their imageFile, naming PNGs that never existed, went in AB#949). Player entries carry cost, asset value, slot, research gate, cap and effect. One file means one schema where every field is optional. Two files let the schema test require every field of each.
 - **One source for each number.** A building's price stays in data/economy.json, and its catalogue entry names it by `price`. *Amended by AB#783:* this document first had the catalogue take the prices over. Building that showed economy.json is deliberately the one file the balance pass edits (AB#726). ECONOMY.md explains every key in it, the economy model reads it, and `tests/unit/economyModel.test.js` holds the two together. Moving six prices out would have split the balance pass across two files for no gain. One home per number holds either way.
 
 **Fields:**

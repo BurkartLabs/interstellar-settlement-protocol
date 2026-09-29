@@ -63,6 +63,22 @@ export function judge(records, targets, maxDefined) {
   return failures;
 }
 
+/**
+ * Bug #2311: the always-on profile is the lower bound only while it is never slower than the check-in. Each level the
+ * check-in reached inside the always-on run's `days` that the always-on reached later, or not at all; empty when it
+ * leads throughout. (It stalled at Level 4, stranded at Mars, while the check-in climbed to Level 10.)
+ */
+export function lowerBoundLate(checkIn, alwaysOn, days) {
+  const at = (records, level) => records.find((r) => r.level === level);
+  const late = [];
+  for (const c of checkIn.filter((r) => r.totalHours / 24 <= days)) {
+    const a = at(alwaysOn, c.level);
+    if (!a) late.push(`Level ${c.level}: check-in at day ${(c.totalHours / 24).toFixed(1)}, always-on not within its ${days} days`);
+    else if (a.totalHours > c.totalHours) late.push(`Level ${c.level}: check-in at day ${(c.totalHours / 24).toFixed(1)}, always-on later, at day ${(a.totalHours / 24).toFixed(1)}`);
+  }
+  return late;
+}
+
 // ─── One profile, in its own process ──────────────────────────────────────────
 
 let clock = START;
@@ -192,10 +208,12 @@ async function main() {
 
   const failures = [];
   if (checkIn.stopped) failures.push(`check-in: ${checkIn.stopped}`);
-  // The acceptance judges the check-in profile only; a stalled lower bound is reported, and is a finding about the bot.
+  // The targets judge the check-in profile only. The always-on run is the lower bound, so it fails when it is slower
+  // (Bug #2311): a finding about the bot, not about the design.
   if (alwaysOn.stopped) console.log(`
 always-on ran its first ${alwaysOnDays} simulated days (the cap, PACING_ALWAYS_ON_DAYS) and reached Level ${alwaysOn.records.at(-1)?.level ?? 0}.`);
   failures.push(...judge(checkIn.records, targets, checkIn.maxDefined).map((f) => `check-in: ${f}`));
+  failures.push(...lowerBoundLate(checkIn.records, alwaysOn.records, alwaysOnDays).map((f) => `always-on is not the lower bound: ${f}`));
   console.log(`\n(${((performance.now() - began) / 1000).toFixed(0)} s of wall time)`);
   if (failures.length) {
     console.log(`\nFAIL (bot numbers against the design's targets):\n${failures.map((f) => `  - ${f}`).join("\n")}`);

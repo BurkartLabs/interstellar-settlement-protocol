@@ -35,6 +35,15 @@ describe("posting and cancelling an offer", () => {
     expect(escrowOf(r.offer.id)).toBe(0);
   });
 
+  it("an offer larger than the lender's credits is refused as unfunded, with how much it can offer (AB#4824)", async () => {
+    const a = await corp(8_000);
+    const res = await a.api.post(`${a.base}/loan-offers`).send({ principal: 10_000, ratePct30: 3, termDays: 30, minGrade: "NR-accepted" });
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("insufficient-credits");
+    expect(res.body.error).toBe("Offering this loan holds 10,000 credits in escrow, and you have 8,000. Offer 8,000 or less.");
+    expect(a.credits()).toBe(8_000);
+  });
+
   it("has only numbers and enums: free text in the request is not stored, and no account id is shown", async () => {
     const a = await corp();
     const res = await a.api.post(`${a.base}/loan-offers`).send({ principal: 5_000, ratePct30: 2.5, termDays: 7, minGrade: "NR-accepted", note: "<b>hello</b>" });
@@ -53,6 +62,22 @@ describe("posting and cancelling an offer", () => {
     expect((await a.api.post(`${a.base}/loan-offers`).send({ principal: 5_000, ratePct30: 0, termDays: 30, minGrade: "NR-accepted" })).status).toBe(400);
     expect([a.credits(), b.credits()]).toEqual(before);
     expect(offer(a, { ratePct30: 2 }).ok).toBe(true); // the floor itself is allowed
+  });
+});
+
+describe("the loans as the board reads them (Bug #4833)", () => {
+  it("each side's summary carries the loan's term and daily payment, which the cards print", async () => {
+    const a = await corp(100_000), b = await corp(1_000);
+    const o = offer(a, { principal: 10_000, ratePct30: 3, termDays: 30 });
+    const taken = acceptLoanOffer(b.id, o.offer.id, Date.now());
+    expect(taken.ok, taken.error).toBe(true);
+    const lent = (await a.api.get(`${a.base}/player-loans`)).body.lent.find((l) => l.id === taken.loan.id);
+    const borrowed = (await b.api.get(`${b.base}/player-loans`)).body.borrowed.find((l) => l.id === taken.loan.id);
+    for (const summary of [lent, borrowed]) {
+      expect(summary.termDays).toBe(30);
+      expect(summary.dailyPayment).toBe(taken.loan.dailyPayment);
+      expect(summary.dailyPayment).toBeGreaterThan(0);
+    }
   });
 });
 

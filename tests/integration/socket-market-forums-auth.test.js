@@ -90,10 +90,11 @@ describe("market and forum broadcasts stop personalizing for an expired-token so
     await untilExpired(expiresAt);
 
     const b = await player();
-    const got = await heard(sa, "forums:updated", () =>
-      b.api.post("/api/forums/threads").send({ category: "General", title: "another thread", body: "b2" }));
+    // AB#995: forums:updated carries the one thread that changed, so the change is to A's own thread: B likes it
+    const got = await heard(sa, "forums:updated", () => b.api.post(`/api/forums/threads/${threadId}/like`).send({}));
     expect(got.length).toBeGreaterThan(0);
-    const seen = got[got.length - 1].threads.find((t) => t.id === threadId);
+    const seen = got[got.length - 1].thread;
+    expect(seen?.id).toBe(threadId);
     expect(seen, "A's own thread must still be visible").toBeTruthy();
     expect(seen.likedByMe, "no longer 'likedByMe' once the token has expired").toBe(false);
   });

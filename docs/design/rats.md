@@ -142,11 +142,14 @@ are the optimising bot's (section 6), for one probe in one deployment slot, over
 **As built (AB#820).**
 - The numbers are `data/rats.json`, and the rules are `server/game/rats.js`. The expedition tick resolves encounters
   (`settleRats`), and launch takes `escortFleetId`.
-- Escorts are the caller's own fleets for now. A hired fleet as escort is **AB#4678**.
+- An escort is one of the caller's own fleets (`escortFleetId`) or, since AB#4678, a hired one (`escortContractId`): its
+  contract must allow pve or raids, its fleet stays committed on its owner's books (`server/hiredEscort.js`), it fights
+  with what it has left and its owner's modifiers, and its losses are recorded on the contract (`recordContractLosses`),
+  paid from the collateral when the contract settles, which waits until the escort is home, as it does for a raid.
 - An expedition's `rats` record holds its danger, its escort, the chances shown at launch, and each encounter as it
   happens: the Rats met, the escort's fight with the resolver's rounds and losses, and the unescorted roll with the
   haul it took.
-- The launch receipt states the chance of meeting Rats. The launch screen that shows it **before** launch is AB#821.
+- The launch receipt states the chance of meeting Rats. The belt panel shows it **before** launch (section 7, AB#821).
 
 ## 4. The unescorted outcome table
 
@@ -254,6 +257,23 @@ Before launching, the belt panel shows:
 - **the provisions cost**.
 
 These are the server's own numbers for that launch, from the same functions the tick uses.
+
+**As built (AB#821).**
+- `GET /api/accounts/:id/gameplay/expedition-outlook?beltKey=&duration=` answers for a belt and a length: the chance
+  unescorted, and for every fleet the caller could name (its own, and those it has hired) either the figures with it or
+  the reason it cannot escort. The figures are `launchOutlook` in `server/game/rats.js`; the reasons are the launch
+  route's own refusals (`server/escorts.js`, one copy used by both).
+- `launchOutlook` is exact, not sampled. The resolver has no dice, so fighting the growing groups in order (survivors
+  carried on, as `settleRats` does) gives the number of encounters `h` the escort holds; the escort holds whenever the
+  Poisson count is at most `h` (capped at `maxEncounters`, as `planEncounters` caps it); and each encounter past `h`
+  keeps, on average, the unescorted table's share of the haul (0.4 × 0.9 + 0.4 × 0.75 + 0.2 × 0.6 = 0.78). Sol, extended,
+  unescorted: 90.8% kept, the figure in section 6.
+- The belt panel (`public/scripts/launchOutlook.js`) has an Escort select: no escort, the fleets that can escort, and the
+  ones that cannot, disabled, each named below it with its reason. A hired fleet's figures use its owner's combat
+  modifiers, as it fights. The launch sends `escortFleetId` or `escortContractId`.
+- The probe-return report in the inbox lists each encounter (how far through the expedition, the Rat group, the escort's
+  fight and losses, what was taken), then the whole in one line when there was more than one; the notification carries
+  that line.
 
 ## 8. The numbers (for `data/rats.json`, AB#820)
 

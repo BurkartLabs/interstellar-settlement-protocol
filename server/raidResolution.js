@@ -22,7 +22,7 @@
 // Every step is keyed by the raid, so a tick that runs twice, or a restart between steps, moves nothing twice.
 // Time is passed in (P-TEST-TIME).
 
-import { addAccountNotification, getAccountById, getAllAccountIds, getState, mutateAccountState, mutateState } from "./gameState.js";
+import { addAccountNotification, getAccountById, getAllAccountIds, getState, mutateAccountState, mutateState, peekCorp } from "./gameState.js"; // peekCorp: Bug #4816
 import { emitToAccount } from "./realtime.js";
 import { accountIdOfCorp } from "./playerLoans.js";
 import { UNITS, ensureCorpMilitary } from "./game/units.js";
@@ -33,6 +33,7 @@ import { stationById } from "./game/stations.js"; // ISP-209 (AB#904)
 import { mercenaryUseAllowed, recordContractLosses } from "./mercenaries.js";
 import { buildingsAtStation } from "./raids.js";
 import { buildingCostBasis } from "./buildingRemoval.js"; // ISP-181 (AB#875): the repair price the report shows
+import { conditionOf } from "./game/buildingCondition.js"; // ISP-287 (AB#994)
 import { settleItems, itemEscrowOf } from "./itemSettlement.js";
 
 const HOUR = 3_600_000;
@@ -73,6 +74,12 @@ export function lootFor(stock, survivors) {
   const items = Object.fromEntries(valued.map((s) => [s.item, Math.floor(s.q * f)]).filter(([, q]) => q > 0));
   return { value, takeable, carried, lootValue, items };
 }
+
+/**
+ * ISP-287 (AB#994): what repairing a building to full condition costs, the price the defender's report quotes and the
+ * repair route charges: (100 - condition)% of its cost basis x repairPctOfCost%.
+ */
+export const repairCostFor = (building) => Math.round(((100 - conditionOf(building)) / 100) * buildingCostBasis(building) * (RAID_OUTCOME.repairPctOfCost / 100));
 
 /** Condition points a win takes from each building at the station: min(20, 4 x surviving siege engines). */
 export const damageFor = (survivors) => Math.min(RAID_OUTCOME.maxDamage, RAID_OUTCOME.damagePerSiegeEngine * n(survivors?.se));
@@ -147,8 +154,9 @@ function applyLosses(accountId, groups, byGroup) {
 }
 
 const round2 = (o) => Object.fromEntries(UNIT_IDS.map((id) => [id, Math.round((Number(o?.[id]) || 0) * 100) / 100]));
-function tell(accountId, title, body) {
-  const x = accountId ? addAccountNotification(accountId, { type: "military", title, body }) : null;
+// ISP-254 (AB#4817): `meaning` is the notice's protocol on the Fleet screen (public/scripts/protocol.js)
+function tell(accountId, title, body, meaning = null) {
+  const x = accountId ? addAccountNotification(accountId, { type: "military", title, body, ...(meaning ? { protocol: { meaning, screen: "fleet" } } : {}) }) : null;
   if (x) emitToAccount(accountId, "notifications:new", { accountId, notification: x });
 }
 function keepReport(accountId, report) {
@@ -179,7 +187,7 @@ export function resolveRaid(raid, now) {
   if (!defender || Number(defender.raidCooldownUntil) > at) {
     const returnsAt = flyHome(at);
     setRaid(raid.id, { state: "recalled", turnedBackAt: at, returnsAt });
-    tell(attackerAccountId, "Raid turned back", `Your fleet reached ${stationById(raid.targetStationId)?.name ?? "the station"} after ${raid.targetName ?? "the target"} had just been raided, and turned back without a fight.`);
+    tell(attackerAccountId, "Raid turned back", `Your fleet reached ${stationById(raid.targetStationId)?.name ?? "the station"} after ${raid.targetName ?? "the target"} had just been raided, and turned back without a fight.`, "failed");
     return "recalled";
   }
 
@@ -220,7 +228,7 @@ export function resolveRaid(raid, now) {
         for (const b of buildingsAtStation(state.corp, raid.targetStationId)) {
           const before = Math.min(100, Math.max(RAID_OUTCOME.conditionFloor, Number(b.condition ?? 100)));
           b.condition = Math.max(RAID_OUTCOME.conditionFloor, before - points);
-          const repairCost = Math.round(((100 - b.condition) / 100) * buildingCostBasis(b) * (RAID_OUTCOME.repairPctOfCost / 100));
+          const repairCost = repairCostFor(b); // ISP-287 (AB#994): the price the repair route charges
           damage.push({ name: b.name, before, after: b.condition, repairCost });
         }
       }, { sanitize: false, settleMining: false });
@@ -238,8 +246,8 @@ export function resolveRaid(raid, now) {
   const survivors = FLEET_UNIT_IDS.reduce((a, id) => a + n(battle.survivors.attacker[id]), 0);
   const outcome = battle.winner === "attacker" ? "won" : battle.winner === "defender" ? "was beaten off" : "ended in a draw";
   const lootText = Object.entries(loot.items).map(([i, q]) => `${q.toLocaleString("en-US")} ${i}`).join(", ") || "nothing";
-  tell(attackerAccountId, "Raid resolved", `Your raid on ${raid.targetName ?? "the target"} at ${station} ${outcome}. Taken: ${lootText}. The report is in your raids.`);
-  tell(defenderAccountId, "Your holdings were raided", `${raid.attackerName ?? "A corporation"} raided your holdings at ${station}: the raid ${outcome}. Lost: ${lootText}. The report is in your raids.`);
+  tell(attackerAccountId, "Raid resolved", `Your raid on ${raid.targetName ?? "the target"} at ${station} ${outcome}. Taken: ${lootText}. The report is in your raids.`, battle.winner === "attacker" ? "complete" : "failed");
+  tell(defenderAccountId, "Your holdings were raided", `${raid.attackerName ?? "A corporation"} raided your holdings at ${station}: the raid ${outcome}. Lost: ${lootText}. The report is in your raids.`, "complete"); // for the defender the raid is Concluded either way: "Unsuccessful" would read as their loss
 
   if (survivors === 0 && !raid.fleet.contractId) {
     // nobody flies home: the empty fleet is gone and the raid is over (no loot can have been taken: a win needs survivors)
@@ -282,7 +290,7 @@ export function raidTick(now) {
   // ISP-180 (AB#874): troops sent between stations join their garrison when they arrive (after the raids above, which
   // settled their own defenders only up to each raid's arrival)
   for (const id of getAllAccountIds()) {
-    const moves = corpOf(id)?.garrisonMoves;
+    const moves = peekCorp(id)?.garrisonMoves; // Bug #4816: a look, not a settled copy of every account
     if (Array.isArray(moves) && moves.some((m) => m.arrivesAt <= now)) mutateAccountState(id, (state) => { settleGarrisonMoves(state.corp, now); }, { sanitize: false });
   }
 }

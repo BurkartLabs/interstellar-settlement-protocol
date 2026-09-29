@@ -32,6 +32,24 @@ for (const vp of VIEWPORTS) {
     await expect(page.getByRole("heading", { level: 1, name: "How to Start" })).toBeVisible();
     await expect(page.locator("ol > li")).toHaveCount(8);
 
+    // AB#2494: a table of contents straight after the introduction, each link to a section of this page; Next steps
+    // after the first hour; no list of what the build lacks.
+    const toc = page.getByRole("navigation", { name: "On this page" });
+    await expect(toc).toBeVisible();
+    expect(await toc.evaluate((nav) => Boolean(nav.previousElementSibling?.querySelector("h1")))).toBe(true);
+    const hrefs = await toc.locator("a").evaluateAll((as) => as.map((el) => el.getAttribute("href")));
+    expect(hrefs).toEqual(["#before-you-begin", "#first-hour", "#next-steps", "#if-something-breaks"]);
+    for (const href of hrefs) await expect(page.locator(href), href).toHaveCount(1);
+    const headings = await page.locator("h2").allTextContents();
+    expect(headings.indexOf("Next steps")).toBe(headings.indexOf("The first hour, in eight steps") + 1);
+    expect(headings.join(" | ")).not.toMatch(/not in this build/i);
+    await toc.getByRole("link", { name: "Next steps" }).click();
+    await expect(page).toHaveURL(/#next-steps$/);
+    await expect(page.locator("#next-steps")).toBeInViewport();
+    await page.screenshot({ path: path.join(SHOT_DIR, `next-steps-${vp.label}.png`) });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: path.join(SHOT_DIR, `toc-${vp.label}.png`) });
+
     // Each screenful of the page, top to bottom.
     const height = await page.evaluate(() => document.documentElement.scrollHeight);
     let n = 1;

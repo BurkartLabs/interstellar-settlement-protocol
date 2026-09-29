@@ -6,6 +6,8 @@
 // With a fourth argument `bids` (AB#1054), a third corporation has two buy orders waiting, placed through the server's own
 // placeBuyOrder (server/buyOrders.js), so its credits are held as a real order holds them. With `tier4` (AB#884), the
 // second corporation also lists two Tier 4 items, for scripts/look-tier4-exchange.mjs.
+// With `products` (AB#2351), the corporation also holds two products, so their standing bids show with their own daily
+// quotas, for scripts/look-standing-quotas.mjs.
 //
 // Usage: node e2e/seed-exchange-account.mjs <dataDir> <email> <password> [bids]
 import { randomUUID } from "node:crypto";
@@ -23,7 +25,7 @@ verifyEmailToken(issueVerificationToken(account.id)); // AB#2288
 store.mutateAccountState(account.id, (state) => {
   state.corp.currentStationId = "earth-station-prime";
   state.corp.finances.credits = 250_000;
-  state.corp.inventory = { "earth-station-prime": { Silicates: 400, Nickel: 120, Titanium: 60 } };
+  state.corp.inventory = { "earth-station-prime": { Silicates: 400, Nickel: 120, Titanium: 60, ...(extra === "products" ? { Aerogel: 100, "Fusion Pellets": 40 } : {}) } };
 });
 store.markWalkthroughCompleted(account.id);
 

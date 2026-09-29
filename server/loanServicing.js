@@ -21,7 +21,7 @@
 // Every movement goes through settleTransfer with an idempotency key naming the loan and the day, so a tick that runs
 // twice, or a retry, collects once. Time is always passed in (P-TEST-TIME): nothing here reads the clock.
 
-import { addAccountNotification, getAccountById, getAllAccountIds, mutateAccountState } from "./gameState.js";
+import { addAccountNotification, getAccountById, getAllAccountIds, mutateAccountState, peekCorp } from "./gameState.js"; // peekCorp: Bug #4816
 import { settleTransfer } from "./settlement.js";
 import { emitToAccount } from "./realtime.js";
 import { LOAN_CATALOG } from "./loans.js";
@@ -157,6 +157,9 @@ export function serviceLoan(accountId, loan, now) {
 function openLoans() {
   const out = [];
   for (const accountId of getAllAccountIds()) {
+    // Bug #4816: look at the loans as held; only a corporation that has an open one is read and copied, as before
+    const held = peekCorp(accountId)?.loans;
+    if (!Array.isArray(held) || !held.some(open)) continue;
     const loans = getAccountById(accountId)?.state?.corp?.loans;
     if (Array.isArray(loans)) for (const loan of loans) if (open(loan)) out.push({ accountId, loan });
   }
@@ -176,20 +179,22 @@ export function loanServicingTick(now) {
       const i = (state.corp.loans || []).findIndex((l) => l.id === loan.id);
       if (i !== -1) state.corp.loans[i] = { ...loan };
     }, { sanitize: false, settleMining: false });
-    const tellTo = (id, title, body) => {
-      const n = id ? addAccountNotification(id, { type: "finance", title, body }) : null;
+    // ISP-255 (AB#4824): a notice's protocol, on the Loan Board for a player loan and at the Bank for the Bank's
+    const screen = loan.lender?.kind === "player" ? "loans-board" : "building-deep-space-development-bank";
+    const tellTo = (id, title, body, meaning) => {
+      const n = id ? addAccountNotification(id, { type: "finance", title, body, protocol: { meaning, screen } }) : null;
       if (n) emitToAccount(id, "notifications:new", { accountId: id, notification: n });
     };
-    const tell = (title, body) => tellTo(accountId, title, body);
+    const tell = (title, body, meaning) => tellTo(accountId, title, body, meaning);
     const player = loan.lender?.kind === "player";
     const borrowerName = getAccountById(accountId)?.state?.corp?.corporationName || "A corporation";
     if (r.missed && before !== "arrears") {
-      tell("Loan payment missed", `A payment of ${loan.dailyPayment.toLocaleString("en-US")} credits on your ${lenderName(loan)} could not be collected. ${loan.arrears.toLocaleString("en-US")} credits are now in arrears, including a ${LATE_FEE_PCT}% late fee, and accrue penalty interest until paid. Your credit rating is capped at CCC while they are, and falls to D after 7 days.`);
-      if (player) tellTo(lenderAccount(loan), "A borrower missed a payment", `${borrowerName} missed a payment on your loan of ${loan.principal.toLocaleString("en-US")} credits. What its credits cover is collected for you each day.`);
+      tell("Loan payment missed", `A payment of ${loan.dailyPayment.toLocaleString("en-US")} credits on your ${lenderName(loan)} could not be collected. ${loan.arrears.toLocaleString("en-US")} credits are now in arrears, including a ${LATE_FEE_PCT}% late fee, and accrue penalty interest until paid. Your credit rating is capped at CCC while they are, and falls to D after 7 days.`, "owed");
+      if (player) tellTo(lenderAccount(loan), "A borrower missed a payment", `${borrowerName} missed a payment on your loan of ${loan.principal.toLocaleString("en-US")} credits. What its credits cover is collected for you each day.`, "owed");
     }
     if (r.repaid) {
-      tell("Loan repaid", `Your ${lenderName(loan)} of ${loan.principal.toLocaleString("en-US")} credits is repaid in full.`);
-      if (player) tellTo(lenderAccount(loan), "Loan repaid", `${borrowerName} has repaid your loan of ${loan.principal.toLocaleString("en-US")} credits in full.`);
+      tell("Loan repaid", `Your ${lenderName(loan)} of ${loan.principal.toLocaleString("en-US")} credits is repaid in full.`, "complete");
+      if (player) tellTo(lenderAccount(loan), "Loan repaid", `${borrowerName} has repaid your loan of ${loan.principal.toLocaleString("en-US")} credits in full.`, "complete");
     }
     // ISP-152 (AB#846): a player loan more than 7 days in arrears is in default, marked once and told to both sides.
     // Collection of the borrower's credits goes on each day; recovering its other holdings is AB#993.
@@ -199,8 +204,8 @@ export function loanServicingTick(now) {
         const i = (state.corp.loans || []).findIndex((l) => l.id === loan.id);
         if (i !== -1) state.corp.loans[i] = { ...loan };
       }, { sanitize: false, settleMining: false });
-      tell("Loan in default", `Your ${lenderName(loan)} is more than ${PLAYER_DEFAULT_DAYS} days in arrears and is now in default. ${loan.arrears.toLocaleString("en-US")} credits are owed now; whatever credits you hold go to your lender each day until it is paid.`);
-      tellTo(lenderAccount(loan), "A loan is in default", `${borrowerName} is more than ${PLAYER_DEFAULT_DAYS} days in arrears on your loan of ${loan.principal.toLocaleString("en-US")} credits. Its credits are collected for you each day.`);
+      tell("Loan in default", `Your ${lenderName(loan)} is more than ${PLAYER_DEFAULT_DAYS} days in arrears and is now in default. ${loan.arrears.toLocaleString("en-US")} credits are owed now; whatever credits you hold go to your lender each day until it is paid.`, "failed");
+      tellTo(lenderAccount(loan), "A loan is in default", `${borrowerName} is more than ${PLAYER_DEFAULT_DAYS} days in arrears on your loan of ${loan.principal.toLocaleString("en-US")} credits. Its credits are collected for you each day.`, "failed");
     }
   }
 }
@@ -215,7 +220,7 @@ export function payOffLoan(accountId, loanId, now) {
   if (!open(loan)) return { ok: false, status: 409, error: "That loan is already closed." };
   const fee = Math.round((loan.balance * EARLY_PAYOFF_FEE_PCT) / 100);
   const total = loan.balance + loan.arrears + fee;
-  if (creditsOf(accountId) < total) return { ok: false, status: 409, error: `Paying it off takes ${total.toLocaleString("en-US")} credits.` };
+  if (creditsOf(accountId) < total) return { ok: false, status: 409, code: "insufficient-credits", error: `Paying it off takes ${total.toLocaleString("en-US")} credits; you have ${creditsOf(accountId).toLocaleString("en-US")}. Keep paying daily, or raise the credits and pay it off then.` }; // AB#4824 (ISP-6)
   const tag = `loan:${loan.id}:payoff:${now}`;
   collectArrears(accountId, loan, now, tag);
   pay(accountId, loan, "principal", loan.balance, `${tag}:principal`, now);

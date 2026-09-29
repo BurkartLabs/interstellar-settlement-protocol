@@ -58,6 +58,7 @@ describe("ISP-178 declaring a raid", () => {
     expect(raidsInState().find((x) => x.id === view.id)).toMatchObject({ state: "inbound" });
     const warning = listAccountNotifications(d.id).notifications.find((n) => n.title === "Raid incoming");
     expect(warning.body).toContain(a.corp().corporationName);
+    expect(warning.protocol).toEqual({ meaning: "active", screen: "fleet" }); // ISP-254 (AB#4817)
     expect(warning.body).toContain("Earth Station Prime");
     expect(warning.body).toContain(utcTime(view.arrivesAt, { withDate: true })); // ISP-249 (AB#945)
     expect(warning.body).toContain("4 Light Fighter, 1 Destroyer");
@@ -196,7 +197,7 @@ describe("ISP-178 recall", () => {
     const corp = structuredClone(a.corp());
     settleFleets(corp, now + 2 * HOUR);
     expect(corp.military.fleets.find((x) => x.id === f)).toMatchObject({ stationId: EARTH, transit: null });
-    expect(listAccountNotifications(d.id).notifications.some((n) => n.title === "Raid called off")).toBe(true);
+    expect(listAccountNotifications(d.id).notifications.find((n) => n.title === "Raid called off")?.protocol).toEqual({ meaning: "cancelled", screen: "fleet" }); // ISP-254 (AB#4817)
     const r2 = declareRaid(a.id, { fleetId: await fleet(a), targetCorpId: d.publicId, targetStationId: EARTH }, now + 3 * HOUR).raid;
     expect(recallRaid(a.id, r2.id, r2.arrivesAt).status).toBe(409);
     expect(recallRaid(d.id, r2.id, now + 3 * HOUR).status).toBe(404); // only the attacker's

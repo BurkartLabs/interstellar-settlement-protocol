@@ -53,7 +53,10 @@ describe("Start Run refuses, it does not substitute (AB#1255)", () => {
     expect(refused("150", silicates, 400).reason).toBe("Runs use whole batches of 100 Silicates: enter 100 or 200.");
   });
   it("more than is at hand", () => {
-    expect(refused("500", silicates, 400).reason).toBe("You have 400 Silicates here, not 500.");
+    // Bug #4807 (ISP-6's rule): and what to do: the most whole batches held, or bring a batch's worth first
+    expect(refused("500", silicates, 400).reason).toBe("You have 400 Silicates here, not 500. Enter 400 or fewer, or bring more Silicates here.");
+    expect(refused("500", silicates, 450).reason).toBe("You have 450 Silicates here, not 500. Enter 400 or fewer, or bring more Silicates here.");
+    expect(refused("200", silicates, 50).reason).toBe("You have 50 Silicates here, not 200. Bring at least 100 Silicates here first.");
   });
   it("accepts whole batches at or above the minimum, exactly as typed", () => {
     expect(refineQuantityCheck("200", { ...carbon, available: 450 })).toEqual({ ok: true, quantity: 200, batches: 1 });

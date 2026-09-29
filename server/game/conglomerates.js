@@ -79,7 +79,7 @@ const REFUSALS = {
   "founder-too-young": ({ from }) => ({ status: 409, error: `A corporation can found a conglomerate ${CONGLOMERATE_CATALOG.minFounderAgeDays} days after it was registered. Yours can from ${utcTime(from, { withDate: true })}.` }),
   "join-cooldown": ({ until }) => ({ status: 409, error: `Your corporation left a conglomerate recently and cannot found or join one until ${utcTime(until, { withDate: true })}.` }),
   "not-at-bureau": () => ({ status: 409, error: "Charters are filed at the Conglomerate Affairs Bureau on Earth Station Prime. Travel there, then file." }),
-  "insufficient-credits": ({ needed, held }) => ({ status: 409, error: `The charter costs ${needed.toLocaleString("en-US")} credits (a ${CONGLOMERATE_CATALOG.charterFee.toLocaleString("en-US")} fee and a ${CONGLOMERATE_CATALOG.charterDeposit.toLocaleString("en-US")} deposit into the new treasury). Your corporation holds ${held.toLocaleString("en-US")}.` }),
+  "insufficient-credits": ({ needed, held }) => ({ status: 409, error: `The charter costs ${needed.toLocaleString("en-US")} credits (a ${CONGLOMERATE_CATALOG.charterFee.toLocaleString("en-US")} fee and a ${CONGLOMERATE_CATALOG.charterDeposit.toLocaleString("en-US")} deposit into the new treasury). Your corporation holds ${held.toLocaleString("en-US")}. Sell goods or finish an assignment to raise the credits, then file.` }), // Bug #4814
   "invalid-emblem": () => ({ status: 400, error: `Choose an emblem from the Bureau's ${CONGLOMERATE_CATALOG.emblems}.` }),
   "invalid-colour": () => ({ status: 400, error: `Choose a colour from the Bureau's ${CONGLOMERATE_CATALOG.colours}.` })
 };
@@ -336,7 +336,8 @@ export function settleTreasury(c, now = Date.now(), catalog = CONGLOMERATE_CATAL
         c.levelSince = day;
         c.arrearsSince = day; // another arrearsDropDays before the next
         noteTreasury(c, { at: day, kind: "level-lost", by: "bureau", note: `level ${c.level}, room for ${c.maxMembers}` });
-        events.push({ event: "conglomerate:level-lost", payload: { level: c.level, maxMembers: c.maxMembers }, notify: { title: `${c.name} lost a level`, body: `Upkeep went unpaid for ${catalog.arrearsDropDays} days, so it dropped to level ${c.level} (room for ${c.maxMembers}). Nobody was removed; it cannot admit anyone until it is below the new cap. Deposit enough to pay the arrears to stop it.` } });
+        // ISP-254 (AB#4811): a level lost to unpaid upkeep is Lapsed (docs/design/BUREAUCRATIC_UI.md)
+        events.push({ event: "conglomerate:level-lost", payload: { level: c.level, maxMembers: c.maxMembers }, notify: { protocol: { meaning: "expired", screen: "conglomerate" }, title: `${c.name} lost a level`, body: `Upkeep went unpaid for ${catalog.arrearsDropDays} days, so it dropped to level ${c.level} (room for ${c.maxMembers}). Nobody was removed; it cannot admit anyone until it is below the new cap. Deposit enough to pay the arrears to stop it.` } });
       }
     }
     c.upkeepPaidThrough += DAY_MS;
@@ -346,13 +347,38 @@ export function settleTreasury(c, now = Date.now(), catalog = CONGLOMERATE_CATAL
 
 // ─── The goods hangar's store and ledger (ISP-205, AB#899): the rules are server/game/hangar.js ───────────────────
 
-/** Give a conglomerate its hangar, at its home station, with an empty ledger. */
+/**
+ * Give a conglomerate its hangar, at its home station, with an empty ledger. ISP-212a (AB#4654): the home station is
+ * Earth Station Prime until the conglomerate owns a station, then that station (CONGLOMERATES.md Part 2, "What the
+ * station gives members"), and the hangar moves there with everything in it, free. Every reader of the hangar comes
+ * through here (its routes, the station project's hangar source, dissolution), so a conglomerate whose station was built
+ * before the move existed has it moved on its next read, dated when the station opened.
+ */
 export function ensureHangar(c, catalog = CONGLOMERATE_CATALOG) {
   if (!c.hangar || typeof c.hangar !== "object") c.hangar = {};
-  if (!c.hangar.stationId) c.hangar.stationId = catalog.homeStationId;
+  const home = homeStationOf(c, catalog);
+  if (!c.hangar.stationId) c.hangar.stationId = home;
   if (!c.hangar.items || typeof c.hangar.items !== "object") c.hangar.items = {};
   if (!Array.isArray(c.hangar.ledger)) c.hangar.ledger = [];
+  if (c.hangar.stationId !== home) relocateHangar(c.hangar, home, Number(c.station?.builtAt) || Date.now());
   return c.hangar;
+}
+
+/** ISP-212a (AB#4654): where a conglomerate's hangar is: its own station once it has one, else the catalog's home. */
+export function homeStationOf(c, catalog = CONGLOMERATE_CATALOG) {
+  return c?.station?.id || catalog.homeStationId;
+}
+
+/**
+ * ISP-212a (AB#4654): move the hangar and its goods to `to`. Nothing is added, taken or charged: each item held gets
+ * one ledger row of amount 0 saying where it went (`from`, `stationId`), so every item's rows still sum to its stock.
+ */
+function relocateHangar(h, to, at) {
+  const from = h.stationId;
+  h.stationId = to;
+  for (const [item, units] of Object.entries(h.items)) {
+    h.ledger.push(Object.freeze({ id: createId("chg"), at, kind: "relocated", corp: null, item, amount: 0, balanceAfter: units, by: "bureau", stationId: to, from }));
+  }
 }
 
 /**

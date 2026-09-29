@@ -85,7 +85,7 @@ export function validateCorporationName(raw, { existingNames = [], reservedNames
   if (!ALLOWED.test(name)) return { error: `A ${noun} name may use letters, digits, spaces and - ' . & only.`, code: "name-characters" };
   // AB#813: another player's name, the same way ("Kessler 0re Brokers" is Kessler Ore Brokers).
   if (existingNames.some((n) => foldName(n) === foldName(name))) {
-    return { error: noun === "corporation" ? "A corporation with this name already exists." : "A corporation or conglomerate already has this name.", code: "name-taken" };
+    return { error: noun === "corporation" ? "A corporation with this name already exists. Choose another name." /* Bug #4861 */ : "A corporation or conglomerate already has this name. Choose another name." /* Bug #4814 */, code: "name-taken" };
   }
   return { name };
 }

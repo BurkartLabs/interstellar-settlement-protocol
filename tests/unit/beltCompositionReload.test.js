@@ -211,7 +211,7 @@ describe("the belt panel shows the belt there now (AB#2331)", () => {
   it("the page refetches the slots when a belt empties or forms anew, and after a refusal", () => {
     const code = clientCode();
     expect(code).toMatch(/socket\.on\("belts:changed", \(\) => \{\s*if \(!appState\.accountId\) return;\s*loadBeltCompositionsIntoStarmap\(\);/);
-    expect(code).toMatch(/starmap\.setBeltNotice\(\{ beltKey, message: err\.message \|\| "Belt scouting failed\." \}\);/);
+    expect(code).toMatch(/starmap\.setBeltNotice\(\{ beltKey, message: err\.message \|\| "Belt scouting failed\.", protocol: denied \}\);/); // AB#4819: with its protocol line
     expect(code).toMatch(/appState\.belts = data\.belts \|\| \{\};/);
   });
 });

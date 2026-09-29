@@ -5,10 +5,11 @@
 // page draws the panel again from the account that comes back, and a refusal shows the server's own words in the row.
 // Pure apart from renderConstructionPanel, so it loads in node without the page's state.
 import { escapeHtml } from "./html.js";
+import { protocolLineHtml, refusalMeaning } from "./protocol.js"; // ISP-254 (AB#4818)
 import { nextYardPriceFor } from "./yardPrice.js";
 import { leaseFacilities, leaseHasRoom, leaseSlotsUsed } from "./leaseSlots.js"; // ISP-98 (AB#788)
+import { toCurrency } from "./helpers.js"; // Bug #2498: every screen's credits through the one formatter
 
-const money = (n) => `¤${Math.floor(n).toLocaleString("en-US")}`;
 const has = (corp, tech) => (corp.unlockedTech || []).includes(tech);
 const onLease = (building) => building.slot === "corporation+lease";
 const isUpgrade = (building) => building.slot === "upgrade";
@@ -59,7 +60,7 @@ export function constructionRow(building, corp = {}, { researchName = (id) => id
     else if (!own.length) row.reason = `Needs a ${baseName} to upgrade: build one first.`;
     else if (!own.some((b) => (b.upgrades || []).filter((u) => u === building.name).length < perBuilding)) row.reason = `Every ${baseName} you have is already a ${building.name}.`;
     else if (!Number.isFinite(cost)) row.reason = "The price has not loaded; reload the page.";
-    else if (Number(corp.finances?.credits || 0) < cost) row.reason = `Needs ${money(cost)}; you have ${money(Number(corp.finances?.credits || 0))}.`;
+    else if (Number(corp.finances?.credits || 0) < cost) row.reason = `Needs ${toCurrency(cost)}; you have ${toCurrency(Math.floor(Number(corp.finances?.credits || 0)))}.`;
     return row;
   }
   const level = Number(corp.level) || 0;
@@ -70,7 +71,7 @@ export function constructionRow(building, corp = {}, { researchName = (id) => id
   else if (onLease(building) && !leases.length) row.reason = leaseReason(building, corp);
   else if (used >= slots) row.reason = `No free building slot: ${used} of ${slots} in use.`;
   else if (!Number.isFinite(cost)) row.reason = "The price has not loaded; reload the page."; // fail closed, never a guessed price
-  else if (Number(corp.finances?.credits || 0) < cost) row.reason = `Needs ${money(cost)}; you have ${money(Number(corp.finances?.credits || 0))}.`;
+  else if (Number(corp.finances?.credits || 0) < cost) row.reason = `Needs ${toCurrency(cost)}; you have ${toCurrency(Math.floor(Number(corp.finances?.credits || 0)))}.`;
   return row;
 }
 
@@ -99,12 +100,12 @@ function rowHtml({ building, cost, leases, reason, upgrades }) {
     : "";
   const action = reason
     ? `<p class="station__blocked">${escapeHtml(reason)}</p>`
-    : `${leasePicker}<button class="ui-button ui-button--primary" data-build-id="${id}">Build (${money(cost)})</button>`;
+    : `${leasePicker}<button class="ui-button ui-button--primary" data-build-id="${id}">Build (${toCurrency(cost)})</button>`;
   return `
         <article class="ui-card station__card" data-building-row="${id}" tabindex="-1">
           <header class="station__card-header"><h3>${escapeHtml(building.name)}</h3></header>
           <p class="ui-card__body">${escapeHtml(building.effect || "")}</p>
-          <p class="station__note">${Number.isFinite(cost) ? money(cost) : "Price not loaded"} &middot; ${slotUse}</p>
+          <p class="station__note">${Number.isFinite(cost) ? toCurrency(cost) : "Price not loaded"} &middot; ${slotUse}</p>
           <footer class="station__card-footer">${action}</footer>
           <p class="station__hint" role="status" aria-live="polite"></p>
         </article>`;
@@ -162,7 +163,8 @@ export function bindConstructionPanel(grid, { accountId, request, onBuilt, onErr
     } catch (error) {
       button.disabled = false;
       button.textContent = label;
-      if (status) status.textContent = error?.message || "The build was refused.";
+      // ISP-254 (AB#4818): the refusal, then its protocol line (Denied, or Unfunded from the server's code)
+      if (status) status.innerHTML = `${escapeHtml(error?.message || "The build was refused.")} ${protocolLineHtml({ meaning: refusalMeaning(error), screen: "station-construction-section" })}`;
       onError(error);
     }
   };

@@ -6,16 +6,6 @@
 /** Widths at or below this are phone layouts: the sidebar starts collapsed and a chosen panel is scrolled to. */
 export const NARROW_MAX_WIDTH = 767;
 
-/** The prompt at the top of the Station while the corporation has no office, or "" once it has one. */
-export function stationStartPromptHtml(corp) {
-  if (Array.isArray(corp?.offices) && corp.offices.length > 0) return "";
-  return `<section class="ui-panel station__start" role="note">
-      <p class="station__overline">Start here</p>
-      <p class="ui-card__body">Lease an office in the <strong>Orbital Executive Suites</strong>. Hiring, mining claims and everything else at the station need one.</p>
-      <button class="ui-button ui-button--primary" type="button" data-start-office>Open the Orbital Executive Suites</button>
-    </section>`;
-}
-
 /** Whether the Overview shows the next milestones above the stat cards: while the corporation is finding its feet. */
 export function milestonesFirst(level) {
   return Number(level || 0) <= 2;

@@ -123,7 +123,7 @@ export function postLoanOffer(accountId, input, now) {
   const checked = checkOfferTerms(input);
   if (!checked.ok) return { ok: false, status: 400, error: checked.error };
   const t = checked.terms;
-  if (creditsOf(accountId) < t.principal) return { ok: false, status: 409, error: `Offering this loan holds ${t.principal.toLocaleString("en-US")} credits in escrow, and you have ${creditsOf(accountId).toLocaleString("en-US")}.` };
+  if (creditsOf(accountId) < t.principal) return { ok: false, status: 409, code: "insufficient-credits", error: `Offering this loan holds ${t.principal.toLocaleString("en-US")} credits in escrow, and you have ${creditsOf(accountId).toLocaleString("en-US")}. Offer ${creditsOf(accountId).toLocaleString("en-US")} or less.` }; // AB#4824 (ISP-6)
   const id = `lo-${now.toString(36)}-${(++seq).toString(36)}${Math.random().toString(36).slice(2, 5)}`;
   const held = settleTransfer({ fromAccountId: accountId, toAccountId: escrowOf(id), credits: t.principal, reason: "escrow-hold", idempotencyKey: `loan-offer:${id}:hold` }, now);
   if (!held.ok) return { ok: false, status: 409, error: `The principal could not be held in escrow: ${held.error}` };
@@ -168,7 +168,7 @@ export function acceptLoanOffer(accountId, offerId, now) {
   }
   const already = pairPrincipal(accountId, lenderAccountId, now);
   if (already + offer.principal > OFFER_RULES.pairCapPrincipal) {
-    return { ok: false, status: 409, error: `Two corporations may lend each other at most ${OFFER_RULES.pairCapPrincipal.toLocaleString("en-US")} credits in 30 days; ${already.toLocaleString("en-US")} is already lent between you.` };
+    return { ok: false, status: 409, error: `Two corporations may lend each other at most ${OFFER_RULES.pairCapPrincipal.toLocaleString("en-US")} credits in 30 days; ${already.toLocaleString("en-US")} is already lent between you. Choose an offer of ${Math.max(0, OFFER_RULES.pairCapPrincipal - already).toLocaleString("en-US")} credits or less.` }; // AB#4824 (ISP-6)
   }
   const held = Math.round(Number(getState()?.settlement?.escrow?.[escrowOf(offer.id)]) || 0);
   if (held !== offer.principal) return { ok: false, status: 409, error: "That offer's escrow no longer holds its principal. Nothing was moved." };
@@ -219,7 +219,8 @@ function recoveryView(corp, loanId) {
 }
 
 const loanSummary = (loan) => ({
-  id: loan.id, ref: loan.ref ?? null, principal: loan.principal, ratePct30: loan.ratePct30, // ref: ISP-249 (AB#945), drawn by ISP-251 (AB#947) termDays: loan.termDays, dailyPayment: loan.dailyPayment,
+  id: loan.id, ref: loan.ref ?? null, principal: loan.principal, ratePct30: loan.ratePct30, // ref: ISP-249 (AB#945), drawn by ISP-251 (AB#947)
+  termDays: loan.termDays, dailyPayment: loan.dailyPayment, // Bug #4833: these sat after the comment above, and were lost
   balance: loan.balance, arrears: loan.arrears || 0, state: loan.state, paymentsMade: loan.paymentsMade, nextDueAt: loan.nextDueAt,
   arrearsSince: loan.arrearsSince ?? null, defaultedAt: loan.defaultedAt ?? null, openedAt: loan.openedAt, closedAt: loan.closedAt ?? null
 });

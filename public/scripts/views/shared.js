@@ -5,6 +5,7 @@
 import { revealScroll } from "../firstAction.js";
 import { formatTime } from "../helpers.js";
 import { escapeHtml, tradeConfirmRowsHtml } from "../html.js";
+import { protocolLineHtml } from "../protocol.js"; // ISP-254 (AB#950)
 import { appState } from "../state.js";
 import { systemName } from "../displayNames.js"; // AB#1336
 
@@ -59,11 +60,13 @@ export function showTradeConfirmation({ heading, title, rows, confirmLabel = "Co
   });
 }
 
-export function pushFeedback(message, tone = "info") {
+/** `protocol` is `{ meaning, screen }` (public/scripts/protocol.js, ISP-254, AB#950): a line after the plain message. */
+export function pushFeedback(message, tone = "info", protocol = null) {
   appState.feedbackLog.unshift({
     id: `fb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     message,
     tone,
+    protocol,
     createdAt: Date.now()
   });
   appState.feedbackLog = appState.feedbackLog.slice(0, 8);
@@ -92,7 +95,7 @@ export function renderFeedbackLog() {
   }
 
   feedbackLog.innerHTML = appState.feedbackLog
-    .map((entry) => `<li class="ui-list__item ui-list__item--${entry.tone}"><strong>${formatTime(entry.createdAt)}</strong> | ${entry.message}</li>`)
+    .map((entry) => `<li class="ui-list__item ui-list__item--${entry.tone}"><strong>${formatTime(entry.createdAt)}</strong> | ${entry.message}${entry.protocol ? ` ${protocolLineHtml(entry.protocol)}` : ""}</li>`)
     .join("");
 }
 
@@ -167,5 +170,8 @@ export function revealUnderHeader(el) {
   if (!el) return;
   const headerBottom = document.querySelector(".app-header")?.getBoundingClientRect().bottom ?? 0;
   const delta = revealScroll(el.getBoundingClientRect().top, headerBottom, window.innerHeight);
-  if (delta) window.scrollBy(0, delta);
+  if (!delta) return;
+  window.scrollBy(0, delta);
+  // Bug #4858: anything that had placed itself against the old scroll (the walkthrough's highlighted control) redoes it
+  document.dispatchEvent(new Event("isp:revealed"));
 }

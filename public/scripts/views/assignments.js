@@ -11,6 +11,11 @@ import { ASSIGNED_COORDINATOR } from "../liaison.js";
 import { appState } from "../state.js";
 import { flashButtonSuccess, getInventory, pushFeedback, salvageRemainingMs, updateAllViews } from "./shared.js";
 import { refHtml } from "../html.js"; // ISP-249 (AB#945)
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 C2 (AB#4812)
+import { missionProgress, missionTarget } from "../missionProgress.js"; // AB#2484: the pattern every mission kind follows
+
+/** ISP-254 C2 (AB#4812): an outcome's protocol on the Assignments screen (ISA-CON-1). */
+const onAssignments = (meaning) => ({ meaning, screen: "missions" });
 
 // ISP-297 (AB#1789) gave the Salvage Assignment risk: "None" — a real fourth value this ternary did not have a
 // class for, which fell through to risk-high and painted a riskless contract red. Named so a future risk value
@@ -124,12 +129,13 @@ export function openMissionModal(missionId, data) {
         : `<strong>${escapeHtml(formatDurationHours(remaining))}</strong> remaining before this contract can be completed`;
     }
   } else if (isActive && mission.quota && quotaSection) {
-    const inv = getInventory(); // current station inventory
+    // AB#2484: what remains, from the stock at the station it is handed in at (the agent's), which is the stock
+    // complete-mission takes; missionProgress.js holds the rule for every mission kind.
+    const handInStationId = agentStationId || currentStationId;
+    const progress = missionProgress(mission, { inventory: data?.corp?.inventory, stationId: handInStationId });
     const resource = mission.quota.resource || "";
-    const required = mission.quota.amount || 0;
-    const have = inv[resource] || 0;
-    const pct = required > 0 ? Math.min(100, Math.round((have / required) * 100)) : 100;
-    const isFulfilled = have >= required;
+    const pct = progress.pct;
+    const isFulfilled = progress.complete;
     canComplete = isFulfilled && isAtAgentStation;
 
     quotaSection.hidden = false;
@@ -138,11 +144,11 @@ export function openMissionModal(missionId, data) {
       quotaBar.style.width = pct + "%";
       quotaBar.classList.toggle("is-complete", isFulfilled);
     }
-    const currentStation = appState.stationRegistry.find(s => s.id === currentStationId);
-    const stationLabel = currentStation ? currentStation.name : "this station";
+    const handInStation = appState.stationRegistry.find(s => s.id === handInStationId);
+    const stationLabel = handInStation ? handInStation.name : "this station";
     if (quotaText) {
-      const displayResource = resource.charAt(0).toUpperCase() + resource.slice(1);
-      quotaText.innerHTML = `<strong>${have.toLocaleString()}</strong> / ${required.toLocaleString()} ${escapeHtml(displayResource)} at ${escapeHtml(stationLabel)}`;
+      quotaText.innerHTML = `<strong class="missions__remaining-figure">${escapeHtml(progress.remainingText)}</strong>`
+        + `<span class="missions__remaining-detail">${escapeHtml(progress.doneText)} at ${escapeHtml(stationLabel)}</span>`;
       // Bug #1058: Complete stays hidden until the quota is met, so say how to meet it. Away from the agent's station the
       // location warning below says where to go instead.
       if (!isFulfilled && isAtAgentStation) {
@@ -151,16 +157,26 @@ export function openMissionModal(missionId, data) {
         quotaText.innerHTML += `<span class="missions__advice">${escapeHtml(advice)}</span>`;
       }
     }
+  } else if (!isActive && quotaSection && missionTarget(mission)) {
+    // AB#2484: the whole of what it asks, before it is accepted
+    const handInStation = appState.stationRegistry.find((s) => s.id === agentStationId);
+    const where = isSalvage ? "Served at any ISA facility." : handInStation ? `Delivered to ${handInStation.name}.` : "";
+    quotaSection.hidden = false;
+    if (quotaBar) quotaBar.parentElement.hidden = true;
+    if (quotaText) quotaText.innerHTML = `<strong class="missions__remaining-figure">${escapeHtml(missionTarget(mission).text)}</strong>${where ? `<span class="missions__remaining-detail">${escapeHtml(where)}</span>` : ""}`;
   } else if (quotaSection) {
     quotaSection.hidden = true;
   }
+
+  const quotaHeading = document.getElementById("mission-quota-heading"); // AB#2484: an offer states its target
+  if (quotaHeading) quotaHeading.textContent = isActive ? "Quota Progress" : "Target";
 
   // Location warning (active + remote) — never for the Salvage Assignment (isAtAgentStation is forced true).
   if (isActive && !isAtAgentStation && locationSection && locationWarning) {
     const agentStation = appState.stationRegistry.find(s => s.id === agentStationId);
     const agentStationLabel = agentStation ? agentStation.name : "another station";
     locationSection.hidden = false;
-    locationWarning.innerHTML = `⚠ You must be docked at <strong>${escapeHtml(agentStationLabel)}</strong> to complete this contract.`;
+    locationWarning.innerHTML = `You must be docked at <strong>${escapeHtml(agentStationLabel)}</strong> to complete this contract.`;
   } else if (locationSection) {
     locationSection.hidden = true;
   }
@@ -216,6 +232,27 @@ export function showMissionCompleteOverlay(mission, rep, agentName, creditedAmou
   const dismiss = () => overlay.remove();
   overlay.querySelector('[data-action="dismiss"]').addEventListener("click", dismiss);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) dismiss(); });
+}
+
+/**
+ * AB#2484: an active quota contract's card says what remains, beside a bar of what is done (missionProgress.js).
+ * The Salvage Assignment's countdown stays in its footer, where its Complete button appears.
+ */
+function activeProgressHtml(mission, data, handInStationId) {
+  if (mission.kind === "time-served") return "";
+  const p = missionProgress(mission, { inventory: data?.corp?.inventory, stationId: handInStationId });
+  if (!p) return "";
+  return `<div class="missions__progress" data-mission-remaining="${escapeHtml(mission.id)}">
+              <p class="missions__remaining"><strong class="missions__remaining-figure">${escapeHtml(p.remainingText)}</strong><span class="missions__remaining-detail">${escapeHtml(p.doneText)}</span></p>
+              <div class="progress-wrap" role="progressbar" aria-label="${escapeHtml(`${mission.title}: delivered`)}" aria-valuemin="0" aria-valuemax="${p.target.amount}" aria-valuenow="${p.done}"><div class="progress-bar${p.complete ? " is-complete" : ""}" style="width:${p.pct}%"></div></div>
+            </div>`;
+}
+
+/** AB#2484: redraws an open briefing, so what remains follows mining while it is open. */
+export function refreshOpenMissionModal(data) {
+  const modal = document.getElementById("mission-detail-modal");
+  if (!modal || modal.hidden || !appState.selectedMissionId) return;
+  openMissionModal(appState.selectedMissionId, data);
 }
 
 export function renderMissions(data) {
@@ -297,6 +334,7 @@ export function renderMissions(data) {
             </span>
             <span class="ui-card__title">${escapeHtml(mission.title)}</span>
             <span class="ui-card__body">${escapeHtml(mission.text)}</span>
+            ${missionTarget(mission) ? `<span class="missions__target">Target: <strong>${escapeHtml(missionTarget(mission).text)}</strong></span>` : ""}
             <span class="missions__card-foot">
               <span class="missions__reward">${escapeHtml(mission.reward)}</span>
               <span class="missions__cta">View Briefing \u2192</span>
@@ -375,10 +413,10 @@ export function renderMissions(data) {
             const locationTag = isSalvage
               ? ""
               : isRemote && stationObj
-                ? `<span class="ui-badge ui-badge--warn" data-location="remote" title="Agent is at ${escapeHtml(stationObj.name)}">⚠ ${escapeHtml(stationObj.body || stationObj.name)}</span>`
+                ? `<span class="ui-badge ui-badge--warn" data-location="remote" title="Agent is at ${escapeHtml(stationObj.name)}">${escapeHtml(stationObj.body || stationObj.name)}</span>`
                 : isRemote
-                  ? `<span class="ui-badge ui-badge--warn" data-location="remote">⚠ Remote</span>`
-                  : `<span class="ui-badge ui-badge--success" data-location="local">● Local</span>`;
+                  ? `<span class="ui-badge ui-badge--warn" data-location="remote">Remote</span>`
+                  : `<span class="ui-badge ui-badge--success" data-location="local">Local</span>`;
             // The Assignment is paid in time served, not a delivered quota, so its footer is a countdown until it
             // can be completed, and then a Complete button — never Abandon (ECONOMY.md: accepting, waiting and
             // completing are the only three actions).
@@ -396,6 +434,7 @@ export function renderMissions(data) {
               ${locationTag}
             </div>
             <h4 class="ui-card__title">${escapeHtml(mission.title)}</h4>${refHtml(mission.ref)}
+            ${activeProgressHtml(mission, data, agentStation || currentStationId)}
             <div class="missions__card-foot">
               <span class="missions__reward">${escapeHtml(mission.reward)}</span>
               ${salvageFooter}
@@ -424,7 +463,7 @@ export function renderMissions(data) {
         const agentLabel = agent ? agent.name : "Unknown Agent";
         return `
           <li class="missions__log-entry">
-            <span class="missions__log-title"><span class="ui-badge ui-badge--success">✓ ${escapeHtml(m.type || "Mission")}</span> ${escapeHtml(m.title)}</span>
+            <span class="missions__log-title"><span class="ui-badge ui-badge--success">${escapeHtml(m.type || "Mission")}</span> ${escapeHtml(m.title)} ${protocolLineHtml(onAssignments("complete"))}</span>
             <span class="missions__reward">${escapeHtml(m.reward)}</span>
             <span class="missions__hint">${escapeHtml(agentLabel)} &middot; ${formatTime(m.completedAt)}${m.ref ? ` &middot; ${refHtml(m.ref)}` : ""}</span>
           </li>`;
@@ -495,8 +534,8 @@ export function bindAssignmentForms() {
         body: JSON.stringify({ missionId: mission.id })
       });
       if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: "Failed to accept contract." }));
-        pushFeedback(err.error || "Failed to accept contract.", "warn");
+        const err = await response.json().catch(() => ({ error: "The contract could not be accepted. Check your connection and try again." }));
+        pushFeedback(err.error || "The contract could not be accepted. Check your connection and try again.", "warn", onAssignments(refusalMeaning(err)));
         return;
       }
       const account = await parseJsonResponse(response);
@@ -510,7 +549,7 @@ export function bindAssignmentForms() {
       }
     }
 
-    pushFeedback(`Contract accepted: "${mission.title}". Track it in Active Contracts.`, "success");
+    pushFeedback(`Contract accepted: "${mission.title}". Track it in Active Contracts.`, "success", onAssignments("active"));
     const btn = document.getElementById("mission-accept-btn");
     if (btn) flashButtonSuccess(btn);
     closeMissionModal();
@@ -531,8 +570,8 @@ export function bindAssignmentForms() {
           body: JSON.stringify({ missionId })
         });
         if (!response.ok) {
-          const err = await response.json().catch(() => ({ error: "Failed to abandon contract." }));
-          pushFeedback(err.error || "Failed to abandon contract.", "warn");
+          const err = await response.json().catch(() => ({ error: "The contract could not be abandoned. Check your connection and try again." }));
+          pushFeedback(err.error || "The contract could not be abandoned. Check your connection and try again.", "warn", onAssignments(refusalMeaning(err)));
           return;
         }
         const account = await parseJsonResponse(response);
@@ -544,7 +583,7 @@ export function bindAssignmentForms() {
           appState.data.corp.activeMissions = appState.activeMissions;
         }
       }
-      pushFeedback("Contract abandoned and removed from Active Contracts.", "info");
+      pushFeedback("Contract abandoned and removed from Active Contracts.", "info", onAssignments("cancelled"));
       renderMissions(appState.data);
       return;
     }
@@ -582,8 +621,8 @@ export function bindAssignmentForms() {
         body: JSON.stringify({ missionId: mission.id })
       });
       if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: "Failed to complete mission." }));
-        pushFeedback(err.error || "Failed to complete mission.", "danger");
+        const err = await response.json().catch(() => ({ error: "The contract could not be completed. Check your connection and try again." }));
+        pushFeedback(err.error || "The contract could not be completed. Check your connection and try again.", "danger", onAssignments(refusalMeaning(err)));
         return;
       }
       const account = await parseJsonResponse(response);

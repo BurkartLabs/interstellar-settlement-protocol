@@ -7,6 +7,7 @@
 
 import { escapeHtml, refHtml } from "./html.js";
 import { cr, bankTime } from "./devBank.js";
+import { protocolLineHtml } from "./protocol.js"; // ISP-255 (AB#4824)
 
 /** The grades, best first; an offer's minimum may also be NR-accepted (it lends to unrated corporations). */
 export const GRADE_ORDER = ["AAA", "AA", "A", "BBB", "BB", "B", "CCC", "CC", "C"];
@@ -61,7 +62,7 @@ export function loanBoardHtml({ offers, grade, sort = "rate-asc", onlyMine = fal
   const controls = `
     <form class="loan-board__controls" data-role="loan-board-controls">
       <label class="bank-quote-form__field">Order by
-        <select class="ui-input" name="sort" data-role="loan-board-sort">
+        <select class="ui-select" name="sort" data-role="loan-board-sort">
           <option value="rate-asc"${sort === "rate-asc" ? " selected" : ""}>Rate, lowest first</option>
           <option value="rate-desc"${sort === "rate-desc" ? " selected" : ""}>Rate, highest first</option>
           <option value="grade"${sort === "grade" ? " selected" : ""}>Minimum grade, easiest first</option>
@@ -88,13 +89,13 @@ export function postOfferFormHtml(rules, minGrades, form = {}) {
         <input class="ui-input" type="number" name="principal" min="${rules.minPrincipal}" max="${rules.maxPrincipal}" step="1000" value="${escapeHtml(String(principal))}" required>
       </label>
       <label class="bank-quote-form__field">Rate per 30 days
-        <select class="ui-input" name="ratePct30">${rates.map((r) => `<option value="${r}"${r === rate ? " selected" : ""}>${r.toFixed(2)}%</option>`).join("")}</select>
+        <select class="ui-select" name="ratePct30">${rates.map((r) => `<option value="${r}"${r === rate ? " selected" : ""}>${r.toFixed(2)}%</option>`).join("")}</select>
       </label>
       <label class="bank-quote-form__field">Term
-        <select class="ui-input" name="termDays">${rules.terms.map((t) => `<option value="${t}"${t === (form.termDays ?? 30) ? " selected" : ""}>${t} days</option>`).join("")}</select>
+        <select class="ui-select" name="termDays">${rules.terms.map((t) => `<option value="${t}"${t === (form.termDays ?? 30) ? " selected" : ""}>${t} days</option>`).join("")}</select>
       </label>
       <label class="bank-quote-form__field">Lend to grades
-        <select class="ui-input" name="minGrade">${(minGrades || []).map((g) => `<option value="${escapeHtml(g)}"${g === (form.minGrade ?? "BBB") ? " selected" : ""}>${escapeHtml(gradeLabel(g))}</option>`).join("")}</select>
+        <select class="ui-select" name="minGrade">${(minGrades || []).map((g) => `<option value="${escapeHtml(g)}"${g === (form.minGrade ?? "BBB") ? " selected" : ""}>${escapeHtml(gradeLabel(g))}</option>`).join("")}</select>
       </label>
       <button type="submit" class="ui-button ui-button--primary">Post offer</button>
       <p class="bank-quote-form__status" data-role="loan-post-status"></p>
@@ -106,9 +107,13 @@ const STATE_BADGE = {
   active: ["Current", "bank-loan__badge--ok"], arrears: ["In arrears", ""], repaid: ["Repaid", "bank-loan__badge--ok"]
 };
 function stateBadge(loan) {
-  if (loan.defaultedAt && loan.state === "arrears") return `<span class="ui-badge bank-loan__badge" data-role="loan-state">In default</span>`;
+  // ISP-255 (AB#4824): the phrase after the badge; "In arrears" is already the guide's words
+  const line = (meaning) => ` ${protocolLineHtml({ meaning, screen: "loans-board" })}`;
+  if (loan.defaultedAt && loan.state === "arrears") return `<span><span class="ui-badge bank-loan__badge" data-role="loan-state">In default</span>${line("failed")}</span>`; // one span: the header is a flex row
   const [label, extra] = STATE_BADGE[loan.state] || [loan.state, ""];
-  return `<span class="ui-badge bank-loan__badge ${extra}" data-role="loan-state">${escapeHtml(label)}</span>`;
+  const meaning = { active: "active", repaid: "complete" }[loan.state];
+  const badge = `<span class="ui-badge bank-loan__badge ${extra}" data-role="loan-state">${escapeHtml(label)}</span>`;
+  return meaning ? `<span>${badge}${line(meaning)}</span>` : badge;
 }
 
 /** What recovery took, grouped by where it came from: credits, goods sold, buildings force-sold. */
@@ -143,15 +148,15 @@ function recoveryRow(loan, side) {
   if (!r) return "";
   if (r.state === "grace") {
     return side === "borrower"
-      ? `<div class="loan-warning" data-role="loan-warning" role="alert"><strong>Your assets will be sold on ${escapeHtml(bankTime(r.saleAt))}.</strong> Pay the ${cr(loan.arrears)} credits in arrears before then and nothing is sold. Until then you cannot sell, buy or lend to other corporations. Your office, research, level and Headquarters are never taken.</div>`
-      : `<div><dt>Recovery</dt><dd>Begins ${escapeHtml(bankTime(r.saleAt))} unless the arrears are paid</dd></div>`;
+      ? `<div class="loan-warning" data-role="loan-warning" role="alert"><strong>Your assets will be sold on ${escapeHtml(bankTime(r.saleAt))}.</strong> ${protocolLineHtml({ meaning: "pending", screen: "loans-board" })} Pay the ${cr(loan.arrears)} credits in arrears before then and nothing is sold. Until then you cannot sell, buy or lend to other corporations. Your office, research, level and Headquarters are never taken.</div>`
+      : `<div><dt>Recovery</dt><dd>Begins ${escapeHtml(bankTime(r.saleAt))} unless the arrears are paid ${protocolLineHtml({ meaning: "pending", screen: "loans-board" })}</dd></div>`;
   }
   if (r.state === "done" && r.result) {
     return side === "borrower"
       ? `<div class="loan-warning" data-role="loan-recovered">Recovered from you on ${escapeHtml(bankTime(r.closedAt))}: ${recoveredFromText(r.result)}</div>`
       : `<div class="loan-recovered" data-role="loan-recovered"><dt>Recovered</dt><dd>${recoveredFromText(r.result)}</dd></div>`;
   }
-  if (r.state === "cancelled") return side === "borrower" ? "" : `<div><dt>Recovery</dt><dd>Cancelled: the arrears were paid in time</dd></div>`;
+  if (r.state === "cancelled") return side === "borrower" ? "" : `<div><dt>Recovery</dt><dd>Cancelled: the arrears were paid in time ${protocolLineHtml({ meaning: "cancelled", screen: "loans-board" })}</dd></div>`;
   return "";
 }
 

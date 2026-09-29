@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { setSectionCodes } from "../../public/scripts/sectionCodes.js";
 import { battleReportHtml, countdown, garrisonPanelHtml, incomingAlertHtml, outgoingRaidsHtml, targetPickerHtml } from "../../public/scripts/raidView.js";
 
 // ISP-181 (AB#875): the raid screens' markup, text first. The figures are what the server returns.
@@ -68,6 +70,16 @@ describe("ISP-181 your raids and the report", () => {
     expect(html).toContain('data-raid-recall="r1"');
     expect(html).toContain('data-raid-report="r2"');
     expect(html).not.toContain('data-raid-recall="r2"');
+  });
+  it("ISP-254 (AB#4817): each raid's plain state carries its protocol line on the Fleet screen", () => {
+    const at = (state) => outgoingRaidsHtml([{ id: "r", targetName: "Drift Co", targetStationId: "earth-station-prime", state, declaredAt: NOW - HOUR, arrivesAt: NOW + HOUR, returnsAt: NOW + 2 * HOUR }], { now: NOW, stationName });
+    expect(at("inbound")).toMatch(/arrives in .*In force/s);
+    expect(at("resolved")).toMatch(/on its way home .*Concluded/s);
+    expect(at("recalled")).toMatch(/called off .*Withdrawn/s);
+    expect(at("completed")).toMatch(/done .*Concluded/s);
+    setSectionCodes(JSON.parse(readFileSync("data/section-codes.json", "utf8")));
+    expect(at("inbound")).toContain("CORP-MIL-1");
+    setSectionCodes(null);
   });
 
   it("the defender's report: outcome, forces and losses per side, the rounds to the nearest unit, goods lost, building damage and repair", () => {

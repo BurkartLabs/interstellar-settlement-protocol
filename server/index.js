@@ -4,10 +4,12 @@ import "./conglomerates.js";
 // ISP-225 (AB#920): the warfare catalog, checked the same way before anything listens.
 import "./warfare.js";
 import express from "express";
+import { staticOptions } from "./staticCache.js";
+import { registerPublicPages } from "./publicPages.js";
 import kanbanRouter from "./kanban.js";
 import fs from "node:fs";
 import path from "node:path";
-import { accountActionLimiter } from "./rateLimiters.js";
+import { accountActionLimiter, mutationLimits, forumThreadLimiter, forumPostLimiter } from "./rateLimiters.js";
 import { saveAccountsNow, getAccountById, getState, CEO_INSIGHT_LIBRARY, REFINERY_CHAINS, RESEARCH_LIBRARY, MISSION_TEMPLATES, SALVAGE_ASSIGNMENT_ID, SYSTEMS_BY_ID } from "./gameState.js";
 import { BELT_KEYS, EXPEDITION_DURATIONS } from "./gameState.js";
 // AB#731: every gameplay route's numbers and ids are checked against server/gameplayInput.js here, after the login and
@@ -64,6 +66,8 @@ import { registerFleetRoutes } from "./routes/fleets.js"; // ISP-174 (AB#868)
 import { registerMercenaryRoutes } from "./routes/mercenaries.js"; // ISP-176 (AB#870)
 import { registerRaidRoutes } from "./routes/raids.js"; // ISP-178 (AB#872)
 import { raidTick } from "./raidResolution.js"; // ISP-179 (AB#873)
+import { registerHuntRoutes } from "./routes/hunts.js"; // ISP-284 (AB#991)
+import { huntTick } from "./hunts.js"; // ISP-284 (AB#991)
 import { registerGarrisonRoutes } from "./routes/garrison.js"; // ISP-180 (AB#874)
 import { registerRefiningRoutes } from "./routes/refining.js";
 import { registerConstructionRoutes } from "./routes/construction.js"; // ISP-94 (AB#784)
@@ -75,6 +79,8 @@ import { registerMessagingRoutes } from "./routes/messaging.js";
 import { registerConversationRoutes } from "./routes/conversations.js"; // AB#910
 import { migrateLegacyMailOnce } from "./game/conversations.js"; // AB#911
 import { registerForumRoutes } from "./routes/forums.js";
+import { registerChatRoutes } from "./routes/chat.js"; // AB#995
+import { registerTelemetryRoutes } from "./routes/telemetry.js"; // ISP-256 (AB#952)
 import { registerMarketRoutes } from "./routes/market.js";
 
 process.on("uncaughtException", (error) => {
@@ -85,9 +91,16 @@ process.on("unhandledRejection", (reason) => {
   console.error("[fatal] unhandledRejection", reason);
 });
 
+// AB#958: every mutating route is limited per address, by its cost group, before anything else reads the request.
+app.use(mutationLimits.address);
+// ISP-256 (AB#952): the telemetry endpoint's body is read here, at most 8 KB; the parser below then leaves it alone.
+app.use("/api/telemetry", express.json({ limit: "8kb" }));
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname, "..", "public")));
+// AB#954 (ISP-258): the landing with its canonical and link-preview URLs filled from ISP_PUBLIC_URL, ahead of the static files
+registerPublicPages(app, path.join(__dirname, "..", "public"));
+// AB#964 (ISP-268): each file with a Cache-Control for what it is (server/staticCache.js)
+app.use(express.static(path.join(__dirname, "..", "public"), staticOptions(path.join(__dirname, "..", "public"))));
 // ISP-70 (AB#759): the style guide's static pages without their .html, so the token specimen is /styleguide/tokens.
 // Static files, like the rest of public/: no route, no game data.
 app.use("/styleguide", express.static(path.join(__dirname, "..", "public", "styleguide"), { extensions: ["html"] }));
@@ -139,7 +152,26 @@ registerPasswordResetRoutes(app);
 
 // AB#734 (ISP-48): the per-account throttle runs right after requireAuth sets req.auth, so it always has the
 // verified account to key on.
-app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess, accountActionLimiter);
+app.use("/api/accounts/:accountId", requireAuth, requireAccountAccess, accountActionLimiter, mutationLimits.account); // AB#958: and per account, by group
+// AB#958: the market and the forums check their login per route, since their reads are public, so their writes are
+// counted per account here, ahead of the input checks below. Counted after them, a script sending malformed orders was
+// answered 400 without ever being counted. AB#734's shared account-action bucket moves here from the market routes too.
+const WRITES = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+function writesOnly(...handlers) {
+  return (req, res, next) => {
+    if (!WRITES.has(req.method)) return next();
+    const step = (i) => (error) => (error ? next(error) : i === handlers.length ? next() : handlers[i](req, res, step(i + 1)));
+    step(0)();
+  };
+}
+app.use("/api/market", writesOnly(requireAuth, accountActionLimiter, mutationLimits.account));
+// AB#995: and new threads and replies per account an hour (docs/design/messaging.md), ahead of the input checks too
+const forumWriteLimit = (req, res, next) => {
+  if (req.method === "POST" && /^\/threads\/?$/.test(req.path)) return forumThreadLimiter(req, res, next);
+  if (req.method === "POST" && /^\/threads\/[^/]+\/replies\/?$/.test(req.path)) return forumPostLimiter(req, res, next);
+  return next();
+};
+app.use("/api/forums", writesOnly(requireAuth, mutationLimits.account, forumWriteLimit));
 const INPUT_CHECKS = {
   catalogs: {
     stations: { has: (id) => Boolean(stationById(id)) }, // ISP-209 (AB#904): read live, so a built station is one
@@ -213,6 +245,7 @@ if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => standingTick(Date.now())
 // ISP-239 (AB#934): a lobbying campaign's pledging closes within a minute of its time
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => lobbyingTick(Date.now()), 60_000);
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => raidTick(Date.now()), 30_000); // ISP-179 (AB#873): arrivals and returns
+if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => huntTick(Date.now()), 5_000); // ISP-284 (AB#991): hunts that are due
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => bondServicingTick(Date.now()), 60_000); // ISP-155 (AB#849)
 if (!process.env.ISP_DISABLE_TICKERS) setInterval(() => { const now = Date.now(); shareOfferingTick(now); dividendTick(now); }, 60_000); // ISP-158 (AB#852), ISP-159 (AB#853)
 
@@ -224,6 +257,7 @@ registerTrainingRoutes(app);
 registerFleetRoutes(app);
 registerMercenaryRoutes(app);
 registerRaidRoutes(app);
+registerHuntRoutes(app);
 registerGarrisonRoutes(app);
 
 registerRefiningRoutes(app);
@@ -246,6 +280,8 @@ try {
 }
 
 registerForumRoutes(app);
+registerChatRoutes(app);
+registerTelemetryRoutes(app);
 
 registerMarketRoutes(app);
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
-import { mutateAccountState, getAccountById } from "../../server/gameState.js";
+import { mutateAccountState, getAccountById, listAccountNotifications } from "../../server/gameState.js";
 
 // Bug #983: a planned CEO Insight program took the player's credits and did nothing. It is now refused before any
 // charge, the client gets the catalogue (with status) from the server, and the live renewal discount is charged.
@@ -36,6 +36,13 @@ describe("CEO Insight programs (Bug #983)", () => {
     expect(res.status).toBe(200);
     expect(state().corp.finances.credits).toBe(500000 - 15000);
     expect(state().queues.ceoInsight.map((q) => q.programId)).toEqual(["ceo-isa-regulatory-navigation"]);
+    // ISP-254 C2 (AB#4812): the enrollment's notice is Lodged on the CEO Insight screen
+    const told = listAccountNotifications(id).notifications.find((n) => n.title === "CEO Insight Queued");
+    expect(told.protocol).toEqual({ meaning: "queued", screen: "ceo" });
+    // Bug #4873: a second enrollment while one runs says to wait for it
+    const second = await api.post(`/api/accounts/${id}/gameplay/queue-ceo`).send({ programId: "ceo-risk-assessment" });
+    expect(second.status).toBe(400);
+    expect(second.body.error).toBe("Only one CEO Insight program can be in progress at a time. Wait for it to finish, then enroll this one.");
   });
 
   it("enrolls in Risk Assessment with no planned program completed", async () => {

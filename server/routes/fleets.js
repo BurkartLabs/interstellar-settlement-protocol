@@ -18,21 +18,22 @@ function refusal(result, corp) {
     case "no-units": return "Choose at least one ship or squad of Attack Troops.";
     case "not-docked": return "Dock first: a fleet forms where your corporation is docked.";
     case "too-many-fleets": return `Your corporation commands ${MAX_FLEETS} fleets at most. Merge or disband one first.`;
-    case "not-in-reserve": return `Your reserve holds ${result.have} ${UNITS[result.unitId].name}${result.have === 1 ? "" : "s"}; the rest are in fleets.`;
-    case "not-in-fleet": return `That fleet holds ${result.have} ${UNITS[result.unitId].name}${result.have === 1 ? "" : "s"}.`;
+    case "not-in-reserve": return `Your reserve holds ${result.have} ${UNITS[result.unitId].name}${result.have === 1 ? "" : "s"}; the rest are in fleets. Form it with ${result.have} or fewer.`; // AB#4810 (ISP-6)
+    case "not-in-fleet": return `That fleet holds ${result.have} ${UNITS[result.unitId].name}${result.have === 1 ? "" : "s"}. Split off ${result.have} or fewer.`; // AB#4810 (ISP-6)
     case "split-everything": return "A split leaves some units behind. To move the whole fleet, deploy it.";
     case "bad-name": return `Choose a fleet name from the list: ${FLEET_NAMES.join(", ")}.`;
     case "name-taken": return "One of your fleets already has that name. Choose another from the list.";
     case "in-transit": return "That fleet is in transit. Wait for it to arrive.";
     case "under-contract": return "That fleet is under a mercenary contract and takes no orders until it ends.";
     case "escorting": return "That fleet is escorting an expedition and takes no other order until it comes home."; // AB#820
+    case "hunting": return "That fleet is hunting Rats and takes no other order until it comes back."; // AB#991
     case "same-fleet": return "Choose a different fleet to merge into.";
-    case "not-together": return "Both fleets must be at the same station to merge.";
+    case "not-together": return "Both fleets must be at the same station to merge. Deploy one to the other's station first."; // AB#4810 (ISP-6)
     case "not-here": return `That fleet is at ${stationName(result.stationId)}. A fleet disbands where your corporation is docked.`;
     case "no-station": return "Choose where to deploy it.";
     case "already-there": return "That fleet is already stationed there.";
     case "missing-research": return NAVIGATION.travelResearchLock(RESEARCH_LIBRARY, corp.unlockedTech, corp.level, result.fromSystemId, result.toSystemId) || "That system needs navigation research first.";
-    case "no-route": return "No jump route reaches that system from where the fleet is.";
+    case "no-route": return "No jump route reaches that system from where the fleet is. Choose a station the list shows in reach."; // AB#4810 (ISP-6)
     default: return "The fleet order could not be carried out.";
   }
 }

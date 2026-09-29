@@ -4,9 +4,7 @@ import { bodyNumber } from "../bodyNumber.js";
 import { bodyCount } from "../bodyNumber.js";
 import { randomUUID } from "node:crypto";
 import { npcBidFor } from "../economy.js";
-import { accountActionLimiter } from "../rateLimiters.js";
 import { getAccountById, getState, mutateAccountState, mutateState, ensureBidShape, bidRuleFor } from "../gameState.js";
-import { exchangeTaxBreakdown } from "../game/progression.js"; // ISP-302 (AB#2285): the rate and its royalty share
 import { taxOnSale } from "../../public/scripts/exchangeTax.js";
 import { getStationInventory } from "../gameState.js";
 import { applyCredits } from "../finances.js";
@@ -24,7 +22,7 @@ import { chargeTariff, tariffRateFor } from "../tariffService.js"; // ISP-230 (A
 import { watchView, withholdCouncilDebt, withholdDuty } from "../itcService.js"; // ISP-232 (AB#927); ISP-233 (AB#928): the watch's view
 import { withholdRoyaltyDebt } from "../patents.js"; // ISP-236 (AB#931)
 import { onSale } from "../standingService.js"; // ISP-238 (AB#933)
-import { salesTaxBaseAt } from "../lobbyingService.js"; // ISP-239 (AB#934)
+import { payStationTax, saleTaxBreakdownAt } from "../game/stationTax.js"; // ISP-212b (AB#4655)
 import { buyOrderView } from "../publicViews.js";
 import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
@@ -34,7 +32,7 @@ import { payConcessionShare } from "../concessions.js"; // ISP-228 (AB#923)
 const MAX_OPEN_LISTINGS = 50;
 
 export function registerMarketRoutes(app) {
-  app.post("/api/market/orders", requireAuth, accountActionLimiter, (req, res) => {
+  app.post("/api/market/orders", requireAuth, (req, res) => { // AB#958: limited in server/index.js, ahead of the input checks
     const { type, item, quantity, unitPrice } = req.body ?? {};
     // AB#815: NPC orders are placed by the server's tick only; a request that names one is refused, whatever else it says.
     if (req.body && typeof req.body === "object" && "npc" in req.body) {
@@ -67,7 +65,7 @@ export function registerMarketRoutes(app) {
       const before = Number(account.state?.corp?.finances?.credits || 0);
       const placed = placeBuyOrder(req.auth.accountId, { item: String(item), quantity: normalizedQty, unitPrice: normalizedUnitPrice });
       if (placed.error) {
-        res.status(400).json({ error: placed.error });
+        res.status(400).json({ error: placed.error, ...(placed.code ? { code: placed.code } : {}) }); // Bug #4827: the code too
         return;
       }
       const buyerNow = mutateAccountState(req.auth.accountId, () => {}); // the account after every fill
@@ -91,7 +89,7 @@ export function registerMarketRoutes(app) {
       const inventory = getStationInventory(state.corp, stationId);
       const available = Number(inventory[item] || 0);
       if (available < normalizedQty) {
-        rejectReason = "Quantity exceeds available inventory at this station.";
+        rejectReason = available > 0 ? `You hold ${available.toLocaleString("en-US")} ${item} at this station. List ${available.toLocaleString("en-US")} or fewer.` : `You hold no ${item} at this station. Bring some here to list it.`; // Bug #4827
         return;
       }
       // Bug #425: a limit per seller, checked before any goods move, instead of cutting the shared book (which deleted
@@ -161,7 +159,7 @@ export function registerMarketRoutes(app) {
 
   // Bug #425: a seller can take a listing down, getting the unsold goods back at the station they were listed from.
   // Only the seller: anyone else gets 404, so the route says nothing about orders that are not theirs.
-  app.post("/api/market/orders/:orderId/cancel", requireAuth, accountActionLimiter, (req, res) => {
+  app.post("/api/market/orders/:orderId/cancel", requireAuth, (req, res) => { // AB#958: limited in server/index.js, ahead of the input checks
     const orderId = String(req.params.orderId || "").trim();
     const order = (getState().market.orderBook || []).find((o) => o.id === orderId && o.sellerAccountId === req.auth.accountId);
     if (!order) {
@@ -199,7 +197,7 @@ export function registerMarketRoutes(app) {
     res.json({ ok: true, cancelled: order.id, account });
   });
 
-  app.post("/api/market/orders/:orderId/buy", requireAuth, accountActionLimiter, (req, res) => {
+  app.post("/api/market/orders/:orderId/buy", requireAuth, (req, res) => { // AB#958: limited in server/index.js, ahead of the input checks
     const orderId = String(req.params.orderId || "").trim();
     const requestedQty = bodyNumber(req.body?.quantity, { fallback: 1, min: 1, integer: true });
     const normalizeIdentity = (value) => String(value || "").trim().toLowerCase();
@@ -223,7 +221,7 @@ export function registerMarketRoutes(app) {
     }
 
     if (requestedQty > Number(order.quantity || 0)) {
-      res.status(400).json({ error: "Requested quantity exceeds available sell order volume." });
+      res.status(400).json({ error: `Only ${Number(order.quantity || 0).toLocaleString("en-US")} remain on that listing. Buy ${Number(order.quantity || 0).toLocaleString("en-US")} or fewer.` }); // Bug #4827
       return;
     }
 
@@ -242,11 +240,13 @@ export function registerMarketRoutes(app) {
     const tradeTotal = tradeQuantity * Number(order.unitPrice || 0);
     const leftAfterSale = Math.max(0, Number(order.quantity || 0) - tradeQuantity); // read now: `order` is the stored listing
     let rejectReason = "";
+    let rejectCode = null; // Bug #4827: the page reads Unfunded from it
 
     const buyer = mutateAccountState(req.auth.accountId, (state) => {
       const corp = state.corp;
       if (Number(corp.finances.credits || 0) < tradeTotal) {
-        rejectReason = "Insufficient credits to execute this buy order.";
+        rejectReason = `Insufficient credits to execute this buy order. Sell goods or finish an assignment to raise the credits, or buy fewer.`; // Bug #4827
+        rejectCode = "insufficient-credits";
         return;
       }
 
@@ -270,7 +270,7 @@ export function registerMarketRoutes(app) {
     });
 
     if (!buyer || rejectReason) {
-      res.status(400).json({ error: rejectReason || "Unable to execute buy order." });
+      res.status(400).json({ error: rejectReason || "Unable to execute buy order.", ...(rejectCode ? { code: rejectCode } : {}) });
       return;
     }
 
@@ -317,7 +317,7 @@ export function registerMarketRoutes(app) {
   });
 
   // ─── Sell player resources into an NPC standing buy order ────────────────────
-  app.post("/api/market/npc-orders/:orderId/sell", requireAuth, accountActionLimiter, (req, res) => {
+  app.post("/api/market/npc-orders/:orderId/sell", requireAuth, (req, res) => { // AB#958: limited in server/index.js, ahead of the input checks
     const orderId = String(req.params.orderId || "").trim();
     // Bug #425: a whole number of at least 1, or refused; it used to fall back to 1 for "abc", 0 or -5.
     const requestedQty = bodyCount(req.body?.quantity);
@@ -342,7 +342,7 @@ export function registerMarketRoutes(app) {
     }
 
     if (requestedQty > npcOrder.remainingQty) {
-      res.status(400).json({ error: `Only ${Number(npcOrder.remainingQty).toLocaleString()} units remaining in today's order.` });
+      res.status(400).json({ error: `Only ${Number(npcOrder.remainingQty).toLocaleString("en-US")} units remaining in today's order. Sell ${Number(npcOrder.remainingQty).toLocaleString("en-US")} or fewer.` }); // Bug #4827
       return;
     }
 
@@ -359,6 +359,7 @@ export function registerMarketRoutes(app) {
     let tradeRoyaltyWithheld = 0; // ISP-236 (AB#931)
     let tradeCouncilWithheld = 0; // ISP-242 (AB#938)
     let royaltyPaid = 0, saleStationId = null; // ISP-228 (AB#923): the concession holder's share, paid once the seller is saved
+    let saleBreakdown = null; // ISP-212b (AB#4655): at a conglomerate's station, its tax goes to the treasury once the seller is saved
 
     const seller = mutateAccountState(req.auth.accountId, (state) => {
       const npcStationId = state.corp.currentStationId || "earth-station-prime";
@@ -366,7 +367,7 @@ export function registerMarketRoutes(app) {
       const inventory = getStationInventory(state.corp, npcStationId);
       const available = Number(inventory[npcOrder.item] || 0);
       if (available < requestedQty) {
-        rejectReason = `Insufficient ${npcOrder.item} at this station (have ${available.toLocaleString()}, need ${requestedQty.toLocaleString()}).`;
+        rejectReason = `Insufficient ${npcOrder.item} at this station (have ${available.toLocaleString("en-US")}, need ${requestedQty.toLocaleString("en-US")}). ${available > 0 ? `Sell ${available.toLocaleString("en-US")} or fewer.` : "Bring some here to sell it."}`; // Bug #4827
         return;
       }
 
@@ -374,15 +375,18 @@ export function registerMarketRoutes(app) {
       if (inventory[npcOrder.item] <= 0) delete inventory[npcOrder.item];
 
       // ISP-302 (AB#2285): the rate includes the lease royalty; its share is booked apart, as "lease-royalty".
-      const breakdown = exchangeTaxBreakdown(state, salesTaxBaseAt(npcStationId)); // ISP-239 (AB#934): the system's tax in force
+      // ISP-239 (AB#934): the system's tax in force; ISP-212b (AB#4655): or, at a conglomerate's station, the station's
+      const breakdown = saleTaxBreakdownAt(state, npcStationId);
+      saleBreakdown = breakdown;
       const taxPct = breakdown.ratePct;
       const { tax: taxAmount, royalty, salesTax, proceeds: sellerProceeds } = taxOnSale(tradeTotal, breakdown);
       tradeTaxPct = taxPct;
       tradeTaxAmount = taxAmount;
       // Bug #984: the gross the NPC paid is income and the tax an expense; the balance moves by the proceeds.
       applyCredits(state.corp, tradeTotal, "exchange");
-      applyCredits(state.corp, -salesTax, "exchange-tax");
-      onSale(state.corp, { item: npcOrder.item, quantity: requestedQty, unitPrice, salesTax }); // ISP-238 (AB#933): an NPC buyer is never a partner
+      applyCredits(state.corp, -salesTax, breakdown.station ? "station-tax" : "exchange-tax");
+      // ISP-238 (AB#933): an NPC buyer is never a partner. A station's tax goes to its conglomerate, not the ISA: no standing
+      onSale(state.corp, { item: npcOrder.item, quantity: requestedQty, unitPrice, salesTax: breakdown.station ? 0 : salesTax });
       applyCredits(state.corp, -royalty, "lease-royalty");
       royaltyPaid = royalty;
       recordSale(state.corp, npcStationId, tradeTotal); // ISP-217 (AB#912): an NPC buyer is never a partner
@@ -394,7 +398,8 @@ export function registerMarketRoutes(app) {
       tradeProceeds = sellerProceeds - tradeTariff.amount - tradeWithheld - tradeCouncilWithheld - tradeRoyaltyWithheld;
 
       if (!state.corp.stats) state.corp.stats = {};
-      state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
+      // Bug #4869: "Sell N Silicate" (levels 3, 4 and 10) counts Silicates; it counted every good sold here
+      if (npcOrder.item === "Silicates") state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
 
       if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
       state.corp.tradeHistory.unshift({
@@ -422,6 +427,7 @@ export function registerMarketRoutes(app) {
       return;
     }
     if (royaltyPaid > 0) payConcessionShare(stationById(saleStationId)?.systemId, royaltyPaid, seller.state.corp, Date.now(), "royalty"); // AB#923
+    payStationTax(saleBreakdown, tradeTaxAmount, seller.state.corp); // ISP-212b (AB#4655)
 
     mutateState((draft) => {
       const target = (draft.market.npcBuyOrders || []).find((o) => o.id === orderId);
@@ -436,7 +442,7 @@ export function registerMarketRoutes(app) {
     });
 
     emitMarketUpdated();
-    const traded = { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount, dutyWithheld: tradeWithheld, ...(tradeCouncilWithheld ? { councilWithheld: tradeCouncilWithheld } : {}), proceeds: tradeProceeds };
+    const traded = { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, ...(saleBreakdown?.station ? { stationTax: { conglomerateName: saleBreakdown.station.conglomerateName, member: saleBreakdown.station.member } } : {}), tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount, dutyWithheld: tradeWithheld, ...(tradeCouncilWithheld ? { councilWithheld: tradeCouncilWithheld } : {}), proceeds: tradeProceeds };
     res.json({ ok: true, traded, account: seller, receipt: sellToOrderReceipt(traded) }); // AB#744
   });
 }

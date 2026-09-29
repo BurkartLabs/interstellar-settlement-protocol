@@ -90,13 +90,14 @@ describe("two players on a fresh install use every player-to-player channel (AB#
     const threadId = (getState().forums.threads || []).find((t) => t.title === "Silicate prices")?.id;
     expect(threadId).toBeTruthy();
 
-    const seenByB = (await request(app).get("/api/bootstrap")).body.forums.threads.find((t) => t.id === threadId);
+    // AB#995: the forums are read a page at a time, no longer all of them in the bootstrap
+    const seenByB = (await b.api.get(`/api/forums/threads/${threadId}`)).body.thread;
     expect(seenByB).toMatchObject({ title: "Silicate prices", body: HOSTILE });
     expect(JSON.stringify(seenByB)).toContain(a.corpName);
 
     const replied = await b.api.post(`/api/forums/threads/${threadId}/replies`).send({ content: `Reply ${HOSTILE}` });
     expect(replied.status).toBe(200);
-    const seenByA = (await request(app).get("/api/bootstrap")).body.forums.threads.find((t) => t.id === threadId);
+    const seenByA = (await a.api.get(`/api/forums/threads/${threadId}`)).body;
     const reply = seenByA.replies.at(-1);
     expect(reply.content).toBe(`Reply ${HOSTILE}`);
     expect(JSON.stringify(reply)).toContain(b.corpName);
@@ -131,7 +132,10 @@ describe("player text renders as text, never as HTML (AB#733)", () => {
   it("a mail's subject and body are set as text in the reader, and chat and forum text go through escapeHtml", () => {
     const client = clientCode(); // AB#739: app.js and the tab modules it loads
     expect(client).toMatch(/getElementById\("inbox-detail-subject"\)\.textContent =/);
-    expect(client).toMatch(/getElementById\("inbox-detail-body"\)\.textContent =/);
+    // AB#2467: a body renders its Markdown through markdownHtml, which escapes every piece of text it emits
+    expect(client).toMatch(/getElementById\("inbox-detail-body"\)\.innerHTML = markdownHtml\(/);
+    const md = readFileSync(new URL("../../public/scripts/markdown.js", import.meta.url), "utf8");
+    expect(md).toContain("return out + escapeHtml(plain);");
     expect(client).toMatch(/\.map\(\(msg\) => chatLineHtml\(msg, formatTime\)\)/);
     // Bug #1132: reply and opening-post bodies go through forumPostBodyHtml, which escapes every line it renders
     // (tests/unit/forumActions.test.js checks it with markup in both a quote and a paragraph).

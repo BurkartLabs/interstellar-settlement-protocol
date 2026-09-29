@@ -24,7 +24,7 @@ import { expireOffers, settleContracts } from "./mercenaries.js"; // ISP-176 (AB
 import { UNITS } from "./game/units.js";
 import { recordResearchUse } from "./patents.js"; // ISP-236 (AB#931)
 import { systemName } from "../public/scripts/displayNames.js"; // AB#1336
-import { expeditionNotificationBody, expeditionPlaces, minutesEarly, expeditionRatsText } from "./expeditionText.js"; // AB#1295, AB#2330
+import { expeditionEncounterLines, expeditionNotificationBody, expeditionPlaces, minutesEarly, expeditionRatsText } from "./expeditionText.js"; // AB#1295, AB#2330, AB#821
 import { emitBeltsChanged, emitMarketUpdated, emitToAccount } from "./realtime.js";
 import { RATING, refreshCreditRating } from "./creditRating.js"; // ISP-147 (AB#841)
 import { bondsIssuedBy } from "./bonds.js"; // ISP-154 (AB#848)
@@ -33,6 +33,7 @@ import { statementsVersion } from "./game/store.js"; // AB#842: the rating's bas
 import { settleStationProjects } from "./game/stationProjects.js"; // ISP-210 (AB#905)
 import { settleAllStationGovernance } from "./game/stationGovernance.js"; // ISP-211 (AB#906)
 import { referenceFor } from "./references.js"; // ISP-249 (AB#945)
+import { hiredEscortHooks } from "./hiredEscort.js"; // AB#4678
 
 // ─── NPC buy-order daily reset ────────────────────────────────────────────────
 // ISP-249 (AB#945): on the UTC day, as every other daily cycle and every time the game shows (it was New York's).
@@ -115,7 +116,7 @@ function asteroidExpeditionTick(now = Date.now()) {
     if (!state?.corp) return;
     const am = state.corp.asteroidMining;
     if (emptied && Array.isArray(am?.scoutedBelts)) am.scoutedBelts = am.scoutedBelts.filter((k) => !emptied.includes(k));
-    const came = applyAsteroidExpeditions(state.corp, now, world);
+    const came = applyAsteroidExpeditions(state.corp, now, world, hiredEscortHooks); // AB#4678: hired escorts, on their owners' books
     if (!came.length) return;
     const entry = home.get(accountId) || { corpName: "", completedExpeditions: [] };
     entry.corpName = state.corp.corporationName || "";
@@ -137,6 +138,7 @@ function asteroidExpeditionTick(now = Date.now()) {
     for (const exp of completedExpeditions) {
       const notification = addAccountNotification(accountId, {
         type: "mining",
+        protocol: { meaning: "complete", screen: "expedition-panel" }, // ISP-254 Bd (AB#4819)
         title: exp.endedEarly ? "Expedition Ended Early" : "Expedition Complete", // AB#2330
         body: expeditionNotificationBody(exp) // AB#1295: names, not the belt key's suffix and the station id
       });
@@ -173,7 +175,7 @@ function asteroidExpeditionTick(now = Date.now()) {
           `${"─".repeat(40)}\n` +
           `  Total: ${totalUnits} units\n\n` +
           `All extracted material has been deposited into your registered inventory at ${stationName}. Standard ISA handling fees have been waived under current extraction licence terms.\n\n` +
-          (expeditionRatsText(exp) ? `PIRATE ACTIVITY\n${"─".repeat(40)}\n  ${expeditionRatsText(exp)}\n\n` : "") + // AB#820
+          (expeditionRatsText(exp) ? `PIRATE ACTIVITY\n${"─".repeat(40)}\n${ratsReport(exp)}\n\n` : "") + // AB#820, AB#821
           `Probe status: Operational. Returned to available inventory.\n\n` +
           `This record is filed under your active extraction licence and may be subject to ISA audit. Retain for your records.\n\n` +
           `Ref: ${refNo}\nISA Mineral Survey Division — ${systemLabel} Sector Office`
@@ -184,6 +186,12 @@ function asteroidExpeditionTick(now = Date.now()) {
       emitToAccount(accountId, "expedition:completed", { accountId });
     }
   }
+}
+
+/** AB#821: the report's pirate activity: each encounter, then the whole in one line when there was more than one. */
+function ratsReport(exp) {
+  const lines = expeditionEncounterLines(exp);
+  return [...lines, ...(lines.length === 1 ? [] : [expeditionRatsText(exp)])].map((l) => `  ${l}`).join("\n");
 }
 
 // ─── Fabrication queue tick ──────────────────────────────────────────────────
@@ -223,6 +231,7 @@ function fabricationTick() {
     if (completed) {
       const notification = addAccountNotification(accountId, {
         type: "infrastructure",
+        protocol: { meaning: "complete", screen: "building-assembly-facility" }, // ISP-254 Bd (AB#4819)
         title: "Mining Probe Fabricated",
         body: "A new Mining Probe has been manufactured and is ready for deployment."
       });
@@ -235,7 +244,8 @@ function fabricationTick() {
       const notification = addAccountNotification(accountId, {
         type: "infrastructure",
         title: "Troops Trained",
-        body: `${job.quantity} squad${job.quantity === 1 ? "" : "s"} of ${unit.name} finished training${garrisoned}.`
+        body: `${job.quantity} squad${job.quantity === 1 ? "" : "s"} of ${unit.name} finished training${garrisoned}.`,
+        protocol: { meaning: "complete", screen: "fleet" } // ISP-254 (AB#4810)
       });
       if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
     }
@@ -243,7 +253,8 @@ function fabricationTick() {
       const notification = addAccountNotification(accountId, {
         type: "infrastructure",
         title: "Ships Delivered",
-        body: `${job.quantity} ${UNITS[job.unitId].name}${job.quantity === 1 ? "" : "s"} left the Orbital Shipyard and joined your fleet.`
+        body: `${job.quantity} ${UNITS[job.unitId].name}${job.quantity === 1 ? "" : "s"} left the Orbital Shipyard and joined your fleet.`,
+        protocol: { meaning: "complete", screen: "fleet" } // ISP-254 (AB#4810)
       });
       if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
     }
@@ -266,7 +277,7 @@ function travelTick() {
         // Arrive in a new system — not docked at any station
         state.corp.currentSystemId = travel.toSystemId;
         state.corp.currentStationId = null;
-        state.corp.location = travel.toSystemId;
+        state.corp.location = systemName(SYSTEMS_CATALOG, travel.toSystemId) || travel.toSystemId; // Bug #4856: "Sol", not "sol"
         travelResult = { type: "interstellar", systemId: travel.toSystemId };
       } else {
         // Local dock — arrive at station
@@ -289,7 +300,8 @@ function travelTick() {
         notification = addAccountNotification(accountId, {
           type: "travel",
           title: "System Arrival",
-          body: `Your ship has arrived in the ${sysLabel} system. You are in open space — select a station to dock.`
+          body: `Your ship has arrived in the ${sysLabel} system. You are in open space — select a station to dock.`,
+          protocol: { meaning: "complete", screen: "travel" } // ISP-255 (AB#4831)
         });
         emitToAccount(accountId, "travel:arrived", { accountId, systemId: travelResult.systemId });
       } else {
@@ -298,7 +310,8 @@ function travelTick() {
           notification = addAccountNotification(accountId, {
             type: "travel",
             title: "Docking Complete",
-            body: `Your ship has arrived at ${station.name} (${station.body}, ${systemName(SYSTEMS_CATALOG, station.systemId) || "open space"}).` // AB#1336: not "SOL"
+            body: `Your ship has arrived at ${station.name} (${station.body}, ${systemName(SYSTEMS_CATALOG, station.systemId) || "open space"}).`, // AB#1336: not "SOL"
+            protocol: { meaning: "complete", screen: "travel" } // ISP-255 (AB#4831)
           });
           emitToAccount(accountId, "travel:arrived", { accountId, stationId: travelResult.stationId });
         }
@@ -347,6 +360,7 @@ function processRndCompletions() {
     for (const item of completedItems) {
       const notification = addAccountNotification(accountId, {
         type: "research",
+        protocol: { meaning: "complete", screen: "rnd" }, // ISP-254 (AB#950)
         title: "R&D Complete",
         body: `${item.name} has been completed and applied to your corporation.`
       });
@@ -398,6 +412,7 @@ function processCeoInsightCompletions() {
     for (const item of completedItems) {
       const notification = addAccountNotification(accountId, {
         type: "insight",
+        protocol: { meaning: "complete", screen: "ceo" }, // ISP-254 C2 (AB#4812)
         title: "CEO Insight Complete",
         body: `${item.name} has been completed.`
       });

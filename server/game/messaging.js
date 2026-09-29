@@ -18,8 +18,7 @@ export function purgeExpiredTrash(account) {
 export function listAccountMessages(accountId) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) return null;
-  purgeExpiredTrash(account);
-  scheduleAccountsSave();
+  purgeExpiredTrash(account); // time-derived: in memory here, kept by the next write, and purged again if it is not (AB#963)
   // Bug #711: fromId and toAccountId are account ids. They stay in storage but never leave the server: a player's
   // mail names other corporations by publicId.
   return (account.messages || []).map(({ fromId, toAccountId, ...m }) => ({ ...m }));
@@ -80,7 +79,7 @@ export function resolveMailRecipient({ toCorpId, toCorpName } = {}) {
   const name = typed.toLowerCase();
   const matches = accounts.filter((a) => String(a.state.corp.corporationName || "").trim().toLowerCase() === name);
   if (matches.length === 1) return { account: matches[0] };
-  if (!matches.length) return { status: 404, error: "No corporation has that name." };
+  if (!matches.length) return { status: 404, error: "No corporation has that name. Check the spelling: part of a name lists every corporation it matches." }; // Bug #4832: what to do next (ISP-6)
   return {
     status: 409,
     error: `${matches.length} corporations share that name. Choose which one you mean.`,

@@ -8,13 +8,12 @@ import { BOND_TERMS, bondEligibility, bondSeriesList, issueBond, previewBond, pu
 import { bondHoldingsValue, nextPayment } from "../bondServicing.js";
 import { bodyNumber } from "../bodyNumber.js";
 import { getAccountById } from "../gameState.js";
-import { sanitizeAccount } from "../game/store.js";
 import { utcTime } from "../../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
 
 const num = (v) => bodyNumber(v, { fallback: NaN });
 const credits = (n) => `${Math.round(n).toLocaleString("en-US")} credits`;
 const day = (t) => utcTime(t, { withDate: true }); // ISP-249 (AB#945)
-const answer = (accountId, extra) => ({ ...sanitizeAccount(getAccountById(accountId)), ...extra });
+const answer = (accountId, extra) => ({ ...getAccountById(accountId), ...extra }); // Bug #4849: getAccountById is already sanitised; sanitising again copied it twice
 
 /** ISP-19: what the confirmation after issuing says. */
 function issueReceipt(s) {
@@ -86,7 +85,7 @@ export function registerBondRoutes(app) {
 
   app.post("/api/accounts/:accountId/bonds/:seriesId/subscribe", (req, res) => {
     const r = subscribeBond(req.params.accountId, { seriesId: req.params.seriesId, units: num(req.body?.units) });
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    if (!r.ok) return res.status(r.status).json({ error: r.error, ...(r.code ? { code: r.code } : {}) }); // ISP-255 (AB#4824)
     res.json(answer(req.params.accountId, { series: publicSeries(r.series), units: r.units, paid: r.paid, receipt: subscribeReceipt(r.series, r.units, r.paid) }));
   });
 }

@@ -103,7 +103,8 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "concession-fee-share", // ISP-228 (AB#923): an ISA concession holder's share of the lease fees paid in its system
     "tariff-revenue", // ISP-230 (AB#925): a concession holder's tariffs, less the ISA's levy, paid daily
     "patent-royalty-revenue", // ISP-236 (AB#931): royalties others paid on the corporation's patents
-    "arbitration-award-received" // ISP-242 (AB#938): an arbitration award: from escrow, ISA-held income, a cure or a withheld Council debt
+    "arbitration-award-received", // ISP-242 (AB#938): an arbitration award: from escrow, ISA-held income, a cure or a withheld Council debt
+    "bounty-received" // ISP-284 (AB#991): the ISA's bounty for a won Rat hunt
   ]),
   expense: Object.freeze([
     "hiring",
@@ -123,6 +124,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "exchange-escrow",
     "exchange-tax",
     "lease-royalty", // ISP-302 (AB#2285): the royalty's share of a sale's tax, booked apart so it can be counted
+    "station-tax", // ISP-212b (AB#4655): a non-member's sales tax at a conglomerate's station, paid to its treasury
     "tariff", // ISP-230 (AB#925): a concession holder's tariff on a sale or a transfer into its system
     "patent-royalty", // ISP-236 (AB#931): royalty on another corporation's patented node or chain, at use or withheld from a sale
     "arbitration-award-paid", // ISP-242 (AB#938): an arbitration award paid by the respondent: a cure, or a Council debt withheld from a sale
@@ -130,6 +132,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "lobbying-pledge", // ISP-239 (AB#934): credits pledged to a lobbying campaign, final, a sink to the faction
     "loan-disbursal-paid", "loan-repayment-paid", "bond-subscription-paid", "coupon-paid", "dividend-paid", "share-purchase-paid",
     "escrow-hold-paid", "fee-paid", // ISP-146 (AB#840): server/settlement.js
+    "repair-paid", // ISP-287 (AB#994): repairing a building a raid damaged
     "loan-interest-paid", // ISP-150 (AB#844): a loan's interest, on its own line of the statements
     "bond-redemption-paid", // ISP-155 (AB#849): an issuer repaying its bonds' face at maturity
     "bond-sale-paid", // Bug #2574: a corporation buying another's bonds

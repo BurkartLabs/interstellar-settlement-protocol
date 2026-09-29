@@ -11,9 +11,11 @@
 // - A station nobody paid into (built wholly from the pool) has no stakes; there the founder's vote is the whole, since
 //   the founder is the one who moved the pool.
 // What the settings do: `dockRefusal` keeps a corporation the access setting excludes from docking there (the travel
-// route asks it). The member tax and office rate are the station exchange's and office stories' to charge.
+// route asks it). ISP-212b (AB#4655): `taxPct`, from stationTaxOptions, is what a non-member's exchange sale there pays
+// the treasury (server/game/stationTax.js); it starts at the option nearest the ISA's exchange tax, so nobody's price
+// changes when a station opens until its stakeholders vote. The office rate is the office story's to charge.
 
-import { CONGLOMERATE_CATALOG, can } from "../conglomerates.js";
+import { CONGLOMERATE_CATALOG, can, defaultStationTaxPct } from "../conglomerates.js";
 import { createId } from "./catalog.js";
 import { stationById } from "./stations.js";
 import { pushSystemNotification } from "./progression.js";
@@ -25,14 +27,15 @@ import { TOTAL_BPS, ensureStakes, settleBuyouts, stakesAreWhole } from "./stakes
 const HOUR_MS = 60 * 60 * 1000;
 export const STATION_ACCESS = Object.freeze(["open", "members", "members-and-listed"]);
 const ACCESS_TEXT = { open: "every corporation", members: "members only", "members-and-listed": "members and the listed conglomerates" };
-const SETTINGS = ["access", "list", "unlist"];
+const SETTINGS = ["access", "list", "unlist", "tax"];
 
-/** The station's settings and proposals, created with their defaults (open, nobody listed) the first time. */
-export function ensureStation(c) {
+/** The station's settings and proposals, created with their defaults (open, nobody listed, the default tax) the first time. */
+export function ensureStation(c, catalog = CONGLOMERATE_CATALOG) {
   if (!c?.station) return null;
   ensureStakes(c);
   if (!c.station.settings || typeof c.station.settings !== "object") c.station.settings = { access: "open", listed: [] };
   if (!Array.isArray(c.station.settings.listed)) c.station.settings.listed = [];
+  if (!catalog.stationTaxOptions.includes(c.station.settings.taxPct)) c.station.settings.taxPct = defaultStationTaxPct(catalog); // only ever one of the options
   if (!Array.isArray(c.station.proposals)) c.station.proposals = [];
   return c.station;
 }
@@ -64,6 +67,7 @@ function tally(c, p) {
 function apply(c, p) {
   const s = c.station.settings;
   if (p.setting === "access") s.access = p.value;
+  else if (p.setting === "tax") s.taxPct = p.value;
   else if (p.setting === "list" && !s.listed.includes(p.value)) s.listed.push(p.value);
   else if (p.setting === "unlist") s.listed = s.listed.filter((id) => id !== p.value);
 }
@@ -85,9 +89,11 @@ function decide(c, p, now) {
   else if (now >= p.closesAt) Object.assign(p, { state: "expired", closedAt: now });
   else return false;
   const title = p.state === "passed" ? "A station change passed" : "A station change did not pass";
+  // ISP-254 (AB#4821): passed is In force, voted down is Denied, closed without a majority is Lapsed
+  const RESULT_MEANING = { passed: "active", rejected: "refused", expired: "expired" };
   for (const m of c.members) {
     const account = accountByCorp(m.corp);
-    if (account) pushSystemNotification(account, { type: "system", title, body: `${describe(p)}: ${p.state === "passed" ? "passed by stake, and is in force" : p.state === "expired" ? "the vote closed without a majority" : "voted down by stake"}.` });
+    if (account) pushSystemNotification(account, { type: "system", protocol: { meaning: RESULT_MEANING[p.state], screen: "conglomerate" }, title, body: `${describe(p)}: ${p.state === "passed" ? "passed by stake, and is in force" : p.state === "expired" ? "the vote closed without a majority" : "voted down by stake"}.` });
   }
   roomEvent(c, "conglomerate:station-vote", { proposal: proposalView(c, p), settings: settingsView(c) });
   return true;
@@ -119,6 +125,7 @@ export function settleAllStationGovernance(now = Date.now()) {
 const conglomerateName = (id) => conglomerateList().find((x) => x.id === id)?.name || "a conglomerate";
 function describe(p) {
   if (p.setting === "access") return `Docking at the station: ${ACCESS_TEXT[p.value]}`;
+  if (p.setting === "tax") return `Sales tax for non-members: ${p.value}% (members pay none)`;
   return `${p.setting === "list" ? "List" : "Unlist"} ${conglomerateName(p.value)}`;
 }
 
@@ -134,13 +141,18 @@ export function proposeStationSetting(accountId, conglomerateId, { setting, valu
   if (!c.station) return no(409, "no-station", `${c.name} has no station to govern.`);
   settleStationGovernance(c, now);
   if (!can(role, "propose-station-setting")) return no(403, "not-permitted", "Only the founder or a director can propose a change to the station.");
-  if (!SETTINGS.includes(setting)) return no(400, "unknown-setting", "Propose a change to who may dock, or to the listed conglomerates.");
-  const s = ensureStation(c).settings;
+  if (!SETTINGS.includes(setting)) return no(400, "unknown-setting", "Propose a change to who may dock, the listed conglomerates, or the sales tax.");
+  const s = ensureStation(c, catalog).settings;
   let v;
   if (setting === "access") {
     if (!STATION_ACCESS.includes(value)) return no(400, "unknown-access", `Docking is one of: ${STATION_ACCESS.join(", ")}.`);
     if (s.access === value) return no(409, "already-set", `Docking is already ${ACCESS_TEXT[value]}.`);
     v = value;
+  } else if (setting === "tax") { // ISP-212b (AB#4655): only one of the fixed options, never a number of the proposer's
+    const pct = Number(value);
+    if (!catalog.stationTaxOptions.includes(pct)) return no(400, "unknown-tax", `The sales tax is one of: ${catalog.stationTaxOptions.map((x) => `${x}%`).join(", ")}.`);
+    if (s.taxPct === pct) return no(409, "already-set", `The sales tax is already ${pct}%.`);
+    v = pct;
   } else {
     const other = findConglomerate(target);
     if (!other || other.id === c.id) return no(400, "unknown-conglomerate", "Choose another conglomerate from the directory.");
@@ -148,7 +160,7 @@ export function proposeStationSetting(accountId, conglomerateId, { setting, valu
     if (setting === "unlist" && !s.listed.includes(other.id)) return no(409, "not-listed", `${other.name} is not listed.`);
     v = other.id;
   }
-  const key = setting === "access" ? "access" : `listing:${v}`;
+  const key = setting === "access" || setting === "tax" ? setting : `listing:${v}`;
   if (c.station.proposals.some((p) => p.state === "open" && p.key === key)) return no(409, "proposal-open", "A vote on that is already open.");
   const p = { id: createId("csv"), key, setting, value: v, proposedBy: corp.publicId, at: now, closesAt: now + catalog.stationVoteHours * HOUR_MS, votes: {}, state: "open" };
   let w = {};
@@ -159,7 +171,7 @@ export function proposeStationSetting(accountId, conglomerateId, { setting, valu
   saveAccountsNow();
   for (const m of c.members) {
     const account = accountByCorp(m.corp);
-    if (account && m.corp !== corp.publicId && p.state === "open") pushSystemNotification(account, { type: "system", title: "A station vote is open", body: `${corpName(corp.publicId)} proposed: ${describe(p)}. Stakeholders have ${catalog.stationVoteHours} hours to vote.` });
+    if (account && m.corp !== corp.publicId && p.state === "open") pushSystemNotification(account, { type: "system", protocol: { meaning: "pending", screen: "conglomerate" }, title: "A station vote is open", body: `${corpName(corp.publicId)} proposed: ${describe(p)}. Stakeholders have ${catalog.stationVoteHours} hours to vote.` });
   }
   if (p.state === "open") roomEvent(c, "conglomerate:station-vote", { proposal: proposalView(c, p), settings: settingsView(c) });
   return { proposal: proposalView(c, p), settings: settingsView(c) };
@@ -178,7 +190,7 @@ export function voteOnStationProposal(accountId, conglomerateId, proposalId, vot
   if (vote !== "yes" && vote !== "no") return no(400, "unknown-vote", "Vote yes or no.");
   if (p.state !== "open") return no(409, "vote-closed", "That vote has closed.");
   let w;
-  try { w = weights(c); } catch { return no(503, "vote-unavailable", "The stakes cannot be read just now; no vote was recorded."); }
+  try { w = weights(c); } catch { return no(503, "vote-unavailable", "The stakes cannot be read just now; no vote was recorded. Try again later."); } // AB#4821 (ISP-6)
   if (!(corp.publicId in w)) return no(403, "no-stake", "Only a corporation with a stake in the station votes on it.");
   if (p.votes[corp.publicId]) return no(409, "already-voted", `Your corporation has already voted ${p.votes[corp.publicId]}.`);
   p.votes[corp.publicId] = vote;
@@ -209,12 +221,12 @@ export function dockRefusal(corp, stationId) {
   const { access, listed } = ensureStation(c).settings;
   if (access === "open" || corp?.conglomerateId === c.id) return null;
   if (access === "members-and-listed" && listed.includes(corp?.conglomerateId)) return null;
-  return `${station.name} admits ${ACCESS_TEXT[access]}, by the vote of ${c.name}'s stakeholders.`;
+  return `${station.name} admits ${ACCESS_TEXT[access]}, by the vote of ${c.name}'s stakeholders. Dock at another station in this system.`; // AB#4831 (ISP-6)
 }
 
-function settingsView(c) {
+function settingsView(c, catalog = CONGLOMERATE_CATALOG) {
   const s = c.station.settings;
-  return { access: s.access, listed: s.listed.map((id) => ({ id, name: conglomerateName(id) })) };
+  return { access: s.access, listed: s.listed.map((id) => ({ id, name: conglomerateName(id) })), taxPct: s.taxPct, taxOptions: [...catalog.stationTaxOptions] }; // ISP-212b (AB#4655)
 }
 function proposalView(c, p) {
   let t = null;

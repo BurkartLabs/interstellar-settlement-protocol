@@ -11,6 +11,7 @@ import { conglomerateCard } from "../conglomerateBureau.js"; // ISP-201 (AB#895)
 import { salvageRemainingMs } from "./shared.js";
 
 import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
+import { protocolLineHtml } from "../protocol.js"; // ISP-254 C2 (AB#4812)
 export function updateOverview(data) {
   const cards = [];
 
@@ -25,6 +26,8 @@ export function updateOverview(data) {
     cards.push({
       title: "ISA Salvage Assignment",
       value: remaining > 0 ? `${formatDurationHours(remaining)} remaining` : "Ready to report",
+      // ISP-254 C2 (AB#4812): the salvage work under way is In force; served, it is Concluded and waits to be reported
+      protocol: { meaning: remaining > 0 ? "active" : "complete", screen: "missions" },
       body: remaining > 0
         ? "Reporting for documented salvage work. Return to Assignments once your time is served to collect payment."
         : "Your time is served. Report to Assignments to collect payment.",
@@ -39,18 +42,18 @@ export function updateOverview(data) {
     });
   }
 
+  // AB#2483: the cash on hand and the day's net flow are the headline figures under the title, not cards among the rest.
+  const credits = Number(data.corp.finances.credits) || 0;
+  const cashEl = document.getElementById("overview-cash");
+  if (cashEl) cashEl.innerHTML = numberMarkup("overview:credits", credits, toCurrency(credits));
+  const flowEl = document.getElementById("overview-net-flow");
+  if (flowEl) {
+    const flow = (Number(data.corp.finances.dailyRevenue) || 0) - (Number(data.corp.finances.dailyExpenses) || 0);
+    flowEl.textContent = toCurrency(flow);
+    flowEl.dataset.tone = flow > 0 ? "positive" : flow < 0 ? "negative" : "";
+  }
+
   cards.push(
-    {
-      title: "Cash Reserves",
-      value: toCurrency(data.corp.finances.credits),
-      num: { key: "overview:credits", value: Number(data.corp.finances.credits) || 0 },
-      body: "Total corporate credits on hand."
-    },
-    {
-      title: "Net Daily Flow",
-      value: toCurrency((Number(data.corp.finances.dailyRevenue) || 0) - (Number(data.corp.finances.dailyExpenses) || 0)),
-      body: "Income minus costs booked in the last 24 hours. This drives long-horizon compounding over years."
-    },
     // ISP-201 (AB#895): the corporation's conglomerate as the server last described it (appState.conglomerate, read by
     // views/conglomerateBureau.js; undefined until that read lands). It read data.conglomerates, which nothing supplied,
     // so it said "Independent" to every member (P-STALE-AFFORDANCE). A member's card opens the Conglomerate tab; an
@@ -75,7 +78,7 @@ export function updateOverview(data) {
       // Bug #691 audit: the Conglomerate card's value carries a player-chosen conglomerate name.
       // ISP-77 (AB#766): a design-system card; one that leads somewhere is a real button (keyboard and all).
       (card) => {
-        const figure = card.num ? numberMarkup(card.num.key, card.num.value, card.value) : escapeHtml(card.value);
+        const figure = (card.num ? numberMarkup(card.num.key, card.num.value, card.value) : escapeHtml(card.value)) + (card.protocol ? ` ${protocolLineHtml(card.protocol)}` : "");
         return card.jump
           ? `<button type="button" class="ui-card ui-card--interactive" data-jump="${escapeHtml(card.jump)}">
         <span class="ui-card__title">${escapeHtml(card.title)}</span>
@@ -102,15 +105,14 @@ export function renderLevel2Progress(data) {
     return;
   }
 
-  // AB#1056: early on, the next milestones are the first thing on the Overview, above the brief and the stat cards
+  // AB#1056: early on, the next milestones come first on the Overview, above the stat cards. AB#2483: under the title,
+  // the cash figures and any raid alert, no longer above the whole screen, so the cash is near the top at every level.
   const milestonesSection = document.getElementById("overview-milestones");
-  const overviewPanel = document.getElementById("overview");
+  const earlyAnchor = document.getElementById("overview-raid-alert");
   const expeditionPanel = document.getElementById("expedition-panel");
-  if (milestonesSection && overviewPanel && expeditionPanel) {
-    const first = milestonesFirst(data?.corp?.level);
-    const isFirst = overviewPanel.firstElementChild === milestonesSection;
-    if (first && !isFirst) overviewPanel.prepend(milestonesSection);
-    if (!first && isFirst) expeditionPanel.after(milestonesSection);
+  if (milestonesSection && earlyAnchor && expeditionPanel) {
+    const anchor = milestonesFirst(data?.corp?.level) ? earlyAnchor : expeditionPanel;
+    if (anchor.nextElementSibling !== milestonesSection) anchor.after(milestonesSection);
   }
 
   // Map requirement IDs to the tab they should navigate to

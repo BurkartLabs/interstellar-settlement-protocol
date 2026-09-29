@@ -35,6 +35,9 @@ const LEGACY = ["btn", "btn-accent", "btn-outline", "btn-sm", "form-card", "data
 
 /** Every place a class name is used as one: class="...", className = "...", classList.*("..."), and selectors. */
 function classUses(text, name) {
+  // Bug AB#4641: every pattern below contains the name, so a text without it has no use of it. Skipping those makes
+  // the repo-wide scan about 15 times faster (2.3 s to 0.15 s), which a full suite's load had pushed past 20 s.
+  if (!text.includes(name)) return [];
   const n = name.replace(/-/g, "\\-");
   const edge = "(?![\\w-])";
   const patterns = [
@@ -103,8 +106,8 @@ describe("the Station and its buildings are on the design system (ISP-78)", () =
     expect(text).not.toMatch(/#[0-9a-fA-F]{6}\b/);
   });
 
-  it("the station's building cards and first prompt are design-system parts", () => {
-    for (const html of [fnBody("public/scripts/html.js", "stationBuildingCardsHtml"), fnBody("public/scripts/firstAction.js", "stationStartPromptHtml")]) {
+  it("the station's building cards are design-system parts", () => { // AB#2463: the first prompt is gone
+    for (const html of [fnBody("public/scripts/html.js", "stationBuildingCardsHtml")]) {
       expect(LEGACY.flatMap((name) => classUses(html, name))).toEqual([]);
     }
   });

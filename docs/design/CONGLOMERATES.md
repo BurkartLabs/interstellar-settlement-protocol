@@ -380,11 +380,22 @@ none. Stakes are per corporation, recorded in the ledger, and shown to every mem
 **What the station gives members**:
 
 - **The hangar moves there**: it becomes the home station, so pooled goods are where the members mine, not in Sol.
+  **As built (ISP-212a, AB#4654):** the goods move with it, free: nothing is added, taken or charged, and each item
+  held gets a ledger row of 0 units ("Moved to the station") dated when the station opened. `ensureHangar` moves it, so
+  every reader (the hangar's routes, the station project's hangar source, dissolution) sees the new home station, and
+  a station built before the move existed has its hangar moved on the next read. Deposits and withdrawals are then at
+  the station only; goods members hold at Earth Station Prime stay theirs, there.
 - **Offices at cost**: a member rents an office there at `stationMemberRentPct` (50%) of `office.rentPerDay`.
 - **Cheaper logistics**: moving goods between the station and any member's inventory in the same system is free, and to
   stations elsewhere costs the normal per-jump fee.
 - **An exchange the conglomerate governs**: sales tax at the station is set from a fixed list (`stationTaxOptions`,
   2%, 5%, 8%); members always pay 0; what non-members pay goes to the treasury.
+  **As built (ISP-212b, AB#4655):** the rate is the station's `tax` setting, changed only by the stake vote and only to
+  one of the options; it starts at the option nearest the ISA's exchange tax (8%), so a station's opening changes
+  nobody's price. At the station it replaces the ISA's tax whole, lease royalty and insight discount included: a member
+  pays exactly 0, anyone else exactly the rate, booked as `station-tax` and paid into the treasury (a "Station sales
+  tax" ledger row), earning no Earth Assembly standing. Both sale paths read it from `server/game/stationTax.js`, and
+  the Exchange quotes it from the same arithmetic (GET /tariffs, `here.stationTax`).
 
 **Governance.** The station's settings (who may dock, the tax on non-members, and upgrades when they exist) change by a
 **stake-weighted vote**: the founder or a director proposes a change from the fixed options, it is open for

@@ -48,7 +48,7 @@ describe("the app shell (ISP-74)", () => {
     const shell = mediaBlocks().filter((b) => SHELL.test(b.body));
     expect(shell.map((b) => b.query)).toEqual([`(max-width: ${NARROW_MAX_WIDTH}px)`]);
     const phone = shell[0].body;
-    expect(phone).toMatch(/\.layout-grid {[^}]*grid-template-areas:\s*"side"\s*"main";/);
+    expect(phone).toMatch(/\.layout-grid {[^}]*grid-template-areas:\s*"main"\s*"side";/); // Bug #4846: the screen first, the sidebar's panels after it
     expect(phone).toMatch(/\.app-nav {[^}]*position: fixed;[^}]*bottom: 0;/);
     // ISP-75: the six group buttons are the bar and never scroll; each group button and each tab is 44px.
     expect(phone).toMatch(/\.app-nav {[^}]*display: flex;[^}]*flex-direction: row;/);

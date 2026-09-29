@@ -10,7 +10,6 @@
       "category": "administrative",
       "description": "Licensed executive office suites for corporate operations within the station. Leasing a suite establishes a formal registered presence at this location, enabling your corporation to recruit personnel and engage with the station's institutional services.",
       "flavor": "The suites are functional — climate-regulated, encrypted uplink, standard executive clearance. The prestige is in the address: a registered office here tells the ISA, and everyone else, that you are serious.",
-      "imageFile": "buildings/orbital-executive-suites.png",
       "action": "building:orbital-executive-suites",
       "available": true
     },
@@ -24,7 +23,6 @@
       "category": "regulatory",
       "description": "The operational arm of the ISA responsible for processing all mining lease applications, territorial claim filings, and extraction rights across registered systems.",
       "flavor": "Queue a claim, file your survey data, and wait. The Division processes thousands of applications per cycle and has a long memory for corporations with a compliance record. Priority processing is available — for a fee.",
-      "imageFile": "buildings/isa-claims-leases.png",
       "action": "building:isa-claims-leases",
       "available": true
     },
@@ -38,7 +36,6 @@
       "category": "government",
       "description": "The overarching governing body of humanity's settled territories. Issues executive mandates, ratifies inter-system treaties, and sets the legislative framework within which all ISA regulation operates.",
       "flavor": "Corporations do not lobby the Assembly directly — that is what the registered intermediaries are for. Still, a high standing with the Assembly opens doors that the ISA cannot close.",
-      "imageFile": "buildings/earth-assembly.png",
       "action": "building:earth-assembly",
       "available": true
     },
@@ -52,7 +49,6 @@
       "category": "regulatory",
       "description": "The central regulatory agency that issues colonization rights, exploitation licenses, and settlement charters across all surveyed systems. Every corporation operating beyond Earth requires ISA authorization.",
       "flavor": "The ISA does not negotiate. It certifies, permits, and revokes. A clean compliance record is a commercial asset. A flagged one is a liability that follows you across system lines.",
-      "imageFile": "buildings/isa-headquarters.png",
       "action": "coming-soon",
       "available": false
     },
@@ -66,7 +62,6 @@
       "category": "security",
       "description": "The policing and military force responsible for security across the Sol system. Operates patrol grids, responds to piracy reports, and maintains the armed deterrent against unsanctioned military action between corporations.",
       "flavor": "SolSec does not differentiate between aggressor and defender after the fact. File incident reports early, keep your fleet registrations current, and stay out of their enforcement queue.",
-      "imageFile": "buildings/solsec.png",
       "action": "coming-soon",
       "available": false
     },
@@ -80,7 +75,6 @@
       "category": "legal",
       "description": "A neutral legal body where corporations file lawsuits, territorial disputes, contract breaches, and cross-system claims against each other. Rulings carry binding authority across all ISA-registered jurisdictions.",
       "flavor": "Litigation is expensive. Losing is more expensive. The Council has no enforcement arm of its own — it relies on the ISA and SolSec to execute its rulings, which means judgements can be delayed, challenged, or occasionally ignored by the powerful.",
-      "imageFile": "buildings/arbitration-council.png",
       "action": "building:galactic-arbitration-council",
       "available": true
     },
@@ -94,7 +88,6 @@
       "category": "regulatory",
       "description": "The administrative interface for regulatory affairs. Handles audit responses, fine payments, exemption applications, and ongoing compliance status management for registered corporations.",
       "flavor": "Fines left unresolved compound. Audits missed trigger escalation. Most compliance failures are not about intent — they are about bureaucratic backlog. Keep your filings current and your rating clean.",
-      "imageFile": "buildings/isa-compliance.png",
       "action": "coming-soon",
       "available": false
     },
@@ -108,7 +101,6 @@
       "category": "administrative",
       "description": "The official body where new corporations are formally registered under ISP law and granted their operating charter. Certain corporation-level settings — name, registered CEO, and jurisdictional defaults — can only be amended here.",
       "flavor": "Your charter is the legal foundation of your corporation. Amendments require filing fees, a waiting period, and in some cases a compliance review. Make sure your initial details are correct.",
-      "imageFile": "buildings/corporate-registry.png",
       "action": "building:corporate-registry-charters",
       "available": true
     },
@@ -122,7 +114,6 @@
       "category": "commerce",
       "description": "The regulatory body overseeing tariff schedules, trade route licenses, import and export quotas, and investigations into market manipulation across ISA-registered systems.",
       "flavor": "Trade route licenses are not automatic. Tariff regimes shift when powerful corporations bribe the right commissioners. Investigations are slow unless someone with standing requests expedited review.",
-      "imageFile": "buildings/trade-commission.png",
       "action": "building:interplanetary-trade-commission",
       "available": true
     },
@@ -136,7 +127,6 @@
       "category": "administrative",
       "description": "Manages the formal registration of conglomerates, alliance governance frameworks, membership rules, and approvals for shared infrastructure and co-owned station assets.",
       "flavor": "A conglomerate without a filed charter is an informal agreement waiting to collapse. Registered conglomerates gain access to co-ownership frameworks, pooled credit instruments, and coordinated ISA standing.",
-      "imageFile": "buildings/conglomerate-affairs.png",
       "action": "building:conglomerate-affairs-bureau",
       "available": true
     },
@@ -150,7 +140,6 @@
       "category": "finance",
       "description": "A licensed insurance body where corporations can purchase coverage against piracy losses, market collapse events, or damages resulting from rival military action. Coverage tiers are rated against your corporation's compliance history and asset profile.",
       "flavor": "Insurance does not prevent bad outcomes. It prices them. Corporations with clean compliance records pay lower premiums. Those with enforcement flags pay much more — or are declined.",
-      "imageFile": "buildings/insurance-directorate.png",
       "action": "coming-soon",
       "available": false
     },
@@ -164,7 +153,6 @@
       "category": "administrative",
       "description": "Manages employee movement visas, executive transfer authorizations, and work permits for high-value personnel operating across systems. Required for any inter-system staffing activity.",
       "flavor": "Personnel without valid inter-system authorization are classified as unauthorized transit. Fines are modest — the first time. After that, SolSec gets involved.",
-      "imageFile": "buildings/personnel-authority.png",
       "action": "coming-soon",
       "available": false
     },
@@ -178,7 +166,6 @@
       "category": "finance",
       "description": "A government-backed financial institution that issues corporate bonds, expansion loans, and ISA-guaranteed financing instruments for corporations pursuing large-scale infrastructure and colonization projects.",
       "flavor": "The Bank does not fund speculation. It funds expansion with a track record behind it. Its terms are plain, its rates follow your record, and a corporation that falls behind answers to the Arbitration Council, not SolSec: it loses its credit standing, never its stations.",
-      "imageFile": "buildings/development-bank.png",
       "action": "building:deep-space-development-bank",
       "available": true
     },
@@ -192,7 +179,6 @@
       "category": "security",
       "description": "The investigative and enforcement arm of the ISA that carries out raids, asset seizures, and sanctions against corporations found in violation of ISP law. Distinct from SolSec — the Division operates specifically against corporate non-compliance, not general system security.",
       "flavor": "The Division does not knock. Corporations that receive a Notice of Investigation have approximately 72 hours to file a compliance response before enforcement action is authorized. Most wait too long.",
-      "imageFile": "buildings/isa-enforcement.png",
       "action": "coming-soon",
       "available": false
     },
@@ -206,7 +192,6 @@
       "category": "administrative",
       "description": "The ISA's centralised contract operations facility. All registered mission agents maintain offices within this bureau. Corporations access field contracts, logistics assignments, and specialist operations through the agents stationed here.",
       "flavor": "The Bureau does not post contracts on a wall. It assigns them through credentialed agents who evaluate your operational record before offering work. Walk in, find your agent, and ask what needs doing.",
-      "imageFile": "buildings/isa-assignments-bureau.png",
       "action": "building:isa-contracting-assignments",
       "available": true
     },
@@ -220,7 +205,6 @@
       "category": "commerce",
       "description": "The physical terminal node connecting corporations to the Galactic Exchange — the primary commodities and resource trading platform serving the Sol system and beyond. All public buy and sell orders are routed through this node.",
       "flavor": "Speed matters on the Exchange. Orders placed through the Hub move at standard relay latency. Corporations with direct exchange memberships — a future upgrade — bypass the public queue.",
-      "imageFile": "buildings/exchange-hub.png",
       "action": "tab:market",
       "available": true
     },
@@ -234,7 +218,6 @@
       "category": "finance",
       "description": "The primary equity market of the settled systems. Corporations can purchase shares in other player-owned and NPC-owned organizations, track valuations, and participate in structured financial instruments tied to corporate performance.",
       "flavor": "The Exchange does not care about your intentions. It prices information asymmetry. The players who win here are the ones who know what a corporation is worth before the market catches up.",
-      "imageFile": "buildings/stock-exchange.png",
       "action": "building:intergalactic-stock-exchange",
       "available": true
     }

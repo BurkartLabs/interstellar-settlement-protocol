@@ -82,7 +82,10 @@ describe("ISP-191 part 2: a Tier 4 chain names the facility it needs, as a link"
 
   it("the card without an Array links both the Array and the research that allows it", () => {
     expect(REFINERY_VIEW).toContain('Runs in a ${buildingLinkHtml("synthesis-array", "Synthesis Array")}');
-    expect(REFINERY_VIEW).toContain('${researchLinkHtml("tt-high-energy-synthesis", techTree)} research.');
+    // AB#2485: a chain whose Array cannot be built yet is an Unavailable chain; its "Missing" list links the building
+    // and every research still needed, the Array's own included (chainAvailability.test.js holds which).
+    expect(REFINERY_VIEW).toContain("Runs in a ${buildingLinkHtml(b.id, b.name)}");
+    expect(REFINERY_VIEW).toContain("Requires: ${researchLinks(blockers.research, chain)");
   });
 
   it("Bug #4661: the start button that names what is short wraps inside its card", () => {

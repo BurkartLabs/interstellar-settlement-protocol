@@ -71,7 +71,7 @@ export function priceLoan({ corp, statements, productId, principal, now = Date.n
     if (principal <= maxPrincipal) {
       const after = computeCreditRating(corp, now, statements, { proForma: { debt: principal, assets: principal } });
       gradeAfter = after.grade;
-      if (gradeAfter === "D" || gradeAfter === "NR") return { ok: false, error: "Borrowing this much would leave no credit: the grade after it would be D." };
+      if (gradeAfter === "D" || gradeAfter === "NR") return { ok: false, error: "Borrowing this much would leave no credit: the grade after it would be D. Borrow less." };
       spread = LOAN_CATALOG.spreadPct30[gradeAfter];
     }
   }
@@ -119,7 +119,7 @@ const SAME = ["productId", "termDays", "principal", "ratePct30", "dailyPayment",
 export function acceptLoan(accountId, { quoteId } = {}, now = Date.now()) {
   const quote = typeof quoteId === "string" ? quotes.get(quoteId) : null;
   if (!quote || quote.accountId !== accountId) return { ok: false, error: "No such quote. Ask for a new one." };
-  if (quote.state !== "open") return { ok: false, error: "That quote has already been used." };
+  if (quote.state !== "open") return { ok: false, error: "That quote has already been used. Ask for a new one." };
   if (quote.expiresAt < now) { quotes.delete(quote.id); return { ok: false, error: "That quote has expired. Ask for a new one." }; }
   quote.state = "accepting"; // taken now, synchronously: a second accept of this quote is refused from here on
 

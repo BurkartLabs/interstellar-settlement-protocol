@@ -4,16 +4,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Allocate your corporation's credits, crews and building slots across Sol: lease a world, refine what it yields, and sell it to another player on the Galactic Exchange. A text-first strategy game in the browser, played over months." />
+    <!-- AB#954: absolute URLs come from ISP_PUBLIC_URL, filled in by the server (server/publicPages.js), never typed here. -->
+    <link rel="canonical" href="%ISP_PUBLIC_URL%/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="The Interstellar Settlement Protocol" />
+    <meta property="og:title" content="The Interstellar Settlement Protocol" />
+    <meta property="og:description" content="Allocate your corporation's credits, crews and building slots across Sol: lease a world, refine what it yields, and sell it to another player on the Galactic Exchange. A text-first strategy game in the browser, played over months." />
+    <meta property="og:url" content="%ISP_PUBLIC_URL%/" />
+    <meta property="og:image" content="%ISP_PUBLIC_URL%/images/og/landing.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Interstellar Settlement Protocol's landing page: Allocate your corporation's credits, crews and building slots across Sol, beside the game's starmap." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="The Interstellar Settlement Protocol" />
+    <meta name="twitter:description" content="Allocate your corporation's credits, crews and building slots across Sol: lease a world, refine what it yields, and sell it to another player on the Galactic Exchange. A text-first strategy game in the browser, played over months." />
+    <meta name="twitter:image" content="%ISP_PUBLIC_URL%/images/og/landing.jpg" />
+    <meta name="twitter:image:alt" content="The game's landing page beside its starmap." />
+    <!-- AB#954 (ISP-258): the favicon (so no load asks for a missing /favicon.ico) and the browser's colour. -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#05070a" />
     <title>The Interstellar Settlement Protocol</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="preload" href="/vendor/inter-5.3.0/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="styles.css" />
     <script type="module" src="scripts/starfield.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+    <script src="/vendor/chart.js-4.4.3/chart.umd.min.js" defer></script>
     <script src="/socket.io/socket.io.js" defer></script>
     <script type="module" src="scripts/app.js" defer></script>
   </head>
@@ -39,151 +56,61 @@
         <p class="landing__tagline">"Humanity did not conquer space. It privatized it."</p>
       </section>
 
+      <!-- ISP-257 (AB#953): the landing for a stranger. The verb and who it is for above the fold, one call to action,
+           a real screen beside them, then three screens from a corporation at work. The Board's description
+           (AB#2462) stays under the actions. -->
       <header class="landing__hero">
-        <p class="landing__overline">Earth Assembly Act 2147</p>
-        <h1 id="landing-title" class="landing__title">The Interstellar Settlement Protocol</h1>
-        <div class="landing__actions">
-          <a href="/register.html" id="show-register-btn" class="ui-button ui-button--primary">Register Corporation</a>
-          <a href="/login.html" class="ui-button ui-button--secondary">Log In</a>
+        <div class="landing__pitch">
+          <p class="landing__overline">Earth Assembly Act 2147</p>
+          <h1 id="landing-title" class="landing__title">The Interstellar Settlement Protocol</h1>
+          <p class="landing__verb">
+            <strong>Allocate</strong> your corporation's credits, crews and building slots across Sol: lease a world, refine
+            what it yields, and sell it on an exchange where the buyer is another corporation.
+          </p>
+          <p class="landing__audience">
+            For players who would rather run the market than fight the war. A text-first strategy game in the browser,
+            played over months, not minutes.
+          </p>
+          <div class="landing__actions">
+            <a href="/register.html" id="show-register-btn" class="ui-button ui-button--primary">Register Corporation</a>
+            <a href="/login.html" class="ui-button ui-button--secondary">Log In</a>
+          </div>
+          <p class="landing__aside">New to the Protocol? Read <a href="/how-to-start">how to start</a>.</p>
+          <!-- AB#2462: the Board's own words (review 2026-09-26, item 2). -->
+          <p class="landing__lede">
+            ISP is a long-term online strategy simulation where you operate as the CEO of a corporation colonizing the local
+            galaxy while navigating industrial logistics, legal conflict, interstellar finance, and deterministic warfare at a
+            civilizational scale. A true slow-burn universe. Level Progression is milestone-based and full corporate maturity
+            unfolds over years of real-world play.
+          </p>
         </div>
-        <p class="landing__aside">New to the Protocol? Read <a href="/how-to-start">how to start</a>.</p>
-        <!-- AB#2462: the Board's own words (review 2026-09-26, item 2). -->
-        <p class="landing__lede">
-          ISP is a long-term online strategy simulation where you operate as the CEO of a corporation colonizing the local
-          galaxy while navigating industrial logistics, legal conflict, interstellar finance, and deterministic warfare at a
-          civilizational scale. A true slow-burn universe. Level Progression is milestone-based and full corporate maturity
-          unfolds over years of real-world play.
-        </p>
+        <figure class="landing__shot">
+          <img src="/images/landing/starmap.webp" width="1200" height="617" fetchpriority="high"
+            alt="The Interstellar Starmap: Sol, marked You are here, and the nearby star systems it connects to, among them Alpha Centauri, Sirius and Tau Ceti." />
+          <figcaption class="landing__caption">The Interstellar Starmap. Every licence begins at Sol.</figcaption>
+        </figure>
       </header>
 
-      <section class="landing__section">
-        <h2 class="landing__heading">What ISP Is</h2>
-        <div class="landing__grid">
-          <article class="ui-card">
-            <h3 class="ui-card__title">Persistent Economic Civilization</h3>
-            <p class="ui-card__body">Every resource chain, market order, and investment contributes to a persistent economy.</p>
+      <section class="landing__section" aria-labelledby="landing-proof-title">
+        <h2 id="landing-proof-title" class="landing__heading">On file: a corporation at work</h2>
+        <div class="landing__proofs">
+          <article class="ui-card landing__proof">
+            <img class="landing__proof-shot" src="/images/landing/refinery-run.webp" width="800" height="212" loading="lazy"
+              alt="A refinery run: 100 Silicates becoming 40 Aerogel and 15 Quantum Insulators, a quarter done, 2 hours 59 minutes remaining." />
+            <h3 class="ui-card__title">Refine, then wait for it</h3>
+            <p class="ui-card__body">Ore goes in and goods come out hours later. Every run is a decision you live with until it delivers.</p>
           </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Corporate Power Strategy</h3>
-            <p class="ui-card__body">Scale your corporation through hiring, infrastructure, R&D, and sector expansion.</p>
+          <article class="ui-card landing__proof">
+            <img class="landing__proof-shot" src="/images/landing/exchange-orders.webp" width="800" height="357" loading="lazy"
+              alt="The Galactic Exchange's sell orders: Carbon, Titanium, Nickel and Silicates, each listed by another corporation at its own price." />
+            <h3 class="ui-card__title">The other side of the order is a corporation</h3>
+            <p class="ui-card__body">Every listing on the Galactic Exchange was lodged by a corporation like yours. When you buy, another player is paid.</p>
           </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Hybrid Conflict Layer</h3>
-            <p class="ui-card__body">Compete militarily, politically, and financially across multiple star systems.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="landing__section">
-        <h2 class="landing__heading">Core Gameplay Pillars</h2>
-        <div class="landing__grid">
-          <article class="ui-card">
-            <h3 class="ui-card__title">Milestone Progression</h3>
-            <p class="ui-card__body">Corporation Level 1-40 is unlocked through business milestones: first refined output, first off-world mining, employee targets, R&D completions, and strategic expansion checkpoints.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Industrial Refinement Chains</h3>
-            <p class="ui-card__body">Raw materials become strategic products through multi-step pipelines gated by Corporate R&D. Supply chain planning and throughput optimization become long-term differentiators.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Financial Command</h3>
-            <p class="ui-card__body">Run full corporate finance: cash flow, liabilities, valuation, debt instruments, bond strategy, and inter-corporate investment plays driven by performance and risk.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Conglomerate Politics</h3>
-            <p class="ui-card__body">Join or build alliances with expanding membership caps, pooled resources, shared intel, station co-ownership, and coordinated policy pressure.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="landing__section">
-        <h2 class="landing__heading">Map, Warfare, And Discovery</h2>
-        <div class="landing__grid">
-          <article class="ui-card">
-            <h3 class="ui-card__title">System-Scale Starmap</h3>
-            <p class="ui-card__body">Navigate from cluster view to system and body-level detail for strategic planning.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Deterministic Combat Core</h3>
-            <p class="ui-card__body">Outcomes are numbers-driven with counters, modifiers, and doctrine effects.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Scouting Intelligence</h3>
-            <p class="ui-card__body">Resource composition is unknown until surveyed, creating real exploration pressure.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="landing__section">
-        <h2 class="landing__heading">Economic Engine In Detail</h2>
-        <div class="landing__grid">
-          <article class="ui-card">
-            <h3 class="ui-card__title">Raw Resource Genesis</h3>
-            <p class="ui-card__body">Every new corporation begins in a raw-material economy. Silicates, metals, isotopes, and volatile compounds become the industrial substrate for every advanced product in the game.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Refining As Competitive Edge</h3>
-            <p class="ui-card__body">Refineries are not decoration. Throughput, downtime control, and process sequencing determine your cost basis and export strength as regional demand shifts.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Market Signals And Arbitrage</h3>
-            <p class="ui-card__body">Use local scarcity and congestion to set pricing, absorb volatility, and arbitrage between systems while balancing freight risk and liquidity windows.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Capital And Leverage</h3>
-            <p class="ui-card__body">Scale by issuing debt, taking strategic loans, and investing in rival corporations. Your capital strategy can outperform brute extraction alone.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="landing__section">
-        <h2 class="landing__heading">Long-Horizon Campaign Structure</h2>
-        <div class="landing__grid">
-          <article class="ui-card">
-            <h3 class="ui-card__title">Phase I: Establishment</h3>
-            <p class="ui-card__body">Build initial facilities, stabilize payroll, and secure first extraction contracts.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Phase II: Industrial Scale</h3>
-            <p class="ui-card__body">Expand refining chains, automate logistics, and begin controlled fleet growth.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Phase III: Sector Influence</h3>
-            <p class="ui-card__body">Enter legal and political contests for tariff regimes, patent constraints, and territorial leverage.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Phase IV: Conglomerate Politics</h3>
-            <p class="ui-card__body">Coordinate with allied corporations to project force, protect trade lanes, and co-own key stations.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Phase V: Interstellar Governance</h3>
-            <p class="ui-card__body">Compete in system-wide influence wars where law, capital, and fleet math decide civilization-scale outcomes.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Designed For Years, Not Weeks</h3>
-            <p class="ui-card__body">ISP intentionally resists short-loop progression so strategic planning and institutional momentum matter.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="landing__section">
-        <h2 class="landing__heading">Why This Prototype Exists</h2>
-        <div class="landing__grid">
-          <article class="ui-card">
-            <h3 class="ui-card__title">Accessible, Text-First Core</h3>
-            <p class="ui-card__body">Gameplay systems are intentionally text-dominant for readability, speed, and accessibility with or without heavy visuals.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Expandable Architecture</h3>
-            <p class="ui-card__body">Current modules are structured so economy, warfare, diplomacy, and missions can be expanded into full production domains.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Real-Time Multiplayer Backbone</h3>
-            <p class="ui-card__body">Market, communication, and conflict signals are already shaped for live state synchronization and persistent world updates.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Strategic Depth Over Flash</h3>
-            <p class="ui-card__body">The prototype prioritizes decision quality and long-term outcomes over superficial visual noise.</p>
+          <article class="ui-card landing__proof">
+            <img class="landing__proof-shot" src="/images/landing/milestones.webp" width="800" height="401" loading="lazy"
+              alt="Level 5 of 30: research a technology, build an Assembly Facility and hire 25 employees to reach Level 6, which opens more staff, building slots and a new market sector." />
+            <h3 class="ui-card__title">Levels are built, not ground</h3>
+            <p class="ui-card__body">Research, construction and hiring move a corporation through thirty levels, and each one opens more staff, slots and markets.</p>
           </article>
         </div>
       </section>
@@ -211,6 +138,7 @@
             </section>
           </div>
           <button id="replay-onboarding-btn" class="ui-button ui-button--secondary" type="button">Replay Onboarding</button>
+          <button id="account-data-btn" class="ui-button ui-button--secondary" type="button" aria-haspopup="dialog" aria-controls="account-data-modal">Account</button>
           <button id="logout-btn" class="ui-button ui-button--secondary" type="button">Log Out</button>
         </div>
       </header>
@@ -255,7 +183,7 @@
             </div>
           </section>
           <section class="nav-group" data-group="comms">
-            <button class="nav-group__button" type="button" data-group="comms">Comms</button>
+            <button class="nav-group__button" type="button" data-group="comms">Chat</button>
             <div class="nav-group__tabs">
               <button class="nav-tab" data-tab="chat" type="button">Chat</button>
               <button class="nav-tab" data-tab="forums" type="button">Forums</button>
@@ -300,7 +228,7 @@
               <button class="ui-button ui-button--secondary" type="button" data-jump="finance">Finance</button>
               <button class="ui-button ui-button--secondary" type="button" data-jump="starmap">Starmap</button>
               <button class="ui-button ui-button--secondary" type="button" data-jump="market">Exchange</button>
-              <button class="ui-button ui-button--secondary" type="button" data-jump="chat">Comms</button>
+              <button class="ui-button ui-button--secondary" type="button" data-jump="chat">Chat</button>
             </div>
           </section>
         </aside>
@@ -316,6 +244,20 @@
                 and each unlock expands market access, infrastructure depth, and interstellar reach.
               </p>
             </header>
+            <!-- AB#2483 (Board review 2026-09-26, item 17): the cash on hand, right under the title at every level, in the
+                 Financial Core's headline figures (views/overview.js fills them). -->
+            <section id="overview-figures" class="kpi-strip overview__figures" aria-label="Cash position">
+              <div class="kpi-tile kpi-tile--primary">
+                <span class="kpi-tile__label">Cash Reserves</span>
+                <span id="overview-cash" class="kpi-tile__value">—</span>
+                <span class="kpi-tile__sub">credits on hand</span>
+              </div>
+              <div class="kpi-tile">
+                <span class="kpi-tile__label">Net Daily Flow</span>
+                <span id="overview-net-flow" class="kpi-tile__value">—</span>
+                <span class="kpi-tile__sub">income − costs, last 24 hours</span>
+              </div>
+            </section>
             <div id="overview-raid-alert"></div><!-- ISP-181 (AB#875): an incoming raid, with a countdown and a route to its garrison -->
             <div id="overview-cards" class="ui-grid"></div>
 
@@ -341,11 +283,13 @@
                   <dl id="level-unlocks-list" class="ui-kv"></dl>
                 </section>
                 <p id="level2-status" class="ui-screen__meta"></p>
-                <section class="ui-card" aria-labelledby="feedback-log-title">
-                  <h4 id="feedback-log-title" class="ui-card__title"><span class="ui-code" data-code-for="feedback-log-title" aria-hidden="true"></span>Command Feedback</h4>
-                  <ul id="feedback-log" class="ui-list"></ul>
-                </section>
               </div>
+            </section>
+
+            <!-- AB#2483 (Board review 2026-09-26, item 18): what every command answered, last of all on the page. -->
+            <section id="command-log" class="ui-panel" aria-labelledby="command-log-title">
+              <header class="ui-panel__header"><h3 id="command-log-title" class="ui-panel__title"><span class="ui-code" data-code-for="command-log" aria-hidden="true"></span>Command Log</h3></header>
+              <div class="ui-panel__body"><ul id="feedback-log" class="ui-list"></ul></div>
             </section>
           </article>
 
@@ -375,6 +319,11 @@
 
               <div id="station-sub-overview" class="station__subpage ui-stack" role="tabpanel" aria-labelledby="station-subtab-overview">
                 <p class="ui-screen__lede station__overview-empty">No corporation-owned facilities here yet. The station's offices are under <strong>Offices</strong>; what you can build is under <strong>Construction</strong>; your yards and infrastructure are under <strong>Holdings</strong>, and every cycle in progress is in <strong>Operations</strong>.</p>
+                <section class="ui-stack" id="station-repairs-section" hidden>
+                  <h3 class="station__heading"><span class="ui-code" data-code-for="station-repairs-section" aria-hidden="true"></span>Damaged Buildings</h3>
+                  <p class="ui-screen__lede">A raid damaged these buildings. Each runs at its condition until it is repaired, which restores it to full at once.</p>
+                  <div id="station-repair-buildings" class="ui-grid station__grid"></div>
+                </section>
                 <section class="ui-stack" id="station-facilities-section" hidden>
                   <h3 class="station__heading"><span class="ui-code" data-code-for="station-facilities-section" aria-hidden="true"></span>Operational Facilities</h3>
                   <p class="ui-screen__lede">Corporation-owned facilities available for use at this station.</p>
@@ -646,10 +595,16 @@
             <header class="ui-screen__header">
               <h2 class="ui-screen__title"><span class="ui-code" data-code-for="rnd" aria-hidden="true"></span>Corporate R&amp;D</h2>
               <p class="ui-screen__lede">One technology researches at a time. Queue more and each one starts when the slot before it clears.</p>
+              <p id="rnd-total" class="ui-screen__meta research-total" role="status"></p><!-- AB#2475 -->
             </header>
             <section class="ui-panel" aria-labelledby="rnd-queue-title">
               <header class="ui-panel__header"><h3 id="rnd-queue-title" class="ui-panel__title"><span class="ui-code" data-code-for="rnd-queue-title" aria-hidden="true"></span>Active and queued</h3></header>
               <div id="rnd-queue" class="ui-panel__body ui-stack"></div>
+            </section>
+            <!-- AB#2477: the prerequisites as a connected tree (views/prereqGraph.js) -->
+            <section class="ui-panel" aria-labelledby="rnd-graph-title">
+              <header class="ui-panel__header"><h3 id="rnd-graph-title" class="ui-panel__title"><span class="ui-code" data-code-for="rnd-graph-title" aria-hidden="true"></span>Prerequisite tree</h3></header>
+              <div id="rnd-prereq-graph" class="ui-panel__body prereq-graph"></div>
             </section>
             <section class="ui-panel" aria-labelledby="rnd-tree-title">
               <header class="ui-panel__header">
@@ -679,14 +634,28 @@
             <header class="ui-screen__header">
               <h2 class="ui-screen__title"><span class="ui-code" data-code-for="ceo" aria-hidden="true"></span>CEO Insight Program</h2>
               <p class="ui-screen__lede">Personal executive development programs that grant permanent corporate bonuses. One runs at a time.</p>
+              <p id="ceo-total" class="ui-screen__meta research-total" role="status"></p><!-- AB#2475 -->
             </header>
             <section class="ui-panel" aria-labelledby="ceo-queue-title">
               <header class="ui-panel__header"><h3 id="ceo-queue-title" class="ui-panel__title"><span class="ui-code" data-code-for="ceo-queue-title" aria-hidden="true"></span>Active program</h3></header>
               <div id="ceo-queue" class="ui-panel__body ui-stack"></div>
             </section>
+            <!-- AB#2477: the prerequisites as a connected tree (views/prereqGraph.js) -->
+            <section class="ui-panel" aria-labelledby="ceo-graph-title">
+              <header class="ui-panel__header"><h3 id="ceo-graph-title" class="ui-panel__title"><span class="ui-code" data-code-for="ceo-graph-title" aria-hidden="true"></span>Prerequisite tree</h3></header>
+              <div id="ceo-prereq-graph" class="ui-panel__body prereq-graph"></div>
+            </section>
             <section class="ui-panel" aria-labelledby="ceo-tree-title">
-              <header class="ui-panel__header"><h3 id="ceo-tree-title" class="ui-panel__title"><span class="ui-code" data-code-for="ceo-tree-title" aria-hidden="true"></span>Programs</h3></header>
-              <div id="ceo-insight-tree" class="ui-panel__body ui-grid"></div>
+              <!-- AB#2474: the section collapses as a whole, and each category inside it on its own (views/ceoInsight.js). -->
+              <header class="ui-panel__header insight__header">
+                <h3 id="ceo-tree-title" class="ui-panel__title insight__heading">
+                  <button id="ceo-programs-toggle" class="insight__toggle" type="button" aria-expanded="true" aria-controls="ceo-insight-tree">
+                    <span><span class="ui-code" data-code-for="ceo-tree-title" aria-hidden="true"></span>Programs</span>
+                    <span class="insight__arrow" aria-hidden="true">▾</span>
+                  </button>
+                </h3>
+              </header>
+              <div id="ceo-insight-tree" class="ui-panel__body ui-stack"></div>
             </section>
           </article>
 
@@ -707,6 +676,13 @@
                 <div id="refinery-chains" class="ui-grid"></div>
               </div>
             </section>
+            <!-- AB#2485: the chains the corporation cannot run yet, each with what it is missing -->
+            <section class="ui-panel" aria-labelledby="refinery-unavailable-title">
+              <header class="ui-panel__header"><div><h3 id="refinery-unavailable-title" class="ui-panel__title"><span class="ui-code" data-code-for="refinery-unavailable-title" aria-hidden="true"></span>Unavailable chains</h3><p class="ui-panel__meta">What each chain still needs: research, the building it runs in, and its inputs.</p></div></header>
+              <div class="ui-panel__body ui-stack">
+                <div id="refinery-unavailable-chains" class="ui-grid"></div>
+              </div>
+            </section>
             <section class="ui-panel" aria-labelledby="resource-catalog-title">
               <header class="ui-panel__header"><h3 id="resource-catalog-title" class="ui-panel__title"><span class="ui-code" data-code-for="resource-catalog-title" aria-hidden="true"></span>Resource catalog</h3></header>
               <ul id="resource-catalog" class="ui-panel__body refinery__catalog"></ul>
@@ -721,329 +697,347 @@
             </header>
             <div id="market-station-banner"></div>
 
-            <!-- Price history for the selected resource (AB#716); public/scripts/priceChart.js draws it -->
-            <section class="ui-panel" id="exchange-price-chart">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-price-chart" aria-hidden="true"></span><span id="price-chart-title">Silicates: price history</span></h3>
-                  <p class="ui-panel__meta" id="price-chart-summary">Loading price history...</p>
-                  <!-- ISP-233 (AB#928): the ITC's price-impact alert when the item's last day closed under its dumping line -->
-                  <p class="exchange__flood-alert" id="price-chart-alert" role="status" hidden></p>
-                </div>
-                <div class="ui-panel__actions" role="group" aria-label="Chart range">
-                  <button type="button" class="ui-button ui-button--secondary" data-price-range="7" aria-pressed="true">7 days</button>
-                  <button type="button" class="ui-button ui-button--secondary" data-price-range="30" aria-pressed="false">30 days</button>
-                </div>
-              </header>
-              <div class="ui-panel__body exchange__canvas"><canvas id="price-chart-canvas" role="img" aria-label="Daily closing price and volume"></canvas></div>
-              <div class="ui-panel__body"><p class="ui-panel__meta">Charts the resource picked in the filter below, or Silicates when All is picked. Daily close and volume, UTC days.</p></div>
-            </section>
+            <!-- AB#2472 (DOCTRINE P-010, docs/design/p010-scroll-audit.md): the Exchange was one column of twelve sections, 7.3
+                 screens at 1440x900. Five subpages now (public/scripts/views/exchange.js, bindExchangePages); the price chart and
+                 the filters serve the three order pages and hide on the other two. The page is remembered with the view. -->
+            <div class="ui-tabs exchange__pages" id="exchange-pages" role="tablist" aria-label="Exchange pages">
+              <button class="ui-tab" type="button" role="tab" id="exchange-tab-standing" aria-controls="exchange-page-standing" aria-selected="true" tabindex="0" data-exchange-page="standing">Standing orders</button>
+              <button class="ui-tab" type="button" role="tab" id="exchange-tab-players" aria-controls="exchange-page-players" aria-selected="false" tabindex="-1" data-exchange-page="players">Player orders</button>
+              <button class="ui-tab" type="button" role="tab" id="exchange-tab-mine" aria-controls="exchange-page-mine" aria-selected="false" tabindex="-1" data-exchange-page="mine">My listings</button>
+              <button class="ui-tab" type="button" role="tab" id="exchange-tab-mercs" aria-controls="exchange-page-mercs" aria-selected="false" tabindex="-1" data-exchange-page="mercs">Mercenary Rentals</button>
+              <button class="ui-tab" type="button" role="tab" id="exchange-tab-history" aria-controls="exchange-page-history" aria-selected="false" tabindex="-1" data-exchange-page="history">Trade history</button>
+            </div>
 
-            <!-- Resource filter, order-type filter and sort (AB#402) -->
-            <section class="ui-panel exchange__filters" aria-label="Filters">
-              <div class="ui-tabs" id="exchange-filter-bar" role="tablist" aria-label="Filter by resource"></div>
-              <div class="exchange__selects">
-                <label class="ui-field"><span class="ui-field__label">Show</span>
-                  <select class="ui-select" id="exchange-type-filter">
-                    <option value="all">All orders</option>
-                    <option value="sell">Player sell orders</option>
-                    <option value="bids">Player buy orders</option>
-                    <option value="standing">Standing buy orders</option>
-                    <option value="mine">My listings</option>
-                  </select>
-                </label>
-                <!-- AB#884: the catalog's item tiers (data/items.json) -->
-                <label class="ui-field"><span class="ui-field__label">Tier</span>
-                  <select class="ui-select" id="exchange-tier-filter">
-                    <option value="">All tiers</option>
-                    <option value="1">Tier 1: common raw</option>
-                    <option value="2">Tier 2: scarce raw</option>
-                    <option value="3">Tier 3: refined</option>
-                    <option value="4">Tier 4: exotic</option>
-                  </select>
-                </label>
-                <!-- ISP-208 (AB#903): shown only to a conglomerate member -->
-                <label class="ui-field" id="exchange-sellers-field" hidden><span class="ui-field__label">Sellers</span>
-                  <select class="ui-select" id="exchange-sellers-filter">
-                    <option value="all">Everyone</option>
-                    <option value="conglomerate">My conglomerate</option>
-                  </select>
-                </label>
-                <label class="ui-field"><span class="ui-field__label">Sort</span>
-                  <select class="ui-select" id="exchange-sort">
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                    <option value="price-asc">Price: low to high</option>
-                    <option value="price-desc">Price: high to low</option>
-                    <option value="qty-desc">Quantity: most first</option>
-                    <option value="qty-asc">Quantity: fewest first</option>
-                  </select>
-                </label>
-              </div>
-            </section>
-
-            <div class="exchange__split">
-              <!-- Sell orders: others' items you can buy -->
-              <section class="ui-panel" id="exchange-sell-section">
+            <div id="exchange-tools">
+              <!-- Price history for the selected resource (AB#716); public/scripts/priceChart.js draws it -->
+              <section class="ui-panel" id="exchange-price-chart">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-sell-section" aria-hidden="true"></span>Sell orders</h3>
-                    <p class="ui-panel__meta">Public sell orders on the exchange. Your own listings are never shown here.</p>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-price-chart" aria-hidden="true"></span><span id="price-chart-title">Silicates: price history</span></h3>
+                    <p class="ui-panel__meta" id="price-chart-summary">Loading price history...</p>
+                    <!-- ISP-233 (AB#928): the ITC's price-impact alert when the item's last day closed under its dumping line -->
+                    <p class="exchange__flood-alert" id="price-chart-alert" role="status" hidden></p>
+                  </div>
+                  <div class="ui-panel__actions" role="group" aria-label="Chart range">
+                    <button type="button" class="ui-button ui-button--secondary" data-price-range="7" aria-pressed="true">7 days</button>
+                    <button type="button" class="ui-button ui-button--secondary" data-price-range="30" aria-pressed="false">30 days</button>
+                  </div>
+                </header>
+                <div class="ui-panel__body exchange__canvas"><canvas id="price-chart-canvas" role="img" aria-label="Daily closing price and volume"></canvas></div>
+                <div class="ui-panel__body"><p class="ui-panel__meta">Charts the resource picked in the filter below, or Silicates when All is picked. Daily close and volume, UTC days.</p></div>
+              </section>
+
+              <!-- Resource filter, tier and sort (AB#402); AB#2472: the subpages replaced the order-type filter -->
+              <section class="ui-panel exchange__filters" aria-label="Filters">
+                <div class="ui-tabs" id="exchange-filter-bar" role="tablist" aria-label="Filter by resource"></div>
+                <div class="exchange__selects">
+                  <!-- AB#884: the catalog's item tiers (data/items.json) -->
+                  <label class="ui-field"><span class="ui-field__label">Tier</span>
+                    <select class="ui-select" id="exchange-tier-filter">
+                      <option value="">All tiers</option>
+                      <option value="1">Tier 1: common raw</option>
+                      <option value="2">Tier 2: scarce raw</option>
+                      <option value="3">Tier 3: refined</option>
+                      <option value="4">Tier 4: exotic</option>
+                    </select>
+                  </label>
+                  <!-- ISP-208 (AB#903): shown only to a conglomerate member -->
+                  <label class="ui-field" id="exchange-sellers-field" hidden><span class="ui-field__label">Sellers</span>
+                    <select class="ui-select" id="exchange-sellers-filter">
+                      <option value="all">Everyone</option>
+                      <option value="conglomerate">My conglomerate</option>
+                    </select>
+                  </label>
+                  <label class="ui-field"><span class="ui-field__label">Sort</span>
+                    <select class="ui-select" id="exchange-sort">
+                      <option value="newest">Newest first</option>
+                      <option value="oldest">Oldest first</option>
+                      <option value="price-asc">Price: low to high</option>
+                      <option value="price-desc">Price: high to low</option>
+                      <option value="qty-desc">Quantity: most first</option>
+                      <option value="qty-asc">Quantity: fewest first</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+            </div>
+
+            <div class="exchange__page" role="tabpanel" id="exchange-page-standing" aria-labelledby="exchange-tab-standing">
+              <!-- AB#815: Standing NPC sell orders, the asks the NPC corporations post -->
+              <section class="ui-panel" id="exchange-npc-sell-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-npc-sell-section" aria-hidden="true"></span>Standing sell orders</h3>
+                    <p class="ui-panel__meta">NPC corporations selling from their stations, refilled daily. The most anyone need pay: a player listing below it is the better buy.</p>
                   </div>
                 </header>
                 <div class="ui-panel__body ui-stack">
-                  <div id="exchange-buy-empty" class="ui-state" hidden><p class="ui-state__title">Nothing for sale</p><p class="ui-state__why">No player has listed anything for sale yet.</p></div>
-                  <div id="exchange-buy-filtered" class="ui-state" hidden></div>
-                  <p id="buy-status" class="ui-panel__meta" role="status"></p>
+                  <div id="npc-sell-empty" class="ui-state" hidden><p class="ui-state__title">No standing sell orders</p><p class="ui-state__why">No NPC corporation is selling today.</p></div>
+                  <div id="npc-sell-filtered" class="ui-state" hidden></div>
                   <div class="ui-table-wrap">
-                    <table class="ui-table">
+                    <table class="ui-table exchange__standing-table">
                       <thead>
                         <tr>
                           <th>Item</th>
                           <th class="ui-table__num">Available</th>
-                          <th class="ui-table__num">Unit price</th>
+                          <th class="ui-table__num">Price</th>
                           <th>Seller</th>
                           <th>Buy quantity</th>
                           <th>Action</th>
                         </tr>
                       </thead>
-                      <tbody id="exchange-buy-table"></tbody>
+                      <tbody id="npc-sell-table"></tbody>
                     </table>
                   </div>
-                  <p id="exchange-buy-capped" class="ui-panel__meta" hidden></p>
                 </div>
               </section>
 
-              <!-- Create a new sell listing -->
-              <section class="ui-panel" id="exchange-listing-section">
+              <!-- Standing NPC buy orders -->
+              <section class="ui-panel" id="exchange-standing-section">
                 <header class="ui-panel__header">
                   <div>
-                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-listing-section" aria-hidden="true"></span>Create listing</h3>
-                    <p class="ui-panel__meta">List resources from this station&#39;s inventory as a public sell order.</p>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-standing-section" aria-hidden="true"></span>Standing buy orders</h3>
+                    <p class="ui-panel__meta">Recurring NPC buyers: sell into them and a buyer is always there. The price falls as the day&#39;s quota fills and recovers overnight, so a glutted market pays less and a quiet one pays more. Quantities and prices reset daily at 00:00 UTC.</p>
                   </div>
                 </header>
                 <div class="ui-panel__body ui-stack">
-                  <div id="market-sell-empty" class="ui-state" hidden><p class="ui-state__title">Nothing to list here</p><p class="ui-state__why">Lease a claim and run an extractor yard (Station &gt; ISA Claims &amp; Leases) to have goods to sell.</p></div>
+                  <div id="npc-buy-empty" class="ui-state" hidden><p class="ui-state__title">No standing buy orders</p><p class="ui-state__why">There are no standing buy orders today.</p></div>
+                  <div id="npc-buy-filtered" class="ui-state" hidden></div>
+                  <p id="npc-buy-status" class="ui-panel__meta" role="status"></p>
                   <div class="ui-table-wrap">
-                    <table class="ui-table">
+                    <table class="ui-table exchange__standing-table">
                       <thead>
                         <tr>
                           <th>Item</th>
-                          <th class="ui-table__num">In stock</th>
-                          <th>Sell quantity</th>
-                          <th>Unit price</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody id="market-sell-grid"></tbody>
-                    </table>
-                  </div>
-                  <p id="listing-status" class="ui-panel__meta" role="status"></p>
-                </div>
-              </section>
-            </div>
-
-            <!-- AB#1054: players' buy orders, the book's other side, beside a form to place one -->
-            <div class="exchange__split">
-              <section class="ui-panel" id="exchange-bids-section">
-                <header class="ui-panel__header">
-                  <div>
-                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-bids-section" aria-hidden="true"></span>Buy orders</h3>
-                    <p class="ui-panel__meta">What corporations will pay. A listing at or under a price sells to it at once, at the listing&#39;s price.</p>
-                  </div>
-                </header>
-                <div class="ui-panel__body ui-stack">
-                  <div id="exchange-bids-empty" class="ui-state" hidden><p class="ui-state__title">No buy orders</p><p class="ui-state__why">No corporation has a buy order waiting.</p></div>
-                  <div id="exchange-bids-filtered" class="ui-state" hidden></div>
-                  <p id="bids-status" class="ui-panel__meta" role="status"></p>
-                  <div class="ui-table-wrap">
-                    <table class="ui-table">
-                      <thead>
-                        <tr>
-                          <th>Item</th>
-                          <th class="ui-table__num">Wanted</th>
-                          <th class="ui-table__num">Price</th>
                           <th>Buyer</th>
-                          <th>Placed</th>
+                          <th class="ui-table__num">Price per unit</th>
+                          <th>Remaining today</th>
+                          <th>Sell quantity</th>
                           <th>Action</th>
                         </tr>
                       </thead>
-                      <tbody id="exchange-bids-table"></tbody>
+                      <tbody id="npc-buy-table"></tbody>
+                    </table>
+                  </div>
+                  <!-- AB#4710: cut to what the player holds here by default; every buyer is one press away -->
+                  <p id="npc-buy-held-note" class="ui-panel__meta" hidden></p>
+                  <div><button type="button" class="ui-button ui-button--secondary" id="npc-buy-show-all" hidden></button></div>
+                </div>
+              </section>
+
+              <!-- AB#2472: beside the standing orders, where a sale counts it down (AB#745) -->
+              <section class="ui-panel" id="exchange-inventory-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-inventory-section" aria-hidden="true"></span>Inventory at this station</h3>
+                  </div>
+                </header>
+                <div class="ui-panel__body">
+                  <ul id="inventory-list" class="ui-list"></ul>
+                </div>
+              </section>
+            </div>
+
+            <div class="exchange__page" role="tabpanel" id="exchange-page-players" aria-labelledby="exchange-tab-players" hidden>
+              <div class="exchange__split">
+                <!-- Sell orders: others' items you can buy -->
+                <section class="ui-panel" id="exchange-sell-section">
+                  <header class="ui-panel__header">
+                    <div>
+                      <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-sell-section" aria-hidden="true"></span>Sell orders</h3>
+                      <p class="ui-panel__meta">Public sell orders on the exchange. Your own listings are never shown here.</p>
+                    </div>
+                  </header>
+                  <div class="ui-panel__body ui-stack">
+                    <div id="exchange-buy-empty" class="ui-state" hidden><p class="ui-state__title">Nothing for sale</p><p class="ui-state__why">No player has listed anything for sale yet.</p></div>
+                    <div id="exchange-buy-filtered" class="ui-state" hidden></div>
+                    <p id="buy-status" class="ui-panel__meta" role="status"></p>
+                    <div class="ui-table-wrap">
+                      <table class="ui-table">
+                        <thead>
+                          <tr>
+                            <th>Item</th>
+                            <th class="ui-table__num">Available</th>
+                            <th class="ui-table__num">Unit price</th>
+                            <th>Seller</th>
+                            <th>Buy quantity</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody id="exchange-buy-table"></tbody>
+                      </table>
+                    </div>
+                    <p id="exchange-buy-capped" class="ui-panel__meta" hidden></p>
+                  </div>
+                </section>
+
+                <!-- Create a new sell listing -->
+                <section class="ui-panel" id="exchange-listing-section">
+                  <header class="ui-panel__header">
+                    <div>
+                      <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-listing-section" aria-hidden="true"></span>Create listing</h3>
+                      <p class="ui-panel__meta">List resources from this station&#39;s inventory as a public sell order.</p>
+                    </div>
+                  </header>
+                  <div class="ui-panel__body ui-stack">
+                    <div id="market-sell-empty" class="ui-state" hidden><p class="ui-state__title">Nothing to list here</p><p class="ui-state__why">Lease a claim and run an extractor yard (Station &gt; ISA Claims &amp; Leases) to have goods to sell.</p></div>
+                    <div class="ui-table-wrap">
+                      <table class="ui-table">
+                        <thead>
+                          <tr>
+                            <th>Item</th>
+                            <th class="ui-table__num">In stock</th>
+                            <th>Sell quantity</th>
+                            <th>Unit price</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody id="market-sell-grid"></tbody>
+                      </table>
+                    </div>
+                    <p id="listing-status" class="ui-panel__meta" role="status"></p>
+                  </div>
+                </section>
+              </div>
+
+              <!-- AB#1054: players' buy orders, the book's other side, beside a form to place one -->
+              <div class="exchange__split">
+                <section class="ui-panel" id="exchange-bids-section">
+                  <header class="ui-panel__header">
+                    <div>
+                      <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-bids-section" aria-hidden="true"></span>Buy orders</h3>
+                      <p class="ui-panel__meta">What corporations will pay. A listing at or under a price sells to it at once, at the listing&#39;s price.</p>
+                    </div>
+                  </header>
+                  <div class="ui-panel__body ui-stack">
+                    <div id="exchange-bids-empty" class="ui-state" hidden><p class="ui-state__title">No buy orders</p><p class="ui-state__why">No corporation has a buy order waiting.</p></div>
+                    <div id="exchange-bids-filtered" class="ui-state" hidden></div>
+                    <p id="bids-status" class="ui-panel__meta" role="status"></p>
+                    <div class="ui-table-wrap">
+                      <table class="ui-table">
+                        <thead>
+                          <tr>
+                            <th>Item</th>
+                            <th class="ui-table__num">Wanted</th>
+                            <th class="ui-table__num">Price</th>
+                            <th>Buyer</th>
+                            <th>Placed</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody id="exchange-bids-table"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="ui-panel" id="exchange-bid-form-section">
+                  <header class="ui-panel__header">
+                    <div>
+                      <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-bid-form-section" aria-hidden="true"></span>Place a buy order</h3>
+                      <p class="ui-panel__meta">The credits are held now. It buys from listings at or under your price, oldest first, at their price, and the rest waits.</p>
+                    </div>
+                  </header>
+                  <form class="ui-panel__body ui-stack" id="bid-form" novalidate>
+                    <label class="ui-field"><span class="ui-field__label">Item</span>
+                      <select class="ui-select" id="bid-item" name="item"></select>
+                    </label>
+                    <div class="exchange__bid-row">
+                      <label class="ui-field"><span class="ui-field__label">Quantity</span>
+                        <input class="ui-input exchange__qty" id="bid-quantity" name="quantity" type="number" inputmode="numeric" min="1" step="1" value="100" />
+                      </label>
+                      <label class="ui-field"><span class="ui-field__label">Price per unit</span>
+                        <input class="ui-input exchange__qty" id="bid-price" name="unitPrice" type="number" inputmode="numeric" min="1" step="1" value="20" />
+                      </label>
+                    </div>
+                    <p class="ui-panel__meta" id="bid-total" aria-live="polite"></p>
+                    <div><button class="ui-button ui-button--primary" type="submit" id="bid-submit">Place buy order</button></div>
+                    <p id="bid-status" class="ui-panel__meta" role="status"></p>
+                  </form>
+                </section>
+              </div>
+            </div>
+
+            <div class="exchange__page" role="tabpanel" id="exchange-page-mine" aria-labelledby="exchange-tab-mine" hidden>
+              <!-- My active listings -->
+              <section class="ui-panel" id="exchange-mine-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-mine-section" aria-hidden="true"></span>My active listings</h3>
+                  </div>
+                </header>
+                <div class="ui-panel__body ui-stack">
+                  <div id="my-sell-orders-empty" class="ui-state" hidden><p class="ui-state__title">No active listings</p><p class="ui-state__why">You have no active sell orders on the exchange.</p></div>
+                  <div id="my-sell-orders-filtered" class="ui-state" hidden></div>
+                  <div class="ui-table-wrap">
+                    <table class="ui-table">
+                      <thead>
+                        <tr>
+                          <th>Item</th>
+                          <th class="ui-table__num">Remaining</th>
+                          <th class="ui-table__num">Unit price</th>
+                          <th>Listed at</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="my-sell-orders-table"></tbody>
+                    </table>
+                  </div>
+                  <p id="my-sell-orders-capped" class="ui-panel__meta" hidden></p>
+                </div>
+              </section>
+            </div>
+
+            <div class="exchange__page" role="tabpanel" id="exchange-page-mercs" aria-labelledby="exchange-tab-mercs" hidden>
+              <!-- ISP-177 (AB#871): Mercenary Rentals -->
+              <section class="ui-panel mercs" id="exchange-mercenary-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-mercenary-section" aria-hidden="true"></span>Mercenary Rentals</h3>
+                    <p class="ui-panel__meta">Hire another corporation&#39;s fleet for a fixed term, or rent yours out. The renter posts the price and a collateral into escrow; when the term ends the owner is paid, any units lost are paid for from the collateral, and the rest goes back to the renter.</p>
+                  </div>
+                </header>
+                <div class="ui-panel__body ui-stack">
+                  <p id="merc-status" class="ui-panel__meta" role="status"></p>
+                  <div id="merc-offers"></div>
+                  <h4>My contracts</h4>
+                  <div id="merc-mine"></div>
+                  <h4>Offer a fleet for hire</h4>
+                  <div id="merc-offer-form"></div>
+                </div>
+              </section>
+            </div>
+
+            <div class="exchange__page" role="tabpanel" id="exchange-page-history" aria-labelledby="exchange-tab-history" hidden>
+              <!-- Trade history -->
+              <section class="ui-panel" id="exchange-history-section">
+                <header class="ui-panel__header">
+                  <div>
+                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-history-section" aria-hidden="true"></span>Trade history</h3>
+                    <p class="ui-panel__meta">Every listing, purchase and sale you have made.</p>
+                  </div>
+                </header>
+                <div class="ui-panel__body ui-stack">
+                  <div id="trade-history-empty" class="ui-state" hidden><p class="ui-state__title">No trades yet</p><p class="ui-state__why">No trade activity recorded yet.</p></div>
+                  <div class="ui-table-wrap">
+                    <table class="ui-table">
+                      <thead>
+                        <tr>
+                          <th>Time</th>
+                          <th>Type</th>
+                          <th>Item</th>
+                          <th class="ui-table__num">Quantity</th>
+                          <th class="ui-table__num">Unit price</th>
+                          <th class="ui-table__num">Total</th>
+                          <th>Counterparty</th>
+                        </tr>
+                      </thead>
+                      <tbody id="trade-history-table"></tbody>
                     </table>
                   </div>
                 </div>
               </section>
-
-              <section class="ui-panel" id="exchange-bid-form-section">
-                <header class="ui-panel__header">
-                  <div>
-                    <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-bid-form-section" aria-hidden="true"></span>Place a buy order</h3>
-                    <p class="ui-panel__meta">The credits are held now. It buys from listings at or under your price, oldest first, at their price, and the rest waits.</p>
-                  </div>
-                </header>
-                <form class="ui-panel__body ui-stack" id="bid-form" novalidate>
-                  <label class="ui-field"><span class="ui-field__label">Item</span>
-                    <select class="ui-select" id="bid-item" name="item"></select>
-                  </label>
-                  <div class="exchange__bid-row">
-                    <label class="ui-field"><span class="ui-field__label">Quantity</span>
-                      <input class="ui-input exchange__qty" id="bid-quantity" name="quantity" type="number" inputmode="numeric" min="1" step="1" value="100" />
-                    </label>
-                    <label class="ui-field"><span class="ui-field__label">Price per unit</span>
-                      <input class="ui-input exchange__qty" id="bid-price" name="unitPrice" type="number" inputmode="numeric" min="1" step="1" value="20" />
-                    </label>
-                  </div>
-                  <p class="ui-panel__meta" id="bid-total" aria-live="polite"></p>
-                  <div><button class="ui-button ui-button--primary" type="submit" id="bid-submit">Place buy order</button></div>
-                  <p id="bid-status" class="ui-panel__meta" role="status"></p>
-                </form>
-              </section>
             </div>
-
-            <!-- AB#815: Standing NPC sell orders, the asks the NPC corporations post -->
-            <section class="ui-panel" id="exchange-npc-sell-section">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-npc-sell-section" aria-hidden="true"></span>Standing sell orders</h3>
-                  <p class="ui-panel__meta">NPC corporations selling from their stations, refilled daily. The most anyone need pay: a player listing below it is the better buy.</p>
-                </div>
-              </header>
-              <div class="ui-panel__body ui-stack">
-                <div id="npc-sell-empty" class="ui-state" hidden><p class="ui-state__title">No standing sell orders</p><p class="ui-state__why">No NPC corporation is selling today.</p></div>
-                <div id="npc-sell-filtered" class="ui-state" hidden></div>
-                <div class="ui-table-wrap">
-                  <table class="ui-table">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th class="ui-table__num">Available</th>
-                        <th class="ui-table__num">Price</th>
-                        <th>Seller</th>
-                        <th>Buy quantity</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody id="npc-sell-table"></tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
-
-            <!-- ISP-177 (AB#871): Mercenary Rentals -->
-            <section class="ui-panel mercs" id="exchange-mercenary-section">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-mercenary-section" aria-hidden="true"></span>Mercenary Rentals</h3>
-                  <p class="ui-panel__meta">Hire another corporation&#39;s fleet for a fixed term, or rent yours out. The renter posts the price and a collateral into escrow; when the term ends the owner is paid, any units lost are paid for from the collateral, and the rest goes back to the renter.</p>
-                </div>
-              </header>
-              <div class="ui-panel__body ui-stack">
-                <p id="merc-status" class="ui-panel__meta" role="status"></p>
-                <div id="merc-offers"></div>
-                <h4>My contracts</h4>
-                <div id="merc-mine"></div>
-                <h4>Offer a fleet for hire</h4>
-                <div id="merc-offer-form"></div>
-              </div>
-            </section>
-
-            <!-- Standing NPC buy orders -->
-            <section class="ui-panel" id="exchange-standing-section">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-standing-section" aria-hidden="true"></span>Standing buy orders</h3>
-                  <p class="ui-panel__meta">Recurring NPC buyers: sell into them and a buyer is always there. The price falls as the day&#39;s quota fills and recovers overnight, so a glutted market pays less and a quiet one pays more. Quantities and prices reset daily at 00:00 UTC.</p>
-                </div>
-              </header>
-              <div class="ui-panel__body ui-stack">
-                <div id="npc-buy-empty" class="ui-state" hidden><p class="ui-state__title">No standing buy orders</p><p class="ui-state__why">There are no standing buy orders today.</p></div>
-                <div id="npc-buy-filtered" class="ui-state" hidden></div>
-                <p id="npc-buy-status" class="ui-panel__meta" role="status"></p>
-                <div class="ui-table-wrap">
-                  <table class="ui-table">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th>Buyer</th>
-                        <th class="ui-table__num">Price per unit</th>
-                        <th>Remaining today</th>
-                        <th>Sell quantity</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody id="npc-buy-table"></tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
-
-            <!-- My active listings -->
-            <section class="ui-panel" id="exchange-mine-section">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-mine-section" aria-hidden="true"></span>My active listings</h3>
-                </div>
-              </header>
-              <div class="ui-panel__body ui-stack">
-                <div id="my-sell-orders-empty" class="ui-state" hidden><p class="ui-state__title">No active listings</p><p class="ui-state__why">You have no active sell orders on the exchange.</p></div>
-                <div id="my-sell-orders-filtered" class="ui-state" hidden></div>
-                <div class="ui-table-wrap">
-                  <table class="ui-table">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th class="ui-table__num">Remaining</th>
-                        <th class="ui-table__num">Unit price</th>
-                        <th>Listed at</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody id="my-sell-orders-table"></tbody>
-                  </table>
-                </div>
-                <p id="my-sell-orders-capped" class="ui-panel__meta" hidden></p>
-              </div>
-            </section>
-
-            <section class="ui-panel" id="exchange-inventory-section">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-inventory-section" aria-hidden="true"></span>Inventory at this station</h3>
-                </div>
-              </header>
-              <div class="ui-panel__body">
-                <ul id="inventory-list" class="ui-list"></ul>
-              </div>
-            </section>
-
-            <!-- Trade history -->
-            <section class="ui-panel" id="exchange-history-section">
-              <header class="ui-panel__header">
-                <div>
-                  <h3 class="ui-panel__title"><span class="ui-code" data-code-for="exchange-history-section" aria-hidden="true"></span>Trade history</h3>
-                  <p class="ui-panel__meta">Every listing, purchase and sale you have made.</p>
-                </div>
-              </header>
-              <div class="ui-panel__body ui-stack">
-                <div id="trade-history-empty" class="ui-state" hidden><p class="ui-state__title">No trades yet</p><p class="ui-state__why">No trade activity recorded yet.</p></div>
-                <div class="ui-table-wrap">
-                  <table class="ui-table">
-                    <thead>
-                      <tr>
-                        <th>Time</th>
-                        <th>Type</th>
-                        <th>Item</th>
-                        <th class="ui-table__num">Quantity</th>
-                        <th class="ui-table__num">Unit price</th>
-                        <th class="ui-table__num">Total</th>
-                        <th>Counterparty</th>
-                      </tr>
-                    </thead>
-                    <tbody id="trade-history-table"></tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
           </article>
 
           <article id="fleet" class="tab-panel ui-screen">
@@ -1104,13 +1098,13 @@
           </article>
 
           <article id="chat" class="tab-panel ui-screen">
-            <!-- ISP-81 (AB#770): Comms on the design system, in the flat direction (Decision AB#1801). -->
+            <!-- ISP-81 (AB#770): Chat (called Comms until AB#2490) on the design system, in the flat direction (Decision AB#1801). -->
             <header class="ui-screen__header">
               <h2 class="ui-screen__title"><span class="ui-code" data-code-for="chat" aria-hidden="true"></span>Real-time Communications</h2>
               <p class="ui-screen__lede">Global and Trade reach every corporation; Local reaches only those in your current system.</p>
             </header>
             <section class="ui-panel chat">
-              <div id="chat-channel-tabs" class="ui-tabs" role="tablist" aria-label="Comms Channels">
+              <div id="chat-channel-tabs" class="ui-tabs" role="tablist" aria-label="Chat channels">
                 <button class="ui-tab" type="button" role="tab" aria-selected="true" data-chat-channel-tab="global">Global</button>
                 <button class="ui-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="local">Local</button>
                 <button class="ui-tab" type="button" role="tab" aria-selected="false" data-chat-channel-tab="trade">Trade</button>
@@ -1262,7 +1256,7 @@
                   </div>
                 </header>
                 <div class="ui-panel__body ui-stack">
-                  <pre class="inbox__body" id="inbox-detail-body"></pre>
+                  <div class="inbox__body" id="inbox-detail-body"></div>
                   <div class="inbox__actions">
                     <button class="ui-button ui-button--secondary" id="inbox-action-archive" type="button" hidden>Archive</button>
                     <button class="ui-button ui-button--secondary" id="inbox-action-restore" type="button" hidden>Move to Inbox</button>
@@ -1340,6 +1334,7 @@
                   <option value="corp-dominance">Corporate dominance</option>
                   <option value="cong-dominance">Conglomerate dominance</option>
                   <option value="concessions">ISA concessions</option>
+                  <option value="rats">Pirate activity (Rats)</option>
                 </select>
               </div>
               <!-- ISP-143 (AB#837): the resource concentration overlay; the items are filled from what the player can see -->
@@ -1386,7 +1381,7 @@
           <p id="mission-detail-text" class="missions__note"></p>
         </section>
         <section id="mission-quota-section" class="missions__modal-section" hidden>
-          <h3 class="missions__heading">Quota Progress</h3>
+          <h3 id="mission-quota-heading" class="missions__heading">Quota Progress</h3>
           <div class="progress-wrap"><div id="mission-quota-bar" class="progress-bar"></div></div>
           <p id="mission-quota-text" class="missions__note"></p>
         </section>
@@ -1433,6 +1428,54 @@
       </article>
     </section>
 
+    <!-- ISP-264 (AB#960): the player's own data: download it, or delete the account (public/scripts/views/accountData.js). -->
+    <section id="account-data-modal" class="modal-backdrop" hidden>
+      <article class="modal-card dialogue" role="dialog" aria-modal="true" aria-labelledby="account-data-title">
+        <div class="dialogue__content">
+          <p class="dialogue__speaker">Your account</p>
+          <h2 id="account-data-title" class="dialogue__title">Your account and data</h2>
+          <div data-step="main" class="ui-stack">
+            <section class="ui-stack" aria-labelledby="account-export-title">
+              <h3 id="account-export-title" class="account-data__heading">Download your data</h3>
+              <p class="ui-panel__meta">A JSON file of everything the game holds about your account: your sign-in details (not your password), your corporation, its finances and statements, your notifications, your mail, and your entries in shared records.</p>
+              <div><button id="account-export-btn" class="ui-button ui-button--secondary" type="button">Download my data (JSON)</button></div>
+              <p id="account-export-status" class="ui-panel__meta" role="status" aria-live="polite"></p>
+            </section>
+            <section class="ui-stack" aria-labelledby="account-delete-title">
+              <h3 id="account-delete-title" class="account-data__heading">Delete your account</h3>
+              <p class="ui-panel__meta">Deleting erases your email address, password, sessions, notifications and mail. It cannot be undone. Your corporation's name is replaced with "Anonymised corporation" wherever other players' records mention it, such as trades, contracts and arbitration cases, so their records stay whole.</p>
+              <div><button id="account-delete-start" class="ui-button ui-button--danger" type="button">Delete my account…</button></div>
+            </section>
+            <div class="dialogue__actions dialogue__actions--end">
+              <button id="account-data-close" class="ui-button ui-button--primary" type="button">Close</button>
+            </div>
+          </div>
+          <form id="account-delete-form" data-step="delete" class="ui-stack" hidden novalidate>
+            <p class="ui-panel__meta">This erases your account for good. To confirm, enter your password and type <strong>DELETE</strong>.</p>
+            <div class="ui-field">
+              <label class="ui-field__label" for="account-delete-password">Password</label>
+              <input id="account-delete-password" class="ui-input" type="password" autocomplete="current-password" required>
+            </div>
+            <div class="ui-field">
+              <label class="ui-field__label" for="account-delete-confirm">Type DELETE to confirm</label>
+              <input id="account-delete-confirm" class="ui-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+            </div>
+            <p id="account-delete-error" class="ui-field__error" role="alert"></p>
+            <div class="dialogue__actions">
+              <button id="account-delete-cancel" class="ui-button ui-button--secondary" type="button">Keep my account</button>
+              <button id="account-delete-submit" class="ui-button ui-button--danger" type="submit" disabled>Delete my account</button>
+            </div>
+          </form>
+          <div data-step="done" class="ui-stack" hidden>
+            <p class="ui-panel__meta" role="status">Your account has been deleted. Your email address, password, sessions, notifications and mail are gone, and your corporation is now an anonymised name in shared records.</p>
+            <div class="dialogue__actions dialogue__actions--end">
+              <button id="account-deleted-leave" class="ui-button ui-button--primary" type="button">Leave</button>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
     <!-- ISP-124 (AB#818): an NPC corporation's (or authority's) profile, from the catalog (public/scripts/views/npcProfileModal.js). -->
     <section id="npc-profile-modal" class="modal-backdrop" hidden>
       <article class="modal-card dialogue" data-role="npc-profile-card" role="dialog" aria-modal="true" aria-labelledby="npc-profile-title">
@@ -1440,7 +1483,7 @@
           <p class="dialogue__speaker" id="npc-profile-heading">NPC corporation</p>
           <h2 id="npc-profile-title" class="dialogue__title"></h2>
           <div id="npc-profile-body" class="npc-profile-body"></div>
-          <div class="dialogue__actions">
+          <div class="dialogue__actions dialogue__actions--end"><!-- AB#2492: Close at the bottom right -->
             <button id="npc-profile-close" class="ui-button ui-button--primary" type="button">Close</button>
           </div>
         </div>
@@ -1468,7 +1511,7 @@
         <div class="dialogue__content">
           <p id="walkthrough-speaker" class="dialogue__speaker"></p>
           <h2 id="walkthrough-title" class="dialogue__title"></h2>
-          <p id="walkthrough-text" class="dialogue__text"></p>
+          <div id="walkthrough-text" class="dialogue__text walkthrough__text"></div>
           <div class="dialogue__actions">
             <button id="walkthrough-prev" class="ui-button ui-button--secondary" type="button">Previous</button>
             <button id="walkthrough-next" class="ui-button ui-button--primary" type="button">Next</button>

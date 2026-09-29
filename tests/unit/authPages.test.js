@@ -25,6 +25,9 @@ export const OLD_CLASSES = [
 
 /** Every place a class name is used as one: class="...", className = "...", classList.*("..."), and CSS/JS selectors. */
 function classUses(text, name) {
+  // Bug AB#4641: every pattern below contains the name, so a text without it has no use of it. Skipping those makes
+  // the repo-wide scan about 15 times faster (2.3 s to 0.15 s), which a full suite's load had pushed past 20 s.
+  if (!text.includes(name)) return [];
   const n = name.replace(/-/g, "\\-");
   const edge = "(?![\\w-])";
   const patterns = [
@@ -98,8 +101,14 @@ describe("the pages before play are on the design system (ISP-76)", () => {
     expect(page).toContain('<section id="auth-shell" class="landing"');
     // The landing alone: the game's screens after it have their own badges (ISP-81, AB#770).
     const landing = page.slice(page.indexOf('<section id="auth-shell"'), page.indexOf('<div id="game-shell"'));
-    expect((landing.match(/class="ui-card"/g) || []).length).toBeGreaterThanOrEqual(20);
-    expect((landing.match(/class="ui-badge"/g) || []).length).toBe(3);
+    // ISP-257 (AB#953): the feature catalogue (twenty-odd cards) became three proof points, each a real screen
+    expect((landing.match(/class="ui-card landing__proof"/g) || []).length).toBe(3);
+    expect((landing.match(/<img class="landing__proof-shot"/g) || []).length).toBe(3);
+    // Bug #4709: AB#2462 (Board review 2026-09-26, items 1 and 3) took the three promise badges off and put the logo and
+    // the tagline at the top; the landing's shape is that now.
+    expect((landing.match(/class="ui-badge"/g) || []).length).toBe(0);
+    expect(landing.indexOf('class="landing__logo"')).toBeGreaterThan(-1);
+    expect(landing.indexOf('class="landing__tagline"')).toBeGreaterThan(landing.indexOf('class="landing__logo"'));
     expect(read("public/how-to-start.html")).toContain('<main class="landing">');
   });
 

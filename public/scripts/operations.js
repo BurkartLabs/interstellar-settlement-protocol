@@ -77,7 +77,7 @@ export function operationsHtml(rows, now = Date.now()) {
       <span class="ui-badge ops-row__kind">${k.label}</span>
       <span class="ops-row__what">${escapeHtml(r.what)}</span>
       <span class="ops-row__when">${r.startsAt ? `starts ${deadline(r.startsAt, now)}, ` : ""}ends ${deadline(r.endsAt, now)}</span>
-      <button type="button" class="ui-button ui-button--secondary ops-row__go" data-op-tab="${k.tab}"${k.sub ? ` data-op-sub="${k.sub}"` : ""}>Open</button>
+      <button type="button" class="ui-button ui-button--secondary" data-op-tab="${k.tab}"${k.sub ? ` data-op-sub="${k.sub}"` : ""}>Open</button>
     </li>`;
   }).join("")}</ul>`;
 }

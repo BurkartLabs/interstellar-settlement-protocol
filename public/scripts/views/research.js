@@ -5,10 +5,15 @@ import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { deepClone, toCurrency } from "../helpers.js";
 import { escapeHtml, queueItemsHtml, researchNodeHtml } from "../html.js";
-import { formatHoursMinutes, nextRndStart, rndItemStatus, scheduleRndQueue } from "../rndQueue.js";
+import { formatHoursMinutes, nextRndStart, rndItemStatus, rndQueueRoom, scheduleRndQueue } from "../rndQueue.js";
 import { appState, techTree } from "../state.js";
 import { flashButtonSuccess, pushFeedback, setTab, updateAllViews } from "./shared.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 (AB#950)
 import { bindResearchLinks } from "../researchLinks.js"; // AB#885
+import { insightRemaining, researchRemaining, totalText } from "../researchTotals.js"; // AB#2475
+import { isInsightProgramLive } from "../ceoEffects.js";
+import { renderPrereqGraph } from "./prereqGraph.js"; // AB#2477
+import { patentToPay, researchRoyaltyLine } from "../patentRoyalty.js"; // Bug #4857
 
 export function getTechNode(techId) {
   return techTree.find((item) => item.id === techId) || null;
@@ -44,6 +49,10 @@ export function renderTechTree(data) {
   const treeWrap = document.getElementById("rnd-tech-tree");
   const done = new Set(data.corp.unlockedTech || []);
   const inQueue = new Set((data.queues.corporateRnD || []).map((item) => item.techId).filter(Boolean));
+  // AB#2476: the one in progress and one behind it. Full, every card says when a place opens, as the server refuses.
+  const now = Date.now();
+  const room = rndQueueRoom(data.queues.corporateRnD, now);
+  const fullReason = room.ok ? "" : `Queue full: a place opens in ${formatHoursMinutes(room.freesAt - now)}, when ${room.finishing.name || "the research ahead"} finishes`;
 
   // Still populate the ghost #rnd-select so the existing submit handler can read it
   const select = document.getElementById("rnd-select");
@@ -57,22 +66,26 @@ export function renderTechTree(data) {
   }
 
   // Render tech rows grouped by tier, then by status
+  const graph = []; // AB#2477: each node's state, for the prerequisite tree
   const rows = techTree
     .map((node) => {
+      graph.push(techGraphNode(node, { done, inQueue, corpLevel: data.corp.level }));
       const prereqLabel = node.prereqs.length ? node.prereqs.map((id) => techTree.find((it) => it.id === id)?.name || id).join(", ") : "None";
       const cost = `${node.durationHours}h · ${toCurrency(node.costCredits)}`;
       const card = { id: node.id, name: node.name, tier: node.tier, effect: node.effect };
+      // Bug #4857: another corporation's patent on the node, and the royalty it takes when the research completes
+      const royalty = researchRoyaltyLine(patentToPay(appState.patents, "research", node.id, data.corp.corporationName, now), node.costCredits);
 
-      if (done.has(node.id)) return researchNodeHtml({ ...card, state: "done" });
-      if (inQueue.has(node.id)) return researchNodeHtml({ ...card, state: "queued", meta: [cost] });
+      if (done.has(node.id)) return researchNodeHtml({ ...card, state: "done", protocolLine: protocolLineHtml({ meaning: "complete", screen: "rnd" }) });
+      if (inQueue.has(node.id)) return researchNodeHtml({ ...card, state: "queued", meta: [cost, royalty], protocolLine: protocolLineHtml({ meaning: "queued", screen: "rnd" }) });
       const lock = researchLockReason(node, { done, corpLevel: data.corp.level });
       if (lock === PLANNED_RESEARCH) return researchNodeHtml({ ...card, state: "planned", meta: [cost, lock] });
       if (lock) return researchNodeHtml({ ...card, state: "locked", meta: [lock] });
       return researchNodeHtml({
         ...card,
         state: "available",
-        meta: [cost, `Prereqs: ${prereqLabel}`],
-        action: `<button class="ui-button ui-button--secondary research__enqueue" type="button" data-tech-id="${escapeHtml(node.id)}">Enqueue</button>`
+        meta: [cost, royalty, `Prereqs: ${prereqLabel}`, fullReason],
+        action: `<button class="ui-button ui-button--secondary research__enqueue" type="button" data-tech-id="${escapeHtml(node.id)}"${fullReason ? " disabled" : ""}>Enqueue</button>`
       });
     })
     .join("");
@@ -92,6 +105,18 @@ export function renderTechTree(data) {
   };
 
   renderResearchSelectionDetails(data);
+  renderPrereqGraph(document.getElementById("rnd-prereq-graph"), { key: "rnd", nodes: graph, empty: "No research nodes configured." });
+}
+
+/** AB#2477: a research node as the prerequisite tree draws it, in the same states its card shows. */
+export function techGraphNode(node, { done, inQueue, corpLevel }) {
+  const base = { id: node.id, name: node.name, prereqs: node.prereqs || [], met: done.has(node.id) };
+  if (done.has(node.id)) return { ...base, state: "done" };
+  if (inQueue.has(node.id)) return { ...base, state: "queued" };
+  const lock = researchLockReason(node, { done, corpLevel });
+  if (lock === PLANNED_RESEARCH) return { ...base, state: "planned" };
+  if (lock) return { ...base, state: "locked", lock: lock.startsWith("Requires: ") ? undefined : lock };
+  return { ...base, state: "available" };
 }
 
 export function renderResearchSelectionDetails(data) {
@@ -108,7 +133,7 @@ export function renderResearchSelectionDetails(data) {
   }
 
   const prereqLabel = node.prereqs.length ? node.prereqs.map((id) => getTechNode(id)?.name || id).join(", ") : "None";
-  details.textContent = `${node.name} costs ${toCurrency(node.costCredits)} credits, runs for ${node.durationHours}h, and requires: ${prereqLabel}.`;
+  details.textContent = `${node.name} costs ${toCurrency(node.costCredits)}, runs for ${node.durationHours}h, and requires: ${prereqLabel}.`;
 }
 
 export function queueProgress(item) {
@@ -156,6 +181,8 @@ export function rndQueueHtml(queue, subtitle) {
       return status.state === "running" ? `${formatHoursMinutes(status.remainingMs)} remaining` : "Completing...";
     },
     statusOf: (item) => (rndItemStatus(item, now).state === "queued" ? "Queued" : "In progress"),
+    // ISP-254 (AB#950): Queued is Lodged, In progress is In force (docs/design/BUREAUCRATIC_UI.md)
+    protocolOf: (item) => protocolLineHtml({ meaning: rndItemStatus(item, now).state === "queued" ? "queued" : "active", screen: "rnd" }),
     formatCredits: toCurrency
   });
 }
@@ -199,7 +226,7 @@ export function bindResearchForms() {
         const credits = Number(appState.data.corp.finances.credits || 0);
         if (credits < node.costCredits) {
           throw new Error(
-            `${node.name} requires ${toCurrency(node.costCredits)} credits. Current reserves are ${toCurrency(credits)} credits.`
+            `${node.name} requires ${toCurrency(node.costCredits)}. Current reserves are ${toCurrency(credits)}.`
           );
         }
 
@@ -216,21 +243,37 @@ export function bindResearchForms() {
         updateAllViews();
       }
 
+      const lodged = { meaning: "queued", screen: "rnd" }; // ISP-254 (AB#950)
       if (rndStatus) {
-        rndStatus.textContent = `${node.name} entered the queue. ${toCurrency(node.costCredits)} credits committed.`;
+        rndStatus.innerHTML = `${escapeHtml(`${node.name} entered the queue. ${toCurrency(node.costCredits)} committed.`)} ${protocolLineHtml(lodged)}`;
       }
       pushFeedback(
-        `${node.name} added to the corporate R&D queue. Funding locked: ${toCurrency(node.costCredits)} credits.`,
-        "success"
+        `${node.name} added to the corporate R&D queue. Funding locked: ${toCurrency(node.costCredits)}.`,
+        "success",
+        lodged
       );
       flashButtonSuccess(rndForm.querySelector('button[type="submit"]'));
       rndForm.reset();
       renderResearchSelectionDetails(appState.data);
     } catch (error) {
+      const denied = { meaning: refusalMeaning(error.message), screen: "rnd" }; // ISP-254 (AB#950)
       if (rndStatus) {
-        rndStatus.textContent = `R&D queue action failed: ${error.message}`;
+        rndStatus.innerHTML = `${escapeHtml(`R&D queue action failed: ${error.message}`)} ${protocolLineHtml(denied)}`;
       }
-      pushFeedback(`R&D queue request rejected. ${error.message}`, "error");
+      pushFeedback(`R&D queue request rejected. ${error.message}`, "error", denied);
     }
   });
+}
+
+/**
+ * AB#2475 (Board review item 22): the time to finish every research item still outstanding, on Corporate R&D and CEO
+ * Insight (researchTotals.js: each track runs one item at a time, so it is the sum of what is left). Drawn with the
+ * page and each second by the ticker, so it counts down and drops as items complete.
+ */
+export function renderResearchTotals(data, now = Date.now()) {
+  if (!data?.corp) return;
+  const rnd = document.getElementById("rnd-total");
+  if (rnd) rnd.textContent = `Total time to complete all remaining research: ${totalText(researchRemaining({ nodes: techTree, done: data.corp.unlockedTech || [], queue: data.queues?.corporateRnD || [] }, now), "technology", "technologies")}`;
+  const ceo = document.getElementById("ceo-total");
+  if (ceo) ceo.textContent = `Total time to complete all remaining programs: ${totalText(insightRemaining({ programs: appState.insightPrograms || [], completed: data.corp.completedInsights || [], queue: data.queues?.ceoInsight || [], isLive: isInsightProgramLive }, now), "program level", "program levels")}`;
 }

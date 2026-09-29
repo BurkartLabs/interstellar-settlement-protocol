@@ -45,15 +45,38 @@ export function expeditionRatsText(exp) {
     for (const [id, n] of Object.entries(e.escort?.lost || {})) lost[id] = (lost[id] || 0) + n;
     haul += Object.values(e.haulLost || {}).reduce((s, n) => s + n, 0);
   }
-  // troops' names are already plural: "2 squads of Attack Troops", as the Fleet tab says it
-  const named = (id, n) => (UNITS[id]?.role === "troop" || id === "at" || id === "dt" ? `${n} squad${n === 1 ? "" : "s"} of ${UNITS[id]?.name || id}` : `${n} ${UNITS[id]?.name || id}${n === 1 ? "" : "s"}`);
-  const unitWords = Object.entries(lost).map(([id, n]) => named(id, n)).join(", ");
+  const unitWords = unitsInWords(lost);
   const fought = r.encounters.filter((e) => e.escort).length;
   const escort = !r.escortFleetId ? ""
     : r.escortBeaten ? ` The escort was beaten${unitWords ? `, losing ${unitWords}` : ""}.`
       : ` The escort held ${fought === 1 ? "the fight" : `all ${fought} fights`}${unitWords ? `, losing ${unitWords}` : " without a loss"}.`;
   const taken = haul ? ` Rats took ${haul.toLocaleString("en-US")} units of the haul.` : " The haul is intact.";
   return `Met Rats ${times}.${escort}${taken}`;
+}
+
+// troops' names are already plural: "2 squads of Attack Troops", as the Fleet tab says it
+const named = (id, n) => (UNITS[id]?.role === "troop" || id === "at" || id === "dt" ? `${n} squad${n === 1 ? "" : "s"} of ${UNITS[id]?.name || id}` : `${n} ${UNITS[id]?.name || id}${n === 1 ? "" : "s"}`);
+const unitsInWords = (units, sep = ", ") => Object.entries(units || {}).filter(([, n]) => n > 0).map(([id, n]) => named(id, n)).join(sep);
+
+/**
+ * AB#821 (docs/design/rats.md, section 7): the probe-return report's account of each encounter, one sentence group per
+ * encounter: how far through the expedition (a share, which reads the same for the dev server's ten-second runs), the
+ * Rat group met, how the escort's fight went and what the Rats took.
+ * [] for an expedition that met none, or one from before Rats.
+ */
+export function expeditionEncounterLines(exp) {
+  const r = exp?.rats;
+  if (!r || !Array.isArray(r.encounters)) return [];
+  return r.encounters.map((e, i) => {
+    const span = Number(exp.completesAt) - Number(exp.deployedAt);
+    const through = span > 0 ? Math.min(100, Math.max(0, Math.round(((Number(e.at) - Number(exp.deployedAt)) / span) * 100))) : 0;
+    const lost = unitsInWords(e.escort?.lost);
+    const fight = e.escort
+      ? (e.escort.held ? ` The escort held${lost ? `, losing ${lost}` : " without a loss"}.` : ` The escort was beaten${lost ? `, losing ${lost}` : ""}.`)
+      : r.escortFleetId ? " The escort, already beaten, could not fight." : " There was no escort.";
+    const haul = Object.entries(e.haulLost || {}).filter(([, n]) => n > 0).map(([item, n]) => `${n.toLocaleString("en-US")} ${item}`).join(", ");
+    return `Encounter ${i + 1}, ${through}% of the way through: ${unitsInWords(e.rats, " and ") || "a Rat group"}.${fight} ${haul ? `They took ${haul}.` : "The haul was untouched."}`;
+  });
 }
 
 /** AB#2330: how many minutes before its scheduled return an expedition came home, at least 1. */

@@ -5,6 +5,8 @@ touch and does it need to; who can reach it and what happens if they are hostile
 leak; does it fail closed — for the four areas that carry risk: auth, persistence, the market and sockets. Every
 answer cites the file and line it is true of, so it goes stale the moment the code moves and someone can tell.
 
+The systems added in v0.6 to v0.13, and the economic abuse between them, are in [docs/SECURITY.md](docs/SECURITY.md) (ISP-261, AB#957).
+
 This is a design document, not a pass before launch (DOCTRINE, "Security first, at design time"). It answers
 what is built. It does not defer anything: gaps found while writing it are filed as bugs below, not fixed here.
 
@@ -225,3 +227,57 @@ leak — which is the acceptance line's own carve-out, not a gap in it.
 
 Both are filed in Azure DevOps (area `Orchestrata\interstellar-settlement-protocol`, tag `security`), Proposed,
 not claimed by this story.
+
+## Before going public (ISP-263, AB#959)
+
+Three checks, each repeatable. Run them again before any release that changes dependencies, history or the policy.
+None prints a secret value; give the Board the command, never the output of a secret.
+
+**Dependencies.** `npm audit --omit=dev` must show no high or critical finding (the image installs with
+`--omit=dev`, so dev-only findings never ship). On 2026-09-28 it showed 3 high (engine.io, socket.io-parser, ws) and
+2 moderate (qs, body-parser). All are fixed in the lockfile; qs through an `overrides` entry, since express 4 pins
+`~6.14`, where no fix exists. Result: 0 vulnerabilities.
+
+**Secrets in history.** gitleaks over every ref, values redacted (Git Bash needs `MSYS_NO_PATHCONV=1`):
+
+    docker run --rm -v <clone>:/repo:ro zricethezav/gitleaks:latest git /repo --log-opts="--all" --redact --no-banner
+    git log --remotes=origin --oneline -- data/accounts-snapshot.json data/accounts.json
+
+On 2026-09-28: 226 findings over the 842 commits gitleaks scanned. 202 are JWTs (refresh tokens) inside `data/accounts-snapshot.json`
+(AB#415) and `data/accounts.json` (an earlier file, removed in April, synthetic domains only), both still reachable
+from `origin/main`. The Board closed AB#415 as accepted risk on 2026-09-20 without purging history, so this is filed
+again as **Bug #4805** (severity 1) for a release-time decision: purge, or amend the acceptance. The other 24 are named
+test fixtures (the JWT secrets of spec servers, a probe password, a localStorage key name), not secrets. A refresh
+token is honoured only while it is stored against its account (`hasRefreshToken`), so tokens from a local snapshot
+work only on a server that loaded that snapshot. The password hashes are the lasting exposure.
+
+**Runtime files.** Everything the server writes into `data/` without `ISP_DATA_DIR` (the references salt, chat,
+mail, statements, ledgers) is kept out of git and the image, and `tests/unit/runtimeDataIgnored.test.js` fails when a
+new one is not (**Bug #4806**, found by this audit; none was ever committed).
+
+**Content security policy.** `npm run audit:csp` runs the Playwright suite with `ISP_CSP_REPORT_FILE` set, which adds
+`report-uri /csp-report` to the production policy and writes each violation Chromium reports to that file, and fails on
+any. `e2e/csp-report.spec.js` makes a real violation and waits for its report, so a zero is not a blind zero. What it
+cannot see: a page no spec opens, and browsers other than Chromium. On 2026-09-28 the
+first 130 of 331 tests (the specs from action-receipt through hidden-views) reported 0 violations; the machine ran
+out of memory there and no worker started after it, so the rest of the suite is still owed a run.
+
+## Telemetry (ISP-256, AB#952)
+
+**What it touches.** `POST /api/telemetry` (server/routes/telemetry.js, server/telemetry.js) stores the page's
+minimum events on the data volume, one JSONL file a day, deleted after 90 days. A stored row holds only
+`{ at, event, distinct_id, session_id, app_version, platform, props }`. `distinct_id` is a random 128-bit id the
+browser keeps (public/scripts/telemetry.js), never the account id or email. The page sends events with plain fetch or
+sendBeacon, never apiFetch, so no Authorization header ties an event to an account. No IP address, user agent or
+account is stored. An error's message has URLs (which carry `?account=`), emails and account ids removed before
+it leaves the page, and is cut to 300 characters.
+
+**Who can reach it, and if they are hostile.** Anyone, as anyone can load the page: it is listed in
+tests/security/public-surface.js. Its own rate-limit group allows 30 requests a minute per address
+(server/rateLimitConfig.js, `telemetry`). Each request carries at most 20 events and 8 KB (a larger body is 413 before
+any route runs). Only the seven listed event names are accepted, each with exactly its properties and types, and the
+ids must be 32 hex digits. A hostile client can add noise to the numbers from its own address, within the limit; it
+cannot write anything but a well-formed row, and cannot reach any other file.
+
+**Fail closed.** An invalid event is dropped whole and counted in the answer, never stored raw. A store that cannot be
+written answers 503 and keeps nothing.

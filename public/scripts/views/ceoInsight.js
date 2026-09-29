@@ -6,20 +6,102 @@ import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { isInsightProgramLive } from "../ceoEffects.js";
 import { deepClone, toCurrency } from "../helpers.js";
 import { escapeHtml, researchNodeHtml } from "../html.js";
-import { appState } from "../state.js";
+import { appState, viewerStorage } from "../state.js";
 import { pushFeedback, updateAllViews } from "./shared.js";
+import { renderPrereqGraph } from "./prereqGraph.js"; // AB#2477
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 C2 (AB#4812)
+
+/** ISP-254 C2 (AB#4812): a program's or an enrollment's protocol on the CEO Insight screen (CORP-EXE-1). */
+const onCeo = (meaning) => ({ meaning, screen: "ceo" });
+
+// ─── AB#2474 (Board review 2026-09-26, item 21): categories, each collapsible, in a collapsible Programs section ───
+// Which are collapsed is remembered per viewer: { programs: expanded, categories: { name: expanded } }. Everything
+// starts expanded; anything unreadable is no choice.
+export const INSIGHT_STORAGE_KEY = "isp.ceoInsight.v1";
+
+export function readInsightState(storage = viewerStorage()) {
+  try {
+    const saved = JSON.parse(storage?.getItem(INSIGHT_STORAGE_KEY) || "{}");
+    const categories = Object.fromEntries(Object.entries(saved.categories && typeof saved.categories === "object" ? saved.categories : {}).filter(([, v]) => typeof v === "boolean"));
+    return { programs: typeof saved.programs === "boolean" ? saved.programs : true, categories };
+  } catch {
+    return { programs: true, categories: {} };
+  }
+}
+
+function writeInsightState(state, storage = viewerStorage()) {
+  try {
+    storage?.setItem(INSIGHT_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // storage blocked or full: the screen still works, it just forgets on reload
+  }
+}
+
+/** The programs by category, in the catalogue's order of categories; a program in none of them goes last, under Other. */
+export function groupInsightPrograms(programs, categories) {
+  const groups = categories.map((c) => ({ name: c.name, summary: c.summary || "", programs: [] }));
+  const byName = new Map(groups.map((g) => [g.name, g]));
+  for (const prog of programs) {
+    let group = byName.get(prog.category);
+    if (!group) {
+      group = byName.get("Other") || { name: "Other", summary: "", programs: [] };
+      if (!byName.has("Other")) { byName.set("Other", group); groups.push(group); }
+    }
+    group.programs.push(prog);
+  }
+  return groups.filter((g) => g.programs.length);
+}
+
+const categoryDomId = (name) => `ceo-category-${String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+
+function applyProgramsToggle(expanded) {
+  const button = document.getElementById("ceo-programs-toggle");
+  const body = document.getElementById("ceo-insight-tree");
+  if (!button || !body) return;
+  button.setAttribute("aria-expanded", String(expanded));
+  body.hidden = !expanded;
+}
+
+/**
+ * AB#2477: the programs as the prerequisite tree draws them, in the same states their cards show. A program is met, for
+ * what depends on it, once one level is complete (the server's check, and the card's).
+ */
+export function insightGraphNodes(programs = [], completed = [], queuedIds = []) {
+  return programs.map((prog) => {
+    const done = completed.filter((id) => id === prog.id).length;
+    const queued = queuedIds.filter((id) => id === prog.id).length;
+    const levels = prog.maxLevels || 1;
+    const base = { id: prog.id, name: levels > 1 ? `${prog.name} (${done}/${levels})` : prog.name, prereqs: prog.prereqs || [], met: done > 0 };
+    if (done >= levels) return { ...base, state: "done" };
+    if (queued > 0) return { ...base, state: "queued" };
+    if (!isInsightProgramLive(prog)) return { ...base, state: "planned" };
+    if (!(prog.prereqs || []).every((req) => completed.includes(req))) return { ...base, state: "locked" };
+    return { ...base, state: "available" };
+  });
+}
 
 export function renderInsightTree(data) {
   const treeWrap = document.getElementById("ceo-insight-tree");
   if (!treeWrap) return;
+
+  const viewState = readInsightState();
+  applyProgramsToggle(viewState.programs);
+  const programsToggle = document.getElementById("ceo-programs-toggle");
+  if (programsToggle) {
+    programsToggle.onclick = () => {
+      const state = readInsightState();
+      state.programs = programsToggle.getAttribute("aria-expanded") !== "true";
+      writeInsightState(state);
+      applyProgramsToggle(state.programs);
+    };
+  }
 
   const completed = data.corp.completedInsights || [];
   const queue = data.queues?.ceoInsight || [];
   const queuedIds = queue.map((item) => item.programId).filter(Boolean);
 
   const programs = appState.insightPrograms;
-  const rows = programs
-    .map((prog) => {
+  const cardHtml = (prog) => {
       const completionCount = completed.filter((id) => id === prog.id).length;
       const queuedCount = queuedIds.filter((id) => id === prog.id).length;
       const maxLevels = prog.maxLevels || 1;
@@ -39,8 +121,8 @@ export function renderInsightTree(data) {
       const cost = `${prog.durationHours}h · ${toCurrency(prog.costCredits)}`;
       const card = { name: `${prog.name}${levelLabel}`, effect: prog.effect };
 
-      if (isDone) return researchNodeHtml({ ...card, state: "done", meta: [plannedNote] });
-      if (isQueued || queuedCount > 0) return researchNodeHtml({ ...card, state: "queued", meta: [cost, plannedNote] });
+      if (isDone) return researchNodeHtml({ ...card, state: "done", meta: [plannedNote], protocolLine: protocolLineHtml(onCeo("complete")) });
+      if (isQueued || queuedCount > 0) return researchNodeHtml({ ...card, state: "queued", meta: [cost, plannedNote], protocolLine: protocolLineHtml(onCeo("queued")) });
       if (isPlanned) return researchNodeHtml({ ...card, name: prog.name, state: "planned", meta: [plannedNote] });
       if (isLocked) return researchNodeHtml({ ...card, name: prog.name, state: "locked", meta: [`Requires: ${prereqLabel}`] });
       return researchNodeHtml({
@@ -49,12 +131,48 @@ export function renderInsightTree(data) {
         meta: [cost, `Prereqs: ${prereqLabel}`],
         action: `<button class="ui-button ui-button--secondary insight__enroll" type="button" data-program-id="${escapeHtml(prog.id)}">Enroll</button>`
       });
-    })
-    .join("");
+  };
 
-  treeWrap.innerHTML = rows || '<div class="ui-state"><p class="ui-state__title">No insight programs configured.</p></div>';
+  const groups = groupInsightPrograms(programs, appState.insightCategories || []);
+  const doneCount = (group) => group.programs.filter((p) => completed.filter((id) => id === p.id).length >= (p.maxLevels || 1)).length;
+  const sections = groups.map((group) => {
+    const id = categoryDomId(group.name);
+    const titleId = `${id}-title`; // Bug #4746: every interpolated attribute ends at its quote (the Bug #1254 check)
+    const expanded = viewState.categories[group.name] !== false;
+    const count = `${group.programs.length} program${group.programs.length === 1 ? "" : "s"} · ${doneCount(group)} done`;
+    // a group inside the Programs section, not a section of its own: the section's one document code covers it
+    return `<div class="insight__category" role="group" aria-labelledby="${titleId}">
+      <h4 id="${titleId}" class="insight__category-title">
+        <button class="insight__toggle insight__toggle--category" type="button" aria-expanded="${expanded}" aria-controls="${id}" data-insight-category="${escapeHtml(group.name)}">
+          <span class="insight__category-name">${escapeHtml(group.name)}<span class="insight__category-count">${count}</span></span>
+          <span class="insight__arrow" aria-hidden="true">▾</span>
+        </button>
+      </h4>
+      <div id="${id}" class="insight__category-body"${expanded ? "" : " hidden"}>
+        ${group.summary ? `<p class="insight__category-summary">${escapeHtml(group.summary)}</p>` : ""}
+        <div class="ui-grid">${group.programs.map(cardHtml).join("")}</div>
+      </div>
+    </div>`;
+  }).join("");
+
+  treeWrap.innerHTML = sections || '<div class="ui-state"><p class="ui-state__title">No insight programs configured.</p></div>';
+  renderPrereqGraph(document.getElementById("ceo-prereq-graph"), {
+    key: "ceo", nodes: insightGraphNodes(programs, completed, queuedIds), empty: "No insight programs configured."
+  }); // AB#2477
 
   treeWrap.onclick = async (e) => {
+    const toggle = e.target.closest("[data-insight-category]");
+    if (toggle) {
+      const name = toggle.getAttribute("data-insight-category");
+      const expanded = toggle.getAttribute("aria-expanded") !== "true";
+      toggle.setAttribute("aria-expanded", String(expanded));
+      const body = document.getElementById(toggle.getAttribute("aria-controls"));
+      if (body) body.hidden = !expanded;
+      const state = readInsightState();
+      state.categories[name] = expanded;
+      writeInsightState(state);
+      return;
+    }
     const btn = e.target.closest(".insight__enroll");
     if (!btn) return;
     const programId = btn.getAttribute("data-program-id");
@@ -79,7 +197,7 @@ export function renderInsightTree(data) {
     } catch (error) {
       btn.disabled = false;
       btn.textContent = "Enroll";
-      pushFeedback(`CEO Insight error: ${error.message}`, "warn");
+      pushFeedback(`CEO Insight error: ${error.message}`, "warn", onCeo(refusalMeaning(error)));
     }
   };
 }

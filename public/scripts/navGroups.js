@@ -9,7 +9,7 @@ export const NAV_GROUPS = [
   { id: "station", label: "Station", tabs: ["station", "operations", "fleet"] }, // ISP-175 (AB#869): the Fleet tab; AB#2471: Operations
   { id: "industry", label: "Industry", tabs: ["rnd", "refinery", "logistics"] },
   { id: "market", label: "Market", tabs: ["market", "assets"] },
-  { id: "comms", label: "Comms", tabs: ["chat", "forums"] },
+  { id: "comms", label: "Chat", tabs: ["chat", "forums"] }, // AB#2490: "Comms is now called Chat" (Board); the id stays
   { id: "map", label: "Map", tabs: ["starmap", "travel"] }
 ];
 

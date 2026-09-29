@@ -63,6 +63,7 @@ export const appState = {
   navigation: navigationFor([]),
   buildingRegistry: [],
   insightPrograms: [], // loaded from /api/ceo-insight (Bug #983)
+  insightCategories: [], // the same, AB#2474: [{ name, summary }] in the order they are shown
   stationActiveLease: null,
   _travelTimer: null,
   exchangeView: loadExchangeView(viewerStorage()), // resource, order type and sort, remembered per viewer (AB#402)

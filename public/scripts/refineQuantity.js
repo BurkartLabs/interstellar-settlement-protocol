@@ -42,7 +42,10 @@ export function refineQuantityCheck(raw, { perCycle, input, available } = {}) {
     return { ok: false, reason: `Runs use whole batches of ${fmt(per)} ${input}: enter ${fmt(down)} or ${fmt(down + per)}.` };
   }
   if (available !== undefined && available !== null && n > Number(available)) {
-    return { ok: false, reason: `You have ${fmt(available)} ${input} here, not ${fmt(n)}.` };
+    // Bug #4807 (ISP-6's rule): and what to do: the most whole batches the stock covers, or bring stock first
+    const most = Math.floor(Number(available) / per) * per;
+    const next = most >= min ? `Enter ${fmt(most)} or fewer, or bring more ${input} here.` : `Bring at least ${fmt(min)} ${input} here first.`;
+    return { ok: false, reason: `You have ${fmt(available)} ${input} here, not ${fmt(n)}. ${next}` };
   }
   return { ok: true, quantity: n, batches: n / per };
 }

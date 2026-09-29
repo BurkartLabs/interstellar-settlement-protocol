@@ -3,7 +3,7 @@
 // (300 Carbon at 19 from Kessler) and the rest waits as the viewer's own row, with Cancel; cancelling returns what it
 // held. The layout checks are the Exchange's own (e2e/exchange-screen.spec.js). Screenshots to e2e/screenshots/ab-1054/.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openExchangePage, openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -106,7 +106,7 @@ for (const [width, height] of SIZES) {
       await page.fill("#login-password", PASSWORD);
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\/\?account=/);
-      await openTab(page, "market");
+      await openExchangePage(page, "players"); // AB#2472: the player order books
 
       const bids = page.locator("#exchange-bids-table tr");
       await expect(bids).toHaveCount(2);
@@ -116,11 +116,11 @@ for (const [width, height] of SIZES) {
       await page.selectOption("#bid-item", "Carbon");
       await page.fill("#bid-quantity", "400");
       await page.fill("#bid-price", "20");
-      await expect(page.locator("#bid-total")).toContainText("Holds $8,000 now");
+      await expect(page.locator("#bid-total")).toContainText("Holds ¤8,000 now");
       await page.click("#bid-submit");
       await page.locator("#trade-confirm-ok").click();
       await expect(page.locator("#action-receipt-close")).toBeVisible();
-      await expect(page.locator("#bid-status")).toHaveText(/Bought 300 at once; 100 Carbon waiting at \$20/);
+      await expect(page.locator("#bid-status")).toHaveText(/Bought 300 at once; 100 Carbon waiting at ¤20/);
       await page.locator("#action-receipt-close").click();
 
       const mine = page.locator("#exchange-bids-table tr", { hasText: "You" });
@@ -128,8 +128,10 @@ for (const [width, height] of SIZES) {
       await expect(mine).toContainText("Carbon");
       await expect(mine).toContainText("100");
       await expect(page.locator("#exchange-buy-table tr", { hasText: "Carbon" })).toHaveCount(0); // Kessler's 300 sold
+      await page.locator("#exchange-tab-history").click(); // AB#2472: the trade history is its own subpage
       await expect(page.locator('#trade-history-table .ui-badge[data-trade-type="bid"]')).toBeVisible();
       await expect(page.locator('#trade-history-table .ui-badge[data-trade-type="bought"]')).toBeVisible();
+      await page.locator("#exchange-tab-players").click();
 
       await measure(page, width);
       await page.evaluate(() => document.getElementById("exchange-bids-section").scrollIntoView({ block: "center" }));

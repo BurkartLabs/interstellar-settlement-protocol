@@ -1,9 +1,10 @@
+import { RATS_OVERLAY, RATS_OVERLAY_LABEL } from "../../public/scripts/ratsOverlay.js"; // ISP-285 (AB#992)
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 
 // starmap.js preloads planet images when it is imported; node has no Image.
 globalThis.Image ??= class { set src(_v) {} };
-const { STARMAP_OVERLAYS, overlayColor } = await import("../../public/scripts/starmap.js");
+const { STARMAP_OVERLAYS, overlayColor, clusterStarColor, fieldOverlayLegendHtml } = await import("../../public/scripts/starmap.js");
 const { DOMINANCE_OVERLAYS } = await import("../../public/scripts/dominanceOverlay.js"); // ISP-218 (AB#913)
 
 // AB#1459: the Starmap offered "Resource Concentration", which coloured each system by (100 - pirateDensity +
@@ -22,8 +23,9 @@ describe("Starmap overlays show only what systems hold (AB#1459)", () => {
   it("reads the picker: None first, then one option per overlay", () => {
     expect(OPTIONS[0]).toEqual({ value: "none", label: "None" });
     // ISP-218 (AB#913): the system-field overlays, then the two dominance overlays; ISP-229 (AB#924): then concessions.
-    expect(OPTIONS.slice(1).map((o) => o.value)).toEqual([...Object.keys(STARMAP_OVERLAYS), ...Object.keys(DOMINANCE_OVERLAYS), "concessions"]);
-    expect(OPTIONS.slice(1).map((o) => o.label)).toEqual([...[...Object.values(STARMAP_OVERLAYS), ...Object.values(DOMINANCE_OVERLAYS)].map((o) => o.label), "ISA concessions"]);
+    // ISP-285 (AB#992): then the Rats' activity, the server's reading
+    expect(OPTIONS.slice(1).map((o) => o.value)).toEqual([...Object.keys(STARMAP_OVERLAYS), ...Object.keys(DOMINANCE_OVERLAYS), "concessions", RATS_OVERLAY]);
+    expect(OPTIONS.slice(1).map((o) => o.label)).toEqual([...[...Object.values(STARMAP_OVERLAYS), ...Object.values(DOMINANCE_OVERLAYS)].map((o) => o.label), "ISA concessions", RATS_OVERLAY_LABEL]);
   });
 
   it("offers no resource overlay under a system field, and the page promises only the real one (AB#837)", () => {
@@ -57,5 +59,41 @@ describe("Starmap overlays show only what systems hold (AB#1459)", () => {
 
   it("an overlay the picker no longer offers draws the plain map, not a blend", () => {
     expect(overlayColor({ gdpIndex: 90, activityLevel: 10, pirateDensity: 5 }, "resource")).toBe(NONE_COLOR);
+  });
+});
+
+// Bug AB#4745: GDP, Activity and Pirates coloured only the systems a corporation could travel to (for a new one, Sol
+// alone), because a locked system took the locked grey first. The overlay now colours every system; the lock keeps
+// its ring. They had no legend either.
+describe("the field overlays on a locked system (Bug AB#4745)", () => {
+  it("colour every system by its field, locked or not; with no overlay a locked star is still grey", () => {
+    for (const overlay of Object.keys(STARMAP_OVERLAYS)) {
+      for (const system of SYSTEM_LIST) {
+        expect(clusterStarColor(system, { overlay, locked: true }), `${overlay} ${system.id}`).toBe(overlayColor(system, overlay));
+      }
+    }
+    const grey = clusterStarColor(SYSTEM_LIST[1], { overlay: "none", locked: true });
+    expect(grey).not.toBe(overlayColor(SYSTEM_LIST[1], "none"));
+    expect(clusterStarColor(SYSTEM_LIST[1], { overlay: "none", locked: false })).toBe(overlayColor(SYSTEM_LIST[1], "none"));
+  });
+
+  it("makes most systems differ in colour under each overlay, so a new corporation sees the map change", () => {
+    for (const overlay of Object.keys(STARMAP_OVERLAYS)) {
+      const colours = new Set(SYSTEM_LIST.map((s) => clusterStarColor(s, { overlay, locked: true })));
+      expect(colours.size, overlay).toBeGreaterThan(SYSTEM_LIST.length / 2);
+    }
+  });
+
+  it("gives each field overlay a legend of its scale, low to high, in the stars' colours, and none otherwise", () => {
+    for (const [overlay, spec] of Object.entries(STARMAP_OVERLAYS)) {
+      const html = fieldOverlayLegendHtml(overlay);
+      expect(html).toContain(`${spec.label}: each system coloured by its ${spec.label}, 0 to ${spec.scale}`);
+      expect(html).toContain(`style="background:${overlayColor({ [spec.field]: 0 }, overlay)}"`);
+      expect(html).toContain(`style="background:${overlayColor({ [spec.field]: spec.scale }, overlay)}"`);
+      expect(html).toMatch(/low, 0<\/li>/);
+      expect(html).toContain(`high, ${spec.scale}</li>`);
+    }
+    expect(fieldOverlayLegendHtml("none")).toBe("");
+    expect(fieldOverlayLegendHtml("dominance-corporation")).toBe("");
   });
 });

@@ -131,7 +131,6 @@ for (const [width, height] of SIZES) {
     } finally {
       child.kill();
     }
-    fs.writeFileSync(path.join(SHOT_DIR, `findings-${width}x${height}.txt`), found.join("\n") || "none");
     await test.info().attach(`findings-${width}x${height}`, { body: found.join("\n") || "none", contentType: "text/plain" });
     expect(found, "every Company and Station screen on the design system (AB#946)").toEqual([]);
     expect(errors).toEqual([]);

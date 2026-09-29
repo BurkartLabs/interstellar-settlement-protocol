@@ -106,11 +106,12 @@ export function upkeepNotice(corp, result) {
   if (result?.becameShort) {
     return {
       type: "finance",
+      protocol: { meaning: "owed", screen: "finance" }, // ISP-254 C2 (AB#4812)
       title: "Military upkeep unpaid",
       body: `Your corporation could not cover its fleet's upkeep of ${Math.round(dailyUpkeep(corp)).toLocaleString("en-US")} credits a day. Readiness falls 10 points a day, to a floor of 40, until it is paid again. No ship or troop is lost.`
     };
   }
-  if (result?.recovered) return { type: "finance", title: "Fleet at full readiness", body: "Upkeep is paid and your ships and troops are back at full readiness." };
+  if (result?.recovered) return { type: "finance", protocol: { meaning: "complete", screen: "finance" }, title: "Fleet at full readiness", body: "Upkeep is paid and your ships and troops are back at full readiness." };
   return null;
 }
 

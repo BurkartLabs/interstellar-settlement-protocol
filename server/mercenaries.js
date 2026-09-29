@@ -128,6 +128,7 @@ export function offerFleet(accountId, fleetId, input, now = Date.now()) {
     if (fleet.transit && now < fleet.transit.arrivesAt) { result = { ok: false, status: 409, error: "That fleet is in transit. Offer it once it has arrived." }; return; }
     if (fleet.contract) { result = { ok: false, status: 409, error: "That fleet is already under contract." }; return; }
     if (fleet.escort) { result = { ok: false, status: 409, error: "That fleet is escorting an expedition until it comes home." }; return; } // AB#820
+    if (fleet.hunt) { result = { ok: false, status: 409, error: "That fleet is hunting Rats until it comes back." }; return; } // AB#991
     const checked = checkTerms(input, unitsValue(fleet.units));
     if (checked.error) { result = { ok: false, status: 400, error: checked.error }; return; }
     const id = `mo-${now.toString(36)}-${(++seq).toString(36)}${Math.random().toString(36).slice(2, 5)}`;
@@ -182,7 +183,8 @@ export function hireOffer(accountId, offerId, now = Date.now()) {
   if (offer.state !== "open") return { ok: false, status: 409, error: "That offer is no longer open." };
   if (offer.ownerCorpId === renter.publicId || accountIdOfCorp(offer.ownerCorpId) === accountId) return { ok: false, status: 400, error: "You cannot hire your own fleet." };
   const total = offer.price + offer.collateral;
-  if (Math.floor(Number(renter.finances?.credits) || 0) < total) return { ok: false, status: 409, error: `Hiring holds ${total.toLocaleString("en-US")} credits (price and collateral) until the term ends, and you have ${Math.floor(Number(renter.finances?.credits) || 0).toLocaleString("en-US")}.` };
+  // Bug #4822: the refusal says what to do next (ISP-6), and its code tells the page it is Unfunded, not Denied
+  if (Math.floor(Number(renter.finances?.credits) || 0) < total) return { ok: false, status: 409, code: "insufficient-credits", error: `Hiring holds ${total.toLocaleString("en-US")} credits (price and collateral) until the term ends, and you have ${Math.floor(Number(renter.finances?.credits) || 0).toLocaleString("en-US")}. Sell goods or finish an assignment to raise the credits, then hire.` };
 
   setOffer(offer.id, { state: "taking" }); // taken now: a second hire is refused from here on
   const held = settleTransfer({ fromAccountId: accountId, toAccountId: escrowOf(offer.id), credits: total, reason: "escrow-hold", idempotencyKey: `merc:${offer.id}:hold` }, now);
@@ -257,7 +259,11 @@ export function settleContracts(now = Date.now()) {
     const ownerId = accountIdOfCorp(offer.ownerCorpId), renterId = accountIdOfCorp(offer.renterCorpId);
     // ISP-178 (AB#872; the raid design, section 7): a hired fleet out on a raid finishes it first; the term waits, at no
     // extra price, until the fleet is home
-    if (getAccountById(ownerId)?.state?.corp?.military?.fleets?.find((f) => f.id === offer.fleetId)?.transit?.raidId) continue;
+    const ownerFleet = getAccountById(ownerId)?.state?.corp?.military?.fleets?.find((f) => f.id === offer.fleetId);
+    if (ownerFleet?.transit?.raidId) continue;
+    // AB#4678 (the rats design, section 3): a hired fleet escorting an expedition is committed until it comes home; the
+    // term waits for it, at no extra price, as for a raid
+    if (ownerFleet?.escort) continue;
     if (offer.frozenBy) continue; // ISP-241 (AB#937): an arbitration case holds the escrow until its ruling
     const lostValue = unitsValue(offer.lost);
     const compensation = Math.min(offer.collateral, lostValue);

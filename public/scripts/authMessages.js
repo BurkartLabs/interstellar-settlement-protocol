@@ -55,16 +55,48 @@ export function registerErrorMessage(status, payload = {}, retryAfter) {
   return { text: `Registering failed on our side. ${TRY_AGAIN}` };
 }
 
-/** What the register form is missing before it is sent, as `{ field, text }`, or null. The server checks the same
- *  rules again (ISP-66) and is what actually enforces them — this is only so an obviously-empty or obviously-short
- *  field doesn't cost a round trip. Shaped the same as the server's own refusal (`field` names the input) so
- *  register-page.js shows both beside the field the same way, not one there and one in the shared status line. */
-export function registerFormProblem({ email, password, ceoName, corpName }) {
-  if (!email || !email.includes("@")) return { field: "email", text: "Enter the email address you will log in with." };
-  if (!password || password.length < 10) return { field: "password", text: "Choose a password of at least 10 characters." };
-  if (!ceoName) return { field: "ceoName", text: "Enter the CEO's name: 2 to 40 letters, digits, spaces and - ' . &." };
-  if (!corpName) return { field: "corpName", text: "Name your corporation: 3 to 40 letters, digits, spaces and - ' . &." };
+// Bug #4861 (AB#955): the server's own rules (server/game/store.js createAccount and passwordRuleError,
+// server/corporationName.js), so the form can name every mistake at once instead of one a submit. The server checks
+// them again and is what enforces them; what only it can know (a taken email or name, a reserved name) it still says.
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_MAX = 254;
+const PASSWORD_MIN = 10;
+const PASSWORD_MAX = 128;
+const NAME_CHARS = /^[A-Za-z0-9 \-'.&]+$/;
+const NAME_MAX = 40;
+const squash = (value) => String(value || "").trim().replace(/\s+/g, " ");
+
+function nameProblem(field, value, min, label, empty) {
+  const name = squash(value);
+  if (!name) return { field, text: empty };
+  if (name.length < min) return { field, text: `${label} needs at least ${min} characters; this has ${name.length}.` };
+  if (name.length > NAME_MAX) return { field, text: `${label} may be at most ${NAME_MAX} characters; this has ${name.length}.` };
+  if (!NAME_CHARS.test(name)) return { field, text: `${label} may use letters, digits, spaces and - ' . & only.` };
   return null;
+}
+
+/** Every mistake the register form can see before it is sent, as `[{ field, text }]` in the form's order (none: []).
+ *  Shaped as the server's own refusal (`field` names the input), so register-page.js puts each beside its field. */
+export function registerFormProblems({ email, password, ceoName, corpName }) {
+  const problems = [];
+  const address = String(email || "").trim();
+  if (!address) problems.push({ field: "email", text: "Enter the email address you will log in with." });
+  else if (!address.includes("@")) problems.push({ field: "email", text: "This address has no @. Enter it in full, like name@example.com." });
+  else if (address.length > EMAIL_MAX || !EMAIL_SHAPE.test(address)) problems.push({ field: "email", text: "This is not a complete email address. Enter it in full, like name@example.com." });
+  const secret = String(password || "");
+  if (!secret) problems.push({ field: "password", text: `Choose a password of at least ${PASSWORD_MIN} characters.` });
+  else if (secret.length < PASSWORD_MIN) problems.push({ field: "password", text: `Use at least ${PASSWORD_MIN} characters; this has ${secret.length}.` });
+  else if (secret.length > PASSWORD_MAX) problems.push({ field: "password", text: `Use at most ${PASSWORD_MAX} characters; this has ${secret.length}.` });
+  const ceo = nameProblem("ceoName", ceoName, 2, "The CEO's name", "Enter the CEO's name: 2 to 40 letters, digits, spaces and - ' . &.");
+  if (ceo) problems.push(ceo);
+  const corp = nameProblem("corpName", corpName, 3, "The corporation's name", "Name your corporation: 3 to 40 letters, digits, spaces and - ' . &.");
+  if (corp) problems.push(corp);
+  return problems;
+}
+
+/** The first of registerFormProblems, or null. */
+export function registerFormProblem(values) {
+  return registerFormProblems(values)[0] || null;
 }
 
 /** What the login form is missing before it is sent, or null. */

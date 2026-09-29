@@ -7,11 +7,12 @@
 import { escapeHtml } from "./html.js";
 import { toCurrency } from "./helpers.js";
 import { bestThroughput, costPerHourFor, operationsForTier, yardTierFor, yardUpkeepPerHourFor } from "./miningProjection.js";
+import { bestRateAlongBid } from "./standingBid.js"; // AB#2480
 import { fabricationMsFor, tierTableFor } from "./buildingTiers.js"; // ISP-102 (AB#794)
 import { refineryMultiplierFor } from "./refineryOutput.js";
 import { utcTime } from "./timeFormat.js";
 
-// The extractor card around this control prints money with toCurrency ("$1,234"), so the control does too.
+// The extractor card around this control prints money with toCurrency ("¤1,234"), so the control does too.
 const money = (n) => toCurrency(Math.floor(n));
 const num = (n) => Math.round(n).toLocaleString("en-US");
 const utc = (ms, now) => utcTime(ms, { now }).replace(/ UTC$/, ""); // ISP-249 (AB#945): the callers write " UTC" after it
@@ -22,7 +23,11 @@ function tierFigures(tier, yardIndex, economy, efficiency) {
   const { throughputCap } = yardTierFor(tier, operations, buildings);
   const ops = operationsForTier(tier, operations, buildings);
   const upkeepPerHour = yardUpkeepPerHourFor(yardIndex, buildings);
-  const best = bestThroughput({ operations: ops, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour, max: throughputCap });
+  // AB#2480: along the standing bid when the economy sends its rules, as the throughput control's default and the
+  // economy model (AB#2334) find the best rate; today's flat price otherwise (an older server).
+  const best = economy.npcBid && economy.silicateBasePrice
+    ? bestRateAlongBid({ operations: ops, basePrice: economy.silicateBasePrice, taxPct: economy.salesTaxPct, npcBid: economy.npcBid, efficiency, upkeepPerHour, max: throughputCap })
+    : bestThroughput({ operations: ops, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour, max: throughputCap });
   return { cap: throughputCap, rate: best.throughputPerHour, costPerHour: costPerHourFor(best.throughputPerHour, ops) + upkeepPerHour, netPerHour: best.profitPerHour };
 }
 

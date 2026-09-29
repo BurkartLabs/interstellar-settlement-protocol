@@ -115,14 +115,16 @@ for (const [width, height] of SIZES) {
       await expect(page.locator("#exchange-buy-table tr")).toHaveCount(4); // the seed's four player listings, untouched
 
       const row = page.locator("#npc-sell-table tr", { hasText: "Meridian Glassworks" });
-      await expect(row).toContainText("$36");
+      await expect(row).toContainText("¤36");
       await row.locator("[data-buy-order-qty]").fill("10");
       await row.locator("[data-buy-order-id]").click();
       await page.locator("#trade-confirm-ok").click();
       await expect(page.locator("#action-receipt-close")).toBeVisible();
       await page.locator("#action-receipt-close").click();
       await expect(page.locator("#npc-sell-table tr", { hasText: "Meridian Glassworks" })).toContainText("2,990");
+      await page.locator("#exchange-tab-history").click(); // AB#2472: the trade history is its own subpage
       await expect(page.locator('#trade-history-table .ui-badge[data-trade-type="bought"]')).toBeVisible();
+      await page.locator("#exchange-tab-standing").click();
 
       await measure(page, width);
       await page.evaluate(() => document.getElementById("exchange-npc-sell-section").scrollIntoView({ block: "center" }));

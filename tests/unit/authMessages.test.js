@@ -101,7 +101,7 @@ describe("too many attempts says how long the wait really is (AB#2043)", () => {
 
 describe("no player-facing copy mentions the demo account (Bug #1059)", () => {
   it("only the developer button, hidden off a developer's machine, names it", () => {
-    const html = read("public/login.html").replace(/<button id="dummy-login-btn"[^>]*>[^<]*<\/button>/, "");
+    const html = read("public/login.html").replace(/<button id="demo-login-btn"[^>]*>[^<]*<\/button>/, "");
     expect(html).not.toMatch(/dummy|prototype|sandbox|demo/i);
     expect(code("public/scripts/authMessages.js")).not.toMatch(/dummy|prototype|sandbox|demo/i);
     const page = code("public/scripts/login-page.js");

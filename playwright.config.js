@@ -6,6 +6,7 @@
 // (Bug AB#2326). Specs that start their own server set what they need.
 import { defineConfig } from "@playwright/test";
 import { PLAYWRIGHT_WORKERS } from "./scripts/test-workers.mjs";
+import { ALLOW_RESTRICTED_PORTS_ARG } from "./scripts/chromium-ports.mjs"; // Bug AB#2313
 
 export default defineConfig({
   testDir: "./e2e",
@@ -18,6 +19,9 @@ export default defineConfig({
   reporter: [["list"], ["./scripts/playwright-strict-reporter.mjs"]],
   use: {
     baseURL: process.env.BASE_URL || "http://127.0.0.1:3000",
-    trace: "off"
+    trace: "off",
+    // Bug AB#2313: a server a spec starts on PORT 0 can be handed a port Chromium refuses (5061 did it once); every
+    // spec's browser comes from here, so allowing them here covers every spec (scripts/chromium-ports.mjs)
+    launchOptions: { args: [ALLOW_RESTRICTED_PORTS_ARG] }
   }
 });

@@ -12,10 +12,13 @@ import { escapeHtml } from "./html.js";
 import { bureauTime } from "./conglomerateBureau.js";
 import { stationArtHtml } from "./stationArt.js";
 import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
+import { protocolLineHtml } from "./protocol.js"; // ISP-254 (AB#4821)
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 const pct = (have, need) => (need > 0 ? Math.min(100, (100 * have) / need) : 100);
-const statusLine = (role, s) => `<p class="cong-form-status${s?.ok ? " cong-form-status--ok" : ""}" data-role="${role}" role="status">${escapeHtml(s?.text || "")}</p>`;
+// ISP-254 (AB#4821): the plain words, then the protocol line when the line carries one (public/scripts/protocol.js)
+const statusLine = (role, s) => `<p class="cong-form-status${s?.ok ? " cong-form-status--ok" : ""}" data-role="${role}" role="status">${escapeHtml(s?.text || "")}${s?.text && s?.protocol ? ` ${protocolLineHtml(s.protocol)}` : ""}</p>`;
+const unsuccessful = () => protocolLineHtml({ meaning: "failed", screen: "conglomerate" }); // read at draw time: the codes load after this module
 const bar = (label, value) => `<div class="progress-wrap cong-station__bar" role="progressbar" aria-label="${escapeHtml(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(value)}"><div class="progress-bar${value >= 100 ? " is-complete" : ""}" style="width:${value.toFixed(1)}%"></div></div>`;
 export const ACCESS_LABELS = { open: "Every corporation", members: "Members only", "members-and-listed": "Members and listed conglomerates" };
 
@@ -26,7 +29,7 @@ const systemName = (systems, id) => (systems || []).find((s) => s.id === id)?.na
 /** The whole Station screen. `sp` is GET .../station-project, `gov` GET .../station (null before it is built). */
 export function stationTabHtml(sp, gov, ctx = {}) {
   if (!sp) return `<p class="station__note">Reading the station project…</p>`;
-  if (sp.error) return `<div class="ui-state ui-state--error" role="alert"><p class="ui-state__title">The station could not be loaded</p><p class="ui-state__why">${escapeHtml(sp.error)} Nothing has changed.</p><button type="button" class="ui-button ui-button--secondary" data-role="cong-reload">Try again</button></div>`;
+  if (sp.error) return `<div class="ui-state ui-state--error" role="alert"><p class="ui-state__title">The station could not be loaded</p><p class="ui-state__why">${escapeHtml(sp.error)} Nothing has changed. ${unsuccessful()}</p><button type="button" class="ui-button ui-button--secondary" data-role="cong-reload">Try again</button></div>`;
   // Bug #4669: the member rate from this screen's own read, which a membership read from before the station opened lacks
   if (sp.station && gov) return coOwnedStationHtml(gov, { ...ctx, memberRentPct: sp.memberRentPct });
   if (sp.project) return projectHtml(sp.project, ctx);
@@ -125,7 +128,7 @@ export function projectHtml(p, { may = [], systems = [], own = {}, hangar = {}, 
   return `
     <section class="ui-panel station__panel cong-panel cong-station" data-role="cong-station-project">
       <div class="cong-station__head">${artFor(p, systems)}<div>
-        <p class="station__overline">${p.state === "building" ? "Under construction" : "Station project"} · ${escapeHtml(systemName(systems, p.systemId))}</p>
+        <p class="station__overline">${p.state === "building" ? "Under construction" : "Station project"} · ${escapeHtml(systemName(systems, p.systemId))} ${protocolLineHtml({ meaning: p.state === "building" ? "active" : "queued", screen: "conglomerate" })}</p>
         <h3>${codeSlotHtml("cong-station-project")}${escapeHtml(p.name)}</h3>
         <p class="cong-panel__lede">In orbit of ${escapeHtml(p.body)}. Filed ${bureauTime(p.startedAt)}.</p>
       </div></div>
@@ -152,6 +155,7 @@ export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], sta
   const benefits = `<ul class="cong-station__benefits" data-role="cong-station-benefits">
       ${rate === null ? "" : `<li><strong>Offices at ${n(rate)}%.</strong> A member's suite here costs ${n((standardRent * rate) / 100)} credits a day, not ${n(standardRent)}: lease or renew it in the Orbital Executive Suites once docked.</li>`}
       <li><strong>Free logistics in ${escapeHtml(systemName(systems, st.systemId))}.</strong> Goods move between ${escapeHtml(st.name)} and any other station in the system for nothing.</li>
+      ${Number.isFinite(gov.settings.taxPct) ? `<li><strong>No sales tax for members.</strong> A member's sale on the exchange here pays nothing; anyone else pays ${n(gov.settings.taxPct)}%, to the treasury.</li>` : ""}
     </ul>`;
   const open = gov.proposals.filter((p) => p.state === "open");
   const closed = gov.proposals.filter((p) => p.state !== "open").slice(0, 5);
@@ -160,7 +164,7 @@ export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], sta
     const canVote = mine && !voted;
     return `<li class="ui-card cong-item" data-role="cong-proposal" data-proposal="${escapeHtml(p.id)}">
       <div class="cong-item__text"><p class="ui-card__title">${escapeHtml(p.text)}</p>
-        <p class="ui-card__meta">Proposed by ${escapeHtml(p.proposedByName || "a corporation")} · closes ${bureauTime(p.closesAt)} · yes ${p.yesPct ?? "—"}%, no ${p.noPct ?? "—"}% of all stake</p>
+        <p class="ui-card__meta">Proposed by ${escapeHtml(p.proposedByName || "a corporation")} · closes ${bureauTime(p.closesAt)} · yes ${p.yesPct ?? "—"}%, no ${p.noPct ?? "—"}% of all stake ${protocolLineHtml({ meaning: "pending", screen: "conglomerate" })}</p>
         ${bar(`Yes: ${p.yesPct ?? 0}% of all stake; it passes above 50%`, p.yesPct || 0).replace("cong-station__bar", "cong-station__bar cong-station__votebar")}
         <p class="cong-station__note">It passes when yes is more than 50% of all stake (the line).</p>
         ${voted ? `<p class="cong-station__note">You voted ${escapeHtml(voted.vote)}.</p>` : mine ? "" : `<p class="cong-station__note">Only corporations with a stake vote.</p>`}</div>
@@ -177,6 +181,7 @@ export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], sta
           ${Object.entries(ACCESS_LABELS).filter(([id]) => id !== gov.settings.access).map(([id, label]) => `<option value="access|${id}">Docking: ${escapeHtml(label)}</option>`).join("")}
           ${others.filter((c) => !listed.includes(c.id)).map((c) => `<option value="list|${escapeHtml(c.id)}">List ${escapeHtml(c.name)}</option>`).join("")}
           ${gov.settings.listed.map((c) => `<option value="unlist|${escapeHtml(c.id)}">Unlist ${escapeHtml(c.name)}</option>`).join("")}
+          ${(gov.settings.taxOptions || []).filter((pct) => pct !== gov.settings.taxPct).map((pct) => `<option value="tax|${n(pct)}">Sales tax for non-members: ${n(pct)}%</option>`).join("")}
         </select>
         <span class="ui-field__hint">It passes when more than half of all stake votes yes${mine ? "; your own stake counts as a yes" : ""}, and lapses after 72 hours.</span></div>
       <button type="submit" class="ui-button ui-button--primary">Put it to the vote</button>
@@ -201,11 +206,12 @@ export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], sta
     <section class="ui-panel station__panel cong-panel" data-role="cong-station-governance">
       <h3>${codeSlotHtml("cong-station-governance")}Governance</h3>
       <dl class="ui-kv cong-terms"><dt>Who may dock</dt><dd data-role="cong-station-access">${escapeHtml(ACCESS_LABELS[gov.settings.access] || gov.settings.access)}</dd>
-        <dt>Listed</dt><dd>${gov.settings.listed.length ? gov.settings.listed.map((l) => escapeHtml(l.name)).join(", ") : "None"}</dd></dl>
+        <dt>Listed</dt><dd>${gov.settings.listed.length ? gov.settings.listed.map((l) => escapeHtml(l.name)).join(", ") : "None"}</dd>
+        ${Number.isFinite(gov.settings.taxPct) ? `<dt>Sales tax</dt><dd data-role="cong-station-tax">${n(gov.settings.taxPct)}% for non-members, to the treasury; members pay none</dd>` : ""}</dl>
       ${open.length ? `<h4 class="cong-subhead">Open votes</h4><ul class="cong-list">${open.map(voteRow).join("")}</ul>` : `<p class="cong-panel__lede">No vote is open.</p>`}
       ${statusLine("cong-vote-status", status.vote)}
       ${propose}
-      ${closed.length ? `<h4 class="cong-subhead">Recent votes</h4><ul class="cong-list">${closed.map((p) => `<li class="ui-card cong-item"><div class="cong-item__text"><p class="ui-card__title">${escapeHtml(p.text)}</p><p class="ui-card__meta">${p.state === "passed" ? "Passed" : p.state === "expired" ? "Lapsed" : "Voted down"} ${bureauTime(p.closedAt)}</p></div></li>`).join("")}</ul>` : ""}
+      ${closed.length ? `<h4 class="cong-subhead">Recent votes</h4><ul class="cong-list">${closed.map((p) => `<li class="ui-card cong-item"><div class="cong-item__text"><p class="ui-card__title">${escapeHtml(p.text)}</p><p class="ui-card__meta">${p.state === "passed" ? "Passed" : p.state === "expired" ? "Lapsed" : "Voted down"} ${bureauTime(p.closedAt)}${p.state === "expired" ? "" : ` ${protocolLineHtml({ meaning: p.state === "passed" ? "active" : "refused", screen: "conglomerate" })}`}</p></div></li>`).join("")}</ul>` : ""}
     </section>`;
 }
 

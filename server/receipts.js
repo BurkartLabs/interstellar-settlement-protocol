@@ -126,6 +126,17 @@ export function upgradeReceipt({ name, tier, cost, assetValue, offlineUntil, eff
   });
 }
 
+/** ISP-287 (AB#994): a building a raid damaged, repaired to full condition. */
+export function repairReceipt({ name, before, cost }) {
+  return receipt("repair-building", {
+    title: "Building Repaired",
+    summary: `${name}, from condition ${before} to 100.`,
+    costCredits: cost,
+    grants: [{ label: "Output", value: `back to full (it ran at ${Math.round(before)}% while damaged)` }],
+    next: "It works at full output from now on."
+  });
+}
+
 export function startMiningReceipt({ extractorName, cost, hours, throughputPerHour, operationCostPerHour, endsAt }) {
   return receipt("start-mining", {
     title: "Mining Cycle Started",
@@ -389,14 +400,32 @@ export function launchExpeditionReceipt({ beltLabel, durationLabel, cost, comple
   });
 }
 
-export function queueResearchReceipt({ name, cost, startsAt, endsAt, now }) {
+/** ISP-285 (AB#992): a fleet sent to hunt a belt's Rats (server/hunts.js declareHunt). */
+export function huntReceipt({ fleetName, beltLabel, provisions, endsAt, expected = null }) {
+  const OUT = { attacker: "a win", draw: "a draw", defender: "a loss" };
+  return receipt("hunt", {
+    title: "Hunt Declared",
+    summary: `${fleetName} is on its way to hunt the Rats in ${beltLabel}.`,
+    costCredits: provisions,
+    grants: [
+      { label: "Back", value: formatUtc(endsAt) },
+      ...(expected ? [{ label: "The resolver expects", value: `${OUT[expected.winner] || expected.winner}${expected.won ? `, a bounty of ${formatCredits(expected.bounty)}` : ", no bounty"}` }] : []),
+      { label: "Provisions", value: `${formatCredits(provisions)}, charged above` }
+    ],
+    next: "The fight is resolved when the fleet arrives. Its report is in the belt's panel on the Starmap, and a win makes the belt quiet for a day."
+  });
+}
+
+export function queueResearchReceipt({ name, cost, startsAt, endsAt, now, royalty = null }) {
   return receipt("queue-rnd", {
     title: "Research Queued",
     summary: `${name}, in the corporate R&D queue.`,
     costCredits: cost,
     grants: [
       { label: "Starts", value: Number(startsAt) <= Number(now) ? "Now" : formatUtc(startsAt) },
-      { label: "Completes", value: formatUtc(endsAt) }
+      { label: "Completes", value: formatUtc(endsAt) },
+      // Bug #4857: another corporation's patent in force at completion takes its royalty then; say so now
+      ...(royalty?.amount > 0 ? [{ label: "Patent royalty", value: `${formatCredits(royalty.amount)} to ${royalty.holder} (${royalty.ratePct}% of the research cost), charged when it completes. What your credits do not cover is owed to the holder.` }] : [])
     ],
     next: "It takes effect when it completes. Research queued after it starts when it ends."
   });
@@ -455,14 +484,15 @@ export function buyReceipt({ item, quantity, unitPrice, total, stationName }) {
   });
 }
 
-export function sellToOrderReceipt({ item, quantity, unitPrice, total, taxPct, taxAmount, tariffPct = 0, tariffAmount = 0, dutyWithheld = 0, proceeds }) {
+export function sellToOrderReceipt({ item, quantity, unitPrice, total, taxPct, taxAmount, tariffPct = 0, tariffAmount = 0, dutyWithheld = 0, proceeds, stationTax = null }) {
   return receipt("sell-to-order", {
     title: "Sale Completed",
     summary: `${amount(quantity)} ${item} sold to a standing order at ${formatCredits(unitPrice)} each.`,
     costCredits: taxAmount + tariffAmount + dutyWithheld, // ISP-232 (AB#927): what was withheld is charged too
     grants: [
       { label: "Sale value", value: formatCredits(total) },
-      { label: "Exchange tax", value: `${formatCredits(taxAmount)} (${taxPct}%)${tariffAmount || dutyWithheld ? "" : ", the amount charged above"}` },
+      // ISP-212b (AB#4655): at a conglomerate's station, its tax, paid to its treasury (nothing for a member)
+      { label: stationTax ? (stationTax.member ? "Member tax" : "Station tax") : "Exchange tax", value: `${formatCredits(taxAmount)} (${taxPct}%)${stationTax ? `, to ${stationTax.conglomerateName}` : ""}${tariffAmount || dutyWithheld ? "" : ", the amount charged above"}` },
       // ISP-230 (AB#925): the concession holder's tariff, when the system has one
       ...(tariffAmount ? [{ label: "Concession tariff", value: `${formatCredits(tariffAmount)} (${tariffPct}%)` }] : []),
       // ISP-232 (AB#927): toward anti-dumping duty owed to the ITC

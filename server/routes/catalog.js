@@ -8,6 +8,7 @@ import { MILESTONE_LEVELS, MILESTONE_ROADMAP, SYSTEMS_DATA } from "../game/catal
 import { levelUnlockList } from "../game/progression.js"; // AB#803
 import { PROBE_FABRICATION_MS } from "../game/asteroids.js";
 import { getState, CEO_INSIGHT_LIBRARY, RESEARCH_LIBRARY, MISSION_AGENTS_DATA, REPUTATION_TIERS_DATA } from "../gameState.js";
+import { CEO_INSIGHT_DATA } from "../game/catalog.js"; // AB#2474: the categories
 import { APP_VERSION, __dirname } from "../app.js";
 import { allStations, publicStation } from "../game/stations.js"; // ISP-209 (AB#904)
 import { conglomerateList } from "../game/conglomerates.js";
@@ -51,11 +52,16 @@ export function registerCatalogRoutes(app) {
         operations: ECONOMY.operations,
         salesTaxPct: ECONOMY.exchange.salesTaxPct,
         silicateUnitPrice: silicatesOrder ? Number(silicatesOrder.unitPrice) : (silicates ? silicates.unitPrice : 0),
+        // AB#2480: the base price and the bid's rules, so the extractor panel finds the best rate as the economy model
+        // does (AB#2334): a day's output sold along the bid, not every tonne at today's price.
+        silicateBasePrice: silicates ? silicates.unitPrice : 0,
+        npcBid: ECONOMY.npcBid,
         // AB#1430: the prices the panels quote (hire, payroll, construction, probes) come from here, not from copies
         // in the browser, so a balance change to data/economy.json reaches the page it is shown on.
         employees: ECONOMY.employees,
         buildings: ECONOMY.buildings,
         probes: ECONOMY.probes,
+        expeditions: { launchCost: ECONOMY.expeditions.launchCost }, // Bug #4775: the Starmap's Launch Expedition price
         // ISP-103 (AB#795): the highest building tier each level allows (data/milestones.json), so the upgrade control
         // can say which level opens the next tier.
         // ISP-102 (AB#794): how long a probe takes before any tier, for the Assembly Facility's upgrade control.
@@ -88,8 +94,9 @@ export function registerCatalogRoutes(app) {
   });
 
   // The CEO Insight catalogue, with each program's live or planned status: the client's only copy (Bug #983).
+  // AB#2474: and its categories, in the order the screen shows them.
   app.get("/api/ceo-insight", (_req, res) => {
-    res.json({ programs: Object.values(CEO_INSIGHT_LIBRARY) });
+    res.json({ programs: Object.values(CEO_INSIGHT_LIBRARY), categories: CEO_INSIGHT_DATA.categories || [] });
   });
 
   // AB#1051: the mission agent registry and reputation tiers, the client's only copy of either (the CEO Insight

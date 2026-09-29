@@ -1,11 +1,57 @@
-// The Comms tab: chat channels and the log.
+// The Chat tab (called Comms until AB#2490): chat channels and the log.
 // AB#739 (ISP-53): everything here moved from app.js unchanged.
 
-import { socket } from "../apiClient.js";
+import { apiFetch, parseJsonResponse, socket } from "../apiClient.js";
 import { chatScrollTop } from "../chatScroll.js";
 import { formatTime } from "../helpers.js";
 import { chatLineHtml } from "../html.js";
 import { appState } from "../state.js";
+import { escapeHtml } from "../html.js";
+import { commsMeaning } from "../commsProtocol.js"; // ISP-255c1 (AB#4830)
+import { protocolLineHtml } from "../protocol.js";
+
+// AB#995 (ISP-288): state:init sends each channel's last 50 lines (the server's window); older lines are read from its
+// history a page at a time (GET /api/chat/:channel/history) and kept here, before the live ones.
+const WINDOW = 50;
+const older = new Map(); // channel -> { lines: [], nextCursor: undefined | string | null, loading, error }
+const olderOf = (channel) => {
+  if (!older.has(channel)) older.set(channel, { lines: [], nextCursor: undefined, loading: false, error: null });
+  return older.get(channel);
+};
+let anchorOlder = false; // the next render keeps the reader's place after older lines were put above it
+
+/** The lines to show: the pages read back, then the live window, each line once. */
+function chatLines(channel, data) {
+  const live = data?.chatLog?.[channel] || [];
+  const seen = new Set(live.map((m) => m.id));
+  return [...olderOf(channel).lines.filter((m) => !seen.has(m.id)), ...live];
+}
+
+/** The page before the oldest line shown, for the open channel. */
+async function loadOlderChat() {
+  const tab = appState.chatChannel || "global";
+  const channel = resolveChatChannel(tab);
+  const state = olderOf(channel);
+  if (state.loading || state.nextCursor === null) return;
+  const oldest = chatLines(channel, appState.data)[0];
+  if (!oldest) return;
+  state.loading = true;
+  state.error = null;
+  state.errorMeaning = null;
+  renderChatLog(appState.data);
+  try {
+    const page = await parseJsonResponse(await apiFetch(`/api/chat/${encodeURIComponent(tab)}/history?cursor=${encodeURIComponent(oldest.id)}`));
+    state.lines = [...(page.messages || []), ...state.lines];
+    state.nextCursor = page.nextCursor || null;
+    anchorOlder = true;
+  } catch (err) {
+    state.error = err.message;
+    state.errorMeaning = commsMeaning(err); // ISP-255c1 (AB#4830)
+  } finally {
+    state.loading = false;
+    renderChatLog(appState.data);
+  }
+}
 
 // The "local" comms tab is scoped to the player's current solar system, so
 // every system has its own isolated chat history. The UI tab name stays
@@ -20,7 +66,7 @@ export function resolveChatChannel(tab, data = appState.data) {
 
 export function renderChatLog(data) {
   const channel = resolveChatChannel(appState.chatChannel, data);
-  const messages = data?.chatLog?.[channel] || [];
+  const messages = chatLines(channel, data);
   const chatLog = document.getElementById("chat-log");
 
   if (!chatLog) {
@@ -33,12 +79,23 @@ export function renderChatLog(data) {
   const channelChanged = chatLog.dataset.channel !== channel;
   chatLog.dataset.channel = channel;
 
-  chatLog.innerHTML = messages
-    .slice(-120)
+  // AB#995: older history above the lines, while the channel may hold more than the window
+  const state = olderOf(channel);
+  const mayHaveMore = state.nextCursor === undefined ? (data?.chatLog?.[channel] || []).length >= WINDOW : Boolean(state.nextCursor);
+  const olderHtml = mayHaveMore
+    ? `<li class="chat__older"><button class="ui-button ui-button--ghost" type="button" data-action="older-chat"${state.loading ? " disabled" : ""}>${state.loading ? "Loading…" : "Load older messages"}</button>${state.error ? ` <span class="ui-screen__meta">${escapeHtml(state.error)} ${protocolLineHtml({ meaning: state.errorMeaning || "failed", screen: "chat" })}</span>` : ""}</li>`
+    : state.nextCursor === null ? `<li class="chat__older"><span class="ui-screen__meta">Start of the channel</span></li>` : "";
+  chatLog.innerHTML = olderHtml + messages
     .map((msg) => chatLineHtml(msg, formatTime))
     .join("");
 
-  chatLog.scrollTop = chatScrollTop({ before, afterScrollHeight: chatLog.scrollHeight, channelChanged, ownLine: appState.chatOwnLinePending });
+  if (anchorOlder && !channelChanged) {
+    // the lines just read back went above the reader, who stays at the line they were looking at
+    chatLog.scrollTop = before.scrollTop + (chatLog.scrollHeight - before.scrollHeight);
+    anchorOlder = false;
+  } else {
+    chatLog.scrollTop = chatScrollTop({ before, afterScrollHeight: chatLog.scrollHeight, channelChanged, ownLine: appState.chatOwnLinePending });
+  }
   appState.chatOwnLinePending = false;
 }
 
@@ -59,7 +116,7 @@ export function renderChatChannelTabs() {
   });
 }
 
-/** Comms: channel tabs and sending a message. */
+/** Chat: channel tabs and sending a message. */
 export function bindCommsForms() {
   const chatForm = document.getElementById("chat-form");
   const chatInput = document.getElementById("chat-input");
@@ -74,6 +131,11 @@ export function bindCommsForms() {
     appState.chatChannel = nextChannel;
     renderChatChannelTabs();
     renderChatLog(appState.data);
+  });
+
+  // AB#995: the page of history before the oldest line shown
+  document.getElementById("chat-log")?.addEventListener("click", (event) => {
+    if (event.target.closest('[data-action="older-chat"]')) loadOlderChat();
   });
 
   chatForm.addEventListener("submit", (event) => {

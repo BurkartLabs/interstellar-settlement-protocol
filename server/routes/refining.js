@@ -145,6 +145,7 @@ export function registerRefiningRoutes(app) {
     const outputNames = outputs.map((o) => `${o.quantity} ${o.item}`).join(", ");
     const notification = addAccountNotification(req.params.accountId, {
       type: "operations",
+      protocol: { meaning: "active", screen: "refinery" }, // ISP-254 (AB#950)
       title: "Refinery Cycle Started",
       body: `${targetLabel} processing ${actualDebits.map((d) => `${d.quantity} ${d.item}`).join(" + ")} → ${outputNames} (${actualDurationHours}h, ${actualScale} batch${actualScale === 1 ? "" : "es"}).`
     });

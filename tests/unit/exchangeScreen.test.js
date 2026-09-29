@@ -27,6 +27,9 @@ const LEGACY = ["btn", "btn-accent", "btn-ghost", "btn-outline", "form-card", "d
 
 /** Every place a class name is used as one: class="...", className = "...", classList.*("..."), and selectors. */
 function classUses(text, name) {
+  // Bug AB#4641: every pattern below contains the name, so a text without it has no use of it. Skipping those makes
+  // the repo-wide scan about 15 times faster (2.3 s to 0.15 s), which a full suite's load had pushed past 20 s.
+  if (!text.includes(name)) return [];
   const n = name.replace(/-/g, "\\-");
   const edge = "(?![\\w-])";
   const patterns = [
@@ -82,7 +85,9 @@ describe("the Galactic Exchange is on the design system (ISP-80)", () => {
   it("every table is a ui-table, so a phone (and a column narrower than its table) shows cards", () => {
     const tables = MARKET.match(/<table\b[^>]*>/g) || [];
     expect(tables.length).toBe(7); // AB#1054: Buy orders; AB#815: Standing sell orders
-    for (const t of tables) expect(t).toBe('<table class="ui-table">');
+    // Bug #4870: the two standing tables add the compact card's class; every table is still a ui-table
+    for (const t of tables) expect(t).toMatch(/^<table class="ui-table( exchange__standing-table)?">$/);
+    expect(tables.filter((t) => t.includes("exchange__standing-table"))).toHaveLength(2);
     expect(read("public/scripts/views/exchange.js")).toContain('document.querySelectorAll("#market .ui-table").forEach(labelTableCells)');
   });
 

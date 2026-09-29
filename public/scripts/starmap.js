@@ -5,15 +5,21 @@ import { unrecoveredItemsHtml } from "./researchLinks.js"; // AB#885: a gated sh
 import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 import { PLANET_IMAGE_PATHS } from "./planetImages.js";
+import { protocolLineHtml, refusalMeaning } from "./protocol.js"; // ISP-254 Bd (AB#4819); refusalMeaning: ISP-255 (AB#951)
 import { officeLeaseCost } from "./ceoEffects.js"; // Bug #2340: the one office rate (Bug #1032)
 import { isMemberStation, memberOfficeCost } from "./memberRates.js"; // ISP-212 (AB#907)
 import { isConglomerateStation, isNeutralStation } from "./stationMarkers.js";
 import { concentrationBand, concentrationLegendHtml, concentrationRows, concentrationText, overlayItems, systemConcentration, bodyConcentration } from "./resourceOverlay.js"; // ISP-143 (AB#837)
 import { tariffPanelHtml } from "./tariffPanel.js"; // ISP-231 (AB#926)
+import { STARMAP_OVERLAYS, overlayColor, fieldOverlayLegendHtml } from "./fieldOverlay.js"; // Bug AB#4745
+export { STARMAP_OVERLAYS, overlayColor, fieldOverlayLegendHtml };
 import { DOMINANCE_OVERLAYS, QUIET_TOKEN, dominanceDetailsHtml, dominanceKey, dominanceLegendHtml, isDominanceOverlay, tokenRgba } from "./dominanceOverlay.js"; // ISP-218 (AB#913)
 import { CONCESSION_OVERLAY, concessionDetailsHtml, concessionKey, concessionLegendHtml } from "./concessionOverlay.js"; // ISP-229 (AB#924)
+import { RATS_OVERLAY, activityOf, beltRatsHtml, huntPanelHtml, huntReportHtml, ratsColor, ratsLegendHtml, systemRatsHtml } from "./ratsOverlay.js"; // ISP-285 (AB#992)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 import { utcClock } from "./timeFormat.js"; // ISP-249 (AB#945)
+import { toCurrency } from "./helpers.js"; // Bug #2498: every screen's credits through the one formatter
+import { escortLaunchFields, escortPickerHtml, launchRiskHtml } from "./launchOutlook.js"; // AB#821
 
 // ISP-112 (AB#804): each system's place on the cluster view is its `mapPosition` in data/systems.json, as fractions of
 // the canvas; the controller reads it from the catalog it is given (getSystemsCatalog).
@@ -49,26 +55,16 @@ const PLANET_STYLE = {
 };
 
 /**
- * The Starmap's overlays, in picker order (index.html's #map-overlay lists the same, after None). Each colours a system
- * by one field data/systems.json holds, over its full scale. AB#1459: there is no resource overlay, because no system
- * carries resource data yet; the one that was here blended GDP and pirates under a resource label.
+ * Bug AB#4745: a star's colour on the cluster under no resource or dominance reading. A chosen field overlay (GDP,
+ * Activity, Pirates) colours every system, locked or not: a locked system keeps its thin grey ring, a cue that is not
+ * the star's colour. The locked grey used to win first, so a new corporation (21 of 22 systems locked) saw only Sol
+ * change and read the overlay as doing nothing. With no overlay a locked star is grey, as before.
  */
-export const STARMAP_OVERLAYS = {
-  gdp: { label: "GDP Index", field: "gdpIndex", scale: 100 },
-  activity: { label: "Activity Level", field: "activityLevel", scale: 100 },
-  pirates: { label: "Pirate Density", field: "pirateDensity", scale: 40 }
-};
-
-/** A system's colour under an overlay; "none", or any overlay not offered, draws the plain map. */
-export function overlayColor(system, overlay) {
-  const spec = Object.hasOwn(STARMAP_OVERLAYS, overlay) ? STARMAP_OVERLAYS[overlay] : null;
-  if (!spec) {
-    return "rgba(0, 247, 255, 0.88)";
-  }
-
-  const value = Number(system[spec.field]) / spec.scale;
-  const clamped = Math.max(0.1, Math.min(1, value));
-  return `rgba(${Math.floor((1 - clamped) * 180 + 40)}, ${Math.floor(clamped * 220 + 30)}, 255, 0.92)`;
+export function clusterStarColor(system, { overlay, locked, rats = null }) {
+  // ISP-285 (AB#992): under Pirates, once the server's activity has arrived, the colour is its chance of meeting Rats
+  if (overlay === RATS_OVERLAY && rats) return ratsColor(rats.chance);
+  if (Object.hasOwn(STARMAP_OVERLAYS, overlay)) return overlayColor(system, overlay);
+  return locked ? LOCKED_STAR_COLOR : overlayColor(system, overlay);
 }
 
 function hashSeed(input) {
@@ -137,9 +133,14 @@ export function emptyBeltHtml(view, chancePerHour) {
           </div>`;
 }
 
-/** Bug #2339: a refused scout or launch, said in the belt panel beside the button that met it. */
-export function beltNoticeHtml(message) {
-  return message ? `<div class="ui-state ui-state--error starmap__notice" role="alert"><p class="ui-state__why">${escBelt(message)}</p></div>` : "";
+/**
+ * Bug #2339: a refused scout or launch, said in the belt panel beside the button that met it. ISP-254 Bd (AB#4819): its
+ * protocol line (Denied, or Unfunded) follows the plain words when the notice carries one.
+ */
+export function beltNoticeHtml(message, protocol = null) {
+  if (!message) return "";
+  const line = protocol ? ` ${protocolLineHtml(protocol)}` : "";
+  return `<div class="ui-state ui-state--error starmap__notice" role="alert"><p class="ui-state__why">${escBelt(message)}${line}</p></div>`;
 }
 
 /** A scouted belt whose composition has not reached the page yet (Bug #1264): say so rather than show nothing. */
@@ -200,14 +201,14 @@ export function bodyRenderKind(body) {
   return "placeholder";
 }
 
-// Preload all planet images
-Object.keys(PLANET_IMAGE_PATHS).forEach(loadPlanetImage);
+// AB#964 (ISP-268): each planet's image loads when it is first drawn (the render repeats once it arrives). Preloading
+// all eighteen cost every page ~800 KB, the logged-out landing page too, since this module loads with the app.
 
 function drawPlanet(ctx, body, x, y, radius) {
   const style = styleForBody(body);
 
   // Try image-based rendering first
-  const img = PLANET_IMAGES[body.id];
+  const img = loadPlanetImage(body.id);
   if (img && img.complete && img.naturalWidth > 0) {
     ctx.save();
     ctx.beginPath();
@@ -395,7 +396,12 @@ export function clusterLabelAt({ widths, size, x, y, gap, placed = [], stars = [
     { x: right.x, y: right.y - lift }, { x: right.x, y: right.y + lift },
     { x: left.x, y: left.y - lift }, { x: left.x, y: left.y + lift }
   ];
-  const candidates = [...(rightFits ? [right, left, below, above] : [left, right, below, above]), ...corners];
+  // AB#2343: a label of two or more lines hangs below its star from the sides above; last, it may sit beside the star
+  // centred on it, which is where a two-line name fits between two others ("Lalande" / "21185" on a phone). Last, so a
+  // label that fitted before still goes where it went.
+  const mid = ((widths.length - 1) * lineHeight) / 2;
+  const centredSides = mid > 0 ? (rightFits ? [right, left] : [left, right]).map((c) => ({ x: c.x, y: c.y - mid })) : [];
+  const candidates = [...(rightFits ? [right, left, below, above] : [left, right, below, above]), ...corners, ...centredSides];
   // Two labels need a little air between them, not only no overlap: 3px all round.
   const crosses = (a, b) => a.left - 3 < b.right && b.left - 3 < a.right && a.top - 3 < b.bottom && b.top - 3 < a.bottom;
   const covers = (b, s) => Math.hypot(
@@ -440,15 +446,29 @@ export function planClusterLabels({ entries, compact, canvasWidth, canvasHeight 
   for (const e of order) {
     const priority = rank(e) < 3;
     if (compact && !priority) continue;
-    const label = clusterLabelAt({
-      widths: e.widths, size: e.size, x: e.x, y: e.y, gap: e.gap, placed,
-      stars: stars.filter((s) => s.id !== e.id), canvasWidth, canvasHeight
-    });
+    const others = stars.filter((s) => s.id !== e.id);
+    let label = clusterLabelAt({ widths: e.widths, size: e.size, x: e.x, y: e.y, gap: e.gap, placed, stars: others, canvasWidth, canvasHeight });
+    // AB#2343: a name with nowhere to go on one line tries two ("Lalande" / "21185") before it is given up. On a phone,
+    // as the Starmap opens, Lalande 21185 was the one of Sol's four neighbours left a bare star. The plan says which
+    // lines it placed, and they are the ones drawn.
+    let lines;
+    if (!label.clear && rank(e) >= 2 && e.wrapped) {
+      const two = clusterLabelAt({ widths: e.wrapped.widths, size: e.size, x: e.x, y: e.y, gap: e.gap, placed, stars: others, canvasWidth, canvasHeight });
+      if (two.clear) { label = two; lines = e.wrapped.lines; }
+    }
     if (!label.clear && rank(e) >= 2) continue;
     placed.push(label.box);
-    plan.set(e.id, { x: label.x, y: label.y, box: label.box });
+    plan.set(e.id, { x: label.x, y: label.y, box: label.box, ...(lines ? { lines } : {}) });
   }
   return plan;
+}
+
+/** AB#2343: a system's name over two lines, broken at the space nearest its middle; null for a one-word name. */
+export function wrapName(name) {
+  const spaces = [...String(name)].flatMap((c, i) => (c === " " ? [i] : []));
+  if (!spaces.length) return null;
+  const at = spaces.reduce((best, i) => (Math.abs(i - name.length / 2) < Math.abs(best - name.length / 2) ? i : best));
+  return [name.slice(0, at), name.slice(at + 1)];
 }
 
 export function canvasBackingSize(cssWidth, cssHeight, devicePixelRatio) {
@@ -479,6 +499,37 @@ const BACK_TARGET_PAD = 6;
  */
 export function rightBackButtonY(leftX, leftWidth, rightX, rightWidth, y = 36) {
   return rightX - rightWidth / 2 < leftX + leftWidth / 2 + 6 ? y + BACK_BUTTON_HEIGHT + BACK_TARGET_PAD * 2 + 2 : y;
+}
+
+/**
+ * AB#2482: where a row of back buttons sits, each centre. At their usual places (`x0 + step * i`, as the body view's
+ * two have always sat) when every one fits there with both tap margins (12px) between neighbours. Otherwise, on a
+ * phone, packed from the canvas's left edge, 12px apart, a new row one target's height lower when the next would run
+ * past the right edge, so neither the buttons nor their tap targets overlap. `widths` are the drawn widths.
+ */
+export function backButtonRow(widths, canvasWidth, { x0 = 108, step = 142, y0 = 36 } = {}) {
+  const gap = BACK_TARGET_PAD * 2;
+  const rowGap = BACK_BUTTON_HEIGHT + BACK_TARGET_PAD * 2 + 2;
+  const usual = widths.map((w, i) => ({ x: x0 + step * i, w }));
+  const fits = usual.every((b, i) => b.x + b.w / 2 <= canvasWidth - BACK_BUTTON_INSET && (i === 0 || b.x - b.w / 2 >= usual[i - 1].x + usual[i - 1].w / 2 + gap));
+  if (fits) return usual.map(({ x }) => ({ x, y: y0 }));
+  const placed = [];
+  let left = BACK_BUTTON_INSET;
+  let y = y0;
+  for (const w of widths) {
+    if (left > BACK_BUTTON_INSET && left + w > canvasWidth - BACK_BUTTON_INSET) {
+      y += rowGap;
+      left = BACK_BUTTON_INSET;
+    }
+    placed.push({ x: left + w / 2, y });
+    left += w + gap;
+  }
+  return placed;
+}
+
+/** AB#2482: the lowest edge of a row of back buttons (backButtonRow's centres), with the tap margin below it. */
+export function backButtonsBottom(places) {
+  return places.length ? Math.max(...places.map((p) => p.y)) + BACK_BUTTON_HEIGHT / 2 + BACK_TARGET_PAD : 0;
 }
 
 export function backButtonTarget(type, x, y, width) {
@@ -541,7 +592,15 @@ export function createStarmapController({
   onDockAtStation,
   onScoutBelt,
   onLaunchExpedition,
+  onExpeditionOutlook, // AB#821: (beltKey, duration) => the page fetches GET /expedition-outlook and calls setExpeditionOutlook
+  onHuntOpen, // ISP-285 (AB#992): (beltKey) => the page reads the belt's hunt screen and gives it back with setHuntPreview
+  onHuntSend, // ISP-285 (AB#992): (beltKey, fleetId) => the page sends the hunt
+  getMilitary = () => null, // ISP-285 (AB#992): the corporation's fleets and its hunts' reports
+  getUnitCatalog = () => [], // ISP-285 (AB#992): the units' names, for the battle report
   getAsteroidMiningState,
+  // Bug #4775: what a launch costs, data/economy.json's expeditions.launchCost through clientPrices (the button quoted a
+  // copy of it, "3,000", which the first balance change would have left quoting one price while the server charged another)
+  getExpeditionLaunchCost = () => NaN,
   researchCatalog = [], // Bug #1270: to name the research a locked jump needs
   getCorpLevel = () => 0,
   getMemberStation = () => null, // ISP-212 (AB#907): the corporation's own conglomerate's station, for the member office rate
@@ -568,8 +627,40 @@ export function createStarmapController({
     selectedAsteroidId: null,
     clickTargets: [],
     asteroidMining: null,  // { probeCount, maxProbes, maxDeployments, activeExpeditions, scoutedBelts, beltCompositions, belts, respawnChancePerHour }
-    beltNotice: null       // Bug #2339: { beltKey, message }, the last refusal on a belt, shown in its panel
+    beltNotice: null,      // Bug #2339: { beltKey, message }, the last refusal on a belt, shown in its panel
+    launchChoice: { duration: "standard", escort: "" }, // AB#821: kept across the panel's redraws
+    outlook: null,         // AB#821: GET /expedition-outlook's answer for one belt and length
+    outlookAsked: null,    // AB#821: the "beltKey|duration" last asked for, so a redraw does not ask again
+    ratsActivity: null,    // ISP-285 (AB#992): GET .../rats/activity, every system's pirate activity
+    huntPreview: null,     // ISP-285 (AB#992): { beltKey, preview }, the hunt screen the page read for a belt
+    huntChosen: null       // ISP-285 (AB#992): the fleet chosen on that screen
   };
+
+  // AB#821: the escort picker and the Rats figures, redrawn in place (the duration select keeps its focus)
+  function outlookFor(beltKey) {
+    const o = state.outlook;
+    return o && o.beltKey === beltKey && o.duration === state.launchChoice.duration ? o : null;
+  }
+  function askOutlook(beltKey) {
+    const key = `${beltKey}|${state.launchChoice.duration}`;
+    if (!onExpeditionOutlook || state.outlookAsked === key) return;
+    state.outlookAsked = key;
+    queueMicrotask(() => onExpeditionOutlook(beltKey, state.launchChoice.duration));
+  }
+  function drawLaunchOutlook(beltKey, { picker = true } = {}) {
+    const wrap = detailsEl?.querySelector("[data-role=launch-outlook]");
+    if (!wrap) return;
+    const outlook = outlookFor(beltKey);
+    if (outlook && state.launchChoice.escort && !outlook.escorts.some((o) => o.eligible && `${o.kind}:${o.id}` === state.launchChoice.escort)) state.launchChoice.escort = "";
+    if (picker) {
+      wrap.querySelector("[data-role=launch-escort]").innerHTML = outlook ? escortPickerHtml(outlook, state.launchChoice.escort) : "";
+      wrap.querySelector("#expedition-escort")?.addEventListener("change", (e) => {
+        state.launchChoice.escort = e.target.value;
+        drawLaunchOutlook(beltKey, { picker: false });
+      });
+    }
+    wrap.querySelector("[data-role=launch-risk-wrap]").innerHTML = launchRiskHtml(outlook, state.launchChoice.escort);
+  }
 
   /** A system's place on the cluster view, from the catalog (AB#804); undefined for one it does not list. */
   const mapPositionOf = (systemId) => getSystemsCatalog().find((s) => s.id === systemId)?.mapPosition;
@@ -783,9 +874,13 @@ export function createStarmapController({
       const isSelected = state.selectedSystemId === system.id;
       const baseRadius = isSelected ? 10 : 7;
       const lines = linesOf(system);
-      const widths = lines.map((line) => { ctx.font = line.font; return ctx.measureText(line.text).width; });
+      const measure = (list) => list.map((line) => { ctx.font = line.font; return ctx.measureText(line.text).width; });
+      // AB#2343: the same lines with the name over two, for a name that finds no place on one
+      const split = wrapName(system.name);
+      const wrappedLines = split ? [...split.map((text) => ({ ...lines[0], text })), ...lines.slice(1)] : null;
       return {
-        id: system.id, ...at(system), r: baseRadius + 4, widths, lines, size: sizes(isSelected).name, gap: baseRadius + 10,
+        id: system.id, ...at(system), r: baseRadius + 4, widths: measure(lines), lines, size: sizes(isSelected).name, gap: baseRadius + 10,
+        wrapped: wrappedLines && { lines: wrappedLines, widths: measure(wrappedLines) },
         current: system.id === currentSystemId, selected: isSelected, neighbour: neighbours.has(system.id)
       };
     });
@@ -826,7 +921,7 @@ export function createStarmapController({
       const color = state.resource !== "none"
         ? concentrationBand(systemConcentration(system, state.resource, beltSlots()).best).color
         : domKey ? tokenColor(domKey.bySystem[system.id]?.token || QUIET_TOKEN)
-        : locked ? LOCKED_STAR_COLOR : overlayColor(system, state.overlay);
+        : clusterStarColor(system, { overlay: state.overlay, locked, rats: activityOf(state.ratsActivity, system.id) }); // Bug AB#4745; AB#992
 
       // Outer glow halo
       const haloRadius = baseRadius + 20;
@@ -895,6 +990,17 @@ export function createStarmapController({
         ctx.restore();
       }
 
+      // ISP-285 (AB#992): under Pirates, a green ring round a system with a belt a hunt cleared, as the legend says.
+      if (state.overlay === RATS_OVERLAY && activityOf(state.ratsActivity, system.id)?.quietBelts?.length) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, baseRadius + 24, 0, Math.PI * 2);
+        ctx.strokeStyle = tokenColor("--success").replace(/[\d.]+\)$/, "0.95)");
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.restore();
+      }
+
       // A locked system: a solid grey ring round the grey star, apart from the current system's dashed cyan one.
       if (locked) {
         ctx.save();
@@ -910,7 +1016,7 @@ export function createStarmapController({
       const label = labelPlan.get(system.id);
       if (label) {
         const entry = entryOf.get(system.id);
-        entry.lines.forEach((line, i) => {
+        (label.lines || entry.lines).forEach((line, i) => { // AB#2343: the name over two lines where the plan placed it so
           ctx.fillStyle = line.color;
           ctx.font = line.font;
           ctx.fillText(line.text, label.x, label.y + i * (entry.size + 2));
@@ -1173,16 +1279,30 @@ export function createStarmapController({
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
     const cx = width / 2;
-    const cy = height / 2;
+    let cy = height / 2;
 
     state.clickTargets = [];
-    const backSysWidth = drawBackButton("Back To System", 108, 36);
-    const backClusterX = rightBackButtonX("Back To Cluster", 250, width);
-    const backClusterY = rightBackButtonY(108, backButtonWidth("Back To System"), backClusterX, backButtonWidth("Back To Cluster"));
-    const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, backClusterY);
+    // AB#2482: a moon's view goes back to its own planet first, then the system and the cluster: the map's real order.
+    const planet = body.type === "Moon" ? (system.bodies || []).find((item) => item.id === body.parentId) : null;
+    if (planet) {
+      const buttons = [["back-to-planet", "Back To Planet"], ["back-to-system", "Back To System"], ["back-to-cluster", "Back To Cluster"]];
+      const places = backButtonRow(buttons.map(([, label]) => backButtonWidth(label)), width);
+      buttons.forEach(([type, label], i) => {
+        const drawn = drawBackButton(label, places[i].x, places[i].y);
+        state.clickTargets.push(backButtonTarget(type, places[i].x, places[i].y, drawn));
+      });
+      // On a phone the three take two rows or more: the moon moves down clear of them, as far as the canvas allows.
+      const moonRadius = Math.min(width, height) * 0.15;
+      cy = Math.min(height - moonRadius - 8, Math.max(cy, backButtonsBottom(places) + 12 + moonRadius));
+    } else {
+      const backSysWidth = drawBackButton("Back To System", 108, 36);
+      const backClusterX = rightBackButtonX("Back To Cluster", 250, width);
+      const backClusterY = rightBackButtonY(108, backButtonWidth("Back To System"), backClusterX, backButtonWidth("Back To Cluster"));
+      const backClusterWidth = drawBackButton("Back To Cluster", backClusterX, backClusterY);
 
-    state.clickTargets.push(backButtonTarget("back-to-system", 108, 36, backSysWidth));
-    state.clickTargets.push(backButtonTarget("back-to-cluster", backClusterX, backClusterY, backClusterWidth));
+      state.clickTargets.push(backButtonTarget("back-to-system", 108, 36, backSysWidth));
+      state.clickTargets.push(backButtonTarget("back-to-cluster", backClusterX, backClusterY, backClusterWidth));
+    }
 
     if (body.type === "Field") {
       const beltRadius = Math.min(width, height) * 0.2;
@@ -1405,8 +1525,49 @@ export function createStarmapController({
     return concessionDetailsHtml(state.concessions.systems?.[system.id], read.control || null, read.status || null, own);
   }
 
+  // ─── ISP-285 (AB#992): Rats in a belt, and the hunt screen ───────────────────────────────────────────────────────
+  function ratsSectionHtml(system, beltKey) {
+    const reading = activityOf(state.ratsActivity, system.id);
+    const military = getMilitary() || {};
+    const quietBelt = reading?.quietBelts?.find((q) => q.beltKey === beltKey) || null;
+    const preview = state.huntPreview?.beltKey === beltKey ? state.huntPreview.preview : null;
+    const quiet = quietBelt || (preview?.belt?.quiet ?? null);
+    const hunting = (military.fleets || []).filter((f) => f.hunt?.beltKey === beltKey).map((f) => ({ fleetId: f.id, fleetName: f.name, endsAt: f.hunt.endsAt }));
+    const latest = (military.hunts || []).find((r) => r.beltKey === beltKey);
+    const catalog = getUnitCatalog();
+    const section = beltRatsHtml({ beltKey, reading, quiet, hunting, catalog, open: Boolean(state.huntPreview?.beltKey === beltKey) }); // the button goes while its screen is open
+    const panel = state.huntPreview?.beltKey === beltKey && !quiet
+      ? huntPanelHtml(preview, { catalog, chosen: state.huntChosen, systemName: system.name }) : "";
+    return section.replace('<div id="hunt-panel" data-hunt-panel></div>', `<div id="hunt-panel" data-hunt-panel>${panel}</div>`)
+      + (latest ? `<details class="starmap__hunt-report" open><summary>The last hunt here</summary>${huntReportHtml(latest, { catalog, systemName: system.name })}</details>` : "");
+  }
+  function bindHuntControls(system, beltKey) {
+    const open = detailsEl.querySelector("#hunt-open-btn");
+    if (open) open.addEventListener("click", () => { state.huntPreview = { beltKey, preview: null }; state.huntChosen = null; renderDetails(); onHuntOpen?.(beltKey); });
+    const form = detailsEl.querySelector("[data-hunt-form]");
+    if (!form) return;
+    form.querySelectorAll('input[name="hunt-fleet"]').forEach((input) => input.addEventListener("change", () => { state.huntChosen = input.value; renderDetails(); }));
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const chosen = form.querySelector('input[name="hunt-fleet"]:checked')?.value;
+      if (chosen) onHuntSend?.(beltKey, chosen);
+    });
+  }
+
   function renderDominanceLegend() {
     if (!dominanceLegend) return;
+    if (state.overlay === RATS_OVERLAY) { // ISP-285 (AB#992): the Pirates overlay reads the server's activity
+      dominanceLegend.hidden = false;
+      dominanceLegend.innerHTML = ratsLegendHtml(state.ratsActivity);
+      return;
+    }
+    // Bug AB#4745: GDP, Activity and Pirates had no legend; theirs goes in the same slot
+    const fieldLegend = fieldOverlayLegendHtml(state.overlay);
+    if (fieldLegend) {
+      dominanceLegend.hidden = false;
+      dominanceLegend.innerHTML = fieldLegend;
+      return;
+    }
     if (state.overlay === CONCESSION_OVERLAY) { // ISP-229 (AB#924): the same legend slot
       const key = currentConcessionKey();
       dominanceLegend.hidden = false;
@@ -1462,6 +1623,7 @@ export function createStarmapController({
       }
       detailsEl.innerHTML = detailsHtml(system.name, `
         <p class="ui-panel__meta">GDP ${system.gdpIndex} | Activity ${system.activityLevel} | Pirates ${system.pirateDensity}</p>
+        ${systemRatsHtml(activityOf(state.ratsActivity, system.id), { catalog: getUnitCatalog() })}
         <p>${escapeHtmlAttr(system.ownerRule || "Ownership available via territorial dominance and treaties.")}</p>
         <ul class="ui-list">${bodyLines}</ul>
         ${systemConcentrationHtml(system)}
@@ -1485,7 +1647,8 @@ export function createStarmapController({
         button.disabled = true;
         const refusal = await onFileTariff(form.getAttribute("data-system-id"), Number(form.elements.pct.value));
         button.disabled = false;
-        if (status && refusal) status.textContent = refusal;
+        // ISP-255 (AB#951): the refusal's plain words, then its protocol line
+        if (status && refusal) status.innerHTML = `${escapeHtmlAttr(refusal.message ?? refusal)} ${protocolLineHtml({ meaning: refusalMeaning(refusal), screen: "starmap" })}`;
       });
       // Bind the jump button rendered in the system view.
       detailsEl.querySelectorAll("[data-role=starmap-jump]").forEach((btn) => {
@@ -1534,7 +1697,7 @@ export function createStarmapController({
         const isEmptySlot = slot ? !slot.present : false;
         const isBeltScouted = slot ? slot.scouted : scoutedBelts.includes(beltKey);
         if (state.beltNotice && state.beltNotice.beltKey !== beltKey) state.beltNotice = null; // Bug #2339: this belt's only
-        const noticeHtml = beltNoticeHtml(state.beltNotice?.message);
+        const noticeHtml = beltNoticeHtml(state.beltNotice?.message, state.beltNotice?.protocol);
         const hasProspecting = state.unlockedTech.has("tt-asteroid-prospecting");
         const hasAssemblyTech = state.unlockedTech.has("tt-assembly-fabrication");
         const inSameSystem = (state.currentSystemId || "sol") === system.id;
@@ -1600,13 +1763,13 @@ export function createStarmapController({
                 <div class="ui-field">
                   <label class="ui-field__label" for="expedition-duration">Mission Duration</label>
                   <select id="expedition-duration" class="ui-select">
-                    <option value="short">Short Sweep (30 min)</option>
-                    <option value="standard" selected>Standard Survey (1 hr)</option>
-                    <option value="extended">Deep Core Drill (2 hr)</option>
+                    ${[["short", "Short Sweep (30 min)"], ["standard", "Standard Survey (1 hr)"], ["extended", "Deep Core Drill (2 hr)"]]
+                      .map(([v, t]) => `<option value="${v}"${state.launchChoice.duration === v ? " selected" : ""}>${t}</option>`).join("")}
                   </select>
                 </div>
+                <div class="ui-stack" data-role="launch-outlook"><div class="ui-stack" data-role="launch-escort"></div><div data-role="launch-risk-wrap"></div></div>
                 ${remoteLaunch ? `<p class="ui-panel__meta" data-belt-remote>Remote launch on your partner's scouting: you are not in ${escapeHtmlAttr(system.name)}, so the probe works at range and brings home <strong>${remotePct}%</strong> of what it mines. The ore lands at this system's station.</p>` : ""}
-                <div><button id="launch-expedition-btn" class="ui-button ui-button--secondary" type="button">${remoteLaunch ? "Launch Remote Expedition" : "Launch Expedition"} (¤3,000)</button></div>
+                <div><button id="launch-expedition-btn" class="ui-button ui-button--secondary" type="button">${remoteLaunch ? "Launch Remote Expedition" : "Launch Expedition"} (${Number.isFinite(getExpeditionLaunchCost()) ? toCurrency(getExpeditionLaunchCost()) : "Price not loaded"})</button></div>
               ` : isEmptySlot
                 ? "" // AB#2331: the empty state above says why, and when
                 : !isBeltScouted
@@ -1626,8 +1789,10 @@ export function createStarmapController({
           ${compositionHtml}
           ${noticeHtml}
           ${miningHtml}
+          ${ratsSectionHtml(system, beltKey)}
           ${stationListHtml}
         `);
+        bindHuntControls(system, beltKey); // ISP-285 (AB#992)
 
         // Bind scout belt button
         const scoutBeltBtn = detailsEl.querySelector("#scout-belt-btn");
@@ -1641,10 +1806,17 @@ export function createStarmapController({
         // Bind launch expedition button
         const launchBtn = detailsEl.querySelector("#launch-expedition-btn");
         if (launchBtn) {
+          drawLaunchOutlook(beltKey); // AB#821
+          askOutlook(beltKey);
+          detailsEl.querySelector("#expedition-duration")?.addEventListener("change", (e) => {
+            state.launchChoice.duration = e.target.value || "standard";
+            drawLaunchOutlook(beltKey, { picker: false });
+            askOutlook(beltKey);
+          });
           launchBtn.addEventListener("click", () => {
             const durationSelect = detailsEl.querySelector("#expedition-duration");
             const duration = durationSelect?.value || "standard";
-            if (onLaunchExpedition) onLaunchExpedition(beltKey, duration);
+            if (onLaunchExpedition) onLaunchExpedition(beltKey, duration, escortLaunchFields(state.launchChoice.escort)); // AB#821
           });
         }
       } else {
@@ -1674,7 +1846,7 @@ export function createStarmapController({
                 why.setAttribute("role", "alert");
                 row.append(why);
               }
-              if (why) why.textContent = result.error;
+              if (why) why.innerHTML = `${escapeHtmlAttr(result.error)} ${protocolLineHtml({ meaning: refusalMeaning(result), screen: "starmap" })}`; // ISP-255 (AB#4831)
             }
           }
         });
@@ -1844,6 +2016,18 @@ export function createStarmapController({
       return;
     }
 
+    // AB#2482: from a moon, its own planet
+    if (hit.type === "back-to-planet") {
+      const moon = getSelectedSystem()?.bodies?.find((b) => b.id === state.selectedBodyId);
+      if (moon?.parentId) {
+        state.view = "body";
+        state.selectedBodyId = moon.parentId;
+        state.selectedAsteroidId = null;
+        render();
+      }
+      return;
+    }
+
     if (hit.type === "back-to-body") {
       state.view = "body";
       state.selectedAsteroidId = null;
@@ -1919,7 +2103,7 @@ export function createStarmapController({
     // buildings, officeRentPerCycle and ownership, which no station has, so every one said 0, "—" and NPC-controlled.
     const buildingCount = Array.isArray(station.buildingIds) ? station.buildingIds.length : 0;
     const memberStation = getMemberStation();
-    const officeRent = `¤${memberOfficeCost(officeLeaseCost(1), memberStation, station.id).toLocaleString("en-US")} a day, for 7 to 28 days${isMemberStation(memberStation, station.id) ? " (member rate)" : ""}`;
+    const officeRent = `${toCurrency(memberOfficeCost(officeLeaseCost(1), memberStation, station.id))} a day, for 7 to 28 days${isMemberStation(memberStation, station.id) ? " (member rate)" : ""}`;
     const jurisdiction = isNeutralStation(station)
       ? "Neutral: no corporation owns it; any corporation may dock and rent an office here."
       : isConglomerateStation(station) // ISP-210 (AB#905): built by a conglomerate; GET /api/stations names it, never its id
@@ -1979,7 +2163,7 @@ export function createStarmapController({
             dockBtn.disabled = false;
             const why = overlay.querySelector(".starmap__dock-refused");
             if (why) {
-              why.textContent = result.error;
+              why.innerHTML = `${escapeHtmlAttr(result.error)} ${protocolLineHtml({ meaning: refusalMeaning(result), screen: "starmap" })}`; // ISP-255 (AB#4831)
               why.hidden = false;
             }
           } else closeStationModal();
@@ -2028,6 +2212,7 @@ export function createStarmapController({
       if (state.resource !== "none" && overlaySelect) { overlaySelect.value = "none"; state.overlay = "none"; }
       render();
       renderDetails();
+      renderDominanceLegend(); // Bug AB#4745: the overlay just reset to none, so its legend goes too
     });
 
     resetButton?.addEventListener("click", () => {
@@ -2113,6 +2298,19 @@ export function createStarmapController({
       render();
       renderDominanceLegend();
     },
+    /** ISP-285 (AB#992): every system's pirate activity as the server has it (GET .../rats/activity). */
+    setRatsActivity(reading) {
+      state.ratsActivity = reading && reading.systems ? reading : null;
+      render();
+      renderDominanceLegend();
+      renderDetails();
+    },
+    /** ISP-285 (AB#992): a belt's hunt screen as the server answered (null closes it). */
+    setHuntPreview(beltKey, preview) {
+      state.huntPreview = preview ? { beltKey, preview } : null;
+      if (!preview) state.huntChosen = null;
+      if (state.view === "body") renderDetails();
+    },
     /** ISP-229 (AB#924): every system's concession, and the viewer's own names (the overlay marks its holder). */
     setConcessions(reading, { corporation = "", conglomerate = "" } = {}) {
       state.concessions = reading && reading.systems ? reading : null;
@@ -2145,6 +2343,12 @@ export function createStarmapController({
     setUnlockedTech(techSet) {
       state.unlockedTech = techSet instanceof Set ? techSet : new Set(techSet || []);
     },
+    /** AB#821: GET /expedition-outlook's answer; redraws the open belt panel's escort picker and Rats figures. */
+    setExpeditionOutlook(outlook) {
+      if (!outlook?.beltKey) return;
+      state.outlook = outlook;
+      if (state.view === "body" && detailsEl) drawLaunchOutlook(outlook.beltKey);
+    },
     /** Bug #2339: show a refused scout or launch in that belt's panel (null clears it). */
     setBeltNotice(notice) {
       state.beltNotice = notice && notice.message ? notice : null;
@@ -2159,6 +2363,7 @@ export function createStarmapController({
     },
     setAsteroidMining(amState) {
       state.asteroidMining = amState || null;
+      state.outlookAsked = null; // AB#821: fleets move and contracts end; the open panel asks again
       syncResourcePicker(); // AB#837: a newly scouted belt can add an item
       // Re-render details panel if we're viewing a belt
       if (state.view === "body" || state.view === "asteroid") {

@@ -27,7 +27,7 @@
 // once. Time is passed in (P-TEST-TIME): nothing here reads the clock.
 
 import { addAccountNotification, getAccountById, getAllAccountIds, mutateAccountState } from "./gameState.js";
-import { saveAccountsNow } from "./game/store.js";
+import { accountsStore, saveAccountsNow } from "./game/store.js";
 import { settleTransfer } from "./settlement.js";
 import { emitToAccount } from "./realtime.js";
 import { BOND_TERMS, bondSeriesList } from "./bonds.js";
@@ -47,8 +47,11 @@ const creditsOf = (accountId) => Math.round(Number(getAccountById(accountId)?.st
 /** The series' holders, largest first (ties by account, so the order is always the same): [{ account, units }]. */
 export function holdersOf(series) {
   const out = [];
-  for (const accountId of getAllAccountIds()) {
-    const h = getAccountById(accountId)?.state?.corp?.bondHoldings?.find((x) => x.seriesId === series.id);
+  // Bug AB#4649: read from the store. getAccountById closes an account's days, settles its mining, re-evaluates its
+  // level and deep-clones it, and this read every account in the game that way, twice a series a tick, for one field
+  // that only the bond code writes (5.5 s of bond-servicing.test.js's ticks).
+  for (const [accountId, account] of Object.entries(accountsStore.accounts || {})) {
+    const h = account?.state?.corp?.bondHoldings?.find((x) => x.seriesId === series.id);
     if (h?.units > 0) out.push({ account: accountId, units: h.units });
   }
   if (series.underwriterUnits > 0) out.push({ account: BOND_TERMS.underwriter.account, units: series.underwriterUnits });
@@ -111,15 +114,16 @@ const listeners = new Set();
 /** Register a default-recovery listener (ISP-286): called with ({ series, owed, now }) when a series defaults. */
 export function onBondDefault(listener) { listeners.add(listener); return () => listeners.delete(listener); }
 
-function tell(accountId, title, body) {
-  const n = addAccountNotification(accountId, { type: "finance", title, body });
+// ISP-255 (AB#4824): every bond notice is the Bank's (its Bond Board), with the guide's phrase for what happened
+function tell(accountId, title, body, meaning) {
+  const n = addAccountNotification(accountId, { type: "finance", title, body, protocol: { meaning, screen: "building-deep-space-development-bank" } });
   if (n) emitToAccount(accountId, "notifications:new", { accountId, notification: n });
 }
 
 /** Take a redeemed series' units off its holders' books. */
 function clearHoldings(series) {
   for (const accountId of getAllAccountIds()) {
-    const list = getAccountById(accountId)?.state?.corp?.bondHoldings;
+    const list = accountsStore.accounts?.[accountId]?.state?.corp?.bondHoldings; // Bug AB#4649: as holdersOf reads it
     if (!list?.some((h) => h.seriesId === series.id)) continue;
     mutateAccountState(accountId, (state) => {
       state.corp.bondHoldings = state.corp.bondHoldings.filter((h) => h.seriesId !== series.id);
@@ -199,23 +203,30 @@ export function serviceSeries(s, now) {
 
 /** The servicing tick: every series that is live, in arrears or defaulted, up to `now`. Tells issuers and holders. */
 export function bondServicingTick(now) {
+  let serviced = false;
   for (const s of bondSeriesList()) {
     if (!SERVICED.has(s.state) || !s.closedAt || s.servicedThrough + DAY > now) continue;
     const before = s.state;
     const holders = holdersOf(s).filter((h) => h.account !== BOND_TERMS.underwriter.account);
     const r = serviceSeries(s, now);
     if (r.redeemed) clearHoldings(s);
-    saveAccountsNow();
+    serviced = true;
     const name = `${s.quantity.toLocaleString("en-US")}-unit bond series at ${s.couponPct30}%`;
     if (r.missed && before === "live") {
-      tell(s.issuerAccountId, "Bond payment missed", `A payment on your ${name} could not be made. ${s.arrears.toLocaleString("en-US")} credits are now in arrears to its holders, including a ${LATE_FEE_PCT}% late fee, and accrue penalty interest until paid. After ${DEFAULT_AFTER_DAYS} days the series defaults.`);
+      tell(s.issuerAccountId, "Bond payment missed", `A payment on your ${name} could not be made. ${s.arrears.toLocaleString("en-US")} credits are now in arrears to its holders, including a ${LATE_FEE_PCT}% late fee, and accrue penalty interest until paid. After ${DEFAULT_AFTER_DAYS} days the series defaults.`, "owed");
     }
     if (r.defaulted) {
-      tell(s.issuerAccountId, "Bond series in default", `Your ${name} is more than ${DEFAULT_AFTER_DAYS} days in arrears and has defaulted. What is owed to its holders will be recovered from your corporation under the ISA's default rules.`);
-      for (const h of holders) tell(h.account, "A bond you hold has defaulted", `${s.issuerName ?? "The issuer"}'s ${name} has defaulted. What is recovered is paid to holders by units.`);
+      tell(s.issuerAccountId, "Bond series in default", `Your ${name} is more than ${DEFAULT_AFTER_DAYS} days in arrears and has defaulted. What is owed to its holders will be recovered from your corporation under the ISA's default rules.`, "failed");
+      for (const h of holders) tell(h.account, "A bond you hold has defaulted", `${s.issuerName ?? "The issuer"}'s ${name} has defaulted. What is recovered is paid to holders by units.`, "failed");
     }
-    if (r.redeemed) for (const h of holders) tell(h.account, "Bond redeemed", `${s.issuerName ?? "The issuer"}'s ${name} has matured and repaid its face value to you.`);
+    if (r.redeemed) for (const h of holders) tell(h.account, "Bond redeemed", `${s.issuerName ?? "The issuer"}'s ${name} has matured and repaid its face value to you.`, "complete");
   }
+  // Bug AB#4649: one write for the tick, not one per series. Each was the whole accounts store and the global state,
+  // synchronously, so a tick cost the number of due series times the size of the stores (bond-servicing.test.js: up to
+  // 1.9 s a tick, and past its 20 s limit). What a tick moves (payments, servicedThrough, the notices) is all in memory
+  // until this write, so a crash before it loses the whole tick, which the next run then services once, as it would
+  // have serviced the one series in progress before.
+  if (serviced) saveAccountsNow();
 }
 
 /**

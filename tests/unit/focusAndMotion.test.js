@@ -139,7 +139,7 @@ describe("motion.js: the reduced-motion answer for script-driven motion (AB#1760
   it("the typewriter, the starfield and both scripted scrolls ask it, and no smooth scroll is left hard-coded", () => {
     const read = (p) => readFileSync(new URL(`../../public/scripts/${p}`, import.meta.url), "utf8");
     expect(read("dialogue.js")).toMatch(/prefersReducedMotion\(\)/);
-    expect(read("starfield.js")).toMatch(/prefersReducedMotion\(\)/);
+    expect(read("starfield.js")).toMatch(/prefersReducedMotion\((win)?\)/); // AB#964: it passes its window, for its test
     const dir = new URL("../../public/scripts/", import.meta.url);
     const smooth = readdirSync(dir, { recursive: true }).filter((f) => String(f).endsWith(".js"))
       .filter((f) => /behavior:\s*["']smooth["']/.test(readFileSync(new URL(String(f).replace(/\\/g, "/"), dir), "utf8")));

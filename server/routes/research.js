@@ -9,7 +9,9 @@ import { IS_DEV } from "../app.js";
 import { emitToAccount } from "../realtime.js";
 import { fundingRequirementMessage } from "./helpers.js";
 import { queueInsightReceipt, queueResearchReceipt } from "../receipts.js"; // AB#744
+import { royaltyFor } from "../patents.js"; // Bug #4857
 import { rndItemEndsAt } from "../../public/scripts/rndQueue.js"; // AB#744: the same end the R&D panel shows
+import { formatHoursMinutes, rndQueueRoom } from "../../public/scripts/rndQueue.js"; // AB#2476: the same limit the R&D panel shows
 
 // AB#1049: RESEARCH_LIBRARY is imported from gameState.js now — data/research.json is the only definition,
 // keyed by id in server/game/catalog.js. GET /api/research (below) is how the client gets the same tree.
@@ -20,6 +22,7 @@ export function registerResearchRoutes(app) {
     const techId = String(req.body?.techId || "").trim();
     const tech = RESEARCH_LIBRARY[techId];
     let outcome = "ok";
+    let room = null; // AB#2476: why the queue is full, and when a place opens
 
     if (!tech) {
       res.status(400).json({ error: "Unknown research node." });
@@ -64,6 +67,13 @@ export function registerResearchRoutes(app) {
         return;
       }
 
+      // AB#2476 (Board review item 23): the one in progress and one behind it; nothing is charged for a refusal
+      room = rndQueueRoom(queue, Date.now());
+      if (!room.ok) {
+        outcome = "queue-full";
+        return;
+      }
+
       if (corp.finances.credits < tech.costCredits) {
         outcome = "insufficient-credits";
         return;
@@ -94,7 +104,9 @@ export function registerResearchRoutes(app) {
         "missing-prereq": `${tech.name} requires: ${tech.prereqs.map((id) => RESEARCH_LIBRARY[id]?.name || id).join(", ")}.`,
         "corp-level-too-low": `${tech.name} requires Corp Level ${tech.requiresCorpLevel}.`,
         "tier-gate": `${tech.name} is Tier ${tech.tier} research. All Tier 1 research must be completed first.`,
-        "insufficient-credits": fundingRequirementMessage(`${tech.name} queueing`, corp, tech.costCredits)
+        // Bug #4807 (ISP-6's rule): and how to raise it
+        "insufficient-credits": fundingRequirementMessage(`${tech.name} queueing`, corp, tech.costCredits, "Sell goods or finish an assignment to raise the credits, then queue it again."),
+        "queue-full": `Corporate R&D runs one technology and holds one more behind it. ${tech.name} can be queued once ${room?.finishing?.name || "the research ahead"} finishes, in ${formatHoursMinutes((room?.freesAt || 0) - Date.now())}.`
       };
       res.status(400).json({ error: messageMap[outcome] || "Unable to queue research." });
       return;
@@ -103,7 +115,8 @@ export function registerResearchRoutes(app) {
     const notification = addAccountNotification(req.params.accountId, {
       type: "research",
       title: "R&D Queued",
-      body: `${tech.name} has been queued in corporate research.`
+      body: `${tech.name} has been queued in corporate research.`,
+      protocol: { meaning: "queued", screen: "rnd" } // ISP-254 (AB#950)
     });
     if (notification) {
       emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
@@ -111,12 +124,17 @@ export function registerResearchRoutes(app) {
 
     // AB#744: the item the mutation queued, scheduled behind whatever was ahead of it.
     const queuedItem = [...(account.state.queues?.corporateRnD || [])].reverse().find((q) => q.techId === tech.id);
+    // Bug #4857: the royalty the R&D tick will charge when this completes (server/patents.js recordResearchUse): the
+    // patent in force at completion, on the node's research cost
+    const endsAt = rndItemEndsAt(queuedItem);
+    const { patent, royalty } = royaltyFor(account.state.corp, { kind: "research", subjectId: tech.id, at: endsAt, base: Number(tech.costCredits) || 0 });
     const receipt = queueResearchReceipt({
       name: tech.name,
       cost: queuedItem?.costCredits ?? tech.costCredits,
       startsAt: queuedItem?.startedAt,
-      endsAt: rndItemEndsAt(queuedItem),
-      now: Date.now()
+      endsAt,
+      now: Date.now(),
+      royalty: patent ? { amount: royalty, ratePct: patent.ratePct, holder: patent.holder.name } : null
     });
     res.json({ ...account, receipt });
   });
@@ -190,7 +208,7 @@ export function registerResearchRoutes(app) {
       const corp = account.state.corp;
       const messageMap = {
         "max-level": `${prog.name} is already at maximum level.`,
-        "queue-full": "Only one CEO Insight program can be in progress at a time.",
+        "queue-full": "Only one CEO Insight program can be in progress at a time. Wait for it to finish, then enroll this one.", // Bug #4873
         "missing-prereq": `${prog.name} requires: ${prog.prereqs.map((id) => CEO_INSIGHT_LIBRARY[id]?.name || id).join(", ")}.`,
         "insufficient-credits": fundingRequirementMessage(`${prog.name} enrollment`, corp, prog.costCredits)
       };
@@ -200,6 +218,7 @@ export function registerResearchRoutes(app) {
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "insight",
+      protocol: { meaning: "queued", screen: "ceo" }, // ISP-254 C2 (AB#4812)
       title: "CEO Insight Queued",
       body: `${prog.name} has been enrolled in the CEO Insight Program.`
     });

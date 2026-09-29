@@ -9,6 +9,7 @@
 import { escapeHtml } from "./html.js";
 import { bureauTime } from "./conglomerateBureau.js";
 import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
+import { protocolLineHtml } from "./protocol.js"; // ISP-254 (AB#4821)
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 const signed = (v) => (v > 0 ? `+${n(v)}` : v < 0 ? `−${n(-v)}` : "0");
@@ -33,11 +34,15 @@ export const LEDGER_KINDS = {
   "station-project": "Station project",
   "station-project-refund": "Station project refund",
   "station-built": "Station opened",
-  "stake-buyout": "Stake buyout"
+  "stake-buyout": "Stake buyout",
+  "station-tax": "Station sales tax", // ISP-212b (AB#4655): a non-member's sale at the conglomerate's station
+  relocated: "Moved to the station" // ISP-212a (AB#4654): the hangar's goods, moved with it when the station opened
 };
 const kindLabel = (k) => LEDGER_KINDS[k] || escapeHtml(k);
 /** A form's status line: a refusal in the warning tone, what happened in the success tone. */
-const statusLine = (role, s) => `<p class="cong-form-status${s?.ok ? " cong-form-status--ok" : ""}" data-role="${role}" role="status">${escapeHtml(s?.text || "")}</p>`;
+// ISP-254 (AB#4821): the plain words, then the protocol line when the line carries one (public/scripts/protocol.js)
+const statusLine = (role, s) => `<p class="cong-form-status${s?.ok ? " cong-form-status--ok" : ""}" data-role="${role}" role="status">${escapeHtml(s?.text || "")}${s?.text && s?.protocol ? ` ${protocolLineHtml(s.protocol)}` : ""}</p>`;
+const unsuccessful = () => protocolLineHtml({ meaning: "failed", screen: "conglomerate" }); // read at draw time: the codes load after this module
 
 /** The Conglomerate tab's own tabs: Roster, Treasury, Hangar. The panels are drawn by the caller. */
 export function hqTabsHtml(active, panels) {
@@ -88,7 +93,7 @@ export function ledgerHtml(ledger, { which, goods = false } = {}) {
 /** The Treasury screen. `t` is GET .../treasury; `may` the caller's permissions; `status` a line per form. */
 export function treasuryHtml(t, { may = [], status = {}, form = {} } = {}) {
   if (!t) return `<p class="station__note">Reading the treasury…</p>`;
-  if (t.error) return `<div class="ui-state ui-state--error" role="alert"><p class="ui-state__title">The treasury could not be loaded</p><p class="ui-state__why">${escapeHtml(t.error)} Nothing has changed.</p><button type="button" class="ui-button ui-button--secondary" data-role="cong-reload">Try again</button></div>`;
+  if (t.error) return `<div class="ui-state ui-state--error" role="alert"><p class="ui-state__title">The treasury could not be loaded</p><p class="ui-state__why">${escapeHtml(t.error)} Nothing has changed. ${unsuccessful()}</p><button type="button" class="ui-button ui-button--secondary" data-role="cong-reload">Try again</button></div>`;
   const a = t.allowance;
   const noticeAt = Math.floor((t.balance * (t.noticePct ?? 10)) / 100);
   const arrears = t.arrears ? `<p class="cong-refusal" role="alert">In arrears: ${n(t.arrears.owed)} credits of upkeep unpaid since ${bureauTime(t.arrears.since)}. Nobody can be admitted and no level bought until a deposit covers it; after 7 days the conglomerate loses a level.</p>` : "";
@@ -111,7 +116,7 @@ export function treasuryHtml(t, { may = [], status = {}, form = {} } = {}) {
       ${statusLine("cong-treasury-withdraw-status", status.withdraw)}
     </form>` : `<p class="cong-panel__lede">Members deposit; the founder and directors withdraw, within a daily cap.</p>`;
   const pending = t.pending.length ? `<h4 class="cong-subhead">Announced withdrawals</h4><ul class="cong-list">${t.pending.map((w) => `
-    <li class="ui-card cong-item"><div class="cong-item__text"><p class="ui-card__title">${escapeHtml(w.corpName || "A corporation")}: ${n(w.amount)} credits</p><p class="ui-card__meta">Paid ${bureauTime(w.completesAt)} unless blocked${w.blockedBy.length ? ` · ${w.blockedBy.length} block so far` : ""}</p></div>
+    <li class="ui-card cong-item"><div class="cong-item__text"><p class="ui-card__title">${escapeHtml(w.corpName || "A corporation")}: ${n(w.amount)} credits</p><p class="ui-card__meta">Paid ${bureauTime(w.completesAt)} unless blocked${w.blockedBy.length ? ` · ${w.blockedBy.length} block so far` : ""} ${protocolLineHtml({ meaning: "pending", screen: "conglomerate" })}</p></div>
     <div class="cong-actions">${may.includes("block-withdrawal") && w.corp !== t.me ? `<button type="button" class="ui-button ui-button--danger" data-role="cong-withdrawal-block" data-withdrawal="${escapeHtml(w.id)}">Block</button>` : ""}</div></li>`).join("")}</ul>` : "";
   return `
     <section class="ui-panel station__panel cong-panel" data-role="cong-treasury">
@@ -133,7 +138,7 @@ export function treasuryHtml(t, { may = [], status = {}, form = {} } = {}) {
 /** The Hangar screen. `h` is GET .../hangar; `own` the caller's stock at the hangar's station ({ item: units }). */
 export function hangarHtml(h, { may = [], own = {}, status = {}, docked = false } = {}) {
   if (!h) return `<p class="station__note">Reading the hangar…</p>`;
-  if (h.error) return `<div class="ui-state ui-state--error" role="alert"><p class="ui-state__title">The hangar could not be loaded</p><p class="ui-state__why">${escapeHtml(h.error)} Nothing has changed.</p><button type="button" class="ui-button ui-button--secondary" data-role="cong-reload">Try again</button></div>`;
+  if (h.error) return `<div class="ui-state ui-state--error" role="alert"><p class="ui-state__title">The hangar could not be loaded</p><p class="ui-state__why">${escapeHtml(h.error)} Nothing has changed. ${unsuccessful()}</p><button type="button" class="ui-button ui-button--secondary" data-role="cong-reload">Try again</button></div>`;
   const held = Object.entries(h.items).sort(([a], [b]) => a.localeCompare(b));
   const stock = held.length ? `<div class="ui-table-wrap"><table class="ui-table">
       <caption class="ui-table__caption">At ${escapeHtml(h.stationName)}</caption>

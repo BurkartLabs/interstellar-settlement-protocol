@@ -3,12 +3,13 @@
 
 import { formatDurationHours, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
+import { protocolLineHtml } from "../protocol.js"; // ISP-254 Bd (AB#4819)
 import { appState } from "../state.js";
 import { renderMissions } from "./assignments.js";
 import { renderLogistics } from "./logistics.js";
 import { renderExpeditionPanel } from "./overview.js";
 import { renderRefinery } from "./refinery.js";
-import { renderQueue } from "./research.js";
+import { renderQueue, renderResearchTotals } from "./research.js";
 import { refreshFromServer, salvageRemainingMs } from "./shared.js";
 import { activeCycleFigures, spentText } from "../leaseLive.js"; // AB#746
 import { starmap } from "./starmap.js";
@@ -41,6 +42,7 @@ export function startMiningUiTicker() {
     renderMiningCyclePanel(appState.data);
     if (document.getElementById("operations")?.classList.contains("active")) renderOperations(appState.data); // AB#2471: while it is open
     renderQueue("rnd-queue", appState.data.queues?.corporateRnD || [], "Permanent corporate unlock track");
+    renderResearchTotals(appState.data); // AB#2475: counts down with the running item
     renderQueue("ceo-queue", appState.data.queues?.ceoInsight || [], "CEO-centric growth track");
 
     // Re-render refinery active runs for live progress
@@ -131,7 +133,7 @@ export function renderMiningCyclePanel(data) {
       return `
         <article class="ui-card">
           <h4 class="ui-card__title">${escapeHtml(extractor.name || extractor.id || "Extractor Yard")}</h4>
-          <p class="station__note">Status: ${active ? "Active" : "Idle"}</p>
+          <p class="station__note">Status: ${active ? `Active ${protocolLineHtml({ meaning: "active", screen: "station-active-mining-cycles" })}` : "Idle"}</p>
           <p class="station__note">Total mined: ${Number(extractor.totalMined || 0).toLocaleString()} | Total spent: ${toCurrency(Number(extractor.totalSpent || 0))}</p>
           ${
             active

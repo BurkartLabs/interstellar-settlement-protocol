@@ -30,7 +30,10 @@ const BASELINE = {
   "POST /build-refinery": {},
   "POST /build": { body: { buildingId: "basic-extractor-yard", leaseId: "lease-731" } }, // ISP-94
   "POST /buildings/:buildingId/upgrade": { params: { buildingId: "bld-731" } }, // ISP-101 (AB#793)
+  "POST /buildings/:buildingId/repair": { params: { buildingId: "bld-731" } }, // ISP-287 (AB#994)
+  "GET /building-repairs": {}, // ISP-287 (AB#994)
   "GET /belt-compositions": {},
+  "GET /expedition-outlook": { query: { beltKey: "sol:belt", duration: "short" } }, // AB#821
   "POST /scout-belt": { body: { beltKey: "sol:belt" } },
   "POST /launch-expedition": { body: { beltKey: "sol:belt", duration: "short" } },
   "POST /start-refinery": { body: { refineryId: "ref-731", chainId: "silicates-chain", inputQuantity: 100 } },
@@ -46,6 +49,10 @@ const BASELINE = {
   "POST /fleets/:fleetId/split": { params: { fleetId: "flt-does-not-exist" }, body: { lf: 1 } },
   "POST /fleets/:fleetId/merge": { params: { fleetId: "flt-does-not-exist" }, body: { intoFleetId: "flt-other" } },
   "POST /fleets/:fleetId/deploy": { params: { fleetId: "flt-does-not-exist" }, body: { toStationId: "mars-orbital-dock" } },
+  "POST /fleets/:fleetId/hunt": { params: { fleetId: "flt-does-not-exist" }, body: { beltKey: "sol:belt" } }, // ISP-284 (AB#991)
+  "GET /hunts": {}, // ISP-284 (AB#991)
+  "GET /rats/activity": {}, // ISP-285 (AB#992)
+  "GET /belts/:beltKey/hunt": { params: { beltKey: "sol:belt" } }, // ISP-285 (AB#992)
   "POST /fleets/:fleetId/disband": { params: { fleetId: "flt-does-not-exist" } },
   "GET /fleets/:fleetId/destinations": { params: { fleetId: "flt-does-not-exist" } }, // ISP-175 (AB#869)
   "GET /mercenaries": {}, // ISP-176 (AB#870)
@@ -125,10 +132,10 @@ async function playerWithEverything() {
   });
   const api = authed(app, accessToken);
   const state = () => JSON.stringify(getAccountById(account.id).state);
-  const send = (key, { body = {}, params = {} }) => {
+  const send = (key, { body = {}, params = {}, query = {} }) => {
     const [method, pattern] = key.split(" ");
     const path = PREFIX.replace(":accountId", account.id) + pattern.replace(/:(\w+)/g, (_, p) => encodeURIComponent(params[p] ?? ""));
-    return method === "GET" ? api.get(path) : api.post(path).send(body);
+    return method === "GET" ? api.get(path).query(query) : api.post(path).send(body); // AB#821: a GET with a required query
   };
   return { app, send, state };
 }

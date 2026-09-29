@@ -10,6 +10,7 @@ import { transferFeeWaived } from "../memberRates.js"; // ISP-212 (AB#907)
 import { transferTariff } from "../tariffs.js"; // ISP-231 (AB#926): the tariff the server charges at dispatch
 import { appState } from "../state.js";
 import { formatSystemLabel, getAllInventory, getCurrentStationInfo, pushFeedback, updateAllViews } from "./shared.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 (AB#950)
 import { timeHtml } from "../timeFormat.js"; // ISP-249 (AB#945)
 
 export function renderLogistics(data) {
@@ -128,7 +129,7 @@ export function renderLogistics(data) {
         </div>`;
     }
     const cardStatus = status && status.stationId === st.id
-      ? `<p class="logistics__status logistics__status--${status.tone === "ok" ? "ok" : "error"}" role="${status.tone === "ok" ? "status" : "alert"}">${escapeHtml(status.text)}</p>`
+      ? `<p class="logistics__status logistics__status--${status.tone === "ok" ? "ok" : "error"}" role="${status.tone === "ok" ? "status" : "alert"}">${escapeHtml(status.text)}${status.protocol ? ` ${protocolLineHtml(status.protocol)}` : ""}</p>`
       : "";
 
     cardsHtml += `
@@ -153,12 +154,14 @@ export function renderLogistics(data) {
       <header class="ui-panel__header"><h3 id="logistics-in-flight-title" class="ui-panel__title">Shipments In Transit</h3></header>
       <div class="ui-panel__body">
       ${shipments.length
-        ? `<table class="ui-table logistics__in-flight">
+        // Bug #4841: in its wrap, so a table wider than its column scrolls inside it, never the page (ISP-250)
+        ? `<div class="ui-table-wrap"><table class="ui-table logistics__in-flight">
             <thead><tr><th scope="col">Route</th><th scope="col">Goods</th><th scope="col" class="ui-table__num">Fee</th><th scope="col">Arrives</th></tr></thead>
             <tbody>${shipments.map((s) => {
             const remainingMs = Math.max(0, (s.arrivesAt || 0) - Date.now());
             const eta = s.status === "held"
-              ? `<span class="ui-badge ui-badge--warn">Held</span> Destination unreachable`
+              // Bug #4841: one value, so the stacked row has two items (the label and this) and the value wraps inside itself
+              ? `<span class="logistics__held"><span class="ui-badge ui-badge--warn">Held</span> Destination unreachable ${protocolLineHtml({ meaning: "suspended", screen: "logistics" })}</span>`
               : `<span class="logistics__eta" data-arrives-at="${escapeHtml(String(s.arrivesAt || 0))}">${remainingMs > 0 ? escapeHtml(formatDuration(remainingMs)) : "Arriving"}</span>`;
             return `<tr class="logistics__shipment${s.status === "held" ? " logistics__shipment--held" : ""}">
               <td data-label="Route">${escapeHtml(stationName(s.fromStationId))} → ${escapeHtml(stationName(s.toStationId))}</td>
@@ -166,7 +169,7 @@ export function renderLogistics(data) {
               <td class="ui-figure" data-label="Fee">${toCurrency(s.fee)}</td>
               <td data-label="Arrives">${eta}</td>
             </tr>`;
-          }).join("")}</tbody></table>`
+          }).join("")}</tbody></table></div>`
         : `<div class="ui-state"><p class="ui-state__title">Nothing is in transit.</p><p class="ui-state__why">Move goods from a remote station's card above, and they will list here until they arrive.</p></div>`}
       </div>
     </section>`;
@@ -178,14 +181,14 @@ export function renderLogistics(data) {
       <header class="ui-panel__header"><h3 id="logistics-history-title" class="ui-panel__title">Transfer History</h3></header>
       <div class="ui-panel__body">
       ${history.length
-        ? `<table class="ui-table logistics__history">
+        ? `<div class="ui-table-wrap"><table class="ui-table logistics__history">
             <thead><tr><th scope="col">Route</th><th scope="col">Goods</th><th scope="col" class="ui-table__num">Fee</th><th scope="col">When</th></tr></thead>
             <tbody>${history.map((h) => `<tr>
               <td data-label="Route">${escapeHtml(stationName(h.from))} → ${escapeHtml(stationName(h.to))}</td>
               <td data-label="Goods">${escapeHtml(describeLines(h.lines))}</td>
               <td class="ui-figure" data-label="Fee">${toCurrency(h.fee)}</td>
               <td data-label="When">${timeHtml(h.time)}</td>
-            </tr>`).join("")}</tbody></table>`
+            </tr>`).join("")}</tbody></table></div>`
         : `<div class="ui-state"><p class="ui-state__title">No transfers yet.</p><p class="ui-state__why">Goods held at another station can be moved here from its card above.</p></div>`}
       </div>
     </section>`;
@@ -252,18 +255,19 @@ export function renderLogistics(data) {
       const etaMin = shipment ? Math.max(1, Math.round((shipment.arrivesAt - shipment.dispatchedAt) / 60_000)) : null;
       appState.logisticsStatus = { stationId: fromStation, tone: "ok", text: shipment
         ? `Dispatched ${describeLines(shipment.lines)} to ${currentName} for ${toCurrency(shipment.fee)}${shipment.tariff?.amount ? ` and ${toCurrency(shipment.tariff.amount)} concession tariff` : ""} — arriving in ${etaMin} min.`
-        : "Transfer dispatched." };
+        : "Transfer dispatched.", protocol: { meaning: "active", screen: "logistics" } }; // ISP-254 (AB#950): in transit is In force
       for (const key of Object.keys(draft)) if (key.startsWith(`${fromStation}|`)) delete draft[key];
       appState.data = deepClone(account.state);
       appState.walkthroughCompleted = Boolean(account.walkthroughCompleted);
       updateAllViews();
       showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
-      pushFeedback(appState.logisticsStatus.text, "success");
+      pushFeedback(appState.logisticsStatus.text, "success", appState.logisticsStatus.protocol);
     } catch (err) {
-      appState.logisticsStatus = { stationId: fromStation, tone: "error", text: err.message || "Transfer failed." };
+      const text = err.message || "Transfer failed.";
+      appState.logisticsStatus = { stationId: fromStation, tone: "error", text, protocol: { meaning: refusalMeaning(text), screen: "logistics" } }; // ISP-254 (AB#950)
       btn.textContent = original;
       renderLogistics(appState.data);
-      pushFeedback(appState.logisticsStatus.text, "warn");
+      pushFeedback(appState.logisticsStatus.text, "warn", appState.logisticsStatus.protocol);
     }
   };
 

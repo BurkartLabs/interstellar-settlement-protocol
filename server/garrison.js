@@ -96,7 +96,8 @@ export function moveTroops(accountId, { fromStationId, toStationId, quantity } =
   if (fromStationId === toStationId) return { ok: false, status: 400, error: "Choose a different station to send them to." };
   if (!Number.isInteger(quantity) || quantity < 1) return { ok: false, status: 400, error: "Send a whole number of troops, at least 1." };
   const here = n(corp.military?.garrisons?.[fromStationId]);
-  if (quantity > here) return { ok: false, status: 409, error: `Only ${here} defense troops stand at that station.` };
+  // Bug #4822: the refusal says what to do next (ISP-6)
+  if (quantity > here) return { ok: false, status: 409, error: here > 0 ? `Only ${here} defense troops stand at that station. Send ${here} or fewer.` : "No defense troops stand at that station. Choose a station that has troops." };
   if (!reachable(corp.unlockedTech, fromStationId, toStationId)) return { ok: false, status: 409, error: "Your research does not reach that station yet." };
   const move = { id: `gm-${now.toString(36)}-${(++seq).toString(36)}`, fromStationId, toStationId, quantity, departedAt: now, arrivesAt: now + getTravelTimeMs(fromStationId, toStationId) };
   mutateAccountState(accountId, (state) => {
@@ -126,6 +127,7 @@ export function deployHiredFleet(accountId, contractId, toStationId, now = Date.
   const fleet = corpOf(ownerAccountId)?.military?.fleets?.find((f) => f.id === offer.fleetId);
   if (!fleet) return { ok: false, status: 404, error: "No such hired fleet." };
   if (fleet.transit && now < fleet.transit.arrivesAt) return { ok: false, status: 409, error: "That fleet is travelling." };
+  if (fleet.escort) return { ok: false, status: 409, error: "That fleet is escorting an expedition until it comes home." }; // AB#4678
   const from = fleet.stationId || fleet.transit?.toStationId;
   if (from === toStationId) return { ok: false, status: 409, error: "That fleet is already there." };
   if (!reachable(renter.unlockedTech, from, toStationId)) return { ok: false, status: 409, error: "Your research does not reach that station yet." };

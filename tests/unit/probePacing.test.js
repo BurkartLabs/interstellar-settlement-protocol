@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
-import { targetDays, judge } from "../../scripts/probe-pacing.mjs";
+import { targetDays, judge, lowerBoundLate } from "../../scripts/probe-pacing.mjs";
 
 // ISP-283 (AB#990): the year-pacing probe reads its targets from the design, and judges the check-in profile by them.
 const DOC = fs.readFileSync(new URL("../../docs/design/ladder-11-40.md", import.meta.url), "utf8");
@@ -28,5 +28,16 @@ describe("the year-pacing probe's targets and verdict (AB#990)", () => {
     expect(judge([at(40, 329)], {}, 40)).toHaveLength(1);
     expect(judge([], {}, 40)[0]).toMatch(/not reached/);
     expect(judge([], {}, 10)).toEqual([]);
+  });
+
+  // Bug #2311: the hourly profile stalled at Level 4 (day 9.1) while the check-in reached Level 10 by day 31.4.
+  it("fails the always-on run when it reaches a level later than the check-in, or not within its days", () => {
+    const checkIn = [at(4, 11), at(5, 13.5), at(10, 31.4)];
+    expect(lowerBoundLate(checkIn, [at(4, 8.7), at(5, 9.8), at(10, 24.2)], 60)).toEqual([]);
+    expect(lowerBoundLate(checkIn, [at(4, 9.1)], 60)).toEqual([
+      "Level 5: check-in at day 13.5, always-on not within its 60 days",
+      "Level 10: check-in at day 31.4, always-on not within its 60 days"
+    ]);
+    expect(lowerBoundLate(checkIn, [at(4, 15.2), at(5, 12)], 20)).toEqual(["Level 4: check-in at day 11.0, always-on later, at day 15.2"]);
   });
 });

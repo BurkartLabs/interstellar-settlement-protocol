@@ -6,6 +6,26 @@
    these names and no literal value. tests/unit/designTokens.test.js checks every text colour against every surface
    (WCAG AA) and every fill against the text set on it, and counts the literals still outside this block so that
    number can only fall; ISP-71 (AB#760) replaces them. See them all at /styleguide/tokens. */
+/* AB#964 (ISP-268): Inter, self-hosted (public/vendor/inter-5.3.0, OFL): one variable file for every weight, latin
+   first and latin-ext only when a page uses those characters. It was Google Fonts, a second origin to reach before
+   the first paint and to allow in the CSP. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("/vendor/inter-5.3.0/inter-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("/vendor/inter-5.3.0/inter-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
 :root {
   /* Surfaces, darkest first. Depth is luminance, each step at least 1.2:1 over the one below: no decorative shadow.
      bg is the page; surface-1 a panel or card; surface-2 raised (a card on a panel, a hovered row); surface-3 selected
@@ -78,6 +98,7 @@
   --font-size-4: 18px; /* panel heading */
   --font-size-5: 22px; /* page heading */
   --font-size-6: 26px; /* hero */
+  --font-size-display: clamp(1.2rem, 2.6vw, 1.8rem); /* Bug #4844: the page title and the header's name, fluid from 19 to 29px */
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
@@ -132,6 +153,13 @@
     --duration-base: 0ms;
     --duration-slow: 0ms;
   }
+}
+
+/* ISP-250 (AB#946): the phone floor. Inside a screen the two small sizes are 14px on a phone, so a screen's own class
+   that takes --font-size-1 or -2 is on the floor without a rule of its own. Shown on /styleguide. Here, in the token
+   block, since it sets tokens (Bug #4744); in a media block of its own (Bug #4694). */
+@media (max-width: 600px) {
+  .ui-screen, .modal-card { --font-size-1: 14px; --font-size-2: 14px; } /* Bug #4749: a popup is not inside a screen */
 }
 /* ─── End of design tokens ─── */
 
@@ -440,6 +468,89 @@ body {
   font-size: var(--font-size-3);
   line-height: var(--line-height-body);
 }
+/* ISP-257 (AB#953): the pitch (the verb, who it is for, the one call to action) beside a real screen on a wide page,
+   the screen under it on a phone; then three screens from a corporation at work. */
+.landing__pitch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.landing__verb {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-4);
+  line-height: var(--line-height-body);
+}
+.landing__verb strong {
+  color: var(--accent);
+}
+.landing__audience {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-3);
+  line-height: var(--line-height-body);
+}
+.landing__shot {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+}
+.landing__shot img,
+.landing__proof-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.landing__caption {
+  color: var(--muted);
+  font-size: var(--font-size-2);
+}
+.landing__proofs {
+  display: grid;
+  gap: var(--space-4);
+}
+.landing__proof {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+@media (min-width: 960px) {
+  /* one proof a row, the screen large enough to read beside what it shows (.ui-card's flex comes later in this file) */
+  .ui-card.landing__proof {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: var(--space-8);
+    row-gap: var(--space-3);
+    align-items: start;
+  }
+  .landing__proof-shot {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  .landing__proof .ui-card__title,
+  .landing__proof .ui-card__body {
+    grid-column: 2;
+  }
+  .landing__proof .ui-card__title {
+    align-self: end;
+  }
+  .landing__hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: var(--space-8);
+  }
+}
 .landing__section {
   padding-top: var(--space-10);
 }
@@ -487,7 +598,7 @@ body {
   :is(.auth-page, .landing) {
     font-size: var(--font-size-3);
   }
-  :is(.auth-page, .landing) :is(.ui-button, .ui-input, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .auth-page__overline, .landing__overline, .auth-page__aside, .auth-page__status, .landing__aside) {
+  :is(.auth-page, .landing) :is(.ui-button, .ui-input, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .auth-page__overline, .landing__overline, .auth-page__aside, .auth-page__status, .landing__aside, .landing__caption) {
     font-size: var(--font-size-3);
   }
   .auth-page {
@@ -511,7 +622,7 @@ h1, h2, h3, h4, p {
 
 h1 {
   margin-bottom: 0;
-  font-size: clamp(1.2rem, 2.6vw, 1.8rem);
+  font-size: var(--font-size-display);
   letter-spacing: 0.02em;
 }
 
@@ -659,6 +770,20 @@ button:disabled {
 
 .kpi-tile--primary::before {
   background: none;
+}
+/* AB#2483: the Overview's cash figures under its title; the screen's gap spaces them. */
+.overview__figures {
+  margin-bottom: 0;
+}
+/* With no raid coming the alert's slot is empty; hidden, it takes no gap of the screen's column. */
+#overview-raid-alert:empty {
+  display: none;
+}
+.overview__figures .kpi-tile__value[data-tone="positive"] {
+  color: var(--success);
+}
+.overview__figures .kpi-tile__value[data-tone="negative"] {
+  color: var(--danger);
 }
 
 /* ISP-148 (AB#842): the credit rating card: the grade, the score, and one line on what holds it back */
@@ -1176,7 +1301,8 @@ textarea {
 
 #walkthrough-modal .modal-card {
   pointer-events: auto;
-  width: min(420px, 100%);
+  /* AB#2463: scales with the screen, about 600px at 1920 wide (31.25vw), 400px at 1280, never under 360px nor over 720px */
+  width: min(clamp(22.5rem, 31.25vw, 45rem), 100%);
   box-shadow: var(--elevation-overlay);
 }
 
@@ -1191,10 +1317,12 @@ body.walkthrough--open .layout-grid {
   padding-bottom: calc(var(--space-4) + var(--walkthrough-card-height, 22rem));
 }
 
-/* What a walkthrough step points at. */
+/* What a walkthrough step points at. AB#2463: the outline stands off the element, so what it frames is never jammed
+   against the border (the Suites' hiring form was the example). */
 .walkthrough__focus {
   position: relative;
   outline: 2px solid var(--warn);
+  outline-offset: var(--space-2);
   border-radius: var(--radius-md);
 }
 
@@ -1830,9 +1958,12 @@ body.walkthrough--open .layout-grid {
   html {
     scroll-padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
   }
+  /* Bug #4846: the screen first, then the sidebar's panels. Stacked above it, the three panels (collapsed on a phone,
+     AB#1056) put every screen's own title a third of the way down the first screenful; after it, they are one scroll
+     away at the end of every screen. A desktop keeps them in their column beside the content. */
   .layout-grid {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "side" "main";
+    grid-template-areas: "main" "side";
     padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
   }
   .side-panel {
@@ -2346,6 +2477,11 @@ body.sg {
   background: var(--surface-3);
   color: var(--accent-hover);
 }
+/* ISP-264 (AB#960): the Account dialog's two parts */
+.account-data__heading {
+  margin: 0;
+  font-size: var(--font-size-4);
+}
 .ui-button--danger {
   background: var(--danger);
   color: var(--on-danger);
@@ -2439,8 +2575,9 @@ body.sg {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.ui-input[aria-invalid="true"],
-.ui-select[aria-invalid="true"] {
+/* Bug #4861: as specific as the hover rule above, so an invalid field under the pointer stays marked invalid */
+.ui-input[aria-invalid="true"]:not(:disabled),
+.ui-select[aria-invalid="true"]:not(:disabled) {
   border-color: var(--danger);
 }
 
@@ -2528,6 +2665,32 @@ body.sg {
 }
 @media (max-width: 600px) {
   .ui-code {
+    font-size: var(--font-size-3);
+  }
+}
+/* ISP-254 (AB#950): the protocol line beside a plain status or message (docs/design/BUREAUCRATIC_UI.md, "Status
+   vocabulary"): the phrase in caps, then the screen's code, aria-hidden. Secondary text like .ui-code, but in the
+   colour of the text it sits in, so it keeps that text's contrast on a tinted status or alert. */
+.protocol-line {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+  color: inherit;
+  display: inline-block; /* AB#4811: moves to the next line whole rather than breaking mid-phrase; still wraps if wider */
+}
+.protocol-line__code {
+  white-space: nowrap;
+  /* Bug #4841: an inline block, so the line may break between the phrase and "// CODE" (each kept whole) when the two
+     do not fit side by side; without a break there, "SUSPENDED // CORP-LOG-1" was one unbreakable run that pushed a
+     phone's stacked table row, and the Logistics page with it, 169px past the screen. An inline block drops its own
+     leading space, so the gap before "//" is its margin (one character of the mono face) */
+  display: inline-block;
+  margin-inline-start: 1ch;
+}
+@media (max-width: 600px) {
+  .protocol-line {
     font-size: var(--font-size-3);
   }
 }
@@ -2806,14 +2969,25 @@ body.sg {
   .ui-table .ui-table__num {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end; /* with the label's auto margin: label left, value right, and a value on a line of its own right too */
     gap: var(--space-4);
+    min-width: 0;
     padding: 0;
     border: 0;
     text-align: right;
+    /* Bug #4866: a value too wide to sit beside its label drops to the line under it, at the card's full width, and
+       only a word wider than the card breaks, anywhere, rather than running past it (a long corporation name in
+       Trade History was cut off mid-word) */
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
+    overflow-wrap: anywhere;
   }
   .ui-table td::before {
     content: attr(data-label);
+    margin-inline-end: auto;
+    /* the column name breaks at its spaces, and so never shrinks below its longest word: the value, which may break
+       anywhere, is what gives way (Bug #4866) */
+    overflow-wrap: normal;
     font-size: var(--font-size-1);
     font-weight: var(--font-weight-semibold);
     letter-spacing: var(--letter-spacing-caps);
@@ -3114,6 +3288,31 @@ body.sg {
   animation: milestoneStrike 0.8s ease-out forwards;
 }
 
+/* AB#2465 (Board review 2026-09-26, items 19 and 36): the Inbox and Chat are sized containers. The Board's reference is
+   70% of the column and 600px tall on a 1920x1080 screen; both scale with the screen. The width is 70% of the column,
+   but never narrower than a reading width unless the column itself is; the height is 600px at 1080px tall (55.5vh),
+   held between
+   36rem (so a shorter screen still shows a useful chat log) and 50rem. The Inbox's is a minimum: a long folder still
+   grows past it. Chat's is fixed: the log fills the panel and scrolls, whatever the number of messages. */
+#inbox.ui-screen,
+#chat.ui-screen {
+  width: max(70%, min(100%, 60rem));
+  margin-inline: auto;
+}
+#inbox.ui-screen {
+  min-height: clamp(36rem, 55.5vh, 50rem);
+}
+#chat.ui-screen {
+  height: clamp(36rem, 55.5vh, 50rem);
+}
+/* On a phone the screen's header takes a larger share of the panel, and the page scrolls anyway: Chat takes most of the
+   screen's height, so the log keeps room for several lines. */
+@media (max-width: 600px) {
+  #chat.ui-screen {
+    height: clamp(36rem, 85vh, 50rem);
+  }
+}
+
 /* The Inbox: its message rows, an open message and the compose form's recipient chooser (Bug #711). */
 .inbox__header {
   flex-direction: row;
@@ -3159,6 +3358,12 @@ body.sg {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* AB#2467: a message body's Markdown (public/scripts/markdown.js): paragraphs, lists, code and links. */
+:is(.inbox__body, .thread__body) :is(p, ul, ol) { margin: 0; }
+:is(.inbox__body, .thread__body) > :is(p, ul, ol) + :is(p, ul, ol) { margin-top: var(--space-2); }
+:is(.inbox__body, .thread__body) :is(ul, ol) { padding-left: var(--space-5); }
+:is(.inbox__body, .thread__body) code { font-family: var(--font-mono); }
+:is(.inbox__body, .thread__body) a { color: var(--accent); overflow-wrap: anywhere; }
 .inbox__actions {
   display: flex;
   flex-wrap: wrap;
@@ -3198,12 +3403,17 @@ body.sg {
   overflow-y: auto;
   padding: var(--space-2) var(--space-3);
 }
-.thread__older {
+.thread__older,
+.chat__older,
+.forums__more {
   margin: 0 0 var(--space-2);
   text-align: center;
   color: var(--text-soft);
   font-size: var(--font-size-1);
 }
+/* AB#995: the chat's "Load older messages" is a row of the log; the forums' "Load more" sits under its list */
+.chat__older { list-style: none; }
+.forums__more { margin-top: var(--space-3); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
 .thread__messages {
   display: flex;
   flex-direction: column;
@@ -3614,14 +3824,6 @@ img.station__body {
   font-size: var(--font-size-4);
   font-weight: var(--font-weight-semibold);
 }
-.station__start {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-color: var(--accent);
-}
 #station-facility-buildings {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); /* Bug #1283: a phone leaves the grid ~309px */
@@ -3846,6 +4048,14 @@ img.station__body {
 .extractor.is-downtime {
   border-color: var(--danger);
 }
+/* ISP-254 Bd (AB#4819): a yard's badge and its protocol line stay together, at the header's end */
+.extractor__status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .extractor__header,
 .extractor__progress-header {
   display: flex;
@@ -3934,14 +4144,21 @@ img.station__body {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  flex: 1 1 auto;
+  min-height: 0;
   padding: var(--space-4);
+}
+/* AB#2465: only the log gives way to the panel's fixed height; the channel tabs (a strip that scrolls sideways, so it
+   would shrink to nothing) and the line to write keep theirs. */
+.chat > :not(.chat__log) {
+  flex: none;
 }
 .chat__log {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  height: min(420px, 56vh);
-  min-height: 240px;
+  flex: 1 1 auto;
+  min-height: 0;
   margin: 0;
   padding: var(--space-3);
   overflow-x: hidden;
@@ -3982,6 +4199,31 @@ img.station__body {
 }
 
 /* The Forums: the thread list, a thread with its posts, and the composers. */
+/* AB#2466: a sized container, as AB#2465 gives the Inbox (Board review 2026-09-26): 70% of the column, never narrower
+   than a reading width unless the column is, centred; at least 600px tall at 1080px (55.5vh, between 36rem and 50rem),
+   and growing past it with a long thread. */
+#forums.ui-screen {
+  width: max(70%, min(100%, 60rem));
+  margin-inline: auto;
+  min-height: clamp(36rem, 55.5vh, 50rem);
+}
+/* AB#2466: a reply sits under the one it answers, indented with a rule down its left; past INDENT_MAX_DEPTH levels
+   (forumActions.js) replies stay nested but indent no further, so a long exchange still fits a phone. */
+.forums__replies.forums__replies--nested { /* two classes: the base .forums__replies below zeroes padding and margin */
+  margin-top: var(--space-3);
+  padding-left: var(--space-5);
+  border-left: 2px solid var(--border);
+}
+/* Bug #4736: one reply and the replies under it; the nested-replies spec finds a reply by it. It fits its column. */
+.forums__reply {
+  min-width: 0;
+}
+.forums__replies--deep .forums__replies.forums__replies--nested,
+.forums__replies.forums__replies--deep.forums__replies--nested { padding-left: var(--space-2); }
+.forums__reply-target { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); color: var(--text-soft); }
+@media (max-width: 600px) {
+  .forums__replies.forums__replies--nested { padding-left: var(--space-3); }
+}
 .forums__view {
   display: flex;
   flex-direction: column;
@@ -4359,10 +4601,18 @@ img.station__body {
   border-radius: 50%;
   object-fit: cover;
 }
+/* AB#2463: Elara Voss's portrait a larger square, in her colours: the image's own cyan brought up, framed in the accent */
 #walkthrough-modal .dialogue__portrait {
-  width: 52px;
-  height: 52px;
+  width: 104px;
+  height: 104px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--accent);
+  object-position: 50% 18%;
+  filter: saturate(1.6) contrast(1.05);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
 }
+.walkthrough__text { display: flex; flex-direction: column; gap: var(--space-3); }
+.walkthrough__text p { margin: 0; }
 .dialogue__content {
   display: flex;
   flex: 1;
@@ -4430,6 +4680,7 @@ img.station__body {
 .dialogue__actions:empty {
   display: none;
 }
+.dialogue__actions--end { justify-content: flex-end; } /* AB#2492: the NPC profile's Close, at the card's bottom right */
 .dialogue__continue {
   align-self: flex-start;
   margin-top: var(--space-2);
@@ -4445,6 +4696,17 @@ img.station__body {
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--space-3);
+}
+/* AB#2486: the Assets tabs' filter and sort, a toolbar like the Starmap's; each control takes the row's width on a phone. */
+.assets__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.assets__controls .ui-field {
+  flex: 1 1 14rem;
+  max-width: 20rem;
 }
 /* ISP-143 (AB#837): the resource concentration overlay's legend, above the map: the item, and each band's colour and
    range. The colours are the canvas's own (public/scripts/resourceOverlay.js), so they are set inline on each swatch. */
@@ -4589,6 +4851,10 @@ img.station__body {
 .starmap__resource-legend p {
   margin: 0;
 }
+/* ISP-285 (AB#992): the last hunt's report in a belt's panel, below its Rats section */
+.starmap__hunt-report { margin-top: var(--space-3); }
+.starmap__hunt-report > summary { cursor: pointer; color: var(--muted); font-size: var(--font-size-2); }
+
 .starmap__bands {
   display: flex;
   flex-wrap: wrap;
@@ -4742,6 +5008,7 @@ img.station__body {
     height: 48px;
     margin: 0 var(--space-3) var(--space-1) 0;
   }
+  #walkthrough-modal .dialogue__portrait { width: 64px; height: 64px; } /* AB#2463: still the larger square */
   /* A flex column would stand beside the float, not flow round it: a block, spaced by margins, does. */
   .dialogue__content {
     display: block;
@@ -4767,6 +5034,11 @@ img.station__body {
 }
 .starmap__station-row .ui-panel__meta {
   white-space: nowrap;
+}
+/* AB#821: the launch panel's Rats figures. The terms wrap and the figures keep their width, so a phone's narrow panel
+   does not squeeze a percentage into a column a letter wide. */
+.ui-kv.launch-risk {
+  grid-template-columns: minmax(0, max-content) max-content;
 }
 /* The close glyph keeps its size where the phone raises a modal's buttons to body size. */
 .starmap__station .starmap__close {
@@ -4816,6 +5088,14 @@ img.station__body {
     font-size: var(--font-size-3);
   }
 }
+/* AB#2495: on Travel the main panel fills what the header leaves, below it and beside the sidebar, and the screen's
+   card sits in its middle, both ways, at about three quarters of the width it had. The panel has no background, so the
+   starfield shows all round the card. A phone keeps a floor of 17.5rem, so the route's two cards still hold a station
+   name. #game-shell is 100vh tall; as a column, the grid takes the height the header leaves. */
+#game-shell:not([hidden]):has(#travel.tab-panel.active) { display: flex; flex-direction: column; }
+#game-shell:has(#travel.tab-panel.active) > .layout-grid { flex: 1 0 auto; }
+.main-panel:has(> #travel.tab-panel.active) { align-self: stretch; display: grid; place-items: center; }
+#travel.tab-panel.active { width: max(75%, min(100%, 17.5rem)); }
 /* AB#1053: side by side, a phone's two cards were a word wide; the route reads top to bottom there instead. */
 @media (max-width: 480px) {
   .travel__route {
@@ -4842,7 +5122,7 @@ img.station__body {
 .app-header__title {
   margin: 0;
   color: var(--text);
-  font-size: clamp(1.2rem, 2.6vw, 1.8rem);
+  font-size: var(--font-size-display);
   line-height: var(--line-height-tight);
 }
 .app-header__actions {
@@ -4853,6 +5133,16 @@ img.station__body {
 }
 .app-header__notifications {
   position: relative;
+}
+/* ISP-264 (AB#960): with Account beside Notifications and Log Out, a phone's header keeps them on one row */
+@media (max-width: 480px) {
+  .app-header__actions {
+    gap: var(--space-1);
+  }
+  .app-header__actions > .ui-button,
+  .app-header__notifications > .ui-button {
+    padding-inline: var(--space-2);
+  }
 }
 .app-header__panel {
   position: absolute;
@@ -4873,7 +5163,8 @@ img.station__body {
 .notifications__item.is-unread {
   border-color: var(--warn);
 }
-.side-panel__toggle {
+.side-panel__toggle,
+.insight__toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4890,13 +5181,79 @@ img.station__body {
 .side-panel__toggle[aria-expanded="true"] {
   border-bottom: 1px solid var(--border);
 }
-.side-panel__arrow {
+.side-panel__arrow,
+.insight__arrow {
   color: var(--muted);
   font-size: var(--font-size-3);
   transition: transform var(--duration-fast) var(--ease-standard);
 }
-.side-panel__toggle[aria-expanded="false"] .side-panel__arrow {
+.side-panel__toggle[aria-expanded="false"] .side-panel__arrow,
+.insight__toggle[aria-expanded="false"] .insight__arrow {
   transform: rotate(-90deg);
+}
+
+/* AB#2474: CEO Insight's Programs section and its categories collapse with the left column's toggle. The section's
+   title is its toggle, across the whole header; a category's title is a lighter one, its count beside its name. */
+.insight__header {
+  padding: 0;
+}
+.insight__heading {
+  flex: 1 1 auto;
+  font: inherit;
+}
+.insight__heading .insight__toggle {
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-semibold);
+}
+.ui-panel:has(> .insight__header [aria-expanded="false"]) > .insight__header {
+  border-bottom: 0;
+}
+.insight__category {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.insight__category-title {
+  margin: 0;
+  font: inherit;
+}
+.insight__toggle--category {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-semibold);
+}
+.insight__toggle--category[aria-expanded="true"] {
+  border-bottom: 1px solid var(--border);
+}
+.insight__category-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+.insight__category-count {
+  color: var(--muted);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-regular);
+}
+.insight__category-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+.insight__category-body[hidden] {
+  display: none;
+}
+.insight__category-summary {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-2);
+}
+/* On a phone a toggle is a 44px target, as every control is (after the rules above, which set 36px). */
+@media (max-width: 600px) {
+  .insight__toggle {
+    min-height: 44px;
+  }
 }
 .side-panel__identity dd {
   text-align: right;
@@ -4928,16 +5285,19 @@ img.station__body {
 .station__subnav { margin-top: var(--space-2); }
 .station__subpage { margin-top: var(--space-3); }
 .station__overview-empty { display: none; }
-#station-sub-overview:not(:has(#station-facilities-section:not([hidden]))) .station__overview-empty { display: block; }
+#station-sub-overview:not(:has(#station-facilities-section:not([hidden]), #station-repairs-section:not([hidden]))) .station__overview-empty { display: block; }
 .station__offices { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
 .station__offices .station__card { gap: var(--space-2); }
 .station__card-agency { margin: 0; }
-.ops-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.ops-row { display: grid; grid-template-columns: 8rem minmax(12rem, 1fr) minmax(0, 1fr) auto; /* the name keeps its room; the time wraps */ align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-2, 8px); background: var(--surface-2); }
+/* Bug #4842: the list is its own container, so a row stacks when the list is narrow, not only the window: at 768 the
+   content column beside the navigation is narrower than the four-column row's minimum, and the Open buttons ran past
+   the edge. */
+.ops-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); container: ops / inline-size; }
+.ops-row { display: grid; grid-template-columns: 8rem minmax(12rem, 1fr) minmax(0, 1fr) auto; /* the name keeps its room; the time wraps */ align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); }
 .ops-row__kind { justify-self: start; }
 .ops-row__what { overflow-wrap: anywhere; }
 .ops-row__when { color: var(--text-soft); font-size: var(--font-size-2); font-variant-numeric: tabular-nums; text-align: right; }
-@media (max-width: 760px) {
+@container ops (max-width: 34rem) {
   .ops-row { grid-template-columns: minmax(0, 1fr) auto; }
   .ops-row__what { grid-column: 1 / -1; }
   .ops-row__when { text-align: left; }
@@ -4957,18 +5317,26 @@ img.station__body {
   }
 }
 
-/* ISP-250 (AB#946): the floor as tokens, in a block of its own (Bug #4694: the Station's test pins the rule above as its
-   block's first). Inside a screen the two small sizes are 14px on a phone, so a screen's own class that takes
-   --font-size-1 or -2 is on the floor without a rule of its own. Shown on /styleguide. */
+/* ISP-250 (AB#946): a reference number outside any screen (the sidebar's licence) on the phone floor, Bug #4688. The
+   floor itself is a token override, in the token block (Bug #4744). */
 @media (max-width: 600px) {
-  .ui-screen { --font-size-1: 14px; --font-size-2: 14px; }
-  .ref-no { font-size: var(--font-size-3); } /* a reference number outside any screen (the sidebar's licence), Bug #4688 */
+  .ref-no { font-size: var(--font-size-3); }
 }
 
 /* ─── Galactic Exchange on the design system (ISP-80, AB#769; flat direction, Decision AB#1801) ─── */
 #market > .ui-panel,
-#market > .exchange__split {
+#market > .exchange__split,
+#exchange-tools > .ui-panel,
+.exchange__page > .ui-panel,
+.exchange__page > .exchange__split {
   margin-top: var(--space-4);
+}
+/* AB#2472 (DOCTRINE P-010): the Exchange's subpages, a strip of tabs under the screen's title. */
+.exchange__pages {
+  margin-top: var(--space-4);
+}
+.exchange__page[hidden] {
+  display: none;
 }
 /* Sell orders and Create listing side by side only when each card can hold its table, about 560px (AB#1055). */
 .exchange__split {
@@ -5176,6 +5544,68 @@ img.station__body {
     align-items: flex-end;
   }
 }
+/* Bug #4870: a standing order as a compact card of three lines, whenever the Exchange draws its tables as cards: the
+   item and its price; who posts it and how much is left; the quantity field beside its Buy or Sell. The six-cell row was
+   one line a cell, about 300px an order, and the six standing sell orders were two screens of a phone. The item and the
+   counterparty need no label, and the field keeps its aria-label. After the container rule above, and as specific. */
+@container (max-width: 720px) {
+  /* Bug #4866, on the Exchange too (its card rule above is the more specific): a value that drops under its label sits
+     at the right, as the others do */
+  #market .ui-table td,
+  #market .ui-table .ui-table__num {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: var(--space-1);
+  }
+  #market .ui-table td::before {
+    margin-inline-end: auto;
+    overflow-wrap: normal;
+  }
+  #market .exchange__standing-table td::before {
+    margin-inline-end: 0;
+  }
+  #market .exchange__standing-table tbody tr {
+    grid-template-columns: minmax(0, 1fr) fit-content(45%);
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-3);
+  }
+  #market .exchange__standing-table td,
+  #market .exchange__standing-table .ui-table__num {
+    justify-content: flex-end;
+    gap: var(--space-2);
+  }
+  #market .exchange__standing-table td:nth-child(1),
+  #market .exchange__standing-table .exchange__party,
+  #market .exchange__standing-table td:nth-child(5) {
+    justify-content: flex-start;
+    text-align: left;
+  }
+  #market .exchange__standing-table td:nth-child(1) {
+    color: var(--text);
+    font-weight: var(--font-weight-semibold);
+  }
+  #market .exchange__standing-table td:nth-child(1)::before,
+  #market .exchange__standing-table .exchange__party::before,
+  #market .exchange__standing-table td:nth-child(5)::before,
+  #market .exchange__standing-table td:last-child::before {
+    content: none;
+  }
+  /* the lines: item and price; the counterparty across the card; what is left across it; field and button */
+  #market .exchange__standing-table td:nth-child(1) { order: 1; }
+  #market .exchange__standing-table .exchange__price-cell { order: 2; }
+  #market .exchange__standing-table .exchange__party { order: 3; grid-column: 1 / -1; }
+  #market .exchange__standing-table .exchange__left-cell { order: 4; grid-column: 1 / -1; justify-content: flex-start; }
+  #market .exchange__standing-table td:nth-child(5) { order: 5; }
+  #market .exchange__standing-table td:last-child { order: 6; }
+  #market .exchange__standing-table .exchange__seller {
+    justify-content: flex-start; /* the name and its badge read from the left, on the line of their own */
+  }
+  #market .exchange__standing-table td,
+  #market .exchange__standing-table .ui-table__num {
+    flex-wrap: nowrap; /* each cell here is one line: its label and one short value */
+    overflow-wrap: normal; /* a price or a count here is short: it wraps at its spaces, never mid-figure */
+  }
+}
 /* The container rule above is the more specific: on a phone its column names are raised to 14px again, as ui-table's are. */
 @media (max-width: 600px) {
   #market .ui-table td::before {
@@ -5287,6 +5717,9 @@ img.station__body {
 
 /* ─── ISP-251 (AB#947): the Industry and Market screens' own classes, each styled from the tokens ─── */
 .bank-panel, .bond-board, .igsx-offering, .igsx-holding, .logistics__in-flight, .logistics__history, .refinery__chain { min-width: 0; }
+/* Bug #4841: a held shipment's arrival (badge, words, protocol line) is one value that wraps inside itself, so its
+   stacked row on a phone has two items, the label and the value, and never pushes past the screen */
+.logistics__held { min-width: 0; }
 .igsx-cap-table { width: 100%; font-variant-numeric: tabular-nums; }
 .rating-card--own { border-color: var(--accent); }
 .rating-card--counterparty { background: var(--surface-2); }
@@ -5295,3 +5728,51 @@ img.station__body {
 .logistics__eta { white-space: nowrap; }
 .logistics__route-fee { overflow-wrap: anywhere; }
 .logistics__bulk-fee { color: var(--muted); }
+
+/* ─── AB#2477: the prerequisite tree on Corporate R&D and CEO Insight (views/prereqGraph.js), after the Starmap's nodes:
+   a glowing dot per node on the dark field, lanes between them, the selected node's chain lit. The shape tells the
+   state as well as the colour: filled done, ringed ready, ringed with a core queued, grey locked, dashed planned. ─── */
+.prereq-graph { display: grid; gap: var(--space-3); min-width: 0; }
+.prereq-graph__scroll { overflow-x: auto; overscroll-behavior-x: contain; border-radius: var(--radius-md); } /* Bug #4751: a phone's tree pans */
+.prereq-graph__map { position: relative; min-width: 100%; overflow: hidden; border-radius: var(--radius-md); background: radial-gradient(ellipse at 50% 0%, var(--surface-2) 0%, var(--bg) 75%); }
+.prereq-graph__lanes { position: absolute; inset: 0; pointer-events: none; }
+.prereq-lane { fill: none; stroke-width: 1.5; }
+.prereq-lane--met { stroke: color-mix(in srgb, var(--accent) 45%, transparent); }
+.prereq-lane--waiting { stroke: color-mix(in srgb, var(--muted) 35%, transparent); stroke-dasharray: 4 6; }
+.prereq-lane--chain { stroke-width: 2.5; }
+.prereq-lane--chain.prereq-lane--met { stroke: var(--accent); }
+.prereq-lane--chain.prereq-lane--waiting { stroke: var(--warn); }
+.prereq-node { position: absolute; width: 44px; height: 44px; transform: translate(-50%, -50%); display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--radius-pill); background: none; color: var(--text-soft); cursor: pointer; }
+.prereq-node__dot { width: 14px; height: 14px; border-radius: var(--radius-pill); box-sizing: border-box; transition: transform var(--duration-fast) var(--ease-standard); }
+.prereq-node:hover .prereq-node__dot { transform: scale(1.2); }
+.prereq-node__name { position: absolute; color: var(--text-soft); font-size: var(--font-size-1); line-height: var(--line-height-tight); text-align: center; overflow-wrap: break-word; pointer-events: none; text-shadow: 0 0 3px var(--bg), 0 0 6px var(--bg), 0 0 10px var(--bg); } /* a lane passing behind a name does not cross it out */
+.prereq-graph__map--compact .prereq-node__name { padding: var(--space-1); border-radius: var(--radius-sm); background: var(--surface-1); }
+.prereq-node--done .prereq-node__dot { background: var(--accent); box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent); }
+.prereq-node--queued .prereq-node__dot { border: 2px solid var(--success); background: radial-gradient(circle, var(--success) 0 35%, transparent 40%); box-shadow: 0 0 10px color-mix(in srgb, var(--success) 60%, transparent); }
+.prereq-node--available .prereq-node__dot { border: 2px solid var(--accent); background: var(--bg); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 45%, transparent); }
+.prereq-node--locked .prereq-node__dot { background: var(--surface-3); border: 2px solid var(--border); }
+.prereq-node--planned .prereq-node__dot { border: 2px dashed var(--border); background: transparent; }
+.prereq-node--locked, .prereq-node--planned { color: var(--muted); }
+.prereq-node--lit { color: var(--text); }
+.prereq-node--selected { color: var(--text); }
+.prereq-node--selected .prereq-node__dot { transform: scale(1.35); outline: 2px solid var(--text); outline-offset: 3px; }
+.prereq-node__name--selected { font-weight: var(--font-weight-bold); } /* Bug #4751: the name is the button's neighbour now */
+.prereq-node__name--lit { color: var(--text); }
+.prereq-node__name--muted { color: var(--muted); }
+.prereq-graph__hint { margin: 0; color: var(--muted); font-size: var(--font-size-2); } /* Bug #4751: says the tree pans */
+.prereq-graph__detail { margin: 0; color: var(--text-soft); font-size: var(--font-size-2); line-height: var(--line-height-body); }
+.prereq-graph__detail strong { color: var(--text); }
+.prereq-graph__legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--font-size-1); }
+.prereq-graph__legend li { display: flex; align-items: center; gap: var(--space-2); }
+.prereq-graph__key { position: static; width: 14px; height: 14px; transform: none; cursor: default; }
+
+/* AB#2475: the time to finish all remaining research, under each research screen's lede (Bug #4743: it had no rule) */
+.research-total { color: var(--text-soft); font-variant-numeric: tabular-nums; }
+
+/* AB#2484: what a contract asks before it is accepted, and what remains while it is active (missionProgress.js) */
+.missions__target { color: var(--text-soft); font-size: var(--font-size-2); }
+.missions__target strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.missions__progress { display: grid; gap: var(--space-2); }
+.missions__remaining { margin: 0; display: grid; gap: var(--space-1); }
+.missions__remaining-figure { color: var(--text); font-size: var(--font-size-3); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }
+.missions__remaining-detail { display: block; color: var(--muted); font-size: var(--font-size-2); font-variant-numeric: tabular-nums; }

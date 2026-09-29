@@ -18,11 +18,15 @@ const TABLES = [
 const OUT_OF_SCOPE = {
   "POST /api/auth/register": "validates its own body (email, password, names: Bug #433)",
   "POST /api/auth/login": "validates its own body; answers only yes or no",
+  "GET /api/chat/:channel/history": "resolves its channel as chat:send does; server/game/chatHistory.js refuses a bad cursor with 400 (AB#995)",
+  "POST /api/telemetry": "validates every event against server/telemetry.js's own schema, dropping any that does not match; 400 for a body that is not a list of 1 to 20 (AB#952)",
   "POST /api/auth/refresh": "reads only the isp_refresh cookie; the body is not read (AB#757)",
   "POST /api/auth/logout": "reads only the isp_refresh cookie; the body is not read (AB#757)",
   "GET /api/auth/session": "no input",
   "GET /healthz": "the health probe, with no input (AB#735)",
   "GET /how-to-start": "a static page, with no input (AB#748)",
+  "GET /": "the landing page, with no input: only the configured public URL is filled in (AB#954)",
+  "GET /index.html": "the landing page, with no input (AB#954)",
   "GET /api/bootstrap": "a public read with no input",
   "GET /api/corporations/:corpId/credit-rating": "a read; its one input, a public corporation id, is only ever compared with existing ids (AB#842)",
   "GET /api/corporations/:corpId/cap-table": "a read; its one input, a public corporation id, is only ever compared with existing ids (AB#851)",
@@ -121,6 +125,7 @@ const BASELINE = {
   "/api/accounts/:accountId": {
     "POST /notifications/:notificationId/read": { params: { notificationId: "n-732" } },
     "GET /corporations": { query: { name: "Frontier" } },
+    "POST /delete-account": { body: { password: "not-the-baseline-password", confirm: "DELETE" } }, // ISP-264 (AB#960): a wrong password: 400, nothing deleted
     "POST /conglomerates": { body: { name: "Baseline Frontier Group", emblem: 1, colour: 1 } },
     "POST /conglomerates/:conglomerateId/invitations": { params: { conglomerateId: "cgl-732" }, body: { corpId: "corp-732" } },
     "POST /conglomerates/:conglomerateId/invitations/:invitationId/:answer": { params: { conglomerateId: "cgl-732", invitationId: "cinv-732", answer: "accept" } },
@@ -201,7 +206,9 @@ const BASELINE = {
   "/api/forums": {
     "POST /threads": { body: { category: "General", title: "t", body: "b" } },
     "POST /threads/:threadId/replies": { params: { threadId: "thr-732" }, body: { content: "c" } },
-    "POST /threads/:threadId/like": { params: { threadId: "thr-732" } }
+    "POST /threads/:threadId/like": { params: { threadId: "thr-732" } },
+    "GET /threads": {}, // AB#995
+    "GET /threads/:threadId": { params: { threadId: "thr-732" } }
   }
 };
 

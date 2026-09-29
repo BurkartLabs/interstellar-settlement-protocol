@@ -50,7 +50,8 @@ for (const vp of VIEWPORTS) {
 
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto(`${url}/check-email.html`);
-      await expect(page.locator("#check-email-title")).toHaveText("Check your email to verify your account.");
+      // AB#943: the heading opens with its form code (aria-hidden), so the words are checked, not the whole text
+      await expect(page.locator("#check-email-title")).toContainText("Check your email to verify your account.");
       await page.fill("#resend-email", email);
       await page.click("#resend-btn");
       await expect(page.locator("#resend-status")).toHaveText("If that address has an account that still needs verifying, a new link is on its way.");

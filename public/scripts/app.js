@@ -14,13 +14,13 @@ import { connectWalkthroughUi, hasSeenWalkthroughOffer, noteWalkthroughEvent, pr
 import { renderAssets } from "./views/assets.js";
 import { renderFleet } from "./views/fleet.js"; // ISP-175 (AB#869)
 import { renderRaids } from "./views/raids.js"; // ISP-181 (AB#875)
-import { applyMissionAgentsCatalog, bindAssignmentForms, renderMissions } from "./views/assignments.js";
+import { applyMissionAgentsCatalog, bindAssignmentForms, refreshOpenMissionModal, renderMissions } from "./views/assignments.js";
 import { renderInsightTree } from "./views/ceoInsight.js";
 import { bindCollapsibleSections, bindGlobalControls, loadNotifications, renderNotifications, updateCorpIdentity, updateReplayOnboardingVisibility } from "./views/chrome.js";
 import { bindCommsForms, renderChatChannelTabs, renderChatLog, resolveChatChannel } from "./views/comms.js";
 import { bindExchangeForms, renderMarket } from "./views/exchange.js";
 import { bindFinanceSubpages, loadStatements, refreshStatementsIfDayClosed, renderFinanceDashboard } from "./views/finance.js";
-import { bindForumForms, renderForums } from "./views/forums.js";
+import { applyForumsEvent, bindForumForms, renderForums } from "./views/forums.js";
 import { bindInboxControls, loadMessages, onInboxTabActivated, renderInboxMessageList } from "./views/inbox.js";
 import { onConversationEvent } from "./views/conversations.js"; // AB#911
 import { renderLogistics } from "./views/logistics.js";
@@ -28,8 +28,10 @@ import { renderMiningCyclePanel, startMiningUiTicker, stopMiningUiTicker } from 
 import { renderExpeditionPanel, renderLevel2Progress, updateOverview } from "./views/overview.js";
 import { loadConglomerate, onConglomerateChange, openBureau, refreshStations, renderConglomerateHq } from "./views/conglomerateBureau.js"; // ISP-201 (AB#895); refreshStations: ISP-213 (AB#908)
 import { renderRefinery } from "./views/refinery.js";
-import { bindResearchForms, renderQueue, renderTechTree } from "./views/research.js";
+import { bindResearchForms, renderQueue, renderResearchTotals, renderTechTree } from "./views/research.js";
 import { connectViews, isPlayerTraveling, pushFeedback, renderFeedbackLog, revealUnderHeader } from "./views/shared.js";
+import { commsMeaning } from "./commsProtocol.js"; // ISP-255c1 (AB#4830)
+import { noteLevel, startTelemetry } from "./telemetry.js"; // ISP-256 (AB#952)
 import { loadBeltCompositionsIntoStarmap, loadTariffs, starmap } from "./views/starmap.js";
 import { loadPatentRegister } from "./views/patentOffice.js"; // ISP-237 (AB#932): the Refinery's royalty quote reads it
 import { bindBuildingActions, refreshOpenLeaseView, renderStation } from "./views/station.js";
@@ -143,6 +145,7 @@ function renderFinanceChartsIfOnScreen(data) {
 }
 
 function renderAllViews() {
+  noteLevel(appState.data?.corp?.level); // ISP-256 (AB#952): a rise in the corporation's level is rank_up
   if (appState.serverData) {
     applySharedState(appState.serverData);
   }
@@ -163,6 +166,7 @@ function renderAllViews() {
   renderLevel2Progress(data);
   renderQueue("rnd-queue", data.queues.corporateRnD, "Permanent corporate unlock track");
   renderQueue("ceo-queue", data.queues.ceoInsight, "CEO-centric growth track");
+  renderResearchTotals(data); // AB#2475
   renderTechTree(data);
   renderInsightTree(data);
   renderRefinery(data);
@@ -311,6 +315,8 @@ function enterGame(mode, data, options = {}) {
   }
   appState.walkthroughCompleted = Boolean(options.walkthroughCompleted);
   appState.data = deepClone(data);
+  startTelemetry({ version: appState.appVersion }); // ISP-256 (AB#952): app_open, once a page, when the game is entered
+  noteLevel(appState.data?.corp?.level);
   appState.activeMissions = appState.data.corp?.activeMissions || [];
   appState.beltCompositions = {}; // Bug #1264: never another account's; this account's are fetched below
   appState.belts = {}; // AB#2331: likewise
@@ -324,7 +330,7 @@ function enterGame(mode, data, options = {}) {
   appState.tariffs = null; // ISP-231 (AB#926): never another account's; this account's are fetched below
   if (appState.accountId) loadTariffs();
   appState.patents = null; // ISP-237 (AB#932): the public register, for the royalty on a patented chain
-  if (appState.accountId && mode !== "dummy") loadPatentRegister();
+  if (appState.accountId && mode !== "dummy") loadPatentRegister().then(() => { if (appState.data) updateAllViews(); }); // Bug #4857: the R&D cards quote it
   // ISP-201 (AB#895): the Overview's Conglomerate card reads this; never another account's.
   appState.conglomerate = undefined;
   if (appState.accountId && mode !== "dummy") loadConglomerate();
@@ -383,6 +389,7 @@ async function loadBootstrap() {
   if (Array.isArray(appState.serverData?.levelLadder)) appState.levelLadder = appState.serverData.levelLadder; // AB#803
 
   const version = appState.serverData?.version;
+  appState.appVersion = version || null; // ISP-256 (AB#952): kept apart, since state:init replaces serverData wholesale
   if (version) {
     const versionLine = document.getElementById("app-version-line");
     if (versionLine) {
@@ -424,6 +431,7 @@ async function loadStationRegistry() {
     if (insightRes.ok) {
       const data = await insightRes.json();
       appState.insightPrograms = data.programs || [];
+      appState.insightCategories = data.categories || []; // AB#2474
     }
     if (missionAgentsRes.ok) {
       const data = await missionAgentsRes.json();
@@ -550,12 +558,20 @@ function bindRealtimeEvents() {
       applySharedState(serverState);
     }
     updateAllViews();
+    // Bug #2364: state:init comes on every connect and reconnect, and notifications:new reaches only the sockets in
+    // the account's room when it is sent: read the list again, so a note made while this one was down is not lost.
+    if (appState.accountId) loadNotifications();
   });
 
   // ISP-67: the server drops a socket whose token has expired back to anonymous and says so here, rather than
   // disconnecting it. Get a fresh access token and reconnect so per-account events resume without a page reload.
   socket.on("auth:expired", () => {
     if (appState.accountId) refreshSessionToken();
+  });
+
+  // AB#995: a chat line the server did not take (too long, or more than 10 in 10 seconds), with its reason
+  socket.on("chat:refused", (refusal) => {
+    if (refusal?.error) pushFeedback(refusal.error, "warn", { meaning: commsMeaning(refusal), screen: "chat" }); // ISP-255c1 (AB#4830)
   });
 
   socket.on("chat:new", (msg) => {
@@ -583,13 +599,11 @@ function bindRealtimeEvents() {
     renderMarketIfOnScreen(appState.data); // AB#1452: another player's trade no longer redraws a hidden book
   });
 
-  socket.on("forums:updated", (forumsState) => {
-    // Forums are global state; refresh the local copy and re-render whichever
-    // forum view is currently visible so new threads/replies appear in real
-    // time across all sessions without requiring a manual refresh.
+  socket.on("forums:updated", (event) => {
+    // AB#995: one thread that changed (a new thread, a reply, a like), applied to what this player has paged in, and
+    // the visible forum view re-rendered, so new posts appear in real time without a reload.
     if (!appState.data) return;
-    appState.data.forums = forumsState;
-    if (appState.serverData) appState.serverData.forums = forumsState;
+    applyForumsEvent(event);
     const forumsPanel = document.getElementById("forums");
     if (forumsPanel?.classList.contains("active")) {
       renderForums(appState.data);
@@ -724,6 +738,8 @@ function bindRealtimeEvents() {
     updateCorpIdentity(appState.data);
     refreshOpenLeaseView(payload.extractors); // Bug #1091: the open lease view follows the cycle
     renderMiningCyclePanel(appState.data); // AB#746: and so does Active Mining Cycles, on the event, not the next tick
+    renderMissions(appState.data); // AB#2484: and what an active contract still needs
+    refreshOpenMissionModal(appState.data);
   });
 
   socket.on("expedition:completed", (payload) => {

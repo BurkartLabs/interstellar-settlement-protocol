@@ -104,6 +104,8 @@ for (const vp of VIEWPORTS) {
       await expect(details).toContainText(/[\d,]+ of [\d,]+ units left \(37%\)/);
       await expect(details).toContainText("Generation 1");
       await look(page, details, `ab2331-scouted-${vp.label}`);
+      // Bug #4775: the launch price is data/economy.json's, sent by GET /api/bootstrap, not a copy in the page
+      await expect(details.locator("#launch-expedition-btn")).toHaveText(/^Launch (Remote )?Expedition \(¤[\d,]+\)$/);
 
       // Bug #2339: 100 credits, so the launch is refused, and the panel says why.
       await details.locator("#launch-expedition-btn").click();
@@ -125,7 +127,7 @@ for (const vp of VIEWPORTS) {
       details = await openBelt(page, canvas, vp, "Alpha Centauri", 10);
       await expect(details.locator("[data-belt-state=empty]")).toBeVisible();
       await expect(details).toContainText("No belt here");
-      await expect(details).toContainText(/20% chance a new one forms here, unscouted by anyone; the next chance is at \d\d:00 UTC \(/);
+      await expect(details).toContainText(/20% chance a new one forms here, unscouted by anyone; the next chance is at \d\d:00 UTC\./); // AB#4773: UTC only since AB#945
       await look(page, details, `ab2331-empty-${vp.label}`);
 
       // Nothing drawn off the panel's edge or clipped (the AB#772 sweep's checks, for this panel).

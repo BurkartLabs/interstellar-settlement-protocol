@@ -134,20 +134,22 @@ describe("what one corporation can see of another (Bugs #1134, #1145)", () => {
   });
 
   it("each viewer is told only whether they liked a post, and the counts are right", async () => {
-    const asA = thread((await a.api.get("/api/bootstrap")).body.forums, threadId);
-    const asB = thread((await b.api.get("/api/bootstrap")).body.forums, threadId);
-    const signedOut = thread((await request(app).get("/api/bootstrap")).body.forums, threadId);
+    // AB#995: a thread and its replies are read a page at a time; the bootstrap carries the categories only
+    const page = async (who) => { const body = (await who.api.get(`/api/forums/threads/${threadId}`)).body; return { ...body.thread, replies: body.replies }; };
+    const asA = await page(a);
+    const asB = await page(b);
     expect(asA).toMatchObject({ author: a.corpName, likes: 1, likedByMe: false });
     expect(asA.replies[0]).toMatchObject({ author: b.corpName, likes: 1, likedByMe: true });
     expect(asB).toMatchObject({ likes: 1, likedByMe: true });
     expect(asB.replies[0]).toMatchObject({ likes: 1, likedByMe: false });
-    expect(signedOut).toMatchObject({ likes: 1, likedByMe: false });
-    for (const view of [asA, asB, signedOut]) {
+    for (const view of [asA, asB]) {
       expect(view).not.toHaveProperty("authorAccountId");
       expect(view).not.toHaveProperty("likedBy");
       expect(view.replies[0]).not.toHaveProperty("authorAccountId");
       expect(view.replies[0]).not.toHaveProperty("likedBy");
     }
+    expect((await request(app).get(`/api/forums/threads/${threadId}`)).status).toBe(401);
+    expect((await request(app).get("/api/bootstrap")).body.forums).not.toHaveProperty("threads");
   });
 
   it("each socket's forums:updated says whether that socket's own account liked the post", async () => {
@@ -156,13 +158,14 @@ describe("what one corporation can see of another (Bugs #1134, #1145)", () => {
     const before = [sa.heard.length, sb.heard.length];
     await b.api.post(`/api/forums/threads/${threadId}/like`).send({}); // B unlikes
     await settle();
-    const lastForums = (h, from) => h.slice(from).filter((x) => x.event === "forums:updated").at(-1)?.payload;
-    expect(thread(lastForums(sa.heard, before[0]), threadId)).toMatchObject({ likes: 0, likedByMe: false });
-    expect(thread(lastForums(sb.heard, before[1]), threadId)).toMatchObject({ likes: 0, likedByMe: false });
+    // AB#995: forums:updated carries the one thread that changed
+    const lastForums = (h, from) => h.slice(from).filter((x) => x.event === "forums:updated").at(-1)?.payload?.thread;
+    expect(lastForums(sa.heard, before[0])).toMatchObject({ id: threadId, likes: 0, likedByMe: false });
+    expect(lastForums(sb.heard, before[1])).toMatchObject({ id: threadId, likes: 0, likedByMe: false });
     await b.api.post(`/api/forums/threads/${threadId}/like`).send({}); // and likes again
     await settle();
-    expect(thread(lastForums(sb.heard, before[1]), threadId)).toMatchObject({ likes: 1, likedByMe: true });
-    expect(thread(lastForums(sa.heard, before[0]), threadId)).toMatchObject({ likes: 1, likedByMe: false });
+    expect(lastForums(sb.heard, before[1])).toMatchObject({ id: threadId, likes: 1, likedByMe: true });
+    expect(lastForums(sa.heard, before[0])).toMatchObject({ id: threadId, likes: 1, likedByMe: false });
   });
 
   // Bug #1171: each listing carried the station its goods came from, which told anyone where the seller was docked.

@@ -14,6 +14,7 @@ import { PASSWORD_SALT_ROUNDS, SYSTEMS_DATA, accountsSnapshotPath, createId, dat
 import { evaluateAccountLevel, evaluateLevelProgress, pushSystemNotification, refreshExchangeTax, sanitizeNotification } from "./progression.js";
 import { applyMiningOperations, ensureCorpMiningModel } from "./mining.js";
 import { normalizeStateShape } from "./shape.js";
+import { publicWorld } from "../catalogView.js"; // Bug #4852: the world an account is read with
 import { createStarterCorporationState, refreshContractOfferings } from "./corporation.js";
 import { backfillBuildingIds, ensureBuildingIds } from "./buildingIds.js";
 import { backfillCorpMilitary, ensureCorpMilitary } from "./units.js";
@@ -151,6 +152,14 @@ if (migrateShareRegistries(accountsStore.accounts)) scheduleAccountsSave();
 rebuildHoldingIndexes(accountsStore.accounts);
 // AB#2288: accounts from before email verification are asked to verify at login, not refused; set once, here.
 if (backfillVerificationPolicy(accountsStore.accounts)) scheduleAccountsSave();
+// ISP-249 (AB#945), AB#963: every record's reference, at load, so reads never have to write one
+if (Object.values(accountsStore.accounts || {}).map((a) => ensureCorpRefs(a?.state?.corp)).some(Boolean)) scheduleAccountsSave();
+// Bug #4852: saves from before hold a copy of the whole world catalog in every account; it is dropped, once
+{
+  let dropped = 0;
+  for (const account of Object.values(accountsStore.accounts || {})) if (account?.state && "world" in account.state) { delete account.state.world; dropped += 1; }
+  if (dropped) scheduleAccountsSave();
+}
 // Bug #1480: statements saved inside the snapshot by the first version of AB#713 move to their own files.
 {
   let moved = 0;
@@ -232,6 +241,9 @@ export function mutateState(mutator) {
   return state;
 }
 
+/** AB#995: chat lines per channel kept in memory; the same number as chatHistory.js's CHAT_WINDOW. */
+const CHAT_WINDOW = 50;
+
 export function appendChatMessage(channel, message) {
   mutateState((draft) => {
     // Backstop for Bug #749: the seed is the fix, but a message must never be dropped because a migration lost this.
@@ -242,26 +254,30 @@ export function appendChatMessage(channel, message) {
 
     draft.chatLog[channel].push(message);
 
-    if (draft.chatLog[channel].length > 120) {
-      draft.chatLog[channel] = draft.chatLog[channel].slice(-120);
+    // AB#995: only the design's window stays in memory (and state.json); older lines are in chatHistory.js's files
+    if (draft.chatLog[channel].length > CHAT_WINDOW) {
+      draft.chatLog[channel] = draft.chatLog[channel].slice(-CHAT_WINDOW);
     }
   });
 }
 
 
 export function sanitizeAccount(account) {
-  // ISP-249 (AB#945): records from a save made before reference numbers get theirs the first time they are read, kept
-  if (ensureCorpRefs(account?.state?.corp)) scheduleAccountsSave();
+  // ISP-249 (AB#945): records from a save made before reference numbers get theirs the first time they are read. A read
+  // schedules no write (AB#963): a reference is an HMAC of the record's id under the stored salt, so the next read gives
+  // the same one, and the next write keeps it. Saves from before references get them all at load (below the imports).
+  ensureCorpRefs(account?.state?.corp);
   // The daily statements (AB#713) stay out: up to 90 days of them would ride on every response and socket event. They
   // are served on their own by GET /finances/statements.
-  const { statements: _statements, ...state } = account.state || {};
+  // Bug #4852: nor the world an old save kept; the shared public view goes with every account instead
+  const { statements: _statements, world: _world, ...state } = account.state || {};
   return {
     id: account.id,
     email: account.email,
     createdAt: account.createdAt,
     lastLoginAt: account.lastLoginAt || null,
     walkthroughCompleted: account.walkthroughCompleted,
-    state: deepClone(state)
+    state: { ...deepClone(state), world: publicWorld() }
   };
 }
 
@@ -313,8 +329,7 @@ export function closeFinancialDays(account, now = Date.now()) {
 export function getStatements(accountId, days = MAX_STATEMENTS, now = Date.now()) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) return null;
-  closeFinancialDays(account, now);
-  scheduleAccountsSave();
+  closeFinancialDays(account, now); // a day that closed files its own statements (fileStatements); nothing else to write
   const count = Math.max(1, Math.min(MAX_STATEMENTS, Math.floor(Number(days) || MAX_STATEMENTS)));
   const all = readStatements(accountId);
   const book = account.state.corp?.finances?.dayBook || null;
@@ -338,17 +353,20 @@ export function settleAccountPayroll(accountId, now = Date.now()) {
 }
 
 export function getAccountById(accountId) {
+  const account = settledAccount(accountId);
+  return account ? sanitizeAccount(account) : null;
+}
+/** The account as held, settled as a read settles it: for a caller that only serialises it (Bug #4849). Never change it. */
+export function settledAccount(accountId) {
   const account = accountsStore.accounts?.[accountId];
-  if (!account) {
-    return null;
-  }
-
+  if (!account) return null;
   closeFinancialDays(account);
   applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
   evaluateAccountLevel(accountId, account); // a read can raise the level too: mining settles here (Bug #1260)
-  scheduleAccountsSave();
-  return sanitizeAccount(account);
+  // Bug #4815 (AB#963): a read schedules no write. What it settled is time-derived: the next read settles it the same
+  // way, and the next change or ticker writes it (scheduling here rewrote the snapshot about once a second under traffic).
+  return account;
 }
 
 export async function authenticateAccount(email, password) {
@@ -375,13 +393,13 @@ export async function authenticateAccount(email, password) {
   refreshContractOfferings(account.state.corp);
   account.lastLoginAt = Date.now();
   pushSystemNotification(account, {
-    type: "auth",
+    type: "auth", protocol: { meaning: "complete", screen: "login" }, // ISP-254 C2 (AB#4812)
     title: "Secure Access Granted",
     body: "Authentication successful. Welcome back to command."
   });
   if (verificationPrompted(account)) {
     pushSystemNotification(account, {
-      type: "auth",
+      type: "auth", protocol: { meaning: "pending", screen: "check-email" }, // ISP-254 C2 (AB#4812)
       title: "Verify your email address",
       body: "Confirm the address you log in with: open /check-email.html and ask for a link. Your account keeps working meanwhile."
     });
@@ -503,7 +521,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
   };
 
   pushSystemNotification(account, {
-    type: "system",
+    type: "system", protocol: { meaning: "active", screen: "register" }, // ISP-254 C2 (AB#4812): the charter is in force
     title: "Corporation Registered",
     body: "Your corporation charter is now active under the Interstellar Settlement Protocol."
   });
@@ -627,6 +645,16 @@ export function accountExists(accountId) {
 
 export function getAllAccountIds() {
   return Object.keys(accountsStore.accounts || {});
+}
+
+/**
+ * Bug #4816 (AB#963): a corporation as held, for a scan that only looks for something: no settling, no copy, nothing
+ * scheduled. getAccountById settles mining and deep-copies the whole account, about 3 ms at release scale, so a ticker
+ * that called it for every account to find a rare loan, raid move or listing spent seconds finding none. Read only:
+ * never change what it returns; settle and change the few it finds through getAccountById or mutateAccountState.
+ */
+export function peekCorp(accountId) {
+  return accountsStore.accounts?.[accountId]?.state?.corp ?? null;
 }
 
 // Bug #1765: a refresh token is a bearer credential good for up to 30 days, and account.refreshTokens is

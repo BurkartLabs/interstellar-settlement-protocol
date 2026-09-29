@@ -10,6 +10,12 @@ import { appState } from "../state.js";
 import { showActionReceipt } from "./receiptModal.js";
 import { showTradeConfirmation, updateAllViews } from "./shared.js";
 import { codeSlotHtml } from "../sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
+import { escapeHtml } from "../html.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-255 (AB#951)
+
+/** ISP-255 (AB#951): an outcome's protocol in the Stock Exchange's building (GEX-MKT-13), after its plain words. */
+const onExchange = (meaning) => ({ meaning, screen: "building-intergalactic-stock-exchange" });
+const withProtocol = (text, meaning) => `${escapeHtml(text)} ${protocolLineHtml(onExchange(meaning))}`;
 
 // Survives a redraw: which desk is shown and what was last read.
 const ex = { accountId: null, mode: "offerings", offerings: null, holdings: null, capTable: null, error: null, last: null };
@@ -24,7 +30,7 @@ const root = () => document.querySelector('[data-role="igsx"]');
 function draw() {
   const el = root();
   if (!el) return;
-  if (ex.error) { el.innerHTML = `<p class="station__note">${ex.error}</p>`; return; }
+  if (ex.error) { el.innerHTML = `<p class="station__note">${withProtocol(ex.error, "failed")}</p>`; return; }
   const d = ex.offerings;
   if (ex.mode === "portfolio") {
     el.innerHTML = `<section class="ui-panel station__panel bank-panel"><h3>Your portfolio</h3>${ex.holdings ? portfolioHtml(ex.holdings) : `<p class="station__note">Reading your holdings…</p>`}</section>`;
@@ -64,7 +70,7 @@ async function post(path, body, statusEl, refusal) {
     await load();
     return answer;
   } catch (error) {
-    if (statusEl) statusEl.textContent = error?.message || refusal;
+    if (statusEl) statusEl.innerHTML = withProtocol(error?.message || refusal, refusalMeaning(error));
     return null;
   }
 }
@@ -74,7 +80,7 @@ async function buy(form) {
   const n = Number(form.quantity.value);
   const status = form.querySelector('[data-role="igsx-status"]');
   if (!o) return;
-  if (!Number.isInteger(n) || n < 1 || n > o.left) { status.textContent = `Enter 1 to ${cr(o.left)} shares.`; return; }
+  if (!Number.isInteger(n) || n < 1 || n > o.left) { status.innerHTML = withProtocol(`Enter 1 to ${cr(o.left)} shares.`, "refused"); return; }
   const confirmed = await showTradeConfirmation({
     heading: HEADING,
     title: `Buy ${cr(n)} share${n === 1 ? "" : "s"} of ${o.issuerName ?? "this corporation"}?`,
@@ -94,7 +100,7 @@ async function exit(form) {
   const n = Number(form.quantity.value);
   const status = form.querySelector('[data-role="igsx-status"]');
   if (!h) return;
-  if (!Number.isInteger(n) || n < 1 || n > h.shares) { status.textContent = `Enter 1 to ${cr(h.shares)} shares.`; return; }
+  if (!Number.isInteger(n) || n < 1 || n > h.shares) { status.innerHTML = withProtocol(`Enter 1 to ${cr(h.shares)} shares.`, "refused"); return; }
   const costOfSold = Math.round(h.costBasis * (n / h.shares));
   const confirmed = await showTradeConfirmation({
     heading: HEADING,
@@ -124,7 +130,7 @@ async function setPayout(form) {
   });
   if (confirmed && await post("/payout-ratio", { payoutRatioPct: pct }, status, "The Exchange refused the change.")) {
     const s = root()?.querySelector('[data-role="igsx-payout-status"]');
-    if (s) s.textContent = `Set: ${pct}% from the next period.`;
+    if (s) s.innerHTML = withProtocol(`Set: ${pct}% from the next period.`, "queued"); // it takes effect next period: Lodged
   }
 }
 

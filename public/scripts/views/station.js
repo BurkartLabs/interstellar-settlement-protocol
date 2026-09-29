@@ -6,7 +6,6 @@ import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { OFFICE_TERMS_DAYS, officeLeaseCost, officeRenewalCost } from "../ceoEffects.js";
 import { isMemberStation, memberOfficeCost } from "../memberRates.js"; // ISP-212 (AB#907)
 import { claimsAllTakenText, claimsNoLeasesText } from "../emptyStates.js";
-import { stationStartPromptHtml } from "../firstAction.js";
 import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml, stationBuildingCardsHtml } from "../html.js";
 import { activeCycleFigures, extractorState, spentText } from "../leaseLive.js";
@@ -14,6 +13,7 @@ import { probeFabricationStartedText } from "../miningFeedback.js";
 import { leaseFacilities, leaseSlotsUsed } from "../leaseSlots.js"; // ISP-98 (AB#788)
 import { miningEfficiency } from "../miningEfficiency.js"; // ISP-98 (AB#788): research and a Cryo-vapor Extractor Array
 import { bestThroughput, costPerHourFor, miningProjection, operationsForTier, startupCostFor as clientStartupCostFor, yardTierFor, yardUpkeepPerHourFor } from "../miningProjection.js";
+import { bestRateAlongBid, hourAlongBid } from "../standingBid.js"; // AB#2480
 import { clientPrices } from "../clientPrices.js";
 import { leaseFullAdvice } from "../slotAdvice.js";
 import { appState, techTree } from "../state.js";
@@ -27,6 +27,7 @@ import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHead
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
 // back to the control that was pressed if it is still there, otherwise to the one the flow continues from.
 import { showActionReceipt } from "./receiptModal.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 Bd (AB#4819)
 import { renderDevelopmentBank } from "./developmentBank.js"; // ISP-151 (AB#845)
 import { renderStockExchange } from "./stockExchange.js"; // ISP-161 (AB#855)
 import { openConglomerateStation, renderConglomerateBureau } from "./conglomerateBureau.js"; // ISP-200 (AB#894); ISP-213 (AB#908)
@@ -77,7 +78,7 @@ export function showStationBuilding(buildingId) {
  * comes back (no reload), and show the receipt. One path for a yard's row and a facility's card; the server checks
  * everything again and a refusal is shown in the control's status line.
  */
-async function postUpgrade(buildingId, btn, statusEl, { redraw = () => {}, focus } = {}) {
+async function postUpgrade(buildingId, btn, statusEl, { redraw = () => {}, focus, screen } = {}) {
   btn.disabled = true;
   if (statusEl) statusEl.textContent = "Upgrading...";
   try {
@@ -90,8 +91,18 @@ async function postUpgrade(buildingId, btn, statusEl, { redraw = () => {}, focus
     showActionReceipt(account, { returnFocusTo: focus });
   } catch (error) {
     btn.disabled = false;
-    if (statusEl) statusEl.textContent = error?.message || "The upgrade was refused.";
+    const message = error?.message || "The upgrade was refused.";
+    if (screen) setStatusLine(statusEl, message, { meaning: refusalMeaning(error), screen }); // ISP-254 Bd (AB#4819)
+    else if (statusEl) statusEl.textContent = message;
   }
+}
+
+/**
+ * ISP-254 Bd (AB#4819): a status line's plain words, then its protocol line (public/scripts/protocol.js; the guide's
+ * first rule: the plain words always stay, the phrase goes beside them).
+ */
+function setStatusLine(statusEl, text, protocol) {
+  if (statusEl) statusEl.innerHTML = `${escapeHtml(text)} ${protocolLineHtml(protocol)}`;
 }
 
 /** ISP-102 (AB#794): a facility card's Upgrade: confirm with the tier's before and after, then postUpgrade. */
@@ -108,12 +119,64 @@ async function upgradeFacility(buildingId) {
     title: `Upgrade the ${building.name} to tier ${view.next.tier}?`,
     confirmLabel: `Upgrade (${toCurrency(view.next.cost)}${goods ? ` + ${goods}` : ""})`,
     rows: [
-      { label: "Cost", value: `${toCurrency(view.next.cost)} credits${goods ? ` and ${goods} from this station's stock` : ""}` },
+      { label: "Cost", value: `${toCurrency(view.next.cost)}${goods ? ` and ${goods} from this station's stock` : ""}` },
       { label: "What changes", value: view.change.replace(/&times;/g, "×").replace(/&rarr;/g, "→").replace(/&middot;/g, "·") }
     ]
   });
   if (!confirmed || !btn) return;
   await postUpgrade(buildingId, btn, statusEl, { focus: firstPresent(`[data-role="yard-upgrade"][data-upgrade-for="${CSS.escape(buildingId)}"] button`, ".nav-tab[data-tab='station']") });
+}
+
+// ── ISP-287 (AB#994): Damaged Buildings ──
+// The section shows while any building is damaged; the prices are the server's (GET /building-repairs), read each time
+// the Station is drawn, and the last list stays on screen while the next is read.
+let repairsDrawn = 0;
+function renderRepairs(data) {
+  const section = document.getElementById("station-repairs-section");
+  const grid = document.getElementById("station-repair-buildings");
+  if (!section || !grid) return;
+  if (!appState.accountId || !anyDamaged(data.corp)) { section.hidden = true; grid.innerHTML = ""; return; }
+  section.hidden = false;
+  if (!grid.innerHTML.trim()) grid.innerHTML = `<p class="ui-panel__meta">Reading the repair prices…</p>`;
+  const drawn = ++repairsDrawn;
+  apiFetch(repairsListPath(appState.accountId)).then(parseJsonResponse).then((body) => {
+    if (drawn !== repairsDrawn) return; // a later draw has asked again
+    const list = body.buildings || [];
+    section.hidden = !list.length;
+    grid.innerHTML = repairCardsHtml(list, appState.data?.corp?.finances?.credits);
+    grid.onclick = (event) => {
+      const btn = event.target.closest("[data-repair-building]");
+      if (btn && grid.contains(btn) && !btn.disabled) repairBuilding(list.find((b) => b.id === btn.getAttribute("data-repair-building")), btn);
+    };
+  }).catch(() => { if (drawn === repairsDrawn) grid.innerHTML = `<p class="ui-panel__meta">The repair prices could not be read; reload the page.</p>`; });
+}
+
+/** Confirm a repair at the server's price, post it, and draw the page from the account that comes back. */
+async function repairBuilding(building, btn) {
+  if (!building || !appState.accountId) return;
+  const statusEl = btn.closest("[data-role=repair-card]")?.querySelector("[data-role=repair-status]");
+  const confirmed = await showTradeConfirmation({
+    heading: `Repair ${building.name}`,
+    title: `Repair the ${building.name} to full condition?`,
+    confirmLabel: `Repair (${toCurrency(building.repairCost)})`,
+    rows: [
+      { label: "Cost", value: toCurrency(building.repairCost) },
+      { label: "What changes", value: `Condition ${Math.round(building.condition)} → 100; output ${Math.round(building.outputPct)}% → 100%` }
+    ]
+  });
+  if (!confirmed) return;
+  btn.disabled = true;
+  if (statusEl) statusEl.textContent = "Repairing...";
+  try {
+    const account = await parseJsonResponse(await apiFetch(repairPath(appState.accountId, building.id), { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }));
+    appState.data = deepClone(account.state);
+    updateAllViews();
+    pushFeedback(`${building.name} repaired.`, "ok", { meaning: "complete", screen: "station-repairs-section" }); // ISP-254Bc (AB#4818)
+    showActionReceipt(account, { returnFocusTo: firstPresent("#station-repairs-section h3", "#station-facilities-section h3", ".nav-tab[data-tab='station']") });
+  } catch (error) {
+    btn.disabled = false;
+    setStatusLine(statusEl, error?.message || "The repair was refused.", { meaning: refusalMeaning(error), screen: "station-repairs-section" }); // ISP-254Bc (AB#4818)
+  }
 }
 
 export function renderBuildingDetail(building, data) {
@@ -251,7 +314,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const memberStation = appState.conglomerate?.station || null;
   const rate = (cost) => memberOfficeCost(cost, memberStation, stationId);
   const memberNote = isMemberStation(memberStation, stationId)
-    ? `<p class="station__note station__member-rate">Member rate: your conglomerate's station, so the rent is ${memberStation.officeRentPct}% of the standard ${toCurrency(officeLeaseCost(1))} credits a day.</p>`
+    ? `<p class="station__note station__member-rate">Member rate: your conglomerate's station, so the rent is ${memberStation.officeRentPct}% of the standard ${toCurrency(officeLeaseCost(1))} a day.</p>`
     : "";
 
   const headerHtml = `
@@ -271,7 +334,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
         <h3>${codeSlotHtml("suites-lease")}Lease an Office Suite</h3>
         <p class="station__note">Establish a registered corporate presence at ${escapeHtml(station?.name || "this station")} by leasing a suite. This is required before your corporation can hire personnel or engage with station services.</p>
         <dl class="ui-kv">
-          <dt>Lease Cost</dt><dd>${toCurrency(rate(officeLeaseCost(1)))} credits a day</dd>
+          <dt>Lease Cost</dt><dd>${toCurrency(rate(officeLeaseCost(1)))} a day</dd>
           <dt>Station</dt><dd>${escapeHtml(station?.name || stationId)}</dd>
           <dt>Location</dt><dd>${escapeHtml(currentBody)}, ${escapeHtml(formatSystemLabel(station?.systemId || "sol"))}</dd>
         </dl>
@@ -303,8 +366,8 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const hoursRemaining = Math.floor((msRemaining % 86_400_000) / 3_600_000);
   const expiryDate = utcTime(rentedUntil, { withDate: true });
   const leaseStatusBadge = leaseExpired
-    ? `<span class="ui-badge ui-badge--danger">Expired</span>`
-    : `<span class="ui-badge ui-badge--success">Active Lease</span>`;
+    ? `<span class="ui-badge ui-badge--danger">Expired</span> ${protocolLineHtml({ meaning: "expired", screen: "building-orbital-executive-suites" })}`
+    : `<span class="ui-badge ui-badge--success">Active Lease</span> ${protocolLineHtml({ meaning: "active", screen: "building-orbital-executive-suites" })}`; // ISP-254Bc (AB#4818)
   const timeRemainingText = leaseExpired
     ? `<span class="station__danger">Lease expired</span>`
     : `${fullDays}d ${hoursRemaining}h remaining`;
@@ -341,7 +404,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
 
     <section class="ui-panel station__panel">
       <h3>${codeSlotHtml("suites-workforce")}Workforce — Hire Personnel</h3>
-      <p class="station__note">Recruit employees through your registered office. Each hire costs ${toCurrency(clientPrices(appState.economy).hireCost)} credits and adds ${toCurrency(clientPrices(appState.economy).payrollPerDay)}/day to operational payroll.</p>
+      <p class="station__note">Recruit employees through your registered office. Each hire costs ${toCurrency(clientPrices(appState.economy).hireCost)} and adds ${toCurrency(clientPrices(appState.economy).payrollPerDay)}/day to operational payroll.</p>
       <form id="office-hire-form" class="station__form">
         <label>
           Head Count
@@ -391,7 +454,7 @@ export function bindOfficeActions(building, data) {
         } else {
           const cost = officeLeaseCost(durationDays);
           if ((appState.data.corp.finances.credits || 0) < cost) {
-            throw new Error(`Leasing requires ${toCurrency(cost)} credits. Current reserves: ${toCurrency(appState.data.corp.finances.credits)}.`);
+            throw new Error(`Leasing requires ${toCurrency(cost)}. Current reserves: ${toCurrency(appState.data.corp.finances.credits)}.`);
           }
           if (!Array.isArray(appState.data.corp.offices)) appState.data.corp.offices = [];
           appState.data.corp.finances.credits -= cost;
@@ -408,10 +471,10 @@ export function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         }
-        pushFeedback(`Office lease confirmed at ${station?.name || "Earth Station Prime"}.`, "success");
+        pushFeedback(`Office lease confirmed at ${station?.name || "Earth Station Prime"}.`, "success", { meaning: "active", screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       } catch (err) {
         rentBtn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Lease agreement failed.";
+        setStatusLine(statusEl, err.message || "Lease agreement failed.", { meaning: refusalMeaning(err), screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       }
     });
   }
@@ -447,7 +510,7 @@ export function bindOfficeActions(building, data) {
         } else {
           const renewalCost = officeRenewalCost(corp.completedInsights, durationDays);
           if ((corp.finances.credits || 0) < renewalCost) {
-            throw new Error(`Renewal requires ${toCurrency(renewalCost)} credits. Current reserves: ${toCurrency(corp.finances.credits)}.`);
+            throw new Error(`Renewal requires ${toCurrency(renewalCost)}. Current reserves: ${toCurrency(corp.finances.credits)}.`);
           }
           const office = (corp.offices || []).find((o) => o.stationId === (station?.id || "earth-station-prime"));
           if (!office) throw new Error("No office found to renew.");
@@ -457,10 +520,10 @@ export function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         }
-        pushFeedback(`Lease extended by ${durationDays} days.`, "success");
+        pushFeedback(`Lease extended by ${durationDays} days.`, "success", { meaning: "active", screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       } catch (err) {
         if (submitBtn) submitBtn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Lease renewal failed.";
+        setStatusLine(statusEl, err.message || "Lease renewal failed.", { meaning: refusalMeaning(err), screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       }
     });
   }
@@ -501,17 +564,17 @@ export function bindOfficeActions(building, data) {
           const { hireCost, payrollPerDay } = clientPrices(appState.economy);
           const cost = hired * hireCost;
           if (hired <= 0) throw new Error("No available headroom to hire additional personnel.");
-          if (corp.finances.credits < cost) throw new Error(`Hiring requires ${toCurrency(cost)} credits.`);
+          if (corp.finances.credits < cost) throw new Error(`Hiring requires ${toCurrency(cost)}.`);
           corp.employeeCount += hired;
           corp.finances.credits -= cost;
           corp.finances.dailyCosts += hired * payrollPerDay;
           updateAllViews();
           showStationBuilding(building.id);
         }
-        pushFeedback(`Personnel hired successfully.`, "success");
+        pushFeedback(`Personnel hired successfully.`, "success", { meaning: "complete", screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       } catch (err) {
         if (submitBtn) submitBtn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Hire action failed.";
+        setStatusLine(statusEl, err.message || "Hire action failed.", { meaning: refusalMeaning(err), screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       }
     });
   }
@@ -523,6 +586,7 @@ import { employeesForNextLease } from "../leaseStaffing.js"; // AB#1202: the ser
 import { activeOfficeAt } from "../officeStatus.js"; // AB#1870: the server's rule, not a copy of it
 import { bodyProfile, cycleItemsText, leaseTypeLabel, profileText } from "../bodyYield.js"; // AB#829, Bug #2354
 import { codeSlotHtml } from "../sectionCodes.js"; // ISP-248 (AB#944)
+import { anyDamaged, repairCardsHtml, repairPath, repairsListPath } from "../buildingRepairs.js"; // ISP-287 (AB#994)
 import { utcDate, utcTime } from "../timeFormat.js"; // ISP-249 (AB#945)
 
 // The bodies the ISA leases. Module level so a full lease can say which are left (Bug #1057).
@@ -621,7 +685,7 @@ export function renderISAClaimsLeases(building, data) {
           <p class="station__note">${escapeHtml(entry.description)}</p>
           <dl class="ui-kv">
             <dt>Yields</dt><dd data-role="lease-yield">${escapeHtml(profileText(bodyProfile(appState.systemsCatalog, entry.body)))}</dd>
-            <dt>Lease Cost</dt><dd>${toCurrency(entry.cost)} credits (one-time)</dd>
+            <dt>Lease Cost</dt><dd>${toCurrency(entry.cost)} (one-time)</dd>
             <dt>Employee Requirement</dt><dd>${requiredForNext} on payroll (current: ${currentEmployees})</dd>
             <dt>Building Slots Granted</dt><dd>2 on-surface slots</dd>
           </dl>
@@ -673,11 +737,11 @@ export function bindISAClaimsLeasesActions(building, data) {
           showStationBuilding(building.id);
           showActionReceipt(account, { returnFocusTo: firstPresent(`[data-action="purchase-lease"][data-body="${CSS.escape(body)}"]`, '[data-action="manage-lease"]') });
         }
-        pushFeedback(`${body} mining lease approved by the ISA.`, "success");
+        pushFeedback(`${body} mining lease approved by the ISA.`, "success", { meaning: "active", screen: "building-isa-claims-leases" }); // ISP-254 Bd (AB#4819)
       } catch (err) {
         btn.disabled = false;
         btn.textContent = `File Lease Application — ${body}`;
-        pushFeedback(err.message || "Lease application failed.", "warn");
+        pushFeedback(err.message || "Lease application failed.", "warn", { meaning: refusalMeaning(err), screen: "building-isa-claims-leases" });
       }
     });
   });
@@ -822,13 +886,15 @@ export function renderLeaseManagement(building, lease, data) {
     }
 
     const mineFormId = `mine-form-${ex.id}`;
+    // AB#2480: the control opens at the rate the economy model finds best for this yard, its research and the prices.
+    const startRate = mineBestRate(ex.id);
     const mineFormHtml = !ex.active
       ? `<form class="station__form" data-form="mine" id="${escapeHtml(mineFormId)}" data-extractor-id="${escapeHtml(ex.id)}">
-          <label>Throughput (t/h)<input type="number" name="amount" min="10" max="${yardTierFor(ex.tier, appState.economy?.operations, appState.economy?.buildings).throughputCap}" value="40" class="ui-input station__input--narrow" /></label>
+          <label>Throughput (t/h)<input type="number" name="amount" min="10" max="${yardTierFor(ex.tier, appState.economy?.operations, appState.economy?.buildings).throughputCap}" value="${startRate}" class="ui-input station__input--narrow" /></label>
           <label>Duration (hrs)<input type="number" name="hours" min="1" max="72" value="24" class="ui-input station__input--narrow" /></label>
           <button class="ui-button ui-button--primary" type="submit">Start Cycle</button>
         </form>
-        <p class="station__hint" data-role="mine-projection" data-for="${escapeHtml(ex.id)}">${escapeHtml(mineProjectionText(40, ex.id))}</p>
+        <p class="station__hint" data-role="mine-projection" data-for="${escapeHtml(ex.id)}">${escapeHtml(mineProjectionText(startRate, ex.id))}</p>
         <p class="station__hint" data-role="mine-status" data-for="${escapeHtml(ex.id)}"></p>`
       : "";
 
@@ -847,7 +913,7 @@ export function renderLeaseManagement(building, lease, data) {
       <div class="ui-card extractor is-${statusClass}" data-live-ex="${escapeHtml(ex.id)}" data-live-state="${extractorState(ex)}">
         <div class="extractor__header">
           <strong>${escapeHtml(ex.name)}</strong>
-          <span class="ui-badge station__status--${statusClass}" data-role="yard-status">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : (upgrading ? "Upgrading" : "Idle"))}</span>
+          <span class="extractor__status"><span class="ui-badge station__status--${statusClass}" data-role="yard-status">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : (upgrading ? "Upgrading" : "Idle"))}</span>${ex.downtimeActive || ex.active ? ` ${protocolLineHtml({ meaning: ex.downtimeActive ? "suspended" : "active", screen: "building-lease" })}` : ""}</span>
         </div>
         ${ex.downtimeActive ? cycleInfo : (ex.active ? "" : cycleInfo)}
         ${progressBarHtml}
@@ -867,8 +933,8 @@ export function renderLeaseManagement(building, lease, data) {
         <h4>Commission Basic Extractor Yard</h4>
         <p class="station__note">Deploys an extraction facility to this lease's surface allocation. Slot usage: ${usedSlots}/${totalSlots}.</p>
         <dl class="ui-kv">
-          <dt>Construction Cost</dt><dd>${toCurrency(buildCost)} credits</dd>
-          <dt>Asset Value</dt><dd>${toCurrency(clientPrices(appState.economy).extractorYardAssetValue)} credits</dd>
+          <dt>Construction Cost</dt><dd>${toCurrency(buildCost)}</dd>
+          <dt>Asset Value</dt><dd>${toCurrency(clientPrices(appState.economy).extractorYardAssetValue)}</dd>
         </dl>
         <button id="lease-build-extractor-btn" class="ui-button ui-button--primary" type="button" ${!canAffordBuild ? "disabled" : ""}>
           Commission Extractor Yard
@@ -945,7 +1011,7 @@ export function bindLeaseManagementActions(building, lease, data) {
           const corp = appState.data.corp;
           const { extractorYardAssetValue } = clientPrices(appState.economy);
           const cost = nextYardPriceFor(corp, appState.economy?.buildings); // AB#2286
-          if ((corp.finances.credits || 0) < cost) throw new Error(`Construction requires ${toCurrency(cost)} credits.`);
+          if ((corp.finances.credits || 0) < cost) throw new Error(`Construction requires ${toCurrency(cost)}.`);
           if (!Array.isArray(corp.mining.silicateExtractors)) corp.mining.silicateExtractors = [];
           const nextIndex = corp.mining.silicateExtractors.length + 1;
           const newId = `ext-basic-${nextIndex}`;
@@ -963,18 +1029,18 @@ export function bindLeaseManagementActions(building, lease, data) {
           const updatedLease = corp.miningLeases.find((l) => l.id === lease.id);
           renderBuildingDetail(building, appState.data);
         }
-        pushFeedback("Basic Extractor Yard commissioned and linked to lease.", "success");
+        pushFeedback("Basic Extractor Yard commissioned and linked to lease.", "success", { meaning: "complete", screen: "building-lease" }); // ISP-254 Bd (AB#4819)
       } catch (err) {
         buildBtn.disabled = false;
         // If the server can't find the lease (e.g. server restarted and lost in-memory state),
         // the client state is stale. Clear it and send the user back to the list view.
         if (err.message && err.message.includes("could not be found")) {
           appState.stationActiveLease = null;
-          pushFeedback("Session state out of sync — please re-purchase your lease.", "error");
+          pushFeedback("Session state out of sync — please re-purchase your lease.", "error", { meaning: "failed", screen: "building-lease" });
           renderBuildingDetail(building, appState.data);
           return;
         }
-        if (statusEl) statusEl.textContent = err.message || "Construction failed.";
+        setStatusLine(statusEl, err.message || "Construction failed.", { meaning: refusalMeaning(err), screen: "building-lease" });
       }
     });
   }
@@ -986,7 +1052,7 @@ export function bindLeaseManagementActions(building, lease, data) {
     const line = form.parentElement?.querySelector(`[data-role="mine-projection"][data-for="${CSS.escape(form.getAttribute("data-extractor-id") || "")}"]`);
     if (!line) return;
     const cap = Number(form.querySelector('[name="amount"]')?.max) || 250; // AB#793: the yard's tier cap
-    const rate = Math.max(10, Math.min(cap, Number(form.querySelector('[name="amount"]')?.value || 40)));
+    const rate = Math.max(10, Math.min(cap, Number(form.querySelector('[name="amount"]')?.value) || mineBestRate(form.getAttribute("data-extractor-id"))));
     line.textContent = mineProjectionText(rate, form.getAttribute("data-extractor-id"));
   };
 
@@ -997,7 +1063,7 @@ export function bindLeaseManagementActions(building, lease, data) {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const extractorId = form.getAttribute("data-extractor-id");
-      const amount = Number(form.querySelector('[name="amount"]')?.value || 40);
+      const amount = Number(form.querySelector('[name="amount"]')?.value) || mineBestRate(extractorId);
       const hours = Number(form.querySelector('[name="hours"]')?.value || 24);
       const statusEl = document.querySelector(`[data-role="mine-status"][data-for="${CSS.escape(extractorId)}"]`);
       const submitBtn = form.querySelector("button[type=submit]");
@@ -1029,7 +1095,7 @@ export function bindLeaseManagementActions(building, lease, data) {
           const startupCost = clientStartupCostFor(baseCostPerHour, operations);
           // AB#2284: upkeep for yards past the free ones (the first two since AB#2304), by the hour only, as the server charges it.
           const operationCostPerHour = baseCostPerHour + yardUpkeepPerHourFor(yardIndexOf(corp, extractorId), appState.economy?.buildings);
-          if ((corp.finances.credits || 0) < startupCost) throw new Error(`Startup requires ${toCurrency(startupCost)} credits.`);
+          if ((corp.finances.credits || 0) < startupCost) throw new Error(`Startup requires ${toCurrency(startupCost)}.`);
           const ex = corp.mining.silicateExtractors.find((e) => e.id === extractorId);
           if (!ex) throw new Error("Extractor not found.");
           if (ex.active) throw new Error("Extractor already has an active cycle.");
@@ -1043,10 +1109,10 @@ export function bindLeaseManagementActions(building, lease, data) {
           updateAllViews();
           renderBuildingDetail(building, appState.data);
         }
-        pushFeedback("Mining cycle started.", "success");
+        pushFeedback("Mining cycle started.", "success", { meaning: "active", screen: "building-lease" }); // ISP-254 Bd (AB#4819)
       } catch (err) {
         if (submitBtn) submitBtn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Mining cycle failed to start.";
+        setStatusLine(statusEl, err.message || "Mining cycle failed to start.", { meaning: refusalMeaning(err), screen: "building-lease" });
       }
     });
   });
@@ -1068,7 +1134,7 @@ export function bindLeaseManagementActions(building, lease, data) {
         title: `Upgrade ${ex.name} to tier ${next.tier}?`,
         confirmLabel: `Upgrade (${toCurrency(next.cost)})`,
         rows: [
-          { label: "Cost", value: `${toCurrency(next.cost)} credits` },
+          { label: "Cost", value: `${toCurrency(next.cost)}` },
           { label: "Cap", value: `${next.before.cap} → ${next.after.cap} t/h` },
           { label: "Best rate", value: `${next.before.rate} → ${next.after.rate} t/h, netting ${toCurrency(next.before.netPerHour)} → ${toCurrency(next.after.netPerHour)}/h` },
           { label: "Offline", value: `${next.offlineHours} hours while it upgrades: no cycle can run` }
@@ -1076,6 +1142,7 @@ export function bindLeaseManagementActions(building, lease, data) {
       });
       if (!confirmed) return;
       await postUpgrade(buildingId, btn, statusEl, {
+        screen: "building-lease", // ISP-254 Bd (AB#4819)
         redraw: () => renderBuildingDetail(building, appState.data),
         focus: firstPresent(`[data-role="yard-upgrade"][data-upgrade-for="${CSS.escape(extractorId)}"] button`, '[data-form="mine"] button[type=submit]')
       });
@@ -1134,10 +1201,10 @@ export function bindLeaseManagementActions(building, lease, data) {
           updateAllViews();
           renderBuildingDetail(building, appState.data);
         }
-        pushFeedback("Mining cycle stopped.", "success");
+        pushFeedback("Mining cycle stopped.", "success", { meaning: "cancelled", screen: "building-lease" }); // ISP-254 Bd (AB#4819)
       } catch (err) {
         btn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Could not stop the mining cycle.";
+        setStatusLine(statusEl, err.message || "Could not stop the mining cycle.", { meaning: refusalMeaning(err), screen: "building-lease" });
       }
     });
   });
@@ -1199,7 +1266,6 @@ export function renderStation(data) {
         <p class="ui-screen__lede">${escapeHtml(station.description)}</p>
       </div>
     </div>
-    ${stationStartPromptHtml(corp)}
     ${ownStation ? dockedAtOwnStationHtml(station, { memberStation: ownStation, standardRent: officeLeaseCost(1), systems }) : ""}
   `;
   paintStationArt(header, systems);
@@ -1211,6 +1277,8 @@ export function renderStation(data) {
     .filter(Boolean);
 
   npcGrid.innerHTML = stationBuildingCardsHtml(stationBuildings);
+
+  renderRepairs(data); // ISP-287 (AB#994)
 
   // ── Operational Facilities (Assembly, Refinery — prominent usable cards, and Construct) ──
   // Bug #1253: rendered and bound in one place, stationFacilities.js.
@@ -1224,10 +1292,10 @@ export function renderStation(data) {
     onBuilt: (account) => {
       appState.data = deepClone(account.state);
       updateAllViews();
-      pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok");
+      pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok", { meaning: "complete", screen: "building-assembly-facility" }); // ISP-254 Bd (AB#4819)
       showActionReceipt(account, { returnFocusTo: firstPresent('[data-corp-building="Assembly Facility"]', ".nav-tab[data-tab='station']") }); // AB#744
     },
-    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn"),
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn", { meaning: refusalMeaning(error), screen: "station-facilities-section" }), // ISP-254 Bd (AB#4819)
     onUpgrade: (buildingId) => upgradeFacility(buildingId) // ISP-102 (AB#794)
   }, clientPrices(appState.economy).assemblyFacilityCost,
   (b) => facilityUpgradeHtml(facilityUpgradeView(b, data.corp, appState.economy, appState.playerBuildings || [])));
@@ -1239,10 +1307,10 @@ export function renderStation(data) {
     onBuilt: (account) => {
       appState.data = deepClone(account.state);
       updateAllViews();
-      pushFeedback(account.receipt?.title || "Construction complete.", "ok");
+      pushFeedback(account.receipt?.title || "Construction complete.", "ok", { meaning: "complete", screen: "station-construction-section" }); // ISP-254Bc (AB#4818)
       showActionReceipt(account, { returnFocusTo: firstPresent("#station-construction-section h3", ".nav-tab[data-tab='station']") }); // AB#744
     },
-    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn", { meaning: refusalMeaning(error), screen: "station-construction-section" }) // ISP-254Bc (AB#4818)
   }, {
     researchName: (id) => techTree.find((t) => t.id === id)?.name || id,
     economy: appState.economy
@@ -1323,7 +1391,7 @@ export function renderAssemblyFacility(data) {
       const remainMs = Math.max(0, activeFab.completesAt - Date.now());
       fabProgressHtml = `
         <div class="station__fab-progress">
-          <p class="station__note station__hint">Fabricating Mining Probe &mdash; ${formatDuration(remainMs)} remaining</p>
+          <p class="station__note station__hint">Fabricating Mining Probe &mdash; ${formatDuration(remainMs)} remaining ${protocolLineHtml({ meaning: "active", screen: "building-assembly-facility" })}</p>
           <div class="progress-wrap"><div class="progress-bar" id="fab-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
         </div>
       `;
@@ -1372,9 +1440,9 @@ export function renderAssemblyFacility(data) {
         showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
         renderAssemblyFacility(appState.data);
         // AB#1257: it said "fabricated" here, 30 minutes before the probe existed; that line now comes on completion.
-        pushFeedback(probeFabricationStartedText(appState.data?.corp?.asteroidMining?.fabricationQueue), "ok");
+        pushFeedback(probeFabricationStartedText(appState.data?.corp?.asteroidMining?.fabricationQueue), "ok", { meaning: "queued", screen: "building-assembly-facility" }); // ISP-254 Bd (AB#4819)
       } catch (err) {
-        pushFeedback(err.message || "Probe fabrication failed.", "warn");
+        pushFeedback(err.message || "Probe fabrication failed.", "warn", { meaning: refusalMeaning(err), screen: "building-assembly-facility" });
       }
     });
   }
@@ -1396,14 +1464,7 @@ export function bindBuildingActions() {
     showStationOverview();
   });
 
-  // AB#1056: the Start here prompt opens the Suites; it has its own attribute so the walkthrough's highlight, which
-  // finds the Suites card by data-building-action, still lands on the card.
-  document.getElementById("station-location-header")?.addEventListener("click", (event) => {
-    if (!event.target.closest("[data-start-office]")) return;
-    showStationBuilding("orbital-executive-suites");
-    // straight to the lease form, which sits under the Suites' description and was below the fold on a phone
-    revealUnderHeader(document.getElementById("rent-office-btn")?.closest(".ui-panel") || document.getElementById("station-building-view"));
-  });
+  // AB#2463: the first-action prompt that opened the Suites is gone (Board review item 9); the walkthrough leads there.
 }
 
 /**
@@ -1417,9 +1478,56 @@ export function freeYardsText(buildings) {
   return ["", "one", "two", "three", "four", "five"][free] || String(free);
 }
 
+/**
+ * AB#2480: what one of this corporation's yards needs to price a rate: its tier's curve and cap, the research and
+ * lease efficiency, its upkeep, and the prices. null before the economy has loaded.
+ */
+function yardPricing(extractorId) {
+  const economy = appState.economy;
+  if (!economy?.operations) return null;
+  const ex = (appState.data?.corp?.mining?.silicateExtractors || []).find((e) => e.id === extractorId);
+  const lease = (appState.data?.corp?.miningLeases || []).find((l) => l.id === ex?.leaseId);
+  const tierOf = yardTierFor(ex?.tier, economy.operations, economy.buildings);
+  return {
+    operations: operationsForTier(tierOf.tier, economy.operations, economy.buildings),
+    efficiency: miningEfficiency(appState.data?.corp, lease, economy.buildings),
+    upkeepPerHour: yardUpkeepPerHourFor(yardIndexOf(appState.data?.corp, extractorId), economy.buildings),
+    cap: tierOf.throughputCap,
+    taxPct: economy.salesTaxPct,
+    // AB#2334's model sells along the bid from its base price; without the bid's rules (an older server) it is today's.
+    alongBid: Boolean(economy.npcBid && economy.silicateBasePrice),
+    basePrice: economy.silicateBasePrice,
+    npcBid: economy.npcBid,
+    unitPrice: economy.silicateUnitPrice
+  };
+}
+
+/** AB#2480: the best rate for this yard, as the economy model computes it (public/scripts/standingBid.js); 40 until the economy loads. */
+export function mineBestRate(extractorId) {
+  const p = yardPricing(extractorId);
+  if (!p) return 40;
+  return p.alongBid
+    ? bestRateAlongBid({ operations: p.operations, basePrice: p.basePrice, taxPct: p.taxPct, npcBid: p.npcBid, efficiency: p.efficiency, upkeepPerHour: p.upkeepPerHour, max: p.cap }).throughputPerHour
+    : bestThroughput({ operations: p.operations, unitPrice: p.unitPrice, taxPct: p.taxPct, efficiency: p.efficiency, upkeepPerHour: p.upkeepPerHour, max: p.cap }).throughputPerHour;
+}
+
 export function mineProjectionText(rate, extractorId) {
   const economy = appState.economy;
   if (!economy?.operations) return "";
+  const p = yardPricing(extractorId);
+  if (p.alongBid) {
+    // AB#2480: an hour as a day of it sells along the standing bid, and the best rate by the same walk (AB#2334).
+    const along = { operations: p.operations, basePrice: p.basePrice, taxPct: p.taxPct, npcBid: p.npcBid, efficiency: p.efficiency, upkeepPerHour: p.upkeepPerHour };
+    const at = hourAlongBid(rate, along);
+    const best = bestRateAlongBid({ ...along, max: p.cap });
+    const profit = Math.round(at.profitPerHour);
+    const net = profit >= 0 ? `nets ${toCurrency(profit)}/hour` : `loses ${toCurrency(Math.abs(profit))}/hour`;
+    const upkeep = p.upkeepPerHour > 0 ? ` (including ¤${p.upkeepPerHour.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/hour upkeep, paid by every yard after your first ${freeYardsText(economy.buildings)})` : "";
+    return `At ${rate} t/h: earns ${toCurrency(Math.round(at.revenuePerHour))}/hour, costs ${toCurrency(Math.round(at.costPerHour))}/hour${upkeep}, ${net}, with a day's ore averaging ${at.avgBid.toFixed(2)} a tonne on the standing bid. `
+      + (best.throughputPerHour === rate
+        ? "That is the best rate for your research and today's prices."
+        : `Best for your research and today's prices: ${best.throughputPerHour} t/h, netting ${toCurrency(best.profitPerHour)}/hour.`);
+  }
   // ISP-101 (AB#793): the yard's tier sets its curve and its cap, so the projection and the best rate follow it.
   const ex = (appState.data?.corp?.mining?.silicateExtractors || []).find((e) => e.id === extractorId);
   // ISP-98 (AB#788): the same efficiency the server's tick applies, the lease's Cryo-vapor Extractor Array included.
@@ -1433,7 +1541,7 @@ export function mineProjectionText(rate, extractorId) {
   const at = miningProjection(rate, { operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour });
   const best = bestThroughput({ operations, unitPrice: economy.silicateUnitPrice, taxPct: economy.salesTaxPct, efficiency, upkeepPerHour, max: tierOf.throughputCap });
   const net = at.profitPerHour >= 0 ? `nets ${toCurrency(at.profitPerHour)}/hour` : `loses ${toCurrency(Math.abs(at.profitPerHour))}/hour`;
-  const upkeep = upkeepPerHour > 0 ? ` (including ${upkeepPerHour.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 })}/hour upkeep, paid by every yard after your first ${freeYardsText(economy.buildings)})` : "";
+  const upkeep = upkeepPerHour > 0 ? ` (including ¤${upkeepPerHour.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/hour upkeep, paid by every yard after your first ${freeYardsText(economy.buildings)})` : "";
   return `At ${rate} t/h: earns ${toCurrency(at.revenuePerHour)}/hour, costs ${toCurrency(at.costPerHour)}/hour${upkeep}, ${net}. `
     + (best.throughputPerHour === rate
       ? "That is the best rate for your research."

@@ -22,8 +22,14 @@ export function tradeNumbers(raw) {
 
 export const EXCHANGE_VIEW_KEY = "isp.exchangeView";
 
-/** Which order tables to show: all of them, or one. */
-export const ORDER_TYPES = ["all", "sell", "bids", "standing", "mine"]; // "bids": players' buy orders (AB#1054)
+/**
+ * AB#2472: the Exchange's subpages, the first the default. They replaced the "Show" filter (AB#402), whose choice an
+ * older saved view may still hold: LEGACY_TYPE_PAGE reads it as the page with those orders.
+ */
+export const EXCHANGE_PAGES = ["standing", "players", "mine", "mercs", "history"];
+const LEGACY_TYPE_PAGE = { sell: "players", bids: "players", standing: "standing", mine: "mine" };
+/** The pages that show the price chart and the filters: the ones with orders to filter. */
+export const ORDER_PAGES = new Set(["standing", "players", "mine"]);
 
 /** Sort orders, as the value of the sort control. */
 export const SORTS = ["newest", "oldest", "price-asc", "price-desc", "qty-desc", "qty-asc"];
@@ -34,7 +40,7 @@ export const SELLERS = ["all", "conglomerate"];
 /** AB#884: which item tier to show: every tier ("") or one (the catalog's tier, data/items.json). */
 export const TIERS = ["", "1", "2", "3", "4"];
 
-export const DEFAULT_EXCHANGE_VIEW = Object.freeze({ resource: "", type: "all", sort: "newest", sellers: "all", tier: "" });
+export const DEFAULT_EXCHANGE_VIEW = Object.freeze({ resource: "", page: "standing", sort: "newest", sellers: "all", tier: "" });
 
 /** Longer than any resource name, short enough that nothing unbounded is kept. */
 const RESOURCE_MAX_LENGTH = 40;
@@ -45,7 +51,7 @@ export function normalizeExchangeView(raw) {
   const resource = typeof view.resource === "string" && view.resource.length <= RESOURCE_MAX_LENGTH ? view.resource : "";
   return {
     resource,
-    type: ORDER_TYPES.includes(view.type) ? view.type : DEFAULT_EXCHANGE_VIEW.type,
+    page: EXCHANGE_PAGES.includes(view.page) ? view.page : LEGACY_TYPE_PAGE[view.type] ?? DEFAULT_EXCHANGE_VIEW.page,
     sort: SORTS.includes(view.sort) ? view.sort : DEFAULT_EXCHANGE_VIEW.sort,
     sellers: SELLERS.includes(view.sellers) ? view.sellers : DEFAULT_EXCHANGE_VIEW.sellers,
     tier: TIERS.includes(view.tier) ? view.tier : DEFAULT_EXCHANGE_VIEW.tier
@@ -154,4 +160,34 @@ export function filteredEmptyHtml(label, resource, hiddenCount, filter = "resour
   // ISP-80 (AB#769): a design-system empty state; the button is found by its data attribute.
   return `<p class="ui-state__why">No ${escapeHtml(label)} for <strong>${escapeHtml(resource)}</strong>: the ${escapeHtml(filter)} filter is hiding ${Number(hiddenCount) || 0} other ${noun}.</p>
     <button class="ui-button ui-button--secondary" type="button" data-clear-filters>Clear filters</button>`;
+}
+
+/**
+ * AB#4710: which standing buy orders the Standing orders page lists. With All picked and no tier, the buyers for what
+ * the player holds at this station, until they ask for every buyer: about 50 rows was five screens (DOCTRINE P-010).
+ * With a resource or a tier picked, every order the filters leave, as before; and every order once they ask for all,
+ * in the sort they chose. Nothing is ever out of reach: the rest is one "Show all" away.
+ * `orders` are already filtered and sorted (viewOrders); `held` is the station's inventory, item to quantity.
+ * Returns { rows, total, held, collapsed, filtering }.
+ */
+export function standingBuyRows(orders, { view = {}, held = {}, showAll = false } = {}) {
+  const holds = (o) => Number(held?.[o.item] || 0) > 0;
+  const heldRows = orders.filter(holds);
+  const filtering = Boolean(view.resource || view.tier);
+  const collapsed = !filtering && !showAll;
+  return { rows: collapsed ? heldRows : orders, total: orders.length, held: heldRows.length, collapsed, filtering };
+}
+
+/** AB#4710: the line under the standing buy orders when they are cut to what the player holds, or "" when they are not. */
+export function standingBuyNote({ collapsed, held, total }, stationName = "this station") {
+  if (!collapsed || !total) return "";
+  if (!held) return `You hold nothing these buyers want at ${stationName}.`;
+  return `Showing the ${held} buyer${held === 1 ? "" : "s"} for what you hold at ${stationName}.`;
+}
+
+/** AB#4710: the control that shows every buyer, or cuts them back; "" when there is nothing to toggle (a filter is on). */
+export function standingBuyToggle({ collapsed, filtering, held, total }) {
+  if (filtering || total === 0) return "";
+  if (collapsed) return total > held ? `Show all ${total} buyers` : "";
+  return "Show only what you hold here";
 }

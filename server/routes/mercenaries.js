@@ -8,7 +8,7 @@ import { getAccountById } from "../gameState.js";
 
 const whole = (v) => bodyNumber(v, { fallback: -1, integer: true }); // Bug #1014: the one way a body number is read
 const answer = (res, result) => {
-  if (!result?.ok) { res.status(result?.status || 400).json({ error: result?.error || "The contract could not be made." }); return; }
+  if (!result?.ok) { res.status(result?.status || 400).json({ error: result?.error || "The contract could not be made.", ...(result?.code ? { code: result.code } : {}) }); return; } // Bug #4822: the code too
   res.json(result);
 };
 
