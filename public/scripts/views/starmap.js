@@ -23,8 +23,10 @@ export const starmap = createStarmapController({
   resourceSelect: document.getElementById("map-resource"), // ISP-143 (AB#837)
   resourceLegend: document.getElementById("starmap-resource-legend"),
   dominanceLegend: document.getElementById("starmap-dominance-legend"), // ISP-218 (AB#913)
-  onOverlayChange(overlay) { if (isDominanceOverlay(overlay)) loadDominanceIntoStarmap(); if (overlay === CONCESSION_OVERLAY) loadConcessionsIntoStarmap(); if (overlay === RATS_OVERLAY) loadRatsActivity(); }, // ISP-218 (AB#913), ISP-229 (AB#924), ISP-285 (AB#992)
-  onSystemShown(systemId) { loadSystemConcession(systemId); loadRatsActivity(); }, // ISP-229 (AB#924); ISP-285 (AB#992): the panel's pirate activity
+  onOverlayChange(overlay) { if (isDominanceOverlay(overlay)) loadDominanceIntoStarmap(); if (overlay === CONCESSION_OVERLAY) loadConcessionsIntoStarmap(); if (overlay === RATS_OVERLAY) loadRatsActivity({ force: true }); }, // ISP-218 (AB#913), ISP-229 (AB#924), ISP-285 (AB#992)
+  // ISP-229 (AB#924); ISP-285 (AB#992): the panel's pirate activity. The panel calls this on every redraw, and a read redraws
+  // it, so both reads are throttled: unthrottled, the Rats' read looped for as long as a system was open (Bug #4834).
+  onSystemShown(systemId) { loadSystemConcession(systemId); loadRatsActivity(); },
   onHuntOpen(beltKey) { loadHuntPreview(beltKey); }, // ISP-285 (AB#992)
   onHuntSend(beltKey, fleetId) { sendHunt(beltKey, fleetId); }, // ISP-285 (AB#992)
   getMilitary: () => appState.data?.corp?.military || null, // ISP-285 (AB#992)
@@ -195,12 +197,19 @@ export async function loadTariffs() {
 
 const account = () => `/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay`;
 /** Every system's pirate activity as the server has it now, for the overlay and the panels. */
-export async function loadRatsActivity() {
+// Bug #4834: at most one read a minute unless forced (the overlay chosen, a hunt come due), and never two at once.
+export const RATS_READ_MAX_AGE_MS = 60_000;
+let ratsRead = { at: 0, pending: false };
+export async function loadRatsActivity({ force = false } = {}) {
   if (!appState.accountId) return;
+  if (ratsRead.pending || (!force && Date.now() - ratsRead.at < RATS_READ_MAX_AGE_MS)) return;
+  ratsRead = { at: Date.now(), pending: true };
   try {
     starmap.setRatsActivity(await parseJsonResponse(await apiFetch(`${account()}/rats/activity`)));
   } catch (err) {
     pushFeedback(err.message || "The Rats' activity could not be read.", "warn");
+  } finally {
+    ratsRead = { at: Date.now(), pending: false };
   }
 }
 /** Send the chosen fleet; when the hunt is due, read the account and the activity again, for its report and the quiet belt. */
@@ -217,7 +226,7 @@ async function sendHunt(beltKey, fleetId) {
     updateAllViews();
     showActionReceipt(answer, { returnFocusTo: receiptTrigger });
     const wait = Math.max(0, Number(answer.hunt?.endsAt) - Date.now()) + 6_000; // the server's hunt ticker runs every 5 s
-    setTimeout(async () => { await refreshFromServer(); loadRatsActivity(); starmap.rerender(); }, wait);
+    setTimeout(async () => { await refreshFromServer(); loadRatsActivity({ force: true }); starmap.rerender(); }, wait);
   } catch (err) {
     starmap.setBeltNotice({ beltKey, message: err.message || "The hunt could not be sent.", protocol: { meaning: refusalMeaning(err), screen: "starmap" } }); // ISP-255d (AB#4826)
     loadHuntPreview(beltKey);
