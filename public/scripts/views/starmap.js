@@ -10,7 +10,8 @@ import { beltScoutedText } from "../miningFeedback.js";
 import { createStarmapController } from "../starmap.js";
 import { appState, techTree } from "../state.js";
 import { pushFeedback, refreshFromServer, setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
-import { refusalMeaning } from "../protocol.js"; // ISP-254 Bd (AB#4819)
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 Bd (AB#4819); protocolLineHtml: ISP-255 (AB#4831)
+import { escapeHtml } from "../html.js";
 import { isDominanceOverlay } from "../dominanceOverlay.js"; // ISP-218 (AB#913)
 import { CONCESSION_OVERLAY } from "../concessionOverlay.js"; // ISP-229 (AB#924)
 import { RATS_OVERLAY } from "../ratsOverlay.js"; // ISP-285 (AB#992)
@@ -69,7 +70,7 @@ export const starmap = createStarmapController({
       showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       setTab("travel");
     } catch (err) {
-      pushFeedback(err.message || "Interstellar travel request failed.", "warn");
+      pushFeedback(err.message || "Interstellar travel request failed.", "warn", { meaning: refusalMeaning(err), screen: "starmap" }); // ISP-255 (AB#4831)
     }
   },
   async onDockAtStation(stationId) {
@@ -89,9 +90,9 @@ export const starmap = createStarmapController({
       setTab("travel");
       return { ok: true };
     } catch (err) {
-      pushFeedback(err.message || "Docking request failed.", "warn");
+      pushFeedback(err.message || "Docking request failed.", "warn", { meaning: refusalMeaning(err), screen: "starmap" }); // ISP-255 (AB#4831)
       // Bug #4651: the feedback list is on the Overview; the map shows the reason where the order was given
-      return { error: err.message || "Docking request failed." };
+      return { error: err.message || "Docking request failed.", code: err.code };
     }
   },
   async onScoutBelt(systemId, bodyId, beltKey) {
@@ -207,7 +208,7 @@ export async function loadRatsActivity({ force = false } = {}) {
   try {
     starmap.setRatsActivity(await parseJsonResponse(await apiFetch(`${account()}/rats/activity`)));
   } catch (err) {
-    pushFeedback(err.message || "The Rats' activity could not be read.", "warn");
+    pushFeedback(err.message || "The Rats' activity could not be read.", "warn", { meaning: "failed", screen: "starmap" }); // ISP-255 (AB#4831)
   } finally {
     ratsRead = { at: Date.now(), pending: false };
   }
@@ -247,7 +248,7 @@ export async function loadDominanceIntoStarmap() {
     const reading = await parseJsonResponse(await apiFetch("/api/starmap/dominance"));
     starmap.setDominance(reading, { corporation: appState.data?.corp?.corporationName || "", conglomerate: appState.conglomerate?.name || "" });
   } catch (err) {
-    pushFeedback(err.message || "The dominance reading could not be loaded.", "warn");
+    pushFeedback(err.message || "The dominance reading could not be loaded.", "warn", { meaning: "failed", screen: "starmap" }); // ISP-255 (AB#4831)
   }
 }
 // ─── ISP-229 (AB#924): ISA concessions on the Starmap ──────────────────────────────────────────────────────────────
@@ -260,7 +261,7 @@ export async function loadConcessionsIntoStarmap() {
     starmap.setConcessions(await parseJsonResponse(await apiFetch("/api/starmap/concessions")), ownNames());
     concessionsRead = true;
   } catch (err) {
-    pushFeedback(err.message || "The ISA's concession register could not be read.", "warn");
+    pushFeedback(err.message || "The ISA's concession register could not be read.", "warn", { meaning: "failed", screen: "starmap" }); // ISP-255 (AB#4831)
   }
 }
 
@@ -321,11 +322,14 @@ async function concessionAction(action, systemId, data) {
   if (!(await showTradeConfirmation(confirm))) return;
   try {
     await parseJsonResponse(await apiFetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }));
-    pushFeedback(action === "petition" ? "Petition filed with the ISA." : action === "discount" ? "Lease discount set; it applies after the notice." : "Concession relinquished.", "ok");
+    // ISP-255 (AB#4831): a petition awaits the ISA's review; a discount is Lodged for its notice; a relinquishment is Withdrawn
+    pushFeedback(action === "petition" ? "Petition filed with the ISA." : action === "discount" ? "Lease discount set; it applies after the notice." : "Concession relinquished.", "ok",
+      { meaning: action === "petition" ? "pending" : action === "discount" ? "queued" : "cancelled", screen: "starmap" });
   } catch (err) {
     const line = document.querySelector('#map-details [data-role="concession-status"]');
-    if (line) line.textContent = err.message || "The ISA refused that.";
-    pushFeedback(err.message || "The ISA refused that.", "warn");
+    const denied = { meaning: refusalMeaning(err), screen: "starmap" }; // ISP-255 (AB#4831): Denied, or Unfunded by its code
+    if (line) line.innerHTML = `${escapeHtml(err.message || "The ISA refused that.")} ${protocolLineHtml(denied)}`;
+    pushFeedback(err.message || "The ISA refused that.", "warn", denied);
   }
   await loadConcessionsIntoStarmap();
   await loadSystemConcession(systemId, { force: true });

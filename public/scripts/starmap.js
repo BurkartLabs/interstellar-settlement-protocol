@@ -1846,7 +1846,7 @@ export function createStarmapController({
                 why.setAttribute("role", "alert");
                 row.append(why);
               }
-              if (why) why.textContent = result.error;
+              if (why) why.innerHTML = `${escapeHtmlAttr(result.error)} ${protocolLineHtml({ meaning: refusalMeaning(result), screen: "starmap" })}`; // ISP-255 (AB#4831)
             }
           }
         });
@@ -2163,7 +2163,7 @@ export function createStarmapController({
             dockBtn.disabled = false;
             const why = overlay.querySelector(".starmap__dock-refused");
             if (why) {
-              why.textContent = result.error;
+              why.innerHTML = `${escapeHtmlAttr(result.error)} ${protocolLineHtml({ meaning: refusalMeaning(result), screen: "starmap" })}`; // ISP-255 (AB#4831)
               why.hidden = false;
             }
           } else closeStationModal();

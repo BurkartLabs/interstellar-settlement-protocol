@@ -2,11 +2,11 @@
 // AB#739 (ISP-53): everything here moved from app.js unchanged. ISP-83 (AB#772): drawn from the design system.
 
 /** The screen's header: the computer's line over the heading, and what it means for the player. */
-function travelHeader(overline, heading, lede) {
+function travelHeader(overline, heading, lede, protocol = null) {
   return `<header class="ui-screen__header">
       <p class="travel__overline">${escapeHtml(overline)}</p>
       <h2 class="ui-screen__title">${codeSlotHtml("travel")}${escapeHtml(heading)}</h2>
-      ${lede ? `<p class="ui-screen__lede">${escapeHtml(lede)}</p>` : ""}
+      ${lede ? `<p class="ui-screen__lede">${escapeHtml(lede)}${protocol ? ` ${protocolLineHtml(protocol)}` : ""}</p>` : ""}
     </header>`;
 }
 
@@ -17,6 +17,7 @@ import { escapeHtml } from "../html.js";
 import { appState } from "../state.js";
 import { formatSystemLabel, isPlayerTraveling, pushFeedback, refreshFromServer, setTab, updateAllViews } from "./shared.js";
 import { codeSlotHtml } from "../sectionCodes.js"; // ISP-248 (AB#944)
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-255 (AB#4831)
 
 export function renderTravelPage(data) {
   const container = document.getElementById("travel-page");
@@ -62,7 +63,7 @@ export function renderTravelPage(data) {
             showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
             setTab("travel");
           } catch (err) {
-            pushFeedback(err.message || "Docking request failed.", "warn");
+            pushFeedback(err.message || "Docking request failed.", "warn", { meaning: refusalMeaning(err), screen: "travel" }); // ISP-255 (AB#4831)
           }
         });
       });
@@ -102,7 +103,7 @@ export function renderTravelPage(data) {
   container.innerHTML = `
     ${travelHeader(overline, heading, isInterstellar
       ? "Interstellar jump drive engaged. All station services suspended until arrival."
-      : "Station services suspended during docking approach. Chat and Starmap remain available.")}
+      : "Station services suspended during docking approach. Chat and Starmap remain available.", { meaning: "active", screen: "travel" })}
     <section class="ui-panel" aria-label="Journey">
       <div class="ui-panel__body ui-stack">
         <div class="travel__route">
