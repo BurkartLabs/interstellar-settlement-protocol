@@ -467,6 +467,89 @@ body {
   font-size: var(--font-size-3);
   line-height: var(--line-height-body);
 }
+/* ISP-257 (AB#953): the pitch (the verb, who it is for, the one call to action) beside a real screen on a wide page,
+   the screen under it on a phone; then three screens from a corporation at work. */
+.landing__pitch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.landing__verb {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-4);
+  line-height: var(--line-height-body);
+}
+.landing__verb strong {
+  color: var(--accent);
+}
+.landing__audience {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-3);
+  line-height: var(--line-height-body);
+}
+.landing__shot {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+}
+.landing__shot img,
+.landing__proof-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.landing__caption {
+  color: var(--muted);
+  font-size: var(--font-size-2);
+}
+.landing__proofs {
+  display: grid;
+  gap: var(--space-4);
+}
+.landing__proof {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+@media (min-width: 960px) {
+  /* one proof a row, the screen large enough to read beside what it shows (.ui-card's flex comes later in this file) */
+  .ui-card.landing__proof {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: var(--space-8);
+    row-gap: var(--space-3);
+    align-items: start;
+  }
+  .landing__proof-shot {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  .landing__proof .ui-card__title,
+  .landing__proof .ui-card__body {
+    grid-column: 2;
+  }
+  .landing__proof .ui-card__title {
+    align-self: end;
+  }
+  .landing__hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: var(--space-8);
+  }
+}
 .landing__section {
   padding-top: var(--space-10);
 }
@@ -514,7 +597,7 @@ body {
   :is(.auth-page, .landing) {
     font-size: var(--font-size-3);
   }
-  :is(.auth-page, .landing) :is(.ui-button, .ui-input, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .auth-page__overline, .landing__overline, .auth-page__aside, .auth-page__status, .landing__aside) {
+  :is(.auth-page, .landing) :is(.ui-button, .ui-input, .ui-field__label, .ui-field__hint, .ui-field__error, .ui-badge, .ui-card__body, .auth-page__overline, .landing__overline, .auth-page__aside, .auth-page__status, .landing__aside, .landing__caption) {
     font-size: var(--font-size-3);
   }
   .auth-page {
