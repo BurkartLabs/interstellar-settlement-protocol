@@ -1,0 +1,51 @@
+/* AB#4880: the display styles' fonts, self-hosted (CSP font-src 'self'). Written by scripts/vendor-theme-fonts.mjs; do not edit. */
+@font-face { font-family: "Big Shoulders Display"; src: url("/vendor/fonts/big-shoulders-display/big-shoulders-display-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Oswald"; src: url("/vendor/fonts/oswald/oswald-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Space Mono"; src: url("/vendor/fonts/space-mono/space-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Space Mono"; src: url("/vendor/fonts/space-mono/space-mono-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "VT323"; src: url("/vendor/fonts/vt323/vt323-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/vendor/fonts/ibm-plex-mono/ibm-plex-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/vendor/fonts/ibm-plex-mono/ibm-plex-mono-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/vendor/fonts/ibm-plex-mono/ibm-plex-mono-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/vendor/fonts/ibm-plex-mono/ibm-plex-mono-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Cinzel"; src: url("/vendor/fonts/cinzel/cinzel-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Jost"; src: url("/vendor/fonts/jost/jost-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Marcellus SC"; src: url("/vendor/fonts/marcellus-sc/marcellus-sc-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Poiret One"; src: url("/vendor/fonts/poiret-one/poiret-one-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Share Tech Mono"; src: url("/vendor/fonts/share-tech-mono/share-tech-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Architects Daughter"; src: url("/vendor/fonts/architects-daughter/architects-daughter-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Zen Kaku Gothic New"; src: url("/vendor/fonts/zen-kaku-gothic-new/zen-kaku-gothic-new-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Zen Kaku Gothic New"; src: url("/vendor/fonts/zen-kaku-gothic-new/zen-kaku-gothic-new-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Zen Kaku Gothic New"; src: url("/vendor/fonts/zen-kaku-gothic-new/zen-kaku-gothic-new-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Zen Kaku Gothic New"; src: url("/vendor/fonts/zen-kaku-gothic-new/zen-kaku-gothic-new-latin-900-normal.woff2") format("woff2"); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Archivo"; src: url("/vendor/fonts/archivo/archivo-latin-standard-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-stretch: 62% 125%; font-display: swap; }
+@font-face { font-family: "Michroma"; src: url("/vendor/fonts/michroma/michroma-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Schibsted Grotesk"; src: url("/vendor/fonts/schibsted-grotesk/schibsted-grotesk-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("/vendor/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Manrope"; src: url("/vendor/fonts/manrope/manrope-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url("/vendor/fonts/figtree/figtree-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("/vendor/fonts/barlow/barlow-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("/vendor/fonts/barlow/barlow-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("/vendor/fonts/barlow/barlow-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("/vendor/fonts/barlow/barlow-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow Condensed"; src: url("/vendor/fonts/barlow-condensed/barlow-condensed-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow Condensed"; src: url("/vendor/fonts/barlow-condensed/barlow-condensed-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow Condensed"; src: url("/vendor/fonts/barlow-condensed/barlow-condensed-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Playfair Display"; src: url("/vendor/fonts/playfair-display/playfair-display-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Playfair Display"; src: url("/vendor/fonts/playfair-display/playfair-display-latin-wght-italic.woff2") format("woff2"); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: "Source Serif 4"; src: url("/vendor/fonts/source-serif-4/source-serif-4-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Libre Caslon Text"; src: url("/vendor/fonts/libre-caslon-text/libre-caslon-text-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Libre Caslon Text"; src: url("/vendor/fonts/libre-caslon-text/libre-caslon-text-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Saira Condensed"; src: url("/vendor/fonts/saira-condensed/saira-condensed-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Saira Condensed"; src: url("/vendor/fonts/saira-condensed/saira-condensed-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Saira Condensed"; src: url("/vendor/fonts/saira-condensed/saira-condensed-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Saira Condensed"; src: url("/vendor/fonts/saira-condensed/saira-condensed-latin-800-normal.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Titillium Web"; src: url("/vendor/fonts/titillium-web/titillium-web-latin-300-normal.woff2") format("woff2"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Titillium Web"; src: url("/vendor/fonts/titillium-web/titillium-web-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Titillium Web"; src: url("/vendor/fonts/titillium-web/titillium-web-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Titillium Web"; src: url("/vendor/fonts/titillium-web/titillium-web-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Nunito Sans"; src: url("/vendor/fonts/nunito-sans/nunito-sans-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Doto"; src: url("/vendor/fonts/doto/doto-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Space Grotesk"; src: url("/vendor/fonts/space-grotesk/space-grotesk-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Orbitron"; src: url("/vendor/fonts/orbitron/orbitron-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Sora"; src: url("/vendor/fonts/sora/sora-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
