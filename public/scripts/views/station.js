@@ -171,11 +171,11 @@ async function repairBuilding(building, btn) {
     const account = await parseJsonResponse(await apiFetch(repairPath(appState.accountId, building.id), { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }));
     appState.data = deepClone(account.state);
     updateAllViews();
-    pushFeedback(`${building.name} repaired.`, "ok");
+    pushFeedback(`${building.name} repaired.`, "ok", { meaning: "complete", screen: "station-repairs-section" }); // ISP-254Bc (AB#4818)
     showActionReceipt(account, { returnFocusTo: firstPresent("#station-repairs-section h3", "#station-facilities-section h3", ".nav-tab[data-tab='station']") });
   } catch (error) {
     btn.disabled = false;
-    if (statusEl) statusEl.textContent = error?.message || "The repair was refused.";
+    setStatusLine(statusEl, error?.message || "The repair was refused.", { meaning: refusalMeaning(error), screen: "station-repairs-section" }); // ISP-254Bc (AB#4818)
   }
 }
 
@@ -366,8 +366,8 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const hoursRemaining = Math.floor((msRemaining % 86_400_000) / 3_600_000);
   const expiryDate = utcTime(rentedUntil, { withDate: true });
   const leaseStatusBadge = leaseExpired
-    ? `<span class="ui-badge ui-badge--danger">Expired</span>`
-    : `<span class="ui-badge ui-badge--success">Active Lease</span>`;
+    ? `<span class="ui-badge ui-badge--danger">Expired</span> ${protocolLineHtml({ meaning: "expired", screen: "building-orbital-executive-suites" })}`
+    : `<span class="ui-badge ui-badge--success">Active Lease</span> ${protocolLineHtml({ meaning: "active", screen: "building-orbital-executive-suites" })}`; // ISP-254Bc (AB#4818)
   const timeRemainingText = leaseExpired
     ? `<span class="station__danger">Lease expired</span>`
     : `${fullDays}d ${hoursRemaining}h remaining`;
@@ -471,10 +471,10 @@ export function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         }
-        pushFeedback(`Office lease confirmed at ${station?.name || "Earth Station Prime"}.`, "success");
+        pushFeedback(`Office lease confirmed at ${station?.name || "Earth Station Prime"}.`, "success", { meaning: "active", screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       } catch (err) {
         rentBtn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Lease agreement failed.";
+        setStatusLine(statusEl, err.message || "Lease agreement failed.", { meaning: refusalMeaning(err), screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       }
     });
   }
@@ -520,10 +520,10 @@ export function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         }
-        pushFeedback(`Lease extended by ${durationDays} days.`, "success");
+        pushFeedback(`Lease extended by ${durationDays} days.`, "success", { meaning: "active", screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       } catch (err) {
         if (submitBtn) submitBtn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Lease renewal failed.";
+        setStatusLine(statusEl, err.message || "Lease renewal failed.", { meaning: refusalMeaning(err), screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       }
     });
   }
@@ -571,10 +571,10 @@ export function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         }
-        pushFeedback(`Personnel hired successfully.`, "success");
+        pushFeedback(`Personnel hired successfully.`, "success", { meaning: "complete", screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       } catch (err) {
         if (submitBtn) submitBtn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Hire action failed.";
+        setStatusLine(statusEl, err.message || "Hire action failed.", { meaning: refusalMeaning(err), screen: "building-orbital-executive-suites" }); // ISP-254Bc (AB#4818)
       }
     });
   }
@@ -1307,10 +1307,10 @@ export function renderStation(data) {
     onBuilt: (account) => {
       appState.data = deepClone(account.state);
       updateAllViews();
-      pushFeedback(account.receipt?.title || "Construction complete.", "ok");
+      pushFeedback(account.receipt?.title || "Construction complete.", "ok", { meaning: "complete", screen: "station-construction-section" }); // ISP-254Bc (AB#4818)
       showActionReceipt(account, { returnFocusTo: firstPresent("#station-construction-section h3", ".nav-tab[data-tab='station']") }); // AB#744
     },
-    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn", { meaning: refusalMeaning(error), screen: "station-construction-section" }) // ISP-254Bc (AB#4818)
   }, {
     researchName: (id) => techTree.find((t) => t.id === id)?.name || id,
     economy: appState.economy

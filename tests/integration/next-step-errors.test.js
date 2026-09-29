@@ -55,6 +55,6 @@ describe("refusals say what to do next (Bug #1058)", () => {
     });
     const res = await c.api.post(`/api/accounts/${c.id}/gameplay/hire`).send({ count: 10 });
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Hiring requires 20,000 credits. Current reserves: 1,234 credits. Sell goods or finish an assignment to raise the credits, then try again."); // Bug #4820: and what to do next
+    expect(res.body.error).toBe("Hiring requires 20,000 credits. Current reserves: 1,234 credits. Hire fewer, or sell goods to raise the credits."); // ISP-254Bc (AB#4818): the next step
   });
 });

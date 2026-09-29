@@ -21,7 +21,7 @@ export function registerUpgradeRoutes(app) {
       return;
     }
     if (result.outcome !== "ok") {
-      res.status(400).json({ error: upgradeRefusal(result, formatCredits, formatUtc) });
+      res.status(400).json({ error: upgradeRefusal(result, formatCredits, formatUtc), code: result.outcome }); // ISP-254 (AB#4818)
       return;
     }
     saveAccountsNow(); // a purchase: on disk now, not at the next debounced save
@@ -42,7 +42,7 @@ export function registerUpgradeRoutes(app) {
     if (!getAccountById(accountId)) { res.status(404).json({ error: "Account not found." }); return; }
     const result = repairBuilding(accountId, buildingId);
     if (result.outcome !== "ok") {
-      res.status(400).json({ error: repairRefusal(result, formatCredits) });
+      res.status(400).json({ error: repairRefusal(result, formatCredits), code: result.outcome }); // ISP-254 (AB#4818)
       return;
     }
     const account = mutateAccountState(accountId, () => {}); // the caller's account as every route returns it (sanitised)

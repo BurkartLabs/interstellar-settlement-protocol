@@ -5,6 +5,7 @@
 // page draws the panel again from the account that comes back, and a refusal shows the server's own words in the row.
 // Pure apart from renderConstructionPanel, so it loads in node without the page's state.
 import { escapeHtml } from "./html.js";
+import { protocolLineHtml, refusalMeaning } from "./protocol.js"; // ISP-254 (AB#4818)
 import { nextYardPriceFor } from "./yardPrice.js";
 import { leaseFacilities, leaseHasRoom, leaseSlotsUsed } from "./leaseSlots.js"; // ISP-98 (AB#788)
 import { toCurrency } from "./helpers.js"; // Bug #2498: every screen's credits through the one formatter
@@ -162,7 +163,8 @@ export function bindConstructionPanel(grid, { accountId, request, onBuilt, onErr
     } catch (error) {
       button.disabled = false;
       button.textContent = label;
-      if (status) status.textContent = error?.message || "The build was refused.";
+      // ISP-254 (AB#4818): the refusal, then its protocol line (Denied, or Unfunded from the server's code)
+      if (status) status.innerHTML = `${escapeHtml(error?.message || "The build was refused.")} ${protocolLineHtml({ meaning: refusalMeaning(error), screen: "station-construction-section" })}`;
       onError(error);
     }
   };
