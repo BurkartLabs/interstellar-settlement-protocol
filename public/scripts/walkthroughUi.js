@@ -2,7 +2,7 @@
 // app.js. The steps themselves and the rules for advancing them stay in walkthrough.js, which the tests run in node.
 import { WALKTHROUGH_STEPS as walkthroughSteps, chooseHighlight, nextStepIndex, paragraphsOf } from "./walkthrough.js";
 import { revealedGroups, showOnlyGroups } from "./navGroups.js"; // ISP-75 (AB#764)
-import { walkthroughScrollDelta } from "./walkthrough.js"; // Bug #1083
+import { clearAreaBottom, walkthroughScrollDelta } from "./walkthrough.js"; // Bug #1083; Bug #4858
 import { setWalkthroughEconomy } from "./walkthrough.js"; // AB#1430
 import { appState, STORAGE_KEYS } from "./state.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
@@ -155,19 +155,44 @@ function refreshWalkthroughHighlight() {
 }
 
 
+// Bug #4858: a control in a bar that does not scroll (the phone's bottom nav, the pinned header) stays where it is when
+// the page scrolls, so scrolling for it only moves everything else under the player.
+// Only fixed bars and the app header count: other sticky elements move with the page until they stick.
+function inFixedBar(el) {
+  for (let node = el; node && node !== document.body; node = node.parentElement) {
+    if (getComputedStyle(node).position === "fixed" || node.classList.contains("app-header")) return true;
+  }
+  return false;
+}
+
 // Bug #1083: into the band between the sticky header and the briefing card, not the centre of the window, where the
-// card is on a phone.
+// card is on a phone. Bug #4858: and above the phone's fixed bottom nav, which covers the window's last 100-odd pixels.
 function scrollWalkthroughTargetIntoView(target) {
+  if (inFixedBar(target)) return;
   const card = walkthroughModal.querySelector(".modal-card");
   const header = document.querySelector(".app-header");
+  const barTops = [...document.querySelectorAll(".app-nav, .nav-group__tabs")]
+    .filter((bar) => bar.getClientRects().length && getComputedStyle(bar).position === "fixed")
+    .map((bar) => bar.getBoundingClientRect().top);
   const delta = walkthroughScrollDelta({
-    viewportHeight: window.innerHeight,
+    viewportHeight: clearAreaBottom(barTops, window.innerHeight),
     headerBottom: header ? header.getBoundingClientRect().bottom : 0,
     card: card ? card.getBoundingClientRect() : null,
     target: target.getBoundingClientRect()
   });
   if (delta) window.scrollBy({ top: delta, behavior: scrollBehavior() });
 }
+
+/**
+ * Bug #4858: the page scrolled a panel into view after the walkthrough had placed its control (a tab opened, the hire
+ * form revealed: revealUnderHeader), which could leave the control under the card or the bottom nav. Place it again.
+ */
+function recentreWalkthroughTarget() {
+  if (walkthroughModal.hidden || walkthroughFinished || !walkthroughTarget) return;
+  const target = document.querySelector(walkthroughTarget);
+  if (target?.getClientRects().length) scrollWalkthroughTargetIntoView(target);
+}
+document.addEventListener("isp:revealed", () => requestAnimationFrame(recentreWalkthroughTarget));
 
 async function completeWalkthroughForAccount() {
   if (!appState.accountId || appState.walkthroughCompleted) {
