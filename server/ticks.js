@@ -277,7 +277,7 @@ function travelTick() {
         // Arrive in a new system — not docked at any station
         state.corp.currentSystemId = travel.toSystemId;
         state.corp.currentStationId = null;
-        state.corp.location = travel.toSystemId;
+        state.corp.location = systemName(SYSTEMS_CATALOG, travel.toSystemId) || travel.toSystemId; // Bug #4856: "Sol", not "sol"
         travelResult = { type: "interstellar", systemId: travel.toSystemId };
       } else {
         // Local dock — arrive at station
