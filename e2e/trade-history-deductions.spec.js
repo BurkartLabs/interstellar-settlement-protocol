@@ -64,6 +64,11 @@ for (const [width, height] of [[1280, 800], [375, 812]]) {
     // and as the player sees it, the viewport at the table
     await table.locator("tr").nth(0).scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(SHOT_DIR, `page-${LABEL}-${width}.png`), animations: "disabled" });
+    // Bug #4866: nothing in a row runs past its cell (a long counterparty name was cut off at a phone's card edge)
+    const overflowing = await table.evaluate((t) => [...t.querySelectorAll("td")]
+      .filter((td) => td.scrollWidth > td.clientWidth + 1)
+      .map((td) => `${td.dataset.label || "?"}: ${td.textContent.trim()} (${td.scrollWidth} > ${td.clientWidth})`));
+    expect(overflowing, "cells wider than their column").toEqual([]);
 
     const { withTariff: a, withoutTariff: b } = seeded;
     const money = (n) => `¤${n.toLocaleString("en-US")}`;

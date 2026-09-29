@@ -240,9 +240,9 @@ export function renderMarket(data) {
         return `
           <tr>
             <td>${escapeHtml(order.item)}</td>
-            <td class="ui-table__num">${Number(order.quantity).toLocaleString()}</td>
-            <td class="ui-table__num">${toCurrency(order.unitPrice)}</td>
-            <td>${counterpartyHtml(order.seller, market.npcDirectory)}</td>
+            <td class="ui-table__num exchange__left-cell">${Number(order.quantity).toLocaleString()}</td>
+            <td class="ui-table__num exchange__price-cell">${toCurrency(order.unitPrice)}</td>
+            <td class="exchange__party">${counterpartyHtml(order.seller, market.npcDirectory)}</td>
             <td>${soldOut ? "-" : `<input class="ui-input exchange__qty" type="number" min="1" max="${Number(order.quantity)}" value="1" aria-label="Quantity of ${escapeHtml(order.item)} to buy" data-buy-order-qty="${escapeHtml(order.id)}" />`}</td>
             <td>${soldOut ? "Sold out until tomorrow" : `<button class="ui-button ui-button--secondary" type="button" data-buy-order-id="${escapeHtml(order.id)}" data-buy-item="${escapeHtml(order.item)}" data-buy-price="${Number(order.unitPrice)}" data-buy-qty="${Number(order.quantity)}">Buy</button>`}</td>
           </tr>`;
@@ -262,8 +262,8 @@ export function renderMarket(data) {
         return `
           <tr${exhausted ? ' class="ui-table__muted"' : ""}>
             <td>${escapeHtml(order.item)}</td>
-            <td>${counterpartyHtml(order.buyer, market.npcDirectory)}</td>
-            <td class="ui-table__num">
+            <td class="exchange__party">${counterpartyHtml(order.buyer, market.npcDirectory)}</td>
+            <td class="ui-table__num exchange__price-cell">
               <span class="exchange__price">${toCurrency(order.unitPrice)}${
                 // ISP-87: the bid falls as the day's volume is sold into it. Saying so where the price is shown is
                 // the difference between a number that looks wrong and a market a player can read.
@@ -272,7 +272,7 @@ export function renderMarket(data) {
                   : ""
               }</span>
             </td>
-            <td>
+            <td class="exchange__left-cell">
               <span class="exchange__remaining"><span class="ui-figure">${Number(order.remainingQty).toLocaleString()} / ${total.toLocaleString()}</span>
               <progress class="exchange__fill" max="${total || 1}" value="${sold}" aria-label="${boughtLabel}"></progress></span>
             </td>
