@@ -5,6 +5,7 @@
 //
 // The royalty on a chain is the holder's rate x the run's outputs at their standing bids' base price; on a research node,
 // the rate x the node's costCredits. Whole credits, rounded as the exchange tax and the tariff are.
+import { utcDate } from "./timeFormat.js";
 
 /** The statements' lines for royalties (ISP-236, server/finances.js): the user's expense and the holder's income. */
 export const ROYALTY_PAID = "patent-royalty";
@@ -27,6 +28,17 @@ export function chainRunRoyalty(outputs, ratePct, basePrices = {}) {
 /** A research node's royalty at `ratePct`: of its costCredits. */
 export function researchRoyalty(costCredits, ratePct) {
   return royaltyOn(Math.floor(Number(costCredits) || 0), ratePct);
+}
+
+/**
+ * Bug #4857: what a research card says of the royalty on a node another corporation has patented (`patent`, a register
+ * row), before it is queued: the holder, the rate and the credits, charged when the research completes, as the R&D
+ * tick records the use. Null when there is no patent to pay.
+ */
+export function researchRoyaltyLine(patent, costCredits) {
+  if (!patent) return null;
+  const credits = researchRoyalty(costCredits, patent.ratePct).toLocaleString("en-US");
+  return `Patented by ${patent.holder}: ${patent.ratePct}% royalty, ${credits} credits, charged when the research completes (patent in force until ${utcDate(patent.endsAt)})`;
 }
 
 /** The standing bids' base prices, item -> credits, from the market's NPC buy orders. */

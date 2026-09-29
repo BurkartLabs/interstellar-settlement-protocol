@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
-import { getAccountById, getState, mutateAccountState, applyRefineryOperations } from "../../server/gameState.js";
+import { getAccountById, getState, mutateAccountState, applyRefineryOperations, RESEARCH_LIBRARY } from "../../server/gameState.js";
 import { processRndCompletions } from "../../server/ticks.js";
+import { rndItemEndsAt } from "../../public/scripts/rndQueue.js";
 import { filePatent, patentTick, resetPatentsForTests } from "../../server/patents.js";
 import { WARFARE_CATALOG } from "../../server/warfare.js";
 import { ECONOMY } from "../../server/economy.js";
@@ -126,5 +127,47 @@ describe("ISP-236 royalties on a patented node", () => {
     patentTick(Date.now());
     expect(user.corp().unlockedTech).toContain("tt-actinide-handling");
     expect(user.corp().finances.credits).toBe(before - 30_000 * 20 / 100); // 6,000
+  });
+});
+
+// Bug #4857: queuing a patented node said nothing of the royalty; 120 credits were taken at completion, unannounced. The
+// queue's receipt now quotes it, and the quote is the number the completion charges.
+describe("the royalty on a patented node, quoted when it is queued (Bug #4857)", () => {
+  const NODE = "tt-actinide-handling"; // tier 4, 30,000 credits
+  /** A corporation that may queue NODE: every node below its tier done, and the level for it. */
+  const ready = async (credits = 200_000) => {
+    const c = await corp({ credits });
+    mutateAccountState(c.id, (s) => {
+      s.corp.level = 30;
+      s.corp.unlockedTech = Object.values(RESEARCH_LIBRARY).filter((n) => n.tier < RESEARCH_LIBRARY[NODE].tier).map((n) => n.id);
+      s.queues.corporateRnD = [];
+    }, { sanitize: false, settleMining: false });
+    return c;
+  };
+  const queue = (c) => c.api.post(`/api/accounts/${c.id}/gameplay/queue-rnd`).send({ techId: NODE });
+
+  it("the receipt names the holder, the rate and the credits, and completion charges exactly that", async () => {
+    const holder = await corp({ research: { [NODE]: Date.now() - 4 * HOUR } }); // before the earlier test's holder, so first
+    expect(filePatent(holder.id, { kind: "research", subjectId: NODE, ratePct: 20 }, Date.now() - 2 * HOUR).patent).toBeTruthy();
+    const user = await ready();
+    const res = await queue(user);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    const line = res.body.receipt.grants.find((g) => g.label === "Patent royalty");
+    expect(line?.value).toBe(`6,000 credits to ${holder.corp().corporationName} (20% of the research cost), charged when it completes. What your credits do not cover is owed to the holder.`);
+
+    // it completes when the queue says it does, inside the patent's term, through the real R&D tick
+    const afterQueue = user.corp().finances.credits;
+    const endsAt = rndItemEndsAt(getAccountById(user.id).state.queues.corporateRnD[0]);
+    vi.spyOn(Date, "now").mockReturnValue(endsAt + 1_000);
+    try { processRndCompletions(); patentTick(endsAt + 1_000); } finally { vi.restoreAllMocks(); }
+    expect(user.corp().unlockedTech).toContain(NODE);
+    expect(afterQueue - user.corp().finances.credits).toBe(6_000);
+  });
+
+  it("an unpatented node's receipt says nothing of a royalty", async () => {
+    const user = await ready();
+    const res = await queue(user);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.receipt.grants.map((g) => g.label)).not.toContain("Patent royalty");
   });
 });

@@ -9,6 +9,7 @@ import { IS_DEV } from "../app.js";
 import { emitToAccount } from "../realtime.js";
 import { fundingRequirementMessage } from "./helpers.js";
 import { queueInsightReceipt, queueResearchReceipt } from "../receipts.js"; // AB#744
+import { royaltyFor } from "../patents.js"; // Bug #4857
 import { rndItemEndsAt } from "../../public/scripts/rndQueue.js"; // AB#744: the same end the R&D panel shows
 import { formatHoursMinutes, rndQueueRoom } from "../../public/scripts/rndQueue.js"; // AB#2476: the same limit the R&D panel shows
 
@@ -123,12 +124,17 @@ export function registerResearchRoutes(app) {
 
     // AB#744: the item the mutation queued, scheduled behind whatever was ahead of it.
     const queuedItem = [...(account.state.queues?.corporateRnD || [])].reverse().find((q) => q.techId === tech.id);
+    // Bug #4857: the royalty the R&D tick will charge when this completes (server/patents.js recordResearchUse): the
+    // patent in force at completion, on the node's research cost
+    const endsAt = rndItemEndsAt(queuedItem);
+    const { patent, royalty } = royaltyFor(account.state.corp, { kind: "research", subjectId: tech.id, at: endsAt, base: Number(tech.costCredits) || 0 });
     const receipt = queueResearchReceipt({
       name: tech.name,
       cost: queuedItem?.costCredits ?? tech.costCredits,
       startsAt: queuedItem?.startedAt,
-      endsAt: rndItemEndsAt(queuedItem),
-      now: Date.now()
+      endsAt,
+      now: Date.now(),
+      royalty: patent ? { amount: royalty, ratePct: patent.ratePct, holder: patent.holder.name } : null
     });
     res.json({ ...account, receipt });
   });

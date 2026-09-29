@@ -13,6 +13,7 @@ import { bindResearchLinks } from "../researchLinks.js"; // AB#885
 import { insightRemaining, researchRemaining, totalText } from "../researchTotals.js"; // AB#2475
 import { isInsightProgramLive } from "../ceoEffects.js";
 import { renderPrereqGraph } from "./prereqGraph.js"; // AB#2477
+import { patentToPay, researchRoyaltyLine } from "../patentRoyalty.js"; // Bug #4857
 
 export function getTechNode(techId) {
   return techTree.find((item) => item.id === techId) || null;
@@ -72,16 +73,18 @@ export function renderTechTree(data) {
       const prereqLabel = node.prereqs.length ? node.prereqs.map((id) => techTree.find((it) => it.id === id)?.name || id).join(", ") : "None";
       const cost = `${node.durationHours}h · ${toCurrency(node.costCredits)}`;
       const card = { id: node.id, name: node.name, tier: node.tier, effect: node.effect };
+      // Bug #4857: another corporation's patent on the node, and the royalty it takes when the research completes
+      const royalty = researchRoyaltyLine(patentToPay(appState.patents, "research", node.id, data.corp.corporationName, now), node.costCredits);
 
       if (done.has(node.id)) return researchNodeHtml({ ...card, state: "done", protocolLine: protocolLineHtml({ meaning: "complete", screen: "rnd" }) });
-      if (inQueue.has(node.id)) return researchNodeHtml({ ...card, state: "queued", meta: [cost], protocolLine: protocolLineHtml({ meaning: "queued", screen: "rnd" }) });
+      if (inQueue.has(node.id)) return researchNodeHtml({ ...card, state: "queued", meta: [cost, royalty], protocolLine: protocolLineHtml({ meaning: "queued", screen: "rnd" }) });
       const lock = researchLockReason(node, { done, corpLevel: data.corp.level });
       if (lock === PLANNED_RESEARCH) return researchNodeHtml({ ...card, state: "planned", meta: [cost, lock] });
       if (lock) return researchNodeHtml({ ...card, state: "locked", meta: [lock] });
       return researchNodeHtml({
         ...card,
         state: "available",
-        meta: fullReason ? [cost, `Prereqs: ${prereqLabel}`, fullReason] : [cost, `Prereqs: ${prereqLabel}`],
+        meta: [cost, royalty, `Prereqs: ${prereqLabel}`, fullReason],
         action: `<button class="ui-button ui-button--secondary research__enqueue" type="button" data-tech-id="${escapeHtml(node.id)}"${fullReason ? " disabled" : ""}>Enqueue</button>`
       });
     })
