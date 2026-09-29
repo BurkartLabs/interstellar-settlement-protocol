@@ -33,7 +33,7 @@ targets on the return shot (e.g. 15 of 394,000 Silicates) come from the fast-for
 ## Findings
 
 - Bug #4885: declining the first-day briefing is remembered only in localStorage, so it is offered again on every
-  new browser. Severity 3.
+  new browser. Severity 3. Fixed since the run (PR 1400).
 - Bug #4886: the design allowlist still holds 76 entries; the gate requires 0. Severity 3, effort 5.
 - Bug #4887: the Exchange price history printed the real year (2026-09-29). Fixed in its own pull request.
 - Not filed: the header says v0.4; the version is set when 1.0 is cut.
