@@ -18,8 +18,7 @@ export function purgeExpiredTrash(account) {
 export function listAccountMessages(accountId) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) return null;
-  purgeExpiredTrash(account);
-  scheduleAccountsSave();
+  purgeExpiredTrash(account); // time-derived: in memory here, kept by the next write, and purged again if it is not (AB#963)
   // Bug #711: fromId and toAccountId are account ids. They stay in storage but never leave the server: a player's
   // mail names other corporations by publicId.
   return (account.messages || []).map(({ fromId, toAccountId, ...m }) => ({ ...m }));
