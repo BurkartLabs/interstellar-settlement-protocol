@@ -108,7 +108,7 @@ describe("ISP-159 the payout ratio", () => {
     payDividends(c.id, c.listedAt + 7 * DAY); // period 1, at 25%
     const mid = c.listedAt + 7 * DAY + 3_600_000; // during period 2
     expect(setPayoutRatio(c.id, 50, mid)).toMatchObject({ ok: true });
-    expect(setPayoutRatio(c.id, 60, mid + DAY).error).toMatch(/once in 7 days/);
+    expect(setPayoutRatio(c.id, 60, mid + DAY).error).toMatch(/once in 7 days\. It may change again \d{4}-\d\d-\d\d \d\d:\d\d UTC\.$/); // Bug #4827
     expect(c.corp().shareRegistry).toMatchObject({ payoutRatioPct: 25, payoutRatioNextPct: 50 });
     const [p2, p3] = payDividends(c.id, Date.now());
     expect(p2).toMatchObject({ ratioPct: 25, pool: 6_125, toHolders: 704 }); // the period in progress kept its ratio

@@ -66,7 +66,7 @@ export function registerMarketRoutes(app) {
       const before = Number(account.state?.corp?.finances?.credits || 0);
       const placed = placeBuyOrder(req.auth.accountId, { item: String(item), quantity: normalizedQty, unitPrice: normalizedUnitPrice });
       if (placed.error) {
-        res.status(400).json({ error: placed.error });
+        res.status(400).json({ error: placed.error, ...(placed.code ? { code: placed.code } : {}) }); // Bug #4827: the code too
         return;
       }
       const buyerNow = mutateAccountState(req.auth.accountId, () => {}); // the account after every fill
@@ -90,7 +90,7 @@ export function registerMarketRoutes(app) {
       const inventory = getStationInventory(state.corp, stationId);
       const available = Number(inventory[item] || 0);
       if (available < normalizedQty) {
-        rejectReason = "Quantity exceeds available inventory at this station.";
+        rejectReason = available > 0 ? `You hold ${available.toLocaleString("en-US")} ${item} at this station. List ${available.toLocaleString("en-US")} or fewer.` : `You hold no ${item} at this station. Bring some here to list it.`; // Bug #4827
         return;
       }
       // Bug #425: a limit per seller, checked before any goods move, instead of cutting the shared book (which deleted
@@ -222,7 +222,7 @@ export function registerMarketRoutes(app) {
     }
 
     if (requestedQty > Number(order.quantity || 0)) {
-      res.status(400).json({ error: "Requested quantity exceeds available sell order volume." });
+      res.status(400).json({ error: `Only ${Number(order.quantity || 0).toLocaleString("en-US")} remain on that listing. Buy ${Number(order.quantity || 0).toLocaleString("en-US")} or fewer.` }); // Bug #4827
       return;
     }
 
@@ -241,11 +241,13 @@ export function registerMarketRoutes(app) {
     const tradeTotal = tradeQuantity * Number(order.unitPrice || 0);
     const leftAfterSale = Math.max(0, Number(order.quantity || 0) - tradeQuantity); // read now: `order` is the stored listing
     let rejectReason = "";
+    let rejectCode = null; // Bug #4827: the page reads Unfunded from it
 
     const buyer = mutateAccountState(req.auth.accountId, (state) => {
       const corp = state.corp;
       if (Number(corp.finances.credits || 0) < tradeTotal) {
-        rejectReason = "Insufficient credits to execute this buy order.";
+        rejectReason = `Insufficient credits to execute this buy order. Sell goods or finish an assignment to raise the credits, or buy fewer.`; // Bug #4827
+        rejectCode = "insufficient-credits";
         return;
       }
 
@@ -269,7 +271,7 @@ export function registerMarketRoutes(app) {
     });
 
     if (!buyer || rejectReason) {
-      res.status(400).json({ error: rejectReason || "Unable to execute buy order." });
+      res.status(400).json({ error: rejectReason || "Unable to execute buy order.", ...(rejectCode ? { code: rejectCode } : {}) });
       return;
     }
 
@@ -341,7 +343,7 @@ export function registerMarketRoutes(app) {
     }
 
     if (requestedQty > npcOrder.remainingQty) {
-      res.status(400).json({ error: `Only ${Number(npcOrder.remainingQty).toLocaleString()} units remaining in today's order.` });
+      res.status(400).json({ error: `Only ${Number(npcOrder.remainingQty).toLocaleString("en-US")} units remaining in today's order. Sell ${Number(npcOrder.remainingQty).toLocaleString("en-US")} or fewer.` }); // Bug #4827
       return;
     }
 
@@ -365,7 +367,7 @@ export function registerMarketRoutes(app) {
       const inventory = getStationInventory(state.corp, npcStationId);
       const available = Number(inventory[npcOrder.item] || 0);
       if (available < requestedQty) {
-        rejectReason = `Insufficient ${npcOrder.item} at this station (have ${available.toLocaleString()}, need ${requestedQty.toLocaleString()}).`;
+        rejectReason = `Insufficient ${npcOrder.item} at this station (have ${available.toLocaleString("en-US")}, need ${requestedQty.toLocaleString("en-US")}). ${available > 0 ? `Sell ${available.toLocaleString("en-US")} or fewer.` : "Bring some here to sell it."}`; // Bug #4827
         return;
       }
 
