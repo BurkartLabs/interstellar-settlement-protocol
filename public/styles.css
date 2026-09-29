@@ -5404,7 +5404,9 @@ img.station__body {
 .raid-terms dd { margin: 0; font-variant-numeric: tabular-nums; }
 .raid-posture { margin: 0 0 var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-2); }
 .raid-posture legend { padding: 0 var(--space-1); color: var(--muted); font-size: var(--font-size-2); }
-.raid-posture__option { display: grid; grid-template-columns: auto 1fr; column-gap: var(--space-2); align-items: baseline; }
+/* The whole label is the radio's target (WCAG 2.5.8), so it keeps the phone's 44px itself; it met it only by the
+   generic label gap, and fell to 43 when that went onto the scale (Bug #4886). */
+.raid-posture__option { display: grid; grid-template-columns: auto 1fr; column-gap: var(--space-2); align-items: baseline; min-height: 44px; }
 .raid-posture__option input[type="radio"] { width: auto; margin: 0; grid-row: span 2; }
 .raid-posture__option .station__note { grid-column: 2; }
 .raid-posture .ui-button { align-self: flex-start; }
