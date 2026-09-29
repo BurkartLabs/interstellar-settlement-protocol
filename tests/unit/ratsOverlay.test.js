@@ -24,7 +24,7 @@ describe("pirate activity on the map", () => {
 
   it("colours a system by its band under the Pirates overlay, and the legend names every band", () => {
     const wolf = activity.systems.find((s) => s.id === "wolf-359");
-    expect(clusterStarColor({ id: "wolf-359", pirateDensity: 31 }, { overlay: "pirates", locked: true, rats: wolf })).toBe(ratsColor(wolf.chance));
+    expect(clusterStarColor({ id: "wolf-359", pirateDensity: 31 }, { overlay: "rats", locked: true, rats: wolf })).toBe(ratsColor(wolf.chance));
     expect(ratsBand(0.1)).toBe(0);
     expect(ratsBand(0.5)).toBe(RATS_BANDS.length);
     expect(ratsColor(0.1)).not.toBe(ratsColor(0.5));
@@ -46,6 +46,7 @@ describe("pirate activity on the map", () => {
     expect(belt).not.toContain("hunt-open-btn");
     const open = beltRatsHtml({ beltKey: "wolf-359:wf-shards", reading: activity.systems.find((s) => s.id === "wolf-359"), catalog: CATALOG });
     expect(open).toContain("hunt-open-btn");
+    expect(beltRatsHtml({ beltKey: "wolf-359:wf-shards", reading: activity.systems.find((s) => s.id === "wolf-359"), catalog: CATALOG, open: true })).not.toContain("hunt-open-btn"); // its screen is open
   });
 });
 

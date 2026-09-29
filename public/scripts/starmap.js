@@ -1529,7 +1529,7 @@ export function createStarmapController({
     const hunting = (military.fleets || []).filter((f) => f.hunt?.beltKey === beltKey).map((f) => ({ fleetId: f.id, fleetName: f.name, endsAt: f.hunt.endsAt }));
     const latest = (military.hunts || []).find((r) => r.beltKey === beltKey);
     const catalog = getUnitCatalog();
-    const section = beltRatsHtml({ beltKey, reading, quiet, hunting, catalog });
+    const section = beltRatsHtml({ beltKey, reading, quiet, hunting, catalog, open: Boolean(state.huntPreview?.beltKey === beltKey) }); // the button goes while its screen is open
     const panel = state.huntPreview?.beltKey === beltKey && !quiet
       ? huntPanelHtml(preview, { catalog, chosen: state.huntChosen, systemName: system.name }) : "";
     return section.replace('<div id="hunt-panel" data-hunt-panel></div>', `<div id="hunt-panel" data-hunt-panel>${panel}</div>`)

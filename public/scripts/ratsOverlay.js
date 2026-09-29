@@ -10,8 +10,9 @@ import { utcTime } from "./timeFormat.js";
 import { unitsText } from "./fleetView.js";
 import { battleTablesHtml } from "./raidView.js";
 
-/** The overlay's id: the picker's existing Pirates entry, which now shows activity rather than the raw density. */
-export const RATS_OVERLAY = "pirates";
+/** The overlay's id and its picker label. Pirate Density (fieldOverlay.js) stays the raw field; this is the server's reading. */
+export const RATS_OVERLAY = "rats";
+export const RATS_OVERLAY_LABEL = "Pirate activity (Rats)";
 /** The legend's bands: an hour's chance of meeting Rats, from the quietest system (Sirius, 13%) to the busiest (51%). */
 export const RATS_BANDS = [0.15, 0.25, 0.35, 0.45];
 
@@ -60,7 +61,7 @@ export function systemRatsHtml(reading, { catalog = [] } = {}) {
 }
 
 /** The belt panel's Rats section: its chance now, a quiet period, a hunt under way, and the button to plan one. */
-export function beltRatsHtml({ beltKey, reading, quiet = null, hunting = [], catalog = [] }) {
+export function beltRatsHtml({ beltKey, reading, quiet = null, hunting = [], catalog = [], open = false }) {
   const chance = quiet ? reading?.quietBelts?.find((q) => q.beltKey === beltKey)?.chance : reading?.chance;
   const under = hunting.map((h) => `<li data-hunt-underway="${escapeHtml(h.fleetId)}">${escapeHtml(h.fleetName || h.fleetId)} is hunting here: back ${escapeHtml(utc(h.endsAt))}.</li>`).join("");
   return `<section class="ui-stack" data-belt-rats="${escapeHtml(beltKey)}">
@@ -68,7 +69,7 @@ export function beltRatsHtml({ beltKey, reading, quiet = null, hunting = [], cat
     ${reading ? `<p class="ui-panel__meta">An hour-long probe with no escort meets them <strong>${pct(chance)}</strong> of the time${reading.group ? `; each group is ${escapeHtml(unitsText(reading.group, catalog))}` : ""}.</p>` : `<p class="ui-panel__meta">Reading the Rats' activity from the ISA...</p>`}
     ${quiet ? `<p class="ui-panel__meta" data-belt-quiet>Quiet: a hunt cleared this belt. Its Rats regrow at ${escapeHtml(utc(quiet.until))}.</p>` : ""}
     ${under ? `<ul class="ui-panel__meta">${under}</ul>` : ""}
-    ${quiet ? "" : `<div><button id="hunt-open-btn" class="ui-button ui-button--secondary" type="button">Hunt the Rats</button></div>`}
+    ${quiet || open ? "" : `<div><button id="hunt-open-btn" class="ui-button ui-button--secondary" type="button">Hunt the Rats</button></div>`}
     <div id="hunt-panel" data-hunt-panel></div>
   </section>`;
 }
