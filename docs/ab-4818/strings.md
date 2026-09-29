@@ -90,6 +90,11 @@ Refinery screen (slice A). The Station sends no inbox system message for these a
 
 ## Reworded: the next step added (ISP-6's rule)
 
+Bug #4820, merged while this slice was open, gives every `fundingRequirementMessage` refusal a default next step:
+"Sell goods or finish an assignment to raise the credits, then try again." The Station's funding refusals pass a more
+exact step of their own instead: "then build it", "then file again", "Hire fewer…" and "Rent for fewer days…". The
+Old column is the text before either change.
+
 | File | Old | New |
 |---|---|---|
 | server/routes/corporation.js | "You must maintain a registered office at this station before recruiting personnel." | "… Rent one at the Orbital Executive Suites first." |
