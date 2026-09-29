@@ -2570,6 +2570,7 @@ body.sg {
   letter-spacing: var(--letter-spacing-caps);
   text-transform: uppercase;
   color: inherit;
+  display: inline-block; /* AB#4811: moves to the next line whole rather than breaking mid-phrase; still wraps if wider */
 }
 .protocol-line__code {
   white-space: nowrap;
@@ -4717,6 +4718,10 @@ img.station__body {
 .starmap__resource-legend p {
   margin: 0;
 }
+/* ISP-285 (AB#992): the last hunt's report in a belt's panel, below its Rats section */
+.starmap__hunt-report { margin-top: var(--space-3); }
+.starmap__hunt-report > summary { cursor: pointer; color: var(--muted); font-size: var(--font-size-2); }
+
 .starmap__bands {
   display: flex;
   flex-wrap: wrap;

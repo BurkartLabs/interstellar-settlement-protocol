@@ -14,6 +14,7 @@ import { STARMAP_OVERLAYS, overlayColor, fieldOverlayLegendHtml } from "./fieldO
 export { STARMAP_OVERLAYS, overlayColor, fieldOverlayLegendHtml };
 import { DOMINANCE_OVERLAYS, QUIET_TOKEN, dominanceDetailsHtml, dominanceKey, dominanceLegendHtml, isDominanceOverlay, tokenRgba } from "./dominanceOverlay.js"; // ISP-218 (AB#913)
 import { CONCESSION_OVERLAY, concessionDetailsHtml, concessionKey, concessionLegendHtml } from "./concessionOverlay.js"; // ISP-229 (AB#924)
+import { RATS_OVERLAY, activityOf, beltRatsHtml, huntPanelHtml, huntReportHtml, ratsColor, ratsLegendHtml, systemRatsHtml } from "./ratsOverlay.js"; // ISP-285 (AB#992)
 import { chartFont } from "./charts.js"; // ISP-82 (AB#771): the map's labels are 14px on a phone, as the charts' are
 import { utcClock } from "./timeFormat.js"; // ISP-249 (AB#945)
 import { toCurrency } from "./helpers.js"; // Bug #2498: every screen's credits through the one formatter
@@ -58,7 +59,9 @@ const PLANET_STYLE = {
  * the star's colour. The locked grey used to win first, so a new corporation (21 of 22 systems locked) saw only Sol
  * change and read the overlay as doing nothing. With no overlay a locked star is grey, as before.
  */
-export function clusterStarColor(system, { overlay, locked }) {
+export function clusterStarColor(system, { overlay, locked, rats = null }) {
+  // ISP-285 (AB#992): under Pirates, once the server's activity has arrived, the colour is its chance of meeting Rats
+  if (overlay === RATS_OVERLAY && rats) return ratsColor(rats.chance);
   if (Object.hasOwn(STARMAP_OVERLAYS, overlay)) return overlayColor(system, overlay);
   return locked ? LOCKED_STAR_COLOR : overlayColor(system, overlay);
 }
@@ -584,6 +587,10 @@ export function createStarmapController({
   onScoutBelt,
   onLaunchExpedition,
   onExpeditionOutlook, // AB#821: (beltKey, duration) => the page fetches GET /expedition-outlook and calls setExpeditionOutlook
+  onHuntOpen, // ISP-285 (AB#992): (beltKey) => the page reads the belt's hunt screen and gives it back with setHuntPreview
+  onHuntSend, // ISP-285 (AB#992): (beltKey, fleetId) => the page sends the hunt
+  getMilitary = () => null, // ISP-285 (AB#992): the corporation's fleets and its hunts' reports
+  getUnitCatalog = () => [], // ISP-285 (AB#992): the units' names, for the battle report
   getAsteroidMiningState,
   // Bug #4775: what a launch costs, data/economy.json's expeditions.launchCost through clientPrices (the button quoted a
   // copy of it, "3,000", which the first balance change would have left quoting one price while the server charged another)
@@ -617,7 +624,10 @@ export function createStarmapController({
     beltNotice: null,      // Bug #2339: { beltKey, message }, the last refusal on a belt, shown in its panel
     launchChoice: { duration: "standard", escort: "" }, // AB#821: kept across the panel's redraws
     outlook: null,         // AB#821: GET /expedition-outlook's answer for one belt and length
-    outlookAsked: null     // AB#821: the "beltKey|duration" last asked for, so a redraw does not ask again
+    outlookAsked: null,    // AB#821: the "beltKey|duration" last asked for, so a redraw does not ask again
+    ratsActivity: null,    // ISP-285 (AB#992): GET .../rats/activity, every system's pirate activity
+    huntPreview: null,     // ISP-285 (AB#992): { beltKey, preview }, the hunt screen the page read for a belt
+    huntChosen: null       // ISP-285 (AB#992): the fleet chosen on that screen
   };
 
   // AB#821: the escort picker and the Rats figures, redrawn in place (the duration select keeps its focus)
@@ -905,7 +915,7 @@ export function createStarmapController({
       const color = state.resource !== "none"
         ? concentrationBand(systemConcentration(system, state.resource, beltSlots()).best).color
         : domKey ? tokenColor(domKey.bySystem[system.id]?.token || QUIET_TOKEN)
-        : clusterStarColor(system, { overlay: state.overlay, locked }); // Bug AB#4745
+        : clusterStarColor(system, { overlay: state.overlay, locked, rats: activityOf(state.ratsActivity, system.id) }); // Bug AB#4745; AB#992
 
       // Outer glow halo
       const haloRadius = baseRadius + 20;
@@ -971,6 +981,17 @@ export function createStarmapController({
         ctx.setLineDash([4, 4]);
         ctx.stroke();
         ctx.setLineDash([]);
+        ctx.restore();
+      }
+
+      // ISP-285 (AB#992): under Pirates, a green ring round a system with a belt a hunt cleared, as the legend says.
+      if (state.overlay === RATS_OVERLAY && activityOf(state.ratsActivity, system.id)?.quietBelts?.length) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, baseRadius + 24, 0, Math.PI * 2);
+        ctx.strokeStyle = tokenColor("--success").replace(/[\d.]+\)$/, "0.95)");
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
         ctx.restore();
       }
 
@@ -1498,8 +1519,42 @@ export function createStarmapController({
     return concessionDetailsHtml(state.concessions.systems?.[system.id], read.control || null, read.status || null, own);
   }
 
+  // ─── ISP-285 (AB#992): Rats in a belt, and the hunt screen ───────────────────────────────────────────────────────
+  function ratsSectionHtml(system, beltKey) {
+    const reading = activityOf(state.ratsActivity, system.id);
+    const military = getMilitary() || {};
+    const quietBelt = reading?.quietBelts?.find((q) => q.beltKey === beltKey) || null;
+    const preview = state.huntPreview?.beltKey === beltKey ? state.huntPreview.preview : null;
+    const quiet = quietBelt || (preview?.belt?.quiet ?? null);
+    const hunting = (military.fleets || []).filter((f) => f.hunt?.beltKey === beltKey).map((f) => ({ fleetId: f.id, fleetName: f.name, endsAt: f.hunt.endsAt }));
+    const latest = (military.hunts || []).find((r) => r.beltKey === beltKey);
+    const catalog = getUnitCatalog();
+    const section = beltRatsHtml({ beltKey, reading, quiet, hunting, catalog, open: Boolean(state.huntPreview?.beltKey === beltKey) }); // the button goes while its screen is open
+    const panel = state.huntPreview?.beltKey === beltKey && !quiet
+      ? huntPanelHtml(preview, { catalog, chosen: state.huntChosen, systemName: system.name }) : "";
+    return section.replace('<div id="hunt-panel" data-hunt-panel></div>', `<div id="hunt-panel" data-hunt-panel>${panel}</div>`)
+      + (latest ? `<details class="starmap__hunt-report" open><summary>The last hunt here</summary>${huntReportHtml(latest, { catalog, systemName: system.name })}</details>` : "");
+  }
+  function bindHuntControls(system, beltKey) {
+    const open = detailsEl.querySelector("#hunt-open-btn");
+    if (open) open.addEventListener("click", () => { state.huntPreview = { beltKey, preview: null }; state.huntChosen = null; renderDetails(); onHuntOpen?.(beltKey); });
+    const form = detailsEl.querySelector("[data-hunt-form]");
+    if (!form) return;
+    form.querySelectorAll('input[name="hunt-fleet"]').forEach((input) => input.addEventListener("change", () => { state.huntChosen = input.value; renderDetails(); }));
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const chosen = form.querySelector('input[name="hunt-fleet"]:checked')?.value;
+      if (chosen) onHuntSend?.(beltKey, chosen);
+    });
+  }
+
   function renderDominanceLegend() {
     if (!dominanceLegend) return;
+    if (state.overlay === RATS_OVERLAY) { // ISP-285 (AB#992): the Pirates overlay reads the server's activity
+      dominanceLegend.hidden = false;
+      dominanceLegend.innerHTML = ratsLegendHtml(state.ratsActivity);
+      return;
+    }
     // Bug AB#4745: GDP, Activity and Pirates had no legend; theirs goes in the same slot
     const fieldLegend = fieldOverlayLegendHtml(state.overlay);
     if (fieldLegend) {
@@ -1562,6 +1617,7 @@ export function createStarmapController({
       }
       detailsEl.innerHTML = detailsHtml(system.name, `
         <p class="ui-panel__meta">GDP ${system.gdpIndex} | Activity ${system.activityLevel} | Pirates ${system.pirateDensity}</p>
+        ${systemRatsHtml(activityOf(state.ratsActivity, system.id), { catalog: getUnitCatalog() })}
         <p>${escapeHtmlAttr(system.ownerRule || "Ownership available via territorial dominance and treaties.")}</p>
         <ul class="ui-list">${bodyLines}</ul>
         ${systemConcentrationHtml(system)}
@@ -1726,8 +1782,10 @@ export function createStarmapController({
           ${compositionHtml}
           ${noticeHtml}
           ${miningHtml}
+          ${ratsSectionHtml(system, beltKey)}
           ${stationListHtml}
         `);
+        bindHuntControls(system, beltKey); // ISP-285 (AB#992)
 
         // Bind scout belt button
         const scoutBeltBtn = detailsEl.querySelector("#scout-belt-btn");
@@ -2232,6 +2290,19 @@ export function createStarmapController({
       state.overlay = value;
       render();
       renderDominanceLegend();
+    },
+    /** ISP-285 (AB#992): every system's pirate activity as the server has it (GET .../rats/activity). */
+    setRatsActivity(reading) {
+      state.ratsActivity = reading && reading.systems ? reading : null;
+      render();
+      renderDominanceLegend();
+      renderDetails();
+    },
+    /** ISP-285 (AB#992): a belt's hunt screen as the server answered (null closes it). */
+    setHuntPreview(beltKey, preview) {
+      state.huntPreview = preview ? { beltKey, preview } : null;
+      if (!preview) state.huntChosen = null;
+      if (state.view === "body") renderDetails();
     },
     /** ISP-229 (AB#924): every system's concession, and the viewer's own names (the overlay marks its holder). */
     setConcessions(reading, { corporation = "", conglomerate = "" } = {}) {

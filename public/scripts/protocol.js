@@ -33,11 +33,15 @@ export function protocolOf(value) {
 }
 
 /**
- * A refusal's meaning: "unfunded" when the server refused only for want of credits, else "refused". Every such refusal
- * is written by one function (fundingRequirementMessage, server/routes/helpers.js): "<action> requires N credits.
+ * A refusal's meaning: "unfunded" when the server refused only for want of credits, else "refused". Takes the error
+ * (its `code`, which the API client keeps since AB#4811: "insufficient-credits") or its message. Most such refusals are
+ * written by one function (fundingRequirementMessage, server/routes/helpers.js): "<action> requires N credits.
  * Current reserves: M credits."
  */
-export function refusalMeaning(message) {
+export function refusalMeaning(refusal) {
+  const isError = Boolean(refusal) && typeof refusal === "object";
+  if (isError && refusal.code === "insufficient-credits") return "unfunded";
+  const message = isError ? refusal.message : refusal;
   return /requires [\d,]+ credits?\..*Current reserves:/s.test(String(message || "")) ? "unfunded" : "refused";
 }
 

@@ -400,6 +400,22 @@ export function launchExpeditionReceipt({ beltLabel, durationLabel, cost, comple
   });
 }
 
+/** ISP-285 (AB#992): a fleet sent to hunt a belt's Rats (server/hunts.js declareHunt). */
+export function huntReceipt({ fleetName, beltLabel, provisions, endsAt, expected = null }) {
+  const OUT = { attacker: "a win", draw: "a draw", defender: "a loss" };
+  return receipt("hunt", {
+    title: "Hunt Declared",
+    summary: `${fleetName} is on its way to hunt the Rats in ${beltLabel}.`,
+    costCredits: provisions,
+    grants: [
+      { label: "Back", value: formatUtc(endsAt) },
+      ...(expected ? [{ label: "The resolver expects", value: `${OUT[expected.winner] || expected.winner}${expected.won ? `, a bounty of ${formatCredits(expected.bounty)}` : ", no bounty"}` }] : []),
+      { label: "Provisions", value: `${formatCredits(provisions)}, charged above` }
+    ],
+    next: "The fight is resolved when the fleet arrives. Its report is in the belt's panel on the Starmap, and a win makes the belt quiet for a day."
+  });
+}
+
 export function queueResearchReceipt({ name, cost, startsAt, endsAt, now }) {
   return receipt("queue-rnd", {
     title: "Research Queued",

@@ -138,6 +138,8 @@ export const GAMEPLAY_INPUT = {
   "GET /fleets/:fleetId/destinations": { params: { fleetId: ref("one of your fleets") } }, // ISP-175 (AB#869)
   // ISP-284 (AB#991): a fleet sent to hunt a belt's Rats; server/hunts.js checks the fleet is the caller's and free
   "GET /hunts": NOTHING, // ISP-284 (AB#991): the corporation's hunts and their reports
+  "GET /rats/activity": NOTHING, // ISP-285 (AB#992): every system's pirate activity
+  "GET /belts/:beltKey/hunt": { params: { beltKey: id("belts", "an asteroid belt") } }, // ISP-285 (AB#992): a belt's hunt screen
   "POST /fleets/:fleetId/hunt": { params: { fleetId: ref("one of your fleets") }, body: { beltKey: id("belts", "an asteroid belt") } },
   // ISP-176 (AB#870): mercenary contracts. Terms are numbers and enums only; ids not the caller's are the route's 404.
   "GET /mercenaries": NOTHING,
