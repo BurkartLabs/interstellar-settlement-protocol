@@ -51,7 +51,8 @@ export function registerMissionRoutes(app) {
     });
 
     if (!account) return res.status(404).json({ error: "Account not found." });
-    if (outcome === "not-found") return res.status(400).json({ error: "Mission not found in current offerings." });
+    // Bug #4873: what to do next, as the not-offered refusal below already says
+    if (outcome === "not-found") return res.status(400).json({ error: "That contract is no longer on offer. Accept one of the contracts listed in the agent's office on Assignments." });
     const nextOffers = `New contracts are offered in about ${refusalHours} hour${refusalHours === 1 ? "" : "s"}.`;
     if (outcome === "not-offered") {
       return res.status(400).json({ error: `That contract is not on offer to you. Accept one of the contracts listed in the agent's office on Assignments. ${nextOffers}` });
@@ -59,7 +60,7 @@ export function registerMissionRoutes(app) {
     if (outcome === "cooling-down") {
       return res.status(400).json({ error: `You completed that contract recently; it can be offered to you again 4 hours after completion. Accept one of the contracts listed in the agent's office on Assignments. ${nextOffers}` });
     }
-    if (outcome === "already-active") return res.status(400).json({ error: "Mission already accepted." });
+    if (outcome === "already-active") return res.status(400).json({ error: "You have already accepted that contract: it is in Active Contracts on Assignments." }); // Bug #4873
     const receipt = acceptMissionReceipt({
       title: accepted.title,
       quota: accepted.kind === "time-served" ? null : accepted.quota || null,

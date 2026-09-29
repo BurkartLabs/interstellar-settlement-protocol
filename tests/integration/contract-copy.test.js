@@ -41,6 +41,8 @@ describe("contract copy promises nothing the game does not do (Bug #1104)", () =
     const api = authed(app, accessToken);
     const play = (path, body) => api.post(`/api/accounts/${account.id}/gameplay/${path}`).send(body);
     expect((await play("accept-mission", { missionId: FIRST_CONTRACT_ID })).status).toBe(200);
+    // Bug #4873: a second acceptance says where the contract already is
+    expect((await play("accept-mission", { missionId: FIRST_CONTRACT_ID })).body.error).toBe("You have already accepted that contract: it is in Active Contracts on Assignments.");
     const accepted = getAccountById(account.id).state.corp.activeMissions.find((m) => m.id === FIRST_CONTRACT_ID);
     for (const key of ["deadline", "expiresAt", "dueAt", "acceptedUntil"]) expect(accepted).not.toHaveProperty(key);
     // Time passing is not something the route can see: completion is checked against the quota alone.
