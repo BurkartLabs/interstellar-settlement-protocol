@@ -2594,6 +2594,12 @@ body.sg {
 }
 .protocol-line__code {
   white-space: nowrap;
+  /* Bug #4841: an inline block, so the line may break between the phrase and "// CODE" (each kept whole) when the two
+     do not fit side by side; without a break there, "SUSPENDED // CORP-LOG-1" was one unbreakable run that pushed a
+     phone's stacked table row, and the Logistics page with it, 169px past the screen. An inline block drops its own
+     leading space, so the gap before "//" is its margin (one character of the mono face) */
+  display: inline-block;
+  margin-inline-start: 1ch;
 }
 @media (max-width: 600px) {
   .protocol-line {
@@ -5547,6 +5553,9 @@ img.station__body {
 
 /* ─── ISP-251 (AB#947): the Industry and Market screens' own classes, each styled from the tokens ─── */
 .bank-panel, .bond-board, .igsx-offering, .igsx-holding, .logistics__in-flight, .logistics__history, .refinery__chain { min-width: 0; }
+/* Bug #4841: a held shipment's arrival (badge, words, protocol line) is one value that wraps inside itself, so its
+   stacked row on a phone has two items, the label and the value, and never pushes past the screen */
+.logistics__held { min-width: 0; }
 .igsx-cap-table { width: 100%; font-variant-numeric: tabular-nums; }
 .rating-card--own { border-color: var(--accent); }
 .rating-card--counterparty { background: var(--surface-2); }
