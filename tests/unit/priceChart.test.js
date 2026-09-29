@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { shapePriceHistory, priceChartSummary, chartDayKey } from "../../public/scripts/priceChart.js";
+import { utcDate } from "../../public/scripts/timeFormat.js";
 
 // AB#716: what the Exchange's price chart draws, from the server's daily buckets.
 const DAY = 24 * 60 * 60 * 1000;
@@ -51,11 +52,16 @@ describe("priceChartSummary (AB#716)", () => {
   it("gives the last trade, the range's high and low, and its volume", () => {
     const s = shapePriceHistory([b(1, 24, { high: 30, low: 20, volume: 1200, trades: 3 })], 7, NOW);
     expect(priceChartSummary("Silicates", s, 7, money))
-      .toBe(`Last trade $24 on ${chartDayKey(NOW - DAY)}. 7-day high $30, low $20; 1,200 units in 3 trades.`);
+      .toBe(`Last trade $24 on ${utcDate(chartDayKey(NOW - DAY))}. 7-day high $30, low $20; 1,200 units in 3 trades.`);
   });
 
   it("says when the last trade is older than the range", () => {
     const s = shapePriceHistory([b(20, 17)], 7, NOW);
-    expect(priceChartSummary("Carbon", s, 7, money)).toBe(`Last trade $17 on ${chartDayKey(NOW - 20 * DAY)}. No trades in the last 7 days.`);
+    expect(priceChartSummary("Carbon", s, 7, money)).toBe(`Last trade $17 on ${utcDate(chartDayKey(NOW - 20 * DAY))}. No trades in the last 7 days.`);
+  });
+
+  it("dates the last trade in the fiction's year, like every other date in the game (Bug #4887)", () => {
+    const s = { hasAny: true, hasInRange: false, lastClose: 30, lastDay: "2026-09-29" };
+    expect(priceChartSummary("Silicates", s, 7, money)).toBe("Last trade $30 on 2147-09-29. No trades in the last 7 days.");
   });
 });
