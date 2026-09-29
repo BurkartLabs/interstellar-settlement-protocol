@@ -913,8 +913,7 @@ export function renderLeaseManagement(building, lease, data) {
       <div class="ui-card extractor is-${statusClass}" data-live-ex="${escapeHtml(ex.id)}" data-live-state="${extractorState(ex)}">
         <div class="extractor__header">
           <strong>${escapeHtml(ex.name)}</strong>
-          <span class="ui-badge station__status--${statusClass}" data-role="yard-status">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : (upgrading ? "Upgrading" : "Idle"))}</span>
-          ${ex.downtimeActive || ex.active ? protocolLineHtml({ meaning: ex.downtimeActive ? "suspended" : "active", screen: "building-lease" }) : ""}
+          <span class="extractor__status"><span class="ui-badge station__status--${statusClass}" data-role="yard-status">${ex.downtimeActive ? "Downtime" : (ex.active ? "Active" : (upgrading ? "Upgrading" : "Idle"))}</span>${ex.downtimeActive || ex.active ? ` ${protocolLineHtml({ meaning: ex.downtimeActive ? "suspended" : "active", screen: "building-lease" })}` : ""}</span>
         </div>
         ${ex.downtimeActive ? cycleInfo : (ex.active ? "" : cycleInfo)}
         ${progressBarHtml}

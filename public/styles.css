@@ -3918,6 +3918,14 @@ img.station__body {
 .extractor.is-downtime {
   border-color: var(--danger);
 }
+/* ISP-254 Bd (AB#4819): a yard's badge and its protocol line stay together, at the header's end */
+.extractor__status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .extractor__header,
 .extractor__progress-header {
   display: flex;

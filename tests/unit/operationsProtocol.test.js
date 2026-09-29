@@ -49,7 +49,9 @@ describe("every Operations message passes its protocol (a source check, AB#4819)
   });
 
   it("a yard's Active badge is In force and Downtime is Suspended; Idle and Upgrading have none", () => {
-    expect(station).toMatch(/ex\.downtimeActive \|\| ex\.active \? protocolLineHtml\(\{ meaning: ex\.downtimeActive \? "suspended" : "active", screen: "building-lease" \}\) : ""/);
+    // the badge and its line share .extractor__status, so the line sits beside the badge it names
+    expect(station).toContain('<span class="extractor__status"><span class="ui-badge station__status--${statusClass}" data-role="yard-status">');
+    expect(station).toContain('${ex.downtimeActive || ex.active ? ` ${protocolLineHtml({ meaning: ex.downtimeActive ? "suspended" : "active", screen: "building-lease" })}` : ""}</span>');
   });
 
   it("the Mining cycles page's Active status is In force", () => {
