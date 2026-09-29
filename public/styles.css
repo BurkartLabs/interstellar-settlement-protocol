@@ -2565,6 +2565,7 @@ body.sg {
   letter-spacing: var(--letter-spacing-caps);
   text-transform: uppercase;
   color: inherit;
+  display: inline-block; /* AB#4811: moves to the next line whole rather than breaking mid-phrase; still wraps if wider */
 }
 .protocol-line__code {
   white-space: nowrap;
