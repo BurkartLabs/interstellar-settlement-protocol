@@ -178,7 +178,8 @@ export const GAMEPLAY_INPUT = {
 /** Routes under /api/accounts/:accountId outside /gameplay (AB#732): the caller's account, notifications and mail. */
 export const ACCOUNT_INPUT = {
   "GET /": NOTHING,
-  "POST /walkthrough-complete": NOTHING,
+  // Bug #4885: "declined" records the first-day offer turned down, on the account rather than one browser
+  "POST /walkthrough-complete": { body: { answer: word(["declined"], "declined, when the first-day offer was turned down", { optional: true }) } },
   "POST /walkthrough-reset": NOTHING,
   "GET /notifications": NOTHING,
   // AB#713: numbers are clamped to 1..90 by the route and anything else refused there, so this only bounds the length.

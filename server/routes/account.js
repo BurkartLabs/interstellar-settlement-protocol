@@ -83,6 +83,12 @@ export function registerAccountRoutes(app) {
       res.status(404).json({ error: "Account not found." });
       return;
     }
+    // Bug #4885: a declined offer is answered, and recorded here so no other browser offers it again; it is not a
+    // completed briefing, so it is not announced as one
+    if (req.body?.answer === "declined") {
+      res.json(account);
+      return;
+    }
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "onboarding",

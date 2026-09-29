@@ -29,6 +29,18 @@ import { clientPrices } from "./clientPrices.js";
 
 let prices = clientPrices(undefined);
 /** AB#2463: a step's words as paragraphs: split on a blank line, each trimmed, none empty. */
+/**
+ * Bug #4885: whether to offer "Your first day". Not when the account has finished or declined the briefing (both are
+ * recorded on the server, so every browser knows), not when this browser has shown it already, and not to a corporation
+ * that has started (an office rented, the first thing Level 1 asks): a player past its first steps was offered its
+ * first day again from a second browser, however far it had come.
+ */
+export function offersFirstDay({ walkthroughCompleted, seenHere, corp }) {
+  if (walkthroughCompleted || seenHere) return false;
+  const started = Number(corp?.level) >= 1 || Number(corp?.stats?.officeRented) > 0;
+  return !started;
+}
+
 export function paragraphsOf(text) {
   return String(text || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
 }
