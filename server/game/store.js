@@ -353,19 +353,20 @@ export function settleAccountPayroll(accountId, now = Date.now()) {
 }
 
 export function getAccountById(accountId) {
+  const account = settledAccount(accountId);
+  return account ? sanitizeAccount(account) : null;
+}
+/** The account as held, settled as a read settles it: for a caller that only serialises it (Bug #4849). Never change it. */
+export function settledAccount(accountId) {
   const account = accountsStore.accounts?.[accountId];
-  if (!account) {
-    return null;
-  }
-
+  if (!account) return null;
   closeFinancialDays(account);
   applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
   evaluateAccountLevel(accountId, account); // a read can raise the level too: mining settles here (Bug #1260)
-  // Bug #4815 (AB#963): a read schedules no write. What it settled above (mining, offers, the level) is time-derived: the
-  // next read settles it the same way, and the next change or ticker (mining's runs every 5 s) writes it. Scheduling here
-  // rewrote the whole snapshot about once a second under traffic, 40% of the server's time at 200 corporations.
-  return sanitizeAccount(account);
+  // Bug #4815 (AB#963): a read schedules no write. What it settled is time-derived: the next read settles it the same
+  // way, and the next change or ticker writes it (scheduling here rewrote the snapshot about once a second under traffic).
+  return account;
 }
 
 export async function authenticateAccount(email, password) {

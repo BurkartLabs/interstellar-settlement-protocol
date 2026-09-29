@@ -1,6 +1,8 @@
 // server/routes/account.js: the account routes, split out of server/index.js (AB#1815).
 import { addAccountNotification, getAccountById, getStatements, listAccountNotifications, markAllNotificationsRead, markNotificationRead, markWalkthroughCompleted, resetWalkthroughCompletion } from "../gameState.js";
 import { emitToAccount } from "../realtime.js";
+import { settledAccount } from "../game/store.js"; // Bug #4849
+import { accountJson } from "../accountJson.js"; // Bug #4849
 import { checkDeletion, eraseAccount, exportAccountData } from "../accountData.js"; // ISP-264 (AB#960)
 import { deleteAccountLimiter, exportDataLimiter } from "../rateLimiters.js";
 
@@ -43,13 +45,14 @@ export function registerAccountRoutes(app) {
   });
 
   app.get("/api/accounts/:accountId", (req, res) => {
-    const account = getAccountById(req.params.accountId);
+    // Bug #4849: the account's JSON straight from the store, settled as a read settles it: no deep copy to stringify
+    const account = settledAccount(req.params.accountId);
     if (!account) {
       res.status(404).json({ error: "Account not found." });
       return;
     }
 
-    res.json(account);
+    res.type("application/json").send(accountJson(account));
   });
 
   // AB#713: the corporation's daily statements (P&L, cash flow, balance sheet), newest first. Under requireAuth and
