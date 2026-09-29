@@ -6,7 +6,7 @@
 
 import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
-import { DEFAULT_EXCHANGE_VIEW, EXCHANGE_PAGES, MY_LISTINGS_SHOWN, ORDER_PAGES, SELL_ORDERS_SHOWN, cappedNote, filteredEmptyHtml, partnerNames, partnersEmptyHtml, saveExchangeView, sellerKey, tradeNumbers, viewOrders } from "../exchangeView.js";
+import { DEFAULT_EXCHANGE_VIEW, EXCHANGE_PAGES, MY_LISTINGS_SHOWN, ORDER_PAGES, SELL_ORDERS_SHOWN, cappedNote, filteredEmptyHtml, partnerNames, partnersEmptyHtml, saveExchangeView, sellerKey, standingBuyNote, standingBuyRows, standingBuyToggle, tradeNumbers, viewOrders } from "../exchangeView.js";
 import { deepClone, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-255 (AB#951)
@@ -178,6 +178,8 @@ export function renderMarket(data) {
   const viewedSellOrders = viewOrders(allSellOrders, view, { partners, tierOf });
   const filteredSellOrders = viewedSellOrders.slice(0, SELL_ORDERS_SHOWN);
   const filteredNpcOrders = viewOrders(npcBuyOrders, view, { tierOf });
+  // AB#4710: with All picked, the buyers for what the player holds here, the rest one press away
+  const standing = standingBuyRows(filteredNpcOrders, { view, held: getInventory(), showAll: Boolean(appState.standingShowAll) });
   const viewedMySellOrders = viewOrders(allMySellOrders, view, { tierOf });
   const mySellOrders = viewedMySellOrders.slice(0, MY_LISTINGS_SHOWN);
 
@@ -251,7 +253,7 @@ export function renderMarket(data) {
 
   // NPC Standing Buy Orders table (player can sell into these)
   if (npcBuyTable) {
-    npcBuyTable.innerHTML = filteredNpcOrders
+    npcBuyTable.innerHTML = standing.rows
       .map((order) => {
         const exhausted = order.remainingQty <= 0;
         const total = Math.max(0, Number(order.totalQtyPerDay) || 0);
@@ -286,6 +288,22 @@ export function renderMarket(data) {
       .join("");
   }
   showEmpty(npcBuyEmpty, "npc-buy-filtered", npcBuyOrders.length, filteredNpcOrders.length, "standing buy orders");
+  // AB#4710: the note and the Show all control; no rows held here hides the empty table under the note
+  const heldNote = document.getElementById("npc-buy-held-note");
+  if (heldNote) {
+    heldNote.textContent = standingBuyNote(standing, getCurrentStationInfo(data)?.name);
+    heldNote.hidden = !heldNote.textContent;
+  }
+  const showAllButton = document.getElementById("npc-buy-show-all");
+  if (showAllButton) {
+    showAllButton.textContent = standingBuyToggle(standing);
+    showAllButton.hidden = !showAllButton.textContent;
+    showAllButton.setAttribute("aria-expanded", String(!standing.collapsed));
+  }
+  if (!standing.rows.length && filteredNpcOrders.length) {
+    const wrap = npcBuyTable?.closest(".ui-table-wrap");
+    if (wrap) wrap.hidden = true;
+  }
 
   // Inventory snapshot
   const inventory = getInventory();
@@ -755,6 +773,12 @@ export function bindExchangeForms() {
     if (event.target.closest("[data-clear-filters]")) {
       setExchangeView({ resource: DEFAULT_EXCHANGE_VIEW.resource, tier: DEFAULT_EXCHANGE_VIEW.tier });
     }
+  });
+
+  // AB#4710: every standing buyer, or back to what the player holds here
+  document.getElementById("npc-buy-show-all")?.addEventListener("click", () => {
+    appState.standingShowAll = !appState.standingShowAll;
+    renderMarket(appState.data);
   });
 
   // NPC standing buy order — sell buttons

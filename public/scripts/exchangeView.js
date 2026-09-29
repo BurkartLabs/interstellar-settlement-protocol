@@ -161,3 +161,33 @@ export function filteredEmptyHtml(label, resource, hiddenCount, filter = "resour
   return `<p class="ui-state__why">No ${escapeHtml(label)} for <strong>${escapeHtml(resource)}</strong>: the ${escapeHtml(filter)} filter is hiding ${Number(hiddenCount) || 0} other ${noun}.</p>
     <button class="ui-button ui-button--secondary" type="button" data-clear-filters>Clear filters</button>`;
 }
+
+/**
+ * AB#4710: which standing buy orders the Standing orders page lists. With All picked and no tier, the buyers for what
+ * the player holds at this station, until they ask for every buyer: about 50 rows was five screens (DOCTRINE P-010).
+ * With a resource or a tier picked, every order the filters leave, as before; and every order once they ask for all,
+ * in the sort they chose. Nothing is ever out of reach: the rest is one "Show all" away.
+ * `orders` are already filtered and sorted (viewOrders); `held` is the station's inventory, item to quantity.
+ * Returns { rows, total, held, collapsed, filtering }.
+ */
+export function standingBuyRows(orders, { view = {}, held = {}, showAll = false } = {}) {
+  const holds = (o) => Number(held?.[o.item] || 0) > 0;
+  const heldRows = orders.filter(holds);
+  const filtering = Boolean(view.resource || view.tier);
+  const collapsed = !filtering && !showAll;
+  return { rows: collapsed ? heldRows : orders, total: orders.length, held: heldRows.length, collapsed, filtering };
+}
+
+/** AB#4710: the line under the standing buy orders when they are cut to what the player holds, or "" when they are not. */
+export function standingBuyNote({ collapsed, held, total }, stationName = "this station") {
+  if (!collapsed || !total) return "";
+  if (!held) return `You hold nothing these buyers want at ${stationName}.`;
+  return `Showing the ${held} buyer${held === 1 ? "" : "s"} for what you hold at ${stationName}.`;
+}
+
+/** AB#4710: the control that shows every buyer, or cuts them back; "" when there is nothing to toggle (a filter is on). */
+export function standingBuyToggle({ collapsed, filtering, held, total }) {
+  if (filtering || total === 0) return "";
+  if (collapsed) return total > held ? `Show all ${total} buyers` : "";
+  return "Show only what you hold here";
+}
