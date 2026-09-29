@@ -113,23 +113,23 @@ describe("ISP-154 subscribing", () => {
     const issuer = await corporation();
     const buyer = await corporation({ level: 1, credits: 80_000 });
     const s = (await issuer.issue(TERMS)).body.series;
-    const r = await buyer.subscribe(s.id, 30);
+    const r = await buyer.subscribe(s.id, 20);
     expect(r.status, JSON.stringify(r.body)).toBe(200);
-    expect(r.body).toMatchObject({ units: 30, paid: 30_000, series: { sold: 30, left: 70 } });
-    expect(buyer.corp().finances.credits).toBe(50_000);
-    expect(issuer.corp().finances.credits).toBe(180_000);
-    expect(buyer.corp().bondHoldings).toEqual([{ seriesId: s.id, units: 30 }]);
+    expect(r.body).toMatchObject({ units: 20, paid: 20_000, series: { sold: 20, left: 80 } });
+    expect(buyer.corp().finances.credits).toBe(60_000);
+    expect(issuer.corp().finances.credits).toBe(170_000);
+    expect(buyer.corp().bondHoldings).toEqual([{ seriesId: s.id, units: 20 }]);
     const moves = ledgerEntries().filter((e) => e.key.startsWith(`bond:${s.id}:`));
-    expect(moves.map((e) => [e.from, e.to, e.credits, e.reason])).toEqual([[buyer.id, issuer.id, 30_000, "bond-subscription"]]);
-    expect(issuer.corp().finances.incomeBySource["bond-subscription-received"]).toBe(30_000);
-    expect(bondsIssuedBy(issuer.id)).toEqual([{ outstandingFace: 30_000, state: "active", arrearsSince: null, defaultedAt: null }]);
+    expect(moves.map((e) => [e.from, e.to, e.credits, e.reason])).toEqual([[buyer.id, issuer.id, 20_000, "bond-subscription"]]);
+    expect(issuer.corp().finances.incomeBySource["bond-subscription-received"]).toBe(20_000);
+    expect(bondsIssuedBy(issuer.id)).toEqual([{ outstandingFace: 20_000, state: "active", arrearsSince: null, defaultedAt: null }]);
   });
 
   it("Bug #2571: the bonds a corporation sold are debt to its credit rating", async () => {
     const issuer = await corporation();
     const buyer = await corporation({ level: 1, credits: 500_000 });
     const s = (await issuer.issue(TERMS)).body.series;
-    await buyer.subscribe(s.id, 100);
+    for (let i = 0; i < 5; i++) expect((await (await corporation({ level: 1, credits: 500_000 })).subscribe(s.id, 20)).status).toBe(200); // five holders, 20% each (Bug #4799)
     const now = Date.now();
     const statements = getStatements(issuer.id, 30, now).statements;
     const without = computeCreditRating(issuer.corp(), now, statements);
@@ -159,10 +159,55 @@ describe("ISP-154 subscribing", () => {
 
   it("a subscription that fills the series closes it at once, and the underwriter takes nothing", async () => {
     const issuer = await corporation();
-    const buyer = await corporation({ level: 1, credits: 500_000 });
     const s = (await issuer.issue(TERMS)).body.series;
-    expect((await buyer.subscribe(s.id, 100)).body.series).toMatchObject({ sold: 100, left: 0, state: "live", underwriterUnits: 0, lapsedUnits: 0 });
-    expect((await buyer.subscribe(s.id, 1)).body.error).toMatch(/closed to subscribers/);
+    const buyers = [];
+    for (let i = 0; i < 5; i++) buyers.push(await corporation({ level: 1, credits: 500_000 }));
+    for (const b of buyers.slice(0, 4)) expect((await b.subscribe(s.id, 20)).status).toBe(200); // Bug #4799: 20% a holder
+    expect((await buyers[4].subscribe(s.id, 20)).body.series).toMatchObject({ sold: 100, left: 0, state: "live", underwriterUnits: 0, lapsedUnits: 0 });
+    expect((await buyers[0].subscribe(s.id, 1)).body.error).toMatch(/closed to subscribers/);
+  });
+
+  it("Bug #4799: no holder takes more than 20% of a series, however many subscriptions it splits it into", async () => {
+    const issuer = await corporation();
+    const alt = await corporation({ level: 1, credits: 500_000 });
+    const s = (await issuer.issue(TERMS)).body.series;
+    const whole = await alt.subscribe(s.id, 100); // the report's repro: one call for the whole series
+    expect(whole.status).toBe(409);
+    expect(whole.body).toMatchObject({ code: "holder-cap", error: "No holder may own more than 20% of a series (20 of its 100 units): you may subscribe to at most 20 more." });
+    expect((await alt.subscribe(s.id, 12)).status).toBe(200);
+    expect((await alt.subscribe(s.id, 8)).status).toBe(200); // exactly 20 across two subscriptions
+    const more = await alt.subscribe(s.id, 1);
+    expect(more.status).toBe(409);
+    expect(more.body.error).toMatch(/at most 0 more\.$/);
+    expect(alt.corp().bondHoldings).toEqual([{ seriesId: s.id, units: 20 }]);
+    expect(stored(s.id)).toMatchObject({ sold: 20, playerUnits: 20 });
+    expect(ledgerEntries().filter((e) => e.key.startsWith(`bond:${s.id}:sub:`)).length).toBe(2); // the refusals moved nothing
+  });
+
+  it("Bug #4799: no holder owns more than 100,000 of one issuer's bonds at face, across its series; another issuer's do not count", async () => {
+    const issuer = await corporation();
+    const alt = await corporation({ level: 1, credits: 2_000_000 });
+    // one series open at a time: each is closed before the next, at a coupon the underwriter takes none of
+    const issue = async () => { const r = await issuer.issue({ ...TERMS, couponPct30: 1 }); expect(r.status, JSON.stringify(r.body)).toBe(200); return r.body.series; };
+    const close = (x) => { stored(x.id).closesAt = 0; bondWindowTick(Date.now()); };
+    const series = [];
+    for (let i = 0; i < 5; i++) {
+      const x = await issue();
+      expect((await alt.subscribe(x.id, 20)).status).toBe(200); // 20% of each series
+      close(x);
+      series.push(x);
+    }
+    series.push(await issue()); // 5 x 20 units = 100,000 at face held of this issuer already
+    const sixth = await alt.subscribe(series[5].id, 1);
+    expect(sixth.status).toBe(409);
+    expect(sixth.body).toMatchObject({ code: "holder-cap", error: "No holder may own more than 100,000 credits of one issuer's bonds at face: you may subscribe to at most 0 more." });
+    // a redeemed or lapsed series no longer counts toward the pair
+    stored(series[0].id).state = "redeemed";
+    expect((await alt.subscribe(series[5].id, 20)).status).toBe(200);
+    // and another issuer's bonds are a different pair
+    const other = await corporation();
+    const o = (await other.issue(TERMS)).body.series;
+    expect((await alt.subscribe(o.id, 20)).status).toBe(200);
   });
 });
 

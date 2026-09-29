@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount, authed } from "../helpers/api.js";
 import { getAccountById, mutateAccountState, getStatements, listAccountNotifications } from "../../server/gameState.js";
-import { bondSeriesList } from "../../server/bonds.js";
+import { bondSeriesList, subscribeBond } from "../../server/bonds.js";
 import { bondServicingTick, holdersOf, recoveryPrice } from "../../server/bondServicing.js";
 import { bondRecoveryTick, recoverDefault, GRACE_HOURS } from "../../server/defaultRecovery.js";
 import { postLoanOffer, acceptLoanOffer } from "../../server/playerLoans.js";
@@ -45,7 +45,8 @@ async function defaultedSeries(issuer = null) {
   const holders = [];
   for (const units of [15, 10, 5]) {
     const h = await corporation({ level: 1, credits: 100_000 });
-    expect((await h.api.post(`/api/accounts/${h.id}/bonds/${s.id}/subscribe`).send({ units })).status).toBe(200);
+    // Bug #4799: 15 of 30 is over today's 20% cap; a series subscribed before the cap can hold it, and is still recovered for
+    expect(subscribeBond(h.id, { seriesId: s.id, units }, Date.now(), { holderCap: false }).ok).toBe(true);
     holders.push({ ...h, units });
   }
   const series = bondSeriesList().find((x) => x.id === s.id);
@@ -144,7 +145,7 @@ describe("Bug #2574: a loan debtor's bond holdings are liquid", () => {
     const debtor = await corporation({ level: 1, credits: 100_000 });
     const issuer = await corporation();
     const s = (await issuer.api.post(`/api/accounts/${issuer.id}/bonds/issue`).send({ quantity: 50, couponPct30: 5, maturityDays: 90, windowHours: 48 })).body.series;
-    expect((await debtor.api.post(`/api/accounts/${debtor.id}/bonds/${s.id}/subscribe`).send({ units: 40 })).status).toBe(200);
+    expect(subscribeBond(debtor.id, { seriesId: s.id, units: 40 }, Date.now(), { holderCap: false }).ok).toBe(true); // Bug #4799: a pre-cap holding
     const T0 = Date.now();
     const offer = postLoanOffer(lender.id, { principal: 20_000, ratePct30: 3, termDays: 30, minGrade: "NR-accepted" }, T0);
     const { loan } = acceptLoanOffer(debtor.id, offer.offer.id, T0);

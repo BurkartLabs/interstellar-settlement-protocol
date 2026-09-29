@@ -12,5 +12,7 @@
   "maturityDays": [30, 60, 90],
   "windowHours": [24, 48],
   "impliedYieldPct30": { "AAA": 3.0, "AA": 3.5, "A": 4.0, "BBB": 5.0, "BB": 6.0, "B": 8.0 },
-  "underwriter": { "account": "tap:dsdb", "pointsBelow": 2, "pointsSpan": 4 }
+  "underwriter": { "account": "tap:dsdb", "pointsBelow": 2, "pointsSpan": 4 },
+  "holderCapPct": 20,
+  "pairCapFace": 100000
 }
