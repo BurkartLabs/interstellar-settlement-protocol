@@ -2370,6 +2370,11 @@ body.sg {
   background: var(--surface-3);
   color: var(--accent-hover);
 }
+/* ISP-264 (AB#960): the Account dialog's two parts */
+.account-data__heading {
+  margin: 0;
+  font-size: var(--font-size-4);
+}
 .ui-button--danger {
   background: var(--danger);
   color: var(--on-danger);
@@ -4990,6 +4995,16 @@ img.station__body {
 }
 .app-header__notifications {
   position: relative;
+}
+/* ISP-264 (AB#960): with Account beside Notifications and Log Out, a phone's header keeps them on one row */
+@media (max-width: 480px) {
+  .app-header__actions {
+    gap: var(--space-1);
+  }
+  .app-header__actions > .ui-button,
+  .app-header__notifications > .ui-button {
+    padding-inline: var(--space-2);
+  }
 }
 .app-header__panel {
   position: absolute;

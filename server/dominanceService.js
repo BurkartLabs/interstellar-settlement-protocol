@@ -17,6 +17,13 @@ import { recordControlDay } from "./controlService.js"; // ISP-226 (AB#921): eac
 
 const FILE = path.join(dataDir, "dominance.json");
 let cache = readCache();
+
+/** ISP-264 (AB#960): the store as held, for a player's data export and for erasing an account (server/accountData.js). */
+export const dataStore = Object.freeze({
+  file: "dominance.json",
+  read: () => cache,
+  rewrite(fn) { if (!cache || typeof cache !== "object") return; fn(cache); safeWriteFile(FILE, JSON.stringify(cache)); } // nothing held yet: nothing to write
+});
 let lastError = null;
 
 function readCache() {
