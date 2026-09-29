@@ -128,6 +128,24 @@ describe("posting a buy order (AB#1054)", () => {
     expect(seller.held("Carbon")).toBe(0); // all 80 left the hold when listed: 50 sold, 30 still listed
     const told = listAccountNotifications(buyer.id).notifications.find((n) => n.title === "Buy Order Filled");
     expect(told.body).toMatch(/sold you 50 Carbon at .*26.* against your order at .*30/);
+    expect(told.protocol).toEqual({ meaning: "complete", screen: "market" }); // ISP-255 (AB#951): filled is Concluded
+  });
+
+  it("Bug #4827: a refusal over a quantity or for want of credits says what would work", async () => {
+    const seller = await corp({ stock: { Carbon: 40 } });
+    const over = await seller.list("Carbon", 50, 20);
+    expect(over.status).toBe(400);
+    expect(over.body.error).toBe("You hold 40 Carbon at this station. List 40 or fewer.");
+    expect((await seller.list("Titanium", 5, 20)).body.error).toBe("You hold no Titanium at this station. Bring some here to list it.");
+    const listed = (await seller.list("Carbon", 30, 20)).body.order;
+    const buyer = await corp({ credits: 100 });
+    const tooMany = await buyer.api.post(`/api/market/orders/${listed.id}/buy`).send({ quantity: 31 });
+    expect(tooMany.body.error).toBe("Only 30 remain on that listing. Buy 30 or fewer.");
+    const unfunded = await buyer.api.post(`/api/market/orders/${listed.id}/buy`).send({ quantity: 10 });
+    expect(unfunded.status).toBe(400);
+    expect(unfunded.body).toMatchObject({ code: "insufficient-credits" });
+    expect(unfunded.body.error).toMatch(/Sell goods or finish an assignment to raise the credits, or buy fewer\.$/);
+    expect(buyer.credits()).toBe(100);
   });
 
   it("never fills against the corporation's own listing", async () => {
@@ -143,7 +161,8 @@ describe("posting a buy order (AB#1054)", () => {
     const poor = await corp({ credits: 999 });
     const short = await poor.bid("Titanium", 100, 10);
     expect(short.status).toBe(400);
-    expect(short.body.error).toMatch(/holds 1,000 credits; you have 999 credits/);
+    expect(short.body.error).toMatch(/holds 1,000 credits; you have 999 credits\. Sell goods or finish an assignment to raise the credits, or buy fewer\.$/); // Bug #4827
+    expect(short.body.code).toBe("insufficient-credits");
     const odd = await poor.bid("Unobtainium", 1, 1);
     expect(odd.status).toBe(400);
     const zero = await poor.bid("Titanium", 0, 10);

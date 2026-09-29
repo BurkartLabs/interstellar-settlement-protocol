@@ -106,6 +106,7 @@ export function tellSeller(order, quantity, sale, leftAfterSale) {
   const notification = addAccountNotification(order.sellerAccountId, {
     type: "market",
     title: "Listing Sold",
+    protocol: { meaning: leftAfterSale > 0 ? "queued" : "complete", screen: "market" }, // ISP-255 (AB#951): the rest stays Lodged
     body:
       `${sale.buyer} bought ${quantity.toLocaleString("en-US")} ${order.item} at ${formatCredits(order.unitPrice)} each: ` +
       `${formatCredits(total)}, less ${formatCredits(sale.taxAmount)} exchange tax (${sale.taxPct}%)` +

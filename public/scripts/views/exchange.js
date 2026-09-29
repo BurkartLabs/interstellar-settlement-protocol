@@ -9,6 +9,7 @@ import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { DEFAULT_EXCHANGE_VIEW, EXCHANGE_PAGES, MY_LISTINGS_SHOWN, ORDER_PAGES, SELL_ORDERS_SHOWN, cappedNote, filteredEmptyHtml, partnerNames, partnersEmptyHtml, saveExchangeView, sellerKey, tradeNumbers, viewOrders } from "../exchangeView.js";
 import { deepClone, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-255 (AB#951)
 import { appState, viewerStorage } from "../state.js";
 import { taxOnSale, withBasePct } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
 import { saleQuote, utcMinute } from "../tariffs.js"; // ISP-231 (AB#926): the tariff the server settles
@@ -22,6 +23,12 @@ import { counterpartyHtml } from "../npcProfile.js"; // ISP-124 (AB#818)
 import { showNpcProfile } from "./npcProfileModal.js";
 import { renderMercenaries } from "./mercenaries.js"; // ISP-177 (AB#871)
 import { flashButtonSuccess, getCurrentStationInfo, getInventory, pushFeedback, refreshFromServer, showTradeConfirmation, stationLocationBanner } from "./shared.js";
+
+/** ISP-255 (AB#951): an outcome's protocol on the Galactic Exchange (public/scripts/protocol.js). */
+const onExchange = (meaning) => ({ meaning, screen: "market" });
+const refusedOnExchange = (error) => onExchange(refusalMeaning(error));
+/** A status line's plain words, then the protocol line: markup, so the text is escaped here. */
+const withProtocol = (text, protocol) => `${escapeHtml(text)}${protocol ? ` ${protocolLineHtml(protocol)}` : ""}`;
 
 /**
  * The tax rate and its parts, as the server last stored them (ISP-302, AB#2285: finances.exchangeTaxBreakdown). A
@@ -422,7 +429,7 @@ export function paintListingStatus() {
   const inRow = rows.find((el) => el.getAttribute("data-sell-status") === status.item);
   const target = inRow || below;
   if (!target) return;
-  target.textContent = status.text;
+  target.innerHTML = withProtocol(status.text, status.protocol);
   if (inRow) {
     inRow.className = `exchange__row-status exchange__row-status--${status.tone === "ok" ? "ok" : "error"}`;
     inRow.setAttribute("role", status.tone === "ok" ? "status" : "alert");
@@ -453,8 +460,8 @@ function paintBidTotal() {
     : "Enter a whole quantity and price of at least 1.";
 }
 
-function sayListing(item, tone, text) {
-  appState.listingStatus = { item, tone, text, reveal: true };
+function sayListing(item, tone, text, protocol = null) {
+  appState.listingStatus = { item, tone, text, protocol, reveal: true };
   paintListingStatus();
 }
 
@@ -481,12 +488,12 @@ export function bindExchangeForms() {
     const available = Number(inventory[item] || 0);
 
     if (!item || available <= 0) {
-      sayListing(item, "error", "No stock available for this item.");
+      sayListing(item, "error", "No stock available for this item.", onExchange("refused"));
       return;
     }
 
     if (numbers.ok && numbers.values.quantity > available) {
-      sayListing(item, "error", "Quantity exceeds available inventory.");
+      sayListing(item, "error", `You hold ${available.toLocaleString("en-US")} here. List ${available.toLocaleString("en-US")} or fewer.`, onExchange("refused")); // Bug #4827
       return;
     }
 
@@ -540,15 +547,16 @@ export function bindExchangeForms() {
       }
 
       // the server's own record of what was listed, not what the form thought it sent
+      const stillListed = Number(payload.order?.quantity) - soldAtOnce;
       appState.listingStatus = soldAtOnce > 0
-        ? { item, tone: "ok", text: `Sold ${soldAtOnce} ${item} at once to buy orders; ${Number(payload.order?.quantity) - soldAtOnce} listed @ ${toCurrency(payload.order?.unitPrice)}.` }
-        : { item, tone: "ok", text: `Listing created: ${Number(payload.order?.quantity)} ${item} @ ${toCurrency(payload.order?.unitPrice)}.` };
+        ? { item, tone: "ok", text: `Sold ${soldAtOnce} ${item} at once to buy orders; ${stillListed} listed @ ${toCurrency(payload.order?.unitPrice)}.`, protocol: onExchange(stillListed > 0 ? "queued" : "complete") }
+        : { item, tone: "ok", text: `Listing created: ${Number(payload.order?.quantity)} ${item} @ ${toCurrency(payload.order?.unitPrice)}.`, protocol: onExchange("queued") };
       renderMarket(appState.data);
       showActionReceipt(payload, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
       await refreshFromServer();
     } catch (error) {
-      sayListing(item, "error", `Sell listing failed: ${error.message}`);
-      pushFeedback(`Sell listing failed: ${error.message}`, "warn");
+      sayListing(item, "error", `Sell listing failed: ${error.message}`, refusedOnExchange(error));
+      pushFeedback(`Sell listing failed: ${error.message}`, "warn", refusedOnExchange(error));
     }
   });
 
@@ -567,10 +575,10 @@ export function bindExchangeForms() {
       renderMarket(appState.data);
       appState.listingStatus = null; // a refusal shown before the cancel no longer applies
       paintListingStatus();
-      pushFeedback("Listing cancelled; the goods are back in your station inventory.", "success");
+      pushFeedback("Listing cancelled; the goods are back in your station inventory.", "success", onExchange("cancelled"));
     } catch (error) {
       button.disabled = false;
-      pushFeedback(`Could not cancel the listing: ${error.message}`, "warn");
+      pushFeedback(`Could not cancel the listing: ${error.message}`, "warn", refusedOnExchange(error));
     }
   });
 
@@ -609,11 +617,11 @@ export function bindExchangeForms() {
       });
       const payload = await parseJsonResponse(response);
       const filled = (payload.fills || []).reduce((sum, f) => sum + f.quantity, 0);
-      if (status) status.textContent = payload.order ? `Bought ${filled} at once; ${payload.order.quantity} ${item} waiting at ${toCurrency(payload.order.unitPrice)}.` : `Bought ${filled} ${item}: the order is filled.`;
+      if (status) status.innerHTML = payload.order ? withProtocol(`Bought ${filled} at once; ${payload.order.quantity} ${item} waiting at ${toCurrency(payload.order.unitPrice)}.`, onExchange("queued")) : withProtocol(`Bought ${filled} ${item}: the order is filled.`, onExchange("complete"));
       showActionReceipt(payload, { returnFocusTo: receiptTrigger });
       await refreshFromServer();
     } catch (error) {
-      if (status) status.textContent = `Buy order refused: ${error.message}`;
+      if (status) status.innerHTML = withProtocol(`Buy order refused: ${error.message}`, refusedOnExchange(error));
     } finally {
       if (submit) submit.disabled = false;
     }
@@ -627,11 +635,11 @@ export function bindExchangeForms() {
     try {
       const response = await apiFetch(`/api/market/orders/${encodeURIComponent(button.getAttribute("data-cancel-bid-id"))}/cancel`, { method: "POST" });
       const payload = await parseJsonResponse(response);
-      pushFeedback(`Buy order cancelled; ${toCurrency(payload.refunded)} returned to your reserves.`, "success");
+      pushFeedback(`Buy order cancelled; ${toCurrency(payload.refunded)} returned to your reserves.`, "success", onExchange("cancelled"));
       await refreshFromServer();
     } catch (error) {
       button.disabled = false;
-      pushFeedback(`Could not cancel the buy order: ${error.message}`, "warn");
+      pushFeedback(`Could not cancel the buy order: ${error.message}`, "warn", refusedOnExchange(error));
     }
   });
 
@@ -683,19 +691,19 @@ export function bindExchangeForms() {
       const payload = await parseJsonResponse(response);
       appState.data = deepClone(payload.account.state);
       if (buyStatus) {
-        buyStatus.textContent = `Executed purchase: ${qty.toLocaleString()} \u00d7 ${escapeHtml(item)} at ${toCurrency(price)}/unit.`;
+        buyStatus.innerHTML = withProtocol(`Executed purchase: ${qty.toLocaleString()} \u00d7 ${item} at ${toCurrency(price)}/unit.`, onExchange("complete"));
       }
       appState.listingStatus = null;
       paintListingStatus();
-      pushFeedback(`Purchase executed: ${item} \u00d7 ${qty} @ ${toCurrency(price)}/unit.`, "success");
+      pushFeedback(`Purchase executed: ${item} \u00d7 ${qty} @ ${toCurrency(price)}/unit.`, "success", onExchange("complete"));
       flashButtonSuccess(button);
       await refreshFromServer();
       showActionReceipt(payload, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
     } catch (error) {
       if (buyStatus) {
-        buyStatus.textContent = `Buy order failed: ${error.message}`;
+        buyStatus.innerHTML = withProtocol(`Buy order failed: ${error.message}`, refusedOnExchange(error));
       }
-      pushFeedback(`Buy order rejected. ${error.message}`, "error");
+      pushFeedback(`Buy order rejected. ${error.message}`, "error", refusedOnExchange(error));
     }
   };
   buyTableEl?.addEventListener("click", buyFromBook);
@@ -802,17 +810,17 @@ export function bindExchangeForms() {
         // ISP-232 (AB#927): everything the sale took, not only the tax: the tariff and any duty withheld too
         const taken = [taxAmt > 0 ? `${toCurrency(taxAmt)} tax` : "", traded.tariffAmount > 0 ? `${toCurrency(traded.tariffAmount)} tariff` : "", traded.dutyWithheld > 0 ? `${toCurrency(traded.dutyWithheld)} withheld for ITC duty` : ""].filter(Boolean);
         const taxNote = taken.length ? ` (${taken.join(", ")})` : "";
-        npcStatus.textContent = `Sold ${qty.toLocaleString()} × ${escapeHtml(item)} at ${toCurrency(price)}/unit — ${toCurrency(proceeds)} credited${taxNote}.`;
+        npcStatus.innerHTML = withProtocol(`Sold ${qty.toLocaleString()} × ${item} at ${toCurrency(price)}/unit — ${toCurrency(proceeds)} credited${taxNote}.`, onExchange("complete"));
       }
-      pushFeedback(`Sold ${item} × ${qty} @ ${toCurrency(price)}/unit to ${escapeHtml(button.closest("tr")?.children[1]?.textContent || "NPC")}. ${toCurrency(proceeds)} credited.`, "success");
+      pushFeedback(`Sold ${item} × ${qty} @ ${toCurrency(price)}/unit to ${escapeHtml(button.closest("tr")?.children[1]?.textContent || "NPC")}. ${toCurrency(proceeds)} credited.`, "success", onExchange("complete"));
       flashButtonSuccess(button);
       await refreshFromServer();
       showActionReceipt(payload, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
     } catch (error) {
       if (npcStatus) {
-        npcStatus.textContent = `Sale failed: ${error.message}`;
+        npcStatus.innerHTML = withProtocol(`Sale failed: ${error.message}`, refusedOnExchange(error));
       }
-      pushFeedback(`NPC sell rejected. ${error.message}`, "error");
+      pushFeedback(`NPC sell rejected. ${error.message}`, "error", refusedOnExchange(error));
     }
   });
 }

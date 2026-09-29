@@ -62,6 +62,7 @@ describe("the ITC's dumping watch (AB#927)", () => {
     expect(notice.body).toContain("you sold 600 Rare-Earth Magnets at an average of 160 credits, below 85% of their normal value (270 credits; the line is 229.5)");
     expect(notice.body).toContain("The volume line for those 3 days was 300 units");
     expect(notice.body).toContain("A duty of 66,000 credits, the dumping margin, will be levied");
+    expect(notice.protocol).toEqual({ meaning: "pending", screen: "building-interplanetary-trade-commission" }); // ISP-255 (AB#951)
     expect(expense(seller)).toBe(0); // nothing is taken with the notice
 
     seller.corp.finances.credits = 50_000;
@@ -71,7 +72,9 @@ describe("the ITC's dumping watch (AB#927)", () => {
     expect(dutyOwed(seller.corp)).toBe(16_000);
     expect(seller.corp.itcDuty).toEqual({ owed: 16_000, withholdPct: 50 }); // on the corporation, so its confirmation can show it
     expect(findingsFor(seller.corp.publicId)[0]).toMatchObject({ paid: 50_000, owedAtLevy: 16_000 });
-    expect(listAccountNotifications(seller.id).notifications.find((n) => n.title === "ITC Anti-Dumping Duty Levied").body).toContain("The remaining 16,000 credits is owed");
+    const levied = listAccountNotifications(seller.id).notifications.find((n) => n.title === "ITC Anti-Dumping Duty Levied");
+    expect(levied.body).toContain("The remaining 16,000 credits is owed");
+    expect(levied.protocol?.meaning).toBe("owed"); // ISP-255 (AB#951): the rest is In arrears
 
     // a later sale, to the standing bid: half of what is left after tax is withheld toward the duty
     seller.corp.inventory[STATION] = { Silicates: 1000 };
