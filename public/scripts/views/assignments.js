@@ -11,7 +11,11 @@ import { ASSIGNED_COORDINATOR } from "../liaison.js";
 import { appState } from "../state.js";
 import { flashButtonSuccess, getInventory, pushFeedback, salvageRemainingMs, updateAllViews } from "./shared.js";
 import { refHtml } from "../html.js"; // ISP-249 (AB#945)
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 C2 (AB#4812)
 import { missionProgress, missionTarget } from "../missionProgress.js"; // AB#2484: the pattern every mission kind follows
+
+/** ISP-254 C2 (AB#4812): an outcome's protocol on the Assignments screen (ISA-CON-1). */
+const onAssignments = (meaning) => ({ meaning, screen: "missions" });
 
 // ISP-297 (AB#1789) gave the Salvage Assignment risk: "None" — a real fourth value this ternary did not have a
 // class for, which fell through to risk-high and painted a riskless contract red. Named so a future risk value
@@ -459,7 +463,7 @@ export function renderMissions(data) {
         const agentLabel = agent ? agent.name : "Unknown Agent";
         return `
           <li class="missions__log-entry">
-            <span class="missions__log-title"><span class="ui-badge ui-badge--success">✓ ${escapeHtml(m.type || "Mission")}</span> ${escapeHtml(m.title)}</span>
+            <span class="missions__log-title"><span class="ui-badge ui-badge--success">✓ ${escapeHtml(m.type || "Mission")}</span> ${escapeHtml(m.title)} ${protocolLineHtml(onAssignments("complete"))}</span>
             <span class="missions__reward">${escapeHtml(m.reward)}</span>
             <span class="missions__hint">${escapeHtml(agentLabel)} &middot; ${formatTime(m.completedAt)}${m.ref ? ` &middot; ${refHtml(m.ref)}` : ""}</span>
           </li>`;
@@ -530,8 +534,8 @@ export function bindAssignmentForms() {
         body: JSON.stringify({ missionId: mission.id })
       });
       if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: "Failed to accept contract." }));
-        pushFeedback(err.error || "Failed to accept contract.", "warn");
+        const err = await response.json().catch(() => ({ error: "The contract could not be accepted. Check your connection and try again." }));
+        pushFeedback(err.error || "The contract could not be accepted. Check your connection and try again.", "warn", onAssignments(refusalMeaning(err)));
         return;
       }
       const account = await parseJsonResponse(response);
@@ -545,7 +549,7 @@ export function bindAssignmentForms() {
       }
     }
 
-    pushFeedback(`Contract accepted: "${mission.title}". Track it in Active Contracts.`, "success");
+    pushFeedback(`Contract accepted: "${mission.title}". Track it in Active Contracts.`, "success", onAssignments("active"));
     const btn = document.getElementById("mission-accept-btn");
     if (btn) flashButtonSuccess(btn);
     closeMissionModal();
@@ -566,8 +570,8 @@ export function bindAssignmentForms() {
           body: JSON.stringify({ missionId })
         });
         if (!response.ok) {
-          const err = await response.json().catch(() => ({ error: "Failed to abandon contract." }));
-          pushFeedback(err.error || "Failed to abandon contract.", "warn");
+          const err = await response.json().catch(() => ({ error: "The contract could not be abandoned. Check your connection and try again." }));
+          pushFeedback(err.error || "The contract could not be abandoned. Check your connection and try again.", "warn", onAssignments(refusalMeaning(err)));
           return;
         }
         const account = await parseJsonResponse(response);
@@ -579,7 +583,7 @@ export function bindAssignmentForms() {
           appState.data.corp.activeMissions = appState.activeMissions;
         }
       }
-      pushFeedback("Contract abandoned and removed from Active Contracts.", "info");
+      pushFeedback("Contract abandoned and removed from Active Contracts.", "info", onAssignments("cancelled"));
       renderMissions(appState.data);
       return;
     }
@@ -617,8 +621,8 @@ export function bindAssignmentForms() {
         body: JSON.stringify({ missionId: mission.id })
       });
       if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: "Failed to complete mission." }));
-        pushFeedback(err.error || "Failed to complete mission.", "danger");
+        const err = await response.json().catch(() => ({ error: "The contract could not be completed. Check your connection and try again." }));
+        pushFeedback(err.error || "The contract could not be completed. Check your connection and try again.", "danger", onAssignments(refusalMeaning(err)));
         return;
       }
       const account = await parseJsonResponse(response);

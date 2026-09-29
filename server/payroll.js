@@ -72,12 +72,13 @@ export function payrollNotice(corp, result) {
   if (result?.becameShort) {
     return {
       type: "finance",
+      protocol: { meaning: "owed", screen: "finance" }, // ISP-254 C2 (AB#4812)
       title: "Payroll unpaid",
       body: `Your corporation could not cover its wages and owes its staff ${credits(result.owed)}. Payroll keeps running at ${credits(dailyPayroll(corp))} a day, and what is owed is paid first from your next credits. No one has been let go.`
     };
   }
   if (result?.caughtUp) {
-    return { type: "finance", title: "Payroll paid", body: "Your corporation has paid the wages it owed. Payroll is up to date." };
+    return { type: "finance", protocol: { meaning: "complete", screen: "finance" }, title: "Payroll paid", body: "Your corporation has paid the wages it owed. Payroll is up to date." };
   }
   return null;
 }

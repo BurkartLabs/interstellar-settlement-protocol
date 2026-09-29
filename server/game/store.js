@@ -394,12 +394,14 @@ export async function authenticateAccount(email, password) {
   account.lastLoginAt = Date.now();
   pushSystemNotification(account, {
     type: "auth",
+    protocol: { meaning: "complete", screen: "login" }, // ISP-254 C2 (AB#4812)
     title: "Secure Access Granted",
     body: "Authentication successful. Welcome back to command."
   });
   if (verificationPrompted(account)) {
     pushSystemNotification(account, {
       type: "auth",
+      protocol: { meaning: "pending", screen: "check-email" }, // ISP-254 C2 (AB#4812)
       title: "Verify your email address",
       body: "Confirm the address you log in with: open /check-email.html and ask for a link. Your account keeps working meanwhile."
     });
@@ -522,6 +524,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
 
   pushSystemNotification(account, {
     type: "system",
+    protocol: { meaning: "active", screen: "register" }, // ISP-254 C2 (AB#4812): the charter is in force
     title: "Corporation Registered",
     body: "Your corporation charter is now active under the Interstellar Settlement Protocol."
   });

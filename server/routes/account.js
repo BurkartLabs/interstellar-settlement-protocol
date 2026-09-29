@@ -86,6 +86,7 @@ export function registerAccountRoutes(app) {
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "onboarding",
+      protocol: { meaning: "complete", screen: "overview" }, // ISP-254 C2 (AB#4812)
       title: "Walkthrough Completed",
       body: "Onboarding has been marked complete for this profile."
     });
@@ -105,6 +106,7 @@ export function registerAccountRoutes(app) {
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "onboarding",
+      protocol: { meaning: "queued", screen: "overview" }, // ISP-254 C2 (AB#4812): the briefing is lodged to run again
       title: "Walkthrough Reset",
       body: "Onboarding flow has been reset and can be replayed."
     });
