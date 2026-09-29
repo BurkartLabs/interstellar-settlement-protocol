@@ -11,7 +11,7 @@ import { deepClone, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-255 (AB#951)
 import { appState, viewerStorage } from "../state.js";
-import { taxOnSale, withBasePct } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
+import { stationTaxBreakdown, taxOnSale, withBasePct } from "../exchangeTax.js"; // ISP-302 (AB#2285): the same split the server books
 import { saleQuote, utcMinute } from "../tariffs.js"; // ISP-231 (AB#926): the tariff the server settles
 import { councilWithholding, withheldFrom } from "../itcDuty.js"; // ISP-232 (AB#927): what the server withholds toward ITC duty owed; ISP-243 (AB#939): and Council debts
 import { listingWarning } from "../dumping.js"; // ISP-233 (AB#928): the watch's own rule
@@ -53,15 +53,19 @@ export function getClientExchangeTaxPct() {
 function saleTaxRows(gross) {
   // ISP-231 (AB#926): the concession tariff where the goods are held, quoted with the server's own arithmetic
   const here = clientTariffHere();
-  // ISP-239 (AB#934): and the sales tax in force there, which a lobbying campaign may have moved
-  const breakdown = withBasePct(getClientExchangeTaxBreakdown(), here?.salesTaxPct);
+  // ISP-239 (AB#934): and the sales tax in force there, which a lobbying campaign may have moved; ISP-212b (AB#4655): at
+  // a conglomerate's station, the station's tax in its place (none for a member), as server/game/stationTax.js charges it
+  const breakdown = here?.stationTax ? stationTaxBreakdown(here.stationTax) : withBasePct(getClientExchangeTaxBreakdown(), here?.salesTaxPct);
+  const st = breakdown.station;
   const sale = saleQuote(gross, breakdown, here?.pct || 0);
   const withheld = withheldFrom(sale.proceeds, appState.data?.corp?.itcDuty);
   // ISP-243 (AB#939): an Arbitration Council debt takes what the same 50% leaves, as the server's withholdCouncilDebt does
   const debts = appState.data?.corp?.councilDebts || [];
   const council = councilWithholding(sale.proceeds, withheld, debts, debts[0]?.withholdPct).reduce((s, d) => s + d.credits, 0);
   return [
-    { label: `GEX Sales Tax (${breakdown.salesTaxPct}%)`, value: `− ${toCurrency(sale.salesTax)}`, muted: true },
+    { label: st ? `${st.member ? "Member" : "Station"} Tax (${breakdown.salesTaxPct}%)` : `GEX Sales Tax (${breakdown.salesTaxPct}%)`, value: `− ${toCurrency(sale.salesTax)}`, muted: true },
+    // the label column does not wrap, and a conglomerate's name can be long: whose tax it is goes on a note, which wraps
+    ...(st ? [{ note: st.member ? `${st.conglomerateName}'s station: members pay no sales tax here.` : `${st.conglomerateName}'s station: its sales tax, set by its stakeholders' vote, goes to its treasury.` }] : []),
     ...(breakdown.royaltyPct > 0 ? [{ label: `ISA Lease Royalty (${breakdown.royaltyPct}%)`, value: `− ${toCurrency(sale.royalty)}`, muted: true }] : []),
     ...(sale.tariff > 0 ? [{ label: `Concession Tariff (${here.pct}%)`, value: `− ${toCurrency(sale.tariff)}`, muted: true }] : []),
     ...(here?.pending ? [{ label: "Tariff Pending", value: `${here.pending.pct}% from ${utcMinute(here.pending.effectiveAt)}`, muted: true }] : []),

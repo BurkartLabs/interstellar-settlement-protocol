@@ -5,7 +5,6 @@ import { bodyCount } from "../bodyNumber.js";
 import { randomUUID } from "node:crypto";
 import { npcBidFor } from "../economy.js";
 import { getAccountById, getState, mutateAccountState, mutateState, ensureBidShape, bidRuleFor } from "../gameState.js";
-import { exchangeTaxBreakdown } from "../game/progression.js"; // ISP-302 (AB#2285): the rate and its royalty share
 import { taxOnSale } from "../../public/scripts/exchangeTax.js";
 import { getStationInventory } from "../gameState.js";
 import { applyCredits } from "../finances.js";
@@ -23,7 +22,7 @@ import { chargeTariff, tariffRateFor } from "../tariffService.js"; // ISP-230 (A
 import { watchView, withholdCouncilDebt, withholdDuty } from "../itcService.js"; // ISP-232 (AB#927); ISP-233 (AB#928): the watch's view
 import { withholdRoyaltyDebt } from "../patents.js"; // ISP-236 (AB#931)
 import { onSale } from "../standingService.js"; // ISP-238 (AB#933)
-import { salesTaxBaseAt } from "../lobbyingService.js"; // ISP-239 (AB#934)
+import { payStationTax, saleTaxBreakdownAt } from "../game/stationTax.js"; // ISP-212b (AB#4655)
 import { buyOrderView } from "../publicViews.js";
 import { stationById } from "../game/stations.js"; // ISP-209 (AB#904)
 import { recoveryHold } from "../recoveryHold.js"; // ISP-286 (AB#993)
@@ -360,6 +359,7 @@ export function registerMarketRoutes(app) {
     let tradeRoyaltyWithheld = 0; // ISP-236 (AB#931)
     let tradeCouncilWithheld = 0; // ISP-242 (AB#938)
     let royaltyPaid = 0, saleStationId = null; // ISP-228 (AB#923): the concession holder's share, paid once the seller is saved
+    let saleBreakdown = null; // ISP-212b (AB#4655): at a conglomerate's station, its tax goes to the treasury once the seller is saved
 
     const seller = mutateAccountState(req.auth.accountId, (state) => {
       const npcStationId = state.corp.currentStationId || "earth-station-prime";
@@ -375,15 +375,18 @@ export function registerMarketRoutes(app) {
       if (inventory[npcOrder.item] <= 0) delete inventory[npcOrder.item];
 
       // ISP-302 (AB#2285): the rate includes the lease royalty; its share is booked apart, as "lease-royalty".
-      const breakdown = exchangeTaxBreakdown(state, salesTaxBaseAt(npcStationId)); // ISP-239 (AB#934): the system's tax in force
+      // ISP-239 (AB#934): the system's tax in force; ISP-212b (AB#4655): or, at a conglomerate's station, the station's
+      const breakdown = saleTaxBreakdownAt(state, npcStationId);
+      saleBreakdown = breakdown;
       const taxPct = breakdown.ratePct;
       const { tax: taxAmount, royalty, salesTax, proceeds: sellerProceeds } = taxOnSale(tradeTotal, breakdown);
       tradeTaxPct = taxPct;
       tradeTaxAmount = taxAmount;
       // Bug #984: the gross the NPC paid is income and the tax an expense; the balance moves by the proceeds.
       applyCredits(state.corp, tradeTotal, "exchange");
-      applyCredits(state.corp, -salesTax, "exchange-tax");
-      onSale(state.corp, { item: npcOrder.item, quantity: requestedQty, unitPrice, salesTax }); // ISP-238 (AB#933): an NPC buyer is never a partner
+      applyCredits(state.corp, -salesTax, breakdown.station ? "station-tax" : "exchange-tax");
+      // ISP-238 (AB#933): an NPC buyer is never a partner. A station's tax goes to its conglomerate, not the ISA: no standing
+      onSale(state.corp, { item: npcOrder.item, quantity: requestedQty, unitPrice, salesTax: breakdown.station ? 0 : salesTax });
       applyCredits(state.corp, -royalty, "lease-royalty");
       royaltyPaid = royalty;
       recordSale(state.corp, npcStationId, tradeTotal); // ISP-217 (AB#912): an NPC buyer is never a partner
@@ -424,6 +427,7 @@ export function registerMarketRoutes(app) {
       return;
     }
     if (royaltyPaid > 0) payConcessionShare(stationById(saleStationId)?.systemId, royaltyPaid, seller.state.corp, Date.now(), "royalty"); // AB#923
+    payStationTax(saleBreakdown, tradeTaxAmount, seller.state.corp); // ISP-212b (AB#4655)
 
     mutateState((draft) => {
       const target = (draft.market.npcBuyOrders || []).find((o) => o.id === orderId);
@@ -438,7 +442,7 @@ export function registerMarketRoutes(app) {
     });
 
     emitMarketUpdated();
-    const traded = { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount, dutyWithheld: tradeWithheld, ...(tradeCouncilWithheld ? { councilWithheld: tradeCouncilWithheld } : {}), proceeds: tradeProceeds };
+    const traded = { orderId, item: npcOrder.item, quantity: requestedQty, unitPrice, total: tradeTotal, taxPct: tradeTaxPct, taxAmount: tradeTaxAmount, ...(saleBreakdown?.station ? { stationTax: { conglomerateName: saleBreakdown.station.conglomerateName, member: saleBreakdown.station.member } } : {}), tariffPct: tradeTariff.pct, tariffAmount: tradeTariff.amount, dutyWithheld: tradeWithheld, ...(tradeCouncilWithheld ? { councilWithheld: tradeCouncilWithheld } : {}), proceeds: tradeProceeds };
     res.json({ ok: true, traded, account: seller, receipt: sellToOrderReceipt(traded) }); // AB#744
   });
 }

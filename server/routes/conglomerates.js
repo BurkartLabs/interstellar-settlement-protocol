@@ -125,7 +125,7 @@ export function registerConglomerateRoutes(app) {
   // ISP-211 (AB#906): governing the built station by stake. Proposing needs the role; voting needs a stake, which the rules check.
   app.get(`${base}/station`, guarded("view", (req, res) => reply(res, stationGovernanceRead(req.params.accountId, req.params.conglomerateId))));
   app.post(`${base}/station/proposals`, guarded("propose-station-setting", (req, res) => reply(res, proposeStationSetting(req.params.accountId, req.params.conglomerateId, {
-    setting: req.body?.setting, value: req.body?.value ?? null, conglomerateId: req.body?.conglomerateId ?? null
+    setting: req.body?.setting, value: req.body?.setting === "tax" ? req.body?.taxPct ?? null : req.body?.value ?? null, conglomerateId: req.body?.conglomerateId ?? null // ISP-212b (AB#4655)
   }), 201)));
   app.post(`${base}/station/proposals/:proposalId/vote`, guarded("view", (req, res) => reply(res, voteOnStationProposal(req.params.accountId, req.params.conglomerateId, req.params.proposalId, req.body?.vote))));
   app.get(`${base}/hangar`, guarded("view", (req, res) => reply(res, hangarView(req.params.accountId, req.params.conglomerateId, undefined, undefined, page(req)))));

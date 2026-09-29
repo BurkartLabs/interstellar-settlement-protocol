@@ -111,7 +111,7 @@ describe("stakes (ISP-211, AB#906)", () => {
     const view = (await g.d.api.get(g.url(g.d, "/station"))).body;
     expect(view.stakes.map((s) => s.corp)).toEqual([m.corpId, g.d.corpId]);
     expect(view.stakes.reduce((s, x) => s + x.pct, 0)).toBeCloseTo(100, 9);
-    expect(view.settings).toEqual({ access: "open", listed: [] });
+    expect(view.settings).toEqual({ access: "open", listed: [], taxPct: 8, taxOptions: [2, 5, 8] }); // ISP-212b (AB#4655): the tax nearest the ISA's 8%
     const outsider = await player();
     expect((await outsider.api.get(`${outsider.base}/conglomerates/${g.c.id}/station`)).status).toBe(404);
   });
@@ -158,7 +158,7 @@ describe("governing the station (ISP-211, AB#906)", () => {
     await vote(g, m1, list.id, "yes");
     const mode = (await propose(g, g.d, { setting: "access", value: "members-and-listed" })).body.proposal;
     await vote(g, m1, mode.id, "yes");
-    expect(g.c.station.settings).toEqual({ access: "members-and-listed", listed: [other.c.id] });
+    expect(g.c.station.settings).toEqual({ access: "members-and-listed", listed: [other.c.id], taxPct: 8 });
     expect((await other.f.api.post(`${other.f.base}/gameplay/travel`).send({ toStationId: g.c.station.id })).status).toBe(200);
     expect((await outsider.api.post(`${outsider.base}/gameplay/travel`).send({ toStationId: g.c.station.id })).status).toBe(400);
   });

@@ -35,6 +35,7 @@ export const LEDGER_KINDS = {
   "station-project-refund": "Station project refund",
   "station-built": "Station opened",
   "stake-buyout": "Stake buyout",
+  "station-tax": "Station sales tax", // ISP-212b (AB#4655): a non-member's sale at the conglomerate's station
   relocated: "Moved to the station" // ISP-212a (AB#4654): the hangar's goods, moved with it when the station opened
 };
 const kindLabel = (k) => LEDGER_KINDS[k] || escapeHtml(k);

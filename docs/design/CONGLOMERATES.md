@@ -390,6 +390,12 @@ none. Stakes are per corporation, recorded in the ledger, and shown to every mem
   stations elsewhere costs the normal per-jump fee.
 - **An exchange the conglomerate governs**: sales tax at the station is set from a fixed list (`stationTaxOptions`,
   2%, 5%, 8%); members always pay 0; what non-members pay goes to the treasury.
+  **As built (ISP-212b, AB#4655):** the rate is the station's `tax` setting, changed only by the stake vote and only to
+  one of the options; it starts at the option nearest the ISA's exchange tax (8%), so a station's opening changes
+  nobody's price. At the station it replaces the ISA's tax whole, lease royalty and insight discount included: a member
+  pays exactly 0, anyone else exactly the rate, booked as `station-tax` and paid into the treasury (a "Station sales
+  tax" ledger row), earning no Earth Assembly standing. Both sale paths read it from `server/game/stationTax.js`, and
+  the Exchange quotes it from the same arithmetic (GET /tariffs, `here.stationTax`).
 
 **Governance.** The station's settings (who may dock, the tax on non-members, and upgrades when they exist) change by a
 **stake-weighted vote**: the founder or a director proposes a change from the fixed options, it is open for

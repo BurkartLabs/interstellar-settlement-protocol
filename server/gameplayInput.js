@@ -335,7 +335,8 @@ export const ACCOUNT_INPUT = {
   "POST /conglomerates/:conglomerateId/station/proposals": {
     params: { conglomerateId: ref("a conglomerate") },
     body: {
-      setting: word(["access", "list", "unlist"], "a station setting: access, list or unlist"),
+      setting: word(["access", "list", "unlist", "tax"], "a station setting: access, list, unlist or tax"),
+      taxPct: int(0, 100, "a sales tax percentage", { optional: true }), // ISP-212b (AB#4655): the rules allow only stationTaxOptions
       value: word(["open", "members", "members-and-listed"], "who may dock: open, members or members-and-listed", { optional: true }),
       conglomerateId: ref("a conglomerate", { optional: true })
     }

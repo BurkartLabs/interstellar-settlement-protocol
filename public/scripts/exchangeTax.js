@@ -41,6 +41,16 @@ export function withBasePct(breakdown, basePct) {
   return { ...breakdown, basePct, ratePct, royaltyPct, salesTaxPct: ratePct - royaltyPct };
 }
 
+/**
+ * ISP-212b (AB#4655): the breakdown at a conglomerate's own station, from its station tax (server/game/stationTax.js
+ * stationTaxAt: { pct, member, votedPct, conglomerateName, stationName }). The station's rate replaces the ISA's tax
+ * whole: no lease royalty, no discount; `station` says whose it is, for the quote's line and the treasury.
+ */
+export function stationTaxBreakdown(stationTax) {
+  const pct = Math.max(0, Number(stationTax?.pct) || 0);
+  return { basePct: pct, discountPoints: 0, leasesHeld: 0, royaltyPoints: 0, ratePct: pct, royaltyPct: 0, salesTaxPct: pct, station: { ...stationTax, pct } };
+}
+
 export function taxOnSale(gross, breakdown) {
   const tax = Math.round(gross * breakdown.ratePct / 100);
   const royalty = Math.min(tax, Math.round(gross * breakdown.royaltyPct / 100));
