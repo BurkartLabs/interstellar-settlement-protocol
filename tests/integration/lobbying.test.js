@@ -182,13 +182,20 @@ describe("the lobbying office (ISP-240, AB#935)", () => {
       helios.corp.standing[EA] = 25;
     }
     // the register: Kestrel sees Helios's side, and its own amount, never Helios's
-    const id = openCampaign(helios.corp, { parameter: "tariffCapPct", systemId: ALPHA, direction: "raise" }).campaign.id;
+    // Bug #4874: opened at a moment whose milliseconds end in 15000, Helios's amount, so a check that searched the whole
+    // campaign for the digits would meet them in opensAt; it failed that way at random before (as Bug #4808)
+    const now = Date.now(), opensAt = now - (now % 100_000) + 15_000 - (now % 100_000 < 15_000 ? 100_000 : 0);
+    const id = openCampaign(helios.corp, { parameter: "tariffCapPct", systemId: ALPHA, direction: "raise" }, opensAt).campaign.id;
     pledge(helios.corp, id, { side: "for", credits: 15_000 });
     pledge(kestrel.corp, id, { side: "against", credits: 4_000 });
     const k = (await kestrel.api.get(`/api/accounts/${kestrel.id}/lobbying`)).body.campaigns.find((c) => c.id === id);
     expect(k).toMatchObject({ systemName: "Alpha Centauri", openedByYou: false, own: [expect.objectContaining({ side: "against", credits: 4_000 })] });
     expect(k.pledgers).toEqual(expect.arrayContaining([expect.objectContaining({ side: "for" }), expect.objectContaining({ side: "against" })]));
-    expect(JSON.stringify(k)).not.toContain("15000");
+    expect(String(k.opensAt)).toMatch(/15000$/);
+    // a pledger is who and which side, never an amount; and no value anywhere in the campaign is Helios's 15,000
+    for (const p of k.pledgers) expect(Object.keys(p).sort()).toEqual(["name", "side"]);
+    const values = (v) => (v && typeof v === "object" ? Object.values(v).flatMap(values) : [v]);
+    expect(values(k).map(String)).not.toContain("15000");
     expect((await kestrel.api.get(`/api/accounts/${helios.id}/lobbying`)).status).toBe(403);
   });
 });

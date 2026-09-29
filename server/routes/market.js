@@ -395,7 +395,8 @@ export function registerMarketRoutes(app) {
       tradeProceeds = sellerProceeds - tradeTariff.amount - tradeWithheld - tradeCouncilWithheld - tradeRoyaltyWithheld;
 
       if (!state.corp.stats) state.corp.stats = {};
-      state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
+      // Bug #4869: "Sell N Silicate" (levels 3, 4 and 10) counts Silicates; it counted every good sold here
+      if (npcOrder.item === "Silicates") state.corp.stats.silicateSoldOnExchange = (Number(state.corp.stats.silicateSoldOnExchange) || 0) + requestedQty;
 
       if (!Array.isArray(state.corp.tradeHistory)) state.corp.tradeHistory = [];
       state.corp.tradeHistory.unshift({

@@ -15,6 +15,7 @@ describe("what a level's notice says (Bug #1260)", () => {
     const u = unlocks(1);
     expect(notice).toEqual({
       type: "level",
+      protocol: { meaning: "complete", screen: "overview" }, // ISP-254 C2 (AB#4812): Concluded, on the Overview
       title: "Corporation Level 1",
       body:
         `Your corporation reached Level 1 of ${MAX_DEFINED_LEVEL}. Employee cap ${u.employeeCap}, building slots ${u.buildingSlots}, ` +
