@@ -59,7 +59,7 @@ describe("the ledger (AB#901)", () => {
   });
 
   it("names every kind of row the server writes", () => {
-    for (const kind of ["opening", "charter-deposit", "deposit", "custody-fee", "withdrawal", "withdrawal-announced", "withdrawal-blocked", "withdrawal-failed", "upkeep", "upkeep-unpaid", "arrears-paid", "level", "level-lost", "dissolution", "relocated"]) {
+    for (const kind of ["opening", "charter-deposit", "deposit", "custody-fee", "withdrawal", "withdrawal-announced", "withdrawal-blocked", "withdrawal-failed", "upkeep", "upkeep-unpaid", "arrears-paid", "level", "level-lost", "dissolution", "station-tax", "relocated"]) {
       expect(LEDGER_KINDS[kind], kind).toBeTruthy();
     }
   });

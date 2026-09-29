@@ -601,10 +601,10 @@ async function cancelStation() {
 
 async function proposeSetting(form) {
   const [setting, value] = String(form.what.value).split("|");
-  const body = setting === "access" ? { setting, value } : { setting, conglomerateId: value };
+  const body = setting === "access" ? { setting, value } : setting === "tax" ? { setting, taxPct: Number(value) } : { setting, conglomerateId: value }; // tax: ISP-212b (AB#4655)
   await stationOrder("station/proposals", body, {
     line: "propose", form,
-    done: (a) => (a.proposal.state === "passed" ? `Passed at once: docking is now ${ACCESS_LABELS[a.settings.access] || a.settings.access}.` : `Put to the vote: ${a.proposal.text}.`),
+    done: (a) => (a.proposal.state === "passed" ? `Passed at once: ${a.proposal.text}.` : `Put to the vote: ${a.proposal.text}.`),
     meaning: (a) => (a.proposal.state === "passed" ? "active" : "pending")
   });
 }

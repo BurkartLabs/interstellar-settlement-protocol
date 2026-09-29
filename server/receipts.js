@@ -484,14 +484,15 @@ export function buyReceipt({ item, quantity, unitPrice, total, stationName }) {
   });
 }
 
-export function sellToOrderReceipt({ item, quantity, unitPrice, total, taxPct, taxAmount, tariffPct = 0, tariffAmount = 0, dutyWithheld = 0, proceeds }) {
+export function sellToOrderReceipt({ item, quantity, unitPrice, total, taxPct, taxAmount, tariffPct = 0, tariffAmount = 0, dutyWithheld = 0, proceeds, stationTax = null }) {
   return receipt("sell-to-order", {
     title: "Sale Completed",
     summary: `${amount(quantity)} ${item} sold to a standing order at ${formatCredits(unitPrice)} each.`,
     costCredits: taxAmount + tariffAmount + dutyWithheld, // ISP-232 (AB#927): what was withheld is charged too
     grants: [
       { label: "Sale value", value: formatCredits(total) },
-      { label: "Exchange tax", value: `${formatCredits(taxAmount)} (${taxPct}%)${tariffAmount || dutyWithheld ? "" : ", the amount charged above"}` },
+      // ISP-212b (AB#4655): at a conglomerate's station, its tax, paid to its treasury (nothing for a member)
+      { label: stationTax ? (stationTax.member ? "Member tax" : "Station tax") : "Exchange tax", value: `${formatCredits(taxAmount)} (${taxPct}%)${stationTax ? `, to ${stationTax.conglomerateName}` : ""}${tariffAmount || dutyWithheld ? "" : ", the amount charged above"}` },
       // ISP-230 (AB#925): the concession holder's tariff, when the system has one
       ...(tariffAmount ? [{ label: "Concession tariff", value: `${formatCredits(tariffAmount)} (${tariffPct}%)` }] : []),
       // ISP-232 (AB#927): toward anti-dumping duty owed to the ITC

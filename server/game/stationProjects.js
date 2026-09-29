@@ -13,7 +13,7 @@
 // is built) returns each contribution to where it came from, in full. Completion checks the bill of materials again
 // and creates nothing if it is short (fails closed); a second completion finds the station and does nothing more.
 
-import { CONGLOMERATE_CATALOG, can } from "../conglomerates.js";
+import { CONGLOMERATE_CATALOG, can, defaultStationTaxPct } from "../conglomerates.js";
 import { applyCredits } from "../finances.js";
 import { ECONOMY } from "../economy.js";
 import { createId, SYSTEMS_BY_ID } from "./catalog.js";
@@ -255,7 +255,7 @@ export function settleStationProject(c, now = Date.now(), catalog = CONGLOMERATE
     station = added.station;
   }
   // ISP-211 (AB#906): the stakes, fixed from the contributions now, and the settings the stakeholders govern
-  c.station = { id: station.id, builtAt: now, projectId: p.id, contributions: p.contributions, stakes: stakesFrom(contributedValues(p.contributions)), settings: { access: "open", listed: [] }, proposals: [] };
+  c.station = { id: station.id, builtAt: now, projectId: p.id, contributions: p.contributions, stakes: stakesFrom(contributedValues(p.contributions)), settings: { access: "open", listed: [], taxPct: defaultStationTaxPct(catalog) }, proposals: [] }; // taxPct: ISP-212b (AB#4655)
   c.stationProject = null;
   noteTreasury(c, { at: now, kind: "station-built", corp: null, by: "bureau", note: `${station.name} opened` });
   ensureHangar(c, catalog); // ISP-212a (AB#4654): the hangar moves to the station now, with its goods, free

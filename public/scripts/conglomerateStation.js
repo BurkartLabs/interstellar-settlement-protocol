@@ -155,6 +155,7 @@ export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], sta
   const benefits = `<ul class="cong-station__benefits" data-role="cong-station-benefits">
       ${rate === null ? "" : `<li><strong>Offices at ${n(rate)}%.</strong> A member's suite here costs ${n((standardRent * rate) / 100)} credits a day, not ${n(standardRent)}: lease or renew it in the Orbital Executive Suites once docked.</li>`}
       <li><strong>Free logistics in ${escapeHtml(systemName(systems, st.systemId))}.</strong> Goods move between ${escapeHtml(st.name)} and any other station in the system for nothing.</li>
+      ${Number.isFinite(gov.settings.taxPct) ? `<li><strong>No sales tax for members.</strong> A member's sale on the exchange here pays nothing; anyone else pays ${n(gov.settings.taxPct)}%, to the treasury.</li>` : ""}
     </ul>`;
   const open = gov.proposals.filter((p) => p.state === "open");
   const closed = gov.proposals.filter((p) => p.state !== "open").slice(0, 5);
@@ -180,6 +181,7 @@ export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], sta
           ${Object.entries(ACCESS_LABELS).filter(([id]) => id !== gov.settings.access).map(([id, label]) => `<option value="access|${id}">Docking: ${escapeHtml(label)}</option>`).join("")}
           ${others.filter((c) => !listed.includes(c.id)).map((c) => `<option value="list|${escapeHtml(c.id)}">List ${escapeHtml(c.name)}</option>`).join("")}
           ${gov.settings.listed.map((c) => `<option value="unlist|${escapeHtml(c.id)}">Unlist ${escapeHtml(c.name)}</option>`).join("")}
+          ${(gov.settings.taxOptions || []).filter((pct) => pct !== gov.settings.taxPct).map((pct) => `<option value="tax|${n(pct)}">Sales tax for non-members: ${n(pct)}%</option>`).join("")}
         </select>
         <span class="ui-field__hint">It passes when more than half of all stake votes yes${mine ? "; your own stake counts as a yes" : ""}, and lapses after 72 hours.</span></div>
       <button type="submit" class="ui-button ui-button--primary">Put it to the vote</button>
@@ -204,7 +206,8 @@ export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], sta
     <section class="ui-panel station__panel cong-panel" data-role="cong-station-governance">
       <h3>${codeSlotHtml("cong-station-governance")}Governance</h3>
       <dl class="ui-kv cong-terms"><dt>Who may dock</dt><dd data-role="cong-station-access">${escapeHtml(ACCESS_LABELS[gov.settings.access] || gov.settings.access)}</dd>
-        <dt>Listed</dt><dd>${gov.settings.listed.length ? gov.settings.listed.map((l) => escapeHtml(l.name)).join(", ") : "None"}</dd></dl>
+        <dt>Listed</dt><dd>${gov.settings.listed.length ? gov.settings.listed.map((l) => escapeHtml(l.name)).join(", ") : "None"}</dd>
+        ${Number.isFinite(gov.settings.taxPct) ? `<dt>Sales tax</dt><dd data-role="cong-station-tax">${n(gov.settings.taxPct)}% for non-members, to the treasury; members pay none</dd>` : ""}</dl>
       ${open.length ? `<h4 class="cong-subhead">Open votes</h4><ul class="cong-list">${open.map(voteRow).join("")}</ul>` : `<p class="cong-panel__lede">No vote is open.</p>`}
       ${statusLine("cong-vote-status", status.vote)}
       ${propose}

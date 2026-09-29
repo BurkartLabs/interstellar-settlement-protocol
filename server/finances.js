@@ -124,6 +124,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
     "exchange-escrow",
     "exchange-tax",
     "lease-royalty", // ISP-302 (AB#2285): the royalty's share of a sale's tax, booked apart so it can be counted
+    "station-tax", // ISP-212b (AB#4655): a non-member's sales tax at a conglomerate's station, paid to its treasury
     "tariff", // ISP-230 (AB#925): a concession holder's tariff on a sale or a transfer into its system
     "patent-royalty", // ISP-236 (AB#931): royalty on another corporation's patented node or chain, at use or withheld from a sale
     "arbitration-award-paid", // ISP-242 (AB#938): an arbitration award paid by the respondent: a cure, or a Council debt withheld from a sale

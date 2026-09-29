@@ -33,6 +33,7 @@ import { accountByCorp, findConglomerate, roleOf } from "./game/membership.js";
 import { ensureTreasury, moveTreasury } from "./game/conglomerates.js";
 import { publicConcession } from "./concessions.js";
 import { parameterInForce, salesTaxBaseAt } from "./lobbyingService.js"; // ISP-239 (AB#934): the rules in force
+import { stationTaxAt } from "./game/stationTax.js"; // ISP-212b (AB#4655)
 import { fileRate, levyOf, listingRate, rateAt, rateProblem, settle, tariffOn } from "./game/tariffs.js";
 import { transferBase as baseAt } from "../public/scripts/tariffs.js"; // ISP-231 (AB#926): the client quotes with it too
 
@@ -272,7 +273,7 @@ export function tariffSummary(corp, now = Date.now()) {
   if (systemIdHere) {
     const pct = tariffRateFor(corp, stationId, now);
     const exempt = isHolderSide(corp, holdersInForce(systemIdHere, now));
-    here = { stationId, systemId: systemIdHere, cap: tariffCap(systemIdHere), pct, exempt, pending: exempt ? null : systems[systemIdHere]?.pending || null, salesTaxPct: salesTaxBaseAt(stationId, now) }; // ISP-239 (AB#934)
+    here = { stationId, systemId: systemIdHere, cap: tariffCap(systemIdHere), pct, exempt, pending: exempt ? null : systems[systemIdHere]?.pending || null, salesTaxPct: salesTaxBaseAt(stationId, now), stationTax: stationTaxAt(corp, stationId) }; // ISP-239 (AB#934); ISP-212b (AB#4655): the Exchange quotes what the sale will pay
   }
   const normalValues = {};
   for (const [sid, inv] of Object.entries(corp?.inventory || {})) {
