@@ -1,0 +1,608 @@
+/* AB#4880: display style "Zaibatsu" (Round 1 v2, mockup 07). An East-Asian megacorporation's terminal: ink black, warm
+   off-black panels, one vermilion accent, thin gold rules. Zen Kaku Gothic New for text, IBM Plex Mono for figures,
+   condensed stretched capitals for headings (Archivo, width axis). The navigation is a train-line signage rail across the
+   top: each group a line segment with its caption set vertically, each tab a station (a ring drawn in CSS) with its
+   label under it, the active station filled vermilion over an underline. Style and structure only; no content. */
+
+:root[data-theme="zaibatsu"] {
+  --bg: #0a0908;
+  --surface-1: #161210;
+  --surface-2: #1d1815;
+  --surface-3: #2a231e;
+  --border: #5c5247; /* the game's own hairline colour; the style thins it below */
+
+  --text: #f4efe4;
+  --text-soft: #d8d1c4;
+  --muted: #b0a698;
+
+  --accent: #ef5a3f; /* vermilion */
+  --accent-hover: #f7735a;
+  --accent-pressed: #d9482d;
+  --on-accent: #0c0806;
+  --warn: #d9b266; /* gold */
+  --warn-hover: #e6c380;
+  --warn-pressed: #c79f52;
+  --on-warn: #1a1206;
+  --danger: #ff7d68;
+  --danger-hover: #ff9885;
+  --danger-pressed: #f0654e;
+  --on-danger: #1c0804;
+  --success: #86cfa4;
+  --success-hover: #a0dbb7;
+  --success-pressed: #6fbd90;
+  --on-success: #06160d;
+  --station-owned: #d9b266;
+
+  --scrim-hero: linear-gradient(90deg, rgb(10 9 8 / 0.92) 0%, rgb(10 9 8 / 0.78) 55%, rgb(10 9 8 / 0.45) 100%);
+  --scrim-modal: rgb(6 5 4 / 0.8);
+  --scrim-caption: linear-gradient(0deg, rgb(10 9 8 / 0.92) 0%, rgb(10 9 8 / 0.55) 40%, rgb(10 9 8 / 0) 75%);
+
+  --focus-ring: 2px solid var(--warn);
+  --focus-ring-offset: 2px;
+
+  --series-1: #ef5a3f;
+  --series-2: #d9b266;
+  --series-3: #86cfa4;
+  --series-4: #e8dfcd;
+  --series-5: #8f857a;
+
+  --font-sans: "Zen Kaku Gothic New", "Noto Sans", "Segoe UI", sans-serif;
+  --font-wordmark: var(--font-sans);
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --font-cond: "Archivo", "Arial Narrow", "Zen Kaku Gothic New", sans-serif;
+  --font-size-display: clamp(0.95rem, 1.5vw, 1.05rem);
+  --letter-spacing-caps: 0.12em;
+
+  --radius-sm: 1px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+
+  --elevation-overlay: 0 14px 36px rgb(0 0 0 / 0.7);
+
+  --zb-hair: rgb(244 238 227 / 0.11);
+  --zb-hair-strong: rgb(244 238 227 / 0.2);
+  --zb-gold-dim: rgb(217 178 102 / 0.4);
+  --zb-glow: rgb(239 90 63 / 0.4);
+  --zb-hazard: repeating-linear-gradient(-45deg, #ef5a3f 0 12px, #0a0908 12px 24px);
+}
+
+/* ─── Page ─── */
+[data-theme="zaibatsu"] body {
+  background:
+    radial-gradient(ellipse at 18% -10%, rgb(239 90 63 / 0.07), transparent 45%),
+    radial-gradient(ellipse at 92% 110%, rgb(217 178 102 / 0.06), transparent 40%);
+  -webkit-font-smoothing: antialiased;
+}
+:root[data-theme="zaibatsu"] { background: var(--bg); }
+[data-theme="zaibatsu"] #starfield-canvas { display: none; }
+[data-theme="zaibatsu"] .app-bg {
+  animation: none;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 63px, rgb(244 238 227 / 0.025) 63px 64px),
+    repeating-linear-gradient(90deg, transparent 0 63px, rgb(244 238 227 / 0.025) 63px 64px),
+    var(--bg);
+}
+[data-theme="zaibatsu"] #game-shell { height: auto; min-height: 100vh; }
+
+/* ─── Header: a strip with the brand left, the player's controls right ─── */
+[data-theme="zaibatsu"] .app-header {
+  align-items: center;
+  padding: 12px 32px;
+  border-bottom: 1px solid var(--zb-hair-strong);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  backdrop-filter: none;
+}
+[data-theme="zaibatsu"] .app-header__brand {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+[data-theme="zaibatsu"] .app-header__title {
+  order: 1;
+  font-size: var(--font-size-display);
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+[data-theme="zaibatsu"] .app-header__overline {
+  order: 2;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--warn);
+}
+[data-theme="zaibatsu"] .app-header__actions { gap: 8px; }
+[data-theme="zaibatsu"] .app-header__style-label { font-family: var(--font-mono); }
+[data-theme="zaibatsu"] .app-header__style-select { min-width: 9rem; }
+[data-theme="zaibatsu"] .app-header__panel {
+  border-color: var(--warn);
+  background: var(--surface-2);
+}
+
+/* ─── Layout: rail across the top, then the side column and the screen ─── */
+[data-theme="zaibatsu"] .layout-grid {
+  gap: 24px;
+  max-width: 1680px;
+  margin: 0 auto;
+}
+@media (min-width: 768px) {
+  [data-theme="zaibatsu"] .layout-grid {
+    grid-template-columns: minmax(230px, 270px) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    grid-template-areas: "nav nav" "side main";
+    padding: 0 32px 40px;
+  }
+}
+[data-theme="zaibatsu"] .side-panel {
+  max-height: none;
+  overflow: visible;
+  margin-top: 24px;
+  gap: 16px;
+}
+[data-theme="zaibatsu"] .main-panel { padding-top: 24px; }
+[data-theme="zaibatsu"] .tab-panel {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  backdrop-filter: none;
+}
+
+/* ─── Screen header: condensed, stretched capitals over a micro-label line ─── */
+[data-theme="zaibatsu"] .ui-screen__header { gap: 10px; }
+[data-theme="zaibatsu"] .ui-screen__title {
+  font-family: var(--font-cond);
+  font-stretch: 62%;
+  font-weight: 800;
+  font-size: clamp(32px, 4.4vw, 54px);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+[data-theme="zaibatsu"] .ui-screen__lede {
+  padding-left: 12px;
+  border-left: 2px solid var(--accent);
+  color: var(--text-soft);
+}
+[data-theme="zaibatsu"] .ui-screen__meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+[data-theme="zaibatsu"] .ui-code {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+}
+[data-theme="zaibatsu"] .ui-screen__title .ui-code {
+  display: block;
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-stretch: 100%;
+  font-size: 12px;
+  line-height: 1.2;
+}
+[data-theme="zaibatsu"] .ui-panel__title .ui-code { color: var(--accent); }
+[data-theme="zaibatsu"] .ui-code:empty { display: none; }
+
+/* ─── Panels and cards: hard edges, gold corner ticks, a ruled header ─── */
+[data-theme="zaibatsu"] .ui-panel {
+  border: 1px solid var(--zb-hair-strong);
+  border-radius: 0;
+  background:
+    linear-gradient(var(--warn), var(--warn)) top left / 12px 1px no-repeat,
+    linear-gradient(var(--warn), var(--warn)) top left / 1px 12px no-repeat,
+    linear-gradient(var(--warn), var(--warn)) bottom right / 12px 1px no-repeat,
+    linear-gradient(var(--warn), var(--warn)) bottom right / 1px 12px no-repeat,
+    var(--surface-1);
+}
+[data-theme="zaibatsu"] .ui-panel__header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--zb-hair-strong);
+  background: linear-gradient(180deg, rgb(244 238 227 / 0.04), transparent);
+}
+[data-theme="zaibatsu"] .ui-panel__title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+[data-theme="zaibatsu"] .ui-panel__meta {
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+}
+[data-theme="zaibatsu"] .ui-panel__body { padding: 16px; }
+[data-theme="zaibatsu"] .ui-card {
+  border: 1px solid var(--zb-hair);
+  border-left: 2px solid var(--zb-gold-dim);
+  border-radius: 0;
+  background: var(--surface-2);
+}
+[data-theme="zaibatsu"] .ui-card__title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-theme="zaibatsu"] .ui-card__meta { font-family: var(--font-mono); letter-spacing: 0.04em; }
+[data-theme="zaibatsu"] .ui-card--interactive:hover,
+[data-theme="zaibatsu"] .ui-card--interactive.is-hover {
+  border-left-color: var(--accent);
+  background: var(--surface-3);
+}
+[data-theme="zaibatsu"] .ui-card--interactive.is-selected,
+[data-theme="zaibatsu"] .ui-card--interactive[aria-pressed="true"] {
+  border-color: var(--accent);
+  border-left-width: 3px;
+}
+[data-theme="zaibatsu"] .ui-kv dt {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+[data-theme="zaibatsu"] .ui-kv dd { font-family: var(--font-mono); }
+
+/* ─── Side panel ─── */
+[data-theme="zaibatsu"] .side-panel__toggle {
+  font-family: var(--font-sans);
+  border-bottom: 1px solid transparent;
+}
+[data-theme="zaibatsu"] .side-panel__toggle[aria-expanded="true"] { border-bottom-color: var(--zb-hair-strong); }
+[data-theme="zaibatsu"] .side-panel__toggle .ui-panel__title { letter-spacing: 0.16em; }
+[data-theme="zaibatsu"] .side-panel__arrow { color: var(--warn); }
+[data-theme="zaibatsu"] .side-panel__milestone { font-size: 13px; }
+
+/* ─── Figures: mono values in ruled tiles; the negative flow is a hazard-striped warning block ─── */
+[data-theme="zaibatsu"] .kpi-strip { gap: 12px; }
+[data-theme="zaibatsu"] .kpi-tile {
+  padding: 12px 16px 14px;
+  border: 1px solid var(--zb-hair-strong);
+  border-left: 3px solid var(--accent);
+  border-radius: 0;
+  background: var(--surface-2);
+  gap: 6px;
+}
+[data-theme="zaibatsu"] .kpi-tile--primary { border-left-color: var(--warn); background: var(--surface-2); }
+[data-theme="zaibatsu"] .kpi-tile__label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+[data-theme="zaibatsu"] .kpi-tile__value {
+  font-weight: 500;
+  font-size: 28px;
+  letter-spacing: 0;
+}
+[data-theme="zaibatsu"] .kpi-tile--primary .kpi-tile__value { color: var(--text); }
+[data-theme="zaibatsu"] .kpi-tile__sub,
+[data-theme="zaibatsu"] .kpi-tile__trend { letter-spacing: 0.02em; }
+[data-theme="zaibatsu"] .kpi-tile:has(#overview-net-flow[data-tone="negative"]),
+[data-theme="zaibatsu"] .kpi-tile:has(#kpi-net-flow.kpi-tile__value--negative) {
+  border: 9px solid transparent;
+  padding: 10px 14px 12px;
+  background: linear-gradient(var(--bg), var(--bg)) padding-box, var(--zb-hazard) border-box;
+}
+[data-theme="zaibatsu"] .kpi-tile:has(#overview-net-flow[data-tone="negative"]) .kpi-tile__value,
+[data-theme="zaibatsu"] .kpi-tile:has(#kpi-net-flow.kpi-tile__value--negative) .kpi-tile__value {
+  color: var(--danger);
+  font-weight: 600;
+}
+[data-theme="zaibatsu"] .kpi-tile:has(#overview-net-flow[data-tone="negative"]) .kpi-tile__label,
+[data-theme="zaibatsu"] .kpi-tile:has(#kpi-net-flow.kpi-tile__value--negative) .kpi-tile__label {
+  color: var(--text-soft);
+}
+[data-theme="zaibatsu"] .overview__figures .kpi-tile__value[data-tone="negative"] { color: var(--danger); }
+[data-theme="zaibatsu"] .overview__figures .kpi-tile__value[data-tone="positive"] { color: var(--success); }
+
+/* ─── Controls ─── */
+[data-theme="zaibatsu"] .ui-button {
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-theme="zaibatsu"] .ui-button--primary { background: var(--accent); color: var(--on-accent); }
+[data-theme="zaibatsu"] .ui-button--secondary {
+  background: transparent;
+  border-color: var(--zb-hair-strong);
+  color: var(--text-soft);
+}
+[data-theme="zaibatsu"] .ui-button--secondary:hover:not(:disabled),
+[data-theme="zaibatsu"] .ui-button--secondary.is-hover {
+  background: var(--surface-2);
+  border-color: var(--warn);
+  color: var(--text);
+}
+[data-theme="zaibatsu"] .ui-button--ghost { color: var(--warn); }
+[data-theme="zaibatsu"] .ui-button--ghost:hover:not(:disabled) { color: var(--warn-hover); }
+[data-theme="zaibatsu"] .ui-button--danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+[data-theme="zaibatsu"] .ui-button--danger:hover:not(:disabled) { background: var(--danger); color: var(--on-danger); }
+[data-theme="zaibatsu"] .ui-input,
+[data-theme="zaibatsu"] .ui-select,
+[data-theme="zaibatsu"] input,
+[data-theme="zaibatsu"] select,
+[data-theme="zaibatsu"] textarea {
+  border-radius: 2px;
+  border-color: var(--zb-hair-strong);
+  background: var(--bg);
+  font-family: var(--font-mono);
+}
+[data-theme="zaibatsu"] .ui-input:hover:not(:disabled),
+[data-theme="zaibatsu"] .ui-select:hover:not(:disabled) { border-color: var(--warn); }
+[data-theme="zaibatsu"] .ui-field__label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ─── Sub-tabs ─── */
+[data-theme="zaibatsu"] .ui-tabs { border-bottom: 1px solid var(--zb-hair-strong); gap: 0; }
+[data-theme="zaibatsu"] .ui-tab {
+  padding: 0 16px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+[data-theme="zaibatsu"] .ui-tab[aria-selected="true"] {
+  background: var(--surface-2);
+  border-bottom: 3px solid var(--accent);
+}
+
+/* ─── Data ─── */
+[data-theme="zaibatsu"] .ui-table { font-family: var(--font-mono); font-size: 13px; }
+[data-theme="zaibatsu"] .ui-table th {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  border-bottom: 1px solid var(--zb-gold-dim);
+}
+[data-theme="zaibatsu"] .ui-table td { border-bottom: 1px solid var(--zb-hair); }
+[data-theme="zaibatsu"] .ui-table tbody tr:hover { background: rgb(239 90 63 / 0.08); }
+[data-theme="zaibatsu"] .ui-badge {
+  min-height: 20px;
+  border-radius: 1px;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-theme="zaibatsu"] .ui-badge--accent { color: var(--accent); background: rgb(239 90 63 / 0.14); }
+[data-theme="zaibatsu"] .ui-badge--warn { color: var(--warn); border-color: var(--warn); }
+[data-theme="zaibatsu"] .progress-wrap {
+  height: 6px;
+  border-radius: 0;
+  background: var(--surface-3);
+}
+[data-theme="zaibatsu"] .progress-bar { background: var(--accent); }
+[data-theme="zaibatsu"] .ui-list { font-family: var(--font-sans); }
+[data-theme="zaibatsu"] .modal-card {
+  border: 1px solid var(--warn);
+  border-radius: 0;
+  background: var(--surface-1);
+}
+
+/* ─── Navigation: the train-line signage rail (desktop) ─── */
+@media (min-width: 768px) {
+  [data-theme="zaibatsu"] .app-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0;
+    margin: 0 -32px;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid var(--zb-hair-strong);
+    border-radius: 0;
+    background: var(--bg);
+  }
+  [data-theme="zaibatsu"] .nav-group {
+    flex: 1 1 auto;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+    border-right: 1px solid var(--zb-hair);
+    border-bottom: 1px solid var(--zb-hair);
+  }
+  /* The line segment's caption, set vertically at the segment's head. */
+  [data-theme="zaibatsu"] .nav-group__button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 22px;
+    min-height: 0;
+    padding: 8px 5px 24px;
+    writing-mode: vertical-rl;
+    background: var(--surface-1);
+    border-right: 1px solid var(--zb-hair);
+    border-radius: 0;
+    color: var(--text-soft);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+  }
+  [data-theme="zaibatsu"] .nav-group__button:hover:not(:disabled) { color: var(--warn); background: var(--surface-2); }
+  [data-theme="zaibatsu"] .nav-group__button[aria-expanded] { padding-right: 5px; }
+  [data-theme="zaibatsu"] .nav-group__button[aria-expanded]::after {
+    top: auto;
+    right: auto;
+    bottom: 6px;
+    left: 50%;
+    color: var(--warn);
+    font-size: 12px;
+    writing-mode: horizontal-tb;
+    transform: translateX(-50%);
+  }
+  [data-theme="zaibatsu"] .nav-group__button[aria-expanded="false"]::after {
+    transform: translateX(-50%) rotate(-90deg);
+  }
+  [data-theme="zaibatsu"] .nav-count {
+    writing-mode: horizontal-tb;
+    margin: 0;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    border-radius: 1px;
+  }
+  [data-theme="zaibatsu"] .nav-group__tabs {
+    flex: 1 1 auto;
+    flex-direction: row;
+    gap: 0;
+  }
+  /* A station: a ring on the line, the label under it. */
+  [data-theme="zaibatsu"] .nav-tab {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 7px;
+    flex: 1 1 84px;
+    width: auto;
+    min-width: 84px;
+    min-height: 82px;
+    padding: 12px 3px 12px;
+    border: 0;
+    border-right: 1px solid var(--zb-hair);
+    border-radius: 0;
+    background: var(--bg);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.15;
+    text-align: center;
+    overflow-wrap: break-word;
+    transition: background 0.15s;
+  }
+  [data-theme="zaibatsu"] .nav-tab:last-child { border-right: 0; }
+  [data-theme="zaibatsu"] .nav-tab::before {
+    content: "";
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    border: 2px solid rgb(244 238 227 / 0.4);
+    border-radius: 50%;
+    background: radial-gradient(circle, currentColor 0 2.5px, transparent 3px);
+  }
+  [data-theme="zaibatsu"] .nav-tab:hover:not(:disabled) {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  [data-theme="zaibatsu"] .nav-tab:hover:not(:disabled)::before { border-color: var(--warn); }
+  [data-theme="zaibatsu"] .nav-tab.active {
+    background: var(--surface-3);
+    border-left: 0;
+    color: var(--text);
+    font-weight: 700;
+  }
+  [data-theme="zaibatsu"] .nav-tab.active::before {
+    border-color: var(--accent);
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--zb-glow);
+    color: var(--text);
+  }
+  [data-theme="zaibatsu"] .nav-tab.active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--accent);
+  }
+  [data-theme="zaibatsu"] .nav-tab--locked::before { border-style: dashed; }
+  [data-theme="zaibatsu"] .nav-tab:focus-visible { outline-offset: -3px; }
+}
+
+/* ─── Phone: the bottom bar, restyled ─── */
+@media (max-width: 767px) {
+  [data-theme="zaibatsu"] .app-header { padding: 10px 16px; }
+  [data-theme="zaibatsu"] .layout-grid { padding: 0 16px calc(var(--space-4) + var(--space-16) + var(--space-16)); }
+  [data-theme="zaibatsu"] .side-panel { margin-top: 0; }
+  [data-theme="zaibatsu"] .main-panel { padding-top: 16px; }
+  [data-theme="zaibatsu"] .app-nav {
+    background: var(--bg);
+    border-top: 1px solid var(--accent);
+  }
+  [data-theme="zaibatsu"] .nav-group__button {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  [data-theme="zaibatsu"] .nav-group__button.active {
+    border-top-color: var(--accent);
+    background: var(--surface-2);
+  }
+  [data-theme="zaibatsu"] .nav-count { background: var(--accent); }
+  [data-theme="zaibatsu"] .nav-group.is-open .nav-group__tabs:has(> .nav-tab:not([hidden]) ~ .nav-tab:not([hidden])) {
+    background: var(--surface-1);
+    border-top: 1px solid var(--zb-hair-strong);
+  }
+  [data-theme="zaibatsu"] .nav-tab {
+    color: var(--text-soft);
+    border-radius: 0;
+  }
+  [data-theme="zaibatsu"] .nav-tab.active {
+    background: var(--surface-3);
+    border-bottom-color: var(--accent);
+    color: var(--text);
+  }
+  [data-theme="zaibatsu"] .ui-screen__title { font-size: clamp(30px, 10vw, 44px); }
+  [data-theme="zaibatsu"] .ui-screen__title .ui-code,
+  [data-theme="zaibatsu"] .ui-code,
+  [data-theme="zaibatsu"] .ui-panel__title,
+  [data-theme="zaibatsu"] .ui-card__title,
+  [data-theme="zaibatsu"] .ui-kv dt,
+  [data-theme="zaibatsu"] .ui-screen__meta { font-size: 14px; }
+  [data-theme="zaibatsu"] .ui-button { min-height: 44px; font-size: 13px; }
+}
+
+/* ─── Before play ─── */
+[data-theme="zaibatsu"] .auth-page,
+[data-theme="zaibatsu"] .landing { font-family: var(--font-sans); }
+[data-theme="zaibatsu"] .auth-page__overline,
+[data-theme="zaibatsu"] .landing__overline {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  letter-spacing: 0.2em;
+}
+[data-theme="zaibatsu"] .auth-page__title,
+[data-theme="zaibatsu"] .landing__title,
+[data-theme="zaibatsu"] .landing__wordmark {
+  font-family: var(--font-cond);
+  font-stretch: 62%;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+[data-theme="zaibatsu"] .auth-page__title { font-size: 40px; line-height: 1; }
+[data-theme="zaibatsu"] .landing__hero { border-bottom: 1px solid var(--warn); }
+[data-theme="zaibatsu"] .landing__heading {
+  font-family: var(--font-sans);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+[data-theme="zaibatsu"] .landing__proof,
+[data-theme="zaibatsu"] .landing__shot {
+  border-radius: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme="zaibatsu"] .nav-tab.active::before { animation: zaibatsu-pulse 3.2s ease-in-out infinite; }
+  @keyframes zaibatsu-pulse {
+    0%, 100% { box-shadow: 0 0 6px var(--zb-glow); }
+    50% { box-shadow: 0 0 14px var(--zb-glow); }
+  }
+}

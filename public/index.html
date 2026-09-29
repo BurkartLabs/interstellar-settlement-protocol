@@ -32,6 +32,7 @@
     <link rel="stylesheet" href="landing.css" />
     <link rel="preload" href="styles.css" as="style" />
     <script type="module" src="scripts/appStyles.js" async></script>
+    <script src="/scripts/displayStyles.js"></script>
     <script type="module" src="scripts/starfield.js"></script>
     <!-- Bug #4836: the entry. The landing loads it and the starfield only; a visit that opens the game loads Chart.js and app.js -->
     <script type="module" src="scripts/boot.js"></script>
@@ -139,6 +140,11 @@
               <ul id="notification-list" class="ui-panel__body notifications"></ul>
             </section>
           </div>
+          <!-- AB#4880: the display style, this browser's choice (scripts/displayStyles.js fills and wires it). -->
+          <label class="app-header__style">
+            <span class="app-header__style-label">Style</span>
+            <select id="display-style-select" class="ui-select app-header__style-select" aria-label="Display style"></select>
+          </label>
           <button id="replay-onboarding-btn" class="ui-button ui-button--secondary" type="button">Replay Onboarding</button>
           <button id="account-data-btn" class="ui-button ui-button--secondary" type="button" aria-haspopup="dialog" aria-controls="account-data-modal">Account</button>
           <button id="logout-btn" class="ui-button ui-button--secondary" type="button">Log Out</button>

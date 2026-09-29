@@ -4870,6 +4870,23 @@ img.station__body {
 .app-header__notifications {
   position: relative;
 }
+/* AB#4880: the display-style picker, a small label beside its select, in the header's row of actions. */
+.app-header__style {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.app-header__style-label {
+  color: var(--muted);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+}
+.app-header__style-select {
+  width: auto;
+  min-width: 11rem;
+}
 /* ISP-264 (AB#960): with Account beside Notifications and Log Out, a phone's header keeps them on one row */
 @media (max-width: 480px) {
   .app-header__actions {

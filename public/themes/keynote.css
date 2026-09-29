@@ -1,0 +1,623 @@
+/* AB#4880: display style "keynote" (Round 2, mockup 19: Apple keynote / Nothing OS bento).
+   Pure black, near-black tiles with a hairline edge, white Space Grotesk, one electric orange-red accent used sparingly
+   (the active dock item, primary buttons), the same hue for danger. Doto, a dot-matrix face, for the big figures.
+   The navigation is a glass dock along the bottom of the viewport on a desktop; a phone keeps its bottom bar.
+   Style and structure only: every selector is scoped to data-theme="keynote", no text is generated or hidden. */
+
+:root[data-theme="keynote"] {
+  --bg: #000000;
+  --surface-1: #0e0e10;
+  --surface-2: #17171a;
+  --surface-3: #26262b;
+  --surface-hover: #1d1d21;
+  --surface-pressed: #2c2c31;
+  --border: #1f1f22;
+
+  --text: #ffffff;
+  --text-soft: #d6d6db;
+  --muted: #9c9ca5;
+
+  --accent: #ff4d1f;
+  --accent-hover: #ff6a42;
+  --accent-pressed: #e63c10;
+  --on-accent: #000000;
+  --warn: #ffb224;
+  --warn-hover: #ffc250;
+  --warn-pressed: #ec9f10;
+  --on-warn: #1a1000;
+  --danger: #ff6a45;
+  --danger-hover: #ff8564;
+  --danger-pressed: #f0562f;
+  --on-danger: #000000;
+  --success: #3ddc97;
+  --success-hover: #63e6ae;
+  --success-pressed: #2ac783;
+  --on-success: #00150b;
+  --station-owned: #c9a6ff;
+
+  --scrim-hero: linear-gradient(90deg, rgb(0 0 0 / 0.92) 0%, rgb(0 0 0 / 0.8) 55%, rgb(0 0 0 / 0.45) 100%);
+  --scrim-modal: rgb(0 0 0 / 0.78);
+  --scrim-caption: linear-gradient(0deg, rgb(0 0 0 / 0.92) 0%, rgb(0 0 0 / 0.55) 40%, rgb(0 0 0 / 0) 75%);
+
+  --focus-ring: 2px solid #ffffff;
+  --focus-ring-offset: 2px;
+
+  --series-1: #ff4d1f;
+  --series-2: #3ddc97;
+  --series-3: #ffb224;
+  --series-4: #8fb4ff;
+  --series-5: #9c9ca5;
+
+  --font-sans: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-wordmark: var(--font-sans);
+  --font-mono: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-figure: "Doto", "Space Grotesk", ui-monospace, monospace;
+  --font-size-display: clamp(1rem, 1.6vw, 1.15rem);
+  --letter-spacing-caps: 0.1em;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+
+  --elevation-overlay: 0 18px 48px rgb(0 0 0 / 0.8);
+
+  --keynote-dock-h: 168px;
+  --keynote-tile: 24px;
+}
+
+/* ─── Page ─── */
+[data-theme="keynote"] #starfield-canvas,
+[data-theme="keynote"] .app-bg {
+  display: none;
+}
+:root[data-theme="keynote"],
+[data-theme="keynote"] body {
+  background: #000;
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+[data-theme="keynote"] #market {
+  background: var(--surface-1);
+  border-radius: var(--keynote-tile);
+}
+[data-theme="keynote"] #market::before {
+  background: var(--surface-1);
+  opacity: 0.9;
+}
+
+/* ─── Header: minimal, one row, at most 56px ─── */
+[data-theme="keynote"] .app-header {
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 56px;
+  padding: 0 var(--space-6);
+  background: rgb(0 0 0 / 0.88);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+}
+[data-theme="keynote"] .app-header__brand {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+}
+[data-theme="keynote"] .app-header__overline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--font-size-1);
+  line-height: 1;
+  letter-spacing: var(--letter-spacing-caps);
+  white-space: nowrap;
+  order: 2;
+}
+[data-theme="keynote"] .app-header__overline::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+[data-theme="keynote"] .app-header__title {
+  order: 1;
+  font-size: var(--font-size-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  color: var(--text);
+}
+[data-theme="keynote"] .app-header__actions {
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+}
+[data-theme="keynote"] .app-header .ui-button {
+  min-height: 34px;
+  padding: 0 var(--space-3);
+}
+[data-theme="keynote"] .app-header__style-select {
+  min-height: 34px;
+  min-width: 9rem;
+}
+[data-theme="keynote"] .app-header__panel {
+  border-radius: var(--keynote-tile);
+  background: var(--surface-1);
+  border-color: #2a2a2e;
+}
+
+/* ─── Layout: content and the side column; the dock is fixed ─── */
+@media (min-width: 768px) {
+  [data-theme="keynote"] .layout-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    grid-template-rows: auto;
+    grid-template-areas: "main side";
+    gap: var(--space-5);
+    padding: var(--space-6) var(--space-6) calc(var(--keynote-dock-h) + var(--space-4));
+  }
+  [data-theme="keynote"] .side-panel {
+    position: sticky;
+    top: 72px;
+    max-height: calc(100vh - 72px - var(--keynote-dock-h) - var(--space-8));
+  }
+  [data-theme="keynote"] html,
+  :root[data-theme="keynote"] {
+    scroll-padding-bottom: calc(var(--keynote-dock-h) + var(--space-8));
+  }
+
+  /* The dock: glass-dark, bordered, group captions over each group's buttons; it scrolls inside itself. */
+  [data-theme="keynote"] .app-nav {
+    position: fixed;
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: var(--space-3);
+    z-index: 20;
+    flex-direction: row;
+    align-items: stretch;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4) var(--space-2);
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: rgb(16 16 18 / 0.86);
+    border: 1px solid #2c2c31;
+    border-radius: var(--keynote-tile);
+    backdrop-filter: blur(24px) saturate(1.4);
+    box-shadow: 0 10px 40px rgb(0 0 0 / 0.7);
+    scrollbar-width: thin;
+    scrollbar-color: #2c2c31 transparent;
+  }
+  [data-theme="keynote"] .nav-group {
+    flex: 0 0 auto;
+    gap: 2px;
+    padding-inline: var(--space-2);
+  }
+  [data-theme="keynote"] .nav-group + .nav-group {
+    border-left: 1px solid var(--border);
+    padding-left: var(--space-4);
+  }
+  [data-theme="keynote"] .nav-group__button,
+  [data-theme="keynote"] .nav-group__button[aria-expanded] {
+    min-height: 20px;
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    font-size: var(--font-size-1);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+  }
+  [data-theme="keynote"] .nav-group__button:hover:not(:disabled) {
+    color: var(--text);
+  }
+  [data-theme="keynote"] .nav-group__button[aria-expanded]::after {
+    display: none;
+  }
+  /* Every tab of every group stays in sight: a collapsed group still shows its buttons, and the dock wraps to a
+     second row when the groups do not fit one. */
+  [data-theme="keynote"] .nav-group .nav-group__tabs,
+  [data-theme="keynote"] .nav-group.is-collapsed .nav-group__tabs {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-1);
+  }
+  [data-theme="keynote"] .nav-tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-radius: 14px;
+    color: var(--text-soft);
+    font-size: var(--font-size-3);
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+  }
+  [data-theme="keynote"] .nav-tab:hover:not(:disabled) {
+    background: var(--surface-3);
+    color: var(--text);
+  }
+  [data-theme="keynote"] .nav-tab.active,
+  [data-theme="keynote"] .nav-tab.active:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+  }
+}
+
+/* ─── Phone bar, restyled to match ─── */
+@media (max-width: 767px) {
+  [data-theme="keynote"] .app-header {
+    min-height: 0;
+    padding: var(--space-2) var(--space-4);
+  }
+  [data-theme="keynote"] .app-header__brand {
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+  }
+  [data-theme="keynote"] .app-header__actions {
+    flex-wrap: wrap;
+  }
+  [data-theme="keynote"] .app-nav {
+    background: rgb(14 14 16 / 0.94);
+    border-color: #2c2c31;
+    backdrop-filter: blur(20px);
+  }
+  [data-theme="keynote"] .nav-group__button {
+    color: var(--text-soft);
+    border-top-width: 2px;
+  }
+  [data-theme="keynote"] .nav-group__button.active {
+    border-top-color: var(--accent);
+    color: var(--text);
+    font-weight: 700;
+  }
+  [data-theme="keynote"] .nav-group.is-open .nav-group__tabs:has(> .nav-tab:not([hidden]) ~ .nav-tab:not([hidden])) {
+    background: rgb(23 23 26 / 0.96);
+    border-top-color: #2c2c31;
+  }
+  [data-theme="keynote"] .nav-tab {
+    border-radius: 14px;
+    border-bottom-width: 0;
+    color: var(--text-soft);
+  }
+  [data-theme="keynote"] .nav-tab.active {
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+  }
+}
+
+/* ─── Tiles: panels, cards, screens ─── */
+[data-theme="keynote"] .tab-panel {
+  background: var(--surface-1);
+  border-color: var(--border);
+  border-radius: var(--keynote-tile);
+  backdrop-filter: none;
+}
+[data-theme="keynote"] .tab-panel.ui-screen {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+}
+[data-theme="keynote"] .ui-screen.active {
+  gap: var(--space-5);
+}
+[data-theme="keynote"] .ui-screen__header {
+  padding: var(--space-2) var(--space-2) 0;
+  gap: var(--space-1);
+}
+[data-theme="keynote"] .ui-screen__title {
+  font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+[data-theme="keynote"] .ui-screen__lede,
+[data-theme="keynote"] .ui-screen__meta {
+  color: var(--muted);
+}
+[data-theme="keynote"] .ui-panel {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--keynote-tile);
+}
+[data-theme="keynote"] .ui-panel__header {
+  padding: var(--space-5) var(--space-6) 0;
+  border-bottom: 0;
+}
+[data-theme="keynote"] .ui-panel__title {
+  font-size: var(--font-size-2);
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+  color: var(--text);
+}
+[data-theme="keynote"] .ui-panel__meta {
+  color: var(--muted);
+}
+[data-theme="keynote"] .ui-panel__body {
+  padding: var(--space-4) var(--space-6) var(--space-6);
+}
+[data-theme="keynote"] .ui-card {
+  padding: var(--space-5);
+  background: var(--surface-2);
+  border-color: var(--border);
+  border-radius: 18px;
+}
+[data-theme="keynote"] .ui-card--interactive:hover,
+[data-theme="keynote"] .ui-card--interactive.is-hover {
+  background: var(--surface-3);
+}
+[data-theme="keynote"] .ui-card--interactive.is-selected,
+[data-theme="keynote"] .ui-card--interactive[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+[data-theme="keynote"] .ui-code {
+  color: var(--muted);
+  font-size: var(--font-size-1);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+[data-theme="keynote"] .ui-grid {
+  gap: var(--space-5);
+}
+
+/* Side column */
+[data-theme="keynote"] .side-panel {
+  gap: var(--space-4);
+}
+[data-theme="keynote"] .side-panel__toggle,
+[data-theme="keynote"] .insight__toggle {
+  padding: var(--space-4) var(--space-5);
+  font-weight: 600;
+}
+[data-theme="keynote"] .side-panel__toggle[aria-expanded="true"] {
+  border-bottom-color: var(--border);
+}
+
+/* ─── Figures: dot-matrix numbers ─── */
+[data-theme="keynote"] .kpi-strip {
+  gap: var(--space-4);
+  margin-bottom: 0;
+}
+[data-theme="keynote"] .kpi-tile {
+  gap: var(--space-2);
+  padding: var(--space-6);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--keynote-tile);
+}
+[data-theme="keynote"] .kpi-tile::before {
+  display: none;
+}
+[data-theme="keynote"] .kpi-tile--primary {
+  background: var(--surface-1);
+  border-color: #2c2c31;
+}
+[data-theme="keynote"] .kpi-tile:has(.kpi-tile__value--negative, .kpi-tile__value[data-tone="negative"]) {
+  background: linear-gradient(180deg, rgb(255 77 31 / 0.16), var(--surface-1) 70%);
+  border-color: rgb(255 77 31 / 0.5);
+}
+[data-theme="keynote"] .kpi-tile__label {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-1);
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-caps);
+  color: var(--muted);
+}
+[data-theme="keynote"] .kpi-tile__value {
+  font-family: var(--font-figure);
+  font-size: clamp(1.7rem, 2.3vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--text);
+  overflow-wrap: break-word;
+}
+[data-theme="keynote"] .kpi-tile--primary .kpi-tile__value {
+  color: var(--text);
+  font-size: clamp(2.4rem, 3.6vw, 3.4rem);
+}
+[data-theme="keynote"] .kpi-tile__value--positive,
+[data-theme="keynote"] .overview__figures .kpi-tile__value[data-tone="positive"] {
+  color: var(--success);
+}
+[data-theme="keynote"] .kpi-tile--primary .kpi-tile__value--negative,
+[data-theme="keynote"] .kpi-tile__value--negative,
+[data-theme="keynote"] .overview__figures .kpi-tile__value[data-tone="negative"] {
+  color: var(--danger);
+}
+[data-theme="keynote"] .kpi-tile__sub,
+[data-theme="keynote"] .kpi-tile__trend {
+  font-family: var(--font-sans);
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+[data-theme="keynote"] .kpi-tile__trend--up { color: var(--success); }
+[data-theme="keynote"] .kpi-tile__trend--down { color: var(--danger); }
+
+/* ─── Controls ─── */
+[data-theme="keynote"] .ui-button {
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+[data-theme="keynote"] .ui-button--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+[data-theme="keynote"] .ui-button--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+[data-theme="keynote"] .ui-button--primary:active:not(:disabled) {
+  background: var(--accent-pressed);
+}
+[data-theme="keynote"] .ui-button--secondary {
+  background: var(--surface-2);
+  border-color: #2c2c31;
+  color: var(--text);
+}
+[data-theme="keynote"] .ui-button--secondary:hover:not(:disabled) {
+  background: var(--surface-3);
+  border-color: #3a3a41;
+}
+[data-theme="keynote"] .ui-button--ghost {
+  background: transparent;
+  color: var(--text);
+}
+[data-theme="keynote"] .ui-button--ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+[data-theme="keynote"] .ui-button--danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+[data-theme="keynote"] .ui-button--danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--on-danger);
+}
+[data-theme="keynote"] .ui-button--danger:active:not(:disabled) {
+  background: var(--danger-pressed);
+  color: var(--on-danger);
+}
+[data-theme="keynote"] .ui-input,
+[data-theme="keynote"] .ui-select {
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  background: #000;
+  border-color: #2c2c31;
+  border-radius: var(--radius-md);
+}
+[data-theme="keynote"] .ui-input:hover:not(:disabled),
+[data-theme="keynote"] .ui-select:hover:not(:disabled) {
+  border-color: #46464e;
+}
+[data-theme="keynote"] .ui-input:focus-visible,
+[data-theme="keynote"] .ui-select:focus-visible {
+  border-color: var(--accent);
+}
+
+/* Sub-tabs: a segmented pill, the selected one white on black */
+[data-theme="keynote"] .ui-tabs {
+  gap: var(--space-1);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--space-1);
+  background: var(--surface-2);
+  border-bottom: 0;
+  border-radius: var(--radius-pill);
+}
+[data-theme="keynote"] .ui-tabs [role="tab"],
+[data-theme="keynote"] .ui-tab {
+  min-height: 34px;
+  padding: 0 var(--space-4);
+  border-bottom: 0;
+  border-radius: var(--radius-pill);
+  color: var(--text-soft);
+}
+[data-theme="keynote"] .ui-tabs [role="tab"]:hover:not(:disabled),
+[data-theme="keynote"] .ui-tab:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-3);
+}
+[data-theme="keynote"] .ui-tabs [role="tab"][aria-selected="true"],
+[data-theme="keynote"] .ui-tab[aria-selected="true"] {
+  background: #fff;
+  color: #000;
+}
+
+@media (max-width: 767px) {
+  [data-theme="keynote"] .ui-tabs [role="tab"],
+  [data-theme="keynote"] .ui-tab,
+  [data-theme="keynote"] .ui-input,
+  [data-theme="keynote"] .ui-select {
+    min-height: 44px;
+  }
+}
+
+/* ─── Data ─── */
+[data-theme="keynote"] .ui-badge {
+  min-height: 22px;
+  padding: 0 var(--space-3);
+  background: var(--surface-2);
+  border-color: #2c2c31;
+  letter-spacing: 0.04em;
+}
+[data-theme="keynote"] .ui-badge--accent,
+[data-theme="keynote"] .ui-badge--danger {
+  background: rgb(255 77 31 / 0.14);
+}
+[data-theme="keynote"] .ui-table th {
+  border-bottom-color: var(--border);
+  color: var(--muted);
+}
+[data-theme="keynote"] .ui-table td {
+  border-bottom-color: var(--border);
+}
+[data-theme="keynote"] .ui-table tbody tr:hover {
+  background: var(--surface-2);
+}
+[data-theme="keynote"] .progress-wrap {
+  height: 6px;
+  background: var(--surface-3);
+}
+[data-theme="keynote"] .progress-bar {
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+}
+[data-theme="keynote"] .exchange__fill {
+  background: var(--surface-3);
+}
+[data-theme="keynote"] .exchange__fill::-webkit-progress-bar {
+  background: var(--surface-3);
+}
+[data-theme="keynote"] .exchange__fill::-webkit-progress-value {
+  background: var(--accent);
+}
+[data-theme="keynote"] .exchange__fill::-moz-progress-bar {
+  background: var(--accent);
+}
+
+/* Dialogs */
+[data-theme="keynote"] .modal-card {
+  background: var(--surface-1);
+  border: 1px solid #2c2c31;
+  border-radius: var(--keynote-tile);
+}
+
+/* ─── Before play: landing and sign-in ─── */
+[data-theme="keynote"] .auth-page__card,
+[data-theme="keynote"] .landing .ui-card {
+  border-radius: var(--keynote-tile);
+}
+[data-theme="keynote"] .auth-page__card {
+  padding: var(--space-8);
+}
+[data-theme="keynote"] .auth-page__overline,
+[data-theme="keynote"] .landing__overline {
+  color: var(--accent);
+}
+[data-theme="keynote"] .auth-page__title,
+[data-theme="keynote"] .landing__title {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+[data-theme="keynote"] .landing__hero,
+[data-theme="keynote"] .landing__intro {
+  border-bottom-color: var(--border);
+}
+[data-theme="keynote"] .landing__shot,
+[data-theme="keynote"] .landing__proof {
+  border-radius: var(--keynote-tile);
+}
+
+/* ─── Motion ─── */
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme="keynote"] .nav-tab,
+  [data-theme="keynote"] .ui-button {
+    transition: background var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard), border-color var(--duration-base) var(--ease-standard);
+  }
+}
