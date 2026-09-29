@@ -9,6 +9,12 @@ import { cr } from "../devBank.js";
 import { appState } from "../state.js";
 import { pushFeedback, refreshFromServer, showTradeConfirmation } from "./shared.js";
 import { codeSlotHtml } from "../sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
+import { escapeHtml } from "../html.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-255 (AB#4824)
+
+// ISP-255 (AB#4824): the Loan Board's lines and log entries carry the protocol phrase and the board's code
+const onBoard = (meaning) => ({ meaning, screen: "loans-board" });
+const said = (text, meaning) => `${escapeHtml(text)} ${protocolLineHtml(onBoard(meaning))}`;
 
 const board = { accountId: null, offers: null, rules: null, minGrades: [], grade: "NR", sort: "rate-asc", onlyMine: false, loans: null, error: "", form: {} };
 const bound = new WeakSet();
@@ -69,7 +75,7 @@ async function postOffer(el, form) {
   board.form = offer;
   const credits = Math.floor(Number(appState.data?.corp?.finances?.credits) || 0);
   if (credits < offer.principal) {
-    status.textContent = `Offering ${cr(offer.principal)} credits holds them in escrow; you have ${cr(credits)}.`;
+    status.innerHTML = said(`Offering ${cr(offer.principal)} credits holds them in escrow; you have ${cr(credits)}. Offer ${cr(credits)} or less.`, "unfunded"); // AB#4824 (ISP-6)
     return;
   }
   const confirmed = await showTradeConfirmation({
@@ -87,11 +93,11 @@ async function postOffer(el, form) {
   status.textContent = "Posting…";
   try {
     await parseJsonResponse(await apiFetch(`${base()}/loan-offers`, { method: "POST", headers: json, body: JSON.stringify(offer) }));
-    pushFeedback(`Offered ${cr(offer.principal)} credits on the loan board.`, "success");
+    pushFeedback(`Offered ${cr(offer.principal)} credits on the loan board.`, "success", onBoard("queued"));
     await refreshFromServer();
     await load(el);
   } catch (error) {
-    status.textContent = error?.message || "The offer was not posted.";
+    status.innerHTML = said(error?.message || "The offer was not posted.", refusalMeaning(error));
   }
 }
 
@@ -113,10 +119,10 @@ async function acceptOffer(el, offerId, btn) {
   btn.disabled = true;
   try {
     await parseJsonResponse(await apiFetch(`${base()}/loan-offers/${encodeURIComponent(offerId)}/accept`, { method: "POST", headers: json, body: "{}" }));
-    pushFeedback(`Borrowed ${cr(o.principal)} credits from ${o.lenderName}.`, "success");
+    pushFeedback(`Borrowed ${cr(o.principal)} credits from ${o.lenderName}.`, "success", onBoard("active"));
     await refreshFromServer();
   } catch (error) {
-    pushFeedback(error?.message || "The loan was not taken.", "error");
+    pushFeedback(error?.message || "The loan was not taken.", "error", onBoard(refusalMeaning(error)));
   }
   await load(el);
 }
@@ -125,10 +131,10 @@ async function cancelOffer(el, offerId, btn) {
   btn.disabled = true;
   try {
     await parseJsonResponse(await apiFetch(`${base()}/loan-offers/${encodeURIComponent(offerId)}/cancel`, { method: "POST", headers: json, body: "{}" }));
-    pushFeedback("Offer withdrawn; its escrow is back in your account.", "success");
+    pushFeedback("Offer withdrawn; its escrow is back in your account.", "success", onBoard("cancelled"));
     await refreshFromServer();
   } catch (error) {
-    pushFeedback(error?.message || "The offer was not withdrawn.", "error");
+    pushFeedback(error?.message || "The offer was not withdrawn.", "error", onBoard(refusalMeaning(error)));
   }
   await load(el);
 }
