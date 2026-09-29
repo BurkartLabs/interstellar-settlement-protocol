@@ -9,6 +9,7 @@ import { closeDueDays, MAX_STATEMENTS } from "../finances.js";
 import { unknownLeaseBodies } from "../leases.js";
 import { reportAndArchiveInvestments } from "../legacyInvestments.js";
 import { NAME_CHARS, validateCorporationName, SYSTEM_SENDERS } from "../corporationName.js";
+import { mailboxKey } from "../mailboxKey.js"; // Bug #4798: one mailbox, one account
 import { settlePayroll, payrollNotice } from "../payroll.js";
 import { PASSWORD_SALT_ROUNDS, SYSTEMS_DATA, accountsSnapshotPath, createId, dataDir, deepClone, safeWriteFile, statePath } from "./catalog.js";
 import { evaluateAccountLevel, evaluateLevelProgress, pushSystemNotification, refreshExchangeTax, sanitizeNotification } from "./progression.js";
@@ -474,8 +475,7 @@ export async function createAccount({ email, password, ceoName, corpName }) {
   if (!NAME_CHARS.test(normalizedCeoName)) {
     return { error: "CEO name may use letters, digits, spaces and - ' . & only.", field: "ceoName" };
   }
-
-  const existing = Object.values(accountsStore.accounts || {}).find((item) => item.email === normalizedEmail);
+  const existing = Object.values(accountsStore.accounts || {}).find((item) => mailboxKey(item.email) === mailboxKey(normalizedEmail)); // Bug #4798
   if (existing) {
     // Bug #1059: the code lets the page offer the login instead.
     return { error: "An account with this email already exists.", code: "email-taken", field: "email" };
