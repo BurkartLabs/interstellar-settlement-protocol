@@ -124,6 +124,56 @@ function conversationView(member) {
   };
 }
 
+// ─── ISP-264 (AB#960): a player's mail, exported and erased ─────────────────
+/** What an erased message reads as, in the other side's copy of the conversation. */
+export const ERASED_MESSAGE = "This message was deleted with its sender's account.";
+
+/** Every conversation the account is in, with every message in it, as the account sees them. */
+export function exportAccountMail(accountId) {
+  const members = loadInbox(accountId);
+  return Object.values(members).map((member) => ({
+    ...conversationView(member),
+    messages: loadThread(member.conversationId).map((m) => messageView(m, accountId))
+  }));
+}
+
+/**
+ * The files an erasure will change, so the caller can put them back if a later step fails: the account's inbox, each
+ * of its threads, and the other side's inbox of each. { [file]: text | null }.
+ */
+export function accountMailFiles(accountId) {
+  const members = loadInbox(accountId);
+  const files = [inboxFile(accountId), ...Object.values(members).flatMap((m) => [threadFile(m.conversationId), inboxFile(m.other)])];
+  return Object.fromEntries(files.map((file) => [file, io.read(file)]));
+}
+
+/** Put files back as accountMailFiles read them (a missing one is removed), and forget what was cached. */
+export function restoreMailFiles(saved) {
+  for (const [file, text] of Object.entries(saved)) { if (text === null) io.truncate(file, 0); else io.write(file, text); }
+  resetConversationCache();
+}
+
+/**
+ * Erase the account's mail: its inbox goes, and in each conversation the messages it sent keep their place but not
+ * their words, subject or sender name (the other side's thread stays whole, and says what happened). The other side's
+ * preview of a last message the account sent is erased too. `label` is what the sender is called afterwards.
+ */
+export function eraseAccountMail(accountId, label) {
+  const members = loadInbox(accountId);
+  for (const member of Object.values(members)) {
+    const thread = loadThread(member.conversationId).map((m) => (m.from === accountId
+      ? { ...Object.fromEntries(Object.entries(m).filter(([k]) => k !== "subject")), body: ERASED_MESSAGE, fromName: label }
+      : m));
+    io.write(threadFile(member.conversationId), thread.map((m) => JSON.stringify(m)).join("\n") + (thread.length ? "\n" : ""));
+    const theirs = loadInbox(member.other);
+    const row = theirs[accountId];
+    if (row && !row.lastFromMe) row.lastPreview = ERASED_MESSAGE.slice(0, PREVIEW_CHARS);
+    if (row) io.write(inboxFile(member.other), inboxText(theirs));
+  }
+  io.truncate(inboxFile(accountId), 0);
+  resetConversationCache();
+}
+
 // ─── Cursors ─────────────────────────────────────────────────────────────────
 const encodeCursor = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
 function decodeCursor(cursor) {

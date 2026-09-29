@@ -42,6 +42,13 @@ function readStore() {
   }
 }
 const save = () => safeWriteFile(FILE, JSON.stringify(store));
+
+/** ISP-264 (AB#960): the store as held, for a player's data export and for erasing an account (server/accountData.js). */
+export const dataStore = Object.freeze({
+  file: "lobbying.json",
+  read: () => store,
+  rewrite(fn) { if (!store || typeof store !== "object") return; fn(store); safeWriteFile(FILE, JSON.stringify(store)); } // nothing held yet: nothing to write
+});
 const no = (status, error) => ({ status, error });
 
 /** A parameter's base in a system: the rule table's tariff cap, or the catalog's sales tax and dumping lines. */

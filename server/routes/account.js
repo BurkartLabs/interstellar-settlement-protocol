@@ -1,8 +1,47 @@
 // server/routes/account.js: the account routes, split out of server/index.js (AB#1815).
 import { addAccountNotification, getAccountById, getStatements, listAccountNotifications, markAllNotificationsRead, markNotificationRead, markWalkthroughCompleted, resetWalkthroughCompletion } from "../gameState.js";
 import { emitToAccount } from "../realtime.js";
+import { checkDeletion, eraseAccount, exportAccountData } from "../accountData.js"; // ISP-264 (AB#960)
+import { deleteAccountLimiter, exportDataLimiter } from "../rateLimiters.js";
+
+/** ISP-264 (AB#960): why a deletion was refused. Every refusal changes nothing. */
+const DELETION_REFUSALS = {
+  "not-confirmed": "Type DELETE to confirm. Nothing was deleted.",
+  "wrong-password": "That password is not correct. Nothing was deleted.",
+  "no-account": "Account not found."
+};
 
 export function registerAccountRoutes(app) {
+  // ISP-264 (AB#960; GDPR Article 20): everything held about the account, as a JSON file for its owner only (behind
+  // requireAuth and requireAccountAccess like every /api/accounts/:accountId route), never stored by a cache.
+  app.get("/api/accounts/:accountId/export", exportDataLimiter, (req, res) => {
+    const data = exportAccountData(req.params.accountId);
+    if (!data) { res.status(404).json({ error: "Account not found." }); return; }
+    const day = data.exportedAt.slice(0, 10);
+    res.set({ "Cache-Control": "no-store, private", Pragma: "no-cache", "Content-Disposition": `attachment; filename="isp-account-data-${day}.json"` });
+    res.type("application/json").send(JSON.stringify(data, null, 2));
+  });
+
+  // ISP-264 (AB#960; GDPR Article 17): delete the account, with its password and the word DELETE. Limited per account
+  // like a login, so the password cannot be guessed here faster than there. All or nothing (server/accountData.js).
+  app.post("/api/accounts/:accountId/delete-account", deleteAccountLimiter, (req, res) => {
+    const checked = checkDeletion(req.params.accountId, req.body || {});
+    if (!checked.ok) {
+      res.status(checked.outcome === "no-account" ? 404 : 400).json({ error: DELETION_REFUSALS[checked.outcome] });
+      return;
+    }
+    try {
+      eraseAccount(req.params.accountId);
+    } catch (error) {
+      console.error("[account] deletion failed and was rolled back:", error?.message || error);
+      res.status(500).json({ error: "The account could not be deleted just now, and nothing was changed. Try again." });
+      return;
+    }
+    // the refresh cookie's token is already gone from the server; the browser's copy goes too
+    res.cookie("isp_refresh", "", { httpOnly: true, secure: true, sameSite: "strict", path: "/api/auth", maxAge: 0 });
+    res.json({ deleted: true });
+  });
+
   app.get("/api/accounts/:accountId", (req, res) => {
     const account = getAccountById(req.params.accountId);
     if (!account) {

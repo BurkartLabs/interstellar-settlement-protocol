@@ -24,7 +24,11 @@ export const RATE_LIMITS = {
   // so their rate is the fan-out rate; forum threads and posts are the same write-rate reasoning. Per account.
   "chat-line": { windowMs: 10_000, envName: "ISP_RATE_LIMIT_CHAT_LINE_MAX", productionDefault: 10 },
   "forum-thread": { windowMs: 60 * 60_000, envName: "ISP_RATE_LIMIT_FORUM_THREAD_MAX", productionDefault: 10 },
-  "forum-post": { windowMs: 60 * 60_000, envName: "ISP_RATE_LIMIT_FORUM_POST_MAX", productionDefault: 120 }
+  "forum-post": { windowMs: 60 * 60_000, envName: "ISP_RATE_LIMIT_FORUM_POST_MAX", productionDefault: 120 },
+  // ISP-264 (AB#960): deleting an account checks a password, so its attempts are limited like a login's, per account;
+  // an export reads everything held about the account, so a few an hour
+  "delete-account": { windowMs: 60 * 60_000, envName: "ISP_RATE_LIMIT_DELETE_ACCOUNT_MAX", productionDefault: 5 },
+  "export-data": { windowMs: 60 * 60_000, envName: "ISP_RATE_LIMIT_EXPORT_DATA_MAX", productionDefault: 10 }
 };
 
 /**

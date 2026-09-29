@@ -211,6 +211,7 @@
             </section>
           </div>
           <button id="replay-onboarding-btn" class="ui-button ui-button--secondary" type="button">Replay Onboarding</button>
+          <button id="account-data-btn" class="ui-button ui-button--secondary" type="button" aria-haspopup="dialog" aria-controls="account-data-modal">Account</button>
           <button id="logout-btn" class="ui-button ui-button--secondary" type="button">Log Out</button>
         </div>
       </header>
@@ -1492,6 +1493,54 @@
           <div id="action-receipt-body" class="action-receipt-body"></div>
           <div class="dialogue__actions">
             <button id="action-receipt-close" class="ui-button ui-button--primary" type="button">Acknowledge</button>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ISP-264 (AB#960): the player's own data: download it, or delete the account (public/scripts/views/accountData.js). -->
+    <section id="account-data-modal" class="modal-backdrop" hidden>
+      <article class="modal-card dialogue" role="dialog" aria-modal="true" aria-labelledby="account-data-title">
+        <div class="dialogue__content">
+          <p class="dialogue__speaker">Your account</p>
+          <h2 id="account-data-title" class="dialogue__title">Your account and data</h2>
+          <div data-step="main" class="ui-stack">
+            <section class="ui-stack" aria-labelledby="account-export-title">
+              <h3 id="account-export-title" class="account-data__heading">Download your data</h3>
+              <p class="ui-panel__meta">A JSON file of everything the game holds about your account: your sign-in details (not your password), your corporation, its finances and statements, your notifications, your mail, and your entries in shared records.</p>
+              <div><button id="account-export-btn" class="ui-button ui-button--secondary" type="button">Download my data (JSON)</button></div>
+              <p id="account-export-status" class="ui-panel__meta" role="status" aria-live="polite"></p>
+            </section>
+            <section class="ui-stack" aria-labelledby="account-delete-title">
+              <h3 id="account-delete-title" class="account-data__heading">Delete your account</h3>
+              <p class="ui-panel__meta">Deleting erases your email address, password, sessions, notifications and mail. It cannot be undone. Your corporation's name is replaced with "Anonymised corporation" wherever other players' records mention it, such as trades, contracts and arbitration cases, so their records stay whole.</p>
+              <div><button id="account-delete-start" class="ui-button ui-button--danger" type="button">Delete my account…</button></div>
+            </section>
+            <div class="dialogue__actions dialogue__actions--end">
+              <button id="account-data-close" class="ui-button ui-button--primary" type="button">Close</button>
+            </div>
+          </div>
+          <form id="account-delete-form" data-step="delete" class="ui-stack" hidden novalidate>
+            <p class="ui-panel__meta">This erases your account for good. To confirm, enter your password and type <strong>DELETE</strong>.</p>
+            <div class="ui-field">
+              <label class="ui-field__label" for="account-delete-password">Password</label>
+              <input id="account-delete-password" class="ui-input" type="password" autocomplete="current-password" required>
+            </div>
+            <div class="ui-field">
+              <label class="ui-field__label" for="account-delete-confirm">Type DELETE to confirm</label>
+              <input id="account-delete-confirm" class="ui-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+            </div>
+            <p id="account-delete-error" class="ui-field__error" role="alert"></p>
+            <div class="dialogue__actions">
+              <button id="account-delete-cancel" class="ui-button ui-button--secondary" type="button">Keep my account</button>
+              <button id="account-delete-submit" class="ui-button ui-button--danger" type="submit" disabled>Delete my account</button>
+            </div>
+          </form>
+          <div data-step="done" class="ui-stack" hidden>
+            <p class="ui-panel__meta" role="status">Your account has been deleted. Your email address, password, sessions, notifications and mail are gone, and your corporation is now an anonymised name in shared records.</p>
+            <div class="dialogue__actions dialogue__actions--end">
+              <button id="account-deleted-leave" class="ui-button ui-button--primary" type="button">Leave</button>
+            </div>
           </div>
         </div>
       </article>

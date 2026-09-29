@@ -236,7 +236,12 @@ export function ensureBidShape(order) {
  * Names no player may take (Bug #433): every name the game's own messages are signed with, and every NPC buyer on the
  * exchange, derived from the lists the server uses so a new sender or buyer is reserved without anyone retyping it.
  */
+/** ISP-264 (AB#960): what a deleted account's corporation, and its CEO, are called in shared history (server/accountData.js). */
+export const ANONYMISED_CORPORATION_NAME = "Anonymised corporation";
+export const ANONYMISED_CEO_NAME = "Anonymised CEO";
+
 export const RESERVED_CORPORATION_NAMES = Object.freeze([...new Set([
+  ANONYMISED_CORPORATION_NAME, // nobody may register as a deleted account's corporation
   ...Object.values(SYSTEM_SENDERS),
   ...NPC_BUY_SEED.map((seed) => seed.buyer),
   ...NPC_NAMES // ISP-121 (AB#813): Sol's NPC corporations and the authorities, data/npc-corporations.json

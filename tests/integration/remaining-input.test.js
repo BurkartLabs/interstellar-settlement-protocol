@@ -122,6 +122,7 @@ const BASELINE = {
   "/api/accounts/:accountId": {
     "POST /notifications/:notificationId/read": { params: { notificationId: "n-732" } },
     "GET /corporations": { query: { name: "Frontier" } },
+    "POST /delete-account": { body: { password: "not-the-baseline-password", confirm: "DELETE" } }, // ISP-264 (AB#960): a wrong password: 400, nothing deleted
     "POST /conglomerates": { body: { name: "Baseline Frontier Group", emblem: 1, colour: 1 } },
     "POST /conglomerates/:conglomerateId/invitations": { params: { conglomerateId: "cgl-732" }, body: { corpId: "corp-732" } },
     "POST /conglomerates/:conglomerateId/invitations/:invitationId/:answer": { params: { conglomerateId: "cgl-732", invitationId: "cinv-732", answer: "accept" } },

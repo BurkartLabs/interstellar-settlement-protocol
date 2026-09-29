@@ -186,6 +186,9 @@ export const ACCOUNT_INPUT = {
   "POST /notifications/read-all": NOTHING,
   "POST /notifications/:notificationId/read": { params: { notificationId: ref("a notification") } },
   "GET /messages": NOTHING,
+  // ISP-264 (AB#960): the owner's data export, and deleting the account (its password is checked by the route)
+  "GET /export": NOTHING,
+  "POST /delete-account": { body: { password: text(1024, "your password"), confirm: word(["DELETE"], "the word DELETE") } },
   "GET /corporations": { query: { name: text(64, "a corporation name to search for", { optional: true }) } },
   "GET /dominance": NOTHING, // ISP-217 (AB#912): the caller's own dominance components
   // ISP-230 (AB#925): a holder's tariff, 0 to the highest cap any system has, in the catalog's steps; the system's own
