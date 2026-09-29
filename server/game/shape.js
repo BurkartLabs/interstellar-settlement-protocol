@@ -123,6 +123,11 @@ export function normalizeStateShape(rawState) {
   if (!rawState.corp.location) {
     rawState.corp.location = "Earth";
   }
+  // Bug #4856: an interstellar arrival once wrote the system's id ("sol", "epsilon-eridani") as the location; a save that
+  // still holds one reads the system's name until the corporation next docks
+  if (SYSTEMS_BY_ID.has(rawState.corp.location)) {
+    rawState.corp.location = SYSTEMS_BY_ID.get(rawState.corp.location).name;
+  }
 
   if (!rawState.corp.currentStationId) {
     rawState.corp.currentStationId = "earth-station-prime";
