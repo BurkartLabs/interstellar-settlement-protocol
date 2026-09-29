@@ -51,6 +51,8 @@ const BASELINE = {
   "POST /fleets/:fleetId/deploy": { params: { fleetId: "flt-does-not-exist" }, body: { toStationId: "mars-orbital-dock" } },
   "POST /fleets/:fleetId/hunt": { params: { fleetId: "flt-does-not-exist" }, body: { beltKey: "sol:belt" } }, // ISP-284 (AB#991)
   "GET /hunts": {}, // ISP-284 (AB#991)
+  "GET /rats/activity": {}, // ISP-285 (AB#992)
+  "GET /belts/:beltKey/hunt": { params: { beltKey: "sol:belt" } }, // ISP-285 (AB#992)
   "POST /fleets/:fleetId/disband": { params: { fleetId: "flt-does-not-exist" } },
   "GET /fleets/:fleetId/destinations": { params: { fleetId: "flt-does-not-exist" } }, // ISP-175 (AB#869)
   "GET /mercenaries": {}, // ISP-176 (AB#870)

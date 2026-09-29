@@ -222,3 +222,67 @@ describe("resolving a hunt (injected time)", () => {
     expect(getState().rats.quiet[WOLF_BELT]).toBeDefined();
   });
 });
+
+describe("what the map and the hunt screen read (ISP-285, AB#992)", () => {
+  it("each system's pirate activity is the server's own figure, and a cleared belt is listed as quiet", async () => {
+    clearQuiet();
+    const h = await hunter();
+    const res = await h.api.get(h.at("/rats/activity"));
+    expect(res.status).toBe(200);
+    for (const s of res.body.systems) {
+      const d = SYSTEMS_BY_ID.get(s.id).pirateDensity;
+      expect(s.density).toBe(d);
+      expect(s.group).toEqual(ratGroup(d));
+      expect(s.chance).toBeCloseTo(encounterChance(d, RATS.lengthsHours.standard, 0), 12);
+    }
+    const declared = declareHunt(h.id, { fleetId: "flt-a", beltKey: WOLF_BELT });
+    resolveHunts(h.id, declared.hunt.endsAt);
+    const after = (await h.api.get(h.at("/rats/activity"))).body.systems.find((s) => s.id === WOLF);
+    expect(after.quietBelts).toEqual([{ beltKey: WOLF_BELT, until: declared.hunt.endsAt + RATS.quietHours * HOUR, chance: encounterChance(31, 1, 0, RATS.quietRateFactor) }]);
+  });
+
+  it("the hunt screen lists only the fleets that can hunt the belt now, each with the resolver's expected battle", async () => {
+    clearQuiet();
+    const h = await hunter();
+    const res = await h.api.get(h.at(`/belts/${encodeURIComponent(WOLF_BELT)}/hunt`));
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.belt).toMatchObject({ beltKey: WOLF_BELT, systemId: WOLF, density: 31, group: ratGroup(31), quiet: null });
+    expect(res.body.fleets.map((f) => f.fleetId)).toEqual(["flt-a", "flt-c"]); // flt-b is at Earth
+    expect(res.body.others).toBe(1);
+    const a = res.body.fleets[0];
+    expect(a).toMatchObject({ provisions: 900, expected: { winner: "attacker", bounty: 10593, lostValue: 8078, net: 1615 } });
+    expect(a.expected.battle.rounds.length).toBeGreaterThan(0);
+    expect(a.expected.battle.defender).toMatchObject({ name: "Rats", before: ratGroup(31) });
+    // once one is hunting it is not offered again, and nothing changed by looking
+    const before = h.state();
+    await h.api.get(h.at(`/belts/${encodeURIComponent(WOLF_BELT)}/hunt`));
+    expect(h.state()).toBe(before);
+    declareHunt(h.id, { fleetId: "flt-a", beltKey: WOLF_BELT });
+    expect((await h.api.get(h.at(`/belts/${encodeURIComponent(WOLF_BELT)}/hunt`))).body.fleets.map((f) => f.fleetId)).toEqual(["flt-c"]);
+    expect((await h.api.get(h.at("/belts/nowhere%3Abelt/hunt"))).status).toBe(400);
+  });
+
+  it("a quiet belt offers no fleet and says until when", async () => {
+    clearQuiet();
+    const h = await hunter();
+    const declared = declareHunt(h.id, { fleetId: "flt-a", beltKey: WOLF_BELT });
+    resolveHunts(h.id, declared.hunt.endsAt);
+    const res = await h.api.get(h.at(`/belts/${encodeURIComponent(WOLF_BELT)}/hunt`));
+    expect(res.body.fleets).toEqual([]);
+    expect(res.body.belt.quiet).toEqual({ until: declared.hunt.endsAt + RATS.quietHours * HOUR });
+    expect(res.body.belt.chance).toBeCloseTo(encounterChance(31, 1, 0, RATS.quietRateFactor), 12);
+  });
+
+  it("a hunt's report keeps the battle in the v0.10 battle report's shape", async () => {
+    clearQuiet();
+    const h = await hunter();
+    const declared = declareHunt(h.id, { fleetId: "flt-a", beltKey: WOLF_BELT });
+    const [report] = resolveHunts(h.id, declared.hunt.endsAt);
+    const b = report.battle;
+    expect(b.winner).toBe("attacker");
+    expect(b.attacker).toMatchObject({ before: STRONG, lost: report.lost });
+    expect(b.defender).toMatchObject({ name: "Rats", before: ratGroup(31), lost: ratGroup(31) });
+    for (const r of b.rounds) for (const side of ["attacker", "defender"]) expect(r[side]).toHaveProperty("remaining");
+    expect((await h.api.get(h.at("/hunts"))).body.reports[0].battle).toEqual(b);
+  });
+});

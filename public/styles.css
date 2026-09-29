@@ -4713,6 +4713,10 @@ img.station__body {
 .starmap__resource-legend p {
   margin: 0;
 }
+/* ISP-285 (AB#992): the last hunt's report in a belt's panel, below its Rats section */
+.starmap__hunt-report { margin-top: var(--space-3); }
+.starmap__hunt-report > summary { cursor: pointer; color: var(--muted); font-size: var(--font-size-2); }
+
 .starmap__bands {
   display: flex;
   flex-wrap: wrap;
