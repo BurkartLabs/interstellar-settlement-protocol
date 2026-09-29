@@ -154,12 +154,14 @@ export function renderLogistics(data) {
       <header class="ui-panel__header"><h3 id="logistics-in-flight-title" class="ui-panel__title">Shipments In Transit</h3></header>
       <div class="ui-panel__body">
       ${shipments.length
-        ? `<table class="ui-table logistics__in-flight">
+        // Bug #4841: in its wrap, so a table wider than its column scrolls inside it, never the page (ISP-250)
+        ? `<div class="ui-table-wrap"><table class="ui-table logistics__in-flight">
             <thead><tr><th scope="col">Route</th><th scope="col">Goods</th><th scope="col" class="ui-table__num">Fee</th><th scope="col">Arrives</th></tr></thead>
             <tbody>${shipments.map((s) => {
             const remainingMs = Math.max(0, (s.arrivesAt || 0) - Date.now());
             const eta = s.status === "held"
-              ? `<span class="ui-badge ui-badge--warn">Held</span> Destination unreachable ${protocolLineHtml({ meaning: "suspended", screen: "logistics" })}`
+              // Bug #4841: one value, so the stacked row has two items (the label and this) and the value wraps inside itself
+              ? `<span class="logistics__held"><span class="ui-badge ui-badge--warn">Held</span> Destination unreachable ${protocolLineHtml({ meaning: "suspended", screen: "logistics" })}</span>`
               : `<span class="logistics__eta" data-arrives-at="${escapeHtml(String(s.arrivesAt || 0))}">${remainingMs > 0 ? escapeHtml(formatDuration(remainingMs)) : "Arriving"}</span>`;
             return `<tr class="logistics__shipment${s.status === "held" ? " logistics__shipment--held" : ""}">
               <td data-label="Route">${escapeHtml(stationName(s.fromStationId))} → ${escapeHtml(stationName(s.toStationId))}</td>
@@ -167,7 +169,7 @@ export function renderLogistics(data) {
               <td class="ui-figure" data-label="Fee">${toCurrency(s.fee)}</td>
               <td data-label="Arrives">${eta}</td>
             </tr>`;
-          }).join("")}</tbody></table>`
+          }).join("")}</tbody></table></div>`
         : `<div class="ui-state"><p class="ui-state__title">Nothing is in transit.</p><p class="ui-state__why">Move goods from a remote station's card above, and they will list here until they arrive.</p></div>`}
       </div>
     </section>`;
@@ -179,14 +181,14 @@ export function renderLogistics(data) {
       <header class="ui-panel__header"><h3 id="logistics-history-title" class="ui-panel__title">Transfer History</h3></header>
       <div class="ui-panel__body">
       ${history.length
-        ? `<table class="ui-table logistics__history">
+        ? `<div class="ui-table-wrap"><table class="ui-table logistics__history">
             <thead><tr><th scope="col">Route</th><th scope="col">Goods</th><th scope="col" class="ui-table__num">Fee</th><th scope="col">When</th></tr></thead>
             <tbody>${history.map((h) => `<tr>
               <td data-label="Route">${escapeHtml(stationName(h.from))} → ${escapeHtml(stationName(h.to))}</td>
               <td data-label="Goods">${escapeHtml(describeLines(h.lines))}</td>
               <td class="ui-figure" data-label="Fee">${toCurrency(h.fee)}</td>
               <td data-label="When">${timeHtml(h.time)}</td>
-            </tr>`).join("")}</tbody></table>`
+            </tr>`).join("")}</tbody></table></div>`
         : `<div class="ui-state"><p class="ui-state__title">No transfers yet.</p><p class="ui-state__why">Goods held at another station can be moved here from its card above.</p></div>`}
       </div>
     </section>`;
