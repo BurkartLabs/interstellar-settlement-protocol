@@ -34,7 +34,7 @@ async function corp(key, name) {
   const c = accountsStore.accounts[account.id].state.corp;
   Object.assign(c, { currentSystemId: "sol", currentStationId: "earth-station-prime" });
   c.finances.credits = 400_000;
-  c.military = { units: { lf: 10, ds: 2 } };
+  c.military = { units: { lf: 10, ds: 12 } }; // Bug #4800: the offered fleet (8 lf, 12 ds) is worth about 62,400, so its 60,000 price fits
   store.markWalkthroughCompleted(account.id);
   logins[key] = email;
   return account.id;
@@ -42,7 +42,7 @@ async function corp(key, name) {
 /** `owner` offers a fleet and `renter` hires it at `at` for `termHours`; `drops` are readiness entries after the hire. */
 function contract(owner, renter, at, termHours, drops, name) {
   let fleetId = null;
-  store.mutateAccountState(owner, (s) => { const r = formFleet(s.corp, { units: { lf: 8, ds: 2 } }, at); if (!r.fleet) throw new Error(`${name} fleet: ${JSON.stringify(r)}`); fleetId = r.fleet.id; }, { sanitize: false });
+  store.mutateAccountState(owner, (s) => { const r = formFleet(s.corp, { units: { lf: 8, ds: 12 } }, at); if (!r.fleet) throw new Error(`${name} fleet: ${JSON.stringify(r)}`); fleetId = r.fleet.id; }, { sanitize: false });
   const offer = must(offerFleet(owner, fleetId, { termHours, price: 60_000, collateral: 15_000, allowedUse: "defense" }, at - H), `${name} offer`).offer;
   must(hireOffer(renter, offer.id, at), `${name} hire`);
   store.mutateAccountState(owner, (s) => { s.corp.military.readinessLog = [{ at, readiness: 100 }, ...drops.map(([h, r]) => ({ at: at + h * H, readiness: r }))]; }, { sanitize: false });

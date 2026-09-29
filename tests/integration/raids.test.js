@@ -112,7 +112,7 @@ describe("ISP-178 who may be raided", () => {
     await a.api.post(a.at(`/fleets/${f}/deploy`)).send({ toStationId: "luna-gateway" });
     expect((await raid(a, { fleetId: f, targetCorpId: d.publicId, targetStationId: EARTH })).body.error).toMatch(/travelling/);
     const g = await fleet(a, { lf: 2 });
-    await a.api.post(a.at("/mercenaries/offer")).send({ fleetId: g, termHours: 24, price: 5_000, collateral: 1, allowedUse: "raids" });
+    await a.api.post(a.at("/mercenaries/offer")).send({ fleetId: g, termHours: 24, price: 500, collateral: 1, allowedUse: "raids" }); // Bug #4800: within the fleet's value
     expect((await raid(a, { fleetId: g, targetCorpId: d.publicId, targetStationId: EARTH })).body.error).toMatch(/under contract|offered or hired/);
   });
 
@@ -211,7 +211,7 @@ describe("ISP-178 hired fleets", () => {
     const d = await target();
     const offerFor = async (allowedUse) => {
       const fid = await fleet(owner, { lf: 2 });
-      return (await owner.api.post(owner.at("/mercenaries/offer")).send({ fleetId: fid, termHours: 12, price: 5_000, collateral: 1, allowedUse })).body.offer.id;
+      return (await owner.api.post(owner.at("/mercenaries/offer")).send({ fleetId: fid, termHours: 12, price: 500, collateral: 1, allowedUse })).body.offer.id; // Bug #4800: within the fleet's value
     };
     const defense = await offerFor("defense"), raids = await offerFor("raids");
     for (const o of [defense, raids]) expect((await renter.api.post(renter.at(`/mercenaries/${o}/hire`)).send({})).status).toBe(200);
