@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
-import { ACCOUNT_KEY, CHART_SRC, opensGame } from "../../public/scripts/boot.js";
+import { ACCOUNT_KEY, opensGame } from "../../public/scripts/boot.js";
 
 // Bug #4836: index.html's entry loads the game only for a visit that opens it; the logged-out landing loads none of it.
 const read = (f) => fs.readFileSync(new URL(`../../${f}`, import.meta.url), "utf8");
@@ -31,7 +31,8 @@ describe("boot.js keeps in step with what it stands in for", () => {
     expect(html).toContain('<script type="module" src="scripts/boot.js"></script>');
     expect(html).not.toMatch(/<script[^>]+scripts\/app\.js/);
     expect(html).not.toMatch(/<script[^>]+chart\.umd/);
-    expect(fs.existsSync(new URL(`../../public${CHART_SRC}`, import.meta.url))).toBe(true);
+    // Bug #4838: boot.js does not load Chart.js either; the two views that chart do (chartLoader.js)
+    expect(read("public/scripts/boot.js")).not.toMatch(/chart\.umd|CHART_SRC|loadChartJs|createElement\("script"\)/);
   });
 
   it("imports only legacyTokens.js, which imports nothing, so the landing loads no game module through it", () => {

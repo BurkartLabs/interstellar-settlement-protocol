@@ -5,6 +5,8 @@
 // Snapshot shape (server/finances.js → buildSnapshot):
 //   { t, credits, assets, liabilities, dailyRevenue, dailyCosts, dailyExpenses, inventory, netFlow, netWorth }
 
+import { chartReady, loadChartJs } from "./chartLoader.js"; // Bug #4838
+
 const COLOR = {
   cyan: "#00f7ff",
   cyanSoft: "rgba(0, 247, 255, 0.55)",
@@ -435,8 +437,19 @@ function prettifySource(key) {
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
+/** Bug #4838: the six panels' canvases; Chart.js is fetched only when one of them is on screen. */
+const FINANCE_CANVASES = ["cashflow-chart", "netflow-chart", "asset-chart", "sector-chart", "composition-chart", "pnl-chart"];
+const financeOnScreen = () => FINANCE_CANVASES.some((id) => (document.getElementById(id)?.getClientRects().length ?? 0) > 0);
+
 export function renderFinanceCharts(finances) {
-  if (typeof Chart === "undefined" || !finances) return;
+  if (!finances) return;
+  if (!chartReady()) {
+    // Bug #4838: the socket redraws these every 30 seconds whatever tab is open; only the Financial Core's own view
+    // fetches Chart.js, and draws again when it arrives.
+    _lastFinances = finances;
+    if (financeOnScreen()) loadChartJs().then(() => { if (_lastFinances) renderFinanceCharts(_lastFinances); }, (error) => console.error("[charts]", error));
+    return;
+  }
   _lastFinances = finances;
   const snaps = getSnapshots(finances);
   renderCashReserves(snaps);

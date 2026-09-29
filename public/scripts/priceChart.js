@@ -4,6 +4,7 @@
 // Silicates when none is. shapePriceHistory is pure so it can be tested against the API without a browser.
 
 import { chartFont } from "./charts.js"; // ISP-80 (AB#769): 14px chart text on a phone
+import { chartReady, loadChartJs } from "./chartLoader.js"; // Bug #4838
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const PRICE_CHART_RANGES = [7, 30];
@@ -113,9 +114,16 @@ export function bindPriceChart({ fetchHistory, formatCredits }) {
     canvas.hidden = !shaped.hasAny;
     // ISP-80 (AB#769): with nothing to chart, the chart's body goes too, not only the canvas: no empty box.
     if (canvas.parentElement) canvas.parentElement.hidden = !shaped.hasAny;
-    if (!shaped.hasAny || typeof window.Chart !== "function") {
+    if (!shaped.hasAny) {
       chart?.destroy();
       chart = null;
+      return;
+    }
+    // Bug #4838: Chart.js is fetched the first time there is a price to chart; this draw runs again when it arrives,
+    // unless a newer one has been asked for meanwhile
+    if (!chartReady()) {
+      const ticket = latest;
+      loadChartJs().then(() => { if (ticket === latest) draw(item, buckets, watch); }, (error) => console.error("[priceChart]", error));
       return;
     }
     const labels = shaped.days.map((d) => d.slice(5));
