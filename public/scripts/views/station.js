@@ -8,6 +8,7 @@ import { isMemberStation, memberOfficeCost } from "../memberRates.js"; // ISP-21
 import { claimsAllTakenText, claimsNoLeasesText } from "../emptyStates.js";
 import { deepClone, formatDuration, toCurrency } from "../helpers.js";
 import { escapeHtml, stationBuildingCardsHtml } from "../html.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 (AB#4818)
 import { activeCycleFigures, extractorState, spentText } from "../leaseLive.js";
 import { probeFabricationStartedText } from "../miningFeedback.js";
 import { leaseFacilities, leaseSlotsUsed } from "../leaseSlots.js"; // ISP-98 (AB#788)
@@ -73,6 +74,16 @@ export function showStationBuilding(buildingId) {
 }
 
 /**
+ * ISP-254 (AB#4818; docs/design/BUREAUCRATIC_UI.md): a Station status line, the plain words first and then the protocol
+ * line for `meaning` (a refusal's comes from refusalMeaning, which reads the server's code). No meaning, no line.
+ */
+function stationStatus(el, text, meaning = null) {
+  if (!el) return;
+  el.innerHTML = `${escapeHtml(text)}${meaning ? ` ${protocolLineHtml({ meaning, screen: "station" })}` : ""}`;
+}
+const onStation = (meaning) => ({ meaning, screen: "station" });
+
+/**
  * ISP-103 (AB#795), ISP-102 (AB#794): post an upgrade the player has confirmed, draw the page from the account that
  * comes back (no reload), and show the receipt. One path for a yard's row and a facility's card; the server checks
  * everything again and a refusal is shown in the control's status line.
@@ -90,7 +101,7 @@ async function postUpgrade(buildingId, btn, statusEl, { redraw = () => {}, focus
     showActionReceipt(account, { returnFocusTo: focus });
   } catch (error) {
     btn.disabled = false;
-    if (statusEl) statusEl.textContent = error?.message || "The upgrade was refused.";
+    stationStatus(statusEl, error?.message || "The upgrade was refused.", refusalMeaning(error));
   }
 }
 
@@ -160,11 +171,11 @@ async function repairBuilding(building, btn) {
     const account = await parseJsonResponse(await apiFetch(repairPath(appState.accountId, building.id), { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }));
     appState.data = deepClone(account.state);
     updateAllViews();
-    pushFeedback(`${building.name} repaired.`, "ok");
+    pushFeedback(`${building.name} repaired.`, "ok", onStation("complete"));
     showActionReceipt(account, { returnFocusTo: firstPresent("#station-repairs-section h3", "#station-facilities-section h3", ".nav-tab[data-tab='station']") });
   } catch (error) {
     btn.disabled = false;
-    if (statusEl) statusEl.textContent = error?.message || "The repair was refused.";
+    stationStatus(statusEl, error?.message || "The repair was refused.", refusalMeaning(error));
   }
 }
 
@@ -355,8 +366,8 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const hoursRemaining = Math.floor((msRemaining % 86_400_000) / 3_600_000);
   const expiryDate = utcTime(rentedUntil, { withDate: true });
   const leaseStatusBadge = leaseExpired
-    ? `<span class="ui-badge ui-badge--danger">Expired</span>`
-    : `<span class="ui-badge ui-badge--success">Active Lease</span>`;
+    ? `<span class="ui-badge ui-badge--danger">Expired</span> ${protocolLineHtml({ meaning: "expired", screen: "station" })}`
+    : `<span class="ui-badge ui-badge--success">Active Lease</span> ${protocolLineHtml({ meaning: "active", screen: "station" })}`;
   const timeRemainingText = leaseExpired
     ? `<span class="station__danger">Lease expired</span>`
     : `${fullDays}d ${hoursRemaining}h remaining`;
@@ -460,10 +471,10 @@ export function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         }
-        pushFeedback(`Office lease confirmed at ${station?.name || "Earth Station Prime"}.`, "success");
+        pushFeedback(`Office lease confirmed at ${station?.name || "Earth Station Prime"}.`, "success", onStation("active"));
       } catch (err) {
         rentBtn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Lease agreement failed.";
+        stationStatus(statusEl, err.message || "Lease agreement failed.", refusalMeaning(err));
       }
     });
   }
@@ -509,10 +520,10 @@ export function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         }
-        pushFeedback(`Lease extended by ${durationDays} days.`, "success");
+        pushFeedback(`Lease extended by ${durationDays} days.`, "success", onStation("active"));
       } catch (err) {
         if (submitBtn) submitBtn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Lease renewal failed.";
+        stationStatus(statusEl, err.message || "Lease renewal failed.", refusalMeaning(err));
       }
     });
   }
@@ -560,10 +571,10 @@ export function bindOfficeActions(building, data) {
           updateAllViews();
           showStationBuilding(building.id);
         }
-        pushFeedback(`Personnel hired successfully.`, "success");
+        pushFeedback(`Personnel hired successfully.`, "success", onStation("complete"));
       } catch (err) {
         if (submitBtn) submitBtn.disabled = false;
-        if (statusEl) statusEl.textContent = err.message || "Hire action failed.";
+        stationStatus(statusEl, err.message || "Hire action failed.", refusalMeaning(err));
       }
     });
   }
@@ -726,11 +737,11 @@ export function bindISAClaimsLeasesActions(building, data) {
           showStationBuilding(building.id);
           showActionReceipt(account, { returnFocusTo: firstPresent(`[data-action="purchase-lease"][data-body="${CSS.escape(body)}"]`, '[data-action="manage-lease"]') });
         }
-        pushFeedback(`${body} mining lease approved by the ISA.`, "success");
+        pushFeedback(`${body} mining lease approved by the ISA.`, "success", onStation("active"));
       } catch (err) {
         btn.disabled = false;
         btn.textContent = `File Lease Application — ${body}`;
-        pushFeedback(err.message || "Lease application failed.", "warn");
+        pushFeedback(err.message || "Lease application failed.", "warn", onStation(refusalMeaning(err)));
       }
     });
   });
@@ -1018,18 +1029,18 @@ export function bindLeaseManagementActions(building, lease, data) {
           const updatedLease = corp.miningLeases.find((l) => l.id === lease.id);
           renderBuildingDetail(building, appState.data);
         }
-        pushFeedback("Basic Extractor Yard commissioned and linked to lease.", "success");
+        pushFeedback("Basic Extractor Yard commissioned and linked to lease.", "success", onStation("complete"));
       } catch (err) {
         buildBtn.disabled = false;
         // If the server can't find the lease (e.g. server restarted and lost in-memory state),
         // the client state is stale. Clear it and send the user back to the list view.
         if (err.message && err.message.includes("could not be found")) {
           appState.stationActiveLease = null;
-          pushFeedback("Session state out of sync — please re-purchase your lease.", "error");
+          pushFeedback("Session state out of sync — please re-purchase your lease.", "error", onStation("failed"));
           renderBuildingDetail(building, appState.data);
           return;
         }
-        if (statusEl) statusEl.textContent = err.message || "Construction failed.";
+        stationStatus(statusEl, err.message || "Construction failed.", refusalMeaning(err));
       }
     });
   }
@@ -1280,10 +1291,10 @@ export function renderStation(data) {
     onBuilt: (account) => {
       appState.data = deepClone(account.state);
       updateAllViews();
-      pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok");
+      pushFeedback("Assembly Facility online. Enter it to fabricate Mining Probes.", "ok", onStation("complete"));
       showActionReceipt(account, { returnFocusTo: firstPresent('[data-corp-building="Assembly Facility"]', ".nav-tab[data-tab='station']") }); // AB#744
     },
-    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn"),
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn", onStation(refusalMeaning(error))),
     onUpgrade: (buildingId) => upgradeFacility(buildingId) // ISP-102 (AB#794)
   }, clientPrices(appState.economy).assemblyFacilityCost,
   (b) => facilityUpgradeHtml(facilityUpgradeView(b, data.corp, appState.economy, appState.playerBuildings || [])));
@@ -1295,10 +1306,10 @@ export function renderStation(data) {
     onBuilt: (account) => {
       appState.data = deepClone(account.state);
       updateAllViews();
-      pushFeedback(account.receipt?.title || "Construction complete.", "ok");
+      pushFeedback(account.receipt?.title || "Construction complete.", "ok", onStation("complete"));
       showActionReceipt(account, { returnFocusTo: firstPresent("#station-construction-section h3", ".nav-tab[data-tab='station']") }); // AB#744
     },
-    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn")
+    onError: (error) => pushFeedback(error.message || "Construction failed.", "warn", onStation(refusalMeaning(error)))
   }, {
     researchName: (id) => techTree.find((t) => t.id === id)?.name || id,
     economy: appState.economy
@@ -1428,9 +1439,9 @@ export function renderAssemblyFacility(data) {
         showActionReceipt(account, { returnFocusTo: receiptTrigger }); // AB#744: the server's receipt, only on success
         renderAssemblyFacility(appState.data);
         // AB#1257: it said "fabricated" here, 30 minutes before the probe existed; that line now comes on completion.
-        pushFeedback(probeFabricationStartedText(appState.data?.corp?.asteroidMining?.fabricationQueue), "ok");
+        pushFeedback(probeFabricationStartedText(appState.data?.corp?.asteroidMining?.fabricationQueue), "ok", onStation("active"));
       } catch (err) {
-        pushFeedback(err.message || "Probe fabrication failed.", "warn");
+        pushFeedback(err.message || "Probe fabrication failed.", "warn", onStation(refusalMeaning(err)));
       }
     });
   }

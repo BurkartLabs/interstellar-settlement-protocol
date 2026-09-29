@@ -49,7 +49,7 @@ describe("the upgrades that take Tier 4 goods (AB#886)", () => {
     const credits = c.corp().finances.credits;
     const short = await c.upgrade(refinery.id);
     expect(short.status).toBe(400);
-    expect(short.body.error).toBe("The upgrade also takes 10 Superconducting Coils from your stock at this station; you hold 9 here.");
+    expect(short.body.error).toBe("The upgrade also takes 10 Superconducting Coils from your stock at this station; you hold 9 here. Bring more here, then upgrade.");
     expect(c.corp().finances.credits).toBe(credits);
     expect(c.stock()["Superconducting Coils"]).toBe(9);
     c.stock()["Superconducting Coils"] = 12;

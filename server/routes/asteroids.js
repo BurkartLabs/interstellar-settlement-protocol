@@ -105,14 +105,15 @@ export function registerAsteroidRoutes(app) {
         "probe-cap": (() => { const fleet = fleetStatus(account.state.corp); return `Your fleet is at its Fleet Cap (${fleet.vessels}/${fleet.cap}). ${fleet.raiseText}`; })(),
         "already-fabricating": "A probe is already being fabricated. Wait for it to complete before starting another.",
         "assembly-upgrading": "The Assembly Facility is being upgraded and is offline until it finishes.",
-        "insufficient-credits": fundingRequirementMessage("Mining Probe fabrication", account.state.corp, PROBE_BUILD_COST)
+        "insufficient-credits": fundingRequirementMessage("Mining Probe fabrication", account.state.corp, PROBE_BUILD_COST, "Sell goods or finish an assignment to raise the credits, then fabricate it.")
       };
-      res.status(400).json({ error: msgs[outcome] || "Probe fabrication failed." });
+      res.status(400).json({ error: msgs[outcome] || "Probe fabrication failed.", code: outcome }); // ISP-254 (AB#4818)
       return;
     }
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "infrastructure",
+      protocol: { meaning: "active", screen: "station" }, // ISP-254 (AB#4818)
       title: "Probe Fabrication Started",
       body: `Mining Probe fabrication has begun. Estimated completion: ${fabricationMs >= 60000 ? Math.round(fabricationMs / 60000) + " minute(s)" : Math.round(fabricationMs / 1000) + " second(s)"}.`
     });

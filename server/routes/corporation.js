@@ -40,6 +40,7 @@ export function registerCorporationRoutes(app) {
       const available = Math.max(0, corp.employeeCap - corp.employeeCount);
       const hired = Math.min(count, available);
       const hireCost = hired * ECONOMY.employees.hireCost;
+      hireCostCharged = hireCost; // Bug #4823: what a refusal quotes is what the hire would charge
 
       if (hired <= 0) {
         outcome = "no-capacity";
@@ -66,16 +67,18 @@ export function registerCorporationRoutes(app) {
     if (outcome !== "ok") {
       const corp = account.state.corp;
       const messageMap = {
-        "no-office": "You must maintain a registered office at this station before recruiting personnel.",
+        "no-office": "You must maintain a registered office at this station before recruiting personnel. Rent one at the Orbital Executive Suites first.",
         "no-capacity": employeeCapMessage(corp, LEVELS),
-        "insufficient-credits": fundingRequirementMessage("Hiring", corp, count * 2000)
+        // Bug #4823: the price of the hire the route would make (the hireable count, at data/economy.json's hireCost), not a copy of it
+        "insufficient-credits": fundingRequirementMessage("Hiring", corp, hireCostCharged, "Hire fewer, or sell goods to raise the credits.")
       };
-      res.status(400).json({ error: messageMap[outcome] || "Hire action failed." });
+      res.status(400).json({ error: messageMap[outcome] || "Hire action failed.", code: outcome }); // ISP-254 (AB#4818)
       return;
     }
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "workforce",
+      protocol: { meaning: "complete", screen: "station" }, // ISP-254 (AB#4818)
       title: "Hiring Order Confirmed",
       body: `${hiredCount} employee(s) were added to your workforce.`
     });
@@ -163,14 +166,15 @@ export function registerCorporationRoutes(app) {
         "in-transit": `You are in transit. Dock at ${stationName} to rent an office there.`,
         "already-rented": `Your corporation already maintains an office at ${stationName}.`,
         // AB#1809: formatCredits() already appends "credits" (Bug #1201) -- no second "credits" suffix here.
-        "insufficient-credits": `Leasing an office at ${stationName} for ${durationDays} days requires ${formatCredits(officeCost)}. Current reserves: ${formatCredits(corp.finances.credits)}.`
+        "insufficient-credits": `Leasing an office at ${stationName} for ${durationDays} days requires ${formatCredits(officeCost)}. Current reserves: ${formatCredits(corp.finances.credits)}. Rent for fewer days, or sell goods to raise the credits.`
       };
-      res.status(400).json({ error: messageMap[outcome] || "Office rental failed." });
+      res.status(400).json({ error: messageMap[outcome] || "Office rental failed.", code: outcome }); // ISP-254 (AB#4818)
       return;
     }
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "administration",
+      protocol: { meaning: "active", screen: "station" }, // ISP-254 (AB#4818)
       title: "Office Lease Confirmed",
       body: `Your corporation now maintains a registered operational office at ${stationName}.`
     });
@@ -233,16 +237,17 @@ export function registerCorporationRoutes(app) {
     if (outcome !== "ok") {
       const corp = account.state.corp;
       const messageMap = {
-        "no-office": `Your corporation does not have an office at ${stationName} to renew.`,
+        "no-office": `Your corporation does not have an office at ${stationName} to renew. Rent one at the Orbital Executive Suites instead.`,
         // AB#1809: formatCredits() already appends "credits" (Bug #1201) -- no second "credits" suffix here.
-        "insufficient-credits": `Renewing for ${durationDays} days requires ${formatCredits(renewalCost)}. Current reserves: ${formatCredits(corp.finances.credits)}.`
+        "insufficient-credits": `Renewing for ${durationDays} days requires ${formatCredits(renewalCost)}. Current reserves: ${formatCredits(corp.finances.credits)}. Renew for fewer days, or sell goods to raise the credits.`
       };
-      res.status(400).json({ error: messageMap[outcome] || "Lease renewal failed." });
+      res.status(400).json({ error: messageMap[outcome] || "Lease renewal failed.", code: outcome }); // ISP-254 (AB#4818)
       return;
     }
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "administration",
+      protocol: { meaning: "active", screen: "station" }, // ISP-254 (AB#4818)
       title: "Office Lease Renewed",
       body: `Your office lease at ${stationName} has been extended by ${durationDays} days.`
     });
@@ -351,14 +356,15 @@ export function registerCorporationRoutes(app) {
         "no-office": "You must lease a corporate office before filing extraction claims with the ISA.",
         "duplicate-lease": `Your corporation already holds an active mining lease on ${requestedBody}.`,
         "insufficient-employees": `ISA regulations require at least ${requiredEmployees} employees on payroll before issuing ${whichLease}. Hire ${Math.max(0, requiredEmployees - headcount)} more at the Orbital Executive Suites, then file again. Current headcount: ${headcount}.`,
-        "insufficient-credits": fundingRequirementMessage(`${requestedBody} mining lease acquisition`, corp, leaseCost)
+        "insufficient-credits": fundingRequirementMessage(`${requestedBody} mining lease acquisition`, corp, leaseCost, "Sell goods or finish an assignment to raise the credits, then file again.")
       };
-      res.status(400).json({ error: messageMap[outcome] || "Lease application failed." });
+      res.status(400).json({ error: messageMap[outcome] || "Lease application failed.", code: outcome }); // ISP-254 (AB#4818)
       return;
     }
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "administration",
+      protocol: { meaning: "active", screen: "station" }, // ISP-254 (AB#4818)
       title: "Mining Lease Approved",
       body: `ISA Claims & Leases has approved your extraction rights application for ${requestedBody}. Two building slots have been allocated to your lease.`
     });

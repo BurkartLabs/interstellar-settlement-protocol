@@ -55,6 +55,6 @@ export function repairBuilding(accountId, buildingId, now = Date.now()) {
 /** Why a repair was refused, in words. */
 export function repairRefusal(result, formatCredits) {
   if (result.outcome === "not-damaged") return `The ${result.name} is not damaged.`;
-  if (result.outcome === "insufficient-credits") return `Repairing the ${result.name} costs ${formatCredits(result.cost)}; you have ${formatCredits(result.credits)}. Nothing was repaired.`;
+  if (result.outcome === "insufficient-credits") return `Repairing the ${result.name} costs ${formatCredits(result.cost)}; you have ${formatCredits(result.credits)}. Nothing was repaired. Sell goods to raise the credits, then repair it.`;
   return "Choose one of your own damaged buildings to repair.";
 }

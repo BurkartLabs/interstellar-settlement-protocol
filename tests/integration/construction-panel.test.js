@@ -98,7 +98,10 @@ describe("the construction panel on the Station (ISP-95)", () => {
     await page.settle();
     expect(page.events.errors).toHaveLength(1);
     expect(page.events.errors[0]).toMatch(/^Assembly Facility construction requires/);
-    expect(page.row("assembly-facility").querySelector("[role=status]").textContent).toBe(page.events.errors[0]);
+    // ISP-254Bc (AB#4818): the server's message, then its protocol line (Unfunded: the server's code says so)
+    const status = page.row("assembly-facility").querySelector("[role=status]").textContent;
+    expect(status.startsWith(page.events.errors[0])).toBe(true);
+    expect(status).toContain("Unfunded, balance insufficient");
     expect(page.row("assembly-facility").querySelector("[data-build-id]").disabled).toBe(false);
     expect(p.corp().buildings).toEqual([]);
   });

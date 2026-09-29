@@ -69,7 +69,7 @@ describe("building each player building through its route, as before the catalog
     const poor = await corporation((c) => { c.unlockedTech = ["tt-supply-forecast"]; c.miningLeases = [{ ...LEASE, extractorIds: [] }]; c.finances.credits = 10_000; });
     const pr = await poor.post(`lease/${LEASE.id}/build-extractor`);
     // AB#2286: the refusal quotes what the build would charge, the Supply Forecast price (47,000), not the catalogue's 50,000.
-    expect(pr.body.error).toBe(fundingRequirementMessage("Basic Extractor Yard construction", poor.corp(), 47_000));
+    expect(pr.body.error).toBe(fundingRequirementMessage("Basic Extractor Yard construction", poor.corp(), 47_000, "Sell goods or finish an assignment to raise the credits, then build it."));
   });
 
   it("Assembly Facility: 60,000, 40,000 of assets, a corporation slot, one per corporation", async () => {
@@ -98,7 +98,7 @@ describe("building each player building through its route, as before the catalog
 
     const poor = await corporation((c) => { c.unlockedTech = ["tt-assembly-fabrication"]; c.finances.credits = 10_000; });
     expect((await poor.post("build-assembly-facility")).body.error)
-      .toBe(fundingRequirementMessage("Assembly Facility construction", poor.corp(), 60_000));
+      .toBe(fundingRequirementMessage("Assembly Facility construction", poor.corp(), 60_000, "Sell goods or finish an assignment to raise the credits, then build it."));
   });
 
   it("Refinery: 75,000, 55,000 of assets, a corporation slot, at most 2", async () => {
@@ -125,7 +125,7 @@ describe("building each player building through its route, as before the catalog
     expect((await full.post("build-refinery")).body.error).toBe(`A refinery needs a free building slot. ${corpSlotsFull(full.corp())}`);
 
     const poor = await corporation((c) => { c.unlockedTech = ["tt-material-compression", "tt-nano-lattice"]; c.finances.credits = 10_000; });
-    expect((await poor.post("build-refinery")).body.error).toBe(fundingRequirementMessage("Refinery construction", poor.corp(), 75_000));
+    expect((await poor.post("build-refinery")).body.error).toBe(fundingRequirementMessage("Refinery construction", poor.corp(), 75_000, "Sell goods or finish an assignment to raise the credits, then build it."));
   });
 });
 
