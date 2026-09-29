@@ -5,6 +5,7 @@
 
 import { chartFont } from "./charts.js"; // ISP-80 (AB#769): 14px chart text on a phone
 import { chartReady, loadChartJs } from "./chartLoader.js"; // Bug #4838
+import { utcDate } from "./timeFormat.js"; // Bug #4887: the in-fiction year, like every other date
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const PRICE_CHART_RANGES = [7, 30];
@@ -46,7 +47,7 @@ export function shapePriceHistory(buckets, rangeDays, now = Date.now()) {
 /** The line under the chart's title: what the chart says, in words. Empty history has its own message. */
 export function priceChartSummary(item, shaped, rangeDays, formatCredits) {
   if (!shaped.hasAny) return `No trades recorded yet for ${item}.`;
-  const last = `Last trade ${formatCredits(shaped.lastClose)} on ${shaped.lastDay}.`;
+  const last = `Last trade ${formatCredits(shaped.lastClose)} on ${utcDate(shaped.lastDay)}.`;
   if (!shaped.hasInRange) return `${last} No trades in the last ${rangeDays} days.`;
   return `${last} ${rangeDays}-day high ${formatCredits(shaped.high)}, low ${formatCredits(shaped.low)}; ${shaped.volume.toLocaleString()} units in ${shaped.trades.toLocaleString()} trade${shaped.trades === 1 ? "" : "s"}.`;
 }
@@ -71,7 +72,7 @@ export function floodAlertText(item, watch, formatCredits) {
   const a = watch?.alert;
   if (!a || !watch.normal) return "";
   const exact = (v) => withCents(v, formatCredits);
-  return `Price impact: ${item} closed ${a.day} at ${exact(a.close)}, ${a.dropPct}% under its normal value of ${exact(watch.normal.price)}, ` +
+  return `Price impact: ${item} closed ${utcDate(a.day)} at ${exact(a.close)}, ${a.dropPct}% under its normal value of ${exact(watch.normal.price)}, ` +
     `on ${a.volume.toLocaleString("en-US")} units (${a.volumePct}% of a normal day). ` +
     `The ITC counts sales below ${exact(watch.line)} toward a dumping investigation.`;
 }
