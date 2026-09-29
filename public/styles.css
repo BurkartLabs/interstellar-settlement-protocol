@@ -639,7 +639,7 @@ h1 {
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-4);
-  padding: 1.2rem var(--space-6);
+  padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--border);
   background: var(--surface-1);
   backdrop-filter: blur(8px);
@@ -655,7 +655,7 @@ h1 {
 #notification-list {
   max-height: min(66vh, 452px);
   overflow-y: auto;
-  padding-right: 0.2rem;
+  padding-right: var(--space-1);
 }
 
 /* AB#1284: a button the game has disabled looks it, everywhere: dimmed, not-allowed, and no hover glow. */
@@ -691,7 +691,7 @@ button:disabled {
 .tab-panel {
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   backdrop-filter: blur(5px);
 }
 
@@ -706,12 +706,12 @@ button:disabled {
 }
 
 .tab-panel {
-  padding: 1.15rem 1.2rem;
+  padding: var(--space-5);
 }
 
 .tab-panel > h2,
 .modal-card > h2 {
-  margin-bottom: 0.95rem;
+  margin-bottom: var(--space-4);
 }
 
 .tab-panel {
@@ -728,20 +728,20 @@ button:disabled {
 .kpi-strip {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.6rem;
-  margin-bottom: 0.95rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
 .kpi-tile {
   position: relative;
-  padding: 0.85rem 0.95rem 0.9rem;
+  padding: var(--space-3) var(--space-4) var(--space-4);
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: var(--space-1);
   overflow: hidden;
 }
 
@@ -931,7 +931,7 @@ button:disabled {
 .cong-level { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-3) 0; padding: 0; list-style: none; }
 .cong-level__req { display: grid; grid-template-columns: minmax(0, 1fr) minmax(4rem, 10rem) minmax(0, auto); align-items: center; gap: var(--space-2) var(--space-3); }
 .cong-level__label { overflow-wrap: anywhere; }
-.cong-level__bar { display: block; height: 8px; border-radius: 4px; background: var(--surface-2, var(--border)); overflow: hidden; }
+.cong-level__bar { display: block; height: 8px; border-radius: var(--radius-sm); background: var(--surface-2, var(--border)); overflow: hidden; }
 .cong-level__bar > span { display: block; height: 100%; background: var(--warn); }
 .cong-level__req--met .cong-level__bar > span { background: var(--success); }
 .cong-level__progress { color: var(--text-soft); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; text-align: right; } /* ISP-250 (AB#946): no nowrap, which pushed a 768 page sideways */
@@ -1138,7 +1138,7 @@ button:disabled {
 
 label {
   display: grid;
-  gap: 0.3rem;
+  gap: var(--space-1);
   font-size: var(--font-size-2);
   color: var(--muted);
 }
@@ -1149,8 +1149,8 @@ textarea {
   background: var(--surface-1);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 8px;
-  padding: var(--space-2) 0.6rem;
+  border-radius: var(--radius-lg);
+  padding: var(--space-2);
 }
 
 textarea {
@@ -1160,7 +1160,7 @@ textarea {
 
 .progress-wrap {
   background: var(--surface-1);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
   height: 8px;
   margin-top: var(--space-2);
@@ -1175,8 +1175,8 @@ textarea {
 .cycle-figures {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 1.4rem;
-  margin: 0.6rem 0 0;
+  gap: var(--space-2) var(--space-6);
+  margin: var(--space-2) 0 0;
 }
 
 .cycle-figures dt {
@@ -1187,7 +1187,7 @@ textarea {
 }
 
 .cycle-figures dd {
-  margin: 0.1rem 0 0;
+  margin: 0;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
@@ -1280,8 +1280,12 @@ textarea {
    measures), so the card never hides for good what it is describing. AB#1756: the room goes under the layout grid, not
    the body: #game-shell is 100vh tall and the grid overflows it, so body padding landed inside the overflow and added
    no scroll room once a page was taller than the screen (step 3's lease button stayed under the card). */
+/* Bug #4886: until the card is measured, a height for it; the measured one, set on the body's own style, wins. */
+body.walkthrough--open {
+  --walkthrough-card-height: 22rem;
+}
 body.walkthrough--open .layout-grid {
-  padding-bottom: calc(var(--space-4) + var(--walkthrough-card-height, 22rem));
+  padding-bottom: calc(var(--space-4) + var(--walkthrough-card-height));
 }
 
 /* What a walkthrough step points at. AB#2463: the outline stands off the element, so what it frames is never jammed
@@ -1311,11 +1315,11 @@ body.walkthrough--open .layout-grid {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 0.45rem 0.8rem;
+  padding: var(--space-2) var(--space-3);
   margin-bottom: var(--space-3);
   background: color-mix(in srgb, var(--accent) 8%, var(--surface-1));
   border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: var(--font-size-2);
   width: fit-content;
 }
@@ -1439,7 +1443,7 @@ body.walkthrough--open .layout-grid {
 }
 
 .action-receipt-summary {
-  margin: 0 0 0.6rem;
+  margin: 0 0 var(--space-2);
   color: var(--text);
 }
 
@@ -1452,8 +1456,8 @@ body.walkthrough--open .layout-grid {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 0.15rem var(--space-4);
-  padding: 0.35rem 0;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-1) 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -1469,13 +1473,13 @@ body.walkthrough--open .layout-grid {
 }
 
 .action-receipt-next {
-  margin: 0.85rem 0 0;
+  margin: var(--space-3) 0 0;
   font-size: var(--font-size-3);
   color: var(--text);
 }
 
 .action-receipt-next-label {
-  margin-right: 0.35rem;
+  margin-right: var(--space-1);
   color: var(--accent);
   font-size: var(--font-size-2);
   letter-spacing: 0.12em;
@@ -4629,7 +4633,7 @@ img.station__body {
 /* AB#2331: a scouted belt's composition as one bar, its parts in legend order, a hairline of panel between them. */
 .belt-bar {
   display: flex;
-  gap: 2px;
+  gap: calc(var(--space-1) / 2); /* a hairline between the belt's segments: half a step, kept at 2px */
   height: 12px;
   border-radius: var(--radius-pill);
   overflow: hidden;
