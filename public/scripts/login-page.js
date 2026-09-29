@@ -2,7 +2,7 @@ import { loginErrorMessage, loginFormProblem, showMessage } from "./authMessages
 
 const loginForm = document.getElementById("login-form");
 const loginStatus = document.getElementById("login-status");
-const dummyLoginButton = document.getElementById("dummy-login-btn");
+const dummyLoginButton = document.getElementById("demo-login-btn");
 // TODO(AB#738): Move IS_DEV_ACCESS duplicate to a single file
 // The demo account exists only on a developer's server (ISP_DEV=1, never in production), so its button shows only there.
 const IS_DEV_ACCESS =
