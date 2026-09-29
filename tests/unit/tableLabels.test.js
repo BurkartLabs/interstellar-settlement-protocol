@@ -42,10 +42,12 @@ describe("the tables that stack at phone width (AB#1055)", () => {
       expect(table, body).toMatch(/^<table class="ui-table( exchange__standing-table)?">/); // Bug #4870's compact card
     }
   });
-  it("are stacked only inside the phone block", () => {
-    const phone = css.split("/* ─── Phone: panels fill the screen (AB#1055) ─── */")[1] || "";
-    expect(phone).toMatch(/\.data-table--stack\s+thead\s*{[^}]*display:\s*none/);
-    expect(phone).toMatch(/\.data-table--stack td::before\s*{[^}]*content:\s*attr\(data-label\)/);
-    expect(css.split("/* ─── Phone: panels fill the screen (AB#1055) ─── */")[0]).not.toMatch(/data-table--stack/);
+  it("stack through the design system's table, each cell named by its column; the retired .data-table--stack is gone", () => {
+    // Bug #4886: since ISP-80 the tables are .ui-table, which stacks at phone width by its own rule; the old
+    // .data-table--stack rules styled nothing and went with the design allowlist.
+    const phone = css.split("@media (max-width: 600px)").slice(1).join("");
+    expect(phone).toMatch(/\.ui-table td::before\s*{[^}]*content:\s*attr\(data-label\)/);
+    expect(css).not.toMatch(/data-table--stack/);
+    expect(html).not.toMatch(/data-table--stack/);
   });
 });
