@@ -23,7 +23,10 @@ describe("replies that answer a reply (AB#2466)", () => {
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.reply).toMatchObject({ content: "An answer to the reply", replyToId: first.id });
     const deeper = await b.post(`/api/forums/threads/${thread.id}/replies`).send({ content: "And back", replyToId: res.body.reply.id });
-    expect(deeper.body.thread.replies.map((r) => r.replyToId ?? null)).toEqual([null, first.id, res.body.reply.id]);
+    expect(deeper.status).toBe(200);
+    // AB#995: a reply's response carries the thread's summary; its replies are read a page at a time
+    const page = (await a.get(`/api/forums/threads/${thread.id}`)).body;
+    expect(page.replies.map((r) => r.replyToId ?? null)).toEqual([null, first.id, res.body.reply.id]);
   });
 
   it("refuses a reply to a reply that is not in the thread, and writes nothing", async () => {

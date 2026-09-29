@@ -419,7 +419,10 @@ export const FORUM_INPUT = {
     }
   },
   "POST /threads/:threadId/replies": { params: { threadId: ref("a thread") }, body: { content: text(4000, "a reply of at most 4,000 characters"), replyToId: ref("a reply in this thread", { optional: true }) } }, // replyToId: AB#2466
-  "POST /threads/:threadId/like": { params: { threadId: ref("a thread") }, body: { replyId: ref("a reply", { optional: true }) } }
+  "POST /threads/:threadId/like": { params: { threadId: ref("a thread") }, body: { replyId: ref("a reply", { optional: true }) } },
+  // AB#995: the forums a page at a time; the cursor, category and page size are checked by server/forumPages.js (400)
+  "GET /threads": NOTHING,
+  "GET /threads/:threadId": { params: { threadId: ref("a thread") } }
 };
 
 const refuse = (error) => ({ ok: false, error });

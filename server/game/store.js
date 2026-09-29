@@ -232,6 +232,9 @@ export function mutateState(mutator) {
   return state;
 }
 
+/** AB#995: chat lines per channel kept in memory; the same number as chatHistory.js's CHAT_WINDOW. */
+const CHAT_WINDOW = 50;
+
 export function appendChatMessage(channel, message) {
   mutateState((draft) => {
     // Backstop for Bug #749: the seed is the fix, but a message must never be dropped because a migration lost this.
@@ -242,8 +245,9 @@ export function appendChatMessage(channel, message) {
 
     draft.chatLog[channel].push(message);
 
-    if (draft.chatLog[channel].length > 120) {
-      draft.chatLog[channel] = draft.chatLog[channel].slice(-120);
+    // AB#995: only the design's window stays in memory (and state.json); older lines are in chatHistory.js's files
+    if (draft.chatLog[channel].length > CHAT_WINDOW) {
+      draft.chatLog[channel] = draft.chatLog[channel].slice(-CHAT_WINDOW);
     }
   });
 }

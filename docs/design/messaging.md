@@ -265,6 +265,20 @@ trip. It does not measure network latency, socket delivery to real clients, many
 write. A bot's messages are uniform in size and never read. It says the storage and indexes hold at that volume, not
 that the game feels fast to a player.
 
+## Built so far for chat and forums (AB#995, ISP-288)
+
+- **Forums** page by cursor: threads 25 at a time by (last post, id) within a category, replies 50 at a time, 100 at
+  most (`server/forumPages.js`, `GET /api/forums/threads`, `GET /api/forums/threads/:threadId`). The thread list's
+  order is the one it had when its first page was read, so every thread comes exactly once while others are posted in.
+  `state:init` carries the categories only, and `forums:updated` the one thread that changed.
+- **Chat** keeps the last 50 lines of each channel in memory and writes every line to `data/chat/<channel>.jsonl`;
+  older lines page back 50 at a time (`server/game/chatHistory.js`, `GET /api/chat/:channel/history`).
+- **Limits**: chat lines 10 per 10 seconds and 300 characters (refused out loud with `chat:refused`), forum threads 10
+  and replies 120 an hour, title, body and reply at today's caps (`server/rateLimitConfig.js`).
+- **Probe**: `npm run bench:forums`, 10,000 threads, bot numbers.
+- **Not yet**: the forums still live in `state.json` (the move to per-thread files above is later work), and chat
+  history has no 30-day expiry yet.
+
 ## Not built, on purpose
 
 - No word filter, no block or mute, no report button, no moderator tool or queue, no age gate (AB#696, AB#707).

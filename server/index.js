@@ -7,7 +7,7 @@ import express from "express";
 import kanbanRouter from "./kanban.js";
 import fs from "node:fs";
 import path from "node:path";
-import { accountActionLimiter, mutationLimits } from "./rateLimiters.js";
+import { accountActionLimiter, mutationLimits, forumThreadLimiter, forumPostLimiter } from "./rateLimiters.js";
 import { saveAccountsNow, getAccountById, getState, CEO_INSIGHT_LIBRARY, REFINERY_CHAINS, RESEARCH_LIBRARY, MISSION_TEMPLATES, SALVAGE_ASSIGNMENT_ID, SYSTEMS_BY_ID } from "./gameState.js";
 import { BELT_KEYS, EXPEDITION_DURATIONS } from "./gameState.js";
 // AB#731: every gameplay route's numbers and ids are checked against server/gameplayInput.js here, after the login and
@@ -77,6 +77,7 @@ import { registerMessagingRoutes } from "./routes/messaging.js";
 import { registerConversationRoutes } from "./routes/conversations.js"; // AB#910
 import { migrateLegacyMailOnce } from "./game/conversations.js"; // AB#911
 import { registerForumRoutes } from "./routes/forums.js";
+import { registerChatRoutes } from "./routes/chat.js"; // AB#995
 import { registerMarketRoutes } from "./routes/market.js";
 
 process.on("uncaughtException", (error) => {
@@ -156,7 +157,13 @@ function writesOnly(...handlers) {
   };
 }
 app.use("/api/market", writesOnly(requireAuth, accountActionLimiter, mutationLimits.account));
-app.use("/api/forums", writesOnly(requireAuth, mutationLimits.account));
+// AB#995: and new threads and replies per account an hour (docs/design/messaging.md), ahead of the input checks too
+const forumWriteLimit = (req, res, next) => {
+  if (req.method === "POST" && /^\/threads\/?$/.test(req.path)) return forumThreadLimiter(req, res, next);
+  if (req.method === "POST" && /^\/threads\/[^/]+\/replies\/?$/.test(req.path)) return forumPostLimiter(req, res, next);
+  return next();
+};
+app.use("/api/forums", writesOnly(requireAuth, mutationLimits.account, forumWriteLimit));
 const INPUT_CHECKS = {
   catalogs: {
     stations: { has: (id) => Boolean(stationById(id)) }, // ISP-209 (AB#904): read live, so a built station is one
@@ -265,6 +272,7 @@ try {
 }
 
 registerForumRoutes(app);
+registerChatRoutes(app);
 
 registerMarketRoutes(app);
 

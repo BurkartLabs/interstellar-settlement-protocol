@@ -1,6 +1,7 @@
 // server/realtime.js: socket.io: rooms, the auth boundary, per-account and global emits, and chat, split out of server/index.js (AB#1815).
 import { marketView } from "./marketView.js";
-import { forumsView } from "./publicViews.js";
+import { postView } from "./publicViews.js";
+import { threadSummary } from "./forumPages.js"; // AB#995
 import { publicSystems } from "./catalogView.js"; // Bug #2355
 import { appendChatMessage, getAccountById, getState } from "./gameState.js";
 // Bug #1260: notifications made inside gameState (a level reached) reach the account's own sockets as every other
@@ -8,6 +9,8 @@ import { appendChatMessage, getAccountById, getState } from "./gameState.js";
 import { onAccountNotification } from "./gameState.js";
 import { io } from "./app.js";
 import { verifyAccessToken } from "./auth.js";
+import { chatLineGate } from "./rateLimiters.js"; // AB#995
+import { appendChatLine } from "./game/chatHistory.js"; // AB#995
 import { conglomerateRoomsFor, isMemberAccount, onConglomerateEvent } from "./game/membership.js"; // ISP-198 (AB#892)
 
 /** Characters in one chat line: the chat input's maxlength (Bug #1127). */
@@ -82,11 +85,16 @@ function emitBeltsChanged(keys) {
 }
 
 /**
- * Send the forums to every connected socket as that socket's account should see them: no account ids (Bug #1134).
- * The viewer is re-verified through checkSocketAuth (Bug #1766); see emitMarketUpdated.
+ * AB#995: what changed in the forums, to every connected socket as its account should see it (no account ids, Bug
+ * #1134): `kind` "thread" (a new thread), "reply" (a new reply, in `reply`) or "like" (the thread, and `reply` when a
+ * reply was liked), with the thread's summary. It used to send every thread and every reply on each post; clients now
+ * page the rest (docs/design/messaging.md "Live delivery"). The viewer is re-verified through checkSocketAuth (Bug #1766).
  */
-function emitForumsUpdated(forums) {
-  for (const peer of io.of("/").sockets.values()) peer.emit("forums:updated", forumsView(forums, checkSocketAuth(peer)));
+function emitForumsUpdated(kind, thread, reply = null) {
+  for (const peer of io.of("/").sockets.values()) {
+    const viewer = checkSocketAuth(peer);
+    peer.emit("forums:updated", { kind, thread: threadSummary(thread, viewer), ...(reply ? { reply: postView(reply, viewer) } : {}) });
+  }
 }
 
 /** The shared state as `viewer` (an account id, or null) should see it: the bootstrap and a socket's state:init. */
@@ -95,7 +103,8 @@ function sharedStateView(viewer) {
   // come from GET .../belt-compositions.
   const { belts, ...state } = getState();
   const world = state.world ? { ...state.world, systems: publicSystems(state.world.systems) } : state.world;
-  return { ...state, world, market: marketView(state.market, viewer), forums: forumsView(state.forums, viewer) };
+  // AB#995: the forums' categories only; threads and replies are read a page at a time (GET /api/forums/threads)
+  return { ...state, world, market: marketView(state.market, viewer), forums: { categories: state.forums?.categories || [] } };
 }
 
 /** The chat channels anyone may post to. "private" is gone: it was a public broadcast wearing the name (D-0.12-1). */
@@ -105,7 +114,7 @@ const PUBLIC_CHAT_CHANNELS = new Set(["global", "trade"]);
  * Where a message goes, decided by the server: "global" and "trade" as asked; "local" (or "local:<own system>") is the
  * sender's current system as the server knows it. Anything else, including another system's local channel, is null.
  */
-function resolveChatChannel(requested, corp) {
+export function resolveChatChannel(requested, corp) {
   if (typeof requested !== "string") return null;
   if (PUBLIC_CHAT_CHANNELS.has(requested)) return requested;
   const home = `local:${corp?.currentSystemId || "sol"}`;
@@ -178,7 +187,13 @@ export function registerRealtime() {
       // Bug #1127: kept as typed (the client renders it as text; stripping tags garbled "10 < price < 30"), and at most
       // CHAT_MAX_LENGTH characters, the chat box's own limit: a longer line is dropped like an empty one.
       const content = typeof payload?.content === "string" ? payload.content.trim() : "";
-      if (!content || content.length > CHAT_MAX_LENGTH) return;
+      if (!content) return;
+      // AB#995: the server's limits, said out loud to the sender rather than a line silently lost. Size and rate only:
+      // nothing reads what the line says (D-0.5-4, AB#696).
+      const refuse = (error, extra = {}) => socket.emit("chat:refused", { channel, error, ...extra });
+      if (content.length > CHAT_MAX_LENGTH) return refuse(`A chat line is at most ${CHAT_MAX_LENGTH} characters.`);
+      const gate = chatLineGate(accountId);
+      if (!gate.ok) return refuse(`That is more than ${gate.limit} lines in ${gate.windowSeconds} seconds. Try again in ${gate.retryAfterSeconds} seconds.`, { retryAfterSeconds: gate.retryAfterSeconds });
 
       // The author is the sender's own corporation; payload.author is ignored. No account id goes in the broadcast.
       const message = {
@@ -189,6 +204,8 @@ export function registerRealtime() {
         createdAt: Date.now()
       };
 
+      // AB#995: stored in the channel's history file first; a line that cannot be stored is not sent
+      try { appendChatLine(message, getState().chatLog?.[channel]); } catch { return refuse("Chat is unavailable right now. Try again in a minute."); }
       appendChatMessage(channel, message);
       if (channel.startsWith("local:")) {
         // Local chat reaches the corporations in that system now, read at send time so travel needs no bookkeeping.
