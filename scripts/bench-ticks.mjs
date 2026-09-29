@@ -44,7 +44,7 @@ const env = (dir) => ({
   PORT: "0",
   NODE_ENV: "test",
   JWT_SECRET: "bench-ticks-throwaway-secret-0123456789abcdef",
-  ISP_DEV: ""
+  ISP_DEV: "1" // Bug #4813: the template verifies its email through the test outbox (GET /api/dev/outbox)
 });
 
 async function importServer() {
@@ -62,9 +62,17 @@ async function buildTemplate() {
     if (res.status >= 400) throw new Error(`${method} ${url}: ${res.status} ${JSON.stringify(json).slice(0, 200)}`);
     return json;
   };
-  const reg = await call("POST", "/api/auth/register", { email: "bench-template@example.com", password: "bench-template-password", ceoName: "Bench CEO", corpName: "Bench Template" });
-  const id = reg.account.id;
-  const t = reg.accessToken;
+  // Bug #4813: registering gives no session since AB#2288. Verify through the test outbox, then log in, as a player does.
+  const email = "bench-template@example.com";
+  const password = "bench-template-password";
+  await call("POST", "/api/auth/register", { email, password, ceoName: "Bench CEO", corpName: "Bench Template" });
+  const { messages } = await call("GET", "/api/dev/outbox");
+  const token = messages.filter((m) => m.to === email).map((m) => m.text.match(/#token=([A-Za-z0-9_-]+)/)?.[1]).filter(Boolean).at(-1);
+  if (!token) throw new Error("no verification link in the test outbox for the template account");
+  await call("POST", "/api/auth/verify-email", { token });
+  const session = await call("POST", "/api/auth/login", { email, password });
+  const id = session.account.id;
+  const t = session.accessToken;
   const a = (route, body) => call("POST", `/api/accounts/${id}/${route}`, body, t);
   await a("walkthrough-complete");
   await a("gameplay/rent-office", { stationId: "earth-station-prime", durationDays: 28 });
@@ -84,7 +92,7 @@ async function buildTemplate() {
 }
 
 /** Parent: clone the template account n times into a new data directory's snapshot. */
-function cloneTemplate(templateDir, templateId, n, dir) {
+export function cloneTemplate(templateDir, templateId, n, dir) {
   fs.mkdirSync(dir, { recursive: true });
   const saved = JSON.parse(fs.readFileSync(path.join(templateDir, "accounts-snapshot.json"), "utf8"));
   const store = saved.accounts ? saved : { accounts: saved };
