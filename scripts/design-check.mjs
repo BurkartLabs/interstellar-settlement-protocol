@@ -120,6 +120,14 @@ export function imageViolations(src) {
   };
   const IMG = /["'(]((?:\/|\.\/)?images\/[^"')\s]+\.(?:png|jpe?g|svg|webp|gif|avif))/g;
   for (const [file, text] of Object.entries({ ...src.css, ...src.html, ...src.js, ...src.data })) scan(file, text, IMG);
+  // AB#949: a data file names an image relative to public/images/ too ("imageFile": "buildings/x.png" named 17 PNGs
+  // that never existed, and the pattern above, which wants an images/ prefix, never saw them).
+  const DATA_IMG = /"((?![/.]|images\/|https?:|data:)[^"\s]+\.(?:png|jpe?g|svg|webp|gif|avif))"/g;
+  for (const [file, text] of Object.entries(src.data)) {
+    for (const m of text.matchAll(DATA_IMG)) {
+      if (!exists(`images/${m[1]}`)) out.push({ kind: "image", file, line: lineOf(text, m.index), key: `image: images/${m[1]}` });
+    }
+  }
   return out;
 }
 
