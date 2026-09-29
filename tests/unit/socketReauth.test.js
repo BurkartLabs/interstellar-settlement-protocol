@@ -30,6 +30,7 @@ beforeAll(async () => {
   vi.stubGlobal("io", fake.io);
   state = await import("../../public/scripts/state.js");
   api = await import("../../public/scripts/apiClient.js");
+  await api.connectSocket(); // Bug #4840: made when the game opens, not on import
 });
 
 describe("the socket always ends up on the page's current token (Bug AB#2154)", () => {
