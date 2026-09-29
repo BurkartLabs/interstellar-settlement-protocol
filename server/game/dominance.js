@@ -6,7 +6,9 @@
 //   X = tonnes it extracted in the system / all tonnes extracted there        (server/game/dominanceCounters.js)
 //   S = credits of its sales settled at the system's stations / all of them    (sales to a conglomerate partner left out)
 //   D = 0.4 L + 0.4 X + 0.2 S (dominanceWeights), a component with no activity left out and the others scaled to 1
-//   a conglomerate's D = the sum of its current members' Ds: one share, never multiplied by its members
+//   a conglomerate's D = the sum of its current members' Ds: one share, never multiplied by its members. Bug #4802: of a
+//   member's rolling extraction and sales, only the days it began as a member count toward the conglomerate (the
+//   roster's joinedAt); its days before that stay its own, as the independent corporation it then was
 //
 // Computed once a day, at the first tick after 00:00 UTC, and cached in the global state. What is published is the top
 // three holders by corporation and by conglomerate, each share rounded to dominancePublicRoundPct (5%), plus "others",
@@ -56,30 +58,36 @@ export function computeDominance({ accounts = [], conglomerates = [] } = {}, now
   // Per system: each corporation's raw leases, tonnes and credits (kept here, never published).
   const raw = new Map(SYSTEMS_DATA.map((s) => [s.id, new Map()]));
   const corpById = new Map();
-  const add = (systemId, corp, kind, n) => {
+  // Each corporation's conglomerate, from the roster now, and since when it has been a member (Bug #4802).
+  const conglomerateOf = new Map();
+  const memberSince = new Map();
+  for (const c of conglomerates) {
+    if (c.dissolvedAt) continue;
+    for (const m of c.members || []) { conglomerateOf.set(m.corp, c); memberSince.set(m.corp, Number(m.joinedAt)); }
+  }
+  // `asMember`: activity that counts toward the corporation's conglomerate. Leases are held now, so a member's count;
+  // a day's extraction or sales count when the corporation was a member as that day began (never the day it joined,
+  // nor any before). No joinedAt on record counts nothing toward the group: fails closed.
+  const add = (systemId, corp, kind, n, asMember) => {
     if (!raw.has(systemId) || !(n > 0)) return;
     const holders = raw.get(systemId);
-    const row = holders.get(corp.publicId) || { leases: 0, extraction: 0, sales: 0 };
+    const row = holders.get(corp.publicId) || { leases: 0, extraction: 0, sales: 0, member: { leases: 0, extraction: 0, sales: 0 } };
     row[kind] += n;
+    if (asMember) row.member[kind] += n;
     holders.set(corp.publicId, row);
   };
+  const memberOn = (publicId, day) => conglomerateOf.has(publicId) && memberSince.get(publicId) <= Number(day);
   for (const account of accounts) {
     const corp = account?.state?.corp;
     if (!corp?.publicId) continue;
     corpById.set(corp.publicId, corp);
-    for (const lease of corp.miningLeases || []) add(systemOfBody(lease?.body), corp, "leases", 1);
+    for (const lease of corp.miningLeases || []) add(systemOfBody(lease?.body), corp, "leases", 1, conglomerateOf.has(corp.publicId));
     for (const [day, bySystem] of Object.entries(corp.dominance?.extraction || {})) {
-      if (inWindow(day)) for (const [systemId, tonnes] of Object.entries(bySystem)) add(systemId, corp, "extraction", Number(tonnes));
+      if (inWindow(day)) for (const [systemId, tonnes] of Object.entries(bySystem)) add(systemId, corp, "extraction", Number(tonnes), memberOn(corp.publicId, day));
     }
     for (const [day, byStation] of Object.entries(corp.dominance?.sales || {})) {
-      if (inWindow(day)) for (const [stationId, credits] of Object.entries(byStation)) add(stationById(stationId)?.systemId, corp, "sales", Number(credits));
+      if (inWindow(day)) for (const [stationId, credits] of Object.entries(byStation)) add(stationById(stationId)?.systemId, corp, "sales", Number(credits), memberOn(corp.publicId, day));
     }
-  }
-  // Each corporation's conglomerate, from the roster now.
-  const conglomerateOf = new Map();
-  for (const c of conglomerates) {
-    if (c.dissolvedAt) continue;
-    for (const m of c.members || []) conglomerateOf.set(m.corp, c);
   }
 
   const systems = {};
@@ -101,12 +109,21 @@ export function computeDominance({ accounts = [], conglomerates = [] } = {}, now
       const corp = corpById.get(publicId);
       corps.push({ name: corp?.corporationName || "A corporation", share });
       (priv[publicId] ||= {})[systemId] = { ...parts, dominance: share };
+      // Bug #4802: a member's share splits in two. What it did as a member is its conglomerate's; what it did before it
+      // joined stays its own, a holder by itself as it was then. Every unit is counted once, so the shares still sum to 1.
       const c = conglomerateOf.get(publicId);
-      const key = c ? `cgl:${c.id}` : `corp:${publicId}`;
-      const group = groups.get(key) || { name: c ? c.name : corp?.corporationName || "A corporation", share: 0, parts: { leases: 0, extraction: 0, sales: 0 }, conglomerateId: c?.id || null, publicId };
-      group.share += share;
-      for (const k of COMPONENTS) group.parts[k] += parts[k];
-      groups.set(key, group);
+      const asMember = c ? Object.fromEntries(COMPONENTS.map((k) => [k, totals[k] > 0 ? row.member[k] / totals[k] : 0])) : null;
+      const own = asMember ? Object.fromEntries(COMPONENTS.map((k) => [k, parts[k] - asMember[k]])) : parts;
+      const credit = (key, name, conglomerateId, portion) => {
+        const portionShare = live.reduce((s, k) => s + (weights[k] / weightSum) * portion[k], 0);
+        if (!(portionShare > 0) && groups.has(key)) return;
+        const group = groups.get(key) || { name, share: 0, parts: { leases: 0, extraction: 0, sales: 0 }, conglomerateId, publicId };
+        group.share += portionShare;
+        for (const k of COMPONENTS) group.parts[k] += portion[k];
+        groups.set(key, group);
+      };
+      if (c) credit(`cgl:${c.id}`, c.name, c.id, asMember);
+      if (!c || live.some((k) => own[k] > 1e-12)) credit(`corp:${publicId}`, corp?.corporationName || "A corporation", null, own);
     }
     for (const group of groups.values()) {
       if (!group.conglomerateId) continue;
