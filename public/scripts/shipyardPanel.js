@@ -3,6 +3,8 @@
 // in the way, so a form that offers Queue is one the server will take. The Fleet screen (ISP-175) will grow from it.
 // Pure apart from renderShipyardPanel, so it loads in node without the page's state.
 import { escapeHtml } from "./html.js";
+import { protocolLineHtml, refusalMeaning } from "./protocol.js"; // ISP-254 (AB#4810)
+const refused = (message) => `${escapeHtml(message)} ${protocolLineHtml({ meaning: refusalMeaning(message), screen: "fleet" })}`;
 
 const money = (n) => `¤${Math.floor(n).toLocaleString("en-US")}`;
 const has = (corp, tech) => (corp.unlockedTech || []).includes(tech);
@@ -94,7 +96,7 @@ export function renderShipyardPanel(doc, units, corp, handlers, ctx = {}) {
     try {
       await handlers.queue(form.querySelector("[data-ship-unit]").value, Number(form.querySelector("[data-ship-quantity]").value));
     } catch (error) {
-      status.textContent = error?.message || "The shipyard refused that.";
+      status.innerHTML = refused(error?.message || "The shipyard refused that."); // ISP-254 (AB#4810)
       button.disabled = false;
     }
   };
@@ -102,7 +104,7 @@ export function renderShipyardPanel(doc, units, corp, handlers, ctx = {}) {
     const cancel = event.target.closest("[data-ship-cancel]");
     if (!cancel || cancel.disabled) return;
     cancel.disabled = true;
-    try { await handlers.cancel(cancel.getAttribute("data-ship-cancel")); } catch (error) { status.textContent = error?.message || "Could not cancel."; cancel.disabled = false; }
+    try { await handlers.cancel(cancel.getAttribute("data-ship-cancel")); } catch (error) { status.innerHTML = refused(error?.message || "Could not cancel."); cancel.disabled = false; }
   };
   return true;
 }

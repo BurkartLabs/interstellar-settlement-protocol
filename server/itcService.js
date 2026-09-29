@@ -53,6 +53,13 @@ function readStore() {
   }
 }
 const save = () => safeWriteFile(FILE, JSON.stringify(store));
+
+/** ISP-264 (AB#960): the store as held, for a player's data export and for erasing an account (server/accountData.js). */
+export const dataStore = Object.freeze({
+  file: "itc.json",
+  read: () => store,
+  rewrite(fn) { if (!store || typeof store !== "object") return; fn(store); safeWriteFile(FILE, JSON.stringify(store)); } // nothing held yet: nothing to write
+});
 const plain = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 const price = (v) => (Math.round(v * 100) / 100).toLocaleString("en-US", { maximumFractionDigits: 2 });
 const dayText = (d) => utcDate(`${d}T00:00:00Z`); // ISP-249 (AB#945)

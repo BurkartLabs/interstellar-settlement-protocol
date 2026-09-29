@@ -20,6 +20,13 @@ const FILE = path.join(dataDir, "control-history.json");
 const KEEP_DAYS = Math.max(WARFARE_CATALOG.concessionEligibleDays, ...Object.values(WARFARE_CATALOG.systemRules).map((r) => r.overrides?.concessionEligibleDays || 0));
 let history = readHistory();
 
+/** ISP-264 (AB#960): the store as held, for a player's data export and for erasing an account (server/accountData.js). */
+export const dataStore = Object.freeze({
+  file: "control-history.json",
+  read: () => history,
+  rewrite(fn) { if (!history || typeof history !== "object") return; fn(history); safeWriteFile(FILE, JSON.stringify(history)); } // nothing held yet: nothing to write
+});
+
 function readHistory() {
   try {
     const parsed = JSON.parse(fs.readFileSync(FILE, "utf8"));

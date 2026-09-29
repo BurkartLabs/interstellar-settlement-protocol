@@ -81,6 +81,7 @@ export async function loadNotifications() {
 
 import { numberMarkup } from "../numberChange.js"; // AB#745: marks a number that is acknowledged when it changes
 import { refHtml } from "../html.js"; // ISP-249 (AB#945)
+import { bindAccountData } from "./accountData.js"; // ISP-264 (AB#960)
 export function updateCorpIdentity(data) {
   const identity = document.getElementById("corp-identity");
   const corp = data.corp;
@@ -119,6 +120,18 @@ export function updateReplayOnboardingVisibility(data) {
 }
 
 export function bindGlobalControls() {
+  // ISP-264 (AB#960): the Account dialog; once the account is deleted the page signs out as Log Out does (the server
+  // has already revoked every session, so there is nothing to tell it)
+  bindAccountData({
+    onDeleted: () => {
+      clearSession();
+      appState.authenticated = false;
+      appState.data = null;
+      appState.profileMode = null;
+      stopMiningUiTicker();
+      showAuthScreen();
+    }
+  });
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", async () => {

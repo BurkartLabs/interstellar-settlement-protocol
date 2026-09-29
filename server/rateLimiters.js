@@ -119,6 +119,12 @@ export const forgotPasswordAccountLimiter = limiter("forgot-password-account", {
 // Sixty refreshes per address per minute.
 export const refreshLimiter = limiter("refresh");
 
+// ISP-264 (AB#960): per account (the route's own, behind requireAccountAccess), so guessing a password to delete an
+// account is as slow as guessing it to log in, and an export cannot be pulled in a loop.
+const byRouteAccount = { keyGenerator: (req) => String(req.params?.accountId || "") || ipKeyGenerator(req.ip) };
+export const deleteAccountLimiter = limiter("delete-account", { extra: byRouteAccount });
+export const exportDataLimiter = limiter("export-data", { extra: byRouteAccount });
+
 // AB#734 (ISP-48): 120 state-changing game requests a minute, shared by every route under /api/accounts/:accountId
 // and /api/market — one limiter instance, so an account can't dodge the count by splitting a burst across the two
 // route families. Keyed on the caller's own account, not their address: two players behind the same NAT (or one

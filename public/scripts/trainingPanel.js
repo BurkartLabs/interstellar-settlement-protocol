@@ -2,6 +2,8 @@
 // catalog, see the jobs in training, and each station's garrison. The rules are the server's (server/training.js); this
 // draws them and names the first thing in the way. Pure apart from renderTrainingPanel, so it loads in node.
 import { escapeHtml } from "./html.js";
+import { protocolLineHtml, refusalMeaning } from "./protocol.js"; // ISP-254 (AB#4810)
+const refused = (message) => `${escapeHtml(message)} ${protocolLineHtml({ meaning: refusalMeaning(message), screen: "fleet" })}`;
 import { durationText } from "./shipyardPanel.js"; // ISP-171 (AB#865): one way of writing a build time
 
 const money = (n) => `¤${Math.floor(n).toLocaleString("en-US")}`;
@@ -86,7 +88,7 @@ export function renderTrainingPanel(doc, units, corp, handlers, ctx = {}) {
     try {
       await handlers.train(pick.value, Number(form.querySelector("[data-troop-quantity]").value));
     } catch (error) {
-      status.textContent = error?.message || "Headquarters refused that.";
+      status.innerHTML = refused(error?.message || "Headquarters refused that."); // ISP-254 (AB#4810)
       button.disabled = false;
     }
   };
@@ -94,7 +96,7 @@ export function renderTrainingPanel(doc, units, corp, handlers, ctx = {}) {
     const cancel = event.target.closest("[data-troop-cancel]");
     if (!cancel || cancel.disabled) return;
     cancel.disabled = true;
-    try { await handlers.cancel(cancel.getAttribute("data-troop-cancel")); } catch (error) { status.textContent = error?.message || "Could not cancel."; cancel.disabled = false; }
+    try { await handlers.cancel(cancel.getAttribute("data-troop-cancel")); } catch (error) { status.innerHTML = refused(error?.message || "Could not cancel."); cancel.disabled = false; }
   };
   return true;
 }

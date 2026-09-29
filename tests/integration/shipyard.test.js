@@ -121,12 +121,12 @@ describe("each refusal debits nothing (AB#865)", () => {
 
   it("credits short of the catalog's price", async () => {
     const c = await corporation((corp) => { corp.finances.credits = LF.credits * 2 - 1; });
-    await refused(c, { unitId: "lf", quantity: 2 }, /Light Fighter/);
+    await refused(c, { unitId: "lf", quantity: 2 }, /^2 Light Fighters requires .* Sell goods or finish an assignment to raise the credits, then try again\.$/); // Bug #4820: the next step
   });
 
   it("goods short at the station the corporation is docked at", async () => {
     const c = await corporation((corp) => { corp.inventory[STATION]["Carbon Fibre Sheets"] = 19; });
-    await refused(c, { unitId: "lf", quantity: 2 }, /need 20 Carbon Fibre Sheets at Earth Station Prime; it holds 19/);
+    await refused(c, { unitId: "lf", quantity: 2 }, /need 20 Carbon Fibre Sheets at Earth Station Prime; it holds 19\. Bring more there, or queue fewer\.$/); // AB#4810 (ISP-6)
   });
 });
 

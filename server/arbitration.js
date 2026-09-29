@@ -49,6 +49,13 @@ function readStore() {
   }
 }
 const save = () => safeWriteFile(FILE, JSON.stringify(store));
+
+/** ISP-264 (AB#960): the store as held, for a player's data export and for erasing an account (server/accountData.js). */
+export const dataStore = Object.freeze({
+  file: "arbitration.json",
+  read: () => store,
+  rewrite(fn) { if (!store || typeof store !== "object") return; fn(store); safeWriteFile(FILE, JSON.stringify(store)); } // nothing held yet: nothing to write
+});
 const terms = () => WARFARE_CATALOG.arbitration;
 const no = (status, code, error) => ({ refused: { status, code, error } });
 const keyOf = (p) => `${p.type}:${p.id}`;

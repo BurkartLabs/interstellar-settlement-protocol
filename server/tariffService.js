@@ -51,6 +51,13 @@ function readStore() {
   }
 }
 const save = () => safeWriteFile(FILE, JSON.stringify(store));
+
+/** ISP-264 (AB#960): the store as held, for a player's data export and for erasing an account (server/accountData.js). */
+export const dataStore = Object.freeze({
+  file: "tariffs.json",
+  read: () => store,
+  rewrite(fn) { if (!store || typeof store !== "object") return; fn(store); safeWriteFile(FILE, JSON.stringify(store)); } // nothing held yet: nothing to write
+});
 const systemRecord = (systemId) => (store.systems[systemId] ||= { rates: {}, accrued: {}, holders: {} });
 
 /** A system's tariff cap (%): its rule's; 0 for a never-concedable system or one without a rule. */
