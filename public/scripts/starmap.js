@@ -201,14 +201,14 @@ export function bodyRenderKind(body) {
   return "placeholder";
 }
 
-// Preload all planet images
-Object.keys(PLANET_IMAGE_PATHS).forEach(loadPlanetImage);
+// AB#964 (ISP-268): each planet's image loads when it is first drawn (the render repeats once it arrives). Preloading
+// all eighteen cost every page ~800 KB, the logged-out landing page too, since this module loads with the app.
 
 function drawPlanet(ctx, body, x, y, radius) {
   const style = styleForBody(body);
 
   // Try image-based rendering first
-  const img = PLANET_IMAGES[body.id];
+  const img = loadPlanetImage(body.id);
   if (img && img.complete && img.naturalWidth > 0) {
     ctx.save();
     ctx.beginPath();

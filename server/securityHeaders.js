@@ -5,11 +5,11 @@ import fs from "node:fs";
 import helmet from "helmet";
 
 /**
- * The one script the pages load from outside this server (public/index.html), allowed by its exact path: the CDN
- * serves every npm package, so allowing the whole origin would let an injected tag load any of them.
- * tests/integration/security-headers.test.js checks every external script in index.html is in this list.
+ * Scripts the pages load from outside this server, each by its exact path. None since AB#964: Chart.js is served from
+ * public/vendor/ and Inter from public/vendor/ too, so every directive below is this origin alone.
+ * tests/integration/security-headers.test.js checks no page loads anything from another origin.
  */
-export const EXTERNAL_SCRIPTS = ["https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"];
+export const EXTERNAL_SCRIPTS = [];
 
 /**
  * The content security policy. No inline or evaluated script: the pages carry no inline <script> or on* handlers,
@@ -22,8 +22,8 @@ export const CSP_DIRECTIVES = {
   "default-src": ["'self'"],
   "script-src": ["'self'", ...EXTERNAL_SCRIPTS],
   "script-src-attr": ["'none'"],
-  "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-  "font-src": ["'self'", "https://fonts.gstatic.com"],
+  "style-src": ["'self'", "'unsafe-inline'"],
+  "font-src": ["'self'"],
   "img-src": ["'self'", "data:"],
   "connect-src": ["'self'"],
   "object-src": ["'none'"],
@@ -44,8 +44,8 @@ export function securityHeaders({ reportUri = null } = {}) {
   const directives = reportUri ? { ...CSP_DIRECTIVES, "report-uri": [reportUri] } : CSP_DIRECTIVES;
   return helmet({
     contentSecurityPolicy: { useDefaults: false, directives },
-    // same-origin: nothing about the page (its URL carries ?account=) reaches the font or script CDN, while the
-    // game's own requests keep a referrer. no-referrer makes Chromium send Origin: null on same-origin POSTs, which
+    // same-origin: nothing about the page (its URL carries ?account=) reaches another origin, while the game's own
+    // requests keep a referrer. no-referrer makes Chromium send Origin: null on same-origin POSTs, which
     // corsPolicy below would then refuse (T-079).
     referrerPolicy: { policy: "same-origin" },
     frameguard: { action: "deny" },

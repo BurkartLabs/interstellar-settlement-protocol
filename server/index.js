@@ -4,6 +4,7 @@ import "./conglomerates.js";
 // ISP-225 (AB#920): the warfare catalog, checked the same way before anything listens.
 import "./warfare.js";
 import express from "express";
+import { staticOptions } from "./staticCache.js";
 import kanbanRouter from "./kanban.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -95,7 +96,8 @@ app.use(mutationLimits.address);
 app.use("/api/telemetry", express.json({ limit: "8kb" }));
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname, "..", "public")));
+// AB#964 (ISP-268): each file with a Cache-Control for what it is (server/staticCache.js)
+app.use(express.static(path.join(__dirname, "..", "public"), staticOptions(path.join(__dirname, "..", "public"))));
 // ISP-70 (AB#759): the style guide's static pages without their .html, so the token specimen is /styleguide/tokens.
 // Static files, like the rest of public/: no route, no game data.
 app.use("/styleguide", express.static(path.join(__dirname, "..", "public", "styleguide"), { extensions: ["html"] }));

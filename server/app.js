@@ -1,6 +1,7 @@
 // server/app.js: the Express app, its HTTP server and socket.io, created once and shared, split out of server/index.js (AB#1815).
 import "./loadEnv.js";
 import express from "express";
+import compression from "compression";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -36,6 +37,9 @@ const CSP_REPORT_FILE = process.env.ISP_CSP_REPORT_FILE || "";
 app.use(securityHeaders({ reportUri: CSP_REPORT_FILE ? CSP_REPORT_PATH : null }));
 if (CSP_REPORT_FILE) app.post(CSP_REPORT_PATH, express.text({ type: "*/*", limit: "16kb" }), cspReportSink(CSP_REPORT_FILE));
 app.use(corsPolicy({ allowedOrigins: SOCKET_ORIGINS }));
+// AB#964 (ISP-268): responses are compressed when the browser accepts it. The pages, styles and 180-odd script modules
+// are text a phone downloads on its first load; gzip takes about three quarters off them.
+app.use(compression());
 const io = new Server(server, {
   cors: {
     origin: SOCKET_ORIGINS.length ? SOCKET_ORIGINS : false

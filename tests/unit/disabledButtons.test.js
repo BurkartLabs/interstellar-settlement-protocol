@@ -16,6 +16,8 @@ function topLevelRules(css) {
     const open = css.indexOf("{", i);
     if (open < 0) break;
     const selector = css.slice(i, open).replace(/^[\s}]+/, "").trim();
+    // AB#964: @font-face (and its kin) is one flat block of declarations, not a block of rules like @media
+    if (/^@(font-face|property|page|counter-style)\b/.test(selector)) { i = css.indexOf("}", open) + 1; continue; }
     if (/^@/.test(selector)) { depth++; i = open + 1; continue; }
     const close = css.indexOf("}", open);
     if (depth === 0) out.push({ selectors: selector.split(",").map((s) => s.trim().replace(/\s+/g, " ")), body: css.slice(open + 1, close) });

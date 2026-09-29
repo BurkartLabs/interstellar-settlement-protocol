@@ -56,23 +56,16 @@ describe("security headers (AB#753)", () => {
     expect(res.status).not.toBe(204);
   });
 
-  it("allows the one CDN script the page loads by its exact path, not the whole CDN", async () => {
+  it("AB#964: every page loads its scripts, styles and fonts from this server alone, and the policy allows no other origin", async () => {
     const csp = parseCsp((await request(app).get("/")).headers["content-security-policy"]);
-    const html = readFileSync(new URL("../../public/index.html", import.meta.url), "utf8");
-    const external = [...html.matchAll(/<script[^>]*\ssrc="(https?:[^"]+)"/g)].map((m) => m[1]);
-    expect(external.length).toBeGreaterThan(0);
-    for (const src of external) expect(csp["script-src"]).toContain(src);
-    expect(csp["script-src"]).not.toContain("https://cdn.jsdelivr.net");
-  });
-
-  it("allows the fonts the pages link: the stylesheet from fonts.googleapis.com, the files from fonts.gstatic.com", async () => {
-    const csp = parseCsp((await request(app).get("/")).headers["content-security-policy"]);
-    for (const page of ["index.html", "login.html", "register.html"]) {
+    const pages = ["index.html", "login.html", "register.html", "check-email.html", "verify-email.html", "forgot-password.html", "reset-password.html", "how-to-start.html", "styleguide/index.html", "styleguide/tokens.html"];
+    for (const page of pages) {
       const html = readFileSync(new URL(`../../public/${page}`, import.meta.url), "utf8");
-      const sheets = [...html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="(https?:\/\/[^/"]+)/g), ...html.matchAll(/href="(https?:\/\/[^/"]+)[^"]*"[^>]*rel="stylesheet"/g)].map((m) => m[1]);
-      for (const origin of sheets) expect(csp["style-src"], `${page} ${origin}`).toContain(origin);
+      expect(html, page).not.toMatch(/<(script|link)[^>]*(src|href)="https?:\/\//);
     }
-    expect(csp["font-src"]).toContain("https://fonts.gstatic.com");
+    expect(csp["script-src"]).toEqual(["'self'"]);
+    expect(csp["style-src"]).toEqual(["'self'", "'unsafe-inline'"]);
+    expect(csp["font-src"]).toEqual(["'self'"]);
   });
 });
 

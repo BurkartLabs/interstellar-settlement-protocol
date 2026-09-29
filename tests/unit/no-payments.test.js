@@ -84,6 +84,8 @@ function scanFiles(dir) {
   const out = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.name === "node_modules") continue;
+    // AB#964: public/vendor holds third-party files as published (minified Chart.js, the Inter font), not game code
+    if (entry.isDirectory() && path.relative(ROOT, path.join(dir, entry.name)).replace(/\\/g, "/") === "public/vendor") continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       out.push(...scanFiles(full));
