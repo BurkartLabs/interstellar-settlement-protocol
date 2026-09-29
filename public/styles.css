@@ -6,6 +6,26 @@
    these names and no literal value. tests/unit/designTokens.test.js checks every text colour against every surface
    (WCAG AA) and every fill against the text set on it, and counts the literals still outside this block so that
    number can only fall; ISP-71 (AB#760) replaces them. See them all at /styleguide/tokens. */
+/* AB#964 (ISP-268): Inter, self-hosted (public/vendor/inter-5.3.0, OFL): one variable file for every weight, latin
+   first and latin-ext only when a page uses those characters. It was Google Fonts, a second origin to reach before
+   the first paint and to allow in the CSP. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("/vendor/inter-5.3.0/inter-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("/vendor/inter-5.3.0/inter-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
 :root {
   /* Surfaces, darkest first. Depth is luminance, each step at least 1.2:1 over the one below: no decorative shadow.
      bg is the page; surface-1 a panel or card; surface-2 raised (a card on a panel, a hovered row); surface-3 selected
