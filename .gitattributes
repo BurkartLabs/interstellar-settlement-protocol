@@ -1,0 +1,3 @@
+# Bug #4855: served text files keep LF in every checkout. On Windows core.autocrlf turned robots.txt into CRLF, so the
+# file served (and the image deploy.ps1 builds from that tree) differed from the one in git.
+public/robots.txt text eol=lf

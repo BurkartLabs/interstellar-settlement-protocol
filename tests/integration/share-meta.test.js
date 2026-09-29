@@ -77,7 +77,8 @@ describe("ISP-258 favicon and robots.txt (AB#954)", () => {
   it("robots.txt lets the pages be indexed, and not the API or the style guide", async () => {
     const res = await request(app).get("/robots.txt");
     expect(res.status).toBe(200);
-    const rules = res.text.split("\n").filter((l) => l && !l.startsWith("#"));
+    // Bug #4855: lines whatever their endings; a checkout from before .gitattributes may still hold robots.txt in CRLF
+    const rules = res.text.split(/\r?\n/).filter((l) => l && !l.startsWith("#"));
     expect(rules).toEqual(["User-agent: *", "Allow: /", "Disallow: /api/", "Disallow: /styleguide/"]);
   });
 
