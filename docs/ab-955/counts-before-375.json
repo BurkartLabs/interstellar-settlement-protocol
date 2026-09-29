@@ -1,0 +1,226 @@
+{
+  "width": 375,
+  "height": 812,
+  "stuck": null,
+  "clicks": 23,
+  "fields": 7,
+  "covered": 2,
+  "coveredLog": [
+    "Offices subpage: under game-shell",
+    "Back to the station: under account-data-btn"
+  ],
+  "scrolls": 2,
+  "stages": [
+    {
+      "name": "landing",
+      "clicks": 0,
+      "fields": 0,
+      "totalClicks": 0,
+      "totalFields": 0,
+      "seconds": 1,
+      "walkthrough": null
+    },
+    {
+      "name": "register-page",
+      "clicks": 1,
+      "fields": 0,
+      "totalClicks": 1,
+      "totalFields": 0,
+      "seconds": 1,
+      "walkthrough": null
+    },
+    {
+      "name": "check-email",
+      "clicks": 1,
+      "fields": 4,
+      "totalClicks": 2,
+      "totalFields": 4,
+      "seconds": 1,
+      "walkthrough": null
+    },
+    {
+      "name": "email-link-opened",
+      "clicks": 1,
+      "fields": 0,
+      "totalClicks": 3,
+      "totalFields": 4,
+      "seconds": 2,
+      "walkthrough": null
+    },
+    {
+      "name": "verify-pressed",
+      "clicks": 1,
+      "fields": 0,
+      "totalClicks": 4,
+      "totalFields": 4,
+      "seconds": 2,
+      "walkthrough": null
+    },
+    {
+      "name": "in-the-game",
+      "clicks": 2,
+      "fields": 2,
+      "totalClicks": 6,
+      "totalFields": 6,
+      "seconds": 3,
+      "walkthrough": null
+    },
+    {
+      "name": "opening",
+      "clicks": 1,
+      "fields": 0,
+      "totalClicks": 7,
+      "totalFields": 6,
+      "seconds": 3,
+      "walkthrough": "Your licence"
+    },
+    {
+      "name": "office-rented",
+      "clicks": 7,
+      "fields": 0,
+      "totalClicks": 14,
+      "totalFields": 6,
+      "seconds": 6,
+      "walkthrough": "Staff"
+    },
+    {
+      "name": "staff-hired",
+      "clicks": 2,
+      "fields": 1,
+      "totalClicks": 16,
+      "totalFields": 7,
+      "seconds": 2,
+      "walkthrough": "A mining claim"
+    },
+    {
+      "name": "lease-filed",
+      "clicks": 4,
+      "fields": 0,
+      "totalClicks": 20,
+      "totalFields": 7,
+      "seconds": 4,
+      "walkthrough": "Equipment"
+    },
+    {
+      "name": "first-extractor",
+      "clicks": 3,
+      "fields": 0,
+      "totalClicks": 23,
+      "totalFields": 7,
+      "seconds": 3,
+      "walkthrough": "Your first cycle"
+    }
+  ],
+  "telemetry": [
+    {
+      "event": "app_open",
+      "props": {
+        "source": "login"
+      }
+    },
+    {
+      "event": "funnel_step",
+      "props": {
+        "step": "licence"
+      }
+    },
+    {
+      "event": "funnel_step",
+      "props": {
+        "step": "station"
+      }
+    },
+    {
+      "event": "funnel_step",
+      "props": {
+        "step": "office"
+      }
+    },
+    {
+      "event": "funnel_step",
+      "props": {
+        "step": "hire"
+      }
+    },
+    {
+      "event": "verb_first",
+      "props": {
+        "latency_ms": 9184
+      }
+    },
+    {
+      "event": "rank_up",
+      "props": {
+        "level": 1
+      }
+    },
+    {
+      "event": "funnel_step",
+      "props": {
+        "step": "lease"
+      }
+    },
+    {
+      "event": "verb_repeat",
+      "props": {
+        "count_in_session": 2
+      }
+    },
+    {
+      "event": "funnel_step",
+      "props": {
+        "step": "yard"
+      }
+    },
+    {
+      "event": "verb_repeat",
+      "props": {
+        "count_in_session": 3
+      }
+    },
+    {
+      "event": "verb_repeat",
+      "props": {
+        "count_in_session": 4
+      }
+    },
+    {
+      "event": "funnel_step",
+      "props": {
+        "step": "cycle"
+      }
+    }
+  ],
+  "log": [
+    "click  Register Corporation",
+    "field  email",
+    "field  password",
+    "field  CEO name",
+    "field  corporation name",
+    "click  Register And Continue",
+    "click  the link in the email",
+    "click  Verify My Email",
+    "click  \"Log In\" on the verified page",
+    "field  login email",
+    "field  login password",
+    "click  Log In",
+    "click  Brief me",
+    "click  inbox tab",
+    "click  nav group of station",
+    "click  station tab",
+    "click  Offices subpage",
+    "click  Orbital Executive Suites: Enter",
+    "click  Rent office",
+    "click  acknowledge the receipt",
+    "field  employees to hire",
+    "click  Hire",
+    "click  acknowledge the receipt",
+    "click  Back to the station",
+    "click  ISA Claims & Leases: Enter",
+    "click  Purchase the Earth lease",
+    "click  acknowledge the receipt",
+    "click  Manage lease",
+    "click  Build extractor",
+    "click  acknowledge the receipt"
+  ]
+}
