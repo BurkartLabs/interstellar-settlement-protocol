@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import request from "supertest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount } from "../helpers/api.js";
@@ -28,7 +28,12 @@ beforeAll(async () => {
   ({ app } = await getApp());
   [viewer, rated, fresh] = [await registerAccount(app), await registerAccount(app), await registerAccount(app)];
   seedStatements(rated.account.id, 30);
-  financialSnapshotTick(); // the statements file is newer than any basis, so every corporation is rated now
+  // Bug #4808: rated at a moment whose milliseconds end in 814, the exact score, so the check below that the score is
+  // nowhere in the body meets a computedAt that carries those digits (a random 1% of runs did before, and failed)
+  const t = Date.now();
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(t - (t % 1000) + 1814);
+  try { financialSnapshotTick(); } finally { vi.useRealTimers(); } // the statements file is newer than any basis, so every corporation is rated now
 });
 
 describe("ISP-148 another corporation's rating, banded", () => {
@@ -39,9 +44,16 @@ describe("ISP-148 another corporation's rating, banded", () => {
     expect(res.body).toMatchObject({ corpId: corpOf(rated).publicId, grade: "AA", scoreBand: "800-849" });
     expect(Object.keys(res.body.inputs)).toEqual(["history", "cashCover", "margin", "solvency", "leverage", "turnover"]);
     for (const band of Object.values(res.body.inputs)) expect(["strong", "fair", "weak"]).toContain(band);
-    // nothing private: not its credits, not its statements, not its account id, not the exact score
-    const text = JSON.stringify(res.body);
+    // nothing private: not its credits, not its statements, not its account id, not the exact score. Bug #4808: the
+    // three fields that carry digits of their own (a millisecond time, an id with one in it, the name) are held to what
+    // they must be; every other value in the body is searched, and no value anywhere is the score.
+    const { computedAt, corpId, corporationName, ...rest } = res.body;
+    expect(String(computedAt)).toMatch(/814$/); // the moment pinned above: the case that failed at random
+    expect([corpId, corporationName]).toEqual([corpOf(rated).publicId, corpOf(rated).corporationName]);
+    const text = JSON.stringify(rest);
     for (const secret of ["123457", "150000", "310000", "statements", "finances", rated.account.id, "814"]) expect(text).not.toContain(secret);
+    const values = (v) => (v && typeof v === "object" ? Object.values(v).flatMap(values) : [v]);
+    expect(values(res.body).map(String)).not.toContain("814");
   });
 
   it("a corporation with too little history is NR, with no band", async () => {
