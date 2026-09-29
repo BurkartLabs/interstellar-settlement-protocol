@@ -18,7 +18,7 @@ import { listingWarning } from "../dumping.js"; // ISP-233 (AB#928): the watch's
 import { withCents } from "../priceChart.js";
 import { suggestedListingPrice } from "../suggestedPrice.js";
 import { labelTableCells } from "../tableLabels.js";
-import { tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
+import { saleDeductions, tradeTotalCell, tradeTypeBadge } from "../tradeHistory.js";
 import { counterpartyHtml } from "../npcProfile.js"; // ISP-124 (AB#818)
 import { showNpcProfile } from "./npcProfileModal.js";
 import { renderMercenaries } from "./mercenaries.js"; // ISP-177 (AB#871)
@@ -805,10 +805,9 @@ export function bindExchangeForms() {
       appState.data = deepClone(payload.account.state);
       const traded = payload.traded || {};
       const proceeds = traded.proceeds != null ? traded.proceeds : qty * price;
-      const taxAmt = traded.taxAmount || 0;
       if (npcStatus) {
-        // ISP-232 (AB#927): everything the sale took, not only the tax: the tariff and any duty withheld too
-        const taken = [taxAmt > 0 ? `${toCurrency(taxAmt)} tax` : "", traded.tariffAmount > 0 ? `${toCurrency(traded.tariffAmount)} tariff` : "", traded.dutyWithheld > 0 ? `${toCurrency(traded.dutyWithheld)} withheld for ITC duty` : ""].filter(Boolean);
+        // ISP-232 (AB#927): everything the sale took, not only the tax; Bug #4853: the same list the Trade History shows
+        const taken = saleDeductions(traded);
         const taxNote = taken.length ? ` (${taken.join(", ")})` : "";
         npcStatus.innerHTML = withProtocol(`Sold ${qty.toLocaleString()} × ${item} at ${toCurrency(price)}/unit — ${toCurrency(proceeds)} credited${taxNote}.`, onExchange("complete"));
       }
