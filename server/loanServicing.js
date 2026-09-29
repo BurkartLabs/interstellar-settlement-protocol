@@ -21,7 +21,7 @@
 // Every movement goes through settleTransfer with an idempotency key naming the loan and the day, so a tick that runs
 // twice, or a retry, collects once. Time is always passed in (P-TEST-TIME): nothing here reads the clock.
 
-import { addAccountNotification, getAccountById, getAllAccountIds, mutateAccountState } from "./gameState.js";
+import { addAccountNotification, getAccountById, getAllAccountIds, mutateAccountState, peekCorp } from "./gameState.js"; // peekCorp: Bug #4816
 import { settleTransfer } from "./settlement.js";
 import { emitToAccount } from "./realtime.js";
 import { LOAN_CATALOG } from "./loans.js";
@@ -157,6 +157,9 @@ export function serviceLoan(accountId, loan, now) {
 function openLoans() {
   const out = [];
   for (const accountId of getAllAccountIds()) {
+    // Bug #4816: look at the loans as held; only a corporation that has an open one is read and copied, as before
+    const held = peekCorp(accountId)?.loans;
+    if (!Array.isArray(held) || !held.some(open)) continue;
     const loans = getAccountById(accountId)?.state?.corp?.loans;
     if (Array.isArray(loans)) for (const loan of loans) if (open(loan)) out.push({ accountId, loan });
   }

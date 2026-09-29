@@ -104,3 +104,55 @@ dividends) settle and copy every account through `getAccountById` to find none.
 What the harness cannot see: the seeded world has no concessions, arbitration, patents, lobbying, raids, bonds or
 offerings, so those tickers are timed over empty stores. Clones finish things at the same moments. No network sits
 between clients and server.
+
+## The store's query and write cost (ISP-267, AB#963)
+
+The store is the accounts snapshot and the world state, held in memory and written to JSON files. It keeps no query
+log. `npm run load:test -- --profile` records a V8 CPU profile of the server under the load, and
+`scripts/profile-store.mjs` reads it as the store's query statistics:
+- **A query** is a store function, or any function that walks every account.
+- **Its total** is the time it spent on the stack, including what it calls.
+- **A run** is an unbroken stretch of samples. At the 1 ms interval a slow call is measured well, and short
+  back-to-back calls merge, so p95 per run is an upper bound for fast queries.
+
+The probe also counts every file the server writes. `--data tmpfs` puts `/data` in memory: a bind mount from a
+Windows host's non-system drive took about a minute per snapshot write, which measured the host, not the server.
+
+**2026-09-29, 200 corporations, 5 minutes, 0.5 CPU, profiled, `/data` in memory.** Bot numbers: cloned corporations,
+one machine, loopback, and the profiler roughly doubles every time against AB#962's unprofiled run above. Before is
+origin/main; after is this change.
+
+| # | before: query | total | share | p95/run | after: query | total | share | p95/run |
+|---|---|---|---|---|---|---|---|---|
+| 1 | writeAccountsSnapshotToDiskNow | 98.1 s | 31.2% | 975 ms | writeAccountsSnapshotToDiskNow | 111.1 s | 35.4% | 912 ms |
+| 2 | its debounce timer | 97.4 s | 31.0% | 975 ms | its debounce timer | 110.3 s | 35.2% | 925 ms |
+| 3 | getAccountById | 71.5 s | 22.7% | 95 ms | mutateAccountState | 58.1 s | 18.5% | 103 ms |
+| 4 | sanitizeAccount | 63.7 s | 20.2% | 71 ms | miningTick | 32.3 s | 10.3% | 407 ms |
+| 5 | mutateAccountState | 52.5 s | 16.7% | 100 ms | getAccountById | 31.1 s | 9.9% | 60 ms |
+| 6 | miningTick | 28.0 s | 8.9% | 496 ms | sanitizeAccount | 28.2 s | 9.0% | 59 ms |
+| 7 | raidTick | 18.0 s | 5.7% | 714 ms | financialSnapshotTick | 8.4 s | 2.7% | 494 ms |
+| 8 | openLoans | 9.4 s | 3.0% | 781 ms | processRndCompletions | 4.7 s | 1.5% | 100 ms |
+| 9 | financialSnapshotTick | 8.7 s | 2.8% | 500 ms | shipmentTick | 4.4 s | 1.4% | 99 ms |
+| 10 | defaultRecoveryTick | 8.5 s | 2.7% | 912 ms | processCeoInsightCompletions | 4.3 s | 1.4% | 100 ms |
+
+- **What changed.** Scans that looked for rare records (loans, defaults, dividends, raid moves) read every account
+  through getAccountById, which settles and deep-copies it. They now look with `peekCorp` (Bug #4816), and
+  getAccountById's total fell from 71.5 s to 31.1 s, two thirds of it now the GET route itself.
+- **Ticker runs.** loanServicingTick + defaultRecoveryTick 3,606 → 2 ms p50; shareOfferingTick + dividendTick 1,431 →
+  1 ms; raidTick 1,803 → 1 ms.
+- **The event loop.** The median window's p50 delay fell from 1,111 to 85 ms; HTTP p50 went from 3.5 to 2.1 s, and
+  errors from 90 to 0.
+- **No GET writes.** Before, 29 GET routes scheduled or made a write; now none does
+  (tests/integration/get-routes-write-nothing.test.js). Write amplification did not fall, though: 2,007 MB before,
+  2,164 MB after, about 1 MB per HTTP request. The accounts snapshot (16.6 MB at 200 corporations) was written 120
+  and 129 times, 0.43 a second. Reads were not what kept it writing: seven 5-second and 10-second tickers mutate
+  every account on every run (Bug #4848), and each mutation schedules a write (Bug #4815, still open).
+- **Indexes.** None was added. No lookup by public id or email reached the query list, so no index's benefit could
+  be measured.
+- **Filed, each remaining query over 50 ms p95.**
+  - The snapshot write: Bug #4815.
+  - The idle tickers and mutateAccountState: Bug #4848.
+  - getAccountById/sanitizeAccount's deep copy, and the GC pauses it drives into small queries: Bug #4849.
+  - miningTick and financialSnapshotTick's per-mutation passes: Bug #4850.
+  - Startup and shutdown work (loading and seeding the store, the save on SIGTERM) runs once and is not a request's
+    cost.

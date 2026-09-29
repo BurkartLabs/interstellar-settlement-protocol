@@ -22,7 +22,7 @@
 // Every step is keyed by the raid, so a tick that runs twice, or a restart between steps, moves nothing twice.
 // Time is passed in (P-TEST-TIME).
 
-import { addAccountNotification, getAccountById, getAllAccountIds, getState, mutateAccountState, mutateState } from "./gameState.js";
+import { addAccountNotification, getAccountById, getAllAccountIds, getState, mutateAccountState, mutateState, peekCorp } from "./gameState.js"; // peekCorp: Bug #4816
 import { emitToAccount } from "./realtime.js";
 import { accountIdOfCorp } from "./playerLoans.js";
 import { UNITS, ensureCorpMilitary } from "./game/units.js";
@@ -290,7 +290,7 @@ export function raidTick(now) {
   // ISP-180 (AB#874): troops sent between stations join their garrison when they arrive (after the raids above, which
   // settled their own defenders only up to each raid's arrival)
   for (const id of getAllAccountIds()) {
-    const moves = corpOf(id)?.garrisonMoves;
+    const moves = peekCorp(id)?.garrisonMoves; // Bug #4816: a look, not a settled copy of every account
     if (Array.isArray(moves) && moves.some((m) => m.arrivesAt <= now)) mutateAccountState(id, (state) => { settleGarrisonMoves(state.corp, now); }, { sanitize: false });
   }
 }
