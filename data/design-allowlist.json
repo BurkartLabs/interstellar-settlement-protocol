@@ -129,18 +129,6 @@
     },
     {
       "file": "public/styles.css",
-      "key": "radius: border-radius: 2px",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1207 .building-status-badge"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "radius: border-radius: 3px",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1435 .office-nav-btn"
-    },
-    {
-      "file": "public/styles.css",
       "key": "radius: border-radius: 4px",
       "story": "ISP-250 (AB#946)",
       "where": "public/styles.css:802 .cong-picker__option"
@@ -162,24 +150,6 @@
       "key": "radius: border-radius: 8px",
       "story": "ISP-250 (AB#946)",
       "where": "public/styles.css:1020 textarea"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "radius: border-radius: 8px",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1269 .office-header"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "radius: border-radius: 8px",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1316 .office-panel"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "radius: border-radius: 8px",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1662 .expedition-card"
     },
     {
       "file": "public/styles.css",
@@ -207,18 +177,6 @@
     },
     {
       "file": "public/styles.css",
-      "key": "spacing: gap: 0.3rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1362 .office-stat-cell"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "spacing: gap: 0.3rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1411 .office-hire-label"
-    },
-    {
-      "file": "public/styles.css",
       "key": "spacing: gap: 0.4rem",
       "story": "ISP-250 (AB#946)",
       "where": "public/styles.css:1046 .cycle-figures"
@@ -228,18 +186,6 @@
       "key": "spacing: gap: 0.6rem",
       "story": "ISP-250 (AB#946)",
       "where": "public/styles.css:613 .kpi-strip"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "spacing: gap: 0.8rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1955 .data-table--stack td"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "spacing: margin-bottom: 0.35rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1676 .expedition-card-header"
     },
     {
       "file": "public/styles.css",
@@ -261,27 +207,9 @@
     },
     {
       "file": "public/styles.css",
-      "key": "spacing: margin-top: 0.3rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1694 .expedition-yields"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "spacing: margin: 0 0 0.3rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1290 .office-header__title"
-    },
-    {
-      "file": "public/styles.css",
       "key": "spacing: margin: 0 0 0.6rem",
       "story": "ISP-250 (AB#946)",
       "where": "public/styles.css:1503 .action-receipt-summary"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "spacing: margin: 0 0 0.85rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1330 .office-panel__label"
     },
     {
       "file": "public/styles.css",
@@ -309,33 +237,9 @@
     },
     {
       "file": "public/styles.css",
-      "key": "spacing: padding-left: 0.5em",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1376 .office-stat-cell__value"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "spacing: padding-left: 1em",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1386 .office-stat-cell__label"
-    },
-    {
-      "file": "public/styles.css",
       "key": "spacing: padding-right: 0.2rem",
       "story": "ISP-250 (AB#946)",
       "where": "public/styles.css:540 #notification-list"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "spacing: padding: 0.2em",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1206 .building-status-badge"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "spacing: padding: 0.2rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1956 .data-table--stack td"
     },
     {
       "file": "public/styles.css",
@@ -345,33 +249,9 @@
     },
     {
       "file": "public/styles.css",
-      "key": "spacing: padding: 0.45em",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1436 .office-nav-btn"
-    },
-    {
-      "file": "public/styles.css",
       "key": "spacing: padding: 0.45rem",
       "story": "ISP-250 (AB#946)",
       "where": "public/styles.css:1221 .station-location-banner"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "spacing: padding: 0.55rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1948 .data-table--stack tr"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "spacing: padding: 0.65rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1663 .expedition-card"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "spacing: padding: 0.7rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1086 .data-table td"
     },
     {
       "file": "public/styles.css",
@@ -387,21 +267,9 @@
     },
     {
       "file": "public/styles.css",
-      "key": "spacing: padding: 1.1rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1317 .office-panel"
-    },
-    {
-      "file": "public/styles.css",
       "key": "spacing: padding: 1.2rem",
       "story": "ISP-250 (AB#946)",
       "where": "public/styles.css:524 .app-header"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "spacing: padding: 1.4rem",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1266 .office-header"
     },
     {
       "file": "public/styles.css",
