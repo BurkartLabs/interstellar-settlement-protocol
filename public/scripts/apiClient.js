@@ -187,7 +187,12 @@ export async function parseJsonResponse(response) {
       payload = fallback;
     }
 
-    throw new Error(payload.error || "Request failed.");
+    // ISP-254 (AB#4811): the refusal's own code and status ride on the error, so a screen can tell an unfunded
+    // request from any other refusal (public/scripts/protocol.js) without reading the words
+    const error = new Error(payload.error || "Request failed.");
+    if (typeof payload.code === "string") error.code = payload.code;
+    error.status = response.status;
+    throw error;
   }
 
   return response.json();

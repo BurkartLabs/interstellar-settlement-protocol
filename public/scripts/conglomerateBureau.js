@@ -8,6 +8,10 @@
 import { escapeHtml } from "./html.js";
 import { codeSlotHtml } from "./sectionCodes.js"; // ISP-250 (AB#946): the drawn sections' document codes
 import { utcTime } from "./timeFormat.js"; // ISP-249 (AB#945)
+import { protocolLineHtml } from "./protocol.js"; // ISP-254 (AB#4811)
+
+/** An invitation or application filed and awaiting an answer: Filed, awaiting review // CGL-ADM-1 (at render, once codes are in). */
+const pending = () => protocolLineHtml({ meaning: "pending", screen: "conglomerate" });
 
 const n = (v) => Math.round(Number(v) || 0).toLocaleString("en-US");
 
@@ -93,7 +97,7 @@ export function invitationsHtml(view) {
       ${emblemSvg(i.conglomerate.emblem, i.conglomerate.colour)}
       <div class="cong-item__text">
         <h4 class="ui-card__title">${escapeHtml(i.conglomerate.name)}</h4>
-        <p class="ui-card__meta">Level ${n(i.conglomerate.level)} · ${n(i.conglomerate.memberCount)} of ${n(i.conglomerate.maxMembers)} members · invited ${bureauTime(i.at)}</p>
+        <p class="ui-card__meta">Level ${n(i.conglomerate.level)} · ${n(i.conglomerate.memberCount)} of ${n(i.conglomerate.maxMembers)} members · invited ${bureauTime(i.at)} ${pending()}</p>
       </div>
       <div class="cong-actions">
         ${button("cong-invitation-accept", "Accept", { variant: "primary", data: { conglomerate: i.conglomerate.id, invitation: i.id } })}
@@ -105,7 +109,7 @@ export function invitationsHtml(view) {
       ${emblemSvg(view.application.conglomerate.emblem, view.application.conglomerate.colour)}
       <div class="cong-item__text">
         <h4 class="ui-card__title">Your application to ${escapeHtml(view.application.conglomerate.name)}</h4>
-        <p class="ui-card__meta">Sent ${bureauTime(view.application.at)}. Its founder or a director answers it; it expires unanswered after 7 days.</p>
+        <p class="ui-card__meta">Sent ${bureauTime(view.application.at)}. Its founder or a director answers it; it expires unanswered after 7 days. ${pending()}</p>
       </div>
       <div class="cong-actions">${button("cong-application-withdraw", "Withdraw", { variant: "ghost", data: { conglomerate: view.application.conglomerate.id, application: view.application.id } })}</div>
     </div>` : "";
@@ -115,7 +119,7 @@ export function invitationsHtml(view) {
       <p class="ui-state__why">A conglomerate's founder or directors invite corporations. You can also ask to join one yourself.</p>
       ${button("cong-goto-directory", "Browse conglomerates")}
     </div>`;
-  const cooldown = view.joinCooldownUntil ? `<p class="cong-refusal">Your corporation left a conglomerate recently. It can accept an invitation or apply from ${bureauTime(view.joinCooldownUntil)}.</p>` : "";
+  const cooldown = view.joinCooldownUntil ? `<p class="cong-refusal">Your corporation left a conglomerate recently. It can accept an invitation or apply from ${bureauTime(view.joinCooldownUntil)}. ${protocolLineHtml({ meaning: "suspended", screen: "conglomerate" })}</p>` : "";
   return `
     <section class="ui-panel station__panel cong-panel" data-role="cong-invitations">
       <h3>${codeSlotHtml("cong-invitations")}Invitations and applications</h3>
@@ -139,7 +143,7 @@ export function applyRefusal(view, c) {
 export function directoryHtml(list, view, { error } = {}) {
   let body;
   if (error) {
-    body = `<div class="ui-state ui-state--error" role="alert"><p class="ui-state__title">The directory could not be loaded</p><p class="ui-state__why">${escapeHtml(error)} Nothing has changed.</p>${button("cong-reload", "Try again")}</div>`;
+    body = `<div class="ui-state ui-state--error" role="alert"><p class="ui-state__title">The directory could not be loaded</p><p class="ui-state__why">${escapeHtml(error)} Nothing has changed. ${protocolLineHtml({ meaning: "failed", screen: "conglomerate" })}</p>${button("cong-reload", "Try again")}</div>`;
   } else if (!list) {
     body = `<p class="station__note">Reading the Bureau's register…</p>`;
   } else if (!list.length) {
@@ -244,11 +248,11 @@ export function memberHtml(view, { search } = {}) {
   }).join("");
   const directorsFull = may("set-director") && directors >= c.maxDirectors ? `<p class="cong-item__why">${n(c.maxDirectors)} directors is the most a conglomerate may have. Make one a member before promoting another.</p>` : "";
   const applications = c.applications.length ? `<ul class="cong-list">${c.applications.map((a) => `
-      <li class="ui-card cong-item"><div class="cong-item__text"><h4 class="ui-card__title">${escapeHtml(a.corpName || "A corporation")}</h4><p class="ui-card__meta">Applied ${bureauTime(a.at)}</p></div>
+      <li class="ui-card cong-item"><div class="cong-item__text"><h4 class="ui-card__title">${escapeHtml(a.corpName || "A corporation")}</h4><p class="ui-card__meta">Applied ${bureauTime(a.at)} ${pending()}</p></div>
       <div class="cong-actions">${may("answer-application") ? button("cong-application-accept", "Accept", { variant: "primary", data: { application: a.id }, disabled: c.memberCount >= c.maxMembers }) + button("cong-application-decline", "Decline", { variant: "ghost", data: { application: a.id } }) : '<span class="cong-muted">The founder or a director answers</span>'}</div></li>`).join("")}</ul>${c.memberCount >= c.maxMembers ? `<p class="cong-item__why">The conglomerate is full (${n(c.memberCount)} of ${n(c.maxMembers)}). An application can be accepted when a place opens.</p>` : ""}`
     : `<p class="station__note">No applications waiting.</p>`;
   const invitations = c.invitations.length ? `<ul class="cong-list">${c.invitations.map((i) => `
-      <li class="ui-card cong-item"><div class="cong-item__text"><h4 class="ui-card__title">${escapeHtml(i.corpName || "A corporation")}</h4><p class="ui-card__meta">Invited ${bureauTime(i.at)}</p></div>
+      <li class="ui-card cong-item"><div class="cong-item__text"><h4 class="ui-card__title">${escapeHtml(i.corpName || "A corporation")}</h4><p class="ui-card__meta">Invited ${bureauTime(i.at)} ${pending()}</p></div>
       <div class="cong-actions">${may("invite") ? button("cong-invitation-withdraw", "Withdraw", { variant: "ghost", data: { invitation: i.id } }) : ""}</div></li>`).join("")}</ul>` : `<p class="station__note">No invitations waiting for an answer.</p>`;
   const results = search?.results ? (search.results.length ? `<ul class="cong-list">${search.results.map((r) => `
       <li class="ui-card cong-item"><div class="cong-item__text"><h4 class="ui-card__title">${escapeHtml(r.corporationName)}</h4><p class="ui-card__meta">CEO ${escapeHtml(r.ceo || "unknown")}</p></div>
@@ -260,7 +264,7 @@ export function memberHtml(view, { search } = {}) {
         <span class="ui-field__hint" id="cong-invite-hint">Search by name. The corporation answers from its own Bureau view.</span></div>
         <button type="submit" class="ui-button ui-button--secondary">Search</button>
       </form>
-      <p class="cong-form-status" data-role="cong-invite-status" role="status">${escapeHtml(search?.status || "")}</p>
+      <p class="cong-form-status" data-role="cong-invite-status" role="status">${escapeHtml(search?.status || "")}${search?.status && search.protocol ? ` ${protocolLineHtml(search.protocol)}` : ""}</p>
       ${results}` : "";
   const identity = may("set-identity") ? `
       <form class="cong-identity" data-role="cong-identity-form" novalidate>

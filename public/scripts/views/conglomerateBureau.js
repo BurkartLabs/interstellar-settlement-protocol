@@ -23,6 +23,11 @@ import { showStationBuilding } from "./station.js";
 import { scrollBehavior } from "../motion.js"; // AB#1760
 import { paintStationArt } from "../stationArt.js"; // ISP-213 (AB#908)
 import { deadline } from "../timeFormat.js"; // ISP-249 (AB#945)
+import { escapeHtml } from "../html.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 (AB#4811)
+
+/** A refusal's plain words, then Denied or Unfunded // CGL-ADM-1 (public/scripts/protocol.js). */
+const refusalLine = (message, error = null) => `${escapeHtml(message)} ${protocolLineHtml({ meaning: refusalMeaning(error || message), screen: "conglomerate" })}`;
 
 const CHARTER_STATION = "earth-station-prime";
 // The view's own state survives a redraw: the last reads, the charter form, and the invite search.
@@ -212,7 +217,8 @@ async function act(url, { body, status, confirm, account = false } = {}) {
     return answer;
   } catch (error) {
     const line = panel()?.querySelector(`[data-role="${status}"]`);
-    if (line) line.textContent = error?.message || "The Bureau refused that.";
+    // ISP-254 (AB#4811): the plain refusal, then Denied (or Unfunded) // CGL-ADM-1
+    if (line) line.innerHTML = refusalLine(error?.message || "The Bureau refused that.", error);
     else console.warn("[bureau]", error?.message);
     return null;
   }
@@ -223,7 +229,7 @@ const memberName = (corp) => bureau.view?.conglomerate?.members.find((m) => m.co
 async function fileCharter(form) {
   const status = form.querySelector('[data-role="cong-charter-status"]');
   bureau.form = { name: form.name.value.trim(), emblem: Number(form.emblem?.value) || 1, colour: Number(form.colour?.value) || 1 };
-  if (!bureau.form.name) { status.textContent = "Give the conglomerate a name."; form.name.focus(); return; }
+  if (!bureau.form.name) { status.innerHTML = refusalLine("Give the conglomerate a name."); form.name.focus(); return; }
   const c = bureau.view.charter;
   const answer = await act(`${acct()}/conglomerates`, {
     body: bureau.form,
@@ -246,13 +252,14 @@ async function fileCharter(form) {
 async function searchCorporations(form) {
   const name = form.name.value.trim();
   bureau.search = { name, results: null, status: "" };
-  if (!name) { bureau.search.status = "Type part of a corporation's name."; redraw(); return; }
+  if (!name) { bureau.search = { ...bureau.search, status: "Type part of a corporation's name.", protocol: { meaning: "refused", screen: "conglomerate" } }; redraw(); return; }
   try {
     const found = await parseJsonResponse(await apiFetch(`${acct()}/corporations?name=${encodeURIComponent(name)}`));
     const members = new Set((bureau.view?.conglomerate?.members || []).map((m) => m.corp));
     bureau.search.results = found.corporations.filter((c) => !members.has(c.publicId));
   } catch (error) {
     bureau.search.status = error?.message || "The search did not answer.";
+    bureau.search.protocol = { meaning: "failed", screen: "conglomerate" }; // ISP-254 (AB#4811): Unsuccessful
   }
   redraw();
   panel()?.querySelector("#cong-invite-name")?.focus();

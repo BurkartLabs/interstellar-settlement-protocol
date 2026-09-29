@@ -26,7 +26,7 @@ export function buyConglomerateLevel(accountId, conglomerateId, requested, now =
     return no(409, "not-at-bureau", "Levels are bought at the Conglomerate Affairs Bureau on Earth Station Prime. Travel there, then buy it.");
   }
   const status = levelStatus(c, now);
-  if (status.refusal) return no(503, "level-unavailable", `${status.refusal} The Bureau cannot sell this level just now.`);
+  if (status.refusal) return no(503, "level-unavailable", `${status.refusal} The Bureau cannot sell this level just now. Try again later.`); // Bug #4814
   if (status.top) return no(409, "top-level", `${c.name} is at the highest level, ${c.level}.`);
   const unmet = status.requirements.filter((r) => !r.met);
   if (unmet.length) {
@@ -41,7 +41,7 @@ export function buyConglomerateLevel(accountId, conglomerateId, requested, now =
   for (const m of c.members) {
     m.levelReached = c.level; // ISP-203 (AB#897): each member sees the level-up once, then says it has (ackConglomerateLevel)
     const account = accountByCorp(m.corp);
-    if (account) pushSystemNotification(account, { type: "system", title: `${c.name} reached level ${c.level}`, body: `Your conglomerate now has room for ${c.maxMembers} members.` });
+    if (account) pushSystemNotification(account, { type: "system", protocol: { meaning: "complete", screen: "conglomerate" }, title: `${c.name} reached level ${c.level}`, body: `Your conglomerate now has room for ${c.maxMembers} members.` });
   }
   roomEvent(c, "conglomerate:levelled", { level: c.level, maxMembers: c.maxMembers, cost: status.next.cost });
   return { conglomerate: publicConglomerate(c), treasury: { credits: c.treasury.credits } };
