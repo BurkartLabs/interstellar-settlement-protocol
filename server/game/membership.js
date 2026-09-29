@@ -82,7 +82,7 @@ export function settleSuccession(c, now = Date.now()) {
   heir.role = "founder";
   c.founder = heir.corp;
   const heirAccount = accountByCorp(heir.corp);
-  if (heirAccount) pushSystemNotification(heirAccount, { type: "system", title: "You are now your conglomerate's founder", body: `${c.name}'s founder ${account ? `has not signed in for ${CONGLOMERATE_CATALOG.founderAbsentDays} days` : "no longer exists"}, so the founder role passed to your corporation, its longest-serving ${heirWas}.` });
+  if (heirAccount) pushSystemNotification(heirAccount, { type: "system", protocol: { meaning: "complete", screen: "conglomerate" }, title: "You are now your conglomerate's founder", body: `${c.name}'s founder ${account ? `has not signed in for ${CONGLOMERATE_CATALOG.founderAbsentDays} days` : "no longer exists"}, so the founder role passed to your corporation, its longest-serving ${heirWas}.` });
   saveAccountsNow();
   roomEvent(c, "conglomerate:role-changed", { corp: heir.corp, corpName: corpName(heir.corp), role: "founder", reason: "succession" }, { accounts: [heirAccount?.id, account?.id].filter(Boolean) });
   return true;

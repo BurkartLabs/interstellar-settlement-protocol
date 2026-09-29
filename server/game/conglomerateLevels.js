@@ -41,7 +41,7 @@ export function buyConglomerateLevel(accountId, conglomerateId, requested, now =
   for (const m of c.members) {
     m.levelReached = c.level; // ISP-203 (AB#897): each member sees the level-up once, then says it has (ackConglomerateLevel)
     const account = accountByCorp(m.corp);
-    if (account) pushSystemNotification(account, { type: "system", title: `${c.name} reached level ${c.level}`, body: `Your conglomerate now has room for ${c.maxMembers} members.` });
+    if (account) pushSystemNotification(account, { type: "system", protocol: { meaning: "complete", screen: "conglomerate" }, title: `${c.name} reached level ${c.level}`, body: `Your conglomerate now has room for ${c.maxMembers} members.` });
   }
   roomEvent(c, "conglomerate:levelled", { level: c.level, maxMembers: c.maxMembers, cost: status.next.cost });
   return { conglomerate: publicConglomerate(c), treasury: { credits: c.treasury.credits } };

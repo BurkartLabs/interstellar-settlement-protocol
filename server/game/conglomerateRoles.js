@@ -27,8 +27,10 @@ function withTarget(accountId, conglomerateId, targetCorpId, now) {
   return { ...ctx, target, targetAccount: accountByCorp(target.corp) };
 }
 
+// ISP-254 (AB#4811): every notice here reports a change that has taken effect (a role, a removal, the founder role, a
+// dissolution): Concluded, on the Conglomerate screen, after the plain words
 function tell(account, title, body) {
-  if (account) pushSystemNotification(account, { type: "system", title, body });
+  if (account) pushSystemNotification(account, { type: "system", title, body, protocol: { meaning: "complete", screen: "conglomerate" } });
 }
 
 /** Promote a member to director, or demote a director to member. The founder only; at most maxDirectors directors. */

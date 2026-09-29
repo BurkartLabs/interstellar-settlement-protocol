@@ -336,7 +336,8 @@ export function settleTreasury(c, now = Date.now(), catalog = CONGLOMERATE_CATAL
         c.levelSince = day;
         c.arrearsSince = day; // another arrearsDropDays before the next
         noteTreasury(c, { at: day, kind: "level-lost", by: "bureau", note: `level ${c.level}, room for ${c.maxMembers}` });
-        events.push({ event: "conglomerate:level-lost", payload: { level: c.level, maxMembers: c.maxMembers }, notify: { title: `${c.name} lost a level`, body: `Upkeep went unpaid for ${catalog.arrearsDropDays} days, so it dropped to level ${c.level} (room for ${c.maxMembers}). Nobody was removed; it cannot admit anyone until it is below the new cap. Deposit enough to pay the arrears to stop it.` } });
+        // ISP-254 (AB#4811): a level lost to unpaid upkeep is Lapsed (docs/design/BUREAUCRATIC_UI.md)
+        events.push({ event: "conglomerate:level-lost", payload: { level: c.level, maxMembers: c.maxMembers }, notify: { protocol: { meaning: "expired", screen: "conglomerate" }, title: `${c.name} lost a level`, body: `Upkeep went unpaid for ${catalog.arrearsDropDays} days, so it dropped to level ${c.level} (room for ${c.maxMembers}). Nobody was removed; it cannot admit anyone until it is below the new cap. Deposit enough to pay the arrears to stop it.` } });
       }
     }
     c.upkeepPaidThrough += DAY_MS;
