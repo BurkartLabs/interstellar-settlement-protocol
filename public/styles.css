@@ -98,6 +98,7 @@
   --font-size-4: 18px; /* panel heading */
   --font-size-5: 22px; /* page heading */
   --font-size-6: 26px; /* hero */
+  --font-size-display: clamp(1.2rem, 2.6vw, 1.8rem); /* Bug #4844: the page title and the header's name, fluid from 19 to 29px */
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
@@ -621,7 +622,7 @@ h1, h2, h3, h4, p {
 
 h1 {
   margin-bottom: 0;
-  font-size: clamp(1.2rem, 2.6vw, 1.8rem);
+  font-size: var(--font-size-display);
   letter-spacing: 0.02em;
 }
 
@@ -5109,7 +5110,7 @@ img.station__body {
 .app-header__title {
   margin: 0;
   color: var(--text);
-  font-size: clamp(1.2rem, 2.6vw, 1.8rem);
+  font-size: var(--font-size-display);
   line-height: var(--line-height-tight);
 }
 .app-header__actions {
