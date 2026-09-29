@@ -6,10 +6,9 @@ import { bodyNumber } from "../bodyNumber.js";
 import { buyShares, exitShares, holdingsOfAccount, issuerStanding, listCorporation, listedOffering, listingProblem, openOffering, publicOffering, shareOfferingList } from "../shareOfferings.js";
 import { setPayoutRatio } from "../dividends.js"; // ISP-159 (AB#853)
 import { getAccountById } from "../gameState.js";
-import { sanitizeAccount } from "../game/store.js";
 
 const num = (v) => bodyNumber(v, { fallback: NaN });
-const answer = (accountId, extra) => ({ ...sanitizeAccount(getAccountById(accountId)), ...extra });
+const answer = (accountId, extra) => ({ ...getAccountById(accountId), ...extra }); // Bug #4849: getAccountById is already sanitised; sanitising again copied it twice
 const n = (v) => Number(v).toLocaleString("en-US");
 const shares = (q) => `${n(q)} share${q === 1 ? "" : "s"}`;
 

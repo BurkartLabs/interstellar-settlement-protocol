@@ -4,7 +4,6 @@
 // and the quote to accept.
 import { quoteLoan, acceptLoan, loanOffers } from "../loans.js";
 import { getAccountById } from "../gameState.js";
-import { sanitizeAccount } from "../game/store.js";
 
 const credits = (n) => `${Math.round(n).toLocaleString("en-US")} credits`;
 const day = (t) => utcTime(t, { withDate: true }); // ISP-249 (AB#945)
@@ -33,7 +32,7 @@ function payoffReceipt(loan, paid) {
     next: "Your credit record will show the facility closed at the next rating."
   };
 }
-const answer = (accountId, extra) => ({ ...sanitizeAccount(getAccountById(accountId)), ...extra });
+const answer = (accountId, extra) => ({ ...getAccountById(accountId), ...extra }); // Bug #4849: getAccountById is already sanitised; sanitising again copied it twice
 import { payOffLoan } from "../loanServicing.js"; // ISP-150 (AB#844)
 import { listLoanOffers, postLoanOffer, cancelLoanOffer, acceptLoanOffer, OFFER_RULES, MIN_GRADES, gradeOf, playerLoansOf } from "../playerLoans.js"; // ISP-152 (AB#846), ISP-153 (AB#847)
 import { bodyNumber } from "../bodyNumber.js";

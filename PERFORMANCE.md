@@ -181,3 +181,23 @@ corporations, one machine, loopback):
 The write still happens about 0.44 times a second, because the tickers change every account every few seconds (Bug
 #4848). At 110 ms a write that is 5% of the server, so a longer interval (and a longer crash window) is not worth it
 now. HTTP p95 is still over its 500 ms budget, which is Bug #4849's deep copy on every read.
+
+## The account read (Bug #4849) and what sets HTTP p95 (Bug #4859)
+
+`GET /api/accounts/:id` deep-copied the account (`JSON.parse(JSON.stringify(state))`) and then stringified the copy
+to send it. It now stringifies the held account once (`server/accountJson.js`). The public world's JSON is made once,
+and the result is the same string, which a test holds it to. The loan, bond and equity routes also stopped
+sanitising an already sanitised account.
+
+**2026-09-29, 200 corporations, 5 minutes, 0.5 CPU, `/data` in memory** (bot numbers):
+
+| | before | after |
+|---|---|---|
+| GET /api/accounts/:id p50 (unprofiled) | 123 ms | 63 ms |
+| GET /api/accounts/:id p95 (unprofiled) | 596 ms | 591 ms |
+| event-loop worst five-second p99 (profiled) | 1,482 ms, 11 of 60 windows over 100 ms | 216 ms, 1 window |
+| getAccountById + sanitizeAccount, share of CPU (profiled) | 3.1% + 2.3% | out of the top 10 |
+
+p95 did not move, because the handler no longer sets it. A request that arrives during a ticker run waits for the
+whole run: financialSnapshotTick p95 663 ms, miningTick 488 ms. That is Bug #4859, whose proposed fix is to walk the
+accounts in slices and yield between them.
