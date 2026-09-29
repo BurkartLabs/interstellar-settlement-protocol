@@ -15,12 +15,23 @@ export function cacheControlFor(relPath) {
   return CACHE_REVALIDATE;
 }
 
-/** express.static's options for public/: each file's Cache-Control from cacheControlFor. */
+/**
+ * AB#954 (ISP-258): files another site may embed. helmet sends Cross-Origin-Resource-Policy: same-origin, which lets a
+ * chat client or a search page that draws a link's preview in the browser load nothing from here. The link-preview image
+ * and the icons are public pictures, so they alone say cross-origin.
+ */
+export function embeddableElsewhere(relPath) {
+  const p = String(relPath || "").replace(/\\/g, "/").replace(/^\/+/, "");
+  return p.startsWith("images/og/") || /^(favicon\.(svg|ico)|apple-touch-icon\.png)$/.test(p);
+}
+
+/** express.static's options for public/: each file's Cache-Control from cacheControlFor, and who may embed it. */
 export function staticOptions(publicDir) {
   return {
     setHeaders(res, filePath) {
       const rel = filePath.slice(publicDir.length);
       res.setHeader("Cache-Control", cacheControlFor(rel));
+      if (embeddableElsewhere(rel)) res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     }
   };
 }
