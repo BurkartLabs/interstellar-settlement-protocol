@@ -22,7 +22,7 @@ function refusal(result, corp, unitId, quantity) {
     case "queue-full": return `The shipyard's queue holds ${MAX_QUEUED_JOBS} jobs. Wait for one to finish, or cancel one.`;
     case "fleet-cap": return `Your fleet is at its Fleet Cap: ${result.fleet.vessels} of ${result.fleet.cap} vessels, and ${plural(quantity, unit.name)} would pass it. ${result.fleet.raiseText}`.trim();
     case "insufficient-credits": return fundingRequirementMessage(`${plural(quantity, unit.name)}`, corp, result.cost.credits);
-    case "insufficient-goods": return `${plural(quantity, unit.name)} need ${result.needed.toLocaleString("en-US")} ${result.item} at ${stationById(result.stationId)?.name || "your station"}; it holds ${result.have.toLocaleString("en-US")}.`;
+    case "insufficient-goods": return `${plural(quantity, unit.name)} need ${result.needed.toLocaleString("en-US")} ${result.item} at ${stationById(result.stationId)?.name || "your station"}; it holds ${result.have.toLocaleString("en-US")}. Bring more there, or queue fewer.`; // AB#4810 (ISP-6)
     default: return "The shipyard could not queue that.";
   }
 }
@@ -41,7 +41,8 @@ export function registerShipyardRoutes(app) {
     const notification = addAccountNotification(req.params.accountId, {
       type: "infrastructure",
       title: "Ship Production Queued",
-      body: `${plural(job.quantity, UNITS[job.unitId].name)} queued at your ${SHIPYARD.name}.`
+      body: `${plural(job.quantity, UNITS[job.unitId].name)} queued at your ${SHIPYARD.name}.`,
+      protocol: { meaning: "queued", screen: "fleet" } // ISP-254 (AB#4810)
     });
     if (notification) emitToAccount(req.params.accountId, "notifications:new", { accountId: req.params.accountId, notification });
     saveAccountsNow(); // a purchase: on disk now

@@ -4,6 +4,7 @@
 // sends the orders. The rules are the server's: the upkeep here is public/scripts/militaryUpkeep.js, the rule the
 // ticker charges by, and a destination's trip length comes from the server (GET /fleets/:id/destinations).
 import { escapeHtml } from "./html.js";
+import { protocolLineHtml } from "./protocol.js"; // ISP-254 (AB#4810)
 import { durationText } from "./shipyardPanel.js";
 import { shipyardTierOf, upkeepBreakdown } from "./militaryUpkeep.js";
 import { utcTime } from "./timeFormat.js";
@@ -47,7 +48,7 @@ export function forcesSummaryHtml(corp, catalog) {
   const why = m.upkeep?.short ? "Upkeep is unpaid: readiness falls 10 points a day, to 40, until it is paid; paying restores 20 a day." : "Upkeep is paid.";
   const fleet = corp?.fleet;
   return `<dl class="fleet__summary">
-      <div><dt>Readiness</dt><dd><strong data-fleet-readiness>${readiness}%</strong> <span class="station__note">scales attack and accuracy in battle. ${escapeHtml(why)}</span></dd></div>
+      <div><dt>Readiness</dt><dd><strong data-fleet-readiness>${readiness}%</strong> <span class="station__note">scales attack and accuracy in battle. ${escapeHtml(why)}</span>${m.upkeep?.short ? ` ${protocolLineHtml({ meaning: "owed", screen: "fleet" })}` : ""}</dd></div>
       <div><dt>Upkeep</dt><dd><strong data-fleet-upkeep>${money(up.total)} a day</strong> <span class="station__note">supply ${up.supply} against a capacity of ${up.capacity}: each unit costs ${up.factor.toFixed(2)}x its base upkeep. A bigger shipyard raises the capacity.</span></dd></div>
       ${fleet ? `<div><dt>Fleet Cap</dt><dd><strong>${fleet.vessels} of ${fleet.cap}</strong> <span class="station__note">vessels: probes and ships, in production included.</span></dd></div>` : ""}
     </dl>`;
@@ -105,7 +106,7 @@ export function fleetCardHtml(fleet, corp, catalog, { stationName, now = Date.no
       </details>
       <div class="fleet__picker" data-fleet-picker="${escapeHtml(fleet.id)}" hidden></div>`;
   return `<article class="ui-card fleet__card" data-fleet="${escapeHtml(fleet.id)}">
-      <header class="station__card-header"><h4>${escapeHtml(fleet.name)}</h4><span class="ui-badge">${moving ? "In transit" : "Stationed"}</span></header>
+      <header class="station__card-header"><h4>${escapeHtml(fleet.name)}</h4><span class="ui-badge">${moving ? "In transit" : "Stationed"}</span>${moving ? ` ${protocolLineHtml({ meaning: "active", screen: "fleet" })}` : ""}</header>
       <p class="ui-card__body">${escapeHtml(unitsText(fleet.units, catalog))}</p>
       <p data-fleet-location>${escapeHtml(locationText(fleet, stationName, now))}</p>
       <p class="station__note">Readiness ${readiness}%</p>

@@ -41,6 +41,8 @@ describe("the Fleet tab (AB#869)", () => {
     expect(html).toContain("Upkeep is unpaid: readiness falls 10 points a day");
     expect(html).toMatch(/supply \d+ against a capacity of 40/);
     expect(html).toContain("30 of 152");
+    expect(html).toContain('<span class="protocol-line">In arrears'); // ISP-254 (AB#4810): beside the unpaid upkeep
+    expect(forcesSummaryHtml({ ...corp, military: { ...corp.military, upkeep: { short: false } } }, CATALOG)).not.toContain("protocol-line");
   });
 
   it("gives each fleet its units, place, arrival and readiness, and no orders while in transit", () => {
@@ -55,6 +57,9 @@ describe("the Fleet tab (AB#869)", () => {
     expect(locationText(corp.military.fleets[1], stationName, now)).toBe("In transit to Mars Orbital Dock, arrives in 45 min (01:01 UTC)");
     expect(moving).toContain("it takes no orders until it arrives");
     expect(moving).not.toContain("data-fleet-deploy");
+    // ISP-254 (AB#4810): an order under way is In force beside its plain badge; a stationed fleet has no record open
+    expect(moving).toContain('In transit</span> <span class="protocol-line">In force');
+    expect(stationed).not.toContain("protocol-line");
   });
 
   it("forms from the reserve only, with the server's list of names", () => {

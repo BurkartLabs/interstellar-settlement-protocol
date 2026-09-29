@@ -8,6 +8,8 @@ import { durationText, renderShipyardPanel } from "../shipyardPanel.js"; // ISP-
 import { renderTrainingPanel } from "../trainingPanel.js"; // ISP-172 (AB#866)
 import { appState, techTree } from "../state.js";
 import { pushFeedback, showTradeConfirmation, updateAllViews } from "./shared.js";
+import { escapeHtml } from "../html.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-254 (AB#4810)
 import { showActionReceipt } from "./receiptModal.js";
 import { utcTime } from "../timeFormat.js";
 
@@ -17,10 +19,15 @@ const accountPath = (rest) => `/api/accounts/${encodeURIComponent(appState.accou
 const post = async (path, body) => parseJsonResponse(await apiFetch(accountPath(path), {
   method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {})
 }));
-function redraw(account, message) {
+// ISP-254 (AB#4810): `meaning` is the guide's phrase for what the order did (protocol.js), drawn after the plain words
+function redraw(account, message, meaning) {
   appState.data = deepClone(account.state);
   updateAllViews();
-  if (message) pushFeedback(message, "ok");
+  if (message) pushFeedback(message, "ok", meaning ? { meaning, screen: "fleet" } : null);
+}
+/** A refusal in an order's status line: the server's words, then Denied or Unfunded and the Fleet code. */
+export function refusalStatusHtml(message) {
+  return `${escapeHtml(message)} ${protocolLineHtml({ meaning: refusalMeaning(message), screen: "fleet" })}`;
 }
 
 export function renderFleet(data) {
@@ -54,30 +61,30 @@ function bindFleetList(list) {
     if (!target || target.disabled) return;
     const card = target.closest("[data-fleet], [data-fleet-form]");
     const status = card?.querySelector("[role=status]");
-    const fail = (error) => { if (status) status.textContent = error?.message || "The order was refused."; target.disabled = false; };
+    const fail = (error) => { if (status) status.innerHTML = refusalStatusHtml(error?.message || "The order was refused."); target.disabled = false; };
     try {
       if (target.matches("[data-fleet-form-submit]")) {
         target.disabled = true;
         const account = await post("/fleets/form", { ...countsFrom(card, "form"), name: card.querySelector("[data-form-name]")?.value });
-        redraw(account, `${account.fleet.name} formed.`);
+        redraw(account, `${account.fleet.name} formed.`, "complete");
       } else if (target.matches("[data-fleet-split]")) {
         const id = target.getAttribute("data-fleet-split");
         target.disabled = true;
         const account = await post(`/fleets/${encodeURIComponent(id)}/split`, { ...countsFrom(card, `split-${id}`), name: card.querySelector(`[data-split-name="${CSS.escape(id)}"]`)?.value });
-        redraw(account, `${account.part.name} split off.`);
+        redraw(account, `${account.part.name} split off.`, "complete");
       } else if (target.matches("[data-fleet-merge]")) {
         const id = target.getAttribute("data-fleet-merge");
         target.disabled = true;
         const into = card.querySelector(`[data-fleet-merge-into="${CSS.escape(id)}"]`).value;
         const account = await post(`/fleets/${encodeURIComponent(id)}/merge`, { intoFleetId: into });
-        redraw(account, `Merged into ${account.fleet.name}.`);
+        redraw(account, `Merged into ${account.fleet.name}.`, "complete");
       } else if (target.matches("[data-fleet-disband]")) {
         const id = target.getAttribute("data-fleet-disband");
         const ok = await showTradeConfirmation({ heading: "Fleet Orders", title: "Disband this fleet?", confirmLabel: "Disband",
           rows: [{ label: "Its units", value: "return to your reserve here" }, { label: "Cost", value: "nothing" }] });
         if (!ok) return;
         target.disabled = true;
-        redraw(await post(`/fleets/${encodeURIComponent(id)}/disband`), "Fleet disbanded.");
+        redraw(await post(`/fleets/${encodeURIComponent(id)}/disband`), "Fleet disbanded.", "complete");
       } else if (target.matches("[data-fleet-deploy]")) {
         const id = target.getAttribute("data-fleet-deploy");
         const picker = card.querySelector(`[data-fleet-picker="${CSS.escape(id)}"]`);
@@ -101,7 +108,7 @@ function bindFleetList(list) {
         if (!ok) return;
         target.disabled = true;
         const account = await post(`/fleets/${encodeURIComponent(id)}/deploy`, { toStationId: to });
-        redraw(account, `${account.fleet.name} is on its way.`);
+        redraw(account, `${account.fleet.name} is on its way.`, "active");
       }
     } catch (error) { fail(error); }
   };
@@ -112,7 +119,7 @@ async function queueShips(unitId, quantity) {
   const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/shipyard/queue`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ unitId, quantity })
   }));
-  redraw(account, account.receipt?.title || "Ships queued.");
+  redraw(account, account.receipt?.title || "Ships queued.", "queued");
   showActionReceipt(account, { returnFocusTo: firstPresent("#station-shipyard [data-ship-queue]", ".nav-tab[data-tab='fleet']") });
 }
 
@@ -120,7 +127,7 @@ async function cancelShipJob(jobId) {
   const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/shipyard/cancel`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId })
   }));
-  redraw(account, account.receipt?.title || "Production cancelled.");
+  redraw(account, account.receipt?.title || "Production cancelled.", "cancelled");
   showActionReceipt(account, { returnFocusTo: firstPresent("#station-shipyard [data-ship-queue]", ".nav-tab[data-tab='fleet']") });
 }
 
@@ -129,7 +136,7 @@ async function trainTroops(unitId, quantity) {
   const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/training/queue`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ unitId, quantity })
   }));
-  redraw(account, account.receipt?.title || "Training started.");
+  redraw(account, account.receipt?.title || "Training started.", "queued");
   showActionReceipt(account, { returnFocusTo: firstPresent("#station-training [data-troop-train]", ".nav-tab[data-tab='fleet']") });
 }
 
@@ -137,6 +144,6 @@ async function cancelTroopJob(jobId) {
   const account = await parseJsonResponse(await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/training/cancel`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId })
   }));
-  redraw(account, account.receipt?.title || "Training cancelled.");
+  redraw(account, account.receipt?.title || "Training cancelled.", "cancelled");
   showActionReceipt(account, { returnFocusTo: firstPresent("#station-training [data-troop-train]", ".nav-tab[data-tab='fleet']") });
 }
