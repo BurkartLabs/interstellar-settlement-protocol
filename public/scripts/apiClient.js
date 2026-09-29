@@ -20,23 +20,43 @@ function showAuthScreen() {
 // Bug AB#2154: the token each (re)connect was made with. The auth callback runs when the CONNECT is sent, not when the
 // server answers it.
 let connectedWith = null;
-export const socket = typeof io !== "undefined"
-  ? io({ auth: (cb) => { connectedWith = appState.accessToken ?? null; cb({ token: appState.accessToken }); } })
-  : null;
+// Bug #4840: null until the game opens. The logged-out landing never loads the socket.io client (37 KB) or connects,
+// so connectSocket() is called only once boot knows it is entering the game. An `export let`: importers see it appear.
+export let socket = null;
+let socketReady = null;
+
+function openSocket() {
+  if (typeof io === "undefined") return null;
+  socket = io({ auth: (cb) => { connectedWith = appState.accessToken ?? null; cb({ token: appState.accessToken }); } });
+  // Bug AB#2154: a page loads, its socket sends CONNECT with no token (none until the page refreshes from its cookie),
+  // and the refresh can finish before the server answers. reauthenticateSocket() then finds the socket not yet
+  // connected and does nothing, and it connects anonymously: outside the account's room, so no mining:updated ever
+  // arrives and the lease view's "Mined this cycle" stays at 0. Whenever the socket connects with a token that is no
+  // longer current, it reconnects with the current one, whichever way the race went.
+  socket.on("connect", () => {
+    if (connectedWith !== (appState.accessToken ?? null)) socket.disconnect().connect();
+  });
+  return socket;
+}
+
+/** Load the socket.io client if it is not on the page yet, then connect, once; resolves to the socket (null if it cannot load). */
+export function connectSocket() {
+  socketReady ??= typeof io !== "undefined" || typeof document === "undefined"
+    ? Promise.resolve(openSocket())
+    : new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "/socket.io/socket.io.js";
+      script.onload = () => resolve(openSocket());
+      script.onerror = () => resolve(null);
+      document.head.append(script);
+    });
+  return socketReady;
+}
 
 /** Reconnect so the socket authenticates with the current token (after a refresh or a login on this page). */
 export function reauthenticateSocket() {
   if (socket?.connected) socket.disconnect().connect();
 }
-
-// Bug AB#2154: a page loads, its socket sends CONNECT with no token (none until the page refreshes from its cookie),
-// and the refresh can finish before the server answers. reauthenticateSocket() then finds the socket not yet connected
-// and does nothing, and it connects anonymously: outside the account's room, so no mining:updated ever arrives and the
-// lease view's "Mined this cycle" stays at 0. Whenever the socket connects with a token that is no longer current, it
-// reconnects with the current one, whichever way the race went.
-socket?.on("connect", () => {
-  if (connectedWith !== (appState.accessToken ?? null)) socket.disconnect().connect();
-});
 
 // AB#757 (D-0.5-2): no token is ever written to storage. The refresh token is an HttpOnly cookie the page cannot
 // read, and the access token lives in appState only; only the account id, which is not a credential, is kept.
